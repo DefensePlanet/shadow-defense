@@ -50,6 +50,7 @@ jobs:
           cp website/play.html _site/
           cp -r website/css _site/
           cp -r website/js _site/
+          cp website/CNAME _site/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
