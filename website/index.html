@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Defense: Tales from the Pages</title>
+    <meta name="description" content="A literary-themed tower defense game where iconic book characters defend against villain invasions. Play free in your browser!">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav id="navbar">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">Shadow Defense</a>
+            <button class="nav-toggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+            <ul class="nav-links">
+                <li><a href="#about">About</a></li>
+                <li><a href="#towers">Towers</a></li>
+                <li><a href="#levels">Levels</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#play" class="nav-cta">Play Now</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="hero">
+        <div class="hero-bg">
+            <div class="floating-pages">
+                <div class="page page-1"></div>
+                <div class="page page-2"></div>
+                <div class="page page-3"></div>
+                <div class="page page-4"></div>
+                <div class="page page-5"></div>
+            </div>
+        </div>
+        <div class="hero-content">
+            <p class="hero-tagline">A Literary Tower Defense Adventure</p>
+            <h1 class="hero-title">
+                <span class="title-shadow">Shadow</span>
+                <span class="title-defense">Defense</span>
+            </h1>
+            <p class="hero-subtitle">Tales from the Pages</p>
+            <p class="hero-description">
+                Summon legendary literary heroes to defend against waves of villains
+                torn from the pages of classic stories. Six iconic worlds. Six unforgettable defenders.
+                One epic battle for the books.
+            </p>
+            <div class="hero-buttons">
+                <a href="#play" class="btn btn-primary">Play Free in Browser</a>
+                <a href="#about" class="btn btn-secondary">Learn More</a>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <span>Scroll</span>
+            <div class="scroll-arrow"></div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>The Story Unfolds</h2>
+                <div class="section-divider"></div>
+            </div>
+            <div class="about-grid reveal">
+                <div class="about-text">
+                    <p class="about-lead">
+                        The villains have escaped their stories. Only the heroes can stop them.
+                    </p>
+                    <p>
+                        In <strong>Shadow Defense: Tales from the Pages</strong>, classic literary
+                        characters step off the page and into battle. Place legendary heroes as towers
+                        to defend against waves of iconic villains, each drawn from the darkest chapters
+                        of beloved stories.
+                    </p>
+                    <p>
+                        From the dense forests of Sherwood to the foggy streets of Victorian London,
+                        every level brings a new world to life with procedurally generated backgrounds,
+                        themed enemies, and unique challenges. Upgrade your heroes through four
+                        powerful tiers and earn star ratings as you master each tale.
+                    </p>
+                </div>
+                <div class="about-stats">
+                    <div class="stat">
+                        <span class="stat-number">6</span>
+                        <span class="stat-label">Legendary Heroes</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">6</span>
+                        <span class="stat-label">Unique Worlds</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">24</span>
+                        <span class="stat-label">Enemy Variants</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">4</span>
+                        <span class="stat-label">Upgrade Tiers</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Towers Section -->
+    <section id="towers">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>The Heroes</h2>
+                <div class="section-divider"></div>
+                <p class="section-subtitle">Six legendary characters, each with unique abilities and four upgrade tiers</p>
+            </div>
+            <div class="tower-grid">
+                <div class="tower-card reveal" data-tower="robin">
+                    <div class="tower-icon">
+                        <svg viewBox="0 0 80 80" class="tower-svg">
+                            <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <!-- Bow and Arrow -->
+                            <path d="M25 55 Q40 20 55 55" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                            <line x1="40" y1="22" x2="40" y2="58" stroke="currentColor" stroke-width="1.5"/>
+                            <polygon points="40,18 37,26 43,26" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h3>Robin Hood</h3>
+                    <p class="tower-role">Precision Archer</p>
+                    <p class="tower-desc">The prince of thieves never misses. Long-range arrows find their mark with deadly accuracy, piercing through enemy defenses from afar.</p>
+                </div>
+
+                <div class="tower-card reveal" data-tower="alice">
+                    <div class="tower-icon">
+                        <svg viewBox="0 0 80 80" class="tower-svg">
+                            <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <!-- Tea cup -->
+                            <ellipse cx="40" cy="38" rx="14" ry="8" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <path d="M26 38 Q26 55 40 55 Q54 55 54 38" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <path d="M54 40 Q62 40 62 47 Q62 52 54 52" fill="none" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Alice</h3>
+                    <p class="tower-role">Wonder Caster</p>
+                    <p class="tower-desc">Curiouser and curiouser! Alice channels Wonderland's madness to slow and confuse enemies with whimsical, reality-bending attacks.</p>
+                </div>
+
+                <div class="tower-card reveal" data-tower="witch">
+                    <div class="tower-icon">
+                        <svg viewBox="0 0 80 80" class="tower-svg">
+                            <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <!-- Witch hat -->
+                            <polygon points="40,18 28,50 52,50" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <ellipse cx="40" cy="50" rx="18" ry="5" fill="none" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Wicked Witch</h3>
+                    <p class="tower-role">Area Sorceress</p>
+                    <p class="tower-desc">The Witch of the West unleashes devastating area-of-effect spells, melting groups of enemies with powerful dark magic. Surrender, Dorothy!</p>
+                </div>
+
+                <div class="tower-card reveal" data-tower="peter">
+                    <div class="tower-icon">
+                        <svg viewBox="0 0 80 80" class="tower-svg">
+                            <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <!-- Dagger -->
+                            <line x1="40" y1="20" x2="40" y2="52" stroke="currentColor" stroke-width="2.5"/>
+                            <line x1="33" y1="35" x2="47" y2="35" stroke="currentColor" stroke-width="2.5"/>
+                            <polygon points="40,16 37,22 43,22" fill="currentColor"/>
+                            <!-- Stars -->
+                            <circle cx="28" cy="26" r="2" fill="currentColor"/>
+                            <circle cx="54" cy="28" r="1.5" fill="currentColor"/>
+                            <circle cx="56" cy="50" r="2" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h3>Peter Pan</h3>
+                    <p class="tower-role">Swift Striker</p>
+                    <p class="tower-desc">The boy who never grows up attacks with lightning speed! Fast strikes and fairy dust make Peter a relentless force against any foe.</p>
+                </div>
+
+                <div class="tower-card reveal" data-tower="phantom">
+                    <div class="tower-icon">
+                        <svg viewBox="0 0 80 80" class="tower-svg">
+                            <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <!-- Mask -->
+                            <path d="M28 35 Q28 25 40 25 Q52 25 52 35 L52 42 Q46 48 40 42 Q34 48 28 42 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="34" cy="34" r="3" fill="currentColor"/>
+                            <circle cx="46" cy="34" r="3" fill="currentColor"/>
+                            <!-- Music notes -->
+                            <path d="M22 52 L22 44 Q28 42 28 46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <circle cx="22" cy="52" r="2.5" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h3>Phantom</h3>
+                    <p class="tower-role">Sound Haunter</p>
+                    <p class="tower-desc">The Opera Ghost's haunting melodies ripple outward in devastating sound waves, damaging all enemies who dare enter his domain.</p>
+                </div>
+
+                <div class="tower-card reveal" data-tower="scrooge">
+                    <div class="tower-icon">
+                        <svg viewBox="0 0 80 80" class="tower-svg">
+                            <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <!-- Coin / Money -->
+                            <circle cx="40" cy="38" r="13" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                            <text x="40" y="43" text-anchor="middle" font-size="16" font-weight="bold" fill="currentColor" font-family="serif">$</text>
+                            <!-- Small coins -->
+                            <circle cx="24" cy="52" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <circle cx="56" cy="52" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <h3>Scrooge</h3>
+                    <p class="tower-role">Gold Miser</p>
+                    <p class="tower-desc">Bah, humbug! The miserly Scrooge attacks enemies while generating bonus gold. His greed becomes your greatest strategic asset.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Levels Section -->
+    <section id="levels">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>The Worlds</h2>
+                <div class="section-divider"></div>
+                <p class="section-subtitle">Six handcrafted realms, each with unique paths, enemies, and atmosphere</p>
+            </div>
+            <div class="level-grid">
+                <div class="level-card reveal" data-level="sherwood">
+                    <div class="level-number">I</div>
+                    <div class="level-info">
+                        <h3>Sherwood Forest</h3>
+                        <p>Dense ancient woodland where outlaws reign. Navigate winding forest paths beneath towering oaks as the Sheriff's men march through the greenwood.</p>
+                    </div>
+                </div>
+
+                <div class="level-card reveal" data-level="wonderland">
+                    <div class="level-number">II</div>
+                    <div class="level-info">
+                        <h3>Wonderland</h3>
+                        <p>A topsy-turvy realm where nothing is as it seems. Twisted paths wind past oversized mushrooms and grinning cats as the Queen's forces advance.</p>
+                    </div>
+                </div>
+
+                <div class="level-card reveal" data-level="oz">
+                    <div class="level-number">III</div>
+                    <div class="level-info">
+                        <h3>Land of Oz</h3>
+                        <p>Follow the yellow brick road through emerald fields. The Witch's flying minions swarm the enchanted pathways in growing numbers.</p>
+                    </div>
+                </div>
+
+                <div class="level-card reveal" data-level="neverland">
+                    <div class="level-number">IV</div>
+                    <div class="level-info">
+                        <h3>Neverland</h3>
+                        <p>A tropical paradise hiding danger at every turn. Captain Hook's pirate crew sails in from Skull Rock, raiding the island's winding shores.</p>
+                    </div>
+                </div>
+
+                <div class="level-card reveal" data-level="opera">
+                    <div class="level-number">V</div>
+                    <div class="level-info">
+                        <h3>Paris Opera</h3>
+                        <p>Grand halls and hidden catacombs beneath the stage. Dark figures emerge from the shadows of the labyrinthine opera house corridors.</p>
+                    </div>
+                </div>
+
+                <div class="level-card reveal" data-level="london">
+                    <div class="level-number">VI</div>
+                    <div class="level-info">
+                        <h3>Victorian London</h3>
+                        <p>Fog-choked cobblestone streets under gaslight glow. Spectral figures haunt the final chapter in this atmospheric battle through Dickensian alleyways.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Features</h2>
+                <div class="section-divider"></div>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon-wrap">
+                        <svg viewBox="0 0 40 40" class="feature-svg"><polygon points="20,4 24,14 35,15 27,22 29,33 20,28 11,33 13,22 5,15 16,14" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                    </div>
+                    <h3>Star Ratings</h3>
+                    <p>Earn up to three stars per level. Perfect your strategy and master every world for maximum glory.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon-wrap">
+                        <svg viewBox="0 0 40 40" class="feature-svg"><path d="M12 30 L12 18 L20 10 L28 18 L28 30 Z" fill="none" stroke="currentColor" stroke-width="2"/><line x1="20" y1="10" x2="20" y2="4" stroke="currentColor" stroke-width="2"/><polygon points="20,2 17,6 23,6" fill="currentColor"/></svg>
+                    </div>
+                    <h3>4-Tier Upgrades</h3>
+                    <p>Evolve each hero through four increasingly powerful tiers, unlocking devastating new abilities.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon-wrap">
+                        <svg viewBox="0 0 40 40" class="feature-svg"><circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="16" r="3" fill="currentColor"/><circle cx="26" cy="16" r="3" fill="currentColor"/><circle cx="14" cy="26" r="3" fill="currentColor"/><circle cx="26" cy="26" r="3" fill="currentColor"/></svg>
+                    </div>
+                    <h3>24 Enemy Types</h3>
+                    <p>Face unique villain-themed enemies across six factions, each with four tiers of increasing difficulty.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon-wrap">
+                        <svg viewBox="0 0 40 40" class="feature-svg"><rect x="8" y="14" width="24" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 18 L20 26 L32 18" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                    </div>
+                    <h3>Procedural Art</h3>
+                    <p>Every level features procedurally generated backgrounds, themed decorations, and unique visual atmospheres.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon-wrap">
+                        <svg viewBox="0 0 40 40" class="feature-svg"><path d="M10 30 Q10 12 20 8 Q30 12 30 30" fill="none" stroke="currentColor" stroke-width="2"/><line x1="10" y1="30" x2="30" y2="30" stroke="currentColor" stroke-width="2"/><path d="M15 30 Q15 20 20 16 Q25 20 25 30" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+                    </div>
+                    <h3>Voice Acting</h3>
+                    <p>Each hero speaks with a unique voice and delivers iconic quotes when placed on the battlefield.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon-wrap">
+                        <svg viewBox="0 0 40 40" class="feature-svg"><polygon points="20,6 8,34 32,34" fill="none" stroke="currentColor" stroke-width="2"/><line x1="14" y1="22" x2="26" y2="22" stroke="currentColor" stroke-width="1.5"/><polygon points="20,14 17,20 23,20" fill="currentColor"/></svg>
+                    </div>
+                    <h3>Wave Control</h3>
+                    <p>Start waves when you're ready with manual controls. Toggle fast-forward to speed through the action.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Play Section -->
+    <section id="play">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Play Now</h2>
+                <div class="section-divider"></div>
+                <p class="section-subtitle">Jump right in &mdash; no download required</p>
+            </div>
+            <div class="game-wrapper reveal">
+                <div class="game-container" id="game-container">
+                    <div class="game-placeholder" id="game-placeholder">
+                        <div class="game-placeholder-content">
+                            <svg viewBox="0 0 80 80" class="play-icon">
+                                <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2"/>
+                                <polygon points="32,24 32,56 58,40" fill="currentColor"/>
+                            </svg>
+                            <h3>Shadow Defense: Tales from the Pages</h3>
+                            <p>Click to load the game</p>
+                            <button class="btn btn-primary" id="load-game-btn">Launch Game</button>
+                        </div>
+                    </div>
+                    <iframe id="game-frame" src="" allow="autoplay; fullscreen" style="display:none;"></iframe>
+                </div>
+                <div class="game-controls">
+                    <button class="btn btn-small" id="fullscreen-btn" title="Fullscreen">
+                        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M3 3h5v2H5v3H3V3zm9 0h5v5h-2V5h-3V3zM3 12h2v3h3v2H3v-5zm12 3h-3v2h5v-5h-2v3z" fill="currentColor"/></svg>
+                        Fullscreen
+                    </button>
+                </div>
+            </div>
+            <div class="game-requirements reveal">
+                <h4>Requirements</h4>
+                <ul>
+                    <li>Modern web browser (Chrome, Firefox, Edge, or Safari)</li>
+                    <li>WebGL 2.0 support</li>
+                    <li>Keyboard and mouse recommended</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3>Shadow Defense</h3>
+                    <p>Tales from the Pages</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#hero">Home</a>
+                    <a href="#about">About</a>
+                    <a href="#towers">Heroes</a>
+                    <a href="#levels">Worlds</a>
+                    <a href="#play">Play</a>
+                </div>
+                <div class="footer-credit">
+                    <p>Built with Godot Engine</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Shadow Defense: Tales from the Pages. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
