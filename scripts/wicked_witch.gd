@@ -1068,7 +1068,7 @@ func _draw() -> void:
 	# Broomstick held diagonally; weapon arm extends toward aim
 	var broom_hand: Vector2
 	var broom_tilt = 0.0
-	if is_flying:
+	if true:  # Always orbiting/flying
 		# Tilt broomstick forward as if riding
 		broom_tilt = 0.3
 		broom_hand = neck_base + Vector2(-14, 2) + dir * 12.0
@@ -1167,7 +1167,7 @@ func _draw() -> void:
 		draw_line(s_start, s_end, Color(0.48, 0.34, 0.16, 0.4), 1.0)
 
 	# Broom magic glow when flying
-	if is_flying:
+	if true:  # Always orbiting/flying
 		draw_circle(broom_base, 6.0, Color(0.2, 0.6, 0.1, 0.12))
 		draw_circle(broom_tip, 5.0, Color(0.2, 0.6, 0.1, 0.08))
 
@@ -1434,7 +1434,7 @@ func _draw() -> void:
 	var hat_base_pos = head_center + Vector2(0, -7)
 	var hat_tip_pos = hat_base_pos + Vector2(3, -38)
 	# Hat wobble when flying
-	if is_flying:
+	if true:  # Always orbiting/flying
 		hat_tip_pos += Vector2(sin(_time * 3.5) * 2.0, 0)
 
 	# Hat brim (wide, proportional to smaller head)

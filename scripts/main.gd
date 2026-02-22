@@ -2057,7 +2057,7 @@ func _on_level_selected(index: int) -> void:
 	start_button.disabled = false
 	update_hud()
 	var diff_name = ["Easy", "Medium", "Hard"][selected_difficulty]
-	info_label.text = level["name"] + " (%s) â€" Place your towers!" % diff_name
+	info_label.text = level["name"] + " (%s) - Place your towers!" % diff_name
 	wave_auto_timer = -1.0
 
 func _reset_game() -> void:
