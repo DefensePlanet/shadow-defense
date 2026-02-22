@@ -239,6 +239,16 @@ var menu_text_muted = Color(0.54, 0.51, 0.47)
 var _dust_positions: Array = []
 var _book_candle_positions: Array = []
 
+# World map data
+var world_map_hover_index: int = -1
+var world_map_zone_centers: Array = [
+	Vector2(200, 310), Vector2(500, 260), Vector2(1060, 300),
+	Vector2(200, 490), Vector2(640, 460), Vector2(1060, 490)
+]
+var _world_map_stars: Array = []
+var _world_map_clouds: Array = []
+var _world_map_smoke: Array = []
+
 var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge"]
 var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol"]
 var character_quotes: Array = [
@@ -1042,6 +1052,16 @@ func _create_ui() -> void:
 	for i in range(4):
 		_book_candle_positions.append({"x": rng2.randf_range(60, 1220), "y": rng2.randf_range(500, 580), "offset": rng2.randf_range(0, TAU)})
 
+	# World map data
+	var rng3 = RandomNumberGenerator.new()
+	rng3.seed = 200
+	for i in range(40):
+		_world_map_stars.append({"x": rng3.randf_range(10, 1270), "y": rng3.randf_range(5, 200), "size": rng3.randf_range(0.5, 2.0), "speed": rng3.randf_range(1.0, 3.0), "offset": rng3.randf_range(0, TAU)})
+	for i in range(3):
+		_world_map_clouds.append({"x": rng3.randf_range(100, 1100), "y": rng3.randf_range(50, 160), "width": rng3.randf_range(40, 80), "speed": rng3.randf_range(0.15, 0.4)})
+	for i in range(5):
+		_world_map_smoke.append({"y": rng3.randf_range(-5, -35), "speed": rng3.randf_range(0.3, 0.8), "size": rng3.randf_range(2.0, 5.0), "offset": rng3.randf_range(0, TAU)})
+
 	# Title â€” hidden by default (shown on book cover, drawn procedurally)
 	menu_title = Label.new()
 	menu_title.text = ""
@@ -1668,7 +1688,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 		_update_menu_showcase()
 	elif nav_name == "survivors":
 		menu_showcase_panel.visible = false
-		survivor_grid_container.visible = true
+		survivor_grid_container.visible = false
 		survivor_detail_container.visible = false
 		survivor_detail_open = false
 		menu_play_button.visible = false
@@ -1682,7 +1702,6 @@ func _on_nav_pressed(nav_name: String) -> void:
 			chapter_star_labels[i].visible = false
 			chapter_lock_labels[i].visible = false
 			_hide_chapter_diff_buttons(i)
-		_spawn_grid_previews()
 		queue_redraw()
 	elif nav_name == "relics":
 		menu_showcase_panel.visible = false
@@ -1827,11 +1846,10 @@ func _open_survivor_detail(index: int) -> void:
 func _on_detail_back() -> void:
 	survivor_detail_open = false
 	survivor_detail_container.visible = false
-	survivor_grid_container.visible = true
+	survivor_grid_container.visible = false
 	relic_hover_index = -1
 	relic_tooltip_visible = false
 	_remove_detail_preview()
-	_spawn_grid_previews()
 	queue_redraw()
 
 func _update_emporium_hover() -> void:
@@ -2726,41 +2744,42 @@ func _play_random_fighting_quote() -> void:
 		info_label.text = "%s: \"%s\"" % [tname, quote]
 
 func _draw_menu_background() -> void:
-	# === Deep navy background ===
-	draw_rect(Rect2(0, 0, 1280, 720), menu_bg_dark)
-	# Subtle navy/indigo striations
-	for y in range(0, 720, 3):
-		var t = float(y) / 720.0
-		var grain = sin(float(y) * 0.8 + cos(float(y) * 0.3) * 4.0) * 0.008
-		var col = Color(0.05 + grain, 0.05 + grain * 0.8, 0.12 + grain * 1.5)
-		draw_line(Vector2(0, y), Vector2(1280, y), col, 3.0)
+	if menu_current_view != "survivors" or survivor_detail_open:
+		# === Deep navy background ===
+		draw_rect(Rect2(0, 0, 1280, 720), menu_bg_dark)
+		# Subtle navy/indigo striations
+		for y in range(0, 720, 3):
+			var t = float(y) / 720.0
+			var grain = sin(float(y) * 0.8 + cos(float(y) * 0.3) * 4.0) * 0.008
+			var col = Color(0.05 + grain, 0.05 + grain * 0.8, 0.12 + grain * 1.5)
+			draw_line(Vector2(0, y), Vector2(1280, y), col, 3.0)
 
-	# === Subtle gold vignette glow at corners ===
-	draw_circle(Vector2(0, 0), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
-	draw_circle(Vector2(1280, 0), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
-	draw_circle(Vector2(0, 720), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
-	draw_circle(Vector2(1280, 720), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
+		# === Subtle gold vignette glow at corners ===
+		draw_circle(Vector2(0, 0), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
+		draw_circle(Vector2(1280, 0), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
+		draw_circle(Vector2(0, 720), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
+		draw_circle(Vector2(1280, 720), 350.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.04))
 
-	# === Warm ambient candle glow (softer, no crimson) ===
-	for candle in _book_candle_positions:
-		var cx_pos = candle["x"]
-		var cy_pos = candle["y"]
-		var flicker = sin(_time * 5.0 + candle["offset"]) * 0.3 + sin(_time * 8.0 + candle["offset"] * 2.0) * 0.15
-		var glow_r = 80.0 + flicker * 15.0
-		draw_circle(Vector2(cx_pos, cy_pos), glow_r, Color(0.85, 0.55, 0.1, 0.015 + flicker * 0.005))
-		draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.5, Color(0.9, 0.6, 0.15, 0.02 + flicker * 0.007))
-		# Candle body
-		draw_rect(Rect2(cx_pos - 4, cy_pos + 10, 8, 22), Color(0.85, 0.82, 0.7, 0.5))
-		var flame_h = 7.0 + flicker * 4.0
-		draw_circle(Vector2(cx_pos, cy_pos + 6 - flame_h * 0.3), 3.5, Color(1.0, 0.7, 0.2, 0.6 + flicker * 0.2))
-		draw_circle(Vector2(cx_pos, cy_pos + 4 - flame_h * 0.5), 2.0, Color(1.0, 0.9, 0.5, 0.7 + flicker * 0.15))
+		# === Warm ambient candle glow (softer, no crimson) ===
+		for candle in _book_candle_positions:
+			var cx_pos = candle["x"]
+			var cy_pos = candle["y"]
+			var flicker = sin(_time * 5.0 + candle["offset"]) * 0.3 + sin(_time * 8.0 + candle["offset"] * 2.0) * 0.15
+			var glow_r = 80.0 + flicker * 15.0
+			draw_circle(Vector2(cx_pos, cy_pos), glow_r, Color(0.85, 0.55, 0.1, 0.015 + flicker * 0.005))
+			draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.5, Color(0.9, 0.6, 0.15, 0.02 + flicker * 0.007))
+			# Candle body
+			draw_rect(Rect2(cx_pos - 4, cy_pos + 10, 8, 22), Color(0.85, 0.82, 0.7, 0.5))
+			var flame_h = 7.0 + flicker * 4.0
+			draw_circle(Vector2(cx_pos, cy_pos + 6 - flame_h * 0.3), 3.5, Color(1.0, 0.7, 0.2, 0.6 + flicker * 0.2))
+			draw_circle(Vector2(cx_pos, cy_pos + 4 - flame_h * 0.5), 2.0, Color(1.0, 0.9, 0.5, 0.7 + flicker * 0.15))
 
-	# === Floating dust motes (gold) ===
-	for dust in _dust_positions:
-		var dx = dust["x"] + sin(_time * dust["speed"] + dust["offset"]) * 30.0
-		var dy = dust["y"] + cos(_time * dust["speed"] * 0.6 + dust["offset"]) * 20.0
-		var alpha = 0.15 + 0.15 * sin(_time * 1.5 + dust["offset"])
-		draw_circle(Vector2(dx, dy), dust["size"], Color(menu_gold.r, menu_gold.g, menu_gold.b, alpha))
+		# === Floating dust motes (gold) ===
+		for dust in _dust_positions:
+			var dx = dust["x"] + sin(_time * dust["speed"] + dust["offset"]) * 30.0
+			var dy = dust["y"] + cos(_time * dust["speed"] * 0.6 + dust["offset"]) * 20.0
+			var alpha = 0.15 + 0.15 * sin(_time * 1.5 + dust["offset"])
+			draw_circle(Vector2(dx, dy), dust["size"], Color(menu_gold.r, menu_gold.g, menu_gold.b, alpha))
 
 	# === Bottom nav bar drawn enhancements ===
 	var nav_draw_y = 620.0
@@ -2784,7 +2803,7 @@ func _draw_menu_background() -> void:
 		if survivor_detail_open:
 			_draw_survivor_detail()
 		else:
-			_draw_survivor_grid()
+			_draw_world_map()
 	elif menu_current_view == "relics":
 		_draw_relics_tab()
 	elif menu_current_view == "emporium":
@@ -3396,168 +3415,336 @@ func _draw_closed_book() -> void:
 	draw_circle(Vector2(bx + bw * 0.5, clasp_y + 4), 10, Color(0.65, 0.45, 0.1, 0.4))
 	draw_circle(Vector2(bx + bw * 0.5, clasp_y + 4), 6, Color(0.75, 0.55, 0.15, 0.3))
 
-func _draw_survivor_grid() -> void:
-	# === Navy background for survivor roster ===
-	var panel_x = 70.0
-	var panel_y = 45.0
-	var panel_w = 1140.0
-	var panel_h = 560.0
+func _draw_world_map() -> void:
+	var font = ThemeDB.fallback_font
 
-	# Navy section background
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		var grain = sin(float(i) * 2.3) * 0.005
-		col.r += grain
-		col.b += grain * 1.5
-		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
+	# === SKY LAYER (y=0 to y=220) ===
+	for y in range(0, 220, 2):
+		var t = float(y) / 220.0
+		var sky_col = Color(0.08, 0.02, 0.14).lerp(Color(0.04, 0.04, 0.12), t)
+		draw_line(Vector2(0, y), Vector2(1280, y), sky_col, 2.0)
 
-	# Ornate border — gold outer + gold inner
-	var sg_outer = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.35)
-	var sg_gold = Color(0.65, 0.45, 0.1, 0.2)
-	# Outer gold border (3px)
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), sg_outer)
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), sg_outer)
-	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), sg_outer)
-	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), sg_outer)
-	# Inner gold border (1px)
-	draw_rect(Rect2(panel_x + 6, panel_y + 6, panel_w - 12, 1), sg_gold)
-	draw_rect(Rect2(panel_x + 6, panel_y + panel_h - 7, panel_w - 12, 1), sg_gold)
-	draw_rect(Rect2(panel_x + 6, panel_y + 6, 1, panel_h - 12), sg_gold)
-	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), sg_gold)
+	# Stars
+	for star in _world_map_stars:
+		var sa = 0.3 + 0.3 * sin(_time * star["speed"] + star["offset"])
+		draw_circle(Vector2(star["x"], star["y"]), star["size"], Color(1.0, 1.0, 0.95, sa))
 
-	# Corner filigree ornaments (gold circles only)
-	for corner in [Vector2(panel_x + 14, panel_y + 14), Vector2(panel_x + panel_w - 14, panel_y + 14), Vector2(panel_x + 14, panel_y + panel_h - 14), Vector2(panel_x + panel_w - 14, panel_y + panel_h - 14)]:
-		draw_circle(corner, 7, Color(0.65, 0.45, 0.1, 0.2))
-		draw_circle(corner, 5, Color(0.65, 0.45, 0.1, 0.3))
-		draw_circle(corner, 3, Color(0.65, 0.45, 0.1, 0.25))
-		draw_arc(corner, 8, 0, TAU, 24, Color(0.65, 0.45, 0.1, 0.15), 1.0)
+	# Moon (upper right)
+	var moon_glow_r = 50.0 + 3.0 * sin(_time * 0.8)
+	draw_circle(Vector2(1050, 80), moon_glow_r, Color(0.9, 0.85, 0.7, 0.04))
+	draw_circle(Vector2(1050, 80), 45, Color(0.92, 0.88, 0.75, 0.15))
+	draw_circle(Vector2(1050, 80), 40, Color(0.95, 0.92, 0.82, 0.25))
+	draw_circle(Vector2(1050, 80), 35, Color(0.97, 0.95, 0.88, 0.4))
 
-	# "SURVIVORS" title gold underline decoration
-	var surv_title_cx = panel_x + panel_w * 0.5
-	draw_line(Vector2(surv_title_cx - 80, panel_y + 48), Vector2(surv_title_cx + 80, panel_y + 48), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.25), 1.5)
-	draw_line(Vector2(surv_title_cx - 60, panel_y + 51), Vector2(surv_title_cx + 60, panel_y + 51), Color(0.65, 0.45, 0.1, 0.15), 1.0)
+	# Wispy clouds
+	for cloud in _world_map_clouds:
+		var cloud_x = cloud["x"] + sin(_time * cloud["speed"]) * 20.0
+		var cloud_y = cloud["y"]
+		var cloud_w = cloud["width"]
+		for ci in range(3):
+			var cx_off = float(ci - 1) * cloud_w * 0.3
+			draw_circle(Vector2(cloud_x + cx_off, cloud_y), cloud_w * 0.2, Color(0.4, 0.35, 0.5, 0.06))
 
-	# === Draw 6 character cards (3x2 grid) ===
-	var card_w = 310.0
-	var card_h = 210.0
-	var grid_margin_x = 65.0
-	var grid_margin_y = 65.0
-	var gap_x = 40.0
-	var gap_y = 30.0
+	# === MOUNTAIN SILHOUETTES (y=140 to y=300) ===
+	# Back layer
+	var back_peaks = [
+		PackedVector2Array([Vector2(0, 300), Vector2(100, 160), Vector2(250, 300)]),
+		PackedVector2Array([Vector2(200, 300), Vector2(350, 140), Vector2(500, 300)]),
+		PackedVector2Array([Vector2(450, 300), Vector2(640, 170), Vector2(830, 300)]),
+		PackedVector2Array([Vector2(780, 300), Vector2(950, 150), Vector2(1100, 300)]),
+		PackedVector2Array([Vector2(1050, 300), Vector2(1180, 165), Vector2(1280, 300)]),
+	]
+	for peak in back_peaks:
+		draw_colored_polygon(peak, Color(0.03, 0.02, 0.08, 0.6))
 
-	var card_colors = [
-		Color(0.29, 0.55, 0.25, 0.6),  # Robin Hood - forest green
-		Color(0.44, 0.66, 0.86, 0.6),  # Alice - sky blue
-		Color(0.48, 0.25, 0.63, 0.6),  # Wicked Witch - purple
-		Color(0.90, 0.49, 0.13, 0.6),  # Peter Pan - orange
-		Color(0.75, 0.22, 0.17, 0.6),  # Phantom - crimson
-		Color(0.79, 0.66, 0.30, 0.6),  # Scrooge - gold
+	# Front layer
+	var front_peaks = [
+		PackedVector2Array([Vector2(0, 300), Vector2(150, 200), Vector2(320, 300)]),
+		PackedVector2Array([Vector2(280, 300), Vector2(460, 210), Vector2(620, 300)]),
+		PackedVector2Array([Vector2(700, 300), Vector2(880, 190), Vector2(1050, 300)]),
+		PackedVector2Array([Vector2(1000, 300), Vector2(1150, 215), Vector2(1280, 300)]),
+	]
+	for peak in front_peaks:
+		draw_colored_polygon(peak, Color(0.05, 0.04, 0.10, 0.8))
+
+	# Mountain base mist
+	for y in range(270, 310, 2):
+		var mt = float(y - 270) / 40.0
+		draw_line(Vector2(0, y), Vector2(1280, y), Color(0.06, 0.06, 0.12, 0.3 * (1.0 - mt)), 2.0)
+
+	# === GROUND TERRAIN (y=200 to y=620) ===
+	for y in range(200, 620, 3):
+		var gt = float(y - 200) / 420.0
+		var ground_col = Color(0.04 + gt * 0.02, 0.08 + gt * 0.03, 0.04 + gt * 0.01)
+		var grain = sin(float(y) * 1.7) * 0.008
+		ground_col.r += grain
+		ground_col.g += grain * 1.3
+		draw_line(Vector2(0, y), Vector2(1280, y), ground_col, 3.0)
+
+	# Sparse grass tufts
+	var rng_grass = RandomNumberGenerator.new()
+	rng_grass.seed = 777
+	for i in range(60):
+		var gx = rng_grass.randf_range(10, 1270)
+		var gy = rng_grass.randf_range(250, 600)
+		var gh = rng_grass.randf_range(4, 10)
+		var grass_sway = sin(_time * 1.5 + gx * 0.01) * 2.0
+		draw_line(Vector2(gx, gy), Vector2(gx + grass_sway, gy - gh), Color(0.12, 0.22, 0.08, 0.4), 1.0)
+
+	# === GOLDEN WINDING PATHS ===
+	var path_glow_a = 0.15 + 0.05 * sin(_time * 2.0)
+	var path_col = Color(0.6, 0.45, 0.15, path_glow_a)
+	var path_col_core = Color(0.7, 0.55, 0.2, path_glow_a + 0.1)
+	# Robin -> Alice
+	_draw_winding_path(Vector2(200, 310), Vector2(500, 260), path_col, path_col_core)
+	# Alice -> Witch
+	_draw_winding_path(Vector2(500, 260), Vector2(1060, 300), path_col, path_col_core)
+	# Robin -> Peter
+	_draw_winding_path(Vector2(200, 310), Vector2(200, 490), path_col, path_col_core)
+	# Peter -> Phantom
+	_draw_winding_path(Vector2(200, 490), Vector2(640, 460), path_col, path_col_core)
+	# Phantom -> Scrooge
+	_draw_winding_path(Vector2(640, 460), Vector2(1060, 490), path_col, path_col_core)
+	# Witch -> Scrooge
+	_draw_winding_path(Vector2(1060, 300), Vector2(1060, 490), path_col, path_col_core)
+
+	# === WATER (y=570 to y=615) ===
+	for y in range(570, 616, 2):
+		var wt = float(y - 570) / 45.0
+		var wave_offset = sin(_time * 1.5 + float(y) * 0.08) * 3.0
+		var water_col = Color(0.03, 0.08, 0.12).lerp(Color(0.02, 0.06, 0.10), wt)
+		water_col.a = 0.7 + wt * 0.3
+		draw_line(Vector2(wave_offset, y), Vector2(1280 + wave_offset, y), water_col, 2.0)
+	# Water surface highlights
+	for ri in range(8):
+		var rx = 100.0 + float(ri) * 150.0 + sin(_time * 2.0 + float(ri)) * 15.0
+		var ry = 575.0 + sin(_time * 1.2 + float(ri) * 0.5) * 5.0
+		draw_circle(Vector2(rx, ry), 2.0, Color(0.3, 0.5, 0.6, 0.15 + 0.1 * sin(_time * 2.5 + float(ri))))
+
+	# === CHARACTER ZONES ===
+	var zone_colors = [
+		Color(0.29, 0.55, 0.25),  # Robin Hood
+		Color(0.44, 0.66, 0.86),  # Alice
+		Color(0.48, 0.25, 0.63),  # Wicked Witch
+		Color(0.90, 0.49, 0.13),  # Peter Pan
+		Color(0.75, 0.22, 0.17),  # Phantom
+		Color(0.79, 0.66, 0.30),  # Scrooge
 	]
 
 	for i in range(6):
-		var col_idx = i % 3
-		var row = i / 3
-		var cx = panel_x + grid_margin_x + float(col_idx) * (card_w + gap_x)
-		var cy = panel_y + grid_margin_y + float(row) * (card_h + gap_y)
-		var is_selected = (i == survivor_selected_index)
-		var is_hovered = survivor_grid_cards[i].is_hovered() if i < survivor_grid_cards.size() else false
+		var zc = world_map_zone_centers[i]
+		var zcol = zone_colors[i]
+		var is_hovered = (world_map_hover_index == i)
+		var is_selected = (survivor_selected_index == i)
 
-		# Card shadow (6px offset)
-		draw_rect(Rect2(cx + 6, cy + 6, card_w, card_h), Color(0.0, 0.0, 0.0, 0.4))
-
-		# Card background (navy)
-		var bg_col = menu_bg_card
+		# Zone background glow circle
+		var bg_alpha = 0.08
+		if is_hovered:
+			bg_alpha = 0.15
 		if is_selected:
-			bg_col = menu_bg_card_hover
-		elif is_hovered:
-			bg_col = Color(0.09, 0.09, 0.22)
-		draw_rect(Rect2(cx, cy, card_w, card_h), bg_col)
+			bg_alpha = 0.18
+		draw_circle(zc, 80, Color(zcol.r, zcol.g, zcol.b, bg_alpha))
 
-		# Character color accent bar at top
-		var accent = card_colors[i]
-		if is_selected:
-			accent.a = 0.9
-		draw_rect(Rect2(cx, cy, card_w, 5), accent)
+		# Themed environment
+		_draw_zone_environment(i, zc, zcol)
 
-		# Card border
-		var card_border_col = Color(0.65, 0.45, 0.1, 0.25)
-		if is_selected:
-			card_border_col = Color(0.85, 0.65, 0.1, 0.8)
-		elif is_hovered:
-			card_border_col = Color(0.75, 0.55, 0.1, 0.5)
-		draw_rect(Rect2(cx, cy, card_w, 2), card_border_col)
-		draw_rect(Rect2(cx, cy + card_h - 2, card_w, 2), card_border_col)
-		draw_rect(Rect2(cx, cy, 2, card_h), card_border_col)
-		draw_rect(Rect2(cx + card_w - 2, cy, 2, card_h), card_border_col)
+		# Character figure
+		var char_pulse = 0.0
+		if is_hovered:
+			char_pulse = sin(_time * 3.0) * 3.0
+		_draw_zone_character(i, zc, zcol, char_pulse)
 
-		# Selected glow effect (gold)
-		if is_selected:
-			var glow_alpha = 0.08 + sin(_time * 3.0) * 0.04
-			draw_rect(Rect2(cx - 3, cy - 3, card_w + 6, card_h + 6), Color(menu_gold.r, menu_gold.g, menu_gold.b, glow_alpha))
-
-		# Hover gold border glow
-		if is_hovered and not is_selected:
-			draw_rect(Rect2(cx - 2, cy - 2, card_w + 4, card_h + 4), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.06))
-
-		# Character emblem area (left side of card)
-		var emblem_cx = cx + 70.0
-		var emblem_cy = cy + 110.0
-		draw_circle(Vector2(emblem_cx, emblem_cy), 50, Color(card_colors[i].r, card_colors[i].g, card_colors[i].b, 0.08))
-		draw_arc(Vector2(emblem_cx, emblem_cy), 46, 0, TAU, 48, Color(card_colors[i].r, card_colors[i].g, card_colors[i].b, 0.15), 1.5)
-
-		# Draw character emblem icons
+		# Name banner below character
 		var tower_type = survivor_types[i]
-		match tower_type:
-			TowerType.ROBIN_HOOD:  # Bow
-				draw_arc(Vector2(emblem_cx, emblem_cy), 22, 1.0, 5.3, 32, Color(0.4, 0.6, 0.2, 0.5), 2.5)
-				draw_line(Vector2(emblem_cx - 16, emblem_cy - 16), Vector2(emblem_cx + 16, emblem_cy + 16), Color(0.4, 0.6, 0.2, 0.45), 1.5)
-				draw_colored_polygon(PackedVector2Array([Vector2(emblem_cx + 14, emblem_cy + 12), Vector2(emblem_cx + 20, emblem_cy + 16), Vector2(emblem_cx + 16, emblem_cy + 20)]), Color(0.4, 0.6, 0.2, 0.45))
-			TowerType.ALICE:  # Playing card heart
-				draw_rect(Rect2(emblem_cx - 16, emblem_cy - 20, 32, 40), Color(0.9, 0.87, 0.8, 0.3))
-				draw_circle(Vector2(emblem_cx - 5, emblem_cy - 8), 5.5, Color(0.8, 0.15, 0.4, 0.45))
-				draw_circle(Vector2(emblem_cx + 5, emblem_cy - 8), 5.5, Color(0.8, 0.15, 0.4, 0.45))
-				draw_colored_polygon(PackedVector2Array([Vector2(emblem_cx - 10, emblem_cy - 5), Vector2(emblem_cx + 10, emblem_cy - 5), Vector2(emblem_cx, emblem_cy + 10)]), Color(0.8, 0.15, 0.4, 0.45))
-			TowerType.WICKED_WITCH:  # Emerald gem
-				draw_colored_polygon(PackedVector2Array([Vector2(emblem_cx, emblem_cy - 18), Vector2(emblem_cx + 16, emblem_cy - 5), Vector2(emblem_cx + 12, emblem_cy + 15), Vector2(emblem_cx - 12, emblem_cy + 15), Vector2(emblem_cx - 16, emblem_cy - 5)]), Color(0.15, 0.6, 0.25, 0.45))
-				draw_circle(Vector2(emblem_cx, emblem_cy), 7, Color(0.3, 0.8, 0.4, 0.2))
-			TowerType.PETER_PAN:  # Star
-				for s in range(5):
-					var a1 = -PI / 2.0 + float(s) * TAU / 5.0
-					var a2 = -PI / 2.0 + (float(s) + 0.5) * TAU / 5.0
-					draw_line(Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a1) * 20, Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a2) * 9, Color(0.3, 0.5, 0.9, 0.45), 2.0)
-					draw_line(Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a2) * 9, Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a1 + TAU / 5.0) * 20, Color(0.3, 0.5, 0.9, 0.45), 2.0)
-			TowerType.PHANTOM:  # Mask
-				draw_arc(Vector2(emblem_cx, emblem_cy - 6), 16, PI + 0.3, TAU - 0.3, 32, Color(0.9, 0.88, 0.82, 0.5), 3.0)
-				draw_circle(Vector2(emblem_cx - 6, emblem_cy - 8), 3.5, Color(0.1, 0.08, 0.06, 0.45))
-				draw_circle(Vector2(emblem_cx + 6, emblem_cy - 8), 3.5, Color(0.1, 0.08, 0.06, 0.45))
-			TowerType.SCROOGE:  # Coin
-				draw_circle(Vector2(emblem_cx, emblem_cy), 16, Color(0.75, 0.6, 0.1, 0.45))
-				draw_circle(Vector2(emblem_cx, emblem_cy), 13, Color(0.85, 0.7, 0.15, 0.3))
-				draw_circle(Vector2(emblem_cx, emblem_cy), 5, Color(0.65, 0.45, 0.1, 0.25))
-
-		# Character name (right side of emblem)
-		# Using draw since labels are in the container overlay
 		var info = tower_info[tower_type]
-		var name_x = cx + 140.0
-		var name_y = cy + 25.0
+		var name_str: String = info["name"]
+		var name_w = font.get_string_size(name_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14).x
+		var banner_x = zc.x - name_w * 0.5 - 10
+		var banner_y = zc.y + 45
+		draw_rect(Rect2(banner_x, banner_y, name_w + 20, 22), Color(0.0, 0.0, 0.0, 0.6))
+		draw_rect(Rect2(banner_x, banner_y, name_w + 20, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+		draw_string(font, Vector2(zc.x - name_w * 0.5, banner_y + 16), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.75, 0.55))
 
-		# Cost badge (bottom right of card)
-		var badge_x = cx + card_w - 85.0
-		var badge_y = cy + card_h - 40.0
-		draw_rect(Rect2(badge_x, badge_y, 70, 25), Color(0.65, 0.45, 0.1, 0.2))
-		draw_rect(Rect2(badge_x, badge_y, 70, 1), Color(0.65, 0.45, 0.1, 0.3))
+		# Chapter progress dots (3 dots below banner)
+		for ch in range(3):
+			var dot_x = zc.x - 12.0 + float(ch) * 12.0
+			var dot_y = banner_y + 30.0
+			var level_idx = i * 3 + ch
+			var completed = level_idx in completed_levels
+			if completed:
+				draw_circle(Vector2(dot_x, dot_y), 4.0, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.8))
+			else:
+				draw_circle(Vector2(dot_x, dot_y), 4.0, Color(0.3, 0.3, 0.3, 0.4))
+				draw_arc(Vector2(dot_x, dot_y), 4.0, 0, TAU, 16, Color(0.5, 0.5, 0.5, 0.3), 1.0)
 
-		# Decorative corner flourishes on card
-		var fl_col = Color(0.65, 0.45, 0.1, 0.12)
-		draw_line(Vector2(cx + 8, cy + 8), Vector2(cx + 28, cy + 8), fl_col, 1.0)
-		draw_line(Vector2(cx + 8, cy + 8), Vector2(cx + 8, cy + 28), fl_col, 1.0)
-		draw_line(Vector2(cx + card_w - 8, cy + 8), Vector2(cx + card_w - 28, cy + 8), fl_col, 1.0)
-		draw_line(Vector2(cx + card_w - 8, cy + 8), Vector2(cx + card_w - 8, cy + 28), fl_col, 1.0)
-		draw_line(Vector2(cx + 8, cy + card_h - 8), Vector2(cx + 28, cy + card_h - 8), fl_col, 1.0)
-		draw_line(Vector2(cx + 8, cy + card_h - 8), Vector2(cx + 8, cy + card_h - 28), fl_col, 1.0)
-		draw_line(Vector2(cx + card_w - 8, cy + card_h - 8), Vector2(cx + card_w - 28, cy + card_h - 8), fl_col, 1.0)
-		draw_line(Vector2(cx + card_w - 8, cy + card_h - 8), Vector2(cx + card_w - 8, cy + card_h - 28), fl_col, 1.0)
+		# Selected golden ring
+		if is_selected:
+			var ring_a = 0.5 + 0.2 * sin(_time * 3.0)
+			draw_arc(zc, 82, 0, TAU, 48, Color(menu_gold.r, menu_gold.g, menu_gold.b, ring_a), 2.5)
+			draw_arc(zc, 85, 0, TAU, 48, Color(menu_gold.r, menu_gold.g, menu_gold.b, ring_a * 0.4), 1.5)
+
+		# Hover glow ring
+		if is_hovered and not is_selected:
+			var hov_a = 0.3 + 0.1 * sin(_time * 2.5)
+			draw_arc(zc, 80, 0, TAU, 48, Color(zcol.r, zcol.g, zcol.b, hov_a), 2.0)
+
+func _draw_winding_path(from: Vector2, to: Vector2, col: Color, core_col: Color) -> void:
+	var steps = 12
+	var prev = from
+	var perp = (to - from).normalized().rotated(PI / 2.0)
+	for s in range(1, steps + 1):
+		var t = float(s) / float(steps)
+		var pt = from.lerp(to, t)
+		pt += perp * sin(t * PI * 2.0) * 15.0
+		draw_line(prev, pt, col, 6.0)
+		draw_line(prev, pt, core_col, 2.0)
+		prev = pt
+
+func _draw_zone_environment(idx: int, center: Vector2, col: Color) -> void:
+	var cx = center.x
+	var cy = center.y
+	match idx:
+		0:  # Robin Hood - Forest
+			for ti in range(5):
+				var tx = cx - 60 + ti * 30
+				var ty = cy - 25 + (ti % 2) * 15
+				var tree_h = 35.0 + float(ti % 3) * 10.0
+				draw_colored_polygon(PackedVector2Array([Vector2(tx, ty), Vector2(tx - 12, ty + tree_h), Vector2(tx + 12, ty + tree_h)]), Color(0.12, 0.35, 0.08, 0.6))
+				draw_rect(Rect2(tx - 2, ty + tree_h, 4, 8), Color(0.3, 0.2, 0.1, 0.5))
+			# Target on a tree
+			draw_circle(Vector2(cx + 35, cy - 5), 8, Color(0.8, 0.2, 0.1, 0.4))
+			draw_circle(Vector2(cx + 35, cy - 5), 5, Color(0.9, 0.85, 0.7, 0.4))
+			draw_circle(Vector2(cx + 35, cy - 5), 2, Color(0.8, 0.2, 0.1, 0.5))
+		1:  # Alice - Wonderland
+			for mi in range(3):
+				var mx = cx - 40 + mi * 40
+				var my = cy + 10 - mi * 8
+				var ms = 12.0 + float(mi) * 4.0
+				draw_rect(Rect2(mx - 3, my, 6, ms), Color(0.85, 0.82, 0.7, 0.5))
+				draw_circle(Vector2(mx, my), ms * 0.8, Color(0.75, 0.15, 0.15, 0.5))
+				draw_circle(Vector2(mx - 4, my - 3), 2.5, Color(0.95, 0.9, 0.8, 0.4))
+				draw_circle(Vector2(mx + 3, my + 1), 2.0, Color(0.95, 0.9, 0.8, 0.4))
+			for fi in range(4):
+				var fx = cx - 50 + fi * 30
+				var fy = cy + 30
+				draw_circle(Vector2(fx, fy), 3, Color(0.9, 0.4, 0.6, 0.4))
+				draw_circle(Vector2(fx, fy), 1.5, Color(1.0, 0.9, 0.3, 0.5))
+		2:  # Wicked Witch - Oz
+			for bi in range(6):
+				var bx = cx - 50 + bi * 18
+				var by = cy + 15 + sin(float(bi) * 0.5) * 5
+				draw_rect(Rect2(bx, by, 14, 8), Color(0.85, 0.75, 0.2, 0.4))
+				draw_rect(Rect2(bx, by, 14, 1), Color(0.7, 0.6, 0.15, 0.3))
+			var em_pulse = 0.3 + 0.1 * sin(_time * 2.0)
+			draw_circle(Vector2(cx, cy - 20), 15, Color(0.1, 0.8, 0.2, em_pulse * 0.3))
+			draw_circle(Vector2(cx, cy - 20), 8, Color(0.2, 0.9, 0.3, em_pulse * 0.5))
+			for mi in range(3):
+				var ma = _time * 1.5 + float(mi) * TAU / 3.0
+				var mmx = cx + cos(ma) * 50.0
+				var mmy = cy - 30 + sin(ma) * 15.0
+				draw_circle(Vector2(mmx, mmy), 3, Color(0.4, 0.3, 0.2, 0.4))
+				draw_line(Vector2(mmx - 4, mmy - 1), Vector2(mmx, mmy + 2), Color(0.5, 0.4, 0.3, 0.3), 1.0)
+				draw_line(Vector2(mmx + 4, mmy - 1), Vector2(mmx, mmy + 2), Color(0.5, 0.4, 0.3, 0.3), 1.0)
+		3:  # Peter Pan - Neverland
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - 50, cy + 20), Vector2(cx - 40, cy - 10), Vector2(cx - 10, cy - 20), Vector2(cx + 30, cy - 15), Vector2(cx + 50, cy + 5), Vector2(cx + 45, cy + 20)]), Color(0.15, 0.12, 0.1, 0.5))
+			draw_rect(Rect2(cx - 2, cy - 35, 4, 25), Color(0.4, 0.3, 0.15, 0.6))
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - 35), Vector2(cx - 20, cy - 25), Vector2(cx - 5, cy - 30)]), Color(0.15, 0.45, 0.1, 0.5))
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - 35), Vector2(cx + 18, cy - 28), Vector2(cx + 5, cy - 30)]), Color(0.15, 0.45, 0.1, 0.5))
+			var ship_x = cx - 30
+			var ship_y = cy + 10
+			draw_colored_polygon(PackedVector2Array([Vector2(ship_x - 12, ship_y), Vector2(ship_x + 12, ship_y), Vector2(ship_x + 8, ship_y + 8), Vector2(ship_x - 8, ship_y + 8)]), Color(0.4, 0.25, 0.1, 0.5))
+			draw_rect(Rect2(ship_x - 1, ship_y - 15, 2, 15), Color(0.35, 0.2, 0.1, 0.5))
+			draw_rect(Rect2(ship_x + 1, ship_y - 13, 8, 6), Color(0.9, 0.85, 0.7, 0.4))
+			for wi in range(4):
+				var wy = cy + 22 + wi * 3
+				var wave_off = sin(_time * 1.5 + float(wi) * 0.5) * 8.0
+				draw_line(Vector2(cx - 55 + wave_off, wy), Vector2(cx + 55 + wave_off, wy), Color(0.1, 0.3, 0.5, 0.2 - float(wi) * 0.04), 2.0)
+		4:  # Phantom - Opera House
+			draw_rect(Rect2(cx - 45, cy - 25, 90, 55), Color(0.12, 0.08, 0.1, 0.5))
+			for ci in range(4):
+				var col_x = cx - 35 + ci * 23
+				draw_rect(Rect2(col_x, cy - 20, 5, 45), Color(0.2, 0.15, 0.18, 0.5))
+			draw_arc(Vector2(cx, cy - 25), 45, PI, TAU, 24, Color(0.25, 0.18, 0.2, 0.5), 2.0)
+			for cdi in range(2):
+				var cdx = cx - 55 + cdi * 110
+				var cdy = cy + 5
+				draw_rect(Rect2(cdx - 1, cdy, 2, 15), Color(0.7, 0.55, 0.1, 0.4))
+				var flame_flicker = sin(_time * 5.0 + float(cdi) * 2.0) * 0.15
+				draw_circle(Vector2(cdx, cdy - 3), 3, Color(1.0, 0.7, 0.2, 0.4 + flame_flicker))
+			draw_arc(Vector2(cx, cy - 5), 12, PI + 0.3, TAU - 0.3, 16, Color(0.9, 0.88, 0.8, 0.4), 2.0)
+		5:  # Scrooge - Victorian London
+			for ri in range(3):
+				var rx = cx - 50 + ri * 38
+				var ry = cy - 10 + (ri % 2) * 12
+				var rw = 30.0
+				var rh = 25.0
+				draw_rect(Rect2(rx, ry, rw, rh), Color(0.15, 0.12, 0.1, 0.5))
+				draw_rect(Rect2(rx - 2, ry - 3, rw + 4, 5), Color(0.85, 0.88, 0.9, 0.5))
+				draw_rect(Rect2(rx + rw * 0.3, ry + rh * 0.3, 8, 8), Color(0.8, 0.65, 0.2, 0.3))
+			draw_rect(Rect2(cx + 20, cy - 25, 8, 15), Color(0.2, 0.15, 0.12, 0.5))
+			for smoke in _world_map_smoke:
+				var sy = smoke["y"] - fmod(_time * smoke["speed"] * 10.0, 40.0)
+				var sx = cx + 24 + sin(_time * 0.8 + smoke["offset"]) * 5.0
+				var smoke_a = 0.15 - abs(sy) * 0.004
+				if smoke_a > 0:
+					draw_circle(Vector2(sx, cy - 25 + sy), smoke["size"], Color(0.5, 0.5, 0.5, smoke_a))
+			draw_rect(Rect2(cx - 45, cy - 15, 3, 40), Color(0.2, 0.18, 0.15, 0.5))
+			draw_circle(Vector2(cx - 43.5, cy - 18), 5, Color(1.0, 0.85, 0.4, 0.25 + 0.1 * sin(_time * 3.0)))
+
+func _draw_zone_character(idx: int, center: Vector2, col: Color, pulse: float) -> void:
+	var cx = center.x
+	var cy = center.y + pulse
+	var head_y = cy - 20
+	var body_y = cy - 8
+
+	# Head
+	draw_circle(Vector2(cx, head_y), 8, Color(0.85, 0.72, 0.55, 0.8))
+	# Eyes
+	draw_circle(Vector2(cx - 3, head_y - 1), 1.5, Color(0.1, 0.1, 0.1, 0.7))
+	draw_circle(Vector2(cx + 3, head_y - 1), 1.5, Color(0.1, 0.1, 0.1, 0.7))
+	# Body (trapezoid)
+	draw_colored_polygon(PackedVector2Array([Vector2(cx - 8, body_y), Vector2(cx + 8, body_y), Vector2(cx + 12, body_y + 22), Vector2(cx - 12, body_y + 22)]), Color(col.r, col.g, col.b, 0.7))
+
+	match idx:
+		0:  # Robin Hood - hat + bow
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, head_y - 16), Vector2(cx - 10, head_y - 6), Vector2(cx + 6, head_y - 6)]), Color(0.2, 0.4, 0.1, 0.7))
+			draw_line(Vector2(cx + 2, head_y - 14), Vector2(cx + 8, head_y - 20), Color(0.8, 0.2, 0.1, 0.5), 1.5)
+			draw_arc(Vector2(cx + 20, cy + pulse), 10, -PI * 0.4, PI * 0.4, 12, Color(0.5, 0.35, 0.15, 0.6), 2.0)
+		1:  # Alice - hair + cards
+			draw_rect(Rect2(cx - 9, head_y - 6, 18, 4), Color(0.9, 0.8, 0.4, 0.6))
+			draw_rect(Rect2(cx - 10, head_y - 2, 3, 16), Color(0.9, 0.8, 0.4, 0.5))
+			draw_rect(Rect2(cx + 7, head_y - 2, 3, 16), Color(0.9, 0.8, 0.4, 0.5))
+			draw_rect(Rect2(cx - 9, head_y - 7, 18, 2), Color(0.3, 0.5, 0.8, 0.6))
+			draw_rect(Rect2(cx + 14, body_y + 2, 8, 12), Color(0.9, 0.87, 0.8, 0.5))
+			draw_circle(Vector2(cx + 18, body_y + 8), 2, Color(0.8, 0.15, 0.2, 0.5))
+		2:  # Wicked Witch - pointy hat + broom
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, head_y - 22), Vector2(cx - 10, head_y - 6), Vector2(cx + 10, head_y - 6)]), Color(0.1, 0.1, 0.1, 0.7))
+			draw_rect(Rect2(cx - 12, head_y - 7, 24, 3), Color(0.1, 0.1, 0.1, 0.6))
+			draw_line(Vector2(cx - 15, body_y + 5), Vector2(cx - 25, body_y + 25), Color(0.5, 0.35, 0.15, 0.6), 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - 28, body_y + 22), Vector2(cx - 22, body_y + 22), Vector2(cx - 25, body_y + 32)]), Color(0.4, 0.3, 0.1, 0.5))
+			draw_circle(Vector2(cx, head_y), 8, Color(0.3, 0.6, 0.2, 0.15))
+		3:  # Peter Pan - cap + dagger
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - 8, head_y - 6), Vector2(cx + 8, head_y - 6), Vector2(cx + 12, head_y - 12)]), Color(0.2, 0.5, 0.15, 0.7))
+			draw_line(Vector2(cx + 10, head_y - 12), Vector2(cx + 16, head_y - 20), Color(0.9, 0.3, 0.1, 0.5), 1.5)
+			draw_line(Vector2(cx + 14, body_y + 4), Vector2(cx + 22, body_y - 2), Color(0.7, 0.72, 0.75, 0.6), 2.0)
+			draw_line(Vector2(cx + 13, body_y + 5), Vector2(cx + 16, body_y + 3), Color(0.5, 0.35, 0.15, 0.6), 2.0)
+		4:  # Phantom - cape + mask
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - 10, body_y - 2), Vector2(cx + 10, body_y - 2), Vector2(cx + 18, body_y + 25), Vector2(cx - 18, body_y + 25)]), Color(0.1, 0.08, 0.08, 0.6))
+			draw_arc(Vector2(cx, head_y), 8, PI + 0.2, TAU - 0.2, 12, Color(0.9, 0.88, 0.82, 0.6), 2.5)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - 8, body_y), Vector2(cx + 8, body_y), Vector2(cx + 10, body_y + 20), Vector2(cx - 10, body_y + 20)]), Color(col.r, col.g, col.b, 0.7))
+		5:  # Scrooge - top hat + cane
+			draw_rect(Rect2(cx - 8, head_y - 18, 16, 14), Color(0.1, 0.1, 0.1, 0.7))
+			draw_rect(Rect2(cx - 11, head_y - 5, 22, 3), Color(0.1, 0.1, 0.1, 0.6))
+			draw_line(Vector2(cx + 14, body_y + 2), Vector2(cx + 14, body_y + 24), Color(0.4, 0.3, 0.15, 0.6), 2.0)
+			draw_arc(Vector2(cx + 14, body_y + 2), 4, PI, TAU, 8, Color(0.4, 0.3, 0.15, 0.6), 2.0)
+
+func _update_world_map_hover() -> void:
+	var mouse_pos = get_viewport().get_mouse_position()
+	world_map_hover_index = -1
+	for i in range(6):
+		if mouse_pos.distance_to(world_map_zone_centers[i]) < 80.0:
+			world_map_hover_index = i
+			break
 
 func _draw_relic_icon(center: Vector2, icon_key: String, sz: float, accent: Color) -> void:
 	var cx = center.x
@@ -4412,6 +4599,8 @@ func _process(delta: float) -> void:
 	if game_state != GameState.PLAYING:
 		if survivor_detail_open:
 			_update_relic_hover()
+		elif menu_current_view == "survivors":
+			_update_world_map_hover()
 		elif menu_current_view == "relics":
 			_update_relics_tab_hover()
 		elif menu_current_view == "emporium":
@@ -4895,6 +5084,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 				if relic_hover_index >= 0:
 					_on_relic_clicked(relic_hover_index)
+		# Handle world map zone clicks
+		elif game_state == GameState.MENU and menu_current_view == "survivors" and not survivor_detail_open:
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				if world_map_hover_index >= 0:
+					_on_survivor_card_pressed(world_map_hover_index)
 		# Handle emporium tile clicks
 		elif game_state == GameState.MENU and menu_current_view == "emporium":
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
