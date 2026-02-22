@@ -1,14 +1,14 @@
 extends Node2D
-## Alice — debuff/support tower. Throws playing cards that shrink and slow enemies.
+## Alice — support tower. Throws cake that slows and shrinks all nearby enemies.
 ## Based on Lewis Carroll's Alice's Adventures in Wonderland (1865) & Tenniel illustrations.
-## Tier 1 (5000 DMG): "Drink Me" — stronger slow (40%), faster fire rate
-## Tier 2 (10000 DMG): "Cheshire Cat" — periodically stuns a random enemy
-## Tier 3 (15000 DMG): "Mad Tea Party" — teacup volley AoE every 15s
-## Tier 4 (20000 DMG): "Off With Their Heads!" — instant kill enemies below 15% HP
+## Tier 1: "Eat Me Cake" — Frosting damages enemies (3 DPS while slowed), wider range
+## Tier 2: "Cheshire Cat" — periodically stuns a random enemy
+## Tier 3: "Mad Tea Party" — teacup volley AoE every 15s
+## Tier 4: "Off With Their Heads!" — instant kill enemies below 15% HP
 
-var damage: float = 25.0
-var fire_rate: float = 3.0
-var attack_range: float = 160.0
+var damage: float = 8.0
+var fire_rate: float = 1.0
+var attack_range: float = 150.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
@@ -21,8 +21,11 @@ var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
 
 # Slow debuff
-var slow_amount: float = 0.7
-var slow_duration: float = 1.5
+var slow_amount: float = 0.5
+var slow_duration: float = 2.0
+
+# Frosting DoT (unlocked by Tier 1 upgrade)
+var frosting_dps: float = 0.0
 
 # Tier 2: Cheshire Cat
 var cheshire_timer: float = 0.0
@@ -52,7 +55,7 @@ const PROG_ABILITY_NAMES = [
 	"Tweedledee & Tweedledum", "The Jabberwock", "Wonderland Madness"
 ]
 const PROG_ABILITY_DESCS = [
-	"+20% card damage, cards spin faster",
+	"+20% cake damage, faster attack",
 	"Every 20s, teleport enemy back 150 path units",
 	"Every 10s, mark enemy for 2x damage for 5s",
 	"Every 15s, Alice stomps for 4x AoE damage",
@@ -60,7 +63,7 @@ const PROG_ABILITY_DESCS = [
 	"Every 20s, smoke cloud slows enemies to 20% for 3s",
 	"2 fighters patrol near Alice attacking every 2s",
 	"Every 25s, Jabberwock swoops dealing 5x to all in path",
-	"Cards split mid-flight (1 becomes 3)"
+	"Cake splats bounce to nearby enemies"
 ]
 var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
 var _rabbit_hole_timer: float = 20.0
@@ -79,13 +82,13 @@ var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
-	"Drink Me",
+	"Eat Me Cake",
 	"Cheshire Cat",
 	"Mad Tea Party",
 	"Off With Their Heads!"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Stronger slow (40%), faster attacks",
+	"Frosting DoT (3 DPS), wider range",
 	"Periodically stuns a random enemy",
 	"Teacup volley AoE every 15s",
 	"Instant kill enemies below 15% HP"
@@ -93,8 +96,6 @@ const ABILITY_DESCRIPTIONS = [
 const TIER_COSTS = [70, 150, 275, 475]
 var is_selected: bool = false
 var base_cost: int = 0
-
-var card_scene = preload("res://scenes/card.tscn")
 
 # Attack sound
 var _attack_sound: AudioStreamWAV
@@ -111,21 +112,20 @@ var _upgrade_player: AudioStreamPlayer
 func _ready() -> void:
 	add_to_group("towers")
 	_load_progressive_abilities()
-	# Generate magical card flick sound
+	# Cake splat — wet impact with low-frequency body
 	var mix_rate := 22050
-	var duration := 0.1
+	var duration := 0.15
 	var samples := PackedFloat32Array()
 	samples.resize(int(mix_rate * duration))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		# Quick ascending shimmer tones
-		var freq := lerpf(1200.0, 1800.0, t / duration)
-		var shimmer := sin(t * freq * TAU) * exp(-t * 20.0) * 0.5
-		# Second harmonic sparkle
-		var sparkle := sin(t * freq * 2.0 * TAU) * exp(-t * 25.0) * 0.3
-		# Brief noise burst for the flick texture
-		var flick := (randf() * 2.0 - 1.0) * exp(-t * 40.0) * 0.4
-		samples[i] = clampf(shimmer + sparkle + flick, -1.0, 1.0)
+		# Low thud body
+		var thud := sin(t * 180.0 * TAU) * exp(-t * 30.0) * 0.5
+		# Wet splatter noise
+		var splat := (randf() * 2.0 - 1.0) * exp(-t * 15.0) * 0.6
+		# Brief high squelch
+		var squelch := sin(t * 800.0 * TAU) * exp(-t * 50.0) * 0.2
+		samples[i] = clampf(thud + splat + squelch, -1.0, 1.0)
 	_attack_sound = _samples_to_wav(samples, mix_rate)
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sound
@@ -246,45 +246,29 @@ func _find_nearest_enemy() -> Node2D:
 	return nearest
 
 func _shoot() -> void:
-	if not target:
-		return
 	if _attack_player:
 		_attack_player.play()
 	_attack_anim = 1.0
-	_fire_card(target)
-
-func _fire_card(t: Node2D) -> void:
-	var card = card_scene.instantiate()
-	card.global_position = global_position + Vector2.from_angle(aim_angle) * 14.0
+	# Cake splat — hits all enemies in range
 	var dmg = damage
 	if prog_abilities[0]:  # Curiouser: +20% damage
 		dmg *= 1.2
-	card.damage = dmg
-	card.target = t
-	card.gold_bonus = gold_bonus
-	card.source_tower = self
-	card.slow_amount = slow_amount
-	card.slow_duration = slow_duration
-	card.execute_threshold = execute_threshold
-	if prog_abilities[4]:  # Painting the Roses Red
-		card.apply_paint = true
-	if prog_abilities[8]:  # Wonderland Madness - split
-		card.split_count = 1
-	get_tree().get_first_node_in_group("main").add_child(card)
-
-func _fire_split_card(t: Node2D, hit_targets: Array, paint: bool) -> void:
-	var card = card_scene.instantiate()
-	card.global_position = global_position
-	card.damage = damage * (1.2 if prog_abilities[0] else 1.0)
-	card.target = t
-	card.gold_bonus = gold_bonus
-	card.source_tower = self
-	card.slow_amount = slow_amount
-	card.slow_duration = slow_duration
-	card.execute_threshold = execute_threshold
-	card.apply_paint = paint
-	card._hit_targets = hit_targets
-	get_tree().get_first_node_in_group("main").add_child(card)
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(enemy.global_position) <= attack_range:
+			if enemy.has_method("apply_slow"):
+				enemy.apply_slow(slow_amount, slow_duration)
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(dmg)
+				register_damage(dmg)
+			# Tier 4: execute low HP enemies
+			if execute_threshold > 0.0 and enemy.has_method("get_health_percent"):
+				if enemy.get_health_percent() <= execute_threshold:
+					if enemy.has_method("take_damage"):
+						enemy.take_damage(9999.0)
+						register_damage(9999.0)
+			# Frosting DoT (Tier 1 upgrade)
+			if frosting_dps > 0.0 and enemy.has_method("apply_dot"):
+				enemy.apply_dot(frosting_dps, slow_duration)
 
 func _cheshire_stun() -> void:
 	if _cheshire_player: _cheshire_player.play()
@@ -302,15 +286,16 @@ func _cheshire_stun() -> void:
 func _tea_party() -> void:
 	if _tea_player: _tea_player.play()
 	_tea_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var in_range: Array = []
-	for enemy in enemies:
+	var dmg = damage * 2.0
+	if prog_abilities[0]:
+		dmg *= 1.2
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < attack_range:
-			in_range.append(enemy)
-	in_range.shuffle()
-	var count = mini(8, in_range.size())
-	for i in range(count):
-		_fire_card(in_range[i])
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(dmg)
+				register_damage(dmg)
+			if enemy.has_method("apply_slow"):
+				enemy.apply_slow(slow_amount * 0.8, slow_duration * 1.5)
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
@@ -332,11 +317,13 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.12
-	fire_rate *= 1.08
-	attack_range += 6.0
-	slow_amount = max(slow_amount - 0.03, 0.3)
-	slow_duration += 0.15
+	damage *= 1.10
+	fire_rate *= 1.05
+	attack_range += 4.0
+	slow_amount = max(slow_amount - 0.02, 0.2)
+	slow_duration += 0.1
+	if frosting_dps > 0.0:
+		frosting_dps *= 1.08
 	# Alice grows!
 	_grow_scale += 0.06
 	_grow_burst = 0.3
@@ -351,35 +338,38 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Drink Me — stronger slow
-			damage = 35.0
-			slow_amount = 0.5
-			slow_duration = 2.5
-			fire_rate = 3.5
-			attack_range = 175.0
+		1: # Eat Me Cake — frosting DoT, wider range
+			frosting_dps = 3.0
+			attack_range = 170.0
+			slow_amount = 0.4
+			damage = 12.0
+			fire_rate = 1.2
 		2: # Cheshire Cat — periodic stun
-			damage = 45.0
-			fire_rate = 4.0
-			attack_range = 190.0
+			damage = 16.0
+			fire_rate = 1.4
+			attack_range = 185.0
 			cheshire_cooldown = 10.0
 			gold_bonus = 2
+			frosting_dps = 4.0
 		3: # Mad Tea Party — teacup volley
-			damage = 55.0
-			fire_rate = 4.5
-			attack_range = 210.0
+			damage = 20.0
+			fire_rate = 1.6
+			attack_range = 200.0
 			tea_cooldown = 12.0
-			slow_amount = 0.45
+			slow_amount = 0.35
 			gold_bonus = 3
+			frosting_dps = 5.0
 		4: # Off With Their Heads!
-			damage = 70.0
+			damage = 25.0
 			execute_threshold = 0.20
-			fire_rate = 5.0
-			attack_range = 230.0
+			fire_rate = 1.8
+			attack_range = 220.0
 			gold_bonus = 4
-			slow_amount = 0.4
+			slow_amount = 0.3
 			slow_duration = 3.0
 			cheshire_cooldown = 7.0
 			tea_cooldown = 9.0
+			frosting_dps = 7.0
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -662,20 +652,17 @@ func _draw() -> void:
 		var aura_pulse = sin(_time * 3.0) * 0.04 + 0.15
 		draw_circle(Vector2.ZERO, 60.0, Color(0.9, 0.15, 0.15, aura_pulse))
 		draw_circle(Vector2.ZERO, 50.0, Color(0.95, 0.2, 0.1, aura_pulse * 0.5))
-		# Red card particles orbiting
+		# Red cake crumb particles orbiting
 		for i in range(4):
-			var card_a = _time * 1.2 + float(i) * TAU / 4.0
-			var card_r = 55.0 + sin(_time * 2.0 + float(i)) * 4.0
-			var cp = Vector2.from_angle(card_a) * card_r
-			var cpd = Vector2.from_angle(card_a + PI * 0.5)
-			var cpp = cpd.rotated(PI / 2.0)
+			var crumb_a = _time * 1.2 + float(i) * TAU / 4.0
+			var crumb_r = 55.0 + sin(_time * 2.0 + float(i)) * 4.0
+			var cp = Vector2.from_angle(crumb_a) * crumb_r
 			if i % 2 == 0:
-				draw_circle(cp - cpp * 1.2, 2.0, Color(0.95, 0.15, 0.15, 0.6))
-				draw_circle(cp + cpp * 1.2, 2.0, Color(0.95, 0.15, 0.15, 0.6))
-				draw_line(cp, cp - cpd * 2.5, Color(0.95, 0.15, 0.15, 0.6), 2.0)
+				draw_circle(cp, 3.0, Color(0.95, 0.7, 0.75, 0.5))
+				draw_circle(cp, 1.8, Color(1.0, 0.85, 0.88, 0.6))
 			else:
-				draw_circle(cp, 2.5, Color(0.15, 0.15, 0.2, 0.6))
-				draw_line(cp, cp + cpd * 2.5, Color(0.15, 0.15, 0.2, 0.5), 1.5)
+				draw_circle(cp, 2.5, Color(0.85, 0.1, 0.15, 0.5))
+				draw_circle(cp, 1.5, Color(0.95, 0.3, 0.35, 0.4))
 
 
 	# Upgrade flash
@@ -974,7 +961,7 @@ func _draw() -> void:
 	draw_arc(Vector2(5, neck_base.y + 3), 5.0, -PI * 0.2, PI * 0.7, 8, Color(0.97, 0.97, 0.95), 3.0)
 
 	# === Arms (slender feminine polygon shapes, starting from shoulders) ===
-	# Card-throwing arm (right) — extends toward aim direction
+	# Cake-throwing arm (right) — extends toward aim direction
 	var attack_extend = _attack_anim * 10.0
 	var r_elbow = r_shoulder + Vector2(4, 8)
 	var card_hand: Vector2
@@ -1053,50 +1040,47 @@ func _draw() -> void:
 	draw_circle(off_hand, 3.0, skin_shadow)
 	draw_circle(off_hand, 2.3, skin_base)
 
-	# === Fan of cards in hand ===
-	for i in range(4):
-		var fan_angle = aim_angle + (float(i) - 1.5) * 0.2
-		var fan_dir = Vector2.from_angle(fan_angle)
-		var fan_perp = fan_dir.rotated(PI / 2.0)
-		var card_end = card_hand + fan_dir * 20.0
-		# Card shadow
-		draw_line(card_hand + fan_perp * 0.5, card_end + fan_perp * 0.5, Color(0.3, 0.3, 0.25, 0.25), 6.0)
-		# Card body
-		draw_line(card_hand, card_end, Color(0.3, 0.3, 0.28), 7.0)
-		draw_line(card_hand, card_end, Color(0.98, 0.98, 0.95), 5.5)
-		# Suit symbol
-		var suit_pos = card_hand + fan_dir * 12.0
-		if i % 4 == 0:
-			# Heart
-			draw_circle(suit_pos - fan_perp * 1.0, 1.8, Color(0.9, 0.15, 0.15))
-			draw_circle(suit_pos + fan_perp * 1.0, 1.8, Color(0.9, 0.15, 0.15))
-			draw_line(suit_pos, suit_pos - fan_dir * 2.5, Color(0.9, 0.15, 0.15), 2.0)
-		elif i % 4 == 1:
-			# Spade
-			draw_circle(suit_pos + fan_dir * 0.5, 2.0, Color(0.12, 0.12, 0.15))
-			draw_line(suit_pos, suit_pos - fan_dir * 2.0, Color(0.12, 0.12, 0.15), 1.2)
-		elif i % 4 == 2:
-			# Diamond
-			var dp = [suit_pos + fan_dir * 2.0, suit_pos + fan_perp * 1.5, suit_pos - fan_dir * 2.0, suit_pos - fan_perp * 1.5]
-			draw_line(dp[0], dp[1], Color(0.9, 0.15, 0.15), 1.5)
-			draw_line(dp[1], dp[2], Color(0.9, 0.15, 0.15), 1.5)
-			draw_line(dp[2], dp[3], Color(0.9, 0.15, 0.15), 1.5)
-			draw_line(dp[3], dp[0], Color(0.9, 0.15, 0.15), 1.5)
-		else:
-			# Club
-			draw_circle(suit_pos + fan_dir * 1.0, 1.5, Color(0.12, 0.12, 0.15))
-			draw_circle(suit_pos - fan_perp * 1.2, 1.5, Color(0.12, 0.12, 0.15))
-			draw_circle(suit_pos + fan_perp * 1.2, 1.5, Color(0.12, 0.12, 0.15))
+	# === Cupcake in hand ===
+	var cake_pos = card_hand + dir * 6.0
+	# Paper wrapper (ridged trapezoid) — pink
+	var wrap_perp = dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		cake_pos - wrap_perp * 4.0 + dir * 2.0,
+		cake_pos + wrap_perp * 4.0 + dir * 2.0,
+		cake_pos + wrap_perp * 5.5 - dir * 2.0,
+		cake_pos - wrap_perp * 5.5 - dir * 2.0,
+	]), Color(0.95, 0.6, 0.7))
+	# Wrapper ridges
+	for wi in range(5):
+		var wx = -4.0 + float(wi) * 2.0
+		draw_line(cake_pos + wrap_perp * wx + dir * 2.0, cake_pos + wrap_perp * (wx * 1.3) - dir * 2.0, Color(0.85, 0.5, 0.6, 0.4), 0.8)
+	# Frosted top (dome) — white/pink swirl
+	var frost_center = cake_pos + dir * 3.5
+	draw_circle(frost_center, 6.0, Color(0.98, 0.92, 0.94))
+	draw_circle(frost_center + dir * 1.0, 5.0, Color(1.0, 0.85, 0.88))
+	# Frosting swirl detail
+	draw_arc(frost_center, 4.0, 0, PI * 1.5, 10, Color(0.95, 0.7, 0.75, 0.5), 1.5)
+	draw_arc(frost_center, 2.0, PI * 0.5, TAU, 8, Color(0.9, 0.6, 0.65, 0.4), 1.2)
+	# Cherry on top
+	var cherry_pos = frost_center + dir * 4.5
+	draw_circle(cherry_pos, 2.5, Color(0.85, 0.1, 0.15))
+	draw_circle(cherry_pos + Vector2(-0.5, -0.5), 1.0, Color(1.0, 0.4, 0.4, 0.5))
+	# Cherry stem
+	draw_line(cherry_pos, cherry_pos + Vector2(1.5, -3.0), Color(0.3, 0.5, 0.2), 1.0)
 
-	# Thrown card flash
-	if _attack_anim > 0.3:
-		var thrown_end = card_hand + dir * (35.0 * _attack_anim)
-		draw_line(card_hand, thrown_end, Color(0.95, 0.95, 0.9, _attack_anim), 5.0)
-		draw_line(card_hand, thrown_end, Color(0.85, 0.15, 0.15, _attack_anim * 0.7), 2.5)
-		for ti in range(2):
-			var trail_t = float(ti + 1) / 3.0
-			var trail_pos = card_hand.lerp(thrown_end, trail_t)
-			draw_circle(trail_pos, 1.5, Color(1.0, 0.95, 0.8, _attack_anim * (0.4 - float(ti) * 0.15)))
+	# Cake splat ring (AoE attack flash)
+	if _attack_anim > 0.2:
+		var splat_r = 20.0 + (1.0 - _attack_anim) * 40.0
+		var splat_alpha = _attack_anim * 0.5
+		# Expanding pink/white ring
+		draw_arc(Vector2.ZERO, splat_r, 0, TAU, 32, Color(0.95, 0.7, 0.75, splat_alpha), 3.0)
+		draw_arc(Vector2.ZERO, splat_r * 0.7, 0, TAU, 24, Color(1.0, 0.9, 0.92, splat_alpha * 0.6), 2.0)
+		# Cake splatter particles
+		for si in range(6):
+			var sp_a = TAU * float(si) / 6.0 + _time * 2.0
+			var sp_r2 = splat_r * (0.6 + sin(_time * 4.0 + float(si)) * 0.2)
+			var sp_p = Vector2.from_angle(sp_a) * sp_r2
+			draw_circle(sp_p, 2.5, Color(0.95, 0.8, 0.85, splat_alpha * 0.7))
 
 	# === NECK (slender, feminine polygon neck with definition) ===
 	var neck_top = head_center + Vector2(0, 7)
@@ -1319,7 +1303,7 @@ func _draw() -> void:
 				var steam_p = cup_pos + Vector2(steam_off, -10.0 - float(stm) * 5.0)
 				draw_circle(steam_p, 2.5 - float(stm) * 0.4, Color(0.92, 0.92, 0.95, 0.25 - float(stm) * 0.08))
 
-	# === Tier 4: Crown of card suits floating above head ===
+	# === Tier 4: Crown floating above head ===
 	if upgrade_tier >= 4:
 		var crown_hover = sin(_time * 1.8) * 1.5
 		var crown_center = head_center + Vector2(0, -12 + crown_hover)

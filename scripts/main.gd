@@ -114,11 +114,11 @@ var menu_star_total_label: Label
 var survivor_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH, TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]
 var survivor_descriptions = {
 	TowerType.ROBIN_HOOD: "The legendary outlaw of Sherwood Forest.\nLong-range archer with piercing arrows and gold bonus.",
-	TowerType.ALICE: "The curious girl from Wonderland.\nThrows playing cards that shrink and slow enemies.",
+	TowerType.ALICE: "The curious girl from Wonderland.\nThrows cake that slows and shrinks all nearby enemies.",
 	TowerType.WICKED_WITCH: "The Wicked Witch of the West.\nSwoops to strike enemies, summons wolves and monkeys.",
 	TowerType.PETER_PAN: "The boy who never grew up.\nFast dagger attacks with shadow and fairy dust.",
 	TowerType.PHANTOM: "The masked genius beneath the Opera.\nHeavy music note attacks with stun and AoE.",
-	TowerType.SCROOGE: "The miserly old man visited by ghosts.\nCoin attacks generate gold, ghosts mark enemies.",
+	TowerType.SCROOGE: "The miserly old man visited by ghosts.\nRings his bell to blast enemies backwards and earn gold.",
 }
 # Survivor grid UI
 var survivor_grid_cards: Array = []  # Array of Button nodes for each character
@@ -141,11 +141,11 @@ var session_damage: Dictionary = {}  # TowerType -> float, damage dealt this gam
 # Gear definitions per character
 var survivor_gear = {
 	TowerType.ROBIN_HOOD: {"name": "Longbow", "desc": "Increases arrow range and pierce"},
-	TowerType.ALICE: {"name": "Looking Glass", "desc": "Cards pass through more enemies"},
+	TowerType.ALICE: {"name": "Looking Glass", "desc": "Cake affects wider area"},
 	TowerType.WICKED_WITCH: {"name": "Broomstick", "desc": "Faster swoop attacks"},
 	TowerType.PETER_PAN: {"name": "Shadow Blade", "desc": "Shadow clone deals more damage"},
 	TowerType.PHANTOM: {"name": "Pipe Organ", "desc": "Music notes stun longer"},
-	TowerType.SCROOGE: {"name": "Counting Ledger", "desc": "Coins generate bonus gold"},
+	TowerType.SCROOGE: {"name": "Counting Ledger", "desc": "Bell rings generate bonus gold"},
 }
 
 # Sidekick definitions (3 per character)
@@ -825,7 +825,7 @@ func _create_ui() -> void:
 	tower_buttons[TowerType.ROBIN_HOOD] = robin_button
 
 	var alice_button = _make_button("Alice [85G]", Vector2(144, row1_y), Vector2(130, btn_h))
-	alice_button.pressed.connect(_on_tower_pressed.bind(TowerType.ALICE, "Alice â€” cards, slows enemies. Cancel to abort."))
+	alice_button.pressed.connect(_on_tower_pressed.bind(TowerType.ALICE, "Alice â€" cake, slows enemies in area. Cancel to abort."))
 	bottom_panel.add_child(alice_button)
 	tower_buttons[TowerType.ALICE] = alice_button
 
@@ -845,7 +845,7 @@ func _create_ui() -> void:
 	tower_buttons[TowerType.PHANTOM] = phantom_button
 
 	var scrooge_button = _make_button("Scrooge [60G]", Vector2(280, row2_y), Vector2(130, btn_h))
-	scrooge_button.pressed.connect(_on_tower_pressed.bind(TowerType.SCROOGE, "Scrooge â€” coins, gold gen, ghost marks. Cancel to abort."))
+	scrooge_button.pressed.connect(_on_tower_pressed.bind(TowerType.SCROOGE, "Scrooge â€" bell, knockback & gold gen. Cancel to abort."))
 	bottom_panel.add_child(scrooge_button)
 	tower_buttons[TowerType.SCROOGE] = scrooge_button
 

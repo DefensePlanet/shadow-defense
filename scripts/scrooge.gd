@@ -1,18 +1,23 @@
 extends Node2D
-## Ebenezer Scrooge — economy/support tower from Dickens' A Christmas Carol (1843).
-## Throws coins for low damage but generates gold. Upgrades by dealing damage.
-## Tier 1 (5000 DMG): "Bah, Humbug!" — gold bonus +5, faster attacks
-## Tier 2 (10000 DMG): "Ghost of Christmas Past" — periodically mark random enemy (+25% dmg)
-## Tier 3 (15000 DMG): "Ghost of Christmas Present" — mark all in range, passive gold gen
-## Tier 4 (20000 DMG): "Ghost of Christmas Yet to Come" — marks fear-slow, stronger gold gen
+## Ebenezer Scrooge — support tower from Dickens' A Christmas Carol (1843).
+## Rings bell for AoE knockback and gold generation. Upgrades by dealing damage.
+## Tier 1: "Bah, Humbug!" — Stronger knockback (50 units), gold +3, faster bell
+## Tier 2: "Ghost of Christmas Past" — periodically mark random enemy (+25% dmg)
+## Tier 3: "Ghost of Christmas Present" — Enhanced blast radius (180), passive gold gen, mark all
+## Tier 4: "Ghost of Yet to Come" — Maximum knockback (80), fear-slow on knocked enemies
 
-var damage: float = 22.0
-var fire_rate: float = 1.8
-var attack_range: float = 140.0
+var damage: float = 5.0
+var fire_rate: float = 0.667
+var attack_range: float = 130.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 1
+
+# Knockback and gold generation
+var knockback_amount: float = 30.0
+var gold_per_ring: int = 2
+var bonus_gold_per_enemy: int = 1
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
@@ -41,12 +46,12 @@ var fear_enabled: bool = false
 
 # === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
 const PROG_ABILITY_NAMES = [
-	"A Miser's Coin", "Marley's Warning", "Cratchit's Loyalty", "Tiny Tim's Blessing",
+	"A Miser's Bell", "Marley's Warning", "Cratchit's Loyalty", "Tiny Tim's Blessing",
 	"Marley's Chains", "Fezziwig's Ball", "The Knocker", "The Christmas Turkey",
 	"Scrooge's Redemption"
 ]
 const PROG_ABILITY_DESCS = [
-	"Coins fly 25% faster, +20% damage",
+	"+20% knockback, +20% damage",
 	"Every 15s, chains root 3 enemies for 2s",
 	"Passive gold generation doubles",
 	"Every 25s, heals 1 life",
@@ -80,16 +85,14 @@ const TIER_NAMES = [
 	"Ghost of Yet to Come"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Gold bonus +5, faster attacks",
+	"Stronger knockback, +3 gold, faster bell",
 	"Periodically mark enemy (+25% dmg taken)",
-	"Mark all in range, passive gold gen",
-	"Marks fear-slow, stronger gold gen"
+	"Blast radius 180, passive gold, mark all",
+	"Max knockback, fear-slow on knocked enemies"
 ]
 const TIER_COSTS = [55, 120, 225, 400]
 var is_selected: bool = false
 var base_cost: int = 0
-
-var coin_scene = preload("res://scenes/coin.tscn")
 
 # Attack sound
 var _attack_sound: AudioStreamWAV
@@ -106,20 +109,25 @@ var _upgrade_player: AudioStreamPlayer
 func _ready() -> void:
 	add_to_group("towers")
 	_load_progressive_abilities()
-	# Generate coin fling metallic ping sound
+	# Church bell ring — resonant metallic with harmonics
 	var mix_rate := 22050
-	var duration := 0.08
+	var duration := 0.5
 	var samples := PackedFloat32Array()
 	samples.resize(int(mix_rate * duration))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		# Primary metallic ping at 4200Hz
-		var ping := sin(t * 4200.0 * TAU) * exp(-t * 40.0) * 0.5
-		# Secondary ring at 2800Hz
-		var ring := sin(t * 2800.0 * TAU) * exp(-t * 30.0) * 0.35
-		# Brief high shimmer
-		var shimmer := sin(t * 6300.0 * TAU) * exp(-t * 60.0) * 0.2
-		samples[i] = clampf(ping + ring + shimmer, -1.0, 1.0)
+		var env := exp(-t * 4.0) * 0.5
+		# Bell fundamental (D5 ~587Hz)
+		var fund := sin(t * 587.0 * TAU) * env
+		# 2nd partial (minor third above, characteristic of bells)
+		var p2 := sin(t * 700.0 * TAU) * env * 0.6
+		# 3rd partial (perfect fifth)
+		var p3 := sin(t * 880.0 * TAU) * env * 0.3
+		# High shimmer partial
+		var p4 := sin(t * 1760.0 * TAU) * exp(-t * 8.0) * 0.15
+		# Strike transient
+		var strike := (randf() * 2.0 - 1.0) * exp(-t * 80.0) * 0.3
+		samples[i] = clampf(fund + p2 + p3 + p4 + strike, -1.0, 1.0)
 	_attack_sound = _samples_to_wav(samples, mix_rate)
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sound
@@ -245,25 +253,32 @@ func _find_nearest_enemy() -> Node2D:
 	return nearest
 
 func _shoot() -> void:
-	if not target:
-		return
 	if _attack_player:
 		_attack_player.play()
-	var coin = coin_scene.instantiate()
-	coin.global_position = global_position + Vector2.from_angle(aim_angle) * 14.0
+	_attack_anim = 1.0
+	var main = get_tree().get_first_node_in_group("main")
 	var dmg_mult = 1.0
-	# Ability 1: A Miser's Coin — +20% damage
+	var kb = knockback_amount
+	# Ability 1: A Miser's Bell — +20% damage, +20% knockback
 	if prog_abilities[0]:
 		dmg_mult *= 1.2
-	coin.damage = damage * dmg_mult
-	coin.target = target
-	coin.gold_bonus = gold_bonus
-	coin.source_tower = self
-	# Ability 1: A Miser's Coin — 25% faster coins
-	if prog_abilities[0]:
-		coin.speed *= 1.25
-	get_tree().get_first_node_in_group("main").add_child(coin)
-	_attack_anim = 1.0
+		kb *= 1.2
+	var enemies_hit = 0
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(enemy.global_position) <= attack_range:
+			# Knockback — push enemies back on path
+			enemy.progress = max(0.0, enemy.progress - kb)
+			# Small damage
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(damage * dmg_mult)
+				register_damage(damage * dmg_mult)
+			# Tier 4: fear-slow on knocked enemies
+			if fear_enabled and enemy.has_method("apply_slow"):
+				enemy.apply_slow(0.5, 1.5)
+			enemies_hit += 1
+	# Earn gold per bell ring (more enemies = more gold)
+	if main and enemies_hit > 0:
+		main.add_gold(gold_per_ring + (enemies_hit - 1) * bonus_gold_per_enemy)
 
 func _ghost_of_past() -> void:
 	if _ghost_past_player: _ghost_past_player.play()
@@ -306,10 +321,11 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.12
-	fire_rate *= 1.08
-	attack_range += 5.0
-	gold_bonus += 1
+	damage *= 1.10
+	fire_rate *= 1.05
+	attack_range += 4.0
+	knockback_amount += 3.0
+	gold_per_ring += 1
 	# Cash bundle every 500 damage milestone
 	var main = get_tree().get_first_node_in_group("main")
 	if main:
@@ -325,31 +341,36 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Bah, Humbug! — more gold, faster
-			damage = 30.0
-			gold_bonus = 4
-			fire_rate = 2.2
-			attack_range = 155.0
+		1: # Bah, Humbug! — stronger knockback, more gold, faster bell
+			knockback_amount = 50.0
+			gold_per_ring = 5
+			bonus_gold_per_enemy = 2
+			fire_rate = 0.8
+			damage = 8.0
+			attack_range = 145.0
 		2: # Ghost of Christmas Past — mark enemies
-			damage = 40.0
-			fire_rate = 2.5
-			attack_range = 170.0
-			gold_bonus = 5
+			knockback_amount = 55.0
+			damage = 12.0
+			fire_rate = 0.9
+			attack_range = 160.0
+			gold_per_ring = 6
 			ghost_past_cooldown = 10.0
-		3: # Ghost of Christmas Present — mark all + passive gold
-			damage = 55.0
-			fire_rate = 3.0
-			attack_range = 190.0
-			gold_bonus = 7
+		3: # Ghost of Christmas Present — enhanced blast, passive gold, mark all
+			attack_range = 180.0
+			knockback_amount = 65.0
+			damage = 16.0
+			fire_rate = 1.0
+			gold_per_ring = 8
 			passive_gold_amount = 2
 			passive_gold_interval = 5.0
 			ghost_present_cooldown = 8.0
-		4: # Ghost of Yet to Come — fear + stronger gold gen
-			damage = 70.0
+		4: # Ghost of Yet to Come — max knockback, fear-slow
+			knockback_amount = 80.0
 			fear_enabled = true
-			fire_rate = 3.5
-			gold_bonus = 9
-			attack_range = 220.0
+			damage = 20.0
+			fire_rate = 1.1
+			gold_per_ring = 10
+			attack_range = 200.0
 			passive_gold_amount = 3
 			passive_gold_interval = 3.5
 			ghost_present_cooldown = 6.0
@@ -1058,7 +1079,7 @@ func _draw() -> void:
 	# Visible wrist bone
 	draw_circle(off_arm_hand + Vector2(0, -2), 1.2, skin_shadow)
 
-	# === WEAPON ARM (right side — polygon nightgown sleeve, holds candlestick) ===
+	# === WEAPON ARM (right side — polygon nightgown sleeve, holds bell) ===
 	var weapon_shoulder = neck_base + Vector2(13, 2)
 	var attack_recoil = _attack_anim * 4.0
 	var weapon_extend = dir * (16.0 + attack_recoil) + body_offset
@@ -1099,62 +1120,57 @@ func _draw() -> void:
 	# Visible wrist bone
 	draw_circle(weapon_hand + Vector2(0, -2), 1.2, skin_shadow)
 
-	# === BRASS CANDLESTICK (weapon) ===
-	var candle_base = weapon_hand + dir * 4.0
-	var candle_top = candle_base + Vector2(0, -18)
-	# Candlestick base plate (brass)
-	draw_circle(candle_base, 5.0, Color(0.65, 0.5, 0.15))
-	draw_circle(candle_base, 4.0, Color(0.8, 0.65, 0.2))
-	draw_circle(candle_base, 3.0, Color(0.9, 0.75, 0.3))
-	# Candlestick stem
-	draw_line(candle_base + Vector2(0, -2), candle_base + Vector2(0, -10), Color(0.65, 0.5, 0.15), 3.5)
-	draw_line(candle_base + Vector2(0, -2), candle_base + Vector2(0, -10), Color(0.85, 0.7, 0.25), 2.5)
-	# Stem highlight
-	draw_line(candle_base + Vector2(-0.5, -3), candle_base + Vector2(-0.5, -9), Color(0.95, 0.85, 0.4, 0.4), 1.0)
-	# Candlestick knob (middle decorative bump)
-	draw_circle(candle_base + Vector2(0, -6), 2.5, Color(0.75, 0.6, 0.2))
-	draw_circle(candle_base + Vector2(0, -6), 1.8, Color(0.9, 0.75, 0.3))
-	# Cup / drip tray
-	draw_circle(candle_base + Vector2(0, -10), 4.0, Color(0.7, 0.55, 0.18))
-	draw_circle(candle_base + Vector2(0, -10), 3.0, Color(0.85, 0.7, 0.25))
-	# Candle (white/cream wax)
-	draw_line(candle_base + Vector2(0, -11), candle_top, Color(0.88, 0.85, 0.78), 4.0)
-	draw_line(candle_base + Vector2(0, -11), candle_top, Color(0.95, 0.93, 0.88), 2.8)
-	# Wax drip details
-	draw_circle(candle_base + Vector2(-1.5, -11), 1.2, Color(0.92, 0.88, 0.82))
-	draw_circle(candle_base + Vector2(1, -13), 0.8, Color(0.92, 0.88, 0.82))
+	# === BELL (weapon) ===
+	var bell_base = weapon_hand + dir * 4.0
+	var bell_top = bell_base + Vector2(0, -20)
+	# Bell body — brass bell shape (wider at bottom, narrow at top)
+	var bell_perp_v = dir.rotated(PI / 2.0)
+	# Bell dome (arc shape)
+	draw_arc(bell_base + Vector2(0, -8), 8.0, PI * 0.15, PI * 0.85, 16, Color(0.65, 0.5, 0.15), 2.5)
+	draw_arc(bell_base + Vector2(0, -8), 7.0, PI * 0.1, PI * 0.9, 16, Color(0.85, 0.7, 0.25), 2.0)
+	# Bell body (trapezoid — wider at bottom rim, narrow at top)
+	draw_colored_polygon(PackedVector2Array([
+		bell_base + Vector2(-8, -2),   # bottom left (wide rim)
+		bell_base + Vector2(8, -2),    # bottom right
+		bell_base + Vector2(5, -14),   # top right (narrower)
+		bell_base + Vector2(-5, -14),  # top left
+	]), Color(0.75, 0.6, 0.2))
+	# Inner bell fill (lighter)
+	draw_colored_polygon(PackedVector2Array([
+		bell_base + Vector2(-6, -3),
+		bell_base + Vector2(6, -3),
+		bell_base + Vector2(4, -12),
+		bell_base + Vector2(-4, -12),
+	]), Color(0.85, 0.72, 0.3))
+	# Bell rim (thick bottom edge)
+	draw_line(bell_base + Vector2(-8, -2), bell_base + Vector2(8, -2), Color(0.65, 0.5, 0.15), 3.0)
+	draw_line(bell_base + Vector2(-7, -2), bell_base + Vector2(7, -2), Color(0.9, 0.78, 0.3), 2.0)
+	# Bell highlight
+	draw_line(bell_base + Vector2(-3, -12), bell_base + Vector2(-2, -4), Color(0.95, 0.85, 0.4, 0.5), 1.5)
+	# Handle on top (small loop)
+	draw_arc(bell_top + Vector2(0, 2), 3.5, PI, TAU, 10, Color(0.65, 0.5, 0.15), 2.5)
+	draw_arc(bell_top + Vector2(0, 2), 2.5, PI, TAU, 8, Color(0.85, 0.7, 0.25), 1.5)
+	# Clapper (hanging inside bell)
+	var clapper_swing = sin(_time * 5.0 + _attack_anim * 8.0) * 3.0
+	var clapper_pos = bell_base + Vector2(clapper_swing, -1)
+	draw_line(bell_base + Vector2(0, -8), clapper_pos, Color(0.5, 0.4, 0.15), 1.5)
+	draw_circle(clapper_pos, 2.5, Color(0.6, 0.48, 0.18))
+	draw_circle(clapper_pos, 1.8, Color(0.75, 0.6, 0.25))
 
-	# === CANDLE FLAME (animated flicker) ===
-	var flame_flicker = sin(_time * 8.0) * 1.5 + cos(_time * 11.0) * 0.8
-	var flame_flicker2 = sin(_time * 6.5) * 1.0
-	var flame_pos = candle_top + Vector2(flame_flicker * 0.3, -2.0)
-	# Outer glow
-	draw_circle(flame_pos, 8.0, Color(1.0, 0.7, 0.2, 0.12))
-	draw_circle(flame_pos, 5.0, Color(1.0, 0.75, 0.25, 0.2))
-	# Flame body (teardrop shape via overlapping circles)
-	draw_circle(flame_pos + Vector2(0, 1), 3.5, Color(1.0, 0.6, 0.1, 0.7))
-	draw_circle(flame_pos, 3.0, Color(1.0, 0.75, 0.15, 0.8))
-	draw_circle(flame_pos + Vector2(0, -1.5), 2.2, Color(1.0, 0.85, 0.3, 0.85))
-	# Inner bright core
-	draw_circle(flame_pos + Vector2(flame_flicker2 * 0.2, 0), 1.5, Color(1.0, 0.95, 0.7, 0.9))
-	draw_circle(flame_pos + Vector2(0, -2.5), 1.0, Color(1.0, 1.0, 0.85, 0.7))
-	# Flame tip
-	draw_line(flame_pos, flame_pos + Vector2(flame_flicker * 0.4, -4.0 + flame_flicker2 * 0.5), Color(1.0, 0.8, 0.2, 0.5), 1.5)
-
-	# === ATTACK FLASH — coin/light burst toward target ===
-	if _attack_anim > 0.3:
-		var burst_pos = weapon_hand + dir * 18.0
-		var burst_alpha = (_attack_anim - 0.3) * 1.4
-		# Gold coin burst
-		draw_circle(burst_pos, 6.0 + _attack_anim * 4.0, Color(1.0, 0.85, 0.2, burst_alpha * 0.4))
-		draw_circle(burst_pos, 3.0 + _attack_anim * 2.0, Color(1.0, 0.95, 0.5, burst_alpha * 0.6))
-		# Coin sparkle rays
-		for i in range(5):
-			var ray_a = TAU * float(i) / 5.0 + _time * 6.0
-			var ray_end = burst_pos + Vector2.from_angle(ray_a) * (8.0 + _attack_anim * 6.0)
-			draw_line(burst_pos, ray_end, Color(1.0, 0.9, 0.3, burst_alpha * 0.3), 1.5)
-		# Candle flare on attack
-		draw_circle(flame_pos, 10.0, Color(1.0, 0.8, 0.2, burst_alpha * 0.3))
+	# === ATTACK FLASH — bell ring shockwave ===
+	if _attack_anim > 0.2:
+		var ring_alpha = _attack_anim * 0.5
+		var ring_r = 15.0 + (1.0 - _attack_anim) * 50.0
+		# Expanding shockwave ring (golden sound wave)
+		draw_arc(Vector2.ZERO, ring_r, 0, TAU, 32, Color(0.9, 0.78, 0.2, ring_alpha), 3.0)
+		draw_arc(Vector2.ZERO, ring_r * 0.75, 0, TAU, 24, Color(1.0, 0.9, 0.4, ring_alpha * 0.5), 2.0)
+		draw_arc(Vector2.ZERO, ring_r * 0.5, 0, TAU, 16, Color(1.0, 0.95, 0.6, ring_alpha * 0.3), 1.5)
+		# Sound wave arc lines radiating out
+		for i in range(6):
+			var wave_a = TAU * float(i) / 6.0 + _time * 3.0
+			var wave_inner = ring_r * 0.8
+			var wave_outer = ring_r * 1.1
+			draw_arc(Vector2.from_angle(wave_a) * wave_inner * 0.15, wave_inner * 0.3, wave_a - 0.3, wave_a + 0.3, 6, Color(0.9, 0.8, 0.3, ring_alpha * 0.4), 1.5)
 
 	# === THIN NECK (elderly polygon neck with Adam's apple) ===
 	var neck_top = head_center + Vector2(0, 8)
@@ -1385,13 +1401,13 @@ func _draw() -> void:
 			var w_tail = body_offset + Vector2(0, -10) + Vector2.from_angle(w_a - 0.4) * (w_r - 8.0)
 			draw_line(w_pos, w_tail, Color(0.1, 0.05, 0.15, 0.06), 1.5)
 
-	# === CANDLELIGHT WARM GLOW on face (proximity lighting from held candle) ===
-	var candle_light_pos = weapon_hand + dir * 4.0 + Vector2(0, -14)
-	var face_dist = candle_light_pos.distance_to(head_center)
-	var light_strength = clamp(1.0 - face_dist / 60.0, 0.0, 0.4)
+	# === BELL GLEAM on face (proximity lighting from held bell) ===
+	var bell_light_pos = weapon_hand + dir * 4.0 + Vector2(0, -10)
+	var face_dist = bell_light_pos.distance_to(head_center)
+	var light_strength = clamp(1.0 - face_dist / 60.0, 0.0, 0.3)
 	if light_strength > 0.05:
-		draw_circle(head_center, 13.0, Color(1.0, 0.85, 0.5, light_strength * 0.15))
-		draw_circle(torso_center, 16.0, Color(1.0, 0.8, 0.4, light_strength * 0.08))
+		draw_circle(head_center, 13.0, Color(0.9, 0.78, 0.3, light_strength * 0.12))
+		draw_circle(torso_center, 16.0, Color(0.85, 0.7, 0.25, light_strength * 0.06))
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:
