@@ -1,6 +1,6 @@
 extends Node2D
-## Peter Pan — fast attacker tower from JM Barrie's Peter and Wendy (1911).
-## Throws daggers rapidly. Upgrades by dealing damage.
+## Peter Pan — stationary striker from JM Barrie's Peter and Wendy (1911).
+## Hovers in place, throwing daggers rapidly at nearby enemies.
 ## Tier 1 (5000 DMG): "Shadow" — fires a shadow dagger at a 2nd target each shot
 ## Tier 2 (10000 DMG): "Fairy Dust" — periodic sparkle AoE (damage + slow)
 ## Tier 3 (15000 DMG): "Tick-Tock Croc" — periodically chomps strongest enemy for 3x damage
@@ -14,14 +14,8 @@ var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 4
 
-# Melee swoop-strike state machine (like Wicked Witch)
-enum FlyState { IDLE, SWOOPING, STRIKING, RETURNING }
-var _fly_state: int = FlyState.IDLE
+# Stationary striker — stays in place, attacks from position
 var _home_position: Vector2 = Vector2.ZERO
-var _swoop_speed: float = 400.0
-var _strike_timer: float = 0.0
-var _strike_duration: float = 0.15
-var _swoop_target_pos: Vector2 = Vector2.ZERO
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
@@ -91,14 +85,14 @@ const PROG_ABILITY_NAMES = [
 	"Neverland Flight", "Pan's Shadow"
 ]
 const PROG_ABILITY_DESCS = [
-	"Swoop 30% faster, +15% strike damage",
+	"Strike 30% faster, +15% dagger damage",
 	"2 lost boys orbit Peter, auto-attacking nearby enemies every 2s",
 	"Every 12s, Tinker Bell flies across range leaving dust that slows enemies 50% for 2s",
 	"Every 18s, a mermaid charms 3 enemies — frozen + 2x damage for 3s",
 	"Every 20s, a plank appears under the weakest enemy — instant kill",
 	"Every 10th kill, the crocodile devours the strongest enemy on map",
 	"Tinker Bell boosts nearby tower fire rates by 25% every 5s",
-	"Every 15s, Peter swoops to 8 random enemies across the map for 2x damage",
+	"Every 15s, Peter throws daggers at 8 random enemies across the map for 2x damage",
 	"Peter's shadow detaches and roams the map, striking enemies for 2x damage every 1s"
 ]
 var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
@@ -217,46 +211,15 @@ func _process(delta: float) -> void:
 	_fairy_flash = max(_fairy_flash - delta * 2.0, 0.0)
 	_croc_flash = max(_croc_flash - delta * 2.0, 0.0)
 
-	# Melee swoop-strike state machine
-	match _fly_state:
-		FlyState.IDLE:
-			fire_cooldown -= delta
-			target = _find_nearest_enemy()
-			if target:
-				var desired = _home_position.angle_to_point(target.global_position) + PI
-				aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
-				if fire_cooldown <= 0.0:
-					_fly_state = FlyState.SWOOPING
-					_swoop_target_pos = target.global_position
-
-		FlyState.SWOOPING:
-			if not is_instance_valid(target):
-				_fly_state = FlyState.RETURNING
-			else:
-				_swoop_target_pos = target.global_position
-				var to_target = _swoop_target_pos - global_position
-				aim_angle = to_target.angle()
-				if to_target.length() < 25.0:
-					_strike_target(target)
-					_fly_state = FlyState.STRIKING
-					_strike_timer = _strike_duration
-				else:
-					global_position += to_target.normalized() * _swoop_speed * delta
-
-		FlyState.STRIKING:
-			_strike_timer -= delta
-			if _strike_timer <= 0.0:
-				_fly_state = FlyState.RETURNING
-
-		FlyState.RETURNING:
-			var to_home = _home_position - global_position
-			if to_home.length() < 5.0:
-				global_position = _home_position
-				_fly_state = FlyState.IDLE
-				fire_cooldown = 1.0 / fire_rate
-			else:
-				aim_angle = to_home.angle()
-				global_position += to_home.normalized() * _swoop_speed * delta
+	# Stationary attack — stays in place, strikes enemies in range
+	fire_cooldown -= delta
+	target = _find_nearest_enemy()
+	if target:
+		var desired = _home_position.angle_to_point(target.global_position) + PI
+		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
+		if fire_cooldown <= 0.0:
+			_strike_target(target)
+			fire_cooldown = 1.0 / fire_rate
 
 	# Tier 2: Fairy Dust AoE
 	if upgrade_tier >= 2:
@@ -502,9 +465,9 @@ func activate_progressive_ability(index: int) -> void:
 	if index < 0 or index >= 9:
 		return
 	prog_abilities[index] = true
-	# Ability 1: Flying Strikes — 30% faster swoop
+	# Ability 1: Flying Strikes — 30% faster attacks
 	if index == 0:
-		_swoop_speed *= 1.3
+		fire_rate *= 1.3
 	# Ability 9: Pan's Shadow — spawn shadow node
 	if index == 8 and _pan_shadow_node == null:
 		var shadow_script = preload("res://scripts/pan_shadow.gd")
@@ -706,10 +669,8 @@ func _draw() -> void:
 
 	var body_offset = bob + fly_offset
 
-	# Forward tilt when swooping/striking/returning
-	var is_flying = _fly_state != FlyState.IDLE
-	if is_flying:
-		body_offset += Vector2(dir.x * 6.0, -4.0 + dir.y * 3.0)
+	# Slight lean toward target direction
+	body_offset += Vector2(dir.x * 2.0, dir.y * 1.0)
 
 	# Playful differential motion
 	var lean = sin(_time * 2.5) * 1.5  # Quick playful lean
@@ -755,23 +716,12 @@ func _draw() -> void:
 			var c_outer = Vector2.from_angle(ca) * (croc_r + 5.0)
 			draw_line(c_inner, c_outer, Color(0.95, 0.95, 0.8, _croc_flash * 0.5), 2.0)
 
-	# Swooping trail effect (green fairy-dust trail)
-	if _fly_state == FlyState.SWOOPING or _fly_state == FlyState.RETURNING:
-		var trail_dir = Vector2.from_angle(aim_angle + PI)
-		var trail_perp = trail_dir.rotated(PI / 2.0)
-		for i in range(6):
-			var trail_pos = trail_dir * (float(i + 1) * 10.0)
-			var trail_alpha = 0.25 - float(i) * 0.04
-			var trail_size = 8.0 - float(i) * 0.8
-			draw_circle(trail_pos, trail_size, Color(0.4, 0.95, 0.3, trail_alpha))
-			var wisp_off = trail_perp * sin(_time * 8.0 + float(i) * 0.9) * (3.0 + float(i))
-			draw_circle(trail_pos + wisp_off, trail_size * 0.5, Color(1.0, 0.9, 0.3, trail_alpha * 0.5))
-
-	# Strike impact flash
-	if _fly_state == FlyState.STRIKING:
-		var strike_t = _strike_timer / _strike_duration
-		draw_circle(Vector2.ZERO, 35.0 * strike_t, Color(0.5, 1.0, 0.5, 0.35 * strike_t))
-		draw_arc(Vector2.ZERO, 20.0 + (1.0 - strike_t) * 40.0, 0, TAU, 32, Color(0.4, 1.0, 0.3, strike_t * 0.4), 2.5)
+	# Attack flash — dagger strike effect
+	if _attack_anim > 0.0:
+		var flash_dir = Vector2.from_angle(aim_angle)
+		var flash_dist = 25.0 + (1.0 - _attack_anim) * 15.0
+		draw_circle(flash_dir * flash_dist, 6.0 * _attack_anim, Color(0.5, 1.0, 0.5, 0.35 * _attack_anim))
+		draw_line(flash_dir * 15.0, flash_dir * (flash_dist + 10.0), Color(0.4, 1.0, 0.3, _attack_anim * 0.5), 2.0)
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 

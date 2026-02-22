@@ -1,6 +1,6 @@
 extends Node2D
-## Wicked Witch of the West — summoner/AoE tower from Baum's Wizard of Oz (1900).
-## Telescopic eye blast + silver whistle summons.
+## Wicked Witch of the West — orbiting caster from Baum's Wizard of Oz (1900).
+## Flies in circles on her broom, casting green spells in all directions.
 ## Tier 1 (5000 DMG): "Pack of Wolves" — periodic wolf projectile burst
 ## Tier 2 (10000 DMG): "Murder of Crows" — enemies hit take poison DoT
 ## Tier 3 (15000 DMG): "Swarm of Bees" — DoT spreads, increased damage
@@ -24,14 +24,11 @@ var _upgrade_name: String = ""
 var _time: float = 0.0
 var _attack_anim: float = 0.0
 
-# Flying melee state machine
-enum FlyState { IDLE, SWOOPING, STRIKING, RETURNING }
-var _fly_state: int = FlyState.IDLE
+# Orbiting caster — flies in a circle, casts green spells outward
 var _home_position: Vector2 = Vector2.ZERO
-var _swoop_speed: float = 350.0
-var _strike_timer: float = 0.0
-var _strike_duration: float = 0.25
-var _swoop_target_pos: Vector2 = Vector2.ZERO
+var _orbit_angle: float = 0.0
+var _orbit_radius: float = 60.0
+var _orbit_speed: float = 1.8  # radians per second
 
 # DoT applied by projectiles
 var dot_dps: float = 0.0
@@ -58,7 +55,7 @@ const PROG_ABILITY_DESCS = [
 	"Monkey marks 1 enemy every 8s for +25% damage taken 5s",
 	"Every 20s, poppies put enemies to sleep 2s",
 	"Every 15s, tornado pushes all enemies in range backwards",
-	"Every 12s, teleport to furthest enemy, strike 5x damage",
+	"Every 12s, hurl a 5x damage bolt at the furthest enemy",
 	"Crystal ball: all enemies spawn with 15% less HP",
 	"Every 18s, 4 Winkies march and strike enemies for 3x",
 	"Every 20s, strongest enemy melts losing 20% HP over 3s",
@@ -208,45 +205,19 @@ func _process(delta: float) -> void:
 	_wolf_flash = max(_wolf_flash - delta * 2.0, 0.0)
 	_monkey_flash = max(_monkey_flash - delta * 1.5, 0.0)
 
-	match _fly_state:
-		FlyState.IDLE:
-			fire_cooldown -= delta
-			target = _find_nearest_enemy()
-			if target:
-				var desired = _home_position.angle_to_point(target.global_position) + PI
-				aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
-				if fire_cooldown <= 0.0:
-					_fly_state = FlyState.SWOOPING
-					_swoop_target_pos = target.global_position
+	# Orbit around home position on broom
+	_orbit_angle += _orbit_speed * delta
+	if _orbit_angle > TAU:
+		_orbit_angle -= TAU
+	global_position = _home_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * _orbit_radius
+	aim_angle = _orbit_angle + PI * 0.5  # Face forward along orbit
 
-		FlyState.SWOOPING:
-			if not is_instance_valid(target):
-				_fly_state = FlyState.RETURNING
-			else:
-				_swoop_target_pos = target.global_position
-				var to_target = _swoop_target_pos - global_position
-				aim_angle = to_target.angle()
-				if to_target.length() < 25.0:
-					_strike_target(target)
-					_fly_state = FlyState.STRIKING
-					_strike_timer = _strike_duration
-				else:
-					global_position += to_target.normalized() * _swoop_speed * delta
-
-		FlyState.STRIKING:
-			_strike_timer -= delta
-			if _strike_timer <= 0.0:
-				_fly_state = FlyState.RETURNING
-
-		FlyState.RETURNING:
-			var to_home = _home_position - global_position
-			if to_home.length() < 5.0:
-				global_position = _home_position
-				_fly_state = FlyState.IDLE
-				fire_cooldown = 1.0 / fire_rate
-			else:
-				aim_angle = to_home.angle()
-				global_position += to_home.normalized() * _swoop_speed * delta
+	# Cast green spells at enemies
+	fire_cooldown -= delta
+	target = _find_nearest_enemy()
+	if target and fire_cooldown <= 0.0:
+		_strike_target(target)
+		fire_cooldown = 1.0 / fire_rate
 
 	# Tier 1+: Wolf pack burst (always checks from home position)
 	if upgrade_tier >= 1:
@@ -285,24 +256,8 @@ func _find_nearest_enemy() -> Node2D:
 func _strike_target(t: Node2D) -> void:
 	if not is_instance_valid(t) or not t.has_method("take_damage"):
 		return
-	if _attack_player:
-		_attack_player.play()
-	_attack_anim = 1.0
-	var strike_dmg = damage
-	if prog_abilities[0]:  # Witch's Cackle: +15% damage
-		strike_dmg *= 1.15
-		_cackle_flash = 0.5
-	var will_kill = t.health - strike_dmg <= 0.0
-	t.take_damage(strike_dmg)
-	register_damage(strike_dmg)
-	# Apply DoT if we have it
-	if dot_dps > 0.0 and dot_duration > 0.0 and t.has_method("apply_dot"):
-		t.apply_dot(dot_dps, dot_duration)
-	if will_kill:
-		if gold_bonus > 0:
-			var main = get_tree().get_first_node_in_group("main")
-			if main:
-				main.add_gold(gold_bonus)
+	# Cast a green spell bolt from current orbit position
+	_fire_bolt(t)
 
 func _fire_bolt(t: Node2D) -> void:
 	var bolt = bolt_scene.instantiate()
@@ -535,20 +490,12 @@ func _process_progressive_abilities(delta: float) -> void:
 			_tornado_attack()
 			_tornado_timer = 15.0
 
-	# Ability 5: Ruby Slippers — teleport strike every 12s
+	# Ability 5: Ruby Slippers — hurl 5x bolt at furthest enemy every 12s
 	if prog_abilities[4]:
-		if _ruby_slipper_teleporting:
-			_ruby_slipper_strike_timer -= delta
-			if _ruby_slipper_strike_timer <= 0.0:
-				global_position = _ruby_slipper_saved_pos
-				_home_position = _ruby_slipper_saved_pos
-				_ruby_slipper_teleporting = false
-				_ruby_flash = 1.0
-		else:
-			_ruby_slippers_timer -= delta
-			if _ruby_slippers_timer <= 0.0 and _has_enemies_in_range():
-				_ruby_slippers_strike()
-				_ruby_slippers_timer = 12.0
+		_ruby_slippers_timer -= delta
+		if _ruby_slippers_timer <= 0.0 and _has_enemies_in_range():
+			_ruby_slippers_strike()
+			_ruby_slippers_timer = 12.0
 
 	# Ability 7: The Winkies' March — 4 soldiers every 18s
 	if prog_abilities[6]:
@@ -603,7 +550,7 @@ func _tornado_attack() -> void:
 
 func _ruby_slippers_strike() -> void:
 	_ruby_flash = 1.0
-	# Find furthest enemy in range
+	# Find furthest enemy in range and hurl a 5x bolt
 	var furthest: Node2D = null
 	var furthest_dist: float = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
@@ -612,18 +559,15 @@ func _ruby_slippers_strike() -> void:
 			furthest_dist = dist
 			furthest = e
 	if furthest and is_instance_valid(furthest) and furthest.has_method("take_damage"):
-		_ruby_slipper_saved_pos = _home_position
-		_ruby_slipper_teleporting = true
-		_ruby_slipper_strike_timer = 0.3
-		global_position = furthest.global_position
-		var dmg = damage * 5.0
-		var will_kill = furthest.health - dmg <= 0.0
-		furthest.take_damage(dmg)
-		register_damage(dmg)
-		if will_kill and gold_bonus > 0:
-			var main = get_tree().get_first_node_in_group("main")
-			if main:
-				main.add_gold(gold_bonus)
+		var bolt = bolt_scene.instantiate()
+		bolt.global_position = global_position
+		bolt.damage = damage * 5.0
+		bolt.target = furthest
+		bolt.gold_bonus = gold_bonus
+		bolt.source_tower = self
+		bolt.dot_dps = dot_dps
+		bolt.dot_duration = dot_duration
+		get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func _winkies_march_attack() -> void:
 	_winkies_flash = 1.5
@@ -660,15 +604,19 @@ func _melting_curse_attack() -> void:
 		strongest.apply_melt(melt_rate, 3.0)
 
 func _draw() -> void:
-	# === 1. SELECTION RING ===
+	var orbit_center = _home_position - global_position
+
+	# === 1. SELECTION RING (at home position) ===
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
-		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
-		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
+		draw_arc(orbit_center, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
+		draw_arc(orbit_center, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
 
-	# === 2. RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	# === 2. RANGE ARC (centered on home) ===
+	draw_arc(orbit_center, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	# Orbit path — faint green circle showing flight path
+	draw_arc(orbit_center, _orbit_radius, 0, TAU, 48, Color(0.3, 0.85, 0.2, 0.08), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -687,10 +635,8 @@ func _draw() -> void:
 		fly_offset = Vector2(0, -10.0 + sin(_time * 1.5) * 3.0)
 	var body_offset = bob + fly_offset
 
-	# Forward tilt when swooping/striking/returning
-	var is_flying = _fly_state != FlyState.IDLE
-	if is_flying:
-		body_offset += Vector2(dir.x * 6.0, -4.0 + dir.y * 3.0)
+	# Forward tilt while orbiting (always flying)
+	body_offset += Vector2(dir.x * 4.0, -3.0 + dir.y * 2.0)
 
 	# === 5. SKIN COLORS (GREEN for witch!) ===
 	var skin_base = Color(0.38, 0.55, 0.28)
@@ -728,23 +674,16 @@ func _draw() -> void:
 			var mp = Vector2.from_angle(ma) * (72.0 + (1.0 - _monkey_flash) * 120.0)
 			draw_circle(mp, 8.0, Color(0.6, 0.4, 0.15, _monkey_flash * 0.5))
 
-	# Swooping trail effect
-	if _fly_state == FlyState.SWOOPING or _fly_state == FlyState.RETURNING:
-		var trail_dir = Vector2.from_angle(aim_angle + PI)
-		var trail_perp = trail_dir.rotated(PI / 2.0)
-		for i in range(6):
-			var trail_pos = trail_dir * (float(i + 1) * 10.0)
-			var trail_alpha = 0.25 - float(i) * 0.04
-			var trail_size = 8.0 - float(i) * 0.8
-			draw_circle(trail_pos, trail_size, Color(0.3, 0.85, 0.2, trail_alpha))
-			var wisp_off = trail_perp * sin(_time * 8.0 + float(i) * 0.9) * (3.0 + float(i))
-			draw_circle(trail_pos + wisp_off, trail_size * 0.5, Color(0.4, 0.15, 0.5, trail_alpha * 0.5))
-
-	# Strike impact flash
-	if _fly_state == FlyState.STRIKING:
-		var strike_t = _strike_timer / _strike_duration
-		draw_circle(Vector2.ZERO, 35.0 * strike_t, Color(0.4, 0.9, 0.2, 0.35 * strike_t))
-		draw_arc(Vector2.ZERO, 20.0 + (1.0 - strike_t) * 40.0, 0, TAU, 32, Color(0.3, 0.9, 0.1, strike_t * 0.4), 2.5)
+	# Orbit trail effect — green sparkles behind her as she flies
+	var trail_dir = Vector2.from_angle(_orbit_angle + PI)
+	var trail_perp = trail_dir.rotated(PI / 2.0)
+	for i in range(5):
+		var trail_pos = trail_dir * (float(i + 1) * 8.0)
+		var trail_alpha = 0.2 - float(i) * 0.035
+		var trail_size = 6.0 - float(i) * 0.8
+		draw_circle(trail_pos, trail_size, Color(0.3, 0.85, 0.2, trail_alpha))
+		var wisp_off = trail_perp * sin(_time * 8.0 + float(i) * 0.9) * (2.0 + float(i))
+		draw_circle(trail_pos + wisp_off, trail_size * 0.4, Color(0.4, 0.15, 0.5, trail_alpha * 0.5))
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 

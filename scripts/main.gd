@@ -445,11 +445,10 @@ var _decorations: Array = []
 var _time: float = 0.0
 
 # Audio â€” procedural hip hop beat
-var beat_player: AudioStreamPlayer
-var beat_playback: AudioStreamGeneratorPlayback
-var beat_buffer: PackedVector2Array = PackedVector2Array()
-var beat_buf_pos: int = 0
-var beat_playing: bool = false
+var music_player: AudioStreamPlayer
+var music_tracks: Array = []
+var music_index: int = 0
+var music_playing: bool = false
 
 # Audio â€" character voice clips
 var voice_player: AudioStreamPlayer
@@ -1548,7 +1547,7 @@ func _show_menu() -> void:
 	menu_left_arrow.visible = true
 	menu_right_arrow.visible = true
 	_update_menu_showcase()
-	_start_beat()
+	_start_music()
 	queue_redraw()
 
 func _update_menu_showcase() -> void:
@@ -2035,7 +2034,7 @@ func _on_level_selected(index: int) -> void:
 	total_waves = difficulty_waves[selected_difficulty]
 	_setup_path_for_level(index)
 	_generate_decorations_for_level(index)
-	_stop_beat()
+	_stop_music()
 	menu_overlay.visible = false
 	top_bar.visible = true
 	bottom_panel.visible = true
@@ -2367,15 +2366,12 @@ func _setup_path_for_level(index: int) -> void:
 # AUDIO â€” Procedural hip hop beat + character voice clips
 # ============================================================
 func _setup_audio() -> void:
-	# Beat player (continuous loop via AudioStreamGenerator)
-	beat_player = AudioStreamPlayer.new()
-	var gen = AudioStreamGenerator.new()
-	gen.mix_rate = 22050
-	gen.buffer_length = 0.5
-	beat_player.stream = gen
-	beat_player.volume_db = -8.0
-	add_child(beat_player)
-	_generate_beat_buffer()
+	# Menu music player (shuffle playlist of gothic piano tracks)
+	music_player = AudioStreamPlayer.new()
+	music_player.volume_db = -6.0
+	add_child(music_player)
+	music_player.finished.connect(_on_music_finished)
+	_load_music_tracks()
 
 	# Voice player (one-shot clips via AudioStreamWAV — formant "character flavor")
 	voice_player = AudioStreamPlayer.new()
@@ -2391,84 +2387,45 @@ func _setup_audio() -> void:
 	_load_voice_clips()
 	_init_catchphrase_quotes()
 
-func _start_beat() -> void:
-	if beat_buffer.size() == 0:
+func _load_music_tracks() -> void:
+	var track_paths = [
+		"res://audio/music/vampires_piano.mp3",
+		"res://audio/music/haunting_piano.mp3",
+		"res://audio/music/haunted_track_minor.mp3",
+		"res://audio/music/cold_silence.ogg",
+		"res://audio/music/dark_rooms.mp3",
+	]
+	for path in track_paths:
+		if ResourceLoader.exists(path):
+			var track = load(path)
+			if track:
+				music_tracks.append(track)
+	# Shuffle on load
+	music_tracks.shuffle()
+
+func _start_music() -> void:
+	if music_tracks.size() == 0:
 		return
-	beat_player.play()
-	beat_playback = beat_player.get_stream_playback()
-	beat_buf_pos = 0
-	beat_playing = true
+	music_playing = true
+	_play_next_track()
 
-func _stop_beat() -> void:
-	beat_player.stop()
-	beat_playing = false
-	beat_playback = null
+func _stop_music() -> void:
+	music_player.stop()
+	music_playing = false
 
-func _push_beat_audio() -> void:
-	if not beat_playing or beat_playback == null:
+func _play_next_track() -> void:
+	if music_tracks.size() == 0:
 		return
-	var avail = beat_playback.get_frames_available()
-	for i in range(avail):
-		beat_playback.push_frame(beat_buffer[beat_buf_pos])
-		beat_buf_pos = (beat_buf_pos + 1) % beat_buffer.size()
+	music_player.stream = music_tracks[music_index]
+	music_player.play()
+	music_index = (music_index + 1) % music_tracks.size()
+	# Reshuffle when we've cycled through all tracks
+	if music_index == 0:
+		music_tracks.shuffle()
 
-func _generate_beat_buffer() -> void:
-	var mix_rate := 22050
-	var bpm := 88.0
-	var samples_per_beat := int(float(mix_rate) * 60.0 / bpm)
-	var bar_samples := samples_per_beat * 4
-	beat_buffer.resize(bar_samples)
-
-	# Pre-generate noise table
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 808
-	var noise := PackedFloat32Array()
-	noise.resize(bar_samples)
-	for i in range(bar_samples):
-		noise[i] = rng.randf_range(-1.0, 1.0)
-
-	var step := samples_per_beat / 4  # 16th note
-	var kick_steps := [0, 3, 6, 10]
-	var snare_steps := [4, 12]
-	var hat_open := [2, 6, 10, 14]
-
-	for i in range(bar_samples):
-		var s := 0.0
-
-		# Kick â€” punchy sub with pitch drop
-		for ks in kick_steps:
-			var off: int = i - ks * step
-			if off >= 0 and off < int(step * 1.5):
-				var t := float(off) / float(mix_rate)
-				var freq := 150.0 * exp(-t * 15.0) + 45.0
-				s += sin(TAU * freq * t + sin(TAU * freq * 0.5 * t) * 1.5) * exp(-t * 10.0) * 0.45
-
-		# Snare â€” noise burst + tone
-		for ss in snare_steps:
-			var off: int = i - ss * step
-			if off >= 0 and off < step:
-				var t := float(off) / float(mix_rate)
-				var env := exp(-t * 14.0)
-				s += (noise[off] * 0.28 + sin(TAU * 185.0 * t) * exp(-t * 25.0) * 0.18) * env
-
-		# Hi-hats â€” closed and open
-		for h in range(16):
-			var off: int = i - h * step
-			var is_open: bool = h in hat_open
-			var hat_dur: int = step if is_open else int(step / 3)
-			if off >= 0 and off < hat_dur:
-				var t := float(off) / float(mix_rate)
-				var decay := 10.0 if is_open else 35.0
-				s += noise[abs((off + h * 1000) % bar_samples)] * exp(-t * decay) * 0.09
-
-		# Sub bass â€” follows kick root
-		for bs in [0, 10]:
-			var off: int = i - bs * step
-			if off >= 0 and off < step * 3:
-				var t := float(off) / float(mix_rate)
-				s += sin(TAU * 55.0 * t) * exp(-t * 2.5) * 0.30
-
-		beat_buffer[i] = Vector2(clampf(s, -0.95, 0.95), clampf(s, -0.95, 0.95))
+func _on_music_finished() -> void:
+	if music_playing:
+		_play_next_track()
 
 func _samples_to_wav(samples: PackedFloat32Array, rate: int = 22050) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -4442,7 +4399,6 @@ func _draw_open_book() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
-	_push_beat_audio()
 	# Ability popup freeze
 	if _ability_popup_freeze > 0.0:
 		_ability_popup_freeze -= delta
