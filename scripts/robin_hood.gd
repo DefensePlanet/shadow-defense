@@ -94,7 +94,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Volley of 5 arrows every 18s",
 	"Splash damage, double gold, double pierce"
 ]
-const TIER_COSTS = [60, 120, 200, 350]
+const TIER_COSTS = [80, 175, 300, 500]
 var is_selected: bool = false
 var base_cost: int = 0
 

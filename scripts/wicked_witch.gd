@@ -102,7 +102,7 @@ const ABILITY_DESCRIPTIONS = [
 	"DoT spreads, increased damage",
 	"Winged Monkey AoE burst every 20s"
 ]
-const TIER_COSTS = [70, 140, 220, 380]
+const TIER_COSTS = [90, 200, 350, 550]
 var is_selected: bool = false
 var base_cost: int = 0
 

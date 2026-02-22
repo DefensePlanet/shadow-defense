@@ -90,7 +90,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Teacup volley AoE every 15s",
 	"Instant kill enemies below 15% HP"
 ]
-const TIER_COSTS = [50, 100, 180, 320]
+const TIER_COSTS = [70, 150, 275, 475]
 var is_selected: bool = false
 var base_cost: int = 0
 

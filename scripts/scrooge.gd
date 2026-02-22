@@ -85,7 +85,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Mark all in range, passive gold gen",
 	"Marks fear-slow, stronger gold gen"
 ]
-const TIER_COSTS = [40, 80, 150, 280]
+const TIER_COSTS = [55, 120, 225, 400]
 var is_selected: bool = false
 var base_cost: int = 0
 

@@ -66,7 +66,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Chomps strongest enemy for 3x damage",
 	"Daggers pierce, all stats boosted"
 ]
-const TIER_COSTS = [55, 110, 190, 340]
+const TIER_COSTS = [75, 165, 280, 480]
 var is_selected: bool = false
 var base_cost: int = 0
 

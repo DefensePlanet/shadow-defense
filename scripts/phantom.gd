@@ -95,7 +95,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Periodic AoE burst (2x damage to all)",
 	"Notes apply DoT, all stats boosted"
 ]
-const TIER_COSTS = [65, 130, 210, 360]
+const TIER_COSTS = [85, 190, 325, 525]
 var is_selected: bool = false
 var base_cost: int = 0
 

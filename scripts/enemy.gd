@@ -40,6 +40,7 @@ var melt_rate: float = 0.0
 var enemy_theme: int = 0
 var enemy_tier: int = 0
 var shrink_scale: float = 1.0
+var boss_scale: float = 1.0  # >1.0 for boss enemies (drawn bigger)
 
 func _ready() -> void:
 	health = max_health
@@ -209,7 +210,7 @@ func _die() -> void:
 	queue_free()
 
 func _draw() -> void:
-	var s: float = shrink_scale
+	var s: float = shrink_scale * boss_scale
 
 	var tint: Color = Color.WHITE
 	if _hit_flash > 0.0:
@@ -258,8 +259,8 @@ func _draw() -> void:
 		draw_circle(Vector2(3, 14 * s), 1.5, Color(0.2, 0.8, 0.1, 0.4))
 
 	# Health bar
-	var bar_w: float = 28.0
-	var bar_h: float = 4.0
+	var bar_w: float = 28.0 * boss_scale
+	var bar_h: float = 4.0 + (boss_scale - 1.0) * 2.0
 	var bar_y: float = -26.0 * s - 4.0
 	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w, bar_h), Color(0.15, 0.15, 0.15))
 	var ratio = clamp(health / max_health, 0.0, 1.0)
