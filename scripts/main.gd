@@ -256,15 +256,15 @@ var levels = [
 		"name": "The Outlaw's Call", "subtitle": "Sherwood Forest â€” Chapter 1",
 		"description": "Robin becomes an outlaw and builds his camp in Sherwood Forest. Defend the hideout from the Sheriff's tax collectors!",
 		"character": 0, "chapter": 0,
-		"waves": 12, "gold": 200, "lives": 25, "difficulty": 1.0,
+		"waves": 12, "gold": 100, "lives": 25, "difficulty": 1.0,
 		"sky_color": Color(0.02, 0.06, 0.10),
 		"ground_color": Color(0.06, 0.16, 0.04),
 	},
 	{
-		"name": "The Sheriff's Pursuit", "subtitle": "Sherwood Forest â€” Chapter 2",
+		"name": "The Sheriff's Pursuit", "subtitle": "Sherwood Forest â€" Chapter 2",
 		"description": "The Sheriff of Nottingham sends his soldiers to hunt Robin. Defend Little John's Bridge and the river crossing!",
 		"character": 0, "chapter": 1,
-		"waves": 15, "gold": 200, "lives": 22, "difficulty": 1.15,
+		"waves": 15, "gold": 100, "lives": 22, "difficulty": 1.15,
 		"sky_color": Color(0.02, 0.04, 0.08),
 		"ground_color": Color(0.05, 0.14, 0.03),
 	},
@@ -272,7 +272,7 @@ var levels = [
 		"name": "Siege of Nottingham", "subtitle": "Sherwood Forest â€” Chapter 3",
 		"description": "Robin leads the attack on Nottingham Castle to free his captured men. Defeat the Sheriff at the castle gates!",
 		"character": 0, "chapter": 2,
-		"waves": 18, "gold": 225, "lives": 20, "difficulty": 1.3,
+		"waves": 18, "gold": 115, "lives": 20, "difficulty": 1.3,
 		"sky_color": Color(0.06, 0.04, 0.02),
 		"ground_color": Color(0.08, 0.08, 0.06),
 	},
@@ -281,7 +281,7 @@ var levels = [
 		"name": "Down the Rabbit Hole", "subtitle": "Wonderland â€” Chapter 1",
 		"description": "Alice follows the White Rabbit into a curious garden of giant mushrooms, talking flowers, and nonsense.",
 		"character": 1, "chapter": 0,
-		"waves": 12, "gold": 200, "lives": 25, "difficulty": 1.0,
+		"waves": 12, "gold": 100, "lives": 25, "difficulty": 1.0,
 		"sky_color": Color(0.12, 0.04, 0.16),
 		"ground_color": Color(0.08, 0.18, 0.06),
 	},
@@ -289,7 +289,7 @@ var levels = [
 		"name": "The Mad Tea Party", "subtitle": "Wonderland â€” Chapter 2",
 		"description": "Deeper into Wonderland â€” the Mad Hatter's tea party and the Queen of Hearts' card army advances, painting the roses red.",
 		"character": 1, "chapter": 1,
-		"waves": 15, "gold": 210, "lives": 22, "difficulty": 1.2,
+		"waves": 15, "gold": 105, "lives": 22, "difficulty": 1.2,
 		"sky_color": Color(0.10, 0.03, 0.14),
 		"ground_color": Color(0.06, 0.14, 0.05),
 	},
@@ -297,7 +297,7 @@ var levels = [
 		"name": "The Queen's Court", "subtitle": "Wonderland â€” Chapter 3",
 		"description": "Alice reaches the Queen's palace. The rose garden runs red. Off with their heads!",
 		"character": 1, "chapter": 2,
-		"waves": 18, "gold": 225, "lives": 18, "difficulty": 1.4,
+		"waves": 18, "gold": 115, "lives": 18, "difficulty": 1.4,
 		"sky_color": Color(0.14, 0.02, 0.08),
 		"ground_color": Color(0.10, 0.06, 0.06),
 	},
@@ -306,7 +306,7 @@ var levels = [
 		"name": "The Yellow Brick Road", "subtitle": "Land of Oz â€” Chapter 1",
 		"description": "Dorothy and companions follow the golden road through poppy fields toward the Emerald City.",
 		"character": 2, "chapter": 0,
-		"waves": 12, "gold": 210, "lives": 25, "difficulty": 1.05,
+		"waves": 12, "gold": 105, "lives": 25, "difficulty": 1.05,
 		"sky_color": Color(0.02, 0.10, 0.06),
 		"ground_color": Color(0.14, 0.12, 0.02),
 	},
@@ -314,7 +314,7 @@ var levels = [
 		"name": "The Witch's Domain", "subtitle": "Land of Oz â€” Chapter 2",
 		"description": "The Wicked Witch of the West sends her flying monkeys. Dark western territory and dead forests loom ahead.",
 		"character": 2, "chapter": 1,
-		"waves": 16, "gold": 220, "lives": 22, "difficulty": 1.3,
+		"waves": 16, "gold": 110, "lives": 22, "difficulty": 1.3,
 		"sky_color": Color(0.04, 0.06, 0.02),
 		"ground_color": Color(0.10, 0.08, 0.04),
 	},
@@ -322,7 +322,7 @@ var levels = [
 		"name": "The Emerald Throne", "subtitle": "Land of Oz â€” Chapter 3",
 		"description": "Inside the Emerald City, the Nome King rises to seize power. Green crystal walls crack as rock soldiers march.",
 		"character": 2, "chapter": 2,
-		"waves": 20, "gold": 240, "lives": 18, "difficulty": 1.5,
+		"waves": 20, "gold": 125, "lives": 18, "difficulty": 1.5,
 		"sky_color": Color(0.02, 0.08, 0.04),
 		"ground_color": Color(0.06, 0.12, 0.06),
 	},
@@ -331,7 +331,7 @@ var levels = [
 		"name": "Flight to Neverland", "subtitle": "Neverland â€” Chapter 1",
 		"description": "Second star to the right and straight on till morning. Mermaid lagoon sparkles and pirate scouts appear.",
 		"character": 3, "chapter": 0,
-		"waves": 12, "gold": 215, "lives": 25, "difficulty": 1.1,
+		"waves": 12, "gold": 110, "lives": 25, "difficulty": 1.1,
 		"sky_color": Color(0.04, 0.06, 0.14),
 		"ground_color": Color(0.08, 0.18, 0.06),
 	},
@@ -339,7 +339,7 @@ var levels = [
 		"name": "The Lost Boys' Stand", "subtitle": "Neverland â€” Chapter 2",
 		"description": "Captain Hook's pirate officers lead raiding parties through the dense jungle to attack the Lost Boys' hideout.",
 		"character": 3, "chapter": 1,
-		"waves": 17, "gold": 225, "lives": 20, "difficulty": 1.4,
+		"waves": 17, "gold": 115, "lives": 20, "difficulty": 1.4,
 		"sky_color": Color(0.03, 0.05, 0.10),
 		"ground_color": Color(0.06, 0.15, 0.04),
 	},
@@ -347,7 +347,7 @@ var levels = [
 		"name": "The Jolly Roger", "subtitle": "Neverland â€” Chapter 3",
 		"description": "The final battle aboard Captain Hook's ship. Sword fights on deck, walking the plank over the ticking crocodile!",
 		"character": 3, "chapter": 2,
-		"waves": 20, "gold": 240, "lives": 18, "difficulty": 1.6,
+		"waves": 20, "gold": 125, "lives": 18, "difficulty": 1.6,
 		"sky_color": Color(0.08, 0.04, 0.02),
 		"ground_color": Color(0.12, 0.08, 0.06),
 	},
@@ -356,7 +356,7 @@ var levels = [
 		"name": "The Grand Stage", "subtitle": "Paris Opera â€” Chapter 1",
 		"description": "The Paris Opera House, elegant and grand. Strange things happen during performances â€” a ghost in the wings.",
 		"character": 4, "chapter": 0,
-		"waves": 14, "gold": 220, "lives": 22, "difficulty": 1.2,
+		"waves": 14, "gold": 110, "lives": 22, "difficulty": 1.2,
 		"sky_color": Color(0.04, 0.02, 0.08),
 		"ground_color": Color(0.10, 0.08, 0.10),
 	},
@@ -364,7 +364,7 @@ var levels = [
 		"name": "The Labyrinth", "subtitle": "Paris Opera â€” Chapter 2",
 		"description": "Descending beneath the opera into mirrors, candlelit tunnels, and traps. The Phantom reveals himself.",
 		"character": 4, "chapter": 1,
-		"waves": 18, "gold": 235, "lives": 20, "difficulty": 1.5,
+		"waves": 18, "gold": 120, "lives": 20, "difficulty": 1.5,
 		"sky_color": Color(0.03, 0.02, 0.06),
 		"ground_color": Color(0.08, 0.06, 0.08),
 	},
@@ -372,7 +372,7 @@ var levels = [
 		"name": "The Phantom's Lair", "subtitle": "Paris Opera â€” Chapter 3",
 		"description": "The underground lake, the great organ, roses on black water. Defeat the Dark Phantom in his domain!",
 		"character": 4, "chapter": 2,
-		"waves": 22, "gold": 250, "lives": 16, "difficulty": 1.7,
+		"waves": 22, "gold": 130, "lives": 16, "difficulty": 1.7,
 		"sky_color": Color(0.02, 0.01, 0.04),
 		"ground_color": Color(0.06, 0.04, 0.06),
 	},
@@ -381,7 +381,7 @@ var levels = [
 		"name": "Christmas Eve", "subtitle": "Victorian London â€” Chapter 1",
 		"description": "Victorian London on a cold Christmas Eve. Scrooge at his counting house, ignoring the carolers. Marley's ghost appears.",
 		"character": 5, "chapter": 0,
-		"waves": 14, "gold": 225, "lives": 22, "difficulty": 1.3,
+		"waves": 14, "gold": 115, "lives": 22, "difficulty": 1.3,
 		"sky_color": Color(0.08, 0.08, 0.12),
 		"ground_color": Color(0.10, 0.10, 0.12),
 	},
@@ -389,7 +389,7 @@ var levels = [
 		"name": "The Three Spirits", "subtitle": "Victorian London â€” Chapter 2",
 		"description": "The Ghosts of Christmas Past, Present, and Future visit Scrooge. Spectral London, gravestones, chains rattling.",
 		"character": 5, "chapter": 1,
-		"waves": 18, "gold": 240, "lives": 18, "difficulty": 1.6,
+		"waves": 18, "gold": 125, "lives": 18, "difficulty": 1.6,
 		"sky_color": Color(0.06, 0.06, 0.10),
 		"ground_color": Color(0.08, 0.08, 0.10),
 	},
@@ -397,7 +397,7 @@ var levels = [
 		"name": "Redemption's Dawn", "subtitle": "Victorian London â€” Chapter 3",
 		"description": "Christmas morning. The Ghost of Christmas Yet to Come leads an army of despair. Warm light fights to break through.",
 		"character": 5, "chapter": 2,
-		"waves": 25, "gold": 260, "lives": 15, "difficulty": 1.8,
+		"waves": 25, "gold": 135, "lives": 15, "difficulty": 1.8,
 		"sky_color": Color(0.10, 0.08, 0.06),
 		"ground_color": Color(0.12, 0.10, 0.10),
 	},
@@ -406,7 +406,7 @@ var levels = [
 # Difficulty selection (0=Easy, 1=Medium, 2=Hard)
 var selected_difficulty: int = 0
 var difficulty_waves: Array = [20, 30, 40]
-var difficulty_gold_bonus: Array = [50, 0, -25]
+var difficulty_gold_bonus: Array = [25, 0, -15]
 var difficulty_lives_bonus: Array = [5, 0, -5]
 var chapter_diff_buttons: Array = []  # Array of 3 arrays, each with 3 buttons
 
@@ -4882,7 +4882,7 @@ func _check_wave_complete() -> void:
 		else:
 			start_button.text = "  Start Wave  "
 			# Bonus gold between waves
-			var bonus = 10 + wave * 3
+			var bonus = 5 + wave * 2
 			gold += bonus
 			update_hud()
 			info_label.text = "Wave %d cleared! +%dG bonus. Next wave in 2s..." % [wave, bonus]

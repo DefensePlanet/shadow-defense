@@ -12,7 +12,7 @@ var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 4
+var gold_bonus: int = 2
 
 # Stationary striker — stays in place, attacks from position
 var _home_position: Vector2 = Vector2.ZERO
@@ -387,20 +387,20 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 3.5
 			attack_range = 200.0
 			fairy_cooldown = 10.0
-			gold_bonus = 6
+			gold_bonus = 3
 		3: # Tick-Tock Croc — chomp strongest
 			damage = 75.0
 			fire_rate = 4.0
 			attack_range = 220.0
 			croc_cooldown = 10.0
 			fairy_cooldown = 8.0
-			gold_bonus = 8
+			gold_bonus = 4
 		4: # Never Land — everything enhanced
 			damage = 95.0
 			fire_rate = 5.0
 			pierce_count = 2
 			attack_range = 250.0
-			gold_bonus = 12
+			gold_bonus = 5
 			fairy_cooldown = 6.0
 			croc_cooldown = 7.0
 
@@ -680,16 +680,6 @@ func _draw() -> void:
 	var skin_shadow = Color(0.78, 0.60, 0.45)
 	var skin_highlight = Color(0.96, 0.82, 0.68)
 
-	# Upgrade glow
-	if upgrade_tier > 0:
-		var glow_alpha = 0.1 + 0.03 * upgrade_tier
-		var glow_col: Color
-		match upgrade_tier:
-			1: glow_col = Color(0.3, 0.3, 0.4, glow_alpha)
-			2: glow_col = Color(0.6, 0.8, 0.3, glow_alpha)
-			3: glow_col = Color(0.3, 0.7, 0.4, glow_alpha)
-			4: glow_col = Color(0.4, 0.9, 0.5, glow_alpha + 0.08)
-		draw_circle(Vector2.ZERO, 72.0, glow_col)
 
 	if _upgrade_flash > 0.0:
 		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.5, 1.0, 0.6, _upgrade_flash * 0.25))

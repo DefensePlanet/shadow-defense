@@ -12,7 +12,7 @@ var attack_range: float = 220.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 4
+var gold_bonus: int = 2
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
@@ -362,7 +362,7 @@ func _apply_upgrade(tier: int) -> void:
 			dot_duration = 4.0
 			fire_rate = 2.0
 			attack_range = 250.0
-			gold_bonus = 6
+			gold_bonus = 3
 		3: # Swarm of Bees — stronger DoT
 			damage = 80.0
 			dot_dps = 15.0
@@ -370,12 +370,12 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 2.2
 			attack_range = 270.0
 			wolf_cooldown = 6.0
-			gold_bonus = 8
+			gold_bonus = 4
 		4: # The Golden Cap — Winged Monkey AoE
 			damage = 100.0
 			fire_rate = 2.5
 			attack_range = 300.0
-			gold_bonus = 12
+			gold_bonus = 5
 			wolf_cooldown = 5.0
 			monkey_cooldown = 15.0
 			dot_dps = 20.0
@@ -643,16 +643,6 @@ func _draw() -> void:
 	var skin_shadow = Color(0.28, 0.42, 0.20)
 	var skin_highlight = Color(0.48, 0.65, 0.35)
 
-	# === 6. UPGRADE GLOW ===
-	if upgrade_tier > 0:
-		var glow_alpha = 0.1 + 0.03 * upgrade_tier
-		var glow_col: Color
-		match upgrade_tier:
-			1: glow_col = Color(0.4, 0.35, 0.3, glow_alpha)
-			2: glow_col = Color(0.2, 0.2, 0.3, glow_alpha)
-			3: glow_col = Color(0.7, 0.6, 0.1, glow_alpha)
-			4: glow_col = Color(0.4, 0.15, 0.5, glow_alpha + 0.08)
-		draw_circle(Vector2.ZERO, 72.0, glow_col)
 
 	# === 7. FLASH EFFECTS ===
 	if _upgrade_flash > 0.0:

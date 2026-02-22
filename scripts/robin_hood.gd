@@ -13,7 +13,7 @@ var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
 var target: Node2D = null
 var _draw_progress: float = 0.0
-var gold_bonus: int = 5
+var gold_bonus: int = 2
 
 # Animation timers
 var _time: float = 0.0
@@ -318,18 +318,18 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 85.0
 			fire_rate = 3.0
 			attack_range = 240.0
-			gold_bonus = 8
+			gold_bonus = 3
 		3: # Three Blasts of the Horn — volley + range boost
 			damage = 100.0
 			fire_rate = 3.5
 			attack_range = 270.0
 			horn_cooldown = 14.0
-			gold_bonus = 10
+			gold_bonus = 4
 		4: # The Final Arrow — splash, double pierce, double gold
 			damage = 130.0
 			fire_rate = 4.0
 			attack_range = 300.0
-			gold_bonus = 15
+			gold_bonus = 6
 			splash_radius = 80.0
 			pierce_count = 3
 			horn_cooldown = 10.0
@@ -598,16 +598,6 @@ func _draw() -> void:
 	var skin_shadow = Color(0.78, 0.60, 0.45)
 	var skin_highlight = Color(0.96, 0.82, 0.68)
 
-	# === 6. UPGRADE GLOW ===
-	if upgrade_tier > 0:
-		var glow_alpha = 0.1 + 0.03 * upgrade_tier
-		var glow_col: Color
-		match upgrade_tier:
-			1: glow_col = Color(0.2, 0.5, 0.1, glow_alpha)    # leaf green
-			2: glow_col = Color(0.6, 0.7, 0.8, glow_alpha)    # silver
-			3: glow_col = Color(0.75, 0.65, 0.2, glow_alpha)   # gold
-			4: glow_col = Color(0.4, 0.8, 0.3, glow_alpha + 0.08) # golden-green
-		draw_circle(Vector2.ZERO, 72.0, glow_col)
 
 	# === 7. UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:

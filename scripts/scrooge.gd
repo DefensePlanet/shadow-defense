@@ -12,7 +12,7 @@ var attack_range: float = 140.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 3
+var gold_bonus: int = 1
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
@@ -309,11 +309,11 @@ func _apply_stat_boost() -> void:
 	damage *= 1.12
 	fire_rate *= 1.08
 	attack_range += 5.0
-	gold_bonus += 2
+	gold_bonus += 1
 	# Cash bundle every 500 damage milestone
 	var main = get_tree().get_first_node_in_group("main")
 	if main:
-		main.add_gold(10 + stat_upgrade_level * 5)
+		main.add_gold(5 + stat_upgrade_level * 2)
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -327,31 +327,31 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Bah, Humbug! — more gold, faster
 			damage = 30.0
-			gold_bonus = 10
+			gold_bonus = 4
 			fire_rate = 2.2
 			attack_range = 155.0
 		2: # Ghost of Christmas Past — mark enemies
 			damage = 40.0
 			fire_rate = 2.5
 			attack_range = 170.0
-			gold_bonus = 12
+			gold_bonus = 5
 			ghost_past_cooldown = 10.0
 		3: # Ghost of Christmas Present — mark all + passive gold
 			damage = 55.0
 			fire_rate = 3.0
 			attack_range = 190.0
-			gold_bonus = 15
-			passive_gold_amount = 3
-			passive_gold_interval = 4.0
+			gold_bonus = 7
+			passive_gold_amount = 2
+			passive_gold_interval = 5.0
 			ghost_present_cooldown = 8.0
 		4: # Ghost of Yet to Come — fear + stronger gold gen
 			damage = 70.0
 			fear_enabled = true
 			fire_rate = 3.5
-			gold_bonus = 20
+			gold_bonus = 9
 			attack_range = 220.0
-			passive_gold_amount = 5
-			passive_gold_interval = 2.5
+			passive_gold_amount = 3
+			passive_gold_interval = 3.5
 			ghost_present_cooldown = 6.0
 
 func purchase_upgrade() -> bool:
@@ -591,16 +591,6 @@ func _draw() -> void:
 	var skin_shadow = Color(0.70, 0.62, 0.55)
 	var skin_highlight = Color(0.92, 0.86, 0.80)
 
-	# === UPGRADE GLOW — cold/ghostly tones ===
-	if upgrade_tier > 0:
-		var glow_alpha = 0.1 + 0.03 * upgrade_tier
-		var glow_col: Color
-		match upgrade_tier:
-			1: glow_col = Color(0.7, 0.6, 0.2, glow_alpha)
-			2: glow_col = Color(0.4, 0.5, 0.8, glow_alpha)
-			3: glow_col = Color(0.3, 0.6, 0.3, glow_alpha)
-			4: glow_col = Color(0.2, 0.15, 0.25, glow_alpha + 0.08)
-		draw_circle(Vector2.ZERO, 72.0, glow_col)
 
 	# === UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:

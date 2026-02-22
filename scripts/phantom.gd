@@ -12,7 +12,7 @@ var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 5
+var gold_bonus: int = 2
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
@@ -374,13 +374,13 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 110.0
 			fire_rate = 1.4
 			attack_range = 210.0
-			gold_bonus = 7
+			gold_bonus = 3
 		3: # Chandelier — AoE burst
 			damage = 140.0
 			fire_rate = 1.6
 			attack_range = 230.0
 			chandelier_cooldown = 14.0
-			gold_bonus = 10
+			gold_bonus = 4
 			lasso_cooldown = 6.0
 		4: # Phantom's Wrath — DoT + all enhanced
 			damage = 180.0
@@ -388,7 +388,7 @@ func _apply_upgrade(tier: int) -> void:
 			attack_range = 260.0
 			note_dot_dps = 20.0
 			note_dot_duration = 4.0
-			gold_bonus = 15
+			gold_bonus = 6
 			lasso_cooldown = 5.0
 			chandelier_cooldown = 10.0
 
@@ -644,16 +644,6 @@ func _draw() -> void:
 	var skin_shadow = Color(0.72, 0.65, 0.60)
 	var skin_highlight = Color(0.95, 0.90, 0.88)
 
-	# === UPGRADE GLOW ===
-	if upgrade_tier > 0:
-		var glow_alpha = 0.1 + 0.03 * upgrade_tier
-		var glow_col: Color
-		match upgrade_tier:
-			1: glow_col = Color(0.5, 0.4, 0.3, glow_alpha)   # rope brown
-			2: glow_col = Color(0.5, 0.3, 0.5, glow_alpha)   # music purple
-			3: glow_col = Color(0.7, 0.6, 0.2, glow_alpha)   # chandelier gold
-			4: glow_col = Color(0.6, 0.1, 0.1, glow_alpha + 0.08) # dark red
-		draw_circle(Vector2.ZERO, 72.0, glow_col)
 
 	# === UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:

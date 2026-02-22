@@ -12,7 +12,7 @@ var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 3
+var gold_bonus: int = 1
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
@@ -362,20 +362,20 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 4.0
 			attack_range = 190.0
 			cheshire_cooldown = 10.0
-			gold_bonus = 5
+			gold_bonus = 2
 		3: # Mad Tea Party — teacup volley
 			damage = 55.0
 			fire_rate = 4.5
 			attack_range = 210.0
 			tea_cooldown = 12.0
 			slow_amount = 0.45
-			gold_bonus = 7
+			gold_bonus = 3
 		4: # Off With Their Heads!
 			damage = 70.0
 			execute_threshold = 0.20
 			fire_rate = 5.0
 			attack_range = 230.0
-			gold_bonus = 10
+			gold_bonus = 4
 			slow_amount = 0.4
 			slow_duration = 3.0
 			cheshire_cooldown = 7.0
@@ -677,16 +677,6 @@ func _draw() -> void:
 				draw_circle(cp, 2.5, Color(0.15, 0.15, 0.2, 0.6))
 				draw_line(cp, cp + cpd * 2.5, Color(0.15, 0.15, 0.2, 0.5), 1.5)
 
-	# Upgrade glow ring
-	if upgrade_tier > 0:
-		var glow_alpha = 0.1 + 0.03 * upgrade_tier
-		var glow_col: Color
-		match upgrade_tier:
-			1: glow_col = Color(0.4, 0.6, 0.9, glow_alpha)
-			2: glow_col = Color(0.7, 0.4, 0.8, glow_alpha)
-			3: glow_col = Color(0.9, 0.7, 0.3, glow_alpha)
-			4: glow_col = Color(0.9, 0.2, 0.2, glow_alpha + 0.06)
-		draw_circle(Vector2.ZERO, 55.0, glow_col)
 
 	# Upgrade flash
 	if _upgrade_flash > 0.0:
