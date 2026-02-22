@@ -162,4 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.addEventListener('scroll', updateActiveNav, { passive: true });
+
+    // --- Mobile play hint ---
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1);
+    const mobileHint = document.getElementById('mobile-play-hint');
+    if (isMobile && mobileHint) {
+        mobileHint.style.display = 'block';
+    }
 });

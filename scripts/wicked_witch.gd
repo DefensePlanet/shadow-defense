@@ -47,6 +47,44 @@ var monkey_timer: float = 0.0
 var monkey_cooldown: float = 20.0
 var _monkey_flash: float = 0.0
 
+# === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
+const PROG_ABILITY_NAMES = [
+	"Witch's Cackle", "Winged Monkey Scout", "Poppy Field",
+	"The Tornado", "Ruby Slippers", "Crystal Ball",
+	"The Winkies' March", "Melting Curse", "Surrender Dorothy"
+]
+const PROG_ABILITY_DESCS = [
+	"Bolts fly 25% faster, +15% damage",
+	"Monkey marks 1 enemy every 8s for +25% damage taken 5s",
+	"Every 20s, poppies put enemies to sleep 2s",
+	"Every 15s, tornado pushes all enemies in range backwards",
+	"Every 12s, teleport to furthest enemy, strike 5x damage",
+	"Crystal ball: all enemies spawn with 15% less HP",
+	"Every 18s, 4 Winkies march and strike enemies for 3x",
+	"Every 20s, strongest enemy melts losing 20% HP over 3s",
+	"Green skywriting deals 15 DPS to ALL enemies permanently"
+]
+var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
+# Ability timers
+var _monkey_scout_timer: float = 8.0
+var _poppy_field_timer: float = 20.0
+var _tornado_timer: float = 15.0
+var _ruby_slippers_timer: float = 12.0
+var _ruby_slipper_teleporting: bool = false
+var _ruby_slipper_saved_pos: Vector2 = Vector2.ZERO
+var _ruby_slipper_strike_timer: float = 0.0
+var _winkies_march_timer: float = 18.0
+var _melting_curse_timer: float = 20.0
+# Visual flash timers
+var _cackle_flash: float = 0.0
+var _monkey_scout_flash: float = 0.0
+var _poppy_flash: float = 0.0
+var _tornado_flash: float = 0.0
+var _ruby_flash: float = 0.0
+var _winkies_flash: float = 0.0
+var _melting_flash: float = 0.0
+var _surrender_flash: float = 0.0
+
 const STAT_UPGRADE_INTERVAL: float = 500.0
 const ABILITY_THRESHOLD: float = 1500.0
 var stat_upgrade_level: int = 0
@@ -74,9 +112,18 @@ var bolt_scene = preload("res://scenes/witch_bolt.tscn")
 var _attack_sound: AudioStreamWAV
 var _attack_player: AudioStreamPlayer
 
+# Ability sounds
+var _wolf_sound: AudioStreamWAV
+var _wolf_player: AudioStreamPlayer
+var _monkey_sound: AudioStreamWAV
+var _monkey_player: AudioStreamPlayer
+var _upgrade_sound: AudioStreamWAV
+var _upgrade_player: AudioStreamPlayer
+
 func _ready() -> void:
 	_home_position = global_position
 	add_to_group("towers")
+	_load_progressive_abilities()
 	# Generate crackling zap sound
 	var mix_rate := 22050
 	var duration := 0.15
@@ -97,6 +144,62 @@ func _ready() -> void:
 	_attack_player.stream = _attack_sound
 	_attack_player.volume_db = -8.0
 	add_child(_attack_player)
+
+	# Wolf pack — rising wolf howl with vibrato
+	var wf_rate := 22050
+	var wf_dur := 0.55
+	var wf_samples := PackedFloat32Array()
+	wf_samples.resize(int(wf_rate * wf_dur))
+	for i in wf_samples.size():
+		var t := float(i) / wf_rate
+		var freq := 250.0 + t * 500.0 + sin(TAU * 6.0 * t) * 30.0
+		var att := minf(t * 10.0, 1.0)
+		var dec := exp(-(t - 0.3) * 5.0) if t > 0.3 else 1.0
+		var env := att * dec * 0.4
+		wf_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 1.5 * t) * 0.3) * env, -1.0, 1.0)
+	_wolf_sound = _samples_to_wav(wf_samples, wf_rate)
+	_wolf_player = AudioStreamPlayer.new()
+	_wolf_player.stream = _wolf_sound
+	_wolf_player.volume_db = -6.0
+	add_child(_wolf_player)
+
+	# Winged monkeys — harsh ascending screech + wing flutter
+	var mk_rate := 22050
+	var mk_dur := 0.4
+	var mk_samples := PackedFloat32Array()
+	mk_samples.resize(int(mk_rate * mk_dur))
+	for i in mk_samples.size():
+		var t := float(i) / mk_rate
+		var screech_freq := 800.0 + t * 1500.0
+		var flutter := 0.5 + 0.5 * sin(TAU * 25.0 * t)
+		var env := (1.0 - t / mk_dur) * 0.4
+		var s := sin(TAU * screech_freq * t) * 0.5 + (randf() * 2.0 - 1.0) * 0.2
+		mk_samples[i] = clampf(s * flutter * env, -1.0, 1.0)
+	_monkey_sound = _samples_to_wav(mk_samples, mk_rate)
+	_monkey_player = AudioStreamPlayer.new()
+	_monkey_player.stream = _monkey_sound
+	_monkey_player.volume_db = -6.0
+	add_child(_monkey_player)
+
+	# Upgrade chime
+	var up_rate := 22050
+	var up_dur := 0.35
+	var up_samples := PackedFloat32Array()
+	up_samples.resize(int(up_rate * up_dur))
+	var up_notes := [523.25, 659.25, 783.99]
+	var up_note_len := int(up_rate * up_dur) / 3
+	for i in up_samples.size():
+		var t := float(i) / up_rate
+		var ni := mini(i / up_note_len, 2)
+		var nt := float(i - ni * up_note_len) / float(up_rate)
+		var freq: float = up_notes[ni]
+		var env := minf(nt * 50.0, 1.0) * exp(-nt * 10.0) * 0.4
+		up_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.3) * env, -1.0, 1.0)
+	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
+	_upgrade_player = AudioStreamPlayer.new()
+	_upgrade_player.stream = _upgrade_sound
+	_upgrade_player.volume_db = -4.0
+	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -159,6 +262,7 @@ func _process(delta: float) -> void:
 			_winged_monkeys()
 			monkey_timer = monkey_cooldown
 
+	_process_progressive_abilities(delta)
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
@@ -184,9 +288,13 @@ func _strike_target(t: Node2D) -> void:
 	if _attack_player:
 		_attack_player.play()
 	_attack_anim = 1.0
-	var will_kill = t.health - damage <= 0.0
-	t.take_damage(damage)
-	register_damage(damage)
+	var strike_dmg = damage
+	if prog_abilities[0]:  # Witch's Cackle: +15% damage
+		strike_dmg *= 1.15
+		_cackle_flash = 0.5
+	var will_kill = t.health - strike_dmg <= 0.0
+	t.take_damage(strike_dmg)
+	register_damage(strike_dmg)
 	# Apply DoT if we have it
 	if dot_dps > 0.0 and dot_duration > 0.0 and t.has_method("apply_dot"):
 		t.apply_dot(dot_dps, dot_duration)
@@ -199,15 +307,22 @@ func _strike_target(t: Node2D) -> void:
 func _fire_bolt(t: Node2D) -> void:
 	var bolt = bolt_scene.instantiate()
 	bolt.global_position = global_position + Vector2.from_angle(aim_angle) * 16.0
-	bolt.damage = damage
+	var bolt_dmg = damage
+	if prog_abilities[0]:  # Witch's Cackle: +15% damage, 25% faster bolts
+		bolt_dmg *= 1.15
+		_cackle_flash = 0.5
+	bolt.damage = bolt_dmg
 	bolt.target = t
 	bolt.gold_bonus = gold_bonus
 	bolt.source_tower = self
 	bolt.dot_dps = dot_dps
 	bolt.dot_duration = dot_duration
+	if prog_abilities[0] and "speed" in bolt:
+		bolt.speed *= 1.25
 	get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func _wolf_pack() -> void:
+	if _wolf_player: _wolf_player.play()
 	_wolf_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
@@ -229,6 +344,7 @@ func _wolf_pack() -> void:
 		get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func _winged_monkeys() -> void:
+	if _monkey_player: _monkey_player.play()
 	_monkey_flash = 1.5
 	# Massive AoE damage to all enemies in range
 	var monkey_dmg = damage * 2.5
@@ -246,6 +362,9 @@ func _winged_monkeys() -> void:
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("register_tower_damage"):
+		main.register_tower_damage(main.TowerType.WICKED_WITCH, amount)
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -318,6 +437,7 @@ func purchase_upgrade() -> bool:
 	_apply_upgrade(upgrade_tier)
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
+	if _upgrade_player: _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -352,6 +472,193 @@ func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamW
 	wav.data = data
 	return wav
 
+# === PROGRESSIVE ABILITY SYSTEM ===
+
+func _load_progressive_abilities() -> void:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.survivor_progress.has(main.TowerType.WICKED_WITCH):
+		var p = main.survivor_progress[main.TowerType.WICKED_WITCH]
+		var unlocked = p.get("abilities_unlocked", [])
+		for i in range(mini(9, unlocked.size())):
+			if unlocked[i]:
+				activate_progressive_ability(i)
+
+func activate_progressive_ability(index: int) -> void:
+	if index < 0 or index >= 9:
+		return
+	prog_abilities[index] = true
+
+func get_progressive_ability_name(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_NAMES.size():
+		return PROG_ABILITY_NAMES[index]
+	return ""
+
+func get_progressive_ability_desc(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_DESCS.size():
+		return PROG_ABILITY_DESCS[index]
+	return ""
+
+func get_spawn_debuffs() -> Dictionary:
+	if prog_abilities[5]:  # Crystal Ball
+		return {"hp_reduction": 0.15}
+	return {}
+
+func _process_progressive_abilities(delta: float) -> void:
+	# Visual flash decay
+	_cackle_flash = max(_cackle_flash - delta * 2.0, 0.0)
+	_monkey_scout_flash = max(_monkey_scout_flash - delta * 2.0, 0.0)
+	_poppy_flash = max(_poppy_flash - delta * 1.5, 0.0)
+	_tornado_flash = max(_tornado_flash - delta * 1.5, 0.0)
+	_ruby_flash = max(_ruby_flash - delta * 2.0, 0.0)
+	_winkies_flash = max(_winkies_flash - delta * 2.0, 0.0)
+	_melting_flash = max(_melting_flash - delta * 1.5, 0.0)
+	_surrender_flash = max(_surrender_flash - delta * 0.5, 0.0)
+
+	# Ability 2: Winged Monkey Scout — mark 1 enemy every 8s
+	if prog_abilities[1]:
+		_monkey_scout_timer -= delta
+		if _monkey_scout_timer <= 0.0 and _has_enemies_in_range():
+			_monkey_scout_mark()
+			_monkey_scout_timer = 8.0
+
+	# Ability 3: Poppy Field — sleep enemies every 20s
+	if prog_abilities[2]:
+		_poppy_field_timer -= delta
+		if _poppy_field_timer <= 0.0 and _has_enemies_in_range():
+			_poppy_field_attack()
+			_poppy_field_timer = 20.0
+
+	# Ability 4: The Tornado — push enemies back every 15s
+	if prog_abilities[3]:
+		_tornado_timer -= delta
+		if _tornado_timer <= 0.0 and _has_enemies_in_range():
+			_tornado_attack()
+			_tornado_timer = 15.0
+
+	# Ability 5: Ruby Slippers — teleport strike every 12s
+	if prog_abilities[4]:
+		if _ruby_slipper_teleporting:
+			_ruby_slipper_strike_timer -= delta
+			if _ruby_slipper_strike_timer <= 0.0:
+				global_position = _ruby_slipper_saved_pos
+				_home_position = _ruby_slipper_saved_pos
+				_ruby_slipper_teleporting = false
+				_ruby_flash = 1.0
+		else:
+			_ruby_slippers_timer -= delta
+			if _ruby_slippers_timer <= 0.0 and _has_enemies_in_range():
+				_ruby_slippers_strike()
+				_ruby_slippers_timer = 12.0
+
+	# Ability 7: The Winkies' March — 4 soldiers every 18s
+	if prog_abilities[6]:
+		_winkies_march_timer -= delta
+		if _winkies_march_timer <= 0.0 and _has_enemies_in_range():
+			_winkies_march_attack()
+			_winkies_march_timer = 18.0
+
+	# Ability 8: Melting Curse — melt strongest enemy every 20s
+	if prog_abilities[7]:
+		_melting_curse_timer -= delta
+		if _melting_curse_timer <= 0.0 and _has_enemies_in_range():
+			_melting_curse_attack()
+			_melting_curse_timer = 20.0
+
+	# Ability 9: Surrender Dorothy — 15 DPS to ALL enemies every frame
+	if prog_abilities[8]:
+		var dps_amount = 15.0 * delta
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if is_instance_valid(e) and e.has_method("take_damage"):
+				e.take_damage(dps_amount)
+				register_damage(dps_amount)
+
+func _monkey_scout_mark() -> void:
+	_monkey_scout_flash = 1.0
+	# Find a random enemy in range and mark for +25% damage taken
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if _home_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	if in_range.size() > 0:
+		var target_e = in_range[randi() % in_range.size()]
+		if is_instance_valid(target_e) and target_e.has_method("apply_cheshire_mark"):
+			target_e.apply_cheshire_mark(5.0, 1.25)
+
+func _poppy_field_attack() -> void:
+	_poppy_flash = 1.5
+	# Put enemies in range to sleep for 2s
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if _home_position.distance_to(e.global_position) < attack_range:
+			if is_instance_valid(e) and e.has_method("apply_sleep"):
+				e.apply_sleep(2.0)
+
+func _tornado_attack() -> void:
+	_tornado_flash = 1.5
+	# Push all enemies in range backwards using fear_reverse
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if _home_position.distance_to(e.global_position) < attack_range:
+			if is_instance_valid(e) and e.has_method("apply_fear_reverse"):
+				e.apply_fear_reverse(2.0)
+
+func _ruby_slippers_strike() -> void:
+	_ruby_flash = 1.0
+	# Find furthest enemy in range
+	var furthest: Node2D = null
+	var furthest_dist: float = 0.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		var dist = _home_position.distance_to(e.global_position)
+		if dist < attack_range and dist > furthest_dist:
+			furthest_dist = dist
+			furthest = e
+	if furthest and is_instance_valid(furthest) and furthest.has_method("take_damage"):
+		_ruby_slipper_saved_pos = _home_position
+		_ruby_slipper_teleporting = true
+		_ruby_slipper_strike_timer = 0.3
+		global_position = furthest.global_position
+		var dmg = damage * 5.0
+		var will_kill = furthest.health - dmg <= 0.0
+		furthest.take_damage(dmg)
+		register_damage(dmg)
+		if will_kill and gold_bonus > 0:
+			var main = get_tree().get_first_node_in_group("main")
+			if main:
+				main.add_gold(gold_bonus)
+
+func _winkies_march_attack() -> void:
+	_winkies_flash = 1.5
+	# 4 Winkie soldiers each strike one enemy for 3x damage
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if _home_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	in_range.shuffle()
+	for i in range(mini(4, in_range.size())):
+		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
+			var dmg = damage * 3.0
+			var will_kill = in_range[i].health - dmg <= 0.0
+			in_range[i].take_damage(dmg)
+			register_damage(dmg)
+			if will_kill and gold_bonus > 0:
+				var main = get_tree().get_first_node_in_group("main")
+				if main:
+					main.add_gold(gold_bonus)
+
+func _melting_curse_attack() -> void:
+	_melting_flash = 1.5
+	# Find strongest enemy in range and apply melt
+	var strongest: Node2D = null
+	var most_hp: float = 0.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if _home_position.distance_to(e.global_position) < attack_range:
+			if is_instance_valid(e) and e.health > most_hp:
+				most_hp = e.health
+				strongest = e
+	if strongest and is_instance_valid(strongest) and strongest.has_method("apply_melt"):
+		var melt_rate = strongest.health * 0.2 / 3.0
+		strongest.apply_melt(melt_rate, 3.0)
+
 func _draw() -> void:
 	# === 1. SELECTION RING ===
 	if is_selected:
@@ -367,10 +674,13 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(aim_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	# === 4. IDLE ANIMATION ===
+	# === 4. IDLE ANIMATION (hip sway + robe billow) ===
 	var bounce = abs(sin(_time * 3.0)) * 4.0
 	var breathe = sin(_time * 2.0) * 2.0
 	var sway = sin(_time * 1.5) * 1.5
+	var hip_sway = sin(_time * 1.8) * 2.5
+	var chest_breathe = sin(_time * 2.0) * 1.0
+	var robe_billow = sin(_time * 1.3) * 2.0 + sin(_time * 2.1) * 1.0
 	var bob = Vector2(sway, -bounce - breathe)
 	var fly_offset = Vector2.ZERO
 	if upgrade_tier >= 4:
@@ -435,6 +745,111 @@ func _draw() -> void:
 		var strike_t = _strike_timer / _strike_duration
 		draw_circle(Vector2.ZERO, 35.0 * strike_t, Color(0.4, 0.9, 0.2, 0.35 * strike_t))
 		draw_arc(Vector2.ZERO, 20.0 + (1.0 - strike_t) * 40.0, 0, TAU, 32, Color(0.3, 0.9, 0.1, strike_t * 0.4), 2.5)
+
+	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
+
+	# Witch's Cackle flash (green streak)
+	if _cackle_flash > 0.0:
+		var cdir = Vector2.from_angle(aim_angle)
+		draw_line(cdir * 10.0, cdir * 50.0, Color(0.3, 0.9, 0.1, _cackle_flash * 0.4), 3.0)
+		draw_line(cdir * 15.0, cdir * 45.0, Color(0.5, 1.0, 0.3, _cackle_flash * 0.3), 1.5)
+
+	# Winged Monkey Scout flash (swooping monkey silhouette)
+	if _monkey_scout_flash > 0.0:
+		var ms_angle = _time * 2.0
+		var ms_r = 60.0 + (1.0 - _monkey_scout_flash) * 30.0
+		var ms_pos = Vector2(cos(ms_angle) * ms_r, sin(ms_angle) * ms_r * 0.5 - 40.0)
+		draw_circle(ms_pos, 6.0, Color(0.35, 0.25, 0.15, _monkey_scout_flash * 0.5))
+		draw_circle(ms_pos + Vector2(0, -6), 4.0, Color(0.35, 0.25, 0.15, _monkey_scout_flash * 0.5))
+		# Wings
+		var msw = sin(_time * 8.0) * 4.0
+		draw_line(ms_pos + Vector2(-4, -2), ms_pos + Vector2(-15, -8 + msw), Color(0.3, 0.2, 0.1, _monkey_scout_flash * 0.4), 2.0)
+		draw_line(ms_pos + Vector2(4, -2), ms_pos + Vector2(15, -8 + msw), Color(0.3, 0.2, 0.1, _monkey_scout_flash * 0.4), 2.0)
+
+	# Poppy Field flash (red flowers blooming)
+	if _poppy_flash > 0.0:
+		for pi in range(8):
+			var pa = TAU * float(pi) / 8.0 + _poppy_flash * 0.5
+			var pr = 30.0 + float(pi % 3) * 15.0
+			var ppos = Vector2(cos(pa) * pr, sin(pa) * pr * 0.4 + 15.0)
+			# Poppy flower
+			draw_circle(ppos, 4.0 * _poppy_flash, Color(0.9, 0.15, 0.1, _poppy_flash * 0.5))
+			draw_circle(ppos, 2.5 * _poppy_flash, Color(1.0, 0.3, 0.2, _poppy_flash * 0.4))
+			draw_circle(ppos, 1.0, Color(0.1, 0.1, 0.0, _poppy_flash * 0.6))
+			# Stem
+			draw_line(ppos, ppos + Vector2(0, 5), Color(0.2, 0.5, 0.1, _poppy_flash * 0.3), 1.0)
+
+	# Tornado flash (gray spinning funnel)
+	if _tornado_flash > 0.0:
+		var t_center = Vector2(0, 5)
+		for ti in range(6):
+			var ta = _time * 8.0 + float(ti) * TAU / 6.0
+			var tr = 20.0 + (1.0 - _tornado_flash) * 40.0 + float(ti) * 3.0
+			var tp = t_center + Vector2(cos(ta) * tr, sin(ta) * tr * 0.3)
+			draw_circle(tp, 5.0 - float(ti) * 0.5, Color(0.5, 0.5, 0.55, _tornado_flash * 0.25))
+		# Funnel shape
+		draw_arc(t_center, 15.0 + (1.0 - _tornado_flash) * 25.0, 0, TAU, 24, Color(0.45, 0.45, 0.50, _tornado_flash * 0.3), 3.0)
+		draw_arc(t_center, 25.0 + (1.0 - _tornado_flash) * 35.0, 0, TAU, 24, Color(0.4, 0.4, 0.45, _tornado_flash * 0.2), 2.0)
+
+	# Ruby Slippers flash (ruby sparkle poof)
+	if _ruby_flash > 0.0:
+		for ri in range(10):
+			var ra = TAU * float(ri) / 10.0 + _ruby_flash * 5.0
+			var rr = 15.0 + (1.0 - _ruby_flash) * 30.0
+			var rpos = Vector2(cos(ra) * rr, sin(ra) * rr)
+			draw_circle(rpos, 3.0 * _ruby_flash, Color(0.9, 0.1, 0.15, _ruby_flash * 0.6))
+			draw_circle(rpos, 1.5 * _ruby_flash, Color(1.0, 0.4, 0.4, _ruby_flash * 0.4))
+		draw_circle(Vector2.ZERO, 20.0 * _ruby_flash, Color(0.8, 0.1, 0.1, _ruby_flash * 0.15))
+
+	# Crystal Ball (floating above witch) — permanent visual when active
+	if prog_abilities[5]:
+		var cb_pos = Vector2(0, -65 + sin(_time * 1.5) * 3.0)
+		var cb_glow = 0.3 + sin(_time * 2.5) * 0.1
+		draw_circle(cb_pos, 10.0, Color(0.5, 0.3, 0.7, cb_glow))
+		draw_circle(cb_pos, 8.0, Color(0.6, 0.4, 0.8, cb_glow + 0.1))
+		draw_circle(cb_pos, 5.0, Color(0.7, 0.5, 0.9, cb_glow + 0.15))
+		draw_circle(cb_pos + Vector2(-2, -2), 2.5, Color(0.9, 0.8, 1.0, 0.4))
+		# Orbiting sparkles
+		for ci in range(3):
+			var ca = _time * 2.0 + float(ci) * TAU / 3.0
+			var cpos = cb_pos + Vector2(cos(ca) * 12.0, sin(ca) * 12.0 * 0.5)
+			draw_circle(cpos, 1.5, Color(0.7, 0.5, 0.9, 0.4 + sin(_time * 3.0 + float(ci)) * 0.2))
+
+	# Winkies March flash (yellow armored figures)
+	if _winkies_flash > 0.0:
+		for wi in range(4):
+			var wa = TAU * float(wi) / 4.0 + (1.0 - _winkies_flash) * 3.0
+			var wr = 35.0 + (1.0 - _winkies_flash) * 25.0
+			var wpos = Vector2(cos(wa) * wr, sin(wa) * wr * 0.4 + 10.0)
+			# Winkie body (yellow)
+			draw_circle(wpos, 5.0, Color(0.8, 0.7, 0.2, _winkies_flash * 0.5))
+			draw_circle(wpos + Vector2(0, -5), 3.5, Color(0.7, 0.6, 0.15, _winkies_flash * 0.5))
+			# Helmet
+			draw_circle(wpos + Vector2(0, -8), 3.0, Color(0.5, 0.5, 0.5, _winkies_flash * 0.4))
+			# Spear
+			draw_line(wpos + Vector2(3, 3), wpos + Vector2(3, -12), Color(0.4, 0.35, 0.2, _winkies_flash * 0.4), 1.5)
+
+	# Melting Curse flash (green dripping effect)
+	if _melting_flash > 0.0:
+		for mi in range(6):
+			var mx = -20.0 + float(mi) * 8.0
+			var drip_y = 10.0 + (1.0 - _melting_flash) * 30.0
+			draw_line(Vector2(mx, -5), Vector2(mx + sin(_time * 3.0 + float(mi)) * 2.0, drip_y), Color(0.3, 0.8, 0.1, _melting_flash * 0.4), 2.0)
+			draw_circle(Vector2(mx, drip_y), 3.0, Color(0.2, 0.7, 0.05, _melting_flash * 0.35))
+
+	# Surrender Dorothy (green skywriting + particles) — permanent visual
+	if prog_abilities[8]:
+		_surrender_flash = 1.0  # Keep it active
+		# Green smoke letters floating above
+		var sky_y = -90.0 + sin(_time * 0.5) * 3.0
+		var font_s = ThemeDB.fallback_font
+		draw_string(font_s, Vector2(-50, sky_y), "SURRENDER", HORIZONTAL_ALIGNMENT_CENTER, 100, 11, Color(0.3, 0.8, 0.1, 0.4 + sin(_time * 1.5) * 0.15))
+		# Green particles raining down
+		for si in range(8):
+			var sx = -40.0 + float(si) * 11.0
+			var sy_offset = fmod(_time * 30.0 + float(si) * 17.0, 80.0)
+			var sp = Vector2(sx + sin(_time + float(si)) * 5.0, sky_y + 10.0 + sy_offset)
+			draw_circle(sp, 1.5, Color(0.3, 0.8, 0.1, 0.25 - sy_offset * 0.003))
 
 	# === 8. STONE PLATFORM (always at local origin) ===
 	var plat_y = 22.0
@@ -507,11 +922,11 @@ func _draw() -> void:
 			draw_circle(wolf_head + wolf_dir * 2.5 - wolf_perp_v * 1.5, 1.0, Color(0.6, 0.2, 0.0, 0.5))
 
 	# === 11. CHARACTER POSITIONS (tall anime proportions ~56px) ===
-	var feet_y = body_offset + Vector2(0, 14.0)
-	var leg_top = body_offset + Vector2(0, -2.0)
-	var torso_center = body_offset + Vector2(0, -10.0)
-	var neck_base = body_offset + Vector2(0, -20.0)
-	var head_center = body_offset + Vector2(0, -32.0)
+	var feet_y = body_offset + Vector2(hip_sway * 1.0 + robe_billow * 0.5, 14.0)
+	var leg_top = body_offset + Vector2(hip_sway * 0.6, -2.0)
+	var torso_center = body_offset + Vector2(hip_sway * 0.3, -10.0 - chest_breathe * 0.5)
+	var neck_base = body_offset + Vector2(hip_sway * 0.15, -20.0 - chest_breathe * 0.3)
+	var head_center = body_offset + Vector2(hip_sway * 0.08, -32.0)
 
 	# Character shadow on platform
 	draw_set_transform(Vector2(0, plat_y - 1), 0, Vector2(1.0, 0.3))
@@ -548,20 +963,44 @@ func _draw() -> void:
 	# Left leg hidden under robe (just dark robe fabric)
 	draw_line(l_foot + Vector2(0, -2), leg_top + Vector2(-5, 0), Color(0.06, 0.04, 0.08), 5.0)
 	draw_line(l_foot + Vector2(0, -2), leg_top + Vector2(-5, 0), Color(0.10, 0.08, 0.12), 3.5)
-	# Right leg exposed through slit — green skin with dark stocking top
+	# Right leg exposed through slit — curvy green-skinned polygon shapes
 	var r_knee = feet_y.lerp(leg_top, 0.5) + Vector2(5, 0)
-	# Green-skinned thigh/calf
-	draw_line(r_foot + Vector2(0, -2), r_knee, skin_base, 4.0)
-	draw_line(r_knee, leg_top + Vector2(5, 0), skin_base, 4.5)
-	# Skin shading (inner shadow)
-	draw_line(r_foot + Vector2(1, -2), r_knee + Vector2(1, 0), skin_shadow, 2.0)
-	draw_line(r_knee + Vector2(1, 0), leg_top + Vector2(6, 0), skin_shadow, 2.5)
-	# Skin highlight (outer)
-	draw_line(r_foot + Vector2(-1, -2), r_knee + Vector2(-1, 0), skin_highlight, 1.5)
-	draw_line(r_knee + Vector2(-1, 0), leg_top + Vector2(4, 0), skin_highlight, 1.5)
-	# Dark stocking band at thigh top
-	draw_line(leg_top + Vector2(3, 1), leg_top + Vector2(8, 1), Color(0.06, 0.04, 0.08), 2.5)
-	draw_line(leg_top + Vector2(3, 1), leg_top + Vector2(8, 1), Color(0.15, 0.08, 0.18), 1.5)
+	var r_hip_pos = leg_top + Vector2(5, 0)
+	# RIGHT THIGH — curvy feminine shape (wider at hip, tapered to knee)
+	draw_colored_polygon(PackedVector2Array([
+		r_hip_pos + Vector2(3, 0), r_hip_pos + Vector2(-4, 0),
+		r_hip_pos.lerp(r_knee, 0.3) + Vector2(-6, 0),  # outer thigh curve
+		r_hip_pos.lerp(r_knee, 0.6) + Vector2(-5.5, 0),
+		r_knee + Vector2(-4, 0), r_knee + Vector2(3, 0),
+		r_hip_pos.lerp(r_knee, 0.5) + Vector2(4, 0),  # inner thigh
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_hip_pos + Vector2(2, 0), r_hip_pos + Vector2(-3, 0),
+		r_hip_pos.lerp(r_knee, 0.35) + Vector2(-5, 0),
+		r_knee + Vector2(-3, 0), r_knee + Vector2(2, 0),
+	]), skin_base)
+	# Thigh highlight (outer shine)
+	draw_line(r_hip_pos.lerp(r_knee, 0.15) + Vector2(-3, 0), r_hip_pos.lerp(r_knee, 0.6) + Vector2(-3, 0), skin_highlight, 1.2)
+	# Dark stocking band at thigh top (lace garter)
+	draw_arc(r_hip_pos, 5.0, -0.3, PI + 0.3, 8, Color(0.06, 0.04, 0.08, 0.7), 2.5)
+	draw_arc(r_hip_pos, 5.5, -0.2, PI + 0.2, 8, Color(0.15, 0.08, 0.18, 0.4), 1.5)
+	# Knee joint
+	draw_circle(r_knee, 4.5, skin_shadow)
+	draw_circle(r_knee, 3.5, skin_base)
+	# RIGHT CALF — shapely curve
+	var r_calf_mid = r_knee.lerp(r_foot, 0.4) + Vector2(2, 0)
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(-4, 0), r_knee + Vector2(3, 0),
+		r_calf_mid + Vector2(4, 0),
+		r_foot + Vector2(2, -3), r_foot + Vector2(-2, -3),
+		r_calf_mid + Vector2(-5, 0),  # calf muscle curve
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(-3, 0), r_knee + Vector2(2, 0),
+		r_foot + Vector2(1.5, -3), r_foot + Vector2(-1.5, -3),
+	]), skin_base)
+	# Calf muscle highlight
+	draw_circle(r_calf_mid + Vector2(-1, 0), 2.5, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3))
 	# Boot tops (calf-high)
 	draw_line(r_foot + Vector2(0, -2), r_foot + Vector2(0, -6), Color(0.06, 0.04, 0.08), 5.0)
 	draw_line(r_foot + Vector2(0, -2), r_foot + Vector2(0, -6), Color(0.10, 0.08, 0.12), 3.5)
@@ -697,21 +1136,49 @@ func _draw() -> void:
 	else:
 		broom_hand = neck_base + Vector2(-14, 2) + dir * 10.0
 
-	# Weapon arm (left side) — slender sleeve then green hand
+	# Weapon arm (left side) — polygon sleeve shape then green hand
 	var l_arm_origin = l_shoulder + Vector2(0, 2)
 	var l_elbow = l_arm_origin + (broom_hand - l_arm_origin) * 0.45 + Vector2(0, 3)
-	draw_line(l_arm_origin, l_elbow, Color(0.06, 0.04, 0.08), 4.5)
-	draw_line(l_elbow, broom_hand, Color(0.06, 0.04, 0.08), 4.0)
-	draw_line(l_arm_origin, l_elbow, Color(0.10, 0.08, 0.12), 3.0)
-	draw_line(l_elbow, broom_hand, Color(0.10, 0.08, 0.12), 2.5)
+	# LEFT UPPER ARM — exposed green skin (curvy feminine shape)
+	var l_ua_dir = (l_elbow - l_arm_origin).normalized()
+	var l_ua_perp = l_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_arm_origin + l_ua_perp * 4.5, l_arm_origin - l_ua_perp * 4.0,
+		l_arm_origin.lerp(l_elbow, 0.5) - l_ua_perp * 4.5,
+		l_elbow - l_ua_perp * 3.0, l_elbow + l_ua_perp * 3.0,
+		l_arm_origin.lerp(l_elbow, 0.5) + l_ua_perp * 4.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		l_arm_origin + l_ua_perp * 3.5, l_arm_origin - l_ua_perp * 3.0,
+		l_elbow - l_ua_perp * 2.0, l_elbow + l_ua_perp * 2.0,
+	]), skin_base)
+	# Arm highlight
+	draw_line(l_arm_origin.lerp(l_elbow, 0.2) + l_ua_perp * 2.0, l_arm_origin.lerp(l_elbow, 0.7) + l_ua_perp * 2.0, skin_highlight, 1.2)
+	# LEFT FOREARM — green skin tapered
+	var l_fa_dir = (broom_hand - l_elbow).normalized()
+	var l_fa_perp = l_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 3.0, l_elbow - l_fa_perp * 3.0,
+		broom_hand - l_fa_perp * 2.0, broom_hand + l_fa_perp * 2.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 2.2, l_elbow - l_fa_perp * 2.2,
+		broom_hand - l_fa_perp * 1.2, broom_hand + l_fa_perp * 1.2,
+	]), skin_base)
+	# Forearm highlight
+	draw_line(l_elbow.lerp(broom_hand, 0.2) + l_fa_perp * 1.5, l_elbow.lerp(broom_hand, 0.7) + l_fa_perp * 1.5, skin_highlight, 1.0)
+	# Elbow joint (green skin)
+	draw_circle(l_elbow, 3.5, skin_shadow)
+	draw_circle(l_elbow, 2.5, skin_base)
 	# Green hand gripping broom
-	draw_circle(broom_hand, 3.5, skin_shadow)
-	draw_circle(broom_hand, 2.5, skin_base)
+	draw_circle(broom_hand, 4.0, skin_shadow)
+	draw_circle(broom_hand, 3.0, skin_base)
 	# Grip fingers
 	for gi in range(3):
 		var grip_a = aim_angle + PI * 0.5 + float(gi) * 0.4
-		var grip_f = broom_hand + Vector2.from_angle(grip_a) * 3.5
-		draw_line(broom_hand, grip_f, skin_shadow, 1.5)
+		var grip_f = broom_hand + Vector2.from_angle(grip_a) * 4.0
+		draw_line(broom_hand, grip_f, skin_shadow, 1.8)
+		draw_circle(grip_f, 1.0, skin_base)
 
 	# Broomstick itself
 	var broom_angle = aim_angle + broom_tilt
@@ -765,27 +1232,54 @@ func _draw() -> void:
 		draw_circle(broom_base, 6.0, Color(0.2, 0.6, 0.1, 0.12))
 		draw_circle(broom_tip, 5.0, Color(0.2, 0.6, 0.1, 0.08))
 
-	# --- Pointing arm (right side) — slender with gnarled fingers toward aim ---
+	# --- Pointing arm (right side) — polygon sleeve with gnarled fingers toward aim ---
 	var arm_extend = 18.0 + _attack_anim * 8.0
 	var r_arm_origin = r_shoulder + Vector2(0, 2)
 	var point_hand = r_arm_origin + dir * arm_extend
-	# Upper arm and forearm (slender)
 	var r_elbow = r_arm_origin + (point_hand - r_arm_origin) * 0.45 + Vector2(0, 3)
-	draw_line(r_arm_origin, r_elbow, Color(0.06, 0.04, 0.08), 4.5)
-	draw_line(r_elbow, point_hand, Color(0.06, 0.04, 0.08), 4.0)
-	draw_line(r_arm_origin, r_elbow, Color(0.10, 0.08, 0.12), 3.0)
-	draw_line(r_elbow, point_hand, Color(0.10, 0.08, 0.12), 2.5)
-	# Elbow joint
-	draw_circle(r_elbow, 2.5, Color(0.10, 0.08, 0.12))
-	# Tattered sleeve edge
-	for si in range(3):
-		var se_a = aim_angle + (float(si) - 1.0) * 0.4
-		var se_end = point_hand + Vector2.from_angle(se_a) * (3.0 + sin(_time * 2.0 + float(si)) * 1.5)
-		draw_line(point_hand, se_end, Color(0.05, 0.03, 0.07, 0.5), 1.5)
+	# RIGHT UPPER ARM — exposed green skin (curvy feminine shape)
+	var r_ua_dir = (r_elbow - r_arm_origin).normalized()
+	var r_ua_perp = r_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_arm_origin + r_ua_perp * 4.5, r_arm_origin - r_ua_perp * 4.0,
+		r_arm_origin.lerp(r_elbow, 0.5) - r_ua_perp * 4.5,
+		r_elbow - r_ua_perp * 3.0, r_elbow + r_ua_perp * 3.0,
+		r_arm_origin.lerp(r_elbow, 0.5) + r_ua_perp * 4.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_arm_origin + r_ua_perp * 3.5, r_arm_origin - r_ua_perp * 3.0,
+		r_elbow - r_ua_perp * 2.0, r_elbow + r_ua_perp * 2.0,
+	]), skin_base)
+	# Arm highlight
+	draw_line(r_arm_origin.lerp(r_elbow, 0.2) - r_ua_perp * 2.0, r_arm_origin.lerp(r_elbow, 0.7) - r_ua_perp * 2.0, skin_highlight, 1.2)
+	# RIGHT FOREARM — green skin tapered to wrist
+	var r_fa_dir = (point_hand - r_elbow).normalized()
+	var r_fa_perp = r_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 3.0, r_elbow - r_fa_perp * 3.0,
+		point_hand - r_fa_perp * 2.0, point_hand + r_fa_perp * 2.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 2.2, r_elbow - r_fa_perp * 2.2,
+		point_hand - r_fa_perp * 1.2, point_hand + r_fa_perp * 1.2,
+	]), skin_base)
+	# Forearm highlight
+	draw_line(r_elbow.lerp(point_hand, 0.2) - r_fa_perp * 1.5, r_elbow.lerp(point_hand, 0.7) - r_fa_perp * 1.5, skin_highlight, 1.0)
+	# Elbow joint (green skin)
+	draw_circle(r_elbow, 3.5, skin_shadow)
+	draw_circle(r_elbow, 2.5, skin_base)
 
-	# Green wrist and hand
-	draw_line(point_hand - dir * 3.0, point_hand, skin_shadow, 3.5)
-	draw_line(point_hand - dir * 2.0, point_hand, skin_base, 2.5)
+	# Green wrist and hand — exposed skin below sleeve
+	draw_colored_polygon(PackedVector2Array([
+		point_hand - r_fa_dir * 4.0 + r_fa_perp * 2.5,
+		point_hand - r_fa_dir * 4.0 - r_fa_perp * 2.5,
+		point_hand - r_fa_perp * 2.0, point_hand + r_fa_perp * 2.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		point_hand - r_fa_dir * 3.0 + r_fa_perp * 1.8,
+		point_hand - r_fa_dir * 3.0 - r_fa_perp * 1.8,
+		point_hand - r_fa_perp * 1.2, point_hand + r_fa_perp * 1.2,
+	]), skin_base)
 	draw_circle(point_hand, 3.5, skin_base)
 	draw_circle(point_hand, 2.5, skin_highlight)
 
@@ -812,12 +1306,22 @@ func _draw() -> void:
 		draw_circle(point_hand, 7.0 + _attack_anim * 5.0, Color(0.3, 0.8, 0.15, _attack_anim * 0.2))
 		draw_circle(point_hand, 4.0 + _attack_anim * 2.5, Color(0.4, 0.9, 0.2, _attack_anim * 0.3))
 
-	# === NECK (slender, green-skinned) ===
-	draw_line(neck_base + Vector2(0, 2), head_center + Vector2(0, 8), skin_shadow, 4.0)
-	draw_line(neck_base + Vector2(0, 2), head_center + Vector2(0, 8), skin_base, 2.5)
-	# Neck tendons / shadow detail
-	draw_line(neck_base + Vector2(-1, 2), head_center + Vector2(-1, 7), Color(0.25, 0.38, 0.15, 0.3), 1.0)
-	draw_line(neck_base + Vector2(1, 2), head_center + Vector2(1, 7), Color(0.25, 0.38, 0.15, 0.3), 1.0)
+	# === NECK (slender green polygon neck) ===
+	var neck_top = head_center + Vector2(0, 8)
+	var neck_start = neck_base + Vector2(0, 2)
+	var neck_dir = (neck_top - neck_start).normalized()
+	var neck_perp = neck_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		neck_start + neck_perp * 4.5, neck_start - neck_perp * 4.5,
+		neck_start.lerp(neck_top, 0.5) - neck_perp * 3.5,
+		neck_top - neck_perp * 3.0, neck_top + neck_perp * 3.0,
+		neck_start.lerp(neck_top, 0.5) + neck_perp * 3.5,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		neck_start + neck_perp * 3.5, neck_start - neck_perp * 3.5,
+		neck_top - neck_perp * 2.2, neck_top + neck_perp * 2.2,
+	]), skin_base)
+	draw_line(neck_start.lerp(neck_top, 0.15) + neck_perp * 2.0, neck_start.lerp(neck_top, 0.85) + neck_perp * 1.5, skin_highlight, 1.2)
 
 	# === T2+: CROW perched on hat brim / shoulder ===
 	if upgrade_tier >= 2:
@@ -882,13 +1386,9 @@ func _draw() -> void:
 	# Face shading
 	draw_arc(head_center + Vector2(0, 1), 8.5, PI * 0.6, PI * 1.4, 12, skin_shadow, 1.5)
 
-	# Mottled skin texture (warty green patches) — scaled to smaller head
-	var mottle_offsets = [Vector2(-3, -3), Vector2(2, -4), Vector2(4, 1), Vector2(-4, 2), Vector2(0, 4), Vector2(3, -2)]
-	for mi in range(mottle_offsets.size()):
-		var m_off = mottle_offsets[mi]
-		var m_pos = head_center + m_off
-		var g_var = 0.03 * sin(float(mi) * 2.7)
-		draw_circle(m_pos, 2.5 + sin(float(mi) * 1.3) * 0.7, Color(0.32 + g_var, 0.50 - g_var, 0.20 + g_var * 0.5, 0.3))
+	# Smooth green skin with subtle highlight
+	draw_circle(head_center + Vector2(-2, -2), 4.0, Color(0.42, 0.60, 0.32, 0.15))
+	draw_circle(head_center + Vector2(2, 1), 3.5, Color(0.45, 0.62, 0.35, 0.1))
 
 	# Pointed chin (angular, elongated)
 	var chin_tip = head_center + Vector2(0, 13)
@@ -912,29 +1412,17 @@ func _draw() -> void:
 		var wy = head_center + Vector2((float(wi) - 0.5) * 4.0, -5.0 - float(wi) * 0.5)
 		draw_line(wy + Vector2(-2, 0), wy + Vector2(2, 0), Color(0.25, 0.38, 0.15, 0.25), 0.8)
 
-	# === CROOKED NOSE (proportioned to smaller head) ===
-	var nose_start = head_center + Vector2(0, -1)
-	var nose_bridge = head_center + Vector2(1.5, 2)
-	var nose_hook = head_center + Vector2(3, 5)
-	var nose_tip = head_center + Vector2(1.5, 6)
-	# Nose outline
-	draw_line(nose_start, nose_bridge, skin_shadow, 2.5)
-	draw_line(nose_bridge, nose_hook, skin_shadow, 2.0)
-	draw_line(nose_hook, nose_tip, skin_shadow, 1.5)
-	# Nose fill
-	draw_line(nose_start + Vector2(0.5, 0), nose_bridge + Vector2(0.5, 0), skin_base, 1.5)
-	draw_line(nose_bridge + Vector2(0.5, 0), nose_hook - Vector2(0.5, 0), skin_highlight, 1.2)
-	# Nostril
-	draw_circle(nose_tip, 1.2, Color(0.20, 0.32, 0.10))
-	draw_circle(nose_tip + Vector2(-1.5, 0), 1.0, Color(0.20, 0.32, 0.10, 0.6))
-
-	# === WART on nose (smaller) ===
-	var wart_pos = nose_bridge + Vector2(2.5, 1.5)
-	draw_circle(wart_pos + Vector2(0.2, 0.2), 2.0, Color(0.20, 0.38, 0.10, 0.5))
-	draw_circle(wart_pos, 1.5, Color(0.30, 0.55, 0.18))
-	draw_circle(wart_pos - Vector2(0.3, 0.3), 0.7, Color(0.45, 0.70, 0.30, 0.6))
-	# Tiny hair on wart
-	draw_line(wart_pos, wart_pos + Vector2(-0.8, -2.5), Color(0.15, 0.15, 0.10, 0.5), 0.8)
+	# === ELEGANT POINTED NOSE (sleek, attractive) ===
+	var nose_tip = head_center + Vector2(0, 4.5)
+	# Slim nose bridge
+	draw_line(head_center + Vector2(0, -1), head_center + Vector2(0, 3), skin_shadow, 1.8)
+	draw_line(head_center + Vector2(0.3, -0.5), head_center + Vector2(0.3, 2.5), skin_highlight, 1.0)
+	# Delicate pointed nose tip
+	draw_circle(nose_tip, 1.8, skin_base)
+	draw_circle(nose_tip + Vector2(0, 0.3), 1.2, skin_highlight)
+	# Small nostrils
+	draw_circle(nose_tip + Vector2(-1.2, 0.3), 0.7, Color(0.20, 0.32, 0.10, 0.5))
+	draw_circle(nose_tip + Vector2(1.2, 0.3), 0.7, Color(0.20, 0.32, 0.10, 0.5))
 
 	# === ANGULAR EYES (sultry, dangerous — anime-style on smaller head) ===
 	var look_dir = dir * 1.0
@@ -985,27 +1473,23 @@ func _draw() -> void:
 	draw_line(l_eye + Vector2(-3, 2.5), l_eye + Vector2(3, 2.2), Color(0.22, 0.36, 0.12, 0.25), 0.8)
 	draw_line(r_eye + Vector2(-3, 2.2), r_eye + Vector2(3, 2.5), Color(0.22, 0.36, 0.12, 0.25), 0.8)
 
-	# === SINISTER SMILE (sultry, less wide) ===
-	var grin_center = head_center + Vector2(0, 6)
-	# Mouth opening
-	draw_arc(grin_center, 5.5, 0.2, PI - 0.2, 14, Color(0.05, 0.02, 0.01), 3.0)
-	draw_arc(grin_center, 4.0, 0.3, PI - 0.3, 12, Color(0.08, 0.03, 0.02), 2.0)
-	# Outer lip lines (fuller lips, hint of dark lipstick)
-	draw_arc(grin_center, 6.5, 0.1, PI - 0.1, 14, Color(0.20, 0.10, 0.15), 1.5)
-	# Lip corner creases
-	draw_line(grin_center + Vector2(-5.5, 0.5), grin_center + Vector2(-7, -0.5), skin_shadow, 0.8)
-	draw_line(grin_center + Vector2(5.5, 0.5), grin_center + Vector2(7, -0.5), skin_shadow, 0.8)
-
-	# Crooked teeth (fewer visible, smaller)
-	for ti in range(4):
-		var tx = -3.0 + float(ti) * 2.0
-		var t_len = 2.0 + sin(float(ti) * 2.0) * 0.7
-		var t_base_pt = grin_center + Vector2(tx, 1.0)
-		var t_tip_pt = t_base_pt + Vector2(0, t_len)
-		draw_line(t_base_pt, t_tip_pt, Color(0.80, 0.76, 0.52, 0.85), 1.5)
-		draw_line(t_base_pt, t_tip_pt, Color(0.45, 0.42, 0.30, 0.4), 2.0)
-	# Missing tooth gap
-	draw_circle(grin_center + Vector2(1, 2.5), 0.8, Color(0.05, 0.02, 0.01, 0.6))
+	# === SEDUCTIVE SMILE (dark lipstick, alluring) ===
+	var mouth_center = head_center + Vector2(0, 7)
+	# Dark lipstick upper lip — full, with cupid's bow
+	draw_arc(mouth_center + Vector2(0, -0.5), 4.5, 0.1, PI - 0.1, 14, Color(0.30, 0.08, 0.15), 2.0)
+	draw_line(mouth_center + Vector2(-1.5, -1.0), mouth_center + Vector2(0, -0.5), Color(0.25, 0.06, 0.12), 1.2)
+	draw_line(mouth_center + Vector2(0, -0.5), mouth_center + Vector2(1.5, -1.0), Color(0.25, 0.06, 0.12), 1.2)
+	# Lower lip — fuller, curvy
+	draw_arc(mouth_center + Vector2(0, 0.5), 4.0, -0.15, PI + 0.15, 12, Color(0.35, 0.10, 0.18), 2.2)
+	draw_arc(mouth_center + Vector2(0, 0.8), 3.0, -0.1, PI + 0.1, 10, Color(0.40, 0.15, 0.22, 0.5), 1.5)
+	# Lip shine (dark glossy)
+	draw_circle(mouth_center + Vector2(0.3, 0.8), 1.0, Color(0.55, 0.25, 0.35, 0.4))
+	draw_circle(mouth_center + Vector2(-0.5, -0.5), 0.7, Color(0.50, 0.20, 0.30, 0.3))
+	# Seductive lip corner upturn
+	draw_line(mouth_center + Vector2(-4.0, 0), mouth_center + Vector2(-5.5, -1.5), Color(0.30, 0.08, 0.15, 0.4), 0.8)
+	draw_line(mouth_center + Vector2(4.0, 0), mouth_center + Vector2(5.5, -1.5), Color(0.30, 0.08, 0.15, 0.4), 0.8)
+	# Lip line between upper and lower
+	draw_line(mouth_center + Vector2(-3.8, 0), mouth_center + Vector2(3.8, 0), Color(0.20, 0.05, 0.10, 0.4), 0.6)
 
 	# === TALL POINTED BLACK HAT ===
 	var hat_base_pos = head_center + Vector2(0, -7)

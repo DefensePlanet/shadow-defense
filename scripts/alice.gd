@@ -45,6 +45,34 @@ var _attack_anim: float = 0.0
 var _grow_scale: float = 1.0
 var _grow_burst: float = 0.0  # Temporary extra scale on level-up
 
+# === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
+const PROG_ABILITY_NAMES = [
+	"Curiouser and Curiouser", "Down the Rabbit Hole", "Cheshire Grin",
+	"Eat Me Cake", "Painting the Roses Red", "The Caterpillar's Hookah",
+	"Tweedledee & Tweedledum", "The Jabberwock", "Wonderland Madness"
+]
+const PROG_ABILITY_DESCS = [
+	"+20% card damage, cards spin faster",
+	"Every 20s, teleport enemy back 150 path units",
+	"Every 10s, mark enemy for 2x damage for 5s",
+	"Every 15s, Alice stomps for 4x AoE damage",
+	"Each hit paints enemy, +5% damage per stack (max 10)",
+	"Every 20s, smoke cloud slows enemies to 20% for 3s",
+	"2 fighters patrol near Alice attacking every 2s",
+	"Every 25s, Jabberwock swoops dealing 5x to all in path",
+	"Cards split mid-flight (1 becomes 3)"
+]
+var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
+var _rabbit_hole_timer: float = 20.0
+var _cheshire_grin_timer: float = 10.0
+var _eat_me_timer: float = 15.0
+var _caterpillar_timer: float = 20.0
+var _tweedle_timer: float = 2.0
+var _jabberwock_timer: float = 25.0
+var _eat_me_flash: float = 0.0
+var _jabberwock_flash: float = 0.0
+var _caterpillar_flash: float = 0.0
+
 const STAT_UPGRADE_INTERVAL: float = 500.0
 const ABILITY_THRESHOLD: float = 1500.0
 var stat_upgrade_level: int = 0
@@ -72,8 +100,17 @@ var card_scene = preload("res://scenes/card.tscn")
 var _attack_sound: AudioStreamWAV
 var _attack_player: AudioStreamPlayer
 
+# Ability sounds
+var _cheshire_sound: AudioStreamWAV
+var _cheshire_player: AudioStreamPlayer
+var _tea_sound: AudioStreamWAV
+var _tea_player: AudioStreamPlayer
+var _upgrade_sound: AudioStreamWAV
+var _upgrade_player: AudioStreamPlayer
+
 func _ready() -> void:
 	add_to_group("towers")
+	_load_progressive_abilities()
 	# Generate magical card flick sound
 	var mix_rate := 22050
 	var duration := 0.1
@@ -94,6 +131,68 @@ func _ready() -> void:
 	_attack_player.stream = _attack_sound
 	_attack_player.volume_db = -8.0
 	add_child(_attack_player)
+
+	# Cheshire stun — eerie sliding giggle with pitch wobble
+	var ch_rate := 22050
+	var ch_dur := 0.4
+	var ch_samples := PackedFloat32Array()
+	ch_samples.resize(int(ch_rate * ch_dur))
+	for i in ch_samples.size():
+		var t := float(i) / ch_rate
+		var freq := 600.0 + sin(TAU * 8.0 * t) * 200.0 + t * 300.0
+		var am := 0.5 + 0.5 * sin(TAU * 12.0 * t)
+		var env := (1.0 - t / ch_dur) * 0.4
+		ch_samples[i] = clampf(sin(TAU * freq * t) * am * env, -1.0, 1.0)
+	_cheshire_sound = _samples_to_wav(ch_samples, ch_rate)
+	_cheshire_player = AudioStreamPlayer.new()
+	_cheshire_player.stream = _cheshire_sound
+	_cheshire_player.volume_db = -6.0
+	add_child(_cheshire_player)
+
+	# Tea party — 3 ceramic clinks + pouring
+	var tea_rate := 22050
+	var tea_dur := 0.5
+	var tea_samples := PackedFloat32Array()
+	tea_samples.resize(int(tea_rate * tea_dur))
+	var clink_times := [0.0, 0.12, 0.24]
+	for i in tea_samples.size():
+		var t := float(i) / tea_rate
+		var s := 0.0
+		for ct in clink_times:
+			var dt: float = t - ct
+			if dt >= 0.0 and dt < 0.1:
+				var cenv := exp(-dt * 40.0) * 0.4
+				s += sin(TAU * 3800.0 * dt) * cenv + sin(TAU * 5600.0 * dt) * cenv * 0.3
+		# Pouring sound (filtered noise from 0.3s onward)
+		if t > 0.3:
+			var pt := t - 0.3
+			s += sin(TAU * 1200.0 * pt) * (randf() * 0.3) * exp(-pt * 8.0) * 0.3
+		tea_samples[i] = clampf(s, -1.0, 1.0)
+	_tea_sound = _samples_to_wav(tea_samples, tea_rate)
+	_tea_player = AudioStreamPlayer.new()
+	_tea_player.stream = _tea_sound
+	_tea_player.volume_db = -6.0
+	add_child(_tea_player)
+
+	# Upgrade chime
+	var up_rate := 22050
+	var up_dur := 0.35
+	var up_samples := PackedFloat32Array()
+	up_samples.resize(int(up_rate * up_dur))
+	var up_notes := [523.25, 659.25, 783.99]
+	var up_note_len := int(up_rate * up_dur) / 3
+	for i in up_samples.size():
+		var t := float(i) / up_rate
+		var ni := mini(i / up_note_len, 2)
+		var nt := float(i - ni * up_note_len) / float(up_rate)
+		var freq: float = up_notes[ni]
+		var env := minf(nt * 50.0, 1.0) * exp(-nt * 10.0) * 0.4
+		up_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.3) * env, -1.0, 1.0)
+	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
+	_upgrade_player = AudioStreamPlayer.new()
+	_upgrade_player.stream = _upgrade_sound
+	_upgrade_player.volume_db = -4.0
+	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -126,6 +225,7 @@ func _process(delta: float) -> void:
 			_tea_party()
 			tea_timer = tea_cooldown
 
+	_process_progressive_abilities(delta)
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
@@ -156,16 +256,38 @@ func _shoot() -> void:
 func _fire_card(t: Node2D) -> void:
 	var card = card_scene.instantiate()
 	card.global_position = global_position + Vector2.from_angle(aim_angle) * 14.0
-	card.damage = damage
+	var dmg = damage
+	if prog_abilities[0]:  # Curiouser: +20% damage
+		dmg *= 1.2
+	card.damage = dmg
 	card.target = t
 	card.gold_bonus = gold_bonus
 	card.source_tower = self
 	card.slow_amount = slow_amount
 	card.slow_duration = slow_duration
 	card.execute_threshold = execute_threshold
+	if prog_abilities[4]:  # Painting the Roses Red
+		card.apply_paint = true
+	if prog_abilities[8]:  # Wonderland Madness - split
+		card.split_count = 1
+	get_tree().get_first_node_in_group("main").add_child(card)
+
+func _fire_split_card(t: Node2D, hit_targets: Array, paint: bool) -> void:
+	var card = card_scene.instantiate()
+	card.global_position = global_position
+	card.damage = damage * (1.2 if prog_abilities[0] else 1.0)
+	card.target = t
+	card.gold_bonus = gold_bonus
+	card.source_tower = self
+	card.slow_amount = slow_amount
+	card.slow_duration = slow_duration
+	card.execute_threshold = execute_threshold
+	card.apply_paint = paint
+	card._hit_targets = hit_targets
 	get_tree().get_first_node_in_group("main").add_child(card)
 
 func _cheshire_stun() -> void:
+	if _cheshire_player: _cheshire_player.play()
 	_cheshire_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
@@ -178,6 +300,7 @@ func _cheshire_stun() -> void:
 			picked.apply_slow(0.0, 2.0)  # Full stop for 2 seconds
 
 func _tea_party() -> void:
+	if _tea_player: _tea_player.play()
 	_tea_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
@@ -191,6 +314,9 @@ func _tea_party() -> void:
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("register_tower_damage"):
+		main.register_tower_damage(main.TowerType.ALICE, amount)
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -266,6 +392,7 @@ func purchase_upgrade() -> bool:
 	_apply_upgrade(upgrade_tier)
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
+	if _upgrade_player: _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -300,6 +427,135 @@ func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamW
 	wav.data = data
 	return wav
 
+func _load_progressive_abilities() -> void:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.survivor_progress.has(main.TowerType.ALICE):
+		var p = main.survivor_progress[main.TowerType.ALICE]
+		var unlocked = p.get("abilities_unlocked", [])
+		for i in range(mini(9, unlocked.size())):
+			if unlocked[i]:
+				activate_progressive_ability(i)
+
+func activate_progressive_ability(index: int) -> void:
+	if index < 0 or index >= 9:
+		return
+	prog_abilities[index] = true
+
+func get_progressive_ability_name(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_NAMES.size():
+		return PROG_ABILITY_NAMES[index]
+	return ""
+
+func get_progressive_ability_desc(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_DESCS.size():
+		return PROG_ABILITY_DESCS[index]
+	return ""
+
+func _process_progressive_abilities(delta: float) -> void:
+	_eat_me_flash = max(_eat_me_flash - delta * 2.0, 0.0)
+	_jabberwock_flash = max(_jabberwock_flash - delta * 1.5, 0.0)
+	_caterpillar_flash = max(_caterpillar_flash - delta * 2.0, 0.0)
+
+	# Ability 2: Down the Rabbit Hole
+	if prog_abilities[1]:
+		_rabbit_hole_timer -= delta
+		if _rabbit_hole_timer <= 0.0 and _has_enemies_in_range():
+			_rabbit_hole()
+			_rabbit_hole_timer = 20.0
+
+	# Ability 3: Cheshire Grin — mark for 2x damage
+	if prog_abilities[2]:
+		_cheshire_grin_timer -= delta
+		if _cheshire_grin_timer <= 0.0 and _has_enemies_in_range():
+			_cheshire_grin()
+			_cheshire_grin_timer = 10.0
+
+	# Ability 4: Eat Me Cake — AoE stomp
+	if prog_abilities[3]:
+		_eat_me_timer -= delta
+		if _eat_me_timer <= 0.0 and _has_enemies_in_range():
+			_eat_me_stomp()
+			_eat_me_timer = 15.0
+
+	# Ability 6: Caterpillar's Hookah — smoke slow
+	if prog_abilities[5]:
+		_caterpillar_timer -= delta
+		if _caterpillar_timer <= 0.0 and _has_enemies_in_range():
+			_caterpillar_smoke()
+			_caterpillar_timer = 20.0
+
+	# Ability 7: Tweedledee & Tweedledum — auto-attack nearby
+	if prog_abilities[6]:
+		_tweedle_timer -= delta
+		if _tweedle_timer <= 0.0:
+			_tweedle_attack()
+			_tweedle_timer = 2.0
+
+	# Ability 8: The Jabberwock — swoop damage
+	if prog_abilities[7]:
+		_jabberwock_timer -= delta
+		if _jabberwock_timer <= 0.0:
+			_jabberwock_swoop()
+			_jabberwock_timer = 25.0
+
+func _rabbit_hole() -> void:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if global_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	if in_range.size() > 0:
+		var picked = in_range[randi() % in_range.size()]
+		picked.progress = max(0.0, picked.progress - 150.0)
+
+func _cheshire_grin() -> void:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if global_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	if in_range.size() > 0:
+		var picked = in_range[randi() % in_range.size()]
+		if picked.has_method("apply_cheshire_mark"):
+			picked.apply_cheshire_mark(5.0, 2.0)
+
+func _eat_me_stomp() -> void:
+	_eat_me_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < attack_range:
+			if e.has_method("take_damage"):
+				var dmg = damage * 4.0
+				e.take_damage(dmg)
+				register_damage(dmg)
+
+func _caterpillar_smoke() -> void:
+	_caterpillar_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < attack_range:
+			if e.has_method("apply_slow"):
+				e.apply_slow(0.2, 3.0)
+
+func _tweedle_attack() -> void:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if global_position.distance_to(e.global_position) < attack_range * 0.6:
+			in_range.append(e)
+	in_range.shuffle()
+	for i in range(mini(2, in_range.size())):
+		if in_range[i].has_method("take_damage"):
+			var dmg = damage * 0.8
+			in_range[i].take_damage(dmg)
+			register_damage(dmg)
+
+func _jabberwock_swoop() -> void:
+	_jabberwock_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.has_method("take_damage"):
+			var dmg = damage * 5.0
+			e.take_damage(dmg)
+			register_damage(dmg)
+
 func _draw() -> void:
 	# Selection ring (before grow transform)
 	if is_selected:
@@ -310,6 +566,26 @@ func _draw() -> void:
 
 	# Range indicator (NOT scaled)
 	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+
+	# === PROGRESSIVE ABILITY EFFECTS ===
+	if _eat_me_flash > 0.0:
+		var em_r = 30.0 + (1.0 - _eat_me_flash) * 60.0
+		draw_arc(Vector2.ZERO, em_r, 0, TAU, 24, Color(0.9, 0.5, 0.8, _eat_me_flash * 0.4), 3.0)
+
+	if _jabberwock_flash > 0.0:
+		draw_line(Vector2(-80, -40), Vector2(80, 40), Color(0.4, 0.7, 0.3, _jabberwock_flash * 0.5), 4.0)
+		draw_line(Vector2(-70, -35), Vector2(70, 35), Color(0.5, 0.3, 0.6, _jabberwock_flash * 0.3), 2.0)
+
+	if _caterpillar_flash > 0.0:
+		draw_circle(Vector2.ZERO, 40.0, Color(0.5, 0.3, 0.7, _caterpillar_flash * 0.2))
+		draw_circle(Vector2(10, 5), 30.0, Color(0.4, 0.2, 0.6, _caterpillar_flash * 0.15))
+
+	if prog_abilities[6]:  # Tweedledee & Tweedledum orbiting
+		for ti in range(2):
+			var ta = _time * 2.0 + float(ti) * PI
+			var tpos = Vector2(cos(ta) * 25.0, sin(ta) * 15.0)
+			draw_circle(tpos, 5.0, Color(0.8, 0.6, 0.4, 0.5))
+			draw_circle(tpos, 3.5, Color(0.9, 0.7, 0.5, 0.6))
 
 	# === STONE PLATFORM (Bloons-style, drawn before grow transform) ===
 	var plat_y = 22.0
@@ -366,11 +642,15 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(aim_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	# Chibi idle animation
+	# Chibi idle animation with hip sway + breathing
 	var bounce = abs(sin(_time * 2.5)) * 3.0
 	var breathe = sin(_time * 2.0) * 1.5
 	var dress_sway = sin(_time * 1.8) * 2.5
+	var hip_sway = sin(_time * 1.8) * 2.5
+	var chest_breathe = sin(_time * 2.0) * 1.0
 	var body_offset = Vector2(sin(_time * 1.3) * 1.0, -bounce - breathe)
+	# Hair physics — multi-frequency wind
+	var hair_wind = sin(_time * 1.5) * 2.0 + sin(_time * 2.7) * 1.2 + sin(_time * 0.4) * 3.0 * clampf(sin(_time * 0.15), 0.0, 1.0)
 
 	# Skin colors
 	var skin_base = Color(0.95, 0.84, 0.73)
@@ -432,11 +712,11 @@ func _draw() -> void:
 			draw_line(sp_pos - Vector2(0, sp_size), sp_pos + Vector2(0, sp_size), Color(0.6, 0.8, 1.0, sp_alpha), 0.8)
 
 	# === CHARACTER POSITIONS (tall anime proportions ~56px) ===
-	var feet_y = body_offset + Vector2(0, 14.0)
-	var leg_top = body_offset + Vector2(0, -2.0)
-	var torso_center = body_offset + Vector2(0, -10.0)
-	var neck_base = body_offset + Vector2(0, -20.0)
-	var head_center = body_offset + Vector2(0, -32.0)
+	var feet_y = body_offset + Vector2(hip_sway * 1.0, 14.0)
+	var leg_top = body_offset + Vector2(hip_sway * 0.6, -2.0)
+	var torso_center = body_offset + Vector2(hip_sway * 0.3, -10.0 - chest_breathe * 0.5)
+	var neck_base = body_offset + Vector2(hip_sway * 0.15, -20.0 - chest_breathe * 0.3)
+	var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -32.0)
 
 	# === T1+: "Drink Me" bottle near platform ===
 	if upgrade_tier >= 1:
@@ -478,39 +758,78 @@ func _draw() -> void:
 	draw_circle(r_foot + Vector2(0, -2), 1.5, Color(0.75, 0.65, 0.3))
 	draw_circle(r_foot + Vector2(-0.3, -2.3), 0.7, Color(0.95, 0.9, 0.6, 0.6))
 
-	# === Legs (longer, shapely with white stockings visible below shorter dress) ===
-	# Dress ends at about y=4 (above the knee), legs continue to feet at y=14
+	# === SHAPELY LEGS (polygon-based curvy thighs and calves with white stockings) ===
 	var l_hip = leg_top + Vector2(-8, 0)
 	var r_hip = leg_top + Vector2(8, 0)
 	var l_knee = body_offset + Vector2(-6, 6.0)
 	var r_knee = body_offset + Vector2(6, 6.0)
-	# Upper legs (under dress, dark outline only visible near hem)
-	# Left leg — thigh to knee with slight curve (shapely calf)
-	draw_line(l_hip, l_knee, Color(0.08, 0.08, 0.08), 5.5)
-	draw_line(l_hip, l_knee, Color(0.94, 0.94, 0.94), 4.0)
-	# Left calf — knee to ankle with shapely curve
-	var l_calf_mid = body_offset + Vector2(-6.5, 10.0)
-	draw_line(l_knee, l_calf_mid, Color(0.08, 0.08, 0.08), 5.0)
-	draw_line(l_knee, l_calf_mid, Color(0.94, 0.94, 0.94), 3.8)
-	draw_line(l_calf_mid, l_foot + Vector2(0, -3), Color(0.08, 0.08, 0.08), 4.5)
-	draw_line(l_calf_mid, l_foot + Vector2(0, -3), Color(0.94, 0.94, 0.94), 3.2)
-	# Right leg — thigh to knee
-	draw_line(r_hip, r_knee, Color(0.08, 0.08, 0.08), 5.5)
-	draw_line(r_hip, r_knee, Color(0.94, 0.94, 0.94), 4.0)
-	# Right calf — shapely curve
-	var r_calf_mid = body_offset + Vector2(6.5, 10.0)
-	draw_line(r_knee, r_calf_mid, Color(0.08, 0.08, 0.08), 5.0)
-	draw_line(r_knee, r_calf_mid, Color(0.94, 0.94, 0.94), 3.8)
-	draw_line(r_calf_mid, r_foot + Vector2(0, -3), Color(0.08, 0.08, 0.08), 4.5)
-	draw_line(r_calf_mid, r_foot + Vector2(0, -3), Color(0.94, 0.94, 0.94), 3.2)
+	# LEFT THIGH — curvy feminine shape (wider at hip, tapered to knee)
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(3, 0), l_hip + Vector2(-4, 0),
+		l_hip.lerp(l_knee, 0.3) + Vector2(-6, 0),  # outer thigh curve
+		l_hip.lerp(l_knee, 0.6) + Vector2(-5.5, 0),
+		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
+		l_hip.lerp(l_knee, 0.5) + Vector2(4.5, 0),  # inner thigh
+	]), Color(0.08, 0.08, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(2, 0), l_hip + Vector2(-3, 0),
+		l_hip.lerp(l_knee, 0.3) + Vector2(-5, 0),
+		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
+	]), Color(0.94, 0.94, 0.94))
+	# RIGHT THIGH
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-3, 0), r_hip + Vector2(4, 0),
+		r_hip.lerp(r_knee, 0.3) + Vector2(6, 0),
+		r_hip.lerp(r_knee, 0.6) + Vector2(5.5, 0),
+		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
+		r_hip.lerp(r_knee, 0.5) + Vector2(-4.5, 0),
+	]), Color(0.08, 0.08, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-2, 0), r_hip + Vector2(3, 0),
+		r_hip.lerp(r_knee, 0.3) + Vector2(5, 0),
+		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
+	]), Color(0.94, 0.94, 0.94))
+	# Knee joints (rounded)
+	draw_circle(l_knee, 4.5, Color(0.08, 0.08, 0.08))
+	draw_circle(l_knee, 3.5, Color(0.94, 0.94, 0.94))
+	draw_circle(r_knee, 4.5, Color(0.08, 0.08, 0.08))
+	draw_circle(r_knee, 3.5, Color(0.94, 0.94, 0.94))
+	# LEFT CALF — shapely curve (fuller at top, tapered to ankle)
+	var l_calf_mid = body_offset + Vector2(-7.0, 10.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
+		l_calf_mid + Vector2(4, 0),
+		l_foot + Vector2(2.5, -3), l_foot + Vector2(-2.5, -3),
+		l_calf_mid + Vector2(-5.5, 0),  # calf curve
+	]), Color(0.08, 0.08, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
+		l_foot + Vector2(1.5, -3), l_foot + Vector2(-1.5, -3),
+	]), Color(0.94, 0.94, 0.94))
+	draw_circle(l_calf_mid + Vector2(-1, 0), 3.0, Color(1.0, 1.0, 1.0, 0.15))
+	# RIGHT CALF
+	var r_calf_mid = body_offset + Vector2(7.0, 10.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
+		r_calf_mid + Vector2(-4, 0),
+		r_foot + Vector2(-2.5, -3), r_foot + Vector2(2.5, -3),
+		r_calf_mid + Vector2(5.5, 0),
+	]), Color(0.08, 0.08, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
+		r_foot + Vector2(-1.5, -3), r_foot + Vector2(1.5, -3),
+	]), Color(0.94, 0.94, 0.94))
+	draw_circle(r_calf_mid + Vector2(1, 0), 3.0, Color(1.0, 1.0, 1.0, 0.15))
 	# Stocking shine highlights
-	draw_line(l_knee + Vector2(1, 0), l_calf_mid + Vector2(1, 0), Color(1.0, 1.0, 1.0, 0.3), 1.2)
-	draw_line(l_calf_mid + Vector2(1, 0), l_foot + Vector2(1, -3), Color(1.0, 1.0, 1.0, 0.2), 1.0)
-	draw_line(r_knee + Vector2(-1, 0), r_calf_mid + Vector2(-1, 0), Color(1.0, 1.0, 1.0, 0.3), 1.2)
-	draw_line(r_calf_mid + Vector2(-1, 0), r_foot + Vector2(-1, -3), Color(1.0, 1.0, 1.0, 0.2), 1.0)
-	# Stocking tops (lace bands just below dress hem)
-	draw_arc(l_knee + Vector2(0, -1), 3.5, 0, PI, 6, Color(0.88, 0.88, 0.86, 0.5), 1.0)
-	draw_arc(r_knee + Vector2(0, -1), 3.5, 0, PI, 6, Color(0.88, 0.88, 0.86, 0.5), 1.0)
+	draw_line(l_knee + Vector2(1, 0), l_calf_mid + Vector2(1, 0), Color(1.0, 1.0, 1.0, 0.35), 1.5)
+	draw_line(r_knee + Vector2(-1, 0), r_calf_mid + Vector2(-1, 0), Color(1.0, 1.0, 1.0, 0.35), 1.5)
+	# Lace stocking tops
+	draw_arc(l_knee + Vector2(0, -2), 4.5, -0.2, PI + 0.2, 8, Color(0.92, 0.92, 0.90, 0.6), 1.5)
+	draw_arc(r_knee + Vector2(0, -2), 4.5, -0.2, PI + 0.2, 8, Color(0.92, 0.92, 0.90, 0.6), 1.5)
+	for li in range(5):
+		var la = float(li) * PI / 4.0
+		draw_circle(l_knee + Vector2(0, -2) + Vector2.from_angle(la) * 4.5, 0.8, Color(0.92, 0.92, 0.90, 0.4))
+		draw_circle(r_knee + Vector2(0, -2) + Vector2.from_angle(la) * 4.5, 0.8, Color(0.92, 0.92, 0.90, 0.4))
 
 	# === Blue dress (shorter, fitted hourglass, Victorian with lower neckline) ===
 	# Dress: from neck_base area down to just above the knees (~y=4)
@@ -568,10 +887,11 @@ func _draw() -> void:
 	draw_arc(Vector2(-4, torso_center.y + 2), 2.5, PI * 0.3, PI * 1.7, 6, Color(0.20, 0.38, 0.68), 1.5)
 	draw_arc(Vector2(4, torso_center.y + 2), 2.5, -PI * 0.7, PI * 0.7, 6, Color(0.20, 0.38, 0.68), 1.5)
 	draw_circle(Vector2(0, torso_center.y + 2), 1.5, Color(0.18, 0.35, 0.62))
-	# Dress hem scallops (shorter dress)
+	# Dress hem scallops (shorter dress, with flutter)
 	for i in range(8):
 		var hx = -12.0 + float(i) * 3.5
-		var sway_off = dress_sway * (float(i) / 8.0 - 0.5) * 0.3
+		var flutter = sin(_time * 3.0 + float(i) * 0.8) * 1.2
+		var sway_off = dress_sway * (float(i) / 8.0 - 0.5) * 0.3 + flutter
 		draw_circle(Vector2(hx, dress_hem_y + sway_off), 2.5, Color(0.18, 0.35, 0.65, 0.2))
 	# Skirt flare lines
 	draw_line(Vector2(-7, torso_center.y + 3), Vector2(-13, dress_hem_y), Color(0.18, 0.35, 0.60, 0.15), 1.0)
@@ -663,36 +983,85 @@ func _draw() -> void:
 	draw_arc(Vector2(-5, neck_base.y + 3), 5.0, PI * 0.3, PI * 1.2, 8, Color(0.97, 0.97, 0.95), 3.0)
 	draw_arc(Vector2(5, neck_base.y + 3), 5.0, -PI * 0.2, PI * 0.7, 8, Color(0.97, 0.97, 0.95), 3.0)
 
-	# === Arms (slender, feminine, starting from shoulders) ===
+	# === Arms (slender feminine polygon shapes, starting from shoulders) ===
 	# Card-throwing arm (right) — extends toward aim direction
 	var attack_extend = _attack_anim * 10.0
 	var r_elbow = r_shoulder + Vector2(4, 8)
 	var card_hand: Vector2
 	card_hand = r_shoulder + dir * (16.0 + attack_extend)
-	# Upper arm
-	draw_line(r_shoulder, r_elbow, skin_shadow, 3.5)
-	draw_line(r_shoulder, r_elbow, skin_base, 2.8)
-	# Forearm to hand
-	draw_line(r_elbow, card_hand, skin_shadow, 3.2)
-	draw_line(r_elbow, card_hand, skin_base, 2.5)
-	draw_circle(card_hand, 3.0, skin_shadow)
-	draw_circle(card_hand, 2.3, skin_base)
+	# RIGHT UPPER ARM — slender feminine polygon
+	var r_ua_dir = (r_elbow - r_shoulder).normalized()
+	var r_ua_perp = r_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + r_ua_perp * 3.0, r_shoulder - r_ua_perp * 2.5,
+		r_shoulder.lerp(r_elbow, 0.5) - r_ua_perp * 3.0,
+		r_elbow - r_ua_perp * 2.2, r_elbow + r_ua_perp * 2.2,
+		r_shoulder.lerp(r_elbow, 0.5) + r_ua_perp * 2.5,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + r_ua_perp * 2.2, r_shoulder - r_ua_perp * 1.8,
+		r_elbow - r_ua_perp * 1.5, r_elbow + r_ua_perp * 1.5,
+	]), skin_base)
+	# Arm highlight
+	draw_line(r_shoulder.lerp(r_elbow, 0.2) + r_ua_perp * 1.5, r_shoulder.lerp(r_elbow, 0.7) + r_ua_perp * 1.5, skin_highlight, 1.0)
+	# Elbow joint
+	draw_circle(r_elbow, 3.0, skin_shadow)
+	draw_circle(r_elbow, 2.2, skin_base)
+	# RIGHT FOREARM — tapered to wrist
+	var r_fa_dir = (card_hand - r_elbow).normalized()
+	var r_fa_perp = r_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 2.2, r_elbow - r_fa_perp * 2.2,
+		r_elbow.lerp(card_hand, 0.5) - r_fa_perp * 2.0,
+		card_hand - r_fa_perp * 1.5, card_hand + r_fa_perp * 1.5,
+		r_elbow.lerp(card_hand, 0.5) + r_fa_perp * 1.8,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 1.5, r_elbow - r_fa_perp * 1.5,
+		card_hand - r_fa_perp * 0.9, card_hand + r_fa_perp * 0.9,
+	]), skin_base)
+	# Wrist and hand
+	draw_circle(card_hand, 3.5, skin_shadow)
+	draw_circle(card_hand, 2.8, skin_base)
 	# Dainty fingers
 	for fi in range(3):
 		var fa = float(fi - 1) * 0.35
-		draw_circle(card_hand + dir.rotated(fa) * 3.0, 1.0, skin_highlight)
+		draw_circle(card_hand + dir.rotated(fa) * 3.5, 1.2, skin_highlight)
 
 	# Left arm (by her side, holding dress, slender)
 	var l_elbow = l_shoulder + Vector2(-4, 8)
 	var off_hand = l_shoulder + Vector2(-6, 16)
-	# Upper arm
-	draw_line(l_shoulder, l_elbow, skin_shadow, 3.5)
-	draw_line(l_shoulder, l_elbow, skin_base, 2.8)
-	# Forearm
-	draw_line(l_elbow, off_hand, skin_shadow, 3.2)
-	draw_line(l_elbow, off_hand, skin_base, 2.5)
-	draw_circle(off_hand, 2.5, skin_shadow)
-	draw_circle(off_hand, 2.0, skin_base)
+	# LEFT UPPER ARM — slender feminine polygon
+	var l_ua_dir = (l_elbow - l_shoulder).normalized()
+	var l_ua_perp = l_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder + l_ua_perp * 2.5, l_shoulder - l_ua_perp * 3.0,
+		l_shoulder.lerp(l_elbow, 0.5) - l_ua_perp * 3.0,
+		l_elbow - l_ua_perp * 2.2, l_elbow + l_ua_perp * 2.2,
+		l_shoulder.lerp(l_elbow, 0.5) + l_ua_perp * 2.5,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder + l_ua_perp * 1.8, l_shoulder - l_ua_perp * 2.2,
+		l_elbow - l_ua_perp * 1.5, l_elbow + l_ua_perp * 1.5,
+	]), skin_base)
+	draw_line(l_shoulder.lerp(l_elbow, 0.2) - l_ua_perp * 1.5, l_shoulder.lerp(l_elbow, 0.7) - l_ua_perp * 1.5, skin_highlight, 1.0)
+	# Elbow joint
+	draw_circle(l_elbow, 3.0, skin_shadow)
+	draw_circle(l_elbow, 2.2, skin_base)
+	# LEFT FOREARM — tapered
+	var l_fa_dir = (off_hand - l_elbow).normalized()
+	var l_fa_perp = l_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 2.2, l_elbow - l_fa_perp * 2.2,
+		off_hand - l_fa_perp * 1.5, off_hand + l_fa_perp * 1.5,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 1.5, l_elbow - l_fa_perp * 1.5,
+		off_hand - l_fa_perp * 0.9, off_hand + l_fa_perp * 0.9,
+	]), skin_base)
+	# Hand
+	draw_circle(off_hand, 3.0, skin_shadow)
+	draw_circle(off_hand, 2.3, skin_base)
 
 	# === Fan of cards in hand ===
 	for i in range(4):
@@ -739,16 +1108,30 @@ func _draw() -> void:
 			var trail_pos = card_hand.lerp(thrown_end, trail_t)
 			draw_circle(trail_pos, 1.5, Color(1.0, 0.95, 0.8, _attack_anim * (0.4 - float(ti) * 0.15)))
 
-	# === NECK (slender, visible, feminine) ===
-	# Neck from neck_base up to bottom of head
-	draw_line(neck_base, head_center + Vector2(0, 7), skin_shadow, 5.0)
-	draw_line(neck_base, head_center + Vector2(0, 7), skin_base, 3.5)
-	# Neck highlight (slender column)
-	draw_line(neck_base + Vector2(1, 0), head_center + Vector2(1, 7), skin_highlight, 1.2)
+	# === NECK (slender, feminine polygon neck with definition) ===
+	var neck_top = head_center + Vector2(0, 7)
+	var neck_dir = (neck_top - neck_base).normalized()
+	var neck_perp = neck_dir.rotated(PI / 2.0)
+	# Neck shadow/outline polygon (wider at base, slender at top)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 5.0, neck_base - neck_perp * 5.0,
+		neck_base.lerp(neck_top, 0.5) - neck_perp * 4.0,
+		neck_top - neck_perp * 3.5, neck_top + neck_perp * 3.5,
+		neck_base.lerp(neck_top, 0.5) + neck_perp * 4.0,
+	]), skin_shadow)
+	# Inner neck fill
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 4.0, neck_base - neck_perp * 4.0,
+		neck_top - neck_perp * 2.8, neck_top + neck_perp * 2.8,
+	]), skin_base)
+	# Neck highlight (left side light)
+	draw_line(neck_base.lerp(neck_top, 0.15) + neck_perp * 2.5, neck_base.lerp(neck_top, 0.85) + neck_perp * 2.0, skin_highlight, 1.5)
+	# Subtle throat shadow
+	draw_line(neck_base.lerp(neck_top, 0.2) - neck_perp * 0.5, neck_base.lerp(neck_top, 0.8) - neck_perp * 0.3, Color(0.78, 0.66, 0.54, 0.15), 1.0)
 
 	# === HEAD (proportional anime head, radius ~10) ===
-	# Blonde hair (back layer — behind face)
-	var hair_wave = sin(_time * 1.5) * 3.0
+	# Blonde hair (back layer — behind face, with wind physics)
+	var hair_wave = sin(_time * 1.5) * 3.0 + hair_wind
 	var hair_base_col = Color(0.72, 0.60, 0.22)
 	var hair_bright = Color(0.95, 0.85, 0.45)
 	var hair_hi = Color(1.0, 0.92, 0.55)
@@ -780,12 +1163,16 @@ func _draw() -> void:
 	# Hair shine arc
 	draw_arc(head_center + Vector2(0, -2), 8.5, PI * 0.55, PI * 1.0, 10, Color(1.0, 0.96, 0.65, 0.4), 2.0)
 
-	# Face (scaled: 11.5 -> 8.2, offset 1 -> 0.7)
+	# Face (clean oval with defined jawline)
 	draw_circle(head_center + Vector2(0, 0.7), 8.2, skin_base)
-	draw_arc(head_center + Vector2(0, 0.7), 7.5, PI * 0.6, PI * 1.4, 10, skin_shadow, 1.2)
-	# Chin definition (more mature face shape)
-	draw_arc(head_center + Vector2(0, 2), 6.5, -0.3, PI + 0.3, 8, Color(0.90, 0.78, 0.66, 0.15), 0.8)
-	# Rosy cheeks (Alice's signature blush — scaled positions by 0.71)
+	# Jawline definition — clean angular lines from ears to chin
+	draw_line(head_center + Vector2(-7.5, 1.5), head_center + Vector2(-4, 7), Color(0.78, 0.66, 0.54, 0.3), 1.2)
+	draw_line(head_center + Vector2(7.5, 1.5), head_center + Vector2(4, 7), Color(0.78, 0.66, 0.54, 0.3), 1.2)
+	# Chin — small, feminine, defined
+	draw_circle(head_center + Vector2(0, 7), 2.8, skin_base)
+	draw_circle(head_center + Vector2(0, 7.2), 2.0, skin_highlight)
+	draw_arc(head_center + Vector2(0, 5), 5.0, 0.15, PI - 0.15, 10, Color(0.78, 0.66, 0.54, 0.12), 0.8)
+	# Rosy cheeks (Alice's signature blush)
 	draw_circle(head_center + Vector2(-5, 2.1), 2.5, Color(0.95, 0.55, 0.50, 0.18))
 	draw_circle(head_center + Vector2(-5, 2.1), 1.6, Color(0.95, 0.48, 0.45, 0.22))
 	draw_circle(head_center + Vector2(5, 2.1), 2.5, Color(0.95, 0.55, 0.50, 0.18))
@@ -862,15 +1249,23 @@ func _draw() -> void:
 	draw_circle(head_center + Vector2(0, 2.5), 1.4, Color(0.92, 0.80, 0.68, 0.4))
 	draw_circle(head_center + Vector2(0.2, 2.7), 1.0, Color(0.98, 0.88, 0.78, 0.5))
 
-	# Rosebud lips (scaled: 7->5, radii adjusted)
-	draw_arc(head_center + Vector2(0, 5), 3.2, 0.15, PI - 0.15, 10, Color(0.88, 0.42, 0.42), 1.4)
-	# Lower lip fullness
-	draw_arc(head_center + Vector2(0, 5), 2.5, -0.3, PI + 0.3, 8, Color(0.92, 0.50, 0.48, 0.3), 1.0)
-	# Lip highlight
-	draw_circle(head_center + Vector2(0.2, 4.6), 0.6, Color(1.0, 0.75, 0.72, 0.4))
-	# Slight curious smile upturn
-	draw_line(head_center + Vector2(-2.8, 4.6), head_center + Vector2(-3.5, 4.1), Color(0.85, 0.45, 0.42, 0.25), 0.7)
-	draw_line(head_center + Vector2(2.8, 4.6), head_center + Vector2(3.5, 4.1), Color(0.85, 0.45, 0.42, 0.25), 0.7)
+	# Full curvy lips (prominent, feminine, attractive)
+	# Upper lip — defined cupid's bow shape
+	draw_arc(head_center + Vector2(0, 4.5), 4.0, 0.1, PI - 0.1, 14, Color(0.85, 0.35, 0.38), 1.8)
+	# Cupid's bow dip at center
+	draw_line(head_center + Vector2(-1.5, 4.2), head_center + Vector2(0, 4.6), Color(0.82, 0.32, 0.35), 1.2)
+	draw_line(head_center + Vector2(0, 4.6), head_center + Vector2(1.5, 4.2), Color(0.82, 0.32, 0.35), 1.2)
+	# Lower lip — fuller, rounder, curvier
+	draw_arc(head_center + Vector2(0, 5.2), 3.8, -0.2, PI + 0.2, 12, Color(0.90, 0.45, 0.42), 2.0)
+	draw_arc(head_center + Vector2(0, 5.5), 3.0, -0.1, PI + 0.1, 10, Color(0.92, 0.52, 0.48, 0.5), 1.5)
+	# Lip shine highlight (glossy center)
+	draw_circle(head_center + Vector2(0.3, 5.5), 1.2, Color(1.0, 0.78, 0.75, 0.45))
+	draw_circle(head_center + Vector2(-0.5, 4.3), 0.8, Color(1.0, 0.80, 0.78, 0.35))
+	# Lip corners with slight smile upturn
+	draw_line(head_center + Vector2(-3.5, 4.8), head_center + Vector2(-4.5, 4.0), Color(0.82, 0.40, 0.38, 0.35), 0.8)
+	draw_line(head_center + Vector2(3.5, 4.8), head_center + Vector2(4.5, 4.0), Color(0.82, 0.40, 0.38, 0.35), 0.8)
+	# Lip line between upper and lower
+	draw_line(head_center + Vector2(-3.2, 4.8), head_center + Vector2(3.2, 4.8), Color(0.75, 0.30, 0.32, 0.3), 0.6)
 
 	# === T2+: Floating Cheshire Cat grin ===
 	if upgrade_tier >= 2:

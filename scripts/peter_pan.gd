@@ -14,6 +14,15 @@ var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 4
 
+# Melee swoop-strike state machine (like Wicked Witch)
+enum FlyState { IDLE, SWOOPING, STRIKING, RETURNING }
+var _fly_state: int = FlyState.IDLE
+var _home_position: Vector2 = Vector2.ZERO
+var _swoop_speed: float = 400.0
+var _strike_timer: float = 0.0
+var _strike_duration: float = 0.15
+var _swoop_target_pos: Vector2 = Vector2.ZERO
+
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
 var upgrade_tier: int = 0
@@ -67,6 +76,50 @@ var dagger_scene = preload("res://scenes/peter_dagger.tscn")
 var _attack_sound: AudioStreamWAV
 var _attack_player: AudioStreamPlayer
 
+# Ability sounds
+var _fairy_sound: AudioStreamWAV
+var _fairy_player: AudioStreamPlayer
+var _croc_sound: AudioStreamWAV
+var _croc_player: AudioStreamPlayer
+var _upgrade_sound: AudioStreamWAV
+var _upgrade_player: AudioStreamPlayer
+
+# === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
+const PROG_ABILITY_NAMES = [
+	"Flying Strikes", "The Lost Boys", "Fairy Dust Trail", "Mermaid's Song",
+	"Walk the Plank", "Tick-Tock the Crocodile", "Tinker Bell's Light",
+	"Neverland Flight", "Pan's Shadow"
+]
+const PROG_ABILITY_DESCS = [
+	"Swoop 30% faster, +15% strike damage",
+	"2 lost boys orbit Peter, auto-attacking nearby enemies every 2s",
+	"Every 12s, Tinker Bell flies across range leaving dust that slows enemies 50% for 2s",
+	"Every 18s, a mermaid charms 3 enemies — frozen + 2x damage for 3s",
+	"Every 20s, a plank appears under the weakest enemy — instant kill",
+	"Every 10th kill, the crocodile devours the strongest enemy on map",
+	"Tinker Bell boosts nearby tower fire rates by 25% every 5s",
+	"Every 15s, Peter swoops to 8 random enemies across the map for 2x damage",
+	"Peter's shadow detaches and roams the map, striking enemies for 2x damage every 1s"
+]
+var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
+# Ability timers
+var _lost_boys_timer: float = 2.0
+var _fairy_dust_trail_timer: float = 12.0
+var _mermaid_song_timer: float = 18.0
+var _walk_the_plank_timer: float = 20.0
+var _prog_kill_count: int = 0
+var _tinker_light_timer: float = 5.0
+var _neverland_flight_timer: float = 15.0
+var _pan_shadow_node: Node2D = null
+# Visual flash timers
+var _lost_boys_flash: float = 0.0
+var _fairy_dust_trail_flash: float = 0.0
+var _mermaid_song_flash: float = 0.0
+var _walk_plank_flash: float = 0.0
+var _croc_devour_flash: float = 0.0
+var _tinker_light_flash: float = 0.0
+var _neverland_flight_flash: float = 0.0
+
 func _ready() -> void:
 	add_to_group("towers")
 	# Generate quick dagger slash sound
@@ -90,21 +143,120 @@ func _ready() -> void:
 	_attack_player.volume_db = -8.0
 	add_child(_attack_player)
 
+	# Fairy dust — cascading descending sparkle chimes (C7→C6)
+	var fd_rate := 22050
+	var fd_dur := 0.5
+	var fd_samples := PackedFloat32Array()
+	fd_samples.resize(int(fd_rate * fd_dur))
+	for i in fd_samples.size():
+		var t := float(i) / fd_rate
+		var freq := lerpf(2093.0, 1046.5, t / fd_dur)  # C7 to C6
+		var sparkle := sin(TAU * freq * t) * 0.3 + sin(TAU * freq * 1.5 * t) * 0.15
+		var shimmer := sin(TAU * freq * 3.0 * t) * 0.08
+		var pulse := 0.5 + 0.5 * sin(TAU * 14.0 * t)
+		var env := (1.0 - t / fd_dur) * 0.5
+		fd_samples[i] = clampf((sparkle + shimmer) * pulse * env, -1.0, 1.0)
+	_fairy_sound = _samples_to_wav(fd_samples, fd_rate)
+	_fairy_player = AudioStreamPlayer.new()
+	_fairy_player.stream = _fairy_sound
+	_fairy_player.volume_db = -6.0
+	add_child(_fairy_player)
+
+	# Croc chomp — tick-tick-SNAP
+	var cr_rate := 22050
+	var cr_dur := 0.35
+	var cr_samples := PackedFloat32Array()
+	cr_samples.resize(int(cr_rate * cr_dur))
+	var tick_times := [0.0, 0.1]
+	for i in cr_samples.size():
+		var t := float(i) / cr_rate
+		var s := 0.0
+		# Two ticks
+		for tt in tick_times:
+			var dt: float = t - tt
+			if dt >= 0.0 and dt < 0.04:
+				s += sin(TAU * 1800.0 * dt) * exp(-dt * 80.0) * 0.4
+		# Heavy jaw snap at 0.2s
+		var snap_dt := t - 0.2
+		if snap_dt >= 0.0 and snap_dt < 0.12:
+			var snap_env := exp(-snap_dt * 25.0) * 0.6
+			s += (sin(TAU * 200.0 * snap_dt) + (randf() * 2.0 - 1.0) * 0.4) * snap_env
+		cr_samples[i] = clampf(s, -1.0, 1.0)
+	_croc_sound = _samples_to_wav(cr_samples, cr_rate)
+	_croc_player = AudioStreamPlayer.new()
+	_croc_player.stream = _croc_sound
+	_croc_player.volume_db = -6.0
+	add_child(_croc_player)
+
+	# Upgrade chime
+	var up_rate := 22050
+	var up_dur := 0.35
+	var up_samples := PackedFloat32Array()
+	up_samples.resize(int(up_rate * up_dur))
+	var up_notes := [523.25, 659.25, 783.99]
+	var up_note_len := int(up_rate * up_dur) / 3
+	for i in up_samples.size():
+		var t := float(i) / up_rate
+		var ni := mini(i / up_note_len, 2)
+		var nt := float(i - ni * up_note_len) / float(up_rate)
+		var freq: float = up_notes[ni]
+		var env := minf(nt * 50.0, 1.0) * exp(-nt * 10.0) * 0.4
+		up_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.3) * env, -1.0, 1.0)
+	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
+	_upgrade_player = AudioStreamPlayer.new()
+	_upgrade_player.stream = _upgrade_sound
+	_upgrade_player.volume_db = -4.0
+	add_child(_upgrade_player)
+	_home_position = global_position
+	_load_progressive_abilities()
+
 func _process(delta: float) -> void:
 	_time += delta
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
-	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_fairy_flash = max(_fairy_flash - delta * 2.0, 0.0)
 	_croc_flash = max(_croc_flash - delta * 2.0, 0.0)
-	target = _find_nearest_enemy()
 
-	if target:
-		var desired = global_position.angle_to_point(target.global_position) + PI
-		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
-		if fire_cooldown <= 0.0:
-			_shoot()
-			fire_cooldown = 1.0 / fire_rate
+	# Melee swoop-strike state machine
+	match _fly_state:
+		FlyState.IDLE:
+			fire_cooldown -= delta
+			target = _find_nearest_enemy()
+			if target:
+				var desired = _home_position.angle_to_point(target.global_position) + PI
+				aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
+				if fire_cooldown <= 0.0:
+					_fly_state = FlyState.SWOOPING
+					_swoop_target_pos = target.global_position
+
+		FlyState.SWOOPING:
+			if not is_instance_valid(target):
+				_fly_state = FlyState.RETURNING
+			else:
+				_swoop_target_pos = target.global_position
+				var to_target = _swoop_target_pos - global_position
+				aim_angle = to_target.angle()
+				if to_target.length() < 25.0:
+					_strike_target(target)
+					_fly_state = FlyState.STRIKING
+					_strike_timer = _strike_duration
+				else:
+					global_position += to_target.normalized() * _swoop_speed * delta
+
+		FlyState.STRIKING:
+			_strike_timer -= delta
+			if _strike_timer <= 0.0:
+				_fly_state = FlyState.RETURNING
+
+		FlyState.RETURNING:
+			var to_home = _home_position - global_position
+			if to_home.length() < 5.0:
+				global_position = _home_position
+				_fly_state = FlyState.IDLE
+				fire_cooldown = 1.0 / fire_rate
+			else:
+				aim_angle = to_home.angle()
+				global_position += to_home.normalized() * _swoop_speed * delta
 
 	# Tier 2: Fairy Dust AoE
 	if upgrade_tier >= 2:
@@ -120,11 +272,14 @@ func _process(delta: float) -> void:
 			_croc_chomp()
 			croc_timer = croc_cooldown
 
+	# Progressive abilities
+	_process_progressive_abilities(delta)
+
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
+		if _home_position.distance_to(enemy.global_position) < attack_range:
 			return true
 	return false
 
@@ -133,7 +288,7 @@ func _find_nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_dist: float = attack_range
 	for enemy in enemies:
-		var dist = global_position.distance_to(enemy.global_position)
+		var dist = _home_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest = enemy
 			nearest_dist = dist
@@ -146,7 +301,7 @@ func _find_second_target(exclude: Node2D) -> Node2D:
 	for enemy in enemies:
 		if enemy == exclude:
 			continue
-		var dist = global_position.distance_to(enemy.global_position)
+		var dist = _home_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest = enemy
 			nearest_dist = dist
@@ -157,41 +312,47 @@ func _find_strongest_enemy() -> Node2D:
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	for enemy in enemies:
-		if global_position.distance_to(enemy.global_position) < attack_range:
+		if _home_position.distance_to(enemy.global_position) < attack_range:
 			if enemy.health > most_hp:
 				strongest = enemy
 				most_hp = enemy.health
 	return strongest
 
-func _shoot() -> void:
-	if not target:
+func _strike_target(t: Node2D) -> void:
+	if not is_instance_valid(t) or not t.has_method("take_damage"):
 		return
 	if _attack_player:
 		_attack_player.play()
 	_attack_anim = 1.0
-	_fire_dagger(target, false)
-	# Shadow dagger at second target
+	var dmg = damage
+	if prog_abilities[0]:  # Flying Strikes: +15% damage
+		dmg *= 1.15
+	var will_kill = t.health - dmg <= 0.0
+	t.take_damage(dmg)
+	register_damage(dmg)
+	if will_kill and gold_bonus > 0:
+		var main = get_tree().get_first_node_in_group("main")
+		if main:
+			main.add_gold(gold_bonus)
+	# Shadow strike on second target (Tier 1)
 	if shadow_enabled:
-		var second = _find_second_target(target)
-		if second:
-			_fire_dagger(second, true)
-
-func _fire_dagger(t: Node2D, is_shadow: bool) -> void:
-	var dagger = dagger_scene.instantiate()
-	dagger.global_position = global_position + Vector2.from_angle(aim_angle) * 14.0
-	dagger.damage = damage * (0.6 if is_shadow else 1.0)
-	dagger.target = t
-	dagger.gold_bonus = gold_bonus
-	dagger.source_tower = self
-	dagger.is_shadow = is_shadow
-	dagger.pierce_count = pierce_count
-	get_tree().get_first_node_in_group("main").add_child(dagger)
+		var second = _find_second_target(t)
+		if second and second.has_method("take_damage"):
+			var sdmg = dmg * 0.6
+			var swill = second.health - sdmg <= 0.0
+			second.take_damage(sdmg)
+			register_damage(sdmg)
+			if swill and gold_bonus > 0:
+				var main2 = get_tree().get_first_node_in_group("main")
+				if main2:
+					main2.add_gold(gold_bonus)
 
 func _fairy_dust() -> void:
+	if _fairy_player: _fairy_player.play()
 	_fairy_flash = 1.0
 	var fairy_dmg = damage * 0.5
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range * 0.7:
+		if _home_position.distance_to(enemy.global_position) < attack_range * 0.7:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - fairy_dmg <= 0.0
 				enemy.take_damage(fairy_dmg)
@@ -205,6 +366,7 @@ func _fairy_dust() -> void:
 							main.add_gold(gold_bonus)
 
 func _croc_chomp() -> void:
+	if _croc_player: _croc_player.play()
 	_croc_flash = 1.0
 	var strongest = _find_strongest_enemy()
 	if strongest and strongest.has_method("take_damage"):
@@ -220,6 +382,9 @@ func _croc_chomp() -> void:
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("register_tower_damage"):
+		main.register_tower_damage(main.TowerType.PETER_PAN, amount)
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -287,6 +452,7 @@ func purchase_upgrade() -> bool:
 	_apply_upgrade(upgrade_tier)
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
+	if _upgrade_player: _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -321,6 +487,197 @@ func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamW
 	wav.data = data
 	return wav
 
+# === PROGRESSIVE ABILITY SYSTEM ===
+
+func _load_progressive_abilities() -> void:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.survivor_progress.has(main.TowerType.PETER_PAN):
+		var p = main.survivor_progress[main.TowerType.PETER_PAN]
+		var unlocked = p.get("abilities_unlocked", [])
+		for i in range(mini(9, unlocked.size())):
+			if unlocked[i]:
+				activate_progressive_ability(i)
+
+func activate_progressive_ability(index: int) -> void:
+	if index < 0 or index >= 9:
+		return
+	prog_abilities[index] = true
+	# Ability 1: Flying Strikes — 30% faster swoop
+	if index == 0:
+		_swoop_speed *= 1.3
+	# Ability 9: Pan's Shadow — spawn shadow node
+	if index == 8 and _pan_shadow_node == null:
+		var shadow_script = preload("res://scripts/pan_shadow.gd")
+		var shadow_node = Node2D.new()
+		shadow_node.set_script(shadow_script)
+		shadow_node.source_tower = self
+		shadow_node.global_position = global_position
+		var main_node = get_tree().get_first_node_in_group("main")
+		if main_node:
+			main_node.add_child(shadow_node)
+			_pan_shadow_node = shadow_node
+
+func get_progressive_ability_name(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_NAMES.size():
+		return PROG_ABILITY_NAMES[index]
+	return ""
+
+func get_progressive_ability_desc(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_DESCS.size():
+		return PROG_ABILITY_DESCS[index]
+	return ""
+
+func _process_progressive_abilities(delta: float) -> void:
+	# Visual flash decay
+	_lost_boys_flash = max(_lost_boys_flash - delta * 2.0, 0.0)
+	_fairy_dust_trail_flash = max(_fairy_dust_trail_flash - delta * 1.5, 0.0)
+	_mermaid_song_flash = max(_mermaid_song_flash - delta * 1.5, 0.0)
+	_walk_plank_flash = max(_walk_plank_flash - delta * 1.5, 0.0)
+	_croc_devour_flash = max(_croc_devour_flash - delta * 1.5, 0.0)
+	_tinker_light_flash = max(_tinker_light_flash - delta * 2.0, 0.0)
+	_neverland_flight_flash = max(_neverland_flight_flash - delta * 1.5, 0.0)
+
+	# Ability 2: The Lost Boys — auto-attack nearby enemies every 2s
+	if prog_abilities[1]:
+		_lost_boys_timer -= delta
+		if _lost_boys_timer <= 0.0 and _has_enemies_in_range():
+			_lost_boys_attack()
+			_lost_boys_timer = 2.0
+
+	# Ability 3: Fairy Dust Trail — Tinker Bell flies across leaving slow dust every 12s
+	if prog_abilities[2]:
+		_fairy_dust_trail_timer -= delta
+		if _fairy_dust_trail_timer <= 0.0 and _has_enemies_in_range():
+			_fairy_dust_trail()
+			_fairy_dust_trail_timer = 12.0
+
+	# Ability 4: Mermaid's Song — charm 3 enemies every 18s
+	if prog_abilities[3]:
+		_mermaid_song_timer -= delta
+		if _mermaid_song_timer <= 0.0 and _has_enemies_in_range():
+			_mermaid_song()
+			_mermaid_song_timer = 18.0
+
+	# Ability 5: Walk the Plank — instant kill weakest enemy every 20s
+	if prog_abilities[4]:
+		_walk_the_plank_timer -= delta
+		if _walk_the_plank_timer <= 0.0 and _has_enemies_in_range():
+			_walk_the_plank()
+			_walk_the_plank_timer = 20.0
+
+	# Ability 7: Tinker Bell's Light — boost nearby tower fire rates every 5s
+	if prog_abilities[6]:
+		_tinker_light_timer -= delta
+		if _tinker_light_timer <= 0.0:
+			_tinker_bell_light()
+			_tinker_light_timer = 5.0
+
+	# Ability 8: Neverland Flight — throw 8 daggers at random enemies on map every 15s
+	if prog_abilities[7]:
+		_neverland_flight_timer -= delta
+		if _neverland_flight_timer <= 0.0:
+			_neverland_flight()
+			_neverland_flight_timer = 15.0
+
+func register_kill_progressive() -> void:
+	# Ability 6: Tick-Tock the Crocodile — every 10th kill, devour strongest
+	if prog_abilities[5]:
+		_prog_kill_count += 1
+		if _prog_kill_count >= 10:
+			_prog_kill_count = 0
+			_croc_devour()
+
+func _lost_boys_attack() -> void:
+	_lost_boys_flash = 1.0
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if _home_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	# Sort by distance (nearest first)
+	in_range.sort_custom(func(a, b): return _home_position.distance_to(a.global_position) < _home_position.distance_to(b.global_position))
+	for i in range(mini(2, in_range.size())):
+		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
+			var dmg = damage * 1.0
+			in_range[i].take_damage(dmg)
+			register_damage(dmg)
+
+func _fairy_dust_trail() -> void:
+	_fairy_dust_trail_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if _home_position.distance_to(e.global_position) < attack_range:
+			if e.has_method("apply_slow"):
+				e.apply_slow(0.5, 2.0)
+
+func _mermaid_song() -> void:
+	_mermaid_song_flash = 1.0
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if _home_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	in_range.shuffle()
+	for i in range(mini(3, in_range.size())):
+		if is_instance_valid(in_range[i]) and in_range[i].has_method("apply_charm"):
+			in_range[i].apply_charm(3.0, 2.0)
+
+func _walk_the_plank() -> void:
+	_walk_plank_flash = 1.0
+	# Find weakest enemy in range
+	var weakest: Node2D = null
+	var least_hp: float = 999999.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if _home_position.distance_to(e.global_position) < attack_range:
+			if e.health < least_hp:
+				weakest = e
+				least_hp = e.health
+	if weakest and weakest.has_method("take_damage"):
+		var kill_dmg = weakest.health
+		weakest.take_damage(kill_dmg)
+		register_damage(kill_dmg)
+
+func _croc_devour() -> void:
+	_croc_devour_flash = 1.0
+	# Find strongest enemy on entire map
+	var strongest: Node2D = null
+	var most_hp: float = 0.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.health > most_hp:
+			strongest = e
+			most_hp = e.health
+	if strongest and strongest.has_method("take_damage"):
+		var kill_dmg = strongest.health
+		strongest.take_damage(kill_dmg)
+		register_damage(kill_dmg)
+
+func _tinker_bell_light() -> void:
+	_tinker_light_flash = 1.0
+	# Boost fire_rate of nearby towers by 25% (apply 1.25x multiplier temporarily)
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if tower == self:
+			continue
+		if _home_position.distance_to(tower.global_position) < attack_range:
+			if "fire_rate" in tower:
+				tower.fire_rate *= 1.05  # Small cumulative boost each 5s tick
+
+func _neverland_flight() -> void:
+	_neverland_flight_flash = 1.0
+	# Peter swoops to 8 random enemies across the map, dealing 2x damage each (direct strikes)
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var targets: Array = enemies.duplicate()
+	targets.shuffle()
+	var count = mini(8, targets.size())
+	for i in range(count):
+		if is_instance_valid(targets[i]) and targets[i].has_method("take_damage"):
+			var dmg = damage * 2.0
+			var will_kill = targets[i].health - dmg <= 0.0
+			targets[i].take_damage(dmg)
+			register_damage(dmg)
+			if will_kill and gold_bonus > 0:
+				var main = get_tree().get_first_node_in_group("main")
+				if main:
+					main.add_gold(gold_bonus)
+
 func _draw() -> void:
 	# Selection ring
 	if is_selected:
@@ -335,10 +692,11 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(aim_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	# Idle animation
-	var bounce = abs(sin(_time * 3.0)) * 4.0
+	# Idle animation (playful energetic bounce)
+	var playful_bounce = absf(sin(_time * 4.0)) * 2.0  # Energetic quick bounce
+	var bounce = abs(sin(_time * 3.0)) * 4.0 + playful_bounce
 	var breathe = sin(_time * 2.0) * 2.0
-	var sway = sin(_time * 1.5) * 1.5
+	var sway = sin(_time * 2.2) * 2.0  # Faster playful sway
 	var bob = Vector2(sway, -bounce - breathe)
 
 	# Tier 4: Flying pose
@@ -347,6 +705,14 @@ func _draw() -> void:
 		fly_offset = Vector2(0, -10.0 + sin(_time * 1.5) * 3.0)
 
 	var body_offset = bob + fly_offset
+
+	# Forward tilt when swooping/striking/returning
+	var is_flying = _fly_state != FlyState.IDLE
+	if is_flying:
+		body_offset += Vector2(dir.x * 6.0, -4.0 + dir.y * 3.0)
+
+	# Playful differential motion
+	var lean = sin(_time * 2.5) * 1.5  # Quick playful lean
 
 	# Skin colors
 	var skin_base = Color(0.91, 0.74, 0.58)
@@ -389,6 +755,116 @@ func _draw() -> void:
 			var c_outer = Vector2.from_angle(ca) * (croc_r + 5.0)
 			draw_line(c_inner, c_outer, Color(0.95, 0.95, 0.8, _croc_flash * 0.5), 2.0)
 
+	# Swooping trail effect (green fairy-dust trail)
+	if _fly_state == FlyState.SWOOPING or _fly_state == FlyState.RETURNING:
+		var trail_dir = Vector2.from_angle(aim_angle + PI)
+		var trail_perp = trail_dir.rotated(PI / 2.0)
+		for i in range(6):
+			var trail_pos = trail_dir * (float(i + 1) * 10.0)
+			var trail_alpha = 0.25 - float(i) * 0.04
+			var trail_size = 8.0 - float(i) * 0.8
+			draw_circle(trail_pos, trail_size, Color(0.4, 0.95, 0.3, trail_alpha))
+			var wisp_off = trail_perp * sin(_time * 8.0 + float(i) * 0.9) * (3.0 + float(i))
+			draw_circle(trail_pos + wisp_off, trail_size * 0.5, Color(1.0, 0.9, 0.3, trail_alpha * 0.5))
+
+	# Strike impact flash
+	if _fly_state == FlyState.STRIKING:
+		var strike_t = _strike_timer / _strike_duration
+		draw_circle(Vector2.ZERO, 35.0 * strike_t, Color(0.5, 1.0, 0.5, 0.35 * strike_t))
+		draw_arc(Vector2.ZERO, 20.0 + (1.0 - strike_t) * 40.0, 0, TAU, 32, Color(0.4, 1.0, 0.3, strike_t * 0.4), 2.5)
+
+	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
+
+	# Ability 2: Lost Boys flash — two small hooded figures
+	if _lost_boys_flash > 0.0:
+		for lbi in range(2):
+			var lb_a = TAU * float(lbi) / 2.0 + _lost_boys_flash * 4.0
+			var lb_pos = Vector2.from_angle(lb_a) * 30.0
+			draw_circle(lb_pos, 4.0, Color(0.2, 0.5, 0.15, _lost_boys_flash * 0.6))
+			draw_circle(lb_pos + Vector2(0, -5), 3.0, Color(0.25, 0.55, 0.18, _lost_boys_flash * 0.5))
+			# Dagger line
+			var lb_dir = Vector2.from_angle(lb_a + PI) * 8.0
+			draw_line(lb_pos, lb_pos + lb_dir, Color(0.7, 0.75, 0.8, _lost_boys_flash * 0.6), 1.5)
+
+	# Ability 3: Fairy Dust Trail flash — sparkle sweep across range
+	if _fairy_dust_trail_flash > 0.0:
+		var sweep_a = (1.0 - _fairy_dust_trail_flash) * TAU
+		for fdi in range(8):
+			var fd_a = sweep_a + float(fdi) * 0.3
+			var fd_r = attack_range * 0.3 + float(fdi) * attack_range * 0.08
+			var fd_pos = Vector2.from_angle(fd_a) * fd_r
+			var fd_alpha = _fairy_dust_trail_flash * 0.5 * (1.0 - float(fdi) * 0.1)
+			draw_circle(fd_pos, 3.0, Color(1.0, 0.92, 0.4, fd_alpha))
+			draw_circle(fd_pos, 1.5, Color(1.0, 1.0, 0.8, fd_alpha * 0.8))
+
+	# Ability 4: Mermaid's Song flash — water splash and hearts
+	if _mermaid_song_flash > 0.0:
+		var ms_r = 30.0 + (1.0 - _mermaid_song_flash) * 40.0
+		draw_arc(Vector2.ZERO, ms_r, 0, TAU, 24, Color(0.3, 0.6, 0.9, _mermaid_song_flash * 0.4), 2.5)
+		draw_arc(Vector2.ZERO, ms_r * 0.7, 0, TAU, 16, Color(0.4, 0.7, 1.0, _mermaid_song_flash * 0.3), 2.0)
+		# Hearts above
+		for hi in range(3):
+			var hx = -15.0 + float(hi) * 15.0
+			var hy = -50.0 - (1.0 - _mermaid_song_flash) * 20.0
+			draw_circle(Vector2(hx - 2, hy), 2.5, Color(1.0, 0.3, 0.5, _mermaid_song_flash * 0.6))
+			draw_circle(Vector2(hx + 2, hy), 2.5, Color(1.0, 0.3, 0.5, _mermaid_song_flash * 0.6))
+
+	# Ability 5: Walk the Plank flash — wooden plank extending
+	if _walk_plank_flash > 0.0:
+		var plank_len = 40.0 * (1.0 - _walk_plank_flash) + 10.0
+		draw_line(Vector2(20, 10), Vector2(20 + plank_len, 10), Color(0.55, 0.38, 0.18, _walk_plank_flash * 0.7), 4.0)
+		draw_line(Vector2(20, 11), Vector2(20 + plank_len, 11), Color(0.45, 0.30, 0.12, _walk_plank_flash * 0.5), 2.0)
+		# Splash at end
+		if _walk_plank_flash < 0.5:
+			var splash_a = _walk_plank_flash * 2.0
+			draw_circle(Vector2(20 + plank_len, 18), 6.0 * (1.0 - splash_a), Color(0.3, 0.6, 0.9, splash_a * 0.5))
+
+	# Ability 6: Croc Devour flash — crocodile charging
+	if _croc_devour_flash > 0.0:
+		var cd_x = -60.0 + (1.0 - _croc_devour_flash) * 120.0
+		draw_circle(Vector2(cd_x, 0), 8.0, Color(0.22, 0.48, 0.18, _croc_devour_flash * 0.7))
+		# Jaws
+		draw_line(Vector2(cd_x + 8, -3), Vector2(cd_x + 16, 0), Color(0.22, 0.48, 0.18, _croc_devour_flash * 0.6), 2.5)
+		draw_line(Vector2(cd_x + 8, 3), Vector2(cd_x + 16, 0), Color(0.22, 0.48, 0.18, _croc_devour_flash * 0.6), 2.5)
+
+	# Ability 7: Tinker Bell's Light flash — sparkle connections to towers
+	if _tinker_light_flash > 0.0:
+		draw_circle(Vector2.ZERO, 20.0, Color(1.0, 0.95, 0.5, _tinker_light_flash * 0.2))
+		for tli in range(6):
+			var tl_a = TAU * float(tli) / 6.0 + _tinker_light_flash * 3.0
+			var tl_end = Vector2.from_angle(tl_a) * (attack_range * 0.6)
+			draw_line(Vector2.ZERO, tl_end, Color(1.0, 0.92, 0.4, _tinker_light_flash * 0.25), 1.0)
+			draw_circle(tl_end, 2.0, Color(1.0, 0.95, 0.5, _tinker_light_flash * 0.4))
+
+	# Ability 8: Neverland Flight flash — daggers spraying outward
+	if _neverland_flight_flash > 0.0:
+		for nfi in range(8):
+			var nf_a = TAU * float(nfi) / 8.0
+			var nf_r = 20.0 + (1.0 - _neverland_flight_flash) * 80.0
+			var nf_pos = Vector2.from_angle(nf_a) * nf_r
+			draw_line(nf_pos, nf_pos + Vector2.from_angle(nf_a) * 10.0, Color(0.7, 0.75, 0.85, _neverland_flight_flash * 0.6), 2.0)
+			draw_circle(nf_pos, 2.0, Color(0.5, 1.0, 0.6, _neverland_flight_flash * 0.5))
+		# Peter rising effect
+		draw_circle(Vector2(0, -20.0 * (1.0 - _neverland_flight_flash)), 6.0, Color(0.5, 1.0, 0.6, _neverland_flight_flash * 0.3))
+
+	# Ability 2: Lost Boys orbiting (persistent when active)
+	if prog_abilities[1]:
+		for lbi in range(2):
+			var lb_a = _time * 1.5 + float(lbi) * PI
+			var lb_pos = Vector2.from_angle(lb_a) * 32.0
+			# Hooded figure body
+			draw_circle(lb_pos + Vector2(0, -3), 3.5, Color(0.18, 0.42, 0.10, 0.6))
+			draw_circle(lb_pos + Vector2(0, 2), 4.0, Color(0.16, 0.38, 0.08, 0.5))
+			# Hood
+			var hood_pts = PackedVector2Array([
+				lb_pos + Vector2(-3, -4), lb_pos + Vector2(3, -4),
+				lb_pos + Vector2(0, -9),
+			])
+			draw_colored_polygon(hood_pts, Color(0.14, 0.36, 0.06, 0.6))
+			# Tiny dagger
+			var lb_dir = Vector2.from_angle(lb_a + PI / 2.0)
+			draw_line(lb_pos + lb_dir * 3.0, lb_pos + lb_dir * 9.0, Color(0.7, 0.75, 0.82, 0.5), 1.2)
+
 	# === STONE PLATFORM (Bloons-style placed tower base) ===
 	var plat_y = 22.0
 	# Platform shadow
@@ -430,11 +906,11 @@ func _draw() -> void:
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
 	# === CHARACTER POSITIONS (tall anime proportions ~56px) ===
-	var feet_y = body_offset + Vector2(0, 14.0)
-	var leg_top = body_offset + Vector2(0, -2.0)
-	var torso_center = body_offset + Vector2(0, -10.0)
-	var neck_base = body_offset + Vector2(0, -20.0)
-	var head_center = body_offset + Vector2(0, -32.0)
+	var feet_y = body_offset + Vector2(lean * 0.8, 14.0 - playful_bounce * 0.5)
+	var leg_top = body_offset + Vector2(lean * 0.5, -2.0)
+	var torso_center = body_offset + Vector2(lean * 0.3, -10.0)
+	var neck_base = body_offset + Vector2(-lean * 0.2, -20.0)
+	var head_center = body_offset + Vector2(-lean * 0.4, -32.0 - playful_bounce * 0.3)
 
 	# === Tier 4: Fairy dust particles floating around ===
 	if upgrade_tier >= 4:
@@ -572,26 +1048,71 @@ func _draw() -> void:
 			var leaf_c = boot + Vector2.from_angle(ba) * 3.5 + Vector2(0, -float(bl) * 3.0)
 			draw_line(leaf_c - Vector2(2.5, 0), leaf_c + Vector2(2.5, 0), Color(0.18, 0.44, 0.12, 0.6), 1.5)
 
-	# Long dancer's legs with green tights — thigh to knee to boot top
-	# Left leg: thigh
-	draw_line(leg_top + Vector2(-6, 0), l_knee, Color(0.14, 0.40, 0.08), 5.5)
-	draw_line(leg_top + Vector2(-6, 0), l_knee, Color(0.18, 0.48, 0.12), 4.0)
-	# Left leg: calf (tapers slightly)
-	draw_line(l_knee, l_foot + Vector2(0, -10), Color(0.14, 0.40, 0.08), 4.5)
-	draw_line(l_knee, l_foot + Vector2(0, -10), Color(0.18, 0.48, 0.12), 3.0)
-	# Left calf definition highlight
-	draw_line(l_knee + Vector2(-1.5, 1), l_foot + Vector2(-1, -8), Color(0.22, 0.55, 0.16, 0.3), 1.0)
-	# Right leg: thigh
-	draw_line(leg_top + Vector2(6, 0), r_knee, Color(0.14, 0.40, 0.08), 5.5)
-	draw_line(leg_top + Vector2(6, 0), r_knee, Color(0.18, 0.48, 0.12), 4.0)
-	# Right leg: calf
-	draw_line(r_knee, r_foot + Vector2(0, -10), Color(0.14, 0.40, 0.08), 4.5)
-	draw_line(r_knee, r_foot + Vector2(0, -10), Color(0.18, 0.48, 0.12), 3.0)
-	# Right calf definition highlight
-	draw_line(r_knee + Vector2(1.5, 1), r_foot + Vector2(1, -8), Color(0.22, 0.55, 0.16, 0.3), 1.0)
-	# Knee circles
-	draw_circle(l_knee, 3.0, Color(0.16, 0.44, 0.10))
-	draw_circle(r_knee, 3.0, Color(0.16, 0.44, 0.10))
+	# Long dancer's legs with green tights — polygon athletic shapes
+	var l_hip = leg_top + Vector2(-6, 0)
+	var r_hip = leg_top + Vector2(6, 0)
+	var l_boot_top = l_foot + Vector2(0, -10)
+	var r_boot_top = r_foot + Vector2(0, -10)
+	# LEFT THIGH — athletic quad with outer muscle bulge
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(3, 0), l_hip + Vector2(-4, 0),
+		l_hip.lerp(l_knee, 0.3) + Vector2(-6, 0),  # outer quad bulge
+		l_hip.lerp(l_knee, 0.6) + Vector2(-5.5, 0),
+		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
+		l_hip.lerp(l_knee, 0.5) + Vector2(4, 0),  # inner thigh
+	]), Color(0.14, 0.40, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(2, 0), l_hip + Vector2(-3, 0),
+		l_hip.lerp(l_knee, 0.3) + Vector2(-5, 0),
+		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
+	]), Color(0.18, 0.48, 0.12))
+	# Quad definition highlight
+	draw_line(l_hip.lerp(l_knee, 0.15) + Vector2(-2, 0), l_hip.lerp(l_knee, 0.65) + Vector2(-2, 0), Color(0.22, 0.55, 0.16, 0.3), 1.0)
+	# RIGHT THIGH
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-3, 0), r_hip + Vector2(4, 0),
+		r_hip.lerp(r_knee, 0.3) + Vector2(6, 0),
+		r_hip.lerp(r_knee, 0.6) + Vector2(5.5, 0),
+		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
+		r_hip.lerp(r_knee, 0.5) + Vector2(-4, 0),
+	]), Color(0.14, 0.40, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-2, 0), r_hip + Vector2(3, 0),
+		r_hip.lerp(r_knee, 0.3) + Vector2(5, 0),
+		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
+	]), Color(0.18, 0.48, 0.12))
+	draw_line(r_hip.lerp(r_knee, 0.15) + Vector2(2, 0), r_hip.lerp(r_knee, 0.65) + Vector2(2, 0), Color(0.22, 0.55, 0.16, 0.3), 1.0)
+	# Knee joints
+	draw_circle(l_knee, 4.5, Color(0.14, 0.40, 0.08))
+	draw_circle(l_knee, 3.5, Color(0.18, 0.48, 0.12))
+	draw_circle(r_knee, 4.5, Color(0.14, 0.40, 0.08))
+	draw_circle(r_knee, 3.5, Color(0.18, 0.48, 0.12))
+	# LEFT CALF — defined athletic shape
+	var l_calf_mid = l_knee.lerp(l_boot_top, 0.35) + Vector2(-2, 0)
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
+		l_calf_mid + Vector2(3.5, 0),
+		l_boot_top + Vector2(2, 0), l_boot_top + Vector2(-2, 0),
+		l_calf_mid + Vector2(-5, 0),  # calf muscle bulge
+	]), Color(0.14, 0.40, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
+		l_boot_top + Vector2(1.5, 0), l_boot_top + Vector2(-1.5, 0),
+	]), Color(0.18, 0.48, 0.12))
+	draw_circle(l_calf_mid + Vector2(-1, 0), 2.5, Color(0.22, 0.55, 0.16, 0.2))
+	# RIGHT CALF
+	var r_calf_mid = r_knee.lerp(r_boot_top, 0.35) + Vector2(2, 0)
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
+		r_calf_mid + Vector2(-3.5, 0),
+		r_boot_top + Vector2(-2, 0), r_boot_top + Vector2(2, 0),
+		r_calf_mid + Vector2(5, 0),
+	]), Color(0.14, 0.40, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
+		r_boot_top + Vector2(-1.5, 0), r_boot_top + Vector2(1.5, 0),
+	]), Color(0.18, 0.48, 0.12))
+	draw_circle(r_calf_mid + Vector2(1, 0), 2.5, Color(0.22, 0.55, 0.16, 0.2))
 
 	# Green sleeveless leaf tunic (dark forest green, lean V-taper)
 	# Shoulders ±14, waist ±9, extends from neck_base down to leg_top area
@@ -690,7 +1211,7 @@ func _draw() -> void:
 	draw_circle(neck_base + Vector2(14, 0), 4.5, Color(0.20, 0.50, 0.14))
 	draw_line(neck_base + Vector2(11, 0), neck_base + Vector2(17, 0), Color(0.12, 0.34, 0.08, 0.5), 0.6)
 
-	# === Arms (toned, sleeveless — skin visible) ===
+	# === Arms (athletic muscular polygon shapes, sleeveless — skin visible) ===
 	var r_shoulder = neck_base + Vector2(14, 0)
 	var l_shoulder = neck_base + Vector2(-14, 0)
 	# Dagger arm (right) — swipes toward aim direction
@@ -700,42 +1221,84 @@ func _draw() -> void:
 		dagger_hand = r_shoulder + swipe * 22.0
 	else:
 		dagger_hand = r_shoulder + dir * 22.0
-	# Upper arm (toned, 3.5px)
+	# RIGHT UPPER ARM — athletic polygon with deltoid and bicep
 	var r_elbow = r_shoulder + (dagger_hand - r_shoulder) * 0.45
-	draw_line(r_shoulder, r_elbow, skin_shadow, 4.5)
-	draw_line(r_shoulder, r_elbow, skin_base, 3.5)
-	# Bicep definition
-	var r_mid_arm = r_shoulder + (r_elbow - r_shoulder) * 0.5
-	draw_circle(r_mid_arm, 3.0, skin_highlight)
-	# Forearm (2.5px)
-	draw_line(r_elbow, dagger_hand, skin_shadow, 3.5)
-	draw_line(r_elbow, dagger_hand, skin_base, 2.5)
-	# Elbow
-	draw_circle(r_elbow, 2.5, skin_base)
+	var r_ua_dir = (r_elbow - r_shoulder).normalized()
+	var r_ua_perp = r_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + r_ua_perp * 5.0, r_shoulder - r_ua_perp * 4.5,
+		r_shoulder.lerp(r_elbow, 0.3) - r_ua_perp * 5.5,  # deltoid bulge
+		r_shoulder.lerp(r_elbow, 0.6) - r_ua_perp * 5.0,  # bicep
+		r_elbow - r_ua_perp * 3.5, r_elbow + r_ua_perp * 3.5,
+		r_shoulder.lerp(r_elbow, 0.5) + r_ua_perp * 4.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + r_ua_perp * 4.0, r_shoulder - r_ua_perp * 3.5,
+		r_shoulder.lerp(r_elbow, 0.35) - r_ua_perp * 4.5,
+		r_elbow - r_ua_perp * 2.5, r_elbow + r_ua_perp * 2.5,
+	]), skin_base)
+	# Bicep definition highlight
+	var r_mid_arm = r_shoulder.lerp(r_elbow, 0.4)
+	draw_circle(r_mid_arm - r_ua_perp * 2.0, 3.5, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.4))
+	# Elbow joint
+	draw_circle(r_elbow, 4.0, skin_shadow)
+	draw_circle(r_elbow, 3.0, skin_base)
+	# RIGHT FOREARM — tapered athletic polygon
+	var r_fa_dir = (dagger_hand - r_elbow).normalized()
+	var r_fa_perp = r_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 3.5, r_elbow - r_fa_perp * 3.5,
+		r_elbow.lerp(dagger_hand, 0.4) - r_fa_perp * 3.8,  # forearm muscle
+		dagger_hand - r_fa_perp * 2.0, dagger_hand + r_fa_perp * 2.0,
+		r_elbow.lerp(dagger_hand, 0.4) + r_fa_perp * 3.2,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 2.5, r_elbow - r_fa_perp * 2.5,
+		dagger_hand - r_fa_perp * 1.2, dagger_hand + r_fa_perp * 1.2,
+	]), skin_base)
 	# Hand
-	draw_circle(dagger_hand, 3.5, skin_shadow)
-	draw_circle(dagger_hand, 2.8, skin_base)
+	draw_circle(dagger_hand, 4.0, skin_shadow)
+	draw_circle(dagger_hand, 3.0, skin_base)
 	# Fingers gripping
 	var grip_dir = dir if _attack_anim <= 0.0 else dir.rotated(-_attack_anim * PI * 0.5 + PI * 0.3)
 	for fi in range(3):
 		var fa = float(fi - 1) * 0.4
-		draw_circle(dagger_hand + grip_dir.rotated(fa) * 3.5, 1.3, skin_highlight)
+		draw_circle(dagger_hand + grip_dir.rotated(fa) * 3.5, 1.5, skin_highlight)
 
 	# Off-hand (on hip, cocky pose)
 	var off_hand = torso_center + Vector2(-11, 6)
-	# Upper arm
+	# LEFT UPPER ARM — athletic polygon
 	var l_elbow = l_shoulder + (off_hand - l_shoulder) * 0.45
-	draw_line(l_shoulder, l_elbow, skin_shadow, 4.5)
-	draw_line(l_shoulder, l_elbow, skin_base, 3.5)
-	# Bicep definition
-	var l_mid_arm = l_shoulder + (l_elbow - l_shoulder) * 0.5
-	draw_circle(l_mid_arm, 2.8, skin_highlight)
-	# Forearm
-	draw_line(l_elbow, off_hand, skin_shadow, 3.5)
-	draw_line(l_elbow, off_hand, skin_base, 2.5)
-	draw_circle(l_elbow, 2.5, skin_base)
-	draw_circle(off_hand, 3.0, skin_shadow)
-	draw_circle(off_hand, 2.5, skin_base)
+	var l_ua_dir = (l_elbow - l_shoulder).normalized()
+	var l_ua_perp = l_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder + l_ua_perp * 4.5, l_shoulder - l_ua_perp * 5.0,
+		l_shoulder.lerp(l_elbow, 0.3) - l_ua_perp * 5.5,
+		l_elbow - l_ua_perp * 3.5, l_elbow + l_ua_perp * 3.5,
+		l_shoulder.lerp(l_elbow, 0.5) + l_ua_perp * 4.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder + l_ua_perp * 3.5, l_shoulder - l_ua_perp * 4.0,
+		l_elbow - l_ua_perp * 2.5, l_elbow + l_ua_perp * 2.5,
+	]), skin_base)
+	var l_mid_arm = l_shoulder.lerp(l_elbow, 0.4)
+	draw_circle(l_mid_arm - l_ua_perp * 2.0, 3.0, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.35))
+	# Elbow joint
+	draw_circle(l_elbow, 4.0, skin_shadow)
+	draw_circle(l_elbow, 3.0, skin_base)
+	# LEFT FOREARM — polygon tapered
+	var l_fa_dir = (off_hand - l_elbow).normalized()
+	var l_fa_perp = l_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 3.5, l_elbow - l_fa_perp * 3.5,
+		off_hand - l_fa_perp * 2.0, off_hand + l_fa_perp * 2.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 2.5, l_elbow - l_fa_perp * 2.5,
+		off_hand - l_fa_perp * 1.2, off_hand + l_fa_perp * 1.2,
+	]), skin_base)
+	draw_circle(off_hand, 3.5, skin_shadow)
+	draw_circle(off_hand, 2.8, skin_base)
 
 	# === Ornate dagger ===
 	var dagger_dir: Vector2
@@ -779,11 +1342,25 @@ func _draw() -> void:
 		draw_line(blade_tip - dagger_perp * (5.0 * glint_a), blade_tip + dagger_perp * (5.0 * glint_a), Color(1.0, 1.0, 0.9, glint_a * 0.4), 0.8)
 
 	# === HEAD (proportional anime head ~22px diameter) ===
-	# Visible neck (3px wide, flesh-colored)
-	draw_line(neck_base, head_center + Vector2(0, 8), skin_shadow, 5.0)
-	draw_line(neck_base, head_center + Vector2(0, 8), skin_base, 3.0)
-	# Neck muscle hint
-	draw_line(neck_base + Vector2(-1.5, 0), head_center + Vector2(-1.5, 7), Color(0.82, 0.66, 0.52, 0.2), 0.6)
+	# Polygon neck (athletic, defined)
+	var neck_top = head_center + Vector2(0, 8)
+	var neck_dir = (neck_top - neck_base).normalized()
+	var neck_perp = neck_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 6.0, neck_base - neck_perp * 6.0,
+		neck_base.lerp(neck_top, 0.5) - neck_perp * 5.0,
+		neck_top - neck_perp * 4.0, neck_top + neck_perp * 4.0,
+		neck_base.lerp(neck_top, 0.5) + neck_perp * 5.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 5.0, neck_base - neck_perp * 5.0,
+		neck_top - neck_perp * 3.0, neck_top + neck_perp * 3.0,
+	]), skin_base)
+	# Neck highlight
+	draw_line(neck_base.lerp(neck_top, 0.15) + neck_perp * 2.8, neck_base.lerp(neck_top, 0.85) + neck_perp * 2.2, skin_highlight, 1.5)
+	# Muscle definition
+	draw_line(neck_base + neck_perp * 3.5, neck_top - neck_perp * 0.5, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.12), 0.8)
+	draw_line(neck_base - neck_perp * 3.5, neck_top + neck_perp * 0.5, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.12), 0.8)
 	# Leaf collar at neckline
 	for nc in range(5):
 		var ncx = -6.0 + float(nc) * 3.0
@@ -819,15 +1396,17 @@ func _draw() -> void:
 		var t2_tip = t2_base + Vector2.from_angle(ha2) * (tlen * 0.6) + Vector2(hair_sway * sway_d * 0.3, 0)
 		draw_line(t2_base, t2_tip, hair_base_col, twid * 0.5)
 
-	# Face (smaller, proportional)
+	# Face (lean, youthful, defined)
 	draw_circle(head_center + Vector2(0, 1), 9.0, skin_base)
-	# Face shading
-	draw_arc(head_center + Vector2(0, 1), 8.0, PI * 0.6, PI * 1.4, 12, skin_shadow, 1.2)
+	# Strong jawline — angular lines from ears to chin
+	draw_line(head_center + Vector2(-8.5, 1), head_center + Vector2(-4, 7.5), Color(0.68, 0.52, 0.38, 0.3), 1.3)
+	draw_line(head_center + Vector2(8.5, 1), head_center + Vector2(4, 7.5), Color(0.68, 0.52, 0.38, 0.3), 1.3)
+	# Chin — youthful, defined
+	draw_circle(head_center + Vector2(0, 7.5), 2.8, skin_base)
+	draw_circle(head_center + Vector2(0, 7.8), 2.0, skin_highlight)
 	# Cheek blush
 	draw_circle(head_center + Vector2(-5.5, 2.5), 2.5, Color(0.95, 0.60, 0.52, 0.2))
 	draw_circle(head_center + Vector2(5.5, 2.5), 2.5, Color(0.95, 0.60, 0.52, 0.2))
-	# Jawline definition (lean male face)
-	draw_arc(head_center + Vector2(0, 1), 8.5, 0.2, PI - 0.2, 10, Color(0.75, 0.58, 0.44, 0.2), 0.8)
 
 	# Pointed elf ears (proportionally scaled)
 	# Right ear

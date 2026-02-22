@@ -2,12 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Play - Shadow Defense: Tales from the Pages</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; overflow: hidden; background: #0a0a1a; color: #c4baa8; font-family: 'Inter', sans-serif; }
+        html {
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+        body {
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: #0a0a1a;
+            color: #c4baa8;
+            font-family: 'Inter', sans-serif;
+            position: fixed;
+            width: 100%;
+            overscroll-behavior: none;
+            touch-action: none;
+        }
 
         .play-header {
             height: 48px;
@@ -17,6 +36,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 20px;
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
         }
 
         .play-header a {
@@ -52,17 +73,19 @@
         }
 
         .game-frame-wrapper {
-            height: calc(100vh - 48px);
+            height: calc(100dvh - 48px);
             display: flex;
             align-items: center;
             justify-content: center;
             background: #000;
+            touch-action: none;
         }
 
         iframe {
             width: 100%;
             height: 100%;
             border: none;
+            touch-action: none;
         }
 
         .loading-msg {
@@ -80,11 +103,62 @@
             color: #8a8278;
             font-size: 0.9rem;
         }
+
+        /* Landscape orientation prompt */
+        .rotate-prompt {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(10, 10, 26, 0.97);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .rotate-prompt svg {
+            width: 80px;
+            height: 80px;
+            color: #c9a84c;
+            animation: rotateHint 2s ease-in-out infinite;
+        }
+
+        @keyframes rotateHint {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+
+        .rotate-prompt h3 {
+            font-family: 'Cinzel', serif;
+            color: #f0e6d3;
+            font-size: 1.3rem;
+        }
+
+        .rotate-prompt p {
+            color: #8a8278;
+            font-size: 0.9rem;
+            max-width: 280px;
+        }
+
+        @media (orientation: portrait) and (max-width: 900px) {
+            .rotate-prompt { display: flex; }
+        }
+
+        /* Hide header on very small landscape to maximize game space */
+        @media (max-height: 400px) {
+            .play-header { height: 32px; padding: 0 12px; }
+            .play-header a { font-size: 0.75rem; }
+            .play-controls button { padding: 3px 8px; font-size: 0.7rem; }
+            .game-frame-wrapper { height: calc(100dvh - 32px); }
+        }
     </style>
 </head>
 <body>
     <div class="play-header">
-        <a href="index.html">Shadow Defense: Tales from the Pages</a>
+        <a href="index.html">Shadow Defense</a>
         <div class="play-controls">
             <button id="fullscreen-btn">Fullscreen</button>
             <a href="index.html" style="font-family: Inter, sans-serif; font-size: 0.8rem; color: #8a8278;">Back to Site</a>
@@ -98,20 +172,55 @@
         <iframe id="game-frame" src="game/index.html" allow="autoplay; fullscreen" style="display:none;"></iframe>
     </div>
 
+    <!-- Portrait orientation prompt -->
+    <div class="rotate-prompt" id="rotate-prompt">
+        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="20" y="10" width="24" height="40" rx="3"/>
+            <path d="M55 35 A20 20 0 0 1 35 55" stroke-dasharray="4 3"/>
+            <polygon points="33,50 35,57 40,52" fill="currentColor" stroke="none"/>
+        </svg>
+        <h3>Rotate Your Device</h3>
+        <p>This game plays best in landscape mode. Please rotate your phone sideways.</p>
+    </div>
+
     <script>
         const frame = document.getElementById('game-frame');
         const msg = document.getElementById('loading-msg');
+        const fsBtn = document.getElementById('fullscreen-btn');
 
         frame.onload = () => {
             msg.style.display = 'none';
             frame.style.display = 'block';
         };
 
-        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+        // Detect iOS — fullscreen API not supported
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (isIOS) {
+            fsBtn.style.display = 'none';
+        }
+
+        fsBtn.addEventListener('click', () => {
             const wrapper = document.getElementById('game-wrapper');
             if (wrapper.requestFullscreen) wrapper.requestFullscreen();
             else if (wrapper.webkitRequestFullscreen) wrapper.webkitRequestFullscreen();
         });
+
+        // Prevent iOS bounce/zoom on the page itself
+        document.addEventListener('touchmove', (e) => {
+            if (e.target === document.body || e.target === document.documentElement) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Prevent double-tap zoom
+        let lastTap = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) e.preventDefault();
+            lastTap = now;
+        }, { passive: false });
     </script>
 </body>
 </html>

@@ -21,6 +21,21 @@ var damage_mult: float = 1.0
 var mark_timer: float = 0.0
 var fear_slow: bool = false
 
+# Ability status effects
+var sleep_timer: float = 0.0
+var charm_timer: float = 0.0
+var charm_damage_mult: float = 1.0
+var paint_stacks: int = 0
+var fear_reverse_timer: float = 0.0
+var permanent_slow_mult: float = 1.0
+var chain_group: Array = []
+var chain_timer: float = 0.0
+var chain_share: float = 0.0
+var cheshire_mark_timer: float = 0.0
+var cheshire_mark_mult: float = 1.0
+var melt_timer: float = 0.0
+var melt_rate: float = 0.0
+
 # Themed visuals
 var enemy_theme: int = 0
 var enemy_tier: int = 0
@@ -31,15 +46,60 @@ func _ready() -> void:
 	rotates = false
 
 func _process(delta: float) -> void:
-	# Movement with slow
-	if slow_timer > 0.0:
+	# Sleep — completely frozen
+	if sleep_timer > 0.0:
+		sleep_timer -= delta
+		if _hit_flash > 0.0:
+			_hit_flash -= delta
+		queue_redraw()
+		return
+
+	# Charm — frozen + takes extra damage
+	if charm_timer > 0.0:
+		charm_timer -= delta
+		if charm_timer <= 0.0:
+			charm_damage_mult = 1.0
+		if _hit_flash > 0.0:
+			_hit_flash -= delta
+		queue_redraw()
+		return
+
+	# Melt effect — lose HP over time
+	if melt_timer > 0.0:
+		melt_timer -= delta
+		health -= melt_rate * delta
+		_hit_flash = 0.05
+		if health <= 0.0:
+			_die()
+			return
+
+	# Cheshire mark timer
+	if cheshire_mark_timer > 0.0:
+		cheshire_mark_timer -= delta
+		if cheshire_mark_timer <= 0.0:
+			cheshire_mark_mult = 1.0
+
+	# Chain timer
+	if chain_timer > 0.0:
+		chain_timer -= delta
+		if chain_timer <= 0.0:
+			chain_group.clear()
+			chain_share = 0.0
+
+	# Fear reverse — walk backwards
+	if fear_reverse_timer > 0.0:
+		fear_reverse_timer -= delta
+		progress -= speed * 0.5 * permanent_slow_mult * delta
+		progress = max(0.0, progress)
+	# Normal movement with slow
+	elif slow_timer > 0.0:
 		slow_timer -= delta
-		progress += speed * slow_factor * delta
+		progress += speed * slow_factor * permanent_slow_mult * delta
 		is_shrunk = true
 	else:
 		slow_factor = 1.0
 		is_shrunk = false
-		progress += speed * delta
+		progress += speed * permanent_slow_mult * delta
 
 	# Mark timer
 	if mark_timer > 0.0:
@@ -77,8 +137,23 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func take_damage(amount: float) -> void:
-	health -= amount * damage_mult
+	var mult = damage_mult * cheshire_mark_mult * charm_damage_mult
+	var paint_mult = 1.0 + paint_stacks * 0.05
+	var final_dmg = amount * mult * paint_mult
+	health -= final_dmg
 	_hit_flash = 0.12
+	# Chain damage sharing
+	if chain_timer > 0.0 and chain_share > 0.0 and chain_group.size() > 0:
+		var shared = final_dmg * chain_share
+		for linked in chain_group:
+			if is_instance_valid(linked) and linked != self:
+				linked.take_chain_damage(shared)
+	if health <= 0.0:
+		_die()
+
+func take_chain_damage(amount: float) -> void:
+	health -= amount
+	_hit_flash = 0.08
 	if health <= 0.0:
 		_die()
 
@@ -96,6 +171,35 @@ func apply_mark(mult: float, duration: float, with_fear: bool = false) -> void:
 	mark_timer = max(mark_timer, duration)
 	if with_fear:
 		fear_slow = true
+
+func apply_sleep(duration: float) -> void:
+	sleep_timer = max(sleep_timer, duration)
+
+func apply_charm(duration: float, dmg_mult: float = 2.0) -> void:
+	charm_timer = max(charm_timer, duration)
+	charm_damage_mult = max(charm_damage_mult, dmg_mult)
+
+func apply_paint() -> void:
+	paint_stacks = mini(paint_stacks + 1, 10)
+
+func apply_fear_reverse(duration: float) -> void:
+	fear_reverse_timer = max(fear_reverse_timer, duration)
+
+func apply_cheshire_mark(duration: float, mult: float = 2.0) -> void:
+	cheshire_mark_timer = max(cheshire_mark_timer, duration)
+	cheshire_mark_mult = max(cheshire_mark_mult, mult)
+
+func apply_chain(targets: Array, share_pct: float, duration: float) -> void:
+	chain_group = targets
+	chain_share = share_pct
+	chain_timer = max(chain_timer, duration)
+
+func apply_melt(rate: float, duration: float) -> void:
+	melt_rate = rate
+	melt_timer = max(melt_timer, duration)
+
+func apply_permanent_slow(mult: float) -> void:
+	permanent_slow_mult = min(permanent_slow_mult, mult)
 
 func _die() -> void:
 	var main = get_tree().get_first_node_in_group("main")
@@ -124,6 +228,34 @@ func _draw() -> void:
 		3: _draw_neverland(s, tint)
 		4: _draw_opera(s, tint)
 		5: _draw_victorian(s, tint)
+
+	# Status effect visuals
+	if sleep_timer > 0.0:
+		# Zzz floating above
+		draw_string(ThemeDB.fallback_font, Vector2(-8, -32 * s), "Zzz", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.6, 0.6, 1.0, 0.8))
+	if charm_timer > 0.0:
+		# Hearts above
+		draw_circle(Vector2(-6, -30 * s), 3.0, Color(1.0, 0.3, 0.5, 0.7))
+		draw_circle(Vector2(6, -32 * s), 2.5, Color(1.0, 0.4, 0.6, 0.6))
+	if paint_stacks > 0:
+		# Progressive red tint overlay
+		var red_alpha = float(paint_stacks) * 0.04
+		draw_circle(Vector2.ZERO, 14.0 * s, Color(0.9, 0.1, 0.1, red_alpha))
+	if fear_reverse_timer > 0.0:
+		# Reverse arrows
+		draw_line(Vector2(-8, -28 * s), Vector2(-12, -28 * s), Color(1.0, 0.3, 0.3, 0.7), 2.0)
+		draw_line(Vector2(-12, -28 * s), Vector2(-10, -30 * s), Color(1.0, 0.3, 0.3, 0.7), 2.0)
+		draw_line(Vector2(-12, -28 * s), Vector2(-10, -26 * s), Color(1.0, 0.3, 0.3, 0.7), 2.0)
+	if cheshire_mark_timer > 0.0:
+		# Floating grin
+		draw_arc(Vector2(0, -28 * s), 6.0, 0.3, PI - 0.3, 8, Color(0.7, 0.3, 0.9, 0.7), 1.5)
+	if chain_timer > 0.0:
+		# Chain link indicator
+		draw_arc(Vector2.ZERO, 16.0 * s, 0, TAU, 12, Color(0.5, 0.5, 0.6, 0.4), 1.5)
+	if melt_timer > 0.0:
+		# Green drip
+		draw_circle(Vector2(-4, 12 * s), 2.0, Color(0.2, 0.8, 0.1, 0.5))
+		draw_circle(Vector2(3, 14 * s), 1.5, Color(0.2, 0.8, 0.1, 0.4))
 
 	# Health bar
 	var bar_w: float = 28.0

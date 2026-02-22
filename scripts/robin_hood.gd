@@ -43,6 +43,40 @@ var splash_radius: float = 0.0
 # Kill tracking — steal coins every 10th kill
 var kill_count: int = 0
 
+# === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
+const PROG_ABILITY_NAMES = [
+	"Sherwood Aim", "Lincoln Green", "Merry Men", "Friar Tuck's Blessing",
+	"Little John's Staff", "The Outlaw's Snare", "Maid Marian's Arrow",
+	"The Golden Arrow", "King of Sherwood"
+]
+const PROG_ABILITY_DESCS = [
+	"Arrows fly 30% faster, +15% damage",
+	"Invisible 2s every 10s; arrows during deal 2x",
+	"Every 20s, 3 hooded figures strike enemies for 3x",
+	"Restores 1 life every 30s",
+	"Every 12s, AoE stun all in range for 1.5s",
+	"Every 15s, rope trap roots next enemy 3s",
+	"Every 18s, heal 1 life + strike strongest for 5x",
+	"Every 20s, golden arrow pierces ALL in line for 10x",
+	"Every 8s, arrows rain on EVERY enemy on map"
+]
+var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
+# Ability timers
+var _lincoln_green_timer: float = 10.0
+var _lincoln_green_invis: float = 0.0
+var _merry_men_timer: float = 20.0
+var _friar_tuck_timer: float = 30.0
+var _little_john_timer: float = 12.0
+var _outlaw_snare_timer: float = 15.0
+var _maid_marian_timer: float = 18.0
+var _golden_arrow_timer: float = 20.0
+var _king_sherwood_timer: float = 8.0
+# Visual flash timers
+var _merry_men_flash: float = 0.0
+var _little_john_flash: float = 0.0
+var _golden_arrow_flash: float = 0.0
+var _king_sherwood_flash: float = 0.0
+
 const STAT_UPGRADE_INTERVAL: float = 500.0
 const ABILITY_THRESHOLD: float = 1500.0
 var stat_upgrade_level: int = 0
@@ -70,8 +104,15 @@ var arrow_scene = preload("res://scenes/arrow.tscn")
 var _attack_sound: AudioStreamWAV
 var _attack_player: AudioStreamPlayer
 
+# Ability sounds
+var _horn_sound: AudioStreamWAV
+var _horn_player: AudioStreamPlayer
+var _upgrade_sound: AudioStreamWAV
+var _upgrade_player: AudioStreamPlayer
+
 func _ready() -> void:
 	add_to_group("towers")
+	_load_progressive_abilities()
 	# Generate bow twang + arrow whoosh sound
 	var mix_rate := 22050
 	var duration := 0.12
@@ -92,6 +133,49 @@ func _ready() -> void:
 	_attack_player.stream = _attack_sound
 	_attack_player.volume_db = -8.0
 	add_child(_attack_player)
+
+	# Horn volley — 3 ascending brass blasts (A3→C#4→E4)
+	var horn_rate := 22050
+	var horn_dur := 0.6
+	var horn_samples := PackedFloat32Array()
+	horn_samples.resize(int(horn_rate * horn_dur))
+	var horn_notes := [220.0, 277.18, 329.63]  # A3, C#4, E4
+	var horn_note_len := int(horn_rate * horn_dur) / 3
+	for i in horn_samples.size():
+		var t := float(i) / horn_rate
+		var ni := mini(i / horn_note_len, 2)
+		var nt := float(i - ni * horn_note_len) / float(horn_rate)
+		var freq: float = horn_notes[ni]
+		var att := minf(nt * 30.0, 1.0)
+		var dec := exp(-nt * 8.0)
+		var env := att * dec * 0.45
+		var s := sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.4 + sin(TAU * freq * 3.0 * t) * 0.15
+		horn_samples[i] = clampf(s * env, -1.0, 1.0)
+	_horn_sound = _samples_to_wav(horn_samples, horn_rate)
+	_horn_player = AudioStreamPlayer.new()
+	_horn_player.stream = _horn_sound
+	_horn_player.volume_db = -6.0
+	add_child(_horn_player)
+
+	# Upgrade chime — bright ascending arpeggio (C5→E5→G5)
+	var up_rate := 22050
+	var up_dur := 0.35
+	var up_samples := PackedFloat32Array()
+	up_samples.resize(int(up_rate * up_dur))
+	var up_notes := [523.25, 659.25, 783.99]
+	var up_note_len := int(up_rate * up_dur) / 3
+	for i in up_samples.size():
+		var t := float(i) / up_rate
+		var ni := mini(i / up_note_len, 2)
+		var nt := float(i - ni * up_note_len) / float(up_rate)
+		var freq: float = up_notes[ni]
+		var env := minf(nt * 50.0, 1.0) * exp(-nt * 10.0) * 0.4
+		up_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.3) * env, -1.0, 1.0)
+	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
+	_upgrade_player = AudioStreamPlayer.new()
+	_upgrade_player.stream = _upgrade_sound
+	_upgrade_player.volume_db = -4.0
+	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -119,6 +203,9 @@ func _process(delta: float) -> void:
 		if horn_timer <= 0.0 and _has_enemies_in_range():
 			_horn_volley()
 			horn_timer = horn_cooldown
+
+	# Progressive abilities
+	_process_progressive_abilities(delta)
 
 	queue_redraw()
 
@@ -151,16 +238,27 @@ func _shoot() -> void:
 func _fire_arrow(t: Node2D, silver: bool = false) -> void:
 	var arrow = arrow_scene.instantiate()
 	arrow.global_position = global_position + Vector2.from_angle(bow_angle) * 18.0
-	arrow.damage = damage * (3.0 if silver else 1.0)
+	var dmg_mult = 3.0 if silver else 1.0
+	# Ability 1: Sherwood Aim — +15% damage
+	if prog_abilities[0]:
+		dmg_mult *= 1.15
+	# Ability 2: Lincoln Green — 2x during invisibility
+	if prog_abilities[1] and _lincoln_green_invis > 0.0:
+		dmg_mult *= 2.0
+	arrow.damage = damage * dmg_mult
 	arrow.target = t
 	arrow.gold_bonus = gold_bonus
 	arrow.source_tower = self
 	arrow.pierce_count = pierce_count
 	arrow.is_silver = silver
 	arrow.splash_radius = splash_radius
+	# Ability 1: Sherwood Aim — 30% faster arrows
+	if prog_abilities[0]:
+		arrow.speed *= 1.3
 	get_tree().get_first_node_in_group("main").add_child(arrow)
 
 func _horn_volley() -> void:
+	if _horn_player: _horn_player.play()
 	_horn_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
@@ -181,9 +279,6 @@ func register_kill() -> void:
 			main.add_gold(stolen)
 		_upgrade_flash = 1.0
 		_upgrade_name = "Robbed %d gold!" % stolen
-
-func register_damage(amount: float) -> void:
-	damage_dealt += amount
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -250,6 +345,7 @@ func purchase_upgrade() -> bool:
 	_apply_upgrade(upgrade_tier)
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
+	if _upgrade_player: _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -284,6 +380,182 @@ func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamW
 	wav.data = data
 	return wav
 
+# === PROGRESSIVE ABILITY SYSTEM ===
+
+func _load_progressive_abilities() -> void:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.survivor_progress.has(main.TowerType.ROBIN_HOOD):
+		var p = main.survivor_progress[main.TowerType.ROBIN_HOOD]
+		var unlocked = p.get("abilities_unlocked", [])
+		for i in range(mini(9, unlocked.size())):
+			if unlocked[i]:
+				activate_progressive_ability(i)
+
+func activate_progressive_ability(index: int) -> void:
+	if index < 0 or index >= 9:
+		return
+	prog_abilities[index] = true
+	_apply_progressive_stats()
+
+func _apply_progressive_stats() -> void:
+	if prog_abilities[0]:  # Sherwood Aim: +15% damage (applied as base multiplier)
+		pass  # Applied in _fire_arrow via speed boost and register_damage
+
+func get_progressive_ability_name(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_NAMES.size():
+		return PROG_ABILITY_NAMES[index]
+	return ""
+
+func get_progressive_ability_desc(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_DESCS.size():
+		return PROG_ABILITY_DESCS[index]
+	return ""
+
+func register_damage(amount: float) -> void:
+	damage_dealt += amount
+	# Register with main for progressive ability tracking
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("register_tower_damage"):
+		main.register_tower_damage(main.TowerType.ROBIN_HOOD, amount)
+
+func _process_progressive_abilities(delta: float) -> void:
+	# Visual flash decay
+	_merry_men_flash = max(_merry_men_flash - delta * 2.0, 0.0)
+	_little_john_flash = max(_little_john_flash - delta * 2.0, 0.0)
+	_golden_arrow_flash = max(_golden_arrow_flash - delta * 1.5, 0.0)
+	_king_sherwood_flash = max(_king_sherwood_flash - delta * 2.0, 0.0)
+
+	# Ability 2: Lincoln Green — invisibility cycle
+	if prog_abilities[1]:
+		if _lincoln_green_invis > 0.0:
+			_lincoln_green_invis -= delta
+		else:
+			_lincoln_green_timer -= delta
+			if _lincoln_green_timer <= 0.0:
+				_lincoln_green_invis = 2.0
+				_lincoln_green_timer = 10.0
+
+	# Ability 3: Merry Men — periodic path strike
+	if prog_abilities[2]:
+		_merry_men_timer -= delta
+		if _merry_men_timer <= 0.0 and _has_enemies_in_range():
+			_merry_men_attack()
+			_merry_men_timer = 20.0
+
+	# Ability 4: Friar Tuck's Blessing — restore life
+	if prog_abilities[3]:
+		_friar_tuck_timer -= delta
+		if _friar_tuck_timer <= 0.0:
+			var main = get_tree().get_first_node_in_group("main")
+			if main and main.has_method("restore_life"):
+				main.restore_life(1)
+			_friar_tuck_timer = 30.0
+
+	# Ability 5: Little John's Staff — AoE stun
+	if prog_abilities[4]:
+		_little_john_timer -= delta
+		if _little_john_timer <= 0.0 and _has_enemies_in_range():
+			_little_john_stun()
+			_little_john_timer = 12.0
+
+	# Ability 6: The Outlaw's Snare — root trap
+	if prog_abilities[5]:
+		_outlaw_snare_timer -= delta
+		if _outlaw_snare_timer <= 0.0 and _has_enemies_in_range():
+			_outlaw_snare()
+			_outlaw_snare_timer = 15.0
+
+	# Ability 7: Maid Marian's Arrow — heal + strike strongest
+	if prog_abilities[6]:
+		_maid_marian_timer -= delta
+		if _maid_marian_timer <= 0.0:
+			_maid_marian_strike()
+			_maid_marian_timer = 18.0
+
+	# Ability 8: The Golden Arrow — pierce all in line
+	if prog_abilities[7]:
+		_golden_arrow_timer -= delta
+		if _golden_arrow_timer <= 0.0 and _has_enemies_in_range():
+			_golden_arrow_strike()
+			_golden_arrow_timer = 20.0
+
+	# Ability 9: King of Sherwood — rain arrows on all enemies
+	if prog_abilities[8]:
+		_king_sherwood_timer -= delta
+		if _king_sherwood_timer <= 0.0:
+			_king_sherwood_rain()
+			_king_sherwood_timer = 8.0
+
+func _merry_men_attack() -> void:
+	_merry_men_flash = 1.0
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if global_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	in_range.shuffle()
+	for i in range(mini(3, in_range.size())):
+		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
+			var dmg = damage * 3.0
+			in_range[i].take_damage(dmg)
+			register_damage(dmg)
+
+func _little_john_stun() -> void:
+	_little_john_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < attack_range:
+			if e.has_method("apply_sleep"):
+				e.apply_sleep(1.5)
+
+func _outlaw_snare() -> void:
+	# Root nearest enemy for 3s
+	var nearest = _find_nearest_enemy()
+	if nearest and nearest.has_method("apply_slow"):
+		nearest.apply_slow(0.0, 3.0)  # factor 0 = complete stop
+
+func _maid_marian_strike() -> void:
+	# Heal 1 life
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("restore_life"):
+		main.restore_life(1)
+	# Strike strongest enemy in range
+	var strongest: Node2D = null
+	var most_hp: float = 0.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < attack_range:
+			if e.health > most_hp:
+				most_hp = e.health
+				strongest = e
+	if strongest and strongest.has_method("take_damage"):
+		var dmg = damage * 5.0
+		strongest.take_damage(dmg)
+		register_damage(dmg)
+
+func _golden_arrow_strike() -> void:
+	_golden_arrow_flash = 1.0
+	# Pierce ALL enemies in a line from tower toward target direction
+	var dir = Vector2.from_angle(bow_angle)
+	for e in get_tree().get_nodes_in_group("enemies"):
+		# Check if enemy is roughly in the line (within 40px perpendicular distance)
+		var to_enemy = e.global_position - global_position
+		var proj = to_enemy.dot(dir)
+		if proj > 0:  # In front of tower
+			var perp_dist = abs(to_enemy.cross(dir))
+			if perp_dist < 40.0:
+				if e.has_method("take_damage"):
+					var dmg = damage * 10.0
+					e.take_damage(dmg)
+					register_damage(dmg)
+
+func _king_sherwood_rain() -> void:
+	_king_sherwood_flash = 1.0
+	# Deal 1.5x damage to EVERY enemy on map
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.has_method("take_damage"):
+			var dmg = damage * 1.5
+			e.take_damage(dmg)
+			register_damage(dmg)
+
 func _draw() -> void:
 	# === 1. SELECTION RING ===
 	if is_selected:
@@ -299,11 +571,11 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(bow_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	# === 4. IDLE ANIMATION ===
+	# === 4. IDLE ANIMATION (confident weight shift) ===
 	var bounce = abs(sin(_time * 3.0)) * 4.0
 	var breathe = sin(_time * 2.0) * 2.0
-	var sway = sin(_time * 1.5) * 1.5
-	var bob = Vector2(sway, -bounce - breathe)
+	var weight_shift = sin(_time * 1.2) * 2.5  # Slow confident weight shift
+	var bob = Vector2(weight_shift, -bounce - breathe)
 
 	# Tier 4: Floating pose (legendary archer levitating)
 	var fly_offset = Vector2.ZERO
@@ -311,6 +583,10 @@ func _draw() -> void:
 		fly_offset = Vector2(0, -10.0 + sin(_time * 1.5) * 3.0)
 
 	var body_offset = bob + fly_offset
+
+	# Per-joint differential offsets
+	var hip_shift = sin(_time * 1.2) * 1.5  # Weight shift at hips
+	var shoulder_counter = -sin(_time * 1.2) * 0.8  # Counter-sway shoulders
 
 	# String vibration after shot
 	var string_vib = 0.0
@@ -351,6 +627,38 @@ func _draw() -> void:
 			var h_inner = Vector2.from_angle(ha) * (horn_ring_r * 0.5)
 			var h_outer = Vector2.from_angle(ha) * (horn_ring_r + 5.0)
 			draw_line(h_inner, h_outer, Color(1.0, 0.92, 0.4, _horn_flash * 0.4), 1.5)
+
+	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
+	# Ability 2: Lincoln Green — invisibility effect
+	if prog_abilities[1] and _lincoln_green_invis > 0.0:
+		draw_circle(Vector2.ZERO, 30.0, Color(0.2, 0.6, 0.15, 0.15))
+
+	# Ability 3: Merry Men flash
+	if _merry_men_flash > 0.0:
+		for mi in range(3):
+			var ma = TAU * float(mi) / 3.0 + _merry_men_flash * 3.0
+			var mpos = Vector2.from_angle(ma) * 35.0
+			draw_circle(mpos, 5.0, Color(0.2, 0.5, 0.15, _merry_men_flash * 0.5))
+			draw_circle(mpos, 3.0, Color(0.3, 0.6, 0.2, _merry_men_flash * 0.7))
+
+	# Ability 5: Little John's Staff flash
+	if _little_john_flash > 0.0:
+		var lj_r = 30.0 + (1.0 - _little_john_flash) * 50.0
+		draw_arc(Vector2.ZERO, lj_r, 0, TAU, 24, Color(0.6, 0.4, 0.2, _little_john_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, lj_r * 0.6, 0, TAU, 16, Color(0.5, 0.35, 0.15, _little_john_flash * 0.3), 2.0)
+
+	# Ability 8: Golden Arrow flash
+	if _golden_arrow_flash > 0.0:
+		var ga_dir = Vector2.from_angle(bow_angle)
+		draw_line(-ga_dir * 20.0, ga_dir * 200.0, Color(1.0, 0.85, 0.3, _golden_arrow_flash * 0.5), 4.0)
+		draw_line(-ga_dir * 15.0, ga_dir * 180.0, Color(1.0, 0.95, 0.5, _golden_arrow_flash * 0.3), 2.0)
+
+	# Ability 9: King of Sherwood flash — arrows from sky
+	if _king_sherwood_flash > 0.0:
+		for ri in range(8):
+			var rx = -80.0 + float(ri) * 20.0
+			var ry = -100.0 + (1.0 - _king_sherwood_flash) * 60.0
+			draw_line(Vector2(rx, ry), Vector2(rx + 3, ry + 15), Color(0.3, 0.6, 0.15, _king_sherwood_flash * 0.5), 1.5)
 
 	# === 9. STONE PLATFORM ===
 	var plat_y = 22.0
@@ -393,11 +701,11 @@ func _draw() -> void:
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
 	# === 12. CHARACTER POSITIONS (tall anime proportions ~56px) ===
-	var feet_y = body_offset + Vector2(0, 14.0)
-	var leg_top = body_offset + Vector2(0, -2.0)
-	var torso_center = body_offset + Vector2(0, -10.0)
-	var neck_base = body_offset + Vector2(0, -20.0)
-	var head_center = body_offset + Vector2(0, -32.0)
+	var feet_y = body_offset + Vector2(hip_shift * 1.0, 14.0)
+	var leg_top = body_offset + Vector2(hip_shift * 0.6, -2.0)
+	var torso_center = body_offset + Vector2(shoulder_counter * 0.5, -10.0)
+	var neck_base = body_offset + Vector2(shoulder_counter * 0.7, -20.0)
+	var head_center = body_offset + Vector2(shoulder_counter * 0.3, -32.0)
 
 	# === 13. TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body) ===
 
@@ -495,33 +803,73 @@ func _draw() -> void:
 			draw_line(boot + Vector2(-2, by), boot + Vector2(2, by - 1.0), Color(0.28, 0.16, 0.06, 0.5), 0.7)
 			draw_line(boot + Vector2(2, by), boot + Vector2(-2, by - 1.0), Color(0.28, 0.16, 0.06, 0.5), 0.7)
 
-	# --- Long legs (forest green tights with calf definition) ---
+	# --- MUSCULAR LEGS (polygon-based thighs and calves) ---
 	var l_hip = leg_top + Vector2(-6, 0)
 	var r_hip = leg_top + Vector2(6, 0)
 	var l_knee = l_foot.lerp(l_hip, 0.45) + Vector2(-1.5, 0)
 	var r_knee = r_foot.lerp(r_hip, 0.45) + Vector2(1.5, 0)
-	# Upper legs (thigh — thicker)
-	draw_line(l_hip, l_knee, Color(0.12, 0.36, 0.06), 5.5)
-	draw_line(l_hip, l_knee, Color(0.18, 0.46, 0.10), 4.0)
-	draw_line(r_hip, r_knee, Color(0.12, 0.36, 0.06), 5.5)
-	draw_line(r_hip, r_knee, Color(0.18, 0.46, 0.10), 4.0)
-	# Lower legs (calf — slight outward curve for muscle definition)
-	var l_calf_mid = l_knee.lerp(l_foot + Vector2(0, -3), 0.45) + Vector2(-1.2, 0)
-	var r_calf_mid = r_knee.lerp(r_foot + Vector2(0, -3), 0.45) + Vector2(1.2, 0)
-	draw_line(l_knee, l_calf_mid, Color(0.12, 0.36, 0.06), 5.0)
-	draw_line(l_calf_mid, l_foot + Vector2(0, -3), Color(0.12, 0.36, 0.06), 4.0)
-	draw_line(l_knee, l_calf_mid, Color(0.18, 0.46, 0.10), 3.5)
-	draw_line(l_calf_mid, l_foot + Vector2(0, -3), Color(0.18, 0.46, 0.10), 2.8)
-	draw_line(r_knee, r_calf_mid, Color(0.12, 0.36, 0.06), 5.0)
-	draw_line(r_calf_mid, r_foot + Vector2(0, -3), Color(0.12, 0.36, 0.06), 4.0)
-	draw_line(r_knee, r_calf_mid, Color(0.18, 0.46, 0.10), 3.5)
-	draw_line(r_calf_mid, r_foot + Vector2(0, -3), Color(0.18, 0.46, 0.10), 2.8)
-	# Knee highlights
-	draw_circle(l_knee, 3.0, Color(0.22, 0.52, 0.14, 0.3))
-	draw_circle(r_knee, 3.0, Color(0.22, 0.52, 0.14, 0.3))
-	# Calf muscle highlight
-	draw_circle(l_calf_mid, 2.0, Color(0.24, 0.54, 0.16, 0.2))
-	draw_circle(r_calf_mid, 2.0, Color(0.24, 0.54, 0.16, 0.2))
+	# LEFT THIGH — muscular polygon
+	var lt_dir = (l_knee - l_hip).normalized()
+	var lt_perp = lt_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + lt_perp * 5.0, l_hip - lt_perp * 4.0,
+		l_hip.lerp(l_knee, 0.4) - lt_perp * 5.5,  # inner thigh bulge
+		l_knee - lt_perp * 4.0, l_knee + lt_perp * 4.0,
+		l_hip.lerp(l_knee, 0.4) + lt_perp * 6.0,   # outer quad bulge
+	]), Color(0.14, 0.40, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + lt_perp * 3.0, l_hip - lt_perp * 2.0,
+		l_knee - lt_perp * 2.5, l_knee + lt_perp * 2.5,
+	]), Color(0.20, 0.50, 0.14, 0.4))
+	# RIGHT THIGH — muscular polygon
+	var rt_dir = (r_knee - r_hip).normalized()
+	var rt_perp = rt_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_hip - rt_perp * 5.0, r_hip + rt_perp * 4.0,
+		r_hip.lerp(r_knee, 0.4) + rt_perp * 5.5,
+		r_knee + rt_perp * 4.0, r_knee - rt_perp * 4.0,
+		r_hip.lerp(r_knee, 0.4) - rt_perp * 6.0,
+	]), Color(0.14, 0.40, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		r_hip - rt_perp * 3.0, r_hip + rt_perp * 2.0,
+		r_knee + rt_perp * 2.5, r_knee - rt_perp * 2.5,
+	]), Color(0.20, 0.50, 0.14, 0.4))
+	# Knee joints
+	draw_circle(l_knee, 4.5, Color(0.14, 0.40, 0.08))
+	draw_circle(l_knee, 3.5, Color(0.22, 0.52, 0.14))
+	draw_circle(r_knee, 4.5, Color(0.14, 0.40, 0.08))
+	draw_circle(r_knee, 3.5, Color(0.22, 0.52, 0.14))
+	# LEFT CALF — polygon with muscle bulge
+	var l_calf_mid = l_knee.lerp(l_foot + Vector2(0, -3), 0.4) + Vector2(-2.0, 0)
+	var lc_dir = (l_foot + Vector2(0, -3) - l_knee).normalized()
+	var lc_perp = lc_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + lc_perp * 4.0, l_knee - lc_perp * 3.5,
+		l_calf_mid - lc_perp * 5.0,   # calf muscle bulge
+		l_foot + Vector2(-3, -3), l_foot + Vector2(3, -3),
+		l_calf_mid + lc_perp * 4.5,
+	]), Color(0.14, 0.40, 0.08))
+	draw_circle(l_calf_mid, 3.0, Color(0.22, 0.52, 0.14, 0.3))
+	# RIGHT CALF
+	var r_calf_mid = r_knee.lerp(r_foot + Vector2(0, -3), 0.4) + Vector2(2.0, 0)
+	var rc_dir = (r_foot + Vector2(0, -3) - r_knee).normalized()
+	var rc_perp = rc_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_knee - rc_perp * 4.0, r_knee + rc_perp * 3.5,
+		r_calf_mid + rc_perp * 5.0,
+		r_foot + Vector2(3, -3), r_foot + Vector2(-3, -3),
+		r_calf_mid - rc_perp * 4.5,
+	]), Color(0.14, 0.40, 0.08))
+	draw_circle(r_calf_mid, 3.0, Color(0.22, 0.52, 0.14, 0.3))
+
+	# --- SHORT LINCOLN GREEN CAPE (behind torso) ---
+	var cape_wind = sin(_time * 1.8) * 3.0 + sin(_time * 2.7) * 1.5
+	var cape_top_l = neck_base + Vector2(-8, 0)
+	var cape_top_r = neck_base + Vector2(8, 0)
+	var cape_bot_l = torso_center + Vector2(-12 + cape_wind * 0.5, 8.0)
+	var cape_bot_r = torso_center + Vector2(12 + cape_wind * 0.3, 10.0)
+	draw_colored_polygon(PackedVector2Array([cape_top_l, cape_top_r, cape_bot_r, cape_bot_l]), Color(0.15, 0.40, 0.08, 0.7))
+	draw_colored_polygon(PackedVector2Array([cape_top_l, cape_top_r, cape_bot_r, cape_bot_l]), Color(0.20, 0.50, 0.12, 0.3))
 
 	# --- 16. QUIVER on back (drawn behind torso) ---
 	var quiver_pos = neck_base + Vector2(-8, 4)
@@ -578,31 +926,39 @@ func _draw() -> void:
 			draw_circle(fire_pos, 1.5, Color(1.0, 0.6, 0.1, 0.35 + sin(_time * 5.0 + float(ai)) * 0.15))
 			draw_circle(fire_pos, 0.8, Color(1.0, 0.9, 0.4, 0.25))
 
-	# --- Lincoln green tunic (V-taper athletic build) ---
-	# Torso spans from leg_top (y=-2) to neck_base (y=-20)
-	# Shoulders ±16px wide, waist ±9px
+	# --- Lincoln green tunic (MUSCULAR V-taper build) ---
+	# Broad shoulders (±18px), narrow waist (±8px) — heroic V-taper
 	var tunic_pts = PackedVector2Array([
-		leg_top + Vector2(-9, 0),         # waist left
-		torso_center + Vector2(-13, 0),   # mid-torso left
-		neck_base + Vector2(-16, 0),      # shoulder left
-		neck_base + Vector2(16, 0),       # shoulder right
-		torso_center + Vector2(13, 0),    # mid-torso right
-		leg_top + Vector2(9, 0),          # waist right
+		leg_top + Vector2(-8, 0),         # waist left
+		leg_top + Vector2(-9, -3),        # oblique taper
+		torso_center + Vector2(-14, 0),   # lats flare
+		neck_base + Vector2(-18, 0),      # broad shoulder left
+		neck_base + Vector2(18, 0),       # broad shoulder right
+		torso_center + Vector2(14, 0),    # lats flare
+		leg_top + Vector2(9, -3),         # oblique taper
+		leg_top + Vector2(8, 0),          # waist right
 	])
 	draw_colored_polygon(tunic_pts, Color(0.16, 0.44, 0.10))
-	# Lighter inner tunic
+	# Lighter inner tunic (pec area)
 	var tunic_hi = PackedVector2Array([
-		leg_top + Vector2(-6, -1),
+		leg_top + Vector2(-5, -1),
 		torso_center + Vector2(-8, 0),
 		torso_center + Vector2(8, 0),
-		leg_top + Vector2(6, -1),
+		leg_top + Vector2(5, -1),
 	])
 	draw_colored_polygon(tunic_hi, Color(0.22, 0.54, 0.16, 0.4))
-	# Chest definition — two subtle arcs on upper torso
-	draw_arc(neck_base + Vector2(-5, 6), 5.0, PI * 0.3, PI * 0.8, 8, Color(0.12, 0.36, 0.08, 0.3), 1.0)
-	draw_arc(neck_base + Vector2(5, 6), 5.0, PI * 0.2, PI * 0.7, 8, Color(0.12, 0.36, 0.08, 0.3), 1.0)
-	# Center chest line
-	draw_line(neck_base + Vector2(0, 3), torso_center + Vector2(0, -2), Color(0.10, 0.30, 0.06, 0.2), 0.6)
+	# PECTORAL definition — visible chest muscles under tunic
+	draw_arc(neck_base + Vector2(-6, 6), 6.5, PI * 0.2, PI * 0.9, 10, Color(0.12, 0.36, 0.08, 0.4), 1.5)
+	draw_arc(neck_base + Vector2(6, 6), 6.5, PI * 0.1, PI * 0.8, 10, Color(0.12, 0.36, 0.08, 0.4), 1.5)
+	# Pec shadow fills
+	draw_circle(neck_base + Vector2(-5, 8), 4.5, Color(0.12, 0.36, 0.08, 0.15))
+	draw_circle(neck_base + Vector2(5, 8), 4.5, Color(0.12, 0.36, 0.08, 0.15))
+	# Center chest line (sternum)
+	draw_line(neck_base + Vector2(0, 3), torso_center + Vector2(0, 2), Color(0.10, 0.30, 0.06, 0.3), 1.0)
+	# Ab definition lines
+	draw_line(torso_center + Vector2(-4, -2), torso_center + Vector2(-4, 5), Color(0.10, 0.30, 0.06, 0.15), 0.8)
+	draw_line(torso_center + Vector2(4, -2), torso_center + Vector2(4, 5), Color(0.10, 0.30, 0.06, 0.15), 0.8)
+	draw_line(torso_center + Vector2(-6, 1), torso_center + Vector2(6, 1), Color(0.10, 0.30, 0.06, 0.1), 0.6)
 	# V-neckline
 	draw_line(neck_base + Vector2(-4, 0), neck_base + Vector2(0, 5), Color(0.12, 0.34, 0.08, 0.6), 1.2)
 	draw_line(neck_base + Vector2(4, 0), neck_base + Vector2(0, 5), Color(0.12, 0.34, 0.08, 0.6), 1.2)
@@ -701,62 +1057,123 @@ func _draw() -> void:
 	draw_arc(l_shoulder, 5.5, 0, TAU, 10, Color(0.10, 0.30, 0.06, 0.35), 0.7)
 	draw_arc(r_shoulder, 5.5, 0, TAU, 10, Color(0.10, 0.30, 0.06, 0.35), 0.7)
 
-	# --- Arms (thicker upper arms, tapering forearms) ---
-	# Left arm: bow-holding arm (reaches toward aim with bow)
+	# --- MUSCULAR ARMS (polygon-based biceps and forearms) ---
+	# BOW ARM: reaches toward aim with bow
 	var bow_hand = r_shoulder + Vector2(0, 2) + dir * 20.0
-	# Upper arm (thicker — 4.5px)
-	draw_line(r_shoulder, bow_hand, skin_shadow, 5.0)
-	draw_line(r_shoulder, bow_hand, skin_base, 4.0)
-	# Subtle bicep bump
-	var bow_bicep = r_shoulder.lerp(bow_hand, 0.3) + dir.rotated(PI / 2.0) * 1.5
-	draw_circle(bow_bicep, 2.5, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.2))
-	# Sleeve on upper arm
 	var bow_elbow = r_shoulder + (bow_hand - r_shoulder) * 0.4
-	draw_line(r_shoulder, bow_elbow, Color(0.18, 0.46, 0.10), 5.5)
-	draw_line(r_shoulder, bow_elbow, Color(0.22, 0.52, 0.14), 4.0)
+	var ba_dir = (bow_elbow - r_shoulder).normalized()
+	var ba_perp = ba_dir.rotated(PI / 2.0)
+	# Upper arm — muscular bicep polygon
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + ba_perp * 5.0, r_shoulder - ba_perp * 4.0,
+		r_shoulder.lerp(bow_elbow, 0.35) - ba_perp * 5.5,  # bicep peak
+		bow_elbow - ba_perp * 4.0, bow_elbow + ba_perp * 3.5,
+		r_shoulder.lerp(bow_elbow, 0.45) + ba_perp * 6.0,   # outer deltoid
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + ba_perp * 3.5, r_shoulder - ba_perp * 2.5,
+		bow_elbow - ba_perp * 2.5, bow_elbow + ba_perp * 2.0,
+	]), skin_base)
+	# Bicep highlight
+	var bow_bicep = r_shoulder.lerp(bow_elbow, 0.35) + ba_perp * 2.0
+	draw_circle(bow_bicep, 3.0, skin_highlight)
+	# Sleeve over upper arm
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + ba_perp * 5.5, r_shoulder - ba_perp * 4.5,
+		bow_elbow - ba_perp * 4.5, bow_elbow + ba_perp * 4.0,
+	]), Color(0.18, 0.46, 0.10))
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + ba_perp * 3.5, r_shoulder - ba_perp * 2.5,
+		bow_elbow - ba_perp * 2.5, bow_elbow + ba_perp * 2.0,
+	]), Color(0.22, 0.52, 0.14, 0.5))
+	# Elbow joint
+	draw_circle(bow_elbow, 4.0, skin_shadow)
+	draw_circle(bow_elbow, 3.0, skin_base)
+	# Forearm — tapered polygon
+	var bf_dir = (bow_hand - bow_elbow).normalized()
+	var bf_perp = bf_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		bow_elbow + bf_perp * 4.0, bow_elbow - bf_perp * 3.5,
+		bow_hand - bf_perp * 2.5, bow_hand + bf_perp * 2.5,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		bow_elbow + bf_perp * 2.5, bow_elbow - bf_perp * 2.0,
+		bow_hand - bf_perp * 1.5, bow_hand + bf_perp * 1.5,
+	]), skin_base)
+	# Forearm muscle definition
+	draw_circle(bow_elbow.lerp(bow_hand, 0.3) + bf_perp * 1.5, 2.0, skin_highlight)
 	# Leather bracer on bow arm
-	var bracer_start = bow_elbow + (bow_hand - bow_elbow).normalized() * 2.0
-	var bracer_end = bow_hand - (bow_hand - bow_elbow).normalized() * 3.0
-	draw_line(bracer_start, bracer_end, Color(0.38, 0.22, 0.08), 5.0)
-	draw_line(bracer_start, bracer_end, Color(0.46, 0.30, 0.12), 3.5)
-	# Bracer strap details
+	var bracer_start = bow_elbow.lerp(bow_hand, 0.4)
+	var bracer_end = bow_elbow.lerp(bow_hand, 0.85)
+	draw_colored_polygon(PackedVector2Array([
+		bracer_start + bf_perp * 3.5, bracer_start - bf_perp * 3.0,
+		bracer_end - bf_perp * 2.5, bracer_end + bf_perp * 2.5,
+	]), Color(0.38, 0.22, 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		bracer_start + bf_perp * 2.0, bracer_start - bf_perp * 1.5,
+		bracer_end - bf_perp * 1.5, bracer_end + bf_perp * 1.5,
+	]), Color(0.46, 0.30, 0.12))
 	for bri in range(3):
 		var brt = float(bri + 1) / 4.0
 		var br_pos = bracer_start.lerp(bracer_end, brt)
-		var br_perp = (bow_hand - bow_elbow).normalized().rotated(PI / 2.0)
-		draw_line(br_pos - br_perp * 2.5, br_pos + br_perp * 2.5, Color(0.32, 0.18, 0.06, 0.5), 0.7)
+		draw_line(br_pos - bf_perp * 3.0, br_pos + bf_perp * 3.0, Color(0.32, 0.18, 0.06, 0.5), 0.8)
 	# Bow hand
-	draw_circle(bow_hand, 3.2, skin_shadow)
-	draw_circle(bow_hand, 2.5, skin_base)
-	# Fingers gripping bow
+	draw_circle(bow_hand, 4.0, skin_shadow)
+	draw_circle(bow_hand, 3.2, skin_base)
 	for fi in range(3):
 		var fa = float(fi - 1) * 0.35
-		draw_circle(bow_hand + dir.rotated(fa) * 3.0, 1.0, skin_highlight)
+		draw_circle(bow_hand + dir.rotated(fa) * 3.5, 1.3, skin_highlight)
 
-	# Right arm: string-pulling arm (draws arrow back)
+	# DRAW ARM: string-pulling arm (draws arrow back)
 	var string_pull_vec = dir * (-12.0 * _draw_progress)
 	var draw_hand = l_shoulder + Vector2(6, 4) + dir * 6.0 + string_pull_vec
-	# Upper arm (thicker)
-	draw_line(l_shoulder, draw_hand, skin_shadow, 5.0)
-	draw_line(l_shoulder, draw_hand, skin_base, 4.0)
-	# Subtle bicep bump on draw arm
-	var draw_bicep = l_shoulder.lerp(draw_hand, 0.3) + dir.rotated(-PI / 2.0) * 1.5
-	draw_circle(draw_bicep, 2.5, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.2))
-	# Sleeve on upper arm
 	var draw_elbow = l_shoulder + (draw_hand - l_shoulder) * 0.4
-	draw_line(l_shoulder, draw_elbow, Color(0.18, 0.46, 0.10), 5.5)
-	draw_line(l_shoulder, draw_elbow, Color(0.22, 0.52, 0.14), 4.0)
-	# Leather tab/glove on drawing hand
-	draw_circle(draw_hand, 3.0, Color(0.40, 0.24, 0.10))
-	draw_circle(draw_hand, 2.2, skin_base)
-	# Three fingers on string (archer's draw)
-	draw_line(draw_hand, draw_hand + dir * 2.5 + perp * 1.2, Color(0.78, 0.62, 0.48), 1.3)
-	draw_line(draw_hand, draw_hand + dir * 2.8, Color(0.78, 0.62, 0.48), 1.3)
-	draw_line(draw_hand, draw_hand + dir * 2.5 - perp * 1.2, Color(0.78, 0.62, 0.48), 1.3)
-	# Fingertips
-	draw_circle(draw_hand + dir * 2.5 + perp * 1.2, 0.6, skin_highlight)
-	draw_circle(draw_hand + dir * 2.8, 0.6, skin_highlight)
-	draw_circle(draw_hand + dir * 2.5 - perp * 1.2, 0.6, skin_highlight)
+	var da_dir = (draw_elbow - l_shoulder).normalized()
+	var da_perp = da_dir.rotated(PI / 2.0)
+	# Upper arm — flexed bicep polygon (pulling string = flexed)
+	var bicep_flex = 1.0 + _draw_progress * 0.5  # bigger when drawn
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder - da_perp * 5.0, l_shoulder + da_perp * 4.0,
+		l_shoulder.lerp(draw_elbow, 0.35) + da_perp * (5.5 * bicep_flex),
+		draw_elbow + da_perp * 4.0, draw_elbow - da_perp * 3.5,
+		l_shoulder.lerp(draw_elbow, 0.45) - da_perp * 6.0,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder - da_perp * 3.5, l_shoulder + da_perp * 2.5,
+		draw_elbow + da_perp * 2.5, draw_elbow - da_perp * 2.0,
+	]), skin_base)
+	# Bicep peak highlight (more visible when flexed)
+	var draw_bicep = l_shoulder.lerp(draw_elbow, 0.35) - da_perp * 2.0
+	draw_circle(draw_bicep, 3.0 * bicep_flex, skin_highlight)
+	# Sleeve
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder - da_perp * 5.5, l_shoulder + da_perp * 4.5,
+		draw_elbow + da_perp * 4.5, draw_elbow - da_perp * 4.0,
+	]), Color(0.18, 0.46, 0.10))
+	# Elbow joint
+	draw_circle(draw_elbow, 4.0, skin_shadow)
+	draw_circle(draw_elbow, 3.0, skin_base)
+	# Forearm polygon
+	var df_dir = (draw_hand - draw_elbow).normalized()
+	var df_perp = df_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		draw_elbow - df_perp * 4.0, draw_elbow + df_perp * 3.5,
+		draw_hand + df_perp * 2.5, draw_hand - df_perp * 2.5,
+	]), skin_shadow)
+	draw_colored_polygon(PackedVector2Array([
+		draw_elbow - df_perp * 2.5, draw_elbow + df_perp * 2.0,
+		draw_hand + df_perp * 1.5, draw_hand - df_perp * 1.5,
+	]), skin_base)
+	# Draw hand with leather tab
+	draw_circle(draw_hand, 4.0, Color(0.40, 0.24, 0.10))
+	draw_circle(draw_hand, 3.0, skin_base)
+	# Three fingers on string
+	draw_line(draw_hand, draw_hand + dir * 3.0 + perp * 1.5, skin_base, 1.8)
+	draw_line(draw_hand, draw_hand + dir * 3.5, skin_base, 1.8)
+	draw_line(draw_hand, draw_hand + dir * 3.0 - perp * 1.5, skin_base, 1.8)
+	draw_circle(draw_hand + dir * 3.0 + perp * 1.5, 0.8, skin_highlight)
+	draw_circle(draw_hand + dir * 3.5, 0.8, skin_highlight)
+	draw_circle(draw_hand + dir * 3.0 - perp * 1.5, 0.8, skin_highlight)
 
 	# === 15. WEAPON — LONGBOW ===
 	var bow_center = bow_hand + dir * 2.0
@@ -895,11 +1312,29 @@ func _draw() -> void:
 
 	# === HEAD (proportional anime head) ===
 	# Neck (visible, athletic — from neck_base up to bottom of head)
-	draw_line(neck_base, head_center + Vector2(0, 9), skin_shadow, 5.0)
-	draw_line(neck_base, head_center + Vector2(0, 9), skin_base, 3.5)
-	# Neck tendon detail
-	draw_line(neck_base + Vector2(-1.5, 0), head_center + Vector2(-1.0, 8), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 0.6)
-	draw_line(neck_base + Vector2(1.5, 0), head_center + Vector2(1.0, 8), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 0.6)
+	var neck_top = head_center + Vector2(0, 9)
+	var neck_dir = (neck_top - neck_base).normalized()
+	var neck_perp = neck_dir.rotated(PI / 2.0)
+	# Masculine neck polygon (wider, strong)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 6.5, neck_base - neck_perp * 6.5,
+		neck_base.lerp(neck_top, 0.5) - neck_perp * 5.5,
+		neck_top - neck_perp * 4.5, neck_top + neck_perp * 4.5,
+		neck_base.lerp(neck_top, 0.5) + neck_perp * 5.5,
+	]), skin_shadow)
+	# Inner neck fill
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 5.5, neck_base - neck_perp * 5.5,
+		neck_top - neck_perp * 3.5, neck_top + neck_perp * 3.5,
+	]), skin_base)
+	# Neck highlight
+	draw_line(neck_base.lerp(neck_top, 0.15) + neck_perp * 3.0, neck_base.lerp(neck_top, 0.85) + neck_perp * 2.5, skin_highlight, 1.8)
+	# Sternocleidomastoid muscle definition
+	draw_line(neck_base + neck_perp * 4.0, neck_top - neck_perp * 1.0, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1.0)
+	draw_line(neck_base - neck_perp * 4.0, neck_top + neck_perp * 1.0, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1.0)
+	# Adam's apple subtle
+	var adams_y = neck_base.lerp(neck_top, 0.4)
+	draw_circle(adams_y + neck_perp * 0.5, 1.5, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2))
 
 	# Auburn/brown messy hair (back layer, drawn before face)
 	var hair_sway = sin(_time * 2.5) * 2.0
@@ -931,10 +1366,15 @@ func _draw() -> void:
 		var t2_tip = t2_base + Vector2.from_angle(ha2) * (tlen * 0.5) + Vector2(hair_sway * sway_d * 0.2, 0)
 		draw_line(t2_base, t2_tip, hair_base_col, twid * 0.5)
 
-	# Face
+	# Face (strong masculine shape)
 	draw_circle(head_center + Vector2(0, 0.8), 9.1, skin_base)
-	# Face shading (jaw)
-	draw_arc(head_center + Vector2(0, 0.8), 8.3, PI * 0.6, PI * 1.4, 12, skin_shadow, 1.5)
+	# Strong jawline — defined angular lines from ears to squared chin
+	draw_line(head_center + Vector2(-8.5, 1), head_center + Vector2(-5, 7.5), Color(0.65, 0.48, 0.35, 0.35), 1.5)
+	draw_line(head_center + Vector2(8.5, 1), head_center + Vector2(5, 7.5), Color(0.65, 0.48, 0.35, 0.35), 1.5)
+	# Chin — squared, masculine
+	draw_line(head_center + Vector2(-5, 7.5), head_center + Vector2(5, 7.5), Color(0.65, 0.48, 0.35, 0.25), 1.2)
+	draw_circle(head_center + Vector2(0, 7.5), 3.0, skin_base)
+	draw_circle(head_center + Vector2(0, 7.8), 2.2, skin_highlight)
 	# Slight weathering (outdoor skin)
 	draw_arc(head_center + Vector2(0, 0), 7.1, PI * 0.7, PI * 1.3, 10, Color(0.82, 0.66, 0.50, 0.15), 2.0)
 

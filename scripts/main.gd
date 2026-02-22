@@ -53,6 +53,7 @@ var game_over_label: Label
 var info_label: Label
 var top_bar: ColorRect
 var bottom_panel: ColorRect
+var cancel_button: Button
 
 # Ability choice UI
 var ability_panel: ColorRect
@@ -109,11 +110,9 @@ var menu_nav_labels: Array = []
 var menu_current_view: String = "chapters"
 var menu_star_total_label: Label
 
-# Heroes tab
-var hero_preview_node: Node2D = null
-var hero_preview_index: int = 0
-var hero_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH, TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]
-var hero_descriptions = {
+# Survivors tab
+var survivor_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH, TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]
+var survivor_descriptions = {
 	TowerType.ROBIN_HOOD: "The legendary outlaw of Sherwood Forest.\nLong-range archer with piercing arrows and gold bonus.",
 	TowerType.ALICE: "The curious girl from Wonderland.\nThrows playing cards that shrink and slow enemies.",
 	TowerType.WICKED_WITCH: "The Wicked Witch of the West.\nSwoops to strike enemies, summons wolves and monkeys.",
@@ -121,6 +120,115 @@ var hero_descriptions = {
 	TowerType.PHANTOM: "The masked genius beneath the Opera.\nHeavy music note attacks with stun and AoE.",
 	TowerType.SCROOGE: "The miserly old man visited by ghosts.\nCoin attacks generate gold, ghosts mark enemies.",
 }
+# Survivor grid UI
+var survivor_grid_cards: Array = []  # Array of Button nodes for each character
+var survivor_grid_container: Control = null  # Container for the grid
+var survivor_grid_previews: Array = []  # Tower preview nodes for each card
+var survivor_selected_index: int = -1  # Currently selected survivor (-1 = none)
+var survivor_preview_node: Node2D = null  # Preview of selected survivor
+
+# Character detail page
+var survivor_detail_open: bool = false
+var survivor_detail_index: int = -1
+var survivor_detail_container: Control = null
+var survivor_detail_back_btn: Button = null
+var survivor_detail_preview: Node2D = null
+
+# Character progression — levels, gear, sidekicks, relics
+var survivor_progress: Dictionary = {}  # TowerType -> {level, xp, gear, sidekicks, relics}
+var session_damage: Dictionary = {}  # TowerType -> float, damage dealt this game session
+
+# Gear definitions per character
+var survivor_gear = {
+	TowerType.ROBIN_HOOD: {"name": "Longbow", "desc": "Increases arrow range and pierce"},
+	TowerType.ALICE: {"name": "Looking Glass", "desc": "Cards pass through more enemies"},
+	TowerType.WICKED_WITCH: {"name": "Broomstick", "desc": "Faster swoop attacks"},
+	TowerType.PETER_PAN: {"name": "Shadow Blade", "desc": "Shadow clone deals more damage"},
+	TowerType.PHANTOM: {"name": "Pipe Organ", "desc": "Music notes stun longer"},
+	TowerType.SCROOGE: {"name": "Counting Ledger", "desc": "Coins generate bonus gold"},
+}
+
+# Sidekick definitions (3 per character)
+var survivor_sidekicks = {
+	TowerType.ROBIN_HOOD: [{"name": "Little John", "desc": "Slows nearby enemies"}, {"name": "Friar Tuck", "desc": "Heals nearby towers"}, {"name": "Maid Marian", "desc": "Bonus gold on kill"}],
+	TowerType.ALICE: [{"name": "Cheshire Cat", "desc": "Reveals hidden enemies"}, {"name": "White Rabbit", "desc": "Speeds up attack rate"}, {"name": "Mad Hatter", "desc": "Random debuffs on hit"}],
+	TowerType.WICKED_WITCH: [{"name": "Winged Monkey", "desc": "Flies to attack distant foes"}, {"name": "Toto", "desc": "Detects hidden enemies"}, {"name": "Tin Woodman", "desc": "Blocks enemies briefly"}],
+	TowerType.PETER_PAN: [{"name": "Tinker Bell", "desc": "AoE fairy dust heal"}, {"name": "Lost Boys", "desc": "Extra dagger throws"}, {"name": "Tiger Lily", "desc": "Poisons enemies on hit"}],
+	TowerType.PHANTOM: [{"name": "Christine", "desc": "Sings to slow enemies"}, {"name": "Madame Giry", "desc": "Reveals enemy paths"}, {"name": "Raoul", "desc": "Blocks strongest enemy"}],
+	TowerType.SCROOGE: [{"name": "Bob Cratchit", "desc": "Collects extra gold"}, {"name": "Tiny Tim", "desc": "Inspires nearby towers"}, {"name": "Ghost of Marley", "desc": "Chains slow enemies"}],
+}
+
+# Character-specific relic definitions (6 per character, 36 total)
+var survivor_relics = {
+	TowerType.ROBIN_HOOD: [
+		{"name": "Lincoln Green Cloak", "desc": "Blend with Sherwood — enemies sometimes miss", "effect": "dodge", "value": 0.12, "cost": 0, "icon": "green_cloak"},
+		{"name": "Silver Arrow", "desc": "Legendary arrow that pierces the toughest armor", "effect": "pierce_damage", "value": 0.20, "cost": 100, "icon": "silver_arrow"},
+		{"name": "Sherwood Longbow", "desc": "Yew bow carved from the oldest oak in Sherwood", "effect": "range", "value": 0.15, "cost": 0, "icon": "longbow"},
+		{"name": "Friar Tuck's Flask", "desc": "A sip of mead restores the weariest fighter", "effect": "heal_nearby", "value": 2.0, "cost": 250, "icon": "flask"},
+		{"name": "Merry Men's Horn", "desc": "The call to arms rallies all who hear it", "effect": "atk_speed_aura", "value": 0.10, "cost": 0, "icon": "horn"},
+		{"name": "Prince John's Crown", "desc": "Stolen from the tyrant — riches for the poor", "effect": "bonus_gold", "value": 0.25, "cost": 500, "icon": "gold_crown"},
+	],
+	TowerType.ALICE: [
+		{"name": "Drink Me Potion", "desc": "One sip and everything changes size", "effect": "slow", "value": 0.15, "cost": 0, "icon": "drink_me"},
+		{"name": "Eat Me Cake", "desc": "Grow larger than life itself", "effect": "aoe_radius", "value": 0.20, "cost": 100, "icon": "eat_me_cake"},
+		{"name": "Vorpal Sword", "desc": "One, two! One, two! And through and through!", "effect": "crit_chance", "value": 0.10, "cost": 0, "icon": "vorpal_sword"},
+		{"name": "Queen's Scepter", "desc": "Off with their heads!", "effect": "instant_kill", "value": 0.08, "cost": 250, "icon": "heart_scepter"},
+		{"name": "White Rabbit's Watch", "desc": "I'm late! I'm late! No time to waste!", "effect": "cooldown", "value": 0.15, "cost": 0, "icon": "pocket_watch"},
+		{"name": "Cheshire Grin", "desc": "We're all mad here", "effect": "confuse", "value": 0.12, "cost": 500, "icon": "cheshire_grin"},
+	],
+	TowerType.WICKED_WITCH: [
+		{"name": "Ruby Slippers", "desc": "There's no place like home", "effect": "reposition", "value": 1.0, "cost": 0, "icon": "ruby_slippers"},
+		{"name": "Crystal Ball", "desc": "I see everything, my pretty", "effect": "reveal_camo", "value": 1.0, "cost": 100, "icon": "crystal_ball"},
+		{"name": "Winged Monkey Fez", "desc": "Fly! Fly! Bring them to me!", "effect": "extra_projectile", "value": 1.0, "cost": 0, "icon": "monkey_fez"},
+		{"name": "Poppy Dust", "desc": "Poppies will put them to sleep", "effect": "aoe_sleep", "value": 0.10, "cost": 250, "icon": "poppy_dust"},
+		{"name": "Golden Cap", "desc": "The enchanted cap commands dark magic", "effect": "spell_damage", "value": 0.18, "cost": 0, "icon": "golden_cap"},
+		{"name": "Hourglass of Doom", "desc": "Your time is running out, my dear", "effect": "hp_drain", "value": 0.03, "cost": 500, "icon": "hourglass"},
+	],
+	TowerType.PETER_PAN: [
+		{"name": "Fairy Dust Vial", "desc": "Think happy thoughts and you can fly", "effect": "atk_speed_aura", "value": 0.12, "cost": 0, "icon": "fairy_vial"},
+		{"name": "Captain Hook's Hook", "desc": "The hook gleams with cruel promise", "effect": "bleed", "value": 0.02, "cost": 100, "icon": "iron_hook"},
+		{"name": "Neverland Star Map", "desc": "Second star to the right, straight on til morning", "effect": "range", "value": 0.15, "cost": 0, "icon": "star_map"},
+		{"name": "Crocodile's Tooth", "desc": "Tick-tock, tick-tock — the croc comes calling", "effect": "fear", "value": 0.08, "cost": 250, "icon": "croc_tooth"},
+		{"name": "Wendy's Thimble", "desc": "A thimble kiss to mend your wounds", "effect": "heal_self", "value": 3.0, "cost": 0, "icon": "thimble"},
+		{"name": "Shadow Thread", "desc": "His shadow has a mind of its own", "effect": "clone_attack", "value": 5.0, "cost": 500, "icon": "shadow_thread"},
+	],
+	TowerType.PHANTOM: [
+		{"name": "Red Rose", "desc": "A token of dark devotion", "effect": "charm", "value": 0.10, "cost": 0, "icon": "red_rose"},
+		{"name": "Punjab Lasso", "desc": "The noose tightens from the shadows", "effect": "snare", "value": 2.0, "cost": 100, "icon": "punjab_lasso"},
+		{"name": "Opera Score", "desc": "The music of the night is devastating", "effect": "aoe_damage", "value": 0.15, "cost": 0, "icon": "opera_score"},
+		{"name": "Chandelier Chain", "desc": "When the chandelier falls, all tremble", "effect": "stun", "value": 0.12, "cost": 250, "icon": "chandelier_chain"},
+		{"name": "Lake Gondola Key", "desc": "The key to the lair beneath the opera", "effect": "boss_damage", "value": 0.30, "cost": 0, "icon": "gondola_key"},
+		{"name": "Christine's Mirror", "desc": "The mirror reveals what lies behind the mask", "effect": "reflect", "value": 0.08, "cost": 500, "icon": "hand_mirror"},
+	],
+	TowerType.SCROOGE: [
+		{"name": "Marley's Chains", "desc": "Forged in life, link by link, yard by yard", "effect": "slow_aura", "value": 0.20, "cost": 0, "icon": "heavy_chains"},
+		{"name": "Ghost Lantern", "desc": "The spirits illuminate all hidden truths", "effect": "reveal_weaken", "value": 0.10, "cost": 100, "icon": "ghost_lantern"},
+		{"name": "Counting House Key", "desc": "Every penny pinched is a penny earned", "effect": "gold_gen", "value": 0.15, "cost": 0, "icon": "brass_key"},
+		{"name": "Christmas Pudding", "desc": "God bless us, every one!", "effect": "heal_nearby", "value": 2.0, "cost": 250, "icon": "xmas_pudding"},
+		{"name": "Fezziwig's Fiddle", "desc": "The old fiddle sets every foot to dancing", "effect": "atk_speed_aura", "value": 0.10, "cost": 0, "icon": "fiddle"},
+		{"name": "Redemption Bell", "desc": "The bell tolls for a changed heart", "effect": "wave_start_buff", "value": 0.08, "cost": 500, "icon": "church_bell"},
+	],
+}
+# Track which relic slot is hovered/selected for tooltip
+var relic_hover_index: int = -1
+var relic_tooltip_visible: bool = false
+
+# Emporium (in-game store)
+var emporium_categories = [
+	{"name": "Gold Sovereigns", "desc": "Fill your coffers to build and upgrade", "icon": "emp_gold", "badge": ""},
+	{"name": "Enchanted Quills", "desc": "Trade Quills for rare treasures", "icon": "emp_quills", "badge": ""},
+	{"name": "Relic Shards", "desc": "Collect Shards to forge powerful Relics", "icon": "emp_shards", "badge": ""},
+	{"name": "Relic Chests", "desc": "Chests contain powerful Relics!", "icon": "emp_chests", "badge": "AVAILABLE!"},
+	{"name": "Survivor Packs", "desc": "Bundles of literary might", "icon": "emp_packs", "badge": "SALE!"},
+	{"name": "Storybook Stars", "desc": "Empower and level up your Survivors", "icon": "emp_stars", "badge": ""},
+]
+var emporium_hover_index: int = -1
+
+# Gothic color palette
+var gothic_crimson = Color(0.7, 0.12, 0.18)
+var gothic_violet = Color(0.35, 0.12, 0.45)
+var gothic_glow_red = Color(0.85, 0.15, 0.25, 0.12)
+var gothic_glow_purple = Color(0.5, 0.15, 0.55, 0.08)
 
 # Storybook menu - animation (dust motes, warm glow)
 var _dust_positions: Array = []
@@ -316,18 +424,56 @@ var beat_buffer: PackedVector2Array = PackedVector2Array()
 var beat_buf_pos: int = 0
 var beat_playing: bool = false
 
-# Audio â€” character voice clips
+# Audio â€" character voice clips
 var voice_player: AudioStreamPlayer
 var voice_clips: Dictionary = {}
 var tower_quotes: Dictionary = {}
 
+# Voice-over catchphrase system (MP3 files from edge-tts)
+var catchphrase_player: AudioStreamPlayer
+var placement_voice_clips: Dictionary = {}  # TowerType → Array[AudioStreamMP3]
+var fighting_voice_clips: Dictionary = {}   # TowerType → Array[AudioStreamMP3]
+var placement_quotes: Dictionary = {}       # TowerType → Array[String]
+var fighting_quotes: Dictionary = {}        # TowerType → Array[String]
+var _fighting_quote_timer: float = 25.0
+
 func _ready() -> void:
 	add_to_group("main")
+	_init_survivor_progress()
 	_cache_path_points()
 	_generate_decorations_for_level(0)
 	_create_ui()
 	_setup_audio()
 	_show_menu()
+
+# Ability unlock popup state
+var _ability_popup_timer: float = 0.0
+var _ability_popup_tower_type: int = -1
+var _ability_popup_index: int = -1
+var _ability_popup_name: String = ""
+var _ability_popup_desc: String = ""
+var _ability_popup_freeze: float = 0.0
+
+# Ability thresholds (same for all characters)
+const PROGRESSIVE_ABILITY_THRESHOLDS = [1000, 5000, 15000, 50000, 150000, 500000, 1500000, 5000000, 15000000]
+
+# Spawn debuff flags (set by Crystal Ball / Beneath the Opera)
+var spawn_hp_reduction: float = 0.0   # Crystal Ball: 0.15 = 15% less HP
+var spawn_permanent_slow: float = 1.0 # Beneath the Opera: 0.7 = 30% slower
+
+func _init_survivor_progress() -> void:
+	for t in survivor_types:
+		survivor_progress[t] = {
+			"level": 1,
+			"xp": 0.0,
+			"xp_next": 500.0,
+			"gear_unlocked": false,
+			"sidekicks_unlocked": [false, false, false],
+			"relics_unlocked": [false, false, false, false, false, false],
+			"total_damage": 0.0,
+			"abilities_unlocked": [false, false, false, false, false, false, false, false, false],
+		}
+		session_damage[t] = 0.0
 
 func _cache_path_points() -> void:
 	var curve = enemy_path.curve
@@ -638,32 +784,32 @@ func _create_ui() -> void:
 	var row2_y = 48
 
 	var robin_button = _make_button("Robin [75G]", Vector2(8, row1_y), Vector2(130, btn_h))
-	robin_button.pressed.connect(_on_tower_pressed.bind(TowerType.ROBIN_HOOD, "Robin Hood â€” long range archer, gold bonus. Right-click to cancel."))
+	robin_button.pressed.connect(_on_tower_pressed.bind(TowerType.ROBIN_HOOD, "Robin Hood â€” long range archer, gold bonus. Cancel to abort."))
 	bottom_panel.add_child(robin_button)
 	tower_buttons[TowerType.ROBIN_HOOD] = robin_button
 
 	var alice_button = _make_button("Alice [85G]", Vector2(144, row1_y), Vector2(130, btn_h))
-	alice_button.pressed.connect(_on_tower_pressed.bind(TowerType.ALICE, "Alice â€” cards, slows enemies. Right-click to cancel."))
+	alice_button.pressed.connect(_on_tower_pressed.bind(TowerType.ALICE, "Alice â€” cards, slows enemies. Cancel to abort."))
 	bottom_panel.add_child(alice_button)
 	tower_buttons[TowerType.ALICE] = alice_button
 
 	var witch_button = _make_button("Witch [100G]", Vector2(280, row1_y), Vector2(130, btn_h))
-	witch_button.pressed.connect(_on_tower_pressed.bind(TowerType.WICKED_WITCH, "Wicked Witch â€” eye blast, wolves. Right-click to cancel."))
+	witch_button.pressed.connect(_on_tower_pressed.bind(TowerType.WICKED_WITCH, "Wicked Witch â€” eye blast, wolves. Cancel to abort."))
 	bottom_panel.add_child(witch_button)
 	tower_buttons[TowerType.WICKED_WITCH] = witch_button
 
 	var peter_button = _make_button("Peter [90G]", Vector2(8, row2_y), Vector2(130, btn_h))
-	peter_button.pressed.connect(_on_tower_pressed.bind(TowerType.PETER_PAN, "Peter Pan â€” fast daggers, shadow. Right-click to cancel."))
+	peter_button.pressed.connect(_on_tower_pressed.bind(TowerType.PETER_PAN, "Peter Pan â€” fast daggers, shadow. Cancel to abort."))
 	bottom_panel.add_child(peter_button)
 	tower_buttons[TowerType.PETER_PAN] = peter_button
 
 	var phantom_button = _make_button("Phantom [95G]", Vector2(144, row2_y), Vector2(130, btn_h))
-	phantom_button.pressed.connect(_on_tower_pressed.bind(TowerType.PHANTOM, "Phantom â€” heavy hits, stun, chandelier. Right-click to cancel."))
+	phantom_button.pressed.connect(_on_tower_pressed.bind(TowerType.PHANTOM, "Phantom â€” heavy hits, stun, chandelier. Cancel to abort."))
 	bottom_panel.add_child(phantom_button)
 	tower_buttons[TowerType.PHANTOM] = phantom_button
 
 	var scrooge_button = _make_button("Scrooge [60G]", Vector2(280, row2_y), Vector2(130, btn_h))
-	scrooge_button.pressed.connect(_on_tower_pressed.bind(TowerType.SCROOGE, "Scrooge â€” coins, gold gen, ghost marks. Right-click to cancel."))
+	scrooge_button.pressed.connect(_on_tower_pressed.bind(TowerType.SCROOGE, "Scrooge â€” coins, gold gen, ghost marks. Cancel to abort."))
 	bottom_panel.add_child(scrooge_button)
 	tower_buttons[TowerType.SCROOGE] = scrooge_button
 
@@ -688,6 +834,14 @@ func _create_ui() -> void:
 	speed_button.custom_minimum_size = Vector2(70, 44)
 	speed_button.pressed.connect(_on_speed_pressed)
 	bottom_panel.add_child(speed_button)
+
+	cancel_button = Button.new()
+	cancel_button.text = "Cancel"
+	cancel_button.position = Vector2(416, row1_y)
+	cancel_button.custom_minimum_size = Vector2(66, btn_h)
+	cancel_button.visible = false
+	cancel_button.pressed.connect(_on_cancel_placement)
+	bottom_panel.add_child(cancel_button)
 
 	game_over_label = Label.new()
 	game_over_label.add_theme_font_size_override("font_size", 72)
@@ -890,8 +1044,8 @@ func _create_ui() -> void:
 	# === OPEN BOOK PANEL (two-page spread) ===
 	menu_showcase_panel = ColorRect.new()
 	menu_showcase_panel.color = Color(0, 0, 0, 0)  # Transparent, we draw the book in _draw
-	menu_showcase_panel.position = Vector2(60, 45)
-	menu_showcase_panel.size = Vector2(1160, 560)
+	menu_showcase_panel.position = Vector2(70, 45)
+	menu_showcase_panel.size = Vector2(1140, 560)
 	menu_overlay.add_child(menu_showcase_panel)
 
 	# --- LEFT PAGE: Character info ---
@@ -923,7 +1077,7 @@ func _create_ui() -> void:
 	menu_level_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	menu_showcase_panel.add_child(menu_level_stats_label)
 
-	# Stars display (unused in chapters view, used in heroes)
+	# Stars display (unused in chapters view, used in survivors)
 	menu_level_stars_label = Label.new()
 	menu_level_stars_label.position = Vector2(40, 440)
 	menu_level_stars_label.size = Vector2(500, 30)
@@ -943,7 +1097,7 @@ func _create_ui() -> void:
 	# Right arrow (page turn)
 	menu_right_arrow = Button.new()
 	menu_right_arrow.text = "  >  "
-	menu_right_arrow.position = Vector2(1090, 490)
+	menu_right_arrow.position = Vector2(1060, 490)
 	menu_right_arrow.custom_minimum_size = Vector2(60, 40)
 	menu_right_arrow.pressed.connect(_on_menu_right)
 	menu_showcase_panel.add_child(menu_right_arrow)
@@ -974,7 +1128,7 @@ func _create_ui() -> void:
 		# Chapter description
 		var ch_desc = Label.new()
 		ch_desc.position = Vector2(card_x, card_y + 28)
-		ch_desc.size = Vector2(420, 50)
+		ch_desc.size = Vector2(340, 50)
 		ch_desc.add_theme_font_size_override("font_size", 12)
 		ch_desc.add_theme_color_override("font_color", Color(0.4, 0.35, 0.28))
 		ch_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1011,7 +1165,7 @@ func _create_ui() -> void:
 		# Play button for this chapter
 		var ch_btn = Button.new()
 		ch_btn.text = "  PLAY  "
-		ch_btn.position = Vector2(card_x + 370, card_y + 80)
+		ch_btn.position = Vector2(card_x + 350, card_y + 76)
 		ch_btn.custom_minimum_size = Vector2(140, 44)
 		ch_btn.pressed.connect(_on_chapter_play.bind(i))
 		menu_showcase_panel.add_child(ch_btn)
@@ -1019,19 +1173,25 @@ func _create_ui() -> void:
 
 	# === BOTTOM NAV BAR (bookmark ribbon style) ===
 	var nav_bar = ColorRect.new()
-	nav_bar.color = Color(0.12, 0.08, 0.04, 0.95)
+	nav_bar.color = Color(0.08, 0.04, 0.06, 0.97)
 	nav_bar.position = Vector2(0, 620)
 	nav_bar.size = Vector2(1280, 100)
 	menu_overlay.add_child(nav_bar)
 
-	# Nav bar top border (gold ribbon)
+	# Nav bar top border — crimson line (3px) + gold accent (1px)
 	var nav_border = ColorRect.new()
-	nav_border.color = Color(0.65, 0.45, 0.1, 0.5)
+	nav_border.color = Color(0.7, 0.12, 0.18, 0.6)
 	nav_border.position = Vector2(0, 0)
 	nav_border.size = Vector2(1280, 3)
 	nav_bar.add_child(nav_border)
 
-	var nav_names = ["HEROES", "RELICS", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
+	var nav_gold_accent = ColorRect.new()
+	nav_gold_accent.color = Color(0.65, 0.45, 0.1, 0.35)
+	nav_gold_accent.position = Vector2(0, 3)
+	nav_gold_accent.size = Vector2(1280, 1)
+	nav_bar.add_child(nav_gold_accent)
+
+	var nav_names = ["SURVIVORS", "RELICS", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
 	var nav_icons = ["â™Ÿ", "â—†", "ðŸ“–", "ðŸ“œ", "ðŸª"]
 	for i in range(5):
 		var btn_x = 64 + i * 240
@@ -1048,10 +1208,255 @@ func _create_ui() -> void:
 		nav_lbl.position = Vector2(btn_x - 15, 64)
 		nav_lbl.size = Vector2(100, 20)
 		nav_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nav_lbl.add_theme_font_size_override("font_size", 11)
+		nav_lbl.add_theme_font_size_override("font_size", 12)
 		nav_lbl.add_theme_color_override("font_color", Color(0.7, 0.6, 0.45))
 		nav_bar.add_child(nav_lbl)
 		menu_nav_labels.append(nav_lbl)
+
+		# Vertical divider between buttons (gold line)
+		if i < 4:
+			var div_x_pos = btn_x + 155
+			var div_line = ColorRect.new()
+			div_line.color = Color(0.65, 0.45, 0.1, 0.2)
+			div_line.position = Vector2(div_x_pos, 12)
+			div_line.size = Vector2(1, 65)
+			nav_bar.add_child(div_line)
+
+	# === SURVIVOR GRID (Bloons-style character roster) ===
+	survivor_grid_container = Control.new()
+	survivor_grid_container.position = Vector2(70, 45)
+	survivor_grid_container.size = Vector2(1140, 560)
+	survivor_grid_container.visible = false
+	menu_overlay.add_child(survivor_grid_container)
+
+	# "SURVIVORS" title header
+	var surv_title = Label.new()
+	surv_title.text = "SURVIVORS"
+	surv_title.position = Vector2(0, 8)
+	surv_title.size = Vector2(1160, 50)
+	surv_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	surv_title.add_theme_font_size_override("font_size", 32)
+	surv_title.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+	survivor_grid_container.add_child(surv_title)
+
+	# Create 6 character cards in a 3x2 grid
+	survivor_grid_cards.clear()
+	var card_w = 310.0
+	var card_h = 210.0
+	var grid_margin_x = 65.0
+	var grid_margin_y = 65.0
+	var gap_x = 40.0
+	var gap_y = 30.0
+	for i in range(6):
+		var col_i = i % 3
+		var row_i = i / 3
+		var cx = grid_margin_x + float(col_i) * (card_w + gap_x)
+		var cy = grid_margin_y + float(row_i) * (card_h + gap_y)
+
+		var card_btn = Button.new()
+		card_btn.position = Vector2(cx, cy)
+		card_btn.custom_minimum_size = Vector2(card_w, card_h)
+		card_btn.flat = true
+		card_btn.pressed.connect(_on_survivor_card_pressed.bind(i))
+		card_btn.mouse_entered.connect(func(): queue_redraw())
+		card_btn.mouse_exited.connect(func(): queue_redraw())
+		survivor_grid_container.add_child(card_btn)
+		survivor_grid_cards.append(card_btn)
+
+		# Character name label
+		var tower_type_i = survivor_types[i]
+		var info_i = tower_info[tower_type_i]
+		var name_lbl = Label.new()
+		name_lbl.text = info_i["name"]
+		name_lbl.position = Vector2(140, 20)
+		name_lbl.size = Vector2(160, 30)
+		name_lbl.add_theme_font_size_override("font_size", 20)
+		name_lbl.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55))
+		card_btn.add_child(name_lbl)
+
+		# Novel title label
+		var novel_lbl = Label.new()
+		novel_lbl.text = character_novels[i]
+		novel_lbl.position = Vector2(140, 50)
+		novel_lbl.size = Vector2(160, 20)
+		novel_lbl.add_theme_font_size_override("font_size", 10)
+		novel_lbl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.3))
+		card_btn.add_child(novel_lbl)
+
+		# Description label
+		var desc_lbl = Label.new()
+		desc_lbl.text = survivor_descriptions.get(tower_type_i, "")
+		desc_lbl.position = Vector2(140, 75)
+		desc_lbl.size = Vector2(160, 80)
+		desc_lbl.add_theme_font_size_override("font_size", 11)
+		desc_lbl.add_theme_color_override("font_color", Color(0.6, 0.5, 0.4))
+		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card_btn.add_child(desc_lbl)
+
+		# Cost label (bottom right)
+		var cost_lbl = Label.new()
+		cost_lbl.text = "%d gold" % info_i["cost"]
+		cost_lbl.position = Vector2(card_w - 85, card_h - 38)
+		cost_lbl.size = Vector2(70, 25)
+		cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cost_lbl.add_theme_font_size_override("font_size", 12)
+		cost_lbl.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+		card_btn.add_child(cost_lbl)
+
+	# === SURVIVOR DETAIL PAGE (opened when clicking a card) ===
+	survivor_detail_container = Control.new()
+	survivor_detail_container.position = Vector2(60, 45)
+	survivor_detail_container.size = Vector2(1160, 560)
+	survivor_detail_container.visible = false
+	menu_overlay.add_child(survivor_detail_container)
+
+	# Back button
+	survivor_detail_back_btn = Button.new()
+	survivor_detail_back_btn.text = "  < BACK  "
+	survivor_detail_back_btn.position = Vector2(15, 12)
+	survivor_detail_back_btn.custom_minimum_size = Vector2(100, 36)
+	survivor_detail_back_btn.pressed.connect(_on_detail_back)
+	survivor_detail_container.add_child(survivor_detail_back_btn)
+
+	# Character name (large, top center-left)
+	var det_name = Label.new()
+	det_name.name = "DetailName"
+	det_name.position = Vector2(150, 8)
+	det_name.size = Vector2(300, 40)
+	det_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	det_name.add_theme_font_size_override("font_size", 28)
+	det_name.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+	survivor_detail_container.add_child(det_name)
+
+	# Level label (overlays on the badge drawn in _draw)
+	var det_level = Label.new()
+	det_level.name = "DetailLevel"
+	det_level.position = Vector2(42, 82)
+	det_level.size = Vector2(50, 30)
+	det_level.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	det_level.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	det_level.add_theme_font_size_override("font_size", 18)
+	det_level.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55))
+	survivor_detail_container.add_child(det_level)
+
+	# XP text (below portrait)
+	var det_xp = Label.new()
+	det_xp.name = "DetailXP"
+	det_xp.position = Vector2(80, 425)
+	det_xp.size = Vector2(300, 20)
+	det_xp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	det_xp.add_theme_font_size_override("font_size", 11)
+	det_xp.add_theme_color_override("font_color", Color(0.6, 0.5, 0.35))
+	survivor_detail_container.add_child(det_xp)
+
+	# Novel subtitle
+	var det_novel = Label.new()
+	det_novel.name = "DetailNovel"
+	det_novel.position = Vector2(80, 450)
+	det_novel.size = Vector2(300, 20)
+	det_novel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	det_novel.add_theme_font_size_override("font_size", 11)
+	det_novel.add_theme_color_override("font_color", Color(0.5, 0.4, 0.3))
+	survivor_detail_container.add_child(det_novel)
+
+	# Description
+	var det_desc = Label.new()
+	det_desc.name = "DetailDesc"
+	det_desc.position = Vector2(80, 470)
+	det_desc.size = Vector2(300, 60)
+	det_desc.add_theme_font_size_override("font_size", 11)
+	det_desc.add_theme_color_override("font_color", Color(0.55, 0.45, 0.35))
+	det_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	survivor_detail_container.add_child(det_desc)
+
+	# --- Right side labels ---
+	# GEAR header
+	var gear_hdr = Label.new()
+	gear_hdr.name = "GearHeader"
+	gear_hdr.text = "GEAR"
+	gear_hdr.position = Vector2(510, 15)
+	gear_hdr.size = Vector2(200, 30)
+	gear_hdr.add_theme_font_size_override("font_size", 18)
+	gear_hdr.add_theme_color_override("font_color", Color(0.75, 0.6, 0.35))
+	survivor_detail_container.add_child(gear_hdr)
+
+	# Gear name
+	var gear_name = Label.new()
+	gear_name.name = "GearName"
+	gear_name.position = Vector2(590, 50)
+	gear_name.size = Vector2(250, 25)
+	gear_name.add_theme_font_size_override("font_size", 14)
+	gear_name.add_theme_color_override("font_color", Color(0.7, 0.6, 0.45))
+	survivor_detail_container.add_child(gear_name)
+
+	# Gear desc
+	var gear_desc = Label.new()
+	gear_desc.name = "GearDesc"
+	gear_desc.position = Vector2(590, 72)
+	gear_desc.size = Vector2(250, 20)
+	gear_desc.add_theme_font_size_override("font_size", 11)
+	gear_desc.add_theme_color_override("font_color", Color(0.5, 0.4, 0.3))
+	survivor_detail_container.add_child(gear_desc)
+
+	# SIDEKICKS header
+	var sk_hdr = Label.new()
+	sk_hdr.name = "SidekicksHeader"
+	sk_hdr.text = "SIDEKICKS (0/3)"
+	sk_hdr.position = Vector2(510, 135)
+	sk_hdr.size = Vector2(300, 30)
+	sk_hdr.add_theme_font_size_override("font_size", 18)
+	sk_hdr.add_theme_color_override("font_color", Color(0.75, 0.6, 0.35))
+	survivor_detail_container.add_child(sk_hdr)
+
+	# RELICS header
+	var rel_hdr = Label.new()
+	rel_hdr.name = "RelicsHeader"
+	rel_hdr.text = "RELICS (0/6)"
+	rel_hdr.position = Vector2(510, 255)
+	rel_hdr.size = Vector2(300, 30)
+	rel_hdr.add_theme_font_size_override("font_size", 18)
+	rel_hdr.add_theme_color_override("font_color", Color(0.75, 0.6, 0.35))
+	survivor_detail_container.add_child(rel_hdr)
+
+	# Relic tooltip name
+	var relic_tt_name = Label.new()
+	relic_tt_name.name = "RelicTooltipName"
+	relic_tt_name.position = Vector2(520, 350)
+	relic_tt_name.size = Vector2(380, 22)
+	relic_tt_name.add_theme_font_size_override("font_size", 13)
+	relic_tt_name.add_theme_color_override("font_color", Color(0.85, 0.7, 0.4))
+	relic_tt_name.visible = false
+	survivor_detail_container.add_child(relic_tt_name)
+
+	# Relic tooltip desc
+	var relic_tt_desc = Label.new()
+	relic_tt_desc.name = "RelicTooltipDesc"
+	relic_tt_desc.position = Vector2(520, 368)
+	relic_tt_desc.size = Vector2(380, 20)
+	relic_tt_desc.add_theme_font_size_override("font_size", 11)
+	relic_tt_desc.add_theme_color_override("font_color", Color(0.6, 0.5, 0.35))
+	relic_tt_desc.visible = false
+	survivor_detail_container.add_child(relic_tt_desc)
+
+	# ABILITIES header
+	var abil_hdr = Label.new()
+	abil_hdr.name = "AbilitiesHeader"
+	abil_hdr.text = "ABILITIES"
+	abil_hdr.position = Vector2(510, 380)
+	abil_hdr.size = Vector2(300, 30)
+	abil_hdr.add_theme_font_size_override("font_size", 18)
+	abil_hdr.add_theme_color_override("font_color", Color(0.75, 0.6, 0.35))
+	survivor_detail_container.add_child(abil_hdr)
+
+	# Abilities description
+	var abil_desc = Label.new()
+	abil_desc.name = "AbilitiesDesc"
+	abil_desc.position = Vector2(510, 410)
+	abil_desc.size = Vector2(600, 80)
+	abil_desc.add_theme_font_size_override("font_size", 11)
+	abil_desc.add_theme_color_override("font_color", Color(0.55, 0.45, 0.35))
+	abil_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	survivor_detail_container.add_child(abil_desc)
 
 	# Return to menu button (hidden during gameplay, shown on victory/game over)
 	return_button = Button.new()
@@ -1087,11 +1492,20 @@ func _show_menu() -> void:
 		top_bar.visible = false
 	if bottom_panel:
 		bottom_panel.visible = false
+	if cancel_button:
+		cancel_button.visible = false
 	if upgrade_panel:
 		upgrade_panel.visible = false
 	placing_tower = false
 	_deselect_tower()
-	_remove_hero_preview()
+	_remove_survivor_preview()
+	_remove_detail_preview()
+	_clear_grid_previews()
+	survivor_grid_container.visible = false
+	survivor_detail_container.visible = false
+	survivor_detail_open = false
+	survivor_selected_index = -1
+	survivor_detail_index = -1
 	menu_current_view = "chapters"
 	menu_play_button.visible = false
 	menu_left_arrow.visible = true
@@ -1162,20 +1576,16 @@ func _on_chapter_play(chapter: int) -> void:
 	_on_level_selected(level_idx)
 
 func _on_menu_left() -> void:
-	if menu_current_view == "heroes":
-		if hero_preview_index > 0:
-			hero_preview_index -= 1
-			_show_hero_preview(hero_preview_index)
+	if menu_current_view == "survivors":
+		return  # Grid doesn't use arrows
 	else:
 		if menu_character_index > 0:
 			menu_character_index -= 1
 			_update_menu_showcase()
 
 func _on_menu_right() -> void:
-	if menu_current_view == "heroes":
-		if hero_preview_index < hero_types.size() - 1:
-			hero_preview_index += 1
-			_show_hero_preview(hero_preview_index)
+	if menu_current_view == "survivors":
+		return  # Grid doesn't use arrows
 	else:
 		if menu_character_index < 5:
 			menu_character_index += 1
@@ -1185,11 +1595,17 @@ func _on_menu_play() -> void:
 	pass  # Unused â€” chapter buttons handle play now
 
 func _on_nav_pressed(nav_name: String) -> void:
-	if menu_current_view == "heroes" and nav_name != "heroes":
-		_remove_hero_preview()
+	if menu_current_view == "survivors" and nav_name != "survivors":
+		_remove_survivor_preview()
+		_clear_grid_previews()
+		_remove_detail_preview()
+		survivor_grid_container.visible = false
+		survivor_detail_container.visible = false
+		survivor_detail_open = false
 	menu_current_view = nav_name
 	if nav_name == "chapters":
 		menu_showcase_panel.visible = true
+		survivor_grid_container.visible = false
 		menu_play_button.visible = false
 		menu_left_arrow.visible = true
 		menu_right_arrow.visible = true
@@ -1202,11 +1618,14 @@ func _on_nav_pressed(nav_name: String) -> void:
 			chapter_lock_labels[i].visible = true
 			chapter_buttons[i].visible = true
 		_update_menu_showcase()
-	elif nav_name == "heroes":
-		menu_showcase_panel.visible = true
+	elif nav_name == "survivors":
+		menu_showcase_panel.visible = false
+		survivor_grid_container.visible = true
+		survivor_detail_container.visible = false
+		survivor_detail_open = false
 		menu_play_button.visible = false
-		menu_left_arrow.visible = true
-		menu_right_arrow.visible = true
+		menu_left_arrow.visible = false
+		menu_right_arrow.visible = false
 		# Hide chapter UI
 		for i in range(3):
 			chapter_title_labels[i].visible = false
@@ -1215,9 +1634,26 @@ func _on_nav_pressed(nav_name: String) -> void:
 			chapter_star_labels[i].visible = false
 			chapter_lock_labels[i].visible = false
 			chapter_buttons[i].visible = false
-		_show_hero_preview(hero_preview_index)
+		_spawn_grid_previews()
+		queue_redraw()
+	elif nav_name == "emporium":
+		menu_showcase_panel.visible = false
+		survivor_grid_container.visible = false
+		menu_play_button.visible = false
+		menu_left_arrow.visible = false
+		menu_right_arrow.visible = false
+		for i in range(3):
+			chapter_title_labels[i].visible = false
+			chapter_desc_labels[i].visible = false
+			chapter_stat_labels[i].visible = false
+			chapter_star_labels[i].visible = false
+			chapter_lock_labels[i].visible = false
+			chapter_buttons[i].visible = false
+		emporium_hover_index = -1
+		queue_redraw()
 	else:
 		menu_showcase_panel.visible = true
+		survivor_grid_container.visible = false
 		menu_level_name_label.text = nav_name.to_upper()
 		menu_level_desc_label.text = "Coming Soon!"
 		menu_level_stats_label.text = "This feature is being written into the pages..."
@@ -1233,39 +1669,258 @@ func _on_nav_pressed(nav_name: String) -> void:
 			chapter_lock_labels[i].visible = false
 			chapter_buttons[i].visible = false
 
-func _show_hero_preview(index: int) -> void:
-	hero_preview_index = index
-	_remove_hero_preview()
-	var tower_type = hero_types[index]
+func _on_survivor_card_pressed(index: int) -> void:
+	survivor_selected_index = index
+	_open_survivor_detail(index)
+	queue_redraw()
+
+func _open_survivor_detail(index: int) -> void:
+	survivor_detail_index = index
+	survivor_detail_open = true
+	survivor_grid_container.visible = false
+	survivor_detail_container.visible = true
+	_clear_grid_previews()
+
+	# Create a preview of the tower for display
+	_remove_detail_preview()
+	var tower_type = survivor_types[index]
+	survivor_detail_preview = tower_scenes[tower_type].instantiate()
+	survivor_detail_preview.position = Vector2(280, 380)
+	survivor_detail_preview.scale = Vector2(2.5, 2.5)
+	survivor_detail_preview.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(survivor_detail_preview)
+
+	# Populate labels
 	var info = tower_info[tower_type]
+	var progress = survivor_progress.get(tower_type, {"level": 1, "xp": 0.0, "xp_next": 500.0})
+	var det_name_lbl = survivor_detail_container.get_node("DetailName")
+	if det_name_lbl:
+		det_name_lbl.text = info["name"]
+	var det_level_lbl = survivor_detail_container.get_node("DetailLevel")
+	if det_level_lbl:
+		det_level_lbl.text = str(progress["level"])
+	var det_xp_lbl = survivor_detail_container.get_node("DetailXP")
+	if det_xp_lbl:
+		det_xp_lbl.text = "Damage dealt to gain levels  %d / %d" % [int(progress["xp"]), int(progress["xp_next"])]
+	var det_novel_lbl = survivor_detail_container.get_node("DetailNovel")
+	if det_novel_lbl:
+		det_novel_lbl.text = character_novels[index]
+	var det_desc_lbl = survivor_detail_container.get_node("DetailDesc")
+	if det_desc_lbl:
+		det_desc_lbl.text = survivor_descriptions.get(tower_type, "")
 
-	hero_preview_node = tower_scenes[tower_type].instantiate()
-	hero_preview_node.position = Vector2(350, 400)
-	hero_preview_node.process_mode = Node.PROCESS_MODE_DISABLED
-	add_child(hero_preview_node)
+	# Gear
+	var gear_data = survivor_gear.get(tower_type, {"name": "Unknown", "desc": ""})
+	var gear_name_lbl = survivor_detail_container.get_node("GearName")
+	if gear_name_lbl:
+		gear_name_lbl.text = gear_data["name"]
+	var gear_desc_lbl = survivor_detail_container.get_node("GearDesc")
+	if gear_desc_lbl:
+		gear_desc_lbl.text = gear_data["desc"]
 
-	menu_level_name_label.text = info["name"]
-	menu_level_desc_label.text = hero_descriptions.get(tower_type, "A legendary hero.")
-	var cost = info["cost"]
-	var rng_val = info["range"]
-	menu_level_stats_label.text = "Cost: %d gold  |  Range: %d" % [cost, int(rng_val)]
-	menu_level_stars_label.text = ""
+	# Sidekicks count
+	var sk_count = 0
+	for u in progress.get("sidekicks_unlocked", [false, false, false]):
+		if u:
+			sk_count += 1
+	var sk_hdr = survivor_detail_container.get_node("SidekicksHeader")
+	if sk_hdr:
+		sk_hdr.text = "SIDEKICKS (%d/3)" % sk_count
 
-	var tier_names = hero_preview_node.TIER_NAMES if hero_preview_node.get("TIER_NAMES") else []
-	var tier_costs = hero_preview_node.TIER_COSTS if hero_preview_node.get("TIER_COSTS") else []
-	var upgrade_text = ""
-	for i in range(mini(tier_names.size(), tier_costs.size())):
-		if i > 0:
-			upgrade_text += "  |  "
-		upgrade_text += "T%d: %s ($%d)" % [i + 1, tier_names[i], tier_costs[i]]
+	# Relics count
+	var rel_count = 0
+	for u in progress.get("relics_unlocked", [false, false, false, false, false, false]):
+		if u:
+			rel_count += 1
+	var rel_hdr = survivor_detail_container.get_node("RelicsHeader")
+	if rel_hdr:
+		rel_hdr.text = "RELICS (%d/6)" % rel_count
+	# Reset relic hover state
+	relic_hover_index = -1
+	relic_tooltip_visible = false
+	var relic_tt_name_lbl = survivor_detail_container.get_node("RelicTooltipName")
+	if relic_tt_name_lbl:
+		relic_tt_name_lbl.visible = false
+	var relic_tt_desc_lbl = survivor_detail_container.get_node("RelicTooltipDesc")
+	if relic_tt_desc_lbl:
+		relic_tt_desc_lbl.visible = false
 
-	menu_left_arrow.disabled = index <= 0
-	menu_right_arrow.disabled = index >= hero_types.size() - 1
+	# Abilities
+	var abil_desc_lbl = survivor_detail_container.get_node("AbilitiesDesc")
+	if abil_desc_lbl and survivor_detail_preview:
+		var tier_names = survivor_detail_preview.TIER_NAMES if survivor_detail_preview.get("TIER_NAMES") else []
+		var tier_costs = survivor_detail_preview.TIER_COSTS if survivor_detail_preview.get("TIER_COSTS") else []
+		var abil_text = ""
+		for i in range(mini(tier_names.size(), tier_costs.size())):
+			if i > 0:
+				abil_text += "\n"
+			abil_text += "Tier %d: %s (Cost: %d gold)" % [i + 1, tier_names[i], tier_costs[i]]
+		abil_desc_lbl.text = abil_text
 
-func _remove_hero_preview() -> void:
-	if hero_preview_node and is_instance_valid(hero_preview_node):
-		hero_preview_node.queue_free()
-		hero_preview_node = null
+	queue_redraw()
+
+func _on_detail_back() -> void:
+	survivor_detail_open = false
+	survivor_detail_container.visible = false
+	survivor_grid_container.visible = true
+	relic_hover_index = -1
+	relic_tooltip_visible = false
+	_remove_detail_preview()
+	_spawn_grid_previews()
+	queue_redraw()
+
+func _update_emporium_hover() -> void:
+	var mouse_pos = get_viewport().get_mouse_position()
+	var panel_x = 70.0
+	var panel_y = 45.0
+	var panel_w = 1140.0
+	var tile_w = 340.0
+	var tile_h = 220.0
+	var gap_x = 30.0
+	var gap_y = 24.0
+	var grid_w = 3.0 * tile_w + 2.0 * gap_x
+	var grid_start_x = panel_x + (panel_w - grid_w) * 0.5
+	var grid_start_y = panel_y + 58.0
+	emporium_hover_index = -1
+	for i in range(6):
+		var col_idx = i % 3
+		var row = i / 3
+		var tx = grid_start_x + float(col_idx) * (tile_w + gap_x)
+		var ty = grid_start_y + float(row) * (tile_h + gap_y)
+		if mouse_pos.x >= tx and mouse_pos.x <= tx + tile_w and mouse_pos.y >= ty and mouse_pos.y <= ty + tile_h:
+			emporium_hover_index = i
+			break
+
+func _on_emporium_tile_clicked(index: int) -> void:
+	if index < 0 or index >= emporium_categories.size():
+		return
+	var cat = emporium_categories[index]
+	print("Emporium tile clicked: ", cat["name"])
+
+func _update_relic_hover() -> void:
+	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
+		return
+	var mouse_pos = get_viewport().get_mouse_position()
+	var panel_x = 70.0
+	var panel_y = 45.0
+	var left_w = 420.0
+	var right_x = panel_x + left_w + 50.0
+	var right_y = panel_y + 60.0
+	var gear_y = right_y
+	var sk_y = gear_y + 120.0
+	var rel_y = sk_y + 120.0
+	var slot_size = 64.0
+	var relic_size = 56.0
+	var tower_type = survivor_types[survivor_detail_index]
+	var char_relics = survivor_relics.get(tower_type, [])
+	var old_hover = relic_hover_index
+	relic_hover_index = -1
+	for ri in range(6):
+		var rx = right_x + 10.0 + float(ri) * (relic_size + 10.0)
+		var ry = rel_y + 30.0
+		if mouse_pos.x >= rx and mouse_pos.x <= rx + relic_size and mouse_pos.y >= ry and mouse_pos.y <= ry + relic_size:
+			relic_hover_index = ri
+			break
+	# Update tooltip labels
+	if relic_hover_index != old_hover:
+		var relic_tt_name_lbl = survivor_detail_container.get_node("RelicTooltipName")
+		var relic_tt_desc_lbl = survivor_detail_container.get_node("RelicTooltipDesc")
+		if relic_hover_index >= 0 and relic_hover_index < char_relics.size():
+			var relic_data = char_relics[relic_hover_index]
+			var progress = survivor_progress.get(tower_type, {})
+			var rel_unlocked = progress.get("relics_unlocked", [false, false, false, false, false, false])
+			var is_unlocked = rel_unlocked[relic_hover_index] if relic_hover_index < rel_unlocked.size() else false
+			var relic_purchasable = [false, true, false, true, false, true]
+			var relic_costs = [0, 100, 0, 250, 0, 500]
+			var relic_earn_levels = [2, 4, 6, 8, 10, 12]
+			var char_level = progress.get("level", 1)
+			var name_text = relic_data["name"]
+			if is_unlocked:
+				name_text += "  [OWNED]"
+			elif relic_purchasable[relic_hover_index] and char_level >= relic_earn_levels[relic_hover_index]:
+				name_text += "  [BUY: %d gold]" % relic_costs[relic_hover_index]
+			elif char_level < relic_earn_levels[relic_hover_index]:
+				name_text += "  [Lv.%d]" % relic_earn_levels[relic_hover_index]
+			if relic_tt_name_lbl:
+				relic_tt_name_lbl.text = name_text
+				relic_tt_name_lbl.visible = true
+			if relic_tt_desc_lbl:
+				relic_tt_desc_lbl.text = relic_data["desc"]
+				relic_tt_desc_lbl.visible = true
+			relic_tooltip_visible = true
+		else:
+			if relic_tt_name_lbl:
+				relic_tt_name_lbl.visible = false
+			if relic_tt_desc_lbl:
+				relic_tt_desc_lbl.visible = false
+			relic_tooltip_visible = false
+
+func _on_relic_clicked(relic_index: int) -> void:
+	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
+		return
+	var tower_type = survivor_types[survivor_detail_index]
+	var progress = survivor_progress.get(tower_type, {})
+	var rel_unlocked = progress.get("relics_unlocked", [false, false, false, false, false, false])
+	if relic_index < 0 or relic_index >= rel_unlocked.size():
+		return
+	if rel_unlocked[relic_index]:
+		return  # Already unlocked
+	var relic_purchasable = [false, true, false, true, false, true]
+	var relic_costs = [0, 100, 0, 250, 0, 500]
+	var relic_earn_levels = [2, 4, 6, 8, 10, 12]
+	var char_level = progress.get("level", 1)
+	if not relic_purchasable[relic_index]:
+		return  # Not purchasable, only earned by level
+	if char_level < relic_earn_levels[relic_index]:
+		return  # Level too low
+	var cost = relic_costs[relic_index]
+	if gold < cost:
+		return  # Can't afford
+	gold -= cost
+	progress["relics_unlocked"][relic_index] = true
+	# Refresh the detail page
+	_open_survivor_detail(survivor_detail_index)
+
+func _remove_detail_preview() -> void:
+	if survivor_detail_preview and is_instance_valid(survivor_detail_preview):
+		survivor_detail_preview.queue_free()
+		survivor_detail_preview = null
+
+func _remove_survivor_preview() -> void:
+	_remove_detail_preview()
+	_clear_grid_previews()
+	if survivor_preview_node and is_instance_valid(survivor_preview_node):
+		survivor_preview_node.queue_free()
+		survivor_preview_node = null
+
+func _spawn_grid_previews() -> void:
+	_clear_grid_previews()
+	var card_w = 310.0
+	var card_h = 210.0
+	var grid_margin_x = 65.0
+	var grid_margin_y = 65.0
+	var gap_x = 40.0
+	var gap_y = 30.0
+	var panel_x = 70.0
+	var panel_y = 45.0
+	for i in range(6):
+		var col_i = i % 3
+		var row_i = i / 3
+		var cx = panel_x + grid_margin_x + float(col_i) * (card_w + gap_x)
+		var cy = panel_y + grid_margin_y + float(row_i) * (card_h + gap_y)
+		var tower_type = survivor_types[i]
+		var preview = tower_scenes[tower_type].instantiate()
+		preview.position = Vector2(cx + 70, cy + 115)
+		preview.scale = Vector2(1.8, 1.8)
+		preview.process_mode = Node.PROCESS_MODE_DISABLED
+		add_child(preview)
+		survivor_grid_previews.append(preview)
+
+func _clear_grid_previews() -> void:
+	for p in survivor_grid_previews:
+		if is_instance_valid(p):
+			p.queue_free()
+	survivor_grid_previews.clear()
 
 func _is_level_unlocked(idx: int) -> bool:
 	if idx == 0:
@@ -1281,7 +1936,7 @@ func _is_level_unlocked(idx: int) -> bool:
 func _on_level_selected(index: int) -> void:
 	if not _is_level_unlocked(index):
 		return
-	_remove_hero_preview()
+	_remove_survivor_preview()
 	current_level = index
 	_reset_game()
 	var level = levels[index]
@@ -1331,6 +1986,9 @@ func _reset_game() -> void:
 	selected_tower_node = null
 	wave_auto_timer = -1.0
 	_hide_upgrade_panel()
+	# Reset session damage tracking
+	for t in survivor_types:
+		session_damage[t] = 0.0
 
 func _setup_path_for_level(index: int) -> void:
 	var curve = enemy_path.curve
@@ -1628,12 +2286,19 @@ func _setup_audio() -> void:
 	add_child(beat_player)
 	_generate_beat_buffer()
 
-	# Voice player (one-shot clips via AudioStreamWAV)
+	# Voice player (one-shot clips via AudioStreamWAV — formant "character flavor")
 	voice_player = AudioStreamPlayer.new()
 	voice_player.volume_db = -2.0
 	add_child(voice_player)
 	_generate_voice_clips()
 	_init_tower_quotes()
+
+	# Catchphrase voice player (MP3 voice-over clips)
+	catchphrase_player = AudioStreamPlayer.new()
+	catchphrase_player.volume_db = -2.0
+	add_child(catchphrase_player)
+	_load_voice_clips()
+	_init_catchphrase_quotes()
 
 func _start_beat() -> void:
 	if beat_buffer.size() == 0:
@@ -1728,87 +2393,104 @@ func _samples_to_wav(samples: PackedFloat32Array, rate: int = 22050) -> AudioStr
 	wav.data = data
 	return wav
 
-func _generate_voice_clips() -> void:
+func _generate_formant_voice(fundamental: float, formants: Array, syllable_count: int,
+		duration: float, breathiness: float, vibrato_rate: float, vibrato_depth: float) -> AudioStreamWAV:
 	var rate := 22050
+	var num_samples := int(rate * duration)
+	var samples := PackedFloat32Array()
+	samples.resize(num_samples)
+	var syllable_len := num_samples / syllable_count
+	var gap_samples := int(rate * 0.02)  # 20ms inter-syllable gap
 
-	# Robin Hood â€” arrow whoosh (descending sweep + air noise)
-	var robin_len := int(rate * 0.35)
-	var robin_samples := PackedFloat32Array()
-	robin_samples.resize(robin_len)
-	for i in range(robin_len):
+	for i in range(num_samples):
 		var t := float(i) / float(rate)
-		var freq := 800.0 * exp(-t * 8.0) + 100.0
-		var env := exp(-t * 5.0) * clampf(sin(t * 20.0), 0.0, 1.0)
-		robin_samples[i] = (sin(TAU * freq * t) * 0.3 + sin(t * 3000.0) * 0.1) * env
-	voice_clips[TowerType.ROBIN_HOOD] = _samples_to_wav(robin_samples, rate)
+		var syl_idx := mini(i / syllable_len, syllable_count - 1)
+		var syl_offset := i - syl_idx * syllable_len
+		var syl_t := float(syl_offset) / float(syllable_len)
 
-	# Alice â€” curious ascending chime (C5 â†’ E5 â†’ G5)
-	var alice_len := int(rate * 0.45)
-	var alice_samples := PackedFloat32Array()
-	alice_samples.resize(alice_len)
-	var alice_notes := [523.25, 659.25, 783.99]  # C5, E5, G5
-	var note_dur := alice_len / 3
-	for i in range(alice_len):
-		var t := float(i) / float(rate)
-		var ni := mini(i / note_dur, 2)
-		var nt := float(i - ni * note_dur) / float(rate)
-		var freq: float = alice_notes[ni]
-		var env := exp(-nt * 6.0) * 0.4
-		alice_samples[i] = sin(TAU * freq * t) * env + sin(TAU * freq * 2.0 * t) * env * 0.15
-	voice_clips[TowerType.ALICE] = _samples_to_wav(alice_samples, rate)
+		# Inter-syllable gap
+		if syl_offset >= syllable_len - gap_samples:
+			samples[i] = 0.0
+			continue
 
-	# Wicked Witch â€” evil cackle (tremolo + rising pitch)
-	var witch_len := int(rate * 0.45)
-	var witch_samples := PackedFloat32Array()
-	witch_samples.resize(witch_len)
-	for i in range(witch_len):
-		var t := float(i) / float(rate)
-		var freq := 300.0 + t * 400.0
-		var trem: float = absf(sin(TAU * 18.0 * t))
-		var env := (1.0 - t / 0.45) * 0.35
-		witch_samples[i] = sin(TAU * freq * t) * trem * env
-	voice_clips[TowerType.WICKED_WITCH] = _samples_to_wav(witch_samples, rate)
+		# Per-syllable amplitude envelope (attack-sustain-decay)
+		var syl_dur := float(syllable_len - gap_samples) / float(rate)
+		var syl_time := float(syl_offset) / float(rate)
+		var env := 1.0
+		var attack_t := 0.015
+		if syl_time < attack_t:
+			env = syl_time / attack_t
+		elif syl_time > syl_dur * 0.6:
+			env = clampf(1.0 - (syl_time - syl_dur * 0.6) / (syl_dur * 0.4), 0.0, 1.0)
 
-	# Peter Pan â€” fairy sparkle (ascending twinkle bursts)
-	var peter_len := int(rate * 0.4)
-	var peter_samples := PackedFloat32Array()
-	peter_samples.resize(peter_len)
-	for i in range(peter_len):
-		var t := float(i) / float(rate)
-		var burst := sin(TAU * 25.0 * t)
-		var freq := 1200.0 + t * 800.0 + burst * 200.0
-		var env := exp(-t * 4.0) * 0.3
-		peter_samples[i] = sin(TAU * freq * t) * env * (0.5 + 0.5 * abs(sin(TAU * 12.0 * t)))
-	voice_clips[TowerType.PETER_PAN] = _samples_to_wav(peter_samples, rate)
+		# F0 with vibrato
+		var f0 := fundamental + sin(TAU * vibrato_rate * t) * vibrato_depth
+		# Slight pitch variation per syllable for naturalness
+		f0 *= 1.0 + sin(float(syl_idx) * 2.7) * 0.04
 
-	# Phantom â€” deep organ chord (C3 + G3 + C4, rich harmonics)
-	var phantom_len := int(rate * 0.55)
-	var phantom_samples := PackedFloat32Array()
-	phantom_samples.resize(phantom_len)
-	for i in range(phantom_len):
-		var t := float(i) / float(rate)
-		var attack := minf(t * 8.0, 1.0)
-		var env := attack * exp(-t * 2.0) * 0.25
-		var s := sin(TAU * 130.81 * t) + sin(TAU * 196.0 * t) * 0.7
-		s += sin(TAU * 261.63 * t) * 0.5 + sin(TAU * 392.0 * t) * 0.2
-		phantom_samples[i] = s * env
-	voice_clips[TowerType.PHANTOM] = _samples_to_wav(phantom_samples, rate)
+		# Glottal pulse train (fundamental + harmonics 2-5)
+		var glottal := sin(TAU * f0 * t)
+		glottal += sin(TAU * f0 * 2.0 * t) * 0.6
+		glottal += sin(TAU * f0 * 3.0 * t) * 0.35
+		glottal += sin(TAU * f0 * 4.0 * t) * 0.2
+		glottal += sin(TAU * f0 * 5.0 * t) * 0.1
 
-	# Scrooge â€” coin clinks (3 metallic hits)
-	var scrooge_len := int(rate * 0.4)
-	var scrooge_samples := PackedFloat32Array()
-	scrooge_samples.resize(scrooge_len)
-	var clink_times := [0.0, 0.12, 0.22]
-	for i in range(scrooge_len):
-		var t := float(i) / float(rate)
-		var s := 0.0
-		for ct in clink_times:
-			var dt: float = t - ct
-			if dt >= 0.0 and dt < 0.12:
-				var env := exp(-dt * 35.0) * 0.4
-				s += sin(TAU * 2800.0 * dt) * env + sin(TAU * 4200.0 * dt) * env * 0.5
-		scrooge_samples[i] = s
-	voice_clips[TowerType.SCROOGE] = _samples_to_wav(scrooge_samples, rate)
+		# Breathiness noise component
+		var noise := (randf() * 2.0 - 1.0) * breathiness
+
+		# Pick formant vowel for this syllable (cycle through provided formants)
+		var vowel: Array = formants[syl_idx % formants.size()]
+		# Formant resonance (sinusoids at F1/F2/F3)
+		var formant_signal := sin(TAU * vowel[0] * t) * 0.5
+		formant_signal += sin(TAU * vowel[1] * t) * 0.35
+		formant_signal += sin(TAU * vowel[2] * t) * 0.15
+
+		# Mix glottal source with formant coloring
+		var s := (glottal * 0.4 + formant_signal * 0.4 + noise * 0.2) * env
+
+		# Overall fade in/out
+		var fade_in := clampf(t / 0.03, 0.0, 1.0)
+		var fade_out := clampf((duration - t) / 0.05, 0.0, 1.0)
+		samples[i] = clampf(s * fade_in * fade_out * 0.55, -1.0, 1.0)
+
+	return _samples_to_wav(samples, rate)
+
+func _generate_voice_clips() -> void:
+	# Robin Hood — confident baritone (F0=145Hz)
+	# Vowels: ah=[730,1090,2440], oh=[570,840,2410], eh=[530,1840,2480]
+	voice_clips[TowerType.ROBIN_HOOD] = _generate_formant_voice(
+		145.0, [[730,1090,2440], [570,840,2410], [530,1840,2480]],
+		5, 0.7, 0.10, 5.5, 4.0)
+
+	# Alice — bright curious girl (F0=280Hz)
+	# Vowels: ee=[270,2290,3010], eh=[530,1840,2480], ah=[730,1090,2440]
+	voice_clips[TowerType.ALICE] = _generate_formant_voice(
+		280.0, [[270,2290,3010], [530,1840,2480], [730,1090,2440], [270,2290,3010]],
+		6, 0.65, 0.25, 6.0, 6.0)
+
+	# Wicked Witch — raspy nasal cackle (F0=240Hz)
+	# Vowels: ae=[660,1720,2410], oo=[300,870,2240], eh=[530,1840,2480]
+	voice_clips[TowerType.WICKED_WITCH] = _generate_formant_voice(
+		240.0, [[660,1720,2410], [300,870,2240], [530,1840,2480], [660,1720,2410]],
+		5, 0.7, 0.35, 4.0, 8.0)
+
+	# Peter Pan — energetic boy (F0=220Hz)
+	# Vowels: ee=[270,2290,3010], ah=[730,1090,2440], ih=[390,1990,2550]
+	voice_clips[TowerType.PETER_PAN] = _generate_formant_voice(
+		220.0, [[270,2290,3010], [730,1090,2440], [390,1990,2550]],
+		7, 0.55, 0.15, 7.0, 5.0)
+
+	# Phantom — deep operatic bass (F0=120Hz)
+	# Vowels: ah=[730,1090,2440], oh=[570,840,2410], oo=[300,870,2240]
+	voice_clips[TowerType.PHANTOM] = _generate_formant_voice(
+		120.0, [[730,1090,2440], [570,840,2410], [300,870,2240]],
+		4, 0.8, 0.08, 4.5, 3.0)
+
+	# Scrooge — thin reedy warble (F0=165Hz)
+	# Vowels: ah=[730,1090,2440], eh=[530,1840,2480], uh=[640,1190,2390]
+	voice_clips[TowerType.SCROOGE] = _generate_formant_voice(
+		165.0, [[730,1090,2440], [530,1840,2480], [640,1190,2390], [730,1090,2440]],
+		5, 0.6, 0.40, 3.5, 7.0)
 
 func _play_tower_voice(tower_type: TowerType) -> void:
 	if voice_clips.has(tower_type):
@@ -1861,6 +2543,140 @@ func _get_tower_quote(tower_type: TowerType) -> String:
 	var quotes: Array = tower_quotes[tower_type]
 	return quotes[randi() % quotes.size()]
 
+func _load_voice_clips() -> void:
+	var character_dirs = {
+		TowerType.ROBIN_HOOD: "robin_hood",
+		TowerType.ALICE: "alice",
+		TowerType.WICKED_WITCH: "wicked_witch",
+		TowerType.PETER_PAN: "peter_pan",
+		TowerType.PHANTOM: "phantom",
+		TowerType.SCROOGE: "scrooge",
+	}
+	for tower_type in character_dirs:
+		var dir_name: String = character_dirs[tower_type]
+		var place_clips: Array = []
+		var fight_clips: Array = []
+		for i in range(4):
+			var place_path = "res://audio/voices/" + dir_name + "/place_" + str(i) + ".mp3"
+			if ResourceLoader.exists(place_path):
+				place_clips.append(load(place_path))
+			var fight_path = "res://audio/voices/" + dir_name + "/fight_" + str(i) + ".mp3"
+			if ResourceLoader.exists(fight_path):
+				fight_clips.append(load(fight_path))
+		if place_clips.size() > 0:
+			placement_voice_clips[tower_type] = place_clips
+		if fight_clips.size() > 0:
+			fighting_voice_clips[tower_type] = fight_clips
+
+func _init_catchphrase_quotes() -> void:
+	placement_quotes = {
+		TowerType.ROBIN_HOOD: [
+			"Rob the rich to feed the poor!",
+			"I am Robin Hood!",
+			"Come, come, my merry men all!",
+			"Robin Hood, at your service.",
+		],
+		TowerType.ALICE: [
+			"Curiouser and curiouser!",
+			"Who in the world am I? Ah, that's the great puzzle.",
+			"Down the rabbit hole we go!",
+			"We're all mad here, you know.",
+		],
+		TowerType.WICKED_WITCH: [
+			"I'll get you, my pretty, and your little dog too!",
+			"Surrender, Dorothy!",
+			"Fly, my pretties, fly!",
+			"Now I shall have those silver shoes!",
+		],
+		TowerType.PETER_PAN: [
+			"I'm youth, I'm joy, I'm a little bird that has broken out of the egg!",
+			"I don't want ever to be a man!",
+			"To die will be an awfully big adventure!",
+			"I'll never grow up!",
+		],
+		TowerType.PHANTOM: [
+			"I am your Angel of Music.",
+			"The Music of the Night!",
+			"The Opera Ghost is here.",
+			"If I am the Phantom, it is because man's hatred has made me so.",
+		],
+		TowerType.SCROOGE: [
+			"Bah! Humbug!",
+			"Are there no prisons? No workhouses?",
+			"I wish to be left alone.",
+			"Every penny counts!",
+		],
+	}
+	fighting_quotes = {
+		TowerType.ROBIN_HOOD: [
+			"For Sherwood!",
+			"My arrows fly true!",
+			"Steal from the rich, defend the path!",
+			"Another shot for the poor!",
+		],
+		TowerType.ALICE: [
+			"Off with their heads!",
+			"How puzzling all these changes are!",
+			"I could tell you my adventures, beginning from this morning.",
+			"It would be so nice if something made sense for a change.",
+		],
+		TowerType.WICKED_WITCH: [
+			"How about a little fire?",
+			"I'll use the Golden Cap!",
+			"You cursed brat!",
+			"My beautiful wickedness!",
+		],
+		TowerType.PETER_PAN: [
+			"I do believe in fairies!",
+			"Second star to the right!",
+			"Wendy, one girl is more use than twenty boys!",
+			"Oh, the cleverness of me!",
+		],
+		TowerType.PHANTOM: [
+			"Sing for me!",
+			"I am dying of love!",
+			"The chandelier! Beware the chandelier!",
+			"Your most obedient servant, the Opera Ghost.",
+		],
+		TowerType.SCROOGE: [
+			"Humbug!",
+			"I will honour Christmas in my heart!",
+			"Every idiot who goes about with Merry Christmas on his lips!",
+			"God bless us, every one!",
+		],
+	}
+
+func _play_placement_catchphrase(tower_type: TowerType) -> String:
+	# Play MP3 voice clip if available
+	if placement_voice_clips.has(tower_type):
+		var clips: Array = placement_voice_clips[tower_type]
+		catchphrase_player.stream = clips[randi() % clips.size()]
+		catchphrase_player.play()
+	# Return text quote for display
+	if placement_quotes.has(tower_type):
+		var quotes: Array = placement_quotes[tower_type]
+		return quotes[randi() % quotes.size()]
+	return _get_tower_quote(tower_type)
+
+func _play_random_fighting_quote() -> void:
+	# Pick a random placed tower type that has fighting clips
+	var placed_types: Array = []
+	for tower_type in fighting_voice_clips:
+		if purchased_towers.has(tower_type):
+			placed_types.append(tower_type)
+	if placed_types.size() == 0:
+		return
+	var chosen_type = placed_types[randi() % placed_types.size()]
+	var clips: Array = fighting_voice_clips[chosen_type]
+	catchphrase_player.stream = clips[randi() % clips.size()]
+	catchphrase_player.play()
+	# Also display quote text
+	if fighting_quotes.has(chosen_type):
+		var quotes: Array = fighting_quotes[chosen_type]
+		var tname = tower_info[chosen_type]["name"]
+		var quote = quotes[randi() % quotes.size()]
+		info_label.text = "%s: \"%s\"" % [tname, quote]
+
 func _draw_menu_background() -> void:
 	# === Dark wood table / desk background ===
 	draw_rect(Rect2(0, 0, 1280, 720), Color(0.06, 0.04, 0.02))
@@ -1876,7 +2692,23 @@ func _draw_menu_background() -> void:
 			var wobble = sin(float(x) * 0.01 + float(i) * 1.5) * 8.0
 			draw_circle(Vector2(float(x), gy + wobble), 0.5, Color(0.04, 0.025, 0.01, 0.15))
 
-	# === Warm ambient candle glow on desk ===
+	# === Gothic crimson vignette at screen edges ===
+	draw_circle(Vector2(0, 0), 350.0, gothic_glow_red)
+	draw_circle(Vector2(1280, 0), 350.0, gothic_glow_red)
+	draw_circle(Vector2(0, 720), 350.0, gothic_glow_red)
+	draw_circle(Vector2(1280, 720), 350.0, gothic_glow_red)
+
+	# === Purple mist bands at top/bottom ===
+	for i in range(12):
+		var t = float(i) / 11.0
+		draw_rect(Rect2(0, t * 40.0, 1280, 4), Color(gothic_glow_purple.r, gothic_glow_purple.g, gothic_glow_purple.b, 0.06 * (1.0 - t)))
+		draw_rect(Rect2(0, 720.0 - t * 40.0, 1280, 4), Color(gothic_glow_purple.r, gothic_glow_purple.g, gothic_glow_purple.b, 0.06 * (1.0 - t)))
+
+	# === Blood-red light pool at screen bottom center ===
+	draw_circle(Vector2(640, 720), 200.0, Color(0.7, 0.1, 0.12, 0.06))
+	draw_circle(Vector2(640, 700), 120.0, Color(0.8, 0.12, 0.15, 0.04))
+
+	# === Warm ambient candle glow on desk (with crimson tint) ===
 	for candle in _book_candle_positions:
 		var cx_pos = candle["x"]
 		var cy_pos = candle["y"]
@@ -1884,11 +2716,21 @@ func _draw_menu_background() -> void:
 		var glow_r = 80.0 + flicker * 15.0
 		draw_circle(Vector2(cx_pos, cy_pos), glow_r, Color(0.85, 0.55, 0.1, 0.025 + flicker * 0.008))
 		draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.5, Color(0.9, 0.6, 0.15, 0.03 + flicker * 0.01))
+		# Crimson glow layer
+		draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.7, Color(0.9, 0.4, 0.2, 0.015 + flicker * 0.005))
 		# Candle body
 		draw_rect(Rect2(cx_pos - 4, cy_pos + 10, 8, 22), Color(0.85, 0.82, 0.7, 0.5))
 		var flame_h = 7.0 + flicker * 4.0
 		draw_circle(Vector2(cx_pos, cy_pos + 6 - flame_h * 0.3), 3.5, Color(1.0, 0.7, 0.2, 0.6 + flicker * 0.2))
 		draw_circle(Vector2(cx_pos, cy_pos + 4 - flame_h * 0.5), 2.0, Color(1.0, 0.9, 0.5, 0.7 + flicker * 0.15))
+
+	# === Floating embers (small red-orange circles drifting upward) ===
+	for ei in range(8):
+		var ember_base_x = 100.0 + float(ei) * 150.0
+		var ember_drift = sin(_time * 0.8 + float(ei) * 1.7) * 40.0
+		var ember_y = fmod(600.0 - _time * (20.0 + float(ei) * 5.0) + float(ei) * 200.0, 700.0)
+		var ember_alpha = 0.3 + 0.2 * sin(_time * 3.0 + float(ei) * 2.0)
+		draw_circle(Vector2(ember_base_x + ember_drift, ember_y), 1.5 + sin(_time * 4.0 + float(ei)) * 0.5, Color(0.9, 0.35, 0.1, ember_alpha))
 
 	# === Floating dust motes ===
 	for dust in _dust_positions:
@@ -1897,10 +2739,391 @@ func _draw_menu_background() -> void:
 		var alpha = 0.15 + 0.15 * sin(_time * 1.5 + dust["offset"])
 		draw_circle(Vector2(dx, dy), dust["size"], Color(0.85, 0.75, 0.5, alpha))
 
-	if menu_current_view == "chapters" or menu_current_view == "heroes":
+	# === Gothic bottom nav bar drawn enhancements ===
+	var nav_draw_y = 620.0
+	# Active tab crimson glowing underline
+	var nav_tab_names = ["survivors", "relics", "chapters", "chronicles", "emporium"]
+	for ni in range(5):
+		var nav_bx = 64.0 + float(ni) * 240.0
+		if menu_current_view == nav_tab_names[ni]:
+			var glow_a = 0.4 + sin(_time * 2.5) * 0.15
+			draw_rect(Rect2(nav_bx - 5, nav_draw_y + 88, 80, 3), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, glow_a))
+			draw_rect(Rect2(nav_bx - 2, nav_draw_y + 91, 74, 1), Color(0.85, 0.65, 0.1, glow_a * 0.5))
+		# Diamond at center of divider lines
+		if ni < 4:
+			var ddx = nav_bx + 155.0
+			var ddy = nav_draw_y + 44.0
+			draw_colored_polygon(PackedVector2Array([Vector2(ddx, ddy - 3), Vector2(ddx + 3, ddy), Vector2(ddx, ddy + 3), Vector2(ddx - 3, ddy)]), Color(0.65, 0.45, 0.1, 0.25))
+
+	if menu_current_view == "chapters":
 		_draw_open_book()
+	elif menu_current_view == "survivors":
+		if survivor_detail_open:
+			_draw_survivor_detail()
+		else:
+			_draw_survivor_grid()
+	elif menu_current_view == "emporium":
+		_draw_emporium()
 	else:
 		_draw_closed_book()
+
+func _draw_emporium() -> void:
+	# === Gothic parchment background (same dimensions as survivor grid) ===
+	var panel_x = 70.0
+	var panel_y = 45.0
+	var panel_w = 1140.0
+	var panel_h = 560.0
+
+	# Dark parchment background with grain
+	for i in range(56):
+		var t = float(i) / 55.0
+		var col = Color(0.12, 0.08, 0.05).lerp(Color(0.08, 0.05, 0.03), t)
+		var grain = sin(float(i) * 2.3) * 0.008
+		col.r += grain
+		col.g += grain * 0.5
+		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
+
+	# Ornate border — crimson+gold double frame
+	var emp_crimson = Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.35)
+	var emp_gold = Color(0.65, 0.45, 0.1, 0.2)
+	# Outer crimson border (3px)
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), emp_crimson)
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), emp_crimson)
+	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), emp_crimson)
+	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), emp_crimson)
+	# Inner gold border (1px)
+	draw_rect(Rect2(panel_x + 6, panel_y + 6, panel_w - 12, 1), emp_gold)
+	draw_rect(Rect2(panel_x + 6, panel_y + panel_h - 7, panel_w - 12, 1), emp_gold)
+	draw_rect(Rect2(panel_x + 6, panel_y + 6, 1, panel_h - 12), emp_gold)
+	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), emp_gold)
+
+	# Corner filigree ornaments (crimson+gold layers)
+	for corner in [Vector2(panel_x + 14, panel_y + 14), Vector2(panel_x + panel_w - 14, panel_y + 14), Vector2(panel_x + 14, panel_y + panel_h - 14), Vector2(panel_x + panel_w - 14, panel_y + panel_h - 14)]:
+		draw_circle(corner, 7, Color(0.65, 0.45, 0.1, 0.2))
+		draw_circle(corner, 5, Color(0.65, 0.45, 0.1, 0.3))
+		draw_circle(corner, 3, Color(0.65, 0.45, 0.1, 0.25))
+		draw_arc(corner, 10, 0, TAU, 24, Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.12), 1.0)
+		draw_arc(corner, 8, 0, TAU, 24, Color(0.65, 0.45, 0.1, 0.15), 1.0)
+
+	# === Title: THE EMPORIUM ===
+	var font = ThemeDB.fallback_font
+	var title_text = "THE EMPORIUM"
+	var title_size = 28
+	var title_width = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size).x
+	var title_x = panel_x + (panel_w - title_width) * 0.5
+	var title_y = panel_y + 38.0
+	# Title glow
+	draw_string(font, Vector2(title_x, title_y), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.85, 0.65, 0.1, 0.3))
+	draw_string(font, Vector2(title_x - 1, title_y - 1), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
+	# Decorative stars flanking title
+	var star_lx = title_x - 25.0
+	var star_rx = title_x + title_width + 10.0
+	var star_y = title_y - 10.0
+	for dx in [-2.0, 0.0, 2.0]:
+		draw_circle(Vector2(star_lx + dx, star_y + dx * 0.5), 2.0, Color(0.85, 0.65, 0.1, 0.4))
+		draw_circle(Vector2(star_rx + dx, star_y + dx * 0.5), 2.0, Color(0.85, 0.65, 0.1, 0.4))
+	# Underline — crimson + gold double line
+	var line_cx = panel_x + panel_w * 0.5
+	draw_line(Vector2(line_cx - 180, title_y + 8), Vector2(line_cx + 180, title_y + 8), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.3), 1.5)
+	draw_line(Vector2(line_cx - 140, title_y + 12), Vector2(line_cx + 140, title_y + 12), Color(0.65, 0.45, 0.1, 0.15), 1.0)
+
+	# === 3x2 Grid of Emporium Tiles ===
+	var tile_w = 340.0
+	var tile_h = 220.0
+	var gap_x = 30.0
+	var gap_y = 24.0
+	var grid_w = 3.0 * tile_w + 2.0 * gap_x
+	var grid_start_x = panel_x + (panel_w - grid_w) * 0.5
+	var grid_start_y = panel_y + 58.0
+
+	for i in range(6):
+		var cat = emporium_categories[i]
+		var col_idx = i % 3
+		var row = i / 3
+		var tx = grid_start_x + float(col_idx) * (tile_w + gap_x)
+		var ty = grid_start_y + float(row) * (tile_h + gap_y)
+		var is_hovered = (i == emporium_hover_index)
+
+		# Tile shadow (6px offset)
+		draw_rect(Rect2(tx + 6, ty + 6, tile_w, tile_h), Color(0.0, 0.0, 0.0, 0.35))
+
+		# Tile background (dark recessed parchment)
+		var bg = Color(0.10, 0.07, 0.04)
+		if is_hovered:
+			bg = Color(0.15, 0.10, 0.06)
+		draw_rect(Rect2(tx, ty, tile_w, tile_h), bg)
+
+		# Warm amber accent gradient at top
+		for g in range(6):
+			var gt = float(g) / 5.0
+			draw_rect(Rect2(tx, ty + float(g), tile_w, 1), Color(0.65, 0.45, 0.1, 0.12 * (1.0 - gt)))
+
+		# Tile border
+		var tile_border = Color(0.55, 0.38, 0.08, 0.35)
+		if is_hovered:
+			tile_border = Color(0.85, 0.65, 0.15, 0.7)
+		draw_rect(Rect2(tx, ty, tile_w, 2), tile_border)
+		draw_rect(Rect2(tx, ty + tile_h - 2, tile_w, 2), tile_border)
+		draw_rect(Rect2(tx, ty, 2, tile_h), tile_border)
+		draw_rect(Rect2(tx + tile_w - 2, ty, 2, tile_h), tile_border)
+
+		# Hover glow (crimson tint)
+		if is_hovered:
+			var glow_a = 0.06 + sin(_time * 3.5) * 0.03
+			draw_rect(Rect2(tx - 2, ty - 2, tile_w + 4, tile_h + 4), Color(gothic_crimson.r, gothic_crimson.g + 0.3, gothic_crimson.b, glow_a))
+
+		# Corner flourishes (extended with crimson accents)
+		var fl = Color(0.65, 0.45, 0.1, 0.15)
+		var fl_cr = Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.1)
+		draw_line(Vector2(tx + 6, ty + 6), Vector2(tx + 26, ty + 6), fl, 1.0)
+		draw_line(Vector2(tx + 6, ty + 6), Vector2(tx + 6, ty + 26), fl, 1.0)
+		draw_line(Vector2(tx + 6, ty + 8), Vector2(tx + 20, ty + 8), fl_cr, 1.0)
+		draw_line(Vector2(tx + tile_w - 6, ty + 6), Vector2(tx + tile_w - 26, ty + 6), fl, 1.0)
+		draw_line(Vector2(tx + tile_w - 6, ty + 6), Vector2(tx + tile_w - 6, ty + 26), fl, 1.0)
+		draw_line(Vector2(tx + tile_w - 8, ty + 8), Vector2(tx + tile_w - 20, ty + 8), fl_cr, 1.0)
+		draw_line(Vector2(tx + 6, ty + tile_h - 6), Vector2(tx + 26, ty + tile_h - 6), fl, 1.0)
+		draw_line(Vector2(tx + 6, ty + tile_h - 6), Vector2(tx + 6, ty + tile_h - 26), fl, 1.0)
+		draw_line(Vector2(tx + 6, ty + tile_h - 8), Vector2(tx + 20, ty + tile_h - 8), fl_cr, 1.0)
+		draw_line(Vector2(tx + tile_w - 6, ty + tile_h - 6), Vector2(tx + tile_w - 26, ty + tile_h - 6), fl, 1.0)
+		draw_line(Vector2(tx + tile_w - 6, ty + tile_h - 6), Vector2(tx + tile_w - 6, ty + tile_h - 26), fl, 1.0)
+		draw_line(Vector2(tx + tile_w - 8, ty + tile_h - 8), Vector2(tx + tile_w - 20, ty + tile_h - 8), fl_cr, 1.0)
+
+		# === Title text (top) ===
+		var name_size = 16
+		var name_text = cat["name"]
+		var name_w = font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size).x
+		var name_x = tx + (tile_w - name_w) * 0.5
+		var name_y_pos = ty + 28.0
+		draw_string(font, Vector2(name_x, name_y_pos), name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size, Color(0.9, 0.72, 0.2, 0.95))
+
+		# === Procedural icon (center) ===
+		var icon_cx = tx + tile_w * 0.5
+		var icon_cy = ty + tile_h * 0.48
+		_draw_emporium_icon(Vector2(icon_cx, icon_cy), cat["icon"], 70.0)
+
+		# === Description text (bottom) ===
+		var desc_size = 12
+		var desc_text = cat["desc"]
+		var desc_w = font.get_string_size(desc_text, HORIZONTAL_ALIGNMENT_LEFT, -1, desc_size).x
+		var desc_x = tx + (tile_w - desc_w) * 0.5
+		var desc_y = ty + tile_h - 18.0
+		draw_string(font, Vector2(desc_x, desc_y), desc_text, HORIZONTAL_ALIGNMENT_LEFT, -1, desc_size, Color(0.65, 0.55, 0.4, 0.8))
+
+		# === Badge ribbon (top-left) ===
+		if cat["badge"] != "":
+			var badge_text = cat["badge"]
+			var badge_font_size = 10
+			var badge_w = font.get_string_size(badge_text, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_font_size).x + 16.0
+			var badge_h = 20.0
+			var badge_x = tx + 8.0
+			var badge_y_top = ty + 8.0
+			# Badge color: red for SALE!, green for AVAILABLE!
+			var badge_col = Color(0.7, 0.15, 0.1, 0.9)
+			if badge_text == "AVAILABLE!":
+				badge_col = Color(0.15, 0.55, 0.2, 0.9)
+			# Ribbon background
+			draw_rect(Rect2(badge_x, badge_y_top, badge_w, badge_h), badge_col)
+			# Ribbon notch (small triangle cut on right side)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(badge_x + badge_w, badge_y_top),
+				Vector2(badge_x + badge_w + 6, badge_y_top + badge_h * 0.5),
+				Vector2(badge_x + badge_w, badge_y_top + badge_h),
+			]), badge_col)
+			# Badge border highlight
+			draw_rect(Rect2(badge_x, badge_y_top, badge_w, 1), Color(1, 1, 1, 0.2))
+			# Badge text
+			draw_string(font, Vector2(badge_x + 8.0, badge_y_top + 15.0), badge_text, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_font_size, Color(1, 1, 1, 0.95))
+
+	# === "RESTORE PURCHASES" text (bottom-right corner) ===
+	var restore_size = 11
+	var restore_text = "RESTORE PURCHASES"
+	var restore_w = font.get_string_size(restore_text, HORIZONTAL_ALIGNMENT_LEFT, -1, restore_size).x
+	var restore_x = panel_x + panel_w - restore_w - 20.0
+	var restore_y = panel_y + panel_h - 12.0
+	draw_string(font, Vector2(restore_x, restore_y), restore_text, HORIZONTAL_ALIGNMENT_LEFT, -1, restore_size, Color(0.55, 0.42, 0.25, 0.5))
+
+func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
+	var cx = center.x
+	var cy = center.y
+	var s = sz * 0.5
+	match icon_key:
+		"emp_gold":
+			# Stack of 3 gold coins
+			for ci in range(3):
+				var off_y = float(ci) * -10.0
+				var coin_col = Color(0.85, 0.65, 0.1, 0.85 - float(ci) * 0.08)
+				var coin_hi = Color(0.95, 0.78, 0.2, 0.7 - float(ci) * 0.08)
+				# Coin ellipse (top face)
+				draw_circle(Vector2(cx, cy + off_y), s * 0.42, coin_col)
+				# Coin rim (side edge)
+				draw_rect(Rect2(cx - s * 0.42, cy + off_y, s * 0.84, s * 0.12), Color(0.7, 0.5, 0.08, 0.7))
+				# Highlight arc
+				draw_arc(Vector2(cx, cy + off_y), s * 0.3, -PI * 0.8, -PI * 0.2, 8, coin_hi, 2.0)
+				# Inner circle detail
+				draw_arc(Vector2(cx, cy + off_y), s * 0.18, 0, TAU, 10, Color(0.75, 0.55, 0.1, 0.4), 1.0)
+			# Top coin $ symbol
+			draw_line(Vector2(cx - s * 0.08, cy - 24), Vector2(cx - s * 0.08, cy - 12), Color(0.95, 0.8, 0.3, 0.5), 2.0)
+			draw_line(Vector2(cx + s * 0.08, cy - 24), Vector2(cx + s * 0.08, cy - 12), Color(0.95, 0.8, 0.3, 0.5), 2.0)
+		"emp_quills":
+			# Purple feather quill
+			var quill_col = Color(0.55, 0.2, 0.7, 0.85)
+			var quill_hi = Color(0.7, 0.35, 0.85, 0.6)
+			# Feather body (main vane) - slightly curved
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - s * 0.05, cy + s * 0.6),
+				Vector2(cx + s * 0.35, cy - s * 0.5),
+				Vector2(cx + s * 0.15, cy - s * 0.65),
+				Vector2(cx - s * 0.25, cy + s * 0.4),
+			]), quill_col)
+			# Feather highlight
+			draw_line(Vector2(cx - s * 0.12, cy + s * 0.5), Vector2(cx + s * 0.25, cy - s * 0.55), quill_hi, 1.5)
+			# Quill shaft
+			draw_line(Vector2(cx - s * 0.15, cy + s * 0.55), Vector2(cx - s * 0.45, cy + s * 0.75), Color(0.8, 0.75, 0.65, 0.8), 2.0)
+			# Nib tip
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - s * 0.45, cy + s * 0.75),
+				Vector2(cx - s * 0.52, cy + s * 0.85),
+				Vector2(cx - s * 0.42, cy + s * 0.82),
+			]), Color(0.3, 0.2, 0.1, 0.9))
+			# Ink drops
+			draw_circle(Vector2(cx - s * 0.55, cy + s * 0.9), 3.0, Color(0.15, 0.05, 0.3, 0.7))
+			draw_circle(Vector2(cx - s * 0.42, cy + s * 0.95), 2.0, Color(0.15, 0.05, 0.3, 0.5))
+			# Barb lines on feather
+			for bi in range(5):
+				var bt = float(bi) / 4.0
+				var bx = lerp(cx - s * 0.1, cx + s * 0.3, bt)
+				var by_pos = lerp(cy + s * 0.45, cy - s * 0.45, bt)
+				draw_line(Vector2(bx, by_pos), Vector2(bx - s * 0.15, by_pos + s * 0.08), Color(0.45, 0.15, 0.6, 0.3), 1.0)
+		"emp_shards":
+			# Glowing crystal fragment cluster
+			var shard_col = Color(0.3, 0.7, 0.85, 0.8)
+			var shard_glow = Color(0.4, 0.8, 0.95, 0.15)
+			# Central glow
+			draw_circle(Vector2(cx, cy), s * 0.55, shard_glow)
+			draw_circle(Vector2(cx, cy), s * 0.35, Color(0.5, 0.85, 1.0, 0.1))
+			# Main shard (tall, center)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - s * 0.1, cy + s * 0.4),
+				Vector2(cx - s * 0.15, cy - s * 0.15),
+				Vector2(cx, cy - s * 0.6),
+				Vector2(cx + s * 0.12, cy - s * 0.1),
+				Vector2(cx + s * 0.08, cy + s * 0.4),
+			]), shard_col)
+			# Highlight facet
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - s * 0.12, cy - s * 0.1),
+				Vector2(cx, cy - s * 0.55),
+				Vector2(cx + s * 0.05, cy - s * 0.05),
+			]), Color(0.5, 0.85, 0.95, 0.5))
+			# Left shard (smaller, angled)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - s * 0.35, cy + s * 0.35),
+				Vector2(cx - s * 0.4, cy + s * 0.0),
+				Vector2(cx - s * 0.2, cy - s * 0.35),
+				Vector2(cx - s * 0.12, cy + s * 0.05),
+				Vector2(cx - s * 0.18, cy + s * 0.35),
+			]), Color(0.25, 0.6, 0.75, 0.7))
+			# Right shard (small)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx + s * 0.2, cy + s * 0.3),
+				Vector2(cx + s * 0.18, cy - s * 0.1),
+				Vector2(cx + s * 0.32, cy - s * 0.25),
+				Vector2(cx + s * 0.38, cy + s * 0.05),
+				Vector2(cx + s * 0.3, cy + s * 0.3),
+			]), Color(0.35, 0.65, 0.8, 0.65))
+			# Sparkle points
+			for sp in [Vector2(cx + s * 0.05, cy - s * 0.5), Vector2(cx - s * 0.3, cy - s * 0.2), Vector2(cx + s * 0.35, cy - s * 0.15)]:
+				draw_line(sp + Vector2(-4, 0), sp + Vector2(4, 0), Color(1, 1, 1, 0.5), 1.0)
+				draw_line(sp + Vector2(0, -4), sp + Vector2(0, 4), Color(1, 1, 1, 0.5), 1.0)
+		"emp_chests":
+			# Ornate treasure chest
+			var wood_col = Color(0.5, 0.3, 0.12, 0.85)
+			var wood_dark = Color(0.35, 0.2, 0.08, 0.85)
+			var gold_col = Color(0.85, 0.65, 0.1, 0.9)
+			# Chest body (bottom box)
+			draw_rect(Rect2(cx - s * 0.5, cy - s * 0.05, s * 1.0, s * 0.55), wood_col)
+			# Planks
+			draw_line(Vector2(cx - s * 0.5, cy + s * 0.2), Vector2(cx + s * 0.5, cy + s * 0.2), wood_dark, 1.0)
+			# Lid (rounded top)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - s * 0.5, cy - s * 0.05),
+				Vector2(cx - s * 0.48, cy - s * 0.3),
+				Vector2(cx - s * 0.3, cy - s * 0.48),
+				Vector2(cx, cy - s * 0.55),
+				Vector2(cx + s * 0.3, cy - s * 0.48),
+				Vector2(cx + s * 0.48, cy - s * 0.3),
+				Vector2(cx + s * 0.5, cy - s * 0.05),
+			]), wood_dark)
+			# Gold bands
+			draw_line(Vector2(cx - s * 0.5, cy - s * 0.05), Vector2(cx + s * 0.5, cy - s * 0.05), gold_col, 2.5)
+			draw_line(Vector2(cx - s * 0.5, cy + s * 0.5), Vector2(cx + s * 0.5, cy + s * 0.5), gold_col, 2.0)
+			# Gold latch (center)
+			draw_rect(Rect2(cx - s * 0.08, cy - s * 0.12, s * 0.16, s * 0.2), gold_col)
+			draw_circle(Vector2(cx, cy + s * 0.02), s * 0.06, Color(0.95, 0.75, 0.2))
+			# Glow from opening
+			draw_circle(Vector2(cx, cy - s * 0.15), s * 0.3, Color(1.0, 0.85, 0.3, 0.08 + sin(_time * 2.5) * 0.04))
+			# Corner reinforcements
+			for ccx in [cx - s * 0.48, cx + s * 0.42]:
+				draw_rect(Rect2(ccx, cy - s * 0.03, s * 0.06, s * 0.52), gold_col.darkened(0.3))
+		"emp_packs":
+			# Silhouette of character group / book bundle
+			var sil_col = Color(0.55, 0.35, 0.15, 0.7)
+			var sil_hi = Color(0.7, 0.5, 0.2, 0.5)
+			# Three book shapes (stacked at angle)
+			# Book 1 (left, leaning)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - s * 0.4, cy + s * 0.45),
+				Vector2(cx - s * 0.5, cy - s * 0.25),
+				Vector2(cx - s * 0.3, cy - s * 0.3),
+				Vector2(cx - s * 0.2, cy + s * 0.4),
+			]), sil_col)
+			draw_line(Vector2(cx - s * 0.48, cy - s * 0.2), Vector2(cx - s * 0.22, cy + s * 0.38), Color(0.85, 0.65, 0.1, 0.3), 1.0)
+			# Book 2 (center, upright)
+			draw_rect(Rect2(cx - s * 0.15, cy - s * 0.4, s * 0.3, s * 0.85), Color(0.45, 0.25, 0.1, 0.75))
+			draw_rect(Rect2(cx - s * 0.12, cy - s * 0.35, s * 0.24, s * 0.08), Color(0.85, 0.65, 0.1, 0.4))
+			# Book 3 (right, leaning opposite)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx + s * 0.2, cy + s * 0.45),
+				Vector2(cx + s * 0.3, cy - s * 0.3),
+				Vector2(cx + s * 0.5, cy - s * 0.25),
+				Vector2(cx + s * 0.4, cy + s * 0.45),
+			]), Color(0.5, 0.28, 0.12, 0.7))
+			draw_line(Vector2(cx + s * 0.32, cy - s * 0.25), Vector2(cx + s * 0.42, cy + s * 0.4), Color(0.85, 0.65, 0.1, 0.3), 1.0)
+			# Character silhouettes peeking above books
+			draw_circle(Vector2(cx - s * 0.1, cy - s * 0.52), s * 0.12, Color(0.3, 0.2, 0.1, 0.5))
+			draw_circle(Vector2(cx + s * 0.15, cy - s * 0.48), s * 0.1, Color(0.3, 0.2, 0.1, 0.45))
+			# Ribbon bookmark
+			draw_line(Vector2(cx, cy - s * 0.4), Vector2(cx - s * 0.05, cy + s * 0.55), Color(0.7, 0.15, 0.15, 0.5), 2.0)
+		"emp_stars":
+			# Cluster of stars with sparkle
+			var star_col = Color(0.95, 0.8, 0.2, 0.85)
+			var star_glow = Color(1.0, 0.9, 0.4, 0.12)
+			# Central glow
+			draw_circle(Vector2(cx, cy), s * 0.5, star_glow)
+			# Draw 5 stars of varying sizes
+			var star_positions = [
+				{"pos": Vector2(cx, cy - s * 0.2), "r": s * 0.28},
+				{"pos": Vector2(cx - s * 0.35, cy + s * 0.15), "r": s * 0.18},
+				{"pos": Vector2(cx + s * 0.35, cy + s * 0.1), "r": s * 0.2},
+				{"pos": Vector2(cx - s * 0.15, cy + s * 0.4), "r": s * 0.14},
+				{"pos": Vector2(cx + s * 0.2, cy + s * 0.38), "r": s * 0.12},
+			]
+			for sd in star_positions:
+				var sp_center = sd["pos"]
+				var sr = sd["r"]
+				# 5-point star
+				for si in range(5):
+					var a1 = -PI / 2.0 + float(si) * TAU / 5.0
+					var a2 = -PI / 2.0 + (float(si) + 0.5) * TAU / 5.0
+					var p1 = sp_center + Vector2.from_angle(a1) * sr
+					var p2 = sp_center + Vector2.from_angle(a2) * sr * 0.4
+					var p3 = sp_center + Vector2.from_angle(a1 + TAU / 5.0) * sr
+					draw_colored_polygon(PackedVector2Array([sp_center, p1, p2]), star_col)
+					draw_colored_polygon(PackedVector2Array([sp_center, p2, p3]), star_col)
+			# Cross sparkles on the largest star
+			var main_star = star_positions[0]["pos"]
+			draw_line(main_star + Vector2(-s * 0.35, 0), main_star + Vector2(s * 0.35, 0), Color(1, 1, 1, 0.3), 1.0)
+			draw_line(main_star + Vector2(0, -s * 0.35), main_star + Vector2(0, s * 0.35), Color(1, 1, 1, 0.3), 1.0)
 
 func _draw_closed_book() -> void:
 	# === Leather-bound book cover (centered) ===
@@ -1962,16 +3185,831 @@ func _draw_closed_book() -> void:
 	draw_circle(Vector2(bx + bw * 0.5, clasp_y + 4), 10, Color(0.65, 0.45, 0.1, 0.4))
 	draw_circle(Vector2(bx + bw * 0.5, clasp_y + 4), 6, Color(0.75, 0.55, 0.15, 0.3))
 
+func _draw_survivor_grid() -> void:
+	# === Gothic parchment background for survivor roster ===
+	var panel_x = 70.0
+	var panel_y = 45.0
+	var panel_w = 1140.0
+	var panel_h = 560.0
+
+	# Dark parchment background
+	for i in range(56):
+		var t = float(i) / 55.0
+		var col = Color(0.12, 0.08, 0.05).lerp(Color(0.08, 0.05, 0.03), t)
+		var grain = sin(float(i) * 2.3) * 0.008
+		col.r += grain
+		col.g += grain * 0.5
+		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
+
+	# Ornate border — 3px crimson outer + 1px gold inner
+	var sg_crimson = Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.35)
+	var sg_gold = Color(0.65, 0.45, 0.1, 0.2)
+	# Outer crimson border (3px)
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), sg_crimson)
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), sg_crimson)
+	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), sg_crimson)
+	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), sg_crimson)
+	# Inner gold border (1px)
+	draw_rect(Rect2(panel_x + 6, panel_y + 6, panel_w - 12, 1), sg_gold)
+	draw_rect(Rect2(panel_x + 6, panel_y + panel_h - 7, panel_w - 12, 1), sg_gold)
+	draw_rect(Rect2(panel_x + 6, panel_y + 6, 1, panel_h - 12), sg_gold)
+	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), sg_gold)
+
+	# Corner filigree ornaments (larger with crimson+gold layers)
+	for corner in [Vector2(panel_x + 14, panel_y + 14), Vector2(panel_x + panel_w - 14, panel_y + 14), Vector2(panel_x + 14, panel_y + panel_h - 14), Vector2(panel_x + panel_w - 14, panel_y + panel_h - 14)]:
+		draw_circle(corner, 7, Color(0.65, 0.45, 0.1, 0.2))
+		draw_circle(corner, 5, Color(0.65, 0.45, 0.1, 0.3))
+		draw_circle(corner, 3, Color(0.65, 0.45, 0.1, 0.25))
+		draw_arc(corner, 10, 0, TAU, 24, Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.12), 1.0)
+		draw_arc(corner, 8, 0, TAU, 24, Color(0.65, 0.45, 0.1, 0.15), 1.0)
+
+	# "SURVIVORS" title crimson underline decoration
+	var surv_title_cx = panel_x + panel_w * 0.5
+	draw_line(Vector2(surv_title_cx - 80, panel_y + 48), Vector2(surv_title_cx + 80, panel_y + 48), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.25), 1.5)
+	draw_line(Vector2(surv_title_cx - 60, panel_y + 51), Vector2(surv_title_cx + 60, panel_y + 51), Color(0.65, 0.45, 0.1, 0.15), 1.0)
+
+	# === Draw 6 character cards (3x2 grid) ===
+	var card_w = 310.0
+	var card_h = 210.0
+	var grid_margin_x = 65.0
+	var grid_margin_y = 65.0
+	var gap_x = 40.0
+	var gap_y = 30.0
+
+	var card_colors = [
+		Color(0.2, 0.5, 0.15, 0.6),   # Robin Hood - forest green
+		Color(0.5, 0.15, 0.5, 0.6),   # Alice - purple
+		Color(0.15, 0.5, 0.3, 0.6),   # Wicked Witch - emerald
+		Color(0.2, 0.3, 0.6, 0.6),    # Peter Pan - twilight blue
+		Color(0.5, 0.15, 0.2, 0.6),   # Phantom - crimson
+		Color(0.5, 0.4, 0.15, 0.6),   # Scrooge - gold
+	]
+
+	for i in range(6):
+		var col_idx = i % 3
+		var row = i / 3
+		var cx = panel_x + grid_margin_x + float(col_idx) * (card_w + gap_x)
+		var cy = panel_y + grid_margin_y + float(row) * (card_h + gap_y)
+		var is_selected = (i == survivor_selected_index)
+		var is_hovered = survivor_grid_cards[i].is_hovered() if i < survivor_grid_cards.size() else false
+
+		# Card shadow (6px offset)
+		draw_rect(Rect2(cx + 6, cy + 6, card_w, card_h), Color(0.0, 0.0, 0.0, 0.4))
+
+		# Card background (dark with character tint)
+		var bg_col = Color(0.1, 0.07, 0.04)
+		if is_selected:
+			bg_col = Color(0.18, 0.12, 0.06)
+		elif is_hovered:
+			bg_col = Color(0.14, 0.09, 0.05)
+		draw_rect(Rect2(cx, cy, card_w, card_h), bg_col)
+
+		# Character color accent bar at top
+		var accent = card_colors[i]
+		if is_selected:
+			accent.a = 0.9
+		draw_rect(Rect2(cx, cy, card_w, 5), accent)
+
+		# Card border
+		var card_border_col = Color(0.65, 0.45, 0.1, 0.25)
+		if is_selected:
+			card_border_col = Color(0.85, 0.65, 0.1, 0.8)
+		elif is_hovered:
+			card_border_col = Color(0.75, 0.55, 0.1, 0.5)
+		draw_rect(Rect2(cx, cy, card_w, 2), card_border_col)
+		draw_rect(Rect2(cx, cy + card_h - 2, card_w, 2), card_border_col)
+		draw_rect(Rect2(cx, cy, 2, card_h), card_border_col)
+		draw_rect(Rect2(cx + card_w - 2, cy, 2, card_h), card_border_col)
+
+		# Selected glow effect (crimson tint)
+		if is_selected:
+			var glow_alpha = 0.08 + sin(_time * 3.0) * 0.04
+			draw_rect(Rect2(cx - 3, cy - 3, card_w + 6, card_h + 6), Color(gothic_crimson.r, gothic_crimson.g + 0.3, gothic_crimson.b, glow_alpha))
+
+		# Hover crimson border glow
+		if is_hovered and not is_selected:
+			draw_rect(Rect2(cx - 2, cy - 2, card_w + 4, card_h + 4), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.06))
+
+		# Character emblem area (left side of card)
+		var emblem_cx = cx + 70.0
+		var emblem_cy = cy + 110.0
+		draw_circle(Vector2(emblem_cx, emblem_cy), 50, Color(card_colors[i].r, card_colors[i].g, card_colors[i].b, 0.08))
+		draw_arc(Vector2(emblem_cx, emblem_cy), 46, 0, TAU, 48, Color(card_colors[i].r, card_colors[i].g, card_colors[i].b, 0.15), 1.5)
+
+		# Draw character emblem icons
+		var tower_type = survivor_types[i]
+		match tower_type:
+			TowerType.ROBIN_HOOD:  # Bow
+				draw_arc(Vector2(emblem_cx, emblem_cy), 22, 1.0, 5.3, 32, Color(0.4, 0.6, 0.2, 0.5), 2.5)
+				draw_line(Vector2(emblem_cx - 16, emblem_cy - 16), Vector2(emblem_cx + 16, emblem_cy + 16), Color(0.4, 0.6, 0.2, 0.45), 1.5)
+				draw_colored_polygon(PackedVector2Array([Vector2(emblem_cx + 14, emblem_cy + 12), Vector2(emblem_cx + 20, emblem_cy + 16), Vector2(emblem_cx + 16, emblem_cy + 20)]), Color(0.4, 0.6, 0.2, 0.45))
+			TowerType.ALICE:  # Playing card heart
+				draw_rect(Rect2(emblem_cx - 16, emblem_cy - 20, 32, 40), Color(0.9, 0.87, 0.8, 0.3))
+				draw_circle(Vector2(emblem_cx - 5, emblem_cy - 8), 5.5, Color(0.8, 0.15, 0.4, 0.45))
+				draw_circle(Vector2(emblem_cx + 5, emblem_cy - 8), 5.5, Color(0.8, 0.15, 0.4, 0.45))
+				draw_colored_polygon(PackedVector2Array([Vector2(emblem_cx - 10, emblem_cy - 5), Vector2(emblem_cx + 10, emblem_cy - 5), Vector2(emblem_cx, emblem_cy + 10)]), Color(0.8, 0.15, 0.4, 0.45))
+			TowerType.WICKED_WITCH:  # Emerald gem
+				draw_colored_polygon(PackedVector2Array([Vector2(emblem_cx, emblem_cy - 18), Vector2(emblem_cx + 16, emblem_cy - 5), Vector2(emblem_cx + 12, emblem_cy + 15), Vector2(emblem_cx - 12, emblem_cy + 15), Vector2(emblem_cx - 16, emblem_cy - 5)]), Color(0.15, 0.6, 0.25, 0.45))
+				draw_circle(Vector2(emblem_cx, emblem_cy), 7, Color(0.3, 0.8, 0.4, 0.2))
+			TowerType.PETER_PAN:  # Star
+				for s in range(5):
+					var a1 = -PI / 2.0 + float(s) * TAU / 5.0
+					var a2 = -PI / 2.0 + (float(s) + 0.5) * TAU / 5.0
+					draw_line(Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a1) * 20, Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a2) * 9, Color(0.3, 0.5, 0.9, 0.45), 2.0)
+					draw_line(Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a2) * 9, Vector2(emblem_cx, emblem_cy) + Vector2.from_angle(a1 + TAU / 5.0) * 20, Color(0.3, 0.5, 0.9, 0.45), 2.0)
+			TowerType.PHANTOM:  # Mask
+				draw_arc(Vector2(emblem_cx, emblem_cy - 6), 16, PI + 0.3, TAU - 0.3, 32, Color(0.9, 0.88, 0.82, 0.5), 3.0)
+				draw_circle(Vector2(emblem_cx - 6, emblem_cy - 8), 3.5, Color(0.1, 0.08, 0.06, 0.45))
+				draw_circle(Vector2(emblem_cx + 6, emblem_cy - 8), 3.5, Color(0.1, 0.08, 0.06, 0.45))
+			TowerType.SCROOGE:  # Coin
+				draw_circle(Vector2(emblem_cx, emblem_cy), 16, Color(0.75, 0.6, 0.1, 0.45))
+				draw_circle(Vector2(emblem_cx, emblem_cy), 13, Color(0.85, 0.7, 0.15, 0.3))
+				draw_circle(Vector2(emblem_cx, emblem_cy), 5, Color(0.65, 0.45, 0.1, 0.25))
+
+		# Character name (right side of emblem)
+		# Using draw since labels are in the container overlay
+		var info = tower_info[tower_type]
+		var name_x = cx + 140.0
+		var name_y = cy + 25.0
+
+		# Cost badge (bottom right of card)
+		var badge_x = cx + card_w - 85.0
+		var badge_y = cy + card_h - 40.0
+		draw_rect(Rect2(badge_x, badge_y, 70, 25), Color(0.65, 0.45, 0.1, 0.2))
+		draw_rect(Rect2(badge_x, badge_y, 70, 1), Color(0.65, 0.45, 0.1, 0.3))
+
+		# Decorative corner flourishes on card
+		var fl_col = Color(0.65, 0.45, 0.1, 0.12)
+		draw_line(Vector2(cx + 8, cy + 8), Vector2(cx + 28, cy + 8), fl_col, 1.0)
+		draw_line(Vector2(cx + 8, cy + 8), Vector2(cx + 8, cy + 28), fl_col, 1.0)
+		draw_line(Vector2(cx + card_w - 8, cy + 8), Vector2(cx + card_w - 28, cy + 8), fl_col, 1.0)
+		draw_line(Vector2(cx + card_w - 8, cy + 8), Vector2(cx + card_w - 8, cy + 28), fl_col, 1.0)
+		draw_line(Vector2(cx + 8, cy + card_h - 8), Vector2(cx + 28, cy + card_h - 8), fl_col, 1.0)
+		draw_line(Vector2(cx + 8, cy + card_h - 8), Vector2(cx + 8, cy + card_h - 28), fl_col, 1.0)
+		draw_line(Vector2(cx + card_w - 8, cy + card_h - 8), Vector2(cx + card_w - 28, cy + card_h - 8), fl_col, 1.0)
+		draw_line(Vector2(cx + card_w - 8, cy + card_h - 8), Vector2(cx + card_w - 8, cy + card_h - 28), fl_col, 1.0)
+
+func _draw_relic_icon(center: Vector2, icon_key: String, sz: float, accent: Color) -> void:
+	var cx = center.x
+	var cy = center.y
+	var s = sz * 0.5
+	match icon_key:
+		"green_cloak":
+			# Cloak shape - triangular drape
+			var cloak_col = Color(0.2, 0.55, 0.15, 0.8)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.8), Vector2(cx + s * 0.7, cy + s * 0.8), Vector2(cx - s * 0.7, cy + s * 0.8)]), cloak_col)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.3, cy - s * 0.6), Vector2(cx + s * 0.3, cy - s * 0.6), Vector2(cx + s * 0.15, cy - s * 0.35), Vector2(cx - s * 0.15, cy - s * 0.35)]), Color(0.15, 0.45, 0.1, 0.9))
+			# Clasp
+			draw_circle(Vector2(cx, cy - s * 0.45), s * 0.12, Color(0.85, 0.65, 0.1))
+		"silver_arrow":
+			# Arrow pointing right
+			var arr_col = Color(0.8, 0.82, 0.85, 0.9)
+			draw_line(Vector2(cx - s * 0.8, cy), Vector2(cx + s * 0.5, cy), arr_col, 2.0)
+			# Arrowhead
+			draw_colored_polygon(PackedVector2Array([Vector2(cx + s * 0.8, cy), Vector2(cx + s * 0.4, cy - s * 0.25), Vector2(cx + s * 0.4, cy + s * 0.25)]), arr_col)
+			# Fletching
+			draw_line(Vector2(cx - s * 0.8, cy), Vector2(cx - s * 0.6, cy - s * 0.2), Color(0.6, 0.5, 0.4), 1.5)
+			draw_line(Vector2(cx - s * 0.8, cy), Vector2(cx - s * 0.6, cy + s * 0.2), Color(0.6, 0.5, 0.4), 1.5)
+		"longbow":
+			# Curved bow
+			var bow_col = Color(0.55, 0.35, 0.15, 0.9)
+			draw_arc(Vector2(cx + s * 0.3, cy), s * 0.75, PI * 0.6, PI * 1.4, 12, bow_col, 2.5)
+			# String
+			draw_line(Vector2(cx + s * 0.3 - s * 0.75 * cos(PI * 0.6), cy - s * 0.75 * sin(PI * 0.6)), Vector2(cx + s * 0.3 - s * 0.75 * cos(PI * 1.4), cy - s * 0.75 * sin(PI * 1.4)), Color(0.7, 0.65, 0.55), 1.0)
+		"flask":
+			# Bottle shape
+			var flask_col = Color(0.5, 0.35, 0.15, 0.7)
+			# Neck
+			draw_rect(Rect2(cx - s * 0.12, cy - s * 0.7, s * 0.24, s * 0.35), flask_col)
+			# Body
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.12, cy - s * 0.35), Vector2(cx + s * 0.12, cy - s * 0.35), Vector2(cx + s * 0.35, cy - s * 0.05), Vector2(cx + s * 0.35, cy + s * 0.65), Vector2(cx - s * 0.35, cy + s * 0.65), Vector2(cx - s * 0.35, cy - s * 0.05)]), flask_col)
+			# Liquid
+			draw_rect(Rect2(cx - s * 0.3, cy + s * 0.15, s * 0.6, s * 0.45), Color(0.8, 0.6, 0.1, 0.6))
+			# Cork
+			draw_rect(Rect2(cx - s * 0.15, cy - s * 0.75, s * 0.3, s * 0.1), Color(0.6, 0.45, 0.2))
+		"horn":
+			# Curved horn
+			var horn_col = Color(0.7, 0.55, 0.25, 0.85)
+			draw_arc(Vector2(cx, cy + s * 0.3), s * 0.7, PI * 1.2, PI * 1.9, 10, horn_col, 3.5)
+			# Bell end
+			draw_circle(Vector2(cx + s * 0.55, cy - s * 0.15), s * 0.2, horn_col)
+			draw_circle(Vector2(cx + s * 0.55, cy - s * 0.15), s * 0.12, Color(0.3, 0.2, 0.1, 0.5))
+			# Mouthpiece
+			draw_circle(Vector2(cx - s * 0.45, cy + s * 0.35), s * 0.08, horn_col)
+		"gold_crown":
+			# Crown
+			var crown_col = Color(0.9, 0.7, 0.1, 0.9)
+			# Base band
+			draw_rect(Rect2(cx - s * 0.55, cy + s * 0.1, s * 1.1, s * 0.35), crown_col)
+			# Three points
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.55, cy + s * 0.1), Vector2(cx - s * 0.35, cy - s * 0.5), Vector2(cx - s * 0.15, cy + s * 0.1)]), crown_col)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.2, cy + s * 0.1), Vector2(cx, cy - s * 0.65), Vector2(cx + s * 0.2, cy + s * 0.1)]), crown_col)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx + s * 0.15, cy + s * 0.1), Vector2(cx + s * 0.35, cy - s * 0.5), Vector2(cx + s * 0.55, cy + s * 0.1)]), crown_col)
+			# Gems
+			draw_circle(Vector2(cx, cy + s * 0.25), s * 0.1, Color(0.8, 0.1, 0.1, 0.8))
+			draw_circle(Vector2(cx - s * 0.3, cy + s * 0.25), s * 0.07, Color(0.1, 0.4, 0.8, 0.8))
+			draw_circle(Vector2(cx + s * 0.3, cy + s * 0.25), s * 0.07, Color(0.1, 0.8, 0.3, 0.8))
+		"drink_me":
+			# Small bottle with label
+			var bottle_col = Color(0.3, 0.5, 0.8, 0.7)
+			draw_rect(Rect2(cx - s * 0.1, cy - s * 0.65, s * 0.2, s * 0.3), bottle_col)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.1, cy - s * 0.35), Vector2(cx + s * 0.1, cy - s * 0.35), Vector2(cx + s * 0.3, cy - s * 0.1), Vector2(cx + s * 0.3, cy + s * 0.65), Vector2(cx - s * 0.3, cy + s * 0.65), Vector2(cx - s * 0.3, cy - s * 0.1)]), bottle_col)
+			# Liquid shimmer
+			draw_rect(Rect2(cx - s * 0.25, cy + s * 0.2, s * 0.5, s * 0.4), Color(0.4, 0.2, 0.7, 0.5))
+			# Label tag
+			draw_rect(Rect2(cx - s * 0.18, cy - s * 0.05, s * 0.36, s * 0.18), Color(0.9, 0.85, 0.7, 0.8))
+			# Cork
+			draw_rect(Rect2(cx - s * 0.12, cy - s * 0.72, s * 0.24, s * 0.1), Color(0.6, 0.45, 0.2))
+		"eat_me_cake":
+			# Frosted cake
+			var cake_col = Color(0.75, 0.55, 0.3, 0.85)
+			# Base
+			draw_rect(Rect2(cx - s * 0.45, cy + s * 0.1, s * 0.9, s * 0.45), cake_col)
+			# Frosting top
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.5, cy + s * 0.1), Vector2(cx + s * 0.5, cy + s * 0.1), Vector2(cx + s * 0.45, cy - s * 0.15), Vector2(cx - s * 0.45, cy - s * 0.15)]), Color(0.95, 0.85, 0.9, 0.9))
+			# Cherry on top
+			draw_circle(Vector2(cx, cy - s * 0.3), s * 0.12, Color(0.9, 0.15, 0.15, 0.9))
+			# Drip frosting
+			draw_rect(Rect2(cx - s * 0.15, cy + s * 0.1, s * 0.08, s * 0.15), Color(0.95, 0.85, 0.9, 0.7))
+			draw_rect(Rect2(cx + s * 0.12, cy + s * 0.1, s * 0.08, s * 0.2), Color(0.95, 0.85, 0.9, 0.7))
+		"vorpal_sword":
+			# Jagged blade
+			var blade_col = Color(0.75, 0.8, 0.85, 0.9)
+			# Blade
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.05, cy + s * 0.5), Vector2(cx + s * 0.05, cy + s * 0.5), Vector2(cx + s * 0.08, cy - s * 0.1), Vector2(cx + s * 0.15, cy - s * 0.25), Vector2(cx + s * 0.05, cy - s * 0.4), Vector2(cx + s * 0.1, cy - s * 0.6), Vector2(cx, cy - s * 0.8), Vector2(cx - s * 0.1, cy - s * 0.6), Vector2(cx - s * 0.05, cy - s * 0.4), Vector2(cx - s * 0.15, cy - s * 0.25), Vector2(cx - s * 0.08, cy - s * 0.1)]), blade_col)
+			# Guard
+			draw_rect(Rect2(cx - s * 0.25, cy + s * 0.45, s * 0.5, s * 0.08), Color(0.85, 0.65, 0.1, 0.8))
+			# Handle
+			draw_rect(Rect2(cx - s * 0.06, cy + s * 0.53, s * 0.12, s * 0.25), Color(0.5, 0.3, 0.15, 0.9))
+		"heart_scepter":
+			# Scepter with heart top
+			var scepter_col = Color(0.85, 0.65, 0.1, 0.9)
+			# Shaft
+			draw_rect(Rect2(cx - s * 0.06, cy - s * 0.15, s * 0.12, s * 0.85), scepter_col)
+			# Heart
+			var hx = cx
+			var hy = cy - s * 0.4
+			draw_circle(Vector2(hx - s * 0.12, hy - s * 0.06), s * 0.15, Color(0.9, 0.1, 0.2, 0.9))
+			draw_circle(Vector2(hx + s * 0.12, hy - s * 0.06), s * 0.15, Color(0.9, 0.1, 0.2, 0.9))
+			draw_colored_polygon(PackedVector2Array([Vector2(hx - s * 0.26, hy), Vector2(hx, hy + s * 0.3), Vector2(hx + s * 0.26, hy)]), Color(0.9, 0.1, 0.2, 0.9))
+		"pocket_watch":
+			# Pocket watch
+			var watch_col = Color(0.85, 0.7, 0.3, 0.85)
+			draw_circle(Vector2(cx, cy + s * 0.05), s * 0.55, watch_col)
+			draw_circle(Vector2(cx, cy + s * 0.05), s * 0.45, Color(0.95, 0.92, 0.85, 0.9))
+			# Clock hands
+			draw_line(Vector2(cx, cy + s * 0.05), Vector2(cx, cy - s * 0.2), Color(0.2, 0.15, 0.1), 1.5)
+			draw_line(Vector2(cx, cy + s * 0.05), Vector2(cx + s * 0.15, cy + s * 0.15), Color(0.2, 0.15, 0.1), 1.5)
+			# Ring at top
+			draw_arc(Vector2(cx, cy - s * 0.55), s * 0.12, 0, TAU, 8, watch_col, 2.0)
+			# Chain hint
+			draw_line(Vector2(cx, cy - s * 0.67), Vector2(cx + s * 0.3, cy - s * 0.75), watch_col, 1.5)
+		"cheshire_grin":
+			# Floating grin
+			var grin_col = Color(0.9, 0.4, 0.8, 0.8)
+			draw_arc(Vector2(cx, cy), s * 0.5, 0.15, PI - 0.15, 12, grin_col, 2.5)
+			# Teeth
+			for ti in range(5):
+				var tx = cx - s * 0.35 + float(ti) * s * 0.175
+				draw_rect(Rect2(tx, cy - s * 0.04, s * 0.12, s * 0.12), Color(0.95, 0.95, 0.9, 0.8))
+			# Eyes (floating above)
+			draw_circle(Vector2(cx - s * 0.25, cy - s * 0.35), s * 0.1, grin_col)
+			draw_circle(Vector2(cx + s * 0.25, cy - s * 0.35), s * 0.1, grin_col)
+			draw_circle(Vector2(cx - s * 0.25, cy - s * 0.35), s * 0.04, Color(0.1, 0.1, 0.1))
+			draw_circle(Vector2(cx + s * 0.25, cy - s * 0.35), s * 0.04, Color(0.1, 0.1, 0.1))
+		"ruby_slippers":
+			# Red shoes
+			var shoe_col = Color(0.85, 0.1, 0.15, 0.9)
+			# Left shoe
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.6, cy + s * 0.1), Vector2(cx - s * 0.1, cy + s * 0.1), Vector2(cx - s * 0.1, cy + s * 0.4), Vector2(cx - s * 0.7, cy + s * 0.4), Vector2(cx - s * 0.75, cy + s * 0.25)]), shoe_col)
+			# Right shoe
+			draw_colored_polygon(PackedVector2Array([Vector2(cx + s * 0.1, cy + s * 0.1), Vector2(cx + s * 0.6, cy + s * 0.1), Vector2(cx + s * 0.75, cy + s * 0.25), Vector2(cx + s * 0.7, cy + s * 0.4), Vector2(cx + s * 0.1, cy + s * 0.4)]), shoe_col)
+			# Sparkles
+			draw_circle(Vector2(cx - s * 0.4, cy + s * 0.2), s * 0.05, Color(1.0, 0.8, 0.8, 0.9))
+			draw_circle(Vector2(cx + s * 0.4, cy + s * 0.2), s * 0.05, Color(1.0, 0.8, 0.8, 0.9))
+			draw_circle(Vector2(cx - s * 0.25, cy + s * 0.15), s * 0.03, Color(1.0, 1.0, 0.9, 0.7))
+			draw_circle(Vector2(cx + s * 0.5, cy + s * 0.3), s * 0.03, Color(1.0, 1.0, 0.9, 0.7))
+			# Heels
+			draw_rect(Rect2(cx - s * 0.15, cy + s * 0.4, s * 0.08, s * 0.2), shoe_col)
+			draw_rect(Rect2(cx + s * 0.55, cy + s * 0.4, s * 0.08, s * 0.2), shoe_col)
+		"crystal_ball":
+			# Glass orb on stand
+			var orb_col = Color(0.6, 0.7, 0.9, 0.5)
+			draw_circle(Vector2(cx, cy - s * 0.1), s * 0.45, orb_col)
+			draw_arc(Vector2(cx, cy - s * 0.1), s * 0.45, 0, TAU, 16, Color(0.7, 0.8, 1.0, 0.6), 1.5)
+			# Inner glow
+			draw_circle(Vector2(cx - s * 0.1, cy - s * 0.2), s * 0.12, Color(0.8, 0.9, 1.0, 0.4))
+			# Stand
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.2, cy + s * 0.3), Vector2(cx + s * 0.2, cy + s * 0.3), Vector2(cx + s * 0.35, cy + s * 0.6), Vector2(cx - s * 0.35, cy + s * 0.6)]), Color(0.5, 0.4, 0.2, 0.8))
+		"monkey_fez":
+			# Red fez hat
+			var fez_col = Color(0.8, 0.15, 0.1, 0.9)
+			# Main body
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.35, cy + s * 0.3), Vector2(cx + s * 0.35, cy + s * 0.3), Vector2(cx + s * 0.25, cy - s * 0.35), Vector2(cx - s * 0.25, cy - s * 0.35)]), fez_col)
+			# Flat top
+			draw_rect(Rect2(cx - s * 0.28, cy - s * 0.4, s * 0.56, s * 0.08), fez_col)
+			# Tassel
+			draw_line(Vector2(cx + s * 0.15, cy - s * 0.4), Vector2(cx + s * 0.45, cy - s * 0.15), Color(0.85, 0.7, 0.1), 1.5)
+			draw_circle(Vector2(cx + s * 0.45, cy - s * 0.15), s * 0.06, Color(0.85, 0.7, 0.1))
+			# Brim
+			draw_rect(Rect2(cx - s * 0.4, cy + s * 0.28, s * 0.8, s * 0.06), Color(0.6, 0.1, 0.08, 0.9))
+		"poppy_dust":
+			# Red flowers
+			var poppy_col = Color(0.9, 0.15, 0.1, 0.8)
+			# Three poppies
+			for pi in range(3):
+				var px = cx - s * 0.35 + float(pi) * s * 0.35
+				var py = cy - s * 0.1 + sin(float(pi) * 1.5) * s * 0.15
+				for petal in range(5):
+					var angle = float(petal) * TAU / 5.0
+					var ppx = px + cos(angle) * s * 0.15
+					var ppy = py + sin(angle) * s * 0.15
+					draw_circle(Vector2(ppx, ppy), s * 0.1, poppy_col)
+				draw_circle(Vector2(px, py), s * 0.06, Color(0.15, 0.1, 0.05))
+			# Dust particles
+			draw_circle(Vector2(cx + s * 0.3, cy - s * 0.4), s * 0.04, Color(1.0, 0.8, 0.3, 0.5))
+			draw_circle(Vector2(cx - s * 0.2, cy - s * 0.5), s * 0.03, Color(1.0, 0.8, 0.3, 0.4))
+		"golden_cap":
+			# Gold cap
+			var cap_col = Color(0.9, 0.75, 0.15, 0.9)
+			# Dome
+			draw_arc(Vector2(cx, cy + s * 0.1), s * 0.45, PI, TAU, 12, cap_col, 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.45, cy + s * 0.1), Vector2(cx + s * 0.45, cy + s * 0.1), Vector2(cx + s * 0.3, cy - s * 0.3), Vector2(cx, cy - s * 0.45), Vector2(cx - s * 0.3, cy - s * 0.3)]), cap_col)
+			# Brim
+			draw_rect(Rect2(cx - s * 0.55, cy + s * 0.08, s * 1.1, s * 0.1), Color(0.85, 0.65, 0.1, 0.9))
+			# Center jewel
+			draw_circle(Vector2(cx, cy - s * 0.1), s * 0.1, Color(0.6, 0.1, 0.5, 0.9))
+			# Rune marks
+			draw_line(Vector2(cx - s * 0.2, cy + s * 0.0), Vector2(cx - s * 0.1, cy - s * 0.15), Color(0.5, 0.1, 0.4, 0.5), 1.0)
+			draw_line(Vector2(cx + s * 0.1, cy - s * 0.15), Vector2(cx + s * 0.2, cy + s * 0.0), Color(0.5, 0.1, 0.4, 0.5), 1.0)
+		"hourglass":
+			# Hourglass
+			var glass_col = Color(0.7, 0.6, 0.4, 0.8)
+			# Top triangle
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.4, cy - s * 0.7), Vector2(cx + s * 0.4, cy - s * 0.7), Vector2(cx, cy)]), Color(0.85, 0.75, 0.55, 0.5))
+			# Bottom triangle
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy), Vector2(cx + s * 0.4, cy + s * 0.7), Vector2(cx - s * 0.4, cy + s * 0.7)]), Color(0.85, 0.75, 0.55, 0.5))
+			# Sand (bottom fill)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy + s * 0.2), Vector2(cx + s * 0.3, cy + s * 0.7), Vector2(cx - s * 0.3, cy + s * 0.7)]), Color(0.9, 0.75, 0.3, 0.7))
+			# Frame bars
+			draw_rect(Rect2(cx - s * 0.45, cy - s * 0.75, s * 0.9, s * 0.08), glass_col)
+			draw_rect(Rect2(cx - s * 0.45, cy + s * 0.67, s * 0.9, s * 0.08), glass_col)
+		"fairy_vial":
+			# Glowing vial
+			var vial_col = Color(0.4, 0.8, 0.5, 0.6)
+			# Bottle body
+			draw_rect(Rect2(cx - s * 0.08, cy - s * 0.6, s * 0.16, s * 0.25), Color(0.6, 0.7, 0.65, 0.6))
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.08, cy - s * 0.35), Vector2(cx + s * 0.08, cy - s * 0.35), Vector2(cx + s * 0.25, cy - s * 0.1), Vector2(cx + s * 0.25, cy + s * 0.6), Vector2(cx - s * 0.25, cy + s * 0.6), Vector2(cx - s * 0.25, cy - s * 0.1)]), vial_col)
+			# Glow
+			draw_circle(Vector2(cx, cy + s * 0.1), s * 0.3, Color(0.5, 1.0, 0.6, 0.2))
+			# Sparkles
+			draw_circle(Vector2(cx - s * 0.08, cy), s * 0.04, Color(1.0, 1.0, 0.7, 0.8))
+			draw_circle(Vector2(cx + s * 0.1, cy + s * 0.25), s * 0.03, Color(1.0, 1.0, 0.7, 0.7))
+			draw_circle(Vector2(cx, cy + s * 0.4), s * 0.035, Color(1.0, 1.0, 0.7, 0.6))
+		"iron_hook":
+			# Captain Hook's hook
+			var hook_col = Color(0.6, 0.62, 0.65, 0.9)
+			# Shaft
+			draw_rect(Rect2(cx - s * 0.07, cy - s * 0.7, s * 0.14, s * 0.6), hook_col)
+			# Curved hook
+			draw_arc(Vector2(cx, cy + s * 0.1), s * 0.3, PI * 0.0, PI * 1.3, 10, hook_col, 3.0)
+			# Point
+			var hook_end_x = cx + s * 0.3 * cos(PI * 1.3)
+			var hook_end_y = cy + s * 0.1 + s * 0.3 * sin(PI * 1.3)
+			draw_circle(Vector2(hook_end_x, hook_end_y), s * 0.05, hook_col)
+			# Guard ring
+			draw_arc(Vector2(cx, cy - s * 0.15), s * 0.15, 0, TAU, 8, Color(0.85, 0.65, 0.1, 0.6), 2.0)
+		"star_map":
+			# Star map / scroll with stars
+			var map_col = Color(0.75, 0.7, 0.55, 0.8)
+			# Scroll body
+			draw_rect(Rect2(cx - s * 0.5, cy - s * 0.45, s * 1.0, s * 0.9), Color(0.15, 0.1, 0.25, 0.8))
+			# Scroll rolls
+			draw_circle(Vector2(cx - s * 0.5, cy - s * 0.45), s * 0.08, map_col)
+			draw_circle(Vector2(cx + s * 0.5, cy - s * 0.45), s * 0.08, map_col)
+			draw_circle(Vector2(cx - s * 0.5, cy + s * 0.45), s * 0.08, map_col)
+			draw_circle(Vector2(cx + s * 0.5, cy + s * 0.45), s * 0.08, map_col)
+			# Stars on map
+			var star_positions = [Vector2(-0.2, -0.2), Vector2(0.25, -0.1), Vector2(0.0, 0.15), Vector2(-0.3, 0.1), Vector2(0.3, 0.25)]
+			for sp in star_positions:
+				draw_circle(Vector2(cx + sp.x * s, cy + sp.y * s), s * 0.06, Color(1.0, 0.9, 0.4, 0.8))
+			# Constellation lines
+			draw_line(Vector2(cx - s * 0.2, cy - s * 0.2), Vector2(cx + s * 0.25, cy - s * 0.1), Color(0.7, 0.7, 0.9, 0.3), 1.0)
+			draw_line(Vector2(cx + s * 0.25, cy - s * 0.1), Vector2(cx, cy + s * 0.15), Color(0.7, 0.7, 0.9, 0.3), 1.0)
+		"croc_tooth":
+			# Large fang
+			var tooth_col = Color(0.9, 0.88, 0.8, 0.9)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.2, cy - s * 0.65), Vector2(cx + s * 0.2, cy - s * 0.65), Vector2(cx + s * 0.12, cy + s * 0.15), Vector2(cx, cy + s * 0.7), Vector2(cx - s * 0.12, cy + s * 0.15)]), tooth_col)
+			# Root ridges
+			draw_line(Vector2(cx - s * 0.12, cy - s * 0.5), Vector2(cx - s * 0.06, cy - s * 0.1), Color(0.7, 0.65, 0.55, 0.4), 1.0)
+			draw_line(Vector2(cx + s * 0.12, cy - s * 0.5), Vector2(cx + s * 0.06, cy - s * 0.1), Color(0.7, 0.65, 0.55, 0.4), 1.0)
+			# Blood hint
+			draw_circle(Vector2(cx, cy + s * 0.55), s * 0.06, Color(0.7, 0.1, 0.1, 0.4))
+		"thimble":
+			# Silver thimble
+			var thimble_col = Color(0.75, 0.78, 0.82, 0.85)
+			# Dome top
+			draw_arc(Vector2(cx, cy - s * 0.15), s * 0.3, PI, TAU, 10, thimble_col, 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.3, cy - s * 0.15), Vector2(cx + s * 0.3, cy - s * 0.15), Vector2(cx + s * 0.15, cy - s * 0.4), Vector2(cx, cy - s * 0.48), Vector2(cx - s * 0.15, cy - s * 0.4)]), thimble_col)
+			# Cylinder body
+			draw_rect(Rect2(cx - s * 0.3, cy - s * 0.15, s * 0.6, s * 0.65), thimble_col)
+			# Dimple dots
+			for row in range(3):
+				for col in range(4):
+					var dx = cx - s * 0.2 + float(col) * s * 0.13
+					var dy = cy - s * 0.35 + float(row) * s * 0.12
+					draw_circle(Vector2(dx, dy), s * 0.03, Color(0.6, 0.62, 0.65, 0.6))
+			# Bottom rim
+			draw_rect(Rect2(cx - s * 0.33, cy + s * 0.45, s * 0.66, s * 0.06), Color(0.65, 0.68, 0.72, 0.9))
+		"shadow_thread":
+			# Dark thread / wispy shadow
+			var thread_col = Color(0.2, 0.15, 0.3, 0.8)
+			# Wavy thread lines
+			for ti in range(5):
+				var ty_off = -s * 0.6 + float(ti) * s * 0.3
+				var pts: Array[Vector2] = []
+				for seg in range(8):
+					var tx_seg = cx - s * 0.5 + float(seg) * s * 0.14
+					var ty_seg = cy + ty_off + sin(float(seg) * 1.2 + float(ti)) * s * 0.1
+					pts.append(Vector2(tx_seg, ty_seg))
+				for seg in range(pts.size() - 1):
+					draw_line(pts[seg], pts[seg + 1], thread_col, 1.5 + float(ti) * 0.3)
+			# Needle
+			draw_line(Vector2(cx + s * 0.3, cy - s * 0.7), Vector2(cx + s * 0.5, cy - s * 0.3), Color(0.7, 0.7, 0.75, 0.7), 1.5)
+			draw_circle(Vector2(cx + s * 0.5, cy - s * 0.3), s * 0.04, Color(0.7, 0.7, 0.75, 0.7))
+		"red_rose":
+			# Red rose
+			var rose_col = Color(0.85, 0.1, 0.15, 0.9)
+			# Petals (overlapping circles)
+			draw_circle(Vector2(cx, cy - s * 0.25), s * 0.2, rose_col)
+			draw_circle(Vector2(cx - s * 0.15, cy - s * 0.1), s * 0.18, rose_col)
+			draw_circle(Vector2(cx + s * 0.15, cy - s * 0.1), s * 0.18, rose_col)
+			draw_circle(Vector2(cx - s * 0.08, cy + s * 0.05), s * 0.15, rose_col)
+			draw_circle(Vector2(cx + s * 0.08, cy + s * 0.05), s * 0.15, rose_col)
+			# Center
+			draw_circle(Vector2(cx, cy - s * 0.08), s * 0.08, Color(0.6, 0.05, 0.1))
+			# Stem
+			draw_line(Vector2(cx, cy + s * 0.12), Vector2(cx - s * 0.05, cy + s * 0.7), Color(0.2, 0.5, 0.15), 2.0)
+			# Leaf
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.05, cy + s * 0.4), Vector2(cx - s * 0.3, cy + s * 0.3), Vector2(cx - s * 0.05, cy + s * 0.5)]), Color(0.2, 0.5, 0.15, 0.8))
+		"punjab_lasso":
+			# Coiled rope / lasso
+			var rope_col = Color(0.6, 0.5, 0.3, 0.85)
+			# Coils
+			draw_arc(Vector2(cx, cy - s * 0.1), s * 0.4, 0, TAU, 12, rope_col, 2.5)
+			draw_arc(Vector2(cx, cy - s * 0.1), s * 0.28, 0.3, TAU + 0.3, 10, rope_col, 2.0)
+			draw_arc(Vector2(cx, cy - s * 0.1), s * 0.16, 0.6, TAU + 0.6, 8, rope_col, 1.5)
+			# Hanging end
+			draw_line(Vector2(cx + s * 0.4, cy - s * 0.1), Vector2(cx + s * 0.3, cy + s * 0.5), rope_col, 2.0)
+			# Knot
+			draw_circle(Vector2(cx + s * 0.3, cy + s * 0.5), s * 0.08, rope_col)
+		"opera_score":
+			# Sheet music
+			var paper_col = Color(0.9, 0.85, 0.7, 0.85)
+			# Paper
+			draw_rect(Rect2(cx - s * 0.45, cy - s * 0.6, s * 0.9, s * 1.2), paper_col)
+			# Staff lines
+			for li in range(5):
+				var ly = cy - s * 0.35 + float(li) * s * 0.15
+				draw_line(Vector2(cx - s * 0.38, ly), Vector2(cx + s * 0.38, ly), Color(0.3, 0.25, 0.2, 0.5), 1.0)
+			# Music notes
+			draw_circle(Vector2(cx - s * 0.2, cy - s * 0.2), s * 0.06, Color(0.2, 0.15, 0.1, 0.8))
+			draw_line(Vector2(cx - s * 0.14, cy - s * 0.2), Vector2(cx - s * 0.14, cy - s * 0.5), Color(0.2, 0.15, 0.1, 0.8), 1.0)
+			draw_circle(Vector2(cx + s * 0.05, cy - s * 0.05), s * 0.06, Color(0.2, 0.15, 0.1, 0.8))
+			draw_line(Vector2(cx + s * 0.11, cy - s * 0.05), Vector2(cx + s * 0.11, cy - s * 0.4), Color(0.2, 0.15, 0.1, 0.8), 1.0)
+			draw_circle(Vector2(cx + s * 0.25, cy + s * 0.1), s * 0.06, Color(0.2, 0.15, 0.1, 0.8))
+			draw_line(Vector2(cx + s * 0.31, cy + s * 0.1), Vector2(cx + s * 0.31, cy - s * 0.2), Color(0.2, 0.15, 0.1, 0.8), 1.0)
+		"chandelier_chain":
+			# Chain links
+			var chain_col = Color(0.7, 0.65, 0.5, 0.85)
+			# Vertical chain of oval links
+			for li in range(4):
+				var ly = cy - s * 0.55 + float(li) * s * 0.3
+				draw_arc(Vector2(cx, ly), s * 0.12, 0, TAU, 8, chain_col, 2.0)
+			# Horizontal connector at bottom
+			draw_line(Vector2(cx - s * 0.35, cy + s * 0.45), Vector2(cx + s * 0.35, cy + s * 0.45), chain_col, 2.0)
+			# Small chandelier shape at bottom
+			draw_line(Vector2(cx - s * 0.35, cy + s * 0.45), Vector2(cx - s * 0.25, cy + s * 0.65), chain_col, 1.5)
+			draw_line(Vector2(cx + s * 0.35, cy + s * 0.45), Vector2(cx + s * 0.25, cy + s * 0.65), chain_col, 1.5)
+			draw_line(Vector2(cx, cy + s * 0.45), Vector2(cx, cy + s * 0.7), chain_col, 1.5)
+			# Candle flames
+			draw_circle(Vector2(cx - s * 0.25, cy + s * 0.6), s * 0.05, Color(1.0, 0.8, 0.2, 0.7))
+			draw_circle(Vector2(cx + s * 0.25, cy + s * 0.6), s * 0.05, Color(1.0, 0.8, 0.2, 0.7))
+		"gondola_key":
+			# Ornate key
+			var key_col = Color(0.75, 0.6, 0.25, 0.9)
+			# Bow (circular top)
+			draw_arc(Vector2(cx - s * 0.15, cy - s * 0.35), s * 0.25, 0, TAU, 10, key_col, 2.5)
+			draw_circle(Vector2(cx - s * 0.15, cy - s * 0.35), s * 0.15, Color(0.08, 0.05, 0.03))
+			# Shaft
+			draw_rect(Rect2(cx - s * 0.05, cy - s * 0.15, s * 0.1, s * 0.8), key_col)
+			# Bit (teeth at bottom)
+			draw_rect(Rect2(cx + s * 0.05, cy + s * 0.45, s * 0.2, s * 0.06), key_col)
+			draw_rect(Rect2(cx + s * 0.05, cy + s * 0.55, s * 0.15, s * 0.06), key_col)
+		"hand_mirror":
+			# Hand mirror
+			var mirror_col = Color(0.75, 0.6, 0.25, 0.9)
+			# Mirror face (oval)
+			draw_circle(Vector2(cx, cy - s * 0.2), s * 0.38, mirror_col)
+			draw_circle(Vector2(cx, cy - s * 0.2), s * 0.3, Color(0.75, 0.82, 0.9, 0.7))
+			# Reflection shine
+			draw_circle(Vector2(cx - s * 0.1, cy - s * 0.3), s * 0.08, Color(1.0, 1.0, 1.0, 0.3))
+			# Handle
+			draw_rect(Rect2(cx - s * 0.08, cy + s * 0.15, s * 0.16, s * 0.55), mirror_col)
+			# Handle end
+			draw_circle(Vector2(cx, cy + s * 0.7), s * 0.1, mirror_col)
+		"heavy_chains":
+			# Heavy chains
+			var chains_col = Color(0.55, 0.5, 0.45, 0.85)
+			# Multiple chain links in a pile
+			for ci in range(3):
+				var chain_cx = cx - s * 0.25 + float(ci) * s * 0.25
+				for li in range(3):
+					var chain_cy = cy - s * 0.3 + float(li) * s * 0.25
+					draw_arc(Vector2(chain_cx, chain_cy), s * 0.1, 0, TAU, 6, chains_col, 2.5)
+			# Padlock at center
+			draw_rect(Rect2(cx - s * 0.12, cy + s * 0.2, s * 0.24, s * 0.25), Color(0.5, 0.45, 0.35, 0.9))
+			draw_arc(Vector2(cx, cy + s * 0.2), s * 0.1, PI, TAU, 6, chains_col, 2.0)
+		"ghost_lantern":
+			# Glowing lantern
+			var lantern_col = Color(0.6, 0.55, 0.35, 0.85)
+			# Handle
+			draw_arc(Vector2(cx, cy - s * 0.45), s * 0.15, PI, TAU, 8, lantern_col, 2.0)
+			# Body frame
+			draw_rect(Rect2(cx - s * 0.25, cy - s * 0.35, s * 0.5, s * 0.7), Color(0.0, 0.0, 0.0, 0.3))
+			draw_rect(Rect2(cx - s * 0.25, cy - s * 0.35, s * 0.5, 2), lantern_col)
+			draw_rect(Rect2(cx - s * 0.25, cy + s * 0.35 - 2, s * 0.5, 2), lantern_col)
+			draw_rect(Rect2(cx - s * 0.25, cy - s * 0.35, 2, s * 0.7), lantern_col)
+			draw_rect(Rect2(cx + s * 0.25 - 2, cy - s * 0.35, 2, s * 0.7), lantern_col)
+			# Glow inside
+			draw_circle(Vector2(cx, cy), s * 0.18, Color(0.5, 0.9, 0.6, 0.3))
+			draw_circle(Vector2(cx, cy), s * 0.1, Color(0.6, 1.0, 0.7, 0.4))
+			# Base
+			draw_rect(Rect2(cx - s * 0.3, cy + s * 0.35, s * 0.6, s * 0.12), lantern_col)
+		"brass_key":
+			# Brass key (simpler than gondola key)
+			var bkey_col = Color(0.8, 0.65, 0.2, 0.9)
+			# Bow (diamond shape)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.6), Vector2(cx + s * 0.2, cy - s * 0.35), Vector2(cx, cy - s * 0.1), Vector2(cx - s * 0.2, cy - s * 0.35)]), bkey_col)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.5), Vector2(cx + s * 0.1, cy - s * 0.35), Vector2(cx, cy - s * 0.2), Vector2(cx - s * 0.1, cy - s * 0.35)]), Color(0.08, 0.05, 0.03))
+			# Shaft
+			draw_rect(Rect2(cx - s * 0.05, cy - s * 0.15, s * 0.1, s * 0.75), bkey_col)
+			# Teeth
+			draw_rect(Rect2(cx + s * 0.05, cy + s * 0.35, s * 0.15, s * 0.06), bkey_col)
+			draw_rect(Rect2(cx + s * 0.05, cy + s * 0.48, s * 0.12, s * 0.06), bkey_col)
+		"xmas_pudding":
+			# Steaming pudding
+			var pudding_col = Color(0.45, 0.25, 0.1, 0.9)
+			# Bowl
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.45, cy - s * 0.05), Vector2(cx + s * 0.45, cy - s * 0.05), Vector2(cx + s * 0.35, cy + s * 0.55), Vector2(cx - s * 0.35, cy + s * 0.55)]), pudding_col)
+			# Pudding dome
+			draw_arc(Vector2(cx, cy - s * 0.05), s * 0.45, PI, TAU, 10, pudding_col, 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.45, cy - s * 0.05), Vector2(cx + s * 0.45, cy - s * 0.05), Vector2(cx + s * 0.3, cy - s * 0.35), Vector2(cx, cy - s * 0.45), Vector2(cx - s * 0.3, cy - s * 0.35)]), pudding_col)
+			# White sauce drip
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.35, cy - s * 0.25), Vector2(cx + s * 0.35, cy - s * 0.25), Vector2(cx + s * 0.3, cy - s * 0.05), Vector2(cx + s * 0.15, cy + s * 0.1), Vector2(cx, cy - s * 0.05), Vector2(cx - s * 0.2, cy + s * 0.15), Vector2(cx - s * 0.3, cy - s * 0.05)]), Color(0.95, 0.92, 0.85, 0.8))
+			# Holly on top
+			draw_circle(Vector2(cx - s * 0.05, cy - s * 0.35), s * 0.06, Color(0.85, 0.1, 0.1, 0.9))
+			draw_circle(Vector2(cx + s * 0.08, cy - s * 0.38), s * 0.06, Color(0.85, 0.1, 0.1, 0.9))
+			# Steam wisps
+			draw_arc(Vector2(cx - s * 0.15, cy - s * 0.55), s * 0.1, PI * 0.8, PI * 1.8, 6, Color(0.8, 0.8, 0.8, 0.3), 1.0)
+			draw_arc(Vector2(cx + s * 0.1, cy - s * 0.6), s * 0.08, PI * 0.7, PI * 1.7, 6, Color(0.8, 0.8, 0.8, 0.25), 1.0)
+		"fiddle":
+			# Violin/fiddle
+			var fiddle_col = Color(0.6, 0.35, 0.12, 0.9)
+			# Body (figure-8)
+			draw_circle(Vector2(cx, cy + s * 0.15), s * 0.3, fiddle_col)
+			draw_circle(Vector2(cx, cy - s * 0.2), s * 0.22, fiddle_col)
+			# Waist
+			draw_rect(Rect2(cx - s * 0.12, cy - s * 0.1, s * 0.24, s * 0.15), Color(0.08, 0.05, 0.03))
+			draw_rect(Rect2(cx - s * 0.15, cy - s * 0.05, s * 0.3, s * 0.08), fiddle_col)
+			# Neck
+			draw_rect(Rect2(cx - s * 0.05, cy - s * 0.55, s * 0.1, s * 0.35), fiddle_col)
+			# Scroll
+			draw_arc(Vector2(cx, cy - s * 0.58), s * 0.08, PI * 0.5, PI * 2.0, 6, fiddle_col, 2.0)
+			# Strings
+			for si_str in range(4):
+				var sx_str = cx - s * 0.09 + float(si_str) * s * 0.06
+				draw_line(Vector2(sx_str, cy - s * 0.4), Vector2(sx_str, cy + s * 0.35), Color(0.8, 0.75, 0.6, 0.5), 0.8)
+			# F-holes
+			draw_line(Vector2(cx - s * 0.1, cy + s * 0.0), Vector2(cx - s * 0.1, cy + s * 0.2), Color(0.08, 0.05, 0.03, 0.6), 1.0)
+			draw_line(Vector2(cx + s * 0.1, cy + s * 0.0), Vector2(cx + s * 0.1, cy + s * 0.2), Color(0.08, 0.05, 0.03, 0.6), 1.0)
+			# Bow (diagonal)
+			draw_line(Vector2(cx + s * 0.4, cy - s * 0.6), Vector2(cx - s * 0.3, cy + s * 0.5), Color(0.55, 0.35, 0.15, 0.5), 1.0)
+		"church_bell":
+			# Church bell
+			var bell_col = Color(0.8, 0.65, 0.2, 0.85)
+			# Bell body
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.15, cy - s * 0.55), Vector2(cx + s * 0.15, cy - s * 0.55), Vector2(cx + s * 0.2, cy - s * 0.3), Vector2(cx + s * 0.15, cy + s * 0.1), Vector2(cx + s * 0.4, cy + s * 0.35), Vector2(cx + s * 0.45, cy + s * 0.45), Vector2(cx - s * 0.45, cy + s * 0.45), Vector2(cx - s * 0.4, cy + s * 0.35), Vector2(cx - s * 0.15, cy + s * 0.1), Vector2(cx - s * 0.2, cy - s * 0.3)]), bell_col)
+			# Clapper
+			draw_line(Vector2(cx, cy - s * 0.2), Vector2(cx, cy + s * 0.3), Color(0.5, 0.4, 0.15), 1.5)
+			draw_circle(Vector2(cx, cy + s * 0.32), s * 0.07, Color(0.5, 0.4, 0.15))
+			# Top mount
+			draw_rect(Rect2(cx - s * 0.1, cy - s * 0.65, s * 0.2, s * 0.12), Color(0.5, 0.4, 0.2))
+			draw_arc(Vector2(cx, cy - s * 0.65), s * 0.12, PI, TAU, 6, Color(0.5, 0.4, 0.2), 2.0)
+		_:
+			# Fallback: diamond icon
+			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.5), Vector2(cx + s * 0.35, cy), Vector2(cx, cy + s * 0.5), Vector2(cx - s * 0.35, cy)]), Color(accent.r, accent.g, accent.b, 0.4))
+
+func _draw_survivor_detail() -> void:
+	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
+		return
+
+	var panel_x = 70.0
+	var panel_y = 45.0
+	var panel_w = 1140.0
+	var panel_h = 560.0
+	var tower_type = survivor_types[survivor_detail_index]
+	var info = tower_info[tower_type]
+	var progress = survivor_progress.get(tower_type, {"level": 1, "xp": 0.0, "xp_next": 500.0, "gear_unlocked": false, "sidekicks_unlocked": [false, false, false], "relics_unlocked": [false, false, false, false, false, false]})
+
+	var card_colors = [
+		Color(0.2, 0.5, 0.15),   # Robin Hood
+		Color(0.5, 0.15, 0.5),   # Alice
+		Color(0.15, 0.5, 0.3),   # Wicked Witch
+		Color(0.2, 0.3, 0.6),    # Peter Pan
+		Color(0.5, 0.15, 0.2),   # Phantom
+		Color(0.5, 0.4, 0.15),   # Scrooge
+	]
+	var accent = card_colors[survivor_detail_index]
+
+	# Dark background
+	for i in range(56):
+		var t = float(i) / 55.0
+		var col = Color(0.1, 0.07, 0.04).lerp(Color(0.07, 0.04, 0.02), t)
+		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
+
+	# Ornate outer border — crimson+gold double frame
+	var sd_crimson = Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.35)
+	var sd_gold = Color(0.65, 0.45, 0.1, 0.2)
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), sd_crimson)
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), sd_crimson)
+	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), sd_crimson)
+	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), sd_crimson)
+	draw_rect(Rect2(panel_x + 6, panel_y + 6, panel_w - 12, 1), sd_gold)
+	draw_rect(Rect2(panel_x + 6, panel_y + panel_h - 7, panel_w - 12, 1), sd_gold)
+	draw_rect(Rect2(panel_x + 6, panel_y + 6, 1, panel_h - 12), sd_gold)
+	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), sd_gold)
+
+	# === LEFT SIDE: Character portrait area ===
+	var left_x = panel_x + 30.0
+	var left_w = 420.0
+
+	# Portrait frame (dark recessed area)
+	var portrait_x = left_x + 30.0
+	var portrait_y = panel_y + 70.0
+	var portrait_w = 360.0
+	var portrait_h = 320.0
+	draw_rect(Rect2(portrait_x, portrait_y, portrait_w, portrait_h), Color(0.05, 0.03, 0.02))
+	# Portrait border
+	draw_rect(Rect2(portrait_x, portrait_y, portrait_w, 2), Color(accent.r, accent.g, accent.b, 0.4))
+	draw_rect(Rect2(portrait_x, portrait_y + portrait_h - 2, portrait_w, 2), Color(accent.r, accent.g, accent.b, 0.4))
+	draw_rect(Rect2(portrait_x, portrait_y, 2, portrait_h), Color(accent.r, accent.g, accent.b, 0.4))
+	draw_rect(Rect2(portrait_x + portrait_w - 2, portrait_y, 2, portrait_h), Color(accent.r, accent.g, accent.b, 0.4))
+
+	# Accent color glow behind character
+	draw_circle(Vector2(portrait_x + portrait_w * 0.5, portrait_y + portrait_h * 0.55), 80.0, Color(accent.r, accent.g, accent.b, 0.06))
+	draw_circle(Vector2(portrait_x + portrait_w * 0.5, portrait_y + portrait_h * 0.55), 50.0, Color(accent.r, accent.g, accent.b, 0.04))
+
+	# Level badge (top-left of portrait)
+	var badge_cx = portrait_x + 30.0
+	var badge_cy = portrait_y + 30.0
+	draw_circle(Vector2(badge_cx, badge_cy), 22, Color(0.15, 0.1, 0.05))
+	draw_circle(Vector2(badge_cx, badge_cy), 20, Color(accent.r, accent.g, accent.b, 0.7))
+	draw_circle(Vector2(badge_cx, badge_cy), 16, Color(0.1, 0.07, 0.03))
+	draw_arc(Vector2(badge_cx, badge_cy), 20, 0, TAU, 16, Color(0.85, 0.65, 0.1, 0.4), 1.5)
+
+	# XP progress bar (below portrait)
+	var xp_x = portrait_x + 20.0
+	var xp_y = portrait_y + portrait_h + 15.0
+	var xp_w = portrait_w - 40.0
+	var xp_h = 14.0
+	var xp_ratio = clamp(progress["xp"] / max(progress["xp_next"], 1.0), 0.0, 1.0)
+	# Bar background
+	draw_rect(Rect2(xp_x, xp_y, xp_w, xp_h), Color(0.08, 0.05, 0.03))
+	draw_rect(Rect2(xp_x, xp_y, xp_w, 1), Color(0.65, 0.45, 0.1, 0.2))
+	draw_rect(Rect2(xp_x, xp_y + xp_h - 1, xp_w, 1), Color(0.65, 0.45, 0.1, 0.2))
+	# Bar fill
+	if xp_ratio > 0:
+		draw_rect(Rect2(xp_x + 1, xp_y + 1, (xp_w - 2) * xp_ratio, xp_h - 2), Color(accent.r, accent.g, accent.b, 0.7))
+		# Shine
+		draw_rect(Rect2(xp_x + 1, xp_y + 1, (xp_w - 2) * xp_ratio, 3), Color(1.0, 1.0, 1.0, 0.08))
+
+	# === RIGHT SIDE: Gear, Sidekicks, Relics ===
+	var right_x = panel_x + left_w + 50.0
+	var right_y = panel_y + 60.0
+
+	# --- GEAR section ---
+	var gear_y = right_y
+	# Gear slot (single large slot)
+	var gear_data = survivor_gear.get(tower_type, {"name": "Unknown", "desc": ""})
+	var gear_slot_x = right_x + 10.0
+	var gear_slot_y = gear_y + 30.0
+	var slot_size = 64.0
+	# Slot frame
+	draw_rect(Rect2(gear_slot_x, gear_slot_y, slot_size, slot_size), Color(0.08, 0.05, 0.03))
+	var gear_border = Color(0.85, 0.65, 0.1, 0.4) if progress["gear_unlocked"] else Color(0.4, 0.3, 0.2, 0.3)
+	draw_rect(Rect2(gear_slot_x, gear_slot_y, slot_size, 2), gear_border)
+	draw_rect(Rect2(gear_slot_x, gear_slot_y + slot_size - 2, slot_size, 2), gear_border)
+	draw_rect(Rect2(gear_slot_x, gear_slot_y, 2, slot_size), gear_border)
+	draw_rect(Rect2(gear_slot_x + slot_size - 2, gear_slot_y, 2, slot_size), gear_border)
+	if progress["gear_unlocked"]:
+		# Draw gear icon
+		draw_circle(Vector2(gear_slot_x + slot_size * 0.5, gear_slot_y + slot_size * 0.5), 18, Color(accent.r, accent.g, accent.b, 0.3))
+		draw_arc(Vector2(gear_slot_x + slot_size * 0.5, gear_slot_y + slot_size * 0.5), 14, 0, TAU, 12, Color(0.85, 0.65, 0.1, 0.4), 2.0)
+	else:
+		# Lock icon
+		draw_rect(Rect2(gear_slot_x + 22, gear_slot_y + 30, 20, 16), Color(0.4, 0.3, 0.2, 0.4))
+		draw_arc(Vector2(gear_slot_x + 32, gear_slot_y + 30), 8, PI, TAU, 8, Color(0.4, 0.3, 0.2, 0.4), 2.0)
+
+	# --- SIDEKICKS section ---
+	var sk_y = gear_y + 120.0
+	var sk_data = survivor_sidekicks.get(tower_type, [])
+	for si in range(3):
+		var sx = right_x + 10.0 + float(si) * (slot_size + 16.0)
+		var sy = sk_y + 30.0
+		draw_rect(Rect2(sx, sy, slot_size, slot_size), Color(0.08, 0.05, 0.03))
+		var sk_unlocked = progress["sidekicks_unlocked"][si] if si < progress["sidekicks_unlocked"].size() else false
+		var sk_border = Color(0.85, 0.65, 0.1, 0.4) if sk_unlocked else Color(0.4, 0.3, 0.2, 0.3)
+		draw_rect(Rect2(sx, sy, slot_size, 2), sk_border)
+		draw_rect(Rect2(sx, sy + slot_size - 2, slot_size, 2), sk_border)
+		draw_rect(Rect2(sx, sy, 2, slot_size), sk_border)
+		draw_rect(Rect2(sx + slot_size - 2, sy, 2, slot_size), sk_border)
+		if sk_unlocked and si < sk_data.size():
+			draw_circle(Vector2(sx + slot_size * 0.5, sy + slot_size * 0.5), 16, Color(accent.r, accent.g, accent.b, 0.25))
+			# Silhouette
+			draw_circle(Vector2(sx + slot_size * 0.5, sy + slot_size * 0.35), 10, Color(0.7, 0.6, 0.45, 0.3))
+			draw_rect(Rect2(sx + slot_size * 0.3, sy + slot_size * 0.5, slot_size * 0.4, slot_size * 0.3), Color(0.7, 0.6, 0.45, 0.2))
+		else:
+			# Plus icon
+			draw_rect(Rect2(sx + 28, sy + 20, 8, 24), Color(0.35, 0.25, 0.18, 0.4))
+			draw_rect(Rect2(sx + 20, sy + 28, 24, 8), Color(0.35, 0.25, 0.18, 0.4))
+
+	# --- RELICS section ---
+	var rel_y = sk_y + 120.0
+	var char_relics = survivor_relics.get(tower_type, [])
+	var relic_size = 56.0
+	var relic_earn_levels = [2, 4, 6, 8, 10, 12]  # Levels at which relics become available
+	var relic_purchasable = [false, true, false, true, false, true]  # Even indices earned, odd purchasable
+	var relic_costs = [0, 100, 0, 250, 0, 500]
+	var char_level = progress.get("level", 1)
+	for ri in range(6):
+		var rx = right_x + 10.0 + float(ri) * (relic_size + 10.0)
+		var ry = rel_y + 30.0
+		draw_rect(Rect2(rx, ry, relic_size, relic_size), Color(0.08, 0.05, 0.03))
+		var rel_unlocked = progress["relics_unlocked"][ri] if ri < progress["relics_unlocked"].size() else false
+		var is_available = char_level >= relic_earn_levels[ri]
+		var is_purchasable_slot = relic_purchasable[ri]
+		var rel_border = Color(0.85, 0.65, 0.1, 0.4) if rel_unlocked else (Color(0.6, 0.5, 0.2, 0.4) if is_available and is_purchasable_slot else Color(0.4, 0.3, 0.2, 0.3))
+		draw_rect(Rect2(rx, ry, relic_size, 2), rel_border)
+		draw_rect(Rect2(rx, ry + relic_size - 2, relic_size, 2), rel_border)
+		draw_rect(Rect2(rx, ry, 2, relic_size), rel_border)
+		draw_rect(Rect2(rx + relic_size - 2, ry, 2, relic_size), rel_border)
+		if rel_unlocked and ri < char_relics.size():
+			# Draw unique relic icon
+			var rcx = rx + relic_size * 0.5
+			var rcy = ry + relic_size * 0.5
+			_draw_relic_icon(Vector2(rcx, rcy), char_relics[ri]["icon"], relic_size * 0.7, accent)
+		elif is_available and is_purchasable_slot and not rel_unlocked and ri < char_relics.size():
+			# Purchasable but not yet bought - show gold cost
+			var rcx = rx + relic_size * 0.5
+			var rcy = ry + relic_size * 0.5
+			# Gold coin icon
+			draw_circle(Vector2(rcx, rcy - 4), 10, Color(0.85, 0.65, 0.1, 0.4))
+			draw_circle(Vector2(rcx, rcy - 4), 7, Color(0.9, 0.7, 0.15, 0.3))
+		else:
+			# Lock icon (padlock)
+			var lock_col = Color(0.45, 0.35, 0.25, 0.6)
+			draw_rect(Rect2(rx + 20, ry + 28, 16, 14), lock_col)
+			draw_arc(Vector2(rx + 28, ry + 28), 7, PI, TAU, 8, lock_col, 2.0)
+			draw_circle(Vector2(rx + 28, ry + 34), 2, Color(0.2, 0.15, 0.1, 0.8))
+
+	# Relic tooltip (when hovering over a relic slot)
+	if relic_hover_index >= 0 and relic_hover_index < char_relics.size():
+		var relic_data = char_relics[relic_hover_index]
+		var tooltip_x = right_x + 10.0
+		var tooltip_y = rel_y + 30.0 + relic_size + 8.0
+		var tooltip_w = relic_size * 6.0 + 10.0 * 5.0
+		var tooltip_h = 48.0
+		# Tooltip background
+		draw_rect(Rect2(tooltip_x, tooltip_y, tooltip_w, tooltip_h), Color(0.12, 0.08, 0.04, 0.95))
+		draw_rect(Rect2(tooltip_x, tooltip_y, tooltip_w, 1), Color(0.85, 0.65, 0.1, 0.4))
+		draw_rect(Rect2(tooltip_x, tooltip_y + tooltip_h - 1, tooltip_w, 1), Color(0.85, 0.65, 0.1, 0.4))
+		draw_rect(Rect2(tooltip_x, tooltip_y, 1, tooltip_h), Color(0.85, 0.65, 0.1, 0.4))
+		draw_rect(Rect2(tooltip_x + tooltip_w - 1, tooltip_y, 1, tooltip_h), Color(0.85, 0.65, 0.1, 0.4))
+
+	# Decorative separator line
+	draw_line(Vector2(right_x, right_y + panel_h - 90), Vector2(right_x + 640, right_y + panel_h - 90), Color(0.65, 0.45, 0.1, 0.1), 1.0)
+
 func _draw_open_book() -> void:
 	# === Open book (two-page spread) ===
-	var bx = 60.0
+	var bx = 70.0
 	var by = 45.0
 	var pw = 560.0  # page width
 	var ph = 555.0  # page height
 	var spine_x = bx + pw + 10  # spine center
 
-	# Book shadow
-	draw_rect(Rect2(bx - 5 + 6, by - 5 + 6, pw * 2 + 30, ph + 10), Color(0.0, 0.0, 0.0, 0.25))
+	# Book shadow (larger offset with crimson tint)
+	draw_rect(Rect2(bx - 5 + 8, by - 5 + 8, pw * 2 + 30, ph + 10), Color(0.08, 0.0, 0.02, 0.35))
 
 	# Left page (aged cream paper)
 	for i in range(55):
@@ -1991,49 +4029,91 @@ func _draw_open_book() -> void:
 		col.g += grain
 		draw_rect(Rect2(spine_x + 10, by + t * ph, pw, ph / 54.0 + 1), col)
 
-	# Spine (leather center)
+	# Spine (leather center with crimson bands)
 	draw_rect(Rect2(spine_x - 5, by - 8, 20, ph + 16), Color(0.22, 0.10, 0.04))
 	for i in range(5):
 		var sy = by + 60.0 + float(i) * 100.0
-		draw_line(Vector2(spine_x - 5, sy), Vector2(spine_x + 15, sy), Color(0.65, 0.45, 0.1, 0.3), 2.0)
+		# Alternating crimson and gold bands
+		if i % 2 == 0:
+			draw_line(Vector2(spine_x - 5, sy), Vector2(spine_x + 15, sy), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.4), 2.0)
+		else:
+			draw_line(Vector2(spine_x - 5, sy), Vector2(spine_x + 15, sy), Color(0.65, 0.45, 0.1, 0.3), 2.0)
+		# Embossed diamond shapes on spine
+		var diamond_cx = spine_x + 5.0
+		var diamond_cy = sy + 50.0
+		draw_colored_polygon(PackedVector2Array([Vector2(diamond_cx, diamond_cy - 6), Vector2(diamond_cx + 4, diamond_cy), Vector2(diamond_cx, diamond_cy + 6), Vector2(diamond_cx - 4, diamond_cy)]), Color(0.65, 0.45, 0.1, 0.2))
 	# Spine shadow gradient
 	for i in range(15):
 		var t = float(i) / 14.0
 		draw_line(Vector2(spine_x + 15 + t * 8, by), Vector2(spine_x + 15 + t * 8, by + ph), Color(0.0, 0.0, 0.0, 0.06 * (1.0 - t)), 1.0)
 		draw_line(Vector2(spine_x - 5 - t * 8, by), Vector2(spine_x - 5 - t * 8, by + ph), Color(0.0, 0.0, 0.0, 0.06 * (1.0 - t)), 1.0)
 
-	# Page borders â€” decorative gold trim on left page
-	var border_col = Color(0.65, 0.45, 0.1, 0.2)
-	draw_rect(Rect2(bx + 10, by + 10, pw - 20, 2), border_col)
-	draw_rect(Rect2(bx + 10, by + ph - 12, pw - 20, 2), border_col)
-	draw_rect(Rect2(bx + 10, by + 10, 2, ph - 20), border_col)
-	draw_rect(Rect2(bx + pw - 12, by + 10, 2, ph - 20), border_col)
+	# Page borders — crimson outer frame (3px) + gold inner frame (1px) — left page
+	var crimson_border = Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.3)
+	var gold_border = Color(0.65, 0.45, 0.1, 0.2)
+	# Left page outer crimson border (3px)
+	draw_rect(Rect2(bx + 8, by + 8, pw - 16, 3), crimson_border)
+	draw_rect(Rect2(bx + 8, by + ph - 11, pw - 16, 3), crimson_border)
+	draw_rect(Rect2(bx + 8, by + 8, 3, ph - 16), crimson_border)
+	draw_rect(Rect2(bx + pw - 11, by + 8, 3, ph - 16), crimson_border)
+	# Left page inner gold border (1px)
+	draw_rect(Rect2(bx + 14, by + 14, pw - 28, 1), gold_border)
+	draw_rect(Rect2(bx + 14, by + ph - 15, pw - 28, 1), gold_border)
+	draw_rect(Rect2(bx + 14, by + 14, 1, ph - 28), gold_border)
+	draw_rect(Rect2(bx + pw - 15, by + 14, 1, ph - 28), gold_border)
 
-	# Right page border
+	# Right page double border
 	var rx = spine_x + 10
-	draw_rect(Rect2(rx + 10, by + 10, pw - 20, 2), border_col)
-	draw_rect(Rect2(rx + 10, by + ph - 12, pw - 20, 2), border_col)
-	draw_rect(Rect2(rx + 10, by + 10, 2, ph - 20), border_col)
-	draw_rect(Rect2(rx + pw - 12, by + 10, 2, ph - 20), border_col)
+	draw_rect(Rect2(rx + 8, by + 8, pw - 16, 3), crimson_border)
+	draw_rect(Rect2(rx + 8, by + ph - 11, pw - 16, 3), crimson_border)
+	draw_rect(Rect2(rx + 8, by + 8, 3, ph - 16), crimson_border)
+	draw_rect(Rect2(rx + pw - 11, by + 8, 3, ph - 16), crimson_border)
+	draw_rect(Rect2(rx + 14, by + 14, pw - 28, 1), gold_border)
+	draw_rect(Rect2(rx + 14, by + ph - 15, pw - 28, 1), gold_border)
+	draw_rect(Rect2(rx + 14, by + 14, 1, ph - 28), gold_border)
+	draw_rect(Rect2(rx + pw - 15, by + 14, 1, ph - 28), gold_border)
 
-	# Corner ornaments (left page)
+	# Page edge glow — subtle crimson line along outer page edges
+	draw_rect(Rect2(bx, by, pw, 1), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.1))
+	draw_rect(Rect2(bx, by + ph - 1, pw, 1), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.1))
+	draw_rect(Rect2(bx, by, 1, ph), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.1))
+	draw_rect(Rect2(rx + pw - 1, by, 1, ph), Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.1))
+
+	# Gothic L-bracket corner ornaments (left page)
 	for corner in [Vector2(bx + 18, by + 18), Vector2(bx + pw - 18, by + 18), Vector2(bx + 18, by + ph - 18), Vector2(bx + pw - 18, by + ph - 18)]:
-		draw_circle(corner, 4, Color(0.65, 0.45, 0.1, 0.2))
-		# Filigree lines
-		draw_line(corner + Vector2(-8, 0), corner + Vector2(8, 0), Color(0.65, 0.45, 0.1, 0.12), 0.5)
-		draw_line(corner + Vector2(0, -8), corner + Vector2(0, 8), Color(0.65, 0.45, 0.1, 0.12), 0.5)
+		# Determine bracket direction
+		var dx_sign = 1.0 if corner.x < bx + pw * 0.5 else -1.0
+		var dy_sign = 1.0 if corner.y < by + ph * 0.5 else -1.0
+		# L-bracket lines (gold)
+		draw_line(corner, corner + Vector2(12 * dx_sign, 0), Color(0.65, 0.45, 0.1, 0.25), 1.0)
+		draw_line(corner, corner + Vector2(0, 12 * dy_sign), Color(0.65, 0.45, 0.1, 0.25), 1.0)
+		draw_line(corner + Vector2(12 * dx_sign, 0), corner + Vector2(12 * dx_sign, 4 * dy_sign), Color(0.65, 0.45, 0.1, 0.2), 1.0)
+		draw_line(corner + Vector2(0, 12 * dy_sign), corner + Vector2(4 * dx_sign, 12 * dy_sign), Color(0.65, 0.45, 0.1, 0.2), 1.0)
+		# Center circle + concentric rings (sharper)
+		draw_circle(corner, 5, Color(0.65, 0.45, 0.1, 0.2))
+		draw_circle(corner, 3.5, Color(0.65, 0.45, 0.1, 0.15))
+		draw_circle(corner, 2, Color(0.65, 0.45, 0.1, 0.25))
+		# Crimson arc overlay
+		draw_arc(corner, 7, 0, TAU, 24, Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.12), 1.0)
 
-	# Corner ornaments (right page)
+	# Gothic L-bracket corner ornaments (right page)
 	for corner in [Vector2(rx + 18, by + 18), Vector2(rx + pw - 18, by + 18), Vector2(rx + 18, by + ph - 18), Vector2(rx + pw - 18, by + ph - 18)]:
-		draw_circle(corner, 4, Color(0.65, 0.45, 0.1, 0.2))
-		draw_line(corner + Vector2(-8, 0), corner + Vector2(8, 0), Color(0.65, 0.45, 0.1, 0.12), 0.5)
-		draw_line(corner + Vector2(0, -8), corner + Vector2(0, 8), Color(0.65, 0.45, 0.1, 0.12), 0.5)
+		var dx_sign2 = 1.0 if corner.x < rx + pw * 0.5 else -1.0
+		var dy_sign2 = 1.0 if corner.y < by + ph * 0.5 else -1.0
+		draw_line(corner, corner + Vector2(12 * dx_sign2, 0), Color(0.65, 0.45, 0.1, 0.25), 1.0)
+		draw_line(corner, corner + Vector2(0, 12 * dy_sign2), Color(0.65, 0.45, 0.1, 0.25), 1.0)
+		draw_line(corner + Vector2(12 * dx_sign2, 0), corner + Vector2(12 * dx_sign2, 4 * dy_sign2), Color(0.65, 0.45, 0.1, 0.2), 1.0)
+		draw_line(corner + Vector2(0, 12 * dy_sign2), corner + Vector2(4 * dx_sign2, 12 * dy_sign2), Color(0.65, 0.45, 0.1, 0.2), 1.0)
+		draw_circle(corner, 5, Color(0.65, 0.45, 0.1, 0.2))
+		draw_circle(corner, 3.5, Color(0.65, 0.45, 0.1, 0.15))
+		draw_circle(corner, 2, Color(0.65, 0.45, 0.1, 0.25))
+		draw_arc(corner, 7, 0, TAU, 24, Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.12), 1.0)
 
 	# Ink blot decorations (right page corners)
 	draw_circle(Vector2(rx + pw - 40, by + ph - 40), 6.0, Color(0.2, 0.15, 0.1, 0.06))
 	draw_circle(Vector2(rx + pw - 35, by + ph - 45), 4.0, Color(0.2, 0.15, 0.1, 0.04))
 
-	# Left page: character preview area (tower preview is placed by _show_hero_preview/menu system)
+	# Left page: character preview area (tower preview is placed by menu system)
 	if menu_current_view == "chapters":
 		var char_idx = menu_character_index
 		# Character-themed decorative motif on left page
@@ -2041,13 +4121,13 @@ func _draw_open_book() -> void:
 		var motif_x = bx + pw * 0.5
 		# Draw a simple emblem/crest area
 		draw_circle(Vector2(motif_x, motif_y + 80), 60, Color(0.65, 0.45, 0.1, 0.04))
-		draw_arc(Vector2(motif_x, motif_y + 80), 55, 0, TAU, 32, Color(0.65, 0.45, 0.1, 0.12), 1.5)
-		draw_arc(Vector2(motif_x, motif_y + 80), 45, 0, TAU, 32, Color(0.65, 0.45, 0.1, 0.08), 1.0)
+		draw_arc(Vector2(motif_x, motif_y + 80), 55, 0, TAU, 48, Color(0.65, 0.45, 0.1, 0.12), 1.5)
+		draw_arc(Vector2(motif_x, motif_y + 80), 45, 0, TAU, 48, Color(0.65, 0.45, 0.1, 0.08), 1.0)
 
 		# Character emblem icons (simple procedural)
 		match char_idx:
 			0:  # Robin Hood - bow and arrow
-				draw_arc(Vector2(motif_x, motif_y + 80), 25, 1.0, 5.3, 16, Color(0.4, 0.25, 0.08, 0.35), 2.5)
+				draw_arc(Vector2(motif_x, motif_y + 80), 25, 1.0, 5.3, 32, Color(0.4, 0.25, 0.08, 0.35), 2.5)
 				draw_line(Vector2(motif_x - 20, motif_y + 60), Vector2(motif_x + 20, motif_y + 100), Color(0.4, 0.25, 0.08, 0.3), 1.5)
 				draw_colored_polygon(PackedVector2Array([Vector2(motif_x + 18, motif_y + 96), Vector2(motif_x + 24, motif_y + 100), Vector2(motif_x + 20, motif_y + 104)]), Color(0.4, 0.25, 0.08, 0.3))
 			1:  # Alice - playing card (heart)
@@ -2067,7 +4147,7 @@ func _draw_open_book() -> void:
 					draw_line(Vector2(motif_x, motif_y + 80) + Vector2.from_angle(a1) * 22, Vector2(motif_x, motif_y + 80) + Vector2.from_angle(a2) * 10, Color(0.65, 0.55, 0.1, 0.3), 2.0)
 					draw_line(Vector2(motif_x, motif_y + 80) + Vector2.from_angle(a2) * 10, Vector2(motif_x, motif_y + 80) + Vector2.from_angle(a1 + TAU / 5.0) * 22, Color(0.65, 0.55, 0.1, 0.3), 2.0)
 			4:  # Phantom - mask
-				draw_arc(Vector2(motif_x, motif_y + 72), 18, PI + 0.3, TAU - 0.3, 16, Color(0.9, 0.88, 0.82, 0.35), 3.0)
+				draw_arc(Vector2(motif_x, motif_y + 72), 18, PI + 0.3, TAU - 0.3, 32, Color(0.9, 0.88, 0.82, 0.35), 3.0)
 				draw_circle(Vector2(motif_x - 7, motif_y + 70), 4, Color(0.1, 0.08, 0.06, 0.3))
 				draw_circle(Vector2(motif_x + 7, motif_y + 70), 4, Color(0.1, 0.08, 0.06, 0.3))
 				draw_line(Vector2(motif_x, motif_y + 55), Vector2(motif_x, motif_y + 62), Color(0.9, 0.88, 0.82, 0.25), 2.0)
@@ -2087,17 +4167,30 @@ func _draw_open_book() -> void:
 			# Decorative diamond at center of separator
 			var sep_cx = rx + pw * 0.5
 			draw_colored_polygon(PackedVector2Array([Vector2(sep_cx, sep_y - 4), Vector2(sep_cx + 4, sep_y), Vector2(sep_cx, sep_y + 4), Vector2(sep_cx - 4, sep_y)]), Color(0.65, 0.45, 0.1, 0.15))
+			# Small crimson dots at ends of separator
+			draw_circle(Vector2(rx + 30, sep_y), 2.0, Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.2))
+			draw_circle(Vector2(rx + pw - 30, sep_y), 2.0, Color(gothic_crimson.r, gothic_crimson.g, gothic_crimson.b, 0.2))
 
-	# Page tab bookmarks on right edge (character quick nav)
+	# Page tab bookmarks on right edge (character quick nav) — enhanced gothic
 	var tab_colors = [Color(0.2, 0.5, 0.15), Color(0.5, 0.15, 0.5), Color(0.15, 0.5, 0.3), Color(0.2, 0.3, 0.6), Color(0.5, 0.15, 0.2), Color(0.5, 0.4, 0.15)]
 	if menu_current_view == "chapters":
 		for i in range(6):
 			var tab_y = by + 30.0 + float(i) * 80.0
 			var tab_x = rx + pw - 5
 			var is_active = (i == menu_character_index)
-			var tab_w = 18.0 if is_active else 10.0
-			var tab_alpha = 0.6 if is_active else 0.25
-			draw_rect(Rect2(tab_x, tab_y, tab_w, 50), Color(tab_colors[i].r, tab_colors[i].g, tab_colors[i].b, tab_alpha))
+			var tab_w = 24.0 if is_active else 16.0
+			var tab_alpha = (0.7 + sin(_time * 2.0) * 0.15) if is_active else 0.25
+			var tab_h = 50.0
+			var tc = Color(tab_colors[i].r, tab_colors[i].g, tab_colors[i].b, tab_alpha)
+			# Glow effect behind active tab
+			if is_active:
+				draw_circle(Vector2(tab_x + tab_w * 0.5, tab_y + tab_h * 0.5), 30.0, Color(tab_colors[i].r, tab_colors[i].g, tab_colors[i].b, 0.08))
+			# Tab rectangle
+			draw_rect(Rect2(tab_x, tab_y, tab_w, tab_h), tc)
+			# Gothic pointed bottom edge (triangle)
+			draw_colored_polygon(PackedVector2Array([Vector2(tab_x, tab_y + tab_h), Vector2(tab_x + tab_w, tab_y + tab_h), Vector2(tab_x + tab_w * 0.5, tab_y + tab_h + 8)]), tc)
+			# Thin gold border on inner edge
+			draw_line(Vector2(tab_x, tab_y), Vector2(tab_x, tab_y + tab_h), Color(0.65, 0.45, 0.1, 0.3), 1.0)
 
 # ============================================================
 # GAME LOOP
@@ -2106,10 +4199,25 @@ func _draw_open_book() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	_push_beat_audio()
+	# Ability popup freeze
+	if _ability_popup_freeze > 0.0:
+		_ability_popup_freeze -= delta
+		_ability_popup_timer -= delta
+		if _ability_popup_timer <= 0.0:
+			_ability_popup_timer = 0.0
+		queue_redraw()
+		return
+	if _ability_popup_timer > 0.0:
+		_ability_popup_timer -= delta
 	if game_state != GameState.PLAYING:
+		if survivor_detail_open:
+			_update_relic_hover()
+		elif menu_current_view == "emporium":
+			_update_emporium_hover()
 		queue_redraw()
 		return
 	ghost_position = get_global_mouse_position()
+	_update_spawn_debuffs()
 	if is_wave_active:
 		_handle_spawning(delta)
 		_check_wave_complete()
@@ -2118,6 +4226,12 @@ func _process(delta: float) -> void:
 		if wave_auto_timer <= 0.0:
 			wave_auto_timer = -1.0
 			_start_next_wave()
+	# Fighting voice-over catchphrases (every 20-30s during combat)
+	if placed_tower_positions.size() > 0:
+		_fighting_quote_timer -= delta
+		if _fighting_quote_timer <= 0.0 and not catchphrase_player.playing:
+			_play_random_fighting_quote()
+			_fighting_quote_timer = randf_range(20.0, 30.0)
 	queue_redraw()
 
 func _handle_spawning(delta: float) -> void:
@@ -2192,7 +4306,12 @@ func _spawn_enemy() -> void:
 		enemy.max_health *= diff
 		enemy.speed = enemy.speed * (1.0 + (diff - 1.0) * 0.3)
 
+	# Apply spawn debuffs from progressive abilities
+	if spawn_hp_reduction > 0.0:
+		enemy.max_health *= (1.0 - spawn_hp_reduction)
 	enemy.health = enemy.max_health
+	if spawn_permanent_slow < 1.0:
+		enemy.apply_permanent_slow(spawn_permanent_slow)
 	enemy_path.add_child(enemy)
 	enemies_to_spawn -= 1
 	enemies_alive += 1
@@ -2456,6 +4575,16 @@ func _check_wave_complete() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if game_state != GameState.PLAYING:
+		# Handle relic clicks in menu survivor detail view
+		if game_state == GameState.MENU and survivor_detail_open:
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				if relic_hover_index >= 0:
+					_on_relic_clicked(relic_hover_index)
+		# Handle emporium tile clicks
+		elif game_state == GameState.MENU and menu_current_view == "emporium":
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				if emporium_hover_index >= 0:
+					_on_emporium_tile_clicked(emporium_hover_index)
 		return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -2470,9 +4599,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if placing_tower:
 				placing_tower = false
+				cancel_button.visible = false
 				info_label.text = "Placement cancelled."
 			else:
 				_deselect_tower()
+	elif event is InputEventScreenTouch and event.pressed:
+		if placing_tower:
+			_try_place_tower(event.position)
+		else:
+			var tower = _find_tower_at(event.position)
+			if tower:
+				_select_tower(tower)
+			else:
+				_deselect_tower()
+	elif event is InputEventScreenDrag:
+		ghost_position = event.position
 
 func _dist_to_path(pos: Vector2) -> float:
 	var min_dist: float = 99999.0
@@ -2518,8 +4659,9 @@ func _try_place_tower(pos: Vector2) -> void:
 		tower_buttons[selected_tower].disabled = true
 
 	placing_tower = false
+	cancel_button.visible = false
 	_play_tower_voice(selected_tower)
-	var quote = _get_tower_quote(selected_tower)
+	var quote = _play_placement_catchphrase(selected_tower)
 	info_label.text = "%s: \"%s\"" % [tname, quote]
 
 # ============================================================
@@ -2574,6 +4716,33 @@ func _draw() -> void:
 				var dot_pos = tower.global_position + Vector2(0, -48)
 				draw_circle(dot_pos, 4.0 + pulse * 2.0, Color(1.0, 0.84, 0.0, 0.5 + pulse * 0.4))
 				draw_circle(dot_pos, 8.0 + pulse * 3.0, Color(1.0, 0.84, 0.0, 0.1 + pulse * 0.1))
+
+	# === ABILITY UNLOCK POPUP ===
+	if _ability_popup_timer > 0.0:
+		_draw_ability_popup()
+
+func _draw_ability_popup() -> void:
+	var alpha = clampf(_ability_popup_timer, 0.0, 1.0)
+	var cx = 640.0
+	var cy = 360.0
+	var pw = 500.0
+	var ph = 120.0
+	# Dark translucent background
+	draw_rect(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.05, 0.03, 0.08, 0.85 * alpha))
+	# Gold ornate border
+	draw_rect(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.85, 0.7, 0.2, 0.9 * alpha), false, 3.0)
+	draw_rect(Rect2(cx - pw / 2 + 4, cy - ph / 2 + 4, pw - 8, ph - 8), Color(0.7, 0.55, 0.15, 0.4 * alpha), false, 1.0)
+	# Title
+	draw_string(ThemeDB.fallback_font, Vector2(cx - 120, cy - 25), "NEW ABILITY UNLOCKED!", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.85, 0.3, alpha))
+	# Character name + ability name
+	var char_name = character_names[_ability_popup_tower_type] if _ability_popup_tower_type >= 0 and _ability_popup_tower_type < character_names.size() else ""
+	draw_string(ThemeDB.fallback_font, Vector2(cx - 140, cy + 5), char_name + " — " + _ability_popup_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 1.0, 0.9, alpha))
+	# Description
+	if _ability_popup_desc != "":
+		draw_string(ThemeDB.fallback_font, Vector2(cx - 140, cy + 28), _ability_popup_desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.8, 0.75, alpha * 0.8))
+	# Glow effect
+	var glow_pulse = (sin(_time * 5.0) + 1.0) * 0.5
+	draw_circle(Vector2(cx - pw / 2 + 40, cy), 15.0 + glow_pulse * 5.0, Color(1.0, 0.85, 0.3, 0.1 * alpha))
 
 func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 	# --- SKY GRADIENT ---
@@ -6684,7 +8853,13 @@ func _on_tower_pressed(tower_type: TowerType, desc: String) -> void:
 		return
 	selected_tower = tower_type
 	placing_tower = true
+	cancel_button.visible = true
 	info_label.text = desc
+
+func _on_cancel_placement() -> void:
+	placing_tower = false
+	cancel_button.visible = false
+	info_label.text = "Placement cancelled."
 
 func _find_tower_at(pos: Vector2) -> Node2D:
 	var closest: Node2D = null
@@ -6882,6 +9057,7 @@ func game_over() -> void:
 	Engine.time_scale = 1.0
 	fast_forward = false
 	speed_button.text = "  >>  "
+	_collect_session_damage()
 	game_over_label.text = "GAME OVER"
 	game_over_label.add_theme_color_override("font_color", Color.RED)
 	game_over_label.visible = true
@@ -6893,6 +9069,7 @@ func _victory() -> void:
 	Engine.time_scale = 1.0
 	fast_forward = false
 	speed_button.text = "  >>  "
+	_collect_session_damage()
 	var level_name = levels[current_level]["name"] if current_level >= 0 else "Level"
 	var max_lives = levels[current_level]["lives"] if current_level >= 0 else 20
 	var stars = 1
@@ -6913,6 +9090,139 @@ func _victory() -> void:
 	game_over_label.visible = true
 	return_button.visible = true
 	start_button.disabled = true
+
+func _collect_session_damage() -> void:
+	# Map script filenames to TowerType
+	var script_to_type = {
+		"robin_hood.gd": TowerType.ROBIN_HOOD,
+		"alice.gd": TowerType.ALICE,
+		"wicked_witch.gd": TowerType.WICKED_WITCH,
+		"peter_pan.gd": TowerType.PETER_PAN,
+		"phantom.gd": TowerType.PHANTOM,
+		"scrooge.gd": TowerType.SCROOGE,
+	}
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if tower.get("damage_dealt") != null:
+			var dmg = tower.damage_dealt
+			var script_path = tower.get_script().resource_path if tower.get_script() else ""
+			var fname = script_path.get_file()
+			if script_to_type.has(fname):
+				var tt = script_to_type[fname]
+				session_damage[tt] = session_damage.get(tt, 0.0) + dmg
+				# Apply to persistent progression
+				if survivor_progress.has(tt):
+					survivor_progress[tt]["xp"] += dmg
+					# Accumulate total_damage for progressive abilities
+					survivor_progress[tt]["total_damage"] = survivor_progress[tt].get("total_damage", 0.0) + dmg
+					_check_ability_unlocks(tt)
+					# Check for level ups
+					while survivor_progress[tt]["xp"] >= survivor_progress[tt]["xp_next"]:
+						survivor_progress[tt]["xp"] -= survivor_progress[tt]["xp_next"]
+						survivor_progress[tt]["level"] += 1
+						survivor_progress[tt]["xp_next"] = 500.0 * survivor_progress[tt]["level"]
+						_on_survivor_level_up(tt, survivor_progress[tt]["level"])
+
+func _on_survivor_level_up(tower_type, new_level: int) -> void:
+	# Unlock gear at level 2, sidekicks at 3/5/8
+	# Relics: 0,2,4 auto-earned at levels 2,6,10; relics 1,3,5 purchasable at levels 4,8,12
+	if not survivor_progress.has(tower_type):
+		return
+	var p = survivor_progress[tower_type]
+	if new_level >= 2:
+		p["gear_unlocked"] = true
+	var sk_levels = [3, 5, 8]
+	for i in range(3):
+		if new_level >= sk_levels[i]:
+			p["sidekicks_unlocked"][i] = true
+	# Level-earned relics (indices 0, 2, 4) auto-unlock
+	var earned_levels = {0: 2, 2: 6, 4: 10}
+	for relic_idx in earned_levels:
+		if new_level >= earned_levels[relic_idx]:
+			p["relics_unlocked"][relic_idx] = true
+	# Purchasable relics (indices 1, 3, 5) become available but NOT auto-unlocked
+	# They are unlocked via gold purchase in _on_relic_clicked()
+
+# === PROGRESSIVE ABILITY SYSTEM ===
+
+func register_tower_damage(tower_type: int, amount: float) -> void:
+	if not survivor_progress.has(tower_type):
+		return
+	var p = survivor_progress[tower_type]
+	p["total_damage"] = p.get("total_damage", 0.0) + amount
+	_check_ability_unlocks(tower_type)
+
+func _check_ability_unlocks(tower_type: int) -> void:
+	if not survivor_progress.has(tower_type):
+		return
+	var p = survivor_progress[tower_type]
+	var total = p.get("total_damage", 0.0)
+	var unlocked = p.get("abilities_unlocked", [])
+	if unlocked.size() < 9:
+		unlocked.resize(9)
+		for i in range(unlocked.size()):
+			if unlocked[i] == null:
+				unlocked[i] = false
+		p["abilities_unlocked"] = unlocked
+	for i in range(9):
+		if not unlocked[i] and total >= PROGRESSIVE_ABILITY_THRESHOLDS[i]:
+			unlocked[i] = true
+			_show_ability_unlock_popup(tower_type, i)
+			_notify_tower_ability_unlocked(tower_type, i)
+
+func _show_ability_unlock_popup(tower_type: int, ability_index: int) -> void:
+	_ability_popup_tower_type = tower_type
+	_ability_popup_index = ability_index
+	# Get ability name from tower scripts
+	var script_to_type = {
+		TowerType.ROBIN_HOOD: "robin_hood.gd",
+		TowerType.ALICE: "alice.gd",
+		TowerType.WICKED_WITCH: "wicked_witch.gd",
+		TowerType.PETER_PAN: "peter_pan.gd",
+		TowerType.PHANTOM: "phantom.gd",
+		TowerType.SCROOGE: "scrooge.gd",
+	}
+	_ability_popup_name = "Ability %d" % (ability_index + 1)
+	_ability_popup_desc = ""
+	for tower in get_tree().get_nodes_in_group("towers"):
+		var fname = tower.get_script().resource_path.get_file() if tower.get_script() else ""
+		if script_to_type.get(tower_type, "") == fname:
+			if tower.has_method("get_progressive_ability_name"):
+				_ability_popup_name = tower.get_progressive_ability_name(ability_index)
+			if tower.has_method("get_progressive_ability_desc"):
+				_ability_popup_desc = tower.get_progressive_ability_desc(ability_index)
+			break
+	_ability_popup_timer = 3.0
+	_ability_popup_freeze = 0.5
+	queue_redraw()
+
+func _notify_tower_ability_unlocked(tower_type: int, ability_index: int) -> void:
+	var script_to_type = {
+		TowerType.ROBIN_HOOD: "robin_hood.gd",
+		TowerType.ALICE: "alice.gd",
+		TowerType.WICKED_WITCH: "wicked_witch.gd",
+		TowerType.PETER_PAN: "peter_pan.gd",
+		TowerType.PHANTOM: "phantom.gd",
+		TowerType.SCROOGE: "scrooge.gd",
+	}
+	for tower in get_tree().get_nodes_in_group("towers"):
+		var fname = tower.get_script().resource_path.get_file() if tower.get_script() else ""
+		if script_to_type.get(tower_type, "") == fname:
+			if tower.has_method("activate_progressive_ability"):
+				tower.activate_progressive_ability(ability_index)
+
+func restore_life(amount: int = 1) -> void:
+	lives = mini(lives + amount, 99)
+	update_hud()
+
+func _update_spawn_debuffs() -> void:
+	# Reset spawn debuffs each frame based on active towers
+	spawn_hp_reduction = 0.0
+	spawn_permanent_slow = 1.0
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if tower.has_method("get_spawn_debuffs"):
+			var debuffs = tower.get_spawn_debuffs()
+			spawn_hp_reduction = max(spawn_hp_reduction, debuffs.get("hp_reduction", 0.0))
+			spawn_permanent_slow = min(spawn_permanent_slow, debuffs.get("permanent_slow", 1.0))
 
 func show_ability_choice(tower: Node2D) -> void:
 	_ability_tower = tower

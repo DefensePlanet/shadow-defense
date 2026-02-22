@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Shadow Defense: Tales from the Pages</title>
     <meta name="description" content="A literary-themed tower defense game where iconic book characters defend against villain invasions. Play free in your browser!">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1067,7 +1067,7 @@
                 <p class="section-subtitle">Jump right in &mdash; no download required</p>
             </div>
             <div class="game-wrapper reveal">
-                <div class="game-container" id="game-container">
+                <div class="game-container" id="game-container" style="touch-action: none;">
                     <div class="game-placeholder" id="game-placeholder">
                         <div class="game-placeholder-content">
                             <svg viewBox="0 0 80 80" class="play-icon">
@@ -1077,9 +1077,12 @@
                             <h3>Shadow Defense: Tales from the Pages</h3>
                             <p>Click to load the game</p>
                             <button class="btn btn-primary" id="load-game-btn">Launch Game</button>
+                            <p class="mobile-play-hint" id="mobile-play-hint" style="display:none; margin-top: 16px;">
+                                <a href="play.html" style="color: #c9a84c; text-decoration: underline;">On mobile? Tap here for fullscreen play</a>
+                            </p>
                         </div>
                     </div>
-                    <iframe id="game-frame" src="" allow="autoplay; fullscreen" style="display:none;"></iframe>
+                    <iframe id="game-frame" src="" allow="autoplay; fullscreen" style="display:none; touch-action: none;"></iframe>
                 </div>
                 <div class="game-controls">
                     <button class="btn btn-small" id="fullscreen-btn" title="Fullscreen">
@@ -1093,7 +1096,7 @@
                 <ul>
                     <li>Modern web browser (Chrome, Firefox, Edge, or Safari)</li>
                     <li>WebGL 2.0 support</li>
-                    <li>Keyboard and mouse recommended</li>
+                    <li>Keyboard &amp; mouse recommended; touch supported on mobile</li>
                 </ul>
             </div>
         </div>

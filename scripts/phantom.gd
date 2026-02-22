@@ -41,6 +41,43 @@ var _chandelier_flash: float = 0.0
 var note_dot_dps: float = 0.0
 var note_dot_duration: float = 0.0
 
+# === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
+const PROG_ABILITY_NAMES = [
+	"Music of the Night", "The Red Death", "Christine's Aria", "The Trap Door",
+	"Box Five", "The Underground Lake", "Requiem Mass",
+	"The Organ's Fury", "Beneath the Opera"
+]
+const PROG_ABILITY_DESCS = [
+	"Notes glow brighter, +20% damage",
+	"Every 15s, Red Death mask burst fears enemies — they walk backwards for 2s",
+	"Every 18s, Christine sings, charming 3 enemies — stopped + 2x damage for 4s",
+	"Every 20s, trapdoor on path — instant kill normal, 50% HP boss",
+	"Every 15s, spectral opera box rains rose petals dealing AoE damage for 5s",
+	"Every 18s, water rises, all enemies slowed to 40% for 3s",
+	"Every 20s, ghostly choir stuns ALL enemies on screen for 2s",
+	"Every 25s, great organ plays — 3x damage + 2s stun to EVERY enemy",
+	"Notes seek enemies across entire map. All enemies permanently 30% slower"
+]
+var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
+# Ability timers
+var _red_death_timer: float = 15.0
+var _christines_aria_timer: float = 18.0
+var _trap_door_timer: float = 20.0
+var _box_five_timer: float = 15.0
+var _box_five_active: float = 0.0
+var _underground_lake_timer: float = 18.0
+var _requiem_mass_timer: float = 20.0
+var _organs_fury_timer: float = 25.0
+# Visual flash timers
+var _red_death_flash: float = 0.0
+var _christines_aria_flash: float = 0.0
+var _trap_door_flash: float = 0.0
+var _box_five_flash: float = 0.0
+var _underground_lake_flash: float = 0.0
+var _requiem_mass_flash: float = 0.0
+var _organs_fury_flash: float = 0.0
+var _beneath_opera_flash: float = 0.0
+
 const STAT_UPGRADE_INTERVAL: float = 500.0
 const ABILITY_THRESHOLD: float = 1500.0
 var stat_upgrade_level: int = 0
@@ -68,8 +105,17 @@ var note_scene = preload("res://scenes/phantom_note.tscn")
 var _attack_sound: AudioStreamWAV
 var _attack_player: AudioStreamPlayer
 
+# Ability sounds
+var _lasso_sound: AudioStreamWAV
+var _lasso_player: AudioStreamPlayer
+var _chandelier_sound: AudioStreamWAV
+var _chandelier_player: AudioStreamPlayer
+var _upgrade_sound: AudioStreamWAV
+var _upgrade_player: AudioStreamPlayer
+
 func _ready() -> void:
 	add_to_group("towers")
+	_load_progressive_abilities()
 	# Generate deep organ note sound
 	var mix_rate := 22050
 	var duration := 0.15
@@ -91,6 +137,78 @@ func _ready() -> void:
 	_attack_player.stream = _attack_sound
 	_attack_player.volume_db = -8.0
 	add_child(_attack_player)
+
+	# Punjab lasso — rope swoosh + sharp crack
+	var ls_rate := 22050
+	var ls_dur := 0.25
+	var ls_samples := PackedFloat32Array()
+	ls_samples.resize(int(ls_rate * ls_dur))
+	for i in ls_samples.size():
+		var t := float(i) / ls_rate
+		var s := 0.0
+		# Swoosh (noise sweep 0-0.15s)
+		if t < 0.15:
+			var sweep := sin(TAU * lerpf(200.0, 800.0, t / 0.15) * t) * 0.3
+			s += (sweep + (randf() * 2.0 - 1.0) * 0.15) * (1.0 - t / 0.15)
+		# Sharp crack at 0.15s
+		var crack_dt := t - 0.15
+		if crack_dt >= 0.0 and crack_dt < 0.06:
+			s += (randf() * 2.0 - 1.0) * exp(-crack_dt * 60.0) * 0.7
+		ls_samples[i] = clampf(s, -1.0, 1.0)
+	_lasso_sound = _samples_to_wav(ls_samples, ls_rate)
+	_lasso_player = AudioStreamPlayer.new()
+	_lasso_player.stream = _lasso_sound
+	_lasso_player.volume_db = -6.0
+	add_child(_lasso_player)
+
+	# Chandelier — chain creak + glass shatter + metallic thud
+	var cd_rate := 22050
+	var cd_dur := 0.7
+	var cd_samples := PackedFloat32Array()
+	cd_samples.resize(int(cd_rate * cd_dur))
+	for i in cd_samples.size():
+		var t := float(i) / cd_rate
+		var s := 0.0
+		# Chain creak (0-0.2s) — metallic groan
+		if t < 0.2:
+			var creak_freq := 180.0 + sin(TAU * 3.0 * t) * 60.0
+			s += sin(TAU * creak_freq * t) * 0.3 * (1.0 - t / 0.2)
+		# Glass shatter (0.2-0.5s) — high noise burst
+		var sh_dt := t - 0.2
+		if sh_dt >= 0.0 and sh_dt < 0.3:
+			var glass := (randf() * 2.0 - 1.0) * exp(-sh_dt * 8.0) * 0.5
+			var tinkle := sin(TAU * 4500.0 * sh_dt) * exp(-sh_dt * 15.0) * 0.3
+			s += glass + tinkle
+		# Metallic thud (0.25s) — low impact
+		var thud_dt := t - 0.25
+		if thud_dt >= 0.0 and thud_dt < 0.15:
+			s += sin(TAU * 80.0 * thud_dt) * exp(-thud_dt * 20.0) * 0.4
+		cd_samples[i] = clampf(s, -1.0, 1.0)
+	_chandelier_sound = _samples_to_wav(cd_samples, cd_rate)
+	_chandelier_player = AudioStreamPlayer.new()
+	_chandelier_player.stream = _chandelier_sound
+	_chandelier_player.volume_db = -6.0
+	add_child(_chandelier_player)
+
+	# Upgrade chime
+	var up_rate := 22050
+	var up_dur := 0.35
+	var up_samples := PackedFloat32Array()
+	up_samples.resize(int(up_rate * up_dur))
+	var up_notes := [523.25, 659.25, 783.99]
+	var up_note_len := int(up_rate * up_dur) / 3
+	for i in up_samples.size():
+		var t := float(i) / up_rate
+		var ni := mini(i / up_note_len, 2)
+		var nt := float(i - ni * up_note_len) / float(up_rate)
+		var freq: float = up_notes[ni]
+		var env := minf(nt * 50.0, 1.0) * exp(-nt * 10.0) * 0.4
+		up_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.3) * env, -1.0, 1.0)
+	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
+	_upgrade_player = AudioStreamPlayer.new()
+	_upgrade_player.stream = _upgrade_sound
+	_upgrade_player.volume_db = -4.0
+	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -129,6 +247,9 @@ func _process(delta: float) -> void:
 			_chandelier_drop()
 			chandelier_timer = chandelier_cooldown
 
+	# Progressive abilities
+	_process_progressive_abilities(delta)
+
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
@@ -140,7 +261,11 @@ func _has_enemies_in_range() -> bool:
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
-	var nearest_dist: float = attack_range
+	var search_range: float = attack_range
+	# Ability 9: Beneath the Opera — unlimited range
+	if prog_abilities[8]:
+		search_range = 999999.0
+	var nearest_dist: float = search_range
 	for enemy in enemies:
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
@@ -155,7 +280,11 @@ func _shoot() -> void:
 		_attack_player.play()
 	var note = note_scene.instantiate()
 	note.global_position = global_position + Vector2.from_angle(aim_angle) * 32.0
-	note.damage = damage
+	# Ability 1: Music of the Night — +20% damage
+	var shoot_damage = damage
+	if prog_abilities[0]:
+		shoot_damage *= 1.2
+	note.damage = shoot_damage
 	note.target = target
 	note.gold_bonus = gold_bonus
 	note.source_tower = self
@@ -165,6 +294,7 @@ func _shoot() -> void:
 	_attack_anim = 1.0
 
 func _punjab_lasso() -> void:
+	if _lasso_player: _lasso_player.play()
 	_lasso_flash = 1.0
 	var closest: Node2D = null
 	var closest_dist: float = attack_range
@@ -183,6 +313,7 @@ func _music_aura() -> void:
 				enemy.apply_slow(0.9, 0.6)
 
 func _chandelier_drop() -> void:
+	if _chandelier_player: _chandelier_player.play()
 	_chandelier_flash = 1.5
 	var chandelier_dmg = damage * 2.0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
@@ -199,6 +330,9 @@ func _chandelier_drop() -> void:
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("register_tower_damage"):
+		main.register_tower_damage(main.TowerType.PHANTOM, amount)
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -269,6 +403,7 @@ func purchase_upgrade() -> bool:
 	_apply_upgrade(upgrade_tier)
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
+	if _upgrade_player: _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -303,6 +438,181 @@ func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamW
 	wav.data = data
 	return wav
 
+# === PROGRESSIVE ABILITY SYSTEM ===
+
+func _load_progressive_abilities() -> void:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.survivor_progress.has(main.TowerType.PHANTOM):
+		var p = main.survivor_progress[main.TowerType.PHANTOM]
+		var unlocked = p.get("abilities_unlocked", [])
+		for i in range(mini(9, unlocked.size())):
+			if unlocked[i]:
+				activate_progressive_ability(i)
+
+func activate_progressive_ability(index: int) -> void:
+	if index < 0 or index >= 9:
+		return
+	prog_abilities[index] = true
+	_apply_progressive_stats()
+
+func _apply_progressive_stats() -> void:
+	if prog_abilities[0]:  # Music of the Night: +20% damage (applied in _shoot)
+		pass
+
+func get_progressive_ability_name(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_NAMES.size():
+		return PROG_ABILITY_NAMES[index]
+	return ""
+
+func get_progressive_ability_desc(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_DESCS.size():
+		return PROG_ABILITY_DESCS[index]
+	return ""
+
+func get_spawn_debuffs() -> Dictionary:
+	var debuffs := {}
+	# Ability 9: Beneath the Opera — all enemies permanently 30% slower
+	if prog_abilities[8]:
+		debuffs["permanent_slow"] = 0.7
+	return debuffs
+
+func _process_progressive_abilities(delta: float) -> void:
+	# Visual flash decay
+	_red_death_flash = max(_red_death_flash - delta * 2.0, 0.0)
+	_christines_aria_flash = max(_christines_aria_flash - delta * 2.0, 0.0)
+	_trap_door_flash = max(_trap_door_flash - delta * 2.0, 0.0)
+	_box_five_flash = max(_box_five_flash - delta * 1.5, 0.0)
+	_underground_lake_flash = max(_underground_lake_flash - delta * 1.5, 0.0)
+	_requiem_mass_flash = max(_requiem_mass_flash - delta * 1.5, 0.0)
+	_organs_fury_flash = max(_organs_fury_flash - delta * 1.5, 0.0)
+	_beneath_opera_flash = max(_beneath_opera_flash - delta * 1.5, 0.0)
+
+	# Ability 2: The Red Death — fear burst every 15s
+	if prog_abilities[1]:
+		_red_death_timer -= delta
+		if _red_death_timer <= 0.0 and _has_enemies_in_range():
+			_red_death_burst()
+			_red_death_timer = 15.0
+
+	# Ability 3: Christine's Aria — charm 3 enemies every 18s
+	if prog_abilities[2]:
+		_christines_aria_timer -= delta
+		if _christines_aria_timer <= 0.0 and _has_enemies_in_range():
+			_christines_aria()
+			_christines_aria_timer = 18.0
+
+	# Ability 4: The Trap Door — instant kill every 20s
+	if prog_abilities[3]:
+		_trap_door_timer -= delta
+		if _trap_door_timer <= 0.0 and _has_enemies_in_range():
+			_trap_door()
+			_trap_door_timer = 20.0
+
+	# Ability 5: Box Five — AoE petal rain every 15s, lasts 5s
+	if prog_abilities[4]:
+		if _box_five_active > 0.0:
+			_box_five_active -= delta
+			# Deal damage * delta to all enemies in range each frame
+			for e in get_tree().get_nodes_in_group("enemies"):
+				if global_position.distance_to(e.global_position) < attack_range:
+					if e.has_method("take_damage"):
+						var dmg = damage * delta
+						e.take_damage(dmg)
+						register_damage(dmg)
+		else:
+			_box_five_timer -= delta
+			if _box_five_timer <= 0.0 and _has_enemies_in_range():
+				_box_five_activate()
+				_box_five_timer = 15.0
+
+	# Ability 6: The Underground Lake — slow all enemies every 18s
+	if prog_abilities[5]:
+		_underground_lake_timer -= delta
+		if _underground_lake_timer <= 0.0:
+			_underground_lake()
+			_underground_lake_timer = 18.0
+
+	# Ability 7: Requiem Mass — stun all enemies every 20s
+	if prog_abilities[6]:
+		_requiem_mass_timer -= delta
+		if _requiem_mass_timer <= 0.0:
+			_requiem_mass()
+			_requiem_mass_timer = 20.0
+
+	# Ability 8: The Organ's Fury — 3x damage + stun all every 25s
+	if prog_abilities[7]:
+		_organs_fury_timer -= delta
+		if _organs_fury_timer <= 0.0:
+			_organs_fury()
+			_organs_fury_timer = 25.0
+
+func _red_death_burst() -> void:
+	_red_death_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < attack_range:
+			if e.has_method("apply_fear_reverse"):
+				e.apply_fear_reverse(2.0)
+
+func _christines_aria() -> void:
+	_christines_aria_flash = 1.0
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var in_range: Array = []
+	for e in enemies:
+		if global_position.distance_to(e.global_position) < attack_range:
+			in_range.append(e)
+	in_range.shuffle()
+	for i in range(mini(3, in_range.size())):
+		if is_instance_valid(in_range[i]) and in_range[i].has_method("apply_charm"):
+			in_range[i].apply_charm(4.0, 2.0)
+
+func _trap_door() -> void:
+	_trap_door_flash = 1.0
+	# Find weakest enemy in range
+	var weakest: Node2D = null
+	var lowest_hp: float = INF
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < attack_range:
+			if e.health < lowest_hp:
+				lowest_hp = e.health
+				weakest = e
+	if weakest and weakest.has_method("take_damage"):
+		if weakest.max_health > 500:
+			# Boss: deal 50% of current HP
+			var dmg = weakest.health * 0.5
+			weakest.take_damage(dmg)
+			register_damage(dmg)
+		else:
+			# Normal: instant kill
+			var dmg = weakest.health
+			weakest.take_damage(dmg)
+			register_damage(dmg)
+
+func _box_five_activate() -> void:
+	_box_five_flash = 1.0
+	_box_five_active = 5.0
+
+func _underground_lake() -> void:
+	_underground_lake_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.has_method("apply_slow"):
+			e.apply_slow(0.4, 3.0)
+
+func _requiem_mass() -> void:
+	_requiem_mass_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.has_method("apply_sleep"):
+			e.apply_sleep(2.0)
+
+func _organs_fury() -> void:
+	_organs_fury_flash = 1.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.has_method("take_damage"):
+			var dmg = damage * 3.0
+			e.take_damage(dmg)
+			register_damage(dmg)
+		if e.has_method("apply_sleep"):
+			e.apply_sleep(2.0)
+
 func _draw() -> void:
 	# === SELECTION RING ===
 	if is_selected:
@@ -318,10 +628,11 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(aim_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	# === IDLE ANIMATION ===
-	var bounce = abs(sin(_time * 3.0)) * 4.0
-	var breathe = sin(_time * 2.0) * 2.0
-	var sway = sin(_time * 1.5) * 1.5
+	# === IDLE ANIMATION (dramatic theatrical presence) ===
+	var bounce = abs(sin(_time * 2.0)) * 3.0  # Slower, more dramatic
+	var breathe = sin(_time * 1.5) * 2.5  # Deep theatrical breathing
+	var sway = sin(_time * 1.0) * 2.0  # Slow dramatic sway
+	var cape_sweep = sin(_time * 0.8) * 3.5  # Slow sweeping cape motion
 	var bob = Vector2(sway, -bounce - breathe)
 	var fly_offset = Vector2.ZERO
 	if upgrade_tier >= 4:
@@ -393,6 +704,128 @@ func _draw() -> void:
 			draw_circle(w_pos, 6.0 + sin(_time * 1.7 + float(wi)) * 2.0, Color(0.6, 0.05, 0.1, w_alpha))
 			var w_tail = Vector2.from_angle(w_angle - 0.3) * (w_r - 12.0)
 			draw_line(w_pos, w_tail, Color(0.5, 0.03, 0.12, w_alpha * 0.6), 2.0)
+
+	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
+
+	# Ability 1: Music of the Night — glowing purple notes with echo trail
+	if prog_abilities[0]:
+		for ni in range(4):
+			var mn_a = _time * 1.2 + float(ni) * TAU / 4.0
+			var mn_r = 44.0 + sin(_time * 1.8 + float(ni) * 1.5) * 6.0
+			var mn_pos = Vector2.from_angle(mn_a) * mn_r
+			var mn_alpha = 0.35 + sin(_time * 2.0 + float(ni) * 1.1) * 0.1
+			# Echo trail
+			for ei in range(3):
+				var trail_a = mn_a - float(ei + 1) * 0.15
+				var trail_pos = Vector2.from_angle(trail_a) * mn_r
+				draw_circle(trail_pos, 3.0 - float(ei) * 0.5, Color(0.6, 0.3, 0.9, mn_alpha * 0.2 / float(ei + 1)))
+			# Glowing note head
+			draw_circle(mn_pos, 5.0, Color(0.6, 0.3, 0.9, mn_alpha * 0.2))
+			draw_circle(mn_pos, 3.5, Color(0.7, 0.4, 1.0, mn_alpha))
+			# Note stem
+			draw_line(mn_pos + Vector2(2.0, 0), mn_pos + Vector2(2.0, -10.0), Color(0.7, 0.4, 1.0, mn_alpha * 0.7), 1.5)
+			# Note flag
+			draw_line(mn_pos + Vector2(2.0, -10.0), mn_pos + Vector2(6.0, -7.0), Color(0.7, 0.4, 1.0, mn_alpha * 0.5), 1.3)
+
+	# Ability 2: The Red Death flash — red skull/mask burst
+	if _red_death_flash > 0.0:
+		var rd_r = 40.0 + (1.0 - _red_death_flash) * 80.0
+		draw_circle(Vector2.ZERO, rd_r, Color(0.8, 0.05, 0.05, _red_death_flash * 0.25))
+		draw_arc(Vector2.ZERO, rd_r, 0, TAU, 32, Color(0.9, 0.1, 0.05, _red_death_flash * 0.5), 3.0)
+		# Red skull mask shape
+		draw_circle(Vector2(0, -8), 8.0, Color(0.9, 0.1, 0.05, _red_death_flash * 0.6))
+		draw_circle(Vector2(-3, -10), 2.5, Color(0.0, 0.0, 0.0, _red_death_flash * 0.7))
+		draw_circle(Vector2(3, -10), 2.5, Color(0.0, 0.0, 0.0, _red_death_flash * 0.7))
+		draw_line(Vector2(-1, -5), Vector2(1, -5), Color(0.0, 0.0, 0.0, _red_death_flash * 0.5), 1.5)
+
+	# Ability 3: Christine's Aria flash — music notes and hearts
+	if _christines_aria_flash > 0.0:
+		for ci in range(5):
+			var ca = TAU * float(ci) / 5.0 + _christines_aria_flash * 4.0
+			var cr = 30.0 + (1.0 - _christines_aria_flash) * 40.0
+			var cpos = Vector2.from_angle(ca) * cr
+			# Music note
+			draw_circle(cpos, 3.0, Color(1.0, 0.6, 0.8, _christines_aria_flash * 0.6))
+			draw_line(cpos + Vector2(2, 0), cpos + Vector2(2, -8), Color(1.0, 0.6, 0.8, _christines_aria_flash * 0.4), 1.2)
+			# Heart above
+			var hpos = cpos + Vector2(0, -14)
+			draw_circle(hpos + Vector2(-2, 0), 2.0, Color(1.0, 0.3, 0.4, _christines_aria_flash * 0.5))
+			draw_circle(hpos + Vector2(2, 0), 2.0, Color(1.0, 0.3, 0.4, _christines_aria_flash * 0.5))
+
+	# Ability 4: The Trap Door flash — trapdoor opening
+	if _trap_door_flash > 0.0:
+		var td_y = 15.0
+		var td_open = (1.0 - _trap_door_flash) * 20.0
+		# Trapdoor outline
+		draw_rect(Rect2(Vector2(-15, td_y - 5), Vector2(30, 10)), Color(0.3, 0.2, 0.1, _trap_door_flash * 0.6), false, 2.0)
+		# Door halves opening
+		draw_line(Vector2(-15, td_y), Vector2(-15, td_y - td_open), Color(0.4, 0.25, 0.1, _trap_door_flash * 0.5), 3.0)
+		draw_line(Vector2(15, td_y), Vector2(15, td_y - td_open), Color(0.4, 0.25, 0.1, _trap_door_flash * 0.5), 3.0)
+		# Dark void below
+		draw_rect(Rect2(Vector2(-14, td_y - 4), Vector2(28, 8)), Color(0.0, 0.0, 0.0, _trap_door_flash * 0.4), true)
+
+	# Ability 5: Box Five flash — ornate opera box with falling petals
+	if _box_five_flash > 0.0 or _box_five_active > 0.0:
+		var bf_alpha = maxf(_box_five_flash, _box_five_active / 5.0) * 0.4
+		# Opera box outline overhead
+		draw_rect(Rect2(Vector2(-20, -90), Vector2(40, 25)), Color(0.8, 0.6, 0.2, bf_alpha), false, 2.0)
+		draw_rect(Rect2(Vector2(-18, -88), Vector2(36, 21)), Color(0.6, 0.1, 0.1, bf_alpha * 0.5), true)
+		# Falling rose petals
+		for pi in range(6):
+			var px = -16.0 + float(pi) * 6.4
+			var py = -65.0 + fmod(_time * 30.0 + float(pi) * 15.0, 80.0)
+			var petal_sway = sin(_time * 3.0 + float(pi) * 2.0) * 4.0
+			draw_circle(Vector2(px + petal_sway, py), 2.5, Color(0.9, 0.2, 0.2, bf_alpha * 1.5))
+			draw_circle(Vector2(px + petal_sway + 1, py - 1), 1.5, Color(1.0, 0.4, 0.4, bf_alpha))
+
+	# Ability 6: The Underground Lake flash — blue water ripple
+	if _underground_lake_flash > 0.0:
+		var ul_r = 50.0 + (1.0 - _underground_lake_flash) * 120.0
+		draw_circle(Vector2.ZERO, ul_r, Color(0.1, 0.3, 0.7, _underground_lake_flash * 0.15))
+		draw_arc(Vector2.ZERO, ul_r, 0, TAU, 48, Color(0.2, 0.5, 0.9, _underground_lake_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, ul_r * 0.7, 0, TAU, 36, Color(0.15, 0.4, 0.85, _underground_lake_flash * 0.3), 2.0)
+		draw_arc(Vector2.ZERO, ul_r * 0.4, 0, TAU, 24, Color(0.1, 0.35, 0.8, _underground_lake_flash * 0.2), 1.5)
+
+	# Ability 7: Requiem Mass flash — ghostly choir and musical shockwave
+	if _requiem_mass_flash > 0.0:
+		var rm_r = 45.0 + (1.0 - _requiem_mass_flash) * 100.0
+		# Musical shockwave rings
+		draw_arc(Vector2.ZERO, rm_r, 0, TAU, 48, Color(0.7, 0.7, 0.9, _requiem_mass_flash * 0.4), 3.5)
+		draw_arc(Vector2.ZERO, rm_r * 0.75, 0, TAU, 36, Color(0.6, 0.6, 0.85, _requiem_mass_flash * 0.3), 2.5)
+		# Translucent choir silhouettes
+		for si in range(5):
+			var sa = TAU * float(si) / 5.0 + _requiem_mass_flash * 2.0
+			var spos = Vector2.from_angle(sa) * 35.0
+			# Ghost figure
+			draw_circle(spos + Vector2(0, -6), 4.0, Color(0.8, 0.8, 1.0, _requiem_mass_flash * 0.35))
+			draw_line(spos + Vector2(0, -2), spos + Vector2(0, 6), Color(0.8, 0.8, 1.0, _requiem_mass_flash * 0.25), 4.0)
+
+	# Ability 8: The Organ's Fury flash — massive organ and shockwave
+	if _organs_fury_flash > 0.0:
+		var of_r = 60.0 + (1.0 - _organs_fury_flash) * 150.0
+		# Devastating shockwave rings
+		draw_arc(Vector2.ZERO, of_r, 0, TAU, 48, Color(0.9, 0.3, 0.1, _organs_fury_flash * 0.35), 4.0)
+		draw_arc(Vector2.ZERO, of_r * 0.8, 0, TAU, 36, Color(0.8, 0.2, 0.05, _organs_fury_flash * 0.25), 3.0)
+		draw_arc(Vector2.ZERO, of_r * 0.6, 0, TAU, 24, Color(0.7, 0.15, 0.05, _organs_fury_flash * 0.2), 2.0)
+		# Pipe organ silhouette
+		for pi in range(7):
+			var pipe_x = -18.0 + float(pi) * 6.0
+			var pipe_h = 20.0 + abs(float(pi) - 3.0) * 8.0
+			draw_line(Vector2(pipe_x, -50), Vector2(pipe_x, -50 - pipe_h), Color(0.6, 0.5, 0.3, _organs_fury_flash * 0.5), 4.0)
+			draw_circle(Vector2(pipe_x, -50 - pipe_h), 3.0, Color(0.7, 0.6, 0.35, _organs_fury_flash * 0.4))
+
+	# Ability 9: Beneath the Opera — water shimmer overlay
+	if prog_abilities[8]:
+		var bo_alpha = 0.06 + sin(_time * 1.5) * 0.03
+		draw_circle(Vector2.ZERO, attack_range * 0.95, Color(0.15, 0.25, 0.5, bo_alpha))
+		# Drifting notes across the map
+		for ni in range(6):
+			var dn_a = _time * 0.5 + float(ni) * TAU / 6.0
+			var dn_r = 60.0 + sin(_time * 0.8 + float(ni) * 1.3) * 30.0
+			var dn_pos = Vector2.from_angle(dn_a) * dn_r
+			var dn_alpha = 0.25 + sin(_time * 1.5 + float(ni) * 0.7) * 0.1
+			draw_circle(dn_pos, 3.5, Color(0.5, 0.3, 0.8, dn_alpha))
+			draw_line(dn_pos + Vector2(2, 0), dn_pos + Vector2(2, -9), Color(0.5, 0.3, 0.8, dn_alpha * 0.6), 1.2)
 
 	# === STONE PLATFORM ===
 	var plat_y = 22.0
@@ -560,14 +993,14 @@ func _draw() -> void:
 			draw_circle(Vector2(flame_x, chand_center.y - 7.0 + flicker * 1.2), 0.8, Color(1.0, 1.0, 0.9, 0.35))
 
 	# === CHARACTER POSITIONS (tall dramatic anime proportions ~60px) ===
-	var feet_y = body_offset + Vector2(0, 14.0)
-	var leg_top = body_offset + Vector2(0, -4.0)
-	var torso_center = body_offset + Vector2(0, -14.0)
-	var neck_base = body_offset + Vector2(0, -24.0)
-	var head_center = body_offset + Vector2(0, -36.0)
+	var feet_y = body_offset + Vector2(cape_sweep * 0.3, 14.0)
+	var leg_top = body_offset + Vector2(cape_sweep * 0.2, -4.0)
+	var torso_center = body_offset + Vector2(-cape_sweep * 0.15, -14.0)
+	var neck_base = body_offset + Vector2(-cape_sweep * 0.3, -24.0)
+	var head_center = body_offset + Vector2(-cape_sweep * 0.15, -36.0)
 
 	# === CAPE (red-lined black cape — behind the body, dramatic full-length) ===
-	var cape_sway_val = sin(_time * 1.3) * 4.0
+	var cape_sway_val = sin(_time * 1.3) * 4.0 + cape_sweep * 1.5
 	var cape_billow = 0.0
 	if upgrade_tier >= 4:
 		cape_billow = sin(_time * 0.7) * 6.0 + sin(_time * 1.9) * 3.0
@@ -648,25 +1081,72 @@ func _draw() -> void:
 	draw_line(l_foot + Vector2(-2, 1), l_foot + Vector2(-2, 3), Color(0.06, 0.06, 0.06), 2.0)
 	draw_line(r_foot + Vector2(2, 1), r_foot + Vector2(2, 3), Color(0.06, 0.06, 0.06), 2.0)
 
-	# === LONG ELEGANT LEGS (black tuxedo trousers with satin stripe, 18px) ===
+	# === LONG ELEGANT LEGS (polygon tuxedo trousers, broad build) ===
 	var l_knee = leg_top + Vector2(-5, 9)
 	var r_knee = leg_top + Vector2(5, 9)
-	# Upper legs (thigh — from leg_top to knee)
-	draw_line(leg_top + Vector2(-5, 0), l_knee, Color(0.04, 0.03, 0.06), 6.0)
-	draw_line(leg_top + Vector2(5, 0), r_knee, Color(0.04, 0.03, 0.06), 6.0)
-	draw_line(leg_top + Vector2(-5, 0), l_knee, Color(0.08, 0.06, 0.10), 4.5)
-	draw_line(leg_top + Vector2(5, 0), r_knee, Color(0.08, 0.06, 0.10), 4.5)
-	# Lower legs (knee to ankle)
-	draw_line(l_knee, l_foot + Vector2(0, -3), Color(0.04, 0.03, 0.06), 5.5)
-	draw_line(r_knee, r_foot + Vector2(0, -3), Color(0.04, 0.03, 0.06), 5.5)
-	draw_line(l_knee, l_foot + Vector2(0, -3), Color(0.08, 0.06, 0.10), 4.0)
-	draw_line(r_knee, r_foot + Vector2(0, -3), Color(0.08, 0.06, 0.10), 4.0)
-	# Satin side stripe (formal tuxedo detail — full length)
-	draw_line(l_foot + Vector2(-2, -2), leg_top + Vector2(-3, 0), Color(0.18, 0.16, 0.20, 0.35), 1.0)
-	draw_line(r_foot + Vector2(2, -2), leg_top + Vector2(3, 0), Color(0.18, 0.16, 0.20, 0.35), 1.0)
+	var l_hip = leg_top + Vector2(-5, 0)
+	var r_hip = leg_top + Vector2(5, 0)
+	var l_ankle = l_foot + Vector2(0, -3)
+	var r_ankle = r_foot + Vector2(0, -3)
+	# LEFT THIGH — broad masculine shape
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(3, 0), l_hip + Vector2(-5, 0),
+		l_hip.lerp(l_knee, 0.3) + Vector2(-6.5, 0),  # outer quad
+		l_hip.lerp(l_knee, 0.6) + Vector2(-6.0, 0),
+		l_knee + Vector2(-4.5, 0), l_knee + Vector2(3.5, 0),
+		l_hip.lerp(l_knee, 0.5) + Vector2(4.5, 0),
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(2, 0), l_hip + Vector2(-4, 0),
+		l_hip.lerp(l_knee, 0.3) + Vector2(-5.5, 0),
+		l_knee + Vector2(-3.5, 0), l_knee + Vector2(2.5, 0),
+	]), Color(0.08, 0.06, 0.10))
+	# RIGHT THIGH
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-3, 0), r_hip + Vector2(5, 0),
+		r_hip.lerp(r_knee, 0.3) + Vector2(6.5, 0),
+		r_hip.lerp(r_knee, 0.6) + Vector2(6.0, 0),
+		r_knee + Vector2(4.5, 0), r_knee + Vector2(-3.5, 0),
+		r_hip.lerp(r_knee, 0.5) + Vector2(-4.5, 0),
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-2, 0), r_hip + Vector2(4, 0),
+		r_hip.lerp(r_knee, 0.3) + Vector2(5.5, 0),
+		r_knee + Vector2(3.5, 0), r_knee + Vector2(-2.5, 0),
+	]), Color(0.08, 0.06, 0.10))
+	# Knee joints
+	draw_circle(l_knee, 5.0, Color(0.04, 0.03, 0.06))
+	draw_circle(l_knee, 4.0, Color(0.08, 0.06, 0.10))
+	draw_circle(r_knee, 5.0, Color(0.04, 0.03, 0.06))
+	draw_circle(r_knee, 4.0, Color(0.08, 0.06, 0.10))
+	# LEFT CALF — strong shape
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + Vector2(-4.5, 0), l_knee + Vector2(3.5, 0),
+		l_knee.lerp(l_ankle, 0.35) + Vector2(3.5, 0),
+		l_ankle + Vector2(2.5, 0), l_ankle + Vector2(-2.5, 0),
+		l_knee.lerp(l_ankle, 0.35) + Vector2(-5.5, 0),
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + Vector2(-3.5, 0), l_knee + Vector2(2.5, 0),
+		l_ankle + Vector2(1.5, 0), l_ankle + Vector2(-1.5, 0),
+	]), Color(0.08, 0.06, 0.10))
+	# RIGHT CALF
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(4.5, 0), r_knee + Vector2(-3.5, 0),
+		r_knee.lerp(r_ankle, 0.35) + Vector2(-3.5, 0),
+		r_ankle + Vector2(-2.5, 0), r_ankle + Vector2(2.5, 0),
+		r_knee.lerp(r_ankle, 0.35) + Vector2(5.5, 0),
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		r_knee + Vector2(3.5, 0), r_knee + Vector2(-2.5, 0),
+		r_ankle + Vector2(-1.5, 0), r_ankle + Vector2(1.5, 0),
+	]), Color(0.08, 0.06, 0.10))
+	# Satin side stripes (tuxedo detail)
+	draw_line(l_ankle + Vector2(-2, 0), l_hip + Vector2(-3, 0), Color(0.18, 0.16, 0.20, 0.35), 1.0)
+	draw_line(r_ankle + Vector2(2, 0), r_hip + Vector2(3, 0), Color(0.18, 0.16, 0.20, 0.35), 1.0)
 	# Knee crease detail
-	draw_line(l_knee + Vector2(-3, 0), l_knee + Vector2(3, 0), Color(0.03, 0.02, 0.05, 0.3), 1.0)
-	draw_line(r_knee + Vector2(-3, 0), r_knee + Vector2(3, 0), Color(0.03, 0.02, 0.05, 0.3), 1.0)
+	draw_line(l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0), Color(0.03, 0.02, 0.05, 0.3), 1.0)
+	draw_line(r_knee + Vector2(-3, 0), r_knee + Vector2(4, 0), Color(0.03, 0.02, 0.05, 0.3), 1.0)
 
 	# === BLACK TUXEDO TORSO — broad shoulders, V-taper to waist ===
 	var torso_pts = PackedVector2Array([
@@ -772,44 +1252,93 @@ func _draw() -> void:
 	draw_circle(clasp2_pos, 3.5, Color(0.8, 0.65, 0.2, 0.8))
 	draw_circle(clasp2_pos, 2.2, Color(0.9, 0.78, 0.35, 0.6))
 
-	# === LEFT ARM — holds cape edge (dramatic pose, elegant) ===
+	# === LEFT ARM — polygon tuxedo sleeve, holds cape (dramatic pose) ===
+	var l_shoulder_pos = neck_base + Vector2(-17, 0)
 	var l_elbow = neck_base + Vector2(-20, 12 + sin(_time * 1.5) * 1.0)
 	var l_hand_pos = torso_center + Vector2(-20, 6 + sin(_time * 1.5) * 1.5)
-	# Upper arm (from shoulder to elbow, 4px)
-	draw_line(neck_base + Vector2(-17, 0), l_elbow, Color(0.04, 0.03, 0.06), 5.0)
-	draw_line(neck_base + Vector2(-17, 0), l_elbow, Color(0.06, 0.04, 0.08), 4.0)
-	# Forearm (elbow to hand)
-	draw_line(l_elbow, l_hand_pos, Color(0.04, 0.03, 0.06), 5.0)
-	draw_line(l_elbow, l_hand_pos, Color(0.06, 0.04, 0.08), 4.0)
+	# LEFT UPPER ARM — broad tuxedo sleeve polygon
+	var l_ua_dir = (l_elbow - l_shoulder_pos).normalized()
+	var l_ua_perp = l_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder_pos + l_ua_perp * 6.0, l_shoulder_pos - l_ua_perp * 5.5,
+		l_shoulder_pos.lerp(l_elbow, 0.3) - l_ua_perp * 6.0,
+		l_elbow - l_ua_perp * 4.0, l_elbow + l_ua_perp * 4.0,
+		l_shoulder_pos.lerp(l_elbow, 0.5) + l_ua_perp * 5.0,
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder_pos + l_ua_perp * 5.0, l_shoulder_pos - l_ua_perp * 4.5,
+		l_elbow - l_ua_perp * 3.0, l_elbow + l_ua_perp * 3.0,
+	]), Color(0.06, 0.04, 0.08))
+	# Sleeve highlight
+	draw_line(l_shoulder_pos.lerp(l_elbow, 0.15) + l_ua_perp * 3.0, l_shoulder_pos.lerp(l_elbow, 0.7) + l_ua_perp * 3.0, Color(0.12, 0.10, 0.15, 0.3), 1.0)
+	# LEFT FOREARM — polygon tapered
+	var l_fa_dir = (l_hand_pos - l_elbow).normalized()
+	var l_fa_perp = l_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 4.0, l_elbow - l_fa_perp * 4.0,
+		l_hand_pos - l_fa_perp * 3.0, l_hand_pos + l_fa_perp * 3.0,
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		l_elbow + l_fa_perp * 3.0, l_elbow - l_fa_perp * 3.0,
+		l_hand_pos - l_fa_perp * 2.0, l_hand_pos + l_fa_perp * 2.0,
+	]), Color(0.06, 0.04, 0.08))
+	# Elbow joint
+	draw_circle(l_elbow, 4.5, Color(0.04, 0.03, 0.06))
+	draw_circle(l_elbow, 3.5, Color(0.06, 0.04, 0.08))
 	# White glove cuff
-	draw_arc(l_hand_pos + Vector2(0, -2), 3.5, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.0)
+	draw_arc(l_hand_pos + Vector2(0, -2), 4.0, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.5)
 	# White-gloved hand (gripping cape)
-	draw_circle(l_hand_pos, 3.5, Color(0.90, 0.88, 0.86))
-	draw_circle(l_hand_pos, 2.8, Color(0.95, 0.93, 0.91))
-	# Fingers curled around cape (white gloves)
+	draw_circle(l_hand_pos, 4.0, Color(0.90, 0.88, 0.86))
+	draw_circle(l_hand_pos, 3.2, Color(0.95, 0.93, 0.91))
+	# Fingers curled around cape
 	for fi in range(3):
 		var finger_angle = PI * 0.6 + float(fi) * 0.3
-		draw_circle(l_hand_pos + Vector2.from_angle(finger_angle) * 3.0, 1.2, Color(0.97, 0.95, 0.93))
+		draw_circle(l_hand_pos + Vector2.from_angle(finger_angle) * 3.5, 1.5, Color(0.97, 0.95, 0.93))
 
-	# === RIGHT ARM — extends toward aim (conducting hand, weapon arm, elegant) ===
+	# === RIGHT ARM — polygon tuxedo sleeve, conducting hand toward aim ===
 	var attack_extend = _attack_anim * 12.0
+	var r_shoulder_pos = neck_base + Vector2(17, 0)
 	var r_elbow = neck_base + Vector2(19, 10)
-	var r_hand_pos = neck_base + Vector2(17, 0) + dir * (18.0 + attack_extend)
-	# Upper arm (from shoulder to elbow, 4px)
-	draw_line(neck_base + Vector2(17, 0), r_elbow, Color(0.04, 0.03, 0.06), 5.0)
-	draw_line(neck_base + Vector2(17, 0), r_elbow, Color(0.06, 0.04, 0.08), 4.0)
-	# Forearm toward aim
-	draw_line(r_elbow, r_hand_pos, Color(0.04, 0.03, 0.06), 4.5)
-	draw_line(r_elbow, r_hand_pos, Color(0.06, 0.04, 0.08), 3.5)
+	var r_hand_pos = r_shoulder_pos + dir * (18.0 + attack_extend)
+	# RIGHT UPPER ARM — broad tuxedo sleeve polygon
+	var r_ua_dir = (r_elbow - r_shoulder_pos).normalized()
+	var r_ua_perp = r_ua_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder_pos + r_ua_perp * 5.5, r_shoulder_pos - r_ua_perp * 6.0,
+		r_shoulder_pos.lerp(r_elbow, 0.3) - r_ua_perp * 6.0,
+		r_elbow - r_ua_perp * 4.0, r_elbow + r_ua_perp * 4.0,
+		r_shoulder_pos.lerp(r_elbow, 0.5) + r_ua_perp * 5.0,
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder_pos + r_ua_perp * 4.5, r_shoulder_pos - r_ua_perp * 5.0,
+		r_elbow - r_ua_perp * 3.0, r_elbow + r_ua_perp * 3.0,
+	]), Color(0.06, 0.04, 0.08))
+	draw_line(r_shoulder_pos.lerp(r_elbow, 0.15) - r_ua_perp * 3.0, r_shoulder_pos.lerp(r_elbow, 0.7) - r_ua_perp * 3.0, Color(0.12, 0.10, 0.15, 0.3), 1.0)
+	# RIGHT FOREARM — polygon tapered toward aim
+	var r_fa_dir = (r_hand_pos - r_elbow).normalized()
+	var r_fa_perp = r_fa_dir.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 4.0, r_elbow - r_fa_perp * 4.0,
+		r_elbow.lerp(r_hand_pos, 0.4) - r_fa_perp * 3.5,
+		r_hand_pos - r_fa_perp * 2.5, r_hand_pos + r_fa_perp * 2.5,
+		r_elbow.lerp(r_hand_pos, 0.4) + r_fa_perp * 3.5,
+	]), Color(0.04, 0.03, 0.06))
+	draw_colored_polygon(PackedVector2Array([
+		r_elbow + r_fa_perp * 3.0, r_elbow - r_fa_perp * 3.0,
+		r_hand_pos - r_fa_perp * 1.5, r_hand_pos + r_fa_perp * 1.5,
+	]), Color(0.06, 0.04, 0.08))
+	# Elbow joint
+	draw_circle(r_elbow, 4.5, Color(0.04, 0.03, 0.06))
+	draw_circle(r_elbow, 3.5, Color(0.06, 0.04, 0.08))
 	# White glove cuff
-	draw_arc(r_hand_pos + dir * (-4.0), 3.5, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.0)
+	draw_arc(r_hand_pos + dir * (-4.0), 4.0, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.5)
 	# White-gloved hand
-	draw_circle(r_hand_pos, 3.5, Color(0.90, 0.88, 0.86))
-	draw_circle(r_hand_pos, 2.8, Color(0.95, 0.93, 0.91))
-	# Conducting fingers (extended elegantly, white gloves)
+	draw_circle(r_hand_pos, 4.0, Color(0.90, 0.88, 0.86))
+	draw_circle(r_hand_pos, 3.2, Color(0.95, 0.93, 0.91))
+	# Conducting fingers (extended elegantly)
 	for fi in range(4):
 		var fa = aim_angle + (float(fi) - 1.5) * 0.25
-		draw_circle(r_hand_pos + Vector2.from_angle(fa) * 3.8, 1.2, Color(0.97, 0.95, 0.93))
+		draw_circle(r_hand_pos + Vector2.from_angle(fa) * 4.2, 1.5, Color(0.97, 0.95, 0.93))
 
 	# === MUSIC NOTES near conducting hand (weapon) ===
 	var note_base = r_hand_pos + dir * 8.0
@@ -838,28 +1367,44 @@ func _draw() -> void:
 			# Trailing sparkle
 			draw_circle(a_pos - dir * 4.0, 1.5, Color(0.7, 0.5, 1.0, flash_alpha * 0.3))
 
-	# === ELEGANT NECK (visible, flesh-colored with white shirt collar) ===
-	# Neck (3px wide, from neck_base up to head)
-	draw_line(neck_base + Vector2(0, 0), head_center + Vector2(0, 12), Color(0.04, 0.03, 0.06), 8.0)
-	draw_line(neck_base + Vector2(0, 0), head_center + Vector2(0, 12), skin_shadow, 6.0)
-	draw_line(neck_base + Vector2(0, 0), head_center + Vector2(0, 12), skin_base, 5.0)
+	# === ELEGANT NECK (polygon-based, with white shirt collar) ===
+	var neck_top = head_center + Vector2(0, 12)
+	var neck_dir = (neck_top - neck_base).normalized()
+	var neck_perp = neck_dir.rotated(PI / 2.0)
+	# Dark outline
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 7.5, neck_base - neck_perp * 7.5,
+		neck_base.lerp(neck_top, 0.5) - neck_perp * 6.5,
+		neck_top - neck_perp * 5.5, neck_top + neck_perp * 5.5,
+		neck_base.lerp(neck_top, 0.5) + neck_perp * 6.5,
+	]), Color(0.04, 0.03, 0.06))
+	# Skin shadow layer
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 6.5, neck_base - neck_perp * 6.5,
+		neck_top - neck_perp * 4.5, neck_top + neck_perp * 4.5,
+	]), skin_shadow)
+	# Skin base layer
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + neck_perp * 5.5, neck_base - neck_perp * 5.5,
+		neck_top - neck_perp * 3.5, neck_top + neck_perp * 3.5,
+	]), skin_base)
 	# Neck highlight
-	draw_line(neck_base + Vector2(-1, 1), head_center + Vector2(-1, 11), skin_highlight, 2.0)
+	draw_line(neck_base.lerp(neck_top, 0.15) + neck_perp * 3.0, neck_base.lerp(neck_top, 0.85) + neck_perp * 2.5, skin_highlight, 2.0)
 	# White shirt collar points (visible at neck base)
 	var collar_l = PackedVector2Array([
-		neck_base + Vector2(-6, 2),
-		neck_base + Vector2(-3, -2),
+		neck_base + Vector2(-8, 2),
+		neck_base + Vector2(-4, -3),
 		neck_base + Vector2(0, 2),
 	])
 	draw_colored_polygon(collar_l, Color(0.95, 0.93, 0.91))
-	draw_line(neck_base + Vector2(-6, 2), neck_base + Vector2(-3, -2), Color(0.85, 0.83, 0.80, 0.4), 0.8)
+	draw_line(neck_base + Vector2(-8, 2), neck_base + Vector2(-4, -3), Color(0.85, 0.83, 0.80, 0.4), 0.8)
 	var collar_r = PackedVector2Array([
 		neck_base + Vector2(0, 2),
-		neck_base + Vector2(3, -2),
-		neck_base + Vector2(6, 2),
+		neck_base + Vector2(4, -3),
+		neck_base + Vector2(8, 2),
 	])
 	draw_colored_polygon(collar_r, Color(0.95, 0.93, 0.91))
-	draw_line(neck_base + Vector2(6, 2), neck_base + Vector2(3, -2), Color(0.85, 0.83, 0.80, 0.4), 0.8)
+	draw_line(neck_base + Vector2(8, 2), neck_base + Vector2(4, -3), Color(0.85, 0.83, 0.80, 0.4), 0.8)
 
 	# === HEAD (proportional anime head, smaller than chibi) ===
 	var head_r = 12.0
@@ -965,19 +1510,23 @@ func _draw() -> void:
 	# Right eyebrow (on mask, subtle sculpted line)
 	draw_line(head_center + Vector2(2, -6), head_center + Vector2(8, -5), Color(0.80, 0.78, 0.76, 0.3), 1.3)
 
-	# === MOUTH / JAW (scaled for 12px head) ===
-	# Strong angular jaw line
-	draw_line(head_center + Vector2(-8, 3), head_center + Vector2(-3, 8), Color(0.65, 0.58, 0.52, 0.3), 1.3)
-	draw_line(head_center + Vector2(-3, 8), head_center + Vector2(1, 8), Color(0.65, 0.58, 0.52, 0.25), 1.0)
-	# Chin (angular, masculine)
-	draw_circle(head_center + Vector2(-1, 8), 2.8, skin_shadow)
-	draw_circle(head_center + Vector2(-1, 8), 2.0, skin_base)
-	# Thin firm lips (slightly frowning, dramatic)
-	draw_line(head_center + Vector2(-4, 4), head_center + Vector2(0, 4.5), Color(0.62, 0.45, 0.42), 1.3)
-	draw_line(head_center + Vector2(-4, 4), head_center + Vector2(-2, 3.5), Color(0.70, 0.52, 0.48, 0.3), 0.7)
-	# Nose (left side visible, elegant bridge)
-	draw_line(head_center + Vector2(-1, -3), head_center + Vector2(-2, 1.5), Color(0.75, 0.68, 0.62, 0.4), 1.0)
-	draw_line(head_center + Vector2(-2, 1.5), head_center + Vector2(-1, 2.5), Color(0.75, 0.68, 0.62, 0.3), 0.8)
+	# === MOUTH / JAW (dramatic, handsome — half visible) ===
+	# Strong angular jaw line (left side visible, right under mask)
+	draw_line(head_center + Vector2(-10, 2), head_center + Vector2(-5, 9), Color(0.62, 0.55, 0.50, 0.4), 1.5)
+	draw_line(head_center + Vector2(-5, 9), head_center + Vector2(1, 9), Color(0.62, 0.55, 0.50, 0.3), 1.2)
+	# Squared chin (angular, dramatic)
+	draw_circle(head_center + Vector2(-1, 9), 3.2, skin_shadow)
+	draw_circle(head_center + Vector2(-1, 9), 2.5, skin_base)
+	draw_circle(head_center + Vector2(-1.2, 9.2), 1.5, skin_highlight)
+	# Dramatic thin lips (slightly frowning, brooding)
+	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(0, 5.5), Color(0.62, 0.45, 0.42), 1.5)
+	draw_arc(head_center + Vector2(-2.5, 5.8), 3.0, PI + 0.3, TAU - 0.3, 8, Color(0.65, 0.48, 0.44, 0.3), 0.8)
+	# Lip corner tension
+	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(-6, 4.5), Color(0.60, 0.42, 0.38, 0.25), 0.7)
+	# Elegant nose (left side visible, refined bridge)
+	draw_line(head_center + Vector2(-1, -4), head_center + Vector2(-1.5, 1.5), Color(0.75, 0.68, 0.62, 0.4), 1.2)
+	draw_line(head_center + Vector2(-1.5, 1.5), head_center + Vector2(-0.5, 2.8), Color(0.75, 0.68, 0.62, 0.3), 1.0)
+	draw_circle(head_center + Vector2(-1, 2.8), 1.5, skin_highlight)
 
 	# === TIER 4: DARK RED OPERA AURA on character ===
 	if upgrade_tier >= 4:

@@ -13,6 +13,12 @@ var _lifetime: float = 3.0
 var _angle: float = 0.0
 var _spin: float = 0.0
 
+# Progressive ability support (set by Alice)
+var bounce_count: int = 0
+var split_count: int = 0
+var _hit_targets: Array = []
+var apply_paint: bool = false
+
 func _process(delta: float) -> void:
 	_lifetime -= delta
 	_spin += delta * 12.0
@@ -37,6 +43,7 @@ func _hit_target(t: Node2D) -> void:
 	if not t.has_method("take_damage"):
 		queue_free()
 		return
+	_hit_targets.append(t)
 
 	# Execute check (Off With Their Heads!)
 	if execute_threshold > 0.0 and t.health / t.max_health <= execute_threshold:
@@ -61,13 +68,56 @@ func _hit_target(t: Node2D) -> void:
 	if is_instance_valid(t) and t.has_method("apply_slow"):
 		t.apply_slow(slow_amount, slow_duration)
 
+	# Apply paint stacks (Painting the Roses Red)
+	if apply_paint and is_instance_valid(t) and t.has_method("apply_paint"):
+		t.apply_paint()
+
 	if will_kill:
 		if gold_bonus > 0:
 			var main = get_tree().get_first_node_in_group("main")
 			if main:
 				main.add_gold(gold_bonus)
 
+	# Split mid-flight (Wonderland Madness — 1 becomes 3)
+	if split_count > 0:
+		split_count = 0
+		_spawn_splits()
+
+	# Bounce to next target
+	if bounce_count > 0:
+		bounce_count -= 1
+		var next = _find_bounce_target()
+		if next:
+			target = next
+			return
 	queue_free()
+
+func _find_bounce_target() -> Node2D:
+	var nearest: Node2D = null
+	var nearest_dist: float = 150.0
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy in _hit_targets:
+			continue
+		var dist = global_position.distance_to(enemy.global_position)
+		if dist < nearest_dist:
+			nearest = enemy
+			nearest_dist = dist
+	return nearest
+
+func _spawn_splits() -> void:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var available: Array = []
+	for e in enemies:
+		if e not in _hit_targets and e != target:
+			available.append(e)
+	available.shuffle()
+	var main_node = get_tree().get_first_node_in_group("main")
+	if not main_node:
+		return
+	var count = mini(2, available.size())
+	for i in range(count):
+		if is_instance_valid(source_tower) and source_tower.has_method("_fire_split_card"):
+			source_tower._fire_split_card(available[i], _hit_targets.duplicate(), apply_paint)
 
 func _draw() -> void:
 	# Spinning playing card
