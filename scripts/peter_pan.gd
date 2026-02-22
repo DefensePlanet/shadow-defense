@@ -66,8 +66,9 @@ var base_cost: int = 0
 
 var dagger_scene = preload("res://scenes/peter_dagger.tscn")
 
-# Attack sound
-var _attack_sound: AudioStreamWAV
+# Attack sounds — flute melody evolving with upgrade tier
+var _attack_sounds: Array = []
+var _attack_sounds_by_tier: Array = []
 var _attack_player: AudioStreamPlayer
 
 # Ability sounds
@@ -116,25 +117,11 @@ var _neverland_flight_flash: float = 0.0
 
 func _ready() -> void:
 	add_to_group("towers")
-	# Generate quick dagger slash sound
-	var mix_rate := 22050
-	var duration := 0.08
-	var samples := PackedFloat32Array()
-	samples.resize(int(mix_rate * duration))
-	for i in samples.size():
-		var t := float(i) / mix_rate
-		# Fast metallic swipe — descending noise burst
-		var envelope := exp(-t * 50.0)
-		var swipe := (randf() * 2.0 - 1.0) * envelope * 0.5
-		# Brief high-frequency metallic ring
-		var ring := sin(t * 3200.0 * TAU) * exp(-t * 35.0) * 0.5
-		# Secondary ring for body
-		var ring2 := sin(t * 4800.0 * TAU) * exp(-t * 45.0) * 0.2
-		samples[i] = clampf(swipe + ring + ring2, -1.0, 1.0)
-	_attack_sound = _samples_to_wav(samples, mix_rate)
+	_generate_tier_sounds()
+	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
-	_attack_player.stream = _attack_sound
-	_attack_player.volume_db = -8.0
+	_attack_player.stream = _attack_sounds[0]
+	_attack_player.volume_db = -4.0
 	add_child(_attack_player)
 
 	# Fairy dust — cascading descending sparkle chimes (C7→C6)
@@ -281,10 +268,21 @@ func _find_strongest_enemy() -> Node2D:
 				most_hp = enemy.health
 	return strongest
 
+func _get_note_index() -> int:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and "music_beat_index" in main:
+		return main.music_beat_index
+	return 0
+
+func _is_sfx_muted() -> bool:
+	var main = get_tree().get_first_node_in_group("main")
+	return main and main.get("sfx_muted") == true
+
 func _strike_target(t: Node2D) -> void:
 	if not is_instance_valid(t) or not t.has_method("take_damage"):
 		return
-	if _attack_player:
+	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
+		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 	_attack_anim = 1.0
 	var dmg = damage
@@ -311,7 +309,7 @@ func _strike_target(t: Node2D) -> void:
 					main2.add_gold(gold_bonus)
 
 func _fairy_dust() -> void:
-	if _fairy_player: _fairy_player.play()
+	if _fairy_player and not _is_sfx_muted(): _fairy_player.play()
 	_fairy_flash = 1.0
 	var fairy_dmg = damage * 0.5
 	for enemy in get_tree().get_nodes_in_group("enemies"):
@@ -329,7 +327,7 @@ func _fairy_dust() -> void:
 							main.add_gold(gold_bonus)
 
 func _croc_chomp() -> void:
-	if _croc_player: _croc_player.play()
+	if _croc_player and not _is_sfx_muted(): _croc_player.play()
 	_croc_flash = 1.0
 	var strongest = _find_strongest_enemy()
 	if strongest and strongest.has_method("take_damage"):
@@ -413,9 +411,10 @@ func purchase_upgrade() -> bool:
 		return false
 	upgrade_tier += 1
 	_apply_upgrade(upgrade_tier)
+	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
-	if _upgrade_player: _upgrade_player.play()
+	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -435,6 +434,146 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
+
+func _generate_tier_sounds() -> void:
+	# Dagger blade swish — sharp, quick, metallic shing with fairy sparkle
+	var ring_freqs := [3200.0, 3600.0, 4000.0, 3400.0]
+	var mix_rate := 44100
+	_attack_sounds_by_tier = []
+
+	# --- Tier 0: Quick Blade Swish (sharp metallic shing) ---
+	var t0 := []
+	for note_idx in ring_freqs.size():
+		var rf: float = ring_freqs[note_idx]
+		var dur := 0.12
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var tn := t / dur
+			# Air displacement whoosh
+			var whoosh_env := exp(-t * 28.0)
+			var whoosh := (randf() * 2.0 - 1.0) * 0.25 * whoosh_env
+			# Swept resonance gives the whoosh direction
+			var sweep_f := lerpf(3500.0, 1000.0, tn)
+			whoosh += sin(TAU * sweep_f * t) * 0.12 * whoosh_env
+			# Sharp metallic ring — the blade shing
+			var ring := sin(TAU * rf * t) * exp(-t * 45.0) * 0.3
+			# Inharmonic overtone for metallic quality
+			ring += sin(TAU * rf * 2.37 * t) * exp(-t * 60.0) * 0.12
+			samples[i] = clampf(whoosh + ring, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Sharpened Blade (brighter ring + fairy sparkle) ---
+	var t1 := []
+	for note_idx in ring_freqs.size():
+		var rf: float = ring_freqs[note_idx] * 1.05
+		var dur := 0.14
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var tn := t / dur
+			var whoosh_env := exp(-t * 32.0)
+			var whoosh := (randf() * 2.0 - 1.0) * 0.22 * whoosh_env
+			var sweep_f := lerpf(4000.0, 1200.0, tn)
+			whoosh += sin(TAU * sweep_f * t) * 0.14 * whoosh_env
+			# Brighter ring
+			var ring := sin(TAU * rf * t) * exp(-t * 40.0) * 0.32
+			ring += sin(TAU * rf * 2.37 * t) * exp(-t * 55.0) * 0.14
+			# Fairy sparkle — high-pitched tinkle
+			var sparkle := sin(TAU * rf * 3.0 * t) * exp(-t * 70.0) * 0.08
+			sparkle += sin(TAU * rf * 4.2 * t) * exp(-t * 80.0) * 0.05
+			samples[i] = clampf(whoosh + ring + sparkle, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Shadow Blade (darker tone, faint echo) ---
+	var t2 := []
+	for note_idx in ring_freqs.size():
+		var rf: float = ring_freqs[note_idx] * 0.9
+		var dur := 0.18
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var tn := t / dur
+			var whoosh_env := exp(-t * 22.0)
+			var whoosh := (randf() * 2.0 - 1.0) * 0.28 * whoosh_env
+			var sweep_f := lerpf(3000.0, 600.0, tn)
+			whoosh += sin(TAU * sweep_f * t) * 0.16 * whoosh_env
+			# Darker metallic ring
+			var ring := sin(TAU * rf * t) * exp(-t * 30.0) * 0.3
+			ring += sin(TAU * rf * 1.5 * t) * exp(-t * 35.0) * 0.18
+			ring += sin(TAU * rf * 2.37 * t) * exp(-t * 45.0) * 0.1
+			# Shadow echo — delayed quiet ring
+			var echo_t := maxf(t - 0.06, 0.0)
+			var echo := sin(TAU * rf * 0.75 * echo_t) * exp(-echo_t * 25.0) * 0.12
+			samples[i] = clampf(whoosh + ring + echo, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Enchanted Blade (rich ring + fairy tinkle shower) ---
+	var t3 := []
+	for note_idx in ring_freqs.size():
+		var rf: float = ring_freqs[note_idx]
+		var dur := 0.2
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var tn := t / dur
+			var whoosh_env := exp(-t * 26.0)
+			var whoosh := (randf() * 2.0 - 1.0) * 0.24 * whoosh_env
+			var sweep_f := lerpf(4500.0, 1000.0, tn)
+			whoosh += sin(TAU * sweep_f * t) * 0.15 * whoosh_env
+			# Rich metallic ring with harmonics
+			var ring := sin(TAU * rf * t) * exp(-t * 28.0) * 0.3
+			ring += sin(TAU * rf * 1.5 * t) * exp(-t * 32.0) * 0.15
+			ring += sin(TAU * rf * 2.0 * t) * exp(-t * 38.0) * 0.12
+			ring += sin(TAU * rf * 2.37 * t) * exp(-t * 50.0) * 0.08
+			# Fairy sparkle shower — multiple high-freq tinkles
+			var sparkle := sin(TAU * rf * 3.5 * t) * exp(-t * 40.0) * 0.1
+			sparkle += sin(TAU * rf * 4.7 * t) * exp(-t * 50.0) * 0.07
+			sparkle += sin(TAU * rf * 5.3 * t) * exp(-t * 60.0) * 0.05
+			samples[i] = clampf(whoosh + ring + sparkle, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Master's Blade (full crystalline ring + fairy cascade) ---
+	var t4 := []
+	for note_idx in ring_freqs.size():
+		var rf: float = ring_freqs[note_idx] * 1.1
+		var dur := 0.22
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var tn := t / dur
+			var whoosh_env := exp(-t * 24.0)
+			var whoosh := (randf() * 2.0 - 1.0) * 0.26 * whoosh_env
+			var sweep_f := lerpf(5000.0, 1200.0, tn)
+			whoosh += sin(TAU * sweep_f * t) * 0.16 * whoosh_env
+			# Full metallic ring — rich harmonics
+			var ring := sin(TAU * rf * t) * exp(-t * 22.0) * 0.28
+			ring += sin(TAU * rf * 1.5 * t) * exp(-t * 26.0) * 0.16
+			ring += sin(TAU * rf * 2.0 * t) * exp(-t * 30.0) * 0.12
+			ring += sin(TAU * rf * 2.37 * t) * exp(-t * 40.0) * 0.08
+			ring += sin(TAU * rf * 3.0 * t) * exp(-t * 45.0) * 0.06
+			# Fairy dust cascade — staggered sparkles
+			var s1 := sin(TAU * rf * 4.0 * t) * exp(-t * 35.0) * 0.1
+			var et2 := maxf(t - 0.03, 0.0)
+			var s2 := sin(TAU * rf * 5.0 * et2) * exp(-et2 * 40.0) * 0.07
+			var et3 := maxf(t - 0.06, 0.0)
+			var s3 := sin(TAU * rf * 6.0 * et3) * exp(-et3 * 50.0) * 0.05
+			samples[i] = clampf(whoosh + ring + s1 + s2 + s3, -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
+func _refresh_tier_sounds() -> void:
+	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
+	_attack_sounds = _attack_sounds_by_tier[tier]
 
 func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -970,16 +1109,18 @@ func _draw() -> void:
 	# Boot top cuff
 	draw_line(l_foot + Vector2(-3.5, -10), l_foot + Vector2(3.5, -10), Color(0.36, 0.25, 0.10), 2.0)
 	draw_line(r_foot + Vector2(-3.5, -10), r_foot + Vector2(3.5, -10), Color(0.36, 0.25, 0.10), 2.0)
-	# Curled pointed toes
-	draw_line(l_foot + Vector2(-3, -1), l_foot + Vector2(-9, -5), Color(0.40, 0.28, 0.12), 3.5)
-	draw_circle(l_foot + Vector2(-9, -5), 2.0, Color(0.42, 0.30, 0.14))
-	draw_line(r_foot + Vector2(3, -1), r_foot + Vector2(9, -5), Color(0.40, 0.28, 0.12), 3.5)
-	draw_circle(r_foot + Vector2(9, -5), 2.0, Color(0.42, 0.30, 0.14))
-	# Tiny bells on toe tips
-	draw_circle(l_foot + Vector2(-9, -5), 1.3, Color(0.85, 0.75, 0.2))
-	draw_circle(l_foot + Vector2(-9, -5.5), 0.6, Color(1.0, 0.92, 0.4, 0.6))
-	draw_circle(r_foot + Vector2(9, -5), 1.3, Color(0.85, 0.75, 0.2))
-	draw_circle(r_foot + Vector2(9, -5.5), 0.6, Color(1.0, 0.92, 0.4, 0.6))
+	# Curled pointed toes (more dramatic curl)
+	draw_line(l_foot + Vector2(-3, -1), l_foot + Vector2(-11, -6), Color(0.40, 0.28, 0.12), 3.5)
+	draw_circle(l_foot + Vector2(-11, -6), 2.0, Color(0.42, 0.30, 0.14))
+	draw_line(r_foot + Vector2(3, -1), r_foot + Vector2(11, -6), Color(0.40, 0.28, 0.12), 3.5)
+	draw_circle(r_foot + Vector2(11, -6), 2.0, Color(0.42, 0.30, 0.14))
+	# Bells on toe tips (slightly larger)
+	draw_circle(l_foot + Vector2(-11, -6), 1.6, Color(0.85, 0.75, 0.2))
+	draw_circle(l_foot + Vector2(-11, -6.5), 0.8, Color(1.0, 0.92, 0.4, 0.65))
+	draw_circle(l_foot + Vector2(-11, -5.2), 0.4, Color(1.0, 0.95, 0.5, 0.4))
+	draw_circle(r_foot + Vector2(11, -6), 1.6, Color(0.85, 0.75, 0.2))
+	draw_circle(r_foot + Vector2(11, -6.5), 0.8, Color(1.0, 0.92, 0.4, 0.65))
+	draw_circle(r_foot + Vector2(11, -5.2), 0.4, Color(1.0, 0.95, 0.5, 0.4))
 	# Leaf wrapping on boots
 	for bi in range(2):
 		var boot = l_foot if bi == 0 else r_foot
@@ -1081,13 +1222,14 @@ func _draw() -> void:
 	# Slight chest definition (male, lean)
 	draw_arc(torso_center + Vector2(-4, -4), 5.0, -0.3, 1.2, 6, Color(0.12, 0.36, 0.06, 0.3), 0.8)
 	draw_arc(torso_center + Vector2(4, -4), 5.0, PI - 1.2, PI + 0.3, 6, Color(0.12, 0.36, 0.06, 0.3), 0.8)
-	# Jagged leaf bottom edge
-	for ji in range(5):
-		var jx = -8.0 + float(ji) * 4.0
-		var jag = 3.5 + sin(float(ji) * 2.3 + _time * 1.5) * 2.0
+	# Jagged leaf bottom edge (more teeth, varied sizes)
+	for ji in range(7):
+		var jx = -9.0 + float(ji) * 3.0
+		var jag = 3.0 + sin(float(ji) * 2.3 + _time * 1.5) * 2.0 + float(ji % 2) * 1.5
+		var jw = 1.2 + float(ji % 3) * 0.4
 		var jag_pts = PackedVector2Array([
-			leg_top + Vector2(jx - 1.5, 0),
-			leg_top + Vector2(jx + 1.5, 0),
+			leg_top + Vector2(jx - jw, 0),
+			leg_top + Vector2(jx + jw, 0),
 			leg_top + Vector2(jx, jag),
 		])
 		draw_colored_polygon(jag_pts, Color(0.12, 0.38, 0.06))
@@ -1110,17 +1252,34 @@ func _draw() -> void:
 	# Fold shadows (longer torso)
 	draw_line(torso_center + Vector2(-9, -6), torso_center + Vector2(-8, 6), Color(0.10, 0.32, 0.06, 0.4), 1.2)
 	draw_line(torso_center + Vector2(9, -6), torso_center + Vector2(8, 6), Color(0.10, 0.32, 0.06, 0.4), 1.2)
-	# Cobweb thread across tunic (gothic detail)
-	draw_line(torso_center + Vector2(-10, -6), torso_center + Vector2(8, 4), Color(0.85, 0.88, 0.92, 0.08), 0.5)
+	# Cobweb thread across tunic (gothic detail — slightly more visible)
+	draw_line(torso_center + Vector2(-10, -6), torso_center + Vector2(8, 4), Color(0.85, 0.88, 0.92, 0.10), 0.5)
+	# Small leaf patches/stitches on tunic (sewn-leaf look)
+	for pi in range(3):
+		var px = -5.0 + float(pi) * 5.0
+		var py = -3.0 + float(pi % 2) * 6.0
+		var patch_pos = torso_center + Vector2(px, py)
+		var pa = float(pi) * 0.8 + 0.5
+		var pd = Vector2.from_angle(pa)
+		draw_line(patch_pos - pd * 2.0, patch_pos + pd * 2.0, Color(0.18, 0.48, 0.12, 0.35), 1.0)
+		draw_line(patch_pos - pd.rotated(PI / 2.0) * 1.0, patch_pos + pd.rotated(PI / 2.0) * 1.0, Color(0.18, 0.48, 0.12, 0.25), 0.6)
+		# Tiny stitch marks around patch
+		draw_line(patch_pos + pd * 2.2, patch_pos + pd * 2.6, Color(0.14, 0.38, 0.08, 0.3), 0.4)
+		draw_line(patch_pos - pd * 2.2, patch_pos - pd * 2.6, Color(0.14, 0.38, 0.08, 0.3), 0.4)
 
 	# Vine belt with leaf buckle (at waist between torso and legs)
 	var belt_y = torso_center + Vector2(0, 6)
 	draw_line(belt_y + Vector2(-11, 0), belt_y + Vector2(11, 0), Color(0.20, 0.36, 0.08), 4.0)
 	draw_line(belt_y + Vector2(-11, 0), belt_y + Vector2(11, 0), Color(0.28, 0.46, 0.14), 2.5)
-	# Vine twists
+	# Vine twists with flower/berry detail
 	for vi in range(5):
 		var vp = belt_y + Vector2(-8.0 + float(vi) * 4.0, sin(float(vi) * PI + _time * 2.0) * 1.0)
 		draw_circle(vp, 2.2, Color(0.24, 0.42, 0.10))
+	# Small flower/berry detail on belt vine
+	draw_circle(belt_y + Vector2(-6, -1.5), 1.2, Color(0.90, 0.25, 0.20, 0.5))
+	draw_circle(belt_y + Vector2(-6, -1.5), 0.6, Color(0.95, 0.40, 0.35, 0.4))
+	draw_circle(belt_y + Vector2(4, -1.8), 1.0, Color(0.85, 0.20, 0.25, 0.45))
+	draw_circle(belt_y + Vector2(8, 1.2), 1.1, Color(1.0, 0.85, 0.15, 0.5))
 	# Leaf buckle
 	var buckle = belt_y
 	var buckle_pts = PackedVector2Array([
@@ -1316,25 +1475,40 @@ func _draw() -> void:
 	draw_circle(head_center + Vector2(0, -1), 10.0, hair_mid_col)
 	# Volume highlight
 	draw_circle(head_center + Vector2(-2, -3), 6.0, Color(0.52, 0.26, 0.12, 0.35))
-	# Messy tufts (8 windswept strands — scaled to smaller head)
+	# Messy tufts (10 wild windswept strands — extended 20%, more dramatic sway)
 	var tuft_data = [
-		[0.2, 5.5, 2.2], [0.8, 6.5, 2.0], [1.5, 5.0, 2.5], [2.2, 6.0, 1.8],
-		[3.5, 7.0, 2.0], [4.2, 5.5, 2.5], [5.0, 5.5, 2.2], [5.6, 6.5, 1.8],
+		[0.2, 6.6, 2.2], [0.8, 7.8, 2.0], [1.5, 6.0, 2.5], [2.2, 7.2, 1.8],
+		[3.5, 8.4, 2.0], [4.2, 6.6, 2.5], [5.0, 6.6, 2.2], [5.6, 7.8, 1.8],
+		[0.5, 6.0, 1.9], [4.6, 7.0, 2.0],  # Extra tufts for fullness
 	]
-	for h in range(8):
+	for h in range(tuft_data.size()):
 		var ha: float = tuft_data[h][0]
 		var tlen: float = tuft_data[h][1]
 		var twid: float = tuft_data[h][2]
 		var tuft_base_pos = head_center + Vector2.from_angle(ha) * 9.5
 		var sway_d = 1.0 if h % 2 == 0 else -1.0
-		var tuft_tip_pos = tuft_base_pos + Vector2.from_angle(ha) * tlen + Vector2(hair_sway * sway_d * 0.5, 0)
+		# More dramatic sway amplitude
+		var tuft_tip_pos = tuft_base_pos + Vector2.from_angle(ha) * tlen + Vector2(hair_sway * sway_d * 0.7, 0)
 		var tcol = hair_mid_col if h % 3 == 0 else hair_hi_col if h % 3 == 1 else hair_base_col
 		draw_line(tuft_base_pos, tuft_tip_pos, tcol, twid)
 		# Wispy secondary strand
-		var ha2 = ha + (0.1 if h % 2 == 0 else -0.1)
+		var ha2 = ha + (0.12 if h % 2 == 0 else -0.12)
 		var t2_base = head_center + Vector2.from_angle(ha2) * 8.5
-		var t2_tip = t2_base + Vector2.from_angle(ha2) * (tlen * 0.6) + Vector2(hair_sway * sway_d * 0.3, 0)
+		var t2_tip = t2_base + Vector2.from_angle(ha2) * (tlen * 0.6) + Vector2(hair_sway * sway_d * 0.4, 0)
 		draw_line(t2_base, t2_tip, hair_base_col, twid * 0.5)
+		# Tertiary wisp between main tufts
+		if h % 3 == 0:
+			var ha3 = ha + 0.18
+			var t3_base = head_center + Vector2.from_angle(ha3) * 8.8
+			var t3_tip = t3_base + Vector2.from_angle(ha3) * (tlen * 0.35) + Vector2(hair_sway * 0.2, 0)
+			draw_line(t3_base, t3_tip, Color(hair_hi_col.r, hair_hi_col.g, hair_hi_col.b, 0.5), twid * 0.35)
+	# Short spiky tufts sticking up at crown (bed-head/wild boy look)
+	for ci in range(4):
+		var ca = PI * 1.3 + float(ci) * 0.25
+		var c_base = head_center + Vector2.from_angle(ca) * 9.0
+		var c_sway = sin(_time * 3.0 + float(ci) * 1.2) * 1.0
+		var c_tip = c_base + Vector2.from_angle(ca) * (3.5 + float(ci % 2) * 1.5) + Vector2(c_sway, 0)
+		draw_line(c_base, c_tip, hair_mid_col, 1.5 + float(ci % 2) * 0.5)
 
 	# Face (lean, youthful, defined)
 	draw_circle(head_center + Vector2(0, 1), 9.0, skin_base)
@@ -1344,39 +1518,46 @@ func _draw() -> void:
 	# Chin — youthful, defined
 	draw_circle(head_center + Vector2(0, 7.5), 2.8, skin_base)
 	draw_circle(head_center + Vector2(0, 7.8), 2.0, skin_highlight)
-	# Cheek blush
-	draw_circle(head_center + Vector2(-5.5, 2.5), 2.5, Color(0.95, 0.60, 0.52, 0.2))
-	draw_circle(head_center + Vector2(5.5, 2.5), 2.5, Color(0.95, 0.60, 0.52, 0.2))
+	# Cheek blush (warm youthful glow)
+	draw_circle(head_center + Vector2(-5.5, 2.5), 3.0, Color(0.95, 0.58, 0.50, 0.22))
+	draw_circle(head_center + Vector2(5.5, 2.5), 3.0, Color(0.95, 0.58, 0.50, 0.22))
+	draw_circle(head_center + Vector2(-5.0, 2.0), 1.8, Color(0.98, 0.65, 0.55, 0.12))
+	draw_circle(head_center + Vector2(5.0, 2.0), 1.8, Color(0.98, 0.65, 0.55, 0.12))
 
-	# Pointed elf ears (proportionally scaled)
-	# Right ear
-	var r_ear_tip = head_center + Vector2(15, -3)
+	# Pointed elf ears (more prominent, pointier)
+	# Right ear — extended further outward
+	var r_ear_tip = head_center + Vector2(18, -4)
 	var r_ear_pts = PackedVector2Array([
-		head_center + Vector2(8, -4),
-		head_center + Vector2(8, 1.5),
+		head_center + Vector2(8, -4.5),
+		head_center + Vector2(8, 2.0),
 		r_ear_tip,
 	])
 	draw_colored_polygon(r_ear_pts, skin_base)
-	draw_line(head_center + Vector2(8, -4), r_ear_tip, skin_shadow, 1.5)
-	draw_line(r_ear_tip, head_center + Vector2(8, 1.5), Color(0.80, 0.64, 0.50), 1.0)
-	# Inner ear
-	draw_circle(head_center + Vector2(11, -1.5), 2.0, Color(0.92, 0.70, 0.60, 0.5))
+	draw_line(head_center + Vector2(8, -4.5), r_ear_tip, skin_shadow, 1.5)
+	draw_line(r_ear_tip, head_center + Vector2(8, 2.0), Color(0.80, 0.64, 0.50), 1.0)
+	# Inner ear (larger, warmer color)
+	draw_circle(head_center + Vector2(12, -1.5), 2.5, Color(0.94, 0.72, 0.62, 0.55))
+	draw_circle(head_center + Vector2(11.5, -1.0), 1.5, Color(0.92, 0.68, 0.58, 0.35))
 	# Left ear
-	var l_ear_tip = head_center + Vector2(-15, -3)
+	var l_ear_tip = head_center + Vector2(-18, -4)
 	var l_ear_pts = PackedVector2Array([
-		head_center + Vector2(-8, -4),
-		head_center + Vector2(-8, 1.5),
+		head_center + Vector2(-8, -4.5),
+		head_center + Vector2(-8, 2.0),
 		l_ear_tip,
 	])
 	draw_colored_polygon(l_ear_pts, skin_base)
-	draw_line(head_center + Vector2(-8, -4), l_ear_tip, skin_shadow, 1.5)
-	draw_line(l_ear_tip, head_center + Vector2(-8, 1.5), Color(0.80, 0.64, 0.50), 1.0)
-	draw_circle(head_center + Vector2(-11, -1.5), 2.0, Color(0.92, 0.70, 0.60, 0.5))
-	# Tier 4: Ear tip fairy glow
+	draw_line(head_center + Vector2(-8, -4.5), l_ear_tip, skin_shadow, 1.5)
+	draw_line(l_ear_tip, head_center + Vector2(-8, 2.0), Color(0.80, 0.64, 0.50), 1.0)
+	draw_circle(head_center + Vector2(-12, -1.5), 2.5, Color(0.94, 0.72, 0.62, 0.55))
+	draw_circle(head_center + Vector2(-11.5, -1.0), 1.5, Color(0.92, 0.68, 0.58, 0.35))
+	# Ear tip glow (faint green at all tiers, brighter at T4)
+	var ear_glow_base = 0.08 + float(mini(upgrade_tier, 4)) * 0.04
+	var ear_glow = ear_glow_base + sin(_time * 3.0) * 0.06
+	draw_circle(r_ear_tip, 2.5, Color(0.5, 1.0, 0.5, ear_glow))
+	draw_circle(l_ear_tip, 2.5, Color(0.5, 1.0, 0.5, ear_glow))
 	if upgrade_tier >= 4:
-		var ear_glow = 0.3 + sin(_time * 3.0) * 0.15
-		draw_circle(r_ear_tip, 2.5, Color(1.0, 0.9, 0.4, ear_glow))
-		draw_circle(l_ear_tip, 2.5, Color(1.0, 0.9, 0.4, ear_glow))
+		draw_circle(r_ear_tip, 4.0, Color(1.0, 0.9, 0.4, 0.2 + sin(_time * 3.0) * 0.1))
+		draw_circle(l_ear_tip, 4.0, Color(1.0, 0.9, 0.4, 0.2 + sin(_time * 3.0) * 0.1))
 
 	# Anime-style eyes (expressive but proportional)
 	var look_dir = dir * 1.2
@@ -1385,16 +1566,16 @@ func _draw() -> void:
 	# Eye socket shadow
 	draw_circle(l_eye, 4.2, Color(0.72, 0.56, 0.44, 0.25))
 	draw_circle(r_eye, 4.2, Color(0.72, 0.56, 0.44, 0.25))
-	# Eye whites
-	draw_circle(l_eye, 3.8, Color(0.96, 0.96, 0.98))
-	draw_circle(r_eye, 3.8, Color(0.96, 0.96, 0.98))
-	# Green irises
-	draw_circle(l_eye + look_dir, 2.5, Color(0.10, 0.48, 0.20))
-	draw_circle(l_eye + look_dir, 2.0, Color(0.16, 0.62, 0.28))
-	draw_circle(l_eye + look_dir, 1.4, Color(0.22, 0.70, 0.32))
-	draw_circle(r_eye + look_dir, 2.5, Color(0.10, 0.48, 0.20))
-	draw_circle(r_eye + look_dir, 2.0, Color(0.16, 0.62, 0.28))
-	draw_circle(r_eye + look_dir, 1.4, Color(0.22, 0.70, 0.32))
+	# Eye whites (slightly larger)
+	draw_circle(l_eye, 4.2, Color(0.96, 0.96, 0.98))
+	draw_circle(r_eye, 4.2, Color(0.96, 0.96, 0.98))
+	# Green irises (brighter)
+	draw_circle(l_eye + look_dir, 2.5, Color(0.08, 0.50, 0.20))
+	draw_circle(l_eye + look_dir, 2.0, Color(0.14, 0.65, 0.28))
+	draw_circle(l_eye + look_dir, 1.4, Color(0.20, 0.75, 0.35))
+	draw_circle(r_eye + look_dir, 2.5, Color(0.08, 0.50, 0.20))
+	draw_circle(r_eye + look_dir, 2.0, Color(0.14, 0.65, 0.28))
+	draw_circle(r_eye + look_dir, 1.4, Color(0.20, 0.75, 0.35))
 	# Gold limbal ring
 	draw_arc(l_eye + look_dir, 2.3, 0, TAU, 10, Color(0.65, 0.55, 0.15, 0.25), 0.5)
 	draw_arc(r_eye + look_dir, 2.3, 0, TAU, 10, Color(0.65, 0.55, 0.15, 0.25), 0.5)
@@ -1420,42 +1601,52 @@ func _draw() -> void:
 		draw_line(l_eye + Vector2.from_angle(ela) * 3.8, l_eye + Vector2.from_angle(ela) * 5.5, Color(0.38, 0.20, 0.10, 0.5), 0.7)
 		draw_line(r_eye + Vector2.from_angle(ela) * 3.8, r_eye + Vector2.from_angle(ela) * 5.5, Color(0.38, 0.20, 0.10, 0.5), 0.7)
 
-	# Mischievous asymmetric eyebrows
-	draw_line(l_eye + Vector2(-2.8, -3.5), l_eye + Vector2(1.2, -4.3), Color(0.45, 0.24, 0.10), 1.5)
-	draw_line(r_eye + Vector2(-1.2, -4.5), r_eye + Vector2(2.8, -3.2), Color(0.45, 0.24, 0.10), 1.5)
+	# Mischievous asymmetric eyebrows (one raised much higher)
+	draw_line(l_eye + Vector2(-3.0, -3.2), l_eye + Vector2(1.5, -4.0), Color(0.45, 0.24, 0.10), 1.5)
+	# Right brow raised dramatically higher (peak of mischief)
+	draw_line(r_eye + Vector2(-1.5, -5.2), r_eye + Vector2(3.0, -3.0), Color(0.45, 0.24, 0.10), 1.5)
 
-	# Slim nose (more defined for male anime)
-	draw_line(head_center + Vector2(0, 0.5), head_center + Vector2(0, 3.0), Color(0.82, 0.66, 0.52, 0.3), 0.8)
-	draw_circle(head_center + Vector2(0, 3.0), 1.5, skin_highlight)
-	draw_circle(head_center + Vector2(0.2, 3.2), 1.1, Color(0.93, 0.78, 0.65))
+	# Slim upturned button nose
+	draw_line(head_center + Vector2(0, 0.5), head_center + Vector2(0, 2.5), Color(0.82, 0.66, 0.52, 0.3), 0.8)
+	draw_circle(head_center + Vector2(0, 2.8), 1.6, skin_highlight)
+	draw_circle(head_center + Vector2(0.2, 2.6), 1.2, Color(0.93, 0.78, 0.65))
+	# Nose tip upturn accent
+	draw_arc(head_center + Vector2(0, 2.5), 1.3, PI * 0.2, PI * 0.8, 6, Color(0.94, 0.80, 0.66, 0.3), 0.6)
 	# Nostrils
 	draw_circle(head_center + Vector2(-0.9, 3.5), 0.5, Color(0.55, 0.40, 0.32, 0.4))
 	draw_circle(head_center + Vector2(0.9, 3.5), 0.5, Color(0.55, 0.40, 0.32, 0.4))
 
-	# Cocky Peter Pan grin (scaled down)
-	draw_arc(head_center + Vector2(0.4, 5.5), 4.2, 0.15, PI - 0.15, 12, Color(0.62, 0.28, 0.22), 1.6)
-	# Teeth showing (cocky grin)
-	for ti in range(4):
-		var tooth_x = -2.0 + float(ti) * 1.3
-		draw_circle(head_center + Vector2(tooth_x, 5.7), 0.7, Color(0.98, 0.96, 0.92))
+	# Cocky Peter Pan grin (wider, more boyish)
+	draw_arc(head_center + Vector2(0.5, 5.3), 4.8, 0.1, PI - 0.1, 14, Color(0.62, 0.28, 0.22), 1.7)
+	# Teeth showing (gap-toothed boyish grin)
+	for ti in range(5):
+		var tooth_x = -2.4 + float(ti) * 1.2
+		# Gap between center teeth
+		if ti == 2:
+			continue
+		draw_circle(head_center + Vector2(tooth_x, 5.6), 0.7, Color(0.98, 0.96, 0.92))
 	# Smirk line (right side curves up more)
-	draw_line(head_center + Vector2(3.5, 5.2), head_center + Vector2(4.8, 4.5), Color(0.62, 0.28, 0.22, 0.5), 0.8)
-	# Dimples
-	draw_circle(head_center + Vector2(-5.0, 5.0), 1.0, Color(0.78, 0.56, 0.46, 0.4))
-	draw_circle(head_center + Vector2(5.0, 5.0), 1.0, Color(0.78, 0.56, 0.46, 0.4))
+	draw_line(head_center + Vector2(4.0, 4.8), head_center + Vector2(5.5, 3.8), Color(0.62, 0.28, 0.22, 0.55), 0.9)
+	# Dimples (deeper, more prominent)
+	draw_circle(head_center + Vector2(-5.2, 4.8), 1.3, Color(0.78, 0.56, 0.46, 0.45))
+	draw_circle(head_center + Vector2(5.2, 4.8), 1.3, Color(0.78, 0.56, 0.46, 0.45))
 
-	# Freckles (scaled to smaller face)
-	var frk = Color(0.62, 0.42, 0.28, 0.5)
-	draw_circle(head_center + Vector2(-4.2, 2.0), 0.6, frk)
-	draw_circle(head_center + Vector2(-5.0, 3.2), 0.5, frk)
-	draw_circle(head_center + Vector2(-3.5, 2.8), 0.5, frk)
-	draw_circle(head_center + Vector2(4.2, 2.0), 0.6, frk)
-	draw_circle(head_center + Vector2(5.0, 3.2), 0.5, frk)
-	draw_circle(head_center + Vector2(3.5, 2.8), 0.5, frk)
+	# Freckles (more visible, more per cheek)
+	var frk = Color(0.62, 0.42, 0.28, 0.65)
+	draw_circle(head_center + Vector2(-4.2, 2.0), 0.65, frk)
+	draw_circle(head_center + Vector2(-5.0, 3.2), 0.55, frk)
+	draw_circle(head_center + Vector2(-3.5, 2.8), 0.55, frk)
+	draw_circle(head_center + Vector2(-5.5, 2.2), 0.5, frk)
+	draw_circle(head_center + Vector2(-3.8, 3.6), 0.45, frk)
+	draw_circle(head_center + Vector2(4.2, 2.0), 0.65, frk)
+	draw_circle(head_center + Vector2(5.0, 3.2), 0.55, frk)
+	draw_circle(head_center + Vector2(3.5, 2.8), 0.55, frk)
+	draw_circle(head_center + Vector2(5.5, 2.2), 0.5, frk)
+	draw_circle(head_center + Vector2(3.8, 3.6), 0.45, frk)
 
 	# === Peter Pan hat with leaf texture (scaled to smaller head) ===
 	var hat_base_pos = head_center + Vector2(0, -7)
-	var hat_tip_pos = hat_base_pos + Vector2(11, -15)
+	var hat_tip_pos = hat_base_pos + Vector2(14, -26)
 	var hat_pts = PackedVector2Array([
 		hat_base_pos + Vector2(-10, 2),
 	])
@@ -1476,38 +1667,43 @@ func _draw() -> void:
 	# Hat brim line
 	draw_line(hat_base_pos + Vector2(-11, 2), hat_base_pos + Vector2(11, 2), Color(0.12, 0.36, 0.06), 3.0)
 	draw_line(hat_base_pos + Vector2(-11, 2.5), hat_base_pos + Vector2(11, 2.5), Color(0.22, 0.50, 0.14), 1.8)
-	# Leaf veins on hat
+	# Leaf veins on hat (more detailed)
 	var hat_vein = Color(0.10, 0.32, 0.06, 0.5)
 	draw_line(hat_base_pos + Vector2(2, 0), hat_tip_pos + Vector2(-1, 1), hat_vein, 0.8)
-	var vm1 = hat_base_pos + (hat_tip_pos - hat_base_pos) * 0.3
-	var vm2 = hat_base_pos + (hat_tip_pos - hat_base_pos) * 0.55
+	var vm1 = hat_base_pos + (hat_tip_pos - hat_base_pos) * 0.25
+	var vm2 = hat_base_pos + (hat_tip_pos - hat_base_pos) * 0.45
+	var vm3 = hat_base_pos + (hat_tip_pos - hat_base_pos) * 0.65
+	var vm4 = hat_base_pos + (hat_tip_pos - hat_base_pos) * 0.8
 	draw_line(vm1, vm1 + Vector2(-5, -1.5), hat_vein, 0.6)
 	draw_line(vm1, vm1 + Vector2(2.5, 1.5), hat_vein, 0.6)
-	draw_line(vm2, vm2 + Vector2(-4, -1.2), hat_vein, 0.5)
+	draw_line(vm2, vm2 + Vector2(-4.5, -1.2), hat_vein, 0.5)
+	draw_line(vm2, vm2 + Vector2(2.0, 1.0), hat_vein, 0.5)
+	draw_line(vm3, vm3 + Vector2(-3.5, -1.0), hat_vein, 0.5)
+	draw_line(vm4, vm4 + Vector2(-2.5, -0.8), Color(hat_vein.r, hat_vein.g, hat_vein.b, 0.35), 0.4)
 
-	# Red feather with barbs
+	# Red feather with barbs (extended 15%, brighter, more barbs)
 	var feather_base = hat_base_pos + Vector2(7, -1)
-	var feather_tip = feather_base + Vector2(18, -12)
+	var feather_tip = feather_base + Vector2(20.5, -13.8)
 	var feather_mid = feather_base + (feather_tip - feather_base) * 0.5
 	# Quill
-	draw_line(feather_base, feather_tip, Color(0.72, 0.10, 0.06), 1.8)
-	# Feather body
-	draw_line(feather_base + (feather_tip - feather_base) * 0.1, feather_tip - (feather_tip - feather_base) * 0.05, Color(0.88, 0.16, 0.08), 3.5)
-	draw_line(feather_mid, feather_tip, Color(0.92, 0.22, 0.12), 2.5)
-	# Feather barbs
+	draw_line(feather_base, feather_tip, Color(0.75, 0.10, 0.06), 1.8)
+	# Feather body (brighter red)
+	draw_line(feather_base + (feather_tip - feather_base) * 0.1, feather_tip - (feather_tip - feather_base) * 0.05, Color(0.92, 0.18, 0.08), 4.0)
+	draw_line(feather_mid, feather_tip, Color(0.96, 0.24, 0.12), 2.8)
+	# Feather barbs (9 barbs, longer)
 	var f_d = (feather_tip - feather_base).normalized()
 	var f_p = f_d.rotated(PI / 2.0)
-	for fbi in range(7):
-		var bt = 0.1 + float(fbi) * 0.12
+	for fbi in range(9):
+		var bt = 0.08 + float(fbi) * 0.10
 		var barb_o = feather_base + (feather_tip - feather_base) * bt
-		var blen = 3.0 - abs(float(fbi) - 3.0) * 0.35
-		draw_line(barb_o, barb_o + f_p * blen + f_d * 1.0, Color(0.85, 0.14, 0.06, 0.8), 0.7)
-		draw_line(barb_o, barb_o - f_p * blen + f_d * 1.0, Color(0.85, 0.14, 0.06, 0.8), 0.7)
+		var blen = 3.5 - abs(float(fbi) - 4.0) * 0.3
+		draw_line(barb_o, barb_o + f_p * blen + f_d * 1.0, Color(0.88, 0.16, 0.06, 0.8), 0.8)
+		draw_line(barb_o, barb_o - f_p * blen + f_d * 1.0, Color(0.88, 0.16, 0.06, 0.8), 0.8)
 	# Feather shine
-	draw_line(feather_mid + f_p * 0.3, feather_mid + f_d * 4.5, Color(0.95, 0.40, 0.30, 0.35), 0.8)
+	draw_line(feather_mid + f_p * 0.3, feather_mid + f_d * 5.0, Color(0.98, 0.42, 0.32, 0.4), 0.9)
 	# Feather sway
 	var f_sway = sin(_time * 3.0) * 2.0
-	draw_line(feather_tip, feather_tip + f_p * f_sway + f_d * 2.5, Color(0.85, 0.18, 0.10, 0.5), 1.0)
+	draw_line(feather_tip, feather_tip + f_p * f_sway + f_d * 3.0, Color(0.90, 0.20, 0.10, 0.5), 1.0)
 
 	# === Tier 2+: Tinker Bell orbiting with sparkle trail ===
 	if upgrade_tier >= 2:

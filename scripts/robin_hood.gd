@@ -100,8 +100,9 @@ var base_cost: int = 0
 
 var arrow_scene = preload("res://scenes/arrow.tscn")
 
-# Attack sound
-var _attack_sound: AudioStreamWAV
+# Attack sounds — arrow sounds evolving with upgrade tier
+var _attack_sounds: Array = []
+var _attack_sounds_by_tier: Array = []
 var _attack_player: AudioStreamPlayer
 
 # Ability sounds
@@ -113,25 +114,11 @@ var _upgrade_player: AudioStreamPlayer
 func _ready() -> void:
 	add_to_group("towers")
 	_load_progressive_abilities()
-	# Generate bow twang + arrow whoosh sound
-	var mix_rate := 22050
-	var duration := 0.12
-	var samples := PackedFloat32Array()
-	samples.resize(int(mix_rate * duration))
-	for i in samples.size():
-		var t := float(i) / mix_rate
-		# Bow string twang — sharp pluck at 280Hz with fast decay
-		var twang := sin(t * 280.0 * TAU) * exp(-t * 30.0)
-		# Arrow whoosh — breathy noise sweep from 600Hz to 200Hz
-		var sweep_freq := lerpf(600.0, 200.0, t / duration)
-		var whoosh := sin(t * sweep_freq * TAU) * 0.3 * exp(-t * 15.0)
-		# Add some noise for the whoosh texture
-		var noise := (randf() * 2.0 - 1.0) * 0.15 * exp(-t * 20.0)
-		samples[i] = clampf(twang * 0.6 + whoosh + noise, -1.0, 1.0)
-	_attack_sound = _samples_to_wav(samples, mix_rate)
+	_generate_tier_sounds()
+	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
-	_attack_player.stream = _attack_sound
-	_attack_player.volume_db = -8.0
+	_attack_player.stream = _attack_sounds[0]
+	_attack_player.volume_db = -4.0
 	add_child(_attack_player)
 
 	# Horn volley — 3 ascending brass blasts (A3→C#4→E4)
@@ -215,6 +202,16 @@ func _has_enemies_in_range() -> bool:
 			return true
 	return false
 
+func _get_note_index() -> int:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and "music_beat_index" in main:
+		return main.music_beat_index
+	return 0
+
+func _is_sfx_muted() -> bool:
+	var main = get_tree().get_first_node_in_group("main")
+	return main and main.get("sfx_muted") == true
+
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
@@ -229,7 +226,8 @@ func _find_nearest_enemy() -> Node2D:
 func _shoot() -> void:
 	if not target:
 		return
-	if _attack_player:
+	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
+		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 	shot_count += 1
 	var silver = upgrade_tier >= 2 and shot_count % silver_interval == 0
@@ -258,7 +256,7 @@ func _fire_arrow(t: Node2D, silver: bool = false) -> void:
 	get_tree().get_first_node_in_group("main").add_child(arrow)
 
 func _horn_volley() -> void:
-	if _horn_player: _horn_player.play()
+	if _horn_player and not _is_sfx_muted(): _horn_player.play()
 	_horn_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
@@ -343,9 +341,10 @@ func purchase_upgrade() -> bool:
 		return false
 	upgrade_tier += 1
 	_apply_upgrade(upgrade_tier)
+	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
-	if _upgrade_player: _upgrade_player.play()
+	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -365,6 +364,120 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
+
+func _generate_tier_sounds() -> void:
+	# Bowstring twang frequencies — plucked string fundamentals
+	var string_notes := [196.0, 220.0, 247.0, 262.0]  # G3, A3, B3, C4
+	var mix_rate := 44100
+	_attack_sounds_by_tier = []
+
+	# --- Tier 0: Simple Bowstring Twang (plucked string + soft thwack) ---
+	var t0 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.12))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Plucked bowstring — fast decay, odd harmonics
+			var env := exp(-t * 30.0) * 0.35
+			var fund := sin(t * freq * TAU)
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.2 * exp(-t * 45.0)
+			var h5 := sin(t * freq * 5.0 * TAU) * 0.08 * exp(-t * 60.0)
+			# Soft release thwack (very brief)
+			var thwack := (randf() * 2.0 - 1.0) * exp(-t * 600.0) * 0.2
+			samples[i] = clampf((fund + h3 + h5) * env + thwack, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Longbow Twang (deeper resonance, slight string buzz) ---
+	var t1 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx] * 0.85
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.15))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 22.0) * 0.35
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.15 * exp(-t * 30.0)
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 40.0)
+			# String buzz — slight detuned double
+			var buzz := sin(t * freq * 1.01 * TAU) * 0.15 * exp(-t * 25.0)
+			var thwack := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.18
+			samples[i] = clampf((fund + h2 + h3 + buzz) * env + thwack, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Heavy Bow (weighty thump, low string resonance) ---
+	var t2 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx] * 0.65
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.16))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Meaty low-end twang
+			var env := exp(-t * 20.0) * 0.35
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.2 * exp(-t * 28.0)
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.1 * exp(-t * 35.0)
+			# Wood thump from bow body
+			var thump := sin(t * 80.0 * TAU) * exp(-t * 100.0) * 0.2
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.15
+			samples[i] = clampf((fund + h2 + h3) * env + thump + click, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Rapid Volley (staggered twangs, 2 quick shots) ---
+	var t3 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.18))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# First twang
+			var env1 := exp(-t * 35.0) * 0.3
+			var s1 := sin(t * freq * TAU) * env1
+			s1 += sin(t * freq * 3.0 * TAU) * 0.15 * exp(-t * 50.0) * env1
+			# Second twang (slightly higher, delayed)
+			var dt := t - 0.035
+			var s2 := 0.0
+			if dt > 0.0:
+				var env2 := exp(-dt * 40.0) * 0.25
+				s2 = sin(dt * freq * 1.12 * TAU) * env2
+				s2 += sin(dt * freq * 3.36 * TAU) * 0.12 * exp(-dt * 55.0) * env2
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 600.0) * 0.15
+			samples[i] = clampf(s1 + s2 + click, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Legendary Bow (rich harmonics + brief heroic ring) ---
+	var t4 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.2))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Powerful pluck with rich harmonics
+			var env := exp(-t * 18.0) * 0.3
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.2
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 25.0)
+			var h4 := sin(t * freq * 4.0 * TAU) * 0.06 * exp(-t * 30.0)
+			# Brief heroic shimmer (detuned chorus, subtle)
+			var shim := sin(t * freq * 2.005 * TAU) * 0.08 * exp(-t * 12.0)
+			shim += sin(t * freq * 1.995 * TAU) * 0.08 * exp(-t * 12.0)
+			var snap := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.15
+			samples[i] = clampf((fund + h2 + h3 + h4) * env + shim * env + snap, -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
+func _refresh_tier_sounds() -> void:
+	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
+	_attack_sounds = _attack_sounds_by_tier[tier]
 
 func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -833,22 +946,30 @@ func _draw() -> void:
 	var l_calf_mid = l_knee.lerp(l_foot + Vector2(0, -3), 0.4) + Vector2(-2.0, 0)
 	var lc_dir = (l_foot + Vector2(0, -3) - l_knee).normalized()
 	var lc_perp = lc_dir.rotated(PI / 2.0)
+	# Upper left calf (knee to mid) — split into two quads to avoid self-intersection
 	draw_colored_polygon(PackedVector2Array([
 		l_knee + lc_perp * 4.0, l_knee - lc_perp * 3.5,
-		l_calf_mid - lc_perp * 5.0,   # calf muscle bulge
+		l_calf_mid - lc_perp * 5.0, l_calf_mid + lc_perp * 4.5,
+	]), Color(0.14, 0.40, 0.08))
+	# Lower left calf (mid to foot)
+	draw_colored_polygon(PackedVector2Array([
+		l_calf_mid + lc_perp * 4.5, l_calf_mid - lc_perp * 5.0,
 		l_foot + Vector2(-3, -3), l_foot + Vector2(3, -3),
-		l_calf_mid + lc_perp * 4.5,
 	]), Color(0.14, 0.40, 0.08))
 	draw_circle(l_calf_mid, 3.0, Color(0.22, 0.52, 0.14, 0.3))
 	# RIGHT CALF
 	var r_calf_mid = r_knee.lerp(r_foot + Vector2(0, -3), 0.4) + Vector2(2.0, 0)
 	var rc_dir = (r_foot + Vector2(0, -3) - r_knee).normalized()
 	var rc_perp = rc_dir.rotated(PI / 2.0)
+	# Upper right calf (knee to mid)
 	draw_colored_polygon(PackedVector2Array([
 		r_knee - rc_perp * 4.0, r_knee + rc_perp * 3.5,
-		r_calf_mid + rc_perp * 5.0,
+		r_calf_mid + rc_perp * 5.0, r_calf_mid - rc_perp * 4.5,
+	]), Color(0.14, 0.40, 0.08))
+	# Lower right calf (mid to foot)
+	draw_colored_polygon(PackedVector2Array([
+		r_calf_mid - rc_perp * 4.5, r_calf_mid + rc_perp * 5.0,
 		r_foot + Vector2(3, -3), r_foot + Vector2(-3, -3),
-		r_calf_mid - rc_perp * 4.5,
 	]), Color(0.14, 0.40, 0.08))
 	draw_circle(r_calf_mid, 3.0, Color(0.22, 0.52, 0.14, 0.3))
 
@@ -889,10 +1010,16 @@ func _draw() -> void:
 	# Quiver strap (crosses chest)
 	draw_line(quiver_pos + Vector2(2, -8), torso_center + Vector2(8, 2), Color(0.38, 0.22, 0.08), 2.5)
 	draw_line(quiver_pos + Vector2(2, -8), torso_center + Vector2(8, 2), Color(0.44, 0.28, 0.12), 1.5)
-	# Strap brass fitting
+	# Strap brass fittings (rivets along strap)
 	var strap_mid = quiver_pos.lerp(torso_center + Vector2(5, 2), 0.5)
 	draw_circle(strap_mid, 1.5, Color(0.70, 0.55, 0.20))
 	draw_circle(strap_mid, 0.8, Color(0.85, 0.70, 0.30, 0.5))
+	# Brass rivets along strap
+	for rvi in range(3):
+		var rv_t = 0.2 + float(rvi) * 0.25
+		var rv_pos = quiver_pos.lerp(torso_center + Vector2(8, 2), rv_t)
+		draw_circle(rv_pos, 1.0, Color(0.72, 0.58, 0.22))
+		draw_circle(rv_pos, 0.5, Color(0.88, 0.74, 0.35, 0.5))
 	# Arrows in quiver (feathers sticking out at top)
 	var arrow_count = 3 + upgrade_tier
 	for ai in range(arrow_count):
@@ -976,6 +1103,13 @@ func _draw() -> void:
 		draw_colored_polygon(h_pts, Color(0.14, 0.40, 0.08))
 	# Cobweb thread (gothic detail)
 	draw_line(torso_center + Vector2(-11, -5), torso_center + Vector2(8, 5), Color(0.85, 0.88, 0.92, 0.06), 0.5)
+	# Stitch detail along tunic seams (short perpendicular lines)
+	for sti in range(5):
+		var st_t = float(sti + 1) / 6.0
+		var st_l = neck_base.lerp(leg_top, st_t) + Vector2(-13 + st_t * 5.0, 0)
+		var st_r = neck_base.lerp(leg_top, st_t) + Vector2(13 - st_t * 5.0, 0)
+		draw_line(st_l + Vector2(-1.5, -1), st_l + Vector2(-1.5, 1.5), Color(0.10, 0.30, 0.06, 0.3), 0.6)
+		draw_line(st_r + Vector2(1.5, -1), st_r + Vector2(1.5, 1.5), Color(0.10, 0.30, 0.06, 0.3), 0.6)
 
 	# --- Brown leather belt with brass buckle ---
 	draw_line(leg_top + Vector2(-10, -1), leg_top + Vector2(10, -1), Color(0.32, 0.18, 0.06), 4.0)
@@ -986,6 +1120,11 @@ func _draw() -> void:
 	for bsi in range(4):
 		var bsx = -6.0 + float(bsi) * 4.0
 		draw_line(leg_top + Vector2(bsx, -2.2), leg_top + Vector2(bsx, 0.2), Color(0.45, 0.28, 0.12, 0.4), 0.6)
+	# Tooled leather texture (small decorative arcs along belt)
+	for tli in range(6):
+		var tl_x = -7.0 + float(tli) * 2.8
+		var tl_pos = leg_top + Vector2(tl_x, -1)
+		draw_arc(tl_pos, 1.0, PI * 0.2, PI * 0.8, 4, Color(0.48, 0.30, 0.14, 0.25), 0.5)
 	# Brass buckle (center)
 	var buckle_c = leg_top + Vector2(0, -1)
 	draw_circle(buckle_c, 3.5, Color(0.75, 0.60, 0.18))
@@ -1107,6 +1246,14 @@ func _draw() -> void:
 		var brt = float(bri + 1) / 4.0
 		var br_pos = bracer_start.lerp(bracer_end, brt)
 		draw_line(br_pos - bf_perp * 3.0, br_pos + bf_perp * 3.0, Color(0.32, 0.18, 0.06, 0.5), 0.8)
+	# Leather lacing X-pattern on bracer
+	for lci in range(2):
+		var lc_t1 = 0.2 + float(lci) * 0.35
+		var lc_t2 = lc_t1 + 0.15
+		var lc_p1 = bracer_start.lerp(bracer_end, lc_t1)
+		var lc_p2 = bracer_start.lerp(bracer_end, lc_t2)
+		draw_line(lc_p1 - bf_perp * 1.8, lc_p2 + bf_perp * 1.8, Color(0.28, 0.16, 0.06, 0.4), 0.6)
+		draw_line(lc_p1 + bf_perp * 1.8, lc_p2 - bf_perp * 1.8, Color(0.28, 0.16, 0.06, 0.4), 0.6)
 	# Bow hand
 	draw_circle(bow_hand, 4.0, skin_shadow)
 	draw_circle(bow_hand, 3.2, skin_base)
@@ -1336,35 +1483,62 @@ func _draw() -> void:
 	draw_circle(head_center + Vector2(0, -0.8), 9.8, hair_mid_col)
 	# Volume highlight
 	draw_circle(head_center + Vector2(-1.6, -2.4), 5.5, Color(0.52, 0.30, 0.14, 0.3))
-	# Messy tufts (windswept but shorter)
+	# Messy tufts (windswept, dramatic — extended 25%)
 	var tuft_data = [
-		[0.3, 4.3, 2.0], [1.0, 4.7, 1.7], [1.7, 3.9, 2.2], [2.4, 5.1, 1.6],
-		[3.2, 4.3, 2.0], [4.0, 4.7, 1.8], [4.8, 4.3, 2.1], [5.5, 4.7, 1.6],
+		[0.3, 5.4, 2.0], [1.0, 5.9, 1.7], [1.7, 4.9, 2.2], [2.4, 6.4, 1.6],
+		[3.2, 5.4, 2.0], [4.0, 5.9, 1.8], [4.8, 5.4, 2.1], [5.5, 5.9, 1.6],
+		[0.65, 5.0, 1.8], [3.6, 5.2, 1.7],  # Extra tufts for fullness
 	]
-	for h in range(8):
+	for h in range(tuft_data.size()):
 		var ha: float = tuft_data[h][0]
 		var tlen: float = tuft_data[h][1]
 		var twid: float = tuft_data[h][2]
 		var tuft_base_pos = head_center + Vector2.from_angle(ha) * 9.5
 		var sway_d = 1.0 if h % 2 == 0 else -1.0
-		var tuft_tip_pos = tuft_base_pos + Vector2.from_angle(ha) * tlen + Vector2(hair_sway * sway_d * 0.4, 0)
+		# S-curve wave modulation along strand length
+		var s_wave = sin(ha * 3.0 + _time * 1.5) * 1.2
+		var tuft_tip_pos = tuft_base_pos + Vector2.from_angle(ha) * tlen + Vector2(hair_sway * sway_d * 0.4 + s_wave, s_wave * 0.3)
 		var tcol = hair_mid_col if h % 3 == 0 else hair_hi_col if h % 3 == 1 else hair_base_col
 		draw_line(tuft_base_pos, tuft_tip_pos, tcol, twid)
 		# Secondary wispy strand
 		var ha2 = ha + (0.12 if h % 2 == 0 else -0.12)
 		var t2_base = head_center + Vector2.from_angle(ha2) * 8.7
-		var t2_tip = t2_base + Vector2.from_angle(ha2) * (tlen * 0.5) + Vector2(hair_sway * sway_d * 0.2, 0)
+		var t2_tip = t2_base + Vector2.from_angle(ha2) * (tlen * 0.6) + Vector2(hair_sway * sway_d * 0.2 + s_wave * 0.5, 0)
 		draw_line(t2_base, t2_tip, hair_base_col, twid * 0.5)
+		# Tertiary wisp between main tufts
+		if h % 2 == 0:
+			var ha3 = ha + 0.2
+			var t3_base = head_center + Vector2.from_angle(ha3) * 9.0
+			var t3_tip = t3_base + Vector2.from_angle(ha3) * (tlen * 0.35) + Vector2(hair_sway * 0.15, 0)
+			draw_line(t3_base, t3_tip, Color(hair_hi_col.r, hair_hi_col.g, hair_hi_col.b, 0.5), twid * 0.35)
+	# Rakish fringe — strands falling across forehead
+	for fri in range(3):
+		var fr_x = -3.0 + float(fri) * 2.5
+		var fr_base = head_center + Vector2(fr_x, -8.5)
+		var fr_wave = sin(_time * 2.0 + float(fri) * 1.3) * 0.8
+		var fr_tip = fr_base + Vector2(fr_wave, 6.0 + float(fri) * 0.8)
+		draw_line(fr_base, fr_tip, hair_mid_col, 1.4 - float(fri) * 0.15)
+		# Fringe highlight
+		draw_line(fr_base, fr_base.lerp(fr_tip, 0.6), hair_hi_col, 0.7)
 
 	# Face (strong masculine shape)
 	draw_circle(head_center + Vector2(0, 0.8), 9.1, skin_base)
 	# Strong jawline — defined angular lines from ears to squared chin
 	draw_line(head_center + Vector2(-8.5, 1), head_center + Vector2(-5, 7.5), Color(0.65, 0.48, 0.35, 0.35), 1.5)
 	draw_line(head_center + Vector2(8.5, 1), head_center + Vector2(5, 7.5), Color(0.65, 0.48, 0.35, 0.35), 1.5)
-	# Chin — squared, masculine
+	# Under-cheekbone shadow arcs (angular definition)
+	draw_arc(head_center + Vector2(-5.5, 1.8), 4.0, PI * 0.1, PI * 0.55, 8, Color(0.62, 0.44, 0.32, 0.2), 1.2)
+	draw_arc(head_center + Vector2(5.5, 1.8), 4.0, PI * 0.45, PI * 0.9, 8, Color(0.62, 0.44, 0.32, 0.2), 1.2)
+	# Cheekbone highlight arcs
+	draw_arc(head_center + Vector2(-5.0, 0.6), 3.5, PI * 1.15, PI * 1.6, 8, Color(0.96, 0.82, 0.68, 0.25), 1.0)
+	draw_arc(head_center + Vector2(5.0, 0.6), 3.5, PI * 1.4, PI * 1.85, 8, Color(0.96, 0.82, 0.68, 0.25), 1.0)
+	# Chin — squared, masculine with cleft
 	draw_line(head_center + Vector2(-5, 7.5), head_center + Vector2(5, 7.5), Color(0.65, 0.48, 0.35, 0.25), 1.2)
 	draw_circle(head_center + Vector2(0, 7.5), 3.0, skin_base)
 	draw_circle(head_center + Vector2(0, 7.8), 2.2, skin_highlight)
+	# Chin cleft
+	draw_line(head_center + Vector2(0, 7.0), head_center + Vector2(0, 8.2), Color(0.65, 0.48, 0.35, 0.2), 0.8)
+	draw_circle(head_center + Vector2(0, 7.5), 0.6, Color(0.72, 0.54, 0.42, 0.15))
 	# Slight weathering (outdoor skin)
 	draw_arc(head_center + Vector2(0, 0), 7.1, PI * 0.7, PI * 1.3, 10, Color(0.82, 0.66, 0.50, 0.15), 2.0)
 
@@ -1382,20 +1556,29 @@ func _draw() -> void:
 
 	# Short stubbly beard / 5 o'clock shadow on jawline
 	var stubble_c = head_center + Vector2(0, 4.7)
-	draw_arc(stubble_c, 4.7, 0.3, PI - 0.3, 10, Color(0.40, 0.26, 0.16, 0.18), 2.0)
-	# Individual stubble dots
-	for sti in range(10):
-		var st_a = 0.4 + float(sti) * (PI - 0.8) / 9.0
+	draw_arc(stubble_c, 4.7, 0.3, PI - 0.3, 10, Color(0.40, 0.26, 0.16, 0.2), 2.0)
+	# Individual stubble dots — dense coverage across jaw area
+	for sti in range(12):
+		var st_a = 0.35 + float(sti) * (PI - 0.7) / 11.0
 		var st_r = 3.6 + sin(float(sti) * 2.1) * 0.9
 		var st_pos = stubble_c + Vector2.from_angle(st_a) * st_r
-		draw_circle(st_pos, 0.3, Color(0.38, 0.24, 0.14, 0.22))
-	for sti in range(7):
-		var st_a = 0.5 + float(sti) * (PI - 1.0) / 6.0
+		draw_circle(st_pos, 0.4, Color(0.38, 0.24, 0.14, 0.25))
+	for sti in range(9):
+		var st_a = 0.45 + float(sti) * (PI - 0.9) / 8.0
 		var st_r = 2.8 + cos(float(sti) * 1.8) * 0.6
 		var st_pos = stubble_c + Vector2.from_angle(st_a) * st_r
-		draw_circle(st_pos, 0.25, Color(0.36, 0.22, 0.12, 0.18))
+		draw_circle(st_pos, 0.3, Color(0.36, 0.22, 0.12, 0.2))
+	# Extra stubble along jawline edges
+	for sti in range(6):
+		var jx = -5.0 + float(sti) * 2.0
+		var jy = 6.5 + sin(float(sti) * 1.5) * 0.5
+		draw_circle(head_center + Vector2(jx, jy), 0.35, Color(0.38, 0.24, 0.14, 0.18))
 	# Chin stubble (thicker patch)
-	draw_arc(head_center + Vector2(0, 7.1), 2.4, 0.5, PI - 0.5, 6, Color(0.38, 0.24, 0.14, 0.2), 1.5)
+	draw_arc(head_center + Vector2(0, 7.1), 2.4, 0.5, PI - 0.5, 6, Color(0.38, 0.24, 0.14, 0.22), 1.5)
+	# Extra chin dots
+	for ci in range(4):
+		var cx = -1.0 + float(ci) * 0.7
+		draw_circle(head_center + Vector2(cx, 7.6 + sin(float(ci)) * 0.4), 0.3, Color(0.36, 0.22, 0.12, 0.2))
 
 	# Green eyes that track aim direction (scaled for smaller head)
 	var look_dir = dir * 1.2
@@ -1417,21 +1600,27 @@ func _draw() -> void:
 	# Limbal ring (gold-green)
 	draw_arc(l_eye + look_dir, 2.4, 0, TAU, 10, Color(0.55, 0.48, 0.12, 0.25), 0.5)
 	draw_arc(r_eye + look_dir, 2.4, 0, TAU, 10, Color(0.55, 0.48, 0.12, 0.25), 0.5)
-	# Iris radial detail
-	for iri in range(6):
-		var ir_a = TAU * float(iri) / 6.0
+	# Iris radial detail (Phantom-style ring detail)
+	for iri in range(8):
+		var ir_a = TAU * float(iri) / 8.0
 		var ir_v = Vector2.from_angle(ir_a)
-		draw_line(l_eye + look_dir + ir_v * 0.5, l_eye + look_dir + ir_v * 1.3, Color(0.14, 0.48, 0.18, 0.2), 0.3)
-		draw_line(r_eye + look_dir + ir_v * 0.5, r_eye + look_dir + ir_v * 1.3, Color(0.14, 0.48, 0.18, 0.2), 0.3)
+		draw_line(l_eye + look_dir + ir_v * 0.5, l_eye + look_dir + ir_v * 1.5, Color(0.14, 0.48, 0.18, 0.25), 0.4)
+		draw_line(r_eye + look_dir + ir_v * 0.5, r_eye + look_dir + ir_v * 1.5, Color(0.14, 0.48, 0.18, 0.25), 0.4)
+	# Inner iris ring (bright green)
+	draw_arc(l_eye + look_dir, 1.0, 0, TAU, 10, Color(0.30, 0.70, 0.35, 0.3), 0.4)
+	draw_arc(r_eye + look_dir, 1.0, 0, TAU, 10, Color(0.30, 0.70, 0.35, 0.3), 0.4)
 	# Pupils
 	draw_circle(l_eye + look_dir * 1.15, 1.2, Color(0.05, 0.05, 0.07))
 	draw_circle(r_eye + look_dir * 1.15, 1.2, Color(0.05, 0.05, 0.07))
-	# Primary highlight (big sparkle)
-	draw_circle(l_eye + Vector2(-0.9, -1.2), 1.1, Color(1.0, 1.0, 1.0, 0.9))
-	draw_circle(r_eye + Vector2(-0.9, -1.2), 1.1, Color(1.0, 1.0, 1.0, 0.9))
-	# Secondary highlight
-	draw_circle(l_eye + Vector2(1.2, 0.4), 0.55, Color(1.0, 1.0, 1.0, 0.5))
-	draw_circle(r_eye + Vector2(1.2, 0.4), 0.55, Color(1.0, 1.0, 1.0, 0.5))
+	# Primary highlight (big sparkle — boosted)
+	draw_circle(l_eye + Vector2(-0.9, -1.2), 1.3, Color(1.0, 1.0, 1.0, 0.92))
+	draw_circle(r_eye + Vector2(-0.9, -1.2), 1.3, Color(1.0, 1.0, 1.0, 0.92))
+	# Secondary highlight (boosted)
+	draw_circle(l_eye + Vector2(1.2, 0.4), 0.7, Color(1.0, 1.0, 1.0, 0.55))
+	draw_circle(r_eye + Vector2(1.2, 0.4), 0.7, Color(1.0, 1.0, 1.0, 0.55))
+	# Tertiary green glint highlight
+	draw_circle(l_eye + Vector2(0.5, -1.5), 0.35, Color(0.6, 1.0, 0.7, 0.3))
+	draw_circle(r_eye + Vector2(0.5, -1.5), 0.35, Color(0.6, 1.0, 0.7, 0.3))
 	# Keen archer glint (focused green)
 	var glint_t = sin(_time * 2.0) * 0.2
 	draw_circle(l_eye + Vector2(0.4, -0.4), 0.4, Color(0.3, 0.8, 0.4, 0.2 + glint_t))
@@ -1478,24 +1667,26 @@ func _draw() -> void:
 	draw_circle(head_center + Vector2(-5.5, 2.4), 2.8, Color(0.90, 0.55, 0.45, 0.15))
 	draw_circle(head_center + Vector2(5.5, 2.4), 2.8, Color(0.90, 0.55, 0.45, 0.15))
 
-	# Confident cocky smirk
-	draw_arc(head_center + Vector2(0.4, 5.5), 4.3, 0.2, PI - 0.4, 12, Color(0.58, 0.28, 0.20), 1.5)
-	# Teeth showing (just a flash of white behind smirk)
-	for thi in range(3):
-		var tooth_x = -1.2 + float(thi) * 1.2
-		draw_circle(head_center + Vector2(tooth_x, 5.7), 0.6, Color(0.98, 0.96, 0.92))
-	# Asymmetric smirk upturn (right side curves up more — cocky)
-	draw_line(head_center + Vector2(3.6, 5.1), head_center + Vector2(5.1, 3.9), Color(0.58, 0.28, 0.20, 0.5), 1.0)
-	# Dimple at smirk corner
-	draw_circle(head_center + Vector2(5.1, 4.3), 0.8, Color(0.78, 0.56, 0.44, 0.35))
-	draw_circle(head_center + Vector2(-4.3, 5.1), 0.8, Color(0.78, 0.56, 0.44, 0.25))
+	# Confident cocky smirk (wider, more dashing)
+	draw_arc(head_center + Vector2(0.6, 5.4), 4.8, 0.15, PI - 0.35, 14, Color(0.58, 0.28, 0.20), 1.6)
+	# Teeth showing (flash of white behind smirk)
+	for thi in range(4):
+		var tooth_x = -1.5 + float(thi) * 1.1
+		draw_circle(head_center + Vector2(tooth_x, 5.6), 0.6, Color(0.98, 0.96, 0.92))
+	# Asymmetric smirk upturn (right side curves up more — deeply cocky)
+	draw_line(head_center + Vector2(4.0, 4.8), head_center + Vector2(5.8, 3.4), Color(0.58, 0.28, 0.20, 0.55), 1.2)
+	# Lower lip subtle definition
+	draw_arc(head_center + Vector2(0.4, 5.8), 3.2, 0.3, PI - 0.5, 8, Color(0.72, 0.42, 0.32, 0.15), 0.8)
+	# Dimple at smirk corner (deeper)
+	draw_circle(head_center + Vector2(5.6, 3.8), 0.9, Color(0.78, 0.56, 0.44, 0.4))
+	draw_circle(head_center + Vector2(-4.5, 5.0), 0.9, Color(0.78, 0.56, 0.44, 0.28))
 	# Laugh lines (slight, adds character to weathered face)
 	draw_arc(head_center + Vector2(-3.9, 2.0), 3.2, PI * 0.5, PI * 0.85, 4, Color(0.65, 0.48, 0.35, 0.1), 0.5)
 	draw_arc(head_center + Vector2(3.9, 2.0), 3.2, PI * 0.15, PI * 0.5, 4, Color(0.65, 0.48, 0.35, 0.1), 0.5)
 
 	# === Robin Hood feathered cap/hood ===
 	var hat_base = head_center + Vector2(0, -7)
-	var hat_tip = hat_base + Vector2(10, -13)
+	var hat_tip = hat_base + Vector2(12, -16)
 	# Hat shape (pointed like classic Robin Hood cap, slightly structured)
 	var hat_pts = PackedVector2Array([
 		hat_base + Vector2(-9.5, 2),
@@ -1503,7 +1694,7 @@ func _draw() -> void:
 	# Curved brim
 	for hbi in range(5):
 		var ht = float(hbi) / 4.0
-		var brim_pos = hat_base + Vector2(-9.5 + ht * 19.0, 2.0 + sin(ht * PI) * 1.6)
+		var brim_pos = hat_base + Vector2(-9.5 + ht * 19.0, 2.0 + sin(ht * PI) * 2.4)
 		hat_pts.append(brim_pos)
 	hat_pts.append(hat_tip)
 	draw_colored_polygon(hat_pts, Color(0.16, 0.44, 0.10))
@@ -1537,29 +1728,29 @@ func _draw() -> void:
 	draw_circle(hat_tip, 1.8, Color(0.14, 0.40, 0.08))
 	draw_circle(hat_tip, 1.1, Color(0.18, 0.46, 0.12))
 
-	# Red feather on hat (classic Robin Hood detail)
+	# Red feather on hat (classic Robin Hood detail — extended 15%)
 	var feather_bob = sin(_time * 3.0) * 1.5
 	var feather_base = hat_base + Vector2(6, -1)
-	var feather_tip = feather_base + Vector2(16, -11 + feather_bob)
+	var feather_tip = feather_base + Vector2(18.5, -12.5 + feather_bob)
 	var feather_mid = feather_base + (feather_tip - feather_base) * 0.5
 	# Quill (rachis)
 	draw_line(feather_base, feather_tip, Color(0.72, 0.10, 0.06), 2.0)
-	# Feather body (red plume)
-	draw_line(feather_base + (feather_tip - feather_base) * 0.1, feather_tip - (feather_tip - feather_base) * 0.05, Color(0.88, 0.16, 0.08), 4.0)
-	draw_line(feather_mid, feather_tip, Color(0.92, 0.22, 0.12), 3.0)
-	# Feather barbs (diagonal lines off spine)
+	# Feather body (red plume — wider)
+	draw_line(feather_base + (feather_tip - feather_base) * 0.1, feather_tip - (feather_tip - feather_base) * 0.05, Color(0.88, 0.16, 0.08), 5.0)
+	draw_line(feather_mid, feather_tip, Color(0.92, 0.22, 0.12), 3.5)
+	# Feather barbs (diagonal lines off spine — 9 barbs)
 	var f_d = (feather_tip - feather_base).normalized()
 	var f_p = f_d.rotated(PI / 2.0)
-	for fbi in range(7):
-		var bt = 0.1 + float(fbi) * 0.12
+	for fbi in range(9):
+		var bt = 0.08 + float(fbi) * 0.10
 		var barb_o = feather_base + (feather_tip - feather_base) * bt
-		var blen = 3.5 - abs(float(fbi) - 3.0) * 0.4
-		draw_line(barb_o, barb_o + f_p * blen + f_d * 1.2, Color(0.85, 0.14, 0.06, 0.8), 0.8)
-		draw_line(barb_o, barb_o - f_p * blen + f_d * 1.2, Color(0.85, 0.14, 0.06, 0.8), 0.8)
+		var blen = 4.0 - abs(float(fbi) - 4.0) * 0.35
+		draw_line(barb_o, barb_o + f_p * blen + f_d * 1.2, Color(0.85, 0.14, 0.06, 0.8), 0.9)
+		draw_line(barb_o, barb_o - f_p * blen + f_d * 1.2, Color(0.85, 0.14, 0.06, 0.8), 0.9)
 	# Feather shine
 	draw_line(feather_mid + f_p * 0.3, feather_mid + f_d * 5.0, Color(0.95, 0.40, 0.30, 0.35), 1.0)
 	# Feather tip sway
-	draw_line(feather_tip, feather_tip + f_p * sin(_time * 3.0) * 2.0 + f_d * 2.0, Color(0.85, 0.18, 0.10, 0.4), 1.0)
+	draw_line(feather_tip, feather_tip + f_p * sin(_time * 3.0) * 2.0 + f_d * 2.5, Color(0.85, 0.18, 0.10, 0.4), 1.0)
 	# Quill base (white)
 	draw_circle(feather_base, 1.0, Color(0.92, 0.88, 0.78))
 

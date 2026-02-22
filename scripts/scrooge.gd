@@ -94,8 +94,9 @@ const TIER_COSTS = [55, 120, 225, 400]
 var is_selected: bool = false
 var base_cost: int = 0
 
-# Attack sound
-var _attack_sound: AudioStreamWAV
+# Attack sounds — bell melody evolving with upgrade tier
+var _attack_sounds: Array = []
+var _attack_sounds_by_tier: Array = []
 var _attack_player: AudioStreamPlayer
 
 # Ability sounds
@@ -109,29 +110,11 @@ var _upgrade_player: AudioStreamPlayer
 func _ready() -> void:
 	add_to_group("towers")
 	_load_progressive_abilities()
-	# Church bell ring — resonant metallic with harmonics
-	var mix_rate := 22050
-	var duration := 0.5
-	var samples := PackedFloat32Array()
-	samples.resize(int(mix_rate * duration))
-	for i in samples.size():
-		var t := float(i) / mix_rate
-		var env := exp(-t * 4.0) * 0.5
-		# Bell fundamental (D5 ~587Hz)
-		var fund := sin(t * 587.0 * TAU) * env
-		# 2nd partial (minor third above, characteristic of bells)
-		var p2 := sin(t * 700.0 * TAU) * env * 0.6
-		# 3rd partial (perfect fifth)
-		var p3 := sin(t * 880.0 * TAU) * env * 0.3
-		# High shimmer partial
-		var p4 := sin(t * 1760.0 * TAU) * exp(-t * 8.0) * 0.15
-		# Strike transient
-		var strike := (randf() * 2.0 - 1.0) * exp(-t * 80.0) * 0.3
-		samples[i] = clampf(fund + p2 + p3 + p4 + strike, -1.0, 1.0)
-	_attack_sound = _samples_to_wav(samples, mix_rate)
+	_generate_tier_sounds()
+	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
-	_attack_player.stream = _attack_sound
-	_attack_player.volume_db = -8.0
+	_attack_player.stream = _attack_sounds[0]
+	_attack_player.volume_db = -6.0
 	add_child(_attack_player)
 
 	# Ghost of Past — wavering ghostly moan (mid-pitch, breathy)
@@ -241,6 +224,16 @@ func _has_enemies_in_range() -> bool:
 			return true
 	return false
 
+func _get_note_index() -> int:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and "music_beat_index" in main:
+		return main.music_beat_index
+	return 0
+
+func _is_sfx_muted() -> bool:
+	var main = get_tree().get_first_node_in_group("main")
+	return main and main.get("sfx_muted") == true
+
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
@@ -253,7 +246,8 @@ func _find_nearest_enemy() -> Node2D:
 	return nearest
 
 func _shoot() -> void:
-	if _attack_player:
+	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
+		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 	_attack_anim = 1.0
 	var main = get_tree().get_first_node_in_group("main")
@@ -281,7 +275,7 @@ func _shoot() -> void:
 		main.add_gold(gold_per_ring + (enemies_hit - 1) * bonus_gold_per_enemy)
 
 func _ghost_of_past() -> void:
-	if _ghost_past_player: _ghost_past_player.play()
+	if _ghost_past_player and not _is_sfx_muted(): _ghost_past_player.play()
 	_ghost_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
@@ -294,7 +288,7 @@ func _ghost_of_past() -> void:
 			picked.apply_mark(1.25, 5.0, fear_enabled)
 
 func _ghost_of_present() -> void:
-	if _ghost_present_player: _ghost_present_player.play()
+	if _ghost_present_player and not _is_sfx_muted(): _ghost_present_player.play()
 	_ghost_flash = 1.2
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < attack_range:
@@ -384,9 +378,10 @@ func purchase_upgrade() -> bool:
 		return false
 	upgrade_tier += 1
 	_apply_upgrade(upgrade_tier)
+	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
-	if _upgrade_player: _upgrade_player.play()
+	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -406,6 +401,111 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
+
+func _generate_tier_sounds() -> void:
+	# Coin-chime notes — bright, high, pleasant like tossed coins
+	var coin_notes := [1319.0, 1480.0, 1760.0, 1568.0, 1397.0, 1175.0, 1319.0, 1480.0]
+	var mix_rate := 44100
+	_attack_sounds_by_tier = []
+
+	# --- Tier 0: Coin Toss (short metallic clink) ---
+	var t0 := []
+	for note_idx in coin_notes.size():
+		var freq: float = coin_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.12))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 25.0) * 0.25
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.3 * TAU) * 0.3 * exp(-t * 35.0)
+			var clink := sin(t * freq * 3.7 * TAU) * 0.15 * exp(-t * 50.0)
+			var tap := (randf() * 2.0 - 1.0) * exp(-t * 400.0) * 0.15
+			samples[i] = clampf((fund + h2 + clink) * env + tap, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Silver Coin (brighter ring, slight shimmer) ---
+	var t1 := []
+	for note_idx in coin_notes.size():
+		var freq: float = coin_notes[note_idx] * 1.1
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.15))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 20.0) * 0.25
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.2 * exp(-t * 30.0)
+			var shimmer := sin(t * freq * 1.005 * TAU) * 0.15 * exp(-t * 18.0)
+			var tap := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.12
+			samples[i] = clampf((fund + h2 + shimmer) * env + tap, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Gold Coin (warmer, richer harmonics) ---
+	var t2 := []
+	for note_idx in coin_notes.size():
+		var freq: float = coin_notes[note_idx] * 0.9
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.18))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 16.0) * 0.25
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.18
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.08 * exp(-t * 25.0)
+			var ring := sin(t * freq * 1.5 * TAU) * 0.1 * exp(-t * 20.0)
+			var tap := (randf() * 2.0 - 1.0) * exp(-t * 350.0) * 0.1
+			samples[i] = clampf((fund + h2 + h3 + ring) * env + tap, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Coin Cascade (double-hit, like coins bouncing) ---
+	var t3 := []
+	for note_idx in coin_notes.size():
+		var freq: float = coin_notes[note_idx] * 1.2
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.2))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# First coin hit
+			var env1 := exp(-t * 30.0) * 0.2
+			var c1 := sin(t * freq * TAU) * env1
+			# Second coin hit (delayed)
+			var dt := t - 0.04
+			var c2 := 0.0
+			if dt > 0.0:
+				var env2 := exp(-dt * 35.0) * 0.18
+				c2 = sin(dt * freq * 1.25 * TAU) * env2
+			var h := sin(t * freq * 2.3 * TAU) * exp(-t * 40.0) * 0.1
+			var tap := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.1
+			samples[i] = clampf(c1 + c2 + h + tap, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Treasure Chime (rich multi-note sparkle) ---
+	var t4 := []
+	for note_idx in coin_notes.size():
+		var freq: float = coin_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.25))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 14.0) * 0.2
+			var fund := sin(t * freq * TAU)
+			# Sparkle chorus (slightly detuned layers)
+			var sp1 := sin(t * freq * 1.003 * TAU) * 0.3
+			var sp2 := sin(t * freq * 0.997 * TAU) * 0.3
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.12 * exp(-t * 20.0)
+			var twinkle := sin(t * freq * 3.0 * TAU) * exp(-t * 30.0) * 0.08
+			var tap := (randf() * 2.0 - 1.0) * exp(-t * 400.0) * 0.08
+			samples[i] = clampf((fund + sp1 + sp2 + h2 + twinkle) * env + tap, -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
+func _refresh_tier_sounds() -> void:
+	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
+	_attack_sounds = _attack_sounds_by_tier[tier]
 
 func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -897,147 +997,222 @@ func _draw() -> void:
 	var neck_base = body_offset + Vector2(hunch_rock * 0.8, -20.0 + hunch_rock * 0.5)
 	var head_center = body_offset + Vector2(hunch_rock * 1.0, -32.0 + hunch_rock * 0.7)
 
-	# === WORN SLIPPERS ===
+	# === POLISHED OXFORDS (black patent leather) ===
 	var l_foot = feet_y + Vector2(-7, 0)
 	var r_foot = feet_y + Vector2(7, 0)
-	# Slipper base — old, worn brown
-	draw_circle(l_foot, 5.0, Color(0.35, 0.25, 0.15))
-	draw_circle(l_foot, 4.0, Color(0.45, 0.35, 0.22))
-	draw_circle(r_foot, 5.0, Color(0.35, 0.25, 0.15))
-	draw_circle(r_foot, 4.0, Color(0.45, 0.35, 0.22))
-	# Slipper worn patches
-	draw_circle(l_foot + Vector2(1, -1), 2.0, Color(0.38, 0.28, 0.18, 0.5))
-	draw_circle(r_foot + Vector2(-1, -1), 2.0, Color(0.38, 0.28, 0.18, 0.5))
-	# Slipper opening (darker inside)
-	draw_circle(l_foot + Vector2(0, -2), 2.5, Color(0.2, 0.15, 0.1, 0.4))
-	draw_circle(r_foot + Vector2(0, -2), 2.5, Color(0.2, 0.15, 0.1, 0.4))
+	# Shoe soles
+	draw_circle(l_foot + Vector2(0, 1.5), 5.0, Color(0.02, 0.02, 0.02))
+	draw_circle(r_foot + Vector2(0, 1.5), 5.0, Color(0.02, 0.02, 0.02))
+	# Shoe base (polished black)
+	draw_circle(l_foot, 5.0, Color(0.04, 0.04, 0.04))
+	draw_circle(l_foot, 3.8, Color(0.10, 0.10, 0.10))
+	draw_circle(r_foot, 5.0, Color(0.04, 0.04, 0.04))
+	draw_circle(r_foot, 3.8, Color(0.10, 0.10, 0.10))
+	# Patent leather shine
+	draw_circle(l_foot + Vector2(1, -1.5), 2.0, Color(0.30, 0.30, 0.35, 0.5))
+	draw_circle(r_foot + Vector2(-1, -1.5), 2.0, Color(0.30, 0.30, 0.35, 0.5))
+	# Pointed toe detail
+	draw_circle(l_foot + Vector2(2, 0.5), 1.2, Color(0.25, 0.25, 0.30, 0.35))
+	draw_circle(r_foot + Vector2(-2, 0.5), 1.2, Color(0.25, 0.25, 0.30, 0.35))
+	# Heel detail
+	draw_line(l_foot + Vector2(-2, 1), l_foot + Vector2(-2, 3), Color(0.06, 0.06, 0.06), 2.0)
+	draw_line(r_foot + Vector2(2, 1), r_foot + Vector2(2, 3), Color(0.06, 0.06, 0.06), 2.0)
 
-	# === THIN BONY LEGS (polygon angular shapes, visible below nightgown) ===
+	# === VICTORIAN TROUSERS (dark charcoal, slightly wider than bony legs) ===
 	var l_knee = feet_y + Vector2(-5, -8)
 	var r_knee = feet_y + Vector2(5, -8)
 	var l_hip = leg_top + Vector2(-6, 0)
 	var r_hip = leg_top + Vector2(6, 0)
 	var l_ankle = l_foot + Vector2(0, -3)
 	var r_ankle = r_foot + Vector2(0, -3)
-	# LEFT THIGH — thin angular under nightgown
+	var trouser_col = Color(0.08, 0.06, 0.10)
+	var trouser_hi = Color(0.12, 0.10, 0.14)
+	# LEFT THIGH — charcoal trouser
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(3, 0), l_hip + Vector2(-4, 0),
+		l_hip.lerp(l_knee, 0.5) + Vector2(-4.5, 0),
+		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
+		l_hip.lerp(l_knee, 0.5) + Vector2(3.5, 0),
+	]), Color(0.05, 0.04, 0.07))
 	draw_colored_polygon(PackedVector2Array([
 		l_hip + Vector2(2, 0), l_hip + Vector2(-3, 0),
-		l_hip.lerp(l_knee, 0.5) + Vector2(-3.5, 0),
 		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
-		l_hip.lerp(l_knee, 0.5) + Vector2(2.5, 0),
-	]), Color(0.08, 0.08, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		l_hip + Vector2(1, 0), l_hip + Vector2(-2, 0),
-		l_knee + Vector2(-2, 0), l_knee + Vector2(1, 0),
-	]), skin_shadow)
+	]), trouser_col)
 	# RIGHT THIGH
 	draw_colored_polygon(PackedVector2Array([
-		r_hip + Vector2(-2, 0), r_hip + Vector2(3, 0),
-		r_hip.lerp(r_knee, 0.5) + Vector2(3.5, 0),
-		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
-		r_hip.lerp(r_knee, 0.5) + Vector2(-2.5, 0),
-	]), Color(0.08, 0.08, 0.08))
+		r_hip + Vector2(-3, 0), r_hip + Vector2(4, 0),
+		r_hip.lerp(r_knee, 0.5) + Vector2(4.5, 0),
+		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
+		r_hip.lerp(r_knee, 0.5) + Vector2(-3.5, 0),
+	]), Color(0.05, 0.04, 0.07))
 	draw_colored_polygon(PackedVector2Array([
-		r_hip + Vector2(-1, 0), r_hip + Vector2(2, 0),
-		r_knee + Vector2(2, 0), r_knee + Vector2(-1, 0),
-	]), skin_shadow)
-	# Bony knee joints (prominent on thin legs)
-	draw_circle(l_knee, 4.0, Color(0.08, 0.08, 0.08))
-	draw_circle(l_knee, 3.0, skin_shadow)
-	draw_circle(l_knee, 1.8, skin_base)
-	draw_circle(r_knee, 4.0, Color(0.08, 0.08, 0.08))
-	draw_circle(r_knee, 3.0, skin_shadow)
-	draw_circle(r_knee, 1.8, skin_base)
-	# LEFT CALF — thin with shin bone visible
+		r_hip + Vector2(-2, 0), r_hip + Vector2(3, 0),
+		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
+	]), trouser_col)
+	# Knee joints
+	draw_circle(l_knee, 4.5, Color(0.05, 0.04, 0.07))
+	draw_circle(l_knee, 3.5, trouser_col)
+	draw_circle(r_knee, 4.5, Color(0.05, 0.04, 0.07))
+	draw_circle(r_knee, 3.5, trouser_col)
+	# LEFT CALF — trouser leg
+	draw_colored_polygon(PackedVector2Array([
+		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
+		l_ankle + Vector2(2, 0), l_ankle + Vector2(-2, 0),
+		l_knee.lerp(l_ankle, 0.4) + Vector2(-4.5, 0),
+	]), Color(0.05, 0.04, 0.07))
 	draw_colored_polygon(PackedVector2Array([
 		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
-		l_ankle + Vector2(1.5, 0), l_ankle + Vector2(-1.5, 0),
-		l_knee.lerp(l_ankle, 0.4) + Vector2(-3.5, 0),  # slight calf curve
-	]), Color(0.08, 0.08, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		l_knee + Vector2(-2, 0), l_knee + Vector2(1, 0),
-		l_ankle + Vector2(0.8, 0), l_ankle + Vector2(-0.8, 0),
-	]), skin_shadow)
-	# Shin bone highlight
-	draw_line(l_knee + Vector2(0.5, 1), l_ankle + Vector2(0.5, -1), Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3), 0.8)
+		l_ankle + Vector2(1.2, 0), l_ankle + Vector2(-1.2, 0),
+	]), trouser_col)
+	# Sharp crease line (pressed trousers)
+	draw_line(l_hip + Vector2(0, 0), l_ankle + Vector2(0, 0), Color(0.15, 0.12, 0.18, 0.25), 0.8)
 	# RIGHT CALF
 	draw_colored_polygon(PackedVector2Array([
-		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
-		r_ankle + Vector2(-1.5, 0), r_ankle + Vector2(1.5, 0),
-		r_knee.lerp(r_ankle, 0.4) + Vector2(3.5, 0),
-	]), Color(0.08, 0.08, 0.08))
+		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
+		r_ankle + Vector2(-2, 0), r_ankle + Vector2(2, 0),
+		r_knee.lerp(r_ankle, 0.4) + Vector2(4.5, 0),
+	]), Color(0.05, 0.04, 0.07))
 	draw_colored_polygon(PackedVector2Array([
-		r_knee + Vector2(2, 0), r_knee + Vector2(-1, 0),
-		r_ankle + Vector2(-0.8, 0), r_ankle + Vector2(0.8, 0),
-	]), skin_shadow)
-	draw_line(r_knee + Vector2(-0.5, 1), r_ankle + Vector2(-0.5, -1), Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3), 0.8)
+		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
+		r_ankle + Vector2(-1.2, 0), r_ankle + Vector2(1.2, 0),
+	]), trouser_col)
+	# Sharp crease line (pressed trousers)
+	draw_line(r_hip + Vector2(0, 0), r_ankle + Vector2(0, 0), Color(0.15, 0.12, 0.18, 0.25), 0.8)
 
-	# === LONG WHITE VICTORIAN NIGHTGOWN (ankle-length, slightly fitted for wiry frame) ===
-	var gown_sway = sin(_time * 1.5) * 2.0
-	var nightgown_pts = PackedVector2Array([
-		leg_top + Vector2(-14, 18 + gown_sway),            # Left hem (near feet)
-		leg_top + Vector2(-16, 10 + gown_sway * 0.5),      # Left lower body
-		torso_center + Vector2(-12, 8),                     # Left hip — fitted
-		torso_center + Vector2(-10, 0),                     # Left waist — narrow
-		neck_base + Vector2(-13, 2),                        # Left shoulder
-		neck_base + Vector2(13, 2),                         # Right shoulder
-		torso_center + Vector2(10, 0),                      # Right waist — narrow
-		torso_center + Vector2(12, 8),                      # Right hip — fitted
-		leg_top + Vector2(16, 10 - gown_sway * 0.5),       # Right lower body
-		leg_top + Vector2(14, 18 - gown_sway),             # Right hem
+	# === DARK CHARCOAL TAILCOAT ENSEMBLE (Victorian businessman) ===
+	var coat_col = Color(0.08, 0.06, 0.10)
+	var coat_hi = Color(0.12, 0.10, 0.14)
+	var waistcoat_col = Color(0.45, 0.15, 0.12)
+	var waistcoat_hi = Color(0.55, 0.22, 0.18)
+
+	# --- COAT TAILS (two long tails from waist toward feet, behind legs) ---
+	var tail_sway = sin(_time * 1.5) * 2.0
+	# Left tail
+	var l_tail = PackedVector2Array([
+		torso_center + Vector2(-8, 4),
+		torso_center + Vector2(-4, 4),
+		leg_top + Vector2(-3, 16 + tail_sway),
+		leg_top + Vector2(-10, 18 + tail_sway * 0.7),
 	])
-	# Nightgown shadow / outline
-	draw_colored_polygon(nightgown_pts, Color(0.78, 0.76, 0.74))
-	# Main nightgown white — slightly fitted inner
-	var nightgown_inner = PackedVector2Array([
-		leg_top + Vector2(-12, 16 + gown_sway),
-		leg_top + Vector2(-14, 8 + gown_sway * 0.5),
-		torso_center + Vector2(-10, 7),
+	draw_colored_polygon(l_tail, coat_col)
+	draw_line(torso_center + Vector2(-6, 5), leg_top + Vector2(-6, 16 + tail_sway * 0.8), Color(0.14, 0.11, 0.18, 0.3), 1.0)
+	# Right tail
+	var r_tail = PackedVector2Array([
+		torso_center + Vector2(4, 4),
+		torso_center + Vector2(8, 4),
+		leg_top + Vector2(10, 18 - tail_sway * 0.7),
+		leg_top + Vector2(3, 16 - tail_sway),
+	])
+	draw_colored_polygon(r_tail, coat_col)
+	draw_line(torso_center + Vector2(6, 5), leg_top + Vector2(6, 16 - tail_sway * 0.8), Color(0.14, 0.11, 0.18, 0.3), 1.0)
+
+	# --- TAILCOAT BODY (shoulders to waist) ---
+	var coat_pts = PackedVector2Array([
+		torso_center + Vector2(-9, 6),     # waist left
+		torso_center + Vector2(-10, 0),
+		neck_base + Vector2(-13, 2),       # shoulder left
+		neck_base + Vector2(13, 2),        # shoulder right
+		torso_center + Vector2(10, 0),
+		torso_center + Vector2(9, 6),      # waist right
+	])
+	draw_colored_polygon(coat_pts, coat_col)
+	# Coat side shadow
+	var coat_shadow_l = PackedVector2Array([
+		torso_center + Vector2(-9, 6),
+		torso_center + Vector2(-10, 0),
+		neck_base + Vector2(-13, 2),
+		neck_base + Vector2(-8, 2),
+		torso_center + Vector2(-6, 4),
+	])
+	draw_colored_polygon(coat_shadow_l, Color(0.04, 0.03, 0.06, 0.3))
+
+	# --- WHITE DRESS SHIRT (visible strip at chest) ---
+	var shirt_pts = PackedVector2Array([
+		neck_base + Vector2(-5, 3),
+		neck_base + Vector2(5, 3),
+		torso_center + Vector2(5, 4),
+		torso_center + Vector2(-5, 4),
+	])
+	draw_colored_polygon(shirt_pts, Color(0.95, 0.93, 0.91))
+	# Shirt pleat lines
+	draw_line(neck_base + Vector2(-2, 3), torso_center + Vector2(-2, 3), Color(0.88, 0.86, 0.84, 0.3), 0.7)
+	draw_line(neck_base + Vector2(2, 3), torso_center + Vector2(2, 3), Color(0.88, 0.86, 0.84, 0.3), 0.7)
+
+	# --- BURGUNDY WAISTCOAT (over shirt, under coat) ---
+	var vest_pts = PackedVector2Array([
+		neck_base + Vector2(-6, 3),
+		neck_base + Vector2(6, 3),
+		torso_center + Vector2(7, 5),
+		torso_center + Vector2(-7, 5),
+	])
+	draw_colored_polygon(vest_pts, waistcoat_col)
+	# Waistcoat highlight
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-3, 4),
+		neck_base + Vector2(3, 4),
+		torso_center + Vector2(4, 4),
+		torso_center + Vector2(-4, 4),
+	]), Color(waistcoat_hi.r, waistcoat_hi.g, waistcoat_hi.b, 0.3))
+	# Gold buttons on waistcoat
+	for bi in range(4):
+		var by = neck_base.y + 5.0 + float(bi) * 4.0
+		draw_circle(Vector2(torso_center.x, by), 1.2, Color(0.85, 0.72, 0.2))
+		draw_circle(Vector2(torso_center.x - 0.3, by - 0.3), 0.5, Color(1.0, 0.9, 0.5, 0.5))
+	# Gold pocket watch chain (draped across waistcoat)
+	var chain_start = Vector2(torso_center.x - 4, neck_base.y + 10)
+	var chain_mid = Vector2(torso_center.x, neck_base.y + 13)
+	var chain_end = Vector2(torso_center.x + 4, neck_base.y + 10)
+	draw_line(chain_start, chain_mid, Color(0.85, 0.72, 0.2, 0.6), 1.0)
+	draw_line(chain_mid, chain_end, Color(0.85, 0.72, 0.2, 0.6), 1.0)
+	# Watch fob at lowest point
+	draw_circle(chain_mid, 1.5, Color(0.85, 0.72, 0.2, 0.5))
+
+	# --- PEAKED LAPELS (coat collar) ---
+	# Left lapel
+	var lapel_l = PackedVector2Array([
+		neck_base + Vector2(-12, 1),
+		neck_base + Vector2(-5, 3),
+		torso_center + Vector2(-5, -1),
 		torso_center + Vector2(-8, -1),
-		neck_base + Vector2(-11, 2),
-		neck_base + Vector2(11, 2),
+		neck_base + Vector2(-13, 4),
+	])
+	draw_colored_polygon(lapel_l, Color(0.10, 0.08, 0.12))
+	draw_line(neck_base + Vector2(-12, 1), neck_base + Vector2(-14, -1), Color(0.14, 0.11, 0.18, 0.4), 1.0)
+	# Right lapel
+	var lapel_r = PackedVector2Array([
+		neck_base + Vector2(5, 3),
+		neck_base + Vector2(12, 1),
+		neck_base + Vector2(13, 4),
 		torso_center + Vector2(8, -1),
-		torso_center + Vector2(10, 7),
-		leg_top + Vector2(14, 8 - gown_sway * 0.5),
-		leg_top + Vector2(12, 16 - gown_sway),
+		torso_center + Vector2(5, -1),
 	])
-	draw_colored_polygon(nightgown_inner, Color(0.9, 0.88, 0.86))
-	# Lighter center panel
-	var center_panel = PackedVector2Array([
-		leg_top + Vector2(-5, 14 + gown_sway * 0.5),
-		torso_center + Vector2(-6, 0),
-		torso_center + Vector2(6, 0),
-		leg_top + Vector2(5, 14 - gown_sway * 0.5),
-	])
-	draw_colored_polygon(center_panel, Color(0.95, 0.93, 0.91, 0.6))
-	# Button line down center — more buttons for taller torso
-	for bi in range(6):
-		var by = neck_base.y + 4.0 + float(bi) * 5.0
-		draw_circle(Vector2(torso_center.x, by), 1.0, Color(0.7, 0.68, 0.65))
-	# Worn patches / texture on nightgown
-	draw_circle(torso_center + Vector2(-8, 6), 3.0, Color(0.82, 0.8, 0.78, 0.3))
-	draw_circle(torso_center + Vector2(10, 2), 2.5, Color(0.84, 0.82, 0.79, 0.25))
-	draw_circle(leg_top + Vector2(-5, 6), 2.0, Color(0.80, 0.78, 0.75, 0.2))
-	# Angular wiry frame showing through — subtle shading
-	draw_line(torso_center + Vector2(-9, -1), torso_center + Vector2(-7, 8), Color(0.82, 0.80, 0.78, 0.25), 1.5)
-	draw_line(torso_center + Vector2(9, -1), torso_center + Vector2(7, 8), Color(0.82, 0.80, 0.78, 0.25), 1.5)
-	# Nightgown collar (V-neckline) — now at neck_base
-	draw_line(neck_base + Vector2(-10, 1), neck_base + Vector2(0, 5), Color(0.75, 0.73, 0.70), 1.5)
-	draw_line(neck_base + Vector2(10, 1), neck_base + Vector2(0, 5), Color(0.75, 0.73, 0.70), 1.5)
-	# Collar fold highlight
-	draw_line(neck_base + Vector2(-9, 1), neck_base + Vector2(0, 4), Color(0.95, 0.93, 0.90, 0.4), 1.0)
-	draw_line(neck_base + Vector2(9, 1), neck_base + Vector2(0, 4), Color(0.95, 0.93, 0.90, 0.4), 1.0)
-	# Gown hem fringe detail
-	for hi in range(6):
-		var hx = -12.0 + float(hi) * 4.8
-		var hy = leg_top.y + 17 + gown_sway * (0.5 - float(hi) / 6.0)
-		draw_line(Vector2(leg_top.x + hx, hy), Vector2(leg_top.x + hx, hy + 3.0), Color(0.82, 0.80, 0.78, 0.3), 1.0)
+	draw_colored_polygon(lapel_r, Color(0.10, 0.08, 0.12))
+	draw_line(neck_base + Vector2(12, 1), neck_base + Vector2(14, -1), Color(0.14, 0.11, 0.18, 0.4), 1.0)
 
-	# === NON-WEAPON ARM (left side — polygon nightgown sleeve, thin/wiry) ===
+	# --- DARK CRAVAT/ASCOT at neck ---
+	var cravat_pos = neck_base + Vector2(0, 3)
+	draw_colored_polygon(PackedVector2Array([
+		cravat_pos + Vector2(-3, -1),
+		cravat_pos + Vector2(3, -1),
+		cravat_pos + Vector2(2, 4),
+		cravat_pos + Vector2(0, 5),
+		cravat_pos + Vector2(-2, 4),
+	]), Color(0.15, 0.12, 0.18))
+	# Cravat folds
+	draw_line(cravat_pos + Vector2(-1, 0), cravat_pos + Vector2(-1, 3), Color(0.22, 0.18, 0.25, 0.4), 0.8)
+	draw_line(cravat_pos + Vector2(1, 0), cravat_pos + Vector2(1, 3), Color(0.22, 0.18, 0.25, 0.4), 0.8)
+	# Gold cravat pin
+	draw_circle(cravat_pos + Vector2(0, 1), 1.2, Color(0.85, 0.72, 0.2))
+	draw_circle(cravat_pos + Vector2(-0.3, 0.7), 0.5, Color(1.0, 0.9, 0.5, 0.5))
+	# High starched collar points
+	draw_line(neck_base + Vector2(-6, 1), neck_base + Vector2(-4, -2), Color(0.92, 0.90, 0.88), 2.0)
+	draw_line(neck_base + Vector2(6, 1), neck_base + Vector2(4, -2), Color(0.92, 0.90, 0.88), 2.0)
+
+	# === NON-WEAPON ARM (left side — tailcoat sleeve, holds cane) ===
 	var off_arm_shoulder = neck_base + Vector2(-13, 2)
 	var off_arm_elbow = torso_center + Vector2(-17, 4)
 	var off_arm_hand = torso_center + Vector2(-11, 10)
-	# LEFT UPPER ARM — thin nightgown sleeve polygon
+	# LEFT UPPER ARM — dark charcoal tailcoat sleeve
 	var l_ua_dir = (off_arm_elbow - off_arm_shoulder).normalized()
 	var l_ua_perp = l_ua_dir.rotated(PI / 2.0)
 	draw_colored_polygon(PackedVector2Array([
@@ -1045,47 +1220,58 @@ func _draw() -> void:
 		off_arm_shoulder.lerp(off_arm_elbow, 0.5) - l_ua_perp * 3.8,
 		off_arm_elbow - l_ua_perp * 3.0, off_arm_elbow + l_ua_perp * 3.0,
 		off_arm_shoulder.lerp(off_arm_elbow, 0.5) + l_ua_perp * 3.5,
-	]), Color(0.82, 0.80, 0.78))
+	]), Color(0.06, 0.04, 0.08))
 	draw_colored_polygon(PackedVector2Array([
 		off_arm_shoulder + l_ua_perp * 3.0, off_arm_shoulder - l_ua_perp * 2.5,
 		off_arm_elbow - l_ua_perp * 2.0, off_arm_elbow + l_ua_perp * 2.0,
-	]), Color(0.88, 0.86, 0.84))
-	# LEFT FOREARM — thin polygon, wiry
+	]), coat_col)
+	# LEFT FOREARM — tailcoat sleeve
 	var l_fa_dir = (off_arm_hand - off_arm_elbow).normalized()
 	var l_fa_perp = l_fa_dir.rotated(PI / 2.0)
 	draw_colored_polygon(PackedVector2Array([
 		off_arm_elbow + l_fa_perp * 3.0, off_arm_elbow - l_fa_perp * 3.0,
 		off_arm_hand - l_fa_perp * 2.0, off_arm_hand + l_fa_perp * 2.0,
-	]), Color(0.82, 0.80, 0.78))
+	]), Color(0.06, 0.04, 0.08))
 	draw_colored_polygon(PackedVector2Array([
 		off_arm_elbow + l_fa_perp * 2.0, off_arm_elbow - l_fa_perp * 2.0,
 		off_arm_hand - l_fa_perp * 1.2, off_arm_hand + l_fa_perp * 1.2,
-	]), Color(0.88, 0.86, 0.84))
-	# Elbow joint (bony)
-	draw_circle(off_arm_elbow, 3.5, Color(0.82, 0.80, 0.78))
-	draw_circle(off_arm_elbow, 2.5, Color(0.88, 0.86, 0.84))
-	# Visible tendon/sinew
-	draw_line(off_arm_elbow + l_fa_perp * 1.0, off_arm_hand + l_fa_perp * 0.5, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 0.8)
-	# Bony elderly hand
+	]), coat_col)
+	# Elbow joint
+	draw_circle(off_arm_elbow, 3.5, Color(0.06, 0.04, 0.08))
+	draw_circle(off_arm_elbow, 2.5, coat_col)
+	# White shirt cuff at wrist
+	draw_arc(off_arm_hand + Vector2(0, -2), 3.0, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.0)
+	# Bony elderly hand (kept — fits character)
 	draw_circle(off_arm_hand, 3.5, skin_base)
 	draw_circle(off_arm_hand, 2.5, skin_highlight)
-	# Thin bony fingers gripping
+	# Thin bony fingers gripping cane
 	draw_line(off_arm_hand, off_arm_hand + Vector2(-2, 3), skin_shadow, 1.5)
 	draw_line(off_arm_hand, off_arm_hand + Vector2(0, 4), skin_shadow, 1.5)
 	draw_line(off_arm_hand, off_arm_hand + Vector2(2, 3), skin_shadow, 1.2)
 	# Knuckle detail
 	draw_circle(off_arm_hand + Vector2(-1, 1), 1.0, skin_shadow)
 	draw_circle(off_arm_hand + Vector2(1, 1), 1.0, skin_shadow)
-	# Visible wrist bone
-	draw_circle(off_arm_hand + Vector2(0, -2), 1.2, skin_shadow)
 
-	# === WEAPON ARM (right side — polygon nightgown sleeve, holds bell) ===
+	# === WALKING CANE (from left hand to ground) ===
+	var cane_top = off_arm_hand + Vector2(0, 2)
+	var cane_bottom = Vector2(off_arm_hand.x - 2, feet_y.y + 2)
+	# Dark ebony shaft
+	draw_line(cane_top, cane_bottom, Color(0.08, 0.06, 0.04), 2.5)
+	draw_line(cane_top + Vector2(0.5, 0), cane_bottom + Vector2(0.5, 0), Color(0.15, 0.12, 0.10, 0.4), 1.0)
+	# Gold crook handle at top
+	draw_arc(cane_top + Vector2(3, -2), 4.0, PI * 0.5, PI * 1.5, 8, Color(0.85, 0.72, 0.2), 2.5)
+	draw_arc(cane_top + Vector2(3, -2), 3.0, PI * 0.5, PI * 1.5, 8, Color(0.95, 0.82, 0.3, 0.5), 1.5)
+	# Metal ferrule at tip
+	draw_circle(cane_bottom, 1.5, Color(0.5, 0.48, 0.45))
+	draw_circle(cane_bottom + Vector2(-0.3, -0.3), 0.7, Color(0.7, 0.68, 0.65, 0.4))
+
+	# === WEAPON ARM (right side — tailcoat sleeve, holds bell) ===
 	var weapon_shoulder = neck_base + Vector2(13, 2)
 	var attack_recoil = _attack_anim * 4.0
 	var weapon_extend = dir * (16.0 + attack_recoil) + body_offset
 	var weapon_elbow = weapon_shoulder + (weapon_extend - weapon_shoulder) * 0.5 + Vector2(0, 3)
 	var weapon_hand = weapon_shoulder + (weapon_extend - weapon_shoulder) * 0.85
-	# RIGHT UPPER ARM — thin nightgown sleeve polygon
+	# RIGHT UPPER ARM — dark charcoal tailcoat sleeve
 	var r_ua_dir = (weapon_elbow - weapon_shoulder).normalized()
 	var r_ua_perp = r_ua_dir.rotated(PI / 2.0)
 	draw_colored_polygon(PackedVector2Array([
@@ -1093,32 +1279,30 @@ func _draw() -> void:
 		weapon_shoulder.lerp(weapon_elbow, 0.5) - r_ua_perp * 3.8,
 		weapon_elbow - r_ua_perp * 3.0, weapon_elbow + r_ua_perp * 3.0,
 		weapon_shoulder.lerp(weapon_elbow, 0.5) + r_ua_perp * 3.5,
-	]), Color(0.82, 0.80, 0.78))
+	]), Color(0.06, 0.04, 0.08))
 	draw_colored_polygon(PackedVector2Array([
 		weapon_shoulder + r_ua_perp * 3.0, weapon_shoulder - r_ua_perp * 2.5,
 		weapon_elbow - r_ua_perp * 2.0, weapon_elbow + r_ua_perp * 2.0,
-	]), Color(0.88, 0.86, 0.84))
-	# RIGHT FOREARM — thin polygon
+	]), coat_col)
+	# RIGHT FOREARM — tailcoat sleeve
 	var r_fa_dir = (weapon_hand - weapon_elbow).normalized()
 	var r_fa_perp = r_fa_dir.rotated(PI / 2.0)
 	draw_colored_polygon(PackedVector2Array([
 		weapon_elbow + r_fa_perp * 3.0, weapon_elbow - r_fa_perp * 3.0,
 		weapon_hand - r_fa_perp * 2.0, weapon_hand + r_fa_perp * 2.0,
-	]), Color(0.82, 0.80, 0.78))
+	]), Color(0.06, 0.04, 0.08))
 	draw_colored_polygon(PackedVector2Array([
 		weapon_elbow + r_fa_perp * 2.0, weapon_elbow - r_fa_perp * 2.0,
 		weapon_hand - r_fa_perp * 1.2, weapon_hand + r_fa_perp * 1.2,
-	]), Color(0.88, 0.86, 0.84))
-	# Elbow joint (bony)
-	draw_circle(weapon_elbow, 3.5, Color(0.82, 0.80, 0.78))
-	draw_circle(weapon_elbow, 2.5, Color(0.88, 0.86, 0.84))
-	# Visible tendon
-	draw_line(weapon_elbow - r_fa_perp * 1.0, weapon_hand - r_fa_perp * 0.5, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 0.8)
-	# Bony hand
+	]), coat_col)
+	# Elbow joint
+	draw_circle(weapon_elbow, 3.5, Color(0.06, 0.04, 0.08))
+	draw_circle(weapon_elbow, 2.5, coat_col)
+	# White shirt cuff at wrist
+	draw_arc(weapon_hand + Vector2(0, -2), 3.0, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.0)
+	# Bony hand (kept — fits elderly character)
 	draw_circle(weapon_hand, 3.5, skin_base)
 	draw_circle(weapon_hand, 2.5, skin_highlight)
-	# Visible wrist bone
-	draw_circle(weapon_hand + Vector2(0, -2), 1.2, skin_shadow)
 
 	# === BELL (weapon) ===
 	var bell_base = weapon_hand + dir * 4.0
@@ -1238,44 +1422,50 @@ func _draw() -> void:
 		var tuft_end = tuft_start + Vector2(sin(_time * 1.0 + float(i)) * 1.5, -3.0)
 		draw_line(tuft_start, tuft_end, Color(0.92, 0.90, 0.88, 0.4), 1.0)
 
-	# === DROOPING NIGHTCAP WITH POMPOM ===
-	var cap_base_left = head_center + Vector2(-8, -6)
-	var cap_base_right = head_center + Vector2(8, -6)
-	var cap_tip_sway = sin(_time * 1.8) * 4.0
-	var cap_tip = head_center + Vector2(12 + cap_tip_sway, -1)
-	# Nightcap body — white with slight grey
-	var cap_pts = PackedVector2Array([
-		cap_base_left,
-		head_center + Vector2(0, -11),
-		cap_base_right,
-		head_center + Vector2(10, -4),
-		cap_tip,
-	])
-	draw_colored_polygon(cap_pts, Color(0.85, 0.83, 0.80))
-	# Lighter inner cap
-	var cap_inner = PackedVector2Array([
-		cap_base_left + Vector2(2, 1),
-		head_center + Vector2(0, -9),
-		cap_base_right + Vector2(-2, 1),
-		head_center + Vector2(8, -3),
-		cap_tip + Vector2(-2, 1),
-	])
-	draw_colored_polygon(cap_inner, Color(0.92, 0.90, 0.88))
-	# Cap fold/band at base
-	draw_line(cap_base_left, cap_base_right, Color(0.78, 0.76, 0.73), 2.5)
-	draw_line(cap_base_left + Vector2(1, 0.5), cap_base_right + Vector2(-1, 0.5), Color(0.88, 0.86, 0.84), 1.2)
-	# Cap crease/fold lines
-	draw_line(head_center + Vector2(3, -8), cap_tip + Vector2(-3, 0), Color(0.8, 0.78, 0.75, 0.3), 1.0)
-	draw_line(head_center + Vector2(5, -6), cap_tip + Vector2(-2, -1), Color(0.82, 0.80, 0.77, 0.2), 0.8)
-	# Pompom at tip
-	draw_circle(cap_tip, 4.0, Color(0.8, 0.78, 0.75))
-	draw_circle(cap_tip, 3.0, Color(0.92, 0.90, 0.88))
-	draw_circle(cap_tip + Vector2(-1, -1), 1.5, Color(0.98, 0.96, 0.94, 0.5))
-	# Pompom texture bumps
-	for i in range(4):
-		var bump_a = TAU * float(i) / 4.0 + 0.5
-		var bump_p = cap_tip + Vector2.from_angle(bump_a) * 2.8
-		draw_circle(bump_p, 1.0, Color(0.85, 0.83, 0.80, 0.4))
+	# === VICTORIAN TOP HAT (tall, dark, dignified) ===
+	var hat_base_y = head_center.y - 8
+	var hat_center_x = head_center.x
+	# Wide dark brim (~22px wide)
+	draw_set_transform(Vector2(hat_center_x, hat_base_y), 0, Vector2(1.0, 0.3))
+	draw_circle(Vector2.ZERO, 14.0, Color(0.04, 0.03, 0.05))
+	draw_circle(Vector2.ZERO, 12.0, Color(0.08, 0.06, 0.10))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# Brim highlight
+	draw_set_transform(Vector2(hat_center_x, hat_base_y + 1), 0, Vector2(1.0, 0.25))
+	draw_circle(Vector2.ZERO, 11.0, Color(0.12, 0.10, 0.14, 0.3))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# Tall crown (~20px high, ~14px wide)
+	var crown_bottom = hat_base_y
+	var crown_top = hat_base_y - 20
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(hat_center_x - 7, crown_bottom),
+		Vector2(hat_center_x - 7, crown_top + 3),
+		Vector2(hat_center_x - 6, crown_top),
+		Vector2(hat_center_x + 6, crown_top),
+		Vector2(hat_center_x + 7, crown_top + 3),
+		Vector2(hat_center_x + 7, crown_bottom),
+	]), Color(0.06, 0.04, 0.08))
+	# Crown inner highlight
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(hat_center_x - 5, crown_bottom - 1),
+		Vector2(hat_center_x - 5, crown_top + 2),
+		Vector2(hat_center_x + 2, crown_top + 2),
+		Vector2(hat_center_x + 2, crown_bottom - 1),
+	]), Color(0.10, 0.08, 0.12, 0.3))
+	# Hat band
+	draw_line(Vector2(hat_center_x - 7, crown_bottom - 1), Vector2(hat_center_x + 7, crown_bottom - 1), Color(0.15, 0.12, 0.18), 2.5)
+	draw_line(Vector2(hat_center_x - 6, crown_bottom - 1), Vector2(hat_center_x + 6, crown_bottom - 1), Color(0.20, 0.16, 0.22), 1.5)
+	# Subtle buckle on hat band
+	draw_rect(Rect2(Vector2(hat_center_x - 2, crown_bottom - 2.5), Vector2(4, 3)), Color(0.75, 0.62, 0.18, 0.5), false, 1.0)
+	draw_rect(Rect2(Vector2(hat_center_x - 1, crown_bottom - 2), Vector2(2, 2)), Color(0.85, 0.72, 0.2, 0.3), true)
+	# Silk sheen highlight (diagonal across crown)
+	draw_line(Vector2(hat_center_x - 4, crown_top + 4), Vector2(hat_center_x + 2, crown_bottom - 3), Color(0.18, 0.15, 0.22, 0.25), 1.5)
+	draw_line(Vector2(hat_center_x - 3, crown_top + 3), Vector2(hat_center_x + 1, crown_top + 8), Color(0.22, 0.18, 0.26, 0.2), 1.0)
+	# Crown top (flat ellipse)
+	draw_set_transform(Vector2(hat_center_x, crown_top), 0, Vector2(1.0, 0.3))
+	draw_circle(Vector2.ZERO, 7.0, Color(0.08, 0.06, 0.10))
+	draw_circle(Vector2.ZERO, 5.0, Color(0.10, 0.08, 0.12, 0.5))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 	# === ROUND SPECTACLES (scaled for smaller head) ===
 	var glasses_y = head_center.y + 1

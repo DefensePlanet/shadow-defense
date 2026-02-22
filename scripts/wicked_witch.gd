@@ -105,8 +105,9 @@ var base_cost: int = 0
 
 var bolt_scene = preload("res://scenes/witch_bolt.tscn")
 
-# Attack sound
-var _attack_sound: AudioStreamWAV
+# Attack sounds — magical melody evolving with upgrade tier
+var _attack_sounds: Array = []
+var _attack_sounds_by_tier: Array = []
 var _attack_player: AudioStreamPlayer
 
 # Ability sounds
@@ -121,25 +122,11 @@ func _ready() -> void:
 	_home_position = global_position
 	add_to_group("towers")
 	_load_progressive_abilities()
-	# Generate crackling zap sound
-	var mix_rate := 22050
-	var duration := 0.15
-	var samples := PackedFloat32Array()
-	samples.resize(int(mix_rate * duration))
-	for i in samples.size():
-		var t := float(i) / mix_rate
-		# Electric crackle — noise gated by rapid oscillation
-		var gate := 1.0 if sin(t * 80.0 * TAU) > 0.3 else 0.0
-		var crackle := (randf() * 2.0 - 1.0) * gate * exp(-t * 12.0) * 0.6
-		# Low rumble undertone
-		var rumble := sin(t * 120.0 * TAU) * 0.3 * exp(-t * 8.0)
-		# High-frequency sizzle
-		var sizzle := sin(t * 2400.0 * TAU) * 0.15 * gate * exp(-t * 15.0)
-		samples[i] = clampf(crackle + rumble + sizzle, -1.0, 1.0)
-	_attack_sound = _samples_to_wav(samples, mix_rate)
+	_generate_tier_sounds()
+	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
-	_attack_player.stream = _attack_sound
-	_attack_player.volume_db = -8.0
+	_attack_player.stream = _attack_sounds[0]
+	_attack_player.volume_db = -6.0
 	add_child(_attack_player)
 
 	# Wolf pack — rising wolf howl with vibrato
@@ -253,10 +240,22 @@ func _find_nearest_enemy() -> Node2D:
 			nearest_dist = dist
 	return nearest
 
+func _get_note_index() -> int:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and "music_beat_index" in main:
+		return main.music_beat_index
+	return 0
+
+func _is_sfx_muted() -> bool:
+	var main = get_tree().get_first_node_in_group("main")
+	return main and main.get("sfx_muted") == true
+
 func _strike_target(t: Node2D) -> void:
 	if not is_instance_valid(t) or not t.has_method("take_damage"):
 		return
-	# Cast a green spell bolt from current orbit position
+	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
+		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
+		_attack_player.play()
 	_fire_bolt(t)
 
 func _fire_bolt(t: Node2D) -> void:
@@ -277,7 +276,7 @@ func _fire_bolt(t: Node2D) -> void:
 	get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func _wolf_pack() -> void:
-	if _wolf_player: _wolf_player.play()
+	if _wolf_player and not _is_sfx_muted(): _wolf_player.play()
 	_wolf_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
@@ -299,7 +298,7 @@ func _wolf_pack() -> void:
 		get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func _winged_monkeys() -> void:
-	if _monkey_player: _monkey_player.play()
+	if _monkey_player and not _is_sfx_muted(): _monkey_player.play()
 	_monkey_flash = 1.5
 	# Massive AoE damage to all enemies in range
 	var monkey_dmg = damage * 2.5
@@ -390,9 +389,10 @@ func purchase_upgrade() -> bool:
 		return false
 	upgrade_tier += 1
 	_apply_upgrade(upgrade_tier)
+	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
-	if _upgrade_player: _upgrade_player.play()
+	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -412,6 +412,187 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
+
+func _generate_tier_sounds() -> void:
+	# Spooky notes — diminished / tritone intervals for maximum creep
+	var hex_notes := [220.0, 277.0, 311.0, 370.0, 311.0, 277.0]
+	var mix_rate := 44100
+	_attack_sounds_by_tier = []
+
+	# --- Tier 0: Haunted Whisper (eerie chorus, tritone drone, spectral) ---
+	var t0 := []
+	for note_idx in hex_notes.size():
+		var freq: float = hex_notes[note_idx]
+		var dur := 0.26
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var att := minf(t * 20.0, 1.0)
+			var env := att * exp(-t * 4.5) * 0.3
+			# Descending curse tone
+			var f := freq * (1.0 + 0.08 * exp(-t * 5.0))
+			var waver := sin(TAU * 5.5 * t) * 5.0 + sin(TAU * 8.0 * t) * 2.5
+			f += waver
+			# Eerie chorus — 3 detuned voices
+			var v1 := sin(t * f * TAU)
+			var v2 := sin(t * f * 1.007 * TAU) * 0.35
+			var v3 := sin(t * f * 0.993 * TAU) * 0.35
+			# Tritone drone underneath
+			var drone := sin(t * f * 0.707 * TAU) * 0.16
+			# Dark sub
+			var sub := sin(t * f * 0.25 * TAU) * 0.08 * att
+			# Spectral whisper
+			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
+			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
+			# Dissonant sting on attack
+			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.12
+			samples[i] = clampf((v1 + v2 + v3 + drone + sub + sting) * env + whisp * exp(-t * 3.5), -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Witch's Curse (fuller chorus, descending hex, deeper drone) ---
+	var t1 := []
+	for note_idx in hex_notes.size():
+		var freq: float = hex_notes[note_idx]
+		var dur := 0.27
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var att := minf(t * 19.0, 1.0)
+			var env := att * exp(-t * 4.3) * 0.3
+			# Descending curse — slightly more dramatic
+			var f := freq * (1.0 + 0.1 * exp(-t * 5.0))
+			var waver := sin(TAU * 5.5 * t) * 5.5 + sin(TAU * 8.3 * t) * 2.8
+			f += waver
+			# Eerie chorus — wider detune
+			var v1 := sin(t * f * TAU)
+			var v2 := sin(t * f * 1.008 * TAU) * 0.38
+			var v3 := sin(t * f * 0.992 * TAU) * 0.38
+			# Tritone drone — stronger
+			var drone := sin(t * f * 0.707 * TAU) * 0.18
+			# Deeper sub
+			var sub := sin(t * f * 0.25 * TAU) * 0.09 * att
+			# Minor 2nd dissonance layer
+			var m2 := sin(t * f * 1.06 * TAU) * 0.1 * exp(-t * 6.0)
+			# Spectral whisper
+			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
+			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
+			# Dissonant sting
+			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.14
+			samples[i] = clampf((v1 + v2 + v3 + drone + sub + m2 + sting) * env + whisp * exp(-t * 3.2), -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Cauldron Hex (bubbling modulation on full dark chorus) ---
+	var t2 := []
+	for note_idx in hex_notes.size():
+		var freq: float = hex_notes[note_idx]
+		var dur := 0.28
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var att := minf(t * 18.0, 1.0)
+			var env := att * exp(-t * 4.2) * 0.3
+			# Descending curse
+			var f := freq * (1.0 + 0.1 * exp(-t * 5.0))
+			var waver := sin(TAU * 5.5 * t) * 6.0 + sin(TAU * 8.3 * t) * 3.0
+			f += waver
+			# Cauldron bubble modulation on the chorus
+			var bubble := sin(TAU * 11.0 * t) * 0.15 + sin(TAU * 7.3 * t) * 0.1
+			var bub_mod := 0.85 + 0.15 * clampf(bubble, -1.0, 1.0)
+			# Eerie chorus
+			var v1 := sin(t * f * TAU) * bub_mod
+			var v2 := sin(t * f * 1.008 * TAU) * 0.4 * bub_mod
+			var v3 := sin(t * f * 0.992 * TAU) * 0.4 * bub_mod
+			# Tritone drone
+			var drone := sin(t * f * 0.707 * TAU) * 0.19
+			# Dark sub
+			var sub := sin(t * f * 0.25 * TAU) * 0.1 * att
+			# Spectral whisper
+			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
+			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
+			# Dissonant sting
+			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.14
+			samples[i] = clampf((v1 + v2 + v3 + drone + sub + sting) * env + whisp * exp(-t * 3.0), -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Banshee Hex (wailing pitch bend on full dark chorus) ---
+	var t3 := []
+	for note_idx in hex_notes.size():
+		var freq: float = hex_notes[note_idx]
+		var dur := 0.29
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var att := minf(t * 18.0, 1.0)
+			var env := att * exp(-t * 4.0) * 0.3
+			# Wailing pitch — rises then falls like a cry
+			var frac := t / dur
+			var bend := sin(frac * PI) * 0.12
+			var f := freq * (1.0 + 0.1 * exp(-t * 5.0) + bend)
+			var waver := sin(TAU * 5.5 * t) * 6.0 + sin(TAU * 8.3 * t) * 3.0
+			f += waver
+			# Eerie chorus
+			var v1 := sin(t * f * TAU)
+			var v2 := sin(t * f * 1.008 * TAU) * 0.4
+			var v3 := sin(t * f * 0.992 * TAU) * 0.4
+			# Tritone drone
+			var drone := sin(t * f * 0.707 * TAU) * 0.2
+			# Dark sub
+			var sub := sin(t * f * 0.25 * TAU) * 0.1 * att
+			# Stacked dissonance — minor 2nd
+			var m2 := sin(t * f * 1.06 * TAU) * 0.08
+			# Spectral whisper
+			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
+			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
+			# Dissonant sting
+			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.15
+			samples[i] = clampf((v1 + v2 + v3 + drone + sub + m2 + sting) * env + whisp * exp(-t * 3.0), -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Dark Spell (full layered hex, deepest drone, widest chorus) ---
+	var t4 := []
+	for note_idx in hex_notes.size():
+		var freq: float = hex_notes[note_idx]
+		var dur := 0.3
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var att := minf(t * 18.0, 1.0)
+			var env := att * exp(-t * 4.0) * 0.3
+			# Descending curse tone
+			var f := freq * (1.0 + 0.1 * exp(-t * 5.0))
+			var waver := sin(TAU * 5.5 * t) * 6.0 + sin(TAU * 8.3 * t) * 3.0
+			f += waver
+			# Eerie chorus — widest detune, 3 voices
+			var v1 := sin(t * f * TAU)
+			var v2 := sin(t * f * 1.01 * TAU) * 0.42
+			var v3 := sin(t * f * 0.99 * TAU) * 0.42
+			# Tritone drone — strongest
+			var drone := sin(t * f * 0.707 * TAU) * 0.22
+			# Deep sub
+			var sub := sin(t * f * 0.25 * TAU) * 0.12 * att
+			# Minor 2nd dissonance
+			var m2 := sin(t * f * 1.06 * TAU) * 0.08
+			# Spectral whisper
+			var whisp := (randf() * 2.0 - 1.0) * 0.05 * att
+			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
+			# Dissonant sting on attack
+			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.15
+			samples[i] = clampf((v1 + v2 + v3 + drone + sub + m2 + sting) * env + whisp * exp(-t * 3.0), -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
+func _refresh_tier_sounds() -> void:
+	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
+	_attack_sounds = _attack_sounds_by_tier[tier]
 
 func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -872,21 +1053,28 @@ func _draw() -> void:
 	draw_circle(l_foot, 3.0, Color(0.10, 0.08, 0.12))
 	draw_circle(r_foot, 4.0, Color(0.06, 0.04, 0.08))
 	draw_circle(r_foot, 3.0, Color(0.10, 0.08, 0.12))
-	# Pointed toes curling up (elegant)
-	var l_toe_tip = l_foot + Vector2(-6, -5)
+	# Pointed toes curling up (more dramatic curl)
+	var l_toe_tip = l_foot + Vector2(-7, -6)
 	var l_toe_pts = PackedVector2Array([l_foot + Vector2(-3, -1), l_foot + Vector2(-3, 2), l_toe_tip])
 	draw_colored_polygon(l_toe_pts, Color(0.06, 0.04, 0.08))
-	var r_toe_tip = r_foot + Vector2(6, -5)
+	var r_toe_tip = r_foot + Vector2(7, -6)
 	var r_toe_pts = PackedVector2Array([r_foot + Vector2(3, -1), r_foot + Vector2(3, 2), r_toe_tip])
 	draw_colored_polygon(r_toe_pts, Color(0.06, 0.04, 0.08))
-	# Stiletto heels (tall, thin)
-	draw_line(l_foot + Vector2(2, 0), l_foot + Vector2(3, 7), Color(0.06, 0.04, 0.08), 2.0)
-	draw_line(l_foot + Vector2(2, 0), l_foot + Vector2(3, 7), Color(0.12, 0.08, 0.14), 1.2)
-	draw_line(r_foot + Vector2(-2, 0), r_foot + Vector2(-3, 7), Color(0.06, 0.04, 0.08), 2.0)
-	draw_line(r_foot + Vector2(-2, 0), r_foot + Vector2(-3, 7), Color(0.12, 0.08, 0.14), 1.2)
-	# Boot buckles (silver)
-	draw_circle(l_foot + Vector2(-1, -1), 1.5, Color(0.6, 0.55, 0.5))
-	draw_circle(r_foot + Vector2(1, -1), 1.5, Color(0.6, 0.55, 0.5))
+	# Toe tip highlight
+	draw_circle(l_toe_tip, 1.0, Color(0.12, 0.08, 0.14, 0.4))
+	draw_circle(r_toe_tip, 1.0, Color(0.12, 0.08, 0.14, 0.4))
+	# Stiletto heels (taller, thin)
+	draw_line(l_foot + Vector2(2, 0), l_foot + Vector2(3, 9), Color(0.06, 0.04, 0.08), 2.0)
+	draw_line(l_foot + Vector2(2, 0), l_foot + Vector2(3, 9), Color(0.12, 0.08, 0.14), 1.2)
+	draw_line(r_foot + Vector2(-2, 0), r_foot + Vector2(-3, 9), Color(0.06, 0.04, 0.08), 2.0)
+	draw_line(r_foot + Vector2(-2, 0), r_foot + Vector2(-3, 9), Color(0.12, 0.08, 0.14), 1.2)
+	# Boot buckles (silver, with detail)
+	draw_circle(l_foot + Vector2(-1, -1), 1.8, Color(0.55, 0.50, 0.45))
+	draw_circle(l_foot + Vector2(-1, -1), 1.2, Color(0.70, 0.65, 0.60))
+	draw_circle(l_foot + Vector2(-1, -1), 0.6, Color(0.40, 0.35, 0.30, 0.5))
+	draw_circle(r_foot + Vector2(1, -1), 1.8, Color(0.55, 0.50, 0.45))
+	draw_circle(r_foot + Vector2(1, -1), 1.2, Color(0.70, 0.65, 0.60))
+	draw_circle(r_foot + Vector2(1, -1), 0.6, Color(0.40, 0.35, 0.30, 0.5))
 
 	# --- Long legs with robe slit showing one leg ---
 	# Left leg hidden under robe (just dark robe fabric)
@@ -972,6 +1160,12 @@ func _draw() -> void:
 	# V-neck robe edges (purple lining)
 	draw_line(neck_base + Vector2(-5, 2), torso_center + Vector2(0, -2), Color(0.25, 0.10, 0.30, 0.6), 1.5)
 	draw_line(neck_base + Vector2(5, 2), torso_center + Vector2(0, -2), Color(0.25, 0.10, 0.30, 0.6), 1.5)
+	# Dark gem brooch at V-neck center
+	var brooch_pos = torso_center + Vector2(0, -2.5)
+	draw_circle(brooch_pos, 2.5, Color(0.50, 0.40, 0.12))
+	draw_circle(brooch_pos, 1.8, Color(0.20, 0.08, 0.30))
+	draw_circle(brooch_pos, 1.0, Color(0.35, 0.15, 0.50, 0.7))
+	draw_circle(brooch_pos + Vector2(-0.4, -0.4), 0.5, Color(0.60, 0.40, 0.80, 0.5))
 
 	# Bust shaping (subtle curves under robe)
 	draw_arc(torso_center + Vector2(-4, -4), 5.0, PI * 0.8, PI * 1.6, 10, Color(0.10, 0.06, 0.14, 0.35), 1.2)
@@ -1003,23 +1197,42 @@ func _draw() -> void:
 	])
 	draw_colored_polygon(flare_r, Color(0.06, 0.04, 0.08, 0.8))
 
-	# Tattered robe hem
-	for hi in range(8):
-		var hx = -13.0 + float(hi) * 3.7
-		var h_sway = sin(_time * 1.8 + float(hi) * 0.9) * 2.0
+	# Tattered robe hem (more ragged pieces, longer extensions)
+	for hi in range(10):
+		var hx = -14.0 + float(hi) * 3.1
+		var h_sway = sin(_time * 1.8 + float(hi) * 0.9) * 2.5
+		var h_len = 14.0 + sin(float(hi) * 1.5) * 3.0
 		var rag_pts = PackedVector2Array([
 			leg_top + Vector2(hx - 2.0, 7),
 			leg_top + Vector2(hx + 2.0, 7),
-			leg_top + Vector2(hx + h_sway, 12.0 + sin(float(hi) * 1.5) * 2.0),
+			leg_top + Vector2(hx + h_sway, h_len),
 		])
 		var rag_col = Color(0.05, 0.03, 0.07, 0.7) if hi % 2 == 0 else Color(0.10, 0.04, 0.14, 0.6)
 		draw_colored_polygon(rag_pts, rag_col)
 
-	# Robe fold shadows (vertical drape lines)
+	# Robe fold shadows with purple shimmer highlight
 	draw_line(neck_base + Vector2(-8, 0), leg_top + Vector2(-10, 4), Color(0.14, 0.08, 0.18, 0.4), 1.2)
 	draw_line(neck_base + Vector2(8, 0), leg_top + Vector2(10, 4), Color(0.14, 0.08, 0.18, 0.4), 1.2)
 	draw_line(torso_center + Vector2(-2, -6), leg_top + Vector2(-3, 4), Color(0.12, 0.06, 0.16, 0.3), 1.0)
 	draw_line(torso_center + Vector2(2, -6), leg_top + Vector2(3, 4), Color(0.12, 0.06, 0.16, 0.3), 1.0)
+	# Purple shimmer highlights along fold lines
+	var shimmer_pulse = sin(_time * 2.0) * 0.04
+	draw_line(neck_base + Vector2(-7, 1), leg_top + Vector2(-9, 3), Color(0.35, 0.15, 0.50, 0.08 + shimmer_pulse), 0.8)
+	draw_line(neck_base + Vector2(7, 1), leg_top + Vector2(9, 3), Color(0.35, 0.15, 0.50, 0.08 + shimmer_pulse), 0.8)
+	# Star/moon embroidery symbols on robe
+	# Small crescent moon
+	var moon_pos = torso_center + Vector2(-6, 0)
+	draw_arc(moon_pos, 2.0, PI * 0.3, PI * 1.7, 8, Color(0.30, 0.20, 0.45, 0.15), 0.8)
+	# Small star
+	var star_pos = torso_center + Vector2(5, 2)
+	for si in range(4):
+		var sa = float(si) * TAU / 4.0 + PI / 4.0
+		draw_line(star_pos, star_pos + Vector2.from_angle(sa) * 1.8, Color(0.30, 0.20, 0.45, 0.15), 0.6)
+	# Tiny star near waist
+	var star2_pos = leg_top + Vector2(-8, 3)
+	for si in range(4):
+		var sa = float(si) * TAU / 4.0
+		draw_line(star2_pos, star2_pos + Vector2.from_angle(sa) * 1.2, Color(0.30, 0.20, 0.45, 0.12), 0.5)
 
 	# Cinched waist / corset belt
 	var waist_y = torso_center + Vector2(0, 4)
@@ -1045,11 +1258,14 @@ func _draw() -> void:
 	draw_circle(l_shoulder, 4.0, Color(0.10, 0.08, 0.12))
 	draw_circle(r_shoulder, 5.5, Color(0.06, 0.04, 0.08))
 	draw_circle(r_shoulder, 4.0, Color(0.10, 0.08, 0.12))
-	# Pointed shoulder tips
-	var l_sp_tip = PackedVector2Array([l_shoulder + Vector2(-2, -2), l_shoulder + Vector2(-7, -4), l_shoulder + Vector2(-2, 2)])
+	# Pointed shoulder tips (more dramatic extensions)
+	var l_sp_tip = PackedVector2Array([l_shoulder + Vector2(-2, -2), l_shoulder + Vector2(-10, -5), l_shoulder + Vector2(-2, 2)])
 	draw_colored_polygon(l_sp_tip, Color(0.06, 0.04, 0.08))
-	var r_sp_tip = PackedVector2Array([r_shoulder + Vector2(2, -2), r_shoulder + Vector2(7, -4), r_shoulder + Vector2(2, 2)])
+	var r_sp_tip = PackedVector2Array([r_shoulder + Vector2(2, -2), r_shoulder + Vector2(10, -5), r_shoulder + Vector2(2, 2)])
 	draw_colored_polygon(r_sp_tip, Color(0.06, 0.04, 0.08))
+	# Shoulder tip highlights
+	draw_line(l_shoulder + Vector2(-3, -1), l_shoulder + Vector2(-9, -4), Color(0.12, 0.08, 0.16, 0.3), 0.8)
+	draw_line(r_shoulder + Vector2(3, -1), r_shoulder + Vector2(9, -4), Color(0.12, 0.08, 0.16, 0.3), 0.8)
 	# Shoulder seam detail
 	draw_arc(l_shoulder, 4.0, -PI * 0.3, PI * 0.3, 8, Color(0.15, 0.08, 0.18, 0.4), 1.0)
 	draw_arc(r_shoulder, 4.0, PI * 0.7, PI * 1.3, 8, Color(0.15, 0.08, 0.18, 0.4), 1.0)
@@ -1288,25 +1504,50 @@ func _draw() -> void:
 	# Eerie green glow emanating from head
 	draw_circle(head_center, 16.0, Color(0.15, 0.40, 0.05, 0.05))
 
-	# Stringy dark hair (drawn behind head, hanging down longer)
+	# Dramatic dark hair (drawn behind head, cascading longer)
 	var hair_col = Color(0.08, 0.08, 0.06)
 	var hair_col_hi = Color(0.15, 0.14, 0.10, 0.6)
-	for hi in range(8):
-		var hair_angle = PI * 0.3 + float(hi) * PI * 0.06
+	var hair_col_purple = Color(0.18, 0.08, 0.25, 0.5)
+	# Additional volume at crown
+	draw_circle(head_center + Vector2(0, -2), 10.5, hair_col)
+	draw_circle(head_center + Vector2(-1, -3), 8.0, Color(0.10, 0.10, 0.08, 0.5))
+	# Left side strands (extended 28-35px)
+	for hi in range(9):
+		var hair_angle = PI * 0.28 + float(hi) * PI * 0.055
 		var hair_base_pos = head_center + Vector2.from_angle(hair_angle) * 9.0
 		var hair_sway_val = sin(_time * 1.5 + float(hi) * 0.8) * 2.0
-		var hair_len = 22.0 + sin(float(hi) * 1.3) * 5.0
-		var hair_tip = hair_base_pos + Vector2(hair_sway_val, hair_len)
-		draw_line(hair_base_pos, hair_tip, hair_col, 2.5)
-		draw_line(hair_base_pos, hair_tip, hair_col_hi, 1.2)
-	# Right side hair strands
-	for hi in range(6):
+		var hair_len = 28.0 + sin(float(hi) * 1.3) * 7.0
+		# S-curve wave modulation along strand
+		var s_wave = sin(float(hi) * 2.0 + _time * 1.2) * 2.5
+		var s_wave2 = sin(float(hi) * 1.5 + _time * 0.8) * 1.5
+		var hair_mid = hair_base_pos + Vector2(hair_sway_val + s_wave, hair_len * 0.5)
+		var hair_tip = hair_base_pos + Vector2(hair_sway_val + s_wave2, hair_len)
+		draw_line(hair_base_pos, hair_mid, hair_col, 2.5)
+		draw_line(hair_mid, hair_tip, hair_col, 2.0)
+		draw_line(hair_base_pos, hair_mid, hair_col_hi, 1.2)
+		# Purple highlight strands (every 3rd strand)
+		if hi % 3 == 0:
+			draw_line(hair_base_pos, hair_tip, hair_col_purple, 1.5)
+	# Right side hair strands (extended 26-32px)
+	for hi in range(7):
 		var hair_angle2 = -PI * 0.3 - float(hi) * PI * 0.05
 		var hb2 = head_center + Vector2.from_angle(hair_angle2) * 9.0
 		var hsway2 = sin(_time * 1.5 + float(hi) * 1.1 + PI) * 2.0
-		var hlen2 = 20.0 + sin(float(hi) * 1.7) * 4.0
-		var htip2 = hb2 + Vector2(hsway2, hlen2)
-		draw_line(hb2, htip2, hair_col, 2.0)
+		var hlen2 = 26.0 + sin(float(hi) * 1.7) * 6.0
+		var s_wave_r = sin(float(hi) * 2.2 + _time * 1.0) * 2.0
+		var hmid2 = hb2 + Vector2(hsway2 + s_wave_r, hlen2 * 0.5)
+		var htip2 = hb2 + Vector2(hsway2 - s_wave_r * 0.5, hlen2)
+		draw_line(hb2, hmid2, hair_col, 2.0)
+		draw_line(hmid2, htip2, hair_col, 1.6)
+		if hi % 3 == 1:
+			draw_line(hb2, htip2, hair_col_purple, 1.3)
+	# Wispy strands across face/forehead for mystery
+	for wi in range(4):
+		var w_x = -4.0 + float(wi) * 2.5
+		var w_base = head_center + Vector2(w_x, -7.5)
+		var w_sway = sin(_time * 1.8 + float(wi) * 1.5) * 1.0
+		var w_tip = w_base + Vector2(w_sway, 8.0 + float(wi) * 1.2)
+		draw_line(w_base, w_tip, Color(hair_col.r, hair_col.g, hair_col.b, 0.5), 1.0)
 
 	# Head shape — green face with pointed chin (smaller, anime proportions)
 	# Green skin circle
@@ -1319,22 +1560,28 @@ func _draw() -> void:
 	draw_circle(head_center + Vector2(-2, -2), 4.0, Color(0.42, 0.60, 0.32, 0.15))
 	draw_circle(head_center + Vector2(2, 1), 3.5, Color(0.45, 0.62, 0.35, 0.1))
 
-	# Pointed chin (angular, elongated)
-	var chin_tip = head_center + Vector2(0, 13)
-	var chin_pts = PackedVector2Array([head_center + Vector2(-6, 6), chin_tip, head_center + Vector2(6, 6)])
+	# Pointed chin (angular but slightly softer)
+	var chin_tip = head_center + Vector2(0, 11.5)
+	var chin_pts = PackedVector2Array([head_center + Vector2(-5.5, 6), chin_tip, head_center + Vector2(5.5, 6)])
 	draw_colored_polygon(chin_pts, skin_base)
 	# Chin outline
-	draw_line(head_center + Vector2(-6, 6), chin_tip, skin_shadow, 1.2)
-	draw_line(head_center + Vector2(6, 6), chin_tip, skin_shadow, 1.2)
+	draw_line(head_center + Vector2(-5.5, 6), chin_tip, skin_shadow, 1.2)
+	draw_line(head_center + Vector2(5.5, 6), chin_tip, skin_shadow, 1.2)
 	# Chin shadow
-	draw_line(head_center + Vector2(-3, 8), chin_tip - Vector2(0, 2), Color(0.25, 0.38, 0.15, 0.4), 1.5)
+	draw_line(head_center + Vector2(-3, 8), chin_tip - Vector2(0, 2), Color(0.25, 0.38, 0.15, 0.35), 1.5)
+	# Chin highlight
+	draw_circle(chin_tip + Vector2(0, -1.5), 1.2, skin_highlight)
 
 	# Sunken cheek hollows (angular, sultry)
 	draw_circle(head_center + Vector2(-5, 2), 3.0, Color(0.25, 0.38, 0.15, 0.25))
 	draw_circle(head_center + Vector2(5, 2), 3.0, Color(0.25, 0.38, 0.15, 0.25))
-	# High cheekbone highlights
-	draw_circle(head_center + Vector2(-5, 0), 2.0, Color(0.50, 0.68, 0.38, 0.15))
-	draw_circle(head_center + Vector2(5, 0), 2.0, Color(0.50, 0.68, 0.38, 0.15))
+	# High cheekbone highlights (brighter, more defined)
+	draw_circle(head_center + Vector2(-5, 0), 2.2, Color(0.52, 0.72, 0.40, 0.22))
+	draw_circle(head_center + Vector2(5, 0), 2.2, Color(0.52, 0.72, 0.40, 0.22))
+	draw_arc(head_center + Vector2(-5, 0.5), 3.0, PI * 1.2, PI * 1.7, 8, Color(0.55, 0.75, 0.42, 0.18), 1.0)
+	draw_arc(head_center + Vector2(5, 0.5), 3.0, PI * 1.3, PI * 1.8, 8, Color(0.55, 0.75, 0.42, 0.18), 1.0)
+	# Beauty mark near mouth
+	draw_circle(head_center + Vector2(4.5, 5.0), 0.6, Color(0.18, 0.30, 0.10, 0.6))
 
 	# Forehead wrinkles (subtle)
 	for wi in range(2):
@@ -1346,9 +1593,9 @@ func _draw() -> void:
 	# Slim nose bridge
 	draw_line(head_center + Vector2(0, -1), head_center + Vector2(0, 3), skin_shadow, 1.8)
 	draw_line(head_center + Vector2(0.3, -0.5), head_center + Vector2(0.3, 2.5), skin_highlight, 1.0)
-	# Delicate pointed nose tip
-	draw_circle(nose_tip, 1.8, skin_base)
-	draw_circle(nose_tip + Vector2(0, 0.3), 1.2, skin_highlight)
+	# Delicate pointed nose tip (refined, smaller)
+	draw_circle(nose_tip, 1.5, skin_base)
+	draw_circle(nose_tip + Vector2(0, 0.3), 1.0, skin_highlight)
 	# Small nostrils
 	draw_circle(nose_tip + Vector2(-1.2, 0.3), 0.7, Color(0.20, 0.32, 0.10, 0.5))
 	draw_circle(nose_tip + Vector2(1.2, 0.3), 0.7, Color(0.20, 0.32, 0.10, 0.5))
@@ -1382,21 +1629,28 @@ func _draw() -> void:
 	draw_circle(l_eye + look_dir, 0.6, Color(0.30, 0.80, 0.10, 0.4))
 	draw_circle(r_eye + look_dir, 0.6, Color(0.30, 0.80, 0.10, 0.4))
 
-	# Eye glow (eerie green shine)
-	var eye_glow_pulse = 0.12 + sin(_time * 2.5) * 0.04
-	draw_circle(l_eye, 5.5, Color(0.20, 0.60, 0.10, eye_glow_pulse))
-	draw_circle(r_eye, 5.5, Color(0.20, 0.60, 0.10, eye_glow_pulse))
+	# Eye glow (eerie green shine — intensified)
+	var eye_glow_pulse = 0.16 + sin(_time * 2.5) * 0.06
+	draw_circle(l_eye, 6.0, Color(0.20, 0.60, 0.10, eye_glow_pulse))
+	draw_circle(r_eye, 6.0, Color(0.20, 0.60, 0.10, eye_glow_pulse))
+	# Inner glow ring (second layer for intensity)
+	draw_arc(l_eye, 4.5, 0, TAU, 12, Color(0.25, 0.70, 0.12, eye_glow_pulse * 0.6), 1.2)
+	draw_arc(r_eye, 4.5, 0, TAU, 12, Color(0.25, 0.70, 0.12, eye_glow_pulse * 0.6), 1.2)
 
-	# Highlight glints
-	draw_circle(l_eye + Vector2(-1.0, -1.0), 0.9, Color(1.0, 1.0, 0.95, 0.7))
-	draw_circle(r_eye + Vector2(-1.0, -1.0), 0.9, Color(1.0, 1.0, 0.95, 0.7))
+	# Highlight glints (boosted)
+	draw_circle(l_eye + Vector2(-1.0, -1.0), 1.1, Color(1.0, 1.0, 0.95, 0.75))
+	draw_circle(r_eye + Vector2(-1.0, -1.0), 1.1, Color(1.0, 1.0, 0.95, 0.75))
+	draw_circle(l_eye + Vector2(1.0, 0.5), 0.5, Color(0.7, 1.0, 0.6, 0.35))
+	draw_circle(r_eye + Vector2(1.0, 0.5), 0.5, Color(0.7, 1.0, 0.6, 0.35))
 
-	# Angular brow ridge (arched, sultry)
-	draw_line(l_eye + Vector2(-4, -3), l_eye + Vector2(4, -2.5), skin_shadow, 2.0)
-	draw_line(r_eye + Vector2(-4, -2.5), r_eye + Vector2(4, -3), skin_shadow, 2.0)
-	# Arched brow tilt (dramatic, angular)
-	draw_line(l_eye + Vector2(1.5, -2.8), l_eye + Vector2(4, -4), skin_shadow, 1.5)
-	draw_line(r_eye + Vector2(-1.5, -2.8), r_eye + Vector2(-4, -4), skin_shadow, 1.5)
+	# Elegant arched brows (thinner, more dramatically arched)
+	draw_line(l_eye + Vector2(-4.5, -3.2), l_eye + Vector2(0, -4.8), skin_shadow, 1.6)
+	draw_line(l_eye + Vector2(0, -4.8), l_eye + Vector2(4.5, -3.0), skin_shadow, 1.0)
+	draw_line(r_eye + Vector2(-4.5, -3.0), r_eye + Vector2(0, -4.8), skin_shadow, 1.6)
+	draw_line(r_eye + Vector2(0, -4.8), r_eye + Vector2(4.5, -3.2), skin_shadow, 1.0)
+	# Dramatic arch peak accent
+	draw_line(l_eye + Vector2(1.5, -3.5), l_eye + Vector2(4.5, -5.2), skin_shadow, 1.2)
+	draw_line(r_eye + Vector2(-1.5, -3.5), r_eye + Vector2(-4.5, -5.2), skin_shadow, 1.2)
 
 	# Under-eye creases (subtle)
 	draw_line(l_eye + Vector2(-3, 2.5), l_eye + Vector2(3, 2.2), Color(0.22, 0.36, 0.12, 0.25), 0.8)
@@ -1404,16 +1658,20 @@ func _draw() -> void:
 
 	# === SEDUCTIVE SMILE (dark lipstick, alluring) ===
 	var mouth_center = head_center + Vector2(0, 7)
-	# Dark lipstick upper lip — full, with cupid's bow
-	draw_arc(mouth_center + Vector2(0, -0.5), 4.5, 0.1, PI - 0.1, 14, Color(0.30, 0.08, 0.15), 2.0)
-	draw_line(mouth_center + Vector2(-1.5, -1.0), mouth_center + Vector2(0, -0.5), Color(0.25, 0.06, 0.12), 1.2)
-	draw_line(mouth_center + Vector2(0, -0.5), mouth_center + Vector2(1.5, -1.0), Color(0.25, 0.06, 0.12), 1.2)
+	# Dark lipstick upper lip — full, with pronounced cupid's bow
+	draw_arc(mouth_center + Vector2(0, -0.5), 4.8, 0.08, PI - 0.08, 16, Color(0.30, 0.08, 0.15), 2.2)
+	# Cupid's bow detail (more defined M-shape)
+	draw_line(mouth_center + Vector2(-2.0, -1.2), mouth_center + Vector2(-0.5, -0.3), Color(0.25, 0.06, 0.12), 1.3)
+	draw_line(mouth_center + Vector2(-0.5, -0.3), mouth_center + Vector2(0, -0.8), Color(0.25, 0.06, 0.12), 1.3)
+	draw_line(mouth_center + Vector2(0, -0.8), mouth_center + Vector2(0.5, -0.3), Color(0.25, 0.06, 0.12), 1.3)
+	draw_line(mouth_center + Vector2(0.5, -0.3), mouth_center + Vector2(2.0, -1.2), Color(0.25, 0.06, 0.12), 1.3)
 	# Lower lip — fuller, curvy
-	draw_arc(mouth_center + Vector2(0, 0.5), 4.0, -0.15, PI + 0.15, 12, Color(0.35, 0.10, 0.18), 2.2)
-	draw_arc(mouth_center + Vector2(0, 0.8), 3.0, -0.1, PI + 0.1, 10, Color(0.40, 0.15, 0.22, 0.5), 1.5)
-	# Lip shine (dark glossy)
-	draw_circle(mouth_center + Vector2(0.3, 0.8), 1.0, Color(0.55, 0.25, 0.35, 0.4))
-	draw_circle(mouth_center + Vector2(-0.5, -0.5), 0.7, Color(0.50, 0.20, 0.30, 0.3))
+	draw_arc(mouth_center + Vector2(0, 0.5), 4.2, -0.15, PI + 0.15, 14, Color(0.35, 0.10, 0.18), 2.4)
+	draw_arc(mouth_center + Vector2(0, 0.8), 3.2, -0.1, PI + 0.1, 12, Color(0.40, 0.15, 0.22, 0.5), 1.6)
+	# Lip shine (dark glossy — brighter)
+	draw_circle(mouth_center + Vector2(0.3, 0.8), 1.2, Color(0.60, 0.28, 0.38, 0.5))
+	draw_circle(mouth_center + Vector2(-0.5, -0.5), 0.9, Color(0.55, 0.25, 0.35, 0.4))
+	draw_circle(mouth_center + Vector2(1.5, 0.3), 0.6, Color(0.55, 0.30, 0.35, 0.3))
 	# Seductive lip corner upturn
 	draw_line(mouth_center + Vector2(-4.0, 0), mouth_center + Vector2(-5.5, -1.5), Color(0.30, 0.08, 0.15, 0.4), 0.8)
 	draw_line(mouth_center + Vector2(4.0, 0), mouth_center + Vector2(5.5, -1.5), Color(0.30, 0.08, 0.15, 0.4), 0.8)
@@ -1422,14 +1680,14 @@ func _draw() -> void:
 
 	# === TALL POINTED BLACK HAT ===
 	var hat_base_pos = head_center + Vector2(0, -7)
-	var hat_tip_pos = hat_base_pos + Vector2(3, -38)
+	var hat_tip_pos = hat_base_pos + Vector2(4, -49)
 	# Hat wobble when flying
 	if true:  # Always orbiting/flying
 		hat_tip_pos += Vector2(sin(_time * 3.5) * 2.0, 0)
 
-	# Hat brim (wide, proportional to smaller head)
-	var brim_l = hat_base_pos + Vector2(-18, 0)
-	var brim_r = hat_base_pos + Vector2(18, 0)
+	# Hat brim (wider, more pronounced)
+	var brim_l = hat_base_pos + Vector2(-20, 0)
+	var brim_r = hat_base_pos + Vector2(20, 0)
 	# Brim bottom (shadow)
 	draw_line(brim_l + Vector2(0, 2), brim_r + Vector2(0, 2), Color(0.03, 0.02, 0.04), 6.0)
 	# Brim top
@@ -1485,6 +1743,17 @@ func _draw() -> void:
 	draw_line(buckle_c + Vector2(0, -bk_hh + 1), buckle_c + Vector2(0, bk_hh - 1), Color(0.50, 0.40, 0.15), 1.2)
 	# Buckle shine
 	draw_circle(buckle_c + Vector2(1, -1), 1.0, Color(0.85, 0.75, 0.35, 0.5))
+	# Small gem in buckle center
+	draw_circle(buckle_c, 1.3, Color(0.20, 0.65, 0.15))
+	draw_circle(buckle_c, 0.7, Color(0.35, 0.85, 0.25, 0.6))
+	# Cobweb detail on hat side (very subtle)
+	var cw_base = hat_base_pos.lerp(hat_tip_pos, 0.15) + Vector2(-8, 0)
+	draw_line(cw_base, cw_base + Vector2(-5, -4), Color(0.25, 0.22, 0.30, 0.12), 0.5)
+	draw_line(cw_base, cw_base + Vector2(-6, 0), Color(0.25, 0.22, 0.30, 0.12), 0.5)
+	draw_line(cw_base, cw_base + Vector2(-5, 3), Color(0.25, 0.22, 0.30, 0.12), 0.5)
+	# Connecting web strands
+	draw_line(cw_base + Vector2(-3, -2), cw_base + Vector2(-4, 0), Color(0.25, 0.22, 0.30, 0.08), 0.4)
+	draw_line(cw_base + Vector2(-4, 0), cw_base + Vector2(-3, 2), Color(0.25, 0.22, 0.30, 0.08), 0.4)
 
 	# === T3+: GOLDEN CAP overlay on hat ===
 	if upgrade_tier >= 3:

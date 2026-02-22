@@ -101,8 +101,9 @@ var base_cost: int = 0
 
 var note_scene = preload("res://scenes/phantom_note.tscn")
 
-# Attack sound
-var _attack_sound: AudioStreamWAV
+# Attack sounds — organ melody evolving with upgrade tier
+var _attack_sounds: Array = []
+var _attack_sounds_by_tier: Array = []
 var _attack_player: AudioStreamPlayer
 
 # Ability sounds
@@ -116,26 +117,11 @@ var _upgrade_player: AudioStreamPlayer
 func _ready() -> void:
 	add_to_group("towers")
 	_load_progressive_abilities()
-	# Generate deep organ note sound
-	var mix_rate := 22050
-	var duration := 0.15
-	var samples := PackedFloat32Array()
-	samples.resize(int(mix_rate * duration))
-	for i in samples.size():
-		var t := float(i) / mix_rate
-		# Organ pipe: fundamental C4 (261Hz) + fifth (392Hz) + octave (522Hz)
-		var fundamental := sin(t * 261.0 * TAU) * 0.4
-		var fifth := sin(t * 392.0 * TAU) * 0.25
-		var octave := sin(t * 522.0 * TAU) * 0.15
-		# Fast attack, medium decay envelope
-		var env := minf(t * 200.0, 1.0) * exp(-t * 10.0)
-		# Slight breathy quality
-		var breath := (randf() * 2.0 - 1.0) * 0.05 * env
-		samples[i] = clampf((fundamental + fifth + octave) * env + breath, -1.0, 1.0)
-	_attack_sound = _samples_to_wav(samples, mix_rate)
+	_generate_tier_sounds()
+	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
-	_attack_player.stream = _attack_sound
-	_attack_player.volume_db = -8.0
+	_attack_player.stream = _attack_sounds[0]
+	_attack_player.volume_db = -4.0
 	add_child(_attack_player)
 
 	# Punjab lasso — rope swoosh + sharp crack
@@ -258,6 +244,16 @@ func _has_enemies_in_range() -> bool:
 			return true
 	return false
 
+func _get_note_index() -> int:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and "music_beat_index" in main:
+		return main.music_beat_index
+	return 0
+
+func _is_sfx_muted() -> bool:
+	var main = get_tree().get_first_node_in_group("main")
+	return main and main.get("sfx_muted") == true
+
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
@@ -276,7 +272,8 @@ func _find_nearest_enemy() -> Node2D:
 func _shoot() -> void:
 	if not target:
 		return
-	if _attack_player:
+	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
+		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 	var note = note_scene.instantiate()
 	note.global_position = global_position + Vector2.from_angle(aim_angle) * 32.0
@@ -294,7 +291,7 @@ func _shoot() -> void:
 	_attack_anim = 1.0
 
 func _punjab_lasso() -> void:
-	if _lasso_player: _lasso_player.play()
+	if _lasso_player and not _is_sfx_muted(): _lasso_player.play()
 	_lasso_flash = 1.0
 	var closest: Node2D = null
 	var closest_dist: float = attack_range
@@ -313,7 +310,7 @@ func _music_aura() -> void:
 				enemy.apply_slow(0.9, 0.6)
 
 func _chandelier_drop() -> void:
-	if _chandelier_player: _chandelier_player.play()
+	if _chandelier_player and not _is_sfx_muted(): _chandelier_player.play()
 	_chandelier_flash = 1.5
 	var chandelier_dmg = damage * 2.0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
@@ -401,9 +398,10 @@ func purchase_upgrade() -> bool:
 		return false
 	upgrade_tier += 1
 	_apply_upgrade(upgrade_tier)
+	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
-	if _upgrade_player: _upgrade_player.play()
+	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
 	return true
 
 func get_tower_display_name() -> String:
@@ -423,6 +421,216 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
+
+func _generate_tier_sounds() -> void:
+	# Dark pipe organ — gothic, dramatic, D minor arpeggio
+	var organ_notes := [146.8, 174.6, 220.0, 293.7, 220.0, 174.6, 164.8, 146.8]
+	var mix_rate := 44100
+	_attack_sounds_by_tier = []
+
+	# --- Tier 0: Dark Cathedral (principal + bourdon + reed, dramatic from the start) ---
+	var t0 := []
+	for note_idx in organ_notes.size():
+		var freq: float = organ_notes[note_idx]
+		var dur := 0.3
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 45.0) * 0.18
+			var att := minf(t * 22.0, 1.0)
+			var rel := clampf((dur - t) / 0.07, 0.0, 1.0)
+			var env := att * rel * 0.22
+			# 8' Principal chorus
+			var pipe := sin(TAU * freq * t)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.5
+			pipe += sin(TAU * freq * 3.0 * t) * 0.3
+			pipe += sin(TAU * freq * 4.0 * t) * 0.16
+			pipe += sin(TAU * freq * 5.0 * t) * 0.08
+			pipe += sin(TAU * freq * 6.0 * t) * 0.04
+			# 16' Bourdon (sub-octave depth)
+			var bourdon := sin(TAU * freq * 0.5 * t) * 0.28
+			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
+			# Reed stop (dark trumpet character)
+			var reed := sin(TAU * freq * t) * 0.15
+			reed += sin(TAU * freq * 3.0 * t) * 0.12
+			reed += sin(TAU * freq * 5.0 * t) * 0.07
+			# Tremulant
+			var trem := 1.0 + sin(TAU * 5.5 * t) * 0.04
+			samples[i] = clampf((pipe + bourdon + reed) * env * trem + chiff, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Haunted Chapel (+ sub-bass, fuller reeds, mixture shimmer) ---
+	var t1 := []
+	for note_idx in organ_notes.size():
+		var freq: float = organ_notes[note_idx]
+		var dur := 0.32
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 42.0) * 0.2
+			var att := minf(t * 21.0, 1.0)
+			var rel := clampf((dur - t) / 0.07, 0.0, 1.0)
+			var env := att * rel * 0.21
+			# 8' Principal chorus
+			var pipe := sin(TAU * freq * t)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.52
+			pipe += sin(TAU * freq * 3.0 * t) * 0.32
+			pipe += sin(TAU * freq * 4.0 * t) * 0.18
+			pipe += sin(TAU * freq * 5.0 * t) * 0.1
+			pipe += sin(TAU * freq * 6.0 * t) * 0.05
+			# 32' Sub-bass
+			var sub := sin(TAU * freq * 0.25 * t) * 0.18
+			# 16' Bourdon
+			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
+			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
+			# Reed chorus
+			var reed := sin(TAU * freq * t) * 0.18
+			reed += sin(TAU * freq * 3.0 * t) * 0.14
+			reed += sin(TAU * freq * 5.0 * t) * 0.09
+			reed += sin(TAU * freq * 7.0 * t) * 0.04
+			# Mixture shimmer
+			var mix_s := sin(TAU * freq * 3.0 * t) * 0.06
+			mix_s += sin(TAU * freq * 4.0 * t) * 0.04
+			var trem := 1.0 + sin(TAU * 5.6 * t) * 0.05
+			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Opera Inferno (bigger sub, full reeds, brighter mixture) ---
+	var t2 := []
+	for note_idx in organ_notes.size():
+		var freq: float = organ_notes[note_idx]
+		var dur := 0.33
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 42.0) * 0.2
+			var att := minf(t * 20.0, 1.0)
+			var rel := clampf((dur - t) / 0.07, 0.0, 1.0)
+			var env := att * rel * 0.21
+			# Full principal chorus
+			var pipe := sin(TAU * freq * t)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.53
+			pipe += sin(TAU * freq * 3.0 * t) * 0.33
+			pipe += sin(TAU * freq * 4.0 * t) * 0.2
+			pipe += sin(TAU * freq * 5.0 * t) * 0.12
+			pipe += sin(TAU * freq * 6.0 * t) * 0.06
+			pipe += sin(TAU * freq * 8.0 * t) * 0.03
+			# 32' Sub-bass
+			var sub := sin(TAU * freq * 0.25 * t) * 0.22
+			# 16' Bourdon
+			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
+			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
+			# Full reed chorus
+			var reed := sin(TAU * freq * t) * 0.2
+			reed += sin(TAU * freq * 2.0 * t) * 0.06
+			reed += sin(TAU * freq * 3.0 * t) * 0.16
+			reed += sin(TAU * freq * 5.0 * t) * 0.1
+			reed += sin(TAU * freq * 7.0 * t) * 0.06
+			# Brighter mixture
+			var mix_s := sin(TAU * freq * 3.0 * t) * 0.08
+			mix_s += sin(TAU * freq * 4.0 * t) * 0.06
+			mix_s += sin(TAU * freq * 6.0 * t) * 0.04
+			var trem := 1.0 + sin(TAU * 5.8 * t) * 0.05
+			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Mask of Darkness (near-full organ, heavy pedal, fierce reeds) ---
+	var t3 := []
+	for note_idx in organ_notes.size():
+		var freq: float = organ_notes[note_idx]
+		var dur := 0.34
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 40.0) * 0.21
+			var att := minf(t * 20.0, 1.0)
+			var rel := clampf((dur - t) / 0.08, 0.0, 1.0)
+			var env := att * rel * 0.2
+			# Full principal chorus
+			var pipe := sin(TAU * freq * t)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.54
+			pipe += sin(TAU * freq * 3.0 * t) * 0.34
+			pipe += sin(TAU * freq * 4.0 * t) * 0.21
+			pipe += sin(TAU * freq * 5.0 * t) * 0.13
+			pipe += sin(TAU * freq * 6.0 * t) * 0.07
+			pipe += sin(TAU * freq * 8.0 * t) * 0.04
+			# 32' Sub-bass
+			var sub := sin(TAU * freq * 0.25 * t) * 0.24
+			# 16' Bourdon
+			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
+			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
+			# Fierce reed chorus (trumpet + oboe)
+			var reed := sin(TAU * freq * t) * 0.21
+			reed += sin(TAU * freq * 2.0 * t) * 0.07
+			reed += sin(TAU * freq * 3.0 * t) * 0.17
+			reed += sin(TAU * freq * 5.0 * t) * 0.11
+			reed += sin(TAU * freq * 7.0 * t) * 0.07
+			reed += sin(TAU * freq * 9.0 * t) * 0.03
+			# Full mixture
+			var mix_s := sin(TAU * freq * 3.0 * t) * 0.09
+			mix_s += sin(TAU * freq * 4.0 * t) * 0.07
+			mix_s += sin(TAU * freq * 6.0 * t) * 0.05
+			mix_s += sin(TAU * freq * 8.0 * t) * 0.03
+			var trem := 1.0 + sin(TAU * 6.0 * t) * 0.06
+			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Full Organ Fortissimo (all stops, 32' pedal, tremulant) ---
+	var t4 := []
+	for note_idx in organ_notes.size():
+		var freq: float = organ_notes[note_idx]
+		var dur := 0.35
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Dramatic chiff — louder onset
+			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 40.0) * 0.22
+			var att := minf(t * 20.0, 1.0)
+			var rel := clampf((dur - t) / 0.08, 0.0, 1.0)
+			var env := att * rel * 0.2
+			# Full principal chorus
+			var pipe := sin(TAU * freq * t)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.55
+			pipe += sin(TAU * freq * 3.0 * t) * 0.35
+			pipe += sin(TAU * freq * 4.0 * t) * 0.22
+			pipe += sin(TAU * freq * 5.0 * t) * 0.14
+			pipe += sin(TAU * freq * 6.0 * t) * 0.08
+			pipe += sin(TAU * freq * 8.0 * t) * 0.04
+			# 32' Sub-bass (earth-shaking low pedal)
+			var sub := sin(TAU * freq * 0.25 * t) * 0.25
+			# 16' Bourdon
+			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
+			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
+			# Full reed chorus (trumpet + oboe character)
+			var reed := sin(TAU * freq * t) * 0.22
+			reed += sin(TAU * freq * 2.0 * t) * 0.08
+			reed += sin(TAU * freq * 3.0 * t) * 0.18
+			reed += sin(TAU * freq * 5.0 * t) * 0.12
+			reed += sin(TAU * freq * 7.0 * t) * 0.08
+			reed += sin(TAU * freq * 9.0 * t) * 0.04
+			# Full mixture
+			var mix_s := sin(TAU * freq * 3.0 * t) * 0.1
+			mix_s += sin(TAU * freq * 4.0 * t) * 0.08
+			mix_s += sin(TAU * freq * 6.0 * t) * 0.05
+			mix_s += sin(TAU * freq * 8.0 * t) * 0.03
+			# Dramatic tremulant
+			var trem := 1.0 + sin(TAU * 6.0 * t) * 0.06
+			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
+func _refresh_tier_sounds() -> void:
+	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
+	_attack_sounds = _attack_sounds_by_tier[tier]
 
 func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -982,12 +1190,12 @@ func _draw() -> void:
 			# Tip
 			draw_circle(Vector2(flame_x, chand_center.y - 7.0 + flicker * 1.2), 0.8, Color(1.0, 1.0, 0.9, 0.35))
 
-	# === CHARACTER POSITIONS (tall dramatic anime proportions ~60px) ===
+	# === CHARACTER POSITIONS (taller dramatic proportions ~62px — tallest character) ===
 	var feet_y = body_offset + Vector2(cape_sweep * 0.3, 14.0)
 	var leg_top = body_offset + Vector2(cape_sweep * 0.2, -4.0)
 	var torso_center = body_offset + Vector2(-cape_sweep * 0.15, -14.0)
-	var neck_base = body_offset + Vector2(-cape_sweep * 0.3, -24.0)
-	var head_center = body_offset + Vector2(-cape_sweep * 0.15, -36.0)
+	var neck_base = body_offset + Vector2(-cape_sweep * 0.3, -26.0)
+	var head_center = body_offset + Vector2(-cape_sweep * 0.15, -38.0)
 
 	# === CAPE (red-lined black cape — behind the body, dramatic full-length) ===
 	var cape_sway_val = sin(_time * 1.3) * 4.0 + cape_sweep * 1.5
@@ -996,52 +1204,51 @@ func _draw() -> void:
 		cape_billow = sin(_time * 0.7) * 6.0 + sin(_time * 1.9) * 3.0
 	cape_sway_val += cape_billow
 
-	# Outer cape (black) — dramatic sweep from shoulders past legs
+	# Outer cape (black) — wider, more dramatic sweep from shoulders past legs
 	var cape_pts = PackedVector2Array([
-		neck_base + Vector2(-20 - cape_sway_val * 0.3, 0),
-		neck_base + Vector2(-24 - cape_sway_val * 0.5, 14),
-		body_offset + Vector2(-22 - cape_sway_val * 0.7, 22),
-		feet_y + Vector2(-14 - cape_sway_val * 0.4, 6),
-		feet_y + Vector2(14 + cape_sway_val * 0.4, 6),
-		body_offset + Vector2(22 + cape_sway_val * 0.7, 22),
-		neck_base + Vector2(24 + cape_sway_val * 0.5, 14),
-		neck_base + Vector2(20 + cape_sway_val * 0.3, 0),
+		neck_base + Vector2(-22 - cape_sway_val * 0.3, 0),
+		neck_base + Vector2(-26 - cape_sway_val * 0.5, 14),
+		body_offset + Vector2(-24 - cape_sway_val * 0.7, 22),
+		feet_y + Vector2(-16 - cape_sway_val * 0.4, 6),
+		feet_y + Vector2(16 + cape_sway_val * 0.4, 6),
+		body_offset + Vector2(24 + cape_sway_val * 0.7, 22),
+		neck_base + Vector2(26 + cape_sway_val * 0.5, 14),
+		neck_base + Vector2(22 + cape_sway_val * 0.3, 0),
 	])
 	draw_colored_polygon(cape_pts, Color(0.04, 0.02, 0.06))
-	# Cape red lining (visible on left side — the dramatic flourish)
+	# Cape red lining (visible on left side — more visible)
 	var lining_pts = PackedVector2Array([
-		neck_base + Vector2(-19 - cape_sway_val * 0.3, 2),
-		neck_base + Vector2(-22 - cape_sway_val * 0.5, 12),
-		body_offset + Vector2(-20 - cape_sway_val * 0.6, 20),
-		feet_y + Vector2(-13 - cape_sway_val * 0.35, 4),
+		neck_base + Vector2(-21 - cape_sway_val * 0.3, 2),
+		neck_base + Vector2(-24 - cape_sway_val * 0.5, 12),
+		body_offset + Vector2(-22 - cape_sway_val * 0.6, 20),
+		feet_y + Vector2(-15 - cape_sway_val * 0.35, 4),
 		torso_center + Vector2(-8, 12),
 		torso_center + Vector2(-10, 0),
 		neck_base + Vector2(-12, 2),
 	])
-	draw_colored_polygon(lining_pts, Color(0.65, 0.06, 0.08, 0.7))
-	# Satin sheen on lining
-	var sheen_pts = PackedVector2Array([
-		neck_base + Vector2(-18 - cape_sway_val * 0.35, 4),
-		neck_base + Vector2(-20 - cape_sway_val * 0.45, 14),
-		torso_center + Vector2(-14 - cape_sway_val * 0.3, 8),
-		torso_center + Vector2(-13, -2),
-	])
-	draw_colored_polygon(sheen_pts, Color(0.85, 0.15, 0.18, 0.25))
-	# Red lining right side (less visible)
+	draw_colored_polygon(lining_pts, Color(0.65, 0.06, 0.08, 0.8))
+	# Satin sheen on lining (drawn as lines to avoid polygon triangulation issues)
+	var sheen_col = Color(0.85, 0.15, 0.18, 0.3)
+	for si in range(3):
+		var st = float(si) / 2.0
+		var sheen_top = neck_base + Vector2(-20 - cape_sway_val * 0.35 + st * 4, 4 + st * 5)
+		var sheen_bot = torso_center + Vector2(-16 - cape_sway_val * 0.3 + st * 2, -2 + st * 5)
+		draw_line(sheen_top, sheen_bot, sheen_col, 1.5)
+	# Red lining right side (more visible)
 	var lining_r_pts = PackedVector2Array([
 		neck_base + Vector2(12, 2),
 		torso_center + Vector2(10, 0),
 		torso_center + Vector2(8, 12),
-		feet_y + Vector2(13 + cape_sway_val * 0.35, 4),
-		body_offset + Vector2(20 + cape_sway_val * 0.6, 20),
-		neck_base + Vector2(22 + cape_sway_val * 0.5, 12),
-		neck_base + Vector2(19 + cape_sway_val * 0.3, 2),
+		feet_y + Vector2(15 + cape_sway_val * 0.35, 4),
+		body_offset + Vector2(22 + cape_sway_val * 0.6, 20),
+		neck_base + Vector2(24 + cape_sway_val * 0.5, 12),
+		neck_base + Vector2(21 + cape_sway_val * 0.3, 2),
 	])
-	draw_colored_polygon(lining_r_pts, Color(0.55, 0.05, 0.07, 0.4))
-	# Cape fold lines
-	for fold_i in range(4):
-		var fold_t = float(fold_i) / 3.0
-		var fold_x = -18.0 + fold_t * 36.0
+	draw_colored_polygon(lining_r_pts, Color(0.55, 0.05, 0.07, 0.5))
+	# Cape fold lines (6 instead of 4)
+	for fold_i in range(6):
+		var fold_t = float(fold_i) / 5.0
+		var fold_x = -20.0 + fold_t * 40.0
 		var fold_top = neck_base + Vector2(fold_x, 0)
 		var fold_bot = feet_y + Vector2(fold_x + cape_sway_val * (fold_t - 0.5) * 0.3, 4)
 		draw_line(fold_top, fold_bot, Color(0.08, 0.04, 0.1, 0.25), 1.0)
@@ -1406,16 +1613,16 @@ func _draw() -> void:
 	# Skin highlight (upper left)
 	draw_circle(head_center + Vector2(-2, -3), head_r * 0.5, skin_highlight)
 
-	# === SLICKED BLACK HAIR (left side visible, swept back — scaled for 12px head) ===
-	# Hair covers top and left side of head
+	# === DRAMATIC SWEPT-BACK HAIR (more flowing and romantic) ===
+	# Hair covers top and left side of head with dramatic volume
 	var hair_pts = PackedVector2Array([
-		head_center + Vector2(-head_r + 1, 3),
-		head_center + Vector2(-head_r + 1, -3),
-		head_center + Vector2(-head_r + 3, -7),
-		head_center + Vector2(-4, -head_r - 2),
-		head_center + Vector2(2, -head_r - 1),
-		head_center + Vector2(6, -head_r + 1),
-		head_center + Vector2(head_r - 1, -4),
+		head_center + Vector2(-head_r + 1, 5),
+		head_center + Vector2(-head_r, -3),
+		head_center + Vector2(-head_r + 2, -8),
+		head_center + Vector2(-4, -head_r - 4),    # More volume peak at crown
+		head_center + Vector2(2, -head_r - 3),
+		head_center + Vector2(6, -head_r - 1),
+		head_center + Vector2(head_r - 1, -5),
 		head_center + Vector2(head_r - 2, -1),
 		head_center + Vector2(5, -1),
 		head_center + Vector2(0, -3),
@@ -1423,19 +1630,45 @@ func _draw() -> void:
 		head_center + Vector2(-6, 0),
 	])
 	draw_colored_polygon(hair_pts, Color(0.06, 0.04, 0.06))
-	# Hair highlight streaks (slicked sheen)
-	draw_line(head_center + Vector2(-3, -head_r), head_center + Vector2(-6, -1), Color(0.15, 0.12, 0.18, 0.4), 1.5)
-	draw_line(head_center + Vector2(-1, -head_r - 1), head_center + Vector2(-3, -3), Color(0.18, 0.15, 0.22, 0.35), 1.2)
-	draw_line(head_center + Vector2(2, -head_r), head_center + Vector2(1, -4), Color(0.15, 0.12, 0.18, 0.3), 1.0)
+	# Hair highlight streaks (more contrast — alpha 0.35→0.50)
+	draw_line(head_center + Vector2(-3, -head_r - 2), head_center + Vector2(-7, 2), Color(0.15, 0.12, 0.18, 0.50), 2.0)
+	draw_line(head_center + Vector2(-1, -head_r - 3), head_center + Vector2(-4, -2), Color(0.18, 0.15, 0.22, 0.45), 1.5)
+	draw_line(head_center + Vector2(2, -head_r - 1), head_center + Vector2(1, -4), Color(0.15, 0.12, 0.18, 0.40), 1.2)
 	# Hair over right side (above mask)
-	draw_line(head_center + Vector2(5, -head_r + 1), head_center + Vector2(head_r - 2, -3), Color(0.06, 0.04, 0.06), 3.0)
+	draw_line(head_center + Vector2(5, -head_r), head_center + Vector2(head_r - 2, -3), Color(0.06, 0.04, 0.06), 3.5)
 
-	# === WHITE HALF-MASK (right side of face — scaled for 12px head) ===
+	# Long strands cascading past jaw over left side (romantic drama)
+	var hair_wave_ph = sin(_time * 1.5) * 2.0
+	var long_strand_data = [
+		[-head_r + 1, 5, 15, 2.5],     # leftmost strand
+		[-head_r + 3, 3, 18, 2.0],     # second strand
+		[-head_r + 5, 2, 16, 1.8],     # third strand
+		[-5, 1, 13, 1.5],              # fourth — shorter
+	]
+	for lsd in long_strand_data:
+		var lsx: float = lsd[0]
+		var lsy: float = lsd[1]
+		var ls_len: float = lsd[2]
+		var ls_w: float = lsd[3]
+		var wave_mod = sin(_time * 1.5 + lsx * 0.3) * 2.0
+		# Draw as series of segments for wave motion
+		var prev_pt = head_center + Vector2(lsx, lsy)
+		for seg in range(5):
+			var st = float(seg + 1) / 5.0
+			var next_pt = head_center + Vector2(lsx + wave_mod * st + sin(_time * 1.5 + st * PI) * 1.5, lsy + ls_len * st)
+			draw_line(prev_pt, next_pt, Color(0.06, 0.04, 0.06, 0.9 - st * 0.3), ls_w * (1.0 - st * 0.3))
+			prev_pt = next_pt
+	# 2-3 loose strands across mask edge (romantic drama)
+	var mask_strand_wave = sin(_time * 2.0) * 1.5
+	draw_line(head_center + Vector2(1, -head_r), head_center + Vector2(2 + mask_strand_wave, 4), Color(0.06, 0.04, 0.06, 0.5), 1.2)
+	draw_line(head_center + Vector2(0, -head_r + 2), head_center + Vector2(1.5 + mask_strand_wave * 0.7, 2), Color(0.06, 0.04, 0.06, 0.4), 1.0)
+
+	# === WHITE HALF-MASK (right side of face — refined with gold filigree) ===
 	var mask_center = head_center + Vector2(4, -1)
-	# Mask glow behind (subtle ethereal light)
-	var mask_glow_alpha = 0.08 + sin(_time * 2.0) * 0.04
-	draw_circle(mask_center, head_r * 0.65, Color(0.9, 0.9, 1.0, mask_glow_alpha))
-	# Mask shape (scaled ~0.75x from original)
+	# Mask glow behind (faint glow even at T0)
+	var mask_glow_alpha = 0.10 + sin(_time * 2.0) * 0.05
+	draw_circle(mask_center, head_r * 0.7, Color(0.9, 0.9, 1.0, mask_glow_alpha))
+	# Mask shape
 	var mask_pts = PackedVector2Array([
 		head_center + Vector2(1, -9),
 		head_center + Vector2(5, -10),
@@ -1448,7 +1681,7 @@ func _draw() -> void:
 		head_center + Vector2(1, -2),
 	])
 	draw_colored_polygon(mask_pts, Color(0.96, 0.95, 0.93))
-	# Mask porcelain sheen
+	# Mask porcelain sheen (brighter)
 	var mask_sheen_pts = PackedVector2Array([
 		head_center + Vector2(2, -8),
 		head_center + Vector2(6, -9),
@@ -1457,19 +1690,29 @@ func _draw() -> void:
 		head_center + Vector2(4, -1),
 		head_center + Vector2(2, -3),
 	])
-	draw_colored_polygon(mask_sheen_pts, Color(1.0, 1.0, 1.0, 0.35))
-	# Mask edge line
-	draw_line(head_center + Vector2(1, -9), head_center + Vector2(1, 4), Color(0.75, 0.72, 0.70, 0.5), 1.2)
-	# Mask eye hole (right eye is hidden behind mask)
+	draw_colored_polygon(mask_sheen_pts, Color(1.0, 1.0, 1.0, 0.40))
+	# Brighter edge highlight
+	draw_line(head_center + Vector2(1, -9), head_center + Vector2(1, 4), Color(0.80, 0.78, 0.76, 0.6), 1.4)
+	# Secondary highlight line
+	draw_line(head_center + Vector2(9, -6), head_center + Vector2(8, 3), Color(0.85, 0.83, 0.80, 0.3), 0.8)
+	# Gold filigree decorative curls (2-3 arcs)
+	draw_arc(head_center + Vector2(6, -6), 3.0, PI * 0.3, PI * 1.2, 8, Color(0.85, 0.72, 0.2, 0.25), 0.8)
+	draw_arc(head_center + Vector2(8, 0), 2.5, PI * 0.5, PI * 1.5, 6, Color(0.85, 0.72, 0.2, 0.20), 0.8)
+	draw_arc(head_center + Vector2(5, 3), 2.0, 0, PI, 6, Color(0.85, 0.72, 0.2, 0.18), 0.7)
+	# Subtle tear track line (mystery)
+	draw_line(head_center + Vector2(5, 0), head_center + Vector2(5.5, 5), Color(0.75, 0.73, 0.72, 0.15), 0.6)
+	# Mask eye hole with faint glow
 	var mask_eye_pos = head_center + Vector2(5, -2)
-	draw_circle(mask_eye_pos, 2.8, Color(0.0, 0.0, 0.0, 0.4))
-	draw_circle(mask_eye_pos, 2.0, Color(0.02, 0.02, 0.02, 0.3))
+	draw_circle(mask_eye_pos, 3.2, Color(0.0, 0.0, 0.0, 0.35))
+	draw_circle(mask_eye_pos, 2.2, Color(0.02, 0.02, 0.02, 0.25))
+	# Faint glow around mask eye hole
+	draw_circle(mask_eye_pos, 4.0, Color(0.6, 0.5, 0.8, 0.06 + sin(_time * 2.5) * 0.03))
 	# Mask nostril hint
 	draw_circle(head_center + Vector2(4, 2), 0.8, Color(0.85, 0.83, 0.80, 0.3))
-	# Mask outline
+	# Mask outline (slightly brighter)
 	for mi in range(mask_pts.size()):
 		var next_mi = (mi + 1) % mask_pts.size()
-		draw_line(mask_pts[mi], mask_pts[next_mi], Color(0.80, 0.78, 0.75, 0.4), 0.8)
+		draw_line(mask_pts[mi], mask_pts[next_mi], Color(0.82, 0.80, 0.78, 0.5), 0.9)
 
 	# Tier 4: Mask eye glows bright red/orange
 	if upgrade_tier >= 4:
@@ -1478,41 +1721,56 @@ func _draw() -> void:
 		draw_circle(mask_eye_pos, 2.5, Color(1.0, 0.35, 0.1, eye_glow_alpha * 0.5))
 		draw_circle(mask_eye_pos, 1.2, Color(1.0, 0.6, 0.2, eye_glow_alpha * 0.7))
 
-	# === LEFT SIDE VISIBLE FACE — dramatic single eye (scaled for 12px head) ===
+	# === LEFT SIDE VISIBLE FACE — dramatic single eye, more defined (handsome) ===
 	var l_eye_pos = head_center + Vector2(-4, -2)
-	# Eye socket shadow
-	draw_circle(l_eye_pos, 3.8, Color(0.60, 0.52, 0.48, 0.25))
-	# Eye white
-	draw_circle(l_eye_pos, 3.0, Color(0.96, 0.96, 0.96))
-	# Iris (dark, intense)
-	draw_circle(l_eye_pos + dir * 0.8, 2.0, Color(0.15, 0.10, 0.08))
+	# Eye socket shadow (deeper)
+	draw_circle(l_eye_pos, 4.2, Color(0.55, 0.45, 0.42, 0.25))
+	# Eye white (larger)
+	draw_circle(l_eye_pos, 3.5, Color(0.96, 0.96, 0.96))
+	# Iris (dark, intense — with ring detail)
+	draw_circle(l_eye_pos + dir * 0.8, 2.4, Color(0.12, 0.08, 0.06))
+	draw_circle(l_eye_pos + dir * 0.8, 1.8, Color(0.20, 0.15, 0.12))
+	# Iris ring detail
+	draw_arc(l_eye_pos + dir * 0.8, 2.2, 0, TAU, 10, Color(0.25, 0.18, 0.15, 0.3), 0.5)
 	# Pupil
-	draw_circle(l_eye_pos + dir * 1.0, 1.2, Color(0.02, 0.02, 0.02))
-	# Iris highlight (tiny catch light)
-	draw_circle(l_eye_pos + Vector2(-0.4, -0.8), 0.6, Color(1.0, 1.0, 1.0, 0.6))
-	# Intense eyebrow (angled dramatically)
-	draw_line(head_center + Vector2(-7, -5), head_center + Vector2(-2, -6), Color(0.06, 0.04, 0.06), 1.8)
-	# Under-eye shadow (tormented look)
-	draw_arc(l_eye_pos, 3.5, 0.3, PI - 0.3, 8, Color(0.55, 0.45, 0.50, 0.2), 1.0)
+	draw_circle(l_eye_pos + dir * 1.0, 1.3, Color(0.02, 0.02, 0.02))
+	# Primary catch light
+	draw_circle(l_eye_pos + Vector2(-0.5, -1.0), 0.8, Color(1.0, 1.0, 1.0, 0.7))
+	# Second catch light
+	draw_circle(l_eye_pos + Vector2(0.8, 0.3), 0.4, Color(1.0, 1.0, 1.0, 0.4))
+	# More dramatic eyebrow (wider, extended further)
+	draw_line(head_center + Vector2(-8, -4.5), head_center + Vector2(-1.5, -6.5), Color(0.06, 0.04, 0.06), 2.2)
+	# Under-eye shadow (more intense, tormented)
+	draw_arc(l_eye_pos, 4.0, 0.3, PI - 0.3, 8, Color(0.50, 0.40, 0.45, 0.25), 1.2)
 	# Eyelid (upper, intense)
-	draw_arc(l_eye_pos, 3.0, PI + 0.3, TAU - 0.3, 8, Color(0.06, 0.04, 0.06), 1.3)
+	draw_arc(l_eye_pos, 3.5, PI + 0.3, TAU - 0.3, 8, Color(0.06, 0.04, 0.06), 1.5)
 
 	# Right eyebrow (on mask, subtle sculpted line)
 	draw_line(head_center + Vector2(2, -6), head_center + Vector2(8, -5), Color(0.80, 0.78, 0.76, 0.3), 1.3)
 
-	# === MOUTH / JAW (dramatic, handsome — half visible) ===
+	# === CHEEKBONE AND JAW (more angular, more defined — handsome) ===
+	# Cheekbone highlight arc on visible (left) side
+	draw_arc(head_center + Vector2(-6, 1), 4.0, PI * 0.1, PI * 0.6, 8, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3), 1.2)
+	# Jawline shadow under cheekbone
+	draw_arc(head_center + Vector2(-6, 3), 3.5, PI * 0.2, PI * 0.8, 8, Color(0.55, 0.48, 0.44, 0.2), 1.0)
 	# Strong angular jaw line (left side visible, right under mask)
-	draw_line(head_center + Vector2(-10, 2), head_center + Vector2(-5, 9), Color(0.62, 0.55, 0.50, 0.4), 1.5)
-	draw_line(head_center + Vector2(-5, 9), head_center + Vector2(1, 9), Color(0.62, 0.55, 0.50, 0.3), 1.2)
-	# Squared chin (angular, dramatic)
-	draw_circle(head_center + Vector2(-1, 9), 3.2, skin_shadow)
-	draw_circle(head_center + Vector2(-1, 9), 2.5, skin_base)
-	draw_circle(head_center + Vector2(-1.2, 9.2), 1.5, skin_highlight)
-	# Dramatic thin lips (slightly frowning, brooding)
-	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(0, 5.5), Color(0.62, 0.45, 0.42), 1.5)
-	draw_arc(head_center + Vector2(-2.5, 5.8), 3.0, PI + 0.3, TAU - 0.3, 8, Color(0.65, 0.48, 0.44, 0.3), 0.8)
-	# Lip corner tension
-	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(-6, 4.5), Color(0.60, 0.42, 0.38, 0.25), 0.7)
+	draw_line(head_center + Vector2(-10, 2), head_center + Vector2(-5, 9), Color(0.62, 0.55, 0.50, 0.45), 1.6)
+	draw_line(head_center + Vector2(-5, 9), head_center + Vector2(1, 9), Color(0.62, 0.55, 0.50, 0.35), 1.3)
+	# Stronger chin (larger, with subtle cleft)
+	draw_circle(head_center + Vector2(-1, 9), 3.5, skin_shadow)
+	draw_circle(head_center + Vector2(-1, 9), 2.8, skin_base)
+	draw_circle(head_center + Vector2(-1.2, 9.3), 1.7, skin_highlight)
+	# Subtle chin cleft
+	draw_line(head_center + Vector2(-1, 8.5), head_center + Vector2(-1, 9.5), Color(0.65, 0.58, 0.52, 0.15), 0.6)
+	# Fuller lip detail (upper and lower arcs with color)
+	# Upper lip
+	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(0, 5.5), Color(0.65, 0.42, 0.38), 1.6)
+	draw_arc(head_center + Vector2(-2.5, 5.2), 2.8, PI + 0.2, TAU - 0.2, 8, Color(0.70, 0.48, 0.42, 0.4), 0.8)
+	# Lower lip (fuller)
+	draw_arc(head_center + Vector2(-2.5, 5.8), 3.2, 0.2, PI - 0.2, 8, Color(0.72, 0.50, 0.46, 0.35), 1.0)
+	# Lip corners
+	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(-6, 4.3), Color(0.60, 0.42, 0.38, 0.3), 0.7)
+	draw_line(head_center + Vector2(0, 5.5), head_center + Vector2(1, 5.0), Color(0.60, 0.42, 0.38, 0.2), 0.6)
 	# Elegant nose (left side visible, refined bridge)
 	draw_line(head_center + Vector2(-1, -4), head_center + Vector2(-1.5, 1.5), Color(0.75, 0.68, 0.62, 0.4), 1.2)
 	draw_line(head_center + Vector2(-1.5, 1.5), head_center + Vector2(-0.5, 2.8), Color(0.75, 0.68, 0.62, 0.3), 1.0)
