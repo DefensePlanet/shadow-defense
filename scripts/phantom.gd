@@ -318,7 +318,7 @@ func _chandelier_drop() -> void:
 		if global_position.distance_to(enemy.global_position) < attack_range:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - chandelier_dmg <= 0.0
-				enemy.take_damage(chandelier_dmg)
+				enemy.take_damage(chandelier_dmg, true)
 				register_damage(chandelier_dmg)
 				if will_kill:
 					if gold_bonus > 0:
@@ -689,7 +689,7 @@ func _process_progressive_abilities(delta: float) -> void:
 				if global_position.distance_to(e.global_position) < attack_range:
 					if e.has_method("take_damage"):
 						var dmg = damage * delta
-						e.take_damage(dmg)
+						e.take_damage(dmg, true)
 						register_damage(dmg)
 		else:
 			_box_five_timer -= delta
@@ -751,12 +751,12 @@ func _trap_door() -> void:
 		if weakest.max_health > 500:
 			# Boss: deal 50% of current HP
 			var dmg = weakest.health * 0.5
-			weakest.take_damage(dmg)
+			weakest.take_damage(dmg, true)
 			register_damage(dmg)
 		else:
 			# Normal: instant kill
 			var dmg = weakest.health
-			weakest.take_damage(dmg)
+			weakest.take_damage(dmg, true)
 			register_damage(dmg)
 
 func _box_five_activate() -> void:
@@ -780,7 +780,7 @@ func _organs_fury() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage"):
 			var dmg = damage * 3.0
-			e.take_damage(dmg)
+			e.take_damage(dmg, true)
 			register_damage(dmg)
 		if e.has_method("apply_sleep"):
 			e.apply_sleep(2.0)

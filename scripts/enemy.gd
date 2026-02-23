@@ -42,11 +42,34 @@ var enemy_tier: int = 0
 var shrink_scale: float = 1.0
 var boss_scale: float = 1.0  # >1.0 for boss enemies (drawn bigger)
 
+# Wound state visuals
+var _wound_drip_offsets: Array = []
+var _wound_crack_lines: Array = []
+var _wound_time: float = 0.0
+
+# Modifiers (Cursed Passages)
+var modifiers: Array = []
+var bound_shield: float = 0.0
+var _hex_regen_accum: float = 0.0
+
 func _ready() -> void:
 	health = max_health
 	rotates = false
+	# Generate random wound positions using instance id as seed
+	var seed_val = get_instance_id()
+	for i in range(5):
+		_wound_drip_offsets.append(Vector2(
+			fmod(float(seed_val * (i + 1) * 7), 16.0) - 8.0,
+			8.0 + fmod(float(seed_val * (i + 1) * 13), 8.0)
+		))
+	for i in range(4):
+		_wound_crack_lines.append({
+			"from": Vector2(fmod(float(seed_val * (i + 1) * 11), 20.0) - 10.0, fmod(float(seed_val * (i + 1) * 3), 20.0) - 10.0),
+			"to": Vector2(fmod(float(seed_val * (i + 2) * 17), 20.0) - 10.0, fmod(float(seed_val * (i + 2) * 5), 20.0) - 10.0)
+		})
 
 func _process(delta: float) -> void:
+	_wound_time += delta
 	# Sleep — completely frozen
 	if sleep_timer > 0.0:
 		sleep_timer -= delta
@@ -73,6 +96,13 @@ func _process(delta: float) -> void:
 		if health <= 0.0:
 			_die()
 			return
+
+	# Hexed modifier — regen 2% max HP per second
+	if "hexed" in modifiers:
+		_hex_regen_accum += delta
+		if _hex_regen_accum >= 0.5:
+			health = min(health + max_health * 0.01, max_health)
+			_hex_regen_accum -= 0.5
 
 	# Cheshire mark timer
 	if cheshire_mark_timer > 0.0:
@@ -137,12 +167,28 @@ func _process(delta: float) -> void:
 	shrink_scale = 0.7 if is_shrunk else 1.0
 	queue_redraw()
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, is_magic: bool = false) -> void:
 	var mult = damage_mult * cheshire_mark_mult * charm_damage_mult
 	var paint_mult = 1.0 + paint_stacks * 0.05
 	var final_dmg = amount * mult * paint_mult
+	# Spectral: physical attacks deal 50% damage
+	if "spectral" in modifiers and not is_magic:
+		final_dmg *= 0.5
+	# Bound: shield absorbs damage first
+	if bound_shield > 0.0:
+		if final_dmg <= bound_shield:
+			bound_shield -= final_dmg
+			_hit_flash = 0.12
+			return
+		else:
+			final_dmg -= bound_shield
+			bound_shield = 0.0
 	health -= final_dmg
 	_hit_flash = 0.12
+	# Floating damage number
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("spawn_damage_number"):
+		main.spawn_damage_number(global_position, final_dmg, boss_scale > 1.0)
 	# Chain damage sharing
 	if chain_timer > 0.0 and chain_share > 0.0 and chain_group.size() > 0:
 		var shared = final_dmg * chain_share
@@ -207,6 +253,10 @@ func _die() -> void:
 	if main:
 		main.add_gold(gold_reward)
 		main.enemy_died()
+		if main.has_method("spawn_gold_text"):
+			main.spawn_gold_text(global_position, gold_reward)
+		if main.has_method("report_enemy_death"):
+			main.report_enemy_death(global_position, boss_scale > 1.0, boss_scale)
 	queue_free()
 
 func _draw() -> void:
@@ -222,6 +272,15 @@ func _draw() -> void:
 	elif is_shrunk:
 		tint = Color(0.7, 0.7, 1.0, 1.0)
 
+	# Wound alpha fade when critically low HP
+	var hp_ratio = health / max_health if max_health > 0.0 else 1.0
+	if hp_ratio < 0.25:
+		var wound_alpha = 0.4 + hp_ratio * 2.4  # 0.4 at 0%, 1.0 at 25%
+		tint.a = min(tint.a, wound_alpha)
+	# Spectral modifier — translucent
+	if "spectral" in modifiers:
+		tint.a *= 0.5
+
 	match enemy_theme:
 		0: _draw_sherwood(s, tint)
 		1: _draw_wonderland(s, tint)
@@ -236,6 +295,11 @@ func _draw() -> void:
 		10: _draw_dracula(s, tint)
 		11: _draw_frankenstein(s, tint)
 		12: _draw_shadow_author(s, tint)
+
+	# Wound effects (bleeding ink)
+	_draw_wound_effects(s)
+	# Modifier effects (cursed passages)
+	_draw_modifier_effects(s)
 
 	# Status effect visuals
 	if sleep_timer > 0.0:
@@ -297,6 +361,69 @@ func _draw_heart_symbol(pos: Vector2, size: float, color: Color) -> void:
 		pos + Vector2(-size * 0.55, -size * 0.1),
 		pos + Vector2(size * 0.55, -size * 0.1)
 	]), color)
+
+
+# =============================================================================
+# WOUND & MODIFIER EFFECTS
+# =============================================================================
+
+func _draw_wound_effects(s: float) -> void:
+	var hp_ratio = health / max_health if max_health > 0.0 else 1.0
+	if hp_ratio >= 0.75:
+		return
+	var bs = boss_scale
+	# 75% HP: ink drips below enemy
+	if hp_ratio < 0.75:
+		for i in range(2):
+			var off = _wound_drip_offsets[i] * bs
+			var drip_y = off.y + sin(_wound_time * 2.0 + float(i)) * 3.0
+			draw_circle(Vector2(off.x * s, drip_y * s), (2.0 + float(i)) * bs, Color(0.08, 0.06, 0.12, 0.6))
+	# 50% HP: dark crack lines across sprite
+	if hp_ratio < 0.5:
+		var crack_count = 2 if hp_ratio > 0.3 else 4
+		for i in range(crack_count):
+			if i < _wound_crack_lines.size():
+				var cl = _wound_crack_lines[i]
+				draw_line(cl["from"] * s * bs, cl["to"] * s * bs, Color(0.05, 0.03, 0.08, 0.7), 1.5 * bs)
+	# 25% HP: ink splatter orbiting + more drips
+	if hp_ratio < 0.25:
+		for i in range(5):
+			var angle = _wound_time * 1.5 + float(i) * TAU / 5.0
+			var orbit_r = 14.0 * s * bs
+			var px = cos(angle) * orbit_r
+			var py = sin(angle) * orbit_r
+			draw_circle(Vector2(px, py), 1.5 * bs, Color(0.06, 0.04, 0.1, 0.5))
+
+func _draw_modifier_effects(s: float) -> void:
+	if modifiers.is_empty():
+		return
+	var bs = boss_scale
+	# Spectral: shimmer circle
+	if "spectral" in modifiers:
+		var shimmer_a = 0.15 + sin(_wound_time * 3.0) * 0.1
+		draw_arc(Vector2.ZERO, 16.0 * s, 0, TAU, 16, Color(0.6, 0.7, 1.0, shimmer_a), 1.5 * bs)
+	# Ironbound: metallic ring + rivets
+	if "ironbound" in modifiers:
+		draw_arc(Vector2.ZERO, 18.0 * s, PI * 0.2, PI * 1.8, 12, Color(0.6, 0.6, 0.65, 0.5), 2.0 * bs)
+		for i in range(4):
+			var a = _wound_time * 0.5 + float(i) * TAU / 4.0
+			var rx = cos(a) * 18.0 * s
+			var ry = sin(a) * 18.0 * s
+			draw_circle(Vector2(rx, ry), 1.5 * bs, Color(0.7, 0.7, 0.75, 0.6))
+	# Hexed: purple hex symbol above
+	if "hexed" in modifiers:
+		var hex_y = -30.0 * s
+		var hex_float = sin(_wound_time * 2.0) * 2.0
+		var hex_pos = Vector2(0, hex_y + hex_float)
+		for i in range(6):
+			var a1 = float(i) * TAU / 6.0 - PI / 2.0
+			var a2 = float(i + 1) * TAU / 6.0 - PI / 2.0
+			draw_line(hex_pos + Vector2(cos(a1), sin(a1)) * 4.0 * bs, hex_pos + Vector2(cos(a2), sin(a2)) * 4.0 * bs, Color(0.6, 0.2, 0.8, 0.7), 1.0)
+	# Bound: pulsing cyan barrier
+	if "bound" in modifiers and bound_shield > 0.0:
+		var shield_a = 0.3 + sin(_wound_time * 4.0) * 0.15
+		draw_arc(Vector2.ZERO, 20.0 * s, -PI * 0.4, PI * 0.4, 10, Color(0.2, 0.8, 0.9, shield_a), 2.5 * bs)
+		draw_arc(Vector2.ZERO, 20.0 * s, PI * 0.6, PI * 1.4, 10, Color(0.2, 0.8, 0.9, shield_a), 2.5 * bs)
 
 
 # =============================================================================

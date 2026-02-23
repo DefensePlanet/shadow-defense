@@ -255,13 +255,13 @@ func _shoot() -> void:
 			if enemy.has_method("apply_slow"):
 				enemy.apply_slow(slow_amount, slow_duration)
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(dmg)
+				enemy.take_damage(dmg, true)
 				register_damage(dmg)
 			# Tier 4: execute low HP enemies
 			if execute_threshold > 0.0 and enemy.has_method("get_health_percent"):
 				if enemy.get_health_percent() <= execute_threshold:
 					if enemy.has_method("take_damage"):
-						enemy.take_damage(9999.0)
+						enemy.take_damage(9999.0, true)
 						register_damage(9999.0)
 			# Frosting DoT (Tier 1 upgrade)
 			if frosting_dps > 0.0 and enemy.has_method("apply_dot"):
@@ -289,7 +289,7 @@ func _tea_party() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < attack_range:
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(dmg)
+				enemy.take_damage(dmg, true)
 				register_damage(dmg)
 			if enemy.has_method("apply_slow"):
 				enemy.apply_slow(slow_amount * 0.8, slow_duration * 1.5)
@@ -648,7 +648,7 @@ func _eat_me_stomp() -> void:
 		if global_position.distance_to(e.global_position) < attack_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 4.0
-				e.take_damage(dmg)
+				e.take_damage(dmg, true)
 				register_damage(dmg)
 
 func _caterpillar_smoke() -> void:
@@ -668,7 +668,7 @@ func _tweedle_attack() -> void:
 	for i in range(mini(2, in_range.size())):
 		if in_range[i].has_method("take_damage"):
 			var dmg = damage * 0.8
-			in_range[i].take_damage(dmg)
+			in_range[i].take_damage(dmg, true)
 			register_damage(dmg)
 
 func _jabberwock_swoop() -> void:
@@ -676,7 +676,7 @@ func _jabberwock_swoop() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage"):
 			var dmg = damage * 5.0
-			e.take_damage(dmg)
+			e.take_damage(dmg, true)
 			register_damage(dmg)
 
 func _draw() -> void:

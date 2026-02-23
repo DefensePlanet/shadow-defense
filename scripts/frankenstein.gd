@@ -634,7 +634,7 @@ func set_meta_buffs(buffs: Dictionary) -> void:
 var power_damage_mult: float = 1.0
 
 func _damage_mult() -> float:
-	var mult := (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
+	var mult: float = (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
 	# Ability 1: Reanimated Strength — +25% damage
 	if prog_abilities[0]:
 		mult *= 1.25
@@ -644,7 +644,7 @@ func _range_mult() -> float:
 	return 1.0 + _synergy_buffs.get("range", 0.0) + _meta_buffs.get("range", 0.0)
 
 func _speed_mult() -> float:
-	var mult := 1.0 + _synergy_buffs.get("attack_speed", 0.0) + _meta_buffs.get("attack_speed", 0.0)
+	var mult: float = 1.0 + _synergy_buffs.get("attack_speed", 0.0) + _meta_buffs.get("attack_speed", 0.0)
 	# Ability 1: Reanimated Strength — +10% speed
 	if prog_abilities[0]:
 		mult *= 1.1

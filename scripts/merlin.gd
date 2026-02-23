@@ -282,7 +282,7 @@ func _excalibur_strike() -> void:
 	var strongest = _find_strongest_enemy()
 	if strongest and strongest.has_method("take_damage"):
 		var dmg = damage * 5.0 * _damage_mult()
-		strongest.take_damage(dmg)
+		strongest.take_damage(dmg, true)
 		register_damage(dmg)
 		# Stun for 3s
 		if strongest.has_method("apply_sleep"):
@@ -674,7 +674,7 @@ func _dragon_breath_attack() -> void:
 			if abs(angle_to) < PI / 3.0:  # 60 degree cone
 				if e.has_method("take_damage"):
 					var dmg = damage * 4.0 * _damage_mult()
-					e.take_damage(dmg)
+					e.take_damage(dmg, true)
 					register_damage(dmg)
 
 func _holy_grail_strike() -> void:
@@ -686,7 +686,7 @@ func _holy_grail_strike() -> void:
 	var strongest = _find_strongest_enemy()
 	if strongest and strongest.has_method("take_damage"):
 		var dmg = damage * 6.0 * _damage_mult()
-		strongest.take_damage(dmg)
+		strongest.take_damage(dmg, true)
 		register_damage(dmg)
 
 func _avatar_magic_storm() -> void:
@@ -695,7 +695,7 @@ func _avatar_magic_storm() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage"):
 			var dmg = damage * 2.0 * _damage_mult()
-			e.take_damage(dmg)
+			e.take_damage(dmg, true)
 			register_damage(dmg)
 
 # === DRAW ===

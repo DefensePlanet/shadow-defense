@@ -307,7 +307,7 @@ func _winged_monkeys() -> void:
 		if _home_position.distance_to(enemy.global_position) < attack_range:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - monkey_dmg <= 0.0
-				enemy.take_damage(monkey_dmg)
+				enemy.take_damage(monkey_dmg, true)
 				register_damage(monkey_dmg)
 				if will_kill:
 					if gold_bonus > 0:
@@ -672,7 +672,7 @@ func _process_progressive_abilities(delta: float) -> void:
 		var dps_amount = 15.0 * delta
 		for e in get_tree().get_nodes_in_group("enemies"):
 			if is_instance_valid(e) and e.has_method("take_damage"):
-				e.take_damage(dps_amount)
+				e.take_damage(dps_amount, true)
 				register_damage(dps_amount)
 
 func _monkey_scout_mark() -> void:
@@ -738,7 +738,7 @@ func _winkies_march_attack() -> void:
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
 			var dmg = damage * 3.0
 			var will_kill = in_range[i].health - dmg <= 0.0
-			in_range[i].take_damage(dmg)
+			in_range[i].take_damage(dmg, true)
 			register_damage(dmg)
 			if will_kill and gold_bonus > 0:
 				var main = get_tree().get_first_node_in_group("main")

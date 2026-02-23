@@ -38,7 +38,7 @@ func _process(delta: float) -> void:
 func _hit_target(t: Node2D) -> void:
 	if t.has_method("take_damage"):
 		var will_kill = t.health - damage <= 0.0
-		t.take_damage(damage)
+		t.take_damage(damage, true)
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 

@@ -49,7 +49,7 @@ func _hit_target(t: Node2D) -> void:
 	if execute_threshold > 0.0 and t.health / t.max_health <= execute_threshold:
 		var exec_dmg = t.health
 		t.health = 0.0
-		t.take_damage(0.0)
+		t.take_damage(0.0, true)
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(exec_dmg)
 		if gold_bonus > 0:
@@ -60,7 +60,7 @@ func _hit_target(t: Node2D) -> void:
 		return
 
 	var will_kill = t.health - damage <= 0.0
-	t.take_damage(damage)
+	t.take_damage(damage, true)
 	if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 		source_tower.register_damage(damage)
 
