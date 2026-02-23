@@ -1481,11 +1481,41 @@ func _start_odyssey_map(map_index: int) -> void:
 	return_button.visible = false
 	game_state = GameState.PLAYING
 	start_button.text = "  Start Wave  "
-	for tt in tower_info.keys():
+	# Base 6 towers always available
+	var base_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
+					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]
+	for tt in base_types:
 		var tname = tower_info[tt]["name"]
 		var short = tname.split(" ")[0] if tname.length() > 8 else tname
 		tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
 		tower_buttons[tt].disabled = false
+	# Unlockable characters — only show if unlocked, dynamically reposition
+	var unlock_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN]
+	var ody_visible := 0
+	for tt in unlock_order:
+		if tower_buttons.has(tt):
+			if tt in survivor_types and tower_scenes.has(tt):
+				var bx = 8 + (ody_visible % 3) * 136
+				var by = 90 + (ody_visible / 3) * 42
+				tower_buttons[tt].position = Vector2(bx, by)
+				var tname = tower_info[tt]["name"]
+				var short = tname.split(" ")[0] if tname.length() > 8 else tname
+				tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
+				tower_buttons[tt].visible = true
+				tower_buttons[tt].disabled = false
+				ody_visible += 1
+			else:
+				tower_buttons[tt].visible = false
+	# Resize panel for odyssey
+	if ody_visible > 3:
+		bottom_panel.size.y = 174
+		bottom_panel.position.y = 720 - 174
+	elif ody_visible > 0:
+		bottom_panel.size.y = 132
+		bottom_panel.position.y = 720 - 132
+	else:
+		bottom_panel.size.y = 92
+		bottom_panel.position.y = 628
 	start_button.disabled = false
 	update_hud()
 	info_label.text = "ODYSSEY %d/3 — %s" % [map_index + 1, level["name"]]
@@ -3935,7 +3965,8 @@ func _do_level_start(index: int) -> void:
 	tower_buttons[TowerType.PHANTOM].disabled = false
 	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
 	tower_buttons[TowerType.SCROOGE].disabled = false
-	# Show unlocked character buttons
+	# Show unlocked character buttons — dynamically reposition to pack visible ones together
+	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN]
 	var new_char_labels = {
 		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
 		TowerType.TARZAN: "Tarzan [%dG]" % _get_discounted_cost(TowerType.TARZAN),
@@ -3944,9 +3975,13 @@ func _do_level_start(index: int) -> void:
 		TowerType.FRANKENSTEIN: "Monster [%dG]" % _get_discounted_cost(TowerType.FRANKENSTEIN),
 	}
 	var new_visible_count := 0
-	for tt in new_char_labels:
+	for tt in new_char_order:
 		if tower_buttons.has(tt):
 			if tt in survivor_types and tower_scenes.has(tt):
+				# Reposition button based on visible index, not creation index
+				var bx = 8 + (new_visible_count % 3) * 136
+				var by = 90 + (new_visible_count / 3) * 42
+				tower_buttons[tt].position = Vector2(bx, by)
 				tower_buttons[tt].visible = true
 				tower_buttons[tt].text = new_char_labels[tt]
 				tower_buttons[tt].disabled = false
