@@ -424,208 +424,173 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Dark pipe organ — gothic, dramatic, D minor arpeggio
-	var organ_notes := [146.83, 174.61, 220.00, 293.66, 220.00, 174.61, 164.81, 146.83]  # D3, F3, A3, D4, A3, F3, E3, D3 (D minor organ sweep)
+	# Triumphant pipe organ — D major power, sustained majestic tones
+	var organ_notes := [146.83, 185.00, 220.00, 293.66, 220.00, 185.00, 220.00, 293.66]  # D3, F#3, A3, D4, A3, F#3, A3, D4 (D major triumph)
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
-	# --- Tier 0: Dark Cathedral (principal + bourdon + reed, dramatic from the start) ---
+	# --- Tier 0: Cathedral Principal (warm 8' pipe, clean and full) ---
 	var t0 := []
 	for note_idx in organ_notes.size():
 		var freq: float = organ_notes[note_idx]
-		var dur := 0.3
+		var dur := 0.55
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 45.0) * 0.18
-			var att := minf(t * 22.0, 1.0)
-			var rel := clampf((dur - t) / 0.07, 0.0, 1.0)
-			var env := att * rel * 0.22
-			# 8' Principal chorus
+			# Smooth onset, sustained body, gentle release
+			var att := clampf(t / 0.025, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.12, 0.0, 1.0)
+			var env := att * rel * 0.28
+			# 8' Principal — clean, warm pipe with gentle harmonics
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.5
-			pipe += sin(TAU * freq * 3.0 * t) * 0.3
-			pipe += sin(TAU * freq * 4.0 * t) * 0.16
-			pipe += sin(TAU * freq * 5.0 * t) * 0.08
-			pipe += sin(TAU * freq * 6.0 * t) * 0.04
-			# 16' Bourdon (sub-octave depth)
-			var bourdon := sin(TAU * freq * 0.5 * t) * 0.28
-			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
-			# Reed stop (dark trumpet character)
-			var reed := sin(TAU * freq * t) * 0.15
-			reed += sin(TAU * freq * 3.0 * t) * 0.12
-			reed += sin(TAU * freq * 5.0 * t) * 0.07
-			# Tremulant
-			var trem := 1.0 + sin(TAU * 5.5 * t) * 0.04
-			samples[i] = clampf((pipe + bourdon + reed) * env * trem + chiff, -1.0, 1.0)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.4
+			pipe += sin(TAU * freq * 3.0 * t) * 0.18
+			pipe += sin(TAU * freq * 4.0 * t) * 0.08
+			# 16' Bourdon foundation (sub-octave warmth)
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.3
+			# Gentle tremulant for life
+			var trem := 1.0 + sin(TAU * 4.0 * t) * 0.015
+			samples[i] = clampf((pipe + foundation) * env * trem, -1.0, 1.0)
 		t0.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t0)
 
-	# --- Tier 1: Haunted Chapel (+ sub-bass, fuller reeds, mixture shimmer) ---
+	# --- Tier 1: Grand Chapel (+ 4' octave stop for brightness) ---
 	var t1 := []
 	for note_idx in organ_notes.size():
 		var freq: float = organ_notes[note_idx]
-		var dur := 0.32
+		var dur := 0.6
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 42.0) * 0.2
-			var att := minf(t * 21.0, 1.0)
-			var rel := clampf((dur - t) / 0.07, 0.0, 1.0)
-			var env := att * rel * 0.21
-			# 8' Principal chorus
+			var att := clampf(t / 0.022, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.13, 0.0, 1.0)
+			var env := att * rel * 0.26
+			# 8' Principal
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.52
-			pipe += sin(TAU * freq * 3.0 * t) * 0.32
-			pipe += sin(TAU * freq * 4.0 * t) * 0.18
-			pipe += sin(TAU * freq * 5.0 * t) * 0.1
-			pipe += sin(TAU * freq * 6.0 * t) * 0.05
-			# 32' Sub-bass
-			var sub := sin(TAU * freq * 0.25 * t) * 0.18
+			pipe += sin(TAU * freq * 2.0 * t) * 0.42
+			pipe += sin(TAU * freq * 3.0 * t) * 0.2
+			pipe += sin(TAU * freq * 4.0 * t) * 0.1
+			pipe += sin(TAU * freq * 5.0 * t) * 0.04
 			# 16' Bourdon
-			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
-			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
-			# Reed chorus
-			var reed := sin(TAU * freq * t) * 0.18
-			reed += sin(TAU * freq * 3.0 * t) * 0.14
-			reed += sin(TAU * freq * 5.0 * t) * 0.09
-			reed += sin(TAU * freq * 7.0 * t) * 0.04
-			# Mixture shimmer
-			var mix_s := sin(TAU * freq * 3.0 * t) * 0.06
-			mix_s += sin(TAU * freq * 4.0 * t) * 0.04
-			var trem := 1.0 + sin(TAU * 5.6 * t) * 0.05
-			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.32
+			# 4' Octave (adds clarity and presence)
+			var octave4 := sin(TAU * freq * 2.0 * t) * 0.18
+			octave4 += sin(TAU * freq * 4.0 * t) * 0.08
+			var trem := 1.0 + sin(TAU * 4.0 * t) * 0.018
+			samples[i] = clampf((pipe + foundation + octave4) * env * trem, -1.0, 1.0)
 		t1.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t1)
 
-	# --- Tier 2: Opera Inferno (bigger sub, full reeds, brighter mixture) ---
+	# --- Tier 2: Choir Organ (+ flute + stronger foundation) ---
 	var t2 := []
 	for note_idx in organ_notes.size():
 		var freq: float = organ_notes[note_idx]
-		var dur := 0.33
+		var dur := 0.65
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 42.0) * 0.2
-			var att := minf(t * 20.0, 1.0)
-			var rel := clampf((dur - t) / 0.07, 0.0, 1.0)
-			var env := att * rel * 0.21
-			# Full principal chorus
+			var att := clampf(t / 0.02, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.14, 0.0, 1.0)
+			var env := att * rel * 0.24
+			# 8' Principal (slightly richer)
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.53
-			pipe += sin(TAU * freq * 3.0 * t) * 0.33
-			pipe += sin(TAU * freq * 4.0 * t) * 0.2
-			pipe += sin(TAU * freq * 5.0 * t) * 0.12
-			pipe += sin(TAU * freq * 6.0 * t) * 0.06
-			pipe += sin(TAU * freq * 8.0 * t) * 0.03
-			# 32' Sub-bass
-			var sub := sin(TAU * freq * 0.25 * t) * 0.22
-			# 16' Bourdon
-			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
-			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
-			# Full reed chorus
-			var reed := sin(TAU * freq * t) * 0.2
-			reed += sin(TAU * freq * 2.0 * t) * 0.06
-			reed += sin(TAU * freq * 3.0 * t) * 0.16
-			reed += sin(TAU * freq * 5.0 * t) * 0.1
-			reed += sin(TAU * freq * 7.0 * t) * 0.06
-			# Brighter mixture
-			var mix_s := sin(TAU * freq * 3.0 * t) * 0.08
-			mix_s += sin(TAU * freq * 4.0 * t) * 0.06
-			mix_s += sin(TAU * freq * 6.0 * t) * 0.04
-			var trem := 1.0 + sin(TAU * 5.8 * t) * 0.05
-			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.44
+			pipe += sin(TAU * freq * 3.0 * t) * 0.22
+			pipe += sin(TAU * freq * 4.0 * t) * 0.12
+			pipe += sin(TAU * freq * 5.0 * t) * 0.05
+			# 16' Bourdon (stronger)
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.35
+			# 4' Octave
+			var octave4 := sin(TAU * freq * 2.0 * t) * 0.2
+			octave4 += sin(TAU * freq * 4.0 * t) * 0.1
+			# Flute stop (pure sine, sweet)
+			var flute := sin(TAU * freq * t) * 0.12
+			flute += sin(TAU * freq * 2.0 * t) * 0.04
+			var trem := 1.0 + sin(TAU * 4.2 * t) * 0.02
+			samples[i] = clampf((pipe + foundation + octave4 + flute) * env * trem, -1.0, 1.0)
 		t2.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t2)
 
-	# --- Tier 3: Mask of Darkness (near-full organ, heavy pedal, fierce reeds) ---
+	# --- Tier 3: Great Organ (+ trumpet reed + 32' pedal, powerful) ---
 	var t3 := []
 	for note_idx in organ_notes.size():
 		var freq: float = organ_notes[note_idx]
-		var dur := 0.34
+		var dur := 0.7
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 40.0) * 0.21
-			var att := minf(t * 20.0, 1.0)
-			var rel := clampf((dur - t) / 0.08, 0.0, 1.0)
-			var env := att * rel * 0.2
-			# Full principal chorus
+			var att := clampf(t / 0.018, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.15, 0.0, 1.0)
+			var env := att * rel * 0.22
+			# 8' Principal (full)
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.54
-			pipe += sin(TAU * freq * 3.0 * t) * 0.34
-			pipe += sin(TAU * freq * 4.0 * t) * 0.21
-			pipe += sin(TAU * freq * 5.0 * t) * 0.13
-			pipe += sin(TAU * freq * 6.0 * t) * 0.07
-			pipe += sin(TAU * freq * 8.0 * t) * 0.04
-			# 32' Sub-bass
-			var sub := sin(TAU * freq * 0.25 * t) * 0.24
+			pipe += sin(TAU * freq * 2.0 * t) * 0.46
+			pipe += sin(TAU * freq * 3.0 * t) * 0.24
+			pipe += sin(TAU * freq * 4.0 * t) * 0.14
+			pipe += sin(TAU * freq * 5.0 * t) * 0.07
+			pipe += sin(TAU * freq * 6.0 * t) * 0.03
 			# 16' Bourdon
-			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
-			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
-			# Fierce reed chorus (trumpet + oboe)
-			var reed := sin(TAU * freq * t) * 0.21
-			reed += sin(TAU * freq * 2.0 * t) * 0.07
-			reed += sin(TAU * freq * 3.0 * t) * 0.17
-			reed += sin(TAU * freq * 5.0 * t) * 0.11
-			reed += sin(TAU * freq * 7.0 * t) * 0.07
-			reed += sin(TAU * freq * 9.0 * t) * 0.03
-			# Full mixture
-			var mix_s := sin(TAU * freq * 3.0 * t) * 0.09
-			mix_s += sin(TAU * freq * 4.0 * t) * 0.07
-			mix_s += sin(TAU * freq * 6.0 * t) * 0.05
-			mix_s += sin(TAU * freq * 8.0 * t) * 0.03
-			var trem := 1.0 + sin(TAU * 6.0 * t) * 0.06
-			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.36
+			# 32' Sub-bass pedal (earth-shaking depth)
+			var pedal := sin(TAU * freq * 0.25 * t) * 0.15
+			# 4' Octave
+			var octave4 := sin(TAU * freq * 2.0 * t) * 0.22
+			octave4 += sin(TAU * freq * 4.0 * t) * 0.1
+			# Trumpet reed (odd harmonics, bright, powerful)
+			var trumpet := sin(TAU * freq * t) * 0.15
+			trumpet += sin(TAU * freq * 3.0 * t) * 0.12
+			trumpet += sin(TAU * freq * 5.0 * t) * 0.07
+			trumpet += sin(TAU * freq * 7.0 * t) * 0.03
+			var trem := 1.0 + sin(TAU * 4.5 * t) * 0.022
+			samples[i] = clampf((pipe + foundation + pedal + octave4 + trumpet) * env * trem, -1.0, 1.0)
 		t3.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t3)
 
-	# --- Tier 4: Full Organ Fortissimo (all stops, 32' pedal, tremulant) ---
+	# --- Tier 4: Full Organ Tutti (all stops, mixture, majestic power) ---
 	var t4 := []
 	for note_idx in organ_notes.size():
 		var freq: float = organ_notes[note_idx]
-		var dur := 0.35
+		var dur := 0.75
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			# Dramatic chiff — louder onset
-			var chiff := (randf() * 2.0 - 1.0) * exp(-t * 40.0) * 0.22
-			var att := minf(t * 20.0, 1.0)
-			var rel := clampf((dur - t) / 0.08, 0.0, 1.0)
+			var att := clampf(t / 0.015, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.16, 0.0, 1.0)
 			var env := att * rel * 0.2
-			# Full principal chorus
+			# 8' Principal (full chorus)
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.55
-			pipe += sin(TAU * freq * 3.0 * t) * 0.35
-			pipe += sin(TAU * freq * 4.0 * t) * 0.22
-			pipe += sin(TAU * freq * 5.0 * t) * 0.14
-			pipe += sin(TAU * freq * 6.0 * t) * 0.08
-			pipe += sin(TAU * freq * 8.0 * t) * 0.04
-			# 32' Sub-bass (earth-shaking low pedal)
-			var sub := sin(TAU * freq * 0.25 * t) * 0.25
-			# 16' Bourdon
-			var bourdon := sin(TAU * freq * 0.5 * t) * 0.3
-			bourdon += sin(TAU * freq * 1.0 * t) * 0.08
-			# Full reed chorus (trumpet + oboe character)
-			var reed := sin(TAU * freq * t) * 0.22
-			reed += sin(TAU * freq * 2.0 * t) * 0.08
-			reed += sin(TAU * freq * 3.0 * t) * 0.18
-			reed += sin(TAU * freq * 5.0 * t) * 0.12
-			reed += sin(TAU * freq * 7.0 * t) * 0.08
-			reed += sin(TAU * freq * 9.0 * t) * 0.04
-			# Full mixture
-			var mix_s := sin(TAU * freq * 3.0 * t) * 0.1
-			mix_s += sin(TAU * freq * 4.0 * t) * 0.08
-			mix_s += sin(TAU * freq * 6.0 * t) * 0.05
-			mix_s += sin(TAU * freq * 8.0 * t) * 0.03
-			# Dramatic tremulant
-			var trem := 1.0 + sin(TAU * 6.0 * t) * 0.06
-			samples[i] = clampf((pipe + sub + bourdon + reed + mix_s) * env * trem + chiff, -1.0, 1.0)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.48
+			pipe += sin(TAU * freq * 3.0 * t) * 0.26
+			pipe += sin(TAU * freq * 4.0 * t) * 0.16
+			pipe += sin(TAU * freq * 5.0 * t) * 0.08
+			pipe += sin(TAU * freq * 6.0 * t) * 0.04
+			# 16' Bourdon (strong)
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.38
+			# 32' Sub-bass pedal
+			var pedal := sin(TAU * freq * 0.25 * t) * 0.18
+			# 4' Octave (brilliant)
+			var octave4 := sin(TAU * freq * 2.0 * t) * 0.24
+			octave4 += sin(TAU * freq * 4.0 * t) * 0.12
+			# 2' Super Octave (sparkle)
+			var octave2 := sin(TAU * freq * 4.0 * t) * 0.08
+			octave2 += sin(TAU * freq * 8.0 * t) * 0.03
+			# Full trumpet reed
+			var trumpet := sin(TAU * freq * t) * 0.18
+			trumpet += sin(TAU * freq * 3.0 * t) * 0.14
+			trumpet += sin(TAU * freq * 5.0 * t) * 0.08
+			trumpet += sin(TAU * freq * 7.0 * t) * 0.04
+			# Mixture (high compound stop for shimmer)
+			var mixture := sin(TAU * freq * 3.0 * t) * 0.06
+			mixture += sin(TAU * freq * 4.0 * t) * 0.04
+			mixture += sin(TAU * freq * 6.0 * t) * 0.03
+			# Majestic tremulant
+			var trem := 1.0 + sin(TAU * 4.5 * t) * 0.025
+			samples[i] = clampf((pipe + foundation + pedal + octave4 + octave2 + trumpet + mixture) * env * trem, -1.0, 1.0)
 		t4.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t4)
 
@@ -1845,6 +1810,7 @@ func _draw() -> void:
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
+var _meta_buffs: Dictionary = {}
 
 func set_synergy_buff(buffs: Dictionary) -> void:
 	for key in buffs:
@@ -1853,19 +1819,22 @@ func set_synergy_buff(buffs: Dictionary) -> void:
 func clear_synergy_buff() -> void:
 	_synergy_buffs.clear()
 
+func set_meta_buffs(buffs: Dictionary) -> void:
+	_meta_buffs = buffs
+
 func has_synergy_buff() -> bool:
 	return not _synergy_buffs.is_empty()
 
 var power_damage_mult: float = 1.0
 
 func _damage_mult() -> float:
-	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
 
 func _range_mult() -> float:
-	return 1.0 + _synergy_buffs.get("range", 0.0)
+	return 1.0 + _synergy_buffs.get("range", 0.0) + _meta_buffs.get("range", 0.0)
 
 func _speed_mult() -> float:
-	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0) + _meta_buffs.get("attack_speed", 0.0)
 
 func _gold_mult() -> float:
-	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0) + _meta_buffs.get("gold_bonus", 0.0)

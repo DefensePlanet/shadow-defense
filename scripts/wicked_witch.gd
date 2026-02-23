@@ -415,179 +415,153 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Spooky notes — diminished / tritone intervals for maximum creep
-	var hex_notes := [220.00, 261.63, 293.66, 349.23, 293.66, 261.63, 220.00, 349.23]  # A3, C4, D4, F4, D4, C4, A3, F4 (D minor dark melodic pad)
+	# Classic horror/cartoon magic zap — clean, punchy, satisfying
+	var zap_notes := [440.0, 523.25, 349.23, 466.16, 392.00, 523.25, 349.23, 440.0]  # A4, C5, F4, Bb4, G4, C5, F4, A4 (ominous but musical)
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
-	# --- Tier 0: Haunted Whisper (eerie chorus, tritone drone, spectral) ---
+	# --- Tier 0: Hex Bolt (clean descending zap, sharp onset) ---
 	var t0 := []
-	for note_idx in hex_notes.size():
-		var freq: float = hex_notes[note_idx]
+	for note_idx in zap_notes.size():
+		var freq: float = zap_notes[note_idx]
+		var dur := 0.18
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Fast exponential decay like Robin Hood
+			var env := exp(-t * 22.0) * 0.4
+			# Pitch glide: starts 80% higher, drops to target in ~25ms
+			var glide := freq * (1.0 + 0.8 * exp(-t * 120.0))
+			# Clean body with slight edge (3rd harmonic for character)
+			var body := sin(TAU * glide * t)
+			body += sin(TAU * glide * 3.0 * t) * 0.25 * exp(-t * 30.0)
+			# Sharp percussive click on onset
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 800.0) * 0.2
+			# Brief metallic ring
+			var ring := sin(TAU * freq * 2.5 * t) * 0.1 * exp(-t * 35.0)
+			samples[i] = clampf((body + ring) * env + click, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Curse Shot (+ sub thump on onset, more bite) ---
+	var t1 := []
+	for note_idx in zap_notes.size():
+		var freq: float = zap_notes[note_idx]
+		var dur := 0.2
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 20.0) * 0.38
+			# Pitch glide
+			var glide := freq * (1.0 + 0.9 * exp(-t * 110.0))
+			# Body with more harmonics
+			var body := sin(TAU * glide * t)
+			body += sin(TAU * glide * 3.0 * t) * 0.28 * exp(-t * 28.0)
+			body += sin(TAU * glide * 5.0 * t) * 0.1 * exp(-t * 45.0)
+			# Sub thump on impact
+			var thump := sin(TAU * freq * 0.5 * t) * 0.2 * exp(-t * 50.0)
+			# Sharp click
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.18
+			# Metallic ring
+			var ring := sin(TAU * freq * 2.5 * t) * 0.12 * exp(-t * 30.0)
+			samples[i] = clampf((body + thump + ring) * env + click, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Cauldron Blast (+ sizzle tail, richer harmonics) ---
+	var t2 := []
+	for note_idx in zap_notes.size():
+		var freq: float = zap_notes[note_idx]
+		var dur := 0.22
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 18.0) * 0.36
+			# Steeper pitch glide for more dramatic sweep
+			var glide := freq * (1.0 + 1.0 * exp(-t * 100.0))
+			# Body — richer
+			var body := sin(TAU * glide * t)
+			body += sin(TAU * glide * 3.0 * t) * 0.3 * exp(-t * 26.0)
+			body += sin(TAU * glide * 5.0 * t) * 0.12 * exp(-t * 40.0)
+			# Sub thump
+			var thump := sin(TAU * freq * 0.5 * t) * 0.22 * exp(-t * 45.0)
+			# Sizzle tail (high-frequency filtered noise)
+			var sizzle := (randf() * 2.0 - 1.0) * 0.08 * exp(-t * 25.0)
+			sizzle *= sin(TAU * freq * 4.0 * t) * 0.5 + 0.5
+			# Sharp click
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.18
+			# Ring
+			var ring := sin(TAU * freq * 2.5 * t) * 0.12 * exp(-t * 25.0)
+			samples[i] = clampf((body + thump + ring) * env + sizzle + click, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Banshee Bolt (+ horror minor-2nd interval sting) ---
+	var t3 := []
+	for note_idx in zap_notes.size():
+		var freq: float = zap_notes[note_idx]
+		var dur := 0.24
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * dur))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 16.0) * 0.34
+			# Pitch glide
+			var glide := freq * (1.0 + 1.0 * exp(-t * 100.0))
+			# Body
+			var body := sin(TAU * glide * t)
+			body += sin(TAU * glide * 3.0 * t) * 0.3 * exp(-t * 24.0)
+			body += sin(TAU * glide * 5.0 * t) * 0.14 * exp(-t * 35.0)
+			# Minor 2nd sting — half step above, quick decay (classic horror interval)
+			var sting_freq := freq * 1.0595  # semitone up
+			var sting := sin(TAU * sting_freq * t) * 0.2 * exp(-t * 28.0)
+			# Sub thump
+			var thump := sin(TAU * freq * 0.5 * t) * 0.22 * exp(-t * 42.0)
+			# Sizzle
+			var sizzle := (randf() * 2.0 - 1.0) * 0.07 * exp(-t * 22.0)
+			sizzle *= sin(TAU * freq * 4.0 * t) * 0.5 + 0.5
+			# Click
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.16
+			# Ring
+			var ring := sin(TAU * freq * 2.5 * t) * 0.1 * exp(-t * 22.0)
+			samples[i] = clampf((body + sting + thump + ring) * env + sizzle + click, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Dark Spell (full zap + shimmer tail, most powerful) ---
+	var t4 := []
+	for note_idx in zap_notes.size():
+		var freq: float = zap_notes[note_idx]
 		var dur := 0.26
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var att := minf(t * 20.0, 1.0)
-			var env := att * exp(-t * 4.5) * 0.3
-			# Descending curse tone
-			var f := freq * (1.0 + 0.08 * exp(-t * 5.0))
-			var waver := sin(TAU * 5.5 * t) * 5.0 + sin(TAU * 8.0 * t) * 2.5
-			f += waver
-			# Eerie chorus — 3 detuned voices
-			var v1 := sin(t * f * TAU)
-			var v2 := sin(t * f * 1.007 * TAU) * 0.35
-			var v3 := sin(t * f * 0.993 * TAU) * 0.35
-			# Tritone drone underneath
-			var drone := sin(t * f * 0.707 * TAU) * 0.16
-			# Dark sub
-			var sub := sin(t * f * 0.25 * TAU) * 0.08 * att
-			# Spectral whisper
-			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
-			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
-			# Dissonant sting on attack
-			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.12
-			samples[i] = clampf((v1 + v2 + v3 + drone + sub + sting) * env + whisp * exp(-t * 3.5), -1.0, 1.0)
-		t0.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t0)
-
-	# --- Tier 1: Witch's Curse (fuller chorus, descending hex, deeper drone) ---
-	var t1 := []
-	for note_idx in hex_notes.size():
-		var freq: float = hex_notes[note_idx]
-		var dur := 0.27
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var att := minf(t * 19.0, 1.0)
-			var env := att * exp(-t * 4.3) * 0.3
-			# Descending curse — slightly more dramatic
-			var f := freq * (1.0 + 0.1 * exp(-t * 5.0))
-			var waver := sin(TAU * 5.5 * t) * 5.5 + sin(TAU * 8.3 * t) * 2.8
-			f += waver
-			# Eerie chorus — wider detune
-			var v1 := sin(t * f * TAU)
-			var v2 := sin(t * f * 1.008 * TAU) * 0.38
-			var v3 := sin(t * f * 0.992 * TAU) * 0.38
-			# Tritone drone — stronger
-			var drone := sin(t * f * 0.707 * TAU) * 0.18
-			# Deeper sub
-			var sub := sin(t * f * 0.25 * TAU) * 0.09 * att
-			# Minor 2nd dissonance layer
-			var m2 := sin(t * f * 1.06 * TAU) * 0.1 * exp(-t * 6.0)
-			# Spectral whisper
-			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
-			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
-			# Dissonant sting
-			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.14
-			samples[i] = clampf((v1 + v2 + v3 + drone + sub + m2 + sting) * env + whisp * exp(-t * 3.2), -1.0, 1.0)
-		t1.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t1)
-
-	# --- Tier 2: Cauldron Hex (bubbling modulation on full dark chorus) ---
-	var t2 := []
-	for note_idx in hex_notes.size():
-		var freq: float = hex_notes[note_idx]
-		var dur := 0.28
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var att := minf(t * 18.0, 1.0)
-			var env := att * exp(-t * 4.2) * 0.3
-			# Descending curse
-			var f := freq * (1.0 + 0.1 * exp(-t * 5.0))
-			var waver := sin(TAU * 5.5 * t) * 6.0 + sin(TAU * 8.3 * t) * 3.0
-			f += waver
-			# Cauldron bubble modulation on the chorus
-			var bubble := sin(TAU * 11.0 * t) * 0.15 + sin(TAU * 7.3 * t) * 0.1
-			var bub_mod := 0.85 + 0.15 * clampf(bubble, -1.0, 1.0)
-			# Eerie chorus
-			var v1 := sin(t * f * TAU) * bub_mod
-			var v2 := sin(t * f * 1.008 * TAU) * 0.4 * bub_mod
-			var v3 := sin(t * f * 0.992 * TAU) * 0.4 * bub_mod
-			# Tritone drone
-			var drone := sin(t * f * 0.707 * TAU) * 0.19
-			# Dark sub
-			var sub := sin(t * f * 0.25 * TAU) * 0.1 * att
-			# Spectral whisper
-			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
-			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
-			# Dissonant sting
-			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.14
-			samples[i] = clampf((v1 + v2 + v3 + drone + sub + sting) * env + whisp * exp(-t * 3.0), -1.0, 1.0)
-		t2.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t2)
-
-	# --- Tier 3: Banshee Hex (wailing pitch bend on full dark chorus) ---
-	var t3 := []
-	for note_idx in hex_notes.size():
-		var freq: float = hex_notes[note_idx]
-		var dur := 0.29
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var att := minf(t * 18.0, 1.0)
-			var env := att * exp(-t * 4.0) * 0.3
-			# Wailing pitch — rises then falls like a cry
-			var frac := t / dur
-			var bend := sin(frac * PI) * 0.12
-			var f := freq * (1.0 + 0.1 * exp(-t * 5.0) + bend)
-			var waver := sin(TAU * 5.5 * t) * 6.0 + sin(TAU * 8.3 * t) * 3.0
-			f += waver
-			# Eerie chorus
-			var v1 := sin(t * f * TAU)
-			var v2 := sin(t * f * 1.008 * TAU) * 0.4
-			var v3 := sin(t * f * 0.992 * TAU) * 0.4
-			# Tritone drone
-			var drone := sin(t * f * 0.707 * TAU) * 0.2
-			# Dark sub
-			var sub := sin(t * f * 0.25 * TAU) * 0.1 * att
-			# Stacked dissonance — minor 2nd
-			var m2 := sin(t * f * 1.06 * TAU) * 0.08
-			# Spectral whisper
-			var whisp := (randf() * 2.0 - 1.0) * 0.04 * att
-			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
-			# Dissonant sting
-			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.15
-			samples[i] = clampf((v1 + v2 + v3 + drone + sub + m2 + sting) * env + whisp * exp(-t * 3.0), -1.0, 1.0)
-		t3.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t3)
-
-	# --- Tier 4: Dark Spell (full layered hex, deepest drone, widest chorus) ---
-	var t4 := []
-	for note_idx in hex_notes.size():
-		var freq: float = hex_notes[note_idx]
-		var dur := 0.3
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var att := minf(t * 18.0, 1.0)
-			var env := att * exp(-t * 4.0) * 0.3
-			# Descending curse tone
-			var f := freq * (1.0 + 0.1 * exp(-t * 5.0))
-			var waver := sin(TAU * 5.5 * t) * 6.0 + sin(TAU * 8.3 * t) * 3.0
-			f += waver
-			# Eerie chorus — widest detune, 3 voices
-			var v1 := sin(t * f * TAU)
-			var v2 := sin(t * f * 1.01 * TAU) * 0.42
-			var v3 := sin(t * f * 0.99 * TAU) * 0.42
-			# Tritone drone — strongest
-			var drone := sin(t * f * 0.707 * TAU) * 0.22
-			# Deep sub
-			var sub := sin(t * f * 0.25 * TAU) * 0.12 * att
-			# Minor 2nd dissonance
-			var m2 := sin(t * f * 1.06 * TAU) * 0.08
-			# Spectral whisper
-			var whisp := (randf() * 2.0 - 1.0) * 0.05 * att
-			whisp *= sin(t * f * 0.5 * TAU) * 0.5 + 0.5
-			# Dissonant sting on attack
-			var sting := sin(t * f * 1.06 * TAU) * exp(-t * 12.0) * 0.15
-			samples[i] = clampf((v1 + v2 + v3 + drone + sub + m2 + sting) * env + whisp * exp(-t * 3.0), -1.0, 1.0)
+			var env := exp(-t * 15.0) * 0.32
+			# Dramatic pitch glide
+			var glide := freq * (1.0 + 1.2 * exp(-t * 95.0))
+			# Rich body
+			var body := sin(TAU * glide * t)
+			body += sin(TAU * glide * 3.0 * t) * 0.32 * exp(-t * 22.0)
+			body += sin(TAU * glide * 5.0 * t) * 0.15 * exp(-t * 32.0)
+			body += sin(TAU * glide * 7.0 * t) * 0.06 * exp(-t * 45.0)
+			# Horror sting (minor 2nd)
+			var sting_freq := freq * 1.0595
+			var sting := sin(TAU * sting_freq * t) * 0.18 * exp(-t * 25.0)
+			# Sub thump
+			var thump := sin(TAU * freq * 0.5 * t) * 0.24 * exp(-t * 40.0)
+			# Shimmer tail (octave + fifth ring out)
+			var shimmer := sin(TAU * freq * 3.0 * t) * 0.08 * exp(-t * 12.0)
+			shimmer += sin(TAU * freq * 2.0 * t) * 0.06 * exp(-t * 10.0)
+			# Sizzle
+			var sizzle := (randf() * 2.0 - 1.0) * 0.06 * exp(-t * 20.0)
+			sizzle *= sin(TAU * freq * 4.0 * t) * 0.5 + 0.5
+			# Click
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.16
+			samples[i] = clampf((body + sting + thump + shimmer) * env + sizzle + click, -1.0, 1.0)
 		t4.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t4)
 
@@ -1920,6 +1894,7 @@ func _draw() -> void:
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
+var _meta_buffs: Dictionary = {}
 
 func set_synergy_buff(buffs: Dictionary) -> void:
 	for key in buffs:
@@ -1928,19 +1903,22 @@ func set_synergy_buff(buffs: Dictionary) -> void:
 func clear_synergy_buff() -> void:
 	_synergy_buffs.clear()
 
+func set_meta_buffs(buffs: Dictionary) -> void:
+	_meta_buffs = buffs
+
 func has_synergy_buff() -> bool:
 	return not _synergy_buffs.is_empty()
 
 var power_damage_mult: float = 1.0
 
 func _damage_mult() -> float:
-	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
 
 func _range_mult() -> float:
-	return 1.0 + _synergy_buffs.get("range", 0.0)
+	return 1.0 + _synergy_buffs.get("range", 0.0) + _meta_buffs.get("range", 0.0)
 
 func _speed_mult() -> float:
-	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0) + _meta_buffs.get("attack_speed", 0.0)
 
 func _gold_mult() -> float:
-	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0) + _meta_buffs.get("gold_bonus", 0.0)

@@ -1544,6 +1544,7 @@ func _draw() -> void:
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
+var _meta_buffs: Dictionary = {}
 
 func set_synergy_buff(buffs: Dictionary) -> void:
 	for key in buffs:
@@ -1552,18 +1553,21 @@ func set_synergy_buff(buffs: Dictionary) -> void:
 func clear_synergy_buff() -> void:
 	_synergy_buffs.clear()
 
+func set_meta_buffs(buffs: Dictionary) -> void:
+	_meta_buffs = buffs
+
 # Synergy multipliers (match robin_hood.gd pattern exactly)
 
 var power_damage_mult: float = 1.0
 
 func _damage_mult() -> float:
-	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
 
 func _range_mult() -> float:
-	return 1.0 + _synergy_buffs.get("range", 0.0)
+	return 1.0 + _synergy_buffs.get("range", 0.0) + _meta_buffs.get("range", 0.0)
 
 func _speed_mult() -> float:
-	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0) + _meta_buffs.get("attack_speed", 0.0)
 
 func _gold_mult() -> float:
-	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0) + _meta_buffs.get("gold_bonus", 0.0)
