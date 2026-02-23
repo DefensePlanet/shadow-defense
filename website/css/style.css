@@ -21,12 +21,24 @@
     --accent-peter: #e67e22;
     --accent-phantom: #c0392b;
     --accent-scrooge: #c9a84c;
+    --accent-sherlock: #5a8aaa;
+    --accent-merlin: #6a5acd;
+    --accent-tarzan: #2e8b57;
+    --accent-dracula: #8b0000;
+    --accent-frankenstein: #4a9a4a;
     --accent-sherwood: #2d6a1e;
     --accent-wonderland: #8e44ad;
     --accent-oz: #27ae60;
     --accent-neverland: #2980b9;
     --accent-opera: #c0392b;
     --accent-london: #7f8c8d;
+    --accent-prologue: #6a0dad;
+    --accent-sherlock-arc: #5a8aaa;
+    --accent-merlin-arc: #6a5acd;
+    --accent-tarzan-arc: #2e8b57;
+    --accent-dracula-arc: #8b0000;
+    --accent-frankenstein-arc: #4a9a4a;
+    --accent-shadow: #2a0a3a;
     --font-display: 'Cinzel', serif;
     --font-body: 'Crimson Text', serif;
     --font-ui: 'Inter', sans-serif;
@@ -575,6 +587,26 @@ a:hover {
 .tower-card[data-tower="scrooge"]:hover::before { background: var(--accent-scrooge); }
 .tower-card[data-tower="scrooge"] .tower-icon { color: var(--accent-scrooge); }
 
+.tower-card[data-tower="sherlock"]:hover { border-color: var(--accent-sherlock); }
+.tower-card[data-tower="sherlock"]:hover::before { background: var(--accent-sherlock); }
+.tower-card[data-tower="sherlock"] .tower-icon { color: var(--accent-sherlock); }
+
+.tower-card[data-tower="merlin"]:hover { border-color: var(--accent-merlin); }
+.tower-card[data-tower="merlin"]:hover::before { background: var(--accent-merlin); }
+.tower-card[data-tower="merlin"] .tower-icon { color: var(--accent-merlin); }
+
+.tower-card[data-tower="tarzan"]:hover { border-color: var(--accent-tarzan); }
+.tower-card[data-tower="tarzan"]:hover::before { background: var(--accent-tarzan); }
+.tower-card[data-tower="tarzan"] .tower-icon { color: var(--accent-tarzan); }
+
+.tower-card[data-tower="dracula"]:hover { border-color: var(--accent-dracula); }
+.tower-card[data-tower="dracula"]:hover::before { background: var(--accent-dracula); }
+.tower-card[data-tower="dracula"] .tower-icon { color: var(--accent-dracula); }
+
+.tower-card[data-tower="frankenstein"]:hover { border-color: var(--accent-frankenstein); }
+.tower-card[data-tower="frankenstein"]:hover::before { background: var(--accent-frankenstein); }
+.tower-card[data-tower="frankenstein"] .tower-icon { color: var(--accent-frankenstein); }
+
 .tower-icon {
     width: 80px;
     height: 80px;
@@ -796,6 +828,42 @@ a:hover {
 .level-card[data-level="neverland"] .level-number { color: var(--accent-neverland); }
 .level-card[data-level="opera"] .level-number { color: var(--accent-opera); }
 .level-card[data-level="london"] .level-number { color: var(--accent-london); }
+.level-card[data-level="prologue"] .level-number { color: var(--accent-prologue); }
+.level-card[data-level="sherlock"] .level-number { color: var(--accent-sherlock-arc); }
+.level-card[data-level="merlin"] .level-number { color: var(--accent-merlin-arc); }
+.level-card[data-level="tarzan"] .level-number { color: var(--accent-tarzan-arc); }
+.level-card[data-level="dracula"] .level-number { color: var(--accent-dracula-arc); }
+.level-card[data-level="frankenstein"] .level-number { color: var(--accent-frankenstein-arc); }
+.level-card[data-level="shadow"] .level-number { color: var(--accent-shadow); }
+
+/* --- Act Headers --- */
+.act-header {
+    text-align: center;
+    margin: 48px 0 28px;
+    padding: 20px 0;
+    position: relative;
+}
+
+.act-header:first-of-type {
+    margin-top: 0;
+}
+
+.act-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.act-desc {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--text-muted);
+}
 
 .level-info h3 {
     font-size: 1.15rem;
