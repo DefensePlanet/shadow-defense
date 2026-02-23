@@ -1,19 +1,26 @@
 extends Node2D
-## Sherlock Holmes — precision/support tower. Magnifying glass focus beam that burns.
-## Ability: "Deduction" — marks target enemy, all towers deal +30% to marked target for 8s.
-## Tier 1 (5000 DMG): Faster Deduction — mark lasts 12s
-## Tier 2 (10000 DMG): Piercing Insight — beam pierces through to 2nd enemy
-## Tier 3 (15000 DMG): Multi-Mark — can mark 2 targets simultaneously
-## Tier 4 (20000 DMG): The Game is Afoot — all enemies in range auto-marked, +50% personal damage
+## Sherlock Holmes — pure support/buff tower. Does NOT attack enemies.
+## Buffs all towers in range with damage, speed, and range bonuses every 3 seconds.
+## Ability: "Deduction" — auto-marks enemies in range, all towers deal +30% to marked targets.
+## Tier 1: Elementary — stronger buffs, mark lasts 12s
+## Tier 2: Piercing Insight — even stronger buffs + range buff to allies
+## Tier 3: Multi-Mark — marks 2+ targets, powerful aura
+## Tier 4: The Game is Afoot — legendary aura, all enemies auto-marked
 
 # Base stats
-var damage: float = 23.0
-var fire_rate: float = 1.8
-var attack_range: float = 250.0
+var damage: float = 0.0  # Sherlock doesn't deal direct damage
+var fire_rate: float = 0.0  # No direct attacks
+var attack_range: float = 188.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 2
+
+# Buff aura system — buffs towers in range every 3 seconds
+var _buff_timer: float = 3.0
+var _buff_cooldown: float = 3.0
+var _buffed_tower_ids: Dictionary = {}  # instance_id -> tier_when_buffed
+var _buff_flash: float = 0.0
 
 # Animation timers
 var _time: float = 0.0
@@ -88,27 +95,26 @@ var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
-	"Faster Deduction",
+	"Elementary",
 	"Piercing Insight",
 	"Multi-Mark",
 	"The Game is Afoot"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Mark lasts 12s instead of 8s",
-	"Beam pierces through to 2nd enemy",
-	"Can mark 2 targets simultaneously",
-	"All enemies in range auto-marked, +50% personal damage"
+	"+20% DMG, +15% SPD aura, mark lasts 12s",
+	"+25% DMG, +10% RNG aura to nearby towers",
+	"Marks 2 targets, +30% DMG aura",
+	"Legendary aura, all enemies auto-marked"
 ]
 const TIER_COSTS = [100, 200, 350, 550]
 var is_selected: bool = false
 var base_cost: int = 0
 
-var focus_beam_scene = preload("res://scenes/focus_beam.tscn")
+# Sherlock doesn't use projectiles — pure support tower
 
-# Attack sounds — focused lens hum sounds evolving with upgrade tier
-var _attack_sounds: Array = []
-var _attack_sounds_by_tier: Array = []
-var _attack_player: AudioStreamPlayer
+# Maraca sound — plays every 3 seconds as buff pulse
+var _maraca_sound: AudioStreamWAV
+var _maraca_player: AudioStreamPlayer
 
 # Ability sounds
 var _deduction_sound: AudioStreamWAV
@@ -119,12 +125,27 @@ var _upgrade_player: AudioStreamPlayer
 func _ready() -> void:
 	add_to_group("towers")
 	_load_progressive_abilities()
-	_generate_tier_sounds()
-	_attack_sounds = _attack_sounds_by_tier[0]
-	_attack_player = AudioStreamPlayer.new()
-	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
-	add_child(_attack_player)
+
+	# Maraca shake — gentle short rattle, just filtered noise
+	var mar_rate := 22050
+	var mar_dur := 0.12
+	var mar_samples := PackedFloat32Array()
+	mar_samples.resize(int(mar_rate * mar_dur))
+	var prev_s := 0.0
+	for i in mar_samples.size():
+		var t := float(i) / mar_rate
+		# Quick attack, fast decay — one tiny shake
+		var env := minf(t * 80.0, 1.0) * exp(-t * 35.0) * 0.3
+		# Pure noise through heavy lowpass for soft bead rattle
+		var noise := randf() * 2.0 - 1.0
+		var s := prev_s * 0.6 + noise * 0.4
+		prev_s = s
+		mar_samples[i] = clampf(s * env, -1.0, 1.0)
+	_maraca_sound = _samples_to_wav(mar_samples, mar_rate)
+	_maraca_player = AudioStreamPlayer.new()
+	_maraca_player.stream = _maraca_sound
+	_maraca_player.volume_db = -10.0
+	add_child(_maraca_player)
 
 	# Deduction chime — crystalline bell with harmonic overtones (E5, G#5, B5)
 	var ded_rate := 22050
@@ -142,7 +163,6 @@ func _ready() -> void:
 		var dec := exp(-nt * 6.0)
 		var env := att * dec * 0.4
 		var s := sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.25 + sin(TAU * freq * 3.0 * t) * 0.1
-		# Add slight glass resonance shimmer
 		s += sin(TAU * freq * 1.002 * t) * 0.15 * exp(-nt * 4.0)
 		ded_samples[i] = clampf(s * env, -1.0, 1.0)
 	_deduction_sound = _samples_to_wav(ded_samples, ded_rate)
@@ -173,23 +193,27 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
-	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_deduction_flash = max(_deduction_flash - delta * 2.0, 0.0)
+	_buff_flash = max(_buff_flash - delta * 2.0, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
-	target = _find_nearest_enemy()
 
-	if target:
-		var desired = global_position.angle_to_point(target.global_position) + PI
-		aim_angle = lerp_angle(aim_angle, desired, 10.0 * delta)
-		if fire_cooldown <= 0.0:
-			_shoot()
-			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
-			_attack_anim = 1.0
+	# Buff aura — every 3 seconds, buff towers in range and mark enemies
+	_buff_timer -= delta
+	if _buff_timer <= 0.0:
+		_buff_timer = _buff_cooldown
+		_apply_buff_aura()
+		_auto_mark_enemies()
+		# Play maraca sound
+		if _maraca_player and not _is_sfx_muted():
+			_maraca_player.play()
+		_buff_flash = 1.0
+		_attack_anim = 1.0
+
 	# Update mark timers
 	_update_marks(delta)
 
-	# Tier 4: Auto-mark all enemies in range
+	# Tier 4: Auto-mark also runs every frame for immediate marking
 	if auto_mark:
 		_auto_mark_enemies()
 
@@ -197,6 +221,60 @@ func _process(delta: float) -> void:
 	_process_progressive_abilities(delta)
 
 	queue_redraw()
+
+func _get_buff_values() -> Dictionary:
+	# Returns buff percentages based on upgrade tier
+	match upgrade_tier:
+		0: return {"damage": 0.15, "attack_speed": 0.10}
+		1: return {"damage": 0.20, "attack_speed": 0.15}
+		2: return {"damage": 0.25, "attack_speed": 0.15, "range": 0.10}
+		3: return {"damage": 0.30, "attack_speed": 0.20, "range": 0.15}
+		4: return {"damage": 0.40, "attack_speed": 0.25, "range": 0.20}
+	return {"damage": 0.15, "attack_speed": 0.10}
+
+func _apply_buff_aura() -> void:
+	var eff_range = attack_range * _range_mult()
+	var buff_vals = _get_buff_values()
+	var current_tier = upgrade_tier
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if tower == self:
+			continue
+		if global_position.distance_to(tower.global_position) > eff_range:
+			# Tower out of range — skip
+			continue
+		var tid = tower.get_instance_id()
+		if _buffed_tower_ids.has(tid) and _buffed_tower_ids[tid] == current_tier:
+			# Already buffed at this tier
+			continue
+		if _buffed_tower_ids.has(tid):
+			# Tier changed — apply difference
+			var old_buffs = _get_buff_for_tier(_buffed_tower_ids[tid])
+			var diff = {}
+			for key in buff_vals:
+				diff[key] = buff_vals.get(key, 0.0) - old_buffs.get(key, 0.0)
+			if tower.has_method("set_synergy_buff"):
+				tower.set_synergy_buff(diff)
+		else:
+			# New tower in range — apply full buff
+			if tower.has_method("set_synergy_buff"):
+				tower.set_synergy_buff(buff_vals)
+		_buffed_tower_ids[tid] = current_tier
+	# Clean up invalid tower references
+	var to_remove := []
+	for tid in _buffed_tower_ids:
+		if not is_instance_id_valid(tid):
+			to_remove.append(tid)
+	for tid in to_remove:
+		_buffed_tower_ids.erase(tid)
+
+func _get_buff_for_tier(tier: int) -> Dictionary:
+	match tier:
+		0: return {"damage": 0.15, "attack_speed": 0.10}
+		1: return {"damage": 0.20, "attack_speed": 0.15}
+		2: return {"damage": 0.25, "attack_speed": 0.15, "range": 0.10}
+		3: return {"damage": 0.30, "attack_speed": 0.20, "range": 0.15}
+		4: return {"damage": 0.40, "attack_speed": 0.25, "range": 0.20}
+	return {"damage": 0.15, "attack_speed": 0.10}
 
 func _update_marks(delta: float) -> void:
 	var i = 0
@@ -245,45 +323,8 @@ func _find_nearest_enemy() -> Node2D:
 			nearest_dist = dist
 	return nearest
 
-func _shoot() -> void:
-	if not target:
-		return
-	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
-		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
-		_attack_player.play()
-
-	# Cocaine Clarity — next shot 5x damage + mark
-	var cocaine_shot = prog_abilities[6] and _cocaine_ready
-	if cocaine_shot:
-		_cocaine_ready = false
-		_cocaine_flash = 1.0
-
-	_fire_beam(target, cocaine_shot)
-
-func _fire_beam(t: Node2D, cocaine_shot: bool = false) -> void:
-	var beam = focus_beam_scene.instantiate()
-	beam.global_position = global_position + Vector2.from_angle(aim_angle) * 20.0
-	var dmg_mult = personal_damage_bonus
-	# Ability 1: Baker Street Logic — +10% damage
-	if prog_abilities[0]:
-		dmg_mult *= 1.10
-	# Ability 5: Disguise Master — 2x during invisibility
-	if prog_abilities[4] and _disguise_invis > 0.0:
-		dmg_mult *= 2.0
-	# Cocaine Clarity — 5x damage
-	if cocaine_shot:
-		dmg_mult *= 5.0
-	beam.damage = damage * dmg_mult * _damage_mult()
-	beam.target = t
-	beam.gold_bonus = int(gold_bonus * _gold_mult())
-	beam.source_tower = self
-	beam.pierce_count = pierce_count
-	beam.splash_radius = splash_radius
-	beam.mark_on_hit = cocaine_shot  # Cocaine shots always mark
-	# Ability 1: Baker Street Logic — 25% faster beams
-	if prog_abilities[0]:
-		beam.speed *= 1.25
-	get_tree().get_first_node_in_group("main").add_child(beam)
+# Sherlock doesn't shoot — he's a pure support character
+# The maraca sound is played in _process buff tick above
 
 func _mark_enemy(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy):
@@ -346,9 +387,7 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.10
-	fire_rate *= 1.06
-	attack_range += 6.0
+	attack_range += 4.5
 	gold_bonus += 1
 
 func choose_ability(index: int) -> void:
@@ -361,34 +400,43 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Faster Deduction — mark lasts 12s
+		1: # Elementary — stronger buffs, longer marks
 			mark_duration = 12.0
-			damage = 30.0
-			fire_rate = 2.0
-			attack_range = 270.0
-		2: # Piercing Insight — beam pierces to 2nd enemy
-			pierce_count = 1
-			damage = 38.0
-			fire_rate = 2.2
-			attack_range = 285.0
+			attack_range = 203.0
 			gold_bonus = 3
-		3: # Multi-Mark — can mark 2 simultaneously
-			max_marks = 2
-			damage = 45.0
-			fire_rate = 2.5
-			attack_range = 300.0
+		2: # Piercing Insight — range buff to allies
+			attack_range = 214.0
 			gold_bonus = 4
 			mark_duration = 14.0
-		4: # The Game is Afoot — auto-mark + damage
-			auto_mark = true
-			personal_damage_bonus = 1.5
-			damage = 58.0
-			fire_rate = 3.0
-			attack_range = 320.0
+		3: # Multi-Mark — marks 2 targets, powerful aura
+			max_marks = 2
+			attack_range = 225.0
 			gold_bonus = 5
-			pierce_count = 2
-			max_marks = 99
 			mark_duration = 16.0
+		4: # The Game is Afoot — legendary aura, all auto-marked
+			auto_mark = true
+			attack_range = 240.0
+			gold_bonus = 6
+			max_marks = 99
+			mark_duration = 20.0
+	# Re-buff all towers at new tier
+	_rebuff_all_towers()
+
+func _rebuff_all_towers() -> void:
+	# When Sherlock upgrades, re-apply buff differences to all tracked towers
+	var new_buffs = _get_buff_values()
+	for tid in _buffed_tower_ids:
+		if not is_instance_id_valid(tid):
+			continue
+		var tower = instance_from_id(tid)
+		if tower and tower.has_method("set_synergy_buff"):
+			var old_tier = _buffed_tower_ids[tid]
+			var old_buffs = _get_buff_for_tier(old_tier)
+			var diff = {}
+			for key in new_buffs:
+				diff[key] = new_buffs.get(key, 0.0) - old_buffs.get(key, 0.0)
+			tower.set_synergy_buff(diff)
+			_buffed_tower_ids[tid] = upgrade_tier
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -399,7 +447,6 @@ func purchase_upgrade() -> bool:
 		return false
 	upgrade_tier += 1
 	_apply_upgrade(upgrade_tier)
-	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
 	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
@@ -422,114 +469,6 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
-
-func _generate_tier_sounds() -> void:
-	# Focused lens hum — warm resonant harmonic with glass overtone
-	var hum_notes := [293.66, 329.63, 349.23, 440.00, 349.23, 329.63, 293.66, 392.00]  # D4, E4, F4, A4, F4, E4, D4, G4 (D minor analytical stepwise)
-	var mix_rate := 44100
-	_attack_sounds_by_tier = []
-
-	# --- Tier 0: Simple Lens Hum (warm sine + gentle glass ring) ---
-	var t0 := []
-	for note_idx in hum_notes.size():
-		var freq: float = hum_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.15))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			# Warm focused hum — smooth onset, moderate decay
-			var env := minf(t * 40.0, 1.0) * exp(-t * 18.0) * 0.3
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.15 * exp(-t * 25.0)
-			# Gentle glass ring (high overtone)
-			var glass := sin(t * freq * 4.0 * TAU) * 0.06 * exp(-t * 40.0)
-			samples[i] = clampf((fund + h2 + glass) * env, -1.0, 1.0)
-		t0.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t0)
-
-	# --- Tier 1: Focused Lens (sharper attack, brighter overtone) ---
-	var t1 := []
-	for note_idx in hum_notes.size():
-		var freq: float = hum_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.16))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := minf(t * 50.0, 1.0) * exp(-t * 16.0) * 0.32
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.18 * exp(-t * 22.0)
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.08 * exp(-t * 30.0)
-			# Brighter glass shimmer
-			var glass := sin(t * freq * 5.0 * TAU) * 0.08 * exp(-t * 35.0)
-			var detune := sin(t * freq * 1.003 * TAU) * 0.1 * exp(-t * 20.0)
-			samples[i] = clampf((fund + h2 + h3 + glass + detune) * env, -1.0, 1.0)
-		t1.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t1)
-
-	# --- Tier 2: Piercing Beam (sharper, more resonant) ---
-	var t2 := []
-	for note_idx in hum_notes.size():
-		var freq: float = hum_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.18))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := minf(t * 60.0, 1.0) * exp(-t * 14.0) * 0.32
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.2 * exp(-t * 20.0)
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 26.0)
-			# Piercing glass resonance
-			var glass := sin(t * freq * 6.0 * TAU) * 0.1 * exp(-t * 30.0)
-			# Slight buzz from intensity
-			var buzz := sin(t * freq * 1.5 * TAU) * 0.06 * exp(-t * 18.0)
-			samples[i] = clampf((fund + h2 + h3 + glass + buzz) * env, -1.0, 1.0)
-		t2.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t2)
-
-	# --- Tier 3: Multi-Beam (doubled hum with detuned chorus) ---
-	var t3 := []
-	for note_idx in hum_notes.size():
-		var freq: float = hum_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.2))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := minf(t * 55.0, 1.0) * exp(-t * 12.0) * 0.3
-			# Primary beam
-			var s1 := sin(t * freq * TAU) + sin(t * freq * 2.0 * TAU) * 0.18
-			# Secondary detuned beam
-			var s2 := sin(t * freq * 1.008 * TAU) * 0.4 + sin(t * freq * 2.016 * TAU) * 0.1
-			# Glass harmonics
-			var glass := sin(t * freq * 5.0 * TAU) * 0.08 * exp(-t * 28.0)
-			samples[i] = clampf((s1 + s2 + glass) * env, -1.0, 1.0)
-		t3.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t3)
-
-	# --- Tier 4: Legendary Lens (rich harmonics + heroic shimmer) ---
-	var t4 := []
-	for note_idx in hum_notes.size():
-		var freq: float = hum_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.22))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := minf(t * 50.0, 1.0) * exp(-t * 10.0) * 0.3
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.2
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 18.0)
-			var h4 := sin(t * freq * 4.0 * TAU) * 0.06 * exp(-t * 22.0)
-			# Heroic shimmer (detuned chorus)
-			var shim := sin(t * freq * 2.005 * TAU) * 0.1 * exp(-t * 8.0)
-			shim += sin(t * freq * 1.995 * TAU) * 0.1 * exp(-t * 8.0)
-			# Bright glass ring
-			var glass := sin(t * freq * 7.0 * TAU) * 0.05 * exp(-t * 25.0)
-			samples[i] = clampf((fund + h2 + h3 + h4 + glass) * env + shim * env, -1.0, 1.0)
-		t4.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t4)
-
-func _refresh_tier_sounds() -> void:
-	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
-	_attack_sounds = _attack_sounds_by_tier[tier]
 
 func _samples_to_wav(samples: PackedFloat32Array, mix_rate: int) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -692,10 +631,16 @@ func _draw() -> void:
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(0.85, 0.72, 0.25, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(0.85, 0.72, 0.25, ring_alpha * 0.4), 1.5)
 
-	# === 2. RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	# === 2. RANGE ARC (buff aura indicator) ===
+	var aura_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(0.85, 0.72, 0.25, 0.04 + aura_pulse * 0.04), 1.5)
+	# Buff pulse ring expanding outward
+	if _buff_flash > 0.0:
+		var pulse_r = attack_range * (1.0 - _buff_flash * 0.3)
+		draw_arc(Vector2.ZERO, pulse_r, 0, TAU, 48, Color(0.85, 0.72, 0.25, _buff_flash * 0.2), 2.5)
+		draw_circle(Vector2.ZERO, pulse_r, Color(0.85, 0.72, 0.25, _buff_flash * 0.03))
 
-	# === 3. AIM DIRECTION ===
+	# === 3. FACING (support stance — faces center of buffed area) ===
 	var dir = Vector2.from_angle(aim_angle)
 	var perp = dir.rotated(PI / 2.0)
 
@@ -1506,16 +1451,16 @@ func _draw() -> void:
 
 	# === Tier 4: Golden-amber aura around whole character ===
 	if upgrade_tier >= 4:
-		var aura_pulse = sin(_time * 2.5) * 5.0
-		draw_circle(body_offset, 60.0 + aura_pulse, Color(0.85, 0.72, 0.25, 0.04))
-		draw_circle(body_offset, 50.0 + aura_pulse * 0.6, Color(0.90, 0.78, 0.30, 0.06))
-		draw_circle(body_offset, 42.0 + aura_pulse * 0.3, Color(1.0, 0.90, 0.45, 0.06))
-		draw_arc(body_offset, 56.0 + aura_pulse, 0, TAU, 32, Color(0.85, 0.72, 0.25, 0.15), 2.5)
-		draw_arc(body_offset, 46.0 + aura_pulse * 0.5, 0, TAU, 24, Color(1.0, 0.90, 0.45, 0.08), 1.8)
+		var t4_aura_pulse = sin(_time * 2.5) * 5.0
+		draw_circle(body_offset, 60.0 + t4_aura_pulse, Color(0.85, 0.72, 0.25, 0.04))
+		draw_circle(body_offset, 50.0 + t4_aura_pulse * 0.6, Color(0.90, 0.78, 0.30, 0.06))
+		draw_circle(body_offset, 42.0 + t4_aura_pulse * 0.3, Color(1.0, 0.90, 0.45, 0.06))
+		draw_arc(body_offset, 56.0 + t4_aura_pulse, 0, TAU, 32, Color(0.85, 0.72, 0.25, 0.15), 2.5)
+		draw_arc(body_offset, 46.0 + t4_aura_pulse * 0.5, 0, TAU, 24, Color(1.0, 0.90, 0.45, 0.08), 1.8)
 		# Orbiting golden sparkles
 		for gs in range(6):
 			var gs_a = _time * (0.6 + float(gs % 3) * 0.2) + float(gs) * TAU / 6.0
-			var gs_r = 46.0 + aura_pulse + float(gs % 3) * 3.5
+			var gs_r = 46.0 + t4_aura_pulse + float(gs % 3) * 3.5
 			var gs_p = body_offset + Vector2.from_angle(gs_a) * gs_r
 			var gs_size = 1.2 + sin(_time * 3.0 + float(gs) * 1.5) * 0.5
 			var gs_alpha = 0.25 + sin(_time * 3.0 + float(gs)) * 0.15

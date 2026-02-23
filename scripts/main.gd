@@ -18,15 +18,15 @@ var tower_buttons: Dictionary = {}
 
 var tower_info = {
 	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0},
-	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 160.0},
-	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 220.0},
+	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 80.0},
+	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0},
 	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0},
 	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0},
-	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 140.0},
-	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 250.0},
+	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0},
+	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0},
 	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0},
 	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 200.0},
-	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 220.0},
+	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0},
 	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0},
 }
 
@@ -682,6 +682,12 @@ var spawn_interval: float = 0.75
 var fast_forward: bool = false
 var speed_button: Button
 var wave_auto_timer: float = -1.0
+
+# Pause & restart
+var game_paused: bool = false
+var restart_button: Button
+var wave_start_gold: int = 0
+var wave_start_lives: int = 0
 
 # Audio mute toggles
 var sfx_muted: bool = false
@@ -2492,6 +2498,13 @@ func _create_ui() -> void:
 	speed_button.pressed.connect(_on_speed_pressed)
 	bottom_panel.add_child(speed_button)
 
+	restart_button = Button.new()
+	restart_button.text = "  ↺  "
+	restart_button.position = Vector2(1270, 25)
+	restart_button.custom_minimum_size = Vector2(60, 44)
+	restart_button.pressed.connect(_on_restart_pressed)
+	bottom_panel.add_child(restart_button)
+
 	sfx_mute_button = Button.new()
 	sfx_mute_button.text = " SFX "
 	sfx_mute_button.position = Vector2(1190, 75)
@@ -3145,6 +3158,7 @@ func _show_menu() -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	fast_forward = false
+	game_paused = false
 	if speed_button:
 		speed_button.text = "  >>  "
 	menu_overlay.visible = true
@@ -4021,6 +4035,7 @@ func _reset_game() -> void:
 		enemy.queue_free()
 	wave = 0
 	is_wave_active = false
+	game_paused = false
 	placing_tower = false
 	enemies_to_spawn = 0
 	enemies_alive = 0
@@ -9504,6 +9519,7 @@ func _get_wave_name(w: int) -> String:
 func _check_wave_complete() -> void:
 	if enemies_to_spawn <= 0 and enemies_alive <= 0:
 		is_wave_active = false
+		game_paused = false
 		start_button.disabled = false
 		if wave >= total_waves:
 			_victory()
@@ -9867,6 +9883,13 @@ func _draw() -> void:
 				var oy = 680.0 + sin(_time * 4.0 + oi * 0.8) * 8.0
 				draw_circle(Vector2(ox, oy), 10.0, Color(0.8, 0.6, 0.4, 0.5))
 				draw_circle(Vector2(ox, oy - 15), 7.0, Color(0.9, 0.7, 0.5, 0.5))
+
+	# === PAUSED OVERLAY ===
+	if game_paused:
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.45))
+		var font = ThemeDB.fallback_font
+		draw_string(font, Vector2(640, 340), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, Color(1.0, 1.0, 1.0, 0.85))
+		draw_string(font, Vector2(640, 380), "Click Resume or press Start Wave to continue", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8, 0.6))
 
 	# === ABILITY UNLOCK POPUP ===
 	if _ability_popup_timer > 0.0:
@@ -15106,10 +15129,12 @@ func _on_sell_pressed() -> void:
 func _on_speed_pressed() -> void:
 	fast_forward = not fast_forward
 	if fast_forward:
-		Engine.time_scale = 2.0
+		if not game_paused:
+			Engine.time_scale = 2.0
 		speed_button.text = "  [>>]  "
 	else:
-		Engine.time_scale = 1.0
+		if not game_paused:
+			Engine.time_scale = 1.0
 		speed_button.text = "  >>  "
 		current_game_fast_forward_only = false
 
@@ -15123,9 +15148,50 @@ func _on_voice_mute_pressed() -> void:
 
 func _on_start_wave_pressed() -> void:
 	if is_wave_active:
+		if game_paused:
+			# Resume
+			game_paused = false
+			Engine.time_scale = 2.0 if fast_forward else 1.0
+			start_button.text = "  ⏸ Pause  "
+			queue_redraw()
+		else:
+			# Pause
+			game_paused = true
+			Engine.time_scale = 0.0
+			start_button.text = "  ▶ Resume  "
+			queue_redraw()
 		return
 	wave_auto_timer = -1.0
 	_start_next_wave()
+
+func _on_restart_pressed() -> void:
+	if game_state != GameState.PLAYING:
+		return
+	if not is_wave_active and wave == 0:
+		return
+	# Kill all active enemies
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		enemy.queue_free()
+	# Reset wave state
+	enemies_alive = 0
+	enemies_to_spawn = 0
+	spawn_timer = 0.0
+	is_wave_active = false
+	game_paused = false
+	wave_auto_timer = -1.0
+	# Restore gold/lives to wave-start snapshot
+	gold = wave_start_gold
+	lives = wave_start_lives
+	# Decrement wave so _start_next_wave replays the same wave
+	wave -= 1
+	# Reset time scale
+	Engine.time_scale = 2.0 if fast_forward else 1.0
+	# Re-enable start button
+	start_button.disabled = false
+	start_button.text = "  Start Wave  "
+	update_hud()
+	info_label.text = "Wave %d restarted. Ready to go!" % (wave + 1)
+	queue_redraw()
 
 func _start_next_wave() -> void:
 	if not fast_forward:
@@ -15134,13 +15200,16 @@ func _start_next_wave() -> void:
 		return
 	wave += 1
 	is_wave_active = true
+	game_paused = false
 	music_beat_index = 0
 	_music_beat_accum = 0.0
 	enemies_to_spawn = _get_wave_enemy_count(wave)
 	spawn_interval = _get_wave_spawn_interval(wave)
 	spawn_timer = 0.0
-	start_button.disabled = true
-	start_button.text = "  Wave in progress...  "
+	wave_start_gold = gold
+	wave_start_lives = lives
+	start_button.disabled = false
+	start_button.text = "  ⏸ Pause  "
 	var wave_name = _get_wave_name(wave)
 	info_label.text = "Wave %d — %s (%d enemies)" % [wave, wave_name, enemies_to_spawn]
 	update_hud()
@@ -15194,6 +15263,7 @@ func game_over() -> void:
 	game_state = GameState.GAME_OVER_STATE
 	Engine.time_scale = 1.0
 	fast_forward = false
+	game_paused = false
 	speed_button.text = "  >>  "
 	_collect_session_damage()
 	game_over_label.text = "GAME OVER"
@@ -15206,6 +15276,7 @@ func _victory() -> void:
 	game_state = GameState.GAME_OVER_STATE
 	Engine.time_scale = 1.0
 	fast_forward = false
+	game_paused = false
 	speed_button.text = "  >>  "
 	_collect_session_damage()
 	var level_name = levels[current_level]["name"] if current_level >= 0 else "Level"

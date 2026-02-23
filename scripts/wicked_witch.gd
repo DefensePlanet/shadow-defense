@@ -8,7 +8,7 @@ extends Node2D
 
 var damage: float = 21.0
 var fire_rate: float = 1.5
-var attack_range: float = 220.0
+var attack_range: float = 154.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
@@ -337,7 +337,7 @@ func _check_upgrades() -> void:
 func _apply_stat_boost() -> void:
 	damage *= 1.12
 	fire_rate *= 1.08
-	attack_range += 8.0
+	attack_range += 5.6
 	dot_dps += 1.0
 	dot_duration += 0.2
 
@@ -354,27 +354,27 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Pack of Wolves
 			damage = 28.0
 			fire_rate = 1.8
-			attack_range = 235.0
+			attack_range = 165.0
 			wolf_cooldown = 8.0
 		2: # Murder of Crows — add DoT
 			damage = 33.0
 			dot_dps = 8.0
 			dot_duration = 4.0
 			fire_rate = 2.0
-			attack_range = 250.0
+			attack_range = 175.0
 			gold_bonus = 3
 		3: # Swarm of Bees — stronger DoT
 			damage = 40.0
 			dot_dps = 15.0
 			dot_duration = 5.0
 			fire_rate = 2.2
-			attack_range = 270.0
+			attack_range = 189.0
 			wolf_cooldown = 6.0
 			gold_bonus = 4
 		4: # The Golden Cap — Winged Monkey AoE
 			damage = 50.0
 			fire_rate = 2.5
-			attack_range = 300.0
+			attack_range = 210.0
 			gold_bonus = 5
 			wolf_cooldown = 5.0
 			monkey_cooldown = 15.0

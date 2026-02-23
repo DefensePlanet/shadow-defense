@@ -8,7 +8,7 @@ extends Node2D
 # Base stats
 var damage: float = 20.0
 var fire_rate: float = 1.4
-var attack_range: float = 220.0
+var attack_range: float = 132.0
 var fire_cooldown: float = 0.0
 var staff_angle: float = 0.0
 var target: Node2D = null
@@ -327,7 +327,7 @@ func _check_upgrades() -> void:
 func _apply_stat_boost() -> void:
 	damage *= 1.12
 	fire_rate *= 1.08
-	attack_range += 8.0
+	attack_range += 5.0
 	gold_bonus += 1
 
 func choose_ability(index: int) -> void:
@@ -344,23 +344,23 @@ func _apply_upgrade(tier: int) -> void:
 			bounce_count = 1
 			damage = 26.0
 			fire_rate = 1.7
-			attack_range = 240.0
+			attack_range = 144.0
 		2: # Enchanted Aura — nearby towers +15% speed
 			damage = 34.0
 			fire_rate = 2.0
-			attack_range = 260.0
+			attack_range = 156.0
 			aura_active = true
 			gold_bonus = 3
 		3: # Curse of Ages — hit enemies take +20% damage
 			damage = 43.0
 			fire_rate = 2.3
-			attack_range = 280.0
+			attack_range = 168.0
 			curse_on_hit = true
 			gold_bonus = 4
 		4: # Archmage — full power
 			damage = 55.0
 			fire_rate = 2.8
-			attack_range = 310.0
+			attack_range = 186.0
 			gold_bonus = 6
 			bounce_count = 3
 			excalibur_cooldown = 15.0

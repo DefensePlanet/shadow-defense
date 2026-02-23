@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
 var damage: float = 35.0
-var fire_rate: float = 1.0
+var fire_rate: float = 0.5
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -347,7 +347,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage *= 1.15
-	fire_rate *= 1.06
+	fire_rate *= 1.03
 	attack_range += 7.0
 	# Chandelier drop every 500 damage milestone
 	if _has_enemies_in_range():
@@ -365,24 +365,24 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Punjab Lasso — stun ability
 			damage = 45.0
-			fire_rate = 1.2
+			fire_rate = 0.6
 			attack_range = 195.0
 			lasso_cooldown = 8.0
 		2: # Angel of Music — slow aura
 			damage = 55.0
-			fire_rate = 1.4
+			fire_rate = 0.7
 			attack_range = 210.0
 			gold_bonus = 3
 		3: # Chandelier — AoE burst
 			damage = 70.0
-			fire_rate = 1.6
+			fire_rate = 0.8
 			attack_range = 230.0
 			chandelier_cooldown = 14.0
 			gold_bonus = 4
 			lasso_cooldown = 6.0
 		4: # Phantom's Wrath — DoT + all enhanced
 			damage = 90.0
-			fire_rate = 2.0
+			fire_rate = 1.0
 			attack_range = 260.0
 			note_dot_dps = 20.0
 			note_dot_duration = 4.0
@@ -424,173 +424,171 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Triumphant pipe organ — D major power, sustained majestic tones
-	var organ_notes := [146.83, 185.00, 220.00, 293.66, 220.00, 185.00, 220.00, 293.66]  # D3, F#3, A3, D4, A3, F#3, A3, D4 (D major triumph)
+	# Gothic organ — D minor horror scale: D3, Eb3, G3, Bb3
+	# Long, drawn-out, scary organ tones inspired by Bach's Toccata and Fugue in D minor
+	var gothic_notes := [146.83, 155.56, 196.00, 233.08]  # D3, Eb3, G3, Bb3
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
-	# --- Tier 0: Cathedral Principal (warm 8' pipe, clean and full) ---
+	# --- Tier 0: Haunted Chapel (dark 8' principal, eerie tremulant) ---
 	var t0 := []
-	for note_idx in organ_notes.size():
-		var freq: float = organ_notes[note_idx]
-		var dur := 0.55
+	for note_idx in gothic_notes.size():
+		var freq: float = gothic_notes[note_idx]
+		var dur := 2.0  # Long drawn-out note
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			# Smooth onset, sustained body, gentle release
-			var att := clampf(t / 0.025, 0.0, 1.0)
-			var rel := clampf((dur - t) / 0.12, 0.0, 1.0)
-			var env := att * rel * 0.28
-			# 8' Principal — clean, warm pipe with gentle harmonics
+			# Slow organ attack, long sustain, gradual release
+			var att := clampf(t / 0.08, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.4, 0.0, 1.0)
+			var env := att * rel * 0.25
+			# Dark principal pipe — heavy on odd harmonics for gothic character
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.4
-			pipe += sin(TAU * freq * 3.0 * t) * 0.18
-			pipe += sin(TAU * freq * 4.0 * t) * 0.08
-			# 16' Bourdon foundation (sub-octave warmth)
-			var foundation := sin(TAU * freq * 0.5 * t) * 0.3
-			# Gentle tremulant for life
-			var trem := 1.0 + sin(TAU * 4.0 * t) * 0.015
+			pipe += sin(TAU * freq * 2.0 * t) * 0.35
+			pipe += sin(TAU * freq * 3.0 * t) * 0.25
+			pipe += sin(TAU * freq * 4.0 * t) * 0.12
+			pipe += sin(TAU * freq * 5.0 * t) * 0.08
+			# 16' Bourdon — deep sub-octave foundation
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.4
+			# Eerie slow tremulant (slightly irregular for creepiness)
+			var trem := 1.0 + sin(TAU * 3.5 * t) * 0.025 + sin(TAU * 5.1 * t) * 0.01
 			samples[i] = clampf((pipe + foundation) * env * trem, -1.0, 1.0)
 		t0.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t0)
 
-	# --- Tier 1: Grand Chapel (+ 4' octave stop for brightness) ---
+	# --- Tier 1: Phantom's Lair (+ dissonant overtones, deeper foundation) ---
 	var t1 := []
-	for note_idx in organ_notes.size():
-		var freq: float = organ_notes[note_idx]
-		var dur := 0.6
+	for note_idx in gothic_notes.size():
+		var freq: float = gothic_notes[note_idx]
+		var dur := 2.2
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var att := clampf(t / 0.022, 0.0, 1.0)
-			var rel := clampf((dur - t) / 0.13, 0.0, 1.0)
-			var env := att * rel * 0.26
-			# 8' Principal
+			var att := clampf(t / 0.07, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.45, 0.0, 1.0)
+			var env := att * rel * 0.24
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.42
-			pipe += sin(TAU * freq * 3.0 * t) * 0.2
-			pipe += sin(TAU * freq * 4.0 * t) * 0.1
-			pipe += sin(TAU * freq * 5.0 * t) * 0.04
-			# 16' Bourdon
-			var foundation := sin(TAU * freq * 0.5 * t) * 0.32
-			# 4' Octave (adds clarity and presence)
-			var octave4 := sin(TAU * freq * 2.0 * t) * 0.18
-			octave4 += sin(TAU * freq * 4.0 * t) * 0.08
-			var trem := 1.0 + sin(TAU * 4.0 * t) * 0.018
-			samples[i] = clampf((pipe + foundation + octave4) * env * trem, -1.0, 1.0)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.38
+			pipe += sin(TAU * freq * 3.0 * t) * 0.28
+			pipe += sin(TAU * freq * 4.0 * t) * 0.14
+			pipe += sin(TAU * freq * 5.0 * t) * 0.10
+			pipe += sin(TAU * freq * 6.0 * t) * 0.04
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.42
+			# Dissonant minor 2nd ghost tone (very quiet, unsettling)
+			var ghost := sin(TAU * freq * 1.06 * t) * 0.06 * exp(-t * 0.5)
+			var trem := 1.0 + sin(TAU * 3.2 * t) * 0.03 + sin(TAU * 5.3 * t) * 0.012
+			samples[i] = clampf((pipe + foundation + ghost) * env * trem, -1.0, 1.0)
 		t1.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t1)
 
-	# --- Tier 2: Choir Organ (+ flute + stronger foundation) ---
+	# --- Tier 2: Cathedral of Shadows (+ 32' pedal, reed stops) ---
 	var t2 := []
-	for note_idx in organ_notes.size():
-		var freq: float = organ_notes[note_idx]
-		var dur := 0.65
+	for note_idx in gothic_notes.size():
+		var freq: float = gothic_notes[note_idx]
+		var dur := 2.5
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var att := clampf(t / 0.02, 0.0, 1.0)
-			var rel := clampf((dur - t) / 0.14, 0.0, 1.0)
-			var env := att * rel * 0.24
-			# 8' Principal (slightly richer)
+			var att := clampf(t / 0.06, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.5, 0.0, 1.0)
+			var env := att * rel * 0.22
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.44
-			pipe += sin(TAU * freq * 3.0 * t) * 0.22
-			pipe += sin(TAU * freq * 4.0 * t) * 0.12
-			pipe += sin(TAU * freq * 5.0 * t) * 0.05
-			# 16' Bourdon (stronger)
-			var foundation := sin(TAU * freq * 0.5 * t) * 0.35
-			# 4' Octave
-			var octave4 := sin(TAU * freq * 2.0 * t) * 0.2
-			octave4 += sin(TAU * freq * 4.0 * t) * 0.1
-			# Flute stop (pure sine, sweet)
-			var flute := sin(TAU * freq * t) * 0.12
-			flute += sin(TAU * freq * 2.0 * t) * 0.04
-			var trem := 1.0 + sin(TAU * 4.2 * t) * 0.02
-			samples[i] = clampf((pipe + foundation + octave4 + flute) * env * trem, -1.0, 1.0)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.40
+			pipe += sin(TAU * freq * 3.0 * t) * 0.30
+			pipe += sin(TAU * freq * 4.0 * t) * 0.16
+			pipe += sin(TAU * freq * 5.0 * t) * 0.10
+			pipe += sin(TAU * freq * 6.0 * t) * 0.05
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.44
+			# 32' Sub-bass pedal — bone-rattling depth
+			var pedal := sin(TAU * freq * 0.25 * t) * 0.2
+			# Dark reed stop (odd harmonics, nasal/menacing)
+			var reed := sin(TAU * freq * t) * 0.1
+			reed += sin(TAU * freq * 3.0 * t) * 0.08
+			reed += sin(TAU * freq * 5.0 * t) * 0.05
+			reed += sin(TAU * freq * 7.0 * t) * 0.03
+			var ghost := sin(TAU * freq * 1.06 * t) * 0.05 * exp(-t * 0.4)
+			var trem := 1.0 + sin(TAU * 3.0 * t) * 0.035 + sin(TAU * 5.5 * t) * 0.015
+			samples[i] = clampf((pipe + foundation + pedal + reed + ghost) * env * trem, -1.0, 1.0)
 		t2.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t2)
 
-	# --- Tier 3: Great Organ (+ trumpet reed + 32' pedal, powerful) ---
+	# --- Tier 3: Phantom's Fury (+ full reed chorus, terrifying power) ---
 	var t3 := []
-	for note_idx in organ_notes.size():
-		var freq: float = organ_notes[note_idx]
-		var dur := 0.7
+	for note_idx in gothic_notes.size():
+		var freq: float = gothic_notes[note_idx]
+		var dur := 2.8
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var att := clampf(t / 0.018, 0.0, 1.0)
-			var rel := clampf((dur - t) / 0.15, 0.0, 1.0)
-			var env := att * rel * 0.22
-			# 8' Principal (full)
+			var att := clampf(t / 0.05, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.55, 0.0, 1.0)
+			var env := att * rel * 0.20
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.46
-			pipe += sin(TAU * freq * 3.0 * t) * 0.24
-			pipe += sin(TAU * freq * 4.0 * t) * 0.14
-			pipe += sin(TAU * freq * 5.0 * t) * 0.07
-			pipe += sin(TAU * freq * 6.0 * t) * 0.03
-			# 16' Bourdon
-			var foundation := sin(TAU * freq * 0.5 * t) * 0.36
-			# 32' Sub-bass pedal (earth-shaking depth)
-			var pedal := sin(TAU * freq * 0.25 * t) * 0.15
-			# 4' Octave
-			var octave4 := sin(TAU * freq * 2.0 * t) * 0.22
-			octave4 += sin(TAU * freq * 4.0 * t) * 0.1
-			# Trumpet reed (odd harmonics, bright, powerful)
-			var trumpet := sin(TAU * freq * t) * 0.15
-			trumpet += sin(TAU * freq * 3.0 * t) * 0.12
-			trumpet += sin(TAU * freq * 5.0 * t) * 0.07
-			trumpet += sin(TAU * freq * 7.0 * t) * 0.03
-			var trem := 1.0 + sin(TAU * 4.5 * t) * 0.022
-			samples[i] = clampf((pipe + foundation + pedal + octave4 + trumpet) * env * trem, -1.0, 1.0)
+			pipe += sin(TAU * freq * 2.0 * t) * 0.42
+			pipe += sin(TAU * freq * 3.0 * t) * 0.32
+			pipe += sin(TAU * freq * 4.0 * t) * 0.18
+			pipe += sin(TAU * freq * 5.0 * t) * 0.12
+			pipe += sin(TAU * freq * 6.0 * t) * 0.06
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.46
+			var pedal := sin(TAU * freq * 0.25 * t) * 0.22
+			# Full reed chorus — menacing brass-like growl
+			var reed := sin(TAU * freq * t) * 0.14
+			reed += sin(TAU * freq * 3.0 * t) * 0.12
+			reed += sin(TAU * freq * 5.0 * t) * 0.08
+			reed += sin(TAU * freq * 7.0 * t) * 0.05
+			reed += sin(TAU * freq * 9.0 * t) * 0.02
+			# Dissonant cluster (chromatic neighbor tones for horror)
+			var ghost := sin(TAU * freq * 1.06 * t) * 0.04
+			ghost += sin(TAU * freq * 0.94 * t) * 0.03
+			var trem := 1.0 + sin(TAU * 2.8 * t) * 0.04 + sin(TAU * 5.7 * t) * 0.018
+			samples[i] = clampf((pipe + foundation + pedal + reed + ghost) * env * trem, -1.0, 1.0)
 		t3.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t3)
 
-	# --- Tier 4: Full Organ Tutti (all stops, mixture, majestic power) ---
+	# --- Tier 4: Requiem of the Damned (all stops, mixture, unholy power) ---
 	var t4 := []
-	for note_idx in organ_notes.size():
-		var freq: float = organ_notes[note_idx]
-		var dur := 0.75
+	for note_idx in gothic_notes.size():
+		var freq: float = gothic_notes[note_idx]
+		var dur := 3.0
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var att := clampf(t / 0.015, 0.0, 1.0)
-			var rel := clampf((dur - t) / 0.16, 0.0, 1.0)
-			var env := att * rel * 0.2
-			# 8' Principal (full chorus)
+			var att := clampf(t / 0.04, 0.0, 1.0)
+			var rel := clampf((dur - t) / 0.6, 0.0, 1.0)
+			var env := att * rel * 0.18
+			# Full principal chorus
 			var pipe := sin(TAU * freq * t)
-			pipe += sin(TAU * freq * 2.0 * t) * 0.48
-			pipe += sin(TAU * freq * 3.0 * t) * 0.26
-			pipe += sin(TAU * freq * 4.0 * t) * 0.16
-			pipe += sin(TAU * freq * 5.0 * t) * 0.08
-			pipe += sin(TAU * freq * 6.0 * t) * 0.04
-			# 16' Bourdon (strong)
-			var foundation := sin(TAU * freq * 0.5 * t) * 0.38
-			# 32' Sub-bass pedal
-			var pedal := sin(TAU * freq * 0.25 * t) * 0.18
-			# 4' Octave (brilliant)
-			var octave4 := sin(TAU * freq * 2.0 * t) * 0.24
-			octave4 += sin(TAU * freq * 4.0 * t) * 0.12
-			# 2' Super Octave (sparkle)
-			var octave2 := sin(TAU * freq * 4.0 * t) * 0.08
-			octave2 += sin(TAU * freq * 8.0 * t) * 0.03
-			# Full trumpet reed
-			var trumpet := sin(TAU * freq * t) * 0.18
-			trumpet += sin(TAU * freq * 3.0 * t) * 0.14
-			trumpet += sin(TAU * freq * 5.0 * t) * 0.08
-			trumpet += sin(TAU * freq * 7.0 * t) * 0.04
-			# Mixture (high compound stop for shimmer)
-			var mixture := sin(TAU * freq * 3.0 * t) * 0.06
+			pipe += sin(TAU * freq * 2.0 * t) * 0.45
+			pipe += sin(TAU * freq * 3.0 * t) * 0.34
+			pipe += sin(TAU * freq * 4.0 * t) * 0.20
+			pipe += sin(TAU * freq * 5.0 * t) * 0.14
+			pipe += sin(TAU * freq * 6.0 * t) * 0.08
+			pipe += sin(TAU * freq * 7.0 * t) * 0.04
+			# 16' + 32' foundation (earth-shaking)
+			var foundation := sin(TAU * freq * 0.5 * t) * 0.48
+			var pedal := sin(TAU * freq * 0.25 * t) * 0.25
+			# Full reed tutti
+			var reed := sin(TAU * freq * t) * 0.16
+			reed += sin(TAU * freq * 3.0 * t) * 0.14
+			reed += sin(TAU * freq * 5.0 * t) * 0.10
+			reed += sin(TAU * freq * 7.0 * t) * 0.06
+			reed += sin(TAU * freq * 9.0 * t) * 0.03
+			# Mixture (high compound stops for brilliance)
+			var mixture := sin(TAU * freq * 3.0 * t) * 0.05
 			mixture += sin(TAU * freq * 4.0 * t) * 0.04
 			mixture += sin(TAU * freq * 6.0 * t) * 0.03
-			# Majestic tremulant
-			var trem := 1.0 + sin(TAU * 4.5 * t) * 0.025
-			samples[i] = clampf((pipe + foundation + pedal + octave4 + octave2 + trumpet + mixture) * env * trem, -1.0, 1.0)
+			# Dissonant cluster — maximum horror
+			var ghost := sin(TAU * freq * 1.06 * t) * 0.04
+			ghost += sin(TAU * freq * 0.94 * t) * 0.03
+			ghost += sin(TAU * freq * 1.5 * t) * 0.02  # Tritone ghost
+			# Haunted tremulant
+			var trem := 1.0 + sin(TAU * 2.5 * t) * 0.045 + sin(TAU * 6.0 * t) * 0.02
+			samples[i] = clampf((pipe + foundation + pedal + reed + mixture + ghost) * env * trem, -1.0, 1.0)
 		t4.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t4)
 

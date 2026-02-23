@@ -6,9 +6,9 @@ extends Node2D
 ## Tier 3: "Ghost of Christmas Present" — Enhanced blast radius (180), passive gold gen, mark all
 ## Tier 4: "Ghost of Yet to Come" — Maximum knockback (80), fear-slow on knocked enemies
 
-var damage: float = 3.0
+var damage: float = 1.5
 var fire_rate: float = 0.667
-var attack_range: float = 130.0
+var attack_range: float = 65.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
@@ -342,19 +342,19 @@ func _apply_upgrade(tier: int) -> void:
 			gold_per_ring = 3
 			bonus_gold_per_enemy = 1
 			fire_rate = 0.8
-			damage = 4.0
-			attack_range = 145.0
+			damage = 2.0
+			attack_range = 73.0
 		2: # Ghost of Christmas Past — mark enemies
 			knockback_amount = 55.0
-			damage = 6.0
+			damage = 3.0
 			fire_rate = 0.9
-			attack_range = 160.0
+			attack_range = 80.0
 			gold_per_ring = 3
 			ghost_past_cooldown = 10.0
 		3: # Ghost of Christmas Present — enhanced blast, passive gold, mark all
-			attack_range = 180.0
+			attack_range = 90.0
 			knockback_amount = 65.0
-			damage = 8.0
+			damage = 4.0
 			fire_rate = 1.0
 			gold_per_ring = 4
 			passive_gold_amount = 1
@@ -363,10 +363,10 @@ func _apply_upgrade(tier: int) -> void:
 		4: # Ghost of Yet to Come — max knockback, fear-slow
 			knockback_amount = 80.0
 			fear_enabled = true
-			damage = 10.0
+			damage = 5.0
 			fire_rate = 1.1
 			gold_per_ring = 5
-			attack_range = 200.0
+			attack_range = 100.0
 			passive_gold_amount = 2
 			passive_gold_interval = 5.0
 			ghost_present_cooldown = 6.0
