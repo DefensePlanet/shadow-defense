@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 3 (15000 DMG): "Chandelier" — periodic AoE burst (2x damage to all in range)
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
-var damage: float = 70.0
+var damage: float = 35.0
 var fire_rate: float = 1.0
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
@@ -364,24 +364,24 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Punjab Lasso — stun ability
-			damage = 90.0
+			damage = 45.0
 			fire_rate = 1.2
 			attack_range = 195.0
 			lasso_cooldown = 8.0
 		2: # Angel of Music — slow aura
-			damage = 110.0
+			damage = 55.0
 			fire_rate = 1.4
 			attack_range = 210.0
 			gold_bonus = 3
 		3: # Chandelier — AoE burst
-			damage = 140.0
+			damage = 70.0
 			fire_rate = 1.6
 			attack_range = 230.0
 			chandelier_cooldown = 14.0
 			gold_bonus = 4
 			lasso_cooldown = 6.0
 		4: # Phantom's Wrath — DoT + all enhanced
-			damage = 180.0
+			damage = 90.0
 			fire_rate = 2.0
 			attack_range = 260.0
 			note_dot_dps = 20.0

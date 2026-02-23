@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): King of the Apes — permanent companion, double damage, passive melee aura
 
 # Base stats
-var damage: float = 70.0
+var damage: float = 35.0
 var fire_rate: float = 1.5
 var attack_range: float = 120.0
 var fire_cooldown: float = 0.0
@@ -411,28 +411,28 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Vine Swing — +40% range via projectile
 			vine_range_mult = 1.4
-			damage = 85.0
+			damage = 43.0
 			fire_rate = 1.7
 			attack_range = 130.0
 		2: # Ape Strength — 15% knockback
 			knockback_chance = 0.15
-			damage = 105.0
+			damage = 53.0
 			fire_rate = 1.9
 			attack_range = 140.0
 			gold_bonus = 4
 		3: # Animal Call — summon allies on ability
 			animal_call_count = 3
-			damage = 130.0
+			damage = 65.0
 			fire_rate = 2.1
 			attack_range = 150.0
 			ability_max_cooldown = 20.0
 			gold_bonus = 5
 		4: # King of the Apes — permanent companion, double damage, passive aura
-			damage = 160.0
+			damage = 80.0
 			fire_rate = 2.4
 			attack_range = 160.0
 			gold_bonus = 7
-			passive_aura_damage = 15.0
+			passive_aura_damage = 8.0
 			companion_active = true
 			ability_max_cooldown = 16.0
 			knockback_chance = 0.25

@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): Modern Prometheus — 500 base dmg storm, permanent electric aura
 
 # Base stats
-var damage: float = 80.0
+var damage: float = 40.0
 var fire_rate: float = 1.0
 var attack_range: float = 140.0
 var fire_cooldown: float = 0.0
@@ -325,24 +325,24 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Galvanic Surge — smash radius +30%
 			smash_radius = 78.0
-			damage = 100.0
+			damage = 50.0
 			fire_rate = 1.1
 			attack_range = 155.0
 		2: # Stitched Resilience — kill stacks +3% instead of +2%
 			_kill_stack_rate = 0.03
-			damage = 120.0
+			damage = 60.0
 			fire_rate = 1.2
 			attack_range = 165.0
 			gold_bonus = 3
 		3: # Lightning Conductor — chain lightning arcs to 10
 			chain_count = 10
-			damage = 145.0
+			damage = 73.0
 			fire_rate = 1.3
 			attack_range = 175.0
 			gold_bonus = 4
 			_thunder_storm_cooldown = 20.0
 		4: # Modern Prometheus — massive storm + permanent aura
-			damage = 180.0
+			damage = 90.0
 			fire_rate = 1.5
 			attack_range = 200.0
 			gold_bonus = 6

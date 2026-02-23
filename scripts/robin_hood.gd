@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Arrow — splash damage, doubled gold, double pierce
 
 # Base stats
-var damage: float = 50.0
+var damage: float = 25.0
 var fire_rate: float = 2.0
 var attack_range: float = 200.0
 var fire_cooldown: float = 0.0
@@ -310,22 +310,22 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Splitting the Wand — arrows pierce one extra enemy
 			pierce_count = 1
-			damage = 65.0
+			damage = 33.0
 			fire_rate = 2.5
 			attack_range = 220.0
 		2: # The Silver Arrow — every 5th shot triple damage
-			damage = 85.0
+			damage = 43.0
 			fire_rate = 3.0
 			attack_range = 240.0
 			gold_bonus = 3
 		3: # Three Blasts of the Horn — volley + range boost
-			damage = 100.0
+			damage = 50.0
 			fire_rate = 3.5
 			attack_range = 270.0
 			horn_cooldown = 14.0
 			gold_bonus = 4
 		4: # The Final Arrow — splash, double pierce, double gold
-			damage = 130.0
+			damage = 65.0
 			fire_rate = 4.0
 			attack_range = 300.0
 			gold_bonus = 6

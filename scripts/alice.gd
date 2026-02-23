@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 3: "Mad Tea Party" — teacup volley AoE every 15s
 ## Tier 4: "Off With Their Heads!" — instant kill enemies below 15% HP
 
-var damage: float = 8.0
+var damage: float = 4.0
 var fire_rate: float = 1.0
 var attack_range: float = 150.0
 var fire_cooldown: float = 0.0
@@ -339,17 +339,17 @@ func _apply_upgrade(tier: int) -> void:
 			frosting_dps = 3.0
 			attack_range = 170.0
 			slow_amount = 0.4
-			damage = 12.0
+			damage = 6.0
 			fire_rate = 1.2
 		2: # Cheshire Cat — periodic stun
-			damage = 16.0
+			damage = 8.0
 			fire_rate = 1.4
 			attack_range = 185.0
 			cheshire_cooldown = 10.0
 			gold_bonus = 2
 			frosting_dps = 4.0
 		3: # Mad Tea Party — teacup volley
-			damage = 20.0
+			damage = 10.0
 			fire_rate = 1.6
 			attack_range = 200.0
 			tea_cooldown = 12.0
@@ -357,7 +357,7 @@ func _apply_upgrade(tier: int) -> void:
 			gold_bonus = 3
 			frosting_dps = 5.0
 		4: # Off With Their Heads!
-			damage = 25.0
+			damage = 13.0
 			execute_threshold = 0.20
 			fire_rate = 1.8
 			attack_range = 220.0

@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): Archmage — permanent aura, Excalibur every 15s, spells chain to 3
 
 # Base stats
-var damage: float = 40.0
+var damage: float = 20.0
 var fire_rate: float = 1.4
 var attack_range: float = 220.0
 var fire_cooldown: float = 0.0
@@ -342,23 +342,23 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Arcane Mastery — spells bounce to 1 extra enemy
 			bounce_count = 1
-			damage = 52.0
+			damage = 26.0
 			fire_rate = 1.7
 			attack_range = 240.0
 		2: # Enchanted Aura — nearby towers +15% speed
-			damage = 68.0
+			damage = 34.0
 			fire_rate = 2.0
 			attack_range = 260.0
 			aura_active = true
 			gold_bonus = 3
 		3: # Curse of Ages — hit enemies take +20% damage
-			damage = 85.0
+			damage = 43.0
 			fire_rate = 2.3
 			attack_range = 280.0
 			curse_on_hit = true
 			gold_bonus = 4
 		4: # Archmage — full power
-			damage = 110.0
+			damage = 55.0
 			fire_rate = 2.8
 			attack_range = 310.0
 			gold_bonus = 6

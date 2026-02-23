@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Game is Afoot — all enemies in range auto-marked, +50% personal damage
 
 # Base stats
-var damage: float = 45.0
+var damage: float = 23.0
 var fire_rate: float = 1.8
 var attack_range: float = 250.0
 var fire_cooldown: float = 0.0
@@ -363,18 +363,18 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Faster Deduction — mark lasts 12s
 			mark_duration = 12.0
-			damage = 60.0
+			damage = 30.0
 			fire_rate = 2.0
 			attack_range = 270.0
 		2: # Piercing Insight — beam pierces to 2nd enemy
 			pierce_count = 1
-			damage = 75.0
+			damage = 38.0
 			fire_rate = 2.2
 			attack_range = 285.0
 			gold_bonus = 3
 		3: # Multi-Mark — can mark 2 simultaneously
 			max_marks = 2
-			damage = 90.0
+			damage = 45.0
 			fire_rate = 2.5
 			attack_range = 300.0
 			gold_bonus = 4
@@ -382,7 +382,7 @@ func _apply_upgrade(tier: int) -> void:
 		4: # The Game is Afoot — auto-mark + damage
 			auto_mark = true
 			personal_damage_bonus = 1.5
-			damage = 115.0
+			damage = 58.0
 			fire_rate = 3.0
 			attack_range = 320.0
 			gold_bonus = 5

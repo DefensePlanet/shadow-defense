@@ -20,7 +20,7 @@ var tower_info = {
 	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0},
 	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 160.0},
 	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 220.0},
-	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 170.0},
+	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0},
 	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0},
 	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 140.0},
 	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 250.0},
@@ -8817,32 +8817,32 @@ func _spawn_enemy() -> void:
 		# Phase 1: Gentle introduction
 		enemy.max_health = 60.0 + w * 18.0
 		enemy.speed = 65.0 + w * 4.0
-		enemy.gold_reward = 4 + w * 1
+		enemy.gold_reward = 2 + w * 1
 	elif w <= 10:
 		# Phase 2: Building pressure
 		enemy.max_health = 140.0 + (w - 5) * 35.0
 		enemy.speed = 80.0 + (w - 5) * 5.0
-		enemy.gold_reward = 8 + (w - 5) * 2
+		enemy.gold_reward = 4 + (w - 5) * 1
 	elif w <= 16:
 		# Phase 3: Challenging
 		enemy.max_health = 300.0 + (w - 10) * 50.0
 		enemy.speed = 100.0 + (w - 10) * 4.0
-		enemy.gold_reward = 14 + (w - 10) * 2
+		enemy.gold_reward = 7 + (w - 10) * 1
 	elif w <= 24:
 		# Phase 4: Hard
 		enemy.max_health = 580.0 + (w - 16) * 70.0
 		enemy.speed = 115.0 + (w - 16) * 4.0
-		enemy.gold_reward = 24 + (w - 16) * 3
+		enemy.gold_reward = 12 + (w - 16) * 2
 	elif w <= 32:
 		# Phase 5: Very hard
 		enemy.max_health = 1100.0 + (w - 24) * 100.0
 		enemy.speed = 130.0 + (w - 24) * 3.0
-		enemy.gold_reward = 42 + (w - 24) * 4
+		enemy.gold_reward = 21 + (w - 24) * 2
 	else:
 		# Phase 6: Brutal (waves 33-40)
 		enemy.max_health = 1800.0 + (w - 32) * 150.0
 		enemy.speed = 145.0 + (w - 32) * 3.0
-		enemy.gold_reward = 68 + (w - 32) * 5
+		enemy.gold_reward = 34 + (w - 32) * 3
 
 	# === Boss wave modifiers ===
 	# Milestone bosses at waves 20, 25, 30, 35 — bigger, tougher, slower
@@ -8854,7 +8854,7 @@ func _spawn_enemy() -> void:
 		# Final villain — extremely strong, very large
 		enemy.max_health *= 8.0
 		enemy.speed *= 0.55
-		enemy.gold_reward += 50
+		enemy.gold_reward += 25
 		enemy.enemy_tier = 3
 		enemy.boss_scale = 2.5
 	elif is_boss_wave:
@@ -8862,13 +8862,13 @@ func _spawn_enemy() -> void:
 		var boss_mult = 1.0 + float(w) / 20.0  # 2.0x at w20, 2.25x at w25, etc.
 		enemy.max_health *= 3.5 * boss_mult
 		enemy.speed *= 0.65
-		enemy.gold_reward += 20 + w / 2
+		enemy.gold_reward += 10 + w / 4
 		enemy.boss_scale = 1.8
 	elif is_last_wave:
 		# Final wave of the difficulty — strong boss
 		enemy.max_health *= 4.0
 		enemy.speed *= 0.7
-		enemy.gold_reward += 25
+		enemy.gold_reward += 12
 		enemy.boss_scale = 2.0
 
 	# Variety waves (fast rushes and swarms between bosses)
@@ -8882,7 +8882,7 @@ func _spawn_enemy() -> void:
 		elif w == half_w:
 			enemy.max_health *= 2.0
 			enemy.speed *= 0.7
-			enemy.gold_reward += 5
+			enemy.gold_reward += 3
 		elif w == three_q:
 			enemy.max_health *= 0.5
 			enemy.speed *= 1.3

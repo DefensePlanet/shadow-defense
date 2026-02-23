@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 3 (15000 DMG): "Swarm of Bees" — DoT spreads, increased damage
 ## Tier 4 (20000 DMG): "The Golden Cap" — Winged Monkey AoE burst every 20s
 
-var damage: float = 42.0
+var damage: float = 21.0
 var fire_rate: float = 1.5
 var attack_range: float = 220.0
 var fire_cooldown: float = 0.0
@@ -352,19 +352,19 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Pack of Wolves
-			damage = 55.0
+			damage = 28.0
 			fire_rate = 1.8
 			attack_range = 235.0
 			wolf_cooldown = 8.0
 		2: # Murder of Crows — add DoT
-			damage = 65.0
+			damage = 33.0
 			dot_dps = 8.0
 			dot_duration = 4.0
 			fire_rate = 2.0
 			attack_range = 250.0
 			gold_bonus = 3
 		3: # Swarm of Bees — stronger DoT
-			damage = 80.0
+			damage = 40.0
 			dot_dps = 15.0
 			dot_duration = 5.0
 			fire_rate = 2.2
@@ -372,7 +372,7 @@ func _apply_upgrade(tier: int) -> void:
 			wolf_cooldown = 6.0
 			gold_bonus = 4
 		4: # The Golden Cap — Winged Monkey AoE
-			damage = 100.0
+			damage = 50.0
 			fire_rate = 2.5
 			attack_range = 300.0
 			gold_bonus = 5

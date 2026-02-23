@@ -6,9 +6,9 @@ extends Node2D
 ## Tier 3 (15000 DMG): "Tick-Tock Croc" — periodically chomps strongest enemy for 3x damage
 ## Tier 4 (20000 DMG): "Never Land" — daggers pierce, all stats boosted, gold bonus doubled
 
-var damage: float = 38.0
+var damage: float = 19.0
 var fire_rate: float = 2.5
-var attack_range: float = 170.0
+var attack_range: float = 85.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
@@ -379,27 +379,27 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Shadow — double daggers
 			shadow_enabled = true
-			damage = 50.0
+			damage = 25.0
 			fire_rate = 3.0
-			attack_range = 185.0
+			attack_range = 93.0
 		2: # Fairy Dust — AoE slow burst
-			damage = 60.0
+			damage = 30.0
 			fire_rate = 3.5
-			attack_range = 200.0
+			attack_range = 100.0
 			fairy_cooldown = 10.0
 			gold_bonus = 3
 		3: # Tick-Tock Croc — chomp strongest
-			damage = 75.0
+			damage = 38.0
 			fire_rate = 4.0
-			attack_range = 220.0
+			attack_range = 110.0
 			croc_cooldown = 10.0
 			fairy_cooldown = 8.0
 			gold_bonus = 4
 		4: # Never Land — everything enhanced
-			damage = 95.0
+			damage = 48.0
 			fire_rate = 5.0
 			pierce_count = 2
-			attack_range = 250.0
+			attack_range = 125.0
 			gold_bonus = 5
 			fairy_cooldown = 6.0
 			croc_cooldown = 7.0

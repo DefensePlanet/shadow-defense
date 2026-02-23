@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): Lord of Darkness — 50% more damage, permanent bat cloud, 2% HP/sec drain
 
 # Base stats
-var damage: float = 55.0
+var damage: float = 28.0
 var fire_rate: float = 1.6
 var attack_range: float = 200.0
 var fire_cooldown: float = 0.0
@@ -394,24 +394,24 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Vampiric Touch — life drain heals 10%
 			life_drain_percent = 0.10
-			damage = 70.0
+			damage = 35.0
 			fire_rate = 1.8
 			attack_range = 220.0
 		2: # Bat Swarm — bats slow enemies
 			bat_slow_enabled = true
-			damage = 90.0
+			damage = 45.0
 			fire_rate = 2.0
 			attack_range = 240.0
 			gold_bonus = 3
 		3: # Thrall — killed enemies rise as minions
 			thrall_chance = 0.15
-			damage = 110.0
+			damage = 55.0
 			fire_rate = 2.2
 			attack_range = 260.0
 			gold_bonus = 4
 		4: # Lord of Darkness — massive power spike
 			lord_of_darkness = true
-			damage = 140.0
+			damage = 70.0
 			fire_rate = 2.5
 			attack_range = 280.0
 			gold_bonus = 6
