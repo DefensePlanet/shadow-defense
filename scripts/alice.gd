@@ -198,7 +198,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = 1.0 / fire_rate
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
 	# Tier 2: Cheshire Cat stun
 	if upgrade_tier >= 2:
@@ -218,15 +218,16 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
+	var eff_range = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
+		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
-	var nearest_dist: float = attack_range
+	var nearest_dist: float = attack_range * _range_mult()
 	for enemy in enemies:
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
@@ -245,11 +246,12 @@ func _shoot() -> void:
 	_shot_count += 1
 	_attack_anim = 1.0
 	# Cake splat — hits all enemies in range
-	var dmg = damage
+	var dmg = damage * _damage_mult()
 	if prog_abilities[0]:  # Curiouser: +20% damage
 		dmg *= 1.2
+	var eff_range = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) <= attack_range:
+		if global_position.distance_to(enemy.global_position) <= eff_range:
 			if enemy.has_method("apply_slow"):
 				enemy.apply_slow(slow_amount, slow_duration)
 			if enemy.has_method("take_damage"):
@@ -409,7 +411,7 @@ func _generate_tier_sounds() -> void:
 	samples.resize(int(mix_rate * 0.15))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		var freq := lerpf(160.0, 45.0, minf(t * 15.0, 1.0))
+		var freq := lerpf(146.83, 36.71, minf(t * 15.0, 1.0))  # D3 -> D1
 		var env := exp(-t * 18.0)
 		var click := exp(-t * 300.0) * 0.6
 		samples[i] = clampf(sin(t * freq * TAU) * env * 0.8 + click, -1.0, 1.0)
@@ -418,7 +420,7 @@ func _generate_tier_sounds() -> void:
 	samples.resize(int(mix_rate * 0.12))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		var body := sin(t * 185.0 * TAU) * exp(-t * 35.0) * 0.5
+		var body := sin(t * 146.83 * TAU) * exp(-t * 35.0) * 0.5  # D3
 		var noise := (randf() * 2.0 - 1.0) * exp(-t * 20.0) * 0.55
 		var snr_click := exp(-t * 400.0) * 0.3
 		samples[i] = clampf(body + noise + snr_click, -1.0, 1.0)
@@ -431,7 +433,7 @@ func _generate_tier_sounds() -> void:
 	samples.resize(int(mix_rate * 0.12))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		var freq := lerpf(200.0, 40.0, minf(t * 25.0, 1.0))
+		var freq := lerpf(174.61, 36.71, minf(t * 25.0, 1.0))  # F3 -> D1
 		var env := exp(-t * 25.0)
 		var dist := clampf(sin(t * freq * TAU) * 1.5, -1.0, 1.0)
 		var ek_click := exp(-t * 500.0) * 0.7
@@ -455,7 +457,7 @@ func _generate_tier_sounds() -> void:
 	samples.resize(int(mix_rate * 0.2))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		var freq := lerpf(120.0, 70.0, minf(t * 10.0, 1.0))
+		var freq := lerpf(146.83, 73.42, minf(t * 10.0, 1.0))  # D3 -> D2
 		var env := exp(-t * 12.0)
 		var tom_body := sin(t * freq * TAU) * 0.7
 		var overtone := sin(t * freq * 2.3 * TAU) * exp(-t * 20.0) * 0.3
@@ -466,8 +468,8 @@ func _generate_tier_sounds() -> void:
 	samples.resize(int(mix_rate * 0.08))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		var fund := sin(t * 800.0 * TAU) * 0.5
-		var h2 := sin(t * 800.0 * 2.7 * TAU) * 0.3
+		var fund := sin(t * 783.99 * TAU) * 0.5  # G5
+		var h2 := sin(t * 783.99 * 2.7 * TAU) * 0.3
 		var wb_env := exp(-t * 50.0)
 		var wb_click := exp(-t * 300.0) * 0.5
 		samples[i] = clampf((fund + h2) * wb_env + wb_click, -1.0, 1.0)
@@ -480,7 +482,7 @@ func _generate_tier_sounds() -> void:
 	samples.resize(int(mix_rate * 0.25))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		var freq := lerpf(300.0, 38.0, minf(t * 30.0, 1.0))
+		var freq := lerpf(293.66, 36.71, minf(t * 30.0, 1.0))  # D4 -> D1
 		var env := exp(-t * 8.0)
 		var e_click := exp(-t * 200.0) * 0.6
 		samples[i] = clampf(sin(t * freq * TAU) * env * 0.9 + e_click, -1.0, 1.0)
@@ -494,7 +496,7 @@ func _generate_tier_sounds() -> void:
 			var dt: float = t - c_off
 			if dt >= 0.0:
 				s += (randf() * 2.0 - 1.0) * exp(-dt * 40.0) * 0.4
-		var clap_body := sin(t * 1200.0 * TAU) * exp(-t * 30.0) * 0.2
+		var clap_body := sin(t * 783.99 * TAU) * exp(-t * 30.0) * 0.2  # G5
 		samples[i] = clampf(s + clap_body, -1.0, 1.0)
 	t3.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t3)
@@ -505,7 +507,7 @@ func _generate_tier_sounds() -> void:
 	samples.resize(int(mix_rate * 0.3))
 	for i in samples.size():
 		var t := float(i) / mix_rate
-		var freq := lerpf(250.0, 30.0, minf(t * 20.0, 1.0))
+		var freq := lerpf(293.66, 36.71, minf(t * 20.0, 1.0))  # D4 -> D1
 		var env := exp(-t * 5.0)
 		var sub := sin(t * freq * TAU) * env * 0.8
 		var harmonics := sin(t * freq * 2.0 * TAU) * exp(-t * 15.0) * 0.3
@@ -1503,3 +1505,30 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = ThemeDB.fallback_font
 		draw_string(font2, Vector2(-80, -60), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.8, 0.7, 1.0, min(_upgrade_flash, 1.0)))
+
+# === SYNERGY BUFFS ===
+var _synergy_buffs: Dictionary = {}
+
+func set_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) + buffs[key]
+
+func clear_synergy_buff() -> void:
+	_synergy_buffs.clear()
+
+func has_synergy_buff() -> bool:
+	return not _synergy_buffs.is_empty()
+
+var power_damage_mult: float = 1.0
+
+func _damage_mult() -> float:
+	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+
+func _range_mult() -> float:
+	return 1.0 + _synergy_buffs.get("range", 0.0)
+
+func _speed_mult() -> float:
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+
+func _gold_mult() -> float:
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)

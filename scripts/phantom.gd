@@ -210,7 +210,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = 1.0 / fire_rate
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
 	# Tier 1: Punjab Lasso stun
 	if upgrade_tier >= 1:
@@ -239,8 +239,9 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
+	var eff_range = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
+		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
@@ -257,7 +258,7 @@ func _is_sfx_muted() -> bool:
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
-	var search_range: float = attack_range
+	var search_range: float = attack_range * _range_mult()
 	# Ability 9: Beneath the Opera — unlimited range
 	if prog_abilities[8]:
 		search_range = 999999.0
@@ -278,12 +279,12 @@ func _shoot() -> void:
 	var note = note_scene.instantiate()
 	note.global_position = global_position + Vector2.from_angle(aim_angle) * 32.0
 	# Ability 1: Music of the Night — +20% damage
-	var shoot_damage = damage
+	var shoot_damage = damage * _damage_mult()
 	if prog_abilities[0]:
 		shoot_damage *= 1.2
 	note.damage = shoot_damage
 	note.target = target
-	note.gold_bonus = gold_bonus
+	note.gold_bonus = int(gold_bonus * _gold_mult())
 	note.source_tower = self
 	note.dot_dps = note_dot_dps
 	note.dot_duration = note_dot_duration
@@ -424,7 +425,7 @@ func get_sell_value() -> int:
 
 func _generate_tier_sounds() -> void:
 	# Dark pipe organ — gothic, dramatic, D minor arpeggio
-	var organ_notes := [146.8, 174.6, 220.0, 293.7, 220.0, 174.6, 164.8, 146.8]
+	var organ_notes := [146.83, 174.61, 220.00, 293.66, 220.00, 174.61, 164.81, 146.83]  # D3, F3, A3, D4, A3, F3, E3, D3 (D minor organ sweep)
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
@@ -1841,3 +1842,30 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = ThemeDB.fallback_font
 		draw_string(font2, Vector2(-80, -74), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.6, 0.3, 0.8, min(_upgrade_flash, 1.0)))
+
+# === SYNERGY BUFFS ===
+var _synergy_buffs: Dictionary = {}
+
+func set_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) + buffs[key]
+
+func clear_synergy_buff() -> void:
+	_synergy_buffs.clear()
+
+func has_synergy_buff() -> bool:
+	return not _synergy_buffs.is_empty()
+
+var power_damage_mult: float = 1.0
+
+func _damage_mult() -> float:
+	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+
+func _range_mult() -> float:
+	return 1.0 + _synergy_buffs.get("range", 0.0)
+
+func _speed_mult() -> float:
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+
+func _gold_mult() -> float:
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)

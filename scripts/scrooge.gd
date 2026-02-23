@@ -189,7 +189,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = 1.0 / fire_rate
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
 	# Tier 2: Ghost of Christmas Past — mark single enemy
 	if upgrade_tier == 2:
@@ -219,8 +219,9 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
+	var eff_range = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
+		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
@@ -237,7 +238,7 @@ func _is_sfx_muted() -> bool:
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
-	var nearest_dist: float = attack_range
+	var nearest_dist: float = attack_range * _range_mult()
 	for enemy in enemies:
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
@@ -251,15 +252,16 @@ func _shoot() -> void:
 		_attack_player.play()
 	_attack_anim = 1.0
 	var main = get_tree().get_first_node_in_group("main")
-	var dmg_mult = 1.0
+	var dmg_mult = _damage_mult()
 	var kb = knockback_amount
 	# Ability 1: A Miser's Bell — +20% damage, +20% knockback
 	if prog_abilities[0]:
 		dmg_mult *= 1.2
 		kb *= 1.2
+	var eff_range = attack_range * _range_mult()
 	var enemies_hit = 0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) <= attack_range:
+		if global_position.distance_to(enemy.global_position) <= eff_range:
 			# Knockback — push enemies back on path
 			enemy.progress = max(0.0, enemy.progress - kb)
 			# Small damage
@@ -272,7 +274,7 @@ func _shoot() -> void:
 			enemies_hit += 1
 	# Earn gold per bell ring (more enemies = more gold)
 	if main and enemies_hit > 0:
-		main.add_gold(gold_per_ring + (enemies_hit - 1) * bonus_gold_per_enemy)
+		main.add_gold(int((gold_per_ring + (enemies_hit - 1) * bonus_gold_per_enemy) * _gold_mult()))
 
 func _ghost_of_past() -> void:
 	if _ghost_past_player and not _is_sfx_muted(): _ghost_past_player.play()
@@ -404,7 +406,7 @@ func get_sell_value() -> int:
 
 func _generate_tier_sounds() -> void:
 	# Coin-chime notes — bright, high, pleasant like tossed coins
-	var coin_notes := [1319.0, 1480.0, 1760.0, 1568.0, 1397.0, 1175.0, 1319.0, 1480.0]
+	var coin_notes := [880.00, 1046.50, 1174.66, 1396.91, 1174.66, 1046.50, 880.00, 1396.91]  # A5, C6, D6, F6, D6, C6, A5, F6 (D minor coin chime melody)
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
@@ -428,7 +430,7 @@ func _generate_tier_sounds() -> void:
 	# --- Tier 1: Silver Coin (brighter ring, slight shimmer) ---
 	var t1 := []
 	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx] * 1.1
+		var freq: float = coin_notes[note_idx]
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * 0.15))
 		for i in samples.size():
@@ -445,7 +447,7 @@ func _generate_tier_sounds() -> void:
 	# --- Tier 2: Gold Coin (warmer, richer harmonics) ---
 	var t2 := []
 	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx] * 0.9
+		var freq: float = coin_notes[note_idx]
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * 0.18))
 		for i in samples.size():
@@ -463,7 +465,7 @@ func _generate_tier_sounds() -> void:
 	# --- Tier 3: Coin Cascade (double-hit, like coins bouncing) ---
 	var t3 := []
 	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx] * 1.2
+		var freq: float = coin_notes[note_idx]
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * 0.2))
 		for i in samples.size():
@@ -1619,3 +1621,30 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = ThemeDB.fallback_font
 		draw_string(font2, Vector2(-80, -70), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.9, 0.85, 0.4, min(_upgrade_flash, 1.0)))
+
+# === SYNERGY BUFFS ===
+var _synergy_buffs: Dictionary = {}
+
+func set_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) + buffs[key]
+
+func clear_synergy_buff() -> void:
+	_synergy_buffs.clear()
+
+func has_synergy_buff() -> bool:
+	return not _synergy_buffs.is_empty()
+
+var power_damage_mult: float = 1.0
+
+func _damage_mult() -> float:
+	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+
+func _range_mult() -> float:
+	return 1.0 + _synergy_buffs.get("range", 0.0)
+
+func _speed_mult() -> float:
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+
+func _gold_mult() -> float:
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)

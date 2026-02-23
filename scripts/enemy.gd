@@ -229,6 +229,13 @@ func _draw() -> void:
 		3: _draw_neverland(s, tint)
 		4: _draw_opera(s, tint)
 		5: _draw_victorian(s, tint)
+		6: _draw_shadow_entities(s, tint)
+		7: _draw_sherlock(s, tint)
+		8: _draw_merlin(s, tint)
+		9: _draw_tarzan(s, tint)
+		10: _draw_dracula(s, tint)
+		11: _draw_frankenstein(s, tint)
+		12: _draw_shadow_author(s, tint)
 
 	# Status effect visuals
 	if sleep_timer > 0.0:
@@ -861,3 +868,951 @@ func _draw_ghost_christmas(s: float, tint: Color) -> void:
 	draw_arc(Vector2(-6 * bs, 14 * bs), 3 * bs, PI, 2 * PI, 8, Color(0.2, 0.2, 0.3, 0.3), 1.0 * bs)
 	draw_arc(Vector2(0, 15 * bs), 3 * bs, PI, 2 * PI, 8, Color(0.2, 0.2, 0.3, 0.25), 1.0 * bs)
 	draw_arc(Vector2(6 * bs, 14 * bs), 3 * bs, PI, 2 * PI, 8, Color(0.2, 0.2, 0.3, 0.3), 1.0 * bs)
+
+
+# =============================================================================
+# THEME 6 — SHADOW ENTITIES (PROLOGUE)
+# =============================================================================
+
+func _draw_shadow_entities(s: float, tint: Color) -> void:
+	match enemy_tier:
+		0: _draw_ink_wisp(s, tint)
+		1: _draw_shadow_soldier(s, tint)
+		2: _draw_ink_beast(s, tint)
+		3: _draw_shadow_lord(s, tint)
+
+func _draw_ink_wisp(s: float, tint: Color) -> void:
+	var ink_color := _apply_tint(Color(0.08, 0.06, 0.12), tint)
+	var ink_mid := _apply_tint(Color(0.15, 0.1, 0.2), tint)
+	var eye_color := _apply_tint(Color(0.85, 0.4, 0.9), tint)
+	var glow_color := _apply_tint(Color(0.6, 0.2, 0.8, 0.3), tint)
+	# Aura glow
+	draw_circle(Vector2(0, -2 * s), 14 * s, glow_color)
+	# Blobby body
+	draw_circle(Vector2(0, 0), 8 * s, ink_color)
+	draw_circle(Vector2(-4 * s, -3 * s), 5 * s, ink_mid)
+	draw_circle(Vector2(4 * s, -2 * s), 5 * s, ink_mid)
+	draw_circle(Vector2(0, 4 * s), 6 * s, ink_color)
+	# Drip tendrils
+	draw_line(Vector2(-5 * s, 6 * s), Vector2(-6 * s, 12 * s), ink_color, 2.0 * s)
+	draw_line(Vector2(0, 7 * s), Vector2(0, 13 * s), ink_color, 2.5 * s)
+	draw_line(Vector2(5 * s, 6 * s), Vector2(6 * s, 12 * s), ink_color, 2.0 * s)
+	# Glowing eyes
+	draw_circle(Vector2(-3 * s, -3 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(3 * s, -3 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(-3 * s, -3 * s), 1.0 * s, Color(1.0, 0.85, 1.0))
+	draw_circle(Vector2(3 * s, -3 * s), 1.0 * s, Color(1.0, 0.85, 1.0))
+
+func _draw_shadow_soldier(s: float, tint: Color) -> void:
+	var shadow_color := _apply_tint(Color(0.1, 0.08, 0.15), tint)
+	var shadow_mid := _apply_tint(Color(0.18, 0.14, 0.25), tint)
+	var eye_color := _apply_tint(Color(0.9, 0.3, 0.4), tint)
+	var sword_color := _apply_tint(Color(0.4, 0.3, 0.5), tint)
+	# Body silhouette
+	draw_rect(Rect2(-7 * s, -8 * s, 14 * s, 22 * s), shadow_color)
+	draw_rect(Rect2(-5 * s, -6 * s, 10 * s, 18 * s), shadow_mid)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, shadow_color)
+	# Glowing slit eyes
+	draw_line(Vector2(-4 * s, -15 * s), Vector2(-1 * s, -14 * s), eye_color, 1.5 * s)
+	draw_line(Vector2(1 * s, -14 * s), Vector2(4 * s, -15 * s), eye_color, 1.5 * s)
+	# Sword silhouette
+	draw_line(Vector2(9 * s, -14 * s), Vector2(9 * s, 10 * s), sword_color, 2.0 * s)
+	draw_line(Vector2(6 * s, -6 * s), Vector2(12 * s, -6 * s), sword_color, 1.5 * s)
+	# Legs
+	draw_rect(Rect2(-6 * s, 14 * s, 5 * s, 4 * s), shadow_color)
+	draw_rect(Rect2(1 * s, 14 * s, 5 * s, 4 * s), shadow_color)
+	# Wispy edges
+	draw_line(Vector2(-7 * s, 4 * s), Vector2(-11 * s, 8 * s), shadow_mid, 1.5 * s)
+	draw_line(Vector2(7 * s, 4 * s), Vector2(11 * s, 8 * s), shadow_mid, 1.5 * s)
+
+func _draw_ink_beast(s: float, tint: Color) -> void:
+	var ink_color := _apply_tint(Color(0.06, 0.04, 0.1), tint)
+	var ink_light := _apply_tint(Color(0.15, 0.1, 0.22), tint)
+	var eye_color := _apply_tint(Color(0.95, 0.6, 0.1), tint)
+	var drip_color := _apply_tint(Color(0.1, 0.06, 0.15, 0.7), tint)
+	# Four-legged body
+	draw_rect(Rect2(-12 * s, -6 * s, 24 * s, 12 * s), ink_color)
+	draw_circle(Vector2(-8 * s, 0), 5 * s, ink_light)
+	draw_circle(Vector2(8 * s, 0), 5 * s, ink_light)
+	# Head
+	draw_circle(Vector2(0, -12 * s), 8 * s, ink_color)
+	draw_circle(Vector2(0, -8 * s), 5 * s, ink_light)
+	# Glowing eyes
+	draw_circle(Vector2(-3 * s, -13 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(3 * s, -13 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(-3 * s, -13 * s), 1.0 * s, Color(1.0, 0.95, 0.8))
+	draw_circle(Vector2(3 * s, -13 * s), 1.0 * s, Color(1.0, 0.95, 0.8))
+	# Mouth
+	draw_line(Vector2(-3 * s, -8 * s), Vector2(3 * s, -8 * s), eye_color, 1.0 * s)
+	# Four legs
+	draw_rect(Rect2(-13 * s, 6 * s, 4 * s, 8 * s), ink_color)
+	draw_rect(Rect2(-5 * s, 6 * s, 4 * s, 8 * s), ink_color)
+	draw_rect(Rect2(1 * s, 6 * s, 4 * s, 8 * s), ink_color)
+	draw_rect(Rect2(9 * s, 6 * s, 4 * s, 8 * s), ink_color)
+	# Ink drips
+	draw_line(Vector2(-10 * s, 6 * s), Vector2(-12 * s, 10 * s), drip_color, 1.5 * s)
+	draw_line(Vector2(10 * s, 6 * s), Vector2(12 * s, 10 * s), drip_color, 1.5 * s)
+	draw_line(Vector2(0, 6 * s), Vector2(0, 11 * s), drip_color, 2.0 * s)
+
+func _draw_shadow_lord(s: float, tint: Color) -> void:
+	var bs: float = s * 1.4
+	var cloak_color := _apply_tint(Color(0.05, 0.03, 0.1), tint)
+	var cloak_mid := _apply_tint(Color(0.12, 0.08, 0.2), tint)
+	var eye_color := _apply_tint(Color(1.0, 0.3, 0.5), tint)
+	var crown_color := _apply_tint(Color(0.5, 0.15, 0.6), tint)
+	var aura_color := _apply_tint(Color(0.4, 0.1, 0.5, 0.25), tint)
+	# Dark aura
+	draw_circle(Vector2(0, -4 * bs), 22 * bs, aura_color)
+	# Tall cloak
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * bs, -14 * bs), Vector2(8 * bs, -14 * bs), Vector2(14 * bs, 16 * bs), Vector2(-14 * bs, 16 * bs)]), cloak_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * bs, -12 * bs), Vector2(6 * bs, -12 * bs), Vector2(10 * bs, 14 * bs), Vector2(-10 * bs, 14 * bs)]), cloak_mid)
+	# Hood / head
+	draw_circle(Vector2(0, -18 * bs), 9 * bs, cloak_color)
+	draw_circle(Vector2(0, -16 * bs), 6 * bs, cloak_mid)
+	# Glowing eyes
+	draw_circle(Vector2(-3 * bs, -17 * bs), 2.0 * bs, eye_color)
+	draw_circle(Vector2(3 * bs, -17 * bs), 2.0 * bs, eye_color)
+	draw_circle(Vector2(-3 * bs, -17 * bs), 1.0 * bs, Color(1.0, 0.8, 0.9))
+	draw_circle(Vector2(3 * bs, -17 * bs), 1.0 * bs, Color(1.0, 0.8, 0.9))
+	# Shadow crown
+	draw_rect(Rect2(-6 * bs, -27 * bs, 12 * bs, 4 * bs), crown_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * bs, -27 * bs), Vector2(-4 * bs, -31 * bs), Vector2(-2 * bs, -27 * bs)]), crown_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(-1 * bs, -27 * bs), Vector2(0, -32 * bs), Vector2(1 * bs, -27 * bs)]), crown_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(2 * bs, -27 * bs), Vector2(4 * bs, -31 * bs), Vector2(6 * bs, -27 * bs)]), crown_color)
+	# Wispy arms
+	draw_line(Vector2(-8 * bs, -4 * bs), Vector2(-16 * bs, -8 * bs), cloak_color, 2.5 * bs)
+	draw_line(Vector2(8 * bs, -4 * bs), Vector2(16 * bs, -8 * bs), cloak_color, 2.5 * bs)
+	# Base wisps
+	draw_line(Vector2(-10 * bs, 16 * bs), Vector2(-12 * bs, 20 * bs), cloak_mid, 2.0 * bs)
+	draw_line(Vector2(0, 16 * bs), Vector2(0, 20 * bs), cloak_mid, 2.0 * bs)
+	draw_line(Vector2(10 * bs, 16 * bs), Vector2(12 * bs, 20 * bs), cloak_mid, 2.0 * bs)
+
+
+# =============================================================================
+# THEME 7 — SHERLOCK CRIMINALS
+# =============================================================================
+
+func _draw_sherlock(s: float, tint: Color) -> void:
+	match enemy_tier:
+		0: _draw_street_thug(s, tint)
+		1: _draw_assassin(s, tint)
+		2: _draw_moriarty_agent(s, tint)
+		3: _draw_moriarty(s, tint)
+
+func _draw_street_thug(s: float, tint: Color) -> void:
+	var shirt_color := _apply_tint(Color(0.45, 0.4, 0.35), tint)
+	var skin_color := _apply_tint(Color(0.82, 0.7, 0.58), tint)
+	var cap_color := _apply_tint(Color(0.3, 0.28, 0.25), tint)
+	var pants_color := _apply_tint(Color(0.35, 0.3, 0.25), tint)
+	# Body
+	draw_rect(Rect2(-7 * s, -6 * s, 14 * s, 18 * s), shirt_color)
+	draw_rect(Rect2(-8 * s, 4 * s, 16 * s, 2 * s), _apply_tint(Color(0.4, 0.3, 0.2), tint))
+	# Head
+	draw_circle(Vector2(0, -12 * s), 7 * s, skin_color)
+	# Flat cap
+	draw_arc(Vector2(0, -12 * s), 7.5 * s, PI, 2 * PI, 12, cap_color, 3.0 * s)
+	draw_rect(Rect2(-8 * s, -16 * s, 16 * s, 3 * s), cap_color)
+	draw_line(Vector2(-8 * s, -13 * s), Vector2(-10 * s, -14 * s), cap_color, 2.0 * s)
+	# Eyes - mean squint
+	draw_line(Vector2(-4 * s, -13 * s), Vector2(-1 * s, -12 * s), Color(0.15, 0.15, 0.15), 1.5 * s)
+	draw_line(Vector2(1 * s, -12 * s), Vector2(4 * s, -13 * s), Color(0.15, 0.15, 0.15), 1.5 * s)
+	# Fists
+	draw_circle(Vector2(-10 * s, 2 * s), 3 * s, skin_color)
+	draw_circle(Vector2(10 * s, 2 * s), 3 * s, skin_color)
+	# Legs
+	draw_rect(Rect2(-6 * s, 12 * s, 5 * s, 4 * s), pants_color)
+	draw_rect(Rect2(1 * s, 12 * s, 5 * s, 4 * s), pants_color)
+	# Boots
+	draw_rect(Rect2(-7 * s, 16 * s, 6 * s, 2 * s), Color(0.2, 0.18, 0.15))
+	draw_rect(Rect2(1 * s, 16 * s, 6 * s, 2 * s), Color(0.2, 0.18, 0.15))
+
+func _draw_assassin(s: float, tint: Color) -> void:
+	var coat_color := _apply_tint(Color(0.12, 0.1, 0.12), tint)
+	var skin_color := _apply_tint(Color(0.78, 0.68, 0.58), tint)
+	var knife_color := _apply_tint(Color(0.75, 0.75, 0.8), tint)
+	var scarf_color := _apply_tint(Color(0.35, 0.1, 0.1), tint)
+	# Long coat
+	draw_colored_polygon(PackedVector2Array([Vector2(-7 * s, -8 * s), Vector2(7 * s, -8 * s), Vector2(9 * s, 14 * s), Vector2(-9 * s, 14 * s)]), coat_color)
+	draw_rect(Rect2(-8 * s, -8 * s, 16 * s, 20 * s), coat_color)
+	# Scarf
+	draw_line(Vector2(-4 * s, -7 * s), Vector2(4 * s, -7 * s), scarf_color, 2.5 * s)
+	draw_line(Vector2(2 * s, -7 * s), Vector2(4 * s, -2 * s), scarf_color, 2.0 * s)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, skin_color)
+	# Shadowed eyes
+	draw_circle(Vector2(-2.5 * s, -14 * s), 1.5 * s, Color(0.1, 0.1, 0.1))
+	draw_circle(Vector2(2.5 * s, -14 * s), 1.5 * s, Color(0.1, 0.1, 0.1))
+	draw_circle(Vector2(-2.5 * s, -14 * s), 0.7 * s, Color(0.4, 0.35, 0.3))
+	draw_circle(Vector2(2.5 * s, -14 * s), 0.7 * s, Color(0.4, 0.35, 0.3))
+	# Knife
+	draw_line(Vector2(-10 * s, -4 * s), Vector2(-10 * s, 6 * s), knife_color, 1.5 * s)
+	draw_colored_polygon(PackedVector2Array([Vector2(-10 * s, -4 * s), Vector2(-11.5 * s, -6 * s), Vector2(-8.5 * s, -6 * s)]), knife_color)
+	# Legs
+	draw_rect(Rect2(-6 * s, 12 * s, 5 * s, 4 * s), coat_color)
+	draw_rect(Rect2(1 * s, 12 * s, 5 * s, 4 * s), coat_color)
+
+func _draw_moriarty_agent(s: float, tint: Color) -> void:
+	var suit_color := _apply_tint(Color(0.15, 0.15, 0.18), tint)
+	var vest_color := _apply_tint(Color(0.35, 0.15, 0.15), tint)
+	var skin_color := _apply_tint(Color(0.82, 0.72, 0.62), tint)
+	var hat_color := _apply_tint(Color(0.1, 0.1, 0.12), tint)
+	var gun_color := _apply_tint(Color(0.3, 0.3, 0.32), tint)
+	# Body
+	draw_rect(Rect2(-8 * s, -8 * s, 16 * s, 22 * s), suit_color)
+	draw_rect(Rect2(-5 * s, -6 * s, 10 * s, 16 * s), vest_color)
+	# Buttons
+	draw_circle(Vector2(0, -3 * s), 0.8 * s, _apply_tint(Color(0.85, 0.75, 0.2), tint))
+	draw_circle(Vector2(0, 1 * s), 0.8 * s, _apply_tint(Color(0.85, 0.75, 0.2), tint))
+	draw_circle(Vector2(0, 5 * s), 0.8 * s, _apply_tint(Color(0.85, 0.75, 0.2), tint))
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, skin_color)
+	# Top hat
+	draw_rect(Rect2(-4 * s, -26 * s, 8 * s, 10 * s), hat_color)
+	draw_rect(Rect2(-6 * s, -17 * s, 12 * s, 2 * s), hat_color)
+	# Eyes
+	draw_circle(Vector2(-2.5 * s, -14 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(2.5 * s, -14 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	# Pistol
+	draw_rect(Rect2(10 * s, -4 * s, 8 * s, 3 * s), gun_color)
+	draw_rect(Rect2(10 * s, -1 * s, 3 * s, 5 * s), gun_color)
+	# Legs
+	draw_rect(Rect2(-6 * s, 14 * s, 5 * s, 4 * s), suit_color)
+	draw_rect(Rect2(1 * s, 14 * s, 5 * s, 4 * s), suit_color)
+
+func _draw_moriarty(s: float, tint: Color) -> void:
+	var bs: float = s * 1.4
+	var suit_color := _apply_tint(Color(0.1, 0.1, 0.12), tint)
+	var vest_color := _apply_tint(Color(0.25, 0.12, 0.12), tint)
+	var skin_color := _apply_tint(Color(0.82, 0.72, 0.62), tint)
+	var hat_color := _apply_tint(Color(0.08, 0.08, 0.1), tint)
+	var gold_color := _apply_tint(Color(0.9, 0.8, 0.2), tint)
+	# Cape / coat tails
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * bs, -8 * bs), Vector2(6 * bs, -8 * bs), Vector2(12 * bs, 16 * bs), Vector2(-12 * bs, 16 * bs)]), suit_color)
+	# Body
+	draw_rect(Rect2(-8 * bs, -8 * bs, 16 * bs, 22 * bs), suit_color)
+	draw_rect(Rect2(-5 * bs, -6 * bs, 10 * bs, 16 * bs), vest_color)
+	# Watch chain
+	draw_arc(Vector2(0, 2 * bs), 4 * bs, -0.5, PI + 0.5, 8, gold_color, 0.8 * bs)
+	# Head
+	draw_circle(Vector2(0, -15 * bs), 8 * bs, skin_color)
+	# Receding hairline
+	draw_arc(Vector2(0, -15 * bs), 8.5 * bs, PI + 0.4, 2 * PI - 0.4, 12, _apply_tint(Color(0.3, 0.3, 0.3), tint), 2.0 * bs)
+	# Sinister eyes
+	draw_circle(Vector2(-3 * bs, -16 * bs), 1.5 * bs, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(3 * bs, -16 * bs), 1.5 * bs, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(-3 * bs, -16 * bs), 0.6 * bs, Color(0.5, 0.4, 0.3))
+	draw_circle(Vector2(3 * bs, -16 * bs), 0.6 * bs, Color(0.5, 0.4, 0.3))
+	# Thin smile
+	draw_arc(Vector2(0, -12 * bs), 3 * bs, 0.2, PI - 0.2, 8, Color(0.15, 0.15, 0.15), 0.8 * bs)
+	# Top hat
+	draw_rect(Rect2(-5 * bs, -28 * bs, 10 * bs, 12 * bs), hat_color)
+	draw_rect(Rect2(-7 * bs, -18 * bs, 14 * bs, 2 * bs), hat_color)
+	# Legs
+	draw_rect(Rect2(-5 * bs, 14 * bs, 4 * bs, 5 * bs), suit_color)
+	draw_rect(Rect2(1 * bs, 14 * bs, 4 * bs, 5 * bs), suit_color)
+
+
+# =============================================================================
+# THEME 8 — MERLIN DARK SORCERY
+# =============================================================================
+
+func _draw_merlin(s: float, tint: Color) -> void:
+	match enemy_tier:
+		0: _draw_dark_squire(s, tint)
+		1: _draw_cursed_knight(s, tint)
+		2: _draw_warlock(s, tint)
+		3: _draw_morgan_le_fay(s, tint)
+
+func _draw_dark_squire(s: float, tint: Color) -> void:
+	var armor_color := _apply_tint(Color(0.45, 0.38, 0.3), tint)
+	var rust_color := _apply_tint(Color(0.55, 0.35, 0.2), tint)
+	var skin_color := _apply_tint(Color(0.82, 0.7, 0.58), tint)
+	var shield_color := _apply_tint(Color(0.4, 0.35, 0.3), tint)
+	# Body - rusted armor
+	draw_rect(Rect2(-7 * s, -8 * s, 14 * s, 20 * s), armor_color)
+	draw_circle(Vector2(-3 * s, -2 * s), 2.5 * s, rust_color)
+	draw_circle(Vector2(4 * s, 4 * s), 2.0 * s, rust_color)
+	draw_circle(Vector2(1 * s, 8 * s), 1.5 * s, rust_color)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, skin_color)
+	# Simple helmet
+	draw_arc(Vector2(0, -14 * s), 7.5 * s, PI, 2 * PI, 12, armor_color, 2.5 * s)
+	draw_line(Vector2(0, -21 * s), Vector2(0, -14 * s), armor_color, 1.5 * s)
+	# Eyes
+	draw_circle(Vector2(-2.5 * s, -14.5 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(2.5 * s, -14.5 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	# Small shield
+	draw_rect(Rect2(-14 * s, -6 * s, 6 * s, 8 * s), shield_color)
+	draw_line(Vector2(-11 * s, -6 * s), Vector2(-11 * s, 2 * s), rust_color, 1.0 * s)
+	# Legs
+	draw_rect(Rect2(-6 * s, 12 * s, 5 * s, 4 * s), armor_color)
+	draw_rect(Rect2(1 * s, 12 * s, 5 * s, 4 * s), armor_color)
+
+func _draw_cursed_knight(s: float, tint: Color) -> void:
+	var armor_color := _apply_tint(Color(0.1, 0.1, 0.12), tint)
+	var armor_light := _apply_tint(Color(0.18, 0.18, 0.22), tint)
+	var visor_color := _apply_tint(Color(0.6, 0.15, 0.8), tint)
+	var glow_color := _apply_tint(Color(0.5, 0.1, 0.7, 0.3), tint)
+	# Dark armor body
+	draw_rect(Rect2(-9 * s, -8 * s, 18 * s, 22 * s), armor_color)
+	draw_rect(Rect2(-6 * s, -6 * s, 12 * s, 16 * s), armor_light)
+	# Pauldrons
+	draw_circle(Vector2(-10 * s, -6 * s), 4 * s, armor_color)
+	draw_circle(Vector2(10 * s, -6 * s), 4 * s, armor_color)
+	# Helmet
+	draw_circle(Vector2(0, -14 * s), 8 * s, armor_color)
+	draw_rect(Rect2(-6 * s, -16 * s, 12 * s, 4 * s), armor_light)
+	# Glowing visor slit
+	draw_line(Vector2(-4 * s, -14 * s), Vector2(4 * s, -14 * s), visor_color, 2.0 * s)
+	draw_circle(Vector2(0, -14 * s), 10 * s, glow_color)
+	# Dark plume
+	draw_line(Vector2(0, -22 * s), Vector2(3 * s, -28 * s), _apply_tint(Color(0.3, 0.05, 0.05), tint), 2.5 * s)
+	# Sword
+	draw_line(Vector2(12 * s, -10 * s), Vector2(12 * s, 8 * s), _apply_tint(Color(0.25, 0.25, 0.28), tint), 2.0 * s)
+	draw_line(Vector2(9 * s, -4 * s), Vector2(15 * s, -4 * s), armor_light, 1.5 * s)
+	# Legs
+	draw_rect(Rect2(-7 * s, 14 * s, 6 * s, 4 * s), armor_color)
+	draw_rect(Rect2(1 * s, 14 * s, 6 * s, 4 * s), armor_color)
+
+func _draw_warlock(s: float, tint: Color) -> void:
+	var robe_color := _apply_tint(Color(0.15, 0.08, 0.2), tint)
+	var robe_mid := _apply_tint(Color(0.25, 0.12, 0.35), tint)
+	var skin_color := _apply_tint(Color(0.65, 0.6, 0.55), tint)
+	var staff_color := _apply_tint(Color(0.3, 0.2, 0.1), tint)
+	var orb_color := _apply_tint(Color(0.4, 0.9, 0.3), tint)
+	# Robes
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * s, -8 * s), Vector2(6 * s, -8 * s), Vector2(12 * s, 14 * s), Vector2(-12 * s, 14 * s)]), robe_color)
+	draw_rect(Rect2(-7 * s, -8 * s, 14 * s, 18 * s), robe_color)
+	draw_rect(Rect2(-4 * s, -6 * s, 8 * s, 14 * s), robe_mid)
+	# Rune symbols on robe
+	draw_circle(Vector2(0, 0), 1.5 * s, orb_color)
+	draw_circle(Vector2(-3 * s, 4 * s), 1.0 * s, orb_color)
+	draw_circle(Vector2(3 * s, 4 * s), 1.0 * s, orb_color)
+	# Hood / head
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * s, -12 * s), Vector2(0, -22 * s), Vector2(6 * s, -12 * s)]), robe_color)
+	draw_circle(Vector2(0, -14 * s), 6 * s, skin_color)
+	# Sinister eyes
+	draw_circle(Vector2(-2 * s, -14 * s), 1.5 * s, _apply_tint(Color(0.9, 0.3, 0.1), tint))
+	draw_circle(Vector2(2 * s, -14 * s), 1.5 * s, _apply_tint(Color(0.9, 0.3, 0.1), tint))
+	# Staff
+	draw_line(Vector2(10 * s, -20 * s), Vector2(10 * s, 14 * s), staff_color, 2.0 * s)
+	draw_circle(Vector2(10 * s, -22 * s), 3 * s, orb_color)
+	draw_circle(Vector2(10 * s, -22 * s), 1.5 * s, Color(0.8, 1.0, 0.7))
+	# Feet peeking from robes
+	draw_rect(Rect2(-5 * s, 14 * s, 4 * s, 2 * s), _apply_tint(Color(0.2, 0.15, 0.1), tint))
+	draw_rect(Rect2(1 * s, 14 * s, 4 * s, 2 * s), _apply_tint(Color(0.2, 0.15, 0.1), tint))
+
+func _draw_morgan_le_fay(s: float, tint: Color) -> void:
+	var bs: float = s * 1.4
+	var gown_color := _apply_tint(Color(0.2, 0.05, 0.3), tint)
+	var gown_light := _apply_tint(Color(0.35, 0.1, 0.45), tint)
+	var skin_color := _apply_tint(Color(0.75, 0.68, 0.6), tint)
+	var crown_color := _apply_tint(Color(0.7, 0.2, 0.8), tint)
+	var magic_color := _apply_tint(Color(0.5, 0.9, 0.4), tint)
+	# Flowing gown
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * bs, -8 * bs), Vector2(6 * bs, -8 * bs), Vector2(14 * bs, 16 * bs), Vector2(-14 * bs, 16 * bs)]), gown_color)
+	draw_rect(Rect2(-7 * bs, -8 * bs, 14 * bs, 18 * bs), gown_color)
+	draw_rect(Rect2(-4 * bs, -6 * bs, 8 * bs, 14 * bs), gown_light)
+	# Magical runes on gown
+	draw_arc(Vector2(0, 2 * bs), 3 * bs, 0, TAU, 8, magic_color, 0.8 * bs)
+	draw_circle(Vector2(-4 * bs, 6 * bs), 1.0 * bs, magic_color)
+	draw_circle(Vector2(4 * bs, 6 * bs), 1.0 * bs, magic_color)
+	# Head
+	draw_circle(Vector2(0, -15 * bs), 8 * bs, skin_color)
+	# Dark hair
+	draw_arc(Vector2(0, -15 * bs), 8.5 * bs, PI + 0.3, 2 * PI - 0.3, 12, Color(0.08, 0.05, 0.1), 3.0 * bs)
+	draw_line(Vector2(-7 * bs, -12 * bs), Vector2(-9 * bs, -2 * bs), Color(0.08, 0.05, 0.1), 2.5 * bs)
+	draw_line(Vector2(7 * bs, -12 * bs), Vector2(9 * bs, -2 * bs), Color(0.08, 0.05, 0.1), 2.5 * bs)
+	# Eyes
+	draw_circle(Vector2(-3 * bs, -16 * bs), 1.5 * bs, _apply_tint(Color(0.4, 0.9, 0.3), tint))
+	draw_circle(Vector2(3 * bs, -16 * bs), 1.5 * bs, _apply_tint(Color(0.4, 0.9, 0.3), tint))
+	# Sorceress crown
+	draw_rect(Rect2(-6 * bs, -24 * bs, 12 * bs, 3 * bs), crown_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(-5 * bs, -24 * bs), Vector2(-3 * bs, -28 * bs), Vector2(-1 * bs, -24 * bs)]), crown_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(1 * bs, -24 * bs), Vector2(3 * bs, -28 * bs), Vector2(5 * bs, -24 * bs)]), crown_color)
+	draw_circle(Vector2(0, -24 * bs), 1.5 * bs, magic_color)
+	# Magical hands
+	draw_circle(Vector2(-12 * bs, -2 * bs), 3 * bs, magic_color)
+	draw_circle(Vector2(12 * bs, -2 * bs), 3 * bs, magic_color)
+	draw_circle(Vector2(-12 * bs, -2 * bs), 1.5 * bs, Color(0.8, 1.0, 0.7))
+	draw_circle(Vector2(12 * bs, -2 * bs), 1.5 * bs, Color(0.8, 1.0, 0.7))
+
+
+# =============================================================================
+# THEME 9 — TARZAN HUNTERS
+# =============================================================================
+
+func _draw_tarzan(s: float, tint: Color) -> void:
+	match enemy_tier:
+		0: _draw_poacher(s, tint)
+		1: _draw_big_game_hunter(s, tint)
+		2: _draw_mercenary(s, tint)
+		3: _draw_clayton(s, tint)
+
+func _draw_poacher(s: float, tint: Color) -> void:
+	var shirt_color := _apply_tint(Color(0.55, 0.5, 0.35), tint)
+	var skin_color := _apply_tint(Color(0.85, 0.72, 0.6), tint)
+	var helmet_color := _apply_tint(Color(0.8, 0.75, 0.6), tint)
+	var net_color := _apply_tint(Color(0.5, 0.45, 0.3), tint)
+	# Body
+	draw_rect(Rect2(-7 * s, -6 * s, 14 * s, 18 * s), shirt_color)
+	draw_rect(Rect2(-8 * s, 4 * s, 16 * s, 2 * s), _apply_tint(Color(0.45, 0.35, 0.2), tint))
+	# Head
+	draw_circle(Vector2(0, -12 * s), 7 * s, skin_color)
+	# Pith helmet
+	draw_arc(Vector2(0, -12 * s), 8 * s, PI, 2 * PI, 12, helmet_color, 3.0 * s)
+	draw_rect(Rect2(-4 * s, -20 * s, 8 * s, 5 * s), helmet_color)
+	draw_rect(Rect2(-9 * s, -14 * s, 18 * s, 2 * s), helmet_color)
+	# Eyes
+	draw_circle(Vector2(-2.5 * s, -12 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(2.5 * s, -12 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	# Net over shoulder
+	for i in range(5):
+		draw_line(Vector2(-12 * s + i * 3 * s, -4 * s), Vector2(-12 * s + i * 3 * s, 8 * s), net_color, 0.8 * s)
+	for i in range(4):
+		draw_line(Vector2(-12 * s, -4 * s + i * 3 * s), Vector2(0, -4 * s + i * 3 * s), net_color, 0.8 * s)
+	# Legs
+	draw_rect(Rect2(-6 * s, 12 * s, 5 * s, 4 * s), _apply_tint(Color(0.5, 0.45, 0.3), tint))
+	draw_rect(Rect2(1 * s, 12 * s, 5 * s, 4 * s), _apply_tint(Color(0.5, 0.45, 0.3), tint))
+
+func _draw_big_game_hunter(s: float, tint: Color) -> void:
+	var khaki_color := _apply_tint(Color(0.65, 0.58, 0.4), tint)
+	var khaki_dark := _apply_tint(Color(0.5, 0.45, 0.3), tint)
+	var skin_color := _apply_tint(Color(0.82, 0.7, 0.58), tint)
+	var rifle_color := _apply_tint(Color(0.4, 0.3, 0.2), tint)
+	var metal_color := _apply_tint(Color(0.5, 0.5, 0.52), tint)
+	# Body - khaki outfit
+	draw_rect(Rect2(-8 * s, -8 * s, 16 * s, 22 * s), khaki_color)
+	draw_rect(Rect2(-9 * s, 4 * s, 18 * s, 2 * s), khaki_dark)
+	# Pockets
+	draw_rect(Rect2(-6 * s, -2 * s, 4 * s, 4 * s), khaki_dark)
+	draw_rect(Rect2(2 * s, -2 * s, 4 * s, 4 * s), khaki_dark)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, skin_color)
+	# Safari hat
+	draw_rect(Rect2(-9 * s, -17 * s, 18 * s, 2 * s), khaki_dark)
+	draw_rect(Rect2(-5 * s, -22 * s, 10 * s, 6 * s), khaki_dark)
+	# Eyes
+	draw_circle(Vector2(-2.5 * s, -14 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(2.5 * s, -14 * s), 1.2 * s, Color(0.15, 0.15, 0.15))
+	# Mustache
+	draw_line(Vector2(-3 * s, -11 * s), Vector2(3 * s, -11 * s), Color(0.3, 0.25, 0.15), 1.5 * s)
+	# Rifle on back
+	draw_line(Vector2(-6 * s, -18 * s), Vector2(8 * s, 10 * s), rifle_color, 2.0 * s)
+	draw_line(Vector2(-6 * s, -18 * s), Vector2(-4 * s, -20 * s), metal_color, 1.5 * s)
+	# Legs
+	draw_rect(Rect2(-6 * s, 14 * s, 5 * s, 4 * s), khaki_dark)
+	draw_rect(Rect2(1 * s, 14 * s, 5 * s, 4 * s), khaki_dark)
+	# Boots
+	draw_rect(Rect2(-7 * s, 18 * s, 6 * s, 2 * s), Color(0.3, 0.2, 0.15))
+	draw_rect(Rect2(1 * s, 18 * s, 6 * s, 2 * s), Color(0.3, 0.2, 0.15))
+
+func _draw_mercenary(s: float, tint: Color) -> void:
+	var gear_color := _apply_tint(Color(0.25, 0.3, 0.2), tint)
+	var gear_dark := _apply_tint(Color(0.15, 0.2, 0.12), tint)
+	var skin_color := _apply_tint(Color(0.78, 0.65, 0.52), tint)
+	var blade_color := _apply_tint(Color(0.7, 0.7, 0.75), tint)
+	var strap_color := _apply_tint(Color(0.35, 0.25, 0.15), tint)
+	# Combat vest
+	draw_rect(Rect2(-9 * s, -8 * s, 18 * s, 22 * s), gear_color)
+	draw_rect(Rect2(-7 * s, -6 * s, 14 * s, 18 * s), gear_dark)
+	# Straps
+	draw_line(Vector2(-6 * s, -8 * s), Vector2(4 * s, 6 * s), strap_color, 2.0 * s)
+	draw_line(Vector2(6 * s, -8 * s), Vector2(-4 * s, 6 * s), strap_color, 2.0 * s)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, skin_color)
+	# Bandana
+	draw_rect(Rect2(-7 * s, -18 * s, 14 * s, 4 * s), _apply_tint(Color(0.15, 0.15, 0.12), tint))
+	# Eyes - intense
+	draw_line(Vector2(-4 * s, -14.5 * s), Vector2(-1 * s, -14 * s), Color(0.15, 0.15, 0.15), 1.5 * s)
+	draw_line(Vector2(1 * s, -14 * s), Vector2(4 * s, -14.5 * s), Color(0.15, 0.15, 0.15), 1.5 * s)
+	# Scar
+	draw_line(Vector2(-4 * s, -16 * s), Vector2(-2 * s, -11 * s), Color(0.65, 0.4, 0.4), 0.8 * s)
+	# Machete
+	draw_line(Vector2(10 * s, -8 * s), Vector2(14 * s, 8 * s), blade_color, 2.5 * s)
+	draw_rect(Rect2(9 * s, -10 * s, 3 * s, 4 * s), strap_color)
+	# Legs
+	draw_rect(Rect2(-7 * s, 14 * s, 6 * s, 4 * s), gear_color)
+	draw_rect(Rect2(1 * s, 14 * s, 6 * s, 4 * s), gear_color)
+
+func _draw_clayton(s: float, tint: Color) -> void:
+	var bs: float = s * 1.4
+	var suit_color := _apply_tint(Color(0.6, 0.55, 0.4), tint)
+	var suit_dark := _apply_tint(Color(0.45, 0.4, 0.28), tint)
+	var skin_color := _apply_tint(Color(0.85, 0.72, 0.6), tint)
+	var hat_color := _apply_tint(Color(0.7, 0.65, 0.5), tint)
+	var gun_color := _apply_tint(Color(0.35, 0.35, 0.38), tint)
+	var wood_color := _apply_tint(Color(0.45, 0.3, 0.18), tint)
+	# Safari suit
+	draw_rect(Rect2(-9 * bs, -8 * bs, 18 * bs, 22 * bs), suit_color)
+	draw_rect(Rect2(-6 * bs, -6 * bs, 12 * bs, 18 * bs), suit_dark)
+	# Belt with ammo
+	draw_rect(Rect2(-10 * bs, 4 * bs, 20 * bs, 3 * bs), _apply_tint(Color(0.4, 0.3, 0.15), tint))
+	for i in range(5):
+		draw_rect(Rect2(-8 * bs + i * 4 * bs, 4 * bs, 2 * bs, 3 * bs), _apply_tint(Color(0.7, 0.6, 0.2), tint))
+	# Head
+	draw_circle(Vector2(0, -15 * bs), 8 * bs, skin_color)
+	# Thick jaw
+	draw_rect(Rect2(-5 * bs, -12 * bs, 10 * bs, 4 * bs), skin_color)
+	# Pith helmet
+	draw_rect(Rect2(-10 * bs, -18 * bs, 20 * bs, 2 * bs), hat_color)
+	draw_rect(Rect2(-6 * bs, -24 * bs, 12 * bs, 7 * bs), hat_color)
+	# Sinister eyes
+	draw_circle(Vector2(-3 * bs, -16 * bs), 1.5 * bs, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(3 * bs, -16 * bs), 1.5 * bs, Color(0.15, 0.15, 0.15))
+	# Smirk
+	draw_arc(Vector2(1 * bs, -12 * bs), 3 * bs, 0.3, PI - 0.5, 8, Color(0.15, 0.15, 0.15), 1.0 * bs)
+	# Shotgun
+	draw_rect(Rect2(10 * bs, -10 * bs, 8 * bs, 3 * bs), gun_color)
+	draw_rect(Rect2(10 * bs, -7 * bs, 8 * bs, 4 * bs), wood_color)
+	draw_circle(Vector2(18 * bs, -8.5 * bs), 2 * bs, Color(0.15, 0.15, 0.15))
+	# Legs
+	draw_rect(Rect2(-6 * bs, 14 * bs, 5 * bs, 5 * bs), suit_dark)
+	draw_rect(Rect2(1 * bs, 14 * bs, 5 * bs, 5 * bs), suit_dark)
+	# Boots
+	draw_rect(Rect2(-7 * bs, 19 * bs, 6 * bs, 2 * bs), Color(0.25, 0.18, 0.12))
+	draw_rect(Rect2(1 * bs, 19 * bs, 6 * bs, 2 * bs), Color(0.25, 0.18, 0.12))
+
+
+# =============================================================================
+# THEME 10 — DRACULA UNDEAD
+# =============================================================================
+
+func _draw_dracula(s: float, tint: Color) -> void:
+	match enemy_tier:
+		0: _draw_thrall(s, tint)
+		1: _draw_dire_wolf(s, tint)
+		2: _draw_vampire_bride(s, tint)
+		3: _draw_count_dracula(s, tint)
+
+func _draw_thrall(s: float, tint: Color) -> void:
+	var rag_color := _apply_tint(Color(0.4, 0.38, 0.35), tint)
+	var skin_color := _apply_tint(Color(0.7, 0.72, 0.68), tint)
+	var eye_color := _apply_tint(Color(0.85, 0.2, 0.2), tint)
+	# Tattered clothes
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * s, -5 * s), Vector2(6 * s, -5 * s), Vector2(7 * s, 8 * s), Vector2(5 * s, 10 * s), Vector2(3 * s, 8 * s), Vector2(1 * s, 11 * s), Vector2(-2 * s, 8 * s), Vector2(-4 * s, 10 * s), Vector2(-7 * s, 7 * s)]), rag_color)
+	# Arms - reaching forward
+	draw_line(Vector2(-7 * s, -2 * s), Vector2(-12 * s, -6 * s), skin_color, 2.0 * s)
+	draw_line(Vector2(7 * s, -2 * s), Vector2(12 * s, -6 * s), skin_color, 2.0 * s)
+	# Pale head
+	draw_circle(Vector2(0, -11 * s), 7 * s, skin_color)
+	# Dark circles under eyes
+	draw_circle(Vector2(-2.5 * s, -10.5 * s), 2.0 * s, _apply_tint(Color(0.4, 0.35, 0.4), tint))
+	draw_circle(Vector2(2.5 * s, -10.5 * s), 2.0 * s, _apply_tint(Color(0.4, 0.35, 0.4), tint))
+	# Glowing red eyes
+	draw_circle(Vector2(-2.5 * s, -11 * s), 1.5 * s, eye_color)
+	draw_circle(Vector2(2.5 * s, -11 * s), 1.5 * s, eye_color)
+	draw_circle(Vector2(-2.5 * s, -11 * s), 0.7 * s, Color(1.0, 0.6, 0.6))
+	draw_circle(Vector2(2.5 * s, -11 * s), 0.7 * s, Color(1.0, 0.6, 0.6))
+	# Messy hair
+	draw_circle(Vector2(-3 * s, -17 * s), 3 * s, _apply_tint(Color(0.3, 0.25, 0.2), tint))
+	draw_circle(Vector2(2 * s, -17 * s), 3 * s, _apply_tint(Color(0.3, 0.25, 0.2), tint))
+	# Legs
+	draw_rect(Rect2(-5 * s, 10 * s, 4 * s, 5 * s), rag_color)
+	draw_rect(Rect2(1 * s, 10 * s, 4 * s, 5 * s), rag_color)
+
+func _draw_dire_wolf(s: float, tint: Color) -> void:
+	var fur_color := _apply_tint(Color(0.3, 0.28, 0.25), tint)
+	var fur_light := _apply_tint(Color(0.45, 0.42, 0.38), tint)
+	var eye_color := _apply_tint(Color(0.9, 0.15, 0.1), tint)
+	var fang_color := _apply_tint(Color(0.9, 0.88, 0.85), tint)
+	# Body - large wolf
+	draw_rect(Rect2(-12 * s, -4 * s, 24 * s, 10 * s), fur_color)
+	draw_rect(Rect2(-8 * s, -2 * s, 16 * s, 6 * s), fur_light)
+	# Tail
+	draw_line(Vector2(-12 * s, -2 * s), Vector2(-18 * s, -8 * s), fur_color, 3.0 * s)
+	# Head
+	draw_circle(Vector2(8 * s, -10 * s), 7 * s, fur_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(8 * s, -10 * s), Vector2(14 * s, -8 * s), Vector2(12 * s, -4 * s)]), fur_light)
+	# Ears
+	draw_colored_polygon(PackedVector2Array([Vector2(4 * s, -14 * s), Vector2(6 * s, -20 * s), Vector2(8 * s, -14 * s)]), fur_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(10 * s, -14 * s), Vector2(12 * s, -20 * s), Vector2(14 * s, -14 * s)]), fur_color)
+	# Red eyes
+	draw_circle(Vector2(6 * s, -11 * s), 1.8 * s, eye_color)
+	draw_circle(Vector2(10 * s, -11 * s), 1.8 * s, eye_color)
+	draw_circle(Vector2(6 * s, -11 * s), 0.8 * s, Color(1.0, 0.5, 0.5))
+	draw_circle(Vector2(10 * s, -11 * s), 0.8 * s, Color(1.0, 0.5, 0.5))
+	# Fangs
+	draw_line(Vector2(10 * s, -5 * s), Vector2(10 * s, -2 * s), fang_color, 1.0 * s)
+	draw_line(Vector2(13 * s, -5 * s), Vector2(13 * s, -2 * s), fang_color, 1.0 * s)
+	# Four legs
+	draw_rect(Rect2(-11 * s, 6 * s, 4 * s, 7 * s), fur_color)
+	draw_rect(Rect2(-5 * s, 6 * s, 4 * s, 7 * s), fur_color)
+	draw_rect(Rect2(3 * s, 6 * s, 4 * s, 7 * s), fur_color)
+	draw_rect(Rect2(9 * s, 6 * s, 4 * s, 7 * s), fur_color)
+
+func _draw_vampire_bride(s: float, tint: Color) -> void:
+	var dress_color := _apply_tint(Color(0.45, 0.08, 0.12), tint)
+	var dress_light := _apply_tint(Color(0.6, 0.15, 0.2), tint)
+	var skin_color := _apply_tint(Color(0.85, 0.85, 0.82), tint)
+	var hair_color := _apply_tint(Color(0.1, 0.08, 0.08), tint)
+	var fang_color := _apply_tint(Color(0.95, 0.92, 0.9), tint)
+	# Flowing dress
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * s, -6 * s), Vector2(6 * s, -6 * s), Vector2(12 * s, 14 * s), Vector2(-12 * s, 14 * s)]), dress_color)
+	draw_rect(Rect2(-7 * s, -8 * s, 14 * s, 14 * s), dress_color)
+	draw_rect(Rect2(-4 * s, -6 * s, 8 * s, 10 * s), dress_light)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, skin_color)
+	# Long dark hair
+	draw_line(Vector2(-6 * s, -14 * s), Vector2(-8 * s, 0), hair_color, 3.0 * s)
+	draw_line(Vector2(6 * s, -14 * s), Vector2(8 * s, 0), hair_color, 3.0 * s)
+	draw_arc(Vector2(0, -14 * s), 7.5 * s, PI + 0.3, 2 * PI - 0.3, 12, hair_color, 2.5 * s)
+	# Red eyes
+	draw_circle(Vector2(-2.5 * s, -14.5 * s), 1.5 * s, _apply_tint(Color(0.85, 0.15, 0.15), tint))
+	draw_circle(Vector2(2.5 * s, -14.5 * s), 1.5 * s, _apply_tint(Color(0.85, 0.15, 0.15), tint))
+	# Fangs
+	draw_line(Vector2(-2 * s, -10 * s), Vector2(-2 * s, -7.5 * s), fang_color, 1.0 * s)
+	draw_line(Vector2(2 * s, -10 * s), Vector2(2 * s, -7.5 * s), fang_color, 1.0 * s)
+	# Blood drip on lip
+	draw_circle(Vector2(0, -9 * s), 1.0 * s, _apply_tint(Color(0.7, 0.05, 0.05), tint))
+	# Arms outstretched
+	draw_line(Vector2(-7 * s, -4 * s), Vector2(-14 * s, -8 * s), skin_color, 2.0 * s)
+	draw_line(Vector2(7 * s, -4 * s), Vector2(14 * s, -8 * s), skin_color, 2.0 * s)
+	# Feet
+	draw_rect(Rect2(-5 * s, 14 * s, 4 * s, 2 * s), dress_color)
+	draw_rect(Rect2(1 * s, 14 * s, 4 * s, 2 * s), dress_color)
+
+func _draw_count_dracula(s: float, tint: Color) -> void:
+	var bs: float = s * 1.4
+	var cape_color := _apply_tint(Color(0.08, 0.05, 0.1), tint)
+	var cape_inner := _apply_tint(Color(0.55, 0.08, 0.1), tint)
+	var suit_color := _apply_tint(Color(0.1, 0.1, 0.12), tint)
+	var skin_color := _apply_tint(Color(0.85, 0.85, 0.8), tint)
+	var eye_color := _apply_tint(Color(0.9, 0.15, 0.1), tint)
+	var fang_color := _apply_tint(Color(0.95, 0.93, 0.9), tint)
+	# Cape - outer
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * bs, -12 * bs), Vector2(8 * bs, -12 * bs), Vector2(14 * bs, 18 * bs), Vector2(-14 * bs, 18 * bs)]), cape_color)
+	# Cape - inner red lining
+	draw_colored_polygon(PackedVector2Array([Vector2(-6 * bs, -10 * bs), Vector2(6 * bs, -10 * bs), Vector2(12 * bs, 16 * bs), Vector2(-12 * bs, 16 * bs)]), cape_inner)
+	# Body
+	draw_rect(Rect2(-7 * bs, -8 * bs, 14 * bs, 22 * bs), suit_color)
+	draw_rect(Rect2(-4 * bs, -6 * bs, 8 * bs, 16 * bs), _apply_tint(Color(0.9, 0.88, 0.85), tint))
+	# Medallion
+	draw_circle(Vector2(0, -3 * bs), 2 * bs, _apply_tint(Color(0.85, 0.75, 0.15), tint))
+	# Head
+	draw_circle(Vector2(0, -15 * bs), 8 * bs, skin_color)
+	# Widow's peak hair
+	draw_colored_polygon(PackedVector2Array([Vector2(-7 * bs, -19 * bs), Vector2(0, -16 * bs), Vector2(7 * bs, -19 * bs), Vector2(7 * bs, -22 * bs), Vector2(-7 * bs, -22 * bs)]), Color(0.08, 0.06, 0.08))
+	# Red eyes
+	draw_circle(Vector2(-3 * bs, -16 * bs), 2.0 * bs, eye_color)
+	draw_circle(Vector2(3 * bs, -16 * bs), 2.0 * bs, eye_color)
+	draw_circle(Vector2(-3 * bs, -16 * bs), 1.0 * bs, Color(1.0, 0.5, 0.5))
+	draw_circle(Vector2(3 * bs, -16 * bs), 1.0 * bs, Color(1.0, 0.5, 0.5))
+	# Arched brows
+	draw_line(Vector2(-5 * bs, -19 * bs), Vector2(-1.5 * bs, -18 * bs), Color(0.08, 0.06, 0.08), 1.0 * bs)
+	draw_line(Vector2(5 * bs, -19 * bs), Vector2(1.5 * bs, -18 * bs), Color(0.08, 0.06, 0.08), 1.0 * bs)
+	# Fangs
+	draw_line(Vector2(-2 * bs, -11 * bs), Vector2(-2 * bs, -8 * bs), fang_color, 1.2 * bs)
+	draw_line(Vector2(2 * bs, -11 * bs), Vector2(2 * bs, -8 * bs), fang_color, 1.2 * bs)
+	# Sinister smile
+	draw_arc(Vector2(0, -12 * bs), 3 * bs, 0.2, PI - 0.2, 8, _apply_tint(Color(0.5, 0.05, 0.05), tint), 0.8 * bs)
+	# Cape collar - high
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * bs, -12 * bs), Vector2(-10 * bs, -18 * bs), Vector2(-6 * bs, -10 * bs)]), cape_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(8 * bs, -12 * bs), Vector2(10 * bs, -18 * bs), Vector2(6 * bs, -10 * bs)]), cape_color)
+	# Legs
+	draw_rect(Rect2(-5 * bs, 14 * bs, 4 * bs, 5 * bs), suit_color)
+	draw_rect(Rect2(1 * bs, 14 * bs, 4 * bs, 5 * bs), suit_color)
+
+
+# =============================================================================
+# THEME 11 — FRANKENSTEIN EXPERIMENTS
+# =============================================================================
+
+func _draw_frankenstein(s: float, tint: Color) -> void:
+	match enemy_tier:
+		0: _draw_lab_rat(s, tint)
+		1: _draw_homunculus(s, tint)
+		2: _draw_failed_experiment(s, tint)
+		3: _draw_igor(s, tint)
+
+func _draw_lab_rat(s: float, tint: Color) -> void:
+	var fur_color := _apply_tint(Color(0.55, 0.5, 0.45), tint)
+	var fur_light := _apply_tint(Color(0.7, 0.65, 0.6), tint)
+	var eye_color := _apply_tint(Color(0.85, 0.2, 0.3), tint)
+	var stitch_color := _apply_tint(Color(0.3, 0.25, 0.2), tint)
+	# Oversized rat body
+	draw_rect(Rect2(-10 * s, -4 * s, 20 * s, 12 * s), fur_color)
+	draw_rect(Rect2(-6 * s, -2 * s, 12 * s, 8 * s), fur_light)
+	# Head
+	draw_circle(Vector2(6 * s, -10 * s), 7 * s, fur_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(6 * s, -10 * s), Vector2(14 * s, -8 * s), Vector2(11 * s, -5 * s)]), fur_light)
+	# Ears
+	draw_circle(Vector2(3 * s, -16 * s), 3 * s, _apply_tint(Color(0.7, 0.5, 0.5), tint))
+	draw_circle(Vector2(10 * s, -16 * s), 3 * s, _apply_tint(Color(0.7, 0.5, 0.5), tint))
+	# Eyes
+	draw_circle(Vector2(4 * s, -11 * s), 1.8 * s, eye_color)
+	draw_circle(Vector2(8 * s, -11 * s), 1.8 * s, eye_color)
+	draw_circle(Vector2(4 * s, -11 * s), 0.8 * s, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(8 * s, -11 * s), 0.8 * s, Color(0.15, 0.15, 0.15))
+	# Stitches across body
+	draw_line(Vector2(-4 * s, -4 * s), Vector2(-4 * s, 6 * s), stitch_color, 1.0 * s)
+	for i in range(4):
+		draw_line(Vector2(-6 * s, -2 * s + i * 2 * s), Vector2(-2 * s, -2 * s + i * 2 * s), stitch_color, 0.8 * s)
+	# Tail
+	draw_arc(Vector2(-12 * s, -2 * s), 5 * s, PI * 0.5, PI * 1.5, 8, _apply_tint(Color(0.65, 0.5, 0.5), tint), 1.5 * s)
+	# Legs
+	draw_rect(Rect2(-9 * s, 8 * s, 4 * s, 5 * s), fur_color)
+	draw_rect(Rect2(-3 * s, 8 * s, 4 * s, 5 * s), fur_color)
+	draw_rect(Rect2(3 * s, 8 * s, 4 * s, 5 * s), fur_color)
+	draw_rect(Rect2(9 * s, 8 * s, 4 * s, 5 * s), fur_color)
+
+func _draw_homunculus(s: float, tint: Color) -> void:
+	var body_color := _apply_tint(Color(0.5, 0.55, 0.45), tint)
+	var body_dark := _apply_tint(Color(0.35, 0.4, 0.3), tint)
+	var eye_color := _apply_tint(Color(0.9, 0.8, 0.2), tint)
+	var stitch_color := _apply_tint(Color(0.25, 0.2, 0.15), tint)
+	# Misshapen body — asymmetric
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * s, -6 * s), Vector2(6 * s, -8 * s), Vector2(9 * s, 4 * s), Vector2(7 * s, 10 * s), Vector2(-5 * s, 12 * s), Vector2(-10 * s, 6 * s)]), body_color)
+	draw_circle(Vector2(-4 * s, 0), 4 * s, body_dark)
+	draw_circle(Vector2(3 * s, 2 * s), 3 * s, body_dark)
+	# Lumpy head
+	draw_circle(Vector2(-1 * s, -12 * s), 6 * s, body_color)
+	draw_circle(Vector2(3 * s, -14 * s), 3 * s, body_color)
+	# Mismatched eyes
+	draw_circle(Vector2(-3 * s, -13 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(2 * s, -12 * s), 1.2 * s, eye_color)
+	draw_circle(Vector2(-3 * s, -13 * s), 1.0 * s, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(2 * s, -12 * s), 0.6 * s, Color(0.15, 0.15, 0.15))
+	# Stitches
+	draw_line(Vector2(-1 * s, -16 * s), Vector2(-1 * s, -8 * s), stitch_color, 1.0 * s)
+	for i in range(3):
+		draw_line(Vector2(-3 * s, -15 * s + i * 3 * s), Vector2(1 * s, -15 * s + i * 3 * s), stitch_color, 0.8 * s)
+	# Arms — different lengths
+	draw_line(Vector2(-8 * s, -2 * s), Vector2(-14 * s, 4 * s), body_color, 2.5 * s)
+	draw_line(Vector2(6 * s, -4 * s), Vector2(10 * s, -2 * s), body_color, 2.0 * s)
+	# Stumpy legs
+	draw_rect(Rect2(-6 * s, 10 * s, 5 * s, 5 * s), body_dark)
+	draw_rect(Rect2(2 * s, 10 * s, 4 * s, 5 * s), body_dark)
+
+func _draw_failed_experiment(s: float, tint: Color) -> void:
+	var body_color := _apply_tint(Color(0.4, 0.5, 0.38), tint)
+	var body_dark := _apply_tint(Color(0.3, 0.38, 0.25), tint)
+	var bolt_color := _apply_tint(Color(0.6, 0.6, 0.62), tint)
+	var stitch_color := _apply_tint(Color(0.2, 0.18, 0.15), tint)
+	var eye_color := _apply_tint(Color(0.9, 0.85, 0.3), tint)
+	# Hulking asymmetric body
+	draw_colored_polygon(PackedVector2Array([Vector2(-12 * s, -10 * s), Vector2(10 * s, -8 * s), Vector2(14 * s, 6 * s), Vector2(10 * s, 14 * s), Vector2(-8 * s, 14 * s), Vector2(-14 * s, 4 * s)]), body_color)
+	# One shoulder bigger
+	draw_circle(Vector2(-12 * s, -8 * s), 6 * s, body_dark)
+	draw_circle(Vector2(10 * s, -6 * s), 4 * s, body_dark)
+	# Chest patches
+	draw_rect(Rect2(-6 * s, -4 * s, 8 * s, 6 * s), body_dark)
+	draw_rect(Rect2(2 * s, 2 * s, 6 * s, 5 * s), body_dark)
+	# Head — flat top
+	draw_rect(Rect2(-6 * s, -20 * s, 14 * s, 12 * s), body_color)
+	draw_rect(Rect2(-6 * s, -22 * s, 14 * s, 3 * s), body_dark)
+	# Neck bolts
+	draw_circle(Vector2(-7 * s, -12 * s), 2.0 * s, bolt_color)
+	draw_circle(Vector2(9 * s, -12 * s), 2.0 * s, bolt_color)
+	# Eyes — one droopy
+	draw_circle(Vector2(-2 * s, -16 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(4 * s, -15 * s), 1.5 * s, eye_color)
+	draw_circle(Vector2(-2 * s, -16 * s), 1.0 * s, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(4 * s, -15 * s), 0.7 * s, Color(0.15, 0.15, 0.15))
+	# Major stitch line
+	draw_line(Vector2(1 * s, -22 * s), Vector2(1 * s, 14 * s), stitch_color, 1.5 * s)
+	for i in range(8):
+		draw_line(Vector2(-2 * s, -18 * s + i * 4 * s), Vector2(4 * s, -18 * s + i * 4 * s), stitch_color, 1.0 * s)
+	# Arms — different sizes
+	draw_line(Vector2(-14 * s, -4 * s), Vector2(-18 * s, 6 * s), body_color, 4.0 * s)
+	draw_circle(Vector2(-18 * s, 6 * s), 3 * s, body_dark)
+	draw_line(Vector2(12 * s, -2 * s), Vector2(14 * s, 4 * s), body_color, 3.0 * s)
+	# Legs
+	draw_rect(Rect2(-8 * s, 14 * s, 7 * s, 5 * s), body_dark)
+	draw_rect(Rect2(2 * s, 14 * s, 6 * s, 5 * s), body_dark)
+
+func _draw_igor(s: float, tint: Color) -> void:
+	var bs: float = s * 1.4
+	var coat_color := _apply_tint(Color(0.3, 0.28, 0.25), tint)
+	var coat_dark := _apply_tint(Color(0.2, 0.18, 0.15), tint)
+	var skin_color := _apply_tint(Color(0.72, 0.68, 0.6), tint)
+	var tool_color := _apply_tint(Color(0.6, 0.6, 0.65), tint)
+	var eye_color := _apply_tint(Color(0.9, 0.85, 0.3), tint)
+	# Hunchback body — one side higher
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * bs, -6 * bs), Vector2(6 * bs, -10 * bs), Vector2(10 * bs, 4 * bs), Vector2(8 * bs, 14 * bs), Vector2(-6 * bs, 14 * bs), Vector2(-10 * bs, 6 * bs)]), coat_color)
+	# Hump
+	draw_circle(Vector2(4 * bs, -12 * bs), 6 * bs, coat_dark)
+	# Apron
+	draw_rect(Rect2(-5 * bs, 0, 10 * bs, 14 * bs), _apply_tint(Color(0.5, 0.48, 0.45), tint))
+	# Head — tilted
+	draw_circle(Vector2(-2 * bs, -16 * bs), 7 * bs, skin_color)
+	# Wild hair
+	draw_circle(Vector2(-5 * bs, -21 * bs), 3 * bs, Color(0.2, 0.18, 0.15))
+	draw_circle(Vector2(0, -22 * bs), 3 * bs, Color(0.2, 0.18, 0.15))
+	draw_circle(Vector2(-3 * bs, -23 * bs), 2.5 * bs, Color(0.2, 0.18, 0.15))
+	# Asymmetric eyes
+	draw_circle(Vector2(-4 * bs, -17 * bs), 2.0 * bs, eye_color)
+	draw_circle(Vector2(1 * bs, -16 * bs), 1.5 * bs, eye_color)
+	draw_circle(Vector2(-4 * bs, -17 * bs), 1.0 * bs, Color(0.15, 0.15, 0.15))
+	draw_circle(Vector2(1 * bs, -16 * bs), 0.7 * bs, Color(0.15, 0.15, 0.15))
+	# Crooked grin
+	draw_arc(Vector2(-2 * bs, -12 * bs), 3 * bs, 0.1, PI - 0.3, 8, Color(0.15, 0.15, 0.15), 0.8 * bs)
+	# Tools in hand — wrench
+	draw_line(Vector2(-10 * bs, -2 * bs), Vector2(-16 * bs, -6 * bs), tool_color, 2.0 * bs)
+	draw_circle(Vector2(-16 * bs, -6 * bs), 2.5 * bs, tool_color)
+	draw_circle(Vector2(-16 * bs, -6 * bs), 1.2 * bs, coat_dark)
+	# Pliers in other hand
+	draw_line(Vector2(8 * bs, 2 * bs), Vector2(14 * bs, -2 * bs), tool_color, 1.5 * bs)
+	draw_line(Vector2(14 * bs, -2 * bs), Vector2(16 * bs, -5 * bs), tool_color, 1.5 * bs)
+	draw_line(Vector2(14 * bs, -2 * bs), Vector2(17 * bs, -3 * bs), tool_color, 1.5 * bs)
+	# Legs — one shorter
+	draw_rect(Rect2(-6 * bs, 14 * bs, 5 * bs, 6 * bs), coat_dark)
+	draw_rect(Rect2(2 * bs, 14 * bs, 5 * bs, 4 * bs), coat_dark)
+	# Boot on short leg is thicker
+	draw_rect(Rect2(1 * bs, 18 * bs, 7 * bs, 3 * bs), Color(0.15, 0.12, 0.1))
+
+
+# =============================================================================
+# THEME 12 — SHADOW AUTHOR
+# =============================================================================
+
+func _draw_shadow_author(s: float, tint: Color) -> void:
+	match enemy_tier:
+		0: _draw_ink_soldier(s, tint)
+		1: _draw_corrupted_character(s, tint)
+		2: _draw_shadow_beast(s, tint)
+		3: _draw_the_author(s, tint)
+
+func _draw_ink_soldier(s: float, tint: Color) -> void:
+	var ink_color := _apply_tint(Color(0.08, 0.06, 0.1), tint)
+	var ink_mid := _apply_tint(Color(0.15, 0.12, 0.18), tint)
+	var drip_color := _apply_tint(Color(0.1, 0.08, 0.14, 0.6), tint)
+	var eye_color := _apply_tint(Color(0.9, 0.85, 0.7), tint)
+	# Soldier-shaped ink body
+	draw_rect(Rect2(-7 * s, -8 * s, 14 * s, 22 * s), ink_color)
+	draw_rect(Rect2(-5 * s, -6 * s, 10 * s, 18 * s), ink_mid)
+	# Ink drips from body
+	draw_line(Vector2(-6 * s, 10 * s), Vector2(-8 * s, 16 * s), drip_color, 2.0 * s)
+	draw_line(Vector2(0, 12 * s), Vector2(1 * s, 18 * s), drip_color, 2.5 * s)
+	draw_line(Vector2(5 * s, 10 * s), Vector2(7 * s, 16 * s), drip_color, 2.0 * s)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 7 * s, ink_color)
+	draw_circle(Vector2(0, -12 * s), 4 * s, ink_mid)
+	# Glowing eyes
+	draw_circle(Vector2(-2.5 * s, -14 * s), 1.5 * s, eye_color)
+	draw_circle(Vector2(2.5 * s, -14 * s), 1.5 * s, eye_color)
+	# Helmet outline in ink
+	draw_arc(Vector2(0, -14 * s), 7.5 * s, PI, 2 * PI, 12, ink_mid, 2.0 * s)
+	# Ink sword
+	draw_line(Vector2(9 * s, -12 * s), Vector2(9 * s, 8 * s), ink_color, 2.5 * s)
+	draw_line(Vector2(6 * s, -4 * s), Vector2(12 * s, -4 * s), ink_mid, 2.0 * s)
+	# Dripping from sword
+	draw_line(Vector2(9 * s, 8 * s), Vector2(10 * s, 13 * s), drip_color, 1.5 * s)
+	# Legs
+	draw_rect(Rect2(-6 * s, 14 * s, 5 * s, 3 * s), ink_color)
+	draw_rect(Rect2(1 * s, 14 * s, 5 * s, 3 * s), ink_color)
+
+func _draw_corrupted_character(s: float, tint: Color) -> void:
+	var body_color := _apply_tint(Color(0.12, 0.08, 0.18), tint)
+	var distort_color := _apply_tint(Color(0.3, 0.15, 0.4), tint)
+	var glitch_color := _apply_tint(Color(0.6, 0.2, 0.7), tint)
+	var eye_color := _apply_tint(Color(0.95, 0.9, 0.3), tint)
+	# Distorted humanoid body
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * s, -10 * s), Vector2(6 * s, -8 * s), Vector2(10 * s, 4 * s), Vector2(8 * s, 12 * s), Vector2(-6 * s, 14 * s), Vector2(-10 * s, 6 * s)]), body_color)
+	# Glitch fragments floating off
+	draw_rect(Rect2(-14 * s, -6 * s, 4 * s, 3 * s), distort_color)
+	draw_rect(Rect2(10 * s, -4 * s, 3 * s, 4 * s), distort_color)
+	draw_rect(Rect2(-12 * s, 4 * s, 3 * s, 3 * s), glitch_color)
+	draw_rect(Rect2(12 * s, 2 * s, 2 * s, 3 * s), glitch_color)
+	# Head — partially distorted
+	draw_circle(Vector2(0, -14 * s), 7 * s, body_color)
+	draw_rect(Rect2(2 * s, -18 * s, 5 * s, 4 * s), distort_color)
+	# One normal eye, one glitching
+	draw_circle(Vector2(-2.5 * s, -14 * s), 1.5 * s, eye_color)
+	draw_rect(Rect2(1 * s, -16 * s, 4 * s, 2 * s), glitch_color)
+	# Mouth — jagged
+	draw_line(Vector2(-3 * s, -10 * s), Vector2(-1 * s, -9 * s), glitch_color, 1.0 * s)
+	draw_line(Vector2(-1 * s, -9 * s), Vector2(1 * s, -11 * s), glitch_color, 1.0 * s)
+	draw_line(Vector2(1 * s, -11 * s), Vector2(3 * s, -9 * s), glitch_color, 1.0 * s)
+	# Static noise lines
+	draw_line(Vector2(-6 * s, -2 * s), Vector2(6 * s, -2 * s), glitch_color, 0.8 * s)
+	draw_line(Vector2(-4 * s, 4 * s), Vector2(8 * s, 4 * s), glitch_color, 0.8 * s)
+	# Legs — one normal, one dissolving
+	draw_rect(Rect2(-6 * s, 12 * s, 5 * s, 4 * s), body_color)
+	draw_line(Vector2(2 * s, 12 * s), Vector2(3 * s, 16 * s), distort_color, 2.5 * s)
+	draw_rect(Rect2(4 * s, 14 * s, 2 * s, 2 * s), distort_color)
+
+func _draw_shadow_beast(s: float, tint: Color) -> void:
+	var ink_color := _apply_tint(Color(0.05, 0.03, 0.08), tint)
+	var ink_mid := _apply_tint(Color(0.12, 0.08, 0.18), tint)
+	var eye_color := _apply_tint(Color(1.0, 0.4, 0.2), tint)
+	var mouth_color := _apply_tint(Color(0.8, 0.15, 0.1), tint)
+	var aura_color := _apply_tint(Color(0.3, 0.1, 0.4, 0.2), tint)
+	# Massive dark aura
+	draw_circle(Vector2(0, -2 * s), 22 * s, aura_color)
+	# Hulking body
+	draw_colored_polygon(PackedVector2Array([Vector2(-14 * s, -8 * s), Vector2(14 * s, -8 * s), Vector2(16 * s, 4 * s), Vector2(12 * s, 14 * s), Vector2(-12 * s, 14 * s), Vector2(-16 * s, 4 * s)]), ink_color)
+	draw_circle(Vector2(-10 * s, -2 * s), 6 * s, ink_mid)
+	draw_circle(Vector2(10 * s, -2 * s), 6 * s, ink_mid)
+	draw_circle(Vector2(0, 4 * s), 7 * s, ink_mid)
+	# Head
+	draw_circle(Vector2(0, -14 * s), 9 * s, ink_color)
+	# Multiple glowing eyes
+	draw_circle(Vector2(-4 * s, -16 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(4 * s, -16 * s), 2.0 * s, eye_color)
+	draw_circle(Vector2(-2 * s, -12 * s), 1.5 * s, eye_color)
+	draw_circle(Vector2(2 * s, -12 * s), 1.5 * s, eye_color)
+	draw_circle(Vector2(0, -18 * s), 1.2 * s, eye_color)
+	# Gaping maw
+	draw_arc(Vector2(0, -10 * s), 4 * s, 0.2, PI - 0.2, 8, mouth_color, 2.0 * s)
+	draw_line(Vector2(-3 * s, -9 * s), Vector2(-2 * s, -6 * s), Color(0.9, 0.9, 0.85), 1.0 * s)
+	draw_line(Vector2(3 * s, -9 * s), Vector2(2 * s, -6 * s), Color(0.9, 0.9, 0.85), 1.0 * s)
+	# Ink tentacle arms
+	draw_line(Vector2(-14 * s, -4 * s), Vector2(-20 * s, -10 * s), ink_color, 3.0 * s)
+	draw_line(Vector2(-20 * s, -10 * s), Vector2(-18 * s, -14 * s), ink_mid, 2.0 * s)
+	draw_line(Vector2(14 * s, -4 * s), Vector2(20 * s, -10 * s), ink_color, 3.0 * s)
+	draw_line(Vector2(20 * s, -10 * s), Vector2(18 * s, -14 * s), ink_mid, 2.0 * s)
+	# Legs — thick pillars
+	draw_rect(Rect2(-10 * s, 14 * s, 7 * s, 5 * s), ink_color)
+	draw_rect(Rect2(3 * s, 14 * s, 7 * s, 5 * s), ink_color)
+
+func _draw_the_author(s: float, tint: Color) -> void:
+	var bs: float = s * 1.5
+	var robe_color := _apply_tint(Color(0.06, 0.04, 0.1), tint)
+	var robe_mid := _apply_tint(Color(0.15, 0.1, 0.25), tint)
+	var skin_color := _apply_tint(Color(0.6, 0.58, 0.55), tint)
+	var eye_color := _apply_tint(Color(1.0, 0.8, 0.2), tint)
+	var quill_color := _apply_tint(Color(0.85, 0.8, 0.7), tint)
+	var ink_glow := _apply_tint(Color(0.4, 0.15, 0.6, 0.3), tint)
+	# Dark aura
+	draw_circle(Vector2(0, -4 * bs), 26 * bs, ink_glow)
+	# Flowing dark robes
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * bs, -14 * bs), Vector2(8 * bs, -14 * bs), Vector2(16 * bs, 18 * bs), Vector2(8 * bs, 20 * bs), Vector2(0, 17 * bs), Vector2(-8 * bs, 20 * bs), Vector2(-16 * bs, 18 * bs)]), robe_color)
+	draw_rect(Rect2(-9 * bs, -10 * bs, 18 * bs, 22 * bs), robe_color)
+	draw_rect(Rect2(-6 * bs, -8 * bs, 12 * bs, 18 * bs), robe_mid)
+	# Ink symbols on robe
+	draw_arc(Vector2(0, 0), 4 * bs, 0, TAU, 10, _apply_tint(Color(0.4, 0.2, 0.6), tint), 0.8 * bs)
+	draw_circle(Vector2(-4 * bs, 6 * bs), 1.5 * bs, _apply_tint(Color(0.4, 0.2, 0.6), tint))
+	draw_circle(Vector2(4 * bs, 6 * bs), 1.5 * bs, _apply_tint(Color(0.4, 0.2, 0.6), tint))
+	# Hood / head
+	draw_colored_polygon(PackedVector2Array([Vector2(-8 * bs, -16 * bs), Vector2(0, -28 * bs), Vector2(8 * bs, -16 * bs), Vector2(6 * bs, -10 * bs), Vector2(-6 * bs, -10 * bs)]), robe_color)
+	draw_circle(Vector2(0, -18 * bs), 7 * bs, skin_color)
+	# Intense glowing eyes
+	draw_circle(Vector2(-3 * bs, -19 * bs), 2.5 * bs, eye_color)
+	draw_circle(Vector2(3 * bs, -19 * bs), 2.5 * bs, eye_color)
+	draw_circle(Vector2(-3 * bs, -19 * bs), 1.2 * bs, Color(1.0, 1.0, 0.9))
+	draw_circle(Vector2(3 * bs, -19 * bs), 1.2 * bs, Color(1.0, 1.0, 0.9))
+	# Thin sinister mouth
+	draw_arc(Vector2(0, -14 * bs), 3 * bs, 0.2, PI - 0.2, 8, Color(0.15, 0.1, 0.15), 1.0 * bs)
+	# Giant quill in right hand
+	draw_line(Vector2(10 * bs, -6 * bs), Vector2(18 * bs, -28 * bs), quill_color, 2.5 * bs)
+	# Quill feather
+	draw_colored_polygon(PackedVector2Array([Vector2(18 * bs, -28 * bs), Vector2(16 * bs, -34 * bs), Vector2(20 * bs, -32 * bs)]), quill_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(18 * bs, -28 * bs), Vector2(14 * bs, -32 * bs), Vector2(17 * bs, -34 * bs)]), _apply_tint(Color(0.7, 0.65, 0.55), tint))
+	# Quill tip dripping ink
+	draw_line(Vector2(10 * bs, -6 * bs), Vector2(9 * bs, 0), _apply_tint(Color(0.1, 0.06, 0.15), tint), 2.0 * bs)
+	draw_circle(Vector2(9 * bs, 2 * bs), 2 * bs, _apply_tint(Color(0.1, 0.06, 0.15, 0.7), tint))
+	# Left hand — open, commanding
+	draw_circle(Vector2(-12 * bs, -4 * bs), 3 * bs, skin_color)
+	draw_line(Vector2(-12 * bs, -4 * bs), Vector2(-16 * bs, -8 * bs), skin_color, 1.0 * bs)
+	draw_line(Vector2(-12 * bs, -4 * bs), Vector2(-15 * bs, -6 * bs), skin_color, 1.0 * bs)
+	draw_line(Vector2(-12 * bs, -4 * bs), Vector2(-15 * bs, -3 * bs), skin_color, 1.0 * bs)
+	# Floating ink orbs around
+	draw_circle(Vector2(-14 * bs, -14 * bs), 2.0 * bs, _apply_tint(Color(0.15, 0.08, 0.25, 0.6), tint))
+	draw_circle(Vector2(14 * bs, -12 * bs), 1.5 * bs, _apply_tint(Color(0.15, 0.08, 0.25, 0.5), tint))
+	draw_circle(Vector2(-10 * bs, 10 * bs), 1.8 * bs, _apply_tint(Color(0.15, 0.08, 0.25, 0.5), tint))
+	# Base wisps
+	draw_line(Vector2(-12 * bs, 18 * bs), Vector2(-14 * bs, 22 * bs), robe_mid, 2.0 * bs)
+	draw_line(Vector2(0, 17 * bs), Vector2(0, 22 * bs), robe_mid, 2.5 * bs)
+	draw_line(Vector2(12 * bs, 18 * bs), Vector2(14 * bs, 22 * bs), robe_mid, 2.0 * bs)

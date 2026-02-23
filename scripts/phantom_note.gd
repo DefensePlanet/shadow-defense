@@ -69,3 +69,17 @@ func _draw() -> void:
 
 	# Trail
 	draw_line(-dir * 8.0 + Vector2(0, bob), Vector2(0, bob), Color(0.4, 0.2, 0.6, 0.3), 2.0)
+
+	# Cosmetic trail
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.get("equipped_cosmetics") != null:
+		var trail_id = main.equipped_cosmetics.get("trails", "")
+		if trail_id != "":
+			var trail_items = main.trophy_store_items.get("trails", [])
+			for ti in trail_items:
+				if ti["id"] == trail_id:
+					var tc = ti["color"]
+					for tj in range(4):
+						var off = -dir * (10.0 + tj * 7.0) + Vector2(0, bob)
+						draw_circle(off, 3.0 - tj * 0.5, Color(tc.r, tc.g, tc.b, 0.5 - tj * 0.12))
+					break

@@ -206,7 +206,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
 		if fire_cooldown <= 0.0:
 			_strike_target(target)
-			fire_cooldown = 1.0 / fire_rate
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
 	# Tier 2: Fairy Dust AoE
 	if upgrade_tier >= 2:
@@ -228,15 +228,16 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
+	var eff_range = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(enemy.global_position) < attack_range:
+		if _home_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
-	var nearest_dist: float = attack_range
+	var nearest_dist: float = attack_range * _range_mult()
 	for enemy in enemies:
 		var dist = _home_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
@@ -285,16 +286,17 @@ func _strike_target(t: Node2D) -> void:
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 	_attack_anim = 1.0
-	var dmg = damage
+	var dmg = damage * _damage_mult()
 	if prog_abilities[0]:  # Flying Strikes: +15% damage
 		dmg *= 1.15
 	var will_kill = t.health - dmg <= 0.0
 	t.take_damage(dmg)
 	register_damage(dmg)
-	if will_kill and gold_bonus > 0:
+	var eff_gold = int(gold_bonus * _gold_mult())
+	if will_kill and eff_gold > 0:
 		var main = get_tree().get_first_node_in_group("main")
 		if main:
-			main.add_gold(gold_bonus)
+			main.add_gold(eff_gold)
 	# Shadow strike on second target (Tier 1)
 	if shadow_enabled:
 		var second = _find_second_target(t)
@@ -437,7 +439,7 @@ func get_sell_value() -> int:
 
 func _generate_tier_sounds() -> void:
 	# Dagger blade swish — sharp, quick, metallic shing with fairy sparkle
-	var ring_freqs := [3200.0, 3600.0, 4000.0, 3400.0]
+	var ring_freqs := [587.33, 698.46, 880.00, 1174.66, 880.00, 698.46, 587.33, 783.99]  # D5, F5, A5, D6, A5, F5, D5, G5 (D minor fairy bell arpeggio)
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
@@ -468,7 +470,7 @@ func _generate_tier_sounds() -> void:
 	# --- Tier 1: Sharpened Blade (brighter ring + fairy sparkle) ---
 	var t1 := []
 	for note_idx in ring_freqs.size():
-		var rf: float = ring_freqs[note_idx] * 1.05
+		var rf: float = ring_freqs[note_idx]
 		var dur := 0.14
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
@@ -492,7 +494,7 @@ func _generate_tier_sounds() -> void:
 	# --- Tier 2: Shadow Blade (darker tone, faint echo) ---
 	var t2 := []
 	for note_idx in ring_freqs.size():
-		var rf: float = ring_freqs[note_idx] * 0.9
+		var rf: float = ring_freqs[note_idx]
 		var dur := 0.18
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
@@ -544,7 +546,7 @@ func _generate_tier_sounds() -> void:
 	# --- Tier 4: Master's Blade (full crystalline ring + fairy cascade) ---
 	var t4 := []
 	for note_idx in ring_freqs.size():
-		var rf: float = ring_freqs[note_idx] * 1.1
+		var rf: float = ring_freqs[note_idx]
 		var dur := 0.22
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * dur))
@@ -1802,3 +1804,30 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = ThemeDB.fallback_font
 		draw_string(font2, Vector2(-80, -60), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.5, 1.0, 0.6, min(_upgrade_flash, 1.0)))
+
+# === SYNERGY BUFFS ===
+var _synergy_buffs: Dictionary = {}
+
+func set_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) + buffs[key]
+
+func clear_synergy_buff() -> void:
+	_synergy_buffs.clear()
+
+func has_synergy_buff() -> bool:
+	return not _synergy_buffs.is_empty()
+
+var power_damage_mult: float = 1.0
+
+func _damage_mult() -> float:
+	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+
+func _range_mult() -> float:
+	return 1.0 + _synergy_buffs.get("range", 0.0)
+
+func _speed_mult() -> float:
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+
+func _gold_mult() -> float:
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)

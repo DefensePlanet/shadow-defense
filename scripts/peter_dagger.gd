@@ -94,3 +94,17 @@ func _draw() -> void:
 		draw_line(dir * 3.0, dir * 7.0, Color(0.85, 0.87, 0.92), 1.2)
 		# Blade tip
 		draw_line(dir * 6.0, dir * 8.0, Color(0.8, 0.82, 0.88), 1.5)
+
+	# Cosmetic trail
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.get("equipped_cosmetics") != null:
+		var trail_id = main.equipped_cosmetics.get("trails", "")
+		if trail_id != "":
+			var trail_items = main.trophy_store_items.get("trails", [])
+			for ti in trail_items:
+				if ti["id"] == trail_id:
+					var tc = ti["color"]
+					for tj in range(4):
+						var off = -dir * (10.0 + tj * 7.0)
+						draw_circle(off, 3.0 - tj * 0.5, Color(tc.r, tc.g, tc.b, (0.5 - tj * 0.12) * alpha))
+					break

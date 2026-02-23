@@ -204,7 +204,7 @@ func _process(delta: float) -> void:
 	target = _find_nearest_enemy()
 	if target and fire_cooldown <= 0.0:
 		_strike_target(target)
-		fire_cooldown = 1.0 / fire_rate
+		fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
 	# Tier 1+: Wolf pack burst (always checks from home position)
 	if upgrade_tier >= 1:
@@ -224,15 +224,16 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
+	var eff_range = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(enemy.global_position) < attack_range:
+		if _home_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
 func _find_nearest_enemy() -> Node2D:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
-	var nearest_dist: float = attack_range
+	var nearest_dist: float = attack_range * _range_mult()
 	for enemy in enemies:
 		var dist = _home_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
@@ -261,13 +262,13 @@ func _strike_target(t: Node2D) -> void:
 func _fire_bolt(t: Node2D) -> void:
 	var bolt = bolt_scene.instantiate()
 	bolt.global_position = global_position + Vector2.from_angle(aim_angle) * 16.0
-	var bolt_dmg = damage
+	var bolt_dmg = damage * _damage_mult()
 	if prog_abilities[0]:  # Witch's Cackle: +15% damage, 25% faster bolts
 		bolt_dmg *= 1.15
 		_cackle_flash = 0.5
 	bolt.damage = bolt_dmg
 	bolt.target = t
-	bolt.gold_bonus = gold_bonus
+	bolt.gold_bonus = int(gold_bonus * _gold_mult())
 	bolt.source_tower = self
 	bolt.dot_dps = dot_dps
 	bolt.dot_duration = dot_duration
@@ -415,7 +416,7 @@ func get_sell_value() -> int:
 
 func _generate_tier_sounds() -> void:
 	# Spooky notes — diminished / tritone intervals for maximum creep
-	var hex_notes := [220.0, 277.0, 311.0, 370.0, 311.0, 277.0]
+	var hex_notes := [220.00, 261.63, 293.66, 349.23, 293.66, 261.63, 220.00, 349.23]  # A3, C4, D4, F4, D4, C4, A3, F4 (D minor dark melodic pad)
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
@@ -1916,3 +1917,30 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = ThemeDB.fallback_font
 		draw_string(font2, Vector2(-80, -80), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.4, 0.9, 0.2, min(_upgrade_flash, 1.0)))
+
+# === SYNERGY BUFFS ===
+var _synergy_buffs: Dictionary = {}
+
+func set_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) + buffs[key]
+
+func clear_synergy_buff() -> void:
+	_synergy_buffs.clear()
+
+func has_synergy_buff() -> bool:
+	return not _synergy_buffs.is_empty()
+
+var power_damage_mult: float = 1.0
+
+func _damage_mult() -> float:
+	return (1.0 + _synergy_buffs.get("damage", 0.0)) * power_damage_mult
+
+func _range_mult() -> float:
+	return 1.0 + _synergy_buffs.get("range", 0.0)
+
+func _speed_mult() -> float:
+	return 1.0 + _synergy_buffs.get("attack_speed", 0.0)
+
+func _gold_mult() -> float:
+	return 1.0 + _synergy_buffs.get("gold_bonus", 0.0)
