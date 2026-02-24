@@ -42,6 +42,12 @@ var enemy_theme: int = 0
 var enemy_tier: int = 0
 var shrink_scale: float = 1.0
 var boss_scale: float = 1.0  # >1.0 for boss enemies (drawn bigger)
+var _dead: bool = false  # Guard against double death counting
+
+# Named boss villain
+var is_named_boss: bool = false
+var boss_name: String = ""
+var _rescue_pending: bool = false
 
 # Wound state visuals
 var _wound_drip_offsets: Array = []
@@ -73,6 +79,12 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_wound_time += delta
+	# Rescue pending — freeze in place, awaiting Shadow Author rescue animation
+	if _rescue_pending:
+		if _hit_flash > 0.0:
+			_hit_flash -= delta
+		queue_redraw()
+		return
 	# Sleep — completely frozen
 	if sleep_timer > 0.0:
 		sleep_timer -= delta
@@ -159,7 +171,8 @@ func _process(delta: float) -> void:
 	if _hit_flash > 0.0:
 		_hit_flash -= delta
 
-	if progress_ratio >= 1.0:
+	if progress_ratio >= 1.0 and not _dead:
+		_dead = true
 		var main = get_tree().get_first_node_in_group("main")
 		if main:
 			main.lose_life()
@@ -171,6 +184,8 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func take_damage(amount: float, is_magic: bool = false) -> void:
+	if _dead:
+		return
 	var mult = damage_mult * cheshire_mark_mult * charm_damage_mult
 	var paint_mult = 1.0 + paint_stacks * 0.05
 	var final_dmg = amount * mult * paint_mult
@@ -202,6 +217,8 @@ func take_damage(amount: float, is_magic: bool = false) -> void:
 		_die()
 
 func take_chain_damage(amount: float) -> void:
+	if _dead:
+		return
 	health -= amount
 	_hit_flash = 0.08
 	if health <= 0.0:
@@ -252,6 +269,20 @@ func apply_permanent_slow(mult: float) -> void:
 	permanent_slow_mult = min(permanent_slow_mult, mult)
 
 func _die() -> void:
+	if _dead:
+		return
+	# Named boss rescue — Shadow Author saves the villain (except on his own levels 34-36)
+	if is_named_boss and not _rescue_pending:
+		var main = get_tree().get_first_node_in_group("main")
+		if main and main.current_level < 34:
+			_rescue_pending = true
+			_dead = true
+			main.add_gold(gold_reward)
+			if main.has_method("spawn_gold_text"):
+				main.spawn_gold_text(global_position, gold_reward)
+			main.start_boss_rescue(global_position, self)
+			return
+	_dead = true
 	var main = get_tree().get_first_node_in_group("main")
 	if main:
 		main.add_gold(gold_reward)
@@ -286,6 +317,9 @@ func _draw() -> void:
 	# Spectral modifier — translucent
 	if "spectral" in modifiers:
 		tint.a *= 0.5
+	# Shadow-corrupted doubles get purple tint
+	if is_named_boss and enemy_theme in [2, 4, 10]:
+		tint = Color(tint.r * 0.6 + 0.25, tint.g * 0.4, tint.b * 0.5 + 0.35, tint.a)
 
 	match enemy_theme:
 		0: _draw_sherwood(s, tint)
@@ -349,6 +383,33 @@ func _draw() -> void:
 	else:
 		bar_color = Color(0.95, 0.2, 0.15)
 	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w * ratio, bar_h), bar_color)
+
+	# Named boss: shadow aura + name label
+	if is_named_boss:
+		# Dark shadow aura — animated purple/black particles
+		var aura_time = _wound_time
+		for i in range(12):
+			var angle = TAU * float(i) / 12.0 + aura_time * 1.5
+			var dist = 20.0 * s + sin(aura_time * 3.0 + float(i)) * 6.0
+			var px = cos(angle) * dist
+			var py = sin(angle) * dist * 0.6 - 8.0 * s
+			var aura_alpha = 0.3 + sin(aura_time * 2.0 + float(i) * 0.8) * 0.15
+			var aura_size = 3.0 + sin(aura_time * 4.0 + float(i) * 1.2) * 1.5
+			draw_circle(Vector2(px, py), aura_size * s, Color(0.3, 0.1, 0.5, aura_alpha))
+		# Outer wispy ring
+		for i in range(8):
+			var angle = TAU * float(i) / 8.0 - aura_time * 0.8
+			var dist2 = 28.0 * s + sin(aura_time * 2.0 + float(i) * 1.5) * 8.0
+			var px2 = cos(angle) * dist2
+			var py2 = sin(angle) * dist2 * 0.5 - 6.0 * s
+			draw_circle(Vector2(px2, py2), 2.0 * s, Color(0.15, 0.0, 0.2, 0.2))
+		# Boss name label in gold above health bar
+		var name_y = bar_y - 10.0
+		draw_string(_game_font, Vector2(-bar_w, name_y), boss_name, HORIZONTAL_ALIGNMENT_CENTER, int(bar_w * 2.0), 10, Color(1.0, 0.85, 0.2, 0.95))
+		# Rescue pending: glowing collapse effect
+		if _rescue_pending:
+			var pulse = sin(aura_time * 6.0) * 0.3 + 0.5
+			draw_circle(Vector2.ZERO, 30.0 * s * pulse, Color(0.5, 0.2, 0.8, 0.15))
 
 
 func _apply_tint(base: Color, tint: Color) -> Color:

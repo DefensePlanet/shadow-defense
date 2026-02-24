@@ -30,19 +30,31 @@ var _orbit_angle: float = 0.0
 var _orbit_radius: float = 60.0
 var _orbit_speed: float = 1.8  # radians per second
 
-# DoT applied by projectiles
-var dot_dps: float = 0.0
-var dot_duration: float = 0.0
-
-# Tier 1: Pack of Wolves
-var wolf_timer: float = 0.0
-var wolf_cooldown: float = 10.0
+# Tier 1: Pack of Wolves — run down path every 10 waves
+var _wolves_active: Array = []
+var _wolf_spawn_timer: float = 0.0
+var _wolves_last_trigger_wave: int = -1
 var _wolf_flash: float = 0.0
 
-# Tier 4: Golden Cap (Winged Monkeys)
-var monkey_timer: float = 0.0
-var monkey_cooldown: float = 20.0
-var _monkey_flash: float = 0.0
+# Tier 2: Murder of Crows — dive-bomb enemies every 5 waves
+var _crows_active: Array = []
+var _crow_feathers: Array = []
+var _crow_spawn_timer: float = 0.0
+var _crows_last_trigger_wave: int = -1
+var _crow_flash: float = 0.0
+var _crow_sound: AudioStreamWAV
+var _crow_player: AudioStreamPlayer
+
+# Tier 3: Beehive on path
+var _beehive_pos: Vector2 = Vector2.ZERO
+var _beehive_active: bool = false
+var _beehive_radius: float = 60.0
+var _beehive_damage: float = 3.0
+var _beehive_slow: float = 0.5
+var _beehive_bees: Array = []
+
+# Tier 4: Golden Cap
+var _golden_cap_active: bool = false
 
 # === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
 const PROG_ABILITY_NAMES = [
@@ -94,12 +106,12 @@ const TIER_NAMES = [
 	"The Golden Cap"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Periodic wolf projectile burst",
-	"Enemies hit take poison DoT",
-	"DoT spreads, increased damage",
-	"Winged Monkey AoE burst every 20s"
+	"Wolves run down the path every other wave",
+	"Crows dive-bomb enemies once a wave",
+	"Beehive on path slows and damages enemies",
+	"Golden Cap — faster orbit, enhanced wolves/crows"
 ]
-const TIER_COSTS = [90, 200, 350, 550]
+const TIER_COSTS = [90, 200, 350, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -113,8 +125,6 @@ var _attack_player: AudioStreamPlayer
 # Ability sounds
 var _wolf_sound: AudioStreamWAV
 var _wolf_player: AudioStreamPlayer
-var _monkey_sound: AudioStreamWAV
-var _monkey_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
 var _game_font: Font
@@ -131,41 +141,52 @@ func _ready() -> void:
 	_attack_player.volume_db = -6.0
 	add_child(_attack_player)
 
-	# Wolf pack — rising wolf howl with vibrato
+	# Wolf howl — eerie rising howl with vibrato, harmonics, and sustain
 	var wf_rate := 22050
-	var wf_dur := 0.55
+	var wf_dur := 1.2
 	var wf_samples := PackedFloat32Array()
 	wf_samples.resize(int(wf_rate * wf_dur))
 	for i in wf_samples.size():
 		var t := float(i) / wf_rate
-		var freq := 250.0 + t * 500.0 + sin(TAU * 6.0 * t) * 30.0
-		var att := minf(t * 10.0, 1.0)
-		var dec := exp(-(t - 0.3) * 5.0) if t > 0.3 else 1.0
-		var env := att * dec * 0.4
-		wf_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 1.5 * t) * 0.3) * env, -1.0, 1.0)
+		# Rising pitch: starts low, sweeps up, holds, then drops at end
+		var pitch_rise := 180.0 + t * 400.0 if t < 0.4 else 340.0 + sin(t * 3.0) * 20.0
+		if t > 0.9:
+			pitch_rise = 340.0 - (t - 0.9) * 600.0
+		var vibrato := sin(TAU * 5.5 * t) * (15.0 + t * 10.0)
+		var freq := pitch_rise + vibrato
+		# Rich harmonics for wolf-like timbre
+		var fundamental := sin(TAU * freq * t)
+		var harm2 := sin(TAU * freq * 1.5 * t) * 0.35
+		var harm3 := sin(TAU * freq * 2.0 * t) * 0.15
+		var breath := (randf() * 2.0 - 1.0) * 0.06
+		# Envelope: quick attack, long sustain, gentle decay
+		var att := minf(t * 8.0, 1.0)
+		var dec := 1.0 if t < 0.85 else exp(-(t - 0.85) * 6.0)
+		var env := att * dec * 0.45
+		wf_samples[i] = clampf((fundamental + harm2 + harm3 + breath) * env, -1.0, 1.0)
 	_wolf_sound = _samples_to_wav(wf_samples, wf_rate)
 	_wolf_player = AudioStreamPlayer.new()
 	_wolf_player.stream = _wolf_sound
-	_wolf_player.volume_db = -6.0
+	_wolf_player.volume_db = -4.0
 	add_child(_wolf_player)
 
-	# Winged monkeys — harsh ascending screech + wing flutter
-	var mk_rate := 22050
-	var mk_dur := 0.4
-	var mk_samples := PackedFloat32Array()
-	mk_samples.resize(int(mk_rate * mk_dur))
-	for i in mk_samples.size():
-		var t := float(i) / mk_rate
-		var screech_freq := 800.0 + t * 1500.0
-		var flutter := 0.5 + 0.5 * sin(TAU * 25.0 * t)
-		var env := (1.0 - t / mk_dur) * 0.4
-		var s := sin(TAU * screech_freq * t) * 0.5 + (randf() * 2.0 - 1.0) * 0.2
-		mk_samples[i] = clampf(s * flutter * env, -1.0, 1.0)
-	_monkey_sound = _samples_to_wav(mk_samples, mk_rate)
-	_monkey_player = AudioStreamPlayer.new()
-	_monkey_player.stream = _monkey_sound
-	_monkey_player.volume_db = -6.0
-	add_child(_monkey_player)
+	# Crow dive-bomb — descending screech with flutter
+	var cr_rate := 22050
+	var cr_dur := 0.35
+	var cr_samples := PackedFloat32Array()
+	cr_samples.resize(int(cr_rate * cr_dur))
+	for i in cr_samples.size():
+		var t := float(i) / cr_rate
+		var screech_freq := 1200.0 - t * 800.0
+		var flutter := 0.5 + 0.5 * sin(TAU * 20.0 * t)
+		var env := (1.0 - t / cr_dur) * 0.35
+		var s := sin(TAU * screech_freq * t) * 0.4 + (randf() * 2.0 - 1.0) * 0.15
+		cr_samples[i] = clampf(s * flutter * env, -1.0, 1.0)
+	_crow_sound = _samples_to_wav(cr_samples, cr_rate)
+	_crow_player = AudioStreamPlayer.new()
+	_crow_player.stream = _crow_sound
+	_crow_player.volume_db = -6.0
+	add_child(_crow_player)
 
 	# Upgrade chime
 	var up_rate := 22050
@@ -192,7 +213,6 @@ func _process(delta: float) -> void:
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_wolf_flash = max(_wolf_flash - delta * 2.0, 0.0)
-	_monkey_flash = max(_monkey_flash - delta * 1.5, 0.0)
 
 	# Orbit around home position on broom
 	_orbit_angle += _orbit_speed * delta
@@ -208,19 +228,23 @@ func _process(delta: float) -> void:
 		_strike_target(target)
 		fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
-	# Tier 1+: Wolf pack burst (always checks from home position)
-	if upgrade_tier >= 1:
-		wolf_timer -= delta
-		if wolf_timer <= 0.0 and _has_enemies_in_range():
-			_wolf_pack()
-			wolf_timer = wolf_cooldown
+	# Wolf spawn timer countdown
+	if _wolf_spawn_timer > 0.0:
+		_wolf_spawn_timer -= delta
+		if _wolf_spawn_timer <= 0.0:
+			_spawn_wolf_pack()
 
-	# Tier 4: Golden Cap — Winged Monkeys
-	if upgrade_tier >= 4:
-		monkey_timer -= delta
-		if monkey_timer <= 0.0 and _has_enemies_in_range():
-			_winged_monkeys()
-			monkey_timer = monkey_cooldown
+	# Crow spawn timer countdown
+	if _crow_spawn_timer > 0.0:
+		_crow_spawn_timer -= delta
+		if _crow_spawn_timer <= 0.0:
+			_spawn_crow_dive()
+
+	# Update active wolves, crows, beehive
+	_update_wolves(delta)
+	_update_crows(delta)
+	_update_beehive(delta)
+	_crow_flash = max(_crow_flash - delta * 2.0, 0.0)
 
 	_process_progressive_abilities(delta)
 	queue_redraw()
@@ -272,50 +296,204 @@ func _fire_bolt(t: Node2D) -> void:
 	bolt.target = t
 	bolt.gold_bonus = int(gold_bonus * _gold_mult())
 	bolt.source_tower = self
-	bolt.dot_dps = dot_dps
-	bolt.dot_duration = dot_duration
+	bolt.dot_dps = 0.0
+	bolt.dot_duration = 0.0
 	if prog_abilities[0] and "speed" in bolt:
 		bolt.speed *= 1.25
 	get_tree().get_first_node_in_group("main").add_child(bolt)
 
-func _wolf_pack() -> void:
+func on_wave_start(wave_num: int) -> void:
+	# Wolves: every other wave
+	if upgrade_tier >= 1 and wave_num % 2 == 0 and wave_num != _wolves_last_trigger_wave:
+		_wolves_last_trigger_wave = wave_num
+		_wolf_spawn_timer = 1.0  # 1s delay so enemies get on path
+	# Crows: once every wave
+	if upgrade_tier >= 2 and wave_num != _crows_last_trigger_wave:
+		_crows_last_trigger_wave = wave_num
+		_crow_spawn_timer = 2.0  # 2s delay
+
+func _spawn_wolf_pack() -> void:
 	if _wolf_player and not _is_sfx_muted(): _wolf_player.play()
 	_wolf_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var in_range: Array = []
-	for enemy in enemies:
-		if _home_position.distance_to(enemy.global_position) < attack_range:
-			in_range.append(enemy)
-	in_range.shuffle()
-	var count = mini(3, in_range.size())
-	for i in range(count):
-		var bolt = bolt_scene.instantiate()
-		bolt.global_position = _home_position + Vector2.from_angle(aim_angle + (float(i) - 1.0) * 0.5) * 16.0
-		bolt.damage = damage * 0.8
-		bolt.target = in_range[i]
-		bolt.gold_bonus = gold_bonus
-		bolt.source_tower = self
-		bolt.is_wolf = true
-		bolt.dot_dps = dot_dps
-		bolt.dot_duration = dot_duration
-		get_tree().get_first_node_in_group("main").add_child(bolt)
+	var main = get_tree().get_first_node_in_group("main")
+	if not main or not main.has_method("get_path_points"):
+		return
+	var path_pts = main.get_path_points()
+	if path_pts.size() < 2:
+		return
+	for wi in range(5):
+		_wolves_active.append({
+			"path_index": 0,
+			"progress": -float(wi) * 40.0,  # Staggered entry
+			"pos": path_pts[0],
+			"speed": 180.0,
+			"damage": damage * 1.5,
+			"leg_phase": randf() * TAU,
+			"alive": true
+		})
 
-func _winged_monkeys() -> void:
-	if _monkey_player and not _is_sfx_muted(): _monkey_player.play()
-	_monkey_flash = 1.5
-	# Massive AoE damage to all enemies in range
-	var monkey_dmg = damage * 2.5
+func _update_wolves(delta: float) -> void:
+	var main = get_tree().get_first_node_in_group("main")
+	if not main or not main.has_method("get_path_points"):
+		_wolves_active.clear()
+		return
+	var path_pts = main.get_path_points()
+	if path_pts.size() < 2:
+		_wolves_active.clear()
+		return
+	var to_remove: Array = []
+	for wi in range(_wolves_active.size()):
+		var wolf = _wolves_active[wi]
+		if not wolf["alive"]:
+			to_remove.append(wi)
+			continue
+		wolf["progress"] += wolf["speed"] * delta
+		wolf["leg_phase"] += delta * 10.0
+		# Find position along path
+		var total_dist: float = 0.0
+		var placed := false
+		for pi in range(path_pts.size() - 1):
+			var seg_len = path_pts[pi].distance_to(path_pts[pi + 1])
+			if total_dist + seg_len >= wolf["progress"]:
+				var t_seg = (wolf["progress"] - total_dist) / seg_len
+				wolf["pos"] = path_pts[pi].lerp(path_pts[pi + 1], clampf(t_seg, 0.0, 1.0))
+				placed = true
+				break
+			total_dist += seg_len
+		if not placed:
+			wolf["alive"] = false
+			to_remove.append(wi)
+			continue
+		if wolf["progress"] < 0.0:
+			continue  # Still waiting to enter
+		# Damage enemies within 20px
+		for enemy in get_tree().get_nodes_in_group("enemies"):
+			if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+				if wolf["pos"].distance_to(enemy.global_position) < 20.0:
+					var dmg = wolf["damage"] * delta * 3.0
+					enemy.take_damage(dmg, true)
+					register_damage(dmg)
+	# Remove dead wolves (iterate backwards)
+	for ri in range(to_remove.size() - 1, -1, -1):
+		_wolves_active.remove_at(to_remove[ri])
+
+func _spawn_crow_dive() -> void:
+	if _crow_player and not _is_sfx_muted(): _crow_player.play()
+	_crow_flash = 1.0
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	if enemies.size() == 0:
+		return
+	var count = mini(randi_range(6, 8), enemies.size())
+	var targets: Array = []
+	var shuffled = enemies.duplicate()
+	shuffled.shuffle()
+	for i in range(count):
+		targets.append(shuffled[i])
+	for ci in range(targets.size()):
+		var t_enemy = targets[ci]
+		if not is_instance_valid(t_enemy):
+			continue
+		var start_pos = t_enemy.global_position + Vector2(randf_range(-60, 60), -120.0 - randf_range(0, 40))
+		_crows_active.append({
+			"start": start_pos,
+			"target": t_enemy,
+			"timer": 0.0,
+			"duration": 0.6 + randf() * 0.3,
+			"damage": damage * 2.0,
+			"wing_phase": randf() * TAU,
+			"done": false
+		})
+
+func _update_crows(delta: float) -> void:
+	var to_remove: Array = []
+	for ci in range(_crows_active.size()):
+		var crow = _crows_active[ci]
+		if crow["done"]:
+			to_remove.append(ci)
+			continue
+		crow["timer"] += delta
+		crow["wing_phase"] += delta * 15.0
+		var t_norm = crow["timer"] / crow["duration"]
+		if t_norm >= 1.0:
+			# Impact — deal damage
+			if is_instance_valid(crow["target"]) and crow["target"].has_method("take_damage"):
+				crow["target"].take_damage(crow["damage"], true)
+				register_damage(crow["damage"])
+				# Spawn feather particles
+				var impact_pos = crow["target"].global_position
+				for fi in range(3):
+					_crow_feathers.append({
+						"pos": impact_pos + Vector2(randf_range(-8, 8), randf_range(-8, 8)),
+						"vel": Vector2(randf_range(-30, 30), randf_range(-40, -10)),
+						"life": 1.0
+					})
+			crow["done"] = true
+			to_remove.append(ci)
+			continue
+		# Bezier arc from start to target
+		if is_instance_valid(crow["target"]):
+			var target_pos = crow["target"].global_position
+			var mid = (crow["start"] + target_pos) * 0.5 + Vector2(0, -40.0)
+			var a = crow["start"].lerp(mid, t_norm)
+			var b = mid.lerp(target_pos, t_norm)
+			crow["pos"] = a.lerp(b, t_norm)
+		else:
+			crow["done"] = true
+			to_remove.append(ci)
+	# Update feather particles
+	var feather_remove: Array = []
+	for fi in range(_crow_feathers.size()):
+		var f = _crow_feathers[fi]
+		f["life"] -= delta * 1.5
+		f["pos"] += f["vel"] * delta
+		f["vel"].y += 60.0 * delta  # gravity
+		if f["life"] <= 0.0:
+			feather_remove.append(fi)
+	for ri in range(feather_remove.size() - 1, -1, -1):
+		_crow_feathers.remove_at(feather_remove[ri])
+	for ri in range(to_remove.size() - 1, -1, -1):
+		_crows_active.remove_at(to_remove[ri])
+
+func _place_beehive() -> void:
+	_beehive_active = true
+	# Find nearest path point to home position
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("get_path_points"):
+		var path_pts = main.get_path_points()
+		var nearest_dist: float = INF
+		for pt in path_pts:
+			var d = _home_position.distance_to(pt)
+			if d < nearest_dist:
+				nearest_dist = d
+				_beehive_pos = pt
+	else:
+		_beehive_pos = _home_position + Vector2(0, 30)
+	# Init visual bees
+	_beehive_bees.clear()
+	for bi in range(8):
+		_beehive_bees.append({
+			"angle": randf() * TAU,
+			"speed": 1.5 + randf() * 1.0,
+			"radius": 15.0 + randf() * 30.0,
+			"bob": randf() * TAU
+		})
+
+func _update_beehive(delta: float) -> void:
+	if not _beehive_active:
+		return
+	# Update bee positions
+	for bee in _beehive_bees:
+		bee["angle"] += bee["speed"] * delta
+		bee["bob"] += delta * 4.0
+	# Apply DPS + slow to enemies in radius
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(enemy.global_position) < attack_range:
+		if is_instance_valid(enemy) and _beehive_pos.distance_to(enemy.global_position) < _beehive_radius:
 			if enemy.has_method("take_damage"):
-				var will_kill = enemy.health - monkey_dmg <= 0.0
-				enemy.take_damage(monkey_dmg, true)
-				register_damage(monkey_dmg)
-				if will_kill:
-					if gold_bonus > 0:
-						var main = get_tree().get_first_node_in_group("main")
-						if main:
-							main.add_gold(gold_bonus)
+				var dmg = _beehive_damage * delta
+				enemy.take_damage(dmg, true)
+				register_damage(dmg)
+			if enemy.has_method("apply_slow"):
+				enemy.apply_slow(_beehive_slow, 0.5)
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
@@ -340,8 +518,6 @@ func _apply_stat_boost() -> void:
 	damage *= 1.12
 	fire_rate *= 1.08
 	attack_range += 5.6
-	dot_dps += 1.0
-	dot_duration += 0.2
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -353,35 +529,28 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Pack of Wolves
+		1: # Pack of Wolves — wolves run down path every 10 waves
 			damage = 28.0
 			fire_rate = 1.8
 			attack_range = 165.0
-			wolf_cooldown = 8.0
-		2: # Murder of Crows — add DoT
+		2: # Murder of Crows — crows dive-bomb every 5 waves
 			damage = 33.0
-			dot_dps = 8.0
-			dot_duration = 4.0
 			fire_rate = 2.0
 			attack_range = 175.0
 			gold_bonus = 3
-		3: # Swarm of Bees — stronger DoT
+		3: # Swarm of Bees — beehive on path
 			damage = 40.0
-			dot_dps = 15.0
-			dot_duration = 5.0
 			fire_rate = 2.2
 			attack_range = 189.0
-			wolf_cooldown = 6.0
 			gold_bonus = 4
-		4: # The Golden Cap — Winged Monkey AoE
+			_place_beehive()
+		4: # The Golden Cap — enhanced everything
 			damage = 50.0
 			fire_rate = 2.5
 			attack_range = 210.0
 			gold_bonus = 5
-			wolf_cooldown = 5.0
-			monkey_cooldown = 15.0
-			dot_dps = 20.0
-			dot_duration = 5.0
+			_golden_cap_active = true
+			_orbit_speed *= 1.3
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -723,8 +892,8 @@ func _ruby_slippers_strike() -> void:
 		bolt.target = furthest
 		bolt.gold_bonus = gold_bonus
 		bolt.source_tower = self
-		bolt.dot_dps = dot_dps
-		bolt.dot_duration = dot_duration
+		bolt.dot_dps = 0.0
+		bolt.dot_duration = 0.0
 		get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func _winkies_march_attack() -> void:
@@ -813,14 +982,14 @@ func _draw() -> void:
 			var wr = 50.0 + (1.0 - _wolf_flash) * (30.0 + float(i) * 20.0)
 			draw_arc(Vector2.ZERO, wr, 0, TAU, 32, Color(0.4, 0.4, 0.4, _wolf_flash * 0.15), 2.0)
 
-	# Monkey flash (golden explosion)
-	if _monkey_flash > 0.0:
-		draw_circle(Vector2.ZERO, 72.0 + (1.0 - _monkey_flash) * 120.0, Color(0.9, 0.75, 0.2, _monkey_flash * 0.35))
-		draw_circle(Vector2.ZERO, 40.0 * _monkey_flash, Color(1.0, 0.95, 0.5, _monkey_flash * 0.3))
-		for i in range(8):
-			var ma = TAU * float(i) / 8.0 + _monkey_flash * 3.0
-			var mp = Vector2.from_angle(ma) * (72.0 + (1.0 - _monkey_flash) * 120.0)
-			draw_circle(mp, 8.0, Color(0.6, 0.4, 0.15, _monkey_flash * 0.5))
+	# Crow flash (black feathered burst)
+	if _crow_flash > 0.0:
+		var crow_r = 60.0 + (1.0 - _crow_flash) * 80.0
+		draw_circle(Vector2.ZERO, crow_r, Color(0.1, 0.1, 0.12, _crow_flash * 0.25))
+		for i in range(6):
+			var ca = TAU * float(i) / 6.0 + _crow_flash * 2.0
+			var cp = Vector2.from_angle(ca) * crow_r
+			draw_circle(cp, 5.0, Color(0.05, 0.05, 0.08, _crow_flash * 0.4))
 
 	# Orbit trail effect — green sparkles behind her as she flies
 	var trail_dir = Vector2.from_angle(_orbit_angle + PI)
@@ -973,40 +1142,170 @@ func _draw() -> void:
 		draw_circle(pip_pos, 5.0, pip_col)
 		draw_circle(pip_pos + Vector2(-0.8, -0.8), 2.0, Color(min(pip_col.r + 0.2, 1.0), min(pip_col.g + 0.2, 1.0), min(pip_col.b + 0.2, 1.0), 0.5))
 
-	# === T1+: WOLF SHADOW SILHOUETTES circling platform ===
-	if upgrade_tier >= 1:
-		for wi in range(2 + mini(upgrade_tier - 1, 1)):
-			var wolf_orbit_angle = _time * (0.5 + float(wi) * 0.3) + float(wi) * PI
-			var wolf_orbit_r = 36.0 + float(wi) * 10.0
-			var wolf_base = Vector2(cos(wolf_orbit_angle) * wolf_orbit_r, sin(wolf_orbit_angle) * wolf_orbit_r * 0.4 + plat_y + 6.0)
-			var wolf_dir = Vector2(-sin(wolf_orbit_angle), cos(wolf_orbit_angle) * 0.4).normalized()
-			var wolf_perp_v = wolf_dir.rotated(PI / 2.0)
-			var wc = Color(0.08, 0.08, 0.08, 0.3 - float(wi) * 0.06)
-			# Wolf body
-			draw_circle(wolf_base, 8.0, wc)
-			draw_circle(wolf_base + wolf_dir * 8.0, 6.0, wc)
-			# Wolf head
-			var wolf_head = wolf_base + wolf_dir * 14.0
-			draw_circle(wolf_head, 5.0, Color(wc.r, wc.g, wc.b, wc.a + 0.04))
-			# Wolf ears
-			var we1 = PackedVector2Array([wolf_head + wolf_perp_v * 2.5, wolf_head + wolf_dir * 3.5 + wolf_perp_v * 5.0, wolf_head + wolf_dir * 1.5])
-			draw_colored_polygon(we1, wc)
-			var we2 = PackedVector2Array([wolf_head - wolf_perp_v * 2.5, wolf_head + wolf_dir * 3.5 - wolf_perp_v * 5.0, wolf_head + wolf_dir * 1.5])
-			draw_colored_polygon(we2, wc)
-			# Wolf snout
-			draw_line(wolf_head, wolf_head + wolf_dir * 7.0, Color(wc.r, wc.g, wc.b, wc.a - 0.05), 2.5)
-			# Wolf tail
-			var tail_sway = sin(_time * 3.0 + float(wi) * 2.0) * 3.5
-			draw_line(wolf_base - wolf_dir * 6.0, wolf_base - wolf_dir * 14.0 + wolf_perp_v * tail_sway, wc, 2.0)
-			# Wolf legs (running)
-			var leg_phase = _time * 5.0 + float(wi) * PI
-			for li in range(4):
-				var leg_off = wolf_dir * (-3.0 + float(li) * 3.0)
-				var leg_kick = sin(leg_phase + float(li) * PI * 0.5) * 3.0
-				draw_line(wolf_base + leg_off, wolf_base + leg_off + Vector2(0, 8.0 + leg_kick), Color(wc.r, wc.g, wc.b, wc.a - 0.08), 1.5)
-			# Glowing wolf eyes
-			draw_circle(wolf_head + wolf_dir * 2.5 + wolf_perp_v * 1.5, 1.0, Color(0.6, 0.2, 0.0, 0.5))
-			draw_circle(wolf_head + wolf_dir * 2.5 - wolf_perp_v * 1.5, 1.0, Color(0.6, 0.2, 0.0, 0.5))
+	# === T1+: Paw prints on platform (idle indicator) + active wolves ===
+	if upgrade_tier >= 1 and _wolves_active.size() == 0:
+		# Paw prints when wolves not running
+		for pi in range(4):
+			var pa = TAU * float(pi) / 4.0 + _time * 0.2
+			var paw_pos = Vector2(cos(pa) * 18.0, plat_y + sin(pa) * 6.0)
+			draw_circle(paw_pos, 2.5, Color(0.4, 0.35, 0.25, 0.25))
+			draw_circle(paw_pos + Vector2(-1.5, -2), 1.2, Color(0.4, 0.35, 0.25, 0.2))
+			draw_circle(paw_pos + Vector2(1.5, -2), 1.2, Color(0.4, 0.35, 0.25, 0.2))
+			draw_circle(paw_pos + Vector2(0, -2.5), 1.0, Color(0.4, 0.35, 0.25, 0.2))
+
+	# Draw active wolves on path — bulky, scary wolves with fur
+	var OLW = Color(0.06, 0.06, 0.08)
+	for wolf in _wolves_active:
+		if not wolf["alive"] or wolf["progress"] < 0.0:
+			continue
+		var wpos = wolf["pos"] - global_position
+		var wleg = wolf["leg_phase"]
+		var wc = Color(0.38, 0.34, 0.26)       # main fur
+		var wc_dark = Color(0.22, 0.18, 0.12)   # dark fur/back
+		var wc_light = Color(0.52, 0.48, 0.38)  # belly/chest highlight
+		# Shadow underneath
+		draw_circle(wpos + Vector2(0, 10), 8.0, Color(0.0, 0.0, 0.0, 0.2))
+		# === Bulky body — large ellipse ===
+		draw_set_transform(wpos, 0, Vector2(1.6, 1.0))
+		draw_circle(Vector2.ZERO, 9.0, OLW)
+		draw_circle(Vector2.ZERO, 7.5, wc)
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		# Dark back ridge fur tufts
+		for fi in range(5):
+			var fx = wpos.x - 6.0 + float(fi) * 3.0
+			var fy = wpos.y - 7.0 + sin(float(fi) * 1.3 + _time * 2.0) * 1.0
+			draw_line(Vector2(fx, wpos.y - 4), Vector2(fx + randf() * 1.5 - 0.75, fy), wc_dark, 2.0)
+		# Chest fur (lighter, bushy)
+		draw_set_transform(wpos + Vector2(8, 2), 0, Vector2(1.0, 1.3))
+		draw_circle(Vector2.ZERO, 5.0, wc_light)
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		# Haunches (muscular rear)
+		draw_circle(wpos + Vector2(-7, 0), 6.5, OLW)
+		draw_circle(wpos + Vector2(-7, 0), 5.5, wc_dark)
+		# === Head — angular wolf head ===
+		var whead = wpos + Vector2(11, -4)
+		draw_circle(whead, 6.0, OLW)
+		draw_circle(whead, 5.0, wc)
+		# Cheek fur tufts
+		draw_line(whead + Vector2(-3, 3), whead + Vector2(-6, 5), wc_light, 2.0)
+		draw_line(whead + Vector2(-2, 4), whead + Vector2(-4, 7), wc_light, 1.5)
+		# Pointed ears (tall, pointy)
+		var ear_l = PackedVector2Array([whead + Vector2(-3, -4), whead + Vector2(-1, -4), whead + Vector2(-2, -11)])
+		var ear_r = PackedVector2Array([whead + Vector2(1, -4), whead + Vector2(3, -4), whead + Vector2(2, -11)])
+		draw_colored_polygon(ear_l, OLW)
+		draw_colored_polygon(ear_r, OLW)
+		var ear_li = PackedVector2Array([whead + Vector2(-2.5, -4.5), whead + Vector2(-1.2, -4.5), whead + Vector2(-2, -9.5)])
+		var ear_ri = PackedVector2Array([whead + Vector2(1.2, -4.5), whead + Vector2(2.5, -4.5), whead + Vector2(2, -9.5)])
+		draw_colored_polygon(ear_li, wc)
+		draw_colored_polygon(ear_ri, wc)
+		# Inner ear pink
+		draw_colored_polygon(PackedVector2Array([whead + Vector2(-2.2, -5), whead + Vector2(-1.5, -5), whead + Vector2(-1.9, -8)]), Color(0.55, 0.35, 0.35))
+		draw_colored_polygon(PackedVector2Array([whead + Vector2(1.5, -5), whead + Vector2(2.2, -5), whead + Vector2(1.9, -8)]), Color(0.55, 0.35, 0.35))
+		# Snout — long, angular
+		var snout_tip = whead + Vector2(10, 2)
+		var snout_pts = PackedVector2Array([whead + Vector2(4, -1.5), snout_tip, whead + Vector2(4, 3)])
+		draw_colored_polygon(snout_pts, OLW)
+		var snout_inner = PackedVector2Array([whead + Vector2(4.5, -0.8), snout_tip + Vector2(-0.5, 0), whead + Vector2(4.5, 2.2)])
+		draw_colored_polygon(snout_inner, Color(0.32, 0.28, 0.22))
+		# Nose
+		draw_circle(snout_tip + Vector2(-1, 0), 2.0, OLW)
+		draw_circle(snout_tip + Vector2(-1, 0), 1.3, Color(0.15, 0.12, 0.10))
+		# Teeth — bared fangs
+		draw_line(whead + Vector2(5, 2), whead + Vector2(6, 4.5), Color(0.95, 0.92, 0.85), 1.5)
+		draw_line(whead + Vector2(7, 2), whead + Vector2(7.5, 4), Color(0.95, 0.92, 0.85), 1.2)
+		# Eyes — fierce amber/yellow, glowing
+		draw_circle(whead + Vector2(1, -1.5), 2.5, OLW)
+		draw_circle(whead + Vector2(1, -1.5), 1.8, Color(0.85, 0.65, 0.10))
+		draw_circle(whead + Vector2(1, -1.5), 0.8, OLW)
+		# Eye glow
+		draw_circle(whead + Vector2(1, -1.5), 3.5, Color(0.85, 0.55, 0.1, 0.15))
+		# Brow ridge (angry)
+		draw_line(whead + Vector2(-1, -3), whead + Vector2(3, -2.5), OLW, 2.0)
+		# === Legs — muscular, running ===
+		for li in range(4):
+			var is_front = li < 2
+			var side = -1.0 if li % 2 == 0 else 1.0
+			var base_x = 5.0 if is_front else -6.0
+			var phase_off = float(li) * PI * 0.5
+			var leg_swing = sin(wleg + phase_off) * 6.0
+			var knee_bend = abs(cos(wleg + phase_off)) * 3.0
+			var hip = wpos + Vector2(base_x, 5)
+			var knee = hip + Vector2(leg_swing * 0.4, 6.0 + knee_bend)
+			var paw = knee + Vector2(leg_swing * 0.6, 5.0 - knee_bend * 0.5)
+			# Thigh
+			draw_line(hip, knee, OLW, 4.5)
+			draw_line(hip, knee, wc, 3.0)
+			# Shin
+			draw_line(knee, paw, OLW, 3.5)
+			draw_line(knee, paw, wc, 2.0)
+			# Paw
+			draw_circle(paw, 2.5, OLW)
+			draw_circle(paw, 1.8, wc_dark)
+		# === Tail — bushy, flowing ===
+		var tail_wag = sin(_time * 4.0 + wleg * 0.3) * 5.0
+		var tail_base = wpos + Vector2(-10, -2)
+		var tail_mid = tail_base + Vector2(-6, -5 + tail_wag * 0.5)
+		var tail_tip = tail_mid + Vector2(-5, -3 + tail_wag)
+		draw_line(tail_base, tail_mid, OLW, 5.0)
+		draw_line(tail_base, tail_mid, wc_dark, 3.5)
+		draw_line(tail_mid, tail_tip, OLW, 4.0)
+		draw_line(tail_mid, tail_tip, wc, 2.5)
+		# Fur tufts on tail tip
+		draw_line(tail_tip, tail_tip + Vector2(-2, -2 + tail_wag * 0.3), wc_light, 2.0)
+		draw_line(tail_tip, tail_tip + Vector2(-3, 0), wc_light, 1.5)
+
+	# Draw diving crows
+	for crow in _crows_active:
+		if crow["done"]:
+			continue
+		if not crow.has("pos"):
+			continue
+		var cpos = crow["pos"] - global_position
+		var wing_flap = sin(crow["wing_phase"]) * 6.0
+		# Crow body (black)
+		draw_circle(cpos, 4.0, Color(0.05, 0.05, 0.08, 0.9))
+		# Wings
+		draw_line(cpos + Vector2(-3, 0), cpos + Vector2(-10, -3 + wing_flap), Color(0.08, 0.08, 0.10, 0.8), 2.5)
+		draw_line(cpos + Vector2(3, 0), cpos + Vector2(10, -3 - wing_flap), Color(0.08, 0.08, 0.10, 0.8), 2.5)
+		# Beak (orange)
+		draw_line(cpos + Vector2(0, 2), cpos + Vector2(0, 5), Color(0.9, 0.6, 0.1), 1.5)
+		# Eye
+		draw_circle(cpos + Vector2(-1, -1), 0.8, Color(0.2, 0.2, 0.2))
+
+	# Draw feather particles
+	for feather in _crow_feathers:
+		var fpos = feather["pos"] - global_position
+		var fa = feather["life"]
+		draw_circle(fpos, 2.0, Color(0.1, 0.1, 0.12, fa * 0.6))
+		draw_line(fpos, fpos + Vector2(randf_range(-3, 3), -3), Color(0.15, 0.15, 0.18, fa * 0.4), 1.0)
+
+	# Draw beehive on path
+	if _beehive_active:
+		var bh_pos = _beehive_pos - global_position
+		# Honey zone circle on ground
+		draw_arc(bh_pos, _beehive_radius, 0, TAU, 32, Color(0.85, 0.65, 0.1, 0.12), 2.0)
+		draw_circle(bh_pos, _beehive_radius, Color(0.85, 0.65, 0.1, 0.04))
+		# Beehive body (stacked amber rings)
+		for ri in range(4):
+			var ry = -float(ri) * 5.0
+			var rw = 8.0 - float(ri) * 1.2
+			draw_circle(bh_pos + Vector2(0, ry - 4), rw + 1.0, Color(0.06, 0.06, 0.08))
+			draw_circle(bh_pos + Vector2(0, ry - 4), rw, Color(0.72 - float(ri) * 0.05, 0.52 - float(ri) * 0.04, 0.12))
+		# Dark entrance hole
+		draw_circle(bh_pos + Vector2(0, -2), 3.0, Color(0.08, 0.06, 0.04))
+		# Orbiting bees
+		for bee in _beehive_bees:
+			var bee_pos = bh_pos + Vector2(cos(bee["angle"]) * bee["radius"], sin(bee["angle"]) * bee["radius"] * 0.5 - 6.0)
+			var bee_bob = sin(bee["bob"]) * 2.0
+			bee_pos.y += bee_bob
+			# Bee body (yellow-black stripes)
+			draw_circle(bee_pos, 2.5, Color(0.06, 0.06, 0.08))
+			draw_circle(bee_pos, 1.8, Color(0.9, 0.75, 0.1))
+			draw_line(bee_pos + Vector2(-1, 0), bee_pos + Vector2(1, 0), Color(0.1, 0.1, 0.08), 1.0)
+			# Wings
+			var wing_buzz = sin(bee["bob"] * 3.0) * 2.0
+			draw_line(bee_pos + Vector2(-1, -1), bee_pos + Vector2(-3, -3 + wing_buzz), Color(0.8, 0.8, 0.9, 0.4), 1.0)
+			draw_line(bee_pos + Vector2(1, -1), bee_pos + Vector2(3, -3 - wing_buzz), Color(0.8, 0.8, 0.9, 0.4), 1.0)
 
 	# === 11. CHARACTER POSITIONS (chibi proportions ~48px) ===
 	var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
@@ -1484,108 +1783,26 @@ func _draw() -> void:
 	draw_circle(buckle_c, 1.2, Color(0.20, 0.65, 0.15))
 	draw_circle(buckle_c + Vector2(-0.2, -0.2), 0.5, Color(0.35, 0.85, 0.25, 0.5))
 
-	# === T3+: GOLDEN CAP overlay on hat ===
-	if upgrade_tier >= 3:
-		draw_colored_polygon(hat_pts, Color(0.85, 0.70, 0.15, 0.3))
-		# Jeweled brim
-		draw_line(brim_l, brim_r, Color(0.90, 0.85, 0.60), 3.0)
-		draw_line(brim_l, brim_r, Color(1.0, 0.95, 0.70, 0.35), 1.2)
-		# Gems on band
-		draw_circle(hat_base_pos + Vector2(-7, -2), 2.0, Color(0.85, 0.12, 0.15))
-		draw_circle(hat_base_pos + Vector2(-7, -2), 1.0, Color(0.95, 0.30, 0.30, 0.5))
-		draw_circle(hat_base_pos + Vector2(7, -2), 2.0, Color(0.10, 0.70, 0.20))
-		draw_circle(hat_base_pos + Vector2(7, -2), 1.0, Color(0.30, 0.85, 0.40, 0.5))
-		# Golden trim on hat edges
-		draw_line(hat_base_pos + Vector2(-12, -1), hat_tip_pos, Color(0.80, 0.65, 0.15, 0.2), 1.2)
-		draw_line(hat_base_pos + Vector2(12, -1), hat_tip_pos, Color(0.80, 0.65, 0.15, 0.2), 1.2)
-
-	# === T4: GOLDEN CAP SHIMMER + WINGED MONKEY SILHOUETTES ===
-	if upgrade_tier >= 4:
-		# Pulsing golden shimmer on hat
-		var shimmer_a = 0.15 + sin(_time * 4.0) * 0.08
-		draw_colored_polygon(hat_pts, Color(1.0, 0.92, 0.40, shimmer_a))
-		# Sparkle dots
-		for i in range(4):
-			var sp_t = 0.15 + float(i) * 0.2
-			var sp_pos = hat_base_pos.lerp(hat_tip_pos, sp_t) + Vector2(sin(_time * 3.0 + float(i)) * 3.0, 0)
-			var sp_alpha = 0.5 + sin(_time * 5.0 + float(i) * 2.0) * 0.3
-			draw_circle(sp_pos, 1.8, Color(1.0, 0.95, 0.50, sp_alpha))
-			# Starburst
-			for sbi in range(4):
-				var star_a2 = float(sbi) * TAU / 4.0 + _time * 2.0
-				draw_line(sp_pos, sp_pos + Vector2.from_angle(star_a2) * 2.5, Color(1.0, 0.95, 0.50, sp_alpha * 0.4), 0.6)
-
-		# Dark purple aura
-		var aura_pulse = sin(_time * 1.5) * 0.03
-		draw_circle(Vector2.ZERO, 90.0, Color(0.15, 0.05, 0.20, 0.05 + aura_pulse))
-		draw_circle(Vector2.ZERO, 75.0, Color(0.20, 0.08, 0.25, 0.06 + aura_pulse))
-		# Dark energy tendrils
-		for i in range(5):
-			var t_angle2 = _time * 0.6 + float(i) * TAU / 5.0
-			var t_r2 = 65.0 + sin(_time * 1.2 + float(i) * 1.5) * 10.0
-			var t_pos2 = Vector2.from_angle(t_angle2) * t_r2
-			var t_end2 = Vector2.from_angle(t_angle2 + 0.3) * (t_r2 + 15.0)
-			draw_line(t_pos2, t_end2, Color(0.30, 0.10, 0.40, 0.10 + sin(_time * 2.0 + float(i)) * 0.04), 2.0)
-
-		# Winged monkey silhouettes orbiting (2 monkeys)
-		for mi in range(2):
-			var m_orbit_a = _time * (0.7 + float(mi) * 0.3) + float(mi) * PI
-			var m_orbit_r = 55.0 + float(mi) * 12.0
-			var monkey_pos = Vector2(cos(m_orbit_a) * m_orbit_r, sin(m_orbit_a) * m_orbit_r * 0.5 - 30.0)
-			var mc = Color(0.12, 0.08, 0.06, 0.45 - float(mi) * 0.08)
-			# Monkey body outline + fill
-			draw_circle(monkey_pos, 7.5, OL)
-			draw_circle(monkey_pos, 6.0, mc)
-			# Monkey head
-			var mhead = monkey_pos + Vector2(0, -7)
-			draw_circle(mhead, 5.5, OL)
-			draw_circle(mhead, 4.2, mc)
-			# Monkey face
-			draw_circle(mhead + Vector2(0, 1), 2.2, Color(0.18, 0.14, 0.10, 0.35))
-			# Eyes (glowing red)
-			draw_circle(mhead + Vector2(-1.5, -0.5), 1.0, Color(0.80, 0.20, 0.05, 0.5))
-			draw_circle(mhead + Vector2(1.5, -0.5), 1.0, Color(0.80, 0.20, 0.05, 0.5))
-			# Ears
-			draw_circle(mhead + Vector2(-4, -2), 2.0, Color(mc.r, mc.g, mc.b, mc.a - 0.08))
-			draw_circle(mhead + Vector2(4, -2), 2.0, Color(mc.r, mc.g, mc.b, mc.a - 0.08))
-			# Bat-like wings
-			var wf = sin(_time * 6.0 + float(mi) * PI) * 6.0
-			var lw_pts = PackedVector2Array([monkey_pos + Vector2(-4, -2), monkey_pos + Vector2(-20, -10 + wf), monkey_pos + Vector2(-22, -4 + wf), monkey_pos + Vector2(-6, 3)])
-			draw_colored_polygon(lw_pts, Color(mc.r, mc.g, mc.b, mc.a * 0.6))
-			draw_line(monkey_pos + Vector2(-4, -2), monkey_pos + Vector2(-20, -10 + wf), mc, 2.0)
-			var rw_pts = PackedVector2Array([monkey_pos + Vector2(4, -2), monkey_pos + Vector2(20, -10 + wf), monkey_pos + Vector2(22, -4 + wf), monkey_pos + Vector2(6, 3)])
-			draw_colored_polygon(rw_pts, Color(mc.r, mc.g, mc.b, mc.a * 0.6))
-			draw_line(monkey_pos + Vector2(4, -2), monkey_pos + Vector2(20, -10 + wf), mc, 2.0)
-			# Tail
-			var tc = sin(_time * 2.0 + float(mi) * 1.5) * 4.0
-			draw_line(monkey_pos + Vector2(0, 7), monkey_pos + Vector2(3 + tc, 14), Color(mc.r, mc.g, mc.b, mc.a - 0.05), 2.0)
-			# Fez/cap
-			draw_circle(mhead + Vector2(0, -4), 2.5, Color(0.60, 0.15, 0.10, 0.4))
-
-	# === T3+: BEE SWARM PARTICLES ===
-	if upgrade_tier >= 3:
-		var bee_count = 5 + (upgrade_tier - 3) * 3
-		for i in range(bee_count):
-			var bee_phase = float(i) * TAU / float(bee_count)
-			var bee_speed = 2.5 + float(i) * 0.4
-			var bee_radius = 28.0 + float(i % 4) * 7.0
-			var bx = cos(_time * bee_speed + bee_phase) * bee_radius
-			var by = sin(_time * bee_speed * 1.3 + bee_phase) * bee_radius * 0.6 + sin(_time * 5.0 + bee_phase) * 4.0
-			var bee_pos = Vector2(bx, by)
-			# Bee body (yellow-black)
-			draw_circle(bee_pos, 2.5, Color(0.95, 0.85, 0.10, 0.7))
-			# Bee head
-			var bee_dir = Vector2(-sin(_time * bee_speed + bee_phase), cos(_time * bee_speed * 1.3 + bee_phase) * 0.6).normalized()
-			draw_circle(bee_pos + bee_dir * 2.0, 1.5, Color(0.20, 0.15, 0.0, 0.5))
-			# Black stripe
-			var bee_wing_perp = bee_dir.rotated(PI / 2.0)
-			draw_line(bee_pos - bee_dir * 0.5 + bee_wing_perp * 2.0, bee_pos - bee_dir * 0.5 - bee_wing_perp * 2.0, Color(0.15, 0.10, 0.0, 0.45), 1.0)
-			# Wings (flutter)
-			var wing_f2 = sin(_time * 20.0 + bee_phase) * 2.5
-			draw_line(bee_pos, bee_pos + bee_wing_perp * (3.0 + wing_f2), Color(0.80, 0.85, 0.95, 0.3), 1.2)
-			draw_line(bee_pos, bee_pos - bee_wing_perp * (3.0 - wing_f2), Color(0.80, 0.85, 0.95, 0.3), 1.2)
-			# Buzz trail
-			draw_line(bee_pos, bee_pos - bee_dir * 6.0, Color(0.90, 0.80, 0.10, 0.12), 0.8)
+	# Tier 4: Golden Cap overlay on hat
+	if _golden_cap_active:
+		# Gold overlay on hat
+		draw_colored_polygon(PackedVector2Array([
+			hat_base_pos + Vector2(-9, 2), hat_base_pos + Vector2(9, 2),
+			hat_tip_pos + Vector2(-0.5, 0.8),
+		]), Color(0.95, 0.85, 0.25, 0.35))
+		# Gold brim
+		draw_line(hat_base_pos + Vector2(-10, 3), hat_base_pos + Vector2(10, 3), Color(0.95, 0.85, 0.25), 2.5)
+		# Jeweled buckle with ruby
+		var buckle_pos = hat_base_pos + Vector2(0, 1)
+		draw_circle(buckle_pos, 4.0, Color(0.06, 0.06, 0.08))
+		draw_circle(buckle_pos, 3.0, Color(0.95, 0.85, 0.25))
+		draw_circle(buckle_pos, 1.5, Color(0.85, 0.1, 0.1))  # Ruby
+		# Shimmer sparkles
+		for si in range(4):
+			var sp_a = _time * 2.0 + float(si) * TAU / 4.0
+			var sp_r = 6.0 + sin(_time * 3.0 + float(si)) * 2.0
+			var sp_pos = hat_tip_pos + Vector2(cos(sp_a) * sp_r, sin(sp_a) * sp_r * 0.5)
+			draw_circle(sp_pos, 1.5, Color(1.0, 0.95, 0.5, 0.3 + sin(_time * 4.0 + float(si)) * 0.15))
 
 	# === GREEN MAGIC PARTICLES floating around ===
 	var particle_count = 4 + upgrade_tier * 2

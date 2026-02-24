@@ -24,22 +24,30 @@ var _upgrade_name: String = ""
 var _time: float = 0.0
 var _attack_anim: float = 0.0
 
-# Tier 1: Punjab Lasso — stun
-var lasso_timer: float = 0.0
-var lasso_cooldown: float = 10.0
+# Tier 1: Punjab Lasso — kill-count based insta-kill
+var _lasso_kill_counter: int = 0
+var _lasso_target: Node2D = null
+var _lasso_pull_timer: float = 0.0
+var _lasso_pulling: bool = false
 var _lasso_flash: float = 0.0
 
-# Tier 2: Angel of Music — passive slow aura
-var aura_tick: float = 0.0
+# Tier 2: Angel of Music — extended range (no special vars needed)
 
-# Tier 3: Chandelier — AoE
-var chandelier_timer: float = 0.0
-var chandelier_cooldown: float = 18.0
+# Tier 3: Chandelier — kill-count based drop
+var _chandelier_kill_counter: int = 0
 var _chandelier_flash: float = 0.0
 
-# Tier 4: Phantom's Wrath — DoT on notes
-var note_dot_dps: float = 0.0
-var note_dot_duration: float = 0.0
+# Tier 4: Phantom's Wrath — melee rush replacing notes
+var _has_sword: bool = false
+var _sword_flash: float = 0.0
+var _sword_angle: float = 0.0
+var _melee_state: String = "idle"  # idle, dashing, slashing, returning
+var _melee_target: Node2D = null
+var _melee_timer: float = 0.0
+var _melee_cooldown: float = 0.6  # fast attacks — ballistic
+var _melee_pos: Vector2 = Vector2.ZERO  # offset from home for drawing
+var _melee_home: Vector2 = Vector2.ZERO
+var _melee_slash_count: int = 0  # hits multiple enemies per dash
 
 # === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
 const PROG_ABILITY_NAMES = [
@@ -90,12 +98,12 @@ const TIER_NAMES = [
 	"Phantom's Wrath"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Periodically stuns closest enemy for 2.5s",
-	"Passive slow aura on enemies in range",
-	"Periodic AoE burst (2x damage to all)",
-	"Notes apply DoT, all stats boosted"
+	"Every 10th kill, lasso pulls enemy for insta-kill",
+	"Music notes travel further — extended range",
+	"Every 15th kill, chandelier drops on enemies",
+	"Phantom goes ballistic — melee rush replaces notes"
 ]
-const TIER_COSTS = [85, 190, 325, 525]
+const TIER_COSTS = [85, 190, 325, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -207,33 +215,24 @@ func _process(delta: float) -> void:
 	_chandelier_flash = max(_chandelier_flash - delta * 1.5, 0.0)
 	target = _find_nearest_enemy()
 
-	if target:
-		var desired = global_position.angle_to_point(target.global_position) + PI
-		aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
-		if fire_cooldown <= 0.0:
-			_shoot()
-			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
+	if _has_sword:
+		# Phantom's Wrath — melee rush mode, no notes
+		if target:
+			aim_angle = lerp_angle(aim_angle, global_position.angle_to_point(target.global_position) + PI, 8.0 * delta)
+		_update_melee_rush(delta)
+	else:
+		if target:
+			var desired = global_position.angle_to_point(target.global_position) + PI
+			aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
+			if fire_cooldown <= 0.0:
+				_shoot()
+				fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
-	# Tier 1: Punjab Lasso stun
-	if upgrade_tier >= 1:
-		lasso_timer -= delta
-		if lasso_timer <= 0.0 and _has_enemies_in_range():
-			_punjab_lasso()
-			lasso_timer = lasso_cooldown
+	# Update lasso pull animation
+	_update_lasso_pull(delta)
 
-	# Tier 2: Angel of Music aura (slow tick)
-	if upgrade_tier >= 2:
-		aura_tick -= delta
-		if aura_tick <= 0.0:
-			_music_aura()
-			aura_tick = 0.5
-
-	# Tier 3: Chandelier AoE
-	if upgrade_tier >= 3:
-		chandelier_timer -= delta
-		if chandelier_timer <= 0.0 and _has_enemies_in_range():
-			_chandelier_drop()
-			chandelier_timer = chandelier_cooldown
+	# Flash decays
+	_sword_flash = max(_sword_flash - delta * 3.0, 0.0)
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
@@ -288,29 +287,30 @@ func _shoot() -> void:
 	note.target = target
 	note.gold_bonus = int(gold_bonus * _gold_mult())
 	note.source_tower = self
-	note.dot_dps = note_dot_dps
-	note.dot_duration = note_dot_duration
+	note.dot_dps = 0.0
+	note.dot_duration = 0.0
 	get_tree().get_first_node_in_group("main").add_child(note)
 	_attack_anim = 1.0
 
-func _punjab_lasso() -> void:
-	if _lasso_player and not _is_sfx_muted(): _lasso_player.play()
-	_lasso_flash = 1.0
+func _trigger_lasso() -> void:
+	if _lasso_pulling:
+		return
 	var closest: Node2D = null
-	var closest_dist: float = attack_range
+	var closest_dist: float = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < closest_dist:
 			closest = enemy
 			closest_dist = dist
-	if closest and closest.has_method("apply_slow"):
-		closest.apply_slow(0.0, 2.5)
-
-func _music_aura() -> void:
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
-			if enemy.has_method("apply_slow"):
-				enemy.apply_slow(0.9, 0.6)
+	if closest and is_instance_valid(closest):
+		if _lasso_player and not _is_sfx_muted(): _lasso_player.play()
+		_lasso_flash = 1.0
+		_lasso_target = closest
+		_lasso_pull_timer = 0.5
+		_lasso_pulling = true
+		# Freeze the target during pull
+		if closest.has_method("apply_slow"):
+			closest.apply_slow(0.0, 1.0)
 
 func _chandelier_drop() -> void:
 	if _chandelier_player and not _is_sfx_muted(): _chandelier_player.play()
@@ -328,11 +328,118 @@ func _chandelier_drop() -> void:
 						if main:
 							main.add_gold(gold_bonus)
 
+func _update_lasso_pull(delta: float) -> void:
+	if not _lasso_pulling:
+		return
+	_lasso_pull_timer -= delta
+	if is_instance_valid(_lasso_target):
+		# Pull target toward Phantom
+		var pull_dir = global_position - _lasso_target.global_position
+		var pull_speed = pull_dir.length() / maxf(_lasso_pull_timer, 0.05)
+		_lasso_target.global_position += pull_dir.normalized() * minf(pull_speed * delta, pull_dir.length())
+		if _lasso_pull_timer <= 0.0:
+			# Insta-kill on arrival
+			_lasso_flash = 1.5
+			if _lasso_target.has_method("take_damage"):
+				var dmg = _lasso_target.health + 1.0
+				_lasso_target.take_damage(dmg, true)
+				register_damage(dmg)
+				if gold_bonus > 0:
+					var main = get_tree().get_first_node_in_group("main")
+					if main:
+						main.add_gold(int(gold_bonus * _gold_mult()))
+			_lasso_pulling = false
+			_lasso_target = null
+	else:
+		_lasso_pulling = false
+		_lasso_target = null
+
+func _update_melee_rush(delta: float) -> void:
+	if not _has_sword:
+		return
+	if _melee_home == Vector2.ZERO:
+		_melee_home = global_position
+	var dash_speed = 450.0  # very fast dash
+	match _melee_state:
+		"idle":
+			# Smoothly return to home position
+			_melee_pos = _melee_pos.lerp(Vector2.ZERO, 6.0 * delta)
+			_melee_timer -= delta
+			if _melee_timer <= 0.0:
+				# Find nearest enemy in range to rush
+				var rush_target = _find_nearest_enemy()
+				if rush_target and is_instance_valid(rush_target):
+					_melee_target = rush_target
+					_melee_state = "dashing"
+					_sword_angle = global_position.angle_to_point(rush_target.global_position) + PI
+		"dashing":
+			if not is_instance_valid(_melee_target):
+				_melee_state = "returning"
+				return
+			var target_offset = _melee_target.global_position - _melee_home
+			var dir = (target_offset - _melee_pos)
+			if dir.length() < 15.0:
+				# Arrived — SLASH!
+				_melee_state = "slashing"
+				_melee_timer = 0.15  # brief slash pause
+				_sword_flash = 1.0
+				_sword_angle = _melee_pos.angle()
+				_melee_slash_count = 0
+				# Deal damage to all enemies nearby
+				var sword_dmg = damage * 3.0 * _damage_mult()
+				for enemy in get_tree().get_nodes_in_group("enemies"):
+					if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+						if (_melee_home + _melee_pos).distance_to(enemy.global_position) < 55.0:
+							var will_kill = enemy.health - sword_dmg <= 0.0
+							enemy.take_damage(sword_dmg, true)
+							register_damage(sword_dmg)
+							_melee_slash_count += 1
+							if will_kill:
+								register_kill()
+								if gold_bonus > 0:
+									var main = get_tree().get_first_node_in_group("main")
+									if main:
+										main.add_gold(int(gold_bonus * _gold_mult()))
+				# Play attack sound on slash
+				if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
+					_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
+					_attack_player.play()
+			else:
+				_melee_pos += dir.normalized() * dash_speed * delta
+				_sword_angle = dir.angle()
+		"slashing":
+			_melee_timer -= delta
+			if _melee_timer <= 0.0:
+				_melee_state = "returning"
+		"returning":
+			var return_dir = -_melee_pos
+			if return_dir.length() < 10.0:
+				_melee_pos = Vector2.ZERO
+				_melee_state = "idle"
+				_melee_timer = _melee_cooldown  # brief pause before next rush
+				_melee_target = null
+			else:
+				_melee_pos += return_dir.normalized() * dash_speed * delta
+
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.PHANTOM, amount)
+
+func register_kill() -> void:
+	# Tier 1: Punjab Lasso — every 10th kill
+	if upgrade_tier >= 1:
+		_lasso_kill_counter += 1
+		if _lasso_kill_counter >= 10:
+			_lasso_kill_counter = 0
+			_trigger_lasso()
+	# Tier 3: Chandelier — every 15th kill
+	if upgrade_tier >= 3:
+		_chandelier_kill_counter += 1
+		if _chandelier_kill_counter >= 15:
+			_chandelier_kill_counter = 0
+			_chandelier_drop()
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -351,9 +458,6 @@ func _apply_stat_boost() -> void:
 	damage *= 1.15
 	fire_rate *= 1.03
 	attack_range += 7.0
-	# Chandelier drop every 500 damage milestone
-	if _has_enemies_in_range():
-		_chandelier_drop()
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -365,32 +469,26 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Punjab Lasso — stun ability
+		1: # Punjab Lasso — kill-count insta-kill
 			damage = 45.0
 			fire_rate = 0.6
 			attack_range = 195.0
-			lasso_cooldown = 8.0
-		2: # Angel of Music — slow aura
+		2: # Angel of Music — extended range
 			damage = 55.0
 			fire_rate = 0.7
-			attack_range = 210.0
+			attack_range = 240.0
 			gold_bonus = 3
-		3: # Chandelier — AoE burst
+		3: # Chandelier — kill-count drop
 			damage = 70.0
 			fire_rate = 0.8
-			attack_range = 230.0
-			chandelier_cooldown = 14.0
+			attack_range = 250.0
 			gold_bonus = 4
-			lasso_cooldown = 6.0
-		4: # Phantom's Wrath — DoT + all enhanced
+		4: # Don Juan Sword
 			damage = 90.0
 			fire_rate = 1.0
 			attack_range = 260.0
-			note_dot_dps = 20.0
-			note_dot_duration = 4.0
 			gold_bonus = 6
-			lasso_cooldown = 5.0
-			chandelier_cooldown = 10.0
+			_has_sword = true
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -811,7 +909,7 @@ func _draw() -> void:
 	var fly_offset = Vector2.ZERO
 	if upgrade_tier >= 4:
 		fly_offset = Vector2(0, -8.0 + sin(_time * 1.5) * 3.0)
-	var body_offset = bob + fly_offset
+	var body_offset = bob + fly_offset + _melee_pos
 
 	# === SKIN COLORS (pale, dramatic — classic Phantom) ===
 	var skin_base = Color(0.88, 0.82, 0.78)
@@ -828,15 +926,44 @@ func _draw() -> void:
 			var ray_e = Vector2.from_angle(ray_a) * (85.0 + _upgrade_flash * 22.0)
 			draw_line(ray_s, ray_e, Color(0.7, 0.4, 0.9, _upgrade_flash * 0.15), 1.5)
 
-	# === LASSO FLASH (golden rope ring expanding) ===
+	# === MELEE RUSH TRAIL ===
+	if _melee_state == "dashing" or _melee_state == "returning":
+		# Speed lines / afterimage trail
+		var trail_dir = _melee_pos.normalized()
+		for ti in range(5):
+			var trail_alpha = 0.3 - float(ti) * 0.05
+			var trail_offset = -trail_dir * float(ti + 1) * 12.0
+			draw_circle(body_offset + trail_offset, 6.0 - float(ti) * 0.8, Color(0.6, 0.3, 0.8, trail_alpha))
+	if _sword_flash > 0.0:
+		# Dramatic slash arc at impact point
+		var sf_r = 45.0 + (1.0 - _sword_flash) * 30.0
+		draw_arc(body_offset, sf_r, _sword_angle - 1.0, _sword_angle + 1.0, 20, Color(0.85, 0.85, 0.9, _sword_flash * 0.4), 3.5)
+		draw_arc(body_offset, sf_r * 0.7, _sword_angle - 0.7, _sword_angle + 0.7, 16, Color(0.95, 0.85, 0.95, _sword_flash * 0.2), 2.0)
+		# Slash sparks
+		for si in range(6):
+			var spark_a = _sword_angle - 0.8 + randf() * 1.6
+			var spark_r = sf_r * (0.5 + randf() * 0.5)
+			draw_circle(body_offset + Vector2.from_angle(spark_a) * spark_r, 2.0, Color(1.0, 0.9, 0.7, _sword_flash * 0.5))
+
+	# === LASSO FLASH + PULL ANIMATION ===
 	if _lasso_flash > 0.0:
 		var lf_r = 56.0 + (1.0 - _lasso_flash) * 50.0
 		draw_arc(Vector2.ZERO, lf_r, 0, TAU, 32, Color(0.8, 0.65, 0.2, _lasso_flash * 0.5), 4.0)
 		draw_arc(Vector2.ZERO, lf_r - 3.0, 0, TAU, 32, Color(0.9, 0.75, 0.3, _lasso_flash * 0.25), 2.0)
-		for lfi in range(4):
-			var lf_a = TAU * float(lfi) / 4.0 + _time * 3.0
-			var lf_p = Vector2.from_angle(lf_a) * lf_r
-			draw_circle(lf_p, 4.0, Color(0.9, 0.75, 0.3, _lasso_flash * 0.6))
+	# Draw lasso rope to target being pulled
+	if _lasso_pulling and is_instance_valid(_lasso_target):
+		var target_local = _lasso_target.global_position - global_position
+		# Golden rope line
+		draw_line(Vector2.ZERO, target_local, Color(0.85, 0.70, 0.25, 0.8), 3.0)
+		draw_line(Vector2.ZERO, target_local, Color(0.95, 0.82, 0.35, 0.4), 1.5)
+		# Rope knots along the line
+		for ki in range(4):
+			var kt = float(ki + 1) / 5.0
+			var knot_pos = target_local * kt
+			draw_circle(knot_pos, 2.0, Color(0.85, 0.70, 0.25, 0.6))
+		# Glow around target
+		draw_circle(target_local, 10.0, Color(0.9, 0.75, 0.3, 0.2))
+		draw_arc(target_local, 12.0, 0, TAU, 16, Color(0.9, 0.75, 0.3, 0.3), 2.0)
 
 	# === CHANDELIER FLASH (golden burst with crystal shards) ===
 	if _chandelier_flash > 0.0:
@@ -1441,6 +1568,33 @@ func _draw() -> void:
 		draw_circle(fp, 2.2, OL)
 		draw_circle(fp, 1.5, glove_col)
 
+	# --- Sword (Tier 4: Don Juan) ---
+	if _has_sword:
+		var sword_dir = Vector2.from_angle(_sword_angle if _sword_flash > 0.0 else aim_angle)
+		var sword_perp = sword_dir.rotated(PI / 2.0)
+		var sword_base = r_hand_pos
+		var sword_tip = sword_base + sword_dir * 25.0
+		# Blade
+		draw_line(sword_base, sword_tip, Color(0.06, 0.06, 0.08), 4.0)
+		draw_line(sword_base, sword_tip, Color(0.82, 0.82, 0.88), 2.5)
+		# Blade highlight
+		draw_line(sword_base + sword_perp * 0.5, sword_tip + sword_perp * 0.5, Color(0.95, 0.95, 1.0, 0.4), 1.0)
+		# Gold crossguard
+		draw_line(sword_base + sword_perp * 6.0, sword_base - sword_perp * 6.0, Color(0.06, 0.06, 0.08), 4.0)
+		draw_line(sword_base + sword_perp * 5.0, sword_base - sword_perp * 5.0, Color(0.90, 0.74, 0.24), 2.5)
+		# Pommel
+		draw_circle(sword_base - sword_dir * 3.0, 2.5, Color(0.06, 0.06, 0.08))
+		draw_circle(sword_base - sword_dir * 3.0, 1.8, Color(0.90, 0.74, 0.24))
+		# Swing arc trail when attacking
+		if _sword_flash > 0.0:
+			var arc_start = _sword_angle - 0.8
+			var arc_end = _sword_angle + 0.8
+			for ai in range(8):
+				var at = arc_start + (arc_end - arc_start) * float(ai) / 7.0
+				var arc_tip = sword_base + Vector2.from_angle(at) * 25.0
+				draw_line(sword_base, arc_tip, Color(0.82, 0.82, 0.88, _sword_flash * 0.15), 1.5)
+			draw_arc(sword_base, 25.0, arc_start, arc_end, 16, Color(0.85, 0.85, 0.9, _sword_flash * 0.3), 2.0)
+
 	# --- Music notes near conducting hand (weapon) ---
 	var note_base = r_hand_pos + dir * 9.0
 	for ni in range(2):
@@ -1667,22 +1821,7 @@ func _draw() -> void:
 		draw_circle(torso_center, 28.0, Color(0.6, 0.08, 0.08, 0.06 + sin(_time * 2.0) * 0.03))
 		draw_circle(head_center, 20.0, Color(0.6, 0.08, 0.08, 0.05 + sin(_time * 2.5) * 0.02))
 
-	# === T2+: Music aura ring ===
-	if upgrade_tier >= 2:
-		draw_arc(Vector2.ZERO, attack_range * 0.9, 0, TAU, 48, Color(0.4, 0.25, 0.7, 0.08), 3.0)
-		draw_arc(Vector2.ZERO, attack_range * 0.88, 0, TAU, 48, Color(0.5, 0.35, 0.8, 0.04), 2.0)
-		# Ghostly music notes around perimeter
-		for i in range(8):
-			var na = TAU * float(i) / 8.0 + _time * 0.6
-			var n_bob2 = sin(_time * 2.0 + float(i) * 1.5) * 6.0
-			var n_rad = attack_range * 0.82 + n_bob2
-			var np = Vector2.from_angle(na) * n_rad
-			var n_alpha = 0.2 + sin(_time * 1.5 + float(i) * 0.9) * 0.08
-			draw_circle(np, 4.0, Color(0.4, 0.55, 0.9, n_alpha))
-			draw_circle(np, 2.5, Color(0.5, 0.65, 1.0, n_alpha * 0.6))
-			draw_line(np + Vector2(2.5, 0), np + Vector2(2.5, -12.0), Color(0.4, 0.55, 0.9, n_alpha * 0.7), 1.2)
-			draw_line(np + Vector2(2.5, -12.0), np + Vector2(6.0, -8.0), Color(0.4, 0.55, 0.9, n_alpha * 0.5), 1.2)
-			draw_circle(np, 7.0, Color(0.4, 0.5, 0.9, n_alpha * 0.1))
+	# (Aura ring removed — Angel of Music is now range-based)
 
 	# === T4: Crown of dark flame above head ===
 	if upgrade_tier >= 4:

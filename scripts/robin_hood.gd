@@ -7,8 +7,8 @@ extends Node2D
 
 # Base stats
 var damage: float = 25.0
-var fire_rate: float = 2.0
-var attack_range: float = 200.0
+var fire_rate: float = 0.8
+var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
 var target: Node2D = null
@@ -30,18 +30,19 @@ var pierce_count: int = 0
 
 # Tier 2: The Silver Arrow — every Nth shot is silver (3x damage)
 var shot_count: int = 0
-var silver_interval: int = 5
+var silver_interval: int = 10
 
-# Tier 3: Three Blasts of the Horn — periodic volley
-var horn_timer: float = 0.0
-var horn_cooldown: float = 18.0
+# Tier 3: Three Blasts of the Horn — sky arrows
 var _horn_flash: float = 0.0
-
-# Tier 4: The Final Arrow — splash
-var splash_radius: float = 0.0
 
 # Kill tracking — steal coins every 10th kill
 var kill_count: int = 0
+
+# Tier 3: Sky arrows — every 10 waves
+var _sky_arrows_active: Array = []
+var _sky_arrow_spawn_timer: float = 0.0
+var _sky_arrows_last_trigger_wave: int = -1
+var _sky_arrow_flash: float = 0.0
 
 # === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
 const PROG_ABILITY_NAMES = [
@@ -89,10 +90,10 @@ const TIER_NAMES = [
 	"The Final Arrow"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Arrows pierce to a 2nd enemy",
-	"Every 5th shot deals 3x damage",
-	"Volley of 5 arrows every 18s",
-	"Splash damage, double gold, double pierce"
+	"Fire 2 arrows per attack",
+	"Every 10th arrow is silver — pierces 5 enemies",
+	"3 sky arrows every other round — insta-kill on landing",
+	"Silver becomes gold — pierces 10 enemies"
 ]
 const TIER_COSTS = [80, 175, 300, 500]
 var is_selected: bool = false
@@ -186,12 +187,14 @@ func _process(delta: float) -> void:
 	else:
 		_draw_progress = max(_draw_progress - delta * 2.0, 0.0)
 
-	# Tier 3+: Horn volley
-	if upgrade_tier >= 3:
-		horn_timer -= delta
-		if horn_timer <= 0.0 and _has_enemies_in_range():
-			_horn_volley()
-			horn_timer = horn_cooldown
+	# Sky arrow spawn timer
+	if _sky_arrow_spawn_timer > 0.0:
+		_sky_arrow_spawn_timer -= delta
+		if _sky_arrow_spawn_timer <= 0.0:
+			_spawn_sky_arrows()
+
+	# Update sky arrows
+	_update_sky_arrows(delta)
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
@@ -226,6 +229,19 @@ func _find_nearest_enemy() -> Node2D:
 			nearest_dist = dist
 	return nearest
 
+func _find_second_target(exclude: Node2D) -> Node2D:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var nearest: Node2D = null
+	var nearest_dist: float = attack_range * _range_mult()
+	for enemy in enemies:
+		if enemy == exclude:
+			continue
+		var dist = global_position.distance_to(enemy.global_position)
+		if dist < nearest_dist:
+			nearest = enemy
+			nearest_dist = dist
+	return nearest
+
 func _shoot() -> void:
 	if not target:
 		return
@@ -233,10 +249,20 @@ func _shoot() -> void:
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 	shot_count += 1
-	var silver = upgrade_tier >= 2 and shot_count % silver_interval == 0
-	_fire_arrow(target, silver)
+	var silver = upgrade_tier >= 2 and shot_count % silver_interval == 0 and randf() < 0.75
+	var gold = upgrade_tier >= 4 and silver
+	_fire_arrow(target, silver, gold)
+	# Tier 1+: Dual shot — fire second arrow at next nearest enemy
+	if upgrade_tier >= 1:
+		var second = _find_second_target(target)
+		if not second:
+			second = target
+		shot_count += 1
+		var silver2 = upgrade_tier >= 2 and shot_count % silver_interval == 0 and randf() < 0.75
+		var gold2 = upgrade_tier >= 4 and silver2
+		_fire_arrow(second, silver2, gold2)
 
-func _fire_arrow(t: Node2D, silver: bool = false) -> void:
+func _fire_arrow(t: Node2D, silver: bool = false, gold: bool = false) -> void:
 	var arrow = arrow_scene.instantiate()
 	arrow.global_position = global_position + Vector2.from_angle(bow_angle) * 18.0
 	var dmg_mult = 3.0 if silver else 1.0
@@ -250,26 +276,21 @@ func _fire_arrow(t: Node2D, silver: bool = false) -> void:
 	arrow.target = t
 	arrow.gold_bonus = int(gold_bonus * _gold_mult())
 	arrow.source_tower = self
-	arrow.pierce_count = pierce_count
-	arrow.is_silver = silver
-	arrow.splash_radius = splash_radius
+	if gold:
+		arrow.pierce_count = 10
+		arrow.is_gold = true
+		arrow.is_silver = false
+	elif silver:
+		arrow.pierce_count = 5
+		arrow.is_silver = true
+	else:
+		arrow.pierce_count = 0
+		arrow.is_silver = false
+	arrow.splash_radius = 0.0
 	# Ability 1: Sherwood Aim — 30% faster arrows
 	if prog_abilities[0]:
 		arrow.speed *= 1.3
 	get_tree().get_first_node_in_group("main").add_child(arrow)
-
-func _horn_volley() -> void:
-	if _horn_player and not _is_sfx_muted(): _horn_player.play()
-	_horn_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var in_range: Array = []
-	for enemy in enemies:
-		if global_position.distance_to(enemy.global_position) < attack_range:
-			in_range.append(enemy)
-	in_range.shuffle()
-	var count = mini(5, in_range.size())
-	for i in range(count):
-		_fire_arrow(in_range[i], false)
 
 func register_kill() -> void:
 	kill_count += 1
@@ -280,6 +301,79 @@ func register_kill() -> void:
 			main.add_gold(stolen)
 		_upgrade_flash = 1.0
 		_upgrade_name = "Robbed %d gold!" % stolen
+
+func on_wave_start(wave_num: int) -> void:
+	# Sky arrows: every other wave
+	if upgrade_tier >= 3 and wave_num % 2 == 0 and wave_num != _sky_arrows_last_trigger_wave:
+		_sky_arrows_last_trigger_wave = wave_num
+		_sky_arrow_spawn_timer = 2.0  # 2s delay so enemies are on field
+
+func _spawn_sky_arrows() -> void:
+	if _horn_player and not _is_sfx_muted(): _horn_player.play()
+	_sky_arrow_flash = 1.0
+	_horn_flash = 1.0
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	if enemies.size() == 0:
+		return
+	var shuffled = enemies.duplicate()
+	shuffled.shuffle()
+	var count = mini(3, shuffled.size())
+	for i in range(count):
+		if not is_instance_valid(shuffled[i]):
+			continue
+		_sky_arrows_active.append({
+			"phase": 0,  # 0=ascending, 1=descending
+			"timer": 0.0,
+			"ascend_time": 0.8,
+			"descend_time": 0.6,
+			"start_pos": global_position + Vector2(float(i - 1) * 15.0, 0),
+			"peak_pos": global_position + Vector2(float(i - 1) * 15.0, -150.0),
+			"target": shuffled[i],
+			"pos": global_position + Vector2(float(i - 1) * 15.0, 0),
+			"trail": []
+		})
+
+func _update_sky_arrows(delta: float) -> void:
+	_sky_arrow_flash = max(_sky_arrow_flash - delta * 1.5, 0.0)
+	var to_remove: Array = []
+	for si in range(_sky_arrows_active.size()):
+		var arrow = _sky_arrows_active[si]
+		arrow["timer"] += delta
+		if arrow["phase"] == 0:
+			# Ascending
+			var t_norm = arrow["timer"] / arrow["ascend_time"]
+			arrow["pos"] = arrow["start_pos"].lerp(arrow["peak_pos"], clampf(t_norm, 0.0, 1.0))
+			# Add trail point
+			arrow["trail"].append(arrow["pos"])
+			if arrow["trail"].size() > 10:
+				arrow["trail"].pop_front()
+			if t_norm >= 1.0:
+				arrow["phase"] = 1
+				arrow["timer"] = 0.0
+		elif arrow["phase"] == 1:
+			# Descending toward target
+			var t_norm = arrow["timer"] / arrow["descend_time"]
+			if is_instance_valid(arrow["target"]):
+				var target_pos = arrow["target"].global_position
+				arrow["pos"] = arrow["peak_pos"].lerp(target_pos, clampf(t_norm, 0.0, 1.0))
+				arrow["trail"].append(arrow["pos"])
+				if arrow["trail"].size() > 10:
+					arrow["trail"].pop_front()
+				if t_norm >= 1.0:
+					# Impact — insta-kill
+					if arrow["target"].has_method("take_damage"):
+						var dmg = arrow["target"].health + 1.0
+						arrow["target"].take_damage(dmg, true)
+						register_damage(dmg)
+						if arrow["target"].has_method("register_kill"):
+							pass  # Enemy handles death
+					if is_instance_valid(arrow["target"]):
+						register_kill()
+					to_remove.append(si)
+			else:
+				to_remove.append(si)
+	for ri in range(to_remove.size() - 1, -1, -1):
+		_sky_arrows_active.remove_at(to_remove[ri])
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -310,30 +404,25 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Splitting the Wand — arrows pierce one extra enemy
-			pierce_count = 1
+		1: # Splitting the Wand — dual shot
 			damage = 33.0
-			fire_rate = 2.5
-			attack_range = 220.0
-		2: # The Silver Arrow — every 5th shot triple damage
+			fire_rate = 1.0
+			attack_range = 176.0
+		2: # The Silver Arrow — every 10th arrow, 75% chance, pierces 5
 			damage = 43.0
-			fire_rate = 3.0
-			attack_range = 240.0
+			fire_rate = 1.2
+			attack_range = 192.0
 			gold_bonus = 3
-		3: # Three Blasts of the Horn — volley + range boost
+		3: # Three Blasts of the Horn — sky arrows every other wave
 			damage = 50.0
-			fire_rate = 3.5
-			attack_range = 270.0
-			horn_cooldown = 14.0
+			fire_rate = 1.4
+			attack_range = 216.0
 			gold_bonus = 4
-		4: # The Final Arrow — splash, double pierce, double gold
+		4: # The Final Arrow — gold arrow, pierces 10
 			damage = 65.0
-			fire_rate = 4.0
-			attack_range = 300.0
+			fire_rate = 1.6
+			attack_range = 240.0
 			gold_bonus = 6
-			splash_radius = 80.0
-			pierce_count = 3
-			horn_cooldown = 10.0
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -734,6 +823,24 @@ func _draw() -> void:
 			var h_outer = Vector2.from_angle(ha) * (horn_ring_r + 5.0)
 			draw_line(h_inner, h_outer, Color(1.0, 0.92, 0.4, _horn_flash * 0.4), 1.5)
 
+	# === SKY ARROWS VISUAL ===
+	for sky_arrow in _sky_arrows_active:
+		var sa_pos = sky_arrow["pos"] - global_position
+		var sa_trail = sky_arrow["trail"]
+		# Trail
+		for ti in range(sa_trail.size() - 1):
+			var tp1 = sa_trail[ti] - global_position
+			var tp2 = sa_trail[ti + 1] - global_position
+			var ta = float(ti) / float(sa_trail.size())
+			draw_line(tp1, tp2, Color(1.0, 0.85, 0.3, ta * 0.4), 2.0)
+		# Arrow head
+		draw_circle(sa_pos, 5.0, Color(1.0, 0.9, 0.3, 0.8))
+		draw_circle(sa_pos, 3.0, Color(1.0, 1.0, 0.6, 0.6))
+		# Fire glow when descending
+		if sky_arrow["phase"] == 1:
+			draw_circle(sa_pos, 8.0, Color(1.0, 0.5, 0.1, 0.3))
+			draw_circle(sa_pos, 12.0, Color(1.0, 0.3, 0.05, 0.15))
+
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 	# Ability 2: Lincoln Green — invisibility effect
 	if prog_abilities[1] and _lincoln_green_invis > 0.0:
@@ -1085,8 +1192,15 @@ func _draw() -> void:
 		var arrow_tip = bow_center + dir * 24.0
 		# Silver arrow detection
 		var next_is_silver = upgrade_tier >= 2 and (shot_count + 1) % silver_interval == 0
-		var shaft_col = Color(0.82, 0.78, 0.55) if next_is_silver else Color(0.58, 0.46, 0.28)
-		var head_col = Color(0.88, 0.80, 0.35) if next_is_silver else Color(0.50, 0.50, 0.55)
+		var next_is_gold = upgrade_tier >= 4 and next_is_silver
+		var shaft_col = Color(0.58, 0.46, 0.28)
+		var head_col = Color(0.50, 0.50, 0.55)
+		if next_is_gold:
+			shaft_col = Color(0.95, 0.85, 0.30)
+			head_col = Color(1.0, 0.88, 0.25)
+		elif next_is_silver:
+			shaft_col = Color(0.82, 0.78, 0.55)
+			head_col = Color(0.88, 0.80, 0.35)
 		# Arrow shaft — outline then fill
 		draw_line(arrow_nock, arrow_tip, OL, 2.5)
 		draw_line(arrow_nock, arrow_tip, shaft_col, 1.5)
@@ -1102,8 +1216,12 @@ func _draw() -> void:
 		var fletch_start = arrow_nock + dir * 1.0
 		draw_line(fletch_start + perp * 2.0, fletch_start + dir * 4.0 + perp * 1.0, Color(0.85, 0.18, 0.10), 1.5)
 		draw_line(fletch_start - perp * 2.0, fletch_start + dir * 4.0 - perp * 1.0, Color(0.85, 0.85, 0.80), 1.5)
-		# Silver glow
-		if next_is_silver:
+		# Silver/Gold glow
+		if next_is_gold:
+			var gglow = (sin(_time * 4.0) + 1.0) * 0.5
+			draw_circle(arrow_tip, 5.0 + gglow * 2.0, Color(1.0, 0.90, 0.3, 0.28))
+			draw_circle(arrow_tip, 3.0 + gglow, Color(1.0, 0.95, 0.5, 0.15))
+		elif next_is_silver:
 			var sglow = (sin(_time * 4.0) + 1.0) * 0.5
 			draw_circle(arrow_tip, 4.0 + sglow * 2.0, Color(0.88, 0.90, 1.0, 0.22))
 		# Tier 4: Fiery arrow tip

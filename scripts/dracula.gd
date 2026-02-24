@@ -1,9 +1,9 @@
 extends Node2D
 ## Dracula — vampire lord tower. Drains life from enemies, summons bats, turns foes to minions.
-## Tier 1 (5000 DMG): Vampiric Touch — life drain heals 10% of damage
-## Tier 2 (10000 DMG): Bat Swarm — bats from ability also slow enemies 20%
-## Tier 3 (15000 DMG): Thrall — killed enemies 15% chance to rise as friendly minion for 8s
-## Tier 4 (20000 DMG): Lord of Darkness — 50% more damage, permanent bat cloud, 2% HP/sec drain
+## Tier 1: Vampiric Touch — every 5th kill, dash and bite for major damage
+## Tier 2: Bat Swarm — each wave, transform into bats, devour 3-5 enemies
+## Tier 3: Thrall — every 15th kill, drain life to restore 1 lost player life
+## Tier 4: Lord of Darkness — glow red, dash and feast on enemies at will
 
 # Base stats
 var damage: float = 28.0
@@ -25,27 +25,34 @@ var upgrade_tier: int = 0
 var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
 
-# Tier 1: Vampiric Touch — life drain percent
-var life_drain_percent: float = 0.05
+# Tier 1: Vampiric Touch — bite every 5 kills
+var life_drain_percent: float = 0.05  # kept for bolt compatibility
+var _home_position: Vector2 = Vector2.ZERO
+var _bite_target: Node2D = null
+var _bite_dash_timer: float = 0.0
+var _bite_returning: bool = false
+var _bite_flash: float = 0.0
 
-# Tier 2: Bat Swarm — bats slow enemies
-var bat_slow_enabled: bool = false
+# Tier 2: Bat Swarm — devour enemies each wave
+var _bat_devour_active: bool = false
+var _bat_devour_timer: float = 0.0
+var _bat_devour_targets: Array = []
+var _bat_devour_phase: float = 0.0
+var _bat_devour_flash: float = 0.0
 
-# Tier 3: Thrall — killed enemies rise as minions
-var thrall_chance: float = 0.0
-var _active_thralls: Array = []
+# Tier 3: Thrall — restore life every 15 kills
+var _thrall_kill_counter: int = 0
+var _thrall_flash: float = 0.0
+var _active_thralls: Array = []  # kept for visual indicator
 
-# Tier 4: Lord of Darkness
-var lord_of_darkness: bool = false
-var _darkness_aura_timer: float = 0.0
-
-# Ability: Children of the Night — bat swarm
-var ability_active: bool = false
-var ability_timer: float = 0.0
-var ability_cooldown: float = 20.0
-var ability_ready: float = 0.0
-var _bat_swarm_positions: Array = []
-var _bat_swarm_flash: float = 0.0
+# Tier 4: Lord of Darkness — constant feast
+var _lord_active: bool = false
+var _lord_glow: float = 0.0
+var _lord_feast_timer: float = 0.0
+var _lord_feast_cooldown: float = 1.5
+var _lord_feast_target: Node2D = null
+var _lord_feast_dash_timer: float = 0.0
+var _lord_feast_returning: bool = false
 
 # Kill tracking
 var kill_count: int = 0
@@ -98,12 +105,12 @@ const TIER_NAMES = [
 	"Lord of Darkness"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Life drain heals 10% of damage",
-	"Bats from ability also slow enemies 20%",
-	"Killed enemies 15% chance to rise as minion",
-	"50% more damage, permanent bats, 2% HP/sec drain"
+	"Every 5th kill — dash and bite for major damage",
+	"Each wave — transform into bats, devour 3-5 enemies",
+	"Every 15th kill — drain life to restore 1 lost life",
+	"Glow red — dash and feast on enemies at will"
 ]
-const TIER_COSTS = [80, 175, 300, 500]
+const TIER_COSTS = [80, 175, 300, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -124,6 +131,7 @@ var _game_font: Font
 func _ready() -> void:
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
+	_home_position = global_position
 	_load_progressive_abilities()
 	_generate_tier_sounds()
 	_attack_sounds = _attack_sounds_by_tier[0]
@@ -181,11 +189,20 @@ func _process(delta: float) -> void:
 	_time += delta
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
-	_bat_swarm_flash = max(_bat_swarm_flash - delta * 2.0, 0.0)
+	_bite_flash = max(_bite_flash - delta * 2.0, 0.0)
+	_bat_devour_flash = max(_bat_devour_flash - delta * 2.0, 0.0)
+	_thrall_flash = max(_thrall_flash - delta * 1.5, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
+
+	# Store home position if not set (deferred from _ready for global_position accuracy)
+	if _home_position == Vector2.ZERO and global_position != Vector2.ZERO:
+		_home_position = global_position
+
 	target = _find_nearest_enemy()
 
-	if target:
+	# Don't shoot while dashing
+	var is_dashing = _bite_dash_timer > 0.0 or _lord_feast_dash_timer > 0.0 or _bat_devour_active
+	if target and not is_dashing:
 		var desired = global_position.angle_to_point(target.global_position) + PI
 		aim_angle = lerp_angle(aim_angle, desired, 10.0 * delta)
 		_cast_anim = min(_cast_anim + delta * 3.0, 1.0)
@@ -197,26 +214,23 @@ func _process(delta: float) -> void:
 	else:
 		_cast_anim = max(_cast_anim - delta * 2.0, 0.0)
 
-	# Ability: Children of the Night — bat swarm
-	if ability_active:
-		ability_timer -= delta
-		_process_bat_swarm(delta)
-		if ability_timer <= 0.0:
-			ability_active = false
-			_bat_swarm_positions.clear()
-	ability_ready = max(ability_ready - delta, 0.0)
+	# Tier 1+: Bite dash update
+	_update_bite_dash(delta)
 
-	# Tier 4: Lord of Darkness — passive HP drain aura
-	if lord_of_darkness:
-		_darkness_aura_timer -= delta
-		if _darkness_aura_timer <= 0.0:
-			_darkness_aura_timer = 0.5  # Tick every 0.5s
-			_apply_darkness_aura()
+	# Tier 2+: Bat devour update
+	_update_bat_devour(delta)
+
+	# Tier 4: Lord of Darkness feast update
+	_update_lord_feast(delta)
+
+	# Tier 4: Lord glow pulse
+	if _lord_active:
+		_lord_glow = fmod(_lord_glow + delta * 2.0, TAU)
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
 
-	# Manage thralls
+	# Manage thrall visuals
 	_update_thralls(delta)
 
 	queue_redraw()
@@ -261,9 +275,6 @@ func _fire_blood_bolt(t: Node2D) -> void:
 	var bolt = blood_bolt_scene.instantiate()
 	bolt.global_position = global_position + Vector2.from_angle(aim_angle) * 18.0
 	var dmg_mult = 1.0
-	# Tier 4: Lord of Darkness — 50% more damage
-	if lord_of_darkness:
-		dmg_mult *= 1.5
 	# Ability 1: Undead Fortitude — +15% damage
 	if prog_abilities[0]:
 		dmg_mult *= 1.15
@@ -284,61 +295,153 @@ func _fire_blood_bolt(t: Node2D) -> void:
 	get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func receive_life_drain(amount: float) -> void:
-	# Heal nearby towers by the drain amount (represented as restoring HP to tower group)
-	# In a tower defense, this manifests as a small heal indicator
+	# Visual feedback for life drain on blood bolts
 	_upgrade_flash = max(_upgrade_flash, 0.3)
-	# Could heal main lives in small amounts at higher tiers
-	if upgrade_tier >= 1 and amount > 2.0:
-		var main = get_tree().get_first_node_in_group("main")
-		if main and main.has_method("restore_life") and randf() < 0.03:
-			main.restore_life(1)
 
-func activate_bat_swarm() -> void:
-	if ability_ready > 0.0:
+# === NEW TIER ABILITY FUNCTIONS ===
+
+func on_wave_start(wave_num: int) -> void:
+	# Tier 2+: Bat Devour — delay 2s then devour random enemies
+	if upgrade_tier >= 2 and not _bat_devour_active:
+		_bat_devour_timer = 2.0
+
+func _trigger_bite(bite_target: Node2D) -> void:
+	if not is_instance_valid(bite_target):
 		return
-	ability_active = true
-	ability_timer = 5.0
-	ability_ready = ability_cooldown
-	_bat_swarm_flash = 1.0
-	_bat_swarm_positions.clear()
-	# Initialize bat positions in a ring
-	for i in range(8):
-		var a = TAU * float(i) / 8.0
-		_bat_swarm_positions.append({
-			"angle": a,
-			"radius": attack_range * 0.6,
-			"phase": randf() * TAU,
-		})
+	_bite_target = bite_target
+	_bite_dash_timer = 0.001  # Start dash
+	_bite_returning = false
+	_bite_flash = 1.0
+
+func _update_bite_dash(delta: float) -> void:
+	if _bite_dash_timer <= 0.0:
+		return
+	_bite_dash_timer += delta
+	var dash_dur := 0.3
+	var return_dur := 0.3
+	var total_dur := dash_dur + return_dur
+
+	if not _bite_returning:
+		# Dashing toward target
+		if _bite_dash_timer >= dash_dur:
+			# Arrived at target — deal damage
+			if is_instance_valid(_bite_target) and _bite_target.has_method("take_damage"):
+				var bite_dmg = damage * 4.0 * _damage_mult()
+				_bite_target.take_damage(bite_dmg)
+				register_damage(bite_dmg)
+				_bite_flash = 1.0
+			_bite_returning = true
+		else:
+			# Interpolate position toward target
+			if is_instance_valid(_bite_target):
+				var t_val = _bite_dash_timer / dash_dur
+				global_position = _home_position.lerp(_bite_target.global_position, t_val)
+	else:
+		# Returning to home
+		var return_progress = (_bite_dash_timer - dash_dur) / return_dur
+		if return_progress >= 1.0:
+			# Done — reset
+			global_position = _home_position
+			_bite_dash_timer = 0.0
+			_bite_returning = false
+			_bite_target = null
+		else:
+			if is_instance_valid(_bite_target):
+				global_position = _bite_target.global_position.lerp(_home_position, return_progress)
+			else:
+				global_position = global_position.lerp(_home_position, return_progress)
+
+func _trigger_bat_devour() -> void:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return
+	var count = randi_range(3, 5)
+	_bat_devour_targets.clear()
+	# Shuffle and pick random enemies
+	var shuffled = enemies.duplicate()
+	shuffled.shuffle()
+	for i in range(mini(count, shuffled.size())):
+		_bat_devour_targets.append(shuffled[i])
+	if _bat_devour_targets.is_empty():
+		return
+	_bat_devour_active = true
+	_bat_devour_phase = 0.0
+	_bat_devour_flash = 1.0
 	if _bat_screech_player and not _is_sfx_muted():
 		_bat_screech_player.play()
 
-func _process_bat_swarm(delta: float) -> void:
-	# Bats orbit and damage enemies
-	var tick_dmg = damage * 0.3 * delta  # Damage per second per bat
-	for bat in _bat_swarm_positions:
-		bat["angle"] += delta * 3.0
-		var bat_pos = global_position + Vector2.from_angle(bat["angle"]) * bat["radius"]
-		# Check for enemies near each bat
-		for enemy in get_tree().get_nodes_in_group("enemies"):
-			if bat_pos.distance_to(enemy.global_position) < 25.0:
-				if enemy.has_method("take_damage"):
-					enemy.take_damage(tick_dmg * _damage_mult())
-					register_damage(tick_dmg * _damage_mult())
-				# Tier 2: Bats slow enemies
-				if bat_slow_enabled and enemy.has_method("apply_slow"):
-					enemy.apply_slow(0.8, 0.5)
+func _update_bat_devour(delta: float) -> void:
+	# Delayed trigger
+	if _bat_devour_timer > 0.0 and not _bat_devour_active:
+		_bat_devour_timer -= delta
+		if _bat_devour_timer <= 0.0:
+			_trigger_bat_devour()
+		return
 
-func _apply_darkness_aura() -> void:
-	# Enemies in range lose 2% HP per second (tick every 0.5s = 1% per tick)
-	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < eff_range:
-			if enemy.has_method("take_damage") and "health" in enemy and "max_health" in enemy:
-				var drain = enemy.max_health * 0.01  # 1% per 0.5s tick = 2% per second
-				enemy.take_damage(drain)
-				register_damage(drain)
+	if not _bat_devour_active:
+		return
+
+	_bat_devour_phase += delta
+	var swirl_dur := 1.0
+	if _bat_devour_phase >= swirl_dur:
+		# Kill all targets
+		for enemy in _bat_devour_targets:
+			if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+				if "health" in enemy:
+					var kill_dmg = enemy.health + 10.0
+					enemy.take_damage(kill_dmg)
+					register_damage(kill_dmg)
+		_bat_devour_active = false
+		_bat_devour_targets.clear()
+		_bat_devour_phase = 0.0
+
+func _update_lord_feast(delta: float) -> void:
+	if not _lord_active:
+		return
+	# Auto-feast on cooldown
+	if _lord_feast_dash_timer > 0.0:
+		# Currently dashing for feast
+		_lord_feast_dash_timer += delta
+		var dash_dur := 0.25
+		var return_dur := 0.25
+		if not _lord_feast_returning:
+			if _lord_feast_dash_timer >= dash_dur:
+				# Arrived — deal feast damage
+				if is_instance_valid(_lord_feast_target) and _lord_feast_target.has_method("take_damage"):
+					var feast_dmg = damage * 2.0 * _damage_mult()
+					_lord_feast_target.take_damage(feast_dmg)
+					register_damage(feast_dmg)
+					_bite_flash = 0.8
+				_lord_feast_returning = true
+			else:
+				if is_instance_valid(_lord_feast_target):
+					var t_val = _lord_feast_dash_timer / dash_dur
+					global_position = _home_position.lerp(_lord_feast_target.global_position, t_val)
+		else:
+			var return_progress = (_lord_feast_dash_timer - dash_dur) / return_dur
+			if return_progress >= 1.0:
+				global_position = _home_position
+				_lord_feast_dash_timer = 0.0
+				_lord_feast_returning = false
+				_lord_feast_target = null
+			else:
+				if is_instance_valid(_lord_feast_target):
+					global_position = _lord_feast_target.global_position.lerp(_home_position, return_progress)
+				else:
+					global_position = global_position.lerp(_home_position, return_progress)
+	else:
+		_lord_feast_timer += delta
+		if _lord_feast_timer >= _lord_feast_cooldown:
+			_lord_feast_timer = 0.0
+			# Find nearest enemy and start feast dash
+			var nearest = _find_nearest_enemy()
+			if nearest:
+				_lord_feast_target = nearest
+				_lord_feast_dash_timer = 0.001
+				_lord_feast_returning = false
 
 func _update_thralls(delta: float) -> void:
+	# Visual-only thrall indicators
 	var i = _active_thralls.size() - 1
 	while i >= 0:
 		_active_thralls[i]["life"] -= delta
@@ -348,15 +451,31 @@ func _update_thralls(delta: float) -> void:
 
 func register_kill() -> void:
 	kill_count += 1
-	# Tier 3: Thrall chance
-	if thrall_chance > 0.0 and randf() < thrall_chance:
-		_active_thralls.append({
-			"life": 8.0,
-			"angle": randf() * TAU,
-			"radius": 30.0 + randf() * 20.0,
-		})
-		_upgrade_flash = 1.0
-		_upgrade_name = "Thrall Rises!"
+
+	# Tier 1+: Vampiric Touch — bite every 5 kills
+	if upgrade_tier >= 1 and kill_count % 5 == 0 and _bite_dash_timer <= 0.0 and _lord_feast_dash_timer <= 0.0:
+		var nearest = _find_nearest_enemy()
+		if nearest:
+			_trigger_bite(nearest)
+
+	# Tier 3+: Thrall — restore 1 life every 15 kills
+	if upgrade_tier >= 3:
+		_thrall_kill_counter += 1
+		if _thrall_kill_counter % 15 == 0:
+			var main = get_tree().get_first_node_in_group("main")
+			if main and main.has_method("restore_life"):
+				main.restore_life(1)
+			_thrall_flash = 1.0
+			_upgrade_flash = 1.5
+			_upgrade_name = "Life Restored!"
+			# Visual thrall rising indicator
+			_active_thralls.append({
+				"life": 2.0,
+				"angle": randf() * TAU,
+				"radius": 25.0 + randf() * 15.0,
+			})
+
+	# Gold bonus on kills
 	if kill_count % 10 == 0:
 		var stolen = 3 + kill_count / 10
 		var main = get_tree().get_first_node_in_group("main")
@@ -394,31 +513,27 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Vampiric Touch — life drain heals 10%
-			life_drain_percent = 0.10
+		1: # Vampiric Touch — bite every 5 kills
 			damage = 35.0
 			fire_rate = 1.8
 			attack_range = 220.0
-		2: # Bat Swarm — bats slow enemies
-			bat_slow_enabled = true
+			life_drain_percent = 0.10
+		2: # Bat Swarm — devour enemies each wave
 			damage = 45.0
 			fire_rate = 2.0
 			attack_range = 240.0
 			gold_bonus = 3
-		3: # Thrall — killed enemies rise as minions
-			thrall_chance = 0.15
+		3: # Thrall — life restore every 15 kills
 			damage = 55.0
 			fire_rate = 2.2
 			attack_range = 260.0
 			gold_bonus = 4
-		4: # Lord of Darkness — massive power spike
-			lord_of_darkness = true
-			damage = 70.0
+		4: # Lord of Darkness — constant feast
+			_lord_active = true
+			damage = 50.0
 			fire_rate = 2.5
 			attack_range = 280.0
 			gold_bonus = 6
-			life_drain_percent = 0.15
-			thrall_chance = 0.25
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -796,16 +911,16 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0:
 		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.5, 0.05, 0.05, _upgrade_flash * 0.25))
 
-	# === 7. BAT SWARM FLASH (ability) ===
-	if _bat_swarm_flash > 0.0:
-		var bat_ring_r = 36.0 + (1.0 - _bat_swarm_flash) * 70.0
-		draw_circle(Vector2.ZERO, bat_ring_r, Color(0.3, 0.0, 0.0, _bat_swarm_flash * 0.15))
-		draw_arc(Vector2.ZERO, bat_ring_r, 0, TAU, 32, Color(0.6, 0.1, 0.1, _bat_swarm_flash * 0.3), 2.5)
+	# === 7. BAT DEVOUR FLASH (tier 2 ability) ===
+	if _bat_devour_flash > 0.0:
+		var bat_ring_r = 36.0 + (1.0 - _bat_devour_flash) * 70.0
+		draw_circle(Vector2.ZERO, bat_ring_r, Color(0.3, 0.0, 0.0, _bat_devour_flash * 0.15))
+		draw_arc(Vector2.ZERO, bat_ring_r, 0, TAU, 32, Color(0.6, 0.1, 0.1, _bat_devour_flash * 0.3), 2.5)
 		for bi in range(8):
-			var ba = TAU * float(bi) / 8.0 + _bat_swarm_flash * 3.0
+			var ba = TAU * float(bi) / 8.0 + _bat_devour_flash * 3.0
 			var b_inner = Vector2.from_angle(ba) * (bat_ring_r * 0.5)
 			var b_outer = Vector2.from_angle(ba) * (bat_ring_r + 5.0)
-			draw_line(b_inner, b_outer, Color(0.5, 0.05, 0.05, _bat_swarm_flash * 0.4), 1.5)
+			draw_line(b_inner, b_outer, Color(0.5, 0.05, 0.05, _bat_devour_flash * 0.4), 1.5)
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 	# Ability 2: Mist Form — translucent mist effect
@@ -933,53 +1048,113 @@ func _draw() -> void:
 			draw_line(bat_pos + Vector2(-3.5, wing_flap - 1.5), bat_pos + Vector2(-2, wing_flap), Color(0.18, 0.06, 0.06, bat_alpha * 0.5), 0.8)
 			draw_line(bat_pos + Vector2(3.5, wing_flap - 1.5), bat_pos + Vector2(2, wing_flap), Color(0.18, 0.06, 0.06, bat_alpha * 0.5), 0.8)
 
-	# Tier 3+: Spectral thrall outlines
+	# Tier 3+: Thrall life restore pulse
 	if upgrade_tier >= 3:
+		# Life drain visual indicators (green/red pulse when life restored)
 		for thr in _active_thralls:
-			thr["angle"] += 0.01
+			thr["angle"] += 0.02
 			var thr_pos = body_offset + Vector2.from_angle(thr["angle"]) * thr["radius"]
-			var thr_alpha = clampf(thr["life"] / 8.0, 0.0, 1.0) * 0.3
-			# Ghost figure outline
-			draw_circle(thr_pos + Vector2(0, -4), 3.5, Color(0.4, 0.6, 0.4, thr_alpha))
-			draw_circle(thr_pos, 4.0, Color(0.3, 0.5, 0.3, thr_alpha * 0.7))
-			draw_line(thr_pos + Vector2(0, 4), thr_pos + Vector2(0, 8), Color(0.3, 0.5, 0.3, thr_alpha * 0.5), 2.0)
-			# Glowing eyes
-			draw_circle(thr_pos + Vector2(-1.5, -5), 0.6, Color(0.8, 0.2, 0.1, thr_alpha * 2.0))
-			draw_circle(thr_pos + Vector2(1.5, -5), 0.6, Color(0.8, 0.2, 0.1, thr_alpha * 2.0))
+			var thr_alpha = clampf(thr["life"] / 2.0, 0.0, 1.0) * 0.5
+			# Rising green life orb
+			var rise_y = (2.0 - thr["life"]) * 12.0
+			var orb_pos = thr_pos + Vector2(0, -rise_y)
+			draw_circle(orb_pos, 4.0, Color(0.2, 0.7, 0.2, thr_alpha * 0.6))
+			draw_circle(orb_pos, 2.5, Color(0.3, 0.9, 0.3, thr_alpha * 0.8))
+			draw_circle(orb_pos, 1.2, Color(0.5, 1.0, 0.5, thr_alpha))
+			# Red drain trail below orb
+			draw_line(orb_pos, orb_pos + Vector2(0, rise_y * 0.5), Color(0.7, 0.1, 0.05, thr_alpha * 0.3), 1.5)
+		# Thrall flash — green/red glow when life restored
+		if _thrall_flash > 0.0:
+			var tf_alpha = clampf(_thrall_flash, 0.0, 1.0)
+			draw_circle(body_offset, 38.0 + _thrall_flash * 8.0, Color(0.2, 0.6, 0.15, tf_alpha * 0.12))
+			draw_arc(body_offset, 36.0 + _thrall_flash * 6.0, 0, TAU, 24, Color(0.3, 0.8, 0.2, tf_alpha * 0.25), 2.5)
+			# Cross/heart symbol for life restore
+			var cross_y = body_offset.y - 45.0 - _thrall_flash * 10.0
+			draw_line(Vector2(body_offset.x, cross_y - 4), Vector2(body_offset.x, cross_y + 4), Color(0.3, 0.85, 0.2, tf_alpha * 0.7), 2.5)
+			draw_line(Vector2(body_offset.x - 4, cross_y), Vector2(body_offset.x + 4, cross_y), Color(0.3, 0.85, 0.2, tf_alpha * 0.7), 2.5)
 
-	# Tier 4: Full darkness aura + red moonlight
+	# Tier 4: Lord of Darkness — red pulsing glow aura
 	if upgrade_tier >= 4:
-		# Darkness aura — pulsing dark circle
-		var dark_pulse = sin(_time * 2.0) * 6.0
-		draw_circle(body_offset, 55.0 + dark_pulse, Color(0.08, 0.0, 0.02, 0.06))
-		draw_circle(body_offset, 45.0 + dark_pulse * 0.6, Color(0.12, 0.0, 0.03, 0.08))
-		draw_arc(body_offset, 52.0 + dark_pulse, 0, TAU, 32, Color(0.4, 0.05, 0.05, 0.12), 2.5)
-		# Red moonlight overhead
-		var moon_glow = sin(_time * 1.5) * 0.03 + 0.12
-		draw_circle(body_offset + Vector2(0, -70), 10.0, Color(0.7, 0.1, 0.05, moon_glow))
-		draw_circle(body_offset + Vector2(0, -70), 7.0, Color(0.85, 0.15, 0.08, moon_glow * 1.2))
-		draw_circle(body_offset + Vector2(0, -70), 4.0, Color(0.95, 0.25, 0.15, moon_glow * 1.5))
-		# Moonlight beam down to Dracula
-		for beam_i in range(3):
-			var bx = float(beam_i - 1) * 5.0
-			draw_line(body_offset + Vector2(bx, -60), body_offset + Vector2(bx * 0.3, -20), Color(0.6, 0.08, 0.05, 0.04), 3.0)
+		var lord_pulse = sin(_lord_glow) * 0.5 + 0.5
+		# Inner red glow
+		draw_circle(body_offset, 48.0 + lord_pulse * 8.0, Color(0.6, 0.02, 0.02, 0.06 + lord_pulse * 0.04))
+		draw_circle(body_offset, 38.0 + lord_pulse * 5.0, Color(0.7, 0.05, 0.03, 0.08 + lord_pulse * 0.05))
+		# Outer pulsing ring
+		draw_arc(body_offset, 50.0 + lord_pulse * 8.0, 0, TAU, 32, Color(0.85, 0.08, 0.05, 0.10 + lord_pulse * 0.12), 2.5)
+		draw_arc(body_offset, 44.0 + lord_pulse * 5.0, 0, TAU, 24, Color(0.7, 0.05, 0.03, 0.08 + lord_pulse * 0.08), 1.5)
+		# Dark red particles rising
+		for dp in range(8):
+			var dp_a = _time * (0.6 + fmod(float(dp) * 0.3, 0.5)) + float(dp) * TAU / 8.0
+			var dp_r = 30.0 + lord_pulse * 6.0 + fmod(float(dp) * 5.3, 12.0)
+			var dp_pos = body_offset + Vector2(cos(dp_a) * dp_r, sin(dp_a) * dp_r * 0.5 - fmod(_time * 15.0 + float(dp) * 7.0, 30.0))
+			var dp_size = 1.5 + sin(_time * 2.5 + float(dp)) * 0.6
+			var dp_alpha = 0.15 + lord_pulse * 0.1
+			draw_circle(dp_pos, dp_size, Color(0.8, 0.05, 0.03, dp_alpha))
 
-	# === 12. ACTIVE BAT SWARM (ability visual) ===
-	if ability_active:
-		for bat in _bat_swarm_positions:
-			var bpos = Vector2.from_angle(bat["angle"]) * bat["radius"]
-			var wing_f = sin(_time * 14.0 + bat["phase"]) * 4.0
-			# Bat body (larger than tier bats)
-			draw_circle(bpos, 2.5, Color(0.15, 0.02, 0.02, 0.7))
-			# Wings
-			draw_line(bpos, bpos + Vector2(-6, wing_f - 2), Color(0.2, 0.02, 0.02, 0.6), 1.8)
-			draw_line(bpos, bpos + Vector2(6, wing_f - 2), Color(0.2, 0.02, 0.02, 0.6), 1.8)
-			# Wing tips
-			draw_line(bpos + Vector2(-6, wing_f - 2), bpos + Vector2(-4, wing_f + 1), Color(0.18, 0.02, 0.02, 0.4), 1.2)
-			draw_line(bpos + Vector2(6, wing_f - 2), bpos + Vector2(4, wing_f + 1), Color(0.18, 0.02, 0.02, 0.4), 1.2)
-			# Red eyes
-			draw_circle(bpos + Vector2(-1, -1), 0.5, Color(0.9, 0.15, 0.1, 0.8))
-			draw_circle(bpos + Vector2(1, -1), 0.5, Color(0.9, 0.15, 0.1, 0.8))
+	# === 12. ACTIVE BAT DEVOUR (tier 2 ability visual) ===
+	if _bat_devour_active:
+		# Hide normal Dracula during devour — dark cloud at tower position
+		draw_circle(body_offset, 18.0, Color(0.08, 0.0, 0.02, 0.4))
+		# Swirling bat cloud around each target
+		for tgt_i in range(_bat_devour_targets.size()):
+			var tgt = _bat_devour_targets[tgt_i]
+			if not is_instance_valid(tgt):
+				continue
+			var tgt_pos = tgt.global_position - global_position
+			var devour_progress = clampf(_bat_devour_phase / 1.0, 0.0, 1.0)
+			# 8-12 bats per target
+			var bat_count_per = 8 + tgt_i * 2
+			for bi in range(bat_count_per):
+				var ba = _time * (8.0 + float(bi) * 1.3) + float(bi) * TAU / float(bat_count_per) + float(tgt_i) * 1.5
+				var br = 20.0 - devour_progress * 12.0 + sin(_time * 5.0 + float(bi)) * 4.0
+				var bpos = tgt_pos + Vector2(cos(ba) * br, sin(ba) * br * 0.6)
+				var wing_f = sin(_time * 14.0 + float(bi) * 2.5) * 3.5
+				# Bat body
+				draw_circle(bpos, 2.0, Color(0.12, 0.02, 0.02, 0.7))
+				# Wings
+				draw_line(bpos, bpos + Vector2(-5, wing_f - 1.5), Color(0.18, 0.02, 0.02, 0.6), 1.5)
+				draw_line(bpos, bpos + Vector2(5, wing_f - 1.5), Color(0.18, 0.02, 0.02, 0.6), 1.5)
+				# Wing membrane
+				draw_line(bpos + Vector2(-5, wing_f - 1.5), bpos + Vector2(-3, wing_f + 0.5), Color(0.15, 0.02, 0.02, 0.4), 1.0)
+				draw_line(bpos + Vector2(5, wing_f - 1.5), bpos + Vector2(3, wing_f + 0.5), Color(0.15, 0.02, 0.02, 0.4), 1.0)
+				# Red eyes
+				draw_circle(bpos + Vector2(-0.8, -0.8), 0.5, Color(0.9, 0.12, 0.08, 0.8))
+				draw_circle(bpos + Vector2(0.8, -0.8), 0.5, Color(0.9, 0.12, 0.08, 0.8))
+			# Blood mist around target
+			var mist_alpha = devour_progress * 0.25
+			draw_circle(tgt_pos, 14.0, Color(0.5, 0.02, 0.02, mist_alpha))
+			draw_circle(tgt_pos, 8.0, Color(0.7, 0.05, 0.03, mist_alpha * 1.5))
+
+	# === 12b. BITE DASH TRAIL (tier 1 / tier 4 feast) ===
+	if _bite_dash_timer > 0.0 or _lord_feast_dash_timer > 0.0:
+		var is_lord_feast = _lord_feast_dash_timer > 0.0
+		var trail_color = Color(0.85, 0.06, 0.04, 0.3) if is_lord_feast else Color(0.5, 0.02, 0.02, 0.25)
+		# Cape trail behind movement direction
+		var move_dir = Vector2.ZERO
+		if _bite_dash_timer > 0.0 and is_instance_valid(_bite_target):
+			move_dir = (_bite_target.global_position - _home_position).normalized()
+		elif _lord_feast_dash_timer > 0.0 and is_instance_valid(_lord_feast_target):
+			move_dir = (_lord_feast_target.global_position - _home_position).normalized()
+		if move_dir.length() > 0.1:
+			var trail_perp = move_dir.rotated(PI / 2.0)
+			for ti in range(5):
+				var trail_offset_val = -move_dir * float(ti) * 8.0
+				var trail_alpha = (1.0 - float(ti) / 5.0) * 0.2
+				var trail_pos = body_offset + trail_offset_val
+				draw_circle(trail_pos, 6.0 - float(ti) * 0.8, Color(trail_color.r, trail_color.g, trail_color.b, trail_alpha))
+				# Cape wisps
+				var wisp_y = sin(_time * 8.0 + float(ti) * 1.5) * 3.0
+				draw_line(trail_pos + trail_perp * 4.0, trail_pos + trail_perp * 4.0 + Vector2(wisp_y, 3.0), Color(trail_color.r, trail_color.g, trail_color.b, trail_alpha * 0.6), 1.5)
+				draw_line(trail_pos - trail_perp * 4.0, trail_pos - trail_perp * 4.0 + Vector2(-wisp_y, 3.0), Color(trail_color.r, trail_color.g, trail_color.b, trail_alpha * 0.6), 1.5)
+	# Blood splash on bite impact
+	if _bite_flash > 0.5:
+		var splash_alpha = (_bite_flash - 0.5) * 2.0
+		for si in range(6):
+			var sa = TAU * float(si) / 6.0 + _bite_flash * 4.0
+			var sr = 8.0 + (1.0 - splash_alpha) * 15.0
+			var splash_pos = body_offset + Vector2.from_angle(sa) * sr
+			draw_circle(splash_pos, 2.0 + splash_alpha * 1.5, Color(0.7, 0.02, 0.02, splash_alpha * 0.4))
+		draw_circle(body_offset, 6.0 + (1.0 - splash_alpha) * 10.0, Color(0.8, 0.05, 0.03, splash_alpha * 0.15))
 
 	# === 13. CHARACTER BODY — BTD6 CARTOON STYLE ===
 	var OL = Color(0.06, 0.06, 0.08)
@@ -1491,21 +1666,25 @@ func _draw() -> void:
 		draw_arc(body_offset, 40.0, 0, TAU, 24, Color(0.5, 0.05, 0.05, nos_alpha * 1.5), 2.5)
 		draw_circle(head_center + Vector2(0, -2), 14.0, Color(0.15, 0.0, 0.0, nos_alpha * 0.4))
 
-	# === Tier 4: Full darkness aura around whole character ===
+	# === Tier 4: Lord of Darkness — glowing red eyes + crimson overlay ===
 	if upgrade_tier >= 4:
-		var aura_pulse = sin(_time * 2.0) * 5.0
-		draw_circle(body_offset, 62.0 + aura_pulse, Color(0.15, 0.0, 0.02, 0.05))
-		draw_circle(body_offset, 50.0 + aura_pulse * 0.6, Color(0.2, 0.02, 0.03, 0.07))
-		draw_circle(body_offset, 42.0 + aura_pulse * 0.3, Color(0.4, 0.05, 0.05, 0.06))
-		draw_arc(body_offset, 56.0 + aura_pulse, 0, TAU, 32, Color(0.5, 0.05, 0.05, 0.12), 2.5)
-		# Orbiting dark-red sparks
-		for gs in range(6):
-			var gs_a = _time * (0.5 + float(gs % 3) * 0.2) + float(gs) * TAU / 6.0
-			var gs_r = 48.0 + aura_pulse + float(gs % 3) * 3.5
-			var gs_p = body_offset + Vector2.from_angle(gs_a) * gs_r
-			var gs_size = 1.2 + sin(_time * 3.0 + float(gs) * 1.5) * 0.5
-			var gs_alpha = 0.25 + sin(_time * 3.0 + float(gs)) * 0.15
-			draw_circle(gs_p, gs_size, Color(0.7, 0.1, 0.05, gs_alpha))
+		var lord_p = sin(_lord_glow) * 0.5 + 0.5
+		# Glowing red eyes overlay (intensified on top of normal eyes)
+		var glow_eyes_l = head_center + Vector2(-4.0, -1.0)
+		var glow_eyes_r = head_center + Vector2(4.0, -1.0)
+		var eye_glow_a = 0.3 + lord_p * 0.4
+		draw_circle(glow_eyes_l, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
+		draw_circle(glow_eyes_r, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
+		draw_circle(glow_eyes_l, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
+		draw_circle(glow_eyes_r, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
+		# Crimson body outline shimmer
+		draw_arc(body_offset, 32.0, 0, TAU, 24, Color(0.85, 0.06, 0.04, 0.06 + lord_p * 0.06), 1.5)
+		# Dark red particle trails rising from feet
+		for pt in range(5):
+			var pt_x = body_offset.x + sin(_time * 1.2 + float(pt) * 1.7) * 12.0
+			var pt_y = body_offset.y + 12.0 - fmod(_time * 20.0 + float(pt) * 8.0, 35.0)
+			var pt_alpha = 0.12 + lord_p * 0.08
+			draw_circle(Vector2(pt_x, pt_y), 1.0 + lord_p * 0.5, Color(0.7, 0.03, 0.02, pt_alpha))
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

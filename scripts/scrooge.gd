@@ -1,10 +1,10 @@
 extends Node2D
 ## Ebenezer Scrooge — support tower from Dickens' A Christmas Carol (1843).
 ## Rings bell for AoE knockback and gold generation. Upgrades by dealing damage.
-## Tier 1: "Bah, Humbug!" — Stronger knockback (50 units), gold +3, faster bell
-## Tier 2: "Ghost of Christmas Past" — periodically mark random enemy (+25% dmg)
-## Tier 3: "Ghost of Christmas Present" — Enhanced blast radius (180), passive gold gen, mark all
-## Tier 4: "Ghost of Yet to Come" — Maximum knockback (80), fear-slow on knocked enemies
+## Tier 1: "Bah, Humbug!" — Blast knockback +15% stronger
+## Tier 2: "Ghost of Christmas Past" — Ghost rescues 5 enemies from path end, sends them back to start
+## Tier 3: "Ghost of Christmas Present" — Gives the team 20 gold twice per round
+## Tier 4: "Ghost of Yet to Come" — Every other wave, massive coin blast damages all enemies
 
 var damage: float = 1.5
 var fire_rate: float = 0.667
@@ -29,20 +29,26 @@ var _upgrade_name: String = ""
 var _time: float = 0.0
 var _attack_anim: float = 0.0
 
-# Tier 2: Ghost of Christmas Past — mark one enemy
-var ghost_past_timer: float = 0.0
-var ghost_past_cooldown: float = 12.0
+# Tier 2: Ghost of Christmas Past — rescue enemies from path end
+var _ghost_past_active: bool = false
+var _ghost_past_targets: Array = []
+var _ghost_past_phase: float = 0.0
+var _ghost_past_ready: float = 0.0
+var _ghost_past_cooldown: float = 20.0
 var _ghost_flash: float = 0.0
 
-# Tier 3: Ghost of Christmas Present — mark all + passive gold
-var ghost_present_timer: float = 0.0
-var ghost_present_cooldown: float = 10.0
-var passive_gold_timer: float = 0.0
-var passive_gold_interval: float = 5.0
-var passive_gold_amount: int = 1
+# Tier 3: Ghost of Christmas Present — give 20 gold twice per round
+var _present_gold_given: int = 0
+var _present_gold_timer: float = 0.0
+var _present_flash: float = 0.0
 
-# Tier 4: Ghost of Yet to Come — fear slow on marks
-var fear_enabled: bool = false
+# Tier 4: Ghost of Yet to Come — coin blast every other wave
+var _coin_blast_ready: bool = false
+var _coin_blast_wave_count: int = 0
+var _coin_blast_timer: float = 0.0
+var _coin_blast_active: bool = false
+var _coin_blast_phase: float = 0.0
+var _coin_blast_flash: float = 0.0
 
 # === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
 const PROG_ABILITY_NAMES = [
@@ -85,12 +91,12 @@ const TIER_NAMES = [
 	"Ghost of Yet to Come"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Stronger knockback, +3 gold, faster bell",
-	"Periodically mark enemy (+25% dmg taken)",
-	"Blast radius 180, passive gold, mark all",
-	"Max knockback, fear-slow on knocked enemies"
+	"Blast knockback +15% stronger",
+	"Ghost rescues 5 enemies from path end — sends them back to start",
+	"Gives the team 20 gold twice per round",
+	"Every other wave — massive coin blast damages all enemies"
 ]
-const TIER_COSTS = [55, 120, 225, 400]
+const TIER_COSTS = [55, 120, 225, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -104,6 +110,8 @@ var _ghost_past_sound: AudioStreamWAV
 var _ghost_past_player: AudioStreamPlayer
 var _ghost_present_sound: AudioStreamWAV
 var _ghost_present_player: AudioStreamPlayer
+var _cha_ching_sound: AudioStreamWAV
+var _cha_ching_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
 var _game_font: Font
@@ -178,12 +186,39 @@ func _ready() -> void:
 	_upgrade_player.volume_db = -4.0
 	add_child(_upgrade_player)
 
+	# Cha-ching sound — metallic bell hit + coin cascade (Tier 4 coin blast)
+	var ching_rate := 22050
+	var ching_dur := 0.5
+	var ching_samples := PackedFloat32Array()
+	ching_samples.resize(int(ching_rate * ching_dur))
+	for i in ching_samples.size():
+		var t := float(i) / ching_rate
+		# "Ka" — sharp metallic strike
+		var ka := sin(TAU * 2200.0 * t) * exp(-t * 40.0) * 0.4
+		ka += sin(TAU * 3300.0 * t) * exp(-t * 50.0) * 0.25
+		# "Ching" — bright bell ring with shimmer (delayed 0.1s)
+		var dt := t - 0.1
+		var ching := 0.0
+		if dt > 0.0:
+			ching = sin(TAU * 4400.0 * dt) * exp(-dt * 12.0) * 0.35
+			ching += sin(TAU * 5500.0 * dt) * exp(-dt * 15.0) * 0.15
+			# Coin cascade flutter
+			ching += sin(TAU * 6600.0 * dt + sin(TAU * 30.0 * dt) * 3.0) * exp(-dt * 20.0) * 0.1
+		ching_samples[i] = clampf(ka + ching, -1.0, 1.0)
+	_cha_ching_sound = _samples_to_wav(ching_samples, ching_rate)
+	_cha_ching_player = AudioStreamPlayer.new()
+	_cha_ching_player.stream = _cha_ching_sound
+	_cha_ching_player.volume_db = -4.0
+	add_child(_cha_ching_player)
+
 func _process(delta: float) -> void:
 	_time += delta
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_ghost_flash = max(_ghost_flash - delta * 1.5, 0.0)
+	_present_flash = maxf(_present_flash - delta * 2.0, 0.0)
+	_coin_blast_flash = maxf(_coin_blast_flash - delta * 1.5, 0.0)
 	target = _find_nearest_enemy()
 
 	if target:
@@ -193,27 +228,44 @@ func _process(delta: float) -> void:
 			_shoot()
 			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
-	# Tier 2: Ghost of Christmas Past — mark single enemy
-	if upgrade_tier == 2:
-		ghost_past_timer -= delta
-		if ghost_past_timer <= 0.0 and _has_enemies_in_range():
-			_ghost_of_past()
-			ghost_past_timer = ghost_past_cooldown
+	# Tier 2: Ghost of Christmas Past — rescue enemies near end of path
+	if upgrade_tier >= 2:
+		if _ghost_past_active:
+			_update_ghost_past(delta)
+		else:
+			_ghost_past_ready -= delta
+			if _ghost_past_ready <= 0.0:
+				# Check if any enemies are near the end of the path (progress > 0.8)
+				var enemies = get_tree().get_nodes_in_group("enemies")
+				for enemy in enemies:
+					if is_instance_valid(enemy) and "progress" in enemy and enemy.progress > 0.8:
+						_trigger_ghost_past()
+						break
 
-	# Tier 3+: Ghost of Christmas Present — mark all in range
+	# Tier 3: Ghost of Christmas Present — give 20 gold twice per round
 	if upgrade_tier >= 3:
-		ghost_present_timer -= delta
-		if ghost_present_timer <= 0.0 and _has_enemies_in_range():
-			_ghost_of_present()
-			ghost_present_timer = ghost_present_cooldown
+		if _present_gold_timer > 0.0:
+			_present_gold_timer -= delta
+			if _present_gold_timer <= 0.0 and _present_gold_given < 2:
+				var main = get_tree().get_first_node_in_group("main")
+				if main and main.has_method("add_gold"):
+					main.add_gold(20)
+				_present_gold_given += 1
+				_present_flash = 1.5
+				_ghost_flash = 1.2
+				if _ghost_present_player and not _is_sfx_muted():
+					_ghost_present_player.play()
+				if _present_gold_given < 2:
+					_present_gold_timer = 15.0
 
-		# Passive gold generation
-		passive_gold_timer -= delta
-		if passive_gold_timer <= 0.0:
-			passive_gold_timer = passive_gold_interval
-			var main = get_tree().get_first_node_in_group("main")
-			if main:
-				main.add_gold(passive_gold_amount)
+	# Tier 4: Ghost of Yet to Come — coin blast every other wave
+	if upgrade_tier >= 4:
+		if _coin_blast_timer > 0.0:
+			_coin_blast_timer -= delta
+			if _coin_blast_timer <= 0.0:
+				_trigger_coin_blast()
+		if _coin_blast_active:
+			_update_coin_blast(delta)
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
@@ -270,34 +322,72 @@ func _shoot() -> void:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(damage * dmg_mult)
 				register_damage(damage * dmg_mult)
-			# Tier 4: fear-slow on knocked enemies
-			if fear_enabled and enemy.has_method("apply_slow"):
-				enemy.apply_slow(0.5, 1.5)
 			enemies_hit += 1
 	# Earn gold per bell ring (more enemies = more gold)
 	if main and enemies_hit > 0:
 		main.add_gold(int((gold_per_ring + (enemies_hit - 1) * bonus_gold_per_enemy) * _gold_mult()))
 
-func _ghost_of_past() -> void:
-	if _ghost_past_player and not _is_sfx_muted(): _ghost_past_player.play()
-	_ghost_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var in_range: Array = []
-	for enemy in enemies:
-		if global_position.distance_to(enemy.global_position) < attack_range:
-			in_range.append(enemy)
-	if in_range.size() > 0:
-		var picked = in_range[randi() % in_range.size()]
-		if picked.has_method("apply_mark"):
-			picked.apply_mark(1.25, 5.0, fear_enabled)
+func on_wave_start(_wave_num: int) -> void:
+	# Tier 3: Reset gold giving for this round
+	if upgrade_tier >= 3:
+		_present_gold_given = 0
+		_present_gold_timer = 3.0
+	# Tier 4: Coin blast every other wave
+	if upgrade_tier >= 4:
+		_coin_blast_wave_count += 1
+		if _coin_blast_wave_count % 2 == 1:
+			_coin_blast_timer = 3.0
 
-func _ghost_of_present() -> void:
-	if _ghost_present_player and not _is_sfx_muted(): _ghost_present_player.play()
-	_ghost_flash = 1.2
+func _trigger_ghost_past() -> void:
+	if _ghost_past_player and not _is_sfx_muted():
+		_ghost_past_player.play()
+	_ghost_flash = 1.0
+	# Find up to 5 enemies with the highest progress values (nearest to end)
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var candidates: Array = []
+	for enemy in enemies:
+		if is_instance_valid(enemy) and "progress" in enemy:
+			candidates.append(enemy)
+	# Sort by progress descending (nearest to end first)
+	candidates.sort_custom(func(a, b): return a.progress > b.progress)
+	_ghost_past_targets.clear()
+	for i in range(mini(5, candidates.size())):
+		_ghost_past_targets.append(candidates[i])
+	if _ghost_past_targets.size() > 0:
+		_ghost_past_active = true
+		_ghost_past_phase = 0.0
+
+func _update_ghost_past(delta: float) -> void:
+	_ghost_past_phase += delta / 3.0  # 3 seconds total animation
+	if _ghost_past_phase >= 1.0:
+		# Animation complete — send enemies back to start
+		for enemy in _ghost_past_targets:
+			if is_instance_valid(enemy) and "progress" in enemy:
+				enemy.progress = 0.0
+		_ghost_past_targets.clear()
+		_ghost_past_active = false
+		_ghost_past_ready = _ghost_past_cooldown
+		return
+	# Keep ghost flash active during animation
+	_ghost_flash = maxf(_ghost_flash, 0.5)
+
+func _trigger_coin_blast() -> void:
+	if _cha_ching_player and not _is_sfx_muted():
+		_cha_ching_player.play()
+	_coin_blast_active = true
+	_coin_blast_phase = 0.0
+	_coin_blast_flash = 2.0
+	# Massive AoE damage to ALL enemies on screen
+	var dmg = damage * 25.0 * _damage_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
-			if enemy.has_method("apply_mark"):
-				enemy.apply_mark(1.25, 5.0, fear_enabled)
+		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+			enemy.take_damage(dmg)
+			register_damage(dmg)
+
+func _update_coin_blast(delta: float) -> void:
+	_coin_blast_phase += delta / 1.5  # 1.5 second animation
+	if _coin_blast_phase >= 1.0:
+		_coin_blast_active = false
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
@@ -339,39 +429,31 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Bah, Humbug! — stronger knockback, more gold, faster bell
-			knockback_amount = 50.0
+		1: # Bah, Humbug! — blast knockback +15% stronger
+			knockback_amount *= 1.15
+			attack_range *= 1.15
 			gold_per_ring = 3
 			bonus_gold_per_enemy = 1
 			fire_rate = 0.8
 			damage = 2.0
-			attack_range = 73.0
-		2: # Ghost of Christmas Past — mark enemies
+		2: # Ghost of Christmas Past — ghost rescues 5 enemies from path end
 			knockback_amount = 55.0
 			damage = 3.0
 			fire_rate = 0.9
 			attack_range = 80.0
-			gold_per_ring = 3
-			ghost_past_cooldown = 10.0
-		3: # Ghost of Christmas Present — enhanced blast, passive gold, mark all
-			attack_range = 90.0
-			knockback_amount = 65.0
+			gold_bonus = 3
+		3: # Ghost of Christmas Present — gives 20 gold twice per round
 			damage = 4.0
 			fire_rate = 1.0
-			gold_per_ring = 4
-			passive_gold_amount = 1
-			passive_gold_interval = 5.0
-			ghost_present_cooldown = 8.0
-		4: # Ghost of Yet to Come — max knockback, fear-slow
-			knockback_amount = 80.0
-			fear_enabled = true
+			attack_range = 90.0
+			knockback_amount = 65.0
+			gold_bonus = 4
+		4: # Ghost of Yet to Come — coin blast every other wave
 			damage = 5.0
 			fire_rate = 1.1
-			gold_per_ring = 5
 			attack_range = 100.0
-			passive_gold_amount = 2
-			passive_gold_interval = 5.0
-			ghost_present_cooldown = 6.0
+			knockback_amount = 80.0
+			gold_bonus = 6
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -407,103 +489,115 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Coin-chime notes — bright, high, pleasant like tossed coins
-	var coin_notes := [880.00, 1046.50, 1174.66, 1396.91, 1174.66, 1046.50, 880.00, 1396.91]  # A5, C6, D6, F6, D6, C6, A5, F6 (D minor coin chime melody)
+	# Spectral bell tones — deep, warm, ghostly tolls in D minor
+	# D3, F3, A3, D4, A3, F3, D3, D4 — D minor triad arpeggiated (haunted bell melody)
+	var bell_notes := [146.83, 174.61, 220.00, 293.66, 220.00, 174.61, 146.83, 293.66]
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
-	# --- Tier 0: Coin Toss (short metallic clink) ---
+	# --- Tier 0: Muffled Hand Bell (soft, short, muted strike) ---
 	var t0 := []
-	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.12))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := exp(-t * 25.0) * 0.25
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.3 * TAU) * 0.3 * exp(-t * 35.0)
-			var clink := sin(t * freq * 3.7 * TAU) * 0.15 * exp(-t * 50.0)
-			var tap := (randf() * 2.0 - 1.0) * exp(-t * 400.0) * 0.15
-			samples[i] = clampf((fund + h2 + clink) * env + tap, -1.0, 1.0)
-		t0.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t0)
-
-	# --- Tier 1: Silver Coin (brighter ring, slight shimmer) ---
-	var t1 := []
-	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.15))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := exp(-t * 20.0) * 0.25
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.2 * exp(-t * 30.0)
-			var shimmer := sin(t * freq * 1.005 * TAU) * 0.15 * exp(-t * 18.0)
-			var tap := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.12
-			samples[i] = clampf((fund + h2 + shimmer) * env + tap, -1.0, 1.0)
-		t1.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t1)
-
-	# --- Tier 2: Gold Coin (warmer, richer harmonics) ---
-	var t2 := []
-	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.18))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := exp(-t * 16.0) * 0.25
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.18
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.08 * exp(-t * 25.0)
-			var ring := sin(t * freq * 1.5 * TAU) * 0.1 * exp(-t * 20.0)
-			var tap := (randf() * 2.0 - 1.0) * exp(-t * 350.0) * 0.1
-			samples[i] = clampf((fund + h2 + h3 + ring) * env + tap, -1.0, 1.0)
-		t2.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t2)
-
-	# --- Tier 3: Coin Cascade (double-hit, like coins bouncing) ---
-	var t3 := []
-	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.2))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			# First coin hit
-			var env1 := exp(-t * 30.0) * 0.2
-			var c1 := sin(t * freq * TAU) * env1
-			# Second coin hit (delayed)
-			var dt := t - 0.04
-			var c2 := 0.0
-			if dt > 0.0:
-				var env2 := exp(-dt * 35.0) * 0.18
-				c2 = sin(dt * freq * 1.25 * TAU) * env2
-			var h := sin(t * freq * 2.3 * TAU) * exp(-t * 40.0) * 0.1
-			var tap := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.1
-			samples[i] = clampf(c1 + c2 + h + tap, -1.0, 1.0)
-		t3.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t3)
-
-	# --- Tier 4: Treasure Chime (rich multi-note sparkle) ---
-	var t4 := []
-	for note_idx in coin_notes.size():
-		var freq: float = coin_notes[note_idx]
+	for note_idx in bell_notes.size():
+		var freq: float = bell_notes[note_idx]
 		var samples := PackedFloat32Array()
 		samples.resize(int(mix_rate * 0.25))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var env := exp(-t * 14.0) * 0.2
+			var strike := exp(-t * 80.0) * 0.08
+			var env := exp(-t * 12.0) * 0.2
 			var fund := sin(t * freq * TAU)
-			# Sparkle chorus (slightly detuned layers)
-			var sp1 := sin(t * freq * 1.003 * TAU) * 0.3
-			var sp2 := sin(t * freq * 0.997 * TAU) * 0.3
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.12 * exp(-t * 20.0)
-			var twinkle := sin(t * freq * 3.0 * TAU) * exp(-t * 30.0) * 0.08
-			var tap := (randf() * 2.0 - 1.0) * exp(-t * 400.0) * 0.08
-			samples[i] = clampf((fund + sp1 + sp2 + h2 + twinkle) * env + tap, -1.0, 1.0)
+			# Bell partials (slightly inharmonic — gives bell character)
+			var p2 := sin(t * freq * 2.76 * TAU) * 0.12 * exp(-t * 18.0)
+			var p3 := sin(t * freq * 5.4 * TAU) * 0.04 * exp(-t * 30.0)
+			samples[i] = clampf((fund + p2 + p3) * env + (randf() * 2.0 - 1.0) * strike, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Church Bell (clearer ring, longer sustain) ---
+	var t1 := []
+	for note_idx in bell_notes.size():
+		var freq: float = bell_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.35))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var strike := exp(-t * 100.0) * 0.06
+			var env := exp(-t * 7.0) * 0.22
+			var fund := sin(t * freq * TAU)
+			var p2 := sin(t * freq * 2.76 * TAU) * 0.15 * exp(-t * 12.0)
+			var p3 := sin(t * freq * 5.4 * TAU) * 0.06 * exp(-t * 22.0)
+			var sub := sin(t * freq * 0.5 * TAU) * 0.08 * exp(-t * 5.0)
+			samples[i] = clampf((fund + p2 + p3 + sub) * env + (randf() * 2.0 - 1.0) * strike, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Grandfather Clock Chime (warm, resonant, with beating) ---
+	var t2 := []
+	for note_idx in bell_notes.size():
+		var freq: float = bell_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.4))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var strike := exp(-t * 120.0) * 0.05
+			var env := exp(-t * 5.5) * 0.22
+			var fund := sin(t * freq * TAU)
+			# Beating from slightly detuned pair (warm wobble)
+			var beat := sin(t * freq * 1.003 * TAU) * 0.2
+			var p2 := sin(t * freq * 2.76 * TAU) * 0.12 * exp(-t * 10.0)
+			var p3 := sin(t * freq * 5.4 * TAU) * 0.05 * exp(-t * 18.0)
+			var sub := sin(t * freq * 0.5 * TAU) * 0.1 * exp(-t * 4.0)
+			samples[i] = clampf((fund + beat + p2 + p3 + sub) * env + (randf() * 2.0 - 1.0) * strike, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Spectral Toll (ghostly, ethereal with slow vibrato) ---
+	var t3 := []
+	for note_idx in bell_notes.size():
+		var freq: float = bell_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.5))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var strike := exp(-t * 100.0) * 0.05
+			var env := exp(-t * 4.0) * 0.22
+			# Slow vibrato gives ghostly wavering quality
+			var vib := sin(TAU * 4.5 * t) * 3.0
+			var fund := sin(t * (freq + vib) * TAU)
+			var beat := sin(t * (freq * 1.004 + vib) * TAU) * 0.18
+			var p2 := sin(t * freq * 2.76 * TAU) * 0.1 * exp(-t * 9.0)
+			var p3 := sin(t * freq * 5.4 * TAU) * 0.04 * exp(-t * 16.0)
+			var sub := sin(t * freq * 0.5 * TAU) * 0.12 * exp(-t * 3.5)
+			# Faint breathy whisper (ghost breath)
+			var breath := (randf() * 2.0 - 1.0) * 0.02 * exp(-t * 2.0)
+			samples[i] = clampf((fund + beat + p2 + p3 + sub) * env + breath + (randf() * 2.0 - 1.0) * strike, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Phantom Cathedral Bell (rich, deep, haunted resonance) ---
+	var t4 := []
+	for note_idx in bell_notes.size():
+		var freq: float = bell_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.6))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var strike := exp(-t * 90.0) * 0.05
+			var env := exp(-t * 3.2) * 0.2
+			var vib := sin(TAU * 3.8 * t) * 2.5
+			var fund := sin(t * (freq + vib) * TAU)
+			# Chorus — three detuned layers for cathedral depth
+			var ch1 := sin(t * (freq * 1.003 + vib) * TAU) * 0.2
+			var ch2 := sin(t * (freq * 0.997 + vib) * TAU) * 0.2
+			# Bell partials
+			var p2 := sin(t * freq * 2.76 * TAU) * 0.1 * exp(-t * 8.0)
+			var p3 := sin(t * freq * 5.4 * TAU) * 0.04 * exp(-t * 14.0)
+			# Deep sub-octave for weight
+			var sub := sin(t * freq * 0.5 * TAU) * 0.14 * exp(-t * 3.0)
+			# Spectral shimmer (very high faint partial)
+			var shimmer := sin(t * freq * 8.2 * TAU) * 0.015 * exp(-t * 20.0)
+			var breath := (randf() * 2.0 - 1.0) * 0.015 * exp(-t * 1.5)
+			samples[i] = clampf((fund + ch1 + ch2 + p2 + p3 + sub + shimmer) * env + breath + (randf() * 2.0 - 1.0) * strike, -1.0, 1.0)
 		t4.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t4)
 
@@ -543,9 +637,9 @@ func activate_progressive_ability(index: int) -> void:
 	_apply_progressive_stats()
 
 func _apply_progressive_stats() -> void:
-	# Ability 3: Cratchit's Loyalty — double passive gold
+	# Ability 3: Cratchit's Loyalty — double passive gold (applied through gold_bonus)
 	if prog_abilities[2]:
-		passive_gold_amount = max(passive_gold_amount, 2)
+		gold_bonus = max(gold_bonus, 2)
 
 func get_progressive_ability_name(index: int) -> String:
 	if index >= 0 and index < PROG_ABILITY_NAMES.size():
@@ -744,6 +838,136 @@ func _draw() -> void:
 			var wisp_r2 = ripple_r * (0.5 + sin(_time * 3.0 + float(i)) * 0.2)
 			var wisp_p = Vector2.from_angle(wisp_a) * wisp_r2
 			draw_circle(wisp_p, 3.0, Color(ghost_col.r, ghost_col.g, ghost_col.b, _ghost_flash * 0.3))
+
+	# === GHOST OF CHRISTMAS PAST RESCUE ANIMATION (tier 2+) ===
+	if _ghost_past_active and _ghost_past_targets.size() > 0:
+		# Compute ghost position along its flight path
+		var gp_alpha := clampf(_ghost_past_phase, 0.0, 1.0)
+		var ghost_pos := global_position
+		# Phase 0-0.33: fly from tower toward end of map
+		# Phase 0.33-0.66: hover at enemies, grabbing
+		# Phase 0.66-1.0: carry enemies back to start
+		var target_pos := Vector2.ZERO
+		if _ghost_past_targets.size() > 0 and is_instance_valid(_ghost_past_targets[0]):
+			target_pos = _ghost_past_targets[0].global_position
+		var local_ghost := Vector2.ZERO
+		if gp_alpha < 0.33:
+			var t_phase := gp_alpha / 0.33
+			local_ghost = Vector2.ZERO.lerp(to_local(target_pos), t_phase) if target_pos != Vector2.ZERO else Vector2(0, -100.0 * t_phase)
+		elif gp_alpha < 0.66:
+			local_ghost = to_local(target_pos) if target_pos != Vector2.ZERO else Vector2(0, -100.0)
+			# Shake/grab effect
+			local_ghost += Vector2(sin(_time * 20.0) * 3.0, cos(_time * 15.0) * 2.0)
+		else:
+			var t_phase := (gp_alpha - 0.66) / 0.34
+			var from_pos := to_local(target_pos) if target_pos != Vector2.ZERO else Vector2(0, -100.0)
+			local_ghost = from_pos.lerp(Vector2.ZERO, t_phase)
+		# Draw the ghost — translucent blue-white figure with old-fashioned clothing
+		var gp_bob := sin(_time * 5.0) * 2.0
+		var g_center := local_ghost + Vector2(0, gp_bob)
+		# Ghostly aura
+		draw_circle(g_center, 22.0, Color(0.4, 0.5, 0.9, 0.08))
+		# Flowing robe body
+		var gp_robe := PackedVector2Array([
+			g_center + Vector2(-12, 18), g_center + Vector2(12, 18),
+			g_center + Vector2(10, 2), g_center + Vector2(8, -10),
+			g_center + Vector2(-8, -10), g_center + Vector2(-10, 2),
+		])
+		draw_colored_polygon(gp_robe, Color(0.5, 0.6, 0.95, 0.25))
+		# Inner lighter shimmer
+		var gp_inner := PackedVector2Array([
+			g_center + Vector2(-8, 15), g_center + Vector2(8, 15),
+			g_center + Vector2(6, 0), g_center + Vector2(-6, 0),
+		])
+		draw_colored_polygon(gp_inner, Color(0.65, 0.75, 1.0, 0.15))
+		# Head with top hat silhouette
+		var gp_head := g_center + Vector2(0, -14)
+		draw_circle(gp_head, 8.0, Color(0.55, 0.65, 0.95, 0.25))
+		# Top hat outline
+		draw_colored_polygon(PackedVector2Array([
+			gp_head + Vector2(-6, -3), gp_head + Vector2(-6, -16),
+			gp_head + Vector2(6, -16), gp_head + Vector2(6, -3),
+		]), Color(0.4, 0.5, 0.85, 0.2))
+		# Hat brim
+		draw_line(gp_head + Vector2(-9, -3), gp_head + Vector2(9, -3), Color(0.45, 0.55, 0.9, 0.25), 2.5)
+		# Gentle eyes
+		draw_circle(gp_head + Vector2(-3, 0), 1.2, Color(0.7, 0.8, 1.0, 0.4))
+		draw_circle(gp_head + Vector2(3, 0), 1.2, Color(0.7, 0.8, 1.0, 0.4))
+		# Trailing wisps
+		for ti in range(4):
+			var tw_base := g_center + Vector2(-6.0 + float(ti) * 4.0, 18)
+			var tw_end := tw_base + Vector2(sin(_time * 3.0 + float(ti)) * 4.0, 8.0 + sin(_time * 2.0 + float(ti)) * 3.0)
+			draw_line(tw_base, tw_end, Color(0.5, 0.6, 0.95, 0.15), 2.0)
+		# Draw carried enemy silhouettes (during grab and return phases)
+		if gp_alpha > 0.33:
+			for ei in range(_ghost_past_targets.size()):
+				var e_off := Vector2(-12.0 + float(ei) * 6.0, 22.0 + sin(_time * 4.0 + float(ei) * 1.5) * 3.0)
+				var sil_pos := g_center + e_off
+				# Dark enemy silhouette
+				draw_circle(sil_pos, 5.0, Color(0.2, 0.15, 0.1, 0.3))
+				draw_circle(sil_pos + Vector2(0, -5), 3.5, Color(0.2, 0.15, 0.1, 0.25))
+				# Chain link from ghost to silhouette
+				draw_line(g_center + Vector2(0, 16), sil_pos + Vector2(0, -3), Color(0.5, 0.6, 0.9, 0.15), 1.0)
+
+	# === GHOST OF CHRISTMAS PRESENT GOLD GIFT (tier 3) ===
+	if _present_flash > 0.0:
+		var pf := _present_flash
+		# Golden gift box at center
+		var gift_y := -20.0 + sin(_time * 4.0) * 3.0
+		draw_rect(Rect2(Vector2(-8, gift_y - 6), Vector2(16, 12)), Color(0.85, 0.15, 0.1, pf * 0.4), true)
+		draw_rect(Rect2(Vector2(-8, gift_y - 6), Vector2(16, 12)), Color(1.0, 0.85, 0.2, pf * 0.5), false, 1.5)
+		# Ribbon cross
+		draw_line(Vector2(0, gift_y - 6), Vector2(0, gift_y + 6), Color(1.0, 0.85, 0.2, pf * 0.5), 2.0)
+		draw_line(Vector2(-8, gift_y), Vector2(8, gift_y), Color(1.0, 0.85, 0.2, pf * 0.5), 2.0)
+		# Bow on top
+		draw_circle(Vector2(0, gift_y - 6), 3.0, Color(1.0, 0.85, 0.2, pf * 0.4))
+		# Raining gold coins
+		for ci in range(8):
+			var coin_angle := TAU * float(ci) / 8.0 + _time * 2.5
+			var coin_r_v := 30.0 + (1.0 - pf) * 40.0
+			var coin_pos := Vector2.from_angle(coin_angle) * coin_r_v
+			var coin_sz := 3.0 * pf
+			draw_circle(coin_pos, coin_sz + 0.8, Color(0.06, 0.06, 0.08))
+			draw_circle(coin_pos, coin_sz, Color(0.92, 0.78, 0.15, pf * 0.6))
+			draw_circle(coin_pos + Vector2(-0.3, -0.3), coin_sz * 0.35, Color(1.0, 0.95, 0.5, pf * 0.4))
+		# Green ghost shimmer
+		draw_circle(Vector2.ZERO, 35.0 + (1.0 - pf) * 20.0, Color(0.3, 0.65, 0.25, pf * 0.06))
+		# "+20 Gold!" text flash
+		if _game_font and pf > 0.3:
+			draw_string(_game_font, Vector2(-40, -50), "Gift: +20 Gold!", HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1.0, 0.9, 0.3, clampf(pf, 0.0, 1.0)))
+
+	# === COIN BLAST EXPLOSION (tier 4) ===
+	if _coin_blast_flash > 0.0:
+		var cf := clampf(_coin_blast_flash, 0.0, 1.0)
+		var blast_r := 60.0 + (1.0 - cf) * 140.0
+		# Massive gold shockwave ring
+		draw_circle(Vector2.ZERO, blast_r * 0.5, Color(1.0, 0.85, 0.2, cf * 0.12))
+		draw_arc(Vector2.ZERO, blast_r, 0, TAU, 48, Color(1.0, 0.9, 0.3, cf * 0.5), 4.0)
+		draw_arc(Vector2.ZERO, blast_r * 0.7, 0, TAU, 36, Color(1.0, 0.85, 0.2, cf * 0.35), 3.0)
+		draw_arc(Vector2.ZERO, blast_r * 0.4, 0, TAU, 24, Color(1.0, 0.95, 0.5, cf * 0.2), 2.0)
+		# Explosion of golden coins radiating outward
+		for ci in range(16):
+			var c_angle := TAU * float(ci) / 16.0 + _time * 1.5
+			var c_r := blast_r * (0.3 + float(ci % 4) * 0.15)
+			var c_pos := Vector2.from_angle(c_angle) * c_r
+			var c_sz := 4.5 * cf
+			# Spinning coin — alternate between face and edge based on time
+			var spin_val := sin(_time * 8.0 + float(ci) * 1.2)
+			var stretch := absf(spin_val)
+			draw_set_transform(c_pos, 0, Vector2(maxf(stretch, 0.3), 1.0))
+			draw_circle(Vector2.ZERO, c_sz + 1.0, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2.ZERO, c_sz, Color(0.92, 0.78, 0.15, cf * 0.7))
+			draw_circle(Vector2(-0.3, -0.3), c_sz * 0.3, Color(1.0, 0.95, 0.5, cf * 0.5))
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		# Gold spark rays
+		for ri in range(12):
+			var r_a := TAU * float(ri) / 12.0 + cf * 3.0
+			var r_inner := Vector2.from_angle(r_a) * (blast_r * 0.3)
+			var r_outer := Vector2.from_angle(r_a) * (blast_r + 10.0)
+			draw_line(r_inner, r_outer, Color(1.0, 0.95, 0.4, cf * 0.3), 2.0)
+		# "CHA-CHING!" text
+		if _game_font and cf > 0.4:
+			draw_string(_game_font, Vector2(-50, -70), "CHA-CHING!", HORIZONTAL_ALIGNMENT_CENTER, 100, 18, Color(1.0, 0.9, 0.2, cf))
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 	# Ability 6: Fezziwig's Ball — warm aura ring

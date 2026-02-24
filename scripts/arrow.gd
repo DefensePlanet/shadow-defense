@@ -8,6 +8,7 @@ var gold_bonus: int = 0
 var source_tower: Node2D = null
 var pierce_count: int = 0
 var is_silver: bool = false
+var is_gold: bool = false
 var splash_radius: float = 0.0
 var _lifetime: float = 3.0
 var _angle: float = 0.0
@@ -91,8 +92,33 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	if is_silver:
-		# Silver/gold arrow — "The Silver Arrow" from the Sheriff's tournament
+	if is_gold:
+		# Gold arrow — "The Final Arrow" — gleaming gold with shimmer
+		# Shaft — rich gold
+		draw_line(-dir * 10.0, dir * 7.0, Color(0.95, 0.85, 0.30), 2.5)
+		draw_line(-dir * 9.0, dir * 6.0, Color(1.0, 0.92, 0.45, 0.5), 1.2)
+		# Arrowhead — bright gold
+		var head_pts_g = PackedVector2Array([
+			dir * 10.0,
+			dir * 4.0 + perp * 4.0,
+			dir * 5.0,
+			dir * 4.0 - perp * 4.0,
+		])
+		draw_colored_polygon(head_pts_g, Color(1.0, 0.88, 0.25))
+		draw_line(dir * 10.0, dir * 5.5, Color(1.0, 1.0, 0.7, 0.7), 1.0)
+		# Fletching — gold
+		draw_line(-dir * 8.0, -dir * 5.0 + perp * 3.5, Color(1.0, 0.90, 0.35), 2.0)
+		draw_line(-dir * 8.0, -dir * 5.0 - perp * 3.5, Color(1.0, 0.90, 0.35), 2.0)
+		# Gold glow
+		draw_circle(Vector2.ZERO, 9.0, Color(1.0, 0.88, 0.2, 0.25))
+		draw_circle(dir * 6.0, 5.0, Color(1.0, 0.95, 0.4, 0.4))
+		# Shimmer sparkles
+		var _t = fmod(global_position.x + global_position.y, 10.0)
+		for si in range(3):
+			var sp = dir * (float(si) * 4.0 - 4.0) + perp * sin(_t + float(si) * 2.0) * 3.0
+			draw_circle(sp, 1.5, Color(1.0, 1.0, 0.8, 0.3 + sin(_t * 3.0 + float(si)) * 0.15))
+	elif is_silver:
+		# Silver arrow — "The Silver Arrow" from the Sheriff's tournament
 		# Shaft — white silver
 		draw_line(-dir * 10.0, dir * 7.0, Color(0.88, 0.82, 0.6), 2.2)
 		# Arrowhead — red gold

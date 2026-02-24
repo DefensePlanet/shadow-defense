@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4: "Never Land" — costs 1000 gold, glows gold, +20% damage
 
 var damage: float = 19.0
-var fire_rate: float = 1.25
+var fire_rate: float = 0.625
 var attack_range: float = 85.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -44,8 +44,6 @@ var _croc_eating: bool = false
 var _croc_eat_timer: float = 0.0
 var _croc_drag_progress: float = 0.0
 var _croc_drag_start: Vector2 = Vector2.ZERO
-var _croc_drag_start: Vector2 = Vector2.ZERO
-var _croc_drag_progress: float = 0.0
 
 # Tier 4: Never Land — golden glow, +20% damage
 var neverland_active: bool = false
@@ -391,25 +389,25 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Shadow — orbiting shadow entity
 			shadow_enabled = true
 			damage = 25.0
-			fire_rate = 1.5
+			fire_rate = 0.75
 			attack_range = 93.0
 		2: # Fairy Dust — +3% range/damage aura to self + nearby towers
 			fairy_dust_active = true
 			damage = 30.0
-			fire_rate = 1.75
+			fire_rate = 0.875
 			attack_range = 100.0
 			gold_bonus = 3
 			_apply_fairy_dust_buffs()
 		3: # Tick-Tock Croc — eats every 30th kill
 			croc_enabled = true
 			damage = 38.0
-			fire_rate = 2.0
+			fire_rate = 1.0
 			attack_range = 110.0
 			gold_bonus = 4
 		4: # Never Land — glow gold, +20% damage
 			neverland_active = true
 			damage *= 1.20
-			fire_rate = 2.5
+			fire_rate = 1.25
 			attack_range = 125.0
 			gold_bonus = 5
 
@@ -1020,73 +1018,180 @@ func _draw() -> void:
 			draw_circle(fd_pos, fd_size + 0.5, Color(1.0, 0.85, 0.2, fd_alpha * 0.5))
 			draw_circle(fd_pos, fd_size, Color(1.0, 0.95, 0.5, fd_alpha))
 
-	# === Tier 3+: Crocodile lurking beside platform ===
+	# === Tier 3+: Water pool & Crocodile lurking ===
 	if upgrade_tier >= 3:
-		var croc_home = Vector2(body_offset.x + 22.0, plat_y + 2.0)
-		# Croc moves toward enemy during drag, then returns
+		# --- Water pool next to platform ---
+		var pool_center = Vector2(body_offset.x + 24.0, plat_y + 6.0)
+		# Deep water base
+		draw_set_transform(pool_center, 0, Vector2(1.0, 0.5))
+		draw_circle(Vector2.ZERO, 22.0, Color(0.08, 0.20, 0.32, 0.7))
+		draw_circle(Vector2.ZERO, 19.0, Color(0.10, 0.28, 0.42, 0.6))
+		draw_circle(Vector2.ZERO, 14.0, Color(0.12, 0.35, 0.50, 0.5))
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		# Water surface shimmer ripples
+		for wr in range(3):
+			var wr_phase = _time * 1.2 + float(wr) * TAU / 3.0
+			var wr_r = 10.0 + float(wr) * 5.0 + sin(wr_phase) * 2.0
+			var wr_alpha = 0.2 - float(wr) * 0.05
+			draw_set_transform(pool_center, 0, Vector2(1.0, 0.5))
+			draw_arc(Vector2.ZERO, wr_r, wr_phase, wr_phase + PI * 0.6, 8, Color(0.4, 0.7, 0.85, wr_alpha), 1.0)
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		# Gentle water bubbles
+		for wb in range(2):
+			var wb_t = fmod(_time * 0.5 + float(wb) * 3.7, 4.0)
+			if wb_t < 1.0:
+				var wb_x = pool_center.x - 8.0 + float(wb) * 12.0
+				var wb_y = pool_center.y - wb_t * 6.0
+				draw_circle(Vector2(wb_x, wb_y), 1.5 - wb_t * 0.8, Color(0.5, 0.75, 0.9, 0.3 * (1.0 - wb_t)))
+
+		# --- Crocodile in the water ---
+		var croc_home = Vector2(body_offset.x + 24.0, plat_y + 4.0)
 		var croc_base = croc_home
 		if _croc_eating and _croc_drag_progress < 0.4:
-			# Croc lunges toward enemy position
 			var lunge_target = _croc_drag_start + Vector2(0, -5)
 			croc_base = croc_home.lerp(lunge_target, _croc_drag_progress * 2.5)
 		elif _croc_eating:
-			# Croc dragging back to base
 			var return_progress = (_croc_drag_progress - 0.4) / 0.6
 			croc_base = (_croc_drag_start + Vector2(0, -5)).lerp(croc_home, return_progress)
-		# Jaws open wider when eating
-		var jaw_open = sin(_time * 2.0) * 0.35
+
+		var jaw_open = sin(_time * 2.0) * 0.3
 		if _croc_eating:
-			jaw_open = 0.8 + sin(_time * 8.0) * 0.2  # Big chomp animation
-			# Draw the dragged enemy body being pulled toward Peter's feet
-			var drag_pos = _croc_drag_start.lerp(Vector2(0, 12), _croc_drag_progress)
-			var drag_alpha = 1.0 - _croc_drag_progress * 0.6
-			# Enemy silhouette being dragged
+			jaw_open = 0.9 + sin(_time * 8.0) * 0.15
+			# Enemy being dragged underwater
+			var drag_pos = _croc_drag_start.lerp(pool_center + Vector2(0, 4), _croc_drag_progress)
+			var drag_alpha = 1.0 - _croc_drag_progress * 0.8
+			# Enemy silhouette sinking
 			draw_circle(drag_pos + Vector2(0, -8), 6.0, Color(0.3, 0.1, 0.1, drag_alpha * 0.7))
 			draw_circle(drag_pos, 5.0, Color(0.3, 0.1, 0.1, drag_alpha * 0.6))
-			draw_line(drag_pos + Vector2(-3, 4), drag_pos + Vector2(-4, 12), Color(0.3, 0.1, 0.1, drag_alpha * 0.5), 2.0)
-			draw_line(drag_pos + Vector2(3, 4), drag_pos + Vector2(4, 12), Color(0.3, 0.1, 0.1, drag_alpha * 0.5), 2.0)
-			# Splash/water ripples at Peter's feet
-			if _croc_drag_progress > 0.5:
-				var ripple = sin(_time * 10.0) * 3.0
-				draw_arc(Vector2(0, 14), 8.0 + ripple, 0, PI, 12, Color(0.2, 0.5, 0.3, 0.3 * (1.0 - _croc_drag_progress)), 1.5)
-				draw_arc(Vector2(0, 14), 12.0 + ripple * 0.5, 0, PI, 12, Color(0.2, 0.5, 0.3, 0.15 * (1.0 - _croc_drag_progress)), 1.0)
-			# Blood splash near croc mouth
-			for be in range(4):
-				var be_a = _time * 6.0 + float(be) * TAU / 4.0
-				var be_r = 6.0 + sin(_time * 10.0 + float(be)) * 3.0
-				draw_circle(croc_base + Vector2(16.0 + cos(be_a) * be_r, sin(be_a) * be_r), 1.5, Color(0.8, 0.2, 0.1, 0.4))
-		var tail_sway = sin(_time * 1.8) * 4.0
-		# Tail (outline then fill)
-		draw_line(croc_base + Vector2(-7, 0), croc_base + Vector2(-18, tail_sway), OL, 5.5)
-		draw_line(croc_base + Vector2(-18, tail_sway), croc_base + Vector2(-25, -tail_sway * 0.5), OL, 4.0)
-		draw_line(croc_base + Vector2(-7, 0), croc_base + Vector2(-18, tail_sway), Color(0.22, 0.52, 0.18), 3.5)
-		draw_line(croc_base + Vector2(-18, tail_sway), croc_base + Vector2(-25, -tail_sway * 0.5), Color(0.20, 0.48, 0.16), 2.5)
-		# Body (outline then fill)
-		draw_circle(croc_base, 9.0, OL)
-		draw_circle(croc_base, 7.0, Color(0.25, 0.55, 0.20))
-		# Belly
-		draw_circle(croc_base + Vector2(1, 2), 4.5, Color(0.50, 0.65, 0.35))
-		# Snout (outline then fill)
-		draw_line(croc_base + Vector2(6, 0), croc_base + Vector2(18, 0), OL, 7.0)
-		draw_line(croc_base + Vector2(6, 0), croc_base + Vector2(18, 0), Color(0.28, 0.55, 0.22), 5.0)
-		# Jaws open
-		draw_line(croc_base + Vector2(18, 0), croc_base + Vector2(14, -4.0 - jaw_open * 6.0), OL, 3.5)
-		draw_line(croc_base + Vector2(18, 0), croc_base + Vector2(14, 4.0 + jaw_open * 6.0), OL, 3.0)
-		draw_line(croc_base + Vector2(18, 0), croc_base + Vector2(14, -4.0 - jaw_open * 6.0), Color(0.25, 0.52, 0.20), 2.0)
-		draw_line(croc_base + Vector2(18, 0), croc_base + Vector2(14, 4.0 + jaw_open * 6.0), Color(0.22, 0.48, 0.18), 1.5)
-		# Teeth
-		for t in range(3):
-			var tx = 17.0 - float(t) * 2.0
-			draw_line(croc_base + Vector2(tx, -2.5 - jaw_open * 4.0), croc_base + Vector2(tx, -4.5 - jaw_open * 4.0), Color(0.98, 0.97, 0.90), 1.2)
-			draw_line(croc_base + Vector2(tx, 2.5 + jaw_open * 4.0), croc_base + Vector2(tx, 4.5 + jaw_open * 4.0), Color(0.95, 0.95, 0.85), 1.0)
-		# Eye (outline, yellow, slit pupil)
-		draw_circle(croc_base + Vector2(3, -5), 3.5, OL)
-		draw_circle(croc_base + Vector2(3, -5), 2.5, Color(0.95, 0.85, 0.10))
-		draw_line(croc_base + Vector2(3, -7), croc_base + Vector2(3, -3), Color(0.08, 0.08, 0.04), 1.2)
-		# Scale bumps
-		for sb in range(3):
-			var sbp = croc_base + Vector2(-4.0 + float(sb) * 3.0, -5.0)
-			draw_circle(sbp, 1.8, Color(0.18, 0.42, 0.14))
+			draw_line(drag_pos + Vector2(-3, 4), drag_pos + Vector2(-5, 12), Color(0.3, 0.1, 0.1, drag_alpha * 0.5), 2.0)
+			draw_line(drag_pos + Vector2(3, 4), drag_pos + Vector2(5, 12), Color(0.3, 0.1, 0.1, drag_alpha * 0.5), 2.0)
+			# Water splash rings as enemy is dragged under
+			if _croc_drag_progress > 0.3:
+				var splash_p = clampf((_croc_drag_progress - 0.3) / 0.7, 0.0, 1.0)
+				for sr in range(3):
+					var sr_r = 6.0 + splash_p * 18.0 + float(sr) * 6.0
+					var sr_a = 0.4 * (1.0 - splash_p) * (1.0 - float(sr) * 0.25)
+					draw_set_transform(pool_center, 0, Vector2(1.0, 0.5))
+					draw_arc(Vector2.ZERO, sr_r, 0, TAU, 16, Color(0.4, 0.75, 0.9, sr_a), 1.5)
+					draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+			# Blood in water near croc
+			for be in range(5):
+				var be_a = _time * 5.0 + float(be) * TAU / 5.0
+				var be_r = 5.0 + sin(_time * 8.0 + float(be)) * 3.0
+				draw_circle(croc_base + Vector2(20.0 + cos(be_a) * be_r, sin(be_a) * be_r * 0.5), 1.5, Color(0.8, 0.15, 0.1, 0.35))
+
+		var tail_sway = sin(_time * 1.8) * 5.0
+		var breathe_croc = sin(_time * 2.5) * 0.5
+		var croc_green = Color(0.18, 0.48, 0.15)
+		var croc_dark = Color(0.12, 0.35, 0.10)
+		var croc_belly = Color(0.55, 0.68, 0.35)
+		var croc_ridge = Color(0.14, 0.38, 0.12)
+
+		# Tail — thick tapered with ridges
+		var tail_p1 = croc_base + Vector2(-8, 0)
+		var tail_p2 = croc_base + Vector2(-20, tail_sway)
+		var tail_p3 = croc_base + Vector2(-30, -tail_sway * 0.4)
+		draw_line(tail_p1, tail_p2, OL, 7.0)
+		draw_line(tail_p2, tail_p3, OL, 5.0)
+		draw_line(tail_p1, tail_p2, croc_green, 5.0)
+		draw_line(tail_p2, tail_p3, croc_dark, 3.5)
+		# Tail ridges
+		for tr in range(3):
+			var t_frac = 0.3 + float(tr) * 0.25
+			var ridge_p = tail_p1.lerp(tail_p3, t_frac)
+			draw_circle(ridge_p + Vector2(0, -2.5), 1.8, croc_ridge)
+
+		# Back legs (stubby, splayed out)
+		draw_line(croc_base + Vector2(-5, 3), croc_base + Vector2(-10, 8 + breathe_croc), OL, 3.5)
+		draw_line(croc_base + Vector2(-5, 3), croc_base + Vector2(-10, 8 + breathe_croc), croc_green, 2.5)
+		# Back foot with toes
+		draw_line(croc_base + Vector2(-10, 8 + breathe_croc), croc_base + Vector2(-13, 9 + breathe_croc), croc_dark, 1.5)
+		draw_line(croc_base + Vector2(-10, 8 + breathe_croc), croc_base + Vector2(-11, 11 + breathe_croc), croc_dark, 1.5)
+
+		# Body — larger, more detailed
+		draw_circle(croc_base, 10.0, OL)
+		draw_circle(croc_base, 8.0, croc_green)
+		# Belly highlight
+		draw_circle(croc_base + Vector2(1, 3), 5.0, croc_belly)
+		# Dorsal ridge bumps along back
+		for rb in range(5):
+			var rb_x = -6.0 + float(rb) * 3.5
+			draw_circle(croc_base + Vector2(rb_x, -6.0 - breathe_croc), 2.0, croc_ridge)
+			draw_circle(croc_base + Vector2(rb_x, -6.0 - breathe_croc), 1.2, Color(0.10, 0.30, 0.08))
+
+		# Front legs
+		draw_line(croc_base + Vector2(5, 3), croc_base + Vector2(10, 8 + breathe_croc), OL, 3.5)
+		draw_line(croc_base + Vector2(5, 3), croc_base + Vector2(10, 8 + breathe_croc), croc_green, 2.5)
+		# Front foot with toes
+		draw_line(croc_base + Vector2(10, 8 + breathe_croc), croc_base + Vector2(13, 9 + breathe_croc), croc_dark, 1.5)
+		draw_line(croc_base + Vector2(10, 8 + breathe_croc), croc_base + Vector2(12, 11 + breathe_croc), croc_dark, 1.5)
+		draw_line(croc_base + Vector2(10, 8 + breathe_croc), croc_base + Vector2(8, 10 + breathe_croc), croc_dark, 1.5)
+
+		# Head/snout — proper elongated shape
+		var snout_pts = PackedVector2Array([
+			croc_base + Vector2(7, -4), croc_base + Vector2(7, 4),
+			croc_base + Vector2(22, 1 + jaw_open * 3.0),
+			croc_base + Vector2(22, -1 - jaw_open * 3.0),
+		])
+		draw_colored_polygon(snout_pts, OL)
+		var snout_inner = PackedVector2Array([
+			croc_base + Vector2(8, -3), croc_base + Vector2(8, 3),
+			croc_base + Vector2(21, 0.5 + jaw_open * 2.5),
+			croc_base + Vector2(21, -0.5 - jaw_open * 2.5),
+		])
+		draw_colored_polygon(snout_inner, croc_green)
+
+		# Upper jaw (top of snout)
+		draw_line(croc_base + Vector2(8, -3 - jaw_open * 2.0), croc_base + Vector2(22, -1 - jaw_open * 5.0), OL, 4.0)
+		draw_line(croc_base + Vector2(8, -3 - jaw_open * 2.0), croc_base + Vector2(22, -1 - jaw_open * 5.0), croc_green, 2.5)
+		# Lower jaw
+		draw_line(croc_base + Vector2(8, 3 + jaw_open * 2.0), croc_base + Vector2(22, 1 + jaw_open * 5.0), OL, 3.5)
+		draw_line(croc_base + Vector2(8, 3 + jaw_open * 2.0), croc_base + Vector2(22, 1 + jaw_open * 5.0), croc_belly, 2.0)
+
+		# Teeth — upper and lower, visible when jaw open
+		if jaw_open > 0.1:
+			for ti in range(5):
+				var ttx = 12.0 + float(ti) * 2.2
+				# Upper teeth (pointing down)
+				var ut_y = -2.5 - jaw_open * 3.5
+				draw_line(croc_base + Vector2(ttx, ut_y), croc_base + Vector2(ttx, ut_y + 2.5), Color(0.98, 0.96, 0.88), 1.2)
+				# Lower teeth (pointing up)
+				var lt_y = 2.5 + jaw_open * 3.5
+				draw_line(croc_base + Vector2(ttx, lt_y), croc_base + Vector2(ttx, lt_y - 2.0), Color(0.95, 0.93, 0.82), 1.0)
+		# Mouth interior when wide open
+		if jaw_open > 0.5:
+			var mouth_pts = PackedVector2Array([
+				croc_base + Vector2(10, -1 - jaw_open * 2.0),
+				croc_base + Vector2(10, 1 + jaw_open * 2.0),
+				croc_base + Vector2(20, 0.5 + jaw_open),
+				croc_base + Vector2(20, -0.5 - jaw_open),
+			])
+			draw_colored_polygon(mouth_pts, Color(0.6, 0.15, 0.18, 0.7))
+
+		# Nostrils at tip of snout
+		draw_circle(croc_base + Vector2(21, -2 - jaw_open * 3.0), 1.2, OL)
+		draw_circle(croc_base + Vector2(21, -2 - jaw_open * 3.0), 0.8, croc_dark)
+
+		# Eyes — raised with slit pupil and brow ridge
+		var eye_pos = croc_base + Vector2(5, -7 - breathe_croc)
+		draw_circle(eye_pos, 4.0, OL)
+		draw_circle(eye_pos, 3.0, Color(0.92, 0.82, 0.10))
+		# Slit pupil
+		draw_line(eye_pos + Vector2(0, -2.5), eye_pos + Vector2(0, 2.5), Color(0.06, 0.06, 0.02), 1.5)
+		# Eyelid/brow ridge
+		draw_line(eye_pos + Vector2(-3, -2), eye_pos + Vector2(3, -2), croc_ridge, 2.0)
+
+		# Scale texture on body
+		for sc in range(4):
+			var sc_a = TAU * float(sc) / 4.0 + 0.5
+			var sc_p = croc_base + Vector2(cos(sc_a) * 5.0, sin(sc_a) * 4.0 - 1.0)
+			draw_circle(sc_p, 1.5, Color(croc_dark.r, croc_dark.g, croc_dark.b, 0.4))
+
+		# Water around croc (half-submerged look)
+		draw_set_transform(croc_base + Vector2(0, 4), 0, Vector2(1.0, 0.3))
+		draw_arc(Vector2.ZERO, 14.0, 0, PI, 12, Color(0.15, 0.40, 0.55, 0.25), 2.0)
+		draw_arc(Vector2.ZERO, 18.0, PI * 0.2, PI * 0.8, 8, Color(0.20, 0.50, 0.65, 0.15), 1.5)
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 	# === Tier 1+: Peter's shadow orbiting range circle ===
 	if shadow_enabled:
