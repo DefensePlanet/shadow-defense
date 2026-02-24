@@ -1803,7 +1803,9 @@ func _start_odyssey_map(map_index: int) -> void:
 	else:
 		bottom_panel.size.y = 42
 		bottom_panel.position.y = 720 - 42
+	start_button.visible = true
 	start_button.disabled = false
+	speed_button.visible = true
 	update_hud()
 	info_label.text = "ODYSSEY %d/3 — %s" % [map_index + 1, level["name"]]
 	wave_auto_timer = -1.0
@@ -4528,7 +4530,9 @@ func _do_level_start(index: int) -> void:
 	else:
 		bottom_panel.size.y = 42
 		bottom_panel.position.y = 720 - 42
+	start_button.visible = true
 	start_button.disabled = false
+	speed_button.visible = true
 	update_hud()
 	var diff_name = ["Easy", "Medium", "Hard"][selected_difficulty]
 	info_label.text = level["name"] + " (%s) - Place your towers!" % diff_name
@@ -19447,7 +19451,9 @@ func _start_endless_mode() -> void:
 	else:
 		bottom_panel.size.y = 42
 		bottom_panel.position.y = 720 - 42
+	start_button.visible = true
 	start_button.disabled = false
+	speed_button.visible = true
 	update_hud()
 	info_label.text = "The Eternal Chapter (Endless) — Place your towers!"
 	wave_auto_timer = -1.0
