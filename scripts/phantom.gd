@@ -113,8 +113,12 @@ var _chandelier_sound: AudioStreamWAV
 var _chandelier_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+var _game_font: Font
 
 func _ready() -> void:
+	var _ff := FontFile.new()
+	_ff.data = FileAccess.get_file_as_bytes("res://fonts/Cinzel.ttf")
+	_game_font = _ff
 	add_to_group("towers")
 	_load_progressive_abilities()
 	_generate_tier_sounds()
@@ -1154,597 +1158,516 @@ func _draw() -> void:
 			# Tip
 			draw_circle(Vector2(flame_x, chand_center.y - 7.0 + flicker * 1.2), 0.8, Color(1.0, 1.0, 0.9, 0.35))
 
-	# === CHARACTER POSITIONS (taller dramatic proportions ~62px — tallest character) ===
-	var feet_y = body_offset + Vector2(cape_sweep * 0.3, 14.0)
-	var leg_top = body_offset + Vector2(cape_sweep * 0.2, -4.0)
-	var torso_center = body_offset + Vector2(-cape_sweep * 0.15, -14.0)
-	var neck_base = body_offset + Vector2(-cape_sweep * 0.3, -26.0)
-	var head_center = body_offset + Vector2(-cape_sweep * 0.15, -38.0)
+	# === CHARACTER POSITIONS (Bloons-style chibi ~50px — tallest character, still chunky) ===
+	var feet_y = body_offset + Vector2(sway * 1.0, 12.0)
+	var leg_top = body_offset + Vector2(sway * 0.6, 2.0)
+	var torso_center = body_offset + Vector2(sway * 0.3, -8.0 - breathe * 0.5)
+	var neck_base = body_offset + Vector2(sway * 0.15, -16.0 - breathe * 0.3)
+	var head_center = body_offset + Vector2(sway * 0.08, -30.0)
 
-	# === CAPE (red-lined black cape — behind the body, dramatic full-length) ===
-	var cape_sway_val = sin(_time * 1.3) * 4.0 + cape_sweep * 1.5
-	var cape_billow = 0.0
+	# === CHARACTER BODY (Bloons BTD6 style — bold outlines, chunky, saturated) ===
+	var OL = Color(0.06, 0.06, 0.08)
+
+	# --- Character color palette ---
+	var suit_fill = Color(0.10, 0.08, 0.12)
+	var suit_dark = Color(0.05, 0.03, 0.07)
+	var shirt_white = Color(0.97, 0.95, 0.93)
+	var cape_outer = Color(0.06, 0.03, 0.08)
+	var cape_lining = Color(0.85, 0.08, 0.12)
+	var glove_col = Color(0.97, 0.95, 0.93)
+	var rose_red = Color(0.94, 0.08, 0.14)
+	var rose_dark = Color(0.68, 0.04, 0.08)
+	var mask_col = Color(0.98, 0.97, 0.96)
+	var hair_col = Color(0.07, 0.05, 0.07)
+	var gold_col = Color(0.90, 0.74, 0.24)
+
+	# === CAPE (drawn behind body — dramatic sweep with red lining) ===
+	var cape_sway_val = sin(_time * 1.3) * 3.5 + cape_sweep * 1.2
 	if upgrade_tier >= 4:
-		cape_billow = sin(_time * 0.7) * 6.0 + sin(_time * 1.9) * 3.0
-	cape_sway_val += cape_billow
+		cape_sway_val += sin(_time * 0.7) * 5.0 + sin(_time * 1.9) * 2.5
 
-	# Outer cape (black) — wider, more dramatic sweep from shoulders past legs
-	var cape_pts = PackedVector2Array([
-		neck_base + Vector2(-22 - cape_sway_val * 0.3, 0),
-		neck_base + Vector2(-26 - cape_sway_val * 0.5, 14),
-		body_offset + Vector2(-24 - cape_sway_val * 0.7, 22),
-		feet_y + Vector2(-16 - cape_sway_val * 0.4, 6),
-		feet_y + Vector2(16 + cape_sway_val * 0.4, 6),
-		body_offset + Vector2(24 + cape_sway_val * 0.7, 22),
-		neck_base + Vector2(26 + cape_sway_val * 0.5, 14),
-		neck_base + Vector2(22 + cape_sway_val * 0.3, 0),
+	# Cape OL outline polygon
+	var cape_ol = PackedVector2Array([
+		neck_base + Vector2(-17 - cape_sway_val * 0.3, -2),
+		neck_base + Vector2(-21 - cape_sway_val * 0.5, 12),
+		body_offset + Vector2(-19 - cape_sway_val * 0.6, 26),
+		feet_y + Vector2(-13 - cape_sway_val * 0.3, 8),
+		feet_y + Vector2(13 + cape_sway_val * 0.3, 8),
+		body_offset + Vector2(19 + cape_sway_val * 0.6, 26),
+		neck_base + Vector2(21 + cape_sway_val * 0.5, 12),
+		neck_base + Vector2(17 + cape_sway_val * 0.3, -2),
 	])
-	draw_colored_polygon(cape_pts, Color(0.04, 0.02, 0.06))
-	# Cape red lining (visible on left side — more visible)
+	draw_colored_polygon(cape_ol, OL)
+	# Cape black fill
+	var cape_fill = PackedVector2Array([
+		neck_base + Vector2(-15 - cape_sway_val * 0.3, -1),
+		neck_base + Vector2(-19 - cape_sway_val * 0.5, 11),
+		body_offset + Vector2(-17 - cape_sway_val * 0.6, 25),
+		feet_y + Vector2(-11 - cape_sway_val * 0.3, 7),
+		feet_y + Vector2(11 + cape_sway_val * 0.3, 7),
+		body_offset + Vector2(17 + cape_sway_val * 0.6, 25),
+		neck_base + Vector2(19 + cape_sway_val * 0.5, 11),
+		neck_base + Vector2(15 + cape_sway_val * 0.3, -1),
+	])
+	draw_colored_polygon(cape_fill, cape_outer)
+	# Cape red lining (left side visible — vivid red)
 	var lining_pts = PackedVector2Array([
-		neck_base + Vector2(-21 - cape_sway_val * 0.3, 2),
-		neck_base + Vector2(-24 - cape_sway_val * 0.5, 12),
-		body_offset + Vector2(-22 - cape_sway_val * 0.6, 20),
-		feet_y + Vector2(-15 - cape_sway_val * 0.35, 4),
-		torso_center + Vector2(-8, 12),
-		torso_center + Vector2(-10, 0),
-		neck_base + Vector2(-12, 2),
+		neck_base + Vector2(-14 - cape_sway_val * 0.3, 0),
+		neck_base + Vector2(-18 - cape_sway_val * 0.5, 10),
+		body_offset + Vector2(-16 - cape_sway_val * 0.5, 24),
+		feet_y + Vector2(-10 - cape_sway_val * 0.25, 6),
+		torso_center + Vector2(-7, 12),
+		torso_center + Vector2(-9, 0),
+		neck_base + Vector2(-9, 0),
 	])
-	draw_colored_polygon(lining_pts, Color(0.65, 0.06, 0.08, 0.8))
-	# Satin sheen on lining (drawn as lines to avoid polygon triangulation issues)
-	var sheen_col = Color(0.85, 0.15, 0.18, 0.3)
-	for si in range(3):
-		var st = float(si) / 2.0
-		var sheen_top = neck_base + Vector2(-20 - cape_sway_val * 0.35 + st * 4, 4 + st * 5)
-		var sheen_bot = torso_center + Vector2(-16 - cape_sway_val * 0.3 + st * 2, -2 + st * 5)
-		draw_line(sheen_top, sheen_bot, sheen_col, 1.5)
-	# Red lining right side (more visible)
-	var lining_r_pts = PackedVector2Array([
-		neck_base + Vector2(12, 2),
-		torso_center + Vector2(10, 0),
-		torso_center + Vector2(8, 12),
-		feet_y + Vector2(15 + cape_sway_val * 0.35, 4),
-		body_offset + Vector2(22 + cape_sway_val * 0.6, 20),
-		neck_base + Vector2(24 + cape_sway_val * 0.5, 12),
-		neck_base + Vector2(21 + cape_sway_val * 0.3, 2),
+	draw_colored_polygon(lining_pts, cape_lining)
+	# Right lining (subtle)
+	var lining_r = PackedVector2Array([
+		neck_base + Vector2(9, 0),
+		torso_center + Vector2(9, 0),
+		torso_center + Vector2(7, 12),
+		feet_y + Vector2(10 + cape_sway_val * 0.25, 6),
+		body_offset + Vector2(16 + cape_sway_val * 0.5, 24),
+		neck_base + Vector2(18 + cape_sway_val * 0.5, 10),
+		neck_base + Vector2(14 + cape_sway_val * 0.3, 0),
 	])
-	draw_colored_polygon(lining_r_pts, Color(0.55, 0.05, 0.07, 0.5))
-	# Cape fold lines (6 instead of 4)
-	for fold_i in range(6):
-		var fold_t = float(fold_i) / 5.0
-		var fold_x = -20.0 + fold_t * 40.0
-		var fold_top = neck_base + Vector2(fold_x, 0)
-		var fold_bot = feet_y + Vector2(fold_x + cape_sway_val * (fold_t - 0.5) * 0.3, 4)
-		draw_line(fold_top, fold_bot, Color(0.08, 0.04, 0.1, 0.25), 1.0)
-	# Cape outline
-	for ci in range(cape_pts.size()):
-		var next_i = (ci + 1) % cape_pts.size()
-		draw_line(cape_pts[ci], cape_pts[next_i], Color(0.06, 0.03, 0.08, 0.4), 1.0)
+	draw_colored_polygon(lining_r, Color(0.65, 0.06, 0.09, 0.5))
+	# Cape fold creases
+	for fold_i in range(5):
+		var fold_t = float(fold_i) / 4.0
+		var fold_x = -14.0 + fold_t * 28.0
+		draw_line(neck_base + Vector2(fold_x, 0), feet_y + Vector2(fold_x + cape_sway_val * (fold_t - 0.5) * 0.3, 6), Color(0.03, 0.02, 0.05, 0.2), 1.0)
 
-	# === FORMAL BLACK DRESS SHOES (polished oxford) ===
-	var l_foot = feet_y + Vector2(-7, 0)
-	var r_foot = feet_y + Vector2(7, 0)
-	# Shoe soles
-	draw_circle(l_foot + Vector2(0, 1), 5.0, Color(0.02, 0.02, 0.02))
-	draw_circle(r_foot + Vector2(0, 1), 5.0, Color(0.02, 0.02, 0.02))
-	# Shoe bases (polished black)
-	draw_circle(l_foot, 5.0, Color(0.04, 0.04, 0.04))
-	draw_circle(l_foot, 3.8, Color(0.10, 0.10, 0.10))
-	draw_circle(r_foot, 5.0, Color(0.04, 0.04, 0.04))
-	draw_circle(r_foot, 3.8, Color(0.10, 0.10, 0.10))
+	# --- Polished black shoes (OL + fill) ---
+	var l_foot = feet_y + Vector2(-6, 0)
+	var r_foot = feet_y + Vector2(6, 0)
+	draw_circle(l_foot, 5.5, OL)
+	draw_circle(r_foot, 5.5, OL)
+	draw_circle(l_foot, 4.2, suit_dark)
+	draw_circle(r_foot, 4.2, suit_dark)
 	# Patent leather shine
-	draw_circle(l_foot + Vector2(1, -1.5), 2.0, Color(0.30, 0.30, 0.35, 0.5))
-	draw_circle(r_foot + Vector2(-1, -1.5), 2.0, Color(0.30, 0.30, 0.35, 0.5))
-	# Shoe toe highlights
-	draw_circle(l_foot + Vector2(2, 0.5), 1.2, Color(0.25, 0.25, 0.30, 0.35))
-	draw_circle(r_foot + Vector2(-2, 0.5), 1.2, Color(0.25, 0.25, 0.30, 0.35))
-	# Heel detail
-	draw_line(l_foot + Vector2(-2, 1), l_foot + Vector2(-2, 3), Color(0.06, 0.06, 0.06), 2.0)
-	draw_line(r_foot + Vector2(2, 1), r_foot + Vector2(2, 3), Color(0.06, 0.06, 0.06), 2.0)
+	draw_circle(l_foot + Vector2(-0.5, -1.0), 1.5, Color(0.28, 0.25, 0.30, 0.5))
+	draw_circle(r_foot + Vector2(-0.5, -1.0), 1.5, Color(0.28, 0.25, 0.30, 0.5))
+	# Shoe cuffs
+	draw_line(l_foot + Vector2(-4.5, -3), l_foot + Vector2(4.5, -3), OL, 3.5)
+	draw_line(l_foot + Vector2(-3.5, -3), l_foot + Vector2(3.5, -3), suit_fill, 2.0)
+	draw_line(r_foot + Vector2(-4.5, -3), r_foot + Vector2(4.5, -3), OL, 3.5)
+	draw_line(r_foot + Vector2(-3.5, -3), r_foot + Vector2(3.5, -3), suit_fill, 2.0)
 
-	# === LONG ELEGANT LEGS (polygon tuxedo trousers, broad build) ===
-	var l_knee = leg_top + Vector2(-5, 9)
-	var r_knee = leg_top + Vector2(5, 9)
-	var l_hip = leg_top + Vector2(-5, 0)
-	var r_hip = leg_top + Vector2(5, 0)
-	var l_ankle = l_foot + Vector2(0, -3)
-	var r_ankle = r_foot + Vector2(0, -3)
-	# LEFT THIGH — broad masculine shape
-	draw_colored_polygon(PackedVector2Array([
-		l_hip + Vector2(3, 0), l_hip + Vector2(-5, 0),
-		l_hip.lerp(l_knee, 0.3) + Vector2(-6.5, 0),  # outer quad
-		l_hip.lerp(l_knee, 0.6) + Vector2(-6.0, 0),
-		l_knee + Vector2(-4.5, 0), l_knee + Vector2(3.5, 0),
-		l_hip.lerp(l_knee, 0.5) + Vector2(4.5, 0),
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		l_hip + Vector2(2, 0), l_hip + Vector2(-4, 0),
-		l_hip.lerp(l_knee, 0.3) + Vector2(-5.5, 0),
-		l_knee + Vector2(-3.5, 0), l_knee + Vector2(2.5, 0),
-	]), Color(0.08, 0.06, 0.10))
-	# RIGHT THIGH
-	draw_colored_polygon(PackedVector2Array([
-		r_hip + Vector2(-3, 0), r_hip + Vector2(5, 0),
-		r_hip.lerp(r_knee, 0.3) + Vector2(6.5, 0),
-		r_hip.lerp(r_knee, 0.6) + Vector2(6.0, 0),
-		r_knee + Vector2(4.5, 0), r_knee + Vector2(-3.5, 0),
-		r_hip.lerp(r_knee, 0.5) + Vector2(-4.5, 0),
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		r_hip + Vector2(-2, 0), r_hip + Vector2(4, 0),
-		r_hip.lerp(r_knee, 0.3) + Vector2(5.5, 0),
-		r_knee + Vector2(3.5, 0), r_knee + Vector2(-2.5, 0),
-	]), Color(0.08, 0.06, 0.10))
-	# Knee joints
-	draw_circle(l_knee, 5.0, Color(0.04, 0.03, 0.06))
-	draw_circle(l_knee, 4.0, Color(0.08, 0.06, 0.10))
-	draw_circle(r_knee, 5.0, Color(0.04, 0.03, 0.06))
-	draw_circle(r_knee, 4.0, Color(0.08, 0.06, 0.10))
-	# LEFT CALF — strong shape
-	draw_colored_polygon(PackedVector2Array([
-		l_knee + Vector2(-4.5, 0), l_knee + Vector2(3.5, 0),
-		l_knee.lerp(l_ankle, 0.35) + Vector2(3.5, 0),
-		l_ankle + Vector2(2.5, 0), l_ankle + Vector2(-2.5, 0),
-		l_knee.lerp(l_ankle, 0.35) + Vector2(-5.5, 0),
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		l_knee + Vector2(-3.5, 0), l_knee + Vector2(2.5, 0),
-		l_ankle + Vector2(1.5, 0), l_ankle + Vector2(-1.5, 0),
-	]), Color(0.08, 0.06, 0.10))
-	# RIGHT CALF
-	draw_colored_polygon(PackedVector2Array([
-		r_knee + Vector2(4.5, 0), r_knee + Vector2(-3.5, 0),
-		r_knee.lerp(r_ankle, 0.35) + Vector2(-3.5, 0),
-		r_ankle + Vector2(-2.5, 0), r_ankle + Vector2(2.5, 0),
-		r_knee.lerp(r_ankle, 0.35) + Vector2(5.5, 0),
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		r_knee + Vector2(3.5, 0), r_knee + Vector2(-2.5, 0),
-		r_ankle + Vector2(-1.5, 0), r_ankle + Vector2(1.5, 0),
-	]), Color(0.08, 0.06, 0.10))
-	# Satin side stripes (tuxedo detail)
-	draw_line(l_ankle + Vector2(-2, 0), l_hip + Vector2(-3, 0), Color(0.18, 0.16, 0.20, 0.35), 1.0)
-	draw_line(r_ankle + Vector2(2, 0), r_hip + Vector2(3, 0), Color(0.18, 0.16, 0.20, 0.35), 1.0)
-	# Knee crease detail
-	draw_line(l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0), Color(0.03, 0.02, 0.05, 0.3), 1.0)
-	draw_line(r_knee + Vector2(-3, 0), r_knee + Vector2(4, 0), Color(0.03, 0.02, 0.05, 0.3), 1.0)
+	# --- Chunky tuxedo legs (OL + fill) ---
+	draw_line(l_foot + Vector2(0, -4), leg_top + Vector2(-4, 0), OL, 9.0)
+	draw_line(l_foot + Vector2(0, -4), leg_top + Vector2(-4, 0), suit_fill, 7.0)
+	draw_line(r_foot + Vector2(0, -4), leg_top + Vector2(4, 0), OL, 9.0)
+	draw_line(r_foot + Vector2(0, -4), leg_top + Vector2(4, 0), suit_fill, 7.0)
+	# Satin side stripes
+	draw_line(l_foot + Vector2(-2.5, -4), leg_top + Vector2(-6, 0), Color(0.20, 0.18, 0.24, 0.3), 1.0)
+	draw_line(r_foot + Vector2(2.5, -4), leg_top + Vector2(6, 0), Color(0.20, 0.18, 0.24, 0.3), 1.0)
 
-	# === BLACK TUXEDO TORSO — broad shoulders, V-taper to waist ===
-	var torso_pts = PackedVector2Array([
-		torso_center + Vector2(-9, 10),    # waist left
-		torso_center + Vector2(-11, 2),
-		neck_base + Vector2(-17, 0),       # shoulder left (broad ±17)
-		neck_base + Vector2(17, 0),        # shoulder right
-		torso_center + Vector2(11, 2),
-		torso_center + Vector2(9, 10),     # waist right (narrow ±9)
+	# --- Tuxedo torso (broad shoulders, V-taper waist) ---
+	# OL outline
+	var torso_ol = PackedVector2Array([
+		torso_center + Vector2(-11, 11),
+		torso_center + Vector2(-13, 2),
+		neck_base + Vector2(-16, 0),
+		neck_base + Vector2(16, 0),
+		torso_center + Vector2(13, 2),
+		torso_center + Vector2(11, 11),
 	])
-	draw_colored_polygon(torso_pts, Color(0.06, 0.04, 0.08))
-	# Defined chest contour
-	draw_arc(torso_center + Vector2(-4, -2), 6.0, PI * 0.2, PI * 0.9, 8, Color(0.10, 0.08, 0.12, 0.2), 1.5)
-	draw_arc(torso_center + Vector2(4, -2), 6.0, PI * 0.1, PI * 0.8, 8, Color(0.10, 0.08, 0.12, 0.2), 1.5)
-	# Torso shadow (darker sides for V-taper definition)
-	var torso_shadow_l = PackedVector2Array([
-		torso_center + Vector2(-9, 10),
-		torso_center + Vector2(-11, 2),
-		neck_base + Vector2(-17, 0),
-		neck_base + Vector2(-10, 0),
-		torso_center + Vector2(-6, 8),
+	draw_colored_polygon(torso_ol, OL)
+	# Suit fill
+	var torso_inner = PackedVector2Array([
+		torso_center + Vector2(-10, 10),
+		torso_center + Vector2(-12, 2),
+		neck_base + Vector2(-15, 1),
+		neck_base + Vector2(15, 1),
+		torso_center + Vector2(12, 2),
+		torso_center + Vector2(10, 10),
 	])
-	draw_colored_polygon(torso_shadow_l, Color(0.02, 0.01, 0.04, 0.3))
-	var torso_shadow_r = PackedVector2Array([
-		neck_base + Vector2(10, 0),
-		neck_base + Vector2(17, 0),
-		torso_center + Vector2(11, 2),
-		torso_center + Vector2(9, 10),
-		torso_center + Vector2(6, 8),
-	])
-	draw_colored_polygon(torso_shadow_r, Color(0.02, 0.01, 0.04, 0.25))
+	draw_colored_polygon(torso_inner, suit_fill)
 
-	# White dress shirt front (visible between lapels)
+	# White dress shirt front (V between lapels)
 	var shirt_pts = PackedVector2Array([
-		neck_base + Vector2(-5, 2),
-		neck_base + Vector2(5, 2),
-		torso_center + Vector2(5, 6),
-		torso_center + Vector2(-5, 6),
+		neck_base + Vector2(-5, 3),
+		neck_base + Vector2(5, 3),
+		torso_center + Vector2(5, 8),
+		torso_center + Vector2(-5, 8),
 	])
-	draw_colored_polygon(shirt_pts, Color(0.95, 0.93, 0.91))
-	# Shirt pleat lines
-	draw_line(neck_base + Vector2(-2, 2), torso_center + Vector2(-2, 5), Color(0.88, 0.86, 0.84, 0.3), 0.7)
-	draw_line(neck_base + Vector2(2, 2), torso_center + Vector2(2, 5), Color(0.88, 0.86, 0.84, 0.3), 0.7)
-	# Shirt buttons (spaced along taller torso)
-	for bi in range(4):
-		var btn_y_off = -6.0 + float(bi) * 4.5
-		var btn_pos = torso_center + Vector2(0, btn_y_off)
-		draw_circle(btn_pos, 1.2, Color(0.85, 0.83, 0.80))
-		draw_circle(btn_pos + Vector2(-0.3, -0.3), 0.5, Color(1.0, 1.0, 1.0, 0.35))
+	draw_colored_polygon(shirt_pts, shirt_white)
+	# Shirt buttons (OL circles + fill)
+	for bi in range(3):
+		var btn_pos = torso_center + Vector2(0, -3.0 + float(bi) * 4.0)
+		draw_circle(btn_pos, 1.8, OL)
+		draw_circle(btn_pos, 1.2, Color(0.90, 0.88, 0.86))
+		draw_circle(btn_pos + Vector2(-0.3, -0.3), 0.5, Color(1.0, 1.0, 1.0, 0.5))
 
-	# Peaked lapels (V-shape, satin-faced) — adjusted for taller torso
-	# Left lapel
+	# Peaked lapels (bold OL outlines)
+	# Left lapel OL + fill
 	var lapel_l = PackedVector2Array([
-		neck_base + Vector2(-15, 0),
-		neck_base + Vector2(-5, 2),
-		torso_center + Vector2(-3, 0),
-		torso_center + Vector2(-8, -1),
-		neck_base + Vector2(-16, 4),
+		neck_base + Vector2(-15, 1),
+		neck_base + Vector2(-5, 3),
+		torso_center + Vector2(-4, 1),
+		torso_center + Vector2(-8, 0),
+		neck_base + Vector2(-16, 5),
 	])
-	draw_colored_polygon(lapel_l, Color(0.08, 0.06, 0.10))
-	# Satin face on lapel
-	draw_line(neck_base + Vector2(-15, 0), torso_center + Vector2(-5, 0), Color(0.14, 0.11, 0.18, 0.4), 1.5)
+	draw_colored_polygon(lapel_l, OL)
+	var lapel_l_fill = PackedVector2Array([
+		neck_base + Vector2(-14, 2),
+		neck_base + Vector2(-5, 3.5),
+		torso_center + Vector2(-4, 2),
+		torso_center + Vector2(-8, 1),
+		neck_base + Vector2(-15, 5),
+	])
+	draw_colored_polygon(lapel_l_fill, suit_dark)
 	# Peaked tip
-	draw_line(neck_base + Vector2(-15, 0), neck_base + Vector2(-18, -2), Color(0.14, 0.11, 0.18, 0.4), 1.0)
-	# Right lapel
+	draw_line(neck_base + Vector2(-15, 1), neck_base + Vector2(-18, -1), OL, 2.5)
+	# Right lapel OL + fill
 	var lapel_r = PackedVector2Array([
-		neck_base + Vector2(5, 2),
-		neck_base + Vector2(15, 0),
-		neck_base + Vector2(16, 4),
-		torso_center + Vector2(8, -1),
-		torso_center + Vector2(3, 0),
+		neck_base + Vector2(5, 3),
+		neck_base + Vector2(15, 1),
+		neck_base + Vector2(16, 5),
+		torso_center + Vector2(8, 0),
+		torso_center + Vector2(4, 1),
 	])
-	draw_colored_polygon(lapel_r, Color(0.08, 0.06, 0.10))
-	draw_line(neck_base + Vector2(15, 0), torso_center + Vector2(5, 0), Color(0.14, 0.11, 0.18, 0.4), 1.5)
-	draw_line(neck_base + Vector2(15, 0), neck_base + Vector2(18, -2), Color(0.14, 0.11, 0.18, 0.4), 1.0)
+	draw_colored_polygon(lapel_r, OL)
+	var lapel_r_fill = PackedVector2Array([
+		neck_base + Vector2(5, 3.5),
+		neck_base + Vector2(14, 2),
+		neck_base + Vector2(15, 5),
+		torso_center + Vector2(8, 1),
+		torso_center + Vector2(4, 2),
+	])
+	draw_colored_polygon(lapel_r_fill, suit_dark)
+	draw_line(neck_base + Vector2(15, 1), neck_base + Vector2(18, -1), OL, 2.5)
 
-	# Black bow tie (at neck_base)
-	var tie_pos = neck_base + Vector2(0, 2)
-	# Left bow wing
-	draw_arc(tie_pos + Vector2(-4, 0), 3.0, PI * 0.3, PI * 1.7, 8, Color(0.06, 0.04, 0.08), 2.5)
-	# Right bow wing
-	draw_arc(tie_pos + Vector2(4, 0), 3.0, -PI * 0.7, PI * 0.7, 8, Color(0.06, 0.04, 0.08), 2.5)
-	# Knot center
-	draw_circle(tie_pos, 1.8, Color(0.04, 0.03, 0.06))
-	draw_circle(tie_pos, 1.0, Color(0.10, 0.08, 0.12))
+	# Black bow tie (chunky Bloons circles)
+	var tie_pos = neck_base + Vector2(0, 4)
+	draw_circle(tie_pos + Vector2(-4.5, 0), 4.0, OL)
+	draw_circle(tie_pos + Vector2(-4.5, 0), 3.0, suit_dark)
+	draw_circle(tie_pos + Vector2(4.5, 0), 4.0, OL)
+	draw_circle(tie_pos + Vector2(4.5, 0), 3.0, suit_dark)
+	draw_circle(tie_pos, 2.8, OL)
+	draw_circle(tie_pos, 2.0, suit_fill)
+	draw_circle(tie_pos + Vector2(-0.3, -0.3), 0.8, Color(0.18, 0.14, 0.20, 0.4))
 
-	# === SHOULDERS / SLEEVES (broad tuxedo shoulders ±17) ===
-	# Left shoulder
-	draw_circle(neck_base + Vector2(-17, 0), 7.0, Color(0.04, 0.03, 0.06, 0.4))
-	draw_circle(neck_base + Vector2(-17, 0), 6.0, Color(0.06, 0.04, 0.08))
-	draw_circle(neck_base + Vector2(-17, 1), 3.5, Color(0.10, 0.08, 0.12, 0.3))
-	# Right shoulder
-	draw_circle(neck_base + Vector2(17, 0), 7.0, Color(0.04, 0.03, 0.06, 0.4))
-	draw_circle(neck_base + Vector2(17, 0), 6.0, Color(0.06, 0.04, 0.08))
-	draw_circle(neck_base + Vector2(17, 1), 3.5, Color(0.10, 0.08, 0.12, 0.3))
+	# --- Chunky round shoulders (OL + fill) ---
+	draw_circle(neck_base + Vector2(-15, 1), 8.0, OL)
+	draw_circle(neck_base + Vector2(-15, 1), 6.5, suit_fill)
+	draw_circle(neck_base + Vector2(-15, 0), 3.2, Color(0.16, 0.13, 0.18, 0.3))
+	draw_circle(neck_base + Vector2(15, 1), 8.0, OL)
+	draw_circle(neck_base + Vector2(15, 1), 6.5, suit_fill)
+	draw_circle(neck_base + Vector2(15, 0), 3.2, Color(0.16, 0.13, 0.18, 0.3))
 
-	# === CAPE CLASP at collar (golden brooch) ===
-	var clasp_pos = neck_base + Vector2(-14, 0)
-	draw_circle(clasp_pos, 3.5, Color(0.8, 0.65, 0.2, 0.8))
-	draw_circle(clasp_pos, 2.2, Color(0.9, 0.78, 0.35, 0.6))
-	draw_circle(clasp_pos, 1.0, Color(1.0, 0.9, 0.5, 0.5))
-	var clasp2_pos = neck_base + Vector2(14, 0)
-	draw_circle(clasp2_pos, 3.5, Color(0.8, 0.65, 0.2, 0.8))
-	draw_circle(clasp2_pos, 2.2, Color(0.9, 0.78, 0.35, 0.6))
+	# --- Cape clasps (golden brooches at collar) ---
+	var clasp_l = neck_base + Vector2(-13, 1)
+	draw_circle(clasp_l, 3.8, OL)
+	draw_circle(clasp_l, 2.8, gold_col)
+	draw_circle(clasp_l + Vector2(-0.3, -0.5), 1.2, Color(1.0, 0.94, 0.55, 0.6))
+	var clasp_r = neck_base + Vector2(13, 1)
+	draw_circle(clasp_r, 3.8, OL)
+	draw_circle(clasp_r, 2.8, gold_col)
+	draw_circle(clasp_r + Vector2(-0.3, -0.5), 1.2, Color(1.0, 0.94, 0.55, 0.6))
 
-	# === LEFT ARM — polygon tuxedo sleeve, holds cape (dramatic pose) ===
-	var l_shoulder_pos = neck_base + Vector2(-17, 0)
-	var l_elbow = neck_base + Vector2(-20, 12 + sin(_time * 1.5) * 1.0)
-	var l_hand_pos = torso_center + Vector2(-20, 6 + sin(_time * 1.5) * 1.5)
-	# LEFT UPPER ARM — broad tuxedo sleeve polygon
-	var l_ua_dir = (l_elbow - l_shoulder_pos).normalized()
-	var l_ua_perp = l_ua_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		l_shoulder_pos + l_ua_perp * 6.0, l_shoulder_pos - l_ua_perp * 5.5,
-		l_shoulder_pos.lerp(l_elbow, 0.3) - l_ua_perp * 6.0,
-		l_elbow - l_ua_perp * 4.0, l_elbow + l_ua_perp * 4.0,
-		l_shoulder_pos.lerp(l_elbow, 0.5) + l_ua_perp * 5.0,
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		l_shoulder_pos + l_ua_perp * 5.0, l_shoulder_pos - l_ua_perp * 4.5,
-		l_elbow - l_ua_perp * 3.0, l_elbow + l_ua_perp * 3.0,
-	]), Color(0.06, 0.04, 0.08))
-	# Sleeve highlight
-	draw_line(l_shoulder_pos.lerp(l_elbow, 0.15) + l_ua_perp * 3.0, l_shoulder_pos.lerp(l_elbow, 0.7) + l_ua_perp * 3.0, Color(0.12, 0.10, 0.15, 0.3), 1.0)
-	# LEFT FOREARM — polygon tapered
-	var l_fa_dir = (l_hand_pos - l_elbow).normalized()
-	var l_fa_perp = l_fa_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		l_elbow + l_fa_perp * 4.0, l_elbow - l_fa_perp * 4.0,
-		l_hand_pos - l_fa_perp * 3.0, l_hand_pos + l_fa_perp * 3.0,
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		l_elbow + l_fa_perp * 3.0, l_elbow - l_fa_perp * 3.0,
-		l_hand_pos - l_fa_perp * 2.0, l_hand_pos + l_fa_perp * 2.0,
-	]), Color(0.06, 0.04, 0.08))
-	# Elbow joint
-	draw_circle(l_elbow, 4.5, Color(0.04, 0.03, 0.06))
-	draw_circle(l_elbow, 3.5, Color(0.06, 0.04, 0.08))
+	# === LEFT ARM (holds red rose, dramatic cape pose) ===
+	var l_shoulder_pos = neck_base + Vector2(-15, 1)
+	var l_elbow = l_shoulder_pos + Vector2(-6, 10 + sin(_time * 1.5) * 1.0)
+	var l_hand_pos = l_elbow + Vector2(-3, 9 + sin(_time * 1.5) * 1.5)
+	# Upper arm: OL + fill
+	draw_line(l_shoulder_pos, l_elbow, OL, 9.5)
+	draw_line(l_shoulder_pos, l_elbow, suit_fill, 7.0)
+	# Forearm: OL + fill
+	draw_line(l_elbow, l_hand_pos, OL, 8.5)
+	draw_line(l_elbow, l_hand_pos, suit_fill, 6.0)
+	# Elbow joint (OL + fill)
+	draw_circle(l_elbow, 5.5, OL)
+	draw_circle(l_elbow, 4.2, suit_fill)
 	# White glove cuff
-	draw_arc(l_hand_pos + Vector2(0, -2), 4.0, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.5)
-	# White-gloved hand (gripping cape)
-	draw_circle(l_hand_pos, 4.0, Color(0.90, 0.88, 0.86))
-	draw_circle(l_hand_pos, 3.2, Color(0.95, 0.93, 0.91))
-	# Fingers curled around cape
+	draw_line(l_hand_pos + Vector2(-5, -3), l_hand_pos + Vector2(5, -3), OL, 4.5)
+	draw_line(l_hand_pos + Vector2(-4, -3), l_hand_pos + Vector2(4, -3), glove_col, 3.0)
+	# White-gloved hand (OL + fill)
+	draw_circle(l_hand_pos, 5.5, OL)
+	draw_circle(l_hand_pos, 4.2, glove_col)
+	draw_circle(l_hand_pos + Vector2(-0.8, -1.2), 2.0, Color(1.0, 1.0, 1.0, 0.3))
+	# Fingers curled
 	for fi in range(3):
-		var finger_angle = PI * 0.6 + float(fi) * 0.3
-		draw_circle(l_hand_pos + Vector2.from_angle(finger_angle) * 3.5, 1.5, Color(0.97, 0.95, 0.93))
+		var finger_a = PI * 0.5 + float(fi) * 0.35
+		var fp = l_hand_pos + Vector2.from_angle(finger_a) * 4.5
+		draw_circle(fp, 2.2, OL)
+		draw_circle(fp, 1.5, glove_col)
 
-	# === RIGHT ARM — polygon tuxedo sleeve, conducting hand toward aim ===
-	var attack_extend = _attack_anim * 12.0
-	var r_shoulder_pos = neck_base + Vector2(17, 0)
-	var r_elbow = neck_base + Vector2(19, 10)
-	var r_hand_pos = r_shoulder_pos + dir * (18.0 + attack_extend)
-	# RIGHT UPPER ARM — broad tuxedo sleeve polygon
-	var r_ua_dir = (r_elbow - r_shoulder_pos).normalized()
-	var r_ua_perp = r_ua_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder_pos + r_ua_perp * 5.5, r_shoulder_pos - r_ua_perp * 6.0,
-		r_shoulder_pos.lerp(r_elbow, 0.3) - r_ua_perp * 6.0,
-		r_elbow - r_ua_perp * 4.0, r_elbow + r_ua_perp * 4.0,
-		r_shoulder_pos.lerp(r_elbow, 0.5) + r_ua_perp * 5.0,
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder_pos + r_ua_perp * 4.5, r_shoulder_pos - r_ua_perp * 5.0,
-		r_elbow - r_ua_perp * 3.0, r_elbow + r_ua_perp * 3.0,
-	]), Color(0.06, 0.04, 0.08))
-	draw_line(r_shoulder_pos.lerp(r_elbow, 0.15) - r_ua_perp * 3.0, r_shoulder_pos.lerp(r_elbow, 0.7) - r_ua_perp * 3.0, Color(0.12, 0.10, 0.15, 0.3), 1.0)
-	# RIGHT FOREARM — polygon tapered toward aim
-	var r_fa_dir = (r_hand_pos - r_elbow).normalized()
-	var r_fa_perp = r_fa_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		r_elbow + r_fa_perp * 4.0, r_elbow - r_fa_perp * 4.0,
-		r_elbow.lerp(r_hand_pos, 0.4) - r_fa_perp * 3.5,
-		r_hand_pos - r_fa_perp * 2.5, r_hand_pos + r_fa_perp * 2.5,
-		r_elbow.lerp(r_hand_pos, 0.4) + r_fa_perp * 3.5,
-	]), Color(0.04, 0.03, 0.06))
-	draw_colored_polygon(PackedVector2Array([
-		r_elbow + r_fa_perp * 3.0, r_elbow - r_fa_perp * 3.0,
-		r_hand_pos - r_fa_perp * 1.5, r_hand_pos + r_fa_perp * 1.5,
-	]), Color(0.06, 0.04, 0.08))
-	# Elbow joint
-	draw_circle(r_elbow, 4.5, Color(0.04, 0.03, 0.06))
-	draw_circle(r_elbow, 3.5, Color(0.06, 0.04, 0.08))
+	# --- RED ROSE in left hand (Phantom's signature) ---
+	var rose_pos = l_hand_pos + Vector2(-2, -7)
+	# Stem (OL + green fill)
+	draw_line(l_hand_pos + Vector2(0, -3), rose_pos + Vector2(0, 5), OL, 3.0)
+	draw_line(l_hand_pos + Vector2(0, -3), rose_pos + Vector2(0, 5), Color(0.18, 0.55, 0.14), 1.8)
+	# Rose leaf
+	var leaf_p = l_hand_pos + Vector2(-3, -5)
+	draw_circle(leaf_p, 3.0, OL)
+	draw_circle(leaf_p, 2.2, Color(0.20, 0.58, 0.16))
+	draw_circle(leaf_p + Vector2(-0.3, -0.3), 1.0, Color(0.30, 0.68, 0.25, 0.4))
+	# Rose bloom (layered petals with bold OL)
+	draw_circle(rose_pos, 6.0, OL)
+	draw_circle(rose_pos, 4.8, rose_red)
+	draw_circle(rose_pos + Vector2(-1.5, -1.2), 3.2, Color(1.0, 0.18, 0.22))
+	draw_circle(rose_pos + Vector2(1.5, -0.5), 3.0, Color(0.88, 0.08, 0.12))
+	draw_circle(rose_pos + Vector2(0, 1.8), 2.6, rose_dark)
+	# Rose center spiral
+	draw_circle(rose_pos, 2.0, Color(0.72, 0.04, 0.08))
+	draw_circle(rose_pos + Vector2(-0.4, -0.4), 1.0, Color(1.0, 0.35, 0.35, 0.5))
+
+	# === RIGHT ARM (conducting hand extending toward aim on attack) ===
+	var attack_extend = _attack_anim * 10.0
+	var r_shoulder_pos = neck_base + Vector2(15, 1)
+	var r_elbow = r_shoulder_pos + Vector2(5, 9)
+	var r_hand_pos = r_shoulder_pos + dir * (17.0 + attack_extend)
+	# Upper arm: OL + fill
+	draw_line(r_shoulder_pos, r_elbow, OL, 9.5)
+	draw_line(r_shoulder_pos, r_elbow, suit_fill, 7.0)
+	# Forearm: OL + fill
+	draw_line(r_elbow, r_hand_pos, OL, 8.5)
+	draw_line(r_elbow, r_hand_pos, suit_fill, 6.0)
+	# Elbow joint (OL + fill)
+	draw_circle(r_elbow, 5.5, OL)
+	draw_circle(r_elbow, 4.2, suit_fill)
 	# White glove cuff
-	draw_arc(r_hand_pos + dir * (-4.0), 4.0, 0, TAU, 8, Color(0.95, 0.93, 0.91), 2.5)
-	# White-gloved hand
-	draw_circle(r_hand_pos, 4.0, Color(0.90, 0.88, 0.86))
-	draw_circle(r_hand_pos, 3.2, Color(0.95, 0.93, 0.91))
-	# Conducting fingers (extended elegantly)
+	var cuff_pos = r_hand_pos - dir * 4.5
+	draw_line(cuff_pos + perp * 5.0, cuff_pos - perp * 5.0, OL, 4.5)
+	draw_line(cuff_pos + perp * 4.0, cuff_pos - perp * 4.0, glove_col, 3.0)
+	# White-gloved hand (OL + fill)
+	draw_circle(r_hand_pos, 5.5, OL)
+	draw_circle(r_hand_pos, 4.2, glove_col)
+	draw_circle(r_hand_pos + Vector2(-0.8, -1.2), 2.0, Color(1.0, 1.0, 1.0, 0.3))
+	# Conducting fingers (extended toward aim)
 	for fi in range(4):
 		var fa = aim_angle + (float(fi) - 1.5) * 0.25
-		draw_circle(r_hand_pos + Vector2.from_angle(fa) * 4.2, 1.5, Color(0.97, 0.95, 0.93))
+		var fp = r_hand_pos + Vector2.from_angle(fa) * 5.0
+		draw_circle(fp, 2.2, OL)
+		draw_circle(fp, 1.5, glove_col)
 
-	# === MUSIC NOTES near conducting hand (weapon) ===
-	var note_base = r_hand_pos + dir * 8.0
-	# Small music notes floating near hand
+	# --- Music notes near conducting hand (weapon) ---
+	var note_base = r_hand_pos + dir * 9.0
 	for ni in range(2):
 		var note_off = dir.rotated(PI * 0.3 * float(ni) - PI * 0.15) * (6.0 + float(ni) * 4.0)
 		var note_pos = note_base + note_off
 		var n_bob_y = sin(_time * 4.0 + float(ni) * 2.5) * 2.0
 		note_pos.y += n_bob_y
-		# Note head
-		draw_circle(note_pos, 2.5, Color(0.55, 0.35, 0.85, 0.7))
+		# Note head OL + fill
+		draw_circle(note_pos, 4.0, OL)
+		draw_circle(note_pos, 2.8, Color(0.62, 0.38, 0.92))
 		# Note stem
-		draw_line(note_pos + Vector2(1.5, 0), note_pos + Vector2(1.5, -8.0), Color(0.55, 0.35, 0.85, 0.6), 1.2)
+		draw_line(note_pos + Vector2(2, 0), note_pos + Vector2(2, -10.0), OL, 2.8)
+		draw_line(note_pos + Vector2(2, 0), note_pos + Vector2(2, -10.0), Color(0.62, 0.38, 0.92), 1.5)
 		# Note flag
-		draw_line(note_pos + Vector2(1.5, -8.0), note_pos + Vector2(5.0, -5.0), Color(0.55, 0.35, 0.85, 0.45), 1.2)
+		draw_line(note_pos + Vector2(2, -10.0), note_pos + Vector2(6.5, -6.5), OL, 2.8)
+		draw_line(note_pos + Vector2(2, -10.0), note_pos + Vector2(6.5, -6.5), Color(0.62, 0.38, 0.92), 1.5)
 
-	# Attack flash — music notes shooting toward aim direction
+	# Attack flash — music notes shooting toward aim
 	if _attack_anim > 0.3:
 		var flash_alpha = (_attack_anim - 0.3) * 1.4
 		for ai in range(3):
 			var a_dist = 12.0 + float(ai) * 10.0 + (1.0 - _attack_anim) * 20.0
 			var a_spread = float(ai - 1) * 0.2
 			var a_pos = r_hand_pos + dir.rotated(a_spread) * a_dist
-			# Flying note
-			draw_circle(a_pos, 3.0 - float(ai) * 0.5, Color(0.6, 0.3, 0.9, flash_alpha * (0.7 - float(ai) * 0.15)))
-			# Trailing sparkle
-			draw_circle(a_pos - dir * 4.0, 1.5, Color(0.7, 0.5, 1.0, flash_alpha * 0.3))
+			draw_circle(a_pos, 4.2 - float(ai) * 0.5, OL)
+			draw_circle(a_pos, 3.2 - float(ai) * 0.5, Color(0.68, 0.38, 0.96, flash_alpha * (0.8 - float(ai) * 0.15)))
+			draw_circle(a_pos - dir * 4.0, 2.0, Color(0.78, 0.58, 1.0, flash_alpha * 0.35))
 
-	# === ELEGANT NECK (polygon-based, with white shirt collar) ===
-	var neck_top = head_center + Vector2(0, 12)
-	var neck_dir = (neck_top - neck_base).normalized()
-	var neck_perp = neck_dir.rotated(PI / 2.0)
-	# Dark outline
-	draw_colored_polygon(PackedVector2Array([
-		neck_base + neck_perp * 7.5, neck_base - neck_perp * 7.5,
-		neck_base.lerp(neck_top, 0.5) - neck_perp * 6.5,
-		neck_top - neck_perp * 5.5, neck_top + neck_perp * 5.5,
-		neck_base.lerp(neck_top, 0.5) + neck_perp * 6.5,
-	]), Color(0.04, 0.03, 0.06))
-	# Skin shadow layer
-	draw_colored_polygon(PackedVector2Array([
-		neck_base + neck_perp * 6.5, neck_base - neck_perp * 6.5,
-		neck_top - neck_perp * 4.5, neck_top + neck_perp * 4.5,
-	]), skin_shadow)
-	# Skin base layer
-	draw_colored_polygon(PackedVector2Array([
-		neck_base + neck_perp * 5.5, neck_base - neck_perp * 5.5,
-		neck_top - neck_perp * 3.5, neck_top + neck_perp * 3.5,
-	]), skin_base)
-	# Neck highlight
-	draw_line(neck_base.lerp(neck_top, 0.15) + neck_perp * 3.0, neck_base.lerp(neck_top, 0.85) + neck_perp * 2.5, skin_highlight, 2.0)
-	# White shirt collar points (visible at neck base)
-	var collar_l = PackedVector2Array([
-		neck_base + Vector2(-8, 2),
-		neck_base + Vector2(-4, -3),
-		neck_base + Vector2(0, 2),
+	# === NECK (short chunky, with shirt collar) ===
+	draw_line(neck_base + Vector2(0, 0), head_center + Vector2(0, 13), OL, 10.0)
+	draw_line(neck_base + Vector2(0, 0), head_center + Vector2(0, 13), skin_base, 7.0)
+	draw_line(neck_base + Vector2(1.5, 0), head_center + Vector2(1.5, 12), skin_highlight, 2.0)
+	# White shirt collar points
+	var collar_l_ol = PackedVector2Array([
+		neck_base + Vector2(-8, 4), neck_base + Vector2(-4, -2), neck_base + Vector2(0, 4),
 	])
-	draw_colored_polygon(collar_l, Color(0.95, 0.93, 0.91))
-	draw_line(neck_base + Vector2(-8, 2), neck_base + Vector2(-4, -3), Color(0.85, 0.83, 0.80, 0.4), 0.8)
-	var collar_r = PackedVector2Array([
-		neck_base + Vector2(0, 2),
-		neck_base + Vector2(4, -3),
-		neck_base + Vector2(8, 2),
+	draw_colored_polygon(collar_l_ol, OL)
+	var collar_l_fill = PackedVector2Array([
+		neck_base + Vector2(-7, 4), neck_base + Vector2(-4, -1), neck_base + Vector2(0, 4),
 	])
-	draw_colored_polygon(collar_r, Color(0.95, 0.93, 0.91))
-	draw_line(neck_base + Vector2(8, 2), neck_base + Vector2(4, -3), Color(0.85, 0.83, 0.80, 0.4), 0.8)
+	draw_colored_polygon(collar_l_fill, shirt_white)
+	var collar_r_ol = PackedVector2Array([
+		neck_base + Vector2(0, 4), neck_base + Vector2(4, -2), neck_base + Vector2(8, 4),
+	])
+	draw_colored_polygon(collar_r_ol, OL)
+	var collar_r_fill = PackedVector2Array([
+		neck_base + Vector2(0, 4), neck_base + Vector2(4, -1), neck_base + Vector2(7, 4),
+	])
+	draw_colored_polygon(collar_r_fill, shirt_white)
 
-	# === HEAD (proportional anime head, smaller than chibi) ===
-	var head_r = 12.0
+	# === HEAD (big round Bloons head — oversized for chibi) ===
+	var head_r = 14.0
 
-	# Head base (pale skin)
-	draw_circle(head_center, head_r + 1.0, Color(0.0, 0.0, 0.0, 0.15))
-	draw_circle(head_center, head_r, skin_shadow)
-	draw_circle(head_center, head_r - 1.0, skin_base)
-	# Skin highlight (upper left)
-	draw_circle(head_center + Vector2(-2, -3), head_r * 0.5, skin_highlight)
+	# Head OL (outermost circle)
+	draw_circle(head_center, head_r + 1.5, OL)
+	# Hair base layer (covers entire head first)
+	draw_circle(head_center, head_r, hair_col)
 
-	# === DRAMATIC SWEPT-BACK HAIR (more flowing and romantic) ===
-	# Hair covers top and left side of head with dramatic volume
-	var hair_pts = PackedVector2Array([
+	# Face skin (offset slightly down to show hair on top)
+	draw_circle(head_center + Vector2(-1, 2), 12.5, OL)
+	draw_circle(head_center + Vector2(-1, 2), 11.0, skin_base)
+	# Face highlight (top-left Bloons shine)
+	draw_circle(head_center + Vector2(-3, -1), 5.5, skin_highlight)
+
+	# --- Dramatic slicked-back dark hair ---
+	# Main hair volume polygon (OL + fill)
+	var hair_ol = PackedVector2Array([
 		head_center + Vector2(-head_r + 1, 5),
-		head_center + Vector2(-head_r, -3),
-		head_center + Vector2(-head_r + 2, -8),
-		head_center + Vector2(-4, -head_r - 4),    # More volume peak at crown
-		head_center + Vector2(2, -head_r - 3),
-		head_center + Vector2(6, -head_r - 1),
-		head_center + Vector2(head_r - 1, -5),
-		head_center + Vector2(head_r - 2, -1),
-		head_center + Vector2(5, -1),
-		head_center + Vector2(0, -3),
-		head_center + Vector2(-3, -1),
-		head_center + Vector2(-6, 0),
+		head_center + Vector2(-head_r - 1, -2),
+		head_center + Vector2(-head_r + 1, -9),
+		head_center + Vector2(-3, -head_r - 4),
+		head_center + Vector2(3, -head_r - 3),
+		head_center + Vector2(8, -head_r - 1),
+		head_center + Vector2(head_r, -5),
+		head_center + Vector2(head_r - 1, 0),
+		head_center + Vector2(5, 0),
+		head_center + Vector2(0, -2),
+		head_center + Vector2(-4, 0),
+		head_center + Vector2(-8, 1),
 	])
-	draw_colored_polygon(hair_pts, Color(0.06, 0.04, 0.06))
-	# Hair highlight streaks (more contrast — alpha 0.35→0.50)
-	draw_line(head_center + Vector2(-3, -head_r - 2), head_center + Vector2(-7, 2), Color(0.15, 0.12, 0.18, 0.50), 2.0)
-	draw_line(head_center + Vector2(-1, -head_r - 3), head_center + Vector2(-4, -2), Color(0.18, 0.15, 0.22, 0.45), 1.5)
-	draw_line(head_center + Vector2(2, -head_r - 1), head_center + Vector2(1, -4), Color(0.15, 0.12, 0.18, 0.40), 1.2)
-	# Hair over right side (above mask)
-	draw_line(head_center + Vector2(5, -head_r), head_center + Vector2(head_r - 2, -3), Color(0.06, 0.04, 0.06), 3.5)
+	draw_colored_polygon(hair_ol, OL)
+	var hair_fill = PackedVector2Array([
+		head_center + Vector2(-head_r + 2, 4),
+		head_center + Vector2(-head_r, -2),
+		head_center + Vector2(-head_r + 2, -8),
+		head_center + Vector2(-3, -head_r - 3),
+		head_center + Vector2(3, -head_r - 2),
+		head_center + Vector2(8, -head_r),
+		head_center + Vector2(head_r - 1, -5),
+		head_center + Vector2(head_r - 2, 0),
+		head_center + Vector2(5, 0),
+		head_center + Vector2(0, -2),
+		head_center + Vector2(-4, 0),
+		head_center + Vector2(-7, 1),
+	])
+	draw_colored_polygon(hair_fill, hair_col)
+	# Hair shine streaks (glossy slicked-back look)
+	draw_line(head_center + Vector2(-2, -head_r - 2), head_center + Vector2(-7, 2), Color(0.20, 0.16, 0.24, 0.5), 2.2)
+	draw_line(head_center + Vector2(1, -head_r - 1), head_center + Vector2(-3, -1), Color(0.22, 0.18, 0.26, 0.4), 1.8)
+	draw_line(head_center + Vector2(5, -head_r), head_center + Vector2(3, -3), Color(0.20, 0.16, 0.24, 0.35), 1.4)
+	# Hair shine arc
+	draw_arc(head_center + Vector2(0, -4), 10.0, PI * 0.55, PI * 0.85, 8, Color(0.28, 0.22, 0.32, 0.35), 2.5)
+	# Loose strand over mask edge
+	var strand_wave = sin(_time * 2.0) * 1.5
+	draw_line(head_center + Vector2(1, -head_r + 1), head_center + Vector2(2 + strand_wave, 4), hair_col, 1.8)
+	draw_line(head_center + Vector2(0, -head_r + 3), head_center + Vector2(1.5 + strand_wave * 0.7, 2), Color(hair_col.r, hair_col.g, hair_col.b, 0.6), 1.2)
+	# Long strands cascading past jaw on left side
+	for si in range(3):
+		var sx = -12.0 + float(si) * 2.5
+		var wave_mod = sin(_time * 1.5 + float(si) * 0.5) * 1.5
+		var s_start = head_center + Vector2(sx, 5)
+		var s_end = head_center + Vector2(sx + wave_mod, 18.0 + float(si % 2) * 3.0)
+		draw_line(s_start, s_end, OL, 2.8)
+		draw_line(s_start, s_end, hair_col, 1.8)
 
-	# Long strands cascading past jaw over left side (romantic drama)
-	var hair_wave_ph = sin(_time * 1.5) * 2.0
-	var long_strand_data = [
-		[-head_r + 1, 5, 15, 2.5],     # leftmost strand
-		[-head_r + 3, 3, 18, 2.0],     # second strand
-		[-head_r + 5, 2, 16, 1.8],     # third strand
-		[-5, 1, 13, 1.5],              # fourth — shorter
-	]
-	for lsd in long_strand_data:
-		var lsx: float = lsd[0]
-		var lsy: float = lsd[1]
-		var ls_len: float = lsd[2]
-		var ls_w: float = lsd[3]
-		var wave_mod = sin(_time * 1.5 + lsx * 0.3) * 2.0
-		# Draw as series of segments for wave motion
-		var prev_pt = head_center + Vector2(lsx, lsy)
-		for seg in range(5):
-			var st = float(seg + 1) / 5.0
-			var next_pt = head_center + Vector2(lsx + wave_mod * st + sin(_time * 1.5 + st * PI) * 1.5, lsy + ls_len * st)
-			draw_line(prev_pt, next_pt, Color(0.06, 0.04, 0.06, 0.9 - st * 0.3), ls_w * (1.0 - st * 0.3))
-			prev_pt = next_pt
-	# 2-3 loose strands across mask edge (romantic drama)
-	var mask_strand_wave = sin(_time * 2.0) * 1.5
-	draw_line(head_center + Vector2(1, -head_r), head_center + Vector2(2 + mask_strand_wave, 4), Color(0.06, 0.04, 0.06, 0.5), 1.2)
-	draw_line(head_center + Vector2(0, -head_r + 2), head_center + Vector2(1.5 + mask_strand_wave * 0.7, 2), Color(0.06, 0.04, 0.06, 0.4), 1.0)
-
-	# === WHITE HALF-MASK (right side of face — refined with gold filigree) ===
-	var mask_center = head_center + Vector2(4, -1)
-	# Mask glow behind (faint glow even at T0)
-	var mask_glow_alpha = 0.10 + sin(_time * 2.0) * 0.05
-	draw_circle(mask_center, head_r * 0.7, Color(0.9, 0.9, 1.0, mask_glow_alpha))
-	# Mask shape
+	# === WHITE HALF-MASK (right side of face — THE iconic feature!) ===
+	var mask_center = head_center + Vector2(5, 0)
+	# Subtle mask glow behind
+	var mask_glow_alpha = 0.08 + sin(_time * 2.0) * 0.04
+	draw_circle(mask_center, head_r * 0.65, Color(0.96, 0.96, 1.0, mask_glow_alpha))
+	# Mask shape OL
 	var mask_pts = PackedVector2Array([
-		head_center + Vector2(1, -9),
-		head_center + Vector2(5, -10),
-		head_center + Vector2(9, -7),
-		head_center + Vector2(10, -3),
-		head_center + Vector2(10, 1),
-		head_center + Vector2(7, 5),
-		head_center + Vector2(4, 7),
-		head_center + Vector2(1, 4),
+		head_center + Vector2(1, -11),
+		head_center + Vector2(6, -13),
+		head_center + Vector2(11, -9),
+		head_center + Vector2(13, -3),
+		head_center + Vector2(13, 3),
+		head_center + Vector2(10, 8),
+		head_center + Vector2(6, 10),
+		head_center + Vector2(1, 6),
 		head_center + Vector2(1, -2),
 	])
-	draw_colored_polygon(mask_pts, Color(0.96, 0.95, 0.93))
-	# Mask porcelain sheen (brighter)
-	var mask_sheen_pts = PackedVector2Array([
-		head_center + Vector2(2, -8),
-		head_center + Vector2(6, -9),
-		head_center + Vector2(8, -6),
-		head_center + Vector2(7, -1),
-		head_center + Vector2(4, -1),
-		head_center + Vector2(2, -3),
+	draw_colored_polygon(mask_pts, OL)
+	# Mask porcelain fill
+	var mask_fill_pts = PackedVector2Array([
+		head_center + Vector2(2, -10),
+		head_center + Vector2(6, -12),
+		head_center + Vector2(10, -8),
+		head_center + Vector2(12, -2),
+		head_center + Vector2(12, 3),
+		head_center + Vector2(9, 7),
+		head_center + Vector2(6, 9),
+		head_center + Vector2(2, 5),
+		head_center + Vector2(2, -2),
 	])
-	draw_colored_polygon(mask_sheen_pts, Color(1.0, 1.0, 1.0, 0.40))
-	# Brighter edge highlight
-	draw_line(head_center + Vector2(1, -9), head_center + Vector2(1, 4), Color(0.80, 0.78, 0.76, 0.6), 1.4)
-	# Secondary highlight line
-	draw_line(head_center + Vector2(9, -6), head_center + Vector2(8, 3), Color(0.85, 0.83, 0.80, 0.3), 0.8)
-	# Gold filigree decorative curls (2-3 arcs)
-	draw_arc(head_center + Vector2(6, -6), 3.0, PI * 0.3, PI * 1.2, 8, Color(0.85, 0.72, 0.2, 0.25), 0.8)
-	draw_arc(head_center + Vector2(8, 0), 2.5, PI * 0.5, PI * 1.5, 6, Color(0.85, 0.72, 0.2, 0.20), 0.8)
-	draw_arc(head_center + Vector2(5, 3), 2.0, 0, PI, 6, Color(0.85, 0.72, 0.2, 0.18), 0.7)
-	# Subtle tear track line (mystery)
-	draw_line(head_center + Vector2(5, 0), head_center + Vector2(5.5, 5), Color(0.75, 0.73, 0.72, 0.15), 0.6)
-	# Mask eye hole with faint glow
-	var mask_eye_pos = head_center + Vector2(5, -2)
-	draw_circle(mask_eye_pos, 3.2, Color(0.0, 0.0, 0.0, 0.35))
-	draw_circle(mask_eye_pos, 2.2, Color(0.02, 0.02, 0.02, 0.25))
-	# Faint glow around mask eye hole
-	draw_circle(mask_eye_pos, 4.0, Color(0.6, 0.5, 0.8, 0.06 + sin(_time * 2.5) * 0.03))
+	draw_colored_polygon(mask_fill_pts, mask_col)
+	# Porcelain sheen highlight
+	var mask_sheen = PackedVector2Array([
+		head_center + Vector2(3, -9),
+		head_center + Vector2(7, -11),
+		head_center + Vector2(10, -7),
+		head_center + Vector2(9, -1),
+		head_center + Vector2(6, -1),
+		head_center + Vector2(3, -3),
+	])
+	draw_colored_polygon(mask_sheen, Color(1.0, 1.0, 1.0, 0.4))
+	# Gold filigree accents
+	draw_arc(head_center + Vector2(7, -7), 3.5, PI * 0.3, PI * 1.2, 8, Color(gold_col.r, gold_col.g, gold_col.b, 0.35), 1.2)
+	draw_arc(head_center + Vector2(10, 0), 2.8, PI * 0.5, PI * 1.5, 6, Color(gold_col.r, gold_col.g, gold_col.b, 0.3), 1.0)
+	draw_arc(head_center + Vector2(7, 5), 2.2, 0, PI, 6, Color(gold_col.r, gold_col.g, gold_col.b, 0.25), 0.9)
+	# Mask eye hole (dark void, mysterious)
+	var mask_eye_pos = head_center + Vector2(7, -1)
+	draw_circle(mask_eye_pos, 4.5, OL)
+	draw_circle(mask_eye_pos, 3.5, Color(0.03, 0.02, 0.05))
+	# Faint eerie glow in mask eye
+	draw_circle(mask_eye_pos, 5.0, Color(0.6, 0.5, 0.8, 0.06 + sin(_time * 2.5) * 0.03))
 	# Mask nostril hint
-	draw_circle(head_center + Vector2(4, 2), 0.8, Color(0.85, 0.83, 0.80, 0.3))
-	# Mask outline (slightly brighter)
-	for mi in range(mask_pts.size()):
-		var next_mi = (mi + 1) % mask_pts.size()
-		draw_line(mask_pts[mi], mask_pts[next_mi], Color(0.82, 0.80, 0.78, 0.5), 0.9)
+	draw_circle(head_center + Vector2(5, 4), 1.2, Color(0.90, 0.88, 0.86, 0.3))
 
 	# Tier 4: Mask eye glows bright red/orange
 	if upgrade_tier >= 4:
 		var eye_glow_alpha = 0.5 + sin(_time * 3.0) * 0.25
-		draw_circle(mask_eye_pos, 3.8, Color(0.9, 0.2, 0.05, eye_glow_alpha * 0.3))
-		draw_circle(mask_eye_pos, 2.5, Color(1.0, 0.35, 0.1, eye_glow_alpha * 0.5))
-		draw_circle(mask_eye_pos, 1.2, Color(1.0, 0.6, 0.2, eye_glow_alpha * 0.7))
+		draw_circle(mask_eye_pos, 5.0, Color(0.9, 0.2, 0.05, eye_glow_alpha * 0.3))
+		draw_circle(mask_eye_pos, 3.5, Color(1.0, 0.35, 0.1, eye_glow_alpha * 0.5))
+		draw_circle(mask_eye_pos, 1.8, Color(1.0, 0.6, 0.2, eye_glow_alpha * 0.7))
 
-	# === LEFT SIDE VISIBLE FACE — dramatic single eye, more defined (handsome) ===
-	var l_eye_pos = head_center + Vector2(-4, -2)
-	# Eye socket shadow (deeper)
-	draw_circle(l_eye_pos, 4.2, Color(0.55, 0.45, 0.42, 0.25))
-	# Eye white (larger)
-	draw_circle(l_eye_pos, 3.5, Color(0.96, 0.96, 0.96))
-	# Iris (dark, intense — with ring detail)
-	draw_circle(l_eye_pos + dir * 0.8, 2.4, Color(0.12, 0.08, 0.06))
-	draw_circle(l_eye_pos + dir * 0.8, 1.8, Color(0.20, 0.15, 0.12))
-	# Iris ring detail
-	draw_arc(l_eye_pos + dir * 0.8, 2.2, 0, TAU, 10, Color(0.25, 0.18, 0.15, 0.3), 0.5)
-	# Pupil
-	draw_circle(l_eye_pos + dir * 1.0, 1.3, Color(0.02, 0.02, 0.02))
-	# Primary catch light
-	draw_circle(l_eye_pos + Vector2(-0.5, -1.0), 0.8, Color(1.0, 1.0, 1.0, 0.7))
-	# Second catch light
-	draw_circle(l_eye_pos + Vector2(0.8, 0.3), 0.4, Color(1.0, 1.0, 1.0, 0.4))
-	# More dramatic eyebrow (wider, extended further)
-	draw_line(head_center + Vector2(-8, -4.5), head_center + Vector2(-1.5, -6.5), Color(0.06, 0.04, 0.06), 2.2)
-	# Under-eye shadow (more intense, tormented)
-	draw_arc(l_eye_pos, 4.0, 0.3, PI - 0.3, 8, Color(0.50, 0.40, 0.45, 0.25), 1.2)
-	# Eyelid (upper, intense)
-	draw_arc(l_eye_pos, 3.5, PI + 0.3, TAU - 0.3, 8, Color(0.06, 0.04, 0.06), 1.5)
+	# === BIG CARTOON EYE — left (visible) side — full Bloons 5-layer ===
+	var l_eye_pos = head_center + Vector2(-4, -1)
+	# Eye OL (outermost)
+	draw_circle(l_eye_pos, 5.8, OL)
+	# Eye white
+	draw_circle(l_eye_pos, 4.8, Color(0.99, 0.99, 0.99))
+	# Iris (dark intense brown)
+	draw_circle(l_eye_pos + dir * 0.8, 3.5, Color(0.14, 0.10, 0.08))
+	# Lighter iris inner ring
+	draw_circle(l_eye_pos + dir * 0.8, 2.8, Color(0.24, 0.17, 0.14))
+	# Pupil (solid black)
+	draw_circle(l_eye_pos + dir * 1.0, 1.6, Color(0.02, 0.02, 0.02))
+	# Primary sparkle (big bright Bloons catch-light)
+	draw_circle(l_eye_pos + Vector2(-1.2, -1.6), 1.4, Color(1.0, 1.0, 1.0, 0.95))
+	# Secondary sparkle
+	draw_circle(l_eye_pos + Vector2(1.0, 0.6), 0.7, Color(1.0, 1.0, 1.0, 0.55))
+	# Bold upper eyelid
+	draw_arc(l_eye_pos, 5.2, PI + 0.3, TAU - 0.3, 10, OL, 2.2)
+	# Dramatic eyebrow (thick bold arc)
+	draw_line(head_center + Vector2(-9, -5), head_center + Vector2(-1, -7.5), OL, 3.2)
+	draw_line(head_center + Vector2(-8.5, -5), head_center + Vector2(-1, -7.5), hair_col, 2.0)
+	# Right eyebrow (sculpted on mask surface)
+	draw_line(head_center + Vector2(3, -8), head_center + Vector2(10, -6.5), Color(0.88, 0.86, 0.84, 0.4), 1.8)
 
-	# Right eyebrow (on mask, subtle sculpted line)
-	draw_line(head_center + Vector2(2, -6), head_center + Vector2(8, -5), Color(0.80, 0.78, 0.76, 0.3), 1.3)
+	# Small ear (visible behind hair on left)
+	draw_circle(head_center + Vector2(-11, 3), 3.0, OL)
+	draw_circle(head_center + Vector2(-11, 3), 2.2, skin_base)
+	draw_circle(head_center + Vector2(-11.3, 2.5), 1.0, skin_highlight)
 
-	# === CHEEKBONE AND JAW (more angular, more defined — handsome) ===
-	# Cheekbone highlight arc on visible (left) side
-	draw_arc(head_center + Vector2(-6, 1), 4.0, PI * 0.1, PI * 0.6, 8, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3), 1.2)
-	# Jawline shadow under cheekbone
-	draw_arc(head_center + Vector2(-6, 3), 3.5, PI * 0.2, PI * 0.8, 8, Color(0.55, 0.48, 0.44, 0.2), 1.0)
-	# Strong angular jaw line (left side visible, right under mask)
-	draw_line(head_center + Vector2(-10, 2), head_center + Vector2(-5, 9), Color(0.62, 0.55, 0.50, 0.45), 1.6)
-	draw_line(head_center + Vector2(-5, 9), head_center + Vector2(1, 9), Color(0.62, 0.55, 0.50, 0.35), 1.3)
-	# Stronger chin (larger, with subtle cleft)
-	draw_circle(head_center + Vector2(-1, 9), 3.5, skin_shadow)
-	draw_circle(head_center + Vector2(-1, 9), 2.8, skin_base)
-	draw_circle(head_center + Vector2(-1.2, 9.3), 1.7, skin_highlight)
-	# Subtle chin cleft
-	draw_line(head_center + Vector2(-1, 8.5), head_center + Vector2(-1, 9.5), Color(0.65, 0.58, 0.52, 0.15), 0.6)
-	# Fuller lip detail (upper and lower arcs with color)
-	# Upper lip
-	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(0, 5.5), Color(0.65, 0.42, 0.38), 1.6)
-	draw_arc(head_center + Vector2(-2.5, 5.2), 2.8, PI + 0.2, TAU - 0.2, 8, Color(0.70, 0.48, 0.42, 0.4), 0.8)
-	# Lower lip (fuller)
-	draw_arc(head_center + Vector2(-2.5, 5.8), 3.2, 0.2, PI - 0.2, 8, Color(0.72, 0.50, 0.46, 0.35), 1.0)
-	# Lip corners
-	draw_line(head_center + Vector2(-5, 5), head_center + Vector2(-6, 4.3), Color(0.60, 0.42, 0.38, 0.3), 0.7)
-	draw_line(head_center + Vector2(0, 5.5), head_center + Vector2(1, 5.0), Color(0.60, 0.42, 0.38, 0.2), 0.6)
-	# Elegant nose (left side visible, refined bridge)
-	draw_line(head_center + Vector2(-1, -4), head_center + Vector2(-1.5, 1.5), Color(0.75, 0.68, 0.62, 0.4), 1.2)
-	draw_line(head_center + Vector2(-1.5, 1.5), head_center + Vector2(-0.5, 2.8), Color(0.75, 0.68, 0.62, 0.3), 1.0)
-	draw_circle(head_center + Vector2(-1, 2.8), 1.5, skin_highlight)
+	# Mouth (small dramatic smirk on visible side)
+	draw_line(head_center + Vector2(-5, 7), head_center + Vector2(0, 7.5), OL, 2.2)
+	draw_line(head_center + Vector2(-4.5, 7), head_center + Vector2(0, 7.5), Color(0.68, 0.45, 0.42), 1.2)
+	# Smirk upturn
+	draw_line(head_center + Vector2(-5, 7), head_center + Vector2(-6, 6), Color(0.60, 0.40, 0.38, 0.5), 1.0)
+
+	# Nose (small cute Bloons bump)
+	draw_circle(head_center + Vector2(-1, 3), 2.2, OL)
+	draw_circle(head_center + Vector2(-1, 3), 1.5, skin_base)
+	draw_circle(head_center + Vector2(-1.5, 2.5), 0.7, skin_highlight)
+
+	# Chin (rounded Bloons style)
+	draw_circle(head_center + Vector2(-1, 11), 3.8, OL)
+	draw_circle(head_center + Vector2(-1, 11), 2.8, skin_base)
+	draw_circle(head_center + Vector2(-1.3, 10.5), 1.2, skin_highlight)
 
 	# === TIER 4: DARK RED OPERA AURA on character ===
 	if upgrade_tier >= 4:
-		# Subtle red glow around character silhouette (adjusted for taller body)
 		draw_circle(torso_center, 28.0, Color(0.6, 0.08, 0.08, 0.06 + sin(_time * 2.0) * 0.03))
-		draw_circle(head_center, 16.0, Color(0.6, 0.08, 0.08, 0.05 + sin(_time * 2.5) * 0.02))
+		draw_circle(head_center, 20.0, Color(0.6, 0.08, 0.08, 0.05 + sin(_time * 2.5) * 0.02))
 
 	# === T2+: Music aura ring ===
 	if upgrade_tier >= 2:
@@ -1757,45 +1680,38 @@ func _draw() -> void:
 			var n_rad = attack_range * 0.82 + n_bob2
 			var np = Vector2.from_angle(na) * n_rad
 			var n_alpha = 0.2 + sin(_time * 1.5 + float(i) * 0.9) * 0.08
-			# Note head
 			draw_circle(np, 4.0, Color(0.4, 0.55, 0.9, n_alpha))
 			draw_circle(np, 2.5, Color(0.5, 0.65, 1.0, n_alpha * 0.6))
-			# Note stem
 			draw_line(np + Vector2(2.5, 0), np + Vector2(2.5, -12.0), Color(0.4, 0.55, 0.9, n_alpha * 0.7), 1.2)
-			# Note flag
 			draw_line(np + Vector2(2.5, -12.0), np + Vector2(6.0, -8.0), Color(0.4, 0.55, 0.9, n_alpha * 0.5), 1.2)
-			# Ghost glow
 			draw_circle(np, 7.0, Color(0.4, 0.5, 0.9, n_alpha * 0.1))
 
 	# === T4: Crown of dark flame above head ===
 	if upgrade_tier >= 4:
 		var crown_hover = sin(_time * 1.8) * 1.5
-		var crown_center = head_center + Vector2(0, -head_r - 6 + crown_hover)
-		# Dark flame wisps rising above head
+		var crown_center = head_center + Vector2(0, -14 + crown_hover)
 		for fi in range(5):
 			var flame_x = crown_center.x - 8.0 + float(fi) * 4.0
 			var flame_h = 8.0 + sin(_time * 5.0 + float(fi) * 2.0) * 3.0
 			var flame_sway2 = sin(_time * 3.0 + float(fi) * 1.5) * 2.0
 			var flame_base2 = Vector2(flame_x + flame_sway2, crown_center.y)
 			var flame_tip2 = flame_base2 + Vector2(0, -flame_h)
-			# Dark outer flame
 			draw_line(flame_base2, flame_tip2, Color(0.5, 0.05, 0.05, 0.4), 3.0)
-			# Bright inner flame
 			draw_line(flame_base2 + Vector2(0, -1), flame_tip2 + Vector2(0, 2), Color(0.9, 0.25, 0.1, 0.3), 1.5)
-		# Red glow beneath crown
 		draw_circle(crown_center, 12.0, Color(0.7, 0.1, 0.05, 0.08))
+
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:
 		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
 		draw_circle(Vector2.ZERO, 60.0 + pulse * 6.0, Color(0.6, 0.3, 0.8, 0.1 + pulse * 0.1))
 		draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 32, Color(0.6, 0.3, 0.8, 0.3 + pulse * 0.3), 2.5)
-		var font3 = ThemeDB.fallback_font
+		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -82), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.6, 0.3, 0.8, 0.7 + pulse * 0.3))
 
 	# === DAMAGE COUNTER ===
 	if damage_dealt > 0:
-		var font = ThemeDB.fallback_font
+		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
 			dmg_text += " • Lv." + str(stat_upgrade_level)
@@ -1803,7 +1719,7 @@ func _draw() -> void:
 
 	# === UPGRADE NAME FLASH ===
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
-		var font2 = ThemeDB.fallback_font
+		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -74), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.6, 0.3, 0.8, min(_upgrade_flash, 1.0)))
 
 # === SYNERGY BUFFS ===

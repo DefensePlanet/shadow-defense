@@ -26,6 +26,7 @@ var sleep_timer: float = 0.0
 var charm_timer: float = 0.0
 var charm_damage_mult: float = 1.0
 var paint_stacks: int = 0
+var painted_red: bool = false
 var fear_reverse_timer: float = 0.0
 var permanent_slow_mult: float = 1.0
 var chain_group: Array = []
@@ -51,8 +52,12 @@ var _wound_time: float = 0.0
 var modifiers: Array = []
 var bound_shield: float = 0.0
 var _hex_regen_accum: float = 0.0
+var _game_font: Font
 
 func _ready() -> void:
+	var _ff := FontFile.new()
+	_ff.data = FileAccess.get_file_as_bytes("res://fonts/Cinzel.ttf")
+	_game_font = _ff
 	health = max_health
 	rotates = false
 	# Generate random wound positions using instance id as seed
@@ -265,6 +270,9 @@ func _draw() -> void:
 	var tint: Color = Color.WHITE
 	if _hit_flash > 0.0:
 		tint = Color(1.0, 1.0, 1.0, 1.0)
+	elif painted_red or paint_stacks > 0:
+		var ri = clampf(0.3 + float(paint_stacks) * 0.07, 0.3, 0.9)
+		tint = Color(1.0, 1.0 - ri, 1.0 - ri, 1.0)  # Painted red!
 	elif mark_timer > 0.0:
 		tint = Color(0.85, 0.85, 0.95, 0.7)
 	elif dot_timer > 0.0:
@@ -304,7 +312,7 @@ func _draw() -> void:
 	# Status effect visuals
 	if sleep_timer > 0.0:
 		# Zzz floating above
-		draw_string(ThemeDB.fallback_font, Vector2(-8, -32 * s), "Zzz", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.6, 0.6, 1.0, 0.8))
+		draw_string(_game_font, Vector2(-8, -32 * s), "ZZZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.6, 0.6, 1.0, 0.8))
 	if charm_timer > 0.0:
 		# Hearts above
 		draw_circle(Vector2(-6, -30 * s), 3.0, Color(1.0, 0.3, 0.5, 0.7))

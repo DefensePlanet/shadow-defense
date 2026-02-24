@@ -110,8 +110,12 @@ var _horn_sound: AudioStreamWAV
 var _horn_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+var _game_font: Font
 
 func _ready() -> void:
+	var _ff := FontFile.new()
+	_ff.data = FileAccess.get_file_as_bytes("res://fonts/Cinzel.ttf")
+	_game_font = _ff
 	add_to_group("towers")
 	_load_progressive_abilities()
 	_generate_tier_sounds()
@@ -804,12 +808,13 @@ func _draw() -> void:
 		draw_circle(pip_pos, 4.0, pip_col)
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
-	# === 12. CHARACTER POSITIONS (tall anime proportions ~56px) ===
-	var feet_y = body_offset + Vector2(hip_shift * 1.0, 14.0)
-	var leg_top = body_offset + Vector2(hip_shift * 0.6, -2.0)
-	var torso_center = body_offset + Vector2(shoulder_counter * 0.5, -10.0)
-	var neck_base = body_offset + Vector2(shoulder_counter * 0.7, -20.0)
-	var head_center = body_offset + Vector2(shoulder_counter * 0.3, -32.0)
+	# === 12. CHARACTER POSITIONS (chibi Bloons TD proportions ~48px) ===
+	var feet_y = body_offset + Vector2(hip_shift * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(hip_shift * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(shoulder_counter * 0.5, -8.0)
+	var neck_base = body_offset + Vector2(shoulder_counter * 0.7, -14.0)
+	var head_center = body_offset + Vector2(shoulder_counter * 0.3, -26.0)
+	var OL = Color(0.06, 0.06, 0.08)
 
 	# === 13. TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body) ===
 
@@ -817,16 +822,11 @@ func _draw() -> void:
 	if upgrade_tier >= 1:
 		for li in range(5 + upgrade_tier):
 			var la = _time * (0.6 + fmod(float(li) * 1.37, 0.5)) + float(li) * TAU / float(5 + upgrade_tier)
-			var lr = 22.0 + fmod(float(li) * 3.7, 15.0)
-			var leaf_pos = body_offset + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 10.0)
-			var leaf_alpha = 0.2 + sin(_time * 2.0 + float(li)) * 0.1
-			var leaf_size = 1.5 + sin(_time * 1.5 + float(li) * 2.0) * 0.5
-			# Leaf shape (tiny diamond)
-			var leaf_rot = _time * 2.0 + float(li) * 1.5
-			var ld = Vector2.from_angle(leaf_rot)
-			var lp = ld.rotated(PI / 2.0)
-			draw_line(leaf_pos - ld * leaf_size, leaf_pos + ld * leaf_size, Color(0.25, 0.6, 0.15, leaf_alpha), 1.2)
-			draw_line(leaf_pos - lp * leaf_size * 0.5, leaf_pos + lp * leaf_size * 0.5, Color(0.3, 0.65, 0.2, leaf_alpha * 0.7), 0.8)
+			var lr = 20.0 + fmod(float(li) * 3.7, 12.0)
+			var leaf_pos = body_offset + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 8.0)
+			var leaf_alpha = 0.25 + sin(_time * 2.0 + float(li)) * 0.1
+			var leaf_size = 1.8 + sin(_time * 1.5 + float(li) * 2.0) * 0.5
+			draw_circle(leaf_pos, leaf_size, Color(0.2, 0.6, 0.15, leaf_alpha))
 
 	# Tier 2+: Silver shimmer on bow area
 	if upgrade_tier >= 2:
@@ -834,958 +834,438 @@ func _draw() -> void:
 		for spi in range(4):
 			var sp_seed = float(spi) * 2.13
 			var sp_a = _time * 1.2 + sp_seed
-			var sp_r = 16.0 + sin(_time * 1.5 + sp_seed) * 4.0
-			var sp_pos = body_offset + Vector2(12.0 + cos(sp_a) * sp_r, sin(sp_a) * sp_r * 0.4)
-			var sp_alpha = 0.15 + silver_pulse * 0.12
-			draw_circle(sp_pos, 1.2, Color(0.85, 0.88, 0.95, sp_alpha))
+			var sp_r = 14.0 + sin(_time * 1.5 + sp_seed) * 4.0
+			var sp_pos = body_offset + Vector2(10.0 + cos(sp_a) * sp_r, sin(sp_a) * sp_r * 0.4)
+			var sp_alpha = 0.18 + silver_pulse * 0.12
+			draw_circle(sp_pos, 1.5, Color(0.85, 0.88, 0.95, sp_alpha))
 
 	# Tier 4: Fiery arrow particles floating around
 	if upgrade_tier >= 4:
-		for fd in range(8):
+		for fd in range(6):
 			var fd_seed = float(fd) * 2.37
 			var fd_angle = _time * (0.5 + fmod(fd_seed, 0.5)) + fd_seed
-			var fd_radius = 30.0 + fmod(fd_seed * 5.3, 25.0)
+			var fd_radius = 26.0 + fmod(fd_seed * 5.3, 20.0)
 			var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6)
-			var fd_alpha = 0.25 + sin(_time * 3.0 + fd_seed * 2.0) * 0.15
-			var fd_size = 1.8 + sin(_time * 2.5 + fd_seed) * 0.6
-			# Fire colors
+			var fd_alpha = 0.3 + sin(_time * 3.0 + fd_seed * 2.0) * 0.15
+			var fd_size = 2.0 + sin(_time * 2.5 + fd_seed) * 0.6
 			var fire_t = fmod(fd_seed * 1.7, 1.0)
-			var fire_col = Color(1.0, 0.5 + fire_t * 0.4, 0.1, fd_alpha)
-			draw_circle(fd_pos, fd_size, fire_col)
+			draw_circle(fd_pos, fd_size, Color(1.0, 0.5 + fire_t * 0.4, 0.1, fd_alpha))
 			draw_circle(fd_pos, fd_size * 0.5, Color(1.0, 0.9, 0.4, fd_alpha * 0.6))
-			# Tiny sparkle cross
-			draw_line(fd_pos - Vector2(fd_size, 0), fd_pos + Vector2(fd_size, 0), Color(1.0, 1.0, 0.8, fd_alpha * 0.3), 0.5)
-			draw_line(fd_pos - Vector2(0, fd_size), fd_pos + Vector2(0, fd_size), Color(1.0, 1.0, 0.8, fd_alpha * 0.3), 0.5)
 
-	# === 14. CHARACTER BODY (tall anime proportions) ===
+	# === 14. CHARACTER BODY (Bloons TD cartoon style) ===
 
-	# --- Brown leather boots (practical, not curled) ---
-	var l_foot = feet_y + Vector2(-7, 0)
-	var r_foot = feet_y + Vector2(7, 0)
-	# Boot base (dark brown leather)
-	draw_circle(l_foot, 5.5, Color(0.30, 0.18, 0.08))
-	draw_circle(l_foot, 4.2, Color(0.38, 0.24, 0.10))
-	draw_circle(r_foot, 5.5, Color(0.30, 0.18, 0.08))
-	draw_circle(r_foot, 4.2, Color(0.38, 0.24, 0.10))
-	# Boot toe (rounded, practical — not curled like Peter Pan)
-	draw_line(l_foot + Vector2(-3, 0), l_foot + Vector2(-7, -1), Color(0.38, 0.24, 0.10), 4.0)
-	draw_circle(l_foot + Vector2(-7, -1), 2.5, Color(0.36, 0.22, 0.09))
-	draw_line(r_foot + Vector2(3, 0), r_foot + Vector2(7, -1), Color(0.38, 0.24, 0.10), 4.0)
-	draw_circle(r_foot + Vector2(7, -1), 2.5, Color(0.36, 0.22, 0.09))
-	# Boot highlight (top)
-	draw_arc(l_foot, 3.5, PI + 0.3, TAU - 0.3, 6, Color(0.48, 0.32, 0.16, 0.35), 1.5)
-	draw_arc(r_foot, 3.5, PI + 0.3, TAU - 0.3, 6, Color(0.48, 0.32, 0.16, 0.35), 1.5)
-	# Boot sole (dark line at bottom)
-	draw_arc(l_foot, 5.0, 0.3, PI - 0.3, 8, Color(0.15, 0.08, 0.03, 0.5), 1.5)
-	draw_arc(r_foot, 5.0, 0.3, PI - 0.3, 8, Color(0.15, 0.08, 0.03, 0.5), 1.5)
-	# Boot shaft (taller boots for longer legs)
-	draw_line(l_foot + Vector2(-3.5, -2), l_foot + Vector2(-3.5, -7), Color(0.32, 0.19, 0.08), 3.0)
-	draw_line(l_foot + Vector2(3.5, -2), l_foot + Vector2(3.5, -7), Color(0.32, 0.19, 0.08), 3.0)
-	draw_line(r_foot + Vector2(-3.5, -2), r_foot + Vector2(-3.5, -7), Color(0.32, 0.19, 0.08), 3.0)
-	draw_line(r_foot + Vector2(3.5, -2), r_foot + Vector2(3.5, -7), Color(0.32, 0.19, 0.08), 3.0)
-	# Boot fill (cover the shaft area)
-	var l_boot_shaft = PackedVector2Array([
-		l_foot + Vector2(-4.5, -2), l_foot + Vector2(4.5, -2),
-		l_foot + Vector2(4.0, -7), l_foot + Vector2(-4.0, -7),
-	])
-	draw_colored_polygon(l_boot_shaft, Color(0.36, 0.22, 0.09))
-	var r_boot_shaft = PackedVector2Array([
-		r_foot + Vector2(-4.5, -2), r_foot + Vector2(4.5, -2),
-		r_foot + Vector2(4.0, -7), r_foot + Vector2(-4.0, -7),
-	])
-	draw_colored_polygon(r_boot_shaft, Color(0.36, 0.22, 0.09))
-	# Boot top cuffs (folded-over leather — higher up)
-	draw_line(l_foot + Vector2(-4.5, -6), l_foot + Vector2(4.5, -6), Color(0.42, 0.28, 0.12), 2.5)
-	draw_line(l_foot + Vector2(-4.0, -6.5), l_foot + Vector2(4.0, -6.5), Color(0.50, 0.34, 0.18, 0.5), 1.2)
-	draw_line(r_foot + Vector2(-4.5, -6), r_foot + Vector2(4.5, -6), Color(0.42, 0.28, 0.12), 2.5)
-	draw_line(r_foot + Vector2(-4.0, -6.5), r_foot + Vector2(4.0, -6.5), Color(0.50, 0.34, 0.18, 0.5), 1.2)
-	# Boot laces (criss-cross — more laces for taller boot)
-	for bi in range(2):
-		var boot = l_foot if bi == 0 else r_foot
-		for bl in range(3):
-			var by = -1.0 - float(bl) * 2.0
-			draw_line(boot + Vector2(-2, by), boot + Vector2(2, by - 1.0), Color(0.28, 0.16, 0.06, 0.5), 0.7)
-			draw_line(boot + Vector2(2, by), boot + Vector2(-2, by - 1.0), Color(0.28, 0.16, 0.06, 0.5), 0.7)
+	# --- Colors ---
+	var tunic_green = Color(0.15, 0.55, 0.12)
+	var tunic_dark = Color(0.10, 0.40, 0.08)
+	var boot_brown = Color(0.45, 0.28, 0.12)
+	var belt_brown = Color(0.40, 0.24, 0.10)
+	var hair_auburn = Color(0.50, 0.28, 0.12)
+	var hair_dark = Color(0.38, 0.20, 0.08)
 
-	# --- MUSCULAR LEGS (polygon-based thighs and calves) ---
-	var l_hip = leg_top + Vector2(-6, 0)
-	var r_hip = leg_top + Vector2(6, 0)
-	var l_knee = l_foot.lerp(l_hip, 0.45) + Vector2(-1.5, 0)
-	var r_knee = r_foot.lerp(r_hip, 0.45) + Vector2(1.5, 0)
-	# LEFT THIGH — muscular polygon
-	var lt_dir = (l_knee - l_hip).normalized()
-	var lt_perp = lt_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		l_hip + lt_perp * 5.0, l_hip - lt_perp * 4.0,
-		l_hip.lerp(l_knee, 0.4) - lt_perp * 5.5,  # inner thigh bulge
-		l_knee - lt_perp * 4.0, l_knee + lt_perp * 4.0,
-		l_hip.lerp(l_knee, 0.4) + lt_perp * 6.0,   # outer quad bulge
-	]), Color(0.14, 0.40, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		l_hip + lt_perp * 3.0, l_hip - lt_perp * 2.0,
-		l_knee - lt_perp * 2.5, l_knee + lt_perp * 2.5,
-	]), Color(0.20, 0.50, 0.14, 0.4))
-	# RIGHT THIGH — muscular polygon
-	var rt_dir = (r_knee - r_hip).normalized()
-	var rt_perp = rt_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		r_hip - rt_perp * 5.0, r_hip + rt_perp * 4.0,
-		r_hip.lerp(r_knee, 0.4) + rt_perp * 5.5,
-		r_knee + rt_perp * 4.0, r_knee - rt_perp * 4.0,
-		r_hip.lerp(r_knee, 0.4) - rt_perp * 6.0,
-	]), Color(0.14, 0.40, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		r_hip - rt_perp * 3.0, r_hip + rt_perp * 2.0,
-		r_knee + rt_perp * 2.5, r_knee - rt_perp * 2.5,
-	]), Color(0.20, 0.50, 0.14, 0.4))
+	# --- BOOTS ---
+	var l_foot = feet_y + Vector2(-5, 0)
+	var r_foot = feet_y + Vector2(5, 0)
+	draw_circle(l_foot, 5.0, OL)
+	draw_circle(l_foot, 3.8, boot_brown)
+	draw_circle(r_foot, 5.0, OL)
+	draw_circle(r_foot, 3.8, boot_brown)
+	# Boot highlights
+	draw_circle(l_foot + Vector2(0, -1), 2.0, Color(0.55, 0.36, 0.18, 0.4))
+	draw_circle(r_foot + Vector2(0, -1), 2.0, Color(0.55, 0.36, 0.18, 0.4))
+	# Boot cuffs
+	draw_line(l_foot + Vector2(-4, -3), l_foot + Vector2(4, -3), OL, 3.5)
+	draw_line(l_foot + Vector2(-3.5, -3), l_foot + Vector2(3.5, -3), Color(0.55, 0.36, 0.18), 2.0)
+	draw_line(r_foot + Vector2(-4, -3), r_foot + Vector2(4, -3), OL, 3.5)
+	draw_line(r_foot + Vector2(-3.5, -3), r_foot + Vector2(3.5, -3), Color(0.55, 0.36, 0.18), 2.0)
+
+	# --- LEGS (short thick lines) ---
+	var l_hip = leg_top + Vector2(-4, 0)
+	var r_hip = leg_top + Vector2(4, 0)
+	draw_line(l_foot + Vector2(0, -3), l_hip, OL, 7.0)
+	draw_line(l_foot + Vector2(0, -3), l_hip, tunic_green, 5.0)
+	draw_line(r_foot + Vector2(0, -3), r_hip, OL, 7.0)
+	draw_line(r_foot + Vector2(0, -3), r_hip, tunic_green, 5.0)
 	# Knee joints
-	draw_circle(l_knee, 4.5, Color(0.14, 0.40, 0.08))
-	draw_circle(l_knee, 3.5, Color(0.22, 0.52, 0.14))
-	draw_circle(r_knee, 4.5, Color(0.14, 0.40, 0.08))
-	draw_circle(r_knee, 3.5, Color(0.22, 0.52, 0.14))
-	# LEFT CALF — polygon with muscle bulge
-	var l_calf_mid = l_knee.lerp(l_foot + Vector2(0, -3), 0.4) + Vector2(-2.0, 0)
-	var lc_dir = (l_foot + Vector2(0, -3) - l_knee).normalized()
-	var lc_perp = lc_dir.rotated(PI / 2.0)
-	# Upper left calf (knee to mid) — split into two quads to avoid self-intersection
-	draw_colored_polygon(PackedVector2Array([
-		l_knee + lc_perp * 4.0, l_knee - lc_perp * 3.5,
-		l_calf_mid - lc_perp * 5.0, l_calf_mid + lc_perp * 4.5,
-	]), Color(0.14, 0.40, 0.08))
-	# Lower left calf (mid to foot)
-	draw_colored_polygon(PackedVector2Array([
-		l_calf_mid + lc_perp * 4.5, l_calf_mid - lc_perp * 5.0,
-		l_foot + Vector2(-3, -3), l_foot + Vector2(3, -3),
-	]), Color(0.14, 0.40, 0.08))
-	draw_circle(l_calf_mid, 3.0, Color(0.22, 0.52, 0.14, 0.3))
-	# RIGHT CALF
-	var r_calf_mid = r_knee.lerp(r_foot + Vector2(0, -3), 0.4) + Vector2(2.0, 0)
-	var rc_dir = (r_foot + Vector2(0, -3) - r_knee).normalized()
-	var rc_perp = rc_dir.rotated(PI / 2.0)
-	# Upper right calf (knee to mid)
-	draw_colored_polygon(PackedVector2Array([
-		r_knee - rc_perp * 4.0, r_knee + rc_perp * 3.5,
-		r_calf_mid + rc_perp * 5.0, r_calf_mid - rc_perp * 4.5,
-	]), Color(0.14, 0.40, 0.08))
-	# Lower right calf (mid to foot)
-	draw_colored_polygon(PackedVector2Array([
-		r_calf_mid - rc_perp * 4.5, r_calf_mid + rc_perp * 5.0,
-		r_foot + Vector2(3, -3), r_foot + Vector2(-3, -3),
-	]), Color(0.14, 0.40, 0.08))
-	draw_circle(r_calf_mid, 3.0, Color(0.22, 0.52, 0.14, 0.3))
+	var l_knee = l_foot.lerp(l_hip, 0.5)
+	var r_knee = r_foot.lerp(r_hip, 0.5)
+	draw_circle(l_knee, 3.5, OL)
+	draw_circle(l_knee, 2.5, tunic_green)
+	draw_circle(r_knee, 3.5, OL)
+	draw_circle(r_knee, 2.5, tunic_green)
 
-	# --- SHORT LINCOLN GREEN CAPE (behind torso) ---
-	var cape_wind = sin(_time * 1.8) * 3.0 + sin(_time * 2.7) * 1.5
-	var cape_top_l = neck_base + Vector2(-8, 0)
-	var cape_top_r = neck_base + Vector2(8, 0)
-	var cape_bot_l = torso_center + Vector2(-12 + cape_wind * 0.5, 8.0)
-	var cape_bot_r = torso_center + Vector2(12 + cape_wind * 0.3, 10.0)
-	draw_colored_polygon(PackedVector2Array([cape_top_l, cape_top_r, cape_bot_r, cape_bot_l]), Color(0.15, 0.40, 0.08, 0.7))
-	draw_colored_polygon(PackedVector2Array([cape_top_l, cape_top_r, cape_bot_r, cape_bot_l]), Color(0.20, 0.50, 0.12, 0.3))
+	# --- CAPE (behind body) ---
+	var cape_wind = sin(_time * 1.8) * 2.5
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-7, -1), neck_base + Vector2(7, -1),
+		torso_center + Vector2(10 + cape_wind * 0.3, 10),
+		torso_center + Vector2(-10 + cape_wind * 0.5, 8),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-5.5, 0), neck_base + Vector2(5.5, 0),
+		torso_center + Vector2(8.5 + cape_wind * 0.3, 9),
+		torso_center + Vector2(-8.5 + cape_wind * 0.5, 7),
+	]), tunic_dark)
 
-	# --- 16. QUIVER on back (drawn behind torso) ---
-	var quiver_pos = neck_base + Vector2(-8, 4)
-	# Quiver body (brown leather, tall rectangle)
-	var q_pts = PackedVector2Array([
-		quiver_pos + Vector2(-4, 6),
-		quiver_pos + Vector2(4, 6),
-		quiver_pos + Vector2(3, -14),
-		quiver_pos + Vector2(-3, -14),
-	])
-	draw_colored_polygon(q_pts, Color(0.42, 0.26, 0.10))
-	# Quiver inner leather
-	var q_inner = PackedVector2Array([
-		quiver_pos + Vector2(-2.5, 4),
-		quiver_pos + Vector2(2.5, 4),
-		quiver_pos + Vector2(2, -12),
-		quiver_pos + Vector2(-2, -12),
-	])
-	draw_colored_polygon(q_inner, Color(0.48, 0.30, 0.14, 0.5))
-	# Quiver stitching
-	for qi in range(4):
-		var qy = 3.0 - float(qi) * 4.5
-		draw_line(quiver_pos + Vector2(-3.5, qy), quiver_pos + Vector2(3.5, qy), Color(0.35, 0.20, 0.08, 0.4), 0.7)
-	# Quiver rim (top opening)
-	draw_line(quiver_pos + Vector2(-3.5, -14), quiver_pos + Vector2(3.5, -14), Color(0.50, 0.34, 0.16), 2.5)
-	draw_line(quiver_pos + Vector2(-3, -14.5), quiver_pos + Vector2(3, -14.5), Color(0.56, 0.38, 0.20), 1.5)
-	# Quiver strap (crosses chest)
-	draw_line(quiver_pos + Vector2(2, -8), torso_center + Vector2(8, 2), Color(0.38, 0.22, 0.08), 2.5)
-	draw_line(quiver_pos + Vector2(2, -8), torso_center + Vector2(8, 2), Color(0.44, 0.28, 0.12), 1.5)
-	# Strap brass fittings (rivets along strap)
-	var strap_mid = quiver_pos.lerp(torso_center + Vector2(5, 2), 0.5)
-	draw_circle(strap_mid, 1.5, Color(0.70, 0.55, 0.20))
-	draw_circle(strap_mid, 0.8, Color(0.85, 0.70, 0.30, 0.5))
-	# Brass rivets along strap
-	for rvi in range(3):
-		var rv_t = 0.2 + float(rvi) * 0.25
-		var rv_pos = quiver_pos.lerp(torso_center + Vector2(8, 2), rv_t)
-		draw_circle(rv_pos, 1.0, Color(0.72, 0.58, 0.22))
-		draw_circle(rv_pos, 0.5, Color(0.88, 0.74, 0.35, 0.5))
-	# Arrows in quiver (feathers sticking out at top)
+	# --- QUIVER on back ---
+	var quiver_pos = neck_base + Vector2(-6, 3)
+	draw_colored_polygon(PackedVector2Array([
+		quiver_pos + Vector2(-4, 5), quiver_pos + Vector2(4, 5),
+		quiver_pos + Vector2(3, -12), quiver_pos + Vector2(-3, -12),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		quiver_pos + Vector2(-2.8, 3.8), quiver_pos + Vector2(2.8, 3.8),
+		quiver_pos + Vector2(2, -10.8), quiver_pos + Vector2(-2, -10.8),
+	]), Color(0.48, 0.30, 0.14))
+	# Quiver rim
+	draw_line(quiver_pos + Vector2(-3.5, -12), quiver_pos + Vector2(3.5, -12), OL, 3.0)
+	draw_line(quiver_pos + Vector2(-3, -12), quiver_pos + Vector2(3, -12), Color(0.55, 0.38, 0.18), 1.8)
+	# Strap across chest
+	draw_line(quiver_pos + Vector2(2, -6), torso_center + Vector2(6, 1), OL, 3.5)
+	draw_line(quiver_pos + Vector2(2, -6), torso_center + Vector2(6, 1), belt_brown, 2.0)
+	# Arrows sticking out
 	var arrow_count = 3 + upgrade_tier
 	for ai in range(arrow_count):
-		var ax = -2.0 + float(ai) * (4.0 / float(max(arrow_count - 1, 1)))
-		var arrow_top = quiver_pos + Vector2(ax, -16.0 - float(ai % 2) * 2.0)
+		var ax = -1.5 + float(ai) * (3.0 / float(max(arrow_count - 1, 1)))
+		var arrow_top = quiver_pos + Vector2(ax, -14.0 - float(ai % 2) * 2.0)
 		var shaft_col = Color(0.58, 0.45, 0.25)
 		if upgrade_tier >= 2 and ai == 0:
-			shaft_col = Color(0.80, 0.78, 0.65)  # Silver arrow
+			shaft_col = Color(0.80, 0.78, 0.65)
 		if upgrade_tier >= 4 and ai <= 1:
-			shaft_col = Color(0.88, 0.72, 0.28)  # Golden arrows
-		# Arrow shaft
-		draw_line(quiver_pos + Vector2(ax, -13), arrow_top, shaft_col, 1.2)
-		# Fletching (3 feathers per arrow, colored)
-		var fletch_col = Color(0.75, 0.75, 0.7, 0.7) if ai % 3 == 0 else Color(0.72, 0.18, 0.12, 0.7) if ai % 3 == 1 else Color(0.2, 0.5, 0.2, 0.7)
-		draw_line(arrow_top, arrow_top + Vector2(-1.5, -2.5), fletch_col, 1.0)
-		draw_line(arrow_top, arrow_top + Vector2(1.5, -2.5), fletch_col.darkened(0.15), 1.0)
-		draw_line(arrow_top, arrow_top + Vector2(0, -3.0), fletch_col.lightened(0.1), 0.8)
-		# Tier 4: fiery tips
-		if upgrade_tier >= 4 and ai < 2:
-			var fire_pos = quiver_pos + Vector2(ax, -13)
-			draw_circle(fire_pos, 1.5, Color(1.0, 0.6, 0.1, 0.35 + sin(_time * 5.0 + float(ai)) * 0.15))
-			draw_circle(fire_pos, 0.8, Color(1.0, 0.9, 0.4, 0.25))
+			shaft_col = Color(0.88, 0.72, 0.28)
+		draw_line(quiver_pos + Vector2(ax, -11), arrow_top, OL, 2.2)
+		draw_line(quiver_pos + Vector2(ax, -11), arrow_top, shaft_col, 1.2)
+		var fletch_col = Color(0.75, 0.15, 0.1) if ai % 2 == 0 else Color(0.9, 0.85, 0.75)
+		draw_line(arrow_top, arrow_top + Vector2(-1.5, -2), fletch_col, 1.2)
+		draw_line(arrow_top, arrow_top + Vector2(1.5, -2), fletch_col, 1.2)
 
-	# --- Lincoln green tunic (MUSCULAR V-taper build) ---
-	# Broad shoulders (±18px), narrow waist (±8px) — heroic V-taper
-	var tunic_pts = PackedVector2Array([
-		leg_top + Vector2(-8, 0),         # waist left
-		leg_top + Vector2(-9, -3),        # oblique taper
-		torso_center + Vector2(-14, 0),   # lats flare
-		neck_base + Vector2(-18, 0),      # broad shoulder left
-		neck_base + Vector2(18, 0),       # broad shoulder right
-		torso_center + Vector2(14, 0),    # lats flare
-		leg_top + Vector2(9, -3),         # oblique taper
-		leg_top + Vector2(8, 0),          # waist right
+	# --- GREEN TUNIC BODY ---
+	var tunic_pts_ol = PackedVector2Array([
+		leg_top + Vector2(-8, 1), leg_top + Vector2(8, 1),
+		neck_base + Vector2(11, 0), neck_base + Vector2(-11, 0),
 	])
-	draw_colored_polygon(tunic_pts, Color(0.16, 0.44, 0.10))
-	# Lighter inner tunic (pec area)
-	var tunic_hi = PackedVector2Array([
-		leg_top + Vector2(-5, -1),
-		torso_center + Vector2(-8, 0),
-		torso_center + Vector2(8, 0),
-		leg_top + Vector2(5, -1),
+	draw_colored_polygon(tunic_pts_ol, OL)
+	var tunic_pts_fill = PackedVector2Array([
+		leg_top + Vector2(-6.5, 0), leg_top + Vector2(6.5, 0),
+		neck_base + Vector2(9.5, 0.8), neck_base + Vector2(-9.5, 0.8),
 	])
-	draw_colored_polygon(tunic_hi, Color(0.22, 0.54, 0.16, 0.4))
-	# PECTORAL definition — visible chest muscles under tunic
-	draw_arc(neck_base + Vector2(-6, 6), 6.5, PI * 0.2, PI * 0.9, 10, Color(0.12, 0.36, 0.08, 0.4), 1.5)
-	draw_arc(neck_base + Vector2(6, 6), 6.5, PI * 0.1, PI * 0.8, 10, Color(0.12, 0.36, 0.08, 0.4), 1.5)
-	# Pec shadow fills
-	draw_circle(neck_base + Vector2(-5, 8), 4.5, Color(0.12, 0.36, 0.08, 0.15))
-	draw_circle(neck_base + Vector2(5, 8), 4.5, Color(0.12, 0.36, 0.08, 0.15))
-	# Center chest line (sternum)
-	draw_line(neck_base + Vector2(0, 3), torso_center + Vector2(0, 2), Color(0.10, 0.30, 0.06, 0.3), 1.0)
-	# Ab definition lines
-	draw_line(torso_center + Vector2(-4, -2), torso_center + Vector2(-4, 5), Color(0.10, 0.30, 0.06, 0.15), 0.8)
-	draw_line(torso_center + Vector2(4, -2), torso_center + Vector2(4, 5), Color(0.10, 0.30, 0.06, 0.15), 0.8)
-	draw_line(torso_center + Vector2(-6, 1), torso_center + Vector2(6, 1), Color(0.10, 0.30, 0.06, 0.1), 0.6)
+	draw_colored_polygon(tunic_pts_fill, tunic_green)
+	# Tunic highlight
+	draw_circle(torso_center + Vector2(-2, -2), 4.0, Color(0.22, 0.62, 0.18, 0.3))
 	# V-neckline
-	draw_line(neck_base + Vector2(-4, 0), neck_base + Vector2(0, 5), Color(0.12, 0.34, 0.08, 0.6), 1.2)
-	draw_line(neck_base + Vector2(4, 0), neck_base + Vector2(0, 5), Color(0.12, 0.34, 0.08, 0.6), 1.2)
-	# Undershirt visible at V-neck
-	var vneck_pts = PackedVector2Array([
-		neck_base + Vector2(-3.5, 0),
-		neck_base + Vector2(3.5, 0),
-		neck_base + Vector2(0, 4),
-	])
-	draw_colored_polygon(vneck_pts, Color(0.72, 0.66, 0.52, 0.4))
-	# Tunic fold shadows
-	draw_line(neck_base + Vector2(-14, 2), leg_top + Vector2(-7, -1), Color(0.10, 0.32, 0.06, 0.4), 1.2)
-	draw_line(neck_base + Vector2(14, 2), leg_top + Vector2(7, -1), Color(0.10, 0.32, 0.06, 0.4), 1.2)
-	draw_line(torso_center + Vector2(-3, -6), leg_top + Vector2(-2, 0), Color(0.12, 0.36, 0.08, 0.25), 0.8)
-	draw_line(torso_center + Vector2(3, -6), leg_top + Vector2(2, 0), Color(0.12, 0.36, 0.08, 0.25), 0.8)
-	# Tunic hem (slightly scalloped — Lincoln green style)
-	for hi in range(5):
-		var hx = -7.0 + float(hi) * 3.5
-		var h_depth = 2.5 + sin(float(hi) * 2.1 + _time * 1.2) * 1.5
-		var h_pts = PackedVector2Array([
-			leg_top + Vector2(hx - 1.5, 0),
-			leg_top + Vector2(hx + 1.5, 0),
-			leg_top + Vector2(hx, h_depth),
-		])
-		draw_colored_polygon(h_pts, Color(0.14, 0.40, 0.08))
-	# Cobweb thread (gothic detail)
-	draw_line(torso_center + Vector2(-11, -5), torso_center + Vector2(8, 5), Color(0.85, 0.88, 0.92, 0.06), 0.5)
-	# Stitch detail along tunic seams (short perpendicular lines)
-	for sti in range(5):
-		var st_t = float(sti + 1) / 6.0
-		var st_l = neck_base.lerp(leg_top, st_t) + Vector2(-13 + st_t * 5.0, 0)
-		var st_r = neck_base.lerp(leg_top, st_t) + Vector2(13 - st_t * 5.0, 0)
-		draw_line(st_l + Vector2(-1.5, -1), st_l + Vector2(-1.5, 1.5), Color(0.10, 0.30, 0.06, 0.3), 0.6)
-		draw_line(st_r + Vector2(1.5, -1), st_r + Vector2(1.5, 1.5), Color(0.10, 0.30, 0.06, 0.3), 0.6)
+	draw_line(neck_base + Vector2(-3, 1), neck_base + Vector2(0, 4), OL, 1.5)
+	draw_line(neck_base + Vector2(3, 1), neck_base + Vector2(0, 4), OL, 1.5)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-2.5, 1), neck_base + Vector2(2.5, 1), neck_base + Vector2(0, 3.5),
+	]), Color(0.78, 0.68, 0.52))
+	# Scalloped hem
+	for hi in range(4):
+		var hx = -5.0 + float(hi) * 3.5
+		var h_depth = 2.0 + sin(float(hi) * 2.1 + _time * 1.2) * 1.0
+		draw_colored_polygon(PackedVector2Array([
+			leg_top + Vector2(hx - 1.5, 1), leg_top + Vector2(hx + 1.5, 1),
+			leg_top + Vector2(hx, 1 + h_depth),
+		]), OL)
+		draw_colored_polygon(PackedVector2Array([
+			leg_top + Vector2(hx - 1.0, 1), leg_top + Vector2(hx + 1.0, 1),
+			leg_top + Vector2(hx, 1.0 + h_depth * 0.8),
+		]), tunic_green)
 
-	# --- Brown leather belt with brass buckle ---
-	draw_line(leg_top + Vector2(-10, -1), leg_top + Vector2(10, -1), Color(0.32, 0.18, 0.06), 4.0)
-	draw_line(leg_top + Vector2(-9, -1), leg_top + Vector2(9, -1), Color(0.40, 0.24, 0.10), 2.5)
-	# Belt highlight (top edge)
-	draw_line(leg_top + Vector2(-9, -2.5), leg_top + Vector2(9, -2.5), Color(0.48, 0.30, 0.14, 0.35), 0.8)
-	# Belt stitch marks
-	for bsi in range(4):
-		var bsx = -6.0 + float(bsi) * 4.0
-		draw_line(leg_top + Vector2(bsx, -2.2), leg_top + Vector2(bsx, 0.2), Color(0.45, 0.28, 0.12, 0.4), 0.6)
-	# Tooled leather texture (small decorative arcs along belt)
-	for tli in range(6):
-		var tl_x = -7.0 + float(tli) * 2.8
-		var tl_pos = leg_top + Vector2(tl_x, -1)
-		draw_arc(tl_pos, 1.0, PI * 0.2, PI * 0.8, 4, Color(0.48, 0.30, 0.14, 0.25), 0.5)
-	# Brass buckle (center)
-	var buckle_c = leg_top + Vector2(0, -1)
-	draw_circle(buckle_c, 3.5, Color(0.75, 0.60, 0.18))
-	draw_circle(buckle_c, 2.5, Color(0.85, 0.72, 0.28))
-	draw_circle(buckle_c, 1.5, Color(0.35, 0.20, 0.08))
-	# Buckle highlight
-	draw_arc(buckle_c, 2.8, PI + 0.5, TAU - 0.5, 6, Color(1.0, 0.92, 0.50, 0.4), 0.8)
-	draw_arc(buckle_c, 3.5, 0, TAU, 8, Color(0.60, 0.48, 0.14, 0.3), 0.6)
-	# Coin pouch on belt (left side)
-	var pouch_pos = leg_top + Vector2(-7, 1)
-	draw_circle(pouch_pos, 3.2, Color(0.38, 0.22, 0.08))
-	draw_circle(pouch_pos + Vector2(0, -0.5), 2.5, Color(0.44, 0.28, 0.12))
-	# Pouch drawstring
-	draw_line(pouch_pos + Vector2(-1, -2.5), pouch_pos + Vector2(1, -2.5), Color(0.32, 0.18, 0.06, 0.5), 0.6)
-	# Coins peeking out
-	draw_circle(pouch_pos + Vector2(0.5, -3.0), 0.8, Color(0.85, 0.72, 0.22, 0.5))
+	# --- BELT with brass buckle ---
+	draw_line(leg_top + Vector2(-8, 0), leg_top + Vector2(8, 0), OL, 5.0)
+	draw_line(leg_top + Vector2(-7, 0), leg_top + Vector2(7, 0), belt_brown, 3.5)
+	draw_line(leg_top + Vector2(-6, -1.2), leg_top + Vector2(6, -1.2), Color(0.52, 0.34, 0.16, 0.4), 1.0)
+	# Brass buckle
+	var buckle_c = leg_top
+	draw_circle(buckle_c, 3.8, OL)
+	draw_circle(buckle_c, 2.8, Color(0.85, 0.72, 0.28))
+	draw_circle(buckle_c, 1.5, Color(0.95, 0.85, 0.40))
+	draw_circle(buckle_c + Vector2(-0.5, -0.8), 0.8, Color(1.0, 1.0, 0.9, 0.5))
 
-	# --- Tier 3+: Golden hunting horn hanging from belt ---
+	# --- Tier 3+: Hunting horn on belt ---
 	if upgrade_tier >= 3:
-		var horn_base = leg_top + Vector2(7, 2)
-		var horn_curve = horn_base + Vector2(6, 5)
-		var horn_bell = horn_base + Vector2(10, 9)
-		# Horn shadow
-		draw_line(horn_base + Vector2(0.5, 0.5), horn_curve + Vector2(0.5, 0.5), Color(0, 0, 0, 0.1), 3.5)
-		draw_line(horn_curve + Vector2(0.5, 0.5), horn_bell + Vector2(0.5, 0.5), Color(0, 0, 0, 0.1), 4.0)
-		# Horn body (tapered brass)
-		draw_line(horn_base, horn_curve, Color(0.70, 0.55, 0.18), 3.0)
-		draw_line(horn_curve, horn_bell, Color(0.75, 0.60, 0.22), 3.5)
-		# Horn golden highlight
-		draw_line(horn_base, horn_curve, Color(0.88, 0.75, 0.35, 0.4), 1.5)
-		draw_line(horn_curve, horn_bell, Color(0.92, 0.80, 0.40, 0.35), 1.8)
-		# Decorative bands
-		var hb1 = horn_base.lerp(horn_curve, 0.4)
-		var hb2 = horn_curve.lerp(horn_bell, 0.5)
-		draw_line(hb1 + Vector2(-1.5, 0), hb1 + Vector2(1.5, 0), Color(0.85, 0.70, 0.28), 1.2)
-		draw_line(hb2 + Vector2(-2.0, 0), hb2 + Vector2(2.0, 0), Color(0.85, 0.70, 0.28), 1.2)
-		# Horn bell (flared end)
-		draw_circle(horn_bell, 3.5, Color(0.78, 0.62, 0.22))
-		draw_circle(horn_bell, 2.0, Color(0.52, 0.38, 0.14))
-		draw_arc(horn_bell, 3.0, PI + 0.4, TAU - 0.4, 6, Color(0.95, 0.82, 0.42, 0.5), 1.0)
-		# Mouthpiece
-		draw_circle(horn_base, 1.5, Color(0.85, 0.72, 0.32))
-		# Leather cord from belt
-		draw_line(horn_base, leg_top + Vector2(6, -1), Color(0.42, 0.26, 0.10), 1.5)
-		# Tier 4: horn glow
+		var horn_base = leg_top + Vector2(6, 2)
+		var horn_bell = horn_base + Vector2(8, 7)
+		draw_line(horn_base, horn_bell, OL, 4.5)
+		draw_line(horn_base, horn_bell, Color(0.80, 0.65, 0.25), 3.0)
+		draw_circle(horn_bell, 3.5, OL)
+		draw_circle(horn_bell, 2.5, Color(0.85, 0.70, 0.28))
+		draw_circle(horn_base, 2.0, OL)
+		draw_circle(horn_base, 1.2, Color(0.90, 0.78, 0.35))
 		if upgrade_tier >= 4:
-			draw_circle(horn_bell, 5.5, Color(1.0, 0.85, 0.3, 0.1 + sin(_time * 3.0) * 0.05))
+			draw_circle(horn_bell, 5.0, Color(1.0, 0.85, 0.3, 0.12 + sin(_time * 3.0) * 0.06))
 
-	# --- Shoulder pads (broad athletic build) ---
-	var l_shoulder = neck_base + Vector2(-16, 0)
-	var r_shoulder = neck_base + Vector2(16, 0)
-	draw_circle(l_shoulder, 6.5, Color(0.14, 0.38, 0.08))
-	draw_circle(l_shoulder, 5.0, Color(0.20, 0.48, 0.12))
-	draw_line(l_shoulder + Vector2(-3, 0), l_shoulder + Vector2(3, 0), Color(0.10, 0.30, 0.06, 0.5), 0.7)
-	draw_circle(r_shoulder, 6.5, Color(0.14, 0.38, 0.08))
-	draw_circle(r_shoulder, 5.0, Color(0.20, 0.48, 0.12))
-	draw_line(r_shoulder + Vector2(-3, 0), r_shoulder + Vector2(3, 0), Color(0.10, 0.30, 0.06, 0.5), 0.7)
-	# Shoulder seam stitching
-	draw_arc(l_shoulder, 5.5, 0, TAU, 10, Color(0.10, 0.30, 0.06, 0.35), 0.7)
-	draw_arc(r_shoulder, 5.5, 0, TAU, 10, Color(0.10, 0.30, 0.06, 0.35), 0.7)
+	# --- SHOULDERS (round joints) ---
+	var l_shoulder = neck_base + Vector2(-10, 0)
+	var r_shoulder = neck_base + Vector2(10, 0)
+	draw_circle(l_shoulder, 5.0, OL)
+	draw_circle(l_shoulder, 3.8, tunic_green)
+	draw_circle(r_shoulder, 5.0, OL)
+	draw_circle(r_shoulder, 3.8, tunic_green)
 
-	# --- MUSCULAR ARMS (polygon-based biceps and forearms) ---
-	# BOW ARM: reaches toward aim with bow
-	var bow_hand = r_shoulder + Vector2(0, 2) + dir * 20.0
-	var bow_elbow = r_shoulder + (bow_hand - r_shoulder) * 0.4
-	var ba_dir = (bow_elbow - r_shoulder).normalized()
-	var ba_perp = ba_dir.rotated(PI / 2.0)
-	# Upper arm — muscular bicep polygon
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder + ba_perp * 5.0, r_shoulder - ba_perp * 4.0,
-		r_shoulder.lerp(bow_elbow, 0.35) - ba_perp * 5.5,  # bicep peak
-		bow_elbow - ba_perp * 4.0, bow_elbow + ba_perp * 3.5,
-		r_shoulder.lerp(bow_elbow, 0.45) + ba_perp * 6.0,   # outer deltoid
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder + ba_perp * 3.5, r_shoulder - ba_perp * 2.5,
-		bow_elbow - ba_perp * 2.5, bow_elbow + ba_perp * 2.0,
-	]), skin_base)
-	# Bicep highlight
-	var bow_bicep = r_shoulder.lerp(bow_elbow, 0.35) + ba_perp * 2.0
-	draw_circle(bow_bicep, 3.0, skin_highlight)
-	# Sleeve over upper arm
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder + ba_perp * 5.5, r_shoulder - ba_perp * 4.5,
-		bow_elbow - ba_perp * 4.5, bow_elbow + ba_perp * 4.0,
-	]), Color(0.18, 0.46, 0.10))
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder + ba_perp * 3.5, r_shoulder - ba_perp * 2.5,
-		bow_elbow - ba_perp * 2.5, bow_elbow + ba_perp * 2.0,
-	]), Color(0.22, 0.52, 0.14, 0.5))
+	# --- BOW ARM (right) — extends toward aim direction ---
+	var bow_hand = r_shoulder + dir * 18.0
+	var bow_elbow = r_shoulder + (bow_hand - r_shoulder) * 0.45
+	# Upper arm: outline then fill
+	draw_line(r_shoulder, bow_elbow, OL, 6.5)
+	draw_line(r_shoulder, bow_elbow, tunic_green, 4.5)
 	# Elbow joint
-	draw_circle(bow_elbow, 4.0, skin_shadow)
-	draw_circle(bow_elbow, 3.0, skin_base)
-	# Forearm — tapered polygon
-	var bf_dir = (bow_hand - bow_elbow).normalized()
-	var bf_perp = bf_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		bow_elbow + bf_perp * 4.0, bow_elbow - bf_perp * 3.5,
-		bow_hand - bf_perp * 2.5, bow_hand + bf_perp * 2.5,
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		bow_elbow + bf_perp * 2.5, bow_elbow - bf_perp * 2.0,
-		bow_hand - bf_perp * 1.5, bow_hand + bf_perp * 1.5,
-	]), skin_base)
-	# Forearm muscle definition
-	draw_circle(bow_elbow.lerp(bow_hand, 0.3) + bf_perp * 1.5, 2.0, skin_highlight)
-	# Leather bracer on bow arm
-	var bracer_start = bow_elbow.lerp(bow_hand, 0.4)
-	var bracer_end = bow_elbow.lerp(bow_hand, 0.85)
-	draw_colored_polygon(PackedVector2Array([
-		bracer_start + bf_perp * 3.5, bracer_start - bf_perp * 3.0,
-		bracer_end - bf_perp * 2.5, bracer_end + bf_perp * 2.5,
-	]), Color(0.38, 0.22, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		bracer_start + bf_perp * 2.0, bracer_start - bf_perp * 1.5,
-		bracer_end - bf_perp * 1.5, bracer_end + bf_perp * 1.5,
-	]), Color(0.46, 0.30, 0.12))
-	for bri in range(3):
-		var brt = float(bri + 1) / 4.0
-		var br_pos = bracer_start.lerp(bracer_end, brt)
-		draw_line(br_pos - bf_perp * 3.0, br_pos + bf_perp * 3.0, Color(0.32, 0.18, 0.06, 0.5), 0.8)
-	# Leather lacing X-pattern on bracer
-	for lci in range(2):
-		var lc_t1 = 0.2 + float(lci) * 0.35
-		var lc_t2 = lc_t1 + 0.15
-		var lc_p1 = bracer_start.lerp(bracer_end, lc_t1)
-		var lc_p2 = bracer_start.lerp(bracer_end, lc_t2)
-		draw_line(lc_p1 - bf_perp * 1.8, lc_p2 + bf_perp * 1.8, Color(0.28, 0.16, 0.06, 0.4), 0.6)
-		draw_line(lc_p1 + bf_perp * 1.8, lc_p2 - bf_perp * 1.8, Color(0.28, 0.16, 0.06, 0.4), 0.6)
+	draw_circle(bow_elbow, 3.5, OL)
+	draw_circle(bow_elbow, 2.5, tunic_green)
+	# Forearm: outline then fill
+	draw_line(bow_elbow, bow_hand, OL, 6.5)
+	draw_line(bow_elbow, bow_hand, skin_base, 4.5)
 	# Bow hand
-	draw_circle(bow_hand, 4.0, skin_shadow)
-	draw_circle(bow_hand, 3.2, skin_base)
-	for fi in range(3):
-		var fa = float(fi - 1) * 0.35
-		draw_circle(bow_hand + dir.rotated(fa) * 3.5, 1.3, skin_highlight)
+	draw_circle(bow_hand, 3.8, OL)
+	draw_circle(bow_hand, 2.8, skin_base)
+	draw_circle(bow_hand + Vector2(0, -0.5), 1.5, skin_highlight)
 
-	# DRAW ARM: string-pulling arm (draws arrow back)
-	var string_pull_vec = dir * (-12.0 * _draw_progress)
-	var draw_hand = l_shoulder + Vector2(6, 4) + dir * 6.0 + string_pull_vec
-	var draw_elbow = l_shoulder + (draw_hand - l_shoulder) * 0.4
-	var da_dir = (draw_elbow - l_shoulder).normalized()
-	var da_perp = da_dir.rotated(PI / 2.0)
-	# Upper arm — flexed bicep polygon (pulling string = flexed)
-	var bicep_flex = 1.0 + _draw_progress * 0.5  # bigger when drawn
-	draw_colored_polygon(PackedVector2Array([
-		l_shoulder - da_perp * 5.0, l_shoulder + da_perp * 4.0,
-		l_shoulder.lerp(draw_elbow, 0.35) + da_perp * (5.5 * bicep_flex),
-		draw_elbow + da_perp * 4.0, draw_elbow - da_perp * 3.5,
-		l_shoulder.lerp(draw_elbow, 0.45) - da_perp * 6.0,
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		l_shoulder - da_perp * 3.5, l_shoulder + da_perp * 2.5,
-		draw_elbow + da_perp * 2.5, draw_elbow - da_perp * 2.0,
-	]), skin_base)
-	# Bicep peak highlight (more visible when flexed)
-	var draw_bicep = l_shoulder.lerp(draw_elbow, 0.35) - da_perp * 2.0
-	draw_circle(draw_bicep, 3.0 * bicep_flex, skin_highlight)
-	# Sleeve
-	draw_colored_polygon(PackedVector2Array([
-		l_shoulder - da_perp * 5.5, l_shoulder + da_perp * 4.5,
-		draw_elbow + da_perp * 4.5, draw_elbow - da_perp * 4.0,
-	]), Color(0.18, 0.46, 0.10))
+	# --- DRAW ARM (left) — pulls bowstring back ---
+	var string_pull_vec = dir * (-10.0 * _draw_progress)
+	var draw_hand = l_shoulder + dir * 8.0 + string_pull_vec
+	var draw_elbow = l_shoulder + (draw_hand - l_shoulder) * 0.45
+	# Upper arm
+	draw_line(l_shoulder, draw_elbow, OL, 6.5)
+	draw_line(l_shoulder, draw_elbow, tunic_green, 4.5)
 	# Elbow joint
-	draw_circle(draw_elbow, 4.0, skin_shadow)
-	draw_circle(draw_elbow, 3.0, skin_base)
-	# Forearm polygon
-	var df_dir = (draw_hand - draw_elbow).normalized()
-	var df_perp = df_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		draw_elbow - df_perp * 4.0, draw_elbow + df_perp * 3.5,
-		draw_hand + df_perp * 2.5, draw_hand - df_perp * 2.5,
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		draw_elbow - df_perp * 2.5, draw_elbow + df_perp * 2.0,
-		draw_hand + df_perp * 1.5, draw_hand - df_perp * 1.5,
-	]), skin_base)
-	# Draw hand with leather tab
-	draw_circle(draw_hand, 4.0, Color(0.40, 0.24, 0.10))
-	draw_circle(draw_hand, 3.0, skin_base)
-	# Three fingers on string
-	draw_line(draw_hand, draw_hand + dir * 3.0 + perp * 1.5, skin_base, 1.8)
-	draw_line(draw_hand, draw_hand + dir * 3.5, skin_base, 1.8)
-	draw_line(draw_hand, draw_hand + dir * 3.0 - perp * 1.5, skin_base, 1.8)
-	draw_circle(draw_hand + dir * 3.0 + perp * 1.5, 0.8, skin_highlight)
-	draw_circle(draw_hand + dir * 3.5, 0.8, skin_highlight)
-	draw_circle(draw_hand + dir * 3.0 - perp * 1.5, 0.8, skin_highlight)
+	draw_circle(draw_elbow, 3.5, OL)
+	draw_circle(draw_elbow, 2.5, tunic_green)
+	# Forearm
+	draw_line(draw_elbow, draw_hand, OL, 6.5)
+	draw_line(draw_elbow, draw_hand, skin_base, 4.5)
+	# Draw hand
+	draw_circle(draw_hand, 3.8, OL)
+	draw_circle(draw_hand, 2.8, skin_base)
+	# Fingers on string
+	draw_line(draw_hand, draw_hand + dir * 2.5 + perp * 1.5, OL, 2.5)
+	draw_line(draw_hand, draw_hand + dir * 2.5 + perp * 1.5, skin_base, 1.5)
+	draw_line(draw_hand, draw_hand + dir * 3.0, OL, 2.5)
+	draw_line(draw_hand, draw_hand + dir * 3.0, skin_base, 1.5)
+	draw_line(draw_hand, draw_hand + dir * 2.5 - perp * 1.5, OL, 2.5)
+	draw_line(draw_hand, draw_hand + dir * 2.5 - perp * 1.5, skin_base, 1.5)
 
 	# === 15. WEAPON — LONGBOW ===
 	var bow_center = bow_hand + dir * 2.0
-	var bow_top = bow_center + Vector2(0, -22.0)
-	var bow_bottom = bow_center + Vector2(0, 22.0)
-	var bow_curve_pt = bow_center + dir * 8.0
+	var bow_top = bow_center + Vector2(0, -18.0)
+	var bow_bottom = bow_center + Vector2(0, 18.0)
+	var bow_curve_pt = bow_center + dir * 6.0
 
-	# Bow limb colors (yew wood, silver-tinted at tier 2+)
-	var bow_dark = Color(0.48, 0.28, 0.10) if upgrade_tier < 2 else Color(0.50, 0.45, 0.40).lerp(Color(0.65, 0.68, 0.72), 0.3)
-	var bow_light = Color(0.60, 0.38, 0.16) if upgrade_tier < 2 else Color(0.60, 0.56, 0.50).lerp(Color(0.75, 0.78, 0.82), 0.3)
+	# Bow limb colors (silver at tier 2+)
+	var bow_wood = Color(0.48, 0.28, 0.10) if upgrade_tier < 2 else Color(0.55, 0.55, 0.58)
+	var bow_light = Color(0.60, 0.38, 0.16) if upgrade_tier < 2 else Color(0.70, 0.72, 0.78)
 
 	# Tier 2+: Silver glow along bow
 	if upgrade_tier >= 2:
 		var silver_p = (sin(_time * 2.8) + 1.0) * 0.5
-		var silver_a = 0.06 + silver_p * 0.04
-		for sgi in range(5):
-			var sgt = float(sgi) / 4.0
-			draw_circle(bow_top.lerp(bow_curve_pt, sgt), 4.0, Color(0.8, 0.85, 0.95, silver_a))
-			draw_circle(bow_curve_pt.lerp(bow_bottom, sgt), 4.0, Color(0.8, 0.85, 0.95, silver_a))
+		draw_circle(bow_curve_pt, 6.0, Color(0.8, 0.85, 0.95, 0.08 + silver_p * 0.06))
 
-	# Bow upper limb
-	draw_line(bow_top, bow_curve_pt, bow_dark, 4.5)
-	draw_line(bow_top, bow_curve_pt, bow_light, 2.5)
-	# Bow lower limb
-	draw_line(bow_curve_pt, bow_bottom, bow_dark, 4.5)
-	draw_line(bow_curve_pt, bow_bottom, bow_light, 2.5)
-	# Wood grain lines
-	draw_line(bow_top.lerp(bow_curve_pt, 0.1) + perp * 0.5, bow_top.lerp(bow_curve_pt, 0.75) + perp * 0.5, Color(bow_light.r + 0.05, bow_light.g + 0.02, bow_light.b, 0.3), 0.6)
-	draw_line(bow_curve_pt.lerp(bow_bottom, 0.15) - perp * 0.4, bow_curve_pt.lerp(bow_bottom, 0.8) - perp * 0.4, Color(bow_dark.r - 0.05, bow_dark.g - 0.02, bow_dark.b, 0.25), 0.5)
-	# Wood knot
-	draw_circle(bow_top.lerp(bow_curve_pt, 0.35), 0.8, Color(bow_dark.r - 0.1, bow_dark.g - 0.05, bow_dark.b, 0.4))
-	# Horn nocks at tips
-	draw_circle(bow_top, 2.0, Color(0.88, 0.85, 0.78))
-	draw_circle(bow_top, 1.3, Color(0.92, 0.90, 0.84))
-	draw_circle(bow_bottom, 2.0, Color(0.88, 0.85, 0.78))
-	draw_circle(bow_bottom, 1.3, Color(0.92, 0.90, 0.84))
-	# Nock grooves
-	draw_line(bow_top + Vector2(-0.5, 0), bow_top + Vector2(0.5, 0), Color(0.60, 0.55, 0.45, 0.5), 0.5)
-	draw_line(bow_bottom + Vector2(-0.5, 0), bow_bottom + Vector2(0.5, 0), Color(0.60, 0.55, 0.45, 0.5), 0.5)
-	# Leather grip wrap
-	draw_line(bow_curve_pt + Vector2(0, -3.5), bow_curve_pt + Vector2(0, 3.5), Color(0.35, 0.20, 0.08), 5.5)
-	draw_line(bow_curve_pt + Vector2(0, -2.5), bow_curve_pt + Vector2(0, 2.5), Color(0.42, 0.26, 0.10), 4.0)
-	draw_line(bow_curve_pt + Vector2(0, -1.5), bow_curve_pt + Vector2(0, 1.5), Color(0.48, 0.30, 0.14), 2.5)
-	# Grip cross-hatch wrapping
-	for gi in range(4):
-		var gy = -2.5 + float(gi) * 1.5
-		var gp = bow_curve_pt + Vector2(0, gy)
-		draw_line(gp + Vector2(-2.0, -0.5), gp + Vector2(2.0, 0.5), Color(0.32, 0.18, 0.06, 0.4), 0.6)
+	# Bow limbs — outline then fill
+	draw_line(bow_top, bow_curve_pt, OL, 5.5)
+	draw_line(bow_top, bow_curve_pt, bow_light, 3.5)
+	draw_line(bow_curve_pt, bow_bottom, OL, 5.5)
+	draw_line(bow_curve_pt, bow_bottom, bow_light, 3.5)
+	# Nock tips
+	draw_circle(bow_top, 2.5, OL)
+	draw_circle(bow_top, 1.5, Color(0.90, 0.88, 0.80))
+	draw_circle(bow_bottom, 2.5, OL)
+	draw_circle(bow_bottom, 1.5, Color(0.90, 0.88, 0.80))
+	# Grip wrap
+	draw_line(bow_curve_pt + Vector2(0, -3), bow_curve_pt + Vector2(0, 3), OL, 6.0)
+	draw_line(bow_curve_pt + Vector2(0, -2.5), bow_curve_pt + Vector2(0, 2.5), belt_brown, 4.5)
 
 	# Bowstring
-	var string_pull_offset = dir * (-10.0 * _draw_progress)
+	var string_pull_offset = dir * (-8.0 * _draw_progress)
 	var vib_offset = perp * string_vib
 	var string_nock_pt = bow_center + string_pull_offset + vib_offset
-	# String shadow
-	draw_line(bow_top, string_nock_pt, Color(0.4, 0.35, 0.25, 0.12), 1.5)
-	draw_line(bow_bottom, string_nock_pt, Color(0.4, 0.35, 0.25, 0.12), 1.5)
-	# Main bowstring
-	draw_line(bow_top, string_nock_pt, Color(0.78, 0.72, 0.58), 1.2)
-	draw_line(bow_bottom, string_nock_pt, Color(0.78, 0.72, 0.58), 1.2)
-	# String sheen
-	draw_line(bow_top, string_nock_pt, Color(0.90, 0.85, 0.72, 0.25), 0.5)
-	draw_line(bow_bottom, string_nock_pt, Color(0.90, 0.85, 0.72, 0.25), 0.5)
-	# Serving (thicker wrap where arrow nocks)
-	var serving_c = bow_center + string_pull_offset * 0.5 + vib_offset * 0.5
-	draw_line(serving_c + Vector2(0, -2.0), serving_c + Vector2(0, 2.0), Color(0.70, 0.65, 0.50, 0.3), 2.0)
+	draw_line(bow_top, string_nock_pt, OL, 2.0)
+	draw_line(bow_bottom, string_nock_pt, OL, 2.0)
+	draw_line(bow_top, string_nock_pt, Color(0.82, 0.76, 0.60), 1.0)
+	draw_line(bow_bottom, string_nock_pt, Color(0.82, 0.76, 0.60), 1.0)
 
 	# Arrow nocked on string (visible when drawing)
 	if _draw_progress > 0.15:
 		var arrow_nock = bow_center + string_pull_offset
-		var arrow_tip = bow_center + dir * 28.0
-
+		var arrow_tip = bow_center + dir * 24.0
 		# Silver arrow detection
 		var next_is_silver = upgrade_tier >= 2 and (shot_count + 1) % silver_interval == 0
 		var shaft_col = Color(0.82, 0.78, 0.55) if next_is_silver else Color(0.58, 0.46, 0.28)
 		var head_col = Color(0.88, 0.80, 0.35) if next_is_silver else Color(0.50, 0.50, 0.55)
-
-		# Arrow shaft shadow
-		draw_line(arrow_nock + perp * 0.3, arrow_tip + perp * 0.3, Color(0.3, 0.2, 0.1, 0.12), 2.0)
-		# Arrow shaft
+		# Arrow shaft — outline then fill
+		draw_line(arrow_nock, arrow_tip, OL, 2.5)
 		draw_line(arrow_nock, arrow_tip, shaft_col, 1.5)
-		# Wood grain highlight
-		draw_line(arrow_nock, arrow_tip, Color(shaft_col.r + 0.08, shaft_col.g + 0.08, shaft_col.b + 0.04, 0.25), 0.5)
-
 		# Broadhead
-		var head_base = arrow_tip - dir * 4.0
-		var head_pts = PackedVector2Array([
-			arrow_tip,
-			head_base + perp * 3.5,
-			head_base - dir * 1.0,
-			head_base - perp * 3.5,
-		])
-		draw_colored_polygon(head_pts, head_col)
-		# Broadhead edge
-		draw_line(arrow_tip, head_base + perp * 3.5, Color(head_col.r + 0.1, head_col.g + 0.1, head_col.b + 0.05, 0.5), 0.6)
-		draw_line(arrow_tip, head_base - perp * 3.5, Color(head_col.r - 0.05, head_col.g - 0.05, head_col.b, 0.4), 0.6)
-		# Center blade line
-		draw_line(arrow_tip, head_base - dir * 1.0, Color(0.72, 0.72, 0.78, 0.5), 0.8)
-
-		# Fletching (3 feathers)
-		var fletch_start = arrow_nock + dir * 1.5
-		var fletch_end = arrow_nock + dir * 6.0
-		draw_line(fletch_start + perp * 2.2, fletch_end + perp * 1.2, Color(0.82, 0.82, 0.78), 1.5)
-		draw_line(fletch_start - perp * 2.2, fletch_end - perp * 1.2, Color(0.82, 0.82, 0.78), 1.5)
-		draw_line(fletch_start + dir * 0.3, fletch_end + dir * 0.3, Color(0.75, 0.18, 0.12), 1.5)
-		# Feather barb lines
-		for fli in range(4):
-			var flt = float(fli + 1) / 5.0
-			var fl_top = fletch_start.lerp(fletch_end, flt)
-			draw_line(fl_top, fl_top + perp * (2.0 - flt * 0.8) * 0.3, Color(0.78, 0.78, 0.72, 0.35), 0.4)
-			draw_line(fl_top, fl_top - perp * (2.0 - flt * 0.8) * 0.3, Color(0.78, 0.78, 0.72, 0.35), 0.4)
-		# Nock point
-		draw_circle(arrow_nock, 1.0, Color(0.88, 0.84, 0.74))
-
-		# Silver glow on arrow
+		var head_base = arrow_tip - dir * 3.0
+		draw_colored_polygon(PackedVector2Array([
+			arrow_tip, head_base + perp * 3.0, head_base - perp * 3.0,
+		]), OL)
+		draw_colored_polygon(PackedVector2Array([
+			arrow_tip - dir * 0.5, head_base + perp * 2.0, head_base - perp * 2.0,
+		]), head_col)
+		# Fletching
+		var fletch_start = arrow_nock + dir * 1.0
+		draw_line(fletch_start + perp * 2.0, fletch_start + dir * 4.0 + perp * 1.0, Color(0.85, 0.18, 0.10), 1.5)
+		draw_line(fletch_start - perp * 2.0, fletch_start + dir * 4.0 - perp * 1.0, Color(0.85, 0.85, 0.80), 1.5)
+		# Silver glow
 		if next_is_silver:
 			var sglow = (sin(_time * 4.0) + 1.0) * 0.5
-			draw_circle(arrow_tip, 5.0 + sglow * 2.0, Color(0.88, 0.90, 1.0, 0.2))
-			draw_circle(arrow_tip, 2.5 + sglow, Color(1.0, 0.95, 0.72, 0.25))
-
+			draw_circle(arrow_tip, 4.0 + sglow * 2.0, Color(0.88, 0.90, 1.0, 0.22))
 		# Tier 4: Fiery arrow tip
 		if upgrade_tier >= 4:
 			var ff1 = sin(_time * 8.0) * 0.5 + 0.5
-			var ff2 = sin(_time * 11.0 + 1.5) * 0.5 + 0.5
-			draw_circle(arrow_tip, 4.5 + ff1 * 2.0, Color(1.0, 0.4, 0.05, 0.18 + ff1 * 0.08))
-			draw_circle(arrow_tip, 2.5 + ff2 * 1.0, Color(1.0, 0.7, 0.1, 0.25))
-			draw_circle(arrow_tip, 1.2 + ff1 * 0.5, Color(1.0, 0.95, 0.5, 0.3))
-			# Flame tongues
-			draw_line(arrow_tip, arrow_tip + dir * (3.5 + ff1 * 1.5) + perp * sin(_time * 6.0) * 1.2, Color(1.0, 0.5, 0.1, 0.25), 1.2)
-			draw_line(arrow_tip, arrow_tip + dir * (2.5 + ff2 * 1.0) - perp * sin(_time * 7.0) * 0.8, Color(1.0, 0.6, 0.15, 0.2), 1.0)
-			# Ember particles
-			for ei in range(3):
-				var ea = _time * 5.0 + float(ei) * TAU / 3.0
-				var er = 2.0 + sin(_time * 3.0 + float(ei)) * 1.2
-				var epos = arrow_tip + Vector2(cos(ea) * er, sin(ea) * er * 0.5) + dir * 1.5
-				draw_circle(epos, 0.5, Color(1.0, 0.65 + sin(_time * 4.0 + float(ei)) * 0.2, 0.2, 0.35))
+			draw_circle(arrow_tip, 4.0 + ff1 * 1.5, Color(1.0, 0.4, 0.05, 0.2 + ff1 * 0.08))
+			draw_circle(arrow_tip, 2.0 + ff1 * 0.5, Color(1.0, 0.7, 0.1, 0.3))
+			draw_circle(arrow_tip, 1.0, Color(1.0, 0.95, 0.5, 0.35))
 
-	# === HEAD (proportional anime head) ===
-	# Neck (visible, athletic — from neck_base up to bottom of head)
-	var neck_top = head_center + Vector2(0, 9)
-	var neck_dir = (neck_top - neck_base).normalized()
-	var neck_perp = neck_dir.rotated(PI / 2.0)
-	# Masculine neck polygon (wider, strong)
-	draw_colored_polygon(PackedVector2Array([
-		neck_base + neck_perp * 6.5, neck_base - neck_perp * 6.5,
-		neck_base.lerp(neck_top, 0.5) - neck_perp * 5.5,
-		neck_top - neck_perp * 4.5, neck_top + neck_perp * 4.5,
-		neck_base.lerp(neck_top, 0.5) + neck_perp * 5.5,
-	]), skin_shadow)
-	# Inner neck fill
-	draw_colored_polygon(PackedVector2Array([
-		neck_base + neck_perp * 5.5, neck_base - neck_perp * 5.5,
-		neck_top - neck_perp * 3.5, neck_top + neck_perp * 3.5,
-	]), skin_base)
-	# Neck highlight
-	draw_line(neck_base.lerp(neck_top, 0.15) + neck_perp * 3.0, neck_base.lerp(neck_top, 0.85) + neck_perp * 2.5, skin_highlight, 1.8)
-	# Sternocleidomastoid muscle definition
-	draw_line(neck_base + neck_perp * 4.0, neck_top - neck_perp * 1.0, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1.0)
-	draw_line(neck_base - neck_perp * 4.0, neck_top + neck_perp * 1.0, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1.0)
-	# Adam's apple subtle
-	var adams_y = neck_base.lerp(neck_top, 0.4)
-	draw_circle(adams_y + neck_perp * 0.5, 1.5, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2))
+	# === NECK (thick cartoon connector) ===
+	draw_line(neck_base, head_center + Vector2(0, 10), OL, 7.0)
+	draw_line(neck_base, head_center + Vector2(0, 10), skin_base, 5.0)
 
-	# Auburn/brown messy hair (back layer, drawn before face)
-	var hair_sway = sin(_time * 2.5) * 2.0
-	var hair_base_col = Color(0.42, 0.22, 0.10)
-	var hair_mid_col = Color(0.50, 0.28, 0.12)
-	var hair_hi_col = Color(0.58, 0.34, 0.16)
-	# Hair mass (scaled to radius 11)
-	draw_circle(head_center, 11.0, hair_base_col)
-	draw_circle(head_center + Vector2(0, -0.8), 9.8, hair_mid_col)
-	# Volume highlight
-	draw_circle(head_center + Vector2(-1.6, -2.4), 5.5, Color(0.52, 0.30, 0.14, 0.3))
-	# Messy tufts (windswept, dramatic — extended 25%)
-	var tuft_data = [
-		[0.3, 5.4, 2.0], [1.0, 5.9, 1.7], [1.7, 4.9, 2.2], [2.4, 6.4, 1.6],
-		[3.2, 5.4, 2.0], [4.0, 5.9, 1.8], [4.8, 5.4, 2.1], [5.5, 5.9, 1.6],
-		[0.65, 5.0, 1.8], [3.6, 5.2, 1.7],  # Extra tufts for fullness
-	]
-	for h in range(tuft_data.size()):
-		var ha: float = tuft_data[h][0]
-		var tlen: float = tuft_data[h][1]
-		var twid: float = tuft_data[h][2]
-		var tuft_base_pos = head_center + Vector2.from_angle(ha) * 9.5
-		var sway_d = 1.0 if h % 2 == 0 else -1.0
-		# S-curve wave modulation along strand length
-		var s_wave = sin(ha * 3.0 + _time * 1.5) * 1.2
-		var tuft_tip_pos = tuft_base_pos + Vector2.from_angle(ha) * tlen + Vector2(hair_sway * sway_d * 0.4 + s_wave, s_wave * 0.3)
-		var tcol = hair_mid_col if h % 3 == 0 else hair_hi_col if h % 3 == 1 else hair_base_col
-		draw_line(tuft_base_pos, tuft_tip_pos, tcol, twid)
-		# Secondary wispy strand
-		var ha2 = ha + (0.12 if h % 2 == 0 else -0.12)
-		var t2_base = head_center + Vector2.from_angle(ha2) * 8.7
-		var t2_tip = t2_base + Vector2.from_angle(ha2) * (tlen * 0.6) + Vector2(hair_sway * sway_d * 0.2 + s_wave * 0.5, 0)
-		draw_line(t2_base, t2_tip, hair_base_col, twid * 0.5)
-		# Tertiary wisp between main tufts
-		if h % 2 == 0:
-			var ha3 = ha + 0.2
-			var t3_base = head_center + Vector2.from_angle(ha3) * 9.0
-			var t3_tip = t3_base + Vector2.from_angle(ha3) * (tlen * 0.35) + Vector2(hair_sway * 0.15, 0)
-			draw_line(t3_base, t3_tip, Color(hair_hi_col.r, hair_hi_col.g, hair_hi_col.b, 0.5), twid * 0.35)
-	# Rakish fringe — strands falling across forehead
-	for fri in range(3):
-		var fr_x = -3.0 + float(fri) * 2.5
-		var fr_base = head_center + Vector2(fr_x, -8.5)
-		var fr_wave = sin(_time * 2.0 + float(fri) * 1.3) * 0.8
-		var fr_tip = fr_base + Vector2(fr_wave, 6.0 + float(fri) * 0.8)
-		draw_line(fr_base, fr_tip, hair_mid_col, 1.4 - float(fri) * 0.15)
-		# Fringe highlight
-		draw_line(fr_base, fr_base.lerp(fr_tip, 0.6), hair_hi_col, 0.7)
+	# === HEAD (big Bloons TD round head ~45% of height) ===
 
-	# Face (strong masculine shape)
-	draw_circle(head_center + Vector2(0, 0.8), 9.1, skin_base)
-	# Strong jawline — defined angular lines from ears to squared chin
-	draw_line(head_center + Vector2(-8.5, 1), head_center + Vector2(-5, 7.5), Color(0.65, 0.48, 0.35, 0.35), 1.5)
-	draw_line(head_center + Vector2(8.5, 1), head_center + Vector2(5, 7.5), Color(0.65, 0.48, 0.35, 0.35), 1.5)
-	# Under-cheekbone shadow arcs (angular definition)
-	draw_arc(head_center + Vector2(-5.5, 1.8), 4.0, PI * 0.1, PI * 0.55, 8, Color(0.62, 0.44, 0.32, 0.2), 1.2)
-	draw_arc(head_center + Vector2(5.5, 1.8), 4.0, PI * 0.45, PI * 0.9, 8, Color(0.62, 0.44, 0.32, 0.2), 1.2)
-	# Cheekbone highlight arcs
-	draw_arc(head_center + Vector2(-5.0, 0.6), 3.5, PI * 1.15, PI * 1.6, 8, Color(0.96, 0.82, 0.68, 0.25), 1.0)
-	draw_arc(head_center + Vector2(5.0, 0.6), 3.5, PI * 1.4, PI * 1.85, 8, Color(0.96, 0.82, 0.68, 0.25), 1.0)
-	# Chin — squared, masculine with cleft
-	draw_line(head_center + Vector2(-5, 7.5), head_center + Vector2(5, 7.5), Color(0.65, 0.48, 0.35, 0.25), 1.2)
-	draw_circle(head_center + Vector2(0, 7.5), 3.0, skin_base)
-	draw_circle(head_center + Vector2(0, 7.8), 2.2, skin_highlight)
-	# Chin cleft
-	draw_line(head_center + Vector2(0, 7.0), head_center + Vector2(0, 8.2), Color(0.65, 0.48, 0.35, 0.2), 0.8)
-	draw_circle(head_center + Vector2(0, 7.5), 0.6, Color(0.72, 0.54, 0.42, 0.15))
-	# Slight weathering (outdoor skin)
-	draw_arc(head_center + Vector2(0, 0), 7.1, PI * 0.7, PI * 1.3, 10, Color(0.82, 0.66, 0.50, 0.15), 2.0)
+	# --- Auburn hair mass (back layer, behind face) ---
+	var hair_sway = sin(_time * 2.5) * 1.5
+	draw_circle(head_center, 14.5, OL)
+	draw_circle(head_center, 13.0, hair_dark)
+	draw_circle(head_center + Vector2(0, -1), 12.0, hair_auburn)
+	# Messy hair tufts sticking out
+	for ti in range(6):
+		var ta = 0.4 + float(ti) * 0.8 + sin(_time * 1.5 + float(ti)) * 0.1
+		var tuft_p = head_center + Vector2.from_angle(ta) * 12.5
+		var tuft_tip = tuft_p + Vector2.from_angle(ta) * (4.0 + sin(_time * 2.0 + float(ti) * 1.5) * 1.0) + Vector2(hair_sway * 0.3, 0)
+		draw_line(tuft_p, tuft_tip, OL, 3.5)
+		draw_line(tuft_p, tuft_tip, hair_auburn, 2.0)
+	# Side tufts at ears
+	draw_circle(head_center + Vector2(-11, 3), 4.0, OL)
+	draw_circle(head_center + Vector2(-11, 3), 3.0, hair_auburn)
+	draw_circle(head_center + Vector2(11, 3), 4.0, OL)
+	draw_circle(head_center + Vector2(11, 3), 3.0, hair_auburn)
 
-	# Ears (partially visible under hair/cap)
-	# Right ear
-	var r_ear = head_center + Vector2(8.7, -0.8)
-	draw_circle(r_ear, 2.4, skin_base)
-	draw_circle(r_ear + Vector2(0.4, 0), 1.6, Color(0.88, 0.68, 0.55, 0.5))
-	draw_arc(r_ear, 2.0, -0.5, 1.0, 6, skin_shadow, 0.8)
-	# Left ear
-	var l_ear = head_center + Vector2(-8.7, -0.8)
-	draw_circle(l_ear, 2.4, skin_base)
-	draw_circle(l_ear + Vector2(-0.4, 0), 1.6, Color(0.88, 0.68, 0.55, 0.5))
-	draw_arc(l_ear, 2.0, PI - 0.5, PI + 1.0, 6, skin_shadow, 0.8)
+	# --- Face (big round) ---
+	draw_circle(head_center + Vector2(0, 1), 11.5, OL)
+	draw_circle(head_center + Vector2(0, 1), 10.2, skin_base)
+	# Face highlight
+	draw_circle(head_center + Vector2(-1.5, -1), 5.0, skin_highlight)
 
-	# Short stubbly beard / 5 o'clock shadow on jawline
-	var stubble_c = head_center + Vector2(0, 4.7)
-	draw_arc(stubble_c, 4.7, 0.3, PI - 0.3, 10, Color(0.40, 0.26, 0.16, 0.2), 2.0)
-	# Individual stubble dots — dense coverage across jaw area
-	for sti in range(12):
-		var st_a = 0.35 + float(sti) * (PI - 0.7) / 11.0
-		var st_r = 3.6 + sin(float(sti) * 2.1) * 0.9
-		var st_pos = stubble_c + Vector2.from_angle(st_a) * st_r
-		draw_circle(st_pos, 0.4, Color(0.38, 0.24, 0.14, 0.25))
-	for sti in range(9):
-		var st_a = 0.45 + float(sti) * (PI - 0.9) / 8.0
-		var st_r = 2.8 + cos(float(sti) * 1.8) * 0.6
-		var st_pos = stubble_c + Vector2.from_angle(st_a) * st_r
-		draw_circle(st_pos, 0.3, Color(0.36, 0.22, 0.12, 0.2))
-	# Extra stubble along jawline edges
-	for sti in range(6):
-		var jx = -5.0 + float(sti) * 2.0
-		var jy = 6.5 + sin(float(sti) * 1.5) * 0.5
-		draw_circle(head_center + Vector2(jx, jy), 0.35, Color(0.38, 0.24, 0.14, 0.18))
-	# Chin stubble (thicker patch)
-	draw_arc(head_center + Vector2(0, 7.1), 2.4, 0.5, PI - 0.5, 6, Color(0.38, 0.24, 0.14, 0.22), 1.5)
-	# Extra chin dots
-	for ci in range(4):
-		var cx = -1.0 + float(ci) * 0.7
-		draw_circle(head_center + Vector2(cx, 7.6 + sin(float(ci)) * 0.4), 0.3, Color(0.36, 0.22, 0.12, 0.2))
+	# --- Ears ---
+	draw_circle(head_center + Vector2(-10, 0), 3.0, OL)
+	draw_circle(head_center + Vector2(-10, 0), 2.0, skin_base)
+	draw_circle(head_center + Vector2(10, 0), 3.0, OL)
+	draw_circle(head_center + Vector2(10, 0), 2.0, skin_base)
 
-	# Green eyes that track aim direction (scaled for smaller head)
-	var look_dir = dir * 1.2
-	var l_eye = head_center + Vector2(-3.9, -0.8)
-	var r_eye = head_center + Vector2(3.9, -0.8)
-	# Eye socket shadow
-	draw_circle(l_eye, 4.3, Color(0.72, 0.56, 0.44, 0.25))
-	draw_circle(r_eye, 4.3, Color(0.72, 0.56, 0.44, 0.25))
+	# --- Big cartoon eyes ---
+	var look_dir = dir * 1.5
+	var l_eye = head_center + Vector2(-4.0, -1.0)
+	var r_eye = head_center + Vector2(4.0, -1.0)
+	# Eye outlines (big Bloons size)
+	draw_circle(l_eye, 5.5, OL)
+	draw_circle(r_eye, 5.5, OL)
 	# Eye whites
-	draw_circle(l_eye, 3.9, Color(0.96, 0.96, 0.98))
-	draw_circle(r_eye, 3.9, Color(0.96, 0.96, 0.98))
+	draw_circle(l_eye, 4.5, Color(0.98, 0.98, 1.0))
+	draw_circle(r_eye, 4.5, Color(0.98, 0.98, 1.0))
 	# Green irises (following aim)
-	draw_circle(l_eye + look_dir, 2.5, Color(0.10, 0.42, 0.15))
-	draw_circle(l_eye + look_dir, 2.0, Color(0.16, 0.58, 0.22))
-	draw_circle(l_eye + look_dir, 1.4, Color(0.22, 0.65, 0.28))
-	draw_circle(r_eye + look_dir, 2.5, Color(0.10, 0.42, 0.15))
-	draw_circle(r_eye + look_dir, 2.0, Color(0.16, 0.58, 0.22))
-	draw_circle(r_eye + look_dir, 1.4, Color(0.22, 0.65, 0.28))
-	# Limbal ring (gold-green)
-	draw_arc(l_eye + look_dir, 2.4, 0, TAU, 10, Color(0.55, 0.48, 0.12, 0.25), 0.5)
-	draw_arc(r_eye + look_dir, 2.4, 0, TAU, 10, Color(0.55, 0.48, 0.12, 0.25), 0.5)
-	# Iris radial detail (Phantom-style ring detail)
-	for iri in range(8):
-		var ir_a = TAU * float(iri) / 8.0
-		var ir_v = Vector2.from_angle(ir_a)
-		draw_line(l_eye + look_dir + ir_v * 0.5, l_eye + look_dir + ir_v * 1.5, Color(0.14, 0.48, 0.18, 0.25), 0.4)
-		draw_line(r_eye + look_dir + ir_v * 0.5, r_eye + look_dir + ir_v * 1.5, Color(0.14, 0.48, 0.18, 0.25), 0.4)
-	# Inner iris ring (bright green)
-	draw_arc(l_eye + look_dir, 1.0, 0, TAU, 10, Color(0.30, 0.70, 0.35, 0.3), 0.4)
-	draw_arc(r_eye + look_dir, 1.0, 0, TAU, 10, Color(0.30, 0.70, 0.35, 0.3), 0.4)
-	# Pupils
-	draw_circle(l_eye + look_dir * 1.15, 1.2, Color(0.05, 0.05, 0.07))
-	draw_circle(r_eye + look_dir * 1.15, 1.2, Color(0.05, 0.05, 0.07))
-	# Primary highlight (big sparkle — boosted)
-	draw_circle(l_eye + Vector2(-0.9, -1.2), 1.3, Color(1.0, 1.0, 1.0, 0.92))
-	draw_circle(r_eye + Vector2(-0.9, -1.2), 1.3, Color(1.0, 1.0, 1.0, 0.92))
-	# Secondary highlight (boosted)
-	draw_circle(l_eye + Vector2(1.2, 0.4), 0.7, Color(1.0, 1.0, 1.0, 0.55))
-	draw_circle(r_eye + Vector2(1.2, 0.4), 0.7, Color(1.0, 1.0, 1.0, 0.55))
-	# Tertiary green glint highlight
-	draw_circle(l_eye + Vector2(0.5, -1.5), 0.35, Color(0.6, 1.0, 0.7, 0.3))
-	draw_circle(r_eye + Vector2(0.5, -1.5), 0.35, Color(0.6, 1.0, 0.7, 0.3))
-	# Keen archer glint (focused green)
-	var glint_t = sin(_time * 2.0) * 0.2
-	draw_circle(l_eye + Vector2(0.4, -0.4), 0.4, Color(0.3, 0.8, 0.4, 0.2 + glint_t))
-	draw_circle(r_eye + Vector2(0.4, -0.4), 0.4, Color(0.3, 0.8, 0.4, 0.2 + glint_t))
-	# Upper eyelids (slightly narrowed — focused look)
-	draw_arc(l_eye, 3.9, PI + 0.25, TAU - 0.25, 8, Color(0.38, 0.22, 0.10), 1.3)
-	draw_arc(r_eye, 3.9, PI + 0.25, TAU - 0.25, 8, Color(0.38, 0.22, 0.10), 1.3)
-	# Eyelashes (subtle — masculine but defined)
-	for el in range(2):
-		var ela = PI + 0.45 + float(el) * 0.65
-		draw_line(l_eye + Vector2.from_angle(ela) * 3.9, l_eye + Vector2.from_angle(ela) * 5.1, Color(0.35, 0.20, 0.10, 0.4), 0.6)
-		draw_line(r_eye + Vector2.from_angle(ela) * 3.9, r_eye + Vector2.from_angle(ela) * 5.1, Color(0.35, 0.20, 0.10, 0.4), 0.6)
-	# Lower eyelid line
-	draw_arc(l_eye, 3.6, 0.3, PI - 0.3, 8, Color(0.50, 0.38, 0.28, 0.25), 0.5)
-	draw_arc(r_eye, 3.6, 0.3, PI - 0.3, 8, Color(0.50, 0.38, 0.28, 0.25), 0.5)
+	draw_circle(l_eye + look_dir, 3.0, Color(0.10, 0.45, 0.15))
+	draw_circle(l_eye + look_dir, 2.2, Color(0.18, 0.60, 0.22))
+	draw_circle(r_eye + look_dir, 3.0, Color(0.10, 0.45, 0.15))
+	draw_circle(r_eye + look_dir, 2.2, Color(0.18, 0.60, 0.22))
+	# Black pupils
+	draw_circle(l_eye + look_dir * 1.1, 1.4, Color(0.04, 0.04, 0.06))
+	draw_circle(r_eye + look_dir * 1.1, 1.4, Color(0.04, 0.04, 0.06))
+	# Big white sparkle highlights
+	draw_circle(l_eye + Vector2(-1.2, -1.5), 1.5, Color(1.0, 1.0, 1.0, 0.95))
+	draw_circle(r_eye + Vector2(-1.2, -1.5), 1.5, Color(1.0, 1.0, 1.0, 0.95))
+	# Small secondary sparkle
+	draw_circle(l_eye + Vector2(1.5, 0.8), 0.7, Color(1.0, 1.0, 1.0, 0.6))
+	draw_circle(r_eye + Vector2(1.5, 0.8), 0.7, Color(1.0, 1.0, 1.0, 0.6))
 
-	# Eyebrows — bold, one slightly cocked (roguish confidence)
-	# Left brow (arched higher — cocky raised brow)
-	draw_line(l_eye + Vector2(-3.2, -4.3), l_eye + Vector2(0, -5.1), Color(0.40, 0.24, 0.12), 1.8)
-	draw_line(l_eye + Vector2(0, -5.1), l_eye + Vector2(2.8, -3.9), Color(0.40, 0.24, 0.12), 1.3)
+	# --- Brown eyebrows (bold, one cocked for confidence) ---
+	# Left brow (raised higher — cocky)
+	draw_line(l_eye + Vector2(-3.5, -5.5), l_eye + Vector2(2.5, -5.0), OL, 2.8)
+	draw_line(l_eye + Vector2(-3.0, -5.5), l_eye + Vector2(2.0, -5.0), hair_auburn, 1.8)
 	# Right brow (slightly lower — asymmetric for character)
-	draw_line(r_eye + Vector2(-2.8, -3.9), r_eye + Vector2(0, -4.7), Color(0.40, 0.24, 0.12), 1.8)
-	draw_line(r_eye + Vector2(0, -4.7), r_eye + Vector2(3.2, -3.6), Color(0.40, 0.24, 0.12), 1.3)
-	# Brow hair texture
-	for bhi in range(3):
-		var bht = float(bhi) / 2.0
-		var bh_l = (l_eye + Vector2(-2.8, -4.3)).lerp(l_eye + Vector2(2.4, -4.3), bht)
-		draw_line(bh_l, bh_l + Vector2(0.4, -0.6), Color(0.42, 0.28, 0.14, 0.35), 0.5)
-		var bh_r = (r_eye + Vector2(-2.4, -3.9)).lerp(r_eye + Vector2(2.8, -3.9), bht)
-		draw_line(bh_r, bh_r + Vector2(-0.4, -0.6), Color(0.42, 0.28, 0.14, 0.35), 0.5)
+	draw_line(r_eye + Vector2(-2.5, -4.8), r_eye + Vector2(3.5, -4.5), OL, 2.8)
+	draw_line(r_eye + Vector2(-2.0, -4.8), r_eye + Vector2(3.0, -4.5), hair_auburn, 1.8)
 
-	# Nose (strong, slightly aquiline — handsome rogue)
-	draw_circle(head_center + Vector2(0, 2.8), 1.6, skin_highlight)
-	draw_circle(head_center + Vector2(0.2, 3.0), 1.2, Color(0.92, 0.76, 0.62))
-	# Nose bridge highlight
-	draw_line(head_center + Vector2(0, 0), head_center + Vector2(0, 2.4), Color(0.94, 0.80, 0.66, 0.3), 0.7)
-	# Nostrils
-	draw_circle(head_center + Vector2(-0.9, 3.3), 0.5, Color(0.55, 0.40, 0.30, 0.4))
-	draw_circle(head_center + Vector2(0.9, 3.3), 0.5, Color(0.55, 0.40, 0.30, 0.4))
-	# Nose shadow (side)
-	draw_line(head_center + Vector2(-0.8, 1.2), head_center + Vector2(-0.9, 2.8), Color(0.62, 0.45, 0.32, 0.25), 0.6)
+	# --- Nose (simple cartoon bump) ---
+	draw_circle(head_center + Vector2(0, 3.0), 2.0, OL)
+	draw_circle(head_center + Vector2(0, 3.0), 1.3, skin_highlight)
 
-	# Cheek blush (weathered outdoorsman)
-	draw_circle(head_center + Vector2(-5.5, 2.4), 2.8, Color(0.90, 0.55, 0.45, 0.15))
-	draw_circle(head_center + Vector2(5.5, 2.4), 2.8, Color(0.90, 0.55, 0.45, 0.15))
+	# --- Confident smirk ---
+	draw_arc(head_center + Vector2(0.5, 6.0), 4.0, 0.15, PI - 0.3, 10, OL, 2.0)
+	draw_arc(head_center + Vector2(0.5, 6.0), 4.0, 0.2, PI - 0.35, 10, Color(0.65, 0.25, 0.18), 1.2)
+	# Smirk upturn on right side
+	draw_line(head_center + Vector2(4.0, 5.5), head_center + Vector2(5.2, 4.2), OL, 1.8)
+	draw_line(head_center + Vector2(4.0, 5.5), head_center + Vector2(5.0, 4.4), Color(0.65, 0.25, 0.18), 1.0)
+	# Flash of teeth behind smirk
+	draw_arc(head_center + Vector2(0.5, 6.2), 3.0, 0.3, PI - 0.5, 8, Color(0.98, 0.96, 0.92), 1.5)
 
-	# Confident cocky smirk (wider, more dashing)
-	draw_arc(head_center + Vector2(0.6, 5.4), 4.8, 0.15, PI - 0.35, 14, Color(0.58, 0.28, 0.20), 1.6)
-	# Teeth showing (flash of white behind smirk)
-	for thi in range(4):
-		var tooth_x = -1.5 + float(thi) * 1.1
-		draw_circle(head_center + Vector2(tooth_x, 5.6), 0.6, Color(0.98, 0.96, 0.92))
-	# Asymmetric smirk upturn (right side curves up more — deeply cocky)
-	draw_line(head_center + Vector2(4.0, 4.8), head_center + Vector2(5.8, 3.4), Color(0.58, 0.28, 0.20, 0.55), 1.2)
-	# Lower lip subtle definition
-	draw_arc(head_center + Vector2(0.4, 5.8), 3.2, 0.3, PI - 0.5, 8, Color(0.72, 0.42, 0.32, 0.15), 0.8)
-	# Dimple at smirk corner (deeper)
-	draw_circle(head_center + Vector2(5.6, 3.8), 0.9, Color(0.78, 0.56, 0.44, 0.4))
-	draw_circle(head_center + Vector2(-4.5, 5.0), 0.9, Color(0.78, 0.56, 0.44, 0.28))
-	# Laugh lines (slight, adds character to weathered face)
-	draw_arc(head_center + Vector2(-3.9, 2.0), 3.2, PI * 0.5, PI * 0.85, 4, Color(0.65, 0.48, 0.35, 0.1), 0.5)
-	draw_arc(head_center + Vector2(3.9, 2.0), 3.2, PI * 0.15, PI * 0.5, 4, Color(0.65, 0.48, 0.35, 0.1), 0.5)
-
-	# === Robin Hood feathered cap/hood ===
-	var hat_base = head_center + Vector2(0, -7)
-	var hat_tip = hat_base + Vector2(12, -16)
-	# Hat shape (pointed like classic Robin Hood cap, slightly structured)
-	var hat_pts = PackedVector2Array([
-		hat_base + Vector2(-9.5, 2),
-	])
-	# Curved brim
-	for hbi in range(5):
-		var ht = float(hbi) / 4.0
-		var brim_pos = hat_base + Vector2(-9.5 + ht * 19.0, 2.0 + sin(ht * PI) * 2.4)
-		hat_pts.append(brim_pos)
-	hat_pts.append(hat_tip)
-	draw_colored_polygon(hat_pts, Color(0.16, 0.44, 0.10))
-	# Hat depth shading (darker left side)
-	var hat_shade = PackedVector2Array([
-		hat_base + Vector2(-8, 1),
-		hat_base + Vector2(3, 1),
-		hat_tip + Vector2(-2, 1),
-	])
-	draw_colored_polygon(hat_shade, Color(0.12, 0.36, 0.06, 0.4))
-	# Hat highlight (right side catches light)
-	var hat_hl = PackedVector2Array([
-		hat_base + Vector2(3, 1),
-		hat_base + Vector2(9.5, 1),
-		hat_tip + Vector2(1, -1),
-	])
-	draw_colored_polygon(hat_hl, Color(0.22, 0.54, 0.16, 0.2))
+	# === FEATHERED CAP (iconic pointed hat) ===
+	var hat_base = head_center + Vector2(0, -8)
+	var hat_tip = hat_base + Vector2(10, -14)
+	# Hat outline polygon
+	draw_colored_polygon(PackedVector2Array([
+		hat_base + Vector2(-11, 3), hat_base + Vector2(11, 3), hat_tip,
+	]), OL)
+	# Hat fill
+	draw_colored_polygon(PackedVector2Array([
+		hat_base + Vector2(-9.5, 2), hat_base + Vector2(9.5, 2),
+		hat_tip + Vector2(-0.5, 0.8),
+	]), tunic_green)
+	# Hat highlight
+	draw_colored_polygon(PackedVector2Array([
+		hat_base + Vector2(3, 2), hat_base + Vector2(9, 2),
+		hat_tip + Vector2(0, 1),
+	]), Color(0.22, 0.62, 0.18, 0.35))
 	# Hat brim line
-	draw_line(hat_base + Vector2(-10, 2), hat_base + Vector2(10, 2), Color(0.12, 0.36, 0.06), 3.0)
-	draw_line(hat_base + Vector2(-10, 2.5), hat_base + Vector2(10, 2.5), Color(0.22, 0.48, 0.14), 1.8)
-	# Hat band (thin darker band above brim)
-	draw_line(hat_base + Vector2(-9.5, 0), hat_base + Vector2(9.5, 0), Color(0.10, 0.30, 0.06), 2.0)
-	draw_line(hat_base + Vector2(-9, -0.5), hat_base + Vector2(9, -0.5), Color(0.14, 0.36, 0.08, 0.5), 1.0)
-	# Hat fold/crease lines
-	draw_line(hat_base + Vector2(2, 0), hat_tip + Vector2(-1, 1), Color(0.10, 0.30, 0.06, 0.45), 0.8)
-	draw_line(hat_base + Vector2(-3, 0), hat_tip + Vector2(-3, 3), Color(0.10, 0.30, 0.06, 0.3), 0.7)
-	# Hat outline
-	draw_line(hat_base + Vector2(-9.5, 2), hat_tip, Color(0.10, 0.28, 0.05, 0.45), 0.8)
-	draw_line(hat_base + Vector2(9.5, 2), hat_tip, Color(0.10, 0.28, 0.05, 0.45), 0.8)
-	# Tip of hat (droops slightly)
-	draw_circle(hat_tip, 1.8, Color(0.14, 0.40, 0.08))
-	draw_circle(hat_tip, 1.1, Color(0.18, 0.46, 0.12))
+	draw_line(hat_base + Vector2(-11, 3), hat_base + Vector2(11, 3), OL, 3.5)
+	draw_line(hat_base + Vector2(-10, 3), hat_base + Vector2(10, 3), Color(0.12, 0.42, 0.08), 2.0)
+	# Hat band
+	draw_line(hat_base + Vector2(-9.5, 1), hat_base + Vector2(9.5, 1), OL, 2.5)
+	draw_line(hat_base + Vector2(-9, 1), hat_base + Vector2(9, 1), tunic_dark, 1.5)
+	# Tip circle
+	draw_circle(hat_tip, 2.2, OL)
+	draw_circle(hat_tip, 1.4, tunic_green)
 
-	# Red feather on hat (classic Robin Hood detail — extended 15%)
+	# --- Red feather on hat ---
 	var feather_bob = sin(_time * 3.0) * 1.5
-	var feather_base = hat_base + Vector2(6, -1)
-	var feather_tip = feather_base + Vector2(18.5, -12.5 + feather_bob)
-	var feather_mid = feather_base + (feather_tip - feather_base) * 0.5
-	# Quill (rachis)
-	draw_line(feather_base, feather_tip, Color(0.72, 0.10, 0.06), 2.0)
-	# Feather body (red plume — wider)
-	draw_line(feather_base + (feather_tip - feather_base) * 0.1, feather_tip - (feather_tip - feather_base) * 0.05, Color(0.88, 0.16, 0.08), 5.0)
-	draw_line(feather_mid, feather_tip, Color(0.92, 0.22, 0.12), 3.5)
-	# Feather barbs (diagonal lines off spine — 9 barbs)
+	var feather_base = hat_base + Vector2(5, 0)
+	var feather_tip = feather_base + Vector2(16, -11 + feather_bob)
+	# Feather quill: outline then fill
+	draw_line(feather_base, feather_tip, OL, 3.5)
+	draw_line(feather_base, feather_tip, Color(0.88, 0.16, 0.08), 2.0)
+	# Feather body (wider red plume)
+	draw_line(feather_base.lerp(feather_tip, 0.1), feather_tip, OL, 6.5)
+	draw_line(feather_base.lerp(feather_tip, 0.12), feather_tip - (feather_tip - feather_base).normalized() * 0.5, Color(0.90, 0.18, 0.10), 4.5)
+	# Feather barbs
 	var f_d = (feather_tip - feather_base).normalized()
 	var f_p = f_d.rotated(PI / 2.0)
-	for fbi in range(9):
-		var bt = 0.08 + float(fbi) * 0.10
+	for fbi in range(6):
+		var bt = 0.1 + float(fbi) * 0.14
 		var barb_o = feather_base + (feather_tip - feather_base) * bt
-		var blen = 4.0 - abs(float(fbi) - 4.0) * 0.35
-		draw_line(barb_o, barb_o + f_p * blen + f_d * 1.2, Color(0.85, 0.14, 0.06, 0.8), 0.9)
-		draw_line(barb_o, barb_o - f_p * blen + f_d * 1.2, Color(0.85, 0.14, 0.06, 0.8), 0.9)
-	# Feather shine
-	draw_line(feather_mid + f_p * 0.3, feather_mid + f_d * 5.0, Color(0.95, 0.40, 0.30, 0.35), 1.0)
-	# Feather tip sway
-	draw_line(feather_tip, feather_tip + f_p * sin(_time * 3.0) * 2.0 + f_d * 2.5, Color(0.85, 0.18, 0.10, 0.4), 1.0)
-	# Quill base (white)
-	draw_circle(feather_base, 1.0, Color(0.92, 0.88, 0.78))
+		var blen = 3.5 - abs(float(fbi) - 2.5) * 0.4
+		draw_line(barb_o, barb_o + f_p * blen, Color(0.85, 0.14, 0.06, 0.7), 1.0)
+		draw_line(barb_o, barb_o - f_p * blen, Color(0.85, 0.14, 0.06, 0.7), 1.0)
+	# Quill base
+	draw_circle(feather_base, 1.5, OL)
+	draw_circle(feather_base, 0.8, Color(0.92, 0.88, 0.78))
 
-	# Tier 4: Golden feather overlaid
+	# Tier 4: Golden feather overlay
 	if upgrade_tier >= 4:
-		var gold_tip = feather_base + Vector2(18, -13 + feather_bob)
+		var gold_tip = feather_base + Vector2(16, -12 + feather_bob)
 		draw_line(feather_base, gold_tip, Color(1.0, 0.85, 0.2), 2.5)
-		draw_line(feather_base, gold_tip, Color(1.0, 0.95, 0.5, 0.35), 1.0)
-		var gf_d = (gold_tip - feather_base).normalized()
-		var gf_p = gf_d.rotated(PI / 2.0)
-		for gbi in range(6):
-			var gbt = 0.1 + float(gbi) * 0.14
-			var gb_o = feather_base + (gold_tip - feather_base) * gbt
-			var gb_scale = 1.0 - gbt * 0.25
-			draw_line(gb_o, gb_o + gf_p * 3.0 * gb_scale + gf_d * 1.0, Color(1.0, 0.9, 0.35, 0.7), 1.2 * gb_scale)
-			draw_line(gb_o, gb_o - gf_p * 2.5 * gb_scale + gf_d * 0.8, Color(0.9, 0.75, 0.2, 0.5), 0.8 * gb_scale)
-		# Gold feather glow
-		var gf_glow = 0.1 + sin(_time * 3.0) * 0.05
-		draw_circle(feather_base.lerp(gold_tip, 0.5), 5.0, Color(1.0, 0.9, 0.3, gf_glow))
+		draw_line(feather_base, gold_tip, Color(1.0, 0.95, 0.5, 0.4), 1.2)
+		draw_circle(feather_base.lerp(gold_tip, 0.5), 4.0, Color(1.0, 0.9, 0.3, 0.1 + sin(_time * 3.0) * 0.05))
 
 	# === Tier 4: Golden-green aura around whole character ===
 	if upgrade_tier >= 4:
-		var aura_pulse = sin(_time * 2.5) * 5.0
-		draw_circle(body_offset, 60.0 + aura_pulse, Color(0.4, 0.8, 0.3, 0.04))
-		draw_circle(body_offset, 50.0 + aura_pulse * 0.6, Color(0.5, 0.85, 0.35, 0.06))
-		draw_circle(body_offset, 42.0 + aura_pulse * 0.3, Color(1.0, 0.90, 0.4, 0.06))
-		draw_arc(body_offset, 56.0 + aura_pulse, 0, TAU, 32, Color(0.4, 0.8, 0.35, 0.15), 2.5)
-		draw_arc(body_offset, 46.0 + aura_pulse * 0.5, 0, TAU, 24, Color(1.0, 0.90, 0.4, 0.08), 1.8)
-		# Orbiting golden-green sparkles
-		for gs in range(6):
-			var gs_a = _time * (0.7 + float(gs % 3) * 0.25) + float(gs) * TAU / 6.0
-			var gs_r = 46.0 + aura_pulse + float(gs % 3) * 3.5
+		var aura_pulse = sin(_time * 2.5) * 4.0
+		draw_circle(body_offset, 52.0 + aura_pulse, Color(0.4, 0.8, 0.3, 0.05))
+		draw_circle(body_offset, 44.0 + aura_pulse * 0.6, Color(0.5, 0.85, 0.35, 0.07))
+		draw_arc(body_offset, 48.0 + aura_pulse, 0, TAU, 32, Color(0.4, 0.8, 0.35, 0.15), 2.5)
+		draw_arc(body_offset, 40.0 + aura_pulse * 0.5, 0, TAU, 24, Color(1.0, 0.90, 0.4, 0.08), 1.8)
+		for gs in range(5):
+			var gs_a = _time * (0.7 + float(gs % 3) * 0.25) + float(gs) * TAU / 5.0
+			var gs_r = 40.0 + aura_pulse + float(gs % 3) * 3.0
 			var gs_p = body_offset + Vector2.from_angle(gs_a) * gs_r
-			var gs_size = 1.3 + sin(_time * 3.0 + float(gs) * 1.5) * 0.6
+			var gs_size = 1.5 + sin(_time * 3.0 + float(gs) * 1.5) * 0.6
 			var gs_alpha = 0.3 + sin(_time * 3.0 + float(gs)) * 0.18
 			draw_circle(gs_p, gs_size, Color(0.5, 0.9, 0.4, gs_alpha))
 
@@ -1794,12 +1274,12 @@ func _draw() -> void:
 		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
 		draw_circle(Vector2.ZERO, 68.0 + pulse * 6.0, Color(0.3, 0.7, 0.2, 0.1 + pulse * 0.1))
 		draw_arc(Vector2.ZERO, 68.0 + pulse * 6.0, 0, TAU, 32, Color(0.3, 0.7, 0.2, 0.3 + pulse * 0.3), 2.5)
-		var font3 = ThemeDB.fallback_font
+		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -80), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.3, 0.7, 0.2, 0.7 + pulse * 0.3))
 
 	# === 22. DAMAGE COUNTER ===
 	if damage_dealt > 0:
-		var font = ThemeDB.fallback_font
+		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
 			dmg_text += " • Lv." + str(stat_upgrade_level)
@@ -1807,7 +1287,7 @@ func _draw() -> void:
 
 	# === 23. UPGRADE NAME FLASH ===
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
-		var font2 = ThemeDB.fallback_font
+		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -72), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.3, 0.7, 0.2, min(_upgrade_flash, 1.0)))
 
 # === SYNERGY BUFFS ===

@@ -1,10 +1,10 @@
 extends Node2D
 ## Alice — support tower. Throws cake that slows and shrinks all nearby enemies.
 ## Based on Lewis Carroll's Alice's Adventures in Wonderland (1865) & Tenniel illustrations.
-## Tier 1: "Eat Me Cake" — Frosting damages enemies (3 DPS while slowed), wider range
-## Tier 2: "Cheshire Cat" — periodically stuns a random enemy
-## Tier 3: "Mad Tea Party" — teacup volley AoE every 15s
-## Tier 4: "Off With Their Heads!" — instant kill enemies below 15% HP
+## Tier 1: "Eat Me Cake" — Cake 10% more sticky, slows enemies more
+## Tier 2: "Cheshire Cat" — 10 second drum solo (pure vibes, no combat effect)
+## Tier 3: "Mad Tea Party" — Towers in range drink tea, +3% fire rate
+## Tier 4: "Off With Their Heads!" — Paints ALL enemies red, low DoT as they walk
 
 var damage: float = 2.0
 var fire_rate: float = 1.0
@@ -88,12 +88,12 @@ const TIER_NAMES = [
 	"Off With Their Heads!"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Frosting DoT (3 DPS), wider range",
-	"Periodically stuns a random enemy",
-	"Teacup volley AoE every 15s",
-	"Instant kill enemies below 15% HP"
+	"Cake 10% more sticky, slows enemies more",
+	"10 second drum solo (pure vibes)",
+	"Towers in range drink tea, +3% fire rate",
+	"Paints all enemies red, low DoT as they walk"
 ]
-const TIER_COSTS = [70, 150, 275, 475]
+const TIER_COSTS = [70, 150, 275, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -110,8 +110,12 @@ var _tea_sound: AudioStreamWAV
 var _tea_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+var _game_font: Font
 
 func _ready() -> void:
+	var _ff := FontFile.new()
+	_ff.data = FileAccess.get_file_as_bytes("res://fonts/Cinzel.ttf")
+	_game_font = _ff
 	add_to_group("towers")
 	_load_progressive_abilities()
 	_generate_tier_sounds()
@@ -121,21 +125,111 @@ func _ready() -> void:
 	_attack_player.volume_db = -4.0
 	add_child(_attack_player)
 
-	# Cheshire stun — eerie sliding giggle with pitch wobble
-	var ch_rate := 22050
-	var ch_dur := 0.4
+	# Cheshire Cat — EPIC 10-second drum solo (4 phases building to crescendo)
+	var ch_rate := 44100
+	var ch_dur := 10.0
 	var ch_samples := PackedFloat32Array()
 	ch_samples.resize(int(ch_rate * ch_dur))
+	var bpm := 130.0
+	var beat_s := 60.0 / bpm  # ~0.46s per beat
+	# Grid: 16th notes for precise drum hits
+	var sixteenth := beat_s / 4.0
+	var total_16ths := int(ch_dur / sixteenth)
+	# Pre-compute which 16th notes have hits (kick/snare/hat/tom/crash)
+	# Phase 1 (0-2.5s): Simple groove — kick+hat
+	# Phase 2 (2.5-5s): Add snare, open hats
+	# Phase 3 (5-7.5s): Double-time, toms, fills
+	# Phase 4 (7.5-10s): Full blast, rolls, crash finale
 	for i in ch_samples.size():
 		var t := float(i) / ch_rate
-		var freq := 600.0 + sin(TAU * 8.0 * t) * 200.0 + t * 300.0
-		var am := 0.5 + 0.5 * sin(TAU * 12.0 * t)
-		var env := (1.0 - t / ch_dur) * 0.4
-		ch_samples[i] = clampf(sin(TAU * freq * t) * am * env, -1.0, 1.0)
+		var s := 0.0
+		var phase := 0
+		if t >= 7.5: phase = 3
+		elif t >= 5.0: phase = 2
+		elif t >= 2.5: phase = 1
+		var vol := 0.4 + float(phase) * 0.15  # Gets louder each phase
+
+		# KICK DRUM
+		var kick_grid := fmod(t, beat_s)
+		var kick2_grid := fmod(t + beat_s * 0.5, beat_s)  # offbeat kick
+		if kick_grid < 0.12:
+			var kenv := exp(-kick_grid * 22.0) * 0.55 * vol
+			var kf := 55.0 + exp(-kick_grid * 35.0) * 140.0
+			s += sin(TAU * kf * kick_grid) * kenv
+		# Double kick on phase 2+
+		if phase >= 2 and kick2_grid < 0.12:
+			var kenv2 := exp(-kick2_grid * 25.0) * 0.35 * vol
+			var kf2 := 50.0 + exp(-kick2_grid * 40.0) * 120.0
+			s += sin(TAU * kf2 * kick2_grid) * kenv2
+
+		# SNARE (beats 2 and 4)
+		if phase >= 1:
+			var snare_grid := fmod(t + beat_s, beat_s * 2.0)
+			if snare_grid < 0.08:
+				var senv := exp(-snare_grid * 28.0) * 0.4 * vol
+				s += sin(TAU * 185.0 * snare_grid) * senv * 0.5
+				# Crackly noise
+				var sn := sin(snare_grid * 14731.0) * cos(snare_grid * 8291.0)
+				s += sn * senv * 0.6
+		# Snare ROLLS in phase 3+ (every 16th on fills)
+		if phase >= 2:
+			var bar_pos := fmod(t, beat_s * 4.0)
+			if bar_pos > beat_s * 3.0:  # Last beat of each bar = fill
+				var roll_grid := fmod(bar_pos, sixteenth)
+				if roll_grid < 0.04:
+					var renv := exp(-roll_grid * 35.0) * 0.3 * vol
+					var rn := sin(roll_grid * 18371.0) * cos(roll_grid * 9917.0)
+					s += rn * renv * 0.5 + sin(TAU * 220.0 * roll_grid) * renv * 0.3
+		# BUZZ ROLL in phase 4 last 2 seconds
+		if phase >= 3 and t > 8.5:
+			var buzz := fmod(t, sixteenth * 0.5)
+			if buzz < 0.02:
+				var benv := exp(-buzz * 50.0) * 0.25 * vol
+				var bn := sin(buzz * 21000.0) * cos(buzz * 11000.0)
+				s += bn * benv
+
+		# HI-HAT — 8th notes in phase 0-1, 16ths in phase 2+
+		var hh_interval := beat_s * 0.5 if phase < 2 else sixteenth
+		var hh_grid := fmod(t, hh_interval)
+		if hh_grid < 0.025:
+			# Open hat on offbeats
+			var hh_open := fmod(t, beat_s) > beat_s * 0.4
+			var hh_decay := 60.0 if not hh_open else 12.0
+			var hh_vol := 0.12 if not hh_open else 0.18
+			var hhenv := exp(-hh_grid * hh_decay) * hh_vol * vol
+			var hhn := sin(hh_grid * 29417.0) * cos(hh_grid * 15291.0)
+			s += hhn * hhenv
+
+		# TOMS — descending fills at bar boundaries
+		if phase >= 1:
+			var tom_bar := fmod(t, beat_s * 8.0)  # Every 2 bars
+			if tom_bar > beat_s * 7.0:  # Last bar
+				var tom_pos := tom_bar - beat_s * 7.0
+				var tom_beat := int(tom_pos / (beat_s * 0.5))
+				var tom_dt := fmod(tom_pos, beat_s * 0.5)
+				if tom_dt < 0.1 and tom_beat < 8:
+					var tf := 200.0 - float(tom_beat) * 18.0  # Descending pitch
+					var tenv := exp(-tom_dt * 18.0) * 0.35 * vol
+					s += sin(TAU * tf * tom_dt) * tenv
+
+		# CRASH CYMBALS — phase transitions and finale
+		var crash_times := [0.0, 2.5, 5.0, 7.5, 9.5]
+		for ct in crash_times:
+			var cdt: float = t - ct
+			if cdt >= 0.0 and cdt < 0.8:
+				var cenv := exp(-cdt * 3.5) * 0.25
+				var cn := sin(cdt * 9731.0) * cos(cdt * 13917.0) * sin(cdt * 5391.0)
+				s += cn * cenv
+
+		# Master envelope
+		var master := 1.0
+		if t < 0.05: master = t / 0.05
+		if t > 9.5: master = (ch_dur - t) / 0.5
+		ch_samples[i] = clampf(s * master, -1.0, 1.0)
 	_cheshire_sound = _samples_to_wav(ch_samples, ch_rate)
 	_cheshire_player = AudioStreamPlayer.new()
 	_cheshire_player.stream = _cheshire_sound
-	_cheshire_player.volume_db = -6.0
+	_cheshire_player.volume_db = -2.0
 	add_child(_cheshire_player)
 
 	# Tea party — 3 ceramic clinks + pouring
@@ -200,19 +294,34 @@ func _process(delta: float) -> void:
 			_shoot()
 			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
-	# Tier 2: Cheshire Cat stun
-	if upgrade_tier >= 2:
-		cheshire_timer -= delta
-		if cheshire_timer <= 0.0 and _has_enemies_in_range():
-			_cheshire_stun()
-			cheshire_timer = cheshire_cooldown
+	# Tier 2: Cheshire Cat drum solo (10s duration, visual only)
+	if _drum_solo_active:
+		_drum_solo_timer -= delta
+		_cheshire_flash = 0.8  # Keep grin visible during solo
+		if _drum_solo_timer <= 0.0:
+			_drum_solo_active = false
 
-	# Tier 3: Mad Tea Party volley
-	if upgrade_tier >= 3:
-		tea_timer -= delta
-		if tea_timer <= 0.0 and _has_enemies_in_range():
-			_tea_party()
-			tea_timer = tea_cooldown
+	# Tier 4: Paint ALL enemies red — low DoT as they walk
+	if _paint_red_active:
+		_paint_red_timer -= delta
+		if _paint_red_timer <= 0.0:
+			_paint_red_timer = 1.0  # Tick every second
+			var paint_dmg = damage * 0.15
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if enemy.has_method("take_damage"):
+					enemy.take_damage(paint_dmg)
+					register_damage(paint_dmg)
+				if enemy.has_method("apply_paint"):
+					enemy.apply_paint()  # Visually paints them red
+				if "painted_red" in enemy:
+					enemy.painted_red = true
+				if enemy.has_method("apply_paint"):
+					enemy.apply_paint()
+				# Set red tint on enemy
+				if "paint_red" in enemy:
+					enemy.paint_red = true
+				else:
+					enemy.set("paint_red", true)
 
 	_process_progressive_abilities(delta)
 	queue_redraw()
@@ -257,42 +366,19 @@ func _shoot() -> void:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(dmg, true)
 				register_damage(dmg)
-			# Tier 4: execute low HP enemies
-			if execute_threshold > 0.0 and enemy.has_method("get_health_percent"):
-				if enemy.get_health_percent() <= execute_threshold:
-					if enemy.has_method("take_damage"):
-						enemy.take_damage(9999.0, true)
-						register_damage(9999.0)
+			# Tier 4: paint enemies red (visual tint handled in draw)
+			pass
 			# Frosting DoT (Tier 1 upgrade)
 			if frosting_dps > 0.0 and enemy.has_method("apply_dot"):
 				enemy.apply_dot(frosting_dps, slow_duration)
 
 func _cheshire_stun() -> void:
-	if _cheshire_player and not _is_sfx_muted(): _cheshire_player.play()
-	_cheshire_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var in_range: Array = []
-	for enemy in enemies:
-		if global_position.distance_to(enemy.global_position) < attack_range:
-			in_range.append(enemy)
-	if in_range.size() > 0:
-		var picked = in_range[randi() % in_range.size()]
-		if picked.has_method("apply_slow"):
-			picked.apply_slow(0.0, 2.0)  # Full stop for 2 seconds
+	# Legacy — drum solo is now handled in _process
+	pass
 
 func _tea_party() -> void:
-	if _tea_player and not _is_sfx_muted(): _tea_player.play()
-	_tea_flash = 1.0
-	var dmg = damage * 2.0
-	if prog_abilities[0]:
-		dmg *= 1.2
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
-			if enemy.has_method("take_damage"):
-				enemy.take_damage(dmg, true)
-				register_damage(dmg)
-			if enemy.has_method("apply_slow"):
-				enemy.apply_slow(slow_amount * 0.8, slow_duration * 1.5)
+	# Legacy — tea party buff is now applied once on upgrade
+	pass
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
@@ -335,38 +421,54 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Eat Me Cake — frosting DoT, wider range
-			frosting_dps = 3.0
+		1: # Eat Me Cake — 10% more sticky
+			slow_amount *= 0.90  # 10% more slow (lower = slower)
+			slow_duration += 0.5
 			attack_range = 85.0
-			slow_amount = 0.4
 			damage = 3.0
 			fire_rate = 1.2
-		2: # Cheshire Cat — periodic stun
+		2: # Cheshire Cat — 10 second drum solo
 			damage = 4.0
 			fire_rate = 1.4
 			attack_range = 93.0
 			cheshire_cooldown = 10.0
 			gold_bonus = 2
-			frosting_dps = 4.0
-		3: # Mad Tea Party — teacup volley
+			_start_drum_solo()
+		3: # Mad Tea Party — nearby towers +3% fire rate
 			damage = 5.0
 			fire_rate = 1.6
 			attack_range = 100.0
-			tea_cooldown = 12.0
-			slow_amount = 0.35
 			gold_bonus = 3
-			frosting_dps = 5.0
-		4: # Off With Their Heads!
+			_apply_tea_party_buffs()
+		4: # Off With Their Heads! — paint enemies red, DoT
 			damage = 7.0
-			execute_threshold = 0.20
 			fire_rate = 1.8
 			attack_range = 110.0
 			gold_bonus = 4
-			slow_amount = 0.3
-			slow_duration = 3.0
-			cheshire_cooldown = 7.0
-			tea_cooldown = 9.0
-			frosting_dps = 7.0
+			_paint_red_active = true
+
+var _paint_red_active: bool = false
+var _paint_red_timer: float = 0.0
+var _drum_solo_active: bool = false
+var _drum_solo_timer: float = 0.0
+
+func _start_drum_solo() -> void:
+	_drum_solo_active = true
+	_drum_solo_timer = 10.0
+	_cheshire_flash = 1.0
+	if _cheshire_player and not _is_sfx_muted():
+		_cheshire_player.play()
+	if _cheshire_player and not _is_sfx_muted():
+		_cheshire_player.play()
+
+func _apply_tea_party_buffs() -> void:
+	_tea_flash = 1.0
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if tower == self:
+			continue
+		if global_position.distance_to(tower.global_position) < attack_range * _range_mult():
+			if "fire_rate" in tower:
+				tower.fire_rate *= 1.03
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -821,578 +923,297 @@ func _draw() -> void:
 			draw_line(sp_pos - Vector2(sp_size, 0), sp_pos + Vector2(sp_size, 0), Color(0.6, 0.8, 1.0, sp_alpha), 0.8)
 			draw_line(sp_pos - Vector2(0, sp_size), sp_pos + Vector2(0, sp_size), Color(0.6, 0.8, 1.0, sp_alpha), 0.8)
 
-	# === CHARACTER POSITIONS (tall anime proportions ~56px) ===
-	var feet_y = body_offset + Vector2(hip_sway * 1.0, 14.0)
-	var leg_top = body_offset + Vector2(hip_sway * 0.6, -2.0)
-	var torso_center = body_offset + Vector2(hip_sway * 0.3, -10.0 - chest_breathe * 0.5)
-	var neck_base = body_offset + Vector2(hip_sway * 0.15, -20.0 - chest_breathe * 0.3)
-	var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -32.0)
+	# === CHARACTER POSITIONS (chibi proportions ~48px) ===
+	var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
+	var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
+	var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -26.0)
 
 	# === T1+: "Drink Me" bottle near platform ===
 	if upgrade_tier >= 1:
-		var bottle_pos = Vector2(-18, 8) + body_offset * 0.3
-		# Bottle body (blue glass)
-		draw_rect(Rect2(bottle_pos.x - 4, bottle_pos.y - 8, 8, 14), Color(0.2, 0.35, 0.75, 0.8))
-		# Glass highlight
-		draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 6, 2, 10), Color(0.4, 0.55, 0.9, 0.3))
-		# Bottle neck
-		draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 14, 4, 6), Color(0.25, 0.4, 0.8, 0.8))
-		# Cork
-		draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 17, 6, 3), Color(0.6, 0.45, 0.25))
-		# Label
-		draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 5, 6, 7), Color(0.95, 0.92, 0.85))
-		# "DM" text hint
-		draw_line(Vector2(bottle_pos.x - 2, bottle_pos.y - 2), Vector2(bottle_pos.x, bottle_pos.y - 2), Color(0.2, 0.15, 0.1), 1.0)
-		draw_line(Vector2(bottle_pos.x + 1, bottle_pos.y - 2), Vector2(bottle_pos.x + 3, bottle_pos.y - 2), Color(0.2, 0.15, 0.1), 1.0)
-		# Liquid bubbles
-		var bub_t = fmod(_time * 0.7, 3.0)
-		draw_circle(Vector2(bottle_pos.x + 1, bottle_pos.y + 2 - bub_t * 4.0), 1.0, Color(0.6, 0.75, 1.0, max(0.0, 0.35 - bub_t * 0.12)))
+		var bottle_pos = Vector2(-18, 6) + body_offset * 0.3
+		draw_circle(bottle_pos + Vector2(0, -4), 5.0, Color(0.1, 0.2, 0.5))
+		draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
+		draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
+		draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
 
-	# === Mary Jane shoes (black patent leather) ===
-	var l_foot = feet_y + Vector2(-7, 0)
-	var r_foot = feet_y + Vector2(7, 0)
-	# Shoe base
-	draw_circle(l_foot, 5.5, Color(0.06, 0.06, 0.06))
-	draw_circle(l_foot, 4.2, Color(0.12, 0.12, 0.14))
-	draw_circle(r_foot, 5.5, Color(0.06, 0.06, 0.06))
-	draw_circle(r_foot, 4.2, Color(0.12, 0.12, 0.14))
-	# Patent leather shine
-	draw_circle(l_foot + Vector2(1, -1.5), 2.0, Color(0.35, 0.35, 0.4, 0.4))
-	draw_circle(r_foot + Vector2(-1, -1.5), 2.0, Color(0.35, 0.35, 0.4, 0.4))
-	# Strap across
-	draw_line(l_foot + Vector2(-4, -2), l_foot + Vector2(4, -2), Color(0.1, 0.1, 0.1), 2.0)
-	draw_line(r_foot + Vector2(-4, -2), r_foot + Vector2(4, -2), Color(0.1, 0.1, 0.1), 2.0)
-	# Gold buckles
-	draw_circle(l_foot + Vector2(0, -2), 1.5, Color(0.75, 0.65, 0.3))
-	draw_circle(l_foot + Vector2(-0.3, -2.3), 0.7, Color(0.95, 0.9, 0.6, 0.6))
-	draw_circle(r_foot + Vector2(0, -2), 1.5, Color(0.75, 0.65, 0.3))
-	draw_circle(r_foot + Vector2(-0.3, -2.3), 0.7, Color(0.95, 0.9, 0.6, 0.6))
+	# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
+	var OL = Color(0.06, 0.06, 0.08)  # True black outline color
 
-	# === SHAPELY LEGS (polygon-based curvy thighs and calves with white stockings) ===
-	var l_hip = leg_top + Vector2(-8, 0)
-	var r_hip = leg_top + Vector2(8, 0)
-	var l_knee = body_offset + Vector2(-6, 6.0)
-	var r_knee = body_offset + Vector2(6, 6.0)
-	# LEFT THIGH — curvy feminine shape (wider at hip, tapered to knee)
-	draw_colored_polygon(PackedVector2Array([
-		l_hip + Vector2(3, 0), l_hip + Vector2(-4, 0),
-		l_hip.lerp(l_knee, 0.3) + Vector2(-6, 0),  # outer thigh curve
-		l_hip.lerp(l_knee, 0.6) + Vector2(-5.5, 0),
-		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
-		l_hip.lerp(l_knee, 0.5) + Vector2(4.5, 0),  # inner thigh
-	]), Color(0.08, 0.08, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		l_hip + Vector2(2, 0), l_hip + Vector2(-3, 0),
-		l_hip.lerp(l_knee, 0.3) + Vector2(-5, 0),
-		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
-	]), Color(0.94, 0.94, 0.94))
-	# RIGHT THIGH
-	draw_colored_polygon(PackedVector2Array([
-		r_hip + Vector2(-3, 0), r_hip + Vector2(4, 0),
-		r_hip.lerp(r_knee, 0.3) + Vector2(6, 0),
-		r_hip.lerp(r_knee, 0.6) + Vector2(5.5, 0),
-		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
-		r_hip.lerp(r_knee, 0.5) + Vector2(-4.5, 0),
-	]), Color(0.08, 0.08, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		r_hip + Vector2(-2, 0), r_hip + Vector2(3, 0),
-		r_hip.lerp(r_knee, 0.3) + Vector2(5, 0),
-		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
-	]), Color(0.94, 0.94, 0.94))
-	# Knee joints (rounded)
-	draw_circle(l_knee, 4.5, Color(0.08, 0.08, 0.08))
-	draw_circle(l_knee, 3.5, Color(0.94, 0.94, 0.94))
-	draw_circle(r_knee, 4.5, Color(0.08, 0.08, 0.08))
-	draw_circle(r_knee, 3.5, Color(0.94, 0.94, 0.94))
-	# LEFT CALF — shapely curve (fuller at top, tapered to ankle)
-	var l_calf_mid = body_offset + Vector2(-7.0, 10.0)
-	draw_colored_polygon(PackedVector2Array([
-		l_knee + Vector2(-4, 0), l_knee + Vector2(3, 0),
-		l_calf_mid + Vector2(4, 0),
-		l_foot + Vector2(2.5, -3), l_foot + Vector2(-2.5, -3),
-		l_calf_mid + Vector2(-5.5, 0),  # calf curve
-	]), Color(0.08, 0.08, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		l_knee + Vector2(-3, 0), l_knee + Vector2(2, 0),
-		l_foot + Vector2(1.5, -3), l_foot + Vector2(-1.5, -3),
-	]), Color(0.94, 0.94, 0.94))
-	draw_circle(l_calf_mid + Vector2(-1, 0), 3.0, Color(1.0, 1.0, 1.0, 0.15))
-	# RIGHT CALF
-	var r_calf_mid = body_offset + Vector2(7.0, 10.0)
-	draw_colored_polygon(PackedVector2Array([
-		r_knee + Vector2(4, 0), r_knee + Vector2(-3, 0),
-		r_calf_mid + Vector2(-4, 0),
-		r_foot + Vector2(-2.5, -3), r_foot + Vector2(2.5, -3),
-		r_calf_mid + Vector2(5.5, 0),
-	]), Color(0.08, 0.08, 0.08))
-	draw_colored_polygon(PackedVector2Array([
-		r_knee + Vector2(3, 0), r_knee + Vector2(-2, 0),
-		r_foot + Vector2(-1.5, -3), r_foot + Vector2(1.5, -3),
-	]), Color(0.94, 0.94, 0.94))
-	draw_circle(r_calf_mid + Vector2(1, 0), 3.0, Color(1.0, 1.0, 1.0, 0.15))
-	# Stocking shine highlights
-	draw_line(l_knee + Vector2(1, 0), l_calf_mid + Vector2(1, 0), Color(1.0, 1.0, 1.0, 0.35), 1.5)
-	draw_line(r_knee + Vector2(-1, 0), r_calf_mid + Vector2(-1, 0), Color(1.0, 1.0, 1.0, 0.35), 1.5)
-	# Lace stocking tops
-	draw_arc(l_knee + Vector2(0, -2), 4.5, -0.2, PI + 0.2, 8, Color(0.92, 0.92, 0.90, 0.6), 1.5)
-	draw_arc(r_knee + Vector2(0, -2), 4.5, -0.2, PI + 0.2, 8, Color(0.92, 0.92, 0.90, 0.6), 1.5)
-	for li in range(5):
-		var la = float(li) * PI / 4.0
-		draw_circle(l_knee + Vector2(0, -2) + Vector2.from_angle(la) * 4.5, 0.8, Color(0.92, 0.92, 0.90, 0.4))
-		draw_circle(r_knee + Vector2(0, -2) + Vector2.from_angle(la) * 4.5, 0.8, Color(0.92, 0.92, 0.90, 0.4))
+	# --- Feet (cute ballet flats) ---
+	var l_foot = feet_y + Vector2(-4, 0)
+	var r_foot = feet_y + Vector2(4, 0)
+	# Outline
+	draw_circle(l_foot, 4.5, OL)
+	draw_circle(r_foot, 4.5, OL)
+	# Fill
+	draw_circle(l_foot, 3.2, Color(0.78, 0.68, 0.92))
+	draw_circle(r_foot, 3.2, Color(0.78, 0.68, 0.92))
+	# Highlight dot
+	draw_circle(l_foot + Vector2(-0.5, -0.8), 1.0, Color(0.92, 0.85, 1.0, 0.6))
+	draw_circle(r_foot + Vector2(-0.5, -0.8), 1.0, Color(0.92, 0.85, 1.0, 0.6))
 
-	# === Blue dress (shorter, fitted hourglass, Victorian with lower neckline) ===
-	# Dress: from neck_base area down to just above the knees (~y=4)
-	var dress_hem_y = body_offset.y + 4.0  # Above-the-knee hemline
-	# Hourglass silhouette: shoulders ±9, waist ±5.5, hips ±12
-	var dress_pts = PackedVector2Array([
-		# Left hem (flared at hips)
-		Vector2(-12 + dress_sway * 0.5, dress_hem_y),
-		# Left hip
-		Vector2(-12, leg_top.y),
-		# Left waist (cinched)
-		Vector2(-5.5, torso_center.y + 2),
-		# Left bust
-		Vector2(-9, torso_center.y - 4),
-		# Left shoulder
-		Vector2(-9, neck_base.y + 2),
-		# Neckline left (lower V)
-		Vector2(-4, neck_base.y + 4),
-		# Neckline center (lower)
-		Vector2(0, neck_base.y + 6),
-		# Neckline right
-		Vector2(4, neck_base.y + 4),
-		# Right shoulder
-		Vector2(9, neck_base.y + 2),
-		# Right bust
-		Vector2(9, torso_center.y - 4),
-		# Right waist (cinched)
-		Vector2(5.5, torso_center.y + 2),
-		# Right hip
-		Vector2(12, leg_top.y),
-		# Right hem
-		Vector2(12 - dress_sway * 0.5, dress_hem_y),
+	# --- Legs (short stubby, mostly hidden by dress) ---
+	draw_line(l_foot + Vector2(0, -2), Vector2(l_foot.x, leg_top.y + 2), OL, 5.0)
+	draw_line(l_foot + Vector2(0, -2), Vector2(l_foot.x, leg_top.y + 2), skin_base, 3.5)
+	draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), OL, 5.0)
+	draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), skin_base, 3.5)
+
+	# --- Alice's dress (Bloons-style bold cartoon) ---
+	var dress_blue = Color(0.45, 0.72, 0.95)
+	var dress_lav = Color(0.70, 0.55, 0.90)
+	var dress_white = Color(0.92, 0.93, 0.98)
+	# Dress outline (bold black border around entire dress shape)
+	var dress_outline = PackedVector2Array([
+		feet_y + Vector2(-15, 3), feet_y + Vector2(15 + dress_sway * 0.8, 1),
+		Vector2(8, torso_center.y - 1), Vector2(8, neck_base.y + 3),
+		Vector2(4, neck_base.y + 2), Vector2(0, neck_base.y + 3.5),
+		Vector2(-4, neck_base.y + 2), Vector2(-8, neck_base.y + 3),
+		Vector2(-8, torso_center.y - 1),
 	])
-	draw_colored_polygon(dress_pts, Color(0.22, 0.40, 0.72))
-	# Bust definition — two gentle curves with shadow
-	draw_arc(Vector2(-4, torso_center.y - 5), 4.5, PI * 0.2, PI * 0.9, 8, Color(0.18, 0.35, 0.60, 0.4), 1.5)
-	draw_arc(Vector2(4, torso_center.y - 5), 4.5, PI * 0.1, PI * 0.8, 8, Color(0.18, 0.35, 0.60, 0.4), 1.5)
-	# Shadow line between (tasteful cleavage hint)
-	draw_line(Vector2(0, neck_base.y + 6), Vector2(0, torso_center.y - 3), Color(0.15, 0.30, 0.55, 0.3), 1.0)
-	# Dress lighter center panel
-	var dress_hi = PackedVector2Array([
-		Vector2(-4, dress_hem_y - 2),
-		Vector2(-4, torso_center.y - 2),
-		Vector2(4, torso_center.y - 2),
-		Vector2(4, dress_hem_y - 2),
+	draw_colored_polygon(dress_outline, OL)
+	# Dress fill — white base
+	var dress_fill = PackedVector2Array([
+		feet_y + Vector2(-13, 2), feet_y + Vector2(13 + dress_sway * 0.7, 0),
+		Vector2(6.5, torso_center.y), Vector2(6.5, neck_base.y + 4.5),
+		Vector2(3, neck_base.y + 3.5), Vector2(0, neck_base.y + 5),
+		Vector2(-3, neck_base.y + 3.5), Vector2(-6.5, neck_base.y + 4.5),
+		Vector2(-6.5, torso_center.y),
 	])
-	draw_colored_polygon(dress_hi, Color(0.30, 0.50, 0.82, 0.25))
-	# Dress fold shadows
-	draw_line(Vector2(-8, torso_center.y - 3), Vector2(-12, dress_hem_y), Color(0.15, 0.30, 0.55, 0.4), 1.2)
-	draw_line(Vector2(8, torso_center.y - 3), Vector2(12, dress_hem_y), Color(0.15, 0.30, 0.55, 0.4), 1.2)
-	# Waist cinch line / belt / sash
-	draw_line(Vector2(-6.5, torso_center.y + 2), Vector2(6.5, torso_center.y + 2), Color(0.15, 0.30, 0.55), 2.5)
-	draw_line(Vector2(-5.5, torso_center.y + 2), Vector2(5.5, torso_center.y + 2), Color(0.25, 0.42, 0.70), 1.5)
-	# Sash bow at center waist
-	draw_arc(Vector2(-3.5, torso_center.y + 2), 2.5, PI * 0.3, PI * 1.7, 6, Color(0.20, 0.38, 0.68), 1.5)
-	draw_arc(Vector2(3.5, torso_center.y + 2), 2.5, -PI * 0.7, PI * 0.7, 6, Color(0.20, 0.38, 0.68), 1.5)
-	draw_circle(Vector2(0, torso_center.y + 2), 1.5, Color(0.18, 0.35, 0.62))
-	# Dress hem scallops (shorter dress, with flutter) — two rows for extra lace
-	for i in range(8):
-		var hx = -11.0 + float(i) * 3.2
-		var flutter = sin(_time * 3.0 + float(i) * 0.8) * 1.2
-		var sway_off = dress_sway * (float(i) / 8.0 - 0.5) * 0.3 + flutter
-		draw_circle(Vector2(hx, dress_hem_y + sway_off), 2.5, Color(0.18, 0.35, 0.65, 0.2))
-		# Second row of frills
-		draw_circle(Vector2(hx + 1.6, dress_hem_y + sway_off + 2.0), 2.0, Color(0.20, 0.38, 0.68, 0.15))
-	# Skirt flare lines
-	draw_line(Vector2(-5.5, torso_center.y + 3), Vector2(-12, dress_hem_y), Color(0.18, 0.35, 0.60, 0.15), 1.0)
-	draw_line(Vector2(5.5, torso_center.y + 3), Vector2(12, dress_hem_y), Color(0.18, 0.35, 0.60, 0.15), 1.0)
-	draw_line(Vector2(0, torso_center.y + 3), Vector2(-2 + dress_sway * 0.3, dress_hem_y), Color(0.18, 0.35, 0.60, 0.1), 0.8)
-
-	# === White pinafore/apron (cinched at waist, fitted) ===
-	# Apron bib: from neckline to waist, then skirt flares to hem
-	var apron_pts = PackedVector2Array([
-		# Skirt bottom left
-		Vector2(-9, dress_hem_y - 1),
-		# Left hip
-		Vector2(-10, leg_top.y),
-		# Left waist (cinched with dress)
-		Vector2(-5, torso_center.y + 2),
-		# Left bib
-		Vector2(-6, torso_center.y - 4),
-		# Bib top left
-		Vector2(-4, neck_base.y + 5),
-		# Bib top right
-		Vector2(4, neck_base.y + 5),
-		# Right bib
-		Vector2(6, torso_center.y - 4),
-		# Right waist
-		Vector2(5, torso_center.y + 2),
-		# Right hip
-		Vector2(10, leg_top.y),
-		# Skirt bottom right
-		Vector2(9, dress_hem_y - 1),
+	draw_colored_polygon(dress_fill, dress_white)
+	# Blue apron/pinafore (Alice's signature look)
+	var apron = PackedVector2Array([
+		feet_y + Vector2(-10, 1), feet_y + Vector2(10 + dress_sway * 0.4, -1),
+		Vector2(5.5, torso_center.y + 1), Vector2(5.5, neck_base.y + 6),
+		Vector2(-5.5, neck_base.y + 6), Vector2(-5.5, torso_center.y + 1),
 	])
-	draw_colored_polygon(apron_pts, Color(0.96, 0.96, 0.93))
-	# Apron center crease
-	draw_line(Vector2(0, neck_base.y + 6), Vector2(0, dress_hem_y - 2), Color(0.90, 0.90, 0.88, 0.3), 1.0)
-	# Lace edge on apron bottom
-	for li in range(6):
-		var lx = -8.0 + float(li) * 3.2
-		var lace_tip = Vector2(lx, dress_hem_y + 1.0)
-		draw_line(Vector2(lx - 1, dress_hem_y - 1), lace_tip, Color(0.92, 0.92, 0.90, 0.6), 1.0)
-		draw_line(lace_tip, Vector2(lx + 1, dress_hem_y - 1), Color(0.92, 0.92, 0.90, 0.6), 1.0)
-	# Gothic tatter marks on apron (subtle worn edges)
-	draw_line(Vector2(-9, dress_hem_y - 3), Vector2(-11, dress_hem_y), Color(0.88, 0.86, 0.82, 0.3), 0.8)
-	draw_line(Vector2(8, dress_hem_y - 4), Vector2(10, dress_hem_y - 1), Color(0.88, 0.86, 0.82, 0.3), 0.8)
-	# Apron straps (over shoulders to neck_base area)
-	draw_line(Vector2(-4, neck_base.y + 5), Vector2(-7, neck_base.y + 1), Color(0.94, 0.94, 0.92), 3.0)
-	draw_line(Vector2(4, neck_base.y + 5), Vector2(7, neck_base.y + 1), Color(0.94, 0.94, 0.92), 3.0)
-	# Buttons on bib
-	draw_circle(Vector2(0, torso_center.y - 2), 1.5, Color(0.85, 0.85, 0.82))
-	draw_circle(Vector2(-0.3, torso_center.y - 2.3), 0.6, Color(1.0, 1.0, 1.0, 0.4))
-	draw_circle(Vector2(0, torso_center.y + 1), 1.5, Color(0.85, 0.85, 0.82))
-	draw_circle(Vector2(-0.3, torso_center.y + 0.7), 0.6, Color(1.0, 1.0, 1.0, 0.4))
-	# Cheshire grin pattern on apron (gothic corruption hint)
+	draw_colored_polygon(apron, dress_blue)
+	# Apron pocket detail
+	draw_arc(Vector2(0, torso_center.y + 5), 3.5, 0, PI, 6, Color(0.35, 0.60, 0.85), 1.5)
+	# Waist sash (bold black line + white fill)
+	draw_line(Vector2(-7, torso_center.y + 0.5), Vector2(7, torso_center.y + 0.5), OL, 4.0)
+	draw_line(Vector2(-6.5, torso_center.y + 0.5), Vector2(6.5, torso_center.y + 0.5), Color(0.95, 0.95, 1.0), 2.5)
+	# Sash bow at back (two circles + knot)
+	draw_circle(Vector2(-7, torso_center.y + 1), 2.5, OL)
+	draw_circle(Vector2(-7, torso_center.y + 1), 1.8, Color(0.95, 0.95, 1.0))
+	# Hem scallops (cute wavy bottom edge)
+	for i in range(7):
+		var hx = -12.0 + float(i) * 4.0 + dress_sway * 0.15 * float(i) / 6.0
+		var hy = feet_y.y + 2.0 + sin(_time * 2.0 + float(i) * 1.0) * 1.0
+		draw_circle(Vector2(hx, hy), 2.5, OL)
+		draw_circle(Vector2(hx, hy), 1.8, dress_white)
+	# Cheshire grin pattern (T2+)
 	if upgrade_tier >= 2:
-		var grin_alpha = 0.06 + sin(_time * 1.5) * 0.03
-		draw_arc(Vector2(0, leg_top.y - 2), 6.0, 0.2, PI - 0.2, 8, Color(0.6, 0.2, 0.7, grin_alpha), 1.0)
+		var grin_alpha = 0.1 + sin(_time * 1.5) * 0.04
+		draw_arc(Vector2(0, torso_center.y + 6), 5.0, 0.3, PI - 0.3, 6, Color(0.6, 0.2, 0.7, grin_alpha), 1.5)
 
-	# Apron bow at back (at waist level)
-	var bow_pos = Vector2(0, torso_center.y + 2)
-	draw_arc(bow_pos + Vector2(-8, 0), 4.0, PI * 0.3, PI * 1.7, 8, Color(0.94, 0.94, 0.92), 2.5)
-	draw_arc(bow_pos + Vector2(8, 0), 4.0, -PI * 0.7, PI * 0.7, 8, Color(0.94, 0.94, 0.92), 2.5)
-	draw_circle(bow_pos, 2.0, Color(0.93, 0.93, 0.90))
-	# Bow tails (longer, more elegant)
-	var tail_flutter = sin(_time * 2.5) * 1.5
-	draw_line(bow_pos + Vector2(-3, 0), bow_pos + Vector2(-8, 10 + tail_flutter), Color(0.93, 0.93, 0.90), 2.0)
-	draw_line(bow_pos + Vector2(3, 0), bow_pos + Vector2(8, 10 - tail_flutter), Color(0.93, 0.93, 0.90), 2.0)
+	# === Shoulders (round cartoon joints) ===
+	var l_shoulder = Vector2(-8, neck_base.y + 2)
+	var r_shoulder = Vector2(8, neck_base.y + 2)
+	# Shoulder joints with outline
+	draw_circle(l_shoulder, 4.5, OL)
+	draw_circle(r_shoulder, 4.5, OL)
+	draw_circle(l_shoulder, 3.2, skin_base)
+	draw_circle(r_shoulder, 3.2, skin_base)
+	# Puff sleeve hints (dress fabric on shoulders)
+	draw_arc(l_shoulder, 4.0, PI * 0.5, PI * 1.5, 6, dress_blue, 2.0)
+	draw_arc(r_shoulder, 4.0, PI * 1.5, PI * 2.5, 6, dress_blue, 2.0)
 
-	# === Puffed sleeves (blue, at shoulder height — daintier proportions) ===
-	var l_shoulder = Vector2(-9, neck_base.y + 2)
-	var r_shoulder = Vector2(9, neck_base.y + 2)
-	# Left puffed sleeve
-	draw_circle(l_shoulder, 5.5, Color(0.18, 0.35, 0.60, 0.4))
-	draw_circle(l_shoulder, 4.5, Color(0.25, 0.44, 0.76))
-	draw_circle(l_shoulder + Vector2(0, 1), 3.0, Color(0.35, 0.55, 0.88, 0.3))
-	draw_arc(l_shoulder, 4.5, 0, TAU, 10, Color(0.18, 0.35, 0.60), 1.0)
-	# Sleeve cuff (white lace)
-	draw_arc(l_shoulder, 5.0, PI * 0.6, PI * 1.4, 6, Color(0.95, 0.95, 0.93), 2.0)
-	# Right puffed sleeve
-	draw_circle(r_shoulder, 5.5, Color(0.18, 0.35, 0.60, 0.4))
-	draw_circle(r_shoulder, 4.5, Color(0.25, 0.44, 0.76))
-	draw_circle(r_shoulder + Vector2(0, 1), 3.0, Color(0.35, 0.55, 0.88, 0.3))
-	draw_arc(r_shoulder, 4.5, 0, TAU, 10, Color(0.18, 0.35, 0.60), 1.0)
-	draw_arc(r_shoulder, 5.0, PI * 0.6, PI * 1.4, 6, Color(0.95, 0.95, 0.93), 2.0)
-	# Bare skin visible between sleeve and neckline (shoulders/collarbone)
-	draw_line(l_shoulder + Vector2(4, -1), Vector2(-4, neck_base.y + 3), skin_base, 3.0)
-	draw_line(r_shoulder + Vector2(-4, -1), Vector2(4, neck_base.y + 3), skin_base, 3.0)
-	# Collarbone hint
-	draw_line(Vector2(-6, neck_base.y + 3), Vector2(6, neck_base.y + 3), Color(0.88, 0.76, 0.64, 0.2), 0.8)
-
-	# === Peter Pan collar (white, at neckline — with scallop detail) ===
-	draw_arc(Vector2(-4, neck_base.y + 3), 5.0, PI * 0.3, PI * 1.2, 8, Color(0.97, 0.97, 0.95), 3.0)
-	draw_arc(Vector2(4, neck_base.y + 3), 5.0, -PI * 0.2, PI * 0.7, 8, Color(0.97, 0.97, 0.95), 3.0)
-	# Scallop edge detail on collar
-	for sci in range(4):
-		var sc_a = PI * 0.4 + float(sci) * 0.28
-		draw_circle(Vector2(-4, neck_base.y + 3) + Vector2.from_angle(sc_a) * 5.0, 1.2, Color(0.95, 0.95, 0.93, 0.5))
-		draw_circle(Vector2(4, neck_base.y + 3) + Vector2.from_angle(-0.1 + float(sci) * 0.28) * 5.0, 1.2, Color(0.95, 0.95, 0.93, 0.5))
-
-	# === Arms (slender dainty feminine shapes, starting from shoulders) ===
-	# Cake-throwing arm (right) — extends toward aim direction
+	# === Arms (chunky cartoon limbs with proper attack animation) ===
 	var attack_extend = _attack_anim * 10.0
-	var r_elbow = r_shoulder + Vector2(4, 8)
-	var card_hand: Vector2
-	card_hand = r_shoulder + dir * (16.0 + attack_extend)
-	# RIGHT UPPER ARM — slender dainty polygon
-	var r_ua_dir = (r_elbow - r_shoulder).normalized()
-	var r_ua_perp = r_ua_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder + r_ua_perp * 2.2, r_shoulder - r_ua_perp * 1.8,
-		r_shoulder.lerp(r_elbow, 0.5) - r_ua_perp * 2.2,
-		r_elbow - r_ua_perp * 1.6, r_elbow + r_ua_perp * 1.6,
-		r_shoulder.lerp(r_elbow, 0.5) + r_ua_perp * 1.8,
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		r_shoulder + r_ua_perp * 1.6, r_shoulder - r_ua_perp * 1.3,
-		r_elbow - r_ua_perp * 1.1, r_elbow + r_ua_perp * 1.1,
-	]), skin_base)
-	# Arm highlight
-	draw_line(r_shoulder.lerp(r_elbow, 0.2) + r_ua_perp * 1.1, r_shoulder.lerp(r_elbow, 0.7) + r_ua_perp * 1.1, skin_highlight, 1.0)
+	# RIGHT ARM (cake-throwing) — swings toward target on attack
+	var r_elbow = r_shoulder + dir * 6.0 + Vector2(3, 4)
+	var r_hand = r_shoulder + dir * (14.0 + attack_extend)
+	# Upper arm outline + fill
+	draw_line(r_shoulder, r_elbow, OL, 6.5)
+	draw_line(r_shoulder, r_elbow, skin_base, 4.5)
+	# Forearm outline + fill
+	draw_line(r_elbow, r_hand, OL, 6.0)
+	draw_line(r_elbow, r_hand, skin_base, 4.0)
 	# Elbow joint
-	draw_circle(r_elbow, 2.3, skin_shadow)
-	draw_circle(r_elbow, 1.7, skin_base)
-	# RIGHT FOREARM — tapered to wrist
-	var r_fa_dir = (card_hand - r_elbow).normalized()
-	var r_fa_perp = r_fa_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		r_elbow + r_fa_perp * 1.6, r_elbow - r_fa_perp * 1.6,
-		r_elbow.lerp(card_hand, 0.5) - r_fa_perp * 1.5,
-		card_hand - r_fa_perp * 1.1, card_hand + r_fa_perp * 1.1,
-		r_elbow.lerp(card_hand, 0.5) + r_fa_perp * 1.3,
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		r_elbow + r_fa_perp * 1.1, r_elbow - r_fa_perp * 1.1,
-		card_hand - r_fa_perp * 0.7, card_hand + r_fa_perp * 0.7,
-	]), skin_base)
-	# Wrist and hand (smaller, daintier)
-	draw_circle(card_hand, 2.8, skin_shadow)
-	draw_circle(card_hand, 2.2, skin_base)
-	# Dainty fingers
-	for fi in range(3):
-		var fa = float(fi - 1) * 0.35
-		draw_circle(card_hand + dir.rotated(fa) * 2.8, 0.9, skin_highlight)
+	draw_circle(r_elbow, 3.5, OL)
+	draw_circle(r_elbow, 2.5, skin_base)
+	# Hand (round cartoon hand)
+	draw_circle(r_hand, 3.5, OL)
+	draw_circle(r_hand, 2.5, skin_base)
+	draw_circle(r_hand + Vector2(-0.5, -0.5), 1.0, skin_highlight)
 
-	# Left arm (by her side, holding dress, dainty)
-	var l_elbow = l_shoulder + Vector2(-4, 8)
-	var off_hand = l_shoulder + Vector2(-6, 16)
-	# LEFT UPPER ARM — slender dainty polygon
-	var l_ua_dir = (l_elbow - l_shoulder).normalized()
-	var l_ua_perp = l_ua_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		l_shoulder + l_ua_perp * 1.8, l_shoulder - l_ua_perp * 2.2,
-		l_shoulder.lerp(l_elbow, 0.5) - l_ua_perp * 2.2,
-		l_elbow - l_ua_perp * 1.6, l_elbow + l_ua_perp * 1.6,
-		l_shoulder.lerp(l_elbow, 0.5) + l_ua_perp * 1.8,
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		l_shoulder + l_ua_perp * 1.3, l_shoulder - l_ua_perp * 1.6,
-		l_elbow - l_ua_perp * 1.1, l_elbow + l_ua_perp * 1.1,
-	]), skin_base)
-	draw_line(l_shoulder.lerp(l_elbow, 0.2) - l_ua_perp * 1.1, l_shoulder.lerp(l_elbow, 0.7) - l_ua_perp * 1.1, skin_highlight, 1.0)
-	# Elbow joint
-	draw_circle(l_elbow, 2.3, skin_shadow)
-	draw_circle(l_elbow, 1.7, skin_base)
-	# LEFT FOREARM — tapered dainty
-	var l_fa_dir = (off_hand - l_elbow).normalized()
-	var l_fa_perp = l_fa_dir.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([
-		l_elbow + l_fa_perp * 1.6, l_elbow - l_fa_perp * 1.6,
-		off_hand - l_fa_perp * 1.1, off_hand + l_fa_perp * 1.1,
-	]), skin_shadow)
-	draw_colored_polygon(PackedVector2Array([
-		l_elbow + l_fa_perp * 1.1, l_elbow - l_fa_perp * 1.1,
-		off_hand - l_fa_perp * 0.7, off_hand + l_fa_perp * 0.7,
-	]), skin_base)
-	# Hand (smaller, daintier)
-	draw_circle(off_hand, 2.3, skin_shadow)
-	draw_circle(off_hand, 1.8, skin_base)
+	# LEFT ARM (at side, slightly posed)
+	var l_elbow = l_shoulder + Vector2(-5, 6)
+	var l_hand = l_shoulder + Vector2(-7, 14)
+	draw_line(l_shoulder, l_elbow, OL, 6.5)
+	draw_line(l_shoulder, l_elbow, skin_base, 4.5)
+	draw_line(l_elbow, l_hand, OL, 6.0)
+	draw_line(l_elbow, l_hand, skin_base, 4.0)
+	draw_circle(l_elbow, 3.5, OL)
+	draw_circle(l_elbow, 2.5, skin_base)
+	draw_circle(l_hand, 3.5, OL)
+	draw_circle(l_hand, 2.5, skin_base)
 
-	# === Cupcake in hand ===
-	var cake_pos = card_hand + dir * 6.0
-	# Paper wrapper (ridged trapezoid) — pink
+	# === Cupcake in hand (bold, visible at any zoom) ===
+	var cake_pos = r_hand + dir * 5.0
 	var wrap_perp = dir.rotated(PI / 2.0)
+	# Wrapper outline + fill (bright pink)
 	draw_colored_polygon(PackedVector2Array([
-		cake_pos - wrap_perp * 4.0 + dir * 2.0,
-		cake_pos + wrap_perp * 4.0 + dir * 2.0,
+		cake_pos - wrap_perp * 4.5 + dir * 2.0,
+		cake_pos + wrap_perp * 4.5 + dir * 2.0,
 		cake_pos + wrap_perp * 5.5 - dir * 2.0,
 		cake_pos - wrap_perp * 5.5 - dir * 2.0,
-	]), Color(0.95, 0.6, 0.7))
-	# Wrapper ridges
-	for wi in range(5):
-		var wx = -4.0 + float(wi) * 2.0
-		draw_line(cake_pos + wrap_perp * wx + dir * 2.0, cake_pos + wrap_perp * (wx * 1.3) - dir * 2.0, Color(0.85, 0.5, 0.6, 0.4), 0.8)
-	# Frosted top (dome) — white/pink swirl
-	var frost_center = cake_pos + dir * 3.5
-	draw_circle(frost_center, 6.0, Color(0.98, 0.92, 0.94))
-	draw_circle(frost_center + dir * 1.0, 5.0, Color(1.0, 0.85, 0.88))
-	# Frosting swirl detail
-	draw_arc(frost_center, 4.0, 0, PI * 1.5, 10, Color(0.95, 0.7, 0.75, 0.5), 1.5)
-	draw_arc(frost_center, 2.0, PI * 0.5, TAU, 8, Color(0.9, 0.6, 0.65, 0.4), 1.2)
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		cake_pos - wrap_perp * 3.5 + dir * 1.5,
+		cake_pos + wrap_perp * 3.5 + dir * 1.5,
+		cake_pos + wrap_perp * 4.5 - dir * 1.5,
+		cake_pos - wrap_perp * 4.5 - dir * 1.5,
+	]), Color(1.0, 0.45, 0.60))
+	# Frosted top — bold white dome
+	var frost_center = cake_pos + dir * 3.0
+	draw_circle(frost_center, 6.0, OL)
+	draw_circle(frost_center, 4.8, Color(1.0, 0.92, 0.95))
+	draw_circle(frost_center + dir * 0.5, 3.5, Color(1.0, 0.80, 0.85))
 	# Cherry on top
-	var cherry_pos = frost_center + dir * 4.5
-	draw_circle(cherry_pos, 2.5, Color(0.85, 0.1, 0.15))
-	draw_circle(cherry_pos + Vector2(-0.5, -0.5), 1.0, Color(1.0, 0.4, 0.4, 0.5))
-	# Cherry stem
-	draw_line(cherry_pos, cherry_pos + Vector2(1.5, -3.0), Color(0.3, 0.5, 0.2), 1.0)
+	draw_circle(frost_center + dir * 4.0, 2.8, OL)
+	draw_circle(frost_center + dir * 4.0, 2.0, Color(0.95, 0.12, 0.18))
+	draw_circle(frost_center + dir * 4.0 + Vector2(-0.4, -0.5), 0.8, Color(1.0, 0.5, 0.5, 0.6))
 
 	# Cake splat ring (AoE attack flash)
 	if _attack_anim > 0.2:
 		var splat_r = 20.0 + (1.0 - _attack_anim) * 40.0
 		var splat_alpha = _attack_anim * 0.5
-		# Expanding pink/white ring
 		draw_arc(Vector2.ZERO, splat_r, 0, TAU, 32, Color(0.95, 0.7, 0.75, splat_alpha), 3.0)
 		draw_arc(Vector2.ZERO, splat_r * 0.7, 0, TAU, 24, Color(1.0, 0.9, 0.92, splat_alpha * 0.6), 2.0)
-		# Cake splatter particles
 		for si in range(6):
 			var sp_a = TAU * float(si) / 6.0 + _time * 2.0
 			var sp_r2 = splat_r * (0.6 + sin(_time * 4.0 + float(si)) * 0.2)
 			var sp_p = Vector2.from_angle(sp_a) * sp_r2
 			draw_circle(sp_p, 2.5, Color(0.95, 0.8, 0.85, splat_alpha * 0.7))
 
-	# === NECK (slimmer, more feminine polygon neck) ===
-	var neck_top = head_center + Vector2(0, 7)
-	var neck_dir = (neck_top - neck_base).normalized()
-	var neck_perp = neck_dir.rotated(PI / 2.0)
-	# Neck shadow/outline polygon (slimmer — base ±4, top ±2.8)
-	draw_colored_polygon(PackedVector2Array([
-		neck_base + neck_perp * 4.0, neck_base - neck_perp * 4.0,
-		neck_base.lerp(neck_top, 0.5) - neck_perp * 3.2,
-		neck_top - neck_perp * 2.8, neck_top + neck_perp * 2.8,
-		neck_base.lerp(neck_top, 0.5) + neck_perp * 3.2,
-	]), skin_shadow)
-	# Inner neck fill
-	draw_colored_polygon(PackedVector2Array([
-		neck_base + neck_perp * 3.2, neck_base - neck_perp * 3.2,
-		neck_top - neck_perp * 2.2, neck_top + neck_perp * 2.2,
-	]), skin_base)
-	# Neck highlight (left side light)
-	draw_line(neck_base.lerp(neck_top, 0.15) + neck_perp * 2.0, neck_base.lerp(neck_top, 0.85) + neck_perp * 1.6, skin_highlight, 1.5)
-	# Subtle throat shadow
-	draw_line(neck_base.lerp(neck_top, 0.2) - neck_perp * 0.5, neck_base.lerp(neck_top, 0.8) - neck_perp * 0.3, Color(0.78, 0.66, 0.54, 0.15), 1.0)
+	# === NECK (cartoon connector) ===
+	var neck_top = head_center + Vector2(0, 9)
+	draw_line(neck_base, neck_top, OL, 7.0)
+	draw_line(neck_base, neck_top, skin_base, 5.0)
 
-	# === HEAD (slightly larger chibi head for feminine look, radius ~11.5) ===
-	# Blonde hair (back layer — behind face, with wind physics)
+	# === HEAD — Big round cartoon head ===
 	var hair_wave = sin(_time * 1.5) * 3.0 + hair_wind
-	var hair_base_col = Color(0.72, 0.60, 0.22)
-	var hair_bright = Color(0.95, 0.85, 0.45)
-	var hair_hi = Color(1.0, 0.92, 0.55)
-	# Hair mass (larger — more chibi/feminine)
-	draw_circle(head_center, 11.5, hair_base_col)
-	draw_circle(head_center + Vector2(0, -0.7), 10.2, Color(0.85, 0.75, 0.35))
-	# Top highlight
-	draw_circle(head_center + Vector2(-1.4, -3.2), 6.2, Color(0.92, 0.82, 0.42, 0.3))
-	# Flowing hair strands (~30% longer with S-curve wave modulation)
-	var strand_data = [
-		[-10.5, 28.0, 4.5, hair_base_col], [-7.5, 33.0, 3.8, hair_bright],
-		[-3.5, 36.0, 3.2, hair_base_col], [3.5, 36.0, 3.2, hair_bright],
-		[7.5, 33.0, 3.8, hair_base_col], [10.5, 28.0, 4.5, hair_bright],
-	]
-	for sd in strand_data:
-		var sx: float = sd[0]
-		var slen: float = sd[1]
-		var swid: float = sd[2]
-		var scol: Color = sd[3]
-		var wave_off = hair_wave * (1.0 if sx > 0 else -1.0) * 0.4
-		# Main strand with S-curve wave using sin modulation
-		var strand_pts = PackedVector2Array()
-		for si in range(8):
-			var st = float(si) / 7.0
-			var sy = 4.0 + st * (slen - 4.0)
-			var s_wave = sin(st * PI * 2.5 + _time * 1.2) * (2.0 + st * 2.0)
-			strand_pts.append(head_center + Vector2(sx + wave_off * st + s_wave, sy))
-		for si in range(strand_pts.size() - 1):
-			draw_line(strand_pts[si], strand_pts[si + 1], scol, swid * (1.0 - float(si) * 0.08))
-		# Secondary wispy strand
-		draw_line(head_center + Vector2(sx + 1.5, 3.5), head_center + Vector2(sx + 0.7 + wave_off * 0.6, slen - 3), Color(scol.r, scol.g, scol.b, 0.5), swid * 0.4)
-		# Tertiary wispy strand
-		draw_line(head_center + Vector2(sx - 1.0, 5.0), head_center + Vector2(sx + wave_off * 0.3 - 0.5, slen - 5), Color(scol.r, scol.g, scol.b, 0.3), swid * 0.3)
-	# Curled ends (5 instead of 3 — more feminine)
-	for ci in range(5):
-		var cx = -9.0 + float(ci) * 4.5
-		var cy = 30.0 + float(ci % 2) * 4.0
-		draw_arc(head_center + Vector2(cx + hair_wave * 0.3, cy), 2.5, 0, PI, 6, Color(0.88, 0.78, 0.38, 0.5), 1.5)
+	var hair_base = Color(0.85, 0.72, 0.28)
+	var hair_light = Color(0.95, 0.85, 0.40)
+	var hair_shine = Color(1.0, 0.95, 0.55)
+
+	# --- Hair back (drawn behind face) ---
+	# Back hair outline + fill
+	draw_circle(head_center + Vector2(-10, 14), 6.0, OL)
+	draw_circle(head_center + Vector2(-10, 14), 4.8, hair_base)
+	draw_circle(head_center + Vector2(10, 14), 6.0, OL)
+	draw_circle(head_center + Vector2(10, 14), 4.8, hair_base)
+	draw_circle(head_center + Vector2(-9, 22), 5.0, OL)
+	draw_circle(head_center + Vector2(-9, 22), 3.8, hair_light)
+	draw_circle(head_center + Vector2(9, 22), 5.0, OL)
+	draw_circle(head_center + Vector2(9, 22), 3.8, hair_light)
+
+	# --- Main head shape (big circle) ---
+	# Hair volume outline
+	draw_circle(head_center, 14.0, OL)
+	draw_circle(head_center, 12.5, hair_base)
+	draw_circle(head_center + Vector2(0, -1), 11.5, hair_light)
+	# Side hair volume
+	draw_circle(head_center + Vector2(-12, 4), 6.5, OL)
+	draw_circle(head_center + Vector2(-12, 4), 5.2, hair_base)
+	draw_circle(head_center + Vector2(12, 4), 6.5, OL)
+	draw_circle(head_center + Vector2(12, 4), 5.2, hair_base)
+	# Crown shine
+	draw_circle(head_center + Vector2(-2, -4), 5.5, Color(hair_shine.r, hair_shine.g, hair_shine.b, 0.4))
 	# Hair shine arc
-	draw_arc(head_center + Vector2(0, -2), 9.5, PI * 0.55, PI * 1.0, 10, Color(1.0, 0.96, 0.65, 0.4), 2.0)
+	draw_arc(head_center + Vector2(0, -2), 10.0, PI * 0.5, PI * 0.9, 8, Color(1.0, 0.96, 0.60, 0.45), 3.0)
+	# Strand detail (just a few bold lines for texture)
+	for si in range(4):
+		var sx = -8.0 + float(si) * 5.5
+		var wave_off = hair_wave * (1.0 if sx > 0 else -1.0) * 0.25
+		var s_start = head_center + Vector2(sx, 4)
+		var s_end = head_center + Vector2(sx + wave_off, 20.0 + float(si % 2) * 3.0)
+		draw_line(s_start, s_end, hair_base, 2.0)
 
-	# Face (rounder, softer oval for feminine look)
-	draw_circle(head_center + Vector2(0, 0.7), 9.0, skin_base)
-	# Jawline definition — softer curves from ears to chin
-	draw_line(head_center + Vector2(-8, 1.5), head_center + Vector2(-4, 7), Color(0.78, 0.66, 0.54, 0.25), 1.0)
-	draw_line(head_center + Vector2(8, 1.5), head_center + Vector2(4, 7), Color(0.78, 0.66, 0.54, 0.25), 1.0)
-	# Chin — small, feminine, soft
-	draw_circle(head_center + Vector2(0, 7), 2.8, skin_base)
-	draw_circle(head_center + Vector2(0, 7.2), 2.0, skin_highlight)
-	draw_arc(head_center + Vector2(0, 5), 5.0, 0.15, PI - 0.15, 10, Color(0.78, 0.66, 0.54, 0.12), 0.8)
-	# Rosy cheeks (Alice's signature blush — bigger, more prominent)
-	draw_circle(head_center + Vector2(-5.5, 2.1), 3.0, Color(0.95, 0.55, 0.50, 0.20))
-	draw_circle(head_center + Vector2(-5.5, 2.1), 2.0, Color(0.95, 0.48, 0.45, 0.25))
-	draw_circle(head_center + Vector2(5.5, 2.1), 3.0, Color(0.95, 0.55, 0.50, 0.20))
-	draw_circle(head_center + Vector2(5.5, 2.1), 2.0, Color(0.95, 0.48, 0.45, 0.25))
+	# --- Face (big round cartoon face) ---
+	draw_circle(head_center + Vector2(0, 1.5), 12.0, OL)
+	draw_circle(head_center + Vector2(0, 1.5), 10.8, skin_base)
+	# Face highlight (top-left shine like Bloons)
+	draw_circle(head_center + Vector2(-3, -2), 5.0, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3))
 
-	# Ears peeking through hair (adjusted for larger head)
-	draw_circle(head_center + Vector2(-9.5, 0), 2.2, skin_base)
-	draw_circle(head_center + Vector2(-9.5, 0), 1.1, Color(0.95, 0.72, 0.68, 0.4))
-	draw_circle(head_center + Vector2(9.5, 0), 2.2, skin_base)
-	draw_circle(head_center + Vector2(9.5, 0), 1.1, Color(0.95, 0.72, 0.68, 0.4))
+	# Rosy cheeks (Alice's signature — bold pink)
+	draw_circle(head_center + Vector2(-6.5, 4), 3.0, Color(1.0, 0.50, 0.50, 0.30))
+	draw_circle(head_center + Vector2(6.5, 4), 3.0, Color(1.0, 0.50, 0.50, 0.30))
 
-	# Black headband (Tenniel-accurate, wider for larger head)
-	draw_line(head_center + Vector2(-10, -3.5), head_center + Vector2(0, -5.5), Color(0.08, 0.08, 0.10), 3.5)
-	draw_line(head_center + Vector2(0, -5.5), head_center + Vector2(10, -3.5), Color(0.08, 0.08, 0.10), 3.5)
-	draw_line(head_center + Vector2(-10, -3.5), head_center + Vector2(0, -5.5), Color(0.12, 0.12, 0.14), 2.2)
-	draw_line(head_center + Vector2(0, -5.5), head_center + Vector2(10, -3.5), Color(0.12, 0.12, 0.14), 2.2)
-	# Satin highlight
-	draw_line(head_center + Vector2(-7, -4.2), head_center + Vector2(0, -5.8), Color(0.3, 0.3, 0.35, 0.3), 0.8)
-	# Headband bow (left side — enlarged for emphasis)
-	draw_arc(head_center + Vector2(-11, -1.8), 3.5, PI * 0.3, PI * 1.7, 6, Color(0.12, 0.12, 0.14), 2.0)
-	draw_arc(head_center + Vector2(-11, -5.5), 3.5, PI * 0.3, PI * 1.7, 6, Color(0.12, 0.12, 0.14), 2.0)
-	draw_circle(head_center + Vector2(-10, -3.5), 1.8, Color(0.10, 0.10, 0.12))
-	# Bow tails (longer, more elegant)
-	draw_line(head_center + Vector2(-11, -3.5), head_center + Vector2(-15, 0), Color(0.12, 0.12, 0.14), 1.5)
-	draw_line(head_center + Vector2(-11, -3.5), head_center + Vector2(-14, -7), Color(0.12, 0.12, 0.14), 1.5)
+	# Ears (behind hair)
+	draw_circle(head_center + Vector2(-10.5, 2), 2.8, OL)
+	draw_circle(head_center + Vector2(-10.5, 2), 2.0, skin_base)
+	draw_circle(head_center + Vector2(10.5, 2), 2.8, OL)
+	draw_circle(head_center + Vector2(10.5, 2), 2.0, skin_base)
 
-	# Anime eyes (bigger, more expressive — key femininity marker)
+	# Flower behind ear (signature accessory)
+	var flower_pos = head_center + Vector2(-11, -3)
+	draw_circle(flower_pos, 4.0, OL)
+	draw_circle(flower_pos, 3.2, Color(1.0, 0.65, 0.75))
+	for petal_i in range(5):
+		var pa = float(petal_i) * TAU / 5.0 + _time * 0.3
+		draw_circle(flower_pos + Vector2.from_angle(pa) * 2.5, 1.8, Color(1.0, 0.55, 0.68))
+	draw_circle(flower_pos, 1.5, Color(1.0, 0.92, 0.35))
+
+	# === BIG CARTOON EYES (Bloons-style — large, expressive, clean) ===
 	var look_dir = dir * 1.2
-	var l_eye = head_center + Vector2(-3.5, -0.7)
-	var r_eye = head_center + Vector2(3.5, -0.7)
-	# Eye socket shadow
-	draw_circle(l_eye, 4.6, Color(0.82, 0.72, 0.62, 0.2))
-	draw_circle(r_eye, 4.6, Color(0.82, 0.72, 0.62, 0.2))
-	# Eye whites (bigger)
-	draw_circle(l_eye, 4.2, Color(0.97, 0.97, 1.0))
-	draw_circle(r_eye, 4.2, Color(0.97, 0.97, 1.0))
-	# Blue irises (Alice's blue eyes — proportionally larger)
-	draw_circle(l_eye + look_dir, 2.7, Color(0.12, 0.28, 0.55))
-	draw_circle(l_eye + look_dir, 2.1, Color(0.25, 0.45, 0.78))
-	draw_circle(l_eye + look_dir, 1.5, Color(0.40, 0.60, 0.92))
-	draw_circle(r_eye + look_dir, 2.7, Color(0.12, 0.28, 0.55))
-	draw_circle(r_eye + look_dir, 2.1, Color(0.25, 0.45, 0.78))
-	draw_circle(r_eye + look_dir, 1.5, Color(0.40, 0.60, 0.92))
-	# Pupils
-	draw_circle(l_eye + look_dir * 1.15, 1.2, Color(0.04, 0.04, 0.08))
-	draw_circle(r_eye + look_dir * 1.15, 1.2, Color(0.04, 0.04, 0.08))
-	# Primary highlight (sparkle — bigger)
-	draw_circle(l_eye + Vector2(-1.0, -1.3), 1.3, Color(1.0, 1.0, 1.0, 0.95))
-	draw_circle(r_eye + Vector2(-1.0, -1.3), 1.3, Color(1.0, 1.0, 1.0, 0.95))
-	# Secondary highlight
-	draw_circle(l_eye + Vector2(1.2, 0.4), 0.7, Color(1.0, 1.0, 1.0, 0.55))
-	draw_circle(r_eye + Vector2(1.2, 0.4), 0.7, Color(1.0, 1.0, 1.0, 0.55))
-	# Third tiny sparkle
-	draw_circle(l_eye + Vector2(-0.35, 0.85), 0.35, Color(1.0, 1.0, 1.0, 0.35))
-	draw_circle(r_eye + Vector2(-0.35, 0.85), 0.35, Color(1.0, 1.0, 1.0, 0.35))
-	# Eyelid lines
-	draw_arc(l_eye, 4.2, PI + 0.3, TAU - 0.3, 8, Color(0.25, 0.18, 0.12), 1.0)
-	draw_arc(r_eye, 4.2, PI + 0.3, TAU - 0.3, 8, Color(0.25, 0.18, 0.12), 1.0)
-	# Eyelashes (5 per eye instead of 3, longer — key feminine detail)
-	for el in range(5):
-		var ela = PI + 0.25 + float(el) * 0.32
-		var lash_len = 3.0 + sin(float(el) * 1.2) * 0.5
-		draw_line(l_eye + Vector2.from_angle(ela) * 4.2, l_eye + Vector2.from_angle(ela + 0.08) * (4.2 + lash_len), Color(0.2, 0.15, 0.10), 0.8)
-		draw_line(r_eye + Vector2.from_angle(ela) * 4.2, r_eye + Vector2.from_angle(ela + 0.08) * (4.2 + lash_len), Color(0.2, 0.15, 0.10), 0.8)
-	# Lower lashes (more visible)
+	var l_eye = head_center + Vector2(-4.5, 0.5)
+	var r_eye = head_center + Vector2(4.5, 0.5)
+	# Eye outlines (thick black border)
+	draw_circle(l_eye, 5.8, OL)
+	draw_circle(r_eye, 5.8, OL)
+	# Eye whites
+	draw_circle(l_eye, 4.8, Color(1.0, 1.0, 1.0))
+	draw_circle(r_eye, 4.8, Color(1.0, 1.0, 1.0))
+	# Blue irises (Alice's signature blue — bold saturated)
+	draw_circle(l_eye + look_dir, 3.5, Color(0.12, 0.35, 0.70))
+	draw_circle(l_eye + look_dir, 2.8, Color(0.25, 0.50, 0.90))
+	draw_circle(r_eye + look_dir, 3.5, Color(0.12, 0.35, 0.70))
+	draw_circle(r_eye + look_dir, 2.8, Color(0.25, 0.50, 0.90))
+	# Pupils (solid black dots)
+	draw_circle(l_eye + look_dir * 1.05, 1.6, Color(0.02, 0.02, 0.05))
+	draw_circle(r_eye + look_dir * 1.05, 1.6, Color(0.02, 0.02, 0.05))
+	# Big sparkle highlights (key Bloons detail — makes eyes feel alive)
+	draw_circle(l_eye + Vector2(-1.3, -1.6), 1.8, Color(1.0, 1.0, 1.0, 0.95))
+	draw_circle(r_eye + Vector2(-1.3, -1.6), 1.8, Color(1.0, 1.0, 1.0, 0.95))
+	# Small secondary sparkle
+	draw_circle(l_eye + Vector2(1.2, 1.0), 0.9, Color(1.0, 1.0, 1.0, 0.55))
+	draw_circle(r_eye + Vector2(1.2, 1.0), 0.9, Color(1.0, 1.0, 1.0, 0.55))
+	# Bold upper eyelid line
+	draw_arc(l_eye, 5.2, PI + 0.15, TAU - 0.15, 10, OL, 1.8)
+	draw_arc(r_eye, 5.2, PI + 0.15, TAU - 0.15, 10, OL, 1.8)
+	# Eyelashes (3 bold lashes per eye)
 	for el in range(3):
-		var ela = -0.3 + float(el) * 0.3
-		var lash_len = 1.5
-		draw_line(l_eye + Vector2.from_angle(ela) * 4.0, l_eye + Vector2.from_angle(ela - 0.05) * (4.0 + lash_len), Color(0.25, 0.18, 0.12, 0.4), 0.6)
-		draw_line(r_eye + Vector2.from_angle(ela) * 4.0, r_eye + Vector2.from_angle(ela - 0.05) * (4.0 + lash_len), Color(0.25, 0.18, 0.12, 0.4), 0.6)
+		var ela = PI + 0.25 + float(el) * 0.45
+		draw_line(l_eye + Vector2.from_angle(ela) * 5.2, l_eye + Vector2.from_angle(ela + 0.12) * 8.0, OL, 1.5)
+		draw_line(r_eye + Vector2.from_angle(ela) * 5.2, r_eye + Vector2.from_angle(ela + 0.12) * 8.0, OL, 1.5)
 
-	# Eyebrows (natural arch, blonde, scaled)
-	draw_line(l_eye + Vector2(-2.5, -3.5), l_eye + Vector2(1.1, -4.3), Color(0.6, 0.48, 0.2), 1.4)
-	draw_line(r_eye + Vector2(-1.1, -4.3), r_eye + Vector2(2.5, -3.5), Color(0.6, 0.48, 0.2), 1.4)
+	# Eyebrows (bold, expressive arches)
+	draw_line(l_eye + Vector2(-3.5, -5), l_eye + Vector2(2.5, -6.5), Color(0.60, 0.48, 0.15), 2.2)
+	draw_line(r_eye + Vector2(-2.5, -6.5), r_eye + Vector2(3.5, -5), Color(0.60, 0.48, 0.15), 2.2)
 
-	# Button nose (smaller, cuter)
-	draw_circle(head_center + Vector2(0, 2.5), 1.1, Color(0.92, 0.80, 0.68, 0.4))
-	draw_circle(head_center + Vector2(0.2, 2.6), 0.8, Color(0.98, 0.88, 0.78, 0.5))
+	# Cute button nose
+	draw_circle(head_center + Vector2(0, 4), 1.5, Color(0.92, 0.78, 0.66, 0.6))
+	draw_circle(head_center + Vector2(0.3, 3.8), 0.7, skin_highlight)
 
-	# Full curvy lips (prominent, feminine, attractive)
-	# Upper lip — defined cupid's bow shape
-	draw_arc(head_center + Vector2(0, 4.5), 4.0, 0.1, PI - 0.1, 14, Color(0.85, 0.35, 0.38), 1.8)
-	# Cupid's bow dip at center
-	draw_line(head_center + Vector2(-1.5, 4.2), head_center + Vector2(0, 4.6), Color(0.82, 0.32, 0.35), 1.2)
-	draw_line(head_center + Vector2(0, 4.6), head_center + Vector2(1.5, 4.2), Color(0.82, 0.32, 0.35), 1.2)
-	# Lower lip — fuller, rounder, curvier
-	draw_arc(head_center + Vector2(0, 5.2), 3.8, -0.2, PI + 0.2, 12, Color(0.90, 0.45, 0.42), 2.0)
-	draw_arc(head_center + Vector2(0, 5.5), 3.0, -0.1, PI + 0.1, 10, Color(0.92, 0.52, 0.48, 0.5), 1.5)
-	# Lip shine highlight (glossy center)
-	draw_circle(head_center + Vector2(0.3, 5.5), 1.2, Color(1.0, 0.78, 0.75, 0.45))
-	draw_circle(head_center + Vector2(-0.5, 4.3), 0.8, Color(1.0, 0.80, 0.78, 0.35))
-	# Lip corners with slight smile upturn
-	draw_line(head_center + Vector2(-3.5, 4.8), head_center + Vector2(-4.5, 4.0), Color(0.82, 0.40, 0.38, 0.35), 0.8)
-	draw_line(head_center + Vector2(3.5, 4.8), head_center + Vector2(4.5, 4.0), Color(0.82, 0.40, 0.38, 0.35), 0.8)
-	# Lip line between upper and lower
-	draw_line(head_center + Vector2(-3.2, 4.8), head_center + Vector2(3.2, 4.8), Color(0.75, 0.30, 0.32, 0.3), 0.6)
+	# Cheerful smile (simple arc — Bloons style)
+	draw_arc(head_center + Vector2(0, 6), 4.0, 0.15, PI - 0.15, 10, OL, 1.8)
+	draw_arc(head_center + Vector2(0, 6), 3.5, 0.2, PI - 0.2, 8, Color(0.90, 0.40, 0.40), 1.2)
+
+	# === Alice's Headband (black with bow — signature look) ===
+	draw_arc(head_center + Vector2(0, -2), 12.0, PI + 0.25, TAU - 0.25, 14, OL, 4.0)
+	draw_arc(head_center + Vector2(0, -2), 12.0, PI + 0.25, TAU - 0.25, 14, Color(0.10, 0.10, 0.15), 2.5)
+	# Headband bow (right side — bold)
+	var bow_ctr = head_center + Vector2(7, -10)
+	draw_circle(bow_ctr + Vector2(-2.5, 0), 2.8, OL)
+	draw_circle(bow_ctr + Vector2(2.5, 0), 2.8, OL)
+	draw_circle(bow_ctr + Vector2(-2.5, 0), 2.0, Color(0.10, 0.10, 0.15))
+	draw_circle(bow_ctr + Vector2(2.5, 0), 2.0, Color(0.10, 0.10, 0.15))
+	draw_circle(bow_ctr, 1.5, OL)
+	draw_circle(bow_ctr, 1.0, Color(0.15, 0.15, 0.20))
 
 	# === T2+: Floating Cheshire Cat grin ===
 	if upgrade_tier >= 2:
@@ -1490,12 +1311,12 @@ func _draw() -> void:
 		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
 		draw_circle(Vector2.ZERO, 60.0 + pulse * 6.0, Color(0.8, 0.7, 1.0, 0.1 + pulse * 0.1))
 		draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 32, Color(0.8, 0.7, 1.0, 0.3 + pulse * 0.3), 2.5)
-		var font3 = ThemeDB.fallback_font
+		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.8, 0.7, 1.0, 0.7 + pulse * 0.3))
 
 	# Damage dealt counter
 	if damage_dealt > 0:
-		var font = ThemeDB.fallback_font
+		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
 			dmg_text += " • Lv." + str(stat_upgrade_level)
@@ -1503,7 +1324,7 @@ func _draw() -> void:
 
 	# Upgrade name flash
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
-		var font2 = ThemeDB.fallback_font
+		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -60), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.8, 0.7, 1.0, min(_upgrade_flash, 1.0)))
 
 # === SYNERGY BUFFS ===
