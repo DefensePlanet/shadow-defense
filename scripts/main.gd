@@ -954,9 +954,7 @@ const OLD_TO_NEW_LEVEL_MAP = {0:16, 1:17, 2:18, 3:19, 4:20, 5:21, 6:22, 7:23, 8:
 func _ready() -> void:
 	add_to_group("main")
 	# Load Cinzel display font for all game text
-	var ff := FontFile.new()
-	ff.data = FileAccess.get_file_as_bytes("res://fonts/Cinzel.ttf")
-	game_font = ff
+	game_font = load("res://fonts/Cinzel.ttf")
 	_init_survivor_progress()
 	_init_emporium_items()
 	_init_knowledge_tree()

@@ -64,9 +64,7 @@ var dagger_scene = preload("res://scenes/peter_dagger.tscn")
 var _game_font: Font
 
 func _ready() -> void:
-	var _ff := FontFile.new()
-	_ff.data = FileAccess.get_file_as_bytes("res://fonts/Cinzel.ttf")
-	_game_font = _ff
+	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 
 func _process(delta: float) -> void:

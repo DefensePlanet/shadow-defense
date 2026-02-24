@@ -124,9 +124,7 @@ var _neverland_flight_flash: float = 0.0
 var _game_font: Font
 
 func _ready() -> void:
-	var _ff := FontFile.new()
-	_ff.data = FileAccess.get_file_as_bytes("res://fonts/Cinzel.ttf")
-	_game_font = _ff
+	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_generate_tier_sounds()
 	_attack_sounds = _attack_sounds_by_tier[0]
