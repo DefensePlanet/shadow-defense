@@ -60,6 +60,24 @@ var bound_shield: float = 0.0
 var _hex_regen_accum: float = 0.0
 var _game_font: Font
 
+# === NEW: Shadow-Infested + additional modifiers ===
+var is_shadow_infested: bool = false  # Black shadow aura, invisible until close range
+var is_regrown: bool = false          # Splits into 2 smaller on death
+var is_fortified: bool = false        # Armor reduces physical damage by 40%
+var is_shielded: bool = false         # Energy barrier absorbs first 30% of max HP
+var shield_hp: float = 0.0
+var is_cursed: bool = false           # Curses nearby towers to attack slower
+var is_phantom: bool = false          # Phases in/out, untargetable when phased
+var phantom_phase_timer: float = 0.0
+var phantom_visible: bool = true
+var is_spectral: bool = false         # Ghostly, takes reduced physical damage but weak to magic
+var regrow_generation: int = 0        # Tracks split depth (max 2)
+
+# === NEW: MOAB Villain System ===
+var is_moab: bool = false             # Large villain enemy
+var moab_tier: int = 0                # 0=MOAB, 1=BFB equivalent, 2=ZOMG equivalent
+var moab_children_count: int = 4      # How many children spawn on death
+
 func _ready() -> void:
 	_game_font = load("res://fonts/Cinzel.ttf")
 	health = max_health
@@ -132,6 +150,15 @@ func _process(delta: float) -> void:
 			chain_group.clear()
 			chain_share = 0.0
 
+	# Phantom phasing — toggles visibility every 2.5 seconds
+	if is_phantom:
+		phantom_phase_timer += delta
+		if phantom_phase_timer >= 2.5:
+			phantom_phase_timer = 0.0
+			phantom_visible = not phantom_visible
+
+	# Cursed — slow nearby towers (handled in main.gd _process via aura check)
+
 	# Fear reverse — walk backwards
 	if fear_reverse_timer > 0.0:
 		fear_reverse_timer -= delta
@@ -192,6 +219,22 @@ func take_damage(amount: float, is_magic: bool = false) -> void:
 	# Spectral: physical attacks deal 50% damage
 	if "spectral" in modifiers and not is_magic:
 		final_dmg *= 0.5
+	# Fortified: armor reduces physical damage by 40%
+	if is_fortified and not is_magic:
+		final_dmg *= 0.6
+	# Phantom: untargetable when phased out
+	if is_phantom and not phantom_visible:
+		return
+	# Shielded: energy barrier absorbs damage first
+	if is_shielded and shield_hp > 0.0:
+		if final_dmg <= shield_hp:
+			shield_hp -= final_dmg
+			_hit_flash = 0.12
+			return
+		else:
+			final_dmg -= shield_hp
+			shield_hp = 0.0
+			is_shielded = false
 	# Bound: shield absorbs damage first
 	if bound_shield > 0.0:
 		if final_dmg <= bound_shield:
@@ -291,6 +334,12 @@ func _die() -> void:
 			main.spawn_gold_text(global_position, gold_reward)
 		if main.has_method("report_enemy_death"):
 			main.report_enemy_death(global_position, boss_scale > 1.0, boss_scale)
+		# MOAB: spawn children on death
+		if is_moab and moab_tier > 0 and main.has_method("spawn_moab_children"):
+			main.spawn_moab_children(progress, enemy_theme, moab_tier - 1, moab_children_count)
+		# Regrow: split into 2 smaller enemies
+		elif is_regrown and regrow_generation < 2 and main.has_method("spawn_regrow_children"):
+			main.spawn_regrow_children(progress, enemy_theme, enemy_tier, regrow_generation + 1, max_health * 0.4)
 	queue_free()
 
 func _draw() -> void:
@@ -298,7 +347,10 @@ func _draw() -> void:
 
 	var tint: Color = Color.WHITE
 	if _hit_flash > 0.0:
-		tint = Color(1.0, 1.0, 1.0, 1.0)
+		tint = Color(1.5, 1.5, 1.5, 1.0)  # Bright white flash (HDR-like)
+		# Impact glow ring
+		var flash_alpha = clampf(_hit_flash / 0.12, 0.0, 1.0)
+		draw_circle(Vector2.ZERO, 18.0 * s * flash_alpha, Color(1.0, 0.95, 0.8, 0.25 * flash_alpha))
 	elif painted_red or paint_stacks > 0:
 		var ri = clampf(0.3 + float(paint_stacks) * 0.07, 0.3, 0.9)
 		tint = Color(1.0, 1.0 - ri, 1.0 - ri, 1.0)  # Painted red!
@@ -309,6 +361,8 @@ func _draw() -> void:
 	elif is_shrunk:
 		tint = Color(0.7, 0.7, 1.0, 1.0)
 
+	# Frost crystals when slowed
+	var draw_frost := is_shrunk or slow_factor < 0.9
 	# Wound alpha fade when critically low HP
 	var hp_ratio = health / max_health if max_health > 0.0 else 1.0
 	if hp_ratio < 0.25:
@@ -317,6 +371,15 @@ func _draw() -> void:
 	# Spectral modifier — translucent
 	if "spectral" in modifiers:
 		tint.a *= 0.5
+	# Shadow-Infested — dark shadow tint
+	if is_shadow_infested:
+		tint = Color(tint.r * 0.3, tint.g * 0.2, tint.b * 0.35 + 0.1, tint.a)
+	# Phantom — translucent when phased out (visible enough on mobile)
+	if is_phantom and not phantom_visible:
+		tint.a *= 0.25
+	# Spectral — ghostly blue-white translucent
+	if is_spectral:
+		tint = Color(tint.r * 0.5 + 0.3, tint.g * 0.5 + 0.35, tint.b * 0.5 + 0.45, tint.a * 0.7)
 	# Shadow-corrupted doubles get purple tint
 	if is_named_boss and enemy_theme in [2, 4, 10]:
 		tint = Color(tint.r * 0.6 + 0.25, tint.g * 0.4, tint.b * 0.5 + 0.35, tint.a)
@@ -344,7 +407,7 @@ func _draw() -> void:
 	# Status effect visuals
 	if sleep_timer > 0.0:
 		# Zzz floating above
-		draw_string(_game_font, Vector2(-8, -32 * s), "ZZZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.6, 0.6, 1.0, 0.8))
+		draw_string(_game_font, Vector2(-10, -34 * s), "ZZZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.6, 1.0, 0.85))
 	if charm_timer > 0.0:
 		# Hearts above
 		draw_circle(Vector2(-6, -30 * s), 3.0, Color(1.0, 0.3, 0.5, 0.7))
@@ -368,12 +431,36 @@ func _draw() -> void:
 		# Green drip
 		draw_circle(Vector2(-4, 12 * s), 2.0, Color(0.2, 0.8, 0.1, 0.5))
 		draw_circle(Vector2(3, 14 * s), 1.5, Color(0.2, 0.8, 0.1, 0.4))
+	if draw_frost:
+		# Frost crystal particles orbiting when slowed
+		for i in range(4):
+			var frost_angle = _wound_time * 2.0 + float(i) * TAU / 4.0
+			var frost_r = 16.0 * s
+			var fx = cos(frost_angle) * frost_r
+			var fy = sin(frost_angle) * frost_r * 0.5 - 4.0 * s
+			var frost_alpha = 0.5 + sin(_wound_time * 4.0 + float(i)) * 0.2
+			# Small ice diamond shape
+			var diamond_sz = 3.0 * s
+			draw_line(Vector2(fx, fy - diamond_sz), Vector2(fx + diamond_sz * 0.6, fy), Color(0.6, 0.85, 1.0, frost_alpha), 1.5)
+			draw_line(Vector2(fx + diamond_sz * 0.6, fy), Vector2(fx, fy + diamond_sz), Color(0.6, 0.85, 1.0, frost_alpha), 1.5)
+			draw_line(Vector2(fx, fy + diamond_sz), Vector2(fx - diamond_sz * 0.6, fy), Color(0.6, 0.85, 1.0, frost_alpha), 1.5)
+			draw_line(Vector2(fx - diamond_sz * 0.6, fy), Vector2(fx, fy - diamond_sz), Color(0.6, 0.85, 1.0, frost_alpha), 1.5)
+	# Speed lines for fast enemies
+	if speed > 120.0 and not is_shrunk:
+		var trail_alpha = clampf((speed - 120.0) / 80.0, 0.1, 0.4)
+		for i in range(3):
+			var line_y = (-10.0 + float(i) * 10.0) * s
+			var line_x = -14.0 * s
+			var line_len = (8.0 + float(i) * 3.0) * s
+			draw_line(Vector2(line_x - line_len, line_y), Vector2(line_x, line_y), Color(1.0, 0.9, 0.5, trail_alpha * (1.0 - float(i) * 0.25)), 1.5)
 
-	# Health bar
-	var bar_w: float = 28.0 * boss_scale
-	var bar_h: float = 4.0 + (boss_scale - 1.0) * 2.0
-	var bar_y: float = -26.0 * s - 4.0
-	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w, bar_h), Color(0.15, 0.15, 0.15))
+	# Health bar — sized for mobile visibility
+	var bar_w: float = 38.0 * boss_scale
+	var bar_h: float = 5.0 + (boss_scale - 1.0) * 2.0
+	var bar_y: float = -26.0 * s - 5.0
+	# Dark background with border
+	draw_rect(Rect2(-bar_w / 2 - 1, bar_y - 1, bar_w + 2, bar_h + 2), Color(0.0, 0.0, 0.0, 0.6))
+	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w, bar_h), Color(0.12, 0.12, 0.12))
 	var ratio = clamp(health / max_health, 0.0, 1.0)
 	var bar_color: Color
 	if ratio > 0.55:
@@ -383,6 +470,8 @@ func _draw() -> void:
 	else:
 		bar_color = Color(0.95, 0.2, 0.15)
 	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w * ratio, bar_h), bar_color)
+	# Bright top highlight on fill
+	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w * ratio, 1), Color(1, 1, 1, 0.2))
 
 	# Named boss: shadow aura + name label
 	if is_named_boss:
@@ -403,9 +492,10 @@ func _draw() -> void:
 			var px2 = cos(angle) * dist2
 			var py2 = sin(angle) * dist2 * 0.5 - 6.0 * s
 			draw_circle(Vector2(px2, py2), 2.0 * s, Color(0.15, 0.0, 0.2, 0.2))
-		# Boss name label in gold above health bar
-		var name_y = bar_y - 10.0
-		draw_string(_game_font, Vector2(-bar_w, name_y), boss_name, HORIZONTAL_ALIGNMENT_CENTER, int(bar_w * 2.0), 10, Color(1.0, 0.85, 0.2, 0.95))
+		# Boss name label in gold above health bar — larger for mobile
+		var name_y = bar_y - 12.0
+		draw_string(_game_font, Vector2(-bar_w, name_y + 1), boss_name, HORIZONTAL_ALIGNMENT_CENTER, int(bar_w * 2.0), 13, Color(0, 0, 0, 0.5))
+		draw_string(_game_font, Vector2(-bar_w, name_y), boss_name, HORIZONTAL_ALIGNMENT_CENTER, int(bar_w * 2.0), 13, Color(1.0, 0.85, 0.2, 0.95))
 		# Rescue pending: glowing collapse effect
 		if _rescue_pending:
 			var pulse = sin(aura_time * 6.0) * 0.3 + 0.5
@@ -451,7 +541,7 @@ func _draw_wound_effects(s: float) -> void:
 		for i in range(crack_count):
 			if i < _wound_crack_lines.size():
 				var cl = _wound_crack_lines[i]
-				draw_line(cl["from"] * s * bs, cl["to"] * s * bs, Color(0.05, 0.03, 0.08, 0.7), 1.5 * bs)
+				draw_line(cl["from"] * s * bs, cl["to"] * s * bs, Color(0.05, 0.03, 0.08, 0.8), 2.5 * bs)
 	# 25% HP: ink splatter orbiting + more drips
 	if hp_ratio < 0.25:
 		for i in range(5):
@@ -485,12 +575,70 @@ func _draw_modifier_effects(s: float) -> void:
 		for i in range(6):
 			var a1 = float(i) * TAU / 6.0 - PI / 2.0
 			var a2 = float(i + 1) * TAU / 6.0 - PI / 2.0
-			draw_line(hex_pos + Vector2(cos(a1), sin(a1)) * 4.0 * bs, hex_pos + Vector2(cos(a2), sin(a2)) * 4.0 * bs, Color(0.6, 0.2, 0.8, 0.7), 1.0)
+			draw_line(hex_pos + Vector2(cos(a1), sin(a1)) * 5.0 * bs, hex_pos + Vector2(cos(a2), sin(a2)) * 5.0 * bs, Color(0.6, 0.2, 0.8, 0.8), 2.0)
 	# Bound: pulsing cyan barrier
 	if "bound" in modifiers and bound_shield > 0.0:
 		var shield_a = 0.3 + sin(_wound_time * 4.0) * 0.15
 		draw_arc(Vector2.ZERO, 20.0 * s, -PI * 0.4, PI * 0.4, 10, Color(0.2, 0.8, 0.9, shield_a), 2.5 * bs)
 		draw_arc(Vector2.ZERO, 20.0 * s, PI * 0.6, PI * 1.4, 10, Color(0.2, 0.8, 0.9, shield_a), 2.5 * bs)
+	# Shadow-Infested: black shadow tendrils + dark aura
+	if is_shadow_infested:
+		var shadow_pulse = 0.25 + sin(_wound_time * 2.5) * 0.1
+		draw_circle(Vector2.ZERO, 22.0 * s, Color(0.02, 0.0, 0.05, shadow_pulse))
+		for i in range(6):
+			var ta = _wound_time * 1.2 + float(i) * TAU / 6.0
+			var tx = cos(ta) * 16.0 * s
+			var ty = sin(ta) * 16.0 * s * 0.7
+			var tend = Vector2(tx, ty) * 1.4
+			draw_line(Vector2(tx * 0.3, ty * 0.3), tend, Color(0.05, 0.0, 0.08, 0.5), 1.5 * bs)
+		# Shadow eye icon above
+		draw_circle(Vector2(0, -34 * s), 3.0 * bs, Color(0.05, 0.0, 0.08, 0.7))
+		draw_circle(Vector2(0, -34 * s), 1.5 * bs, Color(0.8, 0.1, 0.1, 0.8))
+	# Fortified: iron plates / armor bands
+	if is_fortified:
+		draw_arc(Vector2.ZERO, 14.0 * s, 0, TAU, 16, Color(0.5, 0.5, 0.55, 0.45), 3.0 * bs)
+		draw_arc(Vector2.ZERO, 10.0 * s, 0, TAU, 12, Color(0.55, 0.55, 0.6, 0.35), 2.0 * bs)
+		# Corner rivets
+		for i in range(6):
+			var ra = float(i) * TAU / 6.0 + _wound_time * 0.3
+			draw_circle(Vector2(cos(ra) * 14.0 * s, sin(ra) * 14.0 * s), 1.2 * bs, Color(0.65, 0.65, 0.7, 0.5))
+	# Shielded: energy barrier bubble
+	if is_shielded and shield_hp > 0.0:
+		var barrier_a = 0.2 + sin(_wound_time * 3.0) * 0.1
+		draw_arc(Vector2.ZERO, 22.0 * s, 0, TAU, 20, Color(0.3, 0.7, 1.0, barrier_a), 2.0 * bs)
+		draw_arc(Vector2.ZERO, 20.0 * s, 0, TAU, 16, Color(0.4, 0.8, 1.0, barrier_a * 0.5), 1.0 * bs)
+	# Cursed: dark red runes orbiting
+	if is_cursed:
+		for i in range(4):
+			var ca = _wound_time * 1.8 + float(i) * TAU / 4.0
+			var cx = cos(ca) * 20.0 * s
+			var cy = sin(ca) * 20.0 * s * 0.6
+			draw_string(_game_font, Vector2(cx - 3, cy), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(0.8, 0.15, 0.15, 0.6))
+	# Phantom: phase shimmer when visible, barely visible outline when phased
+	if is_phantom and not phantom_visible:
+		draw_arc(Vector2.ZERO, 12.0 * s, 0, TAU, 12, Color(0.5, 0.5, 0.7, 0.15), 1.0)
+	# Spectral: ghostly shimmer effect
+	if is_spectral:
+		var spec_a = 0.15 + sin(_wound_time * 4.0) * 0.08
+		draw_circle(Vector2.ZERO, 18.0 * s, Color(0.6, 0.7, 0.9, spec_a))
+		for i in range(3):
+			var sa = _wound_time * 1.2 + float(i) * TAU / 3.0
+			var sx = cos(sa) * 15.0 * s
+			var sy = sin(sa) * 15.0 * s * 0.7 - 5.0 * s
+			draw_circle(Vector2(sx, sy), 2.0, Color(0.7, 0.8, 1.0, spec_a * 0.7))
+	# Regrown: green vine marks
+	if is_regrown:
+		for i in range(3):
+			var vy = -8.0 * s + float(i) * 6.0 * s
+			draw_line(Vector2(-6.0 * s, vy), Vector2(-2.0 * s, vy - 3.0 * s), Color(0.2, 0.7, 0.2, 0.4), 1.0 * bs)
+			draw_line(Vector2(2.0 * s, vy), Vector2(6.0 * s, vy - 3.0 * s), Color(0.2, 0.7, 0.2, 0.4), 1.0 * bs)
+	# MOAB: extra glow ring + tier label
+	if is_moab:
+		var moab_pulse = 0.4 + sin(_wound_time * 2.0) * 0.2
+		var moab_color = [Color(0.9, 0.3, 0.1, moab_pulse), Color(0.8, 0.1, 0.1, moab_pulse), Color(0.5, 0.0, 0.5, moab_pulse)][mini(moab_tier, 2)]
+		draw_arc(Vector2.ZERO, 26.0 * s, 0, TAU, 24, moab_color, 3.0 * bs)
+		var tier_label = ["Overlord", "Tyrant", "Sovereign"][mini(moab_tier, 2)]
+		draw_string(_game_font, Vector2(-20 * s, -38 * s), tier_label, HORIZONTAL_ALIGNMENT_CENTER, int(40 * s), 9, Color(1.0, 0.85, 0.2, 0.9))
 
 
 # =============================================================================

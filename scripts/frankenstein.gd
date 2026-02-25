@@ -29,6 +29,7 @@ var _upgrade_name: String = ""
 var kill_count: int = 0
 var kill_stack_bonus: float = 0.0  # Accumulated permanent % bonus
 var _kill_stack_rate: float = 0.02  # +2% per kill (T2: +3%)
+var _kill_stack_cap: int = 25  # Linear scaling cap; logarithmic past this
 
 # Smash radius
 var smash_radius: float = 60.0
@@ -54,18 +55,21 @@ const PROG_ABILITY_NAMES = [
 ]
 const PROG_ABILITY_DESCS = [
 	"Smash damage +25%, attack speed +10%",
-	"Every 20s, absorb next enemy that reaches end (saves 1 life)",
+	"Absorbs the next 50 points of damage every 20s (shield mechanic)",
 	"Every attack chains lightning to 2 extra enemies",
 	"Every 25s, heal 1 life for the player",
 	"Enemies hit are slowed 30% for 2s",
 	"Every 15s, stun all enemies in range for 2s",
 	"Every 12s, lightning bolt hits strongest enemy for 8x damage",
 	"Below 50% kill stacks, smash deals 2x damage",
-	"Every 10s, massive AoE pulse deals 3x damage to all on map"
+	"Every 10s, massive AoE pulse deals 3x damage within 3x range"
 ]
 var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
+# Pain Resistance shield — absorbs next N damage points
+var _pain_resistance_shield: float = 0.0
+var _pain_resistance_max: float = 0.0  # Set when ability activates
+var _pain_resistance_timer: float = 20.0  # Cooldown to recharge shield
 # Ability timers
-var _pain_resistance_timer: float = 20.0
 var _kindness_timer: float = 25.0
 var _sorrow_timer: float = 15.0
 var _promethean_timer: float = 12.0
@@ -95,6 +99,18 @@ const ABILITY_DESCRIPTIONS = [
 const TIER_COSTS = [100, 200, 350, 550]
 var is_selected: bool = false
 var base_cost: int = 0
+
+# Promethean Fire — track last strike target position for visual alignment
+var _promethean_target_pos: Vector2 = Vector2.ZERO
+var _promethean_had_target: bool = false
+
+# Accumulated stat boosts from leveling (to restore after tier upgrade)
+var _accumulated_stat_boosts: Dictionary = {
+	"damage": 0.0,
+	"fire_rate": 0.0,
+	"attack_range": 0.0,
+	"gold_bonus": 0,
+}
 
 var lightning_fist_scene = preload("res://scenes/lightning_fist.tscn")
 
@@ -181,8 +197,8 @@ func _process(delta: float) -> void:
 			_attack_anim = 1.0
 			_smash_anim = 1.0
 
-	# Thunder storm ability (active ability on timer)
-	if upgrade_tier >= 3 or prog_abilities[5]:
+	# Thunder storm ability (active ability on timer — tier 3+ upgrade only)
+	if upgrade_tier >= 3:
 		_thunder_storm_timer -= delta
 		if _thunder_storm_timer <= 0.0 and _has_enemies_in_range():
 			_thunder_storm()
@@ -238,8 +254,10 @@ func _attack() -> void:
 
 	# Calculate effective damage with kill stack bonus
 	var eff_damage = damage * _damage_mult() * (1.0 + kill_stack_bonus)
-	# Ability 8: Rage of Rejection — below 50% of max kill stacks, 2x
-	if prog_abilities[7] and kill_stack_bonus < 0.5:
+	# Ability 8: Rage of Rejection — below 50% of max potential kill stacks, 2x damage
+	# Max potential = _kill_stack_cap * _kill_stack_rate (the linear portion)
+	var rage_threshold = float(_kill_stack_cap) * _kill_stack_rate * 0.5
+	if prog_abilities[7] and kill_stack_bonus < rage_threshold:
 		eff_damage *= 2.0
 
 	# Spawn lightning fist visual effect
@@ -271,11 +289,14 @@ func _thunder_storm() -> void:
 	var storm_dmg = damage * 3.0 * _damage_mult() * (1.0 + kill_stack_bonus)
 	for i in range(count):
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
+			var hp_before = in_range[i].health if "health" in in_range[i] else 0.0
 			in_range[i].take_damage(storm_dmg)
 			register_damage(storm_dmg)
+			if hp_before > 0.0 and (not is_instance_valid(in_range[i]) or in_range[i].health <= 0.0):
+				register_kill()
 
 func _aura_pulse() -> void:
-	var aura_dmg = damage * 0.3 * _damage_mult()
+	var aura_dmg = damage * 0.3 * _damage_mult() * (1.0 + kill_stack_bonus)
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < smash_radius * 1.2:
 			if enemy.has_method("take_damage"):
@@ -284,7 +305,17 @@ func _aura_pulse() -> void:
 
 func register_kill() -> void:
 	kill_count += 1
-	kill_stack_bonus += _kill_stack_rate
+	# Linear scaling up to cap, logarithmic past it
+	if kill_count <= _kill_stack_cap:
+		kill_stack_bonus += _kill_stack_rate
+	else:
+		# Logarithmic growth past cap: base + log(kills - cap + 1) * factor
+		var over = kill_count - _kill_stack_cap
+		var prev_over = over - 1
+		var factor = _kill_stack_rate * 0.5
+		var new_bonus_total = float(_kill_stack_cap) * _kill_stack_rate + log(float(over) + 1.0) * factor
+		var old_bonus_total = float(_kill_stack_cap) * _kill_stack_rate + log(float(prev_over) + 1.0) * factor
+		kill_stack_bonus += new_bonus_total - old_bonus_total
 	_upgrade_flash = 0.5
 	_upgrade_name = "+%.0f%% damage!" % (kill_stack_bonus * 100.0)
 
@@ -293,6 +324,15 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.FRANKENSTEIN, amount)
+	_check_upgrades()
+
+# Pain Resistance shield: absorb incoming damage, return remaining damage after absorption
+func absorb_damage(incoming: float) -> float:
+	if _pain_resistance_shield <= 0.0:
+		return incoming
+	var absorbed = minf(incoming, _pain_resistance_shield)
+	_pain_resistance_shield -= absorbed
+	return incoming - absorbed
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -308,10 +348,18 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.10
-	fire_rate *= 1.06
-	attack_range += 6.0
-	gold_bonus += 1
+	var dmg_boost = damage * 0.10
+	var rate_boost = fire_rate * 0.06
+	var range_boost = 6.0
+	var gold_boost_val = 1
+	damage += dmg_boost
+	fire_rate += rate_boost
+	attack_range += range_boost
+	gold_bonus += gold_boost_val
+	_accumulated_stat_boosts["damage"] += dmg_boost
+	_accumulated_stat_boosts["fire_rate"] += rate_boost
+	_accumulated_stat_boosts["attack_range"] += range_boost
+	_accumulated_stat_boosts["gold_bonus"] += gold_boost_val
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -350,6 +398,11 @@ func _apply_upgrade(tier: int) -> void:
 			smash_radius = 100.0
 			_thunder_storm_cooldown = 15.0
 			_aura_active = true
+	# Re-apply accumulated stat boosts so tier upgrade doesn't clobber them
+	damage += _accumulated_stat_boosts["damage"]
+	fire_rate += _accumulated_stat_boosts["fire_rate"]
+	attack_range += _accumulated_stat_boosts["attack_range"]
+	gold_bonus += _accumulated_stat_boosts["gold_bonus"]
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -549,14 +602,14 @@ func _process_progressive_abilities(delta: float) -> void:
 	_promethean_flash = max(_promethean_flash - delta * 2.0, 0.0)
 	_immortal_flash = max(_immortal_flash - delta * 2.0, 0.0)
 
-	# Ability 2: Pain Resistance — absorb next enemy reaching end
+	# Ability 2: Pain Resistance — recharge damage absorption shield every 20s
 	if prog_abilities[1]:
-		_pain_resistance_timer -= delta
-		if _pain_resistance_timer <= 0.0:
-			var main = get_tree().get_first_node_in_group("main")
-			if main and main.has_method("restore_life"):
-				main.restore_life(1)
-			_pain_resistance_timer = 20.0
+		if _pain_resistance_shield <= 0.0:
+			_pain_resistance_timer -= delta
+			if _pain_resistance_timer <= 0.0:
+				_pain_resistance_shield = 50.0
+				_pain_resistance_max = 50.0
+				_pain_resistance_timer = 20.0
 
 	# Ability 4: Blind Man's Kindness — heal 1 life every 25s
 	if prog_abilities[3]:
@@ -605,17 +658,28 @@ func _promethean_fire_strike() -> void:
 				most_hp = e.health
 				strongest = e
 	if strongest and strongest.has_method("take_damage"):
+		# Store the target position for visual alignment
+		_promethean_target_pos = strongest.global_position
+		_promethean_had_target = true
 		var dmg = damage * 8.0 * _damage_mult() * (1.0 + kill_stack_bonus)
 		strongest.take_damage(dmg)
 		register_damage(dmg)
+		if strongest.has_method("apply_sleep"):
+			strongest.apply_sleep(1.5)
+	else:
+		_promethean_had_target = false
 
 func _immortal_construct_pulse() -> void:
 	_immortal_flash = 1.0
 	var dmg = damage * 3.0 * _damage_mult() * (1.0 + kill_stack_bonus)
+	var pulse_range = attack_range * _range_mult() * 3.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if e.has_method("take_damage"):
+		if global_position.distance_to(e.global_position) <= pulse_range and e.has_method("take_damage"):
+			var hp_before = e.health if "health" in e else 0.0
 			e.take_damage(dmg)
 			register_damage(dmg)
+			if hp_before > 0.0 and (not is_instance_valid(e) or e.health <= 0.0):
+				register_kill()
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
@@ -627,6 +691,13 @@ func set_synergy_buff(buffs: Dictionary) -> void:
 
 func clear_synergy_buff() -> void:
 	_synergy_buffs.clear()
+
+func remove_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		if _synergy_buffs.has(key):
+			_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) - buffs[key]
+			if absf(_synergy_buffs[key]) < 0.001:
+				_synergy_buffs.erase(key)
 
 func set_meta_buffs(buffs: Dictionary) -> void:
 	_meta_buffs = buffs
@@ -657,14 +728,16 @@ func _gold_mult() -> float:
 
 func _draw() -> void:
 	# === 1. SELECTION RING ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.4, 0.7, 1.0, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(0.4, 0.7, 1.0, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(0.4, 0.7, 1.0, ring_alpha * 0.4), 1.5)
-
-	# === 2. RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -730,19 +803,31 @@ func _draw() -> void:
 		var sr = 30.0 + (1.0 - _sorrow_flash) * 60.0
 		draw_arc(Vector2.ZERO, sr, 0, TAU, 24, Color(0.4, 0.5, 0.8, _sorrow_flash * 0.4), 3.0)
 
-	# Ability 7: Promethean Fire flash
-	if _promethean_flash > 0.0:
-		var pf_dir = Vector2.from_angle(aim_angle)
-		draw_line(Vector2.ZERO, pf_dir * 180.0, Color(0.6, 0.8, 1.0, _promethean_flash * 0.5), 4.0)
-		draw_line(Vector2.ZERO, pf_dir * 160.0, Color(0.8, 0.9, 1.0, _promethean_flash * 0.3), 2.0)
+	# Ability 7: Promethean Fire flash — draw bolt toward actual target position
+	if _promethean_flash > 0.0 and _promethean_had_target:
+		var pf_end_local = _promethean_target_pos - global_position
+		var pf_bolt_dir = pf_end_local.normalized()
+		var bolt_len = pf_end_local.length()
+		var prev_pt = Vector2.ZERO
+		for bi in range(6):
+			var next_pt = pf_bolt_dir * (bolt_len * float(bi + 1) / 6.0)
+			next_pt += pf_bolt_dir.rotated(PI / 2.0) * sin(float(bi) * 2.3 + _time * 10.0) * 8.0
+			draw_line(prev_pt, next_pt, Color(0.6, 0.8, 1.0, _promethean_flash * 0.6), 3.0)
+			draw_line(prev_pt, next_pt, Color(0.9, 0.95, 1.0, _promethean_flash * 0.3), 1.5)
+			prev_pt = next_pt
+		draw_circle(prev_pt, 8.0, Color(0.5, 0.7, 1.0, _promethean_flash * 0.3))
 
-	# Ability 9: Immortal Construct flash — electric pulse from ground
+	# Ability 9: Immortal Construct flash — concentric rings and sparks (capped to pulse range)
 	if _immortal_flash > 0.0:
-		for ri in range(10):
-			var ra = TAU * float(ri) / 10.0 + _immortal_flash * 2.0
-			var r_inner = Vector2.from_angle(ra) * 20.0
-			var r_outer = Vector2.from_angle(ra) * (60.0 + (1.0 - _immortal_flash) * 40.0)
-			draw_line(r_inner, r_outer, Color(0.5, 0.7, 1.0, _immortal_flash * 0.4), 2.0)
+		var ic_max_r = attack_range * _range_mult() * 3.0
+		for ri in range(3):
+			var ring_r = minf(30.0 + float(ri) * 25.0 + (1.0 - _immortal_flash) * 40.0, ic_max_r)
+			draw_arc(Vector2.ZERO, ring_r, 0, TAU, 32, Color(0.5, 0.7, 1.0, _immortal_flash * 0.35 / float(ri + 1)), 3.0 - float(ri) * 0.5)
+		for si in range(8):
+			var sa = TAU * float(si) / 8.0 + _immortal_flash * 3.0
+			var sr = minf(50.0 + (1.0 - _immortal_flash) * 60.0, ic_max_r)
+			var sp = Vector2.from_angle(sa) * sr
+			draw_circle(sp, 2.0, Color(0.7, 0.85, 1.0, _immortal_flash * 0.5))
 
 	# === 8. METAL SLAB PLATFORM with sparking wires ===
 	var plat_y = 24.0
@@ -1153,7 +1238,7 @@ func _draw() -> void:
 		draw_circle(r_bolt + Vector2(8, 0), 4.0, Color(0.5, 0.7, 1.0, bspark_a * 0.4))
 		draw_circle(r_bolt + Vector2(8, 0), 2.0, Color(0.9, 0.95, 1.0, bspark_a * 0.6))
 		for bsi in range(2):
-			var bs_dir_v = Vector2.from_angle(randf() * TAU)
+			var bs_dir_v = Vector2.from_angle(fmod((_time * 7.3 + float(bsi) * 2.1) * 13.37, TAU))
 			draw_line(l_bolt + Vector2(-8, 0), l_bolt + Vector2(-8, 0) + bs_dir_v * 5.0, Color(0.6, 0.8, 1.0, bspark_a * 0.5), 1.2)
 			draw_line(r_bolt + Vector2(8, 0), r_bolt + Vector2(8, 0) + bs_dir_v * 5.0, Color(0.6, 0.8, 1.0, bspark_a * 0.5), 1.2)
 

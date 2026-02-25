@@ -46,6 +46,9 @@ var _mark_timers: Array = []
 # Tier 4: The Game is Afoot — auto-mark + damage boost
 var auto_mark: bool = false
 var personal_damage_bonus: float = 1.0
+var _auto_mark_cooldown: float = 0.0  # Cooldown to prevent self-sustaining damage loop
+const AUTO_MARK_COOLDOWN: float = 2.0  # Minimum seconds between auto-mark passes
+const AUTO_MARK_BONUS_CAP: float = 2.0  # Cap the deduction bonus multiplier at 2x
 
 # Deduction mark flash
 var _deduction_flash: float = 0.0
@@ -55,6 +58,26 @@ var kill_count: int = 0
 
 # Splash (unlockable via progressive abilities)
 var splash_radius: float = 0.0
+
+# Tier 1: A Study in Scarlet — marked enemies bleed (DoT)
+var _bleed_dps: float = 0.0  # DPS applied to marked enemies
+
+# Tier 2: The Hound of the Baskervilles — spectral hound attack
+var _hound_timer: float = 12.0
+var _hound_cooldown: float = 12.0
+var _hound_flash: float = 0.0
+var _hound_lunge_pos: Vector2 = Vector2.ZERO
+var _hound_lunge_timer: float = 0.0
+
+# Tier 3: The Speckled Band — venomous strike on strongest
+var _venom_timer: float = 15.0
+var _venom_cooldown: float = 15.0
+var _venom_flash: float = 0.0
+
+# Tier 4: The Final Problem — Reichenbach cascade AoE
+var _cascade_timer: float = 20.0
+var _cascade_cooldown: float = 20.0
+var _cascade_flash: float = 0.0
 
 # === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
 const PROG_ABILITY_NAMES = [
@@ -83,6 +106,17 @@ var _violin_timer: float = 20.0
 var _cocaine_timer: float = 12.0
 var _cocaine_ready: bool = false
 var _reichenbach_used: bool = false
+# Baker Street Logic (ability 0) — marks nearest enemy for bonus damage
+var _baker_street_timer: float = 8.0
+var _baker_street_cooldown: float = 8.0
+var _baker_street_flash: float = 0.0
+# Watson's Aid buff tracking — prevent infinite stacking
+var _watson_buffed_tower_id: int = -1  # instance_id of currently watson-buffed tower
+var _watson_buff_timer: float = 0.0  # Time remaining on Watson buff
+# Consulting Detective tracking — prevent stacking
+var _consulting_buffed_ids: Dictionary = {}  # instance_id -> true for towers we've buffed
+# Disguise Master — evasion chance
+var _disguise_evasion: bool = false  # True while disguise is active
 # Visual flash timers
 var _observation_flash: float = 0.0
 var _violin_flash: float = 0.0
@@ -95,16 +129,16 @@ var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
-	"Elementary",
-	"Piercing Insight",
-	"Multi-Mark",
-	"The Game is Afoot"
+	"A Study in Scarlet",
+	"The Hound of the Baskervilles",
+	"The Speckled Band",
+	"The Final Problem"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"+20% DMG, +15% SPD aura, mark lasts 12s",
-	"+25% DMG, +10% RNG aura to nearby towers",
-	"Marks 2 targets, +30% DMG aura",
-	"Legendary aura, all enemies auto-marked"
+	"Marked enemies bleed. Watson assists with +15% SPD aura",
+	"Spectral hound lunges every 12s — 3x damage + fear",
+	"Venomous strike every 15s — 5% max HP/s poison for 4s",
+	"Reichenbach cascade every 20s — 5x AoE + 2s stun"
 ]
 const TIER_COSTS = [100, 200, 350, 550]
 var is_selected: bool = false
@@ -112,15 +146,28 @@ var base_cost: int = 0
 
 # Sherlock doesn't use projectiles — pure support tower
 
-# Maraca sound — plays every 3 seconds as buff pulse
-var _maraca_sound: AudioStreamWAV
-var _maraca_player: AudioStreamPlayer
+# Violin pizzicato — plays every 3 seconds as buff pulse (Sherlock plays violin!)
+var _violin_pizz_sound: AudioStreamWAV
+var _violin_pizz_player: AudioStreamPlayer
 
 # Ability sounds
 var _deduction_sound: AudioStreamWAV
 var _deduction_player: AudioStreamPlayer
+var _hound_sound: AudioStreamWAV
+var _hound_player: AudioStreamPlayer
+var _venom_sound: AudioStreamWAV
+var _venom_player: AudioStreamPlayer
+var _cascade_sound: AudioStreamWAV
+var _cascade_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+# Progressive ability sounds
+var _baker_logic_sound: AudioStreamWAV
+var _baker_logic_player: AudioStreamPlayer
+var _reichenbach_gambit_sound: AudioStreamWAV
+var _reichenbach_gambit_player: AudioStreamPlayer
+var _watson_aid_sound: AudioStreamWAV
+var _watson_aid_player: AudioStreamPlayer
 var _game_font: Font
 
 func _ready() -> void:
@@ -128,50 +175,138 @@ func _ready() -> void:
 	add_to_group("towers")
 	_load_progressive_abilities()
 
-	# Maraca shake — gentle short rattle, just filtered noise
-	var mar_rate := 22050
-	var mar_dur := 0.12
-	var mar_samples := PackedFloat32Array()
-	mar_samples.resize(int(mar_rate * mar_dur))
-	var prev_s := 0.0
-	for i in mar_samples.size():
-		var t := float(i) / mar_rate
-		# Quick attack, fast decay — one tiny shake
-		var env := minf(t * 80.0, 1.0) * exp(-t * 35.0) * 0.3
-		# Pure noise through heavy lowpass for soft bead rattle
-		var noise := randf() * 2.0 - 1.0
-		var s := prev_s * 0.6 + noise * 0.4
-		prev_s = s
-		mar_samples[i] = clampf(s * env, -1.0, 1.0)
-	_maraca_sound = _samples_to_wav(mar_samples, mar_rate)
-	_maraca_player = AudioStreamPlayer.new()
-	_maraca_player.stream = _maraca_sound
-	_maraca_player.volume_db = -10.0
-	add_child(_maraca_player)
+	# Violin pizzicato — short plucked string (Sherlock plays violin in the novels!)
+	# Rich, warm plucked tone on A4 (440 Hz) with body resonance
+	var vp_rate := 44100
+	var vp_dur := 0.35
+	var vp_samples := PackedFloat32Array()
+	vp_samples.resize(int(vp_rate * vp_dur))
+	for i in vp_samples.size():
+		var t := float(i) / vp_rate
+		# Plucked string: sharp attack, warm decay with body resonance
+		var pluck_env := exp(-t * 12.0) * 0.4
+		var attack_snap := exp(-t * 200.0) * 0.15  # Initial snap of the pluck
+		var freq := 440.0  # A4
+		# Rich string harmonics (violin timbre)
+		var fund := sin(TAU * freq * t)
+		var h2 := sin(TAU * freq * 2.0 * t) * 0.45 * exp(-t * 15.0)
+		var h3 := sin(TAU * freq * 3.0 * t) * 0.25 * exp(-t * 18.0)
+		var h4 := sin(TAU * freq * 4.0 * t) * 0.12 * exp(-t * 22.0)
+		var h5 := sin(TAU * freq * 5.0 * t) * 0.06 * exp(-t * 28.0)
+		# Body resonance (warm low overtone)
+		var body := sin(TAU * freq * 0.5 * t) * 0.08 * exp(-t * 8.0)
+		# String noise on attack
+		var snap_noise := sin(t * 8800.0) * attack_snap
+		var s := (fund + h2 + h3 + h4 + h5 + body) * pluck_env + snap_noise
+		vp_samples[i] = clampf(s, -1.0, 1.0)
+	_violin_pizz_sound = _samples_to_wav(vp_samples, vp_rate)
+	_violin_pizz_player = AudioStreamPlayer.new()
+	_violin_pizz_player.stream = _violin_pizz_sound
+	_violin_pizz_player.volume_db = -6.0
+	add_child(_violin_pizz_player)
 
-	# Deduction chime — crystalline bell with harmonic overtones (E5, G#5, B5)
-	var ded_rate := 22050
-	var ded_dur := 0.5
+	# Deduction "a-ha!" chime — dramatic rising investigation reveal
+	# Two-note motif: D5→A5 with magnifying glass lens flare shimmer
+	var ded_rate := 44100
+	var ded_dur := 0.6
 	var ded_samples := PackedFloat32Array()
 	ded_samples.resize(int(ded_rate * ded_dur))
-	var ded_notes := [659.25, 830.61, 987.77]  # E5, G#5, B5
-	var ded_note_len := int(ded_rate * ded_dur) / 3
+	var ded_notes := [587.33, 880.0]  # D5, A5 — perfect fifth leap (revelation!)
 	for i in ded_samples.size():
 		var t := float(i) / ded_rate
-		var ni := mini(i / ded_note_len, 2)
-		var nt := float(i - ni * ded_note_len) / float(ded_rate)
-		var freq: float = ded_notes[ni]
-		var att := minf(nt * 60.0, 1.0)
-		var dec := exp(-nt * 6.0)
-		var env := att * dec * 0.4
-		var s := sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.25 + sin(TAU * freq * 3.0 * t) * 0.1
-		s += sin(TAU * freq * 1.002 * t) * 0.15 * exp(-nt * 4.0)
+		var freq: float
+		var nt: float
+		if t < 0.15:
+			freq = ded_notes[0]
+			nt = t
+		else:
+			freq = ded_notes[1]
+			nt = t - 0.15
+		var att := minf(nt * 80.0, 1.0)
+		var dec := exp(-nt * 4.0)
+		var env := att * dec * 0.35
+		# Clear bell-like investigation tone
+		var s := sin(TAU * freq * t) * 0.5
+		s += sin(TAU * freq * 2.0 * t) * 0.3 * exp(-nt * 8.0)
+		s += sin(TAU * freq * 3.0 * t) * 0.15 * exp(-nt * 12.0)
+		# Glass lens shimmer (very high overtone, quick)
+		s += sin(TAU * freq * 5.01 * t) * 0.06 * exp(-t * 15.0)
+		# Sub-bass "weight" of discovery
+		s += sin(TAU * freq * 0.5 * t) * 0.1 * exp(-nt * 6.0)
 		ded_samples[i] = clampf(s * env, -1.0, 1.0)
 	_deduction_sound = _samples_to_wav(ded_samples, ded_rate)
 	_deduction_player = AudioStreamPlayer.new()
 	_deduction_player.stream = _deduction_sound
-	_deduction_player.volume_db = -6.0
+	_deduction_player.volume_db = -5.0
 	add_child(_deduction_player)
+
+	# Hound howl — eerie low howl for the spectral hound lunge
+	var hw_rate := 22050
+	var hw_dur := 0.5
+	var hw_samples := PackedFloat32Array()
+	hw_samples.resize(int(hw_rate * hw_dur))
+	for i in hw_samples.size():
+		var t := float(i) / hw_rate
+		var howl_freq := 180.0 + sin(t * 4.0) * 30.0  # Low wavering howl
+		var att := minf(t * 12.0, 1.0)
+		var dec := exp(-(t - 0.1) * 5.0) if t > 0.1 else 1.0
+		var env := att * dec * 0.4
+		var s := sin(TAU * howl_freq * t) * 0.5
+		s += sin(TAU * howl_freq * 1.5 * t) * 0.2  # Fifth harmonic
+		s += sin(TAU * howl_freq * 2.0 * t) * 0.1
+		s += (randf() * 2.0 - 1.0) * 0.04  # Breath noise
+		hw_samples[i] = clampf(s * env, -1.0, 1.0)
+	_hound_sound = _samples_to_wav(hw_samples, hw_rate)
+	_hound_player = AudioStreamPlayer.new()
+	_hound_player.stream = _hound_sound
+	_hound_player.volume_db = -5.0
+	add_child(_hound_player)
+
+	# Venom strike — sinister hiss with wet impact
+	var vs_rate := 22050
+	var vs_dur := 0.3
+	var vs_samples := PackedFloat32Array()
+	vs_samples.resize(int(vs_rate * vs_dur))
+	for i in vs_samples.size():
+		var t := float(i) / vs_rate
+		# Hissing snake: filtered noise descending
+		var hiss_env := exp(-t * 8.0) * 0.35
+		var hiss := sin(t * 6400.0 + sin(t * 120.0) * 3.0) * 0.3
+		hiss += (randf() * 2.0 - 1.0) * 0.4
+		# Wet impact thud
+		var thud := sin(TAU * 90.0 * t) * exp(-t * 40.0) * 0.3
+		vs_samples[i] = clampf(hiss * hiss_env + thud, -1.0, 1.0)
+	_venom_sound = _samples_to_wav(vs_samples, vs_rate)
+	_venom_player = AudioStreamPlayer.new()
+	_venom_player.stream = _venom_sound
+	_venom_player.volume_db = -5.0
+	add_child(_venom_player)
+
+	# Reichenbach cascade — rushing waterfall + dramatic impact
+	var rc_rate := 44100
+	var rc_dur := 0.8
+	var rc_samples := PackedFloat32Array()
+	rc_samples.resize(int(rc_rate * rc_dur))
+	for i in rc_samples.size():
+		var t := float(i) / rc_rate
+		# Rushing water (filtered noise with frequency sweep)
+		var water_env := minf(t * 6.0, 1.0) * exp(-t * 2.5) * 0.3
+		var water := sin(t * 3200.0 + sin(t * 80.0) * 8.0) * 0.3
+		water += sin(t * 5100.0 + sin(t * 60.0) * 5.0) * 0.2
+		water += (randf() * 2.0 - 1.0) * 0.35
+		# Deep impact at 0.2s (waterfall hits)
+		var impact_t := maxf(t - 0.2, 0.0)
+		var impact := sin(TAU * 55.0 * impact_t) * exp(-impact_t * 8.0) * 0.4
+		impact += sin(TAU * 110.0 * impact_t) * exp(-impact_t * 12.0) * 0.2
+		# Dramatic orchestral swell
+		var swell := sin(TAU * 220.0 * t) * exp(-t * 3.0) * 0.15
+		swell += sin(TAU * 330.0 * t) * exp(-t * 4.0) * 0.08
+		rc_samples[i] = clampf(water * water_env + impact + swell, -1.0, 1.0)
+	_cascade_sound = _samples_to_wav(rc_samples, rc_rate)
+	_cascade_player = AudioStreamPlayer.new()
+	_cascade_player.stream = _cascade_sound
+	_cascade_player.volume_db = -4.0
+	add_child(_cascade_player)
 
 	# Upgrade chime — bright ascending arpeggio (C5, E5, G5)
 	var up_rate := 22050
@@ -193,12 +328,93 @@ func _ready() -> void:
 	_upgrade_player.volume_db = -4.0
 	add_child(_upgrade_player)
 
+	# Baker Street Logic — deduction chime: bright bell-like "ding" with analytical shimmer
+	var bl_rate := 44100
+	var bl_dur := 0.45
+	var bl_samples := PackedFloat32Array()
+	bl_samples.resize(int(bl_rate * bl_dur))
+	for i in bl_samples.size():
+		var t := float(i) / bl_rate
+		var env := minf(t * 120.0, 1.0) * exp(-t * 6.0) * 0.35
+		# Clear bell tone on E5 (659 Hz) — "eureka" moment
+		var freq := 659.25
+		var s := sin(TAU * freq * t) * 0.5
+		s += sin(TAU * freq * 2.0 * t) * 0.25 * exp(-t * 10.0)
+		s += sin(TAU * freq * 3.0 * t) * 0.12 * exp(-t * 14.0)
+		# Analytical sparkle (high shimmer)
+		s += sin(TAU * freq * 5.0 * t) * 0.04 * exp(-t * 18.0)
+		# Sub warmth
+		s += sin(TAU * freq * 0.5 * t) * 0.08 * exp(-t * 5.0)
+		bl_samples[i] = clampf(s * env, -1.0, 1.0)
+	_baker_logic_sound = _samples_to_wav(bl_samples, bl_rate)
+	_baker_logic_player = AudioStreamPlayer.new()
+	_baker_logic_player.stream = _baker_logic_sound
+	_baker_logic_player.volume_db = -5.0
+	add_child(_baker_logic_player)
+
+	# Reichenbach Gambit — dramatic crash: low orchestral hit + descending rumble
+	var rg_rate := 44100
+	var rg_dur := 0.7
+	var rg_samples := PackedFloat32Array()
+	rg_samples.resize(int(rg_rate * rg_dur))
+	for i in rg_samples.size():
+		var t := float(i) / rg_rate
+		# Heavy orchestral impact
+		var impact_env := exp(-t * 4.0) * 0.45
+		var s := sin(TAU * 65.0 * t) * 0.5  # Deep bass
+		s += sin(TAU * 130.0 * t) * 0.3 * exp(-t * 6.0)  # Octave
+		s += sin(TAU * 195.0 * t) * 0.15 * exp(-t * 8.0)  # Fifth
+		# Descending sweep (falling from Reichenbach)
+		var sweep_freq := 400.0 * exp(-t * 3.0)
+		s += sin(TAU * sweep_freq * t) * 0.2 * exp(-t * 5.0)
+		# Crash noise
+		s += (randf() * 2.0 - 1.0) * 0.25 * exp(-t * 6.0)
+		rg_samples[i] = clampf(s * impact_env, -1.0, 1.0)
+	_reichenbach_gambit_sound = _samples_to_wav(rg_samples, rg_rate)
+	_reichenbach_gambit_player = AudioStreamPlayer.new()
+	_reichenbach_gambit_player.stream = _reichenbach_gambit_sound
+	_reichenbach_gambit_player.volume_db = -4.0
+	add_child(_reichenbach_gambit_player)
+
+	# Watson's Aid — friendly whistle: short ascending two-note whistle
+	var wa_rate := 44100
+	var wa_dur := 0.4
+	var wa_samples := PackedFloat32Array()
+	wa_samples.resize(int(wa_rate * wa_dur))
+	for i in wa_samples.size():
+		var t := float(i) / wa_rate
+		# Two-note ascending whistle: G5 -> C6
+		var freq_w: float
+		if t < 0.18:
+			freq_w = 783.99  # G5
+		else:
+			freq_w = 1046.5  # C6
+		var nt_w := t if t < 0.18 else t - 0.18
+		var env_w := minf(nt_w * 60.0, 1.0) * exp(-nt_w * 8.0) * 0.3
+		# Pure whistle tone
+		var s := sin(TAU * freq_w * t) * 0.6
+		s += sin(TAU * freq_w * 2.0 * t) * 0.15 * exp(-nt_w * 12.0)
+		# Breath noise
+		s += (randf() * 2.0 - 1.0) * 0.03
+		wa_samples[i] = clampf(s * env_w, -1.0, 1.0)
+	_watson_aid_sound = _samples_to_wav(wa_samples, wa_rate)
+	_watson_aid_player = AudioStreamPlayer.new()
+	_watson_aid_player.stream = _watson_aid_sound
+	_watson_aid_player.volume_db = -5.0
+	add_child(_watson_aid_player)
+
 func _process(delta: float) -> void:
 	_time += delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_deduction_flash = max(_deduction_flash - delta * 2.0, 0.0)
 	_buff_flash = max(_buff_flash - delta * 2.0, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
+
+	# Track nearest enemy for beam visuals
+	target = _find_nearest_enemy()
+	if target:
+		var desired = global_position.angle_to_point(target.global_position) + PI
+		aim_angle = lerp_angle(aim_angle, desired, 5.0 * delta)
 
 	# Buff aura — every 3 seconds, buff towers in range and mark enemies
 	_buff_timer -= delta
@@ -207,17 +423,59 @@ func _process(delta: float) -> void:
 		_apply_buff_aura()
 		_auto_mark_enemies()
 		# Play maraca sound
-		if _maraca_player and not _is_sfx_muted():
-			_maraca_player.play()
+		if _violin_pizz_player and not _is_sfx_muted():
+			_violin_pizz_player.play()
 		_buff_flash = 1.0
 		_attack_anim = 1.0
 
 	# Update mark timers
 	_update_marks(delta)
 
-	# Tier 4: Auto-mark also runs every frame for immediate marking
+	# Tier 4: Auto-mark with cooldown to prevent self-sustaining damage loop
 	if auto_mark:
-		_auto_mark_enemies()
+		_auto_mark_cooldown -= delta
+		if _auto_mark_cooldown <= 0.0:
+			_auto_mark_enemies()
+			_auto_mark_cooldown = AUTO_MARK_COOLDOWN
+
+	# Tier 1+: A Study in Scarlet — marked enemies bleed
+	if _bleed_dps > 0.0:
+		for enemy in _marked_enemies:
+			if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+				var bleed_dmg := _bleed_dps * delta
+				enemy.take_damage(bleed_dmg)
+				register_damage(bleed_dmg)
+
+	# Tier 2+: The Hound of the Baskervilles — spectral hound lunge
+	if upgrade_tier >= 2:
+		_hound_flash = maxf(_hound_flash - delta * 2.0, 0.0)
+		_hound_lunge_timer = maxf(_hound_lunge_timer - delta * 3.0, 0.0)
+		_hound_timer -= delta
+		if _hound_timer <= 0.0 and _has_enemies_in_range():
+			_hound_attack()
+			_hound_timer = _hound_cooldown
+
+	# Tier 3+: The Speckled Band — venomous strike
+	if upgrade_tier >= 3:
+		_venom_flash = maxf(_venom_flash - delta * 2.0, 0.0)
+		_venom_timer -= delta
+		if _venom_timer <= 0.0 and _has_enemies_in_range():
+			_venom_strike()
+			_venom_timer = _venom_cooldown
+
+	# Tier 4: The Final Problem — Reichenbach cascade
+	if upgrade_tier >= 4:
+		_cascade_flash = maxf(_cascade_flash - delta * 1.5, 0.0)
+		_cascade_timer -= delta
+		if _cascade_timer <= 0.0 and _has_enemies_in_range():
+			_reichenbach_cascade()
+			_cascade_timer = _cascade_cooldown
+
+	# Watson's Aid buff duration tracking (Bug #7)
+	if _watson_buff_timer > 0.0:
+		_watson_buff_timer -= delta
+		if _watson_buff_timer <= 0.0:
+			_remove_watson_buff()
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
@@ -325,8 +583,17 @@ func _find_nearest_enemy() -> Node2D:
 			nearest_dist = dist
 	return nearest
 
-# Sherlock doesn't shoot — he's a pure support character
-# The maraca sound is played in _process buff tick above
+func _find_strongest_enemy() -> Node2D:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var strongest: Node2D = null
+	var most_hp: float = 0.0
+	var eff_range_val = attack_range * _range_mult()
+	for enemy in enemies:
+		if global_position.distance_to(enemy.global_position) < eff_range_val:
+			if enemy.health > most_hp:
+				most_hp = enemy.health
+				strongest = enemy
+	return strongest
 
 func _mark_enemy(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy):
@@ -364,6 +631,7 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.SHERLOCK, amount)
+	_check_upgrades()
 
 func register_kill() -> void:
 	kill_count += 1
@@ -402,25 +670,29 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Elementary — stronger buffs, longer marks
+		1: # A Study in Scarlet — marked enemies bleed, Watson assists
 			mark_duration = 12.0
 			attack_range = 203.0
 			gold_bonus = 3
-		2: # Piercing Insight — range buff to allies
+			_bleed_dps = 3.0  # Marked enemies take 3 DPS bleed
+		2: # The Hound of the Baskervilles — spectral hound lunges
 			attack_range = 214.0
 			gold_bonus = 4
 			mark_duration = 14.0
-		3: # Multi-Mark — marks 2 targets, powerful aura
+			_hound_cooldown = 12.0
+		3: # The Speckled Band — venomous strike on strongest
 			max_marks = 2
 			attack_range = 225.0
 			gold_bonus = 5
 			mark_duration = 16.0
-		4: # The Game is Afoot — legendary aura, all auto-marked
+			_venom_cooldown = 15.0
+		4: # The Final Problem — Reichenbach cascade
 			auto_mark = true
 			attack_range = 240.0
 			gold_bonus = 6
 			max_marks = 99
 			mark_duration = 20.0
+			_cascade_cooldown = 20.0
 	# Re-buff all towers at new tier
 	_rebuff_all_towers()
 
@@ -504,12 +776,15 @@ func activate_progressive_ability(index: int) -> void:
 	_apply_progressive_stats()
 
 func _apply_progressive_stats() -> void:
-	if prog_abilities[0]:  # Baker Street Logic: applied in _fire_beam
+	if prog_abilities[0]:  # Baker Street Logic: timer-based mark in _process_progressive_abilities
 		pass
-	if prog_abilities[8]:  # Consulting Detective: global +15% damage buff
+	if prog_abilities[8]:  # Consulting Detective: global +15% damage buff (no stacking)
 		for tower in get_tree().get_nodes_in_group("towers"):
 			if tower != self and tower.has_method("set_synergy_buff"):
-				tower.set_synergy_buff({"damage": 0.15})
+				var tid = tower.get_instance_id()
+				if not _consulting_buffed_ids.has(tid):
+					tower.set_synergy_buff({"damage": 0.15})
+					_consulting_buffed_ids[tid] = true
 
 func get_progressive_ability_name(index: int) -> String:
 	if index >= 0 and index < PROG_ABILITY_NAMES.size():
@@ -527,6 +802,14 @@ func _process_progressive_abilities(delta: float) -> void:
 	_violin_flash = max(_violin_flash - delta * 2.0, 0.0)
 	_cocaine_flash = max(_cocaine_flash - delta * 1.5, 0.0)
 	_reichenbach_flash = max(_reichenbach_flash - delta * 2.0, 0.0)
+	_baker_street_flash = max(_baker_street_flash - delta * 2.0, 0.0)
+
+	# Ability 1: Baker Street Logic — mark nearest enemy for bonus damage (Bug #1)
+	if prog_abilities[0]:
+		_baker_street_timer -= delta
+		if _baker_street_timer <= 0.0 and _has_enemies_in_range():
+			_baker_street_deduce()
+			_baker_street_timer = _baker_street_cooldown
 
 	# Ability 2: Observation — reveal invisible enemies
 	if prog_abilities[1]:
@@ -551,14 +834,18 @@ func _process_progressive_abilities(delta: float) -> void:
 			_watsons_aid()
 			_watsons_aid_timer = 25.0
 
-	# Ability 5: Disguise Master — invisibility cycle
+	# Ability 5: Disguise Master — evasion cycle (Bug #4: now provides gameplay effect)
 	if prog_abilities[4]:
 		if _disguise_invis > 0.0:
 			_disguise_invis -= delta
+			_disguise_evasion = true  # Active evasion while disguised
+			if _disguise_invis <= 0.0:
+				_disguise_evasion = false
 		else:
 			_disguise_timer -= delta
 			if _disguise_timer <= 0.0:
-				_disguise_invis = 3.0
+				_disguise_invis = 5.0  # 5 seconds of evasion
+				_disguise_evasion = true
 				_disguise_timer = 15.0
 
 	# Ability 6: Violin Meditation — slow enemies
@@ -568,7 +855,7 @@ func _process_progressive_abilities(delta: float) -> void:
 			_violin_slow()
 			_violin_timer = 20.0
 
-	# Ability 7: Cocaine Clarity — charged shot
+	# Ability 7: Cocaine Clarity — charged shot (Bug #3: actually fire when ready)
 	if prog_abilities[6]:
 		if not _cocaine_ready:
 			_cocaine_timer -= delta
@@ -576,6 +863,10 @@ func _process_progressive_abilities(delta: float) -> void:
 				_cocaine_ready = true
 				_cocaine_flash = 0.5
 				_cocaine_timer = 12.0
+		else:
+			# Fire the charged shot at nearest enemy when ready
+			if _has_enemies_in_range():
+				_cocaine_strike()
 
 	# Ability 8: Reichenbach Gambit — desperation nuke
 	if prog_abilities[7] and not _reichenbach_used:
@@ -592,10 +883,15 @@ func _observation_reveal() -> void:
 				e.reveal(4.0)
 
 func _watsons_aid() -> void:
+	# Play Watson whistle sound (Bug #10)
+	if _watson_aid_player and not _is_sfx_muted():
+		_watson_aid_player.play()
 	# Heal 1 life
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("restore_life"):
 		main.restore_life(1)
+	# Remove previous Watson buff if still active (Bug #6: prevent infinite stacking)
+	_remove_watson_buff()
 	# Boost nearest tower attack speed
 	var nearest_tower: Node2D = null
 	var nearest_dist: float = 999999.0
@@ -608,6 +904,17 @@ func _watsons_aid() -> void:
 			nearest_dist = dist
 	if nearest_tower and nearest_tower.has_method("set_synergy_buff"):
 		nearest_tower.set_synergy_buff({"attack_speed": 0.20})
+		_watson_buffed_tower_id = nearest_tower.get_instance_id()
+		_watson_buff_timer = 5.0  # Bug #7: buff lasts 5 seconds
+
+func _remove_watson_buff() -> void:
+	# Remove the Watson attack speed buff from the previously buffed tower
+	if _watson_buffed_tower_id >= 0 and is_instance_id_valid(_watson_buffed_tower_id):
+		var old_tower = instance_from_id(_watson_buffed_tower_id)
+		if old_tower and old_tower.has_method("set_synergy_buff"):
+			old_tower.set_synergy_buff({"attack_speed": -0.20})
+	_watson_buffed_tower_id = -1
+	_watson_buff_timer = 0.0
 
 func _violin_slow() -> void:
 	_violin_flash = 1.0
@@ -618,27 +925,121 @@ func _violin_slow() -> void:
 
 func _reichenbach_strike() -> void:
 	_reichenbach_flash = 1.0
+	# Play dramatic crash sound (Bug #10)
+	if _reichenbach_gambit_player and not _is_sfx_muted():
+		_reichenbach_gambit_player.play()
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("take_damage"):
-				var dmg = damage * 10.0
+				# Bug #2: damage was 0 because base damage is 0.0. Use flat 50 base * 10 * mult
+				var dmg = 50.0 * _damage_mult() * 10.0
 				e.take_damage(dmg)
 				register_damage(dmg)
 
+# Baker Street Logic — mark nearest enemy for 1.5x bonus damage from all towers (Bug #1)
+func _baker_street_deduce() -> void:
+	_baker_street_flash = 1.0
+	# Play deduction chime (Bug #10)
+	if _baker_logic_player and not _is_sfx_muted():
+		_baker_logic_player.play()
+	var nearest = _find_nearest_enemy()
+	if nearest:
+		# Mark the enemy with Sherlock's standard mark system
+		_mark_enemy(nearest)
+		# Also set the deduction_marked flag for bonus damage from all towers
+		# This flag is checked by focus_beam.gd and other attack scripts for 1.3x bonus
+		if "deduction_marked" in nearest:
+			nearest.deduction_marked = true
+		else:
+			nearest.set("deduction_marked", true)
+		# Apply damage multiplier mark (1.5x) for 5 seconds via enemy's mark system
+		if nearest.has_method("apply_mark"):
+			nearest.apply_mark(1.5, 5.0)
+
+# Cocaine Clarity — charged 5x damage shot that marks on hit (Bug #3)
+func _cocaine_strike() -> void:
+	_cocaine_ready = false
+	_cocaine_flash = 1.0
+	var nearest = _find_nearest_enemy()
+	if nearest and nearest.has_method("take_damage"):
+		# 5x damage based on flat 50 base (Sherlock has 0 base damage)
+		var dmg = 50.0 * _damage_mult() * 5.0
+		nearest.take_damage(dmg)
+		register_damage(dmg)
+		# Mark on hit
+		_mark_enemy(nearest)
+
+# Disguise Master — evasion check (Bug #4: provides gameplay effect)
+func has_evasion() -> bool:
+	return _disguise_evasion
+
+# === TIER ABILITY FUNCTIONS ===
+
+func _hound_attack() -> void:
+	if _hound_player and not _is_sfx_muted(): _hound_player.play()
+	_hound_flash = 1.0
+	# Spectral hound lunges at nearest enemy for 3x mark-boosted damage + fear
+	var nearest = _find_nearest_enemy()
+	if nearest and nearest.has_method("take_damage"):
+		_hound_lunge_pos = nearest.global_position - global_position
+		_hound_lunge_timer = 1.0
+		var dmg = 45.0 * _damage_mult()  # Hound deals flat 45 × 3 = 135 effective
+		nearest.take_damage(dmg * 3.0, true)
+		register_damage(dmg * 3.0)
+		# Fear: enemies near the target walk backwards for 2s
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if nearest.global_position.distance_to(e.global_position) < 60.0:
+				if e.has_method("apply_slow"):
+					e.apply_slow(-0.5, 2.0)  # Negative slow = walk backward
+
+func _venom_strike() -> void:
+	if _venom_player and not _is_sfx_muted(): _venom_player.play()
+	_venom_flash = 1.0
+	# Venomous strike on strongest enemy — 5% max HP/s poison for 4s
+	var strongest = _find_strongest_enemy()
+	if strongest:
+		if strongest.has_method("apply_dot"):
+			var hp = strongest.get("max_health") if "max_health" in strongest else 500.0
+			var dps = hp * 0.05
+			strongest.apply_dot(dps, 4.0)  # 5% max HP per second for 4s
+			# Bug #5: Register the total expected DoT damage so it counts in damage_dealt
+			register_damage(dps * 4.0)
+		elif strongest.has_method("take_damage"):
+			# Fallback: deal flat damage if no DoT method
+			var hp = strongest.get("max_health") if "max_health" in strongest else 500.0
+			strongest.take_damage(hp * 0.2)
+			register_damage(hp * 0.2)
+
+func _reichenbach_cascade() -> void:
+	if _cascade_player and not _is_sfx_muted(): _cascade_player.play()
+	_cascade_flash = 1.0
+	# Reichenbach Falls cascade — 5x damage to all in range + 2s stun
+	var eff_range_val = attack_range * _range_mult()
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < eff_range_val:
+			if e.has_method("take_damage"):
+				var dmg = 50.0 * 5.0 * _damage_mult()  # Base 50 × 5 = 250
+				e.take_damage(dmg, true)
+				register_damage(dmg)
+			if e.has_method("apply_sleep"):
+				e.apply_sleep(2.0)
+
 func _draw() -> void:
 	# === 1. SELECTION RING ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.85, 0.72, 0.25, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(0.85, 0.72, 0.25, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(0.85, 0.72, 0.25, ring_alpha * 0.4), 1.5)
-
-	# === 2. RANGE ARC (buff aura indicator) ===
-	var aura_pulse = (sin(_time * 2.0) + 1.0) * 0.5
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(0.85, 0.72, 0.25, 0.04 + aura_pulse * 0.04), 1.5)
+	else:
+		var aura_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.85, 0.72, 0.25, 0.04 + aura_pulse * 0.04), 1.5)
 	# Buff pulse ring expanding outward
 	if _buff_flash > 0.0:
-		var pulse_r = attack_range * (1.0 - _buff_flash * 0.3)
+		var pulse_r = eff_range * (1.0 - _buff_flash * 0.3)
 		draw_arc(Vector2.ZERO, pulse_r, 0, TAU, 48, Color(0.85, 0.72, 0.25, _buff_flash * 0.2), 2.5)
 		draw_circle(Vector2.ZERO, pulse_r, Color(0.85, 0.72, 0.25, _buff_flash * 0.03))
 
@@ -684,6 +1085,65 @@ func _draw() -> void:
 			var d_outer = Vector2.from_angle(da) * (ded_ring_r + 4.0)
 			draw_line(d_inner, d_outer, Color(1.0, 0.90, 0.4, _deduction_flash * 0.35), 1.5)
 
+	# === TIER ABILITY VISUALS ===
+	# Hound lunge trail (Tier 2+)
+	if _hound_lunge_timer > 0.0:
+		var hound_alpha := _hound_lunge_timer
+		# Spectral hound silhouette lunging toward target
+		var lunge_dir := _hound_lunge_pos.normalized()
+		var lunge_dist := _hound_lunge_pos.length() * (1.0 - _hound_lunge_timer)
+		var hound_pos := lunge_dir * lunge_dist
+		# Ghost hound body (green-blue spectral)
+		draw_circle(hound_pos, 8.0, Color(0.2, 0.8, 0.4, hound_alpha * 0.4))
+		draw_circle(hound_pos + lunge_dir * 6.0, 5.0, Color(0.3, 0.9, 0.5, hound_alpha * 0.5))  # Head
+		# Glowing eyes
+		var eye_perp := lunge_dir.rotated(PI / 2.0) * 2.0
+		draw_circle(hound_pos + lunge_dir * 9.0 + eye_perp, 1.5, Color(1.0, 0.3, 0.1, hound_alpha * 0.8))
+		draw_circle(hound_pos + lunge_dir * 9.0 - eye_perp, 1.5, Color(1.0, 0.3, 0.1, hound_alpha * 0.8))
+		# Trail wisps
+		for hi in range(4):
+			var trail_pos := lunge_dir * (lunge_dist - float(hi) * 12.0)
+			draw_circle(trail_pos, 3.0 - float(hi) * 0.5, Color(0.2, 0.7, 0.4, hound_alpha * 0.15))
+
+	# Hound passive indicator (Tier 2+)
+	if upgrade_tier >= 2 and _hound_lunge_timer <= 0.0:
+		var h_pulse := (sin(_time * 2.0) + 1.0) * 0.5
+		# Small spectral hound sitting beside tower
+		draw_circle(Vector2(22, 10), 4.0, Color(0.2, 0.7, 0.4, 0.15 + h_pulse * 0.1))
+		draw_circle(Vector2(25, 7), 3.0, Color(0.3, 0.8, 0.5, 0.2 + h_pulse * 0.1))
+		# Eyes
+		draw_circle(Vector2(27, 6), 1.0, Color(1.0, 0.3, 0.1, 0.3 + h_pulse * 0.2))
+
+	# Venom flash (Tier 3+)
+	if _venom_flash > 0.0:
+		# Green poison expanding ring with snake-like trail
+		var venom_r := 20.0 + (1.0 - _venom_flash) * 50.0
+		draw_arc(Vector2.ZERO, venom_r, 0, TAU, 24, Color(0.1, 0.7, 0.2, _venom_flash * 0.35), 2.0)
+		# Snake body segments spiraling outward
+		for si in range(6):
+			var sa := _venom_flash * 4.0 + float(si) * 1.0
+			var sr := 10.0 + float(si) * 8.0
+			var spos := Vector2.from_angle(sa) * sr
+			draw_circle(spos, 2.5 - float(si) * 0.3, Color(0.15, 0.6, 0.15, _venom_flash * 0.4))
+
+	# Cascade flash (Tier 4)
+	if _cascade_flash > 0.0:
+		# Reichenbach Falls waterfall cascading downward
+		var cascade_alpha := _cascade_flash
+		# Blue water rings expanding
+		var c_r1 := 30.0 + (1.0 - cascade_alpha) * 80.0
+		var c_r2 := 20.0 + (1.0 - cascade_alpha) * 60.0
+		draw_arc(Vector2.ZERO, c_r1, 0, TAU, 32, Color(0.3, 0.5, 0.9, cascade_alpha * 0.3), 3.0)
+		draw_arc(Vector2.ZERO, c_r2, 0, TAU, 32, Color(0.4, 0.6, 1.0, cascade_alpha * 0.2), 2.0)
+		# Water spray droplets
+		for wi in range(8):
+			var wa := TAU * float(wi) / 8.0 + cascade_alpha * 2.0
+			var wr := c_r1 * 0.7
+			var wpos := Vector2.from_angle(wa) * wr
+			draw_circle(wpos, 2.0, Color(0.5, 0.7, 1.0, cascade_alpha * 0.4))
+		# Mist at base
+		draw_circle(Vector2(0, 15), 25.0 * (1.0 - cascade_alpha * 0.5), Color(0.6, 0.75, 1.0, cascade_alpha * 0.1))
+
 	# === MARK INDICATORS (floating above marked enemies) ===
 	for mi in range(_marked_enemies.size()):
 		if is_instance_valid(_marked_enemies[mi]):
@@ -722,6 +1182,17 @@ func _draw() -> void:
 		var cc_pulse = sin(_time * 6.0) * 0.15
 		draw_circle(body_offset + Vector2(0, -45), 4.0, Color(1.0, 1.0, 0.9, 0.3 + cc_pulse))
 		draw_arc(body_offset + Vector2(0, -45), 5.0, 0, TAU, 10, Color(1.0, 0.95, 0.7, 0.4 + cc_pulse), 1.0)
+
+	# Ability 1: Baker Street Logic flash
+	if _baker_street_flash > 0.0:
+		var bs_r = 15.0 + (1.0 - _baker_street_flash) * 45.0
+		draw_arc(Vector2.ZERO, bs_r, 0, TAU, 20, Color(1.0, 0.95, 0.5, _baker_street_flash * 0.35), 2.0)
+		# Magnifying glass burst rays
+		for bsi in range(4):
+			var bsa = TAU * float(bsi) / 4.0 + _baker_street_flash * 2.0
+			var bs_inner = Vector2.from_angle(bsa) * (bs_r * 0.5)
+			var bs_outer = Vector2.from_angle(bsa) * (bs_r + 3.0)
+			draw_line(bs_inner, bs_outer, Color(1.0, 0.90, 0.4, _baker_street_flash * 0.4), 1.5)
 
 	# Ability 8: Reichenbach flash
 	if _reichenbach_flash > 0.0:

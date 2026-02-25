@@ -98,7 +98,7 @@ const TIER_NAMES = [
 	"Phantom's Wrath"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Every 10th kill, lasso pulls enemy for insta-kill",
+	"Every 8th kill, lasso pulls enemy for insta-kill",
 	"Music notes travel further — extended range",
 	"Every 15th kill, chandelier drops on enemies",
 	"Phantom goes ballistic — melee rush replaces notes"
@@ -287,8 +287,13 @@ func _shoot() -> void:
 	note.target = target
 	note.gold_bonus = int(gold_bonus * _gold_mult())
 	note.source_tower = self
-	note.dot_dps = 0.0
-	note.dot_duration = 0.0
+	# Tier 4: Phantom's Wrath — notes apply DoT
+	if upgrade_tier >= 4:
+		note.dot_dps = damage * 0.3 * _damage_mult()
+		note.dot_duration = 3.0
+	else:
+		note.dot_dps = 0.0
+		note.dot_duration = 0.0
 	get_tree().get_first_node_in_group("main").add_child(note)
 	_attack_anim = 1.0
 
@@ -315,14 +320,16 @@ func _trigger_lasso() -> void:
 func _chandelier_drop() -> void:
 	if _chandelier_player and not _is_sfx_muted(): _chandelier_player.play()
 	_chandelier_flash = 1.5
-	var chandelier_dmg = damage * 2.0
+	var chandelier_dmg = damage * 2.0 * _damage_mult()
+	var eff_range = attack_range * _range_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(enemy.global_position) < attack_range:
+		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - chandelier_dmg <= 0.0
 				enemy.take_damage(chandelier_dmg, true)
 				register_damage(chandelier_dmg)
 				if will_kill:
+					register_kill()
 					if gold_bonus > 0:
 						var main = get_tree().get_first_node_in_group("main")
 						if main:
@@ -338,12 +345,20 @@ func _update_lasso_pull(delta: float) -> void:
 		var pull_speed = pull_dir.length() / maxf(_lasso_pull_timer, 0.05)
 		_lasso_target.global_position += pull_dir.normalized() * minf(pull_speed * delta, pull_dir.length())
 		if _lasso_pull_timer <= 0.0:
-			# Insta-kill on arrival
+			# Insta-kill on arrival (bosses take 50% current HP instead)
 			_lasso_flash = 1.5
 			if _lasso_target.has_method("take_damage"):
-				var dmg = _lasso_target.health + 1.0
+				var dmg: float
+				if _lasso_target.max_health > 500:
+					# Boss: deal 50% of current HP instead of instakill
+					dmg = _lasso_target.health * 0.5
+				else:
+					dmg = _lasso_target.health + 1.0
+				var will_kill = _lasso_target.health - dmg <= 0.0
 				_lasso_target.take_damage(dmg, true)
 				register_damage(dmg)
+				if will_kill:
+					register_kill()
 				if gold_bonus > 0:
 					var main = get_tree().get_first_node_in_group("main")
 					if main:
@@ -426,12 +441,13 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.PHANTOM, amount)
+	_check_upgrades()
 
 func register_kill() -> void:
-	# Tier 1: Punjab Lasso — every 10th kill
+	# Tier 1: Punjab Lasso — every 8th kill
 	if upgrade_tier >= 1:
 		_lasso_kill_counter += 1
-		if _lasso_kill_counter >= 10:
+		if _lasso_kill_counter >= 8:
 			_lasso_kill_counter = 0
 			_trigger_lasso()
 	# Tier 3: Chandelier — every 15th kill
@@ -464,6 +480,7 @@ func choose_ability(index: int) -> void:
 	awaiting_ability_choice = false
 	upgrade_tier = index + 1
 	_apply_upgrade(upgrade_tier)
+	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[index]
 
@@ -784,11 +801,12 @@ func _process_progressive_abilities(delta: float) -> void:
 	if prog_abilities[4]:
 		if _box_five_active > 0.0:
 			_box_five_active -= delta
-			# Deal damage * delta to all enemies in range each frame
+			# Deal damage * delta to all enemies in range each frame (framerate-independent)
+			var eff_range_b5 = attack_range * _range_mult()
 			for e in get_tree().get_nodes_in_group("enemies"):
-				if global_position.distance_to(e.global_position) < attack_range:
+				if global_position.distance_to(e.global_position) < eff_range_b5:
 					if e.has_method("take_damage"):
-						var dmg = damage * delta
+						var dmg = damage * _damage_mult() * delta
 						e.take_damage(dmg, true)
 						register_damage(dmg)
 		else:
@@ -800,7 +818,7 @@ func _process_progressive_abilities(delta: float) -> void:
 	# Ability 6: The Underground Lake — slow all enemies every 18s
 	if prog_abilities[5]:
 		_underground_lake_timer -= delta
-		if _underground_lake_timer <= 0.0:
+		if _underground_lake_timer <= 0.0 and _has_enemies_in_range():
 			_underground_lake()
 			_underground_lake_timer = 18.0
 
@@ -814,23 +832,25 @@ func _process_progressive_abilities(delta: float) -> void:
 	# Ability 8: The Organ's Fury — 3x damage + stun all every 25s
 	if prog_abilities[7]:
 		_organs_fury_timer -= delta
-		if _organs_fury_timer <= 0.0:
+		if _organs_fury_timer <= 0.0 and _has_enemies_in_range():
 			_organs_fury()
 			_organs_fury_timer = 25.0
 
 func _red_death_burst() -> void:
 	_red_death_flash = 1.0
+	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(2.0)
 
 func _christines_aria() -> void:
 	_christines_aria_flash = 1.0
+	var eff_range = attack_range * _range_mult()
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	in_range.shuffle()
 	for i in range(mini(3, in_range.size())):
@@ -839,11 +859,12 @@ func _christines_aria() -> void:
 
 func _trap_door() -> void:
 	_trap_door_flash = 1.0
+	var eff_range = attack_range * _range_mult()
 	# Find weakest enemy in range
 	var weakest: Node2D = null
 	var lowest_hp: float = INF
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if e.health < lowest_hp:
 				lowest_hp = e.health
 				weakest = e
@@ -858,6 +879,7 @@ func _trap_door() -> void:
 			var dmg = weakest.health
 			weakest.take_damage(dmg, true)
 			register_damage(dmg)
+			register_kill()
 
 func _box_five_activate() -> void:
 	_box_five_flash = 1.0
@@ -879,7 +901,7 @@ func _organs_fury() -> void:
 	_organs_fury_flash = 1.0
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage"):
-			var dmg = damage * 3.0
+			var dmg = damage * 3.0 * _damage_mult()
 			e.take_damage(dmg, true)
 			register_damage(dmg)
 		if e.has_method("apply_sleep"):
@@ -887,14 +909,16 @@ func _organs_fury() -> void:
 
 func _draw() -> void:
 	# === SELECTION RING ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
-
-	# === RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -930,10 +954,10 @@ func _draw() -> void:
 	if _melee_state == "dashing" or _melee_state == "returning":
 		# Speed lines / afterimage trail
 		var trail_dir = _melee_pos.normalized()
-		for ti in range(5):
+		for ti in range(7):
 			var trail_alpha = 0.3 - float(ti) * 0.05
 			var trail_offset = -trail_dir * float(ti + 1) * 12.0
-			draw_circle(body_offset + trail_offset, 6.0 - float(ti) * 0.8, Color(0.6, 0.3, 0.8, trail_alpha))
+			draw_circle(body_offset + trail_offset, 8.0 - float(ti) * 0.9, Color(0.7, 0.2, 0.9, trail_alpha * 1.3))
 	if _sword_flash > 0.0:
 		# Dramatic slash arc at impact point
 		var sf_r = 45.0 + (1.0 - _sword_flash) * 30.0
@@ -967,11 +991,11 @@ func _draw() -> void:
 
 	# === CHANDELIER FLASH (golden burst with crystal shards) ===
 	if _chandelier_flash > 0.0:
-		var cf_r = 60.0 + (1.0 - _chandelier_flash) * 110.0
+		var cf_r = 70.0 + (1.0 - _chandelier_flash) * 140.0
 		draw_circle(Vector2.ZERO, cf_r, Color(0.95, 0.85, 0.3, _chandelier_flash * 0.3))
 		draw_circle(Vector2.ZERO, cf_r * 0.4, Color(1.0, 0.95, 0.7, _chandelier_flash * 0.2))
-		for i in range(12):
-			var ca = TAU * float(i) / 12.0 + _chandelier_flash * 2.0
+		for i in range(16):
+			var ca = TAU * float(i) / 16.0 + _chandelier_flash * 2.0
 			var cp = Vector2.from_angle(ca) * cf_r
 			draw_circle(cp, 6.0 + sin(float(i) * 1.3) * 2.0, Color(1.0, 0.95, 0.7, _chandelier_flash * 0.6))
 			draw_line(Vector2.from_angle(ca) * 10.0, cp, Color(1.0, 0.92, 0.5, _chandelier_flash * 0.15), 2.0)
@@ -1028,6 +1052,10 @@ func _draw() -> void:
 		draw_circle(Vector2(-3, -10), 2.5, Color(0.0, 0.0, 0.0, _red_death_flash * 0.7))
 		draw_circle(Vector2(3, -10), 2.5, Color(0.0, 0.0, 0.0, _red_death_flash * 0.7))
 		draw_line(Vector2(-1, -5), Vector2(1, -5), Color(0.0, 0.0, 0.0, _red_death_flash * 0.5), 1.5)
+		# Fear ripple rings
+		for ri in range(3):
+			var rr = rd_r * (0.3 + float(ri) * 0.25)
+			draw_arc(Vector2.ZERO, rr, 0, TAU, 24, Color(0.7, 0.05, 0.05, _red_death_flash * 0.2 / float(ri + 1)), 2.0)
 
 	# Ability 3: Christine's Aria flash — music notes and hearts
 	if _christines_aria_flash > 0.0:
@@ -1040,8 +1068,8 @@ func _draw() -> void:
 			draw_line(cpos + Vector2(2, 0), cpos + Vector2(2, -8), Color(1.0, 0.6, 0.8, _christines_aria_flash * 0.4), 1.2)
 			# Heart above
 			var hpos = cpos + Vector2(0, -14)
-			draw_circle(hpos + Vector2(-2, 0), 2.0, Color(1.0, 0.3, 0.4, _christines_aria_flash * 0.5))
-			draw_circle(hpos + Vector2(2, 0), 2.0, Color(1.0, 0.3, 0.4, _christines_aria_flash * 0.5))
+			draw_circle(hpos + Vector2(-2, 0), 3.0, Color(1.0, 0.3, 0.4, _christines_aria_flash * 0.5))
+			draw_circle(hpos + Vector2(2, 0), 3.0, Color(1.0, 0.3, 0.4, _christines_aria_flash * 0.5))
 
 	# Ability 4: The Trap Door flash — trapdoor opening
 	if _trap_door_flash > 0.0:

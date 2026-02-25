@@ -1,10 +1,10 @@
 extends Node2D
 ## Wicked Witch of the West — orbiting caster from Baum's Wizard of Oz (1900).
 ## Flies in circles on her broom, casting green spells in all directions.
-## Tier 1 (5000 DMG): "Pack of Wolves" — periodic wolf projectile burst
-## Tier 2 (10000 DMG): "Murder of Crows" — enemies hit take poison DoT
-## Tier 3 (15000 DMG): "Swarm of Bees" — DoT spreads, increased damage
-## Tier 4 (20000 DMG): "The Golden Cap" — Winged Monkey AoE burst every 20s
+## Tier 1: "Pack of Wolves" — wolves run down the path every other wave
+## Tier 2: "Murder of Crows" — crows dive-bomb enemies once a wave
+## Tier 3: "Swarm of Bees" — beehive on path slows and damages enemies
+## Tier 4: "The Golden Cap" — faster orbit, enhanced wolves (2x dmg) and crows (2x DoT)
 
 var damage: float = 21.0
 var fire_rate: float = 1.5
@@ -30,13 +30,13 @@ var _orbit_angle: float = 0.0
 var _orbit_radius: float = 60.0
 var _orbit_speed: float = 1.8  # radians per second
 
-# Tier 1: Pack of Wolves — run down path every 10 waves
+# Tier 1: Pack of Wolves — run down path every other wave
 var _wolves_active: Array = []
 var _wolf_spawn_timer: float = 0.0
 var _wolves_last_trigger_wave: int = -1
 var _wolf_flash: float = 0.0
 
-# Tier 2: Murder of Crows — dive-bomb enemies every 5 waves
+# Tier 2: Murder of Crows — dive-bomb enemies once a wave
 var _crows_active: Array = []
 var _crow_feathers: Array = []
 var _crow_spawn_timer: float = 0.0
@@ -79,9 +79,6 @@ var _monkey_scout_timer: float = 8.0
 var _poppy_field_timer: float = 20.0
 var _tornado_timer: float = 15.0
 var _ruby_slippers_timer: float = 12.0
-var _ruby_slipper_teleporting: bool = false
-var _ruby_slipper_saved_pos: Vector2 = Vector2.ZERO
-var _ruby_slipper_strike_timer: float = 0.0
 var _winkies_march_timer: float = 18.0
 var _melting_curse_timer: float = 20.0
 # Visual flash timers
@@ -280,6 +277,7 @@ func _is_sfx_muted() -> bool:
 func _strike_target(t: Node2D) -> void:
 	if not is_instance_valid(t) or not t.has_method("take_damage"):
 		return
+	_attack_anim = 1.0
 	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
@@ -321,13 +319,16 @@ func _spawn_wolf_pack() -> void:
 	var path_pts = main.get_path_points()
 	if path_pts.size() < 2:
 		return
+	var wolf_dmg = damage * 1.5 * _damage_mult()
+	if _golden_cap_active:
+		wolf_dmg *= 2.0
 	for wi in range(5):
 		_wolves_active.append({
 			"path_index": 0,
 			"progress": -float(wi) * 40.0,  # Staggered entry
 			"pos": path_pts[0],
 			"speed": 180.0,
-			"damage": damage * 1.5,
+			"damage": wolf_dmg,
 			"leg_phase": randf() * TAU,
 			"alive": true
 		})
@@ -354,6 +355,9 @@ func _update_wolves(delta: float) -> void:
 		var placed := false
 		for pi in range(path_pts.size() - 1):
 			var seg_len = path_pts[pi].distance_to(path_pts[pi + 1])
+			if seg_len < 0.001:
+				total_dist += seg_len
+				continue
 			if total_dist + seg_len >= wolf["progress"]:
 				var t_seg = (wolf["progress"] - total_dist) / seg_len
 				wolf["pos"] = path_pts[pi].lerp(path_pts[pi + 1], clampf(t_seg, 0.0, 1.0))
@@ -389,6 +393,9 @@ func _spawn_crow_dive() -> void:
 	shuffled.shuffle()
 	for i in range(count):
 		targets.append(shuffled[i])
+	var crow_dmg = damage * 2.0 * _damage_mult()
+	if _golden_cap_active:
+		crow_dmg *= 2.0
 	for ci in range(targets.size()):
 		var t_enemy = targets[ci]
 		if not is_instance_valid(t_enemy):
@@ -399,7 +406,7 @@ func _spawn_crow_dive() -> void:
 			"target": t_enemy,
 			"timer": 0.0,
 			"duration": 0.6 + randf() * 0.3,
-			"damage": damage * 2.0,
+			"damage": crow_dmg,
 			"wing_phase": randf() * TAU,
 			"done": false
 		})
@@ -419,6 +426,12 @@ func _update_crows(delta: float) -> void:
 			if is_instance_valid(crow["target"]) and crow["target"].has_method("take_damage"):
 				crow["target"].take_damage(crow["damage"], true)
 				register_damage(crow["damage"])
+				# Poison DoT from crows (Golden Cap doubles DoT)
+				if crow["target"].has_method("apply_dot"):
+					var dot_dps = 3.0
+					if _golden_cap_active:
+						dot_dps *= 2.0
+					crow["target"].apply_dot(dot_dps, 3.0)
 				# Spawn feather particles
 				var impact_pos = crow["target"].global_position
 				for fi in range(3):
@@ -485,11 +498,13 @@ func _update_beehive(delta: float) -> void:
 	for bee in _beehive_bees:
 		bee["angle"] += bee["speed"] * delta
 		bee["bob"] += delta * 4.0
-	# Apply DPS + slow to enemies in radius
+	# Apply DPS + slow to enemies in radius (scaled with meta buffs)
+	var eff_radius = _beehive_radius * _range_mult()
+	var eff_damage = _beehive_damage * _damage_mult()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if is_instance_valid(enemy) and _beehive_pos.distance_to(enemy.global_position) < _beehive_radius:
+		if is_instance_valid(enemy) and _beehive_pos.distance_to(enemy.global_position) < eff_radius:
 			if enemy.has_method("take_damage"):
-				var dmg = _beehive_damage * delta
+				var dmg = eff_damage * delta
 				enemy.take_damage(dmg, true)
 				register_damage(dmg)
 			if enemy.has_method("apply_slow"):
@@ -500,6 +515,7 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.WICKED_WITCH, amount)
+	_check_upgrades()
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -550,7 +566,7 @@ func _apply_upgrade(tier: int) -> void:
 			attack_range = 210.0
 			gold_bonus = 5
 			_golden_cap_active = true
-			_orbit_speed *= 1.3
+			_orbit_speed = 2.8
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -794,7 +810,10 @@ func _process_progressive_abilities(delta: float) -> void:
 	_ruby_flash = max(_ruby_flash - delta * 2.0, 0.0)
 	_winkies_flash = max(_winkies_flash - delta * 2.0, 0.0)
 	_melting_flash = max(_melting_flash - delta * 1.5, 0.0)
-	_surrender_flash = max(_surrender_flash - delta * 0.5, 0.0)
+	if prog_abilities[8]:
+		_surrender_flash = 1.0
+	else:
+		_surrender_flash = max(_surrender_flash - delta * 0.5, 0.0)
 
 	# Ability 2: Winged Monkey Scout — mark 1 enemy every 8s
 	if prog_abilities[1]:
@@ -843,16 +862,21 @@ func _process_progressive_abilities(delta: float) -> void:
 		var dps_amount = 15.0 * delta
 		for e in get_tree().get_nodes_in_group("enemies"):
 			if is_instance_valid(e) and e.has_method("take_damage"):
+				var hp_before = e.health if "health" in e else 0.0
 				e.take_damage(dps_amount, true)
-				register_damage(dps_amount)
+				var hp_after = e.health if (is_instance_valid(e) and "health" in e) else 0.0
+				var actual_dmg = maxf(hp_before - hp_after, 0.0)
+				if actual_dmg > 0.0:
+					register_damage(actual_dmg)
 
 func _monkey_scout_mark() -> void:
 	_monkey_scout_flash = 1.0
 	# Find a random enemy in range and mark for +25% damage taken
 	var enemies = get_tree().get_nodes_in_group("enemies")
+	var eff_range = attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
-		if _home_position.distance_to(e.global_position) < attack_range:
+		if _home_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	if in_range.size() > 0:
 		var target_e = in_range[randi() % in_range.size()]
@@ -862,35 +886,38 @@ func _monkey_scout_mark() -> void:
 func _poppy_field_attack() -> void:
 	_poppy_flash = 1.5
 	# Put enemies in range to sleep for 2s
+	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < attack_range:
+		if _home_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.has_method("apply_sleep"):
 				e.apply_sleep(2.0)
 
 func _tornado_attack() -> void:
 	_tornado_flash = 1.5
 	# Push all enemies in range backwards using fear_reverse
+	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < attack_range:
+		if _home_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(2.0)
 
 func _ruby_slippers_strike() -> void:
 	_ruby_flash = 1.0
 	# Find furthest enemy in range and hurl a 5x bolt
+	var eff_range = attack_range * _range_mult()
 	var furthest: Node2D = null
 	var furthest_dist: float = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
 		var dist = _home_position.distance_to(e.global_position)
-		if dist < attack_range and dist > furthest_dist:
+		if dist < eff_range and dist > furthest_dist:
 			furthest_dist = dist
 			furthest = e
 	if furthest and is_instance_valid(furthest) and furthest.has_method("take_damage"):
 		var bolt = bolt_scene.instantiate()
 		bolt.global_position = global_position
-		bolt.damage = damage * 5.0
+		bolt.damage = damage * 5.0 * _damage_mult()
 		bolt.target = furthest
-		bolt.gold_bonus = gold_bonus
+		bolt.gold_bonus = int(gold_bonus * _gold_mult())
 		bolt.source_tower = self
 		bolt.dot_dps = 0.0
 		bolt.dot_duration = 0.0
@@ -900,14 +927,15 @@ func _winkies_march_attack() -> void:
 	_winkies_flash = 1.5
 	# 4 Winkie soldiers each strike one enemy for 3x damage
 	var enemies = get_tree().get_nodes_in_group("enemies")
+	var eff_range = attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
-		if _home_position.distance_to(e.global_position) < attack_range:
+		if _home_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	in_range.shuffle()
 	for i in range(mini(4, in_range.size())):
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
-			var dmg = damage * 3.0
+			var dmg = damage * 3.0 * _damage_mult()
 			var will_kill = in_range[i].health - dmg <= 0.0
 			in_range[i].take_damage(dmg, true)
 			register_damage(dmg)
@@ -919,10 +947,11 @@ func _winkies_march_attack() -> void:
 func _melting_curse_attack() -> void:
 	_melting_flash = 1.5
 	# Find strongest enemy in range and apply melt
+	var eff_range = attack_range * _range_mult()
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < attack_range:
+		if _home_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.health > most_hp:
 				most_hp = e.health
 				strongest = e
@@ -934,14 +963,16 @@ func _draw() -> void:
 	var orbit_center = _home_position - global_position
 
 	# === 1. SELECTION RING (at home position) ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(orbit_center, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(orbit_center, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(orbit_center, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
 		draw_arc(orbit_center, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
-
-	# === 2. RANGE ARC (centered on home) ===
-	draw_arc(orbit_center, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		draw_arc(orbit_center, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 	# Orbit path — faint green circle showing flight path
 	draw_arc(orbit_center, _orbit_radius, 0, TAU, 48, Color(0.3, 0.85, 0.2, 0.08), 1.0)
 
@@ -991,16 +1022,12 @@ func _draw() -> void:
 			var cp = Vector2.from_angle(ca) * crow_r
 			draw_circle(cp, 5.0, Color(0.05, 0.05, 0.08, _crow_flash * 0.4))
 
-	# Orbit trail effect — green sparkles behind her as she flies
-	var trail_dir = Vector2.from_angle(_orbit_angle + PI)
-	var trail_perp = trail_dir.rotated(PI / 2.0)
-	for i in range(5):
-		var trail_pos = trail_dir * (float(i + 1) * 8.0)
-		var trail_alpha = 0.2 - float(i) * 0.035
-		var trail_size = 6.0 - float(i) * 0.8
-		draw_circle(trail_pos, trail_size, Color(0.3, 0.85, 0.2, trail_alpha))
-		var wisp_off = trail_perp * sin(_time * 8.0 + float(i) * 0.9) * (2.0 + float(i))
-		draw_circle(trail_pos + wisp_off, trail_size * 0.4, Color(0.4, 0.15, 0.5, trail_alpha * 0.5))
+	# Orbit trail (green magical afterimages)
+	for trail_i in range(5):
+		var trail_angle = _orbit_angle - float(trail_i + 1) * 0.25
+		var trail_pos = Vector2(cos(trail_angle), sin(trail_angle)) * _orbit_radius
+		var trail_alpha = 0.15 - float(trail_i) * 0.025
+		draw_circle(trail_pos, 4.0 - float(trail_i) * 0.5, Color(0.2, 0.8, 0.1, trail_alpha))
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 
@@ -1095,7 +1122,6 @@ func _draw() -> void:
 
 	# Surrender Dorothy (green skywriting + particles) — permanent visual
 	if prog_abilities[8]:
-		_surrender_flash = 1.0  # Keep it active
 		# Green smoke letters floating above
 		var sky_y = -90.0 + sin(_time * 0.5) * 3.0
 		var font_s = _game_font
@@ -1174,7 +1200,8 @@ func _draw() -> void:
 		for fi in range(5):
 			var fx = wpos.x - 6.0 + float(fi) * 3.0
 			var fy = wpos.y - 7.0 + sin(float(fi) * 1.3 + _time * 2.0) * 1.0
-			draw_line(Vector2(fx, wpos.y - 4), Vector2(fx + randf() * 1.5 - 0.75, fy), wc_dark, 2.0)
+			var fur_offset = sin(float(fi) * 7.3 + _time * 0.5) * 0.75
+			draw_line(Vector2(fx, wpos.y - 4), Vector2(fx + fur_offset, fy), wc_dark, 2.0)
 		# Chest fur (lighter, bushy)
 		draw_set_transform(wpos + Vector2(8, 2), 0, Vector2(1.0, 1.3))
 		draw_circle(Vector2.ZERO, 5.0, wc_light)
@@ -1277,14 +1304,16 @@ func _draw() -> void:
 		var fpos = feather["pos"] - global_position
 		var fa = feather["life"]
 		draw_circle(fpos, 2.0, Color(0.1, 0.1, 0.12, fa * 0.6))
-		draw_line(fpos, fpos + Vector2(randf_range(-3, 3), -3), Color(0.15, 0.15, 0.18, fa * 0.4), 1.0)
+		var feather_jitter = sin(feather["life"] * 20.0) * 3.0
+		draw_line(fpos, fpos + Vector2(feather_jitter, -3), Color(0.15, 0.15, 0.18, fa * 0.4), 1.0)
 
 	# Draw beehive on path
 	if _beehive_active:
 		var bh_pos = _beehive_pos - global_position
+		var bh_eff_radius = _beehive_radius * _range_mult()
 		# Honey zone circle on ground
-		draw_arc(bh_pos, _beehive_radius, 0, TAU, 32, Color(0.85, 0.65, 0.1, 0.12), 2.0)
-		draw_circle(bh_pos, _beehive_radius, Color(0.85, 0.65, 0.1, 0.04))
+		draw_arc(bh_pos, bh_eff_radius, 0, TAU, 32, Color(0.85, 0.65, 0.1, 0.12), 2.0)
+		draw_circle(bh_pos, bh_eff_radius, Color(0.85, 0.65, 0.1, 0.04))
 		# Beehive body (stacked amber rings)
 		for ri in range(4):
 			var ry = -float(ri) * 5.0
@@ -1293,6 +1322,15 @@ func _draw() -> void:
 			draw_circle(bh_pos + Vector2(0, ry - 4), rw, Color(0.72 - float(ri) * 0.05, 0.52 - float(ri) * 0.04, 0.12))
 		# Dark entrance hole
 		draw_circle(bh_pos + Vector2(0, -2), 3.0, Color(0.08, 0.06, 0.04))
+		# Buzzing bees around hive
+		for bi in range(6):
+			var bee_a = _time * (3.0 + float(bi) * 0.7) + float(bi) * TAU / 6.0
+			var bee_r = _beehive_radius * 0.3 + sin(_time * 2.0 + float(bi)) * 8.0
+			var bee_pos = bh_pos + Vector2(cos(bee_a) * bee_r, sin(bee_a) * bee_r * 0.5)
+			draw_circle(bee_pos, 1.5, Color(1.0, 0.85, 0.1, 0.5))
+			# Wings
+			draw_circle(bee_pos + Vector2(-1, -1), 1.0, Color(1.0, 1.0, 1.0, 0.3))
+			draw_circle(bee_pos + Vector2(1, -1), 1.0, Color(1.0, 1.0, 1.0, 0.3))
 		# Orbiting bees
 		for bee in _beehive_bees:
 			var bee_pos = bh_pos + Vector2(cos(bee["angle"]) * bee["radius"], sin(bee["angle"]) * bee["radius"] * 0.5 - 6.0)

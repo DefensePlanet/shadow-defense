@@ -32,6 +32,7 @@ var bounce_count: int = 0
 var aura_active: bool = false
 var _aura_refresh_timer: float = 0.0
 var _aura_refresh_interval: float = 2.0
+var _aura_buffed_towers: Dictionary = {}  # Track which towers have our aura buff applied
 
 # Tier 3: Curse of Ages — enemies take +20% damage
 var curse_on_hit: bool = false
@@ -54,11 +55,11 @@ const PROG_ABILITY_DESCS = [
 	"Reveal camo enemies in range every 10s",
 	"Restore 1 life every 25s",
 	"Every 14s, AoE stun all in range for 1.5s",
-	"Every 18s, shield nearest tower (block next 3 hits)",
+	"Every 18s, shield nearest tower (+20% damage boost)",
 	"Every 16s, slow all enemies in range by 40% for 3s",
 	"Every 20s, fire breath arc deals 4x damage in cone",
 	"Every 25s, heal 2 lives + strike strongest for 6x",
-	"Every 10s, arcane storm hits EVERY enemy on map for 2x"
+	"Every 10s, arcane storm hits all enemies in 3x range for 2x"
 ]
 var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
 # Ability timers
@@ -75,9 +76,26 @@ var _stone_circle_flash: float = 0.0
 var _dragon_breath_flash: float = 0.0
 var _avatar_magic_flash: float = 0.0
 
+# Camelot's Shield tracking — prevent infinite stacking
+var _camelot_shielded_tower: Node2D = null  # Track which tower has our shield
+
+# Crystal Scrying tracking — temporary camo reveal
+var _crystal_scrying_revealed: Array = []  # Enemies currently revealed (only those that were camo)
+var _crystal_scrying_active: bool = false
+var _crystal_scrying_duration: float = 0.0
+const _CRYSTAL_SCRYING_REVEAL_DURATION: float = 5.0
+
+# Active ability timer tracking for visual indicators
+var _active_ability_timers: Dictionary = {}  # { "ability_name": remaining_duration }
+
 const STAT_UPGRADE_INTERVAL: float = 500.0
 const ABILITY_THRESHOLD: float = 1500.0
 var stat_upgrade_level: int = 0
+# Accumulated stat boosts from _apply_stat_boost — stored separately so upgrades don't wipe them
+var _accumulated_damage_boost: float = 0.0
+var _accumulated_fire_rate_boost: float = 0.0
+var _accumulated_range_boost: float = 0.0
+var _accumulated_gold_boost: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
@@ -108,6 +126,8 @@ var _excalibur_sound: AudioStreamWAV
 var _excalibur_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+var _dragon_breath_sound: AudioStreamWAV
+var _dragon_breath_player: AudioStreamPlayer
 var _game_font: Font
 
 func _ready() -> void:
@@ -171,6 +191,36 @@ func _ready() -> void:
 	_upgrade_player.volume_db = -4.0
 	add_child(_upgrade_player)
 
+	# Dragon Breath — fire whoosh/roar (noise burst + low rumble + crackling overtones)
+	var db_rate := 22050
+	var db_dur := 0.6
+	var db_samples := PackedFloat32Array()
+	db_samples.resize(int(db_rate * db_dur))
+	var db_seed := 12345.0
+	for i in db_samples.size():
+		var t := float(i) / db_rate
+		# LCG pseudo-random noise for fire crackle
+		db_seed = fmod(db_seed * 16807.0, 2147483647.0)
+		var noise := (db_seed / 2147483647.0) * 2.0 - 1.0
+		# Fire envelope: fast attack, sustained burn, slow decay
+		var env := minf(t * 30.0, 1.0) * exp(-t * 3.5) * 0.45
+		# Low rumble (deep fire base)
+		var rumble := sin(TAU * 65.0 * t) * 0.3 + sin(TAU * 95.0 * t) * 0.2
+		rumble *= exp(-t * 2.5)
+		# Mid whoosh (sweeping frequency)
+		var sweep_freq := 200.0 + t * 600.0
+		var whoosh := sin(TAU * sweep_freq * t) * 0.2 * exp(-t * 4.0)
+		# High crackle (filtered noise)
+		var crackle := noise * 0.35 * exp(-t * 5.0)
+		# Roar overtones
+		var roar := sin(TAU * 140.0 * t + sin(TAU * 6.0 * t) * 3.0) * 0.15 * exp(-t * 3.0)
+		db_samples[i] = clampf((rumble + whoosh + crackle + roar) * env, -1.0, 1.0)
+	_dragon_breath_sound = _samples_to_wav(db_samples, db_rate)
+	_dragon_breath_player = AudioStreamPlayer.new()
+	_dragon_breath_player.stream = _dragon_breath_sound
+	_dragon_breath_player.volume_db = -3.0
+	add_child(_dragon_breath_player)
+
 func _process(delta: float) -> void:
 	_time += delta
 	fire_cooldown -= delta
@@ -206,6 +256,52 @@ func _process(delta: float) -> void:
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
+
+	# Decay active ability timers for visual indicators
+	var expired_keys: Array = []
+	for key in _active_ability_timers:
+		_active_ability_timers[key] -= delta
+		if _active_ability_timers[key] <= 0.0:
+			expired_keys.append(key)
+	for key in expired_keys:
+		_active_ability_timers.erase(key)
+
+	# Crystal Scrying: re-apply camo when reveal duration expires or enemies leave range
+	if _crystal_scrying_active:
+		_crystal_scrying_duration -= delta
+		var eff_range_scry = attack_range * _range_mult()
+		var still_revealed: Array = []
+		for e in _crystal_scrying_revealed:
+			if is_instance_valid(e):
+				var in_range = global_position.distance_to(e.global_position) < eff_range_scry
+				if _crystal_scrying_duration > 0.0 and in_range:
+					still_revealed.append(e)
+				else:
+					# Re-apply camo (they were camo before we revealed them)
+					if "is_camo" in e:
+						e.is_camo = true
+		_crystal_scrying_revealed = still_revealed
+		if _crystal_scrying_duration <= 0.0:
+			_crystal_scrying_active = false
+
+	# Aura: remove buff from towers that moved out of range or were freed
+	if aura_active:
+		var buff_range = attack_range * _range_mult() * 0.8
+		var to_remove: Array = []
+		for tower_id in _aura_buffed_towers:
+			var tower = instance_from_id(tower_id)
+			if not is_instance_valid(tower) or global_position.distance_to(tower.global_position) >= buff_range:
+				if is_instance_valid(tower) and tower.has_method("clear_synergy_buff"):
+					# Remove our specific aura contribution
+					if tower.has_method("remove_synergy_buff"):
+						tower.remove_synergy_buff({"attack_speed": _aura_buffed_towers[tower_id]})
+				to_remove.append(tower_id)
+		for tid in to_remove:
+			_aura_buffed_towers.erase(tid)
+
+	# Camelot's Shield: clear tracking if shielded tower is freed
+	if _camelot_shielded_tower != null and not is_instance_valid(_camelot_shielded_tower):
+		_camelot_shielded_tower = null
 
 	queue_redraw()
 
@@ -292,16 +388,24 @@ func _excalibur_strike() -> void:
 
 func _apply_aura_buff() -> void:
 	var buff_range = attack_range * _range_mult() * 0.8
+	var speed_bonus = 0.15
+	if upgrade_tier >= 4:
+		speed_bonus = 0.25
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower == self:
 			continue
+		var tower_id = tower.get_instance_id()
 		if global_position.distance_to(tower.global_position) < buff_range:
 			if tower.has_method("set_synergy_buff"):
-				tower.clear_synergy_buff()
-				var speed_bonus = 0.15
-				if upgrade_tier >= 4:
-					speed_bonus = 0.25
-				tower.set_synergy_buff({"attack_speed": speed_bonus})
+				if not _aura_buffed_towers.has(tower_id):
+					tower.set_synergy_buff({"attack_speed": speed_bonus})
+					_aura_buffed_towers[tower_id] = speed_bonus
+				elif _aura_buffed_towers[tower_id] != speed_bonus:
+					# Tier changed — remove old, apply new
+					if tower.has_method("remove_synergy_buff"):
+						tower.remove_synergy_buff({"attack_speed": _aura_buffed_towers[tower_id]})
+					tower.set_synergy_buff({"attack_speed": speed_bonus})
+					_aura_buffed_towers[tower_id] = speed_bonus
 
 func register_kill() -> void:
 	kill_count += 1
@@ -327,10 +431,19 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.12
-	fire_rate *= 1.08
-	attack_range += 5.0
-	gold_bonus += 1
+	# Track boosts separately so tier upgrades can re-apply them
+	var dmg_boost = damage * 0.12
+	var rate_boost = fire_rate * 0.08
+	var range_boost = 5.0
+	var gold_boost_val = 1
+	_accumulated_damage_boost += dmg_boost
+	_accumulated_fire_rate_boost += rate_boost
+	_accumulated_range_boost += range_boost
+	_accumulated_gold_boost += gold_boost_val
+	damage += dmg_boost
+	fire_rate += rate_boost
+	attack_range += range_boost
+	gold_bonus += gold_boost_val
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -366,6 +479,11 @@ func _apply_upgrade(tier: int) -> void:
 			gold_bonus = 6
 			bounce_count = 3
 			excalibur_cooldown = 15.0
+	# Re-apply accumulated stat boosts so tier upgrade doesn't wipe them
+	damage += _accumulated_damage_boost
+	fire_rate += _accumulated_fire_rate_boost
+	attack_range += _accumulated_range_boost
+	gold_bonus += _accumulated_gold_boost
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -401,112 +519,130 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Mystical chime frequencies — crystalline bell tones
-	var chime_notes := [587.33, 698.46, 783.99, 880.00, 783.99, 698.46, 587.33, 880.00]  # D5, F5, G5, A5, G5, F5, D5, A5 (D minor crystal arpeggio)
+	# Arcane spell frequencies — deeper, more powerful wizard tones
+	# D minor pentatonic in lower octave: D3, F3, G3, A3, C4, D4, F4, A4
+	var spell_notes := [146.83, 174.61, 196.0, 220.0, 261.63, 293.66, 349.23, 440.0]
 	var mix_rate := 44100
 	_attack_sounds_by_tier = []
 
-	# --- Tier 0: Simple Crystal Chime (pure bell + sparkle) ---
+	# --- Tier 0: Staff Strike (deep resonant thud + arcane whoosh) ---
 	var t0 := []
-	for note_idx in chime_notes.size():
-		var freq: float = chime_notes[note_idx]
+	for note_idx in spell_notes.size():
+		var freq: float = spell_notes[note_idx]
 		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.15))
+		samples.resize(int(mix_rate * 0.3))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			# Crystal bell — bright decay, even harmonics
-			var env := exp(-t * 20.0) * 0.3
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.25 * exp(-t * 30.0)
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 40.0)
-			# High sparkle shimmer
-			var sparkle := sin(t * freq * 5.0 * TAU) * 0.06 * exp(-t * 50.0)
-			samples[i] = clampf((fund + h2 + h3 + sparkle) * env, -1.0, 1.0)
+			# Staff impact thud (deep woody tone)
+			var thud := sin(TAU * freq * t) * 0.4 * exp(-t * 8.0)
+			thud += sin(TAU * freq * 0.5 * t) * 0.2 * exp(-t * 6.0)  # Sub-bass body
+			# Arcane energy whoosh (ascending sweep)
+			var sweep_freq := freq * 2.0 + t * 800.0
+			var whoosh := sin(TAU * sweep_freq * t) * 0.15 * exp(-t * 10.0)
+			# Magical sparkle on release
+			var sparkle := sin(TAU * freq * 4.0 * t) * 0.08 * exp(-t * 18.0)
+			var env := minf(t * 60.0, 1.0) * 0.35
+			samples[i] = clampf((thud + whoosh + sparkle) * env, -1.0, 1.0)
 		t0.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t0)
 
-	# --- Tier 1: Arcane Chime (deeper resonance + mystical warble) ---
+	# --- Tier 1: Arcane Bolt (deeper + energy crackle) ---
 	var t1 := []
-	for note_idx in chime_notes.size():
-		var freq: float = chime_notes[note_idx]
+	for note_idx in spell_notes.size():
+		var freq: float = spell_notes[note_idx]
 		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.18))
+		samples.resize(int(mix_rate * 0.35))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var env := exp(-t * 16.0) * 0.3
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.2 * exp(-t * 22.0)
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.15 * exp(-t * 30.0)
-			# Warble (slight vibrato)
-			var warble := sin(t * freq * 1.005 * TAU) * 0.12 * exp(-t * 18.0)
-			var sparkle := sin(t * freq * 4.0 * TAU) * 0.06 * exp(-t * 45.0)
-			samples[i] = clampf((fund + h2 + h3 + warble + sparkle) * env, -1.0, 1.0)
+			# Deep magical resonance
+			var fund := sin(TAU * freq * t) * 0.35 * exp(-t * 6.0)
+			var sub := sin(TAU * freq * 0.5 * t) * 0.2 * exp(-t * 5.0)
+			# Energy crackle (modulated noise burst)
+			var crackle := sin(TAU * (freq * 3.0 + sin(TAU * 12.0 * t) * 200.0) * t) * 0.12 * exp(-t * 12.0)
+			# Mystical warble (vibrato on harmonics)
+			var warble := sin(TAU * freq * 2.0 * t + sin(TAU * 5.0 * t) * 1.5) * 0.15 * exp(-t * 8.0)
+			# Staff thud
+			var thud := sin(TAU * 80.0 * t) * exp(-t * 30.0) * 0.15
+			var env := minf(t * 50.0, 1.0) * 0.35
+			samples[i] = clampf((fund + sub + crackle + warble + thud) * env, -1.0, 1.0)
 		t1.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t1)
 
-	# --- Tier 2: Enchanted Bell (rich chorus, aura hum undertone) ---
+	# --- Tier 2: Enchanted Surge (rich, warm, humming power) ---
 	var t2 := []
-	for note_idx in chime_notes.size():
-		var freq: float = chime_notes[note_idx]
+	for note_idx in spell_notes.size():
+		var freq: float = spell_notes[note_idx]
 		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.2))
+		samples.resize(int(mix_rate * 0.38))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var env := exp(-t * 14.0) * 0.28
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.22 * exp(-t * 20.0)
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 28.0)
-			# Chorus (detuned copies)
-			var chorus := sin(t * freq * 1.003 * TAU) * 0.1 + sin(t * freq * 0.997 * TAU) * 0.1
-			# Aura hum (low octave pad)
-			var hum := sin(t * freq * 0.5 * TAU) * 0.08 * exp(-t * 10.0)
-			samples[i] = clampf((fund + h2 + h3 + chorus + hum) * env, -1.0, 1.0)
+			# Rich fundamental with warm harmonics
+			var fund := sin(TAU * freq * t) * 0.3 * exp(-t * 5.0)
+			var h2 := sin(TAU * freq * 2.0 * t) * 0.2 * exp(-t * 7.0)
+			var h3 := sin(TAU * freq * 3.0 * t) * 0.1 * exp(-t * 10.0)
+			# Enchanted aura hum (detuned chorus)
+			var chorus := sin(TAU * freq * 1.004 * t) * 0.12 + sin(TAU * freq * 0.996 * t) * 0.12
+			chorus *= exp(-t * 6.0)
+			# Deep power throb
+			var power := sin(TAU * freq * 0.5 * t) * 0.15 * exp(-t * 4.0)
+			# Energy release sparkle
+			var release := sin(TAU * freq * 5.0 * t) * 0.06 * exp(-t * 14.0)
+			var env := minf(t * 40.0, 1.0) * 0.32
+			samples[i] = clampf((fund + h2 + h3 + chorus + power + release) * env, -1.0, 1.0)
 		t2.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t2)
 
-	# --- Tier 3: Cursed Chime (dark undertone, dissonant minor second) ---
+	# --- Tier 3: Cursed Spell (dark, menacing, dissonant power) ---
 	var t3 := []
-	for note_idx in chime_notes.size():
-		var freq: float = chime_notes[note_idx]
+	for note_idx in spell_notes.size():
+		var freq: float = spell_notes[note_idx]
 		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.2))
+		samples.resize(int(mix_rate * 0.4))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var env := exp(-t * 13.0) * 0.28
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.18 * exp(-t * 20.0)
-			# Dissonant minor second overtone (cursed sound)
-			var curse := sin(t * freq * 1.059 * TAU) * 0.12 * exp(-t * 16.0)
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.1 * exp(-t * 25.0)
-			# Dark sub-bass thrum
-			var dark := sin(t * freq * 0.25 * TAU) * 0.06 * exp(-t * 8.0)
-			var sparkle := sin(t * freq * 5.0 * TAU) * 0.04 * exp(-t * 40.0)
-			samples[i] = clampf((fund + h2 + h3 + curse + dark + sparkle) * env, -1.0, 1.0)
+			# Dark fundamental with ominous sub-bass
+			var fund := sin(TAU * freq * t) * 0.3 * exp(-t * 4.5)
+			var sub := sin(TAU * freq * 0.25 * t) * 0.12 * exp(-t * 3.0)
+			# Dissonant tritone curse overtone (diabolus in musica)
+			var curse := sin(TAU * freq * 1.414 * t) * 0.1 * exp(-t * 7.0)
+			# Dark energy crackling
+			var dark_crackle := sin(TAU * (freq * 2.0 + sin(TAU * 8.0 * t) * 300.0) * t) * 0.1 * exp(-t * 9.0)
+			# Ominous undertone vibrato
+			var vibrato := sin(TAU * freq * t + sin(TAU * 3.0 * t) * 2.0) * 0.15 * exp(-t * 5.0)
+			# Staff slam
+			var slam := sin(TAU * 60.0 * t) * exp(-t * 25.0) * 0.18
+			var env := minf(t * 35.0, 1.0) * 0.32
+			samples[i] = clampf((fund + sub + curse + dark_crackle + vibrato + slam) * env, -1.0, 1.0)
 		t3.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t3)
 
-	# --- Tier 4: Archmage Bell (full ethereal choir + cosmic shimmer) ---
+	# --- Tier 4: Archmage Blast (full orchestral power + cosmic energy) ---
 	var t4 := []
-	for note_idx in chime_notes.size():
-		var freq: float = chime_notes[note_idx]
+	for note_idx in spell_notes.size():
+		var freq: float = spell_notes[note_idx]
 		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.25))
+		samples.resize(int(mix_rate * 0.45))
 		for i in samples.size():
 			var t := float(i) / mix_rate
-			var env := exp(-t * 10.0) * 0.25
-			var fund := sin(t * freq * TAU)
-			var h2 := sin(t * freq * 2.0 * TAU) * 0.2
-			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 18.0)
-			var h4 := sin(t * freq * 4.0 * TAU) * 0.06 * exp(-t * 22.0)
-			# Ethereal chorus (wide detuning)
-			var choir := sin(t * freq * 1.005 * TAU) * 0.08 + sin(t * freq * 0.995 * TAU) * 0.08
-			choir += sin(t * freq * 2.003 * TAU) * 0.05 + sin(t * freq * 1.998 * TAU) * 0.05
-			# Cosmic shimmer (very high harmonics, slow fade)
-			var cosmic := sin(t * freq * 6.0 * TAU) * 0.03 * exp(-t * 8.0)
-			cosmic += sin(t * freq * 8.0 * TAU) * 0.02 * exp(-t * 10.0)
-			# Sub-bass power (Archmage presence)
-			var power := sin(t * freq * 0.5 * TAU) * 0.06 * exp(-t * 6.0)
-			samples[i] = clampf((fund + h2 + h3 + h4 + choir + cosmic + power) * env, -1.0, 1.0)
+			# Full harmonic stack (massive presence)
+			var fund := sin(TAU * freq * t) * 0.25 * exp(-t * 3.5)
+			var h2 := sin(TAU * freq * 2.0 * t) * 0.18 * exp(-t * 5.0)
+			var h3 := sin(TAU * freq * 3.0 * t) * 0.1 * exp(-t * 7.0)
+			# Deep sub-bass foundation
+			var sub := sin(TAU * freq * 0.5 * t) * 0.15 * exp(-t * 3.0)
+			var sub2 := sin(TAU * freq * 0.25 * t) * 0.08 * exp(-t * 2.5)
+			# Ethereal choir (wide detuned chorus)
+			var choir := sin(TAU * freq * 1.005 * t) * 0.08 + sin(TAU * freq * 0.995 * t) * 0.08
+			choir += sin(TAU * freq * 2.003 * t) * 0.05 + sin(TAU * freq * 1.997 * t) * 0.05
+			choir *= exp(-t * 4.0)
+			# Cosmic energy shimmer
+			var cosmic := sin(TAU * freq * 5.0 * t) * 0.04 * exp(-t * 8.0)
+			cosmic += sin(TAU * freq * 7.0 * t) * 0.02 * exp(-t * 12.0)
+			# Thunderous impact
+			var thunder := sin(TAU * 50.0 * t) * exp(-t * 20.0) * 0.2
+			thunder += (sin(t * 9200.0) * cos(t * 4100.0)) * exp(-t * 40.0) * 0.1  # Crack
+			var env := minf(t * 30.0, 1.0) * 0.3
+			samples[i] = clampf((fund + h2 + h3 + sub + sub2 + choir + cosmic + thunder) * env, -1.0, 1.0)
 		t4.append(_samples_to_wav(samples, mix_rate))
 	_attack_sounds_by_tier.append(t4)
 
@@ -565,6 +701,7 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.MERLIN, amount)
+	_check_upgrades()
 
 func _process_progressive_abilities(delta: float) -> void:
 	# Visual flash decay
@@ -587,6 +724,7 @@ func _process_progressive_abilities(delta: float) -> void:
 			if main and main.has_method("restore_life"):
 				main.restore_life(1)
 			_nimue_blessing_timer = 25.0
+			_active_ability_timers["Nimue's Blessing"] = 1.0
 
 	# Ability 4: Stone Circle — AoE stun
 	if prog_abilities[3]:
@@ -631,23 +769,38 @@ func _process_progressive_abilities(delta: float) -> void:
 			_avatar_magic_timer = 10.0
 
 func _crystal_scrying_reveal() -> void:
-	# Reveal camo enemies in range
+	# Temporarily reveal camo enemies in range
+	var eff_range = attack_range * _range_mult()
+	# First, re-apply camo to any previously revealed enemies
+	for e in _crystal_scrying_revealed:
+		if is_instance_valid(e) and "is_camo" in e:
+			e.is_camo = true
+	_crystal_scrying_revealed.clear()
+	# Now reveal new batch — only enemies that are currently camo
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
-			if "is_camo" in e:
+		if global_position.distance_to(e.global_position) < eff_range:
+			if "is_camo" in e and e.is_camo:
 				e.is_camo = false
+				_crystal_scrying_revealed.append(e)
+	_crystal_scrying_active = true
+	_crystal_scrying_duration = _CRYSTAL_SCRYING_REVEAL_DURATION
+	_active_ability_timers["Crystal Scrying"] = _CRYSTAL_SCRYING_REVEAL_DURATION
 
 func _stone_circle_stun() -> void:
 	_stone_circle_flash = 1.0
+	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.5)
+	_active_ability_timers["Stone Circle"] = 1.5
 
 func _camelot_shield() -> void:
-	# Find nearest allied tower and boost it
+	# Find nearest allied tower and give it a shield (block next 3 hits via damage buff)
+	# Only apply if previous shield target no longer has our shield
+	var eff_range = attack_range * _range_mult()
 	var nearest_tower: Node2D = null
-	var nearest_dist: float = attack_range
+	var nearest_dist: float = eff_range
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower == self:
 			continue
@@ -655,29 +808,46 @@ func _camelot_shield() -> void:
 		if dist < nearest_dist:
 			nearest_tower = tower
 			nearest_dist = dist
-	if nearest_tower and nearest_tower.has_method("set_synergy_buff"):
+	if nearest_tower == null:
+		return
+	# Remove shield from previous tower if still valid
+	if _camelot_shielded_tower != null and is_instance_valid(_camelot_shielded_tower) and _camelot_shielded_tower != nearest_tower:
+		if _camelot_shielded_tower.has_method("remove_synergy_buff"):
+			_camelot_shielded_tower.remove_synergy_buff({"damage": 0.20})
+	# Don't re-stack on the same tower
+	if nearest_tower == _camelot_shielded_tower:
+		return
+	if nearest_tower.has_method("set_synergy_buff"):
 		nearest_tower.set_synergy_buff({"damage": 0.20})
+		_camelot_shielded_tower = nearest_tower
+	_active_ability_timers["Camelot's Shield"] = 18.0
 
 func _time_warp_slow() -> void:
+	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.6, 3.0)
+	_active_ability_timers["Time Warp"] = 3.0
 
 func _dragon_breath_attack() -> void:
 	_dragon_breath_flash = 1.0
+	if _dragon_breath_player and not _is_sfx_muted():
+		_dragon_breath_player.play()
 	# Cone attack in aim direction
+	var eff_range = attack_range * _range_mult()
 	var aim_dir = Vector2.from_angle(staff_angle)
 	for e in get_tree().get_nodes_in_group("enemies"):
 		var to_enemy = (e.global_position - global_position)
 		var dist = to_enemy.length()
-		if dist < attack_range:
+		if dist < eff_range:
 			var angle_to = aim_dir.angle_to(to_enemy.normalized())
 			if abs(angle_to) < PI / 3.0:  # 60 degree cone
 				if e.has_method("take_damage"):
 					var dmg = damage * 4.0 * _damage_mult()
 					e.take_damage(dmg, true)
 					register_damage(dmg)
+	_active_ability_timers["Dragon Breath"] = 0.6
 
 func _holy_grail_strike() -> void:
 	# Heal 2 lives
@@ -690,28 +860,34 @@ func _holy_grail_strike() -> void:
 		var dmg = damage * 6.0 * _damage_mult()
 		strongest.take_damage(dmg, true)
 		register_damage(dmg)
+	_active_ability_timers["Holy Grail"] = 1.0
 
 func _avatar_magic_storm() -> void:
 	_avatar_magic_flash = 1.0
-	# Deal 2x damage to EVERY enemy on map
+	# Deal 2x damage to all enemies within 3x effective range (not global)
+	var storm_range = attack_range * _range_mult() * 3.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if e.has_method("take_damage"):
-			var dmg = damage * 2.0 * _damage_mult()
-			e.take_damage(dmg, true)
-			register_damage(dmg)
+		if global_position.distance_to(e.global_position) < storm_range:
+			if e.has_method("take_damage"):
+				var dmg = damage * 2.0 * _damage_mult()
+				e.take_damage(dmg, true)
+				register_damage(dmg)
+	_active_ability_timers["Avatar of Magic"] = 1.0
 
 # === DRAW ===
 
 func _draw() -> void:
 	# === 1. SELECTION RING ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.4, 0.3, 0.9, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(0.4, 0.3, 0.9, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(0.5, 0.4, 1.0, ring_alpha * 0.4), 1.5)
-
-	# === 2. RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(0.4, 0.3, 0.8, 0.06), 1.0)
+	else:
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.4, 0.3, 0.8, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(staff_angle)
@@ -1536,6 +1712,20 @@ func _draw() -> void:
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -80), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.4, 0.3, 0.9, 0.7 + pulse * 0.3))
 
+	# === ACTIVE ABILITY VISUAL INDICATORS ===
+	if not _active_ability_timers.is_empty():
+		var abi_y := 66.0
+		for ability_name in _active_ability_timers:
+			var remaining: float = _active_ability_timers[ability_name]
+			var alpha := clampf(remaining * 2.0, 0.0, 0.8)
+			# Small glowing pip + label
+			var pip_col := Color(0.4, 0.3, 0.9, alpha)
+			draw_circle(Vector2(-38, abi_y - 3), 3.0, pip_col)
+			draw_circle(Vector2(-38, abi_y - 3), 1.5, Color(0.7, 0.6, 1.0, alpha))
+			if _game_font:
+				draw_string(_game_font, Vector2(-32, abi_y), ability_name, HORIZONTAL_ALIGNMENT_LEFT, 140, 10, Color(0.6, 0.5, 1.0, alpha))
+			abi_y += 14.0
+
 	# === 16. DAMAGE COUNTER ===
 	if damage_dealt > 0:
 		var font = _game_font
@@ -1556,6 +1746,13 @@ var _meta_buffs: Dictionary = {}
 func set_synergy_buff(buffs: Dictionary) -> void:
 	for key in buffs:
 		_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) + buffs[key]
+
+func remove_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		if _synergy_buffs.has(key):
+			_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) - buffs[key]
+			if absf(_synergy_buffs[key]) < 0.001:
+				_synergy_buffs.erase(key)
 
 func clear_synergy_buff() -> void:
 	_synergy_buffs.clear()

@@ -2,13 +2,13 @@ extends Node2D
 ## Alice — support tower. Throws cake that slows and shrinks all nearby enemies.
 ## Based on Lewis Carroll's Alice's Adventures in Wonderland (1865) & Tenniel illustrations.
 ## Tier 1: "Eat Me Cake" — Cake 10% more sticky, slows enemies more
-## Tier 2: "Cheshire Cat" — 10 second drum solo (pure vibes, no combat effect)
-## Tier 3: "Mad Tea Party" — Towers in range drink tea, +3% fire rate
+## Tier 2: "Cheshire Cat" — 10 second drum solo, slows all enemies in range 30%
+## Tier 3: "Mad Tea Party" — Towers in range drink tea, +5% fire rate
 ## Tier 4: "Off With Their Heads!" — Paints ALL enemies red, low DoT as they walk
 
-var damage: float = 2.0
+var damage: float = 3.0
 var fire_rate: float = 1.0
-var attack_range: float = 75.0
+var attack_range: float = 85.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
@@ -28,17 +28,15 @@ var slow_duration: float = 2.0
 var frosting_dps: float = 0.0
 
 # Tier 2: Cheshire Cat
-var cheshire_timer: float = 0.0
 var cheshire_cooldown: float = 12.0
 var _cheshire_flash: float = 0.0
 
 # Tier 3: Mad Tea Party
-var tea_timer: float = 0.0
-var tea_cooldown: float = 15.0
 var _tea_flash: float = 0.0
 
 # Tier 4: Off With Their Heads
 var execute_threshold: float = 0.0
+var _execute_flash: float = 0.0
 
 # Animation vars
 var _time: float = 0.0
@@ -88,10 +86,10 @@ const TIER_NAMES = [
 	"Off With Their Heads!"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"Cake 10% more sticky, slows enemies more",
-	"10 second drum solo (pure vibes)",
-	"Towers in range drink tea, +3% fire rate",
-	"Paints all enemies red, low DoT as they walk"
+	"Cake 10% more sticky, slows enemies more, frosting DoT",
+	"10 second drum solo, 30% slow aura on all enemies in range",
+	"Towers in range drink tea, +5% fire rate",
+	"Paints all enemies red, low DoT, 5% HP execute"
 ]
 const TIER_COSTS = [70, 150, 275, 1000]
 var is_selected: bool = false
@@ -282,7 +280,10 @@ func _process(delta: float) -> void:
 	_cheshire_flash = max(_cheshire_flash - delta * 2.0, 0.0)
 	_tea_flash = max(_tea_flash - delta * 2.0, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
+	_execute_flash = max(_execute_flash - delta * 2.0, 0.0)
 	_grow_burst = max(_grow_burst - delta * 0.5, 0.0)
+	_roses_red_flash = max(_roses_red_flash - delta * 2.0, 0.0)
+	_madness_flash = max(_madness_flash - delta * 1.5, 0.0)
 	target = _find_nearest_enemy()
 
 	if target:
@@ -292,14 +293,30 @@ func _process(delta: float) -> void:
 			_shoot()
 			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
-	# Tier 2: Cheshire Cat drum solo (10s duration, visual only)
+	# Tier 2: Cheshire Cat drum solo (10s duration, slows enemies in range)
 	if _drum_solo_active:
 		_drum_solo_timer -= delta
 		_cheshire_flash = 0.8  # Keep grin visible during solo
+		# Drum solo slows all enemies in range by 30%
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if global_position.distance_to(e.global_position) < attack_range * _range_mult():
+				if e.has_method("apply_slow"):
+					e.apply_slow(0.3, 0.5)
 		if _drum_solo_timer <= 0.0:
 			_drum_solo_active = false
 
-	# Tier 4: Paint ALL enemies red — low DoT as they walk
+	# Bug 9: Recurring drum solo — cooldown ticks when solo is not active
+	if upgrade_tier >= 2 and not _drum_solo_active:
+		_drum_solo_cooldown_timer -= delta
+		if _drum_solo_cooldown_timer <= 0.0 and _has_enemies_in_range():
+			_start_drum_solo()
+			_drum_solo_cooldown_timer = 20.0
+
+	# Bug 10: Tea Party ongoing aura
+	if _tea_aura_active:
+		_apply_tea_party_aura()
+
+	# Tier 4: Paint ALL enemies red — low DoT as they walk (Bug 6: cleaned up duplicate code)
 	if _paint_red_active:
 		_paint_red_timer -= delta
 		if _paint_red_timer <= 0.0:
@@ -310,16 +327,9 @@ func _process(delta: float) -> void:
 					enemy.take_damage(paint_dmg)
 					register_damage(paint_dmg)
 				if enemy.has_method("apply_paint"):
-					enemy.apply_paint()  # Visually paints them red
+					enemy.apply_paint()
 				if "painted_red" in enemy:
 					enemy.painted_red = true
-				if enemy.has_method("apply_paint"):
-					enemy.apply_paint()
-				# Set red tint on enemy
-				if "paint_red" in enemy:
-					enemy.paint_red = true
-				else:
-					enemy.set("paint_red", true)
 
 	_process_progressive_abilities(delta)
 	queue_redraw()
@@ -364,25 +374,24 @@ func _shoot() -> void:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(dmg, true)
 				register_damage(dmg)
-			# Tier 4: paint enemies red (visual tint handled in draw)
-			pass
+			# Tier 4: Execute enemies below threshold HP
+			if execute_threshold > 0.0 and "health" in enemy and "max_health" in enemy:
+				if enemy.health > 0.0 and enemy.health / enemy.max_health <= execute_threshold:
+					var exec_dmg = enemy.health
+					if enemy.has_method("take_damage"):
+						enemy.take_damage(exec_dmg, true)
+						register_damage(exec_dmg)
+					_execute_flash = 1.0
 			# Frosting DoT (Tier 1 upgrade)
 			if frosting_dps > 0.0 and enemy.has_method("apply_dot"):
 				enemy.apply_dot(frosting_dps, slow_duration)
-
-func _cheshire_stun() -> void:
-	# Legacy — drum solo is now handled in _process
-	pass
-
-func _tea_party() -> void:
-	# Legacy — tea party buff is now applied once on upgrade
-	pass
 
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.ALICE, amount)
+	_check_upgrades()
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -398,15 +407,32 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.10
-	fire_rate *= 1.05
-	attack_range += 4.0
+	# Bug 2: Track boosts separately so tier upgrades can re-apply them
+	var dmg_boost = damage * 0.10
+	var fr_boost = fire_rate * 0.05
+	var range_boost = 4.0
+	var slow_boost = min(slow_amount - 0.2, 0.02)  # How much we can reduce slow
+	var dur_boost = 0.1
+	var frost_boost = frosting_dps * 0.08 if frosting_dps > 0.0 else 0.0
+	var grow_boost = 0.06
+
+	_progression_boosts["damage"] += dmg_boost
+	_progression_boosts["fire_rate"] += fr_boost
+	_progression_boosts["attack_range"] += range_boost
+	_progression_boosts["slow_amount"] += slow_boost
+	_progression_boosts["slow_duration"] += dur_boost
+	_progression_boosts["frosting_dps"] += frost_boost
+	_progression_boosts["grow_scale"] += grow_boost
+
+	damage += dmg_boost
+	fire_rate += fr_boost
+	attack_range += range_boost
 	slow_amount = max(slow_amount - 0.02, 0.2)
-	slow_duration += 0.1
+	slow_duration += dur_boost
 	if frosting_dps > 0.0:
-		frosting_dps *= 1.08
+		frosting_dps += frost_boost
 	# Alice grows!
-	_grow_scale += 0.06
+	_grow_scale += grow_boost
 	_grow_burst = 0.3
 
 func choose_ability(index: int) -> void:
@@ -419,9 +445,10 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	match tier:
-		1: # Eat Me Cake — 10% more sticky
-			slow_amount *= 0.90  # 10% more slow (lower = slower)
+		1: # Eat Me Cake — stickier cake + frosting DoT
+			slow_amount = 0.6  # Increased from 0.5
 			slow_duration += 0.5
+			frosting_dps = 1.5  # Frosting DoT unlocked
 			attack_range = 85.0
 			damage = 3.0
 			fire_rate = 1.2
@@ -437,36 +464,95 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 1.6
 			attack_range = 100.0
 			gold_bonus = 3
-			_apply_tea_party_buffs()
-		4: # Off With Their Heads! — paint enemies red, DoT
+			_tea_aura_active = true  # Bug 10: Enable ongoing aura instead of one-shot
+		4: # Off With Their Heads! — paint enemies red, DoT, 5% execute
 			damage = 7.0
 			fire_rate = 1.8
 			attack_range = 110.0
 			gold_bonus = 4
+			execute_threshold = 0.05  # Execute enemies below 5% HP
 			_paint_red_active = true
+	# Bug 2: Re-apply accumulated progression boosts after tier stat reset
+	_reapply_progression_boosts()
 
 var _paint_red_active: bool = false
 var _paint_red_timer: float = 0.0
 var _drum_solo_active: bool = false
 var _drum_solo_timer: float = 0.0
+var _drum_solo_cooldown_timer: float = 0.0  # Bug 9: recurring drum solo cooldown
+
+# Bug 2: Track accumulated progression boosts separately so tier upgrades don't clobber them
+var _progression_boosts: Dictionary = {
+	"damage": 0.0,
+	"fire_rate": 0.0,
+	"attack_range": 0.0,
+	"slow_amount": 0.0,
+	"slow_duration": 0.0,
+	"frosting_dps": 0.0,
+	"grow_scale": 0.0,
+}
+
+# Bug 3: Painting the Roses Red timer (progressive ability 5)
+var _roses_red_timer: float = 15.0
+var _roses_red_flash: float = 0.0
+
+# Bug 4: Wonderland Madness timer (progressive ability 9)
+var _madness_timer: float = 18.0
+var _madness_flash: float = 0.0
+
+# Bug 10: Tea Party aura tracking
+var _tea_aura_active: bool = false
+var _tea_buffed_towers: Array = []
+
+func _reapply_progression_boosts() -> void:
+	damage += _progression_boosts["damage"]
+	fire_rate += _progression_boosts["fire_rate"]
+	attack_range += _progression_boosts["attack_range"]
+	slow_amount = max(slow_amount - _progression_boosts["slow_amount"], 0.2)
+	slow_duration += _progression_boosts["slow_duration"]
+	if frosting_dps > 0.0:
+		frosting_dps += _progression_boosts["frosting_dps"]
+	_grow_scale += _progression_boosts["grow_scale"]
 
 func _start_drum_solo() -> void:
 	_drum_solo_active = true
 	_drum_solo_timer = 10.0
+	_drum_solo_cooldown_timer = 20.0  # Bug 9: Reset cooldown for next recurrence
 	_cheshire_flash = 1.0
 	if _cheshire_player and not _is_sfx_muted():
 		_cheshire_player.play()
-	if _cheshire_player and not _is_sfx_muted():
-		_cheshire_player.play()
 
-func _apply_tea_party_buffs() -> void:
-	_tea_flash = 1.0
+func _apply_tea_party_aura() -> void:
+	# Bug 10: Ongoing aura — buff towers in range, unbuff those that leave range
+	var eff_range = attack_range * _range_mult()
+	var currently_in_range: Array = []
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower == self:
 			continue
-		if global_position.distance_to(tower.global_position) < attack_range * _range_mult():
+		if is_instance_valid(tower) and global_position.distance_to(tower.global_position) < eff_range:
+			currently_in_range.append(tower)
+			if not _tea_buffed_towers.has(tower):
+				# New tower entered range — apply buff
+				if "fire_rate" in tower:
+					tower.fire_rate *= 1.05
+				_tea_buffed_towers.append(tower)
+	# Remove buff from towers that left range or were freed
+	var still_buffed: Array = []
+	for tower in _tea_buffed_towers:
+		if is_instance_valid(tower) and currently_in_range.has(tower):
+			still_buffed.append(tower)
+		elif is_instance_valid(tower):
+			# Tower left range — remove buff
 			if "fire_rate" in tower:
-				tower.fire_rate *= 1.03
+				tower.fire_rate /= 1.05
+	_tea_buffed_towers = still_buffed
+
+func _cleanup_tea_party_aura() -> void:
+	# Bug 10: Called when Alice is sold — remove all tea buffs
+	for tower in _tea_buffed_towers:
+		if is_instance_valid(tower) and "fire_rate" in tower:
+			tower.fire_rate /= 1.05
+	_tea_buffed_towers.clear()
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -500,6 +586,10 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
+
+func _exit_tree() -> void:
+	# Bug 10: Clean up tea party aura buffs when Alice is removed/sold
+	_cleanup_tea_party_aura()
 
 func _generate_tier_sounds() -> void:
 	var mix_rate := 44100
@@ -700,6 +790,13 @@ func _process_progressive_abilities(delta: float) -> void:
 			_eat_me_stomp()
 			_eat_me_timer = 15.0
 
+	# Bug 3: Ability 5: Painting the Roses Red — paint enemies for +25% damage taken
+	if prog_abilities[4]:
+		_roses_red_timer -= delta
+		if _roses_red_timer <= 0.0 and _has_enemies_in_range():
+			_painting_roses_red()
+			_roses_red_timer = 15.0
+
 	# Ability 6: Caterpillar's Hookah — smoke slow
 	if prog_abilities[5]:
 		_caterpillar_timer -= delta
@@ -714,28 +811,37 @@ func _process_progressive_abilities(delta: float) -> void:
 			_tweedle_attack()
 			_tweedle_timer = 2.0
 
-	# Ability 8: The Jabberwock — swoop damage
+	# Ability 8: The Jabberwock — swoop damage (Bug 8: range-limited)
 	if prog_abilities[7]:
 		_jabberwock_timer -= delta
-		if _jabberwock_timer <= 0.0:
+		if _jabberwock_timer <= 0.0 and _has_enemies_in_range():
 			_jabberwock_swoop()
 			_jabberwock_timer = 25.0
 
+	# Bug 4: Ability 9: Wonderland Madness — confusion wave + damage
+	if prog_abilities[8]:
+		_madness_timer -= delta
+		if _madness_timer <= 0.0 and _has_enemies_in_range():
+			_wonderland_madness()
+			_madness_timer = 18.0
+
 func _rabbit_hole() -> void:
+	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	if in_range.size() > 0:
 		var picked = in_range[randi() % in_range.size()]
 		picked.progress = max(0.0, picked.progress - 150.0)
 
 func _cheshire_grin() -> void:
+	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	if in_range.size() > 0:
 		var picked = in_range[randi() % in_range.size()]
@@ -744,25 +850,43 @@ func _cheshire_grin() -> void:
 
 func _eat_me_stomp() -> void:
 	_eat_me_flash = 1.0
+	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 4.0
 				e.take_damage(dmg, true)
 				register_damage(dmg)
 
+func _painting_roses_red() -> void:
+	# Bug 3: Ability 5 implementation — paint nearby enemies red, +25% damage taken for 5s
+	_roses_red_flash = 1.0
+	var eff_range = attack_range * _range_mult()
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < eff_range:
+			# Apply 1.25x damage mark for 5 seconds (uses existing mark system)
+			if e.has_method("apply_mark"):
+				e.apply_mark(1.25, 5.0)
+			# Paint them red visually
+			if e.has_method("apply_paint"):
+				e.apply_paint()
+			if "painted_red" in e:
+				e.painted_red = true
+
 func _caterpillar_smoke() -> void:
 	_caterpillar_flash = 1.0
+	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.2, 3.0)
 
 func _tweedle_attack() -> void:
+	var eff_range = attack_range * _range_mult() * 0.6  # Bug 5: use _range_mult()
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range * 0.6:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	in_range.shuffle()
 	for i in range(mini(2, in_range.size())):
@@ -772,23 +896,46 @@ func _tweedle_attack() -> void:
 			register_damage(dmg)
 
 func _jabberwock_swoop() -> void:
+	# Bug 8: Cap range to attack_range * _range_mult() * 3.0 instead of global nuke
 	_jabberwock_flash = 1.0
+	var eff_range = attack_range * _range_mult() * 3.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if e.has_method("take_damage"):
-			var dmg = damage * 5.0
-			e.take_damage(dmg, true)
-			register_damage(dmg)
+		if global_position.distance_to(e.global_position) < eff_range:
+			if e.has_method("take_damage"):
+				var dmg = damage * 5.0
+				e.take_damage(dmg, true)
+				register_damage(dmg)
+
+func _wonderland_madness() -> void:
+	# Bug 4: Ability 9 implementation — confusion wave + damage
+	_madness_flash = 1.0
+	var eff_range = attack_range * _range_mult() * 1.5
+	var madness_dmg = attack_damage_for_madness() * 0.5
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(e.global_position) < eff_range:
+			# Confusion: walk backwards for 3 seconds
+			if e.has_method("apply_fear_reverse"):
+				e.apply_fear_reverse(3.0)
+			# Deal 50% of Alice's damage
+			if e.has_method("take_damage"):
+				e.take_damage(madness_dmg, true)
+				register_damage(madness_dmg)
+
+func attack_damage_for_madness() -> float:
+	return damage * _damage_mult()
 
 func _draw() -> void:
 	# Selection ring (before grow transform)
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
-
-	# Range indicator (NOT scaled)
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === PROGRESSIVE ABILITY EFFECTS ===
 	if _eat_me_flash > 0.0:
@@ -802,6 +949,18 @@ func _draw() -> void:
 	if _caterpillar_flash > 0.0:
 		draw_circle(Vector2.ZERO, 40.0, Color(0.5, 0.3, 0.7, _caterpillar_flash * 0.2))
 		draw_circle(Vector2(10, 5), 30.0, Color(0.4, 0.2, 0.6, _caterpillar_flash * 0.15))
+
+	# Bug 3: Painting the Roses Red flash effect
+	if _roses_red_flash > 0.0:
+		var rr_r = 25.0 + (1.0 - _roses_red_flash) * 50.0
+		draw_arc(Vector2.ZERO, rr_r, 0, TAU, 24, Color(0.95, 0.15, 0.15, _roses_red_flash * 0.5), 3.5)
+		draw_circle(Vector2.ZERO, rr_r * 0.5, Color(0.9, 0.1, 0.1, _roses_red_flash * 0.15))
+
+	# Bug 4: Wonderland Madness flash effect
+	if _madness_flash > 0.0:
+		var md_r = 35.0 + (1.0 - _madness_flash) * 80.0
+		draw_arc(Vector2.ZERO, md_r, 0, TAU, 32, Color(0.7, 0.2, 0.9, _madness_flash * 0.4), 4.0)
+		draw_arc(Vector2.ZERO, md_r * 0.6, 0, TAU, 20, Color(0.5, 0.1, 0.8, _madness_flash * 0.2), 2.5)
 
 	if prog_abilities[6]:  # Tweedledee & Tweedledum orbiting
 		for ti in range(2):
@@ -906,9 +1065,38 @@ func _draw() -> void:
 	if _cheshire_flash > 0.0:
 		draw_arc(Vector2.ZERO, 35.0 + (1.0 - _cheshire_flash) * 40.0, 0.3, 2.8, 14, Color(0.7, 0.3, 0.8, _cheshire_flash * 0.5), 4.0)
 
+	# Cheshire Cat grin during drum solo
+	if _drum_solo_active:
+		var grin_y = body_offset.y - 55.0 + sin(_time * 2.0) * 3.0
+		var grin_x = body_offset.x + sin(_time * 1.5) * 5.0
+		var grin_pos = Vector2(grin_x, grin_y)
+		# Wide grin curve
+		draw_arc(grin_pos, 10.0, 0.2, PI - 0.2, 12, Color(0.8, 0.2, 0.8, 0.7), 2.5)
+		# Teeth
+		for ti in range(5):
+			var tx = grin_pos.x - 8.0 + float(ti) * 4.0
+			draw_line(Vector2(tx, grin_pos.y + 2), Vector2(tx, grin_pos.y + 5), Color(1.0, 1.0, 1.0, 0.6), 1.5)
+		# Eyes above grin
+		draw_circle(grin_pos + Vector2(-6, -8), 2.5, Color(0.8, 0.2, 0.8, 0.5))
+		draw_circle(grin_pos + Vector2(6, -8), 2.5, Color(0.8, 0.2, 0.8, 0.5))
+		draw_circle(grin_pos + Vector2(-6, -8), 1.0, Color(1.0, 1.0, 0.0, 0.7))
+		draw_circle(grin_pos + Vector2(6, -8), 1.0, Color(1.0, 1.0, 0.0, 0.7))
+
 	# Tea party flash
 	if _tea_flash > 0.0:
 		draw_circle(Vector2.ZERO, 42.0 + (1.0 - _tea_flash) * 50.0, Color(0.9, 0.75, 0.3, _tea_flash * 0.25))
+
+	if _tea_flash > 0.0:
+		# Floating teacup
+		var cup_pos = body_offset + Vector2(18, -15)
+		var cup_alpha = _tea_flash * 0.6
+		draw_arc(cup_pos, 5.0, PI, TAU, 8, Color(0.9, 0.85, 0.7, cup_alpha), 2.0)
+		draw_line(cup_pos + Vector2(5, -2), cup_pos + Vector2(8, -5), Color(0.9, 0.85, 0.7, cup_alpha), 1.5)
+		# Steam
+		for si in range(3):
+			var sy = cup_pos.y - 6.0 - float(si) * 4.0
+			var sx = cup_pos.x + sin(_time * 3.0 + float(si)) * 2.0
+			draw_circle(Vector2(sx, sy), 1.5 - float(si) * 0.3, Color(1.0, 1.0, 1.0, cup_alpha * (0.4 - float(si) * 0.1)))
 
 	# T1+: Shrinking sparkles
 	if upgrade_tier >= 1:

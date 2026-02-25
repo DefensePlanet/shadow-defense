@@ -3,7 +3,7 @@ extends Node2D
 ## Rings bell for AoE knockback and gold generation. Upgrades by dealing damage.
 ## Tier 1: "Bah, Humbug!" — Blast knockback +15% stronger
 ## Tier 2: "Ghost of Christmas Past" — Ghost rescues 5 enemies from path end, sends them back to start
-## Tier 3: "Ghost of Christmas Present" — Gives the team 20 gold twice per round
+## Tier 3: "Ghost of Christmas Present" — Gives the team 25 gold twice per round
 ## Tier 4: "Ghost of Yet to Come" — Every other wave, massive coin blast damages all enemies
 
 var damage: float = 1.5
@@ -25,6 +25,13 @@ var upgrade_tier: int = 0
 var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
 
+# Accumulated stat boosts from _apply_stat_boost() (preserved across tier upgrades)
+var _accumulated_damage_boost: float = 0.0
+var _accumulated_fire_rate_boost: float = 0.0
+var _accumulated_range_boost: float = 0.0
+var _accumulated_knockback_boost: float = 0.0
+var _accumulated_gold_per_ring_boost: int = 0
+
 # Animation vars
 var _time: float = 0.0
 var _attack_anim: float = 0.0
@@ -37,13 +44,12 @@ var _ghost_past_ready: float = 0.0
 var _ghost_past_cooldown: float = 20.0
 var _ghost_flash: float = 0.0
 
-# Tier 3: Ghost of Christmas Present — give 20 gold twice per round
+# Tier 3: Ghost of Christmas Present — give 25 gold twice per round
 var _present_gold_given: int = 0
 var _present_gold_timer: float = 0.0
 var _present_flash: float = 0.0
 
 # Tier 4: Ghost of Yet to Come — coin blast every other wave
-var _coin_blast_ready: bool = false
 var _coin_blast_wave_count: int = 0
 var _coin_blast_timer: float = 0.0
 var _coin_blast_active: bool = false
@@ -93,7 +99,7 @@ const TIER_NAMES = [
 const ABILITY_DESCRIPTIONS = [
 	"Blast knockback +15% stronger",
 	"Ghost rescues 5 enemies from path end — sends them back to start",
-	"Gives the team 20 gold twice per round",
+	"Gives the team 25 gold twice per round",
 	"Every other wave — massive coin blast damages all enemies"
 ]
 const TIER_COSTS = [55, 120, 225, 1000]
@@ -242,14 +248,14 @@ func _process(delta: float) -> void:
 						_trigger_ghost_past()
 						break
 
-	# Tier 3: Ghost of Christmas Present — give 20 gold twice per round
+	# Tier 3: Ghost of Christmas Present — give 25 gold twice per round
 	if upgrade_tier >= 3:
 		if _present_gold_timer > 0.0:
 			_present_gold_timer -= delta
 			if _present_gold_timer <= 0.0 and _present_gold_given < 2:
 				var main = get_tree().get_first_node_in_group("main")
 				if main and main.has_method("add_gold"):
-					main.add_gold(20)
+					main.add_gold(25)
 				_present_gold_given += 1
 				_present_flash = 1.5
 				_ghost_flash = 1.2
@@ -323,9 +329,9 @@ func _shoot() -> void:
 				enemy.take_damage(damage * dmg_mult)
 				register_damage(damage * dmg_mult)
 			enemies_hit += 1
-	# Earn gold per bell ring (more enemies = more gold)
+	# Earn gold per bell ring (more enemies = more gold, scaled by gold_bonus)
 	if main and enemies_hit > 0:
-		main.add_gold(int((gold_per_ring + (enemies_hit - 1) * bonus_gold_per_enemy) * _gold_mult()))
+		main.add_gold(int((gold_per_ring * gold_bonus + (enemies_hit - 1) * bonus_gold_per_enemy) * _gold_mult()))
 
 func on_wave_start(_wave_num: int) -> void:
 	# Tier 3: Reset gold giving for this round
@@ -339,8 +345,6 @@ func on_wave_start(_wave_num: int) -> void:
 			_coin_blast_timer = 3.0
 
 func _trigger_ghost_past() -> void:
-	if _ghost_past_player and not _is_sfx_muted():
-		_ghost_past_player.play()
 	_ghost_flash = 1.0
 	# Find up to 5 enemies with the highest progress values (nearest to end)
 	var enemies = get_tree().get_nodes_in_group("enemies")
@@ -356,6 +360,9 @@ func _trigger_ghost_past() -> void:
 	if _ghost_past_targets.size() > 0:
 		_ghost_past_active = true
 		_ghost_past_phase = 0.0
+		_ghost_flash = 1.0
+		if _ghost_past_player and not _is_sfx_muted():
+			_ghost_past_player.play()
 
 func _update_ghost_past(delta: float) -> void:
 	_ghost_past_phase += delta / 3.0  # 3 seconds total animation
@@ -394,6 +401,10 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.SCROOGE, amount)
+	_check_upgrades()
+
+func register_kill() -> void:
+	pass
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -409,8 +420,15 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.10
-	fire_rate *= 1.05
+	var dmg_boost = damage * 0.10
+	var rate_boost = fire_rate * 0.05
+	_accumulated_damage_boost += dmg_boost
+	_accumulated_fire_rate_boost += rate_boost
+	_accumulated_range_boost += 4.0
+	_accumulated_knockback_boost += 3.0
+	_accumulated_gold_per_ring_boost += 1
+	damage += dmg_boost
+	fire_rate += rate_boost
 	attack_range += 4.0
 	knockback_amount += 3.0
 	gold_per_ring += 1
@@ -424,6 +442,7 @@ func choose_ability(index: int) -> void:
 	awaiting_ability_choice = false
 	upgrade_tier = index + 1
 	_apply_upgrade(upgrade_tier)
+	_refresh_tier_sounds()
 	_upgrade_flash = 3.0
 	_upgrade_name = TIER_NAMES[index]
 
@@ -442,7 +461,7 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 0.9
 			attack_range = 80.0
 			gold_bonus = 3
-		3: # Ghost of Christmas Present — gives 20 gold twice per round
+		3: # Ghost of Christmas Present — gives 25 gold twice per round
 			damage = 4.0
 			fire_rate = 1.0
 			attack_range = 90.0
@@ -454,6 +473,12 @@ func _apply_upgrade(tier: int) -> void:
 			attack_range = 100.0
 			knockback_amount = 80.0
 			gold_bonus = 6
+	# Re-apply accumulated stat boosts from damage milestones
+	damage += _accumulated_damage_boost
+	fire_rate += _accumulated_fire_rate_boost
+	attack_range += _accumulated_range_boost
+	knockback_amount += _accumulated_knockback_boost
+	gold_per_ring += _accumulated_gold_per_ring_boost
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -487,6 +512,11 @@ func get_sell_value() -> int:
 	for i in range(upgrade_tier):
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
+
+func _exit_tree() -> void:
+	# Clean up Fezziwig aura buff from all affected towers
+	if prog_abilities[5]:
+		_remove_fezziwig_aura()
 
 func _generate_tier_sounds() -> void:
 	# Spectral bell tones — deep, warm, ghostly tolls in D minor
@@ -710,10 +740,11 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _marleys_warning() -> void:
 	_ghost_flash = 1.0
+	var eff_range = attack_range * _range_mult()
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	in_range.shuffle()
 	for i in range(mini(3, in_range.size())):
@@ -722,10 +753,11 @@ func _marleys_warning() -> void:
 
 func _marleys_chains_link() -> void:
 	_ghost_flash = 1.0
+	var eff_range = attack_range * _range_mult()
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	in_range.shuffle()
 	var chained: Array = []
@@ -743,15 +775,40 @@ func _fezziwig_aura() -> void:
 		if global_position.distance_to(tower.global_position) < 300.0:
 			if "fire_rate" in tower:
 				# Apply a brief 25% fire rate boost (re-applied every 2s)
+				var current_tier = tower.upgrade_tier if "upgrade_tier" in tower else 0
 				if not tower.has_meta("fezziwig_base_rate"):
 					tower.set_meta("fezziwig_base_rate", tower.fire_rate)
+					tower.set_meta("fezziwig_upgrade_tier", current_tier)
+				elif tower.has_meta("fezziwig_upgrade_tier") and tower.get_meta("fezziwig_upgrade_tier") != current_tier:
+					# Tower upgraded since last snapshot — re-snapshot the current rate
+					# First remove old boost to get real current rate
+					var old_base = tower.get_meta("fezziwig_base_rate")
+					var was_boosted = absf(tower.fire_rate - old_base * 1.25) < 0.001
+					if was_boosted:
+						# Tower rate is still our boosted value, so current unboosted = fire_rate / 1.25
+						tower.set_meta("fezziwig_base_rate", tower.fire_rate / 1.25)
+					else:
+						# Tower rate changed independently (upgrade applied), use current rate as new base
+						tower.set_meta("fezziwig_base_rate", tower.fire_rate)
+					tower.set_meta("fezziwig_upgrade_tier", current_tier)
 				var base_rate = tower.get_meta("fezziwig_base_rate")
 				tower.fire_rate = base_rate * 1.25
 
+func _remove_fezziwig_aura() -> void:
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if tower == self:
+			continue
+		if tower.has_meta("fezziwig_base_rate"):
+			tower.fire_rate = tower.get_meta("fezziwig_base_rate")
+			tower.remove_meta("fezziwig_base_rate")
+			if tower.has_meta("fezziwig_upgrade_tier"):
+				tower.remove_meta("fezziwig_upgrade_tier")
+
 func _knocker_reverse() -> void:
 	_knocker_flash = 1.0
+	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(3.0)
 
@@ -759,7 +816,7 @@ func _christmas_turkey() -> void:
 	_turkey_flash = 1.0
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage"):
-			var dmg = damage * 2.0
+			var dmg = damage * 2.0 * _damage_mult()
 			e.take_damage(dmg)
 			register_damage(dmg)
 
@@ -781,14 +838,16 @@ func _draw() -> void:
 	var is_kind = upgrade_tier >= 3
 
 	# === SELECTION RING ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
-
-	# === RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -932,17 +991,17 @@ func _draw() -> void:
 			draw_circle(coin_pos + Vector2(-0.3, -0.3), coin_sz * 0.35, Color(1.0, 0.95, 0.5, pf * 0.4))
 		# Green ghost shimmer
 		draw_circle(Vector2.ZERO, 35.0 + (1.0 - pf) * 20.0, Color(0.3, 0.65, 0.25, pf * 0.06))
-		# "+20 Gold!" text flash
+		# "+25 Gold!" text flash
 		if _game_font and pf > 0.3:
-			draw_string(_game_font, Vector2(-40, -50), "Gift: +20 Gold!", HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1.0, 0.9, 0.3, clampf(pf, 0.0, 1.0)))
+			draw_string(_game_font, Vector2(-40, -50), "Gift: +25 Gold!", HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1.0, 0.9, 0.3, clampf(pf, 0.0, 1.0)))
 
 	# === COIN BLAST EXPLOSION (tier 4) ===
 	if _coin_blast_flash > 0.0:
 		var cf := clampf(_coin_blast_flash, 0.0, 1.0)
-		var blast_r := 60.0 + (1.0 - cf) * 140.0
+		var blast_r := 80.0 + (1.0 - cf) * 180.0
 		# Massive gold shockwave ring
-		draw_circle(Vector2.ZERO, blast_r * 0.5, Color(1.0, 0.85, 0.2, cf * 0.12))
-		draw_arc(Vector2.ZERO, blast_r, 0, TAU, 48, Color(1.0, 0.9, 0.3, cf * 0.5), 4.0)
+		draw_circle(Vector2.ZERO, blast_r * 0.5, Color(1.0, 0.85, 0.2, cf * 0.15))
+		draw_arc(Vector2.ZERO, blast_r, 0, TAU, 48, Color(1.0, 0.9, 0.3, cf * 0.5), 5.0)
 		draw_arc(Vector2.ZERO, blast_r * 0.7, 0, TAU, 36, Color(1.0, 0.85, 0.2, cf * 0.35), 3.0)
 		draw_arc(Vector2.ZERO, blast_r * 0.4, 0, TAU, 24, Color(1.0, 0.95, 0.5, cf * 0.2), 2.0)
 		# Explosion of golden coins radiating outward
@@ -959,6 +1018,13 @@ func _draw() -> void:
 			draw_circle(Vector2.ZERO, c_sz, Color(0.92, 0.78, 0.15, cf * 0.7))
 			draw_circle(Vector2(-0.3, -0.3), c_sz * 0.3, Color(1.0, 0.95, 0.5, cf * 0.5))
 			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		# Small golden coins orbiting outward
+		for oi in range(10):
+			var o_angle := TAU * float(oi) / 10.0 - _time * 3.0
+			var o_r := blast_r * 0.6 + (1.0 - cf) * 50.0 + float(oi % 3) * 15.0
+			var o_pos := Vector2.from_angle(o_angle) * o_r
+			draw_circle(o_pos, 3.0 * cf, Color(1.0, 0.9, 0.2, cf * 0.6))
+			draw_circle(o_pos, 1.5 * cf, Color(1.0, 0.95, 0.5, cf * 0.4))
 		# Gold spark rays
 		for ri in range(12):
 			var r_a := TAU * float(ri) / 12.0 + cf * 3.0
@@ -987,6 +1053,9 @@ func _draw() -> void:
 		for ti in range(5):
 			var tr = 40.0 + float(ti) * 25.0 + (1.0 - _turkey_flash) * 40.0
 			draw_arc(Vector2.ZERO, tr, 0, TAU, 24, Color(1.0, 0.8, 0.2, _turkey_flash * 0.2 * (1.0 - float(ti) * 0.15)), 2.0)
+		var turkey_r = 20.0 + (1.0 - _turkey_flash) * 60.0
+		draw_circle(Vector2.from_angle(_turkey_flash * 8.0) * turkey_r, 4.0, Color(0.6, 0.35, 0.15, _turkey_flash * 0.6))
+		draw_circle(Vector2.from_angle(_turkey_flash * 8.0) * turkey_r, 2.0, Color(0.8, 0.5, 0.2, _turkey_flash * 0.4))
 
 	# Ability 9: Scrooge's Redemption flash — gold explosion
 	if _redemption_flash > 0.0:

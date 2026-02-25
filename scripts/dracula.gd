@@ -6,9 +6,9 @@ extends Node2D
 ## Tier 4: Lord of Darkness — glow red, dash and feast on enemies at will
 
 # Base stats
-var damage: float = 28.0
-var fire_rate: float = 1.6
-var attack_range: float = 200.0
+var damage: float = 25.0
+var fire_rate: float = 1.4
+var attack_range: float = 190.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
@@ -64,15 +64,15 @@ const PROG_ABILITY_NAMES = [
 	"Prince of Darkness"
 ]
 const PROG_ABILITY_DESCS = [
-	"Tower takes 30% less damage from enemy abilities, +15% damage",
+	"Tower takes 30% less damage, +15% damage, nearby towers take 15% less damage",
 	"Every 12s, become mist for 2s; bolts during deal 2x",
 	"Every 18s, spectral wolf strikes weakest enemy for 4x",
-	"Every 15s, confuse nearest enemy (walks backward) for 3s",
-	"Every 25s, blood moon boosts all towers +20% damage for 5s",
+	"Every 15s, confuse nearest enemy (walks backward) for 2s",
+	"Every 25s, blood moon boosts all towers +20% damage for 15s",
 	"Every 20s, bat sentinels block 2 enemies for 2s",
 	"Every 22s, heal 1 life + drain strongest enemy for 6x",
 	"Every 16s, transform — all attacks deal 3x for 4s",
-	"Every 10s, dark wave hits ALL enemies on map for 2x"
+	"Every 10s, dark wave hits enemies in 3x range for 2x"
 ]
 var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
 # Ability timers
@@ -82,6 +82,7 @@ var _wolf_timer: float = 18.0
 var _hypnotic_timer: float = 15.0
 var _blood_moon_timer: float = 25.0
 var _blood_moon_active: float = 0.0
+var _blood_moon_buff_applied: bool = false
 var _castle_defense_timer: float = 20.0
 var _brides_kiss_timer: float = 22.0
 var _nosferatu_timer: float = 16.0
@@ -92,6 +93,8 @@ var _wolf_flash: float = 0.0
 var _blood_moon_flash: float = 0.0
 var _castle_defense_flash: float = 0.0
 var _prince_flash: float = 0.0
+var _brides_kiss_flash: float = 0.0
+var _hypnotic_flash: float = 0.0
 
 const STAT_UPGRADE_INTERVAL: float = 500.0
 const ABILITY_THRESHOLD: float = 1500.0
@@ -126,6 +129,10 @@ var _bat_screech_sound: AudioStreamWAV
 var _bat_screech_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+var _brides_kiss_sound: AudioStreamWAV
+var _brides_kiss_player: AudioStreamPlayer
+var _hypnotic_gaze_sound: AudioStreamWAV
+var _hypnotic_gaze_player: AudioStreamPlayer
 var _game_font: Font
 
 func _ready() -> void:
@@ -185,6 +192,58 @@ func _ready() -> void:
 	_upgrade_player.volume_db = -4.0
 	add_child(_upgrade_player)
 
+	# Bride's Kiss — breathy charm/kiss sound with shimmering harmonic
+	var kiss_rate := 22050
+	var kiss_dur := 0.6
+	var kiss_samples := PackedFloat32Array()
+	kiss_samples.resize(int(kiss_rate * kiss_dur))
+	for i in kiss_samples.size():
+		var t := float(i) / kiss_rate
+		var s := 0.0
+		# Breathy "mwah" onset — noise burst shaped by vowel formant
+		var breath_env := exp(-t * 8.0) * 0.25
+		var onset := clampf(t * 80.0, 0.0, 1.0)
+		s += (randf() * 2.0 - 1.0) * breath_env * onset
+		# Charm shimmer — rising tonal sparkle
+		var charm_freq := 880.0 + t * 400.0
+		var charm_env := sin(clampf(t * 5.0, 0.0, PI)) * 0.3
+		s += sin(TAU * charm_freq * t) * charm_env
+		s += sin(TAU * charm_freq * 1.5 * t) * charm_env * 0.15
+		# Soft bell-like ping
+		var bell_env := exp(-t * 6.0) * 0.2
+		s += sin(TAU * 1200.0 * t) * bell_env * clampf(t * 30.0, 0.0, 1.0)
+		kiss_samples[i] = clampf(s, -1.0, 1.0)
+	_brides_kiss_sound = _samples_to_wav(kiss_samples, kiss_rate)
+	_brides_kiss_player = AudioStreamPlayer.new()
+	_brides_kiss_player.stream = _brides_kiss_sound
+	_brides_kiss_player.volume_db = -6.0
+	add_child(_brides_kiss_player)
+
+	# Hypnotic Gaze — deep droning hum with wobbling overtones
+	var hyp_rate := 22050
+	var hyp_dur := 0.9
+	var hyp_samples := PackedFloat32Array()
+	hyp_samples.resize(int(hyp_rate * hyp_dur))
+	for i in hyp_samples.size():
+		var t := float(i) / hyp_rate
+		var s := 0.0
+		var env := sin(clampf(t * 3.0, 0.0, PI)) * 0.35
+		# Deep droning base
+		s += sin(TAU * 110.0 * t) * env * 0.5
+		# Wobbling overtone — creates hypnotic pulsing effect
+		var wobble := sin(TAU * 4.0 * t) * 0.4 + 0.6
+		s += sin(TAU * 220.0 * t + sin(TAU * 3.0 * t) * 2.0) * env * 0.3 * wobble
+		# Higher eerie harmonic
+		s += sin(TAU * 330.0 * t + sin(TAU * 5.0 * t) * 1.5) * env * 0.15
+		# Subtle swirl noise
+		s += (randf() * 2.0 - 1.0) * env * 0.05
+		hyp_samples[i] = clampf(s, -1.0, 1.0)
+	_hypnotic_gaze_sound = _samples_to_wav(hyp_samples, hyp_rate)
+	_hypnotic_gaze_player = AudioStreamPlayer.new()
+	_hypnotic_gaze_player.stream = _hypnotic_gaze_sound
+	_hypnotic_gaze_player.volume_db = -6.0
+	add_child(_hypnotic_gaze_player)
+
 func _process(delta: float) -> void:
 	_time += delta
 	fire_cooldown -= delta
@@ -193,6 +252,8 @@ func _process(delta: float) -> void:
 	_bat_devour_flash = max(_bat_devour_flash - delta * 2.0, 0.0)
 	_thrall_flash = max(_thrall_flash - delta * 1.5, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
+	_brides_kiss_flash = max(_brides_kiss_flash - delta * 1.5, 0.0)
+	_hypnotic_flash = max(_hypnotic_flash - delta * 2.0, 0.0)
 
 	# Store home position if not set (deferred from _ready for global_position accuracy)
 	if _home_position == Vector2.ZERO and global_position != Vector2.ZERO:
@@ -512,27 +573,36 @@ func choose_ability(index: int) -> void:
 	_upgrade_name = TIER_NAMES[index]
 
 func _apply_upgrade(tier: int) -> void:
+	# Base stats for each tier (each strictly higher than previous)
+	var tier_base_damage := [30.0, 38.0, 48.0, 55.0]
+	var tier_base_fire_rate := [1.6, 1.8, 2.0, 2.3]
+	var tier_base_range := [210.0, 230.0, 250.0, 275.0]
+	var tier_idx := tier - 1
+	# Preserve accumulated boosts from stat upgrades above the tier base
+	var dmg_bonus := maxf(damage - tier_base_damage[maxi(tier_idx - 1, 0)], 0.0) if tier_idx > 0 else 0.0
+	var fr_bonus := maxf(fire_rate - tier_base_fire_rate[maxi(tier_idx - 1, 0)], 0.0) if tier_idx > 0 else 0.0
+	var range_bonus := maxf(attack_range - tier_base_range[maxi(tier_idx - 1, 0)], 0.0) if tier_idx > 0 else 0.0
 	match tier:
 		1: # Vampiric Touch — bite every 5 kills
-			damage = 35.0
-			fire_rate = 1.8
-			attack_range = 220.0
+			damage = tier_base_damage[0] + dmg_bonus
+			fire_rate = tier_base_fire_rate[0] + fr_bonus
+			attack_range = tier_base_range[0] + range_bonus
 			life_drain_percent = 0.10
 		2: # Bat Swarm — devour enemies each wave
-			damage = 45.0
-			fire_rate = 2.0
-			attack_range = 240.0
+			damage = tier_base_damage[1] + dmg_bonus
+			fire_rate = tier_base_fire_rate[1] + fr_bonus
+			attack_range = tier_base_range[1] + range_bonus
 			gold_bonus = 3
 		3: # Thrall — life restore every 15 kills
-			damage = 55.0
-			fire_rate = 2.2
-			attack_range = 260.0
+			damage = tier_base_damage[2] + dmg_bonus
+			fire_rate = tier_base_fire_rate[2] + fr_bonus
+			attack_range = tier_base_range[2] + range_bonus
 			gold_bonus = 4
 		4: # Lord of Darkness — constant feast
 			_lord_active = true
-			damage = 50.0
-			fire_rate = 2.5
-			attack_range = 280.0
+			damage = tier_base_damage[3] + dmg_bonus
+			fire_rate = tier_base_fire_rate[3] + fr_bonus
+			attack_range = tier_base_range[3] + range_bonus
 			gold_bonus = 6
 
 func purchase_upgrade() -> bool:
@@ -573,6 +643,7 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.DRACULA, amount)
+	_check_upgrades()
 
 func _generate_tier_sounds() -> void:
 	# Dark swooshing whisper — breathy noise + low sinusoidal sweep
@@ -717,6 +788,28 @@ func _apply_progressive_stats() -> void:
 	if prog_abilities[0]:  # Undead Fortitude: +15% damage applied in _fire_blood_bolt
 		pass
 
+## Undead Fortitude — 15% damage reduction for nearby towers
+func get_undead_fortitude_reduction() -> float:
+	if prog_abilities[0]:
+		return 0.15  # 15% damage reduction
+	return 0.0
+
+func is_in_undead_fortitude_range(tower_pos: Vector2) -> bool:
+	if not prog_abilities[0]:
+		return false
+	return global_position.distance_to(tower_pos) < attack_range * _range_mult()
+
+func get_damage_reduction() -> float:
+	## Check if any Dracula tower nearby has Undead Fortitude active
+	var reduction := 0.0
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if tower == self:
+			continue
+		if tower.has_method("is_in_undead_fortitude_range"):
+			if tower.is_in_undead_fortitude_range(global_position):
+				reduction = maxf(reduction, tower.get_undead_fortitude_reduction())
+	return reduction
+
 func get_progressive_ability_name(index: int) -> String:
 	if index >= 0 and index < PROG_ABILITY_NAMES.size():
 		return PROG_ABILITY_NAMES[index]
@@ -762,6 +855,8 @@ func _process_progressive_abilities(delta: float) -> void:
 	if prog_abilities[4]:
 		if _blood_moon_active > 0.0:
 			_blood_moon_active -= delta
+			if _blood_moon_active <= 0.0:
+				_blood_moon_expire()
 		else:
 			_blood_moon_timer -= delta
 			if _blood_moon_timer <= 0.0:
@@ -775,12 +870,15 @@ func _process_progressive_abilities(delta: float) -> void:
 			_castle_defense()
 			_castle_defense_timer = 20.0
 
-	# Ability 7: Bride's Kiss — heal + drain strongest
+	# Ability 7: Bride's Kiss — heal + drain strongest (only if enemies in range)
 	if prog_abilities[6]:
 		_brides_kiss_timer -= delta
 		if _brides_kiss_timer <= 0.0:
-			_brides_kiss()
-			_brides_kiss_timer = 22.0
+			if _has_enemies_in_range():
+				_brides_kiss()
+				_brides_kiss_timer = 22.0
+			else:
+				_brides_kiss_timer = 2.0  # Retry soon
 
 	# Ability 8: Nosferatu Form — transform for 3x attacks
 	if prog_abilities[7]:
@@ -804,36 +902,53 @@ func _wolf_strike() -> void:
 	# Strike weakest enemy in range
 	var weakest: Node2D = null
 	var least_hp: float = 999999.0
+	var eff_range := attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if "health" in e and e.health < least_hp:
 				least_hp = e.health
 				weakest = e
 	if weakest and weakest.has_method("take_damage"):
-		var dmg = damage * 4.0
+		var dmg = damage * 4.0 * _damage_mult()
 		weakest.take_damage(dmg)
 		register_damage(dmg)
 
 func _hypnotic_gaze() -> void:
+	_hypnotic_flash = 1.0
 	var nearest = _find_nearest_enemy()
-	if nearest and nearest.has_method("apply_slow"):
-		nearest.apply_slow(0.0, 3.0)  # Complete stop = confused/walking backward
+	if nearest and nearest.has_method("apply_fear_reverse"):
+		nearest.apply_fear_reverse(2.0)  # Confused — walks backward along path for 2s
+	elif nearest and nearest.has_method("apply_slow"):
+		nearest.apply_slow(0.0, 2.0)  # Fallback: freeze if no reverse method
+	if _hypnotic_gaze_player and not _is_sfx_muted():
+		_hypnotic_gaze_player.play()
 
 func _blood_moon_activate() -> void:
 	_blood_moon_flash = 1.0
-	_blood_moon_active = 5.0
-	# Boost all towers +20% damage for 5s
-	for tower in get_tree().get_nodes_in_group("towers"):
-		if tower.has_method("set_synergy_buff"):
-			tower.set_synergy_buff({"damage": 0.20})
+	_blood_moon_active = 15.0
+	# Boost all towers +20% damage for 15s — only apply if not already active
+	if not _blood_moon_buff_applied:
+		_blood_moon_buff_applied = true
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if tower.has_method("set_synergy_buff"):
+				tower.set_synergy_buff({"damage": 0.20})
+
+func _blood_moon_expire() -> void:
+	# Remove the +20% damage buff from all towers when blood moon ends
+	if _blood_moon_buff_applied:
+		_blood_moon_buff_applied = false
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if tower.has_method("set_synergy_buff"):
+				tower.set_synergy_buff({"damage": -0.20})
 
 func _castle_defense() -> void:
 	_castle_defense_flash = 1.0
 	# Block 2 nearest enemies (stun them) for 2s
 	var enemies = get_tree().get_nodes_in_group("enemies")
+	var eff_range := attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	in_range.sort_custom(func(a, b): return global_position.distance_to(a.global_position) < global_position.distance_to(b.global_position))
 	for i in range(mini(2, in_range.size())):
@@ -841,6 +956,8 @@ func _castle_defense() -> void:
 			in_range[i].apply_sleep(2.0)
 
 func _brides_kiss() -> void:
+	_brides_kiss_flash = 1.0
+	var eff_range := attack_range * _range_mult()
 	# Heal 1 life
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("restore_life"):
@@ -849,34 +966,41 @@ func _brides_kiss() -> void:
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if "health" in e and e.health > most_hp:
 				most_hp = e.health
 				strongest = e
 	if strongest and strongest.has_method("take_damage"):
-		var dmg = damage * 6.0
+		var dmg = damage * 6.0 * _damage_mult()
 		strongest.take_damage(dmg)
 		register_damage(dmg)
+		if strongest.has_method("apply_slow"):
+			strongest.apply_slow(0.3, 3.0)
+	if _brides_kiss_player and not _is_sfx_muted():
+		_brides_kiss_player.play()
 
 func _prince_darkness_wave() -> void:
 	_prince_flash = 1.0
-	# Dark wave damages ALL enemies on map
+	# Dark wave damages enemies within 3x effective range
+	var prince_range := attack_range * _range_mult() * 3.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if e.has_method("take_damage"):
-			var dmg = damage * 2.0
+		if e.has_method("take_damage") and global_position.distance_to(e.global_position) < prince_range:
+			var dmg = damage * 2.0 * _damage_mult()
 			e.take_damage(dmg)
 			register_damage(dmg)
 
 func _draw() -> void:
 	# === 1. SELECTION RING ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.8, 0.1, 0.1, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(0.8, 0.1, 0.1, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(0.8, 0.1, 0.1, ring_alpha * 0.4), 1.5)
-
-	# === 2. RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -941,12 +1065,28 @@ func _draw() -> void:
 		draw_circle(wolf_pos + Vector2(5, -3), 0.8, Color(1.0, 0.3, 0.0, _wolf_flash * 0.8))
 		draw_circle(wolf_pos + Vector2(5, -1.5), 0.8, Color(1.0, 0.3, 0.0, _wolf_flash * 0.8))
 
+	# Ability 4: Hypnotic Gaze flash — swirling purple spirals
+	if _hypnotic_flash > 0.0:
+		var hyp_r = 20.0 + (1.0 - _hypnotic_flash) * 15.0
+		for hi in range(6):
+			var ha = _time * 4.0 + TAU * float(hi) / 6.0
+			var hpos = body_offset + Vector2.from_angle(ha) * hyp_r
+			draw_circle(hpos, 2.5, Color(0.5, 0.1, 0.6, _hypnotic_flash * 0.5))
+		draw_arc(body_offset, hyp_r, 0, TAU, 24, Color(0.6, 0.15, 0.7, _hypnotic_flash * 0.3), 2.0)
+		draw_circle(body_offset, hyp_r * 0.4, Color(0.4, 0.05, 0.5, _hypnotic_flash * 0.12))
+
 	# Ability 5: Blood Moon flash
 	if _blood_moon_flash > 0.0:
 		var moon_y = -80.0 + (1.0 - _blood_moon_flash) * 10.0
-		draw_circle(Vector2(0, moon_y), 12.0, Color(0.7, 0.1, 0.05, _blood_moon_flash * 0.5))
-		draw_circle(Vector2(0, moon_y), 9.0, Color(0.85, 0.15, 0.08, _blood_moon_flash * 0.6))
-		draw_circle(Vector2(0, moon_y), 15.0, Color(0.5, 0.05, 0.02, _blood_moon_flash * 0.15))
+		draw_circle(Vector2(0, moon_y), 16.0, Color(0.7, 0.1, 0.05, _blood_moon_flash * 0.5))
+		draw_circle(Vector2(0, moon_y), 12.0, Color(0.85, 0.15, 0.08, _blood_moon_flash * 0.6))
+		draw_circle(Vector2(0, moon_y), 20.0, Color(0.5, 0.05, 0.02, _blood_moon_flash * 0.15))
+		# Red rays from blood moon
+		for ri in range(8):
+			var ray_a = TAU * float(ri) / 8.0
+			var ray_start = Vector2(0, moon_y) + Vector2.from_angle(ray_a) * 16.0
+			var ray_end = Vector2(0, moon_y) + Vector2.from_angle(ray_a) * 35.0
+			draw_line(ray_start, ray_end, Color(0.7, 0.1, 0.05, _blood_moon_flash * 0.3), 1.5)
 
 	# Ability 6: Castle Defense flash
 	if _castle_defense_flash > 0.0:
@@ -958,11 +1098,29 @@ func _draw() -> void:
 			draw_line(cpos, cpos + Vector2(-3, -3), Color(0.2, 0.0, 0.0, _castle_defense_flash * 0.4), 1.5)
 			draw_line(cpos, cpos + Vector2(3, -3), Color(0.2, 0.0, 0.0, _castle_defense_flash * 0.4), 1.5)
 
+	# Ability 7: Bride's Kiss flash — pink/red hearts and healing glow
+	if _brides_kiss_flash > 0.0:
+		var kiss_r = 18.0 + (1.0 - _brides_kiss_flash) * 20.0
+		# Pink healing glow
+		draw_circle(body_offset, kiss_r, Color(0.9, 0.3, 0.4, _brides_kiss_flash * 0.12))
+		draw_arc(body_offset, kiss_r, 0, TAU, 24, Color(0.95, 0.2, 0.35, _brides_kiss_flash * 0.35), 2.0)
+		# Rising heart particles
+		for ki in range(5):
+			var ky = body_offset.y - 30.0 - (1.0 - _brides_kiss_flash) * 25.0 - float(ki) * 8.0
+			var kx = body_offset.x + sin(_time * 3.0 + float(ki) * 1.5) * 8.0
+			var ka = clampf(_brides_kiss_flash - float(ki) * 0.1, 0.0, 1.0) * 0.6
+			draw_circle(Vector2(kx, ky), 2.0 + _brides_kiss_flash * 1.0, Color(0.95, 0.2, 0.3, ka))
+
 	# Ability 9: Prince of Darkness flash — dark wave expanding
 	if _prince_flash > 0.0:
 		var wave_r = 30.0 + (1.0 - _prince_flash) * 120.0
 		draw_arc(Vector2.ZERO, wave_r, 0, TAU, 32, Color(0.3, 0.0, 0.0, _prince_flash * 0.4), 3.0)
 		draw_arc(Vector2.ZERO, wave_r * 0.7, 0, TAU, 24, Color(0.4, 0.02, 0.02, _prince_flash * 0.25), 2.0)
+		for pi in range(8):
+			var pa = TAU * float(pi) / 8.0 + _prince_flash * 2.0
+			var pr = wave_r * 0.8
+			var pp = Vector2.from_angle(pa) * pr
+			draw_circle(pp, 2.0, Color(0.5, 0.02, 0.02, _prince_flash * 0.5))
 
 	# === 8. DARK STONE PLATFORM with red mist ===
 	var plat_y = 22.0
@@ -1717,6 +1875,13 @@ func set_synergy_buff(buffs: Dictionary) -> void:
 
 func clear_synergy_buff() -> void:
 	_synergy_buffs.clear()
+
+func remove_synergy_buff(buffs: Dictionary) -> void:
+	for key in buffs:
+		if _synergy_buffs.has(key):
+			_synergy_buffs[key] = _synergy_buffs.get(key, 0.0) - buffs[key]
+			if absf(_synergy_buffs[key]) < 0.001:
+				_synergy_buffs.erase(key)
 
 func set_meta_buffs(buffs: Dictionary) -> void:
 	_meta_buffs = buffs

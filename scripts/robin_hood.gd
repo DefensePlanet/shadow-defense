@@ -1,9 +1,9 @@
 extends Node2D
 ## Robin Hood — long-range archer tower. Upgrades by dealing damage ("Rob the Rich").
-## Tier 1 (5000 DMG): Splitting the Wand — arrows pierce to a 2nd enemy
-## Tier 2 (10000 DMG): The Silver Arrow — every 5th shot deals 3x damage
-## Tier 3 (15000 DMG): Three Blasts of the Horn — volley of 5 arrows every 18s
-## Tier 4 (20000 DMG): The Final Arrow — splash damage, doubled gold, double pierce
+## Tier 1 (5000 DMG): Splitting the Wand — fire 2 arrows per attack
+## Tier 2 (10000 DMG): The Silver Arrow — every 10th shot deals 3x damage
+## Tier 3 (15000 DMG): Three Blasts of the Horn — 3 sky arrows every other wave, insta-kill
+## Tier 4 (20000 DMG): The Final Arrow — splash damage (40px), +50% gold, double pierce
 
 # Base stats
 var damage: float = 25.0
@@ -32,8 +32,14 @@ var pierce_count: int = 0
 var shot_count: int = 0
 var silver_interval: int = 10
 
+# Tier 2: Silver arrow screen flash
+var _silver_flash: float = 0.0
+
 # Tier 3: Three Blasts of the Horn — sky arrows
 var _horn_flash: float = 0.0
+
+# Tier 4: Gold arrow flash
+var _gold_flash: float = 0.0
 
 # Kill tracking — steal coins every 10th kill
 var kill_count: int = 0
@@ -59,7 +65,7 @@ const PROG_ABILITY_DESCS = [
 	"Every 15s, rope trap roots next enemy 3s",
 	"Every 18s, heal 1 life + strike strongest for 5x",
 	"Every 20s, golden arrow pierces ALL in line for 10x",
-	"Every 8s, arrows rain on EVERY enemy on map"
+	"Every 15s, arrows rain on enemies within 2.5x range"
 ]
 var prog_abilities: Array = [false, false, false, false, false, false, false, false, false]
 # Ability timers
@@ -71,12 +77,16 @@ var _little_john_timer: float = 12.0
 var _outlaw_snare_timer: float = 15.0
 var _maid_marian_timer: float = 18.0
 var _golden_arrow_timer: float = 20.0
-var _king_sherwood_timer: float = 8.0
+var _king_sherwood_timer: float = 15.0
 # Visual flash timers
 var _merry_men_flash: float = 0.0
 var _little_john_flash: float = 0.0
 var _golden_arrow_flash: float = 0.0
 var _king_sherwood_flash: float = 0.0
+var _friar_tuck_flash: float = 0.0
+var _maid_marian_flash: float = 0.0
+var _outlaw_snare_flash: float = 0.0
+var _outlaw_snare_pos: Vector2 = Vector2.ZERO
 
 const STAT_UPGRADE_INTERVAL: float = 500.0
 const ABILITY_THRESHOLD: float = 1500.0
@@ -93,7 +103,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Fire 2 arrows per attack",
 	"Every 10th arrow is silver — pierces 5 enemies",
 	"3 sky arrows every other round — insta-kill on landing",
-	"Silver becomes gold — pierces 10 enemies"
+	"Silver becomes gold — pierces 10 enemies, splash damage"
 ]
 const TIER_COSTS = [80, 175, 300, 500]
 var is_selected: bool = false
@@ -172,6 +182,8 @@ func _process(delta: float) -> void:
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_horn_flash = max(_horn_flash - delta * 2.0, 0.0)
+	_silver_flash = max(_silver_flash - delta * 3.0, 0.0)
+	_gold_flash = max(_gold_flash - delta * 3.0, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	target = _find_nearest_enemy()
 
@@ -249,7 +261,7 @@ func _shoot() -> void:
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 	shot_count += 1
-	var silver = upgrade_tier >= 2 and shot_count % silver_interval == 0 and randf() < 0.75
+	var silver = upgrade_tier >= 2 and shot_count % silver_interval == 0
 	var gold = upgrade_tier >= 4 and silver
 	_fire_arrow(target, silver, gold)
 	# Tier 1+: Dual shot — fire second arrow at next nearest enemy
@@ -258,7 +270,7 @@ func _shoot() -> void:
 		if not second:
 			second = target
 		shot_count += 1
-		var silver2 = upgrade_tier >= 2 and shot_count % silver_interval == 0 and randf() < 0.75
+		var silver2 = upgrade_tier >= 2 and shot_count % silver_interval == 0
 		var gold2 = upgrade_tier >= 4 and silver2
 		_fire_arrow(second, silver2, gold2)
 
@@ -280,22 +292,26 @@ func _fire_arrow(t: Node2D, silver: bool = false, gold: bool = false) -> void:
 		arrow.pierce_count = 10
 		arrow.is_gold = true
 		arrow.is_silver = false
+		_gold_flash = 1.0
 	elif silver:
 		arrow.pierce_count = 5
 		arrow.is_silver = true
+		_silver_flash = 0.8
 	else:
 		arrow.pierce_count = 0
 		arrow.is_silver = false
-	arrow.splash_radius = 0.0
+	arrow.splash_radius = 40.0 if upgrade_tier >= 4 else 0.0
 	# Ability 1: Sherwood Aim — 30% faster arrows
 	if prog_abilities[0]:
 		arrow.speed *= 1.3
-	get_tree().get_first_node_in_group("main").add_child(arrow)
+	var main_node = get_tree().get_first_node_in_group("main")
+	if main_node:
+		main_node.add_child(arrow)
 
 func register_kill() -> void:
 	kill_count += 1
 	if kill_count % 10 == 0:
-		var stolen = 5 + kill_count / 10
+		var stolen = int((5 + kill_count / 10) * _gold_mult())
 		var main = get_tree().get_first_node_in_group("main")
 		if main:
 			main.add_gold(stolen)
@@ -365,8 +381,6 @@ func _update_sky_arrows(delta: float) -> void:
 						var dmg = arrow["target"].health + 1.0
 						arrow["target"].take_damage(dmg, true)
 						register_damage(dmg)
-						if arrow["target"].has_method("register_kill"):
-							pass  # Enemy handles death
 					if is_instance_valid(arrow["target"]):
 						register_kill()
 					to_remove.append(si)
@@ -389,8 +403,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.12
-	fire_rate *= 1.08
+	damage += 3.0
+	fire_rate += 0.06
 	attack_range += 8.0
 	gold_bonus += 1
 
@@ -408,7 +422,7 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 33.0
 			fire_rate = 1.0
 			attack_range = 176.0
-		2: # The Silver Arrow — every 10th arrow, 75% chance, pierces 5
+		2: # The Silver Arrow — every 10th arrow, pierces 5
 			damage = 43.0
 			fire_rate = 1.2
 			attack_range = 192.0
@@ -418,7 +432,7 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 1.4
 			attack_range = 216.0
 			gold_bonus = 4
-		4: # The Final Arrow — gold arrow, pierces 10
+		4: # The Final Arrow — gold arrow, pierces 10, splash 40px
 			damage = 65.0
 			fire_rate = 1.6
 			attack_range = 240.0
@@ -622,6 +636,7 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.ROBIN_HOOD, amount)
+	_check_upgrades()
 
 func _process_progressive_abilities(delta: float) -> void:
 	# Visual flash decay
@@ -629,6 +644,9 @@ func _process_progressive_abilities(delta: float) -> void:
 	_little_john_flash = max(_little_john_flash - delta * 2.0, 0.0)
 	_golden_arrow_flash = max(_golden_arrow_flash - delta * 1.5, 0.0)
 	_king_sherwood_flash = max(_king_sherwood_flash - delta * 2.0, 0.0)
+	_friar_tuck_flash = max(_friar_tuck_flash - delta * 1.5, 0.0)
+	_maid_marian_flash = max(_maid_marian_flash - delta * 1.5, 0.0)
+	_outlaw_snare_flash = max(_outlaw_snare_flash - delta * 1.0, 0.0)
 
 	# Ability 2: Lincoln Green — invisibility cycle
 	if prog_abilities[1]:
@@ -654,6 +672,7 @@ func _process_progressive_abilities(delta: float) -> void:
 			var main = get_tree().get_first_node_in_group("main")
 			if main and main.has_method("restore_life"):
 				main.restore_life(1)
+			_friar_tuck_flash = 1.0
 			_friar_tuck_timer = 30.0
 
 	# Ability 5: Little John's Staff — AoE stun
@@ -684,31 +703,31 @@ func _process_progressive_abilities(delta: float) -> void:
 			_golden_arrow_strike()
 			_golden_arrow_timer = 20.0
 
-	# Ability 9: King of Sherwood — rain arrows on all enemies
+	# Ability 9: King of Sherwood — rain arrows on enemies in 2.5x range
 	if prog_abilities[8]:
 		_king_sherwood_timer -= delta
 		if _king_sherwood_timer <= 0.0:
 			_king_sherwood_rain()
-			_king_sherwood_timer = 8.0
+			_king_sherwood_timer = 15.0
 
 func _merry_men_attack() -> void:
 	_merry_men_flash = 1.0
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			in_range.append(e)
 	in_range.shuffle()
 	for i in range(mini(3, in_range.size())):
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
-			var dmg = damage * 3.0
+			var dmg = damage * 3.0 * _damage_mult()
 			in_range[i].take_damage(dmg)
 			register_damage(dmg)
 
 func _little_john_stun() -> void:
 	_little_john_flash = 1.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.5)
 
@@ -717,22 +736,25 @@ func _outlaw_snare() -> void:
 	var nearest = _find_nearest_enemy()
 	if nearest and nearest.has_method("apply_slow"):
 		nearest.apply_slow(0.0, 3.0)  # factor 0 = complete stop
+		_outlaw_snare_flash = 1.0
+		_outlaw_snare_pos = nearest.global_position - global_position
 
 func _maid_marian_strike() -> void:
 	# Heal 1 life
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("restore_life"):
 		main.restore_life(1)
+	_maid_marian_flash = 1.0
 	# Strike strongest enemy in range
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if global_position.distance_to(e.global_position) < attack_range:
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.health > most_hp:
 				most_hp = e.health
 				strongest = e
 	if strongest and strongest.has_method("take_damage"):
-		var dmg = damage * 5.0
+		var dmg = damage * 5.0 * _damage_mult()
 		strongest.take_damage(dmg)
 		register_damage(dmg)
 
@@ -748,29 +770,32 @@ func _golden_arrow_strike() -> void:
 			var perp_dist = abs(to_enemy.cross(dir))
 			if perp_dist < 40.0:
 				if e.has_method("take_damage"):
-					var dmg = damage * 10.0
+					var dmg = damage * 10.0 * _damage_mult()
 					e.take_damage(dmg)
 					register_damage(dmg)
 
 func _king_sherwood_rain() -> void:
 	_king_sherwood_flash = 1.0
-	# Deal 1.5x damage to EVERY enemy on map
+	var rain_range = attack_range * _range_mult() * 2.5
+	# Deal 1.5x damage to enemies within 2.5x range
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if e.has_method("take_damage"):
-			var dmg = damage * 1.5
+		if global_position.distance_to(e.global_position) < rain_range and e.has_method("take_damage"):
+			var dmg = damage * 1.5 * _damage_mult()
 			e.take_damage(dmg)
 			register_damage(dmg)
 
 func _draw() -> void:
 	# === 1. SELECTION RING ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
-
-	# === 2. RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(bow_angle)
@@ -804,6 +829,21 @@ func _draw() -> void:
 	var skin_highlight = Color(0.96, 0.82, 0.68)
 
 
+	# === SILVER ARROW FLASH (T2) ===
+	if _silver_flash > 0.0:
+		var sr_r = 30.0 + (1.0 - _silver_flash) * 60.0
+		draw_arc(Vector2.ZERO, sr_r, 0, TAU, 32, Color(0.85, 0.88, 0.95, _silver_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, sr_r * 0.6, 0, TAU, 24, Color(0.9, 0.92, 1.0, _silver_flash * 0.25), 2.0)
+		draw_circle(Vector2.ZERO, sr_r * 0.3, Color(0.85, 0.88, 0.95, _silver_flash * 0.1))
+
+	# === GOLD ARROW FLASH (T4) ===
+	if _gold_flash > 0.0:
+		for gi in range(3):
+			var gr = 20.0 + (1.0 - _gold_flash) * (50.0 + float(gi) * 30.0)
+			var ga = _gold_flash * (0.5 - float(gi) * 0.12)
+			draw_arc(Vector2.ZERO, gr, 0, TAU, 32, Color(1.0, 0.85, 0.3, ga), 2.5)
+		draw_circle(Vector2.ZERO, 15.0 * _gold_flash, Color(1.0, 0.95, 0.5, _gold_flash * 0.15))
+
 	# === 7. UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:
 		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.3, 0.7, 0.2, _upgrade_flash * 0.25))
@@ -822,6 +862,12 @@ func _draw() -> void:
 			var h_inner = Vector2.from_angle(ha) * (horn_ring_r * 0.5)
 			var h_outer = Vector2.from_angle(ha) * (horn_ring_r + 5.0)
 			draw_line(h_inner, h_outer, Color(1.0, 0.92, 0.4, _horn_flash * 0.4), 1.5)
+
+	# === HORN VOLLEY READY GLOW (T3) ===
+	if upgrade_tier >= 3 and _horn_flash <= 0.0 and _sky_arrows_active.size() == 0:
+		var ready_pulse = (sin(_time * 2.5) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 38.0 + ready_pulse * 4.0, 0, TAU, 32, Color(0.2, 0.8, 0.2, 0.08 + ready_pulse * 0.06), 2.0)
+		draw_circle(Vector2.ZERO, 34.0, Color(0.2, 0.8, 0.2, 0.03 + ready_pulse * 0.02))
 
 	# === SKY ARROWS VISUAL ===
 	for sky_arrow in _sky_arrows_active:
@@ -854,11 +900,48 @@ func _draw() -> void:
 			draw_circle(mpos, 5.0, Color(0.2, 0.5, 0.15, _merry_men_flash * 0.5))
 			draw_circle(mpos, 3.0, Color(0.3, 0.6, 0.2, _merry_men_flash * 0.7))
 
+	# Ability 4: Friar Tuck's Blessing — green healing glow
+	if _friar_tuck_flash > 0.0:
+		var ft_pulse = clampf(sin(_time * 6.0) * 0.5 + 0.5, 0.0, 1.0)
+		var ft_r = 25.0 + (1.0 - _friar_tuck_flash) * 30.0
+		draw_circle(Vector2.ZERO, ft_r, Color(0.2, 0.9, 0.3, _friar_tuck_flash * 0.12))
+		draw_arc(Vector2.ZERO, ft_r, 0, TAU, 24, Color(0.2, 0.9, 0.3, _friar_tuck_flash * (0.3 + ft_pulse * 0.15)), 2.5)
+		draw_arc(Vector2.ZERO, ft_r * 0.6, 0, TAU, 16, Color(0.3, 1.0, 0.4, _friar_tuck_flash * 0.2), 1.5)
+
 	# Ability 5: Little John's Staff flash
 	if _little_john_flash > 0.0:
 		var lj_r = 30.0 + (1.0 - _little_john_flash) * 50.0
 		draw_arc(Vector2.ZERO, lj_r, 0, TAU, 24, Color(0.6, 0.4, 0.2, _little_john_flash * 0.4), 3.0)
 		draw_arc(Vector2.ZERO, lj_r * 0.6, 0, TAU, 16, Color(0.5, 0.35, 0.15, _little_john_flash * 0.3), 2.0)
+
+	# Ability 6: Outlaw's Snare — brown rope trap on the ground
+	if _outlaw_snare_flash > 0.0:
+		var sn_a = _outlaw_snare_flash * 0.8
+		var sn_pos = _outlaw_snare_pos
+		draw_circle(sn_pos, 12.0, Color(0.45, 0.30, 0.12, sn_a * 0.25))
+		draw_arc(sn_pos, 12.0, 0, TAU, 16, Color(0.55, 0.35, 0.15, sn_a * 0.6), 2.0)
+		# Cross-hatched rope net
+		for ni in range(4):
+			var na = TAU * float(ni) / 4.0
+			var np1 = sn_pos + Vector2.from_angle(na) * 10.0
+			var np2 = sn_pos + Vector2.from_angle(na + PI) * 10.0
+			draw_line(np1, np2, Color(0.50, 0.32, 0.14, sn_a * 0.5), 1.5)
+		# Outer ring knots
+		for ki in range(6):
+			var ka = TAU * float(ki) / 6.0
+			var kp = sn_pos + Vector2.from_angle(ka) * 11.0
+			draw_circle(kp, 2.0, Color(0.50, 0.32, 0.14, sn_a * 0.5))
+
+	# Ability 7: Maid Marian's Arrow — green healing glow
+	if _maid_marian_flash > 0.0:
+		var mm_pulse = clampf(sin(_time * 5.0) * 0.5 + 0.5, 0.0, 1.0)
+		var mm_r = 20.0 + (1.0 - _maid_marian_flash) * 25.0
+		draw_circle(Vector2.ZERO, mm_r, Color(0.3, 0.95, 0.4, _maid_marian_flash * 0.1))
+		draw_arc(Vector2.ZERO, mm_r, 0, TAU, 24, Color(0.3, 0.95, 0.4, _maid_marian_flash * (0.25 + mm_pulse * 0.15)), 2.0)
+		# Small cross/plus for healing indicator
+		var cx = Vector2.ZERO
+		draw_line(cx + Vector2(-5, 0), cx + Vector2(5, 0), Color(0.3, 1.0, 0.4, _maid_marian_flash * 0.5), 2.0)
+		draw_line(cx + Vector2(0, -5), cx + Vector2(0, 5), Color(0.3, 1.0, 0.4, _maid_marian_flash * 0.5), 2.0)
 
 	# Ability 8: Golden Arrow flash
 	if _golden_arrow_flash > 0.0:

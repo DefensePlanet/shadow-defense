@@ -1,7 +1,7 @@
 extends Node2D
 ## Tarzan — bomb-style tower. Slow but devastating AoE attacks, vine swing smash, ape allies.
 ## Tier 1: Vine Swing — AoE ground pound smash (swing on vine, Donkey Kong double fist)
-## Tier 2: Ape Strength — +5% damage boost
+## Tier 2: Ape Strength — +6% damage boost
 ## Tier 3: Animal Call — call 1 ape ally for 15s every other wave
 ## Tier 4: King of the Apes — 3 more apes join, throw enemies back to start
 
@@ -53,12 +53,12 @@ const PROG_ABILITY_NAMES = [
 ]
 const PROG_ABILITY_DESCS = [
 	"Melee hits 20% harder, +10% attack speed",
-	"15% chance to dodge incoming damage",
+	"15% chance on attack to gain +30% attack speed for 5s",
 	"Vine attacks pull enemies closer by 30px",
 	"Every 15s, charge forward dealing 4x to nearest",
 	"Animal allies deal 50% more and last 2s longer",
 	"Reveals hidden enemies, +25% range",
-	"Every 20s, war cry stuns all enemies on screen for 1s",
+	"Every 20s, war cry stuns nearby enemies for 1s",
 	"Every 25s, golden vine strike hits all in range for 6x",
 	"Permanent 3 animal allies, double passive aura damage"
 ]
@@ -67,6 +67,15 @@ var prog_abilities: Array = [false, false, false, false, false, false, false, fa
 var _tantor_charge_timer: float = 15.0
 var _mangani_cry_timer: float = 20.0
 var _opar_strike_timer: float = 25.0
+# Ape Agility (prog ability 2) — attack speed buff
+var _ape_agility_timer: float = 0.0
+var _ape_agility_active: bool = false
+# Predator Sense (prog ability 6) — camo reveal tracking
+var _predator_sense_revealed: Array = []
+# Tantor's Charge visual dash
+var _tantor_dash_from: Vector2 = Vector2.ZERO
+var _tantor_dash_to: Vector2 = Vector2.ZERO
+var _tantor_dash_flash: float = 0.0
 # Visual flash timers
 var _tantor_flash: float = 0.0
 var _mangani_flash: float = 0.0
@@ -86,15 +95,13 @@ const TIER_NAMES = [
 ]
 const ABILITY_DESCRIPTIONS = [
 	"Vine swing AoE smash — powerful ground pound",
-	"Ape strength — +5% damage boost",
+	"Ape strength — +6% damage boost",
 	"Call an ape ally for 15s every other wave",
 	"3 more apes join — throw enemies back to start"
 ]
 const TIER_COSTS = [80, 175, 300, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
-
-var vine_swing_scene = preload("res://scenes/vine_swing.tscn")
 
 # Attack sounds — primal impact thud + grunt
 var _attack_sounds: Array = []
@@ -322,6 +329,11 @@ func _attack() -> void:
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
 
+	# Prog ability 2: Ape Agility — 15% chance to gain +30% attack speed for 5s
+	if prog_abilities[1] and not _ape_agility_active and randf() < 0.15:
+		_ape_agility_active = true
+		_ape_agility_timer = 5.0
+
 	# Tier 1+: Vine Swing AoE smash
 	if upgrade_tier >= 1:
 		_start_vine_swing()
@@ -355,19 +367,6 @@ func _melee_hit(t: Node2D) -> void:
 	if prog_abilities[2] and is_instance_valid(t):
 		var pull_dir = t.global_position.direction_to(global_position)
 		t.global_position += pull_dir * 30.0
-
-func _fire_vine_swing(t: Node2D) -> void:
-	var vine = vine_swing_scene.instantiate()
-	vine.global_position = global_position + Vector2.from_angle(aim_angle) * 16.0
-	vine.damage = damage * _damage_mult()
-	if prog_abilities[0]:
-		vine.damage *= 1.2
-	vine.target = t
-	vine.gold_bonus = int(gold_bonus * _gold_mult())
-	vine.source_tower = self
-	vine.knockback = false
-	vine.pull_closer = prog_abilities[2]
-	get_tree().get_first_node_in_group("main").add_child(vine)
 
 # === VINE SWING AoE SYSTEM ===
 
@@ -449,7 +448,7 @@ func _spawn_ape_allies() -> void:
 			"timer": ally_duration,
 			"attack_cd": 0.5,
 			"type": 0,
-			"throwback": has_throwback and i > 0,
+			"throwback": has_throwback,
 			"pos": global_position + spawn_offset,
 			"target_pos": global_position + spawn_offset,
 			"punch_anim": 0.0,
@@ -515,7 +514,7 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 49.0
 			fire_rate = 0.5
 			attack_range = 130.0
-		2: # Ape Strength — +5% damage boost
+		2: # Ape Strength — +6% damage boost
 			damage = 52.0
 			fire_rate = 0.5
 			attack_range = 140.0
@@ -734,7 +733,7 @@ func activate_progressive_ability(index: int) -> void:
 	_apply_progressive_stats()
 
 func _apply_progressive_stats() -> void:
-	# Applied dynamically in _melee_hit and _fire_vine_swing
+	# Applied dynamically in _melee_hit, _speed_mult, _range_mult, and _process_progressive_abilities
 	pass
 
 func get_progressive_ability_name(index: int) -> String:
@@ -752,12 +751,40 @@ func register_damage(amount: float) -> void:
 	var main = get_tree().get_first_node_in_group("main")
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.TARZAN, amount)
+	_check_upgrades()
 
 func _process_progressive_abilities(delta: float) -> void:
 	# Visual flash decay
 	_tantor_flash = max(_tantor_flash - delta * 2.0, 0.0)
 	_mangani_flash = max(_mangani_flash - delta * 2.0, 0.0)
 	_opar_flash = max(_opar_flash - delta * 1.5, 0.0)
+	_tantor_dash_flash = max(_tantor_dash_flash - delta * 2.0, 0.0)
+
+	# Ability 2: Ape Agility — attack speed buff timer
+	if _ape_agility_active:
+		_ape_agility_timer -= delta
+		if _ape_agility_timer <= 0.0:
+			_ape_agility_active = false
+			_ape_agility_timer = 0.0
+
+	# Ability 6: Predator Sense — reveal shadow-infested enemies in range
+	if prog_abilities[5]:
+		var sense_range = attack_range * _range_mult()
+		# Clean up enemies that left range or are no longer valid
+		var still_revealed: Array = []
+		for e in _predator_sense_revealed:
+			if is_instance_valid(e) and global_position.distance_to(e.global_position) < sense_range:
+				still_revealed.append(e)
+			elif is_instance_valid(e):
+				# Re-apply shadow infested when leaving range
+				e.is_shadow_infested = true
+		_predator_sense_revealed = still_revealed
+		# Reveal new shadow-infested enemies entering range
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if is_instance_valid(e) and "is_shadow_infested" in e and e.is_shadow_infested:
+				if global_position.distance_to(e.global_position) < sense_range:
+					e.is_shadow_infested = false
+					_predator_sense_revealed.append(e)
 
 	# Ability 4: Tantor's Charge — periodic charge attack
 	if prog_abilities[3]:
@@ -791,14 +818,14 @@ func _process_progressive_abilities(delta: float) -> void:
 				"angle": ally_angle,
 				"attack_cd": 0.8
 			})
-		# Permanent allies attack
+		# Permanent allies attack — aura damage doubled (2x) per description
 		for ally in _legend_allies:
 			ally["attack_cd"] -= delta
 			ally["angle"] += delta * 1.0
 			if ally["attack_cd"] <= 0.0:
 				var nearest = _find_nearest_enemy()
 				if nearest and nearest.has_method("take_damage"):
-					var dmg = damage * 0.5 * _damage_mult()
+					var dmg = damage * 1.0 * _damage_mult()  # 0.5 base * 2.0 aura doubling
 					nearest.take_damage(dmg)
 					register_damage(dmg)
 				ally["attack_cd"] = 1.0
@@ -807,17 +834,25 @@ func _tantor_charge() -> void:
 	_tantor_flash = 1.0
 	var nearest = _find_nearest_enemy()
 	if nearest and nearest.has_method("take_damage"):
+		# Store dash positions for visual trail
+		_tantor_dash_from = Vector2.ZERO  # Local coords (tower center)
+		_tantor_dash_to = nearest.global_position - global_position
+		_tantor_dash_flash = 1.0
 		var dmg = damage * 4.0 * _damage_mult()
 		nearest.take_damage(dmg)
 		register_damage(dmg)
+		if nearest.has_method("apply_sleep"):
+			nearest.apply_sleep(1.5)
 
 func _mangani_war_cry() -> void:
 	_mangani_flash = 1.0
 	if _yell_player and not _is_sfx_muted():
 		_yell_player.play()
+	var cry_range = attack_range * _range_mult() * 2.5
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if e.has_method("apply_sleep"):
-			e.apply_sleep(1.0)
+		if global_position.distance_to(e.global_position) < cry_range:
+			if e.has_method("apply_sleep"):
+				e.apply_sleep(1.0)
 
 func _opar_strike() -> void:
 	_opar_flash = 1.0
@@ -830,15 +865,19 @@ func _opar_strike() -> void:
 				register_damage(dmg)
 
 func _draw() -> void:
-	# === 1. SELECTION RING ===
+	# === 1. SELECTION RING + RANGE ===
+	var eff_range = attack_range * _range_mult()
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
+		# Full range circle when selected
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
-
-	# === 2. RANGE ARC ===
-	draw_arc(Vector2.ZERO, attack_range * _range_mult(), 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	else:
+		# === 2. RANGE ARC (subtle) ===
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -888,24 +927,34 @@ func _draw() -> void:
 
 	# === SMASH FLASH (vine swing ground pound impact) ===
 	if _smash_flash > 0.0:
-		# Expanding shockwave ring
-		var sw_r = 20.0 + (1.0 - _smash_flash) * 80.0
-		draw_arc(Vector2.ZERO, sw_r, 0, TAU, 48, Color(0.85, 0.65, 0.2, _smash_flash * 0.5), 3.5)
-		draw_arc(Vector2.ZERO, sw_r * 0.7, 0, TAU, 32, Color(1.0, 0.85, 0.3, _smash_flash * 0.3), 2.0)
-		# Radial crack lines
-		for ci in range(12):
-			var ca = TAU * float(ci) / 12.0 + _smash_flash * 2.0
-			var c_inner = Vector2.from_angle(ca) * 8.0
-			var c_outer = Vector2.from_angle(ca) * (sw_r * 0.9)
-			draw_line(c_inner, c_outer, Color(0.6, 0.4, 0.15, _smash_flash * 0.35), 2.0)
+		# Expanding shockwave ring — 25% larger radius
+		var sw_r = 25.0 + (1.0 - _smash_flash) * 100.0
+		draw_arc(Vector2.ZERO, sw_r, 0, TAU, 48, Color(0.85, 0.65, 0.2, _smash_flash * 0.5), 4.0)
+		draw_arc(Vector2.ZERO, sw_r * 0.7, 0, TAU, 32, Color(1.0, 0.85, 0.3, _smash_flash * 0.3), 2.5)
+		draw_arc(Vector2.ZERO, sw_r * 0.4, 0, TAU, 24, Color(1.0, 0.9, 0.4, _smash_flash * 0.2), 1.5)
+		# Radial crack lines — more detail with forking
+		for ci in range(16):
+			var ca = TAU * float(ci) / 16.0 + _smash_flash * 2.0
+			var c_inner = Vector2.from_angle(ca) * 6.0
+			var c_outer = Vector2.from_angle(ca) * (sw_r * 0.95)
+			draw_line(c_inner, c_outer, Color(0.6, 0.4, 0.15, _smash_flash * 0.4), 2.5)
+			# Fork branches on every other crack line
+			if ci % 2 == 0:
+				var fork_pt = Vector2.from_angle(ca) * (sw_r * 0.55)
+				var fork_a1 = ca + 0.25
+				var fork_a2 = ca - 0.25
+				var fork_end1 = fork_pt + Vector2.from_angle(fork_a1) * (sw_r * 0.35)
+				var fork_end2 = fork_pt + Vector2.from_angle(fork_a2) * (sw_r * 0.3)
+				draw_line(fork_pt, fork_end1, Color(0.55, 0.35, 0.12, _smash_flash * 0.3), 1.5)
+				draw_line(fork_pt, fork_end2, Color(0.55, 0.35, 0.12, _smash_flash * 0.25), 1.2)
 		# Dust cloud particles
-		for di in range(8):
-			var da = TAU * float(di) / 8.0 + _time * 1.5
+		for di in range(10):
+			var da = TAU * float(di) / 10.0 + _time * 1.5
 			var d_r = sw_r * (0.3 + sin(_time * 4.0 + float(di)) * 0.2)
 			var dp = Vector2.from_angle(da) * d_r
-			draw_circle(dp, 4.0 + _smash_flash * 3.0, Color(0.55, 0.42, 0.25, _smash_flash * 0.2))
-		# Ground impact flash
-		draw_circle(Vector2.ZERO, 15.0 * _smash_flash, Color(1.0, 0.9, 0.5, _smash_flash * 0.3))
+			draw_circle(dp, 5.0 + _smash_flash * 4.0, Color(0.55, 0.42, 0.25, _smash_flash * 0.25))
+		# Ground impact flash — larger
+		draw_circle(Vector2.ZERO, 20.0 * _smash_flash, Color(1.0, 0.9, 0.5, _smash_flash * 0.35))
 
 	# === VINE SWING ANIMATION (tier 1+) ===
 	if _vine_swing_active and upgrade_tier >= 1:
@@ -939,11 +988,65 @@ func _draw() -> void:
 			draw_circle(fist_y + Vector2(4, 0), 4.0, Color(0.78, 0.56, 0.36, 0.7))
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
+
+	# Ability 2: Ape Agility active indicator (green speed lines)
+	if _ape_agility_active:
+		var agility_pulse = sin(_time * 6.0) * 0.15 + 0.35
+		for ai in range(4):
+			var aa = _time * 3.0 + float(ai) * TAU / 4.0
+			var a_start = Vector2.from_angle(aa) * 18.0
+			var a_end = Vector2.from_angle(aa) * 28.0
+			draw_line(a_start, a_end, Color(0.2, 0.8, 0.3, agility_pulse), 2.0)
+
 	# Ability 4: Tantor's Charge flash
 	if _tantor_flash > 0.0:
 		var tc_r = 25.0 + (1.0 - _tantor_flash) * 60.0
 		draw_arc(Vector2.ZERO, tc_r, 0, TAU, 24, Color(0.5, 0.4, 0.3, _tantor_flash * 0.4), 3.5)
 		draw_arc(Vector2.ZERO, tc_r * 0.6, 0, TAU, 16, Color(0.6, 0.5, 0.3, _tantor_flash * 0.3), 2.5)
+
+	# Ability 4: Tantor's Charge — visual dash trail with dust clouds
+	if _tantor_dash_flash > 0.0:
+		var dash_alpha = _tantor_dash_flash * 0.5
+		var dash_dir = (_tantor_dash_to - _tantor_dash_from)
+		var dash_len = dash_dir.length()
+		if dash_len > 1.0:
+			var dash_norm = dash_dir / dash_len
+			var dash_perp = dash_norm.rotated(PI / 2.0)
+			# Main charge line (thick brown trail)
+			draw_line(_tantor_dash_from, _tantor_dash_to, Color(0.6, 0.4, 0.2, dash_alpha), 4.0)
+			draw_line(_tantor_dash_from, _tantor_dash_to, Color(0.8, 0.6, 0.3, dash_alpha * 0.6), 2.0)
+			# Speed lines flanking the trail
+			for si in range(3):
+				var sl_t = 0.2 + float(si) * 0.3
+				var sl_pos = _tantor_dash_from.lerp(_tantor_dash_to, sl_t)
+				var sl_off = dash_perp * (8.0 + float(si) * 3.0)
+				draw_line(sl_pos + sl_off, sl_pos + sl_off - dash_norm * 12.0, Color(0.7, 0.5, 0.25, dash_alpha * 0.4), 1.5)
+				draw_line(sl_pos - sl_off, sl_pos - sl_off - dash_norm * 12.0, Color(0.7, 0.5, 0.25, dash_alpha * 0.4), 1.5)
+			# Dust clouds along the trail
+			for di in range(5):
+				var dt = float(di) / 4.0
+				var dp = _tantor_dash_from.lerp(_tantor_dash_to, dt)
+				var dust_off_x = sin(_time * 4.0 + float(di) * 2.1) * 6.0
+				var dust_off_y = cos(_time * 3.5 + float(di) * 1.7) * 4.0
+				var dust_pos = dp + Vector2(dust_off_x, dust_off_y)
+				var dust_size = 4.0 + (1.0 - _tantor_dash_flash) * 6.0
+				draw_circle(dust_pos, dust_size, Color(0.55, 0.42, 0.25, dash_alpha * 0.35))
+				draw_circle(dust_pos, dust_size * 0.6, Color(0.65, 0.52, 0.30, dash_alpha * 0.2))
+			# Impact circle at target
+			var impact_r = 12.0 + (1.0 - _tantor_dash_flash) * 20.0
+			draw_arc(_tantor_dash_to, impact_r, 0, TAU, 16, Color(0.6, 0.4, 0.2, dash_alpha * 0.6), 3.0)
+
+	# Ability 6: Predator Sense — subtle pulse showing detection range
+	if prog_abilities[5]:
+		var sense_pulse = sin(_time * 2.0) * 0.03 + 0.05
+		var sense_r = attack_range * _range_mult()
+		draw_arc(Vector2.ZERO, sense_r, 0, TAU, 32, Color(0.9, 0.3, 0.1, sense_pulse), 1.5)
+		# Eye icons on revealed enemies direction
+		for re in _predator_sense_revealed:
+			if is_instance_valid(re):
+				var re_dir = (re.global_position - global_position).normalized()
+				var re_pos = re_dir * 20.0
+				draw_circle(re_pos, 2.0, Color(0.9, 0.3, 0.1, 0.4 + sin(_time * 4.0) * 0.15))
 
 	# Ability 7: Mangani War Cry flash
 	if _mangani_flash > 0.0:
@@ -1009,7 +1112,7 @@ func _draw() -> void:
 		draw_circle(pip_pos, 4.0, pip_col)
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
-	# === 10. APE ALLIES (big gorillas that run to enemies and punch) ===
+	# === 10. APE ALLIES (BUFF GORILLAS — massive muscular silverbacks) ===
 	var OL = Color(0.06, 0.06, 0.08)
 	for ally in _animal_allies:
 		var ally_world: Vector2 = ally["pos"]
@@ -1017,112 +1120,277 @@ func _draw() -> void:
 		var is_king_ape = ally.get("throwback", false)
 		var facing: float = ally.get("facing", 1.0)
 		var punch: float = ally.get("punch_anim", 0.0)
-		var ape_scale = 1.4 if is_king_ape else 1.0
-		# Big gorilla — body radius ~10, comparable to Peter's croc
-		var body_w = 10.0 * ape_scale
-		var body_h = 12.0 * ape_scale
-		var head_sz = 7.0 * ape_scale
-		# Walking bob animation
-		var walk_cycle = sin(_time * 6.0 + ally["angle"] * 3.0)
-		var bob_y = abs(walk_cycle) * 2.0
+		var ape_scale = 1.6 if is_king_ape else 1.25
+		# BUFF gorilla — massive wide frame
+		var body_w = 13.0 * ape_scale
+		var body_h = 15.0 * ape_scale
+		var head_sz = 8.0 * ape_scale
+		# Walking bob animation — heavy stomp
+		var walk_cycle = sin(_time * 5.0 + ally["angle"] * 3.0)
+		var bob_y = abs(walk_cycle) * 3.0
 		var ap = ally_pos + Vector2(0, -bob_y)
-		# Golden glow for tier 4 throwback apes
+		# Muscle flex animation
+		var flex = sin(_time * 2.5 + ally["angle"]) * 0.15 + 0.85
+		# Ground dust cloud when stomping
+		if abs(walk_cycle) > 0.9:
+			for dci in range(3):
+				var dust_off = Vector2((randf() - 0.5) * 12.0 * ape_scale, body_h * 0.6 + 2.0)
+				var dust_a = (abs(walk_cycle) - 0.9) * 5.0
+				draw_circle(ap + dust_off, 3.0 * ape_scale, Color(0.5, 0.4, 0.25, dust_a * 0.2))
+		# Golden glow for tier 4 throwback apes — more intense
 		if is_king_ape:
-			draw_circle(ap, body_w + 6.0, Color(0.85, 0.72, 0.25, 0.12 + sin(_time * 3.0) * 0.05))
-		# Punch impact flash
+			draw_circle(ap, body_w + 10.0, Color(0.85, 0.72, 0.25, 0.15 + sin(_time * 3.0) * 0.08))
+			draw_circle(ap, body_w + 6.0, Color(1.0, 0.85, 0.3, 0.08 + sin(_time * 4.5) * 0.04))
+		# Punch impact flash — bigger, with shockwave
 		if punch > 0.5:
 			var flash_dir = Vector2.from_angle(ally.get("punch_dir", 0.0))
-			var flash_pos = ap + flash_dir * (body_w + 8.0)
+			var flash_pos = ap + flash_dir * (body_w + 10.0)
 			var flash_a = (punch - 0.5) * 2.0
+			draw_circle(flash_pos, 14.0 * flash_a, Color(1.0, 0.85, 0.2, flash_a * 0.3))
 			draw_circle(flash_pos, 8.0 * flash_a, Color(1.0, 0.9, 0.3, flash_a * 0.5))
-			draw_circle(flash_pos, 4.0 * flash_a, Color(1.0, 1.0, 0.8, flash_a * 0.3))
-		# === Legs (thick, short, stomping) ===
-		var leg_stride = walk_cycle * 4.0 * ape_scale
-		var l_foot = ap + Vector2(-4.0 * facing, body_h * 0.6 + leg_stride)
-		var r_foot = ap + Vector2(4.0 * facing, body_h * 0.6 - leg_stride)
-		var l_hip = ap + Vector2(-3.0 * facing, body_h * 0.15)
-		var r_hip = ap + Vector2(3.0 * facing, body_h * 0.15)
-		draw_line(l_hip, l_foot, OL, 5.0 * ape_scale)
-		draw_line(l_hip, l_foot, Color(0.30, 0.18, 0.08), 3.5 * ape_scale)
-		draw_line(r_hip, r_foot, OL, 5.0 * ape_scale)
-		draw_line(r_hip, r_foot, Color(0.30, 0.18, 0.08), 3.5 * ape_scale)
-		# Feet
-		draw_circle(l_foot, 2.5 * ape_scale, OL)
-		draw_circle(l_foot, 1.8 * ape_scale, Color(0.25, 0.15, 0.06))
-		draw_circle(r_foot, 2.5 * ape_scale, OL)
-		draw_circle(r_foot, 1.8 * ape_scale, Color(0.25, 0.15, 0.06))
-		# === Body (hunched, wide torso) ===
-		# Outline
-		draw_circle(ap, body_w + 1.5, OL)
-		# Main torso
-		draw_circle(ap, body_w, Color(0.35, 0.22, 0.10))
-		# Chest/belly lighter area
-		draw_circle(ap + Vector2(0, 1.0), body_w * 0.6, Color(0.45, 0.30, 0.16))
-		# Shoulder hump (gorilla's distinctive feature)
-		draw_circle(ap + Vector2(0, -body_w * 0.4), body_w * 0.7, OL)
-		draw_circle(ap + Vector2(0, -body_w * 0.4), body_w * 0.55, Color(0.38, 0.24, 0.12))
-		# === Arms (thick, long, ground-dragging) ===
-		var arm_swing_idle = sin(_time * 3.0 + ally["angle"] * 2.0) * 5.0 * ape_scale
-		# Punch arm extends toward enemy on punch
-		var ape_punch_ext = punch * 12.0 * ape_scale
+			draw_circle(flash_pos, 4.0 * flash_a, Color(1.0, 1.0, 0.8, flash_a * 0.4))
+			# Shockwave ring
+			var ring_r = 12.0 + (1.0 - flash_a) * 20.0
+			draw_arc(flash_pos, ring_r, 0, TAU, 16, Color(1.0, 0.9, 0.4, flash_a * 0.3), 2.0)
+		# === Legs (thick, muscular, powerful) ===
+		var leg_stride = walk_cycle * 5.0 * ape_scale
+		var l_foot = ap + Vector2(-5.0 * facing, body_h * 0.55 + leg_stride)
+		var r_foot = ap + Vector2(5.0 * facing, body_h * 0.55 - leg_stride)
+		var l_hip = ap + Vector2(-4.0 * facing, body_h * 0.1)
+		var r_hip = ap + Vector2(4.0 * facing, body_h * 0.1)
+		var l_knee = l_hip.lerp(l_foot, 0.5) + Vector2(-2.0 * facing, -1.0)
+		var r_knee = r_hip.lerp(r_foot, 0.5) + Vector2(2.0 * facing, -1.0)
+		# Thick thighs
+		draw_line(l_hip, l_knee, OL, 7.0 * ape_scale)
+		draw_line(l_hip, l_knee, Color(0.30, 0.18, 0.08), 5.5 * ape_scale)
+		draw_line(l_knee, l_foot, OL, 6.0 * ape_scale)
+		draw_line(l_knee, l_foot, Color(0.28, 0.16, 0.07), 4.5 * ape_scale)
+		draw_line(r_hip, r_knee, OL, 7.0 * ape_scale)
+		draw_line(r_hip, r_knee, Color(0.30, 0.18, 0.08), 5.5 * ape_scale)
+		draw_line(r_knee, r_foot, OL, 6.0 * ape_scale)
+		draw_line(r_knee, r_foot, Color(0.28, 0.16, 0.07), 4.5 * ape_scale)
+		# Quad muscle bulge
+		draw_circle(l_hip.lerp(l_knee, 0.4) + Vector2(-1.0, 0), 3.5 * ape_scale, Color(0.34, 0.21, 0.10, 0.5))
+		draw_circle(r_hip.lerp(r_knee, 0.4) + Vector2(1.0, 0), 3.5 * ape_scale, Color(0.34, 0.21, 0.10, 0.5))
+		# Big feet — flat, wide, knuckle-walking
+		draw_circle(l_foot, 3.5 * ape_scale, OL)
+		draw_circle(l_foot, 2.5 * ape_scale, Color(0.22, 0.13, 0.05))
+		draw_circle(r_foot, 3.5 * ape_scale, OL)
+		draw_circle(r_foot, 2.5 * ape_scale, Color(0.22, 0.13, 0.05))
+		# Toe knuckles
+		for ti in range(3):
+			var toe_off = Vector2((-1.0 + float(ti)) * 2.0 * ape_scale, 2.0 * ape_scale)
+			draw_circle(l_foot + toe_off, 1.2 * ape_scale, Color(0.20, 0.12, 0.05))
+			draw_circle(r_foot + toe_off, 1.2 * ape_scale, Color(0.20, 0.12, 0.05))
+		# === Body (massive V-taper, wide shoulders tapering to waist) ===
+		# Outline — wider at top
+		var torso_top = ap + Vector2(0, -body_w * 0.35)
+		var torso_bot = ap + Vector2(0, body_h * 0.1)
+		# Wide back/lats shape (trapezoid)
+		var back_pts = PackedVector2Array([
+			ap + Vector2(-body_w * 1.1, -body_w * 0.4),
+			ap + Vector2(body_w * 1.1, -body_w * 0.4),
+			ap + Vector2(body_w * 0.7, body_h * 0.15),
+			ap + Vector2(-body_w * 0.7, body_h * 0.15),
+		])
+		draw_colored_polygon(back_pts, OL)
+		var back_inner = PackedVector2Array([
+			ap + Vector2(-body_w * 0.95, -body_w * 0.35),
+			ap + Vector2(body_w * 0.95, -body_w * 0.35),
+			ap + Vector2(body_w * 0.6, body_h * 0.1),
+			ap + Vector2(-body_w * 0.6, body_h * 0.1),
+		])
+		draw_colored_polygon(back_inner, Color(0.35, 0.22, 0.10))
+		# Massive pectoral muscles
+		var pec_size = body_w * 0.45 * flex
+		draw_circle(ap + Vector2(-body_w * 0.25, -body_w * 0.1), pec_size + 1.0, OL)
+		draw_circle(ap + Vector2(-body_w * 0.25, -body_w * 0.1), pec_size, Color(0.38, 0.24, 0.12))
+		draw_circle(ap + Vector2(body_w * 0.25, -body_w * 0.1), pec_size + 1.0, OL)
+		draw_circle(ap + Vector2(body_w * 0.25, -body_w * 0.1), pec_size, Color(0.38, 0.24, 0.12))
+		# Center chest line
+		draw_line(ap + Vector2(0, -body_w * 0.3), ap + Vector2(0, body_h * 0.05), Color(0.25, 0.14, 0.06, 0.6), 1.5)
+		# Abs definition (6-pack lines)
+		for abi in range(3):
+			var ab_y = ap.y + float(abi) * 3.5 * ape_scale - 2.0
+			draw_line(Vector2(ap.x - body_w * 0.25, ab_y), Vector2(ap.x + body_w * 0.25, ab_y), Color(0.28, 0.16, 0.07, 0.35), 1.0 * ape_scale)
+		# Belly lighter area
+		draw_circle(ap + Vector2(0, 2.0), body_w * 0.45, Color(0.42, 0.28, 0.14))
+		# Massive silverback shoulder hump — THE defining feature
+		var hump_w = body_w * 0.9
+		var hump_h = body_w * 0.65
+		draw_circle(ap + Vector2(0, -body_w * 0.5), hump_w + 1.5, OL)
+		draw_circle(ap + Vector2(0, -body_w * 0.5), hump_w, Color(0.40, 0.26, 0.14))
+		# Silver streak on back (silverback marking)
+		if is_king_ape:
+			draw_circle(ap + Vector2(0, -body_w * 0.45), hump_w * 0.7, Color(0.60, 0.55, 0.50, 0.35))
+			draw_circle(ap + Vector2(0, -body_w * 0.55), hump_w * 0.5, Color(0.65, 0.60, 0.55, 0.25))
+		# Trapezius muscles rising to neck
+		draw_line(ap + Vector2(-body_w * 0.4, -body_w * 0.5), ap + Vector2(0, -body_w * 0.85), OL, 5.0 * ape_scale)
+		draw_line(ap + Vector2(-body_w * 0.4, -body_w * 0.5), ap + Vector2(0, -body_w * 0.85), Color(0.36, 0.23, 0.11), 3.5 * ape_scale)
+		draw_line(ap + Vector2(body_w * 0.4, -body_w * 0.5), ap + Vector2(0, -body_w * 0.85), OL, 5.0 * ape_scale)
+		draw_line(ap + Vector2(body_w * 0.4, -body_w * 0.5), ap + Vector2(0, -body_w * 0.85), Color(0.36, 0.23, 0.11), 3.5 * ape_scale)
+		# === Arms (MASSIVE, veiny, ground-dragging like a real gorilla) ===
+		var arm_swing_idle = sin(_time * 3.0 + ally["angle"] * 2.0) * 6.0 * ape_scale
+		var ape_punch_ext = punch * 16.0 * ape_scale
 		var punch_angle: float = ally.get("punch_dir", 0.0)
 		var punch_offset = Vector2.from_angle(punch_angle) * ape_punch_ext if punch > 0.0 else Vector2.ZERO
-		# Left arm
-		var l_shoulder = ap + Vector2(-body_w * 0.8, -body_w * 0.2)
-		var l_hand = ap + Vector2(-body_w * 1.3 * facing, body_h * 0.3 + arm_swing_idle)
+		# Left arm — upper arm (bicep)
+		var l_shoulder = ap + Vector2(-body_w * 0.95, -body_w * 0.35)
+		var l_elbow = ap + Vector2(-body_w * 1.2 * facing, body_h * 0.0 + arm_swing_idle * 0.5)
+		var l_hand = ap + Vector2(-body_w * 1.5 * facing, body_h * 0.35 + arm_swing_idle)
 		if punch > 0.0 and facing < 0:
 			l_hand = l_shoulder + punch_offset
-		draw_line(l_shoulder, l_hand, OL, 5.5 * ape_scale)
-		draw_line(l_shoulder, l_hand, Color(0.35, 0.22, 0.10), 4.0 * ape_scale)
-		# Left fist
-		draw_circle(l_hand, 3.5 * ape_scale, OL)
-		draw_circle(l_hand, 2.5 * ape_scale, Color(0.30, 0.18, 0.08))
+			l_elbow = l_shoulder.lerp(l_hand, 0.5) + Vector2(0, -5.0 * ape_scale)
+		# Upper arm (thick bicep)
+		draw_line(l_shoulder, l_elbow, OL, 8.0 * ape_scale)
+		draw_line(l_shoulder, l_elbow, Color(0.35, 0.22, 0.10), 6.0 * ape_scale)
+		# Bicep bulge
+		var l_bicep = l_shoulder.lerp(l_elbow, 0.45) + Vector2(-1.5 * facing, -1.0)
+		draw_circle(l_bicep, 4.5 * ape_scale * flex, Color(0.38, 0.25, 0.12))
+		# Forearm
+		draw_line(l_elbow, l_hand, OL, 7.0 * ape_scale)
+		draw_line(l_elbow, l_hand, Color(0.32, 0.20, 0.09), 5.0 * ape_scale)
+		# Forearm muscle
+		draw_circle(l_elbow.lerp(l_hand, 0.3), 3.5 * ape_scale, Color(0.36, 0.23, 0.11, 0.6))
+		# Vein on bicep
+		var l_vein_a = l_shoulder.lerp(l_elbow, 0.2)
+		var l_vein_b = l_shoulder.lerp(l_elbow, 0.7)
+		draw_line(l_vein_a + Vector2(-1.0, -1.5), l_vein_b + Vector2(-0.5, 0), Color(0.28, 0.15, 0.08, 0.4), 1.0 * ape_scale)
+		# Left fist — HUGE knuckles
+		draw_circle(l_hand, 5.0 * ape_scale, OL)
+		draw_circle(l_hand, 3.8 * ape_scale, Color(0.28, 0.16, 0.07))
+		# Knuckle bumps
+		for ki in range(3):
+			var knuck = l_hand + Vector2((-1.0 + float(ki)) * 2.5, -2.0) * ape_scale
+			draw_circle(knuck, 1.5 * ape_scale, Color(0.25, 0.14, 0.06))
 		# Right arm
-		var r_shoulder = ap + Vector2(body_w * 0.8, -body_w * 0.2)
-		var r_hand = ap + Vector2(body_w * 1.3 * facing, body_h * 0.3 - arm_swing_idle)
+		var r_shoulder = ap + Vector2(body_w * 0.95, -body_w * 0.35)
+		var r_elbow = ap + Vector2(body_w * 1.2 * facing, body_h * 0.0 - arm_swing_idle * 0.5)
+		var r_hand = ap + Vector2(body_w * 1.5 * facing, body_h * 0.35 - arm_swing_idle)
 		if punch > 0.0 and facing >= 0:
 			r_hand = r_shoulder + punch_offset
-		draw_line(r_shoulder, r_hand, OL, 5.5 * ape_scale)
-		draw_line(r_shoulder, r_hand, Color(0.35, 0.22, 0.10), 4.0 * ape_scale)
-		# Right fist
-		draw_circle(r_hand, 3.5 * ape_scale, OL)
-		draw_circle(r_hand, 2.5 * ape_scale, Color(0.30, 0.18, 0.08))
-		# === Head (slightly forward, hunched gorilla posture) ===
-		var head_pos = ap + Vector2(3.0 * facing, -body_w * 0.85)
-		draw_circle(head_pos, head_sz + 1.2, OL)
+			r_elbow = r_shoulder.lerp(r_hand, 0.5) + Vector2(0, -5.0 * ape_scale)
+		# Upper arm
+		draw_line(r_shoulder, r_elbow, OL, 8.0 * ape_scale)
+		draw_line(r_shoulder, r_elbow, Color(0.35, 0.22, 0.10), 6.0 * ape_scale)
+		# Bicep bulge
+		var r_bicep = r_shoulder.lerp(r_elbow, 0.45) + Vector2(1.5 * facing, -1.0)
+		draw_circle(r_bicep, 4.5 * ape_scale * flex, Color(0.38, 0.25, 0.12))
+		# Forearm
+		draw_line(r_elbow, r_hand, OL, 7.0 * ape_scale)
+		draw_line(r_elbow, r_hand, Color(0.32, 0.20, 0.09), 5.0 * ape_scale)
+		# Forearm muscle
+		draw_circle(r_elbow.lerp(r_hand, 0.3), 3.5 * ape_scale, Color(0.36, 0.23, 0.11, 0.6))
+		# Vein on bicep
+		var r_vein_a = r_shoulder.lerp(r_elbow, 0.2)
+		var r_vein_b = r_shoulder.lerp(r_elbow, 0.7)
+		draw_line(r_vein_a + Vector2(1.0, -1.5), r_vein_b + Vector2(0.5, 0), Color(0.28, 0.15, 0.08, 0.4), 1.0 * ape_scale)
+		# Right fist — HUGE knuckles
+		draw_circle(r_hand, 5.0 * ape_scale, OL)
+		draw_circle(r_hand, 3.8 * ape_scale, Color(0.28, 0.16, 0.07))
+		for ki in range(3):
+			var knuck = r_hand + Vector2((-1.0 + float(ki)) * 2.5, -2.0) * ape_scale
+			draw_circle(knuck, 1.5 * ape_scale, Color(0.25, 0.14, 0.06))
+		# === Head (forward-jutting, aggressive gorilla posture) ===
+		var head_pos = ap + Vector2(4.0 * facing, -body_w * 0.9)
+		# Thick neck connecting to traps
+		draw_line(ap + Vector2(0, -body_w * 0.6), head_pos, OL, 7.0 * ape_scale)
+		draw_line(ap + Vector2(0, -body_w * 0.6), head_pos, Color(0.36, 0.23, 0.11), 5.0 * ape_scale)
+		draw_circle(head_pos, head_sz + 1.5, OL)
 		draw_circle(head_pos, head_sz, Color(0.38, 0.24, 0.12))
-		# Face plate (lighter)
-		draw_circle(head_pos + Vector2(1.5 * facing, 1.0), head_sz * 0.55, Color(0.50, 0.35, 0.20))
-		# Brow ridge
-		draw_line(head_pos + Vector2(-head_sz * 0.6, -head_sz * 0.3), head_pos + Vector2(head_sz * 0.6, -head_sz * 0.3), Color(0.30, 0.18, 0.08), 2.5 * ape_scale)
-		# Eyes (angry during punch)
-		var eye_col = Color(1.0, 0.3, 0.1) if punch > 0.3 else Color(0.95, 0.80, 0.25)
-		draw_circle(head_pos + Vector2(-2.5 * facing, -1.0), 2.0 * ape_scale, eye_col)
-		draw_circle(head_pos + Vector2(2.5 * facing, -1.0), 2.0 * ape_scale, eye_col)
-		draw_circle(head_pos + Vector2(-2.5 * facing, -1.0), 0.8 * ape_scale, OL)
-		draw_circle(head_pos + Vector2(2.5 * facing, -1.0), 0.8 * ape_scale, OL)
-		# Nostrils
-		draw_circle(head_pos + Vector2(-1.0 * facing, 2.0), 1.0, OL)
-		draw_circle(head_pos + Vector2(1.0 * facing, 2.0), 1.0, OL)
-		# Mouth (open during punch = roar)
+		# Sagittal crest (ridge on top of skull — sign of massive jaw muscles)
+		draw_line(head_pos + Vector2(-head_sz * 0.3, -head_sz * 0.8), head_pos + Vector2(head_sz * 0.3, -head_sz * 0.8), OL, 3.5 * ape_scale)
+		draw_line(head_pos + Vector2(-head_sz * 0.25, -head_sz * 0.75), head_pos + Vector2(head_sz * 0.25, -head_sz * 0.75), Color(0.32, 0.20, 0.10), 2.5 * ape_scale)
+		# Face plate (lighter, wider)
+		draw_circle(head_pos + Vector2(2.0 * facing, 1.5), head_sz * 0.6, Color(0.50, 0.35, 0.20))
+		# Heavy brow ridge — overhanging, menacing
+		var brow_y = head_pos + Vector2(0, -head_sz * 0.25)
+		draw_line(brow_y + Vector2(-head_sz * 0.7, 0), brow_y + Vector2(head_sz * 0.7, 0), OL, 3.5 * ape_scale)
+		draw_line(brow_y + Vector2(-head_sz * 0.6, 0.3), brow_y + Vector2(head_sz * 0.6, 0.3), Color(0.30, 0.18, 0.08), 2.5 * ape_scale)
+		# Eyes (deep-set under brow, fierce)
+		var eye_col = Color(1.0, 0.2, 0.05) if punch > 0.3 else Color(0.92, 0.75, 0.15)
+		var eye_l = head_pos + Vector2(-3.0 * facing, -0.5)
+		var eye_r = head_pos + Vector2(3.0 * facing, -0.5)
+		draw_circle(eye_l, 2.5 * ape_scale, Color(0.95, 0.90, 0.75))
+		draw_circle(eye_r, 2.5 * ape_scale, Color(0.95, 0.90, 0.75))
+		draw_circle(eye_l, 1.5 * ape_scale, eye_col)
+		draw_circle(eye_r, 1.5 * ape_scale, eye_col)
+		draw_circle(eye_l, 0.7 * ape_scale, OL)
+		draw_circle(eye_r, 0.7 * ape_scale, OL)
+		# Flared nostrils
+		draw_circle(head_pos + Vector2(-1.5 * facing, 2.5), 1.5, OL)
+		draw_circle(head_pos + Vector2(1.5 * facing, 2.5), 1.5, OL)
+		draw_circle(head_pos + Vector2(-1.5 * facing, 2.5), 0.8, Color(0.20, 0.10, 0.05))
+		draw_circle(head_pos + Vector2(1.5 * facing, 2.5), 0.8, Color(0.20, 0.10, 0.05))
+		# Mouth — massive jaw, open during punch = terrifying roar
 		if punch > 0.3:
-			var mouth_y = head_pos + Vector2(1.5 * facing, 3.5)
-			draw_circle(mouth_y, 2.5 * ape_scale, OL)
-			draw_circle(mouth_y, 1.8 * ape_scale, Color(0.5, 0.15, 0.1))
-		# King ape crown
+			var mouth_ctr = head_pos + Vector2(2.0 * facing, 4.5)
+			# Open roaring mouth — wide jaw
+			var mouth_w = 4.5 * ape_scale
+			var mouth_h = 3.5 * ape_scale * punch
+			draw_circle(mouth_ctr, mouth_w + 0.5, OL)
+			draw_circle(mouth_ctr, mouth_w, Color(0.45, 0.08, 0.05))
+			# Fangs — large canines
+			draw_line(mouth_ctr + Vector2(-mouth_w * 0.5, -mouth_h * 0.3), mouth_ctr + Vector2(-mouth_w * 0.3, mouth_h * 0.5), Color(0.95, 0.92, 0.80), 1.8 * ape_scale)
+			draw_line(mouth_ctr + Vector2(mouth_w * 0.5, -mouth_h * 0.3), mouth_ctr + Vector2(mouth_w * 0.3, mouth_h * 0.5), Color(0.95, 0.92, 0.80), 1.8 * ape_scale)
+			# Rage veins around head
+			for vi in range(3):
+				var vang = TAU * float(vi) / 3.0 + _time * 2.0
+				var vp = head_pos + Vector2.from_angle(vang) * (head_sz + 3.0)
+				draw_line(vp, vp + Vector2.from_angle(vang) * 3.0, Color(0.8, 0.2, 0.1, punch * 0.5), 1.5)
+		else:
+			# Closed mouth — stern grimace
+			var mouth_l = head_pos + Vector2(-2.0 * facing, 4.0)
+			var mouth_r = head_pos + Vector2(3.5 * facing, 3.5)
+			draw_line(mouth_l, mouth_r, OL, 2.0 * ape_scale)
+		# King ape crown — bigger, more regal
 		if is_king_ape:
-			var crown_base = head_pos + Vector2(0, -head_sz - 1.0)
-			for ci in range(3):
-				var cx_off = float(ci - 1) * 3.5
-				draw_line(crown_base + Vector2(cx_off, 2.0), crown_base + Vector2(cx_off, -3.0), Color(0.85, 0.72, 0.25), 2.0)
-			draw_line(crown_base + Vector2(-4.5, 2.0), crown_base + Vector2(4.5, 2.0), Color(0.85, 0.72, 0.25), 2.0)
+			var crown_base = head_pos + Vector2(0, -head_sz - 2.0)
+			# Crown base band
+			draw_line(crown_base + Vector2(-6.0, 3.0), crown_base + Vector2(6.0, 3.0), Color(0.85, 0.72, 0.25), 3.0)
+			# Crown points (5 spikes)
+			for ci in range(5):
+				var cx_off = float(ci - 2) * 3.0
+				var spike_h = 5.0 if ci == 2 else 3.5
+				draw_line(crown_base + Vector2(cx_off, 2.5), crown_base + Vector2(cx_off, -spike_h), Color(0.85, 0.72, 0.25), 2.0)
+				# Gem at top of center spike
+				if ci == 2:
+					draw_circle(crown_base + Vector2(0, -spike_h), 1.5, Color(0.9, 0.15, 0.1))
+		# Chest-beating animation when idle (no target)
+		if punch < 0.1 and fmod(_time + ally["angle"] * 2.0, 8.0) < 0.5:
+			var beat_phase = fmod(_time + ally["angle"] * 2.0, 8.0) / 0.5
+			var beat_flash = sin(beat_phase * TAU * 3.0) * 0.3
+			draw_circle(ap + Vector2(0, -body_w * 0.15), body_w * 0.3, Color(1.0, 0.9, 0.7, absf(beat_flash)))
 
-	# Permanent legend allies (prog ability 9)
+	# Permanent legend allies (prog ability 9) — ape silhouettes
 	for ally in _legend_allies:
 		var ally_r = 38.0
 		var ally_pos = body_offset + Vector2.from_angle(ally["angle"]) * ally_r
-		draw_circle(ally_pos, 4.5, Color(0.85, 0.72, 0.25, 0.6))
-		draw_circle(ally_pos, 3.0, Color(1.0, 0.9, 0.4, 0.4))
+		var ap_ol = Color(0.06, 0.06, 0.08, 0.7)
+		# Golden glow
+		draw_circle(ally_pos, 10.0, Color(0.85, 0.72, 0.25, 0.15 + sin(_time * 2.5 + ally["angle"]) * 0.06))
+		# Body (hunched ape)
+		draw_circle(ally_pos, 6.0, ap_ol)
+		draw_circle(ally_pos, 5.0, Color(0.38, 0.24, 0.12, 0.8))
+		# Shoulder hump
+		draw_circle(ally_pos + Vector2(0, -4.0), 4.5, ap_ol)
+		draw_circle(ally_pos + Vector2(0, -4.0), 3.5, Color(0.42, 0.28, 0.14, 0.8))
+		# Head
+		draw_circle(ally_pos + Vector2(2.0, -7.0), 3.5, ap_ol)
+		draw_circle(ally_pos + Vector2(2.0, -7.0), 2.5, Color(0.40, 0.26, 0.14, 0.8))
+		# Eyes (fierce golden)
+		draw_circle(ally_pos + Vector2(1.0, -7.5), 1.0, Color(0.92, 0.75, 0.15, 0.8))
+		draw_circle(ally_pos + Vector2(3.0, -7.5), 1.0, Color(0.92, 0.75, 0.15, 0.8))
+		# Arms (draped to ground)
+		draw_line(ally_pos + Vector2(-4.0, -2.0), ally_pos + Vector2(-6.0, 4.0), ap_ol, 3.0)
+		draw_line(ally_pos + Vector2(-4.0, -2.0), ally_pos + Vector2(-6.0, 4.0), Color(0.35, 0.22, 0.10, 0.8), 2.0)
+		draw_line(ally_pos + Vector2(4.0, -2.0), ally_pos + Vector2(6.0, 4.0), ap_ol, 3.0)
+		draw_line(ally_pos + Vector2(4.0, -2.0), ally_pos + Vector2(6.0, 4.0), Color(0.35, 0.22, 0.10, 0.8), 2.0)
+		# Legs
+		draw_line(ally_pos + Vector2(-2.0, 4.0), ally_pos + Vector2(-3.0, 7.0), ap_ol, 2.5)
+		draw_line(ally_pos + Vector2(-2.0, 4.0), ally_pos + Vector2(-3.0, 7.0), Color(0.30, 0.18, 0.08, 0.8), 1.8)
+		draw_line(ally_pos + Vector2(2.0, 4.0), ally_pos + Vector2(3.0, 7.0), ap_ol, 2.5)
+		draw_line(ally_pos + Vector2(2.0, 4.0), ally_pos + Vector2(3.0, 7.0), Color(0.30, 0.18, 0.08, 0.8), 1.8)
 
 	# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
 	var breath = breathe
@@ -1686,6 +1954,9 @@ func _speed_mult() -> float:
 	# Prog ability 1: Jungle Instinct — +10% attack speed
 	if prog_abilities[0]:
 		base *= 1.1
+	# Prog ability 2: Ape Agility — +30% attack speed when active
+	if _ape_agility_active:
+		base *= 1.3
 	return base
 
 func _gold_mult() -> float:
