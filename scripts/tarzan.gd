@@ -82,8 +82,8 @@ var _mangani_flash: float = 0.0
 var _opar_flash: float = 0.0
 var _legend_allies: Array = []
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 2000.0
+const ABILITY_THRESHOLD: float = 6000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -495,8 +495,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.12
-	fire_rate *= 1.08
+	damage += 5.0
+	fire_rate += 0.04
 	attack_range += 6.0
 	gold_bonus += 1
 

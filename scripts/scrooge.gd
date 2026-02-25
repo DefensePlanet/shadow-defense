@@ -85,8 +85,8 @@ var _turkey_flash: float = 0.0
 var _redemption_flash: float = 0.0
 var _knocker_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 2000.0
+const ABILITY_THRESHOLD: float = 6000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -420,8 +420,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	var dmg_boost = damage * 0.10
-	var rate_boost = fire_rate * 0.05
+	var dmg_boost = 0.15
+	var rate_boost = 0.03
 	_accumulated_damage_boost += dmg_boost
 	_accumulated_fire_rate_boost += rate_boost
 	_accumulated_range_boost += 4.0
@@ -449,8 +449,8 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Bah, Humbug! — blast knockback +15% stronger
-			knockback_amount *= 1.15
-			attack_range *= 1.15
+			knockback_amount = 34.5
+			attack_range = 75.0
 			gold_per_ring = 3
 			bonus_gold_per_enemy = 1
 			fire_rate = 0.8

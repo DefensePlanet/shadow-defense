@@ -80,8 +80,8 @@ var _clone_duration: float = 0.0
 var _rewrite_reality_timer: float = 60.0
 var _rewrite_reality_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 2000.0
+const ABILITY_THRESHOLD: float = 6000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false

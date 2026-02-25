@@ -74,8 +74,8 @@ var _eat_me_flash: float = 0.0
 var _jabberwock_flash: float = 0.0
 var _caterpillar_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 2000.0
+const ABILITY_THRESHOLD: float = 6000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -408,12 +408,12 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	# Bug 2: Track boosts separately so tier upgrades can re-apply them
-	var dmg_boost = damage * 0.10
-	var fr_boost = fire_rate * 0.05
+	var dmg_boost = 0.3
+	var fr_boost = 0.05
 	var range_boost = 4.0
 	var slow_boost = min(slow_amount - 0.2, 0.02)  # How much we can reduce slow
 	var dur_boost = 0.1
-	var frost_boost = frosting_dps * 0.08 if frosting_dps > 0.0 else 0.0
+	var frost_boost = 0.12 if frosting_dps > 0.0 else 0.0
 	var grow_boost = 0.06
 
 	_progression_boosts["damage"] += dmg_boost
@@ -431,8 +431,8 @@ func _apply_stat_boost() -> void:
 	slow_duration += dur_boost
 	if frosting_dps > 0.0:
 		frosting_dps += frost_boost
-	# Alice grows!
-	_grow_scale += grow_boost
+	# Alice grows! (capped at 2.0x to prevent screen overflow)
+	_grow_scale = minf(_grow_scale + grow_boost, 2.0)
 	_grow_burst = 0.3
 
 func choose_ability(index: int) -> void:
@@ -512,7 +512,8 @@ func _reapply_progression_boosts() -> void:
 	slow_duration += _progression_boosts["slow_duration"]
 	if frosting_dps > 0.0:
 		frosting_dps += _progression_boosts["frosting_dps"]
-	_grow_scale += _progression_boosts["grow_scale"]
+	# Reset grow_scale to base + accumulated boosts (don't double-apply)
+	_grow_scale = 1.0 + _progression_boosts["grow_scale"]
 
 func _start_drum_solo() -> void:
 	_drum_solo_active = true

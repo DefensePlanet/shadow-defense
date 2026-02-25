@@ -12988,8 +12988,8 @@ func _spawn_enemy() -> void:
 	if endless_mode:
 		var w = wave
 		# Health: polynomial+log scaling instead of pure exponential
-		# wave 10: ~600, wave 25: ~3k, wave 50: ~18k, wave 100: ~110k
-		var base_hp = 80.0 + w * 30.0 + pow(w, 2.2) * 2.0
+		# wave 10: ~750, wave 25: ~3.75k, wave 50: ~22.5k, wave 100: ~137k
+		var base_hp = (80.0 + w * 30.0 + pow(w, 2.2) * 2.0) * 1.25
 		if w > 20:
 			base_hp *= 1.0 + log(float(w - 19)) * 0.5
 		enemy.max_health = base_hp
@@ -13010,38 +13010,40 @@ func _spawn_enemy() -> void:
 		return
 
 	# Progressive difficulty scaling (supports 20-40 waves)
-	# Balanced: +25% HP vs old values, gold reward reduced ~30% in mid/late game
+	# All phases have +25% HP global multiplier applied at end
 	var w = wave
 	if w <= 5:
-		# Phase 1: Gentle introduction (unchanged — let new players learn)
+		# Phase 1: Gentle introduction
 		enemy.max_health = 60.0 + w * 18.0
 		enemy.speed = 65.0 + w * 4.0
 		enemy.gold_reward = 2 + w * 1
 	elif w <= 10:
-		# Phase 2: Building pressure (+15% HP, same gold)
+		# Phase 2: Building pressure
 		enemy.max_health = 165.0 + (w - 5) * 42.0
 		enemy.speed = 80.0 + (w - 5) * 5.0
 		enemy.gold_reward = 4 + (w - 5) * 1
 	elif w <= 16:
-		# Phase 3: Challenging (+25% HP, slightly less gold)
+		# Phase 3: Challenging
 		enemy.max_health = 380.0 + (w - 10) * 65.0
 		enemy.speed = 100.0 + (w - 10) * 4.0
 		enemy.gold_reward = 6 + (w - 10) * 1
 	elif w <= 24:
-		# Phase 4: Hard (+30% HP, reduced gold growth)
+		# Phase 4: Hard
 		enemy.max_health = 760.0 + (w - 16) * 90.0
 		enemy.speed = 115.0 + (w - 16) * 4.0
 		enemy.gold_reward = 10 + (w - 16) * 1
 	elif w <= 32:
-		# Phase 5: Very hard (+25% HP, tighter gold)
+		# Phase 5: Very hard
 		enemy.max_health = 1400.0 + (w - 24) * 130.0
 		enemy.speed = 130.0 + (w - 24) * 3.0
 		enemy.gold_reward = 16 + (w - 24) * 1
 	else:
-		# Phase 6: Brutal (waves 33-40) (+20% HP, capped gold)
+		# Phase 6: Brutal (waves 33-40)
 		enemy.max_health = 2200.0 + (w - 32) * 180.0
 		enemy.speed = 145.0 + (w - 32) * 3.0
 		enemy.gold_reward = 22 + (w - 32) * 2
+	# +25% HP across all phases
+	enemy.max_health *= 1.25
 
 	# === MOAB Villain waves ===
 	# MOAB at wave 15 (tier 0), 25 (tier 1), 35 (tier 2) on Medium/Hard
@@ -20004,7 +20006,7 @@ func spawn_moab_children(parent_progress: float, theme: int, child_tier: int, co
 			child.is_moab = true
 			child.moab_tier = child_tier
 			child.boss_scale = MOAB_TIER_SCALES[child_tier]
-			child.max_health = (600.0 + wave * 40.0) * MOAB_TIER_HP_MULT[child_tier] * 0.5
+			child.max_health = (600.0 + wave * 40.0) * MOAB_TIER_HP_MULT[child_tier] * 0.5 * 1.25
 			child.speed = 55.0 + wave * 1.5
 			child.gold_reward = 15 + child_tier * 10
 			child.boss_name = MOAB_VILLAIN_NAMES.get(theme, "Dark Overlord")
@@ -20048,7 +20050,7 @@ func _spawn_moab_wave(theme: int, tier: int) -> void:
 	moab.boss_name = MOAB_VILLAIN_NAMES.get(theme, "Dark Overlord")
 	moab.moab_children_count = MOAB_TIER_CHILDREN[tier]
 	var diff_mult = [0.85, 1.0, 1.2][selected_difficulty]
-	moab.max_health = (600.0 + wave * 40.0) * MOAB_TIER_HP_MULT[tier] * diff_mult
+	moab.max_health = (600.0 + wave * 40.0) * MOAB_TIER_HP_MULT[tier] * diff_mult * 1.25
 	moab.speed = (50.0 + wave * 1.0) * (0.9 + selected_difficulty * 0.05)
 	moab.gold_reward = 20 + tier * 15
 	moab.health = moab.max_health

@@ -86,8 +86,8 @@ var _requiem_mass_flash: float = 0.0
 var _organs_fury_flash: float = 0.0
 var _beneath_opera_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 2000.0
+const ABILITY_THRESHOLD: float = 6000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -471,8 +471,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage *= 1.15
-	fire_rate *= 1.03
+	damage += 4.0
+	fire_rate += 0.02
 	attack_range += 7.0
 
 func choose_ability(index: int) -> void:

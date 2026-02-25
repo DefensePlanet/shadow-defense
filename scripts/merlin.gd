@@ -88,8 +88,8 @@ const _CRYSTAL_SCRYING_REVEAL_DURATION: float = 5.0
 # Active ability timer tracking for visual indicators
 var _active_ability_timers: Dictionary = {}  # { "ability_name": remaining_duration }
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 2000.0
+const ABILITY_THRESHOLD: float = 6000.0
 var stat_upgrade_level: int = 0
 # Accumulated stat boosts from _apply_stat_boost — stored separately so upgrades don't wipe them
 var _accumulated_damage_boost: float = 0.0

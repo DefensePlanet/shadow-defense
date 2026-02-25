@@ -79,8 +79,8 @@ var _sorrow_flash: float = 0.0
 var _promethean_flash: float = 0.0
 var _immortal_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 2000.0
+const ABILITY_THRESHOLD: float = 6000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -348,8 +348,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	var dmg_boost = damage * 0.10
-	var rate_boost = fire_rate * 0.06
+	var dmg_boost = 4.0
+	var rate_boost = 0.06
 	var range_boost = 6.0
 	var gold_boost_val = 1
 	damage += dmg_boost
