@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4: "Off With Their Heads!" — Paints ALL enemies red, low DoT as they walk
 
 var damage: float = 3.0
-var fire_rate: float = 1.0
+var fire_rate: float = 0.65
 var attack_range: float = 85.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -74,8 +74,8 @@ var _eat_me_flash: float = 0.0
 var _jabberwock_flash: float = 0.0
 var _caterpillar_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -409,7 +409,7 @@ func _check_upgrades() -> void:
 func _apply_stat_boost() -> void:
 	# Bug 2: Track boosts separately so tier upgrades can re-apply them
 	var dmg_boost = 0.3
-	var fr_boost = 0.05
+	var fr_boost = 0.03
 	var range_boost = 4.0
 	var slow_boost = min(slow_amount - 0.2, 0.02)  # How much we can reduce slow
 	var dur_boost = 0.1
@@ -451,23 +451,23 @@ func _apply_upgrade(tier: int) -> void:
 			frosting_dps = 1.5  # Frosting DoT unlocked
 			attack_range = 85.0
 			damage = 3.0
-			fire_rate = 1.2
+			fire_rate = 0.78
 		2: # Cheshire Cat — 10 second drum solo
 			damage = 4.0
-			fire_rate = 1.4
+			fire_rate = 0.91
 			attack_range = 93.0
 			cheshire_cooldown = 10.0
 			gold_bonus = 2
 			_start_drum_solo()
 		3: # Mad Tea Party — nearby towers +3% fire rate
 			damage = 5.0
-			fire_rate = 1.6
+			fire_rate = 1.04
 			attack_range = 100.0
 			gold_bonus = 3
 			_tea_aura_active = true  # Bug 10: Enable ongoing aura instead of one-shot
 		4: # Off With Their Heads! — paint enemies red, DoT, 5% execute
 			damage = 7.0
-			fire_rate = 1.8
+			fire_rate = 1.17
 			attack_range = 110.0
 			gold_bonus = 4
 			execute_threshold = 0.05  # Execute enemies below 5% HP

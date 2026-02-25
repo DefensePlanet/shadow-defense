@@ -8,7 +8,7 @@ extends Node2D
 
 # Base stats
 var damage: float = 35.0
-var fire_rate: float = 0.9
+var fire_rate: float = 0.59
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -80,8 +80,8 @@ var _clone_duration: float = 0.0
 var _rewrite_reality_timer: float = 60.0
 var _rewrite_reality_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -483,7 +483,7 @@ func register_damage(amount: float) -> void:
 	if new_level > stat_upgrade_level:
 		stat_upgrade_level = new_level
 		damage += 2.0
-		fire_rate += 0.02
+		fire_rate += 0.013
 		attack_range += 1.5
 	# Tier upgrades
 	if upgrade_tier < 4:

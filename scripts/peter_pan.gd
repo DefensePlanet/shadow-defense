@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4: "Never Land" — costs 1000 gold, glows gold, +20% damage
 
 var damage: float = 19.0
-var fire_rate: float = 0.625
+var fire_rate: float = 0.41
 var attack_range: float = 85.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -50,8 +50,8 @@ var _croc_drag_enemy: Node2D = null  # enemy being dragged (kept alive during dr
 # Tier 4: Never Land — golden glow, +20% damage
 var neverland_active: bool = false
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -387,7 +387,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage += 2.0
-	fire_rate += 0.05
+	fire_rate += 0.03
 	attack_range += 6.0
 
 func choose_ability(index: int) -> void:
@@ -403,25 +403,25 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Shadow — orbiting shadow entity
 			shadow_enabled = true
 			damage = 25.0
-			fire_rate = 0.75
+			fire_rate = 0.49
 			attack_range = 93.0
 		2: # Fairy Dust — +3% range/damage aura to self + nearby towers
 			fairy_dust_active = true
 			damage = 30.0
-			fire_rate = 0.875
+			fire_rate = 0.57
 			attack_range = 100.0
 			gold_bonus = 3
 			_apply_fairy_dust_buffs()
 		3: # Tick-Tock Croc — eats every 30th kill
 			croc_enabled = true
 			damage = 38.0
-			fire_rate = 1.0
+			fire_rate = 0.65
 			attack_range = 110.0
 			gold_bonus = 4
 		4: # Never Land — glow gold, +20% damage
 			neverland_active = true
 			damage *= 1.20
-			fire_rate = 1.25
+			fire_rate = 0.81
 			attack_range = 125.0
 			gold_bonus = 5
 

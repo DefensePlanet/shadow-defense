@@ -7,7 +7,7 @@ extends Node2D
 
 # Base stats
 var damage: float = 40.0
-var fire_rate: float = 1.0
+var fire_rate: float = 0.65
 var attack_range: float = 140.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -79,8 +79,8 @@ var _sorrow_flash: float = 0.0
 var _promethean_flash: float = 0.0
 var _immortal_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -349,7 +349,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	var dmg_boost = 4.0
-	var rate_boost = 0.06
+	var rate_boost = 0.04
 	var range_boost = 6.0
 	var gold_boost_val = 1
 	damage += dmg_boost
@@ -374,24 +374,24 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Galvanic Surge — smash radius +30%
 			smash_radius = 78.0
 			damage = 50.0
-			fire_rate = 1.1
+			fire_rate = 0.72
 			attack_range = 155.0
 		2: # Stitched Resilience — kill stacks +3% instead of +2%
 			_kill_stack_rate = 0.03
 			damage = 60.0
-			fire_rate = 1.2
+			fire_rate = 0.78
 			attack_range = 165.0
 			gold_bonus = 3
 		3: # Lightning Conductor — chain lightning arcs to 10
 			chain_count = 10
 			damage = 73.0
-			fire_rate = 1.3
+			fire_rate = 0.85
 			attack_range = 175.0
 			gold_bonus = 4
 			_thunder_storm_cooldown = 20.0
 		4: # Modern Prometheus — massive storm + permanent aura
 			damage = 90.0
-			fire_rate = 1.5
+			fire_rate = 0.98
 			attack_range = 200.0
 			gold_bonus = 6
 			chain_count = 12

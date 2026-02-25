@@ -7,7 +7,7 @@ extends Node2D
 
 # Base stats
 var damage: float = 20.0
-var fire_rate: float = 1.4
+var fire_rate: float = 0.91
 var attack_range: float = 132.0
 var fire_cooldown: float = 0.0
 var staff_angle: float = 0.0
@@ -88,8 +88,8 @@ const _CRYSTAL_SCRYING_REVEAL_DURATION: float = 5.0
 # Active ability timer tracking for visual indicators
 var _active_ability_timers: Dictionary = {}  # { "ability_name": remaining_duration }
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 # Accumulated stat boosts from _apply_stat_boost — stored separately so upgrades don't wipe them
 var _accumulated_damage_boost: float = 0.0
@@ -432,8 +432,8 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	# Track boosts separately so tier upgrades can re-apply them
-	var dmg_boost = damage * 0.12
-	var rate_boost = fire_rate * 0.08
+	var dmg_boost = 3.0
+	var rate_boost = 0.07
 	var range_boost = 5.0
 	var gold_boost_val = 1
 	_accumulated_damage_boost += dmg_boost
@@ -458,23 +458,23 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Arcane Mastery — spells bounce to 1 extra enemy
 			bounce_count = 1
 			damage = 26.0
-			fire_rate = 1.7
+			fire_rate = 1.11
 			attack_range = 144.0
 		2: # Enchanted Aura — nearby towers +15% speed
 			damage = 34.0
-			fire_rate = 2.0
+			fire_rate = 1.3
 			attack_range = 156.0
 			aura_active = true
 			gold_bonus = 3
 		3: # Curse of Ages — hit enemies take +20% damage
 			damage = 43.0
-			fire_rate = 2.3
+			fire_rate = 1.5
 			attack_range = 168.0
 			curse_on_hit = true
 			gold_bonus = 4
 		4: # Archmage — full power
 			damage = 55.0
-			fire_rate = 2.8
+			fire_rate = 1.82
 			attack_range = 186.0
 			gold_bonus = 6
 			bounce_count = 3

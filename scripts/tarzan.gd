@@ -7,7 +7,7 @@ extends Node2D
 
 # Base stats (bomb tower: slow but powerful)
 var damage: float = 46.0
-var fire_rate: float = 0.5
+var fire_rate: float = 0.33
 var attack_range: float = 120.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -82,8 +82,8 @@ var _mangani_flash: float = 0.0
 var _opar_flash: float = 0.0
 var _legend_allies: Array = []
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -496,7 +496,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage += 5.0
-	fire_rate += 0.04
+	fire_rate += 0.026
 	attack_range += 6.0
 	gold_bonus += 1
 
@@ -512,21 +512,21 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Vine Swing — AoE ground pound smash (slow but powerful)
 			damage = 49.0
-			fire_rate = 0.5
+			fire_rate = 0.33
 			attack_range = 130.0
 		2: # Ape Strength — +6% damage boost
 			damage = 52.0
-			fire_rate = 0.5
+			fire_rate = 0.33
 			attack_range = 140.0
 			gold_bonus = 4
 		3: # Animal Call — 1 ape ally for 15s every other wave
 			damage = 63.0
-			fire_rate = 0.5
+			fire_rate = 0.33
 			attack_range = 150.0
 			gold_bonus = 5
 		4: # King of the Apes — 3 more apes, throw enemies back
 			damage = 81.0
-			fire_rate = 0.5
+			fire_rate = 0.33
 			attack_range = 160.0
 			gold_bonus = 7
 			_king_apes_active = true

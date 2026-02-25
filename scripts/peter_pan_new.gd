@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): "Never Land" — daggers pierce, all stats boosted, gold bonus doubled
 
 var damage: float = 38.0
-var fire_rate: float = 2.5
+var fire_rate: float = 1.63
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -40,8 +40,8 @@ var _croc_flash: float = 0.0
 # Tier 4: Never Land
 var pierce_count: int = 0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -211,7 +211,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage += 2.0
-	fire_rate += 0.05
+	fire_rate += 0.03
 	attack_range += 6.0
 
 func choose_ability(index: int) -> void:
@@ -227,24 +227,24 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Shadow — double daggers
 			shadow_enabled = true
 			damage = 50.0
-			fire_rate = 3.0
+			fire_rate = 1.95
 			attack_range = 185.0
 		2: # Fairy Dust — AoE slow burst
 			damage = 60.0
-			fire_rate = 3.5
+			fire_rate = 2.28
 			attack_range = 200.0
 			fairy_cooldown = 10.0
 			gold_bonus = 6
 		3: # Tick-Tock Croc — chomp strongest
 			damage = 75.0
-			fire_rate = 4.0
+			fire_rate = 2.6
 			attack_range = 220.0
 			croc_cooldown = 10.0
 			fairy_cooldown = 8.0
 			gold_bonus = 8
 		4: # Never Land — everything enhanced
 			damage = 95.0
-			fire_rate = 5.0
+			fire_rate = 3.25
 			pierce_count = 2
 			attack_range = 250.0
 			gold_bonus = 12

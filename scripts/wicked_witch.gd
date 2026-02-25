@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4: "The Golden Cap" — faster orbit, enhanced wolves (2x dmg) and crows (2x DoT)
 
 var damage: float = 21.0
-var fire_rate: float = 1.5
+var fire_rate: float = 0.98
 var attack_range: float = 154.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -91,8 +91,8 @@ var _winkies_flash: float = 0.0
 var _melting_flash: float = 0.0
 var _surrender_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -532,7 +532,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage += 2.5
-	fire_rate += 0.08
+	fire_rate += 0.05
 	attack_range += 5.6
 
 func choose_ability(index: int) -> void:
@@ -547,22 +547,22 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Pack of Wolves — wolves run down path every 10 waves
 			damage = 28.0
-			fire_rate = 1.8
+			fire_rate = 1.17
 			attack_range = 165.0
 		2: # Murder of Crows — crows dive-bomb every 5 waves
 			damage = 33.0
-			fire_rate = 2.0
+			fire_rate = 1.3
 			attack_range = 175.0
 			gold_bonus = 3
 		3: # Swarm of Bees — beehive on path
 			damage = 40.0
-			fire_rate = 2.2
+			fire_rate = 1.43
 			attack_range = 189.0
 			gold_bonus = 4
 			_place_beehive()
 		4: # The Golden Cap — enhanced everything
 			damage = 50.0
-			fire_rate = 2.5
+			fire_rate = 1.63
 			attack_range = 210.0
 			gold_bonus = 5
 			_golden_cap_active = true

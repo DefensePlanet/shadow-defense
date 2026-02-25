@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
 var damage: float = 35.0
-var fire_rate: float = 0.5
+var fire_rate: float = 0.33
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -86,8 +86,8 @@ var _requiem_mass_flash: float = 0.0
 var _organs_fury_flash: float = 0.0
 var _beneath_opera_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -472,7 +472,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage += 4.0
-	fire_rate += 0.02
+	fire_rate += 0.013
 	attack_range += 7.0
 
 func choose_ability(index: int) -> void:
@@ -488,21 +488,21 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Punjab Lasso — kill-count insta-kill
 			damage = 45.0
-			fire_rate = 0.6
+			fire_rate = 0.39
 			attack_range = 195.0
 		2: # Angel of Music — extended range
 			damage = 55.0
-			fire_rate = 0.7
+			fire_rate = 0.46
 			attack_range = 240.0
 			gold_bonus = 3
 		3: # Chandelier — kill-count drop
 			damage = 70.0
-			fire_rate = 0.8
+			fire_rate = 0.52
 			attack_range = 250.0
 			gold_bonus = 4
 		4: # Don Juan Sword
 			damage = 90.0
-			fire_rate = 1.0
+			fire_rate = 0.65
 			attack_range = 260.0
 			gold_bonus = 6
 			_has_sword = true

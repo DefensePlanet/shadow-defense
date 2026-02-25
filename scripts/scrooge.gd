@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4: "Ghost of Yet to Come" — Every other wave, massive coin blast damages all enemies
 
 var damage: float = 1.5
-var fire_rate: float = 0.667
+var fire_rate: float = 0.43
 var attack_range: float = 65.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -85,8 +85,8 @@ var _turkey_flash: float = 0.0
 var _redemption_flash: float = 0.0
 var _knocker_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -421,7 +421,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	var dmg_boost = 0.15
-	var rate_boost = 0.03
+	var rate_boost = 0.02
 	_accumulated_damage_boost += dmg_boost
 	_accumulated_fire_rate_boost += rate_boost
 	_accumulated_range_boost += 4.0
@@ -453,23 +453,23 @@ func _apply_upgrade(tier: int) -> void:
 			attack_range = 75.0
 			gold_per_ring = 3
 			bonus_gold_per_enemy = 1
-			fire_rate = 0.8
+			fire_rate = 0.52
 			damage = 2.0
 		2: # Ghost of Christmas Past — ghost rescues 5 enemies from path end
 			knockback_amount = 55.0
 			damage = 3.0
-			fire_rate = 0.9
+			fire_rate = 0.59
 			attack_range = 80.0
 			gold_bonus = 3
 		3: # Ghost of Christmas Present — gives 25 gold twice per round
 			damage = 4.0
-			fire_rate = 1.0
+			fire_rate = 0.65
 			attack_range = 90.0
 			knockback_amount = 65.0
 			gold_bonus = 4
 		4: # Ghost of Yet to Come — coin blast every other wave
 			damage = 5.0
-			fire_rate = 1.1
+			fire_rate = 0.72
 			attack_range = 100.0
 			knockback_amount = 80.0
 			gold_bonus = 6

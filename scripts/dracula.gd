@@ -7,7 +7,7 @@ extends Node2D
 
 # Base stats
 var damage: float = 25.0
-var fire_rate: float = 1.4
+var fire_rate: float = 0.91
 var attack_range: float = 190.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -96,8 +96,8 @@ var _prince_flash: float = 0.0
 var _brides_kiss_flash: float = 0.0
 var _hypnotic_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -560,7 +560,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage += 3.0
-	fire_rate += 0.08
+	fire_rate += 0.05
 	attack_range += 8.0
 	gold_bonus += 1
 
@@ -575,7 +575,7 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	# Base stats for each tier (each strictly higher than previous)
 	var tier_base_damage := [30.0, 38.0, 48.0, 55.0]
-	var tier_base_fire_rate := [1.6, 1.8, 2.0, 2.3]
+	var tier_base_fire_rate := [1.04, 1.17, 1.3, 1.5]
 	var tier_base_range := [210.0, 230.0, 250.0, 275.0]
 	var tier_idx := tier - 1
 	# Preserve accumulated boosts from stat upgrades above the tier base

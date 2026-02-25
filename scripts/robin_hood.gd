@@ -7,7 +7,7 @@ extends Node2D
 
 # Base stats
 var damage: float = 25.0
-var fire_rate: float = 0.8
+var fire_rate: float = 0.52
 var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
@@ -88,8 +88,8 @@ var _maid_marian_flash: float = 0.0
 var _outlaw_snare_flash: float = 0.0
 var _outlaw_snare_pos: Vector2 = Vector2.ZERO
 
-const STAT_UPGRADE_INTERVAL: float = 2000.0
-const ABILITY_THRESHOLD: float = 6000.0
+const STAT_UPGRADE_INTERVAL: float = 4000.0
+const ABILITY_THRESHOLD: float = 12000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -404,7 +404,7 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	damage += 3.0
-	fire_rate += 0.06
+	fire_rate += 0.04
 	attack_range += 8.0
 	gold_bonus += 1
 
@@ -420,21 +420,21 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Splitting the Wand — dual shot
 			damage = 33.0
-			fire_rate = 1.0
+			fire_rate = 0.65
 			attack_range = 176.0
 		2: # The Silver Arrow — every 10th arrow, pierces 5
 			damage = 43.0
-			fire_rate = 1.2
+			fire_rate = 0.78
 			attack_range = 192.0
 			gold_bonus = 3
 		3: # Three Blasts of the Horn — sky arrows every other wave
 			damage = 50.0
-			fire_rate = 1.4
+			fire_rate = 0.91
 			attack_range = 216.0
 			gold_bonus = 4
 		4: # The Final Arrow — gold arrow, pierces 10, splash 40px
 			damage = 65.0
-			fire_rate = 1.6
+			fire_rate = 1.04
 			attack_range = 240.0
 			gold_bonus = 6
 
