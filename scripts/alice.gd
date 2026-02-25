@@ -451,23 +451,23 @@ func _apply_upgrade(tier: int) -> void:
 			frosting_dps = 1.5  # Frosting DoT unlocked
 			attack_range = 85.0
 			damage = 3.0
-			fire_rate = 0.78
+			fire_rate = 1.56
 		2: # Cheshire Cat — 10 second drum solo
 			damage = 4.0
-			fire_rate = 0.91
+			fire_rate = 1.82
 			attack_range = 93.0
 			cheshire_cooldown = 10.0
 			gold_bonus = 2
 			_start_drum_solo()
 		3: # Mad Tea Party — nearby towers +3% fire rate
 			damage = 5.0
-			fire_rate = 1.04
+			fire_rate = 2.08
 			attack_range = 100.0
 			gold_bonus = 3
 			_tea_aura_active = true  # Bug 10: Enable ongoing aura instead of one-shot
 		4: # Off With Their Heads! — paint enemies red, DoT, 5% execute
 			damage = 7.0
-			fire_rate = 1.17
+			fire_rate = 2.34
 			attack_range = 110.0
 			gold_bonus = 4
 			execute_threshold = 0.05  # Execute enemies below 5% HP

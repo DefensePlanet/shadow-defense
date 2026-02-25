@@ -547,22 +547,22 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Pack of Wolves — wolves run down path every 10 waves
 			damage = 28.0
-			fire_rate = 1.17
+			fire_rate = 2.34
 			attack_range = 165.0
 		2: # Murder of Crows — crows dive-bomb every 5 waves
 			damage = 33.0
-			fire_rate = 1.3
+			fire_rate = 2.6
 			attack_range = 175.0
 			gold_bonus = 3
 		3: # Swarm of Bees — beehive on path
 			damage = 40.0
-			fire_rate = 1.43
+			fire_rate = 2.86
 			attack_range = 189.0
 			gold_bonus = 4
 			_place_beehive()
 		4: # The Golden Cap — enhanced everything
 			damage = 50.0
-			fire_rate = 1.63
+			fire_rate = 3.26
 			attack_range = 210.0
 			gold_bonus = 5
 			_golden_cap_active = true

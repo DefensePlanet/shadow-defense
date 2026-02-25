@@ -8,7 +8,7 @@ extends Node2D
 
 # Base stats
 var damage: float = 35.0
-var fire_rate: float = 0.59
+var fire_rate: float = 1.18
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -483,7 +483,7 @@ func register_damage(amount: float) -> void:
 	if new_level > stat_upgrade_level:
 		stat_upgrade_level = new_level
 		damage += 2.0
-		fire_rate += 0.013
+		fire_rate += 0.026
 		attack_range += 1.5
 	# Tier upgrades
 	if upgrade_tier < 4:

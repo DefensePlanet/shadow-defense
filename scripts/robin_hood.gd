@@ -420,21 +420,21 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Splitting the Wand — dual shot
 			damage = 33.0
-			fire_rate = 0.65
+			fire_rate = 1.30
 			attack_range = 176.0
 		2: # The Silver Arrow — every 10th arrow, pierces 5
 			damage = 43.0
-			fire_rate = 0.78
+			fire_rate = 1.56
 			attack_range = 192.0
 			gold_bonus = 3
 		3: # Three Blasts of the Horn — sky arrows every other wave
 			damage = 50.0
-			fire_rate = 0.91
+			fire_rate = 1.82
 			attack_range = 216.0
 			gold_bonus = 4
 		4: # The Final Arrow — gold arrow, pierces 10, splash 40px
 			damage = 65.0
-			fire_rate = 1.04
+			fire_rate = 2.08
 			attack_range = 240.0
 			gold_bonus = 6
 

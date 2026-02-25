@@ -227,24 +227,24 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Shadow — double daggers
 			shadow_enabled = true
 			damage = 50.0
-			fire_rate = 1.95
+			fire_rate = 3.9
 			attack_range = 185.0
 		2: # Fairy Dust — AoE slow burst
 			damage = 60.0
-			fire_rate = 2.28
+			fire_rate = 4.56
 			attack_range = 200.0
 			fairy_cooldown = 10.0
 			gold_bonus = 6
 		3: # Tick-Tock Croc — chomp strongest
 			damage = 75.0
-			fire_rate = 2.6
+			fire_rate = 5.2
 			attack_range = 220.0
 			croc_cooldown = 10.0
 			fairy_cooldown = 8.0
 			gold_bonus = 8
 		4: # Never Land — everything enhanced
 			damage = 95.0
-			fire_rate = 3.25
+			fire_rate = 6.5
 			pierce_count = 2
 			attack_range = 250.0
 			gold_bonus = 12

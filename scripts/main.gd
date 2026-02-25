@@ -1556,6 +1556,7 @@ var character_id_to_tower_type: Dictionary = {
 	"dracula": TowerType.DRACULA,
 	"merlin": TowerType.MERLIN,
 	"frankenstein": TowerType.FRANKENSTEIN,
+	"shadow_author": TowerType.SHADOW_AUTHOR,
 }
 
 # Map TowerType to scene path for new characters (loaded at runtime)
@@ -7808,12 +7809,13 @@ func _draw_menu_background() -> void:
 	if menu_current_view != "survivors" or survivor_detail_open:
 		# === Deep navy background with vertical gradient ===
 		draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
-		# Vertical gradient — darker at top, slight purple warmth at bottom
-		for gy in range(0, 720, 2):
-			var gt = float(gy) / 720.0
-			var purple_shift = gt * gt * 0.04  # Quadratic: more purple toward bottom
+		# Vertical gradient — darker at top, slight purple warmth at bottom (20 bands)
+		var grad_step = 36  # 720 / 20 = 36px per band
+		for gy in range(0, 720, grad_step):
+			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
+			var purple_shift = gt * gt * 0.04
 			var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
-			draw_line(Vector2(0, gy), Vector2(1280, gy), col, 2.0)
+			draw_rect(Rect2(0, gy, 1280, grad_step), col)
 
 		# === Center radial glow (purple atmosphere — vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
@@ -7871,16 +7873,17 @@ func _draw_menu_background() -> void:
 		draw_rect(Rect2(0, shelf_y, 1280, 4), Color(0.08, 0.06, 0.14, 0.7))
 		draw_rect(Rect2(0, shelf_y, 1280, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
 
-		# === Ink splatters (subtle background texture) ===
+		# === Ink splatters (subtle background texture — pre-seeded) ===
+		var sp_rng = RandomNumberGenerator.new()
+		var sp_col = Color(0.02, 0.01, 0.06, 0.12)
+		var sp_dot_col = Color(0.02, 0.01, 0.06, 0.08)
 		for splat in _menu_ink_splatters:
-			var sp_rng = RandomNumberGenerator.new()
 			sp_rng.seed = splat["seed"]
-			var sp_col = Color(0.02, 0.01, 0.06, 0.12)
 			draw_circle(Vector2(splat["x"], splat["y"]), splat["size"], sp_col)
 			for _di in range(splat["dots"]):
 				var dot_x = splat["x"] + sp_rng.randf_range(-splat["size"] * 2, splat["size"] * 2)
 				var dot_y = splat["y"] + sp_rng.randf_range(-splat["size"] * 1.5, splat["size"] * 1.5)
-				draw_circle(Vector2(dot_x, dot_y), sp_rng.randf_range(1, 4), Color(0.02, 0.01, 0.06, 0.08))
+				draw_circle(Vector2(dot_x, dot_y), sp_rng.randf_range(1, 4), sp_dot_col)
 
 		# === Floating book pages (drifting gently) ===
 		for page in _floating_pages:
@@ -14130,8 +14133,11 @@ func _draw() -> void:
 			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0)
 			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1, 1, 1, 0.3), 2.0)
 
+	# === Cache tower group query for all tower overlays ===
+	var _cached_towers = get_tree().get_nodes_in_group("towers")
+
 	# === Pulsing gold indicators on affordable-to-upgrade towers ===
-	for tower in get_tree().get_nodes_in_group("towers"):
+	for tower in _cached_towers:
 		if tower.upgrade_tier < 4 and tower.has_method("get_next_upgrade_info"):
 			var info = tower.get_next_upgrade_info()
 			if not info.is_empty() and gold >= info["cost"]:
@@ -14142,7 +14148,7 @@ func _draw() -> void:
 
 	# === SYNERGY GLOW RINGS ON TOWERS ===
 	if active_synergies.size() > 0:
-		for tower in get_tree().get_nodes_in_group("towers"):
+		for tower in _cached_towers:
 			if tower.has_method("has_synergy_buff") and tower.has_synergy_buff():
 				var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 				draw_arc(tower.global_position, 30.0 + pulse * 5.0, 0, TAU, 32, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.2), 2.5)
@@ -14172,7 +14178,7 @@ func _draw() -> void:
 				else:
 					aura_col = cat_items["color"]
 				break
-		for tower in get_tree().get_nodes_in_group("towers"):
+		for tower in _cached_towers:
 			var aura_pulse = (sin(_time * 2.0 + tower.global_position.x * 0.01) + 1.0) * 0.5
 			draw_arc(tower.global_position, 26.0 + aura_pulse * 4.0, 0, TAU, 32, aura_col, 2.5)
 
@@ -14391,7 +14397,7 @@ func _draw_path_overlay() -> void:
 	var curve = enemy_path.curve
 	if not curve or curve.point_count < 2:
 		return
-	var pts = curve.tessellate(6, 2.0)
+	var pts = curve.tessellate(4, 4.0)
 	if pts.size() < 2:
 		return
 
@@ -14402,39 +14408,33 @@ func _draw_path_overlay() -> void:
 	var edge_col = path_style["edge_color"]
 	var detail_col = path_style["detail_color"]
 	var border_w = path_style["border_width"]
+	var shadow_col = Color(0.0, 0.0, 0.0, 0.6)
+	var edge_line_col = Color(edge_col.r * 0.5, edge_col.g * 0.5, edge_col.b * 0.5, 0.5)
+	var has_center = path_style.get("center_line", false)
 
-	# --- PASS 1: Outer border/shadow (widest) ---
+	# --- Combined single pass: shadow + edge + road + edge lines ---
 	for k in range(pts.size() - 1):
-		draw_line(pts[k], pts[k + 1], Color(0.0, 0.0, 0.0, 0.6), road_w + 10.0)
-
-	# --- PASS 2: Edge trim (cobblestone border, grass, etc.) ---
-	for k in range(pts.size() - 1):
+		draw_line(pts[k], pts[k + 1], shadow_col, road_w + 10.0)
 		draw_line(pts[k], pts[k + 1], edge_col, road_w + 4.0)
-
-	# --- PASS 3: Main road surface ---
-	for k in range(pts.size() - 1):
 		draw_line(pts[k], pts[k + 1], road_col, road_w)
-
-	# --- PASS 4: Center line / detail texture ---
-	if path_style.get("center_line", false):
-		for k in range(pts.size() - 1):
+		if has_center:
 			draw_line(pts[k], pts[k + 1], detail_col, 2.0)
 
-	# --- PASS 5: Surface detail (cracks, bricks, cobbles, etc.) ---
-	_draw_path_surface_detail(pts, path_style)
-
-	# --- PASS 6: Edge detail lines ---
-	for k in range(pts.size() - 1):
+	# --- Edge detail lines (combined into single pass) ---
+	for k in range(0, pts.size() - 1, 2):
 		var dir = (pts[k + 1] - pts[k]).normalized()
 		var n = Vector2(-dir.y, dir.x)
 		var half_w = road_w * 0.5
-		draw_line(pts[k] + n * half_w, pts[k + 1] + n * half_w, Color(edge_col.r * 0.5, edge_col.g * 0.5, edge_col.b * 0.5, 0.5), border_w)
-		draw_line(pts[k] - n * half_w, pts[k + 1] - n * half_w, Color(edge_col.r * 0.5, edge_col.g * 0.5, edge_col.b * 0.5, 0.5), border_w)
+		draw_line(pts[k] + n * half_w, pts[k + 1] + n * half_w, edge_line_col, border_w)
+		draw_line(pts[k] - n * half_w, pts[k + 1] - n * half_w, edge_line_col, border_w)
 
-	# --- PASS 7: Directional arrows along path (BTD6-style) ---
+	# --- Surface detail (cracks, bricks, cobbles, etc.) ---
+	_draw_path_surface_detail(pts, path_style)
+
+	# --- Directional arrows along path (BTD6-style) ---
 	_draw_path_arrows(pts, path_style)
 
-	# --- PASS 8: Entry and Exit markers ---
+	# --- Entry and Exit markers ---
 	_draw_entry_exit_markers(pts)
 
 func _get_path_style() -> Dictionary:

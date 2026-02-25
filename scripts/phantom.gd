@@ -488,21 +488,21 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Punjab Lasso — kill-count insta-kill
 			damage = 45.0
-			fire_rate = 0.39
+			fire_rate = 0.78
 			attack_range = 195.0
 		2: # Angel of Music — extended range
 			damage = 55.0
-			fire_rate = 0.46
+			fire_rate = 0.92
 			attack_range = 240.0
 			gold_bonus = 3
 		3: # Chandelier — kill-count drop
 			damage = 70.0
-			fire_rate = 0.52
+			fire_rate = 1.04
 			attack_range = 250.0
 			gold_bonus = 4
 		4: # Don Juan Sword
 			damage = 90.0
-			fire_rate = 0.65
+			fire_rate = 1.30
 			attack_range = 260.0
 			gold_bonus = 6
 			_has_sword = true

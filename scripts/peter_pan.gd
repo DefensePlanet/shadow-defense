@@ -403,25 +403,25 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Shadow — orbiting shadow entity
 			shadow_enabled = true
 			damage = 25.0
-			fire_rate = 0.49
+			fire_rate = 0.98
 			attack_range = 93.0
 		2: # Fairy Dust — +3% range/damage aura to self + nearby towers
 			fairy_dust_active = true
 			damage = 30.0
-			fire_rate = 0.57
+			fire_rate = 1.14
 			attack_range = 100.0
 			gold_bonus = 3
 			_apply_fairy_dust_buffs()
 		3: # Tick-Tock Croc — eats every 30th kill
 			croc_enabled = true
 			damage = 38.0
-			fire_rate = 0.65
+			fire_rate = 1.30
 			attack_range = 110.0
 			gold_bonus = 4
 		4: # Never Land — glow gold, +20% damage
 			neverland_active = true
 			damage *= 1.20
-			fire_rate = 0.81
+			fire_rate = 1.62
 			attack_range = 125.0
 			gold_bonus = 5
 

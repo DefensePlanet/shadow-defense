@@ -374,24 +374,24 @@ func _apply_upgrade(tier: int) -> void:
 		1: # Galvanic Surge — smash radius +30%
 			smash_radius = 78.0
 			damage = 50.0
-			fire_rate = 0.72
+			fire_rate = 1.44
 			attack_range = 155.0
 		2: # Stitched Resilience — kill stacks +3% instead of +2%
 			_kill_stack_rate = 0.03
 			damage = 60.0
-			fire_rate = 0.78
+			fire_rate = 1.56
 			attack_range = 165.0
 			gold_bonus = 3
 		3: # Lightning Conductor — chain lightning arcs to 10
 			chain_count = 10
 			damage = 73.0
-			fire_rate = 0.85
+			fire_rate = 1.70
 			attack_range = 175.0
 			gold_bonus = 4
 			_thunder_storm_cooldown = 20.0
 		4: # Modern Prometheus — massive storm + permanent aura
 			damage = 90.0
-			fire_rate = 0.98
+			fire_rate = 1.96
 			attack_range = 200.0
 			gold_bonus = 6
 			chain_count = 12

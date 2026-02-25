@@ -512,21 +512,21 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Vine Swing — AoE ground pound smash (slow but powerful)
 			damage = 49.0
-			fire_rate = 0.33
+			fire_rate = 0.66
 			attack_range = 130.0
 		2: # Ape Strength — +6% damage boost
 			damage = 52.0
-			fire_rate = 0.33
+			fire_rate = 0.66
 			attack_range = 140.0
 			gold_bonus = 4
 		3: # Animal Call — 1 ape ally for 15s every other wave
 			damage = 63.0
-			fire_rate = 0.33
+			fire_rate = 0.66
 			attack_range = 150.0
 			gold_bonus = 5
 		4: # King of the Apes — 3 more apes, throw enemies back
 			damage = 81.0
-			fire_rate = 0.33
+			fire_rate = 0.66
 			attack_range = 160.0
 			gold_bonus = 7
 			_king_apes_active = true

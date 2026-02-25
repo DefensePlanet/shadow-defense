@@ -453,23 +453,23 @@ func _apply_upgrade(tier: int) -> void:
 			attack_range = 75.0
 			gold_per_ring = 3
 			bonus_gold_per_enemy = 1
-			fire_rate = 0.52
+			fire_rate = 1.04
 			damage = 2.0
 		2: # Ghost of Christmas Past — ghost rescues 5 enemies from path end
 			knockback_amount = 55.0
 			damage = 3.0
-			fire_rate = 0.59
+			fire_rate = 1.18
 			attack_range = 80.0
 			gold_bonus = 3
 		3: # Ghost of Christmas Present — gives 25 gold twice per round
 			damage = 4.0
-			fire_rate = 0.65
+			fire_rate = 1.30
 			attack_range = 90.0
 			knockback_amount = 65.0
 			gold_bonus = 4
 		4: # Ghost of Yet to Come — coin blast every other wave
 			damage = 5.0
-			fire_rate = 0.72
+			fire_rate = 1.44
 			attack_range = 100.0
 			knockback_amount = 80.0
 			gold_bonus = 6

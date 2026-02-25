@@ -575,7 +575,7 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	# Base stats for each tier (each strictly higher than previous)
 	var tier_base_damage := [30.0, 38.0, 48.0, 55.0]
-	var tier_base_fire_rate := [1.04, 1.17, 1.3, 1.5]
+	var tier_base_fire_rate := [2.08, 2.34, 2.6, 3.0]
 	var tier_base_range := [210.0, 230.0, 250.0, 275.0]
 	var tier_idx := tier - 1
 	# Preserve accumulated boosts from stat upgrades above the tier base

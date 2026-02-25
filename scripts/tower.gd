@@ -2,7 +2,7 @@ extends Node2D
 ## Pistol Tower — auto-targets nearest enemy in range and fires bullets.
 
 var damage: float = 30.0
-var fire_rate: float = 1.17   # shots per second
+var fire_rate: float = 2.34   # shots per second
 var attack_range: float = 150.0
 var fire_cooldown: float = 0.0
 var gun_angle: float = 0.0
