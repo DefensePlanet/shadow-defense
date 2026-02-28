@@ -6,13 +6,16 @@ extends Node2D
 ## Tier 3: "Tick-Tock Croc" — crocodile eats every 30th enemy (instakill)
 ## Tier 4: "Never Land" — costs 1000 gold, glows gold, +20% damage
 
-var damage: float = 19.0
-var fire_rate: float = 0.41
-var attack_range: float = 85.0
+var damage: float = 24.0
+var fire_rate: float = 0.56
+var attack_range: float = 100.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 2
+
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
 
 # Stationary striker — stays in place, attacks from position
 var _home_position: Vector2 = Vector2.ZERO
@@ -120,8 +123,10 @@ var _croc_devour_flash: float = 0.0
 var _tinker_light_flash: float = 0.0
 var _neverland_flight_flash: float = 0.0
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_generate_tier_sounds()
@@ -237,9 +242,9 @@ func _process(delta: float) -> void:
 			_shadow_damage_timer = 0.5  # hits twice per second
 			var eff_range = attack_range * _range_mult()
 			var shadow_pos = _home_position + Vector2(cos(_shadow_angle), sin(_shadow_angle)) * eff_range * 0.75
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if shadow_pos.distance_to(enemy.global_position) < 25.0 and enemy.has_method("take_damage"):
-					var sdmg = damage * 0.15  # low damage
+					var sdmg = damage * 0.25  # shadow damage
 					enemy.take_damage(sdmg)
 					register_damage(sdmg)
 
@@ -259,8 +264,10 @@ func _process(delta: float) -> void:
 		for eid in to_remove:
 			_croc_seen_enemies.erase(eid)
 		# Count new enemies entering range
-		for enemy in get_tree().get_nodes_in_group("enemies"):
+		for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if not is_instance_valid(enemy):
+				continue
+			if enemy.has_method("is_targetable") and not enemy.is_targetable():
 				continue
 			var eid = enemy.get_instance_id()
 			if _croc_seen_enemies.has(eid):
@@ -304,21 +311,54 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if _home_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = _home_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _get_note_index() -> int:
 	var main = get_tree().get_first_node_in_group("main")
@@ -386,9 +426,10 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 2.0
-	fire_rate += 0.03
-	attack_range += 6.0
+	damage += 3.0
+	fire_rate += 0.05
+	attack_range += 8.0
+	gold_bonus += 1
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -402,27 +443,27 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Shadow — orbiting shadow entity
 			shadow_enabled = true
-			damage = 25.0
-			fire_rate = 0.98
-			attack_range = 93.0
+			damage = 32.0
+			fire_rate = 1.14
+			attack_range = 115.0
 		2: # Fairy Dust — +3% range/damage aura to self + nearby towers
 			fairy_dust_active = true
-			damage = 30.0
-			fire_rate = 1.14
-			attack_range = 100.0
+			damage = 40.0
+			fire_rate = 1.40
+			attack_range = 125.0
 			gold_bonus = 3
 			_apply_fairy_dust_buffs()
 		3: # Tick-Tock Croc — eats every 30th kill
 			croc_enabled = true
-			damage = 38.0
-			fire_rate = 1.30
-			attack_range = 110.0
+			damage = 50.0
+			fire_rate = 1.62
+			attack_range = 140.0
 			gold_bonus = 4
 		4: # Never Land — glow gold, +20% damage
 			neverland_active = true
-			damage *= 1.20
-			fire_rate = 1.62
-			attack_range = 125.0
+			damage = 62.0
+			fire_rate = 1.82
+			attack_range = 155.0
 			gold_bonus = 5
 
 func _apply_fairy_dust_buffs() -> void:
@@ -719,7 +760,7 @@ func register_kill_progressive() -> void:
 
 func _lost_boys_attack() -> void:
 	_lost_boys_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
@@ -734,14 +775,14 @@ func _lost_boys_attack() -> void:
 
 func _fairy_dust_trail() -> void:
 	_fairy_dust_trail_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.5, 2.0)
 
 func _mermaid_song() -> void:
 	_mermaid_song_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
@@ -756,7 +797,7 @@ func _walk_the_plank() -> void:
 	# Find enemy furthest along the path (closest to escaping)
 	var furthest: Node2D = null
 	var most_progress: float = -1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
 			var prog = e.path_progress if "path_progress" in e else 0.0
 			if prog > most_progress:
@@ -773,7 +814,7 @@ func _croc_devour() -> void:
 	# Find strongest enemy on entire map
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.health > most_hp:
 			strongest = e
 			most_hp = e.health
@@ -808,7 +849,7 @@ func _neverland_flight() -> void:
 	if _fairy_player and not _is_sfx_muted():
 		_fairy_player.play()
 	# Peter swoops to 8 random enemies across the map, dealing 2x damage each (direct strikes)
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var targets: Array = enemies.duplicate()
 	targets.shuffle()
 	var count = mini(8, targets.size())

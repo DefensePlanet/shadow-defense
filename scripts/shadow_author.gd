@@ -7,13 +7,15 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Word — periodic massive AoE burst
 
 # Base stats
-var damage: float = 35.0
-var fire_rate: float = 1.18
+var damage: float = 30.0
+var fire_rate: float = 0.72
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 3
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
 
 # Animation timers
 var _time: float = 0.0
@@ -111,8 +113,10 @@ var _ability_sound: AudioStreamWAV
 var _ability_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	add_to_group("towers")
 	_load_progressive_abilities()
 	_generate_tier_sounds()
@@ -265,7 +269,9 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
@@ -281,15 +287,46 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _attack() -> void:
 	if not target:
@@ -314,7 +351,7 @@ func _attack() -> void:
 	# Ability 3: Page Tear — AoE every 5th attack
 	if prog_abilities[3] and _attack_count % 5 == 0:
 		var aoe_range = 60.0
-		for enemy in get_tree().get_nodes_in_group("enemies"):
+		for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if enemy != target and global_position.distance_to(enemy.global_position) < aoe_range + attack_range * _range_mult():
 				if enemy.has_method("take_damage"):
 					var aoe_dmg = eff_damage * 0.5
@@ -323,8 +360,8 @@ func _attack() -> void:
 
 	# Ability 4: Mind Control — 5% charm
 	if prog_abilities[4] and randf() < 0.05:
-		target.charm_timer = 3.0
-		target.charm_damage_mult = 1.5
+		if target.has_method("apply_charm"):
+			target.apply_charm(3.0, 1.5)
 
 	# Gold bonus
 	var main = get_tree().get_first_node_in_group("main")
@@ -345,14 +382,14 @@ func _deploy_ink_cloud() -> void:
 func _ink_cloud_damage(delta: float) -> void:
 	var cloud_range = 80.0
 	var cloud_dmg = damage * 0.3 * _damage_mult() * delta
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if _ink_cloud_pos.distance_to(enemy.global_position) < cloud_range:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(cloud_dmg, true)
 				register_damage(cloud_dmg)
 			# Slow enemies in cloud
-			enemy.slow_factor = 0.5
-			enemy.slow_timer = max(enemy.slow_timer, 0.5)
+			if enemy.has_method("apply_slow"):
+				enemy.apply_slow(0.5, 0.5)
 
 func _rewrite_enemy(enemy: Node2D) -> void:
 	# Teleport enemy backward on path
@@ -390,7 +427,9 @@ func _update_servants(delta: float) -> void:
 		if s["attack_timer"] <= 0.0:
 			var nearest: Node2D = null
 			var nearest_dist: float = 120.0
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+				if enemy.has_method("is_targetable") and not enemy.is_targetable():
+					continue
 				var dist = Vector2(s["pos"]).distance_to(enemy.global_position)
 				if dist < nearest_dist:
 					nearest = enemy
@@ -410,9 +449,9 @@ func _update_servants(delta: float) -> void:
 
 func _the_final_word() -> void:
 	_final_word_flash = 1.0
-	var burst_dmg = damage * 8.0 * _damage_mult()
+	var burst_dmg = damage * 5.0 * _damage_mult()
 	var eff_range = attack_range * _range_mult() * 1.5
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(burst_dmg, true)
@@ -435,7 +474,7 @@ func _ink_storm() -> void:
 	_ink_storm_flash = 1.0
 	var storm_dmg = damage * 1.5 * _damage_mult()
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(storm_dmg, true)
@@ -448,12 +487,12 @@ func _rewrite_reality() -> void:
 	var effect = randi() % 4
 	match effect:
 		0:  # Mass slow
-			for enemy in get_tree().get_nodes_in_group("enemies"):
-				enemy.slow_factor = 0.3
-				enemy.slow_timer = max(enemy.slow_timer, 5.0)
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+				if enemy.has_method("apply_slow"):
+					enemy.apply_slow(0.3, 5.0)
 		1:  # Mass damage
-			var burst_dmg = damage * 5.0 * _damage_mult()
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			var burst_dmg = damage * 3.0 * _damage_mult()
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(burst_dmg, true)
 					register_damage(burst_dmg)
@@ -462,7 +501,7 @@ func _rewrite_reality() -> void:
 			if main and main.has_method("add_gold"):
 				main.add_gold(50)
 		3:  # Execute low HP enemies
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.health / enemy.max_health < 0.2:
 					if enemy.has_method("take_damage"):
 						enemy.take_damage(enemy.health + 1.0, true)
@@ -476,8 +515,8 @@ func register_kill() -> void:
 func register_damage(amount: float) -> void:
 	damage_dealt += amount
 	var main = get_tree().get_first_node_in_group("main")
-	if main and main.has_method("report_tower_damage"):
-		main.report_tower_damage(self, amount)
+	if main and main.has_method("register_tower_damage"):
+		main.register_tower_damage(main.TowerType.SHADOW_AUTHOR, amount)
 	# Stat upgrades
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
 	if new_level > stat_upgrade_level:
@@ -655,7 +694,7 @@ func _draw() -> void:
 
 	# === 9. DARK AURA BASE ===
 	# Ground shadow
-	draw_ellipse(body_offset + Vector2(0, 22), Vector2(18, 6), Color(0.05, 0.02, 0.1, 0.5))
+	_fill_ellipse(body_offset + Vector2(0, 22), Vector2(18, 6), Color(0.05, 0.02, 0.1, 0.5))
 	# Wispy tendrils at base
 	for i in range(6):
 		var ta = TAU * float(i) / 6.0 + _time * 1.2
@@ -793,8 +832,8 @@ func _draw() -> void:
 		for i in range(4):
 			var pa = TAU * float(i) / 4.0 + _time * 5.0
 			var pd = 15.0 + (1.0 - _rewrite_flash) * 20.0
-			var pp = body_offset + Vector2(cos(pa) * pd, sin(pa) * pd * 0.5)
-			draw_rect(Rect2(pp.x - 3, pp.y - 2, 6, 4), Color(0.9, 0.85, 0.7, _rewrite_flash * 0.6))
+			var page_pos = body_offset + Vector2(cos(pa) * pd, sin(pa) * pd * 0.5)
+			draw_rect(Rect2(page_pos.x - 3, page_pos.y - 2, 6, 4), Color(0.9, 0.85, 0.7, _rewrite_flash * 0.6))
 
 	# === 18. SHIELD INDICATOR ===
 	if _shield_active:
@@ -820,7 +859,7 @@ func _draw() -> void:
 			var dot_x = -6.0 + float(i) * 4.0
 			draw_circle(body_offset + Vector2(dot_x, 26), 1.5, Color(0.6, 0.3, 0.9, 0.7))
 
-func draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
+func _fill_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
 	var pts = PackedVector2Array()
 	for i in range(24):
 		var angle = TAU * float(i) / 24.0

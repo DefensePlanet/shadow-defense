@@ -101,6 +101,8 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < attack_range:
 			return true
 	return false
@@ -110,6 +112,8 @@ func _find_nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_dist: float = attack_range
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest = enemy
@@ -123,6 +127,8 @@ func _find_second_target(exclude: Node2D) -> Node2D:
 	for enemy in enemies:
 		if enemy == exclude:
 			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest = enemy
@@ -134,6 +140,8 @@ func _find_strongest_enemy() -> Node2D:
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < attack_range:
 			if enemy.health > most_hp:
 				strongest = enemy
@@ -166,6 +174,8 @@ func _fairy_dust() -> void:
 	_fairy_flash = 1.0
 	var fairy_dmg = damage * 0.5
 	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < attack_range * 0.7:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - fairy_dmg <= 0.0

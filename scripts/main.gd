@@ -90,7 +90,7 @@ var _ability_tower: Node2D = null
 
 # Tower upgrade selection
 var selected_tower_node: Node2D = null
-const TOWER_SELECT_RADIUS: float = 28.0
+const TOWER_SELECT_RADIUS: float = 48.0
 var upgrade_panel: ColorRect
 var upgrade_name_label: Label
 var upgrade_buttons: Array = []  # 4 upgrade tier buttons
@@ -99,6 +99,7 @@ var upgrade_desc_labels: Array = []  # 4 description labels
 var upgrade_status_rects: Array = []  # 4 background rects for status coloring
 var sell_button: Button
 var sell_value_label: Label
+var targeting_button: Button
 
 # Game state & levels
 enum GameState { MENU, PLAYING, GAME_OVER_STATE }
@@ -123,7 +124,7 @@ var menu_level_name_label: Label
 var menu_level_desc_label: Label
 var menu_level_stats_label: Label
 var menu_level_stars_label: Label
-var menu_play_button: Button
+
 var menu_left_arrow: Button
 var menu_right_arrow: Button
 var menu_showcase_panel: ColorRect
@@ -161,6 +162,7 @@ var survivor_descriptions = {
 	TowerType.DRACULA: "The immortal count from Transylvania.\nDrains life from enemies, summons bats, turns foes to minions.",
 	TowerType.MERLIN: "The legendary wizard of Camelot.\nBuffs allies, curses enemies, summons Excalibur strikes.",
 	TowerType.FRANKENSTEIN: "The tragic creature brought to life.\nLightning-charged fist smash with devastating area damage.",
+	TowerType.SHADOW_AUTHOR: "The dark narrator who writes the story.\nMaster of ink and shadow, bends reality to his will.",
 }
 # Survivor grid UI
 var survivor_grid_cards: Array = []  # Array of Button nodes for each character
@@ -186,6 +188,20 @@ var detail_info_close_hover: bool = false
 var survivor_progress: Dictionary = {}  # TowerType -> {level, xp, gear, sidekicks, relics}
 var session_damage: Dictionary = {}  # TowerType -> float, damage dealt this game session
 
+# Mobile support
+var _is_mobile: bool = false
+var _touch_scroll_start_y: float = -1.0
+var _touch_scroll_velocity: float = 0.0
+var _touch_last_y: float = 0.0
+var _input_cooldown: float = 0.0
+var _portrait_hem_offsets: Array = []
+var _portrait_hair_offsets: Array = []
+var _sfx_pool: Array = []
+var _sfx_pool_index: int = 0
+const SFX_POOL_SIZE: int = 8
+var _unique_synergies_ever: Array = []  # Cumulative unique synergies for achievement
+var _cached_enemies: Array = []  # Updated once per frame for performance
+
 # Gear definitions per character
 var survivor_gear = {
 	TowerType.ROBIN_HOOD: {"name": "Longbow", "desc": "Increases arrow range and pierce"},
@@ -199,6 +215,7 @@ var survivor_gear = {
 	TowerType.DRACULA: {"name": "Blood Chalice", "desc": "Life drain heals more and chains to nearby"},
 	TowerType.MERLIN: {"name": "Crystal Staff", "desc": "Spells affect larger area"},
 	TowerType.FRANKENSTEIN: {"name": "Lightning Rod", "desc": "Chain lightning arcs to more targets"},
+	TowerType.SHADOW_AUTHOR: {"name": "Quill of Darkness", "desc": "Ink attacks spread and corrupt faster"},
 }
 
 # Sidekick definitions (3 per character)
@@ -214,6 +231,7 @@ var survivor_sidekicks = {
 	TowerType.DRACULA: [{"name": "Renfield", "desc": "Collects blood from kills for power"}, {"name": "Bat Swarm", "desc": "Attacks enemies in a cloud"}, {"name": "Bride of Dracula", "desc": "Charms enemies to fight each other"}],
 	TowerType.MERLIN: [{"name": "Archimedes", "desc": "Owl spots hidden enemies"}, {"name": "Lady of the Lake", "desc": "Heals and buffs nearest tower"}, {"name": "Young Arthur", "desc": "Extra sword strikes on enemies"}],
 	TowerType.FRANKENSTEIN: [{"name": "Igor", "desc": "Repairs and buffs the Monster"}, {"name": "Lightning Coil", "desc": "Passive chain lightning"}, {"name": "Victor's Notes", "desc": "Kill stacks build faster"}],
+	TowerType.SHADOW_AUTHOR: [{"name": "Ink Familiar", "desc": "Shadow creature attacks nearby enemies"}, {"name": "Torn Pages", "desc": "Scattered pages slow enemies"}, {"name": "Dark Muse", "desc": "Boosts all nearby towers' damage"}],
 }
 
 # Character-specific relic definitions (6 per character, 36 total)
@@ -305,6 +323,14 @@ var survivor_relics = {
 		{"name": "Arctic Ice Shard", "desc": "From the frozen wastes where the tale ended", "effect": "slow", "value": 0.18, "cost": 250, "icon": "ice_crystal"},
 		{"name": "Blind Man's Fiddle", "desc": "The only kindness ever shown to the creature", "effect": "charm", "value": 0.10, "cost": 0, "icon": "old_fiddle"},
 		{"name": "Promethean Spark", "desc": "The fire of creation itself", "effect": "boss_damage", "value": 0.30, "cost": 500, "icon": "lightning_spark"},
+	],
+	TowerType.SHADOW_AUTHOR: [
+		{"name": "Inkwell of Void", "desc": "Ink attacks leave pools of shadow", "effect": "aoe_damage", "value": 0.15, "cost": 0, "icon": "inkwell"},
+		{"name": "Quill of Fate", "desc": "Rewrites enemy destiny with each strike", "effect": "pierce_damage", "value": 0.20, "cost": 100, "icon": "dark_quill"},
+		{"name": "Tome of Endings", "desc": "Every story the Author finishes empowers the next", "effect": "spell_damage", "value": 0.18, "cost": 0, "icon": "dark_tome"},
+		{"name": "Shadow Bookmark", "desc": "Marks a page to return to in times of need", "effect": "cooldown", "value": 0.15, "cost": 250, "icon": "bookmark"},
+		{"name": "Midnight Candle", "desc": "Burns with stories untold, lighting the way", "effect": "range", "value": 0.15, "cost": 0, "icon": "dark_candle"},
+		{"name": "The Final Period", "desc": "The punctuation that ends all tales forever", "effect": "boss_damage", "value": 0.30, "cost": 500, "icon": "period_mark"},
 	],
 }
 # Track which relic slot is hovered/selected for tooltip
@@ -907,6 +933,10 @@ var emporium_sub_message: String = ""
 var emporium_sub_message_timer: float = 0.0
 var _emporium_confirm_index: int = -1
 var _emporium_confirm_timer: float = 0.0
+var _deal_confirm_index: int = -1
+var _deal_confirm_timer: float = 0.0
+var _arena_confirm_index: int = -1
+var _arena_confirm_timer: float = 0.0
 var emporium_items: Dictionary = {}
 
 # Treasure chest opening overlay
@@ -1282,6 +1312,14 @@ const OLD_TO_NEW_LEVEL_MAP = {0:16, 1:17, 2:18, 3:19, 4:20, 5:21, 6:22, 7:23, 8:
 
 func _ready() -> void:
 	add_to_group("main")
+	_is_mobile = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+	# Pre-generate random offsets for portrait drawing (fixes flickering in _draw)
+	var rng_port = RandomNumberGenerator.new()
+	rng_port.seed = 42
+	for _i in range(8):
+		_portrait_hem_offsets.append(rng_port.randf_range(-5, 5))
+	for _i in range(12):
+		_portrait_hair_offsets.append(rng_port.randf_range(5, 15))
 	# Load Cinzel display font for all game text
 	game_font = load("res://fonts/Cinzel.ttf")
 	_init_survivor_progress()
@@ -1466,6 +1504,9 @@ func _get_gear_bonuses(tower_type) -> Dictionary:
 		TowerType.FRANKENSTEIN:
 			bonuses["damage"] = 0.12
 			bonuses["attack_speed"] = 0.08
+		TowerType.SHADOW_AUTHOR:
+			bonuses["damage"] = 0.15
+			bonuses["range"] = 0.10
 	return bonuses
 
 func _get_sidekick_bonuses(tower_type) -> Dictionary:
@@ -1840,8 +1881,7 @@ func _init_trophy_store_items() -> void:
 
 func _init_odyssey_maps() -> void:
 	# Generate 3 maps based on current week number
-	var date = Time.get_date_dict_from_system()
-	var week_seed = date["year"] * 52 + (date["day"] + date["month"] * 31) / 7
+	var week_seed = int(Time.get_unix_time_from_system() / 604800)
 	var rng = RandomNumberGenerator.new()
 	rng.seed = week_seed
 	odyssey_maps.clear()
@@ -1894,8 +1934,11 @@ func _check_synergies() -> void:
 				synergy_banner_text = "SYNERGY: %s — %s" % [syn["name"], syn["desc"]]
 				synergy_banner_timer = 3.0
 				_check_achievement("synergy_seeker", 1)
-	# Track unique synergies for synergy_master achievement
-	_check_achievement("synergy_master", active_synergies.size())
+	# Track cumulative unique synergies for synergy_master achievement
+	for syn_name in active_synergies:
+		if not syn_name in synergies_ever_activated:
+			synergies_ever_activated.append(syn_name)
+	_check_achievement("synergy_master", synergies_ever_activated.size())
 
 # === ACHIEVEMENT SYSTEM ===
 func _check_achievement(id: String, value = 1) -> void:
@@ -1960,10 +2003,13 @@ func _activate_power(power_id: String) -> void:
 		"chapter_skip":
 			# Kill all current enemies, stop spawning
 			enemies_to_spawn = 0
+			var skip_count = 0
 			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if is_instance_valid(enemy):
+					enemy.remove_from_group("enemies")
 					enemy.queue_free()
-					enemies_alive -= 1
+					skip_count += 1
+			enemies_alive = maxi(enemies_alive - skip_count, 0)
 			_check_wave_complete()
 		"enchanted_towers":
 			power_enchanted_timer = 15.0
@@ -2140,15 +2186,17 @@ func _save_game() -> void:
 	for key in level_stars:
 		stars_save[str(key)] = level_stars[key]
 	save_data["level_stars"] = stars_save
-	# Survivor progress (convert TowerType keys to strings)
+	# Survivor progress (use tower name strings for reorder safety)
 	var sp_save: Dictionary = {}
 	for t in survivor_progress:
-		sp_save[str(t)] = survivor_progress[t]
+		var key_name = tower_info[t]["name"] if tower_info.has(t) else str(t)
+		sp_save[key_name] = survivor_progress[t]
 	save_data["survivor_progress"] = sp_save
-	# Equipped relics
+	# Equipped relics (use tower name strings)
 	var eq_save: Dictionary = {}
 	for t in equipped_relics:
-		eq_save[str(t)] = equipped_relics[t]
+		var key_name = tower_info[t]["name"] if tower_info.has(t) else str(t)
+		eq_save[key_name] = equipped_relics[t]
 	save_data["equipped_relics"] = eq_save
 	# Knowledge tree
 	save_data["knowledge_tree"] = knowledge_tree
@@ -2212,25 +2260,52 @@ func _save_game() -> void:
 	save_data["auto_wave_delay"] = auto_wave_delay
 	# Save version
 	save_data["save_version"] = SAVE_VERSION
-	# Write file
-	var file = FileAccess.open(_save_path, FileAccess.WRITE)
+	# Atomic write with backup rotation
+	var save_json = JSON.stringify(save_data, "\t")
+	var tmp_path = _save_path + ".tmp"
+	var file = FileAccess.open(tmp_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(save_data, "\t"))
+		file.store_string(save_json)
 		file.close()
+		# Rotate backups: .bak2 <- .bak1 <- .bak <- current
+		if FileAccess.file_exists(_save_path + ".bak1"):
+			DirAccess.rename_absolute(_save_path + ".bak1", _save_path + ".bak2")
+		if FileAccess.file_exists(_save_path + ".bak"):
+			DirAccess.rename_absolute(_save_path + ".bak", _save_path + ".bak1")
+		if FileAccess.file_exists(_save_path):
+			DirAccess.rename_absolute(_save_path, _save_path + ".bak")
+		# Move temp to final
+		DirAccess.rename_absolute(tmp_path, _save_path)
+	else:
+		push_warning("Failed to save game: could not open %s for writing" % tmp_path)
 
 func _load_game() -> void:
-	if not FileAccess.file_exists(_save_path):
-		return
-	var file = FileAccess.open(_save_path, FileAccess.READ)
-	if not file:
-		return
-	var text = file.get_as_text()
-	file.close()
-	var json = JSON.new()
-	if json.parse(text) != OK:
-		return
-	var data = json.data
-	if not data is Dictionary:
+	# Try main save, then backups in order
+	var paths_to_try = [_save_path, _save_path + ".bak", _save_path + ".bak1", _save_path + ".bak2"]
+	var data: Dictionary = {}
+	var loaded = false
+	for try_path in paths_to_try:
+		if not FileAccess.file_exists(try_path):
+			continue
+		var file = FileAccess.open(try_path, FileAccess.READ)
+		if not file:
+			continue
+		var text = file.get_as_text()
+		file.close()
+		if text.is_empty():
+			continue
+		var json = JSON.new()
+		if json.parse(text) != OK:
+			push_warning("Save file corrupted: %s, trying backup..." % try_path)
+			continue
+		if not json.data is Dictionary:
+			continue
+		data = json.data
+		loaded = true
+		if try_path != _save_path:
+			push_warning("Loaded from backup: %s" % try_path)
+		break
+	if not loaded:
 		return
 	# Save migration: v1 (old 18 levels at 0-17) -> v2 (shifted to 16-33)
 	var save_ver = int(data.get("save_version", 1))
@@ -2291,33 +2366,49 @@ func _load_game() -> void:
 		level_stars[int(key)] = int(ls[key])
 	# Survivor progress
 	var sp = data.get("survivor_progress", {})
+	# Build name→TowerType reverse lookup for name-based save keys
+	var _name_to_type: Dictionary = {}
+	for tt in tower_info:
+		_name_to_type[tower_info[tt]["name"]] = tt
 	for key in sp:
-		var t = int(key)
-		if survivor_progress.has(t):
-			var saved = sp[key]
-			var loaded_level = int(saved.get("level", 1))
-			# Migration: cap level at MAX_SURVIVOR_LEVEL
-			if loaded_level > MAX_SURVIVOR_LEVEL:
-				loaded_level = MAX_SURVIVOR_LEVEL
-			survivor_progress[t]["level"] = loaded_level
-			survivor_progress[t]["xp"] = float(saved.get("xp", 0.0))
-			# Migration: recalculate xp_next from new HERO_XP_TABLE instead of old 500*level
-			survivor_progress[t]["xp_next"] = _get_xp_for_level(loaded_level)
-			survivor_progress[t]["gear_unlocked"] = bool(saved.get("gear_unlocked", false))
-			survivor_progress[t]["total_damage"] = float(saved.get("total_damage", 0.0))
-			var sk = saved.get("sidekicks_unlocked", [false, false, false])
-			for i in range(mini(sk.size(), 3)):
-				survivor_progress[t]["sidekicks_unlocked"][i] = bool(sk[i])
-			var rl = saved.get("relics_unlocked", [false, false, false, false, false, false])
-			for i in range(mini(rl.size(), 6)):
-				survivor_progress[t]["relics_unlocked"][i] = bool(rl[i])
-			var ab = saved.get("abilities_unlocked", [])
-			for i in range(mini(ab.size(), 9)):
-				survivor_progress[t]["abilities_unlocked"][i] = bool(ab[i])
-	# Equipped relics
+		# Support both old int keys (str(0)) and new name keys ("Robin Hood")
+		var t: int = -1
+		if key.is_valid_int():
+			t = int(key)
+		elif _name_to_type.has(key):
+			t = _name_to_type[key]
+		if t < 0 or not survivor_progress.has(t):
+			continue
+		var saved = sp[key]
+		var loaded_level = int(saved.get("level", 1))
+		# Migration: cap level at MAX_SURVIVOR_LEVEL
+		if loaded_level > MAX_SURVIVOR_LEVEL:
+			loaded_level = MAX_SURVIVOR_LEVEL
+		survivor_progress[t]["level"] = loaded_level
+		survivor_progress[t]["xp"] = float(saved.get("xp", 0.0))
+		# Migration: recalculate xp_next from new HERO_XP_TABLE instead of old 500*level
+		survivor_progress[t]["xp_next"] = _get_xp_for_level(loaded_level)
+		survivor_progress[t]["gear_unlocked"] = bool(saved.get("gear_unlocked", false))
+		survivor_progress[t]["total_damage"] = float(saved.get("total_damage", 0.0))
+		var sk = saved.get("sidekicks_unlocked", [false, false, false])
+		for i in range(mini(sk.size(), 3)):
+			survivor_progress[t]["sidekicks_unlocked"][i] = bool(sk[i])
+		var rl = saved.get("relics_unlocked", [false, false, false, false, false, false])
+		for i in range(mini(rl.size(), 6)):
+			survivor_progress[t]["relics_unlocked"][i] = bool(rl[i])
+		var ab = saved.get("abilities_unlocked", [])
+		for i in range(mini(ab.size(), 9)):
+			survivor_progress[t]["abilities_unlocked"][i] = bool(ab[i])
+	# Equipped relics (supports both int and name keys)
 	var eq = data.get("equipped_relics", {})
 	for key in eq:
-		var t = int(key)
+		var t: int = -1
+		if key.is_valid_int():
+			t = int(key)
+		elif _name_to_type.has(key):
+			t = _name_to_type[key]
+		if t < 0:
+			continue
 		equipped_relics[t] = []
 		for v in eq[key]:
 			equipped_relics[t].append(int(v))
@@ -3065,7 +3156,7 @@ func _create_ui() -> void:
 	menu_exit_button = Button.new()
 	menu_exit_button.text = "  MENU  "
 	menu_exit_button.position = Vector2(1180, 6)
-	menu_exit_button.custom_minimum_size = Vector2(88, 38)
+	menu_exit_button.custom_minimum_size = Vector2(88, 48)
 	menu_exit_button.pressed.connect(_show_menu)
 	top_bar.add_child(menu_exit_button)
 
@@ -3129,42 +3220,42 @@ func _create_ui() -> void:
 	start_button = Button.new()
 	start_button.text = "  START WAVE  "
 	start_button.position = Vector2(960, 4)
-	start_button.custom_minimum_size = Vector2(160, 34)
+	start_button.custom_minimum_size = Vector2(160, 48)
 	start_button.pressed.connect(_on_start_wave_pressed)
 	bottom_panel.add_child(start_button)
 
 	speed_button = Button.new()
 	speed_button.text = "  >>  "
 	speed_button.position = Vector2(1126, 2)
-	speed_button.custom_minimum_size = Vector2(72, 38)
+	speed_button.custom_minimum_size = Vector2(72, 48)
 	speed_button.pressed.connect(_on_speed_pressed)
 	bottom_panel.add_child(speed_button)
 
 	restart_button = Button.new()
 	restart_button.text = "  ↺  "
 	restart_button.position = Vector2(1202, 2)
-	restart_button.custom_minimum_size = Vector2(72, 38)
+	restart_button.custom_minimum_size = Vector2(72, 48)
 	restart_button.pressed.connect(_on_restart_pressed)
 	bottom_panel.add_child(restart_button)
 
 	sfx_mute_button = Button.new()
 	sfx_mute_button.text = " SFX "
 	sfx_mute_button.position = Vector2(1126, 42)
-	sfx_mute_button.custom_minimum_size = Vector2(72, 38)
+	sfx_mute_button.custom_minimum_size = Vector2(72, 48)
 	sfx_mute_button.pressed.connect(_on_sfx_mute_pressed)
 	bottom_panel.add_child(sfx_mute_button)
 
 	voice_mute_button = Button.new()
 	voice_mute_button.text = " VOX "
 	voice_mute_button.position = Vector2(1202, 42)
-	voice_mute_button.custom_minimum_size = Vector2(72, 38)
+	voice_mute_button.custom_minimum_size = Vector2(72, 48)
 	voice_mute_button.pressed.connect(_on_voice_mute_pressed)
 	bottom_panel.add_child(voice_mute_button)
 
 	auto_wave_btn = Button.new()
 	auto_wave_btn.text = " AUTO " if auto_wave_enabled else " [AUTO] "
 	auto_wave_btn.position = Vector2(1050, 46)
-	auto_wave_btn.custom_minimum_size = Vector2(72, 38)
+	auto_wave_btn.custom_minimum_size = Vector2(72, 48)
 	auto_wave_btn.pressed.connect(_on_auto_wave_toggled)
 	bottom_panel.add_child(auto_wave_btn)
 
@@ -3222,7 +3313,7 @@ func _create_ui() -> void:
 	var subtitle = Label.new()
 	subtitle.text = "YOUR TOWER REACHED 1500 DAMAGE! PICK A SPECIAL ABILITY:"
 	subtitle.position = Vector2(20, 45)
-	subtitle.add_theme_font_size_override("font_size", 13)
+	subtitle.add_theme_font_size_override("font_size", 14)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
 	ability_panel.add_child(subtitle)
 
@@ -3238,7 +3329,7 @@ func _create_ui() -> void:
 	upgrade_panel = ColorRect.new()
 	upgrade_panel.color = Color(0.08, 0.05, 0.12, 0.95)
 	upgrade_panel.position = Vector2(1080, 15)
-	upgrade_panel.size = Vector2(200, 650)
+	upgrade_panel.size = Vector2(200, 678)
 	upgrade_panel.visible = false
 	ui.add_child(upgrade_panel)
 
@@ -3246,7 +3337,7 @@ func _create_ui() -> void:
 	var upg_border = ColorRect.new()
 	upg_border.color = Color(0.85, 0.65, 0.1, 0.5)
 	upg_border.position = Vector2(-2, -2)
-	upg_border.size = Vector2(204, 654)
+	upg_border.size = Vector2(204, 682)
 	upg_border.z_index = -1
 	upgrade_panel.add_child(upg_border)
 
@@ -3280,9 +3371,18 @@ func _create_ui() -> void:
 	portrait_border.z_index = -1
 	upgrade_panel.add_child(portrait_border)
 
+	# Targeting priority button (between portrait and upgrades)
+	targeting_button = Button.new()
+	targeting_button.text = "Target: FIRST"
+	targeting_button.position = Vector2(20, 134)
+	targeting_button.custom_minimum_size = Vector2(160, 30)
+	targeting_button.add_theme_font_size_override("font_size", 13)
+	targeting_button.pressed.connect(_on_targeting_pressed)
+	upgrade_panel.add_child(targeting_button)
+
 	# 4 upgrade slots stacked vertically
 	for i in range(4):
-		var slot_y = 145 + i * 100
+		var slot_y = 170 + i * 100
 
 		# Status background rect (changes color based on state)
 		var status_rect = ColorRect.new()
@@ -3304,14 +3404,14 @@ func _create_ui() -> void:
 		var tier_label = Label.new()
 		tier_label.text = str(i + 1)
 		tier_label.position = Vector2(6, 4)
-		tier_label.add_theme_font_size_override("font_size", 12)
+		tier_label.add_theme_font_size_override("font_size", 14)
 		tier_label.add_theme_color_override("font_color", Color(0.6, 0.5, 0.7))
 		status_rect.add_child(tier_label)
 
 		# Upgrade button (clickable area)
 		var upg_btn = Button.new()
 		upg_btn.position = Vector2(4, 2)
-		upg_btn.custom_minimum_size = Vector2(172, 30)
+		upg_btn.custom_minimum_size = Vector2(172, 48)
 		upg_btn.flat = true
 		upg_btn.pressed.connect(_on_upgrade_tier_pressed.bind(i))
 		status_rect.add_child(upg_btn)
@@ -3322,7 +3422,7 @@ func _create_ui() -> void:
 		desc_label.position = Vector2(6, 30)
 		desc_label.size = Vector2(168, 32)
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		desc_label.add_theme_font_size_override("font_size", 11)
+		desc_label.add_theme_font_size_override("font_size", 14)
 		desc_label.add_theme_color_override("font_color", Color(0.75, 0.72, 0.80, 0.8))
 		status_rect.add_child(desc_label)
 		upgrade_desc_labels.append(desc_label)
@@ -3332,7 +3432,7 @@ func _create_ui() -> void:
 		cost_label.position = Vector2(4, 64)
 		cost_label.size = Vector2(172, 20)
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		cost_label.add_theme_font_size_override("font_size", 13)
+		cost_label.add_theme_font_size_override("font_size", 14)
 		cost_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 		status_rect.add_child(cost_label)
 		upgrade_cost_labels.append(cost_label)
@@ -3340,17 +3440,17 @@ func _create_ui() -> void:
 	# Sell button at bottom
 	sell_button = Button.new()
 	sell_button.text = "SELL"
-	sell_button.position = Vector2(20, 560)
+	sell_button.position = Vector2(20, 588)
 	sell_button.custom_minimum_size = Vector2(160, 44)
 	sell_button.pressed.connect(_on_sell_pressed)
 	upgrade_panel.add_child(sell_button)
 
 	# Sell value label
 	sell_value_label = Label.new()
-	sell_value_label.position = Vector2(20, 608)
+	sell_value_label.position = Vector2(20, 636)
 	sell_value_label.size = Vector2(160, 20)
 	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sell_value_label.add_theme_font_size_override("font_size", 12)
+	sell_value_label.add_theme_font_size_override("font_size", 14)
 	sell_value_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	upgrade_panel.add_child(sell_value_label)
 
@@ -3448,7 +3548,7 @@ func _create_ui() -> void:
 	menu_level_stats_label.position = Vector2(60, 380)
 	menu_level_stats_label.size = Vector2(460, 60)
 	menu_level_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	menu_level_stats_label.add_theme_font_size_override("font_size", 13)
+	menu_level_stats_label.add_theme_font_size_override("font_size", 14)
 	menu_level_stats_label.add_theme_color_override("font_color", Color(0.45, 0.35, 0.25))
 	menu_level_stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	menu_showcase_panel.add_child(menu_level_stats_label)
@@ -3478,15 +3578,6 @@ func _create_ui() -> void:
 	menu_right_arrow.pressed.connect(_on_menu_right)
 	menu_showcase_panel.add_child(menu_right_arrow)
 
-	# PLAY button — hidden, replaced by chapter buttons
-	menu_play_button = Button.new()
-	menu_play_button.text = "  PLAY  "
-	menu_play_button.position = Vector2(250, 250)
-	menu_play_button.custom_minimum_size = Vector2(200, 60)
-	menu_play_button.pressed.connect(_on_menu_play)
-	menu_play_button.visible = false
-	menu_showcase_panel.add_child(menu_play_button)
-
 	# --- RIGHT PAGE: 3 Chapter cards ---
 	for i in range(3):
 		var card_y = 30 + i * 165
@@ -3505,7 +3596,7 @@ func _create_ui() -> void:
 		var ch_desc = Label.new()
 		ch_desc.position = Vector2(card_x, card_y + 28)
 		ch_desc.size = Vector2(340, 50)
-		ch_desc.add_theme_font_size_override("font_size", 12)
+		ch_desc.add_theme_font_size_override("font_size", 14)
 		ch_desc.add_theme_color_override("font_color", Color(0.4, 0.35, 0.28))
 		ch_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		menu_showcase_panel.add_child(ch_desc)
@@ -3515,7 +3606,7 @@ func _create_ui() -> void:
 		var ch_stat = Label.new()
 		ch_stat.position = Vector2(card_x, card_y + 82)
 		ch_stat.size = Vector2(300, 20)
-		ch_stat.add_theme_font_size_override("font_size", 11)
+		ch_stat.add_theme_font_size_override("font_size", 14)
 		ch_stat.add_theme_color_override("font_color", Color(0.4, 0.55, 0.35))
 		menu_showcase_panel.add_child(ch_stat)
 		chapter_stat_labels.append(ch_stat)
@@ -3534,7 +3625,7 @@ func _create_ui() -> void:
 		ch_lock.position = Vector2(card_x + 220, card_y + 104)
 		ch_lock.size = Vector2(120, 22)
 		ch_lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		ch_lock.add_theme_font_size_override("font_size", 12)
+		ch_lock.add_theme_font_size_override("font_size", 14)
 		menu_showcase_panel.add_child(ch_lock)
 		chapter_lock_labels.append(ch_lock)
 
@@ -3547,7 +3638,7 @@ func _create_ui() -> void:
 			diff_btn.text = diff_labels[d]
 			diff_btn.position = Vector2(card_x + 290 + d * 72, card_y + 76)
 			diff_btn.custom_minimum_size = Vector2(66, 44)
-			diff_btn.add_theme_font_size_override("font_size", 12)
+			diff_btn.add_theme_font_size_override("font_size", 14)
 			diff_btn.pressed.connect(_on_chapter_play.bind(i, d))
 			menu_showcase_panel.add_child(diff_btn)
 			ch_diff_btns.append(diff_btn)
@@ -3592,7 +3683,7 @@ func _create_ui() -> void:
 		nav_lbl.position = Vector2(btn_x - 20, 64)
 		nav_lbl.size = Vector2(100, 20)
 		nav_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nav_lbl.add_theme_font_size_override("font_size", 12)
+		nav_lbl.add_theme_font_size_override("font_size", 14)
 		nav_lbl.add_theme_color_override("font_color", Color(0.65, 0.60, 0.52))
 		nav_bar.add_child(nav_lbl)
 		menu_nav_labels.append(nav_lbl)
@@ -3615,7 +3706,7 @@ func _create_ui() -> void:
 
 	# Title is drawn procedurally in _draw_survivor_grid() now
 
-	# Create 11 character cards: row 1 = 6 cards, row 2 = 5 cards (centered)
+	# Create 12 character cards: row 1 = 6 cards, row 2 = 6 cards (centered)
 	survivor_grid_cards.clear()
 	var card_w = 170.0
 	var card_h = 230.0
@@ -3635,7 +3726,7 @@ func _create_ui() -> void:
 		else:
 			row_i = 1
 			col_i = i - 6
-			cards_in_row = 5
+			cards_in_row = survivor_types.size() - 6
 		var row_w = float(cards_in_row) * card_w + float(cards_in_row - 1) * gap_x
 		var row_x = grid_panel_x + (grid_panel_w - row_w) * 0.5
 		var cx = row_x + float(col_i) * (card_w + gap_x)
@@ -3662,7 +3753,7 @@ func _create_ui() -> void:
 	survivor_detail_back_btn = Button.new()
 	survivor_detail_back_btn.text = "  < SURVIVORS  "
 	survivor_detail_back_btn.position = Vector2(75, 42)
-	survivor_detail_back_btn.custom_minimum_size = Vector2(120, 28)
+	survivor_detail_back_btn.custom_minimum_size = Vector2(140, 48)
 	survivor_detail_back_btn.flat = true
 	survivor_detail_back_btn.pressed.connect(_on_detail_back)
 	survivor_detail_container.add_child(survivor_detail_back_btn)
@@ -3770,7 +3861,7 @@ func _show_menu() -> void:
 	survivor_selected_index = -1
 	survivor_detail_index = -1
 	menu_current_view = "chapters"
-	menu_play_button.visible = false
+
 	menu_left_arrow.visible = false
 	menu_right_arrow.visible = false
 	menu_showcase_panel.visible = false
@@ -3950,8 +4041,18 @@ func _on_menu_right() -> void:
 			menu_character_index += 1
 			_update_menu_showcase()
 
-func _on_menu_play() -> void:
-	pass  # Unused — chapter buttons handle play now
+func _get_action_text() -> String:
+	return "Tap" if _is_mobile else "Click"
+
+func _get_safe_area_margins() -> Dictionary:
+	var screen = DisplayServer.screen_get_size()
+	var safe = DisplayServer.get_display_safe_area()
+	return {
+		"left": safe.position.x,
+		"top": safe.position.y,
+		"right": screen.x - safe.end.x,
+		"bottom": screen.y - safe.end.y
+	}
 
 func _on_nav_pressed(nav_name: String) -> void:
 	_play_sfx(_sfx_ui_click)
@@ -3971,7 +4072,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	if nav_name == "chapters":
 		menu_showcase_panel.visible = false
 		survivor_grid_container.visible = false
-		menu_play_button.visible = false
+	
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		# Hide old chapter UI — we draw everything procedurally now
@@ -3989,7 +4090,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 		survivor_grid_container.visible = false
 		survivor_detail_container.visible = false
 		survivor_detail_open = false
-		menu_play_button.visible = false
+	
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		# Hide chapter UI
@@ -4004,7 +4105,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	elif nav_name == "relics":
 		menu_showcase_panel.visible = false
 		survivor_grid_container.visible = false
-		menu_play_button.visible = false
+	
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		for i in range(3):
@@ -4021,7 +4122,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	elif nav_name == "emporium":
 		menu_showcase_panel.visible = false
 		survivor_grid_container.visible = false
-		menu_play_button.visible = false
+	
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		for i in range(3):
@@ -4036,7 +4137,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	elif nav_name == "chronicles":
 		menu_showcase_panel.visible = false
 		survivor_grid_container.visible = false
-		menu_play_button.visible = false
+	
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		for i in range(3):
@@ -4052,7 +4153,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	elif nav_name == "achievements":
 		menu_showcase_panel.visible = false
 		survivor_grid_container.visible = false
-		menu_play_button.visible = false
+	
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		for i in range(3):
@@ -4070,7 +4171,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 		menu_level_desc_label.text = "Coming Soon!"
 		menu_level_stats_label.text = "This feature is being written into the pages..."
 		menu_level_stars_label.text = ""
-		menu_play_button.visible = false
+	
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		for i in range(3):
@@ -4542,9 +4643,9 @@ func _on_relic_clicked(relic_index: int) -> void:
 	if char_level < relic_earn_levels[relic_index]:
 		return
 	var cost = relic_costs[relic_index]
-	if gold < cost:
+	if player_gold < cost:
 		return
-	gold -= cost
+	player_gold -= cost
 	progress["relics_unlocked"][relic_index] = true
 	_save_game()
 	_open_survivor_detail(survivor_detail_index)
@@ -4654,10 +4755,10 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 				_save_game()
 				queue_redraw()
 			elif relic_purchasable[ri] and char_level >= relic_earn_levels[ri]:
-				# Purchase with gold
+				# Purchase with persistent gold
 				var cost = relic_costs[ri]
-				if gold >= cost:
-					gold -= cost
+				if player_gold >= cost:
+					player_gold -= cost
 					progress["relics_unlocked"][ri] = true
 					_save_game()
 					queue_redraw()
@@ -4693,22 +4794,17 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 				continue
 			var bx = right_x + float(bcol) * (card_w + 8)
 			var by = browse_y + float(brow) * (card_h + 3) - detail_binding_scroll
-			if by > panel_y + 570.0 - 20:
-				bcol += 1
-				if bcol >= 3:
-					bcol = 0
-					brow += 1
-				continue
-			if by >= browse_y - card_h and Rect2(bx, by, card_w, card_h).has_point(mouse_pos):
-				var is_eq = b["id"] in eq_bindings
-				if is_eq:
-					eq_bindings.erase(b["id"])
-				elif eq_bindings.size() < bind_slots:
-					eq_bindings.append(b["id"])
-				equipped_bindings[tower_type] = eq_bindings
-				_save_game()
-				queue_redraw()
-				return
+			if by >= browse_y - card_h and by <= panel_y + 570.0 - 20:
+				if Rect2(bx, by, card_w, card_h).has_point(mouse_pos):
+					var is_eq = b["id"] in eq_bindings
+					if is_eq:
+						eq_bindings.erase(b["id"])
+					elif eq_bindings.size() < bind_slots:
+						eq_bindings.append(b["id"])
+					equipped_bindings[tower_type] = eq_bindings
+					_save_game()
+					queue_redraw()
+					return
 			bcol += 1
 			if bcol >= 3:
 				bcol = 0
@@ -4802,12 +4898,14 @@ func _spawn_grid_previews() -> void:
 	var gap_y = 30.0
 	var panel_x = 70.0
 	var panel_y = 45.0
-	for i in range(6):
+	for i in range(survivor_types.size()):
 		var col_i = i % 3
 		var row_i = i / 3
 		var cx = panel_x + grid_margin_x + float(col_i) * (card_w + gap_x)
 		var cy = panel_y + grid_margin_y + float(row_i) * (card_h + gap_y)
 		var tower_type = survivor_types[i]
+		if not tower_scenes.has(tower_type):
+			continue
 		var preview = tower_scenes[tower_type].instantiate()
 		preview.position = Vector2(cx + 70, cy + 115)
 		preview.scale = Vector2(1.8, 1.8)
@@ -5480,10 +5578,15 @@ func _setup_audio() -> void:
 	_load_voice_clips()
 	_init_catchphrase_quotes()
 
-	# UI / Gameplay SFX player + generation
+	# UI / Gameplay SFX player pool (prevents sounds cutting each other off)
 	_sfx_player = AudioStreamPlayer.new()
 	_sfx_player.volume_db = -4.0
 	add_child(_sfx_player)
+	for _i in range(SFX_POOL_SIZE):
+		var pool_player = AudioStreamPlayer.new()
+		pool_player.volume_db = -4.0
+		add_child(pool_player)
+		_sfx_pool.append(pool_player)
 	_generate_ui_sfx()
 
 func _load_music_tracks() -> void:
@@ -5806,10 +5909,16 @@ func _generate_ui_sfx() -> void:
 	_sfx_life_lost.data = ll_data
 
 func _play_sfx(clip: AudioStreamWAV) -> void:
-	if sfx_muted or clip == null or _sfx_player == null:
+	if sfx_muted or clip == null:
 		return
-	_sfx_player.stream = clip
-	_sfx_player.play()
+	if _sfx_pool.size() > 0:
+		var player = _sfx_pool[_sfx_pool_index]
+		_sfx_pool_index = (_sfx_pool_index + 1) % _sfx_pool.size()
+		player.stream = clip
+		player.play()
+	elif _sfx_player != null:
+		_sfx_player.stream = clip
+		_sfx_player.play()
 
 # === STORY DIALOG ENGINE ===
 
@@ -6296,7 +6405,8 @@ func _advance_story_dialog() -> void:
 		queue_redraw()
 		return
 	# Advance to next line — stop current TTS first
-	DisplayServer.tts_stop()
+	if DisplayServer.tts_get_voices().size() > 0:
+		DisplayServer.tts_stop()
 	story_state.line_index += 1
 	if story_state.line_index >= lines.size():
 		_end_story_dialog()
@@ -6308,7 +6418,8 @@ func _advance_story_dialog() -> void:
 	queue_redraw()
 
 func _end_story_dialog() -> void:
-	DisplayServer.tts_stop()
+	if DisplayServer.tts_get_voices().size() > 0:
+		DisplayServer.tts_stop()
 	var key = story_state.current_dialog
 	if key != "" and not key in story_seen:
 		story_seen.append(key)
@@ -6370,7 +6481,7 @@ func _play_story_voice() -> void:
 				narrator_idx += 1
 		var clip_key = key + "_" + str(narrator_idx)
 		if shadow_author_story_clips.has(clip_key):
-			DisplayServer.tts_stop()
+			catchphrase_player.stop()
 			catchphrase_player.stream = shadow_author_story_clips[clip_key]
 			catchphrase_player.play()
 			return
@@ -6385,33 +6496,34 @@ func _play_story_voice() -> void:
 		# Check for character-specific story clip: audio/voices/{character}/{dialog_key}_{index}.mp3
 		var char_clip_key = key + "_" + speaker + "_" + str(speaker_idx)
 		if character_story_clips.has(char_clip_key):
-			DisplayServer.tts_stop()
+			catchphrase_player.stop()
 			catchphrase_player.stream = character_story_clips[char_clip_key]
 			catchphrase_player.play()
 			return
 	# Play a random existing ElevenLabs clip for this character (placement or fighting voice)
 	# This ensures the character's assigned voice is heard during story narration
 	if speaker_to_tower.has(speaker):
-		var tower_type: TowerType = speaker_to_tower[speaker]
+		var tt: TowerType = speaker_to_tower[speaker]
 		var clips_pool: Array = []
-		if placement_voice_clips.has(tower_type):
-			clips_pool.append_array(placement_voice_clips[tower_type])
-		if fighting_voice_clips.has(tower_type):
-			clips_pool.append_array(fighting_voice_clips[tower_type])
+		if placement_voice_clips.has(tt):
+			clips_pool.append_array(placement_voice_clips[tt])
+		if fighting_voice_clips.has(tt):
+			clips_pool.append_array(fighting_voice_clips[tt])
 		if clips_pool.size() > 0:
-			DisplayServer.tts_stop()
+			catchphrase_player.stop()
 			catchphrase_player.stream = clips_pool[randi() % clips_pool.size()]
 			catchphrase_player.play()
 			return
-	# Final fallback: Windows TTS (only if no ElevenLabs clips exist at all)
-	DisplayServer.tts_stop()
-	DisplayServer.tts_speak(text, "", 80, 1.0, 1.0, 0, true)
+	# Final fallback: TTS (only if no ElevenLabs clips exist at all)
+	if DisplayServer.tts_get_voices().size() > 0:
+		DisplayServer.tts_stop()
+		DisplayServer.tts_speak(text, "", 80, 1.0, 1.0, 0, true)
 
 func _on_story_dialog_clicked(_mouse_pos: Vector2) -> void:
 	if not story_state.active:
 		return
 	# Check skip button (top-right corner)
-	var skip_rect = Rect2(1140, 20, 120, 40)
+	var skip_rect = Rect2(1140, 20, 120, 36)
 	if skip_rect.has_point(_mouse_pos):
 		_end_story_dialog()
 		return
@@ -6469,14 +6581,14 @@ func _draw_story_dialog() -> void:
 	# === FULL-SCREEN CINEMATIC OVERLAY ===
 	# Dark background with vignette
 	draw_rect(Rect2(0, 0, 1280, 720), Color(0.015, 0.01, 0.035, 0.92))
-	# Vignette corners (darkened edges for cinematic feel)
-	for vi in range(60):
-		var vt = float(vi) / 59.0
+	# Vignette corners — reduced iterations for mobile GPU performance (15 instead of 60)
+	for vi in range(15):
+		var vt = float(vi) / 14.0
 		var va = 0.35 * (1.0 - vt)
-		draw_rect(Rect2(0, vi * 2, 1280, 2), Color(0.0, 0.0, 0.0, va))
-		draw_rect(Rect2(0, 720 - vi * 2, 1280, 2), Color(0.0, 0.0, 0.0, va))
-		draw_rect(Rect2(vi * 3, 0, 3, 720), Color(0.0, 0.0, 0.0, va * 0.3))
-		draw_rect(Rect2(1280 - vi * 3, 0, 3, 720), Color(0.0, 0.0, 0.0, va * 0.3))
+		draw_rect(Rect2(0, vi * 8, 1280, 8), Color(0.0, 0.0, 0.0, va))
+		draw_rect(Rect2(0, 720 - vi * 8, 1280, 8), Color(0.0, 0.0, 0.0, va))
+		draw_rect(Rect2(vi * 12, 0, 12, 720), Color(0.0, 0.0, 0.0, va * 0.3))
+		draw_rect(Rect2(1280 - vi * 12, 0, 12, 720), Color(0.0, 0.0, 0.0, va * 0.3))
 
 	# === CHARACTER-SPECIFIC ATMOSPHERE COLOR ===
 	var char_glow = _get_character_glow_color(speaker)
@@ -6575,11 +6687,11 @@ func _draw_story_dialog() -> void:
 			Vector2(arrow_x - 8, arrow_y + bounce), Vector2(arrow_x + 8, arrow_y + bounce),
 			Vector2(arrow_x, arrow_y + 10 + bounce)
 		]), Color(char_glow.r, char_glow.g, char_glow.b, tap_alpha))
-		_udraw(font, Vector2(arrow_x - 50, arrow_y - 6), "Continue", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.6, 0.45, tap_alpha))
+		_udraw(font, Vector2(arrow_x - 50, arrow_y - 6), "Continue", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.7, 0.6, 0.45, tap_alpha))
 
 	# === LINE COUNTER (subtle, bottom-right) ===
 	var line_count_text = "%d / %d" % [story_state.line_index + 1, dlines.size()]
-	_udraw(font, Vector2(1220, panel_y + panel_h - 8), line_count_text, HORIZONTAL_ALIGNMENT_RIGHT, 60, 11, Color(0.4, 0.35, 0.3, 0.45))
+	_udraw(font, Vector2(1220, panel_y + panel_h - 8), line_count_text, HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, Color(0.4, 0.35, 0.3, 0.45))
 
 	# === SKIP BUTTON (clean, top-right) ===
 	var skip_x = 1140.0
@@ -6588,7 +6700,7 @@ func _draw_story_dialog() -> void:
 	draw_rect(Rect2(skip_x, skip_y, 120, 36), Color(0.5, 0.4, 0.3, 0.3), false, 1.0)
 	var skip_text = "SKIP >>"
 	var skip_tw = font.get_string_size(skip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-	_udraw(font, Vector2(skip_x + (120 - skip_tw) * 0.5, skip_y + 24), skip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.7, 0.6, 0.45, 0.7))
+	_udraw(font, Vector2(skip_x + (120 - skip_tw) * 0.5, skip_y + 24), skip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.7, 0.6, 0.45, 0.7))
 
 func _get_character_glow_color(speaker: String) -> Color:
 	match speaker:
@@ -6647,10 +6759,11 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			for fi in range(4):
 				var fxx = cx - 15*s + float(fi) * 10*s
 				draw_line(Vector2(fxx, cy + 15*s), Vector2(fxx, cy + 22*s), Color(0.75, 0.7, 0.65, 0.5), 2*s)
-			# Tattered hem
+			# Tattered hem (pre-calculated offsets to avoid flicker)
 			for ti in range(8):
 				var tx = cx - 70*s + float(ti) * 20*s
-				draw_line(Vector2(tx, cy + 140*s), Vector2(tx + randf_range(-5, 5)*s, cy + 155*s), Color(0.04, 0.03, 0.06, 0.4), 1.5*s)
+				var hem_off = _portrait_hem_offsets[ti] if ti < _portrait_hem_offsets.size() else 0.0
+				draw_line(Vector2(tx, cy + 140*s), Vector2(tx + hem_off*s, cy + 155*s), Color(0.04, 0.03, 0.06, 0.4), 1.5*s)
 		"robin_hood":
 			# Full body — Lincoln green tunic, feathered cap, bow
 			# Legs
@@ -6959,10 +7072,11 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_line(Vector2(cx - 68*s, cy - 100*s), Vector2(cx - 55*s, cy - 110*s), Color(0.25, 0.5, 0.15, 0.5), 2*s)
 			# Head
 			draw_circle(Vector2(cx, cy - 52*s), 22*s, Color(0.58, 0.42, 0.3))
-			# Wild hair
+			# Wild hair (pre-calculated offsets to avoid flicker)
 			for hi in range(12):
 				var ha = -PI * 0.8 + float(hi) * PI * 0.15
-				var hr = (25 + randf_range(5, 15)) * s
+				var hair_off = _portrait_hair_offsets[hi] if hi < _portrait_hair_offsets.size() else 10.0
+				var hr = (25 + hair_off) * s
 				draw_line(Vector2(cx, cy - 65*s), Vector2(cx, cy - 65*s) + Vector2.from_angle(ha) * hr, Color(0.25, 0.15, 0.05, 0.7), 2.5*s)
 			# Eyes — fierce
 			draw_circle(Vector2(cx - 8*s, cy - 55*s), 3*s, Color(0.35, 0.25, 0.1))
@@ -7736,6 +7850,16 @@ func _play_shadow_author_taunt() -> void:
 	if idx < _shadow_fight_quotes.size():
 		info_label.text = "The Shadow Author: \"%s\"" % _shadow_fight_quotes[idx]
 
+func _draw_scroll_indicator(x: float, y: float, height: float, scroll_pos: float, content_height: float, visible_height: float) -> void:
+	if content_height <= visible_height:
+		return
+	var bar_h = height
+	var thumb_h = maxf(20.0, bar_h * (visible_height / content_height))
+	var scroll_ratio = clampf(scroll_pos / (content_height - visible_height), 0.0, 1.0)
+	var thumb_y = y + scroll_ratio * (bar_h - thumb_h)
+	draw_rect(Rect2(x, y, 4, bar_h), Color(1, 1, 1, 0.08))
+	draw_rect(Rect2(x, thumb_y, 4, thumb_h), Color(1, 1, 1, 0.25))
+
 func _draw_currency_bar() -> void:
 	var font = game_font
 	var bar_y = 0.0
@@ -7780,11 +7904,11 @@ func _draw_currency_bar() -> void:
 		draw_circle(Vector2(cx, ic_y), 11, Color(cc.r, cc.g, cc.b, 0.18))
 		draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
 		draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
-		_udraw(font, Vector2(cx, bar_y + 22), c["icon"], HORIZONTAL_ALIGNMENT_CENTER, 20, 12, cc)
+		_udraw(font, Vector2(cx, bar_y + 22), c["icon"], HORIZONTAL_ALIGNMENT_CENTER, 20, 15, cc)
 		# Value — shadow + bright text (with thousands separator)
 		var val_str = _format_gold(c["value"])
-		_udraw(font, Vector2(cx + 16, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, 13, Color(0, 0, 0, 0.5))
-		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, 13, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95))
+		_udraw(font, Vector2(cx + 16, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, 16, Color(0, 0, 0, 0.5))
+		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, 16, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95))
 		cx += 130.0
 
 	# Total stars on far right
@@ -8166,7 +8290,7 @@ func _draw_relics_tab() -> void:
 		if sec_y + 20 > content_top and sec_y < content_bottom:
 			draw_rect(Rect2(grid_left, sec_y, panel_w - 36, 20), Color(rc.r, rc.g, rc.b, 0.12))
 			draw_rect(Rect2(grid_left, sec_y, panel_w - 36, 1), Color(rc.r, rc.g, rc.b, 0.4))
-			_udraw(font, Vector2(grid_left + 10, sec_y + 14), rarity_names[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(rc.r, rc.g, rc.b, 0.9))
+			_udraw(font, Vector2(grid_left + 10, sec_y + 14), rarity_names[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(rc.r, rc.g, rc.b, 0.9))
 			var gem_x = grid_left + panel_w - 56
 			var gem_y = sec_y + 10
 			draw_colored_polygon(PackedVector2Array([Vector2(gem_x, gem_y - 5), Vector2(gem_x + 5, gem_y), Vector2(gem_x, gem_y + 5), Vector2(gem_x - 5, gem_y)]), Color(rc.r, rc.g, rc.b, 0.7))
@@ -8175,7 +8299,7 @@ func _draw_relics_tab() -> void:
 			for bb in trinkets:
 				if owned_bindings.get(bb["id"], 0) > 0:
 					owned_count += 1
-			_udraw(font, Vector2(gem_x - 20, sec_y + 14), "%d/%d" % [owned_count, trinkets.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(rc.r, rc.g, rc.b, 0.6))
+			_udraw(font, Vector2(gem_x - 20, sec_y + 14), "%d/%d" % [owned_count, trinkets.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(rc.r, rc.g, rc.b, 0.6))
 
 		var row_y = sec_y + 24.0
 		for ti in range(trinkets.size()):
@@ -8211,13 +8335,13 @@ func _draw_relics_tab() -> void:
 
 			# Text
 			var name_alpha = 0.9 if is_owned else 0.35
-			_udraw(font, Vector2(cx + 44, cy + 18), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 12, Color(rc.r, rc.g, rc.b, name_alpha))
+			_udraw(font, Vector2(cx + 44, cy + 18), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(rc.r, rc.g, rc.b, name_alpha))
 			var desc_alpha = 0.65 if is_owned else 0.25
-			_udraw(font, Vector2(cx + 44, cy + 34), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 11, Color(menu_text.r, menu_text.g, menu_text.b, desc_alpha))
+			_udraw(font, Vector2(cx + 44, cy + 34), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 15, Color(menu_text.r, menu_text.g, menu_text.b, desc_alpha))
 
 			# Count badge
 			if is_owned:
-				_udraw(font, Vector2(cx + card_w - 30, cy + 18), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.3, 0.8, 0.3))
+				_udraw(font, Vector2(cx + card_w - 30, cy + 18), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
 
 		var rows_needed = (trinkets.size() + 3) / 4
 		var section_height = 24.0 + float(rows_needed) * (card_h + card_gap_y) + 12.0
@@ -8247,9 +8371,9 @@ func _draw_relics_tab() -> void:
 	for key in owned_bindings:
 		if owned_bindings[key] > 0:
 			unique_owned += 1
-	_udraw(font, Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
-	_udraw(font, Vector2(grid_left + 300, footer_y), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
-	_udraw(font, Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(grid_left + 300, footer_y), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
 
 func _draw_emporium() -> void:
 	if emporium_sub_open:
@@ -8679,14 +8803,14 @@ func _draw_emporium_sub_panel() -> void:
 
 	# Currency bar
 	var bar_y = panel_y + 60.0
-	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_relic_shards, player_storybook_stars, gold]
+	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_relic_shards, player_storybook_stars, player_gold]
 	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13).x
-	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.7))
+	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.7))
 
 	# Chest inventory line
 	var chest_text = "Chests:  Bronze: %d  |  Silver: %d  |  Gold: %d" % [treasure_chests_owned["bronze"], treasure_chests_owned["silver"], treasure_chests_owned["gold"]]
 	var chest_tw = font.get_string_size(chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 11).x
-	_udraw(font, Vector2(panel_x + (panel_w - chest_tw) * 0.5, bar_y + 32), chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
+	_udraw(font, Vector2(panel_x + (panel_w - chest_tw) * 0.5, bar_y + 32), chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
 
 	# Separator line
 	draw_line(Vector2(panel_x + 40, bar_y + 42), Vector2(panel_x + panel_w - 40, bar_y + 42), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.15), 1.0)
@@ -8738,7 +8862,7 @@ func _draw_emporium_sub_panel() -> void:
 			_udraw(font, Vector2(ix + (item_w - nw) * 0.5, iy + 28), item["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.72, 0.2, 0.95))
 			# Item description
 			var dw = font.get_string_size(item["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-			_udraw(font, Vector2(ix + (item_w - dw) * 0.5, iy + 50), item["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.65, 0.55, 0.4, 0.8))
+			_udraw(font, Vector2(ix + (item_w - dw) * 0.5, iy + 50), item["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.65, 0.55, 0.4, 0.8))
 			# Reward line
 			var reward_text = "+%d %s" % [item["amount"], item["reward"].capitalize().replace("_", " ")]
 			if item["reward"] == "power":
@@ -8756,13 +8880,14 @@ func _draw_emporium_sub_panel() -> void:
 				"quills": can_afford = player_quills >= item["cost"]
 				"shards": can_afford = player_relic_shards >= item["cost"]
 				"stars": can_afford = player_storybook_stars >= item["cost"]
+				"gold": can_afford = player_gold >= item["cost"]
 			var cost_col = Color(0.9, 0.8, 0.5, 0.8) if can_afford else Color(0.8, 0.3, 0.2, 0.8)
-			_udraw(font, Vector2(ix + (item_w - ctw) * 0.5, iy + 100), cost_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, cost_col)
+			_udraw(font, Vector2(ix + (item_w - ctw) * 0.5, iy + 100), cost_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, cost_col)
 			# "BUY" label at bottom
 			var buy_text = "[ BUY ]"
 			var bw2 = font.get_string_size(buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 			var buy_col = Color(0.85, 0.65, 0.1, 0.8) if is_hovered else Color(0.55, 0.42, 0.2, 0.5)
-			_udraw(font, Vector2(ix + (item_w - bw2) * 0.5, iy + 120), buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, buy_col)
+			_udraw(font, Vector2(ix + (item_w - bw2) * 0.5, iy + 120), buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, buy_col)
 
 	# Open chest buttons (if category is Relic Chests and player has chests)
 	if emporium_sub_category == 3:
@@ -8781,13 +8906,22 @@ func _draw_emporium_sub_panel() -> void:
 				draw_rect(Rect2(ox, open_y, ow, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3))
 				var ot = "Open %s Chest (%d)" % [tier_names[ci], count]
 				var otw = font.get_string_size(ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-				_udraw(font, Vector2(ox + (ow - otw) * 0.5, open_y + 24), ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.9, 0.75, 0.2, 0.85))
+				_udraw(font, Vector2(ox + (ow - otw) * 0.5, open_y + 24), ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.75, 0.2, 0.85))
 
-	# Purchase feedback message
+	# Purchase feedback message with visual countdown timer
 	if emporium_sub_message != "":
 		var msg_col = Color(0.3, 0.85, 0.3, 0.95) if emporium_sub_message == "Purchased!" else Color(0.9, 0.3, 0.2, 0.95)
 		var mw = font.get_string_size(emporium_sub_message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 		_udraw(font, Vector2(panel_x + (panel_w - mw) * 0.5, panel_y + panel_h - 80), emporium_sub_message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, msg_col)
+		# Visual countdown bar for confirmation
+		if _emporium_confirm_timer > 0.0:
+			var cbar_w = 200.0
+			var cbar_h = 6.0
+			var cbar_x = panel_x + (panel_w - cbar_w) * 0.5
+			var cbar_y = panel_y + panel_h - 60
+			var fill_ratio = clampf(_emporium_confirm_timer / 3.0, 0.0, 1.0)
+			draw_rect(Rect2(cbar_x, cbar_y, cbar_w, cbar_h), Color(0.2, 0.15, 0.1, 0.5))
+			draw_rect(Rect2(cbar_x, cbar_y, cbar_w * fill_ratio, cbar_h), Color(0.9, 0.7, 0.2, 0.8))
 
 	# Back button (drawn, detected via click)
 	var back_text = "<  BACK"
@@ -8816,7 +8950,7 @@ func _start_victory_chest(difficulty: int, stars: int) -> void:
 	victory_equip_hover = -1
 	# Map difficulty to tier colors: Easy=Blue(0), Medium=Purple(1), Hard=Gold(2)
 	chest_opening_active = true
-	chest_opening_tier = difficulty
+	chest_opening_tier = mini(difficulty, 2)
 	chest_opening_phase = 0
 	chest_opening_timer = 0.0
 	chest_opening_picked = -1
@@ -8885,7 +9019,7 @@ func _generate_victory_cards(difficulty: int, stars: int) -> void:
 			"gold": card_name = "Gold Sovereigns"
 			"stars": card_name = "Storybook Stars"
 		# Small chance for battle power on Medium/Hard
-		if difficulty >= 1 and randf() < 0.15:
+		if difficulty >= 1 and randf() < 0.15 and battle_power_definitions.size() > 0:
 			var bp = battle_power_definitions[randi() % battle_power_definitions.size()]
 			var bp_count = 1 if difficulty == 1 else 2
 			chest_opening_cards.append({"type": "power", "amount": bp_count, "name": bp["name"], "power_id": bp["id"]})
@@ -8914,7 +9048,7 @@ func _generate_chest_cards(tier: int) -> void:
 			"gold": card_name = "Gold Sovereigns"
 			"stars": card_name = "Storybook Stars"
 		# Small chance to replace with a battle power (Silver/Gold chests only)
-		if tier >= 1 and randf() < 0.2:
+		if tier >= 1 and randf() < 0.2 and battle_power_definitions.size() > 0:
 			var bp = battle_power_definitions[randi() % battle_power_definitions.size()]
 			var bp_count = 1 if tier == 1 else 2
 			chest_opening_cards.append({"type": "power", "amount": bp_count, "name": bp["name"], "power_id": bp["id"]})
@@ -9173,7 +9307,7 @@ func _draw_chest_opening() -> void:
 		# "Tap to Open" prompt (phase 0 only, pulsing)
 		if chest_opening_phase == 0:
 			var tap_alpha = 0.5 + sin(_time * 3.0) * 0.3
-			var tap_text = "Click to Open"
+			var tap_text = _get_action_text() + " to Open"
 			var tap_w = font.get_string_size(tap_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 18).x
 			_udraw(font, Vector2(cx - tap_w * 0.5, chest_cy + bh + 60), tap_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.9, 0.6, tap_alpha))
 
@@ -9369,11 +9503,11 @@ func _draw_chest_opening() -> void:
 						var badge = rarity.to_upper() + " RELIC"
 						var badge_w = font.get_string_size(badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
 						draw_rect(Rect2(card_x + (card_w - badge_w - 16) * 0.5, actual_y + 10, badge_w + 16, 22), Color(rarity_col.r, rarity_col.g, rarity_col.b, alpha * 0.45))
-						_udraw(font, Vector2(card_x + (card_w - badge_w) * 0.5, actual_y + 28), badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 1.0, 1.0, alpha * 0.95))
+						_udraw(font, Vector2(card_x + (card_w - badge_w) * 0.5, actual_y + 28), badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 1.0, 1.0, alpha * 0.95))
 						# Name (bright white-gold)
-						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.66), card["name"], HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 16), 13, Color(1.0, 0.95, 0.7, alpha))
+						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.66), card["name"], HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 16), 16, Color(1.0, 0.95, 0.7, alpha))
 						# Description
-						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.78), card.get("desc", ""), HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 12), 10, Color(0.85, 0.8, 0.65, alpha * 0.9))
+						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.78), card.get("desc", ""), HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 12), 14, Color(0.85, 0.8, 0.65, alpha * 0.9))
 					else:
 						# === Currency/power card (BRIGHT) ===
 						var icon_cols = {"shards": Color(0.7, 0.35, 0.85), "quills": Color(0.35, 0.7, 1.0), "gold": Color(1.0, 0.8, 0.15), "stars": Color(1.0, 0.9, 0.25), "power": Color(1.0, 0.4, 0.25)}
@@ -9396,7 +9530,7 @@ func _draw_chest_opening() -> void:
 						_udraw(font, Vector2(card_x + (card_w - aw) * 0.5, actual_y + card_h * 0.74 + 12), amt_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color(0.5, 1.0, 0.5, alpha))
 						# Type label
 						var type_label = card.get("type", "").to_upper()
-						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.9), type_label, HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(icon_col.r, icon_col.g, icon_col.b, alpha * 0.7))
+						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.9), type_label, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(icon_col.r, icon_col.g, icon_col.b, alpha * 0.7))
 
 				# Picked card — bright golden highlight
 				if is_picked:
@@ -9470,7 +9604,7 @@ func _draw_chest_opening() -> void:
 				_udraw(font, Vector2(cx - rw * 0.5 + 2, 332), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0.0, 0.0, 0.0, 0.5))
 				_udraw(font, Vector2(cx - rw * 0.5, 330), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0.5, 1.0, 0.5, 0.95))
 		var close_alpha = 0.5 + sin(_time * 2.0) * 0.3
-		var close_text = "Click anywhere to continue"
+		var close_text = _get_action_text() + " anywhere to continue"
 		var clw = font.get_string_size(close_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
 		_udraw(font, Vector2(cx - clw * 0.5, 430), close_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.8, 0.5, close_alpha))
 
@@ -9499,11 +9633,11 @@ func _draw_victory_equip_overlay() -> void:
 	# Subtitle
 	var sub = "Choose a character to equip this relic on:"
 	var sw = font.get_string_size(sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 13).x
-	_udraw(font, Vector2(panel_x + (panel_w - sw) * 0.5, panel_y + 55), sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.7, 0.6, 0.5, 0.7))
+	_udraw(font, Vector2(panel_x + (panel_w - sw) * 0.5, panel_y + 55), sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.7, 0.6, 0.5, 0.7))
 	# Relic desc
 	var desc = victory_trinket_pending.get("desc", "")
 	var dw = font.get_string_size(desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
-	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 72), desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.6, 0.5, 0.7, 0.7))
+	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 72), desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.7, 0.7))
 	# Character grid (2 rows: 6 + 5)
 	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge",
 		"sherlock", "tarzan", "dracula", "merlin", "frankenstein"]
@@ -9536,16 +9670,16 @@ func _draw_victory_equip_overlay() -> void:
 		# Mini portrait
 		_draw_story_portrait(bx + 5, by + 5, 40.0, tower_names[idx])
 		# Name
-		_udraw(font, Vector2(bx + 48, by + 22), display_names[idx], HORIZONTAL_ALIGNMENT_LEFT, col_w - 52, 11, Color(0.85, 0.75, 0.4, 0.9 if has_room else 0.4))
+		_udraw(font, Vector2(bx + 48, by + 22), display_names[idx], HORIZONTAL_ALIGNMENT_LEFT, col_w - 52, 15, Color(0.85, 0.75, 0.4, 0.9 if has_room else 0.4))
 		# Slot info
 		var slot_text = "%d/%d slots" % [current.size(), slots]
 		if slots == 0:
 			slot_text = "Lv5 to unlock"
 		var slot_col = Color(0.5, 0.7, 0.4, 0.7) if has_room else Color(0.5, 0.35, 0.3, 0.5)
-		_udraw(font, Vector2(bx + 48, by + 40), slot_text, HORIZONTAL_ALIGNMENT_LEFT, col_w - 52, 9, slot_col)
+		_udraw(font, Vector2(bx + 48, by + 40), slot_text, HORIZONTAL_ALIGNMENT_LEFT, col_w - 52, 14, slot_col)
 		# Level
 		var level = survivor_progress.get(tower_names[idx], {}).get("level", 1)
-		_udraw(font, Vector2(bx + 48, by + 55), "Lv.%d" % level, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.5, 0.45, 0.4, 0.5))
+		_udraw(font, Vector2(bx + 48, by + 55), "Lv.%d" % level, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.45, 0.4, 0.5))
 	# Skip / equip later button
 	var skip_x = panel_x + (panel_w - 200.0) * 0.5
 	var skip_y = panel_y + 310.0
@@ -9615,9 +9749,9 @@ func _draw_closed_book() -> void:
 		var bname = branch["name"]
 		var bdesc = "(%s)" % branch["desc"]
 		var bnw = font.get_string_size(bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-		_udraw(font, Vector2(bx + (branch_w - bnw) * 0.5, branch_start_y + 14), bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(bcol.r, bcol.g, bcol.b, 0.9))
+		_udraw(font, Vector2(bx + (branch_w - bnw) * 0.5, branch_start_y + 14), bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(bcol.r, bcol.g, bcol.b, 0.9))
 		var bdw = font.get_string_size(bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
-		_udraw(font, Vector2(bx + (branch_w - bdw) * 0.5, branch_start_y + 26), bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(bcol.r, bcol.g, bcol.b, 0.5))
+		_udraw(font, Vector2(bx + (branch_w - bdw) * 0.5, branch_start_y + 26), bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(bcol.r, bcol.g, bcol.b, 0.5))
 
 		# Nodes (vertical chain)
 		var node_cx = bx + branch_w * 0.5
@@ -9655,7 +9789,7 @@ func _draw_closed_book() -> void:
 				# Cost text inside
 				var cost_str = "%d" % node["cost"]
 				var csw = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-				_udraw(font, Vector2(node_cx - csw * 0.5, node_cy + 4), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(bcol.r, bcol.g, bcol.b, pulse + 0.3))
+				_udraw(font, Vector2(node_cx - csw * 0.5, node_cy + 4), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(bcol.r, bcol.g, bcol.b, pulse + 0.3))
 			else:
 				# Grey locked
 				draw_circle(Vector2(node_cx, node_cy), node_radius, Color(0.06, 0.05, 0.10, 0.8))
@@ -9671,8 +9805,8 @@ func _draw_closed_book() -> void:
 			# Node name and desc (to the right)
 			var text_x = node_cx + node_radius + 8
 			var name_col = Color(0.9, 0.8, 0.5, 0.9) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.7) if can_unlock else Color(0.5, 0.45, 0.4, 0.5))
-			_udraw(font, Vector2(text_x, node_cy - 1), node["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, name_col)
-			_udraw(font, Vector2(text_x, node_cy + 11), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
+			_udraw(font, Vector2(text_x, node_cy - 1), node["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, name_col)
+			_udraw(font, Vector2(text_x, node_cy + 11), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
 
 func _update_knowledge_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
@@ -9754,7 +9888,7 @@ func _draw_daily_reward() -> void:
 	# Streak
 	var streak_text = "Streak: Day %d" % (daily_streak % 7 + 1)
 	var stw = font.get_string_size(streak_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-	_udraw(font, Vector2(cx - stw * 0.5, modal_y + 58), streak_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.6))
+	_udraw(font, Vector2(cx - stw * 0.5, modal_y + 58), streak_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.6))
 
 	# 7 day cards: row of 4 + row of 3
 	var card_w = 130.0
@@ -9797,14 +9931,14 @@ func _draw_daily_reward() -> void:
 		# Day label
 		var day_label = "Day %d" % (d + 1)
 		var dlw = font.get_string_size(day_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-		_udraw(font, Vector2(dx + (card_w - dlw) * 0.5, dy + 18), day_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.8))
+		_udraw(font, Vector2(dx + (card_w - dlw) * 0.5, dy + 18), day_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.8))
 
 		# Reward name
 		var rname = reward["name"]
 		if rname.length() > 16:
 			rname = rname.substr(0, 14) + ".."
 		var rnw = font.get_string_size(rname, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-		_udraw(font, Vector2(dx + (card_w - rnw) * 0.5, dy + 50), rname, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.9, 0.75, 0.3, 0.85))
+		_udraw(font, Vector2(dx + (card_w - rnw) * 0.5, dy + 50), rname, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.9, 0.75, 0.3, 0.85))
 
 		# Amount
 		var amt_text = "x%d" % reward["amount"] if reward["type"] != "gold_chest" else "Chest!"
@@ -9904,11 +10038,15 @@ func _draw_survivor_grid() -> void:
 	draw_line(Vector2(title_cx + title_w * 0.5 + 44, title_y + 14), Vector2(title_cx + title_w * 0.5 + 80, title_y + 14), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.0)
 
 	# === PARTY count badge (top-right) ===
-	var party_text = "PARTY: %d/%d" % [survivor_types.size(), survivor_types.size()]
+	var unlocked_count = 0
+	for st in survivor_types:
+		if _is_character_unlocked(st):
+			unlocked_count += 1
+	var party_text = "PARTY: %d/%d" % [unlocked_count, survivor_types.size()]
 	var party_w = font.get_string_size(party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
 	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 20, 20), Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, 0.6))
 	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 20, 20), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.25), false, 1.0)
-	_udraw(font, Vector2(panel_x + panel_w - party_w - 20, title_y + 18), party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, menu_gold_light)
+	_udraw(font, Vector2(panel_x + panel_w - party_w - 20, title_y + 18), party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_gold_light)
 
 	var card_colors_grid = [
 		Color(0.29, 0.55, 0.25),  # Robin Hood
@@ -9922,6 +10060,7 @@ func _draw_survivor_grid() -> void:
 		Color(0.50, 0.10, 0.15),  # Dracula
 		Color(0.25, 0.20, 0.55),  # Merlin
 		Color(0.35, 0.40, 0.30),  # Frankenstein
+		Color(0.12, 0.08, 0.18),  # Shadow Author
 	]
 
 	# BATTD-style grid: 2 rows of cards with large character portraits
@@ -9943,7 +10082,7 @@ func _draw_survivor_grid() -> void:
 		else:
 			row_i = 1
 			col_i = i - 6
-			cards_in_row = 5
+			cards_in_row = survivor_types.size() - 6
 		var row_w = float(cards_in_row) * card_w + float(cards_in_row - 1) * gap_x
 		var row_x = panel_x + (panel_w - row_w) * 0.5
 		var cx = row_x + float(col_i) * (card_w + gap_x)
@@ -9992,13 +10131,20 @@ func _draw_survivor_grid() -> void:
 			# Level number
 			var lvl_str = str(lvl)
 			var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-			_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+			_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
 
 		# === Star rating (top-right) ===
 		var stars_earned = 0
-		for ls_key in level_stars:
-			if typeof(ls_key) == TYPE_STRING and ls_key.begins_with(str(i) + "_"):
-				stars_earned += level_stars[ls_key]
+		# Map survivor index to their arc's level indices
+		var char_level_map = {
+			0: [16, 17, 18], 1: [19, 20, 21], 2: [22, 23, 24],
+			3: [25, 26, 27], 4: [28, 29, 30], 5: [31, 32, 33],
+			6: [1, 2, 3], 7: [7, 8, 9], 8: [10, 11, 12],
+			9: [4, 5, 6], 10: [13, 14, 15], 11: [34, 35, 36]
+		}
+		if char_level_map.has(i):
+			for lvl_idx in char_level_map[i]:
+				stars_earned += level_stars.get(lvl_idx, 0)
 		if unlocked:
 			var star_x = cx + card_w - 18.0
 			var star_y = cy + 16.0
@@ -10023,14 +10169,14 @@ func _draw_survivor_grid() -> void:
 		var name_str: String = info["name"]
 		var name_w = font.get_string_size(name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		# Name with shadow
-		_udraw(font, Vector2(cx + (card_w - name_w) * 0.5 + 1, name_plate_y + 16), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0, 0, 0, 0.5))
-		_udraw(font, Vector2(cx + (card_w - name_w) * 0.5, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, menu_parchment if unlocked else Color(0.4, 0.38, 0.45))
+		_udraw(font, Vector2(cx + (card_w - name_w) * 0.5 + 1, name_plate_y + 16), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.5))
+		_udraw(font, Vector2(cx + (card_w - name_w) * 0.5, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_parchment if unlocked else Color(0.4, 0.38, 0.45))
 		# Novel subtitle
 		var novel_str = character_novels[i] if i < character_novels.size() else ""
 		if novel_str.length() > 22:
 			novel_str = novel_str.substr(0, 20) + ".."
 		var novel_w = font.get_string_size(novel_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
-		_udraw(font, Vector2(cx + (card_w - novel_w) * 0.5, name_plate_y + 30), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 8), 9, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
+		_udraw(font, Vector2(cx + (card_w - novel_w) * 0.5, name_plate_y + 30), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 8), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
 
 		# === Card border frame ===
 		var bdr_col: Color
@@ -10184,7 +10330,7 @@ func _update_world_map_hover() -> void:
 		else:
 			row_i = 1
 			col_i = i - 6
-			cards_in_row = 5
+			cards_in_row = survivor_types.size() - 6
 		var row_w = float(cards_in_row) * card_w + float(cards_in_row - 1) * gap_x
 		var row_x = panel_x + (panel_w - row_w) * 0.5
 		var cx = row_x + float(col_i) * (card_w + gap_x)
@@ -10737,7 +10883,7 @@ func _draw_survivor_detail() -> void:
 		Color(0.29, 0.55, 0.25), Color(0.44, 0.66, 0.86), Color(0.48, 0.25, 0.63),
 		Color(0.90, 0.49, 0.13), Color(0.75, 0.22, 0.17), Color(0.79, 0.66, 0.30),
 		Color(0.20, 0.35, 0.55), Color(0.30, 0.50, 0.20), Color(0.50, 0.10, 0.15),
-		Color(0.25, 0.20, 0.55), Color(0.35, 0.40, 0.30),
+		Color(0.25, 0.20, 0.55), Color(0.35, 0.40, 0.30), Color(0.12, 0.08, 0.18),
 	]
 	var accent = card_colors[mini(survivor_detail_index, card_colors.size() - 1)]
 
@@ -10757,7 +10903,7 @@ func _draw_survivor_detail() -> void:
 
 	# === TOP BAR ===
 	var top_y = panel_y + 8.0
-	_udraw(font, Vector2(panel_x + 20, top_y + 16), "< SURVIVORS", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
+	_udraw(font, Vector2(panel_x + 20, top_y + 16), "< SURVIVORS", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
 	var char_name = info["name"].to_upper()
 	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 	var name_cx = panel_x + panel_w * 0.5
@@ -10769,7 +10915,7 @@ func _draw_survivor_detail() -> void:
 	var party_bx = panel_x + panel_w - party_tw - 40
 	draw_rect(Rect2(party_bx, top_y + 4, party_tw + 20, 22), Color(accent.r, accent.g, accent.b, 0.5))
 	draw_rect(Rect2(party_bx, top_y + 4, party_tw + 20, 22), Color(accent.r, accent.g, accent.b, 0.7), false, 1.0)
-	_udraw(font, Vector2(party_bx + 10, top_y + 18), party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	_udraw(font, Vector2(party_bx + 10, top_y + 18), party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
 	draw_rect(Rect2(panel_x + 10, top_y + 30, panel_w - 20, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
 
 	var content_y = top_y + 38.0
@@ -10808,7 +10954,7 @@ func _draw_survivor_detail() -> void:
 	draw_circle(Vector2(badge_cx, badge_cy), 10, Color(0.04, 0.03, 0.08))
 	var lvl_str = str(char_level)
 	var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-	_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+	_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
 	# Info icon (bottom-left) — highlights on hover
 	var info_icon_hover = (detail_hover_type == "info_icon")
 	draw_circle(Vector2(port_x + 22, port_y + port_h - 22), 12, Color(0.2, 0.4, 0.8, 0.85 if info_icon_hover else 0.6))
@@ -10819,7 +10965,7 @@ func _draw_survivor_detail() -> void:
 	# --- Right of portrait: NEXT REWARDS roadmap ---
 	var info_x = port_x + port_w + 14.0
 	var info_y = port_y + 6.0
-	_udraw(font, Vector2(info_x, info_y + 12), "NEXT REWARDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
+	_udraw(font, Vector2(info_x, info_y + 12), "NEXT REWARDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
 	draw_rect(Rect2(info_x, info_y + 16, 80, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2))
 	var roadmap_y = info_y + 24.0
 	var rewards_shown = 0
@@ -10829,15 +10975,15 @@ func _draw_survivor_detail() -> void:
 		if rewards.size() > 1:  # Has special rewards beyond the base stat line
 			# Level number badge
 			var badge_str = "LV.%d" % check_level
-			_udraw(font, Vector2(info_x, roadmap_y + 9), badge_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.85, 0.65, 0.1, 0.8))
+			_udraw(font, Vector2(info_x, roadmap_y + 9), badge_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.8))
 			var reward_x = info_x + 36.0
 			for ri in range(1, mini(rewards.size(), 3)):  # Skip index 0 (base stats)
-				_udraw(font, Vector2(reward_x, roadmap_y + 9), rewards[ri], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.7))
+				_udraw(font, Vector2(reward_x, roadmap_y + 9), rewards[ri], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.7))
 				roadmap_y += 12.0
 			rewards_shown += 1
 		check_level += 1
 	if char_level >= MAX_SURVIVOR_LEVEL:
-		_udraw(font, Vector2(info_x, roadmap_y + 9), "All rewards unlocked!", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.85, 0.65, 0.1, 0.6))
+		_udraw(font, Vector2(info_x, roadmap_y + 9), "All rewards unlocked!", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.6))
 
 	# --- XP bar (below portrait) ---
 	var xp_y = port_y + port_h + 6.0
@@ -10853,7 +10999,7 @@ func _draw_survivor_detail() -> void:
 	if char_level >= MAX_SURVIVOR_LEVEL:
 		xp_text = "MAX LEVEL"
 	var xp_tw = font.get_string_size(xp_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-	_udraw(font, Vector2(port_x + (xp_w - xp_tw) * 0.5, xp_y + 15), xp_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	_udraw(font, Vector2(port_x + (xp_w - xp_tw) * 0.5, xp_y + 15), xp_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
 
 	# --- LEVEL UP button (below XP bar) ---
 	var levelup_btn_y = xp_y + xp_h
@@ -10864,7 +11010,7 @@ func _draw_survivor_detail() -> void:
 		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.85, 0.65, 0.1, 0.3), false, 1.0)
 		var max_str = "MAX LEVEL REACHED"
 		var max_w = font.get_string_size(max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		_udraw(font, Vector2(port_x + (xp_w - max_w) * 0.5, levelup_btn_y + 15), max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.85, 0.65, 0.1, 0.7))
+		_udraw(font, Vector2(port_x + (xp_w - max_w) * 0.5, levelup_btn_y + 15), max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.7))
 	else:
 		var lvup_cost = _get_levelup_cost(char_level)
 		var can_afford = player_quills >= lvup_cost
@@ -10879,7 +11025,7 @@ func _draw_survivor_detail() -> void:
 		var lvup_str = "LEVEL UP  —  %d Quills" % lvup_cost
 		var lvup_tw = font.get_string_size(lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 		var lvup_col = Color(0.85, 0.65, 0.1, 0.9) if can_afford else Color(0.5, 0.48, 0.55, 0.6)
-		_udraw(font, Vector2(port_x + (xp_w - lvup_tw) * 0.5, levelup_btn_y + 15), lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, lvup_col)
+		_udraw(font, Vector2(port_x + (xp_w - lvup_tw) * 0.5, levelup_btn_y + 15), lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, lvup_col)
 
 	# --- Stat bonus pills ---
 	var stat_y = xp_y + xp_h + levelup_btn_h + 4.0
@@ -10895,12 +11041,12 @@ func _draw_survivor_detail() -> void:
 		var pw = font.get_string_size(pill_labels[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 12
 		draw_rect(Rect2(pill_x, stat_y, pw, 16), Color(pill_colors[pi].r, pill_colors[pi].g, pill_colors[pi].b, 0.12))
 		draw_rect(Rect2(pill_x, stat_y, pw, 16), Color(pill_colors[pi].r, pill_colors[pi].g, pill_colors[pi].b, 0.25), false, 1.0)
-		_udraw(font, Vector2(pill_x + 6, stat_y + 11), pill_labels[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(pill_colors[pi].r, pill_colors[pi].g, pill_colors[pi].b, 0.9))
+		_udraw(font, Vector2(pill_x + 6, stat_y + 11), pill_labels[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(pill_colors[pi].r, pill_colors[pi].g, pill_colors[pi].b, 0.9))
 		pill_x += pw + 6.0
 
 	# Novel title (below stat pills on the left side)
 	var novel_str = character_novels[survivor_detail_index] if survivor_detail_index < character_novels.size() else ""
-	_udraw(font, Vector2(port_x, stat_y + 22), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(port_w + 60), 9, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
+	_udraw(font, Vector2(port_x, stat_y + 22), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(port_w + 60), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
 
 	# ================================================================
 	# RIGHT SIDE: Weapon + Sidekicks + Relics (BATTD layout)
@@ -10938,7 +11084,7 @@ func _draw_survivor_detail() -> void:
 	# Weapon name below slot
 	var weap_name = gear_data["name"] if gear_unlocked else "LV.2"
 	var weap_nw = font.get_string_size(weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-	_udraw(font, Vector2(right_x + (slot_size - weap_nw) * 0.5, gear_sy + slot_size + 14), weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, menu_parchment if gear_unlocked else Color(0.5, 0.48, 0.55, 0.6))
+	_udraw(font, Vector2(right_x + (slot_size - weap_nw) * 0.5, gear_sy + slot_size + 14), weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_parchment if gear_unlocked else Color(0.5, 0.48, 0.55, 0.6))
 
 	# --- SIDEKICKS section (right of weapon) ---
 	var sk_x = right_x + slot_size + 50.0
@@ -10971,7 +11117,7 @@ func _draw_survivor_detail() -> void:
 			if sk_name.length() > 10:
 				sk_name = sk_name.substr(0, 9) + ".."
 			var snw = font.get_string_size(sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
-			_udraw(font, Vector2(sx + (slot_size - snw) * 0.5, sy + slot_size + 12), sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.8))
+			_udraw(font, Vector2(sx + (slot_size - snw) * 0.5, sy + slot_size + 12), sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.8))
 		else:
 			if si == 0 or (si > 0 and sk_unlocked_arr[si - 1] if si - 1 < sk_unlocked_arr.size() else false):
 				# Next unlockable — show "+" icon
@@ -10986,7 +11132,7 @@ func _draw_survivor_detail() -> void:
 			# Level requirement star (bottom-right of slot)
 			_draw_detail_level_star(Vector2(sx + slot_size - 2, sy + slot_size - 2), sk_levels[si], font)
 	# Sidekick description
-	_udraw(font, Vector2(sk_x, sk_slot_y + slot_size + 24), "Sidekicks: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, 400, 9, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
+	_udraw(font, Vector2(sk_x, sk_slot_y + slot_size + 24), "Sidekicks: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, 400, 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
 
 	# --- RELICS section (full width of right side, below weapon+sidekicks) ---
 	var rel_y = gear_sy + slot_size + 44.0
@@ -11033,7 +11179,7 @@ func _draw_survivor_detail() -> void:
 			if rn.length() > 11:
 				rn = rn.substr(0, 10) + ".."
 			var rnw = font.get_string_size(rn, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-			_udraw(font, Vector2(rx + (relic_slot_size - rnw) * 0.5, ry + relic_slot_size + 12), rn, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, menu_parchment)
+			_udraw(font, Vector2(rx + (relic_slot_size - rnw) * 0.5, ry + relic_slot_size + 12), rn, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_parchment)
 		elif relic_purchasable[ri] and char_level >= relic_earn_levels[ri]:
 			# Purchasable with gold — cyan border like BATTD "+" slots
 			draw_rect(Rect2(rx, ry, relic_slot_size, relic_slot_size), Color(accent.r, accent.g, accent.b, 0.4 if is_rel_hover else 0.2), false, 2.0)
@@ -11043,7 +11189,7 @@ func _draw_survivor_detail() -> void:
 			# Cost label
 			var cost_str = "%d GOLD" % relic_costs[ri]
 			var cost_w = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-			_udraw(font, Vector2(rx + (relic_slot_size - cost_w) * 0.5, ry + relic_slot_size + 12), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.85, 0.65, 0.1, 0.7))
+			_udraw(font, Vector2(rx + (relic_slot_size - cost_w) * 0.5, ry + relic_slot_size + 12), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.7))
 		else:
 			# Locked — gray with padlock
 			draw_rect(Rect2(rx, ry, relic_slot_size, relic_slot_size), Color(0.2, 0.18, 0.30, 0.2), false, 1.5)
@@ -11055,7 +11201,7 @@ func _draw_survivor_detail() -> void:
 			_draw_detail_level_star(Vector2(rx + relic_slot_size - 2, ry + relic_slot_size - 2), relic_earn_levels[ri], font)
 	# Relics description
 	var relic_desc_y = relic_slot_y + 2.0 * (relic_slot_size + 24.0) + 4.0
-	_udraw(font, Vector2(right_x, relic_desc_y), "Relics: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, 500, 11, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
+	_udraw(font, Vector2(right_x, relic_desc_y), "Relics: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, 500, 15, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
 
 	# --- ABILITIES section (to the right of relics) ---
 	var abil_x = right_x + 270.0
@@ -11082,17 +11228,17 @@ func _draw_survivor_detail() -> void:
 		_draw_ability_icon(Vector2(icon_cx, icon_cy), ai, accent)
 		# Tier number
 		var tier_str = "%d." % (ai + 1)
-		_udraw(font, Vector2(abil_x + 36, ay + 12), tier_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.65, 0.1, 0.9))
+		_udraw(font, Vector2(abil_x + 36, ay + 12), tier_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.65, 0.1, 0.9))
 		# Ability name
 		var a_name = abil_data[ai].get("name", "Tier %d" % (ai + 1))
-		_udraw(font, Vector2(abil_x + 52, ay + 12), a_name, HORIZONTAL_ALIGNMENT_LEFT, int(abil_w - 120), 13, menu_gold)
+		_udraw(font, Vector2(abil_x + 52, ay + 12), a_name, HORIZONTAL_ALIGNMENT_LEFT, int(abil_w - 120), 16, menu_gold)
 		# Cost (right-aligned)
 		var cost_str = "%dG" % abil_data[ai].get("cost", 0)
 		var cost_w = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-		_udraw(font, Vector2(abil_x + abil_w - cost_w - 10, ay + 12), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.65, 0.1, 0.7))
+		_udraw(font, Vector2(abil_x + abil_w - cost_w - 10, ay + 12), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.85, 0.65, 0.1, 0.7))
 		# Description
 		var a_desc = abil_data[ai].get("desc", "")
-		_udraw(font, Vector2(abil_x + 36, ay + 28), a_desc, HORIZONTAL_ALIGNMENT_LEFT, int(abil_w - 50), 11, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95))
+		_udraw(font, Vector2(abil_x + 36, ay + 28), a_desc, HORIZONTAL_ALIGNMENT_LEFT, int(abil_w - 50), 15, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95))
 
 	# --- Tome Bindings section (below relics, if player has slots) ---
 	var bind_slots = _get_binding_slots(tower_type)
@@ -11100,8 +11246,8 @@ func _draw_survivor_detail() -> void:
 		var eq_bindings = equipped_bindings.get(tower_type, [])
 		var rarity_colors = {"common": Color(0.6, 0.6, 0.6), "uncommon": Color(0.3, 0.7, 0.3), "rare": Color(0.7, 0.4, 0.9)}
 		var tome_y = relic_desc_y + 18.0
-		_udraw(font, Vector2(right_x + 1, tome_y + 13), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0, 0, 0, 0.4))
-		_udraw(font, Vector2(right_x, tome_y + 12), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
+		_udraw(font, Vector2(right_x + 1, tome_y + 13), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0, 0, 0, 0.4))
+		_udraw(font, Vector2(right_x, tome_y + 12), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
 		var tome_slot_y = tome_y + 22.0
 		var tome_slot_size = 44.0
 		for tsi in range(bind_slots):
@@ -11143,10 +11289,15 @@ func _draw_survivor_detail() -> void:
 			var bg_c = Color(0.10, 0.08, 0.22, 0.8) if is_eq else Color(0.05, 0.05, 0.14, 0.7)
 			draw_rect(Rect2(bx, by, card_w, card_h), bg_c)
 			draw_rect(Rect2(bx, by, card_w, card_h), Color(rc.r, rc.g, rc.b, 0.3 if is_eq else 0.15), false, 1.0)
-			_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 8, menu_parchment)
-			_udraw(font, Vector2(bx + 6, by + 22), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 12), 7, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6))
+			_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 14, menu_parchment)
+			_udraw(font, Vector2(bx + 6, by + 22), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 12), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6))
 			var count_label = "EQ" if is_eq else ("x%d" % count)
-			_udraw(font, Vector2(bx + card_w - 28, by + 12), count_label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 8, Color(0.3, 0.8, 0.3) if is_eq else Color(0.55, 0.52, 0.50))
+			_udraw(font, Vector2(bx + card_w - 28, by + 12), count_label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3) if is_eq else Color(0.55, 0.52, 0.50))
+		# Scroll indicator for bindings list
+		var browse_vis_h = browse_bottom - browse_y
+		var total_binding_h = float(brow + 1) * (card_h + 3)
+		if total_binding_h > browse_vis_h:
+			_draw_scroll_indicator(right_x + 618, browse_y, browse_vis_h, detail_binding_scroll, total_binding_h, browse_vis_h)
 
 	# === TOOLTIP (drawn last, on top) ===
 	if detail_hover_type != "" and detail_hover_index >= 0:
@@ -11180,13 +11331,13 @@ func _draw_survivor_detail() -> void:
 					if r_unlocked:
 						var eq_list = equipped_relics.get(tower_type, [])
 						if detail_hover_index in eq_list:
-							tt_lines.append("EQUIPPED - Click to unequip")
+							tt_lines.append("EQUIPPED - %s to unequip" % _get_action_text())
 						elif eq_list.size() < max_rel_slots:
-							tt_lines.append("Click to equip")
+							tt_lines.append("%s to equip" % _get_action_text())
 						else:
 							tt_lines.append("Equip slots full (%d/%d)" % [eq_list.size(), max_rel_slots])
 					elif relic_purchasable[detail_hover_index] and char_level >= relic_earn_levels[detail_hover_index]:
-						tt_lines.append("Click to buy for %d gold" % relic_costs[detail_hover_index])
+						tt_lines.append("%s to buy for %d gold" % [_get_action_text(), relic_costs[detail_hover_index]])
 					else:
 						tt_lines.append("Unlocks at Level %d" % relic_earn_levels[detail_hover_index])
 		if tt_title != "":
@@ -11203,9 +11354,9 @@ func _draw_survivor_detail() -> void:
 			draw_rect(Rect2(tt_x - 1, tt_y_pos - 1, tt_w + 2, tt_h + 2), Color(0, 0, 0, 0.6))
 			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.04, 0.03, 0.10, 0.95))
 			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(accent.r, accent.g, accent.b, 0.5), false, 1.5)
-			_udraw(font, Vector2(tt_x + 8, tt_y_pos + 14), tt_title, HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 12, menu_gold)
+			_udraw(font, Vector2(tt_x + 8, tt_y_pos + 14), tt_title, HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 15, menu_gold)
 			for tli in range(tt_lines.size()):
-				_udraw(font, Vector2(tt_x + 8, tt_y_pos + 28 + tli * 14), tt_lines[tli], HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 9, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.85))
+				_udraw(font, Vector2(tt_x + 8, tt_y_pos + 28 + tli * 14), tt_lines[tli], HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.85))
 
 	# === INFO OVERLAY (drawn on top of everything when open) ===
 	if detail_info_overlay_open:
@@ -11231,7 +11382,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var close_x = ov_x + ov_w - 16.0
 	var close_y = ov_y + 16.0
 	draw_circle(Vector2(close_x, close_y), 12, Color(0.6, 0.2, 0.2, 0.6))
-	_udraw(font, Vector2(close_x - 5, close_y + 5), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+	_udraw(font, Vector2(close_x - 5, close_y + 5), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
 	# === Content ===
 	var cx = ov_x + 20.0
 	var cy = ov_y + 16.0
@@ -11244,14 +11395,14 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var role_x = cx + font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 14
 	draw_rect(Rect2(role_x, cy, role_w, 20), Color(accent.r, accent.g, accent.b, 0.3))
 	draw_rect(Rect2(role_x, cy, role_w, 20), Color(accent.r, accent.g, accent.b, 0.5), false, 1.0)
-	_udraw(font, Vector2(role_x + 8, cy + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(accent.r, accent.g, accent.b, 0.9))
+	_udraw(font, Vector2(role_x + 8, cy + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(accent.r, accent.g, accent.b, 0.9))
 	draw_rect(Rect2(cx, cy + 22, ov_w - 40, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
 	cy += 32.0
 	# Character description
 	var desc = survivor_descriptions.get(tower_type, "A legendary hero.")
 	var desc_lines = desc.split("\n")
 	for dl in desc_lines:
-		_udraw(font, Vector2(cx, cy + 11), dl, HORIZONTAL_ALIGNMENT_LEFT, int(ov_w - 40), 10, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.8))
+		_udraw(font, Vector2(cx, cy + 11), dl, HORIZONTAL_ALIGNMENT_LEFT, int(ov_w - 40), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.8))
 		cy += 14.0
 	cy += 8.0
 	# === Two columns: left = Stats, right = Synergies ===
@@ -11259,22 +11410,22 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var left_cx = cx
 	var right_cx = cx + col_w + 20.0
 	# --- LEFT COLUMN: Combat Stats ---
-	_udraw(font, Vector2(left_cx, cy + 12), "COMBAT STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, menu_gold)
+	_udraw(font, Vector2(left_cx, cy + 12), "COMBAT STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_gold)
 	draw_rect(Rect2(left_cx, cy + 16, 100, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.25))
 	cy += 24.0
 	var stat_left_y = cy
 	var total_dmg = progress.get("total_damage", 0.0)
 	var est_kills = int(total_dmg / 25.0)  # Rough estimate
-	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Total Damage: %s" % _format_number(total_dmg), HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 10, menu_parchment)
+	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Total Damage: %s" % _format_number(total_dmg), HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 14, menu_parchment)
 	stat_left_y += 16.0
-	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Est. Enemies Defeated: %s" % _format_number(float(est_kills)), HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 10, menu_parchment)
+	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Est. Enemies Defeated: %s" % _format_number(float(est_kills)), HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 14, menu_parchment)
 	stat_left_y += 16.0
-	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Level: %d / %d" % [char_level, MAX_SURVIVOR_LEVEL], HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 10, menu_parchment)
+	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Level: %d / %d" % [char_level, MAX_SURVIVOR_LEVEL], HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 14, menu_parchment)
 	stat_left_y += 16.0
 	# Golden Shields display with upgrade button
 	var gs_level = _get_golden_shield_level(tower_type)
 	_draw_golden_shield_indicator(Vector2(left_cx + 8, stat_left_y + 6), gs_level, font)
-	_udraw(font, Vector2(left_cx + 26, stat_left_y + 11), "Golden Shields: %d / %d" % [gs_level, MAX_GOLDEN_SHIELD], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 26), 10, Color(0.85, 0.7, 0.2))
+	_udraw(font, Vector2(left_cx + 26, stat_left_y + 11), "Golden Shields: %d / %d" % [gs_level, MAX_GOLDEN_SHIELD], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 26), 14, Color(0.85, 0.7, 0.2))
 	if gs_level < MAX_GOLDEN_SHIELD:
 		var gs_cost = GOLDEN_SHIELD_COSTS[gs_level]
 		var can_upgrade_gs = player_relic_shards >= gs_cost
@@ -11286,14 +11437,14 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 		draw_rect(Rect2(gs_btn_x, gs_btn_y, 86, 18), gs_bg)
 		draw_rect(Rect2(gs_btn_x, gs_btn_y, 86, 18), Color(0.85, 0.65, 0.1, 0.5) if can_upgrade_gs else Color(0.3, 0.25, 0.2, 0.3), false, 1.0)
 		var gs_text = "UPGRADE %dS" % gs_cost
-		_udraw(font, Vector2(gs_btn_x + 43, gs_btn_y + 13), gs_text, HORIZONTAL_ALIGNMENT_CENTER, 82, 9, Color(0.85, 0.7, 0.2) if can_upgrade_gs else Color(0.4, 0.35, 0.3))
+		_udraw(font, Vector2(gs_btn_x + 43, gs_btn_y + 13), gs_text, HORIZONTAL_ALIGNMENT_CENTER, 82, 14, Color(0.85, 0.7, 0.2) if can_upgrade_gs else Color(0.4, 0.35, 0.3))
 	else:
-		_udraw(font, Vector2(left_cx + col_w - 60, stat_left_y + 11), "MAXED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color(0.85, 0.7, 0.2, 0.6))
+		_udraw(font, Vector2(left_cx + col_w - 60, stat_left_y + 11), "MAXED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2, 0.6))
 	stat_left_y += 16.0
-	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Slots: %d Gear | %d Sidekick | %d Binding" % [_get_gear_slot_count(tower_type), _get_sidekick_slot_count(tower_type), _get_binding_slot_count(tower_type)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 9, menu_text)
+	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Slots: %d Gear | %d Sidekick | %d Binding" % [_get_gear_slot_count(tower_type), _get_sidekick_slot_count(tower_type), _get_binding_slot_count(tower_type)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 14, menu_text)
 	stat_left_y += 20.0
 	# Level Bonus Breakdown
-	_udraw(font, Vector2(left_cx, stat_left_y + 12), "BONUS BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.8))
+	_udraw(font, Vector2(left_cx, stat_left_y + 12), "BONUS BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.8))
 	draw_rect(Rect2(left_cx, stat_left_y + 16, 100, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2))
 	stat_left_y += 24.0
 	var lvl_b = _get_level_bonuses(tower_type)
@@ -11307,11 +11458,11 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	]
 	for bl in bonus_lines:
 		if bl[1] > 0:
-			_udraw(font, Vector2(left_cx + 6, stat_left_y + 10), "%s: +%d%%" % [bl[0], int(bl[1] * 100)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 10), 9, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.7))
+			_udraw(font, Vector2(left_cx + 6, stat_left_y + 10), "%s: +%d%%" % [bl[0], int(bl[1] * 100)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 10), 14, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.7))
 			stat_left_y += 13.0
 	# --- RIGHT COLUMN: Synergies ---
 	var syn_y = cy
-	_udraw(font, Vector2(right_cx, syn_y + 12), "SYNERGIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, menu_gold)
+	_udraw(font, Vector2(right_cx, syn_y + 12), "SYNERGIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_gold)
 	draw_rect(Rect2(right_cx, syn_y + 16, 80, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.25))
 	syn_y += 24.0
 	var syn_count = 0
@@ -11320,17 +11471,17 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 			# Synergy card
 			draw_rect(Rect2(right_cx, syn_y, col_w, 36), Color(accent.r, accent.g, accent.b, 0.06))
 			draw_rect(Rect2(right_cx, syn_y, col_w, 36), Color(accent.r, accent.g, accent.b, 0.15), false, 1.0)
-			_udraw(font, Vector2(right_cx + 6, syn_y + 13), syn["name"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 10, Color(0.85, 0.65, 0.1, 0.9))
-			_udraw(font, Vector2(right_cx + 6, syn_y + 27), syn["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 8, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
+			_udraw(font, Vector2(right_cx + 6, syn_y + 13), syn["name"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, Color(0.85, 0.65, 0.1, 0.9))
+			_udraw(font, Vector2(right_cx + 6, syn_y + 27), syn["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
 			# Partner name
 			var partner = syn["tower_b"] if syn["tower_a"] == tower_type else syn["tower_a"]
 			var partner_name = tower_info[partner]["name"]
 			var pnw = font.get_string_size("+ " + partner_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-			_udraw(font, Vector2(right_cx + col_w - pnw - 6, syn_y + 13), "+ " + partner_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.6))
+			_udraw(font, Vector2(right_cx + col_w - pnw - 6, syn_y + 13), "+ " + partner_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.6))
 			syn_y += 42.0
 			syn_count += 1
 	if syn_count == 0:
-		_udraw(font, Vector2(right_cx + 6, syn_y + 11), "No synergies discovered", HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 10, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
+		_udraw(font, Vector2(right_cx + 6, syn_y + 11), "No synergies discovered", HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
 
 func _format_number(value: float) -> String:
 	if value >= 1000000:
@@ -11362,7 +11513,7 @@ func _draw_detail_level_star(center: Vector2, req_level: int, font: Font) -> voi
 	draw_colored_polygon(spts, Color(0.85, 0.65, 0.1, 0.85))
 	var ls = str(req_level)
 	var lw = font.get_string_size(ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-	_udraw(font, Vector2(center.x - lw * 0.5, center.y + 3), ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.03, 0.03, 0.08))
+	_udraw(font, Vector2(center.x - lw * 0.5, center.y + 3), ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.03, 0.03, 0.08))
 
 # Story map node positions — 18 levels in a winding path
 var story_map_selected_node: int = -1
@@ -11429,7 +11580,7 @@ func _draw_story_map() -> void:
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
 	var progress_text = "%d/%d Levels" % [num_completed, num_total]
-	_udraw(font, Vector2(list_x + list_w - 160, list_y + 25), progress_text, HORIZONTAL_ALIGNMENT_RIGHT, 150, 12, Color(0.7, 0.65, 0.5, 0.8))
+	_udraw(font, Vector2(list_x + list_w - 160, list_y + 25), progress_text, HORIZONTAL_ALIGNMENT_RIGHT, 150, 15, Color(0.7, 0.65, 0.5, 0.8))
 	# Mini progress bar
 	var pb_x = list_x + list_w - 155
 	var pb_w = 105.0
@@ -11494,9 +11645,9 @@ func _draw_story_map() -> void:
 			draw_rect(Rect2(list_x + 4, hy, 4, header_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.8))
 			_udraw(font, Vector2(list_x + 18, hy + 22), arc_name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, 400, 14, Color(0.92, 0.78, 0.28))
 			if arc_done == arc_total:
-				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "COMPLETE", HORIZONTAL_ALIGNMENT_RIGHT, 200, 12, Color(0.45, 0.80, 0.30))
+				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "COMPLETE", HORIZONTAL_ALIGNMENT_RIGHT, 200, 15, Color(0.45, 0.80, 0.30))
 			else:
-				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "%d%% Complete" % arc_pct, HORIZONTAL_ALIGNMENT_RIGHT, 200, 12, Color(0.60, 0.52, 0.38))
+				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "%d%% Complete" % arc_pct, HORIZONTAL_ALIGNMENT_RIGHT, 200, 15, Color(0.60, 0.52, 0.38))
 		cursor_y += header_h + arc_gap
 
 		# --- Level rows ---
@@ -11573,7 +11724,7 @@ func _draw_story_map() -> void:
 			draw_rect(Rect2(thumb_x, thumb_y, thumb_w, thumb_h), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
 			# Level number badge
 			draw_circle(Vector2(thumb_x + 12, thumb_y + 12), 10, Color(0.0, 0.0, 0.0, 0.6))
-			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 10, Color(0.90, 0.82, 0.55))
+			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 14, Color(0.90, 0.82, 0.55))
 
 			# --- Text info ---
 			var text_x = thumb_x + thumb_w + 14.0
@@ -11581,8 +11732,8 @@ func _draw_story_map() -> void:
 			var sub_col = Color(0.70, 0.60, 0.42) if is_unlocked else Color(0.35, 0.30, 0.22, 0.5)
 			var stat_col = Color(0.55, 0.70, 0.45) if is_unlocked else Color(0.30, 0.28, 0.22, 0.4)
 			_udraw(font, Vector2(text_x, ry + 22), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, name_col)
-			_udraw(font, Vector2(text_x, ry + 38), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 440, 10, sub_col)
-			_udraw(font, Vector2(text_x, ry + 54), "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]], HORIZONTAL_ALIGNMENT_LEFT, 440, 9, stat_col)
+			_udraw(font, Vector2(text_x, ry + 38), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, sub_col)
+			_udraw(font, Vector2(text_x, ry + 54), "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, stat_col)
 
 			# --- Stars / medals ---
 			var star_x = rx + rw - 220.0
@@ -11714,7 +11865,7 @@ func _draw_chapters_badges() -> void:
 		if i == 0:  # DEALS — coin with dollar sign
 			draw_circle(Vector2(cx, cy), 10, Color(tc.r, tc.g, tc.b, 0.35))
 			draw_arc(Vector2(cx, cy), 10, 0, TAU, 16, Color(tc.r, tc.g, tc.b, 0.5), 1.5)
-			_udraw(font, Vector2(cx, cy + 5), "$", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, ic)
+			_udraw(font, Vector2(cx, cy + 5), "$", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, ic)
 		elif i == 1:  # QUESTS — scroll with lines
 			draw_rect(Rect2(cx - 7, cy - 10, 14, 20), Color(tc.r, tc.g, tc.b, 0.3))
 			draw_arc(Vector2(cx, cy - 10), 7, PI, TAU, 8, ic, 1.5)
@@ -11739,7 +11890,7 @@ func _draw_chapters_badges() -> void:
 
 		# Label below badge
 		var lbl_a = 0.85 if is_hovered else 0.5
-		_udraw(font, Vector2(cx, cy + badge_r + 13), badge["label"], HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(tc.r, tc.g, tc.b, lbl_a))
+		_udraw(font, Vector2(cx, cy + badge_r + 13), badge["label"], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(tc.r, tc.g, tc.b, lbl_a))
 
 		# Orbiting sparkles on hover
 		if is_hovered:
@@ -11885,8 +12036,8 @@ func _on_chapters_sidebar_clicked(mouse_pos: Vector2) -> void:
 	var badge_ids = ["deals", "quests", "arena", "odyssey", "endless"]
 
 	for i in range(badge_ids.size()):
-		var bob = sin(_time * 1.5 + float(i) * 1.2) * 2.5
-		var cy = badge_start_y + float(i) * badge_spacing + bob
+		# Use fixed Y for click detection (no bob) so badges are easy to tap on mobile
+		var cy = badge_start_y + float(i) * badge_spacing
 		if mouse_pos.distance_to(Vector2(badge_x, cy)) < badge_r:
 			menu_side_panel = badge_ids[i]
 			queue_redraw()
@@ -11901,6 +12052,13 @@ func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 		var iy = py + 42 + float(i) * 58.0
 		var iw = pw - 20
 		if mouse_pos.x >= ix + iw - 100 and mouse_pos.x <= ix + iw - 12 and mouse_pos.y >= iy + 8 and mouse_pos.y <= iy + 42:
+			if _deal_confirm_index != i:
+				_deal_confirm_index = i
+				_deal_confirm_timer = 3.0
+				queue_redraw()
+				return
+			_deal_confirm_index = -1
+			_deal_confirm_timer = 0.0
 			var cost = deal.get("cost", 0)
 			var cost_type = deal.get("cost_type", "")
 			var can_afford = false
@@ -11943,8 +12101,10 @@ func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 
 func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: float) -> void:
 	var shop_items = _get_arena_shop_items()
+	# Coords must match _draw_shadow_arena_sidebar: info_y=py+260, shop_y=info_y+44=py+304
+	var shop_y = py + 304.0
 	# Enter button
-	var enter_y = py + 54 + 16 + float(shop_items.size()) * 42.0 + 10 + 210
+	var enter_y = shop_y + 16.0 + float(shop_items.size()) * 42.0 + 10.0
 	if Rect2(px + pw * 0.5 - 60, enter_y, 120, 36).has_point(mouse_pos):
 		menu_side_panel = ""
 		_start_shadow_arena()
@@ -11952,8 +12112,15 @@ func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 	# Crystal shop item clicks
 	for si in range(shop_items.size()):
 		var item = shop_items[si]
-		var iy = py + 280 + 16 + float(si) * 42.0
+		var iy = shop_y + 16.0 + float(si) * 42.0
 		if mouse_pos.x >= px + 8 and mouse_pos.x <= px + pw - 8 and mouse_pos.y >= iy and mouse_pos.y <= iy + 36:
+			if _arena_confirm_index != si:
+				_arena_confirm_index = si
+				_arena_confirm_timer = 3.0
+				queue_redraw()
+				return
+			_arena_confirm_index = -1
+			_arena_confirm_timer = 0.0
 			if arena_crystals >= item["cost"]:
 				arena_crystals -= item["cost"]
 				match item["type"]:
@@ -11970,7 +12137,7 @@ func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
 	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY DEALS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.70, 0.28))
-	_udraw(font, Vector2(px + pw * 0.5, py + 34), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, menu_text_muted)
+	_udraw(font, Vector2(px + pw * 0.5, py + 34), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
 	for i in range(min(3, daily_deals.size())):
 		var deal = daily_deals[i]
 		var ix = px + 10
@@ -11981,19 +12148,19 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		var bg_col = Color(0.05, 0.15, 0.05, 0.6) if purchased else Color(0.08, 0.06, 0.12, 0.7)
 		draw_rect(Rect2(ix, iy, iw, ih), bg_col)
 		draw_rect(Rect2(ix, iy, iw, ih), Color(0.4, 0.35, 0.2, 0.3), false, 1.0)
-		_udraw(font, Vector2(ix + 10, iy + 18), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 12, Color(0.85, 0.75, 0.5))
-		_udraw(font, Vector2(ix + 10, iy + 36), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 9, menu_text_muted)
+		_udraw(font, Vector2(ix + 10, iy + 18), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 15, Color(0.85, 0.75, 0.5))
+		_udraw(font, Vector2(ix + 10, iy + 36), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 14, menu_text_muted)
 		if purchased:
-			_udraw(font, Vector2(ix + iw - 60, iy + 28), "SOLD", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.4, 0.7, 0.3))
+			_udraw(font, Vector2(ix + iw - 60, iy + 28), "SOLD", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.7, 0.3))
 		else:
 			var cost_str = "%d %s" % [deal.get("cost", 0), deal.get("cost_type", "").capitalize()]
 			draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(0.15, 0.12, 0.08, 0.8))
-			_udraw(font, Vector2(ix + iw - 56, iy + 30), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.85, 0.70, 0.28))
+			_udraw(font, Vector2(ix + iw - 56, iy + 30), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.85, 0.70, 0.28))
 
 func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
 	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY QUESTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.8, 0.3))
-	_udraw(font, Vector2(px + pw * 0.5, py + 34), "Complete for rewards!", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, menu_text_muted)
+	_udraw(font, Vector2(px + pw * 0.5, py + 34), "Complete for rewards!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
 	for i in range(min(3, active_quests.size())):
 		var q = active_quests[i]
 		var iy = py + 44 + float(i) * 58.0
@@ -12001,54 +12168,57 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		var bg = Color(0.05, 0.12, 0.05, 0.6) if completed else Color(0.06, 0.06, 0.08, 0.6)
 		draw_rect(Rect2(px + 8, iy, pw - 16, 50), bg)
 		draw_rect(Rect2(px + 8, iy, pw - 16, 50), Color(0.3, 0.6, 0.3, 0.25), false, 1.0)
-		_udraw(font, Vector2(px + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 130), 11, Color(0.8, 0.75, 0.6))
+		_udraw(font, Vector2(px + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 130), 15, Color(0.8, 0.75, 0.6))
 		# Progress bar
 		var pct = float(q.get("progress", 0)) / float(max(1, q.get("target", 1)))
 		var bar_w = 100.0
 		draw_rect(Rect2(px + pw - 120, iy + 6, bar_w, 12), Color(0.15, 0.15, 0.15))
 		draw_rect(Rect2(px + pw - 120, iy + 6, bar_w * pct, 12), Color(0.3, 0.8, 0.3) if not completed else Color(0.2, 0.6, 0.2))
-		_udraw(font, Vector2(px + pw - 70, iy + 16), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.8, 0.8, 0.8))
+		_udraw(font, Vector2(px + pw - 70, iy + 16), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8))
 		# Reward
 		var reward_str = "+%d %s" % [q.get("reward_amount", 0), q.get("reward_type", "").capitalize()]
 		if completed:
-			_udraw(font, Vector2(px + pw - 70, iy + 40), "DONE!", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.4, 0.8, 0.3))
+			_udraw(font, Vector2(px + pw - 70, iy + 40), "DONE!", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.8, 0.3))
 		else:
-			_udraw(font, Vector2(px + pw - 70, iy + 40), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.85, 0.70, 0.28))
+			_udraw(font, Vector2(px + pw - 70, iy + 40), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.70, 0.28))
 
 func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
 	_udraw(font, Vector2(px + pw * 0.5, py + 18), "SHADOW ARENA", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.3, 0.9))
-	_udraw(font, Vector2(px + pw * 0.5, py + 36), "Weekly competitive challenge", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, menu_text_muted)
+	_udraw(font, Vector2(px + pw * 0.5, py + 36), "Weekly competitive challenge", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
 	# Modifiers
 	var mod_str = ""
 	for m in shadow_arena_modifiers:
 		mod_str += m.replace("_", " ").capitalize() + "  "
-	_udraw(font, Vector2(px + pw * 0.5, py + 54), "Modifiers: " + mod_str, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 20), 10, Color(0.8, 0.5, 0.3))
+	_udraw(font, Vector2(px + pw * 0.5, py + 54), "Modifiers: " + mod_str, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 20), 14, Color(0.8, 0.5, 0.3))
 	# Leaderboard
-	_udraw(font, Vector2(px + 15, py + 74), "LEADERBOARD", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.70, 0.28))
+	_udraw(font, Vector2(px + 15, py + 74), "LEADERBOARD", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.85, 0.70, 0.28))
 	for i in range(min(8, arena_leaderboard.size())):
 		var entry = arena_leaderboard[i]
 		var ey = py + 90 + float(i) * 20.0
 		var name_col = Color(0.9, 0.8, 0.3) if entry["name"] == "YOU" else menu_text
-		_udraw(font, Vector2(px + 15, ey), "#%d  %s" % [i + 1, entry["name"]], HORIZONTAL_ALIGNMENT_LEFT, int(pw * 0.6), 10, name_col)
-		_udraw(font, Vector2(px + pw - 15, ey), "Wave %d" % entry["score"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, menu_text_muted)
+		_udraw(font, Vector2(px + 15, ey), "#%d  %s" % [i + 1, entry["name"]], HORIZONTAL_ALIGNMENT_LEFT, int(pw * 0.6), 14, name_col)
+		_udraw(font, Vector2(px + pw - 15, ey), "Wave %d" % entry["score"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_text_muted)
 	# Your best + crystals
 	var info_y = py + 260
-	_udraw(font, Vector2(px + 15, info_y), "Your Best: Wave %d" % shadow_arena_high_score, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.7, 0.9))
-	_udraw(font, Vector2(px + 15, info_y + 18), "Arena Crystals: %d" % arena_crystals, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.3, 0.9))
+	_udraw(font, Vector2(px + 15, info_y), "Your Best: Wave %d" % shadow_arena_high_score, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.7, 0.7, 0.9))
+	_udraw(font, Vector2(px + 15, info_y + 18), "Arena Crystals: %d" % arena_crystals, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.6, 0.3, 0.9))
 	# Crystal Shop
 	var shop_y = info_y + 44
-	_udraw(font, Vector2(px + pw * 0.5, shop_y), "CRYSTAL SHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.6, 0.3, 0.9))
+	_udraw(font, Vector2(px + pw * 0.5, shop_y), "CRYSTAL SHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.3, 0.9))
 	var shop_items = _get_arena_shop_items()
 	for si in range(shop_items.size()):
 		var item = shop_items[si]
 		var iy = shop_y + 16 + float(si) * 42.0
 		var can_buy = arena_crystals >= item["cost"]
 		var item_col = Color(0.9, 0.85, 1.0) if can_buy else Color(0.5, 0.4, 0.5)
-		draw_rect(Rect2(px + 8, iy, pw - 16, 36), Color(0.15, 0.08, 0.2, 0.6))
-		_udraw(font, Vector2(px + 14, iy + 14), item["name"], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 100), 10, item_col)
-		_udraw(font, Vector2(px + 14, iy + 28), item["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 100), 8, Color(0.5, 0.45, 0.55))
-		_udraw(font, Vector2(px + pw - 20, iy + 20), "%d" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 12, Color(0.6, 0.3, 0.9) if can_buy else Color(0.4, 0.3, 0.4))
+		var is_confirming = (_arena_confirm_index == si and _arena_confirm_timer > 0.0)
+		draw_rect(Rect2(px + 8, iy, pw - 16, 36), Color(0.25, 0.12, 0.35, 0.8) if is_confirming else Color(0.15, 0.08, 0.2, 0.6))
+		if is_confirming:
+			draw_rect(Rect2(px + 8, iy, pw - 16, 36), Color(0.7, 0.3, 0.9, 0.6), false, 2.0)
+		_udraw(font, Vector2(px + 14, iy + 14), item["name"], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 100), 14, item_col)
+		_udraw(font, Vector2(px + 14, iy + 28), item["desc"] if not is_confirming else "Tap again to confirm", HORIZONTAL_ALIGNMENT_LEFT, int(pw - 100), 14, Color(1.0, 0.8, 0.3) if is_confirming else Color(0.5, 0.45, 0.55))
+		_udraw(font, Vector2(px + pw - 20, iy + 20), "%d" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.6, 0.3, 0.9) if can_buy else Color(0.4, 0.3, 0.4))
 	# Enter button
 	var enter_y = shop_y + 16 + float(shop_items.size()) * 42.0 + 10
 	draw_rect(Rect2(px + pw * 0.5 - 60, enter_y, 120, 36), Color(0.30, 0.15, 0.50, 0.75))
@@ -12060,17 +12230,17 @@ func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	_udraw(font, Vector2(px + pw * 0.5, py + 20), "ODYSSEY MODE", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.82, 0.62, 0.92))
 	draw_rect(Rect2(px + 10, py + 30, pw - 20, 1), Color(0.5, 0.3, 0.7, 0.3))
 	if odyssey_completed_this_week:
-		_udraw(font, Vector2(px + pw * 0.5, py + 55), "Completed this week!", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 12, Color(0.5, 0.8, 0.3))
-		_udraw(font, Vector2(px + pw * 0.5, py + 75), "Resets Monday", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 10, Color(0.4, 0.6, 0.3))
+		_udraw(font, Vector2(px + pw * 0.5, py + 55), "Completed this week!", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.5, 0.8, 0.3))
+		_udraw(font, Vector2(px + pw * 0.5, py + 75), "Resets Monday", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 14, Color(0.4, 0.6, 0.3))
 	else:
 		var map_names = ""
 		for mi in range(odyssey_maps.size()):
 			if mi > 0: map_names += " > "
 			if odyssey_maps[mi] < levels.size():
 				map_names += levels[odyssey_maps[mi]]["name"]
-		_udraw(font, Vector2(px + pw * 0.5, py + 55), "Journey through:", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 10, Color(0.6, 0.5, 0.7))
-		_udraw(font, Vector2(px + pw * 0.5, py + 75), map_names, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 30), 9, Color(0.7, 0.6, 0.5))
-		_udraw(font, Vector2(px + pw * 0.5, py + 100), "Trophies: %d | Reward: 10-30" % trophy_currency, HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 10, Color(0.85, 0.70, 0.28))
+		_udraw(font, Vector2(px + pw * 0.5, py + 55), "Journey through:", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 14, Color(0.6, 0.5, 0.7))
+		_udraw(font, Vector2(px + pw * 0.5, py + 75), map_names, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 30), 14, Color(0.7, 0.6, 0.5))
+		_udraw(font, Vector2(px + pw * 0.5, py + 100), "Trophies: %d | Reward: 10-30" % trophy_currency, HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 14, Color(0.85, 0.70, 0.28))
 		# Start button
 		draw_rect(Rect2(px + pw * 0.5 - 60, py + 120, 120, 40), Color(0.30, 0.15, 0.50, 0.75))
 		draw_rect(Rect2(px + pw * 0.5 - 60, py + 120, 120, 2), Color(0.6, 0.3, 0.8, 0.6))
@@ -12080,362 +12250,15 @@ func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
 	_udraw(font, Vector2(px + pw * 0.5, py + 20), "THE ETERNAL CHAPTER", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.52, 0.62, 0.92))
 	draw_rect(Rect2(px + 10, py + 30, pw - 20, 1), Color(0.3, 0.4, 0.7, 0.3))
-	_udraw(font, Vector2(px + pw * 0.5, py + 55), "Infinite scaling waves.", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 11, Color(0.6, 0.6, 0.75))
-	_udraw(font, Vector2(px + pw * 0.5, py + 73), "How far can you go?", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 11, Color(0.6, 0.6, 0.75))
+	_udraw(font, Vector2(px + pw * 0.5, py + 55), "Infinite scaling waves.", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.6, 0.6, 0.75))
+	_udraw(font, Vector2(px + pw * 0.5, py + 73), "How far can you go?", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.6, 0.6, 0.75))
 	if endless_high_wave > 0:
-		_udraw(font, Vector2(px + pw * 0.5, py + 100), "Best: Wave %d" % endless_high_wave, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.85, 0.70, 0.28))
-	_udraw(font, Vector2(px + pw * 0.5, py + 125), "Hard difficulty | Random themes", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 9, Color(0.45, 0.45, 0.55))
+		_udraw(font, Vector2(px + pw * 0.5, py + 100), "Best: Wave %d" % endless_high_wave, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.85, 0.70, 0.28))
+	_udraw(font, Vector2(px + pw * 0.5, py + 125), "Hard difficulty | Random themes", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 14, Color(0.45, 0.45, 0.55))
 	# Start button
 	draw_rect(Rect2(px + pw * 0.5 - 60, py + 145, 120, 40), Color(0.15, 0.20, 0.48, 0.75))
 	draw_rect(Rect2(px + pw * 0.5 - 60, py + 145, 120, 2), Color(0.3, 0.4, 0.7, 0.6))
 	_udraw(font, Vector2(px + pw * 0.5, py + 171), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.72, 0.82, 0.98))
-
-func _draw_story_map_OLD() -> void:
-	var font = game_font
-	var map_x = 30.0
-	var map_y = 10.0
-	var map_w = 1220.0
-	var map_h = 500.0
-
-	# === PARCHMENT BACKGROUND (full width) ===
-	for i in range(50):
-		var t = float(i) / 49.0
-		var parch_col = Color(0.88, 0.82, 0.70).lerp(Color(0.82, 0.76, 0.63), t)
-		var grain = sin(float(i) * 2.3) * 0.01
-		parch_col.r += grain
-		parch_col.g += grain
-		draw_rect(Rect2(map_x, map_y + t * map_h, map_w, map_h / 49.0 + 1), parch_col)
-	# Ink stain texture (deterministic spots for aged parchment feel)
-	var stain_spots = [Vector2(150, 180), Vector2(500, 350), Vector2(900, 120), Vector2(1100, 400), Vector2(300, 420)]
-	for spot in stain_spots:
-		draw_circle(Vector2(map_x + spot.x, map_y + spot.y), 25.0, Color(0.72, 0.65, 0.52, 0.08))
-		draw_circle(Vector2(map_x + spot.x + 8, map_y + spot.y - 5), 15.0, Color(0.72, 0.65, 0.52, 0.05))
-
-	# === ORNATE BORDER ===
-	# Outer dark border
-	draw_rect(Rect2(map_x, map_y, map_w, 3), Color(0.35, 0.25, 0.12, 0.7))
-	draw_rect(Rect2(map_x, map_y + map_h - 3, map_w, 3), Color(0.35, 0.25, 0.12, 0.7))
-	draw_rect(Rect2(map_x, map_y, 3, map_h), Color(0.35, 0.25, 0.12, 0.7))
-	draw_rect(Rect2(map_x + map_w - 3, map_y, 3, map_h), Color(0.35, 0.25, 0.12, 0.7))
-	# Inner gold frame
-	draw_rect(Rect2(map_x + 6, map_y + 6, map_w - 12, 1), Color(0.65, 0.50, 0.20, 0.4))
-	draw_rect(Rect2(map_x + 6, map_y + map_h - 7, map_w - 12, 1), Color(0.65, 0.50, 0.20, 0.4))
-	draw_rect(Rect2(map_x + 6, map_y + 6, 1, map_h - 12), Color(0.65, 0.50, 0.20, 0.4))
-	draw_rect(Rect2(map_x + map_w - 7, map_y + 6, 1, map_h - 12), Color(0.65, 0.50, 0.20, 0.4))
-	# Corner ornaments (L-shaped gold accents)
-	for corner in [Vector2(map_x + 4, map_y + 4), Vector2(map_x + map_w - 24, map_y + 4), Vector2(map_x + 4, map_y + map_h - 24), Vector2(map_x + map_w - 24, map_y + map_h - 24)]:
-		draw_rect(Rect2(corner.x, corner.y, 20, 2), Color(0.70, 0.55, 0.22, 0.5))
-		draw_rect(Rect2(corner.x, corner.y, 2, 20), Color(0.70, 0.55, 0.22, 0.5))
-
-	# === TITLE ===
-	_udraw(font, Vector2(641, map_y + 29), "The Tome of Shadows", HORIZONTAL_ALIGNMENT_CENTER, map_w - 40, 18, Color(0.25, 0.15, 0.05, 0.4))
-	_udraw(font, Vector2(640, map_y + 28), "The Tome of Shadows", HORIZONTAL_ALIGNMENT_CENTER, map_w - 40, 18, Color(0.35, 0.22, 0.08, 0.9))
-	# Decorative flourish under title
-	draw_line(Vector2(420, map_y + 35), Vector2(610, map_y + 35), Color(0.54, 0.45, 0.20, 0.35), 1.0)
-	draw_line(Vector2(670, map_y + 35), Vector2(860, map_y + 35), Color(0.54, 0.45, 0.20, 0.35), 1.0)
-	draw_circle(Vector2(640, map_y + 35), 3.0, Color(0.65, 0.50, 0.20, 0.4))
-
-	# === BOOK SPINE (center divider) ===
-	var spine_x = 625.0
-	draw_rect(Rect2(spine_x - 1, map_y + 40, 3, map_h - 60), Color(0.35, 0.25, 0.12, 0.15))
-	for sy in range(0, int(map_h - 60), 8):
-		var spine_dot_a = 0.10 + sin(float(sy) * 0.15) * 0.04
-		draw_circle(Vector2(spine_x, map_y + 42 + float(sy)), 1.0, Color(0.35, 0.25, 0.12, spine_dot_a))
-
-	# === ACT HEADERS ===
-	_udraw(font, Vector2(310, map_y + 52), "ACT I: INTO THE PAGES", HORIZONTAL_ALIGNMENT_CENTER, 500, 12, Color(0.40, 0.28, 0.10, 0.75))
-	draw_line(Vector2(80, map_y + 58), Vector2(560, map_y + 58), Color(0.54, 0.45, 0.20, 0.3), 1.0)
-	_udraw(font, Vector2(930, map_y + 52), "ACT II: THE ORIGINAL TALES", HORIZONTAL_ALIGNMENT_CENTER, 500, 12, Color(0.40, 0.28, 0.10, 0.75))
-	draw_line(Vector2(690, map_y + 58), Vector2(1200, map_y + 58), Color(0.54, 0.45, 0.20, 0.3), 1.0)
-
-	var nodes = _get_story_map_node_positions()
-	# Build per-level colors from arc_data
-	var char_colors: Array = []
-	var arc_color_map = {
-		"Prologue": Color(0.45, 0.30, 0.55),
-		"Sherlock Holmes": Color(0.50, 0.50, 0.62),
-		"Merlin": Color(0.30, 0.50, 0.72),
-		"Tarzan": Color(0.25, 0.60, 0.25),
-		"Dracula": Color(0.65, 0.18, 0.22),
-		"Frankenstein": Color(0.42, 0.52, 0.32),
-		"Robin Hood": Color(0.32, 0.58, 0.28),
-		"Alice": Color(0.46, 0.68, 0.88),
-		"Wicked Witch": Color(0.52, 0.28, 0.66),
-		"Peter Pan": Color(0.92, 0.52, 0.16),
-		"Phantom": Color(0.78, 0.25, 0.20),
-		"Scrooge": Color(0.82, 0.68, 0.32),
-		"Shadow Author": Color(0.25, 0.10, 0.30),
-	}
-	for arc in arc_data:
-		var arc_col = arc_color_map.get(arc["name"], Color(0.5, 0.5, 0.5))
-		for _lvl in arc["levels"]:
-			char_colors.append(arc_col)
-
-	# === ARC LABEL RIBBONS ===
-	# Each arc gets a colored name label to the left of its node row
-	var arc_row_y_map: Dictionary = {}  # arc_index → y position
-	var arc_label_data = []  # [{ai, label_x, label_y, is_left}]
-	for ai in range(arc_data.size()):
-		if arc_data[ai]["levels"].size() == 0:
-			continue
-		var first_lvl = arc_data[ai]["levels"][0]
-		var row_y = nodes[first_lvl].y
-		arc_row_y_map[ai] = row_y
-		var is_left = (ai <= 5)  # arcs 0-5 left, 6-11 right, 12 center
-		var is_center = (ai == 12)
-		var lbl_x = 48.0 if is_left else (658.0 if not is_center else 520.0)
-		arc_label_data.append({"ai": ai, "x": lbl_x, "y": row_y, "left": is_left, "center": is_center})
-
-	var arc_short_labels = ["Prologue", "Sherlock", "Merlin", "Tarzan", "Dracula", "Frankenstein", "Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "Phantom", "Scrooge", "Shadow Author"]
-	for ld in arc_label_data:
-		var ai = ld["ai"]
-		var lx = ld["x"]
-		var ly = ld["y"]
-		var arc_name = arc_data[ai]["name"]
-		var arc_col = arc_color_map.get(arc_name, Color(0.5, 0.5, 0.5))
-		var is_active = (story_map_active_arc == ai)
-		# Check completion status
-		var arc_complete = true
-		var arc_has_unlocked = false
-		for lvl_idx in arc_data[ai]["levels"]:
-			if not lvl_idx in completed_levels:
-				arc_complete = false
-			if _is_level_unlocked(lvl_idx):
-				arc_has_unlocked = true
-		var is_locked = not arc_has_unlocked and not arc_complete
-		# Ribbon background
-		var ribbon_w = 130.0 if not ld["center"] else 220.0
-		var ribbon_h = 28.0
-		var ribbon_y = ly - 14.0
-		var ribbon_alpha = 0.55 if is_active else (0.15 if is_locked else 0.30)
-		# Ribbon shape (colored bar with shadow)
-		draw_rect(Rect2(lx + 1, ribbon_y + 1, ribbon_w, ribbon_h), Color(0.0, 0.0, 0.0, 0.08))
-		draw_rect(Rect2(lx, ribbon_y, ribbon_w, ribbon_h), Color(arc_col.r, arc_col.g, arc_col.b, ribbon_alpha))
-		# Active glow
-		if is_active:
-			draw_rect(Rect2(lx, ribbon_y, ribbon_w, ribbon_h), Color(1, 0.9, 0.5, 0.12))
-			draw_rect(Rect2(lx, ribbon_y, ribbon_w, ribbon_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.8), false, 2.0)
-			draw_rect(Rect2(lx, ribbon_y, 3, ribbon_h), Color(1, 0.9, 0.4, 0.9))
-		else:
-			draw_rect(Rect2(lx, ribbon_y, ribbon_w, ribbon_h), Color(0.35, 0.25, 0.12, 0.25), false, 1.0)
-		# Arc name
-		var name_col = Color(0.95, 0.9, 0.8) if is_active else (Color(0.5, 0.4, 0.3, 0.5) if is_locked else Color(0.85, 0.78, 0.6))
-		_udraw(font, Vector2(lx + 8, ly + 1), arc_short_labels[ai], HORIZONTAL_ALIGNMENT_LEFT, ribbon_w - 50, 11, name_col)
-		# Status on right side of ribbon
-		var status_x = lx + ribbon_w - 38
-		if arc_complete:
-			_udraw(font, Vector2(status_x, ly + 1), "CLEAR", HORIZONTAL_ALIGNMENT_CENTER, 36, 9, Color(0.85, 0.75, 0.25, 0.9))
-		elif is_locked:
-			_udraw(font, Vector2(status_x, ly + 1), "LOCKED", HORIZONTAL_ALIGNMENT_CENTER, 36, 7, Color(0.45, 0.35, 0.25, 0.5))
-		else:
-			var arc_done = 0
-			for lvl_idx in arc_data[ai]["levels"]:
-				if lvl_idx in completed_levels:
-					arc_done += 1
-			_udraw(font, Vector2(status_x, ly + 1), "%d/%d" % [arc_done, arc_data[ai]["levels"].size()], HORIZONTAL_ALIGNMENT_CENTER, 36, 9, Color(0.6, 0.5, 0.3, 0.8))
-
-	# === ACTIVE ARC HIGHLIGHT STRIP ===
-	if story_map_active_arc >= 0 and story_map_active_arc < arc_data.size():
-		var active_arc = arc_data[story_map_active_arc]
-		var active_col = arc_color_map.get(active_arc["name"], Color(0.5, 0.5, 0.5))
-		if active_arc["levels"].size() > 0:
-			var first_node = nodes[active_arc["levels"][0]]
-			var is_left = (story_map_active_arc <= 5)
-			var is_center = (story_map_active_arc == 12)
-			var strip_x = 45.0 if is_left else (655.0 if not is_center else 400.0)
-			var strip_w = 570.0 if not is_center else 480.0
-			var strip_y = first_node.y - 20.0
-			var strip_h = 40.0
-			var strip_pulse = 0.10 + sin(_time * 2.0) * 0.03
-			draw_rect(Rect2(strip_x, strip_y, strip_w, strip_h), Color(active_col.r, active_col.g, active_col.b, strip_pulse))
-			draw_rect(Rect2(strip_x, strip_y, strip_w, 1), Color(active_col.r, active_col.g, active_col.b, 0.25))
-			draw_rect(Rect2(strip_x, strip_y + strip_h - 1, strip_w, 1), Color(active_col.r, active_col.g, active_col.b, 0.25))
-
-	# === FINAL CHAPTER DIVIDER (before Shadow Author) ===
-	if nodes.size() > 34:
-		var div_y = (nodes[33].y + nodes[34].y) * 0.5 if story_map_active_arc != 12 else nodes[34].y - 30.0
-		div_y = minf(div_y, nodes[34].y - 22.0)
-		draw_line(Vector2(map_x + 100, div_y), Vector2(map_x + map_w - 100, div_y), Color(0.30, 0.15, 0.08, 0.35), 1.0)
-		_udraw(font, Vector2(640, div_y - 3), "~ THE FINAL CHAPTER ~", HORIZONTAL_ALIGNMENT_CENTER, 300, 10, Color(0.35, 0.18, 0.08, 0.6))
-
-	# === CONNECTION LINES (within each arc only) ===
-	for arc in arc_data:
-		var lvls = arc["levels"]
-		var arc_col = arc_color_map.get(arc["name"], Color(0.5, 0.5, 0.5))
-		for j in range(lvls.size() - 1):
-			var from_idx = lvls[j]
-			var to_idx = lvls[j + 1]
-			if from_idx >= nodes.size() or to_idx >= nodes.size():
-				continue
-			var from_p = nodes[from_idx]
-			var to_p = nodes[to_idx]
-			var is_done = from_idx in completed_levels
-			# Golden path with arc color tint
-			var path_col = Color(0.65, 0.50, 0.18, 0.55) if is_done else Color(0.50, 0.40, 0.18, 0.25)
-			draw_line(from_p, to_p, path_col, 2.5 if is_done else 1.5)
-			# Subtle arc-colored glow on completed paths
-			if is_done:
-				draw_line(from_p, to_p, Color(arc_col.r, arc_col.g, arc_col.b, 0.15), 5.0)
-
-	# === INTER-ARC DASHED CONNECTIONS (within same column) ===
-	for ai in range(arc_data.size() - 1):
-		var curr_arc = arc_data[ai]
-		var next_arc = arc_data[ai + 1]
-		if curr_arc["levels"].size() == 0 or next_arc["levels"].size() == 0:
-			continue
-		var last_lvl = curr_arc["levels"][curr_arc["levels"].size() - 1]
-		var first_lvl = next_arc["levels"][0]
-		# Only connect arcs in the same column (0-5 left, 6-11 right)
-		var same_col = (ai <= 4 and ai + 1 <= 5) or (ai >= 6 and ai + 1 >= 6 and ai + 1 <= 11)
-		if not same_col:
-			continue
-		var from_p = nodes[last_lvl]
-		var to_p = nodes[first_lvl]
-		# Dashed golden line
-		var dash_steps = 8
-		for ds in range(dash_steps):
-			if ds % 2 != 0:
-				continue
-			var t1 = float(ds) / float(dash_steps)
-			var t2 = float(ds + 1) / float(dash_steps)
-			draw_line(from_p.lerp(to_p, t1), from_p.lerp(to_p, t2), Color(0.54, 0.45, 0.20, 0.2), 1.0)
-
-	# === LEVEL NODES ===
-	var next_unlocked: int = -1
-	for i in range(nodes.size()):
-		var npos = nodes[i]
-		var is_complete = i in completed_levels
-		var is_unlocked = _is_level_unlocked(i)
-		var is_selected = (story_map_selected_node == i)
-		var is_chapter_end = false
-		for arc in arc_data:
-			if arc["levels"].size() > 0 and i == arc["levels"][arc["levels"].size() - 1]:
-				is_chapter_end = true
-				break
-		var node_r = 17.0 if is_chapter_end else 13.0
-
-		if is_unlocked and not is_complete and next_unlocked < 0:
-			next_unlocked = i
-
-		# Drop shadow
-		draw_circle(npos + Vector2(2, 2), node_r + 2, Color(0.0, 0.0, 0.0, 0.12))
-
-		if is_complete:
-			# Outer gold ring
-			draw_circle(npos, node_r + 2, Color(0.70, 0.55, 0.15, 0.6))
-			# Main body — gradient effect (arc color)
-			draw_circle(npos, node_r, Color(char_colors[i].r * 0.8, char_colors[i].g * 0.8, char_colors[i].b * 0.8, 0.9))
-			draw_circle(npos + Vector2(0, -2), node_r - 3, Color(char_colors[i].r, char_colors[i].g, char_colors[i].b, 0.9))
-			# Inner highlight
-			draw_circle(npos + Vector2(-2, -3), node_r * 0.4, Color(1, 1, 1, 0.12))
-			# Gold star center
-			_draw_mini_star(npos, 6.0, Color(1, 0.9, 0.35, 0.95))
-			# Stars below
-			var stars = level_stars.get(i, 0)
-			for si in range(3):
-				var star_pos = npos + Vector2(-10 + si * 10, node_r + 8)
-				if si < stars:
-					_draw_mini_star(star_pos, 4.0, Color(1, 0.85, 0.3, 0.9))
-				else:
-					_draw_mini_star(star_pos, 3.5, Color(0.5, 0.4, 0.25, 0.3))
-		elif is_unlocked:
-			# Pulsing available node
-			var pulse = 0.7 + sin(_time * 3.0) * 0.3
-			# Glow halo
-			draw_circle(npos, node_r + 5, Color(0.75, 0.55, 0.15, 0.08 * pulse))
-			# Main body
-			draw_circle(npos, node_r, Color(char_colors[i].r, char_colors[i].g, char_colors[i].b, 0.25 * pulse))
-			draw_arc(npos, node_r, 0, TAU, 32, Color(0.75, 0.55, 0.15, 0.6 * pulse), 2.5)
-			# Inner highlight
-			draw_circle(npos + Vector2(-2, -2), node_r * 0.35, Color(1, 1, 1, 0.06 * pulse))
-			# Level number (large, readable)
-			_udraw(font, Vector2(npos.x, npos.y + 5), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 30, 12, Color(0.30, 0.20, 0.08, 0.85))
-		else:
-			# Locked node — muted
-			draw_circle(npos, node_r, Color(0.45, 0.38, 0.30, 0.25))
-			draw_arc(npos, node_r, 0, TAU, 24, Color(0.35, 0.28, 0.18, 0.35), 1.5)
-			# Lock icon (bigger, more visible)
-			draw_rect(Rect2(npos.x - 4, npos.y, 8, 7), Color(0.45, 0.35, 0.22, 0.5))
-			draw_arc(Vector2(npos.x, npos.y - 2), 4.0, PI, TAU, 10, Color(0.45, 0.35, 0.22, 0.5), 1.5)
-
-		# Story sparkle on nodes with unseen content
-		var pre_key = "pre_level_" + str(i)
-		if story_dialogs.has(pre_key) and not pre_key in story_seen and is_unlocked:
-			var sparkle_t = fmod(_time * 2.0 + float(i) * 0.7, 1.0)
-			var sparkle_a = sin(sparkle_t * PI)
-			draw_circle(npos + Vector2(node_r + 5, -node_r - 3), 3.0, Color(1.0, 0.85, 0.3, sparkle_a * 0.85))
-			draw_circle(npos + Vector2(node_r + 5, -node_r - 3), 5.0, Color(1.0, 0.85, 0.3, sparkle_a * 0.2))
-
-		# Selection highlight — dramatic pulsing double ring
-		if is_selected and is_unlocked:
-			var sel_pulse = 0.7 + sin(_time * 4.0) * 0.3
-			draw_arc(npos, node_r + 5, 0, TAU, 32, Color(1, 0.85, 0.3, sel_pulse), 3.0)
-			draw_arc(npos, node_r + 9, 0, TAU, 32, Color(1, 0.85, 0.3, sel_pulse * 0.35), 2.0)
-			# Golden rays
-			for ray in range(8):
-				var ray_angle = float(ray) * TAU / 8.0 + _time * 0.5
-				var ray_start = npos + Vector2.from_angle(ray_angle) * (node_r + 10)
-				var ray_end = npos + Vector2.from_angle(ray_angle) * (node_r + 16)
-				draw_line(ray_start, ray_end, Color(1, 0.85, 0.3, sel_pulse * 0.3), 1.5)
-
-	# === QUILL PEN MARKER on next available level ===
-	if next_unlocked >= 0:
-		var qpos = nodes[next_unlocked] + Vector2(0, -25)
-		var bob = sin(_time * 2.0) * 4.0
-		qpos.y += bob
-		# Quill feather
-		draw_line(qpos + Vector2(2, 0), qpos + Vector2(6, 18), Color(0.45, 0.30, 0.10, 0.8), 2.0)
-		draw_colored_polygon(PackedVector2Array([qpos, qpos + Vector2(-6, -14), qpos + Vector2(4, -7)]), Color(0.88, 0.78, 0.52, 0.7))
-		draw_colored_polygon(PackedVector2Array([qpos + Vector2(-1, -2), qpos + Vector2(-8, -12), qpos + Vector2(-3, -8)]), Color(0.82, 0.72, 0.48, 0.5))
-
-	# === LEVEL DETAIL PANEL ===
-	if story_map_selected_node >= 0 and story_map_selected_node < levels.size():
-		_draw_story_map_detail_panel_OLD(nodes)
-
-	# === BOTTOM BAR: Odyssey + Endless + Prisoners ===
-	var bar_y = map_y + map_h + 8.0
-	var bar_h = 90.0
-	# Dark bar background
-	draw_rect(Rect2(map_x, bar_y, map_w, bar_h), Color(0.04, 0.03, 0.08, 0.92))
-	draw_rect(Rect2(map_x, bar_y, map_w, 2), Color(0.54, 0.45, 0.20, 0.3))
-
-	# --- Shadow Prisoners (right third) ---
-	var pris_x = 840.0
-	_udraw(font, Vector2(pris_x + 200, bar_y + 16), "Shadow Prisoners", HORIZONTAL_ALIGNMENT_CENTER, 380, 12, Color(0.80, 0.60, 0.30, 0.9))
-	draw_rect(Rect2(pris_x, bar_y + 22, 380, 1), Color(0.54, 0.45, 0.20, 0.25))
-	var unlock_info = [
-		{"id": "sherlock", "name": "Sherlock", "needs": [0,1,2]},
-		{"id": "tarzan", "name": "Tarzan", "needs": [3,4,5]},
-		{"id": "dracula", "name": "Dracula", "needs": [6,7,8]},
-		{"id": "merlin", "name": "Merlin", "needs": [9,10,11]},
-		{"id": "frankenstein", "name": "Monster", "needs": [12,13,14]},
-	]
-	for ui in range(unlock_info.size()):
-		var info = unlock_info[ui]
-		var px = pris_x + float(ui) * 76.0
-		var py = bar_y + 32.0
-		var is_free = info["id"] in unlocked_characters
-		var all_done = true
-		for nl in info["needs"]:
-			if not nl in completed_levels:
-				all_done = false
-				break
-		if is_free:
-			draw_circle(Vector2(px + 10, py + 10), 7, Color(0.3, 0.7, 0.2, 0.6))
-			_udraw(font, Vector2(px + 10, py + 30), info["name"], HORIZONTAL_ALIGNMENT_CENTER, 70, 9, Color(0.4, 0.7, 0.3, 0.9))
-			_udraw(font, Vector2(px + 10, py + 42), "FREE", HORIZONTAL_ALIGNMENT_CENTER, 50, 7, Color(0.5, 0.8, 0.3, 0.7))
-		elif all_done:
-			draw_circle(Vector2(px + 10, py + 10), 7, Color(0.8, 0.7, 0.2, 0.6))
-			_udraw(font, Vector2(px + 10, py + 30), info["name"], HORIZONTAL_ALIGNMENT_CENTER, 70, 9, Color(0.8, 0.65, 0.2, 0.9))
-			_udraw(font, Vector2(px + 10, py + 42), "READY!", HORIZONTAL_ALIGNMENT_CENTER, 50, 7, Color(0.9, 0.8, 0.3, 0.8))
-		else:
-			draw_circle(Vector2(px + 10, py + 10), 7, Color(0.35, 0.28, 0.20, 0.35))
-			var done_count = 0
-			for nl in info["needs"]:
-				if nl in completed_levels:
-					done_count += 1
-			_udraw(font, Vector2(px + 10, py + 30), info["name"], HORIZONTAL_ALIGNMENT_CENTER, 70, 9, Color(0.45, 0.38, 0.28, 0.6))
-			_udraw(font, Vector2(px + 10, py + 42), "%d/3" % done_count, HORIZONTAL_ALIGNMENT_CENTER, 50, 7, Color(0.4, 0.3, 0.2, 0.5))
 
 func _draw_mini_star(center: Vector2, size: float, color: Color) -> void:
 	var pts = PackedVector2Array()
@@ -12444,157 +12267,6 @@ func _draw_mini_star(center: Vector2, size: float, color: Color) -> void:
 		var r = size if i % 2 == 0 else size * 0.4
 		pts.append(center + Vector2.from_angle(angle) * r)
 	draw_colored_polygon(pts, color)
-
-func _draw_story_map_detail_panel_OLD(nodes: Array) -> void:
-	var font = game_font
-	var idx = story_map_selected_node
-	if idx < 0 or idx >= levels.size():
-		return
-	var level = levels[idx]
-	var npos = nodes[idx]
-	var is_unlocked = _is_level_unlocked(idx)
-
-	# Panel in center gap between columns (always readable)
-	var panel_w = 250.0
-	var panel_h = 185.0
-	var panel_x = 490.0  # Center gap between columns
-	# For Shadow Author (centered nodes), move panel far left to avoid overlapping nodes at x=460,640,820
-	if idx >= 34:
-		panel_x = 140.0
-	var panel_y = clampf(npos.y - 55.0, 20.0, 360.0)
-
-	# Panel shadow
-	draw_rect(Rect2(panel_x + 3, panel_y + 3, panel_w, panel_h), Color(0.0, 0.0, 0.0, 0.2))
-	# Dark panel background with gradient
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.02, 0.95))
-	# Top accent — gold gradient bar
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 4), Color(0.75, 0.55, 0.15, 0.7))
-	draw_rect(Rect2(panel_x, panel_y + 4, panel_w, 2), Color(0.75, 0.55, 0.15, 0.3))
-	# Side and bottom borders
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(0.75, 0.55, 0.15, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(0.75, 0.55, 0.15, 0.35))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(0.75, 0.55, 0.15, 0.35))
-
-	# Connecting line from node to panel
-	var connect_x = panel_x if npos.x < panel_x else panel_x + panel_w
-	draw_line(npos, Vector2(connect_x, panel_y + 30), Color(0.75, 0.55, 0.15, 0.25), 1.5)
-
-	# Level name (large, gold)
-	_udraw(font, Vector2(panel_x + 12, panel_y + 24), level["name"], HORIZONTAL_ALIGNMENT_LEFT, panel_w - 24, 15, Color(0.92, 0.78, 0.32))
-	# Subtitle
-	_udraw(font, Vector2(panel_x + 12, panel_y + 42), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, panel_w - 24, 10, Color(0.70, 0.60, 0.42))
-	# Stars (visual star icons)
-	var stars = level_stars.get(idx, 0)
-	for si in range(3):
-		var sx = panel_x + 14 + float(si) * 22
-		var sy = panel_y + 58
-		if si < stars:
-			_draw_mini_star(Vector2(sx, sy), 7.0, Color(1, 0.88, 0.32, 0.9))
-		else:
-			_draw_mini_star(Vector2(sx, sy), 6.0, Color(0.4, 0.32, 0.18, 0.35))
-	# Difficulty indicator
-	_udraw(font, Vector2(panel_x + panel_w - 12, panel_y + 62), "Lv. %d" % (idx + 1), HORIZONTAL_ALIGNMENT_RIGHT, 60, 10, Color(0.55, 0.45, 0.30, 0.7))
-
-	# Description (word-wrapped)
-	var desc = level["description"]
-	var desc_words = desc.split(" ")
-	var desc_line = ""
-	var desc_y = panel_y + 80
-	var max_desc_y = panel_y + panel_h - 48
-	for word in desc_words:
-		var test = desc_line + (" " if desc_line != "" else "") + word
-		if font.get_string_size(test, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x > panel_w - 28:
-			if desc_y < max_desc_y:
-				_udraw(font, Vector2(panel_x + 14, desc_y), desc_line, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.68, 0.62, 0.50))
-			desc_y += 14
-			desc_line = word
-		else:
-			desc_line = test
-	if desc_line != "" and desc_y < max_desc_y:
-		_udraw(font, Vector2(panel_x + 14, desc_y), desc_line, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.68, 0.62, 0.50))
-
-	# PLAY button (large, prominent)
-	if is_unlocked:
-		var btn_w = 120.0
-		var btn_h = 34.0
-		var btn_x = panel_x + panel_w * 0.5 - btn_w * 0.5
-		var btn_y = panel_y + panel_h - btn_h - 8
-		var btn_pulse = 0.85 + sin(_time * 3.0) * 0.15
-		# Button shadow
-		draw_rect(Rect2(btn_x + 2, btn_y + 2, btn_w, btn_h), Color(0.0, 0.0, 0.0, 0.15))
-		# Button fill
-		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.18, 0.55, 0.12, btn_pulse))
-		# Button highlight (top edge)
-		draw_rect(Rect2(btn_x, btn_y, btn_w, 2), Color(0.4, 0.8, 0.3, 0.4))
-		# Button border
-		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.75, 0.55, 0.15, 0.5), false, 1.5)
-		# Button text
-		_udraw(font, Vector2(btn_x + btn_w * 0.5, btn_y + 23), "PLAY", HORIZONTAL_ALIGNMENT_CENTER, btn_w - 10, 15, Color(1, 1, 1, 0.97))
-
-func _on_story_map_clicked_OLD(mouse_pos: Vector2) -> void:
-	var nodes = _get_story_map_node_positions()
-	# === ARC RIBBON LABEL CLICKS ===
-	# Match the ribbon positions from _draw_story_map
-	for ai in range(arc_data.size()):
-		if arc_data[ai]["levels"].size() == 0:
-			continue
-		var first_lvl = arc_data[ai]["levels"][0]
-		var row_y = nodes[first_lvl].y
-		var is_left = (ai <= 5)
-		var is_center = (ai == 12)
-		var lbl_x = 48.0 if is_left else (658.0 if not is_center else 520.0)
-		var ribbon_w = 130.0 if not is_center else 220.0
-		var ribbon_h = 28.0
-		var ribbon_y = row_y - 14.0
-		if Rect2(lbl_x, ribbon_y, ribbon_w, ribbon_h).has_point(mouse_pos):
-			if story_map_active_arc == ai:
-				story_map_active_arc = -1
-			else:
-				story_map_active_arc = ai
-				# Auto-select first incomplete level in this arc
-				for lvl_idx in arc_data[ai]["levels"]:
-					if _is_level_unlocked(lvl_idx) and not lvl_idx in completed_levels:
-						story_map_selected_node = lvl_idx
-						break
-			queue_redraw()
-			return
-	# === PLAY BUTTON in detail panel ===
-	if story_map_selected_node >= 0 and story_map_selected_node < levels.size():
-		var panel_w = 250.0
-		var panel_h = 185.0
-		var panel_x = 490.0
-		if story_map_selected_node >= 34:
-			panel_x = 140.0
-		var npos = nodes[story_map_selected_node]
-		var panel_y = clampf(npos.y - 55.0, 20.0, 360.0)
-		var btn_w = 120.0
-		var btn_h = 34.0
-		var btn_x = panel_x + panel_w * 0.5 - btn_w * 0.5
-		var btn_y = panel_y + panel_h - btn_h - 8
-		if Rect2(btn_x, btn_y, btn_w, btn_h).has_point(mouse_pos) and _is_level_unlocked(story_map_selected_node):
-			_on_level_selected(story_map_selected_node)
-			story_map_selected_node = -1
-			return
-	# === NODE CLICKS ===
-	for i in range(nodes.size()):
-		if nodes[i].distance_to(mouse_pos) < 22.0:
-			if story_map_selected_node == i:
-				# Double-tap to play
-				if _is_level_unlocked(i):
-					_on_level_selected(i)
-					story_map_selected_node = -1
-			else:
-				story_map_selected_node = i
-				# Set the arc for this node
-				for ai in range(arc_data.size()):
-					if i in arc_data[ai]["levels"]:
-						story_map_active_arc = ai
-						break
-			queue_redraw()
-			return
-	# Click elsewhere — deselect
-	story_map_selected_node = -1
-	queue_redraw()
 
 func _draw_open_book() -> void:
 	# === Open book (two-page spread) ===
@@ -12783,8 +12455,17 @@ func _draw_open_book() -> void:
 # GAME LOOP
 # ============================================================
 
+func get_cached_enemies() -> Array:
+	return _cached_enemies
+
 func _process(delta: float) -> void:
 	_time += delta
+	# Cache enemy list once per frame for performance
+	if game_state == GameState.PLAYING:
+		_cached_enemies = get_tree().get_nodes_in_group("enemies")
+	# Input debounce cooldown
+	if _input_cooldown > 0.0:
+		_input_cooldown -= delta
 	# Story dialog typewriter
 	_process_story_typewriter(delta)
 	# Musical beat clock (140 BPM)
@@ -12842,6 +12523,14 @@ func _process(delta: float) -> void:
 			_emporium_confirm_timer -= delta
 			if _emporium_confirm_timer <= 0.0:
 				_emporium_confirm_index = -1
+		if _deal_confirm_timer > 0.0:
+			_deal_confirm_timer -= delta
+			if _deal_confirm_timer <= 0.0:
+				_deal_confirm_index = -1
+		if _arena_confirm_timer > 0.0:
+			_arena_confirm_timer -= delta
+			if _arena_confirm_timer <= 0.0:
+				_arena_confirm_index = -1
 		# Hover updates
 		if not chest_opening_active and not daily_reward_open:
 			if survivor_detail_open:
@@ -13144,6 +12833,8 @@ func _spawn_enemy() -> void:
 	enemy_path.add_child(enemy)
 	enemies_to_spawn -= 1
 	enemies_alive += 1
+	if (is_boss_wave or is_final_villain or is_last_wave) and _is_mobile:
+		Input.vibrate_handheld(80)
 
 func _get_wave_enemy_count(w: int) -> int:
 	if endless_mode:
@@ -13740,6 +13431,8 @@ func _check_wave_complete() -> void:
 		_wave_clear_timer = 1.5
 		_wave_clear_num = wave
 		_play_sfx(_sfx_wave_complete)
+		if _is_mobile:
+			Input.vibrate_handheld(30)
 		if not endless_mode and not shadow_arena_active and wave >= total_waves:
 			_victory()
 		else:
@@ -13764,8 +13457,97 @@ func _check_wave_complete() -> void:
 				wave_auto_timer = auto_wave_delay
 				start_button.text = "  NEXT IN %.0fs  " % auto_wave_delay
 			info_label.text = "Wave %d cleared! +%dG bonus. Ready for next wave!" % [wave, bonus]
+			if _is_mobile:
+				Input.vibrate_handheld(50)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_handle_back_button()
+
+func _handle_back_button() -> void:
+	if chest_opening_active:
+		return
+	if daily_reward_open:
+		return
+	if story_state["active"]:
+		_end_story_dialog()
+		return
+	if game_state == GameState.PLAYING:
+		if power_selection_open:
+			power_selection_open = false
+			queue_redraw()
+			return
+		if selected_tower_node:
+			_deselect_tower()
+			return
+		if placing_tower:
+			_on_cancel_placement()
+			return
+		_on_restart_pressed()
+		return
+	if game_state == GameState.MENU:
+		if detail_info_overlay_open:
+			detail_info_overlay_open = false
+			queue_redraw()
+			return
+		if survivor_detail_open:
+			survivor_detail_open = false
+			survivor_detail_index = -1
+			survivor_grid_container.visible = true
+			survivor_detail_container.visible = false
+			_remove_detail_preview()
+			queue_redraw()
+			return
+		if emporium_sub_category >= 0:
+			emporium_sub_category = -1
+			queue_redraw()
+			return
+		if menu_current_view != "chapters":
+			menu_current_view = "chapters"
+			_on_nav_pressed("chapters")
+			queue_redraw()
+			return
 
 func _input(event: InputEvent) -> void:
+	# Input debouncing for buttons
+	if _input_cooldown > 0:
+		return
+	# Touch drag scrolling for mobile
+	if event is InputEventScreenTouch and game_state == GameState.MENU:
+		if event.pressed:
+			_touch_scroll_start_y = event.position.y
+			_touch_last_y = event.position.y
+			_touch_scroll_velocity = 0.0
+		else:
+			_touch_scroll_start_y = -1.0
+		return
+	if event is InputEventScreenDrag and game_state == GameState.MENU:
+		var delta_y = _touch_last_y - event.position.y
+		_touch_last_y = event.position.y
+		_touch_scroll_velocity = delta_y
+		if menu_current_view == "chapters":
+			story_map_scroll_y = maxf(0.0, story_map_scroll_y + delta_y)
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "relics":
+			relic_scroll_offset = clampf(relic_scroll_offset + delta_y, 0.0, 1200.0)
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "emporium" and emporium_sub_category == 8:
+			binding_shop_scroll = clampf(binding_shop_scroll + delta_y, 0.0, 1200.0)
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "survivors" and survivor_detail_open:
+			detail_binding_scroll = clampf(detail_binding_scroll + delta_y, 0.0, 600.0)
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+	if event is InputEventScreenDrag and game_state == GameState.PLAYING:
+		ghost_position = event.position
+		return
 	# Scroll wheel handling for scrollable views
 	if event is InputEventMouseButton and event.pressed and game_state == GameState.MENU:
 		if menu_current_view == "chapters" and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
@@ -13979,9 +13761,11 @@ func _dist_to_path(pos: Vector2) -> float:
 	return min_dist
 
 func _is_valid_placement(pos: Vector2) -> bool:
-	if pos.y < 55 or pos.y > 622:
+	var max_y = bottom_panel.position.y - 6.0 if bottom_panel else 622.0
+	if pos.y < 55 or pos.y > max_y:
 		return false
-	if pos.x < 5 or pos.x > 1275:
+	var vp_w = get_viewport_rect().size.x
+	if pos.x < 5 or pos.x > vp_w - 5:
 		return false
 	if _dist_to_path(pos) < MIN_PATH_DIST:
 		return false
@@ -14024,6 +13808,8 @@ func _try_place_tower(pos: Vector2) -> void:
 
 	placing_tower = false
 	cancel_button.visible = false
+	if _is_mobile:
+		Input.vibrate_handheld(30)
 	var quote = _play_placement_catchphrase(selected_tower)
 	info_label.text = "%s: \"%s\"" % [tname, quote]
 	# Track achievements + quests
@@ -14065,7 +13851,7 @@ func _draw() -> void:
 			draw_rect(Rect2(340, 20, 600, 40), Color(0.08, 0.12, 0.04, 0.85 * a_alpha))
 			draw_rect(Rect2(340, 20, 600, 40), Color(0.4, 0.8, 0.2, 0.5 * a_alpha), false, 1.0)
 			_udraw(font, Vector2(640, 37), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
-			_udraw(font, Vector2(640, 53), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.5, 0.8, 0.3, a_alpha))
+			_udraw(font, Vector2(640, 53), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.5, 0.8, 0.3, a_alpha))
 		return
 
 	var sky_color = Color(0.04, 0.06, 0.14)
@@ -14201,7 +13987,7 @@ func _draw() -> void:
 		var s_alpha = clampf(synergy_banner_timer, 0.0, 1.0)
 		draw_rect(Rect2(240, 55, 800, 30), Color(0.1, 0.06, 0.02, 0.8 * s_alpha))
 		draw_rect(Rect2(240, 55, 800, 30), Color(0.85, 0.65, 0.1, 0.5 * s_alpha), false, 1.0)
-		_udraw(font, Vector2(640, 76), synergy_banner_text, HORIZONTAL_ALIGNMENT_CENTER, 780, 13, Color(1.0, 0.9, 0.5, s_alpha))
+		_udraw(font, Vector2(640, 76), synergy_banner_text, HORIZONTAL_ALIGNMENT_CENTER, 780, 16, Color(1.0, 0.9, 0.5, s_alpha))
 
 	# === ACHIEVEMENT POPUP ===
 	if achievement_popup_timer > 0.0:
@@ -14211,7 +13997,7 @@ func _draw() -> void:
 		draw_rect(Rect2(340, a_y, 600, 40), Color(0.08, 0.12, 0.04, 0.85 * a_alpha))
 		draw_rect(Rect2(340, a_y, 600, 40), Color(0.4, 0.8, 0.2, 0.5 * a_alpha), false, 1.0)
 		_udraw(font, Vector2(640, a_y + 17), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
-		_udraw(font, Vector2(640, a_y + 33), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.5, 0.8, 0.3, a_alpha))
+		_udraw(font, Vector2(640, a_y + 33), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.5, 0.8, 0.3, a_alpha))
 
 	# === ODYSSEY PROGRESS INDICATOR ===
 	if odyssey_active:
@@ -14344,7 +14130,7 @@ func _draw() -> void:
 		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.45))
 		var font = game_font
 		_udraw(font, Vector2(640, 340), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, Color(1.0, 1.0, 1.0, 0.85))
-		_udraw(font, Vector2(640, 380), "Click Resume or press Start Wave to continue", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8, 0.6))
+		_udraw(font, Vector2(640, 380), "%s Resume or press Start Wave to continue" % _get_action_text(), HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8, 0.6))
 
 	# === ABILITY UNLOCK POPUP ===
 	if _ability_popup_timer > 0.0:
@@ -14382,7 +14168,7 @@ func _draw_ability_popup() -> void:
 	_udraw(game_font, Vector2(cx - 140, cy + 5), char_name + " — " + _ability_popup_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 1.0, 0.9, alpha))
 	# Description
 	if _ability_popup_desc != "":
-		_udraw(game_font, Vector2(cx - 140, cy + 28), _ability_popup_desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.8, 0.75, alpha * 0.8))
+		_udraw(game_font, Vector2(cx - 140, cy + 28), _ability_popup_desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.8, 0.8, 0.75, alpha * 0.8))
 	# Glow effect
 	var glow_pulse = (sin(_time * 5.0) + 1.0) * 0.5
 	draw_circle(Vector2(cx - pw / 2 + 40, cy), 15.0 + glow_pulse * 5.0, Color(1.0, 0.85, 0.3, 0.1 * alpha))
@@ -14745,8 +14531,8 @@ func _draw_entry_exit_markers(pts: PackedVector2Array) -> void:
 		lbl_pos = entry + Vector2(-50, -8)
 	else:
 		lbl_pos = entry + Vector2(-16, -22)
-	_udraw(font, lbl_pos + Vector2(1, 1), "ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.0, 0.0, 0.0, entry_pulse * 0.5))
-	_udraw(font, lbl_pos, "ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.3, 1.0, 0.4, entry_pulse * 0.7))
+	_udraw(font, lbl_pos + Vector2(1, 1), "ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.0, 0.0, 0.0, entry_pulse * 0.5))
+	_udraw(font, lbl_pos, "ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.3, 1.0, 0.4, entry_pulse * 0.7))
 
 	# === EXIT marker (red, pulsing) ===
 	var exit_pt = pts[pts.size() - 1]
@@ -14771,8 +14557,8 @@ func _draw_entry_exit_markers(pts: PackedVector2Array) -> void:
 		xlbl_pos = exit_pt + Vector2(24, -8)
 	else:
 		xlbl_pos = exit_pt + Vector2(-14, 22)
-	_udraw(font, xlbl_pos + Vector2(1, 1), "EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.0, 0.0, 0.0, exit_pulse * 0.5))
-	_udraw(font, xlbl_pos, "EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1.0, 0.35, 0.3, exit_pulse * 0.7))
+	_udraw(font, xlbl_pos + Vector2(1, 1), "EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.0, 0.0, 0.0, exit_pulse * 0.5))
+	_udraw(font, xlbl_pos, "EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.35, 0.3, exit_pulse * 0.7))
 
 # =============================================================================
 # NEW BACKGROUND FUNCTIONS FOR LEVELS 0-15 AND 34-36
@@ -18960,14 +18746,15 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 			draw_circle(Vector2(note_x, note_y), 2.5, Color(0.7, 0.55, 0.9, clampf(note_alpha, 0.0, 1.0)))
 			draw_line(Vector2(note_x + 2.5, note_y), Vector2(note_x + 2.5, note_y - 8.0), Color(0.7, 0.55, 0.9, clampf(note_alpha * 0.8, 0.0, 1.0)), 0.7)
 
-	# Vignette — deep darkness at edges for dramatic framing
-	for v in range(60):
-		var v_alpha = (1.0 - float(v) / 60.0) * 0.2
-		draw_rect(Rect2(0, 50 + v, float(v) * 0.8, 1), Color(0.0, 0.0, 0.0, v_alpha))
-		draw_rect(Rect2(1280.0 - float(v) * 0.8, 50 + v, float(v) * 0.8, 1), Color(0.0, 0.0, 0.0, v_alpha))
+	# Vignette — deep darkness at edges for dramatic framing (12 bands instead of 60)
+	for v in range(12):
+		var v_alpha = (1.0 - float(v) / 12.0) * 0.2
+		var band_y = 50 + v * 5
+		var band_w = float(v) * 4.0
+		draw_rect(Rect2(0, band_y, band_w, 5), Color(0.0, 0.0, 0.0, v_alpha))
+		draw_rect(Rect2(1280.0 - band_w, band_y, band_w, 5), Color(0.0, 0.0, 0.0, v_alpha))
 		# Bottom vignette
-		var bv_y = 628 - v
-		draw_rect(Rect2(0, bv_y, 1280, 1), Color(0.0, 0.0, 0.0, v_alpha * 0.5))
+		draw_rect(Rect2(0, 628 - v * 5, 1280, 5), Color(0.0, 0.0, 0.0, v_alpha * 0.5))
 
 func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 	# === SKY GRADIENT — Midnight spectral blue ===
@@ -19500,6 +19287,13 @@ func _update_upgrade_panel() -> void:
 	var display_name = tower.get_tower_display_name() if tower.has_method("get_tower_display_name") else "Tower"
 	upgrade_name_label.text = display_name
 
+	# Update targeting priority button
+	if tower.has_method("get_targeting_label"):
+		targeting_button.text = "Target: %s" % tower.get_targeting_label()
+		targeting_button.visible = true
+	else:
+		targeting_button.visible = false
+
 	# Update all 4 upgrade slots
 	for i in range(4):
 		var btn = upgrade_buttons[i]
@@ -19588,6 +19382,14 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 			if upgrade_cost > gold:
 				info_label.text = "Need %dG! (Have %dG)" % [upgrade_cost, gold]
 				_insufficient_gold_flash = 1.0
+
+func _on_targeting_pressed() -> void:
+	if not selected_tower_node or not is_instance_valid(selected_tower_node):
+		return
+	if selected_tower_node.has_method("cycle_targeting"):
+		selected_tower_node.cycle_targeting()
+	if selected_tower_node.has_method("get_targeting_label"):
+		targeting_button.text = "Target: %s" % selected_tower_node.get_targeting_label()
 
 func _on_sell_pressed() -> void:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
@@ -19720,7 +19522,7 @@ func _on_restart_pressed() -> void:
 		if "target" in tower:
 			tower.target = null
 	# Reset time scale
-	Engine.time_scale = 2.0 if fast_forward else 1.0
+	Engine.time_scale = _game_speed_level if fast_forward else 1.0
 	# Re-enable start button
 	start_button.disabled = false
 	start_button.text = "  START WAVE  "
@@ -19760,6 +19562,8 @@ func _start_next_wave() -> void:
 			_boss_alert_text = "BOSS WAVE"
 		_screen_shake_timer = 0.4
 		_screen_shake_intensity = 5.0
+		if _is_mobile:
+			Input.vibrate_handheld(80)
 	# Award wave survival XP to all placed towers (small bonus each wave)
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower.has_method("register_damage"):
@@ -19833,9 +19637,11 @@ func lose_life() -> void:
 	if lives < 0:
 		lives = 0
 	current_game_lives_lost += 1
-	# Red screen flash on life loss + warning sound
+	# Red screen flash on life loss + warning sound + haptic
 	_death_flash_timer = 0.15
 	_play_sfx(_sfx_life_lost)
+	if _is_mobile:
+		Input.vibrate_handheld(100)
 	spawn_floating_text(Vector2(420, 30), "-1 LIFE!", Color(1.0, 0.2, 0.15, 1.0), 18.0, 0.8)
 	update_hud()
 	if lives <= 0:
@@ -20286,7 +20092,7 @@ func _draw_boss_rescue() -> void:
 		# "I'll take it from here..." text
 		if boss_rescue_phase == 1:
 			var text_alpha = clampf((t - 1.8) / 0.5, 0.0, 1.0)
-			_udraw(font, Vector2(pos.x, pos.y - 90), "I'll take it from here...", HORIZONTAL_ALIGNMENT_CENTER, 300, 12, Color(0.7, 0.3, 0.9, text_alpha * 0.9))
+			_udraw(font, Vector2(pos.x, pos.y - 90), "I'll take it from here...", HORIZONTAL_ALIGNMENT_CENTER, 300, 15, Color(0.7, 0.3, 0.9, text_alpha * 0.9))
 
 	# Phase 2: Grab — villain shrinks/fades toward Shadow Author
 	if boss_rescue_phase == 2:
@@ -20752,6 +20558,8 @@ func _on_ability_chosen(index: int) -> void:
 	if _ability_tower and index < _ability_tower.TIER_NAMES.size():
 		name = _ability_tower.TIER_NAMES[index]
 	info_label.text = "Ability unlocked: %s!" % name
+	if _is_mobile:
+		Input.vibrate_handheld(40)
 	_ability_tower = null
 
 # === BATTLE POWER HANDLERS ===
@@ -20806,7 +20614,7 @@ func _draw_achievements_tab() -> void:
 	for ach in achievement_definitions:
 		if achievements_unlocked.get(ach["id"], false):
 			unlocked_count += 1
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "%d / %d" % [unlocked_count, achievement_definitions.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 13, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "%d / %d" % [unlocked_count, achievement_definitions.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 16, menu_text_muted)
 	# Draw achievement cards in a grid (5 columns, scrollable via categories)
 	var categories = ["Combat", "Tower", "Economy", "Progression"]
 	var cat_colors = [Color(0.8, 0.3, 0.2), Color(0.3, 0.7, 0.4), Color(0.85, 0.7, 0.2), Color(0.4, 0.5, 0.85)]
@@ -20826,7 +20634,7 @@ func _draw_achievements_tab() -> void:
 		# Category header
 		var hdr_y = start_y
 		draw_rect(Rect2(panel_x + 10, hdr_y, panel_w - 20, 18), Color(cat_col.r, cat_col.g, cat_col.b, 0.12))
-		_udraw(font, Vector2(panel_x + 20, hdr_y + 13), cat, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(cat_col.r, cat_col.g, cat_col.b, 0.9))
+		_udraw(font, Vector2(panel_x + 20, hdr_y + 13), cat, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(cat_col.r, cat_col.g, cat_col.b, 0.9))
 		start_y += 22.0
 		# Cards
 		for ai in range(cat_achievements.size()):
@@ -20849,7 +20657,7 @@ func _draw_achievements_tab() -> void:
 			# Check mark or progress
 			if is_done:
 				draw_circle(Vector2(cx + 16, cy + card_h * 0.5), 8, Color(0.3, 0.7, 0.2, 0.7))
-				_udraw(font, Vector2(cx + 11, cy + card_h * 0.5 + 5), "V", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+				_udraw(font, Vector2(cx + 11, cy + card_h * 0.5 + 5), "V", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
 			else:
 				# Progress bar
 				var pct = clampf(float(prog) / float(max(1, ach["target"])), 0.0, 1.0)
@@ -20858,10 +20666,10 @@ func _draw_achievements_tab() -> void:
 			# Name and desc
 			var nx = cx + 30.0
 			var nc = Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 1.0) if is_done else Color(0.55, 0.52, 0.60)
-			_udraw(font, Vector2(nx, cy + 16), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 12, nc)
-			_udraw(font, Vector2(nx, cy + 31), ach["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 11, Color(0.5, 0.45, 0.4))
+			_udraw(font, Vector2(nx, cy + 16), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 15, nc)
+			_udraw(font, Vector2(nx, cy + 31), ach["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 15, Color(0.5, 0.45, 0.4))
 			if not is_done:
-				_udraw(font, Vector2(nx, cy + 42), "%d / %d" % [prog, ach["target"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, menu_text_muted)
+				_udraw(font, Vector2(nx, cy + 42), "%d / %d" % [prog, ach["target"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_text_muted)
 		var rows_for_cat = (cat_achievements.size() + cols - 1) / cols
 		start_y += float(rows_for_cat) * (card_h + gap_y) + 8.0
 
@@ -20878,7 +20686,11 @@ func _draw_power_selection() -> void:
 	draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.04, 0.10, 0.95))
 	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.5), false, 2.0)
 	_udraw(font, Vector2(px + pw * 0.5 - 80, py + 30), "SELECT BATTLE POWERS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.75, 0.4))
-	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 50), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.6, 0.5, 0.4))
+	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 50), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.4))
+	# Cancel/Back button (top-right)
+	draw_rect(Rect2(px + pw - 112, py + 10, 100, 40), Color(0.4, 0.15, 0.15, 0.8))
+	draw_rect(Rect2(px + pw - 112, py + 10, 100, 40), Color(0.8, 0.3, 0.3, 0.5), false, 1.0)
+	_udraw(font, Vector2(px + pw - 62, py + 35), "CANCEL", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.9, 0.7, 0.7))
 	# Draw each power
 	for i in range(battle_power_definitions.size()):
 		var bp = battle_power_definitions[i]
@@ -20894,11 +20706,11 @@ func _draw_power_selection() -> void:
 		draw_rect(Rect2(bx, by, pw - 60, 48), bdr, false, 1.0)
 		# Name & desc
 		_udraw(font, Vector2(bx + 12, by + 18), bp["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.75, 0.5))
-		_udraw(font, Vector2(bx + 12, by + 34), bp["desc"], HORIZONTAL_ALIGNMENT_LEFT, 350, 10, Color(0.55, 0.48, 0.38))
+		_udraw(font, Vector2(bx + 12, by + 34), bp["desc"], HORIZONTAL_ALIGNMENT_LEFT, 350, 14, Color(0.55, 0.48, 0.38))
 		# Count
-		_udraw(font, Vector2(bx + pw - 120, by + 18), "Owned: %d" % owned, HORIZONTAL_ALIGNMENT_RIGHT, -1, 12, Color(0.7, 0.6, 0.4) if owned > 0 else Color(0.4, 0.35, 0.3))
+		_udraw(font, Vector2(bx + pw - 120, by + 18), "Owned: %d" % owned, HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.7, 0.6, 0.4) if owned > 0 else Color(0.4, 0.35, 0.3))
 		if is_selected_p:
-			_udraw(font, Vector2(bx + pw - 120, by + 34), "SELECTED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 11, Color(0.3, 0.8, 0.3))
+			_udraw(font, Vector2(bx + pw - 120, by + 34), "SELECTED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.3, 0.8, 0.3))
 	# Start button — large and prominent
 	var sb_w = 260.0
 	var sb_h = 50.0
@@ -20918,6 +20730,16 @@ func _draw_power_selection() -> void:
 	var sb_tw = font.get_string_size(sb_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 	_udraw(font, Vector2(sbx + (sb_w - sb_tw) * 0.5 + 1, sby + 33), sb_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0, 0, 0, 0.3))
 	_udraw(font, Vector2(sbx + (sb_w - sb_tw) * 0.5, sby + 32), sb_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
+	# Cancel button (top-right corner of panel)
+	var cancel_w = 100.0
+	var cancel_h = 40.0
+	var cancel_x = px + pw - cancel_w - 12
+	var cancel_y = py + 10
+	draw_rect(Rect2(cancel_x, cancel_y, cancel_w, cancel_h), Color(0.5, 0.15, 0.15, 0.8))
+	draw_rect(Rect2(cancel_x, cancel_y, cancel_w, cancel_h), Color(0.8, 0.3, 0.3, 0.5), false, 1.0)
+	var cancel_text = "CANCEL"
+	var ctw = font.get_string_size(cancel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	_udraw(font, Vector2(cancel_x + (cancel_w - ctw) * 0.5, cancel_y + 26), cancel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.8, 0.8))
 
 # === ODYSSEY DRAWING ===
 func _draw_odyssey_panel() -> void:
@@ -20934,16 +20756,16 @@ func _draw_odyssey_panel() -> void:
 	draw_rect(Rect2(ox, oy, pw, 2), Color(0.6, 0.3, 0.8, 0.6))
 	_udraw(font, Vector2(ox + 12, oy + 20), "ODYSSEY MODE", HORIZONTAL_ALIGNMENT_LEFT, pw - 100, 14, Color(0.82, 0.62, 0.92))
 	if odyssey_completed_this_week:
-		_udraw(font, Vector2(ox + 12, oy + 40), "Completed this week!", HORIZONTAL_ALIGNMENT_LEFT, pw - 20, 11, Color(0.5, 0.8, 0.3))
-		_udraw(font, Vector2(ox + 12, oy + 56), "Resets Monday", HORIZONTAL_ALIGNMENT_LEFT, pw - 20, 9, Color(0.4, 0.6, 0.3))
+		_udraw(font, Vector2(ox + 12, oy + 40), "Completed this week!", HORIZONTAL_ALIGNMENT_LEFT, pw - 20, 15, Color(0.5, 0.8, 0.3))
+		_udraw(font, Vector2(ox + 12, oy + 56), "Resets Monday", HORIZONTAL_ALIGNMENT_LEFT, pw - 20, 14, Color(0.4, 0.6, 0.3))
 	else:
 		var map_names = ""
 		for mi in range(odyssey_maps.size()):
 			if mi > 0: map_names += " > "
 			if odyssey_maps[mi] < levels.size():
 				map_names += levels[odyssey_maps[mi]]["name"]
-		_udraw(font, Vector2(ox + 12, oy + 40), map_names, HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 9, Color(0.6, 0.5, 0.4))
-		_udraw(font, Vector2(ox + 12, oy + 56), "Trophies: %d | Reward: 10-30" % trophy_currency, HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 9, Color(0.85, 0.7, 0.2))
+		_udraw(font, Vector2(ox + 12, oy + 40), map_names, HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 14, Color(0.6, 0.5, 0.4))
+		_udraw(font, Vector2(ox + 12, oy + 56), "Trophies: %d | Reward: 10-30" % trophy_currency, HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 14, Color(0.85, 0.7, 0.2))
 		# Start button
 		draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 46), Color(0.30, 0.15, 0.50, 0.75))
 		draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 2), Color(0.5, 0.3, 0.7, 0.5))
@@ -20964,10 +20786,10 @@ func _draw_endless_panel() -> void:
 	draw_rect(Rect2(ox, oy, pw, 2), Color(0.3, 0.4, 0.8, 0.6))
 	_udraw(font, Vector2(ox + 12, oy + 20), "THE ETERNAL CHAPTER", HORIZONTAL_ALIGNMENT_LEFT, pw - 100, 14, Color(0.52, 0.62, 0.92))
 	if endless_high_wave > 0:
-		_udraw(font, Vector2(ox + 12, oy + 40), "Best: Wave %d" % endless_high_wave, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.7, 0.85))
+		_udraw(font, Vector2(ox + 12, oy + 40), "Best: Wave %d" % endless_high_wave, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.7, 0.7, 0.85))
 	else:
-		_udraw(font, Vector2(ox + 12, oy + 40), "Infinite scaling waves. How far can you go?", HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 10, Color(0.50, 0.52, 0.65))
-	_udraw(font, Vector2(ox + 12, oy + 56), "Hard difficulty | Random themes", HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 9, Color(0.40, 0.42, 0.52))
+		_udraw(font, Vector2(ox + 12, oy + 40), "Infinite scaling waves. How far can you go?", HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 14, Color(0.50, 0.52, 0.65))
+	_udraw(font, Vector2(ox + 12, oy + 56), "Hard difficulty | Random themes", HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 14, Color(0.40, 0.42, 0.52))
 	# Start button
 	draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 46), Color(0.15, 0.20, 0.48, 0.75))
 	draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 2), Color(0.3, 0.4, 0.7, 0.5))
@@ -21072,7 +20894,7 @@ func _draw_trophy_store() -> void:
 		var items = trophy_store_items.get(cat_key, [])
 		# Category header
 		draw_rect(Rect2(panel_x + 10, start_y, panel_w - 20, 18), Color(0.6, 0.3, 0.8, 0.10))
-		_udraw(font, Vector2(panel_x + 20, start_y + 13), store_cat_names[ci], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.5, 0.85))
+		_udraw(font, Vector2(panel_x + 20, start_y + 13), store_cat_names[ci], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.7, 0.5, 0.85))
 		start_y += 22.0
 		for ii in range(items.size()):
 			var item = items[ii]
@@ -21096,20 +20918,20 @@ func _draw_trophy_store() -> void:
 					swatch_col = Color.from_hsv(fmod(_time * 0.3, 1.0), 0.7, 0.9, 0.5)
 				draw_circle(Vector2(ix + 18, iy + card_h * 0.5), 10, swatch_col)
 			# Name
-			_udraw(font, Vector2(ix + 34, iy + 18), item["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 12, Color(0.8, 0.7, 0.5))
-			_udraw(font, Vector2(ix + 34, iy + 32), item["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 9, Color(0.5, 0.45, 0.38))
+			_udraw(font, Vector2(ix + 34, iy + 18), item["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 15, Color(0.8, 0.7, 0.5))
+			_udraw(font, Vector2(ix + 34, iy + 32), item["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 14, Color(0.5, 0.45, 0.38))
 			if is_equipped:
-				_udraw(font, Vector2(ix + card_w - 65, iy + 18), "EQUIPPED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.3, 0.8, 0.3))
+				_udraw(font, Vector2(ix + card_w - 65, iy + 18), "EQUIPPED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
 			elif is_owned:
-				_udraw(font, Vector2(ix + card_w - 50, iy + 18), "OWNED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.5, 0.7, 0.9))
+				_udraw(font, Vector2(ix + card_w - 50, iy + 18), "OWNED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.5, 0.7, 0.9))
 			else:
-				_udraw(font, Vector2(ix + card_w - 60, iy + 18), "%d T" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 11, Color(0.85, 0.7, 0.2))
+				_udraw(font, Vector2(ix + card_w - 60, iy + 18), "%d T" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.85, 0.7, 0.2))
 		var rows_in_cat = (items.size() + 3) / 4
 		start_y += float(rows_in_cat) * (card_h + 6) + 8.0
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.7, 0.4))
+	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 # === CLICK HANDLERS FOR NEW FEATURES ===
 func _on_chapters_odyssey_clicked(mouse_pos: Vector2) -> void:
@@ -21203,7 +21025,7 @@ func _draw_binding_shop() -> void:
 		# Category header
 		if start_y + 18 > content_top and start_y < content_bottom:
 			draw_rect(Rect2(panel_x + 10, start_y, panel_w - 20, 18), Color(0.6, 0.3, 0.8, 0.10))
-			_udraw(font, Vector2(panel_x + 20, start_y + 13), rarity_names[rarity] + " (%d shards)" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, rarity_colors[rarity])
+			_udraw(font, Vector2(panel_x + 20, start_y + 13), rarity_names[rarity] + " (%d shards)" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, rarity_colors[rarity])
 		start_y += 22.0
 		total_content_h += 22.0
 		var bindings_in_rarity: Array = []
@@ -21222,11 +21044,11 @@ func _draw_binding_shop() -> void:
 			var bg = Color(0.12, 0.08, 0.14, 0.8) if count > 0 else Color(0.06, 0.05, 0.08, 0.8)
 			draw_rect(Rect2(ix, iy, card_w, card_h), bg)
 			draw_rect(Rect2(ix, iy, card_w, card_h), Color(rarity_colors[rarity].r, rarity_colors[rarity].g, rarity_colors[rarity].b, 0.3), false, 1.0)
-			_udraw(font, Vector2(ix + 8, iy + 16), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 80), 11, Color(0.8, 0.7, 0.5))
-			_udraw(font, Vector2(ix + 8, iy + 30), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 16), 9, Color(0.5, 0.45, 0.38))
+			_udraw(font, Vector2(ix + 8, iy + 16), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 80), 15, Color(0.8, 0.7, 0.5))
+			_udraw(font, Vector2(ix + 8, iy + 30), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 16), 14, Color(0.5, 0.45, 0.38))
 			if count > 0:
-				_udraw(font, Vector2(ix + card_w - 35, iy + 16), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.3, 0.8, 0.3))
-			_udraw(font, Vector2(ix + card_w - 55, iy + 30), "%d S" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.85, 0.7, 0.2))
+				_udraw(font, Vector2(ix + card_w - 35, iy + 16), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
+			_udraw(font, Vector2(ix + card_w - 55, iy + 30), "%d S" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
 		var rows_in_rarity = (bindings_in_rarity.size() + 3) / 4
 		var section_h = float(rows_in_rarity) * (card_h + 6) + 8.0
 		start_y += section_h
@@ -21246,7 +21068,7 @@ func _draw_binding_shop() -> void:
 	draw_rect(Rect2(panel_x + 2, panel_y + panel_h - 50, panel_w - 4, 48), Color(0.03, 0.03, 0.06, 0.95))
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.7, 0.4))
+	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0
@@ -21302,9 +21124,14 @@ func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
 
 func _on_power_selection_clicked(mouse_pos: Vector2) -> void:
 	var pw = 700.0
-	var ph = 440.0
+	var ph = 480.0
 	var px = (1280.0 - pw) / 2.0
 	var py = (720.0 - ph) / 2.0
+	# Cancel button (top-right corner of panel)
+	if Rect2(px + pw - 112, py + 10, 100, 40).has_point(mouse_pos):
+		power_selection_open = false
+		queue_redraw()
+		return
 	# Check power item clicks
 	for i in range(battle_power_definitions.size()):
 		var bp = battle_power_definitions[i]
@@ -21314,9 +21141,11 @@ func _on_power_selection_clicked(mouse_pos: Vector2) -> void:
 			_toggle_power_selection(bp["id"])
 			return
 	# Check start button
-	var sbx = px + pw * 0.5 - 80
-	var sby = py + ph - 50
-	if mouse_pos.x >= sbx and mouse_pos.x <= sbx + 160 and mouse_pos.y >= sby and mouse_pos.y <= sby + 36:
+	var sb_w = 260.0
+	var sb_h = 50.0
+	var sbx = px + (pw - sb_w) * 0.5
+	var sby = py + ph - sb_h - 16
+	if mouse_pos.x >= sbx and mouse_pos.x <= sbx + sb_w and mouse_pos.y >= sby and mouse_pos.y <= sby + sb_h:
 		_close_power_selection_and_start()
 		return
 
@@ -21365,7 +21194,7 @@ func _draw_salvage_panel() -> void:
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "SALVAGE WORKSHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted Tome Bindings into Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted Tome Bindings into Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var card_w = 260.0
 	var card_h = 52.0
 	var col_count = 4
@@ -21387,13 +21216,13 @@ func _draw_salvage_panel() -> void:
 		var rarity_col = {"common": Color(0.6, 0.6, 0.6), "uncommon": Color(0.3, 0.7, 0.3), "rare": Color(0.7, 0.4, 0.9)}.get(rarity, Color.WHITE)
 		draw_rect(Rect2(ix, iy, card_w, card_h), Color(0.08, 0.06, 0.10, 0.85))
 		draw_rect(Rect2(ix, iy, card_w, card_h), Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.3), false, 1.0)
-		_udraw(font, Vector2(ix + 8, iy + 16), binding.get("name", "?"), HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 11, Color(0.8, 0.7, 0.5))
-		_udraw(font, Vector2(ix + 8, iy + 32), "x%d" % owned_bindings[bid], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.5, 0.8, 0.5))
+		_udraw(font, Vector2(ix + 8, iy + 16), binding.get("name", "?"), HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(0.8, 0.7, 0.5))
+		_udraw(font, Vector2(ix + 8, iy + 32), "x%d" % owned_bindings[bid], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.8, 0.5))
 		# Salvage button
 		draw_rect(Rect2(ix + card_w - 75, iy + 8, 65, 34), Color(0.5, 0.15, 0.1, 0.7))
 		draw_rect(Rect2(ix + card_w - 75, iy + 8, 65, 34), Color(0.8, 0.3, 0.2, 0.4), false, 1.0)
-		_udraw(font, Vector2(ix + card_w - 42, iy + 22), "SALVAGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(1.0, 0.8, 0.6))
-		_udraw(font, Vector2(ix + card_w - 42, iy + 36), "+%d S" % shards_val, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, menu_gold)
+		_udraw(font, Vector2(ix + card_w - 42, iy + 22), "SALVAGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.8, 0.6))
+		_udraw(font, Vector2(ix + card_w - 42, iy + 36), "+%d S" % shards_val, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
 		col += 1
 		if col >= col_count:
 			col = 0
@@ -21401,7 +21230,7 @@ func _draw_salvage_panel() -> void:
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.7, 0.4))
+	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_salvage_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0
@@ -21449,7 +21278,7 @@ func _draw_chest_crafting() -> void:
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "CHEST FORGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var tier_colors = [Color(0.7, 0.5, 0.25), Color(0.7, 0.7, 0.75), Color(0.95, 0.8, 0.2)]
 	var tier_names = ["Bronze", "Silver", "Golden"]
 	var chest_keys = ["bronze", "silver", "gold"]
@@ -21467,8 +21296,8 @@ func _draw_chest_crafting() -> void:
 		draw_rect(Rect2(cx + cw * 0.5 - 32, icon_y, 64, 5), Color(tier_colors[i].r * 0.7, tier_colors[i].g * 0.7, tier_colors[i].b * 0.7))
 		draw_rect(Rect2(cx + cw * 0.5 - 5, icon_y + 15, 10, 15), Color(0.2, 0.15, 0.1))
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 70), tier_names[i] + " Treasure Chest", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, tier_colors[i])
-		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 92), "Owned: %d" % treasure_chests_owned.get(chest_keys[i], 0), HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_text)
-		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["shard_cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 13, menu_gold)
+		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 92), "Owned: %d" % treasure_chests_owned.get(chest_keys[i], 0), HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text)
+		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["shard_cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 16, menu_gold)
 		# Craft button
 		var can_afford = player_relic_shards >= craft["shard_cost"]
 		var btn_col = Color(0.15, 0.35, 0.15, 0.8) if can_afford else Color(0.12, 0.1, 0.1, 0.6)
@@ -21478,7 +21307,7 @@ func _draw_chest_crafting() -> void:
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.7, 0.4))
+	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_chest_crafting_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0
@@ -21548,7 +21377,7 @@ func _draw_daily_deals() -> void:
 	draw_rect(Rect2(dx, dy, dw, dh), Color(0.06, 0.05, 0.10, 0.9))
 	draw_rect(Rect2(dx, dy, dw, dh), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.35), false, 1.5)
 	_udraw(font, Vector2(dx + dw * 0.5, dy + 18), "DAILY DEALS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
-	_udraw(font, Vector2(dx + dw * 0.5, dy + 34), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, menu_text_muted)
+	_udraw(font, Vector2(dx + dw * 0.5, dy + 34), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
 	for i in range(min(3, daily_deals.size())):
 		var deal = daily_deals[i]
 		var ix = dx + 10
@@ -21559,18 +21388,25 @@ func _draw_daily_deals() -> void:
 		var bg_col = Color(0.05, 0.15, 0.05, 0.6) if purchased else Color(0.08, 0.06, 0.12, 0.7)
 		draw_rect(Rect2(ix, iy, iw, ih), bg_col)
 		draw_rect(Rect2(ix, iy, iw, ih), Color(0.4, 0.35, 0.2, 0.3), false, 1.0)
-		_udraw(font, Vector2(ix + 10, iy + 18), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 12, Color(0.85, 0.75, 0.5))
-		_udraw(font, Vector2(ix + 10, iy + 36), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 9, menu_text_muted)
+		_udraw(font, Vector2(ix + 10, iy + 18), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 15, Color(0.85, 0.75, 0.5))
+		_udraw(font, Vector2(ix + 10, iy + 36), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 14, menu_text_muted)
 		if purchased:
-			_udraw(font, Vector2(ix + iw - 60, iy + 28), "SOLD", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.4, 0.7, 0.3))
+			_udraw(font, Vector2(ix + iw - 60, iy + 28), "SOLD", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.7, 0.3))
 		else:
-			var cost_str = "%d %s" % [deal.get("cost", 0), deal.get("cost_type", "").capitalize()]
-			draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(0.15, 0.12, 0.08, 0.8))
-			_udraw(font, Vector2(ix + iw - 56, iy + 30), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, menu_gold)
+			if _deal_confirm_index == i and _deal_confirm_timer > 0.0:
+				draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(0.25, 0.18, 0.05, 0.9))
+				draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(1.0, 0.8, 0.2, 0.7), false, 2.0)
+				_udraw(font, Vector2(ix + iw - 56, iy + 24), "CONFIRM", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.9, 0.4))
+				var bar_fill = clampf(_deal_confirm_timer / 3.0, 0.0, 1.0)
+				draw_rect(Rect2(ix + iw - 98, iy + 38, 84 * bar_fill, 3), Color(1.0, 0.85, 0.2, 0.7))
+			else:
+				var cost_str = "%d %s" % [deal.get("cost", 0), deal.get("cost_type", "").capitalize()]
+				draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(0.15, 0.12, 0.08, 0.8))
+				_udraw(font, Vector2(ix + iw - 56, iy + 30), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_gold)
 
 func _on_daily_deals_clicked(mouse_pos: Vector2) -> void:
-	var dx = 836.0
-	var dy = 80.0  # sidebar panel_y
+	var dx = 830.0
+	var dy = 50.0
 	var dw = 420.0
 	for i in range(min(3, daily_deals.size())):
 		if daily_deals_purchased[i]:
@@ -21580,6 +21416,13 @@ func _on_daily_deals_clicked(mouse_pos: Vector2) -> void:
 		var iy = dy + 42 + float(i) * 58.0
 		var iw = dw - 20
 		if mouse_pos.x >= ix + iw - 100 and mouse_pos.x <= ix + iw - 12 and mouse_pos.y >= iy + 8 and mouse_pos.y <= iy + 42:
+			if _deal_confirm_index != i:
+				_deal_confirm_index = i
+				_deal_confirm_timer = 3.0
+				queue_redraw()
+				return
+			_deal_confirm_index = -1
+			_deal_confirm_timer = 0.0
 			var cost = deal.get("cost", 0)
 			var cost_type = deal.get("cost_type", "")
 			var can_afford = false
@@ -21629,7 +21472,7 @@ func _on_daily_deals_clicked(mouse_pos: Vector2) -> void:
 
 func _init_shadow_arena() -> void:
 	var date = Time.get_date_dict_from_system()
-	shadow_arena_weekly_seed = date["year"] * 52 + (date["day"] + date["month"] * 31) / 7
+	shadow_arena_weekly_seed = int(Time.get_unix_time_from_system() / 604800)
 	# Generate simulated leaderboard
 	var rng = RandomNumberGenerator.new()
 	rng.seed = shadow_arena_weekly_seed
@@ -21671,52 +21514,6 @@ func _end_shadow_arena() -> void:
 		arena_leaderboard.resize(16)
 	_save_game()
 
-func _draw_shadow_arena_panel() -> void:
-	var font = game_font
-	var px = 38.0
-	var py = 290.0
-	var pw = 385.0
-	var ph = 280.0
-	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.02, 0.06, 0.85))
-	draw_rect(Rect2(px, py, pw, ph), Color(0.5, 0.1, 0.6, 0.3), false, 1.5)
-	_udraw(font, Vector2(px + pw * 0.5, py + 20), "SHADOW ARENA", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.7, 0.3, 0.9))
-	_udraw(font, Vector2(px + pw * 0.5, py + 38), "Weekly competitive challenge", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, menu_text_muted)
-	# Modifiers
-	var mod_str = ""
-	for m in shadow_arena_modifiers:
-		mod_str += m.replace("_", " ").capitalize() + "  "
-	_udraw(font, Vector2(px + pw * 0.5, py + 56), "Modifiers: " + mod_str, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 20), 10, Color(0.8, 0.5, 0.3))
-	# Leaderboard (top 8)
-	_udraw(font, Vector2(px + 15, py + 78), "LEADERBOARD", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, menu_gold)
-	for i in range(min(8, arena_leaderboard.size())):
-		var entry = arena_leaderboard[i]
-		var ey = py + 92 + float(i) * 18.0
-		var name_col = Color(0.9, 0.8, 0.3) if entry["name"] == "YOU" else menu_text
-		_udraw(font, Vector2(px + 15, ey), "#%d  %s" % [i + 1, entry["name"]], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 80), 10, name_col)
-		_udraw(font, Vector2(px + pw - 20, ey), "Wave %d" % entry["score"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, menu_text_muted)
-	# Your best
-	_udraw(font, Vector2(px + 15, py + ph - 55), "Your Best: Wave %d" % shadow_arena_high_score, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.7, 0.9))
-	_udraw(font, Vector2(px + 15, py + ph - 38), "Arena Crystals: %d" % arena_crystals, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.3, 0.9))
-	# Arena Crystal Shop items
-	var shop_items = _get_arena_shop_items()
-	var shop_x = px + pw + 15.0
-	var shop_w = 200.0
-	draw_rect(Rect2(shop_x, py, shop_w, ph), Color(0.04, 0.02, 0.06, 0.85))
-	draw_rect(Rect2(shop_x, py, shop_w, ph), Color(0.5, 0.1, 0.6, 0.3), false, 1.5)
-	_udraw(font, Vector2(shop_x + shop_w * 0.5, py + 20), "CRYSTAL SHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.6, 0.3, 0.9))
-	for si in range(shop_items.size()):
-		var item = shop_items[si]
-		var iy = py + 42 + float(si) * 46.0
-		var can_buy = arena_crystals >= item["cost"]
-		var item_col = Color(0.9, 0.85, 1.0) if can_buy else Color(0.5, 0.4, 0.5)
-		draw_rect(Rect2(shop_x + 8, iy, shop_w - 16, 40), Color(0.15, 0.08, 0.2, 0.6))
-		_udraw(font, Vector2(shop_x + 14, iy + 14), item["name"], HORIZONTAL_ALIGNMENT_LEFT, int(shop_w - 28), 10, item_col)
-		_udraw(font, Vector2(shop_x + 14, iy + 30), "%d Crystals" % item["cost"], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.6, 0.3, 0.9, 0.8) if can_buy else Color(0.4, 0.25, 0.4))
-	# Start button
-	draw_rect(Rect2(px + pw - 88, py + ph - 50, 78, 40), Color(0.3, 0.1, 0.4, 0.7))
-	draw_rect(Rect2(px + pw - 88, py + ph - 50, 78, 40), Color(0.6, 0.2, 0.8, 0.4), false, 1.0)
-	_udraw(font, Vector2(px + pw - 49, py + ph - 25), "ENTER", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.9, 0.7, 1.0))
-
 func _get_arena_shop_items() -> Array:
 	return [
 		{"name": "50 Relic Shards", "cost": 5, "type": "shards", "amount": 50},
@@ -21725,31 +21522,6 @@ func _get_arena_shop_items() -> Array:
 		{"name": "200 Gold", "cost": 10, "type": "gold", "amount": 200},
 		{"name": "3 Knowledge Ink", "cost": 15, "type": "ink", "amount": 3},
 	]
-
-func _on_shadow_arena_clicked(mouse_pos: Vector2) -> void:
-	var px = 836.0
-	var py = 80.0  # sidebar panel_y
-	var pw = 420.0
-	# Enter button
-	var shop_items = _get_arena_shop_items()
-	var enter_y = py + 54 + 16 + float(shop_items.size()) * 42.0 + 10 + 210
-	if Rect2(px + pw * 0.5 - 60, enter_y, 120, 36).has_point(mouse_pos):
-		_start_shadow_arena()
-	# Crystal shop clicks (now inline in sidebar)
-	for si in range(shop_items.size()):
-		var item = shop_items[si]
-		var iy = py + 280 + 16 + float(si) * 42.0
-		if mouse_pos.x >= px + 8 and mouse_pos.x <= px + pw - 8 and mouse_pos.y >= iy and mouse_pos.y <= iy + 36:
-			if arena_crystals >= item["cost"]:
-				arena_crystals -= item["cost"]
-				match item["type"]:
-					"shards": player_relic_shards += item["amount"]
-					"quills": player_quills += item["amount"]
-					"stars": player_storybook_stars += item["amount"]
-					"gold": player_gold += item["amount"]
-					"ink": knowledge_ink += item["amount"]
-				queue_redraw()
-			break
 
 # =====================================================================================
 # === FEATURE 7: BRANCHING UPGRADE PATHS ===============================================
@@ -21958,7 +21730,7 @@ func _draw_branch_upgrade_panel() -> void:
 		py = 540.0
 		draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95))
 		draw_rect(Rect2(px, py, pw, ph), Color(0.6, 0.3, 0.8, 0.5), false, 1.5)
-		_udraw(font, Vector2(px + pw * 0.5, py + 16), "CHOOSE PATH", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.8, 0.6, 1.0))
+		_udraw(font, Vector2(px + pw * 0.5, py + 16), "CHOOSE PATH", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.8, 0.6, 1.0))
 		draw_rect(Rect2(px + 10, py + 22, pw - 20, 1), Color(0.6, 0.3, 0.8, 0.3))
 		for bi in range(2):
 			var bkey = "A" if bi == 0 else "B"
@@ -21969,12 +21741,12 @@ func _draw_branch_upgrade_panel() -> void:
 			var bg_col = Color(0.15, 0.08, 0.22, 0.9) if is_hover else Color(0.08, 0.05, 0.14, 0.8)
 			draw_rect(Rect2(px + 6, by, pw - 12, 58), bg_col)
 			draw_rect(Rect2(px + 6, by, pw - 12, 58), Color(0.7, 0.4, 0.9, 0.4) if is_hover else Color(0.5, 0.3, 0.6, 0.25), false, 1.0)
-			_udraw(font, Vector2(px + 14, by + 16), bkey + ": " + bname, HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 11, Color(0.9, 0.8, 0.5) if is_hover else Color(0.8, 0.7, 0.4))
+			_udraw(font, Vector2(px + 14, by + 16), bkey + ": " + bname, HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.9, 0.8, 0.5) if is_hover else Color(0.8, 0.7, 0.4))
 			# Show tier 1 preview
 			var tiers = bdata.get("tiers", [])
 			if tiers.size() > 0:
-				_udraw(font, Vector2(px + 14, by + 34), tiers[0].get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 9, Color(0.7, 0.65, 0.6))
-				_udraw(font, Vector2(px + 14, by + 48), tiers[0].get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 8, Color(0.55, 0.5, 0.5))
+				_udraw(font, Vector2(px + 14, by + 34), tiers[0].get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.7, 0.65, 0.6))
+				_udraw(font, Vector2(px + 14, by + 48), tiers[0].get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.55, 0.5, 0.5))
 	else:
 		# Show branch upgrade tiers
 		var bdata = branches.get(chosen, {})
@@ -21987,7 +21759,7 @@ func _draw_branch_upgrade_panel() -> void:
 		py = 540.0
 		draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95))
 		draw_rect(Rect2(px, py, pw, ph), Color(0.6, 0.3, 0.8, 0.5), false, 1.5)
-		_udraw(font, Vector2(px + pw * 0.5, py + 16), chosen + ": " + bname, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 10), 11, Color(0.8, 0.6, 1.0))
+		_udraw(font, Vector2(px + pw * 0.5, py + 16), chosen + ": " + bname, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 10), 15, Color(0.8, 0.6, 1.0))
 		draw_rect(Rect2(px + 10, py + 22, pw - 20, 1), Color(0.6, 0.3, 0.8, 0.3))
 		for ti in range(tiers.size()):
 			var tier = tiers[ti]
@@ -21997,9 +21769,9 @@ func _draw_branch_upgrade_panel() -> void:
 				# Purchased
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.06, 0.15, 0.06, 0.85))
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.3, 0.7, 0.2, 0.4), false, 1.0)
-				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 11, Color(0.5, 0.8, 0.4))
-				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 8, Color(0.5, 0.65, 0.4))
-				_udraw(font, Vector2(px + pw - 14, ty + 52), "OWNED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.4, 0.7, 0.3))
+				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.5, 0.8, 0.4))
+				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.5, 0.65, 0.4))
+				_udraw(font, Vector2(px + pw - 14, ty + 52), "OWNED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.4, 0.7, 0.3))
 			elif ti == current_tier:
 				# Available
 				var cost = tier.get("cost", 0)
@@ -22008,17 +21780,17 @@ func _draw_branch_upgrade_panel() -> void:
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), bg_c)
 				var bdr_c = Color(0.85, 0.65, 0.1, 0.6) if (can_afford and is_hover) else Color(0.5, 0.35, 0.6, 0.3)
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), bdr_c, false, 1.0)
-				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 11, Color(0.9, 0.8, 0.5))
-				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 8, Color(0.75, 0.7, 0.65))
+				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.9, 0.8, 0.5))
+				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.75, 0.7, 0.65))
 				var cost_col = Color(1.0, 0.84, 0.0) if can_afford else Color(0.6, 0.4, 0.3)
-				_udraw(font, Vector2(px + pw - 14, ty + 52), "%dG" % cost, HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, cost_col)
+				_udraw(font, Vector2(px + pw - 14, ty + 52), "%dG" % cost, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, cost_col)
 			else:
 				# Locked
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.06, 0.04, 0.08, 0.7))
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.3, 0.25, 0.35, 0.25), false, 1.0)
-				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 11, Color(0.45, 0.4, 0.4))
-				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 8, Color(0.4, 0.35, 0.35))
-				_udraw(font, Vector2(px + pw - 14, ty + 52), "%dG" % tier.get("cost", 0), HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.4, 0.35, 0.3))
+				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.45, 0.4, 0.4))
+				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.4, 0.35, 0.35))
+				_udraw(font, Vector2(px + pw - 14, ty + 52), "%dG" % tier.get("cost", 0), HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.4, 0.35, 0.3))
 
 func _handle_branch_panel_click(mouse_pos: Vector2) -> bool:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
@@ -22196,7 +21968,7 @@ func _draw_quest_panel() -> void:
 	draw_rect(Rect2(qx, qy, qw, qh), Color(0.04, 0.06, 0.04, 0.85))
 	draw_rect(Rect2(qx, qy, qw, qh), Color(0.3, 0.7, 0.3, 0.3), false, 1.5)
 	_udraw(font, Vector2(qx + qw * 0.5, qy + 18), "DAILY QUESTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.8, 0.3))
-	_udraw(font, Vector2(qx + qw * 0.5, qy + 34), "Complete for rewards!", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, menu_text_muted)
+	_udraw(font, Vector2(qx + qw * 0.5, qy + 34), "Complete for rewards!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
 	for i in range(min(3, active_quests.size())):
 		var q = active_quests[i]
 		var iy = qy + 44 + float(i) * 48.0
@@ -22204,19 +21976,19 @@ func _draw_quest_panel() -> void:
 		var bg = Color(0.05, 0.12, 0.05, 0.6) if completed else Color(0.06, 0.06, 0.08, 0.6)
 		draw_rect(Rect2(qx + 8, iy, qw - 16, 42), bg)
 		draw_rect(Rect2(qx + 8, iy, qw - 16, 42), Color(0.3, 0.6, 0.3, 0.25), false, 1.0)
-		_udraw(font, Vector2(qx + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(qw - 130), 11, Color(0.8, 0.75, 0.6))
+		_udraw(font, Vector2(qx + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(qw - 130), 15, Color(0.8, 0.75, 0.6))
 		# Progress bar
 		var pct = float(q.get("progress", 0)) / float(max(1, q.get("target", 1)))
 		var bar_w = 80.0
 		draw_rect(Rect2(qx + qw - 100, iy + 6, bar_w, 10), Color(0.15, 0.15, 0.15))
 		draw_rect(Rect2(qx + qw - 100, iy + 6, bar_w * pct, 10), Color(0.3, 0.8, 0.3) if not completed else Color(0.2, 0.6, 0.2))
-		_udraw(font, Vector2(qx + qw - 60, iy + 14), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.8, 0.8, 0.8))
+		_udraw(font, Vector2(qx + qw - 60, iy + 14), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8))
 		# Reward
 		var reward_str = "+%d %s" % [q.get("reward_amount", 0), q.get("reward_type", "").capitalize()]
 		if completed:
-			_udraw(font, Vector2(qx + qw - 60, iy + 34), "DONE!", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(0.4, 0.8, 0.3))
+			_udraw(font, Vector2(qx + qw - 60, iy + 34), "DONE!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.8, 0.3))
 		else:
-			_udraw(font, Vector2(qx + qw - 60, iy + 34), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, menu_gold)
+			_udraw(font, Vector2(qx + qw - 60, iy + 34), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
 
 # =====================================================================================
 # === FEATURE 10: LITERARY INSTRUMENTS (Aura Support Gear) =============================
@@ -22234,7 +22006,7 @@ func _draw_instrument_shop() -> void:
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "LITERARY INSTRUMENTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Place instruments to buff nearby towers with aura effects", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Place instruments to buff nearby towers with aura effects", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	for i in range(literary_instruments.size()):
 		var inst = literary_instruments[i]
 		var col_i = i % 3
@@ -22249,20 +22021,20 @@ func _draw_instrument_shop() -> void:
 		# Instrument icon (music note)
 		draw_circle(Vector2(ix + 30, iy + 40), 10, Color(0.85, 0.7, 0.2, 0.7))
 		draw_line(Vector2(ix + 38, iy + 40), Vector2(ix + 38, iy + 18), Color(0.85, 0.7, 0.2, 0.7), 2.0)
-		_udraw(font, Vector2(ix + 55, iy + 22), inst["name"], HORIZONTAL_ALIGNMENT_LEFT, int(cw - 65), 13, Color(0.9, 0.8, 0.5))
-		_udraw(font, Vector2(ix + 55, iy + 40), inst["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(cw - 65), 10, menu_text_muted)
-		_udraw(font, Vector2(ix + 55, iy + 58), "Radius: %d  |  Owned: %d" % [int(inst["radius"]), owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, menu_text)
+		_udraw(font, Vector2(ix + 55, iy + 22), inst["name"], HORIZONTAL_ALIGNMENT_LEFT, int(cw - 65), 16, Color(0.9, 0.8, 0.5))
+		_udraw(font, Vector2(ix + 55, iy + 40), inst["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(cw - 65), 14, menu_text_muted)
+		_udraw(font, Vector2(ix + 55, iy + 58), "Radius: %d  |  Owned: %d" % [int(inst["radius"]), owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_text)
 		# Buy button
 		var btn_x = ix + cw - 95
 		var btn_y = iy + ch - 38
 		var can_buy = player_quills >= inst["cost"]
 		draw_rect(Rect2(btn_x, btn_y, 82, 30), Color(0.15, 0.3, 0.15, 0.7) if can_buy else Color(0.1, 0.1, 0.1, 0.5))
 		draw_rect(Rect2(btn_x, btn_y, 82, 30), Color(0.4, 0.7, 0.3, 0.4) if can_buy else Color(0.3, 0.3, 0.3, 0.3), false, 1.0)
-		_udraw(font, Vector2(btn_x + 41, btn_y + 20), "%dQ" % inst["cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, menu_gold if can_buy else Color(0.4, 0.4, 0.4))
+		_udraw(font, Vector2(btn_x + 41, btn_y + 20), "%dQ" % inst["cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_gold if can_buy else Color(0.4, 0.4, 0.4))
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.7, 0.4))
+	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_instrument_shop_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0
@@ -22358,7 +22130,7 @@ func _draw_instrument_hud() -> void:
 	draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), bg_col)
 	draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.85, 0.65, 0.1, 0.5), false, 1.5)
 	draw_circle(Vector2(btn_x + 16, btn_y + 19), 8, Color(0.85, 0.7, 0.2, 0.7))
-	_udraw(font, Vector2(btn_x + 28, btn_y + 24), "INSTRUMENTS", HORIZONTAL_ALIGNMENT_LEFT, int(btn_w - 32), 11, Color(0.85, 0.7, 0.2))
+	_udraw(font, Vector2(btn_x + 28, btn_y + 24), "INSTRUMENTS", HORIZONTAL_ALIGNMENT_LEFT, int(btn_w - 32), 15, Color(0.85, 0.7, 0.2))
 	# If placing, show placement cursor
 	if is_placing:
 		var inst_data = null
@@ -22372,10 +22144,10 @@ func _draw_instrument_hud() -> void:
 			var cursor_col = Color(0.85, 0.7, 0.2, 0.3) if valid else Color(0.8, 0.2, 0.2, 0.3)
 			draw_arc(gpos, inst_data["radius"], 0, TAU, 32, cursor_col, 1.5)
 			draw_circle(gpos, 10, Color(0.85, 0.7, 0.2, 0.6) if valid else Color(0.8, 0.2, 0.2, 0.6))
-			_udraw(font, Vector2(gpos.x, gpos.y - 18), inst_data["name"], HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.9, 0.8, 0.5))
-			_udraw(font, Vector2(gpos.x, gpos.y + 24), "CLICK TO PLACE" if valid else "INVALID SPOT", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.7, 0.6, 0.4))
+			_udraw(font, Vector2(gpos.x, gpos.y - 18), inst_data["name"], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.9, 0.8, 0.5))
+			_udraw(font, Vector2(gpos.x, gpos.y + 24), "CLICK TO PLACE" if valid else "INVALID SPOT", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.6, 0.4))
 		# Cancel hint
-		_udraw(font, Vector2(btn_x + btn_w + 8, btn_y + 19), "RIGHT-CLICK TO CANCEL", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.6, 0.5, 0.4))
+		_udraw(font, Vector2(btn_x + btn_w + 8, btn_y + 19), "RIGHT-CLICK TO CANCEL", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.6, 0.5, 0.4))
 		return
 	# Instrument picker (small overlay listing owned instruments)
 	if _instrument_picker_open:
@@ -22397,14 +22169,14 @@ func _draw_instrument_hud() -> void:
 			draw_rect(Rect2(px + 4, iy, pw - 8, 28), Color(0.15, 0.12, 0.06, 0.7) if ih else Color(0.08, 0.06, 0.04, 0.5))
 			draw_circle(Vector2(px + 18, iy + 14), 5, Color(0.85, 0.7, 0.2, 0.6))
 			var count = owned_instruments.get(inst["id"], 0)
-			_udraw(font, Vector2(px + 28, iy + 18), "%s (x%d)" % [inst["name"], count], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 40), 10, Color(0.9, 0.8, 0.5) if ih else Color(0.75, 0.65, 0.4))
+			_udraw(font, Vector2(px + 28, iy + 18), "%s (x%d)" % [inst["name"], count], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 40), 14, Color(0.9, 0.8, 0.5) if ih else Color(0.75, 0.65, 0.4))
 
 func _handle_instrument_placement_click(mouse_pos: Vector2) -> bool:
 	# Check instrument button click
-	var btn_x = 10.0
-	var btn_y = 52.0
-	var btn_w = 90.0
-	var btn_h = 28.0
+	var btn_x = 8.0
+	var btn_y = 48.0
+	var btn_w = 110.0
+	var btn_h = 38.0
 	if _placing_instrument != "":
 		# Currently placing — place the instrument or cancel
 		if Rect2(btn_x, btn_y, btn_w, btn_h).has_point(mouse_pos):

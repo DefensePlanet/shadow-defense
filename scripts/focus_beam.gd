@@ -85,6 +85,8 @@ func _apply_splash(center: Vector2) -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy in _hit_targets:
 			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if center.distance_to(enemy.global_position) < splash_radius:
 			if enemy.has_method("take_damage"):
 				var splash_dmg = damage * 0.4
@@ -97,6 +99,8 @@ func _find_next_target() -> Node2D:
 	var nearest_dist: float = 150.0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy in _hit_targets:
+			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:

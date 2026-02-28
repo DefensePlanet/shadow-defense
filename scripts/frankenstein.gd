@@ -14,6 +14,9 @@ var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 2
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Animation timers
 var _time: float = 0.0
 var _attack_anim: float = 0.0
@@ -124,8 +127,10 @@ var _thunder_sound: AudioStreamWAV
 var _thunder_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	add_to_group("towers")
 	_load_progressive_abilities()
 	_generate_tier_sounds()
@@ -219,7 +224,9 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
@@ -235,15 +242,46 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _attack() -> void:
 	if not target:
@@ -279,14 +317,16 @@ func _thunder_storm() -> void:
 	if _thunder_player and not _is_sfx_muted():
 		_thunder_player.play()
 	_thunder_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < attack_range * _range_mult():
 			in_range.append(enemy)
 	in_range.shuffle()
 	var count = mini(chain_count, in_range.size())
-	var storm_dmg = damage * 3.0 * _damage_mult() * (1.0 + kill_stack_bonus)
+	var storm_dmg = damage * 2.0 * _damage_mult() * (1.0 + kill_stack_bonus)
 	for i in range(count):
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
 			var hp_before = in_range[i].health if "health" in in_range[i] else 0.0
@@ -297,7 +337,7 @@ func _thunder_storm() -> void:
 
 func _aura_pulse() -> void:
 	var aura_dmg = damage * 0.3 * _damage_mult() * (1.0 + kill_stack_bonus)
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < smash_radius * 1.2:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(aura_dmg)
@@ -305,17 +345,19 @@ func _aura_pulse() -> void:
 
 func register_kill() -> void:
 	kill_count += 1
-	# Linear scaling up to cap, logarithmic past it
-	if kill_count <= _kill_stack_cap:
-		kill_stack_bonus += _kill_stack_rate
+	# Linear scaling up to cap, logarithmic past it, hard cap at 60%
+	if kill_stack_bonus >= 0.60:
+		# Hard cap — no more growth
+		pass
+	elif kill_count <= _kill_stack_cap:
+		kill_stack_bonus = minf(kill_stack_bonus + _kill_stack_rate, 0.60)
 	else:
-		# Logarithmic growth past cap: base + log(kills - cap + 1) * factor
 		var over = kill_count - _kill_stack_cap
 		var prev_over = over - 1
 		var factor = _kill_stack_rate * 0.5
 		var new_bonus_total = float(_kill_stack_cap) * _kill_stack_rate + log(float(over) + 1.0) * factor
 		var old_bonus_total = float(_kill_stack_cap) * _kill_stack_rate + log(float(prev_over) + 1.0) * factor
-		kill_stack_bonus += new_bonus_total - old_bonus_total
+		kill_stack_bonus = minf(kill_stack_bonus + (new_bonus_total - old_bonus_total), 0.60)
 	_upgrade_flash = 0.5
 	_upgrade_name = "+%.0f%% damage!" % (kill_stack_bonus * 100.0)
 
@@ -348,9 +390,9 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	var dmg_boost = 4.0
-	var rate_boost = 0.04
-	var range_boost = 6.0
+	var dmg_boost = 3.0
+	var rate_boost = 0.03
+	var range_boost = 5.0
 	var gold_boost_val = 1
 	damage += dmg_boost
 	fire_rate += rate_boost
@@ -390,13 +432,13 @@ func _apply_upgrade(tier: int) -> void:
 			gold_bonus = 4
 			_thunder_storm_cooldown = 20.0
 		4: # Modern Prometheus — massive storm + permanent aura
-			damage = 90.0
-			fire_rate = 1.96
-			attack_range = 200.0
-			gold_bonus = 6
-			chain_count = 12
-			smash_radius = 100.0
-			_thunder_storm_cooldown = 15.0
+			damage = 75.0
+			fire_rate = 1.70
+			attack_range = 190.0
+			gold_bonus = 5
+			chain_count = 10
+			smash_radius = 90.0
+			_thunder_storm_cooldown = 18.0
 			_aura_active = true
 	# Re-apply accumulated stat boosts so tier upgrade doesn't clobber them
 	damage += _accumulated_stat_boosts["damage"]
@@ -643,7 +685,7 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _creators_sorrow_stun() -> void:
 	_sorrow_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(2.0)
@@ -652,7 +694,7 @@ func _promethean_fire_strike() -> void:
 	_promethean_flash = 1.0
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.health > most_hp:
 				most_hp = e.health
@@ -673,7 +715,7 @@ func _immortal_construct_pulse() -> void:
 	_immortal_flash = 1.0
 	var dmg = damage * 3.0 * _damage_mult() * (1.0 + kill_stack_bonus)
 	var pulse_range = attack_range * _range_mult() * 3.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) <= pulse_range and e.has_method("take_damage"):
 			var hp_before = e.health if "health" in e else 0.0
 			e.take_damage(dmg)

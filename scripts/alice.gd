@@ -14,6 +14,9 @@ var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 1
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
 var upgrade_tier: int = 0
@@ -109,8 +112,10 @@ var _tea_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_load_progressive_abilities()
@@ -298,7 +303,7 @@ func _process(delta: float) -> void:
 		_drum_solo_timer -= delta
 		_cheshire_flash = 0.8  # Keep grin visible during solo
 		# Drum solo slows all enemies in range by 30%
-		for e in get_tree().get_nodes_in_group("enemies"):
+		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 				if e.has_method("apply_slow"):
 					e.apply_slow(0.3, 0.5)
@@ -322,7 +327,7 @@ func _process(delta: float) -> void:
 		if _paint_red_timer <= 0.0:
 			_paint_red_timer = 1.0  # Tick every second
 			var paint_dmg = damage * 0.15
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(paint_dmg)
 					register_damage(paint_dmg)
@@ -336,21 +341,54 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _is_sfx_muted() -> bool:
 	var main = get_tree().get_first_node_in_group("main")
@@ -367,7 +405,7 @@ func _shoot() -> void:
 	if prog_abilities[0]:  # Curiouser: +20% damage
 		dmg *= 1.2
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) <= eff_range:
 			if enemy.has_method("apply_slow"):
 				enemy.apply_slow(slow_amount, slow_duration)
@@ -828,7 +866,7 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _rabbit_hole() -> void:
 	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -839,7 +877,7 @@ func _rabbit_hole() -> void:
 
 func _cheshire_grin() -> void:
 	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -852,7 +890,7 @@ func _cheshire_grin() -> void:
 func _eat_me_stomp() -> void:
 	_eat_me_flash = 1.0
 	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 4.0
@@ -863,7 +901,7 @@ func _painting_roses_red() -> void:
 	# Bug 3: Ability 5 implementation — paint nearby enemies red, +25% damage taken for 5s
 	_roses_red_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			# Apply 1.25x damage mark for 5 seconds (uses existing mark system)
 			if e.has_method("apply_mark"):
@@ -877,14 +915,14 @@ func _painting_roses_red() -> void:
 func _caterpillar_smoke() -> void:
 	_caterpillar_flash = 1.0
 	var eff_range = attack_range * _range_mult()  # Bug 5: use _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.2, 3.0)
 
 func _tweedle_attack() -> void:
 	var eff_range = attack_range * _range_mult() * 0.6  # Bug 5: use _range_mult()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -900,7 +938,7 @@ func _jabberwock_swoop() -> void:
 	# Bug 8: Cap range to attack_range * _range_mult() * 3.0 instead of global nuke
 	_jabberwock_flash = 1.0
 	var eff_range = attack_range * _range_mult() * 3.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 5.0
@@ -912,7 +950,7 @@ func _wonderland_madness() -> void:
 	_madness_flash = 1.0
 	var eff_range = attack_range * _range_mult() * 1.5
 	var madness_dmg = attack_damage_for_madness() * 0.5
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			# Confusion: walk backwards for 3 seconds
 			if e.has_method("apply_fear_reverse"):

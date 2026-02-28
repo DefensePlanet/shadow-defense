@@ -37,6 +37,8 @@ func _hit_target(t: Node2D) -> void:
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 		if will_kill:
+			if is_instance_valid(source_tower) and source_tower.has_method("register_kill"):
+				source_tower.register_kill()
 			if gold_bonus > 0:
 				var main = get_tree().get_first_node_in_group("main")
 				if main:

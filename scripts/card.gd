@@ -45,13 +45,16 @@ func _hit_target(t: Node2D) -> void:
 		return
 	_hit_targets.append(t)
 
-	# Execute check (Off With Their Heads!)
+	# Execute check (Off With Their Heads!) — bypass shields, kill through damage pipeline
 	if execute_threshold > 0.0 and t.health / t.max_health <= execute_threshold:
 		var exec_dmg = t.health
-		t.health = 0.0
-		t.take_damage(0.0, true)
+		if t.get("is_shielded") and t.shield_hp > 0.0:
+			t.shield_hp = 0.0
+		t.take_damage(t.health + 1.0, true)
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(exec_dmg)
+		if is_instance_valid(source_tower) and source_tower.has_method("register_kill"):
+			source_tower.register_kill()
 		if gold_bonus > 0:
 			var main = get_tree().get_first_node_in_group("main")
 			if main:
@@ -73,6 +76,8 @@ func _hit_target(t: Node2D) -> void:
 		t.apply_paint()
 
 	if will_kill:
+		if is_instance_valid(source_tower) and source_tower.has_method("register_kill"):
+			source_tower.register_kill()
 		if gold_bonus > 0:
 			var main = get_tree().get_first_node_in_group("main")
 			if main:
@@ -97,6 +102,8 @@ func _find_bounce_target() -> Node2D:
 	var nearest_dist: float = 150.0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy in _hit_targets:
+			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:

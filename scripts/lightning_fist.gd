@@ -40,6 +40,8 @@ func _apply_smash_damage() -> void:
 	# Phase 1: Direct AoE smash — damage all enemies in smash radius
 	var smash_targets: Array = []
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < smash_radius:
 			smash_targets.append(enemy)
 			_hit_targets.append(enemy)
@@ -65,6 +67,8 @@ func _apply_smash_damage() -> void:
 	var chain_candidates: Array = []
 	for enemy in enemies:
 		if enemy in _hit_targets:
+			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		chain_candidates.append(enemy)
 	# Sort by distance

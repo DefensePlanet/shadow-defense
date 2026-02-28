@@ -14,6 +14,9 @@ var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 2
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
 var upgrade_tier: int = 0
@@ -125,8 +128,10 @@ var _wolf_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	_home_position = global_position
 	add_to_group("towers")
@@ -248,21 +253,54 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if _home_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = _home_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _get_note_index() -> int:
 	var main = get_tree().get_first_node_in_group("main")
@@ -371,7 +409,7 @@ func _update_wolves(delta: float) -> void:
 		if wolf["progress"] < 0.0:
 			continue  # Still waiting to enter
 		# Damage enemies within 20px
-		for enemy in get_tree().get_nodes_in_group("enemies"):
+		for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 				if wolf["pos"].distance_to(enemy.global_position) < 20.0:
 					var dmg = wolf["damage"] * delta * 3.0
@@ -384,7 +422,12 @@ func _update_wolves(delta: float) -> void:
 func _spawn_crow_dive() -> void:
 	if _crow_player and not _is_sfx_muted(): _crow_player.play()
 	_crow_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var all_enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies: Array = []
+	for enemy in all_enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
+		enemies.append(enemy)
 	if enemies.size() == 0:
 		return
 	var count = mini(randi_range(6, 8), enemies.size())
@@ -501,7 +544,7 @@ func _update_beehive(delta: float) -> void:
 	# Apply DPS + slow to enemies in radius (scaled with meta buffs)
 	var eff_radius = _beehive_radius * _range_mult()
 	var eff_damage = _beehive_damage * _damage_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if is_instance_valid(enemy) and _beehive_pos.distance_to(enemy.global_position) < eff_radius:
 			if enemy.has_method("take_damage"):
 				var dmg = eff_damage * delta
@@ -860,7 +903,7 @@ func _process_progressive_abilities(delta: float) -> void:
 	# Ability 9: Surrender Dorothy — 15 DPS to ALL enemies every frame
 	if prog_abilities[8]:
 		var dps_amount = 15.0 * delta
-		for e in get_tree().get_nodes_in_group("enemies"):
+		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if is_instance_valid(e) and e.has_method("take_damage"):
 				var hp_before = e.health if "health" in e else 0.0
 				e.take_damage(dps_amount, true)
@@ -872,7 +915,7 @@ func _process_progressive_abilities(delta: float) -> void:
 func _monkey_scout_mark() -> void:
 	_monkey_scout_flash = 1.0
 	# Find a random enemy in range and mark for +25% damage taken
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var eff_range = attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
@@ -887,7 +930,7 @@ func _poppy_field_attack() -> void:
 	_poppy_flash = 1.5
 	# Put enemies in range to sleep for 2s
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if _home_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.has_method("apply_sleep"):
 				e.apply_sleep(2.0)
@@ -896,7 +939,7 @@ func _tornado_attack() -> void:
 	_tornado_flash = 1.5
 	# Push all enemies in range backwards using fear_reverse
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if _home_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(2.0)
@@ -907,7 +950,7 @@ func _ruby_slippers_strike() -> void:
 	var eff_range = attack_range * _range_mult()
 	var furthest: Node2D = null
 	var furthest_dist: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		var dist = _home_position.distance_to(e.global_position)
 		if dist < eff_range and dist > furthest_dist:
 			furthest_dist = dist
@@ -926,7 +969,7 @@ func _ruby_slippers_strike() -> void:
 func _winkies_march_attack() -> void:
 	_winkies_flash = 1.5
 	# 4 Winkie soldiers each strike one enemy for 3x damage
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var eff_range = attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
@@ -950,7 +993,7 @@ func _melting_curse_attack() -> void:
 	var eff_range = attack_range * _range_mult()
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if _home_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.health > most_hp:
 				most_hp = e.health

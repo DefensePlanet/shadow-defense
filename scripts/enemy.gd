@@ -14,7 +14,7 @@ var slow_factor: float = 1.0
 var slow_timer: float = 0.0
 var dot_dps: float = 0.0
 var dot_timer: float = 0.0
-var is_shrunk: bool = false
+var is_slowed: bool = false
 
 # Mark (damage multiplier from Scrooge's ghosts)
 var damage_mult: float = 1.0
@@ -96,7 +96,7 @@ func _ready() -> void:
 		})
 
 func _process(delta: float) -> void:
-	_wound_time += delta
+	_wound_time = fmod(_wound_time + delta, 628.0)
 	# Rescue pending — freeze in place, awaiting Shadow Author rescue animation
 	if _rescue_pending:
 		if _hit_flash > 0.0:
@@ -168,10 +168,10 @@ func _process(delta: float) -> void:
 	elif slow_timer > 0.0:
 		slow_timer -= delta
 		progress += speed * slow_factor * permanent_slow_mult * delta
-		is_shrunk = true
+		is_slowed = true
 	else:
 		slow_factor = 1.0
-		is_shrunk = false
+		is_slowed = false
 		progress += speed * permanent_slow_mult * delta
 
 	# Mark timer
@@ -207,8 +207,17 @@ func _process(delta: float) -> void:
 		queue_free()
 		return
 
-	shrink_scale = 0.7 if is_shrunk else 1.0
+	shrink_scale = 0.7 if is_slowed else 1.0
 	queue_redraw()
+
+func is_targetable() -> bool:
+	if _dead:
+		return false
+	if is_phantom and not phantom_visible:
+		return false
+	if sleep_timer > 0.0:
+		return false
+	return true
 
 func take_damage(amount: float, is_magic: bool = false) -> void:
 	if _dead:
@@ -358,11 +367,11 @@ func _draw() -> void:
 		tint = Color(0.85, 0.85, 0.95, 0.7)
 	elif dot_timer > 0.0:
 		tint = Color(0.6, 1.0, 0.6, 1.0)
-	elif is_shrunk:
+	elif is_slowed:
 		tint = Color(0.7, 0.7, 1.0, 1.0)
 
 	# Frost crystals when slowed
-	var draw_frost := is_shrunk or slow_factor < 0.9
+	var draw_frost := is_slowed or slow_factor < 0.9
 	# Wound alpha fade when critically low HP
 	var hp_ratio = health / max_health if max_health > 0.0 else 1.0
 	if hp_ratio < 0.25:
@@ -446,7 +455,7 @@ func _draw() -> void:
 			draw_line(Vector2(fx, fy + diamond_sz), Vector2(fx - diamond_sz * 0.6, fy), Color(0.6, 0.85, 1.0, frost_alpha), 1.5)
 			draw_line(Vector2(fx - diamond_sz * 0.6, fy), Vector2(fx, fy - diamond_sz), Color(0.6, 0.85, 1.0, frost_alpha), 1.5)
 	# Speed lines for fast enemies
-	if speed > 120.0 and not is_shrunk:
+	if speed > 120.0 and not is_slowed:
 		var trail_alpha = clampf((speed - 120.0) / 80.0, 0.1, 0.4)
 		for i in range(3):
 			var line_y = (-10.0 + float(i) * 10.0) * s

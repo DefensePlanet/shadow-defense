@@ -34,6 +34,8 @@ func _find_nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_dist: float = 999999.0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest = enemy

@@ -14,6 +14,9 @@ var aim_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 1
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Knockback and gold generation
 var knockback_amount: float = 30.0
 var gold_per_ring: int = 1
@@ -121,8 +124,10 @@ var _cha_ching_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_load_progressive_abilities()
@@ -242,8 +247,10 @@ func _process(delta: float) -> void:
 			_ghost_past_ready -= delta
 			if _ghost_past_ready <= 0.0:
 				# Check if any enemies are near the end of the path (progress > 0.8)
-				var enemies = get_tree().get_nodes_in_group("enemies")
+				var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 				for enemy in enemies:
+					if enemy.has_method("is_targetable") and not enemy.is_targetable():
+						continue
 					if is_instance_valid(enemy) and "progress" in enemy and enemy.progress > 0.8:
 						_trigger_ghost_past()
 						break
@@ -280,7 +287,9 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
@@ -296,15 +305,46 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _shoot() -> void:
 	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
@@ -320,7 +360,7 @@ func _shoot() -> void:
 		kb *= 1.2
 	var eff_range = attack_range * _range_mult()
 	var enemies_hit = 0
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) <= eff_range:
 			# Knockback — push enemies back on path
 			enemy.progress = max(0.0, enemy.progress - kb)
@@ -347,9 +387,11 @@ func on_wave_start(_wave_num: int) -> void:
 func _trigger_ghost_past() -> void:
 	_ghost_flash = 1.0
 	# Find up to 5 enemies with the highest progress values (nearest to end)
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var candidates: Array = []
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if is_instance_valid(enemy) and "progress" in enemy:
 			candidates.append(enemy)
 	# Sort by progress descending (nearest to end first)
@@ -386,7 +428,7 @@ func _trigger_coin_blast() -> void:
 	_coin_blast_flash = 2.0
 	# Massive AoE damage to ALL enemies on screen
 	var dmg = damage * 25.0 * _damage_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 			enemy.take_damage(dmg)
 			register_damage(dmg)
@@ -741,7 +783,7 @@ func _process_progressive_abilities(delta: float) -> void:
 func _marleys_warning() -> void:
 	_ghost_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -754,7 +796,7 @@ func _marleys_warning() -> void:
 func _marleys_chains_link() -> void:
 	_ghost_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -807,14 +849,14 @@ func _remove_fezziwig_aura() -> void:
 func _knocker_reverse() -> void:
 	_knocker_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(3.0)
 
 func _christmas_turkey() -> void:
 	_turkey_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("take_damage"):
 			var dmg = damage * 2.0 * _damage_mult()
 			e.take_damage(dmg)
@@ -829,7 +871,7 @@ func _scrooges_redemption() -> void:
 	var dmg = gold * 0.05
 	if dmg <= 0:
 		return
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("take_damage"):
 			e.take_damage(dmg)
 			register_damage(dmg)

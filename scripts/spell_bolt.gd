@@ -75,6 +75,8 @@ func _find_next_target() -> Node2D:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy in _hit_targets:
 			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest = enemy

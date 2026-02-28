@@ -14,6 +14,9 @@ var staff_angle: float = 0.0
 var target: Node2D = null
 var gold_bonus: int = 2
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Animation timers
 var _time: float = 0.0
 var _attack_anim: float = 0.0
@@ -129,8 +132,10 @@ var _upgrade_player: AudioStreamPlayer
 var _dragon_breath_sound: AudioStreamWAV
 var _dragon_breath_player: AudioStreamPlayer
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_load_progressive_abilities()
@@ -307,7 +312,9 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
@@ -323,22 +330,55 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _find_strongest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	var eff_range = attack_range * _range_mult()
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.health > most_hp:
 				most_hp = enemy.health
@@ -777,7 +817,7 @@ func _crystal_scrying_reveal() -> void:
 			e.is_camo = true
 	_crystal_scrying_revealed.clear()
 	# Now reveal new batch — only enemies that are currently camo
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if "is_camo" in e and e.is_camo:
 				e.is_camo = false
@@ -789,7 +829,7 @@ func _crystal_scrying_reveal() -> void:
 func _stone_circle_stun() -> void:
 	_stone_circle_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.5)
@@ -824,7 +864,7 @@ func _camelot_shield() -> void:
 
 func _time_warp_slow() -> void:
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.6, 3.0)
@@ -837,7 +877,7 @@ func _dragon_breath_attack() -> void:
 	# Cone attack in aim direction
 	var eff_range = attack_range * _range_mult()
 	var aim_dir = Vector2.from_angle(staff_angle)
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		var to_enemy = (e.global_position - global_position)
 		var dist = to_enemy.length()
 		if dist < eff_range:
@@ -866,7 +906,7 @@ func _avatar_magic_storm() -> void:
 	_avatar_magic_flash = 1.0
 	# Deal 2x damage to all enemies within 3x effective range (not global)
 	var storm_range = attack_range * _range_mult() * 3.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < storm_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 2.0 * _damage_mult()

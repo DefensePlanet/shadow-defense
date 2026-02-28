@@ -15,6 +15,9 @@ var target: Node2D = null
 var _draw_progress: float = 0.0
 var gold_bonus: int = 3
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Animation timers
 var _time: float = 0.0
 var _attack_anim: float = 0.0
@@ -116,8 +119,10 @@ var _vine_smash_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_load_progressive_abilities()
@@ -239,7 +244,7 @@ func _process(delta: float) -> void:
 
 	# Process animal allies — move toward enemies, punch them
 	var to_remove: Array = []
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	for i in range(_animal_allies.size()):
 		_animal_allies[i]["timer"] -= delta
 		_animal_allies[i]["punch_anim"] = maxf(_animal_allies[i]["punch_anim"] - delta * 4.0, 0.0)
@@ -252,6 +257,8 @@ func _process(delta: float) -> void:
 			var nearest_dist: float = 999999.0
 			for enemy in enemies:
 				if is_instance_valid(enemy):
+					if enemy.has_method("is_targetable") and not enemy.is_targetable():
+						continue
 					var d = ape_pos.distance_to(enemy.global_position)
 					if d < nearest_dist:
 						nearest_dist = d
@@ -295,7 +302,9 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
@@ -311,16 +320,46 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var eff_range = attack_range * _range_mult()
-	var nearest_dist: float = eff_range
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _attack() -> void:
 	if not target:
@@ -399,7 +438,7 @@ func _vine_swing_smash() -> void:
 	# Prog ability 1: Jungle Instinct — +20% damage
 	if prog_abilities[0]:
 		dmg *= 1.2
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - dmg <= 0.0
@@ -466,7 +505,7 @@ func use_ability() -> void:
 
 	# Stun all enemies in range for 2s
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("apply_sleep"):
 				enemy.apply_sleep(2.0)
@@ -780,7 +819,7 @@ func _process_progressive_abilities(delta: float) -> void:
 				e.is_shadow_infested = true
 		_predator_sense_revealed = still_revealed
 		# Reveal new shadow-infested enemies entering range
-		for e in get_tree().get_nodes_in_group("enemies"):
+		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if is_instance_valid(e) and "is_shadow_infested" in e and e.is_shadow_infested:
 				if global_position.distance_to(e.global_position) < sense_range:
 					e.is_shadow_infested = false
@@ -849,7 +888,7 @@ func _mangani_war_cry() -> void:
 	if _yell_player and not _is_sfx_muted():
 		_yell_player.play()
 	var cry_range = attack_range * _range_mult() * 2.5
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < cry_range:
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.0)
@@ -857,7 +896,7 @@ func _mangani_war_cry() -> void:
 func _opar_strike() -> void:
 	_opar_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 6.0 * _damage_mult()

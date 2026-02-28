@@ -15,6 +15,9 @@ var target: Node2D = null
 var _draw_progress: float = 0.0
 var gold_bonus: int = 2
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Animation timers
 var _time: float = 0.0
 var _attack_anim: float = 0.0
@@ -122,8 +125,10 @@ var _horn_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_load_progressive_abilities()
@@ -215,7 +220,9 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
@@ -231,28 +238,54 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
-	for enemy in enemies:
-		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+	return _find_target_by_priority(null)
 
 func _find_second_target(exclude: Node2D) -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	return _find_target_by_priority(exclude)
+
+func _find_target_by_priority(exclude: Node2D) -> Node2D:
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
 		if enemy == exclude:
 			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _shoot() -> void:
 	if not target:
@@ -328,7 +361,7 @@ func _spawn_sky_arrows() -> void:
 	if _horn_player and not _is_sfx_muted(): _horn_player.play()
 	_sky_arrow_flash = 1.0
 	_horn_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	if enemies.size() == 0:
 		return
 	var shuffled = enemies.duplicate()
@@ -378,7 +411,7 @@ func _update_sky_arrows(delta: float) -> void:
 				if t_norm >= 1.0:
 					# Impact — insta-kill
 					if arrow["target"].has_method("take_damage"):
-						var dmg = arrow["target"].health + 1.0
+						var dmg = arrow["target"].max_health * 0.85
 						arrow["target"].take_damage(dmg, true)
 						register_damage(dmg)
 					if is_instance_valid(arrow["target"]):
@@ -428,15 +461,15 @@ func _apply_upgrade(tier: int) -> void:
 			attack_range = 192.0
 			gold_bonus = 3
 		3: # Three Blasts of the Horn — sky arrows every other wave
-			damage = 50.0
-			fire_rate = 1.82
-			attack_range = 216.0
+			damage = 45.0
+			fire_rate = 1.56
+			attack_range = 208.0
 			gold_bonus = 4
 		4: # The Final Arrow — gold arrow, pierces 10, splash 40px
-			damage = 65.0
-			fire_rate = 2.08
-			attack_range = 240.0
-			gold_bonus = 6
+			damage = 52.0
+			fire_rate = 1.72
+			attack_range = 224.0
+			gold_bonus = 5
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
@@ -712,7 +745,7 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _merry_men_attack() -> void:
 	_merry_men_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
@@ -726,7 +759,7 @@ func _merry_men_attack() -> void:
 
 func _little_john_stun() -> void:
 	_little_john_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.5)
@@ -748,7 +781,7 @@ func _maid_marian_strike() -> void:
 	# Strike strongest enemy in range
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.health > most_hp:
 				most_hp = e.health
@@ -762,7 +795,7 @@ func _golden_arrow_strike() -> void:
 	_golden_arrow_flash = 1.0
 	# Pierce ALL enemies in a line from tower toward target direction
 	var dir = Vector2.from_angle(bow_angle)
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		# Check if enemy is roughly in the line (within 40px perpendicular distance)
 		var to_enemy = e.global_position - global_position
 		var proj = to_enemy.dot(dir)
@@ -778,7 +811,7 @@ func _king_sherwood_rain() -> void:
 	_king_sherwood_flash = 1.0
 	var rain_range = attack_range * _range_mult() * 2.5
 	# Deal 1.5x damage to enemies within 2.5x range
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < rain_range and e.has_method("take_damage"):
 			var dmg = damage * 1.5 * _damage_mult()
 			e.take_damage(dmg)

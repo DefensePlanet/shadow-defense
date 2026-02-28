@@ -44,6 +44,8 @@ func _hit_target(t: Node2D) -> void:
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 		if will_kill:
+			if is_instance_valid(source_tower) and source_tower.has_method("register_kill"):
+				source_tower.register_kill()
 			if gold_bonus > 0:
 				var main = get_tree().get_first_node_in_group("main")
 				if main:
@@ -62,6 +64,8 @@ func _find_next_target() -> Node2D:
 	var nearest_dist: float = 150.0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy in _hit_targets:
+			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		var dist = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:

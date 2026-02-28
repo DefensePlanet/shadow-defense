@@ -15,6 +15,9 @@ var target: Node2D = null
 var _cast_anim: float = 0.0
 var gold_bonus: int = 2
 
+# Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
+var targeting_priority: int = 0
+
 # Animation timers
 var _time: float = 0.0
 var _attack_anim: float = 0.0
@@ -134,8 +137,10 @@ var _brides_kiss_player: AudioStreamPlayer
 var _hypnotic_gaze_sound: AudioStreamWAV
 var _hypnotic_gaze_player: AudioStreamPlayer
 var _game_font: Font
+var _main_node: Node2D = null
 
 func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 	_game_font = load("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_home_position = global_position
@@ -298,7 +303,9 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
@@ -314,15 +321,46 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist: float = attack_range * _range_mult()
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var best: Node2D = null
+	var max_range: float = attack_range * _range_mult()
+	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
 		var dist = global_position.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest = enemy
-			nearest_dist = dist
-	return nearest
+		if dist > max_range:
+			continue
+		match targeting_priority:
+			0:  # First — furthest along path
+				if enemy.progress_ratio > best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			1:  # Last — earliest on path
+				if enemy.progress_ratio < best_val:
+					best = enemy
+					best_val = enemy.progress_ratio
+			2:  # Close — nearest to tower
+				if best == null or dist < best_val:
+					best = enemy
+					best_val = dist
+			3:  # Strong — highest HP
+				var hp = enemy.health if "health" in enemy else 0.0
+				if hp > best_val:
+					best = enemy
+					best_val = hp
+	return best
+
+func cycle_targeting() -> void:
+	targeting_priority = (targeting_priority + 1) % 4
+
+func get_targeting_label() -> String:
+	match targeting_priority:
+		0: return "FIRST"
+		1: return "LAST"
+		2: return "CLOSE"
+		3: return "STRONG"
+	return "FIRST"
 
 func _shoot() -> void:
 	if not target:
@@ -413,7 +451,12 @@ func _update_bite_dash(delta: float) -> void:
 				global_position = global_position.lerp(_home_position, return_progress)
 
 func _trigger_bat_devour() -> void:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var all_enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies: Array = []
+	for enemy in all_enemies:
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
+		enemies.append(enemy)
 	if enemies.is_empty():
 		return
 	var count = randi_range(3, 5)
@@ -574,9 +617,9 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	# Base stats for each tier (each strictly higher than previous)
-	var tier_base_damage := [30.0, 38.0, 48.0, 55.0]
-	var tier_base_fire_rate := [2.08, 2.34, 2.6, 3.0]
-	var tier_base_range := [210.0, 230.0, 250.0, 275.0]
+	var tier_base_damage := [30.0, 36.0, 44.0, 52.0]
+	var tier_base_fire_rate := [1.30, 1.56, 1.82, 2.20]
+	var tier_base_range := [205.0, 220.0, 240.0, 260.0]
 	var tier_idx := tier - 1
 	# Preserve accumulated boosts from stat upgrades above the tier base
 	var dmg_bonus := maxf(damage - tier_base_damage[maxi(tier_idx - 1, 0)], 0.0) if tier_idx > 0 else 0.0
@@ -903,7 +946,7 @@ func _wolf_strike() -> void:
 	var weakest: Node2D = null
 	var least_hp: float = 999999.0
 	var eff_range := attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if "health" in e and e.health < least_hp:
 				least_hp = e.health
@@ -944,7 +987,7 @@ func _blood_moon_expire() -> void:
 func _castle_defense() -> void:
 	_castle_defense_flash = 1.0
 	# Block 2 nearest enemies (stun them) for 2s
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var eff_range := attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
@@ -965,7 +1008,7 @@ func _brides_kiss() -> void:
 	# Drain strongest enemy in range
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if "health" in e and e.health > most_hp:
 				most_hp = e.health
@@ -983,7 +1026,7 @@ func _prince_darkness_wave() -> void:
 	_prince_flash = 1.0
 	# Dark wave damages enemies within 3x effective range
 	var prince_range := attack_range * _range_mult() * 3.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("take_damage") and global_position.distance_to(e.global_position) < prince_range:
 			var dmg = damage * 2.0 * _damage_mult()
 			e.take_damage(dmg)
