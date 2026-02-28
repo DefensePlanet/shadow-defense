@@ -12,7 +12,7 @@ var attack_range: float = 154.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -94,8 +94,8 @@ var _winkies_flash: float = 0.0
 var _melting_flash: float = 0.0
 var _surrender_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -111,7 +111,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Beehive on path slows and damages enemies",
 	"Golden Cap — faster orbit, enhanced wolves/crows"
 ]
-const TIER_COSTS = [90, 200, 350, 1000]
+const TIER_COSTS = [160, 375, 700, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -574,9 +574,9 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 2.5
-	fire_rate += 0.05
-	attack_range += 5.6
+	damage += 1.5
+	fire_rate += 0.025
+	attack_range += 2.8
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -596,18 +596,18 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 33.0
 			fire_rate = 2.6
 			attack_range = 175.0
-			gold_bonus = 3
+			gold_bonus = 2
 		3: # Swarm of Bees — beehive on path
 			damage = 40.0
 			fire_rate = 2.86
 			attack_range = 189.0
-			gold_bonus = 4
+			gold_bonus = 2
 			_place_beehive()
 		4: # The Golden Cap — enhanced everything
 			damage = 50.0
 			fire_rate = 3.26
 			attack_range = 210.0
-			gold_bonus = 5
+			gold_bonus = 3
 			_golden_cap_active = true
 			_orbit_speed = 2.8
 

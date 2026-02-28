@@ -88,8 +88,8 @@ var _turkey_flash: float = 0.0
 var _redemption_flash: float = 0.0
 var _knocker_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -105,7 +105,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Gives the team 25 gold twice per round",
 	"Every other wave — massive coin blast damages all enemies"
 ]
-const TIER_COSTS = [55, 120, 225, 1000]
+const TIER_COSTS = [90, 190, 360, 800]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -462,17 +462,17 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	var dmg_boost = 0.15
-	var rate_boost = 0.02
+	var dmg_boost = 0.09
+	var rate_boost = 0.01
 	_accumulated_damage_boost += dmg_boost
 	_accumulated_fire_rate_boost += rate_boost
-	_accumulated_range_boost += 4.0
-	_accumulated_knockback_boost += 3.0
+	_accumulated_range_boost += 2.0
+	_accumulated_knockback_boost += 1.5
 	_accumulated_gold_per_ring_boost += 1
 	damage += dmg_boost
 	fire_rate += rate_boost
-	attack_range += 4.0
-	knockback_amount += 3.0
+	attack_range += 2.0
+	knockback_amount += 1.5
 	gold_per_ring += 1
 	# Cash bundle every 500 damage milestone
 	var main = get_tree().get_first_node_in_group("main")
@@ -502,19 +502,19 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 3.0
 			fire_rate = 1.18
 			attack_range = 80.0
-			gold_bonus = 3
+			gold_bonus = 2
 		3: # Ghost of Christmas Present — gives 25 gold twice per round
 			damage = 4.0
 			fire_rate = 1.30
 			attack_range = 90.0
 			knockback_amount = 65.0
-			gold_bonus = 4
+			gold_bonus = 2
 		4: # Ghost of Yet to Come — coin blast every other wave
 			damage = 5.0
 			fire_rate = 1.44
 			attack_range = 100.0
 			knockback_amount = 80.0
-			gold_bonus = 6
+			gold_bonus = 3
 	# Re-apply accumulated stat boosts from damage milestones
 	damage += _accumulated_damage_boost
 	fire_rate += _accumulated_fire_rate_boost

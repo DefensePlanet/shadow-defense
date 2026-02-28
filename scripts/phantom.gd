@@ -12,7 +12,7 @@ var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -89,8 +89,8 @@ var _requiem_mass_flash: float = 0.0
 var _organs_fury_flash: float = 0.0
 var _beneath_opera_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -106,7 +106,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Every 15th kill, chandelier drops on enemies",
 	"Phantom goes ballistic — melee rush replaces notes"
 ]
-const TIER_COSTS = [85, 190, 325, 1000]
+const TIER_COSTS = [155, 365, 675, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -510,9 +510,9 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 4.0
-	fire_rate += 0.013
-	attack_range += 7.0
+	damage += 2.4
+	fire_rate += 0.007
+	attack_range += 3.5
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -533,17 +533,17 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 55.0
 			fire_rate = 0.92
 			attack_range = 240.0
-			gold_bonus = 3
+			gold_bonus = 2
 		3: # Chandelier — kill-count drop
 			damage = 70.0
 			fire_rate = 1.04
 			attack_range = 250.0
-			gold_bonus = 4
+			gold_bonus = 2
 		4: # Don Juan Sword
 			damage = 90.0
 			fire_rate = 1.30
 			attack_range = 260.0
-			gold_bonus = 6
+			gold_bonus = 3
 			_has_sword = true
 
 func purchase_upgrade() -> bool:

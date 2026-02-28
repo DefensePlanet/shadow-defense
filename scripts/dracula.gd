@@ -13,7 +13,7 @@ var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
 var _cast_anim: float = 0.0
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -99,8 +99,8 @@ var _prince_flash: float = 0.0
 var _brides_kiss_flash: float = 0.0
 var _hypnotic_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -116,7 +116,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Every 15th kill — drain life to restore 1 lost life",
 	"Glow red — dash and feast on enemies at will"
 ]
-const TIER_COSTS = [80, 175, 300, 1000]
+const TIER_COSTS = [150, 350, 650, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -602,10 +602,9 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 3.0
-	fire_rate += 0.05
-	attack_range += 8.0
-	gold_bonus += 1
+	damage += 2.0
+	fire_rate += 0.03
+	attack_range += 4.0
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -635,18 +634,18 @@ func _apply_upgrade(tier: int) -> void:
 			damage = tier_base_damage[1] + dmg_bonus
 			fire_rate = tier_base_fire_rate[1] + fr_bonus
 			attack_range = tier_base_range[1] + range_bonus
-			gold_bonus = 3
+			gold_bonus = 2
 		3: # Thrall — life restore every 15 kills
 			damage = tier_base_damage[2] + dmg_bonus
 			fire_rate = tier_base_fire_rate[2] + fr_bonus
 			attack_range = tier_base_range[2] + range_bonus
-			gold_bonus = 4
+			gold_bonus = 2
 		4: # Lord of Darkness — constant feast
 			_lord_active = true
 			damage = tier_base_damage[3] + dmg_bonus
 			fire_rate = tier_base_fire_rate[3] + fr_bonus
 			attack_range = tier_base_range[3] + range_bonus
-			gold_bonus = 6
+			gold_bonus = 3
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:

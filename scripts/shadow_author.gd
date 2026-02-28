@@ -13,7 +13,7 @@ var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 3
+var gold_bonus: int = 1
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
 
@@ -82,8 +82,8 @@ var _clone_duration: float = 0.0
 var _rewrite_reality_timer: float = 60.0
 var _rewrite_reality_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -99,7 +99,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Summon 2 shadow minions that attack",
 	"Massive AoE burst every 30s"
 ]
-const TIER_COSTS = [120, 250, 400, 600]
+const TIER_COSTS = [200, 450, 850, 1500]
 var is_selected: bool = false
 var base_cost: int = 0
 

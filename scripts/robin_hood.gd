@@ -13,7 +13,7 @@ var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
 var target: Node2D = null
 var _draw_progress: float = 0.0
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -91,8 +91,8 @@ var _maid_marian_flash: float = 0.0
 var _outlaw_snare_flash: float = 0.0
 var _outlaw_snare_pos: Vector2 = Vector2.ZERO
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -108,7 +108,7 @@ const ABILITY_DESCRIPTIONS = [
 	"3 sky arrows every other round — insta-kill on landing",
 	"Silver becomes gold — pierces 10 enemies, splash damage"
 ]
-const TIER_COSTS = [80, 175, 300, 500]
+const TIER_COSTS = [150, 350, 650, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -344,7 +344,7 @@ func _fire_arrow(t: Node2D, silver: bool = false, gold: bool = false) -> void:
 func register_kill() -> void:
 	kill_count += 1
 	if kill_count % 10 == 0:
-		var stolen = int((5 + kill_count / 10) * _gold_mult())
+		var stolen = int(mini(5 + kill_count / 10, 10) * _gold_mult())
 		var main = get_tree().get_first_node_in_group("main")
 		if main:
 			main.add_gold(stolen)
@@ -436,10 +436,9 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 3.0
-	fire_rate += 0.04
-	attack_range += 8.0
-	gold_bonus += 1
+	damage += 2.0
+	fire_rate += 0.02
+	attack_range += 4.0
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -452,24 +451,24 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Splitting the Wand — dual shot
-			damage = 33.0
-			fire_rate = 1.30
-			attack_range = 176.0
+			damage = 30.0
+			fire_rate = 0.85
+			attack_range = 172.0
 		2: # The Silver Arrow — every 10th arrow, pierces 5
-			damage = 43.0
-			fire_rate = 1.56
-			attack_range = 192.0
-			gold_bonus = 3
+			damage = 36.0
+			fire_rate = 1.04
+			attack_range = 184.0
+			gold_bonus = 2
 		3: # Three Blasts of the Horn — sky arrows every other wave
-			damage = 45.0
-			fire_rate = 1.56
-			attack_range = 208.0
-			gold_bonus = 4
+			damage = 38.0
+			fire_rate = 1.20
+			attack_range = 200.0
+			gold_bonus = 2
 		4: # The Final Arrow — gold arrow, pierces 10, splash 40px
-			damage = 52.0
-			fire_rate = 1.72
-			attack_range = 224.0
-			gold_bonus = 5
+			damage = 44.0
+			fire_rate = 1.40
+			attack_range = 216.0
+			gold_bonus = 3
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:

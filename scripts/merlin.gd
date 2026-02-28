@@ -12,7 +12,7 @@ var attack_range: float = 132.0
 var fire_cooldown: float = 0.0
 var staff_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -91,8 +91,8 @@ const _CRYSTAL_SCRYING_REVEAL_DURATION: float = 5.0
 # Active ability timer tracking for visual indicators
 var _active_ability_timers: Dictionary = {}  # { "ability_name": remaining_duration }
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 # Accumulated stat boosts from _apply_stat_boost — stored separately so upgrades don't wipe them
 var _accumulated_damage_boost: float = 0.0
@@ -113,7 +113,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Hit enemies take +20% damage for 5s",
 	"Permanent aura, Excalibur every 15s, chain 3"
 ]
-const TIER_COSTS = [90, 200, 340, 550]
+const TIER_COSTS = [180, 400, 680, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -472,10 +472,10 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	# Track boosts separately so tier upgrades can re-apply them
-	var dmg_boost = 3.0
-	var rate_boost = 0.07
-	var range_boost = 5.0
-	var gold_boost_val = 1
+	var dmg_boost = 1.8
+	var rate_boost = 0.035
+	var range_boost = 2.5
+	var gold_boost_val = 0
 	_accumulated_damage_boost += dmg_boost
 	_accumulated_fire_rate_boost += rate_boost
 	_accumulated_range_boost += range_boost
@@ -505,18 +505,18 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 2.6
 			attack_range = 156.0
 			aura_active = true
-			gold_bonus = 3
+			gold_bonus = 2
 		3: # Curse of Ages — hit enemies take +20% damage
 			damage = 43.0
 			fire_rate = 3.0
 			attack_range = 168.0
 			curse_on_hit = true
-			gold_bonus = 4
+			gold_bonus = 2
 		4: # Archmage — full power
 			damage = 55.0
 			fire_rate = 3.64
 			attack_range = 186.0
-			gold_bonus = 6
+			gold_bonus = 3
 			bounce_count = 3
 			excalibur_cooldown = 15.0
 	# Re-apply accumulated stat boosts so tier upgrade doesn't wipe them

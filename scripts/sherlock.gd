@@ -14,7 +14,7 @@ var attack_range: float = 188.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -126,8 +126,8 @@ var _violin_flash: float = 0.0
 var _cocaine_flash: float = 0.0
 var _reichenbach_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 500.0
-const ABILITY_THRESHOLD: float = 1500.0
+const STAT_UPGRADE_INTERVAL: float = 1000.0
+const ABILITY_THRESHOLD: float = 3500.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -143,7 +143,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Venomous strike every 15s — 5% max HP/s poison for 4s",
 	"Reichenbach cascade every 20s — 5x AoE + 2s stun"
 ]
-const TIER_COSTS = [100, 200, 350, 550]
+const TIER_COSTS = [170, 340, 600, 950]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -700,7 +700,6 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	attack_range += 4.5
-	gold_bonus += 1
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -715,23 +714,23 @@ func _apply_upgrade(tier: int) -> void:
 		1: # A Study in Scarlet — marked enemies bleed, Watson assists
 			mark_duration = 12.0
 			attack_range = 203.0
-			gold_bonus = 3
+			gold_bonus = 2
 			_bleed_dps = 3.0  # Marked enemies take 3 DPS bleed
 		2: # The Hound of the Baskervilles — spectral hound lunges
 			attack_range = 214.0
-			gold_bonus = 4
+			gold_bonus = 2
 			mark_duration = 14.0
 			_hound_cooldown = 12.0
 		3: # The Speckled Band — venomous strike on strongest
 			max_marks = 2
 			attack_range = 225.0
-			gold_bonus = 5
+			gold_bonus = 3
 			mark_duration = 16.0
 			_venom_cooldown = 15.0
 		4: # The Final Problem — Reichenbach cascade
 			auto_mark = true
 			attack_range = 240.0
-			gold_bonus = 6
+			gold_bonus = 3
 			max_marks = 99
 			mark_duration = 20.0
 			_cascade_cooldown = 20.0

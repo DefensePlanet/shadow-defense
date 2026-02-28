@@ -13,7 +13,7 @@ var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
 var _draw_progress: float = 0.0
-var gold_bonus: int = 3
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -85,8 +85,8 @@ var _mangani_flash: float = 0.0
 var _opar_flash: float = 0.0
 var _legend_allies: Array = []
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -102,7 +102,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Call an ape ally for 15s every other wave",
 	"3 more apes join — throw enemies back to start"
 ]
-const TIER_COSTS = [80, 175, 300, 1000]
+const TIER_COSTS = [160, 350, 600, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -534,10 +534,9 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 5.0
-	fire_rate += 0.026
-	attack_range += 6.0
-	gold_bonus += 1
+	damage += 3.0
+	fire_rate += 0.013
+	attack_range += 3.0
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -557,17 +556,17 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 52.0
 			fire_rate = 0.66
 			attack_range = 140.0
-			gold_bonus = 4
+			gold_bonus = 2
 		3: # Animal Call — 1 ape ally for 15s every other wave
 			damage = 63.0
 			fire_rate = 0.66
 			attack_range = 150.0
-			gold_bonus = 5
+			gold_bonus = 3
 		4: # King of the Apes — 3 more apes, throw enemies back
 			damage = 81.0
 			fire_rate = 0.66
 			attack_range = 160.0
-			gold_bonus = 7
+			gold_bonus = 3
 			_king_apes_active = true
 
 func purchase_upgrade() -> bool:

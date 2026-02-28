@@ -12,7 +12,7 @@ var attack_range: float = 140.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -82,8 +82,8 @@ var _sorrow_flash: float = 0.0
 var _promethean_flash: float = 0.0
 var _immortal_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -99,7 +99,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Chain lightning arcs to 10 enemies",
 	"Massive storm, permanent electric aura"
 ]
-const TIER_COSTS = [100, 200, 350, 550]
+const TIER_COSTS = [175, 400, 750, 1300]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -390,10 +390,10 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	var dmg_boost = 3.0
-	var rate_boost = 0.03
-	var range_boost = 5.0
-	var gold_boost_val = 1
+	var dmg_boost = 2.0
+	var rate_boost = 0.02
+	var range_boost = 4.0
+	var gold_boost_val = 0
 	damage += dmg_boost
 	fire_rate += rate_boost
 	attack_range += range_boost
@@ -423,19 +423,19 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 60.0
 			fire_rate = 1.56
 			attack_range = 165.0
-			gold_bonus = 3
+			gold_bonus = 2
 		3: # Lightning Conductor — chain lightning arcs to 10
 			chain_count = 10
 			damage = 73.0
 			fire_rate = 1.70
 			attack_range = 175.0
-			gold_bonus = 4
+			gold_bonus = 2
 			_thunder_storm_cooldown = 20.0
 		4: # Modern Prometheus — massive storm + permanent aura
 			damage = 75.0
 			fire_rate = 1.70
 			attack_range = 190.0
-			gold_bonus = 5
+			gold_bonus = 3
 			chain_count = 10
 			smash_radius = 90.0
 			_thunder_storm_cooldown = 18.0

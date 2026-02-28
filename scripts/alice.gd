@@ -77,8 +77,8 @@ var _eat_me_flash: float = 0.0
 var _jabberwock_flash: float = 0.0
 var _caterpillar_flash: float = 0.0
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -94,7 +94,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Towers in range drink tea, +5% fire rate",
 	"Paints all enemies red, low DoT, 5% HP execute"
 ]
-const TIER_COSTS = [70, 150, 275, 1000]
+const TIER_COSTS = [130, 300, 550, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -446,9 +446,9 @@ func _check_upgrades() -> void:
 
 func _apply_stat_boost() -> void:
 	# Bug 2: Track boosts separately so tier upgrades can re-apply them
-	var dmg_boost = 0.3
-	var fr_boost = 0.03
-	var range_boost = 4.0
+	var dmg_boost = 0.18
+	var fr_boost = 0.015
+	var range_boost = 2.0
 	var slow_boost = min(slow_amount - 0.2, 0.02)  # How much we can reduce slow
 	var dur_boost = 0.1
 	var frost_boost = 0.12 if frosting_dps > 0.0 else 0.0
@@ -495,19 +495,19 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = 1.82
 			attack_range = 93.0
 			cheshire_cooldown = 10.0
-			gold_bonus = 2
+			gold_bonus = 1
 			_start_drum_solo()
 		3: # Mad Tea Party — nearby towers +3% fire rate
 			damage = 5.0
 			fire_rate = 2.08
 			attack_range = 100.0
-			gold_bonus = 3
+			gold_bonus = 2
 			_tea_aura_active = true  # Bug 10: Enable ongoing aura instead of one-shot
 		4: # Off With Their Heads! — paint enemies red, DoT, 5% execute
 			damage = 7.0
 			fire_rate = 2.34
 			attack_range = 110.0
-			gold_bonus = 4
+			gold_bonus = 2
 			execute_threshold = 0.05  # Execute enemies below 5% HP
 			_paint_red_active = true
 	# Bug 2: Re-apply accumulated progression boosts after tier stat reset

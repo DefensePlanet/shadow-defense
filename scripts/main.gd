@@ -3136,7 +3136,7 @@ func _create_ui() -> void:
 	top_bar.add_child(wave_label)
 
 	gold_label = Label.new()
-	gold_label.position = Vector2(200, 8)
+	gold_label.position = Vector2(280, 8)
 	gold_label.add_theme_font_size_override("font_size", 24)
 	gold_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 	gold_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -3145,7 +3145,7 @@ func _create_ui() -> void:
 	top_bar.add_child(gold_label)
 
 	lives_label = Label.new()
-	lives_label.position = Vector2(370, 8)
+	lives_label.position = Vector2(460, 8)
 	lives_label.add_theme_font_size_override("font_size", 24)
 	lives_label.add_theme_color_override("font_color", Color(1.0, 0.39, 0.28))
 	lives_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -12705,35 +12705,35 @@ func _spawn_enemy() -> void:
 	# All phases have +25% HP global multiplier applied at end
 	var w = wave
 	if w <= 5:
-		# Phase 1: Gentle introduction
-		enemy.max_health = 60.0 + w * 18.0
+		# Phase 1: Gentle introduction — need 2+ towers to handle comfortably
+		enemy.max_health = 80.0 + w * 25.0
 		enemy.speed = 65.0 + w * 4.0
-		enemy.gold_reward = 2 + w * 1
+		enemy.gold_reward = 1 + w / 2
 	elif w <= 10:
-		# Phase 2: Building pressure
-		enemy.max_health = 165.0 + (w - 5) * 42.0
+		# Phase 2: Building pressure — single tower can't keep up
+		enemy.max_health = 220.0 + (w - 5) * 55.0
 		enemy.speed = 80.0 + (w - 5) * 5.0
-		enemy.gold_reward = 4 + (w - 5) * 1
+		enemy.gold_reward = 3 + (w - 5) / 2
 	elif w <= 16:
-		# Phase 3: Challenging
-		enemy.max_health = 380.0 + (w - 10) * 65.0
+		# Phase 3: Challenging — need upgrades and synergies
+		enemy.max_health = 520.0 + (w - 10) * 85.0
 		enemy.speed = 100.0 + (w - 10) * 4.0
-		enemy.gold_reward = 6 + (w - 10) * 1
+		enemy.gold_reward = 4 + (w - 10) / 2
 	elif w <= 24:
-		# Phase 4: Hard
-		enemy.max_health = 760.0 + (w - 16) * 90.0
+		# Phase 4: Hard — need tier upgrades to survive
+		enemy.max_health = 1050.0 + (w - 16) * 120.0
 		enemy.speed = 115.0 + (w - 16) * 4.0
-		enemy.gold_reward = 10 + (w - 16) * 1
+		enemy.gold_reward = 7 + (w - 16) / 2
 	elif w <= 32:
-		# Phase 5: Very hard
-		enemy.max_health = 1400.0 + (w - 24) * 130.0
+		# Phase 5: Very hard — need maxed towers
+		enemy.max_health = 2000.0 + (w - 24) * 175.0
 		enemy.speed = 130.0 + (w - 24) * 3.0
-		enemy.gold_reward = 16 + (w - 24) * 1
+		enemy.gold_reward = 11 + (w - 24) / 2
 	else:
-		# Phase 6: Brutal (waves 33-40)
-		enemy.max_health = 2200.0 + (w - 32) * 180.0
+		# Phase 6: Brutal (waves 33-40) — endgame challenge
+		enemy.max_health = 3400.0 + (w - 32) * 250.0
 		enemy.speed = 145.0 + (w - 32) * 3.0
-		enemy.gold_reward = 22 + (w - 32) * 2
+		enemy.gold_reward = 15 + (w - 32) * 1
 	# +25% HP across all phases
 	enemy.max_health *= 1.25
 

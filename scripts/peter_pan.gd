@@ -12,7 +12,7 @@ var attack_range: float = 100.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var target: Node2D = null
-var gold_bonus: int = 2
+var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
@@ -53,8 +53,8 @@ var _croc_drag_enemy: Node2D = null  # enemy being dragged (kept alive during dr
 # Tier 4: Never Land — golden glow, +20% damage
 var neverland_active: bool = false
 
-const STAT_UPGRADE_INTERVAL: float = 4000.0
-const ABILITY_THRESHOLD: float = 12000.0
+const STAT_UPGRADE_INTERVAL: float = 8000.0
+const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
@@ -70,7 +70,7 @@ const ABILITY_DESCRIPTIONS = [
 	"Crocodile eats every 30th enemy (instakill)",
 	"Glow gold, +20% damage boost"
 ]
-const TIER_COSTS = [75, 165, 280, 1000]
+const TIER_COSTS = [140, 325, 600, 1100]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -426,10 +426,9 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 3.0
-	fire_rate += 0.05
-	attack_range += 8.0
-	gold_bonus += 1
+	damage += 2.0
+	fire_rate += 0.03
+	attack_range += 5.0
 
 func choose_ability(index: int) -> void:
 	ability_chosen = true
@@ -451,20 +450,20 @@ func _apply_upgrade(tier: int) -> void:
 			damage = 40.0
 			fire_rate = 1.40
 			attack_range = 125.0
-			gold_bonus = 3
+			gold_bonus = 2
 			_apply_fairy_dust_buffs()
 		3: # Tick-Tock Croc — eats every 30th kill
 			croc_enabled = true
 			damage = 50.0
 			fire_rate = 1.62
 			attack_range = 140.0
-			gold_bonus = 4
+			gold_bonus = 2
 		4: # Never Land — glow gold, +20% damage
 			neverland_active = true
 			damage = 62.0
 			fire_rate = 1.82
 			attack_range = 155.0
-			gold_bonus = 5
+			gold_bonus = 3
 
 func _apply_fairy_dust_buffs() -> void:
 	# Buff nearby towers with +3% range and damage
