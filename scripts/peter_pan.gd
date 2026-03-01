@@ -134,7 +134,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Fairy dust — cascading descending sparkle chimes (C7→C6)
@@ -153,7 +153,7 @@ func _ready() -> void:
 	_fairy_sound = _samples_to_wav(fd_samples, fd_rate)
 	_fairy_player = AudioStreamPlayer.new()
 	_fairy_player.stream = _fairy_sound
-	_fairy_player.volume_db = -6.0
+	_fairy_player.volume_db = -12.0
 	add_child(_fairy_player)
 
 	# Croc chomp — tick-tick-SNAP
@@ -179,7 +179,7 @@ func _ready() -> void:
 	_croc_sound = _samples_to_wav(cr_samples, cr_rate)
 	_croc_player = AudioStreamPlayer.new()
 	_croc_player.stream = _croc_sound
-	_croc_player.volume_db = -6.0
+	_croc_player.volume_db = -12.0
 	add_child(_croc_player)
 
 	# Upgrade chime
@@ -199,7 +199,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 	_home_position = global_position
 	_load_progressive_abilities()

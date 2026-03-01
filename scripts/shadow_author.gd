@@ -774,68 +774,51 @@ func _draw() -> void:
 	draw_line(hood_pts[0], hood_pts[1], Color(0.3, 0.12, 0.4, 0.5), 1.0)
 	draw_line(hood_pts[1], hood_pts[2], Color(0.3, 0.12, 0.4, 0.5), 1.0)
 
-	# === 12. REVEALED FACE — pale white, hollow eyes, sharp-tooth grin ===
-	# Hood inner void background
+	# === 12. HOOD INTERIOR — pure darkness, no face ===
+	# Absolute black void inside hood
 	draw_colored_polygon(PackedVector2Array([
 		body_offset + Vector2(-7, -22), body_offset + Vector2(0, -38),
 		body_offset + Vector2(7, -22)
-	]), Color(0.01, 0.005, 0.015))
-	# Pale face
-	var fc = body_offset + Vector2(0, -28)
-	draw_colored_polygon(PackedVector2Array([
-		fc + Vector2(0, -8), fc + Vector2(-6, -4), fc + Vector2(-6, 4),
-		fc + Vector2(-4, 7), fc + Vector2(4, 7), fc + Vector2(6, 4),
-		fc + Vector2(6, -4)
-	]), Color(0.88, 0.86, 0.84))
-	# Hollow dark eye sockets
-	draw_circle(fc + Vector2(-3, -2), 2.0, Color(0.06, 0.03, 0.05))
-	draw_circle(fc + Vector2(3, -2), 2.0, Color(0.06, 0.03, 0.05))
-	# Red pinprick pupils
-	var pp = 0.5 + sin(_time * 3.0) * 0.2
-	draw_circle(fc + Vector2(-3, -2), 0.7, Color(0.9, 0.15, 0.1, pp))
-	draw_circle(fc + Vector2(3, -2), 0.7, Color(0.9, 0.15, 0.1, pp))
-	# Massive sharp-tooth grin
-	var grin_y = fc.y + 4
-	draw_rect(Rect2(fc.x - 5, grin_y, 10, 3), Color(0.03, 0.01, 0.02))
-	# Upper teeth
-	for ti in range(5):
-		var tx = fc.x - 4.5 + float(ti) * 2.0
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(tx, grin_y), Vector2(tx + 1.0, grin_y + 1.8), Vector2(tx + 2.0, grin_y)
-		]), Color(0.92, 0.9, 0.85))
-	# Lower teeth
-	for ti in range(5):
-		var tx = fc.x - 4.5 + float(ti) * 2.0
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(tx, grin_y + 3), Vector2(tx + 1.0, grin_y + 1.5), Vector2(tx + 2.0, grin_y + 3)
-		]), Color(0.88, 0.86, 0.82))
+	]), Color(0.0, 0.0, 0.0))
+	# Single glowing red dot deep in the hood
+	var red_pulse = 0.6 + sin(_time * 2.5) * 0.4
+	draw_circle(body_offset + Vector2(0, -28), 1.2, Color(0.9, 0.08, 0.02, red_pulse))
+	draw_circle(body_offset + Vector2(0, -28), 3.0, Color(0.7, 0.04, 0.01, red_pulse * 0.25))
 
-	# === 13. QUILL (held in right hand) ===
-	var hand_offset = body_offset + Vector2(12, -12)
-	var quill_angle = aim_angle + sin(_time * 2.0) * 0.1
+	# === 13. GLOWING RED WAND (held from right sleeve) ===
+	var wand_base = body_offset + Vector2(13, -8)
+	var wand_top = body_offset + Vector2(18, -38)
 	if _attack_anim > 0.0:
-		quill_angle += sin(_attack_anim * PI * 2.0) * 0.4
-	var quill_tip = hand_offset + Vector2(cos(quill_angle), sin(quill_angle)) * 18.0
-	var quill_end = hand_offset + Vector2(cos(quill_angle + PI), sin(quill_angle + PI)) * 8.0
-	# Feather part
-	draw_line(quill_end, hand_offset, Color(0.6, 0.55, 0.5, 0.8), 2.5)
-	# Quill nib
-	draw_line(hand_offset, quill_tip, Color(0.15, 0.1, 0.08, 0.9), 1.5)
+		wand_top += Vector2(sin(_attack_anim * PI * 2.0) * 4.0, 0)
+	# Wand shaft — glowing red
+	draw_line(wand_base, wand_top, Color(0.7, 0.06, 0.03, red_pulse), 2.0)
+	draw_line(wand_base, wand_top, Color(0.9, 0.12, 0.05, red_pulse * 0.4), 3.5)
+	# Zigzag lightning pattern along the wand
+	var wand_dir = (wand_top - wand_base).normalized()
+	var wand_perp = Vector2(-wand_dir.y, wand_dir.x)
+	for zi in range(5):
+		var zt = 0.15 + float(zi) * 0.16
+		var zp = wand_base.lerp(wand_top, zt)
+		var zag_offset = (3.0 if zi % 2 == 0 else -3.0)
+		var zp2 = wand_base.lerp(wand_top, zt + 0.08)
+		draw_line(zp + wand_perp * zag_offset, zp2 + wand_perp * (-zag_offset), Color(0.95, 0.2, 0.08, red_pulse * 0.7), 1.2)
+	# Red glow halo along wand
+	for gi in range(3):
+		var gt = 0.2 + float(gi) * 0.3
+		var gp = wand_base.lerp(wand_top, gt)
+		draw_circle(gp, 4.0 + sin(_time * 2.5 + float(gi)) * 1.5, Color(0.7, 0.04, 0.0, 0.06 * red_pulse))
+	# Wand tip — bright red hot glow
+	draw_circle(wand_top, 2.5, Color(0.95, 0.12, 0.02, red_pulse))
+	draw_circle(wand_top, 5.0, Color(0.8, 0.06, 0.01, red_pulse * 0.3))
+	draw_circle(wand_top, 8.0, Color(0.6, 0.03, 0.0, red_pulse * 0.1))
 	# Ink drip from tip
 	if _quill_flash > 0.0:
-		var drip_pos = quill_tip + Vector2(0, 2 + (1.0 - _quill_flash) * 8.0)
+		var drip_pos = wand_top + Vector2(0, -2 + (1.0 - _quill_flash) * -8.0)
 		draw_circle(drip_pos, 2.0 * _quill_flash, Color(0.08, 0.02, 0.12, _quill_flash * 0.7))
-	# Glow on quill when upgraded
-	if upgrade_tier >= 2:
-		var glow_pulse = (sin(_time * 3.0) + 1.0) * 0.5
-		draw_circle(quill_tip, 4.0, Color(0.5, 0.2, 0.8, 0.1 + glow_pulse * 0.08))
 
-	# === 14. LEFT HAND (skeletal pale) ===
+	# === 14. SLEEVE VOIDS (no visible hands) ===
 	var lh = body_offset + Vector2(-12 + sin(_time * 1.8) * 2.0, -12)
-	draw_circle(lh, 2.0, Color(0.75, 0.7, 0.6, 0.7))
-	for f in range(3):
-		var fa = -0.6 + float(f) * 0.3
-		draw_line(lh, lh + Vector2(cos(fa) * 5.0, sin(fa) * 5.0), Color(0.7, 0.65, 0.55, 0.6), 0.8)
+	draw_circle(lh, 3.0, Color(0.01, 0.005, 0.015, 0.8))
 
 	# === 15. INK CLOUD VISUAL ===
 	if _ink_cloud_active and _ink_cloud_life > 0.0:

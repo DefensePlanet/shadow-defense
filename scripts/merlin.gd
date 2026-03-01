@@ -144,7 +144,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Excalibur strike — dramatic descending sword chime (E5→B4→G4 + metallic ring)
@@ -173,7 +173,7 @@ func _ready() -> void:
 	_excalibur_sound = _samples_to_wav(exc_samples, exc_rate)
 	_excalibur_player = AudioStreamPlayer.new()
 	_excalibur_player.stream = _excalibur_sound
-	_excalibur_player.volume_db = -5.0
+	_excalibur_player.volume_db = -12.0
 	add_child(_excalibur_player)
 
 	# Upgrade chime — ascending magical arpeggio (C5→E5→G5→C6)
@@ -194,7 +194,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 	# Dragon Breath — fire whoosh/roar (noise burst + low rumble + crackling overtones)
@@ -224,7 +224,7 @@ func _ready() -> void:
 	_dragon_breath_sound = _samples_to_wav(db_samples, db_rate)
 	_dragon_breath_player = AudioStreamPlayer.new()
 	_dragon_breath_player.stream = _dragon_breath_sound
-	_dragon_breath_player.volume_db = -3.0
+	_dragon_breath_player.volume_db = -10.0
 	add_child(_dragon_breath_player)
 
 func _process(delta: float) -> void:

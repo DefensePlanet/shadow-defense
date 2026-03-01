@@ -137,7 +137,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Punjab lasso — rope swoosh + sharp crack
@@ -160,7 +160,7 @@ func _ready() -> void:
 	_lasso_sound = _samples_to_wav(ls_samples, ls_rate)
 	_lasso_player = AudioStreamPlayer.new()
 	_lasso_player.stream = _lasso_sound
-	_lasso_player.volume_db = -6.0
+	_lasso_player.volume_db = -12.0
 	add_child(_lasso_player)
 
 	# Chandelier — chain creak + glass shatter + metallic thud
@@ -189,7 +189,7 @@ func _ready() -> void:
 	_chandelier_sound = _samples_to_wav(cd_samples, cd_rate)
 	_chandelier_player = AudioStreamPlayer.new()
 	_chandelier_player.stream = _chandelier_sound
-	_chandelier_player.volume_db = -6.0
+	_chandelier_player.volume_db = -12.0
 	add_child(_chandelier_player)
 
 	# Upgrade chime
@@ -209,7 +209,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:

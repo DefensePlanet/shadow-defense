@@ -150,7 +150,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Bat screech swarm — layered high-pitched shrieks with flutter modulation
@@ -175,7 +175,7 @@ func _ready() -> void:
 	_bat_screech_sound = _samples_to_wav(bat_samples, bat_rate)
 	_bat_screech_player = AudioStreamPlayer.new()
 	_bat_screech_player.stream = _bat_screech_sound
-	_bat_screech_player.volume_db = -8.0
+	_bat_screech_player.volume_db = -14.0
 	add_child(_bat_screech_player)
 
 	# Upgrade chime — dark ascending minor arpeggio (C4→Eb4→G4)
@@ -195,7 +195,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 	# Bride's Kiss — breathy charm/kiss sound with shimmering harmonic
@@ -222,7 +222,7 @@ func _ready() -> void:
 	_brides_kiss_sound = _samples_to_wav(kiss_samples, kiss_rate)
 	_brides_kiss_player = AudioStreamPlayer.new()
 	_brides_kiss_player.stream = _brides_kiss_sound
-	_brides_kiss_player.volume_db = -6.0
+	_brides_kiss_player.volume_db = -12.0
 	add_child(_brides_kiss_player)
 
 	# Hypnotic Gaze — deep droning hum with wobbling overtones
@@ -247,7 +247,7 @@ func _ready() -> void:
 	_hypnotic_gaze_sound = _samples_to_wav(hyp_samples, hyp_rate)
 	_hypnotic_gaze_player = AudioStreamPlayer.new()
 	_hypnotic_gaze_player.stream = _hypnotic_gaze_sound
-	_hypnotic_gaze_player.volume_db = -6.0
+	_hypnotic_gaze_player.volume_db = -12.0
 	add_child(_hypnotic_gaze_player)
 
 func _process(delta: float) -> void:

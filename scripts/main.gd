@@ -6491,11 +6491,11 @@ func _setup_audio() -> void:
 
 	# UI / Gameplay SFX player pool (prevents sounds cutting each other off)
 	_sfx_player = AudioStreamPlayer.new()
-	_sfx_player.volume_db = -4.0
+	_sfx_player.volume_db = -8.0
 	add_child(_sfx_player)
 	for _i in range(SFX_POOL_SIZE):
 		var pool_player = AudioStreamPlayer.new()
-		pool_player.volume_db = -4.0
+		pool_player.volume_db = -8.0
 		add_child(pool_player)
 		_sfx_pool.append(pool_player)
 	_generate_ui_sfx()
@@ -6677,10 +6677,11 @@ func _generate_voice_clips() -> void:
 	voice_clips[TowerType.MERLIN] = _generate_formant_voice(
 		140.0, [[530,1840,2480], [730,1090,2440], [640,1190,2390], [570,840,2410]],
 		6, 0.8, 0.15, 4.0, 3.5)
-	# Frankenstein's Monster — deep halting (F0=85Hz)
+	# Frankenstein's Monster — deep gentle giant, kind but massive (F0=72Hz)
+	# Very low rumbling fundamental, warm open vowels, slow deliberate pace
 	voice_clips[TowerType.FRANKENSTEIN] = _generate_formant_voice(
-		85.0, [[640,1190,2390], [730,1090,2440], [400,900,2200]],
-		3, 1.0, 0.08, 2.0, 2.5)
+		72.0, [[730,1090,2440], [570,840,2410], [640,1190,2390], [300,870,2240]],
+		4, 1.2, 0.04, 2.0, 1.5)
 
 func _play_tower_voice(tower_type: TowerType) -> void:
 	if voices_muted:
@@ -7296,6 +7297,10 @@ func _start_story_dialog(key: String) -> void:
 	story_state.typewriter_timer = 0.0
 	story_state.active = true
 	story_state.auto_advance_timer = 0.0
+	# Hide game elements so they don't render on top of the story overlay
+	towers_node.visible = false
+	enemy_path.visible = false
+	$UI.visible = false
 	# Note: Do NOT clear queued_dialog here — callers set it before calling us
 	# Play narrator/character voice for first line
 	_play_story_voice()
@@ -7342,6 +7347,10 @@ func _end_story_dialog() -> void:
 		story_state.queued_dialog = ""
 		_start_story_dialog(next_key)
 		return
+	# Restore game elements hidden during story dialog
+	towers_node.visible = true
+	enemy_path.visible = true
+	$UI.visible = true
 	# If this was a pre-level dialog, start the level
 	if key.begins_with("pre_level_") and _pending_level_start >= 0:
 		var lvl = _pending_level_start
@@ -7490,8 +7499,8 @@ func _draw_story_dialog() -> void:
 	var shown_text = full_text.substr(0, story_state.char_index)
 
 	# === FULL-SCREEN CINEMATIC OVERLAY ===
-	# Dark background with vignette
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.015, 0.01, 0.035, 0.92))
+	# Fully opaque dark background so game scene is completely hidden
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.015, 0.01, 0.035, 1.0))
 	# Vignette corners — reduced iterations for mobile GPU performance (15 instead of 60)
 	for vi in range(15):
 		var vt = float(vi) / 14.0
@@ -7676,600 +7685,869 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				var hem_off = _portrait_hem_offsets[ti] if ti < _portrait_hem_offsets.size() else 0.0
 				draw_line(Vector2(tx, cy + 140*s), Vector2(tx + hem_off*s, cy + 155*s), Color(0.04, 0.03, 0.06, 0.4), 1.5*s)
 		"robin_hood":
-			# Full body — Lincoln green tunic, feathered cap, bow
+			# Forest green tunic, feathered cap, longbow, auburn hair, confident smirk
+			# Green cape behind
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 28*s, cy - 28*s), Vector2(cx + 28*s, cy - 28*s),
+				Vector2(cx + 38*s, cy + 80*s), Vector2(cx - 38*s, cy + 80*s)
+			]), Color(0.10, 0.40, 0.08, 0.6))
 			# Legs
-			draw_rect(Rect2(cx - 18*s, cy + 60*s, 14*s, 75*s), Color(0.25, 0.4, 0.15))
-			draw_rect(Rect2(cx + 4*s, cy + 60*s, 14*s, 75*s), Color(0.22, 0.38, 0.13))
-			# Boots
-			draw_rect(Rect2(cx - 20*s, cy + 120*s, 18*s, 18*s), Color(0.3, 0.2, 0.1))
-			draw_rect(Rect2(cx + 2*s, cy + 120*s, 18*s, 18*s), Color(0.28, 0.18, 0.08))
-			# Torso — tunic
+			draw_rect(Rect2(cx - 16*s, cy + 60*s, 13*s, 70*s), Color(0.10, 0.40, 0.08))
+			draw_rect(Rect2(cx + 3*s, cy + 60*s, 13*s, 70*s), Color(0.08, 0.35, 0.06))
+			# Boots — brown leather
+			draw_rect(Rect2(cx - 18*s, cy + 118*s, 17*s, 18*s), Color(0.45, 0.28, 0.12))
+			draw_rect(Rect2(cx + 1*s, cy + 118*s, 17*s, 18*s), Color(0.42, 0.25, 0.10))
+			# Torso — forest green tunic
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 30*s, cy - 30*s), Vector2(cx + 30*s, cy - 30*s),
-				Vector2(cx + 25*s, cy + 65*s), Vector2(cx - 25*s, cy + 65*s)
-			]), Color(0.2, 0.5, 0.15))
-			# Belt
-			draw_rect(Rect2(cx - 28*s, cy + 25*s, 56*s, 8*s), Color(0.4, 0.25, 0.1))
-			draw_circle(Vector2(cx, cy + 29*s), 4*s, Color(0.7, 0.55, 0.15))
-			# Arms
-			draw_line(Vector2(cx - 30*s, cy - 15*s), Vector2(cx - 55*s, cy + 30*s), Color(0.2, 0.48, 0.14), 8*s)
-			draw_line(Vector2(cx + 30*s, cy - 15*s), Vector2(cx + 50*s, cy + 10*s), Color(0.2, 0.48, 0.14), 8*s)
-			# Bow (left hand)
-			draw_arc(Vector2(cx - 60*s, cy + 10*s), 35*s, -PI*0.6, PI*0.6, 20, Color(0.45, 0.3, 0.1), 2.5*s)
-			draw_line(Vector2(cx - 60*s, cy - 25*s), Vector2(cx - 60*s, cy + 45*s), Color(0.6, 0.55, 0.5, 0.6), 1*s)
-			# Head
-			draw_circle(Vector2(cx, cy - 50*s), 22*s, Color(0.7, 0.55, 0.4))
-			# Eyes
-			draw_circle(Vector2(cx - 7*s, cy - 53*s), 3*s, Color(0.15, 0.35, 0.1))
-			draw_circle(Vector2(cx + 7*s, cy - 53*s), 3*s, Color(0.15, 0.35, 0.1))
-			# Smirk
-			draw_arc(Vector2(cx, cy - 42*s), 8*s, 0.2, PI - 0.2, 12, Color(0.4, 0.25, 0.15), 1.5*s)
-			# Hat — pointed cap with feather
+				Vector2(cx - 28*s, cy - 28*s), Vector2(cx + 28*s, cy - 28*s),
+				Vector2(cx + 24*s, cy + 65*s), Vector2(cx - 24*s, cy + 65*s)
+			]), Color(0.15, 0.55, 0.12))
+			# Scalloped tunic hem
+			for hi in range(6):
+				var hx = cx - 22*s + float(hi) * 9.5*s
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(hx, cy + 60*s), Vector2(hx + 9.5*s, cy + 60*s), Vector2(hx + 4.75*s, cy + 72*s)
+				]), Color(0.12, 0.48, 0.10))
+			# Belt with brass buckle
+			draw_rect(Rect2(cx - 26*s, cy + 22*s, 52*s, 8*s), Color(0.40, 0.24, 0.10))
+			draw_circle(Vector2(cx, cy + 26*s), 4*s, Color(0.85, 0.68, 0.18))
+			# Quiver on back
+			draw_rect(Rect2(cx + 18*s, cy - 20*s, 8*s, 40*s), Color(0.40, 0.24, 0.10))
+			for ai in range(3):
+				draw_line(Vector2(cx + 22*s, cy - 20*s), Vector2(cx + 20*s + float(ai)*2*s, cy - 32*s), Color(0.48, 0.28, 0.10), 1.5*s)
+			# Arms — skin tone
+			draw_line(Vector2(cx - 28*s, cy - 12*s), Vector2(cx - 52*s, cy + 25*s), Color(0.91, 0.74, 0.58), 8*s)
+			draw_line(Vector2(cx + 28*s, cy - 12*s), Vector2(cx + 48*s, cy + 8*s), Color(0.91, 0.74, 0.58), 8*s)
+			# Green sleeves
+			draw_line(Vector2(cx - 28*s, cy - 12*s), Vector2(cx - 38*s, cy + 5*s), Color(0.15, 0.55, 0.12), 10*s)
+			draw_line(Vector2(cx + 28*s, cy - 12*s), Vector2(cx + 38*s, cy - 2*s), Color(0.15, 0.55, 0.12), 10*s)
+			# Longbow (left hand)
+			draw_arc(Vector2(cx - 56*s, cy + 5*s), 32*s, -PI*0.55, PI*0.55, 20, Color(0.48, 0.28, 0.10), 3*s)
+			draw_line(Vector2(cx - 56*s, cy - 27*s), Vector2(cx - 56*s, cy + 37*s), Color(0.6, 0.55, 0.50, 0.5), 1*s)
+			# Head — warm tan skin
+			draw_circle(Vector2(cx, cy - 48*s), 22*s, Color(0.91, 0.74, 0.58))
+			# Auburn hair
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 25*s, cy - 65*s), Vector2(cx + 5*s, cy - 110*s), Vector2(cx + 25*s, cy - 65*s)
-			]), Color(0.25, 0.55, 0.2))
-			draw_rect(Rect2(cx - 27*s, cy - 67*s, 54*s, 6*s), Color(0.2, 0.45, 0.15))
-			# Feather
-			draw_line(Vector2(cx + 10*s, cy - 105*s), Vector2(cx + 35*s, cy - 125*s), Color(0.85, 0.2, 0.1), 2.5*s)
-			draw_line(Vector2(cx + 20*s, cy - 115*s), Vector2(cx + 38*s, cy - 130*s), Color(0.9, 0.3, 0.15, 0.6), 1.5*s)
+				Vector2(cx - 23*s, cy - 65*s), Vector2(cx + 23*s, cy - 65*s),
+				Vector2(cx + 20*s, cy - 42*s), Vector2(cx - 20*s, cy - 42*s)
+			]), Color(0.50, 0.28, 0.12))
+			# Eye whites + green irises
+			draw_circle(Vector2(cx - 8*s, cy - 51*s), 4*s, Color(0.98, 0.98, 1.0))
+			draw_circle(Vector2(cx + 8*s, cy - 51*s), 4*s, Color(0.98, 0.98, 1.0))
+			draw_circle(Vector2(cx - 8*s, cy - 51*s), 2.5*s, Color(0.18, 0.60, 0.22))
+			draw_circle(Vector2(cx + 8*s, cy - 51*s), 2.5*s, Color(0.18, 0.60, 0.22))
+			draw_circle(Vector2(cx - 8*s, cy - 51*s), 1*s, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2(cx + 8*s, cy - 51*s), 1*s, Color(0.06, 0.06, 0.08))
+			# Confident smirk
+			draw_arc(Vector2(cx + 2*s, cy - 40*s), 7*s, 0.1, PI - 0.3, 12, Color(0.40, 0.22, 0.12), 1.5*s)
+			# Feathered cap — forest green with red plume
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 24*s, cy - 64*s), Vector2(cx + 5*s, cy - 108*s), Vector2(cx + 24*s, cy - 64*s)
+			]), Color(0.15, 0.55, 0.12))
+			draw_rect(Rect2(cx - 26*s, cy - 66*s, 52*s, 5*s), Color(0.10, 0.40, 0.08))
+			# Cardinal red feather
+			draw_line(Vector2(cx + 8*s, cy - 105*s), Vector2(cx + 32*s, cy - 128*s), Color(0.88, 0.16, 0.08), 3*s)
+			draw_line(Vector2(cx + 18*s, cy - 116*s), Vector2(cx + 35*s, cy - 132*s), Color(0.92, 0.25, 0.12, 0.5), 2*s)
 		"alice":
-			# Full body — blue dress, white apron, blonde hair, headband
-			# Legs
-			draw_rect(Rect2(cx - 12*s, cy + 65*s, 10*s, 60*s), Color(0.85, 0.82, 0.78))
-			draw_rect(Rect2(cx + 2*s, cy + 65*s, 10*s, 60*s), Color(0.83, 0.8, 0.76))
-			# Shoes (mary janes)
-			draw_rect(Rect2(cx - 15*s, cy + 120*s, 15*s, 12*s), Color(0.12, 0.1, 0.08))
-			draw_rect(Rect2(cx, cy + 120*s, 15*s, 12*s), Color(0.1, 0.08, 0.06))
-			# Dress — flared skirt
+			# White dress with blue pinafore apron, blonde hair, headband, purple ballet flats
+			# Legs — pale skin
+			draw_rect(Rect2(cx - 11*s, cy + 65*s, 10*s, 55*s), Color(0.95, 0.84, 0.73))
+			draw_rect(Rect2(cx + 1*s, cy + 65*s, 10*s, 55*s), Color(0.92, 0.82, 0.70))
+			# Purple ballet flats
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 22*s, cy - 10*s), Vector2(cx + 22*s, cy - 10*s),
-				Vector2(cx + 40*s, cy + 70*s), Vector2(cx - 40*s, cy + 70*s)
-			]), Color(0.35, 0.55, 0.85))
-			# White apron
+				Vector2(cx - 14*s, cy + 118*s), Vector2(cx + 1*s, cy + 118*s),
+				Vector2(cx + 2*s, cy + 128*s), Vector2(cx - 16*s, cy + 128*s)
+			]), Color(0.78, 0.68, 0.92))
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 15*s, cy - 5*s), Vector2(cx + 15*s, cy - 5*s),
-				Vector2(cx + 25*s, cy + 65*s), Vector2(cx - 25*s, cy + 65*s)
-			]), Color(0.92, 0.9, 0.88, 0.8))
-			# Bodice
-			draw_rect(Rect2(cx - 20*s, cy - 35*s, 40*s, 28*s), Color(0.3, 0.5, 0.82))
-			# Arms
-			draw_line(Vector2(cx - 22*s, cy - 20*s), Vector2(cx - 40*s, cy + 20*s), Color(0.85, 0.8, 0.75), 7*s)
-			draw_line(Vector2(cx + 22*s, cy - 20*s), Vector2(cx + 40*s, cy + 15*s), Color(0.85, 0.8, 0.75), 7*s)
-			# Head
-			draw_circle(Vector2(cx, cy - 55*s), 22*s, Color(0.88, 0.78, 0.55))
-			# Blonde hair — flowing
+				Vector2(cx - 1*s, cy + 118*s), Vector2(cx + 14*s, cy + 118*s),
+				Vector2(cx + 16*s, cy + 128*s), Vector2(cx - 2*s, cy + 128*s)
+			]), Color(0.75, 0.65, 0.90))
+			# White dress — flared skirt
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 25*s, cy - 72*s), Vector2(cx + 25*s, cy - 72*s),
-				Vector2(cx + 30*s, cy - 30*s), Vector2(cx - 30*s, cy - 30*s)
-			]), Color(0.92, 0.82, 0.4))
-			# Hair strands down
-			draw_line(Vector2(cx - 25*s, cy - 50*s), Vector2(cx - 28*s, cy - 15*s), Color(0.88, 0.78, 0.35, 0.7), 3*s)
-			draw_line(Vector2(cx + 25*s, cy - 50*s), Vector2(cx + 28*s, cy - 15*s), Color(0.88, 0.78, 0.35, 0.7), 3*s)
-			# Headband
-			draw_rect(Rect2(cx - 24*s, cy - 72*s, 48*s, 5*s), Color(0.15, 0.15, 0.15))
-			# Eyes (big, blue)
-			draw_circle(Vector2(cx - 8*s, cy - 58*s), 4*s, Color(0.3, 0.5, 0.85))
-			draw_circle(Vector2(cx + 8*s, cy - 58*s), 4*s, Color(0.3, 0.5, 0.85))
-			draw_circle(Vector2(cx - 8*s, cy - 59*s), 1.5*s, Color(1.0, 1.0, 1.0, 0.6))
-			draw_circle(Vector2(cx + 8*s, cy - 59*s), 1.5*s, Color(1.0, 1.0, 1.0, 0.6))
-			# Small smile
-			draw_arc(Vector2(cx, cy - 48*s), 6*s, 0.3, PI - 0.3, 10, Color(0.5, 0.3, 0.25), 1.2*s)
+				Vector2(cx - 22*s, cy - 8*s), Vector2(cx + 22*s, cy - 8*s),
+				Vector2(cx + 42*s, cy + 70*s), Vector2(cx - 42*s, cy + 70*s)
+			]), Color(0.92, 0.93, 0.98))
+			# Scalloped dress hem
+			for hi in range(7):
+				var hx = cx - 40*s + float(hi) * 11.5*s
+				draw_arc(Vector2(hx + 5.75*s, cy + 68*s), 4*s, 0, PI, 8, Color(0.85, 0.86, 0.92), 1.5*s)
+			# Blue pinafore apron
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 16*s, cy - 5*s), Vector2(cx + 16*s, cy - 5*s),
+				Vector2(cx + 28*s, cy + 65*s), Vector2(cx - 28*s, cy + 65*s)
+			]), Color(0.45, 0.72, 0.95))
+			# Apron pocket
+			draw_arc(Vector2(cx, cy + 30*s), 8*s, 0, PI, 10, Color(0.38, 0.65, 0.88), 1.5*s)
+			# Bodice — blue
+			draw_rect(Rect2(cx - 18*s, cy - 32*s, 36*s, 26*s), Color(0.45, 0.72, 0.95))
+			# White sash/bow at waist
+			draw_rect(Rect2(cx - 20*s, cy - 8*s, 40*s, 5*s), Color(0.92, 0.93, 0.98))
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 22*s, cy - 6*s), Vector2(cx - 30*s, cy - 10*s), Vector2(cx - 22*s, cy - 2*s)
+			]), Color(0.92, 0.93, 0.98))
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx + 22*s, cy - 6*s), Vector2(cx + 30*s, cy - 10*s), Vector2(cx + 22*s, cy - 2*s)
+			]), Color(0.92, 0.93, 0.98))
+			# Arms — pale skin with puff sleeves
+			draw_circle(Vector2(cx - 22*s, cy - 18*s), 8*s, Color(0.92, 0.93, 0.98))
+			draw_circle(Vector2(cx + 22*s, cy - 18*s), 8*s, Color(0.92, 0.93, 0.98))
+			draw_line(Vector2(cx - 24*s, cy - 12*s), Vector2(cx - 38*s, cy + 18*s), Color(0.95, 0.84, 0.73), 6*s)
+			draw_line(Vector2(cx + 24*s, cy - 12*s), Vector2(cx + 38*s, cy + 14*s), Color(0.95, 0.84, 0.73), 6*s)
+			# Head — pale porcelain skin
+			draw_circle(Vector2(cx, cy - 52*s), 22*s, Color(0.95, 0.84, 0.73))
+			# Blonde hair — flowing down
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 24*s, cy - 70*s), Vector2(cx + 24*s, cy - 70*s),
+				Vector2(cx + 28*s, cy - 30*s), Vector2(cx - 28*s, cy - 30*s)
+			]), Color(0.85, 0.72, 0.28))
+			# Hair strands flowing down past shoulders
+			draw_line(Vector2(cx - 24*s, cy - 48*s), Vector2(cx - 26*s, cy - 10*s), Color(0.85, 0.72, 0.28, 0.8), 4*s)
+			draw_line(Vector2(cx + 24*s, cy - 48*s), Vector2(cx + 26*s, cy - 10*s), Color(0.85, 0.72, 0.28, 0.8), 4*s)
+			# Hair shine
+			draw_line(Vector2(cx - 12*s, cy - 68*s), Vector2(cx - 8*s, cy - 50*s), Color(0.95, 0.85, 0.40, 0.4), 2*s)
+			# Black headband
+			draw_rect(Rect2(cx - 23*s, cy - 70*s, 46*s, 4*s), Color(0.10, 0.10, 0.15))
+			# Big blue eyes with white highlights
+			draw_circle(Vector2(cx - 8*s, cy - 55*s), 5*s, Color(1.0, 1.0, 1.0))
+			draw_circle(Vector2(cx + 8*s, cy - 55*s), 5*s, Color(1.0, 1.0, 1.0))
+			draw_circle(Vector2(cx - 8*s, cy - 55*s), 3.5*s, Color(0.25, 0.50, 0.90))
+			draw_circle(Vector2(cx + 8*s, cy - 55*s), 3.5*s, Color(0.25, 0.50, 0.90))
+			draw_circle(Vector2(cx - 8*s, cy - 55*s), 1.5*s, Color(0.12, 0.35, 0.70))
+			draw_circle(Vector2(cx + 8*s, cy - 55*s), 1.5*s, Color(0.12, 0.35, 0.70))
+			draw_circle(Vector2(cx - 10*s, cy - 57*s), 1.5*s, Color(1.0, 1.0, 1.0, 0.7))
+			draw_circle(Vector2(cx + 6*s, cy - 57*s), 1.5*s, Color(1.0, 1.0, 1.0, 0.7))
+			# Gentle smile
+			draw_arc(Vector2(cx, cy - 45*s), 5*s, 0.2, PI - 0.2, 10, Color(0.55, 0.35, 0.30), 1.2*s)
 		"wicked_witch":
-			# Full body — black robes, pointed hat, green skin, broomstick
-			# Robe
+			# Black dress with purple sheen, pointed hat, GREEN skin, dark hair, sinister yellow-green eyes
+			# Black boots
+			draw_rect(Rect2(cx - 16*s, cy + 118*s, 14*s, 16*s), Color(0.10, 0.08, 0.12))
+			draw_rect(Rect2(cx + 2*s, cy + 118*s, 14*s, 16*s), Color(0.08, 0.06, 0.10))
+			# Black dress/robe with purple sheen
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 30*s, cy - 20*s), Vector2(cx + 30*s, cy - 20*s),
-				Vector2(cx + 45*s, cy + 130*s), Vector2(cx - 45*s, cy + 130*s)
-			]), Color(0.08, 0.08, 0.08))
-			# Robe detail folds
-			draw_line(Vector2(cx - 10*s, cy), Vector2(cx - 15*s, cy + 125*s), Color(0.12, 0.12, 0.12, 0.5), 1.5*s)
-			draw_line(Vector2(cx + 10*s, cy), Vector2(cx + 15*s, cy + 125*s), Color(0.12, 0.12, 0.12, 0.5), 1.5*s)
-			# Arms — bony, reaching
-			draw_line(Vector2(cx - 30*s, cy - 5*s), Vector2(cx - 60*s, cy + 25*s), Color(0.08, 0.08, 0.08), 7*s)
-			draw_line(Vector2(cx + 30*s, cy - 5*s), Vector2(cx + 55*s, cy + 15*s), Color(0.08, 0.08, 0.08), 7*s)
-			# Green hands
-			draw_circle(Vector2(cx - 62*s, cy + 27*s), 5*s, Color(0.35, 0.6, 0.25))
-			draw_circle(Vector2(cx + 57*s, cy + 17*s), 5*s, Color(0.35, 0.6, 0.25))
-			# Head — green
-			draw_circle(Vector2(cx, cy - 42*s), 24*s, Color(0.32, 0.58, 0.22))
+				Vector2(cx - 28*s, cy - 18*s), Vector2(cx + 28*s, cy - 18*s),
+				Vector2(cx + 44*s, cy + 122*s), Vector2(cx - 44*s, cy + 122*s)
+			]), Color(0.08, 0.06, 0.10))
+			# Purple sheen inner layer
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 20*s, cy - 10*s), Vector2(cx + 20*s, cy - 10*s),
+				Vector2(cx + 32*s, cy + 110*s), Vector2(cx - 32*s, cy + 110*s)
+			]), Color(0.15, 0.08, 0.20, 0.3))
+			# Dress folds
+			for fi in range(5):
+				var fx = cx - 30*s + float(fi) * 15*s
+				draw_line(Vector2(fx, cy + 5*s), Vector2(fx + sin(float(fi) * 1.5) * 5*s, cy + 118*s), Color(0.12, 0.10, 0.14, 0.3), 1.5*s)
+			# Tattered ragged hem
+			for ti in range(8):
+				var tx = cx - 40*s + float(ti) * 11*s
+				var t_sway = sin(_time * 1.0 + float(ti) * 0.8) * 4*s
+				draw_line(Vector2(tx, cy + 122*s), Vector2(tx + t_sway, cy + 135*s), Color(0.06, 0.04, 0.08, 0.4), 2*s)
+			# Arms — black sleeves with green hands
+			draw_line(Vector2(cx - 28*s, cy - 5*s), Vector2(cx - 55*s, cy + 22*s), Color(0.08, 0.06, 0.10), 8*s)
+			draw_line(Vector2(cx + 28*s, cy - 5*s), Vector2(cx + 52*s, cy + 14*s), Color(0.08, 0.06, 0.10), 8*s)
+			# Green bony hands
+			draw_circle(Vector2(cx - 57*s, cy + 24*s), 5*s, Color(0.38, 0.55, 0.28))
+			for fi in range(3):
+				var fa = -0.5 + float(fi) * 0.3
+				draw_line(Vector2(cx - 57*s, cy + 24*s), Vector2(cx - 57*s + cos(fa) * 7*s, cy + 24*s + sin(fa) * 7*s), Color(0.35, 0.50, 0.25), 1.2*s)
+			draw_circle(Vector2(cx + 54*s, cy + 16*s), 5*s, Color(0.38, 0.55, 0.28))
+			# Head — GREEN skin with sharp features
+			draw_circle(Vector2(cx, cy - 40*s), 24*s, Color(0.38, 0.55, 0.28))
 			# Sharp chin
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 12*s, cy - 25*s), Vector2(cx + 12*s, cy - 25*s), Vector2(cx, cy - 15*s)
-			]), Color(0.3, 0.55, 0.2))
-			# Pointed hat
+				Vector2(cx - 14*s, cy - 22*s), Vector2(cx + 14*s, cy - 22*s), Vector2(cx, cy - 12*s)
+			]), Color(0.35, 0.50, 0.25))
+			# Cheek shadows
+			draw_circle(Vector2(cx - 15*s, cy - 30*s), 6*s, Color(0.28, 0.42, 0.20, 0.3))
+			draw_circle(Vector2(cx + 15*s, cy - 30*s), 6*s, Color(0.28, 0.42, 0.20, 0.3))
+			# Dark hair
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 35*s, cy - 55*s), Vector2(cx, cy - 140*s), Vector2(cx + 35*s, cy - 55*s)
-			]), Color(0.06, 0.06, 0.06))
-			draw_rect(Rect2(cx - 38*s, cy - 58*s, 76*s, 6*s), Color(0.08, 0.08, 0.08))
-			# Hat band
-			draw_rect(Rect2(cx - 30*s, cy - 82*s, 20*s, 4*s), Color(0.4, 0.25, 0.1, 0.5))
-			# Eyes — menacing
-			draw_circle(Vector2(cx - 9*s, cy - 47*s), 4*s, Color(0.9, 0.8, 0.1))
-			draw_circle(Vector2(cx + 9*s, cy - 47*s), 4*s, Color(0.9, 0.8, 0.1))
-			draw_circle(Vector2(cx - 9*s, cy - 47*s), 2*s, Color(0.1, 0.1, 0.05))
-			draw_circle(Vector2(cx + 9*s, cy - 47*s), 2*s, Color(0.1, 0.1, 0.05))
+				Vector2(cx - 25*s, cy - 58*s), Vector2(cx + 25*s, cy - 58*s),
+				Vector2(cx + 22*s, cy - 35*s), Vector2(cx - 22*s, cy - 35*s)
+			]), Color(0.08, 0.08, 0.06))
+			# Pointed black hat
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 34*s, cy - 54*s), Vector2(cx, cy - 140*s), Vector2(cx + 34*s, cy - 54*s)
+			]), Color(0.08, 0.06, 0.10))
+			draw_rect(Rect2(cx - 36*s, cy - 57*s, 72*s, 6*s), Color(0.08, 0.06, 0.10))
+			# Hat buckle/band
+			draw_rect(Rect2(cx - 28*s, cy - 80*s, 18*s, 5*s), Color(0.40, 0.25, 0.10, 0.6))
+			# Yellow-green sinister eyes
+			draw_circle(Vector2(cx - 9*s, cy - 44*s), 5*s, Color(0.95, 0.92, 0.40))
+			draw_circle(Vector2(cx + 9*s, cy - 44*s), 5*s, Color(0.95, 0.92, 0.40))
+			draw_circle(Vector2(cx - 9*s, cy - 44*s), 2.5*s, Color(0.35, 0.65, 0.10))
+			draw_circle(Vector2(cx + 9*s, cy - 44*s), 2.5*s, Color(0.35, 0.65, 0.10))
+			draw_circle(Vector2(cx - 9*s, cy - 44*s), 1*s, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2(cx + 9*s, cy - 44*s), 1*s, Color(0.06, 0.06, 0.08))
+			# Sinister smirk
+			draw_arc(Vector2(cx, cy - 30*s), 8*s, 0.1, PI - 0.1, 12, Color(0.20, 0.30, 0.10), 1.5*s)
 			# Broomstick (held at side)
-			draw_line(Vector2(cx + 50*s, cy - 20*s), Vector2(cx + 55*s, cy + 140*s), Color(0.4, 0.3, 0.15), 3*s)
+			draw_line(Vector2(cx + 48*s, cy - 18*s), Vector2(cx + 52*s, cy + 130*s), Color(0.40, 0.28, 0.12), 3*s)
+			# Broom bristles
+			for bi in range(5):
+				var bx = cx + 50*s + sin(float(bi) * 1.2) * 6*s
+				draw_line(Vector2(cx + 52*s, cy + 128*s), Vector2(bx, cy + 140*s), Color(0.45, 0.35, 0.15), 2*s)
 		"peter_pan":
-			# Full body — green tunic, tights, feathered cap, dagger, flying pose
-			# Legs — angled (dynamic flying stance)
-			draw_line(Vector2(cx - 8*s, cy + 55*s), Vector2(cx - 25*s, cy + 120*s), Color(0.22, 0.48, 0.15), 9*s)
-			draw_line(Vector2(cx + 8*s, cy + 55*s), Vector2(cx + 15*s, cy + 110*s), Color(0.2, 0.45, 0.13), 9*s)
-			# Boots — pointed
+			# Green tunic with jagged hem, pointed cap with red feather, tan skin, dagger, playful pose
+			# Legs — green tights, dynamic flying stance
+			draw_line(Vector2(cx - 8*s, cy + 55*s), Vector2(cx - 22*s, cy + 115*s), Color(0.15, 0.55, 0.12), 9*s)
+			draw_line(Vector2(cx + 8*s, cy + 55*s), Vector2(cx + 14*s, cy + 108*s), Color(0.12, 0.48, 0.10), 9*s)
+			# Pointed brown boots
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 30*s, cy + 118*s), Vector2(cx - 18*s, cy + 115*s),
-				Vector2(cx - 15*s, cy + 130*s), Vector2(cx - 35*s, cy + 125*s)
-			]), Color(0.35, 0.22, 0.1))
+				Vector2(cx - 27*s, cy + 112*s), Vector2(cx - 16*s, cy + 110*s),
+				Vector2(cx - 14*s, cy + 126*s), Vector2(cx - 32*s, cy + 120*s)
+			]), Color(0.45, 0.28, 0.12))
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx + 10*s, cy + 108*s), Vector2(cx + 22*s, cy + 105*s),
-				Vector2(cx + 25*s, cy + 120*s), Vector2(cx + 5*s, cy + 118*s)
-			]), Color(0.33, 0.2, 0.08))
-			# Tunic
+				Vector2(cx + 9*s, cy + 104*s), Vector2(cx + 20*s, cy + 102*s),
+				Vector2(cx + 23*s, cy + 118*s), Vector2(cx + 5*s, cy + 114*s)
+			]), Color(0.42, 0.25, 0.10))
+			# Green tunic body
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 25*s, cy - 25*s), Vector2(cx + 25*s, cy - 25*s),
-				Vector2(cx + 28*s, cy + 60*s), Vector2(cx - 28*s, cy + 60*s)
-			]), Color(0.22, 0.52, 0.18))
-			# Jagged tunic hem
-			for ji in range(6):
-				var jx = cx - 25*s + float(ji) * 10*s
+				Vector2(cx - 24*s, cy - 24*s), Vector2(cx + 24*s, cy - 24*s),
+				Vector2(cx + 26*s, cy + 58*s), Vector2(cx - 26*s, cy + 58*s)
+			]), Color(0.15, 0.55, 0.12))
+			# Jagged tunic hem — signature Peter Pan look
+			for ji in range(7):
+				var jx = cx - 24*s + float(ji) * 7.5*s
 				draw_colored_polygon(PackedVector2Array([
-					Vector2(jx, cy + 55*s), Vector2(jx + 10*s, cy + 55*s), Vector2(jx + 5*s, cy + 70*s)
-				]), Color(0.2, 0.48, 0.15))
-			# Belt
-			draw_rect(Rect2(cx - 26*s, cy + 20*s, 52*s, 6*s), Color(0.4, 0.28, 0.12))
-			# Arms — one raised with dagger
-			draw_line(Vector2(cx - 25*s, cy - 12*s), Vector2(cx - 45*s, cy + 15*s), Color(0.7, 0.55, 0.38), 7*s)
-			draw_line(Vector2(cx + 25*s, cy - 12*s), Vector2(cx + 50*s, cy - 40*s), Color(0.7, 0.55, 0.38), 7*s)
+					Vector2(jx, cy + 55*s), Vector2(jx + 7.5*s, cy + 55*s), Vector2(jx + 3.75*s, cy + 68*s)
+				]), Color(0.12, 0.48, 0.10))
+			# Brown belt
+			draw_rect(Rect2(cx - 24*s, cy + 18*s, 48*s, 6*s), Color(0.40, 0.28, 0.12))
+			draw_circle(Vector2(cx, cy + 21*s), 3*s, Color(0.70, 0.55, 0.18))
+			# Arms — warm tan skin, one raised with dagger
+			draw_line(Vector2(cx - 24*s, cy - 10*s), Vector2(cx - 42*s, cy + 12*s), Color(0.15, 0.55, 0.12), 9*s)
+			draw_line(Vector2(cx + 24*s, cy - 10*s), Vector2(cx + 46*s, cy - 35*s), Color(0.15, 0.55, 0.12), 9*s)
+			draw_line(Vector2(cx - 36*s, cy + 5*s), Vector2(cx - 44*s, cy + 14*s), Color(0.91, 0.74, 0.58), 7*s)
+			draw_line(Vector2(cx + 40*s, cy - 30*s), Vector2(cx + 48*s, cy - 40*s), Color(0.91, 0.74, 0.58), 7*s)
 			# Dagger in raised hand
-			draw_line(Vector2(cx + 50*s, cy - 42*s), Vector2(cx + 58*s, cy - 65*s), Color(0.7, 0.7, 0.75), 2.5*s)
-			# Head
-			draw_circle(Vector2(cx, cy - 48*s), 20*s, Color(0.72, 0.58, 0.4))
-			# Hair — messy auburn
+			draw_line(Vector2(cx + 48*s, cy - 42*s), Vector2(cx + 55*s, cy - 62*s), Color(0.70, 0.70, 0.75), 2.5*s)
+			draw_line(Vector2(cx + 46*s, cy - 40*s), Vector2(cx + 50*s, cy - 42*s), Color(0.45, 0.30, 0.10), 3*s)
+			# Head — warm tan
+			draw_circle(Vector2(cx, cy - 46*s), 20*s, Color(0.91, 0.74, 0.58))
+			# Messy auburn/brown hair
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 22*s, cy - 62*s), Vector2(cx + 22*s, cy - 62*s),
+				Vector2(cx - 21*s, cy - 62*s), Vector2(cx + 21*s, cy - 62*s),
 				Vector2(cx + 18*s, cy - 40*s), Vector2(cx - 18*s, cy - 40*s)
-			]), Color(0.55, 0.3, 0.12))
-			# Eyes — mischievous
-			draw_circle(Vector2(cx - 7*s, cy - 52*s), 3*s, Color(0.2, 0.5, 0.2))
-			draw_circle(Vector2(cx + 7*s, cy - 52*s), 3*s, Color(0.2, 0.5, 0.2))
-			# Grin
-			draw_arc(Vector2(cx, cy - 42*s), 7*s, 0.1, PI - 0.1, 10, Color(0.45, 0.28, 0.18), 1.5*s)
-			# Hat — pointed cap
+			]), Color(0.50, 0.28, 0.12))
+			# Spiky hair tufts
+			for hi in range(4):
+				var hx = cx - 14*s + float(hi) * 9*s
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(hx, cy - 62*s), Vector2(hx + 5*s, cy - 72*s), Vector2(hx + 9*s, cy - 62*s)
+				]), Color(0.50, 0.28, 0.12))
+			# Mischievous green eyes
+			draw_circle(Vector2(cx - 7*s, cy - 50*s), 3.5*s, Color(0.98, 0.98, 1.0))
+			draw_circle(Vector2(cx + 7*s, cy - 50*s), 3.5*s, Color(0.98, 0.98, 1.0))
+			draw_circle(Vector2(cx - 7*s, cy - 50*s), 2*s, Color(0.18, 0.55, 0.20))
+			draw_circle(Vector2(cx + 7*s, cy - 50*s), 2*s, Color(0.18, 0.55, 0.20))
+			# Big cheeky grin
+			draw_arc(Vector2(cx, cy - 40*s), 8*s, 0.05, PI - 0.05, 12, Color(0.45, 0.25, 0.15), 1.5*s)
+			# Green pointed cap with red feather
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 22*s, cy - 60*s), Vector2(cx + 8*s, cy - 100*s), Vector2(cx + 22*s, cy - 60*s)
-			]), Color(0.25, 0.55, 0.2))
-			# Feather
-			draw_line(Vector2(cx + 12*s, cy - 95*s), Vector2(cx + 30*s, cy - 110*s), Color(0.8, 0.2, 0.15), 2*s)
+				Vector2(cx - 21*s, cy - 60*s), Vector2(cx + 6*s, cy - 98*s), Vector2(cx + 21*s, cy - 60*s)
+			]), Color(0.15, 0.55, 0.12))
+			draw_rect(Rect2(cx - 23*s, cy - 62*s, 46*s, 4*s), Color(0.10, 0.40, 0.08))
+			# Red feather
+			draw_line(Vector2(cx + 10*s, cy - 95*s), Vector2(cx + 28*s, cy - 112*s), Color(0.88, 0.16, 0.08), 2.5*s)
 		"phantom":
-			# Full body — black cape, white half-mask, formal suit, dramatic pose
-			# Cape — flowing wide
+			# Black cape with vivid red lining, white porcelain half-mask, black formal tuxedo, dramatic pose
+			# Cape — flowing wide, black outer
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 50*s, cy - 30*s), Vector2(cx + 10*s, cy - 30*s),
-				Vector2(cx + 20*s, cy + 140*s), Vector2(cx - 70*s, cy + 140*s)
-			]), Color(0.06, 0.04, 0.08))
-			# Cape inner lining (red)
+				Vector2(cx - 50*s, cy - 28*s), Vector2(cx + 10*s, cy - 28*s),
+				Vector2(cx + 20*s, cy + 135*s), Vector2(cx - 68*s, cy + 135*s)
+			]), Color(0.06, 0.03, 0.08))
+			# Cape inner lining — vivid red
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 45*s, cy - 25*s), Vector2(cx + 5*s, cy - 25*s),
-				Vector2(cx + 10*s, cy + 120*s), Vector2(cx - 55*s, cy + 120*s)
-			]), Color(0.5, 0.08, 0.08, 0.4))
-			# Legs — formal trousers
-			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 75*s), Color(0.08, 0.06, 0.06))
-			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 75*s), Color(0.07, 0.05, 0.05))
-			# Shoes
-			draw_rect(Rect2(cx - 16*s, cy + 125*s, 16*s, 10*s), Color(0.1, 0.08, 0.06))
-			draw_rect(Rect2(cx, cy + 125*s, 16*s, 10*s), Color(0.08, 0.06, 0.05))
-			# Torso — formal jacket
+				Vector2(cx - 44*s, cy - 22*s), Vector2(cx + 5*s, cy - 22*s),
+				Vector2(cx + 8*s, cy + 115*s), Vector2(cx - 52*s, cy + 115*s)
+			]), Color(0.85, 0.08, 0.12, 0.35))
+			# Legs — black formal trousers
+			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 70*s), Color(0.05, 0.03, 0.07))
+			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 70*s), Color(0.04, 0.02, 0.06))
+			# Polished shoes
+			draw_rect(Rect2(cx - 16*s, cy + 122*s, 16*s, 12*s), Color(0.08, 0.06, 0.06))
+			draw_rect(Rect2(cx, cy + 122*s, 16*s, 12*s), Color(0.06, 0.04, 0.05))
+			# Torso — black tuxedo jacket
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 25*s, cy - 30*s), Vector2(cx + 25*s, cy - 30*s),
-				Vector2(cx + 22*s, cy + 60*s), Vector2(cx - 22*s, cy + 60*s)
-			]), Color(0.1, 0.08, 0.1))
-			# White shirt front
-			draw_rect(Rect2(cx - 8*s, cy - 25*s, 16*s, 50*s), Color(0.9, 0.88, 0.85, 0.7))
+				Vector2(cx - 24*s, cy - 28*s), Vector2(cx + 24*s, cy - 28*s),
+				Vector2(cx + 22*s, cy + 58*s), Vector2(cx - 22*s, cy + 58*s)
+			]), Color(0.10, 0.08, 0.12))
+			# White dress shirt front
+			draw_rect(Rect2(cx - 8*s, cy - 22*s, 16*s, 45*s), Color(0.97, 0.95, 0.93, 0.8))
+			# Gold buttons
+			for bi in range(3):
+				draw_circle(Vector2(cx, cy - 12*s + float(bi) * 12*s), 1.8*s, Color(0.90, 0.74, 0.24))
 			# Arms — one raised dramatically
-			draw_line(Vector2(cx + 25*s, cy - 15*s), Vector2(cx + 55*s, cy - 50*s), Color(0.1, 0.08, 0.1), 8*s)
-			draw_line(Vector2(cx - 25*s, cy - 15*s), Vector2(cx - 45*s, cy + 20*s), Color(0.1, 0.08, 0.1), 8*s)
-			# Head
-			draw_circle(Vector2(cx, cy - 52*s), 22*s, Color(0.85, 0.82, 0.78))
-			# Half-mask (right side of face)
-			draw_arc(Vector2(cx + 2*s, cy - 55*s), 20*s, -PI*0.5, PI*0.4, 20, Color(0.95, 0.92, 0.88), 4*s)
-			# Visible eye (left — exposed side)
-			draw_circle(Vector2(cx - 8*s, cy - 55*s), 3.5*s, Color(0.15, 0.12, 0.1))
-			draw_circle(Vector2(cx - 8*s, cy - 56*s), 1.5*s, Color(0.4, 0.3, 0.2, 0.5))
-			# Hair — slicked back
+			draw_line(Vector2(cx + 24*s, cy - 14*s), Vector2(cx + 52*s, cy - 48*s), Color(0.10, 0.08, 0.12), 8*s)
+			draw_line(Vector2(cx - 24*s, cy - 14*s), Vector2(cx - 42*s, cy + 18*s), Color(0.10, 0.08, 0.12), 8*s)
+			# White gloves
+			draw_circle(Vector2(cx + 54*s, cy - 50*s), 4*s, Color(0.95, 0.93, 0.90))
+			draw_circle(Vector2(cx - 44*s, cy + 20*s), 4*s, Color(0.95, 0.93, 0.90))
+			# Head — pale dramatic skin
+			draw_circle(Vector2(cx, cy - 50*s), 22*s, Color(0.88, 0.82, 0.78))
+			# Slicked back dark hair
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 22*s, cy - 68*s), Vector2(cx + 22*s, cy - 68*s),
-				Vector2(cx + 15*s, cy - 48*s), Vector2(cx - 15*s, cy - 48*s)
-			]), Color(0.08, 0.06, 0.06))
+				Vector2(cx - 23*s, cy - 68*s), Vector2(cx + 23*s, cy - 68*s),
+				Vector2(cx + 16*s, cy - 46*s), Vector2(cx - 16*s, cy - 46*s)
+			]), Color(0.07, 0.05, 0.07))
+			# WHITE PORCELAIN HALF-MASK (right side) — signature feature
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx + 2*s, cy - 68*s), Vector2(cx + 22*s, cy - 62*s),
+				Vector2(cx + 22*s, cy - 40*s), Vector2(cx + 12*s, cy - 32*s), Vector2(cx + 2*s, cy - 35*s)
+			]), Color(0.98, 0.97, 0.96))
+			# Mask edge highlight
+			draw_line(Vector2(cx + 2*s, cy - 68*s), Vector2(cx + 2*s, cy - 35*s), Color(0.85, 0.82, 0.78, 0.6), 1*s)
+			# Visible eye (left — exposed side) — dark brown
+			draw_circle(Vector2(cx - 8*s, cy - 53*s), 4*s, Color(0.99, 0.99, 0.99))
+			draw_circle(Vector2(cx - 8*s, cy - 53*s), 2.5*s, Color(0.24, 0.17, 0.14))
+			draw_circle(Vector2(cx - 8*s, cy - 53*s), 1*s, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2(cx - 10*s, cy - 55*s), 1*s, Color(1.0, 1.0, 1.0, 0.5))
+			# Masked eye — just a dark slit
+			draw_circle(Vector2(cx + 10*s, cy - 53*s), 2*s, Color(0.06, 0.04, 0.06, 0.5))
 		"scrooge":
-			# Full body — Victorian suit, top hat, thin & hunched
-			# Legs — thin
-			draw_rect(Rect2(cx - 12*s, cy + 60*s, 10*s, 70*s), Color(0.15, 0.12, 0.1))
-			draw_rect(Rect2(cx + 2*s, cy + 60*s, 10*s, 70*s), Color(0.13, 0.1, 0.08))
+			# Victorian long coat, top hat, gaunt pale elderly, walking cane, hunched posture
+			# Thin legs
+			draw_rect(Rect2(cx - 11*s, cy + 58*s, 9*s, 68*s), Color(0.12, 0.10, 0.08))
+			draw_rect(Rect2(cx + 2*s, cy + 58*s, 9*s, 68*s), Color(0.10, 0.08, 0.06))
 			# Shoes
-			draw_rect(Rect2(cx - 14*s, cy + 125*s, 14*s, 10*s), Color(0.1, 0.08, 0.06))
-			draw_rect(Rect2(cx, cy + 125*s, 14*s, 10*s), Color(0.08, 0.06, 0.05))
-			# Coat — long Victorian
+			draw_rect(Rect2(cx - 13*s, cy + 122*s, 13*s, 12*s), Color(0.08, 0.06, 0.05))
+			draw_rect(Rect2(cx, cy + 122*s, 13*s, 12*s), Color(0.06, 0.05, 0.04))
+			# Long Victorian coat — dark muted brown
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 25*s, cy - 25*s), Vector2(cx + 25*s, cy - 25*s),
-				Vector2(cx + 20*s, cy + 80*s), Vector2(cx - 20*s, cy + 80*s)
-			]), Color(0.15, 0.12, 0.1))
-			# Vest
-			draw_rect(Rect2(cx - 15*s, cy - 15*s, 30*s, 35*s), Color(0.4, 0.3, 0.15))
-			# Arms — one holding cane
-			draw_line(Vector2(cx - 25*s, cy - 10*s), Vector2(cx - 40*s, cy + 30*s), Color(0.15, 0.12, 0.1), 7*s)
-			draw_line(Vector2(cx + 25*s, cy - 10*s), Vector2(cx + 45*s, cy + 40*s), Color(0.15, 0.12, 0.1), 7*s)
-			# Walking cane
-			draw_line(Vector2(cx + 46*s, cy + 38*s), Vector2(cx + 50*s, cy + 130*s), Color(0.3, 0.2, 0.08), 3*s)
-			draw_arc(Vector2(cx + 46*s, cy + 35*s), 8*s, PI, TAU, 10, Color(0.3, 0.2, 0.08), 3*s)
-			# Head — gaunt
-			draw_circle(Vector2(cx, cy - 45*s), 20*s, Color(0.72, 0.62, 0.48))
-			# Sunken eyes
-			draw_circle(Vector2(cx - 7*s, cy - 48*s), 3*s, Color(0.2, 0.15, 0.1))
-			draw_circle(Vector2(cx + 7*s, cy - 48*s), 3*s, Color(0.2, 0.15, 0.1))
-			# Frown
-			draw_arc(Vector2(cx, cy - 38*s), 6*s, PI + 0.3, TAU - 0.3, 10, Color(0.4, 0.28, 0.18), 1.2*s)
-			# Top hat
-			draw_rect(Rect2(cx - 18*s, cy - 100*s, 36*s, 50*s), Color(0.1, 0.08, 0.06))
-			draw_rect(Rect2(cx - 25*s, cy - 55*s, 50*s, 6*s), Color(0.1, 0.08, 0.06))
+				Vector2(cx - 24*s, cy - 24*s), Vector2(cx + 24*s, cy - 24*s),
+				Vector2(cx + 20*s, cy + 78*s), Vector2(cx - 20*s, cy + 78*s)
+			]), Color(0.15, 0.12, 0.10))
+			# Coat tails
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 18*s, cy + 72*s), Vector2(cx - 6*s, cy + 72*s),
+				Vector2(cx - 8*s, cy + 95*s), Vector2(cx - 22*s, cy + 95*s)
+			]), Color(0.13, 0.10, 0.08))
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx + 6*s, cy + 72*s), Vector2(cx + 18*s, cy + 72*s),
+				Vector2(cx + 22*s, cy + 95*s), Vector2(cx + 8*s, cy + 95*s)
+			]), Color(0.13, 0.10, 0.08))
+			# Waistcoat/vest — muted gold
+			draw_rect(Rect2(cx - 14*s, cy - 14*s, 28*s, 32*s), Color(0.40, 0.30, 0.15))
+			# White cravat at collar
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 6*s, cy - 22*s), Vector2(cx + 6*s, cy - 22*s),
+				Vector2(cx + 4*s, cy - 12*s), Vector2(cx - 4*s, cy - 12*s)
+			]), Color(0.90, 0.88, 0.82, 0.7))
+			# Arms — coat sleeves
+			draw_line(Vector2(cx - 24*s, cy - 8*s), Vector2(cx - 38*s, cy + 28*s), Color(0.15, 0.12, 0.10), 7*s)
+			draw_line(Vector2(cx + 24*s, cy - 8*s), Vector2(cx + 42*s, cy + 36*s), Color(0.15, 0.12, 0.10), 7*s)
+			# Bony pale hands
+			draw_circle(Vector2(cx - 40*s, cy + 30*s), 4*s, Color(0.85, 0.78, 0.72))
+			draw_circle(Vector2(cx + 44*s, cy + 38*s), 4*s, Color(0.85, 0.78, 0.72))
+			# Walking cane with curved handle
+			draw_line(Vector2(cx + 44*s, cy + 36*s), Vector2(cx + 48*s, cy + 128*s), Color(0.30, 0.20, 0.08), 3*s)
+			draw_arc(Vector2(cx + 44*s, cy + 33*s), 7*s, PI, TAU, 10, Color(0.30, 0.20, 0.08), 3*s)
+			# Gold coins at base (signature)
+			for ci in range(4):
+				var coin_x = cx - 12*s + float(ci) * 8*s
+				draw_circle(Vector2(coin_x, cy + 130*s), 4*s, Color(0.85, 0.68, 0.18, 0.6))
+				draw_circle(Vector2(coin_x, cy + 130*s), 2*s, Color(1.0, 0.85, 0.30, 0.4))
+			# Head — gaunt, pale elderly
+			draw_circle(Vector2(cx, cy - 44*s), 20*s, Color(0.85, 0.78, 0.72))
+			# Thin white/grey hair
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 20*s, cy - 58*s), Vector2(cx + 20*s, cy - 58*s),
+				Vector2(cx + 16*s, cy - 40*s), Vector2(cx - 16*s, cy - 40*s)
+			]), Color(0.72, 0.70, 0.68, 0.5))
+			# Sunken dark eyes
+			draw_circle(Vector2(cx - 7*s, cy - 48*s), 3.5*s, Color(0.88, 0.85, 0.80))
+			draw_circle(Vector2(cx + 7*s, cy - 48*s), 3.5*s, Color(0.88, 0.85, 0.80))
+			draw_circle(Vector2(cx - 7*s, cy - 48*s), 2*s, Color(0.20, 0.15, 0.10))
+			draw_circle(Vector2(cx + 7*s, cy - 48*s), 2*s, Color(0.20, 0.15, 0.10))
+			# Deep frown
+			draw_arc(Vector2(cx, cy - 36*s), 6*s, PI + 0.3, TAU - 0.3, 10, Color(0.45, 0.30, 0.20), 1.5*s)
+			# Long pointed nose
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 2*s, cy - 44*s), Vector2(cx + 2*s, cy - 44*s), Vector2(cx, cy - 35*s)
+			]), Color(0.82, 0.74, 0.68))
+			# Top hat — tall black
+			draw_rect(Rect2(cx - 17*s, cy - 98*s, 34*s, 48*s), Color(0.08, 0.06, 0.05))
+			draw_rect(Rect2(cx - 24*s, cy - 53*s, 48*s, 6*s), Color(0.08, 0.06, 0.05))
 			# Hat band
-			draw_rect(Rect2(cx - 16*s, cy - 72*s, 32*s, 4*s), Color(0.35, 0.25, 0.12, 0.5))
-			# Scarf
-			draw_line(Vector2(cx - 15*s, cy - 28*s), Vector2(cx - 25*s, cy + 5*s), Color(0.5, 0.35, 0.15, 0.7), 4*s)
+			draw_rect(Rect2(cx - 15*s, cy - 70*s, 30*s, 4*s), Color(0.35, 0.25, 0.12, 0.5))
 		"sherlock":
-			# Full body — deerstalker, cape-coat, pipe, magnifying glass
-			# Legs
-			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 75*s), Color(0.25, 0.2, 0.15))
-			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 75*s), Color(0.23, 0.18, 0.13))
-			# Shoes
-			draw_rect(Rect2(cx - 16*s, cy + 125*s, 16*s, 12*s), Color(0.12, 0.1, 0.08))
-			draw_rect(Rect2(cx, cy + 125*s, 16*s, 12*s), Color(0.1, 0.08, 0.06))
-			# Inverness cape-coat
+			# Brown tweed Inverness cape-coat, deerstalker hat, pipe, magnifying glass, analytical posture
+			# Legs — tan trousers
+			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 72*s), Color(0.40, 0.32, 0.18))
+			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 72*s), Color(0.38, 0.30, 0.16))
+			# Dark brown leather shoes
+			draw_rect(Rect2(cx - 16*s, cy + 124*s, 16*s, 12*s), Color(0.18, 0.14, 0.08))
+			draw_rect(Rect2(cx, cy + 124*s, 16*s, 12*s), Color(0.16, 0.12, 0.06))
+			# Brown tweed Inverness cape-coat — layered
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 35*s, cy - 25*s), Vector2(cx + 35*s, cy - 25*s),
-				Vector2(cx + 28*s, cy + 60*s), Vector2(cx - 28*s, cy + 60*s)
-			]), Color(0.35, 0.28, 0.18))
-			# Cape layer
+				Vector2(cx - 32*s, cy - 24*s), Vector2(cx + 32*s, cy - 24*s),
+				Vector2(cx + 26*s, cy + 58*s), Vector2(cx - 26*s, cy + 58*s)
+			]), Color(0.52, 0.38, 0.18))
+			# Cape overlay (shoulders)
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 38*s, cy - 20*s), Vector2(cx + 38*s, cy - 20*s),
-				Vector2(cx + 30*s, cy + 20*s), Vector2(cx - 30*s, cy + 20*s)
-			]), Color(0.32, 0.25, 0.15, 0.7))
-			# Arms — one holding pipe, one with magnifying glass
-			draw_line(Vector2(cx - 30*s, cy - 10*s), Vector2(cx - 50*s, cy + 15*s), Color(0.35, 0.28, 0.18), 7*s)
-			draw_line(Vector2(cx + 30*s, cy - 10*s), Vector2(cx + 48*s, cy + 5*s), Color(0.35, 0.28, 0.18), 7*s)
-			# Pipe
-			draw_line(Vector2(cx + 10*s, cy - 38*s), Vector2(cx + 30*s, cy - 30*s), Color(0.35, 0.2, 0.1), 2.5*s)
-			draw_rect(Rect2(cx + 28*s, cy - 38*s, 8*s, 12*s), Color(0.35, 0.2, 0.1))
+				Vector2(cx - 36*s, cy - 20*s), Vector2(cx + 36*s, cy - 20*s),
+				Vector2(cx + 28*s, cy + 18*s), Vector2(cx - 28*s, cy + 18*s)
+			]), Color(0.48, 0.35, 0.16, 0.7))
+			# White shirt visible at collar
+			draw_rect(Rect2(cx - 8*s, cy - 22*s, 16*s, 10*s), Color(0.94, 0.92, 0.88, 0.6))
+			# Brass buttons
+			for bi in range(3):
+				draw_circle(Vector2(cx, cy - 5*s + float(bi) * 14*s), 2*s, Color(0.85, 0.68, 0.18))
+			# Arms — tweed sleeves
+			draw_line(Vector2(cx - 30*s, cy - 8*s), Vector2(cx - 48*s, cy + 12*s), Color(0.52, 0.38, 0.18), 8*s)
+			draw_line(Vector2(cx + 30*s, cy - 8*s), Vector2(cx + 46*s, cy + 4*s), Color(0.52, 0.38, 0.18), 8*s)
+			# Hands
+			draw_circle(Vector2(cx - 50*s, cy + 14*s), 4*s, Color(0.90, 0.78, 0.65))
+			draw_circle(Vector2(cx + 48*s, cy + 6*s), 4*s, Color(0.90, 0.78, 0.65))
+			# Pipe (held from mouth)
+			draw_line(Vector2(cx + 12*s, cy - 38*s), Vector2(cx + 28*s, cy - 32*s), Color(0.35, 0.20, 0.10), 2.5*s)
+			draw_rect(Rect2(cx + 26*s, cy - 40*s, 8*s, 11*s), Color(0.35, 0.20, 0.10))
 			# Magnifying glass (left hand)
-			draw_circle(Vector2(cx - 55*s, cy + 10*s), 12*s, Color(0.6, 0.55, 0.45, 0.3))
-			draw_arc(Vector2(cx - 55*s, cy + 10*s), 12*s, 0, TAU, 20, Color(0.5, 0.4, 0.2), 2*s)
-			draw_line(Vector2(cx - 47*s, cy + 18*s), Vector2(cx - 38*s, cy + 30*s), Color(0.4, 0.3, 0.15), 2.5*s)
-			# Head
-			draw_circle(Vector2(cx, cy - 48*s), 22*s, Color(0.68, 0.55, 0.4))
-			# Sharp eyes
-			draw_circle(Vector2(cx - 7*s, cy - 52*s), 3*s, Color(0.3, 0.35, 0.4))
-			draw_circle(Vector2(cx + 7*s, cy - 52*s), 3*s, Color(0.3, 0.35, 0.4))
-			# Deerstalker hat
-			draw_rect(Rect2(cx - 24*s, cy - 68*s, 48*s, 18*s), Color(0.45, 0.35, 0.2))
-			draw_rect(Rect2(cx - 28*s, cy - 54*s, 56*s, 6*s), Color(0.42, 0.32, 0.18))
-			# Ear flaps
-			draw_rect(Rect2(cx - 30*s, cy - 52*s, 10*s, 15*s), Color(0.45, 0.35, 0.2))
-			draw_rect(Rect2(cx + 20*s, cy - 52*s, 10*s, 15*s), Color(0.45, 0.35, 0.2))
+			draw_circle(Vector2(cx - 54*s, cy + 8*s), 12*s, Color(0.70, 0.65, 0.55, 0.25))
+			draw_arc(Vector2(cx - 54*s, cy + 8*s), 12*s, 0, TAU, 20, Color(0.85, 0.68, 0.18), 2.5*s)
+			draw_line(Vector2(cx - 46*s, cy + 16*s), Vector2(cx - 38*s, cy + 28*s), Color(0.50, 0.35, 0.15), 2.5*s)
+			# Head — light tan skin
+			draw_circle(Vector2(cx, cy - 46*s), 22*s, Color(0.90, 0.78, 0.65))
+			# Sharp analytical eyes — grey-blue
+			draw_circle(Vector2(cx - 7*s, cy - 50*s), 3.5*s, Color(0.95, 0.95, 0.95))
+			draw_circle(Vector2(cx + 7*s, cy - 50*s), 3.5*s, Color(0.95, 0.95, 0.95))
+			draw_circle(Vector2(cx - 7*s, cy - 50*s), 2*s, Color(0.30, 0.38, 0.45))
+			draw_circle(Vector2(cx + 7*s, cy - 50*s), 2*s, Color(0.30, 0.38, 0.45))
+			draw_circle(Vector2(cx - 7*s, cy - 50*s), 0.8*s, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2(cx + 7*s, cy - 50*s), 0.8*s, Color(0.06, 0.06, 0.08))
+			# Thin determined mouth
+			draw_line(Vector2(cx - 5*s, cy - 38*s), Vector2(cx + 5*s, cy - 38*s), Color(0.50, 0.35, 0.25), 1.2*s)
+			# Brown hair
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 21*s, cy - 64*s), Vector2(cx + 21*s, cy - 64*s),
+				Vector2(cx + 16*s, cy - 44*s), Vector2(cx - 16*s, cy - 44*s)
+			]), Color(0.30, 0.22, 0.12))
+			# Deerstalker hat — brown tweed with ear flaps
+			draw_rect(Rect2(cx - 23*s, cy - 66*s, 46*s, 16*s), Color(0.45, 0.35, 0.20))
+			draw_rect(Rect2(cx - 27*s, cy - 53*s, 54*s, 5*s), Color(0.42, 0.32, 0.18))
+			# Ear flaps (tied up)
+			draw_rect(Rect2(cx - 28*s, cy - 52*s, 9*s, 14*s), Color(0.45, 0.35, 0.20))
+			draw_rect(Rect2(cx + 19*s, cy - 52*s, 9*s, 14*s), Color(0.45, 0.35, 0.20))
+			# Front peak
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 12*s, cy - 53*s), Vector2(cx + 12*s, cy - 53*s), Vector2(cx + 8*s, cy - 46*s), Vector2(cx - 8*s, cy - 46*s)
+			]), Color(0.42, 0.32, 0.18))
 		"tarzan":
-			# Full body — muscular, loincloth, wild hair, vine
-			# Legs — powerful
-			draw_line(Vector2(cx - 10*s, cy + 50*s), Vector2(cx - 20*s, cy + 125*s), Color(0.55, 0.4, 0.28), 12*s)
-			draw_line(Vector2(cx + 10*s, cy + 50*s), Vector2(cx + 15*s, cy + 120*s), Color(0.53, 0.38, 0.26), 12*s)
-			# Feet
-			draw_circle(Vector2(cx - 22*s, cy + 128*s), 7*s, Color(0.5, 0.38, 0.25))
-			draw_circle(Vector2(cx + 17*s, cy + 123*s), 7*s, Color(0.48, 0.36, 0.23))
-			# Loincloth
+			# Shirtless muscular jungle man, bronze tanned skin, brown loincloth, wild hair, vine
+			# Powerful legs — tanned bronze skin
+			draw_line(Vector2(cx - 10*s, cy + 50*s), Vector2(cx - 20*s, cy + 122*s), Color(0.82, 0.62, 0.42), 13*s)
+			draw_line(Vector2(cx + 10*s, cy + 50*s), Vector2(cx + 16*s, cy + 118*s), Color(0.78, 0.58, 0.38), 13*s)
+			# Bare feet
+			draw_circle(Vector2(cx - 22*s, cy + 125*s), 7*s, Color(0.75, 0.55, 0.38))
+			draw_circle(Vector2(cx + 18*s, cy + 121*s), 7*s, Color(0.72, 0.52, 0.35))
+			# Brown loincloth
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 20*s, cy + 35*s), Vector2(cx + 20*s, cy + 35*s),
-				Vector2(cx + 15*s, cy + 60*s), Vector2(cx - 15*s, cy + 60*s)
-			]), Color(0.45, 0.3, 0.12))
-			# Torso — broad, muscular
+				Vector2(cx - 20*s, cy + 34*s), Vector2(cx + 20*s, cy + 34*s),
+				Vector2(cx + 16*s, cy + 58*s), Vector2(cx - 16*s, cy + 58*s)
+			]), Color(0.45, 0.30, 0.12))
+			# Ragged loincloth edges
+			for li in range(4):
+				var lx = cx - 14*s + float(li) * 9*s
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(lx, cy + 55*s), Vector2(lx + 9*s, cy + 55*s), Vector2(lx + 4.5*s, cy + 64*s)
+				]), Color(0.42, 0.28, 0.10))
+			# Broad muscular torso — tanned bronze
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 35*s, cy - 30*s), Vector2(cx + 35*s, cy - 30*s),
-				Vector2(cx + 25*s, cy + 40*s), Vector2(cx - 25*s, cy + 40*s)
-			]), Color(0.58, 0.42, 0.3))
-			# Chest definition
-			draw_arc(Vector2(cx - 10*s, cy - 10*s), 12*s, PI*0.3, PI*0.8, 10, Color(0.48, 0.35, 0.22, 0.4), 1.5*s)
-			draw_arc(Vector2(cx + 10*s, cy - 10*s), 12*s, PI*0.2, PI*0.7, 10, Color(0.48, 0.35, 0.22, 0.4), 1.5*s)
-			# Arms — one gripping vine
-			draw_line(Vector2(cx - 35*s, cy - 20*s), Vector2(cx - 60*s, cy - 50*s), Color(0.55, 0.4, 0.28), 10*s)
-			draw_line(Vector2(cx + 35*s, cy - 20*s), Vector2(cx + 55*s, cy + 10*s), Color(0.55, 0.4, 0.28), 10*s)
-			# Vine
-			draw_line(Vector2(cx - 62*s, cy - 55*s), Vector2(cx - 70*s, cy - 130*s), Color(0.2, 0.45, 0.1), 3*s)
-			draw_line(Vector2(cx - 68*s, cy - 100*s), Vector2(cx - 55*s, cy - 110*s), Color(0.25, 0.5, 0.15, 0.5), 2*s)
-			# Head
-			draw_circle(Vector2(cx, cy - 52*s), 22*s, Color(0.58, 0.42, 0.3))
-			# Wild hair (pre-calculated offsets to avoid flicker)
+				Vector2(cx - 36*s, cy - 28*s), Vector2(cx + 36*s, cy - 28*s),
+				Vector2(cx + 26*s, cy + 38*s), Vector2(cx - 26*s, cy + 38*s)
+			]), Color(0.82, 0.62, 0.42))
+			# Chest muscle definition
+			draw_arc(Vector2(cx - 12*s, cy - 8*s), 12*s, PI*0.3, PI*0.8, 10, Color(0.68, 0.48, 0.30, 0.35), 1.5*s)
+			draw_arc(Vector2(cx + 12*s, cy - 8*s), 12*s, PI*0.2, PI*0.7, 10, Color(0.68, 0.48, 0.30, 0.35), 1.5*s)
+			# Ab lines
+			draw_line(Vector2(cx, cy + 2*s), Vector2(cx, cy + 30*s), Color(0.68, 0.48, 0.30, 0.25), 1*s)
+			# Powerful arms — one gripping vine overhead
+			draw_line(Vector2(cx - 36*s, cy - 18*s), Vector2(cx - 58*s, cy - 48*s), Color(0.82, 0.62, 0.42), 11*s)
+			draw_line(Vector2(cx + 36*s, cy - 18*s), Vector2(cx + 54*s, cy + 8*s), Color(0.82, 0.62, 0.42), 11*s)
+			# Fists
+			draw_circle(Vector2(cx - 60*s, cy - 50*s), 6*s, Color(0.78, 0.58, 0.38))
+			draw_circle(Vector2(cx + 56*s, cy + 10*s), 6*s, Color(0.78, 0.58, 0.38))
+			# Vine (gripped in left hand)
+			draw_line(Vector2(cx - 62*s, cy - 52*s), Vector2(cx - 68*s, cy - 130*s), Color(0.20, 0.45, 0.10), 3.5*s)
+			# Vine leaves
+			draw_circle(Vector2(cx - 66*s, cy - 95*s), 4*s, Color(0.25, 0.50, 0.15, 0.5))
+			draw_circle(Vector2(cx - 70*s, cy - 115*s), 3.5*s, Color(0.22, 0.48, 0.12, 0.4))
+			# Head — tanned bronze
+			draw_circle(Vector2(cx, cy - 50*s), 22*s, Color(0.82, 0.62, 0.42))
+			# Wild dark brown hair — spiky, unkempt
 			for hi in range(12):
 				var ha = -PI * 0.8 + float(hi) * PI * 0.15
 				var hair_off = _portrait_hair_offsets[hi] if hi < _portrait_hair_offsets.size() else 10.0
 				var hr = (25 + hair_off) * s
-				draw_line(Vector2(cx, cy - 65*s), Vector2(cx, cy - 65*s) + Vector2.from_angle(ha) * hr, Color(0.25, 0.15, 0.05, 0.7), 2.5*s)
-			# Eyes — fierce
-			draw_circle(Vector2(cx - 8*s, cy - 55*s), 3*s, Color(0.35, 0.25, 0.1))
-			draw_circle(Vector2(cx + 8*s, cy - 55*s), 3*s, Color(0.35, 0.25, 0.1))
+				draw_line(Vector2(cx, cy - 64*s), Vector2(cx, cy - 64*s) + Vector2.from_angle(ha) * hr, Color(0.25, 0.15, 0.05, 0.8), 3*s)
+			# Fierce determined eyes — brown
+			draw_circle(Vector2(cx - 8*s, cy - 54*s), 3.5*s, Color(0.95, 0.92, 0.88))
+			draw_circle(Vector2(cx + 8*s, cy - 54*s), 3.5*s, Color(0.95, 0.92, 0.88))
+			draw_circle(Vector2(cx - 8*s, cy - 54*s), 2*s, Color(0.35, 0.25, 0.10))
+			draw_circle(Vector2(cx + 8*s, cy - 54*s), 2*s, Color(0.35, 0.25, 0.10))
+			# Strong jaw
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 14*s, cy - 35*s), Vector2(cx + 14*s, cy - 35*s), Vector2(cx, cy - 28*s)
+			]), Color(0.78, 0.58, 0.38, 0.4))
 		"dracula":
-			# Full body — formal evening wear, high-collared cape, pale, red eyes
-			# Cape — massive, bat-wing silhouette
+			# Black cape with deep red lining, high collar, pale vampire skin, red glowing eyes, widow's peak
+			# Massive bat-wing cape silhouette
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 60*s, cy - 35*s), Vector2(cx + 60*s, cy - 35*s),
-				Vector2(cx + 75*s, cy + 50*s), Vector2(cx + 55*s, cy + 140*s),
-				Vector2(cx - 55*s, cy + 140*s), Vector2(cx - 75*s, cy + 50*s)
-			]), Color(0.08, 0.02, 0.02))
-			# Cape inner lining (deep red)
+				Vector2(cx - 62*s, cy - 32*s), Vector2(cx + 62*s, cy - 32*s),
+				Vector2(cx + 76*s, cy + 48*s), Vector2(cx + 56*s, cy + 138*s),
+				Vector2(cx - 56*s, cy + 138*s), Vector2(cx - 76*s, cy + 48*s)
+			]), Color(0.08, 0.05, 0.07))
+			# Deep red inner lining
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 50*s, cy - 25*s), Vector2(cx + 50*s, cy - 25*s),
-				Vector2(cx + 45*s, cy + 100*s), Vector2(cx - 45*s, cy + 100*s)
-			]), Color(0.45, 0.05, 0.05, 0.35))
-			# Legs
-			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 75*s), Color(0.06, 0.04, 0.04))
-			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 75*s), Color(0.05, 0.03, 0.03))
-			# Formal suit body
+				Vector2(cx - 48*s, cy - 22*s), Vector2(cx + 48*s, cy - 22*s),
+				Vector2(cx + 44*s, cy + 95*s), Vector2(cx - 44*s, cy + 95*s)
+			]), Color(0.55, 0.05, 0.05, 0.35))
+			# Legs — black formal
+			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 72*s), Color(0.05, 0.03, 0.04))
+			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 72*s), Color(0.04, 0.02, 0.03))
+			# Formal black suit body
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 25*s, cy - 30*s), Vector2(cx + 25*s, cy - 30*s),
-				Vector2(cx + 22*s, cy + 60*s), Vector2(cx - 22*s, cy + 60*s)
-			]), Color(0.08, 0.05, 0.05))
+				Vector2(cx - 24*s, cy - 28*s), Vector2(cx + 24*s, cy - 28*s),
+				Vector2(cx + 22*s, cy + 58*s), Vector2(cx - 22*s, cy + 58*s)
+			]), Color(0.10, 0.08, 0.10))
 			# White cravat
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 8*s, cy - 25*s), Vector2(cx + 8*s, cy - 25*s),
+				Vector2(cx - 7*s, cy - 24*s), Vector2(cx + 7*s, cy - 24*s),
 				Vector2(cx + 4*s, cy - 10*s), Vector2(cx - 4*s, cy - 10*s)
-			]), Color(0.9, 0.88, 0.85, 0.7))
-			# High collar
+			]), Color(0.92, 0.90, 0.86, 0.7))
+			# Red vest/waistcoat hint
+			draw_rect(Rect2(cx - 12*s, cy - 10*s, 24*s, 25*s), Color(0.50, 0.05, 0.05, 0.3))
+			# High collar points — dramatic
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 20*s, cy - 35*s), Vector2(cx - 25*s, cy - 55*s),
-				Vector2(cx - 15*s, cy - 50*s)
-			]), Color(0.06, 0.02, 0.02))
+				Vector2(cx - 20*s, cy - 32*s), Vector2(cx - 26*s, cy - 58*s),
+				Vector2(cx - 14*s, cy - 48*s)
+			]), Color(0.08, 0.05, 0.07))
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx + 20*s, cy - 35*s), Vector2(cx + 25*s, cy - 55*s),
-				Vector2(cx + 15*s, cy - 50*s)
-			]), Color(0.06, 0.02, 0.02))
-			# Head — pale
-			draw_circle(Vector2(cx, cy - 52*s), 22*s, Color(0.88, 0.85, 0.82))
-			# Widow's peak hair
+				Vector2(cx + 20*s, cy - 32*s), Vector2(cx + 26*s, cy - 58*s),
+				Vector2(cx + 14*s, cy - 48*s)
+			]), Color(0.08, 0.05, 0.07))
+			# Arms hidden in cape — just pale hands visible
+			draw_circle(Vector2(cx - 28*s, cy + 15*s), 4*s, Color(0.88, 0.85, 0.82))
+			draw_circle(Vector2(cx + 28*s, cy + 15*s), 4*s, Color(0.88, 0.85, 0.82))
+			# Head — very pale vampire skin
+			draw_circle(Vector2(cx, cy - 50*s), 22*s, Color(0.88, 0.85, 0.82))
+			# Widow's peak jet black hair
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 24*s, cy - 68*s), Vector2(cx, cy - 58*s), Vector2(cx + 24*s, cy - 68*s),
-				Vector2(cx + 20*s, cy - 45*s), Vector2(cx - 20*s, cy - 45*s)
+				Vector2(cx - 24*s, cy - 68*s), Vector2(cx, cy - 56*s), Vector2(cx + 24*s, cy - 68*s),
+				Vector2(cx + 20*s, cy - 44*s), Vector2(cx - 20*s, cy - 44*s)
 			]), Color(0.06, 0.04, 0.04))
-			# Red eyes — glowing
+			# Red glowing eyes — pulsing
 			var glow = 0.6 + sin(_time * 3.0) * 0.2
-			draw_circle(Vector2(cx - 8*s, cy - 55*s), 4*s, Color(0.8, 0.1, 0.1, glow))
-			draw_circle(Vector2(cx + 8*s, cy - 55*s), 4*s, Color(0.8, 0.1, 0.1, glow))
-			draw_circle(Vector2(cx - 8*s, cy - 55*s), 2*s, Color(1.0, 0.2, 0.15, glow))
-			draw_circle(Vector2(cx + 8*s, cy - 55*s), 2*s, Color(1.0, 0.2, 0.15, glow))
-			# Fangs hint
-			draw_line(Vector2(cx - 4*s, cy - 40*s), Vector2(cx - 3*s, cy - 35*s), Color(0.9, 0.9, 0.88, 0.5), 1.5*s)
-			draw_line(Vector2(cx + 4*s, cy - 40*s), Vector2(cx + 3*s, cy - 35*s), Color(0.9, 0.9, 0.88, 0.5), 1.5*s)
+			draw_circle(Vector2(cx - 8*s, cy - 54*s), 4.5*s, Color(0.80, 0.10, 0.10, glow))
+			draw_circle(Vector2(cx + 8*s, cy - 54*s), 4.5*s, Color(0.80, 0.10, 0.10, glow))
+			draw_circle(Vector2(cx - 8*s, cy - 54*s), 2.5*s, Color(1.00, 0.20, 0.15, glow))
+			draw_circle(Vector2(cx + 8*s, cy - 54*s), 2.5*s, Color(1.00, 0.20, 0.15, glow))
+			# Eye glow halo
+			draw_circle(Vector2(cx - 8*s, cy - 54*s), 7*s, Color(0.70, 0.05, 0.05, glow * 0.15))
+			draw_circle(Vector2(cx + 8*s, cy - 54*s), 7*s, Color(0.70, 0.05, 0.05, glow * 0.15))
+			# Sharp fangs
+			draw_line(Vector2(cx - 4*s, cy - 40*s), Vector2(cx - 3*s, cy - 34*s), Color(0.95, 0.93, 0.90, 0.7), 1.8*s)
+			draw_line(Vector2(cx + 4*s, cy - 40*s), Vector2(cx + 3*s, cy - 34*s), Color(0.95, 0.93, 0.90, 0.7), 1.8*s)
+			# Sinister thin smile
+			draw_arc(Vector2(cx, cy - 40*s), 7*s, 0.2, PI - 0.2, 10, Color(0.30, 0.05, 0.05), 1.2*s)
+			# Red mist at base
+			for mi in range(5):
+				var mx = cx - 35*s + float(mi) * 18*s
+				draw_circle(Vector2(mx, cy + 135*s), 8*s, Color(0.50, 0.05, 0.05, 0.08))
 		"merlin":
-			# Full body — wizard robes, pointed hat with stars, long beard, staff
-			# Robe — deep blue/purple
+			# Deep purple robe with gold trim, pointed wizard hat with stars, white beard, crystal staff
+			# Deep purple robe — flowing A-shape
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 35*s, cy - 20*s), Vector2(cx + 35*s, cy - 20*s),
-				Vector2(cx + 45*s, cy + 140*s), Vector2(cx - 45*s, cy + 140*s)
-			]), Color(0.12, 0.08, 0.3))
-			# Robe stars
+				Vector2(cx - 34*s, cy - 18*s), Vector2(cx + 34*s, cy - 18*s),
+				Vector2(cx + 46*s, cy + 138*s), Vector2(cx - 46*s, cy + 138*s)
+			]), Color(0.22, 0.10, 0.55))
+			# Gold embroidery trim lines
+			draw_line(Vector2(cx - 34*s, cy - 18*s), Vector2(cx - 46*s, cy + 138*s), Color(0.92, 0.78, 0.18, 0.3), 1.5*s)
+			draw_line(Vector2(cx + 34*s, cy - 18*s), Vector2(cx + 46*s, cy + 138*s), Color(0.92, 0.78, 0.18, 0.3), 1.5*s)
+			# Robe stars — twinkling
 			for si in range(6):
-				var sx = cx + sin(float(si) * 2.1) * 25*s
-				var sy = cy + 20*s + float(si) * 18*s
-				draw_circle(Vector2(sx, sy), 2.5*s, Color(0.8, 0.75, 0.3, 0.3 + sin(_time * 2.0 + float(si)) * 0.15))
-			# Belt / sash
-			draw_rect(Rect2(cx - 30*s, cy + 20*s, 60*s, 8*s), Color(0.5, 0.35, 0.15))
-			# Arms — one holding staff
-			draw_line(Vector2(cx - 30*s, cy - 5*s), Vector2(cx - 50*s, cy + 30*s), Color(0.12, 0.08, 0.3), 8*s)
-			draw_line(Vector2(cx + 30*s, cy - 5*s), Vector2(cx + 50*s, cy + 15*s), Color(0.12, 0.08, 0.3), 8*s)
-			# Staff
-			draw_line(Vector2(cx + 52*s, cy + 10*s), Vector2(cx + 58*s, cy + 140*s), Color(0.4, 0.25, 0.1), 3.5*s)
-			# Staff crystal
-			draw_circle(Vector2(cx + 51*s, cy + 5*s), 8*s, Color(0.3, 0.5, 0.9, 0.5 + sin(_time * 2.5) * 0.2))
-			draw_circle(Vector2(cx + 51*s, cy + 5*s), 4*s, Color(0.5, 0.7, 1.0, 0.4))
-			# Head — elderly, kind
-			draw_circle(Vector2(cx, cy - 48*s), 22*s, Color(0.68, 0.6, 0.5))
-			# Long beard
+				var sx = cx + sin(float(si) * 2.1) * 24*s
+				var sy = cy + 22*s + float(si) * 18*s
+				var star_pulse = 0.3 + sin(_time * 2.0 + float(si) * 1.5) * 0.2
+				draw_circle(Vector2(sx, sy), 2.5*s, Color(0.92, 0.78, 0.18, star_pulse))
+			# Gold sash/belt
+			draw_rect(Rect2(cx - 30*s, cy + 18*s, 60*s, 8*s), Color(0.92, 0.78, 0.18, 0.6))
+			# Pointed elf-like shoes peeking under robe
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 15*s, cy - 32*s), Vector2(cx + 15*s, cy - 32*s),
-				Vector2(cx + 8*s, cy + 25*s), Vector2(cx - 8*s, cy + 25*s)
-			]), Color(0.82, 0.8, 0.78, 0.75))
-			# Wise eyes
-			draw_circle(Vector2(cx - 7*s, cy - 52*s), 3*s, Color(0.3, 0.4, 0.6))
-			draw_circle(Vector2(cx + 7*s, cy - 52*s), 3*s, Color(0.3, 0.4, 0.6))
-			# Bushy eyebrows
-			draw_line(Vector2(cx - 14*s, cy - 58*s), Vector2(cx - 2*s, cy - 57*s), Color(0.7, 0.68, 0.65, 0.6), 2.5*s)
-			draw_line(Vector2(cx + 2*s, cy - 57*s), Vector2(cx + 14*s, cy - 58*s), Color(0.7, 0.68, 0.65, 0.6), 2.5*s)
-			# Wizard hat
+				Vector2(cx - 18*s, cy + 134*s), Vector2(cx - 30*s, cy + 134*s), Vector2(cx - 22*s, cy + 140*s)
+			]), Color(0.14, 0.06, 0.38))
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 30*s, cy - 62*s), Vector2(cx + 5*s, cy - 140*s), Vector2(cx + 30*s, cy - 62*s)
-			]), Color(0.12, 0.08, 0.3))
-			draw_rect(Rect2(cx - 33*s, cy - 65*s, 66*s, 6*s), Color(0.1, 0.06, 0.25))
-			# Hat stars
-			draw_circle(Vector2(cx - 8*s, cy - 90*s), 2.5*s, Color(0.8, 0.75, 0.3, 0.5))
-			draw_circle(Vector2(cx + 10*s, cy - 108*s), 2*s, Color(0.8, 0.75, 0.3, 0.4))
+				Vector2(cx + 18*s, cy + 134*s), Vector2(cx + 30*s, cy + 134*s), Vector2(cx + 22*s, cy + 140*s)
+			]), Color(0.14, 0.06, 0.38))
+			# Arms — purple robe sleeves
+			draw_line(Vector2(cx - 30*s, cy - 4*s), Vector2(cx - 48*s, cy + 28*s), Color(0.22, 0.10, 0.55), 9*s)
+			draw_line(Vector2(cx + 30*s, cy - 4*s), Vector2(cx + 48*s, cy + 14*s), Color(0.22, 0.10, 0.55), 9*s)
+			# Elderly hands
+			draw_circle(Vector2(cx - 50*s, cy + 30*s), 4*s, Color(0.88, 0.76, 0.64))
+			draw_circle(Vector2(cx + 50*s, cy + 16*s), 4*s, Color(0.88, 0.76, 0.64))
+			# Crystal-topped staff
+			draw_line(Vector2(cx + 50*s, cy + 12*s), Vector2(cx + 56*s, cy + 138*s), Color(0.40, 0.25, 0.10), 3.5*s)
+			# Crystal orb atop staff — glowing blue
+			var crystal_pulse = 0.5 + sin(_time * 2.5) * 0.2
+			draw_circle(Vector2(cx + 49*s, cy + 6*s), 9*s, Color(0.30, 0.50, 0.90, crystal_pulse))
+			draw_circle(Vector2(cx + 49*s, cy + 6*s), 5*s, Color(0.50, 0.70, 1.00, crystal_pulse * 0.7))
+			draw_circle(Vector2(cx + 47*s, cy + 3*s), 2*s, Color(0.80, 0.90, 1.00, crystal_pulse * 0.5))
+			# Head — elderly, kind face
+			draw_circle(Vector2(cx, cy - 46*s), 22*s, Color(0.88, 0.76, 0.64))
+			# Long white beard — flowing
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 16*s, cy - 30*s), Vector2(cx + 16*s, cy - 30*s),
+				Vector2(cx + 10*s, cy + 28*s), Vector2(cx, cy + 32*s), Vector2(cx - 10*s, cy + 28*s)
+			]), Color(0.88, 0.86, 0.84, 0.8))
+			# Wise eyes — blue-grey
+			draw_circle(Vector2(cx - 7*s, cy - 50*s), 3.5*s, Color(0.92, 0.90, 0.88))
+			draw_circle(Vector2(cx + 7*s, cy - 50*s), 3.5*s, Color(0.92, 0.90, 0.88))
+			draw_circle(Vector2(cx - 7*s, cy - 50*s), 2*s, Color(0.30, 0.40, 0.60))
+			draw_circle(Vector2(cx + 7*s, cy - 50*s), 2*s, Color(0.30, 0.40, 0.60))
+			# Bushy white eyebrows
+			draw_line(Vector2(cx - 14*s, cy - 57*s), Vector2(cx - 2*s, cy - 55*s), Color(0.82, 0.80, 0.78, 0.7), 3*s)
+			draw_line(Vector2(cx + 2*s, cy - 55*s), Vector2(cx + 14*s, cy - 57*s), Color(0.82, 0.80, 0.78, 0.7), 3*s)
+			# Kind wrinkle smile
+			draw_arc(Vector2(cx, cy - 38*s), 5*s, 0.2, PI - 0.2, 10, Color(0.55, 0.40, 0.30), 1.2*s)
+			# Wizard hat — deep purple with stars
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 28*s, cy - 62*s), Vector2(cx + 4*s, cy - 138*s), Vector2(cx + 28*s, cy - 62*s)
+			]), Color(0.22, 0.10, 0.55))
+			draw_rect(Rect2(cx - 32*s, cy - 64*s, 64*s, 5*s), Color(0.18, 0.08, 0.45))
+			# Gold hat band
+			draw_rect(Rect2(cx - 26*s, cy - 82*s, 18*s, 4*s), Color(0.92, 0.78, 0.18, 0.5))
+			# Stars on hat
+			draw_circle(Vector2(cx - 6*s, cy - 90*s), 3*s, Color(0.92, 0.78, 0.18, 0.5))
+			draw_circle(Vector2(cx + 8*s, cy - 108*s), 2.5*s, Color(0.92, 0.78, 0.18, 0.4))
+			draw_circle(Vector2(cx - 12*s, cy - 110*s), 2*s, Color(0.92, 0.78, 0.18, 0.3))
 		"frankenstein":
-			# Full body — massive, flat-top, bolts, stitched clothing, sad eyes
-			# Legs — thick
-			draw_rect(Rect2(cx - 20*s, cy + 55*s, 16*s, 80*s), Color(0.25, 0.2, 0.15))
-			draw_rect(Rect2(cx + 4*s, cy + 55*s, 16*s, 80*s), Color(0.23, 0.18, 0.13))
-			# Boots — heavy
-			draw_rect(Rect2(cx - 24*s, cy + 125*s, 24*s, 15*s), Color(0.12, 0.1, 0.08))
-			draw_rect(Rect2(cx, cy + 125*s, 24*s, 15*s), Color(0.1, 0.08, 0.06))
-			# Torso — broad, patched jacket
+			# Massive greenish-grey monster, flat-top head, neck bolts, tattered dark clothes, stitches, gentle sad eyes
+			# Thick legs — tattered dark trousers
+			draw_rect(Rect2(cx - 20*s, cy + 55*s, 17*s, 76*s), Color(0.14, 0.12, 0.10))
+			draw_rect(Rect2(cx + 3*s, cy + 55*s, 17*s, 76*s), Color(0.12, 0.10, 0.08))
+			# Heavy boots
+			draw_rect(Rect2(cx - 24*s, cy + 126*s, 24*s, 14*s), Color(0.18, 0.14, 0.10))
+			draw_rect(Rect2(cx, cy + 126*s, 24*s, 14*s), Color(0.16, 0.12, 0.08))
+			# Boot highlight
+			draw_rect(Rect2(cx - 22*s, cy + 128*s, 4*s, 3*s), Color(0.28, 0.23, 0.18, 0.3))
+			draw_rect(Rect2(cx + 2*s, cy + 128*s, 4*s, 3*s), Color(0.28, 0.23, 0.18, 0.3))
+			# Broad torso — tattered dark jacket
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 40*s, cy - 30*s), Vector2(cx + 40*s, cy - 30*s),
-				Vector2(cx + 35*s, cy + 60*s), Vector2(cx - 35*s, cy + 60*s)
-			]), Color(0.2, 0.18, 0.15))
+				Vector2(cx - 42*s, cy - 28*s), Vector2(cx + 42*s, cy - 28*s),
+				Vector2(cx + 36*s, cy + 58*s), Vector2(cx - 36*s, cy + 58*s)
+			]), Color(0.14, 0.12, 0.10))
+			# Jacket highlight patches
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 30*s, cy - 20*s), Vector2(cx + 30*s, cy - 20*s),
+				Vector2(cx + 26*s, cy + 50*s), Vector2(cx - 26*s, cy + 50*s)
+			]), Color(0.22, 0.19, 0.16, 0.3))
 			# Stitching lines across jacket
-			draw_line(Vector2(cx - 20*s, cy - 20*s), Vector2(cx - 15*s, cy + 50*s), Color(0.35, 0.3, 0.2, 0.4), 1.5*s)
-			draw_line(Vector2(cx + 15*s, cy - 15*s), Vector2(cx + 20*s, cy + 45*s), Color(0.35, 0.3, 0.2, 0.4), 1.5*s)
-			# Arms — massive, hanging
-			draw_line(Vector2(cx - 40*s, cy - 15*s), Vector2(cx - 55*s, cy + 50*s), Color(0.35, 0.48, 0.3), 12*s)
-			draw_line(Vector2(cx + 40*s, cy - 15*s), Vector2(cx + 55*s, cy + 50*s), Color(0.33, 0.46, 0.28), 12*s)
-			# Hands
-			draw_circle(Vector2(cx - 57*s, cy + 55*s), 8*s, Color(0.35, 0.48, 0.3))
-			draw_circle(Vector2(cx + 57*s, cy + 55*s), 8*s, Color(0.33, 0.46, 0.28))
-			# Head — flat top, square
-			draw_rect(Rect2(cx - 28*s, cy - 80*s, 56*s, 60*s), Color(0.35, 0.5, 0.3))
-			# Flat top
-			draw_rect(Rect2(cx - 30*s, cy - 82*s, 60*s, 8*s), Color(0.2, 0.15, 0.1))
-			# Forehead stitches
-			draw_line(Vector2(cx - 15*s, cy - 68*s), Vector2(cx + 15*s, cy - 68*s), Color(0.2, 0.15, 0.1, 0.5), 1.5*s)
-			for sti in range(4):
-				var stx = cx - 12*s + float(sti) * 8*s
-				draw_line(Vector2(stx, cy - 72*s), Vector2(stx, cy - 64*s), Color(0.2, 0.15, 0.1, 0.4), 1*s)
-			# Neck bolts
-			draw_circle(Vector2(cx - 32*s, cy - 42*s), 6*s, Color(0.55, 0.55, 0.58))
-			draw_circle(Vector2(cx + 32*s, cy - 42*s), 6*s, Color(0.55, 0.55, 0.58))
-			draw_circle(Vector2(cx - 32*s, cy - 42*s), 3*s, Color(0.4, 0.4, 0.42))
-			draw_circle(Vector2(cx + 32*s, cy - 42*s), 3*s, Color(0.4, 0.4, 0.42))
-			# Sad eyes
-			draw_circle(Vector2(cx - 10*s, cy - 55*s), 4*s, Color(0.2, 0.18, 0.15))
-			draw_circle(Vector2(cx + 10*s, cy - 55*s), 4*s, Color(0.2, 0.18, 0.15))
-			draw_circle(Vector2(cx - 10*s, cy - 56*s), 1.5*s, Color(0.5, 0.5, 0.4, 0.4))
-			draw_circle(Vector2(cx + 10*s, cy - 56*s), 1.5*s, Color(0.5, 0.5, 0.4, 0.4))
-			# Sad mouth
-			draw_arc(Vector2(cx, cy - 35*s), 8*s, PI + 0.4, TAU - 0.4, 10, Color(0.2, 0.15, 0.1), 1.5*s)
+			draw_line(Vector2(cx - 18*s, cy - 18*s), Vector2(cx - 14*s, cy + 48*s), Color(0.20, 0.18, 0.15, 0.5), 1.5*s)
+			draw_line(Vector2(cx + 14*s, cy - 14*s), Vector2(cx + 18*s, cy + 44*s), Color(0.20, 0.18, 0.15, 0.5), 1.5*s)
+			# Cross-stitch detail
+			for sti in range(3):
+				var sty = cy + float(sti) * 18*s
+				draw_line(Vector2(cx - 16*s, sty), Vector2(cx - 12*s, sty + 6*s), Color(0.20, 0.18, 0.15, 0.4), 1*s)
+				draw_line(Vector2(cx - 12*s, sty), Vector2(cx - 16*s, sty + 6*s), Color(0.20, 0.18, 0.15, 0.4), 1*s)
+			# Massive greenish arms — hanging heavy
+			draw_line(Vector2(cx - 42*s, cy - 14*s), Vector2(cx - 56*s, cy + 48*s), Color(0.55, 0.70, 0.45), 13*s)
+			draw_line(Vector2(cx + 42*s, cy - 14*s), Vector2(cx + 56*s, cy + 48*s), Color(0.48, 0.58, 0.40), 13*s)
+			# Dark sleeve cuffs
+			draw_line(Vector2(cx - 42*s, cy - 14*s), Vector2(cx - 48*s, cy + 10*s), Color(0.14, 0.12, 0.10), 15*s)
+			draw_line(Vector2(cx + 42*s, cy - 14*s), Vector2(cx + 48*s, cy + 10*s), Color(0.14, 0.12, 0.10), 15*s)
+			# Large green hands
+			draw_circle(Vector2(cx - 58*s, cy + 52*s), 9*s, Color(0.55, 0.70, 0.45))
+			draw_circle(Vector2(cx + 58*s, cy + 52*s), 9*s, Color(0.48, 0.58, 0.40))
+			# Head — square, flat-top, sickly green
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 28*s, cy - 78*s), Vector2(cx + 28*s, cy - 78*s),
+				Vector2(cx + 26*s, cy - 24*s), Vector2(cx - 26*s, cy - 24*s)
+			]), Color(0.55, 0.70, 0.45))
+			# Darker green shadows
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 26*s, cy - 38*s), Vector2(cx + 26*s, cy - 38*s),
+				Vector2(cx + 24*s, cy - 24*s), Vector2(cx - 24*s, cy - 24*s)
+			]), Color(0.38, 0.52, 0.30, 0.3))
+			# Flat top — dark brow ridge
+			draw_rect(Rect2(cx - 30*s, cy - 80*s, 60*s, 8*s), Color(0.38, 0.52, 0.30))
+			# Forehead stitches — signature
+			draw_line(Vector2(cx - 16*s, cy - 68*s), Vector2(cx + 16*s, cy - 68*s), Color(0.20, 0.18, 0.15, 0.7), 2*s)
+			for sti in range(5):
+				var stx = cx - 14*s + float(sti) * 7*s
+				draw_line(Vector2(stx, cy - 72*s), Vector2(stx, cy - 64*s), Color(0.20, 0.18, 0.15, 0.6), 1.2*s)
+			# NECK BOLTS — signature feature
+			# Left bolt
+			draw_circle(Vector2(cx - 32*s, cy - 30*s), 7*s, Color(0.58, 0.58, 0.63))
+			draw_circle(Vector2(cx - 32*s, cy - 30*s), 4*s, Color(0.76, 0.76, 0.82))
+			draw_circle(Vector2(cx - 32*s, cy - 30*s), 2*s, Color(0.38, 0.38, 0.42))
+			# Right bolt
+			draw_circle(Vector2(cx + 32*s, cy - 30*s), 7*s, Color(0.58, 0.58, 0.63))
+			draw_circle(Vector2(cx + 32*s, cy - 30*s), 4*s, Color(0.76, 0.76, 0.82))
+			draw_circle(Vector2(cx + 32*s, cy - 30*s), 2*s, Color(0.38, 0.38, 0.42))
+			# Gentle sad eyes — greenish-brown, with sorrow
+			draw_circle(Vector2(cx - 10*s, cy - 55*s), 5*s, Color(0.88, 0.85, 0.78))
+			draw_circle(Vector2(cx + 10*s, cy - 55*s), 5*s, Color(0.88, 0.85, 0.78))
+			draw_circle(Vector2(cx - 10*s, cy - 55*s), 3*s, Color(0.45, 0.55, 0.25))
+			draw_circle(Vector2(cx + 10*s, cy - 55*s), 3*s, Color(0.45, 0.55, 0.25))
+			draw_circle(Vector2(cx - 10*s, cy - 55*s), 1.2*s, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2(cx + 10*s, cy - 55*s), 1.2*s, Color(0.06, 0.06, 0.08))
+			# Sad drooping brow
+			draw_line(Vector2(cx - 16*s, cy - 60*s), Vector2(cx - 5*s, cy - 62*s), Color(0.38, 0.52, 0.30, 0.6), 2.5*s)
+			draw_line(Vector2(cx + 5*s, cy - 62*s), Vector2(cx + 16*s, cy - 60*s), Color(0.38, 0.52, 0.30, 0.6), 2.5*s)
+			# Sad gentle frown
+			draw_arc(Vector2(cx, cy - 38*s), 8*s, PI + 0.3, TAU - 0.3, 10, Color(0.30, 0.38, 0.22), 1.8*s)
+			# Face stitch (cheek)
+			draw_line(Vector2(cx + 14*s, cy - 50*s), Vector2(cx + 18*s, cy - 38*s), Color(0.20, 0.18, 0.15, 0.4), 1.2*s)
 		"shadow_author":
-			# Grim reaper — faceless hooded cloak, pure black void face, glowing red quill trailing black smoke
-			# Dark aura glow behind
+			# All-black hooded pyramidal figure with glowing red wand — always faceless
+			# Dark purple aura glow behind
 			for ai in range(5):
 				var ar = (100.0 - float(ai) * 15.0) * s
-				draw_circle(Vector2(cx, cy - 10*s), ar, Color(0.08, 0.02, 0.02, 0.025 + float(ai) * 0.008))
-			# Cloak body — heavy, flowing, grim reaper silhouette
+				draw_circle(Vector2(cx, cy - 10*s), ar, Color(0.12, 0.02, 0.08, 0.02 + float(ai) * 0.008))
+			# Cloak body — tall black pyramidal/triangular silhouette
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 55*s, cy - 25*s), Vector2(cx + 55*s, cy - 25*s),
 				Vector2(cx + 80*s, cy + 140*s), Vector2(cx - 80*s, cy + 140*s)
-			]), Color(0.03, 0.02, 0.03))
+			]), Color(0.02, 0.01, 0.02))
 			# Cloak inner folds — subtle depth
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 38*s, cy - 15*s), Vector2(cx + 38*s, cy - 15*s),
 				Vector2(cx + 58*s, cy + 130*s), Vector2(cx - 58*s, cy + 130*s)
-			]), Color(0.05, 0.03, 0.05, 0.4))
+			]), Color(0.04, 0.02, 0.04, 0.3))
 			# Deep crease fold lines down the cloak
 			for fi in range(7):
 				var fx = cx - 48*s + float(fi) * 16*s
-				draw_line(Vector2(fx, cy + 5*s), Vector2(fx + sin(float(fi) * 1.3) * 6*s, cy + 135*s), Color(0.07, 0.04, 0.07, 0.3), 1.5*s)
+				draw_line(Vector2(fx, cy + 5*s), Vector2(fx + sin(float(fi) * 1.3) * 6*s, cy + 135*s), Color(0.06, 0.03, 0.06, 0.25), 1.5*s)
 			# Tattered hem — ragged wisps dissolving into nothing
 			for ti in range(12):
 				var tx = cx - 75*s + float(ti) * 13*s
 				var t_len = 18.0 + sin(float(ti) * 2.0 + _time * 1.5) * 10.0
 				var t_sway = sin(_time * 1.2 + float(ti) * 0.9) * 6*s
-				draw_line(Vector2(tx, cy + 140*s), Vector2(tx + t_sway, cy + (140 + t_len)*s), Color(0.02, 0.01, 0.03, 0.35), 2.5*s)
-			# Hood — large, deep, grim reaper cowl
+				draw_line(Vector2(tx, cy + 140*s), Vector2(tx + t_sway, cy + (140 + t_len)*s), Color(0.015, 0.008, 0.02, 0.35), 2.5*s)
+			# Hood — large, deep, pointed pyramidal cowl
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx, cy - 140*s), Vector2(cx - 60*s, cy - 15*s),
 				Vector2(cx - 52*s, cy + 15*s), Vector2(cx + 52*s, cy + 15*s), Vector2(cx + 60*s, cy - 15*s)
-			]), Color(0.035, 0.02, 0.04))
-			# Hood interior — faceless void OR revealed face
-			var sa_revealed = "shadow_author" in unlocked_characters
-			if sa_revealed:
-				# REVEALED: ghastly pale white face with massive ear-to-ear sharp teeth grin
-				# Hood void background
-				draw_colored_polygon(PackedVector2Array([
-					Vector2(cx, cy - 112*s), Vector2(cx - 40*s, cy - 12*s),
-					Vector2(cx - 32*s, cy + 10*s), Vector2(cx + 32*s, cy + 10*s), Vector2(cx + 40*s, cy - 12*s)
-				]), Color(0.01, 0.005, 0.015))
+			]), Color(0.025, 0.012, 0.03))
+			# Hood interior — black void with face only during defeat reveal dialog
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx, cy - 112*s), Vector2(cx - 40*s, cy - 12*s),
+				Vector2(cx - 32*s, cy + 10*s), Vector2(cx + 32*s, cy + 10*s), Vector2(cx + 40*s, cy - 12*s)
+			]), Color(0.0, 0.0, 0.0))
+			var sa_defeat_reveal = story_state.get("current_dialog", "") == "unlock_shadow_author"
+			if sa_defeat_reveal:
+				# ONE-TIME DEFEAT REVEAL: pale white face with big black buggy eyes and devilish grin
 				# Pale white face — sickly, corpse-like
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(cx, cy - 85*s), Vector2(cx - 26*s, cy - 50*s),
 					Vector2(cx - 28*s, cy - 15*s), Vector2(cx - 20*s, cy + 5*s),
 					Vector2(cx + 20*s, cy + 5*s), Vector2(cx + 28*s, cy - 15*s), Vector2(cx + 26*s, cy - 50*s)
 				]), Color(0.88, 0.86, 0.84))
-				# Slight sickly shading on cheeks
+				# Sickly shading on cheeks
 				draw_circle(Vector2(cx - 18*s, cy - 25*s), 8*s, Color(0.75, 0.72, 0.7, 0.3))
 				draw_circle(Vector2(cx + 18*s, cy - 25*s), 8*s, Color(0.75, 0.72, 0.7, 0.3))
-				# Sunken dark eye sockets — hollow, empty
-				draw_circle(Vector2(cx - 12*s, cy - 48*s), 8*s, Color(0.08, 0.04, 0.06))
-				draw_circle(Vector2(cx + 12*s, cy - 48*s), 8*s, Color(0.08, 0.04, 0.06))
-				# Tiny pinprick pupils deep in the sockets
-				var pp = 0.5 + sin(_time * 3.0) * 0.2
-				draw_circle(Vector2(cx - 12*s, cy - 48*s), 2*s, Color(0.9, 0.15, 0.1, pp))
-				draw_circle(Vector2(cx + 12*s, cy - 48*s), 2*s, Color(0.9, 0.15, 0.1, pp))
-				# Nose — thin, gaunt slit
+				# BIG BLACK BUGGY EYES — large, bulging, solid black, insectoid
+				# Outer eye bulge (larger dark circles)
+				draw_circle(Vector2(cx - 14*s, cy - 50*s), 12*s, Color(0.02, 0.02, 0.02))
+				draw_circle(Vector2(cx + 14*s, cy - 50*s), 12*s, Color(0.02, 0.02, 0.02))
+				# Inner eye — solid glossy black
+				draw_circle(Vector2(cx - 14*s, cy - 50*s), 10*s, Color(0.0, 0.0, 0.0))
+				draw_circle(Vector2(cx + 14*s, cy - 50*s), 10*s, Color(0.0, 0.0, 0.0))
+				# Glossy highlight reflection on each eye
+				draw_circle(Vector2(cx - 17*s, cy - 54*s), 3*s, Color(0.3, 0.3, 0.35, 0.35))
+				draw_circle(Vector2(cx + 11*s, cy - 54*s), 3*s, Color(0.3, 0.3, 0.35, 0.35))
+				draw_circle(Vector2(cx - 12*s, cy - 47*s), 1.5*s, Color(0.25, 0.25, 0.3, 0.2))
+				draw_circle(Vector2(cx + 16*s, cy - 47*s), 1.5*s, Color(0.25, 0.25, 0.3, 0.2))
+				# Nose — thin gaunt slit
 				draw_line(Vector2(cx, cy - 38*s), Vector2(cx, cy - 28*s), Color(0.6, 0.55, 0.52, 0.4), 1.5*s)
 				draw_line(Vector2(cx - 3*s, cy - 28*s), Vector2(cx + 3*s, cy - 28*s), Color(0.5, 0.45, 0.42, 0.3), 1*s)
-				# MASSIVE ear-to-ear grin — sharp jagged teeth
-				# Grin outline — wide crescent from ear to ear
-				var grin_y = cy - 18*s
-				var grin_w = 26.0 * s
-				# Upper lip line
-				draw_arc(Vector2(cx, grin_y), grin_w, 0.15, PI - 0.15, 24, Color(0.2, 0.05, 0.05), 2*s)
-				# Lower lip line
-				draw_arc(Vector2(cx, grin_y), grin_w * 0.9, PI + 0.2, TAU - 0.2, 20, Color(0.2, 0.05, 0.05, 0.6), 1.5*s)
-				# Dark mouth interior
+				# BIG EVIL DEVILISH GRIN — wide, sharp, menacing
+				var grin_y = cy - 16*s
+				var grin_w = 28.0 * s
+				# Dark mouth interior — wide crescent
 				draw_colored_polygon(PackedVector2Array([
-					Vector2(cx - 25*s, grin_y), Vector2(cx + 25*s, grin_y),
-					Vector2(cx + 22*s, grin_y + 10*s), Vector2(cx - 22*s, grin_y + 10*s)
+					Vector2(cx - 27*s, grin_y - 2*s), Vector2(cx + 27*s, grin_y - 2*s),
+					Vector2(cx + 24*s, grin_y + 14*s), Vector2(cx - 24*s, grin_y + 14*s)
 				]), Color(0.04, 0.01, 0.02))
-				# Sharp jagged teeth — upper row
-				for ti in range(10):
-					var tx = cx - 22*s + float(ti) * 4.8*s
-					var t_h = (5.0 + sin(float(ti) * 1.8) * 2.0) * s
+				# Upper lip — devilish upward curl at corners
+				draw_arc(Vector2(cx, grin_y), grin_w, 0.1, PI - 0.1, 28, Color(0.25, 0.05, 0.05), 2.5*s)
+				# Curled-up devil corners
+				draw_arc(Vector2(cx - 26*s, grin_y - 3*s), 5*s, -0.5, 0.8, 8, Color(0.25, 0.05, 0.05), 2*s)
+				draw_arc(Vector2(cx + 26*s, grin_y - 3*s), 5*s, PI - 0.8, PI + 0.5, 8, Color(0.25, 0.05, 0.05), 2*s)
+				# Lower lip
+				draw_arc(Vector2(cx, grin_y + 4*s), grin_w * 0.85, PI + 0.2, TAU - 0.2, 22, Color(0.2, 0.04, 0.04, 0.6), 2*s)
+				# Sharp jagged teeth — upper row (12 teeth, more menacing)
+				for ti in range(12):
+					var tx = cx - 25*s + float(ti) * 4.3*s
+					var t_h = (6.0 + sin(float(ti) * 1.6) * 3.0) * s
 					draw_colored_polygon(PackedVector2Array([
-						Vector2(tx, grin_y - 1*s), Vector2(tx + 2.5*s, grin_y + t_h),
-						Vector2(tx + 5*s, grin_y - 1*s)
+						Vector2(tx, grin_y - 1*s), Vector2(tx + 2.2*s, grin_y + t_h),
+						Vector2(tx + 4.4*s, grin_y - 1*s)
 					]), Color(0.92, 0.9, 0.85))
 				# Sharp jagged teeth — lower row
-				for ti in range(10):
-					var tx = cx - 22*s + float(ti) * 4.8*s
-					var t_h = (4.0 + sin(float(ti) * 2.1 + 1.0) * 1.5) * s
+				for ti in range(12):
+					var tx = cx - 25*s + float(ti) * 4.3*s
+					var t_h = (5.0 + sin(float(ti) * 2.0 + 1.0) * 2.0) * s
 					draw_colored_polygon(PackedVector2Array([
-						Vector2(tx, grin_y + 10*s), Vector2(tx + 2.5*s, grin_y + 10*s - t_h),
-						Vector2(tx + 5*s, grin_y + 10*s)
+						Vector2(tx, grin_y + 14*s), Vector2(tx + 2.2*s, grin_y + 14*s - t_h),
+						Vector2(tx + 4.4*s, grin_y + 14*s)
 					]), Color(0.88, 0.86, 0.82))
 			else:
-				# HIDDEN: absolute black void — no face, no features, pure nothingness
-				draw_colored_polygon(PackedVector2Array([
-					Vector2(cx, cy - 112*s), Vector2(cx - 40*s, cy - 12*s),
-					Vector2(cx - 32*s, cy + 10*s), Vector2(cx + 32*s, cy + 10*s), Vector2(cx + 40*s, cy - 12*s)
-				]), Color(0.005, 0.003, 0.008))
+				# Normal: absolute black void — no face, just darkness
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(cx, cy - 90*s), Vector2(cx - 28*s, cy - 15*s),
 					Vector2(cx - 22*s, cy + 5*s), Vector2(cx + 22*s, cy + 5*s), Vector2(cx + 28*s, cy - 15*s)
 				]), Color(0.0, 0.0, 0.0))
+			# Single glowing red dot deep in the hood (visible in normal mode, hidden during face reveal)
+			var red_pulse = 0.6 + sin(_time * 2.5) * 0.4
+			if not sa_defeat_reveal:
+				draw_circle(Vector2(cx, cy - 50*s), 3*s, Color(0.9, 0.08, 0.02, red_pulse))
+				draw_circle(Vector2(cx, cy - 50*s), 7*s, Color(0.7, 0.04, 0.01, red_pulse * 0.2))
 			# Arms — wide draped sleeves emerging from cloak
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 48*s, cy - 10*s), Vector2(cx - 32*s, cy - 18*s),
 				Vector2(cx - 58*s, cy + 38*s), Vector2(cx - 70*s, cy + 32*s)
-			]), Color(0.03, 0.02, 0.03))
+			]), Color(0.02, 0.01, 0.02))
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx + 32*s, cy - 18*s), Vector2(cx + 48*s, cy - 10*s),
 				Vector2(cx + 72*s, cy + 8*s), Vector2(cx + 58*s, cy + 22*s)
-			]), Color(0.03, 0.02, 0.03))
+			]), Color(0.02, 0.01, 0.02))
 			# Sleeve openings — dark voids (no visible hands)
-			draw_circle(Vector2(cx - 64*s, cy + 35*s), 8*s, Color(0.01, 0.005, 0.015))
-			draw_circle(Vector2(cx + 65*s, cy + 15*s), 8*s, Color(0.01, 0.005, 0.015))
-			# Quill — glowing red, held from right sleeve void
+			draw_circle(Vector2(cx - 64*s, cy + 35*s), 8*s, Color(0.0, 0.0, 0.0))
+			draw_circle(Vector2(cx + 65*s, cy + 15*s), 8*s, Color(0.0, 0.0, 0.0))
+			# Glowing red wand — held from right sleeve void
 			var q_base = Vector2(cx + 66*s, cy + 12*s)
-			var q_tip = Vector2(cx + 52*s, cy + 55*s)
 			var q_top = Vector2(cx + 82*s, cy - 40*s)
-			# Quill shaft — glowing red
-			var red_pulse = 0.7 + sin(_time * 3.0) * 0.3
-			draw_line(q_base, q_top, Color(0.6, 0.05, 0.02, red_pulse), 3*s)
-			draw_line(q_base, q_top, Color(0.9, 0.15, 0.05, red_pulse * 0.5), 5*s)
-			# Red glow halo along quill
+			# Wand shaft — glowing red
+			draw_line(q_base, q_top, Color(0.7, 0.06, 0.03, red_pulse), 3*s)
+			draw_line(q_base, q_top, Color(0.9, 0.12, 0.05, red_pulse * 0.4), 5.5*s)
+			# Zigzag lightning pattern along the wand
+			var w_dir = (q_top - q_base).normalized()
+			var w_perp = Vector2(-w_dir.y, w_dir.x)
+			for zi in range(6):
+				var zt = 0.1 + float(zi) * 0.14
+				var zp = q_base.lerp(q_top, zt)
+				var zag_off = (5.0 if zi % 2 == 0 else -5.0) * s
+				var zp2 = q_base.lerp(q_top, zt + 0.07)
+				draw_line(zp + w_perp * zag_off, zp2 + w_perp * (-zag_off), Color(0.95, 0.2, 0.08, red_pulse * 0.8), 2.0*s)
+			# Red glow halo along wand
 			for gi in range(4):
 				var gt = float(gi) / 3.0
 				var gp = q_base.lerp(q_top, gt)
-				draw_circle(gp, (6.0 + sin(_time * 2.5 + float(gi)) * 2.0) * s, Color(0.7, 0.05, 0.0, 0.08 * red_pulse))
-			# Feather barbs — dark red
-			for qi in range(5):
-				var qt = 0.3 + float(qi) * 0.14
-				var qp = q_base.lerp(q_top, qt)
-				draw_line(qp, qp + Vector2(12*s, -5*s), Color(0.5, 0.03, 0.02, 0.6), 1.5*s)
-				draw_line(qp, qp + Vector2(-8*s, -3*s), Color(0.4, 0.02, 0.02, 0.4), 1.2*s)
-			# Quill tip — bright red hot glow
-			draw_circle(q_tip, 4*s, Color(0.9, 0.1, 0.0, red_pulse))
-			draw_circle(q_tip, 7*s, Color(0.8, 0.05, 0.0, red_pulse * 0.3))
-			draw_circle(q_tip, 11*s, Color(0.6, 0.02, 0.0, red_pulse * 0.1))
-			# Black smoke ink trailing from quill tip
+				draw_circle(gp, (7.0 + sin(_time * 2.5 + float(gi)) * 2.5) * s, Color(0.7, 0.05, 0.0, 0.08 * red_pulse))
+			# Wand tip — bright red hot glow
+			draw_circle(q_top, 5*s, Color(0.95, 0.12, 0.02, red_pulse))
+			draw_circle(q_top, 9*s, Color(0.8, 0.06, 0.01, red_pulse * 0.3))
+			draw_circle(q_top, 14*s, Color(0.6, 0.03, 0.0, red_pulse * 0.1))
+			# Black smoke ink trailing from wand tip
 			for si in range(8):
 				var smoke_age = fmod(_time * 1.8 + float(si) * 0.7, 5.6)
 				var smoke_t = smoke_age / 5.6
-				var smoke_x = q_tip.x + sin(_time * 1.3 + float(si) * 2.1) * 12*s * smoke_t
-				var smoke_y = q_tip.y + smoke_age * 12*s
+				var smoke_x = q_top.x + sin(_time * 1.3 + float(si) * 2.1) * 12*s * smoke_t
+				var smoke_y = q_top.y - smoke_age * 8*s
 				var smoke_r = (3.0 + smoke_t * 10.0) * s
-				var smoke_a = 0.4 * (1.0 - smoke_t)
+				var smoke_a = 0.35 * (1.0 - smoke_t)
 				draw_circle(Vector2(smoke_x, smoke_y), smoke_r, Color(0.02, 0.01, 0.03, smoke_a))
 			# Floating dark particles drifting around the figure
 			for pi in range(8):
@@ -8277,8 +8555,8 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				var pr = (65.0 + sin(_time * 1.2 + float(pi) * 1.7) * 18.0) * s
 				var ppx = cx + cos(pa) * pr
 				var ppy = cy - 10*s + sin(pa) * pr * 0.5
-				var p_alpha = 0.12 + sin(_time * 1.8 + float(pi)) * 0.06
-				draw_circle(Vector2(ppx, ppy), (2.5 + sin(_time * 0.9 + float(pi)) * 1.5) * s, Color(0.03, 0.01, 0.04, p_alpha))
+				var p_alpha = 0.1 + sin(_time * 1.8 + float(pi)) * 0.05
+				draw_circle(Vector2(ppx, ppy), (2.5 + sin(_time * 0.9 + float(pi)) * 1.5) * s, Color(0.02, 0.008, 0.03, p_alpha))
 		_:
 			# Generic shadow silhouette
 			draw_circle(Vector2(cx, cy - 10*s), 40*s, Color(0.15, 0.12, 0.1, 0.4))
@@ -19592,7 +19870,7 @@ func _start_layered_music(level_idx: int) -> void:
 			for s in mini(int(MUSIC_GEN_RATE * 0.08), loop_samples - beat_start):
 				var t: float = float(s) / MUSIC_GEN_RATE
 				var env: float = exp(-t * 40.0)
-				var kick: float = sin(t * (80.0 - t * 300.0) * TAU) * env * 0.5
+				var kick: float = sin(t * (80.0 - t * 300.0) * TAU) * env * 0.30
 				drum_data[beat_start + s] += kick
 		# --- SNARE: backbeat + ghost notes ---
 		if beat_in_bar == 2:
@@ -19600,8 +19878,8 @@ func _start_layered_music(level_idx: int) -> void:
 			for s in mini(int(MUSIC_GEN_RATE * 0.06), loop_samples - beat_start):
 				var t: float = float(s) / MUSIC_GEN_RATE
 				var env: float = exp(-t * 30.0)
-				var snare: float = (drum_rng.randf() * 2.0 - 1.0) * env * 0.25
-				snare += sin(t * 200.0 * TAU) * exp(-t * 60.0) * 0.2
+				var snare: float = (drum_rng.randf() * 2.0 - 1.0) * env * 0.15
+				snare += sin(t * 200.0 * TAU) * exp(-t * 60.0) * 0.12
 				drum_data[beat_start + s] += snare
 		# Ghost snare on the "e" of beat 1 and "a" of beat 3 (16th note subdivisions)
 		if beat_in_bar == 1 or beat_in_bar == 3:
@@ -19636,7 +19914,7 @@ func _start_layered_music(level_idx: int) -> void:
 		for s in mini(int(MUSIC_GEN_RATE * 0.025), loop_samples - beat_start):
 			var t: float = float(s) / MUSIC_GEN_RATE
 			var env: float = exp(-t * hh_decay)
-			var hh: float = (drum_rng.randf() * 2.0 - 1.0) * env * 0.08
+			var hh: float = (drum_rng.randf() * 2.0 - 1.0) * env * 0.05
 			drum_data[beat_start + s] += hh
 		# Offbeat 8th note hi-hat (slightly softer)
 		var offbeat: int = beat_start + int(beat_dur * 0.5 * MUSIC_GEN_RATE)
@@ -19672,7 +19950,7 @@ func _start_layered_music(level_idx: int) -> void:
 			for s in note_len:
 				var t: float = float(s) / MUSIC_GEN_RATE
 				# Plucked string: fast attack, medium decay, odd harmonics
-				var env: float = exp(-t * 8.0) * 0.3
+				var env: float = exp(-t * 8.0) * 0.18
 				var samp: float = sin(t * freq * TAU) + sin(t * freq * 3.0 * TAU) * 0.15 * exp(-t * 12.0)
 				samp += sin(t * freq * 5.0 * TAU) * 0.05 * exp(-t * 18.0)
 				strings_data[beat_start + s] += samp * env
@@ -19699,7 +19977,7 @@ func _start_layered_music(level_idx: int) -> void:
 		for s in note_len:
 			var t: float = float(s) / MUSIC_GEN_RATE
 			# Bell-like: sharp attack, quick decay, inharmonic partials
-			var env: float = exp(-t * 12.0) * 0.25
+			var env: float = exp(-t * 12.0) * 0.15
 			var samp: float = sin(t * freq * TAU) * 0.6
 			samp += sin(t * freq * 2.0 * TAU) * 0.3 * exp(-t * 15.0)
 			samp += sin(t * freq * 3.003 * TAU) * 0.1 * exp(-t * 20.0)  # Slight inharmonicity
@@ -19725,7 +20003,7 @@ func _start_layered_music(level_idx: int) -> void:
 				# Organ: sustained, slight vibrato, drawbar harmonics
 				var fade_in: float = minf(t * 8.0, 1.0)
 				var fade_out: float = minf(float(bar_len - s) / (MUSIC_GEN_RATE * 0.05), 1.0)
-				var env: float = fade_in * fade_out * 0.12
+				var env: float = fade_in * fade_out * 0.07
 				var vibrato: float = sin(t * 5.5 * TAU) * 0.003
 				var samp: float = sin(t * freq * (1.0 + vibrato) * TAU)
 				samp += sin(t * freq * 2.0 * (1.0 + vibrato) * TAU) * 0.5  # 2nd harmonic (8')
@@ -19763,7 +20041,7 @@ func _start_layered_music(level_idx: int) -> void:
 			# Flute: soft attack, pure tone with slight breathiness
 			var attack: float = minf(t * 20.0, 1.0)
 			var release: float = minf(float(note_len - s) / (MUSIC_GEN_RATE * 0.03), 1.0)
-			var env: float = attack * release * 0.2
+			var env: float = attack * release * 0.12
 			var vibrato: float = sin(t * 5.0 * TAU) * 0.005 * minf(t * 3.0, 1.0)
 			var samp: float = sin(t * freq * (1.0 + vibrato) * TAU)
 			# Add breath noise (separate RNG so it doesn't corrupt rest pattern)
@@ -19795,7 +20073,7 @@ func _start_layered_music(level_idx: int) -> void:
 			for s in note_len:
 				var t: float = float(s) / MUSIC_GEN_RATE
 				# Piano: sharp hammer attack, medium sustain, rich harmonics
-				var env: float = exp(-t * 6.0) * 0.22
+				var env: float = exp(-t * 6.0) * 0.13
 				var samp: float = sin(t * freq * TAU)
 				samp += sin(t * freq * 2.0 * TAU) * 0.3 * exp(-t * 8.0)
 				samp += sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 10.0)
@@ -19826,7 +20104,7 @@ func _start_layered_music(level_idx: int) -> void:
 				# Brass: warm attack, sustained, even harmonics
 				var attack: float = minf(t * 12.0, 1.0)
 				var release: float = minf(float(note_len - s) / (MUSIC_GEN_RATE * 0.04), 1.0)
-				var env: float = attack * release * 0.2
+				var env: float = attack * release * 0.12
 				var vibrato: float = sin(t * 4.5 * TAU) * 0.004 * minf(t * 2.0, 1.0)
 				var vf: float = freq * (1.0 + vibrato)
 				var samp: float = sin(t * vf * TAU)
@@ -19840,7 +20118,7 @@ func _start_layered_music(level_idx: int) -> void:
 
 	# Create AudioStreamPlayers for each layer
 	_music_layers.clear()
-	_music_layer_targets = [0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Only drums audible initially
+	_music_layer_targets = [0.20, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Only drums audible initially
 	_music_layer_current = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 	_music_tempo_mult = 1.0
 	for i in layer_wavs.size():
@@ -19895,7 +20173,7 @@ func _fade_in_tower_layer(tower_type: int) -> void:
 		return
 	var layer_idx: int = TOWER_LAYER_MAP[tower_type]
 	if layer_idx < _music_layer_targets.size():
-		_music_layer_targets[layer_idx] = 0.7  # Fade to this volume
+		_music_layer_targets[layer_idx] = 0.40  # Fade to this volume
 	_refresh_music_max_tier()
 
 func _fade_out_tower_layer(tower_type: int) -> void:
@@ -19924,7 +20202,7 @@ func _pulse_tower_layer(tower_type: int) -> void:
 		return
 	if _music_layer_targets[layer_idx] > 0.0:
 		# Temporarily boost volume
-		_music_layer_current[layer_idx] = minf(_music_layer_targets[layer_idx] + 0.15, 1.0)
+		_music_layer_current[layer_idx] = minf(_music_layer_targets[layer_idx] + 0.08, 1.0)
 
 func _update_layered_music(delta: float) -> void:
 	if not _music_layers_active:
@@ -19936,7 +20214,7 @@ func _update_layered_music(delta: float) -> void:
 			active_count += 1
 	# Scale individual volumes down as more layers are added (prevents Master bus clipping)
 	# 1 layer: full volume, 6 layers: each at ~55% to keep total reasonable
-	var mix_scale: float = 1.0 / maxf(1.0, 1.0 + float(active_count) * 0.15)
+	var mix_scale: float = 1.0 / maxf(1.0, 1.0 + float(active_count) * 0.25)
 	# Boss/late-wave intensity: boost drums + overall slightly
 	var intensity_target: float = 0.0
 	if is_wave_active:
@@ -25377,75 +25655,76 @@ func _draw_shadow_author_figure(pos: Vector2, scale: float, alpha: float, time: 
 	if alpha <= 0.01:
 		return
 	var s = scale
-	# Body — tall flowing robes tapering to wispy tendrils
-	# Cloak body (main shape)
+	# All-black pyramidal hooded figure with glowing red wand
+	# Cloak body (main shape) — pure black
 	var cloak_pts = PackedVector2Array()
-	cloak_pts.append(pos + Vector2(-18 * s, -60 * s))  # Left shoulder
-	cloak_pts.append(pos + Vector2(-22 * s, -20 * s))  # Left mid
-	cloak_pts.append(pos + Vector2(-25 * s, 20 * s))   # Left lower
-	cloak_pts.append(pos + Vector2(-20 * s, 50 * s + sin(time * 2.0) * 5.0))  # Left tendril
-	cloak_pts.append(pos + Vector2(-8 * s, 55 * s + sin(time * 2.5 + 1.0) * 4.0))  # Inner left tendril
-	cloak_pts.append(pos + Vector2(0, 52 * s + sin(time * 3.0) * 3.0))  # Center bottom
-	cloak_pts.append(pos + Vector2(8 * s, 55 * s + sin(time * 2.5 + 2.0) * 4.0))  # Inner right tendril
-	cloak_pts.append(pos + Vector2(20 * s, 50 * s + sin(time * 2.0 + 1.5) * 5.0))  # Right tendril
-	cloak_pts.append(pos + Vector2(25 * s, 20 * s))   # Right lower
-	cloak_pts.append(pos + Vector2(22 * s, -20 * s))  # Right mid
-	cloak_pts.append(pos + Vector2(18 * s, -60 * s))  # Right shoulder
-	var cloak_color = Color(0.06, 0.02, 0.1, alpha * 0.9)
-	draw_colored_polygon(cloak_pts, cloak_color)
-	# Cloak edge highlight
+	cloak_pts.append(pos + Vector2(-18 * s, -60 * s))
+	cloak_pts.append(pos + Vector2(-22 * s, -20 * s))
+	cloak_pts.append(pos + Vector2(-25 * s, 20 * s))
+	cloak_pts.append(pos + Vector2(-20 * s, 50 * s + sin(time * 2.0) * 5.0))
+	cloak_pts.append(pos + Vector2(-8 * s, 55 * s + sin(time * 2.5 + 1.0) * 4.0))
+	cloak_pts.append(pos + Vector2(0, 52 * s + sin(time * 3.0) * 3.0))
+	cloak_pts.append(pos + Vector2(8 * s, 55 * s + sin(time * 2.5 + 2.0) * 4.0))
+	cloak_pts.append(pos + Vector2(20 * s, 50 * s + sin(time * 2.0 + 1.5) * 5.0))
+	cloak_pts.append(pos + Vector2(25 * s, 20 * s))
+	cloak_pts.append(pos + Vector2(22 * s, -20 * s))
+	cloak_pts.append(pos + Vector2(18 * s, -60 * s))
+	draw_colored_polygon(cloak_pts, Color(0.02, 0.01, 0.02, alpha * 0.95))
 	for i in range(cloak_pts.size() - 1):
-		draw_line(cloak_pts[i], cloak_pts[i + 1], Color(0.25, 0.1, 0.35, alpha * 0.5), 1.5)
+		draw_line(cloak_pts[i], cloak_pts[i + 1], Color(0.15, 0.06, 0.2, alpha * 0.3), 1.5)
 
-	# Hood (pointed)
+	# Hood (pointed pyramidal)
 	var hood_pts = PackedVector2Array()
 	hood_pts.append(pos + Vector2(-20 * s, -58 * s))
-	hood_pts.append(pos + Vector2(0, -95 * s))  # Hood peak
+	hood_pts.append(pos + Vector2(0, -95 * s))
 	hood_pts.append(pos + Vector2(20 * s, -58 * s))
 	hood_pts.append(pos + Vector2(12 * s, -50 * s))
 	hood_pts.append(pos + Vector2(-12 * s, -50 * s))
-	draw_colored_polygon(hood_pts, Color(0.04, 0.01, 0.08, alpha * 0.95))
-	# Hood edge
-	draw_line(hood_pts[0], hood_pts[1], Color(0.3, 0.12, 0.4, alpha * 0.6), 1.5)
-	draw_line(hood_pts[1], hood_pts[2], Color(0.3, 0.12, 0.4, alpha * 0.6), 1.5)
+	draw_colored_polygon(hood_pts, Color(0.025, 0.012, 0.03, alpha * 0.95))
+	draw_line(hood_pts[0], hood_pts[1], Color(0.2, 0.08, 0.3, alpha * 0.4), 1.5)
+	draw_line(hood_pts[1], hood_pts[2], Color(0.2, 0.08, 0.3, alpha * 0.4), 1.5)
 
-	# Eyes — glowing purple-red deep in hood
-	var eye_y = pos.y - 65 * s
-	var eye_pulse = 0.7 + sin(time * 4.0) * 0.3
-	var eye_glow = Color(0.8, 0.15, 0.4, alpha * eye_pulse)
-	draw_circle(Vector2(pos.x - 5 * s, eye_y), 2.5 * s, eye_glow)
-	draw_circle(Vector2(pos.x + 5 * s, eye_y), 2.5 * s, eye_glow)
-	# Eye glow halo
-	draw_circle(Vector2(pos.x - 5 * s, eye_y), 5.0 * s, Color(0.6, 0.1, 0.3, alpha * 0.15 * eye_pulse))
-	draw_circle(Vector2(pos.x + 5 * s, eye_y), 5.0 * s, Color(0.6, 0.1, 0.3, alpha * 0.15 * eye_pulse))
+	# Hood interior — pure black void, no face
+	draw_colored_polygon(PackedVector2Array([
+		pos + Vector2(-12 * s, -50 * s), pos + Vector2(0, -80 * s),
+		pos + Vector2(12 * s, -50 * s)
+	]), Color(0.0, 0.0, 0.0, alpha))
 
-	# Skeletal hands
+	# Single glowing red dot deep in the hood
+	var red_pulse = 0.6 + sin(time * 2.5) * 0.4
+	draw_circle(Vector2(pos.x, pos.y - 62 * s), 2.0 * s, Color(0.9, 0.08, 0.02, alpha * red_pulse))
+	draw_circle(Vector2(pos.x, pos.y - 62 * s), 4.5 * s, Color(0.7, 0.04, 0.01, alpha * red_pulse * 0.2))
+
+	# Sleeve voids (no visible hands)
 	var hand_sway = sin(time * 1.8) * 4.0 * s
-	# Left hand
-	var lh = pos + Vector2(-20 * s + hand_sway, -15 * s)
-	draw_circle(lh, 3.0 * s, Color(0.75, 0.7, 0.6, alpha * 0.8))
-	for f in range(4):
-		var fa = -0.4 + float(f) * 0.25
-		draw_line(lh, lh + Vector2(cos(fa) * 8.0 * s, sin(fa) * 8.0 * s), Color(0.7, 0.65, 0.55, alpha * 0.7), 1.0)
-	# Right hand
-	var rh = pos + Vector2(20 * s - hand_sway, -15 * s)
-	draw_circle(rh, 3.0 * s, Color(0.75, 0.7, 0.6, alpha * 0.8))
-	for f in range(4):
-		var fa = PI - 0.4 + float(f) * 0.25
-		draw_line(rh, rh + Vector2(cos(fa) * 8.0 * s, sin(fa) * 8.0 * s), Color(0.7, 0.65, 0.55, alpha * 0.7), 1.0)
+	draw_circle(pos + Vector2(-20 * s + hand_sway, -15 * s), 4.0 * s, Color(0.0, 0.0, 0.0, alpha * 0.8))
+	draw_circle(pos + Vector2(20 * s - hand_sway, -15 * s), 4.0 * s, Color(0.0, 0.0, 0.0, alpha * 0.8))
 
-	# Shadow tendrils at base — wispy dissolving edges
+	# Glowing red wand — held from right sleeve
+	var w_base = pos + Vector2(20 * s - hand_sway, -15 * s)
+	var w_top = pos + Vector2(28 * s, -70 * s)
+	draw_line(w_base, w_top, Color(0.7, 0.06, 0.03, alpha * red_pulse), 2.5 * s)
+	draw_line(w_base, w_top, Color(0.9, 0.12, 0.05, alpha * red_pulse * 0.4), 4.0 * s)
+	# Zigzag lightning pattern
+	var wd = (w_top - w_base).normalized()
+	var wp = Vector2(-wd.y, wd.x)
+	for zi in range(5):
+		var zt = 0.12 + float(zi) * 0.16
+		var zp = w_base.lerp(w_top, zt)
+		var zag = (4.0 if zi % 2 == 0 else -4.0) * s
+		var zp2 = w_base.lerp(w_top, zt + 0.08)
+		draw_line(zp + wp * zag, zp2 + wp * (-zag), Color(0.95, 0.2, 0.08, alpha * red_pulse * 0.7), 1.5 * s)
+	# Wand tip glow
+	draw_circle(w_top, 3.0 * s, Color(0.95, 0.12, 0.02, alpha * red_pulse))
+	draw_circle(w_top, 6.0 * s, Color(0.8, 0.06, 0.01, alpha * red_pulse * 0.3))
+
+	# Shadow tendrils at base
 	for i in range(6):
 		var ta = TAU * float(i) / 6.0 + time * 1.2
 		var td = 15.0 * s + sin(time * 3.0 + float(i)) * 5.0 * s
 		var tx = pos.x + cos(ta) * td
 		var ty = pos.y + 50 * s + sin(ta) * 8.0 * s
-		draw_circle(Vector2(tx, ty), 3.0 * s, Color(0.1, 0.03, 0.15, alpha * 0.4))
-
-	# Shimmer effect on cloak
-	var shimmer_y = pos.y - 40 * s + fmod(time * 30.0, 100.0) * s
-	if shimmer_y < pos.y + 40 * s:
-		draw_line(Vector2(pos.x - 12 * s, shimmer_y), Vector2(pos.x + 12 * s, shimmer_y), Color(0.4, 0.2, 0.6, alpha * 0.08), 1.0)
+		draw_circle(Vector2(tx, ty), 3.0 * s, Color(0.05, 0.02, 0.08, alpha * 0.35))
 
 func _victory() -> void:
 	game_state = GameState.GAME_OVER_STATE

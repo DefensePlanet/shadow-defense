@@ -125,7 +125,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Cheshire Cat — EPIC 10-second drum solo (4 phases building to crescendo)
@@ -232,7 +232,7 @@ func _ready() -> void:
 	_cheshire_sound = _samples_to_wav(ch_samples, ch_rate)
 	_cheshire_player = AudioStreamPlayer.new()
 	_cheshire_player.stream = _cheshire_sound
-	_cheshire_player.volume_db = -2.0
+	_cheshire_player.volume_db = -10.0
 	add_child(_cheshire_player)
 
 	# Tea party — 3 ceramic clinks + pouring
@@ -257,7 +257,7 @@ func _ready() -> void:
 	_tea_sound = _samples_to_wav(tea_samples, tea_rate)
 	_tea_player = AudioStreamPlayer.new()
 	_tea_player.stream = _tea_sound
-	_tea_player.volume_db = -6.0
+	_tea_player.volume_db = -12.0
 	add_child(_tea_player)
 
 	# Upgrade chime
@@ -277,7 +277,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:

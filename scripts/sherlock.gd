@@ -208,7 +208,7 @@ func _ready() -> void:
 	_violin_pizz_sound = _samples_to_wav(vp_samples, vp_rate)
 	_violin_pizz_player = AudioStreamPlayer.new()
 	_violin_pizz_player.stream = _violin_pizz_sound
-	_violin_pizz_player.volume_db = -6.0
+	_violin_pizz_player.volume_db = -14.0
 	add_child(_violin_pizz_player)
 
 	# Deduction "a-ha!" chime — dramatic rising investigation reveal
@@ -243,7 +243,7 @@ func _ready() -> void:
 	_deduction_sound = _samples_to_wav(ded_samples, ded_rate)
 	_deduction_player = AudioStreamPlayer.new()
 	_deduction_player.stream = _deduction_sound
-	_deduction_player.volume_db = -5.0
+	_deduction_player.volume_db = -12.0
 	add_child(_deduction_player)
 
 	# Hound howl — eerie low howl for the spectral hound lunge
@@ -265,7 +265,7 @@ func _ready() -> void:
 	_hound_sound = _samples_to_wav(hw_samples, hw_rate)
 	_hound_player = AudioStreamPlayer.new()
 	_hound_player.stream = _hound_sound
-	_hound_player.volume_db = -5.0
+	_hound_player.volume_db = -12.0
 	add_child(_hound_player)
 
 	# Venom strike — sinister hiss with wet impact
@@ -285,7 +285,7 @@ func _ready() -> void:
 	_venom_sound = _samples_to_wav(vs_samples, vs_rate)
 	_venom_player = AudioStreamPlayer.new()
 	_venom_player.stream = _venom_sound
-	_venom_player.volume_db = -5.0
+	_venom_player.volume_db = -12.0
 	add_child(_venom_player)
 
 	# Reichenbach cascade — rushing waterfall + dramatic impact
@@ -311,7 +311,7 @@ func _ready() -> void:
 	_cascade_sound = _samples_to_wav(rc_samples, rc_rate)
 	_cascade_player = AudioStreamPlayer.new()
 	_cascade_player.stream = _cascade_sound
-	_cascade_player.volume_db = -4.0
+	_cascade_player.volume_db = -10.0
 	add_child(_cascade_player)
 
 	# Upgrade chime — bright ascending arpeggio (C5, E5, G5)
@@ -331,7 +331,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 	# Baker Street Logic — deduction chime: bright bell-like "ding" with analytical shimmer
@@ -355,7 +355,7 @@ func _ready() -> void:
 	_baker_logic_sound = _samples_to_wav(bl_samples, bl_rate)
 	_baker_logic_player = AudioStreamPlayer.new()
 	_baker_logic_player.stream = _baker_logic_sound
-	_baker_logic_player.volume_db = -5.0
+	_baker_logic_player.volume_db = -12.0
 	add_child(_baker_logic_player)
 
 	# Reichenbach Gambit — dramatic crash: low orchestral hit + descending rumble
@@ -379,7 +379,7 @@ func _ready() -> void:
 	_reichenbach_gambit_sound = _samples_to_wav(rg_samples, rg_rate)
 	_reichenbach_gambit_player = AudioStreamPlayer.new()
 	_reichenbach_gambit_player.stream = _reichenbach_gambit_sound
-	_reichenbach_gambit_player.volume_db = -4.0
+	_reichenbach_gambit_player.volume_db = -10.0
 	add_child(_reichenbach_gambit_player)
 
 	# Watson's Aid — friendly whistle: short ascending two-note whistle
@@ -406,7 +406,7 @@ func _ready() -> void:
 	_watson_aid_sound = _samples_to_wav(wa_samples, wa_rate)
 	_watson_aid_player = AudioStreamPlayer.new()
 	_watson_aid_player.stream = _watson_aid_sound
-	_watson_aid_player.volume_db = -5.0
+	_watson_aid_player.volume_db = -12.0
 	add_child(_watson_aid_player)
 
 func _process(delta: float) -> void:

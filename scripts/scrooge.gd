@@ -136,7 +136,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -6.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Ghost of Past — wavering ghostly moan (mid-pitch, breathy)
@@ -155,7 +155,7 @@ func _ready() -> void:
 	_ghost_past_sound = _samples_to_wav(gp_samples, gp_rate)
 	_ghost_past_player = AudioStreamPlayer.new()
 	_ghost_past_player.stream = _ghost_past_sound
-	_ghost_past_player.volume_db = -6.0
+	_ghost_past_player.volume_db = -12.0
 	add_child(_ghost_past_player)
 
 	# Ghost of Present — deeper richer ghostly moan with reverb tail
@@ -175,7 +175,7 @@ func _ready() -> void:
 	_ghost_present_sound = _samples_to_wav(gpr_samples, gpr_rate)
 	_ghost_present_player = AudioStreamPlayer.new()
 	_ghost_present_player.stream = _ghost_present_sound
-	_ghost_present_player.volume_db = -6.0
+	_ghost_present_player.volume_db = -12.0
 	add_child(_ghost_present_player)
 
 	# Upgrade chime
@@ -195,7 +195,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 	# Cha-ching sound — metallic bell hit + coin cascade (Tier 4 coin blast)
@@ -220,7 +220,7 @@ func _ready() -> void:
 	_cha_ching_sound = _samples_to_wav(ching_samples, ching_rate)
 	_cha_ching_player = AudioStreamPlayer.new()
 	_cha_ching_player.stream = _cha_ching_sound
-	_cha_ching_player.volume_db = -4.0
+	_cha_ching_player.volume_db = -10.0
 	add_child(_cha_ching_player)
 
 func _process(delta: float) -> void:

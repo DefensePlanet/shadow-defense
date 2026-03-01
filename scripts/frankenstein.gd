@@ -138,7 +138,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -3.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Thunder storm — deep rumbling crack with electric sizzle
@@ -162,7 +162,7 @@ func _ready() -> void:
 	_thunder_sound = _samples_to_wav(th_samples, th_rate)
 	_thunder_player = AudioStreamPlayer.new()
 	_thunder_player.stream = _thunder_sound
-	_thunder_player.volume_db = -4.0
+	_thunder_player.volume_db = -10.0
 	add_child(_thunder_player)
 
 	# Upgrade chime — bright ascending arpeggio (C5, E5, G5)
@@ -182,7 +182,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:

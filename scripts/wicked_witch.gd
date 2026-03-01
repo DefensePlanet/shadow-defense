@@ -61,6 +61,13 @@ var _beehive_bees: Array = []
 # Tier 4: Golden Cap
 var _golden_cap_active: bool = false
 
+# Beam attack state
+var _beam_target: Node2D = null
+var _beam_active: bool = false
+var _beam_timer: float = 0.0
+var _beam_cooldown: float = 0.0
+var _beam_dps: float = 0.0
+
 # === PROGRESSIVE ABILITIES (9 tiers, unlocked via lifetime damage) ===
 const PROG_ABILITY_NAMES = [
 	"Witch's Cackle", "Winged Monkey Scout", "Poppy Field",
@@ -142,7 +149,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -6.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Wolf howl — eerie rising howl with vibrato, harmonics, and sustain
@@ -171,7 +178,7 @@ func _ready() -> void:
 	_wolf_sound = _samples_to_wav(wf_samples, wf_rate)
 	_wolf_player = AudioStreamPlayer.new()
 	_wolf_player.stream = _wolf_sound
-	_wolf_player.volume_db = -4.0
+	_wolf_player.volume_db = -10.0
 	add_child(_wolf_player)
 
 	# Crow dive-bomb — descending screech with flutter
@@ -189,7 +196,7 @@ func _ready() -> void:
 	_crow_sound = _samples_to_wav(cr_samples, cr_rate)
 	_crow_player = AudioStreamPlayer.new()
 	_crow_player.stream = _crow_sound
-	_crow_player.volume_db = -6.0
+	_crow_player.volume_db = -12.0
 	add_child(_crow_player)
 
 	# Upgrade chime
@@ -209,7 +216,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:
@@ -226,12 +233,39 @@ func _process(delta: float) -> void:
 	global_position = _home_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * _orbit_radius
 	aim_angle = _orbit_angle + PI * 0.5  # Face forward along orbit
 
-	# Cast green spells at enemies
-	fire_cooldown -= delta
-	target = _find_nearest_enemy()
-	if target and fire_cooldown <= 0.0:
-		_strike_target(target)
-		fire_cooldown = 1.0 / (fire_rate * _speed_mult())
+	# Beam attack logic
+	if _beam_active:
+		_beam_timer -= delta
+		if _beam_timer <= 0.0 or not is_instance_valid(_beam_target) or not _beam_target.has_method("take_damage"):
+			_end_beam()
+		else:
+			# Check if target moved out of range
+			var max_range: float = attack_range * _range_mult()
+			if _home_position.distance_to(_beam_target.global_position) > max_range * 1.3:
+				_end_beam()
+			else:
+				# Apply DPS damage each frame
+				var frame_dmg = _beam_dps * delta
+				if prog_abilities[0]:  # Witch's Cackle: +15% damage
+					frame_dmg *= 1.15
+					_cackle_flash = 0.1
+				var will_kill = _beam_target.health - frame_dmg <= 0.0
+				_beam_target.take_damage(frame_dmg, "magic")
+				register_damage(frame_dmg)
+				if will_kill:
+					register_kill()
+					if gold_bonus > 0 and _main_node:
+						_main_node.add_gold(int(gold_bonus * _gold_mult()))
+					_end_beam()
+				aim_angle = global_position.angle_to_point(_beam_target.global_position) + PI
+				_attack_anim = 0.8
+	else:
+		_beam_cooldown -= delta
+		if _beam_cooldown <= 0.0:
+			_beam_cooldown = 0.0
+			target = _find_nearest_enemy()
+			if target:
+				_strike_target(target)
 
 	# Wolf spawn timer countdown
 	if _wolf_spawn_timer > 0.0:
@@ -327,12 +361,23 @@ func _strike_target(t: Node2D) -> void:
 	if not is_instance_valid(t) or not t.has_method("take_damage"):
 		return
 	_attack_anim = 1.0
+	# Start beam attack
+	_beam_target = t
+	_beam_active = true
+	_beam_timer = 2.5
+	_beam_dps = damage * _damage_mult() / 2.5 * (2.5 * fire_rate * _speed_mult())  # Total damage = what she'd do in 2.5s of normal attacks
 	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
-		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
+		_attack_player.stream = _attack_sounds[mini(upgrade_tier, _attack_sounds.size() - 1)]
 		_attack_player.play()
 	if _main_node and _main_node.has_method("_pulse_tower_layer"):
 		_main_node._pulse_tower_layer(2)  # WICKED_WITCH
-	_fire_bolt(t)
+
+func _end_beam() -> void:
+	_beam_active = false
+	_beam_target = null
+	_beam_timer = 0.0
+	_beam_cooldown = 1.0 / (fire_rate * _speed_mult())
+	_attack_anim = 0.0
 
 func _fire_bolt(t: Node2D) -> void:
 	var bolt = bolt_scene.instantiate()
@@ -661,155 +706,73 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Classic horror/cartoon magic zap — clean, punchy, satisfying
-	var zap_notes := [440.0, 523.25, 349.23, 466.16, 392.00, 523.25, 349.23, 440.0]  # A4, C5, F4, Bb4, G4, C5, F4, A4 (ominous but musical)
+	# 2.5s sustained spell-casting sound per tier — eerie tone with harmonics and crackling
 	var mix_rate := 44100
+	var dur := 2.5
+	var num_samples := int(mix_rate * dur)
 	_attack_sounds_by_tier = []
+	# Base frequencies per tier (eerie minor key progression)
+	var tier_freqs := [220.0, 196.0, 174.6, 164.8, 146.8]  # A3, G3, F3, E3, D3
 
-	# --- Tier 0: Hex Bolt (clean descending zap, sharp onset) ---
-	var t0 := []
-	for note_idx in zap_notes.size():
-		var freq: float = zap_notes[note_idx]
-		var dur := 0.18
+	for tier in range(5):
+		var freq: float = tier_freqs[tier]
+		var harmonics_count := 3 + tier  # More harmonics at higher tiers
 		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
+		samples.resize(num_samples)
+		for i in num_samples:
 			var t := float(i) / mix_rate
-			# Fast exponential decay like Robin Hood
-			var env := exp(-t * 22.0) * 0.4
-			# Pitch glide: starts 80% higher, drops to target in ~25ms
-			var glide := freq * (1.0 + 0.8 * exp(-t * 120.0))
-			# Clean body with slight edge (3rd harmonic for character)
-			var body := sin(TAU * glide * t)
-			body += sin(TAU * glide * 3.0 * t) * 0.25 * exp(-t * 30.0)
-			# Sharp percussive click on onset
-			var click := (randf() * 2.0 - 1.0) * exp(-t * 800.0) * 0.2
-			# Brief metallic ring
-			var ring := sin(TAU * freq * 2.5 * t) * 0.1 * exp(-t * 35.0)
-			samples[i] = clampf((body + ring) * env + click, -1.0, 1.0)
-		t0.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t0)
+			var progress := t / dur  # 0.0 to 1.0
 
-	# --- Tier 1: Curse Shot (+ sub thump on onset, more bite) ---
-	var t1 := []
-	for note_idx in zap_notes.size():
-		var freq: float = zap_notes[note_idx]
-		var dur := 0.2
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := exp(-t * 20.0) * 0.38
-			# Pitch glide
-			var glide := freq * (1.0 + 0.9 * exp(-t * 110.0))
-			# Body with more harmonics
-			var body := sin(TAU * glide * t)
-			body += sin(TAU * glide * 3.0 * t) * 0.28 * exp(-t * 28.0)
-			body += sin(TAU * glide * 5.0 * t) * 0.1 * exp(-t * 45.0)
-			# Sub thump on impact
-			var thump := sin(TAU * freq * 0.5 * t) * 0.2 * exp(-t * 50.0)
-			# Sharp click
-			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.18
-			# Metallic ring
-			var ring := sin(TAU * freq * 2.5 * t) * 0.12 * exp(-t * 30.0)
-			samples[i] = clampf((body + thump + ring) * env + click, -1.0, 1.0)
-		t1.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t1)
+			# Envelope: fade in 0.15s, sustain, fade out last 0.3s
+			var env := 1.0
+			if t < 0.15:
+				env = t / 0.15
+			elif t > dur - 0.3:
+				env = (dur - t) / 0.3
+			env *= 0.35
 
-	# --- Tier 2: Cauldron Blast (+ sizzle tail, richer harmonics) ---
-	var t2 := []
-	for note_idx in zap_notes.size():
-		var freq: float = zap_notes[note_idx]
-		var dur := 0.22
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := exp(-t * 18.0) * 0.36
-			# Steeper pitch glide for more dramatic sweep
-			var glide := freq * (1.0 + 1.0 * exp(-t * 100.0))
-			# Body — richer
-			var body := sin(TAU * glide * t)
-			body += sin(TAU * glide * 3.0 * t) * 0.3 * exp(-t * 26.0)
-			body += sin(TAU * glide * 5.0 * t) * 0.12 * exp(-t * 40.0)
-			# Sub thump
-			var thump := sin(TAU * freq * 0.5 * t) * 0.22 * exp(-t * 45.0)
-			# Sizzle tail (high-frequency filtered noise)
-			var sizzle := (randf() * 2.0 - 1.0) * 0.08 * exp(-t * 25.0)
-			sizzle *= sin(TAU * freq * 4.0 * t) * 0.5 + 0.5
-			# Sharp click
-			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.18
-			# Ring
-			var ring := sin(TAU * freq * 2.5 * t) * 0.12 * exp(-t * 25.0)
-			samples[i] = clampf((body + thump + ring) * env + sizzle + click, -1.0, 1.0)
-		t2.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t2)
+			# Wavering pitch (vibrato that intensifies over time)
+			var vibrato := sin(TAU * 5.0 * t) * (3.0 + progress * 8.0)
+			var pitch := freq + vibrato
 
-	# --- Tier 3: Banshee Bolt (+ horror minor-2nd interval sting) ---
-	var t3 := []
-	for note_idx in zap_notes.size():
-		var freq: float = zap_notes[note_idx]
-		var dur := 0.24
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := exp(-t * 16.0) * 0.34
-			# Pitch glide
-			var glide := freq * (1.0 + 1.0 * exp(-t * 100.0))
-			# Body
-			var body := sin(TAU * glide * t)
-			body += sin(TAU * glide * 3.0 * t) * 0.3 * exp(-t * 24.0)
-			body += sin(TAU * glide * 5.0 * t) * 0.14 * exp(-t * 35.0)
-			# Minor 2nd sting — half step above, quick decay (classic horror interval)
-			var sting_freq := freq * 1.0595  # semitone up
-			var sting := sin(TAU * sting_freq * t) * 0.2 * exp(-t * 28.0)
-			# Sub thump
-			var thump := sin(TAU * freq * 0.5 * t) * 0.22 * exp(-t * 42.0)
-			# Sizzle
-			var sizzle := (randf() * 2.0 - 1.0) * 0.07 * exp(-t * 22.0)
-			sizzle *= sin(TAU * freq * 4.0 * t) * 0.5 + 0.5
-			# Click
-			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.16
-			# Ring
-			var ring := sin(TAU * freq * 2.5 * t) * 0.1 * exp(-t * 22.0)
-			samples[i] = clampf((body + sting + thump + ring) * env + sizzle + click, -1.0, 1.0)
-		t3.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t3)
+			# Fundamental tone
+			var body := sin(TAU * pitch * t) * 0.4
 
-	# --- Tier 4: Dark Spell (full zap + shimmer tail, most powerful) ---
-	var t4 := []
-	for note_idx in zap_notes.size():
-		var freq: float = zap_notes[note_idx]
-		var dur := 0.26
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var env := exp(-t * 15.0) * 0.32
-			# Dramatic pitch glide
-			var glide := freq * (1.0 + 1.2 * exp(-t * 95.0))
-			# Rich body
-			var body := sin(TAU * glide * t)
-			body += sin(TAU * glide * 3.0 * t) * 0.32 * exp(-t * 22.0)
-			body += sin(TAU * glide * 5.0 * t) * 0.15 * exp(-t * 32.0)
-			body += sin(TAU * glide * 7.0 * t) * 0.06 * exp(-t * 45.0)
-			# Horror sting (minor 2nd)
-			var sting_freq := freq * 1.0595
-			var sting := sin(TAU * sting_freq * t) * 0.18 * exp(-t * 25.0)
-			# Sub thump
-			var thump := sin(TAU * freq * 0.5 * t) * 0.24 * exp(-t * 40.0)
-			# Shimmer tail (octave + fifth ring out)
-			var shimmer := sin(TAU * freq * 3.0 * t) * 0.08 * exp(-t * 12.0)
-			shimmer += sin(TAU * freq * 2.0 * t) * 0.06 * exp(-t * 10.0)
-			# Sizzle
-			var sizzle := (randf() * 2.0 - 1.0) * 0.06 * exp(-t * 20.0)
-			sizzle *= sin(TAU * freq * 4.0 * t) * 0.5 + 0.5
-			# Click
-			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.16
-			samples[i] = clampf((body + sting + thump + shimmer) * env + sizzle + click, -1.0, 1.0)
-		t4.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t4)
+			# Choir-like overtones (odd harmonics for hollow quality)
+			for h in range(harmonics_count):
+				var h_mult := float(h * 2 + 3)  # 3rd, 5th, 7th, 9th...
+				var h_amp := 0.15 / (float(h) + 1.0)
+				# Slight detuning for richness
+				var detune := sin(TAU * (0.3 + float(h) * 0.17) * t) * 1.5
+				body += sin(TAU * (pitch * h_mult + detune) * t) * h_amp
+
+			# Breathy wind texture underneath
+			var breath := (randf() * 2.0 - 1.0) * 0.04 * (0.5 + progress * 0.5)
+			# Filter the noise with a resonant sine to make it less harsh
+			breath *= (0.5 + 0.5 * sin(TAU * pitch * 0.5 * t))
+
+			# Crackling energy that intensifies over duration
+			var crackle := 0.0
+			var crackle_intensity := progress * progress * 0.12  # Quadratic buildup
+			if randf() < 0.03 + progress * 0.08:  # More crackles as spell progresses
+				crackle = (randf() * 2.0 - 1.0) * crackle_intensity
+
+			# Tier-specific additions
+			var shimmer := 0.0
+			if tier >= 2:
+				# Ethereal shimmer at higher tiers
+				shimmer = sin(TAU * pitch * 4.0 * t) * 0.04 * (0.3 + sin(TAU * 1.5 * t) * 0.3)
+			if tier >= 3:
+				# Minor 2nd dissonance — eerie horror quality
+				var sting_freq := freq * 1.0595
+				shimmer += sin(TAU * sting_freq * t) * 0.06 * (0.5 + progress * 0.5)
+			if tier >= 4:
+				# Deep sub-bass rumble
+				shimmer += sin(TAU * freq * 0.5 * t) * 0.08 * progress
+
+			samples[i] = clampf((body + shimmer) * env + breath + crackle, -1.0, 1.0)
+
+		_attack_sounds_by_tier.append([_samples_to_wav(samples, mix_rate)])
 
 func _refresh_tier_sounds() -> void:
 	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
@@ -1691,7 +1654,48 @@ func _draw() -> void:
 	if _attack_anim > 0.0:
 		draw_circle(r_hand, 7.0 + _attack_anim * 5.0, Color(0.3, 0.8, 0.15, _attack_anim * 0.2))
 		draw_circle(r_hand, 4.0 + _attack_anim * 2.5, Color(0.4, 0.9, 0.2, _attack_anim * 0.3))
-		# Green bolt streaks
+
+	# === BEAM ATTACK DRAWING ===
+	if _beam_active and is_instance_valid(_beam_target):
+		var beam_start = r_hand
+		var beam_end = _beam_target.global_position - global_position
+		var beam_progress = 1.0 - clampf(_beam_timer / 2.5, 0.0, 1.0)  # 0 at start, 1 at end
+		var beam_intensity = 0.6 + sin(_time * 12.0) * 0.2 + sin(_time * 7.3) * 0.1  # Pulsing
+
+		# Outer glow (wide, semi-transparent)
+		draw_line(beam_start, beam_end, Color(0.2, 0.7, 0.1, 0.08 + beam_intensity * 0.06), 12.0)
+		# Mid glow
+		draw_line(beam_start, beam_end, Color(0.3, 0.85, 0.15, 0.12 + beam_intensity * 0.08), 6.0)
+		# Core beam (bright green, narrow)
+		draw_line(beam_start, beam_end, Color(0.5, 1.0, 0.3, 0.6 + beam_intensity * 0.3), 2.5)
+		# Inner white-hot core
+		draw_line(beam_start, beam_end, Color(0.8, 1.0, 0.7, 0.3 + beam_intensity * 0.2), 1.0)
+
+		# Crackling energy particles along the beam
+		var beam_vec = beam_end - beam_start
+		var beam_len = beam_vec.length()
+		var beam_dir_n = beam_vec.normalized() if beam_len > 0.0 else Vector2.RIGHT
+		var beam_perp_n = beam_dir_n.rotated(PI / 2.0)
+		var num_particles = int(beam_len / 15.0)
+		for pi in range(num_particles):
+			var pt = float(pi + 1) / float(num_particles + 1)
+			var spark_pos = beam_start.lerp(beam_end, pt)
+			# Offset perpendicular to beam with randomized flicker
+			var spark_offset = sin(_time * 15.0 + float(pi) * 3.7) * (3.0 + beam_progress * 4.0)
+			spark_pos += beam_perp_n * spark_offset
+			var spark_size = 1.5 + sin(_time * 20.0 + float(pi) * 2.1) * 0.8
+			draw_circle(spark_pos, spark_size, Color(0.4, 1.0, 0.2, 0.3 + beam_intensity * 0.2))
+
+		# Wand tip sparkle/glow
+		draw_circle(beam_start, 6.0 + sin(_time * 10.0) * 2.0, Color(0.4, 0.9, 0.2, 0.25))
+		draw_circle(beam_start, 3.0, Color(0.6, 1.0, 0.4, 0.5))
+
+		# Impact glow at target
+		var impact_size = 8.0 + sin(_time * 8.0) * 3.0 + beam_progress * 4.0
+		draw_circle(beam_end, impact_size, Color(0.3, 0.8, 0.1, 0.15 + beam_intensity * 0.1))
+		draw_circle(beam_end, impact_size * 0.5, Color(0.5, 1.0, 0.3, 0.2))
+	elif _attack_anim > 0.0:
+		# Green bolt streaks (only when NOT beaming — fallback for non-beam anims)
 		for si in range(3):
 			var s_angle = aim_angle + (float(si) - 1.0) * 0.3
 			var s_dir = Vector2.from_angle(s_angle)

@@ -137,7 +137,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Horn volley — 3 ascending brass blasts (A3→C#4→E4)
@@ -160,7 +160,7 @@ func _ready() -> void:
 	_horn_sound = _samples_to_wav(horn_samples, horn_rate)
 	_horn_player = AudioStreamPlayer.new()
 	_horn_player.stream = _horn_sound
-	_horn_player.volume_db = -6.0
+	_horn_player.volume_db = -12.0
 	add_child(_horn_player)
 
 	# Upgrade chime — bright ascending arpeggio (C5→E5→G5)
@@ -180,7 +180,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:

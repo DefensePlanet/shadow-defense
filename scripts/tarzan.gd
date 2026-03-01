@@ -131,7 +131,7 @@ func _ready() -> void:
 	_attack_sounds = _attack_sounds_by_tier[0]
 	_attack_player = AudioStreamPlayer.new()
 	_attack_player.stream = _attack_sounds[0]
-	_attack_player.volume_db = -4.0
+	_attack_player.volume_db = -14.0
 	add_child(_attack_player)
 
 	# Jungle yell — primal ascending howl (A2→E3→A3→E4)
@@ -160,7 +160,7 @@ func _ready() -> void:
 	_yell_sound = _samples_to_wav(yell_samples, yell_rate)
 	_yell_player = AudioStreamPlayer.new()
 	_yell_player.stream = _yell_sound
-	_yell_player.volume_db = -5.0
+	_yell_player.volume_db = -12.0
 	add_child(_yell_player)
 
 	# Vine smash — deep D minor whoosh into heavy impact thud
@@ -189,7 +189,7 @@ func _ready() -> void:
 	_vine_smash_sound = _samples_to_wav(vs_samples, vs_rate)
 	_vine_smash_player = AudioStreamPlayer.new()
 	_vine_smash_player.stream = _vine_smash_sound
-	_vine_smash_player.volume_db = -4.0
+	_vine_smash_player.volume_db = -10.0
 	add_child(_vine_smash_player)
 
 	# Upgrade chime — bright ascending arpeggio (C5→E5→G5)
@@ -209,7 +209,7 @@ func _ready() -> void:
 	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
-	_upgrade_player.volume_db = -4.0
+	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:
