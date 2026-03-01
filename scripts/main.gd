@@ -2878,6 +2878,19 @@ func _save_game() -> void:
 	save_data["victory_streak_best"] = victory_streak_best
 	save_data["gold_interest_enabled"] = gold_interest_enabled
 	save_data["auto_collect_enabled"] = auto_collect_enabled
+	# === BATTD3 v6 SAVE FIELDS ===
+	save_data["character_affinity"] = character_affinity
+	save_data["awakened_characters"] = awakened_characters
+	save_data["cosmic_ink"] = cosmic_ink
+	save_data["respec_count"] = respec_count
+	save_data["gear_loadouts"] = gear_loadouts
+	save_data["gear_loadout_active"] = gear_loadout_active
+	save_data["locked_bindings"] = locked_bindings
+	save_data["relic_usage_tracker"] = relic_usage_tracker
+	save_data["discovered_bindings"] = discovered_bindings
+	save_data["favorite_characters"] = favorite_characters
+	save_data["career_stats"] = career_stats
+	save_data["recent_items"] = recent_items
 	# Save version
 	save_data["save_version"] = SAVE_VERSION
 	# Atomic write with backup rotation
@@ -3026,19 +3039,6 @@ func _load_game() -> void:
 	var sp = data.get("survivor_progress", {})
 	# Build name→TowerType reverse lookup for name-based save keys
 	var _name_to_type: Dictionary = {}
-	# === BATTD3 v6 SAVE FIELDS ===
-	save_data["character_affinity"] = character_affinity
-	save_data["awakened_characters"] = awakened_characters
-	save_data["cosmic_ink"] = cosmic_ink
-	save_data["respec_count"] = respec_count
-	save_data["gear_loadouts"] = gear_loadouts
-	save_data["gear_loadout_active"] = gear_loadout_active
-	save_data["locked_bindings"] = locked_bindings
-	save_data["relic_usage_tracker"] = relic_usage_tracker
-	save_data["discovered_bindings"] = discovered_bindings
-	save_data["favorite_characters"] = favorite_characters
-	save_data["career_stats"] = career_stats
-	save_data["recent_items"] = recent_items
 	for tt in tower_info:
 		_name_to_type[tower_info[tt]["name"]] = tt
 	for key in sp:
@@ -3233,6 +3233,44 @@ func _load_game() -> void:
 	victory_streak_best = int(data.get("victory_streak_best", 0))
 	gold_interest_enabled = bool(data.get("gold_interest_enabled", true))
 	auto_collect_enabled = bool(data.get("auto_collect_enabled", false))
+	# === LOAD BATTD3 v6 FIELDS ===
+	var ca_data = data.get("character_affinity", {})
+	for key in ca_data:
+		character_affinity[int(key)] = float(ca_data[key])
+	var aw_data = data.get("awakened_characters", {})
+	for key in aw_data:
+		awakened_characters[int(key)] = bool(aw_data[key])
+	cosmic_ink = int(data.get("cosmic_ink", 0))
+	respec_count = int(data.get("respec_count", 0))
+	var gl_data = data.get("gear_loadouts", {})
+	for key in gl_data:
+		gear_loadouts[int(key)] = gl_data[key]
+	var gla_data = data.get("gear_loadout_active", {})
+	for key in gla_data:
+		gear_loadout_active[int(key)] = int(gla_data[key])
+	var lb_data = data.get("locked_bindings", {})
+	locked_bindings.clear()
+	for key in lb_data:
+		locked_bindings[str(key)] = bool(lb_data[key])
+	var rut_data = data.get("relic_usage_tracker", {})
+	relic_usage_tracker.clear()
+	for key in rut_data:
+		relic_usage_tracker[str(key)] = int(rut_data[key])
+	var db_data = data.get("discovered_bindings", {})
+	discovered_bindings.clear()
+	for key in db_data:
+		discovered_bindings[str(key)] = bool(db_data[key])
+	var fc_data = data.get("favorite_characters", [])
+	favorite_characters.clear()
+	for v in fc_data:
+		favorite_characters.append(int(v))
+	var cs_data = data.get("career_stats", {})
+	for key in cs_data:
+		career_stats[key] = cs_data[key]
+	var ri_data = data.get("recent_items", [])
+	recent_items.clear()
+	for v in ri_data:
+		recent_items.append(v)
 	# Golden Shields migration — ensure existing progress has the field
 	for t in survivor_progress:
 		if not survivor_progress[t].has("golden_shields"):
@@ -3393,44 +3431,6 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "crystal_orb", "size": rng.randf_range(8, 16), "extra": rng.randf_range(0, TAU)})
 					elif r < 0.65:
 						_decorations.append({"pos": pos, "type": "ancient_rune", "size": rng.randf_range(5, 10), "extra": rng.randf_range(0, TAU)})
-	# === LOAD BATTD3 v6 FIELDS ===
-	var ca_data = data.get("character_affinity", {})
-	for key in ca_data:
-		character_affinity[int(key)] = float(ca_data[key])
-	var aw_data = data.get("awakened_characters", {})
-	for key in aw_data:
-		awakened_characters[int(key)] = bool(aw_data[key])
-	cosmic_ink = int(data.get("cosmic_ink", 0))
-	respec_count = int(data.get("respec_count", 0))
-	var gl_data = data.get("gear_loadouts", {})
-	for key in gl_data:
-		gear_loadouts[int(key)] = gl_data[key]
-	var gla_data = data.get("gear_loadout_active", {})
-	for key in gla_data:
-		gear_loadout_active[int(key)] = int(gla_data[key])
-	var lb_data = data.get("locked_bindings", {})
-	locked_bindings.clear()
-	for key in lb_data:
-		locked_bindings[str(key)] = bool(lb_data[key])
-	var rut_data = data.get("relic_usage_tracker", {})
-	relic_usage_tracker.clear()
-	for key in rut_data:
-		relic_usage_tracker[str(key)] = int(rut_data[key])
-	var db_data = data.get("discovered_bindings", {})
-	discovered_bindings.clear()
-	for key in db_data:
-		discovered_bindings[str(key)] = bool(db_data[key])
-	var fc_data = data.get("favorite_characters", [])
-	favorite_characters.clear()
-	for v in fc_data:
-		favorite_characters.append(int(v))
-	var cs_data = data.get("career_stats", {})
-	for key in cs_data:
-		career_stats[key] = cs_data[key]
-	var ri_data = data.get("recent_items", [])
-	recent_items.clear()
-	for v in ri_data:
-		recent_items.append(v)
 					elif r < 0.82:
 						_decorations.append({"pos": pos, "type": "celtic_tree", "size": rng.randf_range(18, 36), "extra": rng.randf_range(-0.04, 0.04)})
 					else:
@@ -8832,6 +8832,7 @@ func _draw_currency_bar() -> void:
 	_udraw(font, Vector2(1222, bar_y + 22), "%d/%d" % [total_stars, max_stars], HORIZONTAL_ALIGNMENT_RIGHT, 100, 14, Color(1.0, 0.9, 0.3, 0.9))
 
 func _draw_menu_background() -> void:
+	var font = game_font
 	# === MENU THEME COSMETIC OVERRIDE ===
 	var theme_bg = menu_bg_dark
 	var theme_accent = menu_gold_dim
@@ -9266,7 +9267,6 @@ func _draw_menu_background() -> void:
 	_draw_currency_bar()
 
 	# === Bottom nav bar ===
-	var font = game_font
 	var nav_draw_y = 620.0
 	# === BOTTOM NAV BAR — Polished, glowing, alive ===
 	var nav_tab_names = ["survivors", "relics", "chapters", "chronicles", "emporium", "achievements"]
@@ -15877,12 +15877,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif _handle_instrument_placement_click(event.position):
 				pass  # Instrument placement consumed the click
 			else:
-				# BATTD2: Check storybook page click
-				if _check_page_click(event.position):
-					pass
-				el
-				# BATTD: Check map collectible clicks first
-				elif _check_page_click(event.position) or _check_collectible_click(event.position):
+				# Check storybook page / map collectible clicks first
+				if _check_page_click(event.position) or _check_collectible_click(event.position):
 					pass
 				else:
 					var tower = _find_tower_at(event.position)
@@ -18778,7 +18774,7 @@ func _perform_gear_fusion(rarity: String) -> Dictionary:
 				wish_candidates.append(c)
 		if wish_candidates.size() > 0:
 			picked = wish_candidates[randi() % wish_candidates.size()]
-	owned_bindings.append(picked["id"])
+	owned_bindings[picked["id"]] = owned_bindings.get(picked["id"], 0) + 1
 	_save_game()
 	return picked
 
@@ -19492,10 +19488,10 @@ func _reroll_gear(binding_id: String) -> Dictionary:
 		if b.get("rarity", "") == current_rarity and b["id"] != binding_id:
 			candidates.append(b)
 	if candidates.is_empty():
-		owned_bindings.append(binding_id)  # Give back if no alternatives
+		owned_bindings[binding_id] = owned_bindings.get(binding_id, 0) + 1  # Give back if no alternatives
 		return {}
 	var picked = candidates[randi() % candidates.size()]
-	owned_bindings.append(picked["id"])
+	owned_bindings[picked["id"]] = owned_bindings.get(picked["id"], 0) + 1
 	_save_game()
 	return picked
 
@@ -24700,16 +24696,16 @@ func enemy_died(enemy_node = null) -> void:
 		for bounty in _active_bounties:
 			if bounty["progress"] >= bounty["target"]:
 				continue
-			var match = false
+			var matched = false
 			if bounty["kill_type"] == "any":
-				match = true
+				matched = true
 			elif bounty["kill_type"] == "boss" and is_boss:
-				match = true
+				matched = true
 			elif bounty["kill_type"] == "tier3" and e_tier >= 3:
-				match = true
+				matched = true
 			elif bounty["kill_type"] == "tier2" and e_tier >= 2:
-				match = true
-			if match:
+				matched = true
+			if matched:
 				bounty["progress"] += 1
 				if bounty["progress"] >= bounty["target"]:
 					_bounties_completed_total += 1
@@ -25205,9 +25201,6 @@ func game_over() -> void:
 						survivor_progress[tt]["level"] += 1
 						survivor_progress[tt]["xp_next"] = _get_xp_for_level(survivor_progress[tt]["level"])
 						_on_survivor_level_up(tt, survivor_progress[tt]["level"])
-	# BATTD2: Award insta-tower on 3-star victories (20% chance)
-	if stars >= 3 and randf() < 0.20:
-		_award_insta_tower()
 	# BATTD: Collect post-victory stats
 	_session_stats.clear()
 	_session_stats["total_gold_earned"] = total_gold_earned
@@ -28188,7 +28181,7 @@ func _build_session_stats() -> void:
 	session_stats["gold_earned"] = total_gold_earned
 	session_stats["gold_spent"] = total_gold_spent
 	session_stats["enemies_killed"] = total_enemies_killed
-	session_stats["waves_survived"] = current_wave
+	session_stats["waves_survived"] = wave
 	session_stats["lives_lost"] = current_game_lives_lost
 	# Per-tower DPS
 	var tower_dps: Array = []
@@ -28254,13 +28247,6 @@ func _draw_session_recap() -> void:
 	var close_y = py + 10.0
 	_udraw(font, Vector2(close_x, close_y + 16), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.3, 0.2, 0.8))
 
-func _format_number(val: float) -> String:
-	if val >= 1000000:
-		return "%.1fM" % (val / 1000000.0)
-	if val >= 1000:
-		return "%.1fK" % (val / 1000.0)
-	return str(int(val))
-
 # ============================================================================
 # === BATTD3: CAREER STATS ===
 # ============================================================================
@@ -28270,7 +28256,7 @@ func _update_career_stats_post_game(won: bool) -> void:
 		career_stats["total_games_won"] = career_stats.get("total_games_won", 0) + 1
 	else:
 		career_stats["total_games_lost"] = career_stats.get("total_games_lost", 0) + 1
-	career_stats["total_waves_survived"] = career_stats.get("total_waves_survived", 0) + current_wave
+	career_stats["total_waves_survived"] = career_stats.get("total_waves_survived", 0) + wave
 	career_stats["total_gold_earned_lifetime"] = career_stats.get("total_gold_earned_lifetime", 0) + total_gold_earned
 	career_stats["total_gold_spent_lifetime"] = career_stats.get("total_gold_spent_lifetime", 0) + total_gold_spent
 	career_stats["total_towers_placed_lifetime"] = career_stats.get("total_towers_placed_lifetime", 0) + total_towers_placed

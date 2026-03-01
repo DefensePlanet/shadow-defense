@@ -217,6 +217,7 @@ func _exit_tree() -> void:
 			tower.fire_rate = tower.get_meta("tinker_bell_base_rate")
 			tower.remove_meta("tinker_bell_boosted")
 			tower.remove_meta("tinker_bell_base_rate")
+	_remove_fairy_dust_buffs()
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -498,9 +499,6 @@ func _remove_fairy_dust_buffs() -> void:
 			if "attack_range" in tower:
 				tower.attack_range /= 1.03
 	_fairy_dust_buffed_towers.clear()
-
-func _exit_tree() -> void:
-	_remove_fairy_dust_buffs()
 
 func purchase_upgrade() -> bool:
 	if upgrade_tier >= 4:
