@@ -4158,19 +4158,28 @@ func _create_ui() -> void:
 	sep.size = Vector2(180, 1)
 	upgrade_panel.add_child(sep)
 
-	# Portrait area placeholder
-	var portrait_bg = ColorRect.new()
-	portrait_bg.color = Color(0.06, 0.03, 0.09, 0.8)
-	portrait_bg.position = Vector2(50, 50)
-	portrait_bg.size = Vector2(100, 80)
-	upgrade_panel.add_child(portrait_bg)
-
+	# Portrait area — border behind, dark bg, then drawable Control on top
 	var portrait_border = ColorRect.new()
 	portrait_border.color = Color(0.85, 0.65, 0.1, 0.3)
 	portrait_border.position = Vector2(48, 48)
 	portrait_border.size = Vector2(104, 84)
 	portrait_border.z_index = -1
 	upgrade_panel.add_child(portrait_border)
+
+	var portrait_bg = ColorRect.new()
+	portrait_bg.color = Color(0.06, 0.03, 0.09, 0.8)
+	portrait_bg.position = Vector2(50, 50)
+	portrait_bg.size = Vector2(100, 80)
+	upgrade_panel.add_child(portrait_bg)
+
+	# Drawable Control for portrait (renders inside the UI layer)
+	var portrait_draw_ctrl = Control.new()
+	portrait_draw_ctrl.name = "PortraitDraw"
+	portrait_draw_ctrl.position = Vector2(50, 50)
+	portrait_draw_ctrl.size = Vector2(100, 80)
+	portrait_draw_ctrl.clip_contents = true
+	portrait_draw_ctrl.draw.connect(_on_portrait_draw.bind(portrait_draw_ctrl))
+	upgrade_panel.add_child(portrait_draw_ctrl)
 
 	# Targeting priority button (between portrait and upgrades)
 	targeting_button = Button.new()
@@ -4238,33 +4247,33 @@ func _create_ui() -> void:
 		status_rect.add_child(cost_label)
 		upgrade_cost_labels.append(cost_label)
 
-	# Sell button at bottom
-	sell_button = Button.new()
-	sell_button.text = "SELL"
-	sell_button.position = Vector2(20, 588)
-	sell_button.custom_minimum_size = Vector2(160, 44)
-	sell_button.pressed.connect(_on_sell_pressed)
-	upgrade_panel.add_child(sell_button)
-
-	# Sell value label
-	sell_value_label = Label.new()
-	sell_value_label.position = Vector2(20, 636)
-	sell_value_label.size = Vector2(160, 20)
-	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sell_value_label.add_theme_font_size_override("font_size", 14)
-	sell_value_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
-	upgrade_panel.add_child(sell_value_label)
-
-	# Hero ability button (in upgrade panel)
+	# Hero ability button (above sell button)
 	var hero_ability_button = Button.new()
 	hero_ability_button.name = "HeroAbilityBtn"
 	hero_ability_button.text = "ABILITY"
-	hero_ability_button.position = Vector2(20, 570)
-	hero_ability_button.custom_minimum_size = Vector2(70, 34)
-	hero_ability_button.add_theme_font_size_override("font_size", 11)
+	hero_ability_button.position = Vector2(10, 560)
+	hero_ability_button.custom_minimum_size = Vector2(180, 28)
+	hero_ability_button.add_theme_font_size_override("font_size", 12)
 	hero_ability_button.visible = false
 	hero_ability_button.pressed.connect(_on_hero_ability_pressed)
 	upgrade_panel.add_child(hero_ability_button)
+
+	# Sell button
+	sell_button = Button.new()
+	sell_button.text = "SELL"
+	sell_button.position = Vector2(20, 594)
+	sell_button.custom_minimum_size = Vector2(160, 36)
+	sell_button.pressed.connect(_on_sell_pressed)
+	upgrade_panel.add_child(sell_button)
+
+	# Sell value / refund label
+	sell_value_label = Label.new()
+	sell_value_label.position = Vector2(20, 634)
+	sell_value_label.size = Vector2(160, 20)
+	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sell_value_label.add_theme_font_size_override("font_size", 13)
+	sell_value_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
+	upgrade_panel.add_child(sell_value_label)
 
 	# === MAIN MENU OVERLAY ===
 	menu_overlay = ColorRect.new()
@@ -24523,6 +24532,11 @@ func _update_upgrade_panel() -> void:
 		else:
 			hab.visible = false
 
+	# Trigger portrait redraw for the selected tower
+	var portrait_ctrl = upgrade_panel.get_node_or_null("PortraitDraw")
+	if portrait_ctrl:
+		portrait_ctrl.queue_redraw()
+
 	upgrade_panel.visible = true
 
 func _hide_upgrade_panel() -> void:
@@ -27606,6 +27620,165 @@ func _purchase_branch_upgrade(tower_node, tower_type_int: int, branch: String, t
 	update_hud()
 	queue_redraw()
 	return true
+
+func _on_portrait_draw(ctrl: Control) -> void:
+	if not selected_tower_node or not is_instance_valid(selected_tower_node):
+		return
+	# Local coordinates within 100x80 Control
+	var cx = 50.0
+	var cy = 40.0
+	var s = 0.8
+
+	var tower_type_int: int = -1
+	if selected_tower_node.has_meta("tower_type_enum"):
+		tower_type_int = int(selected_tower_node.get_meta("tower_type_enum"))
+
+	match tower_type_int:
+		TowerType.ROBIN_HOOD:
+			var skin = Color(0.91, 0.74, 0.58)
+			var tunic = Color(0.15, 0.55, 0.12)
+			ctrl.draw_rect(Rect2(cx - 15 * s, cy + 5 * s, 30 * s, 25 * s), tunic)
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 12 * s, skin)
+			var hat = PackedVector2Array([Vector2(cx - 14 * s, cy - 10 * s), Vector2(cx, cy - 30 * s), Vector2(cx + 14 * s, cy - 10 * s)])
+			ctrl.draw_colored_polygon(hat, tunic)
+			ctrl.draw_line(Vector2(cx + 5 * s, cy - 22 * s), Vector2(cx + 14 * s, cy - 32 * s), Color(0.85, 0.15, 0.1), 2.0)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 7 * s), 1.5 * s, Color(0.25, 0.45, 0.2))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 7 * s), 1.5 * s, Color(0.25, 0.45, 0.2))
+		TowerType.ALICE:
+			var skin = Color(0.95, 0.84, 0.73)
+			var dress = Color(0.45, 0.72, 0.95)
+			ctrl.draw_rect(Rect2(cx - 14 * s, cy + 5 * s, 28 * s, 25 * s), Color(0.92, 0.93, 0.98))
+			ctrl.draw_rect(Rect2(cx - 12 * s, cy + 5 * s, 24 * s, 10 * s), dress)
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 12 * s, skin)
+			ctrl.draw_arc(Vector2(cx, cy - 8 * s), 13 * s, PI + 0.3, TAU - 0.3, 16, Color(0.92, 0.82, 0.45), 4 * s)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 7 * s), 1.5 * s, Color(0.3, 0.5, 0.85))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 7 * s), 1.5 * s, Color(0.3, 0.5, 0.85))
+			ctrl.draw_circle(Vector2(cx, cy + 7 * s), 3 * s, dress)
+		TowerType.WICKED_WITCH:
+			var skin = Color(0.38, 0.55, 0.28)
+			var dress = Color(0.08, 0.06, 0.10)
+			ctrl.draw_rect(Rect2(cx - 14 * s, cy + 5 * s, 28 * s, 25 * s), dress)
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 12 * s, skin)
+			var wh = PackedVector2Array([Vector2(cx - 16 * s, cy - 10 * s), Vector2(cx, cy - 38 * s), Vector2(cx + 16 * s, cy - 10 * s)])
+			ctrl.draw_colored_polygon(wh, dress)
+			ctrl.draw_line(Vector2(cx - 18 * s, cy - 10 * s), Vector2(cx + 18 * s, cy - 10 * s), dress, 3 * s)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 7 * s), 2 * s, Color(0.7, 0.85, 0.15))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 7 * s), 2 * s, Color(0.7, 0.85, 0.15))
+		TowerType.PETER_PAN:
+			var skin = Color(0.93, 0.78, 0.62)
+			var tunic = Color(0.18, 0.60, 0.15)
+			ctrl.draw_rect(Rect2(cx - 13 * s, cy + 5 * s, 26 * s, 25 * s), tunic)
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 11 * s, skin)
+			for hi in range(5):
+				var hx = cx + (-8.0 + float(hi) * 4.0) * s
+				ctrl.draw_line(Vector2(hx, cy - 14 * s), Vector2(hx + 2 * s, cy - 22 * s), Color(0.55, 0.28, 0.12), 2.0)
+			var pp = PackedVector2Array([Vector2(cx - 12 * s, cy - 12 * s), Vector2(cx + 4 * s, cy - 28 * s), Vector2(cx + 12 * s, cy - 12 * s)])
+			ctrl.draw_colored_polygon(pp, tunic)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 7 * s), 1.5 * s, Color(0.3, 0.55, 0.25))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 7 * s), 1.5 * s, Color(0.3, 0.55, 0.25))
+		TowerType.PHANTOM:
+			var tux = Color(0.05, 0.05, 0.08)
+			var cape_red = Color(0.85, 0.08, 0.12)
+			ctrl.draw_rect(Rect2(cx - 16 * s, cy + 2 * s, 32 * s, 28 * s), cape_red)
+			ctrl.draw_rect(Rect2(cx - 13 * s, cy + 5 * s, 26 * s, 25 * s), tux)
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 11 * s, Color(0.92, 0.88, 0.85))
+			ctrl.draw_arc(Vector2(cx, cy - 5 * s), 11 * s, PI, TAU, 16, Color(0.98, 0.97, 0.96), 3 * s)
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 7 * s), 1.5 * s, Color(0.2, 0.2, 0.25))
+		TowerType.SCROOGE:
+			var coat = Color(0.12, 0.10, 0.08)
+			var skin = Color(0.88, 0.76, 0.62)
+			ctrl.draw_rect(Rect2(cx - 14 * s, cy + 5 * s, 28 * s, 25 * s), coat)
+			ctrl.draw_rect(Rect2(cx - 8 * s, cy + 5 * s, 16 * s, 18 * s), Color(0.78, 0.65, 0.15))
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 11 * s, skin)
+			ctrl.draw_rect(Rect2(cx - 8 * s, cy - 30 * s, 16 * s, 18 * s), coat)
+			ctrl.draw_rect(Rect2(cx - 12 * s, cy - 14 * s, 24 * s, 4 * s), coat)
+			ctrl.draw_circle(Vector2(cx - 3 * s, cy - 7 * s), 1.2 * s, Color(0.2, 0.15, 0.1))
+			ctrl.draw_circle(Vector2(cx + 3 * s, cy - 7 * s), 1.2 * s, Color(0.2, 0.15, 0.1))
+		TowerType.SHERLOCK:
+			var cape = Color(0.35, 0.25, 0.15)
+			var skin = Color(0.90, 0.78, 0.65)
+			ctrl.draw_rect(Rect2(cx - 16 * s, cy + 2 * s, 32 * s, 28 * s), cape)
+			ctrl.draw_rect(Rect2(cx - 13 * s, cy + 5 * s, 26 * s, 25 * s), Color(0.30, 0.22, 0.12))
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 11 * s, skin)
+			ctrl.draw_rect(Rect2(cx - 10 * s, cy - 20 * s, 20 * s, 10 * s), Color(0.35, 0.25, 0.15))
+			ctrl.draw_rect(Rect2(cx - 14 * s, cy - 12 * s, 8 * s, 5 * s), Color(0.35, 0.25, 0.15))
+			ctrl.draw_rect(Rect2(cx + 6 * s, cy - 12 * s, 8 * s, 5 * s), Color(0.35, 0.25, 0.15))
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 7 * s), 1.5 * s, Color(0.35, 0.45, 0.35))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 7 * s), 1.5 * s, Color(0.35, 0.45, 0.35))
+			ctrl.draw_line(Vector2(cx + 6 * s, cy - 1 * s), Vector2(cx + 16 * s, cy + 5 * s), Color(0.4, 0.25, 0.12), 2.0)
+		TowerType.TARZAN:
+			var skin = Color(0.72, 0.52, 0.35)
+			ctrl.draw_circle(Vector2(cx, cy + 5 * s), 14 * s, skin)
+			ctrl.draw_circle(Vector2(cx, cy - 10 * s), 11 * s, skin)
+			for hi in range(7):
+				var hx = cx + (-9.0 + float(hi) * 3.0) * s
+				ctrl.draw_line(Vector2(hx, cy - 18 * s), Vector2(hx + randf_range(-3, 3) * s, cy - 28 * s), Color(0.25, 0.15, 0.08), 2.0)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 12 * s), 1.5 * s, Color(0.35, 0.25, 0.12))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 12 * s), 1.5 * s, Color(0.35, 0.25, 0.12))
+			ctrl.draw_line(Vector2(cx - 10 * s, cy + 2 * s), Vector2(cx + 10 * s, cy + 15 * s), Color(0.45, 0.30, 0.15), 3.0)
+		TowerType.DRACULA:
+			var skin = Color(0.88, 0.85, 0.82)
+			var cape = Color(0.08, 0.05, 0.12)
+			ctrl.draw_rect(Rect2(cx - 17 * s, cy - 5 * s, 34 * s, 35 * s), cape)
+			ctrl.draw_rect(Rect2(cx - 15 * s, cy + 5 * s, 6 * s, 25 * s), Color(0.70, 0.08, 0.08))
+			ctrl.draw_rect(Rect2(cx + 9 * s, cy + 5 * s, 6 * s, 25 * s), Color(0.70, 0.08, 0.08))
+			ctrl.draw_line(Vector2(cx - 12 * s, cy - 5 * s), Vector2(cx - 8 * s, cy - 18 * s), cape, 3.0)
+			ctrl.draw_line(Vector2(cx + 12 * s, cy - 5 * s), Vector2(cx + 8 * s, cy - 18 * s), cape, 3.0)
+			ctrl.draw_circle(Vector2(cx, cy - 8 * s), 10 * s, skin)
+			ctrl.draw_arc(Vector2(cx, cy - 10 * s), 11 * s, PI + 0.4, TAU - 0.4, 12, Color(0.05, 0.02, 0.08), 3 * s)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 10 * s), 1.8 * s, Color(0.80, 0.10, 0.10))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 10 * s), 1.8 * s, Color(0.80, 0.10, 0.10))
+			ctrl.draw_line(Vector2(cx - 2 * s, cy - 3 * s), Vector2(cx - 2 * s, cy + 1 * s), Color(0.95, 0.95, 0.9), 1.0)
+			ctrl.draw_line(Vector2(cx + 2 * s, cy - 3 * s), Vector2(cx + 2 * s, cy + 1 * s), Color(0.95, 0.95, 0.9), 1.0)
+		TowerType.MERLIN:
+			var robe = Color(0.22, 0.10, 0.55)
+			var mgold = Color(0.92, 0.78, 0.18)
+			ctrl.draw_rect(Rect2(cx - 14 * s, cy + 2 * s, 28 * s, 28 * s), robe)
+			ctrl.draw_rect(Rect2(cx - 3 * s, cy + 2 * s, 6 * s, 28 * s), mgold)
+			ctrl.draw_circle(Vector2(cx, cy - 5 * s), 11 * s, Color(0.90, 0.82, 0.72))
+			var beard = PackedVector2Array([Vector2(cx - 8 * s, cy - 1 * s), Vector2(cx, cy + 18 * s), Vector2(cx + 8 * s, cy - 1 * s)])
+			ctrl.draw_colored_polygon(beard, Color(0.92, 0.90, 0.88))
+			var wiz = PackedVector2Array([Vector2(cx - 12 * s, cy - 12 * s), Vector2(cx + 2 * s, cy - 40 * s), Vector2(cx + 12 * s, cy - 12 * s)])
+			ctrl.draw_colored_polygon(wiz, robe)
+			ctrl.draw_circle(Vector2(cx + 1 * s, cy - 25 * s), 2 * s, mgold)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 7 * s), 1.3 * s, Color(0.3, 0.4, 0.7))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 7 * s), 1.3 * s, Color(0.3, 0.4, 0.7))
+		TowerType.FRANKENSTEIN:
+			var skin = Color(0.55, 0.70, 0.45)
+			var clothes = Color(0.15, 0.12, 0.10)
+			ctrl.draw_rect(Rect2(cx - 16 * s, cy + 2 * s, 32 * s, 28 * s), clothes)
+			ctrl.draw_rect(Rect2(cx - 11 * s, cy - 20 * s, 22 * s, 22 * s), skin)
+			ctrl.draw_rect(Rect2(cx - 11 * s, cy - 22 * s, 22 * s, 4 * s), Color(0.12, 0.10, 0.08))
+			ctrl.draw_circle(Vector2(cx - 12 * s, cy - 5 * s), 2.5 * s, Color(0.58, 0.58, 0.63))
+			ctrl.draw_circle(Vector2(cx + 12 * s, cy - 5 * s), 2.5 * s, Color(0.58, 0.58, 0.63))
+			ctrl.draw_line(Vector2(cx - 6 * s, cy - 16 * s), Vector2(cx + 6 * s, cy - 16 * s), Color(0.3, 0.2, 0.15), 1.5)
+			for sti in range(4):
+				var stx = cx + (-4.0 + float(sti) * 3.0) * s
+				ctrl.draw_line(Vector2(stx, cy - 18 * s), Vector2(stx, cy - 14 * s), Color(0.3, 0.2, 0.15), 1.0)
+			ctrl.draw_circle(Vector2(cx - 4 * s, cy - 10 * s), 2 * s, Color(0.35, 0.45, 0.30))
+			ctrl.draw_circle(Vector2(cx + 4 * s, cy - 10 * s), 2 * s, Color(0.35, 0.45, 0.30))
+		TowerType.SHADOW_AUTHOR:
+			var cloak = Color(0.06, 0.02, 0.1, 0.9)
+			var sa_pts = PackedVector2Array()
+			sa_pts.append(Vector2(cx - 12 * s, cy - 15 * s))
+			sa_pts.append(Vector2(cx - 15 * s, cy + 5 * s))
+			sa_pts.append(Vector2(cx - 10 * s, cy + 22 * s))
+			sa_pts.append(Vector2(cx, cy + 24 * s))
+			sa_pts.append(Vector2(cx + 10 * s, cy + 22 * s))
+			sa_pts.append(Vector2(cx + 15 * s, cy + 5 * s))
+			sa_pts.append(Vector2(cx + 12 * s, cy - 15 * s))
+			ctrl.draw_colored_polygon(sa_pts, cloak)
+			var hood = PackedVector2Array([Vector2(cx - 12 * s, cy - 14 * s), Vector2(cx, cy - 32 * s), Vector2(cx + 12 * s, cy - 14 * s)])
+			ctrl.draw_colored_polygon(hood, Color(0.04, 0.01, 0.08, 0.95))
+			var void_pts = PackedVector2Array([Vector2(cx - 7 * s, cy - 14 * s), Vector2(cx, cy - 26 * s), Vector2(cx + 7 * s, cy - 14 * s)])
+			ctrl.draw_colored_polygon(void_pts, Color(0.0, 0.0, 0.0))
+			ctrl.draw_circle(Vector2(cx, cy - 18 * s), 1.5 * s, Color(0.9, 0.08, 0.02, 0.85))
+			ctrl.draw_circle(Vector2(cx, cy - 18 * s), 3 * s, Color(0.7, 0.04, 0.01, 0.2))
+			ctrl.draw_line(Vector2(cx + 12 * s, cy), Vector2(cx + 16 * s, cy - 25 * s), Color(0.7, 0.06, 0.03, 0.8), 2.0)
+			ctrl.draw_circle(Vector2(cx + 16 * s, cy - 25 * s), 2 * s, Color(0.95, 0.12, 0.02, 0.85))
+		_:
+			ctrl.draw_circle(Vector2(cx, cy), 15 * s, Color(0.5, 0.4, 0.6, 0.5))
+			ctrl.draw_circle(Vector2(cx, cy - 15 * s), 10 * s, Color(0.6, 0.5, 0.7, 0.5))
 
 func _draw_branch_upgrade_panel() -> void:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):

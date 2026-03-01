@@ -1,10 +1,10 @@
 extends Node2D
 ## Shadow Author — Premium late-game tower unlocked by completing levels 34-36.
-## Ink-based attacks with shadow/rewrite abilities.
-## Tier 1 (5000 DMG): Ink Cloud — AoE slow + DoT in area
-## Tier 2 (10000 DMG): Rewrite — teleports target enemy backward on path
-## Tier 3 (15000 DMG): Shadow Servants — summons 2 shadow minions
-## Tier 4 (20000 DMG): The Final Word — periodic massive AoE burst
+## Black smoke chain attack hits multiple enemies. Upgrades increase chain count.
+## Tier 1 (5000 DMG): Ink Torrent — chain +1, attacks apply ink DoT
+## Tier 2 (10000 DMG): Plot Twist — chain +1, reverses enemies backward on path
+## Tier 3 (15000 DMG): Ghostwriter — chain +1, summons spectral ink copies
+## Tier 4 (20000 DMG): The Final Chapter — chain +2, %maxHP + execute low HP
 
 # Base stats
 var damage: float = 30.0
@@ -16,6 +16,13 @@ var target: Node2D = null
 var gold_bonus: int = 1
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
+
+# Chain smoke attack
+var _chain_count: int = 3  # Base: hits 3 enemies
+var _chain_targets: Array = []  # Stores last chain hit positions for visual
+var _chain_flash: float = 0.0  # Visual timer for smoke trail
+const CHAIN_DAMAGE_FALLOFF: float = 0.85  # 85% damage per hop
+const CHAIN_SEARCH_RANGE: float = 160.0  # Max distance to chain to next enemy
 
 # Animation timers
 var _time: float = 0.0
@@ -29,27 +36,26 @@ var upgrade_tier: int = 0
 var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
 
-# Ink Cloud ability (Tier 1)
-var _ink_cloud_timer: float = 8.0
-var _ink_cloud_cooldown: float = 8.0
-var _ink_cloud_active: bool = false
-var _ink_cloud_pos: Vector2 = Vector2.ZERO
-var _ink_cloud_life: float = 0.0
+# Ink Torrent ability (Tier 1) — chain attacks apply ink DoT
+var _ink_dot_dps: float = 0.0  # Set on upgrade
+var _ink_dot_duration: float = 3.0
 
-# Rewrite ability (Tier 2)
-var _rewrite_timer: float = 12.0
-var _rewrite_cooldown: float = 12.0
-var _rewrite_flash: float = 0.0
+# Plot Twist ability (Tier 2) — reverses enemies backward on path
+var _plot_twist_timer: float = 10.0
+var _plot_twist_cooldown: float = 10.0
+var _plot_twist_flash: float = 0.0
+var _plot_twist_count: int = 5  # How many enemies to reverse
 
-# Shadow Servants (Tier 3)
-var _servant_timer: float = 20.0
-var _servant_cooldown: float = 20.0
-var _servants: Array = []  # {pos, target, life, angle}
+# Ghostwriter ability (Tier 3) — summons spectral ink copies
+var _ghostwriter_timer: float = 15.0
+var _ghostwriter_cooldown: float = 15.0
+var _ghosts: Array = []  # {pos, life, angle, attack_timer, target_pos}
 
-# The Final Word (Tier 4)
-var _final_word_timer: float = 30.0
-var _final_word_cooldown: float = 30.0
-var _final_word_flash: float = 0.0
+# The Final Chapter ability (Tier 4) — %maxHP + execute
+var _final_chapter_timer: float = 20.0
+var _final_chapter_cooldown: float = 20.0
+var _final_chapter_flash: float = 0.0
+var _final_chapter_book_open: float = 0.0  # Animation for opening book
 
 # Progressive abilities (9 tiers, unlocked via lifetime damage)
 const PROG_ABILITY_NAMES = [
@@ -89,18 +95,18 @@ var stat_upgrade_level: int = 0
 var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
-	"Ink Cloud",
-	"Rewrite",
-	"Shadow Servants",
-	"The Final Word"
+	"Ink Torrent",
+	"Plot Twist",
+	"Ghostwriter",
+	"The Final Chapter"
 ]
 const ABILITY_DESCRIPTIONS = [
-	"AoE slow + DoT cloud in area",
-	"Teleport target backward on path",
-	"Summon 2 shadow minions that attack",
-	"Massive AoE burst every 30s"
+	"Chain +1, attacks apply ink DoT to all targets",
+	"Chain +1, every 10s reverse 5 enemies backward",
+	"Chain +1, summon 3 spectral ink warriors",
+	"Chain +2, %maxHP blast + execute enemies below 15%"
 ]
-const TIER_COSTS = [200, 450, 850, 1500]
+const TIER_COSTS = [400, 900, 1700, 3000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -172,8 +178,10 @@ func _process(delta: float) -> void:
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	_quill_flash = max(_quill_flash - delta * 4.0, 0.0)
-	_final_word_flash = max(_final_word_flash - delta * 2.0, 0.0)
-	_rewrite_flash = max(_rewrite_flash - delta * 3.0, 0.0)
+	_chain_flash = max(_chain_flash - delta * 2.5, 0.0)
+	_plot_twist_flash = max(_plot_twist_flash - delta * 2.0, 0.0)
+	_final_chapter_flash = max(_final_chapter_flash - delta * 1.5, 0.0)
+	_final_chapter_book_open = max(_final_chapter_book_open - delta * 1.0, 0.0)
 	_ink_storm_flash = max(_ink_storm_flash - delta * 2.0, 0.0)
 	_rewrite_reality_flash = max(_rewrite_reality_flash - delta * 2.0, 0.0)
 	target = _find_nearest_enemy()
@@ -190,41 +198,27 @@ func _process(delta: float) -> void:
 			_attack_anim = 1.0
 			_quill_flash = 1.0
 
-	# Ink Cloud (Tier 1+)
-	if upgrade_tier >= 1:
-		if _ink_cloud_active:
-			_ink_cloud_life -= delta
-			if _ink_cloud_life <= 0.0:
-				_ink_cloud_active = false
-			else:
-				_ink_cloud_damage(delta)
-		else:
-			_ink_cloud_timer -= delta
-			if _ink_cloud_timer <= 0.0 and _has_enemies_in_range():
-				_deploy_ink_cloud()
-				_ink_cloud_timer = _ink_cloud_cooldown
-
-	# Rewrite (Tier 2+)
+	# Plot Twist (Tier 2+) — reverse enemies on the path
 	if upgrade_tier >= 2:
-		_rewrite_timer -= delta
-		if _rewrite_timer <= 0.0 and target:
-			_rewrite_enemy(target)
-			_rewrite_timer = _rewrite_cooldown
+		_plot_twist_timer -= delta
+		if _plot_twist_timer <= 0.0 and _has_enemies_in_range():
+			_plot_twist()
+			_plot_twist_timer = _plot_twist_cooldown
 
-	# Shadow Servants (Tier 3+)
+	# Ghostwriter (Tier 3+) — spectral ink copies
 	if upgrade_tier >= 3:
-		_servant_timer -= delta
-		if _servant_timer <= 0.0 and _has_enemies_in_range():
-			_summon_servants()
-			_servant_timer = _servant_cooldown
-		_update_servants(delta)
+		_ghostwriter_timer -= delta
+		if _ghostwriter_timer <= 0.0 and _has_enemies_in_range():
+			_summon_ghosts()
+			_ghostwriter_timer = _ghostwriter_cooldown
+		_update_ghosts(delta)
 
-	# The Final Word (Tier 4)
+	# The Final Chapter (Tier 4) — %maxHP + execute
 	if upgrade_tier >= 4:
-		_final_word_timer -= delta
-		if _final_word_timer <= 0.0 and _has_enemies_in_range():
-			_the_final_word()
-			_final_word_timer = _final_word_cooldown
+		_final_chapter_timer -= delta
+		if _final_chapter_timer <= 0.0 and _has_enemies_in_range():
+			_the_final_chapter()
+			_final_chapter_timer = _final_chapter_cooldown
 
 	# Progressive abilities
 	# Shield (ability 1)
@@ -337,6 +331,8 @@ func get_targeting_label() -> String:
 		3: return "STRONG"
 	return "FIRST"
 
+# === BLACK SMOKE CHAIN ATTACK ===
+
 func _attack() -> void:
 	if not target:
 		return
@@ -346,31 +342,45 @@ func _attack() -> void:
 
 	var eff_damage = damage * _damage_mult()
 	_attack_count += 1
+	_chain_targets.clear()
 
-	# Apply damage to target
+	# Build list of chain targets: primary + nearby enemies chaining from each hit
+	var hit_enemies: Array = [target]
+	_chain_targets.append(target.global_position)
+	var current_dmg = eff_damage
+
+	# Hit primary target
 	if target.has_method("take_damage"):
-		target.take_damage(eff_damage, "magic")
-		register_damage(eff_damage)
+		target.take_damage(current_dmg, "magic")
+		register_damage(current_dmg)
+		_apply_chain_effects(target, current_dmg)
 
-	# Ability 2: Corrupting Touch — 3s DoT
-	if prog_abilities[2] and target.has_method("take_damage"):
-		target.dot_dps = max(target.dot_dps, eff_damage * 0.2)
-		target.dot_timer = max(target.dot_timer, 3.0)
+	# Chain to additional enemies
+	var last_pos = target.global_position
+	for _chain_i in range(_chain_count - 1):
+		current_dmg *= CHAIN_DAMAGE_FALLOFF
+		var next_target = _find_chain_target(last_pos, hit_enemies)
+		if next_target == null:
+			break
+		hit_enemies.append(next_target)
+		_chain_targets.append(next_target.global_position)
+		if next_target.has_method("take_damage"):
+			next_target.take_damage(current_dmg, "magic")
+			register_damage(current_dmg)
+			_apply_chain_effects(next_target, current_dmg)
+		last_pos = next_target.global_position
+
+	_chain_flash = 1.0
 
 	# Ability 3: Page Tear — AoE every 5th attack
 	if prog_abilities[3] and _attack_count % 5 == 0:
 		var aoe_range = 60.0
 		for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
-			if enemy != target and global_position.distance_to(enemy.global_position) < aoe_range + attack_range * _range_mult():
+			if not enemy in hit_enemies and global_position.distance_to(enemy.global_position) < aoe_range + attack_range * _range_mult():
 				if enemy.has_method("take_damage"):
 					var aoe_dmg = eff_damage * 0.5
 					enemy.take_damage(aoe_dmg, "magic")
 					register_damage(aoe_dmg)
-
-	# Ability 4: Mind Control — 5% charm
-	if prog_abilities[4] and randf() < 0.05:
-		if target.has_method("apply_charm"):
-			target.apply_charm(3.0, 1.5)
 
 	# Gold bonus
 	var main = get_tree().get_first_node_in_group("main")
@@ -379,97 +389,152 @@ func _attack() -> void:
 		if gb > 0 and randf() < 0.15:
 			main.add_gold(gb)
 
-func _deploy_ink_cloud() -> void:
-	if not target:
-		return
-	_ink_cloud_active = true
-	_ink_cloud_pos = target.global_position
-	_ink_cloud_life = 4.0
+func _apply_chain_effects(enemy: Node2D, dmg: float) -> void:
+	# Tier 1: Ink Torrent — apply ink DoT to all chained targets
+	if upgrade_tier >= 1 and is_instance_valid(enemy):
+		if "dot_dps" in enemy and "dot_timer" in enemy:
+			enemy.dot_dps = max(enemy.dot_dps, dmg * 0.25)
+			enemy.dot_timer = max(enemy.dot_timer, _ink_dot_duration)
+	# Ability 2: Corrupting Touch — 3s DoT
+	if prog_abilities[2] and is_instance_valid(enemy):
+		if "dot_dps" in enemy and "dot_timer" in enemy:
+			enemy.dot_dps = max(enemy.dot_dps, dmg * 0.2)
+			enemy.dot_timer = max(enemy.dot_timer, 3.0)
+	# Ability 4: Mind Control — 5% charm
+	if prog_abilities[4] and randf() < 0.05:
+		if enemy.has_method("apply_charm"):
+			enemy.apply_charm(3.0, 1.5)
+
+func _find_chain_target(from_pos: Vector2, exclude: Array) -> Node2D:
+	var best: Node2D = null
+	var best_dist: float = CHAIN_SEARCH_RANGE
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if enemy in exclude:
+			continue
+		if enemy.has_method("is_targetable") and not enemy.is_targetable():
+			continue
+		var dist = from_pos.distance_to(enemy.global_position)
+		if dist < best_dist:
+			best = enemy
+			best_dist = dist
+	return best
+
+# === TIER ABILITIES ===
+
+# T2: Plot Twist — reverse enemies backward on the path
+func _plot_twist() -> void:
+	_plot_twist_flash = 1.0
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var in_range: Array = []
+	var eff_range = attack_range * _range_mult() * 1.2
+	for enemy in enemies:
+		if is_instance_valid(enemy) and global_position.distance_to(enemy.global_position) < eff_range:
+			in_range.append(enemy)
+	# Sort by progress (furthest first — most dangerous)
+	in_range.sort_custom(func(a, b): return a.progress_ratio > b.progress_ratio)
+	var count = mini(_plot_twist_count, in_range.size())
+	for i in range(count):
+		var enemy = in_range[i]
+		if is_instance_valid(enemy) and "progress" in enemy:
+			var rewrite_amount = enemy.progress * 0.25  # Send back 25%
+			enemy.progress -= rewrite_amount
+			enemy.progress = max(0.0, enemy.progress)
+		if is_instance_valid(enemy) and enemy.has_method("apply_slow"):
+			enemy.apply_slow(0.4, 2.0)  # Also slow them after reversal
 	if not _is_sfx_muted():
 		_ability_player.play()
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -50), "PLOT TWIST!", Color(0.7, 0.3, 0.9), 14.0, 1.5)
 
-func _ink_cloud_damage(delta: float) -> void:
-	var cloud_range = 80.0
-	var cloud_dmg = damage * 0.3 * _damage_mult() * delta
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
-		if _ink_cloud_pos.distance_to(enemy.global_position) < cloud_range:
-			if enemy.has_method("take_damage"):
-				enemy.take_damage(cloud_dmg, "magic")
-				register_damage(cloud_dmg)
-			# Slow enemies in cloud
-			if enemy.has_method("apply_slow"):
-				enemy.apply_slow(0.5, 0.5)
-
-func _rewrite_enemy(enemy: Node2D) -> void:
-	# Teleport enemy backward on path
-	if enemy and is_instance_valid(enemy) and "progress" in enemy:
-		var rewrite_amount = enemy.progress * 0.3  # Send back 30%
-		enemy.progress -= rewrite_amount
-		enemy.progress = max(0.0, enemy.progress)
-		_rewrite_flash = 1.0
-		if not _is_sfx_muted():
-			_ability_player.play()
-
-func _summon_servants() -> void:
-	_servants.clear()
-	for i in range(2):
-		var angle = randf() * TAU
-		_servants.append({
-			"pos": global_position + Vector2(cos(angle), sin(angle)) * 40.0,
-			"life": 8.0,
+# T3: Ghostwriter — summon 3 spectral ink warrior copies
+func _summon_ghosts() -> void:
+	_ghosts.clear()
+	for i in range(3):
+		var angle = TAU * float(i) / 3.0 + randf() * 0.5
+		_ghosts.append({
+			"pos": global_position + Vector2(cos(angle), sin(angle)) * 50.0,
+			"life": 10.0,
 			"angle": angle,
 			"attack_timer": 0.0,
+			"target_pos": Vector2.ZERO,
+			"attacking": false,
 		})
 	if not _is_sfx_muted():
 		_ability_player.play()
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -50), "GHOSTWRITER!", Color(0.5, 0.8, 1.0), 14.0, 1.5)
 
-func _update_servants(delta: float) -> void:
+func _update_ghosts(delta: float) -> void:
 	var to_remove: Array = []
-	for i in range(_servants.size()):
-		var s = _servants[i]
-		s["life"] -= delta
-		if s["life"] <= 0.0:
+	for i in range(_ghosts.size()):
+		var g = _ghosts[i]
+		g["life"] -= delta
+		if g["life"] <= 0.0:
 			to_remove.append(i)
 			continue
-		# Find and attack nearest enemy
-		s["attack_timer"] -= delta
-		if s["attack_timer"] <= 0.0:
+		g["attack_timer"] -= delta
+		if g["attack_timer"] <= 0.0:
+			# Find and attack nearest enemy
 			var nearest: Node2D = null
-			var nearest_dist: float = 120.0
+			var nearest_dist: float = 150.0
 			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("is_targetable") and not enemy.is_targetable():
 					continue
-				var dist = Vector2(s["pos"]).distance_to(enemy.global_position)
+				var dist = Vector2(g["pos"]).distance_to(enemy.global_position)
 				if dist < nearest_dist:
 					nearest = enemy
 					nearest_dist = dist
 			if nearest and nearest.has_method("take_damage"):
-				var servant_dmg = damage * 0.4 * _damage_mult()
-				nearest.take_damage(servant_dmg, "magic")
-				register_damage(servant_dmg)
-				s["angle"] = Vector2(s["pos"]).angle_to_point(nearest.global_position) + PI
-			s["attack_timer"] = 1.2
-		# Orbit around tower
-		s["angle"] += delta * 1.5
-		s["pos"] = global_position + Vector2(cos(s["angle"]), sin(s["angle"])) * 45.0
-	# Remove dead servants (reverse order)
-	for i in range(to_remove.size() - 1, -1, -1):
-		_servants.remove_at(to_remove[i])
+				var ghost_dmg = damage * 0.5 * _damage_mult()
+				nearest.take_damage(ghost_dmg, "magic")
+				register_damage(ghost_dmg)
+				g["target_pos"] = nearest.global_position
+				g["attacking"] = true
+				g["angle"] = Vector2(g["pos"]).angle_to_point(nearest.global_position) + PI
+				# Ghosts also apply ink DoT
+				if "dot_dps" in nearest and "dot_timer" in nearest:
+					nearest.dot_dps = max(nearest.dot_dps, ghost_dmg * 0.15)
+					nearest.dot_timer = max(nearest.dot_timer, 2.0)
+			else:
+				g["attacking"] = false
+			g["attack_timer"] = 0.8  # Fast attack rate
+		# Orbit around tower when not attacking
+		g["angle"] += delta * 2.0
+		var orbit_r = 55.0 + sin(_time * 1.5 + float(i) * 2.0) * 10.0
+		g["pos"] = global_position + Vector2(cos(g["angle"]), sin(g["angle"])) * orbit_r
+	for idx in range(to_remove.size() - 1, -1, -1):
+		_ghosts.remove_at(to_remove[idx])
 
-func _the_final_word() -> void:
-	_final_word_flash = 1.0
-	var burst_dmg = damage * 5.0 * _damage_mult()
-	var eff_range = attack_range * _range_mult() * 1.5
+# T4: The Final Chapter — %maxHP blast + execute low HP enemies
+func _the_final_chapter() -> void:
+	_final_chapter_flash = 1.0
+	_final_chapter_book_open = 1.5
+	var eff_range = attack_range * _range_mult() * 1.8
 	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if not is_instance_valid(enemy):
+			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(burst_dmg, "magic")
-				register_damage(burst_dmg)
+				# Deal 12% of max HP as true damage
+				var max_hp = enemy.max_health if "max_health" in enemy else 100.0
+				var pct_dmg = max_hp * 0.12
+				# Plus base damage multiplied
+				var base_dmg = damage * 3.0 * _damage_mult()
+				enemy.take_damage(pct_dmg + base_dmg, "true")
+				register_damage(pct_dmg + base_dmg)
+				# Execute enemies below 15% HP
+				var hp_ratio = enemy.health / max_hp if max_hp > 0.0 else 1.0
+				if hp_ratio < 0.15 and hp_ratio > 0.0:
+					enemy.take_damage(enemy.health + 1.0, "true")
+					register_damage(enemy.health)
 	if not _is_sfx_muted():
 		_ability_player.play()
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -55), "THE FINAL CHAPTER!", Color(0.9, 0.2, 0.1), 16.0, 2.0)
+
+# === PROGRESSIVE ABILITIES ===
 
 func _shadow_step() -> void:
-	# Teleport to random valid position
 	var main = get_tree().get_first_node_in_group("main")
 	if not main:
 		return
@@ -533,7 +598,7 @@ func register_damage(amount: float) -> void:
 		damage += 2.0
 		fire_rate += 0.026
 		attack_range += 1.5
-	# Tier upgrades
+	# Tier upgrades — each tier adds chain count
 	if upgrade_tier < 4:
 		var thresholds = [5000.0, 10000.0, 15000.0, 20000.0]
 		if damage_dealt >= thresholds[upgrade_tier]:
@@ -541,6 +606,12 @@ func register_damage(amount: float) -> void:
 			_upgrade_flash = 1.0
 			_upgrade_name = TIER_NAMES[upgrade_tier - 1]
 			_attack_sounds = _attack_sounds_by_tier[mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)]
+			# Increase chain count per tier
+			match upgrade_tier:
+				1: _chain_count = 4   # Ink Torrent: +1
+				2: _chain_count = 5   # Plot Twist: +1
+				3: _chain_count = 6   # Ghostwriter: +1
+				4: _chain_count = 8   # The Final Chapter: +2
 			if not _is_sfx_muted():
 				_upgrade_player.play()
 
@@ -559,9 +630,53 @@ func get_sell_value() -> int:
 		total += TIER_COSTS[i]
 	return int(total * 0.6)
 
+func get_tower_display_name() -> String:
+	return "Shadow Author"
+
+func purchase_upgrade() -> bool:
+	if upgrade_tier >= 4:
+		return false
+	var cost = TIER_COSTS[upgrade_tier]
+	var main_node = get_tree().get_first_node_in_group("main")
+	if not main_node or not main_node.spend_gold(cost):
+		return false
+	upgrade_tier += 1
+	_apply_upgrade(upgrade_tier)
+	_upgrade_flash = 3.0
+	_upgrade_name = TIER_NAMES[upgrade_tier - 1]
+	_attack_sounds = _attack_sounds_by_tier[mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)]
+	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
+	return true
+
+func _apply_upgrade(tier: int) -> void:
+	match tier:
+		1:  # Ink Torrent — chain +1, ink DoT
+			_chain_count = 4
+			_ink_dot_dps = damage * 0.25
+			damage = 34.0
+			fire_rate = 0.78
+			attack_range = 178.0
+		2:  # Plot Twist — chain +1, reverse enemies
+			_chain_count = 5
+			damage = 40.0
+			fire_rate = 0.85
+			attack_range = 188.0
+			gold_bonus = 2
+		3:  # Ghostwriter — chain +1, spectral copies
+			_chain_count = 6
+			damage = 48.0
+			fire_rate = 0.92
+			attack_range = 200.0
+			gold_bonus = 2
+		4:  # The Final Chapter — chain +2, %maxHP + execute
+			_chain_count = 8
+			damage = 58.0
+			fire_rate = 1.0
+			attack_range = 215.0
+			gold_bonus = 3
+
 func _generate_tier_sounds() -> void:
 	_attack_sounds_by_tier = []
-	# 5 tiers of sounds (base + 4 upgrades)
 	for tier in range(5):
 		var sounds: Array = []
 		for note_i in range(4):
@@ -569,16 +684,12 @@ func _generate_tier_sounds() -> void:
 			var dur := 0.2 + tier * 0.05
 			var samples := PackedFloat32Array()
 			samples.resize(int(rate * dur))
-			# Base frequency — dark ethereal whoosh
 			var base_freq := 180.0 + note_i * 40.0 + tier * 30.0
 			for i in samples.size():
 				var t := float(i) / rate
 				var env := minf(t * 80.0, 1.0) * exp(-t * (12.0 - tier * 1.5)) * 0.4
-				# Dark whoosh
 				var whoosh := sin(TAU * base_freq * t + sin(TAU * 8.0 * t) * 2.0) * env
-				# Ink splatter noise
 				var splat := (randf() * 2.0 - 1.0) * exp(-t * 25.0) * 0.15
-				# Sub bass
 				var sub := sin(TAU * 50.0 * t) * 0.1 * exp(-t * 8.0)
 				samples[i] = clampf(whoosh + splat + sub, -1.0, 1.0)
 			sounds.append(_samples_to_wav(samples, rate))
@@ -638,29 +749,41 @@ func set_meta_buffs(buffs: Dictionary) -> void:
 
 var power_damage_mult: float = 1.0
 
-# === ACTIVE HERO ABILITY: Narrative Collapse (massive damage to all, 45s CD) ===
+# === ACTIVE HERO ABILITY: Narrative Collapse ===
+# 10x damage to ALL enemies + mass slow + mass reverse + screen flash
 var active_ability_ready: bool = true
 var active_ability_cooldown: float = 0.0
 var active_ability_max_cd: float = 45.0
+var _narrative_collapse_flash: float = 0.0
 
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
+	_narrative_collapse_flash = 1.5
+	var total_hero_dmg: float = 0.0
 	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if is_instance_valid(e) and e.has_method("take_damage"):
-			var dmg = damage * 8.0 * _damage_mult()
+			var dmg = damage * 10.0 * _damage_mult()
 			e.take_damage(dmg, "magic")
 			register_damage(dmg)
+			total_hero_dmg += dmg
+			# Mass slow
+			if e.has_method("apply_slow"):
+				e.apply_slow(0.3, 4.0)
+			# Mass reverse — push back 20% on path
+			if is_instance_valid(e) and "progress" in e:
+				e.progress = max(0.0, e.progress - e.progress * 0.2)
 	active_ability_ready = false
 	active_ability_cooldown = active_ability_max_cd
 	if is_instance_valid(_main_node):
-		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "NARRATIVE COLLAPSE!", Color(0.6, 0.1, 0.8), 16.0, 1.5)
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "NARRATIVE COLLAPSE!", Color(0.9, 0.1, 0.15), 18.0, 2.0)
+		_main_node.spawn_floating_text(global_position + Vector2(0, -60), "\"THE END\"", Color(0.6, 0.1, 0.8), 22.0, 2.5)
 
 func get_active_ability_name() -> String:
 	return "Narrative Collapse"
 
 func get_active_ability_desc() -> String:
-	return "Damage ALL enemies (45s CD)"
+	return "10x DMG ALL + slow + reverse (45s CD)"
 
 func _damage_mult() -> float:
 	var mult: float = (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
@@ -709,32 +832,76 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0:
 		draw_circle(Vector2.ZERO, 60.0 + _upgrade_flash * 20.0, Color(0.4, 0.15, 0.6, _upgrade_flash * 0.25))
 
-	# === 6. FINAL WORD FLASH ===
-	if _final_word_flash > 0.0:
-		var flash_r = 60.0 + (1.0 - _final_word_flash) * 120.0
-		draw_circle(Vector2.ZERO, flash_r, Color(0.2, 0.05, 0.3, _final_word_flash * 0.2))
-		draw_arc(Vector2.ZERO, flash_r, 0, TAU, 32, Color(0.5, 0.2, 0.8, _final_word_flash * 0.4), 2.5)
+	# === 6. NARRATIVE COLLAPSE FLASH ===
+	if _narrative_collapse_flash > 0.0:
+		var nc_r = 80.0 + (1.5 - _narrative_collapse_flash) * 200.0
+		var nc_a = _narrative_collapse_flash / 1.5
+		draw_circle(Vector2.ZERO, nc_r, Color(0.1, 0.02, 0.15, nc_a * 0.3))
+		draw_arc(Vector2.ZERO, nc_r, 0, TAU, 48, Color(0.8, 0.1, 0.2, nc_a * 0.6), 3.0)
+		# Radiating dark tendrils
+		for ni in range(12):
+			var na = TAU * float(ni) / 12.0 + _time * 0.5
+			var n_inner = Vector2.from_angle(na) * 30.0
+			var n_outer = Vector2.from_angle(na) * nc_r
+			draw_line(n_inner, n_outer, Color(0.05, 0.0, 0.08, nc_a * 0.4), 2.0)
+		_narrative_collapse_flash = max(_narrative_collapse_flash - 0.016 * 1.0, 0.0)
 
-	# === 7. INK STORM FLASH ===
+	# === 7. FINAL CHAPTER FLASH ===
+	if _final_chapter_flash > 0.0:
+		var fc_r = 60.0 + (1.0 - _final_chapter_flash) * 150.0
+		draw_circle(Vector2.ZERO, fc_r, Color(0.15, 0.02, 0.02, _final_chapter_flash * 0.15))
+		draw_arc(Vector2.ZERO, fc_r, 0, TAU, 32, Color(0.9, 0.15, 0.1, _final_chapter_flash * 0.4), 2.5)
+	# Animated open book visual
+	if _final_chapter_book_open > 0.0:
+		var book_a = clampf(_final_chapter_book_open / 1.5, 0.0, 1.0)
+		var book_y = body_offset.y - 65.0
+		var book_w = 30.0 * book_a
+		# Left page
+		draw_rect(Rect2(-book_w + body_offset.x, book_y, book_w, 20.0), Color(0.12, 0.06, 0.02, book_a * 0.9))
+		# Right page
+		draw_rect(Rect2(body_offset.x, book_y, book_w, 20.0), Color(0.14, 0.07, 0.02, book_a * 0.9))
+		# Pages — cream colored
+		draw_rect(Rect2(-book_w + 2 + body_offset.x, book_y + 2, book_w - 4, 16.0), Color(0.9, 0.85, 0.7, book_a * 0.8))
+		draw_rect(Rect2(body_offset.x + 2, book_y + 2, book_w - 4, 16.0), Color(0.9, 0.85, 0.7, book_a * 0.8))
+		# Spine
+		draw_line(Vector2(body_offset.x, book_y), Vector2(body_offset.x, book_y + 20.0), Color(0.08, 0.04, 0.01, book_a), 2.0)
+		# Red glow from pages
+		draw_circle(Vector2(body_offset.x, book_y + 10.0), 15.0 * book_a, Color(0.8, 0.1, 0.05, book_a * 0.2))
+		# Ink text lines on pages
+		for li in range(3):
+			var ly = book_y + 4.0 + float(li) * 5.0
+			draw_line(Vector2(-book_w + 5 + body_offset.x, ly), Vector2(-3 + body_offset.x, ly), Color(0.2, 0.1, 0.05, book_a * 0.5), 1.0)
+			draw_line(Vector2(body_offset.x + 4, ly), Vector2(body_offset.x + book_w - 4, ly), Color(0.2, 0.1, 0.05, book_a * 0.5), 1.0)
+
+	# === 8. PLOT TWIST FLASH ===
+	if _plot_twist_flash > 0.0:
+		draw_circle(body_offset, 40.0, Color(0.5, 0.2, 0.8, _plot_twist_flash * 0.15))
+		# Swirling reverse arrows
+		for i in range(5):
+			var pa = TAU * float(i) / 5.0 + _time * -4.0  # Counter-clockwise = reverse
+			var pd = 25.0 + (1.0 - _plot_twist_flash) * 30.0
+			var arrow_pos = body_offset + Vector2(cos(pa) * pd, sin(pa) * pd * 0.6)
+			var arrow_dir = Vector2(-sin(pa), cos(pa) * 0.6).normalized()
+			draw_line(arrow_pos, arrow_pos + arrow_dir * 6.0, Color(0.8, 0.4, 1.0, _plot_twist_flash * 0.7), 2.0)
+			draw_line(arrow_pos + arrow_dir * 6.0, arrow_pos + arrow_dir * 4.0 + Vector2(2, -2), Color(0.8, 0.4, 1.0, _plot_twist_flash * 0.5), 1.5)
+
+	# === 9. INK STORM FLASH ===
 	if _ink_storm_flash > 0.0:
 		for i in range(8):
 			var angle = TAU * float(i) / 8.0 + _time * 2.0
 			var dist = 30.0 + (1.0 - _ink_storm_flash) * 60.0
 			draw_circle(Vector2(cos(angle) * dist, sin(angle) * dist) + body_offset, 4.0, Color(0.1, 0.05, 0.15, _ink_storm_flash * 0.5))
 
-	# === 8. REWRITE REALITY FLASH ===
+	# === 10. REWRITE REALITY FLASH ===
 	if _rewrite_reality_flash > 0.0:
 		draw_circle(body_offset, 50.0, Color(0.6, 0.3, 0.9, _rewrite_reality_flash * 0.15))
-		# Spinning runes
 		for i in range(6):
 			var angle = TAU * float(i) / 6.0 + _time * 3.0
 			var rune_pos = body_offset + Vector2(cos(angle), sin(angle)) * 35.0
 			draw_circle(rune_pos, 3.0, Color(0.8, 0.5, 1.0, _rewrite_reality_flash * 0.6))
 
-	# === 9. DARK AURA BASE ===
-	# Ground shadow
+	# === 11. DARK AURA BASE ===
 	_fill_ellipse(body_offset + Vector2(0, 22), Vector2(18, 6), Color(0.05, 0.02, 0.1, 0.5))
-	# Wispy tendrils at base
 	for i in range(6):
 		var ta = TAU * float(i) / 6.0 + _time * 1.2
 		var td = 12.0 + sin(_time * 3.0 + float(i)) * 4.0
@@ -742,31 +909,30 @@ func _draw() -> void:
 		var ty = 18.0 + sin(ta) * 5.0
 		draw_circle(body_offset + Vector2(tx, ty), 2.5, Color(0.1, 0.03, 0.15, 0.35))
 
-	# === 10. CLOAK/ROBE BODY ===
+	# === 12. CLOAK/ROBE BODY ===
 	var cloak_pts = PackedVector2Array()
-	cloak_pts.append(body_offset + Vector2(-10, -28))  # Left shoulder
-	cloak_pts.append(body_offset + Vector2(-13, -10))  # Left mid
-	cloak_pts.append(body_offset + Vector2(-15, 8))    # Left lower
-	cloak_pts.append(body_offset + Vector2(-12, 20 + sin(_time * 2.0) * 2.0))  # Left tendril
+	cloak_pts.append(body_offset + Vector2(-10, -28))
+	cloak_pts.append(body_offset + Vector2(-13, -10))
+	cloak_pts.append(body_offset + Vector2(-15, 8))
+	cloak_pts.append(body_offset + Vector2(-12, 20 + sin(_time * 2.0) * 2.0))
 	cloak_pts.append(body_offset + Vector2(-5, 22 + sin(_time * 2.5 + 1.0) * 1.5))
 	cloak_pts.append(body_offset + Vector2(0, 21 + sin(_time * 3.0) * 1.0))
 	cloak_pts.append(body_offset + Vector2(5, 22 + sin(_time * 2.5 + 2.0) * 1.5))
 	cloak_pts.append(body_offset + Vector2(12, 20 + sin(_time * 2.0 + 1.5) * 2.0))
-	cloak_pts.append(body_offset + Vector2(15, 8))    # Right lower
-	cloak_pts.append(body_offset + Vector2(13, -10))  # Right mid
-	cloak_pts.append(body_offset + Vector2(10, -28))  # Right shoulder
+	cloak_pts.append(body_offset + Vector2(15, 8))
+	cloak_pts.append(body_offset + Vector2(13, -10))
+	cloak_pts.append(body_offset + Vector2(10, -28))
 	var cloak_color = Color(0.06, 0.02, 0.1, 0.9)
 	if upgrade_tier >= 4:
 		cloak_color = Color(0.08, 0.03, 0.14, 0.95)
 	draw_colored_polygon(cloak_pts, cloak_color)
-	# Cloak edge highlight
 	for i in range(cloak_pts.size() - 1):
 		draw_line(cloak_pts[i], cloak_pts[i + 1], Color(0.25, 0.1, 0.35, 0.4), 1.0)
 
-	# === 11. HOOD ===
+	# === 13. HOOD ===
 	var hood_pts = PackedVector2Array()
 	hood_pts.append(body_offset + Vector2(-12, -27))
-	hood_pts.append(body_offset + Vector2(0, -42))  # Hood peak
+	hood_pts.append(body_offset + Vector2(0, -42))
 	hood_pts.append(body_offset + Vector2(12, -27))
 	hood_pts.append(body_offset + Vector2(7, -22))
 	hood_pts.append(body_offset + Vector2(-7, -22))
@@ -774,97 +940,112 @@ func _draw() -> void:
 	draw_line(hood_pts[0], hood_pts[1], Color(0.3, 0.12, 0.4, 0.5), 1.0)
 	draw_line(hood_pts[1], hood_pts[2], Color(0.3, 0.12, 0.4, 0.5), 1.0)
 
-	# === 12. HOOD INTERIOR — pure darkness, no face ===
-	# Absolute black void inside hood
+	# === 14. HOOD INTERIOR — pure darkness, no face ===
 	draw_colored_polygon(PackedVector2Array([
 		body_offset + Vector2(-7, -22), body_offset + Vector2(0, -38),
 		body_offset + Vector2(7, -22)
 	]), Color(0.0, 0.0, 0.0))
-	# Single glowing red dot deep in the hood
 	var red_pulse = 0.6 + sin(_time * 2.5) * 0.4
 	draw_circle(body_offset + Vector2(0, -28), 1.2, Color(0.9, 0.08, 0.02, red_pulse))
 	draw_circle(body_offset + Vector2(0, -28), 3.0, Color(0.7, 0.04, 0.01, red_pulse * 0.25))
 
-	# === 13. GLOWING RED WAND (held from right sleeve) ===
+	# === 15. GLOWING RED WAND ===
 	var wand_base = body_offset + Vector2(13, -8)
 	var wand_top = body_offset + Vector2(18, -38)
 	if _attack_anim > 0.0:
 		wand_top += Vector2(sin(_attack_anim * PI * 2.0) * 4.0, 0)
-	# Wand shaft — glowing red
 	draw_line(wand_base, wand_top, Color(0.7, 0.06, 0.03, red_pulse), 2.0)
 	draw_line(wand_base, wand_top, Color(0.9, 0.12, 0.05, red_pulse * 0.4), 3.5)
-	# Zigzag lightning pattern along the wand
-	var wand_dir = (wand_top - wand_base).normalized()
-	var wand_perp = Vector2(-wand_dir.y, wand_dir.x)
+	var wand_dir_v = (wand_top - wand_base).normalized()
+	var wand_perp = Vector2(-wand_dir_v.y, wand_dir_v.x)
 	for zi in range(5):
 		var zt = 0.15 + float(zi) * 0.16
 		var zp = wand_base.lerp(wand_top, zt)
 		var zag_offset = (3.0 if zi % 2 == 0 else -3.0)
 		var zp2 = wand_base.lerp(wand_top, zt + 0.08)
 		draw_line(zp + wand_perp * zag_offset, zp2 + wand_perp * (-zag_offset), Color(0.95, 0.2, 0.08, red_pulse * 0.7), 1.2)
-	# Red glow halo along wand
 	for gi in range(3):
 		var gt = 0.2 + float(gi) * 0.3
 		var gp = wand_base.lerp(wand_top, gt)
 		draw_circle(gp, 4.0 + sin(_time * 2.5 + float(gi)) * 1.5, Color(0.7, 0.04, 0.0, 0.06 * red_pulse))
-	# Wand tip — bright red hot glow
 	draw_circle(wand_top, 2.5, Color(0.95, 0.12, 0.02, red_pulse))
 	draw_circle(wand_top, 5.0, Color(0.8, 0.06, 0.01, red_pulse * 0.3))
 	draw_circle(wand_top, 8.0, Color(0.6, 0.03, 0.0, red_pulse * 0.1))
-	# Ink drip from tip
 	if _quill_flash > 0.0:
 		var drip_pos = wand_top + Vector2(0, -2 + (1.0 - _quill_flash) * -8.0)
 		draw_circle(drip_pos, 2.0 * _quill_flash, Color(0.08, 0.02, 0.12, _quill_flash * 0.7))
 
-	# === 14. SLEEVE VOIDS (no visible hands) ===
+	# === 16. SLEEVE VOIDS ===
 	var lh = body_offset + Vector2(-12 + sin(_time * 1.8) * 2.0, -12)
 	draw_circle(lh, 3.0, Color(0.01, 0.005, 0.015, 0.8))
 
-	# === 15. INK CLOUD VISUAL ===
-	if _ink_cloud_active and _ink_cloud_life > 0.0:
-		var cloud_alpha = clampf(_ink_cloud_life / 4.0, 0.0, 1.0) * 0.4
-		var cloud_local = _ink_cloud_pos - global_position
-		for i in range(8):
-			var ca = TAU * float(i) / 8.0 + _time * 1.5
-			var cd = 25.0 + sin(_time * 2.0 + float(i)) * 15.0
-			draw_circle(cloud_local + Vector2(cos(ca) * cd, sin(ca) * cd * 0.7), 12.0 + sin(_time * 3.0 + float(i)) * 4.0, Color(0.08, 0.03, 0.12, cloud_alpha))
-		# Cloud center
-		draw_circle(cloud_local, 20.0, Color(0.06, 0.02, 0.1, cloud_alpha * 0.6))
+	# === 17. BLACK SMOKE CHAIN VISUAL ===
+	if _chain_flash > 0.0 and _chain_targets.size() >= 2:
+		var smoke_alpha = _chain_flash * 0.7
+		# Draw smoke tendrils between chained enemies
+		var wand_tip_global = global_position + wand_top
+		var prev_pos = _chain_targets[0] - global_position  # First target in local coords
+		# Smoke from wand to first target
+		_draw_smoke_tendril(wand_top, prev_pos, smoke_alpha, 3.0)
+		# Chain between targets
+		for ci in range(1, _chain_targets.size()):
+			var next_pos = _chain_targets[ci] - global_position
+			var chain_alpha = smoke_alpha * pow(0.85, float(ci))
+			_draw_smoke_tendril(prev_pos, next_pos, chain_alpha, 2.5 - float(ci) * 0.2)
+			# Impact burst at each chain point
+			draw_circle(next_pos, 6.0 * _chain_flash, Color(0.08, 0.02, 0.12, chain_alpha * 0.5))
+			draw_circle(next_pos, 3.0 * _chain_flash, Color(0.2, 0.05, 0.25, chain_alpha * 0.8))
+			prev_pos = next_pos
+		# Impact on first target
+		var first_local = _chain_targets[0] - global_position
+		draw_circle(first_local, 8.0 * _chain_flash, Color(0.1, 0.02, 0.15, smoke_alpha * 0.4))
+		draw_circle(first_local, 4.0 * _chain_flash, Color(0.3, 0.08, 0.35, smoke_alpha * 0.7))
+	elif _chain_flash > 0.0 and _chain_targets.size() == 1:
+		# Single target hit visual
+		var hit_local = _chain_targets[0] - global_position
+		_draw_smoke_tendril(wand_top, hit_local, _chain_flash * 0.7, 3.0)
+		draw_circle(hit_local, 8.0 * _chain_flash, Color(0.1, 0.02, 0.15, _chain_flash * 0.5))
 
-	# === 16. SHADOW SERVANTS ===
-	for s in _servants:
-		var sp = Vector2(s["pos"]) - global_position
-		var servant_alpha = clampf(s["life"] / 2.0, 0.0, 1.0)
-		# Small hooded figure
-		draw_circle(sp + Vector2(0, 2), 5.0, Color(0.05, 0.02, 0.08, servant_alpha * 0.7))
+	# === 18. GHOSTWRITER COPIES ===
+	for g in _ghosts:
+		var gp = Vector2(g["pos"]) - global_position
+		var ghost_alpha = clampf(g["life"] / 2.0, 0.0, 1.0)
+		# Spectral ink warrior — translucent hooded figure with blue-purple glow
+		# Body
+		draw_circle(gp + Vector2(0, 2), 6.0, Color(0.08, 0.04, 0.15, ghost_alpha * 0.5))
+		# Mini cloak
+		var gc_pts = PackedVector2Array()
+		gc_pts.append(gp + Vector2(-5, -6))
+		gc_pts.append(gp + Vector2(-6, 2))
+		gc_pts.append(gp + Vector2(-4, 8))
+		gc_pts.append(gp + Vector2(0, 9))
+		gc_pts.append(gp + Vector2(4, 8))
+		gc_pts.append(gp + Vector2(6, 2))
+		gc_pts.append(gp + Vector2(5, -6))
+		draw_colored_polygon(gc_pts, Color(0.05, 0.02, 0.1, ghost_alpha * 0.6))
 		# Hood
-		var sh_pts = PackedVector2Array()
-		sh_pts.append(sp + Vector2(-4, -2))
-		sh_pts.append(sp + Vector2(0, -10))
-		sh_pts.append(sp + Vector2(4, -2))
-		draw_colored_polygon(sh_pts, Color(0.04, 0.01, 0.06, servant_alpha * 0.8))
-		# Eyes
-		draw_circle(sp + Vector2(-1.5, -4), 0.8, Color(0.8, 0.2, 0.4, servant_alpha))
-		draw_circle(sp + Vector2(1.5, -4), 0.8, Color(0.8, 0.2, 0.4, servant_alpha))
+		var gh_pts = PackedVector2Array()
+		gh_pts.append(gp + Vector2(-5, -5))
+		gh_pts.append(gp + Vector2(0, -14))
+		gh_pts.append(gp + Vector2(5, -5))
+		draw_colored_polygon(gh_pts, Color(0.04, 0.01, 0.08, ghost_alpha * 0.7))
+		# Glowing eyes — cyan/blue for ghosts
+		draw_circle(gp + Vector2(-1.5, -7), 1.0, Color(0.3, 0.6, 1.0, ghost_alpha * 0.9))
+		draw_circle(gp + Vector2(1.5, -7), 1.0, Color(0.3, 0.6, 1.0, ghost_alpha * 0.9))
+		# Spectral glow aura
+		draw_circle(gp, 10.0, Color(0.2, 0.3, 0.7, ghost_alpha * 0.1))
+		# Attack beam to target
+		if g["attacking"] and g["target_pos"] != Vector2.ZERO:
+			var tgt_local = Vector2(g["target_pos"]) - global_position
+			draw_line(gp, tgt_local, Color(0.3, 0.5, 0.9, ghost_alpha * 0.3), 1.5)
 
-	# === 17. REWRITE FLASH ===
-	if _rewrite_flash > 0.0:
-		draw_circle(body_offset, 25.0, Color(0.4, 0.2, 0.7, _rewrite_flash * 0.2))
-		# Swirling pages
-		for i in range(4):
-			var pa = TAU * float(i) / 4.0 + _time * 5.0
-			var pd = 15.0 + (1.0 - _rewrite_flash) * 20.0
-			var page_pos = body_offset + Vector2(cos(pa) * pd, sin(pa) * pd * 0.5)
-			draw_rect(Rect2(page_pos.x - 3, page_pos.y - 2, 6, 4), Color(0.9, 0.85, 0.7, _rewrite_flash * 0.6))
-
-	# === 18. SHIELD INDICATOR ===
+	# === 19. SHIELD INDICATOR ===
 	if _shield_active:
 		var shield_pulse = (sin(_time * 5.0) + 1.0) * 0.5
 		draw_arc(body_offset, 20.0 + shield_pulse * 3.0, 0, TAU, 24, Color(0.4, 0.2, 0.7, 0.3 + shield_pulse * 0.2), 2.0)
 
-	# === 19. CLONE INDICATOR ===
+	# === 20. CLONE INDICATOR ===
 	if _clone_active:
-		# Ghost duplicates
 		var ghost_offset1 = body_offset + Vector2(-8, 0)
 		var ghost_offset2 = body_offset + Vector2(8, 0)
 		draw_circle(ghost_offset1, 8.0, Color(0.15, 0.05, 0.2, 0.2))
@@ -872,40 +1053,57 @@ func _draw() -> void:
 
 	# === VISUAL TIER EVOLUTION ===
 	if upgrade_tier >= 1:
+		# Tier 1: Pulsing ink aura ring
 		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
 		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.5, 0.1, 0.7, 0.15 + glow_pulse * 0.1), 2.0)
+		# Ink drip particles orbiting
+		for di in range(3):
+			var da = _time * 2.5 + float(di) * TAU / 3.0
+			var dr = 26.0 + sin(_time * 3.0 + float(di)) * 2.0
+			draw_circle(Vector2.from_angle(da) * dr, 1.5, Color(0.1, 0.04, 0.18, 0.5))
 	if upgrade_tier >= 2:
+		# Tier 2: Orbiting reverse sigils
 		for si in range(6):
-			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sa = _time * -1.2 + float(si) * TAU / 6.0  # Counter-clockwise
 			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
 			var sp = Vector2.from_angle(sa) * sr
 			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
 			draw_circle(sp, 1.8, Color(0.6, 0.2, 0.9, s_alpha))
 	if upgrade_tier >= 3:
+		# Tier 3: Crown of spectral quills
 		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
-		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(0.3, 0.6, 1.0, 0.7), 2.0)
 		for ci in range(3):
 			var cx = -6.0 + float(ci) * 6.0
-			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
-			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 6.0), Color(0.3, 0.6, 1.0, 0.6), 1.5)
+			draw_circle(Vector2(cx, crown_y - 6.0), 1.5, Color(0.5, 0.8, 1.0, 0.5))
 	if upgrade_tier >= 4:
+		# Tier 4: Radiating dark power lines + red pulse
 		for bi in range(8):
 			var ba = _time * 0.5 + float(bi) * TAU / 8.0
 			var b_inner = Vector2.from_angle(ba) * 45.0
-			var b_outer = Vector2.from_angle(ba) * 65.0
-			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
-			draw_line(b_inner, b_outer, Color(0.5, 0.1, 0.7, b_alpha), 1.5)
+			var b_outer = Vector2.from_angle(ba) * 70.0
+			var b_alpha = 0.2 + sin(_time * 2.0 + float(bi) * 0.8) * 0.1
+			draw_line(b_inner, b_outer, Color(0.7, 0.08, 0.1, b_alpha), 2.0)
+		# Pulsing red halo
+		var halo_r = 50.0 + sin(_time * 1.8) * 5.0
+		draw_arc(Vector2.ZERO, halo_r, 0, TAU, 48, Color(0.8, 0.1, 0.05, 0.08 + sin(_time * 2.0) * 0.04), 1.5)
 
-	# === 20. UPGRADE NAME ===
+	# === 21. CHAIN COUNT INDICATOR ===
+	if upgrade_tier > 0:
+		# Show chain count as connected dots
+		var chain_start_x = -float(_chain_count - 1) * 2.0
+		for i in range(_chain_count):
+			var dot_x = chain_start_x + float(i) * 4.0
+			var dot_color = Color(0.6, 0.3, 0.9, 0.7) if i < 3 else Color(0.9, 0.4, 0.2, 0.7)
+			draw_circle(body_offset + Vector2(dot_x, 26), 1.2, dot_color)
+			if i > 0:
+				draw_line(body_offset + Vector2(dot_x - 4.0, 26), body_offset + Vector2(dot_x, 26), Color(0.4, 0.15, 0.5, 0.3), 0.5)
+
+	# === UPGRADE NAME ===
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font = ThemeDB.fallback_font
 		draw_string(font, body_offset + Vector2(-30, -50), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 60, 10, Color(0.8, 0.6, 1.0, _upgrade_flash))
-
-	# === 21. TIER INDICATOR ===
-	if upgrade_tier > 0:
-		for i in range(upgrade_tier):
-			var dot_x = -6.0 + float(i) * 4.0
-			draw_circle(body_offset + Vector2(dot_x, 26), 1.5, Color(0.6, 0.3, 0.9, 0.7))
 
 	# Idle ambient particles — ink drips
 	if target == null:
@@ -924,6 +1122,26 @@ func _draw() -> void:
 		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.3, 0.15, 0.5, cd_pulse * 0.4), 2.0)
 	elif cd_fill > 0.0:
 		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.3, 0.15, 0.5, 0.3), 2.0)
+
+# === HELPER: Draw smoke tendril between two points ===
+func _draw_smoke_tendril(from: Vector2, to: Vector2, alpha: float, width: float) -> void:
+	var smoke_color = Color(0.06, 0.02, 0.1, alpha)
+	var glow_color = Color(0.15, 0.05, 0.2, alpha * 0.4)
+	# Main dark smoke line
+	draw_line(from, to, smoke_color, width)
+	# Outer glow
+	draw_line(from, to, glow_color, width + 3.0)
+	# Wispy particles along the chain
+	var seg_len = from.distance_to(to)
+	var seg_count = maxi(int(seg_len / 20.0), 2)
+	for si in range(seg_count):
+		var st = float(si) / float(seg_count)
+		var sp = from.lerp(to, st)
+		var perp = (to - from).normalized().orthogonal()
+		var wobble = sin(_time * 6.0 + st * 10.0) * 4.0
+		sp += perp * wobble
+		var particle_size = 2.5 * (1.0 - st * 0.5) * alpha
+		draw_circle(sp, particle_size, Color(0.1, 0.03, 0.18, alpha * 0.6))
 
 func _fill_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
 	var pts = PackedVector2Array()
