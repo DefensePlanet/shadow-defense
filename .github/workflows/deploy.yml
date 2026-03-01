@@ -54,6 +54,8 @@ jobs:
           cp -r website/css _site/
           cp -r website/js _site/
           cp website/CNAME _site/
+          cp website/manifest.json _site/
+          cp website/sw.js _site/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

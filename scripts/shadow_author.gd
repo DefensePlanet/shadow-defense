@@ -19,6 +19,7 @@ var targeting_priority: int = 0
 
 # Animation timers
 var _time: float = 0.0
+var _build_timer: float = 0.0
 var _attack_anim: float = 0.0
 var _quill_flash: float = 0.0
 
@@ -166,6 +167,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if _build_timer > 0.0: _build_timer -= delta
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
@@ -265,6 +267,13 @@ func _process(delta: float) -> void:
 			_rewrite_reality()
 			_rewrite_reality_timer = 60.0
 
+	# Active ability cooldown
+	if not active_ability_ready:
+		active_ability_cooldown -= delta
+		if active_ability_cooldown <= 0.0:
+			active_ability_ready = true
+			active_ability_cooldown = 0.0
+
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
@@ -340,7 +349,7 @@ func _attack() -> void:
 
 	# Apply damage to target
 	if target.has_method("take_damage"):
-		target.take_damage(eff_damage, true)  # is_magic = true (ink attack)
+		target.take_damage(eff_damage, "magic")
 		register_damage(eff_damage)
 
 	# Ability 2: Corrupting Touch — 3s DoT
@@ -355,7 +364,7 @@ func _attack() -> void:
 			if enemy != target and global_position.distance_to(enemy.global_position) < aoe_range + attack_range * _range_mult():
 				if enemy.has_method("take_damage"):
 					var aoe_dmg = eff_damage * 0.5
-					enemy.take_damage(aoe_dmg, true)
+					enemy.take_damage(aoe_dmg, "magic")
 					register_damage(aoe_dmg)
 
 	# Ability 4: Mind Control — 5% charm
@@ -385,7 +394,7 @@ func _ink_cloud_damage(delta: float) -> void:
 	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if _ink_cloud_pos.distance_to(enemy.global_position) < cloud_range:
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(cloud_dmg, true)
+				enemy.take_damage(cloud_dmg, "magic")
 				register_damage(cloud_dmg)
 			# Slow enemies in cloud
 			if enemy.has_method("apply_slow"):
@@ -436,7 +445,7 @@ func _update_servants(delta: float) -> void:
 					nearest_dist = dist
 			if nearest and nearest.has_method("take_damage"):
 				var servant_dmg = damage * 0.4 * _damage_mult()
-				nearest.take_damage(servant_dmg, true)
+				nearest.take_damage(servant_dmg, "magic")
 				register_damage(servant_dmg)
 				s["angle"] = Vector2(s["pos"]).angle_to_point(nearest.global_position) + PI
 			s["attack_timer"] = 1.2
@@ -454,7 +463,7 @@ func _the_final_word() -> void:
 	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(burst_dmg, true)
+				enemy.take_damage(burst_dmg, "magic")
 				register_damage(burst_dmg)
 	if not _is_sfx_muted():
 		_ability_player.play()
@@ -477,7 +486,7 @@ func _ink_storm() -> void:
 	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(storm_dmg, true)
+				enemy.take_damage(storm_dmg, "magic")
 				register_damage(storm_dmg)
 	if not _is_sfx_muted():
 		_ability_player.play()
@@ -494,7 +503,7 @@ func _rewrite_reality() -> void:
 			var burst_dmg = damage * 3.0 * _damage_mult()
 			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
-					enemy.take_damage(burst_dmg, true)
+					enemy.take_damage(burst_dmg, "magic")
 					register_damage(burst_dmg)
 		2:  # Gold bonus
 			var main = get_tree().get_first_node_in_group("main")
@@ -504,7 +513,7 @@ func _rewrite_reality() -> void:
 			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.health / enemy.max_health < 0.2:
 					if enemy.has_method("take_damage"):
-						enemy.take_damage(enemy.health + 1.0, true)
+						enemy.take_damage(enemy.health + 1.0, "true")
 	if not _is_sfx_muted():
 		_ability_player.play()
 
@@ -629,6 +638,30 @@ func set_meta_buffs(buffs: Dictionary) -> void:
 
 var power_damage_mult: float = 1.0
 
+# === ACTIVE HERO ABILITY: Narrative Collapse (massive damage to all, 45s CD) ===
+var active_ability_ready: bool = true
+var active_ability_cooldown: float = 0.0
+var active_ability_max_cd: float = 45.0
+
+func activate_hero_ability() -> void:
+	if not active_ability_ready:
+		return
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if is_instance_valid(e) and e.has_method("take_damage"):
+			var dmg = damage * 8.0 * _damage_mult()
+			e.take_damage(dmg, "magic")
+			register_damage(dmg)
+	active_ability_ready = false
+	active_ability_cooldown = active_ability_max_cd
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "NARRATIVE COLLAPSE!", Color(0.6, 0.1, 0.8), 16.0, 1.5)
+
+func get_active_ability_name() -> String:
+	return "Narrative Collapse"
+
+func get_active_ability_desc() -> String:
+	return "Damage ALL enemies (45s CD)"
+
 func _damage_mult() -> float:
 	var mult: float = (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
 	if prog_abilities[0]:
@@ -647,6 +680,12 @@ func _gold_mult() -> float:
 # === DRAW ===
 
 func _draw() -> void:
+	# Build animation — elastic scale-in
+	if _build_timer > 0.0:
+		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
+
 	# === 1. SELECTION RING ===
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
@@ -848,6 +887,32 @@ func _draw() -> void:
 		draw_circle(ghost_offset1, 8.0, Color(0.15, 0.05, 0.2, 0.2))
 		draw_circle(ghost_offset2, 8.0, Color(0.15, 0.05, 0.2, 0.2))
 
+	# === VISUAL TIER EVOLUTION ===
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.5, 0.1, 0.7, 0.15 + glow_pulse * 0.1), 2.0)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.6, 0.2, 0.9, s_alpha))
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.5, 0.1, 0.7, b_alpha), 1.5)
+
 	# === 20. UPGRADE NAME ===
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font = ThemeDB.fallback_font
@@ -858,6 +923,24 @@ func _draw() -> void:
 		for i in range(upgrade_tier):
 			var dot_x = -6.0 + float(i) * 4.0
 			draw_circle(body_offset + Vector2(dot_x, 26), 1.5, Color(0.6, 0.3, 0.9, 0.7))
+
+	# Idle ambient particles — ink drips
+	if target == null:
+		for ip in range(3):
+			var ix = -8.0 + float(ip) * 8.0
+			var iy = fmod(_time * 20.0 + float(ip) * 15.0, 40.0) - 20.0
+			var drip_alpha = 0.35 * (1.0 - abs(iy) / 20.0)
+			draw_circle(Vector2(ix, iy), 1.5, Color(0.1, 0.05, 0.15, drip_alpha))
+			draw_line(Vector2(ix, iy), Vector2(ix, iy + 3), Color(0.1, 0.05, 0.15, drip_alpha * 0.6), 1.0)
+
+	# Ability cooldown ring
+	var cd_max = 1.0 / fire_rate
+	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
+	if cd_fill >= 1.0:
+		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.3, 0.15, 0.5, cd_pulse * 0.4), 2.0)
+	elif cd_fill > 0.0:
+		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.3, 0.15, 0.5, 0.3), 2.0)
 
 func _fill_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
 	var pts = PackedVector2Array()

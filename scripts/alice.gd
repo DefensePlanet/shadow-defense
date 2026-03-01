@@ -19,6 +19,7 @@ var targeting_priority: int = 0
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
+var kill_count: int = 0
 var upgrade_tier: int = 0
 var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
@@ -44,6 +45,7 @@ var _execute_flash: float = 0.0
 # Animation vars
 var _time: float = 0.0
 var _attack_anim: float = 0.0
+var _build_timer: float = 0.0
 
 # Grow ability — Alice grows as she levels up
 var _grow_scale: float = 1.0
@@ -280,6 +282,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if _build_timer > 0.0: _build_timer -= delta
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_cheshire_flash = max(_cheshire_flash - delta * 2.0, 0.0)
@@ -329,7 +332,7 @@ func _process(delta: float) -> void:
 			var paint_dmg = damage * 0.15
 			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
-					enemy.take_damage(paint_dmg)
+					enemy.take_damage(paint_dmg, "magic")
 					register_damage(paint_dmg)
 				if enemy.has_method("apply_paint"):
 					enemy.apply_paint()
@@ -337,6 +340,12 @@ func _process(delta: float) -> void:
 					enemy.painted_red = true
 
 	_process_progressive_abilities(delta)
+	# Active ability cooldown
+	if not active_ability_ready:
+		active_ability_cooldown -= delta
+		if active_ability_cooldown <= 0.0:
+			active_ability_ready = true
+			active_ability_cooldown = 0.0
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
@@ -398,6 +407,8 @@ func _shoot() -> void:
 	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
 		_attack_player.stream = _attack_sounds[_shot_count % _attack_sounds.size()]
 		_attack_player.play()
+	if _main_node and _main_node.has_method("_pulse_tower_layer"):
+		_main_node._pulse_tower_layer(1)  # ALICE
 	_shot_count += 1
 	_attack_anim = 1.0
 	# Cake splat — hits all enemies in range
@@ -410,14 +421,14 @@ func _shoot() -> void:
 			if enemy.has_method("apply_slow"):
 				enemy.apply_slow(slow_amount, slow_duration)
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(dmg, true)
+				enemy.take_damage(dmg, "magic")
 				register_damage(dmg)
 			# Tier 4: Execute enemies below threshold HP
 			if execute_threshold > 0.0 and "health" in enemy and "max_health" in enemy:
 				if enemy.health > 0.0 and enemy.health / enemy.max_health <= execute_threshold:
 					var exec_dmg = enemy.health
 					if enemy.has_method("take_damage"):
-						enemy.take_damage(exec_dmg, true)
+						enemy.take_damage(exec_dmg, "true")
 						register_damage(exec_dmg)
 					_execute_flash = 1.0
 			# Frosting DoT (Tier 1 upgrade)
@@ -430,6 +441,9 @@ func register_damage(amount: float) -> void:
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.ALICE, amount)
 	_check_upgrades()
+
+func register_kill() -> void:
+	kill_count += 1
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -894,7 +908,7 @@ func _eat_me_stomp() -> void:
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 4.0
-				e.take_damage(dmg, true)
+				e.take_damage(dmg, "magic")
 				register_damage(dmg)
 
 func _painting_roses_red() -> void:
@@ -931,7 +945,7 @@ func _tweedle_attack() -> void:
 	for i in range(mini(2, in_range.size())):
 		if in_range[i].has_method("take_damage"):
 			var dmg = damage * 0.8
-			in_range[i].take_damage(dmg, true)
+			in_range[i].take_damage(dmg, "magic")
 			register_damage(dmg)
 
 func _jabberwock_swoop() -> void:
@@ -942,7 +956,7 @@ func _jabberwock_swoop() -> void:
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 5.0
-				e.take_damage(dmg, true)
+				e.take_damage(dmg, "magic")
 				register_damage(dmg)
 
 func _wonderland_madness() -> void:
@@ -957,13 +971,57 @@ func _wonderland_madness() -> void:
 				e.apply_fear_reverse(3.0)
 			# Deal 50% of Alice's damage
 			if e.has_method("take_damage"):
-				e.take_damage(madness_dmg, true)
+				e.take_damage(madness_dmg, "magic")
 				register_damage(madness_dmg)
 
 func attack_damage_for_madness() -> float:
 	return damage * _damage_mult()
 
+func _draw_tower_aura() -> void:
+	if upgrade_tier < 3:
+		return
+	# Tier 3+: rainbow-shifting glow ring
+	var pulse = sin(_time * 2.5) * 0.1 + 0.3
+	var rainbow_col = Color.from_hsv(fmod(_time * 0.3, 1.0), 0.7, 0.9, pulse * 0.4)
+	draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, rainbow_col, 1.5)
+	# Tier 4: outer rainbow ring + heart-shaped rune marks
+	if upgrade_tier >= 4:
+		var outer_pulse = sin(_time * 1.8) * 0.15 + 0.35
+		var outer_col = Color.from_hsv(fmod(_time * 0.3 + 0.5, 1.0), 0.7, 0.9, outer_pulse * 0.3)
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, outer_col, 2.0)
+		# Heart-shaped rune marks
+		for i in range(6):
+			var ha = _time * 0.4 + float(i) * TAU / 6.0
+			var hx = cos(ha) * 18.0
+			var hy = sin(ha) * 18.0
+			var h_col = Color.from_hsv(fmod(_time * 0.2 + float(i) * 0.15, 1.0), 0.8, 1.0, 0.25)
+			# Small heart shape: two arcs + a point
+			draw_arc(Vector2(hx - 1.5, hy - 1.0), 2.0, PI * 0.2, PI * 1.0, 6, h_col, 1.0)
+			draw_arc(Vector2(hx + 1.5, hy - 1.0), 2.0, PI * 0.0, PI * 0.8, 6, h_col, 1.0)
+	# Awakened: prismatic rainbow shimmer tendrils with cycling hue
+	if _main_node and _main_node.has_method("_is_awakened"):
+		var tower_type_enum = get_meta("tower_type_enum") if has_meta("tower_type_enum") else -1
+		if tower_type_enum >= 0 and _main_node._is_awakened(tower_type_enum):
+			for i in range(8):
+				var ta = _time * 2.0 + float(i) * TAU / 8.0
+				var tr = 20.0 + sin(_time * 3.0 + float(i)) * 5.0
+				var tend = Vector2(cos(ta) * tr, sin(ta) * tr * 0.7)
+				var t_col = Color.from_hsv(fmod(_time * 0.5 + float(i) * 0.12, 1.0), 0.8, 1.0, 0.25 + sin(_time * 4.0 + float(i)) * 0.1)
+				draw_line(Vector2.ZERO, tend, t_col, 1.5)
+			# Rising prismatic sparks
+			for i in range(4):
+				var sy = -10.0 - fmod(_time * 30.0 + float(i) * 15.0, 40.0)
+				var sx = sin(_time * 2.0 + float(i) * 1.5) * 8.0
+				var s_col = Color.from_hsv(fmod(_time * 0.8 + float(i) * 0.25, 1.0), 0.9, 1.0, 0.5)
+				draw_circle(Vector2(sx, sy), 1.5, s_col)
+
 func _draw() -> void:
+	# Build animation — elastic scale-in
+	if _build_timer > 0.0:
+		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
+
 	# Selection ring (before grow transform)
 	var eff_range = attack_range * _range_mult()
 	if is_selected:
@@ -1539,6 +1597,36 @@ func _draw() -> void:
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.8, 0.7, 1.0, 0.7 + pulse * 0.3))
 
+	# === VISUAL TIER EVOLUTION ===
+	# Tier 1+: Pulsing glow outline (purple)
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.6, 0.2, 0.8, 0.15 + glow_pulse * 0.1), 2.0)
+	# Tier 2+: Orbiting sparkle particles (6)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.7, 0.3, 0.9, s_alpha))
+	# Tier 3+: Golden crown above head
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	# Tier 4: Radiating light beams (8)
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.7, 0.3, 0.9, b_alpha), 1.5)
+
 	# Damage dealt counter
 	if damage_dealt > 0:
 		var font = _game_font
@@ -1551,6 +1639,26 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -60), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.8, 0.7, 1.0, min(_upgrade_flash, 1.0)))
+
+	# Idle ambient particles — card suits
+	if target == null:
+		for ip in range(3):
+			var iy = sin(_time * 1.2 + float(ip) * 2.1) * 18.0
+			var ix = cos(_time * 0.9 + float(ip) * 1.7) * 15.0
+			draw_circle(Vector2(ix, iy), 2.0, Color(0.85, 0.15, 0.15, 0.3 + sin(_time * 2.0 + float(ip)) * 0.1))
+			draw_circle(Vector2(ix, iy), 1.0, Color(1.0, 0.3, 0.3, 0.25))
+
+	# Ability cooldown ring
+	var cd_max = 1.0 / fire_rate
+	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
+	if cd_fill >= 1.0:
+		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.85, 0.15, 0.5, cd_pulse * 0.4), 2.0)
+	elif cd_fill > 0.0:
+		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.85, 0.15, 0.5, 0.3), 2.0)
+
+	# Power fantasy aura
+	_draw_tower_aura()
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
@@ -1570,6 +1678,40 @@ func has_synergy_buff() -> bool:
 	return not _synergy_buffs.is_empty()
 
 var power_damage_mult: float = 1.0
+
+# === ACTIVE HERO ABILITY: Cheshire Grin (mark enemy 2x dmg, 35s CD) ===
+var active_ability_ready: bool = true
+var active_ability_cooldown: float = 0.0
+var active_ability_max_cd: float = 35.0
+
+func activate_hero_ability() -> void:
+	if not active_ability_ready:
+		return
+	# Mark nearest enemy for 2x damage for 5 seconds
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var nearest = null
+	var nearest_dist = 99999.0
+	for e in enemies:
+		if not is_instance_valid(e):
+			continue
+		var d = global_position.distance_to(e.global_position)
+		if d < attack_range * _range_mult() and d < nearest_dist:
+			nearest = e
+			nearest_dist = d
+	if nearest and nearest.has_method("apply_vulnerability"):
+		nearest.apply_vulnerability(2.0, 5.0)
+	elif nearest:
+		nearest.set_meta("damage_mult", 2.0)
+	active_ability_ready = false
+	active_ability_cooldown = active_ability_max_cd
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "CHESHIRE GRIN!", Color(0.7, 0.3, 0.9), 16.0, 1.5)
+
+func get_active_ability_name() -> String:
+	return "Cheshire Grin"
+
+func get_active_ability_desc() -> String:
+	return "Mark enemy 2x dmg (35s CD)"
 
 func _damage_mult() -> float:
 	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult

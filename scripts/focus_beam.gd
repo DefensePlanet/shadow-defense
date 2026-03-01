@@ -57,7 +57,7 @@ func _hit_target(t: Node2D) -> void:
 		if t.get("deduction_marked") == true:
 			effective_damage *= 1.3
 		var will_kill = t.health - effective_damage <= 0.0
-		t.take_damage(effective_damage)
+		t.take_damage(effective_damage, "physical")
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(effective_damage)
 		if will_kill:
@@ -90,7 +90,7 @@ func _apply_splash(center: Vector2) -> void:
 		if center.distance_to(enemy.global_position) < splash_radius:
 			if enemy.has_method("take_damage"):
 				var splash_dmg = damage * 0.4
-				enemy.take_damage(splash_dmg)
+				enemy.take_damage(splash_dmg, "physical")
 				if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 					source_tower.register_damage(splash_dmg)
 

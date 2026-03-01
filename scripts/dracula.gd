@@ -20,6 +20,7 @@ var targeting_priority: int = 0
 
 # Animation timers
 var _time: float = 0.0
+var _build_timer: float = 0.0
 var _attack_anim: float = 0.0
 
 # Damage tracking and upgrades
@@ -251,6 +252,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if _build_timer > 0.0: _build_timer -= delta
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_bite_flash = max(_bite_flash - delta * 2.0, 0.0)
@@ -298,6 +300,13 @@ func _process(delta: float) -> void:
 
 	# Manage thrall visuals
 	_update_thralls(delta)
+
+	# Active ability cooldown
+	if not active_ability_ready:
+		active_ability_cooldown -= delta
+		if active_ability_cooldown <= 0.0:
+			active_ability_ready = true
+			active_ability_cooldown = 0.0
 
 	queue_redraw()
 
@@ -426,7 +435,7 @@ func _update_bite_dash(delta: float) -> void:
 			# Arrived at target — deal damage
 			if is_instance_valid(_bite_target) and _bite_target.has_method("take_damage"):
 				var bite_dmg = damage * 4.0 * _damage_mult()
-				_bite_target.take_damage(bite_dmg)
+				_bite_target.take_damage(bite_dmg, "magic")
 				register_damage(bite_dmg)
 				_bite_flash = 1.0
 			_bite_returning = true
@@ -493,7 +502,7 @@ func _update_bat_devour(delta: float) -> void:
 			if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 				if "health" in enemy:
 					var kill_dmg = enemy.health + 10.0
-					enemy.take_damage(kill_dmg)
+					enemy.take_damage(kill_dmg, "magic")
 					register_damage(kill_dmg)
 		_bat_devour_active = false
 		_bat_devour_targets.clear()
@@ -513,7 +522,7 @@ func _update_lord_feast(delta: float) -> void:
 				# Arrived — deal feast damage
 				if is_instance_valid(_lord_feast_target) and _lord_feast_target.has_method("take_damage"):
 					var feast_dmg = damage * 2.0 * _damage_mult()
-					_lord_feast_target.take_damage(feast_dmg)
+					_lord_feast_target.take_damage(feast_dmg, "magic")
 					register_damage(feast_dmg)
 					_bite_flash = 0.8
 				_lord_feast_returning = true
@@ -952,7 +961,7 @@ func _wolf_strike() -> void:
 				weakest = e
 	if weakest and weakest.has_method("take_damage"):
 		var dmg = damage * 4.0 * _damage_mult()
-		weakest.take_damage(dmg)
+		weakest.take_damage(dmg, "magic")
 		register_damage(dmg)
 
 func _hypnotic_gaze() -> void:
@@ -1014,7 +1023,7 @@ func _brides_kiss() -> void:
 				strongest = e
 	if strongest and strongest.has_method("take_damage"):
 		var dmg = damage * 6.0 * _damage_mult()
-		strongest.take_damage(dmg)
+		strongest.take_damage(dmg, "magic")
 		register_damage(dmg)
 		if strongest.has_method("apply_slow"):
 			strongest.apply_slow(0.3, 3.0)
@@ -1028,10 +1037,16 @@ func _prince_darkness_wave() -> void:
 	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("take_damage") and global_position.distance_to(e.global_position) < prince_range:
 			var dmg = damage * 2.0 * _damage_mult()
-			e.take_damage(dmg)
+			e.take_damage(dmg, "magic")
 			register_damage(dmg)
 
 func _draw() -> void:
+	# Build animation — elastic scale-in
+	if _build_timer > 0.0:
+		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
+
 	# === 1. SELECTION RING ===
 	var eff_range = attack_range * _range_mult()
 	if is_selected:
@@ -1894,6 +1909,32 @@ func _draw() -> void:
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -80), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.6, 0.1, 0.1, 0.7 + pulse * 0.3))
 
+	# === VISUAL TIER EVOLUTION ===
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.7, 0.05, 0.1, 0.15 + glow_pulse * 0.1), 2.0)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.8, 0.1, 0.1, s_alpha))
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.7, 0.05, 0.1, b_alpha), 1.5)
+
 	# === DAMAGE COUNTER ===
 	if damage_dealt > 0:
 		var font = _game_font
@@ -1906,6 +1947,24 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -72), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.7, 0.1, 0.08, min(_upgrade_flash, 1.0)))
+
+	# Idle ambient particles — crimson mist
+	if target == null:
+		for ip in range(3):
+			var ia = _time * 1.0 + float(ip) * TAU / 3.0
+			var ir = 20.0 + sin(_time * 0.6 + float(ip)) * 6.0
+			var ipos = Vector2(cos(ia), sin(ia)) * ir
+			draw_circle(ipos, 2.5, Color(0.6, 0.05, 0.05, 0.25 + sin(_time * 1.5 + float(ip)) * 0.1))
+			draw_circle(ipos, 4.0, Color(0.4, 0.02, 0.02, 0.1))
+
+	# Ability cooldown ring
+	var cd_max = 1.0 / fire_rate
+	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
+	if cd_fill >= 1.0:
+		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.6, 0.05, 0.05, cd_pulse * 0.4), 2.0)
+	elif cd_fill > 0.0:
+		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.6, 0.05, 0.05, 0.3), 2.0)
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
@@ -1932,6 +1991,35 @@ func has_synergy_buff() -> bool:
 	return not _synergy_buffs.is_empty()
 
 var power_damage_mult: float = 1.0
+
+# === ACTIVE HERO ABILITY: Blood Moon (lifesteal burst, 35s CD) ===
+var active_ability_ready: bool = true
+var active_ability_cooldown: float = 0.0
+var active_ability_max_cd: float = 35.0
+
+func activate_hero_ability() -> void:
+	if not active_ability_ready:
+		return
+	var total_dmg = 0.0
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
+			if is_instance_valid(e) and e.has_method("take_damage"):
+				var dmg = damage * 4.0 * _damage_mult()
+				e.take_damage(dmg, "magic")
+				total_dmg += dmg
+				register_damage(dmg)
+	if total_dmg > 0 and is_instance_valid(_main_node) and _main_node.has_method("restore_life"):
+		_main_node.restore_life(1)
+	active_ability_ready = false
+	active_ability_cooldown = active_ability_max_cd
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "BLOOD MOON!", Color(0.8, 0.1, 0.15), 16.0, 1.5)
+
+func get_active_ability_name() -> String:
+	return "Blood Moon"
+
+func get_active_ability_desc() -> String:
+	return "AoE + lifesteal (35s CD)"
 
 func _damage_mult() -> float:
 	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult

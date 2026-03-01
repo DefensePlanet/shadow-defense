@@ -8,6 +8,7 @@ var max_health: float = 100.0
 var health: float = 100.0
 var gold_reward: int = 10
 var _hit_flash: float = 0.0
+var _spawn_fade: float = 0.3
 
 # Debuffs
 var slow_factor: float = 1.0
@@ -73,6 +74,22 @@ var phantom_visible: bool = true
 var is_spectral: bool = false         # Ghostly, takes reduced physical damage but weak to magic
 var regrow_generation: int = 0        # Tracks split depth (max 2)
 
+# === Damage Type System ===
+var resistances: Dictionary = {}      # e.g. {"physical": 0.5} = 50% physical resist
+var immunities: Array = []            # e.g. ["magic"] = immune to magic damage
+
+# === Boss Phase System ===
+var boss_phase: int = 0               # Current phase (0-2)
+var boss_phase_thresholds: Array = [0.66, 0.33]  # HP% triggers
+var boss_mechanic: String = ""        # "summon", "shield_pulse", "enrage", "area_deny"
+var boss_invulnerable: bool = false
+var boss_invuln_timer: float = 0.0
+var boss_summon_count: int = 0
+var boss_shield_regen: float = 0.0    # Shield regen for shield_pulse mechanic
+var boss_shield_max: float = 0.0
+var boss_enraged: bool = false
+var boss_area_deny_zones: Array = []  # Positions of danger zones
+
 # === NEW: MOAB Villain System ===
 var is_moab: bool = false             # Large villain enemy
 var moab_tier: int = 0                # 0=MOAB, 1=BFB equivalent, 2=ZOMG equivalent
@@ -96,6 +113,8 @@ func _ready() -> void:
 		})
 
 func _process(delta: float) -> void:
+	if _spawn_fade > 0.0:
+		_spawn_fade -= delta
 	_wound_time = fmod(_wound_time + delta, 628.0)
 	# Rescue pending — freeze in place, awaiting Shadow Author rescue animation
 	if _rescue_pending:
@@ -159,6 +178,10 @@ func _process(delta: float) -> void:
 
 	# Cursed — slow nearby towers (handled in main.gd _process via aura check)
 
+	# Boss mechanics processing
+	if boss_mechanic != "":
+		_process_boss_mechanics(delta)
+
 	# Fear reverse — walk backwards
 	if fear_reverse_timer > 0.0:
 		fear_reverse_timer -= delta
@@ -219,21 +242,48 @@ func is_targetable() -> bool:
 		return false
 	return true
 
-func take_damage(amount: float, is_magic: bool = false) -> void:
+func take_damage(amount: float, damage_type = "physical") -> void:
+	# Backward compatibility: accept bool (true=magic, false=physical)
+	if typeof(damage_type) == TYPE_BOOL:
+		damage_type = "magic" if damage_type else "physical"
 	if _dead:
+		return
+	# Boss invulnerability (phase transition)
+	if boss_invulnerable:
+		_hit_flash = 0.05
 		return
 	var mult = damage_mult * cheshire_mark_mult * charm_damage_mult
 	var paint_mult = 1.0 + paint_stacks * 0.05
 	var final_dmg = amount * mult * paint_mult
-	# Spectral: physical attacks deal 50% damage
-	if "spectral" in modifiers and not is_magic:
-		final_dmg *= 0.5
-	# Fortified: armor reduces physical damage by 40%
-	if is_fortified and not is_magic:
-		final_dmg *= 0.6
+	# True damage bypasses all resistances and immunities
+	if damage_type != "true":
+		# Immunities — completely block this damage type
+		if damage_type in immunities:
+			_hit_flash = 0.05
+			return
+		# Resistances from damage type system
+		if resistances.has(damage_type):
+			final_dmg *= (1.0 - resistances[damage_type])
+		else:
+			# Legacy modifier checks (only if no resistance dict entry)
+			# Spectral: physical attacks deal 50% damage
+			if "spectral" in modifiers and damage_type == "physical":
+				final_dmg *= 0.5
+			# Fortified: armor reduces physical damage by 40%
+			if is_fortified and damage_type == "physical":
+				final_dmg *= 0.6
 	# Phantom: untargetable when phased out
 	if is_phantom and not phantom_visible:
 		return
+	# Boss shield (shield_pulse mechanic)
+	if boss_shield_max > 0.0 and boss_shield_regen > 0.0:
+		if final_dmg <= boss_shield_regen:
+			boss_shield_regen -= final_dmg
+			_hit_flash = 0.08
+			return
+		else:
+			final_dmg -= boss_shield_regen
+			boss_shield_regen = 0.0
 	# Shielded: energy barrier absorbs damage first
 	if is_shielded and shield_hp > 0.0:
 		if final_dmg <= shield_hp:
@@ -265,6 +315,11 @@ func take_damage(amount: float, is_magic: bool = false) -> void:
 		for linked in chain_group:
 			if is_instance_valid(linked) and linked != self:
 				linked.take_chain_damage(shared)
+	# Boss phase transitions
+	if boss_mechanic != "" and boss_phase < boss_phase_thresholds.size():
+		var hp_pct = health / max_health if max_health > 0.0 else 1.0
+		if hp_pct <= boss_phase_thresholds[boss_phase]:
+			_trigger_boss_phase()
 	if health <= 0.0:
 		_die()
 
@@ -351,8 +406,55 @@ func _die() -> void:
 			main.spawn_regrow_children(progress, enemy_theme, enemy_tier, regrow_generation + 1, max_health * 0.4)
 	queue_free()
 
+func _trigger_boss_phase() -> void:
+	boss_phase += 1
+	boss_invulnerable = true
+	boss_invuln_timer = 1.5
+	_hit_flash = 0.3
+	var main = get_tree().get_first_node_in_group("main")
+	if not main:
+		return
+	# Phase 2 (33% HP): Enrage all boss types
+	if boss_phase >= 2:
+		boss_enraged = true
+		speed *= 1.5
+		boss_scale *= 1.25
+	# Trigger mechanic
+	match boss_mechanic:
+		"summon":
+			if main.has_method("spawn_boss_minions"):
+				var count = 4 + boss_phase * 2
+				main.spawn_boss_minions(progress, enemy_theme, count)
+		"shield_pulse":
+			boss_shield_max = max_health * 0.2
+			boss_shield_regen = boss_shield_max
+		"enrage":
+			speed *= 1.3
+			damage_mult *= 1.5
+		"area_deny":
+			if main.has_method("add_boss_danger_zone"):
+				main.add_boss_danger_zone(global_position)
+
+func _process_boss_mechanics(delta: float) -> void:
+	# Invulnerability timer
+	if boss_invulnerable:
+		boss_invuln_timer -= delta
+		if boss_invuln_timer <= 0.0:
+			boss_invulnerable = false
+	# Shield pulse regeneration
+	if boss_mechanic == "shield_pulse" and boss_phase > 0:
+		if boss_shield_regen < boss_shield_max:
+			boss_shield_regen = min(boss_shield_regen + boss_shield_max * 0.15 * delta, boss_shield_max)
+
 func _draw() -> void:
 	var s: float = shrink_scale * boss_scale
+
+	# Spawn fade-in effect
+	if _spawn_fade > 0.0:
+		var fade_alpha = clampf(1.0 - _spawn_fade / 0.3, 0.0, 1.0)
+		modulate.a = fade_alpha
+	elif modulate.a < 1.0:
+		modulate.a = 1.0
 
 	var tint: Color = Color.WHITE
 	if _hit_flash > 0.0:
@@ -392,6 +494,22 @@ func _draw() -> void:
 	# Shadow-corrupted doubles get purple tint
 	if is_named_boss and enemy_theme in [2, 4, 10]:
 		tint = Color(tint.r * 0.6 + 0.25, tint.g * 0.4, tint.b * 0.5 + 0.35, tint.a)
+	# Arcane modifier — purple-blue magical tint
+	if "arcane" in modifiers:
+		tint = Color(tint.r * 0.5 + 0.2, tint.g * 0.4 + 0.1, tint.b * 0.5 + 0.4, tint.a * 0.85)
+	# Ironclad modifier — metallic grey tint
+	if "ironclad" in modifiers:
+		tint = Color(tint.r * 0.4 + 0.45, tint.g * 0.4 + 0.45, tint.b * 0.4 + 0.5, tint.a)
+	# Ethereal modifier — translucent white-blue
+	if "ethereal" in modifiers:
+		tint = Color(tint.r * 0.3 + 0.5, tint.g * 0.3 + 0.55, tint.b * 0.3 + 0.65, tint.a * 0.6)
+	# Boss invulnerability shimmer
+	if boss_invulnerable:
+		var shimmer = sin(_wound_time * 8.0) * 0.3 + 0.7
+		tint = Color(1.0, 1.0, 1.0, tint.a * shimmer)
+	# Boss enrage — red-hot glow
+	if boss_enraged:
+		tint = Color(tint.r * 0.5 + 0.5, tint.g * 0.3, tint.b * 0.2, tint.a)
 
 	match enemy_theme:
 		0: _draw_sherwood(s, tint)
@@ -641,6 +759,52 @@ func _draw_modifier_effects(s: float) -> void:
 			var vy = -8.0 * s + float(i) * 6.0 * s
 			draw_line(Vector2(-6.0 * s, vy), Vector2(-2.0 * s, vy - 3.0 * s), Color(0.2, 0.7, 0.2, 0.4), 1.0 * bs)
 			draw_line(Vector2(2.0 * s, vy), Vector2(6.0 * s, vy - 3.0 * s), Color(0.2, 0.7, 0.2, 0.4), 1.0 * bs)
+	# Arcane: purple arcane runes orbiting
+	if "arcane" in modifiers:
+		for i in range(5):
+			var aa = _wound_time * 2.0 + float(i) * TAU / 5.0
+			var ax = cos(aa) * 18.0 * s
+			var ay = sin(aa) * 18.0 * s * 0.6
+			draw_circle(Vector2(ax, ay), 2.0 * bs, Color(0.5, 0.2, 0.9, 0.5))
+			draw_circle(Vector2(ax, ay), 1.0 * bs, Color(0.7, 0.4, 1.0, 0.7))
+		var arcane_pulse = 0.15 + sin(_wound_time * 3.0) * 0.1
+		draw_arc(Vector2.ZERO, 20.0 * s, 0, TAU, 20, Color(0.5, 0.2, 0.85, arcane_pulse), 1.5 * bs)
+	# Ironclad: thick iron plates + metallic sheen
+	if "ironclad" in modifiers:
+		draw_arc(Vector2.ZERO, 16.0 * s, 0, TAU, 20, Color(0.55, 0.55, 0.6, 0.6), 4.0 * bs)
+		draw_arc(Vector2.ZERO, 12.0 * s, 0, TAU, 16, Color(0.6, 0.6, 0.65, 0.4), 2.5 * bs)
+		for i in range(8):
+			var ra = float(i) * TAU / 8.0
+			draw_circle(Vector2(cos(ra) * 16.0 * s, sin(ra) * 16.0 * s), 1.5 * bs, Color(0.7, 0.7, 0.75, 0.7))
+		# "IMMUNE" label when magic is attempted
+		draw_string(_game_font, Vector2(-12 * s, -32 * s), "Fe", HORIZONTAL_ALIGNMENT_CENTER, int(24 * s), 8, Color(0.6, 0.6, 0.65, 0.5))
+	# Ethereal: ghostly wisps + transparent aura
+	if "ethereal" in modifiers:
+		var eth_pulse = 0.2 + sin(_wound_time * 2.5) * 0.12
+		draw_circle(Vector2.ZERO, 22.0 * s, Color(0.7, 0.8, 1.0, eth_pulse * 0.3))
+		for i in range(6):
+			var ea = _wound_time * 1.5 + float(i) * TAU / 6.0
+			var ex = cos(ea) * 14.0 * s
+			var ey = sin(ea) * 14.0 * s * 0.7 - float(i) * 2.0
+			var wisp_end = Vector2(ex, ey) + Vector2(0, -6.0 * s)
+			draw_line(Vector2(ex * 0.5, ey * 0.5), wisp_end, Color(0.6, 0.7, 1.0, eth_pulse), 1.2 * bs)
+	# Boss phase effects
+	if boss_invulnerable:
+		var inv_pulse = sin(_wound_time * 10.0) * 0.3 + 0.5
+		draw_arc(Vector2.ZERO, 24.0 * s, 0, TAU, 24, Color(1.0, 1.0, 0.8, inv_pulse), 3.0 * bs)
+		draw_arc(Vector2.ZERO, 22.0 * s, 0, TAU, 20, Color(1.0, 0.95, 0.6, inv_pulse * 0.5), 1.5 * bs)
+	if boss_enraged:
+		var rage_pulse = 0.3 + sin(_wound_time * 5.0) * 0.15
+		draw_circle(Vector2.ZERO, 20.0 * s, Color(0.8, 0.1, 0.05, rage_pulse * 0.3))
+		for i in range(4):
+			var fa = _wound_time * 3.0 + float(i) * TAU / 4.0
+			var fx = cos(fa) * 16.0 * s
+			var fy = sin(fa) * 16.0 * s * 0.7
+			draw_circle(Vector2(fx, fy), 2.5 * bs, Color(1.0, 0.3, 0.1, rage_pulse))
+	if boss_mechanic == "shield_pulse" and boss_shield_regen > 0.0 and boss_shield_max > 0.0:
+		var shield_pct = boss_shield_regen / boss_shield_max
+		var shield_a = 0.25 + sin(_wound_time * 3.0) * 0.1
+		draw_arc(Vector2.ZERO, 26.0 * s, 0, TAU * shield_pct, 20, Color(0.3, 0.8, 1.0, shield_a), 2.5 * bs)
 	# MOAB: extra glow ring + tier label
 	if is_moab:
 		var moab_pulse = 0.4 + sin(_wound_time * 2.0) * 0.2

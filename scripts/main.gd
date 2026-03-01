@@ -33,18 +33,18 @@ var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 
 var tower_info = {
-	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0},
-	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0},
-	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0},
-	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0},
-	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0},
-	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0},
-	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0},
-	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0},
-	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0},
-	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0},
-	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0},
-	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 250, "range": 170.0},
+	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0, "damage": 18, "fire_rate": 0.55},
+	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 12, "fire_rate": 0.65},
+	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 22, "fire_rate": 0.45},
+	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0, "damage": 10, "fire_rate": 0.80},
+	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 20, "fire_rate": 0.50},
+	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0, "damage": 8, "fire_rate": 0.70},
+	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 15, "fire_rate": 0.50},
+	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 25, "fire_rate": 0.40},
+	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0, "damage": 28, "fire_rate": 0.35},
+	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0, "damage": 30, "fire_rate": 0.40},
+	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0, "damage": 35, "fire_rate": 0.30},
+	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 250, "range": 170.0, "damage": 40, "fire_rate": 0.35},
 }
 
 # Constants
@@ -117,6 +117,9 @@ var retry_button: Button
 var menu_exit_button: Button
 var completed_levels: Array = []
 var level_stars: Dictionary = {}
+var level_difficulty_medals: Dictionary = {}  # { level_idx: [bool, bool, bool] } Easy/Med/Hard beaten
+var level_difficulty_stars: Dictionary = {}   # { level_idx: [int, int, int] } stars per difficulty (0-3)
+var level_best_wave: Dictionary = {}          # { level_idx: int } best wave reached per level
 
 # Storybook menu - character page showcase
 var menu_character_index: int = 0
@@ -204,18 +207,18 @@ var _cached_enemies: Array = []  # Updated once per frame for performance
 
 # Gear definitions per character
 var survivor_gear = {
-	TowerType.ROBIN_HOOD: {"name": "Longbow", "desc": "Increases arrow range and pierce"},
-	TowerType.ALICE: {"name": "Looking Glass", "desc": "Cake affects wider area"},
-	TowerType.WICKED_WITCH: {"name": "Broomstick", "desc": "Faster swoop attacks"},
-	TowerType.PETER_PAN: {"name": "Shadow Blade", "desc": "Shadow clone deals more damage"},
-	TowerType.PHANTOM: {"name": "Pipe Organ", "desc": "Music notes stun longer"},
-	TowerType.SCROOGE: {"name": "Counting Ledger", "desc": "Bell rings generate bonus gold"},
-	TowerType.SHERLOCK: {"name": "Magnifying Glass", "desc": "Focus beam burns hotter and wider"},
-	TowerType.TARZAN: {"name": "Jungle Vine", "desc": "Longer swing range and grab distance"},
-	TowerType.DRACULA: {"name": "Blood Chalice", "desc": "Life drain heals more and chains to nearby"},
-	TowerType.MERLIN: {"name": "Crystal Staff", "desc": "Spells affect larger area"},
-	TowerType.FRANKENSTEIN: {"name": "Lightning Rod", "desc": "Chain lightning arcs to more targets"},
-	TowerType.SHADOW_AUTHOR: {"name": "Quill of Darkness", "desc": "Ink attacks spread and corrupt faster"},
+	TowerType.ROBIN_HOOD: {"name": "Longbow", "type": "Bow", "desc": "Yew longbow of Sherwood. +15% range, +1 pierce.", "range": 0.15, "pierce": 1},
+	TowerType.ALICE: {"name": "Looking Glass", "type": "Wand", "desc": "See the world differently. +20% AoE radius, +10% slow.", "aoe": 0.20, "slow": 0.10},
+	TowerType.WICKED_WITCH: {"name": "Broomstick", "type": "Wand", "desc": "Fly and strike from above. +15% speed, +10% range.", "attack_speed": 0.15, "range": 0.10},
+	TowerType.PETER_PAN: {"name": "Shadow Blade", "type": "Sword", "desc": "Forged from a lost shadow. +20% damage, +10% crit.", "damage": 0.20, "crit": 0.10},
+	TowerType.PHANTOM: {"name": "Pipe Organ", "type": "Instrument", "desc": "Haunting melodies stun all who hear. +15% stun, buffs nearby towers +8% speed.", "stun": 0.15, "aura_speed": 0.08},
+	TowerType.SCROOGE: {"name": "Counting Ledger", "type": "Instrument", "desc": "Every coin counts twice. +25% gold gen, nearby towers earn +10% gold.", "gold": 0.25, "aura_gold": 0.10},
+	TowerType.SHERLOCK: {"name": "Magnifying Glass", "type": "Gun", "desc": "Focused deduction beam. +20% damage, +15% range, reveals hidden.", "damage": 0.20, "range": 0.15, "reveal": true},
+	TowerType.TARZAN: {"name": "Jungle Vine", "type": "Sword", "desc": "Swing and strike with primal force. +15% speed, +20% damage.", "attack_speed": 0.15, "damage": 0.20},
+	TowerType.DRACULA: {"name": "Blood Chalice", "type": "Wand", "desc": "Drink deep and heal. +15% damage, +8% lifesteal.", "damage": 0.15, "lifesteal": 0.08},
+	TowerType.MERLIN: {"name": "Crystal Staff", "type": "Wand", "desc": "Channel arcane power. +20% AoE, +15% range.", "aoe": 0.20, "range": 0.15},
+	TowerType.FRANKENSTEIN: {"name": "Lightning Rod", "type": "Bomb", "desc": "Channels storms. +20% chain targets, +15% damage.", "chain": 0.20, "damage": 0.15},
+	TowerType.SHADOW_AUTHOR: {"name": "Quill of Darkness", "type": "Wand", "desc": "Writes reality into shadow. +25% damage, +10% all stats.", "damage": 0.25, "all": 0.10},
 }
 
 # Sidekick definitions (3 per character)
@@ -373,6 +376,7 @@ var _dust_positions: Array = []
 var _book_candle_positions: Array = []
 var _floating_pages: Array = []
 var _menu_ink_splatters: Array = []
+var _menu_splatter_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _quill_positions: Array = []
 var _bookshelf_heights: Array = []
 
@@ -386,8 +390,8 @@ var _world_map_stars: Array = []
 var _world_map_clouds: Array = []
 var _world_map_smoke: Array = []
 
-var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock Holmes", "Tarzan", "Count Dracula", "Merlin", "Frankenstein's Monster"]
-var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol", "The Adventures of Sherlock Holmes", "Tarzan of the Apes", "Dracula", "Le Morte d'Arthur", "Frankenstein"]
+var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock Holmes", "Tarzan", "Count Dracula", "Merlin", "Frankenstein's Monster", "The Shadow Author"]
+var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol", "The Adventures of Sherlock Holmes", "Tarzan of the Apes", "Dracula", "Le Morte d'Arthur", "Frankenstein", "The Tome of Shadows"]
 var character_quotes: Array = [
 	"Steal from the rich, defend the path!",
 	"Curiouser and curiouser!",
@@ -400,6 +404,7 @@ var character_quotes: Array = [
 	"I never drink... wine.",
 	"Knowledge is the greatest power!",
 	"I am not what you think I am!",
+	"Every story needs an author...",
 ]
 
 # =====================================================================================
@@ -424,7 +429,7 @@ const MOAB_TIER_HP_MULT: Array = [8.0, 20.0, 50.0]
 const MOAB_TIER_CHILDREN: Array = [4, 4, 3]  # Children spawned on death
 
 # --- Feature 3: Item Dismantling / Sharding ---
-var salvage_rates: Dictionary = {"common": 5, "uncommon": 15, "rare": 40}
+var salvage_rates: Dictionary = {"tattered": 5, "bound": 15, "gilded": 40, "mythic": 120, "forbidden": 400}
 # Salvage currency is player_relic_shards (already exists)
 
 # --- Feature 4: Golden Treasure Chest Crafting ---
@@ -829,10 +834,11 @@ var levels = [
 
 # Difficulty selection (0=Easy, 1=Medium, 2=Hard)
 var selected_difficulty: int = 0
-var difficulty_waves: Array = [20, 30, 40]
-var difficulty_gold_bonus: Array = [8, 0, -10]
-var difficulty_lives_bonus: Array = [5, 0, -5]  # Legacy — overridden by fixed lives below
-var difficulty_fixed_lives: Array = [100, 50, 20]  # Easy=100, Medium=50, Hard=20
+var difficulty_waves: Array = [20, 30, 40, 40]
+var difficulty_gold_bonus: Array = [8, 0, -10, -20]
+var difficulty_lives_bonus: Array = [5, 0, -5, -5]  # Legacy — overridden by fixed lives below
+var difficulty_fixed_lives: Array = [100, 50, 20, 1]  # Easy=100, Medium=50, Hard=20, Pure=1
+const PURE_MODE: int = 3
 var chapter_diff_buttons: Array = []  # Array of 3 arrays, each with 3 buttons
 
 # Player inventory (persistent across sessions)
@@ -864,6 +870,8 @@ var speed_button: Button
 var wave_auto_timer: float = -1.0
 var auto_wave_enabled: bool = true
 var auto_wave_delay: float = 2.0  # seconds before auto-starting next wave
+var auto_wave_delay_options: Array = [1.0, 2.0, 3.0, 5.0]
+var auto_wave_delay_index: int = 1  # default 2s
 
 # Pause & restart
 var game_paused: bool = false
@@ -886,6 +894,15 @@ var _path_thumbnail_cache: Dictionary = {}
 # Level decoration data (regenerated per level)
 var _decorations: Array = []
 var _time: float = 0.0
+
+# Shadow Author taunt system (one random taunt per map on every level)
+var _sa_taunt_triggered: bool = false
+var _sa_taunt_timer: float = -1.0  # -1 = not active, 0+ = animation time
+var _sa_taunt_x: float = 0.0
+var _sa_taunt_y: float = 0.0
+var _sa_taunt_trigger_time: float = 15.0  # randomized per level
+# Shadow figures fly on all maps
+var _sa_shadow_figures: Array = []
 
 # Musical beat clock — towers read this to select harmonious notes
 var music_beat_index: int = 0
@@ -933,6 +950,8 @@ var emporium_sub_message: String = ""
 var emporium_sub_message_timer: float = 0.0
 var _emporium_confirm_index: int = -1
 var _emporium_confirm_timer: float = 0.0
+var _emporium_purchase_flash: float = 0.0  # Purchase confirmation flash overlay
+var _menu_transition_alpha: float = 0.0  # View transition dark overlay fade
 var _deal_confirm_index: int = -1
 var _deal_confirm_timer: float = 0.0
 var _arena_confirm_index: int = -1
@@ -1042,6 +1061,59 @@ var boss_rescue_boss_ref: Node2D = null
 var boss_rescue_phase: int = 0  # 0=smoke, 1=author_appears, 2=grab, 3=flash, 4=fade
 var _rescue_smoke_particles: Array = []
 
+# === COMBO KILL SYSTEM ===
+var combo_count: int = 0
+var combo_timer: float = 0.0
+var combo_last_pos: Vector2 = Vector2.ZERO
+var combo_best: int = 0
+const COMBO_WINDOW: float = 1.5
+const COMBO_MIN: int = 3
+
+# === UNDO TOWER PLACEMENT ===
+var undo_tower_data: Dictionary = {}  # {node, type, position, cost, timer}
+var undo_button: Button
+const UNDO_DURATION: float = 3.0
+
+# === WAVE PREVIEW ===
+var wave_preview_active: bool = false
+var wave_preview_timer: float = 0.0
+var wave_preview_data: Array = []
+
+# === TOWER STATS OVERLAY ===
+# (drawn procedurally when tower selected)
+
+# === PRESTIGE SYSTEM ===
+var prestige_level: int = 0
+
+# === MILESTONE REWARDS ===
+var milestone_claimed: Dictionary = {}
+var total_damage: int = 0
+
+# === CHARACTER MASTERY ===
+var mastery_challenges: Dictionary = {}
+
+# === DAILY CHALLENGE ===
+var daily_challenge_last_date: String = ""
+var daily_challenge_completed_today: bool = false
+var daily_challenge_streak: int = 0
+var daily_challenge_active: bool = false
+var daily_challenge_modifier: String = ""
+var daily_challenge_level: int = -1
+
+# === BOSS RUSH MODE ===
+var boss_rush_mode: bool = false
+var boss_rush_wave: int = 0
+var boss_rush_completed: bool = false
+var boss_rush_best_wave: int = 0
+
+# === ENHANCED ENDLESS MODE ===
+var endless_mutation: String = ""
+var endless_top_runs: Array = []
+const ENDLESS_MUTATIONS: Array = [
+	"Speed Surge", "Camo Wave", "Boss Rush", "Shield Wall",
+	"Regen Wave", "Swarm", "Shadow Infested", "Gold Drought"
+]
+
 # === FLOATING TEXTS & DEATH EFFECTS ===
 var _floating_texts: Array = []
 var _screen_shake_timer: float = 0.0
@@ -1055,203 +1127,668 @@ var _screen_shake_offset: Vector2 = Vector2.ZERO
 var _ink_splatters: Array = []
 var _death_flash_timer: float = 0.0
 
+# === VISUAL POLISH EFFECTS ===
+var _aoe_impacts: Array = []
+var _crit_flashes: Array = []
+var _build_effects: Array = []
+var _victory_burst_timer: float = 0.0
+var _victory_particles: Array = []
+var _defeat_timer: float = 0.0
+var _defeat_cracks: Array = []
+var _spawn_portal_intensity: float = 0.0
+var _env_particles: Array = []
+var _wave_banner_timer: float = 0.0
+var _wave_banner_num: int = 0
+var _wave_banner_name: String = ""
+var _wave_banner_is_boss: bool = false
+var _gold_pickups: Array = []
+var _gold_pickup_flash: float = 0.0
+
+# === BATTD FEATURE: GEAR FUSION FORGE ===
+var fusion_selected_ids: Array = []  # Binding IDs selected for fusion
+
+# === BATTD FEATURE: BOSS HEALTH BAR ===
+var _active_boss_node: Node2D = null
+var _boss_hp_bar_timer: float = 0.0
+
+# === BATTD FEATURE: POST-VICTORY STATS ===
+var _session_stats: Dictionary = {}
+var _show_stats_screen: bool = false
+
+# === BATTD FEATURE: EARLY WAVE SEND BONUS ===
+var _early_send_bonus: int = 0
+
+# === BATTD FEATURE: LUCKY LOOT DROPS ===
+const LUCKY_DROP_CHANCE: float = 0.05  # 5% per kill
+var _lucky_drops_this_game: int = 0
+
+# === BATTD FEATURE: XP SHARING ===
+var xp_sharing_enabled: bool = true
+const XP_SHARE_RATIO: float = 0.25  # 25% of avg XP to unused chars
+
+# === BATTD FEATURE: INCOME BREAKDOWN ===
+var _income_breakdown: Dictionary = {"kills": 0, "wave_bonus": 0, "combo": 0, "early_send": 0, "lucky": 0}
+var _income_display_timer: float = 0.0
+
+# === BATTD FEATURE: REVENGE RETRY ===
+var _revenge_available: bool = false
+var _revenge_bonus_pct: float = 0.20  # 20% extra starting gold
+
+# === BATTD FEATURE: ENEMY KILL COUNTER ===
+var _wave_enemies_total: int = 0
+var _wave_enemies_killed: int = 0
+
+# === BATTD FEATURE: CRIT STREAK ===
+var _crit_streak: int = 0
+var _crit_streak_best: int = 0
+var _crit_streak_timer: float = 0.0
+
+# === BATTD FEATURE: MAP COLLECTIBLES ===
+var _map_collectibles: Array = []
+var _collectibles_found_this_game: int = 0
+const MAX_MAP_COLLECTIBLES: int = 3
+
+# === BATTD FEATURE: GEAR WISH LIST ===
+var gear_wish_list: Array = []  # Up to 3 effect type strings
+
+# === BATTD FEATURE: CHARACTER HOME BONUS ===
+const HOME_CHAPTER_BONUS: float = 0.10  # +10% all stats
+
+# === BATTD FEATURE: DOUBLE CASH MODE ===
+var double_cash_unlocked: bool = false
+var double_cash_enabled: bool = false
+
+# === BATTD FEATURE: TOWER BUFF ICONS ===
+# (procedural drawing, no extra vars)
+
+# === BATTD FEATURE: WAVE RUSH TIMER ===
+var _wave_start_time: float = 0.0
+var _wave_rush_bonus: int = 0
+const WAVE_RUSH_THRESHOLD: float = 15.0  # Clear under 15s for bonus
+
+# === BATTD FEATURE: GEAR AUTO-EQUIP ===
+# (function only)
+
+# === BATTD FEATURE: BOUNTY BOARD ===
+var _active_bounties: Array = []  # [{desc, kill_type, target, progress, reward_type, reward_amount}]
+var _bounties_completed_total: int = 0
+
+# === BATTD FEATURE: PLACEMENT STREAK ===
+var _placement_streak_count: int = 0
+var _placement_streak_timer: float = 0.0
+const PLACEMENT_STREAK_WINDOW: float = 5.0
+const PLACEMENT_STREAK_DISCOUNT: float = 0.05  # 5% per streak level
+
+# === BATTD2 FEATURE: INSTA-TOWERS ===
+var insta_towers: Array = []  # [{type: TowerType, tier: int}] - pre-built towers
+var _placing_insta: bool = false
+var _insta_index: int = -1
+
+# === BATTD2 FEATURE: GEAR ENCHANTING ===
+const ENCHANT_COST_QUILLS: int = 5
+const ENCHANT_EFFECTS: Array = ["damage", "attack_speed", "range", "crit", "gold_bonus"]
+
+# === BATTD2 FEATURE: CHARACTER BONDS ===
+var _active_bonds: Array = []  # [{pair: [TowerType, TowerType], bonus: float}]
+const BOND_PAIRS: Array = [
+	[0, 3],   # Robin Hood + Peter Pan (adventurers)
+	[1, 2],   # Alice + Wicked Witch (Oz/Wonderland)
+	[4, 9],   # Phantom + Merlin (magic users)
+	[5, 10],  # Scrooge + Frankenstein (Victorian era)
+	[6, 7],   # Sherlock + Tarzan (adventure novels)
+	[8, 9],   # Dracula + Merlin (supernatural)
+]
+const BOND_RADIUS: float = 200.0
+const BOND_BONUS: float = 0.08
+
+# === BATTD2 FEATURE: MULTI-WAVE RUSH ===
+var _multi_wave_active: bool = false
+var _multi_wave_count: int = 0
+
+# === BATTD2 FEATURE: PATH TRAPS ===
+var _path_traps: Array = []  # [{pos, type, uses_left, damage/slow}]
+const TRAP_TYPES: Array = [
+	{"name": "Spike Strip", "cost": 30, "damage": 50.0, "uses": 10, "icon": "spike"},
+	{"name": "Tar Pit", "cost": 25, "slow": 0.5, "duration": 3.0, "uses": 8, "icon": "tar"},
+	{"name": "Fire Mine", "cost": 50, "damage": 150.0, "uses": 3, "icon": "mine"},
+]
+var _placing_trap: int = -1  # Index into TRAP_TYPES, -1 = not placing
+
+# === BATTD2 FEATURE: TOWER SACRIFICE ===
+var _sacrifice_mode: bool = false
+var _sacrifice_source: Node2D = null
+
+# === BATTD2 FEATURE: PITY TIMER ===
+var _drops_since_mythic: int = 0
+var _drops_since_forbidden: int = 0
+const PITY_MYTHIC: int = 30
+const PITY_FORBIDDEN: int = 100
+
+# === BATTD2 FEATURE: ENEMY INTEL ===
+var _intel_target: Node2D = null
+var _intel_timer: float = 0.0
+
+# === BATTD2 FEATURE: CHALLENGE HANDICAPS ===
+var _handicaps_active: Array = []
+var _handicap_bonus_mult: float = 1.0
+const HANDICAP_OPTIONS: Array = [
+	{"name": "Broke Start", "desc": "-40% starting gold", "gold_mult": 0.6, "reward_mult": 1.3},
+	{"name": "Fragile", "desc": "-5 lives", "lives_reduce": 5, "reward_mult": 1.25},
+	{"name": "Swarm", "desc": "+50% enemies", "enemy_mult": 1.5, "reward_mult": 1.4},
+	{"name": "Speedy", "desc": "Enemies 25% faster", "speed_mult": 1.25, "reward_mult": 1.2},
+	{"name": "Unarmed", "desc": "No battle powers", "no_powers": true, "reward_mult": 1.15},
+	{"name": "Inflation", "desc": "Towers cost 25% more", "cost_mult": 1.25, "reward_mult": 1.2},
+]
+
+# === BATTD2 FEATURE: GEAR SET DISPLAY ===
+# (drawing function only, no extra state)
+
+# === BATTD2 FEATURE: STORYBOOK PAGES ===
+var storybook_pages_found: Dictionary = {}  # level_index -> bool
+var _level_page_pos: Vector2 = Vector2.ZERO
+var _level_page_collected: bool = false
+const PAGE_SHARD_REWARD: int = 5
+
+# === BATTD2 FEATURE: GOLD INTEREST ===
+var gold_interest_enabled: bool = true
+const GOLD_INTEREST_RATE: float = 0.05  # 5% interest on gold between waves
+const GOLD_INTEREST_CAP: int = 50  # Max interest per wave
+
+# === BATTD2 FEATURE: WAVE BLESSING ===
+var _blessing_active: bool = false
+var _blessing_timer: float = 0.0
+var _blessing_type: String = ""
+const BLESSING_COST: int = 40
+const BLESSING_DURATION: float = 15.0
+const BLESSING_OPTIONS: Array = [
+	{"name": "Fury", "type": "damage", "value": 0.25, "desc": "+25% damage"},
+	{"name": "Haste", "type": "attack_speed", "value": 0.30, "desc": "+30% attack speed"},
+	{"name": "Farsight", "type": "range", "value": 0.20, "desc": "+20% range"},
+]
+
+# === BATTD2 FEATURE: EMERGENCY RECALL ===
+# (function only — sell all towers at 50% and restart wave)
+
+# === BATTD2 FEATURE: TOWER XP BAR ===
+# (drawing only, uses existing tower.damage_dealt for XP proxy)
+
+# === BATTD2 FEATURE: OVERCHARGE ===
+var _overcharged_tower: Node2D = null
+var _overcharge_timer: float = 0.0
+const OVERCHARGE_COST: int = 35
+const OVERCHARGE_DURATION: float = 10.0
+
+# === BATTD2 FEATURE: PATH EVENTS ===
+var _path_events: Array = []  # [{pos, type, timer, damage}]
+var _path_event_cooldown: float = 0.0
+const PATH_EVENT_INTERVAL: float = 20.0  # seconds between events
+
+# === BATTD2 FEATURE: AUTO-COLLECT ===
+var auto_collect_enabled: bool = false
+
+# === BATTD2 FEATURE: GEAR REROLL ===
+const REROLL_SHARD_COST: int = 15
+
+# === BATTD2 FEATURE: VICTORY STREAK ===
+var victory_streak: int = 0
+var victory_streak_best: int = 0
+const STREAK_GOLD_BONUS: float = 0.05  # +5% gold per streak level
+const STREAK_XP_BONUS: float = 0.05   # +5% XP per streak level
+
+
+# === BATTD3 FEATURE: CHARACTER AFFINITY ===
+# Characters earn affinity on their home chapters, unlocking exclusive bonuses
+var character_affinity: Dictionary = {}  # TowerType -> float (0.0 to 100.0)
+const AFFINITY_PER_WAVE: float = 0.5  # +0.5 affinity per wave survived on home map
+const AFFINITY_MILESTONES: Array = [10.0, 25.0, 50.0, 75.0, 100.0]
+const AFFINITY_BONUSES: Array = [
+	{"name": "Homefield", "desc": "+5% damage on home map", "effect": "damage", "value": 0.05},
+	{"name": "Familiar Ground", "desc": "+8% range on home map", "effect": "range", "value": 0.08},
+	{"name": "Deep Roots", "desc": "+10% attack speed on home map", "effect": "attack_speed", "value": 0.10},
+	{"name": "Territorial", "desc": "+15% all stats on home map", "effect": "all", "value": 0.15},
+	{"name": "Master of Domain", "desc": "+5% crit chance on home map", "effect": "crit", "value": 0.05},
+]
+const CHARACTER_HOME_LEVELS: Dictionary = {
+	0: [0, 1, 2], 1: [3, 4, 5], 2: [6, 7, 8],
+	3: [9, 10, 11], 4: [12, 13, 14], 5: [15, 16, 17],
+}
+# === LAYERED MUSIC SYSTEM ===
+# Each character plays an instrument — placing towers builds the song
+var _music_layers: Array = []  # 7 AudioStreamPlayers [drums, robin, alice, witch, peter, phantom, scrooge]
+var _music_layer_targets: Array = [0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Target volumes (linear)
+var _music_layer_current: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Current volumes (for tweening)
+var _music_song_index: int = 0  # Which of 5 songs is playing
+var _music_layers_active: bool = false
+var _music_tempo_mult: float = 1.0  # Speeds up with upgrades
+var _music_max_tier_cache: int = 0  # Cached max upgrade tier (updated on place/sell/upgrade)
+var _music_intensity: float = 0.0  # 0.0-1.0, rises during boss waves / late game
+const MUSIC_FADE_IN_SPEED: float = 0.8  # Volume units/sec for fading IN (snappy entry)
+const MUSIC_FADE_OUT_SPEED: float = 0.35  # Volume units/sec for fading OUT (gradual exit)
+const MUSIC_PULSE_DECAY_SPEED: float = 1.2  # Volume units/sec for pulse decay (fast snap-back)
+const MUSIC_LOOP_BARS: int = 4  # 4-bar loops
+const MUSIC_GEN_RATE: int = 44100
+
+# Song definitions: key, tempo, chord progression, mood
+
+# === BATTD3 FEATURE: MILESTONE TITLES ===
+const MILESTONE_TITLES: Array = [
+	{"threshold": 0, "title": "Novice", "color_r": 0.6, "color_g": 0.6, "color_b": 0.65},
+	{"threshold": 10000, "title": "Apprentice", "color_r": 0.4, "color_g": 0.7, "color_b": 0.4},
+	{"threshold": 100000, "title": "Veteran", "color_r": 0.3, "color_g": 0.5, "color_b": 0.9},
+	{"threshold": 500000, "title": "Champion", "color_r": 0.7, "color_g": 0.3, "color_b": 0.9},
+	{"threshold": 2000000, "title": "Legend", "color_r": 0.9, "color_g": 0.6, "color_b": 0.1},
+	{"threshold": 10000000, "title": "Myth", "color_r": 1.0, "color_g": 0.3, "color_b": 0.2},
+	{"threshold": 50000000, "title": "Eternal", "color_r": 1.0, "color_g": 0.85, "color_b": 0.3},
+]
+
+# === BATTD3 FEATURE: AWAKENING SYSTEM ===
+var awakened_characters: Dictionary = {}  # TowerType -> bool
+const AWAKENING_SHARD_COST: int = 500
+const AWAKENING_QUILL_COST: int = 50
+const AWAKENING_PASSIVES: Dictionary = {
+	0: {"name": "Rain of Arrows", "desc": "Every 10th shot fires 3 arrows", "effect": "multi_shot"},
+	1: {"name": "Wonderland Chaos", "desc": "Random chance to polymorph enemies", "effect": "polymorph"},
+	2: {"name": "Hex Storm", "desc": "Attacks have 15% chance to curse nearby enemies", "effect": "chain_curse"},
+	3: {"name": "Never Grow Up", "desc": "Gains +1% all stats per wave survived", "effect": "scaling"},
+	4: {"name": "Requiem", "desc": "Defeated enemies explode for 20% of their max HP", "effect": "death_explosion"},
+	5: {"name": "Golden Touch", "desc": "Every kill has 10% chance to drop bonus gold", "effect": "gold_on_kill"},
+}
+
+# === BATTD3 FEATURE: COSMIC INK ===
+var cosmic_ink: int = 0  # Universal currency convertible to any character's XP
+const COSMIC_INK_TO_XP: float = 100.0  # 1 Cosmic Ink = 100 XP
+const COSMIC_INK_CONVERSION_COST: int = 1  # 1 ink per conversion
+
+# === BATTD3 FEATURE: STAT RESPEC ===
+var respec_count: int = 0  # Times respecced (costs increase)
+const RESPEC_BASE_COST: int = 50  # Shards
+const RESPEC_COST_MULT: float = 1.5  # Each respec costs 50% more
+
+# === BATTD3 FEATURE: GEAR LOADOUT PRESETS ===
+var gear_loadouts: Dictionary = {}  # TowerType -> [{bindings: [], relics: []}] x 3
+var gear_loadout_active: Dictionary = {}  # TowerType -> int (0-2)
+const MAX_LOADOUTS: int = 3
+
+# === BATTD3 FEATURE: TRINKET LOCKING ===
+var locked_bindings: Dictionary = {}  # binding_id -> bool
+
+# === BATTD3 FEATURE: GEAR COMPARISON ===
+var _gear_compare_binding: String = ""  # Currently compared binding ID
+var _gear_compare_visible: bool = false
+
+# === BATTD3 FEATURE: RELIC MASTERY ===
+var relic_usage_tracker: Dictionary = {}  # "tower_type_relic_idx" -> int (waves equipped)
+const RELIC_MASTERY_THRESHOLDS: Array = [10, 25, 50, 100]  # Waves to reach each mastery level
+const RELIC_MASTERY_BONUS: float = 0.05  # +5% effect per mastery level
+
+# === BATTD3 FEATURE: GEAR COLLECTION CODEX ===
+var discovered_bindings: Dictionary = {}  # binding_id -> bool (ever seen, even if sharded)
+var codex_open: bool = false
+var codex_scroll: float = 0.0
+var codex_filter_rarity: String = ""  # "" = all, or rarity name
+var codex_hover_index: int = -1
+
+# === BATTD3 FEATURE: STATS SUMMARY PANEL ===
+var detail_stats_expanded: bool = false  # Toggle for expanded stats on detail page
+
+# === BATTD3 FEATURE: RECENT ITEMS FEED ===
+var recent_items: Array = []  # [{name, rarity, timestamp}] — last 5 items acquired
+const MAX_RECENT_ITEMS: int = 5
+
+# === BATTD3 FEATURE: FAVORITE CHARACTERS ===
+var favorite_characters: Array = []  # Up to 3 TowerType values pinned to top of grid
+
+# === BATTD3 FEATURE: QUICK-EQUIP FROM CHEST ===
+var quick_equip_pending: Dictionary = {}  # {binding_id, rarity} — pending quick-equip item
+var quick_equip_active: bool = false
+
+# === BATTD3 FEATURE: PARTY POWER RATING ===
+var _cached_power_ratings: Dictionary = {}  # TowerType -> int
+var _power_rating_dirty: bool = true
+
+# === BATTD3 FEATURE: LEVEL-UP FANFARE ===
+var levelup_fanfare_active: bool = false
+var levelup_fanfare_timer: float = 0.0
+var levelup_fanfare_tower_type: int = -1
+var levelup_fanfare_new_level: int = 0
+var levelup_fanfare_particles: Array = []  # [{pos, vel, color, life}]
+const LEVELUP_FANFARE_DURATION: float = 2.5
+
+# === BATTD3 FEATURE: SESSION STATS RECAP ===
+var session_stats: Dictionary = {}  # Populated post-victory: {towers_placed, gold_earned, gold_spent, dps_per_tower, waves_sent_early, crits, ...}
+var session_recap_open: bool = false
+var session_recap_scroll: float = 0.0
+
+# === BATTD3 FEATURE: CAREER STATS ===
+var career_stats: Dictionary = {
+	"total_games_played": 0,
+	"total_games_won": 0,
+	"total_games_lost": 0,
+	"total_waves_survived": 0,
+	"total_gold_earned_lifetime": 0,
+	"total_gold_spent_lifetime": 0,
+	"total_towers_placed_lifetime": 0,
+	"total_enemies_killed_lifetime": 0,
+	"total_bosses_killed": 0,
+	"total_damage_dealt_lifetime": 0.0,
+	"highest_single_hit": 0.0,
+	"most_towers_in_game": 0,
+	"fastest_victory_waves": 0,
+	"longest_victory_streak": 0,
+	"total_play_time_seconds": 0.0,
+	"favorite_tower": -1,
+}
+var career_stats_open: bool = false
+
+# === BATTD3 FEATURE: NEXT GOAL TRACKER ===
+var _next_goals: Array = []  # [{type, desc, progress, target, reward}] — nearest 3 goals
+var _goals_dirty: bool = true
+
+# === BATTD3 FEATURE: CHARACTER RANK BADGES ===
+const RANK_BADGE_TIERS: Array = [
+	{"name": "Bronze", "min_score": 0, "color_r": 0.72, "color_g": 0.45, "color_b": 0.20},
+	{"name": "Silver", "min_score": 50, "color_r": 0.75, "color_g": 0.75, "color_b": 0.80},
+	{"name": "Gold", "min_score": 150, "color_r": 0.85, "color_g": 0.65, "color_b": 0.10},
+	{"name": "Platinum", "min_score": 350, "color_r": 0.40, "color_g": 0.75, "color_b": 0.85},
+	{"name": "Diamond", "min_score": 600, "color_r": 0.55, "color_g": 0.30, "color_b": 0.90},
+	{"name": "Mythic", "min_score": 1000, "color_r": 1.0, "color_g": 0.30, "color_b": 0.15},
+]
+# Each song maps to a group of levels
+const MAP_SONGS: Array = [
+	{
+		"name": "Shadows of London", "bpm": 120, "key": "Dm",
+		"root": 146.83, # D3
+		"scale": [0, 2, 3, 5, 7, 8, 10],  # Natural minor
+		"chord_roots": [0, 5, 3, 7],  # i - iv - III - v
+		"levels": [0, 1, 2, 3, 10, 11, 12],  # Prologue + Sherlock + Dracula
+	},
+	{
+		"name": "The Enchanted Grove", "bpm": 130, "key": "Gm",
+		"root": 196.0, # G3
+		"scale": [0, 2, 3, 5, 7, 8, 10],
+		"chord_roots": [0, 3, 5, 7],  # i - III - iv - v
+		"levels": [4, 5, 6, 16, 17, 18],  # Merlin + Robin Hood
+	},
+	{
+		"name": "Wonderland Waltz", "bpm": 140, "key": "C",
+		"root": 130.81, # C3
+		"scale": [0, 2, 4, 5, 7, 9, 11],  # Major
+		"chord_roots": [0, 5, 7, 4],  # I - IV - V - iii
+		"levels": [19, 20, 21, 25, 26, 27],  # Alice + Peter Pan
+	},
+	{
+		"name": "The Dark Laboratory", "bpm": 110, "key": "Em",
+		"root": 164.81, # E3
+		"scale": [0, 2, 3, 5, 7, 8, 10],
+		"chord_roots": [0, 3, 5, 8],  # i - III - iv - VI
+		"levels": [7, 8, 9, 13, 14, 15],  # Tarzan + Frankenstein
+	},
+	{
+		"name": "The Final Verse", "bpm": 135, "key": "Am",
+		"root": 110.0, # A2
+		"scale": [0, 2, 3, 5, 7, 8, 10],
+		"chord_roots": [0, 7, 5, 3],  # i - v - iv - III
+		"levels": [22, 23, 24, 28, 29, 30, 31, 32, 33, 34, 35, 36],  # Witch+Phantom+Scrooge+Shadow Author
+	},
+]
+
+# Character → layer index mapping
+const TOWER_LAYER_MAP: Dictionary = {
+	0: 1,   # ROBIN_HOOD → layer 1 (strings)
+	1: 2,   # ALICE → layer 2 (music box)
+	2: 3,   # WICKED_WITCH → layer 3 (organ)
+	3: 4,   # PETER_PAN → layer 4 (flute)
+	4: 5,   # PHANTOM → layer 5 (piano)
+	5: 6,   # SCROOGE → layer 6 (brass)
+}
+
+
+
+
 # === ENDLESS MODE ===
 var endless_mode: bool = false
 var endless_high_wave: int = 0
 var endless_background_level: int = 0
 
-# === TOME BINDINGS (Trinkets) ===
+# === TOME BINDINGS (Gear) ===
 const TOME_BINDINGS: Array = [
 	# ===== COMMON / BLUE (50 relics) =====
 	# -- Robin Hood --
-	{"id": "lincoln_band", "name": "Lincoln Green Band", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "robin_hood"},
-	{"id": "nottingham_arrow", "name": "Nottingham Arrow", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "robin_hood"},
-	{"id": "sherwood_acorn", "name": "Sherwood Acorn", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "robin_hood"},
-	{"id": "merry_men_purse", "name": "Merry Men Purse", "desc": "+12% gold bonus", "rarity": "common", "effect": "gold_bonus", "value": 0.12, "character": "robin_hood"},
+	{"id": "lincoln_band", "name": "Lincoln Green Band", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "robin_hood"},
+	{"id": "nottingham_arrow", "name": "Nottingham Arrow", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "robin_hood"},
+	{"id": "sherwood_acorn", "name": "Sherwood Acorn", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "robin_hood"},
+	{"id": "merry_men_purse", "name": "Merry Men Purse", "desc": "+12% gold bonus", "rarity": "tattered", "effect": "gold_bonus", "value": 0.12, "character": "robin_hood"},
 	# -- Alice --
-	{"id": "cheshire_grin", "name": "Cheshire Grin", "desc": "+8% dodge", "rarity": "common", "effect": "dodge", "value": 0.08, "character": "alice"},
-	{"id": "croquet_mallet", "name": "Croquet Mallet", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "alice"},
-	{"id": "caterpillar_hookah", "name": "Caterpillar Hookah", "desc": "+10% slow", "rarity": "common", "effect": "slow", "value": 0.10, "character": "alice"},
-	{"id": "mad_hatter_thimble", "name": "Mad Hatter's Thimble", "desc": "+8% crit", "rarity": "common", "effect": "crit", "value": 0.08, "character": "alice"},
+	{"id": "cheshire_grin", "name": "Cheshire Grin", "desc": "+8% dodge", "rarity": "tattered", "effect": "dodge", "value": 0.08, "character": "alice"},
+	{"id": "croquet_mallet", "name": "Croquet Mallet", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "alice"},
+	{"id": "caterpillar_hookah", "name": "Caterpillar Hookah", "desc": "+10% slow", "rarity": "tattered", "effect": "slow", "value": 0.10, "character": "alice"},
+	{"id": "mad_hatter_thimble", "name": "Mad Hatter's Thimble", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "alice"},
 	# -- Wicked Witch --
-	{"id": "winkie_helm", "name": "Winkie Guard Helm", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "wicked_witch"},
-	{"id": "poppy_petal", "name": "Poppy Petal", "desc": "+12% slow", "rarity": "common", "effect": "slow", "value": 0.12, "character": "wicked_witch"},
-	{"id": "silver_whistle", "name": "Silver Whistle", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "wicked_witch"},
-	{"id": "emerald_shard", "name": "Emerald Shard", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "wicked_witch"},
+	{"id": "winkie_helm", "name": "Winkie Guard Helm", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "wicked_witch"},
+	{"id": "poppy_petal", "name": "Poppy Petal", "desc": "+12% slow", "rarity": "tattered", "effect": "slow", "value": 0.12, "character": "wicked_witch"},
+	{"id": "silver_whistle", "name": "Silver Whistle", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "wicked_witch"},
+	{"id": "emerald_shard", "name": "Emerald Shard", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "wicked_witch"},
 	# -- Peter Pan --
-	{"id": "lost_boy_dagger", "name": "Lost Boy Dagger", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "peter_pan"},
-	{"id": "pixie_dust_pinch", "name": "Pixie Dust Pinch", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "peter_pan"},
-	{"id": "neverland_shell", "name": "Neverland Shell", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "peter_pan"},
-	{"id": "tick_tock_tooth", "name": "Tick-Tock Tooth", "desc": "+8% crit", "rarity": "common", "effect": "crit", "value": 0.08, "character": "peter_pan"},
+	{"id": "lost_boy_dagger", "name": "Lost Boy Dagger", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "peter_pan"},
+	{"id": "pixie_dust_pinch", "name": "Pixie Dust Pinch", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "peter_pan"},
+	{"id": "neverland_shell", "name": "Neverland Shell", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "peter_pan"},
+	{"id": "tick_tock_tooth", "name": "Tick-Tock Tooth", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "peter_pan"},
 	# -- Phantom --
-	{"id": "opera_mask_fragment", "name": "Opera Mask Fragment", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "phantom"},
-	{"id": "chandelier_crystal", "name": "Chandelier Crystal", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "phantom"},
-	{"id": "music_box_key", "name": "Music Box Key", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "phantom"},
-	{"id": "catacomb_stone", "name": "Catacomb Stone", "desc": "+8% dodge", "rarity": "common", "effect": "dodge", "value": 0.08, "character": "phantom"},
+	{"id": "opera_mask_fragment", "name": "Opera Mask Fragment", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "phantom"},
+	{"id": "chandelier_crystal", "name": "Chandelier Crystal", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "phantom"},
+	{"id": "music_box_key", "name": "Music Box Key", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "phantom"},
+	{"id": "catacomb_stone", "name": "Catacomb Stone", "desc": "+8% dodge", "rarity": "tattered", "effect": "dodge", "value": 0.08, "character": "phantom"},
 	# -- Scrooge --
-	{"id": "counting_house_coin", "name": "Counting House Coin", "desc": "+15% gold bonus", "rarity": "common", "effect": "gold_bonus", "value": 0.15, "character": "scrooge"},
-	{"id": "ghost_chain_link", "name": "Ghost Chain Link", "desc": "+10% slow", "rarity": "common", "effect": "slow", "value": 0.10, "character": "scrooge"},
-	{"id": "fezziwig_fiddle", "name": "Fezziwig Fiddle", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "scrooge"},
-	{"id": "tiny_tim_crutch", "name": "Tiny Tim's Crutch", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "scrooge"},
+	{"id": "counting_house_coin", "name": "Counting House Coin", "desc": "+15% gold bonus", "rarity": "tattered", "effect": "gold_bonus", "value": 0.15, "character": "scrooge"},
+	{"id": "ghost_chain_link", "name": "Ghost Chain Link", "desc": "+10% slow", "rarity": "tattered", "effect": "slow", "value": 0.10, "character": "scrooge"},
+	{"id": "fezziwig_fiddle", "name": "Fezziwig Fiddle", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "scrooge"},
+	{"id": "tiny_tim_crutch", "name": "Tiny Tim's Crutch", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "scrooge"},
 	# -- Sherlock --
-	{"id": "magnifying_lens", "name": "Magnifying Lens", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "sherlock"},
-	{"id": "baker_street_pipe", "name": "Baker Street Pipe", "desc": "+8% crit", "rarity": "common", "effect": "crit", "value": 0.08, "character": "sherlock"},
-	{"id": "watson_revolver", "name": "Watson's Revolver", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "sherlock"},
-	{"id": "deerstalker_pin", "name": "Deerstalker Pin", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "sherlock"},
+	{"id": "magnifying_lens", "name": "Magnifying Lens", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "sherlock"},
+	{"id": "baker_street_pipe", "name": "Baker Street Pipe", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "sherlock"},
+	{"id": "watson_revolver", "name": "Watson's Revolver", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "sherlock"},
+	{"id": "deerstalker_pin", "name": "Deerstalker Pin", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "sherlock"},
 	# -- Tarzan --
-	{"id": "jungle_vine", "name": "Jungle Vine", "desc": "+10% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.10, "character": "tarzan"},
-	{"id": "mangani_claw", "name": "Mangani Claw", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "tarzan"},
-	{"id": "treehouse_bark", "name": "Treehouse Bark", "desc": "+8% dodge", "rarity": "common", "effect": "dodge", "value": 0.08, "character": "tarzan"},
-	{"id": "elephant_tusk", "name": "Elephant Tusk", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "tarzan"},
+	{"id": "jungle_vine", "name": "Jungle Vine", "desc": "+10% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.10, "character": "tarzan"},
+	{"id": "mangani_claw", "name": "Mangani Claw", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "tarzan"},
+	{"id": "treehouse_bark", "name": "Treehouse Bark", "desc": "+8% dodge", "rarity": "tattered", "effect": "dodge", "value": 0.08, "character": "tarzan"},
+	{"id": "elephant_tusk", "name": "Elephant Tusk", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "tarzan"},
 	# -- Dracula --
-	{"id": "bat_wing_fragment", "name": "Bat Wing Fragment", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "dracula"},
-	{"id": "coffin_nail", "name": "Coffin Nail", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "dracula"},
-	{"id": "transylvania_soil", "name": "Transylvania Soil", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "dracula"},
-	{"id": "garlic_braid", "name": "Garlic Braid", "desc": "+12% slow", "rarity": "common", "effect": "slow", "value": 0.12, "character": "dracula"},
+	{"id": "bat_wing_fragment", "name": "Bat Wing Fragment", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "dracula"},
+	{"id": "coffin_nail", "name": "Coffin Nail", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "dracula"},
+	{"id": "transylvania_soil", "name": "Transylvania Soil", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "dracula"},
+	{"id": "garlic_braid", "name": "Garlic Braid", "desc": "+12% slow", "rarity": "tattered", "effect": "slow", "value": 0.12, "character": "dracula"},
 	# -- Merlin --
-	{"id": "crystal_ball_chip", "name": "Crystal Ball Chip", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "merlin"},
-	{"id": "dragon_scale", "name": "Dragon Scale", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "merlin"},
-	{"id": "camelot_banner", "name": "Camelot Banner", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "merlin"},
-	{"id": "excalibur_polish", "name": "Excalibur Polish", "desc": "+8% crit", "rarity": "common", "effect": "crit", "value": 0.08, "character": "merlin"},
+	{"id": "crystal_ball_chip", "name": "Crystal Ball Chip", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "merlin"},
+	{"id": "dragon_scale", "name": "Dragon Scale", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "merlin"},
+	{"id": "camelot_banner", "name": "Camelot Banner", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "merlin"},
+	{"id": "excalibur_polish", "name": "Excalibur Polish", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "merlin"},
 	# -- Frankenstein --
-	{"id": "copper_wire", "name": "Copper Wire", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08, "character": "frankenstein"},
-	{"id": "lightning_rod_tip", "name": "Lightning Rod Tip", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10, "character": "frankenstein"},
-	{"id": "lab_journal_page", "name": "Lab Journal Page", "desc": "+10% range", "rarity": "common", "effect": "range", "value": 0.10, "character": "frankenstein"},
-	{"id": "galvanic_bolt", "name": "Galvanic Bolt", "desc": "+10% splash radius", "rarity": "common", "effect": "splash_radius", "value": 0.10, "character": "frankenstein"},
+	{"id": "copper_wire", "name": "Copper Wire", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "frankenstein"},
+	{"id": "lightning_rod_tip", "name": "Lightning Rod Tip", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "frankenstein"},
+	{"id": "lab_journal_page", "name": "Lab Journal Page", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "frankenstein"},
+	{"id": "galvanic_bolt", "name": "Galvanic Bolt", "desc": "+10% splash radius", "rarity": "tattered", "effect": "splash_radius", "value": 0.10, "character": "frankenstein"},
 	# -- Universal --
-	{"id": "quill_swiftness", "name": "Quill of Swiftness", "desc": "+8% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.08},
-	{"id": "inkwell_power", "name": "Inkwell of Power", "desc": "+10% damage", "rarity": "common", "effect": "damage", "value": 0.10},
-	{"id": "bookmark_reach", "name": "Bookmark of Reach", "desc": "+12% range", "rarity": "common", "effect": "range", "value": 0.12},
-	{"id": "leather_journal", "name": "Leather-Bound Journal", "desc": "+15% gold bonus", "rarity": "common", "effect": "gold_bonus", "value": 0.15},
-	{"id": "fairy_dust", "name": "Fairy Dust Vial", "desc": "+12% attack speed", "rarity": "common", "effect": "attack_speed", "value": 0.12},
-	{"id": "marleys_chains", "name": "Marley's Chains", "desc": "+20% slow", "rarity": "common", "effect": "slow", "value": 0.20},
+	{"id": "quill_swiftness", "name": "Quill of Swiftness", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08},
+	{"id": "inkwell_power", "name": "Inkwell of Power", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10},
+	{"id": "bookmark_reach", "name": "Bookmark of Reach", "desc": "+12% range", "rarity": "tattered", "effect": "range", "value": 0.12},
+	{"id": "leather_journal", "name": "Leather-Bound Journal", "desc": "+15% gold bonus", "rarity": "tattered", "effect": "gold_bonus", "value": 0.15},
+	{"id": "fairy_dust", "name": "Fairy Dust Vial", "desc": "+12% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.12},
+	{"id": "marleys_chains", "name": "Marley's Chains", "desc": "+20% slow", "rarity": "tattered", "effect": "slow", "value": 0.20},
 	# ===== UNCOMMON / PURPLE (50 relics) =====
 	# -- Robin Hood --
-	{"id": "longbow_riser", "name": "Longbow Riser", "desc": "+12% damage, +5% range", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "range", "value": 0.05}], "character": "robin_hood"},
-	{"id": "friar_tuck_flask", "name": "Friar Tuck's Flask", "desc": "+15% heal, +5% all stats", "rarity": "uncommon", "effects": [{"effect": "heal_nearby", "value": 1.5}, {"effect": "all", "value": 0.05}], "character": "robin_hood"},
-	{"id": "maid_marian_ribbon", "name": "Maid Marian's Ribbon", "desc": "+10% atk spd, +8% dodge", "rarity": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "dodge", "value": 0.08}], "character": "robin_hood"},
-	{"id": "sheriff_badge", "name": "Sheriff's Badge", "desc": "+15% gold, +8% crit", "rarity": "uncommon", "effects": [{"effect": "gold_bonus", "value": 0.15}, {"effect": "crit", "value": 0.08}], "character": "robin_hood"},
+	{"id": "longbow_riser", "name": "Longbow Riser", "desc": "+12% damage, +5% range", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "range", "value": 0.05}], "character": "robin_hood"},
+	{"id": "friar_tuck_flask", "name": "Friar Tuck's Flask", "desc": "+15% heal, +5% all stats", "rarity": "bound", "effects": [{"effect": "heal_nearby", "value": 1.5}, {"effect": "all", "value": 0.05}], "character": "robin_hood"},
+	{"id": "maid_marian_ribbon", "name": "Maid Marian's Ribbon", "desc": "+10% atk spd, +8% dodge", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "dodge", "value": 0.08}], "character": "robin_hood"},
+	{"id": "sheriff_badge", "name": "Sheriff's Badge", "desc": "+15% gold, +8% crit", "rarity": "bound", "effects": [{"effect": "gold_bonus", "value": 0.15}, {"effect": "crit", "value": 0.08}], "character": "robin_hood"},
 	# -- Alice --
-	{"id": "vorpal_blade", "name": "Vorpal Blade", "desc": "+10% crit, +12% crit damage", "rarity": "uncommon", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "crit_damage", "value": 0.12}], "character": "alice"},
-	{"id": "queen_scepter", "name": "Queen's Scepter", "desc": "+12% damage, +8% splash", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "alice"},
-	{"id": "looking_glass", "name": "Looking Glass", "desc": "+15% range, +5% dodge", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "alice"},
-	{"id": "drink_me_elixir", "name": "Drink Me Elixir", "desc": "+12% slow, +8% debuff amp", "rarity": "uncommon", "effects": [{"effect": "slow", "value": 0.12}, {"effect": "debuff_amp", "value": 0.08}], "character": "alice"},
+	{"id": "vorpal_blade", "name": "Vorpal Blade", "desc": "+10% crit, +12% crit damage", "rarity": "bound", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "crit_damage", "value": 0.12}], "character": "alice"},
+	{"id": "queen_scepter", "name": "Queen's Scepter", "desc": "+12% damage, +8% splash", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "alice"},
+	{"id": "looking_glass", "name": "Looking Glass", "desc": "+15% range, +5% dodge", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "alice"},
+	{"id": "drink_me_elixir", "name": "Drink Me Elixir", "desc": "+12% slow, +8% debuff amp", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.12}, {"effect": "debuff_amp", "value": 0.08}], "character": "alice"},
 	# -- Wicked Witch --
-	{"id": "broomstick_splinter", "name": "Broomstick Splinter", "desc": "+10% atk spd, +8% range", "rarity": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "range", "value": 0.08}], "character": "wicked_witch"},
-	{"id": "monkey_wing_medal", "name": "Monkey Wing Medal", "desc": "+12% damage, +5% crit", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "crit", "value": 0.05}], "character": "wicked_witch"},
-	{"id": "crystal_ball_oz", "name": "Crystal Ball of Oz", "desc": "+15% range, +5% slow", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "slow", "value": 0.05}], "character": "wicked_witch"},
-	{"id": "ruby_heel", "name": "Ruby Heel", "desc": "+10% atk spd, +10% dodge", "rarity": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "dodge", "value": 0.10}], "character": "wicked_witch"},
+	{"id": "broomstick_splinter", "name": "Broomstick Splinter", "desc": "+10% atk spd, +8% range", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "range", "value": 0.08}], "character": "wicked_witch"},
+	{"id": "monkey_wing_medal", "name": "Monkey Wing Medal", "desc": "+12% damage, +5% crit", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "crit", "value": 0.05}], "character": "wicked_witch"},
+	{"id": "crystal_ball_oz", "name": "Crystal Ball of Oz", "desc": "+15% range, +5% slow", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "slow", "value": 0.05}], "character": "wicked_witch"},
+	{"id": "ruby_heel", "name": "Ruby Heel", "desc": "+10% atk spd, +10% dodge", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "dodge", "value": 0.10}], "character": "wicked_witch"},
 	# -- Peter Pan --
-	{"id": "shadow_thread", "name": "Shadow Thread", "desc": "+10% dodge, +10% crit", "rarity": "uncommon", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "peter_pan"},
-	{"id": "hook_compass", "name": "Hook's Compass", "desc": "+15% range, +5% damage", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "peter_pan"},
-	{"id": "mermaid_scale", "name": "Mermaid Scale", "desc": "+8% all stats", "rarity": "uncommon", "effect": "all", "value": 0.08, "character": "peter_pan"},
-	{"id": "wendy_thimble_kiss", "name": "Wendy's Thimble Kiss", "desc": "+10% atk spd, +8% heal", "rarity": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "heal_nearby", "value": 0.8}], "character": "peter_pan"},
+	{"id": "shadow_thread", "name": "Shadow Thread", "desc": "+10% dodge, +10% crit", "rarity": "bound", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "peter_pan"},
+	{"id": "hook_compass", "name": "Hook's Compass", "desc": "+15% range, +5% damage", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "peter_pan"},
+	{"id": "mermaid_scale", "name": "Mermaid Scale", "desc": "+8% all stats", "rarity": "bound", "effect": "all", "value": 0.08, "character": "peter_pan"},
+	{"id": "wendy_thimble_kiss", "name": "Wendy's Thimble Kiss", "desc": "+10% atk spd, +8% heal", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "heal_nearby", "value": 0.8}], "character": "peter_pan"},
 	# -- Phantom --
-	{"id": "punjab_lasso", "name": "Punjab Lasso Fiber", "desc": "+12% slow, +10% debuff amp", "rarity": "uncommon", "effects": [{"effect": "slow", "value": 0.12}, {"effect": "debuff_amp", "value": 0.10}], "character": "phantom"},
-	{"id": "christine_rose", "name": "Christine's Rose", "desc": "+15% aura range, +5% atk spd", "rarity": "uncommon", "effects": [{"effect": "aura_range", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "phantom"},
-	{"id": "organ_pipe_reed", "name": "Organ Pipe Reed", "desc": "+12% damage, +8% splash", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "phantom"},
-	{"id": "underground_lake_gem", "name": "Underground Lake Gem", "desc": "+10% range, +8% dodge", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.10}, {"effect": "dodge", "value": 0.08}], "character": "phantom"},
+	{"id": "punjab_lasso", "name": "Punjab Lasso Fiber", "desc": "+12% slow, +10% debuff amp", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.12}, {"effect": "debuff_amp", "value": 0.10}], "character": "phantom"},
+	{"id": "christine_rose", "name": "Christine's Rose", "desc": "+15% aura range, +5% atk spd", "rarity": "bound", "effects": [{"effect": "aura_range", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "phantom"},
+	{"id": "organ_pipe_reed", "name": "Organ Pipe Reed", "desc": "+12% damage, +8% splash", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "phantom"},
+	{"id": "underground_lake_gem", "name": "Underground Lake Gem", "desc": "+10% range, +8% dodge", "rarity": "bound", "effects": [{"effect": "range", "value": 0.10}, {"effect": "dodge", "value": 0.08}], "character": "phantom"},
 	# -- Scrooge --
-	{"id": "ghost_past_candle", "name": "Ghost of Past's Candle", "desc": "+10% crit, +10% first blood", "rarity": "uncommon", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "first_blood", "value": 0.10}], "character": "scrooge"},
-	{"id": "cratchit_ledger", "name": "Cratchit's Ledger", "desc": "+12% gold, +10% wave gold", "rarity": "uncommon", "effects": [{"effect": "gold_bonus", "value": 0.12}, {"effect": "wave_gold", "value": 0.10}], "character": "scrooge"},
-	{"id": "belle_locket", "name": "Belle's Locket", "desc": "+8% all stats", "rarity": "uncommon", "effect": "all", "value": 0.08, "character": "scrooge"},
-	{"id": "spirit_future_scythe", "name": "Spirit of Future's Scythe", "desc": "+15% execute, +5% damage", "rarity": "uncommon", "effects": [{"effect": "execute", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "scrooge"},
+	{"id": "ghost_past_candle", "name": "Ghost of Past's Candle", "desc": "+10% crit, +10% first blood", "rarity": "bound", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "first_blood", "value": 0.10}], "character": "scrooge"},
+	{"id": "cratchit_ledger", "name": "Cratchit's Ledger", "desc": "+12% gold, +10% wave gold", "rarity": "bound", "effects": [{"effect": "gold_bonus", "value": 0.12}, {"effect": "wave_gold", "value": 0.10}], "character": "scrooge"},
+	{"id": "belle_locket", "name": "Belle's Locket", "desc": "+8% all stats", "rarity": "bound", "effect": "all", "value": 0.08, "character": "scrooge"},
+	{"id": "spirit_future_scythe", "name": "Spirit of Future's Scythe", "desc": "+15% execute, +5% damage", "rarity": "bound", "effects": [{"effect": "execute", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "scrooge"},
 	# -- Sherlock --
-	{"id": "violin_string", "name": "Violin String", "desc": "+12% atk spd, +8% crit", "rarity": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.12}, {"effect": "crit", "value": 0.08}], "character": "sherlock"},
-	{"id": "moriarty_cipher", "name": "Moriarty's Cipher", "desc": "+15% damage, -5% atk spd", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "attack_speed", "value": -0.05}], "character": "sherlock"},
-	{"id": "irene_brooch", "name": "Irene Adler's Brooch", "desc": "+10% dodge, +10% range", "rarity": "uncommon", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "range", "value": 0.10}], "character": "sherlock"},
-	{"id": "baskerville_tooth", "name": "Baskerville Hound Tooth", "desc": "+12% dmg, +8% armor pierce", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "armor_pierce", "value": 0.08}], "character": "sherlock"},
+	{"id": "violin_string", "name": "Violin String", "desc": "+12% atk spd, +8% crit", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.12}, {"effect": "crit", "value": 0.08}], "character": "sherlock"},
+	{"id": "moriarty_cipher", "name": "Moriarty's Cipher", "desc": "+15% damage, -5% atk spd", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "attack_speed", "value": -0.05}], "character": "sherlock"},
+	{"id": "irene_brooch", "name": "Irene Adler's Brooch", "desc": "+10% dodge, +10% range", "rarity": "bound", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "range", "value": 0.10}], "character": "sherlock"},
+	{"id": "baskerville_tooth", "name": "Baskerville Hound Tooth", "desc": "+12% dmg, +8% armor pierce", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "armor_pierce", "value": 0.08}], "character": "sherlock"},
 	# -- Tarzan --
-	{"id": "ape_king_crown", "name": "Ape King's Crown", "desc": "+12% dmg, +8% aura range", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "aura_range", "value": 0.08}], "character": "tarzan"},
-	{"id": "jane_sketch_pad", "name": "Jane's Sketch Pad", "desc": "+10% range, +10% crit", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "tarzan"},
-	{"id": "sabor_fang", "name": "Sabor's Fang", "desc": "+15% armor pierce, +5% atk spd", "rarity": "uncommon", "effects": [{"effect": "armor_pierce", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "tarzan"},
-	{"id": "kerchak_knuckle", "name": "Kerchak's Knuckle", "desc": "+12% dmg, +8% splash", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "tarzan"},
+	{"id": "ape_king_crown", "name": "Ape King's Crown", "desc": "+12% dmg, +8% aura range", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "aura_range", "value": 0.08}], "character": "tarzan"},
+	{"id": "jane_sketch_pad", "name": "Jane's Sketch Pad", "desc": "+10% range, +10% crit", "rarity": "bound", "effects": [{"effect": "range", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "tarzan"},
+	{"id": "sabor_fang", "name": "Sabor's Fang", "desc": "+15% armor pierce, +5% atk spd", "rarity": "bound", "effects": [{"effect": "armor_pierce", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "tarzan"},
+	{"id": "kerchak_knuckle", "name": "Kerchak's Knuckle", "desc": "+12% dmg, +8% splash", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "tarzan"},
 	# -- Dracula --
-	{"id": "mina_crucifix", "name": "Mina's Crucifix", "desc": "+12% damage, +8% burn", "rarity": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "burn", "value": 0.08}], "character": "dracula"},
-	{"id": "harker_journal", "name": "Harker's Journal", "desc": "+15% range, +5% crit", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "crit", "value": 0.05}], "character": "dracula"},
-	{"id": "van_helsing_stake", "name": "Van Helsing's Stake", "desc": "+15% boss dmg, +5% dmg", "rarity": "uncommon", "effects": [{"effect": "boss_damage", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "dracula"},
-	{"id": "blood_chalice", "name": "Blood Chalice", "desc": "+8% lifesteal, +5% atk spd", "rarity": "uncommon", "effects": [{"effect": "lifesteal", "value": 0.08}, {"effect": "attack_speed", "value": 0.05}], "character": "dracula"},
+	{"id": "mina_crucifix", "name": "Mina's Crucifix", "desc": "+12% damage, +8% burn", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "burn", "value": 0.08}], "character": "dracula"},
+	{"id": "harker_journal", "name": "Harker's Journal", "desc": "+15% range, +5% crit", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "crit", "value": 0.05}], "character": "dracula"},
+	{"id": "van_helsing_stake", "name": "Van Helsing's Stake", "desc": "+15% boss dmg, +5% dmg", "rarity": "bound", "effects": [{"effect": "boss_damage", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "dracula"},
+	{"id": "blood_chalice", "name": "Blood Chalice", "desc": "+8% lifesteal, +5% atk spd", "rarity": "bound", "effects": [{"effect": "lifesteal", "value": 0.08}, {"effect": "attack_speed", "value": 0.05}], "character": "dracula"},
 	# -- Merlin --
-	{"id": "round_table_shard", "name": "Round Table Shard", "desc": "+8% all stats", "rarity": "uncommon", "effect": "all", "value": 0.08, "character": "merlin"},
-	{"id": "morgan_mirror", "name": "Morgan le Fay's Mirror", "desc": "+12% range, +8% chain", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.12}, {"effect": "chain", "value": 0.08}], "character": "merlin"},
-	{"id": "nimue_pearl", "name": "Nimue's Pearl", "desc": "+10% cooldown red., +5% range", "rarity": "uncommon", "effects": [{"effect": "cooldown_reduction", "value": 0.10}, {"effect": "range", "value": 0.05}], "character": "merlin"},
-	{"id": "grail_knight_shield", "name": "Grail Knight's Shield", "desc": "+10% dodge, +8% absorb", "rarity": "uncommon", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "absorb_hit", "value": 0.8}], "character": "merlin"},
+	{"id": "round_table_shard", "name": "Round Table Shard", "desc": "+8% all stats", "rarity": "bound", "effect": "all", "value": 0.08, "character": "merlin"},
+	{"id": "morgan_mirror", "name": "Morgan le Fay's Mirror", "desc": "+12% range, +8% chain", "rarity": "bound", "effects": [{"effect": "range", "value": 0.12}, {"effect": "chain", "value": 0.08}], "character": "merlin"},
+	{"id": "nimue_pearl", "name": "Nimue's Pearl", "desc": "+10% cooldown red., +5% range", "rarity": "bound", "effects": [{"effect": "cooldown_reduction", "value": 0.10}, {"effect": "range", "value": 0.05}], "character": "merlin"},
+	{"id": "grail_knight_shield", "name": "Grail Knight's Shield", "desc": "+10% dodge, +8% absorb", "rarity": "bound", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "absorb_hit", "value": 0.8}], "character": "merlin"},
 	# -- Frankenstein --
-	{"id": "prometheus_flame", "name": "Prometheus Flame", "desc": "+12% burn, +8% damage", "rarity": "uncommon", "effects": [{"effect": "burn", "value": 0.12}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
-	{"id": "arctic_ice_shard", "name": "Arctic Ice Shard", "desc": "+15% slow, +8% debuff amp", "rarity": "uncommon", "effects": [{"effect": "slow", "value": 0.15}, {"effect": "debuff_amp", "value": 0.08}], "character": "frankenstein"},
-	{"id": "creature_heart", "name": "Creature's Heart", "desc": "+8% lifesteal, +8% damage", "rarity": "uncommon", "effects": [{"effect": "lifesteal", "value": 0.08}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
-	{"id": "elizabeth_ring", "name": "Elizabeth's Ring", "desc": "+10% aura range, +8% atk spd", "rarity": "uncommon", "effects": [{"effect": "aura_range", "value": 0.10}, {"effect": "attack_speed", "value": 0.08}], "character": "frankenstein"},
+	{"id": "prometheus_flame", "name": "Prometheus Flame", "desc": "+12% burn, +8% damage", "rarity": "bound", "effects": [{"effect": "burn", "value": 0.12}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
+	{"id": "arctic_ice_shard", "name": "Arctic Ice Shard", "desc": "+15% slow, +8% debuff amp", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.15}, {"effect": "debuff_amp", "value": 0.08}], "character": "frankenstein"},
+	{"id": "creature_heart", "name": "Creature's Heart", "desc": "+8% lifesteal, +8% damage", "rarity": "bound", "effects": [{"effect": "lifesteal", "value": 0.08}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
+	{"id": "elizabeth_ring", "name": "Elizabeth's Ring", "desc": "+10% aura range, +8% atk spd", "rarity": "bound", "effects": [{"effect": "aura_range", "value": 0.10}, {"effect": "attack_speed", "value": 0.08}], "character": "frankenstein"},
 	# -- Universal --
-	{"id": "silver_monocle", "name": "Silver Monocle", "desc": "+8% crit chance", "rarity": "uncommon", "effect": "crit", "value": 0.08},
-	{"id": "iron_clasp", "name": "Iron Clasp", "desc": "+5% all stats", "rarity": "uncommon", "effect": "all", "value": 0.05},
-	{"id": "dusty_tome", "name": "Dusty Tome", "desc": "+15% XP gain", "rarity": "uncommon", "effect": "xp_gain", "value": 0.15},
-	{"id": "gothic_candelabra", "name": "Gothic Candelabra", "desc": "+8% range, +5% damage", "rarity": "uncommon", "effects": [{"effect": "range", "value": 0.08}, {"effect": "damage", "value": 0.05}]},
-	{"id": "raven_feather", "name": "Raven Feather", "desc": "+10% atk spd, -5% damage", "rarity": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "damage", "value": -0.05}]},
-	{"id": "wolf_pelt", "name": "Wolf Pelt Cape", "desc": "+15% slow, +5% range", "rarity": "uncommon", "effects": [{"effect": "slow", "value": 0.15}, {"effect": "range", "value": 0.05}]},
+	{"id": "silver_monocle", "name": "Silver Monocle", "desc": "+8% crit chance", "rarity": "bound", "effect": "crit", "value": 0.08},
+	{"id": "iron_clasp", "name": "Iron Clasp", "desc": "+5% all stats", "rarity": "bound", "effect": "all", "value": 0.05},
+	{"id": "dusty_tome", "name": "Dusty Tome", "desc": "+15% XP gain", "rarity": "bound", "effect": "xp_gain", "value": 0.15},
+	{"id": "gothic_candelabra", "name": "Gothic Candelabra", "desc": "+8% range, +5% damage", "rarity": "bound", "effects": [{"effect": "range", "value": 0.08}, {"effect": "damage", "value": 0.05}]},
+	{"id": "raven_feather", "name": "Raven Feather", "desc": "+10% atk spd, -5% damage", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "damage", "value": -0.05}]},
+	{"id": "wolf_pelt", "name": "Wolf Pelt Cape", "desc": "+15% slow, +5% range", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.15}, {"effect": "range", "value": 0.05}]},
 	# ===== RARE / GOLD (50 relics) =====
 	# -- Robin Hood --
-	{"id": "bow_greenwood", "name": "Bow of the Greenwood", "desc": "+20% dmg, +10% crit, +15% chain", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.10}, {"effect": "chain", "value": 0.15}], "character": "robin_hood"},
-	{"id": "sherwood_heart", "name": "Sherwood's Heart", "desc": "+15% all stats", "rarity": "rare", "effect": "all", "value": 0.15, "character": "robin_hood"},
-	{"id": "hood_final_arrow", "name": "Hood's Final Arrow", "desc": "+25% first blood, +10% armor pierce", "rarity": "rare", "effects": [{"effect": "first_blood", "value": 0.25}, {"effect": "armor_pierce", "value": 0.10}], "character": "robin_hood"},
-	{"id": "little_john_staff", "name": "Little John's Staff", "desc": "+20% splash, +15% slow", "rarity": "rare", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "slow", "value": 0.15}], "character": "robin_hood"},
+	{"id": "bow_greenwood", "name": "Bow of the Greenwood", "desc": "+20% dmg, +10% crit, +15% chain", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.10}, {"effect": "chain", "value": 0.15}], "character": "robin_hood"},
+	{"id": "sherwood_heart", "name": "Sherwood's Heart", "desc": "+15% all stats", "rarity": "gilded", "effect": "all", "value": 0.15, "character": "robin_hood"},
+	{"id": "hood_final_arrow", "name": "Hood's Final Arrow", "desc": "+25% first blood, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "first_blood", "value": 0.25}, {"effect": "armor_pierce", "value": 0.10}], "character": "robin_hood"},
+	{"id": "little_john_staff", "name": "Little John's Staff", "desc": "+20% splash, +15% slow", "rarity": "gilded", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "slow", "value": 0.15}], "character": "robin_hood"},
 	# -- Alice --
-	{"id": "jabberwock_scale", "name": "Jabberwock Scale", "desc": "+25% boss dmg, +10% crit dmg", "rarity": "rare", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "crit_damage", "value": 0.10}], "character": "alice"},
-	{"id": "queen_hearts_crown", "name": "Queen of Hearts' Crown", "desc": "+20% dmg, +15% execute", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "execute", "value": 0.15}], "character": "alice"},
-	{"id": "wonderland_key", "name": "Wonderland Key", "desc": "+12% all stats, +10% CD red.", "rarity": "rare", "effects": [{"effect": "all", "value": 0.12}, {"effect": "cooldown_reduction", "value": 0.10}], "character": "alice"},
-	{"id": "cheshire_essence", "name": "Cheshire Essence", "desc": "+20% dodge, +15% crit", "rarity": "rare", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "crit", "value": 0.15}], "character": "alice"},
+	{"id": "jabberwock_scale", "name": "Jabberwock Scale", "desc": "+25% boss dmg, +10% crit dmg", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "crit_damage", "value": 0.10}], "character": "alice"},
+	{"id": "queen_hearts_crown", "name": "Queen of Hearts' Crown", "desc": "+20% dmg, +15% execute", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "execute", "value": 0.15}], "character": "alice"},
+	{"id": "wonderland_key", "name": "Wonderland Key", "desc": "+12% all stats, +10% CD red.", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "cooldown_reduction", "value": 0.10}], "character": "alice"},
+	{"id": "cheshire_essence", "name": "Cheshire Essence", "desc": "+20% dodge, +15% crit", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "crit", "value": 0.15}], "character": "alice"},
 	# -- Wicked Witch --
-	{"id": "witch_hourglass", "name": "Witch's Hourglass", "desc": "+20% slow, +15% debuff amp, +5% dmg", "rarity": "rare", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "wicked_witch"},
-	{"id": "wizard_curtain", "name": "Wizard's Curtain", "desc": "+15% dodge, +15% range", "rarity": "rare", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "range", "value": 0.15}], "character": "wicked_witch"},
-	{"id": "glinda_wand", "name": "Glinda's Wand", "desc": "+20% aura range, +10% atk spd", "rarity": "rare", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "character": "wicked_witch"},
-	{"id": "enchanted_silver_shoes", "name": "Enchanted Silver Shoes", "desc": "+15% all stats", "rarity": "rare", "effect": "all", "value": 0.15, "character": "wicked_witch"},
+	{"id": "witch_hourglass", "name": "Witch's Hourglass", "desc": "+20% slow, +15% debuff amp, +5% dmg", "rarity": "gilded", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "wicked_witch"},
+	{"id": "wizard_curtain", "name": "Wizard's Curtain", "desc": "+15% dodge, +15% range", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "range", "value": 0.15}], "character": "wicked_witch"},
+	{"id": "glinda_wand", "name": "Glinda's Wand", "desc": "+20% aura range, +10% atk spd", "rarity": "gilded", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "character": "wicked_witch"},
+	{"id": "enchanted_silver_shoes", "name": "Enchanted Silver Shoes", "desc": "+15% all stats", "rarity": "gilded", "effect": "all", "value": 0.15, "character": "wicked_witch"},
 	# -- Peter Pan --
-	{"id": "second_star_compass", "name": "Second Star Compass", "desc": "+12% all stats, +10% range", "rarity": "rare", "effects": [{"effect": "all", "value": 0.12}, {"effect": "range", "value": 0.10}], "character": "peter_pan"},
-	{"id": "captain_hook_claw", "name": "Captain Hook's Claw", "desc": "+25% dmg, +10% armor pierce", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.10}], "character": "peter_pan"},
-	{"id": "fairy_queen_wing", "name": "Fairy Queen's Wing", "desc": "+20% atk spd, +15% CD red.", "rarity": "rare", "effects": [{"effect": "attack_speed", "value": 0.20}, {"effect": "cooldown_reduction", "value": 0.15}], "character": "peter_pan"},
-	{"id": "neverland_hourglass", "name": "Neverland Hourglass", "desc": "+20% slow, +5% all stats", "rarity": "rare", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "all", "value": 0.05}], "character": "peter_pan"},
+	{"id": "second_star_compass", "name": "Second Star Compass", "desc": "+12% all stats, +10% range", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "range", "value": 0.10}], "character": "peter_pan"},
+	{"id": "captain_hook_claw", "name": "Captain Hook's Claw", "desc": "+25% dmg, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.10}], "character": "peter_pan"},
+	{"id": "fairy_queen_wing", "name": "Fairy Queen's Wing", "desc": "+20% atk spd, +15% CD red.", "rarity": "gilded", "effects": [{"effect": "attack_speed", "value": 0.20}, {"effect": "cooldown_reduction", "value": 0.15}], "character": "peter_pan"},
+	{"id": "neverland_hourglass", "name": "Neverland Hourglass", "desc": "+20% slow, +5% all stats", "rarity": "gilded", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "all", "value": 0.05}], "character": "peter_pan"},
 	# -- Phantom --
-	{"id": "phantom_full_mask", "name": "Phantom's Full Mask", "desc": "+20% dmg, +15% crit, +8% lifesteal", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "lifesteal", "value": 0.08}], "character": "phantom"},
-	{"id": "christine_voice", "name": "Christine's Voice", "desc": "+20% aura range, +15% debuff amp", "rarity": "rare", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}], "character": "phantom"},
-	{"id": "opera_ghost_cape", "name": "Opera Ghost's Cape", "desc": "+20% dodge, +10% damage", "rarity": "rare", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "damage", "value": 0.10}], "character": "phantom"},
-	{"id": "beneath_opera", "name": "Beneath the Opera", "desc": "+25% boss dmg, +15% execute", "rarity": "rare", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "execute", "value": 0.15}], "character": "phantom"},
+	{"id": "phantom_full_mask", "name": "Phantom's Full Mask", "desc": "+20% dmg, +15% crit, +8% lifesteal", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "lifesteal", "value": 0.08}], "character": "phantom"},
+	{"id": "christine_voice", "name": "Christine's Voice", "desc": "+20% aura range, +15% debuff amp", "rarity": "gilded", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}], "character": "phantom"},
+	{"id": "opera_ghost_cape", "name": "Opera Ghost's Cape", "desc": "+20% dodge, +10% damage", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "damage", "value": 0.10}], "character": "phantom"},
+	{"id": "beneath_opera", "name": "Beneath the Opera", "desc": "+25% boss dmg, +15% execute", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "execute", "value": 0.15}], "character": "phantom"},
 	# -- Scrooge --
-	{"id": "christmas_miracle", "name": "Christmas Miracle", "desc": "+3 HP heal/wave, +15% all stats", "rarity": "rare", "effects": [{"effect": "heal_nearby", "value": 3.0}, {"effect": "all", "value": 0.15}], "character": "scrooge"},
-	{"id": "scrooge_redemption", "name": "Scrooge's Redemption", "desc": "+25% gold, +15% wave gold", "rarity": "rare", "effects": [{"effect": "gold_bonus", "value": 0.25}, {"effect": "wave_gold", "value": 0.15}], "character": "scrooge"},
-	{"id": "ghost_present_torch", "name": "Ghost of Present's Torch", "desc": "+20% dmg, +15% aura range", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "aura_range", "value": 0.15}], "character": "scrooge"},
-	{"id": "marley_lockbox", "name": "Marley's Lockbox", "desc": "Absorb 2 hits, +10% dodge", "rarity": "rare", "effects": [{"effect": "absorb_hit", "value": 2.0}, {"effect": "dodge", "value": 0.10}], "character": "scrooge"},
+	{"id": "christmas_miracle", "name": "Christmas Miracle", "desc": "+3 HP heal/wave, +15% all stats", "rarity": "gilded", "effects": [{"effect": "heal_nearby", "value": 3.0}, {"effect": "all", "value": 0.15}], "character": "scrooge"},
+	{"id": "scrooge_redemption", "name": "Scrooge's Redemption", "desc": "+25% gold, +15% wave gold", "rarity": "gilded", "effects": [{"effect": "gold_bonus", "value": 0.25}, {"effect": "wave_gold", "value": 0.15}], "character": "scrooge"},
+	{"id": "ghost_present_torch", "name": "Ghost of Present's Torch", "desc": "+20% dmg, +15% aura range", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "aura_range", "value": 0.15}], "character": "scrooge"},
+	{"id": "marley_lockbox", "name": "Marley's Lockbox", "desc": "Absorb 2 hits, +10% dodge", "rarity": "gilded", "effects": [{"effect": "absorb_hit", "value": 2.0}, {"effect": "dodge", "value": 0.10}], "character": "scrooge"},
 	# -- Sherlock --
-	{"id": "mind_palace_key", "name": "Mind Palace Key", "desc": "+15% all stats, +10% crit", "rarity": "rare", "effects": [{"effect": "all", "value": 0.15}, {"effect": "crit", "value": 0.10}], "character": "sherlock"},
-	{"id": "reichenbach_memento", "name": "Reichenbach Memento", "desc": "+25% dmg, +15% boss dmg", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "boss_damage", "value": 0.15}], "character": "sherlock"},
-	{"id": "hound_collar", "name": "The Hound's Collar", "desc": "+20% dmg, +12% chain", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "chain", "value": 0.12}], "character": "sherlock"},
-	{"id": "elementary_lens", "name": "Elementary Lens", "desc": "+20% range, +15% crit, +10% armor pierce", "rarity": "rare", "effects": [{"effect": "range", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "sherlock"},
+	{"id": "mind_palace_key", "name": "Mind Palace Key", "desc": "+15% all stats, +10% crit", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.15}, {"effect": "crit", "value": 0.10}], "character": "sherlock"},
+	{"id": "reichenbach_memento", "name": "Reichenbach Memento", "desc": "+25% dmg, +15% boss dmg", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "boss_damage", "value": 0.15}], "character": "sherlock"},
+	{"id": "hound_collar", "name": "The Hound's Collar", "desc": "+20% dmg, +12% chain", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "chain", "value": 0.12}], "character": "sherlock"},
+	{"id": "elementary_lens", "name": "Elementary Lens", "desc": "+20% range, +15% crit, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "range", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "sherlock"},
 	# -- Tarzan --
-	{"id": "king_jungle_crown", "name": "King of the Jungle Crown", "desc": "+20% dmg, +15% atk spd, +10% aura", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "aura_range", "value": 0.10}], "character": "tarzan"},
-	{"id": "greystoke_signet", "name": "Greystoke Signet", "desc": "+12% all stats, +10% gold", "rarity": "rare", "effects": [{"effect": "all", "value": 0.12}, {"effect": "gold_bonus", "value": 0.10}], "character": "tarzan"},
-	{"id": "darnot_compass", "name": "D'Arnot's Compass", "desc": "+20% range, +15% chain", "rarity": "rare", "effects": [{"effect": "range", "value": 0.20}, {"effect": "chain", "value": 0.15}], "character": "tarzan"},
-	{"id": "tarzan_war_cry", "name": "Tarzan's War Cry", "desc": "+25% splash, +15% debuff amp", "rarity": "rare", "effects": [{"effect": "splash_radius", "value": 0.25}, {"effect": "debuff_amp", "value": 0.15}], "character": "tarzan"},
+	{"id": "king_jungle_crown", "name": "King of the Jungle Crown", "desc": "+20% dmg, +15% atk spd, +10% aura", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "aura_range", "value": 0.10}], "character": "tarzan"},
+	{"id": "greystoke_signet", "name": "Greystoke Signet", "desc": "+12% all stats, +10% gold", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "gold_bonus", "value": 0.10}], "character": "tarzan"},
+	{"id": "darnot_compass", "name": "D'Arnot's Compass", "desc": "+20% range, +15% chain", "rarity": "gilded", "effects": [{"effect": "range", "value": 0.20}, {"effect": "chain", "value": 0.15}], "character": "tarzan"},
+	{"id": "tarzan_war_cry", "name": "Tarzan's War Cry", "desc": "+25% splash, +15% debuff amp", "rarity": "gilded", "effects": [{"effect": "splash_radius", "value": 0.25}, {"effect": "debuff_amp", "value": 0.15}], "character": "tarzan"},
 	# -- Dracula --
-	{"id": "dracula_signet_ring", "name": "Dracula's Signet Ring", "desc": "+20% dmg, +8% lifesteal, +10% crit", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "lifesteal", "value": 0.08}, {"effect": "crit", "value": 0.10}], "character": "dracula"},
-	{"id": "carfax_abbey_tome", "name": "Carfax Abbey Tome", "desc": "+25% boss dmg, +15% burn", "rarity": "rare", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "burn", "value": 0.15}], "character": "dracula"},
-	{"id": "brides_veil", "name": "Brides' Veil", "desc": "+20% slow, +15% debuff amp, +5% dodge", "rarity": "rare", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "dracula"},
-	{"id": "nosferatu_shadow", "name": "Nosferatu's Shadow", "desc": "+20% dodge, +15% execute, +5% atk spd", "rarity": "rare", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "execute", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "dracula"},
+	{"id": "dracula_signet_ring", "name": "Dracula's Signet Ring", "desc": "+20% dmg, +8% lifesteal, +10% crit", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "lifesteal", "value": 0.08}, {"effect": "crit", "value": 0.10}], "character": "dracula"},
+	{"id": "carfax_abbey_tome", "name": "Carfax Abbey Tome", "desc": "+25% boss dmg, +15% burn", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "burn", "value": 0.15}], "character": "dracula"},
+	{"id": "brides_veil", "name": "Brides' Veil", "desc": "+20% slow, +15% debuff amp, +5% dodge", "rarity": "gilded", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "dracula"},
+	{"id": "nosferatu_shadow", "name": "Nosferatu's Shadow", "desc": "+20% dodge, +15% execute, +5% atk spd", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "execute", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "dracula"},
 	# -- Merlin --
-	{"id": "excalibur_reforged", "name": "Excalibur Reforged", "desc": "+25% dmg, +15% crit, +10% armor pierce", "rarity": "rare", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "merlin"},
-	{"id": "holy_grail_merlin", "name": "Holy Grail", "desc": "+3 HP heal/wave, +12% all stats", "rarity": "rare", "effects": [{"effect": "heal_nearby", "value": 3.0}, {"effect": "all", "value": 0.12}], "character": "merlin"},
-	{"id": "merlin_starfire_staff", "name": "Merlin's Starfire Staff", "desc": "+20% splash, +15% burn", "rarity": "rare", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "burn", "value": 0.15}], "character": "merlin"},
-	{"id": "avalon_mist", "name": "Avalon Mist", "desc": "+15% dodge, +15% CD red., +10% range", "rarity": "rare", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "cooldown_reduction", "value": 0.15}, {"effect": "range", "value": 0.10}], "character": "merlin"},
+	{"id": "excalibur_reforged", "name": "Excalibur Reforged", "desc": "+25% dmg, +15% crit, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "merlin"},
+	{"id": "holy_grail_merlin", "name": "Holy Grail", "desc": "+3 HP heal/wave, +12% all stats", "rarity": "gilded", "effects": [{"effect": "heal_nearby", "value": 3.0}, {"effect": "all", "value": 0.12}], "character": "merlin"},
+	{"id": "merlin_starfire_staff", "name": "Merlin's Starfire Staff", "desc": "+20% splash, +15% burn", "rarity": "gilded", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "burn", "value": 0.15}], "character": "merlin"},
+	{"id": "avalon_mist", "name": "Avalon Mist", "desc": "+15% dodge, +15% CD red., +10% range", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "cooldown_reduction", "value": 0.15}, {"effect": "range", "value": 0.10}], "character": "merlin"},
 	# -- Frankenstein --
-	{"id": "spark_of_life", "name": "Spark of Life", "desc": "+25% chain, +15% dmg, +8% burn", "rarity": "rare", "effects": [{"effect": "chain", "value": 0.25}, {"effect": "damage", "value": 0.15}, {"effect": "burn", "value": 0.08}], "character": "frankenstein"},
-	{"id": "shelley_manuscript", "name": "Shelley's Manuscript", "desc": "+12% all stats, +15% XP gain", "rarity": "rare", "effects": [{"effect": "all", "value": 0.12}, {"effect": "xp_gain", "value": 0.15}], "character": "frankenstein"},
-	{"id": "arctic_titan_fist", "name": "Arctic Titan's Fist", "desc": "+25% boss dmg, +20% armor pierce", "rarity": "rare", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.20}], "character": "frankenstein"},
-	{"id": "bride_heart", "name": "Bride's Heart", "desc": "+20% aura, +15% atk spd, +8% lifesteal", "rarity": "rare", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "lifesteal", "value": 0.08}], "character": "frankenstein"},
+	{"id": "spark_of_life", "name": "Spark of Life", "desc": "+25% chain, +15% dmg, +8% burn", "rarity": "gilded", "effects": [{"effect": "chain", "value": 0.25}, {"effect": "damage", "value": 0.15}, {"effect": "burn", "value": 0.08}], "character": "frankenstein"},
+	{"id": "shelley_manuscript", "name": "Shelley's Manuscript", "desc": "+12% all stats, +15% XP gain", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "xp_gain", "value": 0.15}], "character": "frankenstein"},
+	{"id": "arctic_titan_fist", "name": "Arctic Titan's Fist", "desc": "+25% boss dmg, +20% armor pierce", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.20}], "character": "frankenstein"},
+	{"id": "bride_heart", "name": "Bride's Heart", "desc": "+20% aura, +15% atk spd, +8% lifesteal", "rarity": "gilded", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "lifesteal", "value": 0.08}], "character": "frankenstein"},
 	# -- Universal --
-	{"id": "torn_manuscript", "name": "Torn Manuscript", "desc": "+25% boss damage", "rarity": "rare", "effect": "boss_damage", "value": 0.25},
-	{"id": "wax_seal", "name": "Wax Seal", "desc": "Absorb 1 hit", "rarity": "rare", "effect": "absorb_hit", "value": 1.0},
-	{"id": "phantoms_quill", "name": "Phantom's Quill", "desc": "+3% lifesteal", "rarity": "rare", "effect": "lifesteal", "value": 0.03},
-	{"id": "bloodstained_page", "name": "Bloodstained Page", "desc": "+25% dmg when low lives", "rarity": "rare", "effect": "bloodstained", "value": 0.25},
-	{"id": "authors_signet", "name": "Author's Signet", "desc": "+2 gold per kill", "rarity": "rare", "effect": "kill_gold", "value": 2.0},
-	{"id": "holy_grail", "name": "Holy Grail Replica", "desc": "+3 HP heal/wave", "rarity": "rare", "effect": "heal_nearby", "value": 3.0},
+	{"id": "torn_manuscript", "name": "Torn Manuscript", "desc": "+25% boss damage", "rarity": "gilded", "effect": "boss_damage", "value": 0.25},
+	{"id": "wax_seal", "name": "Wax Seal", "desc": "Absorb 1 hit", "rarity": "gilded", "effect": "absorb_hit", "value": 1.0},
+	{"id": "phantoms_quill", "name": "Phantom's Quill", "desc": "+3% lifesteal", "rarity": "gilded", "effect": "lifesteal", "value": 0.03},
+	{"id": "bloodstained_page", "name": "Bloodstained Page", "desc": "+25% dmg when low lives", "rarity": "gilded", "effect": "bloodstained", "value": 0.25},
+	{"id": "authors_signet", "name": "Author's Signet", "desc": "+2 gold per kill", "rarity": "gilded", "effect": "kill_gold", "value": 2.0},
+	{"id": "holy_grail", "name": "Holy Grail Replica", "desc": "+3 HP heal/wave", "rarity": "gilded", "effect": "heal_nearby", "value": 3.0},
+	# ===== MYTHIC GEAR =====
+	# -- Character-Specific Mythic Gear --
+	{"id": "m_greenwood_wreath", "name": "Greenwood Wreath", "desc": "Arrows fork into 3 upon impact. +20% range, +15% pierce, +10% damage.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "pierce", "value": 0.15}, {"effect": "damage", "value": 0.10}], "special": "split_arrow_3", "character": "robin_hood", "per_level": 0.02},
+	{"id": "m_looking_glass_tiara", "name": "Looking-Glass Tiara", "desc": "Attacks bewitch enemies, slowing 30%. +20% damage, +15% attack speed.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "bewitch_slow_30pct", "character": "alice", "per_level": 0.02},
+	{"id": "m_hemlock_cauldron", "name": "Hemlock Cauldron", "desc": "Brews lingering poison on hit. +25% splash, +15% burn.", "rarity": "mythic", "effects": [{"effect": "splash_radius", "value": 0.25}, {"effect": "burn", "value": 0.15}], "special": "poison_dot", "character": "wicked_witch", "per_level": 0.02},
+	{"id": "m_second_star_compass", "name": "Second Star Compass", "desc": "Grants flight over all terrain. +20% range, +15% speed, +10% dodge.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "dodge", "value": 0.10}], "special": "ignore_terrain", "character": "peter_pan", "per_level": 0.02},
+	{"id": "m_chandelier_chain", "name": "Chandelier Chain", "desc": "Stun duration doubled on all attacks. +20% stun, +15% damage, +10% range.", "rarity": "mythic", "effects": [{"effect": "stun", "value": 0.20}, {"effect": "damage", "value": 0.15}, {"effect": "range", "value": 0.10}], "special": "double_stun_duration", "character": "phantom", "per_level": 0.02},
+	{"id": "m_counting_house_key", "name": "Counting House Key", "desc": "Doubles gold earned from defeated foes. +25% gold bonus, +10% all stats.", "rarity": "mythic", "effects": [{"effect": "gold_bonus", "value": 0.25}, {"effect": "all", "value": 0.10}], "special": "double_kill_gold", "character": "scrooge", "per_level": 0.02},
+	{"id": "m_spellbound_quill", "name": "Spellbound Quill", "desc": "Every 5th strike deals 3x damage. +20% damage, +15% pierce.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "pierce", "value": 0.15}], "special": "crit_every_5th_3x", "character": "merlin", "per_level": 0.02},
+	{"id": "m_galvanic_coil", "name": "Galvanic Coil", "desc": "Lightning arcs between 3 enemies. +20% damage, +15% range.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "range", "value": 0.15}], "special": "chain_lightning_3", "character": "frankenstein", "per_level": 0.02},
+	{"id": "m_nocturne_chalice", "name": "Nocturne Chalice", "desc": "Drains 5% of damage dealt as life. +20% damage, +15% attack speed.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "life_steal_5pct", "character": "dracula", "per_level": 0.02},
+	{"id": "m_duality_elixir", "name": "Duality Elixir", "desc": "Transform: +50% stats 10s, then -20% 5s. +20% damage, +15% speed.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "duality_transform", "character": "jekyll_hyde", "per_level": 0.02},
+	{"id": "m_tale_spinners_thread", "name": "Tale-Spinner's Thread", "desc": "Weave 3 story wishes per game (free upgrade). +20% all stats.", "rarity": "mythic", "effects": [{"effect": "all", "value": 0.20}], "special": "three_wishes", "character": "scheherazade", "per_level": 0.02},
+	# -- Universal Mythic Gear --
+	{"id": "m_resurrection_page", "name": "Resurrection Page", "desc": "Revive once per game at 50% HP. +15% all stats.", "rarity": "mythic", "effects": [{"effect": "all", "value": 0.15}], "special": "revive_once_50pct", "per_level": 0.015},
+	{"id": "m_hourglass_of_ages", "name": "Hourglass of Ages", "desc": "Slow all enemies 15% within range. +20% range, +10% speed.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "special": "aura_slow_15pct", "per_level": 0.015},
+	{"id": "m_penumbra_cloak", "name": "Penumbra Cloak", "desc": "25% chance to evade incoming damage. +15% dodge, +10% damage.", "rarity": "mythic", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "damage", "value": 0.10}], "special": "dodge_25pct", "per_level": 0.015},
+	{"id": "m_crimson_inkwell", "name": "Crimson Inkwell", "desc": "+1% damage per enemy felled (caps 50%). +15% damage.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}], "special": "ramping_damage_1pct", "per_level": 0.015},
+	{"id": "m_tempest_seal", "name": "Tempest Seal", "desc": "Lightning strikes a random foe every 8s. +15% damage, +15% range.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "range", "value": 0.15}], "special": "lightning_strike_8s", "per_level": 0.015},
+	{"id": "m_winters_grasp", "name": "Winter's Grasp", "desc": "Freeze enemies 1s every 10 hits. +20% slow, +10% damage.", "rarity": "mythic", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "damage", "value": 0.10}], "special": "freeze_every_10", "per_level": 0.015},
+	{"id": "m_reflection_ward", "name": "Reflection Ward", "desc": "Reflect 20% damage back to attackers. +15% defense, +10% range.", "rarity": "mythic", "effects": [{"effect": "defense", "value": 0.15}, {"effect": "range", "value": 0.10}], "special": "reflect_20pct", "per_level": 0.015},
+	{"id": "m_oblivion_sphere", "name": "Oblivion Sphere", "desc": "10% chance to banish non-boss enemies. +15% damage.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}], "special": "instant_banish_10pct", "per_level": 0.015},
+	{"id": "m_chronicle_clasp", "name": "Chronicle Clasp", "desc": "Cooldowns reduced 25%. +20% cooldown reduction, +10% speed.", "rarity": "mythic", "effects": [{"effect": "cooldown_reduction", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "special": "cd_reduce_25pct", "per_level": 0.015},
+	{"id": "m_cinder_diadem", "name": "Cinder Diadem", "desc": "Burn aura scorches nearby foes. +15% burn, +15% splash.", "rarity": "mythic", "effects": [{"effect": "burn", "value": 0.15}, {"effect": "splash_radius", "value": 0.15}], "special": "burn_aura", "per_level": 0.015},
+	{"id": "m_lodestone_heart", "name": "Lodestone Heart", "desc": "Pull enemies toward your tower. +15% range, +10% slow.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.15}, {"effect": "slow", "value": 0.10}], "special": "gravity_pull", "per_level": 0.015},
+	{"id": "m_lamplight_soul", "name": "Lamplight Soul", "desc": "+2% damage per wave survived. +10% all stats.", "rarity": "mythic", "effects": [{"effect": "all", "value": 0.10}], "special": "wave_scaling_2pct", "per_level": 0.015},
+	{"id": "m_berserker_binding", "name": "Berserker Binding", "desc": "+30% attack speed when below 50% HP. +15% speed, +10% damage.", "rarity": "mythic", "effects": [{"effect": "attack_speed", "value": 0.15}, {"effect": "damage", "value": 0.10}], "special": "berserk_low_hp", "per_level": 0.015},
+	{"id": "m_prismatic_bookmark", "name": "Prismatic Bookmark", "desc": "Attacks cycle fire/ice/lightning. +15% damage, +10% all.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "all", "value": 0.10}], "special": "element_cycle", "per_level": 0.015},
+	# ===== FORBIDDEN GEAR =====
+	{"id": "f_authors_omniscience", "name": "Author's Omniscience", "desc": "All stats +30%. Activate: double damage 10s (60s CD).", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.30}], "special": "activated_double_damage_10s", "per_level": 0.025},
+	{"id": "f_yggdrasil_sapling", "name": "Yggdrasil Sapling", "desc": "Restore 1 life per wave. +25% all stats.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.25}], "special": "regen_1_life_per_wave", "per_level": 0.025},
+	{"id": "f_midas_manuscript", "name": "Midas Manuscript", "desc": "Double all gold earned. +20% gold bonus, +20% damage.", "rarity": "forbidden", "effects": [{"effect": "gold_bonus", "value": 0.20}, {"effect": "damage", "value": 0.20}], "special": "double_all_gold", "per_level": 0.025},
+	{"id": "f_narrators_crown", "name": "Narrator's Crown", "desc": "Buff all towers +10% stats. +25% range, +20% damage.", "rarity": "forbidden", "effects": [{"effect": "range", "value": 0.25}, {"effect": "damage", "value": 0.20}], "special": "global_buff_10pct", "per_level": 0.025},
+	{"id": "f_reapers_quill", "name": "Reaper's Quill", "desc": "25% chance to deal 5x damage. +25% damage, +15% speed.", "rarity": "forbidden", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "attack_speed", "value": 0.15}], "special": "crit_25pct_5x", "per_level": 0.025},
+	{"id": "f_inferno_tome", "name": "Inferno Tome", "desc": "Scorch all enemies in range. +25% burn, +20% splash, +15% damage.", "rarity": "forbidden", "effects": [{"effect": "burn", "value": 0.25}, {"effect": "splash_radius", "value": 0.20}, {"effect": "damage", "value": 0.15}], "special": "aura_burn_all", "per_level": 0.025},
+	{"id": "f_wyrm_scale_codex", "name": "Wyrm-Scale Codex", "desc": "Immune to damage 3s after placing. +30% damage, +20% range.", "rarity": "forbidden", "effects": [{"effect": "damage", "value": 0.30}, {"effect": "range", "value": 0.20}], "special": "invuln_3s_on_place", "per_level": 0.025},
+	{"id": "f_piercing_verse", "name": "Piercing Verse", "desc": "Attacks pierce through all enemies in line. +25% pierce, +20% range.", "rarity": "forbidden", "effects": [{"effect": "pierce", "value": 0.25}, {"effect": "range", "value": 0.20}], "special": "infinite_pierce", "per_level": 0.025},
+	{"id": "f_fates_manuscript", "name": "Fate's Manuscript", "desc": "Random powerful boon each wave. +20% all stats.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.20}], "special": "random_buff_per_wave", "per_level": 0.025},
+	{"id": "f_frozen_chronicle", "name": "Frozen Chronicle", "desc": "Activate: freeze all enemies 5s (90s CD). +20% slow, +15% speed.", "rarity": "forbidden", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "activated_time_stop_5s", "per_level": 0.025},
+	{"id": "f_deathknell_bell", "name": "Deathknell Bell", "desc": "Defeated enemies explode for 50% AoE. +25% damage, +20% splash.", "rarity": "forbidden", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "splash_radius", "value": 0.20}], "special": "death_explosion_50pct", "per_level": 0.025},
+	{"id": "f_plot_armor", "name": "Plot Armor", "desc": "Block 1 lethal hit per game. +25% defense, +20% all stats.", "rarity": "forbidden", "effects": [{"effect": "defense", "value": 0.25}, {"effect": "all", "value": 0.20}], "special": "life_save_once", "per_level": 0.025},
+	{"id": "f_twinned_binding", "name": "Twinned Binding", "desc": "Link 2 towers: share 25% stats. +20% all stats.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.20}], "special": "tower_link_25pct", "per_level": 0.025},
+	{"id": "f_pandemonium_scroll", "name": "Pandemonium Scroll", "desc": "+50% all stats but enemies +20% speed. Risk and reward.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.50}], "special": "enemy_speed_20pct_penalty", "per_level": 0.025},
+	{"id": "f_spectral_echo", "name": "Spectral Echo", "desc": "Tower fires from two positions. +25% range, +20% damage.", "rarity": "forbidden", "effects": [{"effect": "range", "value": 0.25}, {"effect": "damage", "value": 0.20}], "special": "double_projectile", "per_level": 0.025},
 ]
+var RARITY_COLORS = {"tattered": Color(0.6, 0.6, 0.65), "bound": Color(0.3, 0.75, 0.3), "gilded": Color(0.3, 0.5, 0.9), "mythic": Color(0.7, 0.35, 0.9), "forbidden": Color(1.0, 0.6, 0.1)}
+var RARITY_SHARD_VALUES = {"tattered": 10, "bound": 25, "gilded": 100, "mythic": 300, "forbidden": 1000}
+var RARITY_ORDER = ["tattered", "bound", "gilded", "mythic", "forbidden"]
 var owned_bindings: Dictionary = {}  # binding_id -> count
 var equipped_bindings: Dictionary = {}  # tower_type -> [binding_id, binding_id]
 var _binding_lookup: Dictionary = {}  # binding_id -> binding dict (cache)
@@ -1307,7 +1844,7 @@ var arc_data = [
 ]
 
 # Save version for migration
-const SAVE_VERSION = 2
+const SAVE_VERSION = 3
 const OLD_TO_NEW_LEVEL_MAP = {0:16, 1:17, 2:18, 3:19, 4:20, 5:21, 6:22, 7:23, 8:24, 9:25, 10:26, 11:27, 12:28, 13:29, 14:30, 15:31, 16:32, 17:33}
 
 func _ready() -> void:
@@ -1522,18 +2059,45 @@ func _get_sidekick_bonuses(tower_type) -> Dictionary:
 	if sk_unlocked.size() > 2 and sk_unlocked[2]:
 		bonuses["gold_bonus"] = bonuses.get("gold_bonus", 0.0) + 0.10
 	return bonuses
+		character_affinity[t] = 0.0
+		awakened_characters[t] = false
+		gear_loadouts[t] = []
+		for _li in range(MAX_LOADOUTS):
+			gear_loadouts[t].append({"bindings": [], "relics": []})
+		gear_loadout_active[t] = 0
 
 func _apply_meta_buffs(tower_node, tower_type) -> void:
 	var buffs: Dictionary = {}
+	# 0) Prestige bonus: +5% global damage per prestige level
+	if prestige_level > 0:
+		buffs["damage"] = buffs.get("damage", 0.0) + prestige_level * 0.05
+	# 0b) BATTD: Character Home Bonus (+10% all stats when on own chapter)
+	if current_level >= 0 and current_level < levels.size():
+		var lvl_char = levels[current_level].get("character", -1)
+		if lvl_char == tower_type:
+			for hk in ["damage", "range", "attack_speed", "crit"]:
+				buffs[hk] = buffs.get(hk, 0.0) + HOME_CHAPTER_BONUS
+	# 0c) BATTD2: Character Bond bonus (+8% when paired character nearby)
+	for bond in _active_bonds:
+		if tower_type in bond["pair"]:
+			for bk in ["damage", "attack_speed"]:
+				buffs[bk] = buffs.get(bk, 0.0) + bond["bonus"]
+	# 0d) BATTD2: Blessing bonus (temporary team buff)
+	if _blessing_active and _blessing_type != "":
+		buffs[_blessing_type] = buffs.get(_blessing_type, 0.0) + 0.25
+	# 0e) BATTD2: Victory Streak XP/damage bonus
+	if victory_streak >= 2:
+		buffs["damage"] = buffs.get("damage", 0.0) + float(victory_streak) * STREAK_GOLD_BONUS
 	# 1) Level bonuses
 	var lvl_b = _get_level_bonuses(tower_type)
 	for k in lvl_b:
 		buffs[k] = buffs.get(k, 0.0) + lvl_b[k]
-	# 2) Knowledge bonuses (global, all towers benefit)
-	for stat_key in ["damage", "range", "attack_speed", "crit"]:
-		var kb = _get_knowledge_bonus(stat_key)
-		if kb > 0.0:
-			buffs[stat_key] = buffs.get(stat_key, 0.0) + kb
+	# 2) Knowledge bonuses (global, all towers benefit) — disabled in Pure Mode
+	if selected_difficulty != PURE_MODE:
+		for stat_key in ["damage", "range", "attack_speed", "crit"]:
+			var kb = _get_knowledge_bonus(stat_key)
+			if kb > 0.0:
+				buffs[stat_key] = buffs.get(stat_key, 0.0) + kb
 	# 3) Relic bonuses (per-character)
 	var rel_b = _get_relic_bonuses(tower_type)
 	for k in rel_b:
@@ -1542,6 +2106,27 @@ func _apply_meta_buffs(tower_node, tower_type) -> void:
 	var bind_b = _get_binding_bonuses(tower_type)
 	for k in bind_b:
 		buffs[k] = buffs.get(k, 0.0) + bind_b[k]
+	# 4b) Survivor level stat boosts
+	var level_b = _get_level_stat_boosts(tower_type)
+	for k in level_b:
+		if level_b[k] != 0.0:
+			buffs[k] = buffs.get(k, 0.0) + level_b[k]
+	# 4c) Per-level gear scaling (mythic/forbidden gear scale with survivor level)
+	var slvl = survivor_progress.get(tower_type, {}).get("level", 1)
+	if slvl > 1:
+		var eq_binds = equipped_bindings.get(tower_type, [])
+		for bid in eq_binds:
+			var bdata = _find_binding(bid)
+			if bdata.has("per_level"):
+				var pl_bonus = bdata["per_level"] * float(slvl - 1)
+				if bdata.has("effects"):
+					for fx in bdata["effects"]:
+						var eff = fx.get("effect", "")
+						if eff == "all":
+							for ak in ["damage", "range", "attack_speed", "crit"]:
+								buffs[ak] = buffs.get(ak, 0.0) + pl_bonus
+						elif eff != "":
+							buffs[eff] = buffs.get(eff, 0.0) + pl_bonus
 	# 5) Literary Instrument aura bonuses
 	if tower_node and is_instance_valid(tower_node):
 		var inst_b = _get_instrument_buffs_at(tower_node.global_position)
@@ -1978,6 +2563,9 @@ func _check_achievement(id: String, value = 1) -> void:
 
 # === BATTLE POWER SYSTEM ===
 func _activate_power(power_id: String) -> void:
+	if selected_difficulty == PURE_MODE:
+		info_label.text = "Powers disabled in Pure Mode!"
+		return
 	if shadow_arena_active and "no_powers" in shadow_arena_modifiers:
 		info_label.text = "Powers disabled in Shadow Arena!"
 		return
@@ -1989,7 +2577,7 @@ func _activate_power(power_id: String) -> void:
 		"quill_strike":
 			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if is_instance_valid(enemy) and enemy.has_method("take_damage"):
-					enemy.take_damage(500.0)
+					enemy.take_damage(500.0, "true")
 		"golden_bounty":
 			gold += 200
 			update_hud()
@@ -2186,6 +2774,15 @@ func _save_game() -> void:
 	for key in level_stars:
 		stars_save[str(key)] = level_stars[key]
 	save_data["level_stars"] = stars_save
+	# Per-difficulty medals and stars
+	var medals_save: Dictionary = {}
+	for key in level_difficulty_medals:
+		medals_save[str(key)] = level_difficulty_medals[key]
+	save_data["level_difficulty_medals"] = medals_save
+	var diff_stars_save: Dictionary = {}
+	for key in level_difficulty_stars:
+		diff_stars_save[str(key)] = level_difficulty_stars[key]
+	save_data["level_difficulty_stars"] = diff_stars_save
 	# Survivor progress (use tower name strings for reorder safety)
 	var sp_save: Dictionary = {}
 	for t in survivor_progress:
@@ -2258,6 +2855,35 @@ func _save_game() -> void:
 	# Settings
 	save_data["auto_wave_enabled"] = auto_wave_enabled
 	save_data["auto_wave_delay"] = auto_wave_delay
+	save_data["auto_wave_delay_index"] = auto_wave_delay_index
+	# === NEW v3 SAVE FIELDS ===
+	save_data["prestige_level"] = prestige_level
+	save_data["combo_best"] = combo_best
+	save_data["milestone_claimed"] = milestone_claimed
+	save_data["total_damage"] = total_damage
+	save_data["mastery_challenges"] = mastery_challenges
+	save_data["daily_challenge_last_date"] = daily_challenge_last_date
+	save_data["daily_challenge_streak"] = daily_challenge_streak
+	save_data["daily_challenge_completed_today"] = daily_challenge_completed_today
+	save_data["boss_rush_completed"] = boss_rush_completed
+	save_data["boss_rush_best_wave"] = boss_rush_best_wave
+	save_data["endless_top_runs"] = endless_top_runs
+	# === BATTD v4 SAVE FIELDS ===
+	save_data["gear_wish_list"] = gear_wish_list
+	save_data["double_cash_unlocked"] = double_cash_unlocked
+	save_data["double_cash_enabled"] = double_cash_enabled
+	save_data["_bounties_completed_total"] = _bounties_completed_total
+	save_data["xp_sharing_enabled"] = xp_sharing_enabled
+	save_data["_crit_streak_best"] = _crit_streak_best
+	# === BATTD2 v5 SAVE FIELDS ===
+	save_data["insta_towers"] = insta_towers
+	save_data["storybook_pages_found"] = storybook_pages_found
+	save_data["_drops_since_mythic"] = _drops_since_mythic
+	save_data["_drops_since_forbidden"] = _drops_since_forbidden
+	save_data["victory_streak"] = victory_streak
+	save_data["victory_streak_best"] = victory_streak_best
+	save_data["gold_interest_enabled"] = gold_interest_enabled
+	save_data["auto_collect_enabled"] = auto_collect_enabled
 	# Save version
 	save_data["save_version"] = SAVE_VERSION
 	# Atomic write with backup rotation
@@ -2344,6 +2970,21 @@ func _load_game() -> void:
 			else:
 				new_ss.append(s)
 		data["story_seen"] = new_ss
+		data["save_version"] = 2
+	# v2 → v3 migration: initialize new fields with defaults
+	if save_ver < 3:
+		data["prestige_level"] = data.get("prestige_level", 0)
+		data["combo_best"] = data.get("combo_best", 0)
+		data["milestone_claimed"] = data.get("milestone_claimed", {})
+		data["total_damage"] = data.get("total_damage", 0)
+		data["mastery_challenges"] = data.get("mastery_challenges", {})
+		data["daily_challenge_last_date"] = data.get("daily_challenge_last_date", "")
+		data["daily_challenge_streak"] = data.get("daily_challenge_streak", 0)
+		data["daily_challenge_completed_today"] = data.get("daily_challenge_completed_today", false)
+		data["boss_rush_completed"] = data.get("boss_rush_completed", false)
+		data["boss_rush_best_wave"] = data.get("boss_rush_best_wave", 0)
+		data["endless_top_runs"] = data.get("endless_top_runs", [])
+		data["auto_wave_delay_index"] = data.get("auto_wave_delay_index", 1)
 		data["save_version"] = SAVE_VERSION
 	# Currencies
 	player_quills = int(data.get("player_quills", 0))
@@ -2364,10 +3005,46 @@ func _load_game() -> void:
 	level_stars.clear()
 	for key in ls:
 		level_stars[int(key)] = int(ls[key])
+	# Per-difficulty medals and stars
+	var ldm = data.get("level_difficulty_medals", {})
+	level_difficulty_medals.clear()
+	for key in ldm:
+		var arr = ldm[key]
+		var medals_arr = [false, false, false]
+		for di in range(mini(arr.size(), 3)):
+			medals_arr[di] = bool(arr[di])
+		level_difficulty_medals[int(key)] = medals_arr
+	var lds = data.get("level_difficulty_stars", {})
+	level_difficulty_stars.clear()
+	for key in lds:
+		var arr = lds[key]
+		var stars_arr = [0, 0, 0]
+		for di in range(mini(arr.size(), 3)):
+			stars_arr[di] = int(arr[di])
+		level_difficulty_stars[int(key)] = stars_arr
+	# Migration: old saves without per-difficulty data — mark Easy as beaten for completed levels
+	if ldm.is_empty() and not completed_levels.is_empty():
+		for lvl_idx in completed_levels:
+			level_difficulty_medals[lvl_idx] = [true, false, false]
+			var s = level_stars.get(lvl_idx, 0)
+			level_difficulty_stars[lvl_idx] = [s, 0, 0]
 	# Survivor progress
 	var sp = data.get("survivor_progress", {})
 	# Build name→TowerType reverse lookup for name-based save keys
 	var _name_to_type: Dictionary = {}
+	# === BATTD3 v6 SAVE FIELDS ===
+	save_data["character_affinity"] = character_affinity
+	save_data["awakened_characters"] = awakened_characters
+	save_data["cosmic_ink"] = cosmic_ink
+	save_data["respec_count"] = respec_count
+	save_data["gear_loadouts"] = gear_loadouts
+	save_data["gear_loadout_active"] = gear_loadout_active
+	save_data["locked_bindings"] = locked_bindings
+	save_data["relic_usage_tracker"] = relic_usage_tracker
+	save_data["discovered_bindings"] = discovered_bindings
+	save_data["favorite_characters"] = favorite_characters
+	save_data["career_stats"] = career_stats
+	save_data["recent_items"] = recent_items
 	for tt in tower_info:
 		_name_to_type[tower_info[tt]["name"]] = tt
 	for key in sp:
@@ -2511,6 +3188,57 @@ func _load_game() -> void:
 	# Settings
 	auto_wave_enabled = data.get("auto_wave_enabled", true)
 	auto_wave_delay = data.get("auto_wave_delay", 2.0)
+	auto_wave_delay_index = int(data.get("auto_wave_delay_index", 1))
+	# === LOAD v3 FIELDS ===
+	prestige_level = int(data.get("prestige_level", 0))
+	combo_best = int(data.get("combo_best", 0))
+	var mc = data.get("milestone_claimed", {})
+	milestone_claimed.clear()
+	for key in mc:
+		milestone_claimed[key] = bool(mc[key])
+	total_damage = int(data.get("total_damage", 0))
+	var mch = data.get("mastery_challenges", {})
+	mastery_challenges.clear()
+	for key in mch:
+		mastery_challenges[key] = mch[key]
+	daily_challenge_last_date = str(data.get("daily_challenge_last_date", ""))
+	daily_challenge_streak = int(data.get("daily_challenge_streak", 0))
+	daily_challenge_completed_today = bool(data.get("daily_challenge_completed_today", false))
+	# Reset daily_challenge_completed_today if date changed
+	var today = Time.get_date_string_from_system()
+	if daily_challenge_last_date != today:
+		daily_challenge_completed_today = false
+	boss_rush_completed = bool(data.get("boss_rush_completed", false))
+	boss_rush_best_wave = int(data.get("boss_rush_best_wave", 0))
+	var etr = data.get("endless_top_runs", [])
+	endless_top_runs.clear()
+	for r in etr:
+		endless_top_runs.append(r)
+	# === LOAD BATTD v4 FIELDS ===
+	var gwl = data.get("gear_wish_list", [])
+	gear_wish_list.clear()
+	for v in gwl:
+		gear_wish_list.append(str(v))
+	double_cash_unlocked = bool(data.get("double_cash_unlocked", false))
+	double_cash_enabled = bool(data.get("double_cash_enabled", false))
+	_bounties_completed_total = int(data.get("_bounties_completed_total", 0))
+	xp_sharing_enabled = bool(data.get("xp_sharing_enabled", true))
+	_crit_streak_best = int(data.get("_crit_streak_best", 0))
+	# === LOAD BATTD2 v5 FIELDS ===
+	var it = data.get("insta_towers", [])
+	insta_towers.clear()
+	for v in it:
+		insta_towers.append(v)
+	var spf = data.get("storybook_pages_found", {})
+	storybook_pages_found.clear()
+	for key in spf:
+		storybook_pages_found[key] = bool(spf[key])
+	_drops_since_mythic = int(data.get("_drops_since_mythic", 0))
+	_drops_since_forbidden = int(data.get("_drops_since_forbidden", 0))
+	victory_streak = int(data.get("victory_streak", 0))
+	victory_streak_best = int(data.get("victory_streak_best", 0))
+	gold_interest_enabled = bool(data.get("gold_interest_enabled", true))
+	auto_collect_enabled = bool(data.get("auto_collect_enabled", false))
 	# Golden Shields migration — ensure existing progress has the field
 	for t in survivor_progress:
 		if not survivor_progress[t].has("golden_shields"):
@@ -2671,6 +3399,44 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "crystal_orb", "size": rng.randf_range(8, 16), "extra": rng.randf_range(0, TAU)})
 					elif r < 0.65:
 						_decorations.append({"pos": pos, "type": "ancient_rune", "size": rng.randf_range(5, 10), "extra": rng.randf_range(0, TAU)})
+	# === LOAD BATTD3 v6 FIELDS ===
+	var ca_data = data.get("character_affinity", {})
+	for key in ca_data:
+		character_affinity[int(key)] = float(ca_data[key])
+	var aw_data = data.get("awakened_characters", {})
+	for key in aw_data:
+		awakened_characters[int(key)] = bool(aw_data[key])
+	cosmic_ink = int(data.get("cosmic_ink", 0))
+	respec_count = int(data.get("respec_count", 0))
+	var gl_data = data.get("gear_loadouts", {})
+	for key in gl_data:
+		gear_loadouts[int(key)] = gl_data[key]
+	var gla_data = data.get("gear_loadout_active", {})
+	for key in gla_data:
+		gear_loadout_active[int(key)] = int(gla_data[key])
+	var lb_data = data.get("locked_bindings", {})
+	locked_bindings.clear()
+	for key in lb_data:
+		locked_bindings[str(key)] = bool(lb_data[key])
+	var rut_data = data.get("relic_usage_tracker", {})
+	relic_usage_tracker.clear()
+	for key in rut_data:
+		relic_usage_tracker[str(key)] = int(rut_data[key])
+	var db_data = data.get("discovered_bindings", {})
+	discovered_bindings.clear()
+	for key in db_data:
+		discovered_bindings[str(key)] = bool(db_data[key])
+	var fc_data = data.get("favorite_characters", [])
+	favorite_characters.clear()
+	for v in fc_data:
+		favorite_characters.append(int(v))
+	var cs_data = data.get("career_stats", {})
+	for key in cs_data:
+		career_stats[key] = cs_data[key]
+	var ri_data = data.get("recent_items", [])
+	recent_items.clear()
+	for v in ri_data:
+		recent_items.append(v)
 					elif r < 0.82:
 						_decorations.append({"pos": pos, "type": "celtic_tree", "size": rng.randf_range(18, 36), "extra": rng.randf_range(-0.04, 0.04)})
 					else:
@@ -3117,6 +3883,30 @@ func _generate_decorations_for_level(index: int) -> void:
 					else:
 						_decorations.append({"pos": pos, "type": "chapter_marker", "size": rng.randf_range(5, 12), "extra": rng.randf_range(0, 1)})
 
+	# Shadow Author taunt + shadow figures — active on ALL maps
+	_sa_taunt_triggered = false
+	_sa_taunt_timer = -1.0
+	_sa_taunt_trigger_time = rng.randf_range(10.0, 40.0)  # Random time each level
+	# Pick a taunt position away from path
+	for _try in range(20):
+		var tp = Vector2(rng.randf_range(200, 1080), rng.randf_range(200, 450))
+		if _dist_to_path(tp) > 100.0:
+			_sa_taunt_x = tp.x
+			_sa_taunt_y = tp.y
+			break
+	# Generate shadow figures that float around every map
+	_sa_shadow_figures.clear()
+	var fig_count = 4 if index < 34 else 6 + (index - 34)  # 4 on normal maps, 6-8 on SA maps
+	for fi in range(fig_count):
+		_sa_shadow_figures.append({
+			"cx": rng.randf_range(100, 1180),
+			"cy": rng.randf_range(150, 500),
+			"speed": rng.randf_range(0.3, 0.8),
+			"radius": rng.randf_range(60, 180),
+			"phase": rng.randf_range(0, TAU),
+			"height": rng.randf_range(30, 50),
+		})
+
 func _create_ui() -> void:
 	var ui = $UI
 
@@ -3128,16 +3918,16 @@ func _create_ui() -> void:
 	ui.add_child(top_bar)
 
 	wave_label = Label.new()
-	wave_label.position = Vector2(16, 8)
-	wave_label.add_theme_font_size_override("font_size", 24)
+	wave_label.position = Vector2(10, 8)
+	wave_label.add_theme_font_size_override("font_size", 18)
 	wave_label.add_theme_constant_override("shadow_offset_x", 1)
 	wave_label.add_theme_constant_override("shadow_offset_y", 2)
 	wave_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
 	top_bar.add_child(wave_label)
 
 	gold_label = Label.new()
-	gold_label.position = Vector2(280, 8)
-	gold_label.add_theme_font_size_override("font_size", 24)
+	gold_label.position = Vector2(290, 8)
+	gold_label.add_theme_font_size_override("font_size", 18)
 	gold_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 	gold_label.add_theme_constant_override("shadow_offset_x", 1)
 	gold_label.add_theme_constant_override("shadow_offset_y", 2)
@@ -3145,8 +3935,8 @@ func _create_ui() -> void:
 	top_bar.add_child(gold_label)
 
 	lives_label = Label.new()
-	lives_label.position = Vector2(460, 8)
-	lives_label.add_theme_font_size_override("font_size", 24)
+	lives_label.position = Vector2(410, 8)
+	lives_label.add_theme_font_size_override("font_size", 18)
 	lives_label.add_theme_color_override("font_color", Color(1.0, 0.39, 0.28))
 	lives_label.add_theme_constant_override("shadow_offset_x", 1)
 	lives_label.add_theme_constant_override("shadow_offset_y", 2)
@@ -3209,9 +3999,9 @@ func _create_ui() -> void:
 		btn.visible = false  # Hidden until unlocked
 
 	info_label = Label.new()
-	info_label.position = Vector2(540, 8)
-	info_label.size = Vector2(620, 34)
-	info_label.add_theme_font_size_override("font_size", 24)
+	info_label.position = Vector2(500, 8)
+	info_label.size = Vector2(660, 34)
+	info_label.add_theme_font_size_override("font_size", 16)
 	info_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
 	info_label.clip_text = true
 	info_label.text = ""
@@ -3253,11 +4043,28 @@ func _create_ui() -> void:
 	bottom_panel.add_child(voice_mute_button)
 
 	auto_wave_btn = Button.new()
-	auto_wave_btn.text = " AUTO " if auto_wave_enabled else " [AUTO] "
+	auto_wave_btn.text = (" AUTO %ds " % int(auto_wave_delay)) if auto_wave_enabled else " AUTO OFF "
 	auto_wave_btn.position = Vector2(1050, 46)
-	auto_wave_btn.custom_minimum_size = Vector2(72, 48)
+	auto_wave_btn.custom_minimum_size = Vector2(86, 48)
 	auto_wave_btn.pressed.connect(_on_auto_wave_toggled)
 	bottom_panel.add_child(auto_wave_btn)
+
+	# Quick restart button (restart level from wave 1)
+	var quick_restart_button = Button.new()
+	quick_restart_button.text = " RETRY "
+	quick_restart_button.position = Vector2(960, 46)
+	quick_restart_button.custom_minimum_size = Vector2(82, 44)
+	quick_restart_button.pressed.connect(_on_quick_restart_pressed)
+	bottom_panel.add_child(quick_restart_button)
+
+	# Undo tower placement button (hidden by default)
+	undo_button = Button.new()
+	undo_button.text = " UNDO "
+	undo_button.position = Vector2(870, 46)
+	undo_button.custom_minimum_size = Vector2(82, 44)
+	undo_button.visible = false
+	undo_button.pressed.connect(_on_undo_placement)
+	bottom_panel.add_child(undo_button)
 
 	cancel_button = Button.new()
 	cancel_button.text = "CANCEL"
@@ -3453,6 +4260,17 @@ func _create_ui() -> void:
 	sell_value_label.add_theme_font_size_override("font_size", 14)
 	sell_value_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	upgrade_panel.add_child(sell_value_label)
+
+	# Hero ability button (in upgrade panel)
+	var hero_ability_button = Button.new()
+	hero_ability_button.name = "HeroAbilityBtn"
+	hero_ability_button.text = "ABILITY"
+	hero_ability_button.position = Vector2(20, 570)
+	hero_ability_button.custom_minimum_size = Vector2(70, 34)
+	hero_ability_button.add_theme_font_size_override("font_size", 11)
+	hero_ability_button.visible = false
+	hero_ability_button.pressed.connect(_on_hero_ability_pressed)
+	upgrade_panel.add_child(hero_ability_button)
 
 	# === MAIN MENU OVERLAY ===
 	menu_overlay = ColorRect.new()
@@ -3821,6 +4639,12 @@ func _on_retry_level() -> void:
 	return_button.visible = false
 	game_over_label.visible = false
 	_do_level_start(lvl)
+	# BATTD: Apply revenge bonus gold
+	if _revenge_available:
+		var revenge_gold = int(gold * _revenge_bonus_pct)
+		add_gold(revenge_gold)
+		spawn_floating_text(Vector2(640, 300), "REVENGE +%dG!" % revenge_gold, Color(1.0, 0.4, 0.2), 20.0, 2.0)
+		_revenge_available = false
 
 func _show_menu() -> void:
 	_reset_game()
@@ -3874,6 +4698,7 @@ func _show_menu() -> void:
 		chapter_lock_labels[i].visible = false
 		_hide_chapter_diff_buttons(i)
 	story_map_scroll_y = 0.0
+	_stop_layered_music()
 	_start_music()
 	emporium_sub_open = false
 	emporium_sub_category = -1
@@ -4069,10 +4894,12 @@ func _on_nav_pressed(nav_name: String) -> void:
 	detail_binding_scroll = 0.0
 	menu_current_view = nav_name
 	menu_transition_alpha = 0.0  # Trigger fade-in
+	_menu_transition_alpha = 1.0  # Trigger dark overlay transition (enhancement #48)
+	chapters_diff_popup_level = -1
 	if nav_name == "chapters":
 		menu_showcase_panel.visible = false
 		survivor_grid_container.visible = false
-	
+
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
 		# Hide old chapter UI — we draw everything procedurally now
@@ -4382,6 +5209,7 @@ func _on_emporium_sub_clicked(item_index: int) -> void:
 				owned_powers[pid] = owned_powers.get(pid, 0) + amount
 	emporium_sub_message = "Purchased!"
 	emporium_sub_message_timer = 2.0
+	_emporium_purchase_flash = 1.0  # Trigger purchase flash overlay
 	total_emporium_purchases += 1
 	_check_achievement("emporium_regular", 1)
 	_save_game()
@@ -4424,27 +5252,48 @@ func _on_emporium_sub_input(mouse_pos: Vector2) -> void:
 
 func _update_relics_tab_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
-	var grid_left = 88.0
-	var section_y_base = 45.0 + 44.0  # panel_y + title offset
-	var card_w = 176.0
-	var card_h = 65.0
-	var card_gap_x = 8.0
+	var panel_x = 70.0
+	var panel_y = 45.0
+	var panel_h = 560.0
+	var content_top = panel_y + 44.0
+	var content_bottom = panel_y + panel_h - 28.0
+	var grid_left = panel_x + 18.0
+	var card_w = 260.0
+	var card_h = 50.0
+	var card_gap_x = 10.0
 	var card_gap_y = 6.0
 	relics_tab_hover_tier = -1
 	relics_tab_hover_row = -1
 	relics_tab_hover_col = -1
-	for tier in range(3):
-		var sec_y = section_y_base + float(tier) * 168.0
-		var row_y = sec_y + 24.0
-		for row in range(2):
-			for col in range(6):
+	# Only detect hovers within content area
+	if mouse_pos.y < content_top or mouse_pos.y > content_bottom:
+		return
+	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
+	var section_y = content_top - relic_scroll_offset
+	for tier in range(rarity_order.size()):
+		var rarity = rarity_order[tier]
+		var trinket_count = 0
+		for b in TOME_BINDINGS:
+			if b["rarity"] == rarity:
+				trinket_count += 1
+		var row_y = section_y + 24.0
+		var rows_needed = (trinket_count + 3) / 4
+		for row in range(rows_needed):
+			for col in range(4):
+				var ti = row * 4 + col
+				if ti >= trinket_count:
+					continue
 				var cx = grid_left + float(col) * (card_w + card_gap_x)
 				var cy = row_y + float(row) * (card_h + card_gap_y)
+				if cy + card_h < content_top or cy > content_bottom:
+					continue
 				if mouse_pos.x >= cx and mouse_pos.x <= cx + card_w and mouse_pos.y >= cy and mouse_pos.y <= cy + card_h:
 					relics_tab_hover_tier = tier
 					relics_tab_hover_row = row
 					relics_tab_hover_col = col
 					return
+		var section_height = 24.0 + float(rows_needed) * (card_h + card_gap_y) + 12.0
+		section_y += section_height
 
 func _update_detail_hover() -> void:
 	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
@@ -4553,20 +5402,23 @@ func _update_relic_hover() -> void:
 	var panel_y = 38.0
 	var top_y = panel_y + 8.0
 	var content_y = top_y + 38.0
-	var right_x = panel_x + 340.0
-	var slot_size = 64.0
+	var right_x = panel_x + 310.0
+	var slot_size = 72.0
 	var gear_sy = content_y + 24.0
-	var ally_slot_y = gear_sy + slot_size + 20.0 + 24.0
-	var rel_y = ally_slot_y + slot_size + 30.0
-	var relic_size = 56.0
+	var rel_y = gear_sy + slot_size + 44.0
+	var relic_slot_y = rel_y + 24.0
+	var relic_slot_size = 72.0
+	var relic_gap = 12.0
 	var tower_type = survivor_types[survivor_detail_index]
 	var char_relics = survivor_relics.get(tower_type, [])
 	var old_hover = relic_hover_index
 	relic_hover_index = -1
-	for ri in range(6):
-		var rx = right_x + float(ri) * (relic_size + 12.0)
-		var ry = rel_y + 24.0
-		if mouse_pos.x >= rx and mouse_pos.x <= rx + relic_size and mouse_pos.y >= ry and mouse_pos.y <= ry + relic_size:
+	for ri in range(mini(char_relics.size(), 6)):
+		var r_row = ri / 3
+		var r_col = ri % 3
+		var rx = right_x + float(r_col) * (relic_slot_size + relic_gap)
+		var ry = relic_slot_y + float(r_row) * (relic_slot_size + 24.0)
+		if Rect2(rx, ry, relic_slot_size, relic_slot_size).has_point(mouse_pos):
 			relic_hover_index = ri
 			break
 	# Update tooltip labels
@@ -4787,7 +5639,7 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 		var bcol = 0
 		var brow = 0
 		var card_w = 200.0
-		var card_h = 28.0
+		var card_h = 36.0
 		for b in TOME_BINDINGS:
 			var count = owned_bindings.get(b["id"], 0)
 			if count <= 0:
@@ -4950,12 +5802,53 @@ func _do_level_start(index: int) -> void:
 	current_level = index
 	_reset_game()
 	var level = levels[index]
-	gold = level["gold"] + difficulty_gold_bonus[selected_difficulty] + int(_get_knowledge_bonus("start_gold"))
-	lives = difficulty_fixed_lives[selected_difficulty] + int(_get_knowledge_bonus("lives"))
-	total_waves = difficulty_waves[selected_difficulty]
+	gold = level["gold"] + difficulty_gold_bonus[mini(selected_difficulty, 3)] + int(_get_knowledge_bonus("start_gold")) + prestige_level * 2
+	lives = difficulty_fixed_lives[mini(selected_difficulty, 3)] + int(_get_knowledge_bonus("lives"))
+	# Pure Mode restrictions
+	if selected_difficulty == PURE_MODE:
+		lives = 1
+		gold = max(0, gold)  # Ensure non-negative after -20 penalty
+	# BATTD2: Apply challenge handicaps
+	_apply_handicaps()
+	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
 	_generate_decorations_for_level(index)
+	# BATTD: Generate bounties for this level
+	_generate_bounties()
+	# BATTD: Generate map collectibles
+	_generate_map_collectibles()
+	# BATTD2: Generate storybook page position for this level
+	var page_rng = RandomNumberGenerator.new()
+	page_rng.seed = index * 54321 + 98765
+	_level_page_pos = Vector2(page_rng.randf_range(100.0, 1180.0), page_rng.randf_range(120.0, 580.0))
+	_level_page_collected = storybook_pages_found.get(str(index), false)
+	# BATTD2: Reset path traps and overcharge
+	_path_traps.clear()
+	_placing_trap = -1
+	_overcharged_tower = null
+	_overcharge_timer = 0.0
+	_blessing_active = false
+	_blessing_timer = 0.0
+	_path_events.clear()
+	_path_event_cooldown = PATH_EVENT_INTERVAL * 0.5
+	_intel_target = null
+	_sacrifice_mode = false
+	_multi_wave_active = false
+	# BATTD2: Generate handicap bonus multiplier
+	_handicap_bonus_mult = 1.0
+	for h in _handicaps_active:
+		_handicap_bonus_mult *= h.get("reward_mult", 1.0)
+	_collectibles_found_this_game = 0
+	_lucky_drops_this_game = 0
+	# BATTD: Reset placement streak
+	_placement_streak_count = 0
+	_placement_streak_timer = 0.0
+	# BATTD: Double Cash unlock check (prestige 3+)
+	if prestige_level >= 3:
+		double_cash_unlocked = true
+	_init_env_particles()
 	_stop_music()
+	_start_layered_music(index)
 	menu_overlay.visible = false
 	top_bar.visible = true
 	bottom_panel.visible = true
@@ -4976,13 +5869,14 @@ func _do_level_start(index: int) -> void:
 	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
 	tower_buttons[TowerType.SCROOGE].disabled = false
 	# Show unlocked character buttons — row 2, stretched horizontally
-	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN]
+	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var new_char_labels = {
 		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
 		TowerType.TARZAN: "Tarzan [%dG]" % _get_discounted_cost(TowerType.TARZAN),
 		TowerType.DRACULA: "Dracula [%dG]" % _get_discounted_cost(TowerType.DRACULA),
 		TowerType.MERLIN: "Merlin [%dG]" % _get_discounted_cost(TowerType.MERLIN),
 		TowerType.FRANKENSTEIN: "Monster [%dG]" % _get_discounted_cost(TowerType.FRANKENSTEIN),
+		TowerType.SHADOW_AUTHOR: "Author [%dG]" % _get_discounted_cost(TowerType.SHADOW_AUTHOR),
 	}
 	var new_visible_count := 0
 	for tt in new_char_order:
@@ -5007,7 +5901,7 @@ func _do_level_start(index: int) -> void:
 	start_button.disabled = false
 	speed_button.visible = true
 	update_hud()
-	var diff_name = ["Easy", "Medium", "Hard"][selected_difficulty]
+	var diff_name = ["Easy", "Medium", "Hard", "Pure"][mini(selected_difficulty, 3)]
 	info_label.text = level["name"] + " (%s) - Place your towers!" % diff_name
 	wave_auto_timer = -1.0
 	# Show power selection if player has any powers
@@ -5046,6 +5940,16 @@ func _reset_game() -> void:
 	storybook_shield_charges = 0
 	power_enchanted_timer = 0.0
 	active_power_effects.clear()
+	# Reset combo, undo, wave preview
+	combo_count = 0
+	combo_timer = 0.0
+	undo_tower_data.clear()
+	if is_instance_valid(undo_button):
+		undo_button.visible = false
+	wave_preview_active = false
+	boss_rush_mode = false
+	boss_rush_wave = 0
+	daily_challenge_active = false
 	# Reset floating texts and death effects
 	_floating_texts.clear()
 	_screen_shake_timer = 0.0
@@ -5058,6 +5962,19 @@ func _reset_game() -> void:
 	_screen_shake_offset = Vector2.ZERO
 	_ink_splatters.clear()
 	_death_flash_timer = 0.0
+	# Reset visual polish effects
+	_aoe_impacts.clear()
+	_crit_flashes.clear()
+	_build_effects.clear()
+	_victory_burst_timer = 0.0
+	_victory_particles.clear()
+	_defeat_timer = 0.0
+	_defeat_cracks.clear()
+	_spawn_portal_intensity = 0.0
+	_env_particles.clear()
+	_wave_banner_timer = 0.0
+	_gold_pickups.clear()
+	_gold_pickup_flash = 0.0
 	# Reset boss rescue animation
 	boss_rescue_active = false
 	boss_rescue_timer = 0.0
@@ -7866,10 +8783,12 @@ func _draw_currency_bar() -> void:
 	var bar_h = 32.0
 	# Deep navy bar with subtle purple gradient
 	draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
-	for bx in range(0, 1280, 2):
-		var grad_t = float(bx) / 1280.0
+	var grad_steps = 16
+	var step_w = 1280.0 / float(grad_steps)
+	for gi in range(grad_steps):
+		var grad_t = (float(gi) + 0.5) / float(grad_steps)
 		var purple_a = sin(grad_t * PI) * 0.06
-		draw_line(Vector2(bx, bar_y), Vector2(bx, bar_y + bar_h), Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, purple_a), 2.0)
+		draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, purple_a))
 	# Gold bottom accent line
 	draw_rect(Rect2(0, bar_y + bar_h - 1, 1280, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
 	# Subtle inner glow at bottom
@@ -7998,16 +8917,15 @@ func _draw_menu_background() -> void:
 		draw_rect(Rect2(0, shelf_y, 1280, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
 
 		# === Ink splatters (subtle background texture — pre-seeded) ===
-		var sp_rng = RandomNumberGenerator.new()
 		var sp_col = Color(0.02, 0.01, 0.06, 0.12)
 		var sp_dot_col = Color(0.02, 0.01, 0.06, 0.08)
 		for splat in _menu_ink_splatters:
-			sp_rng.seed = splat["seed"]
+			_menu_splatter_rng.seed = splat["seed"]
 			draw_circle(Vector2(splat["x"], splat["y"]), splat["size"], sp_col)
 			for _di in range(splat["dots"]):
-				var dot_x = splat["x"] + sp_rng.randf_range(-splat["size"] * 2, splat["size"] * 2)
-				var dot_y = splat["y"] + sp_rng.randf_range(-splat["size"] * 1.5, splat["size"] * 1.5)
-				draw_circle(Vector2(dot_x, dot_y), sp_rng.randf_range(1, 4), sp_dot_col)
+				var dot_x = splat["x"] + _menu_splatter_rng.randf_range(-splat["size"] * 2, splat["size"] * 2)
+				var dot_y = splat["y"] + _menu_splatter_rng.randf_range(-splat["size"] * 1.5, splat["size"] * 1.5)
+				draw_circle(Vector2(dot_x, dot_y), _menu_splatter_rng.randf_range(1, 4), sp_dot_col)
 
 		# === Floating book pages (drifting gently) ===
 		for page in _floating_pages:
@@ -8091,6 +9009,265 @@ func _draw_menu_background() -> void:
 				draw_circle(Vector2(dx, dy), dsz + 3, Color(menu_gold.r, menu_gold.g, menu_gold.b, alpha * 0.15))
 				draw_circle(Vector2(dx, dy), dsz, Color(menu_gold.r, menu_gold.g, menu_gold.b, alpha))
 
+		# === 1. Gothic cathedral silhouette (parallax deep background) ===
+		var cath_y = 380.0 + sin(_time * 0.15) * 8.0
+		var cath_col = Color(0.03, 0.02, 0.07, 0.35)
+		# Central spire
+		draw_colored_polygon(PackedVector2Array([Vector2(640, cath_y - 180), Vector2(630, cath_y - 40), Vector2(650, cath_y - 40)]), cath_col)
+		# Left tower
+		draw_rect(Rect2(560, cath_y - 120, 30, 120), cath_col)
+		draw_colored_polygon(PackedVector2Array([Vector2(575, cath_y - 150), Vector2(560, cath_y - 120), Vector2(590, cath_y - 120)]), cath_col)
+		# Right tower
+		draw_rect(Rect2(690, cath_y - 120, 30, 120), cath_col)
+		draw_colored_polygon(PackedVector2Array([Vector2(705, cath_y - 150), Vector2(690, cath_y - 120), Vector2(720, cath_y - 120)]), cath_col)
+		# Rose window
+		draw_arc(Vector2(640, cath_y - 80), 18, 0, TAU, 16, Color(0.3, 0.1, 0.4, 0.15), 1.5)
+		draw_arc(Vector2(640, cath_y - 80), 12, 0, TAU, 12, Color(0.4, 0.15, 0.5, 0.12), 1.0)
+		# Buttresses
+		draw_line(Vector2(555, cath_y - 60), Vector2(530, cath_y), Color(0.03, 0.02, 0.07, 0.25), 2.0)
+		draw_line(Vector2(725, cath_y - 60), Vector2(750, cath_y), Color(0.03, 0.02, 0.07, 0.25), 2.0)
+
+		# === 2. Drifting fog banks (3 parallax layers) ===
+		for fi in range(3):
+			var fog_speed = 0.08 + float(fi) * 0.04
+			var fog_y = 300.0 + float(fi) * 100.0
+			var fog_a = 0.03 - float(fi) * 0.008
+			for fj in range(4):
+				var fog_x = fmod(float(fj) * 350.0 + _time * (20.0 + float(fi) * 10.0) * fog_speed, 1600.0) - 160.0
+				var fog_w = 200.0 + float(fj % 3) * 80.0
+				draw_circle(Vector2(fog_x, fog_y + sin(_time * 0.3 + float(fj)) * 15.0), fog_w * 0.4, Color(0.4, 0.3, 0.55, fog_a))
+
+		# === 3. Dead tree branches (left and right frame) ===
+		var branch_col = Color(0.06, 0.04, 0.10, 0.3)
+		# Left tree
+		draw_line(Vector2(-10, 200), Vector2(60, 120), branch_col, 3.0)
+		draw_line(Vector2(60, 120), Vector2(100, 80), branch_col, 2.0)
+		draw_line(Vector2(60, 120), Vector2(40, 60), branch_col, 2.0)
+		draw_line(Vector2(40, 60), Vector2(55, 20), branch_col, 1.5)
+		draw_line(Vector2(100, 80), Vector2(130, 50 + sin(_time * 0.5) * 4.0), branch_col, 1.5)
+		draw_line(Vector2(100, 80), Vector2(120, 110 + sin(_time * 0.4) * 3.0), branch_col, 1.0)
+		# Right tree
+		draw_line(Vector2(1290, 180), Vector2(1220, 100), branch_col, 3.0)
+		draw_line(Vector2(1220, 100), Vector2(1180, 60), branch_col, 2.0)
+		draw_line(Vector2(1220, 100), Vector2(1240, 40), branch_col, 2.0)
+		draw_line(Vector2(1180, 60), Vector2(1150, 30 + sin(_time * 0.6) * 4.0), branch_col, 1.5)
+
+		# === 4. Moonlit glow (top-right, subtle) ===
+		var moon_x = 1100.0
+		var moon_y = 80.0
+		var moon_pulse = 0.8 + sin(_time * 0.4) * 0.2
+		draw_circle(Vector2(moon_x, moon_y), 80, Color(0.15, 0.12, 0.25, 0.04 * moon_pulse))
+		draw_circle(Vector2(moon_x, moon_y), 40, Color(0.2, 0.18, 0.35, 0.06 * moon_pulse))
+		draw_circle(Vector2(moon_x, moon_y), 22, Color(0.7, 0.65, 0.8, 0.08 * moon_pulse))
+		# Moon rays
+		for ri in range(6):
+			var ray_a = float(ri) * TAU / 6.0 + _time * 0.05
+			var ray_len = 60.0 + sin(_time * 0.3 + float(ri)) * 15.0
+			draw_line(Vector2(moon_x, moon_y), Vector2(moon_x + cos(ray_a) * ray_len, moon_y + sin(ray_a) * ray_len), Color(0.6, 0.55, 0.75, 0.03), 1.0)
+
+		# === 5. Raven silhouettes (2 circling slowly) ===
+		for rvi in range(2):
+			var rv_angle = _time * (0.12 + float(rvi) * 0.05) + float(rvi) * PI
+			var rv_cx = 640.0 + cos(rv_angle) * (300.0 + float(rvi) * 100.0)
+			var rv_cy = 200.0 + sin(rv_angle * 0.7) * 80.0 + float(rvi) * 50.0
+			var rv_dir = cos(rv_angle)  # facing direction
+			var rv_a = 0.15 + sin(_time * 2.0 + float(rvi)) * 0.05
+			var wing_flap = sin(_time * 4.0 + float(rvi) * 3.0) * 8.0
+			# Body
+			draw_circle(Vector2(rv_cx, rv_cy), 4, Color(0.02, 0.01, 0.05, rv_a))
+			# Wings
+			draw_line(Vector2(rv_cx - 8 * rv_dir, rv_cy + wing_flap), Vector2(rv_cx, rv_cy), Color(0.02, 0.01, 0.05, rv_a), 2.0)
+			draw_line(Vector2(rv_cx + 8 * rv_dir, rv_cy + wing_flap), Vector2(rv_cx, rv_cy), Color(0.02, 0.01, 0.05, rv_a), 2.0)
+
+		# === 6. Dripping wax/ink drops from top edge ===
+		for di in range(6):
+			var drip_x = 80.0 + float(di) * 200.0 + sin(float(di) * 1.7) * 40.0
+			var drip_phase = fmod(_time * 0.3 + float(di) * 1.1, 4.0)
+			if drip_phase < 2.0:
+				var drip_y = drip_phase * 60.0
+				var drip_a = 0.12 * (1.0 - drip_phase * 0.5)
+				draw_circle(Vector2(drip_x, drip_y), 2.5, Color(0.5, 0.1, 0.15, drip_a))
+				draw_circle(Vector2(drip_x, drip_y + 4), 1.5, Color(0.5, 0.1, 0.15, drip_a * 0.6))
+
+		# === 7. Skull difficulty indicators along spine ===
+		var spine_x = 640.0
+		for si in range(3):
+			var skull_y = 200.0 + float(si) * 80.0
+			var skull_a = 0.08 + sin(_time * 1.5 + float(si) * 1.2) * 0.03
+			# Skull outline
+			draw_circle(Vector2(spine_x, skull_y), 8, Color(0.6, 0.55, 0.5, skull_a))
+			draw_circle(Vector2(spine_x, skull_y + 2), 6, Color(0.6, 0.55, 0.5, skull_a * 0.7))
+			# Eye sockets
+			draw_circle(Vector2(spine_x - 3, skull_y - 1), 1.5, Color(0.02, 0.01, 0.05, skull_a * 1.5))
+			draw_circle(Vector2(spine_x + 3, skull_y - 1), 1.5, Color(0.02, 0.01, 0.05, skull_a * 1.5))
+			# Fire in eyes for harder skulls
+			if si >= 1:
+				var fire_a = skull_a * (0.8 + sin(_time * 5.0 + float(si)) * 0.3)
+				draw_circle(Vector2(spine_x - 3, skull_y - 1), 1.0, Color(0.7, 0.2, 0.1, fire_a))
+				draw_circle(Vector2(spine_x + 3, skull_y - 1), 1.0, Color(0.7, 0.2, 0.1, fire_a))
+
+		# === 8. Wax seal impressions (decorative along edges) ===
+		for wi in range(4):
+			var seal_x = 30.0 + float(wi) * 310.0
+			var seal_y = 580.0
+			var seal_pulse = 0.08 + sin(_time * 0.8 + float(wi) * 1.5) * 0.02
+			draw_circle(Vector2(seal_x, seal_y), 12, Color(0.6, 0.12, 0.1, seal_pulse))
+			draw_circle(Vector2(seal_x, seal_y), 10, Color(0.7, 0.15, 0.12, seal_pulse * 0.8))
+			# Seal emblem (cross pattern)
+			draw_line(Vector2(seal_x - 5, seal_y), Vector2(seal_x + 5, seal_y), Color(0.9, 0.7, 0.2, seal_pulse * 0.6), 1.0)
+			draw_line(Vector2(seal_x, seal_y - 5), Vector2(seal_x, seal_y + 5), Color(0.9, 0.7, 0.2, seal_pulse * 0.6), 1.0)
+
+		# === 9. Gothic chain links (hanging from corners) ===
+		var chain_col = Color(0.25, 0.2, 0.35, 0.10)
+		for ci in range(2):
+			var cx_base = 20.0 if ci == 0 else 1260.0
+			for cli in range(5):
+				var cy_chain = 100.0 + float(cli) * 22.0 + sin(_time * 0.6 + float(cli) * 0.4) * 3.0
+				draw_arc(Vector2(cx_base, cy_chain), 6, 0, PI if cli % 2 == 0 else -PI, 8, chain_col, 1.5)
+
+		# === 10. Tattered banner/pennant (top center) ===
+		var banner_cx = 640.0
+		var banner_y = 2.0
+		var banner_w = 80.0
+		var banner_h = 35.0
+		var banner_sway = sin(_time * 0.8) * 4.0
+		var banner_col2 = Color(0.35, 0.08, 0.12, 0.12)
+		draw_rect(Rect2(banner_cx - banner_w * 0.5, banner_y, banner_w, banner_h), banner_col2)
+		# Tattered bottom edge
+		for bi in range(8):
+			var bx_b = banner_cx - banner_w * 0.5 + float(bi) * 10.0
+			var by_b = banner_y + banner_h + sin(_time * 1.2 + float(bi) * 0.8) * 3.0
+			draw_line(Vector2(bx_b, banner_y + banner_h), Vector2(bx_b + 5, by_b + 6), Color(0.35, 0.08, 0.12, 0.08), 1.0)
+		# Pennant emblem
+		draw_circle(Vector2(banner_cx + banner_sway * 0.3, banner_y + banner_h * 0.45), 8, Color(0.8, 0.6, 0.1, 0.08))
+
+		# === 11. Cobweb corners (top corners) ===
+		var web_col = Color(0.5, 0.48, 0.55, 0.06)
+		# Top-left cobweb
+		for wbi in range(4):
+			var wa = float(wbi) * PI * 0.5 / 4.0
+			draw_line(Vector2(0, 0), Vector2(cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
+		for wri in range(3):
+			var wr = 20.0 + float(wri) * 20.0
+			draw_arc(Vector2(0, 0), wr, 0, PI * 0.5, 8, web_col, 0.5)
+		# Top-right cobweb
+		for wbi in range(4):
+			var wa = PI * 0.5 + float(wbi) * PI * 0.5 / 4.0
+			draw_line(Vector2(1280, 0), Vector2(1280 + cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
+		for wri in range(3):
+			var wr = 20.0 + float(wri) * 20.0
+			draw_arc(Vector2(1280, 0), wr, PI * 0.5, PI, 8, web_col, 0.5)
+
+		# === 12. Flickering candelabra (book spine area) ===
+		var cand_x = 640.0
+		var cand_y = 500.0
+		var cand_a = 0.15
+		# Stand
+		draw_rect(Rect2(cand_x - 2, cand_y, 4, 20), Color(0.3, 0.22, 0.15, cand_a))
+		draw_rect(Rect2(cand_x - 12, cand_y + 20, 24, 3), Color(0.3, 0.22, 0.15, cand_a))
+		# Arms
+		for arm_i in range(3):
+			var arm_x = cand_x + (float(arm_i) - 1.0) * 16.0
+			draw_rect(Rect2(arm_x - 1, cand_y - 8, 2, 8), Color(0.3, 0.22, 0.15, cand_a))
+			# Flame
+			var fl_flicker = sin(_time * 6.0 + float(arm_i) * 2.1) * 0.15
+			draw_circle(Vector2(arm_x, cand_y - 12), 4, Color(0.9, 0.5, 0.1, (cand_a + fl_flicker) * 0.6))
+			draw_circle(Vector2(arm_x, cand_y - 14), 2.5, Color(1.0, 0.8, 0.3, (cand_a + fl_flicker) * 0.8))
+			# Glow
+			draw_circle(Vector2(arm_x, cand_y - 12), 15, Color(0.9, 0.5, 0.1, 0.02 + fl_flicker * 0.01))
+
+		# === 13. Swirling ink tendrils (animated) ===
+		for ti_ink in range(3):
+			var ink_cx = 200.0 + float(ti_ink) * 400.0
+			var ink_cy = 350.0 + sin(_time * 0.2 + float(ti_ink)) * 80.0
+			var ink_a = 0.04
+			for seg in range(8):
+				var sa = _time * 0.5 + float(seg) * 0.8 + float(ti_ink) * 2.0
+				var sr2 = 30.0 + float(seg) * 8.0
+				var sx = ink_cx + cos(sa) * sr2
+				var sy = ink_cy + sin(sa * 1.3) * sr2 * 0.6
+				draw_circle(Vector2(sx, sy), 3.0 - float(seg) * 0.3, Color(0.1, 0.05, 0.2, ink_a * (1.0 - float(seg) * 0.1)))
+
+		# === 14. Moth/firefly particles near lanterns ===
+		for mi in range(5):
+			var moth_phase = _time * (1.5 + float(mi) * 0.3) + float(mi) * 2.5
+			var moth_cx = 200.0 + float(mi) * 220.0
+			var moth_cy = 250.0 + float(mi % 3) * 80.0
+			var moth_x = moth_cx + cos(moth_phase) * 25.0
+			var moth_y = moth_cy + sin(moth_phase * 1.4) * 18.0
+			var moth_a = 0.15 + sin(_time * 3.0 + float(mi)) * 0.08
+			draw_circle(Vector2(moth_x, moth_y), 1.5, Color(0.9, 0.8, 0.5, moth_a))
+			draw_circle(Vector2(moth_x, moth_y), 5, Color(0.9, 0.8, 0.5, moth_a * 0.1))
+
+		# === 15. Blood pool / crimson puddle (bottom area) ===
+		var pool_x = 400.0
+		var pool_y = 600.0
+		var pool_pulse = sin(_time * 0.5) * 0.01
+		draw_circle(Vector2(pool_x, pool_y), 30, Color(0.4, 0.05, 0.08, 0.04 + pool_pulse))
+		draw_circle(Vector2(pool_x + 15, pool_y + 5), 18, Color(0.35, 0.04, 0.06, 0.03 + pool_pulse))
+		# Ripple
+		var ripple_r = fmod(_time * 8.0, 30.0)
+		draw_arc(Vector2(pool_x, pool_y), ripple_r, 0, TAU, 16, Color(0.5, 0.1, 0.1, 0.03 * (1.0 - ripple_r / 30.0)), 0.5)
+
+		# === 16. Falling rose petals ===
+		for pi_petal in range(4):
+			var petal_x = fmod(float(pi_petal) * 337.0 + _time * 15.0, 1400.0) - 60.0
+			var petal_y = fmod(float(pi_petal) * 193.0 + _time * 25.0, 800.0) - 40.0
+			var petal_rot = _time * 1.5 + float(pi_petal) * 1.8
+			var petal_a = 0.08 + sin(_time + float(pi_petal)) * 0.03
+			var pr_cos = cos(petal_rot)
+			var pr_sin = sin(petal_rot)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(petal_x + 4 * pr_cos, petal_y + 4 * pr_sin),
+				Vector2(petal_x - 2 * pr_sin, petal_y + 2 * pr_cos),
+				Vector2(petal_x - 4 * pr_cos, petal_y - 4 * pr_sin),
+				Vector2(petal_x + 2 * pr_sin, petal_y - 2 * pr_cos),
+			]), Color(0.7, 0.15, 0.2, petal_a))
+
+		# === 17. Spectral character whispers (faint character outlines) ===
+		var whisper_chars = [
+			{"x": 90, "y": 340, "char": "R"},   # Robin
+			{"x": 1190, "y": 320, "char": "A"},  # Alice
+			{"x": 120, "y": 480, "char": "P"},   # Phantom
+			{"x": 1160, "y": 460, "char": "S"},  # Scrooge
+		]
+		for wc in whisper_chars:
+			var wc_a = 0.03 + sin(_time * 0.6 + float(wc["x"]) * 0.01) * 0.015
+			_udraw(font, Vector2(wc["x"], wc["y"]), wc["char"], HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.5, 0.4, 0.6, wc_a))
+
+		# === 18. Creeping vine tendrils along edges ===
+		var vine_col = Color(0.15, 0.3, 0.1, 0.08)
+		# Left vine
+		var vine_pts_l: Array = []
+		for vi in range(12):
+			var vt = float(vi) / 11.0
+			var vx = 8.0 + sin(vt * 4.0 + _time * 0.2) * 10.0
+			var vy = 150.0 + vt * 350.0
+			if vi > 0:
+				draw_line(Vector2(vine_pts_l[vi - 1][0], vine_pts_l[vi - 1][1]), Vector2(vx, vy), vine_col, 1.5)
+			vine_pts_l.append([vx, vy])
+			# Tiny leaf
+			if vi % 3 == 1:
+				draw_circle(Vector2(vx + 6, vy), 3, Color(0.2, 0.35, 0.12, 0.06))
+
+		# === 19. Dust motes in light beams ===
+		for dmi in range(8):
+			var dm_x = 950.0 + float(dmi % 4) * 30.0 + sin(_time * 0.5 + float(dmi) * 0.9) * 20.0
+			var dm_y = 60.0 + float(dmi) * 35.0 + cos(_time * 0.3 + float(dmi)) * 10.0
+			var dm_a = 0.06 + sin(_time * 2.0 + float(dmi) * 1.3) * 0.03
+			draw_circle(Vector2(dm_x, dm_y), 1.0, Color(0.8, 0.75, 0.6, dm_a))
+
+		# === 20. Animated book spine details (center divider) ===
+		var spine_col2 = Color(0.2, 0.15, 0.3, 0.06)
+		# Spine ridges
+		for sri in range(8):
+			var sr_y = 120.0 + float(sri) * 60.0
+			draw_rect(Rect2(636, sr_y, 8, 3), spine_col2)
+		# Spine title embossing
+		var emboss_a = 0.04 + sin(_time * 0.5) * 0.01
+		_udraw(font, Vector2(637, 430), "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
+		_udraw(font, Vector2(637, 445), "D", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
+
 	# === TOP CURRENCY BAR ===
 	_draw_currency_bar()
 
@@ -8145,6 +9322,17 @@ func _draw_menu_background() -> void:
 			draw_rect(Rect2(tx + 30, nav_draw_y + 96, tab_w - 60, 2), Color(tc.r, tc.g, tc.b, bar_glow * 0.3))
 			# Top accent
 			draw_rect(Rect2(tx + 15, nav_draw_y, tab_w - 30, 2), Color(tc.r, tc.g, tc.b, bar_glow * 0.5))
+			# === Animated gold underline (Enhancement #49) ===
+			# Sliding highlight segment that sweeps across the underline
+			var slide_t = fmod(_time * 0.8, 1.0)  # 0..1 sweep
+			var underline_w = tab_w - 40.0
+			var segment_w = underline_w * 0.35
+			var seg_x = tx + 20.0 + slide_t * (underline_w - segment_w)
+			var seg_glow = 0.6 + sin(_time * 4.0) * 0.2
+			draw_rect(Rect2(seg_x, nav_draw_y + 91, segment_w, 2), Color(menu_gold.r, menu_gold.g, menu_gold.b, seg_glow))
+			# Bright center point of sweep
+			var dot_x = seg_x + segment_w * 0.5
+			draw_circle(Vector2(dot_x, nav_draw_y + 92), 3, Color(menu_gold.r, menu_gold.g, menu_gold.b, seg_glow * 0.5))
 
 		# Icon circle (large, prominent — mobile-friendly)
 		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 36.0)
@@ -8211,6 +9399,7 @@ func _draw_menu_background() -> void:
 	if menu_current_view == "chapters":
 		_draw_story_map()
 		_draw_chapters_badges()
+		_draw_diff_popup()
 		_draw_chapters_overlay()
 	elif menu_current_view == "survivors":
 		if survivor_detail_open:
@@ -8262,10 +9451,35 @@ func _draw_relics_tab() -> void:
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "RELIC COMPENDIUM", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.9))
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
 
-	var rarity_order = ["common", "uncommon", "rare"]
-	var rarity_names = {"common": "COMMON (Blue)", "uncommon": "UNCOMMON (Purple)", "rare": "RARE (Gold)"}
-	var rarity_colors = {"common": Color(0.3, 0.5, 0.85), "uncommon": Color(0.6, 0.3, 0.8), "rare": Color(0.85, 0.7, 0.2)}
-	var rarity_bg = {"common": Color(0.06, 0.08, 0.20), "uncommon": Color(0.10, 0.06, 0.22), "rare": Color(0.14, 0.10, 0.06)}
+	# Enhancement #26: Character filter indicators — show colored dots for characters that have relics
+	var char_filter_colors = {
+		"robin_hood": Color(0.3, 0.65, 0.2), "alice": Color(0.4, 0.6, 0.9),
+		"wicked_witch": Color(0.3, 0.7, 0.2), "peter_pan": Color(0.2, 0.7, 0.3),
+		"phantom": Color(0.7, 0.5, 0.2), "scrooge": Color(0.5, 0.45, 0.35),
+		"sherlock": Color(0.6, 0.5, 0.3), "tarzan": Color(0.5, 0.6, 0.25),
+		"dracula": Color(0.7, 0.15, 0.2), "merlin": Color(0.4, 0.3, 0.7),
+		"frankenstein": Color(0.3, 0.55, 0.35)
+	}
+	var char_has_owned = {}
+	for b in TOME_BINDINGS:
+		var ch = b.get("character", "")
+		if ch != "" and owned_bindings.get(b["id"], 0) > 0:
+			char_has_owned[ch] = true
+	var dot_x = panel_x + panel_w * 0.5 + 120.0
+	var dot_y = panel_y + 28.0
+	for ch in char_filter_colors:
+		var fc = char_filter_colors[ch]
+		var has_any = char_has_owned.has(ch)
+		var dot_alpha = 0.8 if has_any else 0.15
+		draw_circle(Vector2(dot_x, dot_y - 4), 3.0, Color(fc.r, fc.g, fc.b, dot_alpha))
+		if has_any:
+			draw_arc(Vector2(dot_x, dot_y - 4), 4.0, 0, TAU, 12, Color(fc.r, fc.g, fc.b, 0.3), 1.0)
+		dot_x += 10.0
+
+	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
+	var rarity_names = {"tattered": "TATTERED (Grey)", "bound": "BOUND (Green)", "gilded": "GILDED (Blue)", "mythic": "MYTHIC (Purple)", "forbidden": "FORBIDDEN (Orange)"}
+	var rarity_colors = {"tattered": Color(0.6, 0.6, 0.65), "bound": Color(0.3, 0.75, 0.3), "gilded": Color(0.3, 0.5, 0.9), "mythic": Color(0.7, 0.35, 0.9), "forbidden": Color(1.0, 0.6, 0.1)}
+	var rarity_bg = {"tattered": Color(0.08, 0.08, 0.10), "bound": Color(0.06, 0.12, 0.06), "gilded": Color(0.06, 0.08, 0.20), "mythic": Color(0.10, 0.06, 0.22), "forbidden": Color(0.14, 0.10, 0.06)}
 
 	var card_w = 260.0
 	var card_h = 50.0
@@ -8301,6 +9515,28 @@ func _draw_relics_tab() -> void:
 					owned_count += 1
 			_udraw(font, Vector2(gem_x - 20, sec_y + 14), "%d/%d" % [owned_count, trinkets.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(rc.r, rc.g, rc.b, 0.6))
 
+			# Enhancement #25: Set bonus indicators — show "SET" badge if player owns 3+ relics of a character in this rarity
+			var char_rarity_counts = {}
+			for bb in trinkets:
+				if owned_bindings.get(bb["id"], 0) > 0:
+					var ch = bb.get("character", "")
+					if ch != "":
+						char_rarity_counts[ch] = char_rarity_counts.get(ch, 0) + 1
+			var set_badge_x = grid_left + 220.0
+			for ch in char_rarity_counts:
+				if char_rarity_counts[ch] >= 3:
+					var set_col = char_filter_colors.get(ch, Color(0.8, 0.7, 0.2))
+					draw_rect(Rect2(set_badge_x, sec_y + 3, 32, 14), Color(set_col.r, set_col.g, set_col.b, 0.25))
+					draw_rect(Rect2(set_badge_x, sec_y + 3, 32, 1), Color(set_col.r, set_col.g, set_col.b, 0.5))
+					draw_rect(Rect2(set_badge_x, sec_y + 16, 32, 1), Color(set_col.r, set_col.g, set_col.b, 0.5))
+					_udraw(font, Vector2(set_badge_x + 16, sec_y + 14), "SET", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(set_col.r, set_col.g, set_col.b, 0.9))
+					set_badge_x += 38.0
+
+			# Enhancement #29: Empty slot indicators — show how many relics remain undiscovered
+			var remaining = trinkets.size() - owned_count
+			if remaining > 0:
+				_udraw(font, Vector2(grid_left + panel_w - 80, sec_y + 14), "%d left" % remaining, HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color(0.5, 0.5, 0.55, 0.5))
+
 		var row_y = sec_y + 24.0
 		for ti in range(trinkets.size()):
 			var b = trinkets[ti]
@@ -8316,14 +9552,41 @@ func _draw_relics_tab() -> void:
 
 			var bg_col = rarity_bg[rarity] if is_owned else Color(0.05, 0.05, 0.10)
 			draw_rect(Rect2(cx, cy, card_w, card_h), bg_col)
+
+			# Enhancement #30: Owned relic subtle animated glow
+			if is_owned:
+				var glow_pulse = 0.03 + sin(_time * 2.0 + float(ti) * 0.8) * 0.02
+				draw_rect(Rect2(cx, cy, card_w, card_h), Color(rc.r, rc.g, rc.b, glow_pulse))
+
 			var b_alpha = 0.5 if is_owned else 0.15
 			draw_rect(Rect2(cx, cy, card_w, 1), Color(rc.r, rc.g, rc.b, b_alpha))
 			draw_rect(Rect2(cx, cy + card_h - 1, card_w, 1), Color(rc.r, rc.g, rc.b, b_alpha))
 			draw_rect(Rect2(cx, cy, 1, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
 			draw_rect(Rect2(cx + card_w - 1, cy, 1, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
 
+			# Enhancement #24: Equipped relic highlighted with golden glow
+			var is_equipped = false
+			for t_key in equipped_bindings:
+				if b["id"] in equipped_bindings[t_key]:
+					is_equipped = true
+					break
+			if is_equipped:
+				var eq_pulse = 0.5 + sin(_time * 3.0) * 0.2
+				draw_rect(Rect2(cx - 1, cy - 1, card_w + 2, card_h + 2), Color(1.0, 0.85, 0.2, eq_pulse * 0.5))
+				_udraw(font, Vector2(cx + card_w - 55, cy + card_h - 10), "EQUIPPED", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.85, 0.2, 0.8))
+
 			# Rarity stripe
 			draw_rect(Rect2(cx, cy, 3, card_h), Color(rc.r, rc.g, rc.b, 0.7 if is_owned else 0.2))
+
+			# Shimmer effect for owned gilded+ gear
+			if is_owned and rarity in ["gilded", "mythic", "forbidden"]:
+				var shimmer_speed = 80.0 if rarity == "gilded" else 100.0 if rarity == "mythic" else 120.0
+				var shimmer_x = fmod(_time * shimmer_speed + float(ti) * 30.0, card_w + 40.0) - 20.0
+				var shimmer_col = RARITY_COLORS.get(rarity, Color(1.0, 0.9, 0.5))
+				for si in range(3 if rarity == "gilded" else 5):
+					var sx = cx + shimmer_x + float(si) * 2.0
+					if sx > cx and sx < cx + card_w:
+						draw_line(Vector2(sx, cy), Vector2(sx - 10, cy + card_h), Color(shimmer_col.r, shimmer_col.g, shimmer_col.b, 0.10 - float(si) * 0.015), 1.5)
 
 			# Icon area
 			var icon_cx = cx + 24.0
@@ -8337,11 +9600,37 @@ func _draw_relics_tab() -> void:
 			var name_alpha = 0.9 if is_owned else 0.35
 			_udraw(font, Vector2(cx + 44, cy + 18), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(rc.r, rc.g, rc.b, name_alpha))
 			var desc_alpha = 0.65 if is_owned else 0.25
-			_udraw(font, Vector2(cx + 44, cy + 34), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 15, Color(menu_text.r, menu_text.g, menu_text.b, desc_alpha))
+			_udraw(font, Vector2(cx + 44, cy + 36), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 13, Color(menu_text.r, menu_text.g, menu_text.b, desc_alpha))
 
 			# Count badge
 			if is_owned:
 				_udraw(font, Vector2(cx + card_w - 30, cy + 18), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
+
+			# Power level display + per_level scaling + special effect
+			if is_owned:
+				var val = b.get("value", 0.0)
+				if val > 0:
+					var pct_str = "+%d%%" % int(val * 100)
+					_udraw(font, Vector2(cx + card_w - 14, cy + 34), pct_str, HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(rc.r, rc.g, rc.b, 0.8))
+				if b.has("per_level"):
+					var pl_str = "+%.1f%%/LV" % (b["per_level"] * 100.0)
+					_udraw(font, Vector2(cx + card_w - 14, cy + 44), pl_str, HORIZONTAL_ALIGNMENT_RIGHT, -1, 8, Color(0.9, 0.75, 0.3, 0.6))
+				if b.has("special"):
+					var spec_name = b["special"].replace("_", " ").substr(0, 18)
+					_udraw(font, Vector2(cx + 44, cy + 46), spec_name, HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 100), 8, Color(rc.r, rc.g, rc.b, 0.5))
+
+			# Enhancement #28: "Equip" indicator on hover
+			var is_card_hovered = false
+			if relics_tab_hover_tier == ri:
+				var hover_ti = relics_tab_hover_row * 4 + relics_tab_hover_col
+				if hover_ti == ti:
+					is_card_hovered = true
+			if is_card_hovered and is_owned and not is_equipped:
+				var hover_pulse = 0.6 + sin(_time * 4.0) * 0.15
+				draw_rect(Rect2(cx, cy, card_w, card_h), Color(rc.r, rc.g, rc.b, 0.06))
+				_udraw(font, Vector2(cx + card_w * 0.5, cy + card_h - 6), "Tap to equip", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(menu_gold.r, menu_gold.g, menu_gold.b, hover_pulse * 0.7))
+			elif is_card_hovered and not is_owned:
+				draw_rect(Rect2(cx, cy, card_w, card_h), Color(0.3, 0.3, 0.4, 0.04))
 
 		var rows_needed = (trinkets.size() + 3) / 4
 		var section_height = 24.0 + float(rows_needed) * (card_h + card_gap_y) + 12.0
@@ -8437,6 +9726,20 @@ func _draw_emporium() -> void:
 	draw_line(Vector2(line_cx - 180, title_y + 8), Vector2(line_cx + 180, title_y + 8), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.5)
 	draw_line(Vector2(line_cx - 140, title_y + 12), Vector2(line_cx + 140, title_y + 12), Color(0.54, 0.45, 0.20, 0.15), 1.0)
 
+	# === Animated spinning coin near title (Enhancement #33) ===
+	var coin_x = title_x - 50.0
+	var coin_y = title_y - 10.0
+	var coin_pulse = 0.7 + sin(_time * 3.0) * 0.3
+	var coin_radius = 7.0 + sin(_time * 2.0) * 1.5
+	draw_circle(Vector2(coin_x, coin_y), coin_radius + 2, Color(0.85, 0.65, 0.1, 0.15 * coin_pulse))
+	draw_circle(Vector2(coin_x, coin_y), coin_radius, Color(0.9, 0.7, 0.15, 0.8 * coin_pulse))
+	draw_arc(Vector2(coin_x, coin_y), coin_radius - 2, -PI * 0.8, -PI * 0.2, 8, Color(0.95, 0.85, 0.3, 0.5), 1.5)
+	# Mirror coin on right side
+	var coin_rx = title_x + title_width + 35.0
+	draw_circle(Vector2(coin_rx, coin_y), coin_radius + 2, Color(0.85, 0.65, 0.1, 0.15 * coin_pulse))
+	draw_circle(Vector2(coin_rx, coin_y), coin_radius, Color(0.9, 0.7, 0.15, 0.8 * coin_pulse))
+	draw_arc(Vector2(coin_rx, coin_y), coin_radius - 2, -PI * 0.8, -PI * 0.2, 8, Color(0.95, 0.85, 0.3, 0.5), 1.5)
+
 	# === 3x2 Grid of Emporium Tiles ===
 	var tile_w = 340.0
 	var tile_h = 220.0
@@ -8482,6 +9785,33 @@ func _draw_emporium() -> void:
 			var glow_a = 0.06 + sin(_time * 3.5) * 0.03
 			draw_rect(Rect2(tx - 2, ty - 2, tile_w + 4, tile_h + 4), Color(menu_gold.r, menu_gold.g, menu_gold.b, glow_a))
 
+		# === FEATURED item spotlight (Enhancement #31) — first tile gets golden glow ===
+		if i == 0:
+			var feat_pulse = 0.5 + sin(_time * 2.0) * 0.3
+			# Golden spotlight glow behind the featured card
+			draw_rect(Rect2(tx - 4, ty - 4, tile_w + 8, tile_h + 8), Color(0.85, 0.65, 0.1, 0.04 * feat_pulse))
+			draw_rect(Rect2(tx - 2, ty - 2, tile_w + 4, tile_h + 4), Color(0.95, 0.75, 0.2, 0.06 * feat_pulse))
+			# "FEATURED" label at top-right
+			var feat_text = "FEATURED"
+			var feat_fs = 9
+			var feat_tw = font.get_string_size(feat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, feat_fs).x + 10.0
+			var feat_x = tx + tile_w - feat_tw - 8.0
+			var feat_y_top = ty + 8.0
+			draw_rect(Rect2(feat_x, feat_y_top, feat_tw, 16), Color(0.85, 0.65, 0.1, 0.85))
+			_udraw(font, Vector2(feat_x + 5, feat_y_top + 12), feat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, feat_fs, Color(0.05, 0.03, 0.0, 0.95))
+
+		# === "BEST VALUE" badge (Enhancement #32) on premium items (Survivor Packs, Relic Chests) ===
+		if i == 4 or i == 3:  # Survivor Packs and Relic Chests
+			var bv_text = "BEST VALUE"
+			var bv_fs = 8
+			var bv_tw = font.get_string_size(bv_text, HORIZONTAL_ALIGNMENT_LEFT, -1, bv_fs).x + 8.0
+			var bv_x = tx + tile_w - bv_tw - 6.0
+			var bv_y = ty + tile_h - 24.0
+			# Rotated appearance via small slanted rectangle
+			draw_rect(Rect2(bv_x, bv_y, bv_tw, 14), Color(0.7, 0.15, 0.1, 0.85))
+			draw_rect(Rect2(bv_x, bv_y, bv_tw, 1), Color(1, 1, 1, 0.3))
+			_udraw(font, Vector2(bv_x + 4, bv_y + 11), bv_text, HORIZONTAL_ALIGNMENT_LEFT, -1, bv_fs, Color(1, 1, 1, 0.95))
+
 		# Corner flourishes (gold only)
 		var fl = Color(0.54, 0.45, 0.20, 0.15)
 		draw_line(Vector2(tx + 6, ty + 6), Vector2(tx + 26, ty + 6), fl, 1.0)
@@ -8493,13 +9823,44 @@ func _draw_emporium() -> void:
 		draw_line(Vector2(tx + tile_w - 6, ty + tile_h - 6), Vector2(tx + tile_w - 26, ty + tile_h - 6), fl, 1.0)
 		draw_line(Vector2(tx + tile_w - 6, ty + tile_h - 6), Vector2(tx + tile_w - 6, ty + tile_h - 26), fl, 1.0)
 
-		# === Title text (top) ===
+		# === Title text (top) with category icon (Enhancement #35) ===
 		var name_size = 16
 		var name_text = cat["name"]
 		var name_w = font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size).x
-		var name_x = tx + (tile_w - name_w) * 0.5
+		var icon_offset = 14.0  # Space for category icon
+		var name_x = tx + (tile_w - name_w - icon_offset) * 0.5 + icon_offset
 		var name_y_pos = ty + 28.0
 		_udraw(font, Vector2(name_x, name_y_pos), name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size, Color(0.9, 0.72, 0.2, 0.95))
+		# Small procedural icon beside category name (Enhancement #35)
+		var ic_x = name_x - 14.0
+		var ic_y = name_y_pos - 6.0
+		var ic_col = Color(0.9, 0.72, 0.2, 0.7)
+		if cat["icon"] == "emp_gold":  # Gold coin
+			draw_circle(Vector2(ic_x, ic_y), 5, ic_col)
+			draw_arc(Vector2(ic_x, ic_y), 4, 0, TAU, 8, Color(0.95, 0.8, 0.3, 0.5), 1.0)
+		elif cat["icon"] == "emp_shards":  # Crystal shard
+			draw_colored_polygon(PackedVector2Array([Vector2(ic_x, ic_y - 6), Vector2(ic_x + 3, ic_y + 4), Vector2(ic_x - 3, ic_y + 4)]), Color(0.3, 0.7, 0.85, 0.7))
+		elif cat["icon"] == "emp_chests":  # Small chest
+			draw_rect(Rect2(ic_x - 4, ic_y - 2, 8, 6), Color(0.5, 0.3, 0.12, 0.7))
+			draw_rect(Rect2(ic_x - 4, ic_y - 2, 8, 1), ic_col)
+		elif cat["icon"] == "emp_stars":  # Star
+			for si_icon in range(5):
+				var sa = -PI / 2.0 + float(si_icon) * TAU / 5.0
+				var sp = Vector2(ic_x, ic_y) + Vector2.from_angle(sa) * 5.0
+				draw_line(Vector2(ic_x, ic_y), sp, ic_col, 1.5)
+		elif cat["icon"] == "emp_quills":  # Feather
+			draw_line(Vector2(ic_x - 3, ic_y + 4), Vector2(ic_x + 3, ic_y - 5), Color(0.55, 0.2, 0.7, 0.7), 2.0)
+		elif cat["icon"] == "emp_packs":  # Book
+			draw_rect(Rect2(ic_x - 3, ic_y - 4, 6, 8), Color(0.55, 0.35, 0.15, 0.7))
+			draw_rect(Rect2(ic_x - 3, ic_y - 4, 6, 1), ic_col)
+		elif cat["icon"] == "emp_trophy":  # Trophy
+			draw_colored_polygon(PackedVector2Array([Vector2(ic_x - 4, ic_y - 4), Vector2(ic_x + 4, ic_y - 4), Vector2(ic_x + 2, ic_y + 1), Vector2(ic_x - 2, ic_y + 1)]), ic_col)
+			draw_line(Vector2(ic_x, ic_y + 1), Vector2(ic_x, ic_y + 4), ic_col, 1.5)
+		elif cat["icon"] == "emp_powers":  # Lightning bolt
+			draw_line(Vector2(ic_x + 1, ic_y - 5), Vector2(ic_x - 2, ic_y), Color(0.3, 0.7, 0.9, 0.7), 2.0)
+			draw_line(Vector2(ic_x - 2, ic_y), Vector2(ic_x + 1, ic_y + 4), Color(0.3, 0.7, 0.9, 0.7), 2.0)
+		else:  # Default: small diamond
+			draw_colored_polygon(PackedVector2Array([Vector2(ic_x, ic_y - 4), Vector2(ic_x + 3, ic_y), Vector2(ic_x, ic_y + 4), Vector2(ic_x - 3, ic_y)]), ic_col)
 
 		# === Procedural icon (center) ===
 		var icon_cx = tx + tile_w * 0.5
@@ -8804,12 +10165,12 @@ func _draw_emporium_sub_panel() -> void:
 	# Currency bar
 	var bar_y = panel_y + 60.0
 	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_relic_shards, player_storybook_stars, player_gold]
-	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13).x
+	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
 	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.7))
 
 	# Chest inventory line
 	var chest_text = "Chests:  Bronze: %d  |  Silver: %d  |  Gold: %d" % [treasure_chests_owned["bronze"], treasure_chests_owned["silver"], treasure_chests_owned["gold"]]
-	var chest_tw = font.get_string_size(chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 11).x
+	var chest_tw = font.get_string_size(chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15).x
 	_udraw(font, Vector2(panel_x + (panel_w - chest_tw) * 0.5, bar_y + 32), chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
 
 	# Separator line
@@ -8845,8 +10206,15 @@ func _draw_emporium_sub_panel() -> void:
 			# Card background
 			var bg = menu_bg_card_hover if is_hovered else menu_bg_card
 			draw_rect(Rect2(ix, iy, item_w, item_h), bg)
-			# Card border
-			var bdr = Color(0.85, 0.65, 0.15, 0.7) if is_hovered else Color(0.55, 0.38, 0.08, 0.35)
+			# Card border — color by item rarity/cost tier (Enhancement #36)
+			var rarity_col = Color(0.55, 0.38, 0.08, 0.35)  # Default gold-dim
+			if item["cost"] >= 100:
+				rarity_col = Color(0.85, 0.65, 0.1, 0.5)  # Gold/rare — expensive items
+			elif item["cost"] >= 30:
+				rarity_col = Color(0.55, 0.3, 0.7, 0.45)  # Purple/uncommon — mid-range
+			else:
+				rarity_col = Color(0.3, 0.5, 0.8, 0.4)  # Blue/common — cheap items
+			var bdr = Color(rarity_col.r * 1.3, rarity_col.g * 1.3, rarity_col.b * 1.3, 0.7) if is_hovered else rarity_col
 			draw_rect(Rect2(ix, iy, item_w, 2), bdr)
 			draw_rect(Rect2(ix, iy + item_h - 2, item_w, 2), bdr)
 			draw_rect(Rect2(ix, iy, 2, item_h), bdr)
@@ -8883,11 +10251,30 @@ func _draw_emporium_sub_panel() -> void:
 				"gold": can_afford = player_gold >= item["cost"]
 			var cost_col = Color(0.9, 0.8, 0.5, 0.8) if can_afford else Color(0.8, 0.3, 0.2, 0.8)
 			_udraw(font, Vector2(ix + (item_w - ctw) * 0.5, iy + 100), cost_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, cost_col)
+			# "Owned" checkmark for power items already purchased (Enhancement #37)
+			var is_purchased = false
+			if item["reward"] == "power":
+				var pid = item.get("power_id", "")
+				if pid != "" and owned_powers.get(pid, 0) > 0:
+					is_purchased = true
+			if is_purchased:
+				draw_circle(Vector2(ix + item_w - 12, iy + 12), 8, Color(0.2, 0.7, 0.3, 0.7))
+				draw_line(Vector2(ix + item_w - 16, iy + 12), Vector2(ix + item_w - 12, iy + 16), Color(1, 1, 1, 0.9), 2.0)
+				draw_line(Vector2(ix + item_w - 12, iy + 16), Vector2(ix + item_w - 7, iy + 8), Color(1, 1, 1, 0.9), 2.0)
+				# "OWNED" text overlay
+				var owned_text = "OWNED"
+				var owned_tw = font.get_string_size(owned_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+				_udraw(font, Vector2(ix + item_w - owned_tw - 22, iy + 16), owned_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.3, 0.8, 0.4, 0.7))
+
 			# "BUY" label at bottom
 			var buy_text = "[ BUY ]"
 			var bw2 = font.get_string_size(buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 			var buy_col = Color(0.85, 0.65, 0.1, 0.8) if is_hovered else Color(0.55, 0.42, 0.2, 0.5)
-			_udraw(font, Vector2(ix + (item_w - bw2) * 0.5, iy + 120), buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, buy_col)
+			_udraw(font, Vector2(ix + (item_w - bw2) * 0.5, iy + item_h - 14), buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, buy_col)
+
+	# Purchase confirmation flash overlay (Enhancement #34)
+	if _emporium_purchase_flash > 0.0:
+		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(1.0, 0.9, 0.5, _emporium_purchase_flash * 0.2))
 
 	# Open chest buttons (if category is Relic Chests and player has chests)
 	if emporium_sub_category == 3:
@@ -8982,13 +10369,34 @@ func _generate_victory_cards(difficulty: int, stars: int) -> void:
 		[{"type": "shards", "min": 10, "max": 30}, {"type": "quills", "min": 4, "max": 8}, {"type": "gold", "min": 30, "max": 90}, {"type": "stars", "min": 1, "max": 3}],
 	]
 	var pool = currency_pools[mini(difficulty, 2)]
-	# Difficulty-exclusive relic tier + act gating
-	var trinket_rarity = ["common", "uncommon", "rare"][difficulty]
+	# Difficulty-exclusive gear tier + act gating + mythic/forbidden chances
+	var trinket_rarity = ["tattered", "bound", "gilded"][difficulty]
 	var tier_unlocked = true
 	if difficulty == 1 and highest_lv < 12:
-		tier_unlocked = false  # Purple requires Act 1 complete
+		tier_unlocked = false  # Bound requires Act 1 complete
 	elif difficulty == 2 and highest_lv < 24:
-		tier_unlocked = false  # Gold requires Act 2 complete
+		tier_unlocked = false  # Gilded requires Act 2 complete
+	# Mythic/Forbidden upgrade chance on hard difficulty
+	if difficulty == 2 and tier_unlocked:
+		var upgrade_roll = randf()
+		if upgrade_roll < 0.02:  # 2% forbidden
+			trinket_rarity = "forbidden"
+		elif upgrade_roll < 0.10:  # 8% mythic
+			trinket_rarity = "mythic"
+		# BATTD2: Pity Timer — guaranteed mythic after 30 drops, forbidden after 100
+		_drops_since_mythic += 1
+		_drops_since_forbidden += 1
+		if trinket_rarity == "mythic" or trinket_rarity == "forbidden":
+			_drops_since_mythic = 0
+		if trinket_rarity == "forbidden":
+			_drops_since_forbidden = 0
+		if _drops_since_forbidden >= PITY_FORBIDDEN:
+			trinket_rarity = "forbidden"
+			_drops_since_forbidden = 0
+			_drops_since_mythic = 0
+		elif _drops_since_mythic >= PITY_MYTHIC:
+			trinket_rarity = "mythic"
+			_drops_since_mythic = 0
 	# Drop rate: low base + scales with chapter progression
 	var trinket_chance = [0.08, 0.12, 0.18][difficulty]
 	trinket_chance += [0.01, 0.015, 0.02][difficulty] * prog_chapter
@@ -9100,6 +10508,8 @@ func _on_chest_overlay_clicked(mouse_pos: Vector2) -> void:
 				var tid = card.get("trinket_id", "")
 				if tid != "":
 					owned_bindings[tid] = owned_bindings.get(tid, 0) + 1
+					_mark_binding_discovered(tid)
+					_add_recent_item(card.get("name", "Trinket"), card.get("trinket_rarity", "tattered"))
 				victory_equip_active = true
 				victory_equip_hover = -1
 				queue_redraw()
@@ -9125,7 +10535,7 @@ func _on_victory_equip_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 240.0
 	var panel_y = 120.0
 	var panel_w = 800.0
-	var col_w = 145.0
+	var col_w = 115.0
 	var col_gap = 10.0
 	var row_h = 80.0
 	var grid_x = panel_x + 30.0
@@ -9438,13 +10848,8 @@ func _draw_chest_opening() -> void:
 					var card = chest_opening_cards[i]
 					var is_trinket = card.get("type") == "trinket"
 					if is_trinket:
-						var rarity = card.get("trinket_rarity", "common")
-						if rarity == "common":
-							card_col = Color(0.4, 0.6, 1.0)
-						elif rarity == "uncommon":
-							card_col = Color(0.7, 0.35, 0.9)
-						elif rarity == "rare":
-							card_col = Color(1.0, 0.8, 0.15)
+						var rarity = card.get("trinket_rarity", "tattered")
+						card_col = RARITY_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
 					else:
 						var icon_cols = {"shards": Color(0.7, 0.35, 0.85), "quills": Color(0.35, 0.7, 1.0), "gold": Color(1.0, 0.8, 0.15), "stars": Color(1.0, 0.9, 0.25), "power": Color(1.0, 0.4, 0.25)}
 						card_col = icon_cols.get(card.get("type", "gold"), Color(1.0, 0.8, 0.15))
@@ -9468,12 +10873,8 @@ func _draw_chest_opening() -> void:
 					var card = chest_opening_cards[i]
 					var is_trinket = card.get("type") == "trinket"
 					if is_trinket:
-						var rarity = card.get("trinket_rarity", "common")
-						var rarity_col = Color(0.4, 0.6, 1.0)
-						if rarity == "uncommon":
-							rarity_col = Color(0.7, 0.35, 0.9)
-						elif rarity == "rare":
-							rarity_col = Color(1.0, 0.8, 0.15)
+						var rarity = card.get("trinket_rarity", "tattered")
+						var rarity_col = RARITY_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
 						# Bright center glow
 						draw_circle(card_center, 70, Color(rarity_col.r, rarity_col.g, rarity_col.b, alpha * 0.15))
 						draw_circle(card_center, 40, Color(rarity_col.r, rarity_col.g, rarity_col.b, alpha * 0.1))
@@ -9589,7 +10990,7 @@ func _draw_chest_opening() -> void:
 			draw_circle(Vector2(cx, 330), 100, Color(res_col.r, res_col.g, res_col.b, 0.1))
 			draw_circle(Vector2(cx, 330), 50, Color(res_col.r, res_col.g, res_col.b, 0.06))
 			if is_trinket:
-				var result = "Relic Acquired!"
+				var result = "Gear Acquired!"
 				var rw = font.get_string_size(result, HORIZONTAL_ALIGNMENT_CENTER, -1, 32).x
 				_udraw(font, Vector2(cx - rw * 0.5 + 2, 302), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(0.0, 0.0, 0.0, 0.5))
 				_udraw(font, Vector2(cx - rw * 0.5, 300), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0, 0.9, 0.35, 0.95))
@@ -9627,17 +11028,17 @@ func _draw_victory_equip_overlay() -> void:
 		Rect2(panel_x, panel_y, 2, panel_h), Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h)]:
 		draw_rect(edge, Color(0.6, 0.3, 0.75, 0.5))
 	# Title
-	var title = "Equip Relic: %s" % victory_trinket_pending.get("name", "")
+	var title = "Equip Gear: %s" % victory_trinket_pending.get("name", "")
 	var tw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 20).x
 	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 30), title, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(0.9, 0.75, 0.3, 0.95))
 	# Subtitle
-	var sub = "Choose a character to equip this relic on:"
+	var sub = "Choose a character to equip this gear on:"
 	var sw = font.get_string_size(sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 13).x
 	_udraw(font, Vector2(panel_x + (panel_w - sw) * 0.5, panel_y + 55), sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.7, 0.6, 0.5, 0.7))
 	# Relic desc
 	var desc = victory_trinket_pending.get("desc", "")
 	var dw = font.get_string_size(desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
-	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 72), desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.7, 0.7))
+	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 78), desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.6, 0.5, 0.7, 0.7))
 	# Character grid (2 rows: 6 + 5)
 	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge",
 		"sherlock", "tarzan", "dracula", "merlin", "frankenstein"]
@@ -9728,7 +11129,21 @@ func _draw_closed_book() -> void:
 	# Knowledge Ink counter
 	var ink_text = "Knowledge Ink: %d" % knowledge_ink
 	var ink_w = font.get_string_size(ink_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	_udraw(font, Vector2(panel_x + panel_w - ink_w - 30, panel_y + 34), ink_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.6, 0.45, 0.8, 0.85))
+	_udraw(font, Vector2(panel_x + panel_w - ink_w - 30, panel_y + 20), ink_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.8, 0.85))
+
+	# === Total completion percentage header (Enhancement #46 style for knowledge) ===
+	var total_nodes = 0
+	var unlocked_nodes = 0
+	for kb in knowledge_branches:
+		total_nodes += kb["nodes"].size()
+	for kk in knowledge_tree:
+		if knowledge_tree[kk]:
+			unlocked_nodes += 1
+	var knowledge_ratio = float(unlocked_nodes) / float(max(1, total_nodes))
+	# Progress bar under title
+	draw_rect(Rect2(panel_x + 40, panel_y + 46, panel_w - 80, 4), Color(0.1, 0.1, 0.15, 0.4))
+	draw_rect(Rect2(panel_x + 40, panel_y + 46, (panel_w - 80) * knowledge_ratio, 4), Color(0.6, 0.45, 0.8, 0.6))
+	_udraw(font, Vector2(panel_x + 40, panel_y + 58), "%d / %d NODES  (%d%%)" % [unlocked_nodes, total_nodes, int(knowledge_ratio * 100)], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.6, 0.5, 0.7, 0.5))
 
 	# 5 branches side by side (compact layout)
 	var num_branches = knowledge_branches.size()
@@ -9745,13 +11160,39 @@ func _draw_closed_book() -> void:
 		var bx = branch_start_x + float(bi) * (branch_w + branch_gap)
 		var bcol = branch["color"]
 
+		# === Branch divider ornament (Enhancement #38) — between branches ===
+		if bi > 0:
+			var div_x = bx - branch_gap * 0.5
+			# Vertical divider line
+			draw_line(Vector2(div_x, branch_start_y + 8), Vector2(div_x, branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 70), Color(0.54, 0.45, 0.20, 0.12), 1.0)
+			# Diamond ornament at top of divider
+			var div_dy = branch_start_y + 12
+			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_dy - 4), Vector2(div_x + 3, div_dy), Vector2(div_x, div_dy + 4), Vector2(div_x - 3, div_dy)]), Color(0.54, 0.45, 0.20, 0.25))
+			# Diamond ornament at bottom of divider
+			var div_by = branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 66
+			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_by - 4), Vector2(div_x + 3, div_by), Vector2(div_x, div_by + 4), Vector2(div_x - 3, div_by)]), Color(0.54, 0.45, 0.20, 0.25))
+
 		# Branch header
 		var bname = branch["name"]
 		var bdesc = "(%s)" % branch["desc"]
-		var bnw = font.get_string_size(bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+		var bnw = font.get_string_size(bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
 		_udraw(font, Vector2(bx + (branch_w - bnw) * 0.5, branch_start_y + 14), bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(bcol.r, bcol.g, bcol.b, 0.9))
-		var bdw = font.get_string_size(bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
+		var bdw = font.get_string_size(bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		_udraw(font, Vector2(bx + (branch_w - bdw) * 0.5, branch_start_y + 26), bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(bcol.r, bcol.g, bcol.b, 0.5))
+
+		# === Character portrait beside branch header (Enhancement #40) ===
+		var portrait_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom"]
+		if bi < portrait_names.size():
+			_draw_story_portrait(bx + 6, branch_start_y + 4, 18.0, portrait_names[bi])
+
+		# === Branch completion progress bar (Enhancement #42) ===
+		var branch_unlocked = 0
+		for bni in range(branch["nodes"].size()):
+			if knowledge_tree.get("%d_%d" % [bi, bni], false):
+				branch_unlocked += 1
+		var branch_ratio = float(branch_unlocked) / float(max(1, branch["nodes"].size()))
+		draw_rect(Rect2(bx, branch_start_y + 32, branch_w, 3), Color(0.1, 0.1, 0.15, 0.3))
+		draw_rect(Rect2(bx, branch_start_y + 32, branch_w * branch_ratio, 3), Color(bcol.r, bcol.g, bcol.b, 0.5))
 
 		# Nodes (vertical chain)
 		var node_cx = bx + branch_w * 0.5
@@ -9802,11 +11243,43 @@ func _draw_closed_book() -> void:
 			if is_hovered:
 				draw_arc(Vector2(node_cx, node_cy), node_radius + 4, 0, TAU, 24, Color(1, 1, 1, 0.3), 1.5)
 
+			# === Read/unread indicator dot (Enhancement #41) ===
+			var ind_x = node_cx - node_radius - 8
+			if is_unlocked:
+				# Bright solid dot — "read"/unlocked
+				draw_circle(Vector2(ind_x, node_cy), 3, Color(0.4, 0.8, 0.3, 0.8))
+			elif can_unlock:
+				# Pulsing dim dot — available to unlock
+				var dot_pulse = 0.4 + sin(_time * 3.5 + float(bi * 10 + ni)) * 0.3
+				draw_circle(Vector2(ind_x, node_cy), 3, Color(bcol.r, bcol.g, bcol.b, dot_pulse))
+			else:
+				# Dim grey dot — locked
+				draw_circle(Vector2(ind_x, node_cy), 2, Color(0.3, 0.3, 0.3, 0.25))
+
 			# Node name and desc (to the right)
 			var text_x = node_cx + node_radius + 8
 			var name_col = Color(0.9, 0.8, 0.5, 0.9) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.7) if can_unlock else Color(0.5, 0.45, 0.4, 0.5))
 			_udraw(font, Vector2(text_x, node_cy - 1), node["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, name_col)
 			_udraw(font, Vector2(text_x, node_cy + 11), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
+
+	# === Content fade masks at top/bottom edges (Enhancement #39) ===
+	var bg_base = menu_bg_section
+	for fi in range(6):
+		var fa = 0.7 - float(fi) * 0.12
+		draw_rect(Rect2(panel_x + 3, panel_y + 60 + float(fi) * 4, panel_w - 6, 4), Color(bg_base.r, bg_base.g, bg_base.b, fa))
+	for fi in range(6):
+		var fa = 0.7 - float(fi) * 0.12
+		draw_rect(Rect2(panel_x + 3, panel_y + panel_h - 10 - float(fi) * 4, panel_w - 6, 4), Color(menu_bg_dark.r, menu_bg_dark.g, menu_bg_dark.b, fa))
+
+	# === Vertical scroll/completion bar on right side (Enhancement #42) ===
+	var scrollbar_x = panel_x + panel_w - 12
+	var scrollbar_top = panel_y + 60
+	var scrollbar_h = panel_h - 80
+	draw_rect(Rect2(scrollbar_x, scrollbar_top, 4, scrollbar_h), Color(0.15, 0.12, 0.25, 0.3))
+	var scroll_fill = knowledge_ratio * scrollbar_h
+	draw_rect(Rect2(scrollbar_x, scrollbar_top, 4, scroll_fill), Color(0.6, 0.45, 0.8, 0.5))
+	# Thumb indicator
+	draw_rect(Rect2(scrollbar_x - 1, scrollbar_top + scroll_fill - 2, 6, 4), Color(0.8, 0.65, 0.2, 0.6))
 
 func _update_knowledge_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
@@ -10095,24 +11568,37 @@ func _draw_survivor_grid() -> void:
 		var is_hovered = (world_map_hover_index == i)
 		var speaker_name = _tower_type_to_name(tower_type)
 
+		# === Enhancement 1: Card hover scale-up ===
+		var draw_cx = cx
+		var draw_cy = cy
+		var draw_cw = card_w
+		var draw_ch = card_h
+		if is_hovered and unlocked:
+			draw_cx -= 4.0
+			draw_cy -= 4.0
+			draw_cw += 8.0
+			draw_ch += 8.0
+
 		# === Card shadow ===
-		draw_rect(Rect2(cx + 3, cy + 3, card_w, card_h), Color(0.0, 0.0, 0.0, 0.4))
+		draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw, draw_ch), Color(0.0, 0.0, 0.0, 0.4))
 
 		# === Card background — gradient with character accent ===
-		draw_rect(Rect2(cx, cy, card_w, card_h), Color(0.05, 0.05, 0.12))
+		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.05, 0.05, 0.12))
 		# Accent gradient at top
-		for gi in range(int(card_h * 0.4)):
-			var gt = float(gi) / (card_h * 0.4)
-			draw_rect(Rect2(cx, cy + float(gi), card_w, 1), Color(accent.r, accent.g, accent.b, 0.08 * (1.0 - gt)))
+		for gi in range(int(draw_ch * 0.4)):
+			var gt = float(gi) / (draw_ch * 0.4)
+			draw_rect(Rect2(draw_cx, draw_cy + float(gi), draw_cw, 1), Color(accent.r, accent.g, accent.b, 0.08 * (1.0 - gt)))
 
 		# === Character portrait (large, centered) ===
-		var portrait_cx = cx + card_w * 0.5
-		var portrait_cy = cy + card_h * 0.42
+		var portrait_cx = draw_cx + draw_cw * 0.5
+		var portrait_cy = draw_cy + draw_ch * 0.42
+		# Enhancement 2: Character breathing animation
+		var breath_offset = sin(_time * 2.0 + float(i) * 0.7) * 2.0 if unlocked else 0.0
 		if unlocked:
 			# Character accent glow
-			draw_circle(Vector2(portrait_cx, portrait_cy + 10), 55.0, Color(accent.r, accent.g, accent.b, 0.06))
+			draw_circle(Vector2(portrait_cx, portrait_cy + 10 + breath_offset), 55.0, Color(accent.r, accent.g, accent.b, 0.06))
 			# Draw full character portrait using story portrait system
-			_draw_story_portrait(portrait_cx, portrait_cy + 30, 130.0, speaker_name)
+			_draw_story_portrait(portrait_cx, portrait_cy + 30 + breath_offset, 130.0, speaker_name)
 		else:
 			# Dark silhouette placeholder
 			draw_circle(Vector2(portrait_cx, portrait_cy), 35.0, Color(0.08, 0.08, 0.15, 0.5))
@@ -10122,8 +11608,8 @@ func _draw_survivor_grid() -> void:
 		if unlocked:
 			var progress = survivor_progress.get(tower_type, {"level": 1})
 			var lvl = progress.get("level", 1)
-			var badge_cx = cx + 20.0
-			var badge_cy = cy + 20.0
+			var badge_cx = draw_cx + 20.0
+			var badge_cy = draw_cy + 20.0
 			# Badge circle: dark background + accent ring
 			draw_circle(Vector2(badge_cx, badge_cy), 16, Color(0.02, 0.02, 0.06, 0.9))
 			draw_circle(Vector2(badge_cx, badge_cy), 14, Color(accent.r, accent.g, accent.b, 0.6))
@@ -10132,6 +11618,21 @@ func _draw_survivor_grid() -> void:
 			var lvl_str = str(lvl)
 			var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 			_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
+
+		# === Enhancement 6: Role icon badge (top-center) ===
+		if unlocked:
+			var role = "DPS"
+			match i:
+				1: role = "SUP"  # Alice - support
+				2: role = "AOE"  # Witch - AoE
+				5: role = "SUP"  # Scrooge - support
+				6: role = "BUF"  # Sherlock - buffer
+				9: role = "BUF"  # Merlin - buffer
+				_: role = "DPS"
+			var role_x = draw_cx + draw_cw * 0.5
+			var role_y = draw_cy + 8.0
+			draw_rect(Rect2(role_x - 12, role_y, 24, 12), Color(0.02, 0.02, 0.06, 0.8))
+			_udraw(font, Vector2(role_x - 10, role_y + 10), role, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(accent.r, accent.g, accent.b, 0.7))
 
 		# === Star rating (top-right) ===
 		var stars_earned = 0
@@ -10146,8 +11647,8 @@ func _draw_survivor_grid() -> void:
 			for lvl_idx in char_level_map[i]:
 				stars_earned += level_stars.get(lvl_idx, 0)
 		if unlocked:
-			var star_x = cx + card_w - 18.0
-			var star_y = cy + 16.0
+			var star_x = draw_cx + draw_cw - 18.0
+			var star_y = draw_cy + 16.0
 			# Star badge circle
 			draw_circle(Vector2(star_x, star_y), 13, Color(0.02, 0.02, 0.06, 0.8))
 			draw_circle(Vector2(star_x, star_y), 11, Color(0.85, 0.65, 0.1, 0.7))
@@ -10162,21 +11663,88 @@ func _draw_survivor_grid() -> void:
 				star_pts.append(sp + Vector2(cos(sa) * sd, sin(sa) * sd))
 			draw_colored_polygon(star_pts, Color(1.0, 0.85, 0.2, 0.9))
 
+		# === Enhancement 8: Star progress bar ===
+		if unlocked and stars_earned > 0:
+			var max_stars = 9  # 3 levels x 3 stars each
+			var star_fill = clampf(float(stars_earned) / float(max_stars), 0.0, 1.0)
+			var sbar_x = draw_cx + draw_cw - 30.0
+			var sbar_y = draw_cy + 30.0
+			draw_rect(Rect2(sbar_x, sbar_y, 20, 3), Color(0.15, 0.15, 0.2, 0.5))
+			draw_rect(Rect2(sbar_x, sbar_y, 20 * star_fill, 3), Color(1.0, 0.85, 0.2, 0.7))
+
+		# === Equipped gear count badge ===
+		if unlocked:
+			var eq_count = equipped_bindings.get(tower_type, []).size()
+			var eq_max = _get_binding_slots(tower_type)
+			if eq_max > 0:
+				var eq_str = "%d/%d" % [eq_count, eq_max]
+				var eq_w = font.get_string_size(eq_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 8
+				var eq_x = draw_cx + 6.0
+				var eq_y = draw_cy + 36.0
+				draw_rect(Rect2(eq_x, eq_y, eq_w, 13), Color(0.02, 0.02, 0.06, 0.8))
+				draw_rect(Rect2(eq_x, eq_y, eq_w, 13), Color(0.7, 0.35, 0.9, 0.3), false, 1.0)
+				_udraw(font, Vector2(eq_x + 4, eq_y + 10), eq_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.7, 0.35, 0.9, 0.8))
+
+		# === Enhancement 7: Total damage dealt on card ===
+		if unlocked:
+			var total_dmg = 0.0
+			for key in session_damage:
+				if key == tower_type:
+					total_dmg = session_damage[key]
+			# Check lifetime damage from survivor_progress
+			var sp2 = survivor_progress.get(tower_type, {})
+			var lifetime_dmg = sp2.get("total_damage", 0.0)
+			if lifetime_dmg > 0:
+				var dmg_str = ""
+				if lifetime_dmg >= 1000000:
+					dmg_str = "%.1fM" % (lifetime_dmg / 1000000.0)
+				elif lifetime_dmg >= 1000:
+					dmg_str = "%.1fK" % (lifetime_dmg / 1000.0)
+				else:
+					dmg_str = str(int(lifetime_dmg))
+				var dmg_w = font.get_string_size(dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
+				_udraw(font, Vector2(draw_cx + draw_cw - dmg_w - 8, draw_cy + draw_ch - 46), dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.7, 0.7, 0.5))
+
 		# === Character name plate (bottom) ===
-		var name_plate_y = cy + card_h - 38.0
-		draw_rect(Rect2(cx, name_plate_y, card_w, 38), Color(0.03, 0.03, 0.08, 0.85))
-		draw_rect(Rect2(cx, name_plate_y, card_w, 1), Color(accent.r, accent.g, accent.b, 0.3))
+		var name_plate_y = draw_cy + draw_ch - 38.0
+		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 38), Color(0.03, 0.03, 0.08, 0.85))
+		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 1), Color(accent.r, accent.g, accent.b, 0.3))
 		var name_str: String = info["name"]
 		var name_w = font.get_string_size(name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		# Name with shadow
-		_udraw(font, Vector2(cx + (card_w - name_w) * 0.5 + 1, name_plate_y + 16), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.5))
-		_udraw(font, Vector2(cx + (card_w - name_w) * 0.5, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_parchment if unlocked else Color(0.4, 0.38, 0.45))
+		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5 + 1, name_plate_y + 16), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.5))
+		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_parchment if unlocked else Color(0.4, 0.38, 0.45))
 		# Novel subtitle
 		var novel_str = character_novels[i] if i < character_novels.size() else ""
 		if novel_str.length() > 22:
 			novel_str = novel_str.substr(0, 20) + ".."
 		var novel_w = font.get_string_size(novel_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
-		_udraw(font, Vector2(cx + (card_w - novel_w) * 0.5, name_plate_y + 30), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 8), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
+		_udraw(font, Vector2(draw_cx + (draw_cw - novel_w) * 0.5, name_plate_y + 30), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(draw_cw - 8), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
+
+		# === Enhancement 3: XP progress bar under name ===
+		if unlocked:
+			var progress_data = survivor_progress.get(tower_type, {"level": 1})
+			var xp_lvl = progress_data.get("level", 1)
+			var xp_ratio = clampf(float(xp_lvl) / 9.0, 0.0, 1.0)  # max level ~9
+			var bar_y = draw_cy + draw_ch - 6.0
+			var bar_x = draw_cx + 8.0
+			var bar_w = draw_cw - 16.0
+			draw_rect(Rect2(bar_x, bar_y, bar_w, 3), Color(0.1, 0.1, 0.15, 0.6))
+			draw_rect(Rect2(bar_x, bar_y, bar_w * xp_ratio, 3), Color(accent.r, accent.g, accent.b, 0.7))
+
+		# === Enhancement 4: Stat preview mini-bars on hover ===
+		if is_hovered and unlocked:
+			var stat_x = draw_cx + 8.0
+			var stat_y = draw_cy + draw_ch - 32.0
+			var stat_w = 50.0
+			var stat_names = ["DMG", "SPD", "RNG"]
+			var stat_values = [info.get("damage", 25) / 55.0, info.get("fire_rate", 0.5) / 1.0, info.get("range", 160) / 200.0]
+			var stat_colors = [Color(0.9, 0.3, 0.2), Color(0.3, 0.8, 0.4), Color(0.3, 0.5, 0.9)]
+			for si in range(3):
+				var sy = stat_y + float(si) * 12.0
+				_udraw(font, Vector2(stat_x, sy + 6), stat_names[si], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.7, 0.7, 0.7, 0.7))
+				draw_rect(Rect2(stat_x + 22, sy + 1, stat_w, 4), Color(0.15, 0.15, 0.2, 0.5))
+				draw_rect(Rect2(stat_x + 22, sy + 1, stat_w * clampf(stat_values[si], 0.0, 1.0), 4), stat_colors[si])
 
 		# === Card border frame ===
 		var bdr_col: Color
@@ -10187,17 +11755,30 @@ func _draw_survivor_grid() -> void:
 		else:
 			bdr_col = Color(accent.r, accent.g, accent.b, 0.4)
 		# Outer border (thick frame like BATTD)
-		draw_rect(Rect2(cx, cy, card_w, 3), bdr_col)
-		draw_rect(Rect2(cx, cy + card_h - 3, card_w, 3), bdr_col)
-		draw_rect(Rect2(cx, cy, 3, card_h), bdr_col)
-		draw_rect(Rect2(cx + card_w - 3, cy, 3, card_h), bdr_col)
+		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, 3), bdr_col)
+		draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), bdr_col)
+		draw_rect(Rect2(draw_cx, draw_cy, 3, draw_ch), bdr_col)
+		draw_rect(Rect2(draw_cx + draw_cw - 3, draw_cy, 3, draw_ch), bdr_col)
+
+		# === Enhancement 5: Tier border glow ===
+		if unlocked:
+			var tier_data = survivor_progress.get(tower_type, {"level": 1})
+			var tier = tier_data.get("level", 1)
+			var tier_col = Color(0.6, 0.4, 0.2, 0.15)  # bronze
+			if tier >= 7:
+				tier_col = Color(0.4, 0.8, 1.0, 0.2)  # diamond
+			elif tier >= 5:
+				tier_col = Color(0.85, 0.7, 0.2, 0.2)  # gold
+			elif tier >= 3:
+				tier_col = Color(0.7, 0.72, 0.78, 0.18)  # silver
+			draw_rect(Rect2(draw_cx - 2, draw_cy - 2, draw_cw + 4, draw_ch + 4), tier_col)
 
 		# === Locked overlay ===
 		if not unlocked:
-			draw_rect(Rect2(cx + 3, cy + 3, card_w - 6, card_h - 6), Color(0.0, 0.0, 0.02, 0.6))
+			draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw - 6, draw_ch - 6), Color(0.0, 0.0, 0.02, 0.6))
 			# Padlock
-			var lock_cx = cx + card_w * 0.5
-			var lock_cy = cy + card_h * 0.4
+			var lock_cx = draw_cx + draw_cw * 0.5
+			var lock_cy = draw_cy + draw_ch * 0.4
 			draw_rect(Rect2(lock_cx - 14, lock_cy, 28, 22), Color(0.3, 0.25, 0.40, 0.7))
 			draw_arc(Vector2(lock_cx, lock_cy), 11, PI, TAU, 12, Color(0.35, 0.30, 0.45, 0.7), 3.0)
 			draw_circle(Vector2(lock_cx, lock_cy + 10), 3, Color(0.04, 0.04, 0.10))
@@ -10206,12 +11787,22 @@ func _draw_survivor_grid() -> void:
 		# === Hover glow ===
 		if unlocked and is_hovered:
 			var glow_a = 0.10 + 0.05 * sin(_time * 3.0)
-			draw_rect(Rect2(cx + 3, cy + 3, card_w - 6, card_h - 6), Color(accent.r, accent.g, accent.b, glow_a))
+			draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw - 6, draw_ch - 6), Color(accent.r, accent.g, accent.b, glow_a))
 			# Bright border on hover
-			draw_rect(Rect2(cx, cy, card_w, 3), Color(accent.r, accent.g, accent.b, 0.9))
-			draw_rect(Rect2(cx, cy + card_h - 3, card_w, 3), Color(accent.r, accent.g, accent.b, 0.9))
-			draw_rect(Rect2(cx, cy, 3, card_h), Color(accent.r, accent.g, accent.b, 0.9))
-			draw_rect(Rect2(cx + card_w - 3, cy, 3, card_h), Color(accent.r, accent.g, accent.b, 0.9))
+			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, 3), Color(accent.r, accent.g, accent.b, 0.9))
+			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), Color(accent.r, accent.g, accent.b, 0.9))
+			draw_rect(Rect2(draw_cx, draw_cy, 3, draw_ch), Color(accent.r, accent.g, accent.b, 0.9))
+			draw_rect(Rect2(draw_cx + draw_cw - 3, draw_cy, 3, draw_ch), Color(accent.r, accent.g, accent.b, 0.9))
+
+		# === Enhancement 9: Character-themed particles on hovered card ===
+		if unlocked and is_hovered:
+			for pi in range(4):
+				var pa = _time * 1.5 + float(pi) * 1.6 + float(i) * 0.5
+				var py_off = sin(pa) * (draw_ch * 0.3)
+				var px_off = cos(pa * 0.7) * (draw_cw * 0.3)
+				var pp = Vector2(draw_cx + draw_cw * 0.5 + px_off, draw_cy + draw_ch * 0.4 + py_off)
+				var p_alpha = 0.2 + sin(_time * 3.0 + float(pi)) * 0.1
+				draw_circle(pp, 2.0, Color(accent.r, accent.g, accent.b, p_alpha))
 
 func _draw_new_character_portrait(idx: int, center: Vector2, col: Color) -> void:
 	var cx = center.x
@@ -11061,7 +12652,7 @@ func _draw_survivor_detail() -> void:
 	_udraw(font, Vector2(right_x, weap_y + 14), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_gold)
 	var gear_data = survivor_gear.get(tower_type, {"name": "Unknown", "desc": ""})
 	var gear_unlocked = progress.get("gear_unlocked", false)
-	var gear_sy = weap_y + 24.0
+	var gear_sy = weap_y + 32.0
 	var gear_hover = (detail_hover_type == "weapon" and detail_hover_index == 0)
 	# Weapon slot
 	draw_rect(Rect2(right_x, gear_sy, slot_size, slot_size), Color(0.04, 0.04, 0.10))
@@ -11081,25 +12672,36 @@ func _draw_survivor_detail() -> void:
 		draw_rect(Rect2(lk.x - 12, lk.y + 2, 24, 18), Color(0.35, 0.30, 0.45, 0.6))
 		draw_arc(Vector2(lk.x, lk.y + 2), 9, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.6), 2.5)
 		draw_circle(Vector2(lk.x, lk.y + 11), 3, Color(0.04, 0.04, 0.10))
-	# Weapon name below slot
+	# Weapon name + type badge below slot
 	var weap_name = gear_data["name"] if gear_unlocked else "LV.2"
 	var weap_nw = font.get_string_size(weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
 	_udraw(font, Vector2(right_x + (slot_size - weap_nw) * 0.5, gear_sy + slot_size + 14), weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_parchment if gear_unlocked else Color(0.5, 0.48, 0.55, 0.6))
+	if gear_unlocked and gear_data.has("type"):
+		var wtype = gear_data["type"]
+		var type_col = Color(0.5, 0.7, 0.9, 0.7)
+		var type_w = font.get_string_size(wtype, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 10
+		var type_x = right_x + (slot_size - type_w) * 0.5
+		draw_rect(Rect2(type_x, gear_sy + slot_size + 18, type_w, 14), Color(0.1, 0.15, 0.25, 0.6))
+		draw_rect(Rect2(type_x, gear_sy + slot_size + 18, type_w, 14), Color(type_col.r, type_col.g, type_col.b, 0.3), false, 1.0)
+		_udraw(font, Vector2(type_x + 5, gear_sy + slot_size + 30), wtype, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, type_col)
 
 	# --- SIDEKICKS section (right of weapon) ---
 	var sk_x = right_x + slot_size + 50.0
 	var sk_y = content_y
 	var sk_data = survivor_sidekicks.get(tower_type, [])
+	var sk_max = _get_ally_slots(tower_type)
 	var sk_unlocked_arr = progress.get("sidekicks_unlocked", [false, false, false])
+	while sk_unlocked_arr.size() < sk_max:
+		sk_unlocked_arr.append(false)
 	var sk_count = 0
 	for su in sk_unlocked_arr:
 		if su:
 			sk_count += 1
-	_udraw(font, Vector2(sk_x + 1, sk_y + 15), "SIDEKICKS (%d/3)" % sk_count, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.4))
-	_udraw(font, Vector2(sk_x, sk_y + 14), "SIDEKICKS (%d/3)" % sk_count, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_gold)
-	var sk_slot_y = sk_y + 24.0
-	var sk_levels = [3, 5, 8]
-	for si in range(3):
+	_udraw(font, Vector2(sk_x + 1, sk_y + 15), "ALLIES (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.4))
+	_udraw(font, Vector2(sk_x, sk_y + 14), "ALLIES (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_gold)
+	var sk_slot_y = sk_y + 32.0
+	var sk_levels = [3, 5, 8, 10]
+	for si in range(sk_max):
 		var sx = sk_x + float(si) * (slot_size + 14.0)
 		var sy = sk_slot_y
 		var sk_unlocked = sk_unlocked_arr[si] if si < sk_unlocked_arr.size() else false
@@ -11151,7 +12753,7 @@ func _draw_survivor_detail() -> void:
 	var relic_earn_levels = [2, 4, 6, 8, 10, 12]
 	var relic_purchasable = [false, true, false, true, false, true]
 	var relic_costs = [0, 100, 0, 250, 0, 500]
-	# 2 rows of 3 relics (like BATTD's 2 rows of 6 trinkets)
+	# 2 rows of 3 relics
 	for ri in range(mini(char_relics.size(), 6)):
 		var r_row = ri / 3
 		var r_col = ri % 3
@@ -11244,10 +12846,21 @@ func _draw_survivor_detail() -> void:
 	var bind_slots = _get_binding_slots(tower_type)
 	if bind_slots > 0:
 		var eq_bindings = equipped_bindings.get(tower_type, [])
-		var rarity_colors = {"common": Color(0.6, 0.6, 0.6), "uncommon": Color(0.3, 0.7, 0.3), "rare": Color(0.7, 0.4, 0.9)}
+		var rarity_colors = RARITY_COLORS
 		var tome_y = relic_desc_y + 18.0
 		_udraw(font, Vector2(right_x + 1, tome_y + 13), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0, 0, 0, 0.4))
 		_udraw(font, Vector2(right_x, tome_y + 12), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
+		# Set bonus indicator
+		var tower_names_sb = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "scheherazade"]
+		var cn = tower_names_sb[tower_type] if tower_type >= 0 and tower_type < tower_names_sb.size() else ""
+		var cgc = 0
+		for eqb in eq_bindings:
+			var bd = _find_binding(eqb)
+			if bd.get("character", "") == cn:
+				cgc += 1
+		if cgc >= 3:
+			var sb_str = "SET BONUS x%d (+%d%% ALL)" % [cgc, cgc * 5]
+			_udraw(font, Vector2(right_x + 200, tome_y + 12), sb_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.85, 0.2, 0.8))
 		var tome_slot_y = tome_y + 22.0
 		var tome_slot_size = 44.0
 		for tsi in range(bind_slots):
@@ -11257,9 +12870,13 @@ func _draw_survivor_detail() -> void:
 			if tsi < eq_bindings.size():
 				var binding = _find_binding(eq_bindings[tsi])
 				if not binding.is_empty():
-					var rc = rarity_colors.get(binding.get("rarity", "common"), Color(0.6, 0.6, 0.6))
+					var rc = RARITY_COLORS.get(binding.get("rarity", "tattered"), Color(0.6, 0.6, 0.65))
 					draw_rect(Rect2(tx, ty, tome_slot_size, tome_slot_size), Color(rc.r, rc.g, rc.b, 0.4), false, 1.5)
 					draw_circle(Vector2(tx + tome_slot_size * 0.5, ty + tome_slot_size * 0.4), 12, Color(rc.r, rc.g, rc.b, 0.25))
+					# Rarity initial badge
+					var rar = binding.get("rarity", "tattered")
+					var rar_letter = rar.substr(0, 1).to_upper()
+					_udraw(font, Vector2(tx + 2, ty + 10), rar_letter, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(rc.r, rc.g, rc.b, 0.7))
 			else:
 				draw_rect(Rect2(tx, ty, tome_slot_size, tome_slot_size), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.15), false, 1.0)
 				draw_rect(Rect2(tx + 18, ty + 12, 8, 20), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
@@ -11270,7 +12887,7 @@ func _draw_survivor_detail() -> void:
 		var bcol = 0
 		var brow = 0
 		var card_w = 200.0
-		var card_h = 28.0
+		var card_h = 36.0
 		for b in TOME_BINDINGS:
 			var count = owned_bindings.get(b["id"], 0)
 			if count <= 0:
@@ -11285,12 +12902,14 @@ func _draw_survivor_detail() -> void:
 			if by + card_h < browse_y or by > browse_bottom:
 				continue
 			var is_eq = b["id"] in eq_bindings
-			var rc = rarity_colors.get(b.get("rarity", "common"), Color(0.6, 0.6, 0.6))
+			var rc = RARITY_COLORS.get(b.get("rarity", "tattered"), Color(0.6, 0.6, 0.65))
 			var bg_c = Color(0.10, 0.08, 0.22, 0.8) if is_eq else Color(0.05, 0.05, 0.14, 0.7)
 			draw_rect(Rect2(bx, by, card_w, card_h), bg_c)
 			draw_rect(Rect2(bx, by, card_w, card_h), Color(rc.r, rc.g, rc.b, 0.3 if is_eq else 0.15), false, 1.0)
+			# Rarity stripe
+			draw_rect(Rect2(bx, by, 3, card_h), Color(rc.r, rc.g, rc.b, 0.6))
 			_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 14, menu_parchment)
-			_udraw(font, Vector2(bx + 6, by + 22), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 12), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6))
+			_udraw(font, Vector2(bx + 6, by + 26), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 12), 12, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6))
 			var count_label = "EQ" if is_eq else ("x%d" % count)
 			_udraw(font, Vector2(bx + card_w - 28, by + 12), count_label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3) if is_eq else Color(0.55, 0.52, 0.50))
 		# Scroll indicator for bindings list
@@ -11452,8 +13071,12 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var kb_dmg = _get_knowledge_bonus("damage")
 	var kb_rng = _get_knowledge_bonus("range")
 	var kb_spd = _get_knowledge_bonus("attack_speed")
+	var star_b = _get_level_stat_boosts(tower_type)
+	var gear_b = _get_binding_bonuses(tower_type)
 	var bonus_lines = [
 		["Level DMG", lvl_b.get("damage", 0.0)], ["Level RNG", lvl_b.get("range", 0.0)], ["Level SPD", lvl_b.get("attack_speed", 0.0)],
+		["Star DMG", star_b.get("damage", 0.0)], ["Star RNG", star_b.get("range", 0.0)], ["Star SPD", star_b.get("attack_speed", 0.0)],
+		["Gear DMG", gear_b.get("damage", 0.0)], ["Gear RNG", gear_b.get("range", 0.0)], ["Gear SPD", gear_b.get("attack_speed", 0.0)],
 		["Knowledge DMG", kb_dmg], ["Knowledge RNG", kb_rng], ["Knowledge SPD", kb_spd],
 	]
 	for bl in bonus_lines:
@@ -11557,6 +13180,7 @@ func _get_story_map_node_positions() -> Array:
 	return nodes
 
 var chapters_hover_level: int = -1
+var chapters_diff_popup_level: int = -1  # Level index for difficulty picker popup (-1 = closed)
 
 func _draw_story_map() -> void:
 	var font = game_font
@@ -11606,6 +13230,17 @@ func _draw_story_map() -> void:
 	var cursor_y = content_top - scroll_y
 	var mouse_pos = get_viewport().get_mouse_position()
 
+	# Enhancement 18: Find first uncompleted level for NEXT indicator
+	var first_uncompleted_level = -1
+	for _fli in range(levels.size()):
+		if _fli not in completed_levels and _is_level_unlocked(_fli):
+			first_uncompleted_level = _fli
+			break
+
+	# Track previous row center for connecting lines (Enhancement 17)
+	var prev_row_center = Vector2.ZERO
+	var prev_row_visible = false
+
 	var arc_color_map = {
 		"Prologue": Color(0.45, 0.30, 0.55),
 		"Sherlock Holmes": Color(0.50, 0.50, 0.62),
@@ -11628,6 +13263,9 @@ func _draw_story_map() -> void:
 		var arc_col = arc_color_map.get(arc_name, Color(0.5, 0.5, 0.5))
 		var arc_levels = arc["levels"]
 
+		# Reset path line tracking for new arc
+		prev_row_visible = false
+
 		# --- Arc completion ---
 		var arc_done = 0
 		var arc_total = arc_levels.size()
@@ -11643,42 +13281,96 @@ func _draw_story_map() -> void:
 			var hy = maxf(cursor_y, content_top)
 			draw_rect(Rect2(list_x + 4, hy, list_w - 8, header_h), Color(arc_col.r * 0.3, arc_col.g * 0.3, arc_col.b * 0.3, 0.8))
 			draw_rect(Rect2(list_x + 4, hy, 4, header_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.8))
-			_udraw(font, Vector2(list_x + 18, hy + 22), arc_name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, 400, 14, Color(0.92, 0.78, 0.28))
+			_udraw(font, Vector2(list_x + 18, hy + 22), arc_name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, 180, 14, Color(0.92, 0.78, 0.28))
 			if arc_done == arc_total:
 				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "COMPLETE", HORIZONTAL_ALIGNMENT_RIGHT, 200, 15, Color(0.45, 0.80, 0.30))
 			else:
 				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "%d%% Complete" % arc_pct, HORIZONTAL_ALIGNMENT_RIGHT, 200, 15, Color(0.60, 0.52, 0.38))
+			# Enhancement 14: Chapter progress bar
+			var cpb_x = list_x + 200.0
+			var cpb_w = list_w - 420.0
+			var cpb_y = hy + 26.0
+			draw_rect(Rect2(cpb_x, cpb_y, cpb_w, 3), Color(0.2, 0.18, 0.15, 0.5))
+			var cpb_fill = cpb_w * clampf(float(arc_done) / float(maxi(arc_total, 1)), 0.0, 1.0)
+			var cpb_col = Color(0.45, 0.80, 0.30, 0.8) if arc_done == arc_total else Color(arc_col.r, arc_col.g, arc_col.b, 0.7)
+			draw_rect(Rect2(cpb_x, cpb_y, cpb_fill, 3), cpb_col)
+			# Glowing tip on progress bar
+			if cpb_fill > 0 and arc_done < arc_total:
+				var tip_glow = 0.4 + sin(_time * 3.0) * 0.2
+				draw_circle(Vector2(cpb_x + cpb_fill, cpb_y + 1.5), 3.0, Color(arc_col.r, arc_col.g, arc_col.b, tip_glow))
 		cursor_y += header_h + arc_gap
 
 		# --- Level rows ---
 		for li in range(arc_levels.size()):
 			var lvl_idx = arc_levels[li]
 			if lvl_idx >= levels.size():
+				prev_row_visible = false
 				cursor_y += row_h
 				continue
 			var level = levels[lvl_idx]
 			var is_unlocked = _is_level_unlocked(lvl_idx)
 			var is_complete = lvl_idx in completed_levels
 			var stars = level_stars.get(lvl_idx, 0)
+			var is_boss = (li == arc_levels.size() - 1) and arc_levels.size() >= 3
 
 			# Skip rows outside visible area
 			if cursor_y + row_h < content_top or cursor_y > content_top + content_h:
+				prev_row_center = Vector2(list_x + 30.0, cursor_y + row_h * 0.5)
+				prev_row_visible = false
 				cursor_y += row_h
 				continue
 
 			var ry = cursor_y
 			var rx = list_x + 8.0
 			var rw = list_w - 16.0
+			var row_center = Vector2(rx + 30.0, ry + row_h * 0.5)
+
+			# Enhancement 17: Connected path lines between levels
+			if li > 0 and prev_row_visible:
+				var line_col = Color(arc_col.r, arc_col.g, arc_col.b, 0.25)
+				draw_line(prev_row_center, row_center, line_col, 1.0)
+				# Small dot at connection point
+				draw_circle(row_center, 2.0, Color(arc_col.r, arc_col.g, arc_col.b, 0.35))
+			prev_row_center = row_center
+			prev_row_visible = true
 
 			# --- Row background ---
 			var is_hovered = Rect2(rx, maxf(ry, content_top), rw, row_h).has_point(mouse_pos) and ry >= content_top
-			var row_bg = Color(0.10, 0.08, 0.06, 0.5) if not is_hovered else Color(0.15, 0.12, 0.08, 0.7)
+			# Enhancement 20: Chapter theme accent colors — tint row bg with arc color
+			var tint_r = arc_col.r * 0.06
+			var tint_g = arc_col.g * 0.06
+			var tint_b = arc_col.b * 0.06
+			var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
 			if not is_unlocked:
 				row_bg = Color(0.06, 0.05, 0.04, 0.4)
 			draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
 			# Left accent bar
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
 			draw_rect(Rect2(rx, ry, 3, row_h - 2), accent_col)
+
+			# Enhancement 16: Boss level red border
+			if is_boss and is_unlocked:
+				var boss_pulse = 0.3 + sin(_time * 2.5) * 0.1
+				draw_rect(Rect2(rx, ry, rw, row_h - 2), Color(0.8, 0.15, 0.1, boss_pulse), false, 2.0)
+				# Red corner accents
+				draw_rect(Rect2(rx, ry, 12, 2), Color(0.9, 0.2, 0.1, 0.6))
+				draw_rect(Rect2(rx, ry, 2, 12), Color(0.9, 0.2, 0.1, 0.6))
+				draw_rect(Rect2(rx + rw - 12, ry, 12, 2), Color(0.9, 0.2, 0.1, 0.6))
+				draw_rect(Rect2(rx + rw - 2, ry, 2, 12), Color(0.9, 0.2, 0.1, 0.6))
+				# "BOSS" label in top-right corner
+				_udraw(font, Vector2(rx + rw - 45, ry + 12), "BOSS", HORIZONTAL_ALIGNMENT_RIGHT, 40, 14, Color(0.9, 0.25, 0.15, 0.7))
+
+			# Enhancement 18: NEXT pulse on recommended level
+			if lvl_idx == first_uncompleted_level:
+				var next_pulse_a = 0.15 + sin(_time * 4.0) * 0.1
+				draw_rect(Rect2(rx, ry, rw, row_h - 2), Color(0.3, 0.8, 0.3, next_pulse_a))
+				# Pulsing "NEXT" badge
+				var next_badge_x = rx + rw - 100.0
+				var next_badge_y = ry + 56.0
+				var next_text_a = 0.7 + sin(_time * 4.0) * 0.3
+				var next_scale = 1.0 + sin(_time * 3.0) * 0.05
+				draw_rect(Rect2(next_badge_x, next_badge_y, 80.0 * next_scale, 16), Color(0.2, 0.6, 0.15, next_text_a * 0.5))
+				_udraw(font, Vector2(next_badge_x + 40.0 * next_scale, next_badge_y + 12), ">> NEXT <<", HORIZONTAL_ALIGNMENT_CENTER, 78, 14, Color(0.4, 1.0, 0.4, next_text_a))
 
 			# --- Mini map thumbnail (70x52) ---
 			var thumb_x = rx + 12.0
@@ -11733,16 +13425,94 @@ func _draw_story_map() -> void:
 			var stat_col = Color(0.55, 0.70, 0.45) if is_unlocked else Color(0.30, 0.28, 0.22, 0.4)
 			_udraw(font, Vector2(text_x, ry + 22), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, name_col)
 			_udraw(font, Vector2(text_x, ry + 38), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, sub_col)
-			_udraw(font, Vector2(text_x, ry + 54), "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, stat_col)
 
-			# --- Stars / medals ---
-			var star_x = rx + rw - 220.0
-			for si in range(3):
-				var sc = Vector2(star_x + float(si) * 24.0, ry + 24.0)
-				if si < stars:
-					_draw_mini_star(sc, 8.0, Color(1, 0.88, 0.32, 0.9))
+			# Enhancement 22: Best wave indicator
+			var wave_info = "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]]
+			var best_w = level_best_wave.get(lvl_idx, 0)
+			if best_w > 0:
+				wave_info += "  |  Best: W%d" % best_w
+			_udraw(font, Vector2(text_x, ry + 54), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 440, 14, stat_col)
+
+			# Enhancement 21: Reward preview icons on level cards
+			var level_rewards = _get_level_rewards(lvl_idx)
+			if level_rewards.size() > 0 and is_unlocked:
+				var reward_icon_x = text_x
+				var reward_icon_y = ry + 68.0
+				# Show up to 3 small reward hint icons
+				var reward_count = mini(level_rewards.size(), 3)
+				for ri in range(reward_count):
+					var rix = reward_icon_x + float(ri) * 18.0
+					var reward_text = level_rewards[ri]
+					if "DMG" in reward_text or "SPD" in reward_text or "RNG" in reward_text:
+						# Stat boost — small up-arrow icon
+						draw_line(Vector2(rix + 4, reward_icon_y + 2), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
+						draw_line(Vector2(rix + 1, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
+						draw_line(Vector2(rix + 7, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
+					elif "Weapon" in reward_text or "Slot" in reward_text:
+						# Unlock — small star icon
+						_draw_mini_star(Vector2(rix + 4, reward_icon_y - 1), 4.0, Color(0.85, 0.70, 0.28, 0.7))
+					elif "Relic" in reward_text:
+						# Relic — small diamond
+						var dc = Color(0.7, 0.3, 0.9, 0.6)
+						draw_line(Vector2(rix + 4, reward_icon_y - 5), Vector2(rix + 8, reward_icon_y - 1), dc, 1.5)
+						draw_line(Vector2(rix + 8, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y + 3), dc, 1.5)
+						draw_line(Vector2(rix + 4, reward_icon_y + 3), Vector2(rix, reward_icon_y - 1), dc, 1.5)
+						draw_line(Vector2(rix, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 5), dc, 1.5)
+					elif "Binding" in reward_text or "Tome" in reward_text:
+						# Binding — small book icon
+						draw_rect(Rect2(rix + 1, reward_icon_y - 4, 6, 8), Color(0.6, 0.4, 0.2, 0.5))
+						draw_line(Vector2(rix + 4, reward_icon_y - 4), Vector2(rix + 4, reward_icon_y + 4), Color(0.85, 0.70, 0.28, 0.4), 1.0)
+					else:
+						# Generic reward — small circle
+						draw_circle(Vector2(rix + 4, reward_icon_y - 1), 3.0, Color(0.85, 0.70, 0.28, 0.4))
+				if reward_count > 0:
+					_udraw(font, Vector2(reward_icon_x + float(reward_count) * 18.0 + 4, reward_icon_y + 3), "%d rewards" % level_rewards.size(), HORIZONTAL_ALIGNMENT_LEFT, 100, 14, Color(0.6, 0.55, 0.40, 0.5))
+
+			# --- Difficulty medals (BTD6-style shields) ---
+			var medal_x = rx + rw - 240.0
+			var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15)]
+			var medal_labels = ["E", "M", "H"]
+			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false])
+			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0])
+			for di in range(3):
+				var mx = medal_x + float(di) * 44.0
+				var my = ry + 14.0
+				var mw = 38.0
+				var mh = 48.0
+				var earned = medals[di]
+				if earned:
+					# Filled shield with difficulty color
+					var mc = medal_colors[di]
+					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.5), 16.0, mc, true)
+					# Enhancement 15: Star glow behind earned stars
+					var ds = diff_stars_arr[di]
+					for dsi in range(3):
+						var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
+						var sy = my + mh * 0.5 + 8.0
+						if dsi < ds:
+							# Golden glow behind earned star
+							var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
+							draw_circle(Vector2(sx, sy), 6.0, Color(1.0, 0.85, 0.2, star_glow_a))
+							_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
+						else:
+							_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
 				else:
-					_draw_mini_star(sc, 7.0, Color(0.35, 0.28, 0.18, 0.3))
+					# Gray outline shield (unearned)
+					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.5), 16.0, Color(0.3, 0.25, 0.2, 0.3), false)
+				# Difficulty letter below shield
+				var lbl_col = medal_colors[di] if earned else Color(0.35, 0.30, 0.22, 0.4)
+				_udraw(font, Vector2(mx + mw * 0.5, my + mh - 2), medal_labels[di], HORIZONTAL_ALIGNMENT_CENTER, 20, 14, lbl_col)
+
+			# Enhancement 13: Level difficulty medals (Easy/Med/Hard dots)
+			var dot_base_x = medal_x
+			var dot_y = ry + row_h - 10.0
+			for di in range(3):
+				var dot_x = dot_base_x + float(di) * 44.0 + 19.0
+				var dot_col = [Color(0.3, 0.8, 0.3), Color(0.85, 0.7, 0.2), Color(0.9, 0.2, 0.15)][di]
+				if medals[di]:
+					draw_circle(Vector2(dot_x, dot_y), 3.0, dot_col)
+				else:
+					draw_arc(Vector2(dot_x, dot_y), 3.0, 0, TAU, 8, Color(dot_col.r, dot_col.g, dot_col.b, 0.2), 1.0)
 
 			# --- GO / PLAY button or LOCKED ---
 			var btn_x = rx + rw - 100.0
@@ -11766,6 +13536,12 @@ func _draw_story_map() -> void:
 				var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
 				draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
 				draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
+				# Enhancement 19: Locked level requirement text
+				if lvl_idx > 0:
+					var req_lvl = lvl_idx - 1
+					var req_name = levels[req_lvl]["name"] if req_lvl < levels.size() else "Level %d" % req_lvl
+					_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 + 10), "Complete:", HORIZONTAL_ALIGNMENT_CENTER, btn_w2 + 20, 14, Color(0.5, 0.38, 0.25, 0.5))
+					_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 + 22), req_name, HORIZONTAL_ALIGNMENT_CENTER, btn_w2 + 40, 14, Color(0.65, 0.50, 0.30, 0.6))
 
 			# --- Bottom separator ---
 			draw_line(Vector2(rx + 8, ry + row_h - 2), Vector2(rx + rw - 8, ry + row_h - 2), Color(0.54, 0.45, 0.20, 0.08), 1.0)
@@ -11781,6 +13557,11 @@ func _draw_story_map() -> void:
 		draw_rect(Rect2(bar_x, bar_y_pos, 4, bar_h_vis), Color(0.54, 0.45, 0.20, 0.35))
 
 func _on_story_map_clicked(mouse_pos: Vector2) -> void:
+	# Handle difficulty popup clicks first
+	if chapters_diff_popup_level >= 0:
+		_on_diff_popup_clicked(mouse_pos)
+		return
+
 	var list_x = 40.0
 	var list_y = 36.0
 	var list_w = 1200.0
@@ -11810,17 +13591,141 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 			var rw = list_w - 16.0
 
 			if ry + row_h >= content_top and ry <= content_top + content_h:
-				# Check GO button click
+				# Check GO button click — opens difficulty popup
 				var btn_x = rx + rw - 100.0
 				var btn_y2 = ry + 14.0
 				var btn_w2 = 80.0
 				var btn_h2 = 38.0
 				if Rect2(btn_x, btn_y2, btn_w2, btn_h2).has_point(mouse_pos):
 					if _is_level_unlocked(lvl_idx):
-						_on_level_selected(lvl_idx)
+						chapters_diff_popup_level = lvl_idx
+						queue_redraw()
 						return
 
 			cursor_y += row_h
+
+func _on_diff_popup_clicked(mouse_pos: Vector2) -> void:
+	# Difficulty popup: centered overlay with 4 difficulty buttons
+	var popup_w = 440.0
+	var popup_h = 220.0
+	var popup_x = 640.0 - popup_w * 0.5
+	var popup_y = 310.0 - popup_h * 0.5
+	# Click outside popup closes it
+	if not Rect2(popup_x, popup_y, popup_w, popup_h).has_point(mouse_pos):
+		chapters_diff_popup_level = -1
+		queue_redraw()
+		return
+	# Check difficulty button clicks
+	var btn_w = 90.0
+	var btn_h = 80.0
+	var btn_y = popup_y + 80.0
+	var spacing = 10.0
+	var total_btn_w = 4.0 * btn_w + 3.0 * spacing
+	var btn_start_x = popup_x + (popup_w - total_btn_w) * 0.5
+	for di in range(4):
+		var bx = btn_start_x + float(di) * (btn_w + spacing)
+		if Rect2(bx, btn_y, btn_w, btn_h).has_point(mouse_pos):
+			selected_difficulty = di
+			var lvl = chapters_diff_popup_level
+			chapters_diff_popup_level = -1
+			_on_level_selected(lvl)
+			return
+
+func _draw_diff_popup() -> void:
+	if chapters_diff_popup_level < 0:
+		return
+	var font = game_font
+	var lvl_idx = chapters_diff_popup_level
+	var level = levels[lvl_idx] if lvl_idx < levels.size() else null
+	if level == null:
+		chapters_diff_popup_level = -1
+		return
+	var mouse_pos = get_viewport().get_mouse_position()
+
+	# Dim background
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.6))
+
+	# Popup panel
+	var popup_w = 440.0
+	var popup_h = 220.0
+	var popup_x = 640.0 - popup_w * 0.5
+	var popup_y = 310.0 - popup_h * 0.5
+	# Background gradient
+	for gi in range(22):
+		var t = float(gi) / 21.0
+		var col = Color(0.08, 0.06, 0.12).lerp(Color(0.04, 0.03, 0.07), t)
+		draw_rect(Rect2(popup_x, popup_y + t * popup_h, popup_w, popup_h / 21.0 + 1), col)
+	# Gold border
+	var bp = 0.6 + sin(_time * 2.0) * 0.15
+	draw_rect(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.85, 0.70, 0.28, bp), false, 2.0)
+	# Inner border
+	draw_rect(Rect2(popup_x + 3, popup_y + 3, popup_w - 6, popup_h - 6), Color(0.85, 0.70, 0.28, bp * 0.2), false, 1.0)
+
+	# Title
+	_udraw(font, Vector2(popup_x + popup_w * 0.5, popup_y + 24), level["name"], HORIZONTAL_ALIGNMENT_CENTER, int(popup_w - 20), 15, Color(0.92, 0.80, 0.35))
+	_udraw(font, Vector2(popup_x + popup_w * 0.5, popup_y + 46), "Select Difficulty", HORIZONTAL_ALIGNMENT_CENTER, int(popup_w - 20), 14, Color(0.65, 0.55, 0.40))
+	draw_rect(Rect2(popup_x + 15, popup_y + 55, popup_w - 30, 1), Color(0.85, 0.70, 0.28, 0.3))
+
+	# 4 difficulty buttons
+	var diff_names = ["EASY", "MEDIUM", "HARD", "PURE"]
+	var diff_colors = [Color(0.35, 0.72, 0.30), Color(0.82, 0.72, 0.18), Color(0.90, 0.35, 0.15), Color(0.75, 0.15, 0.15)]
+	var diff_waves = ["20 waves", "30 waves", "40 waves", "40 waves"]
+	var diff_lives_text = ["100 lives", "50 lives", "20 lives", "1 life"]
+	var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
+	var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
+
+	var btn_w = 90.0
+	var btn_h = 80.0
+	var btn_y = popup_y + 80.0
+	var spacing = 10.0
+	var total_btn_w = 4.0 * btn_w + 3.0 * spacing
+	var btn_start_x = popup_x + (popup_w - total_btn_w) * 0.5
+
+	for di in range(4):
+		var bx = btn_start_x + float(di) * (btn_w + spacing)
+		var dc = diff_colors[di]
+		var is_hovered = Rect2(bx, btn_y, btn_w, btn_h).has_point(mouse_pos)
+		var earned = medals[di]
+
+		# Button background
+		var bg_alpha = 0.7 if is_hovered else 0.4
+		draw_rect(Rect2(bx, btn_y, btn_w, btn_h), Color(dc.r * 0.15, dc.g * 0.15, dc.b * 0.15, bg_alpha))
+		# Border (glowing if earned)
+		var border_a = 0.9 if is_hovered else (0.6 if earned else 0.3)
+		draw_rect(Rect2(bx, btn_y, btn_w, btn_h), Color(dc.r, dc.g, dc.b, border_a), false, 2.0 if earned else 1.0)
+		# Top accent
+		draw_rect(Rect2(bx, btn_y, btn_w, 2), Color(dc.r, dc.g, dc.b, 0.5))
+
+		# Shield icon at top of button
+		var shield_cx = bx + btn_w * 0.5
+		var shield_cy = btn_y + 20.0
+		if earned:
+			_draw_shield(Vector2(shield_cx, shield_cy), 12.0, dc, true)
+			# Checkmark inside shield
+			draw_line(Vector2(shield_cx - 4, shield_cy - 1), Vector2(shield_cx - 1, shield_cy + 3), Color(1, 1, 1, 0.9), 2.0)
+			draw_line(Vector2(shield_cx - 1, shield_cy + 3), Vector2(shield_cx + 5, shield_cy - 4), Color(1, 1, 1, 0.9), 2.0)
+		else:
+			_draw_shield(Vector2(shield_cx, shield_cy), 12.0, Color(dc.r, dc.g, dc.b, 0.3), false)
+
+		# Difficulty name
+		_udraw(font, Vector2(bx + btn_w * 0.5, btn_y + 42), diff_names[di], HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 4), 14, Color(dc.r, dc.g, dc.b, 0.95))
+		# Wave/lives info
+		_udraw(font, Vector2(bx + btn_w * 0.5, btn_y + 56), diff_waves[di], HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 4), 14, Color(0.6, 0.55, 0.45, 0.7))
+		_udraw(font, Vector2(bx + btn_w * 0.5, btn_y + 68), diff_lives_text[di], HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 4), 14, Color(0.6, 0.55, 0.45, 0.7))
+
+		# Stars below button if earned
+		if earned:
+			var ds = diff_stars_arr[di]
+			for dsi in range(3):
+				var sx = bx + btn_w * 0.5 - 12.0 + float(dsi) * 12.0
+				var sy = btn_y + btn_h + 10.0
+				if dsi < ds:
+					_draw_mini_star(Vector2(sx, sy), 5.0, Color(1, 0.88, 0.32, 0.9))
+				else:
+					_draw_mini_star(Vector2(sx, sy), 4.5, Color(0.35, 0.28, 0.18, 0.3))
+
+	# Close hint
+	_udraw(font, Vector2(popup_x + popup_w * 0.5, popup_y + popup_h - 12), "Click outside to cancel", HORIZONTAL_ALIGNMENT_CENTER, int(popup_w - 20), 14, Color(0.5, 0.45, 0.35, 0.5))
 
 func _draw_chapters_badges() -> void:
 	var font = game_font
@@ -12079,6 +13984,8 @@ func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 					var b = deal.get("item", {})
 					if b.has("id"):
 						owned_bindings[b["id"]] = owned_bindings.get(b["id"], 0) + 1
+						_mark_binding_discovered(b["id"])
+						_add_recent_item(b.get("name", "Binding"), b.get("rarity", "tattered"))
 				"power":
 					var pid = deal.get("power_id", "")
 					var amt = deal.get("amount", 1)
@@ -12137,7 +14044,7 @@ func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
 	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY DEALS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.70, 0.28))
-	_udraw(font, Vector2(px + pw * 0.5, py + 34), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
+	_udraw(font, Vector2(px + pw * 0.5, py + 36), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_text_muted)
 	for i in range(min(3, daily_deals.size())):
 		var deal = daily_deals[i]
 		var ix = px + 10
@@ -12168,7 +14075,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		var bg = Color(0.05, 0.12, 0.05, 0.6) if completed else Color(0.06, 0.06, 0.08, 0.6)
 		draw_rect(Rect2(px + 8, iy, pw - 16, 50), bg)
 		draw_rect(Rect2(px + 8, iy, pw - 16, 50), Color(0.3, 0.6, 0.3, 0.25), false, 1.0)
-		_udraw(font, Vector2(px + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 130), 15, Color(0.8, 0.75, 0.6))
+		_udraw(font, Vector2(px + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 150), 14, Color(0.8, 0.75, 0.6))
 		# Progress bar
 		var pct = float(q.get("progress", 0)) / float(max(1, q.get("target", 1)))
 		var bar_w = 100.0
@@ -12185,7 +14092,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
 	_udraw(font, Vector2(px + pw * 0.5, py + 18), "SHADOW ARENA", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.3, 0.9))
-	_udraw(font, Vector2(px + pw * 0.5, py + 36), "Weekly competitive challenge", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
+	_udraw(font, Vector2(px + pw * 0.5, py + 38), "Weekly competitive challenge", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_text_muted)
 	# Modifiers
 	var mod_str = ""
 	for m in shadow_arena_modifiers:
@@ -12267,6 +14174,37 @@ func _draw_mini_star(center: Vector2, size: float, color: Color) -> void:
 		var r = size if i % 2 == 0 else size * 0.4
 		pts.append(center + Vector2.from_angle(angle) * r)
 	draw_colored_polygon(pts, color)
+
+func _draw_shield(center: Vector2, size: float, color: Color, filled: bool) -> void:
+	# Shield/badge shape: rounded top, pointed bottom
+	var pts = PackedVector2Array()
+	# Top arc (left to right)
+	for i in range(9):
+		var angle = PI + float(i) * PI / 8.0
+		pts.append(center + Vector2(cos(angle) * size * 0.8, sin(angle) * size * 0.6 - size * 0.15))
+	# Bottom point
+	pts.append(center + Vector2(0, size * 0.95))
+	# Close back up (right side going to bottom point is implicit)
+	# Reverse right side
+	if filled:
+		draw_colored_polygon(pts, color)
+		# Highlight on top-left
+		var highlight_pts = PackedVector2Array()
+		for i in range(5):
+			var angle = PI + float(i) * PI / 8.0
+			var hs = size * 0.65
+			highlight_pts.append(center + Vector2(cos(angle) * hs * 0.8, sin(angle) * hs * 0.6 - size * 0.15))
+		highlight_pts.append(center + Vector2(0, size * 0.3))
+		draw_colored_polygon(highlight_pts, Color(1, 1, 1, 0.12))
+		# Border
+		for i in range(pts.size()):
+			var next_i = (i + 1) % pts.size()
+			draw_line(pts[i], pts[next_i], Color(color.r * 1.3, color.g * 1.3, color.b * 1.3, 0.6), 1.5)
+	else:
+		# Just outline
+		for i in range(pts.size()):
+			var next_i = (i + 1) % pts.size()
+			draw_line(pts[i], pts[next_i], color, 1.0)
 
 func _draw_open_book() -> void:
 	# === Open book (two-page spread) ===
@@ -12468,6 +14406,9 @@ func _process(delta: float) -> void:
 		_input_cooldown -= delta
 	# Story dialog typewriter
 	_process_story_typewriter(delta)
+	# Layered music volume/tempo update
+	_update_layered_music(delta)
+	_update_levelup_fanfare(delta)
 	# Musical beat clock (140 BPM)
 	_music_beat_accum += delta
 	while _music_beat_accum >= MUSIC_BEAT_INTERVAL:
@@ -12531,6 +14472,12 @@ func _process(delta: float) -> void:
 			_arena_confirm_timer -= delta
 			if _arena_confirm_timer <= 0.0:
 				_arena_confirm_index = -1
+		# Purchase flash decay
+		if _emporium_purchase_flash > 0.0:
+			_emporium_purchase_flash = maxf(_emporium_purchase_flash - delta * 2.0, 0.0)
+		# View transition overlay decay
+		if _menu_transition_alpha > 0.0:
+			_menu_transition_alpha = maxf(_menu_transition_alpha - delta * 3.0, 0.0)
 		# Hover updates
 		if not chest_opening_active and not daily_reward_open:
 			if survivor_detail_open:
@@ -12598,6 +14545,70 @@ func _process(delta: float) -> void:
 		if _fighting_quote_timer <= 0.0 and not catchphrase_player.playing:
 			_play_random_fighting_quote()
 			_fighting_quote_timer = randf_range(20.0, 30.0)
+	# Combo timer countdown
+	# BATTD2: Wave Blessing timer
+	if _blessing_active:
+		_blessing_timer -= delta
+		if _blessing_timer <= 0.0:
+			_blessing_active = false
+			_blessing_type = ""
+	# BATTD2: Overcharge timer
+	if _overcharge_timer > 0.0:
+		_overcharge_timer -= delta
+		if _overcharge_timer <= 0.0:
+			_overcharged_tower = null
+	# BATTD2: Enemy Intel timer
+	if _intel_timer > 0.0:
+		_intel_timer -= delta
+		if _intel_timer <= 0.0:
+			_intel_target = null
+	# BATTD2: Path Events (random environmental damage)
+	if is_wave_active and not game_paused:
+		_path_event_cooldown -= delta
+		if _path_event_cooldown <= 0.0:
+			_path_event_cooldown = PATH_EVENT_INTERVAL
+			_spawn_path_event()
+	# BATTD2: Update path event timers
+	var pe_i = _path_events.size() - 1
+	while pe_i >= 0:
+		_path_events[pe_i]["timer"] -= delta
+		if _path_events[pe_i]["timer"] <= 0.0:
+			_path_events.remove_at(pe_i)
+		pe_i -= 1
+	# BATTD2: Check character bonds
+	if is_wave_active:
+		_check_character_bonds()
+	# BATTD2: Process path traps
+	if is_wave_active and _path_traps.size() > 0:
+		_process_path_traps()
+	# BATTD: Income breakdown timer
+	if _income_display_timer > 0.0:
+		_income_display_timer -= delta
+	# BATTD: Crit streak timer
+	if _crit_streak_timer > 0.0:
+		_crit_streak_timer -= delta
+		if _crit_streak_timer <= 0.0:
+			_crit_streak = 0
+	# BATTD: Placement streak timer
+	if _placement_streak_timer > 0.0:
+		_placement_streak_timer -= delta
+		if _placement_streak_timer <= 0.0:
+			_placement_streak_count = 0
+	if combo_timer > 0.0:
+		combo_timer -= delta
+		if combo_timer <= 0.0:
+			combo_count = 0
+	# Undo tower timer countdown
+	if not undo_tower_data.is_empty():
+		undo_tower_data["timer"] = undo_tower_data.get("timer", 0.0) - delta
+		if undo_tower_data["timer"] <= 0.0:
+			undo_tower_data.clear()
+			undo_button.visible = false
+	# Wave preview timer
+	if wave_preview_active:
+		wave_preview_timer -= delta
+		if wave_preview_timer <= 0.0:
+			wave_preview_active = false
 	# Update floating texts
 	var ft_i = _floating_texts.size() - 1
 	while ft_i >= 0:
@@ -12637,6 +14648,68 @@ func _process(delta: float) -> void:
 	# Update death flash
 	if _death_flash_timer > 0.0:
 		_death_flash_timer -= delta
+	# Update AoE impacts
+	var aoe_i = _aoe_impacts.size() - 1
+	while aoe_i >= 0:
+		_aoe_impacts[aoe_i]["timer"] -= delta
+		if _aoe_impacts[aoe_i]["timer"] <= 0.0:
+			_aoe_impacts.remove_at(aoe_i)
+		aoe_i -= 1
+	# Update crit flashes
+	var crit_i = _crit_flashes.size() - 1
+	while crit_i >= 0:
+		_crit_flashes[crit_i]["timer"] -= delta
+		if _crit_flashes[crit_i]["timer"] <= 0.0:
+			_crit_flashes.remove_at(crit_i)
+		crit_i -= 1
+	# Update build effects
+	var be_i = _build_effects.size() - 1
+	while be_i >= 0:
+		_build_effects[be_i]["timer"] -= delta
+		if _build_effects[be_i]["timer"] <= 0.0:
+			_build_effects.remove_at(be_i)
+		be_i -= 1
+	# Update victory burst
+	if _victory_burst_timer > 0.0:
+		_victory_burst_timer -= delta
+		for vp in _victory_particles:
+			vp["pos"] += vp["vel"] * delta
+			vp["vel"].y += 80.0 * delta  # gravity
+			vp["timer"] -= delta
+	# Update defeat timer
+	if _defeat_timer > 0.0:
+		_defeat_timer -= delta
+	# Update spawn portal intensity
+	if _spawn_portal_intensity > 0.0:
+		_spawn_portal_intensity = maxf(_spawn_portal_intensity - delta * 2.0, 0.0)
+	# Update environmental particles
+	for ep in _env_particles:
+		ep["x"] += ep["dx"] * delta
+		ep["y"] += sin(_time * ep["freq"] + ep["phase"]) * 0.3
+		if ep["x"] > 1300.0:
+			ep["x"] = -20.0
+		elif ep["x"] < -20.0:
+			ep["x"] = 1300.0
+		if ep["y"] > 740.0:
+			ep["y"] = -10.0
+		elif ep["y"] < -10.0:
+			ep["y"] = 740.0
+	# Update wave banner
+	if _wave_banner_timer > 0.0:
+		_wave_banner_timer -= delta
+	# Update gold pickups
+	var gp_i = _gold_pickups.size() - 1
+	while gp_i >= 0:
+		var gp = _gold_pickups[gp_i]
+		gp["timer"] -= delta
+		var t = 1.0 - clampf(gp["timer"] / gp["max_timer"], 0.0, 1.0)
+		gp["pos"] = gp["start"].lerp(gp["end"], t) + Vector2(0, -sin(t * PI) * 40.0)
+		if gp["timer"] <= 0.0:
+			_gold_pickups.remove_at(gp_i)
+			_gold_pickup_flash = 0.3
+		gp_i -= 1
+	if _gold_pickup_flash > 0.0:
+		_gold_pickup_flash -= delta
 	queue_redraw()
 
 func _handle_spawning(delta: float) -> void:
@@ -12648,6 +14721,7 @@ func _handle_spawning(delta: float) -> void:
 		spawn_timer = spawn_interval
 
 func _spawn_enemy() -> void:
+	_spawn_portal_intensity = 1.0
 	var enemy = enemy_scene.instantiate()
 	enemy.add_to_group("enemies")
 
@@ -12695,7 +14769,37 @@ func _spawn_enemy() -> void:
 			enemy.speed *= 0.65
 			enemy.gold_reward += 15 + w / 5
 		enemy.health = enemy.max_health
+		# Apply endless mutations
+		if endless_mutation == "Speed Surge":
+			enemy.speed *= 1.5
+		elif endless_mutation == "Shield Wall":
+			enemy.max_health *= 1.6
+			enemy.health = enemy.max_health
+		elif endless_mutation == "Regen Wave":
+			if enemy.has_method("set_meta"):
+				enemy.set_meta("regen_rate", enemy.max_health * 0.02)
+		elif endless_mutation == "Swarm":
+			enemy.max_health *= 0.5
+			enemy.health = enemy.max_health
+			enemy.speed *= 1.2
+		elif endless_mutation == "Gold Drought":
+			enemy.gold_reward = maxi(1, enemy.gold_reward / 2)
 		_apply_enemy_modifiers(enemy, w, enemy.boss_scale > 1.0)
+		enemy_path.add_child(enemy)
+		enemies_to_spawn -= 1
+		enemies_alive += 1
+		return
+
+	# Boss Rush mode — spawn single powerful boss per wave
+	if boss_rush_mode:
+		var br_mult = 3.0 + float(wave) * 1.7  # 3x -> 20x scaling
+		enemy.max_health = (500.0 + wave * 200.0) * br_mult
+		enemy.health = enemy.max_health
+		enemy.speed = clampf(50.0 + wave * 3.0, 50.0, 120.0)
+		enemy.gold_reward = 20 + wave * 5
+		enemy.boss_scale = 2.0 + float(wave) * 0.2
+		enemy.enemy_tier = clampi(wave / 3, 0, 3)
+		_apply_enemy_modifiers(enemy, wave, true)
 		enemy_path.add_child(enemy)
 		enemies_to_spawn -= 1
 		enemies_alive += 1
@@ -12752,7 +14856,7 @@ func _spawn_enemy() -> void:
 	# === Boss wave modifiers ===
 	# Milestone bosses at waves 20, 25, 30, 35 — bigger, tougher, slower
 	var is_boss_wave = w in [20, 25, 30, 35]
-	var is_final_villain = w >= 39 and selected_difficulty == 2  # Hard mode waves 39-40
+	var is_final_villain = w >= 39 and selected_difficulty >= 2  # Hard/Pure mode waves 39-40
 	var is_last_wave = w == total_waves
 
 	if is_final_villain:
@@ -12779,6 +14883,21 @@ func _spawn_enemy() -> void:
 		enemy.speed *= 0.45
 		enemy.gold_reward += 30
 
+	# Assign boss mechanics based on theme
+	if is_boss_wave or is_final_villain or is_last_wave:
+		match enemy.enemy_theme:
+			0, 1, 3:  # Sherwood, Wonderland, Neverland — Summon
+				enemy.boss_mechanic = "summon"
+			4, 5:  # Opera, Victorian — Shield Pulse
+				enemy.boss_mechanic = "shield_pulse"
+			2, 6:  # Oz, Shadow — Enrage
+				enemy.boss_mechanic = "enrage"
+			7, 8, 10:  # Sherlock, Merlin, Dracula — Area Deny
+				enemy.boss_mechanic = "area_deny"
+			_:
+				var mechanics = ["summon", "shield_pulse", "enrage", "area_deny"]
+				enemy.boss_mechanic = mechanics[randi() % mechanics.size()]
+
 	# Variety waves (fast rushes and swarms between bosses)
 	if not is_boss_wave and not is_final_villain and not is_last_wave:
 		var quarter = max(1, int(total_waves * 0.25))
@@ -12795,10 +14914,10 @@ func _spawn_enemy() -> void:
 			enemy.max_health *= 0.5
 			enemy.speed *= 1.3
 
-	# Difficulty mode multiplier (Easy=0.85, Medium=1.0, Hard=1.2)
-	var diff_mult = [0.85, 1.0, 1.2][selected_difficulty]
+	# Difficulty mode multiplier (Easy=0.85, Medium=1.0, Hard=1.2, Pure=1.5)
+	var diff_mult = [0.85, 1.0, 1.2, 1.5][mini(selected_difficulty, 3)]
 	enemy.max_health *= diff_mult
-	enemy.speed *= (0.9 + selected_difficulty * 0.05)
+	enemy.speed *= (0.9 + mini(selected_difficulty, 2) * 0.05)
 
 	# Level difficulty multiplier
 	if current_level >= 0 and current_level < levels.size():
@@ -12812,16 +14931,17 @@ func _spawn_enemy() -> void:
 	# Apply spawn debuffs from progressive abilities
 	if spawn_hp_reduction > 0.0:
 		enemy.max_health *= (1.0 - spawn_hp_reduction)
-	# Apply Knowledge Tree enemy debuffs (Dark Passages branch)
-	var kt_hp_reduce = _get_knowledge_bonus("enemy_hp_reduce")
-	if kt_hp_reduce > 0.0:
-		enemy.max_health *= (1.0 - kt_hp_reduce)
-	var kt_boss_hp_reduce = _get_knowledge_bonus("boss_hp_reduce")
-	if kt_boss_hp_reduce > 0.0 and (is_boss_wave or is_final_villain or is_last_wave):
-		enemy.max_health *= (1.0 - kt_boss_hp_reduce)
-	var kt_half_hp = _get_knowledge_bonus("enemy_half_hp")
-	if kt_half_hp > 0.0 and randf() < kt_half_hp:
-		enemy.max_health *= 0.5
+	# Apply Knowledge Tree enemy debuffs (Dark Passages branch) — disabled in Pure Mode
+	if selected_difficulty != PURE_MODE:
+		var kt_hp_reduce = _get_knowledge_bonus("enemy_hp_reduce")
+		if kt_hp_reduce > 0.0:
+			enemy.max_health *= (1.0 - kt_hp_reduce)
+		var kt_boss_hp_reduce = _get_knowledge_bonus("boss_hp_reduce")
+		if kt_boss_hp_reduce > 0.0 and (is_boss_wave or is_final_villain or is_last_wave):
+			enemy.max_health *= (1.0 - kt_boss_hp_reduce)
+		var kt_half_hp = _get_knowledge_bonus("enemy_half_hp")
+		if kt_half_hp > 0.0 and randf() < kt_half_hp:
+			enemy.max_health *= 0.5
 	enemy.health = enemy.max_health
 	var kt_enemy_slow = _get_knowledge_bonus("enemy_slow")
 	if spawn_permanent_slow < 1.0:
@@ -12837,16 +14957,21 @@ func _spawn_enemy() -> void:
 		Input.vibrate_handheld(80)
 
 func _get_wave_enemy_count(w: int) -> int:
+	if boss_rush_mode:
+		return 1  # Boss rush: single boss per wave
 	if endless_mode:
 		if w > 0 and w % 10 == 0:
 			return 3  # Boss waves: fewer enemies
-		return 6 + w * 2 + w / 3
+		var count = 6 + w * 2 + w / 3
+		if endless_mutation == "Swarm":
+			count = int(count * 2)
+		return count
 	var base = 4 + w * 2
 	# Boss waves: fewer but much stronger enemies
 	if w in [20, 25, 30, 35]:
 		return max(3, base / 3)
 	# Final villain waves (Hard 39-40): very few, very strong
-	if w >= 39 and selected_difficulty == 2:
+	if w >= 39 and selected_difficulty >= 2:
 		return 2 if w == 40 else 3
 	# Last wave of any difficulty: single named boss villain
 	if w == total_waves:
@@ -12864,7 +14989,7 @@ func _get_wave_spawn_interval(w: int) -> float:
 	# Boss waves spawn slower (dramatic pacing)
 	if w in [20, 25, 30, 35] or w == total_waves:
 		return 2.0
-	if w >= 39 and selected_difficulty == 2:
+	if w >= 39 and selected_difficulty >= 2:
 		return 3.0  # Final villains — very slow, dramatic
 	var progress = float(w) / float(max(1, total_waves))
 	if progress <= 0.33:
@@ -13442,10 +15567,20 @@ func _check_wave_complete() -> void:
 				add_gold(endless_bonus)
 				spawn_floating_text(Vector2(640, 300), "+%dG Endless Bonus!" % endless_bonus, Color(1.0, 0.9, 0.2), 18.0, 1.5)
 			start_button.text = "  START WAVE  "
+			# BATTD: Wave Rush bonus (fast clear = extra gold)
+			var wave_time = _time - _wave_start_time
+			_wave_rush_bonus = 0
+			if wave_time < WAVE_RUSH_THRESHOLD and wave_time > 0.1:
+				_wave_rush_bonus = int((WAVE_RUSH_THRESHOLD - wave_time) * 2.0)
+				add_gold(_wave_rush_bonus)
+				spawn_floating_text(Vector2(640, 310), "RUSH +%dG (%.1fs)" % [_wave_rush_bonus, wave_time], Color(0.2, 1.0, 0.8), 15.0, 1.2)
+			# BATTD: Income breakdown display timer
+			_income_display_timer = 3.0
 			# Bonus gold between waves — scales with progression
 			var bonus = 5 + wave * 2 + int(wave / 10) * 5
 			add_gold(bonus)
 			spawn_floating_text(Vector2(640, 340), "+%dG Wave Bonus" % bonus, Color(1.0, 0.85, 0.2), 14.0, 1.0)
+			_income_breakdown["wave_bonus"] = bonus
 			# Knowledge tree: life regen per wave
 			var life_regen = int(_get_knowledge_bonus("life_regen"))
 			if life_regen > 0:
@@ -13457,6 +15592,22 @@ func _check_wave_complete() -> void:
 				wave_auto_timer = auto_wave_delay
 				start_button.text = "  NEXT IN %.0fs  " % auto_wave_delay
 			info_label.text = "Wave %d cleared! +%dG bonus. Ready for next wave!" % [wave, bonus]
+			# BATTD2: Gold Interest (5% on unspent gold between waves)
+			if gold_interest_enabled and gold > 0:
+				var interest = mini(int(float(gold) * GOLD_INTEREST_RATE), GOLD_INTEREST_CAP)
+				if interest > 0:
+					add_gold(interest)
+					spawn_floating_text(Vector2(640, 380), "+%dG Interest" % interest, Color(0.9, 0.8, 0.3), 13.0, 1.0)
+			# BATTD2: Auto-collect map collectibles
+			if auto_collect_enabled:
+				for mc in _map_collectibles:
+					if not mc["collected"]:
+						_check_collectible_click(mc["pos"])
+			# Show wave preview for next wave
+			wave_preview_data = _generate_wave_preview(wave)
+			if wave_preview_data.size() > 0:
+				wave_preview_active = true
+				wave_preview_timer = 3.0
 			if _is_mobile:
 				Input.vibrate_handheld(50)
 
@@ -13498,8 +15649,10 @@ func _handle_back_button() -> void:
 			_remove_detail_preview()
 			queue_redraw()
 			return
-		if emporium_sub_category >= 0:
+		if emporium_sub_category >= 0 or emporium_sub_open:
+			emporium_sub_open = false
 			emporium_sub_category = -1
+			emporium_sub_hover = -1
 			queue_redraw()
 			return
 		if menu_current_view != "chapters":
@@ -13554,7 +15707,7 @@ func _input(event: InputEvent) -> void:
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				story_map_scroll_y = maxf(0.0, story_map_scroll_y - 60.0)
 			else:
-				story_map_scroll_y += 60.0
+				story_map_scroll_y = minf(story_map_scroll_y + 60.0, 2000.0)
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
@@ -13602,6 +15755,10 @@ func _input(event: InputEvent) -> void:
 	# But let clicks on the nav bar (y >= 620) pass through to buttons
 	if game_state == GameState.MENU and mouse_pos.y < 620:
 		if menu_current_view == "chapters":
+			if chapters_diff_popup_level >= 0:
+				_on_diff_popup_clicked(mouse_pos)
+				get_viewport().set_input_as_handled()
+				return
 			_on_chapters_sidebar_clicked(mouse_pos)
 			if menu_side_panel == "":
 				_on_story_map_clicked(mouse_pos)
@@ -13704,11 +15861,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Handle chronicles/knowledge tree clicks
 		elif menu_current_view == "chronicles":
 			_on_knowledge_tree_clicked(mouse_pos)
-		# Handle chapters view — badges/overlay first, then story map
+		# Handle chapters view — diff popup first, then badges/overlay, then story map
 		elif menu_current_view == "chapters":
-			_on_chapters_sidebar_clicked(mouse_pos)
-			if menu_side_panel == "":
-				_on_story_map_clicked(mouse_pos)
+			if chapters_diff_popup_level >= 0:
+				_on_diff_popup_clicked(mouse_pos)
+			else:
+				_on_chapters_sidebar_clicked(mouse_pos)
+				if menu_side_panel == "":
+					_on_story_map_clicked(mouse_pos)
 		return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -13723,11 +15883,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif _handle_instrument_placement_click(event.position):
 				pass  # Instrument placement consumed the click
 			else:
-				var tower = _find_tower_at(event.position)
-				if tower:
-					_select_tower(tower)
+				# BATTD2: Check storybook page click
+				if _check_page_click(event.position):
+					pass
+				el
+				# BATTD: Check map collectible clicks first
+				elif _check_page_click(event.position) or _check_collectible_click(event.position):
+					pass
 				else:
-					_deselect_tower()
+					var tower = _find_tower_at(event.position)
+					if tower:
+						_select_tower(tower)
+					else:
+						_deselect_tower()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if _placing_instrument != "":
 				_placing_instrument = ""
@@ -13743,6 +15911,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch and event.pressed:
 		if placing_tower:
 			_try_place_tower(event.position)
+		elif _check_page_click(event.position) or _check_collectible_click(event.position):
+			pass  # BATTD: Collectible picked up
 		else:
 			var tower = _find_tower_at(event.position)
 			if tower:
@@ -13777,7 +15947,9 @@ func _is_valid_placement(pos: Vector2) -> bool:
 func _get_discounted_cost(tower_type) -> int:
 	var base_cost = tower_info[tower_type]["cost"]
 	var discount = clampf(_get_knowledge_bonus("tower_discount") + _get_knowledge_bonus("upgrade_discount"), 0.0, 0.5)
-	return int(base_cost * (1.0 - discount))
+	# BATTD: Placement streak discount
+	var streak_disc = clampf(_placement_streak_count * PLACEMENT_STREAK_DISCOUNT, 0.0, 0.25)
+	return int(base_cost * (1.0 - discount - streak_disc))
 
 func _try_place_tower(pos: Vector2) -> void:
 	if not _is_valid_placement(pos):
@@ -13794,6 +15966,10 @@ func _try_place_tower(pos: Vector2) -> void:
 	tower.base_cost = cost
 	tower.set_meta("tower_type_enum", selected_tower)
 	towers_node.add_child(tower)
+	# Build animation
+	if "_build_timer" in tower:
+		tower._build_timer = 0.5
+	_build_effects.append({"pos": pos, "timer": 0.5, "max_timer": 0.5})
 	# Apply meta-progression buffs (level + knowledge + relics)
 	_apply_meta_buffs(tower, selected_tower)
 
@@ -13808,6 +15984,17 @@ func _try_place_tower(pos: Vector2) -> void:
 
 	placing_tower = false
 	cancel_button.visible = false
+	# Store undo data
+	undo_tower_data = {"node": tower, "type": selected_tower, "position": pos, "cost": cost, "timer": UNDO_DURATION}
+	# BATTD: Placement streak tracking
+	if _placement_streak_timer > 0.0:
+		_placement_streak_count += 1
+		if _placement_streak_count >= 2:
+			spawn_floating_text(pos + Vector2(0, -50), "STREAK x%d!" % _placement_streak_count, Color(0.4, 1.0, 0.6), 14.0, 1.0)
+	else:
+		_placement_streak_count = 1
+	_placement_streak_timer = PLACEMENT_STREAK_WINDOW
+	undo_button.visible = true
 	if _is_mobile:
 		Input.vibrate_handheld(30)
 	var quote = _play_placement_catchphrase(selected_tower)
@@ -13821,6 +16008,101 @@ func _try_place_tower(pos: Vector2) -> void:
 	_check_achievement("full_roster", purchased_towers.size())
 	# Check synergies
 	_check_synergies()
+	# Layered music: fade in this character's instrument
+	_fade_in_tower_layer(selected_tower)
+
+# === TOWER STATS OVERLAY (draw near selected tower) ===
+func _draw_tower_stats_overlay() -> void:
+	var tower = selected_tower_node
+	if not is_instance_valid(tower):
+		return
+	var tpos = tower.global_position
+	# Position panel to the right of tower, or left if too close to edge
+	var panel_x = tpos.x + 55.0
+	if panel_x + 160.0 > 1240.0:
+		panel_x = tpos.x - 215.0
+	var panel_y = clampf(tpos.y - 60.0, 60.0, 520.0)
+	var pw = 160.0
+	var ph = 100.0
+	# Dark panel with gold border (gothic style)
+	draw_rect(Rect2(panel_x - 2, panel_y - 2, pw + 4, ph + 4), Color(0.8, 0.65, 0.2, 0.7))
+	draw_rect(Rect2(panel_x, panel_y, pw, ph), Color(0.05, 0.03, 0.08, 0.92))
+	var font = game_font
+	var dmg = tower.damage_dealt if "damage_dealt" in tower else 0.0
+	var kills = tower.kill_count if "kill_count" in tower else 0
+	var tier = tower.upgrade_tier if "upgrade_tier" in tower else 0
+	var elapsed = maxf(_time, 1.0)
+	var dps = dmg / elapsed
+	var y = panel_y + 16.0
+	_udraw(font, Vector2(panel_x + 6, y), "DMG: %s" % _format_number(dmg), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.85, 0.3))
+	y += 16.0
+	_udraw(font, Vector2(panel_x + 6, y), "KILLS: %d" % kills, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.8, 0.9, 1.0))
+	y += 16.0
+	_udraw(font, Vector2(panel_x + 6, y), "DPS: %s" % _format_number(dps), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 1.0, 0.6))
+	y += 16.0
+	_udraw(font, Vector2(panel_x + 6, y), "TIER: %d" % tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.9, 0.8, 1.0))
+	y += 16.0
+	var prio_names = ["FIRST", "LAST", "CLOSE", "STRONG"]
+	var prio = tower.targeting_priority if "targeting_priority" in tower else 0
+	_udraw(font, Vector2(panel_x + 6, y), "TARGET: %s" % prio_names[clampi(prio, 0, 3)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.7, 0.7))
+
+# === WAVE PREVIEW PANEL ===
+func _draw_wave_preview() -> void:
+	if wave_preview_data.is_empty():
+		return
+	var font = game_font
+	var px = 340.0
+	var py = 90.0
+	var pw = 600.0
+	var ph = 80.0
+	# Crimson border panel
+	draw_rect(Rect2(px - 3, py - 3, pw + 6, ph + 6), Color(0.7, 0.15, 0.1, 0.8))
+	draw_rect(Rect2(px - 1, py - 1, pw + 2, ph + 2), Color(0.85, 0.7, 0.2, 0.6))
+	draw_rect(Rect2(px, py, pw, ph), Color(0.05, 0.03, 0.08, 0.93))
+	# Title
+	_udraw(font, Vector2(640, py + 18), "NEXT WAVE: %d" % (wave + 1), HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(1.0, 0.85, 0.3))
+	# Enemy info
+	var info_parts: Array = []
+	for wd in wave_preview_data:
+		info_parts.append("%dx T%d" % [wd.get("count", 0), wd.get("tier", 0)])
+	var info_text = " | ".join(info_parts)
+	_udraw(font, Vector2(640, py + 40), info_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.9, 0.85, 0.8))
+	# Timer bar
+	var bar_pct = clampf(wave_preview_timer / 3.0, 0.0, 1.0)
+	draw_rect(Rect2(px + 10, py + ph - 14, (pw - 20) * bar_pct, 6), Color(0.8, 0.65, 0.2, 0.7))
+	draw_rect(Rect2(px + 10, py + ph - 14, pw - 20, 6), Color(0.4, 0.3, 0.2, 0.3))
+	# Modifier badges
+	if wave_preview_data.size() > 0:
+		var mods = wave_preview_data[0].get("modifiers", [])
+		var mx = 640.0 - float(mods.size()) * 40.0
+		for mi in range(mods.size()):
+			_udraw(font, Vector2(mx + mi * 80, py + 58), mods[mi], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 0.4, 0.3))
+
+func _generate_wave_preview(w: int) -> Array:
+	var preview: Array = []
+	var next_wave = w + 1
+	if next_wave > total_waves:
+		return preview
+	# Analyze what the next wave would contain
+	var base_count = 5 + next_wave * 2
+	if endless_mode:
+		base_count = 8 + next_wave * 3
+	var tier = 0
+	var wave_progress = float(next_wave) / float(max(1, total_waves))
+	if wave_progress > 0.75:
+		tier = 3
+	elif wave_progress > 0.5:
+		tier = 2
+	elif wave_progress > 0.25:
+		tier = 1
+	var is_boss_wave = (next_wave % 10 == 0) or next_wave == total_waves
+	var mods: Array = []
+	if is_boss_wave:
+		mods.append("BOSS")
+	if endless_mode and next_wave % 5 == 0:
+		mods.append(endless_mutation if endless_mutation != "" else "MUTATING")
+	preview.append({"count": base_count, "tier": tier, "modifiers": mods})
+	return preview
 
 # ============================================================
 # Helper: draw string in Cinzel uppercase
@@ -13837,8 +16119,27 @@ func _draw() -> void:
 			menu_transition_alpha = minf(menu_transition_alpha + 0.06, 1.0)
 			draw_rect(Rect2(0, 35, 1280, 585), Color(0.03, 0.02, 0.06, 1.0 - menu_transition_alpha))
 			queue_redraw()
+		# === View transition dark overlay fade (Enhancement #48) ===
+		if _menu_transition_alpha > 0.0:
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.02, 0.06, _menu_transition_alpha * 0.5))
+		# === Stats summary banner (Enhancement #50) ===
+		var stats_font = game_font
+		var stats_y = 33.0
+		draw_rect(Rect2(70, stats_y, 1140, 12), Color(0.02, 0.02, 0.06, 0.5))
+		var stats_cx = 160.0
+		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "DAMAGE: %s" % _format_number(float(total_damage)), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
+		stats_cx += 200.0
+		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "KILLS: %s" % _format_number(float(total_enemies_killed)), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
+		stats_cx += 200.0
+		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "GOLD EARNED: %s" % _format_number(float(total_gold_earned)), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
+		stats_cx += 220.0
+		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "LEVELS: %d / %d" % [completed_levels.size(), levels.size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
+
 		if chest_opening_active:
 			_draw_chest_opening()
+		_draw_levelup_fanfare()
+		_draw_session_recap()
+		_draw_career_stats()
 		if daily_reward_open:
 			_draw_daily_reward()
 		# Story dialog overlay (draws on top of everything in menu)
@@ -13903,6 +16204,36 @@ func _draw() -> void:
 	if _screen_shake_timer > 0.0:
 		draw_set_transform(_screen_shake_offset, 0.0, Vector2.ONE)
 
+	# === ENVIRONMENTAL PARTICLES ===
+	if _env_particles.size() > 0:
+		var env_theme = levels[current_level].get("character", 0) if current_level >= 0 and current_level < levels.size() else 0
+		for ep in _env_particles:
+			var ep_pos = Vector2(ep["x"], ep["y"])
+			var ep_s = ep["size"]
+			var ep_a = 0.2 + sin(_time * ep["freq"] + ep["phase"]) * 0.1
+			match env_theme:
+				0: draw_circle(ep_pos, ep_s, Color(0.3, 0.7, 0.2, ep_a))  # Robin Hood: green leaves
+				1: draw_circle(ep_pos, ep_s * 0.8, Color(0.6, 0.3, 0.8, ep_a))  # Alice: purple sparkle
+				2: draw_circle(ep_pos, ep_s * 0.7, Color(0.4, 0.9, 0.2, ep_a * 0.8))  # Witch: green motes
+				3: draw_circle(ep_pos, ep_s * 0.6, Color(1.0, 0.88, 0.3, ep_a))  # Peter Pan: pixie dust
+				4: draw_circle(ep_pos, ep_s, Color(0.5, 0.5, 0.5, ep_a * 0.7))  # Phantom: grey dust
+				5: # Scrooge: white snowflakes
+					draw_circle(ep_pos, ep_s * 0.7, Color(0.9, 0.92, 1.0, ep_a))
+					draw_line(ep_pos - Vector2(ep_s, 0), ep_pos + Vector2(ep_s, 0), Color(0.9, 0.92, 1.0, ep_a * 0.5), 0.8)
+					draw_line(ep_pos - Vector2(0, ep_s), ep_pos + Vector2(0, ep_s), Color(0.9, 0.92, 1.0, ep_a * 0.5), 0.8)
+				6: draw_circle(ep_pos, ep_s, Color(0.1, 0.05, 0.15, ep_a * 0.8))  # Shadow Author: ink drops
+				7: draw_circle(ep_pos, ep_s * 1.2, Color(0.6, 0.6, 0.6, ep_a * 0.4))  # Sherlock: fog wisps
+				8: draw_circle(ep_pos, ep_s * 0.6, Color(0.3, 0.5, 1.0, ep_a))  # Merlin: arcane sparks
+				9: # Tarzan: fireflies
+					var ff = 0.3 + sin(_time * 3.0 + ep["phase"]) * 0.3
+					draw_circle(ep_pos, ep_s * 0.5, Color(0.8, 0.9, 0.2, ff))
+					draw_circle(ep_pos, ep_s * 1.2, Color(0.7, 0.8, 0.1, ff * 0.2))
+				10: draw_circle(ep_pos, ep_s * 0.8, Color(0.5, 0.02, 0.02, ep_a * 0.7))  # Dracula: dark red motes
+				11: # Frankenstein: electric sparks
+					var fk = 0.3 + sin(_time * 6.0 + ep["phase"]) * 0.25
+					draw_circle(ep_pos, ep_s * 0.5, Color(0.4, 0.7, 1.0, fk))
+				_: draw_circle(ep_pos, ep_s, Color(0.5, 0.5, 0.5, ep_a * 0.5))
+
 	# === Universal path overlay with direction arrows ===
 	_draw_path_overlay()
 
@@ -13921,6 +16252,19 @@ func _draw() -> void:
 
 	# === Cache tower group query for all tower overlays ===
 	var _cached_towers = get_tree().get_nodes_in_group("towers")
+
+	# === BUILD EFFECTS (collapsing golden ring + sparkles) ===
+	for be in _build_effects:
+		var be_t = 1.0 - clampf(be["timer"] / be["max_timer"], 0.0, 1.0)
+		var be_alpha = 1.0 - be_t
+		var be_r = 40.0 * (1.0 - be_t) + 10.0
+		draw_arc(be["pos"], be_r, 0, TAU, 32, Color(1.0, 0.85, 0.2, be_alpha * 0.6), 2.5)
+		# 6 orbiting sparkles
+		for si in range(6):
+			var sa = _time * 8.0 + float(si) * TAU / 6.0
+			var sr = be_r * 0.8
+			var sp = be["pos"] + Vector2(cos(sa), sin(sa)) * sr
+			draw_circle(sp, 2.0 * be_alpha, Color(1.0, 0.95, 0.5, be_alpha * 0.7))
 
 	# === Pulsing gold indicators on affordable-to-upgrade towers ===
 	for tower in _cached_towers:
@@ -13952,6 +16296,29 @@ func _draw() -> void:
 			var sel_range = selected_tower_node.get_attack_range()
 			draw_arc(sel_pos, sel_range, 0, TAU, 64, Color(1, 1, 1, 0.08 + sel_pulse * 0.06), 3.0)
 			draw_arc(sel_pos, sel_range, 0, TAU, 64, Color(1, 1, 1, 0.2 + sel_pulse * 0.1), 1.5)
+		# === TARGETING LINE TO CURRENT TARGET ===
+		if "target" in selected_tower_node and is_instance_valid(selected_tower_node.target):
+			var tgt_pos = selected_tower_node.target.global_position
+			var line_dir = (tgt_pos - sel_pos).normalized()
+			var line_len = sel_pos.distance_to(tgt_pos)
+			var dash_len = 8.0
+			var gap_len = 6.0
+			var scroll = fmod(_time * 60.0, dash_len + gap_len)
+			var d = scroll
+			var tgt_col = Color(1.0, 0.85, 0.3, 0.25 + sel_pulse * 0.15)
+			while d < line_len:
+				var seg_start = sel_pos + line_dir * d
+				var seg_end = sel_pos + line_dir * minf(d + dash_len, line_len)
+				draw_line(seg_start, seg_end, tgt_col, 1.5)
+				d += dash_len + gap_len
+			# Crosshair reticle on target
+			var reticle_r = 10.0 + sel_pulse * 3.0
+			draw_arc(tgt_pos, reticle_r, 0, TAU, 24, Color(1.0, 0.85, 0.3, 0.35), 1.5)
+			for ti in range(4):
+				var ta = float(ti) * PI / 2.0
+				var tick_from = tgt_pos + Vector2(cos(ta), sin(ta)) * (reticle_r - 3.0)
+				var tick_to = tgt_pos + Vector2(cos(ta), sin(ta)) * (reticle_r + 4.0)
+				draw_line(tick_from, tick_to, Color(1.0, 0.85, 0.3, 0.4), 1.5)
 
 	# === TOWER AURA COSMETICS ===
 	var equipped_aura = equipped_cosmetics.get("auras", "")
@@ -14052,6 +16419,38 @@ func _draw() -> void:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# === FLOATING DAMAGE TEXTS ===
+	# BATTD2: Path traps
+	_draw_path_traps()
+	# BATTD2: Path events
+	_draw_path_events()
+	# BATTD2: Character bonds
+	_draw_character_bonds()
+	# BATTD2: Tower XP bars
+	_draw_tower_xp_bars()
+	# BATTD2: Overcharge effect
+	_draw_overcharge_effect()
+	# BATTD2: Storybook page
+	_draw_storybook_page()
+	# BATTD2: Enemy intel
+	_draw_enemy_intel()
+	# BATTD2: Blessing indicator
+	_draw_blessing_indicator()
+	# BATTD: Boss health bar
+	_update_boss_health_bar()
+	_draw_boss_health_bar()
+	# BATTD: Kill counter
+	_draw_kill_counter()
+	# BATTD: Income breakdown
+	if _income_display_timer > 0.0:
+		_draw_income_breakdown()
+	# BATTD: Synergy auras
+	_draw_synergy_auras()
+	# BATTD: Tower buff icons
+	_draw_tower_buff_icons()
+	# BATTD: Map collectibles
+	_draw_map_collectibles()
+	# BATTD: Bounty board
+	_draw_bounty_board()
 	if _floating_texts.size() > 0:
 		var ft_font = game_font
 		for ft in _floating_texts:
@@ -14063,12 +16462,47 @@ func _draw() -> void:
 			draw_string(ft_font, ft["pos"] + Vector2(1, 2), ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, int(ft["size"]), shadow_col)
 			draw_string(ft_font, ft["pos"], ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, int(ft["size"]), ft_col)
 
+	# === GOLD COIN PICKUP ARCS ===
+	for gp in _gold_pickups:
+		var gp_t = 1.0 - clampf(gp["timer"] / gp["max_timer"], 0.0, 1.0)
+		var gp_alpha = 1.0 - gp_t * 0.5
+		var gp_spin = gp["spin"] + gp_t * 12.0
+		var gp_scale = abs(cos(gp_spin)) * 0.5 + 0.5
+		var gp_r = 3.0 * gp_scale + 1.0
+		# Spinning coin
+		draw_circle(gp["pos"], gp_r, Color(0.85, 0.72, 0.2, gp_alpha))
+		draw_circle(gp["pos"] + Vector2(-0.5, -0.5), gp_r * 0.5, Color(1.0, 0.92, 0.4, gp_alpha * 0.5))
+		draw_arc(gp["pos"], gp_r, 0, TAU, 8, Color(0.7, 0.58, 0.12, gp_alpha * 0.6), 0.8)
+
 	# === INK SPLATTERS ===
 	for sp in _ink_splatters:
 		var sp_alpha = clampf(sp["timer"] / 1.2, 0.0, 1.0)
 		var sp_col = sp["color"]
 		sp_col.a *= sp_alpha
 		draw_circle(sp["pos"], sp["radius"], sp_col)
+
+	# === AOE IMPACT CIRCLES ===
+	for aoe in _aoe_impacts:
+		var aoe_t = 1.0 - clampf(aoe["timer"] / aoe["max_timer"], 0.0, 1.0)
+		var aoe_alpha = (1.0 - aoe_t) * 0.6
+		var aoe_r = aoe["radius"] * (0.5 + aoe_t * 0.8)
+		var aoe_col = aoe["color"]
+		draw_arc(aoe["pos"], aoe_r, 0, TAU, 32, Color(aoe_col.r, aoe_col.g, aoe_col.b, aoe_alpha), 2.5)
+		draw_arc(aoe["pos"], aoe_r * 0.7, 0, TAU, 24, Color(aoe_col.r, aoe_col.g, aoe_col.b, aoe_alpha * 0.5), 1.5)
+
+	# === CRITICAL HIT FLASHES ===
+	for crit in _crit_flashes:
+		var crit_t = 1.0 - clampf(crit["timer"] / crit["max_timer"], 0.0, 1.0)
+		var crit_alpha = (1.0 - crit_t) * 0.9
+		var crit_r = 8.0 + crit_t * 16.0
+		var crit_center_r = 4.0 * (1.0 - crit_t)
+		var cp = crit["pos"]
+		# 4-pointed star burst
+		for si in range(4):
+			var sa = float(si) * PI / 2.0 + PI / 4.0
+			draw_line(cp, cp + Vector2(cos(sa), sin(sa)) * crit_r, Color(1.0, 0.95, 0.6, crit_alpha), 2.0)
+		# Shrinking center circle
+		draw_circle(cp, crit_center_r, Color(1.0, 1.0, 0.8, crit_alpha))
 
 	# === LIFE LOSS FLASH (red screen flash) ===
 	if _death_flash_timer > 0.0:
@@ -14105,6 +16539,37 @@ func _draw() -> void:
 		# Main text — bigger, bright green
 		_udraw(font, Vector2(640, wc_y), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 40, Color(0.3, 1.0, 0.4, wc_alpha))
 
+	# === WAVE NUMBER BANNER ===
+	if _wave_banner_timer > 0.0 and not victory_chest_active:
+		var wb_alpha = clampf(_wave_banner_timer / 2.5, 0.0, 1.0)
+		# Slide in from left (first 0.3s), linger, slide out right (last 0.3s)
+		var wb_x_offset = 0.0
+		if _wave_banner_timer > 2.2:
+			wb_x_offset = -(2.5 - _wave_banner_timer) / 0.3 * 1280.0 + 1280.0
+			wb_x_offset = -wb_x_offset
+		elif _wave_banner_timer < 0.3:
+			wb_x_offset = (0.3 - _wave_banner_timer) / 0.3 * 1280.0
+		var wb_y = 180.0
+		# Bounce effect on wave number
+		var wb_bounce = 0.0
+		if _wave_banner_timer > 2.0:
+			var bt2 = (2.5 - _wave_banner_timer) / 0.5
+			wb_bounce = sin(bt2 * PI) * 8.0
+		var wb_col = Color(0.9, 0.15, 0.1) if _wave_banner_is_boss else Color(1.0, 0.85, 0.2)
+		var wb_border_col = Color(0.7, 0.1, 0.05) if _wave_banner_is_boss else Color(0.8, 0.65, 0.1)
+		# Dark translucent backdrop bar
+		draw_rect(Rect2(wb_x_offset, wb_y - 20, 1280, 55), Color(0.0, 0.0, 0.0, wb_alpha * 0.65))
+		# Gold/red borders
+		draw_rect(Rect2(wb_x_offset, wb_y - 20, 1280, 3), Color(wb_border_col.r, wb_border_col.g, wb_border_col.b, wb_alpha * 0.8))
+		draw_rect(Rect2(wb_x_offset, wb_y + 32, 1280, 3), Color(wb_border_col.r, wb_border_col.g, wb_border_col.b, wb_alpha * 0.8))
+		# Wave number text with bounce
+		var wb_text = "WAVE %d" % _wave_banner_num
+		var font = game_font
+		_udraw(font, Vector2(640 + wb_x_offset + 1, wb_y + 2 - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(0, 0, 0, wb_alpha * 0.5))
+		_udraw(font, Vector2(640 + wb_x_offset, wb_y - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(wb_col.r, wb_col.g, wb_col.b, wb_alpha))
+		# Subtitle wave name
+		_udraw(font, Vector2(640 + wb_x_offset, wb_y + 22), _wave_banner_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.8, 0.8, 0.8, wb_alpha * 0.6))
+
 	# === BOSS WAVE ALERT (with glow) ===
 	if _boss_alert_timer > 0.0:
 		var ba_alpha = clampf(_boss_alert_timer / 2.5, 0.0, 1.0)
@@ -14125,12 +16590,84 @@ func _draw() -> void:
 		# Subtitle — larger for mobile
 		_udraw(font, Vector2(640, 344), "Prepare your defenses!", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(1.0, 0.7, 0.5, ba_alpha * 0.8))
 
-	# === PAUSED OVERLAY ===
+	# === COMBO KILL HUD ===
+	if combo_count >= COMBO_MIN and combo_timer > 0.0:
+		var combo_pulse = (sin(_time * 6.0) + 1.0) * 0.5
+		var combo_alpha = clampf(combo_timer / COMBO_WINDOW, 0.0, 1.0)
+		var combo_size = 24 + int(combo_pulse * 4.0) + mini(combo_count - COMBO_MIN, 10) * 2
+		var combo_text = "COMBO x%d" % combo_count
+		var combo_color = Color(1.0, 0.5 + combo_pulse * 0.3, 0.1, combo_alpha)
+		# Glow
+		draw_circle(Vector2(640, 80), 60.0 + combo_pulse * 10.0, Color(1.0, 0.4, 0.1, combo_alpha * 0.08))
+		_udraw(game_font, Vector2(642, 82), combo_text, HORIZONTAL_ALIGNMENT_CENTER, -1, combo_size, Color(0, 0, 0, combo_alpha * 0.5))
+		_udraw(game_font, Vector2(640, 80), combo_text, HORIZONTAL_ALIGNMENT_CENTER, -1, combo_size, combo_color)
+
+	# === TOWER STATS OVERLAY ===
+	if selected_tower_node and is_instance_valid(selected_tower_node) and not placing_tower:
+		_draw_tower_stats_overlay()
+
+	# === WAVE PREVIEW PANEL ===
+	if wave_preview_active and not is_wave_active:
+		_draw_wave_preview()
+
+	# === ENDLESS MUTATION BANNER ===
+	if endless_mode and endless_mutation != "":
+		var mut_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		var mut_color = Color(0.8, 0.2, 0.1, 0.7 + mut_pulse * 0.2)
+		_udraw(game_font, Vector2(640, 52), "MUTATION: " + endless_mutation.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, 13, mut_color)
+
+	# === BOSS RUSH WAVE INDICATOR ===
+	if boss_rush_mode:
+		_udraw(game_font, Vector2(640, 52), "BOSS RUSH — WAVE %d/10" % boss_rush_wave, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.3, 0.2, 0.9))
+
+	# === PAUSED OVERLAY (gothic themed) ===
 	if game_paused:
-		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.45))
+		# Dark translucent backdrop
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.55))
+		# Dim pulsing vignette edges
+		var pv_pulse = 0.15 + sin(_time * 1.5) * 0.05
+		for pvi in range(4):
+			var pv_thick = 20.0 + float(pvi) * 15.0
+			var pv_a = pv_pulse * (0.4 - float(pvi) * 0.08)
+			draw_rect(Rect2(0, 0, 1280, pv_thick), Color(0.05, 0.0, 0.08, pv_a))
+			draw_rect(Rect2(0, 720 - pv_thick, 1280, pv_thick), Color(0.05, 0.0, 0.08, pv_a))
+			draw_rect(Rect2(0, 0, pv_thick, 720), Color(0.05, 0.0, 0.08, pv_a))
+			draw_rect(Rect2(1280 - pv_thick, 0, pv_thick, 720), Color(0.05, 0.0, 0.08, pv_a))
+		# Centered panel with crimson+gold double border (gothic style)
+		var pp_x = 390.0
+		var pp_y = 240.0
+		var pp_w = 500.0
+		var pp_h = 240.0
+		# Crimson outer border
+		draw_rect(Rect2(pp_x - 3, pp_y - 3, pp_w + 6, pp_h + 6), Color(0.6, 0.1, 0.08, 0.8))
+		# Gold inner border
+		draw_rect(Rect2(pp_x - 1, pp_y - 1, pp_w + 2, pp_h + 2), Color(0.8, 0.65, 0.2, 0.7))
+		# Dark panel fill
+		draw_rect(Rect2(pp_x, pp_y, pp_w, pp_h), Color(0.04, 0.02, 0.06, 0.95))
+		# "PAUSED" title in large gold text
 		var font = game_font
-		_udraw(font, Vector2(640, 340), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, Color(1.0, 1.0, 1.0, 0.85))
-		_udraw(font, Vector2(640, 380), "%s Resume or press Start Wave to continue" % _get_action_text(), HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8, 0.6))
+		var pause_pulse = 0.85 + sin(_time * 2.0) * 0.1
+		_udraw(font, Vector2(642, 302), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, Color(0, 0, 0, 0.5))
+		_udraw(font, Vector2(640, 300), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, Color(1.0, 0.85, 0.2, pause_pulse))
+		# Corner ornaments (small L-brackets)
+		for ci in range(4):
+			var cx = pp_x if ci % 2 == 0 else pp_x + pp_w
+			var cy = pp_y if ci < 2 else pp_y + pp_h
+			var cdx = 1.0 if ci % 2 == 0 else -1.0
+			var cdy = 1.0 if ci < 2 else -1.0
+			draw_line(Vector2(cx, cy), Vector2(cx + 15 * cdx, cy), Color(0.8, 0.65, 0.2, 0.6), 1.5)
+			draw_line(Vector2(cx, cy), Vector2(cx, cy + 15 * cdy), Color(0.8, 0.65, 0.2, 0.6), 1.5)
+		# Resume button area (drawn as highlight)
+		var rb_y = 340.0
+		draw_rect(Rect2(pp_x + 100, rb_y, pp_w - 200, 32), Color(0.15, 0.08, 0.2, 0.6))
+		draw_rect(Rect2(pp_x + 100, rb_y, pp_w - 200, 32), Color(0.6, 0.1, 0.08, 0.4))
+		_udraw(font, Vector2(640, rb_y + 22), "Resume", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.9, 0.85, 0.7, 0.9))
+		# Quit to Menu button area
+		var qb_y = 388.0
+		draw_rect(Rect2(pp_x + 100, qb_y, pp_w - 200, 32), Color(0.15, 0.08, 0.2, 0.4))
+		_udraw(font, Vector2(640, qb_y + 22), "Quit to Menu", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.7, 0.65, 0.6, 0.7))
+		# Instructions
+		_udraw(font, Vector2(640, 448), "%s or press Start Wave to continue" % _get_action_text(), HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.6, 0.6, 0.6, 0.5))
 
 	# === ABILITY UNLOCK POPUP ===
 	if _ability_popup_timer > 0.0:
@@ -14142,6 +16679,56 @@ func _draw() -> void:
 	# === BRANCH UPGRADE DISPLAY (on selected tower with tier 4) ===
 	if selected_tower_node and is_instance_valid(selected_tower_node) and upgrade_panel.visible:
 		_draw_branch_upgrade_panel()
+
+	# === VICTORY BURST EFFECT ===
+	if _victory_burst_timer > 0.0:
+		var vb_t = 1.0 - clampf(_victory_burst_timer / 2.0, 0.0, 1.0)
+		var vb_alpha = clampf(_victory_burst_timer / 2.0, 0.0, 1.0)
+		# 3 expanding golden rings
+		for ri in range(3):
+			var ring_r = (vb_t * 300.0 + float(ri) * 60.0)
+			var ring_alpha = vb_alpha * (0.3 - float(ri) * 0.08)
+			draw_arc(Vector2(640, 360), ring_r, 0, TAU, 48, Color(1.0, 0.85, 0.2, ring_alpha), 3.0 - float(ri) * 0.5)
+		# Warm vignette
+		if vb_alpha > 0.3:
+			draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 0.9, 0.5, vb_alpha * 0.08))
+		# Star-shaped particles
+		for vp in _victory_particles:
+			if vp["timer"] > 0.0:
+				var vp_alpha = clampf(vp["timer"] / 1.5, 0.0, 1.0)
+				var vp_col = Color(1.0, 0.85 + randf() * 0.15, 0.2, vp_alpha * 0.8)
+				var vp_pos = vp["pos"]
+				# 4-line cross (star shape)
+				for si in range(4):
+					var sa = float(si) * PI / 2.0
+					draw_line(vp_pos, vp_pos + Vector2(cos(sa), sin(sa)) * vp["size"], vp_col, 1.5)
+
+	# === DEFEAT DRAMATIC EFFECT ===
+	if _defeat_timer > 0.0:
+		var df_t = 1.0 - clampf(_defeat_timer / 3.0, 0.0, 1.0)
+		var df_alpha = clampf(df_t * 1.5, 0.0, 1.0)
+		# Progressive edge vignette (5 darkening layers)
+		for di in range(5):
+			var d_thick = (8.0 + float(di) * 12.0) * df_alpha
+			var d_a = df_alpha * (0.15 + float(di) * 0.06)
+			draw_rect(Rect2(0, 0, 1280, d_thick), Color(0, 0, 0, d_a))
+			draw_rect(Rect2(0, 720 - d_thick, 1280, d_thick), Color(0, 0, 0, d_a))
+			draw_rect(Rect2(0, 0, d_thick, 720), Color(0, 0, 0, d_a))
+			draw_rect(Rect2(1280 - d_thick, 0, d_thick, 720), Color(0, 0, 0, d_a))
+		# Animated crack lines (appear sequentially)
+		for ci in range(_defeat_cracks.size()):
+			var crack_reveal = clampf(df_t * 10.0 - float(ci) * 0.8, 0.0, 1.0)
+			if crack_reveal > 0.0:
+				var c = _defeat_cracks[ci]
+				var c_end = c["from"] + (c["to"] - c["from"]) * crack_reveal
+				draw_line(c["from"], c_end, Color(0.15, 0.05, 0.05, df_alpha * 0.7), 2.0)
+				draw_line(c["from"], c_end, Color(0.5, 0.1, 0.05, df_alpha * 0.3), 1.0)
+		# Red ink drip streaks from top
+		for di in range(8):
+			var dx = 80.0 + float(di) * 145.0
+			var drip_len = df_alpha * (60.0 + float(di % 3) * 30.0)
+			draw_line(Vector2(dx, 0), Vector2(dx, drip_len), Color(0.6, 0.05, 0.02, df_alpha * 0.4), 3.0)
+			draw_circle(Vector2(dx, drip_len), 2.5, Color(0.6, 0.05, 0.02, df_alpha * 0.5))
 
 	# === VICTORY CHEST OVERLAY (draws over everything in GAME_OVER too) ===
 	if chest_opening_active and victory_chest_active:
@@ -14219,6 +16806,35 @@ func _draw_path_overlay() -> void:
 
 	# --- Directional arrows along path (BTD6-style) ---
 	_draw_path_arrows(pts, path_style)
+
+	# --- Path danger zone glow (last 20% glows red) ---
+	if pts.size() > 2:
+		# Calculate total path length
+		var total_len = 0.0
+		for dz_i in range(pts.size() - 1):
+			total_len += pts[dz_i].distance_to(pts[dz_i + 1])
+		var threshold = total_len * 0.8
+		# Check if any enemy is in danger zone
+		var danger_pulse_speed = 2.0
+		for enemy in get_tree().get_nodes_in_group("enemies"):
+			if enemy.progress_ratio > 0.8:
+				danger_pulse_speed = 6.0
+				break
+		var danger_pulse = 0.4 + sin(_time * danger_pulse_speed) * 0.2
+		# Draw danger glow on segments past threshold
+		var accum_len = 0.0
+		for dz_i in range(pts.size() - 1):
+			var seg_len = pts[dz_i].distance_to(pts[dz_i + 1])
+			if accum_len + seg_len > threshold:
+				var intensity = clampf((accum_len + seg_len - threshold) / (total_len - threshold), 0.0, 1.0)
+				var glow_alpha = danger_pulse * intensity * 0.5
+				draw_line(pts[dz_i], pts[dz_i + 1], Color(0.9, 0.1, 0.05, glow_alpha), road_w + 8.0)
+				# Rising red particles at segment midpoints
+				if dz_i % 4 == 0:
+					var mid = (pts[dz_i] + pts[dz_i + 1]) * 0.5
+					var ry = sin(_time * 2.0 + float(dz_i)) * 8.0 - 10.0
+					draw_circle(mid + Vector2(0, ry), 2.0, Color(0.9, 0.15, 0.05, danger_pulse * intensity * 0.4))
+			accum_len += seg_len
 
 	# --- Entry and Exit markers ---
 	_draw_entry_exit_markers(pts)
@@ -14506,9 +17122,26 @@ func _draw_path_arrows(pts: PackedVector2Array, style: Dictionary) -> void:
 func _draw_entry_exit_markers(pts: PackedVector2Array) -> void:
 	if pts.size() < 2:
 		return
-	# === ENTRY marker (green, pulsing) ===
+	# === SPAWN PORTAL (during active waves) ===
 	var entry = pts[0]
 	var entry_dir = (pts[1] - pts[0]).normalized()
+	if is_wave_active and _spawn_portal_intensity > 0.0:
+		var pi_a = _spawn_portal_intensity * 0.6
+		# 3 concentric rotating rings (dark purple, counter-rotating)
+		for ri in range(3):
+			var ring_r = 18.0 + float(ri) * 10.0
+			var ring_rot = _time * (2.5 - float(ri) * 0.8) * (1.0 if ri % 2 == 0 else -1.0)
+			draw_arc(entry, ring_r, ring_rot, ring_rot + TAU * 0.7, 24, Color(0.3, 0.1, 0.5, pi_a * (0.4 - float(ri) * 0.1)), 2.5 - float(ri) * 0.5)
+		# 6 spiral particles converging to center
+		for si in range(6):
+			var sa = _time * 4.0 + float(si) * TAU / 6.0
+			var sr = 30.0 * _spawn_portal_intensity
+			var sp = entry + Vector2(cos(sa), sin(sa)) * sr
+			draw_circle(sp, 2.0, Color(0.4, 0.15, 0.6, pi_a * 0.5))
+		# Central dark void
+		draw_circle(entry, 8.0, Color(0.05, 0.0, 0.1, pi_a * 0.7))
+
+	# === ENTRY marker (green, pulsing) ===
 	var entry_pulse = 0.6 + sin(_time * 3.0) * 0.2
 	# Green glow
 	draw_circle(entry, 22.0, Color(0.1, 0.7, 0.2, entry_pulse * 0.2))
@@ -14614,6 +17247,7 @@ func _draw_prologue(sky_color: Color, ground_color: Color) -> void:
 		var dy := 150.0 + fmod(float(dr) * 89.3, 350.0) + sin(_time * 0.7 + float(dr)) * 20.0
 		var ds := 2.0 + sin(float(dr) * 2.3) * 1.5
 		draw_circle(Vector2(dx, dy), ds, Color(0.15, 0.05, 0.25, 0.5))
+	_draw_shadow_author_effects()
 
 func _draw_sherlock_ch1(sky_color: Color, ground_color: Color) -> void:
 	# Foggy gray London sky
@@ -14658,6 +17292,8 @@ func _draw_sherlock_ch1(sky_color: Color, ground_color: Color) -> void:
 		var wx := 50.0 + float(bw) * 40.0
 		var wy := 430.0 + sin(float(bw) * 1.5) * 5.0
 		draw_rect(Rect2(wx, wy, 35, 15), Color(0.14, 0.06, 0.04, 0.6))
+	_draw_sherlock_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_sherlock_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Darker fog - deeper into London
@@ -14704,6 +17340,8 @@ func _draw_sherlock_ch2(sky_color: Color, ground_color: Color) -> void:
 	var mg_y := 200.0
 	draw_arc(Vector2(mg_x, mg_y), 20.0, 0, TAU, 32, Color(0.6, 0.5, 0.2, 0.3), 2.0)
 	draw_line(Vector2(mg_x + 14, mg_y + 14), Vector2(mg_x + 30, mg_y + 30), Color(0.5, 0.4, 0.15, 0.3), 3.0)
+	_draw_sherlock_novel(2)
+	_draw_shadow_author_effects()
 
 func _draw_sherlock_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Night scene - Reichenbach
@@ -14747,6 +17385,8 @@ func _draw_sherlock_ch3(sky_color: Color, ground_color: Color) -> void:
 		var fy := 200.0 + float(fl) * 45.0
 		var fog_shift := sin(_time * 0.18 + float(fl) * 0.8) * 50.0
 		draw_rect(Rect2(-50 + fog_shift, fy, 1380, 20), Color(0.12, 0.12, 0.14, 0.05 + float(fl) * 0.012))
+	_draw_sherlock_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_merlin_ch1(sky_color: Color, ground_color: Color) -> void:
 	# Enchanted forest green sky
@@ -14791,6 +17431,8 @@ func _draw_merlin_ch1(sky_color: Color, ground_color: Color) -> void:
 		# Mystical glow in canopy
 		var t_glow := 0.1 + 0.1 * sin(_time * 2.0 + float(tr) * 1.3)
 		draw_circle(Vector2(tx, 520.0 - th - 10), 5.0, Color(0.3, 0.9, 0.5, t_glow))
+	_draw_merlin_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_merlin_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Deeper enchanted forest
@@ -14831,6 +17473,8 @@ func _draw_merlin_ch2(sky_color: Color, ground_color: Color) -> void:
 		var th := 100.0 + sin(float(tr) * 2.1) * 35.0
 		draw_rect(Rect2(tx - 3, 520.0 - th, 6, th), Color(0.03, 0.05, 0.02))
 		draw_circle(Vector2(tx, 520.0 - th - 12), 20.0 + sin(float(tr) * 1.3) * 6.0, Color(0.02, 0.05, 0.02, 0.65))
+	_draw_merlin_novel(2)
+	_draw_shadow_author_effects()
 
 func _draw_merlin_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Camelot approach - magical night
@@ -14867,6 +17511,8 @@ func _draw_merlin_ch3(sky_color: Color, ground_color: Color) -> void:
 		var sx := float(st) * 160.0 + 50.0
 		var sh := 70.0 + sin(float(st) * 2.0) * 20.0
 		draw_rect(Rect2(sx - 12, 520.0 - sh, 24, sh), Color(0.06, 0.06, 0.05))
+	_draw_merlin_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_tarzan_ch1(sky_color: Color, ground_color: Color) -> void:
 	# Tropical blue sky
@@ -14912,6 +17558,8 @@ func _draw_tarzan_ch1(sky_color: Color, ground_color: Color) -> void:
 		var tx := float(tr) * 220.0 + 50.0
 		draw_rect(Rect2(tx - 8, 350, 16, 170), Color(0.12, 0.07, 0.03))
 		draw_rect(Rect2(tx - 6, 355, 4, 160), Color(0.10, 0.06, 0.02, 0.5))
+	_draw_tarzan_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_tarzan_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Deeper jungle
@@ -14957,6 +17605,8 @@ func _draw_tarzan_ch2(sky_color: Color, ground_color: Color) -> void:
 		var by := 150.0 + float(bird) * 30.0
 		draw_circle(Vector2(bx, by), 5.0, Color(0.8, 0.2, 0.1, 0.6))
 		draw_circle(Vector2(bx + 3, by - 4), 3.0, Color(0.2, 0.7, 0.1, 0.6))
+	_draw_tarzan_novel(2)
+	_draw_shadow_author_effects()
 
 func _draw_tarzan_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Jungle summit - sunset hues
@@ -14998,6 +17648,8 @@ func _draw_tarzan_ch3(sky_color: Color, ground_color: Color) -> void:
 		for p in range(5):
 			var pa := float(p) * TAU / 5.0
 			draw_circle(Vector2(fx + cos(pa) * 5.0, 498.0 + sin(pa) * 5.0), 3.0, Color(0.9, 0.6, 0.1, 0.5))
+	_draw_tarzan_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_dracula_ch1(sky_color: Color, ground_color: Color) -> void:
 	# Blood red-black sky
@@ -15040,6 +17692,8 @@ func _draw_dracula_ch1(sky_color: Color, ground_color: Color) -> void:
 		var fy := 380.0 + float(fl) * 35.0
 		var fog_shift := sin(_time * 0.2 + float(fl) * 1.0) * 30.0
 		draw_rect(Rect2(-20 + fog_shift, fy, 1320, 18), Color(0.15, 0.03, 0.05, 0.06))
+	_draw_dracula_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_dracula_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Inside the castle approach
@@ -15083,6 +17737,8 @@ func _draw_dracula_ch2(sky_color: Color, ground_color: Color) -> void:
 		var cfx := 300.0 + float(cf) * 300.0
 		draw_rect(Rect2(cfx, 508, 40, 12), Color(0.07, 0.04, 0.03))
 		draw_rect(Rect2(cfx + 2, 505, 36, 5), Color(0.08, 0.04, 0.03))
+	_draw_dracula_novel(2)
+	_draw_shadow_author_effects()
 
 func _draw_dracula_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Dracula's throne room approach
@@ -15123,6 +17779,8 @@ func _draw_dracula_ch3(sky_color: Color, ground_color: Color) -> void:
 		var fy := 320.0 + float(fl) * 35.0
 		var fog_shift := sin(_time * 0.12 + float(fl) * 0.7) * 50.0
 		draw_rect(Rect2(-40 + fog_shift, fy, 1360, 22), Color(0.14, 0.02, 0.04, 0.05 + float(fl) * 0.01))
+	_draw_dracula_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_frankenstein_ch1(sky_color: Color, ground_color: Color) -> void:
 	# Storm gray sky
@@ -15175,6 +17833,8 @@ func _draw_frankenstein_ch1(sky_color: Color, ground_color: Color) -> void:
 		draw_rect(Rect2(bkx - 5, 470, 10, 20), Color(0.2, 0.3, 0.4, 0.3))
 		var bubble := sin(_time * 3.0 + float(bk) * 1.5) * 0.3
 		draw_circle(Vector2(bkx, 475), 3.0, Color(0.3, 0.8, 0.2, 0.3 + bubble))
+	_draw_frankenstein_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_frankenstein_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Deeper into the lab
@@ -15226,6 +17886,8 @@ func _draw_frankenstein_ch2(sky_color: Color, ground_color: Color) -> void:
 		draw_rect(Rect2(bkx - 8, 480, 16, 25), Color(0.15, 0.25, 0.1, 0.3))
 		var bub_y := 480.0 - fmod(_time * 15.0 + float(bk) * 10.0, 20.0)
 		draw_circle(Vector2(bkx, bub_y), 2.0, Color(0.3, 0.8, 0.2, 0.4))
+	_draw_frankenstein_novel(2)
+	_draw_shadow_author_effects()
 
 func _draw_frankenstein_ch3(sky_color: Color, ground_color: Color) -> void:
 	# The creation scene - storm at peak
@@ -15278,6 +17940,2193 @@ func _draw_frankenstein_ch3(sky_color: Color, ground_color: Color) -> void:
 		for bub in range(3):
 			var by := 485.0 - fmod(_time * 12.0 + float(vat) * 8.0 + float(bub) * 5.0, 25.0)
 			draw_circle(Vector2(vx + sin(float(bub) * 2.0) * 5.0, by), 1.5, Color(0.3, 0.7, 0.2, 0.4))
+	_draw_frankenstein_novel(3)
+	_draw_shadow_author_effects()
+
+func _draw_sherlock_novel(ch: int) -> void:
+	# From Arthur Conan Doyle's Sherlock Holmes stories
+	# 1. 221B Baker Street door with brass number plate
+	var door_x := 80.0
+	draw_rect(Rect2(door_x, 380, 30, 60), Color(0.08, 0.04, 0.02))
+	draw_rect(Rect2(door_x + 2, 382, 26, 56), Color(0.12, 0.06, 0.03))
+	var plate_glow := 0.5 + 0.2 * sin(_time * 1.5)
+	draw_rect(Rect2(door_x + 8, 390, 14, 8), Color(0.7, 0.6, 0.2, plate_glow))
+	# 2. Hansom cab silhouette moving across background
+	var cab_x := fmod(_time * 15.0 + float(ch) * 400.0, 1500.0) - 100.0
+	var cab_y := 480.0 - float(ch) * 10.0
+	draw_rect(Rect2(cab_x, cab_y - 25, 35, 20), Color(0.04, 0.03, 0.02, 0.5))
+	draw_rect(Rect2(cab_x + 5, cab_y - 35, 25, 12), Color(0.04, 0.03, 0.02, 0.5))
+	draw_circle(Vector2(cab_x + 8, cab_y), 6.0, Color(0.04, 0.03, 0.02, 0.5))
+	draw_circle(Vector2(cab_x + 30, cab_y), 6.0, Color(0.04, 0.03, 0.02, 0.5))
+	draw_colored_polygon(PackedVector2Array([Vector2(cab_x - 25, cab_y - 10), Vector2(cab_x - 5, cab_y - 20), Vector2(cab_x - 5, cab_y - 5), Vector2(cab_x - 20, cab_y)]), Color(0.04, 0.03, 0.02, 0.45))
+	# 3. Pipe smoke curling from a rooftop window
+	var smoke_base := Vector2(250.0 + float(ch) * 100.0, 310.0)
+	for s in range(8):
+		var sx := smoke_base.x + sin(_time * 0.8 + float(s) * 0.6) * (3.0 + float(s) * 2.0)
+		var sy := smoke_base.y - float(s) * 8.0
+		draw_circle(Vector2(sx, sy), 2.5 + float(s) * 0.8, Color(0.3, 0.28, 0.25, 0.15 - float(s) * 0.015))
+	# 4. Violin silhouette in window
+	var vn_x := 1150.0
+	var vn_y := 340.0 - float(ch) * 20.0
+	draw_rect(Rect2(vn_x - 12, vn_y - 8, 24, 16), Color(0.6, 0.5, 0.15, 0.15))
+	draw_arc(Vector2(vn_x, vn_y - 20), 6.0, 0, TAU, 12, Color(0.25, 0.12, 0.05, 0.35), 1.5)
+	draw_rect(Rect2(vn_x - 1, vn_y - 20, 2, 30), Color(0.25, 0.12, 0.05, 0.35))
+	draw_arc(Vector2(vn_x, vn_y + 5), 5.0, 0, TAU, 12, Color(0.25, 0.12, 0.05, 0.3), 1.5)
+	# 5. The Strand Magazine page blowing in wind
+	var pg_x := 500.0 + sin(_time * 0.4) * 80.0
+	var pg_y := 490.0 + cos(_time * 0.6) * 10.0
+	draw_rect(Rect2(pg_x - 8, pg_y - 10, 16, 20), Color(0.7, 0.65, 0.5, 0.2 + 0.1 * sin(_time)))
+	# 6. Deerstalker hat on a post
+	var hat_x := 700.0 + float(ch) * 80.0
+	draw_rect(Rect2(hat_x - 2, 460, 4, 50), Color(0.06, 0.05, 0.04))
+	draw_rect(Rect2(hat_x - 12, 455, 24, 8), Color(0.3, 0.2, 0.08, 0.5))
+	draw_colored_polygon(PackedVector2Array([Vector2(hat_x - 14, 455), Vector2(hat_x, 445), Vector2(hat_x + 14, 455)]), Color(0.3, 0.2, 0.08, 0.5))
+	draw_rect(Rect2(hat_x - 15, 455, 5, 10), Color(0.28, 0.18, 0.07, 0.4))
+	draw_rect(Rect2(hat_x + 10, 455, 5, 10), Color(0.28, 0.18, 0.07, 0.4))
+	# 7. Moriarty's shadow watching from alley (ch2/3)
+	if ch >= 2:
+		var m_x := 1200.0
+		var m_a := 0.15 + 0.08 * sin(_time * 0.5)
+		draw_circle(Vector2(m_x, 370), 5.0, Color(0.02, 0.01, 0.02, m_a))
+		draw_rect(Rect2(m_x - 2.5, 375, 5, 35), Color(0.02, 0.01, 0.02, m_a))
+		draw_rect(Rect2(m_x - 8, 375, 16, 3), Color(0.02, 0.01, 0.02, m_a * 0.7))
+		draw_line(Vector2(m_x - 2, 410), Vector2(m_x - 5, 435), Color(0.02, 0.01, 0.02, m_a * 0.6), 2.0)
+		draw_line(Vector2(m_x + 2, 410), Vector2(m_x + 5, 435), Color(0.02, 0.01, 0.02, m_a * 0.6), 2.0)
+	# 8. Hound paw prints in fog (The Hound of the Baskervilles)
+	for pw in range(4 + ch):
+		var px := 350.0 + float(pw) * 60.0
+		var py := 505.0 + sin(float(pw) * 2.0) * 5.0
+		draw_circle(Vector2(px, py), 3.0, Color(0.08, 0.05, 0.03, 0.25))
+		draw_circle(Vector2(px - 2, py - 3), 1.5, Color(0.08, 0.05, 0.03, 0.2))
+		draw_circle(Vector2(px + 2, py - 3), 1.5, Color(0.08, 0.05, 0.03, 0.2))
+		draw_circle(Vector2(px, py - 5), 1.5, Color(0.08, 0.05, 0.03, 0.2))
+	# 9. Dancing Men cipher on wall (The Adventure of the Dancing Men)
+	var dm_y := 430.0 + float(ch) * 5.0
+	for dm in range(5):
+		var dx := 400.0 + float(dm) * 25.0
+		var da := 0.15 + 0.05 * sin(_time * 0.8 + float(dm))
+		draw_circle(Vector2(dx, dm_y - 10), 2.0, Color(0.8, 0.7, 0.4, da))
+		draw_line(Vector2(dx, dm_y - 8), Vector2(dx, dm_y), Color(0.8, 0.7, 0.4, da), 1.0)
+		draw_line(Vector2(dx - 4, dm_y - 5), Vector2(dx + 4, dm_y - 5 - float(dm % 3) * 2.0), Color(0.8, 0.7, 0.4, da), 1.0)
+		draw_line(Vector2(dx - 3, dm_y), Vector2(dx + 3, dm_y + 2), Color(0.8, 0.7, 0.4, da), 1.0)
+	# 10. Reichenbach Falls mist (ch3) / Chemical apparatus (ch1/2)
+	if ch == 3:
+		for wm in range(6):
+			var wy := 150.0 + float(wm) * 40.0
+			var wobble := sin(_time * 2.5 + float(wm)) * 5.0
+			draw_rect(Rect2(40 + wobble, wy, 25, 42), Color(0.4, 0.5, 0.6, 0.06))
+		draw_line(Vector2(52, 100), Vector2(52, 400), Color(0.5, 0.6, 0.7, 0.08), 3.0)
+	else:
+		var bk_x := 160.0 + float(ch) * 40.0
+		var bk_y := 380.0
+		draw_rect(Rect2(bk_x, bk_y, 6, 12), Color(0.4, 0.5, 0.6, 0.2))
+		draw_rect(Rect2(bk_x + 10, bk_y + 3, 8, 9), Color(0.4, 0.6, 0.4, 0.2))
+		var bubble := sin(_time * 4.0) * 0.1
+		draw_circle(Vector2(bk_x + 14, bk_y + 5), 1.5, Color(0.3, 0.7, 0.3, 0.2 + bubble))
+
+func _draw_merlin_novel(ch: int) -> void:
+	# From Arthurian legend / T.H. White "The Once and Future King"
+	# 1. Excalibur embedded in stone (The Sword in the Stone)
+	var ex_x := 150.0 + float(ch) * 50.0
+	var ex_y := 490.0
+	draw_rect(Rect2(ex_x - 15, ex_y, 30, 25), Color(0.1, 0.1, 0.08))
+	draw_rect(Rect2(ex_x - 12, ex_y + 2, 24, 20), Color(0.12, 0.12, 0.09))
+	var sword_glow := 0.3 + 0.2 * sin(_time * 1.2)
+	draw_rect(Rect2(ex_x - 1.5, ex_y - 35, 3, 37), Color(0.7, 0.75, 0.8, sword_glow))
+	draw_rect(Rect2(ex_x - 7, ex_y - 5, 14, 3), Color(0.6, 0.5, 0.2, sword_glow))
+	draw_circle(Vector2(ex_x, ex_y - 3), 2.5, Color(0.8, 0.2, 0.2, sword_glow * 0.8))
+	draw_circle(Vector2(ex_x, ex_y - 15), 20.0, Color(0.8, 0.9, 0.4, sword_glow * 0.08))
+	# 2. Archimedes the owl perched on a branch
+	var owl_x := 900.0 + float(ch) * 30.0
+	var owl_y := 180.0
+	var owl_bob := sin(_time * 1.0) * 2.0
+	draw_circle(Vector2(owl_x, owl_y + owl_bob), 6.0, Color(0.25, 0.2, 0.12, 0.55))
+	draw_circle(Vector2(owl_x, owl_y - 5 + owl_bob), 5.0, Color(0.28, 0.22, 0.14, 0.55))
+	var blink := 1.0 if fmod(_time, 4.0) > 0.2 else 0.0
+	draw_circle(Vector2(owl_x - 2.5, owl_y - 6 + owl_bob), 2.0, Color(0.9, 0.7, 0.1, 0.5 * blink))
+	draw_circle(Vector2(owl_x + 2.5, owl_y - 6 + owl_bob), 2.0, Color(0.9, 0.7, 0.1, 0.5 * blink))
+	draw_circle(Vector2(owl_x - 2.5, owl_y - 6 + owl_bob), 0.8, Color(0.05, 0.03, 0.02, 0.5 * blink))
+	draw_circle(Vector2(owl_x + 2.5, owl_y - 6 + owl_bob), 0.8, Color(0.05, 0.03, 0.02, 0.5 * blink))
+	draw_line(Vector2(owl_x - 30, owl_y + 8), Vector2(owl_x + 25, owl_y + 5 + owl_bob), Color(0.15, 0.08, 0.03, 0.5), 3.0)
+	# 3. Crystal cave entrance (Mary Stewart's "The Crystal Cave")
+	var cave_x := 50.0
+	var cave_y := 460.0 + float(ch) * 10.0
+	draw_arc(Vector2(cave_x + 20, cave_y), 20.0, PI, TAU, 16, Color(0.04, 0.04, 0.03, 0.6), 20.0)
+	for cr in range(5):
+		var cx := cave_x + 8.0 + float(cr) * 7.0
+		var cy := cave_y - 5.0 - float(cr % 3) * 6.0
+		var crystal_pulse := 0.3 + 0.2 * sin(_time * 2.0 + float(cr) * 1.2)
+		draw_line(Vector2(cx, cy), Vector2(cx + 2, cy - 8), Color(0.4, 0.6, 0.9, crystal_pulse), 2.0)
+	# 4. Round Table outline on ground
+	var rt_x := 640.0
+	var rt_y := 495.0
+	var rt_pulse := 0.08 + 0.04 * sin(_time * 0.7)
+	draw_arc(Vector2(rt_x, rt_y), 25.0, 0, TAU, 32, Color(0.5, 0.4, 0.15, rt_pulse), 2.0)
+	for seat in range(12):
+		var sa := float(seat) * TAU / 12.0
+		draw_circle(Vector2(rt_x + cos(sa) * 28.0, rt_y + sin(sa) * 14.0), 2.0, Color(0.5, 0.4, 0.15, rt_pulse * 1.5))
+	# 5. Lady of the Lake's arm rising from water (ch2/3)
+	if ch >= 2:
+		var ll_x := 350.0 + float(ch) * 40.0
+		var ll_y := 510.0
+		var rise := sin(_time * 0.5) * 3.0
+		for rip in range(3):
+			draw_arc(Vector2(ll_x, ll_y), 8.0 + float(rip) * 6.0, 0, TAU, 16, Color(0.2, 0.4, 0.7, 0.12 - float(rip) * 0.03), 1.0)
+		draw_line(Vector2(ll_x, ll_y), Vector2(ll_x + 2, ll_y - 25 + rise), Color(0.7, 0.65, 0.55, 0.3), 2.5)
+		draw_line(Vector2(ll_x + 2, ll_y - 25 + rise), Vector2(ll_x + 2, ll_y - 45 + rise), Color(0.8, 0.85, 0.9, 0.4), 1.5)
+	# 6. Morgan le Fay's dark mirror
+	var mir_x := 1100.0
+	var mir_y := 400.0 - float(ch) * 15.0
+	draw_rect(Rect2(mir_x - 10, mir_y - 15, 20, 30), Color(0.4, 0.3, 0.15, 0.3))
+	draw_rect(Rect2(mir_x - 8, mir_y - 13, 16, 26), Color(0.03, 0.02, 0.06, 0.4))
+	var swirl := sin(_time * 1.5) * 0.1
+	draw_circle(Vector2(mir_x, mir_y), 5.0, Color(0.3, 0.1, 0.5, 0.15 + swirl))
+	# 7. Druid staff with crystal orb
+	var staff_x := 1050.0
+	draw_line(Vector2(staff_x, 510), Vector2(staff_x, 430), Color(0.15, 0.08, 0.03, 0.4), 3.0)
+	var orb_glow := 0.3 + 0.15 * sin(_time * 1.8)
+	draw_circle(Vector2(staff_x, 425), 5.0, Color(0.3, 0.8, 0.5, orb_glow))
+	draw_circle(Vector2(staff_x, 425), 10.0, Color(0.2, 0.6, 0.4, orb_glow * 0.2))
+	# 8. Holy Grail glow (distant golden radiance)
+	var grail_x := 640.0 + sin(_time * 0.2) * 5.0
+	var grail_y := 100.0 + float(ch) * 10.0
+	var grail_a := 0.05 + 0.03 * sin(_time * 0.6)
+	draw_circle(Vector2(grail_x, grail_y), 30.0, Color(0.9, 0.8, 0.3, grail_a))
+	draw_circle(Vector2(grail_x, grail_y), 15.0, Color(1.0, 0.9, 0.5, grail_a * 2.0))
+	# 9. Enchanted suit of armor (floating, ghostly)
+	var arm_x := 800.0 - float(ch) * 60.0
+	var arm_bob := sin(_time * 0.8) * 4.0
+	var arm_a := 0.15 + 0.05 * sin(_time * 1.2)
+	draw_circle(Vector2(arm_x, 380 + arm_bob), 6.0, Color(0.3, 0.3, 0.35, arm_a))
+	draw_rect(Rect2(arm_x - 5, 386 + arm_bob, 10, 20), Color(0.3, 0.3, 0.35, arm_a))
+	draw_rect(Rect2(arm_x - 8, 386 + arm_bob, 16, 3), Color(0.3, 0.3, 0.35, arm_a * 0.8))
+	# 10. Dragon in distant sky (ch3) / Fireflies (ch1/2)
+	if ch == 3:
+		var dr_x := 200.0 + sin(_time * 0.3) * 30.0
+		var dr_y := 120.0 + cos(_time * 0.4) * 10.0
+		var dr_a := 0.12
+		draw_colored_polygon(PackedVector2Array([Vector2(dr_x - 20, dr_y), Vector2(dr_x + 25, dr_y - 5), Vector2(dr_x + 30, dr_y + 5), Vector2(dr_x - 15, dr_y + 3)]), Color(0.05, 0.08, 0.04, dr_a))
+		var wing_flap := sin(_time * 2.5) * 8.0
+		draw_colored_polygon(PackedVector2Array([Vector2(dr_x - 5, dr_y - 2), Vector2(dr_x + 10, dr_y - 15 + wing_flap), Vector2(dr_x + 20, dr_y - 5)]), Color(0.05, 0.08, 0.04, dr_a * 0.8))
+	else:
+		for ff in range(6):
+			var ffx := fmod(float(ff) * 211.0 + sin(_time * 0.5 + float(ff)) * 40.0, 1200.0) + 40.0
+			var ffy := 300.0 + sin(_time * 1.5 + float(ff) * 2.0) * 60.0
+			var ff_glow := 0.3 + 0.2 * sin(_time * 3.0 + float(ff) * 1.5)
+			draw_circle(Vector2(ffx, ffy), 1.5, Color(0.5, 0.9, 0.3, ff_glow))
+
+func _draw_tarzan_novel(ch: int) -> void:
+	# From Edgar Rice Burroughs' "Tarzan of the Apes"
+	# 1. Mangani apes in the trees
+	for ape in range(2 + ch):
+		var ax := 200.0 + float(ape) * 300.0
+		var ay := 200.0 + float(ape) * 30.0
+		var ape_sway := sin(_time * 0.6 + float(ape) * 1.5) * 3.0
+		var ape_a := 0.25
+		draw_circle(Vector2(ax + ape_sway, ay), 7.0, Color(0.06, 0.04, 0.02, ape_a))
+		draw_rect(Rect2(ax - 5 + ape_sway, ay + 7, 10, 12), Color(0.06, 0.04, 0.02, ape_a))
+		draw_line(Vector2(ax + ape_sway, ay + 10), Vector2(ax - 12 + ape_sway, ay + 3), Color(0.06, 0.04, 0.02, ape_a * 0.8), 2.0)
+		draw_line(Vector2(ax + ape_sway, ay + 10), Vector2(ax + 15 + ape_sway, ay + 5), Color(0.06, 0.04, 0.02, ape_a * 0.8), 2.0)
+	# 2. Lord Greystoke's cabin (the marooned cabin)
+	var cb_x := 100.0
+	var cb_y := 460.0
+	draw_rect(Rect2(cb_x, cb_y, 50, 35), Color(0.15, 0.08, 0.03, 0.35))
+	draw_colored_polygon(PackedVector2Array([Vector2(cb_x - 5, cb_y), Vector2(cb_x + 25, cb_y - 18), Vector2(cb_x + 55, cb_y)]), Color(0.12, 0.06, 0.02, 0.35))
+	draw_rect(Rect2(cb_x + 18, cb_y + 15, 12, 20), Color(0.08, 0.04, 0.02, 0.4))
+	var win_glow := 0.15 + 0.1 * sin(_time * 1.5)
+	draw_rect(Rect2(cb_x + 35, cb_y + 8, 8, 8), Color(0.7, 0.5, 0.15, win_glow))
+	# 3. Kala's nest platform high in tree
+	var nest_x := 1100.0 - float(ch) * 50.0
+	var nest_y := 140.0
+	draw_rect(Rect2(nest_x - 3, nest_y, 6, 380), Color(0.10, 0.06, 0.02, 0.4))
+	draw_rect(Rect2(nest_x - 20, nest_y - 5, 40, 8), Color(0.12, 0.08, 0.03, 0.3))
+	for lf in range(4):
+		var la := float(lf) * TAU / 4.0 + _time * 0.2
+		draw_circle(Vector2(nest_x + cos(la) * 15.0, nest_y - 5 + sin(la) * 8.0), 6.0, Color(0.1, 0.25, 0.05, 0.3))
+	# 4. Sabor the lioness crouching
+	var lion_x := 950.0 + float(ch) * 30.0
+	var lion_y := 500.0
+	var lion_a := 0.18 + 0.05 * sin(_time * 0.7)
+	draw_colored_polygon(PackedVector2Array([Vector2(lion_x - 15, lion_y), Vector2(lion_x - 8, lion_y - 10), Vector2(lion_x + 15, lion_y - 8), Vector2(lion_x + 20, lion_y)]), Color(0.35, 0.25, 0.08, lion_a))
+	draw_circle(Vector2(lion_x - 12, lion_y - 12), 5.0, Color(0.35, 0.25, 0.08, lion_a))
+	draw_arc(Vector2(lion_x + 20, lion_y - 10), 10.0, -0.5, 1.5, 8, Color(0.35, 0.25, 0.08, lion_a * 0.7), 1.5)
+	draw_circle(Vector2(lion_x - 14, lion_y - 14), 1.0, Color(0.9, 0.7, 0.1, lion_a * 2.0))
+	draw_circle(Vector2(lion_x - 10, lion_y - 14), 1.0, Color(0.9, 0.7, 0.1, lion_a * 2.0))
+	# 5. Ship wreckage on shore (the Fuwalda)
+	var ship_x := 1180.0
+	var ship_y := 510.0
+	draw_line(Vector2(ship_x - 25, ship_y), Vector2(ship_x + 15, ship_y - 5), Color(0.12, 0.07, 0.03, 0.3), 3.0)
+	draw_line(Vector2(ship_x - 10, ship_y - 5), Vector2(ship_x - 8, ship_y - 30), Color(0.10, 0.06, 0.03, 0.25), 2.0)
+	var sail_sway := sin(_time * 1.0) * 3.0
+	draw_colored_polygon(PackedVector2Array([Vector2(ship_x - 8, ship_y - 28), Vector2(ship_x + 5 + sail_sway, ship_y - 20), Vector2(ship_x - 5, ship_y - 12)]), Color(0.5, 0.45, 0.35, 0.15))
+	# 6. Elephant herd in far distance
+	for el in range(3):
+		var ex := 400.0 + float(el) * 80.0
+		var ey := 460.0 + float(el) * 5.0
+		var el_a := 0.12 - float(el) * 0.02
+		draw_circle(Vector2(ex, ey - 8), 8.0, Color(0.15, 0.14, 0.12, el_a))
+		draw_rect(Rect2(ex - 7, ey, 14, 10), Color(0.15, 0.14, 0.12, el_a))
+		draw_line(Vector2(ex - 5, ey + 10), Vector2(ex - 5, ey + 18), Color(0.15, 0.14, 0.12, el_a * 0.8), 2.0)
+		draw_line(Vector2(ex + 5, ey + 10), Vector2(ex + 5, ey + 18), Color(0.15, 0.14, 0.12, el_a * 0.8), 2.0)
+	# 7. Waziri tribal totem poles
+	var tm_x := 750.0 + float(ch) * 40.0
+	draw_rect(Rect2(tm_x - 5, 440, 10, 70), Color(0.15, 0.08, 0.03, 0.35))
+	draw_circle(Vector2(tm_x, 450), 5.0, Color(0.2, 0.1, 0.04, 0.3))
+	draw_circle(Vector2(tm_x - 2, 449), 1.0, Color(0.05, 0.03, 0.02, 0.3))
+	draw_circle(Vector2(tm_x + 2, 449), 1.0, Color(0.05, 0.03, 0.02, 0.3))
+	# 8. Tarzan's swinging vine (empty vine swaying)
+	var rope_x := 600.0
+	var rope_sway := sin(_time * 1.5) * 25.0
+	for seg in range(12):
+		var ry := 50.0 + float(seg) * 15.0
+		var rx := rope_x + sin(float(seg) * 0.2) * rope_sway * (float(seg) / 12.0)
+		draw_rect(Rect2(rx - 1, ry, 2, 16), Color(0.08, 0.2, 0.04, 0.3))
+	draw_circle(Vector2(rope_x + rope_sway * 0.8, 230), 3.0, Color(0.1, 0.22, 0.05, 0.3))
+	# 9. Crocodile lurking in water
+	var croc_x := 500.0 + sin(_time * 0.3) * 20.0
+	var croc_y := 518.0
+	draw_colored_polygon(PackedVector2Array([Vector2(croc_x - 20, croc_y), Vector2(croc_x + 20, croc_y - 3), Vector2(croc_x + 25, croc_y + 2), Vector2(croc_x - 18, croc_y + 4)]), Color(0.12, 0.15, 0.06, 0.2))
+	draw_circle(Vector2(croc_x + 15, croc_y - 4), 1.5, Color(0.6, 0.5, 0.1, 0.3))
+	# 10. Opar ruins columns (The Return of Tarzan, ch2/3)
+	if ch >= 2:
+		for col in range(3):
+			var colx := 50.0 + float(col) * 35.0
+			var coly := 380.0 + float(col) * 15.0
+			draw_rect(Rect2(colx - 4, coly, 8, 520.0 - coly), Color(0.15, 0.13, 0.1, 0.15))
+			draw_rect(Rect2(colx - 6, coly - 3, 12, 5), Color(0.16, 0.14, 0.11, 0.15))
+
+func _draw_dracula_novel(ch: int) -> void:
+	# From Bram Stoker's "Dracula"
+	# 1. Dracula's coffin with Transylvanian earth
+	var coff_x := 100.0 + float(ch) * 80.0
+	var coff_y := 500.0
+	draw_rect(Rect2(coff_x - 20, coff_y, 40, 15), Color(0.08, 0.04, 0.03))
+	draw_colored_polygon(PackedVector2Array([Vector2(coff_x - 20, coff_y), Vector2(coff_x - 25, coff_y + 7), Vector2(coff_x - 20, coff_y + 15)]), Color(0.08, 0.04, 0.03))
+	draw_colored_polygon(PackedVector2Array([Vector2(coff_x + 20, coff_y), Vector2(coff_x + 25, coff_y + 7), Vector2(coff_x + 20, coff_y + 15)]), Color(0.08, 0.04, 0.03))
+	var coffin_glow := 0.1 + 0.05 * sin(_time * 0.8)
+	draw_rect(Rect2(coff_x - 15, coff_y + 2, 30, 2), Color(0.5, 0.05, 0.05, coffin_glow))
+	# 2. Wolf pack - glowing eyes in darkness
+	for wolf in range(3 + ch):
+		var wx := 800.0 + float(wolf) * 40.0
+		var wy := 470.0 + sin(float(wolf) * 2.0) * 15.0
+		var wolf_blink := 1.0 if fmod(_time + float(wolf) * 1.3, 3.5) > 0.15 else 0.0
+		draw_circle(Vector2(wx - 3, wy), 1.5, Color(0.7, 0.3, 0.05, 0.35 * wolf_blink))
+		draw_circle(Vector2(wx + 3, wy), 1.5, Color(0.7, 0.3, 0.05, 0.35 * wolf_blink))
+	# 3. Garlic flowers hanging (protection)
+	for gr in range(4):
+		var gx := 300.0 + float(gr) * 250.0
+		var gy := 360.0 + float(ch) * 10.0
+		draw_line(Vector2(gx, gy - 15), Vector2(gx, gy + 10), Color(0.4, 0.35, 0.15, 0.2), 1.5)
+		for gb in range(3):
+			draw_circle(Vector2(gx - 4.0 + float(gb) * 4.0, gy + 10 + float(gb) * 3.0), 3.0, Color(0.7, 0.65, 0.5, 0.2))
+	# 4. Ship Demeter (ghost ship silhouette)
+	var dem_x := 1050.0 + sin(_time * 0.15) * 10.0
+	var dem_y := 280.0 - float(ch) * 20.0
+	var dem_a := 0.12
+	draw_colored_polygon(PackedVector2Array([Vector2(dem_x - 25, dem_y + 8), Vector2(dem_x - 30, dem_y), Vector2(dem_x + 30, dem_y), Vector2(dem_x + 25, dem_y + 8)]), Color(0.06, 0.03, 0.04, dem_a))
+	draw_line(Vector2(dem_x - 10, dem_y), Vector2(dem_x - 10, dem_y - 25), Color(0.06, 0.03, 0.04, dem_a), 1.5)
+	draw_line(Vector2(dem_x + 10, dem_y), Vector2(dem_x + 10, dem_y - 20), Color(0.06, 0.03, 0.04, dem_a), 1.5)
+	var sail_blow := sin(_time * 0.8) * 3.0
+	draw_colored_polygon(PackedVector2Array([Vector2(dem_x - 10, dem_y - 23), Vector2(dem_x - 5 + sail_blow, dem_y - 15), Vector2(dem_x - 10, dem_y - 8)]), Color(0.15, 0.1, 0.1, dem_a * 0.8))
+	# 5. Mina Harker's journal (open book)
+	var jn_x := 550.0 + float(ch) * 30.0
+	draw_rect(Rect2(jn_x - 8, 508, 16, 10), Color(0.15, 0.08, 0.04, 0.25))
+	draw_line(Vector2(jn_x, 508), Vector2(jn_x, 518), Color(0.1, 0.05, 0.03, 0.2), 0.5)
+	# 6. Wooden stake and mallet (Van Helsing's tools)
+	var stk_x := 650.0
+	draw_line(Vector2(stk_x, 510), Vector2(stk_x, 490), Color(0.3, 0.2, 0.08, 0.25), 2.5)
+	draw_colored_polygon(PackedVector2Array([Vector2(stk_x - 1.5, 490), Vector2(stk_x, 482), Vector2(stk_x + 1.5, 490)]), Color(0.35, 0.22, 0.08, 0.25))
+	draw_rect(Rect2(stk_x + 8, 500, 12, 8), Color(0.2, 0.12, 0.05, 0.2))
+	# 7. Crucifix hanging from archway (glowing faintly)
+	var cr_x := 450.0 + float(ch) * 100.0
+	var cr_y := 350.0
+	var cr_glow := 0.2 + 0.1 * sin(_time * 1.5)
+	draw_rect(Rect2(cr_x - 1.5, cr_y, 3, 18), Color(0.7, 0.6, 0.2, cr_glow))
+	draw_rect(Rect2(cr_x - 6, cr_y + 4, 12, 3), Color(0.7, 0.6, 0.2, cr_glow))
+	draw_circle(Vector2(cr_x, cr_y + 8), 8.0, Color(0.8, 0.7, 0.3, cr_glow * 0.15))
+	# 8. Mirror with no reflection (cracked)
+	var mr_x := 200.0 - float(ch) * 20.0
+	draw_rect(Rect2(mr_x - 10, 365, 20, 30), Color(0.3, 0.25, 0.1, 0.2))
+	draw_rect(Rect2(mr_x - 8, 367, 16, 26), Color(0.02, 0.02, 0.03, 0.3))
+	draw_line(Vector2(mr_x - 5, 370), Vector2(mr_x + 3, 385), Color(0.15, 0.12, 0.1, 0.2), 0.5)
+	# 9. Lucy's tomb (Highgate Cemetery, ch2/3)
+	if ch >= 2:
+		draw_rect(Rect2(732, 500, 36, 18), Color(0.1, 0.08, 0.07))
+		draw_colored_polygon(PackedVector2Array([Vector2(732, 500), Vector2(750, 488), Vector2(768, 500)]), Color(0.1, 0.08, 0.07))
+	# 10. Count's cape swirl (dissipating black shape)
+	var cape_x := 400.0 + sin(_time * 0.4) * 15.0
+	var cape_y := 350.0 + float(ch) * 20.0
+	var cape_a := 0.08 + 0.04 * sin(_time * 0.6)
+	for cv in range(5):
+		var ca := float(cv) * 0.4 + _time * 0.8
+		draw_line(Vector2(cape_x, cape_y), Vector2(cape_x + cos(ca) * 20.0, cape_y + sin(ca) * 15.0 + 10.0), Color(0.04, 0.01, 0.02, cape_a), 2.0)
+
+func _draw_frankenstein_novel(ch: int) -> void:
+	# From Mary Shelley's "Frankenstein; or, The Modern Prometheus"
+	# 1. Laboratory with galvanic apparatus
+	var lab_x := 100.0 + float(ch) * 30.0
+	var lab_y := 400.0
+	draw_rect(Rect2(lab_x, lab_y, 60, 40), Color(0.06, 0.06, 0.08, 0.3))
+	draw_rect(Rect2(lab_x + 10, lab_y - 25, 8, 25), Color(0.15, 0.15, 0.2, 0.3))
+	draw_circle(Vector2(lab_x + 14, lab_y - 28), 5.0, Color(0.15, 0.15, 0.2, 0.3))
+	var spark := sin(_time * 8.0 + float(ch)) * 0.3
+	if spark > 0.0:
+		draw_line(Vector2(lab_x + 14, lab_y - 30), Vector2(lab_x + 14 + sin(_time * 12.0) * 10.0, lab_y - 40), Color(0.5, 0.6, 0.9, spark), 1.5)
+	draw_rect(Rect2(lab_x + 30, lab_y + 5, 6, 15), Color(0.3, 0.5, 0.4, 0.2))
+	draw_rect(Rect2(lab_x + 42, lab_y + 8, 8, 12), Color(0.4, 0.3, 0.5, 0.2))
+	# 2. The Creature's footprints in snow/mud
+	for fp in range(5):
+		var fx := 300.0 + float(fp) * 50.0
+		var fy := 510.0 + sin(float(fp) * 1.5) * 3.0
+		draw_circle(Vector2(fx, fy), 4.0, Color(0.06, 0.05, 0.04, 0.15))
+		draw_circle(Vector2(fx + 2, fy - 4), 1.5, Color(0.06, 0.05, 0.04, 0.12))
+	# 3. Geneva lake reflecting moonlight
+	var lake_x := 800.0
+	for rp in range(8):
+		var rx := lake_x - 40.0 + float(rp) * 12.0 + sin(_time * 0.5 + float(rp)) * 3.0
+		draw_rect(Rect2(rx, 510, 10, 2), Color(0.3, 0.35, 0.4, 0.1 + 0.05 * sin(_time + float(rp))))
+	# 4. De Lacey cottage (warm cottage in distance)
+	var cot_x := 1100.0 - float(ch) * 40.0
+	var cot_y := 430.0
+	draw_rect(Rect2(cot_x, cot_y, 35, 25), Color(0.12, 0.08, 0.05, 0.25))
+	draw_colored_polygon(PackedVector2Array([Vector2(cot_x - 3, cot_y), Vector2(cot_x + 17, cot_y - 12), Vector2(cot_x + 38, cot_y)]), Color(0.14, 0.08, 0.04, 0.25))
+	var cot_glow := 0.2 + 0.1 * sin(_time * 1.0)
+	draw_rect(Rect2(cot_x + 12, cot_y + 8, 8, 8), Color(0.7, 0.5, 0.15, cot_glow))
+	# 5. Alpine peaks / Mont Blanc silhouette
+	draw_colored_polygon(PackedVector2Array([Vector2(500, 400), Vector2(580, 200 - float(ch) * 20.0), Vector2(660, 380), Vector2(700, 250), Vector2(780, 400)]), Color(0.06, 0.06, 0.08, 0.3))
+	draw_colored_polygon(PackedVector2Array([Vector2(560, 220 - float(ch) * 20.0), Vector2(580, 200 - float(ch) * 20.0), Vector2(600, 220 - float(ch) * 20.0)]), Color(0.3, 0.32, 0.35, 0.15))
+	# 6. Anatomy table with draped form
+	var tbl_x := 400.0 + float(ch) * 40.0
+	draw_rect(Rect2(tbl_x, 480, 50, 4), Color(0.1, 0.08, 0.06, 0.3))
+	draw_rect(Rect2(tbl_x + 3, 484, 3, 25), Color(0.08, 0.06, 0.05, 0.25))
+	draw_rect(Rect2(tbl_x + 44, 484, 3, 25), Color(0.08, 0.06, 0.05, 0.25))
+	draw_rect(Rect2(tbl_x + 5, 472, 40, 8), Color(0.15, 0.13, 0.12, 0.2))
+	# 7. Lightning rod atop building
+	var lr_x := 250.0 + float(ch) * 60.0
+	draw_line(Vector2(lr_x, 320), Vector2(lr_x, 280), Color(0.2, 0.2, 0.25, 0.3), 2.0)
+	draw_line(Vector2(lr_x - 8, 290), Vector2(lr_x + 8, 290), Color(0.2, 0.2, 0.25, 0.25), 1.5)
+	var flash_check := sin(_time * 0.3 + float(ch) * 2.0)
+	if flash_check > 0.95:
+		draw_line(Vector2(lr_x, 280), Vector2(lr_x + sin(_time * 20.0) * 15.0, 50), Color(0.7, 0.7, 0.9, 0.3), 2.0)
+	# 8. Arctic ice (Walton's ship frame story, ch3)
+	if ch == 3:
+		for ice in range(5):
+			var ix := 900.0 + float(ice) * 60.0
+			var iy := 480.0 + sin(float(ice) * 1.8) * 10.0
+			draw_colored_polygon(PackedVector2Array([Vector2(ix - 15, iy + 15), Vector2(ix - 5, iy), Vector2(ix + 10, iy + 3), Vector2(ix + 15, iy + 15)]), Color(0.4, 0.45, 0.5, 0.15))
+	# 9. Victor's scattered letters
+	for lt in range(3):
+		var lx := 700.0 + float(lt) * 35.0
+		draw_rect(Rect2(lx - 5, 505 + float(lt) * 3.0, 10, 14), Color(0.6, 0.55, 0.4, 0.12))
+	# 10. Creature watching from shadows (two yellow eyes)
+	var cr_x := 1200.0 - float(ch) * 30.0
+	var cr_y := 400.0 + float(ch) * 10.0
+	var cr_blink := 1.0 if fmod(_time + float(ch) * 2.0, 5.0) > 0.2 else 0.0
+	draw_circle(Vector2(cr_x - 4, cr_y), 2.0, Color(0.8, 0.7, 0.1, 0.25 * cr_blink))
+	draw_circle(Vector2(cr_x + 4, cr_y), 2.0, Color(0.8, 0.7, 0.1, 0.25 * cr_blink))
+	draw_rect(Rect2(cr_x - 8, cr_y - 20, 16, 50), Color(0.03, 0.03, 0.04, 0.08 * cr_blink))
+
+func _draw_robin_novel(ch: int) -> void:
+	# From Howard Pyle's "The Merry Adventures of Robin Hood"
+	# 1. Major Oak (massive ancient oak tree)
+	var oak_x := 120.0
+	draw_rect(Rect2(oak_x - 15, 420, 30, 80), Color(0.12, 0.07, 0.03, 0.4))
+	draw_rect(Rect2(oak_x - 12, 425, 8, 70), Color(0.10, 0.06, 0.02, 0.2))
+	for oc in range(5):
+		var ocx := oak_x - 40.0 + float(oc) * 22.0
+		var ocy := 415.0 - float(oc % 3) * 15.0
+		draw_circle(Vector2(ocx, ocy), 18.0 + sin(float(oc)) * 5.0, Color(0.08, 0.18, 0.04, 0.4))
+	# 2. Nottingham Castle on distant hill
+	var cas_x := 1050.0
+	var cas_y := 250.0 - float(ch) * 15.0
+	var cas_col := Color(0.06, 0.05, 0.04, 0.25)
+	draw_rect(Rect2(cas_x - 30, cas_y, 60, 50), cas_col)
+	draw_rect(Rect2(cas_x - 35, cas_y - 5, 10, 55), cas_col)
+	draw_rect(Rect2(cas_x + 25, cas_y - 5, 10, 55), cas_col)
+	for bt in range(6):
+		draw_rect(Rect2(cas_x - 30 + float(bt) * 12, cas_y - 10, 8, 10), cas_col)
+	draw_colored_polygon(PackedVector2Array([Vector2(cas_x - 80, 520), Vector2(cas_x - 40, cas_y + 50), Vector2(cas_x + 40, cas_y + 50), Vector2(cas_x + 80, 520)]), Color(0.06, 0.1, 0.04, 0.2))
+	# 3. Archery target with arrows (Silver Arrow tournament)
+	var tgt_x := 900.0 + float(ch) * 30.0
+	draw_rect(Rect2(tgt_x - 2, 475, 4, 30), Color(0.12, 0.07, 0.03, 0.3))
+	draw_circle(Vector2(tgt_x, 460), 15.0, Color(0.7, 0.65, 0.5, 0.25))
+	draw_circle(Vector2(tgt_x, 460), 10.0, Color(0.7, 0.15, 0.1, 0.25))
+	draw_circle(Vector2(tgt_x, 460), 5.0, Color(0.8, 0.7, 0.1, 0.3))
+	draw_line(Vector2(tgt_x + 1, 460), Vector2(tgt_x + 20, 455), Color(0.3, 0.2, 0.08, 0.3), 1.5)
+	# 4. "WANTED" poster nailed to tree
+	var wp_x := 350.0 + float(ch) * 50.0
+	draw_rect(Rect2(wp_x - 10, 410, 20, 25), Color(0.6, 0.55, 0.4, 0.2))
+	draw_rect(Rect2(wp_x - 8, 412, 16, 3), Color(0.3, 0.1, 0.05, 0.15))
+	draw_rect(Rect2(wp_x - 6, 418, 12, 12), Color(0.4, 0.3, 0.2, 0.1))
+	# 5. Merry Men's campfire with smoke
+	var fire_x := 600.0
+	var fire_flicker := 0.3 + 0.15 * sin(_time * 5.0)
+	draw_circle(Vector2(fire_x, 510), 8.0, Color(0.8, 0.4, 0.05, fire_flicker))
+	draw_circle(Vector2(fire_x, 510), 15.0, Color(0.6, 0.2, 0.02, fire_flicker * 0.3))
+	for sm in range(6):
+		var smx := fire_x + sin(_time * 0.6 + float(sm) * 0.8) * (4.0 + float(sm) * 2.0)
+		var smy := 495.0 - float(sm) * 12.0
+		draw_circle(Vector2(smx, smy), 3.0 + float(sm) * 1.5, Color(0.2, 0.18, 0.15, 0.1 - float(sm) * 0.012))
+	# 6. Friar Tuck's ale jug
+	draw_rect(Rect2(618, 505, 8, 10), Color(0.25, 0.12, 0.05, 0.25))
+	draw_arc(Vector2(626, 510), 4.0, -1.0, 1.0, 6, Color(0.25, 0.12, 0.05, 0.2), 1.5)
+	# 7. Maid Marian's scarf on branch (green silk)
+	var sc_sway := sin(_time * 1.2) * 8.0
+	draw_line(Vector2(750, 380), Vector2(750 + sc_sway, 395), Color(0.2, 0.5, 0.25, 0.2), 2.0)
+	draw_line(Vector2(750 + sc_sway, 395), Vector2(750 + sc_sway + 5, 410), Color(0.2, 0.5, 0.25, 0.15), 1.5)
+	# 8. Sheriff's dark banner
+	var ban_sway := sin(_time * 1.5) * 4.0
+	draw_line(Vector2(1000, 350), Vector2(1000, 320), Color(0.08, 0.06, 0.04, 0.3), 2.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(1000, 320), Vector2(1018 + ban_sway, 325), Vector2(1015 + ban_sway, 340), Vector2(1000, 335)]), Color(0.1, 0.02, 0.02, 0.25))
+	# 9. Lincoln green cloth on bush
+	for lg in range(2):
+		var lgx := 450.0 + float(lg) * 250.0
+		draw_colored_polygon(PackedVector2Array([Vector2(lgx, 505), Vector2(lgx + 12, 498), Vector2(lgx + 20, 505), Vector2(lgx + 15, 512)]), Color(0.15, 0.35, 0.1, 0.2))
+	# 10. Silver Arrow trophy (gleaming)
+	var sa_x := 500.0 + float(ch) * 60.0
+	var sa_gleam := 0.2 + 0.15 * sin(_time * 2.0)
+	draw_line(Vector2(sa_x - 15, 498), Vector2(sa_x + 15, 492), Color(0.7, 0.75, 0.8, sa_gleam), 1.5)
+	draw_colored_polygon(PackedVector2Array([Vector2(sa_x + 15, 492), Vector2(sa_x + 20, 489), Vector2(sa_x + 20, 495)]), Color(0.7, 0.75, 0.8, sa_gleam))
+
+func _draw_alice_novel(ch: int) -> void:
+	# From Lewis Carroll's "Alice's Adventures in Wonderland"
+	# 1. Rabbit hole (dark opening in ground)
+	var rh_x := 120.0 + float(ch) * 30.0
+	draw_circle(Vector2(rh_x, 510), 12.0, Color(0.03, 0.02, 0.02, 0.4))
+	draw_arc(Vector2(rh_x, 510), 12.0, 0, TAU, 16, Color(0.08, 0.06, 0.04, 0.3), 2.0)
+	var card_fall := fmod(_time * 0.5, 3.0)
+	if card_fall < 1.5:
+		var cfy := 490.0 + card_fall * 20.0
+		draw_rect(Rect2(rh_x - 3, cfy - 4, 6, 8), Color(0.9, 0.85, 0.7, 0.3 * (1.0 - card_fall / 1.5)))
+	# 2. "Drink Me" bottle
+	var dm_x := 350.0 + float(ch) * 40.0
+	draw_rect(Rect2(dm_x - 3, 500, 6, 12), Color(0.3, 0.5, 0.6, 0.25))
+	draw_rect(Rect2(dm_x - 1.5, 497, 3, 4), Color(0.3, 0.2, 0.1, 0.25))
+	draw_rect(Rect2(dm_x - 4, 503, 8, 4), Color(0.7, 0.65, 0.5, 0.2))
+	# 3. Mad Hatter's tea table
+	var tt_x := 800.0 - float(ch) * 30.0
+	draw_rect(Rect2(tt_x - 30, 480, 60, 4), Color(0.3, 0.2, 0.1, 0.25))
+	draw_rect(Rect2(tt_x - 25, 484, 3, 20), Color(0.25, 0.15, 0.08, 0.2))
+	draw_rect(Rect2(tt_x + 22, 484, 3, 20), Color(0.25, 0.15, 0.08, 0.2))
+	draw_circle(Vector2(tt_x - 10, 475), 5.0, Color(0.6, 0.5, 0.3, 0.25))
+	draw_arc(Vector2(tt_x - 15, 473), 3.0, PI * 0.5, PI * 1.5, 6, Color(0.5, 0.4, 0.25, 0.2), 1.5)
+	for tc in range(3):
+		draw_rect(Rect2(tt_x + float(tc) * 12.0 - 2, 476, 5, 4), Color(0.65, 0.55, 0.4, 0.2))
+	var steam_a := 0.08 + 0.04 * sin(_time * 2.0)
+	draw_circle(Vector2(tt_x - 10, 466), 3.0, Color(0.4, 0.38, 0.35, steam_a))
+	# 4. Playing card soldiers
+	for pc in range(2):
+		var px := 200.0 + float(pc) * 50.0 + float(ch) * 80.0
+		draw_rect(Rect2(px - 5, 462, 10, 25), Color(0.9, 0.85, 0.75, 0.2))
+		draw_circle(Vector2(px, 472), 2.5, Color(0.8, 0.15, 0.1, 0.25))
+		draw_line(Vector2(px - 2, 487), Vector2(px - 3, 494), Color(0.1, 0.08, 0.06, 0.15), 1.0)
+		draw_line(Vector2(px + 2, 487), Vector2(px + 3, 494), Color(0.1, 0.08, 0.06, 0.15), 1.0)
+	# 5. Caterpillar's mushroom with hookah smoke
+	var cm_x := 950.0 + float(ch) * 20.0
+	draw_rect(Rect2(cm_x - 4, 490, 8, 15), Color(0.7, 0.65, 0.5, 0.2))
+	draw_arc(Vector2(cm_x, 490), 12.0, PI, TAU, 12, Color(0.7, 0.2, 0.3, 0.25), 12.0)
+	for hr in range(4):
+		var hry := 470.0 - float(hr) * 15.0
+		var hrx := cm_x + sin(_time * 0.8 + float(hr)) * 8.0
+		draw_arc(Vector2(hrx, hry), 4.0 + float(hr) * 1.5, 0, TAU, 12, Color(0.4, 0.4, 0.5, 0.08 - float(hr) * 0.015), 1.0)
+	# 6. White Rabbit's pocket watch
+	var pw_x := 500.0 + float(ch) * 25.0
+	draw_circle(Vector2(pw_x, 508), 5.0, Color(0.7, 0.6, 0.2, 0.25))
+	draw_circle(Vector2(pw_x, 508), 4.0, Color(0.85, 0.8, 0.7, 0.2))
+	draw_line(Vector2(pw_x, 508), Vector2(pw_x + cos(_time * 0.5) * 2.5, 508 + sin(_time * 0.5) * 2.5), Color(0.1, 0.08, 0.05, 0.25), 0.5)
+	draw_line(Vector2(pw_x + 4, 505), Vector2(pw_x + 15, 500), Color(0.6, 0.5, 0.15, 0.15), 0.5)
+	# 7. Flamingo croquet mallet
+	draw_arc(Vector2(650, 495), 12.0, PI * 0.5, PI * 1.5, 8, Color(0.85, 0.4, 0.5, 0.2), 2.0)
+	draw_circle(Vector2(638, 495), 3.0, Color(0.85, 0.4, 0.5, 0.2))
+	draw_circle(Vector2(660, 507), 4.0, Color(0.4, 0.3, 0.2, 0.2))
+	# 8. "Eat Me" cake
+	var ek_x := 280.0 + float(ch) * 20.0
+	draw_rect(Rect2(ek_x - 5, 508, 10, 6), Color(0.7, 0.55, 0.3, 0.2))
+	draw_rect(Rect2(ek_x - 4, 507, 8, 2), Color(0.8, 0.75, 0.65, 0.2))
+	draw_circle(Vector2(ek_x, 506), 1.5, Color(0.7, 0.1, 0.1, 0.25))
+	# 9. Looking-Glass (ornate mirror, ch2/3)
+	if ch >= 2:
+		draw_rect(Rect2(1138, 382, 24, 40), Color(0.5, 0.35, 0.1, 0.2))
+		draw_rect(Rect2(1140, 384, 20, 36), Color(0.3, 0.35, 0.4, 0.15))
+		var rip_a := 0.08 + 0.04 * sin(_time * 1.5)
+		draw_circle(Vector2(1150, 402), 8.0, Color(0.5, 0.6, 0.8, rip_a))
+	# 10. Pool of Tears (rippling puddle)
+	var pt_x := 700.0 + float(ch) * 20.0
+	draw_circle(Vector2(pt_x, 515), 20.0, Color(0.2, 0.3, 0.5, 0.1))
+	for rip in range(3):
+		var rr := 8.0 + float(rip) * 7.0 + sin(_time * 0.8 + float(rip)) * 2.0
+		draw_arc(Vector2(pt_x, 515), rr, 0, TAU, 16, Color(0.3, 0.4, 0.6, 0.06), 1.0)
+
+func _draw_oz_novel(ch: int) -> void:
+	# From L. Frank Baum's "The Wonderful Wizard of Oz"
+	# 1. Flying monkey silhouette
+	var fm_x := fmod(_time * 25.0 + float(ch) * 300.0, 1500.0) - 100.0
+	var fm_y := 120.0 + sin(_time * 1.5) * 20.0
+	var fm_a := 0.2
+	draw_circle(Vector2(fm_x, fm_y), 4.0, Color(0.15, 0.1, 0.06, fm_a))
+	draw_rect(Rect2(fm_x - 3, fm_y + 4, 6, 8), Color(0.15, 0.1, 0.06, fm_a))
+	var wing_f := sin(_time * 5.0) * 6.0
+	draw_line(Vector2(fm_x - 3, fm_y + 2), Vector2(fm_x - 14, fm_y - 5 + wing_f), Color(0.15, 0.1, 0.06, fm_a), 1.5)
+	draw_line(Vector2(fm_x + 3, fm_y + 2), Vector2(fm_x + 14, fm_y - 5 + wing_f), Color(0.15, 0.1, 0.06, fm_a), 1.5)
+	# 2. Ruby slippers (glinting)
+	var sl_x := 400.0 + float(ch) * 40.0
+	var sl_sparkle := 0.2 + 0.15 * sin(_time * 3.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(sl_x - 6, 515), Vector2(sl_x - 4, 510), Vector2(sl_x + 6, 510), Vector2(sl_x + 8, 515)]), Color(0.8, 0.15, 0.15, sl_sparkle))
+	draw_circle(Vector2(sl_x + 1, 512), 2.0, Color(1.0, 0.4, 0.4, sl_sparkle * 0.8))
+	# 3. Tin Woodman's oil can
+	var oc_x := 700.0 + float(ch) * 30.0
+	draw_rect(Rect2(oc_x, 502, 8, 12), Color(0.35, 0.35, 0.4, 0.2))
+	draw_rect(Rect2(oc_x + 2, 499, 3, 4), Color(0.3, 0.3, 0.35, 0.2))
+	draw_line(Vector2(oc_x + 8, 504), Vector2(oc_x + 14, 500), Color(0.35, 0.35, 0.4, 0.15), 1.5)
+	# 4. Wicked Witch's crystal ball
+	var cb_x := 150.0 + float(ch) * 40.0
+	draw_circle(Vector2(cb_x, 460), 8.0, Color(0.1, 0.08, 0.06, 0.3))
+	var ball_glow := 0.2 + 0.1 * sin(_time * 1.2)
+	draw_circle(Vector2(cb_x, 460), 7.0, Color(0.2, 0.6, 0.3, ball_glow))
+	draw_circle(Vector2(cb_x - 2, 458), 2.0, Color(0.4, 0.9, 0.5, ball_glow * 0.6))
+	draw_rect(Rect2(cb_x - 5, 468, 10, 4), Color(0.1, 0.08, 0.06, 0.25))
+	# 5. Scarecrow's hat on ground
+	draw_colored_polygon(PackedVector2Array([Vector2(538, 510), Vector2(562, 510), Vector2(558, 507), Vector2(542, 507)]), Color(0.2, 0.15, 0.08, 0.2))
+	draw_rect(Rect2(545, 498, 10, 10), Color(0.2, 0.15, 0.08, 0.2))
+	for st in range(3):
+		var sta := float(st) * 0.8 - 0.8
+		draw_line(Vector2(550 + cos(sta) * 4, 498), Vector2(550 + cos(sta) * 10, 494 - float(st) * 2.0), Color(0.6, 0.5, 0.2, 0.15), 1.0)
+	# 6. Oz's curtain (hiding the man behind)
+	var cur_x := 1000.0 - float(ch) * 20.0
+	var cur_sway := sin(_time * 0.8) * 3.0
+	draw_rect(Rect2(cur_x, 350, 30, 80), Color(0.15, 0.4, 0.12, 0.15))
+	draw_line(Vector2(cur_x + 5, 350), Vector2(cur_x + 5 + cur_sway, 430), Color(0.12, 0.35, 0.1, 0.1), 1.0)
+	draw_line(Vector2(cur_x + 15, 350), Vector2(cur_x + 15 - cur_sway, 430), Color(0.12, 0.35, 0.1, 0.1), 1.0)
+	# 7. Cowardly Lion's courage medal
+	var md_shine := 0.2 + 0.1 * sin(_time * 2.5)
+	draw_circle(Vector2(850, 505), 4.0, Color(0.7, 0.6, 0.15, md_shine))
+	for ray in range(5):
+		var ra := float(ray) * TAU / 5.0 - PI / 2.0
+		draw_line(Vector2(850, 505), Vector2(850 + cos(ra) * 6.0, 505 + sin(ra) * 6.0), Color(0.8, 0.7, 0.2, md_shine * 0.7), 1.0)
+	# 8. Good Witch's bubble (floating iridescent sphere)
+	var bub_x := 250.0 + sin(_time * 0.3) * 20.0
+	var bub_y := 200.0 + cos(_time * 0.4) * 15.0
+	var bub_a := 0.1 + 0.05 * sin(_time * 1.5)
+	draw_arc(Vector2(bub_x, bub_y), 15.0, 0, TAU, 24, Color(0.7, 0.5, 0.8, bub_a), 1.5)
+	draw_circle(Vector2(bub_x - 4, bub_y - 5), 2.0, Color(0.9, 0.85, 0.95, bub_a * 1.5))
+	# 9. Additional deadly poppies near path
+	for pp in range(5):
+		var px := 100.0 + float(pp) * 100.0
+		var p_sway := sin(_time * 1.0 + float(pp)) * 2.0
+		draw_line(Vector2(px, 505), Vector2(px + p_sway, 492), Color(0.1, 0.25, 0.05, 0.3), 1.0)
+		draw_circle(Vector2(px + p_sway, 490), 3.0, Color(0.8, 0.1, 0.08, 0.3))
+	# 10. Toto (small dog silhouette)
+	var toto_x := 600.0 + sin(_time * 0.5) * 5.0
+	draw_circle(Vector2(toto_x, 505), 3.0, Color(0.15, 0.1, 0.06, 0.2))
+	draw_rect(Rect2(toto_x - 4, 507, 8, 5), Color(0.15, 0.1, 0.06, 0.2))
+
+func _draw_peter_novel(ch: int) -> void:
+	# From J.M. Barrie's "Peter and Wendy"
+	# 1. Jolly Roger pirate ship silhouette
+	var jr_x := 200.0 + float(ch) * 30.0
+	var jr_bob := sin(_time * 0.6) * 3.0
+	var jr_a := 0.2
+	draw_colored_polygon(PackedVector2Array([Vector2(jr_x - 30, 470 + jr_bob), Vector2(jr_x - 35, 465 + jr_bob), Vector2(jr_x + 35, 465 + jr_bob), Vector2(jr_x + 30, 470 + jr_bob)]), Color(0.08, 0.05, 0.03, jr_a))
+	draw_line(Vector2(jr_x, 465 + jr_bob), Vector2(jr_x, 425 + jr_bob), Color(0.08, 0.05, 0.03, jr_a), 2.0)
+	var flag_sway := sin(_time * 2.0) * 4.0
+	draw_rect(Rect2(jr_x + 2, 427 + jr_bob, 15, 10), Color(0.05, 0.03, 0.02, jr_a))
+	draw_circle(Vector2(jr_x + 9, 432 + jr_bob), 2.0, Color(0.5, 0.45, 0.35, jr_a))
+	draw_colored_polygon(PackedVector2Array([Vector2(jr_x, 430 + jr_bob), Vector2(jr_x + 20 + flag_sway, 445 + jr_bob), Vector2(jr_x, 458 + jr_bob)]), Color(0.5, 0.45, 0.35, jr_a * 0.5))
+	# 2. Tick-Tock the Crocodile
+	var croc_x := 900.0 + sin(_time * 0.3) * 30.0
+	draw_colored_polygon(PackedVector2Array([Vector2(croc_x - 18, 512), Vector2(croc_x - 15, 506), Vector2(croc_x + 20, 507), Vector2(croc_x + 25, 512)]), Color(0.15, 0.2, 0.08, 0.2))
+	draw_colored_polygon(PackedVector2Array([Vector2(croc_x + 20, 507), Vector2(croc_x + 32, 508), Vector2(croc_x + 20, 512)]), Color(0.15, 0.2, 0.08, 0.2))
+	draw_circle(Vector2(croc_x + 18, 505), 1.5, Color(0.7, 0.6, 0.1, 0.3))
+	var tick := sin(_time * 6.0)
+	if tick > 0.8:
+		draw_circle(Vector2(croc_x, 510), 3.0, Color(0.8, 0.7, 0.2, 0.1))
+	# 3. Tinker Bell (tiny glowing fairy)
+	var tb_x := 600.0 + sin(_time * 1.2) * 50.0
+	var tb_y := 180.0 + cos(_time * 0.9) * 30.0
+	var tb_glow := 0.3 + 0.15 * sin(_time * 4.0)
+	draw_circle(Vector2(tb_x, tb_y), 2.0, Color(0.9, 0.9, 0.3, tb_glow))
+	draw_circle(Vector2(tb_x, tb_y), 6.0, Color(0.8, 0.8, 0.2, tb_glow * 0.25))
+	for pd in range(6):
+		var pdx := tb_x - cos(_time * 1.2 - float(pd) * 0.3) * 50.0
+		var pdy := tb_y + float(pd) * 5.0 - cos(_time * 0.9 - float(pd) * 0.3) * 30.0
+		draw_circle(Vector2(pdx, pdy + float(pd) * 2.0), 1.0, Color(0.9, 0.85, 0.3, tb_glow * (0.3 - float(pd) * 0.04)))
+	# 4. Lost Boys' hideout entrance (tree stump)
+	var lb_x := 450.0 + float(ch) * 20.0
+	draw_rect(Rect2(lb_x - 10, 485, 20, 20), Color(0.12, 0.07, 0.03, 0.3))
+	draw_circle(Vector2(lb_x, 495), 12.0, Color(0.1, 0.06, 0.02, 0.3))
+	draw_arc(Vector2(lb_x, 500), 6.0, PI, TAU, 8, Color(0.08, 0.04, 0.02, 0.25), 5.0)
+	# 5. Captain Hook's hook (gleaming)
+	var hk_gleam := 0.2 + 0.1 * sin(_time * 2.0)
+	draw_arc(Vector2(1100, 490 + float(ch) * 5.0), 5.0, 0.5, PI + 0.5, 8, Color(0.5, 0.5, 0.55, hk_gleam), 2.0)
+	draw_line(Vector2(1100, 485 + float(ch) * 5.0), Vector2(1100, 475 + float(ch) * 5.0), Color(0.5, 0.5, 0.55, hk_gleam), 2.0)
+	# 6. Skull Rock
+	var sr_x := 1050.0 - float(ch) * 30.0
+	draw_circle(Vector2(sr_x, 430), 18.0, Color(0.12, 0.1, 0.08, 0.25))
+	draw_colored_polygon(PackedVector2Array([Vector2(sr_x - 15, 440), Vector2(sr_x + 15, 440), Vector2(sr_x + 10, 452), Vector2(sr_x - 10, 452)]), Color(0.12, 0.1, 0.08, 0.25))
+	draw_circle(Vector2(sr_x - 5, 428), 3.0, Color(0.03, 0.02, 0.02, 0.3))
+	draw_circle(Vector2(sr_x + 5, 428), 3.0, Color(0.03, 0.02, 0.02, 0.3))
+	# 7. Wendy's thimble ("kiss")
+	draw_circle(Vector2(750 + float(ch) * 15.0, 512), 2.5, Color(0.5, 0.5, 0.55, 0.2))
+	var th_shine := 0.15 + 0.1 * sin(_time * 2.5)
+	draw_circle(Vector2(749 + float(ch) * 15.0, 511), 1.0, Color(0.7, 0.7, 0.75, th_shine))
+	# 8. Mermaid tails splashing
+	for mt in range(2):
+		var mx := 300.0 + float(mt) * 100.0 + float(ch) * 20.0
+		var splash_t := fmod(_time * 0.4 + float(mt) * 1.5, 4.0)
+		if splash_t < 1.0:
+			var tail_y := 508 - splash_t * 15.0
+			draw_colored_polygon(PackedVector2Array([Vector2(mx - 5, 508), Vector2(mx, tail_y), Vector2(mx + 5, 508)]), Color(0.2, 0.5, 0.5, 0.2 * (1.0 - splash_t)))
+	# 9. Never Bird's nest (floating)
+	var nb_x := 800.0 + sin(_time * 0.4) * 10.0
+	draw_circle(Vector2(nb_x, 510), 8.0, Color(0.2, 0.15, 0.05, 0.2))
+	draw_circle(Vector2(nb_x - 2, 507), 2.0, Color(0.7, 0.7, 0.65, 0.15))
+	draw_circle(Vector2(nb_x + 2, 507), 2.0, Color(0.7, 0.7, 0.65, 0.15))
+	# 10. Darling nursery window (distant warm glow)
+	var nw_y := 150.0 + float(ch) * 15.0
+	var nw_glow := 0.12 + 0.06 * sin(_time * 0.8)
+	draw_rect(Rect2(92, nw_y - 10, 16, 20), Color(0.7, 0.55, 0.15, nw_glow))
+	draw_line(Vector2(100, nw_y - 10), Vector2(100, nw_y + 10), Color(0.15, 0.1, 0.08, nw_glow * 2.0), 1.0)
+	draw_line(Vector2(92, nw_y), Vector2(108, nw_y), Color(0.15, 0.1, 0.08, nw_glow * 2.0), 1.0)
+	draw_rect(Rect2(82, nw_y - 12, 4, 24), Color(0.3, 0.15, 0.15, nw_glow * 0.8))
+	draw_rect(Rect2(114, nw_y - 12, 4, 24), Color(0.3, 0.15, 0.15, nw_glow * 0.8))
+
+func _draw_phantom_novel(ch: int) -> void:
+	# From Gaston Leroux's "The Phantom of the Opera"
+	# 1. Opera chandelier (the famous falling chandelier)
+	var chand_x := 640.0
+	var chand_y := 100.0 + float(ch) * 10.0
+	var chand_sway := sin(_time * 0.5) * 3.0
+	draw_line(Vector2(chand_x, 50), Vector2(chand_x + chand_sway, chand_y), Color(0.5, 0.45, 0.2, 0.2), 1.5)
+	draw_arc(Vector2(chand_x + chand_sway, chand_y), 20.0, 0, PI, 16, Color(0.6, 0.5, 0.2, 0.2), 2.0)
+	for cd in range(7):
+		var cdx := chand_x + chand_sway - 18.0 + float(cd) * 6.0
+		var cdy := chand_y + 3.0 + sin(float(cd) * 1.5) * 3.0
+		var sparkle := 0.15 + 0.1 * sin(_time * 3.0 + float(cd) * 1.2)
+		draw_line(Vector2(cdx, chand_y), Vector2(cdx, cdy + 5), Color(0.6, 0.55, 0.3, sparkle), 0.5)
+		draw_circle(Vector2(cdx, cdy + 6), 1.0, Color(0.8, 0.75, 0.4, sparkle * 1.3))
+	for cn in range(5):
+		var cnx := chand_x + chand_sway - 12.0 + float(cn) * 6.0
+		var flicker := 0.3 + 0.2 * sin(_time * 6.0 + float(cn) * 2.0)
+		draw_circle(Vector2(cnx, chand_y - 3), 2.0, Color(0.9, 0.7, 0.2, flicker))
+	# 2. Phantom's white half-mask
+	var mask_x := 100.0 + float(ch) * 40.0
+	var mask_a := 0.15 + 0.05 * sin(_time * 0.6)
+	draw_arc(Vector2(mask_x, 400), 8.0, PI, TAU, 12, Color(0.85, 0.82, 0.78, mask_a), 8.0)
+	draw_circle(Vector2(mask_x + 3, 398), 2.0, Color(0.03, 0.02, 0.02, mask_a * 1.5))
+	# 3. Underground lake with boat
+	for lw in range(10):
+		var lwx := float(lw) * 130.0
+		var lwy := 510.0 - float(ch) * 5.0 + sin(_time * 0.5 + float(lw) * 0.8) * 2.0
+		draw_rect(Rect2(lwx, lwy, 128, 3), Color(0.05, 0.08, 0.12, 0.12))
+	var boat_x := 800.0 + sin(_time * 0.2) * 15.0
+	draw_colored_polygon(PackedVector2Array([Vector2(boat_x - 12, 510 - float(ch) * 5.0), Vector2(boat_x - 15, 506 - float(ch) * 5.0), Vector2(boat_x + 15, 506 - float(ch) * 5.0), Vector2(boat_x + 12, 510 - float(ch) * 5.0)]), Color(0.1, 0.07, 0.04, 0.2))
+	# 4. Pipe organ
+	var org_x := 1100.0
+	var org_y := 380.0 + float(ch) * 10.0
+	for op in range(7):
+		var ph := 30.0 + sin(float(op) * 1.5) * 15.0
+		draw_rect(Rect2(org_x - 18.0 + float(op) * 6.0, org_y - ph, 4, ph), Color(0.25, 0.2, 0.15, 0.2))
+	draw_rect(Rect2(org_x - 20, org_y, 40, 5), Color(0.15, 0.1, 0.06, 0.25))
+	# 5. Red rose with black ribbon (Erik's signature)
+	var rose_x := 500.0 + float(ch) * 30.0
+	draw_line(Vector2(rose_x, 510), Vector2(rose_x, 497), Color(0.1, 0.25, 0.08, 0.3), 1.5)
+	draw_circle(Vector2(rose_x, 495), 4.0, Color(0.7, 0.08, 0.1, 0.3))
+	draw_circle(Vector2(rose_x, 495), 2.5, Color(0.6, 0.05, 0.08, 0.35))
+	draw_line(Vector2(rose_x - 3, 502), Vector2(rose_x + 8, 505), Color(0.03, 0.02, 0.02, 0.25), 1.5)
+	# 6. Box Five (Phantom's private box)
+	var bx_x := 350.0 + float(ch) * 20.0
+	draw_rect(Rect2(bx_x, 380, 30, 20), Color(0.15, 0.04, 0.04, 0.15))
+	draw_rect(Rect2(bx_x + 3, 385, 10, 10), Color(0.4, 0.08, 0.08, 0.2))
+	draw_rect(Rect2(bx_x + 17, 385, 10, 10), Color(0.4, 0.08, 0.08, 0.2))
+	draw_line(Vector2(bx_x, 398), Vector2(bx_x + 30, 398), Color(0.5, 0.4, 0.15, 0.15), 1.5)
+	# 7. Trapdoor (the Phantom's escape routes)
+	var td_x := 700.0 - float(ch) * 20.0
+	draw_rect(Rect2(td_x - 10, 512, 20, 4), Color(0.08, 0.06, 0.04, 0.3))
+	draw_rect(Rect2(td_x - 8, 510, 16, 4), Color(0.02, 0.01, 0.02, 0.35))
+	# 8. Christine's mirror (two-way mirror to lair)
+	draw_rect(Rect2(238, 390 - float(ch) * 10.0, 24, 36), Color(0.4, 0.3, 0.15, 0.2))
+	draw_rect(Rect2(240, 392 - float(ch) * 10.0, 20, 32), Color(0.15, 0.18, 0.22, 0.15))
+	var ghost_a := 0.06 + 0.03 * sin(_time * 0.8)
+	draw_circle(Vector2(250, 400 - float(ch) * 10.0), 3.0, Color(0.5, 0.45, 0.4, ghost_a))
+	# 9. Punjab lasso (coiled rope)
+	var ls_x := 600.0 + float(ch) * 25.0
+	for lp in range(3):
+		draw_arc(Vector2(ls_x, 508), 4.0 + float(lp) * 2.5, 0, TAU, 12, Color(0.25, 0.18, 0.08, 0.15), 1.5)
+	# 10. Opera stage curtains (red velvet at edges)
+	for cy in range(8):
+		var cw := 30.0 - float(cy) * 2.0
+		draw_rect(Rect2(0, 50.0 + float(cy) * 55.0, cw, 55), Color(0.4, 0.05, 0.05, 0.08))
+		draw_rect(Rect2(1280.0 - cw, 50.0 + float(cy) * 55.0, cw, 55), Color(0.4, 0.05, 0.05, 0.08))
+
+func _draw_scrooge_novel(ch: int) -> void:
+	# From Charles Dickens' "A Christmas Carol"
+	# 1. Marley's door knocker (face appearing)
+	var dk_x := 80.0 + float(ch) * 20.0
+	draw_rect(Rect2(dk_x - 15, 410, 30, 50), Color(0.08, 0.05, 0.03, 0.3))
+	var face_pulse := 0.15 + 0.1 * sin(_time * 0.8)
+	draw_arc(Vector2(dk_x, 430), 5.0, 0, TAU, 12, Color(0.6, 0.5, 0.15, face_pulse), 2.0)
+	draw_circle(Vector2(dk_x, 422), 5.0, Color(0.4, 0.5, 0.45, face_pulse * 0.5))
+	draw_circle(Vector2(dk_x - 2, 421), 1.0, Color(0.1, 0.15, 0.12, face_pulse * 0.7))
+	draw_circle(Vector2(dk_x + 2, 421), 1.0, Color(0.1, 0.15, 0.12, face_pulse * 0.7))
+	# 2. Marley's chains (heavy iron links)
+	for cl in range(8):
+		var cx := 150.0 + float(cl) * 15.0
+		var cy := 500.0 + sin(_time * 0.5 + float(cl) * 0.4) * 3.0
+		draw_arc(Vector2(cx, cy), 3.0, 0, TAU, 8, Color(0.3, 0.28, 0.25, 0.15), 1.5)
+	draw_rect(Rect2(265, 498, 6, 5), Color(0.25, 0.22, 0.15, 0.15))
+	# 3. Counting house desk with candle
+	var desk_x := 1050.0 - float(ch) * 30.0
+	draw_rect(Rect2(desk_x, 470, 50, 6), Color(0.12, 0.07, 0.03, 0.3))
+	draw_rect(Rect2(desk_x + 5, 476, 5, 30), Color(0.1, 0.06, 0.03, 0.25))
+	draw_rect(Rect2(desk_x + 40, 476, 5, 30), Color(0.1, 0.06, 0.03, 0.25))
+	draw_rect(Rect2(desk_x + 20, 458, 3, 12), Color(0.7, 0.65, 0.5, 0.25))
+	var candle_flicker := 0.4 + 0.2 * sin(_time * 5.0)
+	draw_circle(Vector2(desk_x + 21, 456), 3.0, Color(0.9, 0.7, 0.2, candle_flicker))
+	draw_circle(Vector2(desk_x + 21, 456), 8.0, Color(0.8, 0.5, 0.1, candle_flicker * 0.15))
+	draw_rect(Rect2(desk_x + 28, 466, 12, 4), Color(0.15, 0.08, 0.04, 0.2))
+	# 4. Tiny Tim's crutch
+	var tc_x := 400.0 + float(ch) * 30.0
+	draw_line(Vector2(tc_x, 510), Vector2(tc_x + 5, 475), Color(0.3, 0.2, 0.08, 0.2), 2.0)
+	draw_line(Vector2(tc_x + 3, 480), Vector2(tc_x + 12, 478), Color(0.3, 0.2, 0.08, 0.2), 2.0)
+	# 5. Ghost of Christmas Past (candle-flame figure)
+	var gp_x := 300.0 - float(ch) * 30.0
+	var gp_glow := 0.1 + 0.06 * sin(_time * 1.5)
+	draw_circle(Vector2(gp_x, 335), 4.0, Color(0.9, 0.8, 0.4, gp_glow))
+	draw_colored_polygon(PackedVector2Array([Vector2(gp_x - 5, 340), Vector2(gp_x + 5, 340), Vector2(gp_x + 3, 365), Vector2(gp_x - 3, 365)]), Color(0.8, 0.7, 0.3, gp_glow * 0.8))
+	draw_circle(Vector2(gp_x, 335), 15.0, Color(0.9, 0.85, 0.5, gp_glow * 0.2))
+	# 6. Ghost of Christmas Present (holly wreath, ch2/3)
+	if ch >= 2:
+		var gpr_x := 550.0
+		var gpr_a := 0.1 + 0.04 * sin(_time * 1.0)
+		draw_circle(Vector2(gpr_x, 355), 8.0, Color(0.3, 0.5, 0.2, gpr_a))
+		draw_rect(Rect2(gpr_x - 10, 363, 20, 25), Color(0.25, 0.45, 0.15, gpr_a))
+		draw_circle(Vector2(gpr_x + 12, 360), 5.0, Color(0.15, 0.35, 0.1, gpr_a))
+		draw_circle(Vector2(gpr_x + 12, 360), 2.0, Color(0.6, 0.1, 0.08, gpr_a))
+	# 7. Ghost of Christmas Yet to Come (ch3 only)
+	if ch == 3:
+		var gf_a := 0.1 + 0.04 * sin(_time * 0.6)
+		draw_colored_polygon(PackedVector2Array([Vector2(892, 320), Vector2(908, 320), Vector2(912, 360), Vector2(888, 360)]), Color(0.02, 0.02, 0.03, gf_a))
+		draw_circle(Vector2(900, 318), 8.0, Color(0.02, 0.02, 0.03, gf_a))
+		draw_line(Vector2(908, 335), Vector2(925, 330), Color(0.3, 0.28, 0.22, gf_a), 1.5)
+	# 8. Clock striking twelve
+	var clk_x := 700.0 + float(ch) * 25.0
+	draw_circle(Vector2(clk_x, 380), 12.0, Color(0.12, 0.08, 0.05, 0.2))
+	draw_circle(Vector2(clk_x, 380), 10.0, Color(0.15, 0.1, 0.06, 0.15))
+	for hr in range(12):
+		var ha := float(hr) * TAU / 12.0 - PI / 2.0
+		draw_circle(Vector2(clk_x + cos(ha) * 8.0, 380 + sin(ha) * 8.0), 0.8, Color(0.5, 0.4, 0.15, 0.15))
+	draw_line(Vector2(clk_x, 380), Vector2(clk_x, 373), Color(0.4, 0.3, 0.1, 0.2), 1.0)
+	draw_line(Vector2(clk_x, 380), Vector2(clk_x, 375), Color(0.4, 0.3, 0.1, 0.2), 1.5)
+	# 9. Snow falling
+	for sn in range(15):
+		var snx := fmod(float(sn) * 97.0, 1280.0)
+		var sny := fmod(_time * 20.0 + float(sn) * 50.0, 600.0) + 50.0
+		draw_circle(Vector2(snx + sin(_time * 0.5 + float(sn)) * 10.0, sny), 1.5, Color(0.7, 0.72, 0.75, 0.12))
+	# 10. Scrooge's gravestone (ch2/3)
+	if ch >= 2:
+		draw_rect(Rect2(1140, 490, 20, 25), Color(0.08, 0.07, 0.06, 0.2))
+		draw_arc(Vector2(1150, 490), 10.0, PI, TAU, 8, Color(0.08, 0.07, 0.06, 0.2), 10.0)
+		var text_a := 0.06 + 0.03 * sin(_time * 0.5)
+		draw_rect(Rect2(1144, 495, 12, 2), Color(0.15, 0.13, 0.1, text_a))
+
+
+
+# === BATTD: GEAR FUSION FORGE ===
+func _can_fuse_gear(rarity: String) -> bool:
+	var next_rarity = {"tattered": "bound", "bound": "gilded", "gilded": "mythic", "mythic": "forbidden"}
+	if not next_rarity.has(rarity):
+		return false
+	var count = 0
+	for bid in owned_bindings:
+		var bdata = _find_binding(bid)
+		if bdata.get("rarity", "") == rarity:
+			count += 1
+	return count >= 3
+
+func _perform_gear_fusion(rarity: String) -> Dictionary:
+	var next_rarity_map = {"tattered": "bound", "bound": "gilded", "gilded": "mythic", "mythic": "forbidden"}
+	if not next_rarity_map.has(rarity):
+		return {}
+	var target_rarity = next_rarity_map[rarity]
+	# Find 3 gear of this rarity
+	var to_consume: Array = []
+	for bid in owned_bindings:
+		if to_consume.size() >= 3:
+			break
+		var bdata = _find_binding(bid)
+		if bdata.get("rarity", "") == rarity:
+			# Don't consume equipped gear
+			var is_equipped = false
+			for t in equipped_bindings:
+				if bid in equipped_bindings[t]:
+					is_equipped = true
+					break
+			if not is_equipped:
+				to_consume.append(bid)
+	if to_consume.size() < 3:
+		return {}
+	# Remove consumed gear
+	for bid in to_consume:
+		owned_bindings.erase(bid)
+	# Pick random gear of next rarity
+	var candidates: Array = []
+	for bdef in TOME_BINDINGS:
+		if bdef.get("rarity", "") == target_rarity:
+			candidates.append(bdef)
+	if candidates.is_empty():
+		return {}
+	# Wish list boost: 50% chance to pick from wish list if applicable
+	var picked = candidates[randi() % candidates.size()]
+	if gear_wish_list.size() > 0 and randf() < 0.5:
+		var wish_candidates: Array = []
+		for c in candidates:
+			if c.get("effect", "") in gear_wish_list or c.get("character", "") in gear_wish_list:
+				wish_candidates.append(c)
+		if wish_candidates.size() > 0:
+			picked = wish_candidates[randi() % wish_candidates.size()]
+	owned_bindings.append(picked["id"])
+	_save_game()
+	return picked
+
+# === BATTD: BOSS HEALTH BAR ===
+func _update_boss_health_bar() -> void:
+	_active_boss_node = null
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and "boss_scale" in enemy and enemy.boss_scale > 1.0:
+			if "health" in enemy and enemy.health > 0:
+				_active_boss_node = enemy
+				_boss_hp_bar_timer = 0.3
+				break
+
+func _draw_boss_health_bar() -> void:
+	if not is_instance_valid(_active_boss_node):
+		return
+	if not "health" in _active_boss_node or not "max_health" in _active_boss_node:
+		return
+	var hp = _active_boss_node.health
+	var max_hp = _active_boss_node.max_health
+	if hp <= 0 or max_hp <= 0:
+		return
+	var bar_x = 340.0
+	var bar_y = 58.0
+	var bar_w = 600.0
+	var bar_h = 18.0
+	var pct = clampf(float(hp) / float(max_hp), 0.0, 1.0)
+	# Background
+	draw_rect(Rect2(bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4), Color(0.7, 0.15, 0.1, 0.8))
+	draw_rect(Rect2(bar_x, bar_y, bar_w, bar_h), Color(0.05, 0.02, 0.05, 0.9))
+	# HP fill (red to yellow gradient based on HP)
+	var fill_col = Color(0.9, 0.15, 0.1) if pct < 0.3 else (Color(0.9, 0.6, 0.1) if pct < 0.6 else Color(0.7, 0.15, 0.4))
+	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, bar_h), fill_col)
+	# Shimmer
+	var shimmer_x = bar_x + fmod(_time * 120.0, bar_w)
+	if shimmer_x < bar_x + bar_w * pct:
+		draw_rect(Rect2(shimmer_x, bar_y, 3, bar_h), Color(1.0, 1.0, 1.0, 0.15))
+	# HP text
+	var hp_text = "%s / %s" % [_format_number(hp), _format_number(max_hp)]
+	_udraw(game_font, Vector2(640, bar_y + 14), hp_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(1.0, 0.95, 0.9, 0.9))
+	# Boss name
+	_udraw(game_font, Vector2(640, bar_y - 4), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 0.7, 0.3, 0.8))
+
+# === BATTD: ENEMY KILL COUNTER ===
+func _draw_kill_counter() -> void:
+	if not is_wave_active:
+		return
+	var total = _wave_enemies_total
+	if total <= 0:
+		return
+	var killed = _wave_enemies_killed
+	var text = "%d / %d" % [killed, total]
+	var pct = clampf(float(killed) / float(total), 0.0, 1.0)
+	var col = Color(0.7, 0.85, 1.0, 0.7)
+	if pct > 0.8:
+		col = Color(0.3, 1.0, 0.4, 0.8)
+	_udraw(game_font, Vector2(640, 695), text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, col)
+
+# === BATTD: INCOME BREAKDOWN ===
+func _draw_income_breakdown() -> void:
+	if _income_display_timer <= 0.0:
+		return
+	var alpha = clampf(_income_display_timer / 1.0, 0.0, 1.0)
+	var ix = 400.0
+	var iy = 130.0
+	draw_rect(Rect2(ix, iy, 480, 70), Color(0.03, 0.02, 0.06, 0.85 * alpha))
+	draw_rect(Rect2(ix, iy, 480, 70), Color(0.7, 0.55, 0.2, 0.4 * alpha), false, 1.0)
+	var font = game_font
+	_udraw(font, Vector2(640, iy + 16), "INCOME BREAKDOWN", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(1.0, 0.85, 0.3, alpha))
+	var parts: Array = []
+	if _income_breakdown.get("wave_bonus", 0) > 0:
+		parts.append("Wave: +%dG" % _income_breakdown["wave_bonus"])
+	if _income_breakdown.get("early_send", 0) > 0:
+		parts.append("Rush: +%dG" % _income_breakdown["early_send"])
+	if _income_breakdown.get("combo", 0) > 0:
+		parts.append("Combo: +%dG" % _income_breakdown["combo"])
+	if _income_breakdown.get("lucky", 0) > 0:
+		parts.append("Lucky: +%d" % _income_breakdown["lucky"])
+	if _wave_rush_bonus > 0:
+		parts.append("Speed: +%dG" % _wave_rush_bonus)
+	var info = " | ".join(parts) if parts.size() > 0 else "No bonus income"
+	_udraw(font, Vector2(640, iy + 38), info, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.85, 0.8, 0.7, alpha))
+
+# === BATTD: TOWER SYNERGY AURA VISUALS ===
+func _draw_synergy_auras() -> void:
+	if active_synergies.is_empty():
+		return
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower):
+			continue
+		var tpos = tower.global_position
+		var pulse = (sin(_time * 3.0 + tpos.x * 0.01) + 1.0) * 0.5
+		var aura_alpha = 0.06 + pulse * 0.04
+		# Draw a subtle glowing ring
+		var r = 45.0 + pulse * 5.0
+		draw_arc(tpos, r, 0, TAU, 32, Color(0.6, 0.3, 1.0, aura_alpha), 2.0)
+		draw_arc(tpos, r + 3, 0, TAU, 32, Color(0.8, 0.5, 1.0, aura_alpha * 0.5), 1.0)
+
+# === BATTD: TOWER BUFF ICONS ===
+func _draw_tower_buff_icons() -> void:
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower):
+			continue
+		var tpos = tower.global_position
+		var icon_x = tpos.x - 16.0
+		var icon_y = tpos.y + 22.0
+		var icon_count = 0
+		# Show upgrade tier as small stars
+		var tier = tower.upgrade_tier if "upgrade_tier" in tower else 0
+		if tier > 0:
+			for si in range(mini(tier, 4)):
+				draw_circle(Vector2(icon_x + si * 8, icon_y), 3.0, Color(1.0, 0.85, 0.2, 0.7))
+			icon_count += 1
+		# Show if tower has active ability ready
+		if "active_ability_ready" in tower and tower.active_ability_ready:
+			var ay = icon_y + (icon_count * 10)
+			draw_circle(Vector2(tpos.x, ay), 4.0, Color(0.2, 0.8, 1.0, 0.5 + sin(_time * 4.0) * 0.3))
+
+# === BATTD: MAP COLLECTIBLES ===
+func _generate_map_collectibles() -> void:
+	_map_collectibles.clear()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = current_level * 12345 + 67890
+	for i in range(MAX_MAP_COLLECTIBLES):
+		var cx = rng.randf_range(80.0, 1200.0)
+		var cy = rng.randf_range(100.0, 600.0)
+		# Avoid placing too close to path
+		var too_close = false
+		for pp in path_points:
+			if Vector2(cx, cy).distance_to(pp) < 50.0:
+				too_close = true
+				break
+		if too_close:
+			cx = rng.randf_range(80.0, 1200.0)
+			cy = rng.randf_range(100.0, 600.0)
+		var reward_type = ["gold", "shards", "quills"][i % 3]
+		var reward_amount = [15, 3, 2][i % 3]
+		_map_collectibles.append({
+			"pos": Vector2(cx, cy),
+			"collected": false,
+			"reward_type": reward_type,
+			"reward_amount": reward_amount,
+			"pulse_offset": rng.randf() * TAU,
+		})
+
+func _draw_map_collectibles() -> void:
+	for mc in _map_collectibles:
+		if mc["collected"]:
+			continue
+		var pos = mc["pos"]
+		var pulse = (sin(_time * 2.5 + mc["pulse_offset"]) + 1.0) * 0.5
+		var r = 8.0 + pulse * 3.0
+		# Glowing orb
+		draw_circle(pos, r + 6, Color(1.0, 0.85, 0.3, 0.08 + pulse * 0.05))
+		draw_circle(pos, r, Color(1.0, 0.9, 0.4, 0.5 + pulse * 0.3))
+		draw_circle(pos, r * 0.5, Color(1.0, 1.0, 0.8, 0.8))
+		# Sparkle
+		var spark_a = _time * 3.0 + mc["pulse_offset"]
+		for s in range(3):
+			var sa = spark_a + s * TAU / 3.0
+			var sx = pos.x + cos(sa) * (r + 4.0)
+			var sy = pos.y + sin(sa) * (r + 4.0)
+			draw_circle(Vector2(sx, sy), 1.5, Color(1.0, 1.0, 0.6, 0.6))
+
+func _check_collectible_click(mouse_pos: Vector2) -> bool:
+	for mc in _map_collectibles:
+		if mc["collected"]:
+			continue
+		if mouse_pos.distance_to(mc["pos"]) < 25.0:
+			mc["collected"] = true
+			_collectibles_found_this_game += 1
+			if mc["reward_type"] == "gold":
+				add_gold(mc["reward_amount"])
+				spawn_floating_text(mc["pos"], "+%dG" % mc["reward_amount"], Color(1.0, 0.85, 0.2), 16.0, 1.2)
+			elif mc["reward_type"] == "shards":
+				player_relic_shards += mc["reward_amount"]
+				spawn_floating_text(mc["pos"], "+%d Shards" % mc["reward_amount"], Color(0.6, 0.4, 1.0), 16.0, 1.2)
+			elif mc["reward_type"] == "quills":
+				player_quills += mc["reward_amount"]
+				spawn_floating_text(mc["pos"], "+%d Quills" % mc["reward_amount"], Color(0.2, 0.8, 0.6), 16.0, 1.2)
+			return true
+	return false
+
+# === BATTD: BOUNTY BOARD ===
+func _generate_bounties() -> void:
+	_active_bounties.clear()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = int(_time * 1000) + current_level
+	var bounty_pool = [
+		{"desc": "Defeat %d enemies", "kill_type": "any", "target_range": [10, 30], "reward_type": "gold", "reward_range": [20, 50]},
+		{"desc": "Defeat %d elite enemies", "kill_type": "tier2", "target_range": [3, 8], "reward_type": "shards", "reward_range": [3, 8]},
+		{"desc": "Defeat %d champion enemies", "kill_type": "tier3", "target_range": [2, 5], "reward_type": "quills", "reward_range": [2, 5]},
+		{"desc": "Defeat a boss", "kill_type": "boss", "target_range": [1, 1], "reward_type": "shards", "reward_range": [5, 12]},
+	]
+	# Pick 2 random bounties
+	bounty_pool.shuffle()
+	for i in range(mini(2, bounty_pool.size())):
+		var bp = bounty_pool[i]
+		var target = rng.randi_range(bp["target_range"][0], bp["target_range"][1])
+		var reward = rng.randi_range(bp["reward_range"][0], bp["reward_range"][1])
+		_active_bounties.append({
+			"desc": bp["desc"] % target if bp["desc"].find("%d") >= 0 else bp["desc"],
+			"kill_type": bp["kill_type"],
+			"target": target,
+			"progress": 0,
+			"reward_type": bp["reward_type"],
+			"reward_amount": reward,
+		})
+
+func _draw_bounty_board() -> void:
+	if _active_bounties.is_empty():
+		return
+	var bx = 4.0
+	var by = 420.0
+	var font = game_font
+	_udraw(font, Vector2(bx + 2, by), "BOUNTIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.7, 0.2, 0.6))
+	by += 14.0
+	for bounty in _active_bounties:
+		var done = bounty["progress"] >= bounty["target"]
+		var col = Color(0.3, 1.0, 0.4, 0.7) if done else Color(0.8, 0.75, 0.65, 0.5)
+		var status = "DONE" if done else "%d/%d" % [bounty["progress"], bounty["target"]]
+		var text = "%s [%s]" % [bounty["desc"], status]
+		_udraw(font, Vector2(bx + 2, by), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, col)
+		by += 12.0
+
+# === BATTD: GEAR AUTO-EQUIP ===
+func _auto_equip_best_gear(tower_type) -> int:
+	if not survivor_progress.has(tower_type):
+		return 0
+	var max_slots = _get_binding_slots(tower_type)
+	var current_equipped = equipped_bindings.get(tower_type, []).duplicate()
+	# Get all owned unequipped gear
+	var available: Array = []
+	for bid in owned_bindings:
+		var is_eq = false
+		for t in equipped_bindings:
+			if bid in equipped_bindings[t]:
+				is_eq = true
+				break
+		if not is_eq:
+			available.append(bid)
+	# Also include currently equipped on this tower
+	for bid in current_equipped:
+		available.append(bid)
+	# Score each piece of gear
+	var scored: Array = []
+	var rarity_scores = {"tattered": 1, "bound": 2, "gilded": 3, "mythic": 4, "forbidden": 5}
+	for bid in available:
+		var bdata = _find_binding(bid)
+		if bdata.is_empty():
+			continue
+		var score = rarity_scores.get(bdata.get("rarity", "tattered"), 1)
+		# Bonus for character-specific gear
+		var char_name = ""
+		var tower_names_map = {TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice", TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan", TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge", TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin", TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author"}
+		char_name = tower_names_map.get(tower_type, "")
+		if bdata.get("character", "") == char_name:
+			score += 2  # Prefer character gear for set bonus
+		scored.append({"id": bid, "score": score})
+	# Sort by score descending
+	scored.sort_custom(func(a, b): return a["score"] > b["score"])
+	# Equip top N
+	equipped_bindings[tower_type] = []
+	var equipped_count = 0
+	for entry in scored:
+		if equipped_count >= max_slots:
+			break
+		equipped_bindings[tower_type].append(entry["id"])
+		equipped_count += 1
+	_save_game()
+	return equipped_count
+
+# === BATTD: CRIT STREAK ===
+func register_crit_hit() -> void:
+	_crit_streak += 1
+	_crit_streak_timer = 3.0
+	if _crit_streak > _crit_streak_best:
+		_crit_streak_best = _crit_streak
+	if _crit_streak >= 3:
+		spawn_floating_text(Vector2(640, 120), "CRIT STREAK x%d!" % _crit_streak, Color(1.0, 0.3, 0.1), 16.0, 0.8)
+
+func get_crit_streak_bonus() -> float:
+	if _crit_streak < 3:
+		return 0.0
+	return clampf(float(_crit_streak - 2) * 0.05, 0.0, 0.50)  # +5% per streak, max +50%
+
+# === BATTD: POST-VICTORY STATS ===
+func _draw_stats_recap() -> void:
+	if not _show_stats_screen or _session_stats.is_empty():
+		return
+	var font = game_font
+	var cx = 640.0
+	var cy = 280.0
+	draw_rect(Rect2(340, 200, 600, 280), Color(0.03, 0.02, 0.06, 0.95))
+	draw_rect(Rect2(340, 200, 600, 280), Color(0.7, 0.55, 0.2, 0.6), false, 2.0)
+	_udraw(font, Vector2(cx, 225), "BATTLE RECAP", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(1.0, 0.85, 0.3))
+	var stats_list = [
+		["Waves Cleared", str(_session_stats.get("waves_cleared", 0))],
+		["Enemies Defeated", str(_session_stats.get("total_kills", 0))],
+		["Gold Earned", str(_session_stats.get("total_gold_earned", 0))],
+		["Lucky Drops", str(_session_stats.get("lucky_drops", 0))],
+		["Bounties Done", str(_session_stats.get("bounties_done", 0))],
+		["Best Combo", str(_session_stats.get("combo_best", 0))],
+		["Early Send Bonus", "+%dG" % _session_stats.get("early_send_total", 0)],
+	]
+	var sy = 250.0
+	for stat in stats_list:
+		_udraw(font, Vector2(400, sy), stat[0] + ":", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.8, 0.75, 0.65))
+		_udraw(font, Vector2(860, sy), stat[1], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(1.0, 0.9, 0.6))
+		sy += 22.0
+	_udraw(font, Vector2(cx, sy + 15), "Tap to continue", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.6, 0.6, 0.6, 0.5 + sin(_time * 3.0) * 0.3))
+
+# === BATTD: GEAR WISH LIST MANAGEMENT ===
+func _toggle_wish_list(effect_type: String) -> void:
+	if effect_type in gear_wish_list:
+		gear_wish_list.erase(effect_type)
+	else:
+		if gear_wish_list.size() >= 3:
+			gear_wish_list.pop_front()
+		gear_wish_list.append(effect_type)
+	_save_game()
+
+
+# === BATTD2: INSTA-TOWERS ===
+func _place_insta_tower(pos: Vector2, insta_idx: int) -> void:
+	if insta_idx < 0 or insta_idx >= insta_towers.size():
+		return
+	if not _is_valid_placement(pos):
+		info_label.text = "Can't place there!"
+		return
+	var insta = insta_towers[insta_idx]
+	var tower_type = insta.get("type", TowerType.ROBIN_HOOD)
+	if not tower_scenes.has(tower_type) and not new_tower_scenes.has(tower_type):
+		return
+	var scene = tower_scenes.get(tower_type, new_tower_scenes.get(tower_type, null))
+	if not scene:
+		return
+	var tower = scene.instantiate()
+	tower.position = pos
+	tower.base_cost = 0
+	tower.set_meta("tower_type_enum", tower_type)
+	towers_node.add_child(tower)
+	_apply_meta_buffs(tower, tower_type)
+	placed_tower_positions.append(pos)
+	# Apply pre-built tier
+	var target_tier = insta.get("tier", 0)
+	for t in range(target_tier):
+		if tower.has_method("purchase_upgrade"):
+			tower.purchase_upgrade()
+	_build_effects.append({"pos": pos, "timer": 0.5, "max_timer": 0.5})
+	spawn_floating_text(pos + Vector2(0, -30), "INSTA-TOWER!", Color(0.3, 1.0, 0.8), 18.0, 1.5)
+	insta_towers.remove_at(insta_idx)
+	_placing_insta = false
+	_insta_index = -1
+	_save_game()
+
+func _award_insta_tower() -> void:
+	var types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH, TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]
+	var t = types[randi() % types.size()]
+	var tier = randi_range(0, 2)  # Tier 0-2
+	insta_towers.append({"type": t, "tier": tier})
+	var tname = tower_info[t]["name"]
+	spawn_floating_text(Vector2(640, 260), "INSTA-TOWER: %s T%d!" % [tname, tier], Color(0.3, 1.0, 0.8), 16.0, 2.0)
+
+# === BATTD2: GEAR ENCHANTING ===
+func _enchant_gear(binding_id: String) -> Dictionary:
+	if player_quills < ENCHANT_COST_QUILLS:
+		return {}
+	var bdata = _find_binding(binding_id)
+	if bdata.is_empty():
+		return {}
+	player_quills -= ENCHANT_COST_QUILLS
+	var effect = ENCHANT_EFFECTS[randi() % ENCHANT_EFFECTS.size()]
+	var bonus_val = randf_range(0.03, 0.08)
+	# Store enchantment as metadata on the binding
+	if not bdata.has("enchant"):
+		bdata["enchant"] = {"effect": effect, "value": bonus_val}
+	_save_game()
+	return {"effect": effect, "value": bonus_val}
+
+# === BATTD2: CHARACTER BONDS ===
+func _check_character_bonds() -> void:
+	_active_bonds.clear()
+	var tower_positions: Dictionary = {}  # TowerType -> Vector2
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower):
+			continue
+		var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
+		var type_map = {"robin_hood.gd": 0, "alice.gd": 1, "wicked_witch.gd": 2, "peter_pan.gd": 3, "phantom.gd": 4, "scrooge.gd": 5, "sherlock.gd": 6, "tarzan.gd": 7, "dracula.gd": 8, "merlin.gd": 9, "frankenstein.gd": 10, "shadow_author.gd": 11}
+		if type_map.has(sp):
+			tower_positions[type_map[sp]] = tower.global_position
+	for pair in BOND_PAIRS:
+		if tower_positions.has(pair[0]) and tower_positions.has(pair[1]):
+			var dist = tower_positions[pair[0]].distance_to(tower_positions[pair[1]])
+			if dist <= BOND_RADIUS:
+				_active_bonds.append({"pair": pair, "bonus": BOND_BONUS})
+
+func _draw_character_bonds() -> void:
+	for bond in _active_bonds:
+		var tower_positions: Dictionary = {}
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if not is_instance_valid(tower):
+				continue
+			var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
+			var type_map = {"robin_hood.gd": 0, "alice.gd": 1, "wicked_witch.gd": 2, "peter_pan.gd": 3, "phantom.gd": 4, "scrooge.gd": 5, "sherlock.gd": 6, "tarzan.gd": 7, "dracula.gd": 8, "merlin.gd": 9, "frankenstein.gd": 10, "shadow_author.gd": 11}
+			if type_map.has(sp):
+				tower_positions[type_map[sp]] = tower.global_position
+		if tower_positions.has(bond["pair"][0]) and tower_positions.has(bond["pair"][1]):
+			var p1 = tower_positions[bond["pair"][0]]
+			var p2 = tower_positions[bond["pair"][1]]
+			var mid = (p1 + p2) * 0.5
+			var pulse = (sin(_time * 2.0) + 1.0) * 0.5
+			draw_line(p1, p2, Color(1.0, 0.7, 0.3, 0.08 + pulse * 0.06), 2.0)
+			draw_circle(mid, 6.0 + pulse * 3.0, Color(1.0, 0.8, 0.3, 0.1 + pulse * 0.05))
+			_udraw(game_font, mid + Vector2(0, -12), "BOND", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(1.0, 0.8, 0.3, 0.4 + pulse * 0.2))
+
+# === BATTD2: MULTI-WAVE RUSH ===
+func _start_multi_wave(count: int) -> void:
+	if is_wave_active:
+		return
+	_multi_wave_active = true
+	_multi_wave_count = count
+	# Double/triple the gold bonus for risk
+	var multi_bonus = 10 * count
+	add_gold(multi_bonus)
+	spawn_floating_text(Vector2(640, 240), "MULTI-WAVE x%d! +%dG" % [count, multi_bonus], Color(1.0, 0.4, 0.1), 20.0, 1.5)
+	_start_next_wave()
+
+# === BATTD2: PATH TRAPS ===
+func _place_path_trap(pos: Vector2, trap_type: int) -> bool:
+	if trap_type < 0 or trap_type >= TRAP_TYPES.size():
+		return false
+	var trap = TRAP_TYPES[trap_type]
+	var cost = trap["cost"]
+	if not spend_gold(cost):
+		info_label.text = "Need %dG for %s!" % [cost, trap["name"]]
+		_insufficient_gold_flash = 1.0
+		return false
+	if _dist_to_path(pos) > 50.0:
+		add_gold(cost)
+		info_label.text = "Must place on the path!"
+		return false
+	_path_traps.append({
+		"pos": pos,
+		"type": trap_type,
+		"uses_left": trap.get("uses", 5),
+		"damage": trap.get("damage", 0.0),
+		"slow": trap.get("slow", 0.0),
+		"duration": trap.get("duration", 0.0),
+		"radius": 40.0,
+	})
+	spawn_floating_text(pos + Vector2(0, -20), trap["name"] + "!", Color(0.8, 0.4, 0.1), 14.0, 1.0)
+	_placing_trap = -1
+	return true
+
+func _process_path_traps() -> void:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy):
+			continue
+		for trap in _path_traps:
+			if trap["uses_left"] <= 0:
+				continue
+			if enemy.global_position.distance_to(trap["pos"]) < trap["radius"]:
+				if trap["damage"] > 0 and enemy.has_method("take_damage"):
+					enemy.take_damage(trap["damage"], "physical")
+					trap["uses_left"] -= 1
+					spawn_damage_number(enemy.global_position, trap["damage"], false)
+				elif trap["slow"] > 0 and "speed_multiplier" in enemy:
+					enemy.speed_multiplier = maxf(enemy.speed_multiplier - trap["slow"], 0.2)
+					trap["uses_left"] -= 1
+	# Remove depleted traps
+	_path_traps = _path_traps.filter(func(t): return t["uses_left"] > 0)
+
+func _draw_path_traps() -> void:
+	for trap in _path_traps:
+		var pos = trap["pos"]
+		var t_type = trap["type"]
+		var alpha = 0.6 + sin(_time * 2.0 + pos.x * 0.01) * 0.2
+		if t_type == 0:  # Spike strip
+			for si in range(5):
+				var sx = pos.x - 12 + si * 6
+				draw_line(Vector2(sx, pos.y), Vector2(sx, pos.y - 6), Color(0.7, 0.7, 0.7, alpha), 1.5)
+		elif t_type == 1:  # Tar pit
+			draw_circle(pos, 15.0, Color(0.15, 0.1, 0.05, alpha * 0.7))
+			draw_circle(pos, 10.0, Color(0.1, 0.08, 0.03, alpha * 0.9))
+		elif t_type == 2:  # Fire mine
+			draw_circle(pos, 8.0, Color(0.9, 0.3, 0.1, alpha * 0.5))
+			draw_circle(pos, 4.0, Color(1.0, 0.6, 0.2, alpha))
+		# Uses remaining
+		_udraw(game_font, pos + Vector2(0, 10), str(trap["uses_left"]), HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(1.0, 1.0, 1.0, 0.5))
+
+# === BATTD2: TOWER SACRIFICE ===
+func _sacrifice_tower(source: Node2D, target: Node2D) -> void:
+	if not is_instance_valid(source) or not is_instance_valid(target):
+		return
+	if source == target:
+		return
+	# Grant +15% permanent damage buff to target
+	if "bonus_damage_mult" in target:
+		target.bonus_damage_mult += 0.15
+	elif target.has_method("set_meta"):
+		var current = target.get_meta("sacrifice_bonus", 0.0)
+		target.set_meta("sacrifice_bonus", current + 0.15)
+	# Sell source for 0 gold (sacrifice = no refund)
+	var src_pos = source.global_position
+	var idx = placed_tower_positions.find(src_pos)
+	if idx >= 0:
+		placed_tower_positions.remove_at(idx)
+	source.queue_free()
+	spawn_floating_text(target.global_position + Vector2(0, -30), "SACRIFICE +15%!", Color(1.0, 0.3, 0.8), 18.0, 1.5)
+	_sacrifice_mode = false
+	_sacrifice_source = null
+	_deselect_tower()
+
+# === BATTD2: ENEMY INTEL ===
+func _show_enemy_intel(enemy: Node2D) -> void:
+	_intel_target = enemy
+	_intel_timer = 4.0
+
+func _draw_enemy_intel() -> void:
+	if not is_instance_valid(_intel_target) or _intel_timer <= 0.0:
+		return
+	var enemy = _intel_target
+	var pos = enemy.global_position
+	var alpha = clampf(_intel_timer / 1.0, 0.0, 1.0)
+	var px = pos.x + 30.0
+	var py = pos.y - 60.0
+	if px + 140.0 > 1260.0:
+		px = pos.x - 170.0
+	draw_rect(Rect2(px - 2, py - 2, 144, 72), Color(0.7, 0.15, 0.1, 0.6 * alpha))
+	draw_rect(Rect2(px, py, 140, 68), Color(0.05, 0.03, 0.06, 0.9 * alpha))
+	var hp = enemy.health if "health" in enemy else 0
+	var max_hp = enemy.max_health if "max_health" in enemy else 1
+	var spd = enemy.speed if "speed" in enemy else 0
+	var tier = enemy.enemy_tier if "enemy_tier" in enemy else 0
+	var is_boss = enemy.boss_scale > 1.0 if "boss_scale" in enemy else false
+	var y = py + 14.0
+	var font = game_font
+	_udraw(font, Vector2(px + 4, y), "HP: %s/%s" % [_format_number(hp), _format_number(max_hp)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 0.4, 0.3, alpha))
+	y += 14.0
+	_udraw(font, Vector2(px + 4, y), "SPD: %.0f" % spd, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.3, 0.8, 1.0, alpha))
+	y += 14.0
+	_udraw(font, Vector2(px + 4, y), "TIER: %d" % tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.8, 0.5, alpha))
+	y += 14.0
+	if is_boss:
+		_udraw(font, Vector2(px + 4, y), "BOSS", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 0.3, 0.1, alpha))
+	# HP bar on enemy
+	var bar_w = 30.0
+	var pct = clampf(float(hp) / float(max(1, max_hp)), 0.0, 1.0)
+	draw_rect(Rect2(pos.x - bar_w * 0.5, pos.y - 20, bar_w, 4), Color(0.2, 0.2, 0.2, alpha * 0.8))
+	draw_rect(Rect2(pos.x - bar_w * 0.5, pos.y - 20, bar_w * pct, 4), Color(0.9, 0.2, 0.1, alpha))
+
+# === BATTD2: WAVE BLESSING ===
+func _activate_blessing(blessing_idx: int) -> bool:
+	if blessing_idx < 0 or blessing_idx >= BLESSING_OPTIONS.size():
+		return false
+	if not spend_gold(BLESSING_COST):
+		info_label.text = "Need %dG for blessing!" % BLESSING_COST
+		_insufficient_gold_flash = 1.0
+		return false
+	var blessing = BLESSING_OPTIONS[blessing_idx]
+	_blessing_active = true
+	_blessing_timer = BLESSING_DURATION
+	_blessing_type = blessing["type"]
+	# Apply buff to all towers temporarily
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if is_instance_valid(tower) and tower.has_method("set_meta"):
+			tower.set_meta("blessing_" + _blessing_type, blessing["value"])
+	spawn_floating_text(Vector2(640, 200), "BLESSING: %s!" % blessing["name"], Color(0.4, 0.8, 1.0), 20.0, 2.0)
+	return true
+
+func _draw_blessing_indicator() -> void:
+	if not _blessing_active:
+		return
+	var pct = clampf(_blessing_timer / BLESSING_DURATION, 0.0, 1.0)
+	var bar_w = 120.0
+	var bar_x = 640.0 - bar_w * 0.5
+	var bar_y = 50.0
+	draw_rect(Rect2(bar_x, bar_y, bar_w, 6), Color(0.1, 0.1, 0.15, 0.6))
+	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, 6), Color(0.3, 0.7, 1.0, 0.8))
+	_udraw(game_font, Vector2(640, bar_y - 2), _blessing_type.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.4, 0.8, 1.0, 0.7))
+
+# === BATTD2: EMERGENCY RECALL ===
+func _emergency_recall() -> void:
+	if not is_wave_active:
+		return
+	var total_refund = 0
+	var towers_to_remove: Array = []
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if is_instance_valid(tower):
+			var sv = 0
+			if tower.has_method("get_sell_value"):
+				sv = int(tower.get_sell_value() * 0.5)  # 50% of sell value (which is already 60%)
+			total_refund += sv
+			towers_to_remove.append(tower)
+	for tower in towers_to_remove:
+		var tpos = tower.global_position
+		var idx = placed_tower_positions.find(tpos)
+		if idx >= 0:
+			placed_tower_positions.remove_at(idx)
+		tower.queue_free()
+	placed_tower_positions.clear()
+	purchased_towers.clear()
+	add_gold(total_refund)
+	spawn_floating_text(Vector2(640, 300), "EMERGENCY RECALL +%dG!" % total_refund, Color(1.0, 0.3, 0.2), 22.0, 2.0)
+	_screen_shake_timer = 0.5
+	_screen_shake_intensity = 6.0
+	info_label.text = "All towers recalled! +%dG refunded." % total_refund
+
+# === BATTD2: TOWER XP BAR ===
+func _draw_tower_xp_bars() -> void:
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower):
+			continue
+		if not "damage_dealt" in tower:
+			continue
+		var tpos = tower.global_position
+		var dmg = tower.damage_dealt
+		# Simple XP bar based on damage thresholds
+		var xp_threshold = 500.0 + float(tower.upgrade_tier if "upgrade_tier" in tower else 0) * 1000.0
+		var pct = clampf(fmod(dmg, xp_threshold) / xp_threshold, 0.0, 1.0)
+		var bar_w = 24.0
+		var bar_h = 3.0
+		var bx = tpos.x - bar_w * 0.5
+		var by = tpos.y + 18.0
+		draw_rect(Rect2(bx, by, bar_w, bar_h), Color(0.15, 0.15, 0.2, 0.5))
+		draw_rect(Rect2(bx, by, bar_w * pct, bar_h), Color(0.3, 0.7, 1.0, 0.6))
+
+# === BATTD2: OVERCHARGE ===
+func _overcharge_tower(tower: Node2D) -> bool:
+	if not is_instance_valid(tower):
+		return false
+	if not spend_gold(OVERCHARGE_COST):
+		info_label.text = "Need %dG to overcharge!" % OVERCHARGE_COST
+		_insufficient_gold_flash = 1.0
+		return false
+	_overcharged_tower = tower
+	_overcharge_timer = OVERCHARGE_DURATION
+	if "fire_rate" in tower:
+		tower.set_meta("overcharge_original_rate", tower.fire_rate)
+		tower.fire_rate *= 0.5  # Half fire rate = double speed
+	spawn_floating_text(tower.global_position + Vector2(0, -30), "OVERCHARGED!", Color(1.0, 0.5, 0.1), 18.0, 1.5)
+	return true
+
+func _draw_overcharge_effect() -> void:
+	if not is_instance_valid(_overcharged_tower) or _overcharge_timer <= 0.0:
+		return
+	var pos = _overcharged_tower.global_position
+	var pulse = (sin(_time * 8.0) + 1.0) * 0.5
+	var r = 20.0 + pulse * 8.0
+	draw_arc(pos, r, 0, TAU, 24, Color(1.0, 0.5, 0.1, 0.15 + pulse * 0.1), 2.0)
+	draw_arc(pos, r + 4, 0, TAU, 24, Color(1.0, 0.7, 0.2, 0.08), 1.0)
+	# Timer text
+	_udraw(game_font, pos + Vector2(0, -25), "%.0fs" % _overcharge_timer, HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(1.0, 0.7, 0.2, 0.7))
+
+# === BATTD2: PATH EVENTS ===
+func _spawn_path_event() -> void:
+	if path_points.is_empty():
+		return
+	var idx = randi() % path_points.size()
+	var pos = path_points[idx]
+	var event_types = ["lightning", "rockfall", "fire_burst"]
+	var etype = event_types[randi() % event_types.size()]
+	var damage = randf_range(30.0, 80.0)
+	_path_events.append({"pos": pos, "type": etype, "timer": 2.0, "damage": damage, "hit": false})
+	# Deal damage to nearby enemies
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) < 50.0:
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(damage, "physical")
+				spawn_damage_number(enemy.global_position, damage, false)
+
+func _draw_path_events() -> void:
+	for pe in _path_events:
+		var pos = pe["pos"]
+		var t = pe["timer"]
+		var alpha = clampf(t / 1.0, 0.0, 1.0)
+		if pe["type"] == "lightning":
+			# Lightning bolt effect
+			var top = pos + Vector2(randf_range(-5, 5), -80)
+			for i in range(4):
+				var p1 = top.lerp(pos, float(i) / 4.0) + Vector2(randf_range(-8, 8), 0)
+				var p2 = top.lerp(pos, float(i + 1) / 4.0) + Vector2(randf_range(-8, 8), 0)
+				draw_line(p1, p2, Color(0.8, 0.9, 1.0, alpha * 0.7), 2.0)
+			draw_circle(pos, 15.0 * alpha, Color(0.7, 0.85, 1.0, alpha * 0.15))
+		elif pe["type"] == "rockfall":
+			draw_circle(pos, 12.0 * alpha, Color(0.5, 0.4, 0.3, alpha * 0.5))
+			draw_circle(pos, 6.0, Color(0.6, 0.5, 0.4, alpha * 0.7))
+		elif pe["type"] == "fire_burst":
+			draw_circle(pos, 20.0 * alpha, Color(1.0, 0.4, 0.1, alpha * 0.2))
+			draw_circle(pos, 10.0, Color(1.0, 0.6, 0.2, alpha * 0.5))
+
+# === BATTD2: GEAR REROLL ===
+func _reroll_gear(binding_id: String) -> Dictionary:
+	if player_relic_shards < REROLL_SHARD_COST:
+		return {}
+	var bdata = _find_binding(binding_id)
+	if bdata.is_empty():
+		return {}
+	var current_rarity = bdata.get("rarity", "tattered")
+	player_relic_shards -= REROLL_SHARD_COST
+	# Remove old binding
+	owned_bindings.erase(binding_id)
+	# Unequip if equipped
+	for t in equipped_bindings:
+		if binding_id in equipped_bindings[t]:
+			equipped_bindings[t].erase(binding_id)
+	# Find a random binding of the same rarity
+	var candidates: Array = []
+	for b in TOME_BINDINGS:
+		if b.get("rarity", "") == current_rarity and b["id"] != binding_id:
+			candidates.append(b)
+	if candidates.is_empty():
+		owned_bindings.append(binding_id)  # Give back if no alternatives
+		return {}
+	var picked = candidates[randi() % candidates.size()]
+	owned_bindings.append(picked["id"])
+	_save_game()
+	return picked
+
+# === BATTD2: STORYBOOK PAGE DRAWING ===
+func _draw_storybook_page() -> void:
+	if _level_page_collected:
+		return
+	var pos = _level_page_pos
+	var pulse = (sin(_time * 2.0) + 1.0) * 0.5
+	# Glowing page/scroll
+	var pw = 14.0
+	var ph = 18.0
+	draw_rect(Rect2(pos.x - pw * 0.5, pos.y - ph * 0.5, pw, ph), Color(0.95, 0.9, 0.7, 0.7 + pulse * 0.2))
+	draw_rect(Rect2(pos.x - pw * 0.5, pos.y - ph * 0.5, pw, ph), Color(0.85, 0.7, 0.3, 0.8), false, 1.0)
+	# Text lines on page
+	for li in range(3):
+		var ly = pos.y - ph * 0.3 + li * 4.0
+		draw_line(Vector2(pos.x - 4, ly), Vector2(pos.x + 4, ly), Color(0.4, 0.3, 0.2, 0.5), 0.5)
+	# Glow
+	draw_circle(pos, 16.0 + pulse * 4.0, Color(1.0, 0.9, 0.5, 0.06 + pulse * 0.04))
+
+func _check_page_click(mouse_pos: Vector2) -> bool:
+	if _level_page_collected:
+		return false
+	if mouse_pos.distance_to(_level_page_pos) < 25.0:
+		_level_page_collected = true
+		storybook_pages_found[str(current_level)] = true
+		player_relic_shards += PAGE_SHARD_REWARD
+		spawn_floating_text(_level_page_pos, "PAGE FOUND! +%d Shards" % PAGE_SHARD_REWARD, Color(0.95, 0.85, 0.4), 16.0, 1.5)
+		_save_game()
+		return true
+	return false
+
+# === BATTD2: GEAR SET DISPLAY ===
+func _get_set_progress(tower_type) -> Dictionary:
+	var char_name = ""
+	var tower_names_map = {TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice", TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan", TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge", TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin", TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author"}
+	char_name = tower_names_map.get(tower_type, "")
+	var total = 0
+	var owned = 0
+	for b in TOME_BINDINGS:
+		if b.get("character", "") == char_name:
+			total += 1
+			if b["id"] in owned_bindings:
+				owned += 1
+	return {"owned": owned, "total": total, "character": char_name}
+
+# === BATTD2: CHALLENGE HANDICAPS ===
+func _apply_handicaps() -> void:
+	for h in _handicaps_active:
+		if h.has("gold_mult"):
+			gold = int(float(gold) * h["gold_mult"])
+		if h.has("lives_reduce"):
+			lives = maxi(1, lives - h["lives_reduce"])
+	update_hud()
+
+
+# === LAYERED MUSIC SYSTEM FUNCTIONS ===
+
+func _get_song_for_level(level_idx: int) -> int:
+	for i in MAP_SONGS.size():
+		if level_idx in MAP_SONGS[i]["levels"]:
+			return i
+	return 0  # Default to first song
+
+func _start_layered_music(level_idx: int) -> void:
+	_stop_layered_music()
+	_music_song_index = _get_song_for_level(level_idx)
+	var song = MAP_SONGS[_music_song_index]
+	var bpm: float = float(song["bpm"])
+	var beats_per_bar: int = 4
+	var total_beats: int = MUSIC_LOOP_BARS * beats_per_bar  # 16 beats
+	var beat_dur: float = 60.0 / bpm
+	var loop_dur: float = float(total_beats) * beat_dur
+	var loop_samples: int = int(MUSIC_GEN_RATE * loop_dur)
+	var root: float = song["root"]
+	var scale: Array = song["scale"]
+	var chords: Array = song["chord_roots"]
+
+	# Generate 7 layers
+	var layer_wavs: Array = []
+
+	# --- Layer 0: DRUMS (kick + snare + hi-hat + ghost notes + fill) ---
+	var drum_data := PackedFloat32Array()
+	drum_data.resize(loop_samples)
+	var drum_rng := RandomNumberGenerator.new()
+	drum_rng.seed = _music_song_index * 42424
+	for beat in total_beats:
+		var beat_start: int = int(float(beat) * beat_dur * MUSIC_GEN_RATE)
+		var bar_num: int = beat / 4
+		var beat_in_bar: int = beat % 4
+		# --- KICK: downbeat + occasional pickup kicks ---
+		var play_kick: bool = beat_in_bar == 0
+		# Add pickup kick on beat 3 of bars 1 and 3 for groove
+		if beat_in_bar == 3 and (bar_num == 1 or bar_num == 3):
+			play_kick = true
+		if play_kick:
+			for s in mini(int(MUSIC_GEN_RATE * 0.08), loop_samples - beat_start):
+				var t: float = float(s) / MUSIC_GEN_RATE
+				var env: float = exp(-t * 40.0)
+				var kick: float = sin(t * (80.0 - t * 300.0) * TAU) * env * 0.5
+				drum_data[beat_start + s] += kick
+		# --- SNARE: backbeat + ghost notes ---
+		if beat_in_bar == 2:
+			drum_rng.seed = beat * 1234 + _music_song_index * 5678
+			for s in mini(int(MUSIC_GEN_RATE * 0.06), loop_samples - beat_start):
+				var t: float = float(s) / MUSIC_GEN_RATE
+				var env: float = exp(-t * 30.0)
+				var snare: float = (drum_rng.randf() * 2.0 - 1.0) * env * 0.25
+				snare += sin(t * 200.0 * TAU) * exp(-t * 60.0) * 0.2
+				drum_data[beat_start + s] += snare
+		# Ghost snare on the "e" of beat 1 and "a" of beat 3 (16th note subdivisions)
+		if beat_in_bar == 1 or beat_in_bar == 3:
+			var ghost_offset: int = int(beat_dur * 0.25 * MUSIC_GEN_RATE)  # 16th note offset
+			var ghost_start: int = beat_start + ghost_offset
+			if ghost_start < loop_samples:
+				drum_rng.seed = beat * 5555 + _music_song_index * 9876
+				var ghost_vol: float = 0.08 + drum_rng.randf() * 0.04  # Soft, humanized
+				for s in mini(int(MUSIC_GEN_RATE * 0.03), loop_samples - ghost_start):
+					var t: float = float(s) / MUSIC_GEN_RATE
+					var env: float = exp(-t * 50.0)
+					drum_data[ghost_start + s] += (drum_rng.randf() * 2.0 - 1.0) * env * ghost_vol
+		# --- FILL on last bar, beats 3-4 (rapid snare + tom hits) ---
+		if bar_num == 3 and beat_in_bar >= 2:
+			for fill_16th in 4:
+				var fill_offset: int = beat_start + int(float(fill_16th) * beat_dur * 0.25 * MUSIC_GEN_RATE)
+				if fill_offset >= loop_samples:
+					break
+				drum_rng.seed = beat * 3333 + fill_16th * 7777 + _music_song_index * 1111
+				# Alternating high/low tom feel (different pitch)
+				var tom_freq: float = 120.0 + float(fill_16th) * 30.0
+				for s in mini(int(MUSIC_GEN_RATE * 0.04), loop_samples - fill_offset):
+					var t: float = float(s) / MUSIC_GEN_RATE
+					var env: float = exp(-t * 35.0)
+					var tom: float = sin(t * tom_freq * TAU) * env * 0.18
+					tom += (drum_rng.randf() * 2.0 - 1.0) * exp(-t * 60.0) * 0.08
+					drum_data[fill_offset + s] += tom
+		# --- HI-HAT: every beat + offbeat 8ths ---
+		drum_rng.seed = beat * 9999 + _music_song_index * 3210
+		# Open hi-hat on beat for a slightly longer ring
+		var hh_decay: float = 120.0 if beat_in_bar != 1 else 60.0  # Open hat on beat 2
+		for s in mini(int(MUSIC_GEN_RATE * 0.025), loop_samples - beat_start):
+			var t: float = float(s) / MUSIC_GEN_RATE
+			var env: float = exp(-t * hh_decay)
+			var hh: float = (drum_rng.randf() * 2.0 - 1.0) * env * 0.08
+			drum_data[beat_start + s] += hh
+		# Offbeat 8th note hi-hat (slightly softer)
+		var offbeat: int = beat_start + int(beat_dur * 0.5 * MUSIC_GEN_RATE)
+		if offbeat < loop_samples:
+			drum_rng.seed = beat * 7777 + _music_song_index * 4321
+			for s in mini(int(MUSIC_GEN_RATE * 0.015), loop_samples - offbeat):
+				var t: float = float(s) / MUSIC_GEN_RATE
+				var env: float = exp(-t * 160.0)
+				drum_data[offbeat + s] += (drum_rng.randf() * 2.0 - 1.0) * env * 0.05
+	# Clamp drums
+	for i in drum_data.size():
+		drum_data[i] = clampf(drum_data[i], -1.0, 1.0)
+	layer_wavs.append(_make_looping_wav(drum_data))
+
+	# Helper: get frequency for a scale degree
+	# degree 0 = root, degree 7 = octave up, etc.
+	# We use the scale array to map degree → semitones → freq
+
+	# --- Layer 1: ROBIN HOOD — Plucked Strings (arpeggiated chords) ---
+	var strings_data := PackedFloat32Array()
+	strings_data.resize(loop_samples)
+	for bar in MUSIC_LOOP_BARS:
+		var chord_root_semi: int = chords[bar % chords.size()]
+		# Arpeggio: root, 3rd, 5th, octave (4 notes per bar = 1 per beat)
+		var arp_degrees := [0, 2, 4, 7]  # scale degrees for arpeggio
+		for beat_in_bar in 4:
+			var beat_idx: int = bar * 4 + beat_in_bar
+			var beat_start: int = int(float(beat_idx) * beat_dur * MUSIC_GEN_RATE)
+			var deg: int = arp_degrees[beat_in_bar]
+			var semi: int = chord_root_semi + scale[deg % scale.size()] + (12 if deg >= 7 else 0)
+			var freq: float = root * pow(2.0, float(semi) / 12.0) * 2.0  # octave up for brightness
+			var note_len: int = mini(int(MUSIC_GEN_RATE * beat_dur * 0.8), loop_samples - beat_start)
+			for s in note_len:
+				var t: float = float(s) / MUSIC_GEN_RATE
+				# Plucked string: fast attack, medium decay, odd harmonics
+				var env: float = exp(-t * 8.0) * 0.3
+				var samp: float = sin(t * freq * TAU) + sin(t * freq * 3.0 * TAU) * 0.15 * exp(-t * 12.0)
+				samp += sin(t * freq * 5.0 * TAU) * 0.05 * exp(-t * 18.0)
+				strings_data[beat_start + s] += samp * env
+	for i in strings_data.size():
+		strings_data[i] = clampf(strings_data[i], -1.0, 1.0)
+	layer_wavs.append(_make_looping_wav(strings_data))
+
+	# --- Layer 2: ALICE — Music Box (bright bell-like tones, melody) ---
+	var mbox_data := PackedFloat32Array()
+	mbox_data.resize(loop_samples)
+	# Music box plays a simple melody using scale degrees
+	var melody_pattern := [0, 2, 4, 5, 4, 2, 3, 1, 0, 4, 5, 7, 4, 2, 1, 0]
+	for note_i in melody_pattern.size():
+		var beat_idx: int = note_i
+		if beat_idx >= total_beats:
+			break
+		var beat_start: int = int(float(beat_idx) * beat_dur * MUSIC_GEN_RATE)
+		var bar_idx: int = beat_idx / 4
+		var chord_root_semi: int = chords[bar_idx % chords.size()]
+		var deg: int = melody_pattern[note_i]
+		var semi: int = chord_root_semi + scale[deg % scale.size()] + (12 if deg >= 7 else 0)
+		var freq: float = root * pow(2.0, float(semi) / 12.0) * 4.0  # 2 octaves up for music box
+		var note_len: int = mini(int(MUSIC_GEN_RATE * beat_dur * 0.6), loop_samples - beat_start)
+		for s in note_len:
+			var t: float = float(s) / MUSIC_GEN_RATE
+			# Bell-like: sharp attack, quick decay, inharmonic partials
+			var env: float = exp(-t * 12.0) * 0.25
+			var samp: float = sin(t * freq * TAU) * 0.6
+			samp += sin(t * freq * 2.0 * TAU) * 0.3 * exp(-t * 15.0)
+			samp += sin(t * freq * 3.003 * TAU) * 0.1 * exp(-t * 20.0)  # Slight inharmonicity
+			mbox_data[beat_start + s] += samp * env
+	for i in mbox_data.size():
+		mbox_data[i] = clampf(mbox_data[i], -1.0, 1.0)
+	layer_wavs.append(_make_looping_wav(mbox_data))
+
+	# --- Layer 3: WICKED WITCH — Dark Organ (sustained chords, low register) ---
+	var organ_data := PackedFloat32Array()
+	organ_data.resize(loop_samples)
+	for bar in MUSIC_LOOP_BARS:
+		var chord_root_semi: int = chords[bar % chords.size()]
+		var bar_start: int = int(float(bar * 4) * beat_dur * MUSIC_GEN_RATE)
+		var bar_len: int = mini(int(4.0 * beat_dur * MUSIC_GEN_RATE), loop_samples - bar_start)
+		# Play full chord (root + 3rd + 5th) sustained for the bar
+		var chord_degrees := [0, 2, 4]  # Scale degrees: root, 3rd, 5th
+		for ci in chord_degrees.size():
+			var semi: int = chord_root_semi + scale[chord_degrees[ci] % scale.size()]
+			var freq: float = root * pow(2.0, float(semi) / 12.0) * 0.5  # Octave down
+			for s in bar_len:
+				var t: float = float(s) / MUSIC_GEN_RATE
+				# Organ: sustained, slight vibrato, drawbar harmonics
+				var fade_in: float = minf(t * 8.0, 1.0)
+				var fade_out: float = minf(float(bar_len - s) / (MUSIC_GEN_RATE * 0.05), 1.0)
+				var env: float = fade_in * fade_out * 0.12
+				var vibrato: float = sin(t * 5.5 * TAU) * 0.003
+				var samp: float = sin(t * freq * (1.0 + vibrato) * TAU)
+				samp += sin(t * freq * 2.0 * (1.0 + vibrato) * TAU) * 0.5  # 2nd harmonic (8')
+				samp += sin(t * freq * 4.0 * (1.0 + vibrato) * TAU) * 0.25  # 4th harmonic (4')
+				organ_data[bar_start + s] += samp * env
+	for i in organ_data.size():
+		organ_data[i] = clampf(organ_data[i], -1.0, 1.0)
+	layer_wavs.append(_make_looping_wav(organ_data))
+
+	# --- Layer 4: PETER PAN — Flute (airy lead melody, breathy) ---
+	var flute_data := PackedFloat32Array()
+	flute_data.resize(loop_samples)
+	# Flute plays a counter-melody (offset from Alice's pattern)
+	var flute_pattern := [4, 5, 7, 5, 4, 2, 0, 2, 4, 7, 5, 4, 2, 0, 1, 2]
+	var flute_rest_rng := RandomNumberGenerator.new()
+	flute_rest_rng.seed = _music_song_index * 11111
+	var flute_breath_rng := RandomNumberGenerator.new()
+	flute_breath_rng.seed = _music_song_index * 22222
+	for note_i in flute_pattern.size():
+		var beat_idx: int = note_i
+		if beat_idx >= total_beats:
+			break
+		# Some notes are rests (skip randomly ~15%)
+		if flute_rest_rng.randf() < 0.15:
+			continue
+		var beat_start: int = int(float(beat_idx) * beat_dur * MUSIC_GEN_RATE)
+		var bar_idx: int = beat_idx / 4
+		var chord_root_semi: int = chords[bar_idx % chords.size()]
+		var deg: int = flute_pattern[note_i]
+		var semi: int = chord_root_semi + scale[deg % scale.size()] + (12 if deg >= 7 else 0)
+		var freq: float = root * pow(2.0, float(semi) / 12.0) * 4.0  # High register
+		var note_len: int = mini(int(MUSIC_GEN_RATE * beat_dur * 0.7), loop_samples - beat_start)
+		for s in note_len:
+			var t: float = float(s) / MUSIC_GEN_RATE
+			# Flute: soft attack, pure tone with slight breathiness
+			var attack: float = minf(t * 20.0, 1.0)
+			var release: float = minf(float(note_len - s) / (MUSIC_GEN_RATE * 0.03), 1.0)
+			var env: float = attack * release * 0.2
+			var vibrato: float = sin(t * 5.0 * TAU) * 0.005 * minf(t * 3.0, 1.0)
+			var samp: float = sin(t * freq * (1.0 + vibrato) * TAU)
+			# Add breath noise (separate RNG so it doesn't corrupt rest pattern)
+			samp += (flute_breath_rng.randf() * 2.0 - 1.0) * 0.05 * env
+			flute_data[beat_start + s] += samp * env
+	for i in flute_data.size():
+		flute_data[i] = clampf(flute_data[i], -1.0, 1.0)
+	layer_wavs.append(_make_looping_wav(flute_data))
+
+	# --- Layer 5: PHANTOM — Piano (dramatic arpeggios, fuller sound) ---
+	var piano_data := PackedFloat32Array()
+	piano_data.resize(loop_samples)
+	# Piano plays 8th note arpeggios (2 notes per beat = 32 notes total)
+	for beat in total_beats:
+		var bar_idx: int = beat / 4
+		var chord_root_semi: int = chords[bar_idx % chords.size()]
+		for sub in 2:  # 2 eighth notes per beat
+			var time_offset: float = float(beat) * beat_dur + float(sub) * beat_dur * 0.5
+			var sample_start: int = int(time_offset * MUSIC_GEN_RATE)
+			if sample_start >= loop_samples:
+				break
+			# Ascending then descending arpeggio pattern
+			var arp_seq := [0, 2, 4, 7, 4, 2, 0, 4]
+			var note_idx: int = (beat * 2 + sub) % arp_seq.size()
+			var deg: int = arp_seq[note_idx]
+			var semi: int = chord_root_semi + scale[deg % scale.size()] + (12 if deg >= 7 else 0)
+			var freq: float = root * pow(2.0, float(semi) / 12.0) * 2.0
+			var note_len: int = mini(int(MUSIC_GEN_RATE * beat_dur * 0.4), loop_samples - sample_start)
+			for s in note_len:
+				var t: float = float(s) / MUSIC_GEN_RATE
+				# Piano: sharp hammer attack, medium sustain, rich harmonics
+				var env: float = exp(-t * 6.0) * 0.22
+				var samp: float = sin(t * freq * TAU)
+				samp += sin(t * freq * 2.0 * TAU) * 0.3 * exp(-t * 8.0)
+				samp += sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 10.0)
+				samp += sin(t * freq * 4.0 * TAU) * 0.06 * exp(-t * 14.0)
+				# Hammer thump (crisp knock, not muddy rumble)
+				samp += sin(t * 300.0 * TAU) * exp(-t * 400.0) * 0.12
+				piano_data[sample_start + s] += samp * env
+	for i in piano_data.size():
+		piano_data[i] = clampf(piano_data[i], -1.0, 1.0)
+	layer_wavs.append(_make_looping_wav(piano_data))
+
+	# --- Layer 6: SCROOGE — Brass (warm tuba/horn bassline, half notes) ---
+	var brass_data := PackedFloat32Array()
+	brass_data.resize(loop_samples)
+	# Brass plays half-note bassline (2 notes per bar)
+	for bar in MUSIC_LOOP_BARS:
+		var chord_root_semi: int = chords[bar % chords.size()]
+		for half in 2:
+			var beat_idx: int = bar * 4 + half * 2
+			var beat_start: int = int(float(beat_idx) * beat_dur * MUSIC_GEN_RATE)
+			# Alternate root and 5th
+			var deg: int = 0 if half == 0 else 4
+			var semi: int = chord_root_semi + scale[deg % scale.size()]
+			var freq: float = root * pow(2.0, float(semi) / 12.0)  # Low register
+			var note_len: int = mini(int(MUSIC_GEN_RATE * beat_dur * 1.8), loop_samples - beat_start)
+			for s in note_len:
+				var t: float = float(s) / MUSIC_GEN_RATE
+				# Brass: warm attack, sustained, even harmonics
+				var attack: float = minf(t * 12.0, 1.0)
+				var release: float = minf(float(note_len - s) / (MUSIC_GEN_RATE * 0.04), 1.0)
+				var env: float = attack * release * 0.2
+				var vibrato: float = sin(t * 4.5 * TAU) * 0.004 * minf(t * 2.0, 1.0)
+				var vf: float = freq * (1.0 + vibrato)
+				var samp: float = sin(t * vf * TAU)
+				samp += sin(t * vf * 2.0 * TAU) * 0.4  # Strong 2nd harmonic (brass character)
+				samp += sin(t * vf * 3.0 * TAU) * 0.2
+				samp += sin(t * vf * 4.0 * TAU) * 0.1
+				brass_data[beat_start + s] += samp * env
+	for i in brass_data.size():
+		brass_data[i] = clampf(brass_data[i], -1.0, 1.0)
+	layer_wavs.append(_make_looping_wav(brass_data))
+
+	# Create AudioStreamPlayers for each layer
+	_music_layers.clear()
+	_music_layer_targets = [0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Only drums audible initially
+	_music_layer_current = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+	_music_tempo_mult = 1.0
+	for i in layer_wavs.size():
+		var player := AudioStreamPlayer.new()
+		player.stream = layer_wavs[i]
+		player.volume_db = -80.0  # Start silent (will fade in via _process)
+		player.bus = "Master"
+		add_child(player)
+		_music_layers.append(player)
+	# Start all layers simultaneously
+	for player in _music_layers:
+		player.play()
+	# Drums fade in smoothly (don't jump to full volume)
+	_music_layer_current[0] = 0.01
+	_music_layers[0].volume_db = linear_to_db(0.01)
+	_music_max_tier_cache = 0
+	_music_intensity = 0.0
+	_music_layers_active = true
+
+func _make_looping_wav(samples: PackedFloat32Array) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = MUSIC_GEN_RATE
+	wav.stereo = false
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_begin = 0
+	wav.loop_end = samples.size()
+	var data := PackedByteArray()
+	data.resize(samples.size() * 2)
+	for i in samples.size():
+		var val := int(clampf(samples[i], -1.0, 1.0) * 32767.0)
+		data[i * 2] = val & 0xFF
+		data[i * 2 + 1] = (val >> 8) & 0xFF
+	wav.data = data
+	return wav
+
+func _stop_layered_music() -> void:
+	for player in _music_layers:
+		if is_instance_valid(player):
+			player.stop()
+			player.queue_free()
+	_music_layers.clear()
+	_music_layers_active = false
+	_music_layer_targets = [0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+	_music_layer_current = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+	_music_max_tier_cache = 0
+	_music_intensity = 0.0
+	_music_tempo_mult = 1.0
+
+func _fade_in_tower_layer(tower_type: int) -> void:
+	if not TOWER_LAYER_MAP.has(tower_type):
+		return
+	var layer_idx: int = TOWER_LAYER_MAP[tower_type]
+	if layer_idx < _music_layer_targets.size():
+		_music_layer_targets[layer_idx] = 0.7  # Fade to this volume
+	_refresh_music_max_tier()
+
+func _fade_out_tower_layer(tower_type: int) -> void:
+	if not TOWER_LAYER_MAP.has(tower_type):
+		return
+	var layer_idx: int = TOWER_LAYER_MAP[tower_type]
+	if layer_idx < _music_layer_targets.size():
+		_music_layer_targets[layer_idx] = 0.0  # Fade out
+	# Defer tier refresh since tower may not be freed yet
+	get_tree().create_timer(0.1).timeout.connect(_refresh_music_max_tier)
+
+func _refresh_music_max_tier() -> void:
+	_music_max_tier_cache = 0
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if "upgrade_tier" in tower:
+			_music_max_tier_cache = maxi(_music_max_tier_cache, tower.upgrade_tier)
+
+func _pulse_tower_layer(tower_type: int) -> void:
+	# Brief volume spike when tower attacks — adds musical punch
+	if not TOWER_LAYER_MAP.has(tower_type):
+		return
+	if not _music_layers_active:
+		return
+	var layer_idx: int = TOWER_LAYER_MAP[tower_type]
+	if layer_idx >= _music_layers.size():
+		return
+	if _music_layer_targets[layer_idx] > 0.0:
+		# Temporarily boost volume
+		_music_layer_current[layer_idx] = minf(_music_layer_targets[layer_idx] + 0.15, 1.0)
+
+func _update_layered_music(delta: float) -> void:
+	if not _music_layers_active:
+		return
+	# Dynamic mix: calculate total active volume to prevent clipping
+	var active_count: int = 0
+	for i in range(1, _music_layer_targets.size()):
+		if _music_layer_targets[i] > 0.0:
+			active_count += 1
+	# Scale individual volumes down as more layers are added (prevents Master bus clipping)
+	# 1 layer: full volume, 6 layers: each at ~55% to keep total reasonable
+	var mix_scale: float = 1.0 / maxf(1.0, 1.0 + float(active_count) * 0.15)
+	# Boss/late-wave intensity: boost drums + overall slightly
+	var intensity_target: float = 0.0
+	if is_wave_active:
+		intensity_target = clampf(float(wave) / maxf(float(total_waves), 1.0), 0.0, 1.0) * 0.3
+		# Extra intensity during boss waves (every 5th wave typically)
+		if wave > 0 and wave % 5 == 0:
+			intensity_target = minf(intensity_target + 0.15, 0.5)
+	_music_intensity = lerpf(_music_intensity, intensity_target, delta * 0.3)
+	# Smooth volume transitions with asymmetric fade speeds
+	for i in _music_layers.size():
+		if not is_instance_valid(_music_layers[i]):
+			continue
+		var target: float = _music_layer_targets[i] * mix_scale
+		# Drums get intensity boost
+		if i == 0:
+			target += _music_intensity * 0.1
+		var current: float = _music_layer_current[i]
+		if abs(current - target) > 0.001:
+			if current < target:
+				# Fade IN: fast and snappy for satisfying instrument entry
+				_music_layer_current[i] = minf(current + MUSIC_FADE_IN_SPEED * delta, target)
+			elif current > target + 0.1:
+				# Pulse decay: fast snap-back from attack pulses
+				_music_layer_current[i] = maxf(current - MUSIC_PULSE_DECAY_SPEED * delta, target)
+			else:
+				# Fade OUT: gradual and smooth for natural exit
+				_music_layer_current[i] = maxf(current - MUSIC_FADE_OUT_SPEED * delta, target)
+		var vol: float = _music_layer_current[i]
+		if vol < 0.001:
+			_music_layers[i].volume_db = -80.0
+		else:
+			_music_layers[i].volume_db = linear_to_db(vol)
+	# Tempo scaling using cached max tier (avoid scanning all towers every frame)
+	var target_tempo: float = 1.0 + float(_music_max_tier_cache) * 0.03
+	# Add slight tempo bump from intensity
+	target_tempo += _music_intensity * 0.04
+	_music_tempo_mult = lerpf(_music_tempo_mult, target_tempo, delta * 0.5)
+	for player in _music_layers:
+		if is_instance_valid(player):
+			player.pitch_scale = _music_tempo_mult
+
+func _get_active_layer_count() -> int:
+	var count: int = 0
+	for i in range(1, _music_layer_targets.size()):
+		if _music_layer_targets[i] > 0.0:
+			count += 1
+	return count
+
+func _draw_shadow_author_effects() -> void:
+	var font = game_font
+	# --- Floating shadow figures (skinny human silhouettes, black smoke) ---
+	for fig in _sa_shadow_figures:
+		var fig_angle = _time * fig["speed"] + fig["phase"]
+		var fx = fig["cx"] + cos(fig_angle) * fig["radius"]
+		var fy = fig["cy"] + sin(fig_angle * 0.7) * fig["radius"] * 0.4
+		var fh = fig["height"]
+		var fig_a = 0.20 + sin(_time * 1.5 + fig["phase"]) * 0.08
+		# Body (skinny elongated shape)
+		var body_sway = sin(_time * 2.0 + fig["phase"]) * 3.0
+		# Head
+		draw_circle(Vector2(fx + body_sway * 0.5, fy - fh), 4.0, Color(0.02, 0.01, 0.04, fig_a))
+		# Torso (thin rectangle)
+		draw_rect(Rect2(fx - 1.5 + body_sway * 0.3, fy - fh + 4, 3, fh * 0.5), Color(0.02, 0.01, 0.04, fig_a * 0.9))
+		# Arms (wispy, reaching)
+		var arm_sway = sin(_time * 3.0 + fig["phase"]) * 6.0
+		draw_line(Vector2(fx + body_sway * 0.3, fy - fh * 0.7), Vector2(fx - 10 + arm_sway, fy - fh * 0.5), Color(0.02, 0.01, 0.04, fig_a * 0.7), 1.5)
+		draw_line(Vector2(fx + body_sway * 0.3, fy - fh * 0.7), Vector2(fx + 10 - arm_sway, fy - fh * 0.5), Color(0.02, 0.01, 0.04, fig_a * 0.7), 1.5)
+		# Legs (trailing, smoky)
+		draw_line(Vector2(fx + body_sway * 0.2, fy - fh * 0.3), Vector2(fx - 4 + body_sway, fy), Color(0.02, 0.01, 0.04, fig_a * 0.6), 1.5)
+		draw_line(Vector2(fx + body_sway * 0.2, fy - fh * 0.3), Vector2(fx + 4 + body_sway, fy + 3), Color(0.02, 0.01, 0.04, fig_a * 0.5), 1.5)
+		# Smoke trail (dissipating particles behind movement)
+		for si in range(5):
+			var trail_angle = fig_angle - float(si) * 0.15
+			var tx = fig["cx"] + cos(trail_angle) * fig["radius"]
+			var ty = fig["cy"] + sin(trail_angle * 0.7) * fig["radius"] * 0.4
+			var smoke_a = fig_a * (0.3 - float(si) * 0.05)
+			draw_circle(Vector2(tx, ty - fh * 0.3), 3.0 + float(si) * 1.5, Color(0.03, 0.01, 0.06, smoke_a))
+		# Glowing eyes (faint crimson)
+		var eye_glow = 0.3 + sin(_time * 4.0 + fig["phase"]) * 0.15
+		draw_circle(Vector2(fx - 2 + body_sway * 0.5, fy - fh - 1), 1.0, Color(0.6, 0.1, 0.15, eye_glow * fig_a))
+		draw_circle(Vector2(fx + 2 + body_sway * 0.5, fy - fh - 1), 1.0, Color(0.6, 0.1, 0.15, eye_glow * fig_a))
+
+	# --- Shadow Author taunt (appears once, then lightning exit) ---
+	# Trigger taunt at randomized time into level (once only)
+	if not _sa_taunt_triggered and _time > _sa_taunt_trigger_time and _sa_taunt_timer < 0:
+		_sa_taunt_triggered = true
+		_sa_taunt_timer = 0.0
+
+	if _sa_taunt_timer >= 0:
+		_sa_taunt_timer += get_process_delta_time()
+		var t = _sa_taunt_timer
+		var sx = _sa_taunt_x
+		var sy = _sa_taunt_y
+
+		if t < 1.5:
+			# Phase 1: Smoke cloud appears (0-1.5s)
+			var smoke_progress = clampf(t / 1.5, 0.0, 1.0)
+			var smoke_a = smoke_progress * 0.6
+			for ci in range(12):
+				var ca = float(ci) * TAU / 12.0 + t * 2.0
+				var cr = 20.0 * smoke_progress + sin(t * 4.0 + float(ci)) * 8.0
+				var cx2 = sx + cos(ca) * cr
+				var cy2 = sy + sin(ca) * cr * 0.6
+				draw_circle(Vector2(cx2, cy2), 6.0 + sin(t * 3.0 + float(ci)) * 3.0, Color(0.05, 0.02, 0.08, smoke_a * (0.8 - float(ci) * 0.05)))
+			# Figure materializing from smoke
+			if t > 0.8:
+				var mat_a = clampf((t - 0.8) / 0.7, 0.0, 1.0) * 0.7
+				# Tall dark figure
+				draw_circle(Vector2(sx, sy - 55), 7, Color(0.03, 0.01, 0.05, mat_a))  # Head
+				draw_rect(Rect2(sx - 4, sy - 48, 8, 30), Color(0.03, 0.01, 0.05, mat_a))  # Torso
+				# Long cloak/robe
+				draw_colored_polygon(PackedVector2Array([Vector2(sx - 12, sy - 20), Vector2(sx, sy - 48), Vector2(sx + 12, sy - 20), Vector2(sx + 8, sy), Vector2(sx - 8, sy)]), Color(0.03, 0.01, 0.05, mat_a))
+				# Glowing purple eyes
+				draw_circle(Vector2(sx - 3, sy - 56), 1.5, Color(0.6, 0.2, 0.8, mat_a * 1.2))
+				draw_circle(Vector2(sx + 3, sy - 56), 1.5, Color(0.6, 0.2, 0.8, mat_a * 1.2))
+
+		elif t < 4.5:
+			# Phase 2: Standing, taunting (1.5-4.5s)
+			var idle_sway = sin(t * 2.0) * 2.0
+			var sa_a = 0.7
+			# Full figure
+			draw_circle(Vector2(sx + idle_sway, sy - 55), 7, Color(0.03, 0.01, 0.05, sa_a))
+			draw_rect(Rect2(sx - 4 + idle_sway, sy - 48, 8, 30), Color(0.03, 0.01, 0.05, sa_a))
+			draw_colored_polygon(PackedVector2Array([Vector2(sx - 12 + idle_sway, sy - 20), Vector2(sx + idle_sway, sy - 48), Vector2(sx + 12 + idle_sway, sy - 20), Vector2(sx + 8 + idle_sway, sy), Vector2(sx - 8 + idle_sway, sy)]), Color(0.03, 0.01, 0.05, sa_a))
+			# Purple eyes (menacing pulse)
+			var eye_p = 0.8 + sin(t * 5.0) * 0.2
+			draw_circle(Vector2(sx - 3 + idle_sway, sy - 56), 2.0, Color(0.7, 0.2, 0.9, eye_p))
+			draw_circle(Vector2(sx + 3 + idle_sway, sy - 56), 2.0, Color(0.7, 0.2, 0.9, eye_p))
+			# Eye glow halo
+			draw_circle(Vector2(sx + idle_sway, sy - 56), 12, Color(0.5, 0.15, 0.7, 0.08))
+			# Raised arm (beckoning/taunting)
+			var arm_raise = sin(t * 1.5) * 5.0
+			draw_line(Vector2(sx + 4 + idle_sway, sy - 40), Vector2(sx + 20 + idle_sway, sy - 50 + arm_raise), Color(0.03, 0.01, 0.05, sa_a * 0.8), 2.5)
+			# Dark aura around figure
+			for ai in range(6):
+				var aa = float(ai) * TAU / 6.0 + t * 0.8
+				var ar = 25.0 + sin(t * 1.5 + float(ai)) * 5.0
+				draw_circle(Vector2(sx + cos(aa) * ar + idle_sway, sy - 25 + sin(aa) * ar * 0.5), 3.0, Color(0.04, 0.01, 0.06, 0.12))
+			# Residual smoke at feet
+			for fi2 in range(4):
+				var smoke_x = sx - 15 + float(fi2) * 10.0 + sin(t * 2.0 + float(fi2)) * 5.0
+				draw_circle(Vector2(smoke_x + idle_sway, sy + 3), 5.0, Color(0.04, 0.02, 0.06, 0.15 - float(fi2) * 0.03))
+
+		elif t < 5.0:
+			# Phase 3: Lightning bolt strikes down (4.5-5.0s)
+			var flash_t = (t - 4.5) / 0.5
+			# Screen flash
+			var flash_a = (1.0 - flash_t) * 0.3
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.8, 0.7, 1.0, flash_a))
+			# Lightning bolt from sky to feet
+			var bolt_a = (1.0 - flash_t) * 0.9
+			var bolt_x = sx
+			var bolt_segments = 8
+			var prev_bx = bolt_x
+			var prev_by = 50.0  # Top of screen
+			for bi in range(bolt_segments):
+				var seg_t = float(bi + 1) / float(bolt_segments)
+				var next_by = 50.0 + (sy - 50.0) * seg_t
+				var jitter = sin(float(bi) * 3.7 + t * 20.0) * (15.0 - seg_t * 10.0)
+				var next_bx = bolt_x + jitter
+				# Main bolt (thick bright)
+				draw_line(Vector2(prev_bx, prev_by), Vector2(next_bx, next_by), Color(0.9, 0.8, 1.0, bolt_a), 3.0)
+				# Glow
+				draw_line(Vector2(prev_bx, prev_by), Vector2(next_bx, next_by), Color(0.6, 0.4, 0.9, bolt_a * 0.4), 8.0)
+				# Branch bolts (smaller forks)
+				if bi % 2 == 0 and bi < bolt_segments - 1:
+					var fork_dir = 1.0 if bi % 4 == 0 else -1.0
+					draw_line(Vector2(next_bx, next_by), Vector2(next_bx + fork_dir * 25, next_by + 20), Color(0.8, 0.7, 1.0, bolt_a * 0.5), 1.5)
+				prev_bx = next_bx
+				prev_by = next_by
+			# Impact flash at feet
+			draw_circle(Vector2(sx, sy), 30 * (1.0 - flash_t), Color(0.8, 0.6, 1.0, bolt_a * 0.5))
+			draw_circle(Vector2(sx, sy), 15 * (1.0 - flash_t), Color(1.0, 0.9, 1.0, bolt_a * 0.7))
+			# Figure dissolving
+			var dissolve_a = (1.0 - flash_t) * 0.5
+			draw_circle(Vector2(sx, sy - 30), 15, Color(0.03, 0.01, 0.05, dissolve_a))
+
+		else:
+			# Phase 4: Done, reset timer to stop drawing
+			_sa_taunt_timer = -1.0
 
 func _draw_shadow_author_ch1(sky_color: Color, ground_color: Color) -> void:
 	# Pure black sky with ink
@@ -15331,6 +20180,7 @@ func _draw_shadow_author_ch1(sky_color: Color, ground_color: Color) -> void:
 		var ty := 300.0 + sin(float(tf) * 2.0) * 100.0 + sin(_time * 0.5 + float(tf)) * 15.0
 		draw_rect(Rect2(tx, ty, 20 + float(tf) * 3, 2), Color(0.25, 0.20, 0.15, 0.2))
 		draw_rect(Rect2(tx, ty + 4, 15 + float(tf) * 2, 2), Color(0.25, 0.20, 0.15, 0.15))
+	_draw_shadow_author_effects()
 
 func _draw_shadow_author_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Deeper into shadow realm
@@ -15378,6 +20228,7 @@ func _draw_shadow_author_ch2(sky_color: Color, ground_color: Color) -> void:
 		var rx := 120.0 + float(rn) * 240.0
 		var rg := 0.1 + 0.08 * sin(_time * 1.2 + float(rn) * 1.0)
 		draw_arc(Vector2(rx, 530), 15.0, 0, TAU, 16, Color(0.3, 0.1, 0.5, rg), 1.5)
+	_draw_shadow_author_effects()
 
 func _draw_shadow_author_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Final confrontation - pure darkness
@@ -15435,6 +20286,7 @@ func _draw_shadow_author_ch3(sky_color: Color, ground_color: Color) -> void:
 			var seg_x := sx + dir * float(seg) * (reach / 6.0)
 			var seg_y := sy + sin(float(seg) * 0.5 + _time * 0.5) * 10.0
 			draw_rect(Rect2(seg_x - 2, seg_y - 2, 4 + reach / 6.0, 4), Color(0.03, 0.01, 0.05, 0.3 - float(seg) * 0.04))
+	_draw_shadow_author_effects()
 
 func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 	# --- SKY GRADIENT ---
@@ -15761,6 +20613,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 	draw_line(Vector2(920, 90), Vector2(960, 140), Color(0.02, 0.06, 0.02), 2.5)
 	draw_circle(Vector2(935, 125), 10.0, Color(0.02, 0.07, 0.02, 0.85))
 	draw_circle(Vector2(955, 120), 8.0, Color(0.02, 0.07, 0.02, 0.8))
+	_draw_robin_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_alice_ch1(sky_color: Color, ground_color: Color) -> void:
 	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
@@ -15842,6 +20696,8 @@ func _draw_alice_ch1(sky_color: Color, ground_color: Color) -> void:
 	# Foreground haze
 	for i in range(6):
 		draw_circle(Vector2(float(i) * 220.0 + sin(_time * 0.3 + float(i)) * 30.0, 580.0), 60.0, Color(0.6, 0.3, 0.7, 0.03))
+	_draw_alice_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_oz_ch1(sky_color: Color, ground_color: Color) -> void:
 	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
@@ -15918,6 +20774,8 @@ func _draw_oz_ch1(sky_color: Color, ground_color: Color) -> void:
 			var shimmer = (sin(_time * 2.0 + float(i) * 0.5) + 1.0) * 0.5
 			if shimmer > 0.7:
 				draw_circle(points[i], 3.0, Color(1.0, 0.95, 0.5, shimmer * 0.2))
+	_draw_oz_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_peter_ch1(sky_color: Color, ground_color: Color) -> void:
 	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
@@ -16012,6 +20870,8 @@ func _draw_peter_ch1(sky_color: Color, ground_color: Color) -> void:
 			draw_line(points[i], points[i + 1], Color(0.35, 0.22, 0.1), 44.0)
 		for i in range(points.size() - 1):
 			draw_line(points[i], points[i + 1], Color(0.45, 0.32, 0.16, 0.5), 24.0)
+	_draw_peter_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_phantom_ch1(sky_color: Color, ground_color: Color) -> void:
 	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
@@ -16113,6 +20973,8 @@ func _draw_phantom_ch1(sky_color: Color, ground_color: Color) -> void:
 				draw_line(points[i] - perp * 12, points[i + 1] - perp * 12, Color(0.8, 0.6, 0.1, 0.18), 1.5)
 		for i in range(0, points.size() - 1, 24):
 			draw_colored_polygon(PackedVector2Array([points[i] + Vector2(0, -5), points[i] + Vector2(4, 0), points[i] + Vector2(0, 5), points[i] + Vector2(-4, 0)]), Color(0.85, 0.65, 0.1, 0.2))
+	_draw_phantom_novel(1)
+	_draw_shadow_author_effects()
 
 func _draw_scrooge_ch1(sky_color: Color, ground_color: Color) -> void:
 	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
@@ -16222,6 +21084,8 @@ func _draw_scrooge_ch1(sky_color: Color, ground_color: Color) -> void:
 			draw_circle(points[i] + Vector2(6, -3), 4.0, Color(0.85, 0.87, 0.9, 0.12))
 		for i in range(points.size() - 1):
 			draw_line(points[i], points[i + 1], Color(0.28, 0.26, 0.28, 0.18), 16.0)
+	_draw_scrooge_novel(1)
+	_draw_shadow_author_effects()
 
 
 func _draw_robin_ch2(sky_color: Color, ground_color: Color) -> void:
@@ -16453,6 +21317,8 @@ func _draw_robin_ch2(sky_color: Color, ground_color: Color) -> void:
 ## Robin Hood Chapter 3: "Siege of Nottingham"
 ## Nottingham Castle walls, siege ladders, moat with drawbridge, castle towers with
 ## archer windows, burning arrows arcing across sky, dawn breaking golden, Robin's flag.
+	_draw_robin_novel(2)
+	_draw_shadow_author_effects()
 
 func _draw_robin_ch3(sky_color: Color, ground_color: Color) -> void:
 	# --- Sky gradient: warm dawn breaking ---
@@ -16760,6 +21626,8 @@ func _draw_robin_ch3(sky_color: Color, ground_color: Color) -> void:
 		if ember_y > 50.0:
 			draw_circle(Vector2(ember_x, ember_y), 1.5, Color(1.0, 0.6, 0.1, ember_alpha))
 			draw_circle(Vector2(ember_x, ember_y), 3.5, Color(1.0, 0.5, 0.05, ember_alpha * 0.2))
+	_draw_robin_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
 	# === SKY GRADIENT — deep purple twilight ===
@@ -16966,6 +21834,8 @@ func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
 		var hz_t := float(i) / 8.0
 		var hz_y := 600.0 + hz_t * 28.0
 		draw_rect(Rect2(0, hz_y, 1280, 4.0), Color(0.25, 0.12, 0.35, 0.08 + hz_t * 0.06))
+	_draw_alice_novel(2)
+	_draw_shadow_author_effects()
 
 
 func _draw_alice_ch3(sky_color: Color, ground_color: Color) -> void:
@@ -17197,6 +22067,8 @@ func _draw_alice_ch3(sky_color: Color, ground_color: Color) -> void:
 		var fog_t := float(i) / 8.0
 		var fog_y := 600.0 + fog_t * 28.0
 		draw_rect(Rect2(0, fog_y, 1280, 4.0), Color(0.35, 0.05, 0.08, 0.08 + fog_t * 0.06))
+	_draw_alice_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 	# === SKY GRADIENT — dark green-black storm sky ===
@@ -17413,6 +22285,8 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 		var va = 0.04 * (8.0 - vf)
 		draw_rect(Rect2(0, 50, vf * 2.0, 578), Color(0.0, 0.0, 0.0, va))
 		draw_rect(Rect2(1280.0 - vf * 2.0, 50, vf * 2.0, 578), Color(0.0, 0.0, 0.0, va))
+	_draw_oz_novel(2)
+	_draw_shadow_author_effects()
 
 
 func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
@@ -17632,6 +22506,8 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 			Vector2(bx - 8.0 + bs * 0.3, 55.0), Vector2(bx + 8.0 + bs * 0.3, 55.0),
 			Vector2(bx + 40.0 + bs, 620.0), Vector2(bx - 40.0 + bs, 620.0)]),
 			Color(0.2, 0.7, 0.25, ba))
+	_draw_oz_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 	# === SKY GRADIENT — Dark jungle night ===
@@ -17928,6 +22804,8 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 		var ff_bright = clampf((sin(_time * 3.5 + float(ffi) * 2.1) + 1.0) * 0.5, 0.0, 1.0)
 		draw_circle(Vector2(ffx, ffy) + ff_drift, 1.5, Color(0.5, 1.0, 0.3, ff_bright * 0.5))
 		draw_circle(Vector2(ffx, ffy) + ff_drift, 5.0, Color(0.4, 0.9, 0.2, ff_bright * 0.06))
+	_draw_peter_novel(2)
+	_draw_shadow_author_effects()
 
 
 func _draw_peter_ch3(sky_color: Color, ground_color: Color) -> void:
@@ -18254,6 +23132,8 @@ func _draw_peter_ch3(sky_color: Color, ground_color: Color) -> void:
 		var sp_y = 150.0 + fmod(absf(sp_phase * 40.0), 300.0)
 		var sp_bright = clampf(1.0 - fmod(absf(sp_phase * 40.0), 300.0) / 300.0, 0.0, 1.0)
 		draw_circle(Vector2(sp_x, sp_y), 1.0, Color(1.0, 0.7, 0.2, sp_bright * 0.4))
+	_draw_peter_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 	# === CEILING / SKY — Dark underground brick tunnel ceiling ===
@@ -18496,6 +23376,8 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 		var v_alpha = (1.0 - float(v) / 40.0) * 0.15
 		draw_rect(Rect2(0, 50 + v, float(v) * 0.5, 1), Color(0.0, 0.0, 0.0, v_alpha))
 		draw_rect(Rect2(1280.0 - float(v) * 0.5, 50 + v, float(v) * 0.5, 1), Color(0.0, 0.0, 0.0, v_alpha))
+	_draw_phantom_novel(2)
+	_draw_shadow_author_effects()
 
 
 func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
@@ -18755,6 +23637,8 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 		draw_rect(Rect2(1280.0 - band_w, band_y, band_w, 5), Color(0.0, 0.0, 0.0, v_alpha))
 		# Bottom vignette
 		draw_rect(Rect2(0, 628 - v * 5, 1280, 5), Color(0.0, 0.0, 0.0, v_alpha * 0.5))
+	_draw_phantom_novel(3)
+	_draw_shadow_author_effects()
 
 func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 	# === SKY GRADIENT — Midnight spectral blue ===
@@ -18997,6 +23881,8 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Horizontal fence bars
 	draw_line(Vector2(10, 570.0), Vector2(1270, 570.0), Color(0.08, 0.08, 0.1, 0.2), 1.5)
 	draw_line(Vector2(10, 580.0), Vector2(1270, 580.0), Color(0.08, 0.08, 0.1, 0.2), 1.5)
+	_draw_scrooge_novel(2)
+	_draw_shadow_author_effects()
 
 
 func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
@@ -19225,6 +24111,8 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 	var fg_flicker := sin(_time * 5.0) * 0.1
 	draw_circle(Vector2(fg_lamp_x, 508), 5.0 + fg_flicker, Color(1.0, 0.8, 0.3, 0.4 + fg_flicker))
 	draw_circle(Vector2(fg_lamp_x, 508), 25.0, Color(1.0, 0.75, 0.25, 0.04))
+	_draw_scrooge_novel(3)
+	_draw_shadow_author_effects()
 
 func _on_tower_pressed(tower_type: TowerType, desc: String) -> void:
 	_play_sfx(_sfx_ui_click)
@@ -19351,10 +24239,29 @@ func _update_upgrade_panel() -> void:
 	else:
 		sell_value_label.text = ""
 
+	# Update hero ability button
+	var hab = upgrade_panel.get_node_or_null("HeroAbilityBtn")
+	if hab:
+		if tower.has_method("activate_hero_ability"):
+			hab.visible = true
+			var ab_name = tower.get_active_ability_name() if tower.has_method("get_active_ability_name") else "ABILITY"
+			if "active_ability_ready" in tower and tower.active_ability_ready:
+				hab.text = ab_name
+				hab.disabled = false
+			else:
+				var cd_left = tower.active_ability_cooldown if "active_ability_cooldown" in tower else 0.0
+				hab.text = "%s (%ds)" % [ab_name, int(cd_left)]
+				hab.disabled = true
+		else:
+			hab.visible = false
+
 	upgrade_panel.visible = true
 
 func _hide_upgrade_panel() -> void:
 	upgrade_panel.visible = false
+	var hab = upgrade_panel.get_node_or_null("HeroAbilityBtn")
+	if hab:
+		hab.visible = false
 
 func _on_upgrade_tier_pressed(tier_index: int) -> void:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
@@ -19370,6 +24277,7 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 			upgrade_cost = info.get("cost", 0)
 		if selected_tower_node.purchase_upgrade():
 			_update_upgrade_panel()
+			_refresh_music_max_tier()  # Update tempo scaling cache
 			var tier_name = selected_tower_node.TIER_NAMES[selected_tower_node.upgrade_tier - 1]
 			info_label.text = "Upgraded: %s!" % tier_name
 			spawn_floating_text(selected_tower_node.global_position + Vector2(0, -30), tier_name + "!", Color(0.4, 1.0, 0.5), 15.0, 1.2)
@@ -19391,7 +24299,20 @@ func _on_targeting_pressed() -> void:
 	if selected_tower_node.has_method("get_targeting_label"):
 		targeting_button.text = "Target: %s" % selected_tower_node.get_targeting_label()
 
+func _on_hero_ability_pressed() -> void:
+	if not selected_tower_node or not is_instance_valid(selected_tower_node):
+		return
+	var tower = selected_tower_node
+	if tower.has_method("activate_hero_ability"):
+		if "active_ability_ready" in tower and tower.active_ability_ready:
+			_play_sfx(_sfx_ui_click)
+			tower.activate_hero_ability()
+			_update_upgrade_panel()
+
 func _on_sell_pressed() -> void:
+	if selected_difficulty == PURE_MODE:
+		info_label.text = "Selling disabled in Pure Mode!"
+		return
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return
 	var tower = selected_tower_node
@@ -19431,6 +24352,12 @@ func _on_sell_pressed() -> void:
 	_deselect_tower()
 	tower.queue_free()
 	info_label.text = "%s sold for %dG!" % [tower_name, sell_value]
+	# Layered music: fade out this character's instrument layer
+	for tt in tower_info.keys():
+		if tower_info[tt]["name"] == tower_name:
+			_fade_out_tower_layer(tt)
+			break
+
 	# Re-check synergies after tower is freed (2-frame delay to ensure queue_free completes)
 	get_tree().create_timer(0.05).timeout.connect(_check_synergies)
 
@@ -19466,9 +24393,22 @@ func _on_voice_mute_pressed() -> void:
 
 func _on_auto_wave_toggled() -> void:
 	_play_sfx(_sfx_ui_click)
-	auto_wave_enabled = not auto_wave_enabled
-	auto_wave_btn.text = " AUTO " if auto_wave_enabled else " [AUTO] "
 	if not auto_wave_enabled:
+		# Turn auto on at current delay
+		auto_wave_enabled = true
+		auto_wave_delay = auto_wave_delay_options[auto_wave_delay_index]
+	else:
+		# Cycle delay, turn off after last option
+		auto_wave_delay_index += 1
+		if auto_wave_delay_index >= auto_wave_delay_options.size():
+			auto_wave_delay_index = 0
+			auto_wave_enabled = false
+		else:
+			auto_wave_delay = auto_wave_delay_options[auto_wave_delay_index]
+	if auto_wave_enabled:
+		auto_wave_btn.text = " AUTO %ds " % int(auto_wave_delay)
+	else:
+		auto_wave_btn.text = " AUTO OFF "
 		wave_auto_timer = -1.0
 		if not is_wave_active and wave < total_waves:
 			start_button.text = "  START WAVE  "
@@ -19530,18 +24470,82 @@ func _on_restart_pressed() -> void:
 	info_label.text = "Wave %d restarted. Ready to go!" % (wave + 1)
 	queue_redraw()
 
+func _on_quick_restart_pressed() -> void:
+	if game_state != GameState.PLAYING:
+		return
+	_play_sfx(_sfx_ui_click)
+	_reset_game()
+	if daily_challenge_active:
+		_do_level_start(daily_challenge_level)
+	elif boss_rush_mode:
+		_start_boss_rush()
+	elif endless_mode:
+		_start_endless_mode()
+	else:
+		_do_level_start(current_level)
+
+func _on_undo_placement() -> void:
+	if undo_tower_data.is_empty():
+		return
+	_play_sfx(_sfx_ui_click)
+	var tower_node = undo_tower_data.get("node")
+	var refund = undo_tower_data.get("cost", 0)
+	var tower_type = undo_tower_data.get("type", -1)
+	var tower_pos = undo_tower_data.get("position", Vector2.ZERO)
+	# Refund gold
+	add_gold(refund)
+	# Remove from placed positions
+	var idx = placed_tower_positions.find(tower_pos)
+	if idx >= 0:
+		placed_tower_positions.remove_at(idx)
+	# Re-enable purchase
+	if purchased_towers.has(tower_type):
+		purchased_towers.erase(tower_type)
+		if tower_buttons.has(tower_type) and is_instance_valid(tower_buttons[tower_type]):
+			tower_buttons[tower_type].disabled = false
+	# Remove tower
+	if is_instance_valid(tower_node):
+		tower_node.queue_free()
+	# Clear undo state
+	undo_tower_data.clear()
+	undo_button.visible = false
+	spawn_floating_text(tower_pos, "UNDO +%dG" % refund, Color(0.4, 1.0, 0.6), 16.0, 1.2)
+	update_hud()
+	queue_redraw()
+
 func _start_next_wave() -> void:
+	_award_affinity_for_wave()
+	_tick_relic_usage()
 	if not fast_forward:
 		current_game_fast_forward_only = false
 	if is_wave_active or wave >= total_waves:
 		return
+	# BATTD: Early Wave Send Bonus (send while enemies alive for bonus gold)
+	_early_send_bonus = 0
+	if enemies_alive > 0:
+		_early_send_bonus = 5 + enemies_alive * 3
+		add_gold(_early_send_bonus)
+		_income_breakdown["early_send"] = _income_breakdown.get("early_send", 0) + _early_send_bonus
+		spawn_floating_text(Vector2(640, 260), "EARLY SEND +%dG!" % _early_send_bonus, Color(0.3, 1.0, 0.5), 16.0, 1.2)
+	# BATTD: Reset kill counter for new wave
+	_wave_enemies_killed = 0
+	# BATTD: Wave rush timer
+	_wave_start_time = _time
+	# BATTD: Income breakdown reset
+	_income_breakdown = {"kills": 0, "wave_bonus": 0, "combo": 0, "early_send": _early_send_bonus, "lucky": 0}
 	wave += 1
 	is_wave_active = true
 	game_paused = false
+	# Clear undo and wave preview on wave start
+	undo_tower_data.clear()
+	if is_instance_valid(undo_button):
+		undo_button.visible = false
+	wave_preview_active = false
 	_play_sfx(_sfx_wave_start)
 	music_beat_index = 0
 	_music_beat_accum = 0.0
 	enemies_to_spawn = _get_wave_enemy_count(wave)
+	_wave_enemies_total = enemies_to_spawn
 	spawn_interval = _get_wave_spawn_interval(wave)
 	spawn_timer = 0.0
 	wave_start_gold = gold
@@ -19551,12 +24555,17 @@ func _start_next_wave() -> void:
 	var wave_name = _get_wave_name(wave)
 	var enemy_word = "enemy" if enemies_to_spawn == 1 else "enemies"
 	info_label.text = "Wave %d — %s (%d %s)" % [wave, wave_name, enemies_to_spawn, enemy_word]
+	# Wave number banner
+	_wave_banner_timer = 2.5
+	_wave_banner_num = wave
+	_wave_banner_name = wave_name
+	_wave_banner_is_boss = wave in [20, 25, 30, 35] or wave == total_waves
 	# Boss wave alert
-	if wave in [20, 25, 30, 35] or wave == total_waves or (wave >= 39 and selected_difficulty == 2):
+	if wave in [20, 25, 30, 35] or wave == total_waves or (wave >= 39 and selected_difficulty >= 2):
 		_boss_alert_timer = 2.5
 		if wave == total_waves:
 			_boss_alert_text = "FINAL WAVE"
-		elif wave >= 39 and selected_difficulty == 2:
+		elif wave >= 39 and selected_difficulty >= 2:
 			_boss_alert_text = "FINAL VILLAIN"
 		else:
 			_boss_alert_text = "BOSS WAVE"
@@ -19564,6 +24573,17 @@ func _start_next_wave() -> void:
 		_screen_shake_intensity = 5.0
 		if _is_mobile:
 			Input.vibrate_handheld(80)
+	# Endless mode: mutate every 5 waves
+	if endless_mode and wave > 0 and wave % 5 == 0:
+		endless_mutation = ENDLESS_MUTATIONS[randi() % ENDLESS_MUTATIONS.size()]
+		spawn_floating_text(Vector2(640, 200), "MUTATION: " + endless_mutation, Color(1.0, 0.3, 0.1), 22.0, 2.5)
+		_screen_shake_timer = 0.3
+		_screen_shake_intensity = 4.0
+	# Boss rush: track wave
+	if boss_rush_mode:
+		boss_rush_wave = wave
+		if boss_rush_wave > boss_rush_best_wave:
+			boss_rush_best_wave = boss_rush_wave
 	# Award wave survival XP to all placed towers (small bonus each wave)
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower.has_method("register_damage"):
@@ -19582,7 +24602,7 @@ func update_hud() -> void:
 		elif shadow_arena_active:
 			wave_label.text = "Arena Wave: %d" % wave
 		else:
-			var diff_indicator = ["", " [M]", " [H]"][selected_difficulty]
+			var diff_indicator = ["", " [M]", " [H]", " [P]"][mini(selected_difficulty, 3)]
 			wave_label.text = "Wave: %d/%d%s" % [wave, total_waves, diff_indicator]
 		# Show enemy count during active waves
 		if is_wave_active:
@@ -19597,7 +24617,7 @@ func update_hud() -> void:
 			gold_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 	if lives_label:
 		lives_label.text = "Lives: %d" % lives
-		var max_lives = difficulty_fixed_lives[selected_difficulty] if selected_difficulty < difficulty_fixed_lives.size() else 100
+		var max_lives = difficulty_fixed_lives[mini(selected_difficulty, difficulty_fixed_lives.size() - 1)] if selected_difficulty < difficulty_fixed_lives.size() else 100
 		var life_pct = float(lives) / float(max(1, max_lives))
 		if life_pct <= 0.2:
 			lives_label.add_theme_color_override("font_color", Color(1.0, 0.15, 0.1))
@@ -19612,6 +24632,9 @@ func get_path_points() -> PackedVector2Array:
 	return path_points
 
 func add_gold(amount: int) -> void:
+	# BATTD: Double Cash Mode doubles all gold income
+	if double_cash_enabled and amount > 0:
+		amount *= 2
 	gold += amount
 	total_gold_earned += amount
 	_check_achievement("penny_pincher", amount)
@@ -19655,12 +24678,65 @@ func _quest_track_kill(enemy_node = null) -> void:
 		_update_quest_progress("kill_shadow", 1)
 
 func enemy_died(enemy_node = null) -> void:
-	enemies_alive -= 1
+	enemies_alive = maxi(enemies_alive - 1, 0)
 	total_enemies_killed += 1
 	_check_achievement("first_blood", 1)
 	_check_achievement("centurion", 1)
 	_check_achievement("thousand_slayer", 1)
 	_quest_track_kill(enemy_node)
+	# BATTD: Kill counter
+	_wave_enemies_killed += 1
+	# BATTD: Lucky loot drops (5% chance for bonus shards/quills)
+	if randf() < LUCKY_DROP_CHANCE:
+		var lucky_amount = randi_range(1, 3)
+		if randf() < 0.5:
+			player_relic_shards += lucky_amount
+			if enemy_node and is_instance_valid(enemy_node):
+				spawn_floating_text(enemy_node.global_position + Vector2(0, -20), "+%d Shards!" % lucky_amount, Color(0.6, 0.4, 1.0), 14.0, 1.0)
+		else:
+			player_quills += lucky_amount
+			if enemy_node and is_instance_valid(enemy_node):
+				spawn_floating_text(enemy_node.global_position + Vector2(0, -20), "+%d Quills!" % lucky_amount, Color(0.2, 0.8, 0.6), 14.0, 1.0)
+		_lucky_drops_this_game += 1
+		_income_breakdown["lucky"] = _income_breakdown.get("lucky", 0) + lucky_amount
+	# BATTD: Bounty tracking
+	if _active_bounties.size() > 0 and enemy_node and is_instance_valid(enemy_node):
+		var e_tier = enemy_node.enemy_tier if "enemy_tier" in enemy_node else 0
+		var is_boss = enemy_node.boss_scale > 1.0 if "boss_scale" in enemy_node else false
+		for bounty in _active_bounties:
+			if bounty["progress"] >= bounty["target"]:
+				continue
+			var match = false
+			if bounty["kill_type"] == "any":
+				match = true
+			elif bounty["kill_type"] == "boss" and is_boss:
+				match = true
+			elif bounty["kill_type"] == "tier3" and e_tier >= 3:
+				match = true
+			elif bounty["kill_type"] == "tier2" and e_tier >= 2:
+				match = true
+			if match:
+				bounty["progress"] += 1
+				if bounty["progress"] >= bounty["target"]:
+					_bounties_completed_total += 1
+					if bounty["reward_type"] == "gold":
+						add_gold(bounty["reward_amount"])
+					elif bounty["reward_type"] == "shards":
+						player_relic_shards += bounty["reward_amount"]
+					elif bounty["reward_type"] == "quills":
+						player_quills += bounty["reward_amount"]
+					spawn_floating_text(Vector2(640, 280), "BOUNTY COMPLETE! +%d %s" % [bounty["reward_amount"], bounty["reward_type"].capitalize()], Color(1.0, 0.7, 0.1), 18.0, 2.0)
+	# Combo kill tracking
+	combo_count += 1
+	combo_timer = COMBO_WINDOW
+	if enemy_node and is_instance_valid(enemy_node):
+		combo_last_pos = enemy_node.global_position
+	if combo_count >= COMBO_MIN:
+		var bonus_gold = combo_count * 2
+		add_gold(bonus_gold)
+		spawn_floating_text(combo_last_pos + Vector2(0, -30), "COMBO x%d +%dG" % [combo_count, bonus_gold], Color(1.0, 0.5, 0.1), 18.0, 1.2)
+		if combo_count > combo_best:
+			combo_best = combo_count
 
 # === FLOATING TEXTS ===
 func spawn_floating_text(pos: Vector2, text: String, color: Color, size: float = 14.0, duration: float = 1.0) -> void:
@@ -19686,6 +24762,32 @@ func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool) -> void:
 
 func spawn_gold_text(pos: Vector2, amount: int) -> void:
 	spawn_floating_text(pos + Vector2(0, -10), "+%dg" % amount, Color(1.0, 0.85, 0.2, 0.9), 13.0, 1.0)
+	# Gold coin pickup arc animation
+	_gold_pickups.append({
+		"start": pos, "end": Vector2(310, 20), "pos": pos,
+		"timer": 0.6, "max_timer": 0.6,
+		"spin": randf() * TAU,
+	})
+
+# === ENVIRONMENTAL PARTICLES ===
+func _init_env_particles() -> void:
+	_env_particles.clear()
+	for i in range(20):
+		_env_particles.append({
+			"x": randf_range(0, 1280),
+			"y": randf_range(0, 720),
+			"dx": randf_range(8.0, 25.0),
+			"size": randf_range(1.5, 3.5),
+			"phase": randf() * TAU,
+			"freq": randf_range(0.5, 1.5),
+		})
+
+# === VISUAL POLISH REPORTS ===
+func report_aoe_impact(pos: Vector2, radius: float, color: Color) -> void:
+	_aoe_impacts.append({"pos": pos, "radius": radius, "color": color, "timer": 0.6, "max_timer": 0.6})
+
+func report_crit_hit(pos: Vector2) -> void:
+	_crit_flashes.append({"pos": pos, "timer": 0.4, "max_timer": 0.4})
 
 # === DEATH EFFECTS ===
 func report_enemy_death(pos: Vector2, is_boss: bool, scale: float) -> void:
@@ -19722,7 +24824,23 @@ func report_enemy_death(pos: Vector2, is_boss: bool, scale: float) -> void:
 func _apply_enemy_modifiers(enemy, wave_num: int, is_boss: bool) -> void:
 	if selected_difficulty == 0:
 		return  # Easy: no modifiers
-	var available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "regrown", "fortified", "shielded", "cursed", "phantom"]
+	var available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "regrown", "fortified", "shielded", "cursed", "phantom", "arcane", "ironclad", "ethereal"]
+	# Pure Mode: all modifiers enabled from wave 1, higher chance
+	if selected_difficulty == PURE_MODE:
+		var pure_chance = 0.35
+		if is_boss:
+			var mod = available[randi() % available.size()]
+			_apply_single_modifier(enemy, mod)
+			if randf() < 0.5:
+				var mod2 = available[randi() % available.size()]
+				if mod2 != mod:
+					_apply_single_modifier(enemy, mod2)
+		elif randf() < pure_chance:
+			available.shuffle()
+			_apply_single_modifier(enemy, available[0])
+			if randf() < 0.3 and available.size() > 1:
+				_apply_single_modifier(enemy, available[1])
+		return
 	# Shadow Arena may force specific modifiers
 	if shadow_arena_active and shadow_arena_modifiers.size() > 0:
 		if "shadow_infested" in shadow_arena_modifiers:
@@ -19744,11 +24862,15 @@ func _apply_enemy_modifiers(enemy, wave_num: int, is_boss: bool) -> void:
 	var chance = 0.10 if selected_difficulty == 1 else 0.20
 	var max_mods = 1 if selected_difficulty == 1 else 2
 	# New modifiers unlock progressively
-	if wave_num < 20:
+	if wave_num < 15:
 		available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "fortified"]
+	elif wave_num < 20:
+		available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "fortified", "arcane"]
+	elif wave_num < 25:
+		available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "regrown", "fortified", "shielded", "cursed", "phantom", "arcane", "ironclad"]
 	if wave_num < min_wave and not is_boss:
 		return
-	if is_boss and selected_difficulty == 2:
+	if is_boss and selected_difficulty >= 2:
 		# Bosses always get 1 modifier on Hard
 		var mod = available[randi() % available.size()]
 		_apply_single_modifier(enemy, mod)
@@ -19797,6 +24919,22 @@ func _apply_single_modifier(enemy, mod: String) -> void:
 			enemy.is_spectral = true
 			enemy.max_health *= 0.7
 			enemy.health = enemy.max_health
+		"arcane":
+			enemy.modifiers.append(mod)
+			enemy.resistances["magic"] = 0.5
+			enemy.max_health *= 0.85
+			enemy.health = enemy.max_health
+		"ironclad":
+			enemy.modifiers.append(mod)
+			enemy.immunities.append("magic")
+			enemy.max_health *= 1.8
+			enemy.health = enemy.max_health
+		"ethereal":
+			enemy.modifiers.append(mod)
+			enemy.immunities.append("physical")
+			enemy.max_health *= 0.6
+			enemy.health = enemy.max_health
+			enemy.speed *= 1.15
 		_:
 			enemy.modifiers.append(mod)
 
@@ -19844,6 +24982,26 @@ func spawn_regrow_children(parent_progress: float, theme: int, tier: int, genera
 		enemy_path.add_child(child)
 		enemies_alive += 1
 
+func spawn_boss_minions(parent_progress: float, theme: int, count: int) -> void:
+	for i in range(count):
+		var child = enemy_scene.instantiate()
+		child.add_to_group("enemies")
+		child.enemy_theme = theme
+		child.enemy_tier = 1
+		child.progress = parent_progress + float(i) * 25.0 - float(count) * 12.0
+		child.max_health = 80.0 + wave * 12.0
+		child.health = child.max_health
+		child.speed = 90.0 + wave * 2.0
+		child.gold_reward = 3
+		child.boss_scale = 0.8
+		enemy_path.add_child(child)
+		enemies_alive += 1
+
+var boss_danger_zones: Array = []
+
+func add_boss_danger_zone(pos: Vector2) -> void:
+	boss_danger_zones.append({"pos": pos, "timer": 8.0, "radius": 80.0})
+
 func _spawn_moab_wave(theme: int, tier: int) -> void:
 	# Spawn a MOAB villain enemy for special waves
 	var moab = enemy_scene.instantiate()
@@ -19855,7 +25013,7 @@ func _spawn_moab_wave(theme: int, tier: int) -> void:
 	moab.boss_scale = MOAB_TIER_SCALES[tier]
 	moab.boss_name = MOAB_VILLAIN_NAMES.get(theme, "Dark Overlord")
 	moab.moab_children_count = MOAB_TIER_CHILDREN[tier]
-	var diff_mult = [0.85, 1.0, 1.2][selected_difficulty]
+	var diff_mult = [0.85, 1.0, 1.2, 1.5][mini(selected_difficulty, 3)]
 	moab.max_health = (600.0 + wave * 40.0) * MOAB_TIER_HP_MULT[tier] * diff_mult * 1.25
 	moab.speed = (50.0 + wave * 1.0) * (0.9 + selected_difficulty * 0.05)
 	moab.gold_reward = 20 + tier * 15
@@ -19867,10 +25025,15 @@ func _spawn_moab_wave(theme: int, tier: int) -> void:
 func _get_binding_bonuses(tower_type) -> Dictionary:
 	var bonuses: Dictionary = {}
 	var bindings = equipped_bindings.get(tower_type, [])
+	var char_gear_count = 0
+	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "scheherazade"]
+	var char_name = tower_names[tower_type] if tower_type >= 0 and tower_type < tower_names.size() else ""
 	for bid in bindings:
 		var binding = _find_binding(bid)
 		if binding.is_empty():
 			continue
+		if binding.get("character", "") == char_name:
+			char_gear_count += 1
 		# Multi-effect relics use "effects" array
 		if binding.has("effects"):
 			for fx in binding["effects"]:
@@ -19878,11 +25041,16 @@ func _get_binding_bonuses(tower_type) -> Dictionary:
 		else:
 			# Single-effect relics use "effect"/"value"
 			_apply_binding_effect(bonuses, binding.get("effect", ""), binding.get("value", 0.0))
+	# Set bonus: 3+ character-specific gear gives +5% all stats per piece
+	if char_gear_count >= 3:
+		var set_bonus = float(char_gear_count) * 0.05
+		for k in ["damage", "range", "attack_speed", "crit"]:
+			bonuses[k] = bonuses.get(k, 0.0) + set_bonus
 	return bonuses
 
 func _apply_binding_effect(bonuses: Dictionary, eff: String, val: float) -> void:
 	match eff:
-		"attack_speed", "damage", "range", "crit", "gold_bonus", "slow", "dodge", "splash_radius", "armor_pierce", "crit_damage", "cooldown_reduction", "first_blood", "execute", "wave_gold", "poison", "burn", "chain", "multi_shot", "aura_range", "debuff_amp", "xp_gain", "boss_damage", "lifesteal", "bloodstained", "kill_gold", "absorb_hit", "heal_nearby":
+		"attack_speed", "damage", "range", "crit", "gold_bonus", "slow", "dodge", "splash_radius", "armor_pierce", "crit_damage", "cooldown_reduction", "first_blood", "execute", "wave_gold", "poison", "burn", "chain", "multi_shot", "aura_range", "debuff_amp", "xp_gain", "boss_damage", "lifesteal", "bloodstained", "kill_gold", "absorb_hit", "heal_nearby", "stun", "pierce", "defense", "aura_speed":
 			bonuses[eff] = bonuses.get(eff, 0.0) + val
 		"raven":
 			bonuses["attack_speed"] = bonuses.get("attack_speed", 0.0) + val
@@ -19902,7 +25070,7 @@ func _apply_binding_effect(bonuses: Dictionary, eff: String, val: float) -> void
 
 func _pick_weighted_relic(rarity: String, level_character: int) -> Dictionary:
 	var char_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
-		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein"]
+		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "scheherazade"]
 	var char_name = char_names[level_character] if level_character >= 0 and level_character < char_names.size() else ""
 	var candidates: Array = []
 	var weights: Array = []
@@ -19943,15 +25111,40 @@ func _get_highest_completed_level() -> int:
 	return highest
 
 func _get_binding_slots(tower_type) -> int:
+	# Level-based slots: start with 3, unlock more at levels 2,4,6,7,8,9,10 (max 10)
 	var level = survivor_progress.get(tower_type, {}).get("level", 1)
-	if level >= 15:
-		return 3
-	elif level >= 10:
-		return 2
-	elif level >= 5:
-		return 1
-	return 0
+	var level_slots = 3
+	if level >= 10: level_slots = 10
+	elif level >= 9: level_slots = 9
+	elif level >= 8: level_slots = 8
+	elif level >= 7: level_slots = 7
+	elif level >= 6: level_slots = 6
+	elif level >= 4: level_slots = 5
+	elif level >= 2: level_slots = 4
+	# Also factor in golden shield progression
+	var shield_slots = _get_binding_slot_count(tower_type)
+	return maxi(level_slots, shield_slots)
 
+
+func _get_ally_slots(tower_type) -> int:
+	# BATTD-style: 1 ally slot at start, unlock at levels 3, 5, 10 (max 4)
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	if level >= 10: return 4
+	elif level >= 5: return 3
+	elif level >= 3: return 2
+	return 1
+
+func _get_level_stat_boosts(tower_type) -> Dictionary:
+	# BATTD-style: permanent stat boosts at levels 2,4,6,8,9,10
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	var boosts = {"damage": 0.0, "range": 0.0, "attack_speed": 0.0}
+	if level >= 2: boosts["damage"] += 0.05; boosts["range"] += 0.03
+	if level >= 4: boosts["attack_speed"] += 0.08; boosts["damage"] += 0.05
+	if level >= 6: boosts["range"] += 0.05; boosts["attack_speed"] += 0.05
+	if level >= 8: boosts["damage"] += 0.08; boosts["range"] += 0.05
+	if level >= 9: boosts["attack_speed"] += 0.08; boosts["damage"] += 0.05
+	if level >= 10: boosts["damage"] += 0.10; boosts["range"] += 0.08; boosts["attack_speed"] += 0.10
+	return boosts
 func _build_binding_lookup() -> void:
 	_binding_lookup.clear()
 	for b in TOME_BINDINGS:
@@ -19978,13 +25171,61 @@ func _tower_type_to_name(tt) -> String:
 
 func game_over() -> void:
 	game_state = GameState.GAME_OVER_STATE
+	_update_career_stats_post_game(false)
 	Engine.time_scale = 1.0
 	fast_forward = false
 	game_paused = false
+	_stop_layered_music()
 	_play_sfx(_sfx_defeat)
 	_death_flash_timer = 0.3  # Dramatic red flash on game over
+	# Defeat dramatic effect — screen cracks
+	_defeat_timer = 3.0
+	_defeat_cracks.clear()
+	var center = Vector2(640, 360)
+	for ci in range(10):
+		var ca = randf() * TAU
+		var cl = randf_range(80.0, 250.0)
+		_defeat_cracks.append({"from": center, "to": center + Vector2(cos(ca), sin(ca)) * cl})
 	speed_button.text = "  >>  "
 	_collect_session_damage()
+	# BATTD: XP Sharing — unused characters get 25% of avg XP earned
+	if xp_sharing_enabled:
+		var total_xp_earned = 0.0
+		var used_types: Array = []
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if tower.get("damage_dealt") != null and tower.damage_dealt > 0:
+				total_xp_earned += tower.damage_dealt
+				var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
+				var type_map = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR}
+				if type_map.has(sp) and not type_map[sp] in used_types:
+					used_types.append(type_map[sp])
+		if used_types.size() > 0 and total_xp_earned > 0:
+			var avg_xp = total_xp_earned / float(used_types.size())
+			var shared_xp = avg_xp * XP_SHARE_RATIO
+			for tt in survivor_progress:
+				if not tt in used_types and survivor_progress[tt]["level"] < MAX_SURVIVOR_LEVEL:
+					var xp_mult = 1.0 + _get_knowledge_bonus("xp_gain")
+					survivor_progress[tt]["xp"] += shared_xp * xp_mult
+					while survivor_progress[tt]["xp"] >= survivor_progress[tt]["xp_next"] and survivor_progress[tt]["level"] < MAX_SURVIVOR_LEVEL:
+						survivor_progress[tt]["xp"] -= survivor_progress[tt]["xp_next"]
+						survivor_progress[tt]["level"] += 1
+						survivor_progress[tt]["xp_next"] = _get_xp_for_level(survivor_progress[tt]["level"])
+						_on_survivor_level_up(tt, survivor_progress[tt]["level"])
+	# BATTD2: Award insta-tower on 3-star victories (20% chance)
+	if stars >= 3 and randf() < 0.20:
+		_award_insta_tower()
+	# BATTD: Collect post-victory stats
+	_session_stats.clear()
+	_session_stats["total_gold_earned"] = total_gold_earned
+	_session_stats["total_kills"] = _wave_enemies_killed
+	_session_stats["waves_cleared"] = wave
+	_session_stats["lucky_drops"] = _lucky_drops_this_game
+	_session_stats["bounties_done"] = 0
+	for b in _active_bounties:
+		if b["progress"] >= b["target"]:
+			_session_stats["bounties_done"] += 1
+	_session_stats["early_send_total"] = _income_breakdown.get("early_send", 0)
+	_session_stats["combo_best"] = combo_count if combo_count > combo_best else combo_best
 	if shadow_arena_active:
 		_end_shadow_arena()
 		game_over_label.text = "SHADOW ARENA - Wave %d\nBest: Wave %d\n+%d Arena Crystals" % [wave, shadow_arena_high_score, wave / 5]
@@ -19992,11 +25233,32 @@ func game_over() -> void:
 	elif endless_mode:
 		if wave > endless_high_wave:
 			endless_high_wave = wave
+		# Track top 5 endless runs
+		var today = Time.get_date_string_from_system()
+		endless_top_runs.append({"wave": wave, "date": today})
+		endless_top_runs.sort_custom(func(a, b): return a["wave"] > b["wave"])
+		if endless_top_runs.size() > 5:
+			endless_top_runs.resize(5)
 		game_over_label.text = "Reached Wave %d\nBest: Wave %d" % [wave, endless_high_wave]
 		endless_mode = false
 		_save_game()
+	elif boss_rush_mode:
+		if wave > boss_rush_best_wave:
+			boss_rush_best_wave = wave
+		game_over_label.text = "BOSS RUSH — Wave %d/10\nBest: Wave %d" % [wave, boss_rush_best_wave]
+		boss_rush_mode = false
+		_save_game()
+	elif daily_challenge_active:
+		game_over_label.text = "DAILY CHALLENGE FAILED\n%s" % daily_challenge_modifier
+		daily_challenge_active = false
 	else:
 		game_over_label.text = "GAME OVER"
+		# BATTD2: Reset victory streak on defeat
+		victory_streak = 0
+		# BATTD: Enable revenge retry with bonus gold
+		_revenge_available = true
+		var base_gold = levels[current_level]["gold"] if current_level >= 0 and current_level < levels.size() else 150
+		_revenge_bonus_pct = 0.20
 	game_over_label.add_theme_color_override("font_color", Color.RED)
 	game_over_label.add_theme_constant_override("shadow_offset_x", 2)
 	game_over_label.add_theme_constant_override("shadow_offset_y", 3)
@@ -20200,14 +25462,29 @@ func _draw_shadow_author_figure(pos: Vector2, scale: float, alpha: float, time: 
 
 func _victory() -> void:
 	game_state = GameState.GAME_OVER_STATE
+	_build_session_stats()
+	_update_career_stats_post_game(true)
 	Engine.time_scale = 1.0
 	fast_forward = false
 	game_paused = false
+	_stop_layered_music()
 	_play_sfx(_sfx_victory)
 	speed_button.text = "  >>  "
+	# Victory burst effect
+	_victory_burst_timer = 2.0
+	_victory_particles.clear()
+	for vi in range(35):
+		var va = randf() * TAU
+		var vspd = randf_range(100.0, 300.0)
+		_victory_particles.append({
+			"pos": Vector2(640, 360),
+			"vel": Vector2(cos(va), sin(va)) * vspd,
+			"timer": randf_range(1.2, 2.0),
+			"size": randf_range(2.0, 5.0),
+		})
 	_collect_session_damage()
 	var level_name = levels[current_level]["name"] if current_level >= 0 else "Level"
-	var max_lives = difficulty_fixed_lives[selected_difficulty]
+	var max_lives = difficulty_fixed_lives[mini(selected_difficulty, difficulty_fixed_lives.size() - 1)]
 	var stars = 1
 	if lives >= max_lives:
 		stars = 3
@@ -20217,6 +25494,18 @@ func _victory() -> void:
 		completed_levels.append(current_level)
 	var old_stars = level_stars.get(current_level, 0)
 	level_stars[current_level] = max(old_stars, stars)
+	# Per-difficulty medal and star tracking
+	if not level_difficulty_medals.has(current_level):
+		level_difficulty_medals[current_level] = [false, false, false, false]
+	while level_difficulty_medals[current_level].size() < 4:
+		level_difficulty_medals[current_level].append(false)
+	level_difficulty_medals[current_level][selected_difficulty] = true
+	if not level_difficulty_stars.has(current_level):
+		level_difficulty_stars[current_level] = [0, 0, 0, 0]
+	while level_difficulty_stars[current_level].size() < 4:
+		level_difficulty_stars[current_level].append(0)
+	var old_diff_stars = level_difficulty_stars[current_level][selected_difficulty]
+	level_difficulty_stars[current_level][selected_difficulty] = max(old_diff_stars, stars)
 	# Award +1 Knowledge Ink for first 3-star completion of a level
 	if stars >= 3 and old_stars < 3:
 		knowledge_ink += 1
@@ -20225,7 +25514,11 @@ func _victory() -> void:
 		star_str += "â˜…"
 	for i in range(3 - stars):
 		star_str += "â˜†"
-	var diff_name = ["Easy", "Medium", "Hard"][selected_difficulty]
+	var diff_name = ["Easy", "Medium", "Hard", "Pure"][mini(selected_difficulty, 3)]
+	# Pure Mode: 3x XP multiplier + bonus Cosmic Ink
+	if selected_difficulty == PURE_MODE:
+		if stars >= 3 and old_stars < 3:
+			knowledge_ink += 2  # Extra 2 Cosmic Ink (total 3 with the base +1 above)
 	# Generate treasure chest loot (awarded when chest animation plays)
 	_generate_chest_loot(stars)
 	# Hide the old text label — chest overlay handles all victory display now
@@ -20239,6 +25532,45 @@ func _victory() -> void:
 	# Shadow Arena handling
 	if shadow_arena_active:
 		_end_shadow_arena()
+	# Boss Rush completion
+	if boss_rush_mode:
+		boss_rush_completed = true
+		spawn_floating_text(Vector2(640, 250), "BOSS RUSH COMPLETE!", Color(1.0, 0.85, 0.2), 24.0, 3.0)
+	# Daily Challenge completion
+	if daily_challenge_active:
+		var today = Time.get_date_string_from_system()
+		daily_challenge_completed_today = true
+		var prev_date = daily_challenge_last_date
+		daily_challenge_last_date = today
+		if prev_date == "" or prev_date == today:
+			if prev_date == "":
+				daily_challenge_streak = 1
+		else:
+			var prev_unix = Time.get_unix_time_from_datetime_string(prev_date + "T12:00:00")
+			var today_unix = Time.get_unix_time_from_datetime_string(today + "T12:00:00")
+			if today_unix - prev_unix < 172800:
+				daily_challenge_streak += 1
+			else:
+				daily_challenge_streak = 1
+		# Reward: storybook stars + shards
+		player_storybook_stars += 1
+		player_relic_shards += 15
+		spawn_floating_text(Vector2(640, 250), "DAILY COMPLETE! +1 Star +15 Shards", Color(0.4, 1.0, 0.5), 18.0, 2.5)
+	# Track total damage for milestones
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if "damage_dealt" in tower:
+			total_damage += int(tower.damage_dealt)
+	# Check milestones
+	_check_milestones()
+	# BATTD2: Victory Streak tracking
+	victory_streak += 1
+	if victory_streak > victory_streak_best:
+		victory_streak_best = victory_streak
+	if victory_streak >= 3:
+		var streak_bonus = int(float(gold) * STREAK_GOLD_BONUS * float(victory_streak))
+		if streak_bonus > 0:
+			add_gold(streak_bonus)
+			spawn_floating_text(Vector2(640, 220), "STREAK x%d +%dG!" % [victory_streak, streak_bonus], Color(1.0, 0.6, 0.1), 18.0, 2.0)
 	# Achievement checks on victory
 	_check_achievement("first_steps", 1)
 	_check_achievement("halfway_there", 1)
@@ -20337,46 +25669,56 @@ func _generate_chest_loot(stars: int) -> void:
 	var currency_mult = 1.0 + _get_knowledge_bonus("currency_earn")
 
 	# === GOLD COINS ===
-	var gold_base = [8, 18, 30][selected_difficulty]
+	var loot_diff = mini(selected_difficulty, 2)  # Pure mode uses Hard loot tables
+	var gold_base = [8, 18, 30][loot_diff]
 	var gold_amount = int(float(gold_base) * chapter_mult * star_mult * currency_mult)
 	chest_loot.append({"type": "gold", "amount": gold_amount, "name": "Gold"})
 
 	# === RELIC SHARDS (always drop, more on higher tiers) ===
-	var shard_base = [2, 5, 10][selected_difficulty]
+	var shard_base = [2, 5, 10][loot_diff]
 	var shard_amount = int(float(shard_base) * chapter_mult * star_mult * currency_mult)
 	chest_loot.append({"type": "shards", "amount": shard_amount, "name": "Relic Shards"})
 
 	# === QUILLS (chance increases with tier) ===
-	var quill_chance = [0.3, 0.6, 0.9][selected_difficulty]
+	var quill_chance = [0.3, 0.6, 0.9][loot_diff]
 	if randf() < quill_chance * star_mult:
-		var quill_amount = [1, 2, 4][selected_difficulty]
+		var quill_amount = [1, 2, 4][loot_diff]
 		quill_amount = int(float(quill_amount) * chapter_mult * currency_mult)
 		chest_loot.append({"type": "quills", "amount": quill_amount, "name": "Quills"})
 
 	# === STORYBOOK STARS (more generous — guaranteed on Medium+, boosted on Hard) ===
-	var star_chance = [0.25, 0.6, 1.0][selected_difficulty]
+	var star_chance = [0.25, 0.6, 1.0][loot_diff]
 	if randf() < star_chance * chapter_mult * 0.5:
-		var sb_amount = max(1, int(float([1, 2, 3][selected_difficulty]) * currency_mult))
+		var sb_amount = max(1, int(float([1, 2, 3][loot_diff]) * currency_mult))
 		chest_loot.append({"type": "stars", "amount": sb_amount, "name": "Storybook Stars"})
 
-	# === TRINKET DROP — Difficulty-exclusive, progression-gated ===
+	# === GEAR DROP — Difficulty-exclusive, progression-gated ===
 	var prog_chapter = current_level / 3  # World index for drop rate scaling
 	var level_char = levels[current_level]["character"] if current_level >= 0 and current_level < levels.size() else -1
 	var highest_lv = _get_highest_completed_level()
-	var trinket_rarity = ["common", "uncommon", "rare"][selected_difficulty]
+	var trinket_rarity = ["tattered", "bound", "gilded"][loot_diff]
 	var tier_ok = true
 	if selected_difficulty == 1 and highest_lv < 12:
-		tier_ok = false  # Purple requires Act 1 complete
-	elif selected_difficulty == 2 and highest_lv < 24:
-		tier_ok = false  # Gold requires Act 2 complete
-	var relic_chance = [0.08, 0.12, 0.18][selected_difficulty]
-	relic_chance += [0.01, 0.015, 0.02][selected_difficulty] * prog_chapter
+		tier_ok = false  # Bound requires Act 1 complete
+	elif selected_difficulty >= 2 and highest_lv < 24:
+		tier_ok = false  # Gilded requires Act 2 complete
+	# Mythic/Forbidden upgrade chance on hard difficulty
+	if selected_difficulty >= 2 and tier_ok:
+		var upgrade_roll = randf()
+		if upgrade_roll < 0.02:  # 2% forbidden
+			trinket_rarity = "forbidden"
+		elif upgrade_roll < 0.10:  # 8% mythic
+			trinket_rarity = "mythic"
+	var relic_chance = [0.08, 0.12, 0.18][loot_diff]
+	relic_chance += [0.01, 0.015, 0.02][loot_diff] * prog_chapter
 	if stars >= 3:
 		relic_chance += 0.05
 	if tier_ok and randf() < relic_chance:
 		var chosen_b = _pick_weighted_relic(trinket_rarity, level_char)
 		if not chosen_b.is_empty():
 			owned_bindings[chosen_b["id"]] = owned_bindings.get(chosen_b["id"], 0) + 1
+			_mark_binding_discovered(chosen_b["id"])
+			_add_recent_item(chosen_b["name"], chosen_b.get("rarity", "tattered"))
 			chest_loot.append({"type": "relic", "amount": 1, "name": chosen_b["name"]})
 
 func _award_chest_loot() -> void:
@@ -20416,6 +25758,8 @@ func _collect_session_damage() -> void:
 				# Apply to persistent progression
 				if survivor_progress.has(tt):
 					var xp_mult = 1.0 + _get_knowledge_bonus("xp_gain")
+					if selected_difficulty == PURE_MODE:
+						xp_mult *= 3.0
 					survivor_progress[tt]["xp"] += dmg * xp_mult
 					# Accumulate total_damage for progressive abilities
 					survivor_progress[tt]["total_damage"] = survivor_progress[tt].get("total_damage", 0.0) + dmg
@@ -20432,6 +25776,7 @@ func _on_survivor_level_up(tower_type, new_level: int) -> void:
 	# Relics: 0,2,4 auto-earned at levels 2,6,10; relics 1,3,5 purchasable at levels 4,8,12
 	if not survivor_progress.has(tower_type):
 		return
+	_trigger_levelup_fanfare(tower_type, new_level)
 	var p = survivor_progress[tower_type]
 	if new_level >= 2:
 		p["gear_unlocked"] = true
@@ -20615,6 +25960,25 @@ func _draw_achievements_tab() -> void:
 		if achievements_unlocked.get(ach["id"], false):
 			unlocked_count += 1
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "%d / %d" % [unlocked_count, achievement_definitions.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 16, menu_text_muted)
+
+	# === Total completion percentage with progress bar (Enhancement #46) ===
+	var total_ratio = float(unlocked_count) / float(max(1, achievement_definitions.size()))
+	draw_rect(Rect2(panel_x + 40, panel_y + 36, panel_w - 80, 4), Color(0.1, 0.1, 0.15, 0.4))
+	draw_rect(Rect2(panel_x + 40, panel_y + 36, (panel_w - 80) * total_ratio, 4), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5 + 90, panel_y + 28), "%d%% COMPLETE" % int(total_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.5))
+
+	# === Recently unlocked section at top (Enhancement #47) ===
+	var recent_achievements: Array = []
+	for ach_r in achievement_definitions:
+		if achievements_unlocked.get(ach_r["id"], false):
+			recent_achievements.append(ach_r)
+	# Show up to 4 most recently unlocked (last 4 in the list)
+	var recent_display: Array = []
+	if recent_achievements.size() > 0:
+		var recent_start = max(0, recent_achievements.size() - 4)
+		for ri in range(recent_start, recent_achievements.size()):
+			recent_display.append(recent_achievements[ri])
+
 	# Draw achievement cards in a grid (5 columns, scrollable via categories)
 	var categories = ["Combat", "Tower", "Economy", "Progression"]
 	var cat_colors = [Color(0.8, 0.3, 0.2), Color(0.3, 0.7, 0.4), Color(0.85, 0.7, 0.2), Color(0.4, 0.5, 0.85)]
@@ -20635,6 +25999,17 @@ func _draw_achievements_tab() -> void:
 		var hdr_y = start_y
 		draw_rect(Rect2(panel_x + 10, hdr_y, panel_w - 20, 18), Color(cat_col.r, cat_col.g, cat_col.b, 0.12))
 		_udraw(font, Vector2(panel_x + 20, hdr_y + 13), cat, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(cat_col.r, cat_col.g, cat_col.b, 0.9))
+
+		# === Category completion progress bar (Enhancement #44) ===
+		var cat_unlocked = 0
+		for ach_c in cat_achievements:
+			if achievements_unlocked.get(ach_c["id"], false):
+				cat_unlocked += 1
+		var cat_ratio = float(cat_unlocked) / float(max(1, cat_achievements.size()))
+		draw_rect(Rect2(panel_x + panel_w - 210, hdr_y + 6, 140, 6), Color(0.1, 0.1, 0.15, 0.5))
+		draw_rect(Rect2(panel_x + panel_w - 210, hdr_y + 6, 140 * cat_ratio, 6), Color(cat_col.r, cat_col.g, cat_col.b, 0.7))
+		_udraw(font, Vector2(panel_x + panel_w - 60, hdr_y + 13), "%d%%" % int(cat_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(cat_col.r, cat_col.g, cat_col.b, 0.6))
+
 		start_y += 22.0
 		# Cards
 		for ai in range(cat_achievements.size()):
@@ -20645,6 +26020,11 @@ func _draw_achievements_tab() -> void:
 			var cy = start_y + float(row_i) * (card_h + gap_y)
 			var is_done = achievements_unlocked.get(ach["id"], false)
 			var prog = achievement_progress.get(ach["id"], 0)
+
+			# === Achievement unlock glow (Enhancement #43) ===
+			if is_done:
+				draw_rect(Rect2(cx - 2, cy - 2, card_w + 4, card_h + 4), Color(cat_col.r, cat_col.g, cat_col.b, 0.08 + sin(_time * 2.0 + float(ai)) * 0.03))
+
 			# Card background
 			var bg = Color(0.10, 0.08, 0.22, 0.8) if is_done else Color(0.05, 0.05, 0.14, 0.8)
 			draw_rect(Rect2(cx, cy, card_w, card_h), bg)
@@ -20654,6 +26034,18 @@ func _draw_achievements_tab() -> void:
 			draw_rect(Rect2(cx, cy + card_h - 1, card_w, 1), bc)
 			draw_rect(Rect2(cx, cy, 1, card_h), bc)
 			draw_rect(Rect2(cx + card_w - 1, cy, 1, card_h), bc)
+
+			# === Achievement rarity badge (Enhancement #45) ===
+			# Color based on target difficulty: low=bronze, mid=silver, high=gold
+			var ach_target = ach["target"]
+			var rarity_badge_col = Color(0.72, 0.50, 0.25, 0.7)  # Bronze
+			if ach_target >= 100:
+				rarity_badge_col = Color(0.85, 0.65, 0.1, 0.8)  # Gold
+			elif ach_target >= 10:
+				rarity_badge_col = Color(0.75, 0.75, 0.80, 0.7)  # Silver
+			draw_circle(Vector2(cx + card_w - 10, cy + 10), 5, rarity_badge_col)
+			draw_arc(Vector2(cx + card_w - 10, cy + 10), 5, 0, TAU, 12, Color(rarity_badge_col.r, rarity_badge_col.g, rarity_badge_col.b, 0.4), 1.0)
+
 			# Check mark or progress
 			if is_done:
 				draw_circle(Vector2(cx + 16, cy + card_h * 0.5), 8, Color(0.3, 0.7, 0.2, 0.7))
@@ -20670,6 +26062,18 @@ func _draw_achievements_tab() -> void:
 			_udraw(font, Vector2(nx, cy + 31), ach["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 15, Color(0.5, 0.45, 0.4))
 			if not is_done:
 				_udraw(font, Vector2(nx, cy + 42), "%d / %d" % [prog, ach["target"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_text_muted)
+
+			# === "RECENT" indicator for recently unlocked (Enhancement #47) ===
+			if is_done:
+				var is_recent = false
+				for rd in recent_display:
+					if rd["id"] == ach["id"]:
+						is_recent = true
+						break
+				if is_recent:
+					var recent_pulse = 0.6 + sin(_time * 3.0 + float(ai)) * 0.3
+					_udraw(font, Vector2(cx + card_w - 50, cy + card_h - 12), "RECENT", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.3, 0.85, 0.3, recent_pulse))
+
 		var rows_for_cat = (cat_achievements.size() + cols - 1) / cols
 		start_y += float(rows_for_cat) * (card_h + gap_y) + 8.0
 
@@ -20686,7 +26090,7 @@ func _draw_power_selection() -> void:
 	draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.04, 0.10, 0.95))
 	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.5), false, 2.0)
 	_udraw(font, Vector2(px + pw * 0.5 - 80, py + 30), "SELECT BATTLE POWERS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.75, 0.4))
-	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 50), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.4))
+	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 54), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.4))
 	# Cancel/Back button (top-right)
 	draw_rect(Rect2(px + pw - 112, py + 10, 100, 40), Color(0.4, 0.15, 0.15, 0.8))
 	draw_rect(Rect2(px + pw - 112, py + 10, 100, 40), Color(0.8, 0.3, 0.3, 0.5), false, 1.0)
@@ -20695,7 +26099,7 @@ func _draw_power_selection() -> void:
 	for i in range(battle_power_definitions.size()):
 		var bp = battle_power_definitions[i]
 		var bx = px + 30
-		var by = py + 70 + i * 55
+		var by = py + 70 + i * 60
 		var owned = owned_powers.get(bp["id"], 0)
 		var is_selected_p = bp["id"] in selected_powers
 		# Background
@@ -20802,6 +26206,7 @@ func _start_endless_mode() -> void:
 	current_level = endless_background_level
 	_reset_game()
 	endless_mode = true
+	endless_mutation = ""
 	gold = 150
 	lives = 20
 	selected_difficulty = 2  # Hard
@@ -20829,13 +26234,14 @@ func _start_endless_mode() -> void:
 	tower_buttons[TowerType.PHANTOM].disabled = false
 	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
 	tower_buttons[TowerType.SCROOGE].disabled = false
-	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN]
+	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var new_char_labels = {
 		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
 		TowerType.TARZAN: "Tarzan [%dG]" % _get_discounted_cost(TowerType.TARZAN),
 		TowerType.DRACULA: "Dracula [%dG]" % _get_discounted_cost(TowerType.DRACULA),
 		TowerType.MERLIN: "Merlin [%dG]" % _get_discounted_cost(TowerType.MERLIN),
 		TowerType.FRANKENSTEIN: "Monster [%dG]" % _get_discounted_cost(TowerType.FRANKENSTEIN),
+		TowerType.SHADOW_AUTHOR: "Author [%dG]" % _get_discounted_cost(TowerType.SHADOW_AUTHOR),
 	}
 	var new_visible_count := 0
 	for tt in new_char_order:
@@ -20861,6 +26267,208 @@ func _start_endless_mode() -> void:
 	update_hud()
 	info_label.text = "The Eternal Chapter (Endless) — Place your towers!"
 	wave_auto_timer = -1.0
+
+func _start_boss_rush() -> void:
+	_remove_survivor_preview()
+	var bg_level = randi() % levels.size()
+	current_level = bg_level
+	_reset_game()
+	boss_rush_mode = true
+	boss_rush_wave = 0
+	gold = 500
+	lives = 10
+	selected_difficulty = 2  # Hard
+	total_waves = 10
+	_setup_path_for_level(current_level)
+	_generate_decorations_for_level(current_level)
+	_stop_music()
+	menu_overlay.visible = false
+	top_bar.visible = true
+	bottom_panel.visible = true
+	game_over_label.visible = false
+	return_button.visible = false
+	game_state = GameState.PLAYING
+	start_button.text = "  START WAVE  "
+	# Setup tower buttons (same as _do_level_start / _start_endless_mode)
+	tower_buttons[TowerType.ROBIN_HOOD].text = "Robin [%dG]" % _get_discounted_cost(TowerType.ROBIN_HOOD)
+	tower_buttons[TowerType.ROBIN_HOOD].disabled = false
+	tower_buttons[TowerType.ALICE].text = "Alice [%dG]" % _get_discounted_cost(TowerType.ALICE)
+	tower_buttons[TowerType.ALICE].disabled = false
+	tower_buttons[TowerType.WICKED_WITCH].text = "Witch [%dG]" % _get_discounted_cost(TowerType.WICKED_WITCH)
+	tower_buttons[TowerType.WICKED_WITCH].disabled = false
+	tower_buttons[TowerType.PETER_PAN].text = "Peter [%dG]" % _get_discounted_cost(TowerType.PETER_PAN)
+	tower_buttons[TowerType.PETER_PAN].disabled = false
+	tower_buttons[TowerType.PHANTOM].text = "Phantom [%dG]" % _get_discounted_cost(TowerType.PHANTOM)
+	tower_buttons[TowerType.PHANTOM].disabled = false
+	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
+	tower_buttons[TowerType.SCROOGE].disabled = false
+	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
+	var new_char_labels = {
+		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
+		TowerType.TARZAN: "Tarzan [%dG]" % _get_discounted_cost(TowerType.TARZAN),
+		TowerType.DRACULA: "Dracula [%dG]" % _get_discounted_cost(TowerType.DRACULA),
+		TowerType.MERLIN: "Merlin [%dG]" % _get_discounted_cost(TowerType.MERLIN),
+		TowerType.FRANKENSTEIN: "Monster [%dG]" % _get_discounted_cost(TowerType.FRANKENSTEIN),
+		TowerType.SHADOW_AUTHOR: "Author [%dG]" % _get_discounted_cost(TowerType.SHADOW_AUTHOR),
+	}
+	var new_visible_count := 0
+	for tt in new_char_order:
+		if tower_buttons.has(tt):
+			if tt in survivor_types and _is_character_unlocked(tt):
+				var bx = 8 + new_visible_count * 158
+				tower_buttons[tt].position = Vector2(bx, 42)
+				tower_buttons[tt].visible = true
+				tower_buttons[tt].text = new_char_labels[tt]
+				tower_buttons[tt].disabled = false
+				new_visible_count += 1
+			else:
+				tower_buttons[tt].visible = false
+	if new_visible_count > 0:
+		bottom_panel.size.y = 80
+		bottom_panel.position.y = 720 - 80
+	else:
+		bottom_panel.size.y = 42
+		bottom_panel.position.y = 720 - 42
+	start_button.visible = true
+	start_button.disabled = false
+	speed_button.visible = true
+	update_hud()
+	info_label.text = "BOSS RUSH — 10 Bosses, 500G, 10 Lives. Survive!"
+	wave_auto_timer = -1.0
+
+const DAILY_MODIFIERS: Array = [
+	{"name": "Costly Towers", "effect": "cost_mult", "value": 1.5},
+	{"name": "Fragile", "effect": "lives", "value": 10},
+	{"name": "Speed Demons", "effect": "speed_mult", "value": 1.3},
+	{"name": "Iron Skin", "effect": "hp_mult", "value": 1.4},
+	{"name": "Poverty", "effect": "gold", "value": 50},
+	{"name": "Marathon", "effect": "extra_waves", "value": 10},
+]
+
+func _generate_daily_challenge() -> Dictionary:
+	var today = Time.get_date_string_from_system()
+	var seed_val = today.hash()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = seed_val
+	var level_idx = rng.randi() % levels.size()
+	var mod_idx = rng.randi() % DAILY_MODIFIERS.size()
+	return {"level": level_idx, "modifier": DAILY_MODIFIERS[mod_idx], "date": today}
+
+func _start_daily_challenge() -> void:
+	var challenge = _generate_daily_challenge()
+	var today = Time.get_date_string_from_system()
+	if daily_challenge_completed_today and daily_challenge_last_date == today:
+		info_label.text = "Already completed today's challenge!"
+		return
+	daily_challenge_active = true
+	daily_challenge_level = challenge["level"]
+	daily_challenge_modifier = challenge["modifier"]["name"]
+	current_level = daily_challenge_level
+	_reset_game()
+	var mod = challenge["modifier"]
+	# Apply modifier
+	match mod["effect"]:
+		"lives":
+			lives = int(mod["value"])
+		"gold":
+			gold = int(mod["value"])
+		"extra_waves":
+			total_waves += int(mod["value"])
+	_do_level_start(daily_challenge_level)
+	# Override after _do_level_start if needed
+	if mod["effect"] == "lives":
+		lives = int(mod["value"])
+	elif mod["effect"] == "gold":
+		gold = int(mod["value"])
+	elif mod["effect"] == "extra_waves":
+		total_waves += int(mod["value"])
+	daily_challenge_active = true
+	update_hud()
+	info_label.text = "DAILY CHALLENGE: %s — %s" % [levels[daily_challenge_level]["name"], daily_challenge_modifier]
+
+# === PRESTIGE SYSTEM ("New Story") ===
+func _do_prestige() -> void:
+	prestige_level += 1
+	completed_levels.clear()
+	level_stars.clear()
+	level_difficulty_medals.clear()
+	level_difficulty_stars.clear()
+	# Keep: currencies, characters, relics, cosmetics, knowledge, chests, bindings
+	spawn_floating_text(Vector2(640, 300), "NEW STORY! Prestige %d" % prestige_level, Color(1.0, 0.85, 0.2), 28.0, 3.0)
+	_save_game()
+
+func _can_prestige() -> bool:
+	return completed_levels.size() >= levels.size()
+
+# === MILESTONE REWARDS ===
+const MILESTONE_DEFS: Array = [
+	{"id": "kills_100", "stat": "kills", "target": 100, "reward_type": "gold", "reward_amount": 50, "name": "100 Kills"},
+	{"id": "kills_1k", "stat": "kills", "target": 1000, "reward_type": "shards", "reward_amount": 20, "name": "1,000 Kills"},
+	{"id": "kills_5k", "stat": "kills", "target": 5000, "reward_type": "quills", "reward_amount": 15, "name": "5,000 Kills"},
+	{"id": "kills_10k", "stat": "kills", "target": 10000, "reward_type": "gold", "reward_amount": 200, "name": "10,000 Kills"},
+	{"id": "damage_50k", "stat": "damage", "target": 50000, "reward_type": "shards", "reward_amount": 15, "name": "50k Damage"},
+	{"id": "damage_500k", "stat": "damage", "target": 500000, "reward_type": "quills", "reward_amount": 20, "name": "500k Damage"},
+	{"id": "gold_1k", "stat": "gold_earned", "target": 1000, "reward_type": "shards", "reward_amount": 10, "name": "1k Gold Earned"},
+	{"id": "gold_10k", "stat": "gold_earned", "target": 10000, "reward_type": "gold", "reward_amount": 100, "name": "10k Gold Earned"},
+	{"id": "levels_10", "stat": "levels", "target": 10, "reward_type": "quills", "reward_amount": 10, "name": "10 Levels"},
+	{"id": "levels_all", "stat": "levels", "target": 37, "reward_type": "gold_chest", "reward_amount": 1, "name": "All Levels"},
+	{"id": "stars_30", "stat": "stars", "target": 30, "reward_type": "shards", "reward_amount": 25, "name": "30 Stars"},
+	{"id": "stars_111", "stat": "stars", "target": 111, "reward_type": "gold_chest", "reward_amount": 1, "name": "111 Stars"},
+	{"id": "combo_10", "stat": "combo", "target": 10, "reward_type": "quills", "reward_amount": 10, "name": "10x Combo"},
+]
+
+func _check_milestones() -> void:
+	for m in MILESTONE_DEFS:
+		if milestone_claimed.get(m["id"], false):
+			continue
+		var current = 0
+		match m["stat"]:
+			"kills": current = total_enemies_killed
+			"damage": current = total_damage
+			"gold_earned": current = total_gold_earned
+			"levels": current = completed_levels.size()
+			"stars":
+				var s = 0
+				for k in level_stars:
+					s += level_stars[k]
+				current = s
+			"combo": current = combo_best
+		if current >= m["target"]:
+			milestone_claimed[m["id"]] = true
+			# Grant reward
+			match m["reward_type"]:
+				"gold": player_gold += m["reward_amount"]
+				"shards": player_relic_shards += m["reward_amount"]
+				"quills": player_quills += m["reward_amount"]
+				"gold_chest": treasure_chests_owned["gold"] += m["reward_amount"]
+			spawn_floating_text(Vector2(640, 280), "MILESTONE: %s!" % m["name"], Color(1.0, 0.85, 0.2), 20.0, 2.5)
+			_save_game()
+
+# === CHARACTER MASTERY CHALLENGES ===
+const MASTERY_CHALLENGE_DEFS: Array = [
+	{"id": "kills_5000", "name": "Veteran Slayer", "desc": "Kill 5,000 enemies", "stat": "kills", "target": 5000},
+	{"id": "damage_500k", "name": "Damage Dealer", "desc": "Deal 500k damage", "stat": "damage", "target": 500000},
+	{"id": "hard_wins_10", "name": "Hardened", "desc": "Win 10 Hard levels", "stat": "hard_wins", "target": 10},
+	{"id": "three_star_all", "name": "Perfectionist", "desc": "3-star all character levels", "stat": "three_stars", "target": 3},
+	{"id": "all_abilities", "name": "Master of All", "desc": "Use all abilities in one level", "stat": "abilities_used", "target": 9},
+]
+
+func _check_mastery_for_character(tower_type: int) -> void:
+	if not survivor_progress.has(tower_type):
+		return
+	var lvl = survivor_progress[tower_type].get("level", 1)
+	if lvl < 20:
+		return  # Must be level 20 to track mastery
+	if not mastery_challenges.has(str(tower_type)):
+		mastery_challenges[str(tower_type)] = {}
+	var mc = mastery_challenges[str(tower_type)]
+	var total_dmg = survivor_progress[tower_type].get("total_damage", 0.0)
+	# Check each challenge
+	if not mc.get("kills_5000", false) and total_enemies_killed >= 5000:
+		mc["kills_5000"] = true
+	if not mc.get("damage_500k", false) and total_dmg >= 500000.0:
+		mc["damage_500k"] = true
+	mastery_challenges[str(tower_type)] = mc
 
 # === TROPHY STORE DRAWING (as Emporium sub-category) ===
 func _draw_trophy_store() -> void:
@@ -21014,10 +26622,10 @@ func _draw_binding_shop() -> void:
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
 	var card_w = 260.0
 	var card_h = 48.0
-	var rarity_order = ["common", "uncommon", "rare"]
-	var rarity_names = {"common": "Common", "uncommon": "Uncommon", "rare": "Rare"}
-	var rarity_costs = {"common": 15, "uncommon": 35, "rare": 80}
-	var rarity_colors = {"common": Color(0.6, 0.6, 0.6), "uncommon": Color(0.3, 0.7, 0.3), "rare": Color(0.7, 0.4, 0.9)}
+	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
+	var rarity_names = {"tattered": "Tattered", "bound": "Bound", "gilded": "Gilded", "mythic": "Mythic", "forbidden": "Forbidden"}
+	var rarity_costs = {"tattered": 15, "bound": 35, "gilded": 80, "mythic": 200, "forbidden": 500}
+	var rarity_colors = RARITY_COLORS
 	var start_y = content_top - binding_shop_scroll
 	var total_content_h = 0.0
 	for ri in range(rarity_order.size()):
@@ -21088,8 +26696,8 @@ func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
 		return
 	var card_w = 260.0
 	var card_h = 48.0
-	var rarity_order = ["common", "uncommon", "rare"]
-	var rarity_costs = {"common": 15, "uncommon": 35, "rare": 80}
+	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
+	var rarity_costs = {"tattered": 15, "bound": 35, "gilded": 80, "mythic": 200, "forbidden": 500}
 	var start_y = content_top - binding_shop_scroll
 	for ri in range(rarity_order.size()):
 		var rarity = rarity_order[ri]
@@ -21111,6 +26719,8 @@ func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
 				if player_relic_shards >= cost:
 					player_relic_shards -= cost
 					owned_bindings[b["id"]] = owned_bindings.get(b["id"], 0) + 1
+					_mark_binding_discovered(b["id"])
+					_add_recent_item(b["name"], b.get("rarity", "tattered"))
 					emporium_sub_message = "Purchased %s!" % b["name"]
 					emporium_sub_message_timer = 2.0
 					_save_game()
@@ -21168,7 +26778,7 @@ func _salvage_binding(binding_id: String) -> void:
 	var binding = _find_binding(binding_id)
 	if binding.is_empty():
 		return
-	var rarity = binding.get("rarity", "common")
+	var rarity = binding.get("rarity", "tattered")
 	var shards_gained = salvage_rates.get(rarity, 5)
 	owned_bindings[binding_id] = count - 1
 	if owned_bindings[binding_id] <= 0:
@@ -21194,7 +26804,7 @@ func _draw_salvage_panel() -> void:
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "SALVAGE WORKSHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted Tome Bindings into Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var card_w = 260.0
 	var card_h = 52.0
 	var col_count = 4
@@ -21207,13 +26817,13 @@ func _draw_salvage_panel() -> void:
 		var binding = _find_binding(bid)
 		if binding.is_empty():
 			continue
-		var rarity = binding.get("rarity", "common")
+		var rarity = binding.get("rarity", "tattered")
 		var shards_val = salvage_rates.get(rarity, 5)
 		var ix = panel_x + 10 + float(col) * (card_w + 10)
 		var iy = content_y + float(row) * (card_h + 6)
 		if iy + card_h > panel_y + panel_h - 50:
 			break
-		var rarity_col = {"common": Color(0.6, 0.6, 0.6), "uncommon": Color(0.3, 0.7, 0.3), "rare": Color(0.7, 0.4, 0.9)}.get(rarity, Color.WHITE)
+		var rarity_col = RARITY_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
 		draw_rect(Rect2(ix, iy, card_w, card_h), Color(0.08, 0.06, 0.10, 0.85))
 		draw_rect(Rect2(ix, iy, card_w, card_h), Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.3), false, 1.0)
 		_udraw(font, Vector2(ix + 8, iy + 16), binding.get("name", "?"), HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(0.8, 0.7, 0.5))
@@ -21377,7 +26987,7 @@ func _draw_daily_deals() -> void:
 	draw_rect(Rect2(dx, dy, dw, dh), Color(0.06, 0.05, 0.10, 0.9))
 	draw_rect(Rect2(dx, dy, dw, dh), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.35), false, 1.5)
 	_udraw(font, Vector2(dx + dw * 0.5, dy + 18), "DAILY DEALS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
-	_udraw(font, Vector2(dx + dw * 0.5, dy + 34), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
+	_udraw(font, Vector2(dx + dw * 0.5, dy + 36), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_text_muted)
 	for i in range(min(3, daily_deals.size())):
 		var deal = daily_deals[i]
 		var ix = dx + 10
@@ -21445,6 +27055,8 @@ func _on_daily_deals_clicked(mouse_pos: Vector2) -> void:
 					var b = deal.get("item", {})
 					if b.has("id"):
 						owned_bindings[b["id"]] = owned_bindings.get(b["id"], 0) + 1
+						_mark_binding_discovered(b["id"])
+						_add_recent_item(b.get("name", "Binding"), b.get("rarity", "tattered"))
 				"power":
 					var pid = deal.get("power_id", "")
 					var amt = deal.get("amount", 1)
@@ -21532,23 +27144,27 @@ const UPGRADE_BRANCHES: Dictionary = {
 	# Robin Hood
 	0: {
 		"A": {"name": "Sherwood Marksman", "tiers": [
-			{"name": "Piercing Shot", "desc": "+40% pierce damage", "cost": 180, "effect": "pierce_damage", "value": 0.40},
-			{"name": "Storm of Arrows", "desc": "Fires 3 arrows at once", "cost": 350, "effect": "multi_shot", "value": 3.0},
+			{"name": "Piercing Shot", "desc": "+40% pierce damage", "cost": 200, "effect": "pierce_damage", "value": 0.40},
+			{"name": "Storm of Arrows", "desc": "Fires 3 arrows at once", "cost": 400, "effect": "multi_shot", "value": 3.0},
+			{"name": "Unerring Aim", "desc": "Homing arrows never miss targets", "cost": 700, "effect": "homing", "value": 1.0},
 		]},
 		"B": {"name": "Merry Benefactor", "tiers": [
 			{"name": "Golden Arrow", "desc": "+50% gold per kill", "cost": 160, "effect": "gold_bonus", "value": 0.50},
-			{"name": "Robin's Bounty", "desc": "Enemies drop gold on hit", "cost": 300, "effect": "gold_on_hit", "value": 2.0},
+			{"name": "Robin's Bounty", "desc": "Enemies drop gold on hit", "cost": 350, "effect": "gold_on_hit", "value": 2.0},
+			{"name": "Gold Rain", "desc": "+2 gold/kill for all nearby towers", "cost": 650, "effect": "gold_aura", "value": 2.0},
 		]},
 	},
 	# Alice
 	1: {
 		"A": {"name": "Wonderland Chaos", "tiers": [
 			{"name": "Mad Tea Storm", "desc": "+50% AoE radius", "cost": 200, "effect": "aoe_radius", "value": 0.50},
-			{"name": "Jabberwocky Rage", "desc": "Cake explodes for 3x damage", "cost": 380, "effect": "damage", "value": 2.0},
+			{"name": "Jabberwocky Rage", "desc": "Cake explodes for 3x damage", "cost": 400, "effect": "damage", "value": 2.0},
+			{"name": "Unbirthday Party", "desc": "Every 10s, random AoE explosion on path", "cost": 700, "effect": "random_explode", "value": 1.0},
 		]},
 		"B": {"name": "Curiosity Control", "tiers": [
 			{"name": "Shrink Ray", "desc": "Shrunk enemies take +30% damage", "cost": 180, "effect": "shrink_damage", "value": 0.30},
-			{"name": "Looking Glass", "desc": "Reveals all shadow-infested enemies", "cost": 320, "effect": "reveal_shadow", "value": 1.0},
+			{"name": "Looking Glass", "desc": "Reveals all shadow-infested enemies", "cost": 350, "effect": "reveal_shadow", "value": 1.0},
+			{"name": "Wonderland Logic", "desc": "20% chance enemy takes double damage", "cost": 650, "effect": "chaos_damage", "value": 0.20},
 		]},
 	},
 	# Wicked Witch
@@ -21556,21 +27172,25 @@ const UPGRADE_BRANCHES: Dictionary = {
 		"A": {"name": "Dark Summoner", "tiers": [
 			{"name": "Monkey Army", "desc": "Summons 3 flying monkeys", "cost": 220, "effect": "extra_summon", "value": 2.0},
 			{"name": "Tornado Strike", "desc": "Periodically launches a tornado", "cost": 400, "effect": "tornado", "value": 1.0},
+			{"name": "Flying Terror", "desc": "Monkeys carry enemies backward on path", "cost": 700, "effect": "monkey_carry", "value": 1.0},
 		]},
 		"B": {"name": "Hex Weaver", "tiers": [
 			{"name": "Poppy Curse", "desc": "Attacks have 20% chance to sleep", "cost": 190, "effect": "sleep_chance", "value": 0.20},
-			{"name": "Witch's Doom", "desc": "Cursed enemies explode on death", "cost": 360, "effect": "death_explode", "value": 1.0},
+			{"name": "Witch's Doom", "desc": "Cursed enemies explode on death", "cost": 400, "effect": "death_explode", "value": 1.0},
+			{"name": "Eternal Hex", "desc": "Sleep duration doubled, spreads to nearby", "cost": 680, "effect": "hex_spread", "value": 1.0},
 		]},
 	},
 	# Peter Pan
 	3: {
 		"A": {"name": "Shadow Assassin", "tiers": [
 			{"name": "Shadow Strike", "desc": "+60% crit damage", "cost": 200, "effect": "crit_damage", "value": 0.60},
-			{"name": "Lost Boys Ambush", "desc": "Shadow clones attack independently", "cost": 370, "effect": "clone_attack", "value": 2.0},
+			{"name": "Lost Boys Ambush", "desc": "Shadow clones attack independently", "cost": 400, "effect": "clone_attack", "value": 2.0},
+			{"name": "Never Grow Up", "desc": "Permanent +5% damage per kill (caps 100%)", "cost": 700, "effect": "scaling_damage", "value": 0.05},
 		]},
 		"B": {"name": "Fairy Guardian", "tiers": [
-			{"name": "Pixie Shield", "desc": "Nearby towers take 20% less damage", "cost": 180, "effect": "damage_reduction", "value": 0.20},
-			{"name": "Neverland Blessing", "desc": "+25% attack speed to all nearby", "cost": 340, "effect": "attack_speed_aura", "value": 0.25},
+			{"name": "Pixie Shield", "desc": "Nearby towers gain +15% attack speed", "cost": 180, "effect": "attack_speed_aura", "value": 0.15},
+			{"name": "Neverland Blessing", "desc": "+25% attack speed to all nearby", "cost": 350, "effect": "attack_speed_aura", "value": 0.25},
+			{"name": "Second Star", "desc": "Fairy dust heals 1 life every 30 seconds", "cost": 680, "effect": "life_regen", "value": 1.0},
 		]},
 	},
 	# Phantom
@@ -21578,21 +27198,25 @@ const UPGRADE_BRANCHES: Dictionary = {
 		"A": {"name": "Maestro of Doom", "tiers": [
 			{"name": "Crescendo", "desc": "Damage increases with consecutive hits", "cost": 210, "effect": "ramp_damage", "value": 0.10},
 			{"name": "Requiem", "desc": "Devastating AoE blast every 10 attacks", "cost": 400, "effect": "charged_blast", "value": 10.0},
+			{"name": "Grand Finale", "desc": "Requiem blast also stuns for 3 seconds", "cost": 720, "effect": "charged_stun", "value": 3.0},
 		]},
 		"B": {"name": "Opera Phantom", "tiers": [
 			{"name": "Chandelier Drop", "desc": "Stuns all enemies in range every 8s", "cost": 200, "effect": "periodic_stun", "value": 8.0},
-			{"name": "Masquerade", "desc": "Enemies confused, attack each other", "cost": 380, "effect": "confuse_aura", "value": 1.0},
+			{"name": "Masquerade", "desc": "Enemies confused, attack each other", "cost": 400, "effect": "confuse_aura", "value": 1.0},
+			{"name": "Angel of Music", "desc": "Nearby towers gain +30% all stats", "cost": 700, "effect": "all_stats_aura", "value": 0.30},
 		]},
 	},
 	# Scrooge
 	5: {
 		"A": {"name": "Golden Miser", "tiers": [
 			{"name": "Interest Rate", "desc": "+5 gold per wave passively", "cost": 150, "effect": "passive_gold", "value": 5.0},
-			{"name": "Counting House", "desc": "All towers earn +15% gold", "cost": 300, "effect": "global_gold", "value": 0.15},
+			{"name": "Counting House", "desc": "All towers earn +15% gold", "cost": 350, "effect": "global_gold", "value": 0.15},
+			{"name": "Midas Touch", "desc": "Gold coins deal 2x damage to marked", "cost": 650, "effect": "marked_gold_damage", "value": 2.0},
 		]},
 		"B": {"name": "Spirit Channeler", "tiers": [
 			{"name": "Ghost Chill", "desc": "Attacks slow enemies by 40%", "cost": 170, "effect": "slow", "value": 0.40},
-			{"name": "Three Spirits", "desc": "Summons 3 ghosts that deal AoE damage", "cost": 350, "effect": "ghost_summon", "value": 3.0},
+			{"name": "Three Spirits", "desc": "Summons 3 ghosts that deal AoE damage", "cost": 380, "effect": "ghost_summon", "value": 3.0},
+			{"name": "Christmas Miracle", "desc": "Ghosts permanently slow and weaken enemies", "cost": 680, "effect": "ghost_debuff", "value": 1.0},
 		]},
 	},
 	# Sherlock
@@ -21600,21 +27224,25 @@ const UPGRADE_BRANCHES: Dictionary = {
 		"A": {"name": "Master Detective", "tiers": [
 			{"name": "Deduction", "desc": "Marks reveal enemy weaknesses (+40% dmg)", "cost": 230, "effect": "mark_damage", "value": 0.40},
 			{"name": "Case Closed", "desc": "Marked enemies die instantly below 10% HP", "cost": 420, "effect": "execute", "value": 0.10},
+			{"name": "Final Problem", "desc": "Execute threshold raised to 20% HP", "cost": 720, "effect": "execute", "value": 0.20},
 		]},
 		"B": {"name": "Baker Street Intel", "tiers": [
 			{"name": "Network", "desc": "All towers gain +10% range", "cost": 200, "effect": "global_range", "value": 0.10},
-			{"name": "Elementary", "desc": "Reveals all invisible/phantom enemies", "cost": 350, "effect": "reveal_all", "value": 1.0},
+			{"name": "Elementary", "desc": "Reveals all invisible/phantom enemies", "cost": 380, "effect": "reveal_all", "value": 1.0},
+			{"name": "221B Protocol", "desc": "+20% damage to all revealed enemies", "cost": 680, "effect": "reveal_damage", "value": 0.20},
 		]},
 	},
 	# Tarzan
 	7: {
 		"A": {"name": "King of the Jungle", "tiers": [
 			{"name": "Primal Fury", "desc": "+80% damage below 50% map progress", "cost": 200, "effect": "early_damage", "value": 0.80},
-			{"name": "Jungle Stampede", "desc": "Summons elephant charge every 15s", "cost": 380, "effect": "stampede", "value": 1.0},
+			{"name": "Jungle Stampede", "desc": "Summons elephant charge every 15s", "cost": 400, "effect": "stampede", "value": 1.0},
+			{"name": "Alpha Predator", "desc": "Stampede also knocks back all enemies", "cost": 700, "effect": "stampede_knockback", "value": 1.0},
 		]},
 		"B": {"name": "Vine Lord", "tiers": [
 			{"name": "Entangle", "desc": "Vine snares hold enemies for 2s", "cost": 190, "effect": "snare", "value": 2.0},
-			{"name": "Living Jungle", "desc": "Vines grow across path, slowing all by 25%", "cost": 350, "effect": "path_slow", "value": 0.25},
+			{"name": "Living Jungle", "desc": "Vines grow across path, slowing all by 25%", "cost": 380, "effect": "path_slow", "value": 0.25},
+			{"name": "Nature's Wrath", "desc": "Snared enemies take 50% more damage", "cost": 680, "effect": "snare_damage", "value": 0.50},
 		]},
 	},
 	# Dracula
@@ -21622,10 +27250,12 @@ const UPGRADE_BRANCHES: Dictionary = {
 		"A": {"name": "Lord of Darkness", "tiers": [
 			{"name": "Blood Feast", "desc": "Life steal heals all nearby towers", "cost": 220, "effect": "aoe_heal", "value": 1.0},
 			{"name": "Vampire Lord", "desc": "Charmed enemies fight for you permanently", "cost": 420, "effect": "permanent_charm", "value": 1.0},
+			{"name": "Nosferatu", "desc": "Life drain also damages nearby enemies", "cost": 720, "effect": "drain_aoe", "value": 1.0},
 		]},
 		"B": {"name": "Bat Master", "tiers": [
 			{"name": "Bat Swarm", "desc": "Sends bat swarm dealing AoE damage", "cost": 200, "effect": "bat_swarm", "value": 1.0},
-			{"name": "Eclipse", "desc": "All enemies on screen take 5% HP/s for 5s", "cost": 400, "effect": "eclipse", "value": 1.0},
+			{"name": "Eclipse", "desc": "All enemies on screen take 5% HP/s for 5s", "cost": 420, "effect": "eclipse", "value": 1.0},
+			{"name": "Blood Moon", "desc": "Eclipse also heals all towers to full", "cost": 700, "effect": "blood_moon", "value": 1.0},
 		]},
 	},
 	# Merlin
@@ -21633,21 +27263,25 @@ const UPGRADE_BRANCHES: Dictionary = {
 		"A": {"name": "Archmage Supreme", "tiers": [
 			{"name": "Meteor Storm", "desc": "Rains meteors every 12 seconds", "cost": 240, "effect": "meteor", "value": 1.0},
 			{"name": "Time Warp", "desc": "Slows all enemies by 50% for 5s periodically", "cost": 440, "effect": "time_warp", "value": 1.0},
+			{"name": "Chrono Mastery", "desc": "Time Warp also boosts all tower speed 50%", "cost": 740, "effect": "time_boost", "value": 0.50},
 		]},
 		"B": {"name": "Enchanter", "tiers": [
 			{"name": "Enchant Weapons", "desc": "Nearby towers deal magic damage", "cost": 200, "effect": "magic_aura", "value": 1.0},
-			{"name": "Excalibur's Call", "desc": "Summons Excalibur to strike strongest enemy", "cost": 380, "effect": "excalibur", "value": 1.0},
+			{"name": "Excalibur's Call", "desc": "Summons Excalibur to strike strongest enemy", "cost": 400, "effect": "excalibur", "value": 1.0},
+			{"name": "Spell Weaver", "desc": "All magic towers gain +25% damage", "cost": 700, "effect": "magic_damage_aura", "value": 0.25},
 		]},
 	},
 	# Frankenstein
 	10: {
 		"A": {"name": "Lightning Engine", "tiers": [
 			{"name": "Overcharge", "desc": "Chain lightning hits 5 additional targets", "cost": 220, "effect": "chain_count", "value": 5.0},
-			{"name": "Tesla Coil", "desc": "Passive lightning field damages all nearby", "cost": 400, "effect": "tesla", "value": 1.0},
+			{"name": "Tesla Coil", "desc": "Passive lightning field damages all nearby", "cost": 420, "effect": "tesla", "value": 1.0},
+			{"name": "Storm Lord", "desc": "Lightning chains deal increasing damage", "cost": 720, "effect": "chain_ramp", "value": 1.0},
 		]},
 		"B": {"name": "Unstoppable Monster", "tiers": [
 			{"name": "Rage", "desc": "Damage increases as HP drops", "cost": 190, "effect": "rage", "value": 1.0},
-			{"name": "Rampage", "desc": "AoE ground slam stuns for 3s", "cost": 370, "effect": "ground_slam", "value": 3.0},
+			{"name": "Rampage", "desc": "AoE ground slam stuns for 3s", "cost": 400, "effect": "ground_slam", "value": 3.0},
+			{"name": "Reanimation", "desc": "Killed enemies rise as allied zombies", "cost": 700, "effect": "reanimate", "value": 1.0},
 		]},
 	},
 	# Shadow Author
@@ -21655,10 +27289,12 @@ const UPGRADE_BRANCHES: Dictionary = {
 		"A": {"name": "Story Rewriter", "tiers": [
 			{"name": "Plot Twist", "desc": "Random enemy instantly dies every 10s", "cost": 300, "effect": "plot_twist", "value": 1.0},
 			{"name": "The End", "desc": "All enemies below 15% HP are erased", "cost": 500, "effect": "erase", "value": 0.15},
+			{"name": "Rewrite Reality", "desc": "Erase threshold 25%, erased give 2x gold", "cost": 800, "effect": "erase_gold", "value": 0.25},
 		]},
 		"B": {"name": "Ink Overlord", "tiers": [
 			{"name": "Ink Flood", "desc": "Path covered in ink, 30% slow to all", "cost": 280, "effect": "ink_slow", "value": 0.30},
-			{"name": "Dark Chapter", "desc": "Spawns shadow clones of your towers", "cost": 480, "effect": "shadow_clone", "value": 1.0},
+			{"name": "Dark Chapter", "desc": "Spawns shadow clones of your towers", "cost": 500, "effect": "shadow_clone", "value": 1.0},
+			{"name": "Narrative Control", "desc": "Shadow clones gain your upgrades", "cost": 780, "effect": "clone_upgrades", "value": 1.0},
 		]},
 	},
 }
@@ -21708,7 +27344,7 @@ func _purchase_branch_upgrade(tower_node, tower_type_int: int, branch: String, t
 func _draw_branch_upgrade_panel() -> void:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return
-	if selected_tower_node.upgrade_tier < 4:
+	if selected_tower_node.upgrade_tier < 2:
 		return
 	var tower_type_int: int = -1
 	if selected_tower_node.has_meta("tower_type_enum"):
@@ -21795,7 +27431,7 @@ func _draw_branch_upgrade_panel() -> void:
 func _handle_branch_panel_click(mouse_pos: Vector2) -> bool:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return false
-	if selected_tower_node.upgrade_tier < 4 or not upgrade_panel.visible:
+	if selected_tower_node.upgrade_tier < 2 or not upgrade_panel.visible:
 		return false
 	var tower_type_int: int = -1
 	if selected_tower_node.has_meta("tower_type_enum"):
@@ -21838,7 +27474,7 @@ func _update_branch_hover(mouse_pos: Vector2) -> void:
 	_branch_tier_hover = -1
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return
-	if selected_tower_node.upgrade_tier < 4 or not upgrade_panel.visible:
+	if selected_tower_node.upgrade_tier < 2 or not upgrade_panel.visible:
 		return
 	var tower_type_int: int = -1
 	if selected_tower_node.has_meta("tower_type_enum"):
@@ -22221,3 +27857,647 @@ func _handle_instrument_placement_click(mouse_pos: Vector2) -> bool:
 			_instrument_picker_open = false
 			queue_redraw()
 	return false
+
+
+# ============================================================================
+# === BATTD3: CHARACTER AFFINITY ===
+# ============================================================================
+func _get_character_title(tower_type) -> Dictionary:
+	var total_dmg = survivor_progress.get(tower_type, {}).get("total_damage", 0.0)
+	var result = MILESTONE_TITLES[0]
+	for mt in MILESTONE_TITLES:
+		if total_dmg >= mt["threshold"]:
+			result = mt
+	return result
+
+func _get_affinity_level(tower_type) -> int:
+	var aff = character_affinity.get(tower_type, 0.0)
+	var level = 0
+	for threshold in AFFINITY_MILESTONES:
+		if aff >= threshold:
+			level += 1
+	return level
+
+func _get_affinity_bonuses(tower_type, level_index: int) -> Dictionary:
+	var bonuses: Dictionary = {}
+	var aff_level = _get_affinity_level(tower_type)
+	# Only apply if currently on home map
+	var home_levels = CHARACTER_HOME_LEVELS.get(tower_type, [])
+	if current_level < 0 or not current_level in home_levels:
+		return bonuses
+	for i in range(mini(aff_level, AFFINITY_BONUSES.size())):
+		var bonus = AFFINITY_BONUSES[i]
+		var eff = bonus["effect"]
+		var val = bonus["value"]
+		if eff == "all":
+			bonuses["damage"] = bonuses.get("damage", 0.0) + val
+			bonuses["range"] = bonuses.get("range", 0.0) + val
+			bonuses["attack_speed"] = bonuses.get("attack_speed", 0.0) + val
+		else:
+			bonuses[eff] = bonuses.get(eff, 0.0) + val
+	return bonuses
+
+func _award_affinity_for_wave() -> void:
+	if current_level < 0:
+		return
+	for tower in towers_node.get_children():
+		if not tower.has_method("get_tower_type"):
+			continue
+		var tt = tower.get_tower_type()
+		var home_levels = CHARACTER_HOME_LEVELS.get(tt, [])
+		if current_level in home_levels:
+			var old_aff = character_affinity.get(tt, 0.0)
+			character_affinity[tt] = minf(old_aff + AFFINITY_PER_WAVE, 100.0)
+
+# ============================================================================
+# === BATTD3: AWAKENING SYSTEM ===
+# ============================================================================
+func _can_awaken(tower_type) -> bool:
+	var progress = survivor_progress.get(tower_type, {})
+	if progress.get("level", 1) < MAX_SURVIVOR_LEVEL:
+		return false
+	if awakened_characters.get(tower_type, false):
+		return false
+	if player_relic_shards < AWAKENING_SHARD_COST:
+		return false
+	if player_quills < AWAKENING_QUILL_COST:
+		return false
+	return true
+
+func _awaken_character(tower_type) -> bool:
+	if not _can_awaken(tower_type):
+		return false
+	player_relic_shards -= AWAKENING_SHARD_COST
+	player_quills -= AWAKENING_QUILL_COST
+	awakened_characters[tower_type] = true
+	# Trigger fanfare
+	levelup_fanfare_active = true
+	levelup_fanfare_timer = 0.0
+	levelup_fanfare_tower_type = tower_type
+	levelup_fanfare_new_level = -1  # -1 = awakening, not level up
+	levelup_fanfare_particles.clear()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = int(Time.get_ticks_msec())
+	for _i in range(40):
+		var angle = rng.randf() * TAU
+		var speed = rng.randf_range(80, 250)
+		levelup_fanfare_particles.append({
+			"pos": Vector2(640, 360),
+			"vel": Vector2(cos(angle) * speed, sin(angle) * speed),
+			"color": Color(1.0, 0.85, 0.2, 1.0),
+			"life": rng.randf_range(1.0, 2.5),
+		})
+	_save_game()
+	queue_redraw()
+	return true
+
+func _get_awakening_passive(tower_type) -> Dictionary:
+	return AWAKENING_PASSIVES.get(tower_type, {})
+
+func _is_awakened(tower_type) -> bool:
+	return awakened_characters.get(tower_type, false)
+
+# ============================================================================
+# === BATTD3: COSMIC INK CONVERSION ===
+# ============================================================================
+func _convert_cosmic_ink(tower_type, amount: int) -> bool:
+	if cosmic_ink < amount:
+		return false
+	cosmic_ink -= amount
+	var xp_gain = float(amount) * COSMIC_INK_TO_XP
+	var progress = survivor_progress.get(tower_type, {})
+	progress["xp"] = progress.get("xp", 0.0) + xp_gain
+	# Check level-ups
+	while progress["xp"] >= progress["xp_next"] and progress.get("level", 1) < MAX_SURVIVOR_LEVEL:
+		progress["xp"] -= progress["xp_next"]
+		progress["level"] = progress.get("level", 1) + 1
+		progress["xp_next"] = _get_xp_for_level(progress["level"])
+		_on_survivor_level_up(tower_type, progress["level"])
+	_save_game()
+	queue_redraw()
+	return true
+
+# ============================================================================
+# === BATTD3: STAT RESPEC ===
+# ============================================================================
+func _get_respec_cost() -> int:
+	return int(float(RESPEC_BASE_COST) * pow(RESPEC_COST_MULT, float(respec_count)))
+
+func _respec_knowledge_tree() -> bool:
+	var cost = _get_respec_cost()
+	if player_relic_shards < cost:
+		return false
+	# Count total ink invested
+	var ink_refund = 0
+	for key in knowledge_tree:
+		if knowledge_tree[key]:
+			# Find the node cost
+			var parts = key.split("_")
+			if parts.size() == 2:
+				var bi = int(parts[0])
+				var ni = int(parts[1])
+				if bi < knowledge_branches.size():
+					var branch = knowledge_branches[bi]
+					if ni < branch["nodes"].size():
+						ink_refund += branch["nodes"][ni].get("cost", 1)
+	player_relic_shards -= cost
+	knowledge_ink += ink_refund
+	knowledge_tree.clear()
+	respec_count += 1
+	_save_game()
+	queue_redraw()
+	return true
+
+# ============================================================================
+# === BATTD3: GEAR LOADOUT PRESETS ===
+# ============================================================================
+func _save_loadout(tower_type, slot: int) -> void:
+	if slot < 0 or slot >= MAX_LOADOUTS:
+		return
+	var eq_bindings = equipped_bindings.get(tower_type, []).duplicate()
+	var eq_relics = equipped_relics.get(tower_type, []).duplicate()
+	gear_loadouts[tower_type][slot] = {"bindings": eq_bindings, "relics": eq_relics}
+	_save_game()
+
+func _load_loadout(tower_type, slot: int) -> void:
+	if slot < 0 or slot >= MAX_LOADOUTS:
+		return
+	var loadout = gear_loadouts.get(tower_type, [{}])[slot] if slot < gear_loadouts.get(tower_type, []).size() else {}
+	if loadout.is_empty():
+		return
+	equipped_bindings[tower_type] = loadout.get("bindings", []).duplicate()
+	equipped_relics[tower_type] = loadout.get("relics", []).duplicate()
+	_save_game()
+	queue_redraw()
+
+# ============================================================================
+# === BATTD3: TRINKET LOCKING ===
+# ============================================================================
+func _toggle_binding_lock(binding_id: String) -> void:
+	if locked_bindings.get(binding_id, false):
+		locked_bindings.erase(binding_id)
+	else:
+		locked_bindings[binding_id] = true
+	_save_game()
+
+func _is_binding_locked(binding_id: String) -> bool:
+	return locked_bindings.get(binding_id, false)
+
+# ============================================================================
+# === BATTD3: RELIC MASTERY ===
+# ============================================================================
+func _get_relic_mastery_level(tower_type, relic_idx: int) -> int:
+	var key = "%d_%d" % [tower_type, relic_idx]
+	var waves = relic_usage_tracker.get(key, 0)
+	var level = 0
+	for threshold in RELIC_MASTERY_THRESHOLDS:
+		if waves >= threshold:
+			level += 1
+	return level
+
+func _tick_relic_usage() -> void:
+	# Called each wave — increment usage for all equipped relics on all placed towers
+	for tower in towers_node.get_children():
+		if not tower.has_method("get_tower_type"):
+			continue
+		var tt = tower.get_tower_type()
+		var eq_list = equipped_relics.get(tt, [])
+		for ri in eq_list:
+			var key = "%d_%d" % [tt, ri]
+			relic_usage_tracker[key] = relic_usage_tracker.get(key, 0) + 1
+
+# ============================================================================
+# === BATTD3: GEAR COLLECTION CODEX ===
+# ============================================================================
+func _mark_binding_discovered(binding_id: String) -> void:
+	if not discovered_bindings.has(binding_id):
+		discovered_bindings[binding_id] = true
+
+func _get_codex_completion() -> Dictionary:
+	var total = TOME_BINDINGS.size()
+	var discovered = discovered_bindings.size()
+	var owned = 0
+	for b in TOME_BINDINGS:
+		if owned_bindings.get(b["id"], 0) > 0:
+			owned += 1
+	return {"total": total, "discovered": discovered, "owned": owned}
+
+# ============================================================================
+# === BATTD3: PARTY POWER RATING ===
+# ============================================================================
+func _calculate_power_rating(tower_type) -> int:
+	var rating = 0
+	var progress = survivor_progress.get(tower_type, {})
+	var level = progress.get("level", 1)
+	# Level contribution (0-100)
+	rating += level * 5
+	# Gear contribution
+	var eq_bindings = equipped_bindings.get(tower_type, [])
+	for bid in eq_bindings:
+		var binding = _find_binding(bid)
+		if binding.is_empty():
+			continue
+		var rar = binding.get("rarity", "tattered")
+		match rar:
+			"tattered": rating += 2
+			"bound": rating += 5
+			"gilded": rating += 12
+			"mythic": rating += 25
+			"forbidden": rating += 50
+	# Relic contribution
+	var eq_relics = equipped_relics.get(tower_type, [])
+	rating += eq_relics.size() * 8
+	# Golden shields
+	var shields = progress.get("golden_shields", 0)
+	rating += shields * 10
+	# Awakened bonus
+	if _is_awakened(tower_type):
+		rating += 50
+	# Affinity bonus
+	rating += _get_affinity_level(tower_type) * 5
+	return rating
+
+func _refresh_power_ratings() -> void:
+	for t in survivor_progress:
+		_cached_power_ratings[t] = _calculate_power_rating(t)
+	_power_rating_dirty = false
+
+# ============================================================================
+# === BATTD3: LEVEL-UP FANFARE ===
+# ============================================================================
+func _trigger_levelup_fanfare(tower_type, new_level: int) -> void:
+	levelup_fanfare_active = true
+	levelup_fanfare_timer = 0.0
+	levelup_fanfare_tower_type = tower_type
+	levelup_fanfare_new_level = new_level
+	levelup_fanfare_particles.clear()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = int(Time.get_ticks_msec())
+	for _i in range(30):
+		var angle = rng.randf() * TAU
+		var speed = rng.randf_range(60, 200)
+		var hue = rng.randf_range(0.08, 0.17)  # Gold range
+		levelup_fanfare_particles.append({
+			"pos": Vector2(640, 300),
+			"vel": Vector2(cos(angle) * speed, sin(angle) * speed - 50),
+			"color": Color.from_hsv(hue, 0.8, 1.0, 1.0),
+			"life": rng.randf_range(0.8, 2.2),
+		})
+
+func _update_levelup_fanfare(delta: float) -> void:
+	if not levelup_fanfare_active:
+		return
+	levelup_fanfare_timer += delta
+	for p in levelup_fanfare_particles:
+		p["pos"] += p["vel"] * delta
+		p["vel"].y += 120.0 * delta  # Gravity
+		p["life"] -= delta
+	if levelup_fanfare_timer >= LEVELUP_FANFARE_DURATION:
+		levelup_fanfare_active = false
+	queue_redraw()
+
+func _draw_levelup_fanfare() -> void:
+	if not levelup_fanfare_active:
+		return
+	var alpha = clamp(1.0 - levelup_fanfare_timer / LEVELUP_FANFARE_DURATION, 0.0, 1.0)
+	# Draw particles
+	for p in levelup_fanfare_particles:
+		if p["life"] <= 0:
+			continue
+		var pa = clamp(p["life"], 0.0, 1.0) * alpha
+		var col = p["color"]
+		draw_circle(p["pos"], 3.0, Color(col.r, col.g, col.b, pa))
+		draw_circle(p["pos"], 1.5, Color(1, 1, 1, pa * 0.5))
+	# Center text
+	var text_alpha = clamp(1.0 - (levelup_fanfare_timer - 0.5) / 1.5, 0.0, 1.0) if levelup_fanfare_timer > 0.5 else clamp(levelup_fanfare_timer / 0.5, 0.0, 1.0)
+	var name_str = ""
+	if levelup_fanfare_tower_type >= 0 and levelup_fanfare_tower_type < character_names.size():
+		name_str = character_names[levelup_fanfare_tower_type]
+	var label = ""
+	if levelup_fanfare_new_level == -1:
+		label = "%s AWAKENED!" % name_str.to_upper()
+	else:
+		label = "%s LEVEL %d!" % [name_str.to_upper(), levelup_fanfare_new_level]
+	var font = game_font
+	var tw = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
+	var cx = 640.0 - tw * 0.5
+	var cy = 280.0 - levelup_fanfare_timer * 15.0
+	_udraw(font, Vector2(cx + 2, cy + 2), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0, 0, 0, text_alpha * 0.5))
+	_udraw(font, Vector2(cx, cy), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1.0, 0.85, 0.2, text_alpha))
+
+# ============================================================================
+# === BATTD3: SESSION STATS RECAP ===
+# ============================================================================
+func _build_session_stats() -> void:
+	session_stats.clear()
+	session_stats["towers_placed"] = total_towers_placed
+	session_stats["gold_earned"] = total_gold_earned
+	session_stats["gold_spent"] = total_gold_spent
+	session_stats["enemies_killed"] = total_enemies_killed
+	session_stats["waves_survived"] = current_wave
+	session_stats["lives_lost"] = current_game_lives_lost
+	# Per-tower DPS
+	var tower_dps: Array = []
+	for tower in towers_node.get_children():
+		if not tower.has_method("get_tower_type"):
+			continue
+		var tt = tower.get_tower_type()
+		var dmg = tower.damage_dealt if "damage_dealt" in tower else 0.0
+		var name_str = character_names[tt] if tt < character_names.size() else "Unknown"
+		tower_dps.append({"name": name_str, "damage": dmg})
+	tower_dps.sort_custom(func(a, b): return a["damage"] > b["damage"])
+	session_stats["tower_breakdown"] = tower_dps
+
+func _draw_session_recap() -> void:
+	if not session_recap_open:
+		return
+	var font = game_font
+	# Dark overlay
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.75))
+	var px = 240.0
+	var py = 60.0
+	var pw = 800.0
+	var ph = 600.0
+	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
+	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.5), false, 2.0)
+	# Title
+	_udraw(font, Vector2(px + 20, py + 30), "SESSION STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.85, 0.65, 0.1))
+	draw_rect(Rect2(px + 20, py + 38, 150, 1), Color(0.85, 0.65, 0.1, 0.3))
+	# Stats
+	var sy = py + 60.0
+	var stat_items = [
+		["Waves Survived", str(session_stats.get("waves_survived", 0))],
+		["Enemies Killed", str(session_stats.get("enemies_killed", 0))],
+		["Gold Earned", str(session_stats.get("gold_earned", 0))],
+		["Gold Spent", str(session_stats.get("gold_spent", 0))],
+		["Towers Placed", str(session_stats.get("towers_placed", 0))],
+		["Lives Lost", str(session_stats.get("lives_lost", 0))],
+	]
+	for item in stat_items:
+		_udraw(font, Vector2(px + 40, sy + 14), item[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.77, 0.73, 0.66))
+		_udraw(font, Vector2(px + pw - 100, sy + 14), item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_parchment)
+		sy += 26.0
+	# Tower Breakdown
+	sy += 10.0
+	_udraw(font, Vector2(px + 40, sy + 14), "TOWER DAMAGE BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.65, 0.1, 0.8))
+	draw_rect(Rect2(px + 40, sy + 20, 200, 1), Color(0.85, 0.65, 0.1, 0.2))
+	sy += 30.0
+	var breakdown = session_stats.get("tower_breakdown", [])
+	var max_dmg = 1.0
+	for entry in breakdown:
+		if entry["damage"] > max_dmg:
+			max_dmg = entry["damage"]
+	for i in range(mini(breakdown.size(), 8)):
+		var entry = breakdown[i]
+		var bar_w = 350.0 * (entry["damage"] / max_dmg)
+		draw_rect(Rect2(px + 200, sy + 2, bar_w, 14), Color(0.85, 0.65, 0.1, 0.3))
+		_udraw(font, Vector2(px + 40, sy + 14), entry["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_parchment)
+		var dmg_str = _format_number(entry["damage"])
+		_udraw(font, Vector2(px + 200 + bar_w + 8, sy + 14), dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1))
+		sy += 22.0
+	# Close button
+	var close_x = px + pw - 40.0
+	var close_y = py + 10.0
+	_udraw(font, Vector2(close_x, close_y + 16), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.3, 0.2, 0.8))
+
+func _format_number(val: float) -> String:
+	if val >= 1000000:
+		return "%.1fM" % (val / 1000000.0)
+	if val >= 1000:
+		return "%.1fK" % (val / 1000.0)
+	return str(int(val))
+
+# ============================================================================
+# === BATTD3: CAREER STATS ===
+# ============================================================================
+func _update_career_stats_post_game(won: bool) -> void:
+	career_stats["total_games_played"] = career_stats.get("total_games_played", 0) + 1
+	if won:
+		career_stats["total_games_won"] = career_stats.get("total_games_won", 0) + 1
+	else:
+		career_stats["total_games_lost"] = career_stats.get("total_games_lost", 0) + 1
+	career_stats["total_waves_survived"] = career_stats.get("total_waves_survived", 0) + current_wave
+	career_stats["total_gold_earned_lifetime"] = career_stats.get("total_gold_earned_lifetime", 0) + total_gold_earned
+	career_stats["total_gold_spent_lifetime"] = career_stats.get("total_gold_spent_lifetime", 0) + total_gold_spent
+	career_stats["total_towers_placed_lifetime"] = career_stats.get("total_towers_placed_lifetime", 0) + total_towers_placed
+	career_stats["total_enemies_killed_lifetime"] = career_stats.get("total_enemies_killed_lifetime", 0) + total_enemies_killed
+	# Find most-used tower
+	var tower_counts: Dictionary = {}
+	for tower in towers_node.get_children():
+		if tower.has_method("get_tower_type"):
+			var tt = tower.get_tower_type()
+			tower_counts[tt] = tower_counts.get(tt, 0) + 1
+	var best_tt = -1
+	var best_count = 0
+	for tt in tower_counts:
+		if tower_counts[tt] > best_count:
+			best_count = tower_counts[tt]
+			best_tt = tt
+	if best_tt >= 0:
+		career_stats["favorite_tower"] = best_tt
+	var tc = towers_node.get_child_count()
+	if tc > career_stats.get("most_towers_in_game", 0):
+		career_stats["most_towers_in_game"] = tc
+	if won and victory_streak > career_stats.get("longest_victory_streak", 0):
+		career_stats["longest_victory_streak"] = victory_streak
+
+func _draw_career_stats() -> void:
+	if not career_stats_open:
+		return
+	var font = game_font
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.75))
+	var px = 200.0
+	var py = 40.0
+	var pw = 880.0
+	var ph = 640.0
+	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
+	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.5), false, 2.0)
+	_udraw(font, Vector2(px + 30, py + 35), "CAREER STATISTICS", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.85, 0.65, 0.1))
+	draw_rect(Rect2(px + 30, py + 44, 200, 2), Color(0.85, 0.65, 0.1, 0.3))
+	var sy = py + 70.0
+	var stats = [
+		["Games Played", str(career_stats.get("total_games_played", 0))],
+		["Games Won", str(career_stats.get("total_games_won", 0))],
+		["Games Lost", str(career_stats.get("total_games_lost", 0))],
+		["Win Rate", "%d%%" % (int(float(career_stats.get("total_games_won", 0)) / maxf(float(career_stats.get("total_games_played", 1)), 1.0) * 100.0))],
+		["", ""],
+		["Total Waves Survived", str(career_stats.get("total_waves_survived", 0))],
+		["Total Enemies Killed", _format_number(float(career_stats.get("total_enemies_killed_lifetime", 0)))],
+		["Total Damage Dealt", _format_number(career_stats.get("total_damage_dealt_lifetime", 0.0))],
+		["Highest Single Hit", _format_number(career_stats.get("highest_single_hit", 0.0))],
+		["", ""],
+		["Total Gold Earned", _format_number(float(career_stats.get("total_gold_earned_lifetime", 0)))],
+		["Total Gold Spent", _format_number(float(career_stats.get("total_gold_spent_lifetime", 0)))],
+		["Total Towers Placed", str(career_stats.get("total_towers_placed_lifetime", 0))],
+		["Most Towers in Game", str(career_stats.get("most_towers_in_game", 0))],
+		["", ""],
+		["Best Victory Streak", str(career_stats.get("longest_victory_streak", 0))],
+	]
+	# Two columns
+	var col1_x = px + 50.0
+	var col2_x = px + pw * 0.5 + 30.0
+	var col = 0
+	var col1_y = sy
+	var col2_y = sy
+	for item in stats:
+		if item[0] == "":
+			if col == 0:
+				col1_y += 10.0
+			else:
+				col2_y += 10.0
+			continue
+		var cx = col1_x if col == 0 else col2_x
+		var cy = col1_y if col == 0 else col2_y
+		_udraw(font, Vector2(cx, cy + 14), item[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.77, 0.73, 0.66))
+		_udraw(font, Vector2(cx + 250, cy + 14), item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_parchment)
+		if col == 0:
+			col1_y += 24.0
+		else:
+			col2_y += 24.0
+		if col1_y > py + ph * 0.55 and col == 0:
+			col = 1
+	# Favorite tower
+	var fav = career_stats.get("favorite_tower", -1)
+	if fav >= 0 and fav < character_names.size():
+		var fav_y = py + ph - 90.0
+		_udraw(font, Vector2(px + 50, fav_y + 14), "FAVORITE TOWER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.65, 0.1, 0.7))
+		_udraw(font, Vector2(px + 50, fav_y + 34), character_names[fav], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, menu_parchment)
+	# Close button
+	_udraw(font, Vector2(px + pw - 40, py + 22), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.3, 0.2, 0.8))
+
+# ============================================================================
+# === BATTD3: NEXT GOAL TRACKER ===
+# ============================================================================
+func _refresh_next_goals() -> void:
+	_next_goals.clear()
+	# Check closest achievements
+	for ach in achievement_definitions:
+		var id = ach.get("id", "")
+		if achievements_unlocked.get(id, false):
+			continue
+		var prog = achievement_progress.get(id, 0)
+		var target = ach.get("target", 1)
+		var pct = float(prog) / float(target)
+		if pct > 0.0:
+			_next_goals.append({
+				"type": "achievement",
+				"desc": ach.get("name", "Achievement"),
+				"progress": prog,
+				"target": target,
+				"pct": pct,
+			})
+	# Check quest progress
+	for q in active_quests:
+		var pct = float(q.get("progress", 0)) / float(q.get("target", 1))
+		if pct > 0.0:
+			_next_goals.append({
+				"type": "quest",
+				"desc": q.get("desc", "Quest"),
+				"progress": q.get("progress", 0),
+				"target": q.get("target", 1),
+				"pct": pct,
+			})
+	# Sort by completion percentage (closest to done first)
+	_next_goals.sort_custom(func(a, b): return a["pct"] > b["pct"])
+	# Keep top 3
+	if _next_goals.size() > 3:
+		_next_goals.resize(3)
+	_goals_dirty = false
+
+func _draw_next_goals_widget() -> void:
+	if _goals_dirty:
+		_refresh_next_goals()
+	if _next_goals.is_empty():
+		return
+	var font = game_font
+	var wx = 70.0
+	var wy = 575.0
+	var ww = 300.0
+	_udraw(font, Vector2(wx, wy + 12), "NEAREST GOALS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.5))
+	var gy = wy + 18.0
+	for goal in _next_goals:
+		var pct = goal["pct"]
+		var bar_w = ww - 20.0
+		# Progress bar
+		draw_rect(Rect2(wx, gy + 4, bar_w, 8), Color(0.1, 0.1, 0.15))
+		draw_rect(Rect2(wx, gy + 4, bar_w * pct, 8), Color(0.85, 0.65, 0.1, 0.6))
+		# Label
+		var type_icon = "[Q]" if goal["type"] == "quest" else "[A]"
+		var desc = "%s %s (%d/%d)" % [type_icon, goal["desc"], goal["progress"], goal["target"]]
+		if desc.length() > 40:
+			desc = desc.substr(0, 39) + ".."
+		_udraw(font, Vector2(wx, gy + 24), desc, HORIZONTAL_ALIGNMENT_LEFT, int(ww), 14, Color(0.77, 0.73, 0.66, 0.7))
+		gy += 30.0
+
+# ============================================================================
+# === BATTD3: CHARACTER RANK BADGES ===
+# ============================================================================
+func _get_character_rank(tower_type) -> Dictionary:
+	var score = _calculate_power_rating(tower_type)
+	var result = RANK_BADGE_TIERS[0]
+	for tier in RANK_BADGE_TIERS:
+		if score >= tier["min_score"]:
+			result = tier
+	return result
+
+func _draw_rank_badge(center: Vector2, tower_type, size: float) -> void:
+	var rank = _get_character_rank(tower_type)
+	var col = Color(rank["color_r"], rank["color_g"], rank["color_b"])
+	# Shield shape
+	var pts = PackedVector2Array()
+	var hw = size * 0.45
+	var hh = size * 0.55
+	pts.append(center + Vector2(-hw, -hh * 0.4))
+	pts.append(center + Vector2(0, -hh))
+	pts.append(center + Vector2(hw, -hh * 0.4))
+	pts.append(center + Vector2(hw, hh * 0.3))
+	pts.append(center + Vector2(0, hh))
+	pts.append(center + Vector2(-hw, hh * 0.3))
+	draw_colored_polygon(pts, Color(col.r, col.g, col.b, 0.7))
+	draw_polyline(pts, Color(col.r, col.g, col.b, 0.9), 1.5)
+	# Rank initial
+	var font = game_font
+	var initial = rank["name"].substr(0, 1)
+	var iw = font.get_string_size(initial, HORIZONTAL_ALIGNMENT_LEFT, -1, int(size * 0.55)).x
+	_udraw(font, Vector2(center.x - iw * 0.5, center.y + size * 0.15), initial, HORIZONTAL_ALIGNMENT_LEFT, -1, int(size * 0.55), Color.WHITE)
+
+# ============================================================================
+# === BATTD3: RECENT ITEMS FEED ===
+# ============================================================================
+func _add_recent_item(item_name: String, rarity: String) -> void:
+	recent_items.push_front({"name": item_name, "rarity": rarity, "time": Time.get_ticks_msec()})
+	if recent_items.size() > MAX_RECENT_ITEMS:
+		recent_items.resize(MAX_RECENT_ITEMS)
+
+func _draw_recent_items_widget() -> void:
+	if recent_items.is_empty():
+		return
+	var font = game_font
+	var wx = 900.0
+	var wy = 575.0
+	_udraw(font, Vector2(wx, wy + 12), "RECENT ITEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.5))
+	var iy = wy + 18.0
+	for item in recent_items:
+		var rc = RARITY_COLORS.get(item.get("rarity", "tattered"), Color(0.6, 0.6, 0.65))
+		draw_rect(Rect2(wx, iy, 3, 14), rc)
+		var name_str = item.get("name", "Unknown")
+		if name_str.length() > 25:
+			name_str = name_str.substr(0, 24) + ".."
+		_udraw(font, Vector2(wx + 8, iy + 12), name_str, HORIZONTAL_ALIGNMENT_LEFT, 280, 14, Color(0.77, 0.73, 0.66, 0.7))
+		iy += 18.0
+
+# ============================================================================
+# === BATTD3: FAVORITE CHARACTERS ===
+# ============================================================================
+func _toggle_favorite(tower_type) -> void:
+	if tower_type in favorite_characters:
+		favorite_characters.erase(tower_type)
+	else:
+		if favorite_characters.size() >= 3:
+			favorite_characters.pop_front()
+		favorite_characters.append(tower_type)
+	_save_game()
+	queue_redraw()
+
+func _is_favorite(tower_type) -> bool:
+	return tower_type in favorite_characters

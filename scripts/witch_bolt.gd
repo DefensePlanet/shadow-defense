@@ -38,7 +38,7 @@ func _process(delta: float) -> void:
 func _hit_target(t: Node2D) -> void:
 	if t.has_method("take_damage"):
 		var will_kill = t.health - damage <= 0.0
-		t.take_damage(damage, true)
+		t.take_damage(damage, "magic")
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 
@@ -59,6 +59,11 @@ func _draw() -> void:
 	var perp = dir.rotated(PI / 2.0)
 
 	if is_wolf:
+		# Dust puffs behind wolf
+		for ti in range(2):
+			var poff = -dir * (10.0 + float(ti) * 8.0) + Vector2(0, 3.0)
+			var p_alpha = 0.25 - float(ti) * 0.1
+			draw_circle(poff, 3.0 - float(ti) * 0.5, Color(0.6, 0.55, 0.45, p_alpha))
 		# Wolf shape — grey, fast, feral
 		# Body
 		draw_circle(Vector2.ZERO, 5.0, Color(0.45, 0.42, 0.38))
@@ -76,6 +81,11 @@ func _draw() -> void:
 		draw_line(perp * 3.0, perp * 3.0 - dir * 4.0, Color(0.4, 0.37, 0.33), 1.2)
 		draw_line(-perp * 3.0, -perp * 3.0 - dir * 4.0, Color(0.4, 0.37, 0.33), 1.2)
 	else:
+		# Green wisp trail — 3 fading green circles
+		for ti in range(3):
+			var woff = -dir * (8.0 + float(ti) * 6.0)
+			var w_alpha = 0.3 - float(ti) * 0.08
+			draw_circle(woff, 3.0 - float(ti) * 0.5, Color(0.3, 0.8, 0.15, w_alpha))
 		# Green eye blast
 		# Outer glow
 		draw_circle(Vector2.ZERO, 6.0, Color(0.3, 0.8, 0.15, 0.3))
@@ -85,6 +95,16 @@ func _draw() -> void:
 		draw_circle(dir * 1.0, 2.0, Color(0.6, 1.0, 0.4))
 		# Trail
 		draw_line(-dir * 6.0, Vector2.ZERO, Color(0.3, 0.7, 0.1, 0.4), 2.5)
+
+	# Tier 3+ enhanced trail: green fire wisps
+	if is_instance_valid(source_tower) and source_tower.get("upgrade_tier") != null and source_tower.upgrade_tier >= 3:
+		var _t2 = fmod(global_position.x + global_position.y, 20.0)
+		for fi in range(4):
+			var f_off = -dir * (8.0 + float(fi) * 6.0) + perp * sin(_t2 * 4.0 + float(fi) * 2.0) * 3.0
+			f_off += Vector2(0, -float(fi) * 1.5)
+			var f_alpha = 0.35 - float(fi) * 0.07
+			draw_circle(f_off, 2.5 - float(fi) * 0.4, Color(0.3, 0.9, 0.1, f_alpha))
+			draw_circle(f_off, 1.5 - float(fi) * 0.2, Color(0.5, 1.0, 0.3, f_alpha * 0.7))
 
 	# Cosmetic trail
 	var main = get_tree().get_first_node_in_group("main")

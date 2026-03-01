@@ -19,6 +19,7 @@ var targeting_priority: int = 0
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
+var kill_count: int = 0
 var upgrade_tier: int = 0
 var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
@@ -26,6 +27,7 @@ var _upgrade_name: String = ""
 # Animation variables
 var _time: float = 0.0
 var _attack_anim: float = 0.0
+var _build_timer: float = 0.0
 
 # Orbiting caster — flies in a circle, casts green spells outward
 var _home_position: Vector2 = Vector2.ZERO
@@ -212,6 +214,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if _build_timer > 0.0: _build_timer -= delta
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_wolf_flash = max(_wolf_flash - delta * 2.0, 0.0)
@@ -249,6 +252,14 @@ func _process(delta: float) -> void:
 	_crow_flash = max(_crow_flash - delta * 2.0, 0.0)
 
 	_process_progressive_abilities(delta)
+
+	# Active ability cooldown
+	if not active_ability_ready:
+		active_ability_cooldown -= delta
+		if active_ability_cooldown <= 0.0:
+			active_ability_ready = true
+			active_ability_cooldown = 0.0
+
 	queue_redraw()
 
 func _has_enemies_in_range() -> bool:
@@ -319,6 +330,8 @@ func _strike_target(t: Node2D) -> void:
 	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
+	if _main_node and _main_node.has_method("_pulse_tower_layer"):
+		_main_node._pulse_tower_layer(2)  # WICKED_WITCH
 	_fire_bolt(t)
 
 func _fire_bolt(t: Node2D) -> void:
@@ -413,7 +426,7 @@ func _update_wolves(delta: float) -> void:
 			if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 				if wolf["pos"].distance_to(enemy.global_position) < 20.0:
 					var dmg = wolf["damage"] * delta * 3.0
-					enemy.take_damage(dmg, true)
+					enemy.take_damage(dmg, "magic")
 					register_damage(dmg)
 	# Remove dead wolves (iterate backwards)
 	for ri in range(to_remove.size() - 1, -1, -1):
@@ -467,7 +480,7 @@ func _update_crows(delta: float) -> void:
 		if t_norm >= 1.0:
 			# Impact — deal damage
 			if is_instance_valid(crow["target"]) and crow["target"].has_method("take_damage"):
-				crow["target"].take_damage(crow["damage"], true)
+				crow["target"].take_damage(crow["damage"], "magic")
 				register_damage(crow["damage"])
 				# Poison DoT from crows (Golden Cap doubles DoT)
 				if crow["target"].has_method("apply_dot"):
@@ -548,7 +561,7 @@ func _update_beehive(delta: float) -> void:
 		if is_instance_valid(enemy) and _beehive_pos.distance_to(enemy.global_position) < eff_radius:
 			if enemy.has_method("take_damage"):
 				var dmg = eff_damage * delta
-				enemy.take_damage(dmg, true)
+				enemy.take_damage(dmg, "magic")
 				register_damage(dmg)
 			if enemy.has_method("apply_slow"):
 				enemy.apply_slow(_beehive_slow, 0.5)
@@ -559,6 +572,9 @@ func register_damage(amount: float) -> void:
 	if main and main.has_method("register_tower_damage"):
 		main.register_tower_damage(main.TowerType.WICKED_WITCH, amount)
 	_check_upgrades()
+
+func register_kill() -> void:
+	kill_count += 1
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
@@ -906,7 +922,7 @@ func _process_progressive_abilities(delta: float) -> void:
 		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if is_instance_valid(e) and e.has_method("take_damage"):
 				var hp_before = e.health if "health" in e else 0.0
-				e.take_damage(dps_amount, true)
+				e.take_damage(dps_amount, "magic")
 				var hp_after = e.health if (is_instance_valid(e) and "health" in e) else 0.0
 				var actual_dmg = maxf(hp_before - hp_after, 0.0)
 				if actual_dmg > 0.0:
@@ -980,7 +996,7 @@ func _winkies_march_attack() -> void:
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
 			var dmg = damage * 3.0 * _damage_mult()
 			var will_kill = in_range[i].health - dmg <= 0.0
-			in_range[i].take_damage(dmg, true)
+			in_range[i].take_damage(dmg, "magic")
 			register_damage(dmg)
 			if will_kill and gold_bonus > 0:
 				var main = get_tree().get_first_node_in_group("main")
@@ -1002,7 +1018,56 @@ func _melting_curse_attack() -> void:
 		var melt_rate = strongest.health * 0.2 / 3.0
 		strongest.apply_melt(melt_rate, 3.0)
 
+func _draw_tower_aura() -> void:
+	if upgrade_tier < 3:
+		return
+	var aura_col = Color(0.5, 0.1, 0.7)
+	# Tier 3+: purple glow ring
+	var pulse = sin(_time * 2.5) * 0.1 + 0.3
+	draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, Color(aura_col.r, aura_col.g, aura_col.b, pulse * 0.4), 1.5)
+	# Tier 4: lightning arcs (short lines at random angles)
+	if upgrade_tier >= 4:
+		var outer_pulse = sin(_time * 1.8) * 0.15 + 0.35
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, Color(aura_col.r, aura_col.g, aura_col.b, outer_pulse * 0.3), 2.0)
+		# Lightning arcs — short jagged lines
+		for i in range(5):
+			var la = _time * 1.2 + float(i) * TAU / 5.0
+			var l_start = Vector2(cos(la) * 16.0, sin(la) * 16.0)
+			var l_mid = l_start + Vector2(sin(_time * 5.0 + float(i) * 3.0) * 6.0, cos(_time * 4.0 + float(i) * 2.0) * 6.0)
+			var l_end = l_start + Vector2(cos(la + 0.5) * 8.0, sin(la + 0.5) * 8.0)
+			var l_alpha = 0.2 + sin(_time * 6.0 + float(i)) * 0.1
+			draw_line(l_start, l_mid, Color(0.6, 0.2, 0.9, l_alpha), 1.0)
+			draw_line(l_mid, l_end, Color(0.7, 0.3, 1.0, l_alpha * 0.8), 1.0)
+	# Awakened: dark purple lightning tendrils + green fire sparks rising
+	if _main_node and _main_node.has_method("_is_awakened"):
+		var tower_type_enum = get_meta("tower_type_enum") if has_meta("tower_type_enum") else -1
+		if tower_type_enum >= 0 and _main_node._is_awakened(tower_type_enum):
+			# Purple lightning tendrils
+			for i in range(8):
+				var ta = _time * 2.0 + float(i) * TAU / 8.0
+				var tr = 20.0 + sin(_time * 3.0 + float(i)) * 5.0
+				var tend = Vector2(cos(ta) * tr, sin(ta) * tr * 0.7)
+				var tmid = tend * 0.5 + Vector2(sin(_time * 5.0 + float(i)) * 4.0, cos(_time * 4.0 + float(i)) * 4.0)
+				draw_line(Vector2.ZERO, tmid, Color(0.6, 0.1, 0.9, 0.25 + sin(_time * 4.0 + float(i)) * 0.1), 1.5)
+				draw_line(tmid, tend, Color(0.7, 0.2, 1.0, 0.2 + sin(_time * 3.5 + float(i)) * 0.1), 1.0)
+			# Green fire sparks rising
+			for i in range(4):
+				var sy = -10.0 - fmod(_time * 30.0 + float(i) * 15.0, 40.0)
+				var sx = sin(_time * 2.0 + float(i) * 1.5) * 8.0
+				draw_circle(Vector2(sx, sy), 1.5, Color(0.2, 0.9, 0.1, 0.5))
+			# Additional green flame flickers
+			for i in range(3):
+				var fy = -5.0 - fmod(_time * 20.0 + float(i) * 12.0, 30.0)
+				var fx = sin(_time * 3.0 + float(i) * 2.0) * 6.0
+				draw_circle(Vector2(fx, fy), 1.0, Color(0.3, 1.0, 0.2, 0.35))
+
 func _draw() -> void:
+	# Build animation — elastic scale-in
+	if _build_timer > 0.0:
+		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
+
 	var orbit_center = _home_position - global_position
 
 	# === 1. SELECTION RING (at home position) ===
@@ -1934,6 +1999,32 @@ func _draw() -> void:
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -88), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 36, Color(0.4, 0.9, 0.2, 0.7 + pulse * 0.3))
 
+	# === VISUAL TIER EVOLUTION ===
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.2, 0.8, 0.1, 0.15 + glow_pulse * 0.1), 2.0)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.2, 0.9, 0.1, s_alpha))
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.2, 0.8, 0.1, b_alpha), 1.5)
+
 	# === DAMAGE DEALT COUNTER ===
 	if damage_dealt > 0:
 		var font = _game_font
@@ -1946,6 +2037,26 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -80), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.4, 0.9, 0.2, min(_upgrade_flash, 1.0)))
+
+	# Idle ambient particles — green sparks
+	if target == null:
+		for ip in range(3):
+			var ia = _time * 2.0 + float(ip) * TAU / 3.0
+			var ir = 16.0 + sin(_time + float(ip)) * 4.0
+			var ipos = Vector2(cos(ia), sin(ia)) * ir
+			draw_circle(ipos, 1.8, Color(0.4, 0.9, 0.2, 0.4 + sin(_time * 3.0 + float(ip)) * 0.15))
+
+	# Ability cooldown ring
+	var cd_max = 1.0 / fire_rate
+	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
+	if cd_fill >= 1.0:
+		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.4, 0.9, 0.2, cd_pulse * 0.4), 2.0)
+	elif cd_fill > 0.0:
+		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.4, 0.9, 0.2, 0.3), 2.0)
+
+	# Power fantasy aura
+	_draw_tower_aura()
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
@@ -1965,6 +2076,29 @@ func has_synergy_buff() -> bool:
 	return not _synergy_buffs.is_empty()
 
 var power_damage_mult: float = 1.0
+
+# === ACTIVE HERO ABILITY: Poppy Field (sleep enemies, 30s CD) ===
+var active_ability_ready: bool = true
+var active_ability_cooldown: float = 0.0
+var active_ability_max_cd: float = 30.0
+
+func activate_hero_ability() -> void:
+	if not active_ability_ready:
+		return
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
+			if e.has_method("apply_sleep"):
+				e.apply_sleep(3.0)
+	active_ability_ready = false
+	active_ability_cooldown = active_ability_max_cd
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "POPPY FIELD!", Color(0.9, 0.3, 0.6), 16.0, 1.5)
+
+func get_active_ability_name() -> String:
+	return "Poppy Field"
+
+func get_active_ability_desc() -> String:
+	return "Sleep enemies 3s (30s CD)"
 
 func _damage_mult() -> float:
 	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult

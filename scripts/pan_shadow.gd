@@ -22,7 +22,7 @@ func _process(delta: float) -> void:
 		if global_position.distance_to(target.global_position) < 20.0 and _attack_timer <= 0.0:
 			if target.has_method("take_damage") and is_instance_valid(source_tower):
 				var dmg = source_tower.damage * 2.0
-				target.take_damage(dmg)
+				target.take_damage(dmg, "physical")
 				if source_tower.has_method("register_damage"):
 					source_tower.register_damage(dmg)
 				_attack_timer = 1.0

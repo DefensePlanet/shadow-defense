@@ -35,7 +35,7 @@ func _process(delta: float) -> void:
 func _hit_target(t: Node2D) -> void:
 	if t.has_method("take_damage"):
 		var will_kill = t.health - damage <= 0.0
-		t.take_damage(damage, true)
+		t.take_damage(damage, "magic")
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 
@@ -71,6 +71,19 @@ func _draw() -> void:
 
 	# Trail
 	draw_line(-dir * 8.0 + Vector2(0, bob), Vector2(0, bob), Color(0.4, 0.2, 0.6, 0.3), 2.0)
+
+	# Tier 4+ enhanced: echoing ghost note copies behind
+	if is_instance_valid(source_tower) and source_tower.get("upgrade_tier") != null and source_tower.upgrade_tier >= 4:
+		for gi in range(3):
+			var ghost_off = -dir * (10.0 + float(gi) * 9.0)
+			var ghost_bob = sin(_float_offset - float(gi) * 0.8) * 2.0
+			var ghost_alpha = 0.3 - float(gi) * 0.08
+			# Ghost note head
+			draw_circle(ghost_off + Vector2(0, ghost_bob), 2.5 - float(gi) * 0.3, Color(0.5, 0.25, 0.65, ghost_alpha))
+			# Ghost stem
+			draw_line(ghost_off + Vector2(0, ghost_bob) + perp * 2.0, ghost_off + Vector2(0, ghost_bob) + perp * 2.0 + Vector2(0, -7), Color(0.5, 0.25, 0.65, ghost_alpha * 0.7), 1.0)
+			# Ghost glow
+			draw_circle(ghost_off + Vector2(0, ghost_bob), 4.0, Color(0.5, 0.3, 0.7, ghost_alpha * 0.3))
 
 	# Cosmetic trail
 	var main = get_tree().get_first_node_in_group("main")

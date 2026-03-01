@@ -19,6 +19,7 @@ var targeting_priority: int = 0
 
 # Animation timers
 var _time: float = 0.0
+var _build_timer: float = 0.0
 var _attack_anim: float = 0.0
 var _smash_anim: float = 0.0
 
@@ -186,6 +187,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if _build_timer > 0.0: _build_timer -= delta
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_thunder_flash = max(_thunder_flash - delta * 2.0, 0.0)
@@ -219,6 +221,13 @@ func _process(delta: float) -> void:
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
+
+	# Active ability cooldown
+	if not active_ability_ready:
+		active_ability_cooldown -= delta
+		if active_ability_cooldown <= 0.0:
+			active_ability_ready = true
+			active_ability_cooldown = 0.0
 
 	queue_redraw()
 
@@ -330,7 +339,7 @@ func _thunder_storm() -> void:
 	for i in range(count):
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
 			var hp_before = in_range[i].health if "health" in in_range[i] else 0.0
-			in_range[i].take_damage(storm_dmg)
+			in_range[i].take_damage(storm_dmg, "magic")
 			register_damage(storm_dmg)
 			if hp_before > 0.0 and (not is_instance_valid(in_range[i]) or in_range[i].health <= 0.0):
 				register_kill()
@@ -340,7 +349,7 @@ func _aura_pulse() -> void:
 	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < smash_radius * 1.2:
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(aura_dmg)
+				enemy.take_damage(aura_dmg, "magic")
 				register_damage(aura_dmg)
 
 func register_kill() -> void:
@@ -704,7 +713,7 @@ func _promethean_fire_strike() -> void:
 		_promethean_target_pos = strongest.global_position
 		_promethean_had_target = true
 		var dmg = damage * 8.0 * _damage_mult() * (1.0 + kill_stack_bonus)
-		strongest.take_damage(dmg)
+		strongest.take_damage(dmg, "magic")
 		register_damage(dmg)
 		if strongest.has_method("apply_sleep"):
 			strongest.apply_sleep(1.5)
@@ -718,7 +727,7 @@ func _immortal_construct_pulse() -> void:
 	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) <= pulse_range and e.has_method("take_damage"):
 			var hp_before = e.health if "health" in e else 0.0
-			e.take_damage(dmg)
+			e.take_damage(dmg, "magic")
 			register_damage(dmg)
 			if hp_before > 0.0 and (not is_instance_valid(e) or e.health <= 0.0):
 				register_kill()
@@ -746,6 +755,36 @@ func set_meta_buffs(buffs: Dictionary) -> void:
 
 var power_damage_mult: float = 1.0
 
+# === ACTIVE HERO ABILITY: Lightning Storm (chain lightning, 30s CD) ===
+var active_ability_ready: bool = true
+var active_ability_cooldown: float = 0.0
+var active_ability_max_cd: float = 30.0
+
+func activate_hero_ability() -> void:
+	if not active_ability_ready:
+		return
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var hit_count = 0
+	for e in enemies:
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult() * 1.5:
+			if is_instance_valid(e) and e.has_method("take_damage"):
+				var dmg = damage * 3.0 * _damage_mult()
+				e.take_damage(dmg, "magic")
+				register_damage(dmg)
+				hit_count += 1
+			if e.has_method("apply_sleep"):
+				e.apply_sleep(1.0)
+	active_ability_ready = false
+	active_ability_cooldown = active_ability_max_cd
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "LIGHTNING STORM!", Color(0.6, 0.8, 1.0), 16.0, 1.5)
+
+func get_active_ability_name() -> String:
+	return "Lightning Storm"
+
+func get_active_ability_desc() -> String:
+	return "Chain lightning (30s CD)"
+
 func _damage_mult() -> float:
 	var mult: float = (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
 	# Ability 1: Reanimated Strength — +25% damage
@@ -769,6 +808,12 @@ func _gold_mult() -> float:
 # === DRAW ===
 
 func _draw() -> void:
+	# Build animation — elastic scale-in
+	if _build_timer > 0.0:
+		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
+
 	# === 1. SELECTION RING ===
 	var eff_range = attack_range * _range_mult()
 	if is_selected:
@@ -1413,6 +1458,32 @@ func _draw() -> void:
 			var ap = Vector2(cos(aa) * ar, sin(aa) * ar * 0.4)
 			draw_circle(ap, 1.5, Color(0.6, 0.8, 1.0, 0.25 + aura_pulse * 0.1))
 
+	# === VISUAL TIER EVOLUTION ===
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.4, 0.7, 1.0, 0.15 + glow_pulse * 0.1), 2.0)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.5, 0.8, 1.0, s_alpha))
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.4, 0.7, 1.0, b_alpha), 1.5)
+
 	# === 22. KILL STACK INDICATOR ===
 	if kill_stack_bonus > 0.0:
 		var stack_display = "%.0f%%" % (kill_stack_bonus * 100.0)
@@ -1424,3 +1495,21 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		# Name displayed above the tower briefly
 		pass  # Text rendering handled by main.gd overlay
+
+	# Idle ambient particles — electric arcs
+	if target == null:
+		for ip in range(3):
+			var ia = _time * 2.5 + float(ip) * TAU / 3.0
+			var ir = 16.0 + sin(_time * 1.5 + float(ip)) * 5.0
+			var ipos = Vector2(cos(ia), sin(ia)) * ir
+			var flicker = 0.3 + sin(_time * 8.0 + float(ip) * 3.0) * 0.2
+			draw_line(ipos, ipos + Vector2(randf_range(-3, 3), randf_range(-3, 3)), Color(0.4, 0.7, 1.0, flicker), 1.5)
+
+	# Ability cooldown ring
+	var cd_max = 1.0 / fire_rate
+	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
+	if cd_fill >= 1.0:
+		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.4, 0.7, 1.0, cd_pulse * 0.4), 2.0)
+	elif cd_fill > 0.0:
+		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.4, 0.7, 1.0, 0.3), 2.0)

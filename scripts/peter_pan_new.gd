@@ -179,7 +179,7 @@ func _fairy_dust() -> void:
 		if global_position.distance_to(enemy.global_position) < attack_range * 0.7:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - fairy_dmg <= 0.0
-				enemy.take_damage(fairy_dmg)
+				enemy.take_damage(fairy_dmg, "physical")
 				register_damage(fairy_dmg)
 				if is_instance_valid(enemy) and enemy.has_method("apply_slow"):
 					enemy.apply_slow(0.65, 1.5)
@@ -195,7 +195,7 @@ func _croc_chomp() -> void:
 	if strongest and strongest.has_method("take_damage"):
 		var chomp_dmg = damage * 3.0
 		var will_kill = strongest.health - chomp_dmg <= 0.0
-		strongest.take_damage(chomp_dmg)
+		strongest.take_damage(chomp_dmg, "physical")
 		register_damage(chomp_dmg)
 		if will_kill:
 			if gold_bonus > 0:

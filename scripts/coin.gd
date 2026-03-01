@@ -33,7 +33,7 @@ func _process(delta: float) -> void:
 func _hit_target(t: Node2D) -> void:
 	if t.has_method("take_damage"):
 		var will_kill = t.health - damage <= 0.0
-		t.take_damage(damage)
+		t.take_damage(damage, "physical")
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 		if will_kill:
@@ -66,6 +66,9 @@ func _draw() -> void:
 	if spin_scale > 0.6:
 		draw_circle(Vector2.ZERO, 1.5, Color(0.7, 0.58, 0.15))
 
-	# Trail (golden sparkle)
+	# Trail — golden sparkle dots
 	var dir = Vector2.from_angle(_angle)
-	draw_line(-dir * 6.0, Vector2.ZERO, Color(0.85, 0.72, 0.2, 0.3), 2.0)
+	for ti in range(4):
+		var off = -dir * (8.0 + float(ti) * 6.0)
+		var shimmer = 0.3 + sin(_spin * 3.0 + float(ti) * 1.5) * 0.15
+		draw_circle(off, 2.0 - float(ti) * 0.35, Color(1.0, 0.88, 0.3, shimmer - float(ti) * 0.06))

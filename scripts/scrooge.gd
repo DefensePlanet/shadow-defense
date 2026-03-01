@@ -38,12 +38,13 @@ var _accumulated_gold_per_ring_boost: int = 0
 # Animation vars
 var _time: float = 0.0
 var _attack_anim: float = 0.0
+var _build_timer: float = 0.0
 
 # Tier 2: Ghost of Christmas Past — rescue enemies from path end
 var _ghost_past_active: bool = false
 var _ghost_past_targets: Array = []
 var _ghost_past_phase: float = 0.0
-var _ghost_past_ready: float = 0.0
+var _ghost_past_ready: float = 20.0
 var _ghost_past_cooldown: float = 20.0
 var _ghost_flash: float = 0.0
 
@@ -224,6 +225,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if _build_timer > 0.0: _build_timer -= delta
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
@@ -282,6 +284,13 @@ func _process(delta: float) -> void:
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
+
+	# Active ability cooldown
+	if not active_ability_ready:
+		active_ability_cooldown -= delta
+		if active_ability_cooldown <= 0.0:
+			active_ability_ready = true
+			active_ability_cooldown = 0.0
 
 	queue_redraw()
 
@@ -350,6 +359,8 @@ func _shoot() -> void:
 	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
+	if _main_node and _main_node.has_method("_pulse_tower_layer"):
+		_main_node._pulse_tower_layer(5)  # SCROOGE
 	_attack_anim = 1.0
 	var main = get_tree().get_first_node_in_group("main")
 	var dmg_mult = _damage_mult()
@@ -366,7 +377,7 @@ func _shoot() -> void:
 			enemy.progress = max(0.0, enemy.progress - kb)
 			# Small damage
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(damage * dmg_mult)
+				enemy.take_damage(damage * dmg_mult, "physical")
 				register_damage(damage * dmg_mult)
 			enemies_hit += 1
 	# Earn gold per bell ring (more enemies = more gold, scaled by gold_bonus)
@@ -430,7 +441,7 @@ func _trigger_coin_blast() -> void:
 	var dmg = damage * 25.0 * _damage_mult()
 	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
-			enemy.take_damage(dmg)
+			enemy.take_damage(dmg, "physical")
 			register_damage(dmg)
 
 func _update_coin_blast(delta: float) -> void:
@@ -859,7 +870,7 @@ func _christmas_turkey() -> void:
 	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("take_damage"):
 			var dmg = damage * 2.0 * _damage_mult()
-			e.take_damage(dmg)
+			e.take_damage(dmg, "physical")
 			register_damage(dmg)
 
 func _scrooges_redemption() -> void:
@@ -873,10 +884,44 @@ func _scrooges_redemption() -> void:
 		return
 	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("take_damage"):
-			e.take_damage(dmg)
+			e.take_damage(dmg, "physical")
 			register_damage(dmg)
 
+func _draw_tower_aura() -> void:
+	if upgrade_tier < 3:
+		return
+	var aura_col = Color(0.95, 0.85, 0.25)
+	var pulse = sin(_time * 2.5) * 0.1 + 0.3
+	draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, Color(aura_col.r, aura_col.g, aura_col.b, pulse * 0.4), 1.5)
+	if upgrade_tier >= 4:
+		var outer_pulse = sin(_time * 1.8) * 0.15 + 0.35
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, Color(aura_col.r, aura_col.g, aura_col.b, outer_pulse * 0.3), 2.0)
+		for i in range(5):
+			var ca = _time * 0.6 + float(i) * TAU / 5.0
+			var cx = cos(ca) * 20.0
+			var cy = sin(ca) * 20.0 * 0.7
+			draw_circle(Vector2(cx, cy), 2.5, Color(0.95, 0.85, 0.25, 0.4))
+			draw_arc(Vector2(cx, cy), 2.5, 0, TAU, 8, Color(0.8, 0.7, 0.15, 0.3), 0.8)
+	if _main_node and _main_node.has_method("_is_awakened"):
+		var tower_type_enum = get_meta("tower_type_enum") if has_meta("tower_type_enum") else -1
+		if tower_type_enum >= 0 and _main_node._is_awakened(tower_type_enum):
+			for i in range(6):
+				var sy = 5.0 + fmod(_time * 20.0 + float(i) * 10.0, 30.0)
+				var sx = sin(_time * 1.5 + float(i) * 1.2) * 10.0
+				var coin_a = 0.5 - (sy - 5.0) / 30.0 * 0.4
+				draw_circle(Vector2(sx, -sy + 10), 2.0, Color(0.95, 0.85, 0.25, coin_a))
+			for i in range(8):
+				var ta = _time * 2.0 + float(i) * TAU / 8.0
+				var tr = 22.0 + sin(_time * 3.0 + float(i)) * 5.0
+				draw_line(Vector2.ZERO, Vector2(cos(ta) * tr, sin(ta) * tr * 0.7), Color(0.95, 0.85, 0.2, 0.2), 1.2)
+
 func _draw() -> void:
+	# Build animation — elastic scale-in
+	if _build_timer > 0.0:
+		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
+
 	var is_kind = upgrade_tier >= 3
 
 	# === SELECTION RING ===
@@ -1981,6 +2026,32 @@ func _draw() -> void:
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -78), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.85, 0.75, 0.3, 0.7 + pulse * 0.3))
 
+	# === VISUAL TIER EVOLUTION ===
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.9, 0.75, 0.2, 0.15 + glow_pulse * 0.1), 2.0)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(1.0, 0.85, 0.2, s_alpha))
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.9, 0.75, 0.2, b_alpha), 1.5)
+
 	# === DAMAGE DEALT COUNTER ===
 	if damage_dealt > 0:
 		var font = _game_font
@@ -1993,6 +2064,26 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -70), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.9, 0.85, 0.4, min(_upgrade_flash, 1.0)))
+
+	# Idle ambient particles — coin glints
+	if target == null:
+		for ip in range(3):
+			var ia = _time * 1.2 + float(ip) * TAU / 3.0
+			var ir = 18.0 + sin(_time * 0.7 + float(ip)) * 5.0
+			var ipos = Vector2(cos(ia), sin(ia)) * ir
+			var glint = 0.3 + sin(_time * 4.0 + float(ip) * 1.5) * 0.2
+			draw_circle(ipos, 2.0, Color(0.85, 0.72, 0.2, glint))
+			draw_circle(ipos, 3.5, Color(1.0, 0.88, 0.3, glint * 0.3))
+
+	# Ability cooldown ring
+	var cd_max = 1.0 / fire_rate
+	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
+	if cd_fill >= 1.0:
+		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.85, 0.72, 0.2, cd_pulse * 0.4), 2.0)
+	elif cd_fill > 0.0:
+		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.85, 0.72, 0.2, 0.3), 2.0)
+	_draw_tower_aura()
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
@@ -2012,6 +2103,34 @@ func has_synergy_buff() -> bool:
 	return not _synergy_buffs.is_empty()
 
 var power_damage_mult: float = 1.0
+
+# === ACTIVE HERO ABILITY: Marley's Chains (chain 3 enemies, 30s CD) ===
+var active_ability_ready: bool = true
+var active_ability_cooldown: float = 0.0
+var active_ability_max_cd: float = 30.0
+
+func activate_hero_ability() -> void:
+	if not active_ability_ready:
+		return
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var in_range: Array = []
+	for e in enemies:
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
+			in_range.append(e)
+	in_range.shuffle()
+	for i in range(mini(3, in_range.size())):
+		if is_instance_valid(in_range[i]) and in_range[i].has_method("apply_slow"):
+			in_range[i].apply_slow(0.1, 4.0)
+	active_ability_ready = false
+	active_ability_cooldown = active_ability_max_cd
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "MARLEY'S CHAINS!", Color(0.5, 0.5, 0.7), 16.0, 1.5)
+
+func get_active_ability_name() -> String:
+	return "Marley's Chains"
+
+func get_active_ability_desc() -> String:
+	return "Chain 3 enemies (30s CD)"
 
 func _damage_mult() -> float:
 	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult

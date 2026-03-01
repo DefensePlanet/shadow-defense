@@ -40,7 +40,7 @@ func _hit_target(t: Node2D) -> void:
 	_hit_targets.append(t)
 	if t.has_method("take_damage"):
 		var will_kill = t.health - damage <= 0.0
-		t.take_damage(damage)
+		t.take_damage(damage, "physical")
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 		if will_kill:
@@ -80,6 +80,13 @@ func _draw() -> void:
 
 	# Spinning dagger
 	var spin_scale = cos(_spin)
+
+	# Steel streak trail — 3 fading line segments behind blade
+	for ti in range(3):
+		var t_off = -dir * (10.0 + float(ti) * 7.0)
+		var t_alpha = (0.3 - float(ti) * 0.09) * alpha
+		var t_col = Color(0.7, 0.72, 0.78, t_alpha) if not is_shadow else Color(0.15, 0.15, 0.2, t_alpha * 0.6)
+		draw_line(t_off - perp * 1.5, t_off + perp * 1.5, t_col, 1.5 - float(ti) * 0.3)
 
 	if is_shadow:
 		# Shadow dagger — dark, translucent

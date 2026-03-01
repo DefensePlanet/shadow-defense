@@ -49,7 +49,7 @@ func _apply_smash_damage() -> void:
 	for enemy in smash_targets:
 		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 			var will_kill = enemy.health - damage <= 0.0
-			enemy.take_damage(damage)
+			enemy.take_damage(damage, "magic")
 			if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 				source_tower.register_damage(damage)
 			if will_kill:
@@ -89,7 +89,7 @@ func _apply_smash_damage() -> void:
 		_hit_targets.append(enemy)
 		if enemy.has_method("take_damage"):
 			var will_kill = enemy.health - chain_dmg <= 0.0
-			enemy.take_damage(chain_dmg)
+			enemy.take_damage(chain_dmg, "magic")
 			if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 				source_tower.register_damage(chain_dmg)
 			if will_kill:

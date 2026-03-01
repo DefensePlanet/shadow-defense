@@ -13,8 +13,20 @@ var splash_radius: float = 0.0
 var _lifetime: float = 3.0
 var _angle: float = 0.0
 var _hit_targets: Array = []
+var _trail: Array = []
+var _trail_time: float = 0.0
 
 func _process(delta: float) -> void:
+	_trail_time += delta
+	# Trail: store positions in local space (offset behind projectile)
+	if is_instance_valid(target):
+		_trail.push_front(Vector2.ZERO)
+		if _trail.size() > 5:
+			_trail.pop_back()
+		# Age trail positions backward
+		var dir = Vector2.from_angle(_angle)
+		for i in range(_trail.size()):
+			_trail[i] -= dir * speed * delta
 	_lifetime -= delta
 	if _lifetime <= 0.0:
 		queue_free()
@@ -41,7 +53,7 @@ func _hit_target(t: Node2D) -> void:
 
 	if t.has_method("take_damage"):
 		var will_kill = t.health - damage <= 0.0
-		t.take_damage(damage)
+		t.take_damage(damage, "physical")
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(damage)
 		if will_kill:
@@ -66,6 +78,10 @@ func _hit_target(t: Node2D) -> void:
 		queue_free()
 
 func _apply_splash(center: Vector2) -> void:
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("report_aoe_impact"):
+		var col = Color(1.0, 0.88, 0.25, 0.6) if is_gold else Color(0.7, 0.7, 0.75, 0.5)
+		main.report_aoe_impact(center, splash_radius, col)
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy in _hit_targets:
 			continue
@@ -74,7 +90,7 @@ func _apply_splash(center: Vector2) -> void:
 		if center.distance_to(enemy.global_position) < splash_radius:
 			if enemy.has_method("take_damage"):
 				var splash_dmg = damage * 0.4
-				enemy.take_damage(splash_dmg)
+				enemy.take_damage(splash_dmg, "physical")
 				if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 					source_tower.register_damage(splash_dmg)
 
@@ -149,6 +165,32 @@ func _draw() -> void:
 		# Fletching
 		draw_line(-dir * 8.0, -dir * 5.5 + perp * 2.5, Color(0.8, 0.2, 0.15), 1.3)
 		draw_line(-dir * 8.0, -dir * 5.5 - perp * 2.5, Color(0.8, 0.2, 0.15), 1.3)
+
+	# Default motion trail
+	if is_gold or is_silver:
+		# Golden/silver sparkle trail
+		for ti in range(_trail.size()):
+			var t_alpha = 1.0 - float(ti) / float(_trail.size())
+			var sparkle_col = Color(1.0, 0.92, 0.4, t_alpha * 0.4) if is_gold else Color(0.9, 0.9, 1.0, t_alpha * 0.35)
+			draw_circle(_trail[ti], 2.5 - float(ti) * 0.3, sparkle_col)
+	else:
+		# Normal arrow: fading ghost circles
+		for ti in range(_trail.size()):
+			var t_alpha = 1.0 - float(ti) / float(_trail.size())
+			draw_circle(_trail[ti], 2.0 - float(ti) * 0.25, Color(0.6, 0.45, 0.25, t_alpha * 0.25))
+
+	# Tier 4+ enhanced trail: extra sparkle particles behind arrow
+	if is_instance_valid(source_tower) and source_tower.get("upgrade_tier") != null and source_tower.upgrade_tier >= 4:
+		var _t2 = _trail_time
+		for si in range(3):
+			var s_off = -dir * (6.0 + float(si) * 8.0) + perp * sin(_t2 * 5.0 + float(si) * 2.5) * 4.0
+			var s_alpha = 0.4 - float(si) * 0.1
+			var s_size = 2.0 - float(si) * 0.3
+			if is_gold:
+				draw_circle(s_off, s_size, Color(1.0, 0.95, 0.5, s_alpha))
+				draw_circle(s_off, s_size * 0.5, Color(1.0, 1.0, 0.8, s_alpha * 0.7))
+			else:
+				draw_circle(s_off, s_size, Color(0.3, 0.8, 0.2, s_alpha))
 
 	# Cosmetic trail
 	var main = get_tree().get_first_node_in_group("main")

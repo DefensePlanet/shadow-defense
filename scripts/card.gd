@@ -18,6 +18,7 @@ var bounce_count: int = 0
 var split_count: int = 0
 var _hit_targets: Array = []
 var apply_paint: bool = false
+var _trail: Array = []
 
 func _process(delta: float) -> void:
 	_lifetime -= delta
@@ -33,6 +34,14 @@ func _process(delta: float) -> void:
 	var dir = global_position.direction_to(target.global_position)
 	_angle = dir.angle()
 	position += dir * speed * delta
+
+	# Trail: store last 2 positions
+	var dir_t = Vector2.from_angle(_angle)
+	_trail.push_front(Vector2.ZERO)
+	if _trail.size() > 2:
+		_trail.pop_back()
+	for i in range(_trail.size()):
+		_trail[i] -= dir_t * speed * delta
 
 	if global_position.distance_to(target.global_position) < 12.0:
 		_hit_target(target)
@@ -50,7 +59,7 @@ func _hit_target(t: Node2D) -> void:
 		var exec_dmg = t.health
 		if t.get("is_shielded") and t.shield_hp > 0.0:
 			t.shield_hp = 0.0
-		t.take_damage(t.health + 1.0, true)
+		t.take_damage(t.health + 1.0, "true")
 		if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 			source_tower.register_damage(exec_dmg)
 		if is_instance_valid(source_tower) and source_tower.has_method("register_kill"):
@@ -63,7 +72,7 @@ func _hit_target(t: Node2D) -> void:
 		return
 
 	var will_kill = t.health - damage <= 0.0
-	t.take_damage(damage, true)
+	t.take_damage(damage, "magic")
 	if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
 		source_tower.register_damage(damage)
 
@@ -127,10 +136,20 @@ func _spawn_splits() -> void:
 			source_tower._fire_split_card(available[i], _hit_targets.duplicate(), apply_paint)
 
 func _draw() -> void:
-	# Spinning playing card
-	var spin_scale = abs(cos(_spin))
 	var dir = Vector2.from_angle(_angle)
 	var perp = dir.rotated(PI / 2.0)
+	# Flutter trail — fading card silhouettes behind
+	for ti in range(_trail.size()):
+		var t_alpha = 0.25 - float(ti) * 0.1
+		var t_scale = 0.7 - float(ti) * 0.15
+		var thw = 2.5 * t_scale
+		var thh = 4.0 * t_scale
+		var tp = _trail[ti]
+		var tpts = PackedVector2Array([tp - perp * thw - dir * thh, tp + perp * thw - dir * thh, tp + perp * thw + dir * thh, tp - perp * thw + dir * thh])
+		draw_colored_polygon(tpts, Color(0.95, 0.93, 0.88, t_alpha))
+
+	# Spinning playing card
+	var spin_scale = abs(cos(_spin))
 
 	# Card body (white rectangle, squished by spin)
 	var hw = 3.0 * spin_scale + 1.0

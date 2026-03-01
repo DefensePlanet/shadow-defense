@@ -21,6 +21,7 @@ var targeting_priority: int = 0
 # Animation timers
 var _time: float = 0.0
 var _attack_anim: float = 0.0
+var _build_timer: float = 0.0
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
@@ -184,6 +185,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if _build_timer > 0.0: _build_timer -= delta
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_horn_flash = max(_horn_flash - delta * 2.0, 0.0)
@@ -215,6 +217,12 @@ func _process(delta: float) -> void:
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
+	# Active ability cooldown
+	if not active_ability_ready:
+		active_ability_cooldown -= delta
+		if active_ability_cooldown <= 0.0:
+			active_ability_ready = true
+			active_ability_cooldown = 0.0
 
 	queue_redraw()
 
@@ -293,6 +301,8 @@ func _shoot() -> void:
 	if _attack_player and _attack_sounds.size() > 0 and not _is_sfx_muted():
 		_attack_player.stream = _attack_sounds[_get_note_index() % _attack_sounds.size()]
 		_attack_player.play()
+	if _main_node and _main_node.has_method("_pulse_tower_layer"):
+		_main_node._pulse_tower_layer(0)  # ROBIN_HOOD
 	shot_count += 1
 	var silver = upgrade_tier >= 2 and shot_count % silver_interval == 0
 	var gold = upgrade_tier >= 4 and silver
@@ -330,6 +340,9 @@ func _fire_arrow(t: Node2D, silver: bool = false, gold: bool = false) -> void:
 		arrow.pierce_count = 5
 		arrow.is_silver = true
 		_silver_flash = 0.8
+		var main = get_tree().get_first_node_in_group("main")
+		if main and main.has_method("report_crit_hit"):
+			main.report_crit_hit(global_position)
 	else:
 		arrow.pierce_count = 0
 		arrow.is_silver = false
@@ -412,9 +425,9 @@ func _update_sky_arrows(delta: float) -> void:
 					# Impact — insta-kill
 					if arrow["target"].has_method("take_damage"):
 						var dmg = arrow["target"].max_health * 0.85
-						arrow["target"].take_damage(dmg, true)
+						arrow["target"].take_damage(dmg, "physical")
 						register_damage(dmg)
-					if is_instance_valid(arrow["target"]):
+					if is_instance_valid(arrow["target"]) and arrow["target"].health <= 0.0:
 						register_kill()
 					to_remove.append(si)
 			else:
@@ -753,7 +766,7 @@ func _merry_men_attack() -> void:
 	for i in range(mini(3, in_range.size())):
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
 			var dmg = damage * 3.0 * _damage_mult()
-			in_range[i].take_damage(dmg)
+			in_range[i].take_damage(dmg, "physical")
 			register_damage(dmg)
 
 func _little_john_stun() -> void:
@@ -787,7 +800,7 @@ func _maid_marian_strike() -> void:
 				strongest = e
 	if strongest and strongest.has_method("take_damage"):
 		var dmg = damage * 5.0 * _damage_mult()
-		strongest.take_damage(dmg)
+		strongest.take_damage(dmg, "physical")
 		register_damage(dmg)
 
 func _golden_arrow_strike() -> void:
@@ -803,7 +816,7 @@ func _golden_arrow_strike() -> void:
 			if perp_dist < 40.0:
 				if e.has_method("take_damage"):
 					var dmg = damage * 10.0 * _damage_mult()
-					e.take_damage(dmg)
+					e.take_damage(dmg, "physical")
 					register_damage(dmg)
 
 func _king_sherwood_rain() -> void:
@@ -813,10 +826,47 @@ func _king_sherwood_rain() -> void:
 	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < rain_range and e.has_method("take_damage"):
 			var dmg = damage * 1.5 * _damage_mult()
-			e.take_damage(dmg)
+			e.take_damage(dmg, "physical")
 			register_damage(dmg)
 
+func _draw_tower_aura() -> void:
+	if upgrade_tier < 3:
+		return
+	var aura_col = Color(0.2, 0.7, 0.2)
+	# Tier 3+: subtle glow ring
+	var pulse = sin(_time * 2.5) * 0.1 + 0.3
+	draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, Color(aura_col.r, aura_col.g, aura_col.b, pulse * 0.4), 1.5)
+	# Tier 4: pulsing outer ring + ground rune
+	if upgrade_tier >= 4:
+		var outer_pulse = sin(_time * 1.8) * 0.15 + 0.35
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, Color(aura_col.r, aura_col.g, aura_col.b, outer_pulse * 0.3), 2.0)
+		# Ground rune circle
+		for i in range(6):
+			var a1 = _time * 0.5 + float(i) * TAU / 6.0
+			var a2 = a1 + TAU / 12.0
+			draw_arc(Vector2.ZERO, 18.0, a1, a2, 4, Color(aura_col.r, aura_col.g, aura_col.b, 0.2), 1.0)
+	# Awakened: dramatic energy tendrils + floating
+	if _main_node and _main_node.has_method("_is_awakened"):
+		var tower_type_enum = get_meta("tower_type_enum") if has_meta("tower_type_enum") else -1
+		if tower_type_enum >= 0 and _main_node._is_awakened(tower_type_enum):
+			for i in range(8):
+				var ta = _time * 2.0 + float(i) * TAU / 8.0
+				var tr = 20.0 + sin(_time * 3.0 + float(i)) * 5.0
+				var tend = Vector2(cos(ta) * tr, sin(ta) * tr * 0.7)
+				draw_line(Vector2.ZERO, tend, Color(0.1, 0.9, 0.2, 0.25 + sin(_time * 4.0 + float(i)) * 0.1), 1.5)
+			# Rising sparks
+			for i in range(4):
+				var sy = -10.0 - fmod(_time * 30.0 + float(i) * 15.0, 40.0)
+				var sx = sin(_time * 2.0 + float(i) * 1.5) * 8.0
+				draw_circle(Vector2(sx, sy), 1.5, Color(0.3, 1.0, 0.3, 0.5))
+
 func _draw() -> void:
+	# Build animation — elastic scale-in
+	if _build_timer > 0.0:
+		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
+
 	# === 1. SELECTION RING ===
 	var eff_range = attack_range * _range_mult()
 	if is_selected:
@@ -1508,6 +1558,38 @@ func _draw() -> void:
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -80), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.3, 0.7, 0.2, 0.7 + pulse * 0.3))
 
+	# === VISUAL TIER EVOLUTION ===
+	# Tier 1+: Pulsing glow outline (forest green)
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.2, 0.7, 0.15, 0.15 + glow_pulse * 0.1), 2.0)
+	# Tier 2+: Orbiting sparkle particles (6)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.3, 0.9, 0.2, s_alpha))
+	# Tier 3+: Golden crown above head
+	if upgrade_tier >= 3:
+		var crown_y = body_offset.y - 58.0
+		var crown_bob = sin(_time * 1.5) * 2.0
+		var cy = crown_y + crown_bob
+		draw_line(Vector2(-8, cy), Vector2(8, cy), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, cy), Vector2(cx, cy - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, cy - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	# Tier 4: Radiating light beams (8)
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(1.0, 0.9, 0.3, b_alpha), 1.5)
+
 	# === 22. DAMAGE COUNTER ===
 	if damage_dealt > 0:
 		var font = _game_font
@@ -1520,6 +1602,27 @@ func _draw() -> void:
 	if _upgrade_flash > 0.0 and _upgrade_name != "":
 		var font2 = _game_font
 		draw_string(font2, Vector2(-80, -72), _upgrade_name, HORIZONTAL_ALIGNMENT_CENTER, 160, 16, Color(0.3, 0.7, 0.2, min(_upgrade_flash, 1.0)))
+
+	# Idle ambient particles — green leaves
+	if target == null:
+		for ip in range(3):
+			var ia = _time * 1.5 + float(ip) * TAU / 3.0
+			var ir = 20.0 + sin(_time * 0.8 + float(ip)) * 5.0
+			var ipos = Vector2(cos(ia), sin(ia)) * ir
+			draw_circle(ipos, 2.5, Color(0.3, 0.7, 0.2, 0.35 + sin(_time * 2.0 + float(ip)) * 0.1))
+			draw_line(ipos, ipos + Vector2(1.5, -1.5), Color(0.2, 0.6, 0.15, 0.25), 1.0)
+
+	# Ability cooldown ring
+	if prog_abilities[4]:
+		var cd_fill = clampf(1.0 - _little_john_timer / 12.0, 0.0, 1.0)
+		if cd_fill >= 1.0:
+			var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
+			draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.3, 0.7, 0.2, cd_pulse * 0.4), 2.0)
+		elif cd_fill > 0.0:
+			draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.3, 0.7, 0.2, 0.3), 2.0)
+
+	# Power fantasy aura
+	_draw_tower_aura()
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
@@ -1539,6 +1642,31 @@ func has_synergy_buff() -> bool:
 	return not _synergy_buffs.is_empty()
 
 var power_damage_mult: float = 1.0
+
+# === ACTIVE HERO ABILITY: Little John's Staff (AoE stun, 30s CD) ===
+var active_ability_ready: bool = true
+var active_ability_cooldown: float = 0.0
+var active_ability_max_cd: float = 30.0
+
+func activate_hero_ability() -> void:
+	if not active_ability_ready:
+		return
+	# AoE stun all enemies in range for 2s
+	_little_john_flash = 1.0
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
+			if e.has_method("apply_sleep"):
+				e.apply_sleep(2.0)
+	active_ability_ready = false
+	active_ability_cooldown = active_ability_max_cd
+	if is_instance_valid(_main_node):
+		_main_node.spawn_floating_text(global_position + Vector2(0, -40), "LITTLE JOHN'S STAFF!", Color(0.4, 0.8, 0.2), 16.0, 1.5)
+
+func get_active_ability_name() -> String:
+	return "Little John's Staff"
+
+func get_active_ability_desc() -> String:
+	return "AoE stun 2s (30s CD)"
 
 func _damage_mult() -> float:
 	return (1.0 + _synergy_buffs.get("damage", 0.0) + _meta_buffs.get("damage", 0.0)) * power_damage_mult
