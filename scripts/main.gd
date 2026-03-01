@@ -2059,12 +2059,6 @@ func _get_sidekick_bonuses(tower_type) -> Dictionary:
 	if sk_unlocked.size() > 2 and sk_unlocked[2]:
 		bonuses["gold_bonus"] = bonuses.get("gold_bonus", 0.0) + 0.10
 	return bonuses
-		character_affinity[t] = 0.0
-		awakened_characters[t] = false
-		gear_loadouts[t] = []
-		for _li in range(MAX_LOADOUTS):
-			gear_loadouts[t].append({"bindings": [], "relics": []})
-		gear_loadout_active[t] = 0
 
 func _apply_meta_buffs(tower_node, tower_type) -> void:
 	var buffs: Dictionary = {}
