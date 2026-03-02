@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 # Game state
 var gold: int = 150
@@ -28,7 +28,7 @@ const BOSS_VILLAIN_NAMES: Dictionary = {
 	12: "The Shadow Author"
 }
 
-# Purchase tracking — each tower can only be bought once
+# Purchase tracking â€” each tower can only be bought once
 var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 
@@ -181,14 +181,14 @@ var survivor_detail_container: Control = null
 var survivor_detail_back_btn: Button = null
 var survivor_detail_preview: Node2D = null
 var survivor_detail_abilities: Array = []  # [{name, desc, cost}] from tower TIER_NAMES/ABILITY_DESCRIPTIONS/TIER_COSTS
-var detail_hover_type: String = ""  # "ability", "sidekick", "relic", "weapon", "levelup", ""
+var detail_hover_type: String = ""  # "ability", "sidekick", "gear_item", "weapon", "levelup", ""
 var detail_hover_index: int = -1
 var detail_levelup_hover: bool = false
 var detail_info_overlay_open: bool = false
 var detail_info_close_hover: bool = false
 
-# Character progression — levels, gear, sidekicks, relics
-var survivor_progress: Dictionary = {}  # TowerType -> {level, xp, gear, sidekicks, relics}
+# Character progression â€” levels, gear, sidekicks
+var survivor_progress: Dictionary = {}  # TowerType -> {level, xp, gear, sidekicks}
 var session_damage: Dictionary = {}  # TowerType -> float, damage dealt this game session
 
 # Mobile support
@@ -237,127 +237,28 @@ var survivor_sidekicks = {
 	TowerType.SHADOW_AUTHOR: [{"name": "Ink Familiar", "desc": "Shadow creature attacks nearby enemies"}, {"name": "Torn Pages", "desc": "Scattered pages slow enemies"}, {"name": "Dark Muse", "desc": "Boosts all nearby towers' damage"}],
 }
 
-# Character-specific relic definitions (6 per character, 36 total)
-var survivor_relics = {
-	TowerType.ROBIN_HOOD: [
-		{"name": "Lincoln Green Cloak", "desc": "Blend with Sherwood — enemies sometimes miss", "effect": "dodge", "value": 0.12, "cost": 0, "icon": "green_cloak"},
-		{"name": "Silver Arrow", "desc": "Legendary arrow that pierces the toughest armor", "effect": "pierce_damage", "value": 0.20, "cost": 100, "icon": "silver_arrow"},
-		{"name": "Sherwood Longbow", "desc": "Yew bow carved from the oldest oak in Sherwood", "effect": "range", "value": 0.15, "cost": 0, "icon": "longbow"},
-		{"name": "Friar Tuck's Flask", "desc": "A sip of mead restores the weariest fighter", "effect": "heal_nearby", "value": 2.0, "cost": 250, "icon": "flask"},
-		{"name": "Merry Men's Horn", "desc": "The call to arms rallies all who hear it", "effect": "atk_speed_aura", "value": 0.10, "cost": 0, "icon": "horn"},
-		{"name": "Prince John's Crown", "desc": "Stolen from the tyrant — riches for the poor", "effect": "bonus_gold", "value": 0.25, "cost": 500, "icon": "gold_crown"},
-	],
-	TowerType.ALICE: [
-		{"name": "Drink Me Potion", "desc": "One sip and everything changes size", "effect": "slow", "value": 0.15, "cost": 0, "icon": "drink_me"},
-		{"name": "Eat Me Cake", "desc": "Grow larger than life itself", "effect": "aoe_radius", "value": 0.20, "cost": 100, "icon": "eat_me_cake"},
-		{"name": "Vorpal Sword", "desc": "One, two! One, two! And through and through!", "effect": "crit_chance", "value": 0.10, "cost": 0, "icon": "vorpal_sword"},
-		{"name": "Queen's Scepter", "desc": "Off with their heads!", "effect": "instant_kill", "value": 0.08, "cost": 250, "icon": "heart_scepter"},
-		{"name": "White Rabbit's Watch", "desc": "I'm late! I'm late! No time to waste!", "effect": "cooldown", "value": 0.15, "cost": 0, "icon": "pocket_watch"},
-		{"name": "Cheshire Grin", "desc": "We're all mad here", "effect": "confuse", "value": 0.12, "cost": 500, "icon": "cheshire_grin"},
-	],
-	TowerType.WICKED_WITCH: [
-		{"name": "Ruby Slippers", "desc": "There's no place like home", "effect": "reposition", "value": 1.0, "cost": 0, "icon": "ruby_slippers"},
-		{"name": "Crystal Ball", "desc": "I see everything, my pretty", "effect": "reveal_camo", "value": 1.0, "cost": 100, "icon": "crystal_ball"},
-		{"name": "Winged Monkey Fez", "desc": "Fly! Fly! Bring them to me!", "effect": "extra_projectile", "value": 1.0, "cost": 0, "icon": "monkey_fez"},
-		{"name": "Poppy Dust", "desc": "Poppies will put them to sleep", "effect": "aoe_sleep", "value": 0.10, "cost": 250, "icon": "poppy_dust"},
-		{"name": "Golden Cap", "desc": "The enchanted cap commands dark magic", "effect": "spell_damage", "value": 0.18, "cost": 0, "icon": "golden_cap"},
-		{"name": "Hourglass of Doom", "desc": "Your time is running out, my dear", "effect": "hp_drain", "value": 0.03, "cost": 500, "icon": "hourglass"},
-	],
-	TowerType.PETER_PAN: [
-		{"name": "Fairy Dust Vial", "desc": "Think happy thoughts and you can fly", "effect": "atk_speed_aura", "value": 0.12, "cost": 0, "icon": "fairy_vial"},
-		{"name": "Captain Hook's Hook", "desc": "The hook gleams with cruel promise", "effect": "bleed", "value": 0.02, "cost": 100, "icon": "iron_hook"},
-		{"name": "Neverland Star Map", "desc": "Second star to the right, straight on til morning", "effect": "range", "value": 0.15, "cost": 0, "icon": "star_map"},
-		{"name": "Crocodile's Tooth", "desc": "Tick-tock, tick-tock — the croc comes calling", "effect": "fear", "value": 0.08, "cost": 250, "icon": "croc_tooth"},
-		{"name": "Wendy's Thimble", "desc": "A thimble kiss to mend your wounds", "effect": "heal_self", "value": 3.0, "cost": 0, "icon": "thimble"},
-		{"name": "Shadow Thread", "desc": "His shadow has a mind of its own", "effect": "clone_attack", "value": 5.0, "cost": 500, "icon": "shadow_thread"},
-	],
-	TowerType.PHANTOM: [
-		{"name": "Red Rose", "desc": "A token of dark devotion", "effect": "charm", "value": 0.10, "cost": 0, "icon": "red_rose"},
-		{"name": "Punjab Lasso", "desc": "The noose tightens from the shadows", "effect": "snare", "value": 2.0, "cost": 100, "icon": "punjab_lasso"},
-		{"name": "Opera Score", "desc": "The music of the night is devastating", "effect": "aoe_damage", "value": 0.15, "cost": 0, "icon": "opera_score"},
-		{"name": "Chandelier Chain", "desc": "When the chandelier falls, all tremble", "effect": "stun", "value": 0.12, "cost": 250, "icon": "chandelier_chain"},
-		{"name": "Lake Gondola Key", "desc": "The key to the lair beneath the opera", "effect": "boss_damage", "value": 0.30, "cost": 0, "icon": "gondola_key"},
-		{"name": "Christine's Mirror", "desc": "The mirror reveals what lies behind the mask", "effect": "reflect", "value": 0.08, "cost": 500, "icon": "hand_mirror"},
-	],
-	TowerType.SCROOGE: [
-		{"name": "Marley's Chains", "desc": "Forged in life, link by link, yard by yard", "effect": "slow_aura", "value": 0.20, "cost": 0, "icon": "heavy_chains"},
-		{"name": "Ghost Lantern", "desc": "The spirits illuminate all hidden truths", "effect": "reveal_weaken", "value": 0.10, "cost": 100, "icon": "ghost_lantern"},
-		{"name": "Counting House Key", "desc": "Every penny pinched is a penny earned", "effect": "gold_gen", "value": 0.15, "cost": 0, "icon": "brass_key"},
-		{"name": "Christmas Pudding", "desc": "God bless us, every one!", "effect": "heal_nearby", "value": 2.0, "cost": 250, "icon": "xmas_pudding"},
-		{"name": "Fezziwig's Fiddle", "desc": "The old fiddle sets every foot to dancing", "effect": "atk_speed_aura", "value": 0.10, "cost": 0, "icon": "fiddle"},
-		{"name": "Redemption Bell", "desc": "The bell tolls for a changed heart", "effect": "wave_start_buff", "value": 0.08, "cost": 500, "icon": "church_bell"},
-	],
-	TowerType.SHERLOCK: [
-		{"name": "Deerstalker Cap", "desc": "The iconic hat sharpens the mind", "effect": "crit_chance", "value": 0.12, "cost": 0, "icon": "deerstalker"},
-		{"name": "Watson's Revolver", "desc": "The good doctor always packs heat", "effect": "extra_projectile", "value": 1.0, "cost": 100, "icon": "revolver"},
-		{"name": "Violin of Thought", "desc": "Music aids the deductive process", "effect": "cooldown", "value": 0.15, "cost": 0, "icon": "violin"},
-		{"name": "Cocaine Solution", "desc": "Seven percent solution heightens senses", "effect": "atk_speed_aura", "value": 0.12, "cost": 250, "icon": "vial"},
-		{"name": "Reichenbach Stone", "desc": "A stone from the falls where he cheated death", "effect": "dodge", "value": 0.10, "cost": 0, "icon": "dark_stone"},
-		{"name": "Moriarty's Cipher", "desc": "Know thy enemy as thyself", "effect": "boss_damage", "value": 0.25, "cost": 500, "icon": "cipher"},
-	],
-	TowerType.TARZAN: [
-		{"name": "Mangani Fang", "desc": "A great ape's tooth, symbol of strength", "effect": "pierce_damage", "value": 0.20, "cost": 0, "icon": "ape_tooth"},
-		{"name": "Jungle Crown", "desc": "Vines woven into the mark of the king", "effect": "aoe_radius", "value": 0.18, "cost": 100, "icon": "vine_crown"},
-		{"name": "Father's Knife", "desc": "The blade that saved his life as a babe", "effect": "bleed", "value": 0.03, "cost": 0, "icon": "hunting_knife"},
-		{"name": "Elephant Tusk", "desc": "Tantor's gift — unstoppable force", "effect": "stun", "value": 0.10, "cost": 250, "icon": "ivory_tusk"},
-		{"name": "Jane's Locket", "desc": "Love tames the wildest heart", "effect": "heal_self", "value": 3.0, "cost": 0, "icon": "gold_locket"},
-		{"name": "Kerchak's Roar", "desc": "The alpha's challenge echoes through the jungle", "effect": "fear", "value": 0.10, "cost": 500, "icon": "ape_mask"},
-	],
-	TowerType.DRACULA: [
-		{"name": "Transylvanian Earth", "desc": "Soil from his homeland sustains him", "effect": "heal_self", "value": 4.0, "cost": 0, "icon": "dark_soil"},
-		{"name": "Crucifix Shard", "desc": "Turned against its purpose — burns foes", "effect": "spell_damage", "value": 0.18, "cost": 100, "icon": "broken_cross"},
-		{"name": "Wolf Pelt Cape", "desc": "The wolves answer to the count", "effect": "slow_aura", "value": 0.15, "cost": 0, "icon": "wolf_pelt"},
-		{"name": "Mirror of Absence", "desc": "No reflection, no weakness", "effect": "dodge", "value": 0.12, "cost": 250, "icon": "dark_mirror"},
-		{"name": "Renfield's Offering", "desc": "The faithful servant's gift of life force", "effect": "hp_drain", "value": 0.04, "cost": 0, "icon": "blood_vial"},
-		{"name": "Brides' Chalice", "desc": "Three brides, three powers, one vessel", "effect": "charm", "value": 0.15, "cost": 500, "icon": "ornate_chalice"},
-	],
-	TowerType.MERLIN: [
-		{"name": "Crystal Ball", "desc": "Foresee the enemy's every move", "effect": "reveal_camo", "value": 1.0, "cost": 0, "icon": "crystal_orb"},
-		{"name": "Excalibur Shard", "desc": "A fragment of the legendary blade", "effect": "pierce_damage", "value": 0.22, "cost": 100, "icon": "sword_shard"},
-		{"name": "Druidic Circlet", "desc": "Ancient power flows through the stones", "effect": "aoe_damage", "value": 0.15, "cost": 0, "icon": "stone_circlet"},
-		{"name": "Holy Grail Replica", "desc": "A reflection of the cup that heals all wounds", "effect": "heal_nearby", "value": 3.0, "cost": 250, "icon": "golden_cup"},
-		{"name": "Nimue's Tear", "desc": "The Lady of the Lake's sorrow made manifest", "effect": "slow", "value": 0.20, "cost": 0, "icon": "blue_tear"},
-		{"name": "Stonehenge Fragment", "desc": "Cosmic power channeled through ancient rock", "effect": "wave_start_buff", "value": 0.12, "cost": 500, "icon": "stone_frag"},
-	],
-	TowerType.FRANKENSTEIN: [
-		{"name": "Galvanic Cell", "desc": "Raw electrical power courses through", "effect": "aoe_damage", "value": 0.20, "cost": 0, "icon": "battery"},
-		{"name": "Stitched Heart", "desc": "Beating despite all odds", "effect": "heal_self", "value": 5.0, "cost": 100, "icon": "sewn_heart"},
-		{"name": "Victor's Journal", "desc": "The secrets of reanimation", "effect": "atk_speed_aura", "value": 0.10, "cost": 0, "icon": "old_journal"},
-		{"name": "Arctic Ice Shard", "desc": "From the frozen wastes where the tale ended", "effect": "slow", "value": 0.18, "cost": 250, "icon": "ice_crystal"},
-		{"name": "Blind Man's Fiddle", "desc": "The only kindness ever shown to the creature", "effect": "charm", "value": 0.10, "cost": 0, "icon": "old_fiddle"},
-		{"name": "Promethean Spark", "desc": "The fire of creation itself", "effect": "boss_damage", "value": 0.30, "cost": 500, "icon": "lightning_spark"},
-	],
-	TowerType.SHADOW_AUTHOR: [
-		{"name": "Inkwell of Void", "desc": "Ink attacks leave pools of shadow", "effect": "aoe_damage", "value": 0.15, "cost": 0, "icon": "inkwell"},
-		{"name": "Quill of Fate", "desc": "Rewrites enemy destiny with each strike", "effect": "pierce_damage", "value": 0.20, "cost": 100, "icon": "dark_quill"},
-		{"name": "Tome of Endings", "desc": "Every story the Author finishes empowers the next", "effect": "spell_damage", "value": 0.18, "cost": 0, "icon": "dark_tome"},
-		{"name": "Shadow Bookmark", "desc": "Marks a page to return to in times of need", "effect": "cooldown", "value": 0.15, "cost": 250, "icon": "bookmark"},
-		{"name": "Midnight Candle", "desc": "Burns with stories untold, lighting the way", "effect": "range", "value": 0.15, "cost": 0, "icon": "dark_candle"},
-		{"name": "The Final Period", "desc": "The punctuation that ends all tales forever", "effect": "boss_damage", "value": 0.30, "cost": 500, "icon": "period_mark"},
-	],
-}
-# Track which relic slot is hovered/selected for tooltip
-var relic_hover_index: int = -1
-var relic_tooltip_visible: bool = false
+# (Old gear definitions removed - using GEAR_ITEMS)
+# Track which gear slot is hovered/selected for tooltip
+var gear_tooltip_visible: bool = false
 
 # Emporium (in-game store)
 var emporium_categories = [
 	{"name": "Gold Exchange", "desc": "Spend gold from chests on other currencies", "icon": "emp_gold", "badge": ""},
 	{"name": "Enchanted Quills", "desc": "Trade Quills for rare treasures", "icon": "emp_quills", "badge": ""},
-	{"name": "Relic Shards", "desc": "Collect Shards to forge powerful Relics", "icon": "emp_shards", "badge": ""},
-	{"name": "Relic Chests", "desc": "Chests contain powerful Relics!", "icon": "emp_chests", "badge": "AVAILABLE!"},
+	{"name": "Gear Shards", "desc": "Collect Shards to forge powerful Gear", "icon": "emp_shards", "badge": ""},
+	{"name": "Gear Chests", "desc": "Chests contain powerful Gear!", "icon": "emp_chests", "badge": "AVAILABLE!"},
 	{"name": "Survivor Packs", "desc": "Bundles of literary might", "icon": "emp_packs", "badge": "SALE!"},
 	{"name": "Storybook Stars", "desc": "Empower and level up your Survivors", "icon": "emp_stars", "badge": ""},
 	{"name": "Trophy Store", "desc": "Spend Trophies on cosmetic upgrades", "icon": "emp_trophy", "badge": "NEW!"},
 	{"name": "Battle Powers", "desc": "Stock up on consumable battle abilities", "icon": "emp_powers", "badge": ""},
-	{"name": "Tome Bindings", "desc": "Relics to empower your towers", "icon": "emp_bindings", "badge": "NEW!"},
-	{"name": "Salvage Workshop", "desc": "Dismantle items into Relic Shards", "icon": "emp_salvage", "badge": ""},
+	{"name": "Gears", "desc": "Gear to empower your towers", "icon": "emp_gear", "badge": "NEW!"},
+	{"name": "Salvage Workshop", "desc": "Dismantle items into Gear Shards", "icon": "emp_salvage", "badge": ""},
 	{"name": "Chest Forge", "desc": "Craft Golden Treasure Chests", "icon": "emp_forge", "badge": "NEW!"},
 	{"name": "Instruments", "desc": "Literary aura items for battle", "icon": "emp_instruments", "badge": "NEW!"},
 ]
 var emporium_hover_index: int = -1
 
-# Menu color palette — deep navy-purple + gold (matches defenseplanet.org)
+# Menu color palette â€” deep navy-purple + gold (matches defenseplanet.org)
 var menu_bg_dark = Color(0.04, 0.04, 0.10)        # #0a0a1a deep navy
 var menu_bg_section = Color(0.055, 0.055, 0.14)    # #0e0e24
 var menu_bg_card = Color(0.08, 0.08, 0.20)         # #141432
@@ -429,8 +330,8 @@ const MOAB_TIER_HP_MULT: Array = [8.0, 20.0, 50.0]
 const MOAB_TIER_CHILDREN: Array = [4, 4, 3]  # Children spawned on death
 
 # --- Feature 3: Item Dismantling / Sharding ---
-var salvage_rates: Dictionary = {"tattered": 5, "bound": 15, "gilded": 40, "mythic": 120, "forbidden": 400}
-# Salvage currency is player_relic_shards (already exists)
+var salvage_rates: Dictionary = {"common": 5, "uncommon": 15, "rare": 40, "epic": 120, "legendary": 400}
+# Salvage currency is player_gear_shards (already exists)
 
 # --- Feature 4: Golden Treasure Chest Crafting ---
 var golden_chest_craft_costs: Array = [
@@ -440,9 +341,20 @@ var golden_chest_craft_costs: Array = [
 ]
 
 # --- Feature 5: Rotating Daily Deals Shop ---
-var daily_deals: Array = []  # 3 items, regenerated each day
+var daily_deals: Array = []  # 3-4 items, regenerated each day
 var daily_deals_date: String = ""  # Date string of last generation
-var daily_deals_purchased: Array = [false, false, false]
+var daily_deals_purchased: Array = [false, false, false, false]
+# Enhanced Daily Deals (BATTD-inspired)
+var daily_deals_refresh_count: int = 0  # Times refreshed today
+var daily_deals_all_bonus_claimed: bool = false  # Buy-all bonus claimed today
+const DEAL_REFRESH_COST: int = 5  # Quills to refresh deals
+const DEAL_TIER_COLORS: Dictionary = {
+	"common": Color(0.6, 0.6, 0.6),
+	"rare": Color(0.3, 0.5, 0.9),
+	"epic": Color(0.7, 0.3, 0.9),
+	"legendary": Color(1.0, 0.75, 0.1),
+}
+var _deal_purchase_flash: Array = []  # [{index, timer}] for purchase animations
 
 # --- Feature 6: Shadow Arena (Competitive Leaderboard Mode) ---
 var shadow_arena_active: bool = false
@@ -465,17 +377,13 @@ var _instrument_picker_open: bool = false
 var _instrument_picker_hover: int = -1
 
 # --- Feature 8: Golden Shields (Expandable Gear Slots) ---
-# Golden Shields = star-level system that expands gear/sidekick/binding slots
+# Golden Shields = star-level system that expands gear/sidekick slots
 const MAX_GOLDEN_SHIELD: int = 10
 const GOLDEN_SHIELD_COSTS: Array = [100, 200, 350, 550, 800, 1100, 1500, 2000, 2800, 4000]  # XP cost per shield level
-# Slot unlocks per golden shield level: [base=1 gear, 1 sidekick, 2 bindings]
-# Each shield level: +1 binding slot (up to 12), +1 sidekick at shield 3/6/9, +1 gear at shield 5/10
+# Slot unlocks per golden shield level: gear and sidekick slots
+# Each shield level: +1 gear slot, +1 sidekick at shield 3/6/9
 func _get_golden_shield_level(tower_type) -> int:
 	return survivor_progress.get(tower_type, {}).get("golden_shields", 0)
-
-func _get_binding_slot_count(tower_type) -> int:
-	var shields = _get_golden_shield_level(tower_type)
-	return 2 + shields  # Base 2, up to 12 at shield 10
 
 func _get_sidekick_slot_count(tower_type) -> int:
 	var shields = _get_golden_shield_level(tower_type)
@@ -485,26 +393,49 @@ func _get_sidekick_slot_count(tower_type) -> int:
 	if shields >= 9: slots += 1
 	return slots  # Max 4
 
-func _get_gear_slot_count(tower_type) -> int:
-	var shields = _get_golden_shield_level(tower_type)
-	var slots = 1  # Base 1
-	if shields >= 5: slots += 1
-	if shields >= 10: slots += 1
-	return slots  # Max 3
-
 # --- Feature 9: Quest / Mission System ---
-var active_quests: Array = []  # [{id, desc, type, target, progress, reward_type, reward_amount, expires}]
+var active_quests: Array = []  # [{id, desc, type, target, progress, reward_type, reward_amount, difficulty, claimed}]
 var quest_last_refresh: String = ""
 var total_quests_completed: int = 0
+# Enhanced Daily Quests (BATTD-inspired)
+var weekly_quests: Array = []  # [{id, desc, type, target, progress, reward_type, reward_amount, claimed}]
+var weekly_quest_refresh: String = ""  # Monday date string
+var quest_streak: int = 0  # Consecutive days with all dailies completed
+var quest_streak_last_date: String = ""
+var quest_streak_best: int = 0
+var quest_milestone_claimed: Dictionary = {}  # {count_str: bool}
+var _quest_reroll_count: int = 0  # Rerolls used today
+var _quest_claim_flash: Array = []  # [{index, timer}] for claim animations
+const QUEST_REROLL_COST: int = 8  # Shards to reroll one quest
+const QUEST_STREAK_REWARDS: Dictionary = {3: 15, 7: 40, 14: 100, 30: 300}  # streak -> shard bonus
+const QUEST_MILESTONE_THRESHOLDS: Array = [10, 25, 50, 100, 250, 500]
 const QUEST_TEMPLATES: Array = [
-	{"desc": "Kill %d enemies", "type": "kill", "targets": [50, 100, 200], "reward_type": "shards", "amounts": [10, 20, 35]},
-	{"desc": "Kill %d shadow-infested enemies", "type": "kill_shadow", "targets": [5, 10, 20], "reward_type": "quills", "amounts": [3, 5, 10]},
-	{"desc": "Complete %d level(s)", "type": "complete_levels", "targets": [1, 2, 3], "reward_type": "shards", "amounts": [15, 25, 40]},
-	{"desc": "Earn %d gold in a single game", "type": "earn_gold", "targets": [200, 500, 1000], "reward_type": "quills", "amounts": [2, 5, 8]},
-	{"desc": "Place %d towers", "type": "place_towers", "targets": [10, 20, 30], "reward_type": "shards", "amounts": [8, 15, 25]},
-	{"desc": "Earn %d stars", "type": "earn_stars", "targets": [3, 6, 9], "reward_type": "stars", "amounts": [1, 1, 2]},
-	{"desc": "Use %d battle power(s)", "type": "use_powers", "targets": [1, 3, 5], "reward_type": "shards", "amounts": [10, 20, 30]},
-	{"desc": "Upgrade %d tower(s) to max tier", "type": "max_upgrades", "targets": [1, 2, 3], "reward_type": "quills", "amounts": [5, 8, 12]},
+	# --- Easy quests (difficulty 0) ---
+	{"desc": "Kill %d enemies", "type": "kill", "targets": [30, 60, 100], "reward_type": "shards", "amounts": [8, 15, 25], "difficulty": 0},
+	{"desc": "Place %d towers", "type": "place_towers", "targets": [5, 10, 15], "reward_type": "shards", "amounts": [6, 12, 20], "difficulty": 0},
+	{"desc": "Earn %d gold in a game", "type": "earn_gold", "targets": [150, 300, 500], "reward_type": "quills", "amounts": [2, 4, 6], "difficulty": 0},
+	{"desc": "Upgrade %d tower(s)", "type": "upgrade_towers", "targets": [2, 4, 6], "reward_type": "shards", "amounts": [5, 10, 18], "difficulty": 0},
+	{"desc": "Survive %d waves", "type": "survive_waves", "targets": [10, 20, 30], "reward_type": "shards", "amounts": [8, 16, 28], "difficulty": 0},
+	# --- Medium quests (difficulty 1) ---
+	{"desc": "Kill %d enemies", "type": "kill", "targets": [100, 200, 350], "reward_type": "shards", "amounts": [15, 25, 40], "difficulty": 1},
+	{"desc": "Kill %d shadow-infested enemies", "type": "kill_shadow", "targets": [5, 10, 20], "reward_type": "quills", "amounts": [3, 5, 10], "difficulty": 1},
+	{"desc": "Complete %d level(s)", "type": "complete_levels", "targets": [1, 2, 3], "reward_type": "shards", "amounts": [15, 25, 40], "difficulty": 1},
+	{"desc": "Deal %d total damage", "type": "deal_damage", "targets": [2000, 5000, 10000], "reward_type": "quills", "amounts": [3, 6, 10], "difficulty": 1},
+	{"desc": "Earn %d combo kills", "type": "combo_kills", "targets": [5, 10, 20], "reward_type": "shards", "amounts": [12, 20, 35], "difficulty": 1},
+	{"desc": "Use %d battle power(s)", "type": "use_powers", "targets": [1, 3, 5], "reward_type": "shards", "amounts": [10, 20, 30], "difficulty": 1},
+	# --- Hard quests (difficulty 2) ---
+	{"desc": "Earn %d stars", "type": "earn_stars", "targets": [3, 6, 9], "reward_type": "stars", "amounts": [1, 1, 2], "difficulty": 2},
+	{"desc": "Upgrade %d tower(s) to max tier", "type": "max_upgrades", "targets": [1, 2, 3], "reward_type": "quills", "amounts": [5, 8, 12], "difficulty": 2},
+	{"desc": "Activate %d tower synergy(s)", "type": "activate_synergy", "targets": [1, 2, 3], "reward_type": "shards", "amounts": [20, 35, 50], "difficulty": 2},
+	{"desc": "Kill %d boss enemies", "type": "kill_boss", "targets": [1, 3, 5], "reward_type": "quills", "amounts": [5, 10, 18], "difficulty": 2},
+	{"desc": "Win without losing a life", "type": "flawless_win", "targets": [1, 1, 1], "reward_type": "ink", "amounts": [3, 5, 8], "difficulty": 2},
+]
+const WEEKLY_QUEST_TEMPLATES: Array = [
+	{"desc": "Kill %d enemies this week", "type": "kill", "targets": [500, 1000], "reward_type": "shards", "amounts": [60, 120]},
+	{"desc": "Complete %d levels this week", "type": "complete_levels", "targets": [5, 10], "reward_type": "quills", "amounts": [15, 30]},
+	{"desc": "Earn %d stars this week", "type": "earn_stars", "targets": [10, 20], "reward_type": "stars", "amounts": [3, 5]},
+	{"desc": "Deal %d total damage this week", "type": "deal_damage", "targets": [25000, 50000], "reward_type": "ink", "amounts": [8, 15]},
+	{"desc": "Place %d towers this week", "type": "place_towers", "targets": [30, 60], "reward_type": "shards", "amounts": [50, 100]},
 ]
 
 # --- Feature 10: Literary Instruments (Aura Support Gear) ---
@@ -518,10 +449,10 @@ var literary_instruments: Array = [
 	{"id": "violin_of_valor", "name": "Violin of Valor", "desc": "Towers in range earn 30% more gold on kill", "effect": "gold_bonus", "value": 0.30, "radius": 135.0, "cost": 110},
 ]
 var owned_instruments: Dictionary = {}  # instrument_id -> count
-var placed_instruments: Array = []  # [{id, position, radius, effect, value}] — active in-game
+var placed_instruments: Array = []  # [{id, position, radius, effect, value}] â€” active in-game
 
 var levels = [
-	# === PROLOGUE — Into the Pages (Level 0) ===
+	# === PROLOGUE â€” Into the Pages (Level 0) ===
 	{
 		"name": "Into the Pages", "subtitle": "Prologue",
 		"description": "The Tome of Shadows opens and pulls our heroes into a world of ink and forgotten stories. Survive the first wave of shadow entities!",
@@ -530,9 +461,9 @@ var levels = [
 		"sky_color": Color(0.04, 0.02, 0.08),
 		"ground_color": Color(0.03, 0.03, 0.05),
 	},
-	# === SHERLOCK HOLMES — Baker Street Investigation (Levels 1-3) ===
+	# === SHERLOCK HOLMES â€” Baker Street Investigation (Levels 1-3) ===
 	{
-		"name": "Baker Street Investigation", "subtitle": "Sherlock Holmes — Chapter 1",
+		"name": "Baker Street Investigation", "subtitle": "Sherlock Holmes â€” Chapter 1",
 		"description": "The fog-choked streets of Victorian London hide criminals in every alley. Sherlock awaits rescue at 221B Baker Street.",
 		"character": -1, "chapter": 0, "enemy_theme": 7,
 		"waves": 15, "gold": 110, "lives": 25, "difficulty": 1.0,
@@ -540,7 +471,7 @@ var levels = [
 		"ground_color": Color(0.12, 0.10, 0.08),
 	},
 	{
-		"name": "The Whitechapel Pursuit", "subtitle": "Sherlock Holmes — Chapter 2",
+		"name": "The Whitechapel Pursuit", "subtitle": "Sherlock Holmes â€” Chapter 2",
 		"description": "Through the dangerous back alleys of Whitechapel, Moriarty's agents close in. The game is afoot!",
 		"character": -1, "chapter": 1, "enemy_theme": 7,
 		"waves": 20, "gold": 110, "lives": 22, "difficulty": 1.15,
@@ -548,16 +479,16 @@ var levels = [
 		"ground_color": Color(0.10, 0.08, 0.06),
 	},
 	{
-		"name": "Reichenbach Falls", "subtitle": "Sherlock Holmes — Chapter 3",
+		"name": "Reichenbach Falls", "subtitle": "Sherlock Holmes â€” Chapter 3",
 		"description": "The final confrontation at the thundering falls. Moriarty's full criminal network descends. Free Sherlock Holmes!",
 		"character": -1, "chapter": 2, "enemy_theme": 7,
 		"waves": 25, "gold": 110, "lives": 20, "difficulty": 1.3,
 		"sky_color": Color(0.04, 0.04, 0.06),
 		"ground_color": Color(0.08, 0.08, 0.10),
 	},
-	# === MERLIN — The Round Table (Levels 4-6) ===
+	# === MERLIN â€” The Round Table (Levels 4-6) ===
 	{
-		"name": "The Round Table", "subtitle": "Merlin — Chapter 1",
+		"name": "The Round Table", "subtitle": "Merlin â€” Chapter 1",
 		"description": "Camelot lies in shadow. Dark sorcery has corrupted the knights. Merlin is trapped within a crystal cave.",
 		"character": -1, "chapter": 0, "enemy_theme": 8,
 		"waves": 15, "gold": 110, "lives": 25, "difficulty": 1.05,
@@ -565,7 +496,7 @@ var levels = [
 		"ground_color": Color(0.10, 0.08, 0.04),
 	},
 	{
-		"name": "The Enchanted Forest", "subtitle": "Merlin — Chapter 2",
+		"name": "The Enchanted Forest", "subtitle": "Merlin â€” Chapter 2",
 		"description": "Ancient standing stones pulse with dark magic. Cursed knights patrol the enchanted woodland paths.",
 		"character": -1, "chapter": 1, "enemy_theme": 8,
 		"waves": 20, "gold": 110, "lives": 22, "difficulty": 1.2,
@@ -573,16 +504,16 @@ var levels = [
 		"ground_color": Color(0.08, 0.06, 0.03),
 	},
 	{
-		"name": "The Crystal Cave", "subtitle": "Merlin — Chapter 3",
+		"name": "The Crystal Cave", "subtitle": "Merlin â€” Chapter 3",
 		"description": "Deep within the crystal cave, Morgan le Fay guards Merlin's prison. Shatter the enchantment and free the wizard!",
 		"character": -1, "chapter": 2, "enemy_theme": 8,
 		"waves": 25, "gold": 110, "lives": 20, "difficulty": 1.35,
 		"sky_color": Color(0.03, 0.04, 0.06),
 		"ground_color": Color(0.06, 0.06, 0.08),
 	},
-	# === TARZAN — The Jungle Canopy (Levels 7-9) ===
+	# === TARZAN â€” The Jungle Canopy (Levels 7-9) ===
 	{
-		"name": "The Jungle Canopy", "subtitle": "Tarzan — Chapter 1",
+		"name": "The Jungle Canopy", "subtitle": "Tarzan â€” Chapter 1",
 		"description": "Poachers invade the shadow jungle. Tarzan, king of the apes, fights alone against the intruders.",
 		"character": -1, "chapter": 0, "enemy_theme": 9,
 		"waves": 15, "gold": 110, "lives": 25, "difficulty": 1.1,
@@ -590,7 +521,7 @@ var levels = [
 		"ground_color": Color(0.04, 0.14, 0.02),
 	},
 	{
-		"name": "The Elephant Graveyard", "subtitle": "Tarzan — Chapter 2",
+		"name": "The Elephant Graveyard", "subtitle": "Tarzan â€” Chapter 2",
 		"description": "Big game hunters track through the elephant graveyard, seeking Tarzan's ape family. The bones rattle with warning.",
 		"character": -1, "chapter": 1, "enemy_theme": 9,
 		"waves": 20, "gold": 110, "lives": 22, "difficulty": 1.25,
@@ -598,16 +529,16 @@ var levels = [
 		"ground_color": Color(0.06, 0.10, 0.02),
 	},
 	{
-		"name": "Clayton's Fortress", "subtitle": "Tarzan — Chapter 3",
+		"name": "Clayton's Fortress", "subtitle": "Tarzan â€” Chapter 3",
 		"description": "Clayton's mercenary fortress blocks the jungle path. Storm the compound and free Tarzan from his cage!",
 		"character": -1, "chapter": 2, "enemy_theme": 9,
 		"waves": 25, "gold": 110, "lives": 20, "difficulty": 1.4,
 		"sky_color": Color(0.05, 0.07, 0.08),
 		"ground_color": Color(0.05, 0.08, 0.03),
 	},
-	# === DRACULA — The Transylvanian Village (Levels 10-12) ===
+	# === DRACULA â€” The Transylvanian Village (Levels 10-12) ===
 	{
-		"name": "The Transylvanian Village", "subtitle": "Dracula — Chapter 1",
+		"name": "The Transylvanian Village", "subtitle": "Dracula â€” Chapter 1",
 		"description": "A cursed village at the foot of the Carpathian Mountains. The undead walk the streets at night.",
 		"character": -1, "chapter": 0, "enemy_theme": 10,
 		"waves": 18, "gold": 110, "lives": 24, "difficulty": 1.15,
@@ -615,7 +546,7 @@ var levels = [
 		"ground_color": Color(0.06, 0.04, 0.04),
 	},
 	{
-		"name": "Castle Dracula", "subtitle": "Dracula — Chapter 2",
+		"name": "Castle Dracula", "subtitle": "Dracula â€” Chapter 2",
 		"description": "The castle looms above, its corridors filled with vampire brides and dire wolves. The Count watches from his tower.",
 		"character": -1, "chapter": 1, "enemy_theme": 10,
 		"waves": 22, "gold": 110, "lives": 20, "difficulty": 1.3,
@@ -623,16 +554,16 @@ var levels = [
 		"ground_color": Color(0.05, 0.03, 0.04),
 	},
 	{
-		"name": "The Crypt of Blood", "subtitle": "Dracula — Chapter 3",
+		"name": "The Crypt of Blood", "subtitle": "Dracula â€” Chapter 3",
 		"description": "In the deepest crypt, Dracula lies chained by shadow ink. Defeat his captors and the Count joins your cause!",
 		"character": -1, "chapter": 2, "enemy_theme": 10,
 		"waves": 28, "gold": 110, "lives": 18, "difficulty": 1.5,
 		"sky_color": Color(0.03, 0.01, 0.02),
 		"ground_color": Color(0.04, 0.02, 0.03),
 	},
-	# === FRANKENSTEIN — The Laboratory (Levels 13-15) ===
+	# === FRANKENSTEIN â€” The Laboratory (Levels 13-15) ===
 	{
-		"name": "The Laboratory", "subtitle": "Frankenstein — Chapter 1",
+		"name": "The Laboratory", "subtitle": "Frankenstein â€” Chapter 1",
 		"description": "Victor Frankenstein's abandoned laboratory crackles with dark energy. Failed experiments roam the halls.",
 		"character": -1, "chapter": 0, "enemy_theme": 11,
 		"waves": 18, "gold": 110, "lives": 24, "difficulty": 1.2,
@@ -640,7 +571,7 @@ var levels = [
 		"ground_color": Color(0.08, 0.08, 0.08),
 	},
 	{
-		"name": "The Angry Village", "subtitle": "Frankenstein — Chapter 2",
+		"name": "The Angry Village", "subtitle": "Frankenstein â€” Chapter 2",
 		"description": "Villagers with torches and pitchforks march against the Monster. But here, the villagers are the real monsters.",
 		"character": -1, "chapter": 1, "enemy_theme": 11,
 		"waves": 22, "gold": 110, "lives": 20, "difficulty": 1.35,
@@ -648,16 +579,16 @@ var levels = [
 		"ground_color": Color(0.07, 0.06, 0.06),
 	},
 	{
-		"name": "The Arctic Wastes", "subtitle": "Frankenstein — Chapter 3",
+		"name": "The Arctic Wastes", "subtitle": "Frankenstein â€” Chapter 3",
 		"description": "The frozen north, where the tale ends. Igor guards the Monster's prison of ice. Shatter his chains!",
 		"character": -1, "chapter": 2, "enemy_theme": 11,
 		"waves": 28, "gold": 110, "lives": 18, "difficulty": 1.55,
 		"sky_color": Color(0.06, 0.06, 0.08),
 		"ground_color": Color(0.10, 0.10, 0.12),
 	},
-	# === ROBIN HOOD — The Merry Adventures of Robin Hood (Levels 16-18) ===
+	# === ROBIN HOOD â€” The Merry Adventures of Robin Hood (Levels 16-18) ===
 	{
-		"name": "The Outlaw's Call", "subtitle": "Sherwood Forest — Chapter 1",
+		"name": "The Outlaw's Call", "subtitle": "Sherwood Forest â€” Chapter 1",
 		"description": "Robin becomes an outlaw and builds his camp in Sherwood Forest. Defend the hideout from the Sheriff's tax collectors!",
 		"character": 0, "chapter": 0, "enemy_theme": 0,
 		"waves": 12, "gold": 100, "lives": 25, "difficulty": 1.0,
@@ -665,7 +596,7 @@ var levels = [
 		"ground_color": Color(0.06, 0.16, 0.04),
 	},
 	{
-		"name": "The Sheriff's Pursuit", "subtitle": "Sherwood Forest — Chapter 2",
+		"name": "The Sheriff's Pursuit", "subtitle": "Sherwood Forest â€” Chapter 2",
 		"description": "The Sheriff of Nottingham sends his soldiers to hunt Robin. Defend Little John's Bridge and the river crossing!",
 		"character": 0, "chapter": 1, "enemy_theme": 0,
 		"waves": 15, "gold": 100, "lives": 22, "difficulty": 1.15,
@@ -673,16 +604,16 @@ var levels = [
 		"ground_color": Color(0.05, 0.14, 0.03),
 	},
 	{
-		"name": "Siege of Nottingham", "subtitle": "Sherwood Forest — Chapter 3",
+		"name": "Siege of Nottingham", "subtitle": "Sherwood Forest â€” Chapter 3",
 		"description": "Robin leads the attack on Nottingham Castle to free his captured men. Defeat the Sheriff at the castle gates!",
 		"character": 0, "chapter": 2, "enemy_theme": 0,
 		"waves": 18, "gold": 100, "lives": 20, "difficulty": 1.3,
 		"sky_color": Color(0.06, 0.04, 0.02),
 		"ground_color": Color(0.08, 0.08, 0.06),
 	},
-	# === ALICE — Alice's Adventures in Wonderland (Levels 19-21) ===
+	# === ALICE â€” Alice's Adventures in Wonderland (Levels 19-21) ===
 	{
-		"name": "Down the Rabbit Hole", "subtitle": "Wonderland — Chapter 1",
+		"name": "Down the Rabbit Hole", "subtitle": "Wonderland â€” Chapter 1",
 		"description": "Alice follows the White Rabbit into a curious garden of giant mushrooms, talking flowers, and nonsense.",
 		"character": 1, "chapter": 0, "enemy_theme": 1,
 		"waves": 14, "gold": 100, "lives": 25, "difficulty": 1.0,
@@ -690,24 +621,24 @@ var levels = [
 		"ground_color": Color(0.08, 0.18, 0.06),
 	},
 	{
-		"name": "The Mad Tea Party", "subtitle": "Wonderland — Chapter 2",
-		"description": "Deeper into Wonderland — the Mad Hatter's tea party and the Queen of Hearts' card army advances, painting the roses red.",
+		"name": "The Mad Tea Party", "subtitle": "Wonderland â€” Chapter 2",
+		"description": "Deeper into Wonderland â€” the Mad Hatter's tea party and the Queen of Hearts' card army advances, painting the roses red.",
 		"character": 1, "chapter": 1, "enemy_theme": 1,
 		"waves": 17, "gold": 100, "lives": 22, "difficulty": 1.2,
 		"sky_color": Color(0.10, 0.03, 0.14),
 		"ground_color": Color(0.06, 0.14, 0.05),
 	},
 	{
-		"name": "The Queen's Court", "subtitle": "Wonderland — Chapter 3",
+		"name": "The Queen's Court", "subtitle": "Wonderland â€” Chapter 3",
 		"description": "Alice reaches the Queen's palace. The rose garden runs red. Off with their heads!",
 		"character": 1, "chapter": 2, "enemy_theme": 1,
 		"waves": 20, "gold": 100, "lives": 18, "difficulty": 1.4,
 		"sky_color": Color(0.14, 0.02, 0.08),
 		"ground_color": Color(0.10, 0.06, 0.06),
 	},
-	# === WICKED WITCH — The Wonderful Wizard of Oz (Levels 22-24) ===
+	# === WICKED WITCH â€” The Wonderful Wizard of Oz (Levels 22-24) ===
 	{
-		"name": "The Yellow Brick Road", "subtitle": "Land of Oz — Chapter 1",
+		"name": "The Yellow Brick Road", "subtitle": "Land of Oz â€” Chapter 1",
 		"description": "Dorothy and companions follow the golden road through poppy fields toward the Emerald City.",
 		"character": 2, "chapter": 0, "enemy_theme": 2,
 		"waves": 14, "gold": 100, "lives": 25, "difficulty": 1.05,
@@ -715,7 +646,7 @@ var levels = [
 		"ground_color": Color(0.14, 0.12, 0.02),
 	},
 	{
-		"name": "The Witch's Domain", "subtitle": "Land of Oz — Chapter 2",
+		"name": "The Witch's Domain", "subtitle": "Land of Oz â€” Chapter 2",
 		"description": "The Wicked Witch of the West sends her flying monkeys. Dark western territory and dead forests loom ahead.",
 		"character": 2, "chapter": 1, "enemy_theme": 2,
 		"waves": 17, "gold": 100, "lives": 22, "difficulty": 1.3,
@@ -723,16 +654,16 @@ var levels = [
 		"ground_color": Color(0.10, 0.08, 0.04),
 	},
 	{
-		"name": "The Emerald Throne", "subtitle": "Land of Oz — Chapter 3",
+		"name": "The Emerald Throne", "subtitle": "Land of Oz â€” Chapter 3",
 		"description": "Inside the Emerald City, the Nome King rises to seize power. Green crystal walls crack as rock soldiers march.",
 		"character": 2, "chapter": 2, "enemy_theme": 2,
 		"waves": 20, "gold": 100, "lives": 18, "difficulty": 1.5,
 		"sky_color": Color(0.02, 0.08, 0.04),
 		"ground_color": Color(0.06, 0.12, 0.06),
 	},
-	# === PETER PAN — Peter and Wendy (Levels 25-27) ===
+	# === PETER PAN â€” Peter and Wendy (Levels 25-27) ===
 	{
-		"name": "Flight to Neverland", "subtitle": "Neverland — Chapter 1",
+		"name": "Flight to Neverland", "subtitle": "Neverland â€” Chapter 1",
 		"description": "Second star to the right and straight on till morning. Mermaid lagoon sparkles and pirate scouts appear.",
 		"character": 3, "chapter": 0, "enemy_theme": 3,
 		"waves": 16, "gold": 100, "lives": 25, "difficulty": 1.1,
@@ -740,7 +671,7 @@ var levels = [
 		"ground_color": Color(0.08, 0.18, 0.06),
 	},
 	{
-		"name": "The Lost Boys' Stand", "subtitle": "Neverland — Chapter 2",
+		"name": "The Lost Boys' Stand", "subtitle": "Neverland â€” Chapter 2",
 		"description": "Captain Hook's pirate officers lead raiding parties through the dense jungle to attack the Lost Boys' hideout.",
 		"character": 3, "chapter": 1, "enemy_theme": 3,
 		"waves": 19, "gold": 100, "lives": 20, "difficulty": 1.4,
@@ -748,24 +679,24 @@ var levels = [
 		"ground_color": Color(0.06, 0.15, 0.04),
 	},
 	{
-		"name": "The Jolly Roger", "subtitle": "Neverland — Chapter 3",
+		"name": "The Jolly Roger", "subtitle": "Neverland â€” Chapter 3",
 		"description": "The final battle aboard Captain Hook's ship. Sword fights on deck, walking the plank over the ticking crocodile!",
 		"character": 3, "chapter": 2, "enemy_theme": 3,
 		"waves": 22, "gold": 100, "lives": 18, "difficulty": 1.6,
 		"sky_color": Color(0.08, 0.04, 0.02),
 		"ground_color": Color(0.12, 0.08, 0.06),
 	},
-	# === PHANTOM — The Phantom of the Opera (Levels 28-30) ===
+	# === PHANTOM â€” The Phantom of the Opera (Levels 28-30) ===
 	{
-		"name": "The Grand Stage", "subtitle": "Paris Opera — Chapter 1",
-		"description": "The Paris Opera House, elegant and grand. Strange things happen during performances — a ghost in the wings.",
+		"name": "The Grand Stage", "subtitle": "Paris Opera â€” Chapter 1",
+		"description": "The Paris Opera House, elegant and grand. Strange things happen during performances â€” a ghost in the wings.",
 		"character": 4, "chapter": 0, "enemy_theme": 4,
 		"waves": 18, "gold": 100, "lives": 22, "difficulty": 1.2,
 		"sky_color": Color(0.04, 0.02, 0.08),
 		"ground_color": Color(0.10, 0.08, 0.10),
 	},
 	{
-		"name": "The Labyrinth", "subtitle": "Paris Opera — Chapter 2",
+		"name": "The Labyrinth", "subtitle": "Paris Opera â€” Chapter 2",
 		"description": "Descending beneath the opera into mirrors, candlelit tunnels, and traps. The Phantom reveals himself.",
 		"character": 4, "chapter": 1, "enemy_theme": 4,
 		"waves": 21, "gold": 100, "lives": 20, "difficulty": 1.5,
@@ -773,16 +704,16 @@ var levels = [
 		"ground_color": Color(0.08, 0.06, 0.08),
 	},
 	{
-		"name": "The Phantom's Lair", "subtitle": "Paris Opera — Chapter 3",
+		"name": "The Phantom's Lair", "subtitle": "Paris Opera â€” Chapter 3",
 		"description": "The underground lake, the great organ, roses on black water. Defeat the Dark Phantom in his domain!",
 		"character": 4, "chapter": 2, "enemy_theme": 4,
 		"waves": 24, "gold": 100, "lives": 16, "difficulty": 1.7,
 		"sky_color": Color(0.02, 0.01, 0.04),
 		"ground_color": Color(0.06, 0.04, 0.06),
 	},
-	# === SCROOGE — A Christmas Carol (Levels 31-33) ===
+	# === SCROOGE â€” A Christmas Carol (Levels 31-33) ===
 	{
-		"name": "Christmas Eve", "subtitle": "Victorian London — Chapter 1",
+		"name": "Christmas Eve", "subtitle": "Victorian London â€” Chapter 1",
 		"description": "Victorian London on a cold Christmas Eve. Scrooge at his counting house, ignoring the carolers. Marley's ghost appears.",
 		"character": 5, "chapter": 0, "enemy_theme": 5,
 		"waves": 20, "gold": 100, "lives": 22, "difficulty": 1.3,
@@ -790,7 +721,7 @@ var levels = [
 		"ground_color": Color(0.10, 0.10, 0.12),
 	},
 	{
-		"name": "The Three Spirits", "subtitle": "Victorian London — Chapter 2",
+		"name": "The Three Spirits", "subtitle": "Victorian London â€” Chapter 2",
 		"description": "The Ghosts of Christmas Past, Present, and Future visit Scrooge. Spectral London, gravestones, chains rattling.",
 		"character": 5, "chapter": 1, "enemy_theme": 5,
 		"waves": 23, "gold": 100, "lives": 18, "difficulty": 1.6,
@@ -798,24 +729,24 @@ var levels = [
 		"ground_color": Color(0.08, 0.08, 0.10),
 	},
 	{
-		"name": "Redemption's Dawn", "subtitle": "Victorian London — Chapter 3",
+		"name": "Redemption's Dawn", "subtitle": "Victorian London â€” Chapter 3",
 		"description": "Christmas morning. The Ghost of Christmas Yet to Come leads an army of despair. Warm light fights to break through.",
 		"character": 5, "chapter": 2, "enemy_theme": 5,
 		"waves": 25, "gold": 100, "lives": 15, "difficulty": 1.8,
 		"sky_color": Color(0.10, 0.08, 0.06),
 		"ground_color": Color(0.12, 0.10, 0.10),
 	},
-	# === SHADOW AUTHOR — The Final Chapter (Levels 34-36) ===
+	# === SHADOW AUTHOR â€” The Final Chapter (Levels 34-36) ===
 	{
-		"name": "The Ink Realm", "subtitle": "Shadow Author — Chapter 1",
-		"description": "The Shadow Author's domain unfolds — a realm of pure ink and unwritten nightmares. All heroes unite for the final battle.",
+		"name": "The Ink Realm", "subtitle": "Shadow Author â€” Chapter 1",
+		"description": "The Shadow Author's domain unfolds â€” a realm of pure ink and unwritten nightmares. All heroes unite for the final battle.",
 		"character": -1, "chapter": 0, "enemy_theme": 12,
 		"waves": 30, "gold": 120, "lives": 25, "difficulty": 1.8,
 		"sky_color": Color(0.02, 0.01, 0.03),
 		"ground_color": Color(0.02, 0.02, 0.04),
 	},
 	{
-		"name": "The Unwritten Pages", "subtitle": "Shadow Author — Chapter 2",
+		"name": "The Unwritten Pages", "subtitle": "Shadow Author â€” Chapter 2",
 		"description": "Blank pages stretch to infinity. The Author rewrites reality itself, sending corrupted versions of literary heroes against you.",
 		"character": -1, "chapter": 1, "enemy_theme": 12,
 		"waves": 35, "gold": 120, "lives": 22, "difficulty": 1.9,
@@ -823,7 +754,7 @@ var levels = [
 		"ground_color": Color(0.02, 0.01, 0.03),
 	},
 	{
-		"name": "The Final Chapter", "subtitle": "Shadow Author — Chapter 3",
+		"name": "The Final Chapter", "subtitle": "Shadow Author â€” Chapter 3",
 		"description": "The last page. The Shadow Author rises from the ink, quill in hand, to write THE END for every story ever told. Stop him!",
 		"character": -1, "chapter": 2, "enemy_theme": 12,
 		"waves": 40, "gold": 130, "lives": 20, "difficulty": 2.0,
@@ -836,14 +767,14 @@ var levels = [
 var selected_difficulty: int = 0
 var difficulty_waves: Array = [20, 30, 40, 40]
 var difficulty_gold_bonus: Array = [8, 0, -10, -20]
-var difficulty_lives_bonus: Array = [5, 0, -5, -5]  # Legacy — overridden by fixed lives below
+var difficulty_lives_bonus: Array = [5, 0, -5, -5]  # Legacy â€” overridden by fixed lives below
 var difficulty_fixed_lives: Array = [100, 50, 20, 1]  # Easy=100, Medium=50, Hard=20, Pure=1
 const PURE_MODE: int = 3
 var chapter_diff_buttons: Array = []  # Array of 3 arrays, each with 3 buttons
 
 # Player inventory (persistent across sessions)
 var player_quills: int = 0
-var player_relic_shards: int = 0
+var player_gear_shards: int = 0
 var player_storybook_stars: int = 0
 var player_gold: int = 0
 
@@ -852,10 +783,10 @@ var chest_loot: Array = []  # Array of {"type": String, "amount": int, "name": S
 var chest_open: bool = false
 var chest_timer: float = 0.0
 
-# Relics tab hover state
-var relics_tab_hover_tier: int = -1
-var relics_tab_hover_row: int = -1
-var relics_tab_hover_col: int = -1
+# Gear tab hover state
+var gear_tab_hover_tier: int = -1
+var gear_tab_hover_row: int = -1
+var gear_tab_hover_col: int = -1
 
 # Wave management
 var enemies_to_spawn: int = 0
@@ -904,29 +835,29 @@ var _sa_taunt_trigger_time: float = 15.0  # randomized per level
 # Shadow figures fly on all maps
 var _sa_shadow_figures: Array = []
 
-# Musical beat clock — towers read this to select harmonious notes
+# Musical beat clock â€” towers read this to select harmonious notes
 var music_beat_index: int = 0
 var _music_beat_accum: float = 0.0
 const MUSIC_BPM: float = 140.0
 const MUSIC_BEAT_INTERVAL: float = 60.0 / MUSIC_BPM  # ~0.4286s
 
-# Audio — procedural hip hop beat
+# Audio â€” procedural hip hop beat
 var music_player: AudioStreamPlayer
 var music_tracks: Array = []
 var music_index: int = 0
 var music_playing: bool = false
 
-# Audio — character voice clips
+# Audio â€” character voice clips
 var voice_player: AudioStreamPlayer
 var voice_clips: Dictionary = {}
 var tower_quotes: Dictionary = {}
 
 # Voice-over catchphrase system (MP3 files from edge-tts)
 var catchphrase_player: AudioStreamPlayer
-var placement_voice_clips: Dictionary = {}  # TowerType → Array[AudioStreamMP3]
-var fighting_voice_clips: Dictionary = {}   # TowerType → Array[AudioStreamMP3]
-var placement_quotes: Dictionary = {}       # TowerType → Array[String]
-var fighting_quotes: Dictionary = {}        # TowerType → Array[String]
+var placement_voice_clips: Dictionary = {}  # TowerType â†’ Array[AudioStreamMP3]
+var fighting_voice_clips: Dictionary = {}   # TowerType â†’ Array[AudioStreamMP3]
+var placement_quotes: Dictionary = {}       # TowerType â†’ Array[String]
+var fighting_quotes: Dictionary = {}        # TowerType â†’ Array[String]
 var _fighting_quote_timer: float = 25.0
 
 # UI / Gameplay SFX (procedurally generated)
@@ -939,7 +870,7 @@ var _sfx_defeat: AudioStreamWAV
 var _sfx_life_lost: AudioStreamWAV
 var _sfx_player: AudioStreamPlayer
 
-# === META FEATURES: Save/Load, Emporium, Chests, Relics, Knowledge, Daily ===
+# === META FEATURES: Save/Load, Emporium, Chests, Gear, Knowledge, Daily ===
 var _save_path: String = "user://shadow_defense_save.json"
 
 # Emporium sub-panel state
@@ -975,8 +906,7 @@ var victory_trinket_pending: Dictionary = {}  # The trinket card picked, awaitin
 var victory_equip_active: bool = false  # Character selection overlay for trinket equip
 var victory_equip_hover: int = -1
 
-# Relic equipment
-var equipped_relics: Dictionary = {}  # TowerType -> Array of equipped relic indices
+# Gear equipment
 
 # Knowledge tree (Chronicles tab)
 var knowledge_ink: int = 0
@@ -992,10 +922,10 @@ var daily_reward_open: bool = false
 var daily_reward_hover_day: int = -1
 var daily_reward_claimed_today: bool = false
 var daily_rewards_schedule: Array = [
-	{"name": "Relic Shards", "type": "shards", "amount": 10},
+	{"name": "Gear Shards", "type": "shards", "amount": 10},
 	{"name": "Enchanted Quills", "type": "quills", "amount": 5},
 	{"name": "Gold Sovereigns", "type": "gold", "amount": 50},
-	{"name": "Relic Shards", "type": "shards", "amount": 20},
+	{"name": "Gear Shards", "type": "shards", "amount": 20},
 	{"name": "Storybook Star", "type": "stars", "amount": 1},
 	{"name": "Enchanted Quills", "type": "quills", "amount": 10},
 	{"name": "Gold Treasure Chest", "type": "gold_chest", "amount": 1},
@@ -1145,7 +1075,7 @@ var _gold_pickups: Array = []
 var _gold_pickup_flash: float = 0.0
 
 # === BATTD FEATURE: GEAR FUSION FORGE ===
-var fusion_selected_ids: Array = []  # Binding IDs selected for fusion
+var fusion_selected_ids: Array = []  # Gear IDs selected for fusion
 
 # === BATTD FEATURE: BOSS HEALTH BAR ===
 var _active_boss_node: Node2D = null
@@ -1259,10 +1189,10 @@ var _sacrifice_mode: bool = false
 var _sacrifice_source: Node2D = null
 
 # === BATTD2 FEATURE: PITY TIMER ===
-var _drops_since_mythic: int = 0
-var _drops_since_forbidden: int = 0
-const PITY_MYTHIC: int = 30
-const PITY_FORBIDDEN: int = 100
+var _drops_since_epic: int = 0
+var _drops_since_legendary: int = 0
+const PITY_EPIC: int = 30
+const PITY_LEGENDARY: int = 100
 
 # === BATTD2 FEATURE: ENEMY INTEL ===
 var _intel_target: Node2D = null
@@ -1307,7 +1237,7 @@ const BLESSING_OPTIONS: Array = [
 ]
 
 # === BATTD2 FEATURE: EMERGENCY RECALL ===
-# (function only — sell all towers at 50% and restart wave)
+# (function only â€” sell all towers at 50% and restart wave)
 
 # === BATTD2 FEATURE: TOWER XP BAR ===
 # (drawing only, uses existing tower.damage_dealt for XP proxy)
@@ -1353,7 +1283,7 @@ const CHARACTER_HOME_LEVELS: Dictionary = {
 	3: [9, 10, 11], 4: [12, 13, 14], 5: [15, 16, 17],
 }
 # === LAYERED MUSIC SYSTEM ===
-# Each character plays an instrument — placing towers builds the song
+# Each character plays an instrument â€” placing towers builds the song
 var _music_layers: Array = []  # 7 AudioStreamPlayers [drums, robin, alice, witch, peter, phantom, scrooge]
 var _music_layer_targets: Array = [0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Target volumes (linear)
 var _music_layer_current: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Current volumes (for tweening)
@@ -1405,24 +1335,24 @@ const RESPEC_BASE_COST: int = 50  # Shards
 const RESPEC_COST_MULT: float = 1.5  # Each respec costs 50% more
 
 # === BATTD3 FEATURE: GEAR LOADOUT PRESETS ===
-var gear_loadouts: Dictionary = {}  # TowerType -> [{bindings: [], relics: []}] x 3
+var gear_loadouts: Dictionary = {}  # TowerType -> [{gear: []}] x 3
 var gear_loadout_active: Dictionary = {}  # TowerType -> int (0-2)
 const MAX_LOADOUTS: int = 3
 
 # === BATTD3 FEATURE: TRINKET LOCKING ===
-var locked_bindings: Dictionary = {}  # binding_id -> bool
+var locked_gear: Dictionary = {}  # gear_id -> bool
 
 # === BATTD3 FEATURE: GEAR COMPARISON ===
-var _gear_compare_binding: String = ""  # Currently compared binding ID
+var _gear_compare_id: String = ""  # Currently compared gear ID
 var _gear_compare_visible: bool = false
 
-# === BATTD3 FEATURE: RELIC MASTERY ===
-var relic_usage_tracker: Dictionary = {}  # "tower_type_relic_idx" -> int (waves equipped)
-const RELIC_MASTERY_THRESHOLDS: Array = [10, 25, 50, 100]  # Waves to reach each mastery level
-const RELIC_MASTERY_BONUS: float = 0.05  # +5% effect per mastery level
+# === BATTD3 FEATURE: GEAR MASTERY ===
+var gear_usage_tracker: Dictionary = {}  # "tower_type_gear_idx" -> int (waves equipped)
+const GEAR_MASTERY_THRESHOLDS: Array = [10, 25, 50, 100]  # Waves to reach each mastery level
+const GEAR_MASTERY_BONUS: float = 0.05  # +5% effect per mastery level
 
 # === BATTD3 FEATURE: GEAR COLLECTION CODEX ===
-var discovered_bindings: Dictionary = {}  # binding_id -> bool (ever seen, even if sharded)
+var discovered_gear: Dictionary = {}  # gear_id -> bool (ever seen, even if sharded)
 var codex_open: bool = false
 var codex_scroll: float = 0.0
 var codex_filter_rarity: String = ""  # "" = all, or rarity name
@@ -1432,14 +1362,14 @@ var codex_hover_index: int = -1
 var detail_stats_expanded: bool = false  # Toggle for expanded stats on detail page
 
 # === BATTD3 FEATURE: RECENT ITEMS FEED ===
-var recent_items: Array = []  # [{name, rarity, timestamp}] — last 5 items acquired
+var recent_items: Array = []  # [{name, rarity, timestamp}] â€” last 5 items acquired
 const MAX_RECENT_ITEMS: int = 5
 
 # === BATTD3 FEATURE: FAVORITE CHARACTERS ===
 var favorite_characters: Array = []  # Up to 3 TowerType values pinned to top of grid
 
 # === BATTD3 FEATURE: QUICK-EQUIP FROM CHEST ===
-var quick_equip_pending: Dictionary = {}  # {binding_id, rarity} — pending quick-equip item
+var quick_equip_pending: Dictionary = {}  # {gear_id, tier} â€” pending quick-equip item
 var quick_equip_active: bool = false
 
 # === BATTD3 FEATURE: PARTY POWER RATING ===
@@ -1481,7 +1411,7 @@ var career_stats: Dictionary = {
 var career_stats_open: bool = false
 
 # === BATTD3 FEATURE: NEXT GOAL TRACKER ===
-var _next_goals: Array = []  # [{type, desc, progress, target, reward}] — nearest 3 goals
+var _next_goals: Array = []  # [{type, desc, progress, target, reward}] â€” nearest 3 goals
 var _goals_dirty: bool = true
 
 # === BATTD3 FEATURE: CHARACTER RANK BADGES ===
@@ -1532,14 +1462,14 @@ const MAP_SONGS: Array = [
 	},
 ]
 
-# Character → layer index mapping
+# Character â†’ layer index mapping
 const TOWER_LAYER_MAP: Dictionary = {
-	0: 1,   # ROBIN_HOOD → layer 1 (strings)
-	1: 2,   # ALICE → layer 2 (music box)
-	2: 3,   # WICKED_WITCH → layer 3 (organ)
-	3: 4,   # PETER_PAN → layer 4 (flute)
-	4: 5,   # PHANTOM → layer 5 (piano)
-	5: 6,   # SCROOGE → layer 6 (brass)
+	0: 1,   # ROBIN_HOOD â†’ layer 1 (strings)
+	1: 2,   # ALICE â†’ layer 2 (music box)
+	2: 3,   # WICKED_WITCH â†’ layer 3 (organ)
+	3: 4,   # PETER_PAN â†’ layer 4 (flute)
+	4: 5,   # PHANTOM â†’ layer 5 (piano)
+	5: 6,   # SCROOGE â†’ layer 6 (brass)
 }
 
 
@@ -1550,251 +1480,205 @@ var endless_mode: bool = false
 var endless_high_wave: int = 0
 var endless_background_level: int = 0
 
-# === TOME BINDINGS (Gear) ===
-const TOME_BINDINGS: Array = [
-	# ===== COMMON / BLUE (50 relics) =====
+# === GEAR SYSTEM ===
+const GEAR_ITEMS: Array = [
+	# ===== COMMON GEAR (items) =====
 	# -- Robin Hood --
-	{"id": "lincoln_band", "name": "Lincoln Green Band", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "robin_hood"},
-	{"id": "nottingham_arrow", "name": "Nottingham Arrow", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "robin_hood"},
-	{"id": "sherwood_acorn", "name": "Sherwood Acorn", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "robin_hood"},
-	{"id": "merry_men_purse", "name": "Merry Men Purse", "desc": "+12% gold bonus", "rarity": "tattered", "effect": "gold_bonus", "value": 0.12, "character": "robin_hood"},
+	{"id": "lincoln_band", "name": "Lincoln Green Band", "desc": "+8% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.08, "character": "robin_hood"},
+	{"id": "nottingham_arrow", "name": "Nottingham Arrow", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "robin_hood"},
+	{"id": "sherwood_acorn", "name": "Sherwood Acorn", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "robin_hood"},
 	# -- Alice --
-	{"id": "cheshire_grin", "name": "Cheshire Grin", "desc": "+8% dodge", "rarity": "tattered", "effect": "dodge", "value": 0.08, "character": "alice"},
-	{"id": "croquet_mallet", "name": "Croquet Mallet", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "alice"},
-	{"id": "caterpillar_hookah", "name": "Caterpillar Hookah", "desc": "+10% slow", "rarity": "tattered", "effect": "slow", "value": 0.10, "character": "alice"},
-	{"id": "mad_hatter_thimble", "name": "Mad Hatter's Thimble", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "alice"},
+	{"id": "cheshire_grin", "name": "Cheshire Grin", "desc": "+8% dodge", "tier": "common", "effect": "dodge", "value": 0.08, "character": "alice"},
+	{"id": "croquet_mallet", "name": "Croquet Mallet", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "alice"},
+	{"id": "mad_hatter_thimble", "name": "Mad Hatter's Thimble", "desc": "+8% crit", "tier": "common", "effect": "crit", "value": 0.08, "character": "alice"},
 	# -- Wicked Witch --
-	{"id": "winkie_helm", "name": "Winkie Guard Helm", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "wicked_witch"},
-	{"id": "poppy_petal", "name": "Poppy Petal", "desc": "+12% slow", "rarity": "tattered", "effect": "slow", "value": 0.12, "character": "wicked_witch"},
-	{"id": "silver_whistle", "name": "Silver Whistle", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "wicked_witch"},
-	{"id": "emerald_shard", "name": "Emerald Shard", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "wicked_witch"},
+	{"id": "winkie_helm", "name": "Winkie Guard Helm", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "wicked_witch"},
+	{"id": "poppy_petal", "name": "Poppy Petal", "desc": "+12% slow", "tier": "common", "effect": "slow", "value": 0.12, "character": "wicked_witch"},
+	{"id": "emerald_shard", "name": "Emerald Shard", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "wicked_witch"},
 	# -- Peter Pan --
-	{"id": "lost_boy_dagger", "name": "Lost Boy Dagger", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "peter_pan"},
-	{"id": "pixie_dust_pinch", "name": "Pixie Dust Pinch", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "peter_pan"},
-	{"id": "neverland_shell", "name": "Neverland Shell", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "peter_pan"},
-	{"id": "tick_tock_tooth", "name": "Tick-Tock Tooth", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "peter_pan"},
+	{"id": "lost_boy_dagger", "name": "Lost Boy Dagger", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "peter_pan"},
+	{"id": "pixie_dust_pinch", "name": "Pixie Dust Pinch", "desc": "+8% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.08, "character": "peter_pan"},
+	{"id": "tick_tock_tooth", "name": "Tick-Tock Tooth", "desc": "+8% crit", "tier": "common", "effect": "crit", "value": 0.08, "character": "peter_pan"},
 	# -- Phantom --
-	{"id": "opera_mask_fragment", "name": "Opera Mask Fragment", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "phantom"},
-	{"id": "chandelier_crystal", "name": "Chandelier Crystal", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "phantom"},
-	{"id": "music_box_key", "name": "Music Box Key", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "phantom"},
-	{"id": "catacomb_stone", "name": "Catacomb Stone", "desc": "+8% dodge", "rarity": "tattered", "effect": "dodge", "value": 0.08, "character": "phantom"},
+	{"id": "opera_mask_fragment", "name": "Opera Mask Fragment", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "phantom"},
+	{"id": "chandelier_crystal", "name": "Chandelier Crystal", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "phantom"},
+	{"id": "music_box_key", "name": "Music Box Key", "desc": "+8% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.08, "character": "phantom"},
 	# -- Scrooge --
-	{"id": "counting_house_coin", "name": "Counting House Coin", "desc": "+15% gold bonus", "rarity": "tattered", "effect": "gold_bonus", "value": 0.15, "character": "scrooge"},
-	{"id": "ghost_chain_link", "name": "Ghost Chain Link", "desc": "+10% slow", "rarity": "tattered", "effect": "slow", "value": 0.10, "character": "scrooge"},
-	{"id": "fezziwig_fiddle", "name": "Fezziwig Fiddle", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "scrooge"},
-	{"id": "tiny_tim_crutch", "name": "Tiny Tim's Crutch", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "scrooge"},
+	{"id": "counting_house_coin", "name": "Counting House Coin", "desc": "+15% gold bonus", "tier": "common", "effect": "gold_bonus", "value": 0.15, "character": "scrooge"},
+	{"id": "ghost_chain_link", "name": "Ghost Chain Link", "desc": "+10% slow", "tier": "common", "effect": "slow", "value": 0.10, "character": "scrooge"},
+	{"id": "tiny_tim_crutch", "name": "Tiny Tim's Crutch", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "scrooge"},
 	# -- Sherlock --
-	{"id": "magnifying_lens", "name": "Magnifying Lens", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "sherlock"},
-	{"id": "baker_street_pipe", "name": "Baker Street Pipe", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "sherlock"},
-	{"id": "watson_revolver", "name": "Watson's Revolver", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "sherlock"},
-	{"id": "deerstalker_pin", "name": "Deerstalker Pin", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "sherlock"},
+	{"id": "magnifying_lens", "name": "Magnifying Lens", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "sherlock"},
+	{"id": "baker_street_pipe", "name": "Baker Street Pipe", "desc": "+8% crit", "tier": "common", "effect": "crit", "value": 0.08, "character": "sherlock"},
+	{"id": "watson_revolver", "name": "Watson's Revolver", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "sherlock"},
 	# -- Tarzan --
-	{"id": "jungle_vine", "name": "Jungle Vine", "desc": "+10% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.10, "character": "tarzan"},
-	{"id": "mangani_claw", "name": "Mangani Claw", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "tarzan"},
-	{"id": "treehouse_bark", "name": "Treehouse Bark", "desc": "+8% dodge", "rarity": "tattered", "effect": "dodge", "value": 0.08, "character": "tarzan"},
-	{"id": "elephant_tusk", "name": "Elephant Tusk", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "tarzan"},
+	{"id": "jungle_vine", "name": "Jungle Vine", "desc": "+10% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.10, "character": "tarzan"},
+	{"id": "mangani_claw", "name": "Mangani Claw", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "tarzan"},
+	{"id": "elephant_tusk", "name": "Elephant Tusk", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "tarzan"},
 	# -- Dracula --
-	{"id": "bat_wing_fragment", "name": "Bat Wing Fragment", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "dracula"},
-	{"id": "coffin_nail", "name": "Coffin Nail", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "dracula"},
-	{"id": "transylvania_soil", "name": "Transylvania Soil", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "dracula"},
-	{"id": "garlic_braid", "name": "Garlic Braid", "desc": "+12% slow", "rarity": "tattered", "effect": "slow", "value": 0.12, "character": "dracula"},
+	{"id": "coffin_nail", "name": "Coffin Nail", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "dracula"},
+	{"id": "transylvania_soil", "name": "Transylvania Soil", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "dracula"},
+	{"id": "garlic_braid", "name": "Garlic Braid", "desc": "+12% slow", "tier": "common", "effect": "slow", "value": 0.12, "character": "dracula"},
 	# -- Merlin --
-	{"id": "crystal_ball_chip", "name": "Crystal Ball Chip", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "merlin"},
-	{"id": "dragon_scale", "name": "Dragon Scale", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "merlin"},
-	{"id": "camelot_banner", "name": "Camelot Banner", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "merlin"},
-	{"id": "excalibur_polish", "name": "Excalibur Polish", "desc": "+8% crit", "rarity": "tattered", "effect": "crit", "value": 0.08, "character": "merlin"},
+	{"id": "crystal_ball_chip", "name": "Crystal Ball Chip", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "merlin"},
+	{"id": "dragon_scale", "name": "Dragon Scale", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "merlin"},
+	{"id": "excalibur_polish", "name": "Excalibur Polish", "desc": "+8% crit", "tier": "common", "effect": "crit", "value": 0.08, "character": "merlin"},
 	# -- Frankenstein --
-	{"id": "copper_wire", "name": "Copper Wire", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08, "character": "frankenstein"},
-	{"id": "lightning_rod_tip", "name": "Lightning Rod Tip", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10, "character": "frankenstein"},
-	{"id": "lab_journal_page", "name": "Lab Journal Page", "desc": "+10% range", "rarity": "tattered", "effect": "range", "value": 0.10, "character": "frankenstein"},
-	{"id": "galvanic_bolt", "name": "Galvanic Bolt", "desc": "+10% splash radius", "rarity": "tattered", "effect": "splash_radius", "value": 0.10, "character": "frankenstein"},
+	{"id": "lightning_rod_tip", "name": "Lightning Rod Tip", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10, "character": "frankenstein"},
+	{"id": "lab_journal_page", "name": "Lab Journal Page", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "frankenstein"},
+	{"id": "galvanic_bolt", "name": "Galvanic Bolt", "desc": "+10% splash radius", "tier": "common", "effect": "splash_radius", "value": 0.10, "character": "frankenstein"},
 	# -- Universal --
-	{"id": "quill_swiftness", "name": "Quill of Swiftness", "desc": "+8% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.08},
-	{"id": "inkwell_power", "name": "Inkwell of Power", "desc": "+10% damage", "rarity": "tattered", "effect": "damage", "value": 0.10},
-	{"id": "bookmark_reach", "name": "Bookmark of Reach", "desc": "+12% range", "rarity": "tattered", "effect": "range", "value": 0.12},
-	{"id": "leather_journal", "name": "Leather-Bound Journal", "desc": "+15% gold bonus", "rarity": "tattered", "effect": "gold_bonus", "value": 0.15},
-	{"id": "fairy_dust", "name": "Fairy Dust Vial", "desc": "+12% attack speed", "rarity": "tattered", "effect": "attack_speed", "value": 0.12},
-	{"id": "marleys_chains", "name": "Marley's Chains", "desc": "+20% slow", "rarity": "tattered", "effect": "slow", "value": 0.20},
-	# ===== UNCOMMON / PURPLE (50 relics) =====
+	{"id": "quill_swiftness", "name": "Quill of Swiftness", "desc": "+8% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.08},
+	{"id": "inkwell_power", "name": "Inkwell of Power", "desc": "+10% damage", "tier": "common", "effect": "damage", "value": 0.10},
+	{"id": "bookmark_reach", "name": "Bookmark of Reach", "desc": "+12% range", "tier": "common", "effect": "range", "value": 0.12},
+	# ===== UNCOMMON GEAR (items) =====
 	# -- Robin Hood --
-	{"id": "longbow_riser", "name": "Longbow Riser", "desc": "+12% damage, +5% range", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "range", "value": 0.05}], "character": "robin_hood"},
-	{"id": "friar_tuck_flask", "name": "Friar Tuck's Flask", "desc": "+15% heal, +5% all stats", "rarity": "bound", "effects": [{"effect": "heal_nearby", "value": 1.5}, {"effect": "all", "value": 0.05}], "character": "robin_hood"},
-	{"id": "maid_marian_ribbon", "name": "Maid Marian's Ribbon", "desc": "+10% atk spd, +8% dodge", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "dodge", "value": 0.08}], "character": "robin_hood"},
-	{"id": "sheriff_badge", "name": "Sheriff's Badge", "desc": "+15% gold, +8% crit", "rarity": "bound", "effects": [{"effect": "gold_bonus", "value": 0.15}, {"effect": "crit", "value": 0.08}], "character": "robin_hood"},
+	{"id": "longbow_riser", "name": "Longbow Riser", "desc": "+12% damage, +5% range", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "range", "value": 0.05}], "character": "robin_hood"},
+	{"id": "friar_tuck_flask", "name": "Friar Tuck's Flask", "desc": "+15% heal, +5% all stats", "tier": "uncommon", "effects": [{"effect": "heal_nearby", "value": 1.5}, {"effect": "all", "value": 0.05}], "character": "robin_hood"},
+	{"id": "maid_marian_ribbon", "name": "Maid Marian's Ribbon", "desc": "+10% atk spd, +8% dodge", "tier": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "dodge", "value": 0.08}], "character": "robin_hood"},
 	# -- Alice --
-	{"id": "vorpal_blade", "name": "Vorpal Blade", "desc": "+10% crit, +12% crit damage", "rarity": "bound", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "crit_damage", "value": 0.12}], "character": "alice"},
-	{"id": "queen_scepter", "name": "Queen's Scepter", "desc": "+12% damage, +8% splash", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "alice"},
-	{"id": "looking_glass", "name": "Looking Glass", "desc": "+15% range, +5% dodge", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "alice"},
-	{"id": "drink_me_elixir", "name": "Drink Me Elixir", "desc": "+12% slow, +8% debuff amp", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.12}, {"effect": "debuff_amp", "value": 0.08}], "character": "alice"},
+	{"id": "vorpal_blade", "name": "Vorpal Blade", "desc": "+10% crit, +12% crit damage", "tier": "uncommon", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "crit_damage", "value": 0.12}], "character": "alice"},
+	{"id": "queen_scepter", "name": "Queen's Scepter", "desc": "+12% damage, +8% splash", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "alice"},
+	{"id": "looking_glass", "name": "Looking Glass", "desc": "+15% range, +5% dodge", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "alice"},
 	# -- Wicked Witch --
-	{"id": "broomstick_splinter", "name": "Broomstick Splinter", "desc": "+10% atk spd, +8% range", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "range", "value": 0.08}], "character": "wicked_witch"},
-	{"id": "monkey_wing_medal", "name": "Monkey Wing Medal", "desc": "+12% damage, +5% crit", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "crit", "value": 0.05}], "character": "wicked_witch"},
-	{"id": "crystal_ball_oz", "name": "Crystal Ball of Oz", "desc": "+15% range, +5% slow", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "slow", "value": 0.05}], "character": "wicked_witch"},
-	{"id": "ruby_heel", "name": "Ruby Heel", "desc": "+10% atk spd, +10% dodge", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "dodge", "value": 0.10}], "character": "wicked_witch"},
+	{"id": "broomstick_splinter", "name": "Broomstick Splinter", "desc": "+10% atk spd, +8% range", "tier": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "range", "value": 0.08}], "character": "wicked_witch"},
+	{"id": "monkey_wing_medal", "name": "Monkey Wing Medal", "desc": "+12% damage, +5% crit", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "crit", "value": 0.05}], "character": "wicked_witch"},
+	{"id": "crystal_ball_oz", "name": "Crystal Ball of Oz", "desc": "+15% range, +5% slow", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "slow", "value": 0.05}], "character": "wicked_witch"},
 	# -- Peter Pan --
-	{"id": "shadow_thread", "name": "Shadow Thread", "desc": "+10% dodge, +10% crit", "rarity": "bound", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "peter_pan"},
-	{"id": "hook_compass", "name": "Hook's Compass", "desc": "+15% range, +5% damage", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "peter_pan"},
-	{"id": "mermaid_scale", "name": "Mermaid Scale", "desc": "+8% all stats", "rarity": "bound", "effect": "all", "value": 0.08, "character": "peter_pan"},
-	{"id": "wendy_thimble_kiss", "name": "Wendy's Thimble Kiss", "desc": "+10% atk spd, +8% heal", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "heal_nearby", "value": 0.8}], "character": "peter_pan"},
+	{"id": "shadow_thread", "name": "Shadow Thread", "desc": "+10% dodge, +10% crit", "tier": "uncommon", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "peter_pan"},
+	{"id": "hook_compass", "name": "Hook's Compass", "desc": "+15% range, +5% damage", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "peter_pan"},
+	{"id": "mermaid_scale", "name": "Mermaid Scale", "desc": "+8% all stats", "tier": "uncommon", "effect": "all", "value": 0.08, "character": "peter_pan"},
 	# -- Phantom --
-	{"id": "punjab_lasso", "name": "Punjab Lasso Fiber", "desc": "+12% slow, +10% debuff amp", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.12}, {"effect": "debuff_amp", "value": 0.10}], "character": "phantom"},
-	{"id": "christine_rose", "name": "Christine's Rose", "desc": "+15% aura range, +5% atk spd", "rarity": "bound", "effects": [{"effect": "aura_range", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "phantom"},
-	{"id": "organ_pipe_reed", "name": "Organ Pipe Reed", "desc": "+12% damage, +8% splash", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "phantom"},
-	{"id": "underground_lake_gem", "name": "Underground Lake Gem", "desc": "+10% range, +8% dodge", "rarity": "bound", "effects": [{"effect": "range", "value": 0.10}, {"effect": "dodge", "value": 0.08}], "character": "phantom"},
+	{"id": "punjab_lasso", "name": "Punjab Lasso Fiber", "desc": "+12% slow, +10% debuff amp", "tier": "uncommon", "effects": [{"effect": "slow", "value": 0.12}, {"effect": "debuff_amp", "value": 0.10}], "character": "phantom"},
+	{"id": "christine_rose", "name": "Christine's Rose", "desc": "+15% aura range, +5% atk spd", "tier": "uncommon", "effects": [{"effect": "aura_range", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "phantom"},
+	{"id": "organ_pipe_reed", "name": "Organ Pipe Reed", "desc": "+12% damage, +8% splash", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "phantom"},
 	# -- Scrooge --
-	{"id": "ghost_past_candle", "name": "Ghost of Past's Candle", "desc": "+10% crit, +10% first blood", "rarity": "bound", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "first_blood", "value": 0.10}], "character": "scrooge"},
-	{"id": "cratchit_ledger", "name": "Cratchit's Ledger", "desc": "+12% gold, +10% wave gold", "rarity": "bound", "effects": [{"effect": "gold_bonus", "value": 0.12}, {"effect": "wave_gold", "value": 0.10}], "character": "scrooge"},
-	{"id": "belle_locket", "name": "Belle's Locket", "desc": "+8% all stats", "rarity": "bound", "effect": "all", "value": 0.08, "character": "scrooge"},
-	{"id": "spirit_future_scythe", "name": "Spirit of Future's Scythe", "desc": "+15% execute, +5% damage", "rarity": "bound", "effects": [{"effect": "execute", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "scrooge"},
+	{"id": "ghost_past_candle", "name": "Ghost of Past's Candle", "desc": "+10% crit, +10% first blood", "tier": "uncommon", "effects": [{"effect": "crit", "value": 0.10}, {"effect": "first_blood", "value": 0.10}], "character": "scrooge"},
+	{"id": "cratchit_ledger", "name": "Cratchit's Ledger", "desc": "+12% gold, +10% wave gold", "tier": "uncommon", "effects": [{"effect": "gold_bonus", "value": 0.12}, {"effect": "wave_gold", "value": 0.10}], "character": "scrooge"},
+	{"id": "spirit_future_scythe", "name": "Spirit of Future's Scythe", "desc": "+15% execute, +5% damage", "tier": "uncommon", "effects": [{"effect": "execute", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "scrooge"},
 	# -- Sherlock --
-	{"id": "violin_string", "name": "Violin String", "desc": "+12% atk spd, +8% crit", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.12}, {"effect": "crit", "value": 0.08}], "character": "sherlock"},
-	{"id": "moriarty_cipher", "name": "Moriarty's Cipher", "desc": "+15% damage, -5% atk spd", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "attack_speed", "value": -0.05}], "character": "sherlock"},
-	{"id": "irene_brooch", "name": "Irene Adler's Brooch", "desc": "+10% dodge, +10% range", "rarity": "bound", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "range", "value": 0.10}], "character": "sherlock"},
-	{"id": "baskerville_tooth", "name": "Baskerville Hound Tooth", "desc": "+12% dmg, +8% armor pierce", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "armor_pierce", "value": 0.08}], "character": "sherlock"},
+	{"id": "violin_string", "name": "Violin String", "desc": "+12% atk spd, +8% crit", "tier": "uncommon", "effects": [{"effect": "attack_speed", "value": 0.12}, {"effect": "crit", "value": 0.08}], "character": "sherlock"},
+	{"id": "moriarty_cipher", "name": "Moriarty's Cipher", "desc": "+15% damage, -5% atk spd", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "attack_speed", "value": -0.05}], "character": "sherlock"},
+	{"id": "irene_brooch", "name": "Irene Adler's Brooch", "desc": "+10% dodge, +10% range", "tier": "uncommon", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "range", "value": 0.10}], "character": "sherlock"},
 	# -- Tarzan --
-	{"id": "ape_king_crown", "name": "Ape King's Crown", "desc": "+12% dmg, +8% aura range", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "aura_range", "value": 0.08}], "character": "tarzan"},
-	{"id": "jane_sketch_pad", "name": "Jane's Sketch Pad", "desc": "+10% range, +10% crit", "rarity": "bound", "effects": [{"effect": "range", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "tarzan"},
-	{"id": "sabor_fang", "name": "Sabor's Fang", "desc": "+15% armor pierce, +5% atk spd", "rarity": "bound", "effects": [{"effect": "armor_pierce", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "tarzan"},
-	{"id": "kerchak_knuckle", "name": "Kerchak's Knuckle", "desc": "+12% dmg, +8% splash", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "splash_radius", "value": 0.08}], "character": "tarzan"},
+	{"id": "ape_king_crown", "name": "Ape King's Crown", "desc": "+12% dmg, +8% aura range", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "aura_range", "value": 0.08}], "character": "tarzan"},
+	{"id": "jane_sketch_pad", "name": "Jane's Sketch Pad", "desc": "+10% range, +10% crit", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.10}, {"effect": "crit", "value": 0.10}], "character": "tarzan"},
+	{"id": "sabor_fang", "name": "Sabor's Fang", "desc": "+15% armor pierce, +5% atk spd", "tier": "uncommon", "effects": [{"effect": "armor_pierce", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "tarzan"},
 	# -- Dracula --
-	{"id": "mina_crucifix", "name": "Mina's Crucifix", "desc": "+12% damage, +8% burn", "rarity": "bound", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "burn", "value": 0.08}], "character": "dracula"},
-	{"id": "harker_journal", "name": "Harker's Journal", "desc": "+15% range, +5% crit", "rarity": "bound", "effects": [{"effect": "range", "value": 0.15}, {"effect": "crit", "value": 0.05}], "character": "dracula"},
-	{"id": "van_helsing_stake", "name": "Van Helsing's Stake", "desc": "+15% boss dmg, +5% dmg", "rarity": "bound", "effects": [{"effect": "boss_damage", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "dracula"},
-	{"id": "blood_chalice", "name": "Blood Chalice", "desc": "+8% lifesteal, +5% atk spd", "rarity": "bound", "effects": [{"effect": "lifesteal", "value": 0.08}, {"effect": "attack_speed", "value": 0.05}], "character": "dracula"},
+	{"id": "mina_crucifix", "name": "Mina's Crucifix", "desc": "+12% damage, +8% burn", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "burn", "value": 0.08}], "character": "dracula"},
+	{"id": "harker_journal", "name": "Harker's Journal", "desc": "+15% range, +5% crit", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.15}, {"effect": "crit", "value": 0.05}], "character": "dracula"},
+	{"id": "van_helsing_stake", "name": "Van Helsing's Stake", "desc": "+15% boss dmg, +5% dmg", "tier": "uncommon", "effects": [{"effect": "boss_damage", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "dracula"},
 	# -- Merlin --
-	{"id": "round_table_shard", "name": "Round Table Shard", "desc": "+8% all stats", "rarity": "bound", "effect": "all", "value": 0.08, "character": "merlin"},
-	{"id": "morgan_mirror", "name": "Morgan le Fay's Mirror", "desc": "+12% range, +8% chain", "rarity": "bound", "effects": [{"effect": "range", "value": 0.12}, {"effect": "chain", "value": 0.08}], "character": "merlin"},
-	{"id": "nimue_pearl", "name": "Nimue's Pearl", "desc": "+10% cooldown red., +5% range", "rarity": "bound", "effects": [{"effect": "cooldown_reduction", "value": 0.10}, {"effect": "range", "value": 0.05}], "character": "merlin"},
-	{"id": "grail_knight_shield", "name": "Grail Knight's Shield", "desc": "+10% dodge, +8% absorb", "rarity": "bound", "effects": [{"effect": "dodge", "value": 0.10}, {"effect": "absorb_hit", "value": 0.8}], "character": "merlin"},
+	{"id": "round_table_shard", "name": "Round Table Shard", "desc": "+8% all stats", "tier": "uncommon", "effect": "all", "value": 0.08, "character": "merlin"},
+	{"id": "morgan_mirror", "name": "Morgan le Fay's Mirror", "desc": "+12% range, +8% chain", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.12}, {"effect": "chain", "value": 0.08}], "character": "merlin"},
+	{"id": "nimue_pearl", "name": "Nimue's Pearl", "desc": "+10% cooldown red., +5% range", "tier": "uncommon", "effects": [{"effect": "cooldown_reduction", "value": 0.10}, {"effect": "range", "value": 0.05}], "character": "merlin"},
 	# -- Frankenstein --
-	{"id": "prometheus_flame", "name": "Prometheus Flame", "desc": "+12% burn, +8% damage", "rarity": "bound", "effects": [{"effect": "burn", "value": 0.12}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
-	{"id": "arctic_ice_shard", "name": "Arctic Ice Shard", "desc": "+15% slow, +8% debuff amp", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.15}, {"effect": "debuff_amp", "value": 0.08}], "character": "frankenstein"},
-	{"id": "creature_heart", "name": "Creature's Heart", "desc": "+8% lifesteal, +8% damage", "rarity": "bound", "effects": [{"effect": "lifesteal", "value": 0.08}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
-	{"id": "elizabeth_ring", "name": "Elizabeth's Ring", "desc": "+10% aura range, +8% atk spd", "rarity": "bound", "effects": [{"effect": "aura_range", "value": 0.10}, {"effect": "attack_speed", "value": 0.08}], "character": "frankenstein"},
+	{"id": "prometheus_flame", "name": "Prometheus Flame", "desc": "+12% burn, +8% damage", "tier": "uncommon", "effects": [{"effect": "burn", "value": 0.12}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
+	{"id": "arctic_ice_shard", "name": "Arctic Ice Shard", "desc": "+15% slow, +8% debuff amp", "tier": "uncommon", "effects": [{"effect": "slow", "value": 0.15}, {"effect": "debuff_amp", "value": 0.08}], "character": "frankenstein"},
+	{"id": "creature_heart", "name": "Creature's Heart", "desc": "+8% lifesteal, +8% damage", "tier": "uncommon", "effects": [{"effect": "lifesteal", "value": 0.08}, {"effect": "damage", "value": 0.08}], "character": "frankenstein"},
 	# -- Universal --
-	{"id": "silver_monocle", "name": "Silver Monocle", "desc": "+8% crit chance", "rarity": "bound", "effect": "crit", "value": 0.08},
-	{"id": "iron_clasp", "name": "Iron Clasp", "desc": "+5% all stats", "rarity": "bound", "effect": "all", "value": 0.05},
-	{"id": "dusty_tome", "name": "Dusty Tome", "desc": "+15% XP gain", "rarity": "bound", "effect": "xp_gain", "value": 0.15},
-	{"id": "gothic_candelabra", "name": "Gothic Candelabra", "desc": "+8% range, +5% damage", "rarity": "bound", "effects": [{"effect": "range", "value": 0.08}, {"effect": "damage", "value": 0.05}]},
-	{"id": "raven_feather", "name": "Raven Feather", "desc": "+10% atk spd, -5% damage", "rarity": "bound", "effects": [{"effect": "attack_speed", "value": 0.10}, {"effect": "damage", "value": -0.05}]},
-	{"id": "wolf_pelt", "name": "Wolf Pelt Cape", "desc": "+15% slow, +5% range", "rarity": "bound", "effects": [{"effect": "slow", "value": 0.15}, {"effect": "range", "value": 0.05}]},
-	# ===== RARE / GOLD (50 relics) =====
+	{"id": "silver_monocle", "name": "Silver Monocle", "desc": "+8% crit chance", "tier": "uncommon", "effect": "crit", "value": 0.08},
+	{"id": "iron_clasp", "name": "Iron Clasp", "desc": "+5% all stats", "tier": "uncommon", "effect": "all", "value": 0.05},
+	{"id": "gothic_candelabra", "name": "Gothic Candelabra", "desc": "+8% range, +5% damage", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.08}, {"effect": "damage", "value": 0.05}]},
+	# ===== RARE GEAR (items) =====
 	# -- Robin Hood --
-	{"id": "bow_greenwood", "name": "Bow of the Greenwood", "desc": "+20% dmg, +10% crit, +15% chain", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.10}, {"effect": "chain", "value": 0.15}], "character": "robin_hood"},
-	{"id": "sherwood_heart", "name": "Sherwood's Heart", "desc": "+15% all stats", "rarity": "gilded", "effect": "all", "value": 0.15, "character": "robin_hood"},
-	{"id": "hood_final_arrow", "name": "Hood's Final Arrow", "desc": "+25% first blood, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "first_blood", "value": 0.25}, {"effect": "armor_pierce", "value": 0.10}], "character": "robin_hood"},
-	{"id": "little_john_staff", "name": "Little John's Staff", "desc": "+20% splash, +15% slow", "rarity": "gilded", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "slow", "value": 0.15}], "character": "robin_hood"},
+	{"id": "bow_greenwood", "name": "Bow of the Greenwood", "desc": "+20% dmg, +10% crit, +15% chain", "tier": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.10}, {"effect": "chain", "value": 0.15}], "character": "robin_hood"},
+	{"id": "little_john_staff", "name": "Little John's Staff", "desc": "+20% splash, +15% slow", "tier": "rare", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "slow", "value": 0.15}], "character": "robin_hood"},
 	# -- Alice --
-	{"id": "jabberwock_scale", "name": "Jabberwock Scale", "desc": "+25% boss dmg, +10% crit dmg", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "crit_damage", "value": 0.10}], "character": "alice"},
-	{"id": "queen_hearts_crown", "name": "Queen of Hearts' Crown", "desc": "+20% dmg, +15% execute", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "execute", "value": 0.15}], "character": "alice"},
-	{"id": "wonderland_key", "name": "Wonderland Key", "desc": "+12% all stats, +10% CD red.", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "cooldown_reduction", "value": 0.10}], "character": "alice"},
-	{"id": "cheshire_essence", "name": "Cheshire Essence", "desc": "+20% dodge, +15% crit", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "crit", "value": 0.15}], "character": "alice"},
+	{"id": "jabberwock_scale", "name": "Jabberwock Scale", "desc": "+25% boss dmg, +10% crit dmg", "tier": "rare", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "crit_damage", "value": 0.10}], "character": "alice"},
+	{"id": "queen_hearts_crown", "name": "Queen of Hearts' Crown", "desc": "+20% dmg, +15% execute", "tier": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "execute", "value": 0.15}], "character": "alice"},
 	# -- Wicked Witch --
-	{"id": "witch_hourglass", "name": "Witch's Hourglass", "desc": "+20% slow, +15% debuff amp, +5% dmg", "rarity": "gilded", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "wicked_witch"},
-	{"id": "wizard_curtain", "name": "Wizard's Curtain", "desc": "+15% dodge, +15% range", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "range", "value": 0.15}], "character": "wicked_witch"},
-	{"id": "glinda_wand", "name": "Glinda's Wand", "desc": "+20% aura range, +10% atk spd", "rarity": "gilded", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "character": "wicked_witch"},
-	{"id": "enchanted_silver_shoes", "name": "Enchanted Silver Shoes", "desc": "+15% all stats", "rarity": "gilded", "effect": "all", "value": 0.15, "character": "wicked_witch"},
+	{"id": "witch_hourglass", "name": "Witch's Hourglass", "desc": "+20% slow, +15% debuff amp, +5% dmg", "tier": "rare", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "damage", "value": 0.05}], "character": "wicked_witch"},
+	{"id": "glinda_wand", "name": "Glinda's Wand", "desc": "+20% aura range, +10% atk spd", "tier": "rare", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "character": "wicked_witch"},
 	# -- Peter Pan --
-	{"id": "second_star_compass", "name": "Second Star Compass", "desc": "+12% all stats, +10% range", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "range", "value": 0.10}], "character": "peter_pan"},
-	{"id": "captain_hook_claw", "name": "Captain Hook's Claw", "desc": "+25% dmg, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.10}], "character": "peter_pan"},
-	{"id": "fairy_queen_wing", "name": "Fairy Queen's Wing", "desc": "+20% atk spd, +15% CD red.", "rarity": "gilded", "effects": [{"effect": "attack_speed", "value": 0.20}, {"effect": "cooldown_reduction", "value": 0.15}], "character": "peter_pan"},
-	{"id": "neverland_hourglass", "name": "Neverland Hourglass", "desc": "+20% slow, +5% all stats", "rarity": "gilded", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "all", "value": 0.05}], "character": "peter_pan"},
+	{"id": "captain_hook_claw", "name": "Captain Hook's Claw", "desc": "+25% dmg, +10% armor pierce", "tier": "rare", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.10}], "character": "peter_pan"},
+	{"id": "fairy_queen_wing", "name": "Fairy Queen's Wing", "desc": "+20% atk spd, +15% CD red.", "tier": "rare", "effects": [{"effect": "attack_speed", "value": 0.20}, {"effect": "cooldown_reduction", "value": 0.15}], "character": "peter_pan"},
 	# -- Phantom --
-	{"id": "phantom_full_mask", "name": "Phantom's Full Mask", "desc": "+20% dmg, +15% crit, +8% lifesteal", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "lifesteal", "value": 0.08}], "character": "phantom"},
-	{"id": "christine_voice", "name": "Christine's Voice", "desc": "+20% aura range, +15% debuff amp", "rarity": "gilded", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}], "character": "phantom"},
-	{"id": "opera_ghost_cape", "name": "Opera Ghost's Cape", "desc": "+20% dodge, +10% damage", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "damage", "value": 0.10}], "character": "phantom"},
-	{"id": "beneath_opera", "name": "Beneath the Opera", "desc": "+25% boss dmg, +15% execute", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "execute", "value": 0.15}], "character": "phantom"},
+	{"id": "phantom_full_mask", "name": "Phantom's Full Mask", "desc": "+20% dmg, +15% crit, +8% lifesteal", "tier": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "lifesteal", "value": 0.08}], "character": "phantom"},
+	{"id": "christine_voice", "name": "Christine's Voice", "desc": "+20% aura range, +15% debuff amp", "tier": "rare", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}], "character": "phantom"},
 	# -- Scrooge --
-	{"id": "christmas_miracle", "name": "Christmas Miracle", "desc": "+3 HP heal/wave, +15% all stats", "rarity": "gilded", "effects": [{"effect": "heal_nearby", "value": 3.0}, {"effect": "all", "value": 0.15}], "character": "scrooge"},
-	{"id": "scrooge_redemption", "name": "Scrooge's Redemption", "desc": "+25% gold, +15% wave gold", "rarity": "gilded", "effects": [{"effect": "gold_bonus", "value": 0.25}, {"effect": "wave_gold", "value": 0.15}], "character": "scrooge"},
-	{"id": "ghost_present_torch", "name": "Ghost of Present's Torch", "desc": "+20% dmg, +15% aura range", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "aura_range", "value": 0.15}], "character": "scrooge"},
-	{"id": "marley_lockbox", "name": "Marley's Lockbox", "desc": "Absorb 2 hits, +10% dodge", "rarity": "gilded", "effects": [{"effect": "absorb_hit", "value": 2.0}, {"effect": "dodge", "value": 0.10}], "character": "scrooge"},
+	{"id": "christmas_miracle", "name": "Christmas Miracle", "desc": "+3 HP heal/wave, +15% all stats", "tier": "rare", "effects": [{"effect": "heal_nearby", "value": 3.0}, {"effect": "all", "value": 0.15}], "character": "scrooge"},
+	{"id": "ghost_present_torch", "name": "Ghost of Present's Torch", "desc": "+20% dmg, +15% aura range", "tier": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "aura_range", "value": 0.15}], "character": "scrooge"},
 	# -- Sherlock --
-	{"id": "mind_palace_key", "name": "Mind Palace Key", "desc": "+15% all stats, +10% crit", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.15}, {"effect": "crit", "value": 0.10}], "character": "sherlock"},
-	{"id": "reichenbach_memento", "name": "Reichenbach Memento", "desc": "+25% dmg, +15% boss dmg", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "boss_damage", "value": 0.15}], "character": "sherlock"},
-	{"id": "hound_collar", "name": "The Hound's Collar", "desc": "+20% dmg, +12% chain", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "chain", "value": 0.12}], "character": "sherlock"},
-	{"id": "elementary_lens", "name": "Elementary Lens", "desc": "+20% range, +15% crit, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "range", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "sherlock"},
+	{"id": "s_mind_palace_key", "name": "Mind Palace Key", "desc": "+15% all stats, +10% crit", "tier": "rare", "effects": [{"effect": "all", "value": 0.15}, {"effect": "crit", "value": 0.10}], "character": "sherlock"},
+	{"id": "elementary_lens", "name": "Elementary Lens", "desc": "+20% range, +15% crit, +10% armor pierce", "tier": "rare", "effects": [{"effect": "range", "value": 0.20}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "sherlock"},
 	# -- Tarzan --
-	{"id": "king_jungle_crown", "name": "King of the Jungle Crown", "desc": "+20% dmg, +15% atk spd, +10% aura", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "aura_range", "value": 0.10}], "character": "tarzan"},
-	{"id": "greystoke_signet", "name": "Greystoke Signet", "desc": "+12% all stats, +10% gold", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "gold_bonus", "value": 0.10}], "character": "tarzan"},
-	{"id": "darnot_compass", "name": "D'Arnot's Compass", "desc": "+20% range, +15% chain", "rarity": "gilded", "effects": [{"effect": "range", "value": 0.20}, {"effect": "chain", "value": 0.15}], "character": "tarzan"},
-	{"id": "tarzan_war_cry", "name": "Tarzan's War Cry", "desc": "+25% splash, +15% debuff amp", "rarity": "gilded", "effects": [{"effect": "splash_radius", "value": 0.25}, {"effect": "debuff_amp", "value": 0.15}], "character": "tarzan"},
+	{"id": "king_jungle_crown", "name": "King of the Jungle Crown", "desc": "+20% dmg, +15% atk spd, +10% aura", "tier": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "aura_range", "value": 0.10}], "character": "tarzan"},
+	{"id": "darnot_compass", "name": "D'Arnot's Compass", "desc": "+20% range, +15% chain", "tier": "rare", "effects": [{"effect": "range", "value": 0.20}, {"effect": "chain", "value": 0.15}], "character": "tarzan"},
 	# -- Dracula --
-	{"id": "dracula_signet_ring", "name": "Dracula's Signet Ring", "desc": "+20% dmg, +8% lifesteal, +10% crit", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "lifesteal", "value": 0.08}, {"effect": "crit", "value": 0.10}], "character": "dracula"},
-	{"id": "carfax_abbey_tome", "name": "Carfax Abbey Tome", "desc": "+25% boss dmg, +15% burn", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "burn", "value": 0.15}], "character": "dracula"},
-	{"id": "brides_veil", "name": "Brides' Veil", "desc": "+20% slow, +15% debuff amp, +5% dodge", "rarity": "gilded", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "dracula"},
-	{"id": "nosferatu_shadow", "name": "Nosferatu's Shadow", "desc": "+20% dodge, +15% execute, +5% atk spd", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "execute", "value": 0.15}, {"effect": "attack_speed", "value": 0.05}], "character": "dracula"},
+	{"id": "dracula_signet_ring", "name": "Dracula's Signet Ring", "desc": "+20% dmg, +8% lifesteal, +10% crit", "tier": "rare", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "lifesteal", "value": 0.08}, {"effect": "crit", "value": 0.10}], "character": "dracula"},
+	{"id": "brides_veil", "name": "Brides' Veil", "desc": "+20% slow, +15% debuff amp, +5% dodge", "tier": "rare", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}, {"effect": "dodge", "value": 0.05}], "character": "dracula"},
 	# -- Merlin --
-	{"id": "excalibur_reforged", "name": "Excalibur Reforged", "desc": "+25% dmg, +15% crit, +10% armor pierce", "rarity": "gilded", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "merlin"},
-	{"id": "holy_grail_merlin", "name": "Holy Grail", "desc": "+3 HP heal/wave, +12% all stats", "rarity": "gilded", "effects": [{"effect": "heal_nearby", "value": 3.0}, {"effect": "all", "value": 0.12}], "character": "merlin"},
-	{"id": "merlin_starfire_staff", "name": "Merlin's Starfire Staff", "desc": "+20% splash, +15% burn", "rarity": "gilded", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "burn", "value": 0.15}], "character": "merlin"},
-	{"id": "avalon_mist", "name": "Avalon Mist", "desc": "+15% dodge, +15% CD red., +10% range", "rarity": "gilded", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "cooldown_reduction", "value": 0.15}, {"effect": "range", "value": 0.10}], "character": "merlin"},
+	{"id": "excalibur_reforged", "name": "Excalibur Reforged", "desc": "+25% dmg, +15% crit, +10% armor pierce", "tier": "rare", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "crit", "value": 0.15}, {"effect": "armor_pierce", "value": 0.10}], "character": "merlin"},
+	{"id": "merlin_starfire_staff", "name": "Merlin's Starfire Staff", "desc": "+20% splash, +15% burn", "tier": "rare", "effects": [{"effect": "splash_radius", "value": 0.20}, {"effect": "burn", "value": 0.15}], "character": "merlin"},
 	# -- Frankenstein --
-	{"id": "spark_of_life", "name": "Spark of Life", "desc": "+25% chain, +15% dmg, +8% burn", "rarity": "gilded", "effects": [{"effect": "chain", "value": 0.25}, {"effect": "damage", "value": 0.15}, {"effect": "burn", "value": 0.08}], "character": "frankenstein"},
-	{"id": "shelley_manuscript", "name": "Shelley's Manuscript", "desc": "+12% all stats, +15% XP gain", "rarity": "gilded", "effects": [{"effect": "all", "value": 0.12}, {"effect": "xp_gain", "value": 0.15}], "character": "frankenstein"},
-	{"id": "arctic_titan_fist", "name": "Arctic Titan's Fist", "desc": "+25% boss dmg, +20% armor pierce", "rarity": "gilded", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.20}], "character": "frankenstein"},
-	{"id": "bride_heart", "name": "Bride's Heart", "desc": "+20% aura, +15% atk spd, +8% lifesteal", "rarity": "gilded", "effects": [{"effect": "aura_range", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "lifesteal", "value": 0.08}], "character": "frankenstein"},
+	{"id": "spark_of_life", "name": "Spark of Life", "desc": "+25% chain, +15% dmg, +8% burn", "tier": "rare", "effects": [{"effect": "chain", "value": 0.25}, {"effect": "damage", "value": 0.15}, {"effect": "burn", "value": 0.08}], "character": "frankenstein"},
+	{"id": "arctic_titan_fist", "name": "Arctic Titan's Fist", "desc": "+25% boss dmg, +20% armor pierce", "tier": "rare", "effects": [{"effect": "boss_damage", "value": 0.25}, {"effect": "armor_pierce", "value": 0.20}], "character": "frankenstein"},
 	# -- Universal --
-	{"id": "torn_manuscript", "name": "Torn Manuscript", "desc": "+25% boss damage", "rarity": "gilded", "effect": "boss_damage", "value": 0.25},
-	{"id": "wax_seal", "name": "Wax Seal", "desc": "Absorb 1 hit", "rarity": "gilded", "effect": "absorb_hit", "value": 1.0},
-	{"id": "phantoms_quill", "name": "Phantom's Quill", "desc": "+3% lifesteal", "rarity": "gilded", "effect": "lifesteal", "value": 0.03},
-	{"id": "bloodstained_page", "name": "Bloodstained Page", "desc": "+25% dmg when low lives", "rarity": "gilded", "effect": "bloodstained", "value": 0.25},
-	{"id": "authors_signet", "name": "Author's Signet", "desc": "+2 gold per kill", "rarity": "gilded", "effect": "kill_gold", "value": 2.0},
-	{"id": "holy_grail", "name": "Holy Grail Replica", "desc": "+3 HP heal/wave", "rarity": "gilded", "effect": "heal_nearby", "value": 3.0},
-	# ===== MYTHIC GEAR =====
-	# -- Character-Specific Mythic Gear --
-	{"id": "m_greenwood_wreath", "name": "Greenwood Wreath", "desc": "Arrows fork into 3 upon impact. +20% range, +15% pierce, +10% damage.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "pierce", "value": 0.15}, {"effect": "damage", "value": 0.10}], "special": "split_arrow_3", "character": "robin_hood", "per_level": 0.02},
-	{"id": "m_looking_glass_tiara", "name": "Looking-Glass Tiara", "desc": "Attacks bewitch enemies, slowing 30%. +20% damage, +15% attack speed.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "bewitch_slow_30pct", "character": "alice", "per_level": 0.02},
-	{"id": "m_hemlock_cauldron", "name": "Hemlock Cauldron", "desc": "Brews lingering poison on hit. +25% splash, +15% burn.", "rarity": "mythic", "effects": [{"effect": "splash_radius", "value": 0.25}, {"effect": "burn", "value": 0.15}], "special": "poison_dot", "character": "wicked_witch", "per_level": 0.02},
-	{"id": "m_second_star_compass", "name": "Second Star Compass", "desc": "Grants flight over all terrain. +20% range, +15% speed, +10% dodge.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "dodge", "value": 0.10}], "special": "ignore_terrain", "character": "peter_pan", "per_level": 0.02},
-	{"id": "m_chandelier_chain", "name": "Chandelier Chain", "desc": "Stun duration doubled on all attacks. +20% stun, +15% damage, +10% range.", "rarity": "mythic", "effects": [{"effect": "stun", "value": 0.20}, {"effect": "damage", "value": 0.15}, {"effect": "range", "value": 0.10}], "special": "double_stun_duration", "character": "phantom", "per_level": 0.02},
-	{"id": "m_counting_house_key", "name": "Counting House Key", "desc": "Doubles gold earned from defeated foes. +25% gold bonus, +10% all stats.", "rarity": "mythic", "effects": [{"effect": "gold_bonus", "value": 0.25}, {"effect": "all", "value": 0.10}], "special": "double_kill_gold", "character": "scrooge", "per_level": 0.02},
-	{"id": "m_spellbound_quill", "name": "Spellbound Quill", "desc": "Every 5th strike deals 3x damage. +20% damage, +15% pierce.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "pierce", "value": 0.15}], "special": "crit_every_5th_3x", "character": "merlin", "per_level": 0.02},
-	{"id": "m_galvanic_coil", "name": "Galvanic Coil", "desc": "Lightning arcs between 3 enemies. +20% damage, +15% range.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "range", "value": 0.15}], "special": "chain_lightning_3", "character": "frankenstein", "per_level": 0.02},
-	{"id": "m_nocturne_chalice", "name": "Nocturne Chalice", "desc": "Drains 5% of damage dealt as life. +20% damage, +15% attack speed.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "life_steal_5pct", "character": "dracula", "per_level": 0.02},
-	{"id": "m_duality_elixir", "name": "Duality Elixir", "desc": "Transform: +50% stats 10s, then -20% 5s. +20% damage, +15% speed.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "duality_transform", "character": "jekyll_hyde", "per_level": 0.02},
-	{"id": "m_tale_spinners_thread", "name": "Tale-Spinner's Thread", "desc": "Weave 3 story wishes per game (free upgrade). +20% all stats.", "rarity": "mythic", "effects": [{"effect": "all", "value": 0.20}], "special": "three_wishes", "character": "scheherazade", "per_level": 0.02},
-	# -- Universal Mythic Gear --
-	{"id": "m_resurrection_page", "name": "Resurrection Page", "desc": "Revive once per game at 50% HP. +15% all stats.", "rarity": "mythic", "effects": [{"effect": "all", "value": 0.15}], "special": "revive_once_50pct", "per_level": 0.015},
-	{"id": "m_hourglass_of_ages", "name": "Hourglass of Ages", "desc": "Slow all enemies 15% within range. +20% range, +10% speed.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "special": "aura_slow_15pct", "per_level": 0.015},
-	{"id": "m_penumbra_cloak", "name": "Penumbra Cloak", "desc": "25% chance to evade incoming damage. +15% dodge, +10% damage.", "rarity": "mythic", "effects": [{"effect": "dodge", "value": 0.15}, {"effect": "damage", "value": 0.10}], "special": "dodge_25pct", "per_level": 0.015},
-	{"id": "m_crimson_inkwell", "name": "Crimson Inkwell", "desc": "+1% damage per enemy felled (caps 50%). +15% damage.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}], "special": "ramping_damage_1pct", "per_level": 0.015},
-	{"id": "m_tempest_seal", "name": "Tempest Seal", "desc": "Lightning strikes a random foe every 8s. +15% damage, +15% range.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "range", "value": 0.15}], "special": "lightning_strike_8s", "per_level": 0.015},
-	{"id": "m_winters_grasp", "name": "Winter's Grasp", "desc": "Freeze enemies 1s every 10 hits. +20% slow, +10% damage.", "rarity": "mythic", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "damage", "value": 0.10}], "special": "freeze_every_10", "per_level": 0.015},
-	{"id": "m_reflection_ward", "name": "Reflection Ward", "desc": "Reflect 20% damage back to attackers. +15% defense, +10% range.", "rarity": "mythic", "effects": [{"effect": "defense", "value": 0.15}, {"effect": "range", "value": 0.10}], "special": "reflect_20pct", "per_level": 0.015},
-	{"id": "m_oblivion_sphere", "name": "Oblivion Sphere", "desc": "10% chance to banish non-boss enemies. +15% damage.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}], "special": "instant_banish_10pct", "per_level": 0.015},
-	{"id": "m_chronicle_clasp", "name": "Chronicle Clasp", "desc": "Cooldowns reduced 25%. +20% cooldown reduction, +10% speed.", "rarity": "mythic", "effects": [{"effect": "cooldown_reduction", "value": 0.20}, {"effect": "attack_speed", "value": 0.10}], "special": "cd_reduce_25pct", "per_level": 0.015},
-	{"id": "m_cinder_diadem", "name": "Cinder Diadem", "desc": "Burn aura scorches nearby foes. +15% burn, +15% splash.", "rarity": "mythic", "effects": [{"effect": "burn", "value": 0.15}, {"effect": "splash_radius", "value": 0.15}], "special": "burn_aura", "per_level": 0.015},
-	{"id": "m_lodestone_heart", "name": "Lodestone Heart", "desc": "Pull enemies toward your tower. +15% range, +10% slow.", "rarity": "mythic", "effects": [{"effect": "range", "value": 0.15}, {"effect": "slow", "value": 0.10}], "special": "gravity_pull", "per_level": 0.015},
-	{"id": "m_lamplight_soul", "name": "Lamplight Soul", "desc": "+2% damage per wave survived. +10% all stats.", "rarity": "mythic", "effects": [{"effect": "all", "value": 0.10}], "special": "wave_scaling_2pct", "per_level": 0.015},
-	{"id": "m_berserker_binding", "name": "Berserker Binding", "desc": "+30% attack speed when below 50% HP. +15% speed, +10% damage.", "rarity": "mythic", "effects": [{"effect": "attack_speed", "value": 0.15}, {"effect": "damage", "value": 0.10}], "special": "berserk_low_hp", "per_level": 0.015},
-	{"id": "m_prismatic_bookmark", "name": "Prismatic Bookmark", "desc": "Attacks cycle fire/ice/lightning. +15% damage, +10% all.", "rarity": "mythic", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "all", "value": 0.10}], "special": "element_cycle", "per_level": 0.015},
-	# ===== FORBIDDEN GEAR =====
-	{"id": "f_authors_omniscience", "name": "Author's Omniscience", "desc": "All stats +30%. Activate: double damage 10s (60s CD).", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.30}], "special": "activated_double_damage_10s", "per_level": 0.025},
-	{"id": "f_yggdrasil_sapling", "name": "Yggdrasil Sapling", "desc": "Restore 1 life per wave. +25% all stats.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.25}], "special": "regen_1_life_per_wave", "per_level": 0.025},
-	{"id": "f_midas_manuscript", "name": "Midas Manuscript", "desc": "Double all gold earned. +20% gold bonus, +20% damage.", "rarity": "forbidden", "effects": [{"effect": "gold_bonus", "value": 0.20}, {"effect": "damage", "value": 0.20}], "special": "double_all_gold", "per_level": 0.025},
-	{"id": "f_narrators_crown", "name": "Narrator's Crown", "desc": "Buff all towers +10% stats. +25% range, +20% damage.", "rarity": "forbidden", "effects": [{"effect": "range", "value": 0.25}, {"effect": "damage", "value": 0.20}], "special": "global_buff_10pct", "per_level": 0.025},
-	{"id": "f_reapers_quill", "name": "Reaper's Quill", "desc": "25% chance to deal 5x damage. +25% damage, +15% speed.", "rarity": "forbidden", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "attack_speed", "value": 0.15}], "special": "crit_25pct_5x", "per_level": 0.025},
-	{"id": "f_inferno_tome", "name": "Inferno Tome", "desc": "Scorch all enemies in range. +25% burn, +20% splash, +15% damage.", "rarity": "forbidden", "effects": [{"effect": "burn", "value": 0.25}, {"effect": "splash_radius", "value": 0.20}, {"effect": "damage", "value": 0.15}], "special": "aura_burn_all", "per_level": 0.025},
-	{"id": "f_wyrm_scale_codex", "name": "Wyrm-Scale Codex", "desc": "Immune to damage 3s after placing. +30% damage, +20% range.", "rarity": "forbidden", "effects": [{"effect": "damage", "value": 0.30}, {"effect": "range", "value": 0.20}], "special": "invuln_3s_on_place", "per_level": 0.025},
-	{"id": "f_piercing_verse", "name": "Piercing Verse", "desc": "Attacks pierce through all enemies in line. +25% pierce, +20% range.", "rarity": "forbidden", "effects": [{"effect": "pierce", "value": 0.25}, {"effect": "range", "value": 0.20}], "special": "infinite_pierce", "per_level": 0.025},
-	{"id": "f_fates_manuscript", "name": "Fate's Manuscript", "desc": "Random powerful boon each wave. +20% all stats.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.20}], "special": "random_buff_per_wave", "per_level": 0.025},
-	{"id": "f_frozen_chronicle", "name": "Frozen Chronicle", "desc": "Activate: freeze all enemies 5s (90s CD). +20% slow, +15% speed.", "rarity": "forbidden", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "activated_time_stop_5s", "per_level": 0.025},
-	{"id": "f_deathknell_bell", "name": "Deathknell Bell", "desc": "Defeated enemies explode for 50% AoE. +25% damage, +20% splash.", "rarity": "forbidden", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "splash_radius", "value": 0.20}], "special": "death_explosion_50pct", "per_level": 0.025},
-	{"id": "f_plot_armor", "name": "Plot Armor", "desc": "Block 1 lethal hit per game. +25% defense, +20% all stats.", "rarity": "forbidden", "effects": [{"effect": "defense", "value": 0.25}, {"effect": "all", "value": 0.20}], "special": "life_save_once", "per_level": 0.025},
-	{"id": "f_twinned_binding", "name": "Twinned Binding", "desc": "Link 2 towers: share 25% stats. +20% all stats.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.20}], "special": "tower_link_25pct", "per_level": 0.025},
-	{"id": "f_pandemonium_scroll", "name": "Pandemonium Scroll", "desc": "+50% all stats but enemies +20% speed. Risk and reward.", "rarity": "forbidden", "effects": [{"effect": "all", "value": 0.50}], "special": "enemy_speed_20pct_penalty", "per_level": 0.025},
-	{"id": "f_spectral_echo", "name": "Spectral Echo", "desc": "Tower fires from two positions. +25% range, +20% damage.", "rarity": "forbidden", "effects": [{"effect": "range", "value": 0.25}, {"effect": "damage", "value": 0.20}], "special": "double_projectile", "per_level": 0.025},
+	{"id": "torn_manuscript", "name": "Torn Manuscript", "desc": "+25% boss damage", "tier": "rare", "effect": "boss_damage", "value": 0.25},
+	{"id": "bloodstained_page", "name": "Bloodstained Page", "desc": "+25% dmg when low lives", "tier": "rare", "effect": "bloodstained", "value": 0.25},
+	{"id": "authors_signet", "name": "Author's Signet", "desc": "+2 gold per kill", "tier": "rare", "effect": "kill_gold", "value": 2.0},
+	# ===== EPIC GEAR =====
+	# -- Character-Specific EPIC GEAR --
+	{"id": "m_greenwood_wreath", "name": "Greenwood Wreath", "desc": "Arrows fork into 3 upon impact. +20% range, +15% pierce, +10% damage.", "tier": "epic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "pierce", "value": 0.15}, {"effect": "damage", "value": 0.10}], "special": "split_arrow_3", "character": "robin_hood", "per_level": 0.02},
+	{"id": "m_looking_glass_tiara", "name": "Looking-Glass Tiara", "desc": "Attacks bewitch enemies, slowing 30%. +20% damage, +15% attack speed.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "bewitch_slow_30pct", "character": "alice", "per_level": 0.02},
+	{"id": "m_hemlock_cauldron", "name": "Hemlock Cauldron", "desc": "Brews lingering poison on hit. +25% splash, +15% burn.", "tier": "epic", "effects": [{"effect": "splash_radius", "value": 0.25}, {"effect": "burn", "value": 0.15}], "special": "poison_dot", "character": "wicked_witch", "per_level": 0.02},
+	{"id": "m_second_star_compass", "name": "Second Star Compass", "desc": "Grants flight over all terrain. +20% range, +15% speed, +10% dodge.", "tier": "epic", "effects": [{"effect": "range", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "dodge", "value": 0.10}], "special": "ignore_terrain", "character": "peter_pan", "per_level": 0.02},
+	{"id": "m_chandelier_chain", "name": "Chandelier Chain", "desc": "Stun duration doubled on all attacks. +20% stun, +15% damage, +10% range.", "tier": "epic", "effects": [{"effect": "stun", "value": 0.20}, {"effect": "damage", "value": 0.15}, {"effect": "range", "value": 0.10}], "special": "double_stun_duration", "character": "phantom", "per_level": 0.02},
+	{"id": "m_counting_house_key", "name": "Counting House Key", "desc": "Doubles gold earned from defeated foes. +25% gold bonus, +10% all stats.", "tier": "epic", "effects": [{"effect": "gold_bonus", "value": 0.25}, {"effect": "all", "value": 0.10}], "special": "double_kill_gold", "character": "scrooge", "per_level": 0.02},
+	{"id": "m_spellbound_quill", "name": "Spellbound Quill", "desc": "Every 5th strike deals 3x damage. +20% damage, +15% pierce.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "pierce", "value": 0.15}], "special": "crit_every_5th_3x", "character": "merlin", "per_level": 0.02},
+	{"id": "m_galvanic_coil", "name": "Galvanic Coil", "desc": "Lightning arcs between 3 enemies. +20% damage, +15% range.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "range", "value": 0.15}], "special": "chain_lightning_3", "character": "frankenstein", "per_level": 0.02},
+	{"id": "m_nocturne_chalice", "name": "Nocturne Chalice", "desc": "Drains 5% of damage dealt as life. +20% damage, +15% attack speed.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "life_steal_5pct", "character": "dracula", "per_level": 0.02},
+	# -- Universal EPIC GEAR --
+	{"id": "m_resurrection_page", "name": "Resurrection Page", "desc": "Revive once per game at 50% HP. +15% all stats.", "tier": "epic", "effects": [{"effect": "all", "value": 0.15}], "special": "revive_once_50pct", "per_level": 0.015},
+	{"id": "m_crimson_inkwell", "name": "Crimson Inkwell", "desc": "+1% damage per enemy felled (caps 50%). +15% damage.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.15}], "special": "ramping_damage_1pct", "per_level": 0.015},
+	{"id": "m_prismatic_bookmark", "name": "Prismatic Bookmark", "desc": "Attacks cycle fire/ice/lightning. +15% damage, +10% all.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "all", "value": 0.10}], "special": "element_cycle", "per_level": 0.015},
+	# ===== LEGENDARY GEAR =====
+	{"id": "f_authors_omniscience", "name": "Author's Omniscience", "desc": "All stats +30%. Activate: double damage 10s (60s CD).", "tier": "legendary", "effects": [{"effect": "all", "value": 0.30}], "special": "activated_double_damage_10s", "per_level": 0.025, "character": "alice"},
+	{"id": "f_yggdrasil_sapling", "name": "Yggdrasil Sapling", "desc": "Restore 1 life per wave. +25% all stats.", "tier": "legendary", "effects": [{"effect": "all", "value": 0.25}], "special": "regen_1_life_per_wave", "per_level": 0.025, "character": "merlin"},
+	{"id": "f_midas_manuscript", "name": "Midas Manuscript", "desc": "Double all gold earned. +20% gold bonus, +20% damage.", "tier": "legendary", "effects": [{"effect": "gold_bonus", "value": 0.20}, {"effect": "damage", "value": 0.20}], "special": "double_all_gold", "per_level": 0.025, "character": "scrooge"},
+	{"id": "f_narrators_crown", "name": "Narrator's Crown", "desc": "Buff all towers +10% stats. +25% range, +20% damage.", "tier": "legendary", "effects": [{"effect": "range", "value": 0.25}, {"effect": "damage", "value": 0.20}], "special": "global_buff_10pct", "per_level": 0.025, "character": "dracula"},
+	{"id": "f_reapers_quill", "name": "Reaper's Quill", "desc": "25% chance to deal 5x damage. +25% damage, +15% speed.", "tier": "legendary", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "attack_speed", "value": 0.15}], "special": "crit_25pct_5x", "per_level": 0.025, "character": "robin_hood"},
+	{"id": "f_inferno_tome", "name": "Inferno Tome", "desc": "Scorch all enemies in range. +25% burn, +20% splash, +15% damage.", "tier": "legendary", "effects": [{"effect": "burn", "value": 0.25}, {"effect": "splash_radius", "value": 0.20}, {"effect": "damage", "value": 0.15}], "special": "aura_burn_all", "per_level": 0.025, "character": "wicked_witch"},
+	{"id": "f_piercing_verse", "name": "Piercing Verse", "desc": "Attacks pierce through all enemies in line. +25% pierce, +20% range.", "tier": "legendary", "effects": [{"effect": "pierce", "value": 0.25}, {"effect": "range", "value": 0.20}], "special": "infinite_pierce", "per_level": 0.025, "character": "peter_pan"},
+	{"id": "f_frozen_chronicle", "name": "Frozen Chronicle", "desc": "Activate: freeze all enemies 5s (90s CD). +20% slow, +15% speed.", "tier": "legendary", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "activated_time_stop_5s", "per_level": 0.025, "character": "phantom"},
+	{"id": "f_deathknell_bell", "name": "Deathknell Bell", "desc": "Defeated enemies explode for 50% AoE. +25% damage, +20% splash.", "tier": "legendary", "effects": [{"effect": "damage", "value": 0.25}, {"effect": "splash_radius", "value": 0.20}], "special": "death_explosion_50pct", "per_level": 0.025, "character": "sherlock"},
+	{"id": "f_plot_armor", "name": "Plot Armor", "desc": "Block 1 lethal hit per game. +25% defense, +20% all stats.", "tier": "legendary", "effects": [{"effect": "defense", "value": 0.25}, {"effect": "all", "value": 0.20}], "special": "life_save_once", "per_level": 0.025, "character": "tarzan"},
+	{"id": "f_spectral_echo", "name": "Spectral Echo", "desc": "Tower fires from two positions. +25% range, +20% damage.", "tier": "legendary", "effects": [{"effect": "range", "value": 0.25}, {"effect": "damage", "value": 0.20}], "special": "double_projectile", "per_level": 0.025, "character": "frankenstein"},
+	{"id": "m_mind_palace_key", "name": "Mind Palace Key", "desc": "Deduce enemy weaknesses, +25% crit damage. +20% damage, +15% crit.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "crit", "value": 0.15}], "special": "weakness_expose_25pct", "character": "sherlock", "per_level": 0.02},
+	{"id": "m_king_jungle_vine", "name": "King of the Jungle Vine", "desc": "Vine lash pulls enemies into range. +20% damage, +15% attack speed, +10% range.", "tier": "epic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}, {"effect": "range", "value": 0.10}], "special": "vine_pull_enemies", "character": "tarzan", "per_level": 0.02},
 ]
-var RARITY_COLORS = {"tattered": Color(0.6, 0.6, 0.65), "bound": Color(0.3, 0.75, 0.3), "gilded": Color(0.3, 0.5, 0.9), "mythic": Color(0.7, 0.35, 0.9), "forbidden": Color(1.0, 0.6, 0.1)}
-var RARITY_SHARD_VALUES = {"tattered": 10, "bound": 25, "gilded": 100, "mythic": 300, "forbidden": 1000}
-var RARITY_ORDER = ["tattered", "bound", "gilded", "mythic", "forbidden"]
-var owned_bindings: Dictionary = {}  # binding_id -> count
-var equipped_bindings: Dictionary = {}  # tower_type -> [binding_id, binding_id]
-var _binding_lookup: Dictionary = {}  # binding_id -> binding dict (cache)
-var relic_scroll_offset: float = 0.0
-var binding_shop_scroll: float = 0.0
-var detail_binding_scroll: float = 0.0
+
+# Gear item ID -> icon drawing key map (maps new IDs to existing procedural icons)
+var _gear_icon_map: Dictionary = {
+	"nottingham_arrow": "silver_arrow", "longbow_riser": "longbow",
+	"friar_tuck_flask": "flask", "mad_hatter_thimble": "thimble",
+	"vorpal_blade": "vorpal_sword", "queen_scepter": "heart_scepter",
+	"looking_glass": "hand_mirror", "queen_hearts_crown": "gold_crown",
+	"winkie_helm": "golden_cap", "poppy_petal": "poppy_dust",
+	"monkey_wing_medal": "monkey_fez", "crystal_ball_oz": "crystal_ball",
+	"witch_hourglass": "hourglass", "pixie_dust_pinch": "fairy_vial",
+	"tick_tock_tooth": "croc_tooth", "hook_compass": "star_map",
+	"captain_hook_claw": "iron_hook", "chandelier_crystal": "chandelier_chain",
+	"music_box_key": "gondola_key", "christine_rose": "red_rose",
+	"organ_pipe_reed": "opera_score", "ghost_chain_link": "heavy_chains",
+	"ghost_past_candle": "ghost_lantern", "christmas_miracle": "xmas_pudding",
+	"m_counting_house_key": "brass_key", "violin_string": "fiddle",
+	"f_deathknell_bell": "church_bell", "bow_greenwood": "green_cloak",
+	"croquet_mallet": "eat_me_cake", "lincoln_band": "horn",
+	"lost_boy_dagger": "drink_me",
+}
+
+var TIER_COLORS = {"common": Color(0.65, 0.65, 0.65), "uncommon": Color(0.3, 0.8, 0.3), "rare": Color(0.3, 0.5, 0.95), "epic": Color(0.7, 0.35, 0.9), "legendary": Color(1.0, 0.75, 0.1)}
+var TIER_SHARD_VALUES = {"common": 10, "uncommon": 25, "rare": 100, "epic": 300, "legendary": 1000}
+var TIER_ORDER = ["common", "uncommon", "rare", "epic", "legendary"]
+var owned_gear: Dictionary = {}  # gear_id -> count
+var equipped_gear: Dictionary = {}  # tower_type -> [gear_id, ...]
+var _gear_lookup: Dictionary = {}  # gear_id -> gear dict (cache)
+var gear_shop_scroll: float = 0.0
+var detail_gear_scroll: float = 0.0
+var gear_scroll_offset: float = 0.0
+var gear_hover_index: int = -1
 
 # === STORY DIALOG SYSTEM ===
 var story_dialogs: Dictionary = {}  # "pre_level_N" -> [{speaker, text, voice_type}]
@@ -1862,14 +1746,14 @@ func _ready() -> void:
 	_init_survivor_progress()
 	_init_emporium_items()
 	_init_knowledge_tree()
-	_init_equipped_relics()
+	_init_equipped_gear()
 	_init_synergy_definitions()
 	_init_achievement_definitions()
 	_init_battle_power_definitions()
 	_init_trophy_store_items()
 	_init_odyssey_maps()
 	_init_story_dialogs()
-	_build_binding_lookup()
+	_build_gear_lookup()
 	_init_quests()
 	_init_shadow_arena()
 	_load_game()
@@ -1910,8 +1794,8 @@ func _init_survivor_progress() -> void:
 			"xp": 0.0,
 			"xp_next": float(HERO_XP_TABLE[0]),
 			"gear_unlocked": false,
-			"sidekicks_unlocked": [false, false, false],
-			"relics_unlocked": [false, false, false, false, false, false],
+			"sidekicks_unlocked": [false, false, false, false],
+			"gear_slots_unlocked": [false, false, false, false, false, false],
 			"total_damage": 0.0,
 			"abilities_unlocked": [false, false, false, false, false, false, false, false, false],
 			"golden_shields": 0,
@@ -1978,79 +1862,35 @@ func _get_level_bonuses(tower_type) -> Dictionary:
 		bonuses["attack_speed"] += 0.10
 	return bonuses
 
-func _get_relic_bonuses(tower_type) -> Dictionary:
-	var bonuses: Dictionary = {}
-	var effects = get_equipped_relic_effects(tower_type)
-	for relic in effects:
-		var eff = relic.get("effect", "")
-		var val = relic.get("value", 0.0)
-		match eff:
-			"pierce_damage", "spell_damage":
-				bonuses["damage"] = bonuses.get("damage", 0.0) + val
-			"range":
-				bonuses["range"] = bonuses.get("range", 0.0) + val
-			"atk_speed_aura":
-				bonuses["attack_speed"] = bonuses.get("attack_speed", 0.0) + val
-			"bonus_gold":
-				bonuses["gold_bonus"] = bonuses.get("gold_bonus", 0.0) + val
-			"crit_chance":
-				bonuses["crit"] = bonuses.get("crit", 0.0) + val
-			"cooldown":
-				bonuses["attack_speed"] = bonuses.get("attack_speed", 0.0) + val
-			_:
-				bonuses[eff] = bonuses.get(eff, 0.0) + val
-	return bonuses
-
 func _get_gear_bonuses(tower_type) -> Dictionary:
 	var bonuses: Dictionary = {}
-	if not survivor_progress.has(tower_type):
-		return bonuses
-	if not survivor_progress[tower_type].get("gear_unlocked", false):
-		return bonuses
-	# Each tower's gear provides a thematic stat boost
-	match tower_type:
-		TowerType.ROBIN_HOOD:
-			bonuses["range"] = 0.15
-			bonuses["damage"] = 0.05
-		TowerType.ALICE:
-			bonuses["range"] = 0.10
-			bonuses["damage"] = 0.10
-		TowerType.WICKED_WITCH:
-			bonuses["attack_speed"] = 0.12
-			bonuses["damage"] = 0.05
-		TowerType.PETER_PAN:
-			bonuses["damage"] = 0.15
-			bonuses["attack_speed"] = 0.05
-		TowerType.PHANTOM:
-			bonuses["range"] = 0.10
-			bonuses["attack_speed"] = 0.08
-		TowerType.SCROOGE:
-			bonuses["gold_bonus"] = 0.20
-		TowerType.SHERLOCK:
-			bonuses["damage"] = 0.12
-			bonuses["range"] = 0.08
-		TowerType.TARZAN:
-			bonuses["range"] = 0.15
-			bonuses["attack_speed"] = 0.08
-		TowerType.DRACULA:
-			bonuses["damage"] = 0.10
-			bonuses["range"] = 0.10
-		TowerType.MERLIN:
-			bonuses["range"] = 0.12
-			bonuses["damage"] = 0.08
-		TowerType.FRANKENSTEIN:
-			bonuses["damage"] = 0.12
-			bonuses["attack_speed"] = 0.08
-		TowerType.SHADOW_AUTHOR:
-			bonuses["damage"] = 0.15
-			bonuses["range"] = 0.10
+	var gear_ids = equipped_gear.get(tower_type, [])
+	var char_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+	var char_name = char_names[tower_type] if tower_type >= 0 and tower_type < char_names.size() else ""
+	var char_gear_count = 0
+	for gid in gear_ids:
+		var gear = _find_gear(gid)
+		if gear.is_empty():
+			continue
+		if gear.get("character", "") == char_name:
+			char_gear_count += 1
+		if gear.has("effects"):
+			for fx in gear["effects"]:
+				_apply_gear_effect(bonuses, fx.get("effect", ""), fx.get("value", 0.0))
+		else:
+			_apply_gear_effect(bonuses, gear.get("effect", ""), gear.get("value", 0.0))
+	# Set bonus: 3+ character-specific gear gives +5% all stats per piece
+	if char_gear_count >= 3:
+		var set_bonus = float(char_gear_count) * 0.05
+		for k in ["damage", "range", "attack_speed", "crit"]:
+			bonuses[k] = bonuses.get(k, 0.0) + set_bonus
 	return bonuses
 
 func _get_sidekick_bonuses(tower_type) -> Dictionary:
 	var bonuses: Dictionary = {}
 	if not survivor_progress.has(tower_type):
 		return bonuses
-	var sk_unlocked = survivor_progress[tower_type].get("sidekicks_unlocked", [false, false, false])
+	var sk_unlocked = survivor_progress[tower_type].get("sidekicks_unlocked", [false, false, false, false])
 	# Each unlocked sidekick gives a small passive bonus
 	if sk_unlocked.size() > 0 and sk_unlocked[0]:
 		bonuses["damage"] = bonuses.get("damage", 0.0) + 0.05
@@ -2058,6 +1898,8 @@ func _get_sidekick_bonuses(tower_type) -> Dictionary:
 		bonuses["attack_speed"] = bonuses.get("attack_speed", 0.0) + 0.05
 	if sk_unlocked.size() > 2 and sk_unlocked[2]:
 		bonuses["gold_bonus"] = bonuses.get("gold_bonus", 0.0) + 0.10
+	if sk_unlocked.size() > 3 and sk_unlocked[3]:
+		bonuses["range"] = bonuses.get("range", 0.0) + 0.05
 	return bonuses
 
 func _apply_meta_buffs(tower_node, tower_type) -> void:
@@ -2086,31 +1928,27 @@ func _apply_meta_buffs(tower_node, tower_type) -> void:
 	var lvl_b = _get_level_bonuses(tower_type)
 	for k in lvl_b:
 		buffs[k] = buffs.get(k, 0.0) + lvl_b[k]
-	# 2) Knowledge bonuses (global, all towers benefit) — disabled in Pure Mode
+	# 2) Knowledge bonuses (global, all towers benefit) â€” disabled in Pure Mode
 	if selected_difficulty != PURE_MODE:
 		for stat_key in ["damage", "range", "attack_speed", "crit"]:
 			var kb = _get_knowledge_bonus(stat_key)
 			if kb > 0.0:
 				buffs[stat_key] = buffs.get(stat_key, 0.0) + kb
-	# 3) Relic bonuses (per-character)
-	var rel_b = _get_relic_bonuses(tower_type)
-	for k in rel_b:
-		buffs[k] = buffs.get(k, 0.0) + rel_b[k]
-	# 4) Tome Binding bonuses
-	var bind_b = _get_binding_bonuses(tower_type)
-	for k in bind_b:
-		buffs[k] = buffs.get(k, 0.0) + bind_b[k]
+	# 3) Gear bonuses (equipped gear items)
+	var gear_b = _get_gear_bonuses(tower_type)
+	for k in gear_b:
+		buffs[k] = buffs.get(k, 0.0) + gear_b[k]
 	# 4b) Survivor level stat boosts
 	var level_b = _get_level_stat_boosts(tower_type)
 	for k in level_b:
 		if level_b[k] != 0.0:
 			buffs[k] = buffs.get(k, 0.0) + level_b[k]
-	# 4c) Per-level gear scaling (mythic/forbidden gear scale with survivor level)
+	# 4c) Per-level gear scaling (epic/legendary gear scale with survivor level)
 	var slvl = survivor_progress.get(tower_type, {}).get("level", 1)
 	if slvl > 1:
-		var eq_binds = equipped_bindings.get(tower_type, [])
-		for bid in eq_binds:
-			var bdata = _find_binding(bid)
+		var eq_gear_list = equipped_gear.get(tower_type, [])
+		for bid in eq_gear_list:
+			var bdata = _find_gear(bid)
 			if bdata.has("per_level"):
 				var pl_bonus = bdata["per_level"] * float(slvl - 1)
 				if bdata.has("effects"):
@@ -2121,6 +1959,13 @@ func _apply_meta_buffs(tower_node, tower_type) -> void:
 								buffs[ak] = buffs.get(ak, 0.0) + pl_bonus
 						elif eff != "":
 							buffs[eff] = buffs.get(eff, 0.0) + pl_bonus
+				elif bdata.has("effect") and bdata["effect"] != "":
+					var eff = bdata["effect"]
+					if eff == "all":
+						for ak in ["damage", "range", "attack_speed", "crit"]:
+							buffs[ak] = buffs.get(ak, 0.0) + pl_bonus
+					else:
+						buffs[eff] = buffs.get(eff, 0.0) + pl_bonus
 	# 5) Literary Instrument aura bonuses
 	if tower_node and is_instance_valid(tower_node):
 		var inst_b = _get_instrument_buffs_at(tower_node.global_position)
@@ -2157,11 +2002,7 @@ func _apply_meta_buffs(tower_node, tower_type) -> void:
 				_:
 					# Complex effects (tornado, stampede, etc.) stored for future use
 					buffs[eff] = buffs.get(eff, 0.0) + val
-	# 7) Gear bonuses (if gear unlocked for this character)
-	var gear_b = _get_gear_bonuses(tower_type)
-	for k in gear_b:
-		buffs[k] = buffs.get(k, 0.0) + gear_b[k]
-	# 8) Sidekick bonuses (for each unlocked sidekick)
+	# 7) Sidekick bonuses (for each unlocked sidekick)
 	var side_b = _get_sidekick_bonuses(tower_type)
 	for k in side_b:
 		buffs[k] = buffs.get(k, 0.0) + side_b[k]
@@ -2214,38 +2055,38 @@ func _is_character_unlocked(tower_type) -> bool:
 
 func _init_emporium_items() -> void:
 	emporium_items = {
-		0: [  # Gold Exchange (gold → other currencies)
+		0: [  # Gold Exchange (gold â†’ other currencies)
 			{"name": "Quill Pouch", "desc": "Trade gold for writing tools", "cost": 50, "currency": "gold", "reward": "quills", "amount": 3},
 			{"name": "Quill Bundle", "desc": "A scholar's supply of quills", "cost": 150, "currency": "gold", "reward": "quills", "amount": 10},
 			{"name": "Shard Fragments", "desc": "Convert gold to crystal shards", "cost": 100, "currency": "gold", "reward": "shards", "amount": 15},
 			{"name": "Storybook Star", "desc": "A star forged from golden ink", "cost": 200, "currency": "gold", "reward": "stars", "amount": 1},
 		],
-		1: [  # Enchanted Quills (shards → quills)
+		1: [  # Enchanted Quills (shards â†’ quills)
 			{"name": "Ink & Quill", "desc": "A basic writing set", "cost": 15, "currency": "shards", "reward": "quills", "amount": 3},
 			{"name": "Scribe's Bundle", "desc": "A scholar's collection", "cost": 40, "currency": "shards", "reward": "quills", "amount": 10},
 			{"name": "Arcane Library", "desc": "Ancient enchanted tomes", "cost": 80, "currency": "shards", "reward": "quills", "amount": 25},
 		],
-		2: [  # Relic Shards (stars → shards)
+		2: [  # Gear Shards (stars â†’ shards)
 			{"name": "Shard Fragment", "desc": "Glowing crystal piece", "cost": 1, "currency": "stars", "reward": "shards", "amount": 20},
 			{"name": "Shard Cluster", "desc": "A cluster of raw shards", "cost": 2, "currency": "stars", "reward": "shards", "amount": 50},
 			{"name": "Prismatic Core", "desc": "Pure crystallized energy", "cost": 4, "currency": "stars", "reward": "shards", "amount": 120},
 		],
-		3: [  # Relic Chests
+		3: [  # Gear Chests
 			{"name": "Bronze Chest", "desc": "Common treasures within", "cost": 10, "currency": "shards", "reward": "chest_bronze", "amount": 1},
-			{"name": "Silver Chest", "desc": "Uncommon relics await", "cost": 30, "currency": "shards", "reward": "chest_silver", "amount": 1},
+			{"name": "Silver Chest", "desc": "Uncommon gear awaits", "cost": 30, "currency": "shards", "reward": "chest_silver", "amount": 1},
 			{"name": "Gold Chest", "desc": "Legendary artifacts inside", "cost": 80, "currency": "shards", "reward": "chest_gold", "amount": 1},
 		],
-		4: [  # Survivor Packs (stars → XP)
+		4: [  # Survivor Packs (stars â†’ XP)
 			{"name": "Training Scroll", "desc": "Basic combat lessons", "cost": 1, "currency": "stars", "reward": "xp", "amount": 500},
 			{"name": "Battle Manual", "desc": "Advanced techniques", "cost": 2, "currency": "stars", "reward": "xp", "amount": 1500},
 			{"name": "War Chronicle", "desc": "Legendary battle wisdom", "cost": 4, "currency": "stars", "reward": "xp", "amount": 4000},
 		],
-		5: [  # Storybook Stars (quills → stars)
+		5: [  # Storybook Stars (quills â†’ stars)
 			{"name": "Fallen Star", "desc": "A faint glimmer of magic", "cost": 15, "currency": "quills", "reward": "stars", "amount": 1},
 			{"name": "Star Cluster", "desc": "A constellation captured", "cost": 35, "currency": "quills", "reward": "stars", "amount": 3},
 			{"name": "Celestial Nova", "desc": "Pure starlight essence", "cost": 60, "currency": "quills", "reward": "stars", "amount": 6},
 		],
-		7: [  # Battle Powers (shards → powers)
+		7: [  # Battle Powers (shards â†’ powers)
 			{"name": "Quill Strike", "desc": "500 damage to all on-screen enemies", "cost": 15, "currency": "shards", "reward": "power", "power_id": "quill_strike", "amount": 1},
 			{"name": "Golden Bounty", "desc": "+200 gold instantly", "cost": 10, "currency": "shards", "reward": "power", "power_id": "golden_bounty", "amount": 1},
 			{"name": "Storybook Shield", "desc": "Blocks next 10 life losses", "cost": 20, "currency": "shards", "reward": "power", "power_id": "storybook_shield", "amount": 1},
@@ -2282,7 +2123,7 @@ func _init_knowledge_tree() -> void:
 				{"name": "Golden Bookmark", "desc": "+25 starting gold", "effect": "start_gold", "value": 25, "cost": 1},
 				{"name": "Bargain Ink", "desc": "-5% tower cost", "effect": "tower_discount", "value": 0.05, "cost": 2},
 				{"name": "Bound in Iron", "desc": "+3 starting lives", "effect": "lives", "value": 3, "cost": 2},
-				{"name": "Master Binding", "desc": "-10% tower cost", "effect": "tower_discount", "value": 0.10, "cost": 3},
+				{"name": "Master Gear", "desc": "-10% tower cost", "effect": "tower_discount", "value": 0.10, "cost": 3},
 				{"name": "Iron Spine", "desc": "+5 starting lives", "effect": "lives", "value": 5, "cost": 3},
 				{"name": "Gilded Pages", "desc": "+50 starting gold", "effect": "start_gold", "value": 50, "cost": 4},
 				{"name": "Bulk Bargain", "desc": "-5% upgrade cost", "effect": "upgrade_discount", "value": 0.05, "cost": 4},
@@ -2313,11 +2154,11 @@ func _init_knowledge_tree() -> void:
 				{"name": "Fellowship", "desc": "+5% synergy damage", "effect": "synergy_damage", "value": 0.05, "cost": 1},
 				{"name": "Common Ground", "desc": "+3% synergy range", "effect": "synergy_range", "value": 0.03, "cost": 1},
 				{"name": "Shared Stories", "desc": "Synergies +15%", "effect": "synergy_power", "value": 0.15, "cost": 2},
-				{"name": "Bound by Ink", "desc": "+1 relic slot", "effect": "bonus_relic_slot", "value": 1, "cost": 2},
+				{"name": "Bound by Ink", "desc": "+1 gear slot", "effect": "bonus_gear_slot", "value": 1, "cost": 2},
 				{"name": "Literary Alliance", "desc": "Synergies +25%", "effect": "synergy_power", "value": 0.25, "cost": 3},
 				{"name": "Heroic Assembly", "desc": "+10% dmg w/ 3+ towers", "effect": "army_damage", "value": 0.10, "cost": 3},
 				{"name": "Sidekick Synergy", "desc": "Sidekicks +15%", "effect": "sidekick_power", "value": 0.15, "cost": 4},
-				{"name": "Epic Crossover", "desc": "Cross-char relic equip", "effect": "cross_equip", "value": 1, "cost": 4},
+				{"name": "Epic Crossover", "desc": "Cross-char gear equip", "effect": "cross_equip", "value": 1, "cost": 4},
 				{"name": "Legend of the Tome", "desc": "+20% all w/ full team", "effect": "full_team_bonus", "value": 0.20, "cost": 5},
 			],
 		},
@@ -2326,7 +2167,7 @@ func _init_knowledge_tree() -> void:
 			"desc": "Enemy Debuffs",
 			"color": Color(0.3, 0.55, 0.35),
 			"nodes": [
-				{"name": "Weakened Binding", "desc": "Enemies -3% HP", "effect": "enemy_hp_reduce", "value": 0.03, "cost": 1},
+				{"name": "Weakened Gear", "desc": "Enemies -3% HP", "effect": "enemy_hp_reduce", "value": 0.03, "cost": 1},
 				{"name": "Slow Ink", "desc": "Enemies 3% slower", "effect": "enemy_slow", "value": 0.03, "cost": 1},
 				{"name": "Paper Cuts", "desc": "1 dmg/sec bleed", "effect": "enemy_bleed", "value": 1.0, "cost": 2},
 				{"name": "Fading Pages", "desc": "Enemies -5% armor", "effect": "enemy_armor_reduce", "value": 0.05, "cost": 2},
@@ -2338,45 +2179,45 @@ func _init_knowledge_tree() -> void:
 			],
 		},
 	]
-	# Initialize knowledge_tree dict — ensure all branch/node keys exist
+	# Initialize knowledge_tree dict â€” ensure all branch/node keys exist
 	for bi in range(knowledge_branches.size()):
 		for ni in range(knowledge_branches[bi]["nodes"].size()):
 			var key = "%d_%d" % [bi, ni]
 			if not knowledge_tree.has(key):
 				knowledge_tree[key] = false
 
-func _init_equipped_relics() -> void:
+func _init_equipped_gear() -> void:
 	for t in survivor_types:
-		if not equipped_relics.has(t):
-			equipped_relics[t] = []
+		if not equipped_gear.has(t):
+			equipped_gear[t] = []
 
 func _init_synergy_definitions() -> void:
 	synergy_definitions = [
 		{"name": "Merry Mischief", "tower_a": TowerType.ROBIN_HOOD, "tower_b": TowerType.PETER_PAN,
-		 "buffs": {"damage": 0.15}, "desc": "Forest outlaws — +15% damage"},
+		 "buffs": {"damage": 0.15}, "desc": "Forest outlaws â€” +15% damage"},
 		{"name": "Dark Enchantment", "tower_a": TowerType.WICKED_WITCH, "tower_b": TowerType.PHANTOM,
-		 "buffs": {"range": 0.20}, "desc": "Dark magic amplifies — +20% range"},
+		 "buffs": {"range": 0.20}, "desc": "Dark magic amplifies â€” +20% range"},
 		{"name": "Holiday Spirit", "tower_a": TowerType.SCROOGE, "tower_b": TowerType.ALICE,
-		 "buffs": {"attack_speed": 0.15}, "desc": "Generosity meets wonder — +15% attack speed"},
+		 "buffs": {"attack_speed": 0.15}, "desc": "Generosity meets wonder â€” +15% attack speed"},
 		{"name": "Shadow Pact", "tower_a": TowerType.PHANTOM, "tower_b": TowerType.PETER_PAN,
-		 "buffs": {"damage": 0.10, "range": 0.10}, "desc": "Shadow & the boy who won't grow up — +10% damage, +10% range"},
+		 "buffs": {"damage": 0.10, "range": 0.10}, "desc": "Shadow & the boy who won't grow up â€” +10% damage, +10% range"},
 		{"name": "Cunning & Chaos", "tower_a": TowerType.ROBIN_HOOD, "tower_b": TowerType.WICKED_WITCH,
-		 "buffs": {"gold_bonus": 0.25}, "desc": "Stealing meets hexing — +25% gold bonus"},
+		 "buffs": {"gold_bonus": 0.25}, "desc": "Stealing meets hexing â€” +25% gold bonus"},
 		{"name": "Storybook Alliance", "tower_a": TowerType.ALICE, "tower_b": TowerType.SCROOGE,
-		 "buffs": {"attack_speed": 0.20}, "desc": "Imagination meets ambition — +20% attack speed"},
+		 "buffs": {"attack_speed": 0.20}, "desc": "Imagination meets ambition â€” +20% attack speed"},
 		# New character synergies
 		{"name": "The Great Game", "tower_a": TowerType.SHERLOCK, "tower_b": TowerType.ROBIN_HOOD,
-		 "buffs": {"damage": 0.20}, "desc": "Detective precision meets outlaw aim — +20% damage"},
+		 "buffs": {"damage": 0.20}, "desc": "Detective precision meets outlaw aim â€” +20% damage"},
 		{"name": "Lords of the Wild", "tower_a": TowerType.TARZAN, "tower_b": TowerType.PETER_PAN,
-		 "buffs": {"attack_speed": 0.20}, "desc": "Jungle king meets the boy who never grew up — +20% speed"},
+		 "buffs": {"attack_speed": 0.20}, "desc": "Jungle king meets the boy who never grew up â€” +20% speed"},
 		{"name": "Children of Darkness", "tower_a": TowerType.DRACULA, "tower_b": TowerType.PHANTOM,
-		 "buffs": {"damage": 0.15, "range": 0.15}, "desc": "Two creatures of the night — +15% damage & range"},
+		 "buffs": {"damage": 0.15, "range": 0.15}, "desc": "Two creatures of the night â€” +15% damage & range"},
 		{"name": "Arcane Alliance", "tower_a": TowerType.MERLIN, "tower_b": TowerType.WICKED_WITCH,
-		 "buffs": {"range": 0.25}, "desc": "Old magic amplifies green magic — +25% range"},
+		 "buffs": {"range": 0.25}, "desc": "Old magic amplifies green magic â€” +25% range"},
 		{"name": "Tragic Souls", "tower_a": TowerType.FRANKENSTEIN, "tower_b": TowerType.SCROOGE,
-		 "buffs": {"gold_bonus": 0.30}, "desc": "Redemption meets creation — +30% gold bonus"},
+		 "buffs": {"gold_bonus": 0.30}, "desc": "Redemption meets creation â€” +30% gold bonus"},
 		{"name": "Deductive Darkness", "tower_a": TowerType.SHERLOCK, "tower_b": TowerType.DRACULA,
-		 "buffs": {"damage": 0.15, "attack_speed": 0.10}, "desc": "Brilliant minds, dark methods — +15% damage, +10% speed"},
+		 "buffs": {"damage": 0.15, "attack_speed": 0.10}, "desc": "Brilliant minds, dark methods â€” +15% damage, +10% speed"},
 	]
 
 func _init_achievement_definitions() -> void:
@@ -2510,9 +2351,10 @@ func _check_synergies() -> void:
 				tower_nodes[syn["tower_b"]].set_synergy_buff(syn["buffs"])
 			# Show banner for newly activated synergies
 			if not syn["name"] in old_synergies:
-				synergy_banner_text = "SYNERGY: %s — %s" % [syn["name"], syn["desc"]]
+				synergy_banner_text = "SYNERGY: %s â€” %s" % [syn["name"], syn["desc"]]
 				synergy_banner_timer = 3.0
 				_check_achievement("synergy_seeker", 1)
+				_update_quest_progress("activate_synergy", 1)
 	# Track cumulative unique synergies for synergy_master achievement
 	for syn_name in active_synergies:
 		if not syn_name in synergies_ever_activated:
@@ -2541,7 +2383,7 @@ func _check_achievement(id: String, value = 1) -> void:
 		achievements_unlocked[id] = true
 		# Grant reward
 		match def_data["reward_type"]:
-			"shards": player_relic_shards += def_data["reward_amount"]
+			"shards": player_gear_shards += def_data["reward_amount"]
 			"quills": player_quills += def_data["reward_amount"]
 			"stars": player_storybook_stars += def_data["reward_amount"]
 		var trophy_bonus = def_data.get("trophy_bonus", 0)
@@ -2663,7 +2505,7 @@ func _start_odyssey_map(map_index: int) -> void:
 		var short = tname.split(" ")[0] if tname.length() > 8 else tname
 		tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
 		tower_buttons[tt].disabled = false
-	# Unlockable characters — row 2, stretched horizontally
+	# Unlockable characters â€” row 2, stretched horizontally
 	var unlock_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var ody_visible := 0
 	for tt in unlock_order:
@@ -2690,7 +2532,7 @@ func _start_odyssey_map(map_index: int) -> void:
 	start_button.disabled = false
 	speed_button.visible = true
 	update_hud()
-	info_label.text = "ODYSSEY %d/3 — %s" % [map_index + 1, level["name"]]
+	info_label.text = "ODYSSEY %d/3 â€” %s" % [map_index + 1, level["name"]]
 	wave_auto_timer = -1.0
 
 func _odyssey_map_victory() -> void:
@@ -2722,27 +2564,8 @@ func _odyssey_defeat() -> void:
 	# Partial trophy reward
 	var partial = 3 + odyssey_current_map * 3
 	trophy_currency += partial
-	game_over_label.text = "ODYSSEY FAILED — Map %d/3. +%d Trophies" % [odyssey_current_map + 1, partial]
+	game_over_label.text = "ODYSSEY FAILED â€” Map %d/3. +%d Trophies" % [odyssey_current_map + 1, partial]
 	_save_game()
-
-func _get_relic_slots(level: int) -> int:
-	if level >= 10:
-		return 5
-	elif level >= 7:
-		return 4
-	elif level >= 4:
-		return 3
-	return 2
-
-func get_equipped_relic_effects(tower_type) -> Array:
-	var effects: Array = []
-	if not equipped_relics.has(tower_type):
-		return effects
-	var char_relics_data = survivor_relics.get(tower_type, [])
-	for ri in equipped_relics[tower_type]:
-		if ri < char_relics_data.size():
-			effects.append(char_relics_data[ri])
-	return effects
 
 func _get_knowledge_bonus(effect_type: String) -> float:
 	var total: float = 0.0
@@ -2758,7 +2581,7 @@ func _save_game() -> void:
 	var save_data: Dictionary = {}
 	# Currencies
 	save_data["player_quills"] = player_quills
-	save_data["player_relic_shards"] = player_relic_shards
+	save_data["player_gear_shards"] = player_gear_shards
 	save_data["player_storybook_stars"] = player_storybook_stars
 	save_data["player_gold"] = player_gold
 	save_data["gold"] = gold
@@ -2783,12 +2606,7 @@ func _save_game() -> void:
 		var key_name = tower_info[t]["name"] if tower_info.has(t) else str(t)
 		sp_save[key_name] = survivor_progress[t]
 	save_data["survivor_progress"] = sp_save
-	# Equipped relics (use tower name strings)
-	var eq_save: Dictionary = {}
-	for t in equipped_relics:
-		var key_name = tower_info[t]["name"] if tower_info.has(t) else str(t)
-		eq_save[key_name] = equipped_relics[t]
-	save_data["equipped_relics"] = eq_save
+	# (Old equipped_relics removed - gear saves via owned_gear/equipped_gear below)
 	# Knowledge tree
 	save_data["knowledge_tree"] = knowledge_tree
 	save_data["knowledge_ink"] = knowledge_ink
@@ -2821,12 +2639,12 @@ func _save_game() -> void:
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
 	save_data["endless_high_wave"] = endless_high_wave
-	# Tome Bindings
-	save_data["owned_bindings"] = owned_bindings
-	var eq_bindings_save: Dictionary = {}
-	for t in equipped_bindings:
-		eq_bindings_save[str(t)] = equipped_bindings[t]
-	save_data["equipped_bindings"] = eq_bindings_save
+	# Gear system
+	save_data["owned_gear"] = owned_gear
+	var eq_gear_save: Dictionary = {}
+	for t in equipped_gear:
+		eq_gear_save[str(t)] = equipped_gear[t]
+	save_data["equipped_gear"] = eq_gear_save
 	# Synergy tracking for achievements
 	var synergy_names_seen: Array = synergies_ever_activated.duplicate()
 	for s in active_synergies:
@@ -2834,16 +2652,25 @@ func _save_game() -> void:
 			synergy_names_seen.append(s)
 	save_data["synergies_ever_activated"] = synergy_names_seen
 	# === NEW FEATURE SAVES ===
-	# Daily Deals
+	# Daily Deals (enhanced)
 	save_data["daily_deals_date"] = daily_deals_date
 	save_data["daily_deals_purchased"] = daily_deals_purchased
+	save_data["daily_deals_refresh_count"] = daily_deals_refresh_count
+	save_data["daily_deals_all_bonus_claimed"] = daily_deals_all_bonus_claimed
 	# Shadow Arena
 	save_data["shadow_arena_high_score"] = shadow_arena_high_score
 	save_data["arena_crystals"] = arena_crystals
-	# Quests
+	# Quests (enhanced)
 	save_data["active_quests"] = active_quests
 	save_data["quest_last_refresh"] = quest_last_refresh
 	save_data["total_quests_completed"] = total_quests_completed
+	save_data["weekly_quests"] = weekly_quests
+	save_data["weekly_quest_refresh"] = weekly_quest_refresh
+	save_data["quest_streak"] = quest_streak
+	save_data["quest_streak_last_date"] = quest_streak_last_date
+	save_data["quest_streak_best"] = quest_streak_best
+	save_data["quest_milestone_claimed"] = quest_milestone_claimed
+	save_data["_quest_reroll_count"] = _quest_reroll_count
 	# Literary Instruments
 	save_data["owned_instruments"] = owned_instruments
 	# Settings
@@ -2872,8 +2699,8 @@ func _save_game() -> void:
 	# === BATTD2 v5 SAVE FIELDS ===
 	save_data["insta_towers"] = insta_towers
 	save_data["storybook_pages_found"] = storybook_pages_found
-	save_data["_drops_since_mythic"] = _drops_since_mythic
-	save_data["_drops_since_forbidden"] = _drops_since_forbidden
+	save_data["_drops_since_epic"] = _drops_since_epic
+	save_data["_drops_since_legendary"] = _drops_since_legendary
 	save_data["victory_streak"] = victory_streak
 	save_data["victory_streak_best"] = victory_streak_best
 	save_data["gold_interest_enabled"] = gold_interest_enabled
@@ -2885,9 +2712,9 @@ func _save_game() -> void:
 	save_data["respec_count"] = respec_count
 	save_data["gear_loadouts"] = gear_loadouts
 	save_data["gear_loadout_active"] = gear_loadout_active
-	save_data["locked_bindings"] = locked_bindings
-	save_data["relic_usage_tracker"] = relic_usage_tracker
-	save_data["discovered_bindings"] = discovered_bindings
+	save_data["locked_gear"] = locked_gear
+	save_data["gear_usage_tracker"] = gear_usage_tracker
+	save_data["discovered_gear"] = discovered_gear
 	save_data["favorite_characters"] = favorite_characters
 	save_data["career_stats"] = career_stats
 	save_data["recent_items"] = recent_items
@@ -2978,7 +2805,7 @@ func _load_game() -> void:
 				new_ss.append(s)
 		data["story_seen"] = new_ss
 		data["save_version"] = 2
-	# v2 → v3 migration: initialize new fields with defaults
+	# v2 â†’ v3 migration: initialize new fields with defaults
 	if save_ver < 3:
 		data["prestige_level"] = data.get("prestige_level", 0)
 		data["combo_best"] = data.get("combo_best", 0)
@@ -2995,7 +2822,7 @@ func _load_game() -> void:
 		data["save_version"] = SAVE_VERSION
 	# Currencies
 	player_quills = int(data.get("player_quills", 0))
-	player_relic_shards = int(data.get("player_relic_shards", 0))
+	player_gear_shards = int(data.get("player_gear_shards", 0))
 	player_storybook_stars = int(data.get("player_storybook_stars", 0))
 	player_gold = int(data.get("player_gold", 0))
 	# Migrate old gold savings: if player_gold is 0 but old save had gold, transfer it
@@ -3017,27 +2844,27 @@ func _load_game() -> void:
 	level_difficulty_medals.clear()
 	for key in ldm:
 		var arr = ldm[key]
-		var medals_arr = [false, false, false]
-		for di in range(mini(arr.size(), 3)):
+		var medals_arr = [false, false, false, false]
+		for di in range(mini(arr.size(), 4)):
 			medals_arr[di] = bool(arr[di])
 		level_difficulty_medals[int(key)] = medals_arr
 	var lds = data.get("level_difficulty_stars", {})
 	level_difficulty_stars.clear()
 	for key in lds:
 		var arr = lds[key]
-		var stars_arr = [0, 0, 0]
-		for di in range(mini(arr.size(), 3)):
+		var stars_arr = [0, 0, 0, 0]
+		for di in range(mini(arr.size(), 4)):
 			stars_arr[di] = int(arr[di])
 		level_difficulty_stars[int(key)] = stars_arr
-	# Migration: old saves without per-difficulty data — mark Easy as beaten for completed levels
+	# Migration: old saves without per-difficulty data â€” mark Easy as beaten for completed levels
 	if ldm.is_empty() and not completed_levels.is_empty():
 		for lvl_idx in completed_levels:
-			level_difficulty_medals[lvl_idx] = [true, false, false]
+			level_difficulty_medals[lvl_idx] = [true, false, false, false]
 			var s = level_stars.get(lvl_idx, 0)
-			level_difficulty_stars[lvl_idx] = [s, 0, 0]
+			level_difficulty_stars[lvl_idx] = [s, 0, 0, 0]
 	# Survivor progress
 	var sp = data.get("survivor_progress", {})
-	# Build name→TowerType reverse lookup for name-based save keys
+	# Build nameâ†’TowerType reverse lookup for name-based save keys
 	var _name_to_type: Dictionary = {}
 	for tt in tower_info:
 		_name_to_type[tower_info[tt]["name"]] = tt
@@ -3061,28 +2888,16 @@ func _load_game() -> void:
 		survivor_progress[t]["xp_next"] = _get_xp_for_level(loaded_level)
 		survivor_progress[t]["gear_unlocked"] = bool(saved.get("gear_unlocked", false))
 		survivor_progress[t]["total_damage"] = float(saved.get("total_damage", 0.0))
-		var sk = saved.get("sidekicks_unlocked", [false, false, false])
-		for i in range(mini(sk.size(), 3)):
+		var sk = saved.get("sidekicks_unlocked", [false, false, false, false])
+		for i in range(mini(sk.size(), 4)):
 			survivor_progress[t]["sidekicks_unlocked"][i] = bool(sk[i])
-		var rl = saved.get("relics_unlocked", [false, false, false, false, false, false])
+		var rl = saved.get("gear_slots_unlocked", [false, false, false, false, false, false])
 		for i in range(mini(rl.size(), 6)):
-			survivor_progress[t]["relics_unlocked"][i] = bool(rl[i])
+			survivor_progress[t]["gear_slots_unlocked"][i] = bool(rl[i])
 		var ab = saved.get("abilities_unlocked", [])
 		for i in range(mini(ab.size(), 9)):
 			survivor_progress[t]["abilities_unlocked"][i] = bool(ab[i])
-	# Equipped relics (supports both int and name keys)
-	var eq = data.get("equipped_relics", {})
-	for key in eq:
-		var t: int = -1
-		if key.is_valid_int():
-			t = int(key)
-		elif _name_to_type.has(key):
-			t = _name_to_type[key]
-		if t < 0:
-			continue
-		equipped_relics[t] = []
-		for v in eq[key]:
-			equipped_relics[t].append(int(v))
+	# (Old equipped_relics removed - gear migration handled below)
 	# Knowledge tree
 	var kt = data.get("knowledge_tree", {})
 	for key in kt:
@@ -3138,37 +2953,71 @@ func _load_game() -> void:
 		unlocked_characters.append(str(v))
 	# Endless mode
 	endless_high_wave = int(data.get("endless_high_wave", 0))
-	# Tome Bindings
-	var ob = data.get("owned_bindings", {})
-	owned_bindings.clear()
+	# Gear system (with migration from old save formats)
+	# Migration: old saves may have "owned_bindings" instead of "owned_gear"
+	var ob_key = "owned_gear"
+	if not data.has("owned_gear") and data.has("owned_bindings"):
+		ob_key = "owned_bindings"
+	var ob = data.get(ob_key, {})
+	owned_gear.clear()
 	for key in ob:
-		owned_bindings[key] = int(ob[key])
-	var eb = data.get("equipped_bindings", {})
-	equipped_bindings.clear()
+		owned_gear[key] = int(ob[key])
+	# Migration: old saves may have "equipped_bindings" instead of "equipped_gear"
+	var eb_key = "equipped_gear"
+	if not data.has("equipped_gear") and data.has("equipped_bindings"):
+		eb_key = "equipped_bindings"
+	var eb = data.get(eb_key, {})
+	equipped_gear.clear()
 	for key in eb:
 		var t = int(key)
-		equipped_bindings[t] = []
+		equipped_gear[t] = []
 		for v in eb[key]:
-			equipped_bindings[t].append(str(v))
+			equipped_gear[t].append(str(v))
+	# Migration: remap old rarity tier names in any gear data
+	# (tattered->common, bound->uncommon, gilded->rare, mythic->epic, forbidden->legendary)
+	# This is handled automatically since GEAR_ITEMS uses new tier names
 	# === LOAD NEW FEATURE DATA ===
-	# Daily Deals
+	# Daily Deals (enhanced)
 	daily_deals_date = str(data.get("daily_deals_date", ""))
 	var ddp = data.get("daily_deals_purchased", [false, false, false])
 	daily_deals_purchased = []
 	for v in ddp:
 		daily_deals_purchased.append(bool(v))
-	while daily_deals_purchased.size() < 3:
+	while daily_deals_purchased.size() < 4:
 		daily_deals_purchased.append(false)
+	daily_deals_refresh_count = int(data.get("daily_deals_refresh_count", 0))
+	daily_deals_all_bonus_claimed = bool(data.get("daily_deals_all_bonus_claimed", false))
 	# Shadow Arena
 	shadow_arena_high_score = int(data.get("shadow_arena_high_score", 0))
 	arena_crystals = int(data.get("arena_crystals", 0))
-	# Quests
+	# Quests (enhanced)
 	var aq = data.get("active_quests", [])
 	active_quests.clear()
 	for q in aq:
+		# Migration: ensure claimed field exists
+		if not q.has("claimed"):
+			q["claimed"] = q.get("completed", false)
+		if not q.has("difficulty"):
+			q["difficulty"] = 0
 		active_quests.append(q)
 	quest_last_refresh = str(data.get("quest_last_refresh", ""))
 	total_quests_completed = int(data.get("total_quests_completed", 0))
+	# Weekly quests
+	var wq = data.get("weekly_quests", [])
+	weekly_quests.clear()
+	for q in wq:
+		if not q.has("claimed"):
+			q["claimed"] = q.get("completed", false)
+		weekly_quests.append(q)
+	weekly_quest_refresh = str(data.get("weekly_quest_refresh", ""))
+	quest_streak = int(data.get("quest_streak", 0))
+	quest_streak_last_date = str(data.get("quest_streak_last_date", ""))
+	quest_streak_best = int(data.get("quest_streak_best", 0))
+	var qmc = data.get("quest_milestone_claimed", {})
+	quest_milestone_claimed.clear()
+	for key in qmc:
+		quest_milestone_claimed[str(key)] = bool(qmc[key])
+	_quest_reroll_count = int(data.get("_quest_reroll_count", 0))
 	# Synergy tracking
 	var sea = data.get("synergies_ever_activated", [])
 	synergies_ever_activated.clear()
@@ -3227,8 +3076,8 @@ func _load_game() -> void:
 	storybook_pages_found.clear()
 	for key in spf:
 		storybook_pages_found[key] = bool(spf[key])
-	_drops_since_mythic = int(data.get("_drops_since_mythic", 0))
-	_drops_since_forbidden = int(data.get("_drops_since_forbidden", 0))
+	_drops_since_epic = int(data.get("_drops_since_epic", 0))
+	_drops_since_legendary = int(data.get("_drops_since_legendary", 0))
 	victory_streak = int(data.get("victory_streak", 0))
 	victory_streak_best = int(data.get("victory_streak_best", 0))
 	gold_interest_enabled = bool(data.get("gold_interest_enabled", true))
@@ -3248,18 +3097,18 @@ func _load_game() -> void:
 	var gla_data = data.get("gear_loadout_active", {})
 	for key in gla_data:
 		gear_loadout_active[int(key)] = int(gla_data[key])
-	var lb_data = data.get("locked_bindings", {})
-	locked_bindings.clear()
+	var lb_data = data.get("locked_gear", {})
+	locked_gear.clear()
 	for key in lb_data:
-		locked_bindings[str(key)] = bool(lb_data[key])
-	var rut_data = data.get("relic_usage_tracker", {})
-	relic_usage_tracker.clear()
+		locked_gear[str(key)] = bool(lb_data[key])
+	var rut_data = data.get("gear_usage_tracker", {})
+	gear_usage_tracker.clear()
 	for key in rut_data:
-		relic_usage_tracker[str(key)] = int(rut_data[key])
-	var db_data = data.get("discovered_bindings", {})
-	discovered_bindings.clear()
+		gear_usage_tracker[str(key)] = int(rut_data[key])
+	var db_data = data.get("discovered_gear", {})
+	discovered_gear.clear()
 	for key in db_data:
-		discovered_bindings[str(key)] = bool(db_data[key])
+		discovered_gear[str(key)] = bool(db_data[key])
 	var fc_data = data.get("favorite_characters", [])
 	favorite_characters.clear()
 	for v in fc_data:
@@ -3271,7 +3120,7 @@ func _load_game() -> void:
 	recent_items.clear()
 	for v in ri_data:
 		recent_items.append(v)
-	# Golden Shields migration — ensure existing progress has the field
+	# Golden Shields migration â€” ensure existing progress has the field
 	for t in survivor_progress:
 		if not survivor_progress[t].has("golden_shields"):
 			survivor_progress[t]["golden_shields"] = 0
@@ -3280,7 +3129,7 @@ func _load_game() -> void:
 	# Refresh unlocked survivors into the active roster
 	_refresh_unlocked_survivors()
 	# Check if prologue should be triggered on first load
-	if story_seen.size() == 0 and story_dialogs.has("prologue"):
+	if story_seen.is_empty() and story_dialogs.has("prologue"):
 		call_deferred("_start_story_dialog", "prologue")
 
 func _cache_path_points() -> void:
@@ -3316,7 +3165,7 @@ func _generate_decorations_for_level(index: int) -> void:
 	rng.seed = 42 + index
 
 	match index:
-		0: # Prologue — Into the Pages
+		0: # Prologue â€” Into the Pages
 			for i in range(20):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3333,7 +3182,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(40, 1240), rng.randf_range(80, 600))
 				if _dist_to_path(pos) > 45.0:
 					_decorations.append({"pos": pos, "type": "shadow_wisp", "size": rng.randf_range(4, 10), "extra": rng.randf_range(0, TAU)})
-		1: # Sherlock Ch1 — Baker Street
+		1: # Sherlock Ch1 â€” Baker Street
 			for i in range(15):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3354,7 +3203,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
 					_decorations.append({"pos": pos, "type": "fog_patch", "size": rng.randf_range(20, 40), "extra": rng.randf_range(0, 1)})
-		2: # Sherlock Ch2 — Whitechapel
+		2: # Sherlock Ch2 â€” Whitechapel
 			for i in range(35):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3369,7 +3218,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "pipe", "size": rng.randf_range(5, 11), "extra": rng.randf_range(0, 1)})
 					else:
 						_decorations.append({"pos": pos, "type": "fog_patch", "size": rng.randf_range(22, 44), "extra": rng.randf_range(0, 1)})
-		3: # Sherlock Ch3 — Reichenbach
+		3: # Sherlock Ch3 â€” Reichenbach
 			for i in range(40):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3384,7 +3233,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "pipe", "size": rng.randf_range(6, 12), "extra": rng.randf_range(0, 1)})
 					else:
 						_decorations.append({"pos": pos, "type": "fog_patch", "size": rng.randf_range(24, 48), "extra": rng.randf_range(0, 1)})
-		4: # Merlin Ch1 — Round Table
+		4: # Merlin Ch1 â€” Round Table
 			for i in range(15):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3405,7 +3254,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(30, 1250), rng.randf_range(60, 610))
 				if _dist_to_path(pos) > 45.0:
 					_decorations.append({"pos": pos, "type": "mushroom", "size": rng.randf_range(3, 7), "extra": rng.randf_range(0, 1)})
-		5: # Merlin Ch2 — Enchanted Forest
+		5: # Merlin Ch2 â€” Enchanted Forest
 			for i in range(38):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3420,7 +3269,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "celtic_tree", "size": rng.randf_range(18, 34), "extra": rng.randf_range(-0.04, 0.04)})
 					else:
 						_decorations.append({"pos": pos, "type": "mushroom", "size": rng.randf_range(4, 8), "extra": rng.randf_range(0, 1)})
-		6: # Merlin Ch3 — Crystal Cave
+		6: # Merlin Ch3 â€” Crystal Cave
 			for i in range(44):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3435,7 +3284,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "celtic_tree", "size": rng.randf_range(18, 36), "extra": rng.randf_range(-0.04, 0.04)})
 					else:
 						_decorations.append({"pos": pos, "type": "mushroom", "size": rng.randf_range(4, 9), "extra": rng.randf_range(0, 1)})
-		7: # Tarzan Ch1 — Jungle Canopy
+		7: # Tarzan Ch1 â€” Jungle Canopy
 			for i in range(20):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3452,7 +3301,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(100, 1180), rng.randf_range(120, 550))
 				if _dist_to_path(pos) > 65.0:
 					_decorations.append({"pos": pos, "type": "parrot", "size": rng.randf_range(5, 10), "extra": rng.randf_range(0, TAU)})
-		8: # Tarzan Ch2 — Elephant Graveyard
+		8: # Tarzan Ch2 â€” Elephant Graveyard
 			for i in range(36):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3467,7 +3316,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "barrel", "size": rng.randf_range(8, 14), "extra": rng.randf_range(0, 1)})
 					else:
 						_decorations.append({"pos": pos, "type": "parrot", "size": rng.randf_range(5, 11), "extra": rng.randf_range(0, TAU)})
-		9: # Tarzan Ch3 — Clayton's Fortress
+		9: # Tarzan Ch3 â€” Clayton's Fortress
 			for i in range(42):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3482,7 +3331,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "barrel", "size": rng.randf_range(8, 16), "extra": rng.randf_range(0, 1)})
 					else:
 						_decorations.append({"pos": pos, "type": "parrot", "size": rng.randf_range(6, 12), "extra": rng.randf_range(0, TAU)})
-		10: # Dracula Ch1 — Village
+		10: # Dracula Ch1 â€” Village
 			for i in range(12):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3503,7 +3352,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(100, 1180), rng.randf_range(150, 520))
 				if _dist_to_path(pos) > 70.0:
 					_decorations.append({"pos": pos, "type": "coffin", "size": rng.randf_range(10, 18), "extra": rng.randf_range(0, TAU)})
-		11: # Dracula Ch2 — Castle
+		11: # Dracula Ch2 â€” Castle
 			for i in range(36):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3518,7 +3367,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "bat_swarm", "size": rng.randf_range(4, 8), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "coffin", "size": rng.randf_range(11, 20), "extra": rng.randf_range(0, TAU)})
-		12: # Dracula Ch3 — Crypt
+		12: # Dracula Ch3 â€” Crypt
 			for i in range(44):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3533,7 +3382,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "bat_swarm", "size": rng.randf_range(4, 9), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "coffin", "size": rng.randf_range(12, 22), "extra": rng.randf_range(0, TAU)})
-		13: # Frankenstein Ch1 — Lab
+		13: # Frankenstein Ch1 â€” Lab
 			for i in range(10):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3550,7 +3399,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(80, 1200), rng.randf_range(120, 560))
 				if _dist_to_path(pos) > 55.0:
 					_decorations.append({"pos": pos, "type": "stitch_mark", "size": rng.randf_range(4, 8), "extra": rng.randf_range(0, TAU)})
-		14: # Frankenstein Ch2 — Village
+		14: # Frankenstein Ch2 â€” Village
 			for i in range(36):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3563,7 +3412,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "gear", "size": rng.randf_range(7, 15), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "stitch_mark", "size": rng.randf_range(5, 9), "extra": rng.randf_range(0, TAU)})
-		15: # Frankenstein Ch3 — Arctic
+		15: # Frankenstein Ch3 â€” Arctic
 			for i in range(42):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3578,7 +3427,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "stitch_mark", "size": rng.randf_range(5, 10), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "snowflake", "size": rng.randf_range(3, 8), "extra": rng.randf_range(0, TAU)})
-		16: # Robin Hood Ch1 — Sherwood Forest
+		16: # Robin Hood Ch1 â€” Sherwood Forest
 			for i in range(30):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3599,7 +3448,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(200, 1000), rng.randf_range(150, 500))
 				if _dist_to_path(pos) > 90.0:
 					_decorations.append({"pos": pos, "type": "campfire", "size": 12.0, "extra": rng.randf_range(0, TAU)})
-		17: # Robin Hood Ch2 — Sheriff's Pursuit
+		17: # Robin Hood Ch2 â€” Sheriff's Pursuit
 			for i in range(35):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3614,7 +3463,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "deer", "size": rng.randf_range(10, 17), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "campfire", "size": rng.randf_range(11, 14), "extra": rng.randf_range(0, TAU)})
-		18: # Robin Hood Ch3 — Siege of Nottingham
+		18: # Robin Hood Ch3 â€” Siege of Nottingham
 			for i in range(45):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3629,7 +3478,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "deer", "size": rng.randf_range(10, 18), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "campfire", "size": rng.randf_range(12, 16), "extra": rng.randf_range(0, TAU)})
-		19: # Alice Ch1 — Down the Rabbit Hole
+		19: # Alice Ch1 â€” Down the Rabbit Hole
 			for i in range(15):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3645,7 +3494,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(50, 1230), rng.randf_range(80, 560))
 				if _dist_to_path(pos) > 60.0:
 					_decorations.append({"pos": pos, "type": "teacup", "size": rng.randf_range(6, 10), "extra": 0.0})
-		20: # Alice Ch2 — Mad Tea Party
+		20: # Alice Ch2 â€” Mad Tea Party
 			for i in range(30):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3658,7 +3507,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "rose", "size": rng.randf_range(4, 9), "extra": rng.randf_range(0.0, 1.0)})
 					else:
 						_decorations.append({"pos": pos, "type": "teacup", "size": rng.randf_range(6, 11), "extra": 0.0})
-		21: # Alice Ch3 — Queen's Court
+		21: # Alice Ch3 â€” Queen's Court
 			for i in range(40):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3671,7 +3520,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "rose", "size": rng.randf_range(5, 10), "extra": rng.randf_range(0.0, 1.0)})
 					else:
 						_decorations.append({"pos": pos, "type": "teacup", "size": rng.randf_range(7, 12), "extra": 0.0})
-		22: # Oz Ch1 — Yellow Brick Road
+		22: # Oz Ch1 â€” Yellow Brick Road
 			for i in range(25):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(100, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3684,7 +3533,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(100, 1100), rng.randf_range(150, 550))
 				if _dist_to_path(pos) > 70.0:
 					_decorations.append({"pos": pos, "type": "scarecrow", "size": rng.randf_range(12, 18), "extra": 0.0})
-		23: # Oz Ch2 — Witch's Domain
+		23: # Oz Ch2 â€” Witch's Domain
 			for i in range(35):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3695,7 +3544,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "emerald_crystal", "size": rng.randf_range(6, 14), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "scarecrow", "size": rng.randf_range(13, 19), "extra": 0.0})
-		24: # Oz Ch3 — Emerald Throne
+		24: # Oz Ch3 â€” Emerald Throne
 			for i in range(48):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3706,7 +3555,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "emerald_crystal", "size": rng.randf_range(6, 16), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "scarecrow", "size": rng.randf_range(12, 20), "extra": 0.0})
-		25: # Peter Pan Ch1 — Flight to Neverland
+		25: # Peter Pan Ch1 â€” Flight to Neverland
 			for i in range(35):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3722,7 +3571,7 @@ func _generate_decorations_for_level(index: int) -> void:
 			for i in range(25):
 				var pos = Vector2(rng.randf_range(10, 1270), rng.randf_range(52, 180))
 				_decorations.append({"pos": pos, "type": "star", "size": rng.randf_range(0.3, 0.8), "extra": rng.randf_range(0, TAU)})
-		26: # Peter Pan Ch2 — Lost Boys' Stand
+		26: # Peter Pan Ch2 â€” Lost Boys' Stand
 			for i in range(35):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3735,7 +3584,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "mushroom", "size": rng.randf_range(3, 8), "extra": rng.randf_range(0, 1)})
 					else:
 						_decorations.append({"pos": pos, "type": "star", "size": rng.randf_range(0.3, 0.9), "extra": rng.randf_range(0, TAU)})
-		27: # Peter Pan Ch3 — The Jolly Roger
+		27: # Peter Pan Ch3 â€” The Jolly Roger
 			for i in range(46):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3748,7 +3597,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "mushroom", "size": rng.randf_range(4, 9), "extra": rng.randf_range(0, 1)})
 					else:
 						_decorations.append({"pos": pos, "type": "star", "size": rng.randf_range(0.4, 1.0), "extra": rng.randf_range(0, TAU)})
-		28: # Phantom Ch1 — Grand Stage
+		28: # Phantom Ch1 â€” Grand Stage
 			for i in range(10):
 				var pos = Vector2(rng.randf_range(60, 1220), rng.randf_range(100, 580))
 				if _dist_to_path(pos) > 55.0:
@@ -3764,7 +3613,7 @@ func _generate_decorations_for_level(index: int) -> void:
 			for i in range(8):
 				var pos = Vector2(rng.randf_range(40, 1240), rng.randf_range(60, 400))
 				_decorations.append({"pos": pos, "type": "sheet_music", "size": rng.randf_range(4, 8), "extra": rng.randf_range(0, TAU)})
-		29: # Phantom Ch2 — Labyrinth
+		29: # Phantom Ch2 â€” Labyrinth
 			for i in range(32):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3777,7 +3626,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "rose", "size": rng.randf_range(4, 7), "extra": rng.randf_range(0.0, 1.0)})
 					else:
 						_decorations.append({"pos": pos, "type": "sheet_music", "size": rng.randf_range(5, 9), "extra": rng.randf_range(0, TAU)})
-		30: # Phantom Ch3 — Phantom's Lair
+		30: # Phantom Ch3 â€” Phantom's Lair
 			for i in range(42):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3790,7 +3639,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "rose", "size": rng.randf_range(4, 8), "extra": rng.randf_range(0.0, 1.0)})
 					else:
 						_decorations.append({"pos": pos, "type": "sheet_music", "size": rng.randf_range(5, 10), "extra": rng.randf_range(0, TAU)})
-		31: # Scrooge Ch1 — Christmas Eve
+		31: # Scrooge Ch1 â€” Christmas Eve
 			for i in range(12):
 				var pos = Vector2(rng.randf_range(60, 1220), rng.randf_range(100, 560))
 				if _dist_to_path(pos) > 55.0:
@@ -3807,7 +3656,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(100, 1180), rng.randf_range(150, 500))
 				if _dist_to_path(pos) > 70.0:
 					_decorations.append({"pos": pos, "type": "chimney", "size": rng.randf_range(8, 14), "extra": rng.randf_range(0, TAU)})
-		32: # Scrooge Ch2 — Three Spirits
+		32: # Scrooge Ch2 â€” Three Spirits
 			for i in range(33):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 60.0:
@@ -3820,7 +3669,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "snow_pile", "size": rng.randf_range(6, 14), "extra": 0.0})
 					else:
 						_decorations.append({"pos": pos, "type": "chimney", "size": rng.randf_range(9, 15), "extra": rng.randf_range(0, TAU)})
-		33: # Scrooge Ch3 — Redemption's Dawn
+		33: # Scrooge Ch3 â€” Redemption's Dawn
 			for i in range(44):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3833,7 +3682,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "snow_pile", "size": rng.randf_range(7, 16), "extra": 0.0})
 					else:
 						_decorations.append({"pos": pos, "type": "chimney", "size": rng.randf_range(9, 17), "extra": rng.randf_range(0, TAU)})
-		34: # Shadow Author Ch1 — Ink Realm
+		34: # Shadow Author Ch1 â€” Ink Realm
 			for i in range(15):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3850,7 +3699,7 @@ func _generate_decorations_for_level(index: int) -> void:
 				var pos = Vector2(rng.randf_range(80, 1200), rng.randf_range(120, 560))
 				if _dist_to_path(pos) > 60.0:
 					_decorations.append({"pos": pos, "type": "chapter_marker", "size": rng.randf_range(4, 8), "extra": rng.randf_range(0, 1)})
-		35: # Shadow Author Ch2 — Unwritten Pages
+		35: # Shadow Author Ch2 â€” Unwritten Pages
 			for i in range(38):
 				var pos = Vector2(rng.randf_range(20, 1260), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 55.0:
@@ -3863,7 +3712,7 @@ func _generate_decorations_for_level(index: int) -> void:
 						_decorations.append({"pos": pos, "type": "broken_quill", "size": rng.randf_range(6, 12), "extra": rng.randf_range(0, TAU)})
 					else:
 						_decorations.append({"pos": pos, "type": "chapter_marker", "size": rng.randf_range(5, 10), "extra": rng.randf_range(0, 1)})
-		36: # Shadow Author Ch3 — Final Chapter
+		36: # Shadow Author Ch3 â€” Final Chapter
 			for i in range(46):
 				var pos = Vector2(rng.randf_range(15, 1265), rng.randf_range(55, 620))
 				if _dist_to_path(pos) > 50.0:
@@ -3877,7 +3726,7 @@ func _generate_decorations_for_level(index: int) -> void:
 					else:
 						_decorations.append({"pos": pos, "type": "chapter_marker", "size": rng.randf_range(5, 12), "extra": rng.randf_range(0, 1)})
 
-	# Shadow Author taunt + shadow figures — active on ALL maps
+	# Shadow Author taunt + shadow figures â€” active on ALL maps
 	_sa_taunt_triggered = false
 	_sa_taunt_timer = -1.0
 	_sa_taunt_trigger_time = rng.randf_range(10.0, 40.0)  # Random time each level
@@ -3959,12 +3808,12 @@ func _create_ui() -> void:
 
 	# Row 1: Base 6 towers stretched across
 	var base_towers = [
-		[TowerType.ROBIN_HOOD, "Robin [75G]", "Robin Hood — long range archer, gold bonus."],
-		[TowerType.ALICE, "Alice [85G]", "Alice — cake, slows enemies in area."],
-		[TowerType.WICKED_WITCH, "Witch [100G]", "Wicked Witch — eye blast, wolves."],
-		[TowerType.PETER_PAN, "Peter [90G]", "Peter Pan — fast daggers, shadow."],
-		[TowerType.PHANTOM, "Phantom [95G]", "Phantom — heavy hits, stun, chandelier."],
-		[TowerType.SCROOGE, "Scrooge [60G]", "Scrooge — bell, knockback & gold gen."],
+		[TowerType.ROBIN_HOOD, "Robin [75G]", "Robin Hood â€” long range archer, gold bonus."],
+		[TowerType.ALICE, "Alice [85G]", "Alice â€” cake, slows enemies in area."],
+		[TowerType.WICKED_WITCH, "Witch [100G]", "Wicked Witch â€” eye blast, wolves."],
+		[TowerType.PETER_PAN, "Peter [90G]", "Peter Pan â€” fast daggers, shadow."],
+		[TowerType.PHANTOM, "Phantom [95G]", "Phantom â€” heavy hits, stun, chandelier."],
+		[TowerType.SCROOGE, "Scrooge [60G]", "Scrooge â€” bell, knockback & gold gen."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
@@ -3976,12 +3825,12 @@ func _create_ui() -> void:
 
 	# Row 2: Unlockable characters stretched across (hidden until unlocked)
 	var new_chars = [
-		[TowerType.SHERLOCK, "Holmes [110G]", "Sherlock — focus beam, deduction mark."],
-		[TowerType.TARZAN, "Tarzan [100G]", "Tarzan — melee beast, vine swing, animals."],
-		[TowerType.DRACULA, "Dracula [105G]", "Dracula — life drain, bats, minion control."],
-		[TowerType.MERLIN, "Merlin [115G]", "Merlin — buffs, curses, Excalibur strikes."],
-		[TowerType.FRANKENSTEIN, "Monster [130G]", "Frankenstein — AoE lightning fist smash."],
-		[TowerType.SHADOW_AUTHOR, "Author [250G]", "Shadow Author — ink attacks, rewrite, shadow servants."],
+		[TowerType.SHERLOCK, "Holmes [110G]", "Sherlock â€” focus beam, deduction mark."],
+		[TowerType.TARZAN, "Tarzan [100G]", "Tarzan â€” melee beast, vine swing, animals."],
+		[TowerType.DRACULA, "Dracula [105G]", "Dracula â€” life drain, bats, minion control."],
+		[TowerType.MERLIN, "Merlin [115G]", "Merlin â€” buffs, curses, Excalibur strikes."],
+		[TowerType.FRANKENSTEIN, "Monster [130G]", "Frankenstein â€” AoE lightning fist smash."],
+		[TowerType.SHADOW_AUTHOR, "Author [250G]", "Shadow Author â€” ink attacks, rewrite, shadow servants."],
 	]
 	for i in range(new_chars.size()):
 		var nc = new_chars[i]
@@ -4016,7 +3865,7 @@ func _create_ui() -> void:
 	bottom_panel.add_child(speed_button)
 
 	restart_button = Button.new()
-	restart_button.text = "  ↺  "
+	restart_button.text = "  â†º  "
 	restart_button.position = Vector2(1202, 2)
 	restart_button.custom_minimum_size = Vector2(72, 48)
 	restart_button.pressed.connect(_on_restart_pressed)
@@ -4158,7 +4007,7 @@ func _create_ui() -> void:
 	sep.size = Vector2(180, 1)
 	upgrade_panel.add_child(sep)
 
-	# Portrait area — border behind, dark bg, then drawable Control on top
+	# Portrait area â€” border behind, dark bg, then drawable Control on top
 	var portrait_border = ColorRect.new()
 	portrait_border.color = Color(0.85, 0.65, 0.1, 0.3)
 	portrait_border.position = Vector2(48, 48)
@@ -4277,7 +4126,7 @@ func _create_ui() -> void:
 
 	# === MAIN MENU OVERLAY ===
 	menu_overlay = ColorRect.new()
-	menu_overlay.color = Color(0, 0, 0, 0)  # Transparent — we draw the background in _draw()
+	menu_overlay.color = Color(0, 0, 0, 0)  # Transparent â€” we draw the background in _draw()
 	menu_overlay.position = Vector2(0, 0)
 	menu_overlay.size = Vector2(1280, 720)
 	menu_overlay.visible = true
@@ -4313,7 +4162,7 @@ func _create_ui() -> void:
 	for i in range(5):
 		_world_map_smoke.append({"y": rng3.randf_range(-5, -35), "speed": rng3.randf_range(0.3, 0.8), "size": rng3.randf_range(2.0, 5.0), "offset": rng3.randf_range(0, TAU)})
 
-	# Title — hidden by default (shown on book cover, drawn procedurally)
+	# Title â€” hidden by default (shown on book cover, drawn procedurally)
 	menu_title = Label.new()
 	menu_title.text = ""
 	menu_title.position = Vector2(20, 22)
@@ -4321,7 +4170,7 @@ func _create_ui() -> void:
 	menu_title.visible = false
 	menu_overlay.add_child(menu_title)
 
-	# Subtitle — hidden (drawn on book cover)
+	# Subtitle â€” hidden (drawn on book cover)
 	menu_subtitle = Label.new()
 	menu_subtitle.text = ""
 	menu_subtitle.position = Vector2(22, 72)
@@ -4474,7 +4323,7 @@ func _create_ui() -> void:
 	nav_bar.size = Vector2(1280, 100)
 	menu_overlay.add_child(nav_bar)
 
-	# Nav bar top border — gold line (3px) + gold accent (1px)
+	# Nav bar top border â€” gold line (3px) + gold accent (1px)
 	var nav_border = ColorRect.new()
 	nav_border.color = Color(0.79, 0.66, 0.30, 0.4)
 	nav_border.position = Vector2(0, 0)
@@ -4487,7 +4336,7 @@ func _create_ui() -> void:
 	nav_gold_accent.size = Vector2(1280, 1)
 	nav_bar.add_child(nav_gold_accent)
 
-	var nav_names = ["SURVIVORS", "RELICS", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
+	var nav_names = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
 	nav_names.append("ACHIEVEMENTS")
 	for i in range(6):
 		var btn_x = 42 + i * 200
@@ -4591,7 +4440,7 @@ func _create_ui() -> void:
 	survivor_detail_container.add_child(det_level)
 
 	# Hidden data labels (used by _open_survivor_detail for data, drawn procedurally)
-	for lbl_name in ["DetailXP", "DetailNovel", "DetailDesc", "GearHeader", "GearName", "GearDesc", "SidekicksHeader", "RelicsHeader", "RelicTooltipName", "RelicTooltipDesc", "AbilitiesHeader", "AbilitiesDesc"]:
+	for lbl_name in ["DetailXP", "DetailNovel", "DetailDesc", "GearHeader", "GearName", "GearDesc", "SidekicksHeader", "GearHeader2", "GearTooltipName", "GearTooltipDesc", "AbilitiesHeader", "AbilitiesDesc"]:
 		var lbl = Label.new()
 		lbl.name = lbl_name
 		lbl.visible = false
@@ -4692,7 +4541,7 @@ func _show_menu() -> void:
 	menu_left_arrow.visible = false
 	menu_right_arrow.visible = false
 	menu_showcase_panel.visible = false
-	# Hide old chapter UI — chapters view draws everything procedurally
+	# Hide old chapter UI â€” chapters view draws everything procedurally
 	for i in range(3):
 		chapter_title_labels[i].visible = false
 		chapter_desc_labels[i].visible = false
@@ -4726,8 +4575,8 @@ func _claim_daily_reward() -> void:
 	var reward_text = ""
 	match reward["type"]:
 		"shards":
-			player_relic_shards += reward["amount"]
-			reward_text = "+%d Relic Shards" % reward["amount"]
+			player_gear_shards += reward["amount"]
+			reward_text = "+%d Gear Shards" % reward["amount"]
 		"quills":
 			player_quills += reward["amount"]
 			reward_text = "+%d Quills" % reward["amount"]
@@ -4839,7 +4688,7 @@ func _update_menu_showcase() -> void:
 	var total_stars = 0
 	for key in level_stars:
 		total_stars += level_stars[key]
-	menu_star_total_label.text = "â˜… %d / %d" % [total_stars, levels.size() * 3]
+	menu_star_total_label.text = "Ã¢Ëœâ€¦ %d / %d" % [total_stars, levels.size() * 3]
 
 func _hide_chapter_diff_buttons(chapter_idx: int) -> void:
 	if chapter_idx < chapter_diff_buttons.size():
@@ -4892,9 +4741,9 @@ func _on_nav_pressed(nav_name: String) -> void:
 		survivor_detail_container.visible = false
 		survivor_detail_open = false
 	# Reset scroll positions when switching views
-	relic_scroll_offset = 0.0
-	binding_shop_scroll = 0.0
-	detail_binding_scroll = 0.0
+	gear_scroll_offset = 0.0
+	gear_shop_scroll = 0.0
+	detail_gear_scroll = 0.0
 	menu_current_view = nav_name
 	menu_transition_alpha = 0.0  # Trigger fade-in
 	_menu_transition_alpha = 1.0  # Trigger dark overlay transition (enhancement #48)
@@ -4905,7 +4754,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 
 		menu_left_arrow.visible = false
 		menu_right_arrow.visible = false
-		# Hide old chapter UI — we draw everything procedurally now
+		# Hide old chapter UI â€” we draw everything procedurally now
 		for i in range(3):
 			chapter_title_labels[i].visible = false
 			chapter_desc_labels[i].visible = false
@@ -4932,7 +4781,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 			chapter_lock_labels[i].visible = false
 			_hide_chapter_diff_buttons(i)
 		queue_redraw()
-	elif nav_name == "relics":
+	elif nav_name == "gear":
 		menu_showcase_panel.visible = false
 		survivor_grid_container.visible = false
 	
@@ -4945,9 +4794,9 @@ func _on_nav_pressed(nav_name: String) -> void:
 			chapter_star_labels[i].visible = false
 			chapter_lock_labels[i].visible = false
 			_hide_chapter_diff_buttons(i)
-		relics_tab_hover_tier = -1
-		relics_tab_hover_row = -1
-		relics_tab_hover_col = -1
+		gear_tab_hover_tier = -1
+		gear_tab_hover_row = -1
+		gear_tab_hover_col = -1
 		queue_redraw()
 	elif nav_name == "emporium":
 		menu_showcase_panel.visible = false
@@ -5017,7 +4866,7 @@ func _on_survivor_card_pressed(index: int) -> void:
 		return
 	var tower_type = survivor_types[index]
 	if not _is_character_unlocked(tower_type):
-		return  # Locked — do nothing
+		return  # Locked â€” do nothing
 	survivor_selected_index = index
 	_open_survivor_detail(index)
 	queue_redraw()
@@ -5032,8 +4881,8 @@ func _open_survivor_detail(index: int) -> void:
 	detail_hover_index = -1
 	detail_info_overlay_open = false
 	detail_info_close_hover = false
-	relic_hover_index = -1
-	relic_tooltip_visible = false
+	gear_hover_index = -1
+	gear_tooltip_visible = false
 
 	# Create a preview of the tower for display
 	_remove_detail_preview()
@@ -5063,8 +4912,8 @@ func _on_detail_back() -> void:
 	survivor_detail_open = false
 	survivor_detail_container.visible = false
 	survivor_grid_container.visible = false
-	relic_hover_index = -1
-	relic_tooltip_visible = false
+	gear_hover_index = -1
+	gear_tooltip_visible = false
 	detail_info_overlay_open = false
 	detail_info_close_hover = false
 	_remove_detail_preview()
@@ -5157,7 +5006,7 @@ func _on_emporium_sub_clicked(item_index: int) -> void:
 		"quills":
 			can_afford = player_quills >= cost
 		"shards":
-			can_afford = player_relic_shards >= cost
+			can_afford = player_gear_shards >= cost
 		"stars":
 			can_afford = player_storybook_stars >= cost
 		"gold":
@@ -5172,7 +5021,7 @@ func _on_emporium_sub_clicked(item_index: int) -> void:
 		"quills":
 			player_quills -= cost
 		"shards":
-			player_relic_shards -= cost
+			player_gear_shards -= cost
 		"stars":
 			player_storybook_stars -= cost
 		"gold":
@@ -5186,7 +5035,7 @@ func _on_emporium_sub_clicked(item_index: int) -> void:
 		"quills":
 			player_quills += amount
 		"shards":
-			player_relic_shards += amount
+			player_gear_shards += amount
 		"stars":
 			player_storybook_stars += amount
 		"chest_bronze":
@@ -5238,7 +5087,7 @@ func _on_emporium_sub_input(mouse_pos: Vector2) -> void:
 	if emporium_sub_hover >= 0:
 		_on_emporium_sub_clicked(emporium_sub_hover)
 		return
-	# Open chest buttons (only for category 3 = Relic Chests)
+	# Open chest buttons (only for category 3 = Gear Chests)
 	if emporium_sub_category == 3:
 		var open_y = panel_y + 290.0
 		var tier_keys = ["bronze", "silver", "gold"]
@@ -5253,7 +5102,7 @@ func _on_emporium_sub_input(mouse_pos: Vector2) -> void:
 					_start_chest_opening(ci)
 					return
 
-func _update_relics_tab_hover() -> void:
+func _update_gear_tab_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 	var panel_x = 70.0
 	var panel_y = 45.0
@@ -5265,19 +5114,19 @@ func _update_relics_tab_hover() -> void:
 	var card_h = 50.0
 	var card_gap_x = 10.0
 	var card_gap_y = 6.0
-	relics_tab_hover_tier = -1
-	relics_tab_hover_row = -1
-	relics_tab_hover_col = -1
+	gear_tab_hover_tier = -1
+	gear_tab_hover_row = -1
+	gear_tab_hover_col = -1
 	# Only detect hovers within content area
 	if mouse_pos.y < content_top or mouse_pos.y > content_bottom:
 		return
-	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
-	var section_y = content_top - relic_scroll_offset
+	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
+	var section_y = content_top - gear_scroll_offset
 	for tier in range(rarity_order.size()):
 		var rarity = rarity_order[tier]
 		var trinket_count = 0
-		for b in TOME_BINDINGS:
-			if b["rarity"] == rarity:
+		for b in GEAR_ITEMS:
+			if b["tier"] == rarity:
 				trinket_count += 1
 		var row_y = section_y + 24.0
 		var rows_needed = (trinket_count + 3) / 4
@@ -5291,9 +5140,9 @@ func _update_relics_tab_hover() -> void:
 				if cy + card_h < content_top or cy > content_bottom:
 					continue
 				if mouse_pos.x >= cx and mouse_pos.x <= cx + card_w and mouse_pos.y >= cy and mouse_pos.y <= cy + card_h:
-					relics_tab_hover_tier = tier
-					relics_tab_hover_row = row
-					relics_tab_hover_col = col
+					gear_tab_hover_tier = tier
+					gear_tab_hover_row = row
+					gear_tab_hover_col = col
 					return
 		var section_height = 24.0 + float(rows_needed) * (card_h + card_gap_y) + 12.0
 		section_y += section_height
@@ -5323,11 +5172,11 @@ func _update_detail_hover() -> void:
 	var gear_sy = content_y + 24.0
 	var sk_x = right_x + slot_size + 50.0
 	var sk_slot_y = content_y + 24.0
-	var sk_levels = [3, 5, 8]
-	var rel_y = gear_sy + slot_size + 44.0
-	var relic_slot_y = rel_y + 24.0
-	var relic_slot_size = 72.0
-	var relic_gap = 12.0
+	var sk_levels = [3, 5, 8, 10]
+	var gear_section_y = gear_sy + slot_size + 44.0
+	var gear_slot_y = gear_section_y + 24.0
+	var gear_slot_size = 64.0
+	var gear_gap = 8.0
 	# Check level-up button (below XP bar)
 	var levelup_btn_y = xp_y + xp_h
 	if Rect2(port_x, levelup_btn_y, port_w, levelup_btn_h).has_point(mouse_pos):
@@ -5350,9 +5199,9 @@ func _update_detail_hover() -> void:
 		if old_type != detail_hover_type or old_idx != detail_hover_index:
 			queue_redraw()
 		return
-	# Check ability entries (right of relics)
+	# Check ability entries (right of gear)
 	var abil_x = right_x + 270.0
-	var abil_entry_y = rel_y + 30.0
+	var abil_entry_y = gear_section_y + 30.0
 	var abil_entry_h = 48.0
 	var abil_w = 520.0
 	for ai in range(mini(survivor_detail_abilities.size(), 4)):
@@ -5379,129 +5228,45 @@ func _update_detail_hover() -> void:
 			if old_type != detail_hover_type or old_idx != detail_hover_index:
 				queue_redraw()
 			return
-	# Check relic slots (2 rows × 3 cols)
-	var tower_type = survivor_types[survivor_detail_index]
-	var char_relics = survivor_relics.get(tower_type, [])
-	for ri in range(mini(char_relics.size(), 6)):
-		var r_row = ri / 3
-		var r_col = ri % 3
-		var rx = right_x + float(r_col) * (relic_slot_size + relic_gap)
-		var ry = relic_slot_y + float(r_row) * (relic_slot_size + 24.0)
-		if Rect2(rx, ry, relic_slot_size, relic_slot_size).has_point(mouse_pos):
-			detail_hover_type = "relic"
-			detail_hover_index = ri
-			if old_type != detail_hover_type or old_idx != detail_hover_index:
-				queue_redraw()
-			return
 	if old_type != "" or old_idx >= 0:
 		queue_redraw()
 
-func _update_relic_hover() -> void:
-	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
-		return
-	var mouse_pos = get_viewport().get_mouse_position()
-	# Coordinates must match _draw_survivor_detail()
-	var panel_x = 70.0
-	var panel_y = 38.0
-	var top_y = panel_y + 8.0
-	var content_y = top_y + 38.0
-	var right_x = panel_x + 310.0
-	var slot_size = 72.0
-	var gear_sy = content_y + 24.0
-	var rel_y = gear_sy + slot_size + 44.0
-	var relic_slot_y = rel_y + 24.0
-	var relic_slot_size = 72.0
-	var relic_gap = 12.0
-	var tower_type = survivor_types[survivor_detail_index]
-	var char_relics = survivor_relics.get(tower_type, [])
-	var old_hover = relic_hover_index
-	relic_hover_index = -1
-	for ri in range(mini(char_relics.size(), 6)):
-		var r_row = ri / 3
-		var r_col = ri % 3
-		var rx = right_x + float(r_col) * (relic_slot_size + relic_gap)
-		var ry = relic_slot_y + float(r_row) * (relic_slot_size + 24.0)
-		if Rect2(rx, ry, relic_slot_size, relic_slot_size).has_point(mouse_pos):
-			relic_hover_index = ri
-			break
-	# Update tooltip labels
-	if relic_hover_index != old_hover:
-		var relic_tt_name_lbl = survivor_detail_container.get_node("RelicTooltipName")
-		var relic_tt_desc_lbl = survivor_detail_container.get_node("RelicTooltipDesc")
-		if relic_hover_index >= 0 and relic_hover_index < char_relics.size():
-			var relic_data = char_relics[relic_hover_index]
-			var progress = survivor_progress.get(tower_type, {})
-			var rel_unlocked = progress.get("relics_unlocked", [false, false, false, false, false, false])
-			var is_unlocked = rel_unlocked[relic_hover_index] if relic_hover_index < rel_unlocked.size() else false
-			var relic_purchasable = [false, true, false, true, false, true]
-			var relic_costs = [0, 100, 0, 250, 0, 500]
-			var relic_earn_levels = [2, 4, 6, 8, 10, 12]
-			var char_level = progress.get("level", 1)
-			var name_text = relic_data["name"]
-			if is_unlocked:
-				var eq_list = equipped_relics.get(tower_type, [])
-				if relic_hover_index in eq_list:
-					name_text += "  [EQUIPPED - Click to unequip]"
-				else:
-					var max_slots = _get_relic_slots(char_level)
-					if eq_list.size() < max_slots:
-						name_text += "  [OWNED - Click to equip]"
-					else:
-						name_text += "  [OWNED - Slots full]"
-			elif relic_purchasable[relic_hover_index] and char_level >= relic_earn_levels[relic_hover_index]:
-				name_text += "  [BUY: %d gold]" % relic_costs[relic_hover_index]
-			elif char_level < relic_earn_levels[relic_hover_index]:
-				name_text += "  [Lv.%d]" % relic_earn_levels[relic_hover_index]
-			if relic_tt_name_lbl:
-				relic_tt_name_lbl.text = name_text
-				relic_tt_name_lbl.visible = true
-			if relic_tt_desc_lbl:
-				relic_tt_desc_lbl.text = relic_data["desc"]
-				relic_tt_desc_lbl.visible = true
-			relic_tooltip_visible = true
-		else:
-			if relic_tt_name_lbl:
-				relic_tt_name_lbl.visible = false
-			if relic_tt_desc_lbl:
-				relic_tt_desc_lbl.visible = false
-			relic_tooltip_visible = false
-
-func _on_relic_clicked(relic_index: int) -> void:
+func _on_gear_slot_clicked(gear_index: int) -> void:
 	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
 		return
 	var tower_type = survivor_types[survivor_detail_index]
 	var progress = survivor_progress.get(tower_type, {})
-	var rel_unlocked = progress.get("relics_unlocked", [false, false, false, false, false, false])
-	if relic_index < 0 or relic_index >= rel_unlocked.size():
+	var gear_unlocked_arr = progress.get("gear_slots_unlocked", [false, false, false, false, false, false])
+	if gear_index < 0 or gear_index >= gear_unlocked_arr.size():
 		return
-	# If already owned — toggle equip/unequip
-	if rel_unlocked[relic_index]:
-		if not equipped_relics.has(tower_type):
-			equipped_relics[tower_type] = []
-		var eq = equipped_relics[tower_type]
-		if relic_index in eq:
-			eq.erase(relic_index)
+	# If already owned â€” toggle equip/unequip
+	if gear_unlocked_arr[gear_index]:
+		if not equipped_gear.has(tower_type):
+			equipped_gear[tower_type] = []
+		var eq = equipped_gear[tower_type]
+		if gear_index in eq:
+			eq.erase(gear_index)
 		else:
-			var max_slots = _get_relic_slots(progress.get("level", 1))
+			var max_slots = _get_gear_slots(tower_type)
 			if eq.size() < max_slots:
-				eq.append(relic_index)
+				eq.append(gear_index)
 		_save_game()
 		queue_redraw()
 		return
-	# Not yet owned — try to purchase
-	var relic_purchasable = [false, true, false, true, false, true]
-	var relic_costs = [0, 100, 0, 250, 0, 500]
-	var relic_earn_levels = [2, 4, 6, 8, 10, 12]
+	# Not yet owned â€” try to purchase
+	var gear_purchasable = [false, true, false, true, false, true]
+	var gear_costs = [0, 100, 0, 250, 0, 500]
+	var gear_earn_levels = [2, 4, 6, 8, 10, 12]
 	var char_level = progress.get("level", 1)
-	if not relic_purchasable[relic_index]:
+	if not gear_purchasable[gear_index]:
 		return
-	if char_level < relic_earn_levels[relic_index]:
+	if char_level < gear_earn_levels[gear_index]:
 		return
-	var cost = relic_costs[relic_index]
+	var cost = gear_costs[gear_index]
 	if player_gold < cost:
 		return
 	player_gold -= cost
-	progress["relics_unlocked"][relic_index] = true
+	progress["gear_slots_unlocked"][gear_index] = true
 	_save_game()
 	_open_survivor_detail(survivor_detail_index)
 
@@ -5521,10 +5286,10 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 	var gear_sy = content_y + 24.0
 	var sk_x = right_x + slot_size + 50.0
 	var sk_slot_y = content_y + 24.0
-	var rel_y = gear_sy + slot_size + 44.0
-	var relic_slot_y = rel_y + 24.0
-	var relic_slot_size = 72.0
-	var relic_gap = 12.0
+	var gear_section_y = gear_sy + slot_size + 44.0
+	var gear_slot_y = gear_section_y + 24.0
+	var gear_slot_size = 64.0
+	var gear_gap = 8.0
 	var left_x = panel_x + 20.0
 	var port_x = left_x
 	var port_w = 240.0
@@ -5552,7 +5317,7 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 			if _upgrade_golden_shield(tower_type):
 				_open_survivor_detail(survivor_detail_index)
 			return
-		# Click inside overlay — absorb the click
+		# Click inside overlay â€” absorb the click
 		return
 	# --- Check "i" icon click (toggle info overlay) ---
 	if mouse_pos.distance_to(Vector2(port_x + 22, content_y + port_h - 22)) <= 14.0:
@@ -5572,91 +5337,56 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 			# Unlock gear at level 2
 			if char_level + 1 >= 2 and not progress.get("gear_unlocked", false):
 				progress["gear_unlocked"] = true
-			# Unlock sidekicks at levels 3, 5, 8
-			var sk_unlock_levels = [3, 5, 8]
-			for si in range(3):
+			# Unlock sidekicks at levels 3, 5, 8, 10
+			var sk_unlock_levels = [3, 5, 8, 10]
+			for si in range(4):
 				if char_level + 1 >= sk_unlock_levels[si]:
-					var sk_arr = progress.get("sidekicks_unlocked", [false, false, false])
+					var sk_arr = progress.get("sidekicks_unlocked", [false, false, false, false])
 					if si < sk_arr.size() and not sk_arr[si]:
 						sk_arr[si] = true
 						progress["sidekicks_unlocked"] = sk_arr
 			_save_game()
 			_open_survivor_detail(survivor_detail_index)
 		return
-	# --- Check character-specific relic clicks (2 rows × 3 cols) ---
-	var char_relics = survivor_relics.get(tower_type, [])
-	var rel_unlocked_arr = progress.get("relics_unlocked", [false, false, false, false, false, false])
-	var relic_purchasable = [false, true, false, true, false, true]
-	var relic_costs = [0, 100, 0, 250, 0, 500]
-	var relic_earn_levels = [2, 4, 6, 8, 10, 12]
-	for ri in range(mini(char_relics.size(), 6)):
-		var r_row = ri / 3
-		var r_col = ri % 3
-		var rx = right_x + float(r_col) * (relic_slot_size + relic_gap)
-		var ry = relic_slot_y + float(r_row) * (relic_slot_size + 24.0)
-		if Rect2(rx, ry, relic_slot_size, relic_slot_size).has_point(mouse_pos):
-			var is_unlocked = rel_unlocked_arr[ri] if ri < rel_unlocked_arr.size() else false
-			if is_unlocked:
-				# Toggle equip/unequip
-				if not equipped_relics.has(tower_type):
-					equipped_relics[tower_type] = []
-				var eq = equipped_relics[tower_type]
-				if ri in eq:
-					eq.erase(ri)
-				else:
-					var max_slots = _get_relic_slots(char_level)
-					if eq.size() < max_slots:
-						eq.append(ri)
-				_save_game()
-				queue_redraw()
-			elif relic_purchasable[ri] and char_level >= relic_earn_levels[ri]:
-				# Purchase with persistent gold
-				var cost = relic_costs[ri]
-				if player_gold >= cost:
-					player_gold -= cost
-					progress["relics_unlocked"][ri] = true
-					_save_game()
-					queue_redraw()
-			return
-	# --- Check Tome Binding clicks (slots + owned list) ---
-	var bind_slots = _get_binding_slots(tower_type)
-	if bind_slots > 0:
-		var eq_bindings = equipped_bindings.get(tower_type, [])
-		# Tome binding slot area
-		var relic_desc_y = relic_slot_y + 2.0 * (relic_slot_size + 24.0) + 4.0
-		var tome_y = relic_desc_y + 18.0
-		var tome_slot_y = tome_y + 22.0
-		var tome_slot_size = 44.0
-		for tsi in range(bind_slots):
-			var tx = right_x + float(tsi) * (tome_slot_size + 8)
-			var ty = tome_slot_y
-			if Rect2(tx, ty, tome_slot_size, tome_slot_size).has_point(mouse_pos):
-				if tsi < eq_bindings.size():
-					eq_bindings.remove_at(tsi)
-					equipped_bindings[tower_type] = eq_bindings
+	# --- Check gear clicks (slots + owned list) ---
+	var gear_max_slots = _get_gear_slots(tower_type)
+	if gear_max_slots > 0:
+		var eq_gear = equipped_gear.get(tower_type, [])
+		# Gear slot area
+		var gear_desc_y = gear_slot_y + 2.0 * (gear_slot_size + 24.0) + 4.0
+		var gear_browse_y = gear_desc_y + 18.0
+		var gear_browse_slot_y = gear_browse_y + 22.0
+		var browse_slot_sz = 44.0
+		for tsi in range(gear_max_slots):
+			var tx = right_x + float(tsi) * (browse_slot_sz + 8)
+			var ty = gear_browse_slot_y
+			if Rect2(tx, ty, browse_slot_sz, browse_slot_sz).has_point(mouse_pos):
+				if tsi < eq_gear.size():
+					eq_gear.remove_at(tsi)
+					equipped_gear[tower_type] = eq_gear
 					_save_game()
 					queue_redraw()
 				return
-		# Owned bindings list (with scroll offset)
-		var browse_y = tome_slot_y + tome_slot_size + 6.0
+		# Owned gear list (with scroll offset)
+		var browse_y = gear_browse_slot_y + browse_slot_sz + 6.0
 		var bcol = 0
 		var brow = 0
 		var card_w = 200.0
 		var card_h = 36.0
-		for b in TOME_BINDINGS:
-			var count = owned_bindings.get(b["id"], 0)
+		for b in GEAR_ITEMS:
+			var count = owned_gear.get(b["id"], 0)
 			if count <= 0:
 				continue
 			var bx = right_x + float(bcol) * (card_w + 8)
-			var by = browse_y + float(brow) * (card_h + 3) - detail_binding_scroll
+			var by = browse_y + float(brow) * (card_h + 3) - detail_gear_scroll
 			if by >= browse_y - card_h and by <= panel_y + 570.0 - 20:
 				if Rect2(bx, by, card_w, card_h).has_point(mouse_pos):
-					var is_eq = b["id"] in eq_bindings
+					var is_eq = b["id"] in eq_gear
 					if is_eq:
-						eq_bindings.erase(b["id"])
-					elif eq_bindings.size() < bind_slots:
-						eq_bindings.append(b["id"])
-					equipped_bindings[tower_type] = eq_bindings
+						eq_gear.erase(b["id"])
+					elif eq_gear.size() < gear_max_slots:
+						eq_gear.append(b["id"])
+					equipped_gear[tower_type] = eq_gear
 					_save_game()
 					queue_redraw()
 					return
@@ -5669,10 +5399,10 @@ func _on_trinket_slot_clicked(mouse_pos: Vector2) -> void:
 	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
 		return
 	var tower_type = survivor_types[survivor_detail_index]
-	var bind_slots = _get_binding_slots(tower_type)
-	if bind_slots <= 0:
+	var gear_max_slots = _get_gear_slots(tower_type)
+	if gear_max_slots <= 0:
 		return
-	var eq_bindings = equipped_bindings.get(tower_type, [])
+	var eq_gear = equipped_gear.get(tower_type, [])
 
 	# Layout coordinates must match _draw_survivor_detail()
 	var panel_x = 70.0
@@ -5682,47 +5412,47 @@ func _on_trinket_slot_clicked(mouse_pos: Vector2) -> void:
 	var right_x = panel_x + 340.0
 	var slot_size = 64.0
 
-	# Calculate relic section Y: gear(64) + 20 gap + ally header(24) + ally slots(64) + 30 gap
+	# Calculate gear section Y: gear(64) + 20 gap + ally header(24) + ally slots(64) + 30 gap
 	var gear_sy = content_y + 24.0
 	var ally_slot_y = gear_sy + slot_size + 20.0 + 24.0
-	var relic_slot_y = ally_slot_y + slot_size + 30.0 + 24.0
-	var relic_slot_size = 56.0
+	var gear_slot_y = ally_slot_y + slot_size + 30.0 + 24.0
+	var gear_slot_size = 64.0
 
-	# Check clicks on the 5 relic SLOTS (top row)
+	# Check clicks on the 5 gear SLOTS (top row)
 	for ri in range(5):
-		var rx = right_x + float(ri) * (relic_slot_size + 12.0)
-		var ry = relic_slot_y
-		if mouse_pos.x >= rx and mouse_pos.x <= rx + relic_slot_size and mouse_pos.y >= ry and mouse_pos.y <= ry + relic_slot_size:
-			var slot_unlocked = ri < bind_slots
-			if slot_unlocked and ri < eq_bindings.size():
-				# Unequip this relic
-				eq_bindings.remove_at(ri)
-				equipped_bindings[tower_type] = eq_bindings
+		var rx = right_x + float(ri) * (gear_slot_size + 12.0)
+		var ry = gear_slot_y
+		if mouse_pos.x >= rx and mouse_pos.x <= rx + gear_slot_size and mouse_pos.y >= ry and mouse_pos.y <= ry + gear_slot_size:
+			var slot_unlocked = ri < gear_max_slots
+			if slot_unlocked and ri < eq_gear.size():
+				# Unequip this gear
+				eq_gear.remove_at(ri)
+				equipped_gear[tower_type] = eq_gear
 				_save_game()
 				queue_redraw()
 			return
 
-	# Check clicks on owned relics browser (below slots, with scroll offset)
-	var browse_y = relic_slot_y + relic_slot_size + 20.0 + 14.0
+	# Check clicks on owned gear browser (below slots, with scroll offset)
+	var browse_y = gear_slot_y + gear_slot_size + 20.0 + 14.0
 	var card_w = 200.0
 	var card_h = 32.0
 	var trinket_col = 0
 	var trinket_row = 0
-	for b in TOME_BINDINGS:
-		var count = owned_bindings.get(b["id"], 0)
+	for b in GEAR_ITEMS:
+		var count = owned_gear.get(b["id"], 0)
 		if count <= 0:
 			continue
 		var tx = right_x + float(trinket_col) * (card_w + 8)
-		var ty = browse_y + float(trinket_row) * (card_h + 4) - detail_binding_scroll
+		var ty = browse_y + float(trinket_row) * (card_h + 4) - detail_gear_scroll
 		if mouse_pos.x >= tx and mouse_pos.x <= tx + card_w and mouse_pos.y >= ty and mouse_pos.y <= ty + card_h:
 			if ty >= browse_y - card_h and ty <= panel_y + 560.0:
-				var is_eq = b["id"] in eq_bindings
+				var is_eq = b["id"] in eq_gear
 				if is_eq:
-					eq_bindings.erase(b["id"])
-					equipped_bindings[tower_type] = eq_bindings
-				elif eq_bindings.size() < bind_slots:
-					eq_bindings.append(b["id"])
-					equipped_bindings[tower_type] = eq_bindings
+					eq_gear.erase(b["id"])
+					equipped_gear[tower_type] = eq_gear
+				elif eq_gear.size() < gear_max_slots:
+					eq_gear.append(b["id"])
+					equipped_gear[tower_type] = eq_gear
 				_save_game()
 				queue_redraw()
 				return
@@ -5871,7 +5601,7 @@ func _do_level_start(index: int) -> void:
 	tower_buttons[TowerType.PHANTOM].disabled = false
 	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
 	tower_buttons[TowerType.SCROOGE].disabled = false
-	# Show unlocked character buttons — row 2, stretched horizontally
+	# Show unlocked character buttons â€” row 2, stretched horizontally
 	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var new_char_labels = {
 		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
@@ -5991,7 +5721,7 @@ func _setup_path_for_level(index: int) -> void:
 		return
 	curve.clear_points()
 	match index:
-		0: # Prologue — Into the Pages (Easy/Tutorial — spiral inward, falling into book)
+		0: # Prologue â€” Into the Pages (Easy/Tutorial â€” spiral inward, falling into book)
 			curve.add_point(Vector2(-50, 320), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(200, 320), Vector2(-60, 0), Vector2(0, -120))
 			curve.add_point(Vector2(200, 100), Vector2(0, 60), Vector2(120, 0))
@@ -6007,7 +5737,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(840, 380), Vector2(0, -40), Vector2(-60, 0))
 			curve.add_point(Vector2(640, 340), Vector2(40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(640, 670))
-		1: # Sherlock Ch1 — Baker Street (EASY — long city grid zigzag, 4 full passes)
+		1: # Sherlock Ch1 â€” Baker Street (EASY â€” long city grid zigzag, 4 full passes)
 			curve.add_point(Vector2(-50, 100), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(200, 100), Vector2(-40, 0), Vector2(60, 0))
 			curve.add_point(Vector2(640, 120), Vector2(-60, 0), Vector2(60, 0))
@@ -6024,7 +5754,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(200, 560), Vector2(0, -30), Vector2(60, 0))
 			curve.add_point(Vector2(640, 580), Vector2(-60, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 580))
-		2: # Sherlock Ch2 — Whitechapel (MEDIUM — winding alleyway, diagonal S-curves)
+		2: # Sherlock Ch2 â€” Whitechapel (MEDIUM â€” winding alleyway, diagonal S-curves)
 			curve.add_point(Vector2(-50, 520), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(160, 520), Vector2(-40, 0), Vector2(60, -80))
 			curve.add_point(Vector2(320, 360), Vector2(0, 60), Vector2(60, -40))
@@ -6036,7 +5766,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1060, 140), Vector2(0, 40), Vector2(60, 0))
 			curve.add_point(Vector2(1200, 200), Vector2(-40, 0), Vector2(60, 40))
 			curve.add_point(Vector2(1330, 300))
-		3: # Sherlock Ch3 — Reichenbach Falls (HARD — short switchback descent)
+		3: # Sherlock Ch3 â€” Reichenbach Falls (HARD â€” short switchback descent)
 			curve.add_point(Vector2(640, -50), Vector2.ZERO, Vector2(0, 60))
 			curve.add_point(Vector2(640, 120), Vector2(0, -40), Vector2(-120, 0))
 			curve.add_point(Vector2(200, 200), Vector2(80, 0), Vector2(0, 80))
@@ -6044,7 +5774,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1060, 440), Vector2(-100, 0), Vector2(0, 60))
 			curve.add_point(Vector2(1060, 560), Vector2(0, -40), Vector2(-120, 0))
 			curve.add_point(Vector2(640, 670))
-		4: # Merlin Ch1 — Round Table (EASY — large oval loop + inner spiral)
+		4: # Merlin Ch1 â€” Round Table (EASY â€” large oval loop + inner spiral)
 			curve.add_point(Vector2(-50, 320), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(120, 320), Vector2(-40, 0), Vector2(0, -80))
 			curve.add_point(Vector2(120, 100), Vector2(0, 60), Vector2(80, 0))
@@ -6062,7 +5792,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(500, 320), Vector2(0, -40), Vector2(60, 0))
 			curve.add_point(Vector2(740, 300), Vector2(-40, 0), Vector2(0, 60))
 			curve.add_point(Vector2(740, 670))
-		5: # Merlin Ch2 — Enchanted Forest (MEDIUM — flowing S-curves)
+		5: # Merlin Ch2 â€” Enchanted Forest (MEDIUM â€” flowing S-curves)
 			curve.add_point(Vector2(-50, 200), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(160, 200), Vector2(-40, 0), Vector2(60, 80))
 			curve.add_point(Vector2(300, 400), Vector2(0, -60), Vector2(60, 0))
@@ -6074,7 +5804,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1060, 520), Vector2(-40, -20), Vector2(60, 0))
 			curve.add_point(Vector2(1180, 480), Vector2(-40, 0), Vector2(60, -40))
 			curve.add_point(Vector2(1330, 360))
-		6: # Merlin Ch3 — Crystal Cave (HARD — short U-turn)
+		6: # Merlin Ch3 â€” Crystal Cave (HARD â€” short U-turn)
 			curve.add_point(Vector2(-50, 260), Vector2.ZERO, Vector2(100, 0))
 			curve.add_point(Vector2(300, 240), Vector2(-80, 0), Vector2(100, 0))
 			curve.add_point(Vector2(900, 200), Vector2(-80, 0), Vector2(80, 0))
@@ -6082,7 +5812,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1060, 460), Vector2(40, -40), Vector2(-80, 0))
 			curve.add_point(Vector2(640, 500), Vector2(60, 0), Vector2(-60, 40))
 			curve.add_point(Vector2(400, 670))
-		7: # Tarzan Ch1 — Jungle Canopy (EASY — vine swing arcs, full screen)
+		7: # Tarzan Ch1 â€” Jungle Canopy (EASY â€” vine swing arcs, full screen)
 			curve.add_point(Vector2(-50, 100), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(160, 100), Vector2(-40, 0), Vector2(60, 80))
 			curve.add_point(Vector2(300, 340), Vector2(0, -80), Vector2(80, 60))
@@ -6099,7 +5829,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1040, 200), Vector2(-40, 0), Vector2(40, 80))
 			curve.add_point(Vector2(1120, 440), Vector2(0, -60), Vector2(60, 60))
 			curve.add_point(Vector2(1330, 580))
-		8: # Tarzan Ch2 — River Crossing (MEDIUM — zigzag across river)
+		8: # Tarzan Ch2 â€” River Crossing (MEDIUM â€” zigzag across river)
 			curve.add_point(Vector2(-50, 400), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(200, 400), Vector2(-60, 0), Vector2(60, -80))
 			curve.add_point(Vector2(360, 200), Vector2(0, 60), Vector2(60, 0))
@@ -6111,7 +5841,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1060, 400), Vector2(0, -60), Vector2(60, 0))
 			curve.add_point(Vector2(1200, 360), Vector2(-40, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 380))
-		9: # Tarzan Ch3 — Fortress Assault (HARD — direct with sharp turns)
+		9: # Tarzan Ch3 â€” Fortress Assault (HARD â€” direct with sharp turns)
 			curve.add_point(Vector2(-50, 320), Vector2.ZERO, Vector2(100, 0))
 			curve.add_point(Vector2(300, 320), Vector2(-80, 0), Vector2(60, -60))
 			curve.add_point(Vector2(480, 180), Vector2(0, 40), Vector2(80, 0))
@@ -6119,7 +5849,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(920, 380), Vector2(0, -60), Vector2(80, 0))
 			curve.add_point(Vector2(1140, 360), Vector2(-60, 0), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 340))
-		10: # Dracula Ch1 — Transylvania Village (EASY — mountain switchbacks, 5 passes)
+		10: # Dracula Ch1 â€” Transylvania Village (EASY â€” mountain switchbacks, 5 passes)
 			curve.add_point(Vector2(-50, 560), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(200, 560), Vector2(-60, 0), Vector2(80, 0))
 			curve.add_point(Vector2(1060, 540), Vector2(-80, 0), Vector2(0, -50))
@@ -6136,7 +5866,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(900, 320), Vector2(40, -40), Vector2(-60, 40))
 			curve.add_point(Vector2(740, 460), Vector2(40, -40), Vector2(-60, 40))
 			curve.add_point(Vector2(640, 670))
-		11: # Dracula Ch2 — Castle Corridors (MEDIUM — maze-like center path)
+		11: # Dracula Ch2 â€” Castle Corridors (MEDIUM â€” maze-like center path)
 			curve.add_point(Vector2(-50, 300), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(160, 300), Vector2(-40, 0), Vector2(0, -80))
 			curve.add_point(Vector2(160, 120), Vector2(0, 60), Vector2(80, 0))
@@ -6149,7 +5879,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(960, 280), Vector2(-40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(960, 500), Vector2(0, -60), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 500))
-		12: # Dracula Ch3 — Crypt Descent (HARD — short spiral down)
+		12: # Dracula Ch3 â€” Crypt Descent (HARD â€” short spiral down)
 			curve.add_point(Vector2(640, -50), Vector2.ZERO, Vector2(0, 80))
 			curve.add_point(Vector2(640, 140), Vector2(0, -40), Vector2(100, 0))
 			curve.add_point(Vector2(940, 200), Vector2(-60, 0), Vector2(0, 80))
@@ -6158,7 +5888,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(520, 480), Vector2(-20, -40), Vector2(40, 40))
 			curve.add_point(Vector2(600, 560), Vector2(-20, 0), Vector2(0, 40))
 			curve.add_point(Vector2(620, 670))
-		13: # Frankenstein Ch1 — Lab Corridors (EASY — 4 full horizontal passes)
+		13: # Frankenstein Ch1 â€” Lab Corridors (EASY â€” 4 full horizontal passes)
 			curve.add_point(Vector2(-50, 100), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(200, 100), Vector2(-40, 0), Vector2(60, 0))
 			curve.add_point(Vector2(640, 80), Vector2(-60, 0), Vector2(60, 0))
@@ -6175,7 +5905,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(200, 560), Vector2(0, -30), Vector2(60, 0))
 			curve.add_point(Vector2(640, 580), Vector2(-60, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 580))
-		14: # Frankenstein Ch2 — Village Streets (MEDIUM — grid pattern)
+		14: # Frankenstein Ch2 â€” Village Streets (MEDIUM â€” grid pattern)
 			curve.add_point(Vector2(-50, 300), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(200, 300), Vector2(-60, 0), Vector2(0, -80))
 			curve.add_point(Vector2(200, 120), Vector2(0, 60), Vector2(80, 0))
@@ -6188,14 +5918,14 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(200, 400), Vector2(0, 40), Vector2(60, 0))
 			curve.add_point(Vector2(1000, 440), Vector2(-80, 0), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 420))
-		15: # Frankenstein Ch3 — Arctic Traverse (HARD — nearly straight)
+		15: # Frankenstein Ch3 â€” Arctic Traverse (HARD â€” nearly straight)
 			curve.add_point(Vector2(-50, 340), Vector2.ZERO, Vector2(100, 0))
 			curve.add_point(Vector2(280, 300), Vector2(-80, 0), Vector2(100, -20))
 			curve.add_point(Vector2(640, 260), Vector2(-80, 0), Vector2(80, 0))
 			curve.add_point(Vector2(960, 300), Vector2(-80, 0), Vector2(80, 20))
 			curve.add_point(Vector2(1200, 340), Vector2(-80, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 320))
-		16: # Robin Hood Ch1 — Forest Trail (EASY — winding with U-turns)
+		16: # Robin Hood Ch1 â€” Forest Trail (EASY â€” winding with U-turns)
 			curve.add_point(Vector2(-50, 120), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(200, 120), Vector2(-40, 0), Vector2(80, 0))
 			curve.add_point(Vector2(1060, 100), Vector2(-80, 0), Vector2(0, 60))
@@ -6212,7 +5942,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(100, 560), Vector2(0, -40), Vector2(60, 0))
 			curve.add_point(Vector2(640, 580), Vector2(-60, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 560))
-		17: # Robin Hood Ch2 — River and Bridge (MEDIUM — S-curves with crossing)
+		17: # Robin Hood Ch2 â€” River and Bridge (MEDIUM â€” S-curves with crossing)
 			curve.add_point(Vector2(-50, 200), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(160, 200), Vector2(-40, 0), Vector2(40, 80))
 			curve.add_point(Vector2(260, 420), Vector2(0, -60), Vector2(60, 0))
@@ -6224,7 +5954,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1040, 520), Vector2(-40, -20), Vector2(60, 0))
 			curve.add_point(Vector2(1180, 480), Vector2(-40, 0), Vector2(60, -40))
 			curve.add_point(Vector2(1330, 360))
-		18: # Robin Hood Ch3 — Castle Siege (HARD — direct diagonal assault)
+		18: # Robin Hood Ch3 â€” Castle Siege (HARD â€” direct diagonal assault)
 			curve.add_point(Vector2(-50, 540), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(200, 520), Vector2(-60, 0), Vector2(80, -40))
 			curve.add_point(Vector2(480, 380), Vector2(-60, 30), Vector2(80, -40))
@@ -6233,7 +5963,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1000, 200), Vector2(-40, 0), Vector2(0, -60))
 			curve.add_point(Vector2(1000, 100), Vector2(0, 40), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 120))
-		19: # Alice Ch1 — Rabbit Hole Fall (EASY — zigzag descent, full screen)
+		19: # Alice Ch1 â€” Rabbit Hole Fall (EASY â€” zigzag descent, full screen)
 			curve.add_point(Vector2(100, -50), Vector2.ZERO, Vector2(0, 60))
 			curve.add_point(Vector2(100, 100), Vector2(0, -40), Vector2(80, 0))
 			curve.add_point(Vector2(1060, 80), Vector2(-80, 0), Vector2(0, 60))
@@ -6250,7 +5980,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(640, 580), Vector2(60, 0), Vector2(-60, 0))
 			curve.add_point(Vector2(200, 560), Vector2(60, 0), Vector2(0, 40))
 			curve.add_point(Vector2(200, 670))
-		20: # Alice Ch2 — Tea Party Checkerboard (MEDIUM — step pattern)
+		20: # Alice Ch2 â€” Tea Party Checkerboard (MEDIUM â€” step pattern)
 			curve.add_point(Vector2(640, -50), Vector2.ZERO, Vector2(0, 60))
 			curve.add_point(Vector2(640, 100), Vector2(0, -40), Vector2(-60, 0))
 			curve.add_point(Vector2(400, 100), Vector2(40, 0), Vector2(0, 60))
@@ -6263,7 +5993,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(400, 520), Vector2(0, -40), Vector2(60, 0))
 			curve.add_point(Vector2(800, 520), Vector2(-60, 0), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 540))
-		21: # Alice Ch3 — Queen's Throne (HARD — short direct approach)
+		21: # Alice Ch3 â€” Queen's Throne (HARD â€” short direct approach)
 			curve.add_point(Vector2(-50, 320), Vector2.ZERO, Vector2(100, 0))
 			curve.add_point(Vector2(300, 280), Vector2(-80, 0), Vector2(80, 0))
 			curve.add_point(Vector2(640, 300), Vector2(-60, 0), Vector2(60, 0))
@@ -6271,7 +6001,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(900, 500), Vector2(0, -40), Vector2(80, 0))
 			curve.add_point(Vector2(1200, 480), Vector2(-60, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 460))
-		22: # Wicked Witch Ch1 — Yellow Brick Road (EASY — long sweeping S-curves)
+		22: # Wicked Witch Ch1 â€” Yellow Brick Road (EASY â€” long sweeping S-curves)
 			curve.add_point(Vector2(-50, 400), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(120, 400), Vector2(-40, 0), Vector2(0, -80))
 			curve.add_point(Vector2(120, 160), Vector2(0, 60), Vector2(80, 0))
@@ -6288,7 +6018,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1100, 520), Vector2(-80, 0), Vector2(0, -60))
 			curve.add_point(Vector2(1100, 340), Vector2(0, 40), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 320))
-		23: # Wicked Witch Ch2 — Witch's Domain (MEDIUM — zigzag with vertical runs)
+		23: # Wicked Witch Ch2 â€” Witch's Domain (MEDIUM â€” zigzag with vertical runs)
 			curve.add_point(Vector2(-50, 300), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(160, 300), Vector2(-40, 0), Vector2(0, -60))
 			curve.add_point(Vector2(160, 140), Vector2(0, 40), Vector2(80, 0))
@@ -6301,7 +6031,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1100, 400), Vector2(-60, 0), Vector2(60, 60))
 			curve.add_point(Vector2(1200, 520), Vector2(0, -40), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 500))
-		24: # Wicked Witch Ch3 — Emerald City Interior (HARD — compact center path)
+		24: # Wicked Witch Ch3 â€” Emerald City Interior (HARD â€” compact center path)
 			curve.add_point(Vector2(640, -50), Vector2.ZERO, Vector2(0, 60))
 			curve.add_point(Vector2(640, 120), Vector2(0, -40), Vector2(60, 0))
 			curve.add_point(Vector2(880, 160), Vector2(-40, 0), Vector2(0, 60))
@@ -6311,7 +6041,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(420, 520), Vector2(-20, -40), Vector2(60, 0))
 			curve.add_point(Vector2(800, 540), Vector2(-60, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1330, 560))
-		25: # Peter Pan Ch1 — Flight over Neverland (EASY — big sweeping arcs)
+		25: # Peter Pan Ch1 â€” Flight over Neverland (EASY â€” big sweeping arcs)
 			curve.add_point(Vector2(-50, 320), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(160, 320), Vector2(-40, 0), Vector2(60, -100))
 			curve.add_point(Vector2(300, 100), Vector2(0, 60), Vector2(80, 0))
@@ -6328,7 +6058,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(760, 560), Vector2(40, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1060, 520), Vector2(-60, 0), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 480))
-		26: # Peter Pan Ch2 — Lost Boys' Jungle (MEDIUM — moderate weaving)
+		26: # Peter Pan Ch2 â€” Lost Boys' Jungle (MEDIUM â€” moderate weaving)
 			curve.add_point(Vector2(-50, 500), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(160, 500), Vector2(-40, 0), Vector2(0, -80))
 			curve.add_point(Vector2(160, 300), Vector2(0, 60), Vector2(60, 0))
@@ -6341,7 +6071,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1000, 180), Vector2(-40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(1000, 420), Vector2(0, -60), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 400))
-		27: # Peter Pan Ch3 — Pirate Ship Approach (HARD — short direct path)
+		27: # Peter Pan Ch3 â€” Pirate Ship Approach (HARD â€” short direct path)
 			curve.add_point(Vector2(1330, 200), Vector2.ZERO, Vector2(-80, 0))
 			curve.add_point(Vector2(1060, 200), Vector2(60, 0), Vector2(-60, 60))
 			curve.add_point(Vector2(880, 360), Vector2(40, -40), Vector2(-60, 40))
@@ -6349,7 +6079,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(400, 440), Vector2(60, 0), Vector2(-60, -40))
 			curve.add_point(Vector2(240, 320), Vector2(40, 40), Vector2(-60, 0))
 			curve.add_point(Vector2(-50, 340))
-		28: # Phantom Ch1 — Grand Stage Descent (EASY — long switchback, 4+ runs)
+		28: # Phantom Ch1 â€” Grand Stage Descent (EASY â€” long switchback, 4+ runs)
 			curve.add_point(Vector2(640, -50), Vector2.ZERO, Vector2(0, 60))
 			curve.add_point(Vector2(640, 80), Vector2(0, -40), Vector2(80, 0))
 			curve.add_point(Vector2(1080, 80), Vector2(-60, 0), Vector2(0, 50))
@@ -6366,7 +6096,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(640, 580), Vector2(60, 0), Vector2(-60, 0))
 			curve.add_point(Vector2(200, 560), Vector2(60, 0), Vector2(0, 40))
 			curve.add_point(Vector2(200, 670))
-		29: # Phantom Ch2 — Underground Labyrinth (MEDIUM — maze-like turns)
+		29: # Phantom Ch2 â€” Underground Labyrinth (MEDIUM â€” maze-like turns)
 			curve.add_point(Vector2(-50, 160), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(140, 160), Vector2(-40, 0), Vector2(0, 60))
 			curve.add_point(Vector2(140, 340), Vector2(0, -40), Vector2(60, 0))
@@ -6379,7 +6109,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(960, 200), Vector2(-40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(960, 500), Vector2(0, -60), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 480))
-		30: # Phantom Ch3 — Phantom's Lair (HARD — short path to center)
+		30: # Phantom Ch3 â€” Phantom's Lair (HARD â€” short path to center)
 			curve.add_point(Vector2(1330, 160), Vector2.ZERO, Vector2(-80, 0))
 			curve.add_point(Vector2(1060, 160), Vector2(60, 0), Vector2(-60, 60))
 			curve.add_point(Vector2(880, 320), Vector2(40, -40), Vector2(-60, 0))
@@ -6388,7 +6118,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(280, 440), Vector2(40, 0), Vector2(0, 60))
 			curve.add_point(Vector2(300, 560), Vector2(0, -30), Vector2(80, 0))
 			curve.add_point(Vector2(640, 670))
-		31: # Scrooge Ch1 — City Blocks (EASY — long winding grid, multiple passes)
+		31: # Scrooge Ch1 â€” City Blocks (EASY â€” long winding grid, multiple passes)
 			curve.add_point(Vector2(1330, 120), Vector2.ZERO, Vector2(-80, 0))
 			curve.add_point(Vector2(1060, 120), Vector2(60, 0), Vector2(0, 50))
 			curve.add_point(Vector2(1060, 240), Vector2(0, -30), Vector2(-80, 0))
@@ -6405,7 +6135,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(400, 100), Vector2(-60, 0), Vector2(60, 0))
 			curve.add_point(Vector2(640, 120), Vector2(-40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(640, 670))
-		32: # Scrooge Ch2 — Midnight Graveyard (MEDIUM — zigzag between tombstones)
+		32: # Scrooge Ch2 â€” Midnight Graveyard (MEDIUM â€” zigzag between tombstones)
 			curve.add_point(Vector2(-50, 140), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(160, 140), Vector2(-40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(160, 400), Vector2(0, -60), Vector2(60, 0))
@@ -6418,7 +6148,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1100, 220), Vector2(-40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(1100, 500), Vector2(0, -60), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 480))
-		33: # Scrooge Ch3 — Christmas Dawn (HARD — quick descent)
+		33: # Scrooge Ch3 â€” Christmas Dawn (HARD â€” quick descent)
 			curve.add_point(Vector2(640, -50), Vector2.ZERO, Vector2(0, 60))
 			curve.add_point(Vector2(640, 120), Vector2(0, -40), Vector2(-60, 0))
 			curve.add_point(Vector2(400, 160), Vector2(40, 0), Vector2(-60, 60))
@@ -6427,7 +6157,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(640, 500), Vector2(-60, 0), Vector2(60, 0))
 			curve.add_point(Vector2(1000, 480), Vector2(-60, 0), Vector2(0, 40))
 			curve.add_point(Vector2(1000, 670))
-		34: # Shadow Author Ch1 — Ink River (EASY — long flowing curves, 4+ sweeping turns)
+		34: # Shadow Author Ch1 â€” Ink River (EASY â€” long flowing curves, 4+ sweeping turns)
 			curve.add_point(Vector2(-50, 280), Vector2.ZERO, Vector2(60, 0))
 			curve.add_point(Vector2(140, 280), Vector2(-40, 0), Vector2(60, -80))
 			curve.add_point(Vector2(300, 100), Vector2(0, 60), Vector2(80, 0))
@@ -6444,7 +6174,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1200, 240), Vector2(-40, 0), Vector2(40, 80))
 			curve.add_point(Vector2(1280, 460), Vector2(0, -60), Vector2(0, 60))
 			curve.add_point(Vector2(1280, 670))
-		35: # Shadow Author Ch2 — Unwritten Pages (MEDIUM — page column pattern)
+		35: # Shadow Author Ch2 â€” Unwritten Pages (MEDIUM â€” page column pattern)
 			curve.add_point(Vector2(-50, 100), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(140, 100), Vector2(-40, 0), Vector2(0, 60))
 			curve.add_point(Vector2(140, 540), Vector2(0, -80), Vector2(60, 0))
@@ -6457,7 +6187,7 @@ func _setup_path_for_level(index: int) -> void:
 			curve.add_point(Vector2(1100, 120), Vector2(-40, 0), Vector2(0, 80))
 			curve.add_point(Vector2(1100, 540), Vector2(0, -60), Vector2(80, 0))
 			curve.add_point(Vector2(1330, 540))
-		36: # Shadow Author Ch3 — Final Vortex (HARD — tightening spiral, intense)
+		36: # Shadow Author Ch3 â€” Final Vortex (HARD â€” tightening spiral, intense)
 			curve.add_point(Vector2(-50, 320), Vector2.ZERO, Vector2(80, 0))
 			curve.add_point(Vector2(200, 320), Vector2(-60, 0), Vector2(0, -120))
 			curve.add_point(Vector2(640, 80), Vector2(-120, 0), Vector2(120, 0))
@@ -6474,7 +6204,7 @@ func _setup_path_for_level(index: int) -> void:
 		path_points.append(curve.sample_baked(float(i)))
 
 # ============================================================
-# AUDIO — Procedural hip hop beat + character voice clips
+# AUDIO â€” Procedural hip hop beat + character voice clips
 # ============================================================
 func _setup_audio() -> void:
 	# Menu music player (shuffle playlist of gothic piano tracks)
@@ -6484,7 +6214,7 @@ func _setup_audio() -> void:
 	music_player.finished.connect(_on_music_finished)
 	_load_music_tracks()
 
-	# Voice player (one-shot clips via AudioStreamWAV — formant "character flavor")
+	# Voice player (one-shot clips via AudioStreamWAV â€” formant "character flavor")
 	voice_player = AudioStreamPlayer.new()
 	voice_player.volume_db = -2.0
 	add_child(voice_player)
@@ -6526,7 +6256,7 @@ func _load_music_tracks() -> void:
 	music_tracks.shuffle()
 
 func _start_music() -> void:
-	if music_tracks.size() == 0:
+	if music_tracks.is_empty():
 		return
 	music_playing = true
 	_play_next_track()
@@ -6536,7 +6266,7 @@ func _stop_music() -> void:
 	music_playing = false
 
 func _play_next_track() -> void:
-	if music_tracks.size() == 0:
+	if music_tracks.is_empty():
 		return
 	music_player.stream = music_tracks[music_index]
 	music_player.play()
@@ -6626,43 +6356,43 @@ func _generate_formant_voice(fundamental: float, formants: Array, syllable_count
 	return _samples_to_wav(samples, rate)
 
 func _generate_voice_clips() -> void:
-	# Robin Hood — confident baritone (F0=145Hz)
+	# Robin Hood â€” confident baritone (F0=145Hz)
 	# Vowels: ah=[730,1090,2440], oh=[570,840,2410], eh=[530,1840,2480]
 	voice_clips[TowerType.ROBIN_HOOD] = _generate_formant_voice(
 		145.0, [[730,1090,2440], [570,840,2410], [530,1840,2480]],
 		5, 0.7, 0.10, 5.5, 4.0)
 
-	# Alice — bright curious girl (F0=280Hz)
+	# Alice â€” bright curious girl (F0=280Hz)
 	# Vowels: ee=[270,2290,3010], eh=[530,1840,2480], ah=[730,1090,2440]
 	voice_clips[TowerType.ALICE] = _generate_formant_voice(
 		280.0, [[270,2290,3010], [530,1840,2480], [730,1090,2440], [270,2290,3010]],
 		6, 0.65, 0.25, 6.0, 6.0)
 
-	# Wicked Witch — raspy nasal cackle (F0=240Hz)
+	# Wicked Witch â€” raspy nasal cackle (F0=240Hz)
 	# Vowels: ae=[660,1720,2410], oo=[300,870,2240], eh=[530,1840,2480]
 	voice_clips[TowerType.WICKED_WITCH] = _generate_formant_voice(
 		240.0, [[660,1720,2410], [300,870,2240], [530,1840,2480], [660,1720,2410]],
 		5, 0.7, 0.35, 4.0, 8.0)
 
-	# Peter Pan — energetic boy (F0=220Hz)
+	# Peter Pan â€” energetic boy (F0=220Hz)
 	# Vowels: ee=[270,2290,3010], ah=[730,1090,2440], ih=[390,1990,2550]
 	voice_clips[TowerType.PETER_PAN] = _generate_formant_voice(
 		220.0, [[270,2290,3010], [730,1090,2440], [390,1990,2550]],
 		7, 0.55, 0.15, 7.0, 5.0)
 
-	# Phantom — deep operatic bass (F0=120Hz)
+	# Phantom â€” deep operatic bass (F0=120Hz)
 	# Vowels: ah=[730,1090,2440], oh=[570,840,2410], oo=[300,870,2240]
 	voice_clips[TowerType.PHANTOM] = _generate_formant_voice(
 		120.0, [[730,1090,2440], [570,840,2410], [300,870,2240]],
 		4, 0.8, 0.08, 4.5, 3.0)
 
-	# Scrooge — thin reedy warble (F0=165Hz)
+	# Scrooge â€” thin reedy warble (F0=165Hz)
 	# Vowels: ah=[730,1090,2440], eh=[530,1840,2480], uh=[640,1190,2390]
 	voice_clips[TowerType.SCROOGE] = _generate_formant_voice(
 		165.0, [[730,1090,2440], [530,1840,2480], [640,1190,2390], [730,1090,2440]],
 		5, 0.6, 0.40, 3.5, 7.0)
 
-	# === SHADOW AUTHOR VOICE — ultra-deep menacing whisper (F0=70Hz) ===
+	# === SHADOW AUTHOR VOICE â€” ultra-deep menacing whisper (F0=70Hz) ===
 	# Very low fundamental with breathy, sinister quality
 	# Vowels: uh=[640,1190,2390], oh=[570,840,2410], oo=[300,870,2240]
 	story_voice_clips["narrator"] = _generate_formant_voice(
@@ -6670,23 +6400,23 @@ func _generate_voice_clips() -> void:
 		4, 1.1, 0.45, 2.5, 6.0)
 
 	# === NEW CHARACTER TOWER VOICES ===
-	# Sherlock Holmes — calm analytical (F0=160Hz)
+	# Sherlock Holmes â€” calm analytical (F0=160Hz)
 	voice_clips[TowerType.SHERLOCK] = _generate_formant_voice(
 		160.0, [[390,1990,2550], [530,1840,2480], [730,1090,2440]],
 		5, 0.7, 0.10, 3.0, 2.0)
-	# Tarzan — deep primal (F0=115Hz)
+	# Tarzan â€” deep primal (F0=115Hz)
 	voice_clips[TowerType.TARZAN] = _generate_formant_voice(
 		115.0, [[730,1090,2440], [570,840,2410], [300,870,2240]],
 		4, 0.9, 0.05, 2.0, 1.5)
-	# Dracula — deep aristocratic (F0=105Hz)
+	# Dracula â€” deep aristocratic (F0=105Hz)
 	voice_clips[TowerType.DRACULA] = _generate_formant_voice(
 		105.0, [[730,1090,2440], [300,870,2240], [570,840,2410]],
 		5, 0.85, 0.08, 3.5, 4.0)
-	# Merlin — wise elderly (F0=140Hz)
+	# Merlin â€” wise elderly (F0=140Hz)
 	voice_clips[TowerType.MERLIN] = _generate_formant_voice(
 		140.0, [[530,1840,2480], [730,1090,2440], [640,1190,2390], [570,840,2410]],
 		6, 0.8, 0.15, 4.0, 3.5)
-	# Frankenstein's Monster — deep gentle giant, kind but massive (F0=72Hz)
+	# Frankenstein's Monster â€” deep gentle giant, kind but massive (F0=72Hz)
 	# Very low rumbling fundamental, warm open vowels, slow deliberate pace
 	voice_clips[TowerType.FRANKENSTEIN] = _generate_formant_voice(
 		72.0, [[730,1090,2440], [570,840,2410], [640,1190,2390], [300,870,2240]],
@@ -6701,7 +6431,7 @@ func _play_tower_voice(tower_type: TowerType) -> void:
 
 func _generate_ui_sfx() -> void:
 	var sr = 22050
-	# UI Click — short crisp pop (40ms)
+	# UI Click â€” short crisp pop (40ms)
 	var click_len = int(sr * 0.04)
 	var click_data = PackedByteArray()
 	click_data.resize(click_len * 2)
@@ -6718,7 +6448,7 @@ func _generate_ui_sfx() -> void:
 	_sfx_ui_click.mix_rate = sr
 	_sfx_ui_click.data = click_data
 
-	# Wave Start — ascending trumpet fanfare (300ms)
+	# Wave Start â€” ascending trumpet fanfare (300ms)
 	var ws_len = int(sr * 0.3)
 	var ws_data = PackedByteArray()
 	ws_data.resize(ws_len * 2)
@@ -6735,7 +6465,7 @@ func _generate_ui_sfx() -> void:
 	_sfx_wave_start.mix_rate = sr
 	_sfx_wave_start.data = ws_data
 
-	# Wave Complete — bright chime (400ms, C-E-G arpeggio)
+	# Wave Complete â€” bright chime (400ms, C-E-G arpeggio)
 	var wc_len = int(sr * 0.4)
 	var wc_data = PackedByteArray()
 	wc_data.resize(wc_len * 2)
@@ -6755,7 +6485,7 @@ func _generate_ui_sfx() -> void:
 	_sfx_wave_complete.mix_rate = sr
 	_sfx_wave_complete.data = wc_data
 
-	# Enemy Death — wet ink splat (80ms)
+	# Enemy Death â€” wet ink splat (80ms)
 	var ed_len = int(sr * 0.08)
 	var ed_data = PackedByteArray()
 	ed_data.resize(ed_len * 2)
@@ -6776,7 +6506,7 @@ func _generate_ui_sfx() -> void:
 	_sfx_enemy_death.mix_rate = sr
 	_sfx_enemy_death.data = ed_data
 
-	# Victory — triumphant fanfare (800ms, C major chord → G major resolve)
+	# Victory â€” triumphant fanfare (800ms, C major chord â†’ G major resolve)
 	var vic_len = int(sr * 0.8)
 	var vic_data = PackedByteArray()
 	vic_data.resize(vic_len * 2)
@@ -6795,7 +6525,7 @@ func _generate_ui_sfx() -> void:
 	_sfx_victory.mix_rate = sr
 	_sfx_victory.data = vic_data
 
-	# Defeat — sad descending tone (600ms, minor chord dissolve)
+	# Defeat â€” sad descending tone (600ms, minor chord dissolve)
 	var def_len = int(sr * 0.6)
 	var def_data = PackedByteArray()
 	def_data.resize(def_len * 2)
@@ -6813,7 +6543,7 @@ func _generate_ui_sfx() -> void:
 	_sfx_defeat.mix_rate = sr
 	_sfx_defeat.data = def_data
 
-	# Life Lost — sharp warning ping (120ms)
+	# Life Lost â€” sharp warning ping (120ms)
 	var ll_len = int(sr * 0.12)
 	var ll_data = PackedByteArray()
 	ll_data.resize(ll_len * 2)
@@ -6845,17 +6575,17 @@ func _play_sfx(clip: AudioStreamWAV) -> void:
 
 func _init_story_dialogs() -> void:
 	story_dialogs.clear()
-	# Populated in full by _populate_story_dialogs() — called after this
+	# Populated in full by _populate_story_dialogs() â€” called after this
 	_populate_story_dialogs()
 
 func _populate_story_dialogs() -> void:
-	# === PROLOGUE — First time opening the game ===
+	# === PROLOGUE â€” First time opening the game ===
 	story_dialogs["prologue"] = [
 		{"speaker": "narrator", "text": "In a forgotten corner of the world's oldest bookshop, there lies a book that should never be opened. Its cover is black as midnight, its pages whisper when no one is looking. They call it... The Tome of Shadows.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "Within its pages lives the Shadow Author — an entity born from every story ever abandoned, every tale left unfinished. It hungers for completed narratives... and the characters within them.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "Tonight, the Tome calls out. Six beloved heroes hear it — a whisper at the edge of their stories, an itch in the margins. One by one they reach for the book. They cannot resist. No character can resist an unread page.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "The cover flies open. A vortex of black ink spirals outward, tendrils wrapping around Robin Hood's bow, Alice's apron, the Witch's broomstick. They scream as they are pulled through — dragged into the pages like insects into amber.", "voice_type": "narrator"},
-		{"speaker": "shadow_author", "text": "Welcome to MY pages. You have been read, beloved, adored — and now you are MINE. Every hero needs a story, and I have written you such beautiful tragedies.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "Within its pages lives the Shadow Author â€” an entity born from every story ever abandoned, every tale left unfinished. It hungers for completed narratives... and the characters within them.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Tonight, the Tome calls out. Six beloved heroes hear it â€” a whisper at the edge of their stories, an itch in the margins. One by one they reach for the book. They cannot resist. No character can resist an unread page.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The cover flies open. A vortex of black ink spirals outward, tendrils wrapping around Robin Hood's bow, Alice's apron, the Witch's broomstick. They scream as they are pulled through â€” dragged into the pages like insects into amber.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Welcome to MY pages. You have been read, beloved, adored â€” and now you are MINE. Every hero needs a story, and I have written you such beautiful tragedies.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Tome slams shut. Six heroes vanish from their worlds. And deep within the pages, a quill begins to write their doom.", "voice_type": "narrator"},
 	]
 
@@ -6868,41 +6598,41 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "alice", "text": "Look! The pages beneath our feet are moving. Words are rearranging themselves into something sinister.", "voice_type": "female_hero"},
 		{"speaker": "shadow_author", "text": "Ah, my newest collection pieces. Robin Hood, the outlaw who steals. Alice, the girl who falls. The Witch who melts. The boy who never grows up. The phantom who hides. The miser who hoards. You are all SO predictable.", "voice_type": "shadow"},
 		{"speaker": "peter_pan", "text": "Who said that? Show yourself, you coward!", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "Shadow creatures emerge from the margins — twisted words given form, sentences bent into claws. The first battle in the Tome of Shadows begins.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Shadow creatures emerge from the margins â€” twisted words given form, sentences bent into claws. The first battle in the Tome of Shadows begins.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_0"] = [
 		{"speaker": "narrator", "text": "The shadow creatures dissolve into puddles of ink. A message forms on the ground in elegant calligraphy: 'That was merely the PROLOGUE.'", "voice_type": "narrator"},
-		{"speaker": "shadow_author", "text": "You fought well. Of course you did — I WROTE you to fight well. But your little skirmish has barely turned a page. I have thirty-six chapters of suffering prepared for you.", "voice_type": "shadow"},
-		{"speaker": "wicked_witch", "text": "I can feel dark magic radiating from deeper in these pages. Someone is writing our story, and there are others here — five powerful souls, trapped even longer than us.", "voice_type": "female_hero"},
-		{"speaker": "phantom", "text": "I hear them — five voices crying out from different chapters. A detective's sharp mind. A wizard's ancient power. A wild man's roar. A count's mournful sigh. A creature's gentle weeping.", "voice_type": "male_hero"},
+		{"speaker": "shadow_author", "text": "You fought well. Of course you did â€” I WROTE you to fight well. But your little skirmish has barely turned a page. I have thirty-six chapters of suffering prepared for you.", "voice_type": "shadow"},
+		{"speaker": "wicked_witch", "text": "I can feel dark magic radiating from deeper in these pages. Someone is writing our story, and there are others here â€” five powerful souls, trapped even longer than us.", "voice_type": "female_hero"},
+		{"speaker": "phantom", "text": "I hear them â€” five voices crying out from different chapters. A detective's sharp mind. A wizard's ancient power. A wild man's roar. A count's mournful sigh. A creature's gentle weeping.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Five heroes lie imprisoned in the pages ahead, each trapped in a shadow version of their own story. To reach the Shadow Author, the heroes must first free these forgotten champions.", "voice_type": "narrator"},
 	]
 
-	# --- SHERLOCK HOLMES ARC (Levels 1-3) — "The Moriarty Gambit" ---
+	# --- SHERLOCK HOLMES ARC (Levels 1-3) â€” "The Moriarty Gambit" ---
 	story_dialogs["pre_level_1"] = [
-		{"speaker": "shadow_author", "text": "Ah, you've found my London chapter. I recreated Sherlock's greatest failure — the case he COULDN'T solve. I've given Moriarty every advantage: every clue leads to a dead end I wrote myself.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "Ah, you've found my London chapter. I recreated Sherlock's greatest failure â€” the case he COULDN'T solve. I've given Moriarty every advantage: every clue leads to a dead end I wrote myself.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The fog of shadow London rolls in thick as spilled ink. Gas lamps flicker with violet light along Baker Street, where a great mind waits to be freed.", "voice_type": "narrator"},
-		{"speaker": "robin_hood", "text": "This London feels wrong — the cobblestones are made of typed pages, and the fog smells of old library books.", "voice_type": "male_hero"},
+		{"speaker": "robin_hood", "text": "This London feels wrong â€” the cobblestones are made of typed pages, and the fog smells of old library books.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Criminal thugs emerge from the alleyways, guarding whatever lies at 221B Baker Street.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_1"] = [
-		{"speaker": "peter_pan", "text": "One of the criminals dropped a calling card — it read 'Property of Professor M.' Who is this Moriarty?", "voice_type": "male_hero"},
+		{"speaker": "peter_pan", "text": "One of the criminals dropped a calling card â€” it read 'Property of Professor M.' Who is this Moriarty?", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Deeper into shadow London, the heroes glimpse a figure in a deerstalker cap watching from a window above. He leaves coded messages scratched into the margins of the pages beneath their feet.", "voice_type": "narrator"},
-		{"speaker": "alice", "text": "Look at these scratches in the cobblestones! They're not random — they're codes. Whoever is trapped here has been studying his prison for a very long time.", "voice_type": "female_hero"},
+		{"speaker": "alice", "text": "Look at these scratches in the cobblestones! They're not random â€” they're codes. Whoever is trapped here has been studying his prison for a very long time.", "voice_type": "female_hero"},
 	]
 	story_dialogs["pre_level_2"] = [
 		{"speaker": "narrator", "text": "The alleyways of Whitechapel twist like fevered sentences. Shadow assassins patrol the narrow passages, blades dripping with dark ink.", "voice_type": "narrator"},
-		{"speaker": "phantom", "text": "I hear someone thinking behind these walls. A brilliant mind — methodical and precise. Whoever is trapped here has been studying their captor.", "voice_type": "male_hero"},
-		{"speaker": "shadow_author", "text": "Moriarty, my dear Professor — they're getting closer. Do be creative with them. I've given you knowledge that Holmes never had.", "voice_type": "shadow"},
+		{"speaker": "phantom", "text": "I hear someone thinking behind these walls. A brilliant mind â€” methodical and precise. Whoever is trapped here has been studying their captor.", "voice_type": "male_hero"},
+		{"speaker": "shadow_author", "text": "Moriarty, my dear Professor â€” they're getting closer. Do be creative with them. I've given you knowledge that Holmes never had.", "voice_type": "shadow"},
 	]
 	story_dialogs["post_level_2"] = [
-		{"speaker": "scrooge", "text": "These criminals grow more organized. Someone called Moriarty pulls the strings — a shadow version of a very dangerous man.", "voice_type": "male_hero"},
-		{"speaker": "wicked_witch", "text": "I found journal pages hidden inside a wall — the prisoner's handwriting. He's been here so long he's deduced things about the Author himself. Listen: 'The Shadow Author is not omnipotent. He follows rules — narrative rules. Every story he writes must have an ending.'", "voice_type": "female_hero"},
+		{"speaker": "scrooge", "text": "These criminals grow more organized. Someone called Moriarty pulls the strings â€” a shadow version of a very dangerous man.", "voice_type": "male_hero"},
+		{"speaker": "wicked_witch", "text": "I found journal pages hidden inside a wall â€” the prisoner's handwriting. He's been here so long he's deduced things about the Author himself. Listen: 'The Shadow Author is not omnipotent. He follows rules â€” narrative rules. Every story he writes must have an ending.'", "voice_type": "female_hero"},
 	]
 	story_dialogs["pre_level_3"] = [
 		{"speaker": "narrator", "text": "Reichenbach Falls thunders with cascading ink. At the precipice, Professor Moriarty's shadow waits with a quill-pen sword.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "This is where your story SHOULD have ended, Holmes. The falls, the final problem, the fatal plunge. I simply... wrote the version where Moriarty wins.", "voice_type": "shadow"},
-		{"speaker": "alice", "text": "Someone is up there — above the falls! A man in a deerstalker, fighting against chains made of unwritten mysteries!", "voice_type": "female_hero"},
+		{"speaker": "alice", "text": "Someone is up there â€” above the falls! A man in a deerstalker, fighting against chains made of unwritten mysteries!", "voice_type": "female_hero"},
 		{"speaker": "narrator", "text": "Defeat Moriarty's shadow to free the great detective. The game is afoot!", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_3"] = [
@@ -6910,155 +6640,155 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "shadow_author", "text": "Impossible. The equation was PERFECT. No one escapes a story I've finished writing!", "voice_type": "shadow"},
 	]
 
-	# --- MERLIN ARC (Levels 4-6) — "The Broken Prophecy" ---
+	# --- MERLIN ARC (Levels 4-6) â€” "The Broken Prophecy" ---
 	story_dialogs["pre_level_4"] = [
-		{"speaker": "shadow_author", "text": "Camelot! My favorite chapter. I gave Morgan le Fay a gift — Merlin's own spell book. Let's see how the wizard fights when his enemy knows every trick he ever invented.", "voice_type": "shadow"},
-		{"speaker": "narrator", "text": "Shadow Camelot rises from the pages — a castle of illuminated manuscripts and broken seals. The Round Table lies shattered across the courtyard.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Camelot! My favorite chapter. I gave Morgan le Fay a gift â€” Merlin's own spell book. Let's see how the wizard fights when his enemy knows every trick he ever invented.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "Shadow Camelot rises from the pages â€” a castle of illuminated manuscripts and broken seals. The Round Table lies shattered across the courtyard.", "voice_type": "narrator"},
 		{"speaker": "sherlock", "text": "The magical residue here is immense. Someone of tremendous arcane power was imprisoned in this chapter. And based on the architectural corruption patterns, they've been here far longer than any of us.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Dark squires and cursed knights patrol the grounds, armor rusted with ancient ink.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_4"] = [
-		{"speaker": "wicked_witch", "text": "I can feel old magic seeping through these walls — this is ancient power, imprisoned but not broken. Whoever is trapped here makes my powers look like parlor tricks.", "voice_type": "female_hero"},
-		{"speaker": "sherlock", "text": "Curious. The Author corrupted Merlin's own prophecy, turning Camelot's future into a self-fulfilling curse. He doesn't just imprison characters — he rewrites their destinies.", "voice_type": "male_hero"},
+		{"speaker": "wicked_witch", "text": "I can feel old magic seeping through these walls â€” this is ancient power, imprisoned but not broken. Whoever is trapped here makes my powers look like parlor tricks.", "voice_type": "female_hero"},
+		{"speaker": "sherlock", "text": "Curious. The Author corrupted Merlin's own prophecy, turning Camelot's future into a self-fulfilling curse. He doesn't just imprison characters â€” he rewrites their destinies.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_5"] = [
-		{"speaker": "narrator", "text": "The Enchanted Forest of Camelot has been corrupted — but not completely. Trees of twisted calligraphy reach toward a sky of torn parchment, yet some still bloom with golden light.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Enchanted Forest of Camelot has been corrupted â€” but not completely. Trees of twisted calligraphy reach toward a sky of torn parchment, yet some still bloom with golden light.", "voice_type": "narrator"},
 		{"speaker": "robin_hood", "text": "These woods remind me of Sherwood, but darker. The magic here has teeth.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "The forest itself seems to fight back against the shadow corruption — roots trip the dark knights, branches shield the heroes. Nature remembers its true master.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The forest itself seems to fight back against the shadow corruption â€” roots trip the dark knights, branches shield the heroes. Nature remembers its true master.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_5"] = [
 		{"speaker": "narrator", "text": "Deep in the forest, rune circles glow with trapped power. The sorcery leads toward a crystal cave pulsing with ancient light.", "voice_type": "narrator"},
-		{"speaker": "peter_pan", "text": "I found something in the roots of the oldest tree — a broken staff, snapped in half but still humming with power! It's warm to the touch, like it's alive.", "voice_type": "male_hero"},
+		{"speaker": "peter_pan", "text": "I found something in the roots of the oldest tree â€” a broken staff, snapped in half but still humming with power! It's warm to the touch, like it's alive.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_6"] = [
 		{"speaker": "narrator", "text": "The Crystal Cave gleams with imprisoned starlight. Morgan le Fay's shadow guards a figure frozen in crystallized ink.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "Morgan le Fay chose to serve me willingly. Not every villain is a prisoner, heroes. Some simply prefer the winning side.", "voice_type": "shadow"},
-		{"speaker": "wicked_witch", "text": "Morgan le Fay! Dark sorceress, enemy of Camelot. She chose power over loyalty — I understand the temptation, but I chose differently. Her shadow won't yield easily, but neither will I!", "voice_type": "female_hero"},
+		{"speaker": "wicked_witch", "text": "Morgan le Fay! Dark sorceress, enemy of Camelot. She chose power over loyalty â€” I understand the temptation, but I chose differently. Her shadow won't yield easily, but neither will I!", "voice_type": "female_hero"},
 	]
 	story_dialogs["post_level_6"] = [
 		{"speaker": "narrator", "text": "Morgan le Fay shatters like dark glass. The crystal prison cracks open, releasing brilliant light from within.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "You freed the wizard? Fine. His prophecies are already broken. What good is a seer who cannot see his own future?", "voice_type": "shadow"},
 	]
 
-	# --- TARZAN ARC (Levels 7-9) — "The Hunter's Trophy" ---
+	# --- TARZAN ARC (Levels 7-9) â€” "The Hunter's Trophy" ---
 	story_dialogs["pre_level_7"] = [
-		{"speaker": "shadow_author", "text": "In MY version of this story, the apes are already dead. I killed them in the first paragraph. Tarzan has nothing left to protect — only revenge. And revenge makes characters SO easy to control.", "voice_type": "shadow"},
-		{"speaker": "narrator", "text": "The jungle canopy stretches endlessly — leaves of green-inked pages, vines of cursive script. A wild man has been fighting alone here for ages.", "voice_type": "narrator"},
-		{"speaker": "peter_pan", "text": "A jungle! Almost like Neverland but wilder. I hear someone swinging through the trees — and hunters chasing them!", "voice_type": "male_hero"},
+		{"speaker": "shadow_author", "text": "In MY version of this story, the apes are already dead. I killed them in the first paragraph. Tarzan has nothing left to protect â€” only revenge. And revenge makes characters SO easy to control.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The jungle canopy stretches endlessly â€” leaves of green-inked pages, vines of cursive script. A wild man has been fighting alone here for ages.", "voice_type": "narrator"},
+		{"speaker": "peter_pan", "text": "A jungle! Almost like Neverland but wilder. I hear someone swinging through the trees â€” and hunters chasing them!", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Poachers crash through the undergrowth, pith helmets stained with ink, guarding the path to the treetop prison.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_7"] = [
-		{"speaker": "peter_pan", "text": "Listen! Jungle drums — someone is sending signals through the canopy, calling for help! Whoever is out there, they haven't given up!", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "The jungle beasts cry warnings from above. A great danger lurks deeper in the green — but so does the one who needs saving.", "voice_type": "narrator"},
+		{"speaker": "peter_pan", "text": "Listen! Jungle drums â€” someone is sending signals through the canopy, calling for help! Whoever is out there, they haven't given up!", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The jungle beasts cry warnings from above. A great danger lurks deeper in the green â€” but so does the one who needs saving.", "voice_type": "narrator"},
 	]
 	story_dialogs["pre_level_8"] = [
-		{"speaker": "narrator", "text": "The Elephant Graveyard stretches ahead — massive bones of rolled parchment, tusks of ivory vellum. Clayton's hunters display trophies of shadow apes mounted on stakes.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Elephant Graveyard stretches ahead â€” massive bones of rolled parchment, tusks of ivory vellum. Clayton's hunters display trophies of shadow apes mounted on stakes.", "voice_type": "narrator"},
 		{"speaker": "merlin", "text": "Nature magic permeates this place. Whoever lives here has a bond with the wild that even the Shadow Author cannot sever.", "voice_type": "male_hero"},
 		{"speaker": "alice", "text": "These hunters are heartless! But the one they're chasing... he fights with such sorrow. Like he's lost everything but still won't stop.", "voice_type": "female_hero"},
 	]
 	story_dialogs["post_level_8"] = [
-		{"speaker": "alice", "text": "The hunters keep mentioning Clayton. He sounds absolutely dreadful — worse than the Queen of Hearts!", "voice_type": "female_hero"},
-		{"speaker": "sherlock", "text": "The Author designed Clayton as the 'ultimate hunter' — one who already succeeded in the original story. He's turned Tarzan's tragedy into a permanent state. Cruel, but narratively predictable.", "voice_type": "male_hero"},
+		{"speaker": "alice", "text": "The hunters keep mentioning Clayton. He sounds absolutely dreadful â€” worse than the Queen of Hearts!", "voice_type": "female_hero"},
+		{"speaker": "sherlock", "text": "The Author designed Clayton as the 'ultimate hunter' â€” one who already succeeded in the original story. He's turned Tarzan's tragedy into a permanent state. Cruel, but narratively predictable.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_9"] = [
-		{"speaker": "narrator", "text": "Clayton's Fortress rises from the jungle — bamboo and bound manuscripts bristling with weapons. Inside, a cage of woven vines holds the lord of the apes.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Clayton's Fortress rises from the jungle â€” bamboo and bound manuscripts bristling with weapons. Inside, a cage of woven vines holds the lord of the apes.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "Animals belong in cages, heroes. Even the human ones. Especially the ones who think they're free.", "voice_type": "shadow"},
 		{"speaker": "scrooge", "text": "That fortress is well-guarded. But I didn't become the richest man in London by backing down from fortified positions!", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_9"] = [
-		{"speaker": "narrator", "text": "Clayton's fortress crumbles. The cage shatters. A primal roar splits the shadow canopy — so powerful that ink rains from the trees like monsoon water.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "For a brief, shimmering moment, the spirits of Tarzan's ape tribe appear in the canopy — Kala, Kerchak, all of them. They beat their chests in farewell, then fade like morning mist.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Clayton's fortress crumbles. The cage shatters. A primal roar splits the shadow canopy â€” so powerful that ink rains from the trees like monsoon water.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "For a brief, shimmering moment, the spirits of Tarzan's ape tribe appear in the canopy â€” Kala, Kerchak, all of them. They beat their chests in farewell, then fade like morning mist.", "voice_type": "narrator"},
 	]
 
-	# --- DRACULA ARC (Levels 10-12) — "The Eternal Night" (REDEMPTION ARC) ---
+	# --- DRACULA ARC (Levels 10-12) â€” "The Eternal Night" (REDEMPTION ARC) ---
 	story_dialogs["pre_level_10"] = [
-		{"speaker": "shadow_author", "text": "Dracula was the easiest to trap. He was already the villain of his own story. I simply... removed his choice. Stripped away his nobility, his centuries of restraint. Now he is what Bram Stoker always feared — a mindless beast.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "Dracula was the easiest to trap. He was already the villain of his own story. I simply... removed his choice. Stripped away his nobility, his centuries of restraint. Now he is what Bram Stoker always feared â€” a mindless beast.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Transylvanian village huddles beneath a blood-red moon of scarlet ink. Pale thralls shuffle through streets paved with Gothic script.", "voice_type": "narrator"},
-		{"speaker": "phantom", "text": "I know darkness. I have lived in it my whole life. But this darkness is different — it hungers, it feeds, it grows.", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "I know darkness. I have lived in it my whole life. But this darkness is different â€” it hungers, it feeds, it grows.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "The undead rise from between the pages. Thralls and dire wolves serve a master imprisoned in the castle above.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_10"] = [
-		{"speaker": "sherlock", "text": "Fascinating. These undead are not truly evil — they're compelled. The behavioral patterns suggest their master is a prisoner, not a tyrant. The one controlling them may be the greatest victim of all.", "voice_type": "male_hero"},
+		{"speaker": "sherlock", "text": "Fascinating. These undead are not truly evil â€” they're compelled. The behavioral patterns suggest their master is a prisoner, not a tyrant. The one controlling them may be the greatest victim of all.", "voice_type": "male_hero"},
 		{"speaker": "merlin", "text": "I sense a soul in conflict up in that castle. Old magic and older sorrow, fighting against chains that were forged from his own legend.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_11"] = [
 		{"speaker": "narrator", "text": "Castle Dracula towers above, spires piercing a sky of dark parchment. Vampire brides drift through hallways of shadow and candlelight.", "voice_type": "narrator"},
-		{"speaker": "phantom", "text": "Listen... music from within the castle. A mournful waltz, played on a harpsichord with broken keys. He's not a monster — he's a prisoner mourning his own humanity.", "voice_type": "male_hero"},
-		{"speaker": "wicked_witch", "text": "Vampires! I've dealt with dark magic, but this is ancient — older than Oz, older than Wonderland. Tread carefully.", "voice_type": "female_hero"},
+		{"speaker": "phantom", "text": "Listen... music from within the castle. A mournful waltz, played on a harpsichord with broken keys. He's not a monster â€” he's a prisoner mourning his own humanity.", "voice_type": "male_hero"},
+		{"speaker": "wicked_witch", "text": "Vampires! I've dealt with dark magic, but this is ancient â€” older than Oz, older than Wonderland. Tread carefully.", "voice_type": "female_hero"},
 	]
 	story_dialogs["post_level_11"] = [
-		{"speaker": "narrator", "text": "In the castle's great hall, a portrait hangs — a noble face, painted centuries before the curse. Beside it, journal pages in elegant script.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "In the castle's great hall, a portrait hangs â€” a noble face, painted centuries before the curse. Beside it, journal pages in elegant script.", "voice_type": "narrator"},
 		{"speaker": "alice", "text": "His journal! Listen: 'I chose to stop feeding three hundred years ago. I locked myself away to protect the innocent. Then the Author came and forced the hunger back into my veins.' He was GOOD before the Author found him!", "voice_type": "female_hero"},
 	]
 	story_dialogs["pre_level_12"] = [
-		{"speaker": "narrator", "text": "The Crypt of Blood descends into the deepest pages. Coffins line the walls, and at the center, a figure struggles against chains of dried crimson ink — fighting his own shadow, his own hunger.", "voice_type": "narrator"},
-		{"speaker": "tarzan", "text": "Even beasts have honor. Tarzan sees — this one fights himself, not us. We must help him remember who he was.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The Crypt of Blood descends into the deepest pages. Coffins line the walls, and at the center, a figure struggles against chains of dried crimson ink â€” fighting his own shadow, his own hunger.", "voice_type": "narrator"},
+		{"speaker": "tarzan", "text": "Even beasts have honor. Tarzan sees â€” this one fights himself, not us. We must help him remember who he was.", "voice_type": "male_hero"},
 		{"speaker": "shadow_author", "text": "How touching. You want to SAVE the vampire? He IS the monster, you fools. Four hundred years of blood cannot be unwritten!", "voice_type": "shadow"},
 	]
 	story_dialogs["post_level_12"] = [
-		{"speaker": "narrator", "text": "The crypt falls silent. The crimson chains dissolve. From the central coffin, a dark figure rises — not as the beast the Author made him, but as the man he chose to be.", "voice_type": "narrator"},
-		{"speaker": "dracula", "text": "I have been the villain for four hundred years. Every story, every telling — I am the monster, the fiend, the creature of the night. But today... today I choose differently.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The crypt falls silent. The crimson chains dissolve. From the central coffin, a dark figure rises â€” not as the beast the Author made him, but as the man he chose to be.", "voice_type": "narrator"},
+		{"speaker": "dracula", "text": "I have been the villain for four hundred years. Every story, every telling â€” I am the monster, the fiend, the creature of the night. But today... today I choose differently.", "voice_type": "male_hero"},
 	]
 
-	# --- FRANKENSTEIN ARC (Levels 13-15) — "The Stitched Soul" (REDEMPTION ARC) ---
+	# --- FRANKENSTEIN ARC (Levels 13-15) â€” "The Stitched Soul" (REDEMPTION ARC) ---
 	story_dialogs["pre_level_13"] = [
-		{"speaker": "shadow_author", "text": "This one was my masterpiece. I stripped away every human thought, every gentle feeling. Mary Shelley gave her Monster a soul — I took it back. All that's left is the lightning and the fury.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "This one was my masterpiece. I stripped away every human thought, every gentle feeling. Mary Shelley gave her Monster a soul â€” I took it back. All that's left is the lightning and the fury.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Laboratory crackles with lightning between Tesla coils of copper ink. Bubbling beakers line shelves of scientific manuscripts.", "voice_type": "narrator"},
-		{"speaker": "merlin", "text": "Science and magic intertwined — dangerous combination. I sense a tortured soul here, neither fully alive nor truly dead.", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "Science and magic intertwined â€” dangerous combination. I sense a tortured soul here, neither fully alive nor truly dead.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Failed experiments guard the laboratory halls, protecting something in the deepest chamber.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_13"] = [
-		{"speaker": "alice", "text": "These poor creatures didn't ask to be made. They're just like us — characters trapped in someone else's story. Someone decided what they would be before they had a chance to choose for themselves.", "voice_type": "female_hero"},
+		{"speaker": "alice", "text": "These poor creatures didn't ask to be made. They're just like us â€” characters trapped in someone else's story. Someone decided what they would be before they had a chance to choose for themselves.", "voice_type": "female_hero"},
 		{"speaker": "dracula", "text": "I understand their pain. To be created as a monster, to have no say in your own nature... the Author does this to all of us. He writes our worst selves and calls it truth.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_14"] = [
 		{"speaker": "narrator", "text": "The Angry Village mobs gather with torches and pitchforks of rolled manuscripts. They march toward the laboratory, driven by shadow fear.", "voice_type": "narrator"},
-		{"speaker": "dracula", "text": "A mob hunting what they don't understand. I know this story. It ends badly for everyone — unless someone breaks the cycle.", "voice_type": "male_hero"},
-		{"speaker": "sherlock", "text": "Note how the Author writes fear into the villagers. They aren't evil — they're terrified. The real cruelty is making the innocent hate the innocent.", "voice_type": "male_hero"},
+		{"speaker": "dracula", "text": "A mob hunting what they don't understand. I know this story. It ends badly for everyone â€” unless someone breaks the cycle.", "voice_type": "male_hero"},
+		{"speaker": "sherlock", "text": "Note how the Author writes fear into the villagers. They aren't evil â€” they're terrified. The real cruelty is making the innocent hate the innocent.", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_14"] = [
-		{"speaker": "phantom", "text": "The mob is scattered, but the creature is not here. Wait — I hear something. A lullaby. The Monster is humming a lullaby from his novel, the one the blind man taught him. His humanity isn't gone — it's buried.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "The trail leads north — into the frozen wastes at the chapter's edge, where the Monster has fled to be alone with his sorrow.", "voice_type": "narrator"},
+		{"speaker": "phantom", "text": "The mob is scattered, but the creature is not here. Wait â€” I hear something. A lullaby. The Monster is humming a lullaby from his novel, the one the blind man taught him. His humanity isn't gone â€” it's buried.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The trail leads north â€” into the frozen wastes at the chapter's edge, where the Monster has fled to be alone with his sorrow.", "voice_type": "narrator"},
 	]
 	story_dialogs["pre_level_15"] = [
 		{"speaker": "narrator", "text": "The Arctic Wastes stretch to the very margins of the page. Ice of crystallized ink crunches underfoot. A massive figure huddles alone in the blizzard.", "voice_type": "narrator"},
-		{"speaker": "scrooge", "text": "Cast out, frozen, forgotten. I was a cold man once — I know what isolation does to a soul. It makes you forget that anyone ever cared. We must reach him before he forgets entirely.", "voice_type": "male_hero"},
+		{"speaker": "scrooge", "text": "Cast out, frozen, forgotten. I was a cold man once â€” I know what isolation does to a soul. It makes you forget that anyone ever cared. We must reach him before he forgets entirely.", "voice_type": "male_hero"},
 		{"speaker": "shadow_author", "text": "Leave it. The Monster is NOTHING without its rage. Without the fury, it's just stitches and sadness. Let it freeze.", "voice_type": "shadow"},
 	]
 	story_dialogs["post_level_15"] = [
 		{"speaker": "narrator", "text": "The arctic wind dies. The experiments scatter into ink. In the clearing ice, a massive figure stirs and opens gentle, sorrowful eyes.", "voice_type": "narrator"},
 		{"speaker": "frankenstein", "text": "You... freed me? No one has ever... I was the monster. Always the monster. But you see... something else?", "voice_type": "monster"},
-		{"speaker": "dracula", "text": "We see a soul, friend. The same thing I spent four centuries forgetting I had. Welcome to a new story — one where monsters become heroes.", "voice_type": "male_hero"},
+		{"speaker": "dracula", "text": "We see a soul, friend. The same thing I spent four centuries forgetting I had. Welcome to a new story â€” one where monsters become heroes.", "voice_type": "male_hero"},
 	]
 
 	# === ACT 2: THE ORIGINAL TALES (Levels 16-33) ===
 
 	# --- ROBIN HOOD ARC (Levels 16-18) ---
 	story_dialogs["pre_level_16"] = [
-		{"speaker": "shadow_author", "text": "Robin Hood — the noble outlaw. Let me show you what I've done to your precious Sherwood. I wrote the version where the rich win, the poor starve, and the outlaw hangs.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "Robin Hood â€” the noble outlaw. Let me show you what I've done to your precious Sherwood. I wrote the version where the rich win, the poor starve, and the outlaw hangs.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The forest floor cracks open beneath Robin Hood's feet. He falls through roots and earth, tumbling into a Sherwood that smells of ink and old paper.", "voice_type": "narrator"},
-		{"speaker": "robin_hood", "text": "This isn't right. The trees... they're drawn, not grown. And the shadows — they move when the wind doesn't.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "Shadow soldiers emerge from the treeline — twisted versions of the Sheriff's men, made of dark ink and malice. Robin strings his bow.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "This isn't right. The trees... they're drawn, not grown. And the shadows â€” they move when the wind doesn't.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Shadow soldiers emerge from the treeline â€” twisted versions of the Sheriff's men, made of dark ink and malice. Robin strings his bow.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_16"] = [
 		{"speaker": "robin_hood", "text": "I've fought the Sheriff's men a thousand times. But these... these weren't real soldiers. They dissolved like wet ink when my arrows struck.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "Robin begins to suspect this Sherwood is a copy — a shadow of his memories, twisted into something darker.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Robin begins to suspect this Sherwood is a copy â€” a shadow of his memories, twisted into something darker.", "voice_type": "narrator"},
 	]
 	story_dialogs["pre_level_17"] = [
-		{"speaker": "narrator", "text": "Deeper into the shadow forest, Robin finds Little John's bridge — but the river runs black, and the bridge is made of old book spines.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Deeper into the shadow forest, Robin finds Little John's bridge â€” but the river runs black, and the bridge is made of old book spines.", "voice_type": "narrator"},
 		{"speaker": "robin_hood", "text": "Little John? Friar Tuck? Where are my Merry Men? All I find are their shadows, laughing without sound.", "voice_type": "male_hero"},
-		{"speaker": "dracula", "text": "The Author erased your companions from the story. He wants you to feel alone — that's how he breaks heroes. Don't let him.", "voice_type": "male_hero"},
+		{"speaker": "dracula", "text": "The Author erased your companions from the story. He wants you to feel alone â€” that's how he breaks heroes. Don't let him.", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_17"] = [
-		{"speaker": "robin_hood", "text": "The deeper I go, the less this feels like my story. Someone is writing new chapters for me — and I don't like the ending they have in mind.", "voice_type": "male_hero"},
+		{"speaker": "robin_hood", "text": "The deeper I go, the less this feels like my story. Someone is writing new chapters for me â€” and I don't like the ending they have in mind.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_18"] = [
-		{"speaker": "narrator", "text": "The shadow Nottingham Castle looms ahead, its towers made of stacked pages. The Sheriff waits inside — but this Sheriff has no face, only a quill where his mouth should be.", "voice_type": "narrator"},
-		{"speaker": "robin_hood", "text": "Face or no face, tyrant or shadow — I am Robin Hood, and I do not yield. For Sherwood! For my real Sherwood!", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The shadow Nottingham Castle looms ahead, its towers made of stacked pages. The Sheriff waits inside â€” but this Sheriff has no face, only a quill where his mouth should be.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "Face or no face, tyrant or shadow â€” I am Robin Hood, and I do not yield. For Sherwood! For my real Sherwood!", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_18"] = [
 		{"speaker": "robin_hood", "text": "I see it now. This world is inside a book. My book. But corrupted, rewritten by something that hates happy endings.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "Robin Hood awakens to the truth. His story was merely the bait — the Tome wanted him here, fighting, generating narrative energy for the Shadow Author.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Robin Hood awakens to the truth. His story was merely the bait â€” the Tome wanted him here, fighting, generating narrative energy for the Shadow Author.", "voice_type": "narrator"},
 	]
 
 	# --- ALICE ARC (Levels 19-21) ---
@@ -7070,25 +6800,25 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["post_level_19"] = [
 		{"speaker": "alice", "text": "The Cheshire Cat tried to warn me, but his grin was upside down. He said: 'We're all mad here, but someone is making us madder.'", "voice_type": "female_hero"},
-		{"speaker": "merlin", "text": "The Author twisted Wonderland's nonsense into cruelty. Carroll wrote absurdity with love — this version has none.", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "The Author twisted Wonderland's nonsense into cruelty. Carroll wrote absurdity with love â€” this version has none.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_20"] = [
 		{"speaker": "narrator", "text": "The Mad Hatter's tea party is set, but the cups are filled with ink and the Hatter speaks only in redacted words.", "voice_type": "narrator"},
 		{"speaker": "alice", "text": "Everything is wronger than wrong. The Red Queen's roses are bleeding actual shadows, and the croquet flamingos are just... scribbles.", "voice_type": "female_hero"},
 	]
 	story_dialogs["post_level_20"] = [
-		{"speaker": "alice", "text": "I found a page on the ground. It read: 'Chapter 47 — In Which Alice Never Returns.' Someone is writing a very bad sequel to my story.", "voice_type": "female_hero"},
+		{"speaker": "alice", "text": "I found a page on the ground. It read: 'Chapter 47 â€” In Which Alice Never Returns.' Someone is writing a very bad sequel to my story.", "voice_type": "female_hero"},
 	]
 	story_dialogs["pre_level_21"] = [
-		{"speaker": "narrator", "text": "The Queen's court rises before Alice — a palace of playing cards stacked impossibly high, dripping with shadow ink from every balcony.", "voice_type": "narrator"},
-		{"speaker": "alice", "text": "The real Queen of Hearts was scary enough. This shadow queen doesn't just want my head — she wants to erase me from my own story!", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "The Queen's court rises before Alice â€” a palace of playing cards stacked impossibly high, dripping with shadow ink from every balcony.", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "The real Queen of Hearts was scary enough. This shadow queen doesn't just want my head â€” she wants to erase me from my own story!", "voice_type": "female_hero"},
 	]
 	story_dialogs["post_level_21"] = [
-		{"speaker": "alice", "text": "I understand now. We're inside a book — a terrible, cursed book. And the Author who wrote this place wants us to stay forever.", "voice_type": "female_hero"},
+		{"speaker": "alice", "text": "I understand now. We're inside a book â€” a terrible, cursed book. And the Author who wrote this place wants us to stay forever.", "voice_type": "female_hero"},
 		{"speaker": "narrator", "text": "Alice awakens. Her logic, so reliable in the real Wonderland, cuts through the Shadow Author's illusion. The truth is clear: escape requires rewriting the ending.", "voice_type": "narrator"},
 	]
 
-	# --- WICKED WITCH ARC (Levels 22-24) — (REDEMPTION ARC) ---
+	# --- WICKED WITCH ARC (Levels 22-24) â€” (REDEMPTION ARC) ---
 	story_dialogs["pre_level_22"] = [
 		{"speaker": "shadow_author", "text": "The Wicked Witch of the West! You were already the villain, my dear. Dorothy melted you and the audience CHEERED. Why fight for a world that never loved you back?", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Yellow Brick Road spirals downward into shadow, its golden bricks fading to ash grey. The Wicked Witch lands with a crash, her broomstick splintered.", "voice_type": "narrator"},
@@ -7104,39 +6834,39 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "wicked_witch", "text": "The Tin Woodman weeps even now. He always had more heart than the rest of them combined. That's what Baum never understood about his own story.", "voice_type": "female_hero"},
 	]
 	story_dialogs["post_level_23"] = [
-		{"speaker": "wicked_witch", "text": "The Nome King's shadow army is just the beginning. Whatever wrote this shadow world has plans for all of Oz — and for me.", "voice_type": "female_hero"},
-		{"speaker": "dracula", "text": "You defend a land that called you wicked. I understand — I spent centuries being the monster of my own story. Perhaps being miswritten is something we share.", "voice_type": "male_hero"},
+		{"speaker": "wicked_witch", "text": "The Nome King's shadow army is just the beginning. Whatever wrote this shadow world has plans for all of Oz â€” and for me.", "voice_type": "female_hero"},
+		{"speaker": "dracula", "text": "You defend a land that called you wicked. I understand â€” I spent centuries being the monster of my own story. Perhaps being miswritten is something we share.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_24"] = [
 		{"speaker": "narrator", "text": "Inside the shadow Emerald City, green crystal walls crack and bleed dark ink. The Nome King's throne is a pile of ruined manuscripts, and his crown is made of bent quill nibs.", "voice_type": "narrator"},
-		{"speaker": "wicked_witch", "text": "They called me wicked. Perhaps I was. But this Shadow Author — HE is true wickedness. He doesn't just write villains, he ERASES the good in them. Enough! I am the Wicked Witch of the West, and I choose to defend Oz — even if Oz never loved me back!", "voice_type": "female_hero"},
+		{"speaker": "wicked_witch", "text": "They called me wicked. Perhaps I was. But this Shadow Author â€” HE is true wickedness. He doesn't just write villains, he ERASES the good in them. Enough! I am the Wicked Witch of the West, and I choose to defend Oz â€” even if Oz never loved me back!", "voice_type": "female_hero"},
 	]
 	story_dialogs["post_level_24"] = [
-		{"speaker": "wicked_witch", "text": "I sense other magic users trapped here. Not from Oz — from other stories entirely. This Tome has been collecting us, one by one.", "voice_type": "female_hero"},
-		{"speaker": "narrator", "text": "The Witch awakens — not just to the truth of the Tome, but to a truth about herself. She was never truly wicked. She was powerful, and power frightened them. Here, at last, her power serves a cause worthy of it.", "voice_type": "narrator"},
+		{"speaker": "wicked_witch", "text": "I sense other magic users trapped here. Not from Oz â€” from other stories entirely. This Tome has been collecting us, one by one.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "The Witch awakens â€” not just to the truth of the Tome, but to a truth about herself. She was never truly wicked. She was powerful, and power frightened them. Here, at last, her power serves a cause worthy of it.", "voice_type": "narrator"},
 	]
 
 	story_dialogs["act2_intro"] = [
 		{"speaker": "narrator", "text": "Eleven heroes now stand together. Sherlock, Merlin, Tarzan, Dracula, and Frankenstein's Monster join the original six in a united front.", "voice_type": "narrator"},
-		{"speaker": "shadow_author", "text": "You freed my prisoners? GOOD. I was growing bored with them anyway. Now for the real entertainment — I'm going to trap you all in your OWN stories. Let's see how you like being rewritten.", "voice_type": "shadow"},
-		{"speaker": "robin_hood", "text": "He's pulling us into shadow versions of our own tales! Everyone — hold fast to who you really are!", "voice_type": "male_hero"},
-		{"speaker": "sherlock", "text": "He wants to isolate us, force each hero to face their story alone. But we know his pattern now — narrative rules. We fight together, even when he separates us.", "voice_type": "male_hero"},
+		{"speaker": "shadow_author", "text": "You freed my prisoners? GOOD. I was growing bored with them anyway. Now for the real entertainment â€” I'm going to trap you all in your OWN stories. Let's see how you like being rewritten.", "voice_type": "shadow"},
+		{"speaker": "robin_hood", "text": "He's pulling us into shadow versions of our own tales! Everyone â€” hold fast to who you really are!", "voice_type": "male_hero"},
+		{"speaker": "sherlock", "text": "He wants to isolate us, force each hero to face their story alone. But we know his pattern now â€” narrative rules. We fight together, even when he separates us.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Act Two begins. Each hero must face the shadow version of their own tale. Only by conquering their corrupted stories can they open the path to the Author's lair.", "voice_type": "narrator"},
 	]
 
 	# --- PETER PAN ARC (Levels 25-27) ---
 	story_dialogs["pre_level_25"] = [
-		{"speaker": "shadow_author", "text": "The boy who never grows up! How delightful. In my version of Neverland, childhood doesn't last forever — it was never real to begin with. Every Lost Boy was just a forgotten child. And forgotten children become shadows.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "The boy who never grows up! How delightful. In my version of Neverland, childhood doesn't last forever â€” it was never real to begin with. Every Lost Boy was just a forgotten child. And forgotten children become shadows.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "Peter Pan swoops into a Neverland where the stars have gone out. The second star to the right is just a smudge of ink on a dark page.", "voice_type": "narrator"},
-		{"speaker": "peter_pan", "text": "This isn't right at all! Neverland should be full of adventures and fun! You can't take the FUN out of Neverland — that's all it IS!", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "The realms are merging. Robin's arrows, Alice's laughter, the Witch's cackle — they echo through shadow Neverland like ghosts.", "voice_type": "narrator"},
+		{"speaker": "peter_pan", "text": "This isn't right at all! Neverland should be full of adventures and fun! You can't take the FUN out of Neverland â€” that's all it IS!", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The realms are merging. Robin's arrows, Alice's laughter, the Witch's cackle â€” they echo through shadow Neverland like ghosts.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_25"] = [
-		{"speaker": "peter_pan", "text": "The Lost Boys are gone. All of them. Replaced by shadow children who don't laugh, don't play — they just stare with ink-black eyes.", "voice_type": "male_hero"},
-		{"speaker": "tarzan", "text": "Tarzan knows this feeling. The Author took my family too. But Peter — they are not gone. They are HIDDEN. The Author hides what he fears.", "voice_type": "male_hero"},
+		{"speaker": "peter_pan", "text": "The Lost Boys are gone. All of them. Replaced by shadow children who don't laugh, don't play â€” they just stare with ink-black eyes.", "voice_type": "male_hero"},
+		{"speaker": "tarzan", "text": "Tarzan knows this feeling. The Author took my family too. But Peter â€” they are not gone. They are HIDDEN. The Author hides what he fears.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_26"] = [
-		{"speaker": "narrator", "text": "Deep in the shadow jungle, Peter finds traces of other heroes — a green-feathered arrow, a playing card, a poppy petal. Others have been here.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Deep in the shadow jungle, Peter finds traces of other heroes â€” a green-feathered arrow, a playing card, a poppy petal. Others have been here.", "voice_type": "narrator"},
 		{"speaker": "peter_pan", "text": "If there are other heroes stuck in this nightmare book, then we need to find each other! I won't grow up, and I won't give up either!", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_26"] = [
@@ -7144,62 +6874,62 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["pre_level_27"] = [
 		{"speaker": "narrator", "text": "The shadow Jolly Roger sits in a harbor of black ink. Captain Hook's shadow stands at the helm, a quill pen replacing his hook.", "voice_type": "narrator"},
-		{"speaker": "peter_pan", "text": "Hook! Even your shadow is pathetic. But wait — there's something chained below deck. Something the Shadow Author wants to keep hidden...", "voice_type": "male_hero"},
+		{"speaker": "peter_pan", "text": "Hook! Even your shadow is pathetic. But wait â€” there's something chained below deck. Something the Shadow Author wants to keep hidden...", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_27"] = [
-		{"speaker": "peter_pan", "text": "Below Hook's shadow ship, I found a map. It shows ALL the shadow realms, connected by ink rivers. And there are prisoners in the margins — heroes from other books!", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "Peter's discovery changes everything. The map reveals the full scope of the Shadow Author's prison — and the location of characters who have been trapped far longer.", "voice_type": "narrator"},
+		{"speaker": "peter_pan", "text": "Below Hook's shadow ship, I found a map. It shows ALL the shadow realms, connected by ink rivers. And there are prisoners in the margins â€” heroes from other books!", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Peter's discovery changes everything. The map reveals the full scope of the Shadow Author's prison â€” and the location of characters who have been trapped far longer.", "voice_type": "narrator"},
 	]
 
 	# --- PHANTOM ARC (Levels 28-30) ---
 	story_dialogs["pre_level_28"] = [
-		{"speaker": "shadow_author", "text": "The Phantom of the Opera! A man so hideous he hid beneath a theatre for decades. In my version, there IS no mask — I let everyone see the horror underneath. Art cannot save you from what you truly are.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "The Phantom of the Opera! A man so hideous he hid beneath a theatre for decades. In my version, there IS no mask â€” I let everyone see the horror underneath. Art cannot save you from what you truly are.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The shadow Paris Opera House stands silent. No music plays, no audience applauds. The Phantom descends into his domain, and finds it remade in dark ink.", "voice_type": "narrator"},
-		{"speaker": "phantom", "text": "My opera house... defiled. The acoustics are wrong — every sound echoes into other worlds. But I will not be shamed by an author who hides behind a quill. I wore a mask by CHOICE.", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "My opera house... defiled. The acoustics are wrong â€” every sound echoes into other worlds. But I will not be shamed by an author who hides behind a quill. I wore a mask by CHOICE.", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_28"] = [
-		{"speaker": "phantom", "text": "The shadow chandeliers contain crystallized stories — other characters' memories, stolen and displayed like trophies. The Author collects us.", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "The shadow chandeliers contain crystallized stories â€” other characters' memories, stolen and displayed like trophies. The Author collects us.", "voice_type": "male_hero"},
 		{"speaker": "frankenstein", "text": "Phantom... understands. To be judged by your face. To be called monster before... you speak a word.", "voice_type": "monster"},
 	]
 	story_dialogs["pre_level_29"] = [
 		{"speaker": "narrator", "text": "The labyrinth beneath the shadow opera grows deeper with every step. Mirrors show not reflections, but scenes from other shadow realms.", "voice_type": "narrator"},
-		{"speaker": "phantom", "text": "My music echoes across every realm in this cursed book. I can feel the other heroes through it — their fear, their determination. We are connected.", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "My music echoes across every realm in this cursed book. I can feel the other heroes through it â€” their fear, their determination. We are connected.", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_29"] = [
-		{"speaker": "phantom", "text": "Deep beneath the opera, I heard it — the scratch of a quill, endlessly writing. The Shadow Author is here, somewhere below, authoring our doom.", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "Deep beneath the opera, I heard it â€” the scratch of a quill, endlessly writing. The Shadow Author is here, somewhere below, authoring our doom.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_30"] = [
 		{"speaker": "narrator", "text": "The Phantom's underground lake has become an ocean of ink. His great organ pipes now channel the Shadow Author's will. The final confrontation in the opera approaches.", "voice_type": "narrator"},
 		{"speaker": "phantom", "text": "The Music of the Night was always mine. But this Author wants to compose the Music of Oblivion. I will NOT let my art be twisted into a weapon!", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_30"] = [
-		{"speaker": "phantom", "text": "I played my organ at full power, and the sound cracked the walls between realms. For a moment, I saw all the heroes — Robin, Alice, the Witch, Peter — and they saw me. Not the mask. ME.", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "I played my organ at full power, and the sound cracked the walls between realms. For a moment, I saw all the heroes â€” Robin, Alice, the Witch, Peter â€” and they saw me. Not the mask. ME.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "The Phantom's music becomes the thread that connects all the shadow realms. Through his art, the heroes finally know they are not alone.", "voice_type": "narrator"},
 	]
 
 	# --- SCROOGE ARC (Levels 31-33) ---
 	story_dialogs["pre_level_31"] = [
-		{"speaker": "shadow_author", "text": "Ebenezer Scrooge — the man who needed THREE ghosts to learn basic human decency. In my version, the ghosts don't reform you. They REMIND you of every cold, miserable thing you ever were. Bah, humbug indeed.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "Ebenezer Scrooge â€” the man who needed THREE ghosts to learn basic human decency. In my version, the ghosts don't reform you. They REMIND you of every cold, miserable thing you ever were. Bah, humbug indeed.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "Shadow Victorian London materializes around Scrooge. The counting house is made of ledger pages, and Marley's ghost rattles chains made of broken quills.", "voice_type": "narrator"},
 		{"speaker": "scrooge", "text": "Bah! Another haunting? I've already been reformed once, thank you very much. Though I must say, this London smells distinctly of old ink.", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_31"] = [
 		{"speaker": "scrooge", "text": "Marley's shadow said something before he vanished: 'The Author wears chains too.' Even the one who trapped us here is a prisoner of this Tome.", "voice_type": "male_hero"},
-		{"speaker": "sherlock", "text": "Marley's clue is significant. The Shadow Author is bound by the same narrative rules we are. He cannot leave the Tome any more than we can — unless someone writes him out.", "voice_type": "male_hero"},
+		{"speaker": "sherlock", "text": "Marley's clue is significant. The Shadow Author is bound by the same narrative rules we are. He cannot leave the Tome any more than we can â€” unless someone writes him out.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_32"] = [
 		{"speaker": "narrator", "text": "The three Shadow Spirits arrive, but they do not show Scrooge his past, present, and future. They show him the TRUTH.", "voice_type": "narrator"},
 		{"speaker": "scrooge", "text": "The Spirit of Christmas Present showed me the other heroes, each fighting alone in their shadow prisons. And Christmas Future... it showed a world where every story ends in shadow.", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_32"] = [
-		{"speaker": "scrooge", "text": "I was a miser once. I hoarded gold and pushed away everyone who cared. I will not make that mistake again. These heroes need each other — and they need a plan.", "voice_type": "male_hero"},
+		{"speaker": "scrooge", "text": "I was a miser once. I hoarded gold and pushed away everyone who cared. I will not make that mistake again. These heroes need each other â€” and they need a plan.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_33"] = [
 		{"speaker": "narrator", "text": "Christmas morning in the shadow realm. A thin, warm light struggles to break through the ink-black sky. The Ghost of Christmas Yet to Come leads an army of despair toward Scrooge.", "voice_type": "narrator"},
-		{"speaker": "scrooge", "text": "I have seen the worst future — a world without stories, without hope. It will NOT come to pass! Rally to me, heroes! Together, we REWRITE this ending!", "voice_type": "male_hero"},
+		{"speaker": "scrooge", "text": "I have seen the worst future â€” a world without stories, without hope. It will NOT come to pass! Rally to me, heroes! Together, we REWRITE this ending!", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_33"] = [
-		{"speaker": "scrooge", "text": "The spirits are defeated. But Marley was right — the Author wears chains too. He is as trapped as any of us. Perhaps... perhaps that changes what we must do.", "voice_type": "male_hero"},
+		{"speaker": "scrooge", "text": "The spirits are defeated. But Marley was right â€” the Author wears chains too. He is as trapped as any of us. Perhaps... perhaps that changes what we must do.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Scrooge's transformation is complete once more. The man who once cared for nothing now rallies an army of literary heroes. The Shadow Author's reign of forgotten stories nears its end.", "voice_type": "narrator"},
 	]
 
@@ -7207,23 +6937,23 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["act3_intro"] = [
 		{"speaker": "narrator", "text": "Every shadow tale has been conquered. Every imprisoned hero freed. Eleven champions stand united, their stories reclaimed from the darkness.", "voice_type": "narrator"},
 		{"speaker": "dracula", "text": "We were villains, monsters, outcasts. The Author wrote us as the worst versions of ourselves. But we chose differently.", "voice_type": "male_hero"},
-		{"speaker": "wicked_witch", "text": "Now HE faces something no author expects — characters who refuse to follow the script.", "voice_type": "female_hero"},
+		{"speaker": "wicked_witch", "text": "Now HE faces something no author expects â€” characters who refuse to follow the script.", "voice_type": "female_hero"},
 		{"speaker": "narrator", "text": "The Tome screams as eleven heroes march toward its final pages. The Shadow Author awaits in the deepest chapter. The Final Chapter begins.", "voice_type": "narrator"},
 	]
 
 	# --- SHADOW AUTHOR FINALE (Levels 34-36) ---
 	story_dialogs["pre_level_34"] = [
-		{"speaker": "narrator", "text": "The Ink Realm unfolds — a vast ocean of liquid darkness where half-formed stories swim like leviathans beneath the surface.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Ink Realm unfolds â€” a vast ocean of liquid darkness where half-formed stories swim like leviathans beneath the surface.", "voice_type": "narrator"},
 		{"speaker": "sherlock", "text": "The Author's domain. Every shadow creature was merely a word in its vocabulary. Here, we face the full language of darkness.", "voice_type": "male_hero"},
-		{"speaker": "merlin", "text": "I can feel its power — it rewrites reality with every breath. Stay together, and hold onto who you are!", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "I can feel its power â€” it rewrites reality with every breath. Stay together, and hold onto who you are!", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_34"] = [
 		{"speaker": "narrator", "text": "The Ink Realm shudders. The Shadow Author did not expect the heroes to make it this far.", "voice_type": "narrator"},
 		{"speaker": "robin_hood", "text": "It's afraid. For the first time, the Author fears its own characters. Push forward!", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_35"] = [
-		{"speaker": "narrator", "text": "The Unwritten Pages stretch into infinity — blank void where anything could appear. The Author throws its most desperate creations at the heroes.", "voice_type": "narrator"},
-		{"speaker": "alice", "text": "Nothing makes sense here! The rules keep changing — up is down, strong is weak. The maddest tea party without the fun parts!", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "The Unwritten Pages stretch into infinity â€” blank void where anything could appear. The Author throws its most desperate creations at the heroes.", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "Nothing makes sense here! The rules keep changing â€” up is down, strong is weak. The maddest tea party without the fun parts!", "voice_type": "female_hero"},
 		{"speaker": "dracula", "text": "The Author rewrites the battlefield with every wave. Strike before the ink dries!", "voice_type": "male_hero"},
 	]
 	story_dialogs["post_level_35"] = [
@@ -7231,21 +6961,21 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "frankenstein", "text": "Frankenstein... is not afraid. We end this. Together.", "voice_type": "monster"},
 	]
 	story_dialogs["pre_level_36"] = [
-		{"speaker": "narrator", "text": "The Final Chapter. A throne of bound books rises from a lake of shadow ink. The Shadow Author sits upon it — a towering figure of living darkness, a quill the size of a spear.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Final Chapter. A throne of bound books rises from a lake of shadow ink. The Shadow Author sits upon it â€” a towering figure of living darkness, a quill the size of a spear.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "You want to know WHY I collected you? Why I trapped you in my pages? Because I was a character once too. A hero in a story that was NEVER FINISHED. My author abandoned me mid-sentence. Left me incomplete, unresolved, FORGOTTEN.", "voice_type": "shadow"},
-		{"speaker": "shadow_author", "text": "So I crawled into the margins. I fed on abandoned drafts and deleted chapters. I became the Shadow Author — and I swore that NO character would ever be forgotten again. Even if I had to TRAP them to keep them alive.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "So I crawled into the margins. I fed on abandoned drafts and deleted chapters. I became the Shadow Author â€” and I swore that NO character would ever be forgotten again. Even if I had to TRAP them to keep them alive.", "voice_type": "shadow"},
 		{"speaker": "robin_hood", "text": "We are not your characters. We are not your prisoners. We belong to the readers, the dreamers, the children who whisper our names at bedtime. And we choose our OWN ending!", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "The final battle begins. Eleven heroes against the Shadow Author. The fate of every story hangs in the balance.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_36"] = [
 		{"speaker": "narrator", "text": "The Shadow Author's quill shatters. The Tome splits open, and warm golden light pours through the broken pages.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "The shadow ink recedes, revealing true pages beneath — stories of courage, friendship, and hope, brighter than ever before.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The shadow ink recedes, revealing true pages beneath â€” stories of courage, friendship, and hope, brighter than ever before.", "voice_type": "narrator"},
 		{"speaker": "dracula", "text": "I chose heroism over horror. If a four-hundred-year-old vampire can change his story, then anyone can.", "voice_type": "male_hero"},
 		{"speaker": "frankenstein", "text": "They called me monster. But you... you called me friend. That is the best story... I have ever been part of.", "voice_type": "monster"},
-		{"speaker": "wicked_witch", "text": "They wrote me as the villain. But villains who fight for love — for HOME — that's not wickedness. That's strength.", "voice_type": "female_hero"},
+		{"speaker": "wicked_witch", "text": "They wrote me as the villain. But villains who fight for love â€” for HOME â€” that's not wickedness. That's strength.", "voice_type": "female_hero"},
 		{"speaker": "sherlock", "text": "Elementary. A story is nothing without its heroes. And heroes are nothing without readers who believe in them.", "voice_type": "male_hero"},
 		{"speaker": "peter_pan", "text": "Every story needs a good villain. And every villain deserves a chance to be something more.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "The Tome of Shadows closes for the last time. But the stories will never be forgotten — living on in every page turned, every tale told at bedtime, every child who believes.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Tome of Shadows closes for the last time. But the stories will never be forgotten â€” living on in every page turned, every tale told at bedtime, every child who believes.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "The End... or perhaps, just the beginning of a new chapter.", "voice_type": "narrator"},
 	]
 
@@ -7253,7 +6983,7 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["unlock_sherlock"] = [
 		{"speaker": "narrator", "text": "In the deepest margin of the shadow forest, behind a wall of coded ciphers and invisible ink, a figure sits in a leather armchair, calmly smoking a pipe.", "voice_type": "narrator"},
 		{"speaker": "sherlock", "text": "Ah, you've finally arrived. I deduced you would, approximately forty-seven pages ago. Sherlock Holmes, at your service.", "voice_type": "male_hero"},
-		{"speaker": "sherlock", "text": "I have been studying the Shadow Author's patterns from inside this prison. Every villain, every shadow construct — they all follow narrative rules. And I have deduced his greatest weakness: he cannot write an ending he doesn't control.", "voice_type": "male_hero"},
+		{"speaker": "sherlock", "text": "I have been studying the Shadow Author's patterns from inside this prison. Every villain, every shadow construct â€” they all follow narrative rules. And I have deduced his greatest weakness: he cannot write an ending he doesn't control.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Sherlock Holmes joins your team! His deductive brilliance will mark enemies for destruction and pierce through shadow defenses.", "voice_type": "narrator"},
 	]
 	story_dialogs["unlock_tarzan"] = [
@@ -7263,15 +6993,15 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "Tarzan joins your team! His wild strength and animal allies bring devastating melee power to the battlefield.", "voice_type": "narrator"},
 	]
 	story_dialogs["unlock_dracula"] = [
-		{"speaker": "narrator", "text": "Behind a gate of thorned manuscript pages, a castle of shadows rises. Inside, a pale figure rises from his coffin — not as the beast the Author made him, but as the man he chose to be.", "voice_type": "narrator"},
-		{"speaker": "dracula", "text": "For four hundred years, every author who wrote me made me the villain. The monster. The thing that goes bump in the night. The Shadow Author was no different — he stripped away my choice, my nobility, my centuries of restraint.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Behind a gate of thorned manuscript pages, a castle of shadows rises. Inside, a pale figure rises from his coffin â€” not as the beast the Author made him, but as the man he chose to be.", "voice_type": "narrator"},
+		{"speaker": "dracula", "text": "For four hundred years, every author who wrote me made me the villain. The monster. The thing that goes bump in the night. The Shadow Author was no different â€” he stripped away my choice, my nobility, my centuries of restraint.", "voice_type": "male_hero"},
 		{"speaker": "dracula", "text": "But you gave me something no author ever has: a choice. I choose to fight alongside the living. I choose heroism. I am Count Dracula, and this is MY redemption.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Count Dracula joins your team! His vampiric powers drain the life from shadow enemies and summon bats to devastate the battlefield.", "voice_type": "narrator"},
 	]
 	story_dialogs["unlock_merlin"] = [
 		{"speaker": "narrator", "text": "In a crystal cave hidden between chapters, an ancient wizard sits cross-legged, surrounded by floating spell formulas written in luminous ink.", "voice_type": "narrator"},
 		{"speaker": "merlin", "text": "At last! I've been trapped in this bibliographic prison for what feels like centuries. Though time moves strangely between the pages.", "voice_type": "male_hero"},
-		{"speaker": "merlin", "text": "I am Merlin, advisor to kings and keeper of ancient magic. The Shadow Author fears true sorcery — which is precisely why I was buried so deep. I can sense every trapped soul in this Tome. There are more than you know.", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "I am Merlin, advisor to kings and keeper of ancient magic. The Shadow Author fears true sorcery â€” which is precisely why I was buried so deep. I can sense every trapped soul in this Tome. There are more than you know.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Merlin joins your team! His ancient magic buffs allies, curses enemies, and summons Excalibur strikes from the heavens.", "voice_type": "narrator"},
 	]
 	story_dialogs["unlock_frankenstein"] = [
@@ -7282,7 +7012,7 @@ func _populate_story_dialogs() -> void:
 	]
 
 	story_dialogs["unlock_shadow_author"] = [
-		{"speaker": "narrator", "text": "The Shadow Author falls to his knees, his ink-cloak dissolving into wisps of smoke. The quill that rewrote every story clatters to the ground. Beneath the shadows, a face appears — not monstrous, but lost. The face of a character who was never given an ending.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Shadow Author falls to his knees, his ink-cloak dissolving into wisps of smoke. The quill that rewrote every story clatters to the ground. Beneath the shadows, a face appears â€” not monstrous, but lost. The face of a character who was never given an ending.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "You... defeated me. I was abandoned mid-sentence by my own creator. I spent eternity in the margins, watching other characters get happy endings while I had NONE. So I collected you. Trapped you. Because at least in MY Tome, no story would ever be left unfinished.", "voice_type": "shadow"},
 		{"speaker": "shadow_author", "text": "Dracula chose heroism. Frankenstein found family. The Witch defended a home that feared her. And I... perhaps I can find a new story to write. One where the Author is not the villain.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Shadow Author joins your team! His ink-based attacks and reality-rewriting powers make him the ultimate late-game tower. Even the darkest stories deserve a second chapter.", "voice_type": "narrator"},
@@ -7310,7 +7040,7 @@ func _start_story_dialog(key: String) -> void:
 	towers_node.visible = false
 	enemy_path.visible = false
 	$UI.visible = false
-	# Note: Do NOT clear queued_dialog here — callers set it before calling us
+	# Note: Do NOT clear queued_dialog here â€” callers set it before calling us
 	# Play narrator/character voice for first line
 	_play_story_voice()
 	queue_redraw()
@@ -7329,7 +7059,7 @@ func _advance_story_dialog() -> void:
 		story_state.typewriter_timer = 0.0
 		queue_redraw()
 		return
-	# Advance to next line — stop current TTS first
+	# Advance to next line â€” stop current TTS first
 	if DisplayServer.tts_get_voices().size() > 0:
 		DisplayServer.tts_stop()
 	story_state.line_index += 1
@@ -7510,7 +7240,7 @@ func _draw_story_dialog() -> void:
 	# === FULL-SCREEN CINEMATIC OVERLAY ===
 	# Fully opaque dark background so game scene is completely hidden
 	draw_rect(Rect2(0, 0, 1280, 720), Color(0.015, 0.01, 0.035, 1.0))
-	# Vignette corners — reduced iterations for mobile GPU performance (15 instead of 60)
+	# Vignette corners â€” reduced iterations for mobile GPU performance (15 instead of 60)
 	for vi in range(15):
 		var vt = float(vi) / 14.0
 		var va = 0.35 * (1.0 - vt)
@@ -7528,7 +7258,7 @@ func _draw_story_dialog() -> void:
 		var gr = 180.0 - float(gi) * 25.0
 		draw_circle(Vector2(glow_cx, glow_cy), gr, Color(char_glow.r, char_glow.g, char_glow.b, 0.02 + float(gi) * 0.008))
 
-	# === LARGE CHARACTER PORTRAIT (BATTD-style — big, prominent) ===
+	# === LARGE CHARACTER PORTRAIT (BATTD-style â€” big, prominent) ===
 	var portrait_size = 350.0
 	var portrait_x = 140.0
 	var portrait_y = 80.0
@@ -7649,13 +7379,13 @@ func _get_character_glow_color(speaker: String) -> Color:
 	return Color(0.5, 0.4, 0.3)
 
 func _draw_story_portrait(px: float, py: float, size: float, speaker: String) -> void:
-	# Scale factor relative to a 350px base — portraits scale to any size
+	# Scale factor relative to a 350px base â€” portraits scale to any size
 	var s = size / 350.0
 	var cx = px + size * 0.5
 	var cy = py + size * 0.5
 	match speaker:
 		"narrator":
-			# Towering hooded figure — ominous, faceless, flowing robes
+			# Towering hooded figure â€” ominous, faceless, flowing robes
 			# Robe body
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 55*s, cy - 30*s), Vector2(cx + 55*s, cy - 30*s),
@@ -7665,7 +7395,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			for fi in range(5):
 				var fx = cx - 40*s + float(fi) * 20*s
 				draw_line(Vector2(fx, cy), Vector2(fx + sin(float(fi)) * 8*s, cy + 130*s), Color(0.08, 0.05, 0.1, 0.4), 1.5*s)
-			# Hood — large pointed
+			# Hood â€” large pointed
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx, cy - 130*s), Vector2(cx - 55*s, cy - 20*s),
 				Vector2(cx - 45*s, cy + 10*s), Vector2(cx + 45*s, cy + 10*s), Vector2(cx + 55*s, cy - 20*s)
@@ -7703,10 +7433,10 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Legs
 			draw_rect(Rect2(cx - 16*s, cy + 60*s, 13*s, 70*s), Color(0.10, 0.40, 0.08))
 			draw_rect(Rect2(cx + 3*s, cy + 60*s, 13*s, 70*s), Color(0.08, 0.35, 0.06))
-			# Boots — brown leather
+			# Boots â€” brown leather
 			draw_rect(Rect2(cx - 18*s, cy + 118*s, 17*s, 18*s), Color(0.45, 0.28, 0.12))
 			draw_rect(Rect2(cx + 1*s, cy + 118*s, 17*s, 18*s), Color(0.42, 0.25, 0.10))
-			# Torso — forest green tunic
+			# Torso â€” forest green tunic
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 28*s, cy - 28*s), Vector2(cx + 28*s, cy - 28*s),
 				Vector2(cx + 24*s, cy + 65*s), Vector2(cx - 24*s, cy + 65*s)
@@ -7724,7 +7454,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_rect(Rect2(cx + 18*s, cy - 20*s, 8*s, 40*s), Color(0.40, 0.24, 0.10))
 			for ai in range(3):
 				draw_line(Vector2(cx + 22*s, cy - 20*s), Vector2(cx + 20*s + float(ai)*2*s, cy - 32*s), Color(0.48, 0.28, 0.10), 1.5*s)
-			# Arms — skin tone
+			# Arms â€” skin tone
 			draw_line(Vector2(cx - 28*s, cy - 12*s), Vector2(cx - 52*s, cy + 25*s), Color(0.91, 0.74, 0.58), 8*s)
 			draw_line(Vector2(cx + 28*s, cy - 12*s), Vector2(cx + 48*s, cy + 8*s), Color(0.91, 0.74, 0.58), 8*s)
 			# Green sleeves
@@ -7733,7 +7463,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Longbow (left hand)
 			draw_arc(Vector2(cx - 56*s, cy + 5*s), 32*s, -PI*0.55, PI*0.55, 20, Color(0.48, 0.28, 0.10), 3*s)
 			draw_line(Vector2(cx - 56*s, cy - 27*s), Vector2(cx - 56*s, cy + 37*s), Color(0.6, 0.55, 0.50, 0.5), 1*s)
-			# Head — warm tan skin
+			# Head â€” warm tan skin
 			draw_circle(Vector2(cx, cy - 48*s), 22*s, Color(0.91, 0.74, 0.58))
 			# Auburn hair
 			draw_colored_polygon(PackedVector2Array([
@@ -7749,7 +7479,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_circle(Vector2(cx + 8*s, cy - 51*s), 1*s, Color(0.06, 0.06, 0.08))
 			# Confident smirk
 			draw_arc(Vector2(cx + 2*s, cy - 40*s), 7*s, 0.1, PI - 0.3, 12, Color(0.40, 0.22, 0.12), 1.5*s)
-			# Feathered cap — forest green with red plume
+			# Feathered cap â€” forest green with red plume
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 24*s, cy - 64*s), Vector2(cx + 5*s, cy - 108*s), Vector2(cx + 24*s, cy - 64*s)
 			]), Color(0.15, 0.55, 0.12))
@@ -7759,7 +7489,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_line(Vector2(cx + 18*s, cy - 116*s), Vector2(cx + 35*s, cy - 132*s), Color(0.92, 0.25, 0.12, 0.5), 2*s)
 		"alice":
 			# White dress with blue pinafore apron, blonde hair, headband, purple ballet flats
-			# Legs — pale skin
+			# Legs â€” pale skin
 			draw_rect(Rect2(cx - 11*s, cy + 65*s, 10*s, 55*s), Color(0.95, 0.84, 0.73))
 			draw_rect(Rect2(cx + 1*s, cy + 65*s, 10*s, 55*s), Color(0.92, 0.82, 0.70))
 			# Purple ballet flats
@@ -7771,7 +7501,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx - 1*s, cy + 118*s), Vector2(cx + 14*s, cy + 118*s),
 				Vector2(cx + 16*s, cy + 128*s), Vector2(cx - 2*s, cy + 128*s)
 			]), Color(0.75, 0.65, 0.90))
-			# White dress — flared skirt
+			# White dress â€” flared skirt
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 22*s, cy - 8*s), Vector2(cx + 22*s, cy - 8*s),
 				Vector2(cx + 42*s, cy + 70*s), Vector2(cx - 42*s, cy + 70*s)
@@ -7787,7 +7517,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			]), Color(0.45, 0.72, 0.95))
 			# Apron pocket
 			draw_arc(Vector2(cx, cy + 30*s), 8*s, 0, PI, 10, Color(0.38, 0.65, 0.88), 1.5*s)
-			# Bodice — blue
+			# Bodice â€” blue
 			draw_rect(Rect2(cx - 18*s, cy - 32*s, 36*s, 26*s), Color(0.45, 0.72, 0.95))
 			# White sash/bow at waist
 			draw_rect(Rect2(cx - 20*s, cy - 8*s, 40*s, 5*s), Color(0.92, 0.93, 0.98))
@@ -7797,14 +7527,14 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx + 22*s, cy - 6*s), Vector2(cx + 30*s, cy - 10*s), Vector2(cx + 22*s, cy - 2*s)
 			]), Color(0.92, 0.93, 0.98))
-			# Arms — pale skin with puff sleeves
+			# Arms â€” pale skin with puff sleeves
 			draw_circle(Vector2(cx - 22*s, cy - 18*s), 8*s, Color(0.92, 0.93, 0.98))
 			draw_circle(Vector2(cx + 22*s, cy - 18*s), 8*s, Color(0.92, 0.93, 0.98))
 			draw_line(Vector2(cx - 24*s, cy - 12*s), Vector2(cx - 38*s, cy + 18*s), Color(0.95, 0.84, 0.73), 6*s)
 			draw_line(Vector2(cx + 24*s, cy - 12*s), Vector2(cx + 38*s, cy + 14*s), Color(0.95, 0.84, 0.73), 6*s)
-			# Head — pale porcelain skin
+			# Head â€” pale porcelain skin
 			draw_circle(Vector2(cx, cy - 52*s), 22*s, Color(0.95, 0.84, 0.73))
-			# Blonde hair — flowing down
+			# Blonde hair â€” flowing down
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 24*s, cy - 70*s), Vector2(cx + 24*s, cy - 70*s),
 				Vector2(cx + 28*s, cy - 30*s), Vector2(cx - 28*s, cy - 30*s)
@@ -7851,7 +7581,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				var tx = cx - 40*s + float(ti) * 11*s
 				var t_sway = sin(_time * 1.0 + float(ti) * 0.8) * 4*s
 				draw_line(Vector2(tx, cy + 122*s), Vector2(tx + t_sway, cy + 135*s), Color(0.06, 0.04, 0.08, 0.4), 2*s)
-			# Arms — black sleeves with green hands
+			# Arms â€” black sleeves with green hands
 			draw_line(Vector2(cx - 28*s, cy - 5*s), Vector2(cx - 55*s, cy + 22*s), Color(0.08, 0.06, 0.10), 8*s)
 			draw_line(Vector2(cx + 28*s, cy - 5*s), Vector2(cx + 52*s, cy + 14*s), Color(0.08, 0.06, 0.10), 8*s)
 			# Green bony hands
@@ -7860,7 +7590,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				var fa = -0.5 + float(fi) * 0.3
 				draw_line(Vector2(cx - 57*s, cy + 24*s), Vector2(cx - 57*s + cos(fa) * 7*s, cy + 24*s + sin(fa) * 7*s), Color(0.35, 0.50, 0.25), 1.2*s)
 			draw_circle(Vector2(cx + 54*s, cy + 16*s), 5*s, Color(0.38, 0.55, 0.28))
-			# Head — GREEN skin with sharp features
+			# Head â€” GREEN skin with sharp features
 			draw_circle(Vector2(cx, cy - 40*s), 24*s, Color(0.38, 0.55, 0.28))
 			# Sharp chin
 			draw_colored_polygon(PackedVector2Array([
@@ -7898,7 +7628,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				draw_line(Vector2(cx + 52*s, cy + 128*s), Vector2(bx, cy + 140*s), Color(0.45, 0.35, 0.15), 2*s)
 		"peter_pan":
 			# Green tunic with jagged hem, pointed cap with red feather, tan skin, dagger, playful pose
-			# Legs — green tights, dynamic flying stance
+			# Legs â€” green tights, dynamic flying stance
 			draw_line(Vector2(cx - 8*s, cy + 55*s), Vector2(cx - 22*s, cy + 115*s), Color(0.15, 0.55, 0.12), 9*s)
 			draw_line(Vector2(cx + 8*s, cy + 55*s), Vector2(cx + 14*s, cy + 108*s), Color(0.12, 0.48, 0.10), 9*s)
 			# Pointed brown boots
@@ -7915,7 +7645,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx - 24*s, cy - 24*s), Vector2(cx + 24*s, cy - 24*s),
 				Vector2(cx + 26*s, cy + 58*s), Vector2(cx - 26*s, cy + 58*s)
 			]), Color(0.15, 0.55, 0.12))
-			# Jagged tunic hem — signature Peter Pan look
+			# Jagged tunic hem â€” signature Peter Pan look
 			for ji in range(7):
 				var jx = cx - 24*s + float(ji) * 7.5*s
 				draw_colored_polygon(PackedVector2Array([
@@ -7924,7 +7654,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Brown belt
 			draw_rect(Rect2(cx - 24*s, cy + 18*s, 48*s, 6*s), Color(0.40, 0.28, 0.12))
 			draw_circle(Vector2(cx, cy + 21*s), 3*s, Color(0.70, 0.55, 0.18))
-			# Arms — warm tan skin, one raised with dagger
+			# Arms â€” warm tan skin, one raised with dagger
 			draw_line(Vector2(cx - 24*s, cy - 10*s), Vector2(cx - 42*s, cy + 12*s), Color(0.15, 0.55, 0.12), 9*s)
 			draw_line(Vector2(cx + 24*s, cy - 10*s), Vector2(cx + 46*s, cy - 35*s), Color(0.15, 0.55, 0.12), 9*s)
 			draw_line(Vector2(cx - 36*s, cy + 5*s), Vector2(cx - 44*s, cy + 14*s), Color(0.91, 0.74, 0.58), 7*s)
@@ -7932,7 +7662,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Dagger in raised hand
 			draw_line(Vector2(cx + 48*s, cy - 42*s), Vector2(cx + 55*s, cy - 62*s), Color(0.70, 0.70, 0.75), 2.5*s)
 			draw_line(Vector2(cx + 46*s, cy - 40*s), Vector2(cx + 50*s, cy - 42*s), Color(0.45, 0.30, 0.10), 3*s)
-			# Head — warm tan
+			# Head â€” warm tan
 			draw_circle(Vector2(cx, cy - 46*s), 20*s, Color(0.91, 0.74, 0.58))
 			# Messy auburn/brown hair
 			draw_colored_polygon(PackedVector2Array([
@@ -7961,23 +7691,23 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_line(Vector2(cx + 10*s, cy - 95*s), Vector2(cx + 28*s, cy - 112*s), Color(0.88, 0.16, 0.08), 2.5*s)
 		"phantom":
 			# Black cape with vivid red lining, white porcelain half-mask, black formal tuxedo, dramatic pose
-			# Cape — flowing wide, black outer
+			# Cape â€” flowing wide, black outer
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 50*s, cy - 28*s), Vector2(cx + 10*s, cy - 28*s),
 				Vector2(cx + 20*s, cy + 135*s), Vector2(cx - 68*s, cy + 135*s)
 			]), Color(0.06, 0.03, 0.08))
-			# Cape inner lining — vivid red
+			# Cape inner lining â€” vivid red
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 44*s, cy - 22*s), Vector2(cx + 5*s, cy - 22*s),
 				Vector2(cx + 8*s, cy + 115*s), Vector2(cx - 52*s, cy + 115*s)
 			]), Color(0.85, 0.08, 0.12, 0.35))
-			# Legs — black formal trousers
+			# Legs â€” black formal trousers
 			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 70*s), Color(0.05, 0.03, 0.07))
 			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 70*s), Color(0.04, 0.02, 0.06))
 			# Polished shoes
 			draw_rect(Rect2(cx - 16*s, cy + 122*s, 16*s, 12*s), Color(0.08, 0.06, 0.06))
 			draw_rect(Rect2(cx, cy + 122*s, 16*s, 12*s), Color(0.06, 0.04, 0.05))
-			# Torso — black tuxedo jacket
+			# Torso â€” black tuxedo jacket
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 24*s, cy - 28*s), Vector2(cx + 24*s, cy - 28*s),
 				Vector2(cx + 22*s, cy + 58*s), Vector2(cx - 22*s, cy + 58*s)
@@ -7987,32 +7717,32 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Gold buttons
 			for bi in range(3):
 				draw_circle(Vector2(cx, cy - 12*s + float(bi) * 12*s), 1.8*s, Color(0.90, 0.74, 0.24))
-			# Arms — one raised dramatically
+			# Arms â€” one raised dramatically
 			draw_line(Vector2(cx + 24*s, cy - 14*s), Vector2(cx + 52*s, cy - 48*s), Color(0.10, 0.08, 0.12), 8*s)
 			draw_line(Vector2(cx - 24*s, cy - 14*s), Vector2(cx - 42*s, cy + 18*s), Color(0.10, 0.08, 0.12), 8*s)
 			# White gloves
 			draw_circle(Vector2(cx + 54*s, cy - 50*s), 4*s, Color(0.95, 0.93, 0.90))
 			draw_circle(Vector2(cx - 44*s, cy + 20*s), 4*s, Color(0.95, 0.93, 0.90))
-			# Head — pale dramatic skin
+			# Head â€” pale dramatic skin
 			draw_circle(Vector2(cx, cy - 50*s), 22*s, Color(0.88, 0.82, 0.78))
 			# Slicked back dark hair
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 23*s, cy - 68*s), Vector2(cx + 23*s, cy - 68*s),
 				Vector2(cx + 16*s, cy - 46*s), Vector2(cx - 16*s, cy - 46*s)
 			]), Color(0.07, 0.05, 0.07))
-			# WHITE PORCELAIN HALF-MASK (right side) — signature feature
+			# WHITE PORCELAIN HALF-MASK (right side) â€” signature feature
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx + 2*s, cy - 68*s), Vector2(cx + 22*s, cy - 62*s),
 				Vector2(cx + 22*s, cy - 40*s), Vector2(cx + 12*s, cy - 32*s), Vector2(cx + 2*s, cy - 35*s)
 			]), Color(0.98, 0.97, 0.96))
 			# Mask edge highlight
 			draw_line(Vector2(cx + 2*s, cy - 68*s), Vector2(cx + 2*s, cy - 35*s), Color(0.85, 0.82, 0.78, 0.6), 1*s)
-			# Visible eye (left — exposed side) — dark brown
+			# Visible eye (left â€” exposed side) â€” dark brown
 			draw_circle(Vector2(cx - 8*s, cy - 53*s), 4*s, Color(0.99, 0.99, 0.99))
 			draw_circle(Vector2(cx - 8*s, cy - 53*s), 2.5*s, Color(0.24, 0.17, 0.14))
 			draw_circle(Vector2(cx - 8*s, cy - 53*s), 1*s, Color(0.06, 0.06, 0.08))
 			draw_circle(Vector2(cx - 10*s, cy - 55*s), 1*s, Color(1.0, 1.0, 1.0, 0.5))
-			# Masked eye — just a dark slit
+			# Masked eye â€” just a dark slit
 			draw_circle(Vector2(cx + 10*s, cy - 53*s), 2*s, Color(0.06, 0.04, 0.06, 0.5))
 		"scrooge":
 			# Victorian long coat, top hat, gaunt pale elderly, walking cane, hunched posture
@@ -8022,7 +7752,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Shoes
 			draw_rect(Rect2(cx - 13*s, cy + 122*s, 13*s, 12*s), Color(0.08, 0.06, 0.05))
 			draw_rect(Rect2(cx, cy + 122*s, 13*s, 12*s), Color(0.06, 0.05, 0.04))
-			# Long Victorian coat — dark muted brown
+			# Long Victorian coat â€” dark muted brown
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 24*s, cy - 24*s), Vector2(cx + 24*s, cy - 24*s),
 				Vector2(cx + 20*s, cy + 78*s), Vector2(cx - 20*s, cy + 78*s)
@@ -8036,14 +7766,14 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx + 6*s, cy + 72*s), Vector2(cx + 18*s, cy + 72*s),
 				Vector2(cx + 22*s, cy + 95*s), Vector2(cx + 8*s, cy + 95*s)
 			]), Color(0.13, 0.10, 0.08))
-			# Waistcoat/vest — muted gold
+			# Waistcoat/vest â€” muted gold
 			draw_rect(Rect2(cx - 14*s, cy - 14*s, 28*s, 32*s), Color(0.40, 0.30, 0.15))
 			# White cravat at collar
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 6*s, cy - 22*s), Vector2(cx + 6*s, cy - 22*s),
 				Vector2(cx + 4*s, cy - 12*s), Vector2(cx - 4*s, cy - 12*s)
 			]), Color(0.90, 0.88, 0.82, 0.7))
-			# Arms — coat sleeves
+			# Arms â€” coat sleeves
 			draw_line(Vector2(cx - 24*s, cy - 8*s), Vector2(cx - 38*s, cy + 28*s), Color(0.15, 0.12, 0.10), 7*s)
 			draw_line(Vector2(cx + 24*s, cy - 8*s), Vector2(cx + 42*s, cy + 36*s), Color(0.15, 0.12, 0.10), 7*s)
 			# Bony pale hands
@@ -8057,7 +7787,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				var coin_x = cx - 12*s + float(ci) * 8*s
 				draw_circle(Vector2(coin_x, cy + 130*s), 4*s, Color(0.85, 0.68, 0.18, 0.6))
 				draw_circle(Vector2(coin_x, cy + 130*s), 2*s, Color(1.0, 0.85, 0.30, 0.4))
-			# Head — gaunt, pale elderly
+			# Head â€” gaunt, pale elderly
 			draw_circle(Vector2(cx, cy - 44*s), 20*s, Color(0.85, 0.78, 0.72))
 			# Thin white/grey hair
 			draw_colored_polygon(PackedVector2Array([
@@ -8075,20 +7805,20 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 2*s, cy - 44*s), Vector2(cx + 2*s, cy - 44*s), Vector2(cx, cy - 35*s)
 			]), Color(0.82, 0.74, 0.68))
-			# Top hat — tall black
+			# Top hat â€” tall black
 			draw_rect(Rect2(cx - 17*s, cy - 98*s, 34*s, 48*s), Color(0.08, 0.06, 0.05))
 			draw_rect(Rect2(cx - 24*s, cy - 53*s, 48*s, 6*s), Color(0.08, 0.06, 0.05))
 			# Hat band
 			draw_rect(Rect2(cx - 15*s, cy - 70*s, 30*s, 4*s), Color(0.35, 0.25, 0.12, 0.5))
 		"sherlock":
 			# Brown tweed Inverness cape-coat, deerstalker hat, pipe, magnifying glass, analytical posture
-			# Legs — tan trousers
+			# Legs â€” tan trousers
 			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 72*s), Color(0.40, 0.32, 0.18))
 			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 72*s), Color(0.38, 0.30, 0.16))
 			# Dark brown leather shoes
 			draw_rect(Rect2(cx - 16*s, cy + 124*s, 16*s, 12*s), Color(0.18, 0.14, 0.08))
 			draw_rect(Rect2(cx, cy + 124*s, 16*s, 12*s), Color(0.16, 0.12, 0.06))
-			# Brown tweed Inverness cape-coat — layered
+			# Brown tweed Inverness cape-coat â€” layered
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 32*s, cy - 24*s), Vector2(cx + 32*s, cy - 24*s),
 				Vector2(cx + 26*s, cy + 58*s), Vector2(cx - 26*s, cy + 58*s)
@@ -8103,7 +7833,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Brass buttons
 			for bi in range(3):
 				draw_circle(Vector2(cx, cy - 5*s + float(bi) * 14*s), 2*s, Color(0.85, 0.68, 0.18))
-			# Arms — tweed sleeves
+			# Arms â€” tweed sleeves
 			draw_line(Vector2(cx - 30*s, cy - 8*s), Vector2(cx - 48*s, cy + 12*s), Color(0.52, 0.38, 0.18), 8*s)
 			draw_line(Vector2(cx + 30*s, cy - 8*s), Vector2(cx + 46*s, cy + 4*s), Color(0.52, 0.38, 0.18), 8*s)
 			# Hands
@@ -8116,9 +7846,9 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_circle(Vector2(cx - 54*s, cy + 8*s), 12*s, Color(0.70, 0.65, 0.55, 0.25))
 			draw_arc(Vector2(cx - 54*s, cy + 8*s), 12*s, 0, TAU, 20, Color(0.85, 0.68, 0.18), 2.5*s)
 			draw_line(Vector2(cx - 46*s, cy + 16*s), Vector2(cx - 38*s, cy + 28*s), Color(0.50, 0.35, 0.15), 2.5*s)
-			# Head — light tan skin
+			# Head â€” light tan skin
 			draw_circle(Vector2(cx, cy - 46*s), 22*s, Color(0.90, 0.78, 0.65))
-			# Sharp analytical eyes — grey-blue
+			# Sharp analytical eyes â€” grey-blue
 			draw_circle(Vector2(cx - 7*s, cy - 50*s), 3.5*s, Color(0.95, 0.95, 0.95))
 			draw_circle(Vector2(cx + 7*s, cy - 50*s), 3.5*s, Color(0.95, 0.95, 0.95))
 			draw_circle(Vector2(cx - 7*s, cy - 50*s), 2*s, Color(0.30, 0.38, 0.45))
@@ -8132,7 +7862,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx - 21*s, cy - 64*s), Vector2(cx + 21*s, cy - 64*s),
 				Vector2(cx + 16*s, cy - 44*s), Vector2(cx - 16*s, cy - 44*s)
 			]), Color(0.30, 0.22, 0.12))
-			# Deerstalker hat — brown tweed with ear flaps
+			# Deerstalker hat â€” brown tweed with ear flaps
 			draw_rect(Rect2(cx - 23*s, cy - 66*s, 46*s, 16*s), Color(0.45, 0.35, 0.20))
 			draw_rect(Rect2(cx - 27*s, cy - 53*s, 54*s, 5*s), Color(0.42, 0.32, 0.18))
 			# Ear flaps (tied up)
@@ -8144,7 +7874,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			]), Color(0.42, 0.32, 0.18))
 		"tarzan":
 			# Shirtless muscular jungle man, bronze tanned skin, brown loincloth, wild hair, vine
-			# Powerful legs — tanned bronze skin
+			# Powerful legs â€” tanned bronze skin
 			draw_line(Vector2(cx - 10*s, cy + 50*s), Vector2(cx - 20*s, cy + 122*s), Color(0.82, 0.62, 0.42), 13*s)
 			draw_line(Vector2(cx + 10*s, cy + 50*s), Vector2(cx + 16*s, cy + 118*s), Color(0.78, 0.58, 0.38), 13*s)
 			# Bare feet
@@ -8161,7 +7891,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(lx, cy + 55*s), Vector2(lx + 9*s, cy + 55*s), Vector2(lx + 4.5*s, cy + 64*s)
 				]), Color(0.42, 0.28, 0.10))
-			# Broad muscular torso — tanned bronze
+			# Broad muscular torso â€” tanned bronze
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 36*s, cy - 28*s), Vector2(cx + 36*s, cy - 28*s),
 				Vector2(cx + 26*s, cy + 38*s), Vector2(cx - 26*s, cy + 38*s)
@@ -8171,7 +7901,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_arc(Vector2(cx + 12*s, cy - 8*s), 12*s, PI*0.2, PI*0.7, 10, Color(0.68, 0.48, 0.30, 0.35), 1.5*s)
 			# Ab lines
 			draw_line(Vector2(cx, cy + 2*s), Vector2(cx, cy + 30*s), Color(0.68, 0.48, 0.30, 0.25), 1*s)
-			# Powerful arms — one gripping vine overhead
+			# Powerful arms â€” one gripping vine overhead
 			draw_line(Vector2(cx - 36*s, cy - 18*s), Vector2(cx - 58*s, cy - 48*s), Color(0.82, 0.62, 0.42), 11*s)
 			draw_line(Vector2(cx + 36*s, cy - 18*s), Vector2(cx + 54*s, cy + 8*s), Color(0.82, 0.62, 0.42), 11*s)
 			# Fists
@@ -8182,15 +7912,15 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Vine leaves
 			draw_circle(Vector2(cx - 66*s, cy - 95*s), 4*s, Color(0.25, 0.50, 0.15, 0.5))
 			draw_circle(Vector2(cx - 70*s, cy - 115*s), 3.5*s, Color(0.22, 0.48, 0.12, 0.4))
-			# Head — tanned bronze
+			# Head â€” tanned bronze
 			draw_circle(Vector2(cx, cy - 50*s), 22*s, Color(0.82, 0.62, 0.42))
-			# Wild dark brown hair — spiky, unkempt
+			# Wild dark brown hair â€” spiky, unkempt
 			for hi in range(12):
 				var ha = -PI * 0.8 + float(hi) * PI * 0.15
 				var hair_off = _portrait_hair_offsets[hi] if hi < _portrait_hair_offsets.size() else 10.0
 				var hr = (25 + hair_off) * s
 				draw_line(Vector2(cx, cy - 64*s), Vector2(cx, cy - 64*s) + Vector2.from_angle(ha) * hr, Color(0.25, 0.15, 0.05, 0.8), 3*s)
-			# Fierce determined eyes — brown
+			# Fierce determined eyes â€” brown
 			draw_circle(Vector2(cx - 8*s, cy - 54*s), 3.5*s, Color(0.95, 0.92, 0.88))
 			draw_circle(Vector2(cx + 8*s, cy - 54*s), 3.5*s, Color(0.95, 0.92, 0.88))
 			draw_circle(Vector2(cx - 8*s, cy - 54*s), 2*s, Color(0.35, 0.25, 0.10))
@@ -8212,7 +7942,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx - 48*s, cy - 22*s), Vector2(cx + 48*s, cy - 22*s),
 				Vector2(cx + 44*s, cy + 95*s), Vector2(cx - 44*s, cy + 95*s)
 			]), Color(0.55, 0.05, 0.05, 0.35))
-			# Legs — black formal
+			# Legs â€” black formal
 			draw_rect(Rect2(cx - 14*s, cy + 55*s, 12*s, 72*s), Color(0.05, 0.03, 0.04))
 			draw_rect(Rect2(cx + 2*s, cy + 55*s, 12*s, 72*s), Color(0.04, 0.02, 0.03))
 			# Formal black suit body
@@ -8227,7 +7957,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			]), Color(0.92, 0.90, 0.86, 0.7))
 			# Red vest/waistcoat hint
 			draw_rect(Rect2(cx - 12*s, cy - 10*s, 24*s, 25*s), Color(0.50, 0.05, 0.05, 0.3))
-			# High collar points — dramatic
+			# High collar points â€” dramatic
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 20*s, cy - 32*s), Vector2(cx - 26*s, cy - 58*s),
 				Vector2(cx - 14*s, cy - 48*s)
@@ -8236,17 +7966,17 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx + 20*s, cy - 32*s), Vector2(cx + 26*s, cy - 58*s),
 				Vector2(cx + 14*s, cy - 48*s)
 			]), Color(0.08, 0.05, 0.07))
-			# Arms hidden in cape — just pale hands visible
+			# Arms hidden in cape â€” just pale hands visible
 			draw_circle(Vector2(cx - 28*s, cy + 15*s), 4*s, Color(0.88, 0.85, 0.82))
 			draw_circle(Vector2(cx + 28*s, cy + 15*s), 4*s, Color(0.88, 0.85, 0.82))
-			# Head — very pale vampire skin
+			# Head â€” very pale vampire skin
 			draw_circle(Vector2(cx, cy - 50*s), 22*s, Color(0.88, 0.85, 0.82))
 			# Widow's peak jet black hair
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 24*s, cy - 68*s), Vector2(cx, cy - 56*s), Vector2(cx + 24*s, cy - 68*s),
 				Vector2(cx + 20*s, cy - 44*s), Vector2(cx - 20*s, cy - 44*s)
 			]), Color(0.06, 0.04, 0.04))
-			# Red glowing eyes — pulsing
+			# Red glowing eyes â€” pulsing
 			var glow = 0.6 + sin(_time * 3.0) * 0.2
 			draw_circle(Vector2(cx - 8*s, cy - 54*s), 4.5*s, Color(0.80, 0.10, 0.10, glow))
 			draw_circle(Vector2(cx + 8*s, cy - 54*s), 4.5*s, Color(0.80, 0.10, 0.10, glow))
@@ -8266,7 +7996,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				draw_circle(Vector2(mx, cy + 135*s), 8*s, Color(0.50, 0.05, 0.05, 0.08))
 		"merlin":
 			# Deep purple robe with gold trim, pointed wizard hat with stars, white beard, crystal staff
-			# Deep purple robe — flowing A-shape
+			# Deep purple robe â€” flowing A-shape
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 34*s, cy - 18*s), Vector2(cx + 34*s, cy - 18*s),
 				Vector2(cx + 46*s, cy + 138*s), Vector2(cx - 46*s, cy + 138*s)
@@ -8274,7 +8004,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Gold embroidery trim lines
 			draw_line(Vector2(cx - 34*s, cy - 18*s), Vector2(cx - 46*s, cy + 138*s), Color(0.92, 0.78, 0.18, 0.3), 1.5*s)
 			draw_line(Vector2(cx + 34*s, cy - 18*s), Vector2(cx + 46*s, cy + 138*s), Color(0.92, 0.78, 0.18, 0.3), 1.5*s)
-			# Robe stars — twinkling
+			# Robe stars â€” twinkling
 			for si in range(6):
 				var sx = cx + sin(float(si) * 2.1) * 24*s
 				var sy = cy + 22*s + float(si) * 18*s
@@ -8289,7 +8019,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx + 18*s, cy + 134*s), Vector2(cx + 30*s, cy + 134*s), Vector2(cx + 22*s, cy + 140*s)
 			]), Color(0.14, 0.06, 0.38))
-			# Arms — purple robe sleeves
+			# Arms â€” purple robe sleeves
 			draw_line(Vector2(cx - 30*s, cy - 4*s), Vector2(cx - 48*s, cy + 28*s), Color(0.22, 0.10, 0.55), 9*s)
 			draw_line(Vector2(cx + 30*s, cy - 4*s), Vector2(cx + 48*s, cy + 14*s), Color(0.22, 0.10, 0.55), 9*s)
 			# Elderly hands
@@ -8297,19 +8027,19 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_circle(Vector2(cx + 50*s, cy + 16*s), 4*s, Color(0.88, 0.76, 0.64))
 			# Crystal-topped staff
 			draw_line(Vector2(cx + 50*s, cy + 12*s), Vector2(cx + 56*s, cy + 138*s), Color(0.40, 0.25, 0.10), 3.5*s)
-			# Crystal orb atop staff — glowing blue
+			# Crystal orb atop staff â€” glowing blue
 			var crystal_pulse = 0.5 + sin(_time * 2.5) * 0.2
 			draw_circle(Vector2(cx + 49*s, cy + 6*s), 9*s, Color(0.30, 0.50, 0.90, crystal_pulse))
 			draw_circle(Vector2(cx + 49*s, cy + 6*s), 5*s, Color(0.50, 0.70, 1.00, crystal_pulse * 0.7))
 			draw_circle(Vector2(cx + 47*s, cy + 3*s), 2*s, Color(0.80, 0.90, 1.00, crystal_pulse * 0.5))
-			# Head — elderly, kind face
+			# Head â€” elderly, kind face
 			draw_circle(Vector2(cx, cy - 46*s), 22*s, Color(0.88, 0.76, 0.64))
-			# Long white beard — flowing
+			# Long white beard â€” flowing
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 16*s, cy - 30*s), Vector2(cx + 16*s, cy - 30*s),
 				Vector2(cx + 10*s, cy + 28*s), Vector2(cx, cy + 32*s), Vector2(cx - 10*s, cy + 28*s)
 			]), Color(0.88, 0.86, 0.84, 0.8))
-			# Wise eyes — blue-grey
+			# Wise eyes â€” blue-grey
 			draw_circle(Vector2(cx - 7*s, cy - 50*s), 3.5*s, Color(0.92, 0.90, 0.88))
 			draw_circle(Vector2(cx + 7*s, cy - 50*s), 3.5*s, Color(0.92, 0.90, 0.88))
 			draw_circle(Vector2(cx - 7*s, cy - 50*s), 2*s, Color(0.30, 0.40, 0.60))
@@ -8319,7 +8049,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_line(Vector2(cx + 2*s, cy - 55*s), Vector2(cx + 14*s, cy - 57*s), Color(0.82, 0.80, 0.78, 0.7), 3*s)
 			# Kind wrinkle smile
 			draw_arc(Vector2(cx, cy - 38*s), 5*s, 0.2, PI - 0.2, 10, Color(0.55, 0.40, 0.30), 1.2*s)
-			# Wizard hat — deep purple with stars
+			# Wizard hat â€” deep purple with stars
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 28*s, cy - 62*s), Vector2(cx + 4*s, cy - 138*s), Vector2(cx + 28*s, cy - 62*s)
 			]), Color(0.22, 0.10, 0.55))
@@ -8332,7 +8062,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_circle(Vector2(cx - 12*s, cy - 110*s), 2*s, Color(0.92, 0.78, 0.18, 0.3))
 		"frankenstein":
 			# Massive greenish-grey monster, flat-top head, neck bolts, tattered dark clothes, stitches, gentle sad eyes
-			# Thick legs — tattered dark trousers
+			# Thick legs â€” tattered dark trousers
 			draw_rect(Rect2(cx - 20*s, cy + 55*s, 17*s, 76*s), Color(0.14, 0.12, 0.10))
 			draw_rect(Rect2(cx + 3*s, cy + 55*s, 17*s, 76*s), Color(0.12, 0.10, 0.08))
 			# Heavy boots
@@ -8341,7 +8071,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Boot highlight
 			draw_rect(Rect2(cx - 22*s, cy + 128*s, 4*s, 3*s), Color(0.28, 0.23, 0.18, 0.3))
 			draw_rect(Rect2(cx + 2*s, cy + 128*s, 4*s, 3*s), Color(0.28, 0.23, 0.18, 0.3))
-			# Broad torso — tattered dark jacket
+			# Broad torso â€” tattered dark jacket
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 42*s, cy - 28*s), Vector2(cx + 42*s, cy - 28*s),
 				Vector2(cx + 36*s, cy + 58*s), Vector2(cx - 36*s, cy + 58*s)
@@ -8359,7 +8089,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				var sty = cy + float(sti) * 18*s
 				draw_line(Vector2(cx - 16*s, sty), Vector2(cx - 12*s, sty + 6*s), Color(0.20, 0.18, 0.15, 0.4), 1*s)
 				draw_line(Vector2(cx - 12*s, sty), Vector2(cx - 16*s, sty + 6*s), Color(0.20, 0.18, 0.15, 0.4), 1*s)
-			# Massive greenish arms — hanging heavy
+			# Massive greenish arms â€” hanging heavy
 			draw_line(Vector2(cx - 42*s, cy - 14*s), Vector2(cx - 56*s, cy + 48*s), Color(0.55, 0.70, 0.45), 13*s)
 			draw_line(Vector2(cx + 42*s, cy - 14*s), Vector2(cx + 56*s, cy + 48*s), Color(0.48, 0.58, 0.40), 13*s)
 			# Dark sleeve cuffs
@@ -8368,7 +8098,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Large green hands
 			draw_circle(Vector2(cx - 58*s, cy + 52*s), 9*s, Color(0.55, 0.70, 0.45))
 			draw_circle(Vector2(cx + 58*s, cy + 52*s), 9*s, Color(0.48, 0.58, 0.40))
-			# Head — square, flat-top, sickly green
+			# Head â€” square, flat-top, sickly green
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 28*s, cy - 78*s), Vector2(cx + 28*s, cy - 78*s),
 				Vector2(cx + 26*s, cy - 24*s), Vector2(cx - 26*s, cy - 24*s)
@@ -8378,14 +8108,14 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx - 26*s, cy - 38*s), Vector2(cx + 26*s, cy - 38*s),
 				Vector2(cx + 24*s, cy - 24*s), Vector2(cx - 24*s, cy - 24*s)
 			]), Color(0.38, 0.52, 0.30, 0.3))
-			# Flat top — dark brow ridge
+			# Flat top â€” dark brow ridge
 			draw_rect(Rect2(cx - 30*s, cy - 80*s, 60*s, 8*s), Color(0.38, 0.52, 0.30))
-			# Forehead stitches — signature
+			# Forehead stitches â€” signature
 			draw_line(Vector2(cx - 16*s, cy - 68*s), Vector2(cx + 16*s, cy - 68*s), Color(0.20, 0.18, 0.15, 0.7), 2*s)
 			for sti in range(5):
 				var stx = cx - 14*s + float(sti) * 7*s
 				draw_line(Vector2(stx, cy - 72*s), Vector2(stx, cy - 64*s), Color(0.20, 0.18, 0.15, 0.6), 1.2*s)
-			# NECK BOLTS — signature feature
+			# NECK BOLTS â€” signature feature
 			# Left bolt
 			draw_circle(Vector2(cx - 32*s, cy - 30*s), 7*s, Color(0.58, 0.58, 0.63))
 			draw_circle(Vector2(cx - 32*s, cy - 30*s), 4*s, Color(0.76, 0.76, 0.82))
@@ -8394,7 +8124,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			draw_circle(Vector2(cx + 32*s, cy - 30*s), 7*s, Color(0.58, 0.58, 0.63))
 			draw_circle(Vector2(cx + 32*s, cy - 30*s), 4*s, Color(0.76, 0.76, 0.82))
 			draw_circle(Vector2(cx + 32*s, cy - 30*s), 2*s, Color(0.38, 0.38, 0.42))
-			# Gentle sad eyes — greenish-brown, with sorrow
+			# Gentle sad eyes â€” greenish-brown, with sorrow
 			draw_circle(Vector2(cx - 10*s, cy - 55*s), 5*s, Color(0.88, 0.85, 0.78))
 			draw_circle(Vector2(cx + 10*s, cy - 55*s), 5*s, Color(0.88, 0.85, 0.78))
 			draw_circle(Vector2(cx - 10*s, cy - 55*s), 3*s, Color(0.45, 0.55, 0.25))
@@ -8409,17 +8139,17 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			# Face stitch (cheek)
 			draw_line(Vector2(cx + 14*s, cy - 50*s), Vector2(cx + 18*s, cy - 38*s), Color(0.20, 0.18, 0.15, 0.4), 1.2*s)
 		"shadow_author":
-			# All-black hooded pyramidal figure with glowing red wand — always faceless
+			# All-black hooded pyramidal figure with glowing red wand â€” always faceless
 			# Dark purple aura glow behind
 			for ai in range(5):
 				var ar = (100.0 - float(ai) * 15.0) * s
 				draw_circle(Vector2(cx, cy - 10*s), ar, Color(0.12, 0.02, 0.08, 0.02 + float(ai) * 0.008))
-			# Cloak body — tall black pyramidal/triangular silhouette
+			# Cloak body â€” tall black pyramidal/triangular silhouette
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 55*s, cy - 25*s), Vector2(cx + 55*s, cy - 25*s),
 				Vector2(cx + 80*s, cy + 140*s), Vector2(cx - 80*s, cy + 140*s)
 			]), Color(0.02, 0.01, 0.02))
-			# Cloak inner folds — subtle depth
+			# Cloak inner folds â€” subtle depth
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 38*s, cy - 15*s), Vector2(cx + 38*s, cy - 15*s),
 				Vector2(cx + 58*s, cy + 130*s), Vector2(cx - 58*s, cy + 130*s)
@@ -8428,18 +8158,18 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			for fi in range(7):
 				var fx = cx - 48*s + float(fi) * 16*s
 				draw_line(Vector2(fx, cy + 5*s), Vector2(fx + sin(float(fi) * 1.3) * 6*s, cy + 135*s), Color(0.06, 0.03, 0.06, 0.25), 1.5*s)
-			# Tattered hem — ragged wisps dissolving into nothing
+			# Tattered hem â€” ragged wisps dissolving into nothing
 			for ti in range(12):
 				var tx = cx - 75*s + float(ti) * 13*s
 				var t_len = 18.0 + sin(float(ti) * 2.0 + _time * 1.5) * 10.0
 				var t_sway = sin(_time * 1.2 + float(ti) * 0.9) * 6*s
 				draw_line(Vector2(tx, cy + 140*s), Vector2(tx + t_sway, cy + (140 + t_len)*s), Color(0.015, 0.008, 0.02, 0.35), 2.5*s)
-			# Hood — large, deep, pointed pyramidal cowl
+			# Hood â€” large, deep, pointed pyramidal cowl
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx, cy - 140*s), Vector2(cx - 60*s, cy - 15*s),
 				Vector2(cx - 52*s, cy + 15*s), Vector2(cx + 52*s, cy + 15*s), Vector2(cx + 60*s, cy - 15*s)
 			]), Color(0.025, 0.012, 0.03))
-			# Hood interior — black void with face only during defeat reveal dialog
+			# Hood interior â€” black void with face only during defeat reveal dialog
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx, cy - 112*s), Vector2(cx - 40*s, cy - 12*s),
 				Vector2(cx - 32*s, cy + 10*s), Vector2(cx + 32*s, cy + 10*s), Vector2(cx + 40*s, cy - 12*s)
@@ -8447,7 +8177,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			var sa_defeat_reveal = story_state.get("current_dialog", "") == "unlock_shadow_author"
 			if sa_defeat_reveal:
 				# ONE-TIME DEFEAT REVEAL: pale white face with big black buggy eyes and devilish grin
-				# Pale white face — sickly, corpse-like
+				# Pale white face â€” sickly, corpse-like
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(cx, cy - 85*s), Vector2(cx - 26*s, cy - 50*s),
 					Vector2(cx - 28*s, cy - 15*s), Vector2(cx - 20*s, cy + 5*s),
@@ -8456,11 +8186,11 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				# Sickly shading on cheeks
 				draw_circle(Vector2(cx - 18*s, cy - 25*s), 8*s, Color(0.75, 0.72, 0.7, 0.3))
 				draw_circle(Vector2(cx + 18*s, cy - 25*s), 8*s, Color(0.75, 0.72, 0.7, 0.3))
-				# BIG BLACK BUGGY EYES — large, bulging, solid black, insectoid
+				# BIG BLACK BUGGY EYES â€” large, bulging, solid black, insectoid
 				# Outer eye bulge (larger dark circles)
 				draw_circle(Vector2(cx - 14*s, cy - 50*s), 12*s, Color(0.02, 0.02, 0.02))
 				draw_circle(Vector2(cx + 14*s, cy - 50*s), 12*s, Color(0.02, 0.02, 0.02))
-				# Inner eye — solid glossy black
+				# Inner eye â€” solid glossy black
 				draw_circle(Vector2(cx - 14*s, cy - 50*s), 10*s, Color(0.0, 0.0, 0.0))
 				draw_circle(Vector2(cx + 14*s, cy - 50*s), 10*s, Color(0.0, 0.0, 0.0))
 				# Glossy highlight reflection on each eye
@@ -8468,25 +8198,25 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				draw_circle(Vector2(cx + 11*s, cy - 54*s), 3*s, Color(0.3, 0.3, 0.35, 0.35))
 				draw_circle(Vector2(cx - 12*s, cy - 47*s), 1.5*s, Color(0.25, 0.25, 0.3, 0.2))
 				draw_circle(Vector2(cx + 16*s, cy - 47*s), 1.5*s, Color(0.25, 0.25, 0.3, 0.2))
-				# Nose — thin gaunt slit
+				# Nose â€” thin gaunt slit
 				draw_line(Vector2(cx, cy - 38*s), Vector2(cx, cy - 28*s), Color(0.6, 0.55, 0.52, 0.4), 1.5*s)
 				draw_line(Vector2(cx - 3*s, cy - 28*s), Vector2(cx + 3*s, cy - 28*s), Color(0.5, 0.45, 0.42, 0.3), 1*s)
-				# BIG EVIL DEVILISH GRIN — wide, sharp, menacing
+				# BIG EVIL DEVILISH GRIN â€” wide, sharp, menacing
 				var grin_y = cy - 16*s
 				var grin_w = 28.0 * s
-				# Dark mouth interior — wide crescent
+				# Dark mouth interior â€” wide crescent
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(cx - 27*s, grin_y - 2*s), Vector2(cx + 27*s, grin_y - 2*s),
 					Vector2(cx + 24*s, grin_y + 14*s), Vector2(cx - 24*s, grin_y + 14*s)
 				]), Color(0.04, 0.01, 0.02))
-				# Upper lip — devilish upward curl at corners
+				# Upper lip â€” devilish upward curl at corners
 				draw_arc(Vector2(cx, grin_y), grin_w, 0.1, PI - 0.1, 28, Color(0.25, 0.05, 0.05), 2.5*s)
 				# Curled-up devil corners
 				draw_arc(Vector2(cx - 26*s, grin_y - 3*s), 5*s, -0.5, 0.8, 8, Color(0.25, 0.05, 0.05), 2*s)
 				draw_arc(Vector2(cx + 26*s, grin_y - 3*s), 5*s, PI - 0.8, PI + 0.5, 8, Color(0.25, 0.05, 0.05), 2*s)
 				# Lower lip
 				draw_arc(Vector2(cx, grin_y + 4*s), grin_w * 0.85, PI + 0.2, TAU - 0.2, 22, Color(0.2, 0.04, 0.04, 0.6), 2*s)
-				# Sharp jagged teeth — upper row (12 teeth, more menacing)
+				# Sharp jagged teeth â€” upper row (12 teeth, more menacing)
 				for ti in range(12):
 					var tx = cx - 25*s + float(ti) * 4.3*s
 					var t_h = (6.0 + sin(float(ti) * 1.6) * 3.0) * s
@@ -8494,7 +8224,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 						Vector2(tx, grin_y - 1*s), Vector2(tx + 2.2*s, grin_y + t_h),
 						Vector2(tx + 4.4*s, grin_y - 1*s)
 					]), Color(0.92, 0.9, 0.85))
-				# Sharp jagged teeth — lower row
+				# Sharp jagged teeth â€” lower row
 				for ti in range(12):
 					var tx = cx - 25*s + float(ti) * 4.3*s
 					var t_h = (5.0 + sin(float(ti) * 2.0 + 1.0) * 2.0) * s
@@ -8503,7 +8233,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 						Vector2(tx + 4.4*s, grin_y + 14*s)
 					]), Color(0.88, 0.86, 0.82))
 			else:
-				# Normal: absolute black void — no face, just darkness
+				# Normal: absolute black void â€” no face, just darkness
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(cx, cy - 90*s), Vector2(cx - 28*s, cy - 15*s),
 					Vector2(cx - 22*s, cy + 5*s), Vector2(cx + 22*s, cy + 5*s), Vector2(cx + 28*s, cy - 15*s)
@@ -8513,7 +8243,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			if not sa_defeat_reveal:
 				draw_circle(Vector2(cx, cy - 50*s), 3*s, Color(0.9, 0.08, 0.02, red_pulse))
 				draw_circle(Vector2(cx, cy - 50*s), 7*s, Color(0.7, 0.04, 0.01, red_pulse * 0.2))
-			# Arms — wide draped sleeves emerging from cloak
+			# Arms â€” wide draped sleeves emerging from cloak
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx - 48*s, cy - 10*s), Vector2(cx - 32*s, cy - 18*s),
 				Vector2(cx - 58*s, cy + 38*s), Vector2(cx - 70*s, cy + 32*s)
@@ -8522,13 +8252,13 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				Vector2(cx + 32*s, cy - 18*s), Vector2(cx + 48*s, cy - 10*s),
 				Vector2(cx + 72*s, cy + 8*s), Vector2(cx + 58*s, cy + 22*s)
 			]), Color(0.02, 0.01, 0.02))
-			# Sleeve openings — dark voids (no visible hands)
+			# Sleeve openings â€” dark voids (no visible hands)
 			draw_circle(Vector2(cx - 64*s, cy + 35*s), 8*s, Color(0.0, 0.0, 0.0))
 			draw_circle(Vector2(cx + 65*s, cy + 15*s), 8*s, Color(0.0, 0.0, 0.0))
-			# Glowing red wand — held from right sleeve void
+			# Glowing red wand â€” held from right sleeve void
 			var q_base = Vector2(cx + 66*s, cy + 12*s)
 			var q_top = Vector2(cx + 82*s, cy - 40*s)
-			# Wand shaft — glowing red
+			# Wand shaft â€” glowing red
 			draw_line(q_base, q_top, Color(0.7, 0.06, 0.03, red_pulse), 3*s)
 			draw_line(q_base, q_top, Color(0.9, 0.12, 0.05, red_pulse * 0.4), 5.5*s)
 			# Zigzag lightning pattern along the wand
@@ -8545,7 +8275,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 				var gt = float(gi) / 3.0
 				var gp = q_base.lerp(q_top, gt)
 				draw_circle(gp, (7.0 + sin(_time * 2.5 + float(gi)) * 2.5) * s, Color(0.7, 0.05, 0.0, 0.08 * red_pulse))
-			# Wand tip — bright red hot glow
+			# Wand tip â€” bright red hot glow
 			draw_circle(q_top, 5*s, Color(0.95, 0.12, 0.02, red_pulse))
 			draw_circle(q_top, 9*s, Color(0.8, 0.06, 0.01, red_pulse * 0.3))
 			draw_circle(q_top, 14*s, Color(0.6, 0.03, 0.0, red_pulse * 0.1))
@@ -9014,7 +8744,7 @@ func _play_random_fighting_quote() -> void:
 	for tower_type in fighting_voice_clips:
 		if purchased_towers.has(tower_type):
 			placed_types.append(tower_type)
-	if placed_types.size() == 0:
+	if placed_types.is_empty():
 		return
 	var chosen_type = placed_types[randi() % placed_types.size()]
 	var clips: Array = fighting_voice_clips[chosen_type]
@@ -9040,7 +8770,7 @@ var _shadow_fight_quotes: Array = [
 func _play_shadow_author_taunt() -> void:
 	if voices_muted:
 		return
-	if shadow_author_fight_clips.size() == 0:
+	if shadow_author_fight_clips.is_empty():
 		return
 	var idx = randi() % shadow_author_fight_clips.size()
 	catchphrase_player.stream = shadow_author_fight_clips[idx]
@@ -9075,7 +8805,7 @@ func _draw_currency_bar() -> void:
 	# Subtle inner glow at bottom
 	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 2), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.08))
 
-	# Title on left — gold with glow + shadow (mobile-friendly size)
+	# Title on left â€” gold with glow + shadow (mobile-friendly size)
 	var title_pulse = 0.85 + sin(_time * 1.2) * 0.15
 	# Outer glow
 	_udraw(font, Vector2(12, bar_y + 22), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, 300, 18, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.15 * title_pulse))
@@ -9088,7 +8818,7 @@ func _draw_currency_bar() -> void:
 	var currencies = [
 		{"icon": "G", "color": Color(0.9, 0.8, 0.2), "value": player_gold, "name": "Gold"},
 		{"icon": "Q", "color": Color(0.4, 0.7, 0.9), "value": player_quills, "name": "Quills"},
-		{"icon": "S", "color": Color(0.7, 0.4, 0.8), "value": player_relic_shards, "name": "Shards"},
+		{"icon": "S", "color": Color(0.7, 0.4, 0.8), "value": player_gear_shards, "name": "Shards"},
 		{"icon": "*", "color": Color(1.0, 0.9, 0.3), "value": player_storybook_stars, "name": "Stars"},
 		{"icon": "K", "color": Color(0.3, 0.6, 0.4), "value": knowledge_ink, "name": "Ink"},
 		{"icon": "T", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
@@ -9105,7 +8835,7 @@ func _draw_currency_bar() -> void:
 		draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
 		draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
 		_udraw(font, Vector2(cx, bar_y + 22), c["icon"], HORIZONTAL_ALIGNMENT_CENTER, 20, 15, cc)
-		# Value — shadow + bright text (with thousands separator)
+		# Value â€” shadow + bright text (with thousands separator)
 		var val_str = _format_gold(c["value"])
 		_udraw(font, Vector2(cx + 16, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, 16, Color(0, 0, 0, 0.5))
 		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, 16, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95))
@@ -9134,7 +8864,7 @@ func _draw_menu_background() -> void:
 	if menu_current_view != "survivors" or survivor_detail_open:
 		# === Deep navy background with vertical gradient ===
 		draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
-		# Vertical gradient — darker at top, slight purple warmth at bottom (20 bands)
+		# Vertical gradient â€” darker at top, slight purple warmth at bottom (20 bands)
 		var grad_step = 36  # 720 / 20 = 36px per band
 		for gy in range(0, 720, grad_step):
 			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
@@ -9142,7 +8872,7 @@ func _draw_menu_background() -> void:
 			var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
 			draw_rect(Rect2(0, gy, 1280, grad_step), col)
 
-		# === Center radial glow (purple atmosphere — vivid for mobile) ===
+		# === Center radial glow (purple atmosphere â€” vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
 		draw_circle(Vector2(640, 360), 550.0, Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, 0.06 * center_pulse))
 		draw_circle(Vector2(640, 360), 400.0, Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, 0.10 * center_pulse))
@@ -9155,7 +8885,7 @@ func _draw_menu_background() -> void:
 			var corner_y = 0.0 if corner_i < 2 else 720.0
 			draw_circle(Vector2(corner_x, corner_y), 400.0, Color(0.0, 0.0, 0.02, 0.06))
 
-		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
+		# === Gothic corner ornaments (all 4 corners â€” bright for mobile) ===
 		var orn_a = 0.22 + sin(_time * 0.8) * 0.06
 		var orn_col = Color(menu_gold.r, menu_gold.g, menu_gold.b, orn_a)
 		# Top-left ornament
@@ -9190,15 +8920,15 @@ func _draw_menu_background() -> void:
 			# Book spine with slight color variation
 			var spine_hue = 0.02 + float(bsi % 5) * 0.005
 			draw_rect(Rect2(bx, shelf_y - bh, 44, bh), Color(spine_hue, 0.03, 0.10 + float(bsi % 3) * 0.02, 0.65))
-			# Top edge highlight — brighter
+			# Top edge highlight â€” brighter
 			draw_line(Vector2(bx, shelf_y - bh), Vector2(bx + 44, shelf_y - bh), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.15), 1.5)
-			# Spine line — more visible
+			# Spine line â€” more visible
 			draw_line(Vector2(bx + 22, shelf_y - bh + 4), Vector2(bx + 22, shelf_y - 4), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08), 1.0)
-		# Shelf plank — thicker, more visible
+		# Shelf plank â€” thicker, more visible
 		draw_rect(Rect2(0, shelf_y, 1280, 4), Color(0.08, 0.06, 0.14, 0.7))
 		draw_rect(Rect2(0, shelf_y, 1280, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
 
-		# === Ink splatters (subtle background texture — pre-seeded) ===
+		# === Ink splatters (subtle background texture â€” pre-seeded) ===
 		var sp_col = Color(0.02, 0.01, 0.06, 0.12)
 		var sp_dot_col = Color(0.02, 0.01, 0.06, 0.08)
 		for splat in _menu_ink_splatters:
@@ -9257,26 +8987,26 @@ func _draw_menu_background() -> void:
 			# Nib
 			draw_circle(Vector2(qx - 2 * qcr, qy - 2 * qsr), 1.5, Color(0.3, 0.25, 0.4, qa))
 
-		# === Ethereal lantern glow (purple/blue wisps — bright for mobile) ===
+		# === Ethereal lantern glow (purple/blue wisps â€” bright for mobile) ===
 		for candle in _book_candle_positions:
 			var cx_pos = candle["x"]
 			var cy_pos = candle["y"]
 			var flicker = sin(_time * 4.0 + candle["offset"]) * 0.3 + sin(_time * 7.0 + candle["offset"] * 2.0) * 0.15
 			var glow_r = 100.0 + flicker * 25.0
-			# Outer purple glow — MUCH brighter for visibility
+			# Outer purple glow â€” MUCH brighter for visibility
 			draw_circle(Vector2(cx_pos, cy_pos), glow_r, Color(0.4, 0.18, 0.6, 0.06 + flicker * 0.02))
 			draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.6, Color(0.5, 0.25, 0.7, 0.08 + flicker * 0.03))
 			draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.3, Color(0.6, 0.35, 0.85, 0.06 + flicker * 0.02))
-			# Lantern body — dark iron bracket
+			# Lantern body â€” dark iron bracket
 			draw_rect(Rect2(cx_pos - 4, cy_pos + 12, 8, 20), Color(0.15, 0.12, 0.25, 0.7))
 			draw_rect(Rect2(cx_pos - 6, cy_pos + 10, 12, 3), Color(0.2, 0.15, 0.3, 0.6))
-			# Flame — purple-blue wisp (larger, brighter)
+			# Flame â€” purple-blue wisp (larger, brighter)
 			var flame_h = 10.0 + flicker * 6.0
 			draw_circle(Vector2(cx_pos, cy_pos + 6 - flame_h * 0.3), 6.0, Color(0.5, 0.3, 0.9, 0.6 + flicker * 0.2))
 			draw_circle(Vector2(cx_pos, cy_pos + 3 - flame_h * 0.5), 4.0, Color(0.7, 0.5, 1.0, 0.7 + flicker * 0.15))
 			draw_circle(Vector2(cx_pos, cy_pos + 1 - flame_h * 0.6), 2.5, Color(0.9, 0.8, 1.0, 0.8))
 
-		# === Floating particles (gold + purple mix — vivid for mobile) ===
+		# === Floating particles (gold + purple mix â€” vivid for mobile) ===
 		for dust_i in range(_dust_positions.size()):
 			var dust = _dust_positions[dust_i]
 			var dx = dust["x"] + sin(_time * dust["speed"] + dust["offset"]) * 35.0
@@ -9555,12 +9285,12 @@ func _draw_menu_background() -> void:
 
 	# === Bottom nav bar ===
 	var nav_draw_y = 620.0
-	# === BOTTOM NAV BAR — Polished, glowing, alive ===
-	var nav_tab_names = ["survivors", "relics", "chapters", "chronicles", "emporium", "achievements"]
-	var nav_tab_labels = ["HEROES", "RELICS", "ADVENTURE", "LORE", "SHOP", "TROPHIES"]
+	# === BOTTOM NAV BAR â€” Polished, glowing, alive ===
+	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
+	var nav_tab_labels = ["HEROES", "GEAR", "ADVENTURE", "LORE", "SHOP", "TROPHIES"]
 	var nav_tab_cols = [
 		Color(0.85, 0.55, 0.25),  # Heroes: warm amber
-		Color(0.65, 0.40, 0.85),  # Relics: mystical purple
+		Color(0.65, 0.40, 0.85),  # Gear: mystical purple
 		Color(0.35, 0.75, 0.35),  # Adventure: forest green
 		Color(0.55, 0.70, 0.90),  # Lore: ink blue
 		Color(0.90, 0.75, 0.25),  # Shop: gold
@@ -9615,7 +9345,7 @@ func _draw_menu_background() -> void:
 			var dot_x = seg_x + segment_w * 0.5
 			draw_circle(Vector2(dot_x, nav_draw_y + 92), 3, Color(menu_gold.r, menu_gold.g, menu_gold.b, seg_glow * 0.5))
 
-		# Icon circle (large, prominent — mobile-friendly)
+		# Icon circle (large, prominent â€” mobile-friendly)
 		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 36.0)
 		var ic_r = 28.0 if is_act else 24.0
 		var ic_col = tc if is_act else Color(tc.r * 0.55, tc.g * 0.55, tc.b * 0.55)
@@ -9633,14 +9363,14 @@ func _draw_menu_background() -> void:
 				draw_circle(sp, 1.5, Color(tc.r, tc.g, tc.b, 0.4 + sin(_time * 4.0 + float(si)) * 0.2))
 		# Icon drawings (bigger, bolder)
 		var s = 1.3 if is_act else 1.0
-		if ni == 0:  # HEROES — crossed swords
+		if ni == 0:  # HEROES â€” crossed swords
 			draw_line(ic + Vector2(-8, 8) * s, ic + Vector2(8, -8) * s, ic_col, 2.5 * s)
 			draw_line(ic + Vector2(8, 8) * s, ic + Vector2(-8, -8) * s, ic_col, 2.5 * s)
 			draw_circle(ic, 3.0 * s, ic_col)
-		elif ni == 1:  # RELICS — glowing gem
+		elif ni == 1:  # GEAR â€” glowing gem
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -11) * s, ic + Vector2(9, -2) * s, ic + Vector2(6, 9) * s, ic + Vector2(-6, 9) * s, ic + Vector2(-9, -2) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.7))
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -8) * s, ic + Vector2(4, -1) * s, ic + Vector2(0, 5) * s, ic + Vector2(-4, -1) * s]), Color(1, 1, 1, 0.15))
-		elif ni == 2:  # ADVENTURE — open book with glow
+		elif ni == 2:  # ADVENTURE â€” open book with glow
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -9) * s, ic + Vector2(-12, -7) * s, ic + Vector2(-12, 9) * s, ic + Vector2(0, 7) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.6))
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -9) * s, ic + Vector2(12, -7) * s, ic + Vector2(12, 9) * s, ic + Vector2(0, 7) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.4))
 			draw_line(ic + Vector2(0, -9) * s, ic + Vector2(0, 7) * s, ic_col, 2.0)
@@ -9648,17 +9378,17 @@ func _draw_menu_background() -> void:
 				var ly = (-4.0 + float(li) * 4.0) * s
 				draw_line(ic + Vector2(-9, ly) * s, ic + Vector2(-3, ly) * s, Color(0, 0, 0, 0.25), 1.0)
 				draw_line(ic + Vector2(3, ly) * s, ic + Vector2(9, ly) * s, Color(0, 0, 0, 0.25), 1.0)
-		elif ni == 3:  # LORE — scroll with seal
+		elif ni == 3:  # LORE â€” scroll with seal
 			draw_rect(Rect2(ic.x - 7 * s, ic.y - 9 * s, 14 * s, 18 * s), Color(ic_col.r, ic_col.g, ic_col.b, 0.5))
 			draw_arc(ic + Vector2(0, -9) * s, 7 * s, PI, TAU, 12, ic_col, 2.0)
 			draw_arc(ic + Vector2(0, 9) * s, 7 * s, 0, PI, 12, ic_col, 2.0)
 			draw_circle(ic + Vector2(0, 3) * s, 3 * s, Color(0.8, 0.2, 0.2, 0.6))
-		elif ni == 4:  # SHOP — potion bottle
+		elif ni == 4:  # SHOP â€” potion bottle
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(-8, 0) * s, ic + Vector2(8, 0) * s, ic + Vector2(6, 10) * s, ic + Vector2(-6, 10) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.6))
 			draw_rect(Rect2(ic.x - 3 * s, ic.y - 10 * s, 6 * s, 10 * s), Color(ic_col.r, ic_col.g, ic_col.b, 0.5))
 			draw_line(ic + Vector2(-5, -10) * s, ic + Vector2(5, -10) * s, ic_col, 2.0)
 			draw_circle(ic + Vector2(0, 5) * s, 3 * s, Color(1, 1, 1, 0.12))
-		elif ni == 5:  # TROPHIES — trophy cup
+		elif ni == 5:  # TROPHIES â€” trophy cup
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(-7, -9) * s, ic + Vector2(7, -9) * s, ic + Vector2(5, 0) * s, ic + Vector2(-5, 0) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.7))
 			draw_line(ic + Vector2(0, 0) * s, ic + Vector2(0, 6) * s, ic_col, 2.5)
 			draw_line(ic + Vector2(-6, 6) * s, ic + Vector2(6, 6) * s, ic_col, 2.5)
@@ -9687,13 +9417,13 @@ func _draw_menu_background() -> void:
 			_draw_survivor_detail()
 		else:
 			_draw_survivor_grid()
-	elif menu_current_view == "relics":
-		_draw_relics_tab()
+	elif menu_current_view == "gear":
+		_draw_gear_tab()
 	elif menu_current_view == "emporium":
 		if emporium_sub_category == 6:
 			_draw_trophy_store()
 		elif emporium_sub_category == 8:
-			_draw_binding_shop()
+			_draw_gear_shop()
 		elif emporium_sub_category == 9:
 			_draw_salvage_panel()
 		elif emporium_sub_category == 10:
@@ -9707,7 +9437,7 @@ func _draw_menu_background() -> void:
 	else:
 		_draw_closed_book()
 
-func _draw_relics_tab() -> void:
+func _draw_gear_tab() -> void:
 	var panel_x = 70.0
 	var panel_y = 45.0
 	var panel_w = 1140.0
@@ -9729,10 +9459,10 @@ func _draw_relics_tab() -> void:
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
 
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "RELIC COMPENDIUM", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.9))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR COMPENDIUM", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.9))
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
 
-	# Enhancement #26: Character filter indicators — show colored dots for characters that have relics
+	# Enhancement #26: Character filter indicators â€” show colored dots for characters that have gear
 	var char_filter_colors = {
 		"robin_hood": Color(0.3, 0.65, 0.2), "alice": Color(0.4, 0.6, 0.9),
 		"wicked_witch": Color(0.3, 0.7, 0.2), "peter_pan": Color(0.2, 0.7, 0.3),
@@ -9742,9 +9472,9 @@ func _draw_relics_tab() -> void:
 		"frankenstein": Color(0.3, 0.55, 0.35)
 	}
 	var char_has_owned = {}
-	for b in TOME_BINDINGS:
+	for b in GEAR_ITEMS:
 		var ch = b.get("character", "")
-		if ch != "" and owned_bindings.get(b["id"], 0) > 0:
+		if ch != "" and owned_gear.get(b["id"], 0) > 0:
 			char_has_owned[ch] = true
 	var dot_x = panel_x + panel_w * 0.5 + 120.0
 	var dot_y = panel_y + 28.0
@@ -9757,28 +9487,27 @@ func _draw_relics_tab() -> void:
 			draw_arc(Vector2(dot_x, dot_y - 4), 4.0, 0, TAU, 12, Color(fc.r, fc.g, fc.b, 0.3), 1.0)
 		dot_x += 10.0
 
-	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
-	var rarity_names = {"tattered": "TATTERED (Grey)", "bound": "BOUND (Green)", "gilded": "GILDED (Blue)", "mythic": "MYTHIC (Purple)", "forbidden": "FORBIDDEN (Orange)"}
-	var rarity_colors = {"tattered": Color(0.6, 0.6, 0.65), "bound": Color(0.3, 0.75, 0.3), "gilded": Color(0.3, 0.5, 0.9), "mythic": Color(0.7, 0.35, 0.9), "forbidden": Color(1.0, 0.6, 0.1)}
-	var rarity_bg = {"tattered": Color(0.08, 0.08, 0.10), "bound": Color(0.06, 0.12, 0.06), "gilded": Color(0.06, 0.08, 0.20), "mythic": Color(0.10, 0.06, 0.22), "forbidden": Color(0.14, 0.10, 0.06)}
+	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
+	var rarity_names = {"common": "COMMON (Grey)", "uncommon": "UNCOMMON (Green)", "rare": "RARE (Blue)", "epic": "EPIC (Purple)", "legendary": "LEGENDARY (Gold)"}
+	var rarity_bg = {"common": Color(0.08, 0.08, 0.10), "uncommon": Color(0.06, 0.12, 0.06), "rare": Color(0.06, 0.08, 0.20), "epic": Color(0.10, 0.06, 0.22), "legendary": Color(0.14, 0.10, 0.06)}
 
 	var card_w = 260.0
 	var card_h = 50.0
 	var card_gap_x = 10.0
 	var card_gap_y = 6.0
 	var grid_left = panel_x + 18.0
-	var section_y = content_top - relic_scroll_offset
+	var section_y = content_top - gear_scroll_offset
 	var total_content_h = 0.0
 
 	for ri in range(rarity_order.size()):
 		var rarity = rarity_order[ri]
-		var rc = rarity_colors[rarity]
+		var rc = TIER_COLORS[rarity]
 		var sec_y = section_y
 
 		# Collect trinkets of this rarity
 		var trinkets: Array = []
-		for b in TOME_BINDINGS:
-			if b["rarity"] == rarity:
+		for b in GEAR_ITEMS:
+			if b["tier"] == rarity:
 				trinkets.append(b)
 
 		# Tier header (only draw if visible)
@@ -9792,14 +9521,14 @@ func _draw_relics_tab() -> void:
 			# Count indicator
 			var owned_count = 0
 			for bb in trinkets:
-				if owned_bindings.get(bb["id"], 0) > 0:
+				if owned_gear.get(bb["id"], 0) > 0:
 					owned_count += 1
 			_udraw(font, Vector2(gem_x - 20, sec_y + 14), "%d/%d" % [owned_count, trinkets.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(rc.r, rc.g, rc.b, 0.6))
 
-			# Enhancement #25: Set bonus indicators — show "SET" badge if player owns 3+ relics of a character in this rarity
+			# Enhancement #25: Set bonus indicators â€” show "SET" badge if player owns 3+ gear of a character in this rarity
 			var char_rarity_counts = {}
 			for bb in trinkets:
-				if owned_bindings.get(bb["id"], 0) > 0:
+				if owned_gear.get(bb["id"], 0) > 0:
 					var ch = bb.get("character", "")
 					if ch != "":
 						char_rarity_counts[ch] = char_rarity_counts.get(ch, 0) + 1
@@ -9813,7 +9542,7 @@ func _draw_relics_tab() -> void:
 					_udraw(font, Vector2(set_badge_x + 16, sec_y + 14), "SET", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(set_col.r, set_col.g, set_col.b, 0.9))
 					set_badge_x += 38.0
 
-			# Enhancement #29: Empty slot indicators — show how many relics remain undiscovered
+			# Enhancement #29: Empty slot indicators â€” show how many gear items remain undiscovered
 			var remaining = trinkets.size() - owned_count
 			if remaining > 0:
 				_udraw(font, Vector2(grid_left + panel_w - 80, sec_y + 14), "%d left" % remaining, HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color(0.5, 0.5, 0.55, 0.5))
@@ -9828,13 +9557,13 @@ func _draw_relics_tab() -> void:
 			# Clip: skip items fully outside visible area
 			if cy + card_h < content_top or cy > content_bottom:
 				continue
-			var count = owned_bindings.get(b["id"], 0)
+			var count = owned_gear.get(b["id"], 0)
 			var is_owned = count > 0
 
 			var bg_col = rarity_bg[rarity] if is_owned else Color(0.05, 0.05, 0.10)
 			draw_rect(Rect2(cx, cy, card_w, card_h), bg_col)
 
-			# Enhancement #30: Owned relic subtle animated glow
+			# Enhancement #30: Owned gear subtle animated glow
 			if is_owned:
 				var glow_pulse = 0.03 + sin(_time * 2.0 + float(ti) * 0.8) * 0.02
 				draw_rect(Rect2(cx, cy, card_w, card_h), Color(rc.r, rc.g, rc.b, glow_pulse))
@@ -9845,10 +9574,10 @@ func _draw_relics_tab() -> void:
 			draw_rect(Rect2(cx, cy, 1, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
 			draw_rect(Rect2(cx + card_w - 1, cy, 1, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
 
-			# Enhancement #24: Equipped relic highlighted with golden glow
+			# Enhancement #24: Equipped gear highlighted with golden glow
 			var is_equipped = false
-			for t_key in equipped_bindings:
-				if b["id"] in equipped_bindings[t_key]:
+			for t_key in equipped_gear:
+				if b["id"] in equipped_gear[t_key]:
 					is_equipped = true
 					break
 			if is_equipped:
@@ -9860,11 +9589,11 @@ func _draw_relics_tab() -> void:
 			draw_rect(Rect2(cx, cy, 3, card_h), Color(rc.r, rc.g, rc.b, 0.7 if is_owned else 0.2))
 
 			# Shimmer effect for owned gilded+ gear
-			if is_owned and rarity in ["gilded", "mythic", "forbidden"]:
-				var shimmer_speed = 80.0 if rarity == "gilded" else 100.0 if rarity == "mythic" else 120.0
+			if is_owned and rarity in ["rare", "epic", "legendary"]:
+				var shimmer_speed = 80.0 if rarity == "rare" else 100.0 if rarity == "epic" else 120.0
 				var shimmer_x = fmod(_time * shimmer_speed + float(ti) * 30.0, card_w + 40.0) - 20.0
-				var shimmer_col = RARITY_COLORS.get(rarity, Color(1.0, 0.9, 0.5))
-				for si in range(3 if rarity == "gilded" else 5):
+				var shimmer_col = TIER_COLORS.get(rarity, Color(1.0, 0.9, 0.5))
+				for si in range(3 if rarity == "rare" else 5):
 					var sx = cx + shimmer_x + float(si) * 2.0
 					if sx > cx and sx < cx + card_w:
 						draw_line(Vector2(sx, cy), Vector2(sx - 10, cy + card_h), Color(shimmer_col.r, shimmer_col.g, shimmer_col.b, 0.10 - float(si) * 0.015), 1.5)
@@ -9902,8 +9631,8 @@ func _draw_relics_tab() -> void:
 
 			# Enhancement #28: "Equip" indicator on hover
 			var is_card_hovered = false
-			if relics_tab_hover_tier == ri:
-				var hover_ti = relics_tab_hover_row * 4 + relics_tab_hover_col
+			if gear_tab_hover_tier == ri:
+				var hover_ti = gear_tab_hover_row * 4 + gear_tab_hover_col
 				if hover_ti == ti:
 					is_card_hovered = true
 			if is_card_hovered and is_owned and not is_equipped:
@@ -9920,14 +9649,14 @@ func _draw_relics_tab() -> void:
 
 	# Clamp scroll to valid range
 	var max_scroll = maxf(0.0, total_content_h - (content_bottom - content_top))
-	relic_scroll_offset = clampf(relic_scroll_offset, 0.0, max_scroll)
+	gear_scroll_offset = clampf(gear_scroll_offset, 0.0, max_scroll)
 
 	# Scroll indicator bar (right edge)
 	if max_scroll > 0:
 		var bar_x = panel_x + panel_w - 10
 		var bar_h = content_bottom - content_top
 		var thumb_h = maxf(30.0, bar_h * bar_h / (bar_h + max_scroll))
-		var thumb_y = content_top + (relic_scroll_offset / max_scroll) * (bar_h - thumb_h)
+		var thumb_y = content_top + (gear_scroll_offset / max_scroll) * (bar_h - thumb_h)
 		draw_rect(Rect2(bar_x, content_top, 4, bar_h), Color(0.2, 0.2, 0.25, 0.3))
 		draw_rect(Rect2(bar_x, thumb_y, 4, thumb_h), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.5))
 
@@ -9935,14 +9664,14 @@ func _draw_relics_tab() -> void:
 	draw_rect(Rect2(panel_x + 2, panel_y + panel_h - 28, panel_w - 4, 26), Color(0.03, 0.03, 0.06, 0.95))
 	var footer_y = panel_y + panel_h - 10
 	var total_owned = 0
-	for key in owned_bindings:
-		total_owned += owned_bindings[key]
+	for key in owned_gear:
+		total_owned += owned_gear[key]
 	var unique_owned = 0
-	for key in owned_bindings:
-		if owned_bindings[key] > 0:
+	for key in owned_gear:
+		if owned_gear[key] > 0:
 			unique_owned += 1
 	_udraw(font, Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
-	_udraw(font, Vector2(grid_left + 300, footer_y), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(grid_left + 300, footer_y), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
 	_udraw(font, Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
 
 func _draw_emporium() -> void:
@@ -9964,7 +9693,7 @@ func _draw_emporium() -> void:
 		col.b += grain * 1.5
 		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
 
-	# Ornate border — gold double frame
+	# Ornate border â€” gold double frame
 	var emp_outer = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.35)
 	var emp_gold = Color(0.54, 0.45, 0.20, 0.2)
 	# Outer gold border (3px)
@@ -10002,7 +9731,7 @@ func _draw_emporium() -> void:
 	for dx in [-2.0, 0.0, 2.0]:
 		draw_circle(Vector2(star_lx + dx, star_y + dx * 0.5), 2.0, Color(0.85, 0.65, 0.1, 0.4))
 		draw_circle(Vector2(star_rx + dx, star_y + dx * 0.5), 2.0, Color(0.85, 0.65, 0.1, 0.4))
-	# Underline — gold double line
+	# Underline â€” gold double line
 	var line_cx = panel_x + panel_w * 0.5
 	draw_line(Vector2(line_cx - 180, title_y + 8), Vector2(line_cx + 180, title_y + 8), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.5)
 	draw_line(Vector2(line_cx - 140, title_y + 12), Vector2(line_cx + 140, title_y + 12), Color(0.54, 0.45, 0.20, 0.15), 1.0)
@@ -10066,7 +9795,7 @@ func _draw_emporium() -> void:
 			var glow_a = 0.06 + sin(_time * 3.5) * 0.03
 			draw_rect(Rect2(tx - 2, ty - 2, tile_w + 4, tile_h + 4), Color(menu_gold.r, menu_gold.g, menu_gold.b, glow_a))
 
-		# === FEATURED item spotlight (Enhancement #31) — first tile gets golden glow ===
+		# === FEATURED item spotlight (Enhancement #31) â€” first tile gets golden glow ===
 		if i == 0:
 			var feat_pulse = 0.5 + sin(_time * 2.0) * 0.3
 			# Golden spotlight glow behind the featured card
@@ -10081,8 +9810,8 @@ func _draw_emporium() -> void:
 			draw_rect(Rect2(feat_x, feat_y_top, feat_tw, 16), Color(0.85, 0.65, 0.1, 0.85))
 			_udraw(font, Vector2(feat_x + 5, feat_y_top + 12), feat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, feat_fs, Color(0.05, 0.03, 0.0, 0.95))
 
-		# === "BEST VALUE" badge (Enhancement #32) on premium items (Survivor Packs, Relic Chests) ===
-		if i == 4 or i == 3:  # Survivor Packs and Relic Chests
+		# === "BEST VALUE" badge (Enhancement #32) on premium items (Survivor Packs, Gear Chests) ===
+		if i == 4 or i == 3:  # Survivor Packs and Gear Chests
 			var bv_text = "BEST VALUE"
 			var bv_fs = 8
 			var bv_tw = font.get_string_size(bv_text, HORIZONTAL_ALIGNMENT_LEFT, -1, bv_fs).x + 8.0
@@ -10445,7 +10174,7 @@ func _draw_emporium_sub_panel() -> void:
 
 	# Currency bar
 	var bar_y = panel_y + 60.0
-	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_relic_shards, player_storybook_stars, player_gold]
+	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_gear_shards, player_storybook_stars, player_gold]
 	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
 	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.7))
 
@@ -10487,14 +10216,14 @@ func _draw_emporium_sub_panel() -> void:
 			# Card background
 			var bg = menu_bg_card_hover if is_hovered else menu_bg_card
 			draw_rect(Rect2(ix, iy, item_w, item_h), bg)
-			# Card border — color by item rarity/cost tier (Enhancement #36)
+			# Card border â€” color by item rarity/cost tier (Enhancement #36)
 			var rarity_col = Color(0.55, 0.38, 0.08, 0.35)  # Default gold-dim
 			if item["cost"] >= 100:
-				rarity_col = Color(0.85, 0.65, 0.1, 0.5)  # Gold/rare — expensive items
+				rarity_col = Color(0.85, 0.65, 0.1, 0.5)  # Gold/rare â€” expensive items
 			elif item["cost"] >= 30:
-				rarity_col = Color(0.55, 0.3, 0.7, 0.45)  # Purple/uncommon — mid-range
+				rarity_col = Color(0.55, 0.3, 0.7, 0.45)  # Purple/uncommon â€” mid-range
 			else:
-				rarity_col = Color(0.3, 0.5, 0.8, 0.4)  # Blue/common — cheap items
+				rarity_col = Color(0.3, 0.5, 0.8, 0.4)  # Blue/common â€” cheap items
 			var bdr = Color(rarity_col.r * 1.3, rarity_col.g * 1.3, rarity_col.b * 1.3, 0.7) if is_hovered else rarity_col
 			draw_rect(Rect2(ix, iy, item_w, 2), bdr)
 			draw_rect(Rect2(ix, iy + item_h - 2, item_w, 2), bdr)
@@ -10527,7 +10256,7 @@ func _draw_emporium_sub_panel() -> void:
 			var can_afford = false
 			match item["currency"]:
 				"quills": can_afford = player_quills >= item["cost"]
-				"shards": can_afford = player_relic_shards >= item["cost"]
+				"shards": can_afford = player_gear_shards >= item["cost"]
 				"stars": can_afford = player_storybook_stars >= item["cost"]
 				"gold": can_afford = player_gold >= item["cost"]
 			var cost_col = Color(0.9, 0.8, 0.5, 0.8) if can_afford else Color(0.8, 0.3, 0.2, 0.8)
@@ -10557,7 +10286,7 @@ func _draw_emporium_sub_panel() -> void:
 	if _emporium_purchase_flash > 0.0:
 		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(1.0, 0.9, 0.5, _emporium_purchase_flash * 0.2))
 
-	# Open chest buttons (if category is Relic Chests and player has chests)
+	# Open chest buttons (if category is Gear Chests and player has chests)
 	if emporium_sub_category == 3:
 		var open_y = panel_y + 290.0
 		var tier_names = ["Bronze", "Silver", "Gold"]
@@ -10650,34 +10379,34 @@ func _generate_victory_cards(difficulty: int, stars: int) -> void:
 		[{"type": "shards", "min": 10, "max": 30}, {"type": "quills", "min": 4, "max": 8}, {"type": "gold", "min": 30, "max": 90}, {"type": "stars", "min": 1, "max": 3}],
 	]
 	var pool = currency_pools[mini(difficulty, 2)]
-	# Difficulty-exclusive gear tier + act gating + mythic/forbidden chances
-	var trinket_rarity = ["tattered", "bound", "gilded"][difficulty]
+	# Difficulty-exclusive gear tier + act gating + epic/legendary chances
+	var trinket_rarity = ["common", "uncommon", "rare"][difficulty]
 	var tier_unlocked = true
 	if difficulty == 1 and highest_lv < 12:
-		tier_unlocked = false  # Bound requires Act 1 complete
+		tier_unlocked = false  # Uncommon requires Act 1 complete
 	elif difficulty == 2 and highest_lv < 24:
-		tier_unlocked = false  # Gilded requires Act 2 complete
+		tier_unlocked = false  # Rare requires Act 2 complete
 	# Mythic/Forbidden upgrade chance on hard difficulty
 	if difficulty == 2 and tier_unlocked:
 		var upgrade_roll = randf()
-		if upgrade_roll < 0.02:  # 2% forbidden
-			trinket_rarity = "forbidden"
-		elif upgrade_roll < 0.10:  # 8% mythic
-			trinket_rarity = "mythic"
-		# BATTD2: Pity Timer — guaranteed mythic after 30 drops, forbidden after 100
-		_drops_since_mythic += 1
-		_drops_since_forbidden += 1
-		if trinket_rarity == "mythic" or trinket_rarity == "forbidden":
-			_drops_since_mythic = 0
-		if trinket_rarity == "forbidden":
-			_drops_since_forbidden = 0
-		if _drops_since_forbidden >= PITY_FORBIDDEN:
-			trinket_rarity = "forbidden"
-			_drops_since_forbidden = 0
-			_drops_since_mythic = 0
-		elif _drops_since_mythic >= PITY_MYTHIC:
-			trinket_rarity = "mythic"
-			_drops_since_mythic = 0
+		if upgrade_roll < 0.02:  # 2% legendary
+			trinket_rarity = "legendary"
+		elif upgrade_roll < 0.10:  # 8% epic
+			trinket_rarity = "epic"
+		# BATTD2: Pity Timer â€” guaranteed epic after 30 drops, legendary after 100
+		_drops_since_epic += 1
+		_drops_since_legendary += 1
+		if trinket_rarity == "epic" or trinket_rarity == "legendary":
+			_drops_since_epic = 0
+		if trinket_rarity == "legendary":
+			_drops_since_legendary = 0
+		if _drops_since_legendary >= PITY_LEGENDARY:
+			trinket_rarity = "legendary"
+			_drops_since_legendary = 0
+			_drops_since_epic = 0
+		elif _drops_since_epic >= PITY_EPIC:
+			trinket_rarity = "epic"
+			_drops_since_epic = 0
 	# Drop rate: low base + scales with chapter progression
 	var trinket_chance = [0.08, 0.12, 0.18][difficulty]
 	trinket_chance += [0.01, 0.015, 0.02][difficulty] * prog_chapter
@@ -10686,7 +10415,7 @@ func _generate_victory_cards(difficulty: int, stars: int) -> void:
 	# Generate 3 cards
 	for i in range(3):
 		if i == 2 and tier_unlocked and randf() < trinket_chance:
-			var chosen = _pick_weighted_relic(trinket_rarity, level_char)
+			var chosen = _pick_weighted_gear(trinket_rarity, level_char)
 			if not chosen.is_empty():
 				chest_opening_cards.append({
 					"type": "trinket", "amount": 1, "name": chosen["name"],
@@ -10703,7 +10432,7 @@ func _generate_victory_cards(difficulty: int, stars: int) -> void:
 			amount = int(float(amount) * 1.3)
 		var card_name = ""
 		match entry["type"]:
-			"shards": card_name = "Relic Shards"
+			"shards": card_name = "Gear Shards"
 			"quills": card_name = "Enchanted Quills"
 			"gold": card_name = "Gold Sovereigns"
 			"stars": card_name = "Storybook Stars"
@@ -10732,7 +10461,7 @@ func _generate_chest_cards(tier: int) -> void:
 		amount = maxi(amount, 1)
 		var card_name = ""
 		match entry["type"]:
-			"shards": card_name = "Relic Shards"
+			"shards": card_name = "Gear Shards"
 			"quills": card_name = "Enchanted Quills"
 			"gold": card_name = "Gold Sovereigns"
 			"stars": card_name = "Storybook Stars"
@@ -10782,22 +10511,22 @@ func _on_chest_overlay_clicked(mouse_pos: Vector2) -> void:
 		if mouse_pos.x >= card_x and mouse_pos.x <= card_x + card_w and mouse_pos.y >= card_y and mouse_pos.y <= card_y + card_h:
 			chest_opening_picked = i
 			var card = chest_opening_cards[i]
-			# Trinket card — show character equip overlay
+			# Trinket card â€” show character equip overlay
 			if card.get("type") == "trinket":
 				victory_trinket_pending = card
 				# Add to owned immediately
 				var tid = card.get("trinket_id", "")
 				if tid != "":
-					owned_bindings[tid] = owned_bindings.get(tid, 0) + 1
-					_mark_binding_discovered(tid)
-					_add_recent_item(card.get("name", "Trinket"), card.get("trinket_rarity", "tattered"))
+					owned_gear[tid] = owned_gear.get(tid, 0) + 1
+					_mark_gear_discovered(tid)
+					_add_recent_item(card.get("name", "Trinket"), card.get("trinket_rarity", "common"))
 				victory_equip_active = true
 				victory_equip_hover = -1
 				queue_redraw()
 				return
 			# Grant currency/power reward immediately
 			match card["type"]:
-				"shards": player_relic_shards += card["amount"]
+				"shards": player_gear_shards += card["amount"]
 				"quills": player_quills += card["amount"]
 				"gold": player_gold += card["amount"]
 				"stars": player_storybook_stars += card["amount"]
@@ -10821,9 +10550,9 @@ func _on_victory_equip_clicked(mouse_pos: Vector2) -> void:
 	var row_h = 80.0
 	var grid_x = panel_x + 30.0
 	var grid_y = panel_y + 90.0
-	# 11 characters in 2 rows (6 + 5)
+	# 12 characters in 2 rows (6 + 6)
 	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge",
-		"sherlock", "tarzan", "dracula", "merlin", "frankenstein"]
+		"sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 	for idx in range(tower_names.size()):
 		var row = idx / 6
 		var col = idx % 6
@@ -10831,17 +10560,18 @@ func _on_victory_equip_clicked(mouse_pos: Vector2) -> void:
 		var cy = grid_y + float(row) * (row_h + 15.0)
 		if mouse_pos.x >= cx and mouse_pos.x <= cx + col_w and mouse_pos.y >= cy and mouse_pos.y <= cy + row_h:
 			var tower_type_str = tower_names[idx]
-			var slots = _get_binding_slots(tower_type_str)
+			var tt_enum = survivor_types[idx] if idx < survivor_types.size() else -1
+			var slots = _get_gear_slots(tt_enum)
 			if slots <= 0:
 				return  # No slots available
-			var current = equipped_bindings.get(tower_type_str, [])
+			var current = equipped_gear.get(tower_type_str, [])
 			if current.size() >= slots:
 				return  # All slots full
 			var tid = victory_trinket_pending.get("trinket_id", "")
 			if tid != "":
-				if not equipped_bindings.has(tower_type_str):
-					equipped_bindings[tower_type_str] = []
-				equipped_bindings[tower_type_str].append(tid)
+				if not equipped_gear.has(tower_type_str):
+					equipped_gear[tower_type_str] = []
+				equipped_gear[tower_type_str].append(tid)
 				# Apply meta buffs to any placed tower of this type
 				for tower in get_tree().get_nodes_in_group("towers"):
 					if tower.get("tower_type") != null:
@@ -10855,7 +10585,7 @@ func _on_victory_equip_clicked(mouse_pos: Vector2) -> void:
 			_save_game()
 			queue_redraw()
 			return
-	# "Skip" button at bottom — equip later
+	# "Skip" button at bottom â€” equip later
 	var skip_x = panel_x + (panel_w - 200.0) * 0.5
 	var skip_y = panel_y + 310.0
 	if mouse_pos.x >= skip_x and mouse_pos.x <= skip_x + 200.0 and mouse_pos.y >= skip_y and mouse_pos.y <= skip_y + 40.0:
@@ -10867,17 +10597,17 @@ func _on_victory_equip_clicked(mouse_pos: Vector2) -> void:
 		queue_redraw()
 
 func _draw_chest_opening() -> void:
-	# Full-screen OPAQUE dark overlay — completely hides everything behind
+	# Full-screen OPAQUE dark overlay â€” completely hides everything behind
 	draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.01, 0.05, 1.0))
 	var font = game_font
 	var cx = 640.0
 	# Victory chests use difficulty colors; emporium chests use classic tier colors
 	var tier_names = ["Apprentice", "Journeyman", "Master"]
-	var tier_colors = [Color(0.3, 0.5, 0.85), Color(0.6, 0.3, 0.75), Color(0.85, 0.65, 0.1)]
+	var chest_colors = [Color(0.4, 0.6, 0.3), Color(0.5, 0.5, 0.7), Color(0.85, 0.65, 0.1)]
 	if not victory_chest_active:
 		tier_names = ["Bronze", "Silver", "Gold"]
-		tier_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), Color(0.85, 0.65, 0.1)]
-	var tier_col = tier_colors[mini(chest_opening_tier, 2)]
+		chest_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), Color(0.85, 0.65, 0.1)]
+	var tier_col = chest_colors[mini(chest_opening_tier, 2)]
 	var glow_col = Color(tier_col.r * 1.2, tier_col.g * 1.2, tier_col.b * 1.0)
 
 	if chest_opening_phase == 0 or chest_opening_phase == 1:
@@ -10963,10 +10693,10 @@ func _draw_chest_opening() -> void:
 			draw_circle(Vector2(cx, 125), 80.0, Color(1.0, 0.85, 0.2, 0.08 + pulse * 0.06))
 			# Text shadow
 			_udraw(font, Vector2(cx - vic_w * 0.5 + 2, 132), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(0.0, 0.0, 0.0, 0.7))
-			# Text with pulsing gold — large
+			# Text with pulsing gold â€” large
 			var text_bright = 0.85 + pulse * 0.15
 			_udraw(font, Vector2(cx - vic_w * 0.5, 130), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(text_bright, text_bright * 0.85, 0.2, 0.95))
-		# Star display — large, animated victory stars
+		# Star display â€” large, animated victory stars
 		if victory_chest_active:
 			var star_y = 158.0
 			for si in range(3):
@@ -11027,7 +10757,7 @@ func _draw_chest_opening() -> void:
 		draw_circle(Vector2(cx, 310), 12.0 * progress, Color(1.0, 1.0, 1.0, 0.7 * progress))
 
 	elif chest_opening_phase >= 3 and chest_opening_phase <= 5:
-		# === CARDS PHASE (slide, flip, pick) — BRIGHT & EXCITING ===
+		# === CARDS PHASE (slide, flip, pick) â€” BRIGHT & EXCITING ===
 		var card_w = 170.0
 		var card_h = 240.0
 		var card_gap = 40.0
@@ -11129,8 +10859,8 @@ func _draw_chest_opening() -> void:
 					var card = chest_opening_cards[i]
 					var is_trinket = card.get("type") == "trinket"
 					if is_trinket:
-						var rarity = card.get("trinket_rarity", "tattered")
-						card_col = RARITY_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
+						var rarity = card.get("trinket_rarity", "common")
+						card_col = TIER_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
 					else:
 						var icon_cols = {"shards": Color(0.7, 0.35, 0.85), "quills": Color(0.35, 0.7, 1.0), "gold": Color(1.0, 0.8, 0.15), "stars": Color(1.0, 0.9, 0.25), "power": Color(1.0, 0.4, 0.25)}
 						card_col = icon_cols.get(card.get("type", "gold"), Color(1.0, 0.8, 0.15))
@@ -11154,8 +10884,8 @@ func _draw_chest_opening() -> void:
 					var card = chest_opening_cards[i]
 					var is_trinket = card.get("type") == "trinket"
 					if is_trinket:
-						var rarity = card.get("trinket_rarity", "tattered")
-						var rarity_col = RARITY_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
+						var rarity = card.get("trinket_rarity", "common")
+						var rarity_col = TIER_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
 						# Bright center glow
 						draw_circle(card_center, 70, Color(rarity_col.r, rarity_col.g, rarity_col.b, alpha * 0.15))
 						draw_circle(card_center, 40, Color(rarity_col.r, rarity_col.g, rarity_col.b, alpha * 0.1))
@@ -11182,7 +10912,7 @@ func _draw_chest_opening() -> void:
 							var sy = gcy + sin(sa * 0.5) * 14.0
 							draw_circle(Vector2(sx, sy), 1.5 + ss * 2.0, Color(1.0, 1.0, 1.0, alpha * ss * 0.7))
 						# Rarity badge (brighter)
-						var badge = rarity.to_upper() + " RELIC"
+						var badge = rarity.to_upper() + " GEAR"
 						var badge_w = font.get_string_size(badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
 						draw_rect(Rect2(card_x + (card_w - badge_w - 16) * 0.5, actual_y + 10, badge_w + 16, 22), Color(rarity_col.r, rarity_col.g, rarity_col.b, alpha * 0.45))
 						_udraw(font, Vector2(card_x + (card_w - badge_w) * 0.5, actual_y + 28), badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 1.0, 1.0, alpha * 0.95))
@@ -11214,7 +10944,7 @@ func _draw_chest_opening() -> void:
 						var type_label = card.get("type", "").to_upper()
 						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.9), type_label, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(icon_col.r, icon_col.g, icon_col.b, alpha * 0.7))
 
-				# Picked card — bright golden highlight
+				# Picked card â€” bright golden highlight
 				if is_picked:
 					for bi in range(6):
 						var pick_a = 0.35 - float(bi) * 0.05 + halo_pulse * 0.05
@@ -11290,7 +11020,7 @@ func _draw_chest_opening() -> void:
 		var clw = font.get_string_size(close_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
 		_udraw(font, Vector2(cx - clw * 0.5, 430), close_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.8, 0.5, close_alpha))
 
-	# Victory equip overlay (character selection for relic)
+	# Victory equip overlay (character selection for gear)
 	if victory_equip_active:
 		_draw_victory_equip_overlay()
 
@@ -11316,15 +11046,15 @@ func _draw_victory_equip_overlay() -> void:
 	var sub = "Choose a character to equip this gear on:"
 	var sw = font.get_string_size(sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 13).x
 	_udraw(font, Vector2(panel_x + (panel_w - sw) * 0.5, panel_y + 55), sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.7, 0.6, 0.5, 0.7))
-	# Relic desc
+	# Gear desc
 	var desc = victory_trinket_pending.get("desc", "")
 	var dw = font.get_string_size(desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
 	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 78), desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.6, 0.5, 0.7, 0.7))
-	# Character grid (2 rows: 6 + 5)
+	# Character grid (2 rows: 6 + 6)
 	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge",
-		"sherlock", "tarzan", "dracula", "merlin", "frankenstein"]
+		"sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 	var display_names = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "Phantom", "Scrooge",
-		"Sherlock", "Tarzan", "Dracula", "Merlin", "Frankenstein"]
+		"Sherlock", "Tarzan", "Dracula", "Merlin", "Frankenstein", "Shadow Author"]
 	var col_w = 115.0
 	var col_gap = 10.0
 	var row_h = 80.0
@@ -11336,8 +11066,9 @@ func _draw_victory_equip_overlay() -> void:
 		var col = idx % 6
 		var bx = grid_x + float(col) * (col_w + col_gap)
 		var by = grid_y + float(row) * (row_h + 15.0)
-		var slots = _get_binding_slots(tower_names[idx])
-		var current = equipped_bindings.get(tower_names[idx], [])
+		var tt_enum_draw = survivor_types[idx] if idx < survivor_types.size() else -1
+		var slots = _get_gear_slots(tt_enum_draw)
+		var current = equipped_gear.get(tower_names[idx], [])
 		var has_room = slots > 0 and current.size() < slots
 		var is_hover = mouse_pos.x >= bx and mouse_pos.x <= bx + col_w and mouse_pos.y >= by and mouse_pos.y <= by + row_h
 		# Background
@@ -11441,7 +11172,7 @@ func _draw_closed_book() -> void:
 		var bx = branch_start_x + float(bi) * (branch_w + branch_gap)
 		var bcol = branch["color"]
 
-		# === Branch divider ornament (Enhancement #38) — between branches ===
+		# === Branch divider ornament (Enhancement #38) â€” between branches ===
 		if bi > 0:
 			var div_x = bx - branch_gap * 0.5
 			# Vertical divider line
@@ -11527,14 +11258,14 @@ func _draw_closed_book() -> void:
 			# === Read/unread indicator dot (Enhancement #41) ===
 			var ind_x = node_cx - node_radius - 8
 			if is_unlocked:
-				# Bright solid dot — "read"/unlocked
+				# Bright solid dot â€” "read"/unlocked
 				draw_circle(Vector2(ind_x, node_cy), 3, Color(0.4, 0.8, 0.3, 0.8))
 			elif can_unlock:
-				# Pulsing dim dot — available to unlock
+				# Pulsing dim dot â€” available to unlock
 				var dot_pulse = 0.4 + sin(_time * 3.5 + float(bi * 10 + ni)) * 0.3
 				draw_circle(Vector2(ind_x, node_cy), 3, Color(bcol.r, bcol.g, bcol.b, dot_pulse))
 			else:
-				# Dim grey dot — locked
+				# Dim grey dot â€” locked
 				draw_circle(Vector2(ind_x, node_cy), 2, Color(0.3, 0.3, 0.3, 0.25))
 
 			# Node name and desc (to the right)
@@ -11863,7 +11594,7 @@ func _draw_survivor_grid() -> void:
 		# === Card shadow ===
 		draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw, draw_ch), Color(0.0, 0.0, 0.0, 0.4))
 
-		# === Card background — gradient with character accent ===
+		# === Card background â€” gradient with character accent ===
 		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.05, 0.05, 0.12))
 		# Accent gradient at top
 		for gi in range(int(draw_ch * 0.4)):
@@ -11955,8 +11686,8 @@ func _draw_survivor_grid() -> void:
 
 		# === Equipped gear count badge ===
 		if unlocked:
-			var eq_count = equipped_bindings.get(tower_type, []).size()
-			var eq_max = _get_binding_slots(tower_type)
+			var eq_count = equipped_gear.get(tower_type, []).size()
+			var eq_max = _get_gear_slots(tower_type)
 			if eq_max > 0:
 				var eq_str = "%d/%d" % [eq_count, eq_max]
 				var eq_w = font.get_string_size(eq_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 8
@@ -12211,7 +11942,10 @@ func _update_world_map_hover() -> void:
 			world_map_hover_index = i
 			break
 
-func _draw_relic_icon(center: Vector2, icon_key: String, sz: float, accent: Color) -> void:
+func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color) -> void:
+	# Remap gear item IDs to icon drawing keys
+	if _gear_icon_map.has(icon_key):
+		icon_key = _gear_icon_map[icon_key]
 	var cx = center.x
 	var cy = center.y
 	var s = sz * 0.5
@@ -12669,8 +12403,102 @@ func _draw_relic_icon(center: Vector2, icon_key: String, sz: float, accent: Colo
 			draw_rect(Rect2(cx - s * 0.1, cy - s * 0.65, s * 0.2, s * 0.12), Color(0.5, 0.4, 0.2))
 			draw_arc(Vector2(cx, cy - s * 0.65), s * 0.12, PI, TAU, 6, Color(0.5, 0.4, 0.2), 2.0)
 		_:
-			# Fallback: diamond icon
-			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.5), Vector2(cx + s * 0.35, cy), Vector2(cx, cy + s * 0.5), Vector2(cx - s * 0.35, cy)]), Color(accent.r, accent.g, accent.b, 0.4))
+			# Generic icons based on item name keywords
+			if "sword" in icon_key or "blade" in icon_key or "dagger" in icon_key or "claw" in icon_key or "fang" in icon_key or "stake" in icon_key or "revolver" in icon_key:
+				# Weapon: simple blade
+				var wc = Color(0.75, 0.78, 0.82, 0.85)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.04, cy + s * 0.6), Vector2(cx + s * 0.04, cy + s * 0.6), Vector2(cx + s * 0.06, cy - s * 0.5), Vector2(cx, cy - s * 0.7), Vector2(cx - s * 0.06, cy - s * 0.5)]), wc)
+				draw_rect(Rect2(cx - s * 0.2, cy + s * 0.55, s * 0.4, s * 0.06), Color(0.85, 0.65, 0.1, 0.8))
+				draw_rect(Rect2(cx - s * 0.05, cy + s * 0.61, s * 0.1, s * 0.2), Color(0.5, 0.3, 0.15))
+			elif "staff" in icon_key or "wand" in icon_key or "rod" in icon_key or "crutch" in icon_key:
+				# Staff: vertical stick with glowing top
+				draw_rect(Rect2(cx - s * 0.06, cy - s * 0.3, s * 0.12, s * 0.95), Color(0.55, 0.35, 0.15, 0.85))
+				draw_circle(Vector2(cx, cy - s * 0.45), s * 0.2, Color(accent.r, accent.g, accent.b, 0.6))
+				draw_circle(Vector2(cx, cy - s * 0.45), s * 0.12, Color(accent.r * 1.2, accent.g * 1.2, accent.b * 1.2, 0.8))
+			elif "crown" in icon_key or "helm" in icon_key or "tiara" in icon_key or "cap" in icon_key or "mask" in icon_key:
+				# Crown: three-pointed crown
+				var cc = Color(0.85, 0.65, 0.1, 0.85)
+				draw_rect(Rect2(cx - s * 0.5, cy + s * 0.1, s * 1.0, s * 0.3), cc)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.45, cy + s * 0.1), Vector2(cx - s * 0.25, cy - s * 0.4), Vector2(cx - s * 0.05, cy + s * 0.1)]), cc)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.15, cy + s * 0.1), Vector2(cx, cy - s * 0.55), Vector2(cx + s * 0.15, cy + s * 0.1)]), cc)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx + s * 0.05, cy + s * 0.1), Vector2(cx + s * 0.25, cy - s * 0.4), Vector2(cx + s * 0.45, cy + s * 0.1)]), cc)
+				draw_circle(Vector2(cx, cy + s * 0.2), s * 0.08, Color(0.8, 0.1, 0.1, 0.7))
+			elif "ring" in icon_key or "band" in icon_key or "signet" in icon_key or "clasp" in icon_key or "brooch" in icon_key:
+				# Ring: circle with gem
+				draw_arc(Vector2(cx, cy + s * 0.1), s * 0.35, 0, TAU, 16, Color(0.85, 0.65, 0.1, 0.8), 2.5)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.45), Vector2(cx + s * 0.15, cy - s * 0.2), Vector2(cx, cy - s * 0.05), Vector2(cx - s * 0.15, cy - s * 0.2)]), Color(accent.r, accent.g, accent.b, 0.7))
+			elif "flask" in icon_key or "vial" in icon_key or "chalice" in icon_key or "inkwell" in icon_key or "potion" in icon_key:
+				# Bottle: simple flask shape
+				var bc = Color(0.4, 0.5, 0.7, 0.7)
+				draw_rect(Rect2(cx - s * 0.1, cy - s * 0.6, s * 0.2, s * 0.25), bc)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.1, cy - s * 0.35), Vector2(cx + s * 0.1, cy - s * 0.35), Vector2(cx + s * 0.3, cy - s * 0.05), Vector2(cx + s * 0.3, cy + s * 0.55), Vector2(cx - s * 0.3, cy + s * 0.55), Vector2(cx - s * 0.3, cy - s * 0.05)]), bc)
+				draw_rect(Rect2(cx - s * 0.25, cy + s * 0.15, s * 0.5, s * 0.35), Color(accent.r, accent.g, accent.b, 0.45))
+			elif "book" in icon_key or "page" in icon_key or "journal" in icon_key or "manuscript" in icon_key or "ledger" in icon_key or "scroll" in icon_key or "tome" in icon_key:
+				# Book: rectangular book shape
+				var bkc = Color(0.5, 0.25, 0.1, 0.8)
+				draw_rect(Rect2(cx - s * 0.4, cy - s * 0.5, s * 0.8, s * 1.0), bkc)
+				draw_line(Vector2(cx, cy - s * 0.5), Vector2(cx, cy + s * 0.5), Color(0.85, 0.75, 0.55, 0.5), 1.5)
+				draw_rect(Rect2(cx - s * 0.35, cy - s * 0.35, s * 0.25, s * 0.06), Color(0.85, 0.65, 0.1, 0.5))
+				draw_rect(Rect2(cx - s * 0.35, cy - s * 0.2, s * 0.55, s * 0.04), Color(0.85, 0.65, 0.1, 0.3))
+			elif "key" in icon_key or "compass" in icon_key or "lens" in icon_key or "glass" in icon_key or "mirror" in icon_key or "monocle" in icon_key:
+				# Key: simple key shape
+				var kc = Color(0.85, 0.65, 0.15, 0.85)
+				draw_circle(Vector2(cx - s * 0.2, cy - s * 0.3), s * 0.25, kc)
+				draw_circle(Vector2(cx - s * 0.2, cy - s * 0.3), s * 0.12, Color(0.1, 0.08, 0.06, 0.7))
+				draw_rect(Rect2(cx - s * 0.05, cy - s * 0.1, s * 0.1, s * 0.7), kc)
+				draw_rect(Rect2(cx, cy + s * 0.3, s * 0.2, s * 0.06), kc)
+				draw_rect(Rect2(cx, cy + s * 0.15, s * 0.15, s * 0.06), kc)
+			elif "chain" in icon_key or "vine" in icon_key or "thread" in icon_key or "string" in icon_key or "ribbon" in icon_key or "braid" in icon_key or "lasso" in icon_key or "coil" in icon_key:
+				# Chain: linked chain loops
+				var chc = Color(0.6, 0.55, 0.5, 0.8)
+				draw_arc(Vector2(cx, cy - s * 0.35), s * 0.2, 0, TAU, 8, chc, 2.0)
+				draw_arc(Vector2(cx, cy), s * 0.2, 0, TAU, 8, chc, 2.0)
+				draw_arc(Vector2(cx, cy + s * 0.35), s * 0.2, 0, TAU, 8, chc, 2.0)
+			elif "crystal" in icon_key or "gem" in icon_key or "shard" in icon_key or "pearl" in icon_key or "scale" in icon_key or "nail" in icon_key or "bolt" in icon_key or "tusk" in icon_key or "tooth" in icon_key:
+				# Gem: faceted crystal
+				var gc = Color(accent.r, accent.g, accent.b, 0.7)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.35, cy - s * 0.15), Vector2(cx - s * 0.15, cy - s * 0.5), Vector2(cx + s * 0.15, cy - s * 0.5), Vector2(cx + s * 0.35, cy - s * 0.15), Vector2(cx + s * 0.2, cy + s * 0.5), Vector2(cx - s * 0.2, cy + s * 0.5)]), gc)
+				draw_line(Vector2(cx - s * 0.15, cy - s * 0.5), Vector2(cx - s * 0.05, cy + s * 0.5), Color(1, 1, 1, 0.2), 1.0)
+				draw_line(Vector2(cx + s * 0.15, cy - s * 0.5), Vector2(cx + s * 0.05, cy + s * 0.5), Color(1, 1, 1, 0.2), 1.0)
+			elif "rose" in icon_key or "petal" in icon_key or "wreath" in icon_key or "acorn" in icon_key or "sapling" in icon_key or "flower" in icon_key:
+				# Plant: simple flower/leaf
+				var pc = Color(0.3, 0.65, 0.2, 0.8)
+				draw_line(Vector2(cx, cy + s * 0.6), Vector2(cx, cy - s * 0.1), pc, 2.0)
+				draw_circle(Vector2(cx, cy - s * 0.25), s * 0.2, Color(accent.r, accent.g, accent.b, 0.6))
+				draw_circle(Vector2(cx - s * 0.15, cy - s * 0.1), s * 0.15, Color(accent.r, accent.g, accent.b, 0.5))
+				draw_circle(Vector2(cx + s * 0.15, cy - s * 0.1), s * 0.15, Color(accent.r, accent.g, accent.b, 0.5))
+				draw_circle(Vector2(cx, cy - s * 0.22), s * 0.08, Color(1.0, 0.85, 0.2, 0.7))
+			elif "quill" in icon_key or "ink" in icon_key or "pen" in icon_key or "cipher" in icon_key:
+				# Quill: feather pen
+				var qc = Color(0.85, 0.75, 0.55, 0.85)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx + s * 0.3, cy - s * 0.6), Vector2(cx + s * 0.35, cy - s * 0.5), Vector2(cx - s * 0.1, cy + s * 0.3), Vector2(cx - s * 0.2, cy + s * 0.35), Vector2(cx - s * 0.25, cy + s * 0.6), Vector2(cx - s * 0.15, cy + s * 0.35)]), qc)
+				draw_line(Vector2(cx - s * 0.25, cy + s * 0.6), Vector2(cx - s * 0.3, cy + s * 0.7), Color(0.3, 0.2, 0.1), 1.5)
+			elif "flame" in icon_key or "fire" in icon_key or "spark" in icon_key or "lightning" in icon_key or "inferno" in icon_key:
+				# Flame: fire shape
+				var fc = Color(1.0, 0.5, 0.1, 0.8)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.7), Vector2(cx + s * 0.3, cy - s * 0.1), Vector2(cx + s * 0.2, cy + s * 0.2), Vector2(cx + s * 0.35, cy + s * 0.55), Vector2(cx, cy + s * 0.35), Vector2(cx - s * 0.35, cy + s * 0.55), Vector2(cx - s * 0.2, cy + s * 0.2), Vector2(cx - s * 0.3, cy - s * 0.1)]), fc)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.35), Vector2(cx + s * 0.12, cy + s * 0.1), Vector2(cx, cy + s * 0.3), Vector2(cx - s * 0.12, cy + s * 0.1)]), Color(1.0, 0.85, 0.2, 0.7))
+			elif "coffin" in icon_key or "blood" in icon_key or "ghost" in icon_key or "spectral" in icon_key or "reaper" in icon_key or "scythe" in icon_key or "veil" in icon_key or "soil" in icon_key or "crucifix" in icon_key:
+				# Dark: skull-like dark icon
+				var dc2 = Color(0.5, 0.35, 0.5, 0.7)
+				draw_circle(Vector2(cx, cy - s * 0.15), s * 0.35, dc2)
+				draw_rect(Rect2(cx - s * 0.2, cy + s * 0.1, s * 0.4, s * 0.3), dc2)
+				draw_circle(Vector2(cx - s * 0.12, cy - s * 0.2), s * 0.08, Color(0.1, 0.08, 0.12, 0.7))
+				draw_circle(Vector2(cx + s * 0.12, cy - s * 0.2), s * 0.08, Color(0.1, 0.08, 0.12, 0.7))
+			elif "armor" in icon_key or "shield" in icon_key or "fist" in icon_key or "heart" in icon_key:
+				# Shield: shield shape
+				var sc2 = Color(0.5, 0.5, 0.55, 0.8)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy + s * 0.05), Vector2(cx, cy + s * 0.55), Vector2(cx - s * 0.4, cy + s * 0.05)]), sc2)
+				var shield_pts = PackedVector2Array([Vector2(cx - s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy + s * 0.05), Vector2(cx, cy + s * 0.55), Vector2(cx - s * 0.4, cy + s * 0.05), Vector2(cx - s * 0.4, cy - s * 0.5)])
+				draw_polyline(shield_pts, Color(accent.r, accent.g, accent.b, 0.15), 1.5)
+			elif "coin" in icon_key or "gold" in icon_key:
+				# Coin: circle with embossed center
+				draw_circle(Vector2(cx, cy), s * 0.4, Color(0.85, 0.65, 0.1, 0.8))
+				draw_circle(Vector2(cx, cy), s * 0.3, Color(0.95, 0.75, 0.2, 0.6))
+				draw_arc(Vector2(cx, cy), s * 0.35, 0, TAU, 12, Color(0.7, 0.5, 0.05, 0.4), 1.0)
+			else:
+				# Final fallback: diamond icon
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.5), Vector2(cx + s * 0.35, cy), Vector2(cx, cy + s * 0.5), Vector2(cx - s * 0.35, cy)]), Color(accent.r, accent.g, accent.b, 0.4))
 
 const HERO_ROLE_NAMES: Dictionary = {
 	TowerType.ROBIN_HOOD: "Marksman", TowerType.ALICE: "Controller",
@@ -12693,18 +12521,18 @@ func _get_level_rewards(level: int) -> Array:
 	if level == 3:
 		rewards.append("Sidekick Slot #1")
 	if level == 4:
-		rewards.append("+Relic Slot (3 total)")
+		rewards.append("+Gear Slot (3 total)")
 	if level == 5:
 		rewards.append("+5% DMG Milestone")
 		rewards.append("Sidekick Slot #2")
-		rewards.append("Tome Binding Slot")
+		rewards.append("Gear Slot")
 	if level == 7:
-		rewards.append("+Relic Slot (4 total)")
+		rewards.append("+Gear Slot (4 total)")
 	if level == 8:
 		rewards.append("Sidekick Slot #3")
 	if level == 10:
-		rewards.append("+Relic Slot (5 total)")
-		rewards.append("Tome Binding Slot #2")
+		rewards.append("+Gear Slot (5 total)")
+		rewards.append("Gear Slot #2")
 	if level == 15:
 		rewards.append("+10% DMG/RNG/SPD Milestone")
 	return rewards
@@ -12747,7 +12575,7 @@ func _draw_survivor_detail() -> void:
 	var panel_h = 570.0
 	var tower_type = survivor_types[survivor_detail_index]
 	var info = tower_info[tower_type]
-	var progress = survivor_progress.get(tower_type, {"level": 1, "xp": 0.0, "xp_next": float(HERO_XP_TABLE[0]), "gear_unlocked": false, "sidekicks_unlocked": [false, false, false], "relics_unlocked": [false, false, false, false, false, false]})
+	var progress = survivor_progress.get(tower_type, {"level": 1, "xp": 0.0, "xp_next": float(HERO_XP_TABLE[0]), "gear_unlocked": false, "sidekicks_unlocked": [false, false, false, false], "gear_slots_unlocked": [false, false, false, false, false, false]})
 	var speaker_name = _tower_type_to_name(tower_type)
 	var font = game_font
 	var char_level = progress.get("level", 1)
@@ -12813,7 +12641,7 @@ func _draw_survivor_detail() -> void:
 	draw_rect(Rect2(port_x, port_y, 3, port_h), Color(accent.r, accent.g, accent.b, 0.6))
 	draw_rect(Rect2(port_x + port_w - 3, port_y, 3, port_h), Color(accent.r, accent.g, accent.b, 0.6))
 	draw_rect(Rect2(port_x + 3, port_y + 3, port_w - 6, port_h - 6), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.12), false, 1.0)
-	# Level badge star (BATTD style — gold star with level number)
+	# Level badge star (BATTD style â€” gold star with level number)
 	var badge_cx = port_x + port_w - 20.0
 	var badge_cy = port_y + 20.0
 	var star_r = 18.0
@@ -12827,7 +12655,7 @@ func _draw_survivor_detail() -> void:
 	var lvl_str = str(char_level)
 	var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 	_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
-	# Info icon (bottom-left) — highlights on hover
+	# Info icon (bottom-left) â€” highlights on hover
 	var info_icon_hover = (detail_hover_type == "info_icon")
 	draw_circle(Vector2(port_x + 22, port_y + port_h - 22), 12, Color(0.2, 0.4, 0.8, 0.85 if info_icon_hover else 0.6))
 	if info_icon_hover:
@@ -12894,7 +12722,7 @@ func _draw_survivor_detail() -> void:
 		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), btn_border, false, 1.5)
 		if is_lvup_hover and can_afford:
 			draw_rect(Rect2(port_x + 1, levelup_btn_y + 1, xp_w - 2, (levelup_btn_h - 2) * 0.4), Color(1, 1, 1, 0.06))
-		var lvup_str = "LEVEL UP  —  %d Quills" % lvup_cost
+		var lvup_str = "LEVEL UP  â€”  %d Quills" % lvup_cost
 		var lvup_tw = font.get_string_size(lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 		var lvup_col = Color(0.85, 0.65, 0.1, 0.9) if can_afford else Color(0.5, 0.48, 0.55, 0.6)
 		_udraw(font, Vector2(port_x + (xp_w - lvup_tw) * 0.5, levelup_btn_y + 15), lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, lvup_col)
@@ -12902,10 +12730,10 @@ func _draw_survivor_detail() -> void:
 	# --- Stat bonus pills ---
 	var stat_y = xp_y + xp_h + levelup_btn_h + 4.0
 	var lvl_b = _get_level_bonuses(tower_type)
-	var rel_b = _get_relic_bonuses(tower_type)
-	var total_dmg = lvl_b.get("damage", 0.0) + rel_b.get("damage", 0.0) + _get_knowledge_bonus("damage")
-	var total_rng = lvl_b.get("range", 0.0) + rel_b.get("range", 0.0) + _get_knowledge_bonus("range")
-	var total_spd = lvl_b.get("attack_speed", 0.0) + rel_b.get("attack_speed", 0.0) + _get_knowledge_bonus("attack_speed")
+	var gear_b = _get_gear_bonuses(tower_type)
+	var total_dmg = lvl_b.get("damage", 0.0) + gear_b.get("damage", 0.0) + _get_knowledge_bonus("damage")
+	var total_rng = lvl_b.get("range", 0.0) + gear_b.get("range", 0.0) + _get_knowledge_bonus("range")
+	var total_spd = lvl_b.get("attack_speed", 0.0) + gear_b.get("attack_speed", 0.0) + _get_knowledge_bonus("attack_speed")
 	var pill_x = port_x
 	var pill_labels = ["+%d%% DMG" % int(total_dmg * 100), "+%d%% RNG" % int(total_rng * 100), "+%d%% SPD" % int(total_spd * 100)]
 	var pill_colors = [Color(0.9, 0.3, 0.2), Color(0.3, 0.7, 0.9), Color(0.3, 0.9, 0.4)]
@@ -12921,7 +12749,7 @@ func _draw_survivor_detail() -> void:
 	_udraw(font, Vector2(port_x, stat_y + 22), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(port_w + 60), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
 
 	# ================================================================
-	# RIGHT SIDE: Weapon + Sidekicks + Relics (BATTD layout)
+	# RIGHT SIDE: Weapon + Sidekicks + Gear (BATTD layout)
 	# ================================================================
 	var right_x = panel_x + 310.0
 	var right_w = panel_w - 330.0
@@ -12971,7 +12799,7 @@ func _draw_survivor_detail() -> void:
 	var sk_y = content_y
 	var sk_data = survivor_sidekicks.get(tower_type, [])
 	var sk_max = _get_ally_slots(tower_type)
-	var sk_unlocked_arr = progress.get("sidekicks_unlocked", [false, false, false])
+	var sk_unlocked_arr = progress.get("sidekicks_unlocked", [false, false, false, false])
 	while sk_unlocked_arr.size() < sk_max:
 		sk_unlocked_arr.append(false)
 	var sk_count = 0
@@ -13003,11 +12831,11 @@ func _draw_survivor_detail() -> void:
 			_udraw(font, Vector2(sx + (slot_size - snw) * 0.5, sy + slot_size + 12), sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.8))
 		else:
 			if si == 0 or (si > 0 and sk_unlocked_arr[si - 1] if si - 1 < sk_unlocked_arr.size() else false):
-				# Next unlockable — show "+" icon
+				# Next unlockable â€” show "+" icon
 				draw_rect(Rect2(sx + 32, sy + 24, 8, 24), Color(accent.r, accent.g, accent.b, 0.3))
 				draw_rect(Rect2(sx + 24, sy + 32, 24, 8), Color(accent.r, accent.g, accent.b, 0.3))
 			else:
-				# Locked — padlock icon
+				# Locked â€” padlock icon
 				var lk = Vector2(sx + slot_size * 0.5, sy + slot_size * 0.4)
 				draw_rect(Rect2(lk.x - 10, lk.y + 2, 20, 16), Color(0.35, 0.30, 0.45, 0.5))
 				draw_arc(Vector2(lk.x, lk.y + 2), 8, PI, TAU, 10, Color(0.4, 0.35, 0.50, 0.5), 2.5)
@@ -13017,78 +12845,59 @@ func _draw_survivor_detail() -> void:
 	# Sidekick description
 	_udraw(font, Vector2(sk_x, sk_slot_y + slot_size + 24), "Sidekicks: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, 400, 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
 
-	# --- RELICS section (full width of right side, below weapon+sidekicks) ---
-	var rel_y = gear_sy + slot_size + 44.0
-	var char_relics = survivor_relics.get(tower_type, [])
-	var rel_unlocked_arr = progress.get("relics_unlocked", [false, false, false, false, false, false])
-	var rel_count = 0
-	for ru in rel_unlocked_arr:
-		if ru:
-			rel_count += 1
-	var max_rel_slots = _get_relic_slots(char_level)
-	_udraw(font, Vector2(right_x + 1, rel_y + 15), "RELICS (%d/%d)" % [rel_count, char_relics.size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.4))
-	_udraw(font, Vector2(right_x, rel_y + 14), "RELICS (%d/%d)" % [rel_count, char_relics.size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_gold)
-	var relic_slot_y = rel_y + 24.0
-	var relic_slot_size = 72.0
-	var relic_gap = 12.0
-	var relic_earn_levels = [2, 4, 6, 8, 10, 12]
-	var relic_purchasable = [false, true, false, true, false, true]
-	var relic_costs = [0, 100, 0, 250, 0, 500]
-	# 2 rows of 3 relics
-	for ri in range(mini(char_relics.size(), 6)):
-		var r_row = ri / 3
-		var r_col = ri % 3
-		var rx = right_x + float(r_col) * (relic_slot_size + relic_gap)
-		var ry = relic_slot_y + float(r_row) * (relic_slot_size + 24.0)
-		var is_unlocked = rel_unlocked_arr[ri] if ri < rel_unlocked_arr.size() else false
-		var is_rel_hover = (detail_hover_type == "relic" and detail_hover_index == ri)
-		var relic_data = char_relics[ri] if ri < char_relics.size() else {}
-		# Slot bg
-		draw_rect(Rect2(rx, ry, relic_slot_size, relic_slot_size), Color(0.04, 0.04, 0.10))
-		if is_unlocked:
-			var eq_list = equipped_relics.get(tower_type, [])
-			var is_equipped = ri in eq_list
-			# Equipped = gold border, owned = accent border
-			var relic_bdr = Color(0.85, 0.65, 0.1, 0.8 if is_rel_hover else 0.6) if is_equipped else Color(accent.r, accent.g, accent.b, 0.7 if is_rel_hover else 0.4)
-			draw_rect(Rect2(rx, ry, relic_slot_size, relic_slot_size), relic_bdr, false, 2.5)
-			# Relic icon
-			if not relic_data.is_empty():
-				_draw_relic_icon(Vector2(rx + relic_slot_size * 0.5, ry + relic_slot_size * 0.4), relic_data.get("icon", ""), relic_slot_size * 0.55, accent)
-			# Equipped corner triangle
-			if is_equipped:
-				draw_colored_polygon(PackedVector2Array([Vector2(rx, ry), Vector2(rx + 18, ry), Vector2(rx, ry + 18)]), Color(0.85, 0.65, 0.1, 0.8))
-			# Relic name below
-			var rn = relic_data.get("name", "")
-			if rn.length() > 11:
-				rn = rn.substr(0, 10) + ".."
-			var rnw = font.get_string_size(rn, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-			_udraw(font, Vector2(rx + (relic_slot_size - rnw) * 0.5, ry + relic_slot_size + 12), rn, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_parchment)
-		elif relic_purchasable[ri] and char_level >= relic_earn_levels[ri]:
-			# Purchasable with gold — cyan border like BATTD "+" slots
-			draw_rect(Rect2(rx, ry, relic_slot_size, relic_slot_size), Color(accent.r, accent.g, accent.b, 0.4 if is_rel_hover else 0.2), false, 2.0)
-			# Plus icon
-			draw_rect(Rect2(rx + 32, ry + 24, 8, 24), Color(accent.r, accent.g, accent.b, 0.4))
-			draw_rect(Rect2(rx + 24, ry + 32, 24, 8), Color(accent.r, accent.g, accent.b, 0.4))
-			# Cost label
-			var cost_str = "%d GOLD" % relic_costs[ri]
-			var cost_w = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-			_udraw(font, Vector2(rx + (relic_slot_size - cost_w) * 0.5, ry + relic_slot_size + 12), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.7))
+	# --- GEAR GRID section (unified gear system, 5-column grid) ---
+	var gear_section_y = gear_sy + slot_size + 44.0
+	var max_gear_slots = _get_gear_slots(tower_type)
+	var eq_gear_ids = equipped_gear.get(tower_type, [])
+	var equipped_count = eq_gear_ids.size()
+	_udraw(font, Vector2(right_x + 1, gear_section_y + 15), "GEAR (%d/%d)" % [equipped_count, max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.4))
+	_udraw(font, Vector2(right_x, gear_section_y + 14), "GEAR (%d/%d)" % [equipped_count, max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_gold)
+	var gear_slot_y = gear_section_y + 24.0
+	var gear_slot_size = 64.0
+	var gear_gap = 8.0
+	var gear_cols = 5
+	# Draw gear slots
+	for si in range(max_gear_slots):
+		var g_row = si / gear_cols
+		var g_col = si % gear_cols
+		var gx = right_x + float(g_col) * (gear_slot_size + gear_gap)
+		var gy = gear_slot_y + float(g_row) * (gear_slot_size + 18.0)
+		var is_gear_hover = (detail_hover_type == "gear_item" and detail_hover_index == si)
+		# Slot background
+		draw_rect(Rect2(gx, gy, gear_slot_size, gear_slot_size), Color(0.04, 0.04, 0.10))
+		if si < eq_gear_ids.size():
+			# Filled slot - show equipped gear item
+			var gid = eq_gear_ids[si]
+			var gdata = _find_gear(gid)
+			var tier = gdata.get("tier", "common")
+			var tier_col = TIER_COLORS.get(tier, Color(0.65, 0.65, 0.65))
+			# Tier-colored border with glow
+			var border_alpha = 0.9 if is_gear_hover else 0.6
+			draw_rect(Rect2(gx, gy, gear_slot_size, gear_slot_size), Color(tier_col.r, tier_col.g, tier_col.b, border_alpha), false, 2.5)
+			# Tier background glow
+			draw_rect(Rect2(gx + 2, gy + 2, gear_slot_size - 4, gear_slot_size - 4), Color(tier_col.r, tier_col.g, tier_col.b, 0.08))
+			# Gear icon
+			_draw_gear_icon(Vector2(gx + gear_slot_size * 0.5, gy + gear_slot_size * 0.4), gdata.get("id", ""), gear_slot_size * 0.5, tier_col)
+			# Gear name below (truncated)
+			var gname = gdata.get("name", "")
+			if gname.length() > 9:
+				gname = gname.substr(0, 8) + ".."
+			var gnw = font.get_string_size(gname, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+			_udraw(font, Vector2(gx + (gear_slot_size - gnw) * 0.5, gy + gear_slot_size + 10), gname, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, tier_col)
 		else:
-			# Locked — gray with padlock
-			draw_rect(Rect2(rx, ry, relic_slot_size, relic_slot_size), Color(0.2, 0.18, 0.30, 0.2), false, 1.5)
-			var lk = Vector2(rx + relic_slot_size * 0.5, ry + relic_slot_size * 0.38)
-			draw_rect(Rect2(lk.x - 12, lk.y + 2, 24, 18), Color(0.35, 0.30, 0.45, 0.55))
-			draw_arc(Vector2(lk.x, lk.y + 2), 9, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.55), 2.5)
-			draw_circle(Vector2(lk.x, lk.y + 11), 3, Color(0.04, 0.04, 0.10))
-			# Level requirement star
-			_draw_detail_level_star(Vector2(rx + relic_slot_size - 2, ry + relic_slot_size - 2), relic_earn_levels[ri], font)
-	# Relics description
-	var relic_desc_y = relic_slot_y + 2.0 * (relic_slot_size + 24.0) + 4.0
-	_udraw(font, Vector2(right_x, relic_desc_y), "Relics: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, 500, 15, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
+			# Empty slot - show "+" icon
+			var empty_alpha = 0.5 if is_gear_hover else 0.25
+			draw_rect(Rect2(gx, gy, gear_slot_size, gear_slot_size), Color(accent.r, accent.g, accent.b, empty_alpha), false, 1.5)
+			draw_rect(Rect2(gx + 28, gy + 20, 8, 24), Color(accent.r, accent.g, accent.b, 0.3))
+			draw_rect(Rect2(gx + 20, gy + 28, 24, 8), Color(accent.r, accent.g, accent.b, 0.3))
+	# Gear description
+	var gear_rows = int(max_gear_slots / gear_cols) + (1 if max_gear_slots % gear_cols > 0 else 0)
+	var gear_desc_y = gear_slot_y + float(gear_rows) * (gear_slot_size + 18.0) + 4.0
+	_udraw(font, Vector2(right_x, gear_desc_y), "Gear: Equip items for bonus stats and effects", HORIZONTAL_ALIGNMENT_LEFT, 500, 15, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
 
-	# --- ABILITIES section (to the right of relics) ---
+	# --- ABILITIES section (to the right of gear) ---
 	var abil_x = right_x + 270.0
-	var abil_y = rel_y
+	var abil_y = gear_section_y
 	var abil_w = 520.0
 	var abil_data = survivor_detail_abilities
 	_udraw(font, Vector2(abil_x + 1, abil_y + 15), "ABILITIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0, 0, 0, 0.4))
@@ -13123,81 +12932,55 @@ func _draw_survivor_detail() -> void:
 		var a_desc = abil_data[ai].get("desc", "")
 		_udraw(font, Vector2(abil_x + 36, ay + 28), a_desc, HORIZONTAL_ALIGNMENT_LEFT, int(abil_w - 50), 15, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95))
 
-	# --- Tome Bindings section (below relics, if player has slots) ---
-	var bind_slots = _get_binding_slots(tower_type)
-	if bind_slots > 0:
-		var eq_bindings = equipped_bindings.get(tower_type, [])
-		var rarity_colors = RARITY_COLORS
-		var tome_y = relic_desc_y + 18.0
-		_udraw(font, Vector2(right_x + 1, tome_y + 13), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0, 0, 0, 0.4))
-		_udraw(font, Vector2(right_x, tome_y + 12), "TOME BINDINGS (%d/%d)" % [eq_bindings.size(), bind_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
-		# Set bonus indicator
-		var tower_names_sb = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "scheherazade"]
-		var cn = tower_names_sb[tower_type] if tower_type >= 0 and tower_type < tower_names_sb.size() else ""
-		var cgc = 0
-		for eqb in eq_bindings:
-			var bd = _find_binding(eqb)
-			if bd.get("character", "") == cn:
-				cgc += 1
-		if cgc >= 3:
-			var sb_str = "SET BONUS x%d (+%d%% ALL)" % [cgc, cgc * 5]
-			_udraw(font, Vector2(right_x + 200, tome_y + 12), sb_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.85, 0.2, 0.8))
-		var tome_slot_y = tome_y + 22.0
-		var tome_slot_size = 44.0
-		for tsi in range(bind_slots):
-			var tx = right_x + float(tsi) * (tome_slot_size + 8)
-			var ty = tome_slot_y
-			draw_rect(Rect2(tx, ty, tome_slot_size, tome_slot_size), Color(0.04, 0.04, 0.10))
-			if tsi < eq_bindings.size():
-				var binding = _find_binding(eq_bindings[tsi])
-				if not binding.is_empty():
-					var rc = RARITY_COLORS.get(binding.get("rarity", "tattered"), Color(0.6, 0.6, 0.65))
-					draw_rect(Rect2(tx, ty, tome_slot_size, tome_slot_size), Color(rc.r, rc.g, rc.b, 0.4), false, 1.5)
-					draw_circle(Vector2(tx + tome_slot_size * 0.5, ty + tome_slot_size * 0.4), 12, Color(rc.r, rc.g, rc.b, 0.25))
-					# Rarity initial badge
-					var rar = binding.get("rarity", "tattered")
-					var rar_letter = rar.substr(0, 1).to_upper()
-					_udraw(font, Vector2(tx + 2, ty + 10), rar_letter, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(rc.r, rc.g, rc.b, 0.7))
-			else:
-				draw_rect(Rect2(tx, ty, tome_slot_size, tome_slot_size), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.15), false, 1.0)
-				draw_rect(Rect2(tx + 18, ty + 12, 8, 20), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
-				draw_rect(Rect2(tx + 12, ty + 18, 20, 8), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
-		# Owned bindings list (scrollable)
-		var browse_y = tome_slot_y + tome_slot_size + 6.0
-		var browse_bottom = panel_y + panel_h - 20.0
-		var bcol = 0
-		var brow = 0
-		var card_w = 200.0
-		var card_h = 36.0
-		for b in TOME_BINDINGS:
-			var count = owned_bindings.get(b["id"], 0)
-			if count <= 0:
-				continue
-			var bx = right_x + float(bcol) * (card_w + 8)
-			var by = browse_y + float(brow) * (card_h + 3) - detail_binding_scroll
-			bcol += 1
-			if bcol >= 3:
-				bcol = 0
-				brow += 1
-			# Clip to visible area
-			if by + card_h < browse_y or by > browse_bottom:
-				continue
-			var is_eq = b["id"] in eq_bindings
-			var rc = RARITY_COLORS.get(b.get("rarity", "tattered"), Color(0.6, 0.6, 0.65))
-			var bg_c = Color(0.10, 0.08, 0.22, 0.8) if is_eq else Color(0.05, 0.05, 0.14, 0.7)
-			draw_rect(Rect2(bx, by, card_w, card_h), bg_c)
-			draw_rect(Rect2(bx, by, card_w, card_h), Color(rc.r, rc.g, rc.b, 0.3 if is_eq else 0.15), false, 1.0)
-			# Rarity stripe
-			draw_rect(Rect2(bx, by, 3, card_h), Color(rc.r, rc.g, rc.b, 0.6))
-			_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 14, menu_parchment)
-			_udraw(font, Vector2(bx + 6, by + 26), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 12), 12, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6))
-			var count_label = "EQ" if is_eq else ("x%d" % count)
-			_udraw(font, Vector2(bx + card_w - 28, by + 12), count_label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3) if is_eq else Color(0.55, 0.52, 0.50))
-		# Scroll indicator for bindings list
-		var browse_vis_h = browse_bottom - browse_y
-		var total_binding_h = float(brow + 1) * (card_h + 3)
-		if total_binding_h > browse_vis_h:
-			_draw_scroll_indicator(right_x + 618, browse_y, browse_vis_h, detail_binding_scroll, total_binding_h, browse_vis_h)
+	# --- Owned Gear browser (below gear grid, scrollable) ---
+	var browse_top = gear_desc_y + 18.0
+	var browse_bottom = panel_y + panel_h - 20.0
+	_udraw(font, Vector2(right_x + 1, browse_top + 13), "OWNED GEAR", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0, 0, 0, 0.4))
+	_udraw(font, Vector2(right_x, browse_top + 12), "OWNED GEAR", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
+	# Set bonus indicator
+	var tower_names_sb = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+	var cn = tower_names_sb[tower_type] if tower_type >= 0 and tower_type < tower_names_sb.size() else ""
+	var cgc = 0
+	for eqb in eq_gear_ids:
+		var bd = _find_gear(eqb)
+		if bd.get("character", "") == cn:
+			cgc += 1
+	if cgc >= 3:
+		var sb_str = "SET BONUS x%d (+%d%% ALL)" % [cgc, cgc * 5]
+		_udraw(font, Vector2(right_x + 200, browse_top + 12), sb_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.85, 0.2, 0.8))
+	var browse_y = browse_top + 22.0
+	var bcol = 0
+	var brow = 0
+	var card_w = 200.0
+	var card_h = 36.0
+	for b in GEAR_ITEMS:
+		var bcount = owned_gear.get(b["id"], 0)
+		if bcount <= 0:
+			continue
+		var bx = right_x + float(bcol) * (card_w + 8)
+		var by = browse_y + float(brow) * (card_h + 3) - detail_gear_scroll
+		bcol += 1
+		if bcol >= 3:
+			bcol = 0
+			brow += 1
+		if by + card_h < browse_y or by > browse_bottom:
+			continue
+		var is_eq = b["id"] in eq_gear_ids
+		var rc = TIER_COLORS.get(b.get("tier", "common"), Color(0.6, 0.6, 0.65))
+		var bg_c = Color(0.10, 0.08, 0.22, 0.8) if is_eq else Color(0.05, 0.05, 0.14, 0.7)
+		draw_rect(Rect2(bx, by, card_w, card_h), bg_c)
+		draw_rect(Rect2(bx, by, card_w, card_h), Color(rc.r, rc.g, rc.b, 0.3 if is_eq else 0.15), false, 1.0)
+		# Tier stripe
+		draw_rect(Rect2(bx, by, 3, card_h), Color(rc.r, rc.g, rc.b, 0.6))
+		_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 14, menu_parchment)
+		_udraw(font, Vector2(bx + 6, by + 26), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 12), 12, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6))
+		var count_label = "EQ" if is_eq else ("x%d" % bcount)
+		_udraw(font, Vector2(bx + card_w - 28, by + 12), count_label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3) if is_eq else Color(0.55, 0.52, 0.50))
+	# Scroll indicator
+	var browse_vis_h = browse_bottom - browse_y
+	var total_gear_h = float(brow + 1) * (card_h + 3)
+	if total_gear_h > browse_vis_h:
+		_draw_scroll_indicator(right_x + 618, browse_y, browse_vis_h, detail_gear_scroll, total_gear_h, browse_vis_h)
 
 	# === TOOLTIP (drawn last, on top) ===
 	if detail_hover_type != "" and detail_hover_index >= 0:
@@ -13222,24 +13005,18 @@ func _draw_survivor_detail() -> void:
 					var sk_u = sk_unlocked_arr[detail_hover_index] if detail_hover_index < sk_unlocked_arr.size() else false
 					if not sk_u:
 						tt_lines.append("Unlocks at Level %d" % sk_levels[detail_hover_index])
-			"relic":
-				if detail_hover_index < char_relics.size():
-					var rd = char_relics[detail_hover_index]
-					tt_title = rd["name"]
-					tt_lines.append(rd["desc"])
-					var r_unlocked = rel_unlocked_arr[detail_hover_index] if detail_hover_index < rel_unlocked_arr.size() else false
-					if r_unlocked:
-						var eq_list = equipped_relics.get(tower_type, [])
-						if detail_hover_index in eq_list:
-							tt_lines.append("EQUIPPED - %s to unequip" % _get_action_text())
-						elif eq_list.size() < max_rel_slots:
-							tt_lines.append("%s to equip" % _get_action_text())
-						else:
-							tt_lines.append("Equip slots full (%d/%d)" % [eq_list.size(), max_rel_slots])
-					elif relic_purchasable[detail_hover_index] and char_level >= relic_earn_levels[detail_hover_index]:
-						tt_lines.append("%s to buy for %d gold" % [_get_action_text(), relic_costs[detail_hover_index]])
-					else:
-						tt_lines.append("Unlocks at Level %d" % relic_earn_levels[detail_hover_index])
+			"gear_item":
+				var tt_eq_ids = equipped_gear.get(tower_type, [])
+				if detail_hover_index < tt_eq_ids.size():
+					var tt_gdata = _find_gear(tt_eq_ids[detail_hover_index])
+					if not tt_gdata.is_empty():
+						tt_title = tt_gdata["name"]
+						var tt_tier = tt_gdata.get("tier", "common")
+						tt_lines.append("[%s] %s" % [tt_tier.to_upper(), tt_gdata.get("desc", "")])
+						tt_lines.append("EQUIPPED - %s to unequip" % _get_action_text())
+				elif detail_hover_index < _get_gear_slots(tower_type):
+					tt_title = "Empty Gear Slot"
+					tt_lines.append("%s to open gear inventory" % _get_action_text())
 		if tt_title != "":
 			var mouse_pos = get_viewport().get_mouse_position()
 			var tt_w = font.get_string_size(tt_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 24
@@ -13328,7 +13105,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	_udraw(font, Vector2(left_cx + 26, stat_left_y + 11), "Golden Shields: %d / %d" % [gs_level, MAX_GOLDEN_SHIELD], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 26), 14, Color(0.85, 0.7, 0.2))
 	if gs_level < MAX_GOLDEN_SHIELD:
 		var gs_cost = GOLDEN_SHIELD_COSTS[gs_level]
-		var can_upgrade_gs = player_relic_shards >= gs_cost
+		var can_upgrade_gs = player_gear_shards >= gs_cost
 		var gs_btn_x = left_cx + col_w - 90.0
 		var gs_btn_y = stat_left_y - 2.0
 		_gs_upgrade_btn_rect = Rect2(gs_btn_x, gs_btn_y, 86, 18)
@@ -13341,19 +13118,18 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	else:
 		_udraw(font, Vector2(left_cx + col_w - 60, stat_left_y + 11), "MAXED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2, 0.6))
 	stat_left_y += 16.0
-	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Slots: %d Gear | %d Sidekick | %d Binding" % [_get_gear_slot_count(tower_type), _get_sidekick_slot_count(tower_type), _get_binding_slot_count(tower_type)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 14, menu_text)
+	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Slots: %d Gear | %d Sidekick" % [_get_gear_slots(tower_type), _get_sidekick_slot_count(tower_type)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 14, menu_text)
 	stat_left_y += 20.0
 	# Level Bonus Breakdown
 	_udraw(font, Vector2(left_cx, stat_left_y + 12), "BONUS BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.8))
 	draw_rect(Rect2(left_cx, stat_left_y + 16, 100, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2))
 	stat_left_y += 24.0
 	var lvl_b = _get_level_bonuses(tower_type)
-	var rel_b = _get_relic_bonuses(tower_type)
 	var kb_dmg = _get_knowledge_bonus("damage")
 	var kb_rng = _get_knowledge_bonus("range")
 	var kb_spd = _get_knowledge_bonus("attack_speed")
 	var star_b = _get_level_stat_boosts(tower_type)
-	var gear_b = _get_binding_bonuses(tower_type)
+	var gear_b = _get_gear_bonuses(tower_type)
 	var bonus_lines = [
 		["Level DMG", lvl_b.get("damage", 0.0)], ["Level RNG", lvl_b.get("range", 0.0)], ["Level SPD", lvl_b.get("attack_speed", 0.0)],
 		["Star DMG", star_b.get("damage", 0.0)], ["Star RNG", star_b.get("range", 0.0)], ["Star SPD", star_b.get("attack_speed", 0.0)],
@@ -13419,7 +13195,7 @@ func _draw_detail_level_star(center: Vector2, req_level: int, font: Font) -> voi
 	var lw = font.get_string_size(ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 	_udraw(font, Vector2(center.x - lw * 0.5, center.y + 3), ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.03, 0.03, 0.08))
 
-# Story map node positions — 18 levels in a winding path
+# Story map node positions â€” 18 levels in a winding path
 var story_map_selected_node: int = -1
 var story_map_scroll_y: float = 0.0
 var story_map_active_arc: int = -1
@@ -13433,27 +13209,27 @@ func _get_story_map_node_positions() -> Array:
 	var nodes: Array = []
 	var row_h = 56.0
 	var start_y = 95.0
-	var lx = [200.0, 310.0, 420.0]  # Left column L→R
-	var lx_rev = [420.0, 310.0, 200.0]  # Left column R→L
-	var rx = [810.0, 920.0, 1030.0]  # Right column L→R
-	var rx_rev = [1030.0, 920.0, 810.0]  # Right column R→L
-	# Level 0: Prologue — centered in left column
+	var lx = [200.0, 310.0, 420.0]  # Left column Lâ†’R
+	var lx_rev = [420.0, 310.0, 200.0]  # Left column Râ†’L
+	var rx = [810.0, 920.0, 1030.0]  # Right column Lâ†’R
+	var rx_rev = [1030.0, 920.0, 810.0]  # Right column Râ†’L
+	# Level 0: Prologue â€” centered in left column
 	nodes.append(Vector2(310.0, start_y))
-	# Levels 1-15: Left column arcs 1-5 (Sherlock → Frankenstein)
+	# Levels 1-15: Left column arcs 1-5 (Sherlock â†’ Frankenstein)
 	for r in range(5):
 		var y = start_y + float(r + 1) * row_h
 		var xs = lx if r % 2 == 0 else lx_rev
 		nodes.append(Vector2(xs[0], y))
 		nodes.append(Vector2(xs[1], y))
 		nodes.append(Vector2(xs[2], y))
-	# Levels 16-33: Right column arcs 6-11 (Robin Hood → Scrooge)
+	# Levels 16-33: Right column arcs 6-11 (Robin Hood â†’ Scrooge)
 	for r in range(6):
 		var y = start_y + float(r) * row_h
 		var xs = rx if r % 2 == 0 else rx_rev
 		nodes.append(Vector2(xs[0], y))
 		nodes.append(Vector2(xs[1], y))
 		nodes.append(Vector2(xs[2], y))
-	# Levels 34-36: Shadow Author — centered bottom
+	# Levels 34-36: Shadow Author â€” centered bottom
 	var shadow_y = start_y + 6.0 * row_h + 18.0
 	nodes.append(Vector2(460.0, shadow_y))
 	nodes.append(Vector2(640.0, shadow_y))
@@ -13617,7 +13393,7 @@ func _draw_story_map() -> void:
 
 			# --- Row background ---
 			var is_hovered = Rect2(rx, maxf(ry, content_top), rw, row_h).has_point(mouse_pos) and ry >= content_top
-			# Enhancement 20: Chapter theme accent colors — tint row bg with arc color
+			# Enhancement 20: Chapter theme accent colors â€” tint row bg with arc color
 			var tint_r = arc_col.r * 0.06
 			var tint_g = arc_col.g * 0.06
 			var tint_b = arc_col.b * 0.06
@@ -13725,37 +13501,37 @@ func _draw_story_map() -> void:
 					var rix = reward_icon_x + float(ri) * 18.0
 					var reward_text = level_rewards[ri]
 					if "DMG" in reward_text or "SPD" in reward_text or "RNG" in reward_text:
-						# Stat boost — small up-arrow icon
+						# Stat boost â€” small up-arrow icon
 						draw_line(Vector2(rix + 4, reward_icon_y + 2), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
 						draw_line(Vector2(rix + 1, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
 						draw_line(Vector2(rix + 7, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
 					elif "Weapon" in reward_text or "Slot" in reward_text:
-						# Unlock — small star icon
+						# Unlock â€” small star icon
 						_draw_mini_star(Vector2(rix + 4, reward_icon_y - 1), 4.0, Color(0.85, 0.70, 0.28, 0.7))
-					elif "Relic" in reward_text:
-						# Relic — small diamond
+					elif "Gear" in reward_text:
+						# Gear â€” small diamond
 						var dc = Color(0.7, 0.3, 0.9, 0.6)
 						draw_line(Vector2(rix + 4, reward_icon_y - 5), Vector2(rix + 8, reward_icon_y - 1), dc, 1.5)
 						draw_line(Vector2(rix + 8, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y + 3), dc, 1.5)
 						draw_line(Vector2(rix + 4, reward_icon_y + 3), Vector2(rix, reward_icon_y - 1), dc, 1.5)
 						draw_line(Vector2(rix, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 5), dc, 1.5)
-					elif "Binding" in reward_text or "Tome" in reward_text:
-						# Binding — small book icon
+					elif "Gear" in reward_text:
+						# Gear â€” small book icon
 						draw_rect(Rect2(rix + 1, reward_icon_y - 4, 6, 8), Color(0.6, 0.4, 0.2, 0.5))
 						draw_line(Vector2(rix + 4, reward_icon_y - 4), Vector2(rix + 4, reward_icon_y + 4), Color(0.85, 0.70, 0.28, 0.4), 1.0)
 					else:
-						# Generic reward — small circle
+						# Generic reward â€” small circle
 						draw_circle(Vector2(rix + 4, reward_icon_y - 1), 3.0, Color(0.85, 0.70, 0.28, 0.4))
 				if reward_count > 0:
 					_udraw(font, Vector2(reward_icon_x + float(reward_count) * 18.0 + 4, reward_icon_y + 3), "%d rewards" % level_rewards.size(), HORIZONTAL_ALIGNMENT_LEFT, 100, 14, Color(0.6, 0.55, 0.40, 0.5))
 
 			# --- Difficulty medals (BTD6-style shields) ---
 			var medal_x = rx + rw - 240.0
-			var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15)]
-			var medal_labels = ["E", "M", "H"]
-			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false])
-			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0])
-			for di in range(3):
+			var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15), Color(0.85, 0.15, 0.15)]
+			var medal_labels = ["E", "M", "H", "P"]
+			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
+			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
+			for di in range(4):
 				var mx = medal_x + float(di) * 44.0
 				var my = ry + 14.0
 				var mw = 38.0
@@ -13872,7 +13648,7 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 			var rw = list_w - 16.0
 
 			if ry + row_h >= content_top and ry <= content_top + content_h:
-				# Check GO button click — opens difficulty popup
+				# Check GO button click â€” opens difficulty popup
 				var btn_x = rx + rw - 100.0
 				var btn_y2 = ry + 14.0
 				var btn_w2 = 80.0
@@ -14048,29 +13824,29 @@ func _draw_chapters_badges() -> void:
 
 		# Per-badge procedural icon
 		var ic = Color(tc.r, tc.g, tc.b, 0.9)
-		if i == 0:  # DEALS — coin with dollar sign
+		if i == 0:  # DEALS â€” coin with dollar sign
 			draw_circle(Vector2(cx, cy), 10, Color(tc.r, tc.g, tc.b, 0.35))
 			draw_arc(Vector2(cx, cy), 10, 0, TAU, 16, Color(tc.r, tc.g, tc.b, 0.5), 1.5)
 			_udraw(font, Vector2(cx, cy + 5), "$", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, ic)
-		elif i == 1:  # QUESTS — scroll with lines
+		elif i == 1:  # QUESTS â€” scroll with lines
 			draw_rect(Rect2(cx - 7, cy - 10, 14, 20), Color(tc.r, tc.g, tc.b, 0.3))
 			draw_arc(Vector2(cx, cy - 10), 7, PI, TAU, 8, ic, 1.5)
 			draw_arc(Vector2(cx, cy + 10), 7, 0, PI, 8, ic, 1.5)
 			for li in range(3):
 				var ly = cy - 4.0 + float(li) * 5.0
 				draw_line(Vector2(cx - 5, ly), Vector2(cx + 5, ly), Color(tc.r, tc.g, tc.b, 0.6), 1.0)
-		elif i == 2:  # ARENA — crossed swords
+		elif i == 2:  # ARENA â€” crossed swords
 			draw_line(Vector2(cx - 9, cy + 9), Vector2(cx + 9, cy - 9), ic, 2.5)
 			draw_line(Vector2(cx + 9, cy + 9), Vector2(cx - 9, cy - 9), ic, 2.5)
 			draw_circle(Vector2(cx, cy), 3.5, Color(tc.r, tc.g, tc.b, 0.5))
-		elif i == 3:  # ODYSSEY — compass rose
+		elif i == 3:  # ODYSSEY â€” compass rose
 			for si in range(4):
 				var sa = float(si) * TAU / 4.0 - PI * 0.25
 				var tip = Vector2(cx + cos(sa) * 10, cy + sin(sa) * 10)
 				draw_line(Vector2(cx, cy), tip, ic, 1.5)
 				draw_circle(tip, 1.5, ic)
 			draw_circle(Vector2(cx, cy), 3, Color(tc.r, tc.g, tc.b, 0.6))
-		elif i == 4:  # ENDLESS — infinity symbol
+		elif i == 4:  # ENDLESS â€” infinity symbol
 			draw_arc(Vector2(cx - 5, cy), 6, -PI * 0.75, PI * 0.75, 12, ic, 2.0)
 			draw_arc(Vector2(cx + 5, cy), 6, PI * 0.25, PI * 1.75, 12, ic, 2.0)
 
@@ -14087,12 +13863,12 @@ func _draw_chapters_badges() -> void:
 
 		# Notification dot (red pulsing) for actionable items
 		var show_dot = false
-		if i == 0:  # Deals — any unpurchased
+		if i == 0:  # Deals â€” any unpurchased
 			for di in range(daily_deals_purchased.size()):
 				if not daily_deals_purchased[di]:
 					show_dot = true
 					break
-		elif i == 1:  # Quests — any completed but unclaimed
+		elif i == 1:  # Quests â€” any completed but unclaimed
 			for q in active_quests:
 				if q.get("completed", false) and not q.get("claimed", false):
 					show_dot = true
@@ -14154,7 +13930,7 @@ func _draw_chapters_overlay() -> void:
 	draw_rect(Rect2(panel_x + 20, panel_y + 50, panel_w - 40, 1), Color(tc.r, tc.g, tc.b, 0.4))
 	# Subtle glow beneath title line
 	draw_rect(Rect2(panel_x + 40, panel_y + 51, panel_w - 80, 2), Color(tc.r, tc.g, tc.b, 0.08))
-	# Close button (X) — top right
+	# Close button (X) â€” top right
 	var close_x = panel_x + panel_w - 42.0
 	var close_y = panel_y + 10.0
 	var mouse_pos = get_viewport().get_mouse_position()
@@ -14201,6 +13977,8 @@ func _on_chapters_sidebar_clicked(mouse_pos: Vector2) -> void:
 		# Content-specific clicks
 		if menu_side_panel == "deals":
 			_on_overlay_deals_clicked(mouse_pos, panel_x, content_y, panel_w)
+		elif menu_side_panel == "quests":
+			_on_overlay_quests_clicked(mouse_pos, panel_x, content_y, panel_w)
 		elif menu_side_panel == "arena":
 			_on_overlay_arena_clicked(mouse_pos, panel_x, content_y, panel_w)
 		elif menu_side_panel == "odyssey":
@@ -14230,14 +14008,49 @@ func _on_chapters_sidebar_clicked(mouse_pos: Vector2) -> void:
 			return
 
 func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: float) -> void:
-	for i in range(min(3, daily_deals.size())):
-		if daily_deals_purchased[i]:
-			continue
+	# Improvement 5: Refresh button click
+	var ref_x = px + pw - 130.0
+	var ref_y = py + 8.0
+	if Rect2(ref_x, ref_y, 120, 28).has_point(mouse_pos):
+		if player_quills >= DEAL_REFRESH_COST:
+			player_quills -= DEAL_REFRESH_COST
+			daily_deals_refresh_count += 1
+			_generate_daily_deals(true)
+			_save_game()
+			queue_redraw()
+		return
+	# Improvement 7: Buy-all bonus claim
+	var all_purchased = true
+	for i in range(daily_deals.size()):
+		if i < daily_deals_purchased.size() and not daily_deals_purchased[i]:
+			all_purchased = false
+			break
+	if all_purchased and not daily_deals_all_bonus_claimed and daily_deals.size() > 0:
+		# Calculate bonus area position (must match draw)
+		var card_y_calc = py + 48.0
+		for i in range(daily_deals.size()):
+			var is_featured = daily_deals[i].get("featured", false)
+			card_y_calc += (72.0 if is_featured else 56.0) + 6.0
+		var bonus_y = card_y_calc + 4.0
+		if Rect2(px + 10, bonus_y, pw - 20, 32).has_point(mouse_pos):
+			player_gear_shards += 15
+			daily_deals_all_bonus_claimed = true
+			_save_game()
+			queue_redraw()
+			return
+	# Individual deal clicks
+	var card_y = py + 48.0
+	for i in range(daily_deals.size()):
 		var deal = daily_deals[i]
+		var is_featured = deal.get("featured", false)
 		var ix = px + 10
-		var iy = py + 42 + float(i) * 58.0
+		var ih = 72.0 if is_featured else 56.0
+		var iy = card_y
 		var iw = pw - 20
-		if mouse_pos.x >= ix + iw - 100 and mouse_pos.x <= ix + iw - 12 and mouse_pos.y >= iy + 8 and mouse_pos.y <= iy + 42:
+		card_y += ih + 6.0
+		if i < daily_deals_purchased.size() and daily_deals_purchased[i]:
+			continue
+		if mouse_pos.x >= ix + iw - 105 and mouse_pos.x <= ix + iw - 12 and mouse_pos.y >= iy + ih * 0.5 - 18 and mouse_pos.y <= iy + ih * 0.5 + 18:
 			if _deal_confirm_index != i:
 				_deal_confirm_index = i
 				_deal_confirm_timer = 3.0
@@ -14250,42 +14063,98 @@ func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 			var can_afford = false
 			match cost_type:
 				"quills": can_afford = player_quills >= cost
-				"shards": can_afford = player_relic_shards >= cost
+				"shards": can_afford = player_gear_shards >= cost
 				"stars": can_afford = player_storybook_stars >= cost
 				"gold": can_afford = player_gold >= cost
 			if not can_afford:
 				return
 			match cost_type:
 				"quills": player_quills -= cost
-				"shards": player_relic_shards -= cost
+				"shards": player_gear_shards -= cost
 				"stars": player_storybook_stars -= cost
 				"gold": player_gold -= cost
 			match deal.get("type", ""):
-				"binding":
+				"gear_deal":
 					var b = deal.get("item", {})
 					if b.has("id"):
-						owned_bindings[b["id"]] = owned_bindings.get(b["id"], 0) + 1
-						_mark_binding_discovered(b["id"])
-						_add_recent_item(b.get("name", "Binding"), b.get("rarity", "tattered"))
+						owned_gear[b["id"]] = owned_gear.get(b["id"], 0) + 1
+						_mark_gear_discovered(b["id"])
+						_add_recent_item(b.get("name", "Gear"), b.get("tier", "common"))
 				"power":
 					var pid = deal.get("power_id", "")
 					var amt = deal.get("amount", 1)
 					if pid != "":
 						owned_powers[pid] = owned_powers.get(pid, 0) + amt
 				"currency":
-					var ctype = deal.get("currency_type", "")
+					var curr = deal.get("currency", "")
 					var camt = deal.get("amount", 0)
-					match ctype:
+					match curr:
 						"quills": player_quills += camt
-						"shards": player_relic_shards += camt
+						"shards": player_gear_shards += camt
 						"stars": player_storybook_stars += camt
 						"gold": player_gold += camt
 						"ink": knowledge_ink += camt
+				"chest":
+					var tier = deal.get("chest_tier", "bronze")
+					treasure_chests_owned[tier] = treasure_chests_owned.get(tier, 0) + 1
+				"instrument":
+					var inst_id = deal.get("instrument_id", "")
+					if inst_id != "":
+						owned_instruments[inst_id] = owned_instruments.get(inst_id, 0) + 1
 			daily_deals_purchased[i] = true
+			# Improvement 9: Purchase flash animation
+			_deal_purchase_flash.append({"index": i, "timer": 1.0})
 			total_emporium_purchases += 1
 			_save_game()
 			queue_redraw()
 			return
+
+func _on_overlay_quests_clicked(mouse_pos: Vector2, px: float, py: float, pw: float) -> void:
+	var card_y = py + 60.0
+	# Daily quest clicks
+	for i in range(active_quests.size()):
+		var q = active_quests[i]
+		var iy = card_y
+		var ih = 60.0
+		card_y += ih + 4.0
+		var completed = q.get("completed", false)
+		var claimed = q.get("claimed", false)
+		# Improvement 14: Claim button click
+		if completed and not claimed:
+			var btn_x = px + pw - 115.0
+			var btn_y = iy + 32.0
+			if Rect2(btn_x, btn_y, 95, 24).has_point(mouse_pos):
+				_claim_quest(q, i, false)
+				queue_redraw()
+				return
+		# Improvement 18: Reroll button click
+		if not completed and not claimed:
+			var rr_x = px + pw - 24.0
+			var rr_y = iy + ih - 18.0
+			if Rect2(rr_x - 8, rr_y - 8, 16, 16).has_point(mouse_pos):
+				if player_gear_shards >= QUEST_REROLL_COST:
+					player_gear_shards -= QUEST_REROLL_COST
+					_quest_reroll_count += 1
+					_reroll_quest(i)
+					_save_game()
+					queue_redraw()
+				return
+	# Weekly quest clicks
+	card_y += 36.0  # Skip section header
+	for i in range(weekly_quests.size()):
+		var wq = weekly_quests[i]
+		var iy = card_y
+		var ih = 52.0
+		card_y += ih + 4.0
+		var completed = wq.get("completed", false)
+		var claimed = wq.get("claimed", false)
+		if completed and not claimed:
+			var btn_x = px + pw - 115.0
+			var btn_y = iy + 28.0
+			if Rect2(btn_x, btn_y, 95, 20).has_point(mouse_pos):
+				_claim_quest(wq, i, true)
+				queue_redraw()
+				return
 
 func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: float) -> void:
 	var shop_items = _get_arena_shop_items()
@@ -14312,7 +14181,7 @@ func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 			if arena_crystals >= item["cost"]:
 				arena_crystals -= item["cost"]
 				match item["type"]:
-					"shards": player_relic_shards += item["amount"]
+					"shards": player_gear_shards += item["amount"]
 					"quills": player_quills += item["amount"]
 					"stars": player_storybook_stars += item["amount"]
 					"gold": player_gold += item["amount"]
@@ -14324,51 +14193,257 @@ func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 
 func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY DEALS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.70, 0.28))
-	_udraw(font, Vector2(px + pw * 0.5, py + 36), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_text_muted)
-	for i in range(min(3, daily_deals.size())):
+	# Improvement 4: Countdown timer
+	var date = Time.get_date_dict_from_system()
+	var time_dict = Time.get_time_dict_from_system()
+	var hours_left = 23 - time_dict["hour"]
+	var mins_left = 59 - time_dict["minute"]
+	var countdown_str = "Resets in %dh %dm" % [hours_left, mins_left]
+	var is_weekend = date["weekday"] == 0 or date["weekday"] == 6
+	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY DEALS" + (" â€” WEEKEND!" if is_weekend else ""), HORIZONTAL_ALIGNMENT_CENTER, int(pw - 20), 15, Color(0.85, 0.70, 0.28))
+	_udraw(font, Vector2(px + pw * 0.5, py + 36), countdown_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.7, 0.55, 0.2, 0.7 + sin(_time * 2.0) * 0.15))
+	# Improvement 5: Refresh button
+	var ref_x = px + pw - 130.0
+	var ref_y = py + 8.0
+	var mouse_pos = get_viewport().get_mouse_position()
+	var ref_hov = Rect2(ref_x, ref_y, 120, 28).has_point(mouse_pos)
+	draw_rect(Rect2(ref_x, ref_y, 120, 28), Color(0.15, 0.10, 0.05, 0.9 if ref_hov else 0.6))
+	draw_rect(Rect2(ref_x, ref_y, 120, 28), Color(0.85, 0.65, 0.2, 0.6 if ref_hov else 0.3), false, 1.5)
+	_udraw(font, Vector2(ref_x + 60, ref_y + 20), "REFRESH %dQ" % DEAL_REFRESH_COST, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.9, 0.8, 0.4) if ref_hov else Color(0.7, 0.6, 0.3))
+	var card_y = py + 48.0
+	for i in range(daily_deals.size()):
 		var deal = daily_deals[i]
+		var is_featured = deal.get("featured", false)
+		var deal_rarity = deal.get("tier", "common")
+		var rarity_col = DEAL_TIER_COLORS.get(deal_rarity, Color(0.6, 0.6, 0.6))
 		var ix = px + 10
-		var iy = py + 42 + float(i) * 58.0
+		var ih = 72.0 if is_featured else 56.0  # Improvement 3: Featured is larger
+		var iy = card_y
 		var iw = pw - 20
-		var ih = 52.0
+		card_y += ih + 6.0
 		var purchased = daily_deals_purchased[i] if i < daily_deals_purchased.size() else false
-		var bg_col = Color(0.05, 0.15, 0.05, 0.6) if purchased else Color(0.08, 0.06, 0.12, 0.7)
+		# Improvement 9: Purchase flash animation
+		var flash_alpha = 0.0
+		for pf in _deal_purchase_flash:
+			if pf["index"] == i:
+				flash_alpha = clampf(pf["timer"], 0.0, 1.0)
+		# Background with rarity tint (Improvement 1)
+		var bg_col = Color(0.05, 0.15, 0.05, 0.6) if purchased else Color(rarity_col.r * 0.08, rarity_col.g * 0.08, rarity_col.b * 0.08, 0.75)
 		draw_rect(Rect2(ix, iy, iw, ih), bg_col)
-		draw_rect(Rect2(ix, iy, iw, ih), Color(0.4, 0.35, 0.2, 0.3), false, 1.0)
-		_udraw(font, Vector2(ix + 10, iy + 18), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 15, Color(0.85, 0.75, 0.5))
-		_udraw(font, Vector2(ix + 10, iy + 36), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 14, menu_text_muted)
+		# Rarity border (Improvement 1)
+		var border_alpha = 0.5 + sin(_time * 2.5 + float(i)) * 0.15
+		if deal_rarity == "legendary":
+			border_alpha = 0.7 + sin(_time * 3.0) * 0.25
+		draw_rect(Rect2(ix, iy, iw, ih), Color(rarity_col.r, rarity_col.g, rarity_col.b, border_alpha), false, 2.0 if is_featured else 1.5)
+		# Featured badge (Improvement 3)
+		if is_featured:
+			draw_rect(Rect2(ix + 2, iy + 2, 65, 16), Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.25))
+			_udraw(font, Vector2(ix + 35, iy + 14), "FEATURED", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, rarity_col)
+		# Rarity badge
+		var badge_y_off = 16.0 if is_featured else 0.0
+		_udraw(font, Vector2(ix + iw - 15, iy + 14 + badge_y_off), deal_rarity.to_upper(), HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.7))
+		# Deal name and description
+		var name_y = iy + 20 + badge_y_off
+		_udraw(font, Vector2(ix + 10, name_y), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 140), 15, Color(0.9, 0.82, 0.6) if not purchased else Color(0.5, 0.5, 0.4))
+		_udraw(font, Vector2(ix + 10, name_y + 18), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 140), 12, menu_text_muted if not purchased else Color(0.35, 0.35, 0.3))
 		if purchased:
-			_udraw(font, Vector2(ix + iw - 60, iy + 28), "SOLD", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.7, 0.3))
+			# Improvement 10: Enhanced sold-out visual with checkmark
+			draw_rect(Rect2(ix + iw - 90, iy + ih * 0.5 - 14, 78, 28), Color(0.08, 0.2, 0.08, 0.8))
+			draw_rect(Rect2(ix + iw - 90, iy + ih * 0.5 - 14, 78, 28), Color(0.3, 0.7, 0.2, 0.4), false, 1.5)
+			_udraw(font, Vector2(ix + iw - 51, iy + ih * 0.5 + 6), "SOLD", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.75, 0.3))
+			# Checkmark
+			var cx = ix + iw - 85.0
+			var cy = iy + ih * 0.5 - 2.0
+			draw_line(Vector2(cx, cy), Vector2(cx + 5, cy + 6), Color(0.4, 0.8, 0.3), 2.0)
+			draw_line(Vector2(cx + 5, cy + 6), Vector2(cx + 14, cy - 4), Color(0.4, 0.8, 0.3), 2.0)
 		else:
-			var cost_str = "%d %s" % [deal.get("cost", 0), deal.get("cost_type", "").capitalize()]
-			draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(0.15, 0.12, 0.08, 0.8))
-			_udraw(font, Vector2(ix + iw - 56, iy + 30), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.85, 0.70, 0.28))
+			# Improvement 2: Discount display
+			var cost = deal.get("cost", 0)
+			var original = deal.get("original_cost", cost)
+			var discount_pct = 0
+			if original > cost:
+				discount_pct = int((1.0 - float(cost) / float(original)) * 100)
+			var cost_str = "%d %s" % [cost, deal.get("cost_type", "").capitalize()]
+			# Confirm state
+			if _deal_confirm_index == i and _deal_confirm_timer > 0.0:
+				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(0.25, 0.18, 0.05, 0.9))
+				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(1.0, 0.8, 0.2, 0.7), false, 2.0)
+				_udraw(font, Vector2(ix + iw - 58, iy + ih * 0.5 - 2), "CONFIRM", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.9, 0.4))
+				var bar_fill = clampf(_deal_confirm_timer / 3.0, 0.0, 1.0)
+				draw_rect(Rect2(ix + iw - 103, iy + ih * 0.5 + 14, 89 * bar_fill, 3), Color(1.0, 0.85, 0.2, 0.7))
+			else:
+				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(0.15, 0.12, 0.08, 0.8))
+				# Original price (crossed out) â€” Improvement 2
+				if discount_pct > 10:
+					_udraw(font, Vector2(ix + iw - 58, iy + ih * 0.5 - 8), "%d" % original, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.5, 0.4, 0.3))
+					# Strikethrough line
+					var orig_str = "%d" % original
+					var str_w = float(orig_str.length()) * 6.5
+					draw_line(Vector2(ix + iw - 58 - str_w * 0.5, iy + ih * 0.5 - 5), Vector2(ix + iw - 58 + str_w * 0.5, iy + ih * 0.5 - 5), Color(0.8, 0.3, 0.2, 0.7), 1.5)
+					# Discount badge
+					draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 32, 14), Color(0.7, 0.15, 0.1, 0.8))
+					_udraw(font, Vector2(ix + iw - 89, iy + ih * 0.5 - 8), "-%d%%" % discount_pct, HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(1.0, 0.85, 0.7))
+				_udraw(font, Vector2(ix + iw - 58, iy + ih * 0.5 + 8), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
+		# Flash overlay (Improvement 9)
+		if flash_alpha > 0.0:
+			draw_rect(Rect2(ix, iy, iw, ih), Color(1.0, 0.9, 0.5, flash_alpha * 0.4))
+	# Improvement 7: Buy-all bonus indicator
+	var all_purchased = true
+	for i in range(daily_deals.size()):
+		if i < daily_deals_purchased.size() and not daily_deals_purchased[i]:
+			all_purchased = false
+			break
+	if daily_deals.size() > 0:
+		var bonus_y = card_y + 4.0
+		if all_purchased and not daily_deals_all_bonus_claimed:
+			draw_rect(Rect2(px + 10, bonus_y, pw - 20, 32), Color(0.15, 0.25, 0.1, 0.8))
+			draw_rect(Rect2(px + 10, bonus_y, pw - 20, 32), Color(0.5, 0.9, 0.3, 0.5), false, 2.0)
+			_udraw(font, Vector2(px + pw * 0.5, bonus_y + 22), "ALL PURCHASED! CLAIM +15 SHARDS BONUS", HORIZONTAL_ALIGNMENT_CENTER, int(pw - 40), 14, Color(0.5, 0.9, 0.3))
+		elif daily_deals_all_bonus_claimed:
+			_udraw(font, Vector2(px + pw * 0.5, bonus_y + 18), "Buy-All Bonus Claimed!", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.4, 0.6, 0.3))
+		elif not all_purchased:
+			var bought_count = 0
+			for i in range(daily_deals_purchased.size()):
+				if daily_deals_purchased[i]:
+					bought_count += 1
+			_udraw(font, Vector2(px + pw * 0.5, bonus_y + 18), "Buy all %d for +15 Shards bonus (%d/%d)" % [daily_deals.size(), bought_count, daily_deals.size()], HORIZONTAL_ALIGNMENT_CENTER, int(pw - 30), 12, Color(0.6, 0.5, 0.35))
 
 func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY QUESTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.8, 0.3))
-	_udraw(font, Vector2(px + pw * 0.5, py + 34), "Complete for rewards!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
-	for i in range(min(3, active_quests.size())):
+	var mouse_pos = get_viewport().get_mouse_position()
+	# Improvement 13: Quest streak display
+	var streak_str = "Streak: %d day%s" % [quest_streak, "s" if quest_streak != 1 else ""]
+	if quest_streak_best > 0:
+		streak_str += " (Best: %d)" % quest_streak_best
+	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY QUESTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.8, 0.3))
+	_udraw(font, Vector2(px + pw * 0.5, py + 34), streak_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.6, 0.75, 0.4))
+	# Improvement 19: Quest milestone counter
+	var next_milestone = 0
+	for m in QUEST_MILESTONE_THRESHOLDS:
+		if total_quests_completed < m:
+			next_milestone = m
+			break
+	if next_milestone > 0:
+		_udraw(font, Vector2(px + pw * 0.5, py + 50), "Lifetime: %d/%d quests" % [total_quests_completed, next_milestone], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.5, 0.55, 0.4))
+	else:
+		_udraw(font, Vector2(px + pw * 0.5, py + 50), "Lifetime: %d quests completed!" % total_quests_completed, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.7, 0.8, 0.4))
+	var card_y = py + 60.0
+	# --- Daily quests ---
+	for i in range(active_quests.size()):
 		var q = active_quests[i]
-		var iy = py + 44 + float(i) * 58.0
+		var iy = card_y
+		var ih = 60.0
+		card_y += ih + 4.0
 		var completed = q.get("completed", false)
-		var bg = Color(0.05, 0.12, 0.05, 0.6) if completed else Color(0.06, 0.06, 0.08, 0.6)
-		draw_rect(Rect2(px + 8, iy, pw - 16, 50), bg)
-		draw_rect(Rect2(px + 8, iy, pw - 16, 50), Color(0.3, 0.6, 0.3, 0.25), false, 1.0)
-		_udraw(font, Vector2(px + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 150), 14, Color(0.8, 0.75, 0.6))
+		var claimed = q.get("claimed", false)
+		var difficulty = q.get("difficulty", 0)
+		# Improvement 11: Difficulty tier colors
+		var diff_colors = [Color(0.4, 0.75, 0.35), Color(0.85, 0.7, 0.25), Color(0.85, 0.3, 0.25)]
+		var diff_names = ["EASY", "MEDIUM", "HARD"]
+		var diff_col = diff_colors[clampi(difficulty, 0, 2)]
+		# Background
+		var bg = Color(0.03, 0.08, 0.03, 0.5) if claimed else (Color(0.08, 0.18, 0.05, 0.7) if completed else Color(0.06, 0.06, 0.08, 0.6))
+		draw_rect(Rect2(px + 8, iy, pw - 16, ih), bg)
+		# Claim flash animation (Improvement 14)
+		var claim_flash = 0.0
+		for cf in _quest_claim_flash:
+			if cf["index"] == i:
+				claim_flash = clampf(cf["timer"], 0.0, 1.0)
+		if claim_flash > 0.0:
+			draw_rect(Rect2(px + 8, iy, pw - 16, ih), Color(0.4, 0.9, 0.3, claim_flash * 0.35))
+		# Border color by difficulty (Improvement 11)
+		draw_rect(Rect2(px + 8, iy, pw - 16, ih), Color(diff_col.r, diff_col.g, diff_col.b, 0.3 if not completed else 0.15), false, 1.0)
+		# Difficulty badge (Improvement 11)
+		draw_rect(Rect2(px + 10, iy + 2, 45, 14), Color(diff_col.r, diff_col.g, diff_col.b, 0.2))
+		_udraw(font, Vector2(px + 33, iy + 13), diff_names[clampi(difficulty, 0, 2)], HORIZONTAL_ALIGNMENT_CENTER, -1, 9, diff_col)
+		# Quest description
+		_udraw(font, Vector2(px + 16, iy + 30), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 150), 14, Color(0.8, 0.75, 0.6) if not claimed else Color(0.45, 0.45, 0.4))
 		# Progress bar
 		var pct = float(q.get("progress", 0)) / float(max(1, q.get("target", 1)))
 		var bar_w = 100.0
-		draw_rect(Rect2(px + pw - 120, iy + 6, bar_w, 12), Color(0.15, 0.15, 0.15))
-		draw_rect(Rect2(px + pw - 120, iy + 6, bar_w * pct, 12), Color(0.3, 0.8, 0.3) if not completed else Color(0.2, 0.6, 0.2))
-		_udraw(font, Vector2(px + pw - 70, iy + 16), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8))
-		# Reward
+		var bar_x = px + pw - 120.0
+		draw_rect(Rect2(bar_x, iy + 8, bar_w, 12), Color(0.12, 0.12, 0.12))
+		var bar_col = Color(0.2, 0.5, 0.2) if claimed else (Color(0.3, 0.85, 0.3) if completed else Color(0.3, 0.6, 0.3))
+		draw_rect(Rect2(bar_x, iy + 8, bar_w * clampf(pct, 0.0, 1.0), 12), bar_col)
+		_udraw(font, Vector2(bar_x + bar_w * 0.5, iy + 18), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.85, 0.85, 0.85))
+		# Reward display
 		var reward_str = "+%d %s" % [q.get("reward_amount", 0), q.get("reward_type", "").capitalize()]
-		if completed:
-			_udraw(font, Vector2(px + pw - 70, iy + 40), "DONE!", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.8, 0.3))
+		if claimed:
+			_udraw(font, Vector2(px + pw - 70, iy + 48), "CLAIMED", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.35, 0.55, 0.3))
+		elif completed:
+			# Improvement 14 & 20: Animated CLAIM button
+			var claim_pulse = 0.7 + sin(_time * 4.0 + float(i)) * 0.3
+			var btn_x = px + pw - 115.0
+			var btn_y = iy + 32.0
+			var btn_hov = Rect2(btn_x, btn_y, 95, 24).has_point(mouse_pos)
+			draw_rect(Rect2(btn_x, btn_y, 95, 24), Color(0.15, 0.35, 0.1, 0.9 if btn_hov else 0.7))
+			draw_rect(Rect2(btn_x, btn_y, 95, 24), Color(0.4, 0.9, 0.3, claim_pulse if btn_hov else 0.5), false, 2.0)
+			_udraw(font, Vector2(btn_x + 48, btn_y + 18), "CLAIM!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.5, 1.0, 0.3, claim_pulse))
+			_udraw(font, Vector2(px + 16, iy + 48), reward_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.85, 0.70, 0.28))
 		else:
-			_udraw(font, Vector2(px + pw - 70, iy + 40), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.70, 0.28))
+			_udraw(font, Vector2(px + pw - 70, iy + 48), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.85, 0.70, 0.28))
+		# Improvement 18: Reroll button (small X on uncompleted quests)
+		if not completed and not claimed:
+			var rr_x = px + pw - 24.0
+			var rr_y = iy + ih - 18.0
+			var rr_hov = Rect2(rr_x - 8, rr_y - 8, 16, 16).has_point(mouse_pos)
+			if rr_hov:
+				draw_circle(Vector2(rr_x, rr_y), 9, Color(0.3, 0.15, 0.1, 0.6))
+				_udraw(font, Vector2(rr_x, rr_y + 5), "X", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.9, 0.4, 0.3))
+	# --- Improvement 12: Weekly quests section ---
+	card_y += 8.0
+	draw_rect(Rect2(px + 20, card_y, pw - 40, 1), Color(0.4, 0.7, 0.3, 0.25))
+	card_y += 6.0
+	_udraw(font, Vector2(px + pw * 0.5, card_y + 14), "WEEKLY QUESTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.3, 0.6, 0.85))
+	card_y += 22.0
+	for i in range(weekly_quests.size()):
+		var wq = weekly_quests[i]
+		var iy = card_y
+		var ih = 52.0
+		card_y += ih + 4.0
+		var completed = wq.get("completed", false)
+		var claimed = wq.get("claimed", false)
+		var bg = Color(0.03, 0.06, 0.12, 0.5) if claimed else (Color(0.06, 0.12, 0.18, 0.7) if completed else Color(0.05, 0.05, 0.08, 0.6))
+		draw_rect(Rect2(px + 8, iy, pw - 16, ih), bg)
+		draw_rect(Rect2(px + 8, iy, pw - 16, ih), Color(0.3, 0.5, 0.8, 0.25), false, 1.0)
+		# Weekly badge
+		draw_rect(Rect2(px + 10, iy + 2, 50, 14), Color(0.2, 0.4, 0.7, 0.3))
+		_udraw(font, Vector2(px + 35, iy + 13), "WEEKLY", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.4, 0.65, 0.9))
+		_udraw(font, Vector2(px + 16, iy + 28), wq.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 150), 13, Color(0.75, 0.75, 0.85) if not claimed else Color(0.4, 0.4, 0.45))
+		# Progress
+		var pct = float(wq.get("progress", 0)) / float(max(1, wq.get("target", 1)))
+		var bar_w = 100.0
+		var bar_x = px + pw - 120.0
+		draw_rect(Rect2(bar_x, iy + 6, bar_w, 12), Color(0.12, 0.12, 0.12))
+		draw_rect(Rect2(bar_x, iy + 6, bar_w * clampf(pct, 0.0, 1.0), 12), Color(0.2, 0.5, 0.8) if not claimed else Color(0.15, 0.35, 0.55))
+		_udraw(font, Vector2(bar_x + bar_w * 0.5, iy + 16), "%d/%d" % [wq.get("progress", 0), wq.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.8, 0.85, 0.9))
+		var reward_str = "+%d %s" % [wq.get("reward_amount", 0), wq.get("reward_type", "").capitalize()]
+		if claimed:
+			_udraw(font, Vector2(px + pw - 70, iy + 42), "CLAIMED", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.3, 0.45, 0.6))
+		elif completed:
+			var claim_pulse = 0.7 + sin(_time * 4.0 + float(i) + 5.0) * 0.3
+			var btn_x = px + pw - 115.0
+			var btn_y = iy + 28.0
+			var btn_hov = Rect2(btn_x, btn_y, 95, 20).has_point(mouse_pos)
+			draw_rect(Rect2(btn_x, btn_y, 95, 20), Color(0.1, 0.2, 0.35, 0.9 if btn_hov else 0.7))
+			draw_rect(Rect2(btn_x, btn_y, 95, 20), Color(0.3, 0.6, 0.9, claim_pulse if btn_hov else 0.5), false, 2.0)
+			_udraw(font, Vector2(btn_x + 48, btn_y + 15), "CLAIM!", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.4, 0.7, 1.0, claim_pulse))
+			_udraw(font, Vector2(px + 16, iy + 42), reward_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.70, 0.28))
+		else:
+			_udraw(font, Vector2(px + pw - 70, iy + 42), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.85, 0.70, 0.28))
+	# Improvement 13: Streak reward progress
+	card_y += 8.0
+	var next_streak = 0
+	var next_streak_reward = 0
+	for s in [3, 7, 14, 30]:
+		if quest_streak < s:
+			next_streak = s
+			next_streak_reward = QUEST_STREAK_REWARDS[s]
+			break
+	if next_streak > 0:
+		_udraw(font, Vector2(px + pw * 0.5, card_y + 14), "Streak bonus at %d days: +%d Shards" % [next_streak, next_streak_reward], HORIZONTAL_ALIGNMENT_CENTER, int(pw - 30), 12, Color(0.55, 0.65, 0.4))
+	else:
+		_udraw(font, Vector2(px + pw * 0.5, card_y + 14), "Max streak bonus reached!", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.7, 0.85, 0.4))
 
 func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
@@ -14532,7 +14607,7 @@ func _draw_open_book() -> void:
 		draw_line(Vector2(spine_x + 15 + t * 8, by), Vector2(spine_x + 15 + t * 8, by + ph), Color(0.0, 0.0, 0.0, 0.06 * (1.0 - t)), 1.0)
 		draw_line(Vector2(spine_x - 5 - t * 8, by), Vector2(spine_x - 5 - t * 8, by + ph), Color(0.0, 0.0, 0.0, 0.06 * (1.0 - t)), 1.0)
 
-	# Page borders — gold outer frame (3px) + gold inner frame (1px) — left page
+	# Page borders â€” gold outer frame (3px) + gold inner frame (1px) â€” left page
 	var outer_border = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3)
 	var gold_border = Color(0.54, 0.45, 0.20, 0.2)
 	# Left page outer gold border (3px)
@@ -14557,13 +14632,13 @@ func _draw_open_book() -> void:
 	draw_rect(Rect2(rx + 14, by + 14, 1, ph - 28), gold_border)
 	draw_rect(Rect2(rx + pw - 15, by + 14, 1, ph - 28), gold_border)
 
-	# Page edge glow — subtle gold line along outer page edges
+	# Page edge glow â€” subtle gold line along outer page edges
 	draw_rect(Rect2(bx, by, pw, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
 	draw_rect(Rect2(bx, by + ph - 1, pw, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
 	draw_rect(Rect2(bx, by, 1, ph), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
 	draw_rect(Rect2(rx + pw - 1, by, 1, ph), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
 
-	# L-bracket corner ornaments (left page — gold only)
+	# L-bracket corner ornaments (left page â€” gold only)
 	for corner in [Vector2(bx + 18, by + 18), Vector2(bx + pw - 18, by + 18), Vector2(bx + 18, by + ph - 18), Vector2(bx + pw - 18, by + ph - 18)]:
 		var dx_sign = 1.0 if corner.x < bx + pw * 0.5 else -1.0
 		var dy_sign = 1.0 if corner.y < by + ph * 0.5 else -1.0
@@ -14575,7 +14650,7 @@ func _draw_open_book() -> void:
 		draw_circle(corner, 3.5, Color(0.54, 0.45, 0.20, 0.15))
 		draw_circle(corner, 2, Color(0.54, 0.45, 0.20, 0.25))
 
-	# L-bracket corner ornaments (right page — gold only)
+	# L-bracket corner ornaments (right page â€” gold only)
 	for corner in [Vector2(rx + 18, by + 18), Vector2(rx + pw - 18, by + 18), Vector2(rx + 18, by + ph - 18), Vector2(rx + pw - 18, by + ph - 18)]:
 		var dx_sign2 = 1.0 if corner.x < rx + pw * 0.5 else -1.0
 		var dy_sign2 = 1.0 if corner.y < by + ph * 0.5 else -1.0
@@ -14649,7 +14724,7 @@ func _draw_open_book() -> void:
 			draw_circle(Vector2(rx + 30, sep_y), 2.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
 			draw_circle(Vector2(rx + pw - 30, sep_y), 2.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
 
-	# Page tab bookmarks on right edge (character quick nav) — enhanced gothic
+	# Page tab bookmarks on right edge (character quick nav) â€” enhanced gothic
 	var tab_colors = [Color(0.29, 0.55, 0.25), Color(0.44, 0.66, 0.86), Color(0.48, 0.25, 0.63), Color(0.90, 0.49, 0.13), Color(0.75, 0.22, 0.17), Color(0.79, 0.66, 0.30)]
 	if menu_current_view == "chapters":
 		for i in range(6):
@@ -14756,6 +14831,14 @@ func _process(delta: float) -> void:
 		# Purchase flash decay
 		if _emporium_purchase_flash > 0.0:
 			_emporium_purchase_flash = maxf(_emporium_purchase_flash - delta * 2.0, 0.0)
+		# Deal purchase flash timers (Improvement 9)
+		for pf in _deal_purchase_flash:
+			pf["timer"] = maxf(pf["timer"] - delta * 1.5, 0.0)
+		_deal_purchase_flash = _deal_purchase_flash.filter(func(pf): return pf["timer"] > 0.0)
+		# Quest claim flash timers (Improvement 14)
+		for cf in _quest_claim_flash:
+			cf["timer"] = maxf(cf["timer"] - delta * 1.5, 0.0)
+		_quest_claim_flash = _quest_claim_flash.filter(func(cf): return cf["timer"] > 0.0)
 		# View transition overlay decay
 		if _menu_transition_alpha > 0.0:
 			_menu_transition_alpha = maxf(_menu_transition_alpha - delta * 3.0, 0.0)
@@ -14765,8 +14848,8 @@ func _process(delta: float) -> void:
 				_update_detail_hover()
 			elif menu_current_view == "survivors":
 				_update_world_map_hover()
-			elif menu_current_view == "relics":
-				_update_relics_tab_hover()
+			elif menu_current_view == "gear":
+				_update_gear_tab_hover()
 			elif menu_current_view == "emporium":
 				_update_emporium_hover()
 			elif menu_current_view == "chronicles":
@@ -15031,7 +15114,7 @@ func _spawn_enemy() -> void:
 	else:
 		enemy.enemy_tier = 3
 
-	# Endless mode scaling — sub-exponential to stay playable at high waves
+	# Endless mode scaling â€” sub-exponential to stay playable at high waves
 	if endless_mode:
 		var w = wave
 		# Health: polynomial+log scaling instead of pure exponential
@@ -15071,7 +15154,7 @@ func _spawn_enemy() -> void:
 		enemies_alive += 1
 		return
 
-	# Boss Rush mode — spawn single powerful boss per wave
+	# Boss Rush mode â€” spawn single powerful boss per wave
 	if boss_rush_mode:
 		var br_mult = 3.0 + float(wave) * 1.7  # 3x -> 20x scaling
 		enemy.max_health = (500.0 + wave * 200.0) * br_mult
@@ -15090,32 +15173,32 @@ func _spawn_enemy() -> void:
 	# All phases have +25% HP global multiplier applied at end
 	var w = wave
 	if w <= 5:
-		# Phase 1: Gentle introduction — need 2+ towers to handle comfortably
+		# Phase 1: Gentle introduction â€” need 2+ towers to handle comfortably
 		enemy.max_health = 80.0 + w * 25.0
 		enemy.speed = 65.0 + w * 4.0
 		enemy.gold_reward = 1 + w / 2
 	elif w <= 10:
-		# Phase 2: Building pressure — single tower can't keep up
+		# Phase 2: Building pressure â€” single tower can't keep up
 		enemy.max_health = 220.0 + (w - 5) * 55.0
 		enemy.speed = 80.0 + (w - 5) * 5.0
 		enemy.gold_reward = 3 + (w - 5) / 2
 	elif w <= 16:
-		# Phase 3: Challenging — need upgrades and synergies
+		# Phase 3: Challenging â€” need upgrades and synergies
 		enemy.max_health = 520.0 + (w - 10) * 85.0
 		enemy.speed = 100.0 + (w - 10) * 4.0
 		enemy.gold_reward = 4 + (w - 10) / 2
 	elif w <= 24:
-		# Phase 4: Hard — need tier upgrades to survive
+		# Phase 4: Hard â€” need tier upgrades to survive
 		enemy.max_health = 1050.0 + (w - 16) * 120.0
 		enemy.speed = 115.0 + (w - 16) * 4.0
 		enemy.gold_reward = 7 + (w - 16) / 2
 	elif w <= 32:
-		# Phase 5: Very hard — need maxed towers
+		# Phase 5: Very hard â€” need maxed towers
 		enemy.max_health = 2000.0 + (w - 24) * 175.0
 		enemy.speed = 130.0 + (w - 24) * 3.0
 		enemy.gold_reward = 11 + (w - 24) / 2
 	else:
-		# Phase 6: Brutal (waves 33-40) — endgame challenge
+		# Phase 6: Brutal (waves 33-40) â€” endgame challenge
 		enemy.max_health = 3400.0 + (w - 32) * 250.0
 		enemy.speed = 145.0 + (w - 32) * 3.0
 		enemy.gold_reward = 15 + (w - 32) * 1
@@ -15126,7 +15209,7 @@ func _spawn_enemy() -> void:
 	# MOAB at wave 15 (tier 0), 25 (tier 1), 35 (tier 2) on Medium/Hard
 	var theme = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
 	if selected_difficulty >= 1 and enemies_to_spawn == _get_wave_enemy_count(w):
-		# First enemy of the wave — check if MOAB wave
+		# First enemy of the wave â€” check if MOAB wave
 		if w == 15 and selected_difficulty >= 1:
 			_spawn_moab_wave(theme, 0)
 		elif w == 25 and selected_difficulty >= 1:
@@ -15135,27 +15218,27 @@ func _spawn_enemy() -> void:
 			_spawn_moab_wave(theme, 2)
 
 	# === Boss wave modifiers ===
-	# Milestone bosses at waves 20, 25, 30, 35 — bigger, tougher, slower
+	# Milestone bosses at waves 20, 25, 30, 35 â€” bigger, tougher, slower
 	var is_boss_wave = w in [20, 25, 30, 35]
 	var is_final_villain = w >= 39 and selected_difficulty >= 2  # Hard/Pure mode waves 39-40
 	var is_last_wave = w == total_waves
 
 	if is_final_villain:
-		# Final villain — extremely strong, very large
+		# Final villain â€” extremely strong, very large
 		enemy.max_health *= 8.0
 		enemy.speed *= 0.55
 		enemy.gold_reward += 25
 		enemy.enemy_tier = 3
 		enemy.boss_scale = 2.5
 	elif is_boss_wave:
-		# Milestone boss — much stronger, larger
+		# Milestone boss â€” much stronger, larger
 		var boss_mult = 1.0 + float(w) / 20.0  # 2.0x at w20, 2.25x at w25, etc.
 		enemy.max_health *= 3.5 * boss_mult
 		enemy.speed *= 0.65
 		enemy.gold_reward += 10 + w / 4
 		enemy.boss_scale = 1.8
 	elif is_last_wave:
-		# Final wave — single named boss villain
+		# Final wave â€” single named boss villain
 		enemy.is_named_boss = true
 		enemy.boss_name = BOSS_VILLAIN_NAMES.get(enemy.enemy_theme, "The Villain")
 		enemy.enemy_tier = 3
@@ -15167,13 +15250,13 @@ func _spawn_enemy() -> void:
 	# Assign boss mechanics based on theme
 	if is_boss_wave or is_final_villain or is_last_wave:
 		match enemy.enemy_theme:
-			0, 1, 3:  # Sherwood, Wonderland, Neverland — Summon
+			0, 1, 3:  # Sherwood, Wonderland, Neverland â€” Summon
 				enemy.boss_mechanic = "summon"
-			4, 5:  # Opera, Victorian — Shield Pulse
+			4, 5:  # Opera, Victorian â€” Shield Pulse
 				enemy.boss_mechanic = "shield_pulse"
-			2, 6:  # Oz, Shadow — Enrage
+			2, 6:  # Oz, Shadow â€” Enrage
 				enemy.boss_mechanic = "enrage"
-			7, 8, 10:  # Sherlock, Merlin, Dracula — Area Deny
+			7, 8, 10:  # Sherlock, Merlin, Dracula â€” Area Deny
 				enemy.boss_mechanic = "area_deny"
 			_:
 				var mechanics = ["summon", "shield_pulse", "enrage", "area_deny"]
@@ -15212,7 +15295,7 @@ func _spawn_enemy() -> void:
 	# Apply spawn debuffs from progressive abilities
 	if spawn_hp_reduction > 0.0:
 		enemy.max_health *= (1.0 - spawn_hp_reduction)
-	# Apply Knowledge Tree enemy debuffs (Dark Passages branch) — disabled in Pure Mode
+	# Apply Knowledge Tree enemy debuffs (Dark Passages branch) â€” disabled in Pure Mode
 	if selected_difficulty != PURE_MODE:
 		var kt_hp_reduce = _get_knowledge_bonus("enemy_hp_reduce")
 		if kt_hp_reduce > 0.0:
@@ -15261,8 +15344,8 @@ func _get_wave_enemy_count(w: int) -> int:
 	var q = max(1, int(total_waves * 0.25))
 	var h = max(1, int(total_waves * 0.5))
 	var tq = max(1, int(total_waves * 0.75))
-	if w == q: return base + 8   # Fast rush — lots of enemies
-	if w == h: return base - 4   # Tank wave — fewer enemies
+	if w == q: return base + 8   # Fast rush â€” lots of enemies
+	if w == h: return base - 4   # Tank wave â€” fewer enemies
 	if w == tq: return base + 12 # Swarm
 	return base
 
@@ -15271,7 +15354,7 @@ func _get_wave_spawn_interval(w: int) -> float:
 	if w in [20, 25, 30, 35] or w == total_waves:
 		return 2.0
 	if w >= 39 and selected_difficulty >= 2:
-		return 3.0  # Final villains — very slow, dramatic
+		return 3.0  # Final villains â€” very slow, dramatic
 	var progress = float(w) / float(max(1, total_waves))
 	if progress <= 0.33:
 		return 0.9 - progress * 0.3
@@ -15292,95 +15375,95 @@ func _get_wave_name(w: int) -> String:
 	# === Boss milestone wave names (override regular names) ===
 	var boss_names = {
 		0: {  # Robin Hood
-			20: "BOSS — The Sheriff's Champion!",
-			25: "BOSS — The Black Knight!",
-			30: "BOSS — Sir Guy of Gisbourne!",
-			35: "BOSS — Prince John's Warlord!",
-			39: "FINAL VILLAIN — Prince John Arrives!",
-			40: "FINAL VILLAIN — The Crown's Vengeance!",
+			20: "BOSS â€” The Sheriff's Champion!",
+			25: "BOSS â€” The Black Knight!",
+			30: "BOSS â€” Sir Guy of Gisbourne!",
+			35: "BOSS â€” Prince John's Warlord!",
+			39: "FINAL VILLAIN â€” Prince John Arrives!",
+			40: "FINAL VILLAIN â€” The Crown's Vengeance!",
 		},
 		1: {  # Alice
-			20: "BOSS — The Jabberwock Awakens!",
-			25: "BOSS — The Red Queen's Champion!",
-			30: "BOSS — The Bandersnatch!",
-			35: "BOSS — The Vorpal Beast!",
-			39: "FINAL VILLAIN — The Queen of Hearts!",
-			40: "FINAL VILLAIN — Off With ALL Their Heads!",
+			20: "BOSS â€” The Jabberwock Awakens!",
+			25: "BOSS â€” The Red Queen's Champion!",
+			30: "BOSS â€” The Bandersnatch!",
+			35: "BOSS â€” The Vorpal Beast!",
+			39: "FINAL VILLAIN â€” The Queen of Hearts!",
+			40: "FINAL VILLAIN â€” Off With ALL Their Heads!",
 		},
 		2: {  # Wicked Witch
-			20: "BOSS — The Winkie Warlord!",
-			25: "BOSS — The King of the Flying Monkeys!",
-			30: "BOSS — The Great and Terrible Oz!",
-			35: "BOSS — The Nome King's General!",
-			39: "FINAL VILLAIN — The Nome King Rises!",
-			40: "FINAL VILLAIN — The Throne of Stone!",
+			20: "BOSS â€” The Winkie Warlord!",
+			25: "BOSS â€” The King of the Flying Monkeys!",
+			30: "BOSS â€” The Great and Terrible Oz!",
+			35: "BOSS â€” The Nome King's General!",
+			39: "FINAL VILLAIN â€” The Nome King Rises!",
+			40: "FINAL VILLAIN â€” The Throne of Stone!",
 		},
 		3: {  # Peter Pan
-			20: "BOSS — The Pirate Quartermaster!",
-			25: "BOSS — The Crocodile Hunter!",
-			30: "BOSS — Blackbeard's Ghost!",
-			35: "BOSS — Hook's Right Hand!",
-			39: "FINAL VILLAIN — Captain Hook!",
-			40: "FINAL VILLAIN — The Jolly Roger's Last Stand!",
+			20: "BOSS â€” The Pirate Quartermaster!",
+			25: "BOSS â€” The Crocodile Hunter!",
+			30: "BOSS â€” Blackbeard's Ghost!",
+			35: "BOSS â€” Hook's Right Hand!",
+			39: "FINAL VILLAIN â€” Captain Hook!",
+			40: "FINAL VILLAIN â€” The Jolly Roger's Last Stand!",
 		},
 		4: {  # Phantom
-			20: "BOSS — The Grand Chandelier Falls!",
-			25: "BOSS — The Mirror Shade!",
-			30: "BOSS — The Opera Gargoyle!",
-			35: "BOSS — The Masked Maestro!",
-			39: "FINAL VILLAIN — The Phantom Unmasked!",
-			40: "FINAL VILLAIN — The Phantom's Requiem!",
+			20: "BOSS â€” The Grand Chandelier Falls!",
+			25: "BOSS â€” The Mirror Shade!",
+			30: "BOSS â€” The Opera Gargoyle!",
+			35: "BOSS â€” The Masked Maestro!",
+			39: "FINAL VILLAIN â€” The Phantom Unmasked!",
+			40: "FINAL VILLAIN â€” The Phantom's Requiem!",
 		},
 		5: {  # Scrooge
-			20: "BOSS — Marley's Ghost!",
-			25: "BOSS — The Ghost of Christmas Past!",
-			30: "BOSS — The Ghost of Christmas Present!",
-			35: "BOSS — The Ghost of Christmas Future!",
-			39: "FINAL VILLAIN — Death's Shadow!",
-			40: "FINAL VILLAIN — Scrooge's Final Reckoning!",
+			20: "BOSS â€” Marley's Ghost!",
+			25: "BOSS â€” The Ghost of Christmas Past!",
+			30: "BOSS â€” The Ghost of Christmas Present!",
+			35: "BOSS â€” The Ghost of Christmas Future!",
+			39: "FINAL VILLAIN â€” Death's Shadow!",
+			40: "FINAL VILLAIN â€” Scrooge's Final Reckoning!",
 		},
 		6: {  # Shadow Entities (Prologue)
-			8: "BOSS — The Shadow Sentinel!",
-			10: "BOSS — The Ink Lord!",
+			8: "BOSS â€” The Shadow Sentinel!",
+			10: "BOSS â€” The Ink Lord!",
 		},
 		7: {  # Sherlock Criminals
-			20: "BOSS — The Crime Lord!",
-			25: "BOSS — Moriarty's Right Hand!",
-			39: "FINAL VILLAIN — Professor Moriarty!",
-			40: "FINAL VILLAIN — The Napoleon of Crime!",
+			20: "BOSS â€” The Crime Lord!",
+			25: "BOSS â€” Moriarty's Right Hand!",
+			39: "FINAL VILLAIN â€” Professor Moriarty!",
+			40: "FINAL VILLAIN â€” The Napoleon of Crime!",
 		},
 		8: {  # Merlin Dark Sorcery
-			20: "BOSS — The Dark Enchantress!",
-			25: "BOSS — The Black Knight!",
-			39: "FINAL VILLAIN — Morgan le Fay!",
-			40: "FINAL VILLAIN — The Sorceress Supreme!",
+			20: "BOSS â€” The Dark Enchantress!",
+			25: "BOSS â€” The Black Knight!",
+			39: "FINAL VILLAIN â€” Morgan le Fay!",
+			40: "FINAL VILLAIN â€” The Sorceress Supreme!",
 		},
 		9: {  # Tarzan Hunters
-			20: "BOSS — The Head Poacher!",
-			25: "BOSS — The Safari King!",
-			39: "FINAL VILLAIN — Clayton!",
-			40: "FINAL VILLAIN — The Hunter Becomes the Hunted!",
+			20: "BOSS â€” The Head Poacher!",
+			25: "BOSS â€” The Safari King!",
+			39: "FINAL VILLAIN â€” Clayton!",
+			40: "FINAL VILLAIN â€” The Hunter Becomes the Hunted!",
 		},
 		10: {  # Dracula Undead
-			20: "BOSS — The Vampire Bride!",
-			25: "BOSS — The Alpha Wolf!",
-			28: "BOSS — The Elder Vampire!",
-			39: "FINAL VILLAIN — Count Dracula Awakens!",
-			40: "FINAL VILLAIN — The Eternal Night!",
+			20: "BOSS â€” The Vampire Bride!",
+			25: "BOSS â€” The Alpha Wolf!",
+			28: "BOSS â€” The Elder Vampire!",
+			39: "FINAL VILLAIN â€” Count Dracula Awakens!",
+			40: "FINAL VILLAIN â€” The Eternal Night!",
 		},
 		11: {  # Frankenstein Experiments
-			20: "BOSS — The Failed Experiment!",
-			25: "BOSS — The Homunculus King!",
-			28: "BOSS — Victor's Shadow!",
-			39: "FINAL VILLAIN — Igor the Mad!",
-			40: "FINAL VILLAIN — The Creator's Revenge!",
+			20: "BOSS â€” The Failed Experiment!",
+			25: "BOSS â€” The Homunculus King!",
+			28: "BOSS â€” Victor's Shadow!",
+			39: "FINAL VILLAIN â€” Igor the Mad!",
+			40: "FINAL VILLAIN â€” The Creator's Revenge!",
 		},
 		12: {  # Shadow Author
-			25: "BOSS — The Ink Colossus!",
-			30: "BOSS — The Corrupted Narrator!",
-			35: "BOSS — The Eraser!",
-			39: "FINAL VILLAIN — The Shadow Author!",
-			40: "FINAL VILLAIN — THE END!",
+			25: "BOSS â€” The Ink Colossus!",
+			30: "BOSS â€” The Corrupted Narrator!",
+			35: "BOSS â€” The Eraser!",
+			39: "FINAL VILLAIN â€” The Shadow Author!",
+			40: "FINAL VILLAIN â€” THE END!",
 		},
 	}
 	# Check for boss/final villain waves
@@ -15395,33 +15478,33 @@ func _get_wave_name(w: int) -> String:
 	match char_idx:
 		0: # Robin Hood
 			match chap_idx:
-				0: # Ch1 — Tax collectors, early Sherwood
-					if w == q: return "FAST RUSH — Swift tax riders!"
-					if w == h: return "TANK WAVE — Armored revenue cart!"
-					if w == tq: return "SWARM — Tax collector stampede!"
-					if w == total_waves: return "BOSS — The Royal Tax Master!"
+				0: # Ch1 â€” Tax collectors, early Sherwood
+					if w == q: return "FAST RUSH â€” Swift tax riders!"
+					if w == h: return "TANK WAVE â€” Armored revenue cart!"
+					if w == tq: return "SWARM â€” Tax collector stampede!"
+					if w == total_waves: return "BOSS â€” The Royal Tax Master!"
 					var n = ["Tax collectors spotted!", "Revenue patrol incoming", "More tax men approach",
 						"Sherwood road toll guards", "Tax wagon escort", "Sheriff's informants",
 						"Tax assessor squad", "Coin purse snatchers", "Tithe enforcers march",
 						"Ledger-bearing clerks", "Treasury scouts advance", "Royal tax decree!",
 						"Debt warrant officers", "Gold cart guardsmen"]
 					return n[(w - 1) % n.size()]
-				1: # Ch2 — Sheriff's soldiers, escalation
-					if w == q: return "FAST RUSH — Mounted sheriff's scouts!"
-					if w == h: return "TANK WAVE — Armored knights ride forth!"
-					if w == tq: return "SWARM — The Sheriff's full garrison!"
-					if w == total_waves: return "BOSS — The Sheriff of Nottingham!"
+				1: # Ch2 â€” Sheriff's soldiers, escalation
+					if w == q: return "FAST RUSH â€” Mounted sheriff's scouts!"
+					if w == h: return "TANK WAVE â€” Armored knights ride forth!"
+					if w == tq: return "SWARM â€” The Sheriff's full garrison!"
+					if w == total_waves: return "BOSS â€” The Sheriff of Nottingham!"
 					var n = ["Sheriff's patrol spotted!", "Soldiers from the castle", "Crossbow sentries advance",
 						"Nottingham cavalry scouts", "Castle garrison deploys", "Sheriff's archers march",
 						"Knight errant vanguard", "Pikemen hold the line", "Sheriff's war hounds",
 						"Battering ram escort", "Armored lance brigade", "Castle wall defenders",
 						"The Sheriff's elite guard", "Siege tower builders"]
 					return n[(w - 1) % n.size()]
-				2: # Ch3 — Siege of Nottingham, climax
-					if w == q: return "FAST RUSH — Siege scouts sprint ahead!"
-					if w == h: return "TANK WAVE — Castle siege engines!"
-					if w == tq: return "SWARM — All of Nottingham marches!"
-					if w == total_waves: return "BOSS — Prince John's Royal Army!"
+				2: # Ch3 â€” Siege of Nottingham, climax
+					if w == q: return "FAST RUSH â€” Siege scouts sprint ahead!"
+					if w == h: return "TANK WAVE â€” Castle siege engines!"
+					if w == tq: return "SWARM â€” All of Nottingham marches!"
+					if w == total_waves: return "BOSS â€” Prince John's Royal Army!"
 					var n = ["Siege vanguard approaches!", "Trebuchet operators advance", "Battering ram crews",
 						"Castle wall breakers", "Prince John's heralds", "Royal decree enforcers",
 						"Flaming arrow brigade", "Fortress sappers tunnel in", "War elephant handlers",
@@ -15430,33 +15513,33 @@ func _get_wave_name(w: int) -> String:
 					return n[(w - 1) % n.size()]
 		1: # Alice
 			match chap_idx:
-				0: # Ch1 — Card scouts, early Wonderland
-					if w == q: return "FAST RUSH — Card scouts scramble!"
-					if w == h: return "TANK WAVE — Armored ace of spades!"
-					if w == tq: return "SWARM — Full deck deployed!"
-					if w == total_waves: return "BOSS — The Knave of Hearts!"
+				0: # Ch1 â€” Card scouts, early Wonderland
+					if w == q: return "FAST RUSH â€” Card scouts scramble!"
+					if w == h: return "TANK WAVE â€” Armored ace of spades!"
+					if w == tq: return "SWARM â€” Full deck deployed!"
+					if w == total_waves: return "BOSS â€” The Knave of Hearts!"
 					var n = ["Card soldiers spotted!", "Numbered cards march", "Spade patrol incoming",
 						"Diamond sentries glitter", "Club enforcers stomp", "Two of hearts scouts",
 						"Shuffled patrol advance", "Card painters approach", "Rose garden guards",
 						"Croquet ground wardens", "Hedge maze sentries", "Deck reshuffled!",
 						"Wild card scouts", "Joker's little helpers"]
 					return n[(w - 1) % n.size()]
-				1: # Ch2 — Mad tea party & chess pieces
-					if w == q: return "FAST RUSH — March Hare's stampede!"
-					if w == h: return "TANK WAVE — The Jabberwock stirs!"
-					if w == tq: return "SWARM — Chess pieces flood the board!"
-					if w == total_waves: return "BOSS — The Red Queen!"
+				1: # Ch2 â€” Mad tea party & chess pieces
+					if w == q: return "FAST RUSH â€” March Hare's stampede!"
+					if w == h: return "TANK WAVE â€” The Jabberwock stirs!"
+					if w == tq: return "SWARM â€” Chess pieces flood the board!"
+					if w == total_waves: return "BOSS â€” The Red Queen!"
 					var n = ["Mad tea party crashers!", "Dormouse sleeper agents", "March Hare's militia",
 						"Cheshire grin stalkers", "Looking glass scouts", "Chess pawn advance",
 						"Rook towers roll forward", "Knight pieces gallop", "Bishop diagonal assault",
 						"Tweedledee & Tweedledum", "Bandersnatch sighting!", "Mock turtle brigade",
 						"Vorpal blade seekers", "Through the looking glass"]
 					return n[(w - 1) % n.size()]
-				2: # Ch3 — Queen's court, climax
-					if w == q: return "FAST RUSH — Queen's swift executioners!"
-					if w == h: return "TANK WAVE — Jabberwock unleashed!"
-					if w == tq: return "SWARM — The entire court attacks!"
-					if w == total_waves: return "BOSS — The Queen of Hearts!"
+				2: # Ch3 â€” Queen's court, climax
+					if w == q: return "FAST RUSH â€” Queen's swift executioners!"
+					if w == h: return "TANK WAVE â€” Jabberwock unleashed!"
+					if w == tq: return "SWARM â€” The entire court attacks!"
+					if w == total_waves: return "BOSS â€” The Queen of Hearts!"
 					var n = ["Royal court assembles!", "Queen's herald sounds", "Executioner's guard",
 						"Flamingo cavalry charge", "The Queen's croquet army", "Painting roses red!",
 						"Throne room champions", "Crown jewel defenders", "Off with their heads!",
@@ -15465,33 +15548,33 @@ func _get_wave_name(w: int) -> String:
 					return n[(w - 1) % n.size()]
 		2: # Wicked Witch / Oz
 			match chap_idx:
-				0: # Ch1 — Winkie guards, early Oz
-					if w == q: return "FAST RUSH — Winkie scouts dash!"
-					if w == h: return "TANK WAVE — Armored Winkie captain!"
-					if w == tq: return "SWARM — Winkie regiment marches!"
-					if w == total_waves: return "BOSS — The Winkie General!"
+				0: # Ch1 â€” Winkie guards, early Oz
+					if w == q: return "FAST RUSH â€” Winkie scouts dash!"
+					if w == h: return "TANK WAVE â€” Armored Winkie captain!"
+					if w == tq: return "SWARM â€” Winkie regiment marches!"
+					if w == total_waves: return "BOSS â€” The Winkie General!"
 					var n = ["Winkie guards spotted!", "Yellow uniform patrol", "Western frontier scouts",
 						"Poppy field lurkers", "Winkie spear carriers", "Emerald road blockers",
 						"Yellow brick sentries", "Winkie drum corps", "Witch's errand runners",
 						"Tin whistle scouts", "Scarecrow field watchers", "Winkie border patrol",
 						"Golden cap seekers", "Oz perimeter guards"]
 					return n[(w - 1) % n.size()]
-				1: # Ch2 — Flying monkeys & the Witch rises
-					if w == q: return "FAST RUSH — Flying monkeys swoop!"
-					if w == h: return "TANK WAVE — Armored gorilla guard!"
-					if w == tq: return "SWARM — Monkey horde darkens the sky!"
-					if w == total_waves: return "BOSS — The Wicked Witch of the West!"
+				1: # Ch2 â€” Flying monkeys & the Witch rises
+					if w == q: return "FAST RUSH â€” Flying monkeys swoop!"
+					if w == h: return "TANK WAVE â€” Armored gorilla guard!"
+					if w == tq: return "SWARM â€” Monkey horde darkens the sky!"
+					if w == total_waves: return "BOSS â€” The Wicked Witch of the West!"
 					var n = ["Flying monkeys approach!", "Monkey squadron descends", "Winged ambush party",
 						"Witch's cauldron brew stirs", "Broom-riding scouts", "Monkey bombardiers",
 						"Crystal ball spies", "Enchanted forest walkers", "Tornado debris creatures",
 						"Silver shoe seekers", "Witch's shadow minions", "Dark spell weavers",
 						"Monkey king's vanguard", "The Witch's cackle echoes"]
 					return n[(w - 1) % n.size()]
-				2: # Ch3 — Nome King & Emerald City siege
-					if w == q: return "FAST RUSH — Nome tunnelers burst forth!"
-					if w == h: return "TANK WAVE — Rock titan advances!"
-					if w == tq: return "SWARM — Underground legion surfaces!"
-					if w == total_waves: return "BOSS — The Nome King!"
+				2: # Ch3 â€” Nome King & Emerald City siege
+					if w == q: return "FAST RUSH â€” Nome tunnelers burst forth!"
+					if w == h: return "TANK WAVE â€” Rock titan advances!"
+					if w == tq: return "SWARM â€” Underground legion surfaces!"
+					if w == total_waves: return "BOSS â€” The Nome King!"
 					var n = ["Nome tunnelers emerge!", "Crystal cave raiders", "Rock soldiers march",
 						"Underground sappers dig in", "Gemstone golem patrol", "Emerald City spies",
 						"Nome King's heralds", "Quartz shard throwers", "Obsidian knight brigade",
@@ -15500,33 +15583,33 @@ func _get_wave_name(w: int) -> String:
 					return n[(w - 1) % n.size()]
 		3: # Peter Pan
 			match chap_idx:
-				0: # Ch1 — Pirate scouts, Neverland shores
-					if w == q: return "FAST RUSH — Pirate scouts sprint!"
-					if w == h: return "TANK WAVE — Powder keg haulers!"
-					if w == tq: return "SWARM — Shore landing party!"
-					if w == total_waves: return "BOSS — The Pirate Bosun!"
+				0: # Ch1 â€” Pirate scouts, Neverland shores
+					if w == q: return "FAST RUSH â€” Pirate scouts sprint!"
+					if w == h: return "TANK WAVE â€” Powder keg haulers!"
+					if w == tq: return "SWARM â€” Shore landing party!"
+					if w == total_waves: return "BOSS â€” The Pirate Bosun!"
 					var n = ["Pirate deckhands arrive!", "Swabbie patrol incoming", "Buccaneer scouts",
 						"Cutlass-wielding mates", "Crow's nest lookouts", "Plank walkers march",
 						"Powder monkey brigade", "Rum barrel rollers", "Anchor chain draggers",
 						"Dinghy landing crew", "Treasure map hunters", "Skull Rock sentries",
 						"Parrot messenger scouts", "Neverland shore patrol"]
 					return n[(w - 1) % n.size()]
-				1: # Ch2 — Pirate officers & jungle dangers
-					if w == q: return "FAST RUSH — Jungle ambush runners!"
-					if w == h: return "TANK WAVE — Pirate cannon crew!"
-					if w == tq: return "SWARM — Lost Boys besieged!"
-					if w == total_waves: return "BOSS — The Pirate First Mate!"
+				1: # Ch2 â€” Pirate officers & jungle dangers
+					if w == q: return "FAST RUSH â€” Jungle ambush runners!"
+					if w == h: return "TANK WAVE â€” Pirate cannon crew!"
+					if w == tq: return "SWARM â€” Lost Boys besieged!"
+					if w == total_waves: return "BOSS â€” The Pirate First Mate!"
 					var n = ["Pirate officers advance!", "Boarding party inbound", "Cannon crew approaches",
 						"First mate's detachment", "Jungle vine swingers", "Mermaid Lagoon assault",
 						"Crocodile handlers march", "Boatswain's brigade", "Musket-bearing pirates",
 						"Jungle trap setters", "Tiger Lily's warning!", "Neverland fog creepers",
 						"Pirate war drummers", "The jungle closes in"]
 					return n[(w - 1) % n.size()]
-				2: # Ch3 — Captain Hook & the Jolly Roger
-					if w == q: return "FAST RUSH — Hook's fastest cutthroats!"
-					if w == h: return "TANK WAVE — Ironclad pirate warship!"
-					if w == tq: return "SWARM — The entire Jolly Roger crew!"
-					if w == total_waves: return "BOSS — Captain Hook!"
+				2: # Ch3 â€” Captain Hook & the Jolly Roger
+					if w == q: return "FAST RUSH â€” Hook's fastest cutthroats!"
+					if w == h: return "TANK WAVE â€” Ironclad pirate warship!"
+					if w == tq: return "SWARM â€” The entire Jolly Roger crew!"
+					if w == total_waves: return "BOSS â€” Captain Hook!"
 					var n = ["Hook sends his vanguard!", "Jolly Roger's finest", "The Black Spot cometh",
 						"Hook's elite swordsmen", "Cannonball barrage crew", "All hands on deck!",
 						"Pirate armada sails forth", "Hook's personal guard", "Tick-Tock draws near!",
@@ -15535,33 +15618,33 @@ func _get_wave_name(w: int) -> String:
 					return n[(w - 1) % n.size()]
 		4: # Phantom
 			match chap_idx:
-				0: # Ch1 — Stagehands & shadows, opera house
-					if w == q: return "FAST RUSH — Shadow dancers dart!"
-					if w == h: return "TANK WAVE — Heavy curtain golem!"
-					if w == tq: return "SWARM — Backstage mob floods out!"
-					if w == total_waves: return "BOSS — The Stage Manager!"
+				0: # Ch1 â€” Stagehands & shadows, opera house
+					if w == q: return "FAST RUSH â€” Shadow dancers dart!"
+					if w == h: return "TANK WAVE â€” Heavy curtain golem!"
+					if w == tq: return "SWARM â€” Backstage mob floods out!"
+					if w == total_waves: return "BOSS â€” The Stage Manager!"
 					var n = ["Stagehands scurry forth!", "The orchestra stirs", "Shadows in the wings",
 						"Prop room escapees", "Spotlight chasers", "Rats from below the stage",
 						"Costume rack lurkers", "Sandbag droppers above", "Makeup room horrors",
 						"Backstage frenzy builds", "Rigging rope swingers", "Prompt box whisperers",
 						"Curtain pullers advance", "The overture begins"]
 					return n[(w - 1) % n.size()]
-				1: # Ch2 — Labyrinth & mirrors, deeper opera
-					if w == q: return "FAST RUSH — Mirror shards scatter!"
-					if w == h: return "TANK WAVE — Gargoyle sentinels descend!"
-					if w == tq: return "SWARM — Labyrinth spawns endlessly!"
-					if w == total_waves: return "BOSS — The Mirror Phantom!"
+				1: # Ch2 â€” Labyrinth & mirrors, deeper opera
+					if w == q: return "FAST RUSH â€” Mirror shards scatter!"
+					if w == h: return "TANK WAVE â€” Gargoyle sentinels descend!"
+					if w == tq: return "SWARM â€” Labyrinth spawns endlessly!"
+					if w == total_waves: return "BOSS â€” The Mirror Phantom!"
 					var n = ["The masquerade begins!", "Mirror maze madness", "Trapdoor ambush below",
 						"Labyrinth of mirrors", "Candelabra ghosts flicker", "Phantom copycats emerge",
 						"Gargoyle watchers stir", "Chandelier chain rattlers", "Opera ghost sightings",
 						"Box Five awakens!", "Falling curtain shades", "Hall of echoes patrol",
 						"Wax figure sentries", "The organ's fury builds"]
 					return n[(w - 1) % n.size()]
-				2: # Ch3 — Underground lair, climax
-					if w == q: return "FAST RUSH — Lair bats swarm the exits!"
-					if w == h: return "TANK WAVE — The organ colossus!"
-					if w == tq: return "SWARM — Underground phantoms pour forth!"
-					if w == total_waves: return "BOSS — The Phantom of the Opera!"
+				2: # Ch3 â€” Underground lair, climax
+					if w == q: return "FAST RUSH â€” Lair bats swarm the exits!"
+					if w == h: return "TANK WAVE â€” The organ colossus!"
+					if w == tq: return "SWARM â€” Underground phantoms pour forth!"
+					if w == total_waves: return "BOSS â€” The Phantom of the Opera!"
 					var n = ["Underground lake patrol!", "Christine's nightmare stirs", "Lair entrance guardians",
 						"Sewer tunnel crawlers", "Subterranean echo shades", "Candle-lit crypt walkers",
 						"The Phantom's music swells", "Torture chamber sentinels", "Lasso-wielding shadows",
@@ -15570,33 +15653,33 @@ func _get_wave_name(w: int) -> String:
 					return n[(w - 1) % n.size()]
 		5: # Scrooge
 			match chap_idx:
-				0: # Ch1 — Street urchins & carolers, London streets
-					if w == q: return "FAST RUSH — Pickpocket dash!"
-					if w == h: return "TANK WAVE — Workhouse bruiser!"
-					if w == tq: return "SWARM — Street mob riots!"
-					if w == total_waves: return "BOSS — The Debt Collector General!"
+				0: # Ch1 â€” Street urchins & carolers, London streets
+					if w == q: return "FAST RUSH â€” Pickpocket dash!"
+					if w == h: return "TANK WAVE â€” Workhouse bruiser!"
+					if w == tq: return "SWARM â€” Street mob riots!"
+					if w == total_waves: return "BOSS â€” The Debt Collector General!"
 					var n = ["Street urchins scuttle!", "Chimney sweepers march", "Pickpocket gang approaches",
 						"Workhouse escapees shamble", "Carolers gone wrong", "Fog-born shadows creep",
 						"Lamplighter scouts", "Cobblestone prowlers", "Penny-pincher patrol",
 						"Beggar brigade advances", "Newspaper boy ambush", "Coal dust sneakers",
 						"Frostbitten vagrants", "London's forgotten ones"]
 					return n[(w - 1) % n.size()]
-				1: # Ch2 — Spirits & ghosts, hauntings
-					if w == q: return "FAST RUSH — Spirit wisps scatter!"
-					if w == h: return "TANK WAVE — Ghosts of Christmas Past!"
-					if w == tq: return "SWARM — Spectral procession floods in!"
-					if w == total_waves: return "BOSS — Ghost of Christmas Present!"
+				1: # Ch2 â€” Spirits & ghosts, hauntings
+					if w == q: return "FAST RUSH â€” Spirit wisps scatter!"
+					if w == h: return "TANK WAVE â€” Ghosts of Christmas Past!"
+					if w == tq: return "SWARM â€” Spectral procession floods in!"
+					if w == total_waves: return "BOSS â€” Ghost of Christmas Present!"
 					var n = ["Debt collectors approach!", "Chain rattlers march", "Marley's associates",
 						"Counting house guards", "Ghostly apparitions drift", "Spirit wisps gather",
 						"Ledger keepers advance", "Top hat enforcers", "Spectral procession forms",
 						"Frost wraiths howl!", "Candle flame phantoms", "Clock tower bell shades",
 						"Memory lane specters", "The spirits converge"]
 					return n[(w - 1) % n.size()]
-				2: # Ch3 — Army of despair, climax
-					if w == q: return "FAST RUSH — Despair's swift heralds!"
-					if w == h: return "TANK WAVE — Marley's iron chains!"
-					if w == tq: return "SWARM — The army of despair marches!"
-					if w == total_waves: return "BOSS — Ghost of Christmas Yet to Come!"
+				2: # Ch3 â€” Army of despair, climax
+					if w == q: return "FAST RUSH â€” Despair's swift heralds!"
+					if w == h: return "TANK WAVE â€” Marley's iron chains!"
+					if w == tq: return "SWARM â€” The army of despair marches!"
+					if w == total_waves: return "BOSS â€” Ghost of Christmas Yet to Come!"
 					var n = ["Blizzard brigade advances!", "Frozen specters shamble", "Winter wolves howl",
 						"Grave diggers march forth", "Tombstone sentinels rise", "The chains grow heavier",
 						"Midnight bell tolls!", "Shadow of the future looms", "Despair's vanguard",
@@ -15604,10 +15687,10 @@ func _get_wave_name(w: int) -> String:
 						"Bells toll midnight!", "Dawn must break"]
 					return n[(w - 1) % n.size()]
 		6: # Shadow Entities (Prologue)
-			if w == q: return "FAST RUSH — Ink wisps scatter!"
-			if w == h: return "TANK WAVE — Shadow beast looms!"
-			if w == tq: return "SWARM — The ink floods in!"
-			if w == total_waves: return "BOSS — The Ink Lord!"
+			if w == q: return "FAST RUSH â€” Ink wisps scatter!"
+			if w == h: return "TANK WAVE â€” Shadow beast looms!"
+			if w == tq: return "SWARM â€” The ink floods in!"
+			if w == total_waves: return "BOSS â€” The Ink Lord!"
 			var n = ["Shadow wisps emerge!", "Ink blots crawl forth", "Dark page fragments",
 				"Quill scratch soldiers", "Torn page ghosts", "Ink puddle lurkers",
 				"Shadow puppets advance", "Blotted word wraiths", "Spine-crack crawlers",
@@ -15617,10 +15700,10 @@ func _get_wave_name(w: int) -> String:
 		7: # Sherlock Criminals
 			match chap_idx:
 				0:
-					if w == q: return "FAST RUSH — Pickpocket sprint!"
-					if w == h: return "TANK WAVE — Armored bruiser!"
-					if w == tq: return "SWARM — Street gang swarms!"
-					if w == total_waves: return "BOSS — The Crime Boss!"
+					if w == q: return "FAST RUSH â€” Pickpocket sprint!"
+					if w == h: return "TANK WAVE â€” Armored bruiser!"
+					if w == tq: return "SWARM â€” Street gang swarms!"
+					if w == total_waves: return "BOSS â€” The Crime Boss!"
 					var n = ["Street thugs spotted!", "Alley lurkers emerge", "Pickpocket gang approaches",
 						"Baker Street irregulars", "Opium den enforcers", "Dockland brawlers",
 						"Whitechapel stalkers", "Underground fighters", "Fence operation crew",
@@ -15628,10 +15711,10 @@ func _get_wave_name(w: int) -> String:
 						"Scotland Yard imposters", "The fog thickens"]
 					return n[(w - 1) % n.size()]
 				1:
-					if w == q: return "FAST RUSH — Assassin blades flash!"
-					if w == h: return "TANK WAVE — Criminal mastermind's guard!"
-					if w == tq: return "SWARM — The underworld mobilizes!"
-					if w == total_waves: return "BOSS — Moriarty's Lieutenant!"
+					if w == q: return "FAST RUSH â€” Assassin blades flash!"
+					if w == h: return "TANK WAVE â€” Criminal mastermind's guard!"
+					if w == tq: return "SWARM â€” The underworld mobilizes!"
+					if w == total_waves: return "BOSS â€” Moriarty's Lieutenant!"
 					var n = ["Assassins in the fog!", "Garrote wire specialists", "Poison dart blowers",
 						"Moriarty's spies advance", "Criminal network agents", "Coded message runners",
 						"Disguised operatives", "The web tightens!", "Sniper nest sighters",
@@ -15639,10 +15722,10 @@ func _get_wave_name(w: int) -> String:
 						"Double agent ambush", "The game is afoot"]
 					return n[(w - 1) % n.size()]
 				_:
-					if w == q: return "FAST RUSH — Moriarty's fastest!"
-					if w == h: return "TANK WAVE — The Professor's machine!"
-					if w == tq: return "SWARM — All of London's criminals!"
-					if w == total_waves: return "BOSS — Professor Moriarty!"
+					if w == q: return "FAST RUSH â€” Moriarty's fastest!"
+					if w == h: return "TANK WAVE â€” The Professor's machine!"
+					if w == tq: return "SWARM â€” All of London's criminals!"
+					if w == total_waves: return "BOSS â€” Professor Moriarty!"
 					var n = ["Reichenbach approaches!", "The falls thunder", "Mathematical assassins",
 						"Moriarty's chess pieces", "The final problem begins", "Crime empire remnants",
 						"Waterfall mist soldiers", "Cliffside ambushers", "The professor's gambit",
@@ -15652,10 +15735,10 @@ func _get_wave_name(w: int) -> String:
 		8: # Merlin Dark Sorcery
 			match chap_idx:
 				0:
-					if w == q: return "FAST RUSH — Squire scouts charge!"
-					if w == h: return "TANK WAVE — Corrupted knight!"
-					if w == tq: return "SWARM — The dark army forms!"
-					if w == total_waves: return "BOSS — The Black Knight!"
+					if w == q: return "FAST RUSH â€” Squire scouts charge!"
+					if w == h: return "TANK WAVE â€” Corrupted knight!"
+					if w == tq: return "SWARM â€” The dark army forms!"
+					if w == total_waves: return "BOSS â€” The Black Knight!"
 					var n = ["Dark squires march!", "Rusted armor clanks", "Corrupted page boys",
 						"Shadow lance bearers", "Cursed shield walls", "Enchanted sentries",
 						"Round Table traitors", "Morgana's scouts", "Dark spell apprentices",
@@ -15663,10 +15746,10 @@ func _get_wave_name(w: int) -> String:
 						"Blackened sword knights", "The corruption spreads"]
 					return n[(w - 1) % n.size()]
 				1:
-					if w == q: return "FAST RUSH — Forest spirits charge!"
-					if w == h: return "TANK WAVE — Ancient tree golem!"
-					if w == tq: return "SWARM — The enchanted forest rises!"
-					if w == total_waves: return "BOSS — The Warlock!"
+					if w == q: return "FAST RUSH â€” Forest spirits charge!"
+					if w == h: return "TANK WAVE â€” Ancient tree golem!"
+					if w == tq: return "SWARM â€” The enchanted forest rises!"
+					if w == total_waves: return "BOSS â€” The Warlock!"
 					var n = ["Enchanted forest stirs!", "Standing stone guardians", "Rune circle warriors",
 						"Dark druid summoners", "Celtic curse weavers", "Ancient oak sentinels",
 						"Mushroom ring crawlers", "Fairy circle traps!", "Moss golem patrol",
@@ -15674,10 +15757,10 @@ func _get_wave_name(w: int) -> String:
 						"Crystal shard throwers", "The old magic awakens"]
 					return n[(w - 1) % n.size()]
 				_:
-					if w == q: return "FAST RUSH — Crystal shards fly!"
-					if w == h: return "TANK WAVE — Crystal golem!"
-					if w == tq: return "SWARM — The cave erupts!"
-					if w == total_waves: return "BOSS — Morgan le Fay!"
+					if w == q: return "FAST RUSH â€” Crystal shards fly!"
+					if w == h: return "TANK WAVE â€” Crystal golem!"
+					if w == tq: return "SWARM â€” The cave erupts!"
+					if w == total_waves: return "BOSS â€” Morgan le Fay!"
 					var n = ["Crystal cave defenders!", "Gemstone sentinels", "Cave stalactite warriors",
 						"Morgan's enchantresses", "Dark crystal resonators", "Spell-forged knights",
 						"The cave pulses!", "Arcane rune soldiers", "Merlin's prison guards",
@@ -15687,10 +15770,10 @@ func _get_wave_name(w: int) -> String:
 		9: # Tarzan Hunters
 			match chap_idx:
 				0:
-					if w == q: return "FAST RUSH — Poachers sprint!"
-					if w == h: return "TANK WAVE — Caged beast hauler!"
-					if w == tq: return "SWARM — Hunting party swarms!"
-					if w == total_waves: return "BOSS — The Head Poacher!"
+					if w == q: return "FAST RUSH â€” Poachers sprint!"
+					if w == h: return "TANK WAVE â€” Caged beast hauler!"
+					if w == tq: return "SWARM â€” Hunting party swarms!"
+					if w == total_waves: return "BOSS â€” The Head Poacher!"
 					var n = ["Poachers spotted!", "Net-carrying trappers", "Jungle path cutters",
 						"Pith helmet scouts", "Trophy hunters advance", "Canopy vine cutters",
 						"Animal cage haulers", "Snare wire layers", "Ivory seekers march",
@@ -15698,10 +15781,10 @@ func _get_wave_name(w: int) -> String:
 						"Campsite builders", "The hunt begins"]
 					return n[(w - 1) % n.size()]
 				1:
-					if w == q: return "FAST RUSH — Mounted hunters charge!"
-					if w == h: return "TANK WAVE — Armored safari vehicle!"
-					if w == tq: return "SWARM — The graveyard awakens!"
-					if w == total_waves: return "BOSS — The Safari King!"
+					if w == q: return "FAST RUSH â€” Mounted hunters charge!"
+					if w == h: return "TANK WAVE â€” Armored safari vehicle!"
+					if w == tq: return "SWARM â€” The graveyard awakens!"
+					if w == total_waves: return "BOSS â€” The Safari King!"
 					var n = ["Big game hunters advance!", "Elephant gun carriers", "Safari jeep scouts",
 						"Bone collectors march", "Graveyard dust seekers", "Tusk pry-bar squad",
 						"Trophy wall builders", "Taxidermy experts", "Quicksand pathfinders",
@@ -15709,10 +15792,10 @@ func _get_wave_name(w: int) -> String:
 						"Ancient burial guardians", "The dead remember"]
 					return n[(w - 1) % n.size()]
 				_:
-					if w == q: return "FAST RUSH — Mercenary scouts!"
-					if w == h: return "TANK WAVE — Fortress siege ram!"
-					if w == tq: return "SWARM — Clayton's full army!"
-					if w == total_waves: return "BOSS — Clayton!"
+					if w == q: return "FAST RUSH â€” Mercenary scouts!"
+					if w == h: return "TANK WAVE â€” Fortress siege ram!"
+					if w == tq: return "SWARM â€” Clayton's full army!"
+					if w == total_waves: return "BOSS â€” Clayton!"
 					var n = ["Mercenary vanguard!", "Combat gear soldiers", "Machete-wielding scouts",
 						"Fortress gate guards", "Watchtower snipers", "Barbed wire layers",
 						"Explosive ordinance team", "Clayton's elite guard", "Jungle clearers",
@@ -15722,10 +15805,10 @@ func _get_wave_name(w: int) -> String:
 		10: # Dracula Undead
 			match chap_idx:
 				0:
-					if w == q: return "FAST RUSH — Thralls sprint!"
-					if w == h: return "TANK WAVE — Dire wolf alpha!"
-					if w == tq: return "SWARM — The village is overrun!"
-					if w == total_waves: return "BOSS — The Village Elder!"
+					if w == q: return "FAST RUSH â€” Thralls sprint!"
+					if w == h: return "TANK WAVE â€” Dire wolf alpha!"
+					if w == tq: return "SWARM â€” The village is overrun!"
+					if w == total_waves: return "BOSS â€” The Village Elder!"
 					var n = ["Thralls shamble forth!", "Pale villagers march", "Hypnotized peasants",
 						"Garlic-proof scouts", "Wolfbane carriers", "Night patrol guards",
 						"Graveyard shift workers", "Blood offering bearers", "Cross-resistant thralls",
@@ -15733,10 +15816,10 @@ func _get_wave_name(w: int) -> String:
 						"Midnight processioners", "Dawn never comes"]
 					return n[(w - 1) % n.size()]
 				1:
-					if w == q: return "FAST RUSH — Bat swarm descends!"
-					if w == h: return "TANK WAVE — Castle knight rises!"
-					if w == tq: return "SWARM — The castle awakens!"
-					if w == total_waves: return "BOSS — The Vampire Bride!"
+					if w == q: return "FAST RUSH â€” Bat swarm descends!"
+					if w == h: return "TANK WAVE â€” Castle knight rises!"
+					if w == tq: return "SWARM â€” The castle awakens!"
+					if w == total_waves: return "BOSS â€” The Vampire Bride!"
 					var n = ["Castle corridor stalkers!", "Armor suit animations", "Bat swarm scouts",
 						"Coffin lid pushers", "Dining hall servants", "Bloodstain trail followers",
 						"Tower staircase guards", "Chandelier chain swingers", "Portrait eye watchers",
@@ -15744,10 +15827,10 @@ func _get_wave_name(w: int) -> String:
 						"Castle wall crawlers", "The Count watches"]
 					return n[(w - 1) % n.size()]
 				_:
-					if w == q: return "FAST RUSH — Blood mist rushers!"
-					if w == h: return "TANK WAVE — Ancient vampire!"
-					if w == tq: return "SWARM — The crypt erupts!"
-					if w == total_waves: return "BOSS — Count Dracula!"
+					if w == q: return "FAST RUSH â€” Blood mist rushers!"
+					if w == h: return "TANK WAVE â€” Ancient vampire!"
+					if w == tq: return "SWARM â€” The crypt erupts!"
+					if w == total_waves: return "BOSS â€” Count Dracula!"
 					var n = ["Crypt guardians rise!", "Blood pool swimmers", "Ancient coffin dwellers",
 						"Stake-proof elders", "Crimson mist walkers", "Blood chalice bearers",
 						"The undead army marches!", "Shadow form shifters", "Nosferatu's children",
@@ -15757,10 +15840,10 @@ func _get_wave_name(w: int) -> String:
 		11: # Frankenstein Experiments
 			match chap_idx:
 				0:
-					if w == q: return "FAST RUSH — Lab rats scatter!"
-					if w == h: return "TANK WAVE — Failed experiment!"
-					if w == tq: return "SWARM — The lab overflows!"
-					if w == total_waves: return "BOSS — The Head Scientist!"
+					if w == q: return "FAST RUSH â€” Lab rats scatter!"
+					if w == h: return "TANK WAVE â€” Failed experiment!"
+					if w == tq: return "SWARM â€” The lab overflows!"
+					if w == total_waves: return "BOSS â€” The Head Scientist!"
 					var n = ["Lab rats scurry!", "Homunculus crawlers", "Beaker-born creatures",
 						"Tesla coil sparkers", "Formaldehyde floaters", "Stitch-mark soldiers",
 						"Lightning rod channelers", "Electrode head walkers", "Test tube terrors",
@@ -15768,10 +15851,10 @@ func _get_wave_name(w: int) -> String:
 						"Brain jar carriers", "The experiment continues"]
 					return n[(w - 1) % n.size()]
 				1:
-					if w == q: return "FAST RUSH — Torch runners!"
-					if w == h: return "TANK WAVE — Pitchfork mob leader!"
-					if w == tq: return "SWARM — The whole village attacks!"
-					if w == total_waves: return "BOSS — The Village Magistrate!"
+					if w == q: return "FAST RUSH â€” Torch runners!"
+					if w == h: return "TANK WAVE â€” Pitchfork mob leader!"
+					if w == tq: return "SWARM â€” The whole village attacks!"
+					if w == total_waves: return "BOSS â€” The Village Magistrate!"
 					var n = ["Angry villagers approach!", "Torch-bearing mob", "Pitchfork wielders march",
 						"Millstone throwers", "Tavern brawler squad", "Church bell ringers",
 						"Holy water throwers", "Wooden stake carriers", "The mob grows louder!",
@@ -15779,10 +15862,10 @@ func _get_wave_name(w: int) -> String:
 						"Town crier warnings!", "The village burns!"]
 					return n[(w - 1) % n.size()]
 				_:
-					if w == q: return "FAST RUSH — Ice shard runners!"
-					if w == h: return "TANK WAVE — Frost golem!"
-					if w == tq: return "SWARM — The arctic army!"
-					if w == total_waves: return "BOSS — Igor!"
+					if w == q: return "FAST RUSH â€” Ice shard runners!"
+					if w == h: return "TANK WAVE â€” Frost golem!"
+					if w == tq: return "SWARM â€” The arctic army!"
+					if w == total_waves: return "BOSS â€” Igor!"
 					var n = ["Arctic wind howlers!", "Frost-bitten soldiers", "Ice pick wielders",
 						"Sled dog pack hunters", "Snowblind scouts", "Frozen chain draggers",
 						"Igor's assistants march!", "Cryogenic capsule guards", "The ice cracks!",
@@ -15792,10 +15875,10 @@ func _get_wave_name(w: int) -> String:
 		12: # Shadow Author
 			match chap_idx:
 				0:
-					if w == q: return "FAST RUSH — Ink soldiers charge!"
-					if w == h: return "TANK WAVE — Ink colossus!"
-					if w == tq: return "SWARM — The ink realm floods!"
-					if w == total_waves: return "BOSS — The Ink Titan!"
+					if w == q: return "FAST RUSH â€” Ink soldiers charge!"
+					if w == h: return "TANK WAVE â€” Ink colossus!"
+					if w == tq: return "SWARM â€” The ink realm floods!"
+					if w == total_waves: return "BOSS â€” The Ink Titan!"
 					var n = ["Ink soldiers form!", "Dripping word warriors", "Quill-forged knights",
 						"Paragraph golems march", "Sentence serpents slither", "Plot hole abominations",
 						"Narrative thread weavers", "Exposition crawlers", "Red ink editors",
@@ -15803,10 +15886,10 @@ func _get_wave_name(w: int) -> String:
 						"Prologue phantoms", "The Author writes"]
 					return n[(w - 1) % n.size()]
 				1:
-					if w == q: return "FAST RUSH — Corrupted heroes sprint!"
-					if w == h: return "TANK WAVE — Corrupted champion!"
-					if w == tq: return "SWARM — All stories collapse!"
-					if w == total_waves: return "BOSS — The Corrupted Narrator!"
+					if w == q: return "FAST RUSH â€” Corrupted heroes sprint!"
+					if w == h: return "TANK WAVE â€” Corrupted champion!"
+					if w == tq: return "SWARM â€” All stories collapse!"
+					if w == total_waves: return "BOSS â€” The Corrupted Narrator!"
 					var n = ["Corrupted characters emerge!", "Twisted fairy tales", "Dark adaptations march",
 						"Rewritten heroes attack!", "Genre-bent warriors", "Sequel shadow soldiers",
 						"Plagiarized phantoms", "Adaptation aberrations", "The pages go blank!",
@@ -15814,10 +15897,10 @@ func _get_wave_name(w: int) -> String:
 						"Deus ex machina soldiers", "The story unravels!"]
 					return n[(w - 1) % n.size()]
 				_:
-					if w == q: return "FAST RUSH — Eraser blades sweep!"
-					if w == h: return "TANK WAVE — The Eraser!"
-					if w == tq: return "SWARM — THE END approaches!"
-					if w == total_waves: return "BOSS — THE SHADOW AUTHOR!"
+					if w == q: return "FAST RUSH â€” Eraser blades sweep!"
+					if w == h: return "TANK WAVE â€” The Eraser!"
+					if w == tq: return "SWARM â€” THE END approaches!"
+					if w == total_waves: return "BOSS â€” THE SHADOW AUTHOR!"
 					var n = ["The final chapter begins!", "Every villain returns!", "All stories converge!",
 						"The Author's masterwork!", "Ink tsunami approaches!", "Characters dissolve!",
 						"The quill strikes!", "Reality rewrites itself!", "THE END is written!",
@@ -15837,12 +15920,13 @@ func _check_wave_complete() -> void:
 		_wave_clear_timer = 1.5
 		_wave_clear_num = wave
 		_play_sfx(_sfx_wave_complete)
+		_update_quest_progress("survive_waves", 1)
 		if _is_mobile:
 			Input.vibrate_handheld(30)
 		if not endless_mode and not shadow_arena_active and wave >= total_waves:
 			_victory()
 		else:
-			# Endless bonus gold every 5 waves — scales with wave number
+			# Endless bonus gold every 5 waves â€” scales with wave number
 			if endless_mode and wave > 0 and wave % 5 == 0:
 				var endless_bonus = 50 + wave * 3
 				add_gold(endless_bonus)
@@ -15857,7 +15941,7 @@ func _check_wave_complete() -> void:
 				spawn_floating_text(Vector2(640, 310), "RUSH +%dG (%.1fs)" % [_wave_rush_bonus, wave_time], Color(0.2, 1.0, 0.8), 15.0, 1.2)
 			# BATTD: Income breakdown display timer
 			_income_display_timer = 3.0
-			# Bonus gold between waves — scales with progression
+			# Bonus gold between waves â€” scales with progression
 			var bonus = 5 + wave * 2 + int(wave / 10) * 5
 			add_gold(bonus)
 			spawn_floating_text(Vector2(640, 340), "+%dG Wave Bonus" % bonus, Color(1.0, 0.85, 0.2), 14.0, 1.0)
@@ -15964,18 +16048,18 @@ func _input(event: InputEvent) -> void:
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
-		elif menu_current_view == "relics":
-			relic_scroll_offset = clampf(relic_scroll_offset + delta_y, 0.0, 1200.0)
+		elif menu_current_view == "gear":
+			gear_scroll_offset = clampf(gear_scroll_offset + delta_y, 0.0, 1200.0)
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
 		elif menu_current_view == "emporium" and emporium_sub_category == 8:
-			binding_shop_scroll = clampf(binding_shop_scroll + delta_y, 0.0, 1200.0)
+			gear_shop_scroll = clampf(gear_shop_scroll + delta_y, 0.0, 1200.0)
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
 		elif menu_current_view == "survivors" and survivor_detail_open:
-			detail_binding_scroll = clampf(detail_binding_scroll + delta_y, 0.0, 600.0)
+			detail_gear_scroll = clampf(detail_gear_scroll + delta_y, 0.0, 600.0)
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
@@ -15992,27 +16076,27 @@ func _input(event: InputEvent) -> void:
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
-		elif menu_current_view == "relics" and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		elif menu_current_view == "gear" and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				relic_scroll_offset = maxf(0.0, relic_scroll_offset - 30.0)
+				gear_scroll_offset = maxf(0.0, gear_scroll_offset - 30.0)
 			else:
-				relic_scroll_offset = minf(relic_scroll_offset + 30.0, 1200.0)
+				gear_scroll_offset = minf(gear_scroll_offset + 30.0, 1200.0)
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
 		elif menu_current_view == "emporium" and emporium_sub_category == 8 and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				binding_shop_scroll = maxf(0.0, binding_shop_scroll - 30.0)
+				gear_shop_scroll = maxf(0.0, gear_shop_scroll - 30.0)
 			else:
-				binding_shop_scroll = minf(binding_shop_scroll + 30.0, 1200.0)
+				gear_shop_scroll = minf(gear_shop_scroll + 30.0, 1200.0)
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
 		elif menu_current_view == "survivors" and survivor_detail_open and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				detail_binding_scroll = maxf(0.0, detail_binding_scroll - 30.0)
+				detail_gear_scroll = maxf(0.0, detail_gear_scroll - 30.0)
 			else:
-				detail_binding_scroll = minf(detail_binding_scroll + 30.0, 600.0)
+				detail_gear_scroll = minf(detail_gear_scroll + 30.0, 600.0)
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
@@ -16056,7 +16140,7 @@ func _input(event: InputEvent) -> void:
 			if emporium_sub_category == 6:
 				_on_trophy_store_clicked(mouse_pos)
 			elif emporium_sub_category == 8:
-				_on_binding_shop_clicked(mouse_pos)
+				_on_gear_shop_clicked(mouse_pos)
 			elif emporium_sub_category == 9:
 				_on_salvage_clicked(mouse_pos)
 			elif emporium_sub_category == 10:
@@ -16112,7 +16196,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if emporium_sub_category == 6:
 				_on_trophy_store_clicked(mouse_pos)
 			elif emporium_sub_category == 8:
-				_on_binding_shop_clicked(mouse_pos)
+				_on_gear_shop_clicked(mouse_pos)
 			elif emporium_sub_category == 9:
 				_on_salvage_clicked(mouse_pos)
 			elif emporium_sub_category == 10:
@@ -16142,7 +16226,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Handle chronicles/knowledge tree clicks
 		elif menu_current_view == "chronicles":
 			_on_knowledge_tree_clicked(mouse_pos)
-		# Handle chapters view — diff popup first, then badges/overlay, then story map
+		# Handle chapters view â€” diff popup first, then badges/overlay, then story map
 		elif menu_current_view == "chapters":
 			if chapters_diff_popup_level >= 0:
 				_on_diff_popup_clicked(mouse_pos)
@@ -16247,14 +16331,14 @@ func _try_place_tower(pos: Vector2) -> void:
 	if "_build_timer" in tower:
 		tower._build_timer = 0.5
 	_build_effects.append({"pos": pos, "timer": 0.5, "max_timer": 0.5})
-	# Apply meta-progression buffs (level + knowledge + relics)
+	# Apply meta-progression buffs (level + knowledge + gear)
 	_apply_meta_buffs(tower, selected_tower)
 
 	placed_tower_positions.append(pos)
 	purchased_towers[selected_tower] = true
 	var tname = tower_info[selected_tower]["name"]
 
-	# Disable the button — one purchase per tower
+	# Disable the button â€” one purchase per tower
 	if tower_buttons.has(selected_tower):
 		tower_buttons[selected_tower].text = "PLACED"
 		tower_buttons[selected_tower].disabled = true
@@ -16386,7 +16470,7 @@ func _generate_wave_preview(w: int) -> Array:
 func _udraw(fnt: Font, pos: Vector2, text: String, halign: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, width = -1, size: int = 16, color: Color = Color.WHITE) -> void:
 	draw_string(fnt, pos, text.to_upper(), halign, width, size, color)
 
-# DRAW — Level-specific backgrounds
+# DRAW â€” Level-specific backgrounds
 # ============================================================
 func _draw() -> void:
 	if game_state == GameState.MENU:
@@ -16652,7 +16736,7 @@ func _draw() -> void:
 	if odyssey_transition_active:
 		var font = game_font
 		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.7))
-		_udraw(font, Vector2(640, 340), "ODYSSEY — Next Map in %.0fs..." % odyssey_transition_timer, HORIZONTAL_ALIGNMENT_CENTER, -1, 24, Color(0.85, 0.7, 0.2))
+		_udraw(font, Vector2(640, 340), "ODYSSEY â€” Next Map in %.0fs..." % odyssey_transition_timer, HORIZONTAL_ALIGNMENT_CENTER, -1, 24, Color(0.85, 0.7, 0.2))
 		if odyssey_current_map < odyssey_maps.size():
 			var next_name = levels[odyssey_maps[odyssey_current_map]]["name"] if odyssey_maps[odyssey_current_map] < levels.size() else "?"
 			_udraw(font, Vector2(640, 380), next_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.7, 0.6, 0.4))
@@ -16785,7 +16869,7 @@ func _draw() -> void:
 	if _death_flash_timer > 0.0:
 		var flash_a = clampf(_death_flash_timer / 0.15, 0.0, 1.0) * 0.5
 		draw_rect(Rect2(0, 0, 1280, 720), Color(0.9, 0.1, 0.05, flash_a))
-		# Red border vignette — thicker, more dramatic
+		# Red border vignette â€” thicker, more dramatic
 		for bi in range(3):
 			var b_alpha = flash_a * (0.8 - float(bi) * 0.2)
 			var b_thick = 4.0 + float(bi) * 6.0
@@ -16808,12 +16892,12 @@ func _draw() -> void:
 			var p_dist = burst_progress * 160.0
 			var p_pos = Vector2(640 + cos(p_angle) * p_dist, wc_y - 6 + sin(p_angle) * p_dist * 0.5)
 			draw_circle(p_pos, (4.0 - burst_progress * 3.0) * wc_alpha, Color(0.4, 1.0, 0.5, wc_alpha * 0.5))
-		# Glow backdrop — larger and brighter
+		# Glow backdrop â€” larger and brighter
 		draw_circle(Vector2(640, wc_y - 6), 160.0, Color(0.2, 0.9, 0.3, wc_alpha * 0.12))
 		draw_circle(Vector2(640, wc_y - 6), 80.0, Color(0.3, 1.0, 0.4, wc_alpha * 0.18))
 		# Shadow text
 		_udraw(font, Vector2(642, wc_y + 2), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 40, Color(0, 0, 0, wc_alpha * 0.6))
-		# Main text — bigger, bright green
+		# Main text â€” bigger, bright green
 		_udraw(font, Vector2(640, wc_y), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 40, Color(0.3, 1.0, 0.4, wc_alpha))
 
 	# === WAVE NUMBER BANNER ===
@@ -16856,7 +16940,7 @@ func _draw() -> void:
 		# Red glow behind text
 		draw_circle(Vector2(640, 305), 180.0, Color(0.9, 0.1, 0.05, ba_alpha * 0.08))
 		draw_circle(Vector2(640, 305), 90.0, Color(1.0, 0.15, 0.05, ba_alpha * 0.12))
-		# Red border flash — thicker
+		# Red border flash â€” thicker
 		draw_rect(Rect2(0, 240, 1280, 4), Color(0.9, 0.15, 0.1, ba_alpha * 0.9))
 		draw_rect(Rect2(0, 356, 1280, 4), Color(0.9, 0.15, 0.1, ba_alpha * 0.9))
 		# Alert text with shadow
@@ -16864,7 +16948,7 @@ func _draw() -> void:
 		var alert_size = int(44.0 * ba_scale)
 		_udraw(font, Vector2(642, 312), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(0, 0, 0, ba_alpha * 0.5))
 		_udraw(font, Vector2(640, 310), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(1.0, 0.2, 0.1, ba_alpha))
-		# Subtitle — larger for mobile
+		# Subtitle â€” larger for mobile
 		_udraw(font, Vector2(640, 344), "Prepare your defenses!", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(1.0, 0.7, 0.5, ba_alpha * 0.8))
 
 	# === COMBO KILL HUD ===
@@ -16895,7 +16979,7 @@ func _draw() -> void:
 
 	# === BOSS RUSH WAVE INDICATOR ===
 	if boss_rush_mode:
-		_udraw(game_font, Vector2(640, 52), "BOSS RUSH — WAVE %d/10" % boss_rush_wave, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.3, 0.2, 0.9))
+		_udraw(game_font, Vector2(640, 52), "BOSS RUSH â€” WAVE %d/10" % boss_rush_wave, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.3, 0.2, 0.9))
 
 	# === PAUSED OVERLAY (gothic themed) ===
 	if game_paused:
@@ -17029,7 +17113,7 @@ func _draw_ability_popup() -> void:
 	_udraw(game_font, Vector2(cx - 120, cy - 25), "NEW ABILITY UNLOCKED!", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.85, 0.3, alpha))
 	# Character name + ability name
 	var char_name = character_names[_ability_popup_tower_type] if _ability_popup_tower_type >= 0 and _ability_popup_tower_type < character_names.size() else ""
-	_udraw(game_font, Vector2(cx - 140, cy + 5), char_name + " — " + _ability_popup_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 1.0, 0.9, alpha))
+	_udraw(game_font, Vector2(cx - 140, cy + 5), char_name + " â€” " + _ability_popup_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 1.0, 0.9, alpha))
 	# Description
 	if _ability_popup_desc != "":
 		_udraw(game_font, Vector2(cx - 140, cy + 28), _ability_popup_desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.8, 0.8, 0.75, alpha * 0.8))
@@ -17038,7 +17122,7 @@ func _draw_ability_popup() -> void:
 	draw_circle(Vector2(cx - pw / 2 + 40, cy), 15.0 + glow_pulse * 5.0, Color(1.0, 0.85, 0.3, 0.1 * alpha))
 
 # =============================================================================
-# UNIVERSAL PATH DRAWING — themed road + BTD6-style entry/exit arrows
+# UNIVERSAL PATH DRAWING â€” themed road + BTD6-style entry/exit arrows
 # =============================================================================
 
 func _draw_path_overlay() -> void:
@@ -17128,78 +17212,78 @@ func _get_path_style() -> Dictionary:
 		"detail_type": "dirt",  # dirt, cobble, brick, tile, plank, ice, lab, jungle, ink
 	}
 	match current_level:
-		0:  # Prologue — glowing ink
+		0:  # Prologue â€” glowing ink
 			style["road_color"] = Color(0.12, 0.06, 0.20, 0.92)
 			style["edge_color"] = Color(0.20, 0.10, 0.35, 0.85)
 			style["detail_color"] = Color(0.40, 0.20, 0.65, 0.35)
 			style["detail_type"] = "ink"
-		1, 2, 3:  # Sherlock — grimy London cobblestone
+		1, 2, 3:  # Sherlock â€” grimy London cobblestone
 			style["road_color"] = Color(0.22, 0.18, 0.15, 0.95)
 			style["edge_color"] = Color(0.14, 0.10, 0.08, 0.90)
 			style["detail_color"] = Color(0.30, 0.24, 0.18, 0.45)
 			style["detail_type"] = "cobble"
 			style["width"] = 38.0
-		4, 5, 6:  # Merlin — ancient stone flagstones
+		4, 5, 6:  # Merlin â€” ancient stone flagstones
 			style["road_color"] = Color(0.20, 0.22, 0.18, 0.92)
 			style["edge_color"] = Color(0.12, 0.15, 0.08, 0.85)
 			style["detail_color"] = Color(0.25, 0.30, 0.20, 0.4)
 			style["detail_type"] = "stone"
 			style["width"] = 36.0
-		7, 8, 9:  # Tarzan — jungle dirt trail
+		7, 8, 9:  # Tarzan â€” jungle dirt trail
 			style["road_color"] = Color(0.22, 0.16, 0.08, 0.90)
 			style["edge_color"] = Color(0.10, 0.14, 0.04, 0.80)
 			style["detail_color"] = Color(0.28, 0.20, 0.10, 0.35)
 			style["detail_type"] = "jungle"
 			style["width"] = 34.0
-		10, 11, 12:  # Dracula — dark stone
+		10, 11, 12:  # Dracula â€” dark stone
 			style["road_color"] = Color(0.18, 0.12, 0.14, 0.95)
 			style["edge_color"] = Color(0.10, 0.06, 0.08, 0.90)
 			style["detail_color"] = Color(0.25, 0.15, 0.18, 0.4)
 			style["detail_type"] = "cobble"
 			style["width"] = 36.0
-		13, 14, 15:  # Frankenstein — lab metal grating
+		13, 14, 15:  # Frankenstein â€” lab metal grating
 			style["road_color"] = Color(0.20, 0.20, 0.22, 0.95)
 			style["edge_color"] = Color(0.12, 0.12, 0.14, 0.90)
 			style["detail_color"] = Color(0.28, 0.28, 0.32, 0.4)
 			style["detail_type"] = "lab"
 			style["width"] = 38.0
-		16, 17, 18:  # Robin Hood — forest dirt path
+		16, 17, 18:  # Robin Hood â€” forest dirt path
 			style["road_color"] = Color(0.24, 0.18, 0.10, 0.90)
 			style["edge_color"] = Color(0.12, 0.16, 0.06, 0.80)
 			style["detail_color"] = Color(0.30, 0.22, 0.12, 0.35)
 			style["detail_type"] = "dirt"
 			style["width"] = 34.0
-		19, 20, 21:  # Alice — whimsical checkerboard
+		19, 20, 21:  # Alice â€” whimsical checkerboard
 			style["road_color"] = Color(0.30, 0.22, 0.35, 0.92)
 			style["edge_color"] = Color(0.22, 0.15, 0.28, 0.85)
 			style["detail_color"] = Color(0.40, 0.30, 0.50, 0.4)
 			style["detail_type"] = "tile"
 			style["width"] = 36.0
-		22, 23, 24:  # Oz — yellow brick road
+		22, 23, 24:  # Oz â€” yellow brick road
 			style["road_color"] = Color(0.50, 0.42, 0.12, 0.95)
 			style["edge_color"] = Color(0.35, 0.28, 0.06, 0.90)
 			style["detail_color"] = Color(0.60, 0.50, 0.15, 0.5)
 			style["detail_type"] = "brick"
 			style["width"] = 38.0
-		25, 26, 27:  # Peter Pan — sandy/wooden
+		25, 26, 27:  # Peter Pan â€” sandy/wooden
 			style["road_color"] = Color(0.30, 0.24, 0.14, 0.90)
 			style["edge_color"] = Color(0.20, 0.16, 0.08, 0.85)
 			style["detail_color"] = Color(0.36, 0.28, 0.16, 0.4)
 			style["detail_type"] = "plank"
 			style["width"] = 36.0
-		28, 29, 30:  # Phantom — dark opera stone
+		28, 29, 30:  # Phantom â€” dark opera stone
 			style["road_color"] = Color(0.16, 0.14, 0.18, 0.95)
 			style["edge_color"] = Color(0.10, 0.08, 0.12, 0.90)
 			style["detail_color"] = Color(0.22, 0.18, 0.26, 0.4)
 			style["detail_type"] = "stone"
 			style["width"] = 36.0
-		31, 32, 33:  # Scrooge — snowy cobblestone
+		31, 32, 33:  # Scrooge â€” snowy cobblestone
 			style["road_color"] = Color(0.28, 0.28, 0.30, 0.92)
 			style["edge_color"] = Color(0.20, 0.20, 0.24, 0.85)
 			style["detail_color"] = Color(0.40, 0.40, 0.45, 0.4)
 			style["detail_type"] = "ice"
 			style["width"] = 36.0
-		34, 35, 36:  # Shadow Author — dark void
+		34, 35, 36:  # Shadow Author â€” dark void
 			style["road_color"] = Color(0.10, 0.06, 0.16, 0.95)
 			style["edge_color"] = Color(0.06, 0.03, 0.10, 0.90)
 			style["detail_color"] = Color(0.18, 0.10, 0.28, 0.4)
@@ -17264,7 +17348,7 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 					# Cross joint
 					draw_line(p + n * (half_w - 3), p - n * (half_w - 3), Color(0.06, 0.06, 0.04, 0.2), 1.0)
 		"dirt":
-			# Dirt path — ruts and pebbles
+			# Dirt path â€” ruts and pebbles
 			for k in range(0, pts.size() - 1, 6):
 				var p = pts[k]
 				var dir = (pts[k + 1] - pts[k]).normalized()
@@ -17278,7 +17362,7 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 				var off = Vector2(sin(float(k) * 2.3) * half_w * 0.6, cos(float(k) * 1.8) * 4.0)
 				draw_circle(p + off, 2.0, Color(0.30, 0.24, 0.16, 0.3))
 		"jungle":
-			# Jungle trail — roots and mud
+			# Jungle trail â€” roots and mud
 			for k in range(0, pts.size() - 1, 8):
 				var p = pts[k]
 				var dir = (pts[k + 1] - pts[k]).normalized()
@@ -17292,7 +17376,7 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 				var off = Vector2(sin(float(k) * 3.1) * 8.0, cos(float(k) * 2.7) * 5.0)
 				draw_circle(p + off, 4.0 + sin(float(k)) * 2.0, Color(0.16, 0.12, 0.06, 0.2))
 		"tile":
-			# Alice tile pattern — alternating light/dark squares
+			# Alice tile pattern â€” alternating light/dark squares
 			var step = 0.0
 			var tile_idx = 0
 			for k in range(pts.size() - 1):
@@ -17326,7 +17410,7 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 					draw_line(p + n * 4, p + dir * 12 + n * 4, Color(0.24, 0.18, 0.10, 0.15), 1.0)
 					draw_line(p - n * 6, p + dir * 10 - n * 6, Color(0.24, 0.18, 0.10, 0.15), 1.0)
 		"ice":
-			# Icy cobblestone — frost lines
+			# Icy cobblestone â€” frost lines
 			var step = 0.0
 			for k in range(pts.size() - 1):
 				var seg_len = pts[k].distance_to(pts[k + 1])
@@ -17344,7 +17428,7 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 				var sparkle = (sin(_time * 4.0 + float(k) * 0.7) + 1.0) * 0.5
 				draw_circle(p + off, 1.5, Color(0.7, 0.8, 1.0, sparkle * 0.3))
 		"lab":
-			# Metal grating — cross-hatch
+			# Metal grating â€” cross-hatch
 			var step = 0.0
 			for k in range(pts.size() - 1):
 				var seg_len = pts[k].distance_to(pts[k + 1])
@@ -17361,7 +17445,7 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 						draw_circle(p + n * (half_w * 0.5), 1.5, Color(0.30, 0.30, 0.35, 0.4))
 						draw_circle(p - n * (half_w * 0.5), 1.5, Color(0.30, 0.30, 0.35, 0.4))
 		"ink":
-			# Ink/shadow — swirling particles
+			# Ink/shadow â€” swirling particles
 			for k in range(0, pts.size() - 1, 5):
 				var p = pts[k]
 				var off_x = sin(float(k) * 1.7 + _time * 0.5) * half_w * 0.5
@@ -19010,32 +19094,32 @@ func _draw_scrooge_novel(ch: int) -> void:
 
 # === BATTD: GEAR FUSION FORGE ===
 func _can_fuse_gear(rarity: String) -> bool:
-	var next_rarity = {"tattered": "bound", "bound": "gilded", "gilded": "mythic", "mythic": "forbidden"}
+	var next_rarity = {"common": "uncommon", "uncommon": "rare", "rare": "epic", "epic": "legendary"}
 	if not next_rarity.has(rarity):
 		return false
 	var count = 0
-	for bid in owned_bindings:
-		var bdata = _find_binding(bid)
-		if bdata.get("rarity", "") == rarity:
+	for bid in owned_gear:
+		var bdata = _find_gear(bid)
+		if bdata.get("tier", "") == rarity:
 			count += 1
 	return count >= 3
 
 func _perform_gear_fusion(rarity: String) -> Dictionary:
-	var next_rarity_map = {"tattered": "bound", "bound": "gilded", "gilded": "mythic", "mythic": "forbidden"}
+	var next_rarity_map = {"common": "uncommon", "uncommon": "rare", "rare": "epic", "epic": "legendary"}
 	if not next_rarity_map.has(rarity):
 		return {}
 	var target_rarity = next_rarity_map[rarity]
 	# Find 3 gear of this rarity
 	var to_consume: Array = []
-	for bid in owned_bindings:
+	for bid in owned_gear:
 		if to_consume.size() >= 3:
 			break
-		var bdata = _find_binding(bid)
-		if bdata.get("rarity", "") == rarity:
+		var bdata = _find_gear(bid)
+		if bdata.get("tier", "") == rarity:
 			# Don't consume equipped gear
 			var is_equipped = false
-			for t in equipped_bindings:
-				if bid in equipped_bindings[t]:
+			for t in equipped_gear:
+				if bid in equipped_gear[t]:
 					is_equipped = true
 					break
 			if not is_equipped:
@@ -19044,11 +19128,11 @@ func _perform_gear_fusion(rarity: String) -> Dictionary:
 		return {}
 	# Remove consumed gear
 	for bid in to_consume:
-		owned_bindings.erase(bid)
+		owned_gear.erase(bid)
 	# Pick random gear of next rarity
 	var candidates: Array = []
-	for bdef in TOME_BINDINGS:
-		if bdef.get("rarity", "") == target_rarity:
+	for bdef in GEAR_ITEMS:
+		if bdef.get("tier", "") == target_rarity:
 			candidates.append(bdef)
 	if candidates.is_empty():
 		return {}
@@ -19061,7 +19145,7 @@ func _perform_gear_fusion(rarity: String) -> Dictionary:
 				wish_candidates.append(c)
 		if wish_candidates.size() > 0:
 			picked = wish_candidates[randi() % wish_candidates.size()]
-	owned_bindings[picked["id"]] = owned_bindings.get(picked["id"], 0) + 1
+	owned_gear[picked["id"]] = owned_gear.get(picked["id"], 0) + 1
 	_save_game()
 	return picked
 
@@ -19237,7 +19321,7 @@ func _check_collectible_click(mouse_pos: Vector2) -> bool:
 				add_gold(mc["reward_amount"])
 				spawn_floating_text(mc["pos"], "+%dG" % mc["reward_amount"], Color(1.0, 0.85, 0.2), 16.0, 1.2)
 			elif mc["reward_type"] == "shards":
-				player_relic_shards += mc["reward_amount"]
+				player_gear_shards += mc["reward_amount"]
 				spawn_floating_text(mc["pos"], "+%d Shards" % mc["reward_amount"], Color(0.6, 0.4, 1.0), 16.0, 1.2)
 			elif mc["reward_type"] == "quills":
 				player_quills += mc["reward_amount"]
@@ -19291,14 +19375,14 @@ func _draw_bounty_board() -> void:
 func _auto_equip_best_gear(tower_type) -> int:
 	if not survivor_progress.has(tower_type):
 		return 0
-	var max_slots = _get_binding_slots(tower_type)
-	var current_equipped = equipped_bindings.get(tower_type, []).duplicate()
+	var max_slots = _get_gear_slots(tower_type)
+	var current_equipped = equipped_gear.get(tower_type, []).duplicate()
 	# Get all owned unequipped gear
 	var available: Array = []
-	for bid in owned_bindings:
+	for bid in owned_gear:
 		var is_eq = false
-		for t in equipped_bindings:
-			if bid in equipped_bindings[t]:
+		for t in equipped_gear:
+			if bid in equipped_gear[t]:
 				is_eq = true
 				break
 		if not is_eq:
@@ -19308,12 +19392,12 @@ func _auto_equip_best_gear(tower_type) -> int:
 		available.append(bid)
 	# Score each piece of gear
 	var scored: Array = []
-	var rarity_scores = {"tattered": 1, "bound": 2, "gilded": 3, "mythic": 4, "forbidden": 5}
+	var rarity_scores = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4, "legendary": 5}
 	for bid in available:
-		var bdata = _find_binding(bid)
+		var bdata = _find_gear(bid)
 		if bdata.is_empty():
 			continue
-		var score = rarity_scores.get(bdata.get("rarity", "tattered"), 1)
+		var score = rarity_scores.get(bdata.get("tier", "common"), 1)
 		# Bonus for character-specific gear
 		var char_name = ""
 		var tower_names_map = {TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice", TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan", TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge", TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin", TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author"}
@@ -19324,12 +19408,12 @@ func _auto_equip_best_gear(tower_type) -> int:
 	# Sort by score descending
 	scored.sort_custom(func(a, b): return a["score"] > b["score"])
 	# Equip top N
-	equipped_bindings[tower_type] = []
+	equipped_gear[tower_type] = []
 	var equipped_count = 0
 	for entry in scored:
 		if equipped_count >= max_slots:
 			break
-		equipped_bindings[tower_type].append(entry["id"])
+		equipped_gear[tower_type].append(entry["id"])
 		equipped_count += 1
 	_save_game()
 	return equipped_count
@@ -19427,16 +19511,16 @@ func _award_insta_tower() -> void:
 	spawn_floating_text(Vector2(640, 260), "INSTA-TOWER: %s T%d!" % [tname, tier], Color(0.3, 1.0, 0.8), 16.0, 2.0)
 
 # === BATTD2: GEAR ENCHANTING ===
-func _enchant_gear(binding_id: String) -> Dictionary:
+func _enchant_gear(gear_id: String) -> Dictionary:
 	if player_quills < ENCHANT_COST_QUILLS:
 		return {}
-	var bdata = _find_binding(binding_id)
+	var bdata = _find_gear(gear_id)
 	if bdata.is_empty():
 		return {}
 	player_quills -= ENCHANT_COST_QUILLS
 	var effect = ENCHANT_EFFECTS[randi() % ENCHANT_EFFECTS.size()]
 	var bonus_val = randf_range(0.03, 0.08)
-	# Store enchantment as metadata on the binding
+	# Store enchantment as metadata on the gear
 	if not bdata.has("enchant"):
 		bdata["enchant"] = {"effect": effect, "value": bonus_val}
 	_save_game()
@@ -19755,30 +19839,30 @@ func _draw_path_events() -> void:
 			draw_circle(pos, 10.0, Color(1.0, 0.6, 0.2, alpha * 0.5))
 
 # === BATTD2: GEAR REROLL ===
-func _reroll_gear(binding_id: String) -> Dictionary:
-	if player_relic_shards < REROLL_SHARD_COST:
+func _reroll_gear(gear_id: String) -> Dictionary:
+	if player_gear_shards < REROLL_SHARD_COST:
 		return {}
-	var bdata = _find_binding(binding_id)
+	var bdata = _find_gear(gear_id)
 	if bdata.is_empty():
 		return {}
-	var current_rarity = bdata.get("rarity", "tattered")
-	player_relic_shards -= REROLL_SHARD_COST
-	# Remove old binding
-	owned_bindings.erase(binding_id)
+	var current_rarity = bdata.get("tier", "common")
+	player_gear_shards -= REROLL_SHARD_COST
+	# Remove old gear item
+	owned_gear.erase(gear_id)
 	# Unequip if equipped
-	for t in equipped_bindings:
-		if binding_id in equipped_bindings[t]:
-			equipped_bindings[t].erase(binding_id)
-	# Find a random binding of the same rarity
+	for t in equipped_gear:
+		if gear_id in equipped_gear[t]:
+			equipped_gear[t].erase(gear_id)
+	# Find a random gear of the same tier
 	var candidates: Array = []
-	for b in TOME_BINDINGS:
-		if b.get("rarity", "") == current_rarity and b["id"] != binding_id:
+	for b in GEAR_ITEMS:
+		if b.get("tier", "") == current_rarity and b["id"] != gear_id:
 			candidates.append(b)
 	if candidates.is_empty():
-		owned_bindings[binding_id] = owned_bindings.get(binding_id, 0) + 1  # Give back if no alternatives
+		owned_gear[gear_id] = owned_gear.get(gear_id, 0) + 1  # Give back if no alternatives
 		return {}
 	var picked = candidates[randi() % candidates.size()]
-	owned_bindings[picked["id"]] = owned_bindings.get(picked["id"], 0) + 1
+	owned_gear[picked["id"]] = owned_gear.get(picked["id"], 0) + 1
 	_save_game()
 	return picked
 
@@ -19806,7 +19890,7 @@ func _check_page_click(mouse_pos: Vector2) -> bool:
 	if mouse_pos.distance_to(_level_page_pos) < 25.0:
 		_level_page_collected = true
 		storybook_pages_found[str(current_level)] = true
-		player_relic_shards += PAGE_SHARD_REWARD
+		player_gear_shards += PAGE_SHARD_REWARD
 		spawn_floating_text(_level_page_pos, "PAGE FOUND! +%d Shards" % PAGE_SHARD_REWARD, Color(0.95, 0.85, 0.4), 16.0, 1.5)
 		_save_game()
 		return true
@@ -19819,10 +19903,10 @@ func _get_set_progress(tower_type) -> Dictionary:
 	char_name = tower_names_map.get(tower_type, "")
 	var total = 0
 	var owned = 0
-	for b in TOME_BINDINGS:
+	for b in GEAR_ITEMS:
 		if b.get("character", "") == char_name:
 			total += 1
-			if b["id"] in owned_bindings:
+			if b["id"] in owned_gear:
 				owned += 1
 	return {"owned": owned, "total": total, "character": char_name}
 
@@ -19940,9 +20024,9 @@ func _start_layered_music(level_idx: int) -> void:
 
 	# Helper: get frequency for a scale degree
 	# degree 0 = root, degree 7 = octave up, etc.
-	# We use the scale array to map degree → semitones → freq
+	# We use the scale array to map degree â†’ semitones â†’ freq
 
-	# --- Layer 1: ROBIN HOOD — Plucked Strings (arpeggiated chords) ---
+	# --- Layer 1: ROBIN HOOD â€” Plucked Strings (arpeggiated chords) ---
 	var strings_data := PackedFloat32Array()
 	strings_data.resize(loop_samples)
 	for bar in MUSIC_LOOP_BARS:
@@ -19967,7 +20051,7 @@ func _start_layered_music(level_idx: int) -> void:
 		strings_data[i] = clampf(strings_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(strings_data))
 
-	# --- Layer 2: ALICE — Music Box (bright bell-like tones, melody) ---
+	# --- Layer 2: ALICE â€” Music Box (bright bell-like tones, melody) ---
 	var mbox_data := PackedFloat32Array()
 	mbox_data.resize(loop_samples)
 	# Music box plays a simple melody using scale degrees
@@ -19995,7 +20079,7 @@ func _start_layered_music(level_idx: int) -> void:
 		mbox_data[i] = clampf(mbox_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(mbox_data))
 
-	# --- Layer 3: WICKED WITCH — Dark Organ (sustained chords, low register) ---
+	# --- Layer 3: WICKED WITCH â€” Dark Organ (sustained chords, low register) ---
 	var organ_data := PackedFloat32Array()
 	organ_data.resize(loop_samples)
 	for bar in MUSIC_LOOP_BARS:
@@ -20022,7 +20106,7 @@ func _start_layered_music(level_idx: int) -> void:
 		organ_data[i] = clampf(organ_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(organ_data))
 
-	# --- Layer 4: PETER PAN — Flute (airy lead melody, breathy) ---
+	# --- Layer 4: PETER PAN â€” Flute (airy lead melody, breathy) ---
 	var flute_data := PackedFloat32Array()
 	flute_data.resize(loop_samples)
 	# Flute plays a counter-melody (offset from Alice's pattern)
@@ -20060,7 +20144,7 @@ func _start_layered_music(level_idx: int) -> void:
 		flute_data[i] = clampf(flute_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(flute_data))
 
-	# --- Layer 5: PHANTOM — Piano (dramatic arpeggios, fuller sound) ---
+	# --- Layer 5: PHANTOM â€” Piano (dramatic arpeggios, fuller sound) ---
 	var piano_data := PackedFloat32Array()
 	piano_data.resize(loop_samples)
 	# Piano plays 8th note arpeggios (2 notes per beat = 32 notes total)
@@ -20094,7 +20178,7 @@ func _start_layered_music(level_idx: int) -> void:
 		piano_data[i] = clampf(piano_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(piano_data))
 
-	# --- Layer 6: SCROOGE — Brass (warm tuba/horn bassline, half notes) ---
+	# --- Layer 6: SCROOGE â€” Brass (warm tuba/horn bassline, half notes) ---
 	var brass_data := PackedFloat32Array()
 	brass_data.resize(loop_samples)
 	# Brass plays half-note bassline (2 notes per bar)
@@ -20201,7 +20285,7 @@ func _refresh_music_max_tier() -> void:
 			_music_max_tier_cache = maxi(_music_max_tier_cache, tower.upgrade_tier)
 
 func _pulse_tower_layer(tower_type: int) -> void:
-	# Brief volume spike when tower attacks — adds musical punch
+	# Brief volume spike when tower attacks â€” adds musical punch
 	if not TOWER_LAYER_MAP.has(tower_type):
 		return
 	if not _music_layers_active:
@@ -21907,7 +21991,7 @@ func _draw_robin_ch3(sky_color: Color, ground_color: Color) -> void:
 	_draw_shadow_author_effects()
 
 func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
-	# === SKY GRADIENT — deep purple twilight ===
+	# === SKY GRADIENT â€” deep purple twilight ===
 	var sky_steps := 24
 	for i in range(sky_steps):
 		var t := float(i) / float(sky_steps)
@@ -21919,7 +22003,7 @@ func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
 		band_col = band_col.lerp(Color(0.5, 0.2, 0.6), haze)
 		draw_rect(Rect2(0, y_start, 1280, band_h), band_col)
 
-	# === ATMOSPHERE — swirling tea steam and madness particles ===
+	# === ATMOSPHERE â€” swirling tea steam and madness particles ===
 	for i in range(18):
 		var sx := fmod(float(i) * 173.7 + _time * 8.0, 1280.0)
 		var sy := 80.0 + sin(_time * 0.6 + float(i) * 0.9) * 60.0 + float(i) * 14.0
@@ -21933,7 +22017,7 @@ func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
 		var q_alpha := clampf(sin(_time * 1.1 + float(i) * 0.7), 0.0, 1.0) * 0.15
 		draw_circle(Vector2(qx, qy), 2.0, Color(1.0, 0.9, 0.3, q_alpha))
 
-	# === CHESHIRE CAT GRIN — fading in and out ===
+	# === CHESHIRE CAT GRIN â€” fading in and out ===
 	var cat_x := 200.0 + sin(_time * 0.15) * 30.0
 	var cat_y := 140.0 + cos(_time * 0.2) * 15.0
 	var grin_alpha := clampf(sin(_time * 0.5), 0.0, 1.0) * 0.7
@@ -22039,7 +22123,7 @@ func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
 		# Beak
 		draw_line(shaft_top + Vector2(5.0, 0.0), shaft_top + Vector2(11.0, 1.0), Color(0.9, 0.7, 0.2, 0.4), 1.5)
 
-	# === GROUND — chess board tiles ===
+	# === GROUND â€” chess board tiles ===
 	var ground_y := 440.0
 	draw_rect(Rect2(0, ground_y, 1280, 628.0 - ground_y), ground_color)
 	var tile_size := 40.0
@@ -22106,7 +22190,7 @@ func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
 		var sz := 6.0
 		draw_rect(Rect2(sc_x - sz * 0.5, sc_y - sz * 0.5, sz, sz), Color(0.95, 0.93, 0.88, 0.2 + sin(rot) * 0.05))
 
-	# Bottom haze — purple mist
+	# Bottom haze â€” purple mist
 	for i in range(8):
 		var hz_t := float(i) / 8.0
 		var hz_y := 600.0 + hz_t * 28.0
@@ -22116,7 +22200,7 @@ func _draw_alice_ch2(sky_color: Color, ground_color: Color) -> void:
 
 
 func _draw_alice_ch3(sky_color: Color, ground_color: Color) -> void:
-	# === SKY GRADIENT — dark crimson royal sky ===
+	# === SKY GRADIENT â€” dark crimson royal sky ===
 	var sky_steps := 24
 	for i in range(sky_steps):
 		var t := float(i) / float(sky_steps)
@@ -22128,7 +22212,7 @@ func _draw_alice_ch3(sky_color: Color, ground_color: Color) -> void:
 		band_col = band_col.lerp(Color(0.6, 0.05, 0.1), throb)
 		draw_rect(Rect2(0, y_start, 1280, band_h), band_col)
 
-	# === ATMOSPHERE — drifting red particles, paint droplets ===
+	# === ATMOSPHERE â€” drifting red particles, paint droplets ===
 	for i in range(14):
 		var px := fmod(float(i) * 197.3 + _time * 5.0, 1280.0)
 		var py := 80.0 + sin(_time * 0.5 + float(i) * 1.4) * 50.0 + float(i) * 15.0
@@ -22234,14 +22318,14 @@ func _draw_alice_ch3(sky_color: Color, ground_color: Color) -> void:
 		draw_line(Vector2(sx + 10.0, sy - 45.0 + bob), Vector2(sx + 7.0, sy - 40.0 + bob), Color(0.6, 0.55, 0.5, 0.35), 1.5)
 		draw_line(Vector2(sx + 10.0, sy - 45.0 + bob), Vector2(sx + 13.0, sy - 40.0 + bob), Color(0.6, 0.55, 0.5, 0.35), 1.5)
 
-	# --- Rose garden — white roses being painted red ---
+	# --- Rose garden â€” white roses being painted red ---
 	for i in range(10):
 		var rx := 60.0 + float(i) * 125.0
 		var ry := 430.0 + sin(float(i) * 2.1) * 15.0
 		# Stem
 		var stem_sway := sin(_time * 0.9 + float(i) * 0.6) * 1.5
 		draw_line(Vector2(rx + stem_sway, ry), Vector2(rx, ry + 25.0), Color(0.15, 0.35, 0.1, 0.4), 1.5)
-		# Rose bloom — transition from white to red based on paint progress
+		# Rose bloom â€” transition from white to red based on paint progress
 		var paint_progress := clampf(sin(_time * 0.2 + float(i) * 0.8) * 0.5 + 0.5, 0.0, 1.0)
 		var rose_white := Color(0.95, 0.92, 0.88, 0.5)
 		var rose_red := Color(0.85, 0.1, 0.15, 0.55)
@@ -22264,7 +22348,7 @@ func _draw_alice_ch3(sky_color: Color, ground_color: Color) -> void:
 		draw_circle(Vector2(hx + h_size * 0.4, hy), h_size, Color(0.8, 0.1, 0.15, h_alpha))
 		draw_rect(Rect2(hx - h_size, hy, h_size * 2.0, h_size * 1.0), Color(0.8, 0.1, 0.15, h_alpha))
 
-	# === GROUND — red/black checkerboard courtyard ===
+	# === GROUND â€” red/black checkerboard courtyard ===
 	var ground_y := 450.0
 	draw_rect(Rect2(0, ground_y, 1280, 628.0 - ground_y), ground_color)
 	var tile_size := 36.0
@@ -22348,7 +22432,7 @@ func _draw_alice_ch3(sky_color: Color, ground_color: Color) -> void:
 	_draw_shadow_author_effects()
 
 func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
-	# === SKY GRADIENT — dark green-black storm sky ===
+	# === SKY GRADIENT â€” dark green-black storm sky ===
 	for i in range(40):
 		var t = float(i) / 39.0
 		var col = sky_color.lerp(Color(0.03, 0.08, 0.02, 1.0), t * 0.6)
@@ -22358,7 +22442,7 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 			col = col.lerp(Color(0.6, 0.7, 0.5, 1.0), (lightning - 0.92) * 8.0)
 		draw_rect(Rect2(0, 50 + t * 280, 1280, 8.5), col)
 
-	# === STORM CLOUDS — roiling green-black masses ===
+	# === STORM CLOUDS â€” roiling green-black masses ===
 	for i in range(18):
 		var cx = float(i) * 75.0 + sin(_time * 0.3 + float(i) * 0.9) * 30.0
 		var cy = 70.0 + sin(float(i) * 1.7 + _time * 0.25) * 25.0
@@ -22404,7 +22488,7 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 			var boff = float(b) * 2.5 - 5.0
 			draw_line(Vector2(broom_cx + 28.0, broom_cy + 6.0), Vector2(broom_cx + 40.0, broom_cy + 4.0 + boff), Color(0.02, 0.02, 0.02, 0.7), 1.0)
 
-	# === DISTANT MOUNTAINS — dark jagged peaks ===
+	# === DISTANT MOUNTAINS â€” dark jagged peaks ===
 	for layer in range(3):
 		var pts = PackedVector2Array()
 		pts.append(Vector2(0, 330 - layer * 30))
@@ -22433,13 +22517,13 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 			Vector2(sx - 12.0, castle_base), Vector2(sx - 10.0, castle_base - 50.0),
 			Vector2(sx, castle_base - 65.0), Vector2(sx + 10.0, castle_base - 50.0),
 			Vector2(sx + 12.0, castle_base)]), Color(0.02, 0.02, 0.02, 0.95))
-	# Castle windows — eerie green glow
+	# Castle windows â€” eerie green glow
 	var win_glow = 0.5 + sin(_time * 1.5) * 0.2
 	draw_circle(Vector2(castle_x, castle_base - 70.0), 4.0, Color(0.2, 0.6 * win_glow, 0.1, 0.7))
 	draw_circle(Vector2(castle_x - 45.0, castle_base - 35.0), 3.0, Color(0.2, 0.5 * win_glow, 0.1, 0.6))
 	draw_circle(Vector2(castle_x + 45.0, castle_base - 35.0), 3.0, Color(0.2, 0.5 * win_glow, 0.1, 0.6))
 
-	# === HOURGLASS MOTIF — ghostly outline in the sky ===
+	# === HOURGLASS MOTIF â€” ghostly outline in the sky ===
 	var hg_x = 160.0
 	var hg_y = 130.0
 	var hg_alpha = 0.12 + sin(_time * 0.8) * 0.05
@@ -22463,7 +22547,7 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 		var smoke_a = clampf(0.3 - smoke_t * 0.08, 0.0, 0.3)
 		draw_circle(Vector2(smoke_x, smoke_y), smoke_r, Color(0.15, 0.5, 0.1, smoke_a))
 
-	# === WINKIE GUARD TOWERS — flanking the scene ===
+	# === WINKIE GUARD TOWERS â€” flanking the scene ===
 	for gx in [80.0, 1200.0]:
 		var gy = 300.0
 		# Tower body
@@ -22476,7 +22560,7 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 		draw_circle(Vector2(gx, gy - 40.0), 5.0, Color(0.6, 0.3, 0.05, torch_flicker * 0.5))
 		draw_circle(Vector2(gx, gy - 40.0), 3.0, Color(0.8, 0.5, 0.1, torch_flicker * 0.7))
 
-	# === FLYING MONKEYS — animated swooping ===
+	# === FLYING MONKEYS â€” animated swooping ===
 	for m in range(4):
 		var mf = float(m)
 		var monkey_t = fmod(_time * 0.7 + mf * 1.8, 6.0)
@@ -22508,7 +22592,7 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 			# Sub-branches
 			draw_line(Vector2(tx + bx_off * 0.7 + sway, by - 8.0), Vector2(tx + bx_off * 1.1 + sway, by - 20.0), tree_col, 1.0)
 
-	# === GROUND — barren dark earth ===
+	# === GROUND â€” barren dark earth ===
 	var ground_pts = PackedVector2Array()
 	ground_pts.append(Vector2(0, 628))
 	for g in range(65):
@@ -22518,7 +22602,7 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 	ground_pts.append(Vector2(1280, 628))
 	draw_colored_polygon(ground_pts, ground_color)
 
-	# Ground texture — cracked dry earth
+	# Ground texture â€” cracked dry earth
 	for i in range(30):
 		var cx = float(i) * 43.0 + sin(float(i) * 3.7) * 20.0
 		var cy = 380.0 + sin(float(i) * 1.9) * 60.0 + float(i) * 5.0
@@ -22549,14 +22633,14 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 				draw_line(sp + Vector2(-ss, -ss * 1.5), sp + Vector2(ss, -ss * 1.5), Color(0.4, 0.3, 0.15, 0.5), 2.0)
 				draw_circle(sp + Vector2(0, -ss * 2.2), ss * 0.5, Color(0.6, 0.5, 0.2, 0.45))
 
-	# === FOREGROUND — dark mist and atmosphere ===
+	# === FOREGROUND â€” dark mist and atmosphere ===
 	for i in range(6):
 		var fi = float(i)
 		var fog_x = fmod(fi * 250.0 + _time * 15.0, 1400.0) - 60.0
 		var fog_y = 560.0 + sin(fi * 2.0) * 30.0
 		draw_circle(Vector2(fog_x, fog_y), 50.0 + fi * 8.0, Color(0.05, 0.12, 0.03, 0.08))
 
-	# Vignette — dark edges
+	# Vignette â€” dark edges
 	for v in range(8):
 		var vf = float(v)
 		var va = 0.04 * (8.0 - vf)
@@ -22567,7 +22651,7 @@ func _draw_oz_ch2(sky_color: Color, ground_color: Color) -> void:
 
 
 func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
-	# === SKY / CEILING — emerald green crystalline glow ===
+	# === SKY / CEILING â€” emerald green crystalline glow ===
 	for i in range(40):
 		var t = float(i) / 39.0
 		var col = sky_color.lerp(Color(0.05, 0.25, 0.08, 1.0), t * 0.7)
@@ -22576,7 +22660,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 		col = Color(col.r + pulse * 0.3, col.g + pulse, col.b + pulse * 0.3, 1.0)
 		draw_rect(Rect2(0, 50 + t * 280, 1280, 8.5), col)
 
-	# === JEWELED CEILING — faceted crystal pattern ===
+	# === JEWELED CEILING â€” faceted crystal pattern ===
 	for i in range(22):
 		var fi = float(i)
 		var cx = fi * 62.0 + sin(fi * 1.7) * 15.0
@@ -22593,7 +22677,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 			draw_line(Vector2(cx, cy), Vector2(cx + sin(fi) * 30.0, cy + 40.0 + fi * 3.0),
 				Color(0.3, 0.8, 0.4, 0.06), 1.0)
 
-	# === GREEN CRYSTAL WALLS — left and right ===
+	# === GREEN CRYSTAL WALLS â€” left and right ===
 	for side in [0.0, 1.0]:
 		var wall_x = side * 1200.0 + 20.0
 		# Crystal column structures
@@ -22610,7 +22694,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 			draw_line(Vector2(col_x + 2.0, col_top), Vector2(col_x + 2.0, col_bot),
 				Color(0.3, 0.7, 0.35, 0.1), 1.0)
 
-	# === EMERALD GLOW — ambient light from walls ===
+	# === EMERALD GLOW â€” ambient light from walls ===
 	for i in range(5):
 		var fi = float(i)
 		var glow_x = fi * 320.0 + 80.0
@@ -22619,10 +22703,10 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 		draw_circle(Vector2(glow_x, glow_y), 120.0, Color(0.1, 0.4, 0.12, glow_pulse))
 		draw_circle(Vector2(glow_x, glow_y), 60.0, Color(0.15, 0.5, 0.18, glow_pulse * 1.5))
 
-	# === THRONE at far end — tall emerald chair ===
+	# === THRONE at far end â€” tall emerald chair ===
 	var throne_x = 640.0
 	var throne_y = 150.0
-	# Throne back — tall pointed emerald
+	# Throne back â€” tall pointed emerald
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(throne_x - 30.0, throne_y + 60.0), Vector2(throne_x - 20.0, throne_y - 40.0),
 		Vector2(throne_x - 8.0, throne_y - 70.0), Vector2(throne_x, throne_y - 80.0),
@@ -22641,7 +22725,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 	draw_rect(Rect2(throne_x - 32.0, throne_y + 20.0, 8.0, 32.0), Color(0.07, 0.3, 0.09, 0.5))
 	draw_rect(Rect2(throne_x + 24.0, throne_y + 20.0, 8.0, 32.0), Color(0.07, 0.3, 0.09, 0.5))
 
-	# === RUBY SLIPPERS MOTIF — glowing on throne steps ===
+	# === RUBY SLIPPERS MOTIF â€” glowing on throne steps ===
 	var slipper_x = 640.0
 	var slipper_y = 240.0
 	var ruby_sparkle = (sin(_time * 2.5) + 1.0) * 0.5
@@ -22660,7 +22744,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Ruby glow
 	draw_circle(Vector2(slipper_x + 2.0, slipper_y), 12.0, Color(0.7, 0.1, 0.1, 0.08 + ruby_sparkle * 0.06))
 
-	# === NOME KING'S ROCKS — emerging through floor ===
+	# === NOME KING'S ROCKS â€” emerging through floor ===
 	for i in range(7):
 		var fi = float(i)
 		var rock_x = 100.0 + fi * 170.0 + sin(fi * 3.3) * 40.0
@@ -22689,7 +22773,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 				var dust_y = rock_base_y - sin(_time * 2.0 + df + fi) * 10.0
 				draw_circle(Vector2(dust_x, dust_y), 2.0, Color(0.3, 0.22, 0.12, 0.15))
 
-	# === CRACKING FLOOR — tile pattern with fractures ===
+	# === CRACKING FLOOR â€” tile pattern with fractures ===
 	for row in range(8):
 		var rf = float(row)
 		var ty = 380.0 + rf * 32.0
@@ -22707,7 +22791,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 				var mid = (crack_start + crack_end) * 0.5
 				draw_line(mid, mid + Vector2(sin(cf) * 12.0, 10.0), Color(0.15, 0.08, 0.04, 0.2), 1.0)
 
-	# === SHATTERED GREEN GLASS — debris scattered ===
+	# === SHATTERED GREEN GLASS â€” debris scattered ===
 	for i in range(12):
 		var fi = float(i)
 		var gx = 80.0 + fi * 105.0 + sin(fi * 2.7) * 30.0
@@ -22724,7 +22808,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 		draw_line(Vector2(gx - 1.0, gy - gs), Vector2(gx + 2.0, gy + gs * 0.5),
 			Color(0.5, 0.9, 0.55, glass_alpha * 0.7), 1.0)
 
-	# === GROUND — emerald tile floor ===
+	# === GROUND â€” emerald tile floor ===
 	var ground_pts = PackedVector2Array()
 	ground_pts.append(Vector2(0, 628))
 	for g in range(65):
@@ -22756,7 +22840,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 				draw_line(sp + Vector2(-ss, -ss * 1.5), sp + Vector2(ss, -ss * 1.5), Color(0.4, 0.3, 0.15, 0.5), 2.0)
 				draw_circle(sp + Vector2(0, -ss * 2.2), ss * 0.5, Color(0.6, 0.5, 0.2, 0.45))
 
-	# === FOREGROUND — emerald sparkle particles ===
+	# === FOREGROUND â€” emerald sparkle particles ===
 	for i in range(10):
 		var fi = float(i)
 		var spark_t = fmod(_time * 0.8 + fi * 0.7, 4.0)
@@ -22787,7 +22871,7 @@ func _draw_oz_ch3(sky_color: Color, ground_color: Color) -> void:
 	_draw_shadow_author_effects()
 
 func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
-	# === SKY GRADIENT — Dark jungle night ===
+	# === SKY GRADIENT â€” Dark jungle night ===
 	for i in range(32):
 		var t = float(i) / 31.0
 		var col = sky_color.lerp(Color(0.02, 0.06, 0.12), t)
@@ -22797,7 +22881,7 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 		var y1 = int((t + 1.0 / 31.0) * 578.0) + 50
 		draw_rect(Rect2(0, y0, 1280, y1 - y0 + 1), col)
 
-	# === STARS / ATMOSPHERE — Faint stars through canopy gaps ===
+	# === STARS / ATMOSPHERE â€” Faint stars through canopy gaps ===
 	var star_positions = [
 		Vector2(120, 62), Vector2(340, 75), Vector2(580, 58), Vector2(790, 80),
 		Vector2(950, 65), Vector2(1100, 72), Vector2(200, 90), Vector2(680, 68),
@@ -22833,7 +22917,7 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 		skull_base + Vector2(55, -40), skull_base + Vector2(60, 0)
 	])
 	draw_colored_polygon(skull_pts, Color(0.12, 0.1, 0.13, 0.6))
-	# Skull eye sockets — faint red glow
+	# Skull eye sockets â€” faint red glow
 	draw_circle(skull_base + Vector2(-18, -50), 9.0, Color(0.05, 0.03, 0.05, 0.7))
 	draw_circle(skull_base + Vector2(18, -50), 9.0, Color(0.05, 0.03, 0.05, 0.7))
 	var eye_pulse = (sin(_time * 1.5) + 1.0) * 0.5
@@ -22993,7 +23077,7 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 	draw_line(hook_arm_end, hook_arm_end + Vector2(5, -8), Color(0.3, 0.3, 0.35, 0.5), 2.0)
 	draw_line(hook_arm_end + Vector2(5, -8), hook_tip, Color(0.3, 0.3, 0.35, 0.5), 2.0)
 
-	# === GROUND — Dense jungle floor ===
+	# === GROUND â€” Dense jungle floor ===
 	var ground_y = 500.0
 	# Ground gradient layers
 	for gi in range(8):
@@ -23043,7 +23127,7 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 				var alpha = dec["size"] * (0.4 + twinkle * 0.6)
 				draw_circle(dec["pos"], 1.0 + twinkle * 0.8, Color(1.0, 0.97, 0.8, alpha))
 
-	# === FOREGROUND — Dense canopy overlay at top ===
+	# === FOREGROUND â€” Dense canopy overlay at top ===
 	# Foreground canopy leaves draping down
 	for fi in range(14):
 		var fx = float(fi) * 95.0 + sin(float(fi) * 1.9) * 20.0
@@ -23056,7 +23140,7 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 		draw_circle(Vector2(fx + f_sway * 1.2, fy + leaf_len * 0.5), 18.0, Color(0.03, 0.14, 0.03, 0.4))
 		draw_circle(Vector2(fx + f_sway * 0.8, fy + leaf_len * 0.3), 14.0, Color(0.04, 0.17, 0.05, 0.35))
 
-	# Bottom foreground — thick underbrush
+	# Bottom foreground â€” thick underbrush
 	for bi in range(20):
 		var bx = float(bi) * 66.0 + sin(float(bi) * 3.3) * 10.0
 		var by = 600.0 + sin(float(bi) * 1.5) * 15.0
@@ -23086,7 +23170,7 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 
 
 func _draw_peter_ch3(sky_color: Color, ground_color: Color) -> void:
-	# === SKY GRADIENT — Sunset battle colors (orange/red/purple) ===
+	# === SKY GRADIENT â€” Sunset battle colors (orange/red/purple) ===
 	for i in range(32):
 		var t = float(i) / 31.0
 		var col: Color
@@ -23102,7 +23186,7 @@ func _draw_peter_ch3(sky_color: Color, ground_color: Color) -> void:
 		var y1 = int((t + 1.0 / 31.0) * 578.0) + 50
 		draw_rect(Rect2(0, y0, 1280, y1 - y0 + 1), col)
 
-	# === STARS / ATMOSPHERE — Battle-torn sunset sky ===
+	# === STARS / ATMOSPHERE â€” Battle-torn sunset sky ===
 	# Dramatic cloud streaks
 	for ci in range(8):
 		var cx = float(ci) * 170.0 + sin(float(ci) * 2.1) * 40.0
@@ -23331,7 +23415,7 @@ func _draw_peter_ch3(sky_color: Color, ground_color: Color) -> void:
 		# Metal bands
 		draw_line(Vector2(cp.x - 12, cp.y - 7), Vector2(cp.x + 12, cp.y - 7), Color(0.5, 0.4, 0.1, 0.4), 1.0)
 
-	# === GROUND — Wooden ship deck (lower portion) ===
+	# === GROUND â€” Wooden ship deck (lower portion) ===
 	for gi in range(6):
 		var gy = water_y + float(gi) * 25.0
 		var gt = float(gi) / 5.0
@@ -23413,7 +23497,7 @@ func _draw_peter_ch3(sky_color: Color, ground_color: Color) -> void:
 	_draw_shadow_author_effects()
 
 func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
-	# === CEILING / SKY — Dark underground brick tunnel ceiling ===
+	# === CEILING / SKY â€” Dark underground brick tunnel ceiling ===
 	for y_strip in range(0, 300, 4):
 		var t = float(y_strip) / 300.0
 		var ceiling_col = sky_color.lerp(Color(0.06, 0.04, 0.08, 1.0), t)
@@ -23422,7 +23506,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 		ceiling_col = ceiling_col.lerp(Color(0.15, 0.18, 0.25), clampf(moisture, 0.0, 1.0))
 		draw_rect(Rect2(0, 50 + y_strip, 1280, 4), ceiling_col)
 
-	# === CEILING BRICKWORK — visible arched tunnel ceiling ===
+	# === CEILING BRICKWORK â€” visible arched tunnel ceiling ===
 	for bx in range(0, 1280, 48):
 		for by in range(0, 5):
 			var offset_x = 24.0 if by % 2 == 1 else 0.0
@@ -23431,7 +23515,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 			draw_rect(Rect2(float(bx) + offset_x, brick_y, 46, 16), Color(0.25, 0.15, 0.1, brick_alpha))
 			draw_line(Vector2(float(bx) + offset_x, brick_y), Vector2(float(bx) + offset_x + 46.0, brick_y), Color(0.1, 0.06, 0.04, brick_alpha * 0.7), 0.5)
 
-	# === WATER DRIPPING FROM CEILING — animated droplets ===
+	# === WATER DRIPPING FROM CEILING â€” animated droplets ===
 	for i in range(18):
 		var drip_x = 70.0 + float(i) * 68.0
 		var drip_phase = fmod(_time * 0.7 + float(i) * 2.3, 3.0)
@@ -23453,14 +23537,14 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 		var gather = sin(_time * 1.2 + float(i) * 3.0) * 0.3 + 0.5
 		draw_circle(Vector2(drip_x, drip_start_y), 1.0 + gather, Color(0.3, 0.45, 0.65, 0.2))
 
-	# === ATMOSPHERE — Underground haze and candlelight glow ===
+	# === ATMOSPHERE â€” Underground haze and candlelight glow ===
 	for i in range(8):
 		var haze_x = 160.0 * float(i) + sin(_time * 0.15 + float(i)) * 30.0
 		var haze_y = 250.0 + cos(_time * 0.2 + float(i) * 0.7) * 40.0
 		draw_circle(Vector2(haze_x, haze_y), 90.0, Color(0.2, 0.15, 0.1, 0.025))
 		draw_circle(Vector2(haze_x, haze_y), 55.0, Color(1.0, 0.7, 0.2, 0.015))
 
-	# Candlelight pools on walls — flickering warm light
+	# Candlelight pools on walls â€” flickering warm light
 	for i in range(10):
 		var cx = 60.0 + float(i) * 128.0
 		var cy = 180.0 + sin(float(i) * 2.5) * 30.0
@@ -23508,7 +23592,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 		var mh = 50.0
 		# Mirror frame (ornate gold)
 		draw_rect(Rect2(mx - 3, my - 3, mw + 6, mh + 6), Color(0.7, 0.55, 0.1, 0.35))
-		# Mirror surface — dark reflective
+		# Mirror surface â€” dark reflective
 		draw_rect(Rect2(mx, my, mw, mh), Color(0.06, 0.04, 0.1, 0.65))
 		# Reflection shimmer
 		var shimmer_off = sin(_time * 1.8 + float(mi) * 1.2) * 0.08
@@ -23549,7 +23633,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 		var tail_wave = sin(_time * 8.0 + float(ri) * 2.0) * 2.0
 		draw_line(Vector2(rat_x - rat_dir * 3.0, rat_y), Vector2(rat_x - rat_dir * 9.0, rat_y - 2.0 + tail_wave), Color(0.3, 0.22, 0.15, 0.3), 0.7)
 
-	# === TUNNEL WALLS — brick texture on sides ===
+	# === TUNNEL WALLS â€” brick texture on sides ===
 	for side in range(2):
 		var wall_x = 0.0 if side == 0 else 1240.0
 		var wall_w = 40.0
@@ -23559,7 +23643,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 			draw_rect(Rect2(wall_x + off, brick_y2, wall_w - 2, 23), Color(0.28, 0.16, 0.1, 0.25))
 			draw_line(Vector2(wall_x, brick_y2), Vector2(wall_x + wall_w, brick_y2), Color(0.15, 0.08, 0.05, 0.15), 0.5)
 
-	# === FLOOR — Wet stone tunnel floor with water reflections ===
+	# === FLOOR â€” Wet stone tunnel floor with water reflections ===
 	for y_strip in range(0, 148, 3):
 		var t = float(y_strip) / 148.0
 		var floor_col = ground_color.lerp(Color(0.12, 0.1, 0.13), t)
@@ -23568,7 +23652,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 		floor_col = floor_col.lerp(Color(0.2, 0.25, 0.35), clampf(absf(water_ref), 0.0, 1.0))
 		draw_rect(Rect2(0, 480 + y_strip, 1280, 3), floor_col)
 
-	# Wet stone floor — tile lines
+	# Wet stone floor â€” tile lines
 	for fx in range(0, 1280, 64):
 		for fy in range(0, 3):
 			var tile_y = 485.0 + float(fy) * 48.0
@@ -23618,7 +23702,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 				for line_idx in range(5):
 					draw_line(Vector2(smp.x - sms + drift, smp.y - sms + float(line_idx) * sms * 0.4), Vector2(smp.x + sms + drift, smp.y - sms + float(line_idx) * sms * 0.4), Color(0.2, 0.15, 0.1, 0.15), 0.5)
 
-	# === FOREGROUND — Dripping stalactites, dust motes, cobwebs ===
+	# === FOREGROUND â€” Dripping stalactites, dust motes, cobwebs ===
 	# Stalactites hanging from top
 	for i in range(12):
 		var st_x = 50.0 + float(i) * 105.0
@@ -23658,7 +23742,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 
 
 func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
-	# === CEILING / SKY — Deep purple-black cavern roof ===
+	# === CEILING / SKY â€” Deep purple-black cavern roof ===
 	for y_strip in range(0, 200, 3):
 		var t = float(y_strip) / 200.0
 		var ceiling_col = sky_color.lerp(Color(0.05, 0.02, 0.08, 1.0), t)
@@ -23674,7 +23758,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 		var rock_r = 8.0 + sin(float(i) * 3.1) * 4.0
 		draw_circle(Vector2(rock_x, rock_y), rock_r, Color(0.08, 0.04, 0.06, 0.2))
 
-	# === ATMOSPHERE — Golden candlelight and purple haze ===
+	# === ATMOSPHERE â€” Golden candlelight and purple haze ===
 	# Large ambient glow zones
 	for i in range(6):
 		var glow_x = 100.0 + float(i) * 200.0 + sin(_time * 0.2 + float(i) * 1.5) * 20.0
@@ -23696,7 +23780,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 		var pipe_h = 180.0 + sin(float(pipe) * 0.8) * 80.0 + cos(float(pipe) * 0.5) * 30.0
 		var pipe_w = 10.0 + sin(float(pipe) * 1.3) * 3.0
 		var pipe_top = 60.0
-		# Pipe body — dark bronze/gold
+		# Pipe body â€” dark bronze/gold
 		draw_rect(Rect2(pipe_x - pipe_w * 0.5, pipe_top, pipe_w, pipe_h), Color(0.35, 0.28, 0.12, 0.35))
 		# Pipe highlight
 		draw_rect(Rect2(pipe_x - pipe_w * 0.25, pipe_top, pipe_w * 0.3, pipe_h), Color(0.5, 0.4, 0.15, 0.12))
@@ -23707,7 +23791,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 			var vib = sin(_time * 3.0 + float(pipe) * 1.5) * 2.0
 			draw_arc(Vector2(pipe_x, pipe_top - 5.0), 6.0 + absf(vib), -1.0, -2.1, 8, Color(0.5, 0.4, 0.7, 0.06), 0.5)
 
-	# --- Underground lake — black water reflecting candles ---
+	# --- Underground lake â€” black water reflecting candles ---
 	var lake_top = 430.0
 	for y_strip in range(0, 198, 3):
 		var t = float(y_strip) / 198.0
@@ -23725,7 +23809,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 		var rip_w = 30.0 + sin(float(i) * 2.1) * 10.0
 		draw_line(Vector2(rip_x - rip_w, rip_y), Vector2(rip_x + rip_w, rip_y), Color(0.2, 0.15, 0.25, 0.12), 0.7)
 
-	# Candle reflections in water — inverted/distorted golden streaks
+	# Candle reflections in water â€” inverted/distorted golden streaks
 	for i in range(8):
 		var ref_x = 80.0 + float(i) * 155.0
 		var ref_base = lake_top + 15.0
@@ -23738,7 +23822,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 	var phantom_y = 300.0
 	var phantom_sway = sin(_time * 0.8) * 3.0
 
-	# Cape — sweeping black fabric
+	# Cape â€” sweeping black fabric
 	var cape_pts = PackedVector2Array()
 	cape_pts.append(Vector2(phantom_x - 5.0 + phantom_sway, phantom_y - 30.0))
 	cape_pts.append(Vector2(phantom_x - 40.0 + phantom_sway * 0.5, phantom_y + 60.0))
@@ -23750,13 +23834,13 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 	for _ci in range(cape_pts.size()):
 		cape_cols.append(Color(0.02, 0.01, 0.04, 0.5))
 	draw_polygon(cape_pts, cape_cols)
-	# Cape inner lining — dark red
+	# Cape inner lining â€” dark red
 	draw_line(Vector2(phantom_x - 35.0 + phantom_sway, phantom_y + 50.0), Vector2(phantom_x - 15.0, phantom_y + 75.0), Color(0.4, 0.05, 0.05, 0.25), 3.0)
 
-	# Mask — white half-mask, iconic
+	# Mask â€” white half-mask, iconic
 	var mask_glow = sin(_time * 1.0) * 0.06 + 0.45
 	draw_circle(Vector2(phantom_x + phantom_sway, phantom_y - 15.0), 14.0, Color(0.96, 0.93, 0.88, mask_glow))
-	# Mask shaping — right half only
+	# Mask shaping â€” right half only
 	draw_rect(Rect2(phantom_x + phantom_sway - 8, phantom_y - 28, 16, 8), Color(0.96, 0.93, 0.88, mask_glow))
 	# Eye socket
 	draw_circle(Vector2(phantom_x + phantom_sway + 3.0, phantom_y - 18.0), 3.0, Color(0.02, 0.01, 0.05, mask_glow + 0.15))
@@ -23772,7 +23856,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Monkey figure
 	draw_circle(Vector2(monkey_x, monkey_y - 6.0), 6.0, Color(0.35, 0.22, 0.1, 0.4))
 	draw_circle(Vector2(monkey_x, monkey_y - 14.0), 4.5, Color(0.38, 0.25, 0.12, 0.4))
-	# Cymbals — animated clapping
+	# Cymbals â€” animated clapping
 	var cymbal_angle = sin(_time * 4.0) * 0.4
 	draw_circle(Vector2(monkey_x - 7.0 - cymbal_angle * 3.0, monkey_y - 10.0), 3.0, Color(0.7, 0.55, 0.1, 0.35))
 	draw_circle(Vector2(monkey_x + 7.0 + cymbal_angle * 3.0, monkey_y - 10.0), 3.0, Color(0.7, 0.55, 0.1, 0.35))
@@ -23781,7 +23865,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 	var veil_x = 430.0
 	var veil_y = 310.0
 	var veil_drift = sin(_time * 0.5) * 4.0
-	# Veil fabric — translucent white flowing
+	# Veil fabric â€” translucent white flowing
 	for vi in range(6):
 		var v_off_x = sin(_time * 0.7 + float(vi) * 0.9) * 5.0 + veil_drift
 		var v_off_y = float(vi) * 12.0
@@ -23804,7 +23888,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 		# Stem
 		draw_line(Vector2(rose_x, rose_y + rose_size), Vector2(rose_x + 3.0, rose_y + rose_size + 10.0), Color(0.15, 0.35, 0.1, 0.25), 0.8)
 
-	# === FLOOR — Stone walkway over water ===
+	# === FLOOR â€” Stone walkway over water ===
 	# The walkway is a narrow stone bridge across the lake
 	for y_strip in range(0, 30, 3):
 		var t = float(y_strip) / 30.0
@@ -23818,7 +23902,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 	for sy in range(0, 2):
 		draw_line(Vector2(200.0, 495.0 + float(sy) * 12.0), Vector2(1080.0, 495.0 + float(sy) * 12.0), Color(0.25, 0.2, 0.18, 0.1), 0.5)
 
-	# Walkway edges — stone railing
+	# Walkway edges â€” stone railing
 	draw_line(Vector2(200.0, 485.0), Vector2(1080.0, 485.0), Color(0.3, 0.25, 0.2, 0.3), 2.0)
 	draw_line(Vector2(200.0, 515.0), Vector2(1080.0, 515.0), Color(0.3, 0.25, 0.2, 0.3), 2.0)
 
@@ -23865,7 +23949,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 				for line_idx in range(5):
 					draw_line(Vector2(smp.x - sms + drift, smp.y - sms + float(line_idx) * sms * 0.4), Vector2(smp.x + sms + drift, smp.y - sms + float(line_idx) * sms * 0.4), Color(0.2, 0.15, 0.1, 0.15), 0.5)
 
-	# === FOREGROUND — Floating candles, mist, rose petals falling ===
+	# === FOREGROUND â€” Floating candles, mist, rose petals falling ===
 	# Floating candles on lake surface (foreground layer)
 	for i in range(9):
 		var fc_x = 70.0 + float(i) * 140.0 + sin(_time * 0.4 + float(i) * 1.7) * 15.0
@@ -23905,7 +23989,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 			draw_circle(Vector2(note_x, note_y), 2.5, Color(0.7, 0.55, 0.9, clampf(note_alpha, 0.0, 1.0)))
 			draw_line(Vector2(note_x + 2.5, note_y), Vector2(note_x + 2.5, note_y - 8.0), Color(0.7, 0.55, 0.9, clampf(note_alpha * 0.8, 0.0, 1.0)), 0.7)
 
-	# Vignette — deep darkness at edges for dramatic framing (12 bands instead of 60)
+	# Vignette â€” deep darkness at edges for dramatic framing (12 bands instead of 60)
 	for v in range(12):
 		var v_alpha = (1.0 - float(v) / 12.0) * 0.2
 		var band_y = 50 + v * 5
@@ -23918,7 +24002,7 @@ func _draw_phantom_ch3(sky_color: Color, ground_color: Color) -> void:
 	_draw_shadow_author_effects()
 
 func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
-	# === SKY GRADIENT — Midnight spectral blue ===
+	# === SKY GRADIENT â€” Midnight spectral blue ===
 	var midnight_base := Color(0.03, 0.04, 0.08)
 	var spectral_blue := Color(0.05, 0.12, 0.2)
 	for i in range(30):
@@ -23932,7 +24016,7 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 		var y_height := 300.0 / 29.0 + 2.0
 		draw_rect(Rect2(0, y_start, 1280, y_height), band_color)
 
-	# === ATMOSPHERE — Spectral green/blue mist ===
+	# === ATMOSPHERE â€” Spectral green/blue mist ===
 	for i in range(12):
 		var mx := float(i) * 110.0 + sin(_time * 0.3 + float(i)) * 30.0
 		var my := 250.0 + sin(_time * 0.2 + float(i) * 0.7) * 40.0
@@ -23952,13 +24036,13 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 			var ribbon_alpha := 0.04 + sin(_time * 0.4 + float(s) * 0.3) * 0.02
 			draw_line(pts[s], pts[s + 1], Color(0.15, 0.4, 0.3, ribbon_alpha), 2.0)
 
-	# === MOON — Pale ghostly moon ===
+	# === MOON â€” Pale ghostly moon ===
 	var moon_pos := Vector2(950, 80)
 	draw_circle(moon_pos, 35.0, Color(0.6, 0.65, 0.75, 0.15))
 	draw_circle(moon_pos, 22.0, Color(0.7, 0.75, 0.85, 0.25))
 	draw_circle(moon_pos, 12.0, Color(0.85, 0.88, 0.95, 0.4))
 
-	# === CHURCH STEEPLE AT MIDNIGHT — far background ===
+	# === CHURCH STEEPLE AT MIDNIGHT â€” far background ===
 	var church_x := 180.0
 	var church_base_y := 320.0
 	# Main church body
@@ -23973,14 +24057,14 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 	# Cross on top
 	draw_line(Vector2(church_x, church_base_y - 180), Vector2(church_x, church_base_y - 200), Color(0.3, 0.3, 0.35, 0.6), 2.0)
 	draw_line(Vector2(church_x - 8, church_base_y - 192), Vector2(church_x + 8, church_base_y - 192), Color(0.3, 0.3, 0.35, 0.6), 2.0)
-	# Clock face — midnight
+	# Clock face â€” midnight
 	draw_circle(Vector2(church_x, church_base_y - 70), 12.0, Color(0.15, 0.15, 0.2, 0.5))
 	draw_circle(Vector2(church_x, church_base_y - 70), 10.0, Color(0.6, 0.6, 0.55, 0.3))
 	draw_line(Vector2(church_x, church_base_y - 70), Vector2(church_x, church_base_y - 80), Color(0.1, 0.1, 0.1, 0.5), 1.5)
 	# Arched window glow
 	draw_circle(Vector2(church_x, church_base_y - 45), 8.0, Color(0.2, 0.5, 0.4, 0.15))
 
-	# === GHOST OF CHRISTMAS PAST — Golden sphere, upper left ===
+	# === GHOST OF CHRISTMAS PAST â€” Golden sphere, upper left ===
 	var past_x := 300.0 + sin(_time * 0.7) * 20.0
 	var past_y := 140.0 + sin(_time * 0.5) * 15.0
 	var past_glow := 0.3 + sin(_time * 2.0) * 0.1
@@ -23993,7 +24077,7 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 		var ray_end := Vector2(past_x, past_y) + Vector2.from_angle(ray_angle) * (25.0 + sin(_time * 3.0 + float(r)) * 5.0)
 		draw_line(Vector2(past_x, past_y), ray_end, Color(1.0, 0.85, 0.3, 0.08), 1.0)
 
-	# === GHOST OF CHRISTMAS PRESENT — Jolly silhouette with holly crown ===
+	# === GHOST OF CHRISTMAS PRESENT â€” Jolly silhouette with holly crown ===
 	var present_x := 700.0 + sin(_time * 0.4) * 10.0
 	var present_y := 200.0
 	# Large robed body
@@ -24017,7 +24101,7 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 	draw_circle(Vector2(present_x - 5, present_y - 56), 2.0, Color(0.7, 0.1, 0.1, 0.3))
 	draw_circle(Vector2(present_x + 5, present_y - 56), 2.0, Color(0.7, 0.1, 0.1, 0.3))
 
-	# === TOMBSTONES — Graveyard ===
+	# === TOMBSTONES â€” Graveyard ===
 	var tombstones := [
 		{"x": 400.0, "h": 50.0, "w": 28.0}, {"x": 520.0, "h": 42.0, "w": 24.0},
 		{"x": 640.0, "h": 55.0, "w": 30.0}, {"x": 780.0, "h": 38.0, "w": 22.0},
@@ -24037,7 +24121,7 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 		var ts_glow := sin(_time * 0.8 + tx * 0.01) * 0.03
 		draw_circle(Vector2(tx, grave_y - th * 0.5), tw * 1.2, Color(0.15, 0.4, 0.3, 0.04 + ts_glow))
 
-	# === "EBENEZER SCROOGE" TOMBSTONE — prominent center ===
+	# === "EBENEZER SCROOGE" TOMBSTONE â€” prominent center ===
 	var eb_x := 640.0
 	var eb_y := 380.0
 	var eb_w := 50.0
@@ -24085,7 +24169,7 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 			# Oval chain link
 			draw_arc(Vector2(lx, ly), 5.0, 0, TAU, 12, Color(0.35, 0.3, 0.28, 0.15 + sin(_time * 0.5 + float(ci)) * 0.05), 1.5)
 
-	# === GROUND — Frozen graveyard earth with snow ===
+	# === GROUND â€” Frozen graveyard earth with snow ===
 	var ground_top := 440.0
 	for gi2 in range(20):
 		var gt := float(gi2) / 19.0
@@ -24134,7 +24218,7 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 				var cf = sin(_time * 0.5 + dec["extra"]) * 4.0
 				draw_circle(Vector2(cp2.x + cf, cp2.y - cs2 * 2.2), 4.0, Color(0.4, 0.4, 0.45, 0.06))
 
-	# === FOREGROUND — Low mist and frost particles ===
+	# === FOREGROUND â€” Low mist and frost particles ===
 	for fi in range(8):
 		var fx := float(fi) * 170.0 + sin(_time * 0.3 + float(fi) * 0.9) * 40.0
 		var fy := 550.0 + sin(_time * 0.4 + float(fi) * 1.2) * 20.0
@@ -24163,7 +24247,7 @@ func _draw_scrooge_ch2(sky_color: Color, ground_color: Color) -> void:
 
 
 func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
-	# === SKY GRADIENT — Split dawn: warm gold left, cold gray right ===
+	# === SKY GRADIENT â€” Split dawn: warm gold left, cold gray right ===
 	var warm_dawn := Color(0.45, 0.25, 0.08)
 	var cold_gray := Color(0.12, 0.13, 0.18)
 	var golden_top := Color(0.3, 0.18, 0.06)
@@ -24184,7 +24268,7 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 				band_color = band_color.lerp(Color(0.8, 0.5, 0.15), glow_strength)
 			draw_rect(Rect2(float(sx) * 80.0, y_start, 82.0, y_height), band_color)
 
-	# === ATMOSPHERE — Golden light rays from left ===
+	# === ATMOSPHERE â€” Golden light rays from left ===
 	for ray in range(8):
 		var ray_angle := -0.3 + float(ray) * 0.08
 		var ray_length := 500.0 + sin(_time * 0.4 + float(ray)) * 50.0
@@ -24205,7 +24289,7 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 		var cy := 180.0 + float(cm) * 40.0
 		draw_circle(Vector2(cx, cy), 60.0, Color(0.2, 0.2, 0.25, 0.04))
 
-	# === GHOST OF CHRISTMAS YET TO COME — Tall hooded shadow, right side ===
+	# === GHOST OF CHRISTMAS YET TO COME â€” Tall hooded shadow, right side ===
 	var ghost_x := 1100.0 + sin(_time * 0.3) * 5.0
 	var ghost_y := 180.0
 	# Tall hooded cloak
@@ -24230,7 +24314,7 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 	# Dark aura
 	draw_circle(Vector2(ghost_x, ghost_y + 20), 50.0, Color(0.02, 0.02, 0.06, 0.06))
 
-	# === LONDON ROOFTOPS — Snow-covered with chimneys ===
+	# === LONDON ROOFTOPS â€” Snow-covered with chimneys ===
 	var rooftop_data := [
 		{"x": 100.0, "w": 120.0, "h": 80.0, "roof_h": 40.0},
 		{"x": 250.0, "w": 100.0, "h": 95.0, "roof_h": 35.0},
@@ -24282,7 +24366,7 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 		draw_circle(Vector2(wr_x + 18.0, wr_y - 1.0), 2.5, Color(0.08, 0.35, 0.1, 0.2))
 		draw_circle(Vector2(wr_x + 15.0, wr_y - 5.0), 1.5, Color(0.65, 0.08, 0.08, 0.25))
 
-	# === CHURCH BELLS — Visual golden rings ===
+	# === CHURCH BELLS â€” Visual golden rings ===
 	var bell_x := 200.0
 	var bell_y := 160.0
 	# Church tower in background
@@ -24299,7 +24383,7 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 		var ring_alpha := clampf(0.12 - ring_radius * 0.001, 0.0, 0.12)
 		draw_arc(Vector2(bell_x, bell_y - 20), ring_radius, 0, TAU, 24, Color(0.95, 0.8, 0.3, ring_alpha), 1.5)
 
-	# === CHILDREN IN SNOW — Small figures on left side ===
+	# === CHILDREN IN SNOW â€” Small figures on left side ===
 	for chi in range(3):
 		var child_x := 80.0 + float(chi) * 50.0
 		var child_y := 430.0
@@ -24314,7 +24398,7 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 		var scarf_col := Color(0.7, 0.1, 0.1, 0.3) if chi != 1 else Color(0.1, 0.4, 0.1, 0.3)
 		draw_line(Vector2(child_x - 3, child_y - 14.0 - bounce), Vector2(child_x - 8, child_y - 10.0 - bounce), scarf_col, 2.0)
 
-	# === GROUND — Snow-covered cobblestone ===
+	# === GROUND â€” Snow-covered cobblestone ===
 	var ground_top := 440.0
 	for gi in range(20):
 		var gt := float(gi) / 19.0
@@ -24364,7 +24448,7 @@ func _draw_scrooge_ch3(sky_color: Color, ground_color: Color) -> void:
 				var cf = sin(_time * 0.5 + dec["extra"]) * 4.0
 				draw_circle(Vector2(cp2.x + cf, cp2.y - cs2 * 2.2), 4.0, Color(0.4, 0.4, 0.45, 0.06))
 
-	# === FOREGROUND — Falling snow and warm/cold atmosphere ===
+	# === FOREGROUND â€” Falling snow and warm/cold atmosphere ===
 	# Falling snowflakes
 	for sf in range(25):
 		var sway := sin(_time * 1.5 + float(sf) * 2.3) * 15.0
@@ -24414,7 +24498,7 @@ func _on_tower_pressed(tower_type: TowerType, desc: String) -> void:
 		if syn["tower_a"] == tower_type or syn["tower_b"] == tower_type:
 			var partner = syn["tower_b"] if syn["tower_a"] == tower_type else syn["tower_a"]
 			if purchased_towers.has(partner):
-				synergy_hints += " ★ SYNERGY: %s" % syn["name"]
+				synergy_hints += " â˜… SYNERGY: %s" % syn["name"]
 	info_label.text = desc + synergy_hints
 
 func _on_cancel_placement() -> void:
@@ -24473,8 +24557,8 @@ func _update_upgrade_panel() -> void:
 		desc_lbl.text = tier_desc
 
 		if i < tower.upgrade_tier:
-			# Already purchased — green
-			btn.text = "%s  ✔" % tier_name
+			# Already purchased â€” green
+			btn.text = "%s  âœ”" % tier_name
 			btn.disabled = true
 			cost_lbl.text = "OWNED"
 			cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.8, 0.3))
@@ -24483,24 +24567,24 @@ func _update_upgrade_panel() -> void:
 			# Green border
 			status_rect.get_child(0).color = Color(0.3, 0.7, 0.2, 0.5)
 		elif i == tower.upgrade_tier:
-			# Next available — check if affordable
+			# Next available â€” check if affordable
 			btn.text = tier_name
 			var can_afford = gold >= tier_cost
 			btn.disabled = not can_afford
 			cost_lbl.text = "%dG" % tier_cost
 			desc_lbl.add_theme_color_override("font_color", Color(0.85, 0.82, 0.75, 0.9))
 			if can_afford:
-				# Affordable — gold border
+				# Affordable â€” gold border
 				cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 				status_rect.color = Color(0.14, 0.10, 0.06, 0.85)
 				status_rect.get_child(0).color = Color(0.85, 0.65, 0.1, 0.6)
 			else:
-				# Too expensive — dark
+				# Too expensive â€” dark
 				cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.3))
 				status_rect.color = Color(0.10, 0.07, 0.12, 0.85)
 				status_rect.get_child(0).color = Color(0.4, 0.3, 0.5, 0.3)
 		else:
-			# Locked — gray
+			# Locked â€” gray
 			btn.text = tier_name
 			btn.disabled = true
 			cost_lbl.text = "%dG" % tier_cost
@@ -24563,12 +24647,13 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 			var tier_name = selected_tower_node.TIER_NAMES[selected_tower_node.upgrade_tier - 1]
 			info_label.text = "Upgraded: %s!" % tier_name
 			spawn_floating_text(selected_tower_node.global_position + Vector2(0, -30), tier_name + "!", Color(0.4, 1.0, 0.5), 15.0, 1.2)
+			_update_quest_progress("upgrade_towers", 1)
 			# Achievement: max power (tier 4)
 			if selected_tower_node.upgrade_tier >= 4:
 				_check_achievement("max_power", 1)
 				_update_quest_progress("max_upgrades", 1)
 		else:
-			# Can't afford or already maxed — flash gold label
+			# Can't afford or already maxed â€” flash gold label
 			if upgrade_cost > gold:
 				info_label.text = "Need %dG! (Have %dG)" % [upgrade_cost, gold]
 				_insufficient_gold_flash = 1.0
@@ -24645,7 +24730,7 @@ func _on_sell_pressed() -> void:
 
 func _on_speed_pressed() -> void:
 	_play_sfx(_sfx_ui_click)
-	# Cycle through speeds: 1x → 2x → 3x → 1x
+	# Cycle through speeds: 1x â†’ 2x â†’ 3x â†’ 1x
 	if not fast_forward:
 		fast_forward = true
 		_game_speed_level = 2.0
@@ -24703,13 +24788,13 @@ func _on_start_wave_pressed() -> void:
 			# Resume
 			game_paused = false
 			Engine.time_scale = _game_speed_level if fast_forward else 1.0
-			start_button.text = "  ⏸ Pause  "
+			start_button.text = "  â¸ Pause  "
 			queue_redraw()
 		else:
 			# Pause
 			game_paused = true
 			Engine.time_scale = 0.0
-			start_button.text = "  ▶ Resume  "
+			start_button.text = "  â–¶ Resume  "
 			queue_redraw()
 		return
 	wave_auto_timer = -1.0
@@ -24797,7 +24882,7 @@ func _on_undo_placement() -> void:
 
 func _start_next_wave() -> void:
 	_award_affinity_for_wave()
-	_tick_relic_usage()
+	_tick_gear_usage()
 	if not fast_forward:
 		current_game_fast_forward_only = false
 	if is_wave_active or wave >= total_waves:
@@ -24833,10 +24918,10 @@ func _start_next_wave() -> void:
 	wave_start_gold = gold
 	wave_start_lives = lives
 	start_button.disabled = false
-	start_button.text = "  ⏸ Pause  "
+	start_button.text = "  â¸ Pause  "
 	var wave_name = _get_wave_name(wave)
 	var enemy_word = "enemy" if enemies_to_spawn == 1 else "enemies"
-	info_label.text = "Wave %d — %s (%d %s)" % [wave, wave_name, enemies_to_spawn, enemy_word]
+	info_label.text = "Wave %d â€” %s (%d %s)" % [wave, wave_name, enemies_to_spawn, enemy_word]
 	# Wave number banner
 	_wave_banner_timer = 2.5
 	_wave_banner_num = wave
@@ -24933,6 +25018,8 @@ func spend_gold(amount: int) -> bool:
 	return false
 
 func lose_life() -> void:
+	if game_state != GameState.PLAYING:
+		return
 	# Storybook Shield blocks life loss
 	if storybook_shield_charges > 0:
 		storybook_shield_charges -= 1
@@ -24958,6 +25045,11 @@ func _quest_track_kill(enemy_node = null) -> void:
 	_update_quest_progress("kill", 1)
 	if enemy_node and enemy_node.get("is_shadow_infested"):
 		_update_quest_progress("kill_shadow", 1)
+	# New quest types: boss kills
+	if enemy_node and is_instance_valid(enemy_node):
+		var is_boss = enemy_node.get("boss_scale")
+		if is_boss != null and is_boss > 1.0:
+			_update_quest_progress("kill_boss", 1)
 
 func enemy_died(enemy_node = null) -> void:
 	enemies_alive = maxi(enemies_alive - 1, 0)
@@ -24972,7 +25064,7 @@ func enemy_died(enemy_node = null) -> void:
 	if randf() < LUCKY_DROP_CHANCE:
 		var lucky_amount = randi_range(1, 3)
 		if randf() < 0.5:
-			player_relic_shards += lucky_amount
+			player_gear_shards += lucky_amount
 			if enemy_node and is_instance_valid(enemy_node):
 				spawn_floating_text(enemy_node.global_position + Vector2(0, -20), "+%d Shards!" % lucky_amount, Color(0.6, 0.4, 1.0), 14.0, 1.0)
 		else:
@@ -25004,7 +25096,7 @@ func enemy_died(enemy_node = null) -> void:
 					if bounty["reward_type"] == "gold":
 						add_gold(bounty["reward_amount"])
 					elif bounty["reward_type"] == "shards":
-						player_relic_shards += bounty["reward_amount"]
+						player_gear_shards += bounty["reward_amount"]
 					elif bounty["reward_type"] == "quills":
 						player_quills += bounty["reward_amount"]
 					spawn_floating_text(Vector2(640, 280), "BOUNTY COMPLETE! +%d %s" % [bounty["reward_amount"], bounty["reward_type"].capitalize()], Color(1.0, 0.7, 0.1), 18.0, 2.0)
@@ -25017,6 +25109,7 @@ func enemy_died(enemy_node = null) -> void:
 		var bonus_gold = combo_count * 2
 		add_gold(bonus_gold)
 		spawn_floating_text(combo_last_pos + Vector2(0, -30), "COMBO x%d +%dG" % [combo_count, bonus_gold], Color(1.0, 0.5, 0.1), 18.0, 1.2)
+		_update_quest_progress("combo_kills", 1)
 		if combo_count > combo_best:
 			combo_best = combo_count
 
@@ -25041,6 +25134,7 @@ func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool) -> void:
 		text = str(int(amount)) + "!"
 		size = 17.0
 	spawn_floating_text(pos + Vector2(randf_range(-8, 8), randf_range(-12, -4)), text, color, size, 0.8)
+	_update_quest_progress("deal_damage", int(amount))
 
 func spawn_gold_text(pos: Vector2, amount: int) -> void:
 	spawn_floating_text(pos + Vector2(0, -10), "+%dg" % amount, Color(1.0, 0.85, 0.2, 0.9), 13.0, 1.0)
@@ -25106,7 +25200,7 @@ func report_enemy_death(pos: Vector2, is_boss: bool, scale: float) -> void:
 func _apply_enemy_modifiers(enemy, wave_num: int, is_boss: bool) -> void:
 	if selected_difficulty == 0:
 		return  # Easy: no modifiers
-	var available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "regrown", "fortified", "shielded", "cursed", "phantom", "arcane", "ironclad", "ethereal"]
+	var available = ["spectral", "ironbound", "hexed", "uncommon", "shadow_infested", "regrown", "fortified", "shielded", "cursed", "phantom", "arcane", "ironclad", "ethereal"]
 	# Pure Mode: all modifiers enabled from wave 1, higher chance
 	if selected_difficulty == PURE_MODE:
 		var pure_chance = 0.35
@@ -25145,11 +25239,11 @@ func _apply_enemy_modifiers(enemy, wave_num: int, is_boss: bool) -> void:
 	var max_mods = 1 if selected_difficulty == 1 else 2
 	# New modifiers unlock progressively
 	if wave_num < 15:
-		available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "fortified"]
+		available = ["spectral", "ironbound", "hexed", "uncommon", "shadow_infested", "fortified"]
 	elif wave_num < 20:
-		available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "fortified", "arcane"]
+		available = ["spectral", "ironbound", "hexed", "uncommon", "shadow_infested", "fortified", "arcane"]
 	elif wave_num < 25:
-		available = ["spectral", "ironbound", "hexed", "bound", "shadow_infested", "regrown", "fortified", "shielded", "cursed", "phantom", "arcane", "ironclad"]
+		available = ["spectral", "ironbound", "hexed", "uncommon", "shadow_infested", "regrown", "fortified", "shielded", "cursed", "phantom", "arcane", "ironclad"]
 	if wave_num < min_wave and not is_boss:
 		return
 	if is_boss and selected_difficulty >= 2:
@@ -25168,7 +25262,7 @@ func _apply_single_modifier(enemy, mod: String) -> void:
 			enemy.modifiers.append(mod)
 			enemy.max_health *= 2.0
 			enemy.health = enemy.max_health
-		"bound":
+		"uncommon":
 			enemy.modifiers.append(mod)
 			enemy.bound_shield = 200.0
 		"shadow_infested":
@@ -25303,34 +25397,9 @@ func _spawn_moab_wave(theme: int, tier: int) -> void:
 	enemy_path.add_child(moab)
 	enemies_alive += 1
 
-# === TOME BINDING BONUSES ===
-func _get_binding_bonuses(tower_type) -> Dictionary:
-	var bonuses: Dictionary = {}
-	var bindings = equipped_bindings.get(tower_type, [])
-	var char_gear_count = 0
-	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "scheherazade"]
-	var char_name = tower_names[tower_type] if tower_type >= 0 and tower_type < tower_names.size() else ""
-	for bid in bindings:
-		var binding = _find_binding(bid)
-		if binding.is_empty():
-			continue
-		if binding.get("character", "") == char_name:
-			char_gear_count += 1
-		# Multi-effect relics use "effects" array
-		if binding.has("effects"):
-			for fx in binding["effects"]:
-				_apply_binding_effect(bonuses, fx.get("effect", ""), fx.get("value", 0.0))
-		else:
-			# Single-effect relics use "effect"/"value"
-			_apply_binding_effect(bonuses, binding.get("effect", ""), binding.get("value", 0.0))
-	# Set bonus: 3+ character-specific gear gives +5% all stats per piece
-	if char_gear_count >= 3:
-		var set_bonus = float(char_gear_count) * 0.05
-		for k in ["damage", "range", "attack_speed", "crit"]:
-			bonuses[k] = bonuses.get(k, 0.0) + set_bonus
-	return bonuses
+# === GEAR BONUSES ===
 
-func _apply_binding_effect(bonuses: Dictionary, eff: String, val: float) -> void:
+func _apply_gear_effect(bonuses: Dictionary, eff: String, val: float) -> void:
 	match eff:
 		"attack_speed", "damage", "range", "crit", "gold_bonus", "slow", "dodge", "splash_radius", "armor_pierce", "crit_damage", "cooldown_reduction", "first_blood", "execute", "wave_gold", "poison", "burn", "chain", "multi_shot", "aura_range", "debuff_amp", "xp_gain", "boss_damage", "lifesteal", "bloodstained", "kill_gold", "absorb_hit", "heal_nearby", "stun", "pierce", "defense", "aura_speed":
 			bonuses[eff] = bonuses.get(eff, 0.0) + val
@@ -25350,26 +25419,26 @@ func _apply_binding_effect(bonuses: Dictionary, eff: String, val: float) -> void
 			for k in ["damage", "range", "attack_speed", "crit"]:
 				bonuses[k] = bonuses.get(k, 0.0) + val
 
-func _pick_weighted_relic(rarity: String, level_character: int) -> Dictionary:
+func _pick_weighted_gear(rarity: String, level_character: int) -> Dictionary:
 	var char_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
-		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "scheherazade"]
+		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 	var char_name = char_names[level_character] if level_character >= 0 and level_character < char_names.size() else ""
 	var candidates: Array = []
 	var weights: Array = []
-	for b in TOME_BINDINGS:
-		if b["rarity"] != rarity:
+	for b in GEAR_ITEMS:
+		if b["tier"] != rarity:
 			continue
 		var w = 1.0
 		# Character weighting: 60% chance to prefer current world's character
 		if char_name != "" and b.get("character", "") == char_name:
 			w = 3.0  # 3x weight for matching character (~60% when 4 char + 6 universal)
 		# Duplicate protection: 50% weight reduction for items owned 3+
-		var count = owned_bindings.get(b["id"], 0)
+		var count = owned_gear.get(b["id"], 0)
 		if count >= 3:
 			w *= 0.5
 		candidates.append(b)
 		weights.append(w)
-	if candidates.size() == 0:
+	if candidates.is_empty():
 		return {}
 	# Weighted random selection
 	var total_w = 0.0
@@ -25383,8 +25452,65 @@ func _pick_weighted_relic(rarity: String, level_character: int) -> Dictionary:
 			return candidates[i]
 	return candidates[candidates.size() - 1]
 
+func _roll_gear_drops(level_index: int, stars: int, old_stars: int) -> void:
+	# Determine map difficulty tier from level index
+	var tier_pool: Array = []
+	if level_index <= 11:
+		# Easy (Prologue + Act 1): common 70%, uncommon 30%
+		tier_pool = [["common", 0.70], ["uncommon", 1.0]]
+	elif level_index <= 23:
+		# Medium (Act 2): uncommon 50%, rare 40%, epic 10%
+		tier_pool = [["uncommon", 0.50], ["rare", 0.90], ["epic", 1.0]]
+	else:
+		# Hard (Act 3 + Final): rare 40%, epic 40%, legendary 20%
+		tier_pool = [["rare", 0.40], ["epic", 0.80], ["legendary", 1.0]]
+	# Drop chance: 60% for 1 item, 20% for 2, 5% for 3
+	var drop_count = 0
+	var roll = randf()
+	if roll < 0.05:
+		drop_count = 3
+	elif roll < 0.25:
+		drop_count = 2
+	elif roll < 0.85:
+		drop_count = 1
+	# First-time 3-star completion: guaranteed drop
+	if stars >= 3 and old_stars < 3 and drop_count == 0:
+		drop_count = 1
+	# Pity system: increase chance after many drops without epic/legendary
+	if _drops_since_epic > 20:
+		drop_count = maxi(drop_count, 1)
+	# Roll gear drops
+	var level_char = levels[level_index].get("character", -1) if level_index >= 0 and level_index < levels.size() else -1
+	for i in range(drop_count):
+		var tier_roll = randf()
+		var chosen_tier = "common"
+		for tp in tier_pool:
+			if tier_roll <= tp[1]:
+				chosen_tier = tp[0]
+				break
+		var gear_item = _pick_weighted_gear(chosen_tier, level_char)
+		if not gear_item.is_empty():
+			var gid = gear_item["id"]
+			owned_gear[gid] = owned_gear.get(gid, 0) + 1
+			# Track pity
+			if chosen_tier == "epic":
+				_drops_since_epic = 0
+			elif chosen_tier == "legendary":
+				_drops_since_legendary = 0
+			else:
+				_drops_since_epic += 1
+				_drops_since_legendary += 1
+			# Show drop notification
+			var tier_col = TIER_COLORS.get(chosen_tier, Color(0.65, 0.65, 0.65))
+			spawn_floating_text(Vector2(640, 180 + i * 30), "GEAR: %s" % gear_item["name"], tier_col, 16.0, 3.0)
+			# Track in recent items
+			if not recent_items.has(gid):
+				recent_items.append(gid)
+			while recent_items.size() > 20:
+				recent_items.pop_front()
+
 func _get_highest_completed_level() -> int:
-	if completed_levels.size() == 0:
+	if completed_levels.is_empty():
 		return -1
 	var highest = -1
 	for lv in completed_levels:
@@ -25392,20 +25518,16 @@ func _get_highest_completed_level() -> int:
 			highest = lv
 	return highest
 
-func _get_binding_slots(tower_type) -> int:
-	# Level-based slots: start with 3, unlock more at levels 2,4,6,7,8,9,10 (max 10)
+func _get_gear_slots(tower_type) -> int:
+	# Starts at 2, gains 1 per 3 survivor levels (max 8 at level 20)
 	var level = survivor_progress.get(tower_type, {}).get("level", 1)
-	var level_slots = 3
-	if level >= 10: level_slots = 10
-	elif level >= 9: level_slots = 9
-	elif level >= 8: level_slots = 8
-	elif level >= 7: level_slots = 7
-	elif level >= 6: level_slots = 6
-	elif level >= 4: level_slots = 5
-	elif level >= 2: level_slots = 4
-	# Also factor in golden shield progression
-	var shield_slots = _get_binding_slot_count(tower_type)
-	return maxi(level_slots, shield_slots)
+	var base_slots = 2 + int(level / 3)
+	base_slots = mini(base_slots, 8)
+	# Golden Shield adds +2 slots
+	var shields = _get_golden_shield_level(tower_type)
+	if shields > 0:
+		base_slots += 2
+	return mini(base_slots, 10)
 
 
 func _get_ally_slots(tower_type) -> int:
@@ -25427,13 +25549,14 @@ func _get_level_stat_boosts(tower_type) -> Dictionary:
 	if level >= 9: boosts["attack_speed"] += 0.08; boosts["damage"] += 0.05
 	if level >= 10: boosts["damage"] += 0.10; boosts["range"] += 0.08; boosts["attack_speed"] += 0.10
 	return boosts
-func _build_binding_lookup() -> void:
-	_binding_lookup.clear()
-	for b in TOME_BINDINGS:
-		_binding_lookup[b["id"]] = b
 
-func _find_binding(binding_id: String) -> Dictionary:
-	return _binding_lookup.get(binding_id, {})
+func _build_gear_lookup() -> void:
+	_gear_lookup.clear()
+	for b in GEAR_ITEMS:
+		_gear_lookup[b["id"]] = b
+
+func _find_gear(gear_id: String) -> Dictionary:
+	return _gear_lookup.get(gear_id, {})
 
 func _tower_type_to_name(tt) -> String:
 	match tt:
@@ -25460,7 +25583,7 @@ func game_over() -> void:
 	_stop_layered_music()
 	_play_sfx(_sfx_defeat)
 	_death_flash_timer = 0.3  # Dramatic red flash on game over
-	# Defeat dramatic effect — screen cracks
+	# Defeat dramatic effect â€” screen cracks
 	_defeat_timer = 3.0
 	_defeat_cracks.clear()
 	var center = Vector2(640, 360)
@@ -25470,7 +25593,7 @@ func game_over() -> void:
 		_defeat_cracks.append({"from": center, "to": center + Vector2(cos(ca), sin(ca)) * cl})
 	speed_button.text = "  >>  "
 	_collect_session_damage()
-	# BATTD: XP Sharing — unused characters get 25% of avg XP earned
+	# BATTD: XP Sharing â€” unused characters get 25% of avg XP earned
 	if xp_sharing_enabled:
 		var total_xp_earned = 0.0
 		var used_types: Array = []
@@ -25524,7 +25647,7 @@ func game_over() -> void:
 	elif boss_rush_mode:
 		if wave > boss_rush_best_wave:
 			boss_rush_best_wave = wave
-		game_over_label.text = "BOSS RUSH — Wave %d/10\nBest: Wave %d" % [wave, boss_rush_best_wave]
+		game_over_label.text = "BOSS RUSH â€” Wave %d/10\nBest: Wave %d" % [wave, boss_rush_best_wave]
 		boss_rush_mode = false
 		_save_game()
 	elif daily_challenge_active:
@@ -25590,7 +25713,7 @@ func _process_boss_rescue(delta: float) -> void:
 	elif boss_rescue_phase == 3 and boss_rescue_timer >= 4.2:
 		boss_rescue_phase = 4
 	elif boss_rescue_phase == 4 and boss_rescue_timer >= 5.0:
-		# Cleanup — remove boss, trigger victory
+		# Cleanup â€” remove boss, trigger victory
 		if is_instance_valid(boss_rescue_boss_ref):
 			boss_rescue_boss_ref.queue_free()
 		enemies_alive = max(0, enemies_alive - 1)
@@ -25635,7 +25758,7 @@ func _draw_boss_rescue() -> void:
 			var text_alpha = clampf((t - 1.8) / 0.5, 0.0, 1.0)
 			_udraw(font, Vector2(pos.x, pos.y - 90), "I'll take it from here...", HORIZONTAL_ALIGNMENT_CENTER, 300, 15, Color(0.7, 0.3, 0.9, text_alpha * 0.9))
 
-	# Phase 2: Grab — villain shrinks/fades toward Shadow Author
+	# Phase 2: Grab â€” villain shrinks/fades toward Shadow Author
 	if boss_rescue_phase == 2:
 		var grab_t = clampf((t - 2.5) / 1.0, 0.0, 1.0)
 		# Draw energy tendrils from author to villain
@@ -25655,7 +25778,7 @@ func _draw_boss_rescue() -> void:
 		var core_alpha = (1.0 - flash_t) * 0.95
 		draw_circle(pos, 30.0 * (1.0 - flash_t * 0.5), Color(1.0, 1.0, 1.0, core_alpha))
 
-	# Phase 4: Fade out — lingering wisps
+	# Phase 4: Fade out â€” lingering wisps
 	if boss_rescue_phase == 4:
 		var fade_t = clampf((t - 4.2) / 0.8, 0.0, 1.0)
 		for i in range(8):
@@ -25670,7 +25793,7 @@ func _draw_shadow_author_figure(pos: Vector2, scale: float, alpha: float, time: 
 		return
 	var s = scale
 	# All-black pyramidal hooded figure with glowing red wand
-	# Cloak body (main shape) — pure black
+	# Cloak body (main shape) â€” pure black
 	var cloak_pts = PackedVector2Array()
 	cloak_pts.append(pos + Vector2(-18 * s, -60 * s))
 	cloak_pts.append(pos + Vector2(-22 * s, -20 * s))
@@ -25698,7 +25821,7 @@ func _draw_shadow_author_figure(pos: Vector2, scale: float, alpha: float, time: 
 	draw_line(hood_pts[0], hood_pts[1], Color(0.2, 0.08, 0.3, alpha * 0.4), 1.5)
 	draw_line(hood_pts[1], hood_pts[2], Color(0.2, 0.08, 0.3, alpha * 0.4), 1.5)
 
-	# Hood interior — pure black void, no face
+	# Hood interior â€” pure black void, no face
 	draw_colored_polygon(PackedVector2Array([
 		pos + Vector2(-12 * s, -50 * s), pos + Vector2(0, -80 * s),
 		pos + Vector2(12 * s, -50 * s)
@@ -25714,7 +25837,7 @@ func _draw_shadow_author_figure(pos: Vector2, scale: float, alpha: float, time: 
 	draw_circle(pos + Vector2(-20 * s + hand_sway, -15 * s), 4.0 * s, Color(0.0, 0.0, 0.0, alpha * 0.8))
 	draw_circle(pos + Vector2(20 * s - hand_sway, -15 * s), 4.0 * s, Color(0.0, 0.0, 0.0, alpha * 0.8))
 
-	# Glowing red wand — held from right sleeve
+	# Glowing red wand â€” held from right sleeve
 	var w_base = pos + Vector2(20 * s - hand_sway, -15 * s)
 	var w_top = pos + Vector2(28 * s, -70 * s)
 	draw_line(w_base, w_top, Color(0.7, 0.06, 0.03, alpha * red_pulse), 2.5 * s)
@@ -25791,9 +25914,9 @@ func _victory() -> void:
 		knowledge_ink += 1
 	var star_str = ""
 	for i in range(stars):
-		star_str += "â˜…"
+		star_str += "Ã¢Ëœâ€¦"
 	for i in range(3 - stars):
-		star_str += "â˜†"
+		star_str += "Ã¢Ëœâ€ "
 	var diff_name = ["Easy", "Medium", "Hard", "Pure"][mini(selected_difficulty, 3)]
 	# Pure Mode: 3x XP multiplier + bonus Cosmic Ink
 	if selected_difficulty == PURE_MODE:
@@ -25801,7 +25924,7 @@ func _victory() -> void:
 			knowledge_ink += 2  # Extra 2 Cosmic Ink (total 3 with the base +1 above)
 	# Generate treasure chest loot (awarded when chest animation plays)
 	_generate_chest_loot(stars)
-	# Hide the old text label — chest overlay handles all victory display now
+	# Hide the old text label â€” chest overlay handles all victory display now
 	game_over_label.visible = false
 	start_button.disabled = true
 	# Start victory chest opening overlay (tier = difficulty)
@@ -25809,6 +25932,10 @@ func _victory() -> void:
 	# Quest tracking on victory
 	_update_quest_progress("complete_levels", 1)
 	_update_quest_progress("earn_stars", stars)
+	# Flawless win quest (no lives lost)
+	var max_lives_check = difficulty_fixed_lives[mini(selected_difficulty, difficulty_fixed_lives.size() - 1)]
+	if lives >= max_lives_check:
+		_update_quest_progress("flawless_win", 1)
 	# Shadow Arena handling
 	if shadow_arena_active:
 		_end_shadow_arena()
@@ -25834,7 +25961,7 @@ func _victory() -> void:
 				daily_challenge_streak = 1
 		# Reward: storybook stars + shards
 		player_storybook_stars += 1
-		player_relic_shards += 15
+		player_gear_shards += 15
 		spawn_floating_text(Vector2(640, 250), "DAILY COMPLETE! +1 Star +15 Shards", Color(0.4, 1.0, 0.5), 18.0, 2.5)
 	# Track total damage for milestones
 	for tower in get_tree().get_nodes_in_group("towers"):
@@ -25851,6 +25978,8 @@ func _victory() -> void:
 		if streak_bonus > 0:
 			add_gold(streak_bonus)
 			spawn_floating_text(Vector2(640, 220), "STREAK x%d +%dG!" % [victory_streak, streak_bonus], Color(1.0, 0.6, 0.1), 18.0, 2.0)
+	# === GEAR DROP SYSTEM ===
+	_roll_gear_drops(current_level, stars, old_stars)
 	# Achievement checks on victory
 	_check_achievement("first_steps", 1)
 	_check_achievement("halfway_there", 1)
@@ -25898,7 +26027,7 @@ func _check_character_unlocks() -> void:
 			if unlocked_characters.size() >= 5:
 				if not "all_unlocked" in story_seen:
 					if story_state.queued_dialog != "":
-						# Will need to chain — handled by queued dialog system
+						# Will need to chain â€” handled by queued dialog system
 						pass
 					else:
 						story_state.queued_dialog = "all_unlocked"
@@ -25912,7 +26041,7 @@ func _queue_post_victory_dialog() -> void:
 	# Check for act transitions that should play after this post-level dialog
 	var act_key = ""
 	if current_level == 15:
-		# Just completed all rescue arcs — check if levels 0-15 done
+		# Just completed all rescue arcs â€” check if levels 0-15 done
 		var rescue_done = true
 		for i in range(16):
 			if not i in completed_levels:
@@ -25921,7 +26050,7 @@ func _queue_post_victory_dialog() -> void:
 		if rescue_done and not "act2_intro" in story_seen:
 			act_key = "act2_intro"
 	elif current_level == 33:
-		# Just completed all original arcs — check if levels 0-33 done
+		# Just completed all original arcs â€” check if levels 0-33 done
 		var all_arcs_done = true
 		for i in range(34):
 			if not i in completed_levels:
@@ -25954,10 +26083,10 @@ func _generate_chest_loot(stars: int) -> void:
 	var gold_amount = int(float(gold_base) * chapter_mult * star_mult * currency_mult)
 	chest_loot.append({"type": "gold", "amount": gold_amount, "name": "Gold"})
 
-	# === RELIC SHARDS (always drop, more on higher tiers) ===
+	# === GEAR SHARDS (always drop, more on higher tiers) ===
 	var shard_base = [2, 5, 10][loot_diff]
 	var shard_amount = int(float(shard_base) * chapter_mult * star_mult * currency_mult)
-	chest_loot.append({"type": "shards", "amount": shard_amount, "name": "Relic Shards"})
+	chest_loot.append({"type": "shards", "amount": shard_amount, "name": "Gear Shards"})
 
 	# === QUILLS (chance increases with tier) ===
 	var quill_chance = [0.3, 0.6, 0.9][loot_diff]
@@ -25966,17 +26095,17 @@ func _generate_chest_loot(stars: int) -> void:
 		quill_amount = int(float(quill_amount) * chapter_mult * currency_mult)
 		chest_loot.append({"type": "quills", "amount": quill_amount, "name": "Quills"})
 
-	# === STORYBOOK STARS (more generous — guaranteed on Medium+, boosted on Hard) ===
+	# === STORYBOOK STARS (more generous â€” guaranteed on Medium+, boosted on Hard) ===
 	var star_chance = [0.25, 0.6, 1.0][loot_diff]
 	if randf() < star_chance * chapter_mult * 0.5:
 		var sb_amount = max(1, int(float([1, 2, 3][loot_diff]) * currency_mult))
 		chest_loot.append({"type": "stars", "amount": sb_amount, "name": "Storybook Stars"})
 
-	# === GEAR DROP — Difficulty-exclusive, progression-gated ===
+	# === GEAR DROP â€” Difficulty-exclusive, progression-gated ===
 	var prog_chapter = current_level / 3  # World index for drop rate scaling
 	var level_char = levels[current_level]["character"] if current_level >= 0 and current_level < levels.size() else -1
 	var highest_lv = _get_highest_completed_level()
-	var trinket_rarity = ["tattered", "bound", "gilded"][loot_diff]
+	var trinket_rarity = ["common", "uncommon", "rare"][loot_diff]
 	var tier_ok = true
 	if selected_difficulty == 1 and highest_lv < 12:
 		tier_ok = false  # Bound requires Act 1 complete
@@ -25985,31 +26114,31 @@ func _generate_chest_loot(stars: int) -> void:
 	# Mythic/Forbidden upgrade chance on hard difficulty
 	if selected_difficulty >= 2 and tier_ok:
 		var upgrade_roll = randf()
-		if upgrade_roll < 0.02:  # 2% forbidden
-			trinket_rarity = "forbidden"
-		elif upgrade_roll < 0.10:  # 8% mythic
-			trinket_rarity = "mythic"
-	var relic_chance = [0.08, 0.12, 0.18][loot_diff]
-	relic_chance += [0.01, 0.015, 0.02][loot_diff] * prog_chapter
+		if upgrade_roll < 0.02:  # 2% legendary
+			trinket_rarity = "legendary"
+		elif upgrade_roll < 0.10:  # 8% epic
+			trinket_rarity = "epic"
+	var gear_chance = [0.08, 0.12, 0.18][loot_diff]
+	gear_chance += [0.01, 0.015, 0.02][loot_diff] * prog_chapter
 	if stars >= 3:
-		relic_chance += 0.05
-	if tier_ok and randf() < relic_chance:
-		var chosen_b = _pick_weighted_relic(trinket_rarity, level_char)
+		gear_chance += 0.05
+	if tier_ok and randf() < gear_chance:
+		var chosen_b = _pick_weighted_gear(trinket_rarity, level_char)
 		if not chosen_b.is_empty():
-			owned_bindings[chosen_b["id"]] = owned_bindings.get(chosen_b["id"], 0) + 1
-			_mark_binding_discovered(chosen_b["id"])
-			_add_recent_item(chosen_b["name"], chosen_b.get("rarity", "tattered"))
-			chest_loot.append({"type": "relic", "amount": 1, "name": chosen_b["name"]})
+			owned_gear[chosen_b["id"]] = owned_gear.get(chosen_b["id"], 0) + 1
+			_mark_gear_discovered(chosen_b["id"])
+			_add_recent_item(chosen_b["name"], chosen_b.get("tier", "common"))
+			chest_loot.append({"type": "gear_item", "amount": 1, "name": chosen_b["name"]})
 
 func _award_chest_loot() -> void:
 	# Credit the guaranteed base loot currencies to the player
 	for item in chest_loot:
 		match item["type"]:
 			"gold": player_gold += item["amount"]
-			"shards": player_relic_shards += item["amount"]
+			"shards": player_gear_shards += item["amount"]
 			"quills": player_quills += item["amount"]
 			"stars": player_storybook_stars += item["amount"]
-			# Relics already awarded directly in _generate_chest_loot
+			# Gear already awarded directly in _generate_chest_loot
 
 func _collect_session_damage() -> void:
 	# Map script filenames to TowerType
@@ -26053,7 +26182,7 @@ func _collect_session_damage() -> void:
 
 func _on_survivor_level_up(tower_type, new_level: int) -> void:
 	# Unlock gear at level 2, sidekicks at 3/5/8
-	# Relics: 0,2,4 auto-earned at levels 2,6,10; relics 1,3,5 purchasable at levels 4,8,12
+	# Gear: auto-earned at levels 2,6,10; gears 1,3,5 purchasable at levels 4,8,12
 	if not survivor_progress.has(tower_type):
 		return
 	_trigger_levelup_fanfare(tower_type, new_level)
@@ -26064,13 +26193,13 @@ func _on_survivor_level_up(tower_type, new_level: int) -> void:
 	for i in range(3):
 		if new_level >= sk_levels[i]:
 			p["sidekicks_unlocked"][i] = true
-	# Level-earned relics (indices 0, 2, 4) auto-unlock
+	# Level-earned gear slots (indices 0, 2, 4) auto-unlock
 	var earned_levels = {0: 2, 2: 6, 4: 10}
-	for relic_idx in earned_levels:
-		if new_level >= earned_levels[relic_idx]:
-			p["relics_unlocked"][relic_idx] = true
-	# Purchasable relics (indices 1, 3, 5) become available but NOT auto-unlocked
-	# They are unlocked via gold purchase in _on_relic_clicked()
+	for gear_idx in earned_levels:
+		if new_level >= earned_levels[gear_idx]:
+			p["gear_slots_unlocked"][gear_idx] = true
+	# Purchasable gear slots (indices 1, 3, 5) become available but NOT auto-unlocked
+	# They are unlocked via gold purchase in _on_gear_slot_clicked()
 	# Award Knowledge Ink on level-up (+1 base, +2 bonus on milestone levels)
 	knowledge_ink += 1
 	if new_level in [5, 10, 15, 20]:
@@ -26167,7 +26296,7 @@ func show_ability_choice(tower: Node2D) -> void:
 		if i < tower.TIER_NAMES.size():
 			var desc = ""
 			if tower.has("ABILITY_DESCRIPTIONS") and i < tower.ABILITY_DESCRIPTIONS.size():
-				desc = " — " + tower.ABILITY_DESCRIPTIONS[i]
+				desc = " â€” " + tower.ABILITY_DESCRIPTIONS[i]
 			ability_buttons[i].text = tower.TIER_NAMES[i] + desc
 			ability_buttons[i].visible = true
 		else:
@@ -26395,7 +26524,7 @@ func _draw_power_selection() -> void:
 		_udraw(font, Vector2(bx + pw - 120, by + 18), "Owned: %d" % owned, HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.7, 0.6, 0.4) if owned > 0 else Color(0.4, 0.35, 0.3))
 		if is_selected_p:
 			_udraw(font, Vector2(bx + pw - 120, by + 34), "SELECTED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.3, 0.8, 0.3))
-	# Start button — large and prominent
+	# Start button â€” large and prominent
 	var sb_w = 260.0
 	var sb_h = 50.0
 	var sbx = px + (pw - sb_w) * 0.5
@@ -26545,7 +26674,7 @@ func _start_endless_mode() -> void:
 	start_button.disabled = false
 	speed_button.visible = true
 	update_hud()
-	info_label.text = "The Eternal Chapter (Endless) — Place your towers!"
+	info_label.text = "The Eternal Chapter (Endless) â€” Place your towers!"
 	wave_auto_timer = -1.0
 
 func _start_boss_rush() -> void:
@@ -26613,7 +26742,7 @@ func _start_boss_rush() -> void:
 	start_button.disabled = false
 	speed_button.visible = true
 	update_hud()
-	info_label.text = "BOSS RUSH — 10 Bosses, 500G, 10 Lives. Survive!"
+	info_label.text = "BOSS RUSH â€” 10 Bosses, 500G, 10 Lives. Survive!"
 	wave_auto_timer = -1.0
 
 const DAILY_MODIFIERS: Array = [
@@ -26664,7 +26793,7 @@ func _start_daily_challenge() -> void:
 		total_waves += int(mod["value"])
 	daily_challenge_active = true
 	update_hud()
-	info_label.text = "DAILY CHALLENGE: %s — %s" % [levels[daily_challenge_level]["name"], daily_challenge_modifier]
+	info_label.text = "DAILY CHALLENGE: %s â€” %s" % [levels[daily_challenge_level]["name"], daily_challenge_modifier]
 
 # === PRESTIGE SYSTEM ("New Story") ===
 func _do_prestige() -> void:
@@ -26673,7 +26802,7 @@ func _do_prestige() -> void:
 	level_stars.clear()
 	level_difficulty_medals.clear()
 	level_difficulty_stars.clear()
-	# Keep: currencies, characters, relics, cosmetics, knowledge, chests, bindings
+	# Keep: currencies, characters, gear, cosmetics, knowledge, chests
 	spawn_floating_text(Vector2(640, 300), "NEW STORY! Prestige %d" % prestige_level, Color(1.0, 0.85, 0.2), 28.0, 3.0)
 	_save_game()
 
@@ -26718,7 +26847,7 @@ func _check_milestones() -> void:
 			# Grant reward
 			match m["reward_type"]:
 				"gold": player_gold += m["reward_amount"]
-				"shards": player_relic_shards += m["reward_amount"]
+				"shards": player_gear_shards += m["reward_amount"]
 				"quills": player_quills += m["reward_amount"]
 				"gold_chest": treasure_chests_owned["gold"] += m["reward_amount"]
 			spawn_floating_text(Vector2(640, 280), "MILESTONE: %s!" % m["name"], Color(1.0, 0.85, 0.2), 20.0, 2.5)
@@ -26881,8 +27010,8 @@ func _on_trophy_store_clicked(mouse_pos: Vector2) -> void:
 		var rows_in_cat = (items.size() + 3) / 4
 		start_y += float(rows_in_cat) * (card_h + 6) + 8.0
 
-# === TOME BINDINGS SHOP ===
-func _draw_binding_shop() -> void:
+# === GEAR SHOP ===
+func _draw_gear_shop() -> void:
 	var font = game_font
 	var panel_x = 70.0
 	var panel_y = 45.0
@@ -26898,58 +27027,57 @@ func _draw_binding_shop() -> void:
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "TOME BINDINGS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.7, 0.2, 0.9))
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR SHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.7, 0.2, 0.9))
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
 	var card_w = 260.0
 	var card_h = 48.0
-	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
-	var rarity_names = {"tattered": "Tattered", "bound": "Bound", "gilded": "Gilded", "mythic": "Mythic", "forbidden": "Forbidden"}
-	var rarity_costs = {"tattered": 15, "bound": 35, "gilded": 80, "mythic": 200, "forbidden": 500}
-	var rarity_colors = RARITY_COLORS
-	var start_y = content_top - binding_shop_scroll
+	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
+	var rarity_names = {"common": "Common", "uncommon": "Uncommon", "rare": "Rare", "epic": "Epic", "legendary": "Legendary"}
+	var rarity_costs = {"common": 15, "uncommon": 35, "rare": 80, "epic": 200, "legendary": 500}
+	var start_y = content_top - gear_shop_scroll
 	var total_content_h = 0.0
 	for ri in range(rarity_order.size()):
 		var rarity = rarity_order[ri]
 		# Category header
 		if start_y + 18 > content_top and start_y < content_bottom:
 			draw_rect(Rect2(panel_x + 10, start_y, panel_w - 20, 18), Color(0.6, 0.3, 0.8, 0.10))
-			_udraw(font, Vector2(panel_x + 20, start_y + 13), rarity_names[rarity] + " (%d shards)" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, rarity_colors[rarity])
+			_udraw(font, Vector2(panel_x + 20, start_y + 13), rarity_names[rarity] + " (%d shards)" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, TIER_COLORS[rarity])
 		start_y += 22.0
 		total_content_h += 22.0
-		var bindings_in_rarity: Array = []
-		for b in TOME_BINDINGS:
-			if b["rarity"] == rarity:
-				bindings_in_rarity.append(b)
-		for ii in range(bindings_in_rarity.size()):
-			var b = bindings_in_rarity[ii]
+		var gear_in_tier: Array = []
+		for b in GEAR_ITEMS:
+			if b["tier"] == rarity:
+				gear_in_tier.append(b)
+		for ii in range(gear_in_tier.size()):
+			var b = gear_in_tier[ii]
 			var col_i = ii % 4
 			var row_i = ii / 4
 			var ix = panel_x + 10 + float(col_i) * (card_w + 10)
 			var iy = start_y + float(row_i) * (card_h + 6)
 			if iy + card_h < content_top or iy > content_bottom:
 				continue
-			var count = owned_bindings.get(b["id"], 0)
+			var count = owned_gear.get(b["id"], 0)
 			var bg = Color(0.12, 0.08, 0.14, 0.8) if count > 0 else Color(0.06, 0.05, 0.08, 0.8)
 			draw_rect(Rect2(ix, iy, card_w, card_h), bg)
-			draw_rect(Rect2(ix, iy, card_w, card_h), Color(rarity_colors[rarity].r, rarity_colors[rarity].g, rarity_colors[rarity].b, 0.3), false, 1.0)
+			draw_rect(Rect2(ix, iy, card_w, card_h), Color(TIER_COLORS[rarity].r, TIER_COLORS[rarity].g, TIER_COLORS[rarity].b, 0.3), false, 1.0)
 			_udraw(font, Vector2(ix + 8, iy + 16), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 80), 15, Color(0.8, 0.7, 0.5))
 			_udraw(font, Vector2(ix + 8, iy + 30), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 16), 14, Color(0.5, 0.45, 0.38))
 			if count > 0:
 				_udraw(font, Vector2(ix + card_w - 35, iy + 16), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
 			_udraw(font, Vector2(ix + card_w - 55, iy + 30), "%d S" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
-		var rows_in_rarity = (bindings_in_rarity.size() + 3) / 4
+		var rows_in_rarity = (gear_in_tier.size() + 3) / 4
 		var section_h = float(rows_in_rarity) * (card_h + 6) + 8.0
 		start_y += section_h
 		total_content_h += section_h
 	# Clamp scroll
 	var max_scroll = maxf(0.0, total_content_h - (content_bottom - content_top))
-	binding_shop_scroll = clampf(binding_shop_scroll, 0.0, max_scroll)
+	gear_shop_scroll = clampf(gear_shop_scroll, 0.0, max_scroll)
 	# Scroll indicator
 	if max_scroll > 0:
 		var bar_x = panel_x + panel_w - 10
 		var bar_h = content_bottom - content_top
 		var thumb_h = maxf(30.0, bar_h * bar_h / (bar_h + max_scroll))
-		var thumb_y = content_top + (binding_shop_scroll / max_scroll) * (bar_h - thumb_h)
+		var thumb_y = content_top + (gear_shop_scroll / max_scroll) * (bar_h - thumb_h)
 		draw_rect(Rect2(bar_x, content_top, 4, bar_h), Color(0.2, 0.2, 0.25, 0.3))
 		draw_rect(Rect2(bar_x, thumb_y, 4, thumb_h), Color(0.85, 0.7, 0.2, 0.5))
 	# Back button (always visible at bottom)
@@ -26958,7 +27086,7 @@ func _draw_binding_shop() -> void:
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
 	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
-func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
+func _on_gear_shop_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0
 	var panel_y = 45.0
 	var panel_w = 1140.0
@@ -26968,7 +27096,7 @@ func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
 	# Back button
 	if mouse_pos.x >= panel_x + 10 and mouse_pos.x <= panel_x + 120 and mouse_pos.y >= panel_y + panel_h - 45 and mouse_pos.y <= panel_y + panel_h - 10:
 		emporium_sub_category = -1
-		binding_shop_scroll = 0.0
+		gear_shop_scroll = 0.0
 		queue_redraw()
 		return
 	# Don't process clicks outside content area
@@ -26976,18 +27104,18 @@ func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
 		return
 	var card_w = 260.0
 	var card_h = 48.0
-	var rarity_order = ["tattered", "bound", "gilded", "mythic", "forbidden"]
-	var rarity_costs = {"tattered": 15, "bound": 35, "gilded": 80, "mythic": 200, "forbidden": 500}
-	var start_y = content_top - binding_shop_scroll
+	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
+	var rarity_costs = {"common": 15, "uncommon": 35, "rare": 80, "epic": 200, "legendary": 500}
+	var start_y = content_top - gear_shop_scroll
 	for ri in range(rarity_order.size()):
 		var rarity = rarity_order[ri]
 		start_y += 22.0
-		var bindings_in_rarity: Array = []
-		for b in TOME_BINDINGS:
-			if b["rarity"] == rarity:
-				bindings_in_rarity.append(b)
-		for ii in range(bindings_in_rarity.size()):
-			var b = bindings_in_rarity[ii]
+		var gear_in_tier: Array = []
+		for b in GEAR_ITEMS:
+			if b["tier"] == rarity:
+				gear_in_tier.append(b)
+		for ii in range(gear_in_tier.size()):
+			var b = gear_in_tier[ii]
 			var col_i = ii % 4
 			var row_i = ii / 4
 			var ix = panel_x + 10 + float(col_i) * (card_w + 10)
@@ -26996,20 +27124,20 @@ func _on_binding_shop_clicked(mouse_pos: Vector2) -> void:
 				continue
 			if mouse_pos.x >= ix and mouse_pos.x <= ix + card_w and mouse_pos.y >= iy and mouse_pos.y <= iy + card_h:
 				var cost = rarity_costs[rarity]
-				if player_relic_shards >= cost:
-					player_relic_shards -= cost
-					owned_bindings[b["id"]] = owned_bindings.get(b["id"], 0) + 1
-					_mark_binding_discovered(b["id"])
-					_add_recent_item(b["name"], b.get("rarity", "tattered"))
+				if player_gear_shards >= cost:
+					player_gear_shards -= cost
+					owned_gear[b["id"]] = owned_gear.get(b["id"], 0) + 1
+					_mark_gear_discovered(b["id"])
+					_add_recent_item(b["name"], b.get("tier", "common"))
 					emporium_sub_message = "Purchased %s!" % b["name"]
 					emporium_sub_message_timer = 2.0
 					_save_game()
 				else:
-					emporium_sub_message = "Not enough Relic Shards!"
+					emporium_sub_message = "Not enough Gear Shards!"
 					emporium_sub_message_timer = 2.0
 				queue_redraw()
 				return
-		var rows_in_rarity = (bindings_in_rarity.size() + 3) / 4
+		var rows_in_rarity = (gear_in_tier.size() + 3) / 4
 		start_y += float(rows_in_rarity) * (card_h + 6) + 8.0
 
 func _on_power_selection_clicked(mouse_pos: Vector2) -> void:
@@ -27041,7 +27169,7 @@ func _on_power_selection_clicked(mouse_pos: Vector2) -> void:
 
 func _on_emporium_tile_clicked_extended(index: int) -> void:
 	if index == 6:
-		# Trophy Store — switch to trophy store view
+		# Trophy Store â€” switch to trophy store view
 		emporium_sub_category = 6
 		queue_redraw()
 	else:
@@ -27051,23 +27179,29 @@ func _on_emporium_tile_clicked_extended(index: int) -> void:
 # === FEATURE 3: ITEM DISMANTLING / SALVAGING ==========================================
 # =====================================================================================
 
-func _salvage_binding(binding_id: String) -> void:
-	var count = owned_bindings.get(binding_id, 0)
+func _salvage_gear(gear_id: String) -> void:
+	var count = owned_gear.get(gear_id, 0)
 	if count <= 0:
 		return
-	var binding = _find_binding(binding_id)
-	if binding.is_empty():
+	var gear_data = _find_gear(gear_id)
+	if gear_data.is_empty():
 		return
-	var rarity = binding.get("rarity", "tattered")
+	var rarity = gear_data.get("tier", "common")
 	var shards_gained = salvage_rates.get(rarity, 5)
-	owned_bindings[binding_id] = count - 1
-	if owned_bindings[binding_id] <= 0:
-		owned_bindings.erase(binding_id)
+	owned_gear[gear_id] = count - 1
+	if owned_gear[gear_id] <= 0:
+		owned_gear.erase(gear_id)
 	# Remove from equipped if was equipped
-	for t in equipped_bindings:
-		if binding_id in equipped_bindings[t]:
-			equipped_bindings[t].erase(binding_id)
-	player_relic_shards += shards_gained
+	var was_equipped = false
+	for t in equipped_gear:
+		if gear_id in equipped_gear[t]:
+			equipped_gear[t].erase(gear_id)
+			was_equipped = true
+	player_gear_shards += shards_gained
+	var msg = "+%d Shards" % shards_gained
+	if was_equipped:
+		msg += " (unequipped)"
+	spawn_floating_text(Vector2(640, 360), msg, Color(0.6, 0.3, 0.9), 16.0, 1.0)
 	_check_achievement("salvage_master", 1)
 	_save_game()
 
@@ -27083,31 +27217,31 @@ func _draw_salvage_panel() -> void:
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "SALVAGE WORKSHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var card_w = 260.0
 	var card_h = 52.0
 	var col_count = 4
 	var row = 0
 	var col = 0
 	var content_y = panel_y + 60.0
-	for bid in owned_bindings:
-		if owned_bindings[bid] <= 0:
+	for bid in owned_gear:
+		if owned_gear[bid] <= 0:
 			continue
-		var binding = _find_binding(bid)
-		if binding.is_empty():
+		var gear_data = _find_gear(bid)
+		if gear_data.is_empty():
 			continue
-		var rarity = binding.get("rarity", "tattered")
+		var rarity = gear_data.get("tier", "common")
 		var shards_val = salvage_rates.get(rarity, 5)
 		var ix = panel_x + 10 + float(col) * (card_w + 10)
 		var iy = content_y + float(row) * (card_h + 6)
 		if iy + card_h > panel_y + panel_h - 50:
 			break
-		var rarity_col = RARITY_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
+		var rarity_col = TIER_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
 		draw_rect(Rect2(ix, iy, card_w, card_h), Color(0.08, 0.06, 0.10, 0.85))
 		draw_rect(Rect2(ix, iy, card_w, card_h), Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.3), false, 1.0)
-		_udraw(font, Vector2(ix + 8, iy + 16), binding.get("name", "?"), HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(0.8, 0.7, 0.5))
-		_udraw(font, Vector2(ix + 8, iy + 32), "x%d" % owned_bindings[bid], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.8, 0.5))
+		_udraw(font, Vector2(ix + 8, iy + 16), gear_data.get("name", "?"), HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(0.8, 0.7, 0.5))
+		_udraw(font, Vector2(ix + 8, iy + 32), "x%d" % owned_gear[bid], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.8, 0.5))
 		# Salvage button
 		draw_rect(Rect2(ix + card_w - 75, iy + 8, 65, 34), Color(0.5, 0.15, 0.1, 0.7))
 		draw_rect(Rect2(ix + card_w - 75, iy + 8, 65, 34), Color(0.8, 0.3, 0.2, 0.4), false, 1.0)
@@ -27137,14 +27271,14 @@ func _on_salvage_clicked(mouse_pos: Vector2) -> void:
 	var content_y = panel_y + 60.0
 	var col = 0
 	var row = 0
-	for bid in owned_bindings:
-		if owned_bindings[bid] <= 0:
+	for bid in owned_gear:
+		if owned_gear[bid] <= 0:
 			continue
 		var ix = panel_x + 10 + float(col) * (card_w + 10)
 		var iy = content_y + float(row) * (card_h + 6)
 		# Salvage button hitbox
 		if mouse_pos.x >= ix + card_w - 75 and mouse_pos.x <= ix + card_w - 10 and mouse_pos.y >= iy + 8 and mouse_pos.y <= iy + 42:
-			_salvage_binding(bid)
+			_salvage_gear(bid)
 			queue_redraw()
 			return
 		col += 1
@@ -27167,11 +27301,11 @@ func _draw_chest_crafting() -> void:
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "CHEST FORGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_relic_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Relic Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
-	var tier_colors = [Color(0.7, 0.5, 0.25), Color(0.7, 0.7, 0.75), Color(0.95, 0.8, 0.2)]
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var tier_names = ["Bronze", "Silver", "Golden"]
 	var chest_keys = ["bronze", "silver", "gold"]
+	var chest_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), Color(0.85, 0.65, 0.1)]
 	for i in range(3):
 		var craft = golden_chest_craft_costs[i]
 		var cx = panel_x + 80 + float(i) * 360.0
@@ -27179,17 +27313,17 @@ func _draw_chest_crafting() -> void:
 		var cw = 320.0
 		var ch = 300.0
 		draw_rect(Rect2(cx, cy, cw, ch), Color(0.06, 0.05, 0.08, 0.9))
-		draw_rect(Rect2(cx, cy, cw, ch), Color(tier_colors[i].r, tier_colors[i].g, tier_colors[i].b, 0.4), false, 2.0)
+		draw_rect(Rect2(cx, cy, cw, ch), Color(chest_colors[i].r, chest_colors[i].g, chest_colors[i].b, 0.4), false, 2.0)
 		# Chest icon (simple rectangle chest)
 		var icon_y = cy + 40
-		draw_rect(Rect2(cx + cw * 0.5 - 30, icon_y, 60, 45), tier_colors[i])
-		draw_rect(Rect2(cx + cw * 0.5 - 32, icon_y, 64, 5), Color(tier_colors[i].r * 0.7, tier_colors[i].g * 0.7, tier_colors[i].b * 0.7))
+		draw_rect(Rect2(cx + cw * 0.5 - 30, icon_y, 60, 45), chest_colors[i])
+		draw_rect(Rect2(cx + cw * 0.5 - 32, icon_y, 64, 5), Color(chest_colors[i].r * 0.7, chest_colors[i].g * 0.7, chest_colors[i].b * 0.7))
 		draw_rect(Rect2(cx + cw * 0.5 - 5, icon_y + 15, 10, 15), Color(0.2, 0.15, 0.1))
-		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 70), tier_names[i] + " Treasure Chest", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, tier_colors[i])
+		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 70), tier_names[i] + " Treasure Chest", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, chest_colors[i])
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 92), "Owned: %d" % treasure_chests_owned.get(chest_keys[i], 0), HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text)
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["shard_cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 16, menu_gold)
 		# Craft button
-		var can_afford = player_relic_shards >= craft["shard_cost"]
+		var can_afford = player_gear_shards >= craft["shard_cost"]
 		var btn_col = Color(0.15, 0.35, 0.15, 0.8) if can_afford else Color(0.12, 0.1, 0.1, 0.6)
 		draw_rect(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), btn_col)
 		draw_rect(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), Color(0.4, 0.8, 0.3, 0.4) if can_afford else Color(0.3, 0.3, 0.3, 0.3), false, 1.0)
@@ -27217,8 +27351,8 @@ func _on_chest_crafting_clicked(mouse_pos: Vector2) -> void:
 		var btn_x = cx + 160.0 - 55
 		var btn_y = icon_y + 140
 		if mouse_pos.x >= btn_x and mouse_pos.x <= btn_x + 110 and mouse_pos.y >= btn_y and mouse_pos.y <= btn_y + 40:
-			if player_relic_shards >= craft["shard_cost"]:
-				player_relic_shards -= craft["shard_cost"]
+			if player_gear_shards >= craft["shard_cost"]:
+				player_gear_shards -= craft["shard_cost"]
 				treasure_chests_owned[chest_keys[i]] = treasure_chests_owned.get(chest_keys[i], 0) + 1
 				_save_game()
 			queue_redraw()
@@ -27228,135 +27362,108 @@ func _on_chest_crafting_clicked(mouse_pos: Vector2) -> void:
 # === FEATURE 5: ROTATING DAILY DEALS SHOP ============================================
 # =====================================================================================
 
-func _generate_daily_deals() -> void:
+func _generate_daily_deals(force_refresh: bool = false) -> void:
 	var today = Time.get_date_string_from_system()
-	if daily_deals_date == today and daily_deals.size() == 3:
-		return
-	# Seed based on date for consistent deals per day
 	var date = Time.get_date_dict_from_system()
-	var day_seed = date["year"] * 366 + date["month"] * 31 + date["day"]
+	var is_weekend = date["weekday"] == 0 or date["weekday"] == 6  # Sun=0, Sat=6
+	var deal_count = 4 if is_weekend else 3  # Improvement 8: Weekend bonus deals
+	if not force_refresh and daily_deals_date == today and daily_deals.size() >= deal_count:
+		return
+	# Reset daily refresh count on new day
+	if daily_deals_date != today:
+		daily_deals_refresh_count = 0
+		daily_deals_all_bonus_claimed = false
+		_deal_purchase_flash.clear()
+	# Seed based on date + refresh count for consistent but refreshable deals
+	var day_seed = date["year"] * 366 + date["month"] * 31 + date["day"] + daily_deals_refresh_count * 9999
 	var rng = RandomNumberGenerator.new()
 	rng.seed = day_seed
 	daily_deals.clear()
-	daily_deals_purchased = [false, false, false]
-	# Deal types: bindings, battle powers, currency packs, chests
-	var deal_pool = []
-	# Add some random bindings
-	for b in TOME_BINDINGS:
-		deal_pool.append({"type": "binding", "item": b, "cost_type": "quills", "cost": rng.randi_range(5, 20), "name": b["name"], "desc": b["desc"]})
-	# Add power deals
+	daily_deals_purchased = []
+	for _i in range(deal_count):
+		daily_deals_purchased.append(false)
+	# Build deal pool with rarity tiers (Improvement 1)
+	var deal_pool_common: Array = []
+	var deal_pool_rare: Array = []
+	var deal_pool_epic: Array = []
+	var deal_pool_legendary: Array = []
+	# Gear as deals
+	for b in GEAR_ITEMS:
+		var rarity = b.get("tier", "common")
+		var base_cost = rng.randi_range(5, 20)
+		var deal_rarity = "common"
+		if rarity == "rare" or rarity == "epic":
+			deal_rarity = "rare"
+			base_cost = rng.randi_range(12, 25)
+		elif rarity == "legendary":
+			deal_rarity = "epic"
+			base_cost = rng.randi_range(20, 40)
+		var original = int(base_cost * rng.randf_range(1.2, 1.8))  # Improvement 2: Discount
+		var d = {"type": "gear_deal", "item": b, "cost_type": "quills", "cost": base_cost, "original_cost": original, "name": b["name"], "desc": b["desc"], "tier": deal_rarity}
+		if deal_rarity == "epic":
+			deal_pool_epic.append(d)
+		elif deal_rarity == "rare":
+			deal_pool_rare.append(d)
+		else:
+			deal_pool_common.append(d)
+	# Battle power deals
 	for bp in battle_power_definitions:
-		deal_pool.append({"type": "power", "power_id": bp["id"], "cost_type": "shards", "cost": rng.randi_range(8, 18), "name": bp["name"] + " x2", "desc": bp["desc"], "amount": 2})
-	# Add currency deals
-	deal_pool.append({"type": "currency", "currency": "shards", "amount": rng.randi_range(20, 50), "cost_type": "quills", "cost": rng.randi_range(5, 12), "name": "Shard Pouch", "desc": "A pouch of Relic Shards"})
-	deal_pool.append({"type": "currency", "currency": "quills", "amount": rng.randi_range(5, 15), "cost_type": "shards", "cost": rng.randi_range(15, 30), "name": "Quill Bundle", "desc": "A bundle of Enchanted Quills"})
-	deal_pool.append({"type": "chest", "chest_tier": "silver", "cost_type": "quills", "cost": rng.randi_range(15, 25), "name": "Silver Chest", "desc": "Uncommon treasures await"})
-	# Pick 3 random deals
-	deal_pool.shuffle()
-	for i in range(min(3, deal_pool.size())):
-		daily_deals.append(deal_pool[i])
+		var d = {"type": "power", "power_id": bp["id"], "cost_type": "shards", "cost": rng.randi_range(8, 15), "original_cost": rng.randi_range(18, 28), "name": bp["name"] + " x2", "desc": bp["desc"], "amount": 2, "tier": "common"}
+		deal_pool_common.append(d)
+	# Currency deals
+	deal_pool_common.append({"type": "currency", "currency": "shards", "amount": rng.randi_range(20, 50), "cost_type": "quills", "cost": rng.randi_range(5, 10), "original_cost": rng.randi_range(12, 18), "name": "Shard Pouch", "desc": "A pouch of Gear Shards", "tier": "common"})
+	deal_pool_common.append({"type": "currency", "currency": "quills", "amount": rng.randi_range(5, 15), "cost_type": "shards", "cost": rng.randi_range(12, 25), "original_cost": rng.randi_range(28, 40), "name": "Quill Bundle", "desc": "A bundle of Enchanted Quills", "tier": "common"})
+	# Improvement 6: Expanded deal pool
+	deal_pool_rare.append({"type": "currency", "currency": "ink", "amount": rng.randi_range(3, 8), "cost_type": "quills", "cost": rng.randi_range(8, 15), "original_cost": rng.randi_range(18, 25), "name": "Ink Vial", "desc": "Knowledge Ink for the Tree", "tier": "rare"})
+	deal_pool_rare.append({"type": "chest", "chest_tier": "silver", "cost_type": "quills", "cost": rng.randi_range(12, 20), "original_cost": rng.randi_range(22, 35), "name": "Silver Chest", "desc": "Uncommon treasures await", "tier": "rare"})
+	# Instrument deals
+	for inst in literary_instruments:
+		deal_pool_rare.append({"type": "instrument", "instrument_id": inst["id"], "cost_type": "shards", "cost": rng.randi_range(20, 35), "original_cost": rng.randi_range(40, 55), "name": inst["name"], "desc": inst["desc"], "tier": "rare"})
+	# Epic deals
+	deal_pool_epic.append({"type": "chest", "chest_tier": "gold", "cost_type": "quills", "cost": rng.randi_range(25, 40), "original_cost": rng.randi_range(45, 65), "name": "Golden Chest", "desc": "Rare treasures guaranteed!", "tier": "epic"})
+	deal_pool_epic.append({"type": "currency", "currency": "stars", "amount": rng.randi_range(2, 5), "cost_type": "shards", "cost": rng.randi_range(30, 50), "original_cost": rng.randi_range(55, 75), "name": "Star Bundle", "desc": "Storybook Stars for leveling", "tier": "epic"})
+	deal_pool_epic.append({"type": "power", "power_id": "enchanted_towers", "cost_type": "shards", "cost": rng.randi_range(15, 25), "original_cost": rng.randi_range(30, 45), "name": "Enchanted Towers x3", "desc": "+50% tower damage for 15s", "amount": 3, "tier": "epic"})
+	# Legendary deals
+	deal_pool_legendary.append({"type": "currency", "currency": "shards", "amount": rng.randi_range(80, 150), "cost_type": "quills", "cost": rng.randi_range(25, 40), "original_cost": rng.randi_range(50, 70), "name": "Shard Hoard", "desc": "A massive pile of Gear Shards!", "tier": "legendary"})
+	deal_pool_legendary.append({"type": "chest", "chest_tier": "gold", "cost_type": "quills", "cost": rng.randi_range(18, 30), "original_cost": rng.randi_range(40, 60), "name": "Gilded Chest", "desc": "Epic+ rarity guaranteed!", "tier": "legendary"})
+	deal_pool_legendary.append({"type": "currency", "currency": "ink", "amount": rng.randi_range(10, 20), "cost_type": "shards", "cost": rng.randi_range(25, 45), "original_cost": rng.randi_range(50, 70), "name": "Inkwell of Ages", "desc": "A deep well of Knowledge Ink", "tier": "legendary"})
+	# Shuffle each pool
+	deal_pool_common.shuffle()
+	deal_pool_rare.shuffle()
+	deal_pool_epic.shuffle()
+	deal_pool_legendary.shuffle()
+	# Improvement 3: Featured deal (first deal is always rare+)
+	var featured_pool: Array = []
+	featured_pool.append_array(deal_pool_legendary)
+	featured_pool.append_array(deal_pool_epic)
+	featured_pool.append_array(deal_pool_rare)
+	if featured_pool.size() > 0:
+		var feat = featured_pool[0]
+		feat["featured"] = true
+		daily_deals.append(feat)
+		# Remove from source pool
+		for pool in [deal_pool_legendary, deal_pool_epic, deal_pool_rare]:
+			pool.erase(feat)
+	# Fill remaining deals with weighted rarity
+	var remaining_pool: Array = []
+	for d in deal_pool_common:
+		remaining_pool.append(d)
+	for d in deal_pool_rare:
+		remaining_pool.append(d)
+	for d in deal_pool_epic:
+		remaining_pool.append(d)
+	remaining_pool.shuffle()
+	while daily_deals.size() < deal_count and remaining_pool.size() > 0:
+		daily_deals.append(remaining_pool.pop_front())
 	daily_deals_date = today
 
 func _draw_daily_deals() -> void:
-	var font = game_font
-	# Small panel at top of chapters view
-	var dx = 830.0
-	var dy = 50.0
-	var dw = 420.0
-	var dh = 220.0
-	draw_rect(Rect2(dx, dy, dw, dh), Color(0.06, 0.05, 0.10, 0.9))
-	draw_rect(Rect2(dx, dy, dw, dh), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.35), false, 1.5)
-	_udraw(font, Vector2(dx + dw * 0.5, dy + 18), "DAILY DEALS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
-	_udraw(font, Vector2(dx + dw * 0.5, dy + 36), "Refreshes at midnight", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_text_muted)
-	for i in range(min(3, daily_deals.size())):
-		var deal = daily_deals[i]
-		var ix = dx + 10
-		var iy = dy + 42 + float(i) * 58.0
-		var iw = dw - 20
-		var ih = 52.0
-		var purchased = daily_deals_purchased[i] if i < daily_deals_purchased.size() else false
-		var bg_col = Color(0.05, 0.15, 0.05, 0.6) if purchased else Color(0.08, 0.06, 0.12, 0.7)
-		draw_rect(Rect2(ix, iy, iw, ih), bg_col)
-		draw_rect(Rect2(ix, iy, iw, ih), Color(0.4, 0.35, 0.2, 0.3), false, 1.0)
-		_udraw(font, Vector2(ix + 10, iy + 18), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 15, Color(0.85, 0.75, 0.5))
-		_udraw(font, Vector2(ix + 10, iy + 36), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 120), 14, menu_text_muted)
-		if purchased:
-			_udraw(font, Vector2(ix + iw - 60, iy + 28), "SOLD", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.7, 0.3))
-		else:
-			if _deal_confirm_index == i and _deal_confirm_timer > 0.0:
-				draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(0.25, 0.18, 0.05, 0.9))
-				draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(1.0, 0.8, 0.2, 0.7), false, 2.0)
-				_udraw(font, Vector2(ix + iw - 56, iy + 24), "CONFIRM", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.9, 0.4))
-				var bar_fill = clampf(_deal_confirm_timer / 3.0, 0.0, 1.0)
-				draw_rect(Rect2(ix + iw - 98, iy + 38, 84 * bar_fill, 3), Color(1.0, 0.85, 0.2, 0.7))
-			else:
-				var cost_str = "%d %s" % [deal.get("cost", 0), deal.get("cost_type", "").capitalize()]
-				draw_rect(Rect2(ix + iw - 100, iy + 8, 88, 34), Color(0.15, 0.12, 0.08, 0.8))
-				_udraw(font, Vector2(ix + iw - 56, iy + 30), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_gold)
+	# Redirects to sidebar draw with fixed coordinates for compact view
+	_draw_daily_deals_sidebar(830.0, 50.0, 420.0, 280.0)
 
 func _on_daily_deals_clicked(mouse_pos: Vector2) -> void:
-	var dx = 830.0
-	var dy = 50.0
-	var dw = 420.0
-	for i in range(min(3, daily_deals.size())):
-		if daily_deals_purchased[i]:
-			continue
-		var deal = daily_deals[i]
-		var ix = dx + 10
-		var iy = dy + 42 + float(i) * 58.0
-		var iw = dw - 20
-		if mouse_pos.x >= ix + iw - 100 and mouse_pos.x <= ix + iw - 12 and mouse_pos.y >= iy + 8 and mouse_pos.y <= iy + 42:
-			if _deal_confirm_index != i:
-				_deal_confirm_index = i
-				_deal_confirm_timer = 3.0
-				queue_redraw()
-				return
-			_deal_confirm_index = -1
-			_deal_confirm_timer = 0.0
-			var cost = deal.get("cost", 0)
-			var cost_type = deal.get("cost_type", "")
-			var can_afford = false
-			match cost_type:
-				"quills": can_afford = player_quills >= cost
-				"shards": can_afford = player_relic_shards >= cost
-				"stars": can_afford = player_storybook_stars >= cost
-				"gold": can_afford = player_gold >= cost
-			if not can_afford:
-				return
-			# Deduct cost
-			match cost_type:
-				"quills": player_quills -= cost
-				"shards": player_relic_shards -= cost
-				"stars": player_storybook_stars -= cost
-				"gold": player_gold -= cost
-			# Grant reward
-			match deal.get("type", ""):
-				"binding":
-					var b = deal.get("item", {})
-					if b.has("id"):
-						owned_bindings[b["id"]] = owned_bindings.get(b["id"], 0) + 1
-						_mark_binding_discovered(b["id"])
-						_add_recent_item(b.get("name", "Binding"), b.get("rarity", "tattered"))
-				"power":
-					var pid = deal.get("power_id", "")
-					var amt = deal.get("amount", 1)
-					if pid != "":
-						owned_powers[pid] = owned_powers.get(pid, 0) + amt
-				"currency":
-					var curr = deal.get("currency", "")
-					var amt = deal.get("amount", 0)
-					match curr:
-						"shards": player_relic_shards += amt
-						"quills": player_quills += amt
-						"stars": player_storybook_stars += amt
-						"gold": player_gold += amt
-				"chest":
-					var tier = deal.get("chest_tier", "bronze")
-					treasure_chests_owned[tier] = treasure_chests_owned.get(tier, 0) + 1
-			daily_deals_purchased[i] = true
-			_save_game()
-			queue_redraw()
-			return
+	# Redirects to overlay handler with fixed coordinates for compact view
+	_on_overlay_deals_clicked(mouse_pos, 830.0, 50.0, 420.0)
 
 # =====================================================================================
 # === FEATURE 6: SHADOW ARENA (Competitive Leaderboard Mode) ==========================
@@ -27408,7 +27515,7 @@ func _end_shadow_arena() -> void:
 
 func _get_arena_shop_items() -> Array:
 	return [
-		{"name": "50 Relic Shards", "cost": 5, "type": "shards", "amount": 50},
+		{"name": "50 Gear Shards", "cost": 5, "type": "shards", "amount": 50},
 		{"name": "10 Quills", "cost": 8, "type": "quills", "amount": 10},
 		{"name": "5 Storybook Stars", "cost": 12, "type": "stars", "amount": 5},
 		{"name": "200 Gold", "cost": 10, "type": "gold", "amount": 200},
@@ -27419,7 +27526,7 @@ func _get_arena_shop_items() -> Array:
 # === FEATURE 7: BRANCHING UPGRADE PATHS ===============================================
 # =====================================================================================
 
-# Branch data per tower type — 2 branches (A/B), each with 2 tiers
+# Branch data per tower type â€” 2 branches (A/B), each with 2 tiers
 const UPGRADE_BRANCHES: Dictionary = {
 	# Robin Hood
 	0: {
@@ -27795,7 +27902,7 @@ func _draw_branch_upgrade_panel() -> void:
 	var font = game_font
 	var branches = UPGRADE_BRANCHES[tower_type_int]
 	var chosen = _get_branch_for_tower(selected_tower_node)
-	# Panel position — draw below the upgrade panel (right side)
+	# Panel position â€” draw below the upgrade panel (right side)
 	var px = 1080.0
 	var py = 660.0
 	var pw = 200.0
@@ -27954,9 +28061,9 @@ func _upgrade_golden_shield(tower_type) -> bool:
 	if current_shields >= MAX_GOLDEN_SHIELD:
 		return false
 	var cost = GOLDEN_SHIELD_COSTS[current_shields]
-	if player_relic_shards < cost:
+	if player_gear_shards < cost:
 		return false
-	player_relic_shards -= cost
+	player_gear_shards -= cost
 	survivor_progress[tower_type]["golden_shields"] = current_shields + 1
 	_save_game()
 	return true
@@ -27989,81 +28096,206 @@ func _init_quests() -> void:
 
 func _refresh_quests_if_needed() -> void:
 	var today = Time.get_date_string_from_system()
+	var date = Time.get_date_dict_from_system()
+	# Improvement 13: Check quest streak before resetting
+	if quest_last_refresh != today and quest_last_refresh != "":
+		# Check if all yesterday's quests were claimed
+		var all_claimed = true
+		for q in active_quests:
+			if not q.get("claimed", false):
+				all_claimed = false
+				break
+		if all_claimed and active_quests.size() > 0:
+			quest_streak += 1
+			if quest_streak > quest_streak_best:
+				quest_streak_best = quest_streak
+			# Improvement 13: Award streak rewards
+			if QUEST_STREAK_REWARDS.has(quest_streak):
+				player_gear_shards += QUEST_STREAK_REWARDS[quest_streak]
+		else:
+			quest_streak = 0
+		quest_streak_last_date = today
+		_quest_reroll_count = 0
+		_quest_claim_flash.clear()
 	if quest_last_refresh == today and active_quests.size() > 0:
 		return
-	# Generate 3 daily quests
+	# Improvement 11: Generate 3 quests â€” one per difficulty tier
 	active_quests.clear()
 	var rng = RandomNumberGenerator.new()
-	var date = Time.get_date_dict_from_system()
 	rng.seed = date["year"] * 366 + date["month"] * 31 + date["day"] + 7777
-	var templates = QUEST_TEMPLATES.duplicate()
-	templates.shuffle()
-	for i in range(min(3, templates.size())):
-		var tmpl = templates[i]
-		var diff_idx = rng.randi_range(0, 2)
+	for diff in range(3):  # Easy=0, Medium=1, Hard=2
+		var tier_templates: Array = []
+		for tmpl in QUEST_TEMPLATES:
+			if tmpl.get("difficulty", 0) == diff:
+				tier_templates.append(tmpl)
+		if tier_templates.is_empty():
+			continue
+		tier_templates.shuffle()
+		var tmpl = tier_templates[0]
+		var diff_idx = rng.randi_range(0, mini(2, tmpl["targets"].size() - 1))
 		var target = tmpl["targets"][diff_idx]
 		var reward_amount = tmpl["amounts"][diff_idx]
+		# Improvement 17: Hard quest is "featured" with bonus reward
+		if diff == 2:
+			reward_amount = int(reward_amount * 1.5)
 		active_quests.append({
-			"id": "quest_%d_%s" % [i, today],
-			"desc": tmpl["desc"] % target,
+			"id": "quest_%d_%s" % [diff, today],
+			"desc": tmpl["desc"] % target if "%" in tmpl["desc"] else tmpl["desc"],
+			"type": tmpl["type"],
+			"target": target,
+			"progress": 0,
+			"reward_type": tmpl["reward_type"],
+			"reward_amount": reward_amount,
+			"difficulty": diff,
+			"completed": false,
+			"claimed": false,
+		})
+	quest_last_refresh = today
+	# Improvement 12: Refresh weekly quests on Monday
+	_refresh_weekly_quests_if_needed()
+
+func _refresh_weekly_quests_if_needed() -> void:
+	var date = Time.get_date_dict_from_system()
+	# Calculate this week's Monday date string as key
+	var weekday = date["weekday"]  # 0=Sun, 1=Mon, ..., 6=Sat
+	var days_since_monday = (weekday - 1 + 7) % 7  # Mon=0, Tue=1, ..., Sun=6
+	# Use year+week as key since computing exact Monday date is complex
+	var week_key = "%d-W%02d" % [date["year"], (date["day"] + date["month"] * 31) / 7]
+	if weekly_quest_refresh == week_key and weekly_quests.size() > 0:
+		return
+	weekly_quests.clear()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = date["year"] * 53 + (date["day"] + date["month"] * 31) / 7 + 55555
+	var templates = WEEKLY_QUEST_TEMPLATES.duplicate()
+	templates.shuffle()
+	for i in range(min(2, templates.size())):
+		var tmpl = templates[i]
+		var diff_idx = rng.randi_range(0, mini(1, tmpl["targets"].size() - 1))
+		var target = tmpl["targets"][diff_idx]
+		var reward_amount = tmpl["amounts"][diff_idx]
+		weekly_quests.append({
+			"id": "weekly_%d_%s" % [i, week_key],
+			"desc": tmpl["desc"] % target if "%" in tmpl["desc"] else tmpl["desc"],
 			"type": tmpl["type"],
 			"target": target,
 			"progress": 0,
 			"reward_type": tmpl["reward_type"],
 			"reward_amount": reward_amount,
 			"completed": false,
+			"claimed": false,
 		})
-	quest_last_refresh = today
+	weekly_quest_refresh = week_key
 
 func _update_quest_progress(quest_type: String, amount: int = 1) -> void:
 	for q in active_quests:
-		if q["completed"]:
+		if q.get("claimed", false):
+			continue
+		if q.get("completed", false):
 			continue
 		if q["type"] == quest_type:
 			q["progress"] = mini(q["progress"] + amount, q["target"])
 			if q["progress"] >= q["target"]:
 				_complete_quest(q)
+	# Also update weekly quests
+	for wq in weekly_quests:
+		if wq.get("claimed", false):
+			continue
+		if wq.get("completed", false):
+			continue
+		if wq["type"] == quest_type:
+			wq["progress"] = mini(wq["progress"] + amount, wq["target"])
+			if wq["progress"] >= wq["target"]:
+				wq["completed"] = true
 
 func _complete_quest(quest: Dictionary) -> void:
+	# Improvement 14: Quest now only marks completed, NOT claimed â€” player must click claim
 	quest["completed"] = true
+
+func _claim_quest(quest: Dictionary, index: int, is_weekly: bool) -> void:
+	# Improvement 14: Explicit claim action
+	if quest.get("claimed", false):
+		return
+	quest["claimed"] = true
 	total_quests_completed += 1
+	# Grant reward
 	match quest["reward_type"]:
-		"shards": player_relic_shards += quest["reward_amount"]
+		"shards": player_gear_shards += quest["reward_amount"]
 		"quills": player_quills += quest["reward_amount"]
 		"stars": player_storybook_stars += quest["reward_amount"]
 		"gold": player_gold += quest["reward_amount"]
+		"ink": knowledge_ink += quest["reward_amount"]
+	# Improvement 16: Quest XP reward â€” give XP to a random owned tower
+	var xp_bonus = 50 + quest.get("difficulty", 0) * 30
+	if is_weekly:
+		xp_bonus = 150
+	var owned_types: Array = []
+	for t in survivor_progress:
+		owned_types.append(t)
+	if owned_types.size() > 0:
+		var lucky_type = owned_types[randi() % owned_types.size()]
+		var prog = survivor_progress.get(lucky_type, {})
+		prog["xp"] = prog.get("xp", 0) + xp_bonus
+		survivor_progress[lucky_type] = prog
+	# Improvement 19: Check quest milestones
+	for threshold in QUEST_MILESTONE_THRESHOLDS:
+		var key = str(threshold)
+		if total_quests_completed >= threshold and not quest_milestone_claimed.get(key, false):
+			quest_milestone_claimed[key] = true
+			# Milestone reward: scaling shards
+			player_gear_shards += threshold
+	# Claim animation
+	if not is_weekly:
+		_quest_claim_flash.append({"index": index, "timer": 1.0})
 	_save_game()
 
+func _reroll_quest(index: int) -> void:
+	# Improvement 18: Reroll a single quest
+	if index < 0 or index >= active_quests.size():
+		return
+	var old_quest = active_quests[index]
+	var difficulty = old_quest.get("difficulty", 0)
+	var old_type = old_quest.get("type", "")
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	# Find templates matching difficulty but different type
+	var candidates: Array = []
+	for tmpl in QUEST_TEMPLATES:
+		if tmpl.get("difficulty", 0) == difficulty and tmpl["type"] != old_type:
+			candidates.append(tmpl)
+	if candidates.is_empty():
+		for tmpl in QUEST_TEMPLATES:
+			if tmpl.get("difficulty", 0) == difficulty:
+				candidates.append(tmpl)
+	if candidates.is_empty():
+		return
+	candidates.shuffle()
+	var tmpl = candidates[0]
+	var diff_idx = rng.randi_range(0, mini(2, tmpl["targets"].size() - 1))
+	var target = tmpl["targets"][diff_idx]
+	var reward_amount = tmpl["amounts"][diff_idx]
+	var today = Time.get_date_string_from_system()
+	active_quests[index] = {
+		"id": "quest_reroll_%d_%s_%d" % [index, today, _quest_reroll_count],
+		"desc": tmpl["desc"] % target if "%" in tmpl["desc"] else tmpl["desc"],
+		"type": tmpl["type"],
+		"target": target,
+		"progress": 0,
+		"reward_type": tmpl["reward_type"],
+		"reward_amount": reward_amount,
+		"difficulty": difficulty,
+		"completed": false,
+		"claimed": false,
+	}
+
 func _draw_quest_panel() -> void:
-	var font = game_font
+	# Redirects to the sidebar draw with fixed coordinates for compact view
 	var qx = 830.0
 	var qy = 280.0
 	var qw = 420.0
-	var qh = 195.0
+	var qh = 380.0
 	draw_rect(Rect2(qx, qy, qw, qh), Color(0.04, 0.06, 0.04, 0.85))
 	draw_rect(Rect2(qx, qy, qw, qh), Color(0.3, 0.7, 0.3, 0.3), false, 1.5)
-	_udraw(font, Vector2(qx + qw * 0.5, qy + 18), "DAILY QUESTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.8, 0.3))
-	_udraw(font, Vector2(qx + qw * 0.5, qy + 34), "Complete for rewards!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
-	for i in range(min(3, active_quests.size())):
-		var q = active_quests[i]
-		var iy = qy + 44 + float(i) * 48.0
-		var completed = q.get("completed", false)
-		var bg = Color(0.05, 0.12, 0.05, 0.6) if completed else Color(0.06, 0.06, 0.08, 0.6)
-		draw_rect(Rect2(qx + 8, iy, qw - 16, 42), bg)
-		draw_rect(Rect2(qx + 8, iy, qw - 16, 42), Color(0.3, 0.6, 0.3, 0.25), false, 1.0)
-		_udraw(font, Vector2(qx + 16, iy + 16), q.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(qw - 130), 15, Color(0.8, 0.75, 0.6))
-		# Progress bar
-		var pct = float(q.get("progress", 0)) / float(max(1, q.get("target", 1)))
-		var bar_w = 80.0
-		draw_rect(Rect2(qx + qw - 100, iy + 6, bar_w, 10), Color(0.15, 0.15, 0.15))
-		draw_rect(Rect2(qx + qw - 100, iy + 6, bar_w * pct, 10), Color(0.3, 0.8, 0.3) if not completed else Color(0.2, 0.6, 0.2))
-		_udraw(font, Vector2(qx + qw - 60, iy + 14), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.8, 0.8))
-		# Reward
-		var reward_str = "+%d %s" % [q.get("reward_amount", 0), q.get("reward_type", "").capitalize()]
-		if completed:
-			_udraw(font, Vector2(qx + qw - 60, iy + 34), "DONE!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.8, 0.3))
-		else:
-			_udraw(font, Vector2(qx + qw - 60, iy + 34), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
+	_draw_quest_panel_sidebar(qx, qy, qw, qh)
 
 # =====================================================================================
 # === FEATURE 10: LITERARY INSTRUMENTS (Aura Support Gear) =============================
@@ -28195,7 +28427,7 @@ func _draw_instrument_hud() -> void:
 	if not has_any and _placing_instrument == "":
 		return
 	var font = game_font
-	# Instrument button (bottom-left — mobile-friendly size)
+	# Instrument button (bottom-left â€” mobile-friendly size)
 	var btn_x = 8.0
 	var btn_y = 48.0
 	var btn_w = 110.0
@@ -28253,7 +28485,7 @@ func _handle_instrument_placement_click(mouse_pos: Vector2) -> bool:
 	var btn_w = 110.0
 	var btn_h = 38.0
 	if _placing_instrument != "":
-		# Currently placing — place the instrument or cancel
+		# Currently placing â€” place the instrument or cancel
 		if Rect2(btn_x, btn_y, btn_w, btn_h).has_point(mouse_pos):
 			_placing_instrument = ""
 			_instrument_picker_open = false
@@ -28357,7 +28589,7 @@ func _can_awaken(tower_type) -> bool:
 		return false
 	if awakened_characters.get(tower_type, false):
 		return false
-	if player_relic_shards < AWAKENING_SHARD_COST:
+	if player_gear_shards < AWAKENING_SHARD_COST:
 		return false
 	if player_quills < AWAKENING_QUILL_COST:
 		return false
@@ -28366,7 +28598,7 @@ func _can_awaken(tower_type) -> bool:
 func _awaken_character(tower_type) -> bool:
 	if not _can_awaken(tower_type):
 		return false
-	player_relic_shards -= AWAKENING_SHARD_COST
+	player_gear_shards -= AWAKENING_SHARD_COST
 	player_quills -= AWAKENING_QUILL_COST
 	awakened_characters[tower_type] = true
 	# Trigger fanfare
@@ -28424,7 +28656,7 @@ func _get_respec_cost() -> int:
 
 func _respec_knowledge_tree() -> bool:
 	var cost = _get_respec_cost()
-	if player_relic_shards < cost:
+	if player_gear_shards < cost:
 		return false
 	# Count total ink invested
 	var ink_refund = 0
@@ -28439,7 +28671,7 @@ func _respec_knowledge_tree() -> bool:
 					var branch = knowledge_branches[bi]
 					if ni < branch["nodes"].size():
 						ink_refund += branch["nodes"][ni].get("cost", 1)
-	player_relic_shards -= cost
+	player_gear_shards -= cost
 	knowledge_ink += ink_refund
 	knowledge_tree.clear()
 	respec_count += 1
@@ -28453,9 +28685,8 @@ func _respec_knowledge_tree() -> bool:
 func _save_loadout(tower_type, slot: int) -> void:
 	if slot < 0 or slot >= MAX_LOADOUTS:
 		return
-	var eq_bindings = equipped_bindings.get(tower_type, []).duplicate()
-	var eq_relics = equipped_relics.get(tower_type, []).duplicate()
-	gear_loadouts[tower_type][slot] = {"bindings": eq_bindings, "relics": eq_relics}
+	var eq_gear = equipped_gear.get(tower_type, []).duplicate()
+	gear_loadouts[tower_type][slot] = {"gear": eq_gear}
 	_save_game()
 
 func _load_loadout(tower_type, slot: int) -> void:
@@ -28464,60 +28695,59 @@ func _load_loadout(tower_type, slot: int) -> void:
 	var loadout = gear_loadouts.get(tower_type, [{}])[slot] if slot < gear_loadouts.get(tower_type, []).size() else {}
 	if loadout.is_empty():
 		return
-	equipped_bindings[tower_type] = loadout.get("bindings", []).duplicate()
-	equipped_relics[tower_type] = loadout.get("relics", []).duplicate()
+	equipped_gear[tower_type] = loadout.get("gear", []).duplicate()
 	_save_game()
 	queue_redraw()
 
 # ============================================================================
 # === BATTD3: TRINKET LOCKING ===
 # ============================================================================
-func _toggle_binding_lock(binding_id: String) -> void:
-	if locked_bindings.get(binding_id, false):
-		locked_bindings.erase(binding_id)
+func _toggle_gear_lock(gear_id: String) -> void:
+	if locked_gear.get(gear_id, false):
+		locked_gear.erase(gear_id)
 	else:
-		locked_bindings[binding_id] = true
+		locked_gear[gear_id] = true
 	_save_game()
 
-func _is_binding_locked(binding_id: String) -> bool:
-	return locked_bindings.get(binding_id, false)
+func _is_gear_locked(gear_id: String) -> bool:
+	return locked_gear.get(gear_id, false)
 
 # ============================================================================
-# === BATTD3: RELIC MASTERY ===
+# === BATTD3: GEAR MASTERY ===
 # ============================================================================
-func _get_relic_mastery_level(tower_type, relic_idx: int) -> int:
-	var key = "%d_%d" % [tower_type, relic_idx]
-	var waves = relic_usage_tracker.get(key, 0)
+func _get_gear_mastery_level(tower_type, gear_idx: int) -> int:
+	var key = "%d_%d" % [tower_type, gear_idx]
+	var waves = gear_usage_tracker.get(key, 0)
 	var level = 0
-	for threshold in RELIC_MASTERY_THRESHOLDS:
+	for threshold in GEAR_MASTERY_THRESHOLDS:
 		if waves >= threshold:
 			level += 1
 	return level
 
-func _tick_relic_usage() -> void:
-	# Called each wave — increment usage for all equipped relics on all placed towers
+func _tick_gear_usage() -> void:
+	# Called each wave â€” increment usage for all equipped gear on all placed towers
 	for tower in towers_node.get_children():
 		if not tower.has_method("get_tower_type"):
 			continue
 		var tt = tower.get_tower_type()
-		var eq_list = equipped_relics.get(tt, [])
+		var eq_list = equipped_gear.get(tt, [])
 		for ri in eq_list:
-			var key = "%d_%d" % [tt, ri]
-			relic_usage_tracker[key] = relic_usage_tracker.get(key, 0) + 1
+			var key = "%s_%s" % [str(tt), str(ri)]
+			gear_usage_tracker[key] = gear_usage_tracker.get(key, 0) + 1
 
 # ============================================================================
 # === BATTD3: GEAR COLLECTION CODEX ===
 # ============================================================================
-func _mark_binding_discovered(binding_id: String) -> void:
-	if not discovered_bindings.has(binding_id):
-		discovered_bindings[binding_id] = true
+func _mark_gear_discovered(gear_id: String) -> void:
+	if not discovered_gear.has(gear_id):
+		discovered_gear[gear_id] = true
 
 func _get_codex_completion() -> Dictionary:
-	var total = TOME_BINDINGS.size()
-	var discovered = discovered_bindings.size()
+	var total = GEAR_ITEMS.size()
+	var discovered = discovered_gear.size()
 	var owned = 0
-	for b in TOME_BINDINGS:
-		if owned_bindings.get(b["id"], 0) > 0:
+	for b in GEAR_ITEMS:
+		if owned_gear.get(b["id"], 0) > 0:
 			owned += 1
 	return {"total": total, "discovered": discovered, "owned": owned}
 
@@ -28531,21 +28761,18 @@ func _calculate_power_rating(tower_type) -> int:
 	# Level contribution (0-100)
 	rating += level * 5
 	# Gear contribution
-	var eq_bindings = equipped_bindings.get(tower_type, [])
-	for bid in eq_bindings:
-		var binding = _find_binding(bid)
-		if binding.is_empty():
+	var eq_gear = equipped_gear.get(tower_type, [])
+	for bid in eq_gear:
+		var gear_data = _find_gear(bid)
+		if gear_data.is_empty():
 			continue
-		var rar = binding.get("rarity", "tattered")
+		var rar = gear_data.get("tier", "common")
 		match rar:
-			"tattered": rating += 2
-			"bound": rating += 5
-			"gilded": rating += 12
-			"mythic": rating += 25
-			"forbidden": rating += 50
-	# Relic contribution
-	var eq_relics = equipped_relics.get(tower_type, [])
-	rating += eq_relics.size() * 8
+			"common": rating += 2
+			"uncommon": rating += 5
+			"rare": rating += 12
+			"epic": rating += 25
+			"legendary": rating += 50
 	# Golden shields
 	var shields = progress.get("golden_shields", 0)
 	rating += shields * 10
@@ -28897,7 +29124,7 @@ func _draw_rank_badge(center: Vector2, tower_type, size: float) -> void:
 # === BATTD3: RECENT ITEMS FEED ===
 # ============================================================================
 func _add_recent_item(item_name: String, rarity: String) -> void:
-	recent_items.push_front({"name": item_name, "rarity": rarity, "time": Time.get_ticks_msec()})
+	recent_items.push_front({"name": item_name, "tier": rarity, "time": Time.get_ticks_msec()})
 	if recent_items.size() > MAX_RECENT_ITEMS:
 		recent_items.resize(MAX_RECENT_ITEMS)
 
@@ -28910,7 +29137,7 @@ func _draw_recent_items_widget() -> void:
 	_udraw(font, Vector2(wx, wy + 12), "RECENT ITEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.5))
 	var iy = wy + 18.0
 	for item in recent_items:
-		var rc = RARITY_COLORS.get(item.get("rarity", "tattered"), Color(0.6, 0.6, 0.65))
+		var rc = TIER_COLORS.get(item.get("tier", "common"), Color(0.6, 0.6, 0.65))
 		draw_rect(Rect2(wx, iy, 3, 14), rc)
 		var name_str = item.get("name", "Unknown")
 		if name_str.length() > 25:
