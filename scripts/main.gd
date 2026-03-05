@@ -192,13 +192,42 @@ var detail_tab_scroll: float = 0.0  # Scroll offset within tab content
 var _detail_slide_in: float = 0.0  # 0→1 panel open slide-in animation
 var _detail_particles: Array = []  # [{x, y, speed, size, alpha}] floating hero-themed particles
 
-# Narration animation state
-var _narration_blink_timer: float = 0.0     # counts up, resets on blink trigger (3-5s interval)
-var _narration_blink_phase: float = 0.0     # 0 to 1 during a 200ms blink
-var _narration_mouth_phase: float = 0.0     # 0 to 1 mouth openness, driven by typewriter
-var _narration_particles: Array = []        # 20 floating particles [{x, y, speed, size, alpha, color}]
-var _narration_speaker_hash: int = 0        # tracks current speaker for particle re-init on change
-var _narration_blink_interval: float = 4.0  # randomized 3-5s between blinks
+# Narration animation state — 20-system cinematic portrait engine
+var _narration_blink_timer: float = 0.0
+var _narration_blink_phase: float = 0.0     # 0→1 during blink (smooth eyelid arc)
+var _narration_mouth_phase: float = 0.0     # 0→1 mouth openness
+var _narration_mouth_shape: int = 0         # 0=closed 1=slightly open 2=open 3=wide
+var _narration_particles: Array = []
+var _narration_speaker_hash: int = 0
+var _narration_blink_interval: float = 4.0
+# Enhancement 3: Pupil drift
+var _narr_pupil_offset: Vector2 = Vector2.ZERO
+var _narr_pupil_target: Vector2 = Vector2.ZERO
+var _narr_pupil_timer: float = 0.0
+# Enhancement 5: Eyebrow micro-expression
+var _narr_brow_offset: float = 0.0
+var _narr_brow_target: float = 0.0
+# Enhancement 8: Weight shift
+var _narr_weight_shift: float = 0.0
+var _narr_weight_target: float = 0.0
+var _narr_weight_timer: float = 0.0
+# Enhancement 9: Specular highlight angle
+var _narr_specular_angle: float = 0.0
+# Enhancement 13: Nostril micro-movement
+var _narr_nostril_phase: float = 0.0
+# Enhancement 14: Hand fidget
+var _narr_fidget_offset_l: Vector2 = Vector2.ZERO
+var _narr_fidget_offset_r: Vector2 = Vector2.ZERO
+var _narr_fidget_timer: float = 0.0
+# Enhancement 16: Micro-expression flicker
+var _narr_micro_timer: float = 0.0
+var _narr_micro_type: int = 0  # 0=none 1=brow_raise 2=lip_twitch 3=squint
+var _narr_micro_intensity: float = 0.0
+# Enhancement 17: Idle variation
+var _narr_idle_variant: int = 0
+var _narr_idle_timer: float = 0.0
+# Enhancement 20: Atmospheric interaction (breath push on particles)
+var _narr_breath_push: float = 0.0
 
 # Character progression â€" levels, gear, sidekicks
 var survivor_progress: Dictionary = {}  # TowerType -> {level, xp, gear, sidekicks}
@@ -7160,11 +7189,31 @@ func _start_story_dialog(key: String) -> void:
 	enemy_path.visible = false
 	$UI.visible = false
 	# Note: Do NOT clear queued_dialog here â€" callers set it before calling us
-	# Initialize narration animation state
+	# Initialize 20-system narration animation state
 	_narration_blink_timer = 0.0
 	_narration_blink_phase = 0.0
 	_narration_mouth_phase = 0.0
+	_narration_mouth_shape = 0
 	_narration_blink_interval = 3.0 + randf() * 2.0
+	_narr_pupil_offset = Vector2.ZERO
+	_narr_pupil_target = Vector2(randf_range(-1.0, 1.0), randf_range(-0.5, 0.5))
+	_narr_pupil_timer = randf_range(1.5, 3.5)
+	_narr_brow_offset = 0.0
+	_narr_brow_target = 0.0
+	_narr_weight_shift = 0.0
+	_narr_weight_target = randf_range(-1.0, 1.0)
+	_narr_weight_timer = randf_range(3.0, 6.0)
+	_narr_specular_angle = randf() * TAU
+	_narr_nostril_phase = 0.0
+	_narr_fidget_offset_l = Vector2.ZERO
+	_narr_fidget_offset_r = Vector2.ZERO
+	_narr_fidget_timer = randf_range(4.0, 8.0)
+	_narr_micro_timer = randf_range(5.0, 12.0)
+	_narr_micro_type = 0
+	_narr_micro_intensity = 0.0
+	_narr_idle_variant = 0
+	_narr_idle_timer = randf_range(8.0, 15.0)
+	_narr_breath_push = 0.0
 	var first_speaker = story_dialogs[key][0].get("speaker", "narrator")
 	_init_narration_particles(first_speaker)
 	_narration_speaker_hash = first_speaker.hash()
@@ -7360,26 +7409,98 @@ func _process_story_typewriter(delta: float) -> void:
 func _process_narration_animation(delta: float) -> void:
 	if not story_state.active:
 		return
-	# Continuous redraw for smooth animation
 	queue_redraw()
-	# Eye blink timer
+
+	# === 1. EYELID BLINK (smooth arc, not blob) ===
 	_narration_blink_timer += delta
 	if _narration_blink_timer >= _narration_blink_interval:
 		_narration_blink_timer = 0.0
-		_narration_blink_phase = 0.001  # trigger blink
-		_narration_blink_interval = 3.0 + randf() * 2.0  # next blink 3-5s
-	# Blink phase (200ms = 0.2s)
+		_narration_blink_phase = 0.001
+		_narration_blink_interval = 2.5 + randf() * 3.0
+		# 10% chance of double-blink
+		if randf() < 0.1:
+			_narration_blink_interval = 0.25
 	if _narration_blink_phase > 0.0:
-		_narration_blink_phase += delta / 0.2
+		_narration_blink_phase += delta / 0.16  # 160ms blink (faster = more natural)
 		if _narration_blink_phase >= 1.0:
 			_narration_blink_phase = 0.0
-	# Mouth phase driven by typewriter state
+
+	# === 2. MOUTH MULTI-SHAPE ===
 	var is_typing = _is_typewriter_active()
 	if is_typing:
-		_narration_mouth_phase = abs(sin(_time * 8.0))
+		var raw = abs(sin(_time * 10.0)) * 0.7 + abs(sin(_time * 6.3)) * 0.3
+		_narration_mouth_phase = lerpf(_narration_mouth_phase, raw, delta * 12.0)
+		# Determine mouth shape from phase
+		if _narration_mouth_phase < 0.25:
+			_narration_mouth_shape = 0  # nearly closed
+		elif _narration_mouth_phase < 0.55:
+			_narration_mouth_shape = 1  # slightly open
+		elif _narration_mouth_phase < 0.8:
+			_narration_mouth_shape = 2  # open
+		else:
+			_narration_mouth_shape = 3  # wide
 	else:
-		_narration_mouth_phase = lerpf(_narration_mouth_phase, 0.0, delta * 8.0)
-	# Particle update
+		_narration_mouth_phase = lerpf(_narration_mouth_phase, 0.0, delta * 6.0)
+		_narration_mouth_shape = 0
+
+	# === 3. PUPIL DRIFT ===
+	_narr_pupil_timer -= delta
+	if _narr_pupil_timer <= 0.0:
+		_narr_pupil_target = Vector2(randf_range(-1.5, 1.5), randf_range(-0.8, 0.8))
+		_narr_pupil_timer = randf_range(1.5, 4.0)
+	_narr_pupil_offset = _narr_pupil_offset.lerp(_narr_pupil_target, delta * 1.8)
+
+	# === 5. EYEBROW MICRO-EXPRESSION ===
+	if is_typing:
+		_narr_brow_target = sin(_time * 1.5) * 0.3 + sin(_time * 3.7) * 0.15
+	else:
+		_narr_brow_target = sin(_time * 0.4) * 0.08
+	_narr_brow_offset = lerpf(_narr_brow_offset, _narr_brow_target, delta * 3.0)
+
+	# === 8. WEIGHT SHIFT ===
+	_narr_weight_timer -= delta
+	if _narr_weight_timer <= 0.0:
+		_narr_weight_target = randf_range(-2.0, 2.0)
+		_narr_weight_timer = randf_range(4.0, 8.0)
+	_narr_weight_shift = lerpf(_narr_weight_shift, _narr_weight_target, delta * 0.6)
+
+	# === 9. SPECULAR HIGHLIGHT ===
+	_narr_specular_angle += delta * 0.15
+
+	# === 13. NOSTRIL MICRO-MOVEMENT (synced to breath) ===
+	_narr_nostril_phase = sin(_time * 1.8) * 0.5 + 0.5  # 0-1 on breath cycle
+
+	# === 14. HAND FIDGET ===
+	_narr_fidget_timer -= delta
+	if _narr_fidget_timer <= 0.0:
+		_narr_fidget_offset_l = Vector2(randf_range(-2.0, 2.0), randf_range(-1.5, 1.5))
+		_narr_fidget_offset_r = Vector2(randf_range(-2.0, 2.0), randf_range(-1.5, 1.5))
+		_narr_fidget_timer = randf_range(3.0, 7.0)
+	_narr_fidget_offset_l = _narr_fidget_offset_l.lerp(Vector2.ZERO, delta * 0.8)
+	_narr_fidget_offset_r = _narr_fidget_offset_r.lerp(Vector2.ZERO, delta * 0.8)
+
+	# === 16. MICRO-EXPRESSION FLICKER ===
+	_narr_micro_timer -= delta
+	if _narr_micro_timer <= 0.0:
+		_narr_micro_type = randi_range(1, 3)
+		_narr_micro_intensity = randf_range(0.3, 0.8)
+		_narr_micro_timer = randf_range(4.0, 10.0)
+	if _narr_micro_type > 0:
+		_narr_micro_intensity = lerpf(_narr_micro_intensity, 0.0, delta * 3.0)
+		if _narr_micro_intensity < 0.02:
+			_narr_micro_type = 0
+			_narr_micro_intensity = 0.0
+
+	# === 17. IDLE VARIATION ===
+	_narr_idle_timer -= delta
+	if _narr_idle_timer <= 0.0:
+		_narr_idle_variant = (_narr_idle_variant + 1) % 4
+		_narr_idle_timer = randf_range(8.0, 16.0)
+
+	# === 20. ATMOSPHERIC INTERACTION (breath push) ===
+	_narr_breath_push = sin(_time * 1.8) * 0.3
+
+	# Particle update with breath interaction
 	_update_narration_particles(delta)
 
 func _is_typewriter_active() -> bool:
@@ -7411,6 +7532,9 @@ func _update_narration_particles(delta: float) -> void:
 	for p in _narration_particles:
 		p["y"] -= p["speed"] * delta
 		p["x"] += sin(_time * 1.5 + p["speed"]) * 0.3
+		# Enhancement 20: breath push — particles near portrait sway outward on exhale
+		if abs(p["x"]) < 80.0 and p["y"] > 40.0 and p["y"] < 280.0:
+			p["x"] += _narr_breath_push * p["speed"] * 0.08
 		# Respawn at bottom when off-screen
 		if p["y"] < -100.0:
 			p["y"] = 340.0 + randf_range(0.0, 40.0)
@@ -7473,11 +7597,22 @@ func _draw_story_dialog() -> void:
 	var portrait_size = 380.0
 	var portrait_x = 120.0
 	var portrait_y = 60.0
-	# Enhanced breathing and sway
+	# Enhanced breathing, sway, weight shift, and idle variation
 	var breath = sin(_time * 1.8) * 5.0
 	var sway = sin(_time * 0.7) * 3.0
 	var head_tilt = sin(_time * 0.5) * 1.5
-	_draw_story_portrait(portrait_x + sway + head_tilt, portrait_y + breath, portrait_size, speaker)
+	# Enhancement 6/7: chest expansion affects Y offset amplitude
+	var chest_amp = 1.0 + sin(_time * 1.8) * 0.008
+	# Enhancement 8: weight shift adds horizontal drift
+	var weight_x = _narr_weight_shift
+	# Enhancement 17: idle variation changes sway pattern
+	var idle_sway = 0.0
+	match _narr_idle_variant:
+		0: idle_sway = 0.0
+		1: idle_sway = sin(_time * 0.35) * 2.0  # slow drift
+		2: idle_sway = sin(_time * 1.2) * 0.8    # subtle vibration
+		3: idle_sway = cos(_time * 0.5) * 1.5    # figure-eight feel
+	_draw_story_portrait(portrait_x + sway + head_tilt + weight_x + idle_sway, portrait_y + breath * chest_amp, portrait_size, speaker)
 
 	# === PARTICLES LAYER 2 (in front of portrait) ===
 	for pi in range(10, 20):
@@ -7487,20 +7622,25 @@ func _draw_story_dialog() -> void:
 			var ppy = 60.0 + p["y"]
 			draw_circle(Vector2(ppx, ppy), p["size"] * 0.8, Color(p["color"].r, p["color"].g, p["color"].b, p["alpha"] * 0.4))
 
-	# === ANIMATED GROUND SHADOW ===
+	# === ANIMATED GROUND SHADOW (Enhanced #10: responds to weight shift + breath) ===
 	var shadow_breath = 1.0 + sin(_time * 1.8) * 0.04
-	var shadow_cx = glow_cx + sway * 0.5
+	var shadow_cx = glow_cx + sway * 0.5 + _narr_weight_shift * 0.3
 	var shadow_y_base = portrait_y + portrait_size + 10.0
-	# Soft layered shadow
-	for si in range(3):
-		var sw = (90.0 + float(si) * 12.0) * shadow_breath
-		var sh_alpha = 0.2 - float(si) * 0.06
+	# Skew shadow based on weight shift direction
+	var shadow_skew = _narr_weight_shift * 0.8
+	# Soft layered shadow with dynamic skew
+	for si in range(4):
+		var sw = (90.0 + float(si) * 14.0) * shadow_breath
+		var sh_alpha = 0.22 - float(si) * 0.05
+		var skew_off = shadow_skew * float(si + 1) * 0.5
 		draw_colored_polygon(PackedVector2Array([
-			Vector2(shadow_cx - sw, shadow_y_base + float(si) * 3.0),
-			Vector2(shadow_cx + sw, shadow_y_base + float(si) * 3.0),
-			Vector2(shadow_cx + sw * 0.65, shadow_y_base + 18.0 + float(si) * 4.0),
-			Vector2(shadow_cx - sw * 0.65, shadow_y_base + 18.0 + float(si) * 4.0)
+			Vector2(shadow_cx - sw + skew_off, shadow_y_base + float(si) * 3.0),
+			Vector2(shadow_cx + sw + skew_off, shadow_y_base + float(si) * 3.0),
+			Vector2(shadow_cx + sw * 0.6 + skew_off * 1.3, shadow_y_base + 20.0 + float(si) * 5.0),
+			Vector2(shadow_cx - sw * 0.6 + skew_off * 1.3, shadow_y_base + 20.0 + float(si) * 5.0)
 		]), Color(0.0, 0.0, 0.0, sh_alpha))
+	# Soft blur halo at shadow edges
+	draw_circle(Vector2(shadow_cx + shadow_skew, shadow_y_base + 8.0), 70.0, Color(0.0, 0.0, 0.0, 0.04))
 
 	# === FROSTED GLASS TEXT PANEL ===
 	var panel_y = 500.0
@@ -8879,31 +9019,235 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 			eye_r = 3.0*s
 			skin_col = Color(0.5, 0.4, 0.35)
 
-	# === UNIVERSAL POST-MATCH OVERLAYS ===
-	# Eye blink overlay
+	# ============================================================
+	# === 20-ENHANCEMENT CINEMATIC OVERLAY SYSTEM ===
+	# ============================================================
+
+	# === 1. SMOOTH EYELID BLINK (arc-shaped, not blob) ===
 	if _narration_blink_phase > 0.0 and eye_r > 0.0:
-		var lid_h = sin(_narration_blink_phase * PI) * eye_r * 2.0
+		var lid_close = sin(_narration_blink_phase * PI)  # 0→1→0 smooth
+		var lid_r = eye_r + 1.5 * s
 		if eye_left.x > -500:
-			draw_circle(eye_left, eye_r + 0.5*s, Color(skin_col.r, skin_col.g, skin_col.b, sin(_narration_blink_phase * PI)))
+			# Upper eyelid sweeps down as arc
+			var lid_pts_l = PackedVector2Array()
+			for li in range(9):
+				var la = PI + float(li) * PI / 8.0
+				lid_pts_l.append(Vector2(eye_left.x + cos(la) * lid_r, eye_left.y + sin(la) * lid_r * lid_close))
+			# Close the shape with bottom edge at eye center
+			lid_pts_l.append(Vector2(eye_left.x + lid_r, eye_left.y))
+			lid_pts_l.append(Vector2(eye_left.x - lid_r, eye_left.y))
+			draw_colored_polygon(lid_pts_l, skin_col)
+			# Eyelash line on upper lid edge
+			for li in range(7):
+				var la = PI + 0.2 + float(li) * (PI - 0.4) / 6.0
+				var lash_base = Vector2(eye_left.x + cos(la) * lid_r, eye_left.y + sin(la) * lid_r * lid_close)
+				var lash_tip = lash_base + Vector2(0, -1.5 * s * (1.0 - lid_close))
+				draw_line(lash_base, lash_tip, Color(skin_col.r * 0.4, skin_col.g * 0.35, skin_col.b * 0.3, 0.6 * lid_close), 0.8 * s)
 		if eye_right.x > -500:
-			draw_circle(eye_right, eye_r + 0.5*s, Color(skin_col.r, skin_col.g, skin_col.b, sin(_narration_blink_phase * PI)))
-	# Talking mouth overlay
-	if _narration_mouth_phase > 0.1 and mouth_w > 0.0:
-		var open_h = _narration_mouth_phase * 4.0 * s
-		# Dark mouth interior
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(mouth_pos.x - mouth_w * 0.5, mouth_pos.y),
-			Vector2(mouth_pos.x + mouth_w * 0.5, mouth_pos.y),
-			Vector2(mouth_pos.x + mouth_w * 0.3, mouth_pos.y + open_h),
-			Vector2(mouth_pos.x - mouth_w * 0.3, mouth_pos.y + open_h)
-		]), Color(0.08, 0.04, 0.04, 0.8))
-		# Teeth highlight
-		if open_h > 1.5*s:
-			draw_line(Vector2(mouth_pos.x - mouth_w * 0.3, mouth_pos.y + 0.5*s), Vector2(mouth_pos.x + mouth_w * 0.3, mouth_pos.y + 0.5*s), Color(0.9, 0.88, 0.85, 0.3), 1*s)
-	# Specular highlights (top-left light source)
+			var lid_pts_r = PackedVector2Array()
+			for li in range(9):
+				var la = PI + float(li) * PI / 8.0
+				lid_pts_r.append(Vector2(eye_right.x + cos(la) * lid_r, eye_right.y + sin(la) * lid_r * lid_close))
+			lid_pts_r.append(Vector2(eye_right.x + lid_r, eye_right.y))
+			lid_pts_r.append(Vector2(eye_right.x - lid_r, eye_right.y))
+			draw_colored_polygon(lid_pts_r, skin_col)
+			for li in range(7):
+				var la = PI + 0.2 + float(li) * (PI - 0.4) / 6.0
+				var lash_base = Vector2(eye_right.x + cos(la) * lid_r, eye_right.y + sin(la) * lid_r * lid_close)
+				var lash_tip = lash_base + Vector2(0, -1.5 * s * (1.0 - lid_close))
+				draw_line(lash_base, lash_tip, Color(skin_col.r * 0.4, skin_col.g * 0.35, skin_col.b * 0.3, 0.6 * lid_close), 0.8 * s)
+		# Lower eyelid (subtle — rises slightly on blink)
+		var lower_rise = lid_close * 0.3
+		if eye_left.x > -500:
+			draw_arc(eye_left, lid_r * 0.9, 0.15, PI - 0.15, 8, Color(skin_col.r * 0.92, skin_col.g * 0.88, skin_col.b * 0.85, lower_rise), 1.2 * s)
+		if eye_right.x > -500:
+			draw_arc(eye_right, lid_r * 0.9, 0.15, PI - 0.15, 8, Color(skin_col.r * 0.92, skin_col.g * 0.88, skin_col.b * 0.85, lower_rise), 1.2 * s)
+
+	# === 2. MULTI-SHAPE MOUTH WITH LIP OUTLINES ===
+	if _narration_mouth_phase > 0.05 and mouth_w > 0.0:
+		var mph = _narration_mouth_phase
+		var mw = mouth_w
+		var open_h = mph * 3.5 * s
+		var lip_dark = Color(skin_col.r * 0.65, skin_col.g * 0.55, skin_col.b * 0.5)
+		var lip_col = Color(skin_col.r * 0.85, skin_col.g * 0.65, skin_col.b * 0.6)
+		var inner_col = Color(0.12, 0.05, 0.05, 0.85)
+		match _narration_mouth_shape:
+			0:  # Nearly closed — lips pressed together
+				draw_arc(mouth_pos, mw * 0.45, 0.15, PI - 0.15, 10, lip_dark, 1.0 * s)
+			1:  # Slightly open — small oval
+				var ow = mw * 0.4
+				# Mouth interior
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(mouth_pos.x - ow, mouth_pos.y - open_h * 0.2),
+					Vector2(mouth_pos.x + ow, mouth_pos.y - open_h * 0.2),
+					Vector2(mouth_pos.x + ow * 0.8, mouth_pos.y + open_h * 0.6),
+					Vector2(mouth_pos.x - ow * 0.8, mouth_pos.y + open_h * 0.6)
+				]), inner_col)
+				# Upper lip
+				draw_arc(Vector2(mouth_pos.x, mouth_pos.y - open_h * 0.15), ow, PI + 0.2, TAU - 0.2, 10, lip_col, 1.2 * s)
+				# Lower lip
+				draw_arc(Vector2(mouth_pos.x, mouth_pos.y + open_h * 0.4), ow * 0.85, 0.2, PI - 0.2, 10, lip_col, 1.0 * s)
+			2:  # Open — wider oval with teeth
+				var ow = mw * 0.55
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(mouth_pos.x - ow, mouth_pos.y - open_h * 0.25),
+					Vector2(mouth_pos.x + ow, mouth_pos.y - open_h * 0.25),
+					Vector2(mouth_pos.x + ow * 0.7, mouth_pos.y + open_h * 0.8),
+					Vector2(mouth_pos.x - ow * 0.7, mouth_pos.y + open_h * 0.8)
+				]), inner_col)
+				# Top teeth row
+				draw_line(Vector2(mouth_pos.x - ow * 0.7, mouth_pos.y - open_h * 0.1), Vector2(mouth_pos.x + ow * 0.7, mouth_pos.y - open_h * 0.1), Color(0.92, 0.90, 0.88, 0.4), 1.0 * s)
+				# Upper lip with cupid's bow
+				draw_arc(Vector2(mouth_pos.x - mw * 0.12, mouth_pos.y - open_h * 0.2), ow * 0.55, PI + 0.1, TAU - 0.1, 8, lip_col, 1.3 * s)
+				draw_arc(Vector2(mouth_pos.x + mw * 0.12, mouth_pos.y - open_h * 0.2), ow * 0.55, PI + 0.1, TAU - 0.1, 8, lip_col, 1.3 * s)
+				# Lower lip (fuller)
+				draw_arc(Vector2(mouth_pos.x, mouth_pos.y + open_h * 0.55), ow * 0.75, 0.15, PI - 0.15, 10, lip_col, 1.4 * s)
+				# Lip highlight
+				draw_arc(Vector2(mouth_pos.x, mouth_pos.y + open_h * 0.5), ow * 0.5, 0.3, PI - 0.3, 8, Color(1.0, 0.95, 0.92, 0.12), 0.8 * s)
+			3:  # Wide — full open for emphasis
+				var ow = mw * 0.65
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(mouth_pos.x - ow, mouth_pos.y - open_h * 0.3),
+					Vector2(mouth_pos.x + ow, mouth_pos.y - open_h * 0.3),
+					Vector2(mouth_pos.x + ow * 0.6, mouth_pos.y + open_h),
+					Vector2(mouth_pos.x - ow * 0.6, mouth_pos.y + open_h)
+				]), inner_col)
+				# Tongue hint (dark red shape at back)
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(mouth_pos.x - ow * 0.35, mouth_pos.y + open_h * 0.5),
+					Vector2(mouth_pos.x + ow * 0.35, mouth_pos.y + open_h * 0.5),
+					Vector2(mouth_pos.x + ow * 0.2, mouth_pos.y + open_h * 0.85),
+					Vector2(mouth_pos.x - ow * 0.2, mouth_pos.y + open_h * 0.85)
+				]), Color(0.45, 0.15, 0.12, 0.5))
+				# Top teeth
+				for ti in range(4):
+					var tx = mouth_pos.x - ow * 0.5 + float(ti) * ow * 0.35
+					draw_rect(Rect2(tx, mouth_pos.y - open_h * 0.25, ow * 0.2, open_h * 0.15), Color(0.94, 0.92, 0.90, 0.35))
+				# Upper lip
+				draw_arc(Vector2(mouth_pos.x, mouth_pos.y - open_h * 0.25), ow, PI + 0.1, TAU - 0.1, 12, lip_col, 1.5 * s)
+				# Lower lip
+				draw_arc(Vector2(mouth_pos.x, mouth_pos.y + open_h * 0.7), ow * 0.7, 0.1, PI - 0.1, 10, lip_col, 1.6 * s)
+		# Corner shadow (mouth corners always present when talking)
+		if mph > 0.15:
+			draw_circle(Vector2(mouth_pos.x - mw * 0.55, mouth_pos.y), 1.0 * s, Color(skin_col.r * 0.6, skin_col.g * 0.5, skin_col.b * 0.45, mph * 0.4))
+			draw_circle(Vector2(mouth_pos.x + mw * 0.55, mouth_pos.y), 1.0 * s, Color(skin_col.r * 0.6, skin_col.g * 0.5, skin_col.b * 0.45, mph * 0.4))
+
+	# === 3. PUPIL DRIFT (eyes look around) ===
+	if eye_r > 0.0 and _narration_blink_phase < 0.3:
+		var pd = _narr_pupil_offset * s
+		if eye_left.x > -500:
+			draw_circle(Vector2(eye_left.x + pd.x, eye_left.y + pd.y), eye_r * 0.28, Color(0.02, 0.02, 0.04, 0.35))
+		if eye_right.x > -500:
+			draw_circle(Vector2(eye_right.x + pd.x, eye_right.y + pd.y), eye_r * 0.28, Color(0.02, 0.02, 0.04, 0.35))
+
+	# === 4. EYE SPARKLE (animated catchlight) ===
+	if eye_r > 0.0 and _narration_blink_phase < 0.2:
+		var sparkle_ox = sin(_time * 0.3) * 1.2 * s
+		var sparkle_oy = cos(_time * 0.25) * 0.8 * s
+		var sparkle_a = 0.55 + sin(_time * 2.0) * 0.15
+		if eye_left.x > -500:
+			draw_circle(Vector2(eye_left.x - eye_r * 0.35 + sparkle_ox, eye_left.y - eye_r * 0.4 + sparkle_oy), eye_r * 0.28, Color(1.0, 1.0, 1.0, sparkle_a))
+			draw_circle(Vector2(eye_left.x + eye_r * 0.2, eye_left.y + eye_r * 0.15), eye_r * 0.12, Color(1.0, 1.0, 1.0, sparkle_a * 0.4))
+		if eye_right.x > -500:
+			draw_circle(Vector2(eye_right.x - eye_r * 0.35 + sparkle_ox, eye_right.y - eye_r * 0.4 + sparkle_oy), eye_r * 0.28, Color(1.0, 1.0, 1.0, sparkle_a))
+			draw_circle(Vector2(eye_right.x + eye_r * 0.2, eye_right.y + eye_r * 0.15), eye_r * 0.12, Color(1.0, 1.0, 1.0, sparkle_a * 0.4))
+
+	# === 5. EYEBROW MICRO-EXPRESSION ===
 	if eye_r > 0.0:
-		draw_circle(Vector2(cx - 8*s, cy - 65*s), 4*s, Color(1.0, 1.0, 1.0, 0.06))
-		draw_circle(Vector2(cx - 18*s, cy - 30*s), 3*s, Color(1.0, 1.0, 1.0, 0.04))
+		var brow_y = _narr_brow_offset * 2.0 * s
+		# Subtle shadow under brow when raised
+		if _narr_brow_offset > 0.1:
+			if eye_left.x > -500:
+				draw_arc(Vector2(eye_left.x, eye_left.y - eye_r * 1.6 + brow_y), eye_r * 1.1, PI + 0.3, TAU - 0.3, 8, Color(skin_col.r * 0.7, skin_col.g * 0.65, skin_col.b * 0.6, _narr_brow_offset * 0.15), 1.0 * s)
+			if eye_right.x > -500:
+				draw_arc(Vector2(eye_right.x, eye_right.y - eye_r * 1.6 + brow_y), eye_r * 1.1, PI + 0.3, TAU - 0.3, 8, Color(skin_col.r * 0.7, skin_col.g * 0.65, skin_col.b * 0.6, _narr_brow_offset * 0.15), 1.0 * s)
+
+	# === 6. CHEST BREATHING (visible torso expansion) ===
+	# Applied via the existing breath offset in _draw_story_dialog
+	# Additional overlay: subtle highlight pulse on upper chest
+	var chest_expand = sin(_time * 1.8)
+	if eye_r > 0.0:
+		var chest_glow = 0.02 + chest_expand * 0.01
+		draw_circle(Vector2(cx, cy + 10 * s), 18 * s, Color(1.0, 0.98, 0.95, maxf(chest_glow, 0.0)))
+
+	# === 7. SHOULDER RISE/FALL (synced to breath) ===
+	# Subtle highlight on shoulder area that pulses
+	if eye_r > 0.0:
+		var shoulder_rise = sin(_time * 1.8) * 0.6 * s
+		draw_line(Vector2(cx - 28 * s, cy - 25 * s + shoulder_rise), Vector2(cx - 18 * s, cy - 28 * s + shoulder_rise), Color(1.0, 1.0, 1.0, 0.025), 2.0 * s)
+		draw_line(Vector2(cx + 18 * s, cy - 28 * s + shoulder_rise), Vector2(cx + 28 * s, cy - 25 * s + shoulder_rise), Color(1.0, 1.0, 1.0, 0.02), 2.0 * s)
+
+	# === 9. SPECULAR SKIN HIGHLIGHT (moving light) ===
+	if eye_r > 0.0:
+		var spec_x = cx + cos(_narr_specular_angle) * 12 * s
+		var spec_y = cy - 55 * s + sin(_narr_specular_angle * 0.7) * 8 * s
+		draw_circle(Vector2(spec_x, spec_y), 5.0 * s, Color(1.0, 0.98, 0.95, 0.05))
+		# Cheek highlight
+		var cheek_spec = 0.03 + sin(_time * 0.8) * 0.01
+		draw_circle(Vector2(cx - 14 * s, cy - 38 * s), 4.0 * s, Color(1.0, 0.95, 0.90, cheek_spec))
+		draw_circle(Vector2(cx + 14 * s, cy - 38 * s), 3.5 * s, Color(1.0, 0.95, 0.90, cheek_spec * 0.7))
+
+	# === 10. DYNAMIC GROUND SHADOW ===
+	# (Already partially in _draw_story_dialog but enhanced here with weight shift)
+	# The main shadow in _draw_story_dialog handles this — weight shift applied in portrait call
+
+	# === 11. HAIR/ACCESSORY PHYSICS (wind sway) ===
+	# Per-character wind effect on loose elements
+	if eye_r > 0.0:
+		var wind_sway = sin(_time * 1.1 + 0.5) * 2.0 * s
+		var wind_alpha = 0.015 + sin(_time * 0.7) * 0.005
+		# Subtle hair highlight shift
+		draw_line(Vector2(cx - 12 * s + wind_sway, cy - 68 * s), Vector2(cx - 8 * s + wind_sway * 1.3, cy - 50 * s), Color(1.0, 1.0, 1.0, wind_alpha), 1.5 * s)
+
+	# === 12. COLOR TEMPERATURE PULSE ===
+	if eye_r > 0.0:
+		# Warm pulse on inhale, cool on exhale
+		var temp_t = sin(_time * 1.8) * 0.5 + 0.5
+		var warm_a = temp_t * 0.012
+		var cool_a = (1.0 - temp_t) * 0.008
+		draw_circle(Vector2(cx, cy - 40 * s), 28 * s, Color(1.0, 0.85, 0.7, warm_a))
+		draw_circle(Vector2(cx, cy - 40 * s), 32 * s, Color(0.7, 0.8, 1.0, cool_a))
+
+	# === 13. NOSTRIL MICRO-MOVEMENT ===
+	if eye_r > 0.0:
+		var nostril_w = _narr_nostril_phase * 0.6 * s
+		# Subtle shadow widening at nose base
+		draw_circle(Vector2(cx - 2 * s - nostril_w, cy - 40 * s), 1.0 * s, Color(skin_col.r * 0.7, skin_col.g * 0.6, skin_col.b * 0.55, 0.08))
+		draw_circle(Vector2(cx + 2 * s + nostril_w, cy - 40 * s), 1.0 * s, Color(skin_col.r * 0.7, skin_col.g * 0.6, skin_col.b * 0.55, 0.08))
+
+	# === 15. NECK PULSE ===
+	if eye_r > 0.0:
+		var pulse_a = 0.02 + sin(_time * 4.5) * 0.01  # subtle heartbeat
+		draw_circle(Vector2(cx + 4 * s, cy - 28 * s), 2.0 * s, Color(skin_col.r * 0.9, skin_col.g * 0.75, skin_col.b * 0.7, maxf(pulse_a, 0.0)))
+
+	# === 16. MICRO-EXPRESSION FLICKER ===
+	if _narr_micro_type > 0 and eye_r > 0.0:
+		var mi = _narr_micro_intensity
+		match _narr_micro_type:
+			1:  # Brow raise — one brow lifts slightly
+				if eye_left.x > -500:
+					draw_line(Vector2(eye_left.x - eye_r, eye_left.y - eye_r * 2.0 - mi * 2.0 * s), Vector2(eye_left.x + eye_r, eye_left.y - eye_r * 1.8 - mi * 2.0 * s), Color(skin_col.r * 0.7, skin_col.g * 0.65, skin_col.b * 0.6, mi * 0.3), 1.5 * s)
+			2:  # Lip twitch — corner of mouth lifts
+				draw_circle(Vector2(mouth_pos.x + mouth_w * 0.5, mouth_pos.y - mi * 1.5 * s), 1.0 * s, Color(skin_col.r * 0.75, skin_col.g * 0.6, skin_col.b * 0.55, mi * 0.25))
+			3:  # Squint — slight shadow under eyes
+				if eye_left.x > -500:
+					draw_arc(eye_left, eye_r * 0.9, 0.2, PI - 0.2, 8, Color(skin_col.r * 0.75, skin_col.g * 0.7, skin_col.b * 0.65, mi * 0.2), 1.0 * s)
+				if eye_right.x > -500:
+					draw_arc(eye_right, eye_r * 0.9, 0.2, PI - 0.2, 8, Color(skin_col.r * 0.75, skin_col.g * 0.7, skin_col.b * 0.65, mi * 0.2), 1.0 * s)
+
+	# === 18. DEPTH-OF-FIELD PORTRAIT VIGNETTE ===
+	if eye_r > 0.0:
+		# Soft darkening at edges of portrait area
+		for vi in range(4):
+			var vr = (85.0 + float(vi) * 12.0) * s
+			var va = 0.015 * (float(vi) + 1.0)
+			draw_arc(Vector2(cx, cy - 10 * s), vr, 0, TAU, 24, Color(0.0, 0.0, 0.0, va), 8.0 * s)
+
+	# === 19. CLOTH SHIMMER ===
+	if eye_r > 0.0:
+		# Moving highlight band across clothing
+		var shimmer_y = cy + 20 * s + sin(_time * 0.6) * 30 * s
+		draw_line(Vector2(cx - 20 * s, shimmer_y), Vector2(cx + 20 * s, shimmer_y), Color(1.0, 1.0, 1.0, 0.015), 2.0 * s)
 
 func _get_speaker_display_name(speaker: String) -> String:
 	match speaker:
