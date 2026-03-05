@@ -39,6 +39,7 @@
     --accent-dracula-arc: #8b0000;
     --accent-frankenstein-arc: #4a9a4a;
     --accent-shadow: #2a0a3a;
+    --accent-shadow-author: #4a0a6a;
     --font-display: 'Cinzel', serif;
     --font-body: 'Crimson Text', serif;
     --font-ui: 'Inter', sans-serif;
@@ -607,6 +608,10 @@ a:hover {
 .tower-card[data-tower="frankenstein"]:hover::before { background: var(--accent-frankenstein); }
 .tower-card[data-tower="frankenstein"] .tower-icon { color: var(--accent-frankenstein); }
 
+.tower-card[data-tower="shadow-author"]:hover { border-color: var(--accent-shadow-author); }
+.tower-card[data-tower="shadow-author"]:hover::before { background: var(--accent-shadow-author); }
+.tower-card[data-tower="shadow-author"] .tower-icon { color: var(--accent-shadow-author); }
+
 .tower-icon {
     width: 80px;
     height: 80px;
@@ -773,6 +778,12 @@ a:hover {
 .character-card[data-character="peter"] .character-info h3 { color: #f0a050; }
 .character-card[data-character="phantom"] .character-info h3 { color: #e05a4a; }
 .character-card[data-character="scrooge"] .character-info h3 { color: #e0c868; }
+.character-card[data-character="shadow-author"] .character-info h3 { color: #9a5adf; }
+
+.character-card[data-character="shadow-author"]:hover {
+    box-shadow: 0 20px 60px rgba(74, 10, 106, 0.3);
+    border-color: rgba(74, 10, 106, 0.3);
+}
 
 /* ============================================
    Levels Section
@@ -1101,6 +1112,140 @@ footer {
 }
 
 /* ============================================
+   Badge — New
+   ============================================ */
+.badge-new {
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: var(--bg-dark);
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* ============================================
+   Game Systems Section
+   ============================================ */
+#systems {
+    padding: 120px 0;
+    background: linear-gradient(180deg, #0c0c28 0%, var(--bg-section) 30%, var(--bg-section) 70%, #0c0c28 100%);
+    position: relative;
+}
+
+#systems::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(74, 10, 106, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.systems-intro {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 60px;
+}
+
+.systems-counter {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.systems-counter-label {
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.systems-intro p {
+    font-size: 1.05rem;
+    color: var(--text);
+    line-height: 1.7;
+}
+
+.systems-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+}
+
+.system-group {
+    background: var(--bg-card);
+    border: 1px solid rgba(201, 168, 76, 0.08);
+    border-radius: 14px;
+    padding: 32px 24px;
+    transition: border-color 0.3s;
+}
+
+.system-group:hover {
+    border-color: rgba(201, 168, 76, 0.2);
+}
+
+.system-group-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+}
+
+.system-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.system-item:last-child {
+    border-bottom: none;
+}
+
+.system-item-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    color: var(--gold);
+}
+
+.system-item-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.system-item-text h4 {
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--parchment);
+    margin-bottom: 2px;
+}
+
+.system-item-text p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* ============================================
    Responsive
    ============================================ */
 @media (max-width: 900px) {
@@ -1123,6 +1268,11 @@ footer {
 
     .feature-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .systems-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
     }
 }
 

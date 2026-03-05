@@ -63,12 +63,12 @@ document.addEventListener('DOMContentLoaded', () => {
     revealElements.forEach(el => revealObserver.observe(el));
 
     // --- Stagger tower and level card animations ---
-    const staggerCards = (selector) => {
+    const staggerCards = (selector, parentSelector) => {
         const cards = document.querySelectorAll(selector);
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    const parent = entry.target.closest(selector.includes('tower') ? '.tower-grid' : '.level-grid');
+                    const parent = entry.target.closest(parentSelector);
                     if (parent) {
                         const siblings = parent.querySelectorAll(selector.split(' ').pop());
                         siblings.forEach((card, i) => {
@@ -85,8 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    staggerCards('.tower-grid .tower-card');
-    staggerCards('.level-grid .level-card');
+    staggerCards('.tower-grid .tower-card', '.tower-grid');
+    staggerCards('.level-grid .level-card', '.level-grid');
+    staggerCards('.feature-grid .feature-card', '.feature-grid');
+    staggerCards('.systems-grid .system-group', '.systems-grid');
+    staggerCards('.gallery-grid .character-card', '.gallery-grid');
 
     // --- Game loader ---
     const loadBtn = document.getElementById('load-game-btn');
