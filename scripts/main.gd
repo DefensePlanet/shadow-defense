@@ -7674,7 +7674,7 @@ func _draw_story_dialog() -> void:
 
 	# === SPEAKER NAME BADGE (rounded with pulsing glow) ===
 	var speaker_display = _get_speaker_display_name(speaker)
-	var name_w = font.get_string_size(speaker_display, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 40
+	var name_w = font.get_string_size(speaker_display.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 44
 	var badge_x = 560.0
 	var badge_y = panel_y - 20.0
 	var badge_h = 36.0
@@ -7792,211 +7792,209 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 	match speaker:
 		"narrator":
 			# === THE NARRATOR — muscular bald white man, flexing, engulfed in fire ===
-			# Based on key art: powerful figure emerging from flames on dark pedestal
+			# Scale factor: 1.5x for commanding presence
+			var ns = s * 1.5
 
-			# --- DARK PEDESTAL BASE (draped cloth) ---
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 55*s, cy + 100*s), Vector2(cx + 55*s, cy + 100*s),
-				Vector2(cx + 65*s, cy + 140*s), Vector2(cx - 65*s, cy + 140*s)
-			]), Color(0.08, 0.07, 0.09))
-			# Cloth drape folds
-			for fi in range(6):
-				var fx = cx - 50*s + float(fi) * 20*s
-				draw_line(Vector2(fx, cy + 102*s), Vector2(fx + sin(float(fi) * 1.5) * 4*s, cy + 138*s), Color(0.12, 0.10, 0.14, 0.3), 1.5*s)
-			# Cloth highlight on left drape
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 55*s, cy + 100*s), Vector2(cx - 30*s, cy + 100*s),
-				Vector2(cx - 25*s, cy + 140*s), Vector2(cx - 65*s, cy + 140*s)
-			]), Color(0.15, 0.13, 0.17, 0.15))
-			# Pedestal top edge
-			draw_line(Vector2(cx - 55*s, cy + 100*s), Vector2(cx + 55*s, cy + 100*s), Color(0.18, 0.15, 0.20, 0.4), 1.5*s)
-
-			# --- FIRE EFFECT (behind body) ---
+			# --- MASSIVE FIRE AURA (behind everything) ---
 			var fire_pulse = sin(_time * 3.5) * 0.15
-			# Base fire glow
-			for fi in range(8):
-				var fa = float(fi) * TAU / 8.0 + _time * 1.2
-				var fr = (50.0 + sin(_time * 2.0 + float(fi) * 1.5) * 15.0) * s
-				var fire_x = cx + cos(fa) * fr * 0.7
-				var fire_y = cy + 20*s + sin(fa) * fr * 0.4
-				var fire_r = (18.0 + sin(_time * 4.0 + float(fi)) * 6.0) * s
-				draw_circle(Vector2(fire_x, fire_y), fire_r, Color(0.95, 0.55, 0.05, 0.06 + fire_pulse * 0.02))
-			# Rising flame tongues
-			for fi in range(12):
-				var flame_x = cx + sin(float(fi) * 1.8 + _time * 0.6) * 45*s
-				var flame_base_y = cy + 90*s - float(fi) * 6*s
-				var flame_h = (30.0 + sin(_time * 3.0 + float(fi) * 2.1) * 15.0) * s
-				var flame_w = (8.0 + sin(_time * 2.5 + float(fi)) * 3.0) * s
-				var flame_alpha = 0.12 - float(fi) * 0.008
+			# Huge warm radial glow
+			draw_circle(Vector2(cx, cy + 10*ns), 110*ns, Color(0.95, 0.55, 0.08, 0.12 + fire_pulse * 0.05))
+			draw_circle(Vector2(cx, cy + 10*ns), 85*ns, Color(0.95, 0.60, 0.10, 0.18 + fire_pulse * 0.06))
+			draw_circle(Vector2(cx, cy + 10*ns), 60*ns, Color(1.0, 0.65, 0.12, 0.10 + fire_pulse * 0.04))
+			# Roaring flame tongues (behind body, tall and visible)
+			for fi in range(16):
+				var flame_x = cx + sin(float(fi) * 1.5 + _time * 0.8) * 65*ns
+				var flame_base_y = cy + 80*ns - float(fi) * 8*ns
+				var flame_h = (45.0 + sin(_time * 3.0 + float(fi) * 2.1) * 20.0) * ns
+				var flame_w = (12.0 + sin(_time * 2.5 + float(fi)) * 5.0) * ns
+				var flame_alpha = 0.45 - float(fi) * 0.022
 				# Orange core
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(flame_x - flame_w, flame_base_y),
 					Vector2(flame_x + flame_w, flame_base_y),
-					Vector2(flame_x + flame_w * 0.3, flame_base_y - flame_h),
-					Vector2(flame_x - flame_w * 0.3, flame_base_y - flame_h)
-				]), Color(0.95, 0.55, 0.08, flame_alpha))
-				# Yellow-green tip
-				if fi < 8:
+					Vector2(flame_x + flame_w * 0.2, flame_base_y - flame_h),
+					Vector2(flame_x - flame_w * 0.2, flame_base_y - flame_h)
+				]), Color(0.95, 0.50, 0.05, flame_alpha))
+				# Yellow tip
+				if fi < 10:
 					draw_colored_polygon(PackedVector2Array([
-						Vector2(flame_x - flame_w * 0.5, flame_base_y - flame_h * 0.5),
-						Vector2(flame_x + flame_w * 0.5, flame_base_y - flame_h * 0.5),
-						Vector2(flame_x, flame_base_y - flame_h * 1.2)
-					]), Color(0.85, 0.90, 0.15, flame_alpha * 0.7))
+						Vector2(flame_x - flame_w * 0.4, flame_base_y - flame_h * 0.6),
+						Vector2(flame_x + flame_w * 0.4, flame_base_y - flame_h * 0.6),
+						Vector2(flame_x, flame_base_y - flame_h * 1.3)
+					]), Color(1.0, 0.85, 0.15, flame_alpha * 0.6))
 
-			# --- MUSCULAR TORSO (broad V-shape) ---
-			var skin = Color(0.92, 0.82, 0.72)
-			var skin_shadow = Color(0.78, 0.65, 0.52)
-			# Waist / lower torso
+			# --- DARK PEDESTAL BASE ---
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 22*s, cy + 10*s), Vector2(cx + 22*s, cy + 10*s),
-				Vector2(cx + 18*s, cy + 100*s), Vector2(cx - 18*s, cy + 100*s)
-			]), Color(0.06, 0.05, 0.07))  # dark pants/lower body
-			# Broad upper torso — skin
+				Vector2(cx - 50*ns, cy + 65*ns), Vector2(cx + 50*ns, cy + 65*ns),
+				Vector2(cx + 60*ns, cy + 95*ns), Vector2(cx - 60*ns, cy + 95*ns)
+			]), Color(0.06, 0.05, 0.07))
+			draw_line(Vector2(cx - 50*ns, cy + 65*ns), Vector2(cx + 50*ns, cy + 65*ns), Color(0.25, 0.18, 0.12, 0.5), 2.0*ns)
+			# Pedestal cloth folds
+			for fi in range(7):
+				var fx = cx - 45*ns + float(fi) * 15*ns
+				draw_line(Vector2(fx, cy + 67*ns), Vector2(fx + sin(float(fi) * 1.5) * 3*ns, cy + 93*ns), Color(0.15, 0.12, 0.18, 0.25), 1.5*ns)
+
+			# --- MUSCULAR TORSO (broad V-shape, fills the frame) ---
+			var skin = Color(0.90, 0.78, 0.65)
+			var skin_shadow = Color(0.72, 0.58, 0.44)
+			# Dark pants / waist
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 42*s, cy - 30*s), Vector2(cx + 42*s, cy - 30*s),
-				Vector2(cx + 28*s, cy + 14*s), Vector2(cx - 28*s, cy + 14*s)
+				Vector2(cx - 24*ns, cy + 12*ns), Vector2(cx + 24*ns, cy + 12*ns),
+				Vector2(cx + 20*ns, cy + 68*ns), Vector2(cx - 20*ns, cy + 68*ns)
+			]), Color(0.06, 0.05, 0.07))
+			# Belt buckle hint
+			draw_rect(Rect2(cx - 8*ns, cy + 12*ns, 16*ns, 4*ns), Color(0.35, 0.28, 0.15, 0.5))
+			# BROAD upper torso — skin
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 52*ns, cy - 30*ns), Vector2(cx + 52*ns, cy - 30*ns),
+				Vector2(cx + 32*ns, cy + 16*ns), Vector2(cx - 32*ns, cy + 16*ns)
 			]), skin)
-			# Torso shading (right side shadow)
+			# Torso shadow (right side)
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx + 10*s, cy - 28*s), Vector2(cx + 42*s, cy - 30*s),
-				Vector2(cx + 28*s, cy + 14*s), Vector2(cx + 8*s, cy + 14*s)
-			]), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25))
-			# Pectoral definition
-			draw_arc(Vector2(cx - 14*s, cy - 16*s), 16*s, PI * 0.2, PI * 0.9, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*s)
-			draw_arc(Vector2(cx + 14*s, cy - 16*s), 16*s, PI * 0.1, PI * 0.8, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1.5*s)
+				Vector2(cx + 12*ns, cy - 28*ns), Vector2(cx + 52*ns, cy - 30*ns),
+				Vector2(cx + 32*ns, cy + 16*ns), Vector2(cx + 10*ns, cy + 16*ns)
+			]), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.3))
+			# DEEP pectoral definition
+			draw_arc(Vector2(cx - 16*ns, cy - 14*ns), 20*ns, PI * 0.15, PI * 0.95, 12, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.4), 2.0*ns)
+			draw_arc(Vector2(cx + 16*ns, cy - 14*ns), 20*ns, PI * 0.05, PI * 0.85, 12, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.0*ns)
 			# Center chest line
-			draw_line(Vector2(cx, cy - 22*s), Vector2(cx, cy + 10*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1.0*s)
-			# Ab definition (6 segments)
+			draw_line(Vector2(cx, cy - 24*ns), Vector2(cx, cy + 14*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.3), 1.5*ns)
+			# Ab definition (3 rows)
 			for ai in range(3):
-				var ab_y = cy - 2*s + float(ai) * 10*s
-				draw_line(Vector2(cx - 10*s, ab_y), Vector2(cx + 10*s, ab_y), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.12 - float(ai) * 0.02), 0.8*s)
+				var ab_y = cy + 0*ns + float(ai) * 9*ns
+				draw_line(Vector2(cx - 14*ns, ab_y), Vector2(cx + 14*ns, ab_y), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.22 - float(ai) * 0.04), 1.2*ns)
+			# Oblique lines (V-cut)
+			draw_line(Vector2(cx - 28*ns, cy + 2*ns), Vector2(cx - 18*ns, cy + 14*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1.0*ns)
+			draw_line(Vector2(cx + 28*ns, cy + 2*ns), Vector2(cx + 18*ns, cy + 14*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1.0*ns)
 
-			# --- ARMS IN FLEX POSE (both raised, biceps flexed) ---
-			# Left arm — raised and flexed
-			# Upper arm
-			draw_line(Vector2(cx - 42*s, cy - 28*s), Vector2(cx - 55*s, cy - 62*s), skin, 14*s)
-			# Forearm curled in
-			draw_line(Vector2(cx - 55*s, cy - 62*s), Vector2(cx - 38*s, cy - 78*s), skin, 11*s)
-			# Bicep bulge
-			draw_circle(Vector2(cx - 50*s, cy - 52*s), 10*s, skin)
-			draw_arc(Vector2(cx - 50*s, cy - 52*s), 10*s, PI * 0.3, PI * 1.2, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*s)
+			# --- ARMS (raised flex, THICK) ---
+			# Left upper arm
+			draw_line(Vector2(cx - 52*ns, cy - 28*ns), Vector2(cx - 68*ns, cy - 60*ns), skin, 18*ns)
+			# Left forearm
+			draw_line(Vector2(cx - 68*ns, cy - 60*ns), Vector2(cx - 48*ns, cy - 78*ns), skin, 14*ns)
+			# Left bicep bulge
+			draw_circle(Vector2(cx - 62*ns, cy - 48*ns), 14*ns, skin)
+			draw_arc(Vector2(cx - 62*ns, cy - 48*ns), 14*ns, PI * 0.2, PI * 1.3, 12, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.0*ns)
 			# Left fist
-			draw_circle(Vector2(cx - 36*s, cy - 80*s), 6*s, skin)
-			draw_arc(Vector2(cx - 36*s, cy - 80*s), 6*s, 0, PI, 8, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1*s)
+			draw_circle(Vector2(cx - 46*ns, cy - 80*ns), 8*ns, skin)
+			draw_arc(Vector2(cx - 46*ns, cy - 80*ns), 8*ns, 0, PI, 8, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*ns)
+			# Left arm shadow
+			draw_line(Vector2(cx - 52*ns, cy - 28*ns), Vector2(cx - 68*ns, cy - 60*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 20*ns)
 
-			# Right arm — raised and flexed
-			draw_line(Vector2(cx + 42*s, cy - 28*s), Vector2(cx + 55*s, cy - 62*s), skin, 14*s)
-			draw_line(Vector2(cx + 55*s, cy - 62*s), Vector2(cx + 38*s, cy - 78*s), skin, 11*s)
-			# Bicep bulge
-			draw_circle(Vector2(cx + 50*s, cy - 52*s), 10*s, skin)
-			draw_arc(Vector2(cx + 50*s, cy - 52*s), 10*s, PI * 0.3, PI * 1.2, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*s)
+			# Right upper arm
+			draw_line(Vector2(cx + 52*ns, cy - 28*ns), Vector2(cx + 68*ns, cy - 60*ns), skin, 18*ns)
+			# Right forearm
+			draw_line(Vector2(cx + 68*ns, cy - 60*ns), Vector2(cx + 48*ns, cy - 78*ns), skin, 14*ns)
+			# Right bicep bulge
+			draw_circle(Vector2(cx + 62*ns, cy - 48*ns), 14*ns, skin)
+			draw_arc(Vector2(cx + 62*ns, cy - 48*ns), 14*ns, PI * 0.2, PI * 1.3, 12, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.0*ns)
 			# Right fist
-			draw_circle(Vector2(cx + 36*s, cy - 80*s), 6*s, skin)
-			draw_arc(Vector2(cx + 36*s, cy - 80*s), 6*s, 0, PI, 8, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1*s)
+			draw_circle(Vector2(cx + 46*ns, cy - 80*ns), 8*ns, skin)
+			draw_arc(Vector2(cx + 46*ns, cy - 80*ns), 8*ns, 0, PI, 8, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*ns)
 
-			# --- LIGHTNING CRACK PATTERNS (across chest and arms) ---
-			var crack_alpha = 0.5 + sin(_time * 2.0) * 0.2
-			var crack_col = Color(0.15, 0.12, 0.10, crack_alpha)
-			# Main chest crack — branching downward from center
-			draw_line(Vector2(cx, cy - 18*s), Vector2(cx - 6*s, cy - 8*s), crack_col, 1.5*s)
-			draw_line(Vector2(cx - 6*s, cy - 8*s), Vector2(cx - 14*s, cy + 4*s), crack_col, 1.2*s)
-			draw_line(Vector2(cx - 6*s, cy - 8*s), Vector2(cx + 4*s, cy + 2*s), crack_col, 1.0*s)
-			draw_line(Vector2(cx, cy - 18*s), Vector2(cx + 8*s, cy - 10*s), crack_col, 1.3*s)
-			draw_line(Vector2(cx + 8*s, cy - 10*s), Vector2(cx + 16*s, cy - 2*s), crack_col, 1.0*s)
-			draw_line(Vector2(cx + 8*s, cy - 10*s), Vector2(cx + 5*s, cy + 6*s), crack_col, 0.8*s)
-			# Branch cracks on left pec
-			draw_line(Vector2(cx - 14*s, cy - 12*s), Vector2(cx - 24*s, cy - 18*s), crack_col, 0.8*s)
-			draw_line(Vector2(cx - 24*s, cy - 18*s), Vector2(cx - 30*s, cy - 14*s), crack_col, 0.6*s)
-			# Branch cracks on right shoulder
-			draw_line(Vector2(cx + 16*s, cy - 22*s), Vector2(cx + 28*s, cy - 28*s), crack_col, 0.8*s)
+			# --- LIGHTNING CRACKS (bright orange glow, not brown) ---
+			var crack_pulse = 0.7 + sin(_time * 2.5) * 0.3
+			var crack_line = Color(0.95, 0.55, 0.08, crack_pulse)
+			var crack_glow = Color(1.0, 0.65, 0.10, crack_pulse * 0.35)
+			# Main chest cracks — thick glowing lines
+			draw_line(Vector2(cx, cy - 20*ns), Vector2(cx - 8*ns, cy - 8*ns), crack_glow, 6.0*ns)
+			draw_line(Vector2(cx, cy - 20*ns), Vector2(cx - 8*ns, cy - 8*ns), crack_line, 2.5*ns)
+			draw_line(Vector2(cx - 8*ns, cy - 8*ns), Vector2(cx - 20*ns, cy + 6*ns), crack_glow, 5.0*ns)
+			draw_line(Vector2(cx - 8*ns, cy - 8*ns), Vector2(cx - 20*ns, cy + 6*ns), crack_line, 2.0*ns)
+			draw_line(Vector2(cx - 8*ns, cy - 8*ns), Vector2(cx + 5*ns, cy + 4*ns), crack_line, 1.5*ns)
+			draw_line(Vector2(cx, cy - 20*ns), Vector2(cx + 10*ns, cy - 10*ns), crack_glow, 6.0*ns)
+			draw_line(Vector2(cx, cy - 20*ns), Vector2(cx + 10*ns, cy - 10*ns), crack_line, 2.5*ns)
+			draw_line(Vector2(cx + 10*ns, cy - 10*ns), Vector2(cx + 22*ns, cy + 2*ns), crack_line, 2.0*ns)
+			# Pec cracks
+			draw_line(Vector2(cx - 18*ns, cy - 14*ns), Vector2(cx - 32*ns, cy - 20*ns), crack_line, 1.8*ns)
+			draw_line(Vector2(cx - 32*ns, cy - 20*ns), Vector2(cx - 38*ns, cy - 14*ns), crack_line, 1.2*ns)
+			draw_line(Vector2(cx + 20*ns, cy - 18*ns), Vector2(cx + 35*ns, cy - 26*ns), crack_line, 1.8*ns)
 			# Arm cracks
-			draw_line(Vector2(cx - 46*s, cy - 45*s), Vector2(cx - 52*s, cy - 55*s), crack_col, 0.8*s)
-			draw_line(Vector2(cx + 46*s, cy - 45*s), Vector2(cx + 50*s, cy - 58*s), crack_col, 0.8*s)
-			# Subtle glow along cracks (orange fire light bleeding through)
-			var crack_glow = Color(0.95, 0.55, 0.08, crack_alpha * 0.15)
-			draw_line(Vector2(cx, cy - 18*s), Vector2(cx - 6*s, cy - 8*s), crack_glow, 4.0*s)
-			draw_line(Vector2(cx, cy - 18*s), Vector2(cx + 8*s, cy - 10*s), crack_glow, 4.0*s)
+			draw_line(Vector2(cx - 58*ns, cy - 42*ns), Vector2(cx - 65*ns, cy - 56*ns), crack_line, 1.5*ns)
+			draw_line(Vector2(cx + 58*ns, cy - 42*ns), Vector2(cx + 65*ns, cy - 56*ns), crack_line, 1.5*ns)
+			# Glow bleed from major cracks
+			draw_circle(Vector2(cx, cy - 14*ns), 12*ns, Color(1.0, 0.6, 0.1, crack_pulse * 0.12))
 
-			# --- HEAD (bald, strong jaw, determined face) ---
+			# --- HEAD (bald, strong jaw) ---
 			# Thick neck
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 14*s, cy - 32*s), Vector2(cx + 14*s, cy - 32*s),
-				Vector2(cx + 16*s, cy - 22*s), Vector2(cx - 16*s, cy - 22*s)
+				Vector2(cx - 16*ns, cy - 32*ns), Vector2(cx + 16*ns, cy - 32*ns),
+				Vector2(cx + 18*ns, cy - 24*ns), Vector2(cx - 18*ns, cy - 24*ns)
 			]), skin)
-			# Trapezius muscles connecting neck to shoulders
+			# Trapezius
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 14*s, cy - 34*s), Vector2(cx - 38*s, cy - 28*s),
-				Vector2(cx - 35*s, cy - 24*s), Vector2(cx - 12*s, cy - 28*s)
-			]), Color(skin.r, skin.g, skin.b, 0.6))
+				Vector2(cx - 16*ns, cy - 34*ns), Vector2(cx - 48*ns, cy - 28*ns),
+				Vector2(cx - 44*ns, cy - 22*ns), Vector2(cx - 14*ns, cy - 28*ns)
+			]), Color(skin.r, skin.g, skin.b, 0.7))
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx + 14*s, cy - 34*s), Vector2(cx + 38*s, cy - 28*s),
-				Vector2(cx + 35*s, cy - 24*s), Vector2(cx + 12*s, cy - 28*s)
-			]), Color(skin.r, skin.g, skin.b, 0.6))
-			# Head — bald, slightly elongated
-			draw_circle(Vector2(cx, cy - 52*s), 24*s, skin)
+				Vector2(cx + 16*ns, cy - 34*ns), Vector2(cx + 48*ns, cy - 28*ns),
+				Vector2(cx + 44*ns, cy - 22*ns), Vector2(cx + 14*ns, cy - 28*ns)
+			]), Color(skin.r, skin.g, skin.b, 0.7))
+			# Head — bald
+			draw_circle(Vector2(cx, cy - 52*ns), 26*ns, skin)
 			# Strong angular jaw
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 18*s, cy - 36*s), Vector2(cx + 18*s, cy - 36*s),
-				Vector2(cx + 14*s, cy - 28*s), Vector2(cx, cy - 24*s), Vector2(cx - 14*s, cy - 28*s)
+				Vector2(cx - 20*ns, cy - 36*ns), Vector2(cx + 20*ns, cy - 36*ns),
+				Vector2(cx + 16*ns, cy - 28*ns), Vector2(cx, cy - 24*ns), Vector2(cx - 16*ns, cy - 28*ns)
 			]), Color(skin.r * 0.96, skin.g * 0.94, skin.b * 0.92))
 			# Bald head shine
-			draw_circle(Vector2(cx - 4*s, cy - 68*s), 8*s, Color(1.0, 0.98, 0.95, 0.12))
-			draw_circle(Vector2(cx - 2*s, cy - 64*s), 5*s, Color(1.0, 0.98, 0.95, 0.08))
-			# Subtle scalp shading
-			draw_arc(Vector2(cx, cy - 52*s), 23*s, PI * 0.6, PI * 1.4, 12, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 2*s)
+			draw_circle(Vector2(cx - 4*ns, cy - 70*ns), 10*ns, Color(1.0, 0.95, 0.90, 0.18))
+			draw_circle(Vector2(cx - 2*ns, cy - 66*ns), 6*ns, Color(1.0, 0.95, 0.90, 0.12))
+			# Scalp fire reflection
+			draw_circle(Vector2(cx + 6*ns, cy - 64*ns), 8*ns, Color(0.95, 0.65, 0.15, 0.08))
 			# Strong brow ridge
-			draw_line(Vector2(cx - 16*s, cy - 56*s), Vector2(cx - 4*s, cy - 54*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.5*s)
-			draw_line(Vector2(cx + 4*s, cy - 54*s), Vector2(cx + 16*s, cy - 56*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.5*s)
-			# Eyes — intense, determined
-			draw_circle(Vector2(cx - 8*s, cy - 50*s), 4.5*s, Color(0.98, 0.98, 1.0))
-			draw_circle(Vector2(cx + 8*s, cy - 50*s), 4.5*s, Color(0.98, 0.98, 1.0))
-			# Steel grey-blue iris
-			draw_circle(Vector2(cx - 8*s, cy - 50*s), 2.8*s, Color(0.35, 0.45, 0.55))
-			draw_circle(Vector2(cx + 8*s, cy - 50*s), 2.8*s, Color(0.35, 0.45, 0.55))
+			draw_line(Vector2(cx - 18*ns, cy - 57*ns), Vector2(cx - 4*ns, cy - 55*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.45), 3.0*ns)
+			draw_line(Vector2(cx + 4*ns, cy - 55*ns), Vector2(cx + 18*ns, cy - 57*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.45), 3.0*ns)
+			# Eyes — intense
+			draw_circle(Vector2(cx - 9*ns, cy - 50*ns), 5.0*ns, Color(0.98, 0.98, 1.0))
+			draw_circle(Vector2(cx + 9*ns, cy - 50*ns), 5.0*ns, Color(0.98, 0.98, 1.0))
+			# Fiery amber iris
+			draw_circle(Vector2(cx - 9*ns, cy - 50*ns), 3.2*ns, Color(0.65, 0.40, 0.15))
+			draw_circle(Vector2(cx + 9*ns, cy - 50*ns), 3.2*ns, Color(0.65, 0.40, 0.15))
 			# Pupils
-			draw_circle(Vector2(cx - 8*s, cy - 50*s), 1.2*s, Color(0.06, 0.06, 0.08))
-			draw_circle(Vector2(cx + 8*s, cy - 50*s), 1.2*s, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2(cx - 9*ns, cy - 50*ns), 1.5*ns, Color(0.05, 0.05, 0.05))
+			draw_circle(Vector2(cx + 9*ns, cy - 50*ns), 1.5*ns, Color(0.05, 0.05, 0.05))
 			# Eye highlights
-			draw_circle(Vector2(cx - 9.5*s, cy - 52*s), 1.3*s, Color(1.0, 1.0, 1.0, 0.65))
-			draw_circle(Vector2(cx + 6.5*s, cy - 52*s), 1.3*s, Color(1.0, 1.0, 1.0, 0.65))
-			# Nose — strong straight
-			draw_line(Vector2(cx, cy - 48*s), Vector2(cx, cy - 40*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.3), 1.5*s)
-			draw_line(Vector2(cx - 2*s, cy - 40*s), Vector2(cx + 2*s, cy - 40*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1*s)
-			# Determined set jaw / mouth
-			draw_line(Vector2(cx - 6*s, cy - 37*s), Vector2(cx + 6*s, cy - 37*s), Color(skin_shadow.r * 0.8, skin_shadow.g * 0.7, skin_shadow.b * 0.65), 1.3*s)
+			draw_circle(Vector2(cx - 10.5*ns, cy - 52*ns), 1.5*ns, Color(1.0, 1.0, 1.0, 0.7))
+			draw_circle(Vector2(cx + 7.5*ns, cy - 52*ns), 1.5*ns, Color(1.0, 1.0, 1.0, 0.7))
+			# Nose
+			draw_line(Vector2(cx, cy - 48*ns), Vector2(cx, cy - 40*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.0*ns)
+			draw_line(Vector2(cx - 3*ns, cy - 40*ns), Vector2(cx + 3*ns, cy - 40*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*ns)
+			# Mouth
+			draw_line(Vector2(cx - 7*ns, cy - 37*ns), Vector2(cx + 7*ns, cy - 37*ns), Color(skin_shadow.r * 0.75, skin_shadow.g * 0.65, skin_shadow.b * 0.55), 1.8*ns)
 			# Chin cleft
-			draw_line(Vector2(cx, cy - 30*s), Vector2(cx, cy - 27*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1*s)
+			draw_line(Vector2(cx, cy - 29*ns), Vector2(cx, cy - 26*ns), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1.2*ns)
 
-			# --- FIRE OVERLAY (in front of body, lower region) ---
-			for fi in range(6):
-				var flame_x2 = cx + sin(_time * 2.5 + float(fi) * 1.3) * 35*s
-				var flame_y2 = cy + 60*s + float(fi) * 8*s
-				var fw = (10.0 + sin(_time * 3.0 + float(fi) * 0.9) * 4.0) * s
-				var fh = (20.0 + sin(_time * 2.0 + float(fi)) * 8.0) * s
+			# --- FIRE OVERLAY (in front, lower body) ---
+			for fi in range(8):
+				var flame_x2 = cx + sin(_time * 2.5 + float(fi) * 1.1) * 45*ns
+				var flame_y2 = cy + 40*ns + float(fi) * 8*ns
+				var fw = (14.0 + sin(_time * 3.0 + float(fi) * 0.9) * 5.0) * ns
+				var fh = (28.0 + sin(_time * 2.0 + float(fi)) * 12.0) * ns
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(flame_x2 - fw, flame_y2),
 					Vector2(flame_x2 + fw, flame_y2),
-					Vector2(flame_x2 + fw * 0.2, flame_y2 - fh),
-					Vector2(flame_x2 - fw * 0.2, flame_y2 - fh)
-				]), Color(0.95, 0.60, 0.08, 0.08))
+					Vector2(flame_x2 + fw * 0.15, flame_y2 - fh),
+					Vector2(flame_x2 - fw * 0.15, flame_y2 - fh)
+				]), Color(0.95, 0.55, 0.05, 0.30 - float(fi) * 0.025))
 
-			# --- BODY GLOW (warm fire light on skin) ---
-			draw_circle(Vector2(cx, cy - 10*s), 45*s, Color(0.95, 0.65, 0.15, 0.04 + fire_pulse * 0.02))
+			# --- WARM BODY GLOW ---
+			draw_circle(Vector2(cx, cy - 5*ns), 55*ns, Color(0.95, 0.60, 0.12, 0.08 + fire_pulse * 0.04))
 
-			# --- SMOKE/FOG at base ---
-			for si in range(5):
-				var smoke_x = cx + sin(_time * 0.5 + float(si) * 1.8) * 50*s
-				var smoke_y = cy + 120*s + sin(_time * 0.3 + float(si)) * 8*s
-				var smoke_r2 = (15.0 + sin(_time * 0.7 + float(si) * 2.0) * 5.0) * s
-				draw_circle(Vector2(smoke_x, smoke_y), smoke_r2, Color(0.5, 0.48, 0.45, 0.06))
+			# --- SMOKE at base ---
+			for si in range(6):
+				var smoke_x = cx + sin(_time * 0.5 + float(si) * 1.5) * 55*ns
+				var smoke_y = cy + 85*ns + sin(_time * 0.3 + float(si)) * 6*ns
+				var smoke_r2 = (18.0 + sin(_time * 0.7 + float(si) * 2.0) * 6.0) * ns
+				draw_circle(Vector2(smoke_x, smoke_y), smoke_r2, Color(0.5, 0.45, 0.40, 0.12))
 
-			# Narrator HAS eyes and mouth — muscular hero, not faceless
-			eye_left = Vector2(cx - 8*s, cy - 50*s)
-			eye_right = Vector2(cx + 8*s, cy - 50*s)
-			eye_r = 4.5*s
+			# Eye/mouth positions for animation overlay
+			eye_left = Vector2(cx - 9*ns, cy - 50*ns)
+			eye_right = Vector2(cx + 9*ns, cy - 50*ns)
+			eye_r = 5.0*ns
 			skin_col = skin
-			mouth_pos = Vector2(cx, cy - 37*s)
-			mouth_w = 6.0*s
+			mouth_pos = Vector2(cx, cy - 37*ns)
+			mouth_w = 7.0*ns
 		"robin_hood":
 			# Green cape behind
 			draw_colored_polygon(PackedVector2Array([
@@ -17857,7 +17855,8 @@ func _generate_wave_preview(w: int) -> Array:
 # ============================================================
 # Helper: draw string in Cinzel uppercase
 func _udraw(fnt: Font, pos: Vector2, text: String, halign: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, width = -1, size: int = 16, color: Color = Color.WHITE) -> void:
-	draw_string(fnt, pos, text.to_upper(), halign, width, size, color)
+	var t = text.replace("\u2014", " -- ").replace("\u2013", " - ").replace("\u2018", "'").replace("\u2019", "'").replace("\u201C", "\"").replace("\u201D", "\"")
+	draw_string(fnt, pos, t.to_upper(), halign, width, size, color)
 
 # DRAW â€” Level-specific backgrounds
 # ============================================================
