@@ -1747,6 +1747,7 @@ var story_state: Dictionary = {
 }
 var story_seen: Array = []  # dialog keys already seen (persisted)
 var story_voice_clips: Dictionary = {}  # "narrator", "male_hero", "female_hero", "monster"
+var narrator_story_clips: Dictionary = {}  # "prologue_0" -> AudioStreamMP3 (Narrator ElevenLabs)
 var shadow_author_story_clips: Dictionary = {}  # "prologue_0" -> AudioStreamMP3
 var shadow_author_fight_clips: Array = []  # fight_0..fight_6 AudioStreamMP3
 var character_story_clips: Dictionary = {}  # "pre_level_1_sherlock_0" -> AudioStreamMP3
@@ -6534,16 +6535,23 @@ func _generate_voice_clips() -> void:
 		120.0, [[730,1090,2440], [570,840,2410], [300,870,2240]],
 		4, 0.8, 0.08, 4.5, 3.0)
 
-	# Scrooge â€” thin reedy warble (F0=165Hz)
+	# Scrooge â€" thin reedy warble (F0=165Hz)
 	# Vowels: ah=[730,1090,2440], eh=[530,1840,2480], uh=[640,1190,2390]
 	voice_clips[TowerType.SCROOGE] = _generate_formant_voice(
 		165.0, [[730,1090,2440], [530,1840,2480], [640,1190,2390], [730,1090,2440]],
 		5, 0.6, 0.40, 3.5, 7.0)
 
-	# === SHADOW AUTHOR VOICE â€” ultra-deep menacing whisper (F0=70Hz) ===
+	# === NARRATOR VOICE â€" strong commanding American male (F0=155Hz) ===
+	# Deep but clear, authoritative. Like a seasoned drill instructor or documentary narrator.
+	# Vowels: ah=[730,1090,2440], eh=[530,1840,2480], uh=[640,1190,2390]
+	story_voice_clips["narrator"] = _generate_formant_voice(
+		155.0, [[730,1090,2440], [530,1840,2480], [640,1190,2390], [730,1090,2440]],
+		5, 0.8, 0.06, 3.0, 2.0)
+
+	# === SHADOW AUTHOR VOICE â€" ultra-deep menacing whisper (F0=70Hz) ===
 	# Very low fundamental with breathy, sinister quality
 	# Vowels: uh=[640,1190,2390], oh=[570,840,2410], oo=[300,870,2240]
-	story_voice_clips["narrator"] = _generate_formant_voice(
+	story_voice_clips["shadow_author"] = _generate_formant_voice(
 		70.0, [[640,1190,2390], [570,840,2410], [300,870,2240], [640,1190,2390]],
 		4, 1.1, 0.45, 2.5, 6.0)
 
@@ -7312,15 +7320,25 @@ func _play_story_voice() -> void:
 		"frankenstein": TowerType.FRANKENSTEIN,
 		"shadow_author": TowerType.SHADOW_AUTHOR,
 	}
-	# For narrator/shadow_author lines, try Shadow Author ElevenLabs MP3 clip first
-	if (speaker == "narrator" or speaker == "shadow_author") and shadow_author_story_clips.size() > 0:
-		# Count which narrator/shadow_author line this is within the current dialog
+	# For narrator lines, try Narrator ElevenLabs MP3 clip first
+	if speaker == "narrator" and narrator_story_clips.size() > 0:
 		var narrator_idx := 0
 		for i in range(story_state.line_index):
-			var s = lines[i].get("speaker", "narrator")
-			if s == "narrator" or s == "shadow_author":
+			if lines[i].get("speaker", "narrator") == "narrator":
 				narrator_idx += 1
 		var clip_key = key + "_" + str(narrator_idx)
+		if narrator_story_clips.has(clip_key):
+			catchphrase_player.stop()
+			catchphrase_player.stream = narrator_story_clips[clip_key]
+			catchphrase_player.play()
+			return
+	# For shadow_author lines, try Shadow Author ElevenLabs MP3 clip
+	if speaker == "shadow_author" and shadow_author_story_clips.size() > 0:
+		var sa_idx := 0
+		for i in range(story_state.line_index):
+			if lines[i].get("speaker", "narrator") == "shadow_author":
+				sa_idx += 1
+		var clip_key = key + "_" + str(sa_idx)
 		if shadow_author_story_clips.has(clip_key):
 			catchphrase_player.stop()
 			catchphrase_player.stream = shadow_author_story_clips[clip_key]
@@ -7739,7 +7757,7 @@ func _draw_story_dialog() -> void:
 
 func _get_character_glow_color(speaker: String) -> Color:
 	match speaker:
-		"narrator": return Color(0.4, 0.2, 0.6)
+		"narrator": return Color(0.95, 0.55, 0.15)
 		"robin_hood": return Color(0.3, 0.65, 0.2)
 		"alice": return Color(0.4, 0.6, 0.9)
 		"wicked_witch": return Color(0.3, 0.7, 0.2)
@@ -7773,66 +7791,212 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 	var mouth_w = 7.0 * s
 	match speaker:
 		"narrator":
-			# Hood folds — deeper layers
+			# === THE NARRATOR — muscular bald white man, flexing, engulfed in fire ===
+			# Based on key art: powerful figure emerging from flames on dark pedestal
+
+			# --- DARK PEDESTAL BASE (draped cloth) ---
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 58*s, cy - 30*s), Vector2(cx + 58*s, cy - 30*s),
-				Vector2(cx + 84*s, cy + 145*s), Vector2(cx - 84*s, cy + 145*s)
-			]), Color(0.04, 0.025, 0.06))
-			# Robe body
+				Vector2(cx - 55*s, cy + 100*s), Vector2(cx + 55*s, cy + 100*s),
+				Vector2(cx + 65*s, cy + 140*s), Vector2(cx - 65*s, cy + 140*s)
+			]), Color(0.08, 0.07, 0.09))
+			# Cloth drape folds
+			for fi in range(6):
+				var fx = cx - 50*s + float(fi) * 20*s
+				draw_line(Vector2(fx, cy + 102*s), Vector2(fx + sin(float(fi) * 1.5) * 4*s, cy + 138*s), Color(0.12, 0.10, 0.14, 0.3), 1.5*s)
+			# Cloth highlight on left drape
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 55*s, cy - 30*s), Vector2(cx + 55*s, cy - 30*s),
-				Vector2(cx + 80*s, cy + 140*s), Vector2(cx - 80*s, cy + 140*s)
-			]), Color(0.05, 0.03, 0.07))
-			# Robe light-side shading
+				Vector2(cx - 55*s, cy + 100*s), Vector2(cx - 30*s, cy + 100*s),
+				Vector2(cx - 25*s, cy + 140*s), Vector2(cx - 65*s, cy + 140*s)
+			]), Color(0.15, 0.13, 0.17, 0.15))
+			# Pedestal top edge
+			draw_line(Vector2(cx - 55*s, cy + 100*s), Vector2(cx + 55*s, cy + 100*s), Color(0.18, 0.15, 0.20, 0.4), 1.5*s)
+
+			# --- FIRE EFFECT (behind body) ---
+			var fire_pulse = sin(_time * 3.5) * 0.15
+			# Base fire glow
+			for fi in range(8):
+				var fa = float(fi) * TAU / 8.0 + _time * 1.2
+				var fr = (50.0 + sin(_time * 2.0 + float(fi) * 1.5) * 15.0) * s
+				var fire_x = cx + cos(fa) * fr * 0.7
+				var fire_y = cy + 20*s + sin(fa) * fr * 0.4
+				var fire_r = (18.0 + sin(_time * 4.0 + float(fi)) * 6.0) * s
+				draw_circle(Vector2(fire_x, fire_y), fire_r, Color(0.95, 0.55, 0.05, 0.06 + fire_pulse * 0.02))
+			# Rising flame tongues
+			for fi in range(12):
+				var flame_x = cx + sin(float(fi) * 1.8 + _time * 0.6) * 45*s
+				var flame_base_y = cy + 90*s - float(fi) * 6*s
+				var flame_h = (30.0 + sin(_time * 3.0 + float(fi) * 2.1) * 15.0) * s
+				var flame_w = (8.0 + sin(_time * 2.5 + float(fi)) * 3.0) * s
+				var flame_alpha = 0.12 - float(fi) * 0.008
+				# Orange core
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(flame_x - flame_w, flame_base_y),
+					Vector2(flame_x + flame_w, flame_base_y),
+					Vector2(flame_x + flame_w * 0.3, flame_base_y - flame_h),
+					Vector2(flame_x - flame_w * 0.3, flame_base_y - flame_h)
+				]), Color(0.95, 0.55, 0.08, flame_alpha))
+				# Yellow-green tip
+				if fi < 8:
+					draw_colored_polygon(PackedVector2Array([
+						Vector2(flame_x - flame_w * 0.5, flame_base_y - flame_h * 0.5),
+						Vector2(flame_x + flame_w * 0.5, flame_base_y - flame_h * 0.5),
+						Vector2(flame_x, flame_base_y - flame_h * 1.2)
+					]), Color(0.85, 0.90, 0.15, flame_alpha * 0.7))
+
+			# --- MUSCULAR TORSO (broad V-shape) ---
+			var skin = Color(0.92, 0.82, 0.72)
+			var skin_shadow = Color(0.78, 0.65, 0.52)
+			# Waist / lower torso
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - 55*s, cy - 30*s), Vector2(cx, cy - 30*s),
-				Vector2(cx + 10*s, cy + 140*s), Vector2(cx - 80*s, cy + 140*s)
-			]), Color(0.07, 0.04, 0.09, 0.2))
-			# Deep robe folds
-			for fi in range(7):
-				var fx = cx - 50*s + float(fi) * 16*s
-				draw_line(Vector2(fx, cy - 5*s), Vector2(fx + sin(float(fi) * 1.2) * 10*s, cy + 135*s), Color(0.08, 0.05, 0.1, 0.35), 1.8*s)
-			# Hood — large pointed with depth
+				Vector2(cx - 22*s, cy + 10*s), Vector2(cx + 22*s, cy + 10*s),
+				Vector2(cx + 18*s, cy + 100*s), Vector2(cx - 18*s, cy + 100*s)
+			]), Color(0.06, 0.05, 0.07))  # dark pants/lower body
+			# Broad upper torso — skin
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx, cy - 135*s), Vector2(cx - 58*s, cy - 20*s),
-				Vector2(cx - 48*s, cy + 12*s), Vector2(cx + 48*s, cy + 12*s), Vector2(cx + 58*s, cy - 20*s)
-			]), Color(0.06, 0.04, 0.09))
-			# Hood rim highlight
-			draw_line(Vector2(cx - 55*s, cy - 20*s), Vector2(cx, cy - 132*s), Color(0.1, 0.07, 0.14, 0.3), 1.5*s)
-			draw_line(Vector2(cx + 55*s, cy - 20*s), Vector2(cx, cy - 132*s), Color(0.08, 0.05, 0.11, 0.2), 1.5*s)
-			# Hood inner void — deeper
+				Vector2(cx - 42*s, cy - 30*s), Vector2(cx + 42*s, cy - 30*s),
+				Vector2(cx + 28*s, cy + 14*s), Vector2(cx - 28*s, cy + 14*s)
+			]), skin)
+			# Torso shading (right side shadow)
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx, cy - 105*s), Vector2(cx - 38*s, cy - 15*s),
-				Vector2(cx - 30*s, cy + 8*s), Vector2(cx + 30*s, cy + 8*s), Vector2(cx + 38*s, cy - 15*s)
-			]), Color(0.01, 0.005, 0.02))
-			# Brighter pulsing eyes deep within
-			var eye_pulse = 0.35 + sin(_time * 2.5) * 0.2
-			draw_circle(Vector2(cx - 14*s, cy - 40*s), 5*s, Color(0.45, 0.08, 0.55, eye_pulse))
-			draw_circle(Vector2(cx + 14*s, cy - 40*s), 5*s, Color(0.45, 0.08, 0.55, eye_pulse))
-			draw_circle(Vector2(cx - 14*s, cy - 40*s), 3*s, Color(0.65, 0.25, 0.75, eye_pulse * 1.4))
-			draw_circle(Vector2(cx + 14*s, cy - 40*s), 3*s, Color(0.65, 0.25, 0.75, eye_pulse * 1.4))
-			draw_circle(Vector2(cx - 14*s, cy - 40*s), 1.5*s, Color(0.9, 0.6, 1.0, eye_pulse))
-			draw_circle(Vector2(cx + 14*s, cy - 40*s), 1.5*s, Color(0.9, 0.6, 1.0, eye_pulse))
-			# Skeletal hands holding a book
-			draw_rect(Rect2(cx - 24*s, cy + 18*s, 48*s, 34*s), Color(0.15, 0.08, 0.05))
-			draw_rect(Rect2(cx - 22*s, cy + 20*s, 44*s, 30*s), Color(0.28, 0.18, 0.10))
-			# Book page lines
-			for li in range(4):
-				draw_line(Vector2(cx - 16*s, cy + 26*s + float(li) * 6*s), Vector2(cx + 16*s, cy + 26*s + float(li) * 6*s), Color(0.45, 0.35, 0.25, 0.3), 0.8*s)
-			# Bony fingers
-			for fi in range(5):
-				var fxx = cx - 18*s + float(fi) * 9*s
-				draw_line(Vector2(fxx, cy + 12*s), Vector2(fxx, cy + 20*s), Color(0.78, 0.72, 0.68, 0.5), 2*s)
-			# Shadow tendrils from hem
-			for ti in range(10):
-				var tx = cx - 75*s + float(ti) * 16*s
-				var hem_off = _portrait_hem_offsets[ti] if ti < _portrait_hem_offsets.size() else 0.0
-				var t_sway = sin(_time * 0.8 + float(ti) * 0.6) * 5*s
-				draw_line(Vector2(tx, cy + 140*s), Vector2(tx + hem_off*s + t_sway, cy + 162*s), Color(0.03, 0.02, 0.05, 0.3), 2*s)
-			# Narrator has no blinkable eyes
-			eye_left = Vector2(-1000, -1000)
-			eye_right = Vector2(-1000, -1000)
-			eye_r = 0.0
+				Vector2(cx + 10*s, cy - 28*s), Vector2(cx + 42*s, cy - 30*s),
+				Vector2(cx + 28*s, cy + 14*s), Vector2(cx + 8*s, cy + 14*s)
+			]), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25))
+			# Pectoral definition
+			draw_arc(Vector2(cx - 14*s, cy - 16*s), 16*s, PI * 0.2, PI * 0.9, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*s)
+			draw_arc(Vector2(cx + 14*s, cy - 16*s), 16*s, PI * 0.1, PI * 0.8, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1.5*s)
+			# Center chest line
+			draw_line(Vector2(cx, cy - 22*s), Vector2(cx, cy + 10*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1.0*s)
+			# Ab definition (6 segments)
+			for ai in range(3):
+				var ab_y = cy - 2*s + float(ai) * 10*s
+				draw_line(Vector2(cx - 10*s, ab_y), Vector2(cx + 10*s, ab_y), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.12 - float(ai) * 0.02), 0.8*s)
+
+			# --- ARMS IN FLEX POSE (both raised, biceps flexed) ---
+			# Left arm — raised and flexed
+			# Upper arm
+			draw_line(Vector2(cx - 42*s, cy - 28*s), Vector2(cx - 55*s, cy - 62*s), skin, 14*s)
+			# Forearm curled in
+			draw_line(Vector2(cx - 55*s, cy - 62*s), Vector2(cx - 38*s, cy - 78*s), skin, 11*s)
+			# Bicep bulge
+			draw_circle(Vector2(cx - 50*s, cy - 52*s), 10*s, skin)
+			draw_arc(Vector2(cx - 50*s, cy - 52*s), 10*s, PI * 0.3, PI * 1.2, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*s)
+			# Left fist
+			draw_circle(Vector2(cx - 36*s, cy - 80*s), 6*s, skin)
+			draw_arc(Vector2(cx - 36*s, cy - 80*s), 6*s, 0, PI, 8, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1*s)
+
+			# Right arm — raised and flexed
+			draw_line(Vector2(cx + 42*s, cy - 28*s), Vector2(cx + 55*s, cy - 62*s), skin, 14*s)
+			draw_line(Vector2(cx + 55*s, cy - 62*s), Vector2(cx + 38*s, cy - 78*s), skin, 11*s)
+			# Bicep bulge
+			draw_circle(Vector2(cx + 50*s, cy - 52*s), 10*s, skin)
+			draw_arc(Vector2(cx + 50*s, cy - 52*s), 10*s, PI * 0.3, PI * 1.2, 10, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.25), 1.5*s)
+			# Right fist
+			draw_circle(Vector2(cx + 36*s, cy - 80*s), 6*s, skin)
+			draw_arc(Vector2(cx + 36*s, cy - 80*s), 6*s, 0, PI, 8, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1*s)
+
+			# --- LIGHTNING CRACK PATTERNS (across chest and arms) ---
+			var crack_alpha = 0.5 + sin(_time * 2.0) * 0.2
+			var crack_col = Color(0.15, 0.12, 0.10, crack_alpha)
+			# Main chest crack — branching downward from center
+			draw_line(Vector2(cx, cy - 18*s), Vector2(cx - 6*s, cy - 8*s), crack_col, 1.5*s)
+			draw_line(Vector2(cx - 6*s, cy - 8*s), Vector2(cx - 14*s, cy + 4*s), crack_col, 1.2*s)
+			draw_line(Vector2(cx - 6*s, cy - 8*s), Vector2(cx + 4*s, cy + 2*s), crack_col, 1.0*s)
+			draw_line(Vector2(cx, cy - 18*s), Vector2(cx + 8*s, cy - 10*s), crack_col, 1.3*s)
+			draw_line(Vector2(cx + 8*s, cy - 10*s), Vector2(cx + 16*s, cy - 2*s), crack_col, 1.0*s)
+			draw_line(Vector2(cx + 8*s, cy - 10*s), Vector2(cx + 5*s, cy + 6*s), crack_col, 0.8*s)
+			# Branch cracks on left pec
+			draw_line(Vector2(cx - 14*s, cy - 12*s), Vector2(cx - 24*s, cy - 18*s), crack_col, 0.8*s)
+			draw_line(Vector2(cx - 24*s, cy - 18*s), Vector2(cx - 30*s, cy - 14*s), crack_col, 0.6*s)
+			# Branch cracks on right shoulder
+			draw_line(Vector2(cx + 16*s, cy - 22*s), Vector2(cx + 28*s, cy - 28*s), crack_col, 0.8*s)
+			# Arm cracks
+			draw_line(Vector2(cx - 46*s, cy - 45*s), Vector2(cx - 52*s, cy - 55*s), crack_col, 0.8*s)
+			draw_line(Vector2(cx + 46*s, cy - 45*s), Vector2(cx + 50*s, cy - 58*s), crack_col, 0.8*s)
+			# Subtle glow along cracks (orange fire light bleeding through)
+			var crack_glow = Color(0.95, 0.55, 0.08, crack_alpha * 0.15)
+			draw_line(Vector2(cx, cy - 18*s), Vector2(cx - 6*s, cy - 8*s), crack_glow, 4.0*s)
+			draw_line(Vector2(cx, cy - 18*s), Vector2(cx + 8*s, cy - 10*s), crack_glow, 4.0*s)
+
+			# --- HEAD (bald, strong jaw, determined face) ---
+			# Thick neck
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 14*s, cy - 32*s), Vector2(cx + 14*s, cy - 32*s),
+				Vector2(cx + 16*s, cy - 22*s), Vector2(cx - 16*s, cy - 22*s)
+			]), skin)
+			# Trapezius muscles connecting neck to shoulders
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 14*s, cy - 34*s), Vector2(cx - 38*s, cy - 28*s),
+				Vector2(cx - 35*s, cy - 24*s), Vector2(cx - 12*s, cy - 28*s)
+			]), Color(skin.r, skin.g, skin.b, 0.6))
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx + 14*s, cy - 34*s), Vector2(cx + 38*s, cy - 28*s),
+				Vector2(cx + 35*s, cy - 24*s), Vector2(cx + 12*s, cy - 28*s)
+			]), Color(skin.r, skin.g, skin.b, 0.6))
+			# Head — bald, slightly elongated
+			draw_circle(Vector2(cx, cy - 52*s), 24*s, skin)
+			# Strong angular jaw
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - 18*s, cy - 36*s), Vector2(cx + 18*s, cy - 36*s),
+				Vector2(cx + 14*s, cy - 28*s), Vector2(cx, cy - 24*s), Vector2(cx - 14*s, cy - 28*s)
+			]), Color(skin.r * 0.96, skin.g * 0.94, skin.b * 0.92))
+			# Bald head shine
+			draw_circle(Vector2(cx - 4*s, cy - 68*s), 8*s, Color(1.0, 0.98, 0.95, 0.12))
+			draw_circle(Vector2(cx - 2*s, cy - 64*s), 5*s, Color(1.0, 0.98, 0.95, 0.08))
+			# Subtle scalp shading
+			draw_arc(Vector2(cx, cy - 52*s), 23*s, PI * 0.6, PI * 1.4, 12, Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 2*s)
+			# Strong brow ridge
+			draw_line(Vector2(cx - 16*s, cy - 56*s), Vector2(cx - 4*s, cy - 54*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.5*s)
+			draw_line(Vector2(cx + 4*s, cy - 54*s), Vector2(cx + 16*s, cy - 56*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.35), 2.5*s)
+			# Eyes — intense, determined
+			draw_circle(Vector2(cx - 8*s, cy - 50*s), 4.5*s, Color(0.98, 0.98, 1.0))
+			draw_circle(Vector2(cx + 8*s, cy - 50*s), 4.5*s, Color(0.98, 0.98, 1.0))
+			# Steel grey-blue iris
+			draw_circle(Vector2(cx - 8*s, cy - 50*s), 2.8*s, Color(0.35, 0.45, 0.55))
+			draw_circle(Vector2(cx + 8*s, cy - 50*s), 2.8*s, Color(0.35, 0.45, 0.55))
+			# Pupils
+			draw_circle(Vector2(cx - 8*s, cy - 50*s), 1.2*s, Color(0.06, 0.06, 0.08))
+			draw_circle(Vector2(cx + 8*s, cy - 50*s), 1.2*s, Color(0.06, 0.06, 0.08))
+			# Eye highlights
+			draw_circle(Vector2(cx - 9.5*s, cy - 52*s), 1.3*s, Color(1.0, 1.0, 1.0, 0.65))
+			draw_circle(Vector2(cx + 6.5*s, cy - 52*s), 1.3*s, Color(1.0, 1.0, 1.0, 0.65))
+			# Nose — strong straight
+			draw_line(Vector2(cx, cy - 48*s), Vector2(cx, cy - 40*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.3), 1.5*s)
+			draw_line(Vector2(cx - 2*s, cy - 40*s), Vector2(cx + 2*s, cy - 40*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.2), 1*s)
+			# Determined set jaw / mouth
+			draw_line(Vector2(cx - 6*s, cy - 37*s), Vector2(cx + 6*s, cy - 37*s), Color(skin_shadow.r * 0.8, skin_shadow.g * 0.7, skin_shadow.b * 0.65), 1.3*s)
+			# Chin cleft
+			draw_line(Vector2(cx, cy - 30*s), Vector2(cx, cy - 27*s), Color(skin_shadow.r, skin_shadow.g, skin_shadow.b, 0.15), 1*s)
+
+			# --- FIRE OVERLAY (in front of body, lower region) ---
+			for fi in range(6):
+				var flame_x2 = cx + sin(_time * 2.5 + float(fi) * 1.3) * 35*s
+				var flame_y2 = cy + 60*s + float(fi) * 8*s
+				var fw = (10.0 + sin(_time * 3.0 + float(fi) * 0.9) * 4.0) * s
+				var fh = (20.0 + sin(_time * 2.0 + float(fi)) * 8.0) * s
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(flame_x2 - fw, flame_y2),
+					Vector2(flame_x2 + fw, flame_y2),
+					Vector2(flame_x2 + fw * 0.2, flame_y2 - fh),
+					Vector2(flame_x2 - fw * 0.2, flame_y2 - fh)
+				]), Color(0.95, 0.60, 0.08, 0.08))
+
+			# --- BODY GLOW (warm fire light on skin) ---
+			draw_circle(Vector2(cx, cy - 10*s), 45*s, Color(0.95, 0.65, 0.15, 0.04 + fire_pulse * 0.02))
+
+			# --- SMOKE/FOG at base ---
+			for si in range(5):
+				var smoke_x = cx + sin(_time * 0.5 + float(si) * 1.8) * 50*s
+				var smoke_y = cy + 120*s + sin(_time * 0.3 + float(si)) * 8*s
+				var smoke_r2 = (15.0 + sin(_time * 0.7 + float(si) * 2.0) * 5.0) * s
+				draw_circle(Vector2(smoke_x, smoke_y), smoke_r2, Color(0.5, 0.48, 0.45, 0.06))
+
+			# Narrator HAS eyes and mouth — muscular hero, not faceless
+			eye_left = Vector2(cx - 8*s, cy - 50*s)
+			eye_right = Vector2(cx + 8*s, cy - 50*s)
+			eye_r = 4.5*s
+			skin_col = skin
+			mouth_pos = Vector2(cx, cy - 37*s)
+			mouth_w = 6.0*s
 		"robin_hood":
 			# Green cape behind
 			draw_colored_polygon(PackedVector2Array([
@@ -9251,7 +9415,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 
 func _get_speaker_display_name(speaker: String) -> String:
 	match speaker:
-		"narrator": return "The Shadow Author"
+		"narrator": return "The Narrator"
 		"robin_hood": return "Robin Hood"
 		"alice": return "Alice"
 		"wicked_witch": return "The Wicked Witch"
@@ -9372,8 +9536,67 @@ func _load_voice_clips() -> void:
 			placement_voice_clips[tower_type] = place_clips
 		if fight_clips.size() > 0:
 			fighting_voice_clips[tower_type] = fight_clips
+	# Load Narrator ElevenLabs clips (strong American male)
+	_load_narrator_clips()
 	# Load Shadow Author narrator clips (triple-voice: Dominic->Matthew->Dominic)
 	_load_shadow_author_clips()
+
+func _load_narrator_clips() -> void:
+	var base = "res://audio/voices/narrator/"
+	# Same key structure as shadow_author — dialogkey_lineindex.mp3
+	var story_keys: Array = [
+		"prologue_0", "prologue_1", "prologue_2", "prologue_3",
+		"pre_level_0_0", "pre_level_0_1", "post_level_0_0", "post_level_0_1",
+		"pre_level_1_0", "pre_level_1_1", "post_level_1_0",
+		"pre_level_2_0",
+		"pre_level_3_0", "pre_level_3_1", "post_level_3_0",
+		"pre_level_4_0", "pre_level_4_1",
+		"pre_level_5_0", "post_level_5_0",
+		"pre_level_6_0", "post_level_6_0",
+		"pre_level_7_0", "pre_level_7_1", "post_level_7_0",
+		"pre_level_8_0",
+		"pre_level_9_0", "post_level_9_0",
+		"pre_level_10_0", "pre_level_10_1",
+		"pre_level_11_0", "post_level_11_0",
+		"pre_level_12_0", "post_level_12_0",
+		"pre_level_13_0", "pre_level_13_1",
+		"pre_level_14_0",
+		"pre_level_15_0", "post_level_15_0",
+		"act2_intro_0", "act2_intro_1", "act2_intro_2",
+		"pre_level_16_0", "pre_level_16_1", "post_level_16_0",
+		"pre_level_17_0",
+		"pre_level_18_0", "post_level_18_0",
+		"pre_level_19_0", "pre_level_19_1",
+		"pre_level_20_0",
+		"pre_level_21_0", "post_level_21_0",
+		"pre_level_22_0",
+		"pre_level_23_0",
+		"pre_level_24_0", "post_level_24_0",
+		"pre_level_25_0", "pre_level_25_1",
+		"pre_level_26_0",
+		"pre_level_27_0", "post_level_27_0",
+		"pre_level_28_0",
+		"pre_level_29_0",
+		"pre_level_30_0", "post_level_30_0",
+		"pre_level_31_0",
+		"pre_level_32_0",
+		"pre_level_33_0", "post_level_33_0",
+		"act3_intro_0", "act3_intro_1", "act3_intro_2",
+		"pre_level_34_0", "post_level_34_0",
+		"pre_level_35_0",
+		"pre_level_36_0", "pre_level_36_1", "pre_level_36_2",
+		"post_level_36_0", "post_level_36_1", "post_level_36_2", "post_level_36_3",
+		"unlock_sherlock_0", "unlock_sherlock_1",
+		"unlock_tarzan_0", "unlock_tarzan_1",
+		"unlock_dracula_0", "unlock_dracula_1",
+		"unlock_merlin_0", "unlock_merlin_1",
+		"unlock_frankenstein_0", "unlock_frankenstein_1",
+		"all_unlocked_0", "all_unlocked_1", "all_unlocked_2",
+	]
+	for key in story_keys:
+		var path = base + key + ".mp3"
+		if ResourceLoader.exists(path):
+			narrator_story_clips[key] = load(path)
 
 func _load_shadow_author_clips() -> void:
 	var base = "res://audio/voices/shadow_author/"

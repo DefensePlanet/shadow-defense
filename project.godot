@@ -14,6 +14,10 @@ config/name="Shadow Defense: Tales from the Pages"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.6")
 config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.02, 0.02, 0.03, 1)
+boot_splash/image="res://assets/loading_screen.png"
+boot_splash/fullsize=false
+boot_splash/use_filter=true
 
 [autoload]
 
@@ -38,7 +42,6 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=0
 
 [input_devices]
 
@@ -46,5 +49,5 @@ pointing/emulate_touch_from_mouse=true
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
 textures/canvas_textures/default_texture_filter=2
+renderer/rendering_method="gl_compatibility"
