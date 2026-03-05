@@ -10,18 +10,35 @@ config_version=5
 
 [application]
 
-config/name="Tower Defense"
+config/name="Shadow Defense: Tales from the Pages"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.6")
 config/icon="res://icon.svg"
+
+[autoload]
+
+UIScale="*res://scripts/autoloads/ui_scale.gd"
+GameSettings="*res://scripts/autoloads/game_settings.gd"
+TouchManager="*res://scripts/autoloads/touch_manager.gd"
+ObjectPool="*res://scripts/autoloads/object_pool.gd"
+AudioCache="*res://scripts/autoloads/audio_cache.gd"
+SpatialGrid="*res://scripts/autoloads/spatial_grid.gd"
+AnalyticsManager="*res://scripts/autoloads/analytics_manager.gd"
+IAPManager="*res://scripts/autoloads/iap_manager.gd"
+CloudSaveManager="*res://scripts/autoloads/cloud_save_manager.gd"
+AccessibilityManager="*res://scripts/autoloads/accessibility_manager.gd"
+LoadingManager="*res://scripts/autoloads/loading_manager.gd"
+LocalizationManager="*res://scripts/autoloads/localization_manager.gd"
+TutorialManager="*res://scripts/autoloads/tutorial_manager.gd"
+PrivacyManager="*res://scripts/autoloads/privacy_manager.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep_height"
-window/handheld/orientation=1
+window/stretch/aspect="expand"
+window/handheld/orientation=0
 
 [input_devices]
 
@@ -30,3 +47,4 @@ pointing/emulate_touch_from_mouse=true
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
+textures/canvas_textures/default_texture_filter=2

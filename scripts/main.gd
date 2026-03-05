@@ -1765,7 +1765,17 @@ func _ready() -> void:
 	_create_ui()
 	_apply_font_to_controls(self)
 	_setup_audio()
+	# --- Mobile systems integration ---
+	# Pre-warm object pools for enemies and projectiles
+	if ObjectPool:
+		ObjectPool.warm(enemy_scene, 15)
+	# Log session start
+	if AnalyticsManager:
+		AnalyticsManager.log_event("game_launch", {"heroes": character_names.size(), "levels": levels.size()})
 	_show_menu()
+	# Auto-start tutorial for first-time players
+	if TutorialManager and TutorialManager.should_auto_start():
+		TutorialManager.start_tutorial()
 
 # Ability unlock popup state
 var _ability_popup_timer: float = 0.0
@@ -14757,6 +14767,10 @@ func _process(delta: float) -> void:
 	# Cache enemy list once per frame for performance
 	if game_state == GameState.PLAYING:
 		_cached_enemies = get_tree().get_nodes_in_group("enemies")
+		# Update spatial grid for efficient tower targeting
+		if SpatialGrid:
+			for e in _cached_enemies:
+				SpatialGrid.register(e)
 	# Input debounce cooldown
 	if _input_cooldown > 0.0:
 		_input_cooldown -= delta
@@ -15086,7 +15100,11 @@ func _handle_spawning(delta: float) -> void:
 
 func _spawn_enemy() -> void:
 	_spawn_portal_intensity = 1.0
-	var enemy = enemy_scene.instantiate()
+	var enemy
+	if ObjectPool:
+		enemy = ObjectPool.spawn(enemy_scene)
+	else:
+		enemy = enemy_scene.instantiate()
 	enemy.add_to_group("enemies")
 
 	# Set enemy theme and tier
@@ -25577,6 +25595,8 @@ func _tower_type_to_name(tt) -> String:
 func game_over() -> void:
 	game_state = GameState.GAME_OVER_STATE
 	_update_career_stats_post_game(false)
+	if AnalyticsManager:
+		AnalyticsManager.track_level_fail(current_level, wave, lives)
 	Engine.time_scale = 1.0
 	fast_forward = false
 	game_paused = false
@@ -25929,6 +25949,9 @@ func _victory() -> void:
 	start_button.disabled = true
 	# Start victory chest opening overlay (tier = difficulty)
 	_start_victory_chest(selected_difficulty, stars)
+	# Analytics tracking
+	if AnalyticsManager:
+		AnalyticsManager.track_level_complete(current_level, wave, stars, _time)
 	# Quest tracking on victory
 	_update_quest_progress("complete_levels", 1)
 	_update_quest_progress("earn_stars", stars)

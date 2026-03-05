@@ -95,6 +95,56 @@ var is_moab: bool = false             # Large villain enemy
 var moab_tier: int = 0                # 0=MOAB, 1=BFB equivalent, 2=ZOMG equivalent
 var moab_children_count: int = 4      # How many children spawn on death
 
+## Reset state for object pool reuse
+func pool_reset() -> void:
+	_dead = false
+	health = max_health
+	progress = 0.0
+	progress_ratio = 0.0
+	_hit_flash = 0.0
+	_spawn_fade = 0.3
+	slow_factor = 1.0
+	slow_timer = 0.0
+	dot_dps = 0.0
+	dot_timer = 0.0
+	is_slowed = false
+	damage_mult = 1.0
+	mark_timer = 0.0
+	sleep_timer = 0.0
+	charm_timer = 0.0
+	paint_stacks = 0
+	painted_red = false
+	boss_scale = 1.0
+	is_named_boss = false
+	modifiers.clear()
+	bound_shield = 0.0
+	is_shadow_infested = false
+	is_regrown = false
+	is_fortified = false
+	is_shielded = false
+	is_cursed = false
+	is_phantom = false
+	is_moab = false
+	boss_phase = 0
+	boss_invulnerable = false
+	boss_enraged = false
+	visible = true
+
+## Cleanup before returning to pool
+func pool_cleanup() -> void:
+	remove_from_group("enemies")
+	if SpatialGrid:
+		SpatialGrid.unregister(self)
+
+func _despawn() -> void:
+	if SpatialGrid:
+		SpatialGrid.unregister(self)
+	if ObjectPool:
+		remove_from_group("enemies")
+		ObjectPool.despawn(self)
+	else:
+		queue_free()
+
 func _ready() -> void:
 	_game_font = load("res://fonts/Cinzel.ttf")
 	health = max_health
@@ -227,7 +277,7 @@ func _process(delta: float) -> void:
 		if main:
 			main.lose_life()
 			main.enemy_died()
-		queue_free()
+		_despawn()
 		return
 
 	shrink_scale = 0.7 if is_slowed else 1.0
@@ -404,7 +454,7 @@ func _die() -> void:
 		# Regrow: split into 2 smaller enemies
 		elif is_regrown and regrow_generation < 2 and main.has_method("spawn_regrow_children"):
 			main.spawn_regrow_children(progress, enemy_theme, enemy_tier, regrow_generation + 1, max_health * 0.4)
-	queue_free()
+	_despawn()
 
 func _trigger_boss_phase() -> void:
 	boss_phase += 1
