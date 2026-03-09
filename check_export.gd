@@ -22,19 +22,35 @@ func _init():
 
 	# Try to get export platform info
 	print("\n=== Template Check ===")
-	var templates_path = OS.get_data_dir().path_join("export_templates/4.6.1.stable")
-	print("Templates dir: ", templates_path)
+	print("OS.get_data_dir(): ", OS.get_data_dir())
+	print("OS.get_config_dir(): ", OS.get_config_dir())
+	print("OS.get_user_data_dir(): ", OS.get_user_data_dir())
 
-	var dir = DirAccess.open(templates_path)
-	if dir:
-		dir.list_dir_begin()
-		var fname = dir.get_next()
-		while fname != "":
-			if "web" in fname.to_lower():
-				print("  Found: ", fname)
-			fname = dir.get_next()
-	else:
-		print("  ERROR: Cannot open templates directory!")
+	# Check multiple possible template locations
+	var paths_to_check = [
+		OS.get_data_dir().path_join("export_templates/4.6.1.stable"),
+		OS.get_config_dir().path_join("export_templates/4.6.1.stable"),
+		OS.get_data_dir().path_join("godot/export_templates/4.6.1.stable"),
+		"/home/runner/.local/share/godot/export_templates/4.6.1.stable",
+		"/home/runner/.config/godot/export_templates/4.6.1.stable",
+	]
+
+	for tpath in paths_to_check:
+		print("\nChecking: ", tpath)
+		var dir = DirAccess.open(tpath)
+		if dir:
+			print("  ACCESSIBLE!")
+			dir.list_dir_begin()
+			var fname = dir.get_next()
+			var count = 0
+			while fname != "":
+				if "web" in fname.to_lower():
+					print("  Found: ", fname)
+				count += 1
+				fname = dir.get_next()
+			print("  Total files: ", count)
+		else:
+			print("  NOT ACCESSIBLE")
 
 	# Check main scene
 	print("\n=== Project Checks ===")
