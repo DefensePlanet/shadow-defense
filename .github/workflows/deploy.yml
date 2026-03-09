@@ -34,10 +34,17 @@ jobs:
       - name: Import resources
         run: godot --headless --path . --import
 
+      - name: List template dir contents
+        run: |
+          echo "=== HOME: $HOME ==="
+          ls /root/.local/share/godot/export_templates/ 2>/dev/null || echo "no /root path"
+          ls /github/home/.local/share/godot/export_templates/ 2>/dev/null || echo "no /github/home path"
+          find / -name "web_nothreads_release.zip" 2>/dev/null || echo "web template not found anywhere"
+
       - name: Export game for web
         run: |
           mkdir -p _site/game
-          godot --headless --verbose --path . --export-release "Web" _site/game/index.html
+          godot --headless --verbose --path . --export-debug "Web" _site/game/index.html
 
       - name: Upload game artifact
         uses: actions/upload-artifact@v4
