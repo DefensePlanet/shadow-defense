@@ -15,45 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  export-web:
-    runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.6.1
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup export templates
-        run: |
-          mkdir -p /github/home/.local/share/godot/export_templates/4.6.1.stable
-          mv /root/.local/share/godot/export_templates/4.6.1.stable/* /github/home/.local/share/godot/export_templates/4.6.1.stable/ 2>/dev/null || true
-          # Also link in case Godot looks in /root
-          ln -sf /github/home/.local/share/godot/export_templates /root/.local/share/godot/export_templates 2>/dev/null || true
-
-      - name: Import resources
-        run: godot --headless --path . --import
-
-      - name: List template dir contents
-        run: |
-          echo "=== HOME: $HOME ==="
-          ls /root/.local/share/godot/export_templates/ 2>/dev/null || echo "no /root path"
-          ls /github/home/.local/share/godot/export_templates/ 2>/dev/null || echo "no /github/home path"
-          find / -name "web_nothreads_release.zip" 2>/dev/null || echo "web template not found anywhere"
-
-      - name: Export game for web
-        run: |
-          mkdir -p _site/game
-          godot --headless --verbose --path . --export-debug "Web" _site/game/index.html
-
-      - name: Upload game artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-export
-          path: _site/game/
-
-  deploy:
-    needs: export-web
+  export-and-deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -63,11 +25,27 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Download game artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: web-export
-          path: _site/game/
+      - name: Install Godot
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_linux.x86_64.zip
+          unzip -q Godot_v4.6.1-stable_linux.x86_64.zip
+          chmod +x Godot_v4.6.1-stable_linux.x86_64
+          sudo mv Godot_v4.6.1-stable_linux.x86_64 /usr/local/bin/godot
+
+      - name: Install export templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/4.6.1.stable
+          wget -q https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_export_templates.tpz -O templates.tpz
+          unzip -q templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.6.1.stable/
+
+      - name: Import resources
+        run: godot --headless --path . --import
+
+      - name: Export game for web
+        run: |
+          mkdir -p _site/game
+          godot --headless --path . --export-release "Web" _site/game/index.html
 
       - name: Copy website files
         run: |
