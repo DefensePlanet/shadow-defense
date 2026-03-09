@@ -42,6 +42,9 @@ jobs:
       - name: Import resources
         run: godot --headless --path . --import
 
+      - name: Debug export config
+        run: godot --headless --path . --script res://check_export.gd || true
+
       - name: Export game for web
         run: |
           mkdir -p _site/game
