@@ -42,17 +42,10 @@ jobs:
       - name: Import resources
         run: godot --headless --path . --import
 
-      - name: Verify export templates
-        run: |
-          echo "=== Export templates ==="
-          ls -la ~/.local/share/godot/export_templates/4.6.1.stable/ | grep -i web
-          echo "=== All templates ==="
-          ls ~/.local/share/godot/export_templates/4.6.1.stable/
-
       - name: Export game for web
         run: |
           mkdir -p _site/game
-          godot --headless --verbose --path . --export-release "Web" _site/game/index.html
+          godot --headless --path . --export-release "Web" _site/game/index.html
 
       - name: Copy website files
         run: |
