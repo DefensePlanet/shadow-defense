@@ -24,7 +24,7 @@ var is_mobile: bool = false
 func _ready() -> void:
 	is_mobile = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
 	if not is_mobile:
-		is_mobile = Input.is_touch_drag_enabled() or (DisplayServer.is_touchscreen_available() if DisplayServer.has_method("is_touchscreen_available") else false)
+		is_mobile = DisplayServer.is_touchscreen_available() if DisplayServer.has_method("is_touchscreen_available") else false
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:

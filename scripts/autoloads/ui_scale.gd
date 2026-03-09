@@ -27,7 +27,7 @@ func _on_viewport_resized() -> void:
 
 func _update_safe_area() -> void:
 	var vp_size = get_viewport().get_visible_rect().size
-	if DisplayServer.has_feature(DisplayServer.FEATURE_KEEP_SCREEN_ON):
+	if DisplayServer.has_method("get_display_safe_area"):
 		safe_area = DisplayServer.get_display_safe_area()
 	else:
 		safe_area = Rect2(Vector2.ZERO, vp_size)
