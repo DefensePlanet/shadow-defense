@@ -5609,13 +5609,13 @@ func _create_ui() -> void:
 	# Create 12 character cards: 4 columns x 3 rows (mobile-friendly)
 	survivor_grid_cards.clear()
 	var card_w = 260.0
-	var card_h = 150.0
+	var card_h = 165.0
 	var gap_x = 12.0
-	var gap_y = 10.0
+	var gap_y = 8.0
 	var cols = 4
 	var grid_panel_x = 70.0
 	var grid_panel_w = 1140.0
-	var grid_start_y = 38.0 + 42.0
+	var grid_start_y = 38.0 + 58.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
@@ -13452,10 +13452,10 @@ func _draw_survivor_grid() -> void:
 			var gt = float(gi) / (draw_ch * 0.4)
 			draw_rect(Rect2(draw_cx, draw_cy + float(gi), draw_cw, 1), _ca(accent, 0.10 * (1.0 - gt)))
 
-		# === Character portrait (centered in card, sized to not overlap badges/nameplate) ===
-		var portrait_sz = 105.0
+		# === Character portrait (centered in card, sized to fit between badges and nameplate) ===
+		var portrait_sz = 95.0
 		var portrait_px = draw_cx + (draw_cw - portrait_sz) * 0.5
-		var portrait_py = draw_cy + 18.0
+		var portrait_py = draw_cy + 22.0
 		if unlocked:
 			_draw_story_portrait(portrait_px, portrait_py, portrait_sz, speaker_name)
 		else:
