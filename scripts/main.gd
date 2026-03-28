@@ -13525,7 +13525,31 @@ func _draw_survivor_grid() -> void:
 				star_pts.append(sp + Vector2(cos(sa) * sd, sin(sa) * sd))
 			draw_colored_polygon(star_pts, _ca(c_gold_bright, 0.9))
 
-		# Star progress, gear count, and damage display removed — clean card layout
+		# === Star progress + gear count + session damage ===
+		if unlocked:
+			var stats_x = draw_cx + draw_cw - 70.0
+			var stats_y = draw_cy + 30.0
+			var stats_sz = 11
+			# Stars earned in this character's arc
+			var char_stars = 0
+			var char_level_map_2 = {
+				0: [16, 17, 18], 1: [19, 20, 21], 2: [22, 23, 24],
+				3: [25, 26, 27], 4: [28, 29, 30], 5: [31, 32, 33],
+				6: [1, 2, 3], 7: [7, 8, 9], 8: [10, 11, 12],
+				9: [4, 5, 6], 10: [13, 14, 15], 11: [34, 35, 36]
+			}
+			if char_level_map_2.has(i):
+				for lvl_i in char_level_map_2[i]:
+					char_stars += level_stars.get(lvl_i, 0)
+			_udraw(font, Vector2(stats_x, stats_y), "%d/9" % char_stars, HORIZONTAL_ALIGNMENT_LEFT, -1, stats_sz, _ca(c_gold, 0.8))
+			# Gear count
+			var eq_count = equipped_gear.get(tower_type, []).size()
+			var max_slots = _get_gear_slots(tower_type)
+			_udraw(font, Vector2(stats_x, stats_y + 13), "%d/%d" % [eq_count, max_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, stats_sz, _ca(c_cyan, 0.7))
+			# Session damage
+			var sdmg = session_damage.get(tower_type, 0.0)
+			if sdmg > 0:
+				_udraw(font, Vector2(stats_x, stats_y + 26), _format_number(sdmg), HORIZONTAL_ALIGNMENT_LEFT, -1, stats_sz, _ca(c_red, 0.7))
 
 		# === Character name plate with title (bottom) ===
 		var name_plate_y = draw_cy + draw_ch - 40.0
@@ -16479,7 +16503,7 @@ func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> v
 	var enter_y = shop_y + 16 + float(shop_items.size()) * 42.0 + 10
 	draw_rect(Rect2(px + pw * 0.5 - 60, enter_y, 120, 36), Color(0.30, 0.15, 0.50, 0.75))
 	draw_rect(Rect2(px + pw * 0.5 - 60, enter_y, 120, 2), Color(0.5, 0.3, 0.7, 0.5))
-	_udraw(font, Vector2(px + pw * 0.5, enter_y + 24), "ENTER", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.88, 0.78, 0.98))
+	_udraw(font, Vector2(px + pw * 0.5 - 54, enter_y + 24), "ENTER", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.88, 0.78, 0.98))
 
 func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
@@ -16500,7 +16524,7 @@ func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 		# Start button
 		draw_rect(Rect2(px + pw * 0.5 - 60, py + 120, 120, 40), Color(0.30, 0.15, 0.50, 0.75))
 		draw_rect(Rect2(px + pw * 0.5 - 60, py + 120, 120, 2), Color(0.6, 0.3, 0.8, 0.6))
-		_udraw(font, Vector2(px + pw * 0.5, py + 146), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.88, 0.78, 0.98))
+		_udraw(font, Vector2(px + pw * 0.5 - 54, py + 146), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.88, 0.78, 0.98))
 
 func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
@@ -16514,7 +16538,7 @@ func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	# Start button
 	draw_rect(Rect2(px + pw * 0.5 - 60, py + 145, 120, 40), Color(0.15, 0.20, 0.48, 0.75))
 	draw_rect(Rect2(px + pw * 0.5 - 60, py + 145, 120, 2), Color(0.3, 0.4, 0.7, 0.6))
-	_udraw(font, Vector2(px + pw * 0.5, py + 171), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.72, 0.82, 0.98))
+	_udraw(font, Vector2(px + pw * 0.5 - 54, py + 171), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.72, 0.82, 0.98))
 
 func _draw_mini_star(center: Vector2, size: float, color: Color) -> void:
 	var pts = PackedVector2Array()
