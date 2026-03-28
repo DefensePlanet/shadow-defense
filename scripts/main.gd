@@ -5755,7 +5755,7 @@ func _create_ui() -> void:
 	var grid_panel_w = 1140.0 - _safe_left - _safe_right
 	var btn_gap_x = 6.0
 	var btn_gap_y = 5.0
-	var btn_card_h = (570.0 - (38.0 + _safe_top + 46.0) - 2.0 * btn_gap_y) / 3.0
+	var btn_card_h = (560.0 - (38.0 + _safe_top + 46.0) - 2.0 * btn_gap_y) / 3.0
 	var btn_card_w = (grid_panel_w - 3.0 * btn_gap_x) / 4.0
 	var grid_start_y = 38.0 + _safe_top + 46.0
 	for i in range(survivor_types.size()):
@@ -13523,9 +13523,9 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# 4x3 grid — cards fit between filter bar and nav bar (100px nav)
+	# 4x3 grid — conservative sizing to NEVER touch nav bar
 	var grid_top = panel_y + 46.0
-	var grid_bottom = 570.0  # 50px above nav bar start at 620
+	var grid_bottom = 560.0  # 60px clear above nav bar at 620
 	var available_h = grid_bottom - grid_top
 	var gap_x = 6.0
 	var gap_y = 5.0
@@ -13678,7 +13678,7 @@ func _update_world_map_hover() -> void:
 	var gap_x = 6.0
 	var gap_y = 5.0
 	var cols = 4
-	var card_h = (570.0 - (38.0 + 46.0) - 2.0 * gap_y) / 3.0
+	var card_h = (560.0 - (38.0 + 46.0) - 2.0 * gap_y) / 3.0
 	var card_w = (panel_w - 3.0 * gap_x) / 4.0
 	var grid_start_y = 38.0 + 46.0
 	for i in range(survivor_types.size()):
