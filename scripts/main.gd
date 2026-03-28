@@ -13481,7 +13481,8 @@ func _draw_survivor_grid() -> void:
 	# No panel background — let menu bg show through for seamless look
 
 	# === "SURVIVORS" title — using design system ===
-	_ds_title(Vector2(panel_x, panel_y + 22), "SURVIVORS", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	var title_y = panel_y + 4.0
+	_ds_title(Vector2(panel_x, title_y + 18), "SURVIVORS", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 
 	# === PARTY count badge (top-right) ===
 	var unlocked_count = 0
