@@ -15793,7 +15793,7 @@ func _draw_chapters_overlay() -> void:
 	draw_rect(Rect2(panel_x + 2, panel_y + 2, panel_w - 4, 48), Color(tc.r * 0.08, tc.g * 0.08, tc.b * 0.08, 0.6))
 	var title_map = {"deals": "DAILY DEALS", "quests": "DAILY QUESTS", "arena": "SHADOW ARENA", "odyssey": "ODYSSEY MODE", "endless": "THE ETERNAL CHAPTER"}
 	var title = title_map.get(menu_side_panel, "")
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 34), title, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 100), 20, tc)
+	_ds_title(Vector2(panel_x + 50, panel_y + 34), title, 20, tc, int(panel_w - 100), HORIZONTAL_ALIGNMENT_CENTER)
 	# Title underline with glow
 	draw_rect(Rect2(panel_x + 20, panel_y + 50, panel_w - 40, 1), _ca(tc, 0.4))
 	# Subtle glow beneath title line
@@ -18737,8 +18737,8 @@ func _draw() -> void:
 		_draw_time_ambient()
 		# Menu view transition fade
 		if menu_transition_alpha < 1.0:
-			menu_transition_alpha = minf(menu_transition_alpha + 0.06, 1.0)
-			draw_rect(Rect2(0, 35, 1280, 585), Color(0.03, 0.02, 0.06, 1.0 - menu_transition_alpha))
+			menu_transition_alpha = minf(menu_transition_alpha + 0.08, 1.0)
+			draw_rect(Rect2(0, 35, 1280, 585), Color(0.02, 0.02, 0.05, (1.0 - menu_transition_alpha) * 0.8))
 			queue_redraw()
 		# === View transition dark overlay fade (Enhancement #48) ===
 		if _menu_transition_alpha > 0.0:
