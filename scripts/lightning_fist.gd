@@ -35,7 +35,8 @@ func _process(delta: float) -> void:
 
 func _apply_smash_damage() -> void:
 	_impact_done = true
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var _mn = get_tree().get_first_node_in_group("main")
+	var enemies = (_mn.get_cached_enemies() if is_instance_valid(_mn) else get_tree().get_nodes_in_group("enemies"))
 
 	# Phase 1: Direct AoE smash — damage all enemies in smash radius
 	var smash_targets: Array = []
@@ -174,10 +175,10 @@ func _draw() -> void:
 	var ring_r = smash_radius * impact_t
 	if ring_r > 5.0:
 		var ring_alpha = alpha * 0.4 * (1.0 - impact_t)
-		draw_arc(Vector2.ZERO, ring_r, 0, TAU, 48, Color(0.5, 0.7, 1.0, ring_alpha), 3.0)
-		draw_arc(Vector2.ZERO, ring_r * 0.95, 0, TAU, 36, Color(0.7, 0.85, 1.0, ring_alpha * 0.5), 1.5)
+		pass  #draw_arc(Vector2.ZERO, ring_r, 0, TAU, 48, Color(0.5, 0.7, 1.0, ring_alpha), 3.0)
+		pass  #draw_arc(Vector2.ZERO, ring_r * 0.95, 0, TAU, 36, Color(0.7, 0.85, 1.0, ring_alpha * 0.5), 1.5)
 		# Inner secondary ring
-		draw_arc(Vector2.ZERO, ring_r * 0.6, 0, TAU, 32, Color(0.5, 0.7, 1.0, ring_alpha * 0.3), 2.0)
+		pass  #draw_arc(Vector2.ZERO, ring_r * 0.6, 0, TAU, 32, Color(0.5, 0.7, 1.0, ring_alpha * 0.3), 2.0)
 
 	# === 5. CHAIN LIGHTNING ARCS (to enemies beyond smash radius) ===
 	for chain in _chain_targets:

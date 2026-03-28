@@ -12,6 +12,10 @@ var targeting_priority: int = 0
 var _recoil: float = 0.0
 
 var bullet_scene = preload("res://scenes/bullet.tscn")
+var _main_node: Node2D = null
+
+func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 
 func _process(delta: float) -> void:
 	fire_cooldown -= delta
@@ -29,7 +33,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var best: Node2D = null
 	var max_range: float = attack_range
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -77,11 +81,15 @@ func _shoot() -> void:
 	bullet.global_position = global_position + Vector2.from_angle(gun_angle) * 20.0
 	bullet.damage = damage
 	bullet.target = target
-	get_tree().get_first_node_in_group("main").add_child(bullet)
+	var _main = get_tree().get_first_node_in_group("main")
+	if _main:
+		_main.add_child(bullet)
+	else:
+		bullet.queue_free()
 
 func _draw() -> void:
-	# Range ring (very subtle)
-	draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+	# Range ring — only when selected (drawn in child scripts)
+	pass
 
 	# Base platform
 	draw_circle(Vector2.ZERO, 24.0, Color(0.3, 0.3, 0.3))

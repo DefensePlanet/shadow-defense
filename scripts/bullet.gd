@@ -4,6 +4,8 @@ extends Node2D
 var speed: float = 450.0
 var damage: float = 25.0
 var target: Node2D = null
+var gold_bonus: int = 0
+var source_tower: Node2D = null
 var _lifetime: float = 3.0
 var _angle: float = 0.0
 var _trail: Array = []
@@ -31,7 +33,17 @@ func _process(delta: float) -> void:
 
 	if global_position.distance_to(target.global_position) < 12.0:
 		if target.has_method("take_damage"):
+			var will_kill = target.health - damage <= 0.0
 			target.take_damage(damage, "physical")
+			if is_instance_valid(source_tower) and source_tower.has_method("register_damage"):
+				source_tower.register_damage(damage)
+			if will_kill:
+				if is_instance_valid(source_tower) and source_tower.has_method("register_kill"):
+					source_tower.register_kill()
+				if gold_bonus > 0:
+					var main = get_tree().get_first_node_in_group("main")
+					if main:
+						main.add_gold(gold_bonus)
 		queue_free()
 
 	queue_redraw()

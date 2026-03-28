@@ -1,14 +1,21 @@
 extends Node
 ## SpatialGrid — Grid-based spatial partitioning for efficient tower targeting.
 ## Addresses: #8 (Spatial partitioning)
+## Enhanced: #5 (Dirty-flag optimization — only re-register moved entities)
 ##
 ## Replaces O(towers * enemies) per-frame iteration with O(towers * nearby_enemies).
 ## Enemies register their cell, towers only check nearby cells within range.
 
 const CELL_SIZE := 64.0
+const MOVE_THRESHOLD_SQ := 1024.0  # (CELL_SIZE/2)^2 — skip re-register if moved less than half a cell
 
 var _grid: Dictionary = {}  # Vector2i -> Array[Node2D]
 var _entity_cells: Dictionary = {}  # node_id -> Vector2i
+var _entity_positions: Dictionary = {}  # Enhancement #5: node_id -> last_registered Vector2
+
+# Performance counters
+var _register_calls: int = 0
+var _skipped_calls: int = 0
 
 func _ready() -> void:
 	pass
@@ -19,17 +26,32 @@ func _pos_to_cell(pos: Vector2) -> Vector2i:
 
 ## Register an entity in the grid
 func register(entity: Node2D) -> void:
-	var cell = _pos_to_cell(entity.global_position)
+	_register_calls += 1
 	var id = entity.get_instance_id()
+	var pos = entity.global_position
+
+	# Enhancement #5: Skip re-registration if entity hasn't moved much
+	if _entity_positions.has(id):
+		var last_pos: Vector2 = _entity_positions[id]
+		if pos.distance_squared_to(last_pos) < MOVE_THRESHOLD_SQ:
+			_skipped_calls += 1
+			return
+
+	var cell = _pos_to_cell(pos)
 	# Remove from old cell if moved
 	if _entity_cells.has(id):
 		var old_cell = _entity_cells[id]
 		if old_cell == cell:
-			return  # No change
+			_entity_positions[id] = pos
+			_skipped_calls += 1
+			return  # Same cell, no change
 		if _grid.has(old_cell):
 			_grid[old_cell].erase(entity)
+			if _grid[old_cell].is_empty():
+				_grid.erase(old_cell)
 	# Add to new cell
 	_entity_cells[id] = cell
+	_entity_positions[id] = pos
 	if not _grid.has(cell):
 		_grid[cell] = []
 	_grid[cell].append(entity)
@@ -44,6 +66,7 @@ func unregister(entity: Node2D) -> void:
 			if _grid[cell].is_empty():
 				_grid.erase(cell)
 		_entity_cells.erase(id)
+		_entity_positions.erase(id)
 
 ## Find all entities within range of a position
 func query_radius(pos: Vector2, radius: float) -> Array:
@@ -96,34 +119,46 @@ func find_first_on_path(pos: Vector2, radius: float) -> Node2D:
 				best = entity
 	return best
 
-## Update all entity positions (call once per frame in _process)
+## Enhancement #5: Optimized update — only re-register entities that moved significantly
 func update_all() -> void:
+	var stale_ids: Array = []
 	for id in _entity_cells.keys():
-		# Find the entity by checking if the instance ID is still valid
 		var entity = instance_from_id(id)
 		if entity and is_instance_valid(entity) and entity is Node2D:
-			register(entity)
+			register(entity)  # Will skip if entity hasn't moved enough
 		else:
-			# Entity was freed
-			var old_cell = _entity_cells[id]
-			if _grid.has(old_cell):
-				_grid[old_cell] = _grid[old_cell].filter(func(e): return is_instance_valid(e))
-				if _grid[old_cell].is_empty():
-					_grid.erase(old_cell)
-			_entity_cells.erase(id)
+			stale_ids.append(id)
+	# Clean up freed entities
+	for id in stale_ids:
+		var old_cell = _entity_cells[id]
+		if _grid.has(old_cell):
+			_grid[old_cell] = _grid[old_cell].filter(func(e): return is_instance_valid(e))
+			if _grid[old_cell].is_empty():
+				_grid.erase(old_cell)
+		_entity_cells.erase(id)
+		_entity_positions.erase(id)
 
 ## Clear entire grid (call on level transition)
 func clear() -> void:
 	_grid.clear()
 	_entity_cells.clear()
+	_entity_positions.clear()
+	_register_calls = 0
+	_skipped_calls = 0
 
 ## Get debug stats
 func get_stats() -> Dictionary:
 	var total_entities := 0
 	for cell in _grid:
 		total_entities += _grid[cell].size()
+	var skip_rate = 0.0
+	if _register_calls > 0:
+		skip_rate = float(_skipped_calls) / float(_register_calls)
 	return {
 		"cells": _grid.size(),
 		"entities": total_entities,
-		"tracked": _entity_cells.size()
+		"tracked": _entity_cells.size(),
+		"register_calls": _register_calls,
+		"skipped_calls": _skipped_calls,
+		"skip_rate": skip_rate
 	}

@@ -11,6 +11,7 @@ var fire_rate: float = 0.56
 var attack_range: float = 100.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
+var sprite_texture: ImageTexture = null
 var target: Node2D = null
 var gold_bonus: int = 1
 
@@ -54,6 +55,13 @@ var _croc_drag_enemy: Node2D = null  # enemy being dragged (kept alive during dr
 # Tier 4: Never Land — golden glow, +20% damage
 var neverland_active: bool = false
 
+# Tier 5: Second Star to the Right — fly up and crash-land
+var _second_star_active: bool = false
+var _second_star_timer: float = 35.0
+var _second_star_flash: float = 0.0
+var _second_star_flight: float = 0.0  # When > 0, Peter is in flight
+
+const MAX_STAT_LEVEL: int = 10  # Cap stat scaling to prevent infinite power creep
 const STAT_UPGRADE_INTERVAL: float = 8000.0
 const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
@@ -61,17 +69,19 @@ var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
 	"Shadow",
-	"Fairy Dust",
+	"Tinker Bell's Gift",
 	"Tick-Tock Croc",
-	"Never Land"
+	"To Live Would Be an Awfully Big Adventure",
+	"Second Star to the Right"
 ]
 const ABILITY_DESCRIPTIONS = [
 	"Shadow flies around range doing low damage",
-	"Aura gives +3% range & damage to nearby towers",
+	"Fairy dust trail — damages enemies on path + nearby towers +5% speed",
 	"Crocodile eats every 30th enemy (instakill)",
-	"Glow gold, +20% damage boost"
+	"Every 30s fairy dust rain blankets the map — damages + slows all",
+	"Peter flies up and crash-lands — Neverland explosion hits entire screen"
 ]
-const TIER_COSTS = [140, 325, 600, 1100]
+const TIER_COSTS = [140, 325, 600, 1100, 1800]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -235,7 +245,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
 		if fire_cooldown <= 0.0:
 			_strike_target(target)
-			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
 
 	# Tier 1: Shadow orbits range circle, damages enemies it passes
 	if shadow_enabled:
@@ -306,6 +316,33 @@ func _process(delta: float) -> void:
 			_croc_eating = false
 			_croc_drag_progress = 0.0
 			_croc_drag_enemy = null
+
+	# Tier 5: Second Star to the Right — fly up + crash-land AoE every 35s
+	if _second_star_active:
+		_second_star_flash = max(_second_star_flash - delta * 0.8, 0.0)
+		if _second_star_flight > 0.0:
+			_second_star_flight -= delta
+			if _second_star_flight <= 0.0:
+				# CRASH LANDING — massive AoE damage to ALL enemies
+				if is_instance_valid(_main_node):
+					_main_node.trigger_camera_shake(14.0, 0.5)
+					pass  #_main_node.trigger_shockwave(global_position, 300.0, 500.0, Color(1.0, 0.9, 0.3))
+					pass  #_main_node.trigger_shockwave(global_position, 200.0, 300.0, Color(0.3, 0.8, 1.0))
+					_main_node.trigger_explosion(global_position, 24, Color(1.0, 0.85, 0.2))
+				for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+					if enemy.has_method("take_damage"):
+						var crash_dmg = damage * 4.0
+						enemy.take_damage(crash_dmg, "physical")
+						register_damage(crash_dmg)
+				_second_star_flash = 2.0
+		else:
+			_second_star_timer -= delta
+			if _second_star_timer <= 0.0:
+				_second_star_timer = 35.0
+				_second_star_flight = 1.5  # 1.5s flight time before crash
+				_second_star_flash = 1.5
+				if is_instance_valid(_main_node):
+					_main_node.trigger_screen_dark(1.8, Color(0.02, 0.02, 0.1))
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
@@ -426,7 +463,7 @@ func register_damage(amount: float) -> void:
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
-	while stat_upgrade_level < new_level:
+	while stat_upgrade_level < new_level and stat_upgrade_level < MAX_STAT_LEVEL:
 		stat_upgrade_level += 1
 		_apply_stat_boost()
 		_upgrade_flash = 2.0
@@ -438,8 +475,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 2.0
-	fire_rate += 0.03
+	damage += 1.2
+	fire_rate += 0.012
 	attack_range += 5.0
 
 func choose_ability(index: int) -> void:
@@ -454,28 +491,31 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Shadow — orbiting shadow entity
 			shadow_enabled = true
-			damage = 32.0
-			fire_rate = 1.14
-			attack_range = 115.0
+			damage = 26.0
+			fire_rate = 0.56
+			attack_range = 105.0
 		2: # Fairy Dust — +3% range/damage aura to self + nearby towers
 			fairy_dust_active = true
-			damage = 40.0
-			fire_rate = 1.40
-			attack_range = 125.0
+			damage = 28.0
+			fire_rate = 0.56
+			attack_range = 110.0
 			gold_bonus = 2
 			_apply_fairy_dust_buffs()
 		3: # Tick-Tock Croc — eats every 30th kill
 			croc_enabled = true
-			damage = 50.0
-			fire_rate = 1.62
-			attack_range = 140.0
+			damage = 28.0
+			fire_rate = 0.56
+			attack_range = 110.0
 			gold_bonus = 2
-		4: # Never Land — glow gold, +20% damage
+		4: # To Live Would Be an Awfully Big Adventure — fairy dust rain
 			neverland_active = true
-			damage = 62.0
-			fire_rate = 1.82
-			attack_range = 155.0
+			damage = 30.0
+			fire_rate = 0.56
+			attack_range = 115.0
 			gold_bonus = 3
+		5: # Second Star to the Right — fly up and crash-land
+			# No stat boost — the ultimate ability IS the reward
+			_second_star_active = true
 
 var _fairy_dust_buffed_towers: Array = []
 
@@ -501,7 +541,7 @@ func _remove_fairy_dust_buffs() -> void:
 	_fairy_dust_buffed_towers.clear()
 
 func purchase_upgrade() -> bool:
-	if upgrade_tier >= 4:
+	if upgrade_tier >= TIER_COSTS.size():
 		return false
 	var cost = TIER_COSTS[upgrade_tier]
 	var main_node = get_tree().get_first_node_in_group("main")
@@ -519,7 +559,7 @@ func get_tower_display_name() -> String:
 	return "Peter Pan"
 
 func get_next_upgrade_info() -> Dictionary:
-	if upgrade_tier >= 4:
+	if upgrade_tier >= TIER_COSTS.size():
 		return {}
 	return {
 		"name": TIER_NAMES[upgrade_tier],
@@ -534,132 +574,42 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Peter Pan dagger throw — light, quick air whoosh with subtle blade zip
-	# Musical notes for variation across throws
-	var note_freqs := [392.0, 440.0, 493.88, 523.25, 587.33, 659.25, 739.99, 783.99]  # G4-G5 major scale
 	var mix_rate := 44100
+	var melody := [440.00, 392.00, 440.00, 587.33, 523.25, 440.00, 392.00, 349.23]
+	# A4 G4 A4 D5 C5 A4 G4 F4 -- playful ascending Pan melody
 	_attack_sounds_by_tier = []
-
-	# --- Tier 0: Dagger Toss (quick airy whoosh + soft blade zip) ---
-	var t0 := []
-	for note_idx in note_freqs.size():
-		var nf: float = note_freqs[note_idx]
-		var dur := 0.09
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var tn := t / dur
-			# Quick air whoosh — bandpass noise sweep
-			var env := (1.0 - tn) * (1.0 - tn) * exp(-t * 35.0)
-			var noise := (randf() * 2.0 - 1.0) * 0.18 * env
-			# Swept bandpass gives directional feel
-			var sweep := sin(TAU * lerpf(2200.0, 800.0, tn) * t) * 0.08 * env
-			# Soft blade zip — brief, clean tone
-			var blade := sin(TAU * nf * 2.0 * t) * exp(-t * 55.0) * 0.12
-			samples[i] = clampf(noise + sweep + blade, -1.0, 1.0)
-		t0.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t0)
-
-	# --- Tier 1: Sharpened Dagger (crisper whoosh + light sparkle tail) ---
-	var t1 := []
-	for note_idx in note_freqs.size():
-		var nf: float = note_freqs[note_idx]
-		var dur := 0.11
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var tn := t / dur
-			var env := (1.0 - tn) * exp(-t * 30.0)
-			var noise := (randf() * 2.0 - 1.0) * 0.16 * env
-			var sweep := sin(TAU * lerpf(2800.0, 900.0, tn) * t) * 0.10 * env
-			# Slightly brighter blade
-			var blade := sin(TAU * nf * 2.0 * t) * exp(-t * 50.0) * 0.14
-			# Gentle fairy sparkle — quiet high tinkle
-			var sparkle := sin(TAU * nf * 5.0 * t) * exp(-t * 80.0) * 0.04
-			samples[i] = clampf(noise + sweep + blade + sparkle, -1.0, 1.0)
-		t1.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t1)
-
-	# --- Tier 2: Shadow Dagger (deeper whoosh + mystical undertone) ---
-	var t2 := []
-	for note_idx in note_freqs.size():
-		var nf: float = note_freqs[note_idx]
-		var dur := 0.12
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var tn := t / dur
-			var env := (1.0 - tn) * exp(-t * 25.0)
-			var noise := (randf() * 2.0 - 1.0) * 0.20 * env
-			# Lower sweep for darker feel
-			var sweep := sin(TAU * lerpf(1800.0, 500.0, tn) * t) * 0.12 * env
-			# Blade with sub-octave body
-			var blade := sin(TAU * nf * t) * exp(-t * 40.0) * 0.10
-			blade += sin(TAU * nf * 2.0 * t) * exp(-t * 48.0) * 0.12
-			# Mystical hum — soft low undertone
-			var hum := sin(TAU * nf * 0.5 * t) * exp(-t * 20.0) * 0.06
-			samples[i] = clampf(noise + sweep + blade + hum, -1.0, 1.0)
-		t2.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t2)
-
-	# --- Tier 3: Enchanted Dagger (airy throw + pixie dust shimmer) ---
-	var t3 := []
-	for note_idx in note_freqs.size():
-		var nf: float = note_freqs[note_idx]
-		var dur := 0.14
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var tn := t / dur
-			var env := (1.0 - tn) * exp(-t * 22.0)
-			var noise := (randf() * 2.0 - 1.0) * 0.15 * env
-			var sweep := sin(TAU * lerpf(2500.0, 700.0, tn) * t) * 0.10 * env
-			# Clean blade with harmonic body
-			var blade := sin(TAU * nf * 2.0 * t) * exp(-t * 38.0) * 0.14
-			blade += sin(TAU * nf * 3.0 * t) * exp(-t * 50.0) * 0.06
-			# Pixie shimmer — gentle delayed sparkles
-			var sp_t := maxf(t - 0.02, 0.0)
-			var shimmer := sin(TAU * nf * 6.0 * sp_t) * exp(-sp_t * 60.0) * 0.05
-			shimmer += sin(TAU * nf * 8.0 * sp_t) * exp(-sp_t * 70.0) * 0.03
-			# Soft chime tail
-			var chime := sin(TAU * nf * 4.0 * t) * exp(-t * 45.0) * 0.04
-			samples[i] = clampf(noise + sweep + blade + shimmer + chime, -1.0, 1.0)
-		t3.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t3)
-
-	# --- Tier 4: Neverland Dagger (full fairy-infused throw + dust cascade) ---
-	var t4 := []
-	for note_idx in note_freqs.size():
-		var nf: float = note_freqs[note_idx]
-		var dur := 0.16
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * dur))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var tn := t / dur
-			var env := (1.0 - tn) * exp(-t * 20.0)
-			var noise := (randf() * 2.0 - 1.0) * 0.14 * env
-			var sweep := sin(TAU * lerpf(3000.0, 800.0, tn) * t) * 0.10 * env
-			# Rich blade with warm harmonics
-			var blade := sin(TAU * nf * 2.0 * t) * exp(-t * 32.0) * 0.13
-			blade += sin(TAU * nf * 3.0 * t) * exp(-t * 40.0) * 0.07
-			blade += sin(TAU * nf * 4.0 * t) * exp(-t * 48.0) * 0.04
-			# Fairy dust cascade — staggered gentle sparkles
-			var sp1 := sin(TAU * nf * 6.0 * t) * exp(-t * 45.0) * 0.05
-			var sp_t2 := maxf(t - 0.025, 0.0)
-			var sp2 := sin(TAU * nf * 7.5 * sp_t2) * exp(-sp_t2 * 55.0) * 0.04
-			var sp_t3 := maxf(t - 0.05, 0.0)
-			var sp3 := sin(TAU * nf * 9.0 * sp_t3) * exp(-sp_t3 * 65.0) * 0.03
-			# Warm fairy chime undertone
-			var chime := sin(TAU * nf * 1.5 * t) * exp(-t * 18.0) * 0.05
-			samples[i] = clampf(noise + sweep + blade + sp1 + sp2 + sp3 + chime, -1.0, 1.0)
-		t4.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t4)
-
+	for tier in range(5):
+		var tier_sounds: Array = []
+		var dur := 0.40 + tier * 0.04
+		var vol := 0.30 + tier * 0.015
+		for note_idx in melody.size():
+			var freq: float = melody[note_idx]
+			var total := int(mix_rate * dur)
+			var samples := PackedFloat32Array()
+			samples.resize(total)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = note_idx * 3000 + tier * 300
+			for i in total:
+				var t := float(i) / float(mix_rate)
+				var env := minf(t * 30.0, 1.0) * exp(-t * 3.0)
+				# Pure tone with slight vibrato
+				var vib := sin(t * 5.5 * TAU) * 3.0  # 5.5 Hz vibrato, 3 Hz depth
+				var s := sin(t * (freq + vib) * TAU) * 0.5
+				# Second harmonic (octave above, quiet)
+				s += sin(t * (freq * 2.0 + vib * 2.0) * TAU) * 0.12
+				# Breath noise component (bandpass filtered)
+				var noise := rng.randf_range(-1.0, 1.0)
+				s += noise * 0.06 * env
+				samples[i] = clampf(s * env * vol, -1.0, 1.0)
+			# Soft attack
+			var att_len := mini(int(0.008 * mix_rate), total)
+			for i in att_len:
+				samples[i] *= float(i) / float(att_len)
+			var rel_start := maxi(total - int(0.015 * mix_rate), 0)
+			for i in range(rel_start, total):
+				samples[i] *= 1.0 - float(i - rel_start) / float(total - rel_start)
+			tier_sounds.append(_samples_to_wav(samples, mix_rate))
+		_attack_sounds_by_tier.append(tier_sounds)
 func _refresh_tier_sounds() -> void:
 	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
 	_attack_sounds = _attack_sounds_by_tier[tier]
@@ -889,10 +839,10 @@ func _draw_tower_aura() -> void:
 		return
 	var aura_col = Color(1.0, 0.85, 0.3)
 	var pulse = sin(_time * 2.5) * 0.1 + 0.3
-	draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, Color(aura_col.r, aura_col.g, aura_col.b, pulse * 0.4), 1.5)
+	pass  #draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, Color(aura_col.r, aura_col.g, aura_col.b, pulse * 0.4), 1.5)
 	if upgrade_tier >= 4:
 		var outer_pulse = sin(_time * 1.8) * 0.15 + 0.35
-		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, Color(aura_col.r, aura_col.g, aura_col.b, outer_pulse * 0.3), 2.0)
+		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, Color(aura_col.r, aura_col.g, aura_col.b, outer_pulse * 0.3), 2.0)
 		for i in range(6):
 			var a1 = _time * 0.5 + float(i) * TAU / 6.0
 			var a2 = a1 + TAU / 12.0
@@ -924,15 +874,11 @@ func _draw() -> void:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
 		var eff_range = attack_range * _range_mult()
-		# Full range circle (prominent when selected)
-		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
-		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
-		# Inner selection ring
-		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
-		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
+		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
+		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
 	else:
-		# Subtle range arc when not selected
-		draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+		pass  #draw_arc(Vector2.ZERO, attack_range, 0, TAU, 36, Color(1, 1, 1, 0.06), 1.0)
 
 	var dir = Vector2.from_angle(aim_angle)
 	var perp = dir.rotated(PI / 2.0)
@@ -964,7 +910,7 @@ func _draw() -> void:
 
 
 	if _upgrade_flash > 0.0:
-		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.5, 1.0, 0.6, _upgrade_flash * 0.25))
+		pass  #draw_arc(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, 0, TAU, 24, Color(0.5, 1.0, 0.6, _upgrade_flash * 0.25), 6.0)
 
 	# Fairy dust flash
 	if _fairy_flash > 0.0:
@@ -975,25 +921,48 @@ func _draw() -> void:
 			draw_circle(sp, spark_size, Color(1.0, 0.9, 0.3, _fairy_flash * 0.6))
 			draw_line(sp - Vector2(spark_size, 0), sp + Vector2(spark_size, 0), Color(1.0, 1.0, 0.7, _fairy_flash * 0.4), 1.0)
 			draw_line(sp - Vector2(0, spark_size), sp + Vector2(0, spark_size), Color(1.0, 1.0, 0.7, _fairy_flash * 0.4), 1.0)
-		draw_circle(Vector2.ZERO, 36.0 + (1.0 - _fairy_flash) * 70.0, Color(0.9, 0.85, 0.3, _fairy_flash * 0.15))
-		draw_arc(Vector2.ZERO, 30.0 + (1.0 - _fairy_flash) * 50.0, 0, TAU, 32, Color(1.0, 0.85, 0.2, _fairy_flash * 0.3), 2.5)
+		pass  #draw_circle(Vector2.ZERO, 36.0 + (1.0 - _fairy_flash) * 70.0, Color(0.9, 0.85, 0.3, _fairy_flash * 0.15))
+		pass  #draw_arc(Vector2.ZERO, 30.0 + (1.0 - _fairy_flash) * 50.0, 0, TAU, 32, Color(1.0, 0.85, 0.2, _fairy_flash * 0.3), 2.5)
 
 	# Croc flash
 	if _croc_flash > 0.0:
 		var croc_r = 48.0 + (1.0 - _croc_flash) * 60.0
-		draw_circle(Vector2.ZERO, croc_r, Color(0.2, 0.6, 0.15, _croc_flash * 0.3))
+		pass  #draw_circle(Vector2.ZERO, croc_r, Color(0.2, 0.6, 0.15, _croc_flash * 0.3))
 		for ci in range(8):
 			var ca = TAU * float(ci) / 8.0
 			var c_inner = Vector2.from_angle(ca) * (croc_r - 15.0)
 			var c_outer = Vector2.from_angle(ca) * (croc_r + 5.0)
 			draw_line(c_inner, c_outer, Color(0.95, 0.95, 0.8, _croc_flash * 0.5), 2.0)
 
-	# Attack flash — dagger strike effect
+	# Attack flash — dagger strike effect (tier-scaling)
 	if _attack_anim > 0.0:
+		var tier_scale = 1.0 + float(upgrade_tier) * 0.25
 		var flash_dir = Vector2.from_angle(aim_angle)
-		var flash_dist = 25.0 + (1.0 - _attack_anim) * 15.0
-		draw_circle(flash_dir * flash_dist, 6.0 * _attack_anim, Color(0.5, 1.0, 0.5, 0.35 * _attack_anim))
-		draw_line(flash_dir * 15.0, flash_dir * (flash_dist + 10.0), Color(0.4, 1.0, 0.3, _attack_anim * 0.5), 2.0)
+		var flash_dist = (25.0 + (1.0 - _attack_anim) * 20.0) * tier_scale
+		# Big green slash arc — Peter's signature swipe
+		var slash_start_a = aim_angle - 0.6 * _attack_anim
+		var slash_end_a = aim_angle + 0.6 * _attack_anim
+		var slash_r = (18.0 + (1.0 - _attack_anim) * 25.0) * tier_scale
+		draw_arc(Vector2.ZERO, slash_r, slash_start_a, slash_end_a, 16, Color(0.5, 1.0, 0.5, _attack_anim * 0.6), 4.0 * tier_scale)
+		draw_arc(Vector2.ZERO, slash_r * 0.75, slash_start_a + 0.1, slash_end_a - 0.1, 12, Color(0.7, 1.0, 0.7, _attack_anim * 0.35), 2.5 * tier_scale)
+		# Dagger trail — bright steel streak
+		draw_line(flash_dir * 12.0, flash_dir * (flash_dist + 15.0), Color(0.85, 0.88, 0.95, _attack_anim * 0.7), 3.0 * tier_scale)
+		draw_line(flash_dir * 14.0, flash_dir * (flash_dist + 12.0), Color(1.0, 1.0, 1.0, _attack_anim * 0.5), 1.5)
+		# Impact sparkles
+		var spark_count = 3 + upgrade_tier
+		for si in range(spark_count):
+			var s_a = aim_angle + (float(si) - float(spark_count) / 2.0) * 0.35
+			var s_dist = flash_dist + sin(_time * 20.0 + float(si) * 2.5) * 6.0
+			var s_pos = Vector2.from_angle(s_a) * s_dist
+			draw_circle(s_pos, (2.5 + sin(_time * 15.0 + float(si)) * 1.0) * tier_scale, Color(0.6, 1.0, 0.4, _attack_anim * 0.55))
+		# Tier 2+: Pixie dust burst on strike
+		if upgrade_tier >= 2:
+			for pi in range(4 + upgrade_tier):
+				var p_a = TAU * float(pi) / float(4 + upgrade_tier) + _time * 6.0
+				var p_r = (10.0 + (1.0 - _attack_anim) * 20.0) * tier_scale
+				var p_pos = flash_dir * flash_dist * 0.6 + Vector2.from_angle(p_a) * p_r
+				draw_circle(p_pos, 1.5, Color(0.95, 0.92, 0.3, _attack_anim * 0.5))
+		pass  # Dagger slash effect is sufficient
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 
@@ -1022,8 +991,8 @@ func _draw() -> void:
 	# Ability 4: Mermaid's Song flash — water splash and hearts
 	if _mermaid_song_flash > 0.0:
 		var ms_r = 30.0 + (1.0 - _mermaid_song_flash) * 40.0
-		draw_arc(Vector2.ZERO, ms_r, 0, TAU, 24, Color(0.3, 0.6, 0.9, _mermaid_song_flash * 0.4), 2.5)
-		draw_arc(Vector2.ZERO, ms_r * 0.7, 0, TAU, 16, Color(0.4, 0.7, 1.0, _mermaid_song_flash * 0.3), 2.0)
+		pass  #draw_arc(Vector2.ZERO, ms_r, 0, TAU, 24, Color(0.3, 0.6, 0.9, _mermaid_song_flash * 0.4), 2.5)
+		pass  #draw_arc(Vector2.ZERO, ms_r * 0.7, 0, TAU, 16, Color(0.4, 0.7, 1.0, _mermaid_song_flash * 0.3), 2.0)
 		# Hearts above
 		for hi in range(3):
 			var hx = -15.0 + float(hi) * 15.0
@@ -1051,7 +1020,7 @@ func _draw() -> void:
 
 	# Ability 7: Tinker Bell's Light flash — sparkle connections to towers
 	if _tinker_light_flash > 0.0:
-		draw_circle(Vector2.ZERO, 20.0, Color(1.0, 0.95, 0.5, _tinker_light_flash * 0.2))
+		pass  #draw_circle(Vector2.ZERO, 20.0, Color(1.0, 0.95, 0.5, _tinker_light_flash * 0.2))
 		for tli in range(6):
 			var tl_a = TAU * float(tli) / 6.0 + _tinker_light_flash * 3.0
 			var tl_end = Vector2.from_angle(tl_a) * (attack_range * 0.6)
@@ -1127,736 +1096,741 @@ func _draw() -> void:
 		draw_circle(pip_pos, 4.0, pip_col)
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
-	# === CHARACTER POSITIONS (chibi Bloons TD proportions ~48px) ===
-	var feet_y = body_offset + Vector2(lean * 0.8, 10.0 - playful_bounce * 0.5)
-	var leg_top = body_offset + Vector2(lean * 0.5, 0.0)
-	var torso_center = body_offset + Vector2(lean * 0.3, -8.0)
-	var neck_base = body_offset + Vector2(-lean * 0.2, -14.0)
-	var head_center = body_offset + Vector2(-lean * 0.4, -26.0 - playful_bounce * 0.3)
-	var OL = Color(0.06, 0.06, 0.08)
-
-	# === Tier 4: Fairy dust particles floating around ===
-	if upgrade_tier >= 4:
-		for fd in range(8):
-			var fd_seed = float(fd) * 2.37
-			var fd_angle = _time * (0.4 + fmod(fd_seed, 0.6)) + fd_seed
-			var fd_radius = 24.0 + fmod(fd_seed * 7.3, 30.0)
-			var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6)
-			var fd_alpha = 0.35 + sin(_time * 3.0 + fd_seed * 2.0) * 0.2
-			var fd_size = 1.5 + sin(_time * 2.5 + fd_seed) * 0.5
-			draw_circle(fd_pos, fd_size + 0.5, Color(1.0, 0.85, 0.2, fd_alpha * 0.5))
-			draw_circle(fd_pos, fd_size, Color(1.0, 0.95, 0.5, fd_alpha))
-
-	# === Tier 3+: Water pool & Crocodile lurking ===
-	if upgrade_tier >= 3:
-		# --- Water pool next to platform ---
-		var pool_center = Vector2(body_offset.x + 24.0, plat_y + 6.0)
-		# Deep water base
-		draw_set_transform(pool_center, 0, Vector2(1.0, 0.5))
-		draw_circle(Vector2.ZERO, 22.0, Color(0.08, 0.20, 0.32, 0.7))
-		draw_circle(Vector2.ZERO, 19.0, Color(0.10, 0.28, 0.42, 0.6))
-		draw_circle(Vector2.ZERO, 14.0, Color(0.12, 0.35, 0.50, 0.5))
+	# === SPRITE RENDERING (animated — bouncy & energetic) ===
+	if sprite_texture:
+		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
+		var _sf = 56.0 / _ss.y
+		var _sd = _ss * _sf
+		var breathe_scl = 1.0 + sin(_time * 2.8) * 0.022
+		var sway_rot = sin(_time * 1.8) * 0.030
+		var s_aim_lean = sin(aim_angle) * 0.045
+		var recoil_off = Vector2.ZERO
+		var atk_scl = Vector2.ONE
+		if _attack_anim > 0.0:
+			var rt = _attack_anim * _attack_anim
+			recoil_off = Vector2.from_angle(aim_angle) * rt * 4.0  # forward lunge
+			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
+			atk_scl = Vector2(1.0 + sq * 0.12, 1.0 - sq * 0.09)
+		var total_rot = sway_rot + s_aim_lean
+		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
+		var _fl = cos(aim_angle) < 0.0
+		if _fl:
+			total_scl.x *= -1.0
+			total_rot *= -1.0
+		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
+		draw_set_transform(anchor, total_rot, total_scl)
+		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-		# Water surface shimmer ripples
-		for wr in range(3):
-			var wr_phase = _time * 1.2 + float(wr) * TAU / 3.0
-			var wr_r = 10.0 + float(wr) * 5.0 + sin(wr_phase) * 2.0
-			var wr_alpha = 0.2 - float(wr) * 0.05
+
+	if not sprite_texture:
+		# === CHARACTER POSITIONS (chibi Bloons TD proportions ~48px) ===
+		var feet_y = body_offset + Vector2(lean * 0.8, 10.0 - playful_bounce * 0.5)
+		var leg_top = body_offset + Vector2(lean * 0.5, 0.0)
+		var torso_center = body_offset + Vector2(lean * 0.3, -8.0)
+		var neck_base = body_offset + Vector2(-lean * 0.2, -14.0)
+		var head_center = body_offset + Vector2(-lean * 0.4, -26.0 - playful_bounce * 0.3)
+		var OL = Color(0.06, 0.06, 0.08)
+
+		# === Tier 4: Fairy dust particles floating around ===
+		if upgrade_tier >= 4:
+			for fd in range(8):
+				var fd_seed = float(fd) * 2.37
+				var fd_angle = _time * (0.4 + fmod(fd_seed, 0.6)) + fd_seed
+				var fd_radius = 24.0 + fmod(fd_seed * 7.3, 30.0)
+				var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6)
+				var fd_alpha = 0.35 + sin(_time * 3.0 + fd_seed * 2.0) * 0.2
+				var fd_size = 1.5 + sin(_time * 2.5 + fd_seed) * 0.5
+				draw_circle(fd_pos, fd_size + 0.5, Color(1.0, 0.85, 0.2, fd_alpha * 0.5))
+				draw_circle(fd_pos, fd_size, Color(1.0, 0.95, 0.5, fd_alpha))
+
+		# === Tier 3+: Water pool & Crocodile lurking ===
+		if upgrade_tier >= 3:
+			# --- Water pool next to platform ---
+			var pool_center = Vector2(body_offset.x + 24.0, plat_y + 6.0)
+			# Deep water base
 			draw_set_transform(pool_center, 0, Vector2(1.0, 0.5))
-			draw_arc(Vector2.ZERO, wr_r, wr_phase, wr_phase + PI * 0.6, 8, Color(0.4, 0.7, 0.85, wr_alpha), 1.0)
+			draw_circle(Vector2.ZERO, 22.0, Color(0.08, 0.20, 0.32, 0.7))
+			draw_circle(Vector2.ZERO, 19.0, Color(0.10, 0.28, 0.42, 0.6))
+			draw_circle(Vector2.ZERO, 14.0, Color(0.12, 0.35, 0.50, 0.5))
 			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-		# Gentle water bubbles
-		for wb in range(2):
-			var wb_t = fmod(_time * 0.5 + float(wb) * 3.7, 4.0)
-			if wb_t < 1.0:
-				var wb_x = pool_center.x - 8.0 + float(wb) * 12.0
-				var wb_y = pool_center.y - wb_t * 6.0
-				draw_circle(Vector2(wb_x, wb_y), 1.5 - wb_t * 0.8, Color(0.5, 0.75, 0.9, 0.3 * (1.0 - wb_t)))
+			# Water surface shimmer ripples
+			for wr in range(3):
+				var wr_phase = _time * 1.2 + float(wr) * TAU / 3.0
+				var wr_r = 10.0 + float(wr) * 5.0 + sin(wr_phase) * 2.0
+				var wr_alpha = 0.2 - float(wr) * 0.05
+				draw_set_transform(pool_center, 0, Vector2(1.0, 0.5))
+				draw_arc(Vector2.ZERO, wr_r, wr_phase, wr_phase + PI * 0.6, 8, Color(0.4, 0.7, 0.85, wr_alpha), 1.0)
+				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+			# Gentle water bubbles
+			for wb in range(2):
+				var wb_t = fmod(_time * 0.5 + float(wb) * 3.7, 4.0)
+				if wb_t < 1.0:
+					var wb_x = pool_center.x - 8.0 + float(wb) * 12.0
+					var wb_y = pool_center.y - wb_t * 6.0
+					draw_circle(Vector2(wb_x, wb_y), 1.5 - wb_t * 0.8, Color(0.5, 0.75, 0.9, 0.3 * (1.0 - wb_t)))
 
-		# --- TERRIFYING CROCODILE lurking in the water ---
-		var croc_home = Vector2(body_offset.x + 24.0, plat_y + 4.0)
-		var croc_base = croc_home
-		if _croc_eating and _croc_drag_progress < 0.4:
-			# Croc lunges OUT of water toward enemy
-			var lunge_target = _croc_drag_start + Vector2(0, -5)
-			croc_base = croc_home.lerp(lunge_target, _croc_drag_progress * 2.5)
-		elif _croc_eating:
-			# Returns to water dragging prey
-			var return_progress = (_croc_drag_progress - 0.4) / 0.6
-			croc_base = (_croc_drag_start + Vector2(0, -5)).lerp(croc_home, return_progress)
+			# --- TERRIFYING CROCODILE lurking in the water ---
+			var croc_home = Vector2(body_offset.x + 24.0, plat_y + 4.0)
+			var croc_base = croc_home
+			if _croc_eating and _croc_drag_progress < 0.4:
+				# Croc lunges OUT of water toward enemy
+				var lunge_target = _croc_drag_start + Vector2(0, -5)
+				croc_base = croc_home.lerp(lunge_target, _croc_drag_progress * 2.5)
+			elif _croc_eating:
+				# Returns to water dragging prey
+				var return_progress = (_croc_drag_progress - 0.4) / 0.6
+				croc_base = (_croc_drag_start + Vector2(0, -5)).lerp(croc_home, return_progress)
 
-		var jaw_open = sin(_time * 2.0) * 0.3
-		if _croc_eating:
-			jaw_open = 1.2 + sin(_time * 12.0) * 0.2  # Wider, more violent snapping
-			# Enemy being dragged into water below Peter's feet
-			var water_below = Vector2(body_offset.x, plat_y + 8.0)
-			var drag_pos = _croc_drag_start.lerp(water_below, _croc_drag_progress)
-			var drag_alpha = 1.0 - _croc_drag_progress * 0.8
-			# Struggling enemy silhouette — more detail
-			var struggle = sin(_time * 15.0) * 3.0 * (1.0 - _croc_drag_progress)
-			draw_circle(drag_pos + Vector2(struggle, -8), 6.0, Color(0.4, 0.08, 0.05, drag_alpha * 0.8))
-			draw_circle(drag_pos + Vector2(-struggle * 0.5, 0), 5.0, Color(0.35, 0.08, 0.05, drag_alpha * 0.7))
-			# Arms flailing
-			draw_line(drag_pos + Vector2(-3 + struggle, -4), drag_pos + Vector2(-8 + struggle * 2.0, -12), Color(0.4, 0.1, 0.08, drag_alpha * 0.6), 2.5)
-			draw_line(drag_pos + Vector2(3 - struggle, -4), drag_pos + Vector2(8 - struggle * 2.0, -10), Color(0.4, 0.1, 0.08, drag_alpha * 0.6), 2.5)
-			# Legs kicking
-			draw_line(drag_pos + Vector2(-3, 4), drag_pos + Vector2(-6 - struggle, 14), Color(0.35, 0.1, 0.08, drag_alpha * 0.5), 2.0)
-			draw_line(drag_pos + Vector2(3, 4), drag_pos + Vector2(6 + struggle, 12), Color(0.35, 0.1, 0.08, drag_alpha * 0.5), 2.0)
-			# Violent water splash rings
-			if _croc_drag_progress > 0.2:
-				var splash_p = clampf((_croc_drag_progress - 0.2) / 0.8, 0.0, 1.0)
-				for sr in range(5):
-					var sr_r = 4.0 + splash_p * 22.0 + float(sr) * 5.0
-					var sr_a = 0.5 * (1.0 - splash_p) * (1.0 - float(sr) * 0.15)
-					draw_set_transform(water_below, 0, Vector2(1.0, 0.4))
-					draw_arc(Vector2.ZERO, sr_r, 0, TAU, 16, Color(0.3, 0.65, 0.8, sr_a), 2.0)
-					draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-				# Water spray droplets
-				for wd in range(6):
-					var wd_angle = TAU * float(wd) / 6.0 + _time * 3.0
-					var wd_r = 8.0 + splash_p * 15.0
-					var wd_pos = water_below + Vector2(cos(wd_angle) * wd_r, sin(wd_angle) * wd_r * 0.4 - splash_p * 8.0)
-					draw_circle(wd_pos, 1.5, Color(0.4, 0.7, 0.85, (1.0 - splash_p) * 0.4))
-			# Blood pooling in water
-			for be in range(8):
-				var be_a = _time * 4.0 + float(be) * TAU / 8.0
-				var be_r = 4.0 + sin(_time * 6.0 + float(be)) * 4.0
-				var blood_pos = croc_base + Vector2(15.0 + cos(be_a) * be_r, sin(be_a) * be_r * 0.4)
-				draw_circle(blood_pos, 2.0, Color(0.75, 0.08, 0.05, 0.40))
-				draw_circle(blood_pos, 1.0, Color(0.9, 0.12, 0.08, 0.25))
+			var jaw_open = maxf(sin(_time * 2.0) * 0.3, 0.0)
+			if _croc_eating:
+				jaw_open = 1.2 + sin(_time * 12.0) * 0.2  # Wider, more violent snapping
+				# Enemy being dragged into water below Peter's feet
+				var water_below = Vector2(body_offset.x, plat_y + 8.0)
+				var drag_pos = _croc_drag_start.lerp(water_below, _croc_drag_progress)
+				var drag_alpha = 1.0 - _croc_drag_progress * 0.8
+				# Struggling enemy silhouette — more detail
+				var struggle = sin(_time * 15.0) * 3.0 * (1.0 - _croc_drag_progress)
+				draw_circle(drag_pos + Vector2(struggle, -8), 6.0, Color(0.4, 0.08, 0.05, drag_alpha * 0.8))
+				draw_circle(drag_pos + Vector2(-struggle * 0.5, 0), 5.0, Color(0.35, 0.08, 0.05, drag_alpha * 0.7))
+				# Arms flailing
+				draw_line(drag_pos + Vector2(-3 + struggle, -4), drag_pos + Vector2(-8 + struggle * 2.0, -12), Color(0.4, 0.1, 0.08, drag_alpha * 0.6), 2.5)
+				draw_line(drag_pos + Vector2(3 - struggle, -4), drag_pos + Vector2(8 - struggle * 2.0, -10), Color(0.4, 0.1, 0.08, drag_alpha * 0.6), 2.5)
+				# Legs kicking
+				draw_line(drag_pos + Vector2(-3, 4), drag_pos + Vector2(-6 - struggle, 14), Color(0.35, 0.1, 0.08, drag_alpha * 0.5), 2.0)
+				draw_line(drag_pos + Vector2(3, 4), drag_pos + Vector2(6 + struggle, 12), Color(0.35, 0.1, 0.08, drag_alpha * 0.5), 2.0)
+				# Violent water splash rings
+				if _croc_drag_progress > 0.2:
+					var splash_p = clampf((_croc_drag_progress - 0.2) / 0.8, 0.0, 1.0)
+					for sr in range(5):
+						var sr_r = 4.0 + splash_p * 22.0 + float(sr) * 5.0
+						var sr_a = 0.5 * (1.0 - splash_p) * (1.0 - float(sr) * 0.15)
+						draw_set_transform(water_below, 0, Vector2(1.0, 0.4))
+						pass  #draw_arc(Vector2.ZERO, sr_r, 0, TAU, 16, Color(0.3, 0.65, 0.8, sr_a), 2.0)
+						draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+					# Water spray droplets
+					for wd in range(6):
+						var wd_angle = TAU * float(wd) / 6.0 + _time * 3.0
+						var wd_r = 8.0 + splash_p * 15.0
+						var wd_pos = water_below + Vector2(cos(wd_angle) * wd_r, sin(wd_angle) * wd_r * 0.4 - splash_p * 8.0)
+						draw_circle(wd_pos, 1.5, Color(0.4, 0.7, 0.85, (1.0 - splash_p) * 0.4))
+				# Blood pooling in water
+				for be in range(8):
+					var be_a = _time * 4.0 + float(be) * TAU / 8.0
+					var be_r = 4.0 + sin(_time * 6.0 + float(be)) * 4.0
+					var blood_pos = croc_base + Vector2(15.0 + cos(be_a) * be_r, sin(be_a) * be_r * 0.4)
+					draw_circle(blood_pos, 2.0, Color(0.75, 0.08, 0.05, 0.40))
+					draw_circle(blood_pos, 1.0, Color(0.9, 0.12, 0.08, 0.25))
 
-		var tail_sway = sin(_time * 1.8) * 6.0
-		var breathe_croc = sin(_time * 2.5) * 0.8
-		# DARKER, more menacing colors
-		var croc_green = Color(0.10, 0.32, 0.08)
-		var croc_dark = Color(0.06, 0.22, 0.05)
-		var croc_belly = Color(0.38, 0.48, 0.22)
-		var croc_ridge = Color(0.08, 0.25, 0.06)
-		var croc_scar = Color(0.55, 0.35, 0.30, 0.5)
+			var tail_sway = sin(_time * 1.8) * 6.0
+			var breathe_croc = sin(_time * 2.5) * 0.8
+			# DARKER, more menacing colors
+			var croc_green = Color(0.10, 0.32, 0.08)
+			var croc_dark = Color(0.06, 0.22, 0.05)
+			var croc_belly = Color(0.38, 0.48, 0.22)
+			var croc_ridge = Color(0.08, 0.25, 0.06)
+			var croc_scar = Color(0.55, 0.35, 0.30, 0.5)
 
-		# === TAIL — thick, muscular, with prominent ridges ===
-		var tail_p1 = croc_base + Vector2(-10, 0)
-		var tail_p2 = croc_base + Vector2(-24, tail_sway)
-		var tail_p3 = croc_base + Vector2(-36, -tail_sway * 0.5)
-		var tail_p4 = croc_base + Vector2(-42, tail_sway * 0.3)
-		draw_line(tail_p1, tail_p2, OL, 9.0)
-		draw_line(tail_p2, tail_p3, OL, 7.0)
-		draw_line(tail_p3, tail_p4, OL, 4.5)
-		draw_line(tail_p1, tail_p2, croc_green, 7.0)
-		draw_line(tail_p2, tail_p3, croc_dark, 5.0)
-		draw_line(tail_p3, tail_p4, croc_dark, 3.0)
-		# Jagged dorsal plates along tail
-		for tr in range(6):
-			var t_frac = 0.15 + float(tr) * 0.14
-			var ridge_p = tail_p1.lerp(tail_p4, t_frac)
-			var ridge_h = 3.5 - float(tr) * 0.4
-			draw_line(ridge_p, ridge_p + Vector2(0, -ridge_h - 1.0), OL, 2.5)
-			draw_line(ridge_p, ridge_p + Vector2(0, -ridge_h), croc_ridge, 2.0)
+			# === TAIL — thick, muscular, with prominent ridges ===
+			var tail_p1 = croc_base + Vector2(-10, 0)
+			var tail_p2 = croc_base + Vector2(-24, tail_sway)
+			var tail_p3 = croc_base + Vector2(-36, -tail_sway * 0.5)
+			var tail_p4 = croc_base + Vector2(-42, tail_sway * 0.3)
+			draw_line(tail_p1, tail_p2, OL, 9.0)
+			draw_line(tail_p2, tail_p3, OL, 7.0)
+			draw_line(tail_p3, tail_p4, OL, 4.5)
+			draw_line(tail_p1, tail_p2, croc_green, 7.0)
+			draw_line(tail_p2, tail_p3, croc_dark, 5.0)
+			draw_line(tail_p3, tail_p4, croc_dark, 3.0)
+			# Jagged dorsal plates along tail
+			for tr in range(6):
+				var t_frac = 0.15 + float(tr) * 0.14
+				var ridge_p = tail_p1.lerp(tail_p4, t_frac)
+				var ridge_h = 3.5 - float(tr) * 0.4
+				draw_line(ridge_p, ridge_p + Vector2(0, -ridge_h - 1.0), OL, 2.5)
+				draw_line(ridge_p, ridge_p + Vector2(0, -ridge_h), croc_ridge, 2.0)
 
-		# === Back legs (powerful, clawed) ===
-		draw_line(croc_base + Vector2(-6, 4), croc_base + Vector2(-12, 10 + breathe_croc), OL, 5.0)
-		draw_line(croc_base + Vector2(-6, 4), croc_base + Vector2(-12, 10 + breathe_croc), croc_green, 3.5)
-		# Clawed toes
-		for tc in range(3):
-			var toe_start = croc_base + Vector2(-12, 10 + breathe_croc)
-			var toe_dir = Vector2(-2.0 + float(tc) * 1.5, 3.0).normalized()
-			draw_line(toe_start, toe_start + toe_dir * 5.0, croc_dark, 2.0)
-			draw_line(toe_start + toe_dir * 4.0, toe_start + toe_dir * 6.5, Color(0.85, 0.80, 0.65), 1.5)  # Claw
+			# === Back legs (powerful, clawed) ===
+			draw_line(croc_base + Vector2(-6, 4), croc_base + Vector2(-12, 10 + breathe_croc), OL, 5.0)
+			draw_line(croc_base + Vector2(-6, 4), croc_base + Vector2(-12, 10 + breathe_croc), croc_green, 3.5)
+			# Clawed toes
+			for tc in range(3):
+				var toe_start = croc_base + Vector2(-12, 10 + breathe_croc)
+				var toe_dir = Vector2(-2.0 + float(tc) * 1.5, 3.0).normalized()
+				draw_line(toe_start, toe_start + toe_dir * 5.0, croc_dark, 2.0)
+				draw_line(toe_start + toe_dir * 4.0, toe_start + toe_dir * 6.5, Color(0.85, 0.80, 0.65), 1.5)  # Claw
 
-		# === Body — MASSIVE armored frame ===
-		draw_circle(croc_base, 13.0, OL)
-		draw_circle(croc_base, 11.0, croc_green)
-		# Armored belly plates
-		draw_circle(croc_base + Vector2(1, 4), 7.0, croc_belly)
-		# Belly plate segments
-		for bp in range(4):
-			var bp_y = croc_base.y + 1.0 + float(bp) * 2.5
-			draw_line(Vector2(croc_base.x - 4.0, bp_y), Vector2(croc_base.x + 5.0, bp_y), Color(croc_belly.r * 0.8, croc_belly.g * 0.8, croc_belly.b * 0.8, 0.3), 0.8)
-		# Heavy dorsal armor ridges — jagged, fearsome
-		for rb in range(7):
-			var rb_x = -8.0 + float(rb) * 3.0
-			var ridge_h = 3.0 + sin(float(rb) * 1.5) * 1.0
-			draw_line(croc_base + Vector2(rb_x, -8.0 - breathe_croc), croc_base + Vector2(rb_x, -8.0 - breathe_croc - ridge_h - 1.0), OL, 3.0)
-			draw_line(croc_base + Vector2(rb_x, -8.0 - breathe_croc), croc_base + Vector2(rb_x, -8.0 - breathe_croc - ridge_h), croc_ridge, 2.5)
-		# Battle scars across body
-		draw_line(croc_base + Vector2(-4, -3), croc_base + Vector2(3, 2), croc_scar, 1.5)
-		draw_line(croc_base + Vector2(2, -5), croc_base + Vector2(-1, 1), croc_scar, 1.2)
-		# Scale texture — dense overlapping
-		for sc in range(8):
-			var sc_a = TAU * float(sc) / 8.0 + 0.3
-			var sc_p = croc_base + Vector2(cos(sc_a) * 7.0, sin(sc_a) * 5.5 - 1.0)
-			draw_arc(sc_p, 2.0, sc_a - 0.5, sc_a + 0.5, 4, Color(croc_dark.r, croc_dark.g, croc_dark.b, 0.5), 1.0)
+			# === Body — MASSIVE armored frame ===
+			draw_circle(croc_base, 13.0, OL)
+			draw_circle(croc_base, 11.0, croc_green)
+			# Armored belly plates
+			draw_circle(croc_base + Vector2(1, 4), 7.0, croc_belly)
+			# Belly plate segments
+			for bp in range(4):
+				var bp_y = croc_base.y + 1.0 + float(bp) * 2.5
+				draw_line(Vector2(croc_base.x - 4.0, bp_y), Vector2(croc_base.x + 5.0, bp_y), Color(croc_belly.r * 0.8, croc_belly.g * 0.8, croc_belly.b * 0.8, 0.3), 0.8)
+			# Heavy dorsal armor ridges — jagged, fearsome
+			for rb in range(7):
+				var rb_x = -8.0 + float(rb) * 3.0
+				var ridge_h = 3.0 + sin(float(rb) * 1.5) * 1.0
+				draw_line(croc_base + Vector2(rb_x, -8.0 - breathe_croc), croc_base + Vector2(rb_x, -8.0 - breathe_croc - ridge_h - 1.0), OL, 3.0)
+				draw_line(croc_base + Vector2(rb_x, -8.0 - breathe_croc), croc_base + Vector2(rb_x, -8.0 - breathe_croc - ridge_h), croc_ridge, 2.5)
+			# Battle scars across body
+			draw_line(croc_base + Vector2(-4, -3), croc_base + Vector2(3, 2), croc_scar, 1.5)
+			draw_line(croc_base + Vector2(2, -5), croc_base + Vector2(-1, 1), croc_scar, 1.2)
+			# Scale texture — dense overlapping
+			for sc in range(8):
+				var sc_a = TAU * float(sc) / 8.0 + 0.3
+				var sc_p = croc_base + Vector2(cos(sc_a) * 7.0, sin(sc_a) * 5.5 - 1.0)
+				draw_arc(sc_p, 2.0, sc_a - 0.5, sc_a + 0.5, 4, Color(croc_dark.r, croc_dark.g, croc_dark.b, 0.5), 1.0)
 
-		# === Front legs (bulky, clawed) ===
-		draw_line(croc_base + Vector2(6, 4), croc_base + Vector2(12, 10 + breathe_croc), OL, 5.0)
-		draw_line(croc_base + Vector2(6, 4), croc_base + Vector2(12, 10 + breathe_croc), croc_green, 3.5)
-		# Clawed toes with sharp nails
-		for tc in range(3):
-			var toe_start = croc_base + Vector2(12, 10 + breathe_croc)
-			var toe_dir = Vector2(-1.5 + float(tc) * 1.5, 3.0).normalized()
-			draw_line(toe_start, toe_start + toe_dir * 5.0, croc_dark, 2.0)
-			draw_line(toe_start + toe_dir * 4.0, toe_start + toe_dir * 7.0, Color(0.85, 0.80, 0.65), 1.5)  # Sharp claw
+			# === Front legs (bulky, clawed) ===
+			draw_line(croc_base + Vector2(6, 4), croc_base + Vector2(12, 10 + breathe_croc), OL, 5.0)
+			draw_line(croc_base + Vector2(6, 4), croc_base + Vector2(12, 10 + breathe_croc), croc_green, 3.5)
+			# Clawed toes with sharp nails
+			for tc in range(3):
+				var toe_start = croc_base + Vector2(12, 10 + breathe_croc)
+				var toe_dir = Vector2(-1.5 + float(tc) * 1.5, 3.0).normalized()
+				draw_line(toe_start, toe_start + toe_dir * 5.0, croc_dark, 2.0)
+				draw_line(toe_start + toe_dir * 4.0, toe_start + toe_dir * 7.0, Color(0.85, 0.80, 0.65), 1.5)  # Sharp claw
 
-		# === Head/snout — LONGER, more angular, terrifying ===
-		var snout_len = 28.0  # Longer snout
-		var snout_pts = PackedVector2Array([
-			croc_base + Vector2(8, -5), croc_base + Vector2(8, 5),
-			croc_base + Vector2(8 + snout_len, 1.5 + jaw_open * 4.0),
-			croc_base + Vector2(8 + snout_len, -1.5 - jaw_open * 4.0),
-		])
-		draw_colored_polygon(snout_pts, OL)
-		var snout_inner = PackedVector2Array([
-			croc_base + Vector2(9, -4), croc_base + Vector2(9, 4),
-			croc_base + Vector2(8 + snout_len - 1, 1.0 + jaw_open * 3.5),
-			croc_base + Vector2(8 + snout_len - 1, -1.0 - jaw_open * 3.5),
-		])
-		draw_colored_polygon(snout_inner, croc_green)
-		# Snout ridges/bumps (textured skin)
-		for sb in range(4):
-			var sbx = 12.0 + float(sb) * 5.0
-			draw_circle(croc_base + Vector2(sbx, -3.5 - jaw_open * 1.5), 1.8, croc_ridge)
-
-		# Upper jaw (thick, armored)
-		draw_line(croc_base + Vector2(9, -4 - jaw_open * 2.5), croc_base + Vector2(8 + snout_len, -1.5 - jaw_open * 6.0), OL, 5.0)
-		draw_line(croc_base + Vector2(9, -4 - jaw_open * 2.5), croc_base + Vector2(8 + snout_len, -1.5 - jaw_open * 6.0), croc_green, 3.5)
-		# Lower jaw (wider when open)
-		draw_line(croc_base + Vector2(9, 4 + jaw_open * 2.5), croc_base + Vector2(8 + snout_len, 1.5 + jaw_open * 6.0), OL, 4.5)
-		draw_line(croc_base + Vector2(9, 4 + jaw_open * 2.5), croc_base + Vector2(8 + snout_len, 1.5 + jaw_open * 6.0), croc_belly, 3.0)
-
-		# TEETH — MASSIVE, jagged, interlocking, ALWAYS partly visible
-		# Upper teeth (long, curved, visible even when mouth closed)
-		for ti in range(8):
-			var ttx = 12.0 + float(ti) * 2.8
-			var tooth_len = 3.5 + sin(float(ti) * 2.0) * 1.0
-			if ti == 1 or ti == 5:
-				tooth_len = 5.0  # Extra long fangs
-			var ut_y = -2.0 - jaw_open * 4.0
-			draw_line(croc_base + Vector2(ttx, ut_y), croc_base + Vector2(ttx + 0.3, ut_y + tooth_len), Color(0.95, 0.92, 0.78), 1.8)
-			draw_line(croc_base + Vector2(ttx, ut_y), croc_base + Vector2(ttx + 0.3, ut_y + tooth_len), Color(0.98, 0.96, 0.88), 1.2)
-		# Lower teeth
-		for ti in range(7):
-			var ttx = 13.0 + float(ti) * 2.8
-			var tooth_len = 2.5 + sin(float(ti) * 1.8) * 0.8
-			if ti == 2 or ti == 4:
-				tooth_len = 4.0  # Lower fangs
-			var lt_y = 2.0 + jaw_open * 4.0
-			draw_line(croc_base + Vector2(ttx, lt_y), croc_base + Vector2(ttx - 0.2, lt_y - tooth_len), Color(0.92, 0.88, 0.75), 1.5)
-		# Mouth interior — deep red/black when wide open
-		if jaw_open > 0.4:
-			var mouth_pts = PackedVector2Array([
-				croc_base + Vector2(11, -1.5 - jaw_open * 2.5),
-				croc_base + Vector2(11, 1.5 + jaw_open * 2.5),
-				croc_base + Vector2(30, 0.8 + jaw_open * 1.5),
-				croc_base + Vector2(30, -0.8 - jaw_open * 1.5),
+			# === Head/snout — LONGER, more angular, terrifying ===
+			var snout_len = 28.0  # Longer snout
+			var snout_pts = PackedVector2Array([
+				croc_base + Vector2(8, -5), croc_base + Vector2(8, 5),
+				croc_base + Vector2(8 + snout_len, 1.5 + jaw_open * 4.0),
+				croc_base + Vector2(8 + snout_len, -1.5 - jaw_open * 4.0),
 			])
-			draw_colored_polygon(mouth_pts, Color(0.5, 0.05, 0.08, 0.85))
-			# Tongue
-			draw_line(croc_base + Vector2(14, jaw_open * 2.0), croc_base + Vector2(22, jaw_open * 1.5), Color(0.7, 0.2, 0.25, 0.6), 2.5)
+			draw_colored_polygon(snout_pts, OL)
+			var snout_inner = PackedVector2Array([
+				croc_base + Vector2(9, -4), croc_base + Vector2(9, 4),
+				croc_base + Vector2(8 + snout_len - 1, 1.0 + jaw_open * 3.5),
+				croc_base + Vector2(8 + snout_len - 1, -1.0 - jaw_open * 3.5),
+			])
+			draw_colored_polygon(snout_inner, croc_green)
+			# Snout ridges/bumps (textured skin)
+			for sb in range(4):
+				var sbx = 12.0 + float(sb) * 5.0
+				draw_circle(croc_base + Vector2(sbx, -3.5 - jaw_open * 1.5), 1.8, croc_ridge)
 
-		# Nostrils at tip — smoking/steaming
-		var nostril_y = -2.5 - jaw_open * 3.5
-		draw_circle(croc_base + Vector2(snout_len + 6, nostril_y), 1.8, OL)
-		draw_circle(croc_base + Vector2(snout_len + 6, nostril_y), 1.2, croc_dark)
-		draw_circle(croc_base + Vector2(snout_len + 4, nostril_y + 1.0), 1.5, OL)
-		draw_circle(croc_base + Vector2(snout_len + 4, nostril_y + 1.0), 1.0, croc_dark)
-		# Steam/breath wisps from nostrils
-		for ns in range(2):
-			var ns_t = fmod(_time * 1.5 + float(ns) * 1.8, 3.0)
-			if ns_t < 1.5:
-				var ns_pos = croc_base + Vector2(snout_len + 7 + ns_t * 4.0, nostril_y - ns_t * 3.0 + sin(_time * 5.0 + float(ns)) * 2.0)
-				draw_circle(ns_pos, 2.0 - ns_t * 0.8, Color(0.5, 0.6, 0.5, 0.15 * (1.0 - ns_t / 1.5)))
+			# Upper jaw (thick, armored)
+			draw_line(croc_base + Vector2(9, -4 - jaw_open * 2.5), croc_base + Vector2(8 + snout_len, -1.5 - jaw_open * 6.0), OL, 5.0)
+			draw_line(croc_base + Vector2(9, -4 - jaw_open * 2.5), croc_base + Vector2(8 + snout_len, -1.5 - jaw_open * 6.0), croc_green, 3.5)
+			# Lower jaw (wider when open)
+			draw_line(croc_base + Vector2(9, 4 + jaw_open * 2.5), croc_base + Vector2(8 + snout_len, 1.5 + jaw_open * 6.0), OL, 4.5)
+			draw_line(croc_base + Vector2(9, 4 + jaw_open * 2.5), croc_base + Vector2(8 + snout_len, 1.5 + jaw_open * 6.0), croc_belly, 3.0)
 
-		# === EYES — GLOWING RED, demonic, with armored brow ===
-		var eye_pos = croc_base + Vector2(6, -9 - breathe_croc)
-		# Heavy armored brow plate
-		draw_line(eye_pos + Vector2(-5, -3), eye_pos + Vector2(5, -3), OL, 4.0)
-		draw_line(eye_pos + Vector2(-4.5, -2.5), eye_pos + Vector2(4.5, -2.5), croc_ridge, 3.0)
-		# Eye socket
-		draw_circle(eye_pos, 5.0, OL)
-		draw_circle(eye_pos, 4.0, Color(0.08, 0.06, 0.02))
-		# Glowing iris — menacing yellow-red
-		var eye_glow = 0.7 + sin(_time * 3.0) * 0.3
-		var iris_col = Color(0.95, 0.35, 0.05, eye_glow) if not _croc_eating else Color(1.0, 0.15, 0.05, 1.0)
-		draw_circle(eye_pos, 3.2, iris_col)
-		# Slit pupil — thin, reptilian
-		draw_line(eye_pos + Vector2(0, -3.0), eye_pos + Vector2(0, 3.0), Color(0.02, 0.02, 0.01), 1.8)
-		# Eye glow aura
-		draw_circle(eye_pos, 5.5, Color(iris_col.r, iris_col.g, iris_col.b, 0.15))
-		# Second eye (slightly behind, same side for 3/4 view)
-		var eye2_pos = croc_base + Vector2(3, -8 - breathe_croc)
-		draw_circle(eye2_pos, 3.5, OL)
-		draw_circle(eye2_pos, 2.8, Color(0.08, 0.06, 0.02))
-		draw_circle(eye2_pos, 2.2, Color(iris_col.r * 0.8, iris_col.g * 0.8, iris_col.b * 0.8, eye_glow * 0.7))
-		draw_line(eye2_pos + Vector2(0, -2.0), eye2_pos + Vector2(0, 2.0), Color(0.02, 0.02, 0.01), 1.5)
+			# TEETH — MASSIVE, jagged, interlocking, ALWAYS partly visible
+			# Upper teeth (long, curved, visible even when mouth closed)
+			for ti in range(8):
+				var ttx = 12.0 + float(ti) * 2.8
+				var tooth_len = 3.5 + sin(float(ti) * 2.0) * 1.0
+				if ti == 1 or ti == 5:
+					tooth_len = 5.0  # Extra long fangs
+				var ut_y = -2.0 - jaw_open * 4.0
+				draw_line(croc_base + Vector2(ttx, ut_y), croc_base + Vector2(ttx + 0.3, ut_y + tooth_len), Color(0.95, 0.92, 0.78), 1.8)
+				draw_line(croc_base + Vector2(ttx, ut_y), croc_base + Vector2(ttx + 0.3, ut_y + tooth_len), Color(0.98, 0.96, 0.88), 1.2)
+			# Lower teeth
+			for ti in range(7):
+				var ttx = 13.0 + float(ti) * 2.8
+				var tooth_len = 2.5 + sin(float(ti) * 1.8) * 0.8
+				if ti == 2 or ti == 4:
+					tooth_len = 4.0  # Lower fangs
+				var lt_y = 2.0 + jaw_open * 4.0
+				draw_line(croc_base + Vector2(ttx, lt_y), croc_base + Vector2(ttx - 0.2, lt_y - tooth_len), Color(0.92, 0.88, 0.75), 1.5)
+			# Mouth interior — deep red/black when wide open
+			if jaw_open > 0.4:
+				var mouth_pts = PackedVector2Array([
+					croc_base + Vector2(11, -1.5 - jaw_open * 2.5),
+					croc_base + Vector2(11, 1.5 + jaw_open * 2.5),
+					croc_base + Vector2(30, 0.8 + jaw_open * 1.5),
+					croc_base + Vector2(30, -0.8 - jaw_open * 1.5),
+				])
+				draw_colored_polygon(mouth_pts, Color(0.5, 0.05, 0.08, 0.85))
+				# Tongue
+				draw_line(croc_base + Vector2(14, jaw_open * 2.0), croc_base + Vector2(22, jaw_open * 1.5), Color(0.7, 0.2, 0.25, 0.6), 2.5)
 
-		# Scar across snout
-		draw_line(croc_base + Vector2(14, -5), croc_base + Vector2(22, -2), croc_scar, 2.0)
-		draw_line(croc_base + Vector2(16, -4), croc_base + Vector2(18, -7), croc_scar, 1.5)
+			# Nostrils at tip — smoking/steaming
+			var nostril_y = -2.5 - jaw_open * 3.5
+			draw_circle(croc_base + Vector2(snout_len + 6, nostril_y), 1.8, OL)
+			draw_circle(croc_base + Vector2(snout_len + 6, nostril_y), 1.2, croc_dark)
+			draw_circle(croc_base + Vector2(snout_len + 4, nostril_y + 1.0), 1.5, OL)
+			draw_circle(croc_base + Vector2(snout_len + 4, nostril_y + 1.0), 1.0, croc_dark)
+			# Steam/breath wisps from nostrils
+			for ns in range(2):
+				var ns_t = fmod(_time * 1.5 + float(ns) * 1.8, 3.0)
+				if ns_t < 1.5:
+					var ns_pos = croc_base + Vector2(snout_len + 7 + ns_t * 4.0, nostril_y - ns_t * 3.0 + sin(_time * 5.0 + float(ns)) * 2.0)
+					draw_circle(ns_pos, 2.0 - ns_t * 0.8, Color(0.5, 0.6, 0.5, 0.15 * (1.0 - ns_t / 1.5)))
 
-		# Water around croc (dark, ominous, half-submerged look)
-		draw_set_transform(croc_base + Vector2(0, 5), 0, Vector2(1.0, 0.3))
-		draw_arc(Vector2.ZERO, 16.0, 0, PI, 12, Color(0.08, 0.25, 0.35, 0.35), 2.5)
-		draw_arc(Vector2.ZERO, 22.0, PI * 0.15, PI * 0.85, 10, Color(0.10, 0.30, 0.40, 0.2), 2.0)
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-		# Dark water shadow under croc
-		draw_set_transform(croc_base + Vector2(5, 8), 0, Vector2(1.2, 0.25))
-		draw_circle(Vector2.ZERO, 15.0, Color(0.02, 0.08, 0.12, 0.25))
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+			# === EYES — GLOWING RED, demonic, with armored brow ===
+			var eye_pos = croc_base + Vector2(6, -9 - breathe_croc)
+			# Heavy armored brow plate
+			draw_line(eye_pos + Vector2(-5, -3), eye_pos + Vector2(5, -3), OL, 4.0)
+			draw_line(eye_pos + Vector2(-4.5, -2.5), eye_pos + Vector2(4.5, -2.5), croc_ridge, 3.0)
+			# Eye socket
+			draw_circle(eye_pos, 5.0, OL)
+			draw_circle(eye_pos, 4.0, Color(0.08, 0.06, 0.02))
+			# Glowing iris — menacing yellow-red
+			var eye_glow = 0.7 + sin(_time * 3.0) * 0.3
+			var iris_col = Color(0.95, 0.35, 0.05, eye_glow) if not _croc_eating else Color(1.0, 0.15, 0.05, 1.0)
+			draw_circle(eye_pos, 3.2, iris_col)
+			# Slit pupil — thin, reptilian
+			draw_line(eye_pos + Vector2(0, -3.0), eye_pos + Vector2(0, 3.0), Color(0.02, 0.02, 0.01), 1.8)
+			# Eye glow aura
+			draw_circle(eye_pos, 5.5, Color(iris_col.r, iris_col.g, iris_col.b, 0.15))
+			# Second eye (slightly behind, same side for 3/4 view)
+			var eye2_pos = croc_base + Vector2(3, -8 - breathe_croc)
+			draw_circle(eye2_pos, 3.5, OL)
+			draw_circle(eye2_pos, 2.8, Color(0.08, 0.06, 0.02))
+			draw_circle(eye2_pos, 2.2, Color(iris_col.r * 0.8, iris_col.g * 0.8, iris_col.b * 0.8, eye_glow * 0.7))
+			draw_line(eye2_pos + Vector2(0, -2.0), eye2_pos + Vector2(0, 2.0), Color(0.02, 0.02, 0.01), 1.5)
 
-	# === Tier 1+: Peter's shadow orbiting range circle ===
-	if shadow_enabled:
-		var eff_range = attack_range * _range_mult()
-		var shadow_off = body_offset + Vector2(cos(_shadow_angle), sin(_shadow_angle)) * eff_range * 0.75
-		var shadow_alpha: float = 0.35 + sin(_time * 4.0) * 0.1
-		var sc = Color(0.04, 0.04, 0.08, shadow_alpha)
-		# Shadow trail (3 fading afterimages)
-		for tr in range(3):
-			var trail_angle = _shadow_angle - float(tr + 1) * 0.3
-			var trail_pos = body_offset + Vector2(cos(trail_angle), sin(trail_angle)) * eff_range * 0.75
-			var ta = shadow_alpha * (0.4 - float(tr) * 0.12)
-			draw_circle(trail_pos + Vector2(0, -12.0), 5.0 - float(tr), Color(0.04, 0.04, 0.08, ta))
-		# Shadow head
-		draw_circle(shadow_off + Vector2(0, -18.0), 7.0, sc)
-		# Shadow hat
-		var s_hat = PackedVector2Array([
-			shadow_off + Vector2(-5, -22), shadow_off + Vector2(5, -22),
-			shadow_off + Vector2(4, -32),
+			# Scar across snout
+			draw_line(croc_base + Vector2(14, -5), croc_base + Vector2(22, -2), croc_scar, 2.0)
+			draw_line(croc_base + Vector2(16, -4), croc_base + Vector2(18, -7), croc_scar, 1.5)
+
+			# Water around croc (dark, ominous, half-submerged look)
+			draw_set_transform(croc_base + Vector2(0, 5), 0, Vector2(1.0, 0.3))
+			draw_arc(Vector2.ZERO, 16.0, 0, PI, 12, Color(0.08, 0.25, 0.35, 0.35), 2.5)
+			draw_arc(Vector2.ZERO, 22.0, PI * 0.15, PI * 0.85, 10, Color(0.10, 0.30, 0.40, 0.2), 2.0)
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+			# Dark water shadow under croc
+			draw_set_transform(croc_base + Vector2(5, 8), 0, Vector2(1.2, 0.25))
+			draw_circle(Vector2.ZERO, 15.0, Color(0.02, 0.08, 0.12, 0.25))
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+		# === Tier 1+: Peter's shadow orbiting range circle ===
+		if shadow_enabled:
+			var eff_range = attack_range * _range_mult()
+			var shadow_off = body_offset + Vector2(cos(_shadow_angle), sin(_shadow_angle)) * eff_range * 0.75
+			var shadow_alpha: float = 0.35 + sin(_time * 4.0) * 0.1
+			var sc = Color(0.04, 0.04, 0.08, shadow_alpha)
+			# Shadow trail (3 fading afterimages)
+			for tr in range(3):
+				var trail_angle = _shadow_angle - float(tr + 1) * 0.3
+				var trail_pos = body_offset + Vector2(cos(trail_angle), sin(trail_angle)) * eff_range * 0.75
+				var ta = shadow_alpha * (0.4 - float(tr) * 0.12)
+				draw_circle(trail_pos + Vector2(0, -12.0), 5.0 - float(tr), Color(0.04, 0.04, 0.08, ta))
+			# Shadow head
+			draw_circle(shadow_off + Vector2(0, -18.0), 7.0, sc)
+			# Shadow hat
+			var s_hat = PackedVector2Array([
+				shadow_off + Vector2(-5, -22), shadow_off + Vector2(5, -22),
+				shadow_off + Vector2(4, -32),
+			])
+			draw_colored_polygon(s_hat, Color(0.04, 0.04, 0.08, shadow_alpha * 0.8))
+			# Shadow body
+			var s_body = PackedVector2Array([
+				shadow_off + Vector2(-6, -12), shadow_off + Vector2(6, -12),
+				shadow_off + Vector2(7, 4), shadow_off + Vector2(-7, 4),
+			])
+			draw_colored_polygon(s_body, sc)
+			# Shadow arms (wispy, reaching out)
+			var wave = sin(_time * 3.0) * 4.0
+			draw_line(shadow_off + Vector2(-6, -8), shadow_off + Vector2(-14 - wave, -4), sc, 2.5)
+			draw_line(shadow_off + Vector2(6, -8), shadow_off + Vector2(14 + wave, -10), sc, 2.5)
+			# Shadow glowing red eyes
+			draw_circle(shadow_off + Vector2(-3, -14), 1.5, Color(0.8, 0.1, 0.1, shadow_alpha * 1.5))
+			draw_circle(shadow_off + Vector2(3, -14), 1.5, Color(0.8, 0.1, 0.1, shadow_alpha * 1.5))
+
+		# === BLOONS TD CARTOON CHARACTER BODY ===
+		var green_dark = Color(0.14, 0.48, 0.10)
+		var green_mid = Color(0.18, 0.58, 0.15)
+		var green_light = Color(0.25, 0.68, 0.20)
+		var brown_boot = Color(0.42, 0.28, 0.12)
+
+		# --- Pointed elf boots with curled toes ---
+		var l_foot = feet_y + Vector2(-5, 0)
+		var r_foot = feet_y + Vector2(5, 0)
+		# Boot circles (outline then fill)
+		draw_circle(l_foot, 5.0, OL)
+		draw_circle(l_foot, 3.5, brown_boot)
+		draw_circle(r_foot, 5.0, OL)
+		draw_circle(r_foot, 3.5, brown_boot)
+		# Curled toe tips (left curls left, right curls right)
+		draw_line(l_foot + Vector2(-3, -1), l_foot + Vector2(-9, -5), OL, 4.0)
+		draw_line(l_foot + Vector2(-9, -5), l_foot + Vector2(-8, -8), OL, 3.5)
+		draw_line(l_foot + Vector2(-3, -1), l_foot + Vector2(-9, -5), brown_boot, 2.5)
+		draw_line(l_foot + Vector2(-9, -5), l_foot + Vector2(-8, -8), brown_boot, 2.0)
+		draw_line(r_foot + Vector2(3, -1), r_foot + Vector2(9, -5), OL, 4.0)
+		draw_line(r_foot + Vector2(9, -5), r_foot + Vector2(8, -8), OL, 3.5)
+		draw_line(r_foot + Vector2(3, -1), r_foot + Vector2(9, -5), brown_boot, 2.5)
+		draw_line(r_foot + Vector2(9, -5), r_foot + Vector2(8, -8), brown_boot, 2.0)
+		# Bells on toe tips
+		draw_circle(l_foot + Vector2(-8, -8), 2.5, OL)
+		draw_circle(l_foot + Vector2(-8, -8), 1.8, Color(0.90, 0.80, 0.15))
+		draw_circle(l_foot + Vector2(-8, -8.5), 0.8, Color(1.0, 0.95, 0.4))
+		draw_circle(r_foot + Vector2(8, -8), 2.5, OL)
+		draw_circle(r_foot + Vector2(8, -8), 1.8, Color(0.90, 0.80, 0.15))
+		draw_circle(r_foot + Vector2(8, -8.5), 0.8, Color(1.0, 0.95, 0.4))
+
+		# --- Short cartoon legs (thick outlined lines) ---
+		var l_hip = leg_top + Vector2(-4, 0)
+		var r_hip = leg_top + Vector2(4, 0)
+		# Outline legs
+		draw_line(l_hip, l_foot, OL, 6.5)
+		draw_line(r_hip, r_foot, OL, 6.5)
+		# Fill legs (green tights)
+		draw_line(l_hip, l_foot, green_dark, 4.5)
+		draw_line(r_hip, r_foot, green_dark, 4.5)
+		# Knee joints
+		var l_knee = l_hip.lerp(l_foot, 0.5)
+		var r_knee = r_hip.lerp(r_foot, 0.5)
+		draw_circle(l_knee, 3.5, OL)
+		draw_circle(l_knee, 2.5, green_mid)
+		draw_circle(r_knee, 3.5, OL)
+		draw_circle(r_knee, 2.5, green_mid)
+
+		# --- Green leaf tunic (polygon body with jagged hem) ---
+		var tunic_top_l = neck_base + Vector2(-10, 0)
+		var tunic_top_r = neck_base + Vector2(10, 0)
+		var tunic_bot_l = leg_top + Vector2(-8, 2)
+		var tunic_bot_r = leg_top + Vector2(8, 2)
+		# Outline polygon
+		var tunic_ol = PackedVector2Array([
+			tunic_top_l + Vector2(-1.5, -1), tunic_top_r + Vector2(1.5, -1),
+			tunic_bot_r + Vector2(1.5, 1), tunic_bot_l + Vector2(-1.5, 1),
 		])
-		draw_colored_polygon(s_hat, Color(0.04, 0.04, 0.08, shadow_alpha * 0.8))
-		# Shadow body
-		var s_body = PackedVector2Array([
-			shadow_off + Vector2(-6, -12), shadow_off + Vector2(6, -12),
-			shadow_off + Vector2(7, 4), shadow_off + Vector2(-7, 4),
+		draw_colored_polygon(tunic_ol, OL)
+		# Fill polygon
+		var tunic_pts = PackedVector2Array([
+			tunic_top_l, tunic_top_r, tunic_bot_r, tunic_bot_l,
 		])
-		draw_colored_polygon(s_body, sc)
-		# Shadow arms (wispy, reaching out)
-		var wave = sin(_time * 3.0) * 4.0
-		draw_line(shadow_off + Vector2(-6, -8), shadow_off + Vector2(-14 - wave, -4), sc, 2.5)
-		draw_line(shadow_off + Vector2(6, -8), shadow_off + Vector2(14 + wave, -10), sc, 2.5)
-		# Shadow glowing red eyes
-		draw_circle(shadow_off + Vector2(-3, -14), 1.5, Color(0.8, 0.1, 0.1, shadow_alpha * 1.5))
-		draw_circle(shadow_off + Vector2(3, -14), 1.5, Color(0.8, 0.1, 0.1, shadow_alpha * 1.5))
-
-	# === BLOONS TD CARTOON CHARACTER BODY ===
-	var green_dark = Color(0.14, 0.48, 0.10)
-	var green_mid = Color(0.18, 0.58, 0.15)
-	var green_light = Color(0.25, 0.68, 0.20)
-	var brown_boot = Color(0.42, 0.28, 0.12)
-
-	# --- Pointed elf boots with curled toes ---
-	var l_foot = feet_y + Vector2(-5, 0)
-	var r_foot = feet_y + Vector2(5, 0)
-	# Boot circles (outline then fill)
-	draw_circle(l_foot, 5.0, OL)
-	draw_circle(l_foot, 3.5, brown_boot)
-	draw_circle(r_foot, 5.0, OL)
-	draw_circle(r_foot, 3.5, brown_boot)
-	# Curled toe tips (left curls left, right curls right)
-	draw_line(l_foot + Vector2(-3, -1), l_foot + Vector2(-9, -5), OL, 4.0)
-	draw_line(l_foot + Vector2(-9, -5), l_foot + Vector2(-8, -8), OL, 3.5)
-	draw_line(l_foot + Vector2(-3, -1), l_foot + Vector2(-9, -5), brown_boot, 2.5)
-	draw_line(l_foot + Vector2(-9, -5), l_foot + Vector2(-8, -8), brown_boot, 2.0)
-	draw_line(r_foot + Vector2(3, -1), r_foot + Vector2(9, -5), OL, 4.0)
-	draw_line(r_foot + Vector2(9, -5), r_foot + Vector2(8, -8), OL, 3.5)
-	draw_line(r_foot + Vector2(3, -1), r_foot + Vector2(9, -5), brown_boot, 2.5)
-	draw_line(r_foot + Vector2(9, -5), r_foot + Vector2(8, -8), brown_boot, 2.0)
-	# Bells on toe tips
-	draw_circle(l_foot + Vector2(-8, -8), 2.5, OL)
-	draw_circle(l_foot + Vector2(-8, -8), 1.8, Color(0.90, 0.80, 0.15))
-	draw_circle(l_foot + Vector2(-8, -8.5), 0.8, Color(1.0, 0.95, 0.4))
-	draw_circle(r_foot + Vector2(8, -8), 2.5, OL)
-	draw_circle(r_foot + Vector2(8, -8), 1.8, Color(0.90, 0.80, 0.15))
-	draw_circle(r_foot + Vector2(8, -8.5), 0.8, Color(1.0, 0.95, 0.4))
-
-	# --- Short cartoon legs (thick outlined lines) ---
-	var l_hip = leg_top + Vector2(-4, 0)
-	var r_hip = leg_top + Vector2(4, 0)
-	# Outline legs
-	draw_line(l_hip, l_foot, OL, 6.5)
-	draw_line(r_hip, r_foot, OL, 6.5)
-	# Fill legs (green tights)
-	draw_line(l_hip, l_foot, green_dark, 4.5)
-	draw_line(r_hip, r_foot, green_dark, 4.5)
-	# Knee joints
-	var l_knee = l_hip.lerp(l_foot, 0.5)
-	var r_knee = r_hip.lerp(r_foot, 0.5)
-	draw_circle(l_knee, 3.5, OL)
-	draw_circle(l_knee, 2.5, green_mid)
-	draw_circle(r_knee, 3.5, OL)
-	draw_circle(r_knee, 2.5, green_mid)
-
-	# --- Green leaf tunic (polygon body with jagged hem) ---
-	var tunic_top_l = neck_base + Vector2(-10, 0)
-	var tunic_top_r = neck_base + Vector2(10, 0)
-	var tunic_bot_l = leg_top + Vector2(-8, 2)
-	var tunic_bot_r = leg_top + Vector2(8, 2)
-	# Outline polygon
-	var tunic_ol = PackedVector2Array([
-		tunic_top_l + Vector2(-1.5, -1), tunic_top_r + Vector2(1.5, -1),
-		tunic_bot_r + Vector2(1.5, 1), tunic_bot_l + Vector2(-1.5, 1),
-	])
-	draw_colored_polygon(tunic_ol, OL)
-	# Fill polygon
-	var tunic_pts = PackedVector2Array([
-		tunic_top_l, tunic_top_r, tunic_bot_r, tunic_bot_l,
-	])
-	draw_colored_polygon(tunic_pts, green_mid)
-	# Lighter center panel
-	var panel_pts = PackedVector2Array([
-		torso_center + Vector2(-4, -5), torso_center + Vector2(4, -5),
-		torso_center + Vector2(4, 7), torso_center + Vector2(-4, 7),
-	])
-	draw_colored_polygon(panel_pts, green_light)
-	# V-neckline
-	draw_line(neck_base + Vector2(-5, 0), neck_base + Vector2(0, 4), OL, 1.5)
-	draw_line(neck_base + Vector2(5, 0), neck_base + Vector2(0, 4), OL, 1.5)
-	# Jagged leaf hem at bottom
-	for ji in range(6):
-		var jx = -7.0 + float(ji) * 3.0
-		var jag = 3.0 + sin(float(ji) * 2.3 + _time * 1.5) * 1.5 + float(ji % 2) * 1.5
-		var jag_pts = PackedVector2Array([
-			leg_top + Vector2(jx - 1.5, 1), leg_top + Vector2(jx + 1.5, 1),
-			leg_top + Vector2(jx, 1.0 + jag),
+		draw_colored_polygon(tunic_pts, green_mid)
+		# Lighter center panel
+		var panel_pts = PackedVector2Array([
+			torso_center + Vector2(-4, -5), torso_center + Vector2(4, -5),
+			torso_center + Vector2(4, 7), torso_center + Vector2(-4, 7),
 		])
-		draw_colored_polygon(jag_pts, green_dark)
-		# Leaf outline on jags
-		draw_line(leg_top + Vector2(jx - 1.5, 1), leg_top + Vector2(jx, 1.0 + jag), OL, 1.0)
-		draw_line(leg_top + Vector2(jx + 1.5, 1), leg_top + Vector2(jx, 1.0 + jag), OL, 1.0)
+		draw_colored_polygon(panel_pts, green_light)
+		# V-neckline
+		draw_line(neck_base + Vector2(-5, 0), neck_base + Vector2(0, 4), OL, 1.5)
+		draw_line(neck_base + Vector2(5, 0), neck_base + Vector2(0, 4), OL, 1.5)
+		# Jagged leaf hem at bottom
+		for ji in range(6):
+			var jx = -7.0 + float(ji) * 3.0
+			var jag = 3.0 + sin(float(ji) * 2.3 + _time * 1.5) * 1.5 + float(ji % 2) * 1.5
+			var jag_pts = PackedVector2Array([
+				leg_top + Vector2(jx - 1.5, 1), leg_top + Vector2(jx + 1.5, 1),
+				leg_top + Vector2(jx, 1.0 + jag),
+			])
+			draw_colored_polygon(jag_pts, green_dark)
+			# Leaf outline on jags
+			draw_line(leg_top + Vector2(jx - 1.5, 1), leg_top + Vector2(jx, 1.0 + jag), OL, 1.0)
+			draw_line(leg_top + Vector2(jx + 1.5, 1), leg_top + Vector2(jx, 1.0 + jag), OL, 1.0)
 
-	# --- Vine belt with leaf buckle ---
-	var belt_y = torso_center + Vector2(0, 5)
-	draw_line(belt_y + Vector2(-9, 0), belt_y + Vector2(9, 0), OL, 4.5)
-	draw_line(belt_y + Vector2(-9, 0), belt_y + Vector2(9, 0), Color(0.35, 0.25, 0.10), 3.0)
-	# Vine twist bumps
-	for vi in range(4):
-		var vp = belt_y + Vector2(-6.0 + float(vi) * 4.0, sin(float(vi) * PI + _time * 2.0) * 0.8)
-		draw_circle(vp, 2.0, OL)
-		draw_circle(vp, 1.3, Color(0.28, 0.48, 0.14))
-	# Leaf buckle (diamond shape)
-	var buckle = belt_y
-	var buckle_pts = PackedVector2Array([
-		buckle + Vector2(-3.5, 0), buckle + Vector2(0, -4),
-		buckle + Vector2(3.5, 0), buckle + Vector2(0, 4),
-	])
-	draw_colored_polygon(buckle_pts, OL)
-	var buckle_inner = PackedVector2Array([
-		buckle + Vector2(-2.5, 0), buckle + Vector2(0, -3),
-		buckle + Vector2(2.5, 0), buckle + Vector2(0, 3),
-	])
-	draw_colored_polygon(buckle_inner, green_light)
-	# Leaf vein on buckle
-	draw_line(buckle + Vector2(0, -2), buckle + Vector2(0, 2), green_dark, 0.8)
+		# --- Vine belt with leaf buckle ---
+		var belt_y = torso_center + Vector2(0, 5)
+		draw_line(belt_y + Vector2(-9, 0), belt_y + Vector2(9, 0), OL, 4.5)
+		draw_line(belt_y + Vector2(-9, 0), belt_y + Vector2(9, 0), Color(0.35, 0.25, 0.10), 3.0)
+		# Vine twist bumps
+		for vi in range(4):
+			var vp = belt_y + Vector2(-6.0 + float(vi) * 4.0, sin(float(vi) * PI + _time * 2.0) * 0.8)
+			draw_circle(vp, 2.0, OL)
+			draw_circle(vp, 1.3, Color(0.28, 0.48, 0.14))
+		# Leaf buckle (diamond shape)
+		var buckle = belt_y
+		var buckle_pts = PackedVector2Array([
+			buckle + Vector2(-3.5, 0), buckle + Vector2(0, -4),
+			buckle + Vector2(3.5, 0), buckle + Vector2(0, 4),
+		])
+		draw_colored_polygon(buckle_pts, OL)
+		var buckle_inner = PackedVector2Array([
+			buckle + Vector2(-2.5, 0), buckle + Vector2(0, -3),
+			buckle + Vector2(2.5, 0), buckle + Vector2(0, 3),
+		])
+		draw_colored_polygon(buckle_inner, green_light)
+		# Leaf vein on buckle
+		draw_line(buckle + Vector2(0, -2), buckle + Vector2(0, 2), green_dark, 0.8)
 
-	# --- Shoulders (round cartoon joints) ---
-	var l_shoulder = neck_base + Vector2(-10, 0)
-	var r_shoulder = neck_base + Vector2(10, 0)
-	draw_circle(l_shoulder, 4.5, OL)
-	draw_circle(l_shoulder, 3.0, green_mid)
-	draw_circle(r_shoulder, 4.5, OL)
-	draw_circle(r_shoulder, 3.0, green_mid)
+		# --- Shoulders (round cartoon joints) ---
+		var l_shoulder = neck_base + Vector2(-10, 0)
+		var r_shoulder = neck_base + Vector2(10, 0)
+		draw_circle(l_shoulder, 4.5, OL)
+		draw_circle(l_shoulder, 3.0, green_mid)
+		draw_circle(r_shoulder, 4.5, OL)
+		draw_circle(r_shoulder, 3.0, green_mid)
 
-	# --- RIGHT ARM (dagger arm) — swipes toward target ---
-	var dagger_hand: Vector2
-	if _attack_anim > 0.0:
-		var swipe = dir.rotated(-_attack_anim * PI * 0.5 + PI * 0.3)
-		dagger_hand = r_shoulder + swipe * 16.0
-	else:
-		dagger_hand = r_shoulder + dir * 16.0
-	# Outline then fill
-	draw_line(r_shoulder, dagger_hand, OL, 6.5)
-	draw_line(r_shoulder, dagger_hand, skin_base, 4.5)
-	# Elbow joint
-	var r_elbow = r_shoulder.lerp(dagger_hand, 0.5)
-	draw_circle(r_elbow, 3.5, OL)
-	draw_circle(r_elbow, 2.5, skin_base)
-	# Hand
-	draw_circle(dagger_hand, 3.5, OL)
-	draw_circle(dagger_hand, 2.5, skin_base)
+		# --- RIGHT ARM (dagger arm) — swipes toward target ---
+		var dagger_hand: Vector2
+		if _attack_anim > 0.0:
+			var swipe = dir.rotated(-_attack_anim * PI * 0.5 + PI * 0.3)
+			dagger_hand = r_shoulder + swipe * 16.0
+		else:
+			dagger_hand = r_shoulder + dir * 16.0
+		# Outline then fill
+		draw_line(r_shoulder, dagger_hand, OL, 6.5)
+		draw_line(r_shoulder, dagger_hand, skin_base, 4.5)
+		# Elbow joint
+		var r_elbow = r_shoulder.lerp(dagger_hand, 0.5)
+		draw_circle(r_elbow, 3.5, OL)
+		draw_circle(r_elbow, 2.5, skin_base)
+		# Hand
+		draw_circle(dagger_hand, 3.5, OL)
+		draw_circle(dagger_hand, 2.5, skin_base)
 
-	# --- LEFT ARM (on hip, cocky pose) ---
-	var off_hand = torso_center + Vector2(-9, 5)
-	draw_line(l_shoulder, off_hand, OL, 6.5)
-	draw_line(l_shoulder, off_hand, skin_base, 4.5)
-	# Elbow joint
-	var l_elbow = l_shoulder.lerp(off_hand, 0.5)
-	draw_circle(l_elbow, 3.5, OL)
-	draw_circle(l_elbow, 2.5, skin_base)
-	# Hand on hip
-	draw_circle(off_hand, 3.5, OL)
-	draw_circle(off_hand, 2.5, skin_base)
+		# --- LEFT ARM (on hip, cocky pose) ---
+		var off_hand = torso_center + Vector2(-9, 5)
+		draw_line(l_shoulder, off_hand, OL, 6.5)
+		draw_line(l_shoulder, off_hand, skin_base, 4.5)
+		# Elbow joint
+		var l_elbow = l_shoulder.lerp(off_hand, 0.5)
+		draw_circle(l_elbow, 3.5, OL)
+		draw_circle(l_elbow, 2.5, skin_base)
+		# Hand on hip
+		draw_circle(off_hand, 3.5, OL)
+		draw_circle(off_hand, 2.5, skin_base)
 
-	# --- Dagger ---
-	var dagger_dir: Vector2
-	if _attack_anim > 0.0:
-		dagger_dir = dir.rotated(-_attack_anim * PI * 0.5 + PI * 0.3)
-	else:
-		dagger_dir = dir
-	var dagger_perp = dagger_dir.rotated(PI / 2.0)
-	# Handle (outline then fill)
-	draw_line(dagger_hand - dagger_dir * 1.0, dagger_hand + dagger_dir * 7.0, OL, 4.5)
-	draw_line(dagger_hand - dagger_dir * 1.0, dagger_hand + dagger_dir * 7.0, Color(0.48, 0.34, 0.16), 3.0)
-	# Cross-guard (outline then fill)
-	var guard_c = dagger_hand + dagger_dir * 7.0
-	draw_line(guard_c + dagger_perp * 5.0, guard_c - dagger_perp * 5.0, OL, 4.0)
-	draw_line(guard_c + dagger_perp * 5.0, guard_c - dagger_perp * 5.0, Color(0.60, 0.50, 0.20), 2.5)
-	# Blade (outline then fill — bright steel)
-	var blade_tip = dagger_hand + dagger_dir * 22.0
-	draw_line(guard_c, blade_tip, OL, 3.5)
-	draw_line(guard_c, blade_tip, Color(0.82, 0.84, 0.90), 2.0)
-	# Blade shine
-	draw_line(guard_c + dagger_dir * 3.0, blade_tip - dagger_dir * 2.0, Color(0.95, 0.96, 1.0, 0.5), 1.0)
-	# Attack glint
-	if _attack_anim > 0.5:
-		var glint_a = (_attack_anim - 0.5) * 2.0
-		draw_circle(blade_tip, 3.0 + glint_a * 2.0, Color(1.0, 1.0, 0.95, glint_a * 0.6))
+		# --- Dagger ---
+		var dagger_dir: Vector2
+		if _attack_anim > 0.0:
+			dagger_dir = dir.rotated(-_attack_anim * PI * 0.5 + PI * 0.3)
+		else:
+			dagger_dir = dir
+		var dagger_perp = dagger_dir.rotated(PI / 2.0)
+		# Handle (outline then fill)
+		draw_line(dagger_hand - dagger_dir * 1.0, dagger_hand + dagger_dir * 7.0, OL, 4.5)
+		draw_line(dagger_hand - dagger_dir * 1.0, dagger_hand + dagger_dir * 7.0, Color(0.48, 0.34, 0.16), 3.0)
+		# Cross-guard (outline then fill)
+		var guard_c = dagger_hand + dagger_dir * 7.0
+		draw_line(guard_c + dagger_perp * 5.0, guard_c - dagger_perp * 5.0, OL, 4.0)
+		draw_line(guard_c + dagger_perp * 5.0, guard_c - dagger_perp * 5.0, Color(0.60, 0.50, 0.20), 2.5)
+		# Blade (outline then fill — bright steel)
+		var blade_tip = dagger_hand + dagger_dir * 22.0
+		draw_line(guard_c, blade_tip, OL, 3.5)
+		draw_line(guard_c, blade_tip, Color(0.82, 0.84, 0.90), 2.0)
+		# Blade shine
+		draw_line(guard_c + dagger_dir * 3.0, blade_tip - dagger_dir * 2.0, Color(0.95, 0.96, 1.0, 0.5), 1.0)
+		# Attack glint (tier-scaling — much brighter and bigger)
+		if _attack_anim > 0.2:
+			var tier_scale = 1.0 + float(upgrade_tier) * 0.3
+			var glint_a = clampf((_attack_anim - 0.2) * 1.25, 0.0, 1.0)
+			# Outer glow
+			draw_circle(blade_tip, (6.0 + glint_a * 4.0) * tier_scale, Color(0.8, 1.0, 0.7, glint_a * 0.2))
+			# Bright steel flash
+			draw_circle(blade_tip, (3.5 + glint_a * 3.0) * tier_scale, Color(1.0, 1.0, 0.95, glint_a * 0.6))
+			# Core white spark
+			draw_circle(blade_tip, 2.0, Color(1.0, 1.0, 1.0, glint_a * 0.8))
+			# Slash trail from blade
+			var trail_start = blade_tip - dagger_dir * 8.0 * tier_scale
+			draw_line(trail_start, blade_tip, Color(0.9, 0.95, 1.0, glint_a * 0.45), 2.0 * tier_scale)
 
-	# --- Neck (thick cartoon connector) ---
-	draw_line(neck_base, head_center + Vector2(0, 10), OL, 6.0)
-	draw_line(neck_base, head_center + Vector2(0, 10), skin_base, 4.0)
+		# --- Neck (thick cartoon connector) ---
+		draw_line(neck_base, head_center + Vector2(0, 10), OL, 6.0)
+		draw_line(neck_base, head_center + Vector2(0, 10), skin_base, 4.0)
 
-	# --- HEAD (big round Bloons-style head) ---
-	var hair_sway = sin(_time * 2.5) * 1.5
-	var hair_col = Color(0.55, 0.26, 0.10)
-	var hair_hi = Color(0.65, 0.32, 0.14)
+		# --- HEAD (big round Bloons-style head) ---
+		var hair_sway = sin(_time * 2.5) * 1.5
+		var hair_col = Color(0.55, 0.26, 0.10)
+		var hair_hi = Color(0.65, 0.32, 0.14)
 
-	# Hair back layer (drawn behind face)
-	draw_circle(head_center, 14.0, OL)
-	draw_circle(head_center, 12.0, hair_col)
-	# Messy hair tufts (wild, Bloons-bold strokes)
-	for h in range(7):
-		var ha = float(h) * 0.9 + 0.3
-		var tuft_base_pos = head_center + Vector2.from_angle(ha) * 10.0
-		var sway_d = 1.0 if h % 2 == 0 else -1.0
-		var tuft_tip = tuft_base_pos + Vector2.from_angle(ha) * (5.0 + float(h % 3) * 2.0) + Vector2(hair_sway * sway_d, 0)
-		draw_line(tuft_base_pos, tuft_tip, OL, 3.5)
-		draw_line(tuft_base_pos, tuft_tip, hair_hi if h % 2 == 0 else hair_col, 2.0)
+		# Hair back layer (drawn behind face)
+		draw_circle(head_center, 14.0, OL)
+		draw_circle(head_center, 12.0, hair_col)
+		# Messy hair tufts (wild, Bloons-bold strokes)
+		for h in range(7):
+			var ha = float(h) * 0.9 + 0.3
+			var tuft_base_pos = head_center + Vector2.from_angle(ha) * 10.0
+			var sway_d = 1.0 if h % 2 == 0 else -1.0
+			var tuft_tip = tuft_base_pos + Vector2.from_angle(ha) * (5.0 + float(h % 3) * 2.0) + Vector2(hair_sway * sway_d, 0)
+			draw_line(tuft_base_pos, tuft_tip, OL, 3.5)
+			draw_line(tuft_base_pos, tuft_tip, hair_hi if h % 2 == 0 else hair_col, 2.0)
 
-	# Face circle (outline then fill)
-	draw_circle(head_center + Vector2(0, 1), 11.0, OL)
-	draw_circle(head_center + Vector2(0, 1), 9.5, skin_base)
+		# Face circle (outline then fill)
+		draw_circle(head_center + Vector2(0, 1), 11.0, OL)
+		draw_circle(head_center + Vector2(0, 1), 9.5, skin_base)
 
-	# Pointed ear tips peeking through hair
-	# Right ear
-	var r_ear_pts = PackedVector2Array([
-		head_center + Vector2(9, -3), head_center + Vector2(9, 2),
-		head_center + Vector2(16, -2),
-	])
-	draw_colored_polygon(r_ear_pts, OL)
-	var r_ear_inner = PackedVector2Array([
-		head_center + Vector2(9.5, -2), head_center + Vector2(9.5, 1),
-		head_center + Vector2(14.5, -1.5),
-	])
-	draw_colored_polygon(r_ear_inner, skin_base)
-	draw_circle(head_center + Vector2(12, -0.5), 1.2, Color(0.95, 0.72, 0.60))
-	# Left ear
-	var l_ear_pts = PackedVector2Array([
-		head_center + Vector2(-9, -3), head_center + Vector2(-9, 2),
-		head_center + Vector2(-16, -2),
-	])
-	draw_colored_polygon(l_ear_pts, OL)
-	var l_ear_inner = PackedVector2Array([
-		head_center + Vector2(-9.5, -2), head_center + Vector2(-9.5, 1),
-		head_center + Vector2(-14.5, -1.5),
-	])
-	draw_colored_polygon(l_ear_inner, skin_base)
-	draw_circle(head_center + Vector2(-12, -0.5), 1.2, Color(0.95, 0.72, 0.60))
+		# Pointed ear tips peeking through hair
+		# Right ear
+		var r_ear_pts = PackedVector2Array([
+			head_center + Vector2(9, -3), head_center + Vector2(9, 2),
+			head_center + Vector2(16, -2),
+		])
+		draw_colored_polygon(r_ear_pts, OL)
+		var r_ear_inner = PackedVector2Array([
+			head_center + Vector2(9.5, -2), head_center + Vector2(9.5, 1),
+			head_center + Vector2(14.5, -1.5),
+		])
+		draw_colored_polygon(r_ear_inner, skin_base)
+		draw_circle(head_center + Vector2(12, -0.5), 1.2, Color(0.95, 0.72, 0.60))
+		# Left ear
+		var l_ear_pts = PackedVector2Array([
+			head_center + Vector2(-9, -3), head_center + Vector2(-9, 2),
+			head_center + Vector2(-16, -2),
+		])
+		draw_colored_polygon(l_ear_pts, OL)
+		var l_ear_inner = PackedVector2Array([
+			head_center + Vector2(-9.5, -2), head_center + Vector2(-9.5, 1),
+			head_center + Vector2(-14.5, -1.5),
+		])
+		draw_colored_polygon(l_ear_inner, skin_base)
+		draw_circle(head_center + Vector2(-12, -0.5), 1.2, Color(0.95, 0.72, 0.60))
 
-	# Big cartoon eyes (Bloons style — big whites, bold outlines)
-	var look_dir = dir * 1.0
-	var l_eye = head_center + Vector2(-4, -1)
-	var r_eye = head_center + Vector2(4, -1)
-	# Eye outlines (OL)
-	draw_circle(l_eye, 5.5, OL)
-	draw_circle(r_eye, 5.5, OL)
-	# Eye whites
-	draw_circle(l_eye, 4.5, Color(0.98, 0.98, 1.0))
-	draw_circle(r_eye, 4.5, Color(0.98, 0.98, 1.0))
-	# Green-brown irises
-	draw_circle(l_eye + look_dir, 2.8, Color(0.12, 0.52, 0.22))
-	draw_circle(l_eye + look_dir, 2.0, Color(0.18, 0.65, 0.30))
-	draw_circle(r_eye + look_dir, 2.8, Color(0.12, 0.52, 0.22))
-	draw_circle(r_eye + look_dir, 2.0, Color(0.18, 0.65, 0.30))
-	# Black pupils
-	draw_circle(l_eye + look_dir * 1.1, 1.2, OL)
-	draw_circle(r_eye + look_dir * 1.1, 1.2, OL)
-	# White sparkle highlights
-	draw_circle(l_eye + Vector2(-1.2, -1.5), 1.3, Color(1.0, 1.0, 1.0, 0.95))
-	draw_circle(r_eye + Vector2(-1.2, -1.5), 1.3, Color(1.0, 1.0, 1.0, 0.95))
-	draw_circle(l_eye + Vector2(1.0, 0.5), 0.6, Color(1.0, 1.0, 1.0, 0.6))
-	draw_circle(r_eye + Vector2(1.0, 0.5), 0.6, Color(1.0, 1.0, 1.0, 0.6))
+		# Big cartoon eyes (Bloons style — big whites, bold outlines)
+		var look_dir = dir * 1.0
+		var l_eye = head_center + Vector2(-4, -1)
+		var r_eye = head_center + Vector2(4, -1)
+		# Eye outlines (OL)
+		draw_circle(l_eye, 5.5, OL)
+		draw_circle(r_eye, 5.5, OL)
+		# Eye whites
+		draw_circle(l_eye, 4.5, Color(0.98, 0.98, 1.0))
+		draw_circle(r_eye, 4.5, Color(0.98, 0.98, 1.0))
+		# Green-brown irises
+		draw_circle(l_eye + look_dir, 2.8, Color(0.12, 0.52, 0.22))
+		draw_circle(l_eye + look_dir, 2.0, Color(0.18, 0.65, 0.30))
+		draw_circle(r_eye + look_dir, 2.8, Color(0.12, 0.52, 0.22))
+		draw_circle(r_eye + look_dir, 2.0, Color(0.18, 0.65, 0.30))
+		# Black pupils
+		draw_circle(l_eye + look_dir * 1.1, 1.2, OL)
+		draw_circle(r_eye + look_dir * 1.1, 1.2, OL)
+		# White sparkle highlights
+		draw_circle(l_eye + Vector2(-1.2, -1.5), 1.3, Color(1.0, 1.0, 1.0, 0.95))
+		draw_circle(r_eye + Vector2(-1.2, -1.5), 1.3, Color(1.0, 1.0, 1.0, 0.95))
+		draw_circle(l_eye + Vector2(1.0, 0.5), 0.6, Color(1.0, 1.0, 1.0, 0.6))
+		draw_circle(r_eye + Vector2(1.0, 0.5), 0.6, Color(1.0, 1.0, 1.0, 0.6))
 
-	# Mischievous eyebrows (one raised — bold strokes)
-	draw_line(l_eye + Vector2(-3.5, -4.5), l_eye + Vector2(2.0, -5.0), OL, 2.5)
-	draw_line(l_eye + Vector2(-3.0, -4.5), l_eye + Vector2(1.5, -5.0), hair_col, 1.5)
-	draw_line(r_eye + Vector2(-2.0, -6.5), r_eye + Vector2(3.5, -4.5), OL, 2.5)
-	draw_line(r_eye + Vector2(-1.5, -6.5), r_eye + Vector2(3.0, -4.5), hair_col, 1.5)
+		# Mischievous eyebrows (one raised — bold strokes)
+		draw_line(l_eye + Vector2(-3.5, -4.5), l_eye + Vector2(2.0, -5.0), OL, 2.5)
+		draw_line(l_eye + Vector2(-3.0, -4.5), l_eye + Vector2(1.5, -5.0), hair_col, 1.5)
+		draw_line(r_eye + Vector2(-2.0, -6.5), r_eye + Vector2(3.5, -4.5), OL, 2.5)
+		draw_line(r_eye + Vector2(-1.5, -6.5), r_eye + Vector2(3.0, -4.5), hair_col, 1.5)
 
-	# Small button nose
-	draw_circle(head_center + Vector2(0, 3), 1.8, OL)
-	draw_circle(head_center + Vector2(0, 3), 1.2, skin_highlight)
+		# Small button nose
+		draw_circle(head_center + Vector2(0, 3), 1.8, OL)
+		draw_circle(head_center + Vector2(0, 3), 1.2, skin_highlight)
 
-	# Big mischievous grin
-	draw_arc(head_center + Vector2(0, 5), 5.5, 0.15, PI - 0.15, 12, OL, 2.5)
-	draw_arc(head_center + Vector2(0, 5), 5.5, 0.15, PI - 0.15, 12, Color(0.70, 0.20, 0.15), 1.5)
-	# Teeth showing in grin
-	for ti in range(4):
-		var tooth_x = -2.5 + float(ti) * 1.7
-		draw_circle(head_center + Vector2(tooth_x, 5.8), 0.9, Color(0.98, 0.97, 0.92))
-	# Smirk line (right side up)
-	draw_line(head_center + Vector2(4.5, 4.5), head_center + Vector2(6.0, 3.5), OL, 1.5)
+		# Big mischievous grin
+		draw_arc(head_center + Vector2(0, 5), 5.5, 0.15, PI - 0.15, 12, OL, 2.5)
+		draw_arc(head_center + Vector2(0, 5), 5.5, 0.15, PI - 0.15, 12, Color(0.70, 0.20, 0.15), 1.5)
+		# Teeth showing in grin
+		for ti in range(4):
+			var tooth_x = -2.5 + float(ti) * 1.7
+			draw_circle(head_center + Vector2(tooth_x, 5.8), 0.9, Color(0.98, 0.97, 0.92))
+		# Smirk line (right side up)
+		draw_line(head_center + Vector2(4.5, 4.5), head_center + Vector2(6.0, 3.5), OL, 1.5)
 
-	# Cheek blush
-	draw_circle(head_center + Vector2(-5.5, 3.5), 2.2, Color(0.95, 0.55, 0.50, 0.25))
-	draw_circle(head_center + Vector2(5.5, 3.5), 2.2, Color(0.95, 0.55, 0.50, 0.25))
+		# Cheek blush
+		draw_circle(head_center + Vector2(-5.5, 3.5), 2.2, Color(0.95, 0.55, 0.50, 0.25))
+		draw_circle(head_center + Vector2(5.5, 3.5), 2.2, Color(0.95, 0.55, 0.50, 0.25))
 
-	# Freckles
-	var frk = Color(0.60, 0.40, 0.25, 0.6)
-	draw_circle(head_center + Vector2(-4.5, 2.5), 0.6, frk)
-	draw_circle(head_center + Vector2(-3.5, 3.5), 0.5, frk)
-	draw_circle(head_center + Vector2(-5.5, 3.0), 0.5, frk)
-	draw_circle(head_center + Vector2(4.5, 2.5), 0.6, frk)
-	draw_circle(head_center + Vector2(3.5, 3.5), 0.5, frk)
-	draw_circle(head_center + Vector2(5.5, 3.0), 0.5, frk)
+		# Freckles
+		var frk = Color(0.60, 0.40, 0.25, 0.6)
+		draw_circle(head_center + Vector2(-4.5, 2.5), 0.6, frk)
+		draw_circle(head_center + Vector2(-3.5, 3.5), 0.5, frk)
+		draw_circle(head_center + Vector2(-5.5, 3.0), 0.5, frk)
+		draw_circle(head_center + Vector2(4.5, 2.5), 0.6, frk)
+		draw_circle(head_center + Vector2(3.5, 3.5), 0.5, frk)
+		draw_circle(head_center + Vector2(5.5, 3.0), 0.5, frk)
 
-	# --- Pointed green hat with red feather ---
-	var hat_base_pos = head_center + Vector2(0, -8)
-	var hat_tip_pos = hat_base_pos + Vector2(12, -20)
-	# Hat outline polygon
-	var hat_ol_pts = PackedVector2Array([
-		hat_base_pos + Vector2(-12, 3), hat_base_pos + Vector2(12, 3), hat_tip_pos,
-	])
-	draw_colored_polygon(hat_ol_pts, OL)
-	# Hat fill
-	var hat_fill_pts = PackedVector2Array([
-		hat_base_pos + Vector2(-10, 2), hat_base_pos + Vector2(10, 2), hat_tip_pos + Vector2(-1, 1),
-	])
-	draw_colored_polygon(hat_fill_pts, green_mid)
-	# Hat shadow panel
-	var hat_shade = PackedVector2Array([
-		hat_base_pos + Vector2(-8, 1), hat_base_pos + Vector2(3, 1), hat_tip_pos + Vector2(-2, 1),
-	])
-	draw_colored_polygon(hat_shade, green_dark)
-	# Hat brim line (bold outline)
-	draw_line(hat_base_pos + Vector2(-12, 3), hat_base_pos + Vector2(12, 3), OL, 3.5)
-	draw_line(hat_base_pos + Vector2(-11, 3), hat_base_pos + Vector2(11, 3), green_dark, 2.0)
-	# Leaf vein on hat
-	draw_line(hat_base_pos + Vector2(1, 0), hat_tip_pos + Vector2(-1, 1), Color(0.12, 0.40, 0.08, 0.5), 0.8)
+		# --- Pointed green hat with red feather ---
+		var hat_base_pos = head_center + Vector2(0, -8)
+		var hat_tip_pos = hat_base_pos + Vector2(12, -20)
+		# Hat outline polygon
+		var hat_ol_pts = PackedVector2Array([
+			hat_base_pos + Vector2(-12, 3), hat_base_pos + Vector2(12, 3), hat_tip_pos,
+		])
+		draw_colored_polygon(hat_ol_pts, OL)
+		# Hat fill
+		var hat_fill_pts = PackedVector2Array([
+			hat_base_pos + Vector2(-10, 2), hat_base_pos + Vector2(10, 2), hat_tip_pos + Vector2(-1, 1),
+		])
+		draw_colored_polygon(hat_fill_pts, green_mid)
+		# Hat shadow panel
+		var hat_shade = PackedVector2Array([
+			hat_base_pos + Vector2(-8, 1), hat_base_pos + Vector2(3, 1), hat_tip_pos + Vector2(-2, 1),
+		])
+		draw_colored_polygon(hat_shade, green_dark)
+		# Hat brim line (bold outline)
+		draw_line(hat_base_pos + Vector2(-12, 3), hat_base_pos + Vector2(12, 3), OL, 3.5)
+		draw_line(hat_base_pos + Vector2(-11, 3), hat_base_pos + Vector2(11, 3), green_dark, 2.0)
+		# Leaf vein on hat
+		draw_line(hat_base_pos + Vector2(1, 0), hat_tip_pos + Vector2(-1, 1), Color(0.12, 0.40, 0.08, 0.5), 0.8)
 
-	# Red feather (bold Bloons style)
-	var feather_base = hat_base_pos + Vector2(6, 0)
-	var feather_tip = feather_base + Vector2(16, -12)
-	# Feather outline
-	draw_line(feather_base, feather_tip, OL, 4.5)
-	# Feather fill (bright red)
-	draw_line(feather_base, feather_tip, Color(0.92, 0.18, 0.10), 3.0)
-	# Feather highlight
-	draw_line(feather_base + (feather_tip - feather_base) * 0.3, feather_tip, Color(1.0, 0.30, 0.15), 2.0)
-	# Feather barbs
-	var f_d = (feather_tip - feather_base).normalized()
-	var f_p = f_d.rotated(PI / 2.0)
-	for fbi in range(5):
-		var bt = 0.15 + float(fbi) * 0.16
-		var barb_o = feather_base + (feather_tip - feather_base) * bt
-		var blen = 3.0 - abs(float(fbi) - 2.0) * 0.5
-		draw_line(barb_o, barb_o + f_p * blen, Color(0.85, 0.15, 0.08, 0.7), 1.0)
-		draw_line(barb_o, barb_o - f_p * blen, Color(0.85, 0.15, 0.08, 0.7), 1.0)
+		# Red feather (bold Bloons style)
+		var feather_base = hat_base_pos + Vector2(6, 0)
+		var feather_tip = feather_base + Vector2(16, -12)
+		# Feather outline
+		draw_line(feather_base, feather_tip, OL, 4.5)
+		# Feather fill (bright red)
+		draw_line(feather_base, feather_tip, Color(0.92, 0.18, 0.10), 3.0)
+		# Feather highlight
+		draw_line(feather_base + (feather_tip - feather_base) * 0.3, feather_tip, Color(1.0, 0.30, 0.15), 2.0)
+		# Feather barbs
+		var f_d = (feather_tip - feather_base).normalized()
+		var f_p = f_d.rotated(PI / 2.0)
+		for fbi in range(5):
+			var bt = 0.15 + float(fbi) * 0.16
+			var barb_o = feather_base + (feather_tip - feather_base) * bt
+			var blen = 3.0 - abs(float(fbi) - 2.0) * 0.5
+			draw_line(barb_o, barb_o + f_p * blen, Color(0.85, 0.15, 0.08, 0.7), 1.0)
+			draw_line(barb_o, barb_o - f_p * blen, Color(0.85, 0.15, 0.08, 0.7), 1.0)
 
-	# === Tier 2+: Tinker Bell orbiting with sparkle trail ===
-	if upgrade_tier >= 2:
-		var tink_angle = _time * 1.8
-		var tink_radius = 34.0
-		var tink_bob_val = sin(_time * 4.0) * 3.0
-		var tink_pos = body_offset + Vector2(cos(tink_angle) * tink_radius, sin(tink_angle) * tink_radius * 0.6 + tink_bob_val)
-		# Sparkle trail (6 bright warm particles)
-		for trail_i in range(6):
-			var trail_a = tink_angle - float(trail_i + 1) * 0.25
-			var trail_b = sin((_time - float(trail_i) * 0.12) * 4.0) * 3.0
-			var trail_p = body_offset + Vector2(cos(trail_a) * tink_radius, sin(trail_a) * tink_radius * 0.6 + trail_b)
-			var trail_alpha = 0.55 - float(trail_i) * 0.07
-			var trail_size = 3.5 - float(trail_i) * 0.4
-			draw_circle(trail_p, trail_size, Color(1.0, 0.85, 0.2, trail_alpha))
-			draw_circle(trail_p, trail_size * 0.5, Color(1.0, 1.0, 0.7, trail_alpha * 1.3))
-		# Glow
-		draw_circle(tink_pos, 8.0, Color(1.0, 0.9, 0.3, 0.15))
-		# Tinker Bell body (outline then fill)
-		draw_circle(tink_pos, 4.0, OL)
-		draw_circle(tink_pos, 2.8, Color(1.0, 0.95, 0.4))
-		# Head
-		var tink_head = tink_pos + Vector2.from_angle(tink_angle) * 3.0
-		draw_circle(tink_head, 2.2, OL)
-		draw_circle(tink_head, 1.5, Color(1.0, 1.0, 0.8))
-		# Wings (flutter)
-		var wing_flutter = sin(_time * 14.0) * 2.5
-		var tink_perp_dir = Vector2.from_angle(tink_angle).rotated(PI / 2.0)
-		draw_line(tink_pos + tink_perp_dir * 1.5, tink_pos + tink_perp_dir * (7.0 + wing_flutter) + Vector2(0, -1.5), Color(0.9, 0.95, 1.0, 0.5), 2.0)
-		draw_line(tink_pos - tink_perp_dir * 1.5, tink_pos - tink_perp_dir * (7.0 - wing_flutter) + Vector2(0, -1.5), Color(0.9, 0.95, 1.0, 0.5), 2.0)
+		# === Tier 2+: Tinker Bell orbiting with sparkle trail ===
+		if upgrade_tier >= 2:
+			var tink_angle = _time * 1.8
+			var tink_radius = 34.0
+			var tink_bob_val = sin(_time * 4.0) * 3.0
+			var tink_pos = body_offset + Vector2(cos(tink_angle) * tink_radius, sin(tink_angle) * tink_radius * 0.6 + tink_bob_val)
+			# Sparkle trail (6 bright warm particles)
+			for trail_i in range(6):
+				var trail_a = tink_angle - float(trail_i + 1) * 0.25
+				var trail_b = sin((_time - float(trail_i) * 0.12) * 4.0) * 3.0
+				var trail_p = body_offset + Vector2(cos(trail_a) * tink_radius, sin(trail_a) * tink_radius * 0.6 + trail_b)
+				var trail_alpha = 0.55 - float(trail_i) * 0.07
+				var trail_size = 3.5 - float(trail_i) * 0.4
+				draw_circle(trail_p, trail_size, Color(1.0, 0.85, 0.2, trail_alpha))
+				draw_circle(trail_p, trail_size * 0.5, Color(1.0, 1.0, 0.7, trail_alpha * 1.3))
+			# Glow
+			draw_circle(tink_pos, 8.0, Color(1.0, 0.9, 0.3, 0.15))
+			# Tinker Bell body (outline then fill)
+			draw_circle(tink_pos, 4.0, OL)
+			draw_circle(tink_pos, 2.8, Color(1.0, 0.95, 0.4))
+			# Head
+			var tink_head = tink_pos + Vector2.from_angle(tink_angle) * 3.0
+			draw_circle(tink_head, 2.2, OL)
+			draw_circle(tink_head, 1.5, Color(1.0, 1.0, 0.8))
+			# Wings (flutter)
+			var wing_flutter = sin(_time * 14.0) * 2.5
+			var tink_perp_dir = Vector2.from_angle(tink_angle).rotated(PI / 2.0)
+			draw_line(tink_pos + tink_perp_dir * 1.5, tink_pos + tink_perp_dir * (7.0 + wing_flutter) + Vector2(0, -1.5), Color(0.9, 0.95, 1.0, 0.5), 2.0)
+			draw_line(tink_pos - tink_perp_dir * 1.5, tink_pos - tink_perp_dir * (7.0 - wing_flutter) + Vector2(0, -1.5), Color(0.9, 0.95, 1.0, 0.5), 2.0)
 
-	# === Tier 2+: Fairy Dust aura (buff visual) ===
-	if fairy_dust_active:
-		var fd_pulse = sin(_time * 3.0) * 3.0
-		draw_arc(body_offset, attack_range * 0.4 + fd_pulse, 0, TAU, 32, Color(0.6, 0.95, 0.3, 0.12), 1.5)
-		# Floating sparkle dust particles
-		for sp in range(5):
-			var sp_a = _time * 0.6 + float(sp) * TAU / 5.0
-			var sp_r = 20.0 + fd_pulse + float(sp % 3) * 5.0
-			var sp_p = body_offset + Vector2.from_angle(sp_a) * sp_r
-			var sp_alpha = 0.3 + sin(_time * 2.5 + float(sp)) * 0.15
-			draw_circle(sp_p, 1.5, Color(0.4, 1.0, 0.5, sp_alpha))
-			draw_circle(sp_p, 0.8, Color(0.8, 1.0, 0.6, sp_alpha * 1.5))
+		# === Tier 2+: Fairy Dust aura (buff visual) ===
+		if fairy_dust_active:
+			var fd_pulse = sin(_time * 3.0) * 3.0
+			pass  #draw_arc(body_offset, attack_range * 0.4 + fd_pulse, 0, TAU, 32, Color(0.6, 0.95, 0.3, 0.12), 1.5)
+			# Floating sparkle dust particles
+			for sp in range(5):
+				var sp_a = _time * 0.6 + float(sp) * TAU / 5.0
+				var sp_r = 20.0 + fd_pulse + float(sp % 3) * 5.0
+				var sp_p = body_offset + Vector2.from_angle(sp_a) * sp_r
+				var sp_alpha = 0.3 + sin(_time * 2.5 + float(sp)) * 0.15
+				draw_circle(sp_p, 1.5, Color(0.4, 1.0, 0.5, sp_alpha))
+				draw_circle(sp_p, 0.8, Color(0.8, 1.0, 0.6, sp_alpha * 1.5))
 
-	# === Tier 4: Never Land golden glow ===
-	if neverland_active:
-		var aura_pulse = sin(_time * 2.5) * 4.0
-		# Strong golden body glow
-		draw_circle(body_offset, 20.0 + aura_pulse, Color(1.0, 0.85, 0.2, 0.15))
-		draw_circle(body_offset, 35.0 + aura_pulse, Color(1.0, 0.85, 0.3, 0.06))
-		draw_circle(body_offset, 48.0 + aura_pulse, Color(1.0, 0.85, 0.3, 0.03))
-		draw_arc(body_offset, 44.0 + aura_pulse, 0, TAU, 32, Color(1.0, 0.85, 0.35, 0.25), 3.0)
-		# Orbiting golden sparkles
-		for gs in range(8):
-			var gs_a = _time * (0.8 + float(gs % 3) * 0.3) + float(gs) * TAU / 8.0
-			var gs_r = 30.0 + aura_pulse + float(gs % 3) * 4.0
-			var gs_p = body_offset + Vector2.from_angle(gs_a) * gs_r
-			var gs_size = 2.0 + sin(_time * 3.0 + float(gs) * 1.5) * 0.8
-			draw_circle(gs_p, gs_size + 1.0, Color(1.0, 0.85, 0.2, 0.15))
-			draw_circle(gs_p, gs_size, Color(1.0, 0.9, 0.4, 0.45))
+		# === Tier 4: Never Land golden glow ===
+		if neverland_active:
+			var aura_pulse = sin(_time * 2.5) * 4.0
+			# Strong golden body glow
+			pass  #draw_arc(body_offset, 44.0 + aura_pulse, 0, TAU, 24, Color(1.0, 0.85, 0.35, 0.25), 5.0)
+			# Orbiting golden sparkles
+			for gs in range(5):
+				var gs_a = _time * (0.8 + float(gs % 3) * 0.3) + float(gs) * TAU / 5.0
+				var gs_r = 30.0 + aura_pulse + float(gs % 3) * 4.0
+				var gs_p = body_offset + Vector2.from_angle(gs_a) * gs_r
+				var gs_size = 2.0 + sin(_time * 3.0 + float(gs) * 1.5) * 0.8
+				draw_circle(gs_p, gs_size, Color(1.0, 0.9, 0.4, 0.45))
 
-	# === Awaiting ability choice indicator ===
-	if awaiting_ability_choice:
-		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
-		draw_circle(Vector2.ZERO, 60.0 + pulse * 6.0, Color(0.5, 1.0, 0.6, 0.1 + pulse * 0.1))
-		draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 32, Color(0.5, 1.0, 0.6, 0.3 + pulse * 0.3), 2.5)
-		var font3 = _game_font
-		draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.5, 1.0, 0.6, 0.7 + pulse * 0.3))
+		# === Awaiting ability choice indicator ===
+		if awaiting_ability_choice:
+			var pulse = (sin(_time * 4.0) + 1.0) * 0.5
+			pass  #draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 24, Color(0.5, 1.0, 0.6, 0.3 + pulse * 0.3), 3.5)
+			var font3 = _game_font
+			draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.5, 1.0, 0.6, 0.7 + pulse * 0.3))
 
-	# === VISUAL TIER EVOLUTION ===
-	if upgrade_tier >= 1:
-		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
-		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.2, 0.7, 1.0, 0.15 + glow_pulse * 0.1), 2.0)
-	if upgrade_tier >= 2:
-		for si in range(6):
-			var sa = _time * 1.2 + float(si) * TAU / 6.0
-			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
-			var sp = Vector2.from_angle(sa) * sr
-			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
-			draw_circle(sp, 1.8, Color(0.2, 0.8, 1.0, s_alpha))
-	if upgrade_tier >= 3:
-		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
-		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
-		for ci in range(3):
-			var cx = -6.0 + float(ci) * 6.0
-			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
-			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
-	if upgrade_tier >= 4:
-		for bi in range(8):
-			var ba = _time * 0.5 + float(bi) * TAU / 8.0
-			var b_inner = Vector2.from_angle(ba) * 45.0
-			var b_outer = Vector2.from_angle(ba) * 65.0
-			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
-			draw_line(b_inner, b_outer, Color(0.2, 0.7, 1.0, b_alpha), 1.5)
-
-	# Damage dealt counter
-	if damage_dealt > 0:
+	# Damage dealt counter (only when selected)
+	if is_selected and damage_dealt > 0:
 		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
@@ -1882,7 +1856,7 @@ func _draw() -> void:
 	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
 	if cd_fill >= 1.0:
 		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
-		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(1.0, 0.85, 0.2, cd_pulse * 0.4), 2.0)
+		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(1.0, 0.85, 0.2, cd_pulse * 0.4), 2.0)
 	elif cd_fill > 0.0:
 		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(1.0, 0.85, 0.2, 0.3), 2.0)
 	_draw_tower_aura()

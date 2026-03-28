@@ -82,7 +82,7 @@ func _apply_splash(center: Vector2) -> void:
 	if main and main.has_method("report_aoe_impact"):
 		var col = Color(1.0, 0.88, 0.25, 0.6) if is_gold else Color(0.7, 0.7, 0.75, 0.5)
 		main.report_aoe_impact(center, splash_radius, col)
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (get_tree().get_first_node_in_group("main").get_cached_enemies() if get_tree().get_first_node_in_group("main") else get_tree().get_nodes_in_group("enemies")):
 		if enemy in _hit_targets:
 			continue
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -97,7 +97,7 @@ func _apply_splash(center: Vector2) -> void:
 func _find_next_target() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_dist: float = 150.0
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (get_tree().get_first_node_in_group("main").get_cached_enemies() if get_tree().get_first_node_in_group("main") else get_tree().get_nodes_in_group("enemies")):
 		if enemy in _hit_targets:
 			continue
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():

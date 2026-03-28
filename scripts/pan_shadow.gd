@@ -2,10 +2,14 @@ extends Node2D
 ## Pan's Shadow — dark translucent figure that roams the map attacking enemies.
 
 var source_tower: Node2D = null
+var _main_node: Node2D = null
 var _time: float = 0.0
 var _attack_timer: float = 1.0
 var target: Node2D = null
 var speed: float = 200.0
+
+func _ready() -> void:
+	_main_node = get_tree().get_first_node_in_group("main")
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -33,7 +37,7 @@ func _process(delta: float) -> void:
 func _find_nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_dist: float = 999999.0
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		var dist = global_position.distance_to(enemy.global_position)

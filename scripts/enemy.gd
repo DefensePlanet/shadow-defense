@@ -10,6 +10,16 @@ var gold_reward: int = 10
 var _hit_flash: float = 0.0
 var _spawn_fade: float = 0.3
 
+# Enhancement #7: LOD level (0=full, 1=reduced, 2=minimal)
+var lod_level: int = 0
+
+# R2 #1: Smooth health bar lerp
+var _display_health: float = -1.0  # -1 means uninitialized
+var _health_lerp_speed: float = 8.0
+
+# R2 #19: Path remaining ratio (set by main.gd)
+var path_remaining_ratio: float = 1.0
+
 # Debuffs
 var slow_factor: float = 1.0
 var slow_timer: float = 0.0
@@ -44,6 +54,11 @@ var enemy_tier: int = 0
 var shrink_scale: float = 1.0
 var boss_scale: float = 1.0  # >1.0 for boss enemies (drawn bigger)
 var _dead: bool = false  # Guard against double death counting
+var _sprite_texture: Texture2D = null
+
+const FACTION_NAMES := ["sherwood", "wonderland", "oz", "neverland", "opera",
+	"victorian", "shadow_entities", "sherlock", "merlin", "tarzan",
+	"dracula", "frankenstein", "shadow_author"]
 
 # Named boss villain
 var is_named_boss: bool = false
@@ -54,6 +69,7 @@ var _rescue_pending: bool = false
 var _wound_drip_offsets: Array = []
 var _wound_crack_lines: Array = []
 var _wound_time: float = 0.0
+var _prev_x: float = 0.0  # Track movement direction for sprite flipping
 
 # Modifiers (Cursed Passages)
 var modifiers: Array = []
@@ -98,9 +114,11 @@ var moab_children_count: int = 4      # How many children spawn on death
 ## Reset state for object pool reuse
 func pool_reset() -> void:
 	_dead = false
+	_sprite_texture = null
 	health = max_health
 	progress = 0.0
-	progress_ratio = 0.0
+	if is_inside_tree():
+		progress_ratio = 0.0
 	_hit_flash = 0.0
 	_spawn_fade = 0.3
 	slow_factor = 1.0
@@ -162,10 +180,27 @@ func _ready() -> void:
 			"to": Vector2(fmod(float(seed_val * (i + 2) * 17), 20.0) - 10.0, fmod(float(seed_val * (i + 2) * 5), 20.0) - 10.0)
 		})
 
+func load_sprite() -> void:
+	if enemy_theme < 0 or enemy_theme >= FACTION_NAMES.size():
+		return
+	var abs_base = ProjectSettings.globalize_path("res://assets/enemy_sprites/")
+	var abs_path = abs_base + FACTION_NAMES[enemy_theme] + "/tier_" + str(enemy_tier) + ".png"
+	var img = Image.new()
+	var err = img.load(abs_path)
+	if err == OK:
+		_sprite_texture = ImageTexture.create_from_image(img)
+	else:
+		_sprite_texture = null
+
 func _process(delta: float) -> void:
 	if _spawn_fade > 0.0:
 		_spawn_fade -= delta
 	_wound_time = fmod(_wound_time + delta, 628.0)
+	# R2 #1: Smooth health bar lerp
+	if _display_health < 0.0:
+		_display_health = health
+	elif abs(_display_health - health) > 0.1:
+		_display_health = lerpf(_display_health, health, minf(_health_lerp_speed * delta, 1.0))
 	# Rescue pending — freeze in place, awaiting Shadow Author rescue animation
 	if _rescue_pending:
 		if _hit_flash > 0.0:
@@ -277,10 +312,14 @@ func _process(delta: float) -> void:
 		if main:
 			main.lose_life()
 			main.enemy_died()
+			# Shadow Author faction: white light burst on leak
+			if enemy_theme == 12 and main.has_method("spawn_leak_flash"):
+				main.spawn_leak_flash(global_position, boss_scale)
 		_despawn()
 		return
 
 	shrink_scale = 0.7 if is_slowed else 1.0
+	_prev_x = global_position.x
 	queue_redraw()
 
 func is_targetable() -> bool:
@@ -447,7 +486,7 @@ func _die() -> void:
 		if main.has_method("spawn_gold_text"):
 			main.spawn_gold_text(global_position, gold_reward)
 		if main.has_method("report_enemy_death"):
-			main.report_enemy_death(global_position, boss_scale > 1.0, boss_scale)
+			main.report_enemy_death(global_position, boss_scale > 1.0, boss_scale, enemy_theme)
 		# MOAB: spawn children on death
 		if is_moab and moab_tier > 0 and main.has_method("spawn_moab_children"):
 			main.spawn_moab_children(progress, enemy_theme, moab_tier - 1, moab_children_count)
@@ -497,12 +536,30 @@ func _process_boss_mechanics(delta: float) -> void:
 			boss_shield_regen = min(boss_shield_regen + boss_shield_max * 0.15 * delta, boss_shield_max)
 
 func _draw() -> void:
+	# Enhancement #7: Skip drawing if LOD level 2 (off-screen / far away)
+	if lod_level >= 2:
+		return
 	var s: float = shrink_scale * boss_scale
 
 	# Spawn fade-in effect
 	if _spawn_fade > 0.0:
 		var fade_alpha = clampf(1.0 - _spawn_fade / 0.3, 0.0, 1.0)
 		modulate.a = fade_alpha
+		# Shadow Author faction: black smoke cloud on spawn
+		if enemy_theme == 12:
+			var smoke_alpha = (1.0 - fade_alpha) * 0.7
+			var smoke_t = _wound_time * 3.0
+			for i in range(5):
+				var angle = float(i) * 1.256 + smoke_t
+				var dist = (1.0 - fade_alpha) * 18.0 * s + sin(smoke_t + float(i)) * 4.0
+				var spos = Vector2(cos(angle) * dist, sin(angle) * dist * 0.7)
+				var srad = (6.0 + sin(smoke_t * 2.0 + float(i) * 0.8) * 3.0) * s
+				draw_circle(spos, srad, Color(0.05, 0.05, 0.05, smoke_alpha * (0.5 + float(i) * 0.1)))
+			# Green sparks in the smoke
+			for i in range(3):
+				var ga = float(i) * 2.094 + smoke_t * 1.5
+				var gd = (1.0 - fade_alpha) * 12.0 * s
+				draw_circle(Vector2(cos(ga) * gd, sin(ga) * gd * 0.6), 1.5 * s, Color(0.2, 0.9, 0.3, smoke_alpha))
 	elif modulate.a < 1.0:
 		modulate.a = 1.0
 
@@ -524,35 +581,54 @@ func _draw() -> void:
 
 	# Frost crystals when slowed
 	var draw_frost := is_slowed or slow_factor < 0.9
-	# Wound alpha fade when critically low HP
+	# Wound alpha fade when critically low HP — only for procedural, sprites use wound effects
 	var hp_ratio = health / max_health if max_health > 0.0 else 1.0
-	if hp_ratio < 0.25:
+	var _has_spr := _sprite_texture != null
+	if hp_ratio < 0.25 and not _has_spr:
 		var wound_alpha = 0.4 + hp_ratio * 2.4  # 0.4 at 0%, 1.0 at 25%
 		tint.a = min(tint.a, wound_alpha)
 	# Spectral modifier — translucent
 	if "spectral" in modifiers:
-		tint.a *= 0.5
-	# Shadow-Infested — dark shadow tint
+		tint.a *= 0.6 if _has_spr else 0.5
+	# Shadow-Infested — dark shadow tint (subtle outline glow for sprites)
 	if is_shadow_infested:
-		tint = Color(tint.r * 0.3, tint.g * 0.2, tint.b * 0.35 + 0.1, tint.a)
-	# Phantom — translucent when phased out (visible enough on mobile)
+		if _has_spr:
+			tint = Color(tint.r * 0.75 + 0.05, tint.g * 0.7, tint.b * 0.75 + 0.08, tint.a)
+		else:
+			tint = Color(tint.r * 0.3, tint.g * 0.2, tint.b * 0.35 + 0.1, tint.a)
+	# Phantom — translucent when phased out
 	if is_phantom and not phantom_visible:
 		tint.a *= 0.25
 	# Spectral — ghostly blue-white translucent
 	if is_spectral:
-		tint = Color(tint.r * 0.5 + 0.3, tint.g * 0.5 + 0.35, tint.b * 0.5 + 0.45, tint.a * 0.7)
+		if _has_spr:
+			tint = Color(tint.r * 0.8 + 0.15, tint.g * 0.8 + 0.15, tint.b * 0.8 + 0.2, tint.a * 0.8)
+		else:
+			tint = Color(tint.r * 0.5 + 0.3, tint.g * 0.5 + 0.35, tint.b * 0.5 + 0.45, tint.a * 0.7)
 	# Shadow-corrupted doubles get purple tint
 	if is_named_boss and enemy_theme in [2, 4, 10]:
-		tint = Color(tint.r * 0.6 + 0.25, tint.g * 0.4, tint.b * 0.5 + 0.35, tint.a)
+		if _has_spr:
+			tint = Color(tint.r * 0.85 + 0.1, tint.g * 0.75, tint.b * 0.8 + 0.15, tint.a)
+		else:
+			tint = Color(tint.r * 0.6 + 0.25, tint.g * 0.4, tint.b * 0.5 + 0.35, tint.a)
 	# Arcane modifier — purple-blue magical tint
 	if "arcane" in modifiers:
-		tint = Color(tint.r * 0.5 + 0.2, tint.g * 0.4 + 0.1, tint.b * 0.5 + 0.4, tint.a * 0.85)
+		if _has_spr:
+			tint = Color(tint.r * 0.8 + 0.1, tint.g * 0.75 + 0.05, tint.b * 0.8 + 0.15, tint.a * 0.9)
+		else:
+			tint = Color(tint.r * 0.5 + 0.2, tint.g * 0.4 + 0.1, tint.b * 0.5 + 0.4, tint.a * 0.85)
 	# Ironclad modifier — metallic grey tint
 	if "ironclad" in modifiers:
-		tint = Color(tint.r * 0.4 + 0.45, tint.g * 0.4 + 0.45, tint.b * 0.4 + 0.5, tint.a)
+		if _has_spr:
+			tint = Color(tint.r * 0.7 + 0.25, tint.g * 0.7 + 0.25, tint.b * 0.7 + 0.28, tint.a)
+		else:
+			tint = Color(tint.r * 0.4 + 0.45, tint.g * 0.4 + 0.45, tint.b * 0.4 + 0.5, tint.a)
 	# Ethereal modifier — translucent white-blue
 	if "ethereal" in modifiers:
-		tint = Color(tint.r * 0.3 + 0.5, tint.g * 0.3 + 0.55, tint.b * 0.3 + 0.65, tint.a * 0.6)
+		if _has_spr:
+			tint = Color(tint.r * 0.7 + 0.25, tint.g * 0.7 + 0.25, tint.b * 0.7 + 0.3, tint.a * 0.75)
+		else:
+			tint = Color(tint.r * 0.3 + 0.5, tint.g * 0.3 + 0.55, tint.b * 0.3 + 0.65, tint.a * 0.6)
 	# Boss invulnerability shimmer
 	if boss_invulnerable:
 		var shimmer = sin(_wound_time * 8.0) * 0.3 + 0.7
@@ -561,20 +637,122 @@ func _draw() -> void:
 	if boss_enraged:
 		tint = Color(tint.r * 0.5 + 0.5, tint.g * 0.3, tint.b * 0.2, tint.a)
 
-	match enemy_theme:
-		0: _draw_sherwood(s, tint)
-		1: _draw_wonderland(s, tint)
-		2: _draw_oz(s, tint)
-		3: _draw_neverland(s, tint)
-		4: _draw_opera(s, tint)
-		5: _draw_victorian(s, tint)
-		6: _draw_shadow_entities(s, tint)
-		7: _draw_sherlock(s, tint)
-		8: _draw_merlin(s, tint)
-		9: _draw_tarzan(s, tint)
-		10: _draw_dracula(s, tint)
-		11: _draw_frankenstein(s, tint)
-		12: _draw_shadow_author(s, tint)
+	# Preserve sprite art: soften heavy tints so characters stay recognizable
+	# Hit flash stays punchy, but modifier color-crushing is dialed way back
+	if _has_spr and _hit_flash <= 0.0:
+		tint.r = lerpf(tint.r, 1.0, 0.75)
+		tint.g = lerpf(tint.g, 1.0, 0.75)
+		tint.b = lerpf(tint.b, 1.0, 0.75)
+
+	if _sprite_texture:
+		# === SPRITE RENDERING — matches tower draw_texture_rect pattern ===
+		var _ss = Vector2(_sprite_texture.get_width(), _sprite_texture.get_height())
+		var target_h = 56.0 * s
+		var _sf = target_h / _ss.y
+		var _sd = _ss * _sf
+		var t = _wound_time
+		var spd = 1.0 if not is_slowed else 0.4
+
+		# --- WALK CYCLE ---
+		var stride_phase = sin(t * 8.0 * spd)
+		var bounce_raw = abs(stride_phase)
+		var bounce_y = bounce_raw * 5.0 * s
+		var squash_amt = (1.0 - bounce_raw) * 0.12
+		var walk_scl = Vector2(1.0 + squash_amt, 1.0 - squash_amt * 0.7)
+		var walk_lean = stride_phase * 0.08
+		var sway_x = stride_phase * 1.5 * s
+		var breathe = 1.0 + sin(t * 2.5) * 0.03
+
+		# --- HIT REACTION ---
+		var recoil_off = Vector2.ZERO
+		var hit_scl = Vector2.ONE
+		if _hit_flash > 0.0:
+			var hit_t = clampf(_hit_flash / 0.12, 0.0, 1.0)
+			var hit_sq = hit_t * hit_t
+			recoil_off = Vector2(0, -hit_sq * 6.0 * s)
+			hit_scl = Vector2(1.0 + hit_sq * 0.2, 1.0 - hit_sq * 0.15)
+
+		# --- BOSS PRESENCE ---
+		var boss_rot = 0.0
+		var boss_pulse = 1.0
+		if is_named_boss or is_moab:
+			boss_rot = sin(t * 1.0) * 0.06
+			boss_pulse = 1.0 + sin(t * 1.5) * 0.04
+			walk_lean *= 0.5
+
+		# --- TIER PERSONALITY ---
+		var tier_mult = 1.0 + float(enemy_tier) * 0.15
+		walk_lean *= tier_mult
+		bounce_y *= (1.0 - float(enemy_tier) * 0.1)
+
+		# --- STATUS EFFECTS ---
+		var status_rot = 0.0
+		var status_off = Vector2.ZERO
+		if sleep_timer > 0.0:
+			status_rot = sin(t * 1.5) * 0.1
+			bounce_y = 0.0; walk_lean = 0.0; sway_x = 0.0
+		elif charm_timer > 0.0:
+			status_rot = sin(t * 3.0) * 0.12
+			status_off = Vector2(sin(t * 2.0) * 3.0, 0)
+			bounce_y *= 0.3
+		elif fear_reverse_timer > 0.0:
+			status_rot = sin(t * 25.0) * 0.04
+			walk_lean *= 2.0
+
+		# --- GROUND SHADOW (ellipse at feet for depth) ---
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.35))
+		draw_circle(Vector2.ZERO, _sd.x * 0.35, Color(0, 0, 0, 0.18))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+		# --- FACTION AURA (unique glow per literary world) ---
+		var _aura_col: Color
+		match enemy_theme:
+			0: _aura_col = Color(0.1, 0.75, 0.15)    # sherwood — forest green
+			1: _aura_col = Color(1.0, 0.2, 0.55)      # wonderland — queen's pink
+			2: _aura_col = Color(1.0, 0.85, 0.0)      # oz — golden yellow
+			3: _aura_col = Color(0.0, 0.8, 1.0)       # neverland — ocean cyan
+			4: _aura_col = Color(0.9, 0.35, 0.2)      # opera — phantom rose
+			5: _aura_col = Color(0.85, 0.65, 0.3)     # victorian — gas lamp amber
+			6: _aura_col = Color(0.6, 0.2, 1.0)       # shadow_entities — purple
+			7: _aura_col = Color(0.55, 0.7, 0.85)     # sherlock — fog silver
+			8: _aura_col = Color(0.2, 0.3, 1.0)       # merlin — arcane blue
+			9: _aura_col = Color(0.55, 0.8, 0.1)      # tarzan — vine green
+			10: _aura_col = Color(0.7, 0.0, 0.1)      # dracula — blood red
+			11: _aura_col = Color(0.3, 1.0, 0.5)      # frankenstein — electric green
+			12: _aura_col = Color(0.0, 1.0, 0.2)      # shadow_author — neon green
+			_: _aura_col = Color(0.5, 0.5, 0.5)
+		var glow_r = _sd.y * 0.55
+		var glow_alpha = 0.15 + sin(t * 2.0) * 0.05
+		draw_circle(Vector2(0, -_sd.y * 0.5), glow_r, Color(_aura_col.r, _aura_col.g, _aura_col.b, glow_alpha))
+
+		# --- COMPOSE TRANSFORM (scale near 1.0 — like towers) ---
+		var total_rot = walk_lean + boss_rot + status_rot
+		var total_scl = walk_scl * breathe * boss_pulse * hit_scl
+		var dx = global_position.x - _prev_x
+		if dx < -0.5:
+			total_scl.x *= -1.0
+			total_rot *= -1.0
+
+		var anchor = Vector2(sway_x, -bounce_y) + recoil_off + status_off
+		draw_set_transform(anchor, total_rot, total_scl)
+		draw_texture_rect(_sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false, tint)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	else:
+		# Fallback to procedural drawing
+		match enemy_theme:
+			0: _draw_sherwood(s, tint)
+			1: _draw_wonderland(s, tint)
+			2: _draw_oz(s, tint)
+			3: _draw_neverland(s, tint)
+			4: _draw_opera(s, tint)
+			5: _draw_victorian(s, tint)
+			6: _draw_shadow_entities(s, tint)
+			7: _draw_sherlock(s, tint)
+			8: _draw_merlin(s, tint)
+			9: _draw_tarzan(s, tint)
+			10: _draw_dracula(s, tint)
+			11: _draw_frankenstein(s, tint)
+			12: _draw_shadow_author(s, tint)
 
 	# Wound effects (bleeding ink)
 	_draw_wound_effects(s)
@@ -631,44 +809,54 @@ func _draw() -> void:
 			var line_len = (8.0 + float(i) * 3.0) * s
 			draw_line(Vector2(line_x - line_len, line_y), Vector2(line_x, line_y), Color(1.0, 0.9, 0.5, trail_alpha * (1.0 - float(i) * 0.25)), 1.5)
 
-	# Health bar — sized for mobile visibility
-	var bar_w: float = 38.0 * boss_scale
-	var bar_h: float = 5.0 + (boss_scale - 1.0) * 2.0
-	var bar_y: float = -26.0 * s - 5.0
-	# Dark background with border
-	draw_rect(Rect2(-bar_w / 2 - 1, bar_y - 1, bar_w + 2, bar_h + 2), Color(0.0, 0.0, 0.0, 0.6))
-	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w, bar_h), Color(0.12, 0.12, 0.12))
-	var ratio = clamp(health / max_health, 0.0, 1.0)
+	# Health bar — above sprite head, dimmed so art stays the star
+	var bar_w: float = 30.0 * boss_scale
+	var bar_h: float = 3.0 + (boss_scale - 1.0) * 1.5
+	var bar_y: float = -62.0 * s  # Above the 56px sprite
+	# Subtle dark background
+	draw_rect(Rect2(-bar_w / 2 - 1, bar_y - 1, bar_w + 2, bar_h + 2), Color(0.0, 0.0, 0.0, 0.35))
+	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w, bar_h), Color(0.1, 0.1, 0.1, 0.25))
+	var actual_ratio = clamp(health / max_health, 0.0, 1.0)
+	# R2 #1: Use display_health for smooth bar and actual health for color
+	var display_hp = _display_health if _display_health >= 0.0 else health
+	var display_ratio = clamp(display_hp / max_health, 0.0, 1.0)
+	# Ghost bar (damage taken, fades from white to transparent)
+	if display_ratio > actual_ratio:
+		draw_rect(Rect2(-bar_w / 2, bar_y, bar_w * display_ratio, bar_h), Color(1.0, 0.9, 0.8, 0.15))
+	var ratio = actual_ratio
 	var bar_color: Color
 	if ratio > 0.55:
-		bar_color = Color(0.2, 0.85, 0.2)
+		bar_color = Color(0.2, 0.7, 0.2, 0.55)
 	elif ratio > 0.25:
-		bar_color = Color(0.95, 0.85, 0.15)
+		bar_color = Color(0.8, 0.7, 0.1, 0.55)
 	else:
-		bar_color = Color(0.95, 0.2, 0.15)
+		bar_color = Color(0.8, 0.15, 0.1, 0.6)
 	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w * ratio, bar_h), bar_color)
-	# Bright top highlight on fill
-	draw_rect(Rect2(-bar_w / 2, bar_y, bar_w * ratio, 1), Color(1, 1, 1, 0.2))
+	# R2 #19: Path remaining indicator (thin bar below health)
+	if path_remaining_ratio < 1.0 and path_remaining_ratio > 0.0:
+		var pr_y = bar_y + bar_h + 2
+		draw_rect(Rect2(-bar_w / 2, pr_y, bar_w, 2), Color(0.2, 0.2, 0.2, 0.4))
+		draw_rect(Rect2(-bar_w / 2, pr_y, bar_w * path_remaining_ratio, 2), Color(0.8, 0.3, 0.1, 0.6))
 
 	# Named boss: shadow aura + name label
 	if is_named_boss:
-		# Dark shadow aura — animated purple/black particles
+		# Boss shadow aura — orbits OUTSIDE sprite so character stays visible
 		var aura_time = _wound_time
-		for i in range(12):
-			var angle = TAU * float(i) / 12.0 + aura_time * 1.5
-			var dist = 20.0 * s + sin(aura_time * 3.0 + float(i)) * 6.0
+		for i in range(8):
+			var angle = TAU * float(i) / 8.0 + aura_time * 1.5
+			var dist = 32.0 * s + sin(aura_time * 3.0 + float(i)) * 5.0
 			var px = cos(angle) * dist
-			var py = sin(angle) * dist * 0.6 - 8.0 * s
-			var aura_alpha = 0.3 + sin(aura_time * 2.0 + float(i) * 0.8) * 0.15
-			var aura_size = 3.0 + sin(aura_time * 4.0 + float(i) * 1.2) * 1.5
+			var py = sin(angle) * dist * 0.5 - 12.0 * s
+			var aura_alpha = 0.2 + sin(aura_time * 2.0 + float(i) * 0.8) * 0.1
+			var aura_size = 2.5 + sin(aura_time * 4.0 + float(i) * 1.2) * 1.0
 			draw_circle(Vector2(px, py), aura_size * s, Color(0.3, 0.1, 0.5, aura_alpha))
 		# Outer wispy ring
-		for i in range(8):
-			var angle = TAU * float(i) / 8.0 - aura_time * 0.8
-			var dist2 = 28.0 * s + sin(aura_time * 2.0 + float(i) * 1.5) * 8.0
+		for i in range(6):
+			var angle = TAU * float(i) / 6.0 - aura_time * 0.8
+			var dist2 = 40.0 * s + sin(aura_time * 2.0 + float(i) * 1.5) * 6.0
 			var px2 = cos(angle) * dist2
-			var py2 = sin(angle) * dist2 * 0.5 - 6.0 * s
-			draw_circle(Vector2(px2, py2), 2.0 * s, Color(0.15, 0.0, 0.2, 0.2))
+			var py2 = sin(angle) * dist2 * 0.4 - 8.0 * s
+			draw_circle(Vector2(px2, py2), 1.5 * s, Color(0.15, 0.0, 0.2, 0.15))
 		# Boss name label in gold above health bar — larger for mobile
 		var name_y = bar_y - 12.0
 		draw_string(_game_font, Vector2(-bar_w, name_y + 1), boss_name, HORIZONTAL_ALIGNMENT_CENTER, int(bar_w * 2.0), 13, Color(0, 0, 0, 0.5))
@@ -706,27 +894,30 @@ func _draw_wound_effects(s: float) -> void:
 	if hp_ratio >= 0.75:
 		return
 	var bs = boss_scale
-	# 75% HP: ink drips below enemy
+	var spr := _sprite_texture != null
+	# 75% HP: ink drips below enemy (below feet — fine for sprites)
 	if hp_ratio < 0.75:
 		for i in range(2):
 			var off = _wound_drip_offsets[i] * bs
 			var drip_y = off.y + sin(_wound_time * 2.0 + float(i)) * 3.0
-			draw_circle(Vector2(off.x * s, drip_y * s), (2.0 + float(i)) * bs, Color(0.08, 0.06, 0.12, 0.6))
-	# 50% HP: dark crack lines across sprite
+			draw_circle(Vector2(off.x * s, drip_y * s), (2.0 + float(i)) * bs, Color(0.08, 0.06, 0.12, 0.4 if spr else 0.6))
+	# 50% HP: crack lines — subtle for sprites, bold for procedural
 	if hp_ratio < 0.5:
 		var crack_count = 2 if hp_ratio > 0.3 else 4
+		var crack_alpha = 0.2 if spr else 0.8
+		var crack_width = 1.5 if spr else 2.5
 		for i in range(crack_count):
 			if i < _wound_crack_lines.size():
 				var cl = _wound_crack_lines[i]
-				draw_line(cl["from"] * s * bs, cl["to"] * s * bs, Color(0.05, 0.03, 0.08, 0.8), 2.5 * bs)
-	# 25% HP: ink splatter orbiting + more drips
+				draw_line(cl["from"] * s * bs, cl["to"] * s * bs, Color(0.05, 0.03, 0.08, crack_alpha), crack_width * bs)
+	# 25% HP: ink splatter orbiting OUTSIDE sprite
 	if hp_ratio < 0.25:
 		for i in range(5):
 			var angle = _wound_time * 1.5 + float(i) * TAU / 5.0
-			var orbit_r = 14.0 * s * bs
+			var orbit_r = (28.0 if spr else 14.0) * s * bs
 			var px = cos(angle) * orbit_r
 			var py = sin(angle) * orbit_r
-			draw_circle(Vector2(px, py), 1.5 * bs, Color(0.06, 0.04, 0.1, 0.5))
+			draw_circle(Vector2(px, py), 1.5 * bs, Color(0.06, 0.04, 0.1, 0.3 if spr else 0.5))
 
 func _draw_modifier_effects(s: float) -> void:
 	if modifiers.is_empty():
@@ -758,17 +949,24 @@ func _draw_modifier_effects(s: float) -> void:
 		var shield_a = 0.3 + sin(_wound_time * 4.0) * 0.15
 		draw_arc(Vector2.ZERO, 20.0 * s, -PI * 0.4, PI * 0.4, 10, Color(0.2, 0.8, 0.9, shield_a), 2.5 * bs)
 		draw_arc(Vector2.ZERO, 20.0 * s, PI * 0.6, PI * 1.4, 10, Color(0.2, 0.8, 0.9, shield_a), 2.5 * bs)
-	# Shadow-Infested: black shadow tendrils + dark aura
+	# Shadow-Infested: dark ring AROUND sprite (not covering it) + eye icon
 	if is_shadow_infested:
-		var shadow_pulse = 0.25 + sin(_wound_time * 2.5) * 0.1
-		draw_circle(Vector2.ZERO, 22.0 * s, Color(0.02, 0.0, 0.05, shadow_pulse))
-		for i in range(6):
-			var ta = _wound_time * 1.2 + float(i) * TAU / 6.0
-			var tx = cos(ta) * 16.0 * s
-			var ty = sin(ta) * 16.0 * s * 0.7
-			var tend = Vector2(tx, ty) * 1.4
-			draw_line(Vector2(tx * 0.3, ty * 0.3), tend, Color(0.05, 0.0, 0.08, 0.5), 1.5 * bs)
-		# Shadow eye icon above
+		var spr2 := _sprite_texture != null
+		if spr2:
+			# For sprites: thin dark ring outside the character, much more subtle
+			var ring_alpha = 0.15 + sin(_wound_time * 2.5) * 0.05
+			draw_arc(Vector2(0, -20.0 * s), 30.0 * s, 0, TAU, 20, Color(0.05, 0.0, 0.08, ring_alpha), 2.0 * bs)
+		else:
+			# Procedural: original dark aura
+			var shadow_pulse = 0.25 + sin(_wound_time * 2.5) * 0.1
+			draw_circle(Vector2.ZERO, 22.0 * s, Color(0.02, 0.0, 0.05, shadow_pulse))
+			for i in range(6):
+				var ta = _wound_time * 1.2 + float(i) * TAU / 6.0
+				var tx = cos(ta) * 16.0 * s
+				var ty = sin(ta) * 16.0 * s * 0.7
+				var tend = Vector2(tx, ty) * 1.4
+				draw_line(Vector2(tx * 0.3, ty * 0.3), tend, Color(0.05, 0.0, 0.08, 0.5), 1.5 * bs)
+		# Shadow eye icon above (kept for both — clear indicator)
 		draw_circle(Vector2(0, -34 * s), 3.0 * bs, Color(0.05, 0.0, 0.08, 0.7))
 		draw_circle(Vector2(0, -34 * s), 1.5 * bs, Color(0.8, 0.1, 0.1, 0.8))
 	# Fortified: iron plates / armor bands

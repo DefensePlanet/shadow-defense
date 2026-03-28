@@ -55,7 +55,7 @@ func _hit_target(t: Node2D) -> void:
 	_hit_targets.append(t)
 
 	# Execute check (Off With Their Heads!) — bypass shields, kill through damage pipeline
-	if execute_threshold > 0.0 and t.health / t.max_health <= execute_threshold:
+	if execute_threshold > 0.0 and t.max_health > 0.0 and t.health / t.max_health <= execute_threshold:
 		var exec_dmg = t.health
 		if t.get("is_shielded") and t.shield_hp > 0.0:
 			t.shield_hp = 0.0
@@ -109,7 +109,7 @@ func _hit_target(t: Node2D) -> void:
 func _find_bounce_target() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_dist: float = 150.0
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (get_tree().get_first_node_in_group("main").get_cached_enemies() if get_tree().get_first_node_in_group("main") else get_tree().get_nodes_in_group("enemies")):
 		if enemy in _hit_targets:
 			continue
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -121,7 +121,8 @@ func _find_bounce_target() -> Node2D:
 	return nearest
 
 func _spawn_splits() -> void:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var _mn = get_tree().get_first_node_in_group("main")
+	var enemies = (_mn.get_cached_enemies() if is_instance_valid(_mn) else get_tree().get_nodes_in_group("enemies"))
 	var available: Array = []
 	for e in enemies:
 		if e not in _hit_targets and e != target:
