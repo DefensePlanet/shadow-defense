@@ -5677,7 +5677,7 @@ func _update_menu_showcase() -> void:
 	var total_stars = 0
 	for key in level_stars:
 		total_stars += level_stars[key]
-	menu_star_total_label.text = "Ã¢Ëœâ€¦ %d / %d" % [total_stars, levels.size() * 3]
+	menu_star_total_label.text = "★ %d / %d" % [total_stars, levels.size() * 3]
 
 func _hide_chapter_diff_buttons(chapter_idx: int) -> void:
 	if chapter_idx < chapter_diff_buttons.size():
@@ -28738,9 +28738,9 @@ func _victory() -> void:
 		knowledge_ink += 1
 	var star_str = ""
 	for i in range(stars):
-		star_str += "Ã¢Ëœâ€¦"
+		star_str += "★"
 	for i in range(3 - stars):
-		star_str += "Ã¢Ëœâ€ "
+		star_str += "☆"
 	var diff_name = ["Easy", "Medium", "Hard", "Pure"][mini(selected_difficulty, 3)]
 	# Pure Mode: 3x XP multiplier + bonus Cosmic Ink
 	if selected_difficulty == PURE_MODE:
