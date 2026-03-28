@@ -31971,7 +31971,7 @@ func _draw_session_recap() -> void:
 	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
 	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
 	# Title
-	_udraw(font, Vector2(px + 20, py + 30), "SESSION STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, c_gold)
+	_ds_title(Vector2(px + 20, py + 30), "SESSION STATS", 22, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px + 20, py + 38, 150, 1), _ca(c_gold, 0.3))
 	# Stats
 	var sy = py + 60.0
@@ -31989,7 +31989,7 @@ func _draw_session_recap() -> void:
 		sy += 26.0
 	# Tower Breakdown
 	sy += 10.0
-	_udraw(font, Vector2(px + 40, sy + 14), "TOWER DAMAGE BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(c_gold, 0.8))
+	_ds_title(Vector2(px + 40, sy + 14), "TOWER DAMAGE BREAKDOWN", 16, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px + 40, sy + 20, 200, 1), _ca(c_gold, 0.2))
 	sy += 30.0
 	var breakdown = session_stats.get("tower_breakdown", [])
@@ -32055,7 +32055,7 @@ func _draw_career_stats() -> void:
 	var ph = 640.0
 	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
 	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
-	_udraw(font, Vector2(px + 30, py + 35), "CAREER STATISTICS", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, c_gold)
+	_ds_title(Vector2(px + 30, py + 35), "CAREER STATISTICS", 24, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px + 30, py + 44, 200, 2), _ca(c_gold, 0.3))
 	var sy = py + 70.0
 	var stats = [
