@@ -183,12 +183,9 @@ func _ready() -> void:
 func load_sprite() -> void:
 	if enemy_theme < 0 or enemy_theme >= FACTION_NAMES.size():
 		return
-	var abs_base = ProjectSettings.globalize_path("res://assets/enemy_sprites/")
-	var abs_path = abs_base + FACTION_NAMES[enemy_theme] + "/tier_" + str(enemy_tier) + ".png"
-	var img = Image.new()
-	var err = img.load(abs_path)
-	if err == OK:
-		_sprite_texture = ImageTexture.create_from_image(img)
+	var res_path = "res://assets/enemy_sprites/" + FACTION_NAMES[enemy_theme] + "/tier_" + str(enemy_tier) + ".png"
+	if ResourceLoader.exists(res_path):
+		_sprite_texture = load(res_path)
 	else:
 		_sprite_texture = null
 
