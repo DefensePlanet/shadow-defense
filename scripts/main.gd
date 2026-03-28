@@ -13458,233 +13458,80 @@ func _draw_survivor_grid() -> void:
 			draw_cw += 6.0
 			draw_ch += 6.0
 
-		# === Card shadow ===
-		draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw, draw_ch), Color(0.0, 0.0, 0.0, 0.4))
+		# ==========================================================
+		# MODERN CARD: Portrait fills card, name overlaid at bottom
+		# ==========================================================
+		# Card shadow
+		draw_rect(Rect2(draw_cx + 4, draw_cy + 4, draw_cw, draw_ch), Color(0.0, 0.0, 0.0, 0.5))
+		# Dark base fill
+		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.04, 0.04, 0.08))
 
-		# === Card background — tinted with character accent color ===
-		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(accent.r * 0.08 + 0.04, accent.g * 0.08 + 0.04, accent.b * 0.08 + 0.06, 0.95))
-		# Accent gradient at top (stronger)
-		for gi in range(int(draw_ch * 0.5)):
-			var gt = float(gi) / (draw_ch * 0.5)
-			draw_rect(Rect2(draw_cx, draw_cy + float(gi), draw_cw, 1), _ca(accent, 0.15 * (1.0 - gt)))
-
-		# === Character portrait (centered, fills card nicely) ===
-		var portrait_sz = 100.0
-		var portrait_px = draw_cx + (draw_cw - portrait_sz) * 0.5
-		var portrait_py = draw_cy + 14.0
+		# === PORTRAIT — fills entire card ===
 		if unlocked:
-			_draw_story_portrait(portrait_px, portrait_py, portrait_sz, speaker_name)
+			_draw_story_portrait(draw_cx, draw_cy, draw_ch, speaker_name)
 		else:
-			var lock_cx = draw_cx + draw_cw * 0.5
-			var lock_cy = draw_cy + draw_ch * 0.4
-			draw_circle(Vector2(lock_cx, lock_cy), 32.0, Color(0.08, 0.08, 0.15, 0.5))
-			_udraw(font, Vector2(lock_cx - 6, lock_cy + 6), "?", HORIZONTAL_ALIGNMENT_CENTER, -1, 28, Color(0.3, 0.3, 0.4, 0.4))
+			# Locked: dark with silhouette
+			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.06, 0.05, 0.10, 0.9))
+			var lock_cx2 = draw_cx + draw_cw * 0.5
+			var lock_cy2 = draw_cy + draw_ch * 0.4
+			draw_rect(Rect2(lock_cx2 - 18, lock_cy2 + 2, 36, 28), Color(0.4, 0.35, 0.50, 0.6))
+			draw_arc(Vector2(lock_cx2, lock_cy2 + 2), 15, PI, TAU, 12, Color(0.45, 0.40, 0.55, 0.6), 3.0)
+			draw_circle(Vector2(lock_cx2, lock_cy2 + 16), 4, Color(0.85, 0.70, 0.20, 0.6))
 
-		# === Level badge (top-left corner circle) ===
+		# === Bottom gradient overlay for text readability ===
+		for gi in range(20):
+			var gt = float(gi) / 19.0
+			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 50.0 + gt * 50.0, draw_cw, 50.0 / 19.0 + 1), Color(0.0, 0.0, 0.0, gt * 0.85))
+
+		# === NAME — big, bold, white, glowing ===
+		var name_str: String = info["name"]
+		var name_sz = 16
+		var name_y = draw_cy + draw_ch - 28.0
+		_udraw(font, Vector2(draw_cx + 4, name_y + 1), name_str, HORIZONTAL_ALIGNMENT_CENTER, int(draw_cw - 8), name_sz, Color(0, 0, 0, 0.7))
+		_udraw(font, Vector2(draw_cx + 4, name_y), name_str, HORIZONTAL_ALIGNMENT_CENTER, int(draw_cw - 8), name_sz, Color(1.0, 0.95, 0.88) if unlocked else Color(0.55, 0.52, 0.58))
+
+		# === TITLE — accent colored ===
+		var title_str = _get_dynamic_title(i) if unlocked else (character_titles[i] if i < character_titles.size() else "")
+		if title_str.length() > 28:
+			title_str = title_str.substr(0, 26) + ".."
+		_udraw(font, Vector2(draw_cx + 4, draw_cy + draw_ch - 12), title_str, HORIZONTAL_ALIGNMENT_CENTER, int(draw_cw - 8), 11, _ca(accent, 0.8) if unlocked else Color(0.4, 0.38, 0.45, 0.5))
+
+		# === LEVEL BADGE (top-left, prominent) ===
 		if unlocked:
 			var progress = survivor_progress.get(tower_type, {"level": 1})
 			var lvl = progress.get("level", 1)
-			var badge_cx = draw_cx + 22.0
-			var badge_cy = draw_cy + 22.0
-			# Level badge — bigger, bolder
-			draw_circle(Vector2(badge_cx, badge_cy), 18, Color(0.02, 0.02, 0.06, 0.95))
-			draw_circle(Vector2(badge_cx, badge_cy), 16, _ca(accent, 0.7))
-			draw_circle(Vector2(badge_cx, badge_cy), 13, Color(0.03, 0.03, 0.08))
+			var badge_cx = draw_cx + 20.0
+			var badge_cy = draw_cy + 20.0
+			draw_circle(Vector2(badge_cx, badge_cy), 17, Color(0.0, 0.0, 0.0, 0.8))
+			draw_circle(Vector2(badge_cx, badge_cy), 15, _ca(accent, 0.8))
+			draw_circle(Vector2(badge_cx, badge_cy), 12, Color(0.02, 0.02, 0.06))
 			var lvl_str = str(lvl)
-			var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-			_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 6), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
+			var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+			_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
 
-		# === Role badge (top-center) ===
+		# === XP BAR (bottom edge) ===
 		if unlocked:
-			var role = "DPS"
-			match i:
-				1: role = "SUP"
-				2: role = "AOE"
-				5: role = "SUP"
-				6: role = "BUF"
-				9: role = "BUF"
-				_: role = "DPS"
-			var role_sz = 14
-			var role_x = draw_cx + draw_cw * 0.5
-			var role_y = draw_cy + 6.0
-			var role_tw = font.get_string_size(role, HORIZONTAL_ALIGNMENT_LEFT, -1, role_sz).x
-			draw_rect(Rect2(role_x - role_tw * 0.5 - 6, role_y, role_tw + 12, 18), Color(0.02, 0.02, 0.06, 0.85))
-			draw_rect(Rect2(role_x - role_tw * 0.5 - 6, role_y, role_tw + 12, 18), _ca(accent, 0.3), false, 1.0)
-			_udraw(font, Vector2(role_x - role_tw * 0.5, role_y + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, role_sz, _ca(accent, 0.9))
-
-		# === Star rating (top-right) ===
-		var stars_earned = 0
-		# Map survivor index to their arc's level indices
-		var char_level_map = {
-			0: [16, 17, 18], 1: [19, 20, 21], 2: [22, 23, 24],
-			3: [25, 26, 27], 4: [28, 29, 30], 5: [31, 32, 33],
-			6: [1, 2, 3], 7: [7, 8, 9], 8: [10, 11, 12],
-			9: [4, 5, 6], 10: [13, 14, 15], 11: [34, 35, 36]
-		}
-		if char_level_map.has(i):
-			for lvl_idx in char_level_map[i]:
-				stars_earned += level_stars.get(lvl_idx, 0)
-		if unlocked:
-			var star_x = draw_cx + draw_cw - 18.0
-			var star_y = draw_cy + 16.0
-			# Star badge circle
-			draw_circle(Vector2(star_x, star_y), 13, Color(0.02, 0.02, 0.06, 0.8))
-			draw_circle(Vector2(star_x, star_y), 11, _ca(c_gold, 0.7))
-			draw_circle(Vector2(star_x, star_y), 9, Color(0.03, 0.03, 0.08))
-			# Star icon
-			var sp = Vector2(star_x, star_y)
-			var sr = 6.0
-			var star_pts = PackedVector2Array()
-			for si in range(10):
-				var sa = -PI * 0.5 + float(si) * TAU / 10.0
-				var sd = sr if si % 2 == 0 else sr * 0.45
-				star_pts.append(sp + Vector2(cos(sa) * sd, sin(sa) * sd))
-			draw_colored_polygon(star_pts, _ca(c_gold_bright, 0.9))
-
-		# === Star progress + gear count + session damage ===
-		if unlocked:
-			var stats_x = draw_cx + draw_cw - 70.0
-			var stats_y = draw_cy + 30.0
-			var stats_sz = 11
-			# Stars earned in this character's arc
-			var char_stars = 0
-			var char_level_map_2 = {
-				0: [16, 17, 18], 1: [19, 20, 21], 2: [22, 23, 24],
-				3: [25, 26, 27], 4: [28, 29, 30], 5: [31, 32, 33],
-				6: [1, 2, 3], 7: [7, 8, 9], 8: [10, 11, 12],
-				9: [4, 5, 6], 10: [13, 14, 15], 11: [34, 35, 36]
-			}
-			if char_level_map_2.has(i):
-				for lvl_i in char_level_map_2[i]:
-					char_stars += level_stars.get(lvl_i, 0)
-			_udraw(font, Vector2(stats_x, stats_y), "%d/9" % char_stars, HORIZONTAL_ALIGNMENT_LEFT, -1, stats_sz, _ca(c_gold, 0.8))
-			# Gear count
-			var eq_count = equipped_gear.get(tower_type, []).size()
-			var max_slots = _get_gear_slots(tower_type)
-			_udraw(font, Vector2(stats_x, stats_y + 13), "%d/%d" % [eq_count, max_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, stats_sz, _ca(c_cyan, 0.7))
-			# Session damage
-			var sdmg = session_damage.get(tower_type, 0.0)
-			if sdmg > 0:
-				_udraw(font, Vector2(stats_x, stats_y + 26), _format_number(sdmg), HORIZONTAL_ALIGNMENT_LEFT, -1, stats_sz, _ca(c_red, 0.7))
-
-		# === Character name plate (bottom) — BRIGHT, BOLD ===
-		var name_plate_y = draw_cy + draw_ch - 38.0
-		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 38), Color(0.02, 0.02, 0.06, 0.92))
-		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 1), _ca(accent, 0.5))
-		var name_str: String = info["name"]
-		var name_sz = 16
-		var name_w = font.get_string_size(name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz).x
-		# Shadow + bright + glow
-		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5 + 1, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, Color(0, 0, 0, 0.6))
-		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5, name_plate_y + 14), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, Color(1.0, 0.95, 0.85) if unlocked else Color(0.5, 0.48, 0.55))
-		if unlocked:
-			_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5 - 1, name_plate_y + 13), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, _ca(accent, 0.2))
-		# Mood icon (beside name)
-		if unlocked:
-			var mood_str = _get_mood_icon(tower_type)
-			if mood_str != "":
-				_udraw(font, Vector2(draw_cx + (draw_cw + name_w) * 0.5 + 4, name_plate_y + 15), mood_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.9, 0.85, 0.6, 0.6))
-		# Character title epithet
-		var title_str = _get_dynamic_title(i) if unlocked else (character_titles[i] if i < character_titles.size() else "")
-		if title_str.length() > 30:
-			title_str = title_str.substr(0, 28) + ".."
-		var title_sub_sz = 11
-		_udraw(font, Vector2(draw_cx + 4, name_plate_y + 30), title_str, HORIZONTAL_ALIGNMENT_CENTER, int(draw_cw - 8), title_sub_sz, _ca(accent, 0.7) if unlocked else Color(0.35, 0.32, 0.4, 0.5))
-
-		# === XP progress bar (bottom edge, thicker, brighter) ===
-		if unlocked:
-			var progress_data = survivor_progress.get(tower_type, {"level": 1})
-			var xp_lvl = progress_data.get("level", 1)
+			var xp_lvl = survivor_progress.get(tower_type, {"level": 1}).get("level", 1)
 			var xp_ratio = clampf(float(xp_lvl) / 9.0, 0.0, 1.0)
-			var bar_y = draw_cy + draw_ch - 4.0
-			var bar_x = draw_cx + 2.0
-			var bar_w = draw_cw - 4.0
-			draw_rect(Rect2(bar_x, bar_y, bar_w, 4), Color(0.08, 0.08, 0.12, 0.8))
-			draw_rect(Rect2(bar_x, bar_y, bar_w * xp_ratio, 4), _ca(accent, 0.9))
-			if xp_ratio > 0.0 and xp_ratio < 1.0:
-				draw_rect(Rect2(bar_x + bar_w * xp_ratio - 1, bar_y, 2, 4), Color(1, 1, 1, 0.5))
+			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), Color(0.0, 0.0, 0.0, 0.6))
+			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw * xp_ratio, 3), _ca(accent, 0.9))
 
-		# === Stat preview on hover (left side, above name plate) ===
-		if is_hovered and unlocked:
-			var stat_x = draw_cx + 6.0
-			var stat_y = draw_cy + draw_ch - 58.0
-			var stat_w = 50.0
-			var stat_sz = 12
-			var stat_names = ["DMG", "SPD", "RNG"]
-			var stat_values = [info.get("damage", 25) / 55.0, info.get("fire_rate", 0.5) / 1.0, info.get("range", 160) / 200.0]
-			var stat_colors = [Color(0.9, 0.3, 0.2), Color(0.3, 0.8, 0.4), Color(0.3, 0.5, 0.9)]
-			# Semi-transparent backdrop for stat bars
-			draw_rect(Rect2(stat_x - 2, stat_y - 2, 92, 42), Color(0.02, 0.02, 0.06, 0.8))
-			for si in range(3):
-				var sy = stat_y + float(si) * 13.0
-				_udraw(font, Vector2(stat_x, sy + 9), stat_names[si], HORIZONTAL_ALIGNMENT_LEFT, -1, stat_sz, Color(0.7, 0.7, 0.7, 0.8))
-				draw_rect(Rect2(stat_x + 28, sy + 4, stat_w, 4), Color(0.15, 0.15, 0.2, 0.6))
-				draw_rect(Rect2(stat_x + 28, sy + 4, stat_w * clampf(stat_values[si], 0.0, 1.0), 4), stat_colors[si])
-
-		# === Card border — character accent color, bold ===
+		# === BORDER — accent color, clean ===
 		var bdr_col: Color
 		if not unlocked:
-			bdr_col = Color(0.3, 0.28, 0.4, 0.4)
+			bdr_col = Color(0.3, 0.28, 0.4, 0.35)
 		elif is_hovered:
-			bdr_col = Color(accent.r * 1.3, accent.g * 1.3, accent.b * 1.3, 0.9)
+			bdr_col = Color(minf(accent.r * 1.5, 1.0), minf(accent.g * 1.5, 1.0), minf(accent.b * 1.5, 1.0), 0.95)
 		else:
-			bdr_col = _ca(accent, 0.55)
-		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), bdr_col, false, 2.5)
+			bdr_col = _ca(accent, 0.5)
+		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), bdr_col, false, 2.0)
+		if is_hovered and unlocked:
+			draw_rect(Rect2(draw_cx - 2, draw_cy - 2, draw_cw + 4, draw_ch + 4), _ca(accent, 0.15))
 
-		# === Enhancement 5: Tier border glow ===
-		if unlocked:
-			var tier_data = survivor_progress.get(tower_type, {"level": 1})
-			var tier = tier_data.get("level", 1)
-			var tier_col = Color(0.6, 0.4, 0.2, 0.15)  # bronze
-			if tier >= 7:
-				tier_col = Color(0.4, 0.8, 1.0, 0.2)  # diamond
-			elif tier >= 5:
-				tier_col = Color(0.85, 0.7, 0.2, 0.2)  # gold
-			elif tier >= 3:
-				tier_col = Color(0.7, 0.72, 0.78, 0.18)  # silver
-			draw_rect(Rect2(draw_cx - 2, draw_cy - 2, draw_cw + 4, draw_ch + 4), tier_col)
-			# Menu Improvement 3: Animated rarity border based on power tier
-			var power_tier = _get_hero_power_tier(tower_type)
-			if power_tier > 0:
-				_draw_hero_rarity_border(draw_cx, draw_cy, draw_cw, draw_ch, power_tier)
-		# Power bar integrated into XP bar — no extra element below card
-		# Menu Improvement 11: Pulsing NEW badge on recently unlocked
+		# === Clean design — minimal overlays ===
+		# NEW badge only
 		if unlocked and _new_items.has("hero_%d" % i):
 			_draw_new_badge(draw_cx + draw_cw - 16, draw_cy + 4)
-
-		# === Element Badge ===
-		if unlocked:
-			_draw_element_badge(draw_cx + 15, draw_cy + 54, i)
-		# === CharMenu 3: Upgrade Ready Indicator ===
-		if unlocked and _can_hero_upgrade(tower_type):
-			_draw_upgrade_ready_indicator(draw_cx, draw_cy, draw_cw)
-		# === Favorite Icon ===
-		if unlocked:
-			_draw_favorite_icon(draw_cx + draw_cw - 15, draw_cy + draw_ch - 54, _is_favorite(tower_type))
-		# === Tier Rank Badge ===
-		if unlocked:
-			_draw_tier_rank_badge(draw_cx + 15, draw_cy + draw_ch - 54, tower_type)
-		# === Bonus 10: Daily Bonus Hero Glow ===
-		if unlocked and i == _get_daily_bonus_hero():
-			_draw_daily_glow(draw_cx, draw_cy, draw_cw, draw_ch)
-		# Card pulse removed — accent border already handles glow
-		# Prestige crown removed — cleaner card design
-		# === Bonus 17: Unlock Shimmer (on recently unlocked) ===
-		if unlocked and _new_items.has("hero_%d" % i):
-			_draw_unlock_shimmer(draw_cx, draw_cy, draw_cw, draw_ch)
-		# === Card Personality Particles ===
-		if unlocked:
-			_draw_card_particles(draw_cx, draw_cy, draw_cw, draw_ch, i)
-		# === Locked overlay — visible but dimmed, not pitch black ===
-		if not unlocked:
-			draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw - 6, draw_ch - 6), Color(0.02, 0.02, 0.06, 0.45))
-			# Padlock — bigger, brighter
-			var lock_cx = draw_cx + draw_cw * 0.5
-			var lock_cy = draw_cy + draw_ch * 0.38
-			draw_rect(Rect2(lock_cx - 16, lock_cy + 2, 32, 24), Color(0.4, 0.35, 0.50, 0.7))
-			draw_arc(Vector2(lock_cx, lock_cy + 2), 13, PI, TAU, 12, Color(0.45, 0.40, 0.55, 0.7), 3.0)
-			draw_circle(Vector2(lock_cx, lock_cy + 14), 3, Color(0.85, 0.70, 0.20, 0.7))
-			draw_rect(Rect2(lock_cx - 1.5, lock_cy + 15, 3, 5), Color(0.85, 0.70, 0.20, 0.5))
 			# === CharMenu 5: Unlock Progress bar on locked cards ===
 			_draw_unlock_progress(draw_cx, draw_cy, draw_cw, draw_ch, i)
 
