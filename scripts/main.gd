@@ -15583,7 +15583,7 @@ func _draw_diff_popup() -> void:
 	draw_rect(Rect2(popup_x + 3, popup_y + 3, popup_w - 6, popup_h - 6), Color(0.85, 0.70, 0.28, bp * 0.2), false, 1.0)
 
 	# Title
-	_udraw(font, Vector2(popup_x + popup_w * 0.5, popup_y + 24), level["name"], HORIZONTAL_ALIGNMENT_CENTER, int(popup_w - 20), 15, Color(0.92, 0.80, 0.35))
+	_ds_title(Vector2(popup_x + 10, popup_y + 24), level["name"], 16, Color(1.0, 0.88, 0.40), int(popup_w - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(popup_x + popup_w * 0.5, popup_y + 46), "Select Difficulty", HORIZONTAL_ALIGNMENT_CENTER, int(popup_w - 20), 14, Color(0.65, 0.55, 0.40))
 	draw_rect(Rect2(popup_x + 15, popup_y + 55, popup_w - 30, 1), Color(0.85, 0.70, 0.28, 0.3))
 
@@ -29396,7 +29396,7 @@ func _draw_power_selection() -> void:
 	var py = (720 - ph) / 2
 	draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.04, 0.10, 0.95))
 	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
-	_udraw(font, Vector2(px + pw * 0.5 - 80, py + 30), "SELECT BATTLE POWERS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.75, 0.4))
+	_ds_title(Vector2(px, py + 30), "SELECT BATTLE POWERS", 20, Color(1.0, 0.85, 0.28), int(pw), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 54), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.4))
 	# Cancel/Back button (top-right)
 	draw_rect(Rect2(px + pw - 112, py + 10, 100, 40), Color(0.4, 0.15, 0.15, 0.8))
