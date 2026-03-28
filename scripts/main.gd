@@ -33,18 +33,18 @@ var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 
 var tower_info = {
-	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0, "damage": 18, "fire_rate": 0.55},
-	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 12, "fire_rate": 0.65},
-	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 22, "fire_rate": 0.45},
-	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0, "damage": 10, "fire_rate": 0.80},
-	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 20, "fire_rate": 0.50},
-	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0, "damage": 8, "fire_rate": 0.70},
-	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 15, "fire_rate": 0.50},
-	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 25, "fire_rate": 0.40},
-	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0, "damage": 28, "fire_rate": 0.35},
-	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0, "damage": 30, "fire_rate": 0.40},
-	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0, "damage": 35, "fire_rate": 0.30},
-	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 250, "range": 170.0, "damage": 40, "fire_rate": 0.35},
+	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0, "damage": 25, "fire_rate": 0.55},
+	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 17, "fire_rate": 0.65},
+	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 30, "fire_rate": 0.45},
+	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0, "damage": 14, "fire_rate": 0.80},
+	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 28, "fire_rate": 0.50},
+	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0, "damage": 11, "fire_rate": 0.70},
+	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 20, "fire_rate": 0.50},
+	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 35, "fire_rate": 0.40},
+	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0, "damage": 38, "fire_rate": 0.35},
+	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0, "damage": 42, "fire_rate": 0.40},
+	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0, "damage": 48, "fire_rate": 0.30},
+	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 250, "range": 170.0, "damage": 55, "fire_rate": 0.35},
 }
 
 # Constants
@@ -154,18 +154,18 @@ var survivor_types = [
 	TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR
 ]
 var survivor_descriptions = {
-	TowerType.ROBIN_HOOD: "They hanged his father in Sherwood.\nNow every arrow he looses repays that debt.\nThe dead don't need their gold anyway.",
-	TowerType.ALICE: "She fell down the rabbit hole and never\nquite climbed back out. The madness followed\nher home, and it bites.",
-	TowerType.WICKED_WITCH: "They called her wicked. They were right.\nThe skies darken when she flies, and her\nmonkeys don't come to play.",
-	TowerType.PETER_PAN: "He laughs because he's forgotten what\nfear tastes like. The shadow at his feet\nremembers everything.",
-	TowerType.PHANTOM: "Beneath the opera house, a genius rots.\nHis music is the only beautiful thing\nleft. It kills just the same.",
-	TowerType.SCROOGE: "Three ghosts broke him open. Now he\nspends what he hoarded, weaponizing\nevery coin against the darkness.",
-	TowerType.SHERLOCK: "Where others see chaos, he sees patterns.\nEvery enemy is a puzzle. Every puzzle\nhas exactly one solution.",
-	TowerType.TARZAN: "Raised by apes in a world that wanted\nhim dead. The jungle didn't make him\ngentle. It made him lethal.",
-	TowerType.DRACULA: "Five hundred years of patience. He does\nnot rush. He does not tire. He feeds,\nand what he takes stays taken.",
-	TowerType.MERLIN: "He has seen the end of every story.\nThe old wizard fights anyway, bending\ntime and fate to shield the young.",
-	TowerType.FRANKENSTEIN: "They built him from corpses and lightning.\nHe didn't ask to exist. But he exists\nwith terrible, terrible force.",
-	TowerType.SHADOW_AUTHOR: "He writes the story you're living.\nEvery enemy, every wave, every death\nflows from his ink. He is not on your side.",
+	TowerType.ROBIN_HOOD: "The legendary outlaw of Sherwood Forest.\nLong-range archer with piercing arrows and gold bonus.",
+	TowerType.ALICE: "The curious girl from Wonderland.\nThrows cake that slows and shrinks all nearby enemies.",
+	TowerType.WICKED_WITCH: "The Wicked Witch of the West.\nSwoops to strike enemies, summons wolves and monkeys.",
+	TowerType.PETER_PAN: "The boy who never grew up.\nFast dagger attacks with shadow and fairy dust.",
+	TowerType.PHANTOM: "The masked genius beneath the Opera.\nHeavy music note attacks with stun and AoE.",
+	TowerType.SCROOGE: "The miserly old man visited by ghosts.\nRings his bell to blast enemies backwards and earn gold.",
+	TowerType.SHERLOCK: "The world's greatest detective.\nMagnifying glass beam burns enemies. Marks targets for team damage.",
+	TowerType.TARZAN: "The lord of the jungle.\nDevastating melee attacks, vine swings, and animal allies.",
+	TowerType.DRACULA: "The immortal count from Transylvania.\nDrains life from enemies, summons bats, turns foes to minions.",
+	TowerType.MERLIN: "The legendary wizard of Camelot.\nBuffs allies, curses enemies, summons Excalibur strikes.",
+	TowerType.FRANKENSTEIN: "The tragic creature brought to life.\nLightning-charged fist smash with devastating area damage.",
+	TowerType.SHADOW_AUTHOR: "The dark narrator who writes the story.\nMaster of ink and shadow, bends reality to his will.",
 }
 # Character titles / epithets (shown below name on cards and detail view)
 var character_titles: Array = [
