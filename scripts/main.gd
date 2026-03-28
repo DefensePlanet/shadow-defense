@@ -328,6 +328,114 @@ var c_overlay = Color(0.0, 0.0, 0.0, 0.7)           # modal overlay
 func _ca(base: Color, alpha: float) -> Color:
 	return Color(base.r, base.g, base.b, alpha)
 
+# ============================================================
+# DESIGN SYSTEM — Reusable draw components for consistent UI
+# ============================================================
+
+# DS: Draw a rounded panel with optional border
+func _ds_panel(rect: Rect2, bg: Color, border_col: Color = Color.TRANSPARENT, border_w: float = 0.0) -> void:
+	draw_rect(rect, bg)
+	if border_w > 0.0 and border_col.a > 0.0:
+		draw_rect(rect, border_col, false, border_w)
+
+# DS: Draw a glowing title (shadow + bright + glow pass)
+func _ds_title(pos: Vector2, text: String, size: int, color: Color, width: int = -1, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:
+	var font = game_font
+	if font == null:
+		return
+	var pulse = 0.85 + sin(_time * 1.0) * 0.15
+	# Shadow
+	_udraw(font, Vector2(pos.x + 1, pos.y + 1), text, align, width, size, Color(0, 0, 0, 0.7))
+	# Bright
+	_udraw(font, pos, text, align, width, size, Color(color.r * pulse, color.g * pulse, color.b * pulse, 1.0))
+	# Glow pass
+	_udraw(font, Vector2(pos.x - 1, pos.y - 1), text, align, width, size, Color(color.r, color.g, color.b, 0.25 * pulse))
+
+# DS: Draw a modern button (gradient, glass highlight, gold border)
+func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = false, text_size: int = 16) -> void:
+	var font = game_font
+	if font == null:
+		return
+	var pulse = 0.85 + sin(_time * 3.0) * 0.15
+	var col = Color(base_col.r * (1.2 if is_hover else 1.0), base_col.g * (1.2 if is_hover else 1.0), base_col.b * (1.2 if is_hover else 1.0))
+	# Glow behind on hover
+	if is_hover:
+		draw_rect(Rect2(rect.position.x - 3, rect.position.y - 3, rect.size.x + 6, rect.size.y + 6), _ca(col, 0.12))
+	# Gradient fill
+	for gi in range(5):
+		var gt = float(gi) / 4.0
+		var shade = 1.0 - gt * 0.3
+		draw_rect(Rect2(rect.position.x, rect.position.y + gt * rect.size.y * 0.2, rect.size.x, rect.size.y * 0.2 + 1), Color(col.r * shade, col.g * shade, col.b * shade, pulse))
+	# Glass highlight
+	draw_rect(Rect2(rect.position.x + 2, rect.position.y + 2, rect.size.x - 4, rect.size.y * 0.35), Color(1, 1, 1, 0.08 * pulse))
+	# Gold border
+	draw_rect(rect, Color(0.85, 0.70, 0.20, 0.6 * pulse), false, 2.0)
+	# Text — centered, shadow + bright
+	var tx = rect.position.x
+	var ty = rect.position.y + rect.size.y * 0.62
+	_udraw(font, Vector2(tx + 1, ty + 1), text, HORIZONTAL_ALIGNMENT_CENTER, int(rect.size.x), text_size, Color(0, 0, 0, 0.5))
+	_udraw(font, Vector2(tx, ty), text, HORIZONTAL_ALIGNMENT_CENTER, int(rect.size.x), text_size, Color(1, 1, 1, 0.95))
+
+# DS: Draw a hero card (portrait fills card, name at bottom, level badge)
+func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: String, level: int, accent: Color, unlocked: bool, is_hovered: bool) -> void:
+	var font = game_font
+	if font == null:
+		return
+	var rx = rect.position.x
+	var ry = rect.position.y
+	var rw = rect.size.x
+	var rh = rect.size.y
+	# Shadow
+	draw_rect(Rect2(rx + 4, ry + 4, rw, rh), Color(0, 0, 0, 0.5))
+	# Dark base
+	draw_rect(Rect2(rx, ry, rw, rh), Color(0.04, 0.04, 0.08))
+	# Portrait — crop-to-fill
+	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
+		var tex = _portrait_textures[speaker_name]
+		var tex_sz = tex.get_size()
+		var scale_x = rw / tex_sz.x
+		var scale_y = rh / tex_sz.y
+		var fill_scale = maxf(scale_x, scale_y)
+		var sw = tex_sz.x * fill_scale
+		var sh = tex_sz.y * fill_scale
+		draw_texture_rect(tex, Rect2(rx + (rw - sw) * 0.5, ry + (rh - sh) * 0.5, sw, sh), false)
+	elif not unlocked:
+		draw_rect(Rect2(rx, ry, rw, rh), Color(0.06, 0.05, 0.10, 0.9))
+		var lk_cx = rx + rw * 0.5
+		var lk_cy = ry + rh * 0.4
+		draw_rect(Rect2(lk_cx - 16, lk_cy + 2, 32, 24), Color(0.4, 0.35, 0.50, 0.6))
+		draw_arc(Vector2(lk_cx, lk_cy + 2), 13, PI, TAU, 12, Color(0.45, 0.40, 0.55, 0.6), 3.0)
+		draw_circle(Vector2(lk_cx, lk_cy + 14), 4, Color(0.85, 0.70, 0.20, 0.6))
+	# Bottom gradient for text
+	for gi in range(20):
+		var gt = float(gi) / 19.0
+		draw_rect(Rect2(rx, ry + rh - 46.0 + gt * 46.0, rw, 46.0 / 19.0 + 1), Color(0.0, 0.0, 0.0, gt * 0.88))
+	# Name
+	_udraw(font, Vector2(rx + 4, ry + rh - 26), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 15, Color(1.0, 0.95, 0.88) if unlocked else Color(0.55, 0.52, 0.58))
+	# Title
+	_udraw(font, Vector2(rx + 4, ry + rh - 10), title, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 10, _ca(accent, 0.75) if unlocked else Color(0.4, 0.38, 0.45, 0.5))
+	# Level badge
+	if unlocked and level > 0:
+		var bcx = rx + 18.0
+		var bcy = ry + 18.0
+		draw_circle(Vector2(bcx, bcy), 15, Color(0, 0, 0, 0.8))
+		draw_circle(Vector2(bcx, bcy), 13, _ca(accent, 0.8))
+		draw_circle(Vector2(bcx, bcy), 10, Color(0.02, 0.02, 0.06))
+		var ls = str(level)
+		var lw = font.get_string_size(ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		_udraw(font, Vector2(bcx - lw * 0.5, bcy + 5), ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+	# XP bar
+	if unlocked:
+		draw_rect(Rect2(rx, ry + rh - 3, rw, 3), Color(0, 0, 0, 0.5))
+		var xp_r = clampf(float(level) / 9.0, 0.0, 1.0)
+		draw_rect(Rect2(rx, ry + rh - 3, rw * xp_r, 3), _ca(accent, 0.9))
+	# Border
+	var bdr = _ca(accent, 0.5) if unlocked else Color(0.3, 0.28, 0.4, 0.35)
+	if is_hovered and unlocked:
+		bdr = Color(minf(accent.r * 1.5, 1.0), minf(accent.g * 1.5, 1.0), minf(accent.b * 1.5, 1.0), 0.95)
+		draw_rect(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), _ca(accent, 0.12))
+	draw_rect(Rect2(rx, ry, rw, rh), bdr, false, 2.0)
+
 # Storybook menu - animation (particles, lanterns, decorations)
 var _dust_positions: Array = []
 var _book_candle_positions: Array = []
@@ -13447,89 +13555,12 @@ func _draw_survivor_grid() -> void:
 			draw_cw += 6.0
 			draw_ch += 6.0
 
-		# ==========================================================
-		# MODERN CARD: Portrait fills card, name overlaid at bottom
-		# ==========================================================
-		# Card shadow
-		draw_rect(Rect2(draw_cx + 4, draw_cy + 4, draw_cw, draw_ch), Color(0.0, 0.0, 0.0, 0.5))
-		# Dark base fill
-		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.04, 0.04, 0.08))
-
-		# === PORTRAIT — crop-to-fill entire card, no distortion ===
-		if unlocked:
-			var port_key = speaker_name
-			if port_key in _portrait_textures and _portrait_textures[port_key] != null:
-				var tex = _portrait_textures[port_key]
-				var tex_sz = tex.get_size()
-				# Calculate crop-to-fill: scale up to cover card, then center-crop
-				var scale_x = draw_cw / tex_sz.x
-				var scale_y = draw_ch / tex_sz.y
-				var fill_scale = maxf(scale_x, scale_y)  # Use larger scale to FILL
-				var scaled_w = tex_sz.x * fill_scale
-				var scaled_h = tex_sz.y * fill_scale
-				var offset_x = draw_cx + (draw_cw - scaled_w) * 0.5
-				var offset_y = draw_cy + (draw_ch - scaled_h) * 0.5
-				draw_texture_rect(tex, Rect2(offset_x, offset_y, scaled_w, scaled_h), false)
-			else:
-				_draw_story_portrait(draw_cx + draw_cw * 0.1, draw_cy, draw_cw * 0.8, speaker_name)
-		else:
-			# Locked: dark with silhouette
-			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.06, 0.05, 0.10, 0.9))
-			var lock_cx2 = draw_cx + draw_cw * 0.5
-			var lock_cy2 = draw_cy + draw_ch * 0.4
-			draw_rect(Rect2(lock_cx2 - 18, lock_cy2 + 2, 36, 28), Color(0.4, 0.35, 0.50, 0.6))
-			draw_arc(Vector2(lock_cx2, lock_cy2 + 2), 15, PI, TAU, 12, Color(0.45, 0.40, 0.55, 0.6), 3.0)
-			draw_circle(Vector2(lock_cx2, lock_cy2 + 16), 4, Color(0.85, 0.70, 0.20, 0.6))
-
-		# === Bottom gradient overlay for text readability ===
-		for gi in range(20):
-			var gt = float(gi) / 19.0
-			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 50.0 + gt * 50.0, draw_cw, 50.0 / 19.0 + 1), Color(0.0, 0.0, 0.0, gt * 0.85))
-
-		# === NAME — big, bold, white, glowing ===
-		var name_str: String = info["name"]
-		var name_sz = 16
-		var name_y = draw_cy + draw_ch - 28.0
-		_udraw(font, Vector2(draw_cx + 4, name_y + 1), name_str, HORIZONTAL_ALIGNMENT_CENTER, int(draw_cw - 8), name_sz, Color(0, 0, 0, 0.7))
-		_udraw(font, Vector2(draw_cx + 4, name_y), name_str, HORIZONTAL_ALIGNMENT_CENTER, int(draw_cw - 8), name_sz, Color(1.0, 0.95, 0.88) if unlocked else Color(0.55, 0.52, 0.58))
-
-		# === TITLE — accent colored ===
+		# === USE DESIGN SYSTEM HERO CARD ===
+		var char_lvl = survivor_progress.get(tower_type, {"level": 1}).get("level", 1) if unlocked else 0
 		var title_str = _get_dynamic_title(i) if unlocked else (character_titles[i] if i < character_titles.size() else "")
 		if title_str.length() > 28:
 			title_str = title_str.substr(0, 26) + ".."
-		_udraw(font, Vector2(draw_cx + 4, draw_cy + draw_ch - 12), title_str, HORIZONTAL_ALIGNMENT_CENTER, int(draw_cw - 8), 11, _ca(accent, 0.8) if unlocked else Color(0.4, 0.38, 0.45, 0.5))
-
-		# === LEVEL BADGE (top-left, prominent) ===
-		if unlocked:
-			var progress = survivor_progress.get(tower_type, {"level": 1})
-			var lvl = progress.get("level", 1)
-			var badge_cx = draw_cx + 20.0
-			var badge_cy = draw_cy + 20.0
-			draw_circle(Vector2(badge_cx, badge_cy), 17, Color(0.0, 0.0, 0.0, 0.8))
-			draw_circle(Vector2(badge_cx, badge_cy), 15, _ca(accent, 0.8))
-			draw_circle(Vector2(badge_cx, badge_cy), 12, Color(0.02, 0.02, 0.06))
-			var lvl_str = str(lvl)
-			var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
-			_udraw(font, Vector2(badge_cx - lvl_w * 0.5, badge_cy + 5), lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
-
-		# === XP BAR (bottom edge) ===
-		if unlocked:
-			var xp_lvl = survivor_progress.get(tower_type, {"level": 1}).get("level", 1)
-			var xp_ratio = clampf(float(xp_lvl) / 9.0, 0.0, 1.0)
-			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), Color(0.0, 0.0, 0.0, 0.6))
-			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw * xp_ratio, 3), _ca(accent, 0.9))
-
-		# === BORDER — accent color, clean ===
-		var bdr_col: Color
-		if not unlocked:
-			bdr_col = Color(0.3, 0.28, 0.4, 0.35)
-		elif is_hovered:
-			bdr_col = Color(minf(accent.r * 1.5, 1.0), minf(accent.g * 1.5, 1.0), minf(accent.b * 1.5, 1.0), 0.95)
-		else:
-			bdr_col = _ca(accent, 0.5)
-		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), bdr_col, false, 2.0)
-		if is_hovered and unlocked:
-			draw_rect(Rect2(draw_cx - 2, draw_cy - 2, draw_cw + 4, draw_ch + 4), _ca(accent, 0.15))
+		_ds_hero_card(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), speaker_name, info["name"], title_str, char_lvl, accent, unlocked, is_hovered)
 
 		# === Clean design — minimal overlays ===
 		# NEW badge only
