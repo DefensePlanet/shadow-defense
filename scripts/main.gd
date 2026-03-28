@@ -10146,7 +10146,7 @@ func _draw_combo_counter() -> void:
 	var sz = int(14.0 * scale_mult)
 	var combo_text = "COMBO x%d" % _kill_combo
 	var col = Color(1.0, 0.9, 0.2, alpha) if _kill_combo < 25 else Color(1.0, 0.5, 0.1, alpha) if _kill_combo < 50 else Color(1.0, 0.2, 0.2, alpha)
-	_udraw(font, Vector2(1100, 60), combo_text, HORIZONTAL_ALIGNMENT_CENTER, 120, sz, col)
+	_udraw(font, Vector2(1040, 60), combo_text, HORIZONTAL_ALIGNMENT_CENTER, 120, sz, col)
 
 # --- 12. BOSS KILL CEREMONY ---
 func _trigger_boss_kill_ceremony(pos: Vector2, boss_name: String) -> void:
@@ -10477,14 +10477,14 @@ func _update_rival() -> void:
 
 func _draw_rival_comparison(rx: float, ry: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(rx, ry + 14), "YOUR RIVAL", HORIZONTAL_ALIGNMENT_CENTER, 200, 14, Color(0.8, 0.3, 0.3, 0.8))
-	_udraw(font, Vector2(rx, ry + 30), rival_data["name"], HORIZONTAL_ALIGNMENT_CENTER, 200, 16, Color(0.9, 0.4, 0.4, 0.9))
-	_udraw(font, Vector2(rx, ry + 48), "Score: %d" % rival_data["score"], HORIZONTAL_ALIGNMENT_CENTER, 200, 13, Color(0.7, 0.35, 0.35, 0.7))
+	_udraw(font, Vector2(rx - 100, ry + 14), "YOUR RIVAL", HORIZONTAL_ALIGNMENT_CENTER, 200, 14, Color(0.8, 0.3, 0.3, 0.8))
+	_udraw(font, Vector2(rx - 100, ry + 30), rival_data["name"], HORIZONTAL_ALIGNMENT_CENTER, 200, 16, Color(0.9, 0.4, 0.4, 0.9))
+	_udraw(font, Vector2(rx - 100, ry + 48), "Score: %d" % rival_data["score"], HORIZONTAL_ALIGNMENT_CENTER, 200, 13, Color(0.7, 0.35, 0.35, 0.7))
 	# Player comparison
 	var diff = player_rivalry_score - rival_data["score"]
 	var diff_col = Color(0.3, 0.9, 0.3) if diff >= 0 else Color(0.9, 0.3, 0.3)
 	var diff_text = "%+d" % diff
-	_udraw(font, Vector2(rx, ry + 64), "You: %d (%s)" % [player_rivalry_score, diff_text], HORIZONTAL_ALIGNMENT_CENTER, 200, 13, diff_col)
+	_udraw(font, Vector2(rx - 100, ry + 64), "You: %d (%s)" % [player_rivalry_score, diff_text], HORIZONTAL_ALIGNMENT_CENTER, 200, 13, diff_col)
 
 func _draw_scroll_indicator(x: float, y: float, height: float, scroll_pos: float, content_height: float, visible_height: float) -> void:
 	if content_height <= visible_height:
@@ -15424,7 +15424,7 @@ func _draw_story_map() -> void:
 				var next_text_a = 0.7 + sin(_time * 4.0) * 0.3
 				var next_scale = 1.0 + sin(_time * 3.0) * 0.05
 				draw_rect(Rect2(next_badge_x, next_badge_y, 80.0 * next_scale, 16), Color(0.2, 0.6, 0.15, next_text_a * 0.5))
-				_udraw(font, Vector2(next_badge_x + 40.0 * next_scale, next_badge_y + 12), ">> NEXT <<", HORIZONTAL_ALIGNMENT_CENTER, 78, 14, Color(0.4, 1.0, 0.4, next_text_a))
+				_udraw(font, Vector2(next_badge_x + 1.0 * next_scale, next_badge_y + 12), ">> NEXT <<", HORIZONTAL_ALIGNMENT_CENTER, int(80.0 * next_scale), 14, Color(0.4, 1.0, 0.4, next_text_a))
 
 			# --- Map thumbnail (large, prominent) ---
 			var thumb_x = rx + 12.0
@@ -15560,7 +15560,7 @@ func _draw_story_map() -> void:
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), btn_col)
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, 2), Color(0.4, 0.8, 0.3, 0.3))
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), _ca(menu_gold_dim, 0.4), false, 1.0)
-				_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + 25), "GO", HORIZONTAL_ALIGNMENT_CENTER, btn_w2 - 8, 14, Color(1, 1, 1, 0.95))
+				_udraw(font, Vector2(btn_x + 4, btn_y2 + 25), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 14, Color(1, 1, 1, 0.95))
 				# Menu Improvement 5: Button shimmer sweep on GO button
 				if not is_complete:
 					_draw_button_shimmer(btn_x, btn_y2, btn_w2, btn_h2, 50.0, Color(1, 1, 1, 0.12))
