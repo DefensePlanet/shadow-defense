@@ -5372,7 +5372,10 @@ func _create_ui() -> void:
 	upgrade_name_label.size = Vector2(180, 30)
 	upgrade_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	upgrade_name_label.add_theme_font_size_override("font_size", 18)
-	upgrade_name_label.add_theme_color_override("font_color", c_gold)
+	upgrade_name_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35))
+	upgrade_name_label.add_theme_constant_override("shadow_offset_x", 1)
+	upgrade_name_label.add_theme_constant_override("shadow_offset_y", 1)
+	upgrade_name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
 	upgrade_panel.add_child(upgrade_name_label)
 
 	# Separator line (drawn via a thin ColorRect)
