@@ -1337,7 +1337,7 @@ func _draw() -> void:
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
 	# === SPRITE RENDERING (animated — precise & analytical) ===
-	if sprite_texture:
+	if false:  # force procedural body
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1363,7 +1363,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if not sprite_texture:
+	if true:  # procedural Bloons character
 		# === 11. CHARACTER POSITIONS (BTD6 chibi proportions) ===
 		var OL = Color(0.06, 0.06, 0.08)
 		var hip_sway = hip_shift

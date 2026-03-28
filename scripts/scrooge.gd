@@ -1330,7 +1330,7 @@ func _draw() -> void:
 			draw_line(ray_start, ray_end, Color(0.5, 0.6, 0.95, 0.1), 1.0)
 
 	# === SPRITE RENDERING (animated — stiff & grumpy) ===
-	if sprite_texture:
+	if false:  # force procedural body
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1356,7 +1356,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if not sprite_texture:
+	if true:  # procedural Bloons character
 		# === CHARACTER POSITIONS (Bloons chibi proportions) ===
 		var OL = Color(0.06, 0.06, 0.08)
 		var feet_y = body_offset + Vector2(sway * 1.0, 10.0)

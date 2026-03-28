@@ -1012,7 +1012,7 @@ func _draw() -> void:
 		draw_circle(body_offset + Vector2(tx, ty), 2.5, Color(0.1, 0.03, 0.15, 0.35))
 
 	# === SPRITE RENDERING (animated — dark & ethereal) ===
-	if sprite_texture:
+	if false:  # force procedural body
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1038,7 +1038,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if not sprite_texture:
+	if true:  # procedural Bloons character
 		# === 12. CLOAK/ROBE BODY ===
 		var cloak_pts = PackedVector2Array()
 		cloak_pts.append(body_offset + Vector2(-10, -28))
