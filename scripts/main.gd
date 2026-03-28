@@ -2410,6 +2410,7 @@ var gear_scroll_offset: float = 0.0
 var gear_hover_index: int = -1
 var emporium_scroll: float = 0.0  # Scroll offset for emporium main grid
 var achievements_scroll: float = 0.0  # Scroll offset for achievements tab
+var chronicles_scroll: float = 0.0  # Scroll offset for chronicles/knowledge tree
 
 # === STORY DIALOG SYSTEM ===
 var story_dialogs: Dictionary = {}  # "pre_level_N" -> [{speaker, text, voice_type}]
@@ -6151,6 +6152,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	detail_gear_scroll = 0.0
 	emporium_scroll = 0.0
 	achievements_scroll = 0.0
+	chronicles_scroll = 0.0
 	# Menu Improvement 7: Slide transition between views
 	_start_menu_slide(menu_current_view, nav_name)
 	# Menu Improvement 17: Nav icon bounce on tab click
@@ -12872,11 +12874,22 @@ func _draw_closed_book() -> void:
 			var div_by = branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 66
 			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_by - 5), Vector2(div_x + 4, div_by), Vector2(div_x, div_by + 5), Vector2(div_x - 4, div_by)]), _ca(menu_gold_dim, 0.45))
 
-		# Branch header
+		# Branch header — GLOWING, BOLD, BRIGHT
 		var bname = branch["name"]
 		var bdesc = "(%s)" % branch["desc"]
-		_udraw(font, Vector2(bx, branch_start_y + 14), bname, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 13, Color(bcol.r, bcol.g, bcol.b, 0.9))
-		_udraw(font, Vector2(bx, branch_start_y + 26), bdesc, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 11, Color(bcol.r, bcol.g, bcol.b, 0.5))
+		var hdr_pulse = 0.85 + sin(_time * 1.2 + float(bi) * 1.0) * 0.15
+		# Glow behind header text
+		draw_circle(Vector2(bx + branch_w * 0.5, branch_start_y + 16), 50.0, Color(bcol.r, bcol.g, bcol.b, 0.06 * hdr_pulse))
+		# Header bg bar
+		draw_rect(Rect2(bx, branch_start_y + 2, branch_w, 22), Color(bcol.r * 0.15, bcol.g * 0.15, bcol.b * 0.15, 0.5))
+		draw_rect(Rect2(bx, branch_start_y + 23, branch_w, 1), Color(bcol.r, bcol.g, bcol.b, 0.4))
+		# Name — GLOWING in branch color: shadow + bright + glow pass
+		var glow_col = Color(minf(bcol.r * 2.0, 1.0), minf(bcol.g * 2.0, 1.0), minf(bcol.b * 2.0, 1.0))
+		_udraw(font, Vector2(bx + 1, branch_start_y + 17), bname, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 16, Color(0, 0, 0, 0.6))
+		_udraw(font, Vector2(bx, branch_start_y + 16), bname, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 16, Color(glow_col.r * hdr_pulse, glow_col.g * hdr_pulse, glow_col.b * hdr_pulse, 1.0))
+		_udraw(font, Vector2(bx - 1, branch_start_y + 15), bname, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 16, Color(glow_col.r, glow_col.g, glow_col.b, 0.3 * hdr_pulse))
+		# Desc — bright
+		_udraw(font, Vector2(bx, branch_start_y + 30), bdesc, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 12, Color(glow_col.r * 0.7, glow_col.g * 0.7, glow_col.b * 0.7, 0.8))
 
 		# === Character portrait beside branch header (Enhancement #40) ===
 		var portrait_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom"]
@@ -12894,6 +12907,13 @@ func _draw_closed_book() -> void:
 
 		# Nodes (vertical chain, circle indented like a book margin)
 		var node_cx = bx + node_radius + 14
+		# Calculate scroll bounds
+		var total_node_h = float(branch["nodes"].size()) * node_spacing_y + 80.0
+		var visible_h = panel_h - 70.0
+		var max_chr_scroll = maxf(0.0, total_node_h - visible_h)
+		chronicles_scroll = clampf(chronicles_scroll, 0.0, max_chr_scroll)
+		var content_top = branch_start_y + 36.0
+		var content_bottom = panel_y + panel_h - 8.0
 		for ni in range(branch["nodes"].size()):
 			var node = branch["nodes"][ni]
 			var node_key = "%d_%d" % [bi, ni]
@@ -12901,12 +12921,15 @@ func _draw_closed_book() -> void:
 			var can_unlock = not is_unlocked and knowledge_ink >= node["cost"]
 			if ni > 0:
 				can_unlock = can_unlock and knowledge_tree.get("%d_%d" % [bi, ni - 1], false)
-			var node_cy = branch_start_y + 60.0 + float(ni) * node_spacing_y
+			var node_cy = branch_start_y + 60.0 + float(ni) * node_spacing_y - chronicles_scroll
+			# Skip nodes outside visible area
+			if node_cy + node_radius + 20 < content_top or node_cy - node_radius > content_bottom:
+				continue
 			var is_hovered = (chronicles_hover_branch == bi and chronicles_hover_node == ni)
 
 			# Connection line to previous node
 			if ni > 0:
-				var prev_y = branch_start_y + 60.0 + float(ni - 1) * node_spacing_y
+				var prev_y = branch_start_y + 60.0 + float(ni - 1) * node_spacing_y - chronicles_scroll
 				var line_col = Color(bcol.r, bcol.g, bcol.b, 0.5) if knowledge_tree.get("%d_%d" % [bi, ni - 1], false) else Color(0.3, 0.3, 0.3, 0.2)
 				draw_line(Vector2(node_cx, prev_y + node_radius), Vector2(node_cx, node_cy - node_radius), line_col, 2.0)
 
@@ -12986,7 +13009,7 @@ func _update_knowledge_hover() -> void:
 		var bx = branch_start_x + float(bi) * (branch_w + branch_gap)
 		var node_cx = bx + node_radius + 14
 		for ni in range(knowledge_branches[bi]["nodes"].size()):
-			var node_cy = branch_start_y + 60.0 + float(ni) * node_spacing_y
+			var node_cy = branch_start_y + 60.0 + float(ni) * node_spacing_y - chronicles_scroll
 			if mouse_pos.distance_to(Vector2(node_cx, node_cy)) <= node_radius + 4:
 				chronicles_hover_branch = bi
 				chronicles_hover_node = ni
@@ -18432,6 +18455,14 @@ func _input(event: InputEvent) -> void:
 				achievements_scroll = maxf(0.0, achievements_scroll - 40.0)
 			else:
 				achievements_scroll += 40.0
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "chronicles" and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				chronicles_scroll = maxf(0.0, chronicles_scroll - 40.0)
+			else:
+				chronicles_scroll += 40.0
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
