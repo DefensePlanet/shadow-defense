@@ -11306,11 +11306,9 @@ func _draw_gear_tab() -> void:
 			if b["tier"] == rarity:
 				trinkets.append(b)
 
-		# Tier header (only draw if visible)
-		if sec_y + 20 > content_top and sec_y < content_bottom:
-			draw_rect(Rect2(grid_left, sec_y, panel_w - 36, 20), Color(rc.r, rc.g, rc.b, 0.12))
-			draw_rect(Rect2(grid_left, sec_y, panel_w - 36, 1), Color(rc.r, rc.g, rc.b, 0.4))
-			_udraw(font, Vector2(grid_left + 10, sec_y + 14), rarity_names[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(rc.r, rc.g, rc.b, 0.9))
+		# Tier header — design system
+		if sec_y + 22 > content_top and sec_y < content_bottom:
+			_ds_section_header(Vector2(grid_left, sec_y), panel_w - 36, rarity_names[rarity], rc)
 			var gem_x = grid_left + panel_w - 56
 			var gem_y = sec_y + 10
 			draw_colored_polygon(PackedVector2Array([Vector2(gem_x, gem_y - 5), Vector2(gem_x + 5, gem_y), Vector2(gem_x, gem_y + 5), Vector2(gem_x - 5, gem_y)]), Color(rc.r, rc.g, rc.b, 0.7))
@@ -29968,10 +29966,9 @@ func _draw_gear_shop() -> void:
 	var total_content_h = 0.0
 	for ri in range(rarity_order.size()):
 		var rarity = rarity_order[ri]
-		# Category header
-		if start_y + 18 > content_top and start_y < content_bottom:
-			draw_rect(Rect2(panel_x + 10, start_y, panel_w - 20, 18), Color(0.6, 0.3, 0.8, 0.10))
-			_udraw(font, Vector2(panel_x + 20, start_y + 13), rarity_names[rarity] + " (%d shards)" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, TIER_COLORS[rarity])
+		# Category header — design system
+		if start_y + 22 > content_top and start_y < content_bottom:
+			_ds_section_header(Vector2(panel_x + 10, start_y), panel_w - 20, rarity_names[rarity] + " (%d shards)" % rarity_costs[rarity], TIER_COLORS[rarity])
 		start_y += 22.0
 		total_content_h += 22.0
 		var gear_in_tier: Array = []
