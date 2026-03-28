@@ -1097,7 +1097,7 @@ func _draw() -> void:
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
 	# === SPRITE RENDERING (animated — bouncy & energetic) ===
-	if sprite_texture:
+	if false:  # Always use procedural character body
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1122,7 +1122,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if not sprite_texture:
+	if true:  # Procedural Bloons-style character
 		# === CHARACTER POSITIONS (chibi Bloons TD proportions ~48px) ===
 		var feet_y = body_offset + Vector2(lean * 0.8, 10.0 - playful_bounce * 0.5)
 		var leg_top = body_offset + Vector2(lean * 0.5, 0.0)

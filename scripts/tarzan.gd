@@ -1537,7 +1537,7 @@ func _draw() -> void:
 	var head_center = body_offset + Vector2(0, -26.0)
 
 	# === SPRITE RENDERING (animated — wild & powerful) ===
-	if sprite_texture:
+	if false:  # Always use procedural character body
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1562,7 +1562,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if not sprite_texture:
+	if true:  # Procedural Bloons-style character
 		# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
 		var breath = breathe
 		var sway = weight_shift
