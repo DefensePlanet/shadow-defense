@@ -13191,12 +13191,8 @@ func _draw_daily_reward() -> void:
 	# === TITLE ===
 	var title = "DAILY REWARDS"
 	var title_size = 34
-	var ttw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x
-	var title_x = cx - ttw * 0.5
 	var title_y = modal_y + 44
-	_udraw(font, Vector2(title_x + 2, title_y + 2), title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(0.0, 0.0, 0.0, 0.6))
-	_udraw(font, Vector2(title_x, title_y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(1.0, 0.82, 0.3, 0.35))
-	_udraw(font, Vector2(title_x - 1, title_y - 1), title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(1.0, 0.92, 0.65, 1.0))
+	_ds_title(Vector2(modal_x, title_y), title, title_size, Color(1.0, 0.90, 0.50), int(modal_w), HORIZONTAL_ALIGNMENT_CENTER)
 
 	# Decorative line under title with center diamond
 	var line_w = 200.0
@@ -31927,11 +31923,15 @@ func _draw_levelup_fanfare() -> void:
 	else:
 		label = "%s LEVEL %d!" % [name_str.to_upper(), levelup_fanfare_new_level]
 	var font = game_font
-	var tw = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
+	var tw = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x
 	var cx = 640.0 - tw * 0.5
 	var cy = 280.0 - levelup_fanfare_timer * 15.0
-	_udraw(font, Vector2(cx + 2, cy + 2), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0, 0, 0, text_alpha * 0.5))
-	_udraw(font, Vector2(cx, cy), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, _ca(c_gold_bright, text_alpha))
+	# Glow halo
+	draw_circle(Vector2(640, cy - 4), 100.0, Color(1.0, 0.85, 0.2, text_alpha * 0.08))
+	# Triple-layer text
+	_udraw(font, Vector2(cx + 2, cy + 2), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(0, 0, 0, text_alpha * 0.6))
+	_udraw(font, Vector2(cx, cy), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0 * text_alpha, 0.88 * text_alpha, 0.25, text_alpha))
+	_udraw(font, Vector2(cx - 1, cy - 1), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0, 0.95, 0.5, text_alpha * 0.25))
 
 # ============================================================================
 # === BATTD3: SESSION STATS RECAP ===
