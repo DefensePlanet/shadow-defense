@@ -29291,15 +29291,10 @@ func _draw_achievements_tab() -> void:
 			if is_done:
 				draw_rect(Rect2(cx - 2, cy - 2, card_w + 4, card_h + 4), Color(cat_col.r, cat_col.g, cat_col.b, 0.08 + sin(_time * 2.0 + float(ai)) * 0.03))
 
-			# Card background
-			var bg = Color(0.10, 0.08, 0.22, 0.8) if is_done else Color(0.05, 0.05, 0.14, 0.8)
-			draw_rect(Rect2(cx, cy, card_w, card_h), bg)
-			# Border
-			var bc = _ca(menu_gold, 0.6) if is_done else Color(0.25, 0.25, 0.40, 0.3)
-			draw_rect(Rect2(cx, cy, card_w, 1), bc)
-			draw_rect(Rect2(cx, cy + card_h - 1, card_w, 1), bc)
-			draw_rect(Rect2(cx, cy, 1, card_h), bc)
-			draw_rect(Rect2(cx + card_w - 1, cy, 1, card_h), bc)
+			# Card — using design system panel
+			var bg = Color(0.10, 0.08, 0.22, 0.85) if is_done else Color(0.05, 0.05, 0.14, 0.85)
+			var bc = _ca(cat_col, 0.5) if is_done else Color(0.25, 0.25, 0.40, 0.3)
+			_ds_panel(Rect2(cx, cy, card_w, card_h), bg, bc, 1.5)
 
 			# === Achievement rarity badge (Enhancement #45) ===
 			# Color based on target difficulty: low=bronze, mid=silver, high=gold
@@ -29325,11 +29320,11 @@ func _draw_achievements_tab() -> void:
 				var pct = clampf(float(prog) / float(max(1, ach["target"])), 0.0, 1.0)
 				draw_rect(Rect2(cx + 4, cy + card_h - 8, (card_w - 8) * pct, 4), Color(cat_col.r, cat_col.g, cat_col.b, 0.5))
 				draw_rect(Rect2(cx + 4, cy + card_h - 8, card_w - 8, 4), Color(0.3, 0.3, 0.4, 0.2), false, 1.0)
-			# Name and desc
+			# Name and desc — brighter
 			var nx = cx + 42.0 if _achievement_icon_textures.has(_ach_icon_id) else cx + 30.0
-			var nc = _ca(menu_gold_light, 1.0) if is_done else Color(0.55, 0.52, 0.60)
-			_udraw(font, Vector2(nx, cy + 16), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 15, nc)
-			_udraw(font, Vector2(nx, cy + 31), ach["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 15, Color(0.5, 0.45, 0.4))
+			var nc = Color(1.0, 0.92, 0.60) if is_done else Color(0.60, 0.56, 0.65)
+			_udraw(font, Vector2(nx, cy + 16), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 14, nc)
+			_udraw(font, Vector2(nx, cy + 30), ach["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 12, Color(0.60, 0.55, 0.48) if not is_done else Color(0.75, 0.68, 0.55))
 			if not is_done:
 				_udraw(font, Vector2(nx, cy + 42), "%d / %d" % [prog, ach["target"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_text_muted)
 
