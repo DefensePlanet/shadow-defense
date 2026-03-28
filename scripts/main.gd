@@ -11657,11 +11657,11 @@ func _draw_emporium() -> void:
 		var icon_cy = ty + tile_h * 0.45
 		_draw_emporium_icon(Vector2(icon_cx, icon_cy), cat["icon"], 55.0)
 
-		# === Description text (bottom) ===
+		# === Description text (bottom) — brighter ===
 		var desc_size = 13
 		var desc_text = cat["desc"]
 		var desc_y = ty + tile_h - 16.0
-		_udraw(font, Vector2(tx + tile_w * 0.5, desc_y), desc_text, HORIZONTAL_ALIGNMENT_CENTER, int(tile_w - 16), desc_size, Color(0.65, 0.55, 0.4, 0.8))
+		_udraw(font, Vector2(tx, desc_y), desc_text, HORIZONTAL_ALIGNMENT_CENTER, int(tile_w), desc_size, Color(0.75, 0.65, 0.50, 0.85))
 
 		# === Badge ribbon (top-left) ===
 		if cat["badge"] != "":
