@@ -6520,8 +6520,8 @@ func _update_detail_hover() -> void:
 	detail_hover_type = ""
 	detail_hover_index = -1
 	# Layout coordinates must match _draw_survivor_detail()
-	var panel_x = 70.0
-	var panel_y = 38.0
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 38.0 + _safe_top
 	var panel_h = 570.0
 	var top_y = panel_y + 8.0
 	var content_y = top_y + 46.0
@@ -6542,7 +6542,7 @@ func _update_detail_hover() -> void:
 	# Tab content area
 	var tc_x = tab_strip_x
 	var tc_y = tab_strip_y + 40.0
-	var tc_w = 714.0
+	var tc_w = panel_x + 1140.0 - _safe_left - _safe_right - tab_strip_x - 10.0
 	# Check level-up button (below XP bar)
 	if Rect2(port_x, levelup_btn_y, port_w, levelup_btn_h).has_point(mouse_pos):
 		detail_hover_type = "levelup"
@@ -6678,8 +6678,8 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 	var progress = survivor_progress.get(tower_type, {})
 	var char_level = progress.get("level", 1)
 	# Layout coordinates must match _draw_survivor_detail() and _update_detail_hover()
-	var panel_x = 70.0
-	var panel_y = 38.0
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 38.0 + _safe_top
 	var panel_h = 570.0
 	var top_y = panel_y + 8.0
 	var content_y = top_y + 46.0
@@ -6828,7 +6828,7 @@ func _on_trinket_slot_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0 + _safe_left
 	var panel_y = 38.0 + _safe_top
 	var top_y = panel_y + 8.0
-	var content_y = top_y + 38.0
+	var content_y = top_y + 46.0
 	var right_x = panel_x + 340.0
 	var slot_size = 64.0
 
@@ -14474,9 +14474,9 @@ func _draw_ability_icon(center: Vector2, tier: int, accent: Color) -> void:
 func _draw_survivor_detail() -> void:
 	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
 		return
-	var panel_x = 70.0
-	var panel_y = 38.0
-	var panel_w = 1140.0
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 38.0 + _safe_top
+	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 570.0
 	var tower_type = survivor_types[survivor_detail_index]
 	var info = tower_info[tower_type]
@@ -34123,8 +34123,8 @@ func _draw_detail_tabs(px: float, py: float, pw: float, accent: Color) -> void:
 
 func _handle_detail_tab_click(mouse_pos: Vector2, px: float, py: float, pw: float) -> bool:
 	# Tab strip: 4 tabs starting at panel_x + 420, each 170px wide with 8px gap
-	var tab_strip_x = 490.0
-	var tab_strip_y = 92.0
+	var tab_strip_x = 70.0 + _safe_left + 420.0
+	var tab_strip_y = 38.0 + _safe_top + 8.0 + 46.0
 	var tab_w_each = 170.0
 	var tab_gap = 8.0
 	if mouse_pos.y < tab_strip_y or mouse_pos.y > tab_strip_y + 32:
