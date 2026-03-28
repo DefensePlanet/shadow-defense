@@ -12,7 +12,7 @@ var fire_rate: float = 0.72
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
-var sprite_texture: ImageTexture = null
+var sprite_texture: Texture2D = null
 var target: Node2D = null
 var gold_bonus: int = 1
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
