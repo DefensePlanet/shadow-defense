@@ -10173,7 +10173,7 @@ func _draw_boss_kill_ceremony() -> void:
 	if _boss_kill_slowmo > 0.0:
 		var font = game_font
 		var alpha = minf(_boss_kill_slowmo, 1.0)
-		_udraw(font, Vector2(640, 300), _boss_kill_name + " DEFEATED!", HORIZONTAL_ALIGNMENT_CENTER, 600, 28, Color(0.95, 0.75, 0.1, alpha))
+		_udraw(font, Vector2(340, 300), _boss_kill_name + " DEFEATED!", HORIZONTAL_ALIGNMENT_CENTER, 600, 28, Color(0.95, 0.75, 0.1, alpha))
 		# Radial burst at kill position
 		for bi in range(12):
 			var ba = float(bi) * TAU / 12.0
@@ -10205,7 +10205,7 @@ func _draw_near_miss() -> void:
 	var font = game_font
 	var alpha = minf(_near_miss_timer, 1.0)
 	var pulse = 0.7 + sin(_time * 6.0) * 0.3
-	_udraw(font, Vector2(640, 100), _near_miss_text, HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Color(1.0, 0.2, 0.15, alpha * pulse))
+	_udraw(font, Vector2(440, 100), _near_miss_text, HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Color(1.0, 0.2, 0.15, alpha * pulse))
 	# Vignette effect
 	var vig_alpha = alpha * 0.15
 	draw_rect(Rect2(0, 0, 1280, 30), Color(0.8, 0.1, 0.05, vig_alpha))
@@ -10237,8 +10237,8 @@ func _draw_power_spike() -> void:
 	var tname = tower_info[_power_spike_tower_type]["name"] if tower_info.has(_power_spike_tower_type) else "Hero"
 	var tier_labels = ["", "Tier I", "Tier II", "POWER SPIKE!", "ULTIMATE FORM!"]
 	var label = tier_labels[mini(_power_spike_tier, tier_labels.size() - 1)]
-	_udraw(font, Vector2(640, 340), tname, HORIZONTAL_ALIGNMENT_CENTER, 400, 24, Color(0.95, 0.75, 0.1, alpha))
-	_udraw(font, Vector2(640, 370), label, HORIZONTAL_ALIGNMENT_CENTER, 400, 20, Color(1.0, 0.9, 0.3, alpha))
+	_udraw(font, Vector2(440, 340), tname, HORIZONTAL_ALIGNMENT_CENTER, 400, 24, Color(0.95, 0.75, 0.1, alpha))
+	_udraw(font, Vector2(440, 370), label, HORIZONTAL_ALIGNMENT_CENTER, 400, 20, Color(1.0, 0.9, 0.3, alpha))
 	# Flash overlay
 	if _power_spike_timer > 1.5:
 		draw_rect(Rect2(0, 0, 1280, 720), Color(1, 1, 1, (_power_spike_timer - 1.5) * 0.4))
@@ -10261,7 +10261,7 @@ func _draw_comeback_banner() -> void:
 	if not _comeback_bonus_active or _comeback_timer <= 0.0:
 		return
 	var font = game_font
-	_udraw(font, Vector2(640, 50), "WELCOME BACK! %.0fx REWARDS (%d games left)" % [_comeback_multiplier, int(_comeback_timer)], HORIZONTAL_ALIGNMENT_CENTER, 600, 16, Color(0.4, 0.9, 0.6, 0.8))
+	_udraw(font, Vector2(340, 50), "WELCOME BACK! %.0fx REWARDS (%d games left)" % [_comeback_multiplier, int(_comeback_timer)], HORIZONTAL_ALIGNMENT_CENTER, 600, 16, Color(0.4, 0.9, 0.6, 0.8))
 
 # --- 17. FORTRESS EVOLUTION ---
 func _update_fortress_level() -> void:
@@ -10360,8 +10360,8 @@ func _draw_milestone_popup() -> void:
 	# Banner
 	draw_rect(Rect2(340, cy, 600, 50), Color(0.06, 0.04, 0.12, 0.95 * alpha))
 	draw_rect(Rect2(340, cy, 600, 50), Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, 0.6 * alpha), false, 2.0)
-	_udraw(font, Vector2(640, cy + 22), _milestone_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 20, Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, alpha))
-	_udraw(font, Vector2(640, cy + 40), _milestone_popup_sub, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.7, 0.7, 0.7, alpha * 0.7))
+	_udraw(font, Vector2(350, cy + 22), _milestone_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 20, Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, alpha))
+	_udraw(font, Vector2(350, cy + 40), _milestone_popup_sub, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.7, 0.7, 0.7, alpha * 0.7))
 
 # --- 21. SEASONAL DECORATIONS ---
 func _get_current_season() -> String:
@@ -18730,8 +18730,8 @@ func _draw_tower_stats_overlay() -> void:
 	if panel_x + 160.0 > 1240.0:
 		panel_x = tpos.x - 215.0
 	var panel_y = clampf(tpos.y - 60.0, 60.0, 520.0)
-	var pw = 160.0
-	var ph = 100.0
+	var pw = 170.0
+	var ph = 140.0
 	# Dark panel with gold border (gothic style)
 	draw_rect(Rect2(panel_x - 2, panel_y - 2, pw + 4, ph + 4), Color(0.8, 0.65, 0.2, 0.7))
 	draw_rect(Rect2(panel_x, panel_y, pw, ph), Color(0.05, 0.03, 0.08, 0.92))
@@ -18785,13 +18785,13 @@ func _draw_wave_preview() -> void:
 	draw_rect(Rect2(px - 1, py - 1, pw + 2, ph + 2), Color(0.85, 0.7, 0.2, 0.6))
 	draw_rect(Rect2(px, py, pw, ph), Color(0.05, 0.03, 0.08, 0.93))
 	# Title
-	_udraw(font, Vector2(640, py + 18), "NEXT WAVE: %d" % (wave + 1), HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(1.0, 0.85, 0.3))
+	_udraw(font, Vector2(px, py + 18), "NEXT WAVE: %d" % (wave + 1), HORIZONTAL_ALIGNMENT_CENTER, int(pw), 16, Color(1.0, 0.85, 0.3))
 	# Enemy info
 	var info_parts: Array = []
 	for wd in wave_preview_data:
 		info_parts.append("%dx T%d" % [wd.get("count", 0), wd.get("tier", 0)])
 	var info_text = " | ".join(info_parts)
-	_udraw(font, Vector2(640, py + 40), info_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.9, 0.85, 0.8))
+	_udraw(font, Vector2(px, py + 40), info_text, HORIZONTAL_ALIGNMENT_CENTER, int(pw), 13, Color(0.9, 0.85, 0.8))
 	# Timer bar
 	var bar_pct = clampf(wave_preview_timer / 3.0, 0.0, 1.0)
 	draw_rect(Rect2(px + 10, py + ph - 14, (pw - 20) * bar_pct, 6), Color(0.8, 0.65, 0.2, 0.7))
@@ -18870,8 +18870,8 @@ func _draw() -> void:
 			var a_alpha = clampf(achievement_popup_timer, 0.0, 1.0)
 			draw_rect(Rect2(340, 20, 600, 40), Color(0.08, 0.12, 0.04, 0.85 * a_alpha))
 			draw_rect(Rect2(340, 20, 600, 40), Color(0.4, 0.8, 0.2, 0.5 * a_alpha), false, 1.0)
-			_udraw(font, Vector2(640, 37), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
-			_udraw(font, Vector2(640, 53), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.5, 0.8, 0.3, a_alpha))
+			_udraw(font, Vector2(350, 37), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
+			_udraw(font, Vector2(350, 53), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, 580, 15, Color(0.5, 0.8, 0.3, a_alpha))
 		# Menu Improvement 14: Toast notifications overlay
 		_draw_toast_notification()
 		# News ticker removed — cleaner layout
@@ -19085,7 +19085,7 @@ func _draw() -> void:
 		var s_alpha = clampf(synergy_banner_timer, 0.0, 1.0)
 		draw_rect(Rect2(240, 55, 800, 30), Color(0.1, 0.06, 0.02, 0.8 * s_alpha))
 		draw_rect(Rect2(240, 55, 800, 30), _ca(c_gold, 0.5 * s_alpha), false, 1.0)
-		_udraw(font, Vector2(640, 76), synergy_banner_text, HORIZONTAL_ALIGNMENT_CENTER, 780, 16, Color(1.0, 0.9, 0.5, s_alpha))
+		_udraw(font, Vector2(250, 76), synergy_banner_text, HORIZONTAL_ALIGNMENT_CENTER, 780, 16, Color(1.0, 0.9, 0.5, s_alpha))
 
 	# === ACHIEVEMENT POPUP ===
 	if achievement_popup_timer > 0.0:
@@ -19094,8 +19094,8 @@ func _draw() -> void:
 		var a_y = 90.0
 		draw_rect(Rect2(340, a_y, 600, 40), Color(0.08, 0.12, 0.04, 0.85 * a_alpha))
 		draw_rect(Rect2(340, a_y, 600, 40), Color(0.4, 0.8, 0.2, 0.5 * a_alpha), false, 1.0)
-		_udraw(font, Vector2(640, a_y + 17), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
-		_udraw(font, Vector2(640, a_y + 33), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.5, 0.8, 0.3, a_alpha))
+		_udraw(font, Vector2(350, a_y + 17), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
+		_udraw(font, Vector2(350, a_y + 33), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, 580, 15, Color(0.5, 0.8, 0.3, a_alpha))
 
 	# === ODYSSEY PROGRESS INDICATOR ===
 	if odyssey_active:
