@@ -3227,6 +3227,51 @@ func _init_achievement_definitions() -> void:
 		{"id": "commander_tier_5", "name": "Commander Tier 5", "desc": "Reach Commander's Pass tier 5", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 20},
 		{"id": "commander_tier_10", "name": "Commander Tier 10", "desc": "Reach Commander's Pass tier 10", "category": "Progression", "target": 10, "reward_type": "quills", "reward_amount": 15},
 		{"id": "commander_max", "name": "Commander Max", "desc": "Max out the Commander's Pass", "category": "Progression", "target": 20, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 25},
+		# ============================================================
+		# BONUS — Character Bonds & Personality (12)
+		# ============================================================
+		{"id": "bond_robin_peter", "name": "Outlaws United", "desc": "Place Robin Hood and Peter Pan together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "bond_alice_witch", "name": "Strange Bedfellows", "desc": "Place Alice and Wicked Witch together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "bond_phantom_merlin", "name": "Magic and Music", "desc": "Place Phantom and Merlin together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "bond_scrooge_frank", "name": "Unlikely Friends", "desc": "Place Scrooge and Frankenstein together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "bond_sherlock_tarzan", "name": "Brains and Brawn", "desc": "Place Sherlock and Tarzan together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "bond_dracula_merlin", "name": "Immortal Minds", "desc": "Place Dracula and Merlin together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "all_bonds", "name": "Bonded Army", "desc": "Trigger all 6 character bonds", "category": "Tower", "target": 6, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "taunt_10", "name": "Trash Talker", "desc": "Taunt enemies 10 times", "category": "Combat", "target": 10, "reward_type": "shards", "reward_amount": 10},
+		{"id": "taunt_50", "name": "War Cry", "desc": "Taunt enemies 50 times", "category": "Combat", "target": 50, "reward_type": "quills", "reward_amount": 8},
+		{"id": "panic_survive", "name": "Panic Survivor", "desc": "Win after a panic quote triggers", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "idle_observer", "name": "Idle Observer", "desc": "Watch 20 idle quirk animations", "category": "Tower", "target": 20, "reward_type": "shards", "reward_amount": 10},
+		{"id": "banter_listener", "name": "Banter Listener", "desc": "Hear 10 bond banter conversations", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 8},
+		# ============================================================
+		# BONUS — Sidekicks & Special (12)
+		# ============================================================
+		{"id": "first_sidekick", "name": "First Companion", "desc": "Unlock your first sidekick", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "sidekick_collector", "name": "Companion Collector", "desc": "Unlock 6 sidekicks", "category": "Tower", "target": 6, "reward_type": "quills", "reward_amount": 10},
+		{"id": "sidekick_master", "name": "Companion Master", "desc": "Unlock 12 sidekicks", "category": "Tower", "target": 12, "reward_type": "stars", "reward_amount": 3},
+		{"id": "all_sidekicks", "name": "Full Entourage", "desc": "Unlock all 36 sidekicks", "category": "Tower", "target": 36, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 30},
+		{"id": "battle_power_first", "name": "Power User", "desc": "Use your first Battle Power", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "battle_power_10", "name": "Power Addict", "desc": "Use 10 Battle Powers", "category": "Combat", "target": 10, "reward_type": "quills", "reward_amount": 8},
+		{"id": "battle_power_50", "name": "Power Hungry", "desc": "Use 50 Battle Powers", "category": "Combat", "target": 50, "reward_type": "stars", "reward_amount": 3},
+		{"id": "loot_crate_first", "name": "Loot Drop", "desc": "Collect your first loot crate", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "loot_crate_25", "name": "Loot Goblin", "desc": "Collect 25 loot crates", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 10},
+		{"id": "collectible_first", "name": "Collector", "desc": "Find your first map collectible", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "collectible_25", "name": "Treasure Seeker", "desc": "Find 25 map collectibles", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 12},
+		{"id": "collectible_all", "name": "Museum Curator", "desc": "Find all map collectibles", "category": "Economy", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 20},
+		# ============================================================
+		# BONUS — Chapter-Specific & Hidden (12)
+		# ============================================================
+		{"id": "robin_arc_full", "name": "Sherwood's Hero", "desc": "Complete all Robin Hood levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
+		{"id": "alice_arc_full", "name": "Down the Rabbit Hole", "desc": "Complete all Alice levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
+		{"id": "oz_arc_full", "name": "No Place Like Home", "desc": "Complete all Wicked Witch levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
+		{"id": "peter_arc_full", "name": "Never Grow Up", "desc": "Complete all Peter Pan levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
+		{"id": "phantom_arc_full", "name": "Final Curtain", "desc": "Complete all Phantom levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
+		{"id": "scrooge_arc_full", "name": "Christmas Spirit", "desc": "Complete all Scrooge levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
+		{"id": "speed_run", "name": "Speed Runner", "desc": "Complete any level in under 3 minutes", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 20},
+		{"id": "multi_kill_10", "name": "Multi Kill", "desc": "Kill 10 enemies within 2 seconds", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "multi_kill_25", "name": "Obliteration", "desc": "Kill 25 enemies within 3 seconds", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 10},
+		{"id": "all_easy", "name": "Easy Street", "desc": "Complete all levels on Easy", "category": "Progression", "target": 37, "reward_type": "shards", "reward_amount": 30},
+		{"id": "all_medium", "name": "The Standard", "desc": "Complete all levels on Medium", "category": "Progression", "target": 37, "reward_type": "quills", "reward_amount": 20, "trophy_bonus": 10},
+		{"id": "all_hard", "name": "Shadow Champion", "desc": "Complete all levels on Hard", "category": "Progression", "target": 37, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 50},
 	]
 	for ach in achievement_definitions:
 		if not achievement_progress.has(ach["id"]):
