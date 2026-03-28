@@ -5769,7 +5769,7 @@ func _show_menu() -> void:
 	# Bonus 1: Init menu background particles
 	_init_menu_bg_particles()
 	# CharMenu 13: Reset detail tab
-	_detail_tab = 0
+	detail_active_tab = 0
 
 	menu_left_arrow.visible = false
 	menu_right_arrow.visible = false
@@ -34122,13 +34122,21 @@ func _draw_detail_tabs(px: float, py: float, pw: float, accent: Color) -> void:
 		_udraw(font, Vector2(tx + tab_w * 0.5, py + 17), _detail_tab_names[ti], HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_gold if is_active else Color(0.55, 0.55, 0.55, 0.6))
 
 func _handle_detail_tab_click(mouse_pos: Vector2, px: float, py: float, pw: float) -> bool:
-	if mouse_pos.y < py or mouse_pos.y > py + 26:
+	# Tab strip: 4 tabs starting at panel_x + 420, each 170px wide with 8px gap
+	var tab_strip_x = 490.0
+	var tab_strip_y = 92.0
+	var tab_w_each = 170.0
+	var tab_gap = 8.0
+	if mouse_pos.y < tab_strip_y or mouse_pos.y > tab_strip_y + 32:
 		return false
-	var tab_w = pw / 3.0
-	for ti in range(3):
-		if mouse_pos.x >= px + float(ti) * tab_w and mouse_pos.x <= px + float(ti + 1) * tab_w:
-			_detail_tab = ti
-			queue_redraw()
+	for ti in range(4):
+		var tx = tab_strip_x + float(ti) * (tab_w_each + tab_gap)
+		if mouse_pos.x >= tx and mouse_pos.x <= tx + tab_w_each:
+			if detail_active_tab != ti:
+				detail_active_tab = ti
+				_detail_tab_transition = 0.0
+				detail_tab_scroll = 0.0
+				queue_redraw()
 			return true
 	return false
 
