@@ -11850,9 +11850,8 @@ func _draw_emporium_sub_panel() -> void:
 		var cat = emporium_categories[emporium_sub_category]
 		var title_text = cat["name"].to_upper()
 		var title_size = 24
-		var tw = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size).x
-		var tx = panel_x + (panel_w - tw) * 0.5
-		_udraw(font, Vector2(tx, panel_y + 36), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
+		var tw = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x
+		_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 36), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
 		# Underline
 		var cx = panel_x + panel_w * 0.5
 		draw_line(Vector2(cx - 160, panel_y + 44), Vector2(cx + 160, panel_y + 44), _ca(menu_gold, 0.3), 1.5)
@@ -11860,13 +11859,13 @@ func _draw_emporium_sub_panel() -> void:
 	# Currency bar
 	var bar_y = panel_y + 60.0
 	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_gear_shards, player_storybook_stars, player_gold]
-	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
-	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, _ca(menu_gold_light, 0.7))
+	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(menu_gold_light, 0.7))
 
 	# Chest inventory line
 	var chest_text = "Chests:  Bronze: %d  |  Silver: %d  |  Gold: %d" % [treasure_chests_owned["bronze"], treasure_chests_owned["silver"], treasure_chests_owned["gold"]]
-	var chest_tw = font.get_string_size(chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15).x
-	_udraw(font, Vector2(panel_x + (panel_w - chest_tw) * 0.5, bar_y + 32), chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, _ca(menu_text_muted, 0.7))
+	var chest_tw = font.get_string_size(chest_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+	_udraw(font, Vector2(panel_x + (panel_w - chest_tw) * 0.5, bar_y + 32), chest_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, _ca(menu_text_muted, 0.7))
 
 	# Separator line
 	draw_line(Vector2(panel_x + 40, bar_y + 42), Vector2(panel_x + panel_w - 40, bar_y + 42), _ca(menu_gold, 0.15), 1.0)
@@ -12374,7 +12373,7 @@ func _draw_chest_opening() -> void:
 		# === VICTORY text (centered above chest) ===
 		if victory_chest_active:
 			var vic_text = "VICTORY!"
-			var vic_w = font.get_string_size(vic_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 52).x
+			var vic_w = font.get_string_size(vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52).x
 			# Glow behind text
 			draw_circle(Vector2(cx, 125), 80.0, _ca(c_gold_bright, 0.08 + pulse * 0.06))
 			# Text shadow
@@ -12408,14 +12407,14 @@ func _draw_chest_opening() -> void:
 
 		# Chest tier name
 		var title = "%s Chest" % tier_names[mini(chest_opening_tier, 2)]
-		var tw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 20).x
+		var tw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 		_udraw(font, Vector2(cx - tw * 0.5, chest_cy + bh + 35), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(tier_col.r, tier_col.g, tier_col.b, 0.8))
 
 		# "Tap to Open" prompt (phase 0 only, pulsing)
 		if chest_opening_phase == 0:
 			var tap_alpha = 0.5 + sin(_time * 3.0) * 0.3
 			var tap_text = _get_action_text() + " to Open"
-			var tap_w = font.get_string_size(tap_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 18).x
+			var tap_w = font.get_string_size(tap_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 			_udraw(font, Vector2(cx - tap_w * 0.5, chest_cy + bh + 60), tap_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.9, 0.6, tap_alpha))
 
 		# Rising sparkle particles
@@ -12726,16 +12725,16 @@ func _draw_victory_equip_overlay() -> void:
 		draw_rect(edge, Color(0.6, 0.3, 0.75, 0.5))
 	# Title
 	var title = "Equip Gear: %s" % victory_trinket_pending.get("name", "")
-	var tw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 20).x
-	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 30), title, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(0.9, 0.75, 0.3, 0.95))
+	var tw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 30), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.9, 0.75, 0.3, 0.95))
 	# Subtitle
 	var sub = "Choose a character to equip this gear on:"
-	var sw = font.get_string_size(sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
-	_udraw(font, Vector2(panel_x + (panel_w - sw) * 0.5, panel_y + 55), sub, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.7, 0.6, 0.5, 0.7))
+	var sw = font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+	_udraw(font, Vector2(panel_x + (panel_w - sw) * 0.5, panel_y + 55), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.7, 0.6, 0.5, 0.7))
 	# Gear desc
 	var desc = victory_trinket_pending.get("desc", "")
-	var dw = font.get_string_size(desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 14).x
-	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 78), desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.6, 0.5, 0.7, 0.7))
+	var dw = font.get_string_size(desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 78), desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.6, 0.5, 0.7, 0.7))
 	# Character grid (2 rows: 6 + 6)
 	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge",
 		"sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
@@ -12786,8 +12785,8 @@ func _draw_victory_equip_overlay() -> void:
 	draw_rect(Rect2(skip_x, skip_y, 200, 40), Color(0.15, 0.1, 0.08, 0.9 if skip_hover else 0.7))
 	draw_rect(Rect2(skip_x, skip_y, 200, 40), Color(0.5, 0.4, 0.3, 0.5 if skip_hover else 0.3), false, 1.0)
 	var skip_t = "Equip Later"
-	var stw = font.get_string_size(skip_t, HORIZONTAL_ALIGNMENT_CENTER, -1, 14).x
-	_udraw(font, Vector2(skip_x + (200 - stw) * 0.5, skip_y + 26), skip_t, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.6, 0.5, 0.85))
+	var stw = font.get_string_size(skip_t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	_udraw(font, Vector2(skip_x + (200 - stw) * 0.5, skip_y + 26), skip_t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.6, 0.5, 0.85))
 
 func _draw_closed_book() -> void:
 	# === STORYBOOK KNOWLEDGE TREE ===
@@ -13070,12 +13069,12 @@ func _draw_daily_reward() -> void:
 	# === TITLE ===
 	var title = "DAILY REWARDS"
 	var title_size = 34
-	var ttw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size).x
+	var ttw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x
 	var title_x = cx - ttw * 0.5
 	var title_y = modal_y + 44
-	_udraw(font, Vector2(title_x + 2, title_y + 2), title, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.0, 0.0, 0.0, 0.6))
-	_udraw(font, Vector2(title_x, title_y), title, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(1.0, 0.82, 0.3, 0.35))
-	_udraw(font, Vector2(title_x - 1, title_y - 1), title, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(1.0, 0.92, 0.65, 1.0))
+	_udraw(font, Vector2(title_x + 2, title_y + 2), title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(0.0, 0.0, 0.0, 0.6))
+	_udraw(font, Vector2(title_x, title_y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(1.0, 0.82, 0.3, 0.35))
+	_udraw(font, Vector2(title_x - 1, title_y - 1), title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(1.0, 0.92, 0.65, 1.0))
 
 	# Decorative line under title with center diamond
 	var line_w = 200.0
