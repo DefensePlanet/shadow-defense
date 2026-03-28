@@ -15349,33 +15349,7 @@ func _draw_story_map() -> void:
 					var tx = thumb_x + float(ti) * 16.0 + 4.0
 					var ty = thumb_y + thumb_h * 0.48 + sin(float(ti + lvl_idx) * 1.3) * 4.0
 					draw_circle(Vector2(tx, ty), 3.0, Color(gnd.r * 1.2, gnd.g * 1.2, gnd.b * 1.2, 0.25))
-			# Path preview in thumbnail
-			if _path_thumbnail_cache.has(lvl_idx) and is_unlocked:
-				var pts = _path_thumbnail_cache[lvl_idx]
-				if pts.size() >= 2:
-					var min_p = Vector2(1e9, 1e9)
-					var max_p = Vector2(-1e9, -1e9)
-					for p in pts:
-						min_p.x = minf(min_p.x, p.x)
-						min_p.y = minf(min_p.y, p.y)
-						max_p.x = maxf(max_p.x, p.x)
-						max_p.y = maxf(max_p.y, p.y)
-					var range_p = max_p - min_p
-					if range_p.x < 1: range_p.x = 1
-					if range_p.y < 1: range_p.y = 1
-					var margin = 4.0
-					var draw_w = thumb_w - margin * 2
-					var draw_h = thumb_h - margin * 2
-					var scaled: PackedVector2Array = PackedVector2Array()
-					for p in pts:
-						var nx = thumb_x + margin + ((p.x - min_p.x) / range_p.x) * draw_w
-						var ny = thumb_y + margin + ((p.y - min_p.y) / range_p.y) * draw_h
-						scaled.append(Vector2(nx, ny))
-					var path_col = Color(0.85, 0.75, 0.45, 0.7)
-					for pi in range(scaled.size() - 1):
-						draw_line(scaled[pi], scaled[pi + 1], path_col, 1.5)
-					draw_circle(scaled[0], 2.5, Color(0.3, 0.8, 0.3, 0.8))
-					draw_circle(scaled[scaled.size() - 1], 2.5, Color(0.8, 0.2, 0.2, 0.8))
+			# Path preview removed — let the AI art speak for itself
 			draw_rect(Rect2(thumb_x, thumb_y, thumb_w, thumb_h), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
 			# Level number badge
 			draw_circle(Vector2(thumb_x + 12, thumb_y + 12), 10, Color(0.0, 0.0, 0.0, 0.6))
