@@ -3991,8 +3991,9 @@ func _cache_path_thumbnails() -> void:
 
 func _load_map_thumb_textures() -> void:
 	_map_thumb_textures.clear()
-	for idx in range(levels.size()):
-		var res_path = "res://assets/map_thumbnails/level_%02d.png" % idx
+	for idx in range(mini(MAP_THUMB_SLUGS.size(), levels.size())):
+		var slug = MAP_THUMB_SLUGS[idx]
+		var res_path = "res://assets/map_thumbs/" + slug + ".png"
 		if ResourceLoader.exists(res_path):
 			var tex = load(res_path)
 			if tex:
