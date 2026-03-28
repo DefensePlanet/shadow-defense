@@ -5328,8 +5328,11 @@ func _create_ui() -> void:
 	ability_title = Label.new()
 	ability_title.text = "CHOOSE AN ABILITY"
 	ability_title.position = Vector2(20, 12)
-	ability_title.add_theme_font_size_override("font_size", 24)
-	ability_title.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+	ability_title.add_theme_font_size_override("font_size", 26)
+	ability_title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
+	ability_title.add_theme_constant_override("shadow_offset_x", 2)
+	ability_title.add_theme_constant_override("shadow_offset_y", 2)
+	ability_title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	ability_panel.add_child(ability_title)
 
 	var subtitle = Label.new()
