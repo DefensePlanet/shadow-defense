@@ -5299,7 +5299,10 @@ func _create_ui() -> void:
 
 	game_over_label = Label.new()
 	game_over_label.add_theme_font_size_override("font_size", 72)
-	game_over_label.add_theme_color_override("font_color", Color.RED)
+	game_over_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.12))
+	game_over_label.add_theme_constant_override("shadow_offset_x", 3)
+	game_over_label.add_theme_constant_override("shadow_offset_y", 3)
+	game_over_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	game_over_label.position = Vector2(240, 280)
 	game_over_label.size = Vector2(800, 100)
@@ -5795,6 +5798,8 @@ func _create_ui() -> void:
 	return_button.text = "  RETURN TO MENU  "
 	return_button.position = Vector2(500, 380)
 	return_button.custom_minimum_size = Vector2(280, 50)
+	return_button.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
+	return_button.add_theme_font_size_override("font_size", 18)
 	return_button.pressed.connect(_show_menu)
 	return_button.visible = false
 	ui.add_child(return_button)
@@ -5803,6 +5808,8 @@ func _create_ui() -> void:
 	retry_button.text = "  RETRY LEVEL  "
 	retry_button.position = Vector2(500, 440)
 	retry_button.custom_minimum_size = Vector2(280, 50)
+	retry_button.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
+	retry_button.add_theme_font_size_override("font_size", 18)
 	retry_button.pressed.connect(_on_retry_level)
 	retry_button.visible = false
 	ui.add_child(retry_button)
