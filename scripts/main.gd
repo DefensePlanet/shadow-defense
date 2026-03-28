@@ -12847,15 +12847,15 @@ func _draw_closed_book() -> void:
 	draw_rect(Rect2(panel_x + 40, panel_y + 46, panel_w - 80, 3), Color(0.1, 0.1, 0.15, 0.4))
 	draw_rect(Rect2(panel_x + 40, panel_y + 46, (panel_w - 80) * knowledge_ratio, 3), Color(0.6, 0.45, 0.8, 0.6))
 
-	# 5 branches side by side (full width, text below nodes)
+	# 5 branches side by side (full width, text below circles, symmetrical)
 	var num_branches = knowledge_branches.size()
-	var branch_gap = 6.0
-	var branch_w = (panel_w - 16.0 - float(num_branches - 1) * branch_gap) / float(num_branches)
+	var branch_gap = 4.0
+	var branch_w = (panel_w - 12.0 - float(num_branches - 1) * branch_gap) / float(num_branches)
 	var total_bw = float(num_branches) * branch_w + float(num_branches - 1) * branch_gap
 	var branch_start_x = panel_x + (panel_w - total_bw) * 0.5
-	var branch_start_y = panel_y + 62.0
-	var node_radius = 12.0
-	var node_spacing_y = 48.0
+	var branch_start_y = panel_y + 56.0
+	var node_radius = 14.0
+	var node_spacing_y = 50.0
 
 	for bi in range(knowledge_branches.size()):
 		var branch = knowledge_branches[bi]
@@ -12892,8 +12892,8 @@ func _draw_closed_book() -> void:
 		draw_rect(Rect2(bx, branch_start_y + 32, branch_w, 3), Color(0.1, 0.1, 0.15, 0.3))
 		draw_rect(Rect2(bx, branch_start_y + 32, branch_w * branch_ratio, 3), Color(bcol.r, bcol.g, bcol.b, 0.5))
 
-		# Nodes (vertical chain, circle tight to left edge)
-		var node_cx = bx + node_radius + 2
+		# Nodes (vertical chain, circle indented like a book margin)
+		var node_cx = bx + node_radius + 14
 		for ni in range(branch["nodes"].size()):
 			var node = branch["nodes"][ni]
 			var node_key = "%d_%d" % [bi, ni]
@@ -12941,12 +12941,12 @@ func _draw_closed_book() -> void:
 			if is_hovered:
 				draw_arc(Vector2(node_cx, node_cy), node_radius + 4, 0, TAU, 24, Color(1, 1, 1, 0.3), 1.5)
 
-			# Node name and desc — left to right: circle then text (storybook reading flow)
-			var text_x = node_cx + node_radius + 5
-			var text_max_w = int(bx + branch_w - text_x)
-			var name_col = Color(0.95, 0.85, 0.5, 0.95) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.8) if can_unlock else Color(0.55, 0.50, 0.45, 0.6))
-			_udraw(font, Vector2(text_x, node_cy - 2), node["name"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 12, name_col)
-			_udraw(font, Vector2(text_x, node_cy + 10), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 10, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
+			# Node name + desc — to the right of circle, bright and bold
+			var text_x = node_cx + node_radius + 8
+			var text_max_w = int(bx + branch_w - text_x - 2)
+			var name_col = Color(1.0, 0.92, 0.55, 1.0) if is_unlocked else (Color(bcol.r * 1.3, bcol.g * 1.3, bcol.b * 1.3, 0.85) if can_unlock else Color(0.62, 0.58, 0.52, 0.7))
+			_udraw(font, Vector2(text_x, node_cy - 2), node["name"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 14, name_col)
+			_udraw(font, Vector2(text_x, node_cy + 12), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 12, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.75))
 
 	# === Content fade masks at top/bottom edges (Enhancement #39) ===
 	var bg_base = menu_bg_section
@@ -12977,14 +12977,14 @@ func _update_knowledge_hover() -> void:
 	var branch_w = (panel_w - 16.0 - float(num_branches - 1) * branch_gap) / float(num_branches)
 	var total_bw = float(num_branches) * branch_w + float(num_branches - 1) * branch_gap
 	var branch_start_x = panel_x + (panel_w - total_bw) * 0.5
-	var branch_start_y = panel_y + 62.0
-	var node_radius = 12.0
-	var node_spacing_y = 48.0
+	var branch_start_y = panel_y + 56.0
+	var node_radius = 14.0
+	var node_spacing_y = 50.0
 	chronicles_hover_branch = -1
 	chronicles_hover_node = -1
 	for bi in range(knowledge_branches.size()):
 		var bx = branch_start_x + float(bi) * (branch_w + branch_gap)
-		var node_cx = bx + node_radius + 2
+		var node_cx = bx + node_radius + 14
 		for ni in range(knowledge_branches[bi]["nodes"].size()):
 			var node_cy = branch_start_y + 60.0 + float(ni) * node_spacing_y
 			if mouse_pos.distance_to(Vector2(node_cx, node_cy)) <= node_radius + 4:
