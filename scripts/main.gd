@@ -16405,28 +16405,29 @@ func _draw_mini_star(center: Vector2, size: float, color: Color) -> void:
 func _draw_shield(center: Vector2, size: float, color: Color, filled: bool) -> void:
 	# Shield/badge shape: rounded top, pointed bottom
 	var pts = PackedVector2Array()
-	# Top arc (left to right)
 	for i in range(9):
 		var angle = PI + float(i) * PI / 8.0
 		pts.append(center + Vector2(cos(angle) * size * 0.8, sin(angle) * size * 0.6 - size * 0.15))
-	# Bottom point
 	pts.append(center + Vector2(0, size * 0.95))
-	# Close back up (right side going to bottom point is implicit)
-	# Reverse right side
 	if filled:
-		draw_colored_polygon(pts, color)
-		# Highlight on top-left
+		# Glow behind earned shield
+		draw_circle(center, size * 1.3, Color(color.r, color.g, color.b, 0.12))
+		# Dark base
+		draw_colored_polygon(pts, Color(color.r * 0.3, color.g * 0.3, color.b * 0.3, 0.9))
+		# Color fill
+		draw_colored_polygon(pts, Color(color.r * 0.8, color.g * 0.8, color.b * 0.8, 0.85))
+		# Glass highlight
 		var highlight_pts = PackedVector2Array()
 		for i in range(5):
 			var angle = PI + float(i) * PI / 8.0
 			var hs = size * 0.65
 			highlight_pts.append(center + Vector2(cos(angle) * hs * 0.8, sin(angle) * hs * 0.6 - size * 0.15))
 		highlight_pts.append(center + Vector2(0, size * 0.3))
-		draw_colored_polygon(highlight_pts, Color(1, 1, 1, 0.12))
-		# Border
+		draw_colored_polygon(highlight_pts, Color(1, 1, 1, 0.18))
+		# Bright border
 		for i in range(pts.size()):
 			var next_i = (i + 1) % pts.size()
-			draw_line(pts[i], pts[next_i], Color(color.r * 1.3, color.g * 1.3, color.b * 1.3, 0.6), 1.5)
+			draw_line(pts[i], pts[next_i], Color(minf(color.r * 1.5, 1.0), minf(color.g * 1.5, 1.0), minf(color.b * 1.5, 1.0), 0.7), 2.0)
 	else:
 		# Just outline
 		for i in range(pts.size()):
