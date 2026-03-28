@@ -12815,11 +12815,11 @@ func _draw_closed_book() -> void:
 	draw_rect(Rect2(panel_x + 6, panel_y + 6, 1, panel_h - 12), border_inner)
 	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), border_inner)
 
-	# Title
+	# Title — properly centered
 	var title_text = "STORYBOOK KNOWLEDGE"
 	var title_size = 24
-	var tw = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size).x
-	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 34), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
+	var tw = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x
+	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 34), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
 	# Title underline
 	var cx = panel_x + panel_w * 0.5
 	draw_line(Vector2(cx - 160, panel_y + 42), Vector2(cx + 160, panel_y + 42), _ca(menu_gold, 0.3), 1.5)
