@@ -12954,11 +12954,12 @@ func _draw_closed_book() -> void:
 				# Dim grey dot — locked
 				draw_circle(Vector2(ind_x, node_cy), 2, Color(0.3, 0.3, 0.3, 0.25))
 
-			# Node name and desc (left-aligned under column title)
-			var text_x = bx + 4.0
+			# Node name and desc — left to right: circle then text (storybook reading flow)
+			var text_x = node_cx + node_radius + 5
+			var text_max_w = int(bx + branch_w - text_x)
 			var name_col = Color(0.9, 0.8, 0.5, 0.9) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.7) if can_unlock else Color(0.5, 0.45, 0.4, 0.5))
-			_udraw(font, Vector2(node_cx + node_radius + 4, node_cy - 2), node["name"], HORIZONTAL_ALIGNMENT_LEFT, int(bx + branch_w - node_cx - node_radius - 6), 11, name_col)
-			_udraw(font, Vector2(node_cx + node_radius + 4, node_cy + 10), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(bx + branch_w - node_cx - node_radius - 6), 10, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
+			_udraw(font, Vector2(text_x, node_cy - 2), node["name"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 12, name_col)
+			_udraw(font, Vector2(text_x, node_cy + 10), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 10, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
 
 	# === Content fade masks at top/bottom edges (Enhancement #39) ===
 	var bg_base = menu_bg_section
