@@ -15411,10 +15411,7 @@ func _draw_story_map() -> void:
 				draw_texture_rect(_portrait_textures[_arc_char], Rect2(list_x + 12, hy + 2, _pt_sz, _pt_sz), false)
 				_arc_text_x = list_x + 12 + _pt_sz + 6
 			_udraw(font, Vector2(_arc_text_x, hy + 22), arc_name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, 180, 14, Color(0.92, 0.78, 0.28))
-			if arc_done == arc_total:
-				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "COMPLETE", HORIZONTAL_ALIGNMENT_RIGHT, 200, 15, Color(0.45, 0.80, 0.30))
-			else:
-				_udraw(font, Vector2(list_x + list_w - 20, hy + 22), "%d%% Complete" % arc_pct, HORIZONTAL_ALIGNMENT_RIGHT, 200, 15, Color(0.60, 0.52, 0.38))
+			# Arc completion shown via progress bar only (no overlapping text)
 			# Enhancement 14: Chapter progress bar
 			var cpb_x = list_x + 200.0
 			var cpb_w = list_w - 420.0
