@@ -11030,21 +11030,21 @@ func _draw_menu_background() -> void:
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
 
-		# Icon — big AI art, no borders
-		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 38.0)
-		var icon_sz = 56.0 if is_act else 44.0
+		# Icon — big AI art, no borders (March 17 size match)
+		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 34.0)
+		var icon_sz = 70.0 if is_act else 56.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
 		if _tab_icon_textures.has(_tik):
 			var alpha = 1.0 if is_act else 0.7
 			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false, Color(1, 1, 1, alpha))
-		# Label — centered within tab column
-		var lbl_y = nav_draw_y + 76.0
-		var lbl_col = _ca(tc, 0.95) if is_act else Color(0.55, 0.50, 0.40, 0.6)
-		var lbl_sz = 13 if is_act else 11
+		# Label — centered within tab column (bigger, brighter)
+		var lbl_y = nav_draw_y + 80.0
+		var lbl_col = _ca(tc, 1.0) if is_act else Color(0.60, 0.55, 0.45, 0.65)
+		var lbl_sz = 14 if is_act else 12
 		_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), lbl_sz, lbl_col)
 		# Active tab indicator dot
 		if is_act:
-			draw_circle(Vector2(tx + tab_w * 0.5, nav_draw_y + 90.0), 2.5, _ca(tc, 0.8))
+			draw_circle(Vector2(tx + tab_w * 0.5, nav_draw_y + 94.0), 3.0, _ca(tc, 0.9))
 
 	if menu_current_view == "chapters":
 		_draw_story_map()
@@ -15262,26 +15262,56 @@ var chapters_diff_popup_level: int = -1  # Level index for difficulty picker pop
 
 func _draw_story_map() -> void:
 	var font = game_font
-	var list_x = 40.0 + _safe_left
+	var list_x = 24.0 + _safe_left
 	var list_y = 36.0
-	var list_w = 1200.0
+	var list_w = 1060.0
 	var list_h = 575.0
 	var row_h = 110.0
 	var header_h = 32.0
 	var arc_gap = 6.0
 
-	# --- Background panel ---
-	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.05, 0.04, 0.08, 0.95))
-	draw_rect(Rect2(list_x, list_y, list_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(list_x, list_y + list_h - 2, list_w, 2), _ca(menu_gold_dim, 0.25))
+	# --- Background panel (left-aligned, room for sidebar on right) ---
+	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.05, 0.10, 0.95))
+	draw_rect(Rect2(list_x, list_y, list_w, 2), _ca(menu_gold_dim, 0.5))
+	draw_rect(Rect2(list_x, list_y + list_h - 2, list_w, 2), _ca(menu_gold_dim, 0.3))
 
 	# --- Title bar ---
 	draw_rect(Rect2(list_x, list_y, list_w, 36), Color(0.08, 0.06, 0.12, 0.9))
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
-	var title_text = "THE TOME OF SHADOWS  —  %d / %d" % [num_completed, num_total]
-	_udraw(font, Vector2(list_x + 20, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(list_w - 40), 16, Color(0.85, 0.70, 0.28))
+	var title_text = "THE TOME OF SHADOWS"
+	var count_text = "%d/%d LEVELS" % [num_completed, num_total]
+	_udraw(font, Vector2(list_x + list_w * 0.5 - 120, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.95, 0.78, 0.30))
+	_udraw(font, Vector2(list_x + list_w - 150, list_y + 24), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.60, 0.25))
 	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), _ca(menu_gold_dim, 0.3))
+
+	# --- Right sidebar: Deals, Quests, Arena, Odyssey, Endless ---
+	var side_x = list_x + list_w + 12.0
+	var side_w = 1280.0 - _safe_right - side_x - 4.0
+	var side_btn_h = 90.0
+	var side_gap = 8.0
+	var side_labels = ["DEALS", "QUESTS", "ARENA", "ODYSSEY", "ENDLESS"]
+	var side_colors = [
+		Color(0.75, 0.45, 0.15),  # Deals - orange
+		Color(0.35, 0.70, 0.40),  # Quests - green
+		Color(0.55, 0.35, 0.75),  # Arena - purple
+		Color(0.25, 0.55, 0.80),  # Odyssey - blue
+		Color(0.60, 0.60, 0.70),  # Endless - silver
+	]
+	var side_icons = ["deals", "quests", "arena", "odyssey", "endless"]
+	for si in range(side_labels.size()):
+		var sy = list_y + 40.0 + float(si) * (side_btn_h + side_gap)
+		var sc = side_colors[si]
+		# Button bg
+		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.15, sc.g * 0.15, sc.b * 0.15, 0.85))
+		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r, sc.g, sc.b, 0.25), false, 1.5)
+		# Icon circle
+		var icon_cx = side_x + side_w * 0.5
+		var icon_cy = sy + side_btn_h * 0.42
+		draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.3, sc.g * 0.3, sc.b * 0.3, 0.8))
+		draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r, sc.g, sc.b, 0.4), false, 1.5)
+		# Label
+		_udraw(font, Vector2(side_x + 4, sy + side_btn_h - 10), side_labels[si], HORIZONTAL_ALIGNMENT_CENTER, int(side_w - 8), 11, Color(sc.r, sc.g, sc.b, 0.9))
 
 	var content_top = list_y + 40.0
 	var content_h = list_h - 40.0
@@ -15473,13 +15503,13 @@ func _draw_story_map() -> void:
 			draw_circle(Vector2(thumb_x + 12, thumb_y + 12), 10, Color(0.0, 0.0, 0.0, 0.6))
 			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 14, Color(0.90, 0.82, 0.55))
 
-			# --- Text info ---
+			# --- Text info (brighter, bolder) ---
 			var text_x = thumb_x + thumb_w + 18.0
-			var name_col = Color(0.92, 0.80, 0.35) if is_unlocked else Color(0.45, 0.38, 0.28, 0.6)
-			var sub_col = Color(0.70, 0.60, 0.42) if is_unlocked else Color(0.35, 0.30, 0.22, 0.5)
-			var stat_col = Color(0.55, 0.70, 0.45) if is_unlocked else Color(0.30, 0.28, 0.22, 0.4)
-			_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 440, 15, name_col)
-			_udraw(font, Vector2(text_x, ry + 46), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 440, 15, sub_col)
+			var name_col = Color(1.0, 0.88, 0.40) if is_unlocked else Color(0.45, 0.38, 0.28, 0.6)
+			var sub_col = Color(0.80, 0.68, 0.48) if is_unlocked else Color(0.35, 0.30, 0.22, 0.5)
+			var stat_col = Color(0.65, 0.80, 0.50) if is_unlocked else Color(0.30, 0.28, 0.22, 0.4)
+			_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 380, 16, name_col)
+			_udraw(font, Vector2(text_x, ry + 46), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 380, 15, sub_col)
 
 			# Enhancement 22: Best wave indicator
 			var wave_info = "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]]
@@ -15523,22 +15553,22 @@ func _draw_story_map() -> void:
 				if reward_count > 0:
 					_udraw(font, Vector2(reward_icon_x + float(reward_count) * 18.0 + 4, reward_icon_y + 3), "%d rewards" % level_rewards.size(), HORIZONTAL_ALIGNMENT_LEFT, 100, 14, Color(0.6, 0.55, 0.40, 0.5))
 
-			# --- Difficulty medals (BTD6-style shields) ---
-			var medal_x = rx + rw - 240.0
+			# --- Difficulty shields (large, prominent) ---
+			var medal_x = rx + rw - 340.0
 			var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15), Color(0.85, 0.15, 0.15)]
 			var medal_labels = ["E", "M", "H", "P"]
 			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
 			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
 			for di in range(4):
-				var mx = medal_x + float(di) * 44.0
-				var my = ry + 14.0
-				var mw = 38.0
-				var mh = 48.0
+				var mx = medal_x + float(di) * 52.0
+				var my = ry + 8.0
+				var mw = 46.0
+				var mh = 56.0
 				var earned = medals[di]
 				if earned:
 					# Filled shield with difficulty color
 					var mc = medal_colors[di]
-					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.5), 16.0, mc, true)
+					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, mc, true)
 					# Enhancement 15: Star glow behind earned stars
 					var ds = diff_stars_arr[di]
 					for dsi in range(3):
@@ -15553,7 +15583,7 @@ func _draw_story_map() -> void:
 							_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
 				else:
 					# Gray outline shield (unearned)
-					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.5), 16.0, Color(0.3, 0.25, 0.2, 0.3), false)
+					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, Color(0.3, 0.25, 0.2, 0.3), false)
 				# Difficulty letter below shield
 				var lbl_col = medal_colors[di] if earned else Color(0.35, 0.30, 0.22, 0.4)
 				_udraw(font, Vector2(mx + mw * 0.5, my + mh - 2), medal_labels[di], HORIZONTAL_ALIGNMENT_CENTER, 20, 14, lbl_col)
@@ -15562,18 +15592,18 @@ func _draw_story_map() -> void:
 			var dot_base_x = medal_x
 			var dot_y = ry + row_h - 10.0
 			for di in range(3):
-				var dot_x = dot_base_x + float(di) * 44.0 + 19.0
+				var dot_x = dot_base_x + float(di) * 52.0 + 23.0
 				var dot_col = [c_green, c_gold_warm, Color(0.9, 0.2, 0.15)][di]
 				if medals[di]:
 					draw_circle(Vector2(dot_x, dot_y), 3.0, dot_col)
 				else:
 					draw_arc(Vector2(dot_x, dot_y), 3.0, 0, TAU, 8, Color(dot_col.r, dot_col.g, dot_col.b, 0.2), 1.0)
 
-			# --- GO / PLAY button or LOCKED ---
-			var btn_x = rx + rw - 100.0
-			var btn_y2 = ry + 14.0
-			var btn_w2 = 80.0
-			var btn_h2 = 48.0 if _is_mobile else 38.0
+			# --- GO button (large, prominent) ---
+			var btn_x = rx + rw - 110.0
+			var btn_y2 = ry + 10.0
+			var btn_w2 = 95.0
+			var btn_h2 = 52.0
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
 				var btn_pulse = 0.85 + sin(_time * 3.0) * 0.15 if not is_complete else 0.7
@@ -15583,7 +15613,7 @@ func _draw_story_map() -> void:
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), btn_col)
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, 2), Color(0.4, 0.8, 0.3, 0.3))
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), _ca(menu_gold_dim, 0.4), false, 1.0)
-				_udraw(font, Vector2(btn_x + 4, btn_y2 + 25), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 14, Color(1, 1, 1, 0.95))
+				_udraw(font, Vector2(btn_x + 4, btn_y2 + 32), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 20, Color(1, 1, 1, 0.95))
 				# Menu Improvement 5: Button shimmer sweep on GO button
 				if not is_complete:
 					_draw_button_shimmer(btn_x, btn_y2, btn_w2, btn_h2, 50.0, Color(1, 1, 1, 0.12))
