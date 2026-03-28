@@ -30114,7 +30114,7 @@ func _draw_salvage_panel() -> void:
 		var t = float(i) / 55.0
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "SALVAGE WORKSHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
+	_ds_title(Vector2(panel_x, panel_y + 28), "SALVAGE WORKSHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var card_w = 260.0
@@ -30198,7 +30198,7 @@ func _draw_chest_crafting() -> void:
 		var t = float(i) / 55.0
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "CHEST FORGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
+	_ds_title(Vector2(panel_x, panel_y + 28), "CHEST FORGE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var tier_names = ["Bronze", "Silver", "Golden"]
@@ -31222,7 +31222,7 @@ func _draw_instrument_shop() -> void:
 		var t = float(i) / 55.0
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
 	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "LITERARY INSTRUMENTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
+	_ds_title(Vector2(panel_x, panel_y + 28), "LITERARY INSTRUMENTS", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Place instruments to buff nearby towers with aura effects", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	for i in range(literary_instruments.size()):
@@ -31518,7 +31518,7 @@ func _draw_spin_wheel_panel() -> void:
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "LUCKY WHEEL", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, _ca(menu_gold_light, 0.9))
+	_ds_title(Vector2(panel_x, panel_y + 28), "LUCKY WHEEL", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
 	# Draw the wheel
 	var wheel_cx = panel_x + panel_w * 0.5
@@ -31564,7 +31564,7 @@ func _draw_merchant_panel() -> void:
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "WANDERING MERCHANT", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, _ca(menu_gold_light, 0.9))
+	_ds_title(Vector2(panel_x, panel_y + 28), "WANDERING MERCHANT", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 	# Merchant inventory grid
 	if merchant_inventory.size() == 0:
