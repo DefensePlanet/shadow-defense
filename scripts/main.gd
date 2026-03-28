@@ -1436,11 +1436,11 @@ var _sa_taunt_trigger_time: float = 15.0  # randomized per level
 # Shadow figures fly on all maps
 var _sa_shadow_figures: Array = []
 
-# Polyrhythm system (Enhancement 1-42) â€" child Node2D for musical game feel
+# Polyrhythm system (Enhancement 1-42) — child Node2D for musical game feel
 var _poly: Node2D = null
 var _poly_scene = null  # polyrhythm_system.gd loaded at runtime if present
 
-# Musical beat clock â€" towers read this to select harmonious notes
+# Musical beat clock — towers read this to select harmonious notes
 var music_beat_index: int = 0
 var _music_beat_accum: float = 0.0
 const MUSIC_BPM: float = 140.0
@@ -1965,7 +1965,7 @@ var _wave_streak_best: int = 0
 const WAVE_STREAK_GOLD_PER: int = 5
 
 # === LAYERED MUSIC SYSTEM ===
-# Each character plays an instrument â€" placing towers builds the song
+# Each character plays an instrument — placing towers builds the song
 var _music_layers: Array = []  # 13 AudioStreamPlayers [drums, robin, alice, witch, peter, phantom, scrooge, sherlock, tarzan, dracula, merlin, frankenstein, shadow_author]
 var _music_layer_targets: Array = [0.35, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Target volumes (linear)
 var _music_layer_current: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Current volumes (for tweening)
@@ -3950,7 +3950,7 @@ func _load_game() -> void:
 	var loaded_wq = data.get("addiction_weekly_quests", [])
 	if loaded_wq.size() > 0:
 		_addiction_weekly_quests = loaded_wq
-	# Golden Shields migration â€" ensure existing progress has the field
+	# Golden Shields migration — ensure existing progress has the field
 	for t in survivor_progress:
 		if not survivor_progress[t].has("golden_shields"):
 			survivor_progress[t]["golden_shields"] = 0
@@ -5314,9 +5314,9 @@ func _create_ui() -> void:
 		# Keep a reference in chapter_buttons for the first button (for lock/unlock logic)
 		chapter_buttons.append(ch_diff_btns[0])
 
-	# === BOTTOM NAV BAR (input-only â€" visuals drawn procedurally in _draw_menu_background) ===
+	# === BOTTOM NAV BAR (input-only — visuals drawn procedurally in _draw_menu_background) ===
 	var nav_bar = ColorRect.new()
-	nav_bar.color = Color(0, 0, 0, 0)  # Transparent â€" procedural _draw handles all visuals
+	nav_bar.color = Color(0, 0, 0, 0)  # Transparent — procedural _draw handles all visuals
 	nav_bar.position = Vector2(0, 620.0 - _safe_bottom)
 	nav_bar.size = Vector2(1280, 100.0 + _safe_bottom)
 	nav_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let clicks pass to buttons
@@ -5329,14 +5329,14 @@ func _create_ui() -> void:
 		var btn_x = int(_safe_left + float(i) * safe_tab_w)
 		var nav_btn = Button.new()
 		nav_btn.text = ""
-		nav_btn.flat = true  # Transparent â€" procedural draw handles visuals
+		nav_btn.flat = true  # Transparent — procedural draw handles visuals
 		nav_btn.position = Vector2(btn_x, 10)
 		nav_btn.custom_minimum_size = Vector2(int(safe_tab_w), 80)
 		nav_btn.pressed.connect(_on_nav_pressed.bind(nav_names[i].to_lower()))
 		nav_bar.add_child(nav_btn)
 		menu_nav_buttons.append(nav_btn)
 
-		# Labels hidden â€" procedural _draw renders icons + labels with enhanced styling
+		# Labels hidden — procedural _draw renders icons + labels with enhanced styling
 		var nav_lbl = Label.new()
 		nav_lbl.text = nav_names[i]
 		nav_lbl.visible = false  # Procedural draw handles all nav visuals
@@ -10316,7 +10316,6 @@ func _draw_currency_bar() -> void:
 		{"icon": "*", "color": Color(1.0, 0.9, 0.3), "value": player_storybook_stars, "name": "Stars"},
 		{"icon": "K", "color": Color(0.3, 0.6, 0.4), "value": knowledge_ink, "name": "Ink"},
 		{"icon": "T", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
-		{"icon": "C", "color": Color(0.4, 0.9, 0.6), "value": player_crystals, "name": "Crystals"},
 	]
 	var cx = 370.0 + _safe_left
 	for c in currencies:
@@ -10372,7 +10371,7 @@ func _draw_menu_background() -> void:
 			var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
 			draw_rect(Rect2(0, gy, 1280, grad_step), col)
 
-		# === Center radial glow (purple atmosphere â€" vivid for mobile) ===
+		# === Center radial glow (purple atmosphere — vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
 		if _quality_level >= 1:
 			draw_circle(Vector2(640, 360), 550.0, Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, 0.06 * center_pulse))
@@ -10788,14 +10787,14 @@ func _draw_menu_background() -> void:
 	var nav_draw_y = 620.0 - _safe_bottom
 	# === BOTTOM NAV BAR â€” Polished, glowing, alive ===
 	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
-	var nav_tab_labels = ["HEROES", "GEAR", "ADVENTURE", "LORE", "SHOP", "TROPHIES"]
+	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
 	var nav_tab_cols = [
-		Color(0.85, 0.55, 0.25),  # Heroes: warm amber
+		Color(0.85, 0.55, 0.25),  # Survivors: warm amber
 		Color(0.65, 0.40, 0.85),  # Gear: mystical purple
-		Color(0.35, 0.75, 0.35),  # Adventure: forest green
-		Color(0.55, 0.70, 0.90),  # Lore: ink blue
-		Color(0.90, 0.75, 0.25),  # Shop: gold
-		Color(0.80, 0.65, 0.20),  # Trophies: bronze gold
+		Color(0.35, 0.75, 0.35),  # Chapters: forest green
+		Color(0.55, 0.70, 0.90),  # Chronicles: ink blue
+		Color(0.90, 0.75, 0.25),  # Emporium: gold
+		Color(0.80, 0.65, 0.20),  # Achievements: bronze gold
 	]
 	# Dark gradient background with subtle texture
 	var nav_grad_steps = _qcount(20)
@@ -10876,14 +10875,14 @@ func _draw_menu_background() -> void:
 			# AI-generated tab icon
 			var icon_sz = ic_r * 2.0 * s
 			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false)
-		elif ni == 0:  # HEROES — crossed swords (fallback)
+		elif ni == 0:  # SURVIVORS — crossed swords (fallback)
 			draw_line(ic + Vector2(-8, 8) * s, ic + Vector2(8, -8) * s, ic_col, 2.5 * s)
 			draw_line(ic + Vector2(8, 8) * s, ic + Vector2(-8, -8) * s, ic_col, 2.5 * s)
 			draw_circle(ic, 3.0 * s, ic_col)
 		elif ni == 1:  # GEAR — glowing gem
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -11) * s, ic + Vector2(9, -2) * s, ic + Vector2(6, 9) * s, ic + Vector2(-6, 9) * s, ic + Vector2(-9, -2) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.7))
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -8) * s, ic + Vector2(4, -1) * s, ic + Vector2(0, 5) * s, ic + Vector2(-4, -1) * s]), Color(1, 1, 1, 0.15))
-		elif ni == 2:  # ADVENTURE — open book with glow
+		elif ni == 2:  # CHAPTERS — open book with glow
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -9) * s, ic + Vector2(-12, -7) * s, ic + Vector2(-12, 9) * s, ic + Vector2(0, 7) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.6))
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -9) * s, ic + Vector2(12, -7) * s, ic + Vector2(12, 9) * s, ic + Vector2(0, 7) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.4))
 			draw_line(ic + Vector2(0, -9) * s, ic + Vector2(0, 7) * s, ic_col, 2.0)
@@ -10891,17 +10890,17 @@ func _draw_menu_background() -> void:
 				var ly = (-4.0 + float(li) * 4.0) * s
 				draw_line(ic + Vector2(-9, ly) * s, ic + Vector2(-3, ly) * s, Color(0, 0, 0, 0.25), 1.0)
 				draw_line(ic + Vector2(3, ly) * s, ic + Vector2(9, ly) * s, Color(0, 0, 0, 0.25), 1.0)
-		elif ni == 3:  # LORE — scroll with seal
+		elif ni == 3:  # CHRONICLES — scroll with seal
 			draw_rect(Rect2(ic.x - 7 * s, ic.y - 9 * s, 14 * s, 18 * s), Color(ic_col.r, ic_col.g, ic_col.b, 0.5))
 			draw_arc(ic + Vector2(0, -9) * s, 7 * s, PI, TAU, 12, ic_col, 2.0)
 			draw_arc(ic + Vector2(0, 9) * s, 7 * s, 0, PI, 12, ic_col, 2.0)
 			draw_circle(ic + Vector2(0, 3) * s, 3 * s, Color(0.8, 0.2, 0.2, 0.6))
-		elif ni == 4:  # SHOP — potion bottle
+		elif ni == 4:  # EMPORIUM — potion bottle
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(-8, 0) * s, ic + Vector2(8, 0) * s, ic + Vector2(6, 10) * s, ic + Vector2(-6, 10) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.6))
 			draw_rect(Rect2(ic.x - 3 * s, ic.y - 10 * s, 6 * s, 10 * s), Color(ic_col.r, ic_col.g, ic_col.b, 0.5))
 			draw_line(ic + Vector2(-5, -10) * s, ic + Vector2(5, -10) * s, ic_col, 2.0)
 			draw_circle(ic + Vector2(0, 5) * s, 3 * s, Color(1, 1, 1, 0.12))
-		elif ni == 5:  # TROPHIES — trophy cup
+		elif ni == 5:  # ACHIEVEMENTS — trophy cup
 			draw_colored_polygon(PackedVector2Array([ic + Vector2(-7, -9) * s, ic + Vector2(7, -9) * s, ic + Vector2(5, 0) * s, ic + Vector2(-5, 0) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.7))
 			draw_line(ic + Vector2(0, 0) * s, ic + Vector2(0, 6) * s, ic_col, 2.5)
 			draw_line(ic + Vector2(-6, 6) * s, ic + Vector2(6, 6) * s, ic_col, 2.5)
@@ -10934,10 +10933,7 @@ func _draw_menu_background() -> void:
 		_draw_chapters_badges()
 		_draw_diff_popup()
 		_draw_chapters_overlay()
-		# Addiction: Fortress display (bottom-left corner of chapters)
-		_draw_fortress(90.0 + _safe_left, 570.0 - _safe_bottom, 80.0)
-		# Addiction: Commander's Pass progress bar (above nav bar)
-		_draw_pass_progress_bar(70.0 + _safe_left, 600.0 - _safe_bottom, 1140.0 - _safe_left - _safe_right)
+		# Fortress + Commander's Pass removed — clean March 17 layout
 	elif menu_current_view == "survivors":
 		if survivor_detail_open:
 			_draw_survivor_detail()
@@ -15851,7 +15847,7 @@ func _draw_chapters_overlay() -> void:
 	draw_rect(Rect2(panel_x + 20, panel_y + 50, panel_w - 40, 1), Color(tc.r, tc.g, tc.b, 0.4))
 	# Subtle glow beneath title line
 	draw_rect(Rect2(panel_x + 40, panel_y + 51, panel_w - 80, 2), Color(tc.r, tc.g, tc.b, 0.08))
-	# Close button (X) â€" top right (44x44 for mobile touch target)
+	# Close button (X) — top right (44x44 for mobile touch target)
 	var close_sz = 44.0 if _is_mobile else 30.0
 	var close_x = panel_x + panel_w - close_sz - 8.0
 	var close_y = panel_y + 6.0
@@ -18764,18 +18760,7 @@ func _draw() -> void:
 		# === View transition dark overlay fade (Enhancement #48) ===
 		if _menu_transition_alpha > 0.0:
 			draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.02, 0.06, _menu_transition_alpha * 0.5))
-		# === Stats summary banner (Enhancement #50) ===
-		var stats_font = game_font
-		var stats_y = 33.0
-		draw_rect(Rect2(70, stats_y, 1140, 12), Color(0.02, 0.02, 0.06, 0.5))
-		var stats_cx = 160.0
-		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "DAMAGE: %s" % _format_number(float(total_damage)), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
-		stats_cx += 200.0
-		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "KILLS: %s" % _format_number(float(total_enemies_killed)), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
-		stats_cx += 200.0
-		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "GOLD EARNED: %s" % _format_number(float(total_gold_earned)), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
-		stats_cx += 220.0
-		_udraw(stats_font, Vector2(stats_cx, stats_y + 10), "LEVELS: %d / %d" % [completed_levels.size(), levels.size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.5, 0.55, 0.45))
+		# Stats banner removed — kept clean like March 17 design
 
 		if chest_opening_active:
 			_draw_chest_opening()
@@ -22668,7 +22653,7 @@ func _start_layered_music(level_idx: int) -> void:
 		brass_data[i] = clampf(brass_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(brass_data))
 
-	# --- Layer 7: SHERLOCK â€" Harpsichord (analytical staccato, rapid trills) ---
+	# --- Layer 7: SHERLOCK — Harpsichord (analytical staccato, rapid trills) ---
 	var harpsi_data := PackedFloat32Array()
 	harpsi_data.resize(loop_samples)
 	# Harpsichord: clipped pluck, rapid 16th-note deductions (like mental gears turning)
@@ -22700,7 +22685,7 @@ func _start_layered_music(level_idx: int) -> void:
 		harpsi_data[i] = clampf(harpsi_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(harpsi_data))
 
-	# --- Layer 8: TARZAN â€" Tribal Percussion (djembe + conga polyrhythm, 3-over-4) ---
+	# --- Layer 8: TARZAN — Tribal Percussion (djembe + conga polyrhythm, 3-over-4) ---
 	var tribal_data := PackedFloat32Array()
 	tribal_data.resize(loop_samples)
 	var tribal_rng := RandomNumberGenerator.new()
@@ -22741,7 +22726,7 @@ func _start_layered_music(level_idx: int) -> void:
 		tribal_data[i] = clampf(tribal_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(tribal_data))
 
-	# --- Layer 9: DRACULA â€" Cello (sustained Gothic legato, dark minor melodies) ---
+	# --- Layer 9: DRACULA — Cello (sustained Gothic legato, dark minor melodies) ---
 	var cello_data := PackedFloat32Array()
 	cello_data.resize(loop_samples)
 	# Cello: long sustained notes (half-note pace), dark and brooding
@@ -22776,7 +22761,7 @@ func _start_layered_music(level_idx: int) -> void:
 		cello_data[i] = clampf(cello_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(cello_data))
 
-	# --- Layer 10: MERLIN â€" Ethereal Choir (mystic pad, breathy vowel formants) ---
+	# --- Layer 10: MERLIN — Ethereal Choir (mystic pad, breathy vowel formants) ---
 	var choir_data := PackedFloat32Array()
 	choir_data.resize(loop_samples)
 	# Choir: whole-note sustained pads with vowel formant shifts
@@ -22811,7 +22796,7 @@ func _start_layered_music(level_idx: int) -> void:
 		choir_data[i] = clampf(choir_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(choir_data))
 
-	# --- Layer 11: FRANKENSTEIN â€" Industrial Synth Bass (electric growl, distorted) ---
+	# --- Layer 11: FRANKENSTEIN — Industrial Synth Bass (electric growl, distorted) ---
 	var synth_data := PackedFloat32Array()
 	synth_data.resize(loop_samples)
 	# Synth bass: quarter-note root-5th pattern with saw-like waveform
@@ -22846,7 +22831,7 @@ func _start_layered_music(level_idx: int) -> void:
 		synth_data[i] = clampf(synth_data[i], -1.0, 1.0)
 	layer_wavs.append(_make_looping_wav(synth_data))
 
-	# --- Layer 12: SHADOW AUTHOR â€" Theremin (eerie wobble, ghostly sustained tones) ---
+	# --- Layer 12: SHADOW AUTHOR — Theremin (eerie wobble, ghostly sustained tones) ---
 	var theremin_data := PackedFloat32Array()
 	theremin_data.resize(loop_samples)
 	# Theremin: slow gliding melody, spooky pitch bends between notes
@@ -22966,7 +22951,7 @@ func _refresh_music_max_tier() -> void:
 			_music_max_tier_cache = maxi(_music_max_tier_cache, tower.upgrade_tier)
 
 func _pulse_tower_layer(tower_type: int, tower_instance_id: int = -1) -> void:
-	# Brief volume spike when tower attacks â€" adds musical punch
+	# Brief volume spike when tower attacks — adds musical punch
 	if not TOWER_LAYER_MAP.has(tower_type):
 		return
 	if not _music_layers_active:
