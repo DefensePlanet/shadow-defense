@@ -11217,7 +11217,7 @@ func _draw_gear_tab() -> void:
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR COMPENDIUM", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, _ca(menu_gold_light, 0.9))
+	_ds_title(Vector2(panel_x, panel_y + 28), "GEAR COMPENDIUM", 18, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 
 	# Enhancement #26: Character filter indicators — show colored dots for characters that have gear
@@ -11478,9 +11478,8 @@ func _draw_emporium() -> void:
 	var title_size = 26
 	var title_cx = panel_x + panel_w * 0.5
 	var title_y = panel_y + 36.0
-	# Title glow + text — properly centered
-	_udraw(font, Vector2(panel_x + 50, title_y), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 100), title_size, _ca(c_gold, 0.3))
-	_udraw(font, Vector2(panel_x + 49, title_y - 1), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 100), title_size, Color(0.95, 0.75, 0.2, 0.9))
+	# Title — using design system
+	_ds_title(Vector2(panel_x, title_y), title_text, title_size, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	# Decorative stars flanking title
 	var star_lx = title_cx - 110.0
 	var star_rx = title_cx + 95.0
@@ -11964,9 +11963,7 @@ func _draw_emporium_sub_panel() -> void:
 	if emporium_sub_category >= 0 and emporium_sub_category < emporium_categories.size():
 		var cat = emporium_categories[emporium_sub_category]
 		var title_text = cat["name"].to_upper()
-		var title_size = 24
-		var tw = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x
-		_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 36), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
+		_ds_title(Vector2(panel_x, panel_y + 36), title_text, 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 		# Underline
 		var cx = panel_x + panel_w * 0.5
 		draw_line(Vector2(cx - 160, panel_y + 44), Vector2(cx + 160, panel_y + 44), _ca(menu_gold, 0.3), 1.5)
@@ -12929,14 +12926,11 @@ func _draw_closed_book() -> void:
 	draw_rect(Rect2(panel_x + 6, panel_y + 6, 1, panel_h - 12), border_inner)
 	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), border_inner)
 
-	# Title — properly centered
-	var title_text = "STORYBOOK KNOWLEDGE"
-	var title_size = 24
-	var tw = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x
-	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 34), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
+	# Title — using design system
+	_ds_title(Vector2(panel_x, panel_y + 34), "STORYBOOK KNOWLEDGE", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	# Title underline
 	var cx = panel_x + panel_w * 0.5
-	draw_line(Vector2(cx - 160, panel_y + 42), Vector2(cx + 160, panel_y + 42), _ca(menu_gold, 0.3), 1.5)
+	draw_line(Vector2(cx - 180, panel_y + 42), Vector2(cx + 180, panel_y + 42), _ca(menu_gold, 0.4), 1.5)
 
 	# Knowledge Ink counter
 	var ink_text = "Knowledge Ink: %d" % knowledge_ink
@@ -29183,7 +29177,7 @@ func _draw_achievements_tab() -> void:
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title — centered properly
-	_udraw(font, Vector2(panel_x + 100, panel_y + 28), "ACHIEVEMENTS", HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 200), 20, _ca(menu_gold_light, 0.9))
+	_ds_title(Vector2(panel_x, panel_y + 28), "ACHIEVEMENTS", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 	# Count unlocked
 	var unlocked_count = 0
@@ -29793,7 +29787,7 @@ func _draw_trophy_store() -> void:
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5 - 60, panel_y + 28), "TROPHY STORE", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.7, 0.2, 0.9))
+	_ds_title(Vector2(panel_x, panel_y + 28), "TROPHY STORE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Trophies: %d" % trophy_currency, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
 	# Categories
@@ -29923,7 +29917,7 @@ func _draw_gear_shop() -> void:
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR SHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.7, 0.2, 0.9))
+	_ds_title(Vector2(panel_x, panel_y + 28), "GEAR SHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	var card_w = 260.0
 	var card_h = 48.0
