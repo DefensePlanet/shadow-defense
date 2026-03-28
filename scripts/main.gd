@@ -13463,25 +13463,8 @@ func _draw_survivor_grid() -> void:
 
 	# No panel background — let menu bg show through for seamless look
 
-	# === "SURVIVORS" title — GLOWING ===
-	var title_y = panel_y + 4.0
-	var title_text = "SURVIVORS"
-	var title_sz = 24
-	var title_cx = panel_x + panel_w * 0.5
-	var title_bar_w = 300.0
-	var s_pulse = 0.85 + sin(_time * 1.0) * 0.15
-	# Glow halo
-	draw_circle(Vector2(title_cx, title_y + 14), 80.0, _ca(menu_gold, 0.04 * s_pulse))
-	# Background bar
-	draw_rect(Rect2(title_cx - title_bar_w * 0.5, title_y, title_bar_w, 30), Color(0.03, 0.03, 0.08, 0.85))
-	draw_rect(Rect2(title_cx - title_bar_w * 0.5, title_y + 29, title_bar_w, 2), _ca(menu_gold, 0.4))
-	# Shadow + bright + glow
-	_udraw(font, Vector2(title_cx - title_bar_w * 0.5 + 5, title_y + 23), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(title_bar_w - 8), title_sz, Color(0, 0, 0, 0.6))
-	_udraw(font, Vector2(title_cx - title_bar_w * 0.5 + 4, title_y + 22), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(title_bar_w - 8), title_sz, Color(1.0 * s_pulse, 0.85 * s_pulse, 0.28, 1.0))
-	_udraw(font, Vector2(title_cx - title_bar_w * 0.5 + 3, title_y + 21), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(title_bar_w - 8), title_sz, Color(1.0, 0.92, 0.50, 0.25 * s_pulse))
-	# Decorative lines
-	draw_line(Vector2(title_cx - title_bar_w * 0.5 - 50, title_y + 15), Vector2(title_cx - title_bar_w * 0.5 - 4, title_y + 15), _ca(menu_gold, 0.4), 1.5)
-	draw_line(Vector2(title_cx + title_bar_w * 0.5 + 4, title_y + 15), Vector2(title_cx + title_bar_w * 0.5 + 50, title_y + 15), _ca(menu_gold, 0.4), 1.5)
+	# === "SURVIVORS" title — using design system ===
+	_ds_title(Vector2(panel_x, panel_y + 22), "SURVIVORS", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 
 	# === PARTY count badge (top-right) ===
 	var unlocked_count = 0
@@ -13562,49 +13545,9 @@ func _draw_survivor_grid() -> void:
 			title_str = title_str.substr(0, 26) + ".."
 		_ds_hero_card(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), speaker_name, info["name"], title_str, char_lvl, accent, unlocked, is_hovered)
 
-		# === Clean design — minimal overlays ===
-		# NEW badge only
-		if unlocked and _new_items.has("hero_%d" % i):
-			_draw_new_badge(draw_cx + draw_cw - 16, draw_cy + 4)
-			# === CharMenu 5: Unlock Progress bar on locked cards ===
+		# Unlock progress on locked cards
+		if not unlocked:
 			_draw_unlock_progress(draw_cx, draw_cy, draw_cw, draw_ch, i)
-
-		# === Hover glow + shimmer ===
-		if unlocked and is_hovered:
-			_draw_card_shimmer(draw_cx, draw_cy, draw_cw, draw_ch, accent)
-			var glow_a = 0.12 + 0.05 * sin(_time * 3.0)
-			draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw - 6, draw_ch - 6), _ca(accent, glow_a))
-			# Bright border on hover
-			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, 3), _ca(accent, 0.9))
-			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), _ca(accent, 0.9))
-			draw_rect(Rect2(draw_cx, draw_cy, 3, draw_ch), _ca(accent, 0.9))
-			draw_rect(Rect2(draw_cx + draw_cw - 3, draw_cy, 3, draw_ch), _ca(accent, 0.9))
-
-		# === Enhancement 9: Character-themed particles on hovered card ===
-		if unlocked and is_hovered:
-			for pi in range(4):
-				var pa = _time * 1.5 + float(pi) * 1.6 + float(i) * 0.5
-				var py_off = sin(pa) * (draw_ch * 0.3)
-				var px_off = cos(pa * 0.7) * (draw_cw * 0.3)
-				var pp = Vector2(draw_cx + draw_cw * 0.5 + px_off, draw_cy + draw_ch * 0.4 + py_off)
-				var p_alpha = 0.2 + sin(_time * 3.0 + float(pi)) * 0.1
-				draw_circle(pp, 2.0, _ca(accent, p_alpha))
-
-		# === Floating DMG Preview on hover ===
-		if unlocked and is_hovered:
-			_draw_hover_dmg_preview(draw_cx + draw_cw * 0.5, draw_cy + 55, tower_type)
-		# === CharMenu 10: Quick Info Popup on long-press ===
-		_draw_quick_info_popup(draw_cx, draw_cy, draw_cw, i)
-
-	# === Post-grid overlays ===
-	# === CharMenu 6: Collection Milestones ===
-	_draw_collection_milestones(panel_x + panel_w - 110, panel_y + 14)
-	# === CharMenu 7: Active Party Slots ===
-	_draw_party_slots(panel_x + 10, panel_y + panel_h - 22)
-	# === Bonus 25: Total Hero Stats Bar ===
-	_draw_hero_stats_bar(panel_x, panel_y + panel_h - 18, panel_w)
-	# === Bonus 2: Voice Line Popup ===
-	_draw_voice_line_popup()
 
 func _draw_new_character_portrait(idx: int, center: Vector2, col: Color) -> void:
 	var cx = center.x
@@ -15167,19 +15110,9 @@ func _draw_story_map() -> void:
 	draw_rect(Rect2(list_x, list_y, list_w, 36), Color(0.08, 0.06, 0.12, 0.9))
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
-	var title_text = "THE TOME OF SHADOWS"
+	# Title — using design system
+	_ds_title(Vector2(list_x + 20, list_y + 24), "THE TOME OF SHADOWS", 22, Color(1.0, 0.85, 0.28))
 	var count_text = "%d/%d LEVELS" % [num_completed, num_total]
-	# Title glow halo
-	var title_pulse = 0.85 + sin(_time * 1.0) * 0.15
-	var title_glow_cx = list_x + list_w * 0.4
-	draw_circle(Vector2(title_glow_cx, list_y + 18), 120.0, _ca(c_gold, 0.04 * title_pulse))
-	# Shadow
-	_udraw(font, Vector2(list_x + 22, list_y + 26), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.0, 0.0, 0.0, 0.6))
-	# Main — BIG, BRIGHT, GLOWING
-	_udraw(font, Vector2(list_x + 20, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0 * title_pulse, 0.85 * title_pulse, 0.28, 1.0))
-	# Glow pass
-	_udraw(font, Vector2(list_x + 19, list_y + 23), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0, 0.92, 0.50, 0.2 * title_pulse))
-	# Count — right side
 	_udraw(font, Vector2(list_x + list_w - 160, list_y + 24), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(0.85, 0.70, 0.30))
 	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), _ca(menu_gold_dim, 0.3))
 
@@ -15510,31 +15443,8 @@ func _draw_story_map() -> void:
 			var btn_h2 = 52.0
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
-				var btn_pulse = 0.85 + sin(_time * 3.0) * 0.15 if not is_complete else 0.7
-				# Glowing modern GO button
-				var btn_glow_r = 40.0 + sin(_time * 2.0) * 5.0
-				if not is_complete:
-					draw_circle(Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5), btn_glow_r, Color(0.2, 0.7, 0.15, 0.08 * btn_pulse))
-				# Gradient fill (multiple rects for depth)
-				var btn_base = Color(0.15, 0.52, 0.12) if not btn_hover else Color(0.18, 0.62, 0.15)
-				if is_complete:
-					btn_base = Color(0.12, 0.35, 0.10, 0.6) if not btn_hover else Color(0.15, 0.45, 0.12, 0.8)
-				for gi in range(5):
-					var gt = float(gi) / 4.0
-					var shade = 1.0 - gt * 0.3
-					draw_rect(Rect2(btn_x, btn_y2 + gt * btn_h2 * 0.2, btn_w2, btn_h2 * 0.2 + 1), Color(btn_base.r * shade, btn_base.g * shade, btn_base.b * shade, btn_pulse))
-				# Top highlight (glass effect)
-				draw_rect(Rect2(btn_x + 2, btn_y2 + 2, btn_w2 - 4, btn_h2 * 0.35), Color(1, 1, 1, 0.08 * btn_pulse))
-				# Border — bright gold
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.85, 0.70, 0.20, 0.6 * btn_pulse), false, 2.0)
-				# Inner border glow
-				draw_rect(Rect2(btn_x + 1, btn_y2 + 1, btn_w2 - 2, btn_h2 - 2), Color(0.4, 0.8, 0.3, 0.15 * btn_pulse), false, 1.0)
-				# GO text — big, white, glowing
-				_udraw(font, Vector2(btn_x + 5, btn_y2 + 34), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 22, Color(0, 0, 0, 0.4))
-				_udraw(font, Vector2(btn_x + 4, btn_y2 + 33), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 22, Color(1, 1, 1, 0.95))
-				# Shimmer sweep
-				if not is_complete:
-					_draw_button_shimmer(btn_x, btn_y2, btn_w2, btn_h2, 50.0, Color(1, 1, 1, 0.15))
+				var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
+				_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
 			else:
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
