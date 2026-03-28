@@ -9880,27 +9880,27 @@ func _draw_loot_crate_popup() -> void:
 			_loot_crate_anim_timer = 0.0
 	# Phase 3: Open — reveal rewards
 	elif _loot_crate_phase >= 3:
-		_udraw(font, Vector2(cx, cy - 80), _loot_crate_reward.get("quality_name", "Loot"), HORIZONTAL_ALIGNMENT_CENTER, 300, 28, qcol)
-		_udraw(font, Vector2(cx, cy - 55), "STORYBOOK CRATE", HORIZONTAL_ALIGNMENT_CENTER, 300, 16, Color(0.7, 0.7, 0.7, 0.7))
+		_udraw(font, Vector2(cx - 150, cy - 80), _loot_crate_reward.get("quality_name", "Loot"), HORIZONTAL_ALIGNMENT_CENTER, 300, 28, qcol)
+		_udraw(font, Vector2(cx - 150, cy - 55), "STORYBOOK CRATE", HORIZONTAL_ALIGNMENT_CENTER, 300, 16, Color(0.7, 0.7, 0.7, 0.7))
 		var ry = cy - 20.0
 		if _loot_crate_reward.has("gold"):
-			_udraw(font, Vector2(cx, ry), "+%d Gold" % _loot_crate_reward["gold"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_gold)
+			_udraw(font, Vector2(cx - 150, ry), "+%d Gold" % _loot_crate_reward["gold"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_gold)
 			ry += 24.0
 		if _loot_crate_reward.has("quills"):
-			_udraw(font, Vector2(cx, ry), "+%d Quills" % _loot_crate_reward["quills"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.7, 0.35, 0.9))
+			_udraw(font, Vector2(cx - 150, ry), "+%d Quills" % _loot_crate_reward["quills"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.7, 0.35, 0.9))
 			ry += 24.0
 		if _loot_crate_reward.has("shards"):
-			_udraw(font, Vector2(cx, ry), "+%d Shards" % _loot_crate_reward["shards"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_cyan)
+			_udraw(font, Vector2(cx - 150, ry), "+%d Shards" % _loot_crate_reward["shards"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_cyan)
 			ry += 24.0
 		if _loot_crate_reward.has("crystals"):
-			_udraw(font, Vector2(cx, ry), "+%d Crystals" % _loot_crate_reward["crystals"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.4, 0.9, 0.6))
+			_udraw(font, Vector2(cx - 150, ry), "+%d Crystals" % _loot_crate_reward["crystals"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.4, 0.9, 0.6))
 			ry += 24.0
 		# Pity meter
 		var pity_ratio = float(_total_drops_no_legendary) / float(PITY_GUARANTEE_AT)
 		draw_rect(Rect2(cx - 100, ry + 10, 200, 8), Color(0.1, 0.1, 0.15, 0.5))
 		draw_rect(Rect2(cx - 100, ry + 10, 200.0 * pity_ratio, 8), Color(0.95, 0.75, 0.1, 0.7))
-		_udraw(font, Vector2(cx, ry + 28), "Pity: %d/%d" % [_total_drops_no_legendary, PITY_GUARANTEE_AT], HORIZONTAL_ALIGNMENT_CENTER, 200, 12, Color(0.6, 0.6, 0.6, 0.6))
-		_udraw(font, Vector2(cx, ry + 50), "TAP TO COLLECT", HORIZONTAL_ALIGNMENT_CENTER, 300, 16, Color(1, 1, 1, 0.5 + sin(_time * 3.0) * 0.3))
+		_udraw(font, Vector2(cx - 100, ry + 28), "Pity: %d/%d" % [_total_drops_no_legendary, PITY_GUARANTEE_AT], HORIZONTAL_ALIGNMENT_CENTER, 200, 12, Color(0.6, 0.6, 0.6, 0.6))
+		_udraw(font, Vector2(cx - 150, ry + 50), "TAP TO COLLECT", HORIZONTAL_ALIGNMENT_CENTER, 300, 16, Color(1, 1, 1, 0.5 + sin(_time * 3.0) * 0.3))
 
 # --- 3. STREAK SHIELD ---
 func _use_streak_shield() -> bool:
