@@ -11145,21 +11145,22 @@ func _draw_menu_background() -> void:
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
 
-		# Icon — MASSIVE AI art, overlapping for pop (March 17 match)
-		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 28.0)
-		var icon_sz = 82.0 if is_act else 64.0
+		# Icon — sized per industry standard (large but not overlapping)
+		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 32.0)
+		var icon_sz = 58.0 if is_act else 46.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
 		if _tab_icon_textures.has(_tik):
 			var alpha = 1.0 if is_act else 0.7
 			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false, Color(1, 1, 1, alpha))
-		# Label — centered within tab column (bigger, brighter)
-		var lbl_y = nav_draw_y + 80.0
-		var lbl_col = _ca(tc, 1.0) if is_act else Color(0.60, 0.55, 0.45, 0.65)
-		var lbl_sz = 14 if is_act else 12
+		# Label — below icon, properly sized
+		var lbl_y = nav_draw_y + 72.0
+		var lbl_col = _ca(tc, 1.0) if is_act else Color(0.55, 0.50, 0.42, 0.6)
+		var lbl_sz = 12 if is_act else 10
 		_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), lbl_sz, lbl_col)
-		# Active tab indicator dot
+		# Active tab underline (not dot — industry standard)
 		if is_act:
-			draw_circle(Vector2(tx + tab_w * 0.5, nav_draw_y + 94.0), 3.0, _ca(tc, 0.9))
+			var ul_w = minf(tab_w * 0.6, 80.0)
+			draw_rect(Rect2(tx + (tab_w - ul_w) * 0.5, nav_draw_y + 84.0, ul_w, 2), _ca(tc, 0.9))
 
 	if menu_current_view == "chapters":
 		_draw_story_map()
@@ -15347,7 +15348,7 @@ func _draw_story_map() -> void:
 			var best_w = level_best_wave.get(lvl_idx, 0)
 			if best_w > 0:
 				wave_info += "  |  Best: W%d" % best_w
-			_udraw(font, Vector2(text_x, ry + 64), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 440, 14, stat_col)
+			_udraw(font, Vector2(text_x, ry + 64), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 380, 14, stat_col)
 
 			# Enhancement 21: Reward preview icons on level cards
 			var level_rewards = _get_level_rewards(lvl_idx)
