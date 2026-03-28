@@ -4430,6 +4430,12 @@ func _load_tower_sprite_textures() -> void:
 			var tex = load(res_path)
 			if tex:
 				_tower_sprite_textures[tname] = tex
+				continue
+		# Fallback: load raw PNG via Image (works even without .import cache)
+		var abs_path = ProjectSettings.globalize_path(res_path)
+		var img = Image.new()
+		if img.load(abs_path) == OK:
+			_tower_sprite_textures[tname] = ImageTexture.create_from_image(img)
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
@@ -4444,6 +4450,12 @@ func _load_enemy_portrait_textures() -> void:
 				var tex = load(res_path)
 				if tex:
 					_enemy_portrait_textures[key] = tex
+					continue
+			# Fallback: load raw PNG via Image (works even without .import cache)
+			var abs_path = ProjectSettings.globalize_path(res_path)
+			var img = Image.new()
+			if img.load(abs_path) == OK:
+				_enemy_portrait_textures[key] = ImageTexture.create_from_image(img)
 
 func _load_gear_icon_textures() -> void:
 	_gear_icon_textures.clear()
