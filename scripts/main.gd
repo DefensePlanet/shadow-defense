@@ -4398,16 +4398,32 @@ func _load_level_bg_textures() -> void:
 
 func _load_path_textures() -> void:
 	_path_textures.clear()
-	var names = ["prologue", "sherlock", "merlin", "tarzan", "dracula", "frankenstein",
+	# Per-level unique path textures (37 levels)
+	for idx in range(MAP_THUMB_SLUGS.size()):
+		var slug = MAP_THUMB_SLUGS[idx]
+		var res_path = "res://assets/path_textures/path_" + slug + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_path_textures[slug] = tex
+				continue
+		# Fallback: load raw PNG via Image (works even without .import cache)
+		var abs_path = ProjectSettings.globalize_path(res_path)
+		var img = Image.new()
+		if img.load(abs_path) == OK:
+			_path_textures[slug] = ImageTexture.create_from_image(img)
+	# Legacy faction-key fallback (for any levels without per-level texture)
+	var faction_names = ["prologue", "sherlock", "merlin", "tarzan", "dracula", "frankenstein",
 		"robin_hood", "alice", "oz", "peter_pan", "phantom", "scrooge", "shadow_author"]
-	for pname in names:
+	for pname in faction_names:
+		if _path_textures.has(pname):
+			continue
 		var res_path = "res://assets/path_textures/path_" + pname + ".png"
 		if ResourceLoader.exists(res_path):
 			var tex = load(res_path)
 			if tex:
 				_path_textures[pname] = tex
 				continue
-		# Fallback: load raw PNG via Image (works even without .import cache)
 		var abs_path = ProjectSettings.globalize_path(res_path)
 		var img = Image.new()
 		if img.load(abs_path) == OK:
@@ -19655,6 +19671,12 @@ func _draw_path_overlay() -> void:
 	_draw_entry_exit_markers(pts)
 
 func _get_level_faction_key(level_idx: int) -> String:
+	# Try per-level slug first (unique path per level)
+	if level_idx >= 0 and level_idx < MAP_THUMB_SLUGS.size():
+		var slug = MAP_THUMB_SLUGS[level_idx]
+		if _path_textures.has(slug):
+			return slug
+	# Fall back to faction key
 	match level_idx:
 		0: return "prologue"
 		1, 2, 3: return "sherlock"
