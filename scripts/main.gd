@@ -19211,10 +19211,12 @@ func _draw() -> void:
 		# Wave number text with bounce
 		var wb_text = "WAVE %d" % _wave_banner_num
 		var font = game_font
-		_udraw(font, Vector2(640 + wb_x_offset + 1, wb_y + 2 - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(0, 0, 0, wb_alpha * 0.5))
-		_udraw(font, Vector2(640 + wb_x_offset, wb_y - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(wb_col.r, wb_col.g, wb_col.b, wb_alpha))
-		# Subtitle wave name
-		_udraw(font, Vector2(640 + wb_x_offset, wb_y + 22), _wave_banner_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.8, 0.8, 0.8, wb_alpha * 0.6))
+		# Wave banner — triple glow
+		_udraw(font, Vector2(640 + wb_x_offset + 2, wb_y + 3 - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 34, Color(0, 0, 0, wb_alpha * 0.6))
+		_udraw(font, Vector2(640 + wb_x_offset, wb_y - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 34, Color(wb_col.r, wb_col.g, wb_col.b, wb_alpha))
+		_udraw(font, Vector2(640 + wb_x_offset - 1, wb_y - 1 - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 34, Color(wb_col.r, wb_col.g, wb_col.b, wb_alpha * 0.25))
+		# Subtitle wave name — brighter
+		_udraw(font, Vector2(640 + wb_x_offset, wb_y + 24), _wave_banner_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.85, 0.85, wb_alpha * 0.7))
 
 	# === BOSS WAVE ALERT (with glow) ===
 	if _boss_alert_timer > 0.0:
@@ -19473,8 +19475,9 @@ func _draw_ability_popup() -> void:
 	# Gold ornate border
 	draw_rect(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.85, 0.7, 0.2, 0.9 * alpha), false, 3.0)
 	draw_rect(Rect2(cx - pw / 2 + 4, cy - ph / 2 + 4, pw - 8, ph - 8), Color(0.7, 0.55, 0.15, 0.4 * alpha), false, 1.0)
-	# Title
-	_udraw(game_font, Vector2(cx - 120, cy - 25), "NEW ABILITY UNLOCKED!", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.85, 0.3, alpha))
+	# Title — glowing
+	_udraw(game_font, Vector2(cx - 121, cy - 26), "NEW ABILITY UNLOCKED!", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.5, alpha * 0.25))
+	_udraw(game_font, Vector2(cx - 120, cy - 25), "NEW ABILITY UNLOCKED!", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.88, 0.35, alpha))
 	# Character name + ability name
 	var char_name = character_names[_ability_popup_tower_type] if _ability_popup_tower_type >= 0 and _ability_popup_tower_type < character_names.size() else ""
 	_udraw(game_font, Vector2(cx - 140, cy + 5), char_name + " — " + _ability_popup_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 1.0, 0.9, alpha))
