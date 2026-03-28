@@ -2408,6 +2408,8 @@ var gear_shop_scroll: float = 0.0
 var detail_gear_scroll: float = 0.0
 var gear_scroll_offset: float = 0.0
 var gear_hover_index: int = -1
+var emporium_scroll: float = 0.0  # Scroll offset for emporium main grid
+var achievements_scroll: float = 0.0  # Scroll offset for achievements tab
 
 # === STORY DIALOG SYSTEM ===
 var story_dialogs: Dictionary = {}  # "pre_level_N" -> [{speaker, text, voice_type}]
@@ -3008,35 +3010,223 @@ func _init_synergy_definitions() -> void:
 
 func _init_achievement_definitions() -> void:
 	achievement_definitions = [
-		# Combat (8)
+		# ============================================================
+		# COMBAT — Kill Milestones (12)
+		# ============================================================
 		{"id": "first_blood", "name": "First Blood", "desc": "Kill your first enemy", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 5},
+		{"id": "bug_squasher", "name": "Bug Squasher", "desc": "Kill 10 enemies", "category": "Combat", "target": 10, "reward_type": "shards", "reward_amount": 5},
 		{"id": "centurion", "name": "Centurion", "desc": "Kill 100 enemies", "category": "Combat", "target": 100, "reward_type": "shards", "reward_amount": 20},
+		{"id": "exterminator", "name": "Exterminator", "desc": "Kill 500 enemies", "category": "Combat", "target": 500, "reward_type": "shards", "reward_amount": 30},
 		{"id": "thousand_slayer", "name": "Thousand Slayer", "desc": "Kill 1000 enemies", "category": "Combat", "target": 1000, "reward_type": "quills", "reward_amount": 10, "trophy_bonus": 5},
+		{"id": "warmonger", "name": "Warmonger", "desc": "Kill 2,500 enemies", "category": "Combat", "target": 2500, "reward_type": "quills", "reward_amount": 15},
+		{"id": "massacre", "name": "Massacre", "desc": "Kill 5,000 enemies", "category": "Combat", "target": 5000, "reward_type": "shards", "reward_amount": 50},
+		{"id": "ten_thousand_strong", "name": "Ten Thousand Strong", "desc": "Kill 10,000 enemies", "category": "Combat", "target": 10000, "reward_type": "quills", "reward_amount": 25, "trophy_bonus": 10},
+		{"id": "army_breaker", "name": "Army Breaker", "desc": "Kill 25,000 enemies", "category": "Combat", "target": 25000, "reward_type": "stars", "reward_amount": 3},
+		{"id": "genocide_protocol", "name": "Genocide Protocol", "desc": "Kill 50,000 enemies", "category": "Combat", "target": 50000, "reward_type": "quills", "reward_amount": 40, "trophy_bonus": 15},
+		{"id": "the_reaper", "name": "The Reaper", "desc": "Kill 100,000 enemies", "category": "Combat", "target": 100000, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 25},
+		{"id": "death_incarnate", "name": "Death Incarnate", "desc": "Kill 250,000 enemies", "category": "Combat", "target": 250000, "reward_type": "stars", "reward_amount": 15, "trophy_bonus": 50},
+		# COMBAT — Boss Kills (4)
+		{"id": "boss_slayer", "name": "Boss Slayer", "desc": "Kill your first boss", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "boss_hunter", "name": "Boss Hunter", "desc": "Kill 10 bosses", "category": "Combat", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "boss_executioner", "name": "Boss Executioner", "desc": "Kill 50 bosses", "category": "Combat", "target": 50, "reward_type": "shards", "reward_amount": 40, "trophy_bonus": 10},
+		{"id": "tyrant_slayer", "name": "Tyrant Slayer", "desc": "Kill 100 bosses", "category": "Combat", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 20},
+		# COMBAT — Damage Milestones (10)
+		{"id": "damage_dealer", "name": "Damage Dealer", "desc": "Deal 1,000 total damage", "category": "Combat", "target": 1000, "reward_type": "shards", "reward_amount": 10},
+		{"id": "heavy_hitter", "name": "Heavy Hitter", "desc": "Deal 10,000 total damage", "category": "Combat", "target": 10000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "wrecking_ball", "name": "Wrecking Ball", "desc": "Deal 50,000 total damage", "category": "Combat", "target": 50000, "reward_type": "quills", "reward_amount": 12},
+		{"id": "siege_engine", "name": "Siege Engine", "desc": "Deal 100,000 total damage", "category": "Combat", "target": 100000, "reward_type": "quills", "reward_amount": 20},
+		{"id": "cataclysm", "name": "Cataclysm", "desc": "Deal 500,000 total damage", "category": "Combat", "target": 500000, "reward_type": "shards", "reward_amount": 60},
+		{"id": "armageddon", "name": "Armageddon", "desc": "Deal 1,000,000 total damage", "category": "Combat", "target": 1000000, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "world_ender", "name": "World Ender", "desc": "Deal 5,000,000 total damage", "category": "Combat", "target": 5000000, "reward_type": "stars", "reward_amount": 8, "trophy_bonus": 25},
+		{"id": "critical_strike", "name": "Critical Strike", "desc": "Deal 100+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "devastating_blow", "name": "Devastating Blow", "desc": "Deal 500+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 8},
+		{"id": "one_shot_wonder", "name": "One-Shot Wonder", "desc": "Deal 1,000+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 30, "trophy_bonus": 5},
+		# COMBAT — Kill Streaks (6)
+		{"id": "combo_starter", "name": "Combo Starter", "desc": "Get a 5 kill streak", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "streak_master", "name": "Streak Master", "desc": "Get a 10 kill streak", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "unstoppable", "name": "Unstoppable", "desc": "Get a 25 kill streak", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 8},
+		{"id": "rampage", "name": "Rampage", "desc": "Get a 50 kill streak", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 12},
+		{"id": "god_of_war", "name": "God of War", "desc": "Get a 100 kill streak", "category": "Combat", "target": 1, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "endless_fury", "name": "Endless Fury", "desc": "Get a 200 kill streak", "category": "Combat", "target": 1, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		# COMBAT — Completion & Challenges (14)
+		{"id": "iron_wall", "name": "Iron Wall", "desc": "Complete 5 levels with 0 lives lost", "category": "Combat", "target": 5, "reward_type": "quills", "reward_amount": 10},
 		{"id": "untouchable", "name": "Untouchable", "desc": "Complete a level with 0 lives lost", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 5},
 		{"id": "speed_demon", "name": "Speed Demon", "desc": "Complete a level entirely on fast-forward", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
 		{"id": "wave_master", "name": "Wave Master", "desc": "Complete 50 total waves", "category": "Combat", "target": 50, "reward_type": "shards", "reward_amount": 25},
+		{"id": "wave_veteran", "name": "Wave Veteran", "desc": "Complete 200 total waves", "category": "Combat", "target": 200, "reward_type": "quills", "reward_amount": 15},
+		{"id": "wave_legend", "name": "Wave Legend", "desc": "Complete 500 total waves", "category": "Combat", "target": 500, "reward_type": "stars", "reward_amount": 3},
+		{"id": "wave_god", "name": "Wave God", "desc": "Complete 1,000 total waves", "category": "Combat", "target": 1000, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		{"id": "flawless", "name": "Flawless Victory", "desc": "Earn 3 stars on any level", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 5},
 		{"id": "perfect_campaign", "name": "Perfect Campaign", "desc": "Earn 3 stars on all 37 levels", "category": "Combat", "target": 37, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
-		# Tower (6)
+		{"id": "hard_mode_warrior", "name": "Hard Mode Warrior", "desc": "Complete any level on Hard", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 20},
+		{"id": "hard_mode_master", "name": "Hard Mode Master", "desc": "Complete 10 levels on Hard", "category": "Combat", "target": 10, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 10},
+		{"id": "pure_mode_survivor", "name": "Pure Mode Survivor", "desc": "Complete any level on Pure (1 life)", "category": "Combat", "target": 1, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "pure_mode_legend", "name": "Pure Mode Legend", "desc": "Complete 5 levels on Pure", "category": "Combat", "target": 5, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 25},
+		{"id": "no_sell_challenge", "name": "No Sell Challenge", "desc": "Complete a level without selling any tower", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		# COMBAT — Wave Survival (6)
+		{"id": "last_stand", "name": "Last Stand", "desc": "Win a level with only 1 life remaining", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 20},
+		{"id": "close_call", "name": "Close Call", "desc": "Win 5 levels with 3 or fewer lives", "category": "Combat", "target": 5, "reward_type": "quills", "reward_amount": 10},
+		{"id": "comeback_king", "name": "Comeback King", "desc": "Win after dropping below 5 lives", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "endurance_runner", "name": "Endurance Runner", "desc": "Survive 30 waves in Endless mode", "category": "Combat", "target": 30, "reward_type": "quills", "reward_amount": 15},
+		{"id": "marathon_runner", "name": "Marathon Runner", "desc": "Survive 50 waves in Endless mode", "category": "Combat", "target": 50, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "eternal_defender", "name": "Eternal Defender", "desc": "Survive 100 waves in Endless mode", "category": "Combat", "target": 100, "reward_type": "stars", "reward_amount": 8, "trophy_bonus": 30},
+		# ============================================================
+		# TOWER — Building & Placement (12)
+		# ============================================================
 		{"id": "novice_builder", "name": "Novice Builder", "desc": "Place 10 towers total", "category": "Tower", "target": 10, "reward_type": "shards", "reward_amount": 10},
 		{"id": "master_builder", "name": "Master Builder", "desc": "Place 100 towers total", "category": "Tower", "target": 100, "reward_type": "quills", "reward_amount": 8},
+		{"id": "architect", "name": "Architect", "desc": "Place 500 towers total", "category": "Tower", "target": 500, "reward_type": "shards", "reward_amount": 40},
+		{"id": "grand_architect", "name": "Grand Architect", "desc": "Place 1,000 towers total", "category": "Tower", "target": 1000, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "max_power", "name": "Max Power", "desc": "Fully upgrade a tower (tier 4)", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 20},
 		{"id": "full_roster", "name": "Full Roster", "desc": "Place all 6 tower types in one game", "category": "Tower", "target": 6, "reward_type": "quills", "reward_amount": 5},
+		{"id": "full_army", "name": "Full Army", "desc": "Place all 12 tower types in one game", "category": "Tower", "target": 12, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		# TOWER — Synergies (4)
 		{"id": "synergy_seeker", "name": "Synergy Seeker", "desc": "Activate 1 tower synergy", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 15},
 		{"id": "synergy_master", "name": "Synergy Master", "desc": "Activate all 6 synergies (across games)", "category": "Tower", "target": 6, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
-		# Economy (5)
+		{"id": "synergy_chain", "name": "Synergy Chain", "desc": "Activate 3 synergies in a single game", "category": "Tower", "target": 3, "reward_type": "quills", "reward_amount": 12},
+		{"id": "synergy_overload", "name": "Synergy Overload", "desc": "Activate 5 synergies in a single game", "category": "Tower", "target": 5, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		# TOWER — Upgrades (6)
+		{"id": "first_upgrade", "name": "First Upgrade", "desc": "Upgrade any tower once", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 5},
+		{"id": "upgrade_addict", "name": "Upgrade Addict", "desc": "Perform 50 total upgrades", "category": "Tower", "target": 50, "reward_type": "shards", "reward_amount": 20},
+		{"id": "upgrade_maniac", "name": "Upgrade Maniac", "desc": "Perform 200 total upgrades", "category": "Tower", "target": 200, "reward_type": "quills", "reward_amount": 12},
+		{"id": "ability_unlocked", "name": "Ability Unlocked", "desc": "Unlock a tower's special ability", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "ability_collector", "name": "Ability Collector", "desc": "Unlock 6 different tower abilities", "category": "Tower", "target": 6, "reward_type": "quills", "reward_amount": 10},
+		{"id": "ability_master", "name": "Ability Master", "desc": "Unlock all 12 tower abilities", "category": "Tower", "target": 12, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		# TOWER — Per-Character Mastery (12)
+		{"id": "robin_master", "name": "Robin Hood Master", "desc": "Get Robin Hood to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "alice_master", "name": "Alice Master", "desc": "Get Alice to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "witch_master", "name": "Wicked Witch Master", "desc": "Get Wicked Witch to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "peter_master", "name": "Peter Pan Master", "desc": "Get Peter Pan to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "phantom_master", "name": "Phantom Master", "desc": "Get The Phantom to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "scrooge_master", "name": "Scrooge Master", "desc": "Get Scrooge to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "sherlock_master", "name": "Sherlock Master", "desc": "Get Sherlock to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "tarzan_master", "name": "Tarzan Master", "desc": "Get Tarzan to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "dracula_master", "name": "Dracula Master", "desc": "Get Dracula to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "merlin_master", "name": "Merlin Master", "desc": "Get Merlin to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "frank_master", "name": "Frankenstein Master", "desc": "Get Frankenstein to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 10},
+		{"id": "shadow_master", "name": "Shadow Author Master", "desc": "Get Shadow Author to level 10", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 10},
+		# TOWER — Per-Character Max Level (12)
+		{"id": "robin_max", "name": "Robin Hood Legend", "desc": "Get Robin Hood to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "alice_max", "name": "Alice Legend", "desc": "Get Alice to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "witch_max", "name": "Wicked Witch Legend", "desc": "Get Wicked Witch to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "peter_max", "name": "Peter Pan Legend", "desc": "Get Peter Pan to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "phantom_max", "name": "Phantom Legend", "desc": "Get The Phantom to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "scrooge_max", "name": "Scrooge Legend", "desc": "Get Scrooge to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "sherlock_max", "name": "Sherlock Legend", "desc": "Get Sherlock to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "tarzan_max", "name": "Tarzan Legend", "desc": "Get Tarzan to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "dracula_max", "name": "Dracula Legend", "desc": "Get Dracula to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "merlin_max", "name": "Merlin Legend", "desc": "Get Merlin to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "frank_max", "name": "Frankenstein Legend", "desc": "Get Frankenstein to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "shadow_max", "name": "Shadow Author Legend", "desc": "Get Shadow Author to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 20},
+		# TOWER — Selling & Strategy (4)
+		{"id": "first_sale", "name": "First Sale", "desc": "Sell a tower for the first time", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 5},
+		{"id": "tower_flipper", "name": "Tower Flipper", "desc": "Sell 25 towers total", "category": "Tower", "target": 25, "reward_type": "shards", "reward_amount": 15},
+		{"id": "real_estate_mogul", "name": "Real Estate Mogul", "desc": "Sell 100 towers total", "category": "Tower", "target": 100, "reward_type": "quills", "reward_amount": 10},
+		{"id": "tower_hoarder", "name": "Tower Hoarder", "desc": "Have 8+ towers on the field at once", "category": "Tower", "target": 8, "reward_type": "shards", "reward_amount": 15},
+		# TOWER — Per-Character Kill Counts (12)
+		{"id": "robin_1k", "name": "Robin's Tally", "desc": "Kill 1,000 enemies with Robin Hood", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "alice_1k", "name": "Alice's Madness", "desc": "Kill 1,000 enemies with Alice", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "witch_1k", "name": "Witch's Wrath", "desc": "Kill 1,000 enemies with Wicked Witch", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "peter_1k", "name": "Pan's Score", "desc": "Kill 1,000 enemies with Peter Pan", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "phantom_1k", "name": "Phantom's Requiem", "desc": "Kill 1,000 enemies with The Phantom", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "scrooge_1k", "name": "Scrooge's Ledger", "desc": "Kill 1,000 enemies with Scrooge", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "sherlock_1k", "name": "Sherlock's Cases", "desc": "Kill 1,000 enemies with Sherlock", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "tarzan_1k", "name": "Tarzan's Hunt", "desc": "Kill 1,000 enemies with Tarzan", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "dracula_1k", "name": "Dracula's Feast", "desc": "Kill 1,000 enemies with Dracula", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "merlin_1k", "name": "Merlin's Prophecy", "desc": "Kill 1,000 enemies with Merlin", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "frank_1k", "name": "Monster's Fury", "desc": "Kill 1,000 enemies with Frankenstein", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "shadow_1k", "name": "Author's Edits", "desc": "Kill 1,000 enemies with Shadow Author", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 25},
+		# ============================================================
+		# ECONOMY — Gold (8)
+		# ============================================================
 		{"id": "penny_pincher", "name": "Penny Pincher", "desc": "Earn 500 gold total", "category": "Economy", "target": 500, "reward_type": "shards", "reward_amount": 10},
-		{"id": "big_spender", "name": "Big Spender", "desc": "Spend 2000 gold total", "category": "Economy", "target": 2000, "reward_type": "quills", "reward_amount": 5},
+		{"id": "gold_digger", "name": "Gold Digger", "desc": "Earn 5,000 gold total", "category": "Economy", "target": 5000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "treasure_hunter", "name": "Treasure Hunter", "desc": "Earn 25,000 gold total", "category": "Economy", "target": 25000, "reward_type": "quills", "reward_amount": 10},
+		{"id": "gold_baron", "name": "Gold Baron", "desc": "Earn 100,000 gold total", "category": "Economy", "target": 100000, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "big_spender", "name": "Big Spender", "desc": "Spend 2,000 gold total", "category": "Economy", "target": 2000, "reward_type": "quills", "reward_amount": 5},
+		{"id": "lavish_spender", "name": "Lavish Spender", "desc": "Spend 25,000 gold total", "category": "Economy", "target": 25000, "reward_type": "quills", "reward_amount": 12},
+		{"id": "gold_mountain", "name": "Gold Mountain", "desc": "Have 500+ gold at once", "category": "Economy", "target": 500, "reward_type": "shards", "reward_amount": 15},
+		{"id": "scrooges_vault", "name": "Scrooge's Vault", "desc": "Have 1,000+ gold at once", "category": "Economy", "target": 1000, "reward_type": "quills", "reward_amount": 10},
+		# ECONOMY — Emporium & Chests (8)
 		{"id": "emporium_regular", "name": "Emporium Regular", "desc": "Make 10 Emporium purchases", "category": "Economy", "target": 10, "reward_type": "shards", "reward_amount": 20},
+		{"id": "emporium_addict", "name": "Emporium Addict", "desc": "Make 50 Emporium purchases", "category": "Economy", "target": 50, "reward_type": "quills", "reward_amount": 15},
+		{"id": "emporium_whale", "name": "Emporium Whale", "desc": "Make 100 Emporium purchases", "category": "Economy", "target": 100, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "chest_collector", "name": "Chest Collector", "desc": "Open 20 treasure chests", "category": "Economy", "target": 20, "reward_type": "quills", "reward_amount": 8},
+		{"id": "chest_hoarder", "name": "Chest Hoarder", "desc": "Open 100 treasure chests", "category": "Economy", "target": 100, "reward_type": "stars", "reward_amount": 3},
+		{"id": "lucky_spin", "name": "Lucky Spin", "desc": "Win from the Lucky Wheel 5 times", "category": "Economy", "target": 5, "reward_type": "shards", "reward_amount": 15},
+		{"id": "wheel_addict", "name": "Wheel Addict", "desc": "Spin the Lucky Wheel 25 times", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 10},
+		{"id": "merchant_friend", "name": "Merchant's Friend", "desc": "Buy from the Wandering Merchant 10 times", "category": "Economy", "target": 10, "reward_type": "shards", "reward_amount": 20},
+		# ECONOMY — Currencies (8)
+		{"id": "quill_collector", "name": "Quill Collector", "desc": "Earn 100 Enchanted Quills", "category": "Economy", "target": 100, "reward_type": "shards", "reward_amount": 20},
+		{"id": "quill_hoarder", "name": "Quill Hoarder", "desc": "Earn 500 Enchanted Quills", "category": "Economy", "target": 500, "reward_type": "stars", "reward_amount": 3},
+		{"id": "shard_collector", "name": "Shard Collector", "desc": "Earn 500 Gear Shards", "category": "Economy", "target": 500, "reward_type": "quills", "reward_amount": 10},
+		{"id": "shard_hoarder", "name": "Shard Hoarder", "desc": "Earn 2,000 Gear Shards", "category": "Economy", "target": 2000, "reward_type": "stars", "reward_amount": 3},
+		{"id": "star_gazer", "name": "Star Gazer", "desc": "Earn 25 Storybook Stars", "category": "Economy", "target": 25, "reward_type": "shards", "reward_amount": 25},
+		{"id": "star_collector", "name": "Star Collector", "desc": "Earn 100 Storybook Stars", "category": "Economy", "target": 100, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 10},
+		{"id": "trophy_winner", "name": "Trophy Winner", "desc": "Earn 50 Trophies", "category": "Economy", "target": 50, "reward_type": "shards", "reward_amount": 30},
+		{"id": "trophy_champion", "name": "Trophy Champion", "desc": "Earn 200 Trophies", "category": "Economy", "target": 200, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		# ECONOMY — Gear & Salvage (8)
+		{"id": "first_gear", "name": "First Gear", "desc": "Equip your first gear item", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "gear_collector", "name": "Gear Collector", "desc": "Own 10 gear items", "category": "Economy", "target": 10, "reward_type": "quills", "reward_amount": 8},
+		{"id": "gear_hoarder", "name": "Gear Hoarder", "desc": "Own 25 gear items", "category": "Economy", "target": 25, "reward_type": "shards", "reward_amount": 30},
+		{"id": "full_set", "name": "Full Set", "desc": "Equip a complete gear set on one hero", "category": "Economy", "target": 1, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "salvage_beginner", "name": "Salvage Beginner", "desc": "Salvage 5 gear items", "category": "Economy", "target": 5, "reward_type": "shards", "reward_amount": 10},
+		{"id": "salvage_expert", "name": "Salvage Expert", "desc": "Salvage 25 gear items", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 10},
+		{"id": "forge_apprentice", "name": "Forge Apprentice", "desc": "Craft 5 Golden Chests", "category": "Economy", "target": 5, "reward_type": "shards", "reward_amount": 20},
+		{"id": "forge_master", "name": "Forge Master", "desc": "Craft 20 Golden Chests", "category": "Economy", "target": 20, "reward_type": "stars", "reward_amount": 3},
+		# ECONOMY — Knowledge & Instruments (4)
 		{"id": "knowledge_scholar", "name": "Knowledge Scholar", "desc": "Unlock 10 knowledge nodes", "category": "Economy", "target": 10, "reward_type": "stars", "reward_amount": 2},
-		# Progression (6)
+		{"id": "knowledge_sage", "name": "Knowledge Sage", "desc": "Unlock 25 knowledge nodes", "category": "Economy", "target": 25, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		{"id": "instrument_owner", "name": "Instrument Owner", "desc": "Buy your first instrument", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "orchestra", "name": "Full Orchestra", "desc": "Own 5 instruments", "category": "Economy", "target": 5, "reward_type": "quills", "reward_amount": 12},
+		# ============================================================
+		# PROGRESSION — Campaign (10)
+		# ============================================================
 		{"id": "first_steps", "name": "First Steps", "desc": "Complete your first level", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "getting_started", "name": "Getting Started", "desc": "Complete 5 levels", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 15},
 		{"id": "halfway_there", "name": "Halfway There", "desc": "Complete 18 levels", "category": "Progression", "target": 18, "reward_type": "quills", "reward_amount": 10},
 		{"id": "campaign_complete", "name": "Campaign Complete", "desc": "Complete all 37 levels", "category": "Progression", "target": 37, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 10},
+		{"id": "sherlock_arc", "name": "Baker Street", "desc": "Complete all Sherlock Holmes levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
+		{"id": "merlin_arc", "name": "Camelot's Champion", "desc": "Complete all Merlin levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
+		{"id": "tarzan_arc", "name": "King of the Jungle", "desc": "Complete all Tarzan levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
+		{"id": "dracula_arc", "name": "Vampire Hunter", "desc": "Complete all Dracula levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
+		{"id": "frank_arc", "name": "Lightning Tamer", "desc": "Complete all Frankenstein levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
+		{"id": "shadow_arc", "name": "Story's End", "desc": "Complete all Shadow Author levels", "category": "Progression", "target": 3, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
+		# PROGRESSION — Character Levels (6)
+		{"id": "first_levelup", "name": "First Level Up", "desc": "Level up any character", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 5},
 		{"id": "veteran_survivor", "name": "Veteran Survivor", "desc": "Get any character to level 5", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 30},
 		{"id": "master_survivor", "name": "Master Survivor", "desc": "Get any character to level 10", "category": "Progression", "target": 10, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 5},
+		{"id": "legendary_survivor", "name": "Legendary Survivor", "desc": "Get any character to level 15", "category": "Progression", "target": 15, "reward_type": "stars", "reward_amount": 3},
+		{"id": "max_survivor", "name": "Max Survivor", "desc": "Get any character to level 20", "category": "Progression", "target": 20, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "all_max", "name": "Ultimate Army", "desc": "Get all 12 characters to level 20", "category": "Progression", "target": 12, "reward_type": "stars", "reward_amount": 15, "trophy_bonus": 50},
+		# PROGRESSION — Stars (6)
+		{"id": "first_star", "name": "First Star", "desc": "Earn your first star", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 5},
+		{"id": "star_student", "name": "Star Student", "desc": "Earn 25 stars total", "category": "Progression", "target": 25, "reward_type": "shards", "reward_amount": 20},
+		{"id": "star_warrior", "name": "Star Warrior", "desc": "Earn 50 stars total", "category": "Progression", "target": 50, "reward_type": "quills", "reward_amount": 12},
+		{"id": "star_legend", "name": "Star Legend", "desc": "Earn 75 stars total", "category": "Progression", "target": 75, "reward_type": "quills", "reward_amount": 20},
+		{"id": "star_master", "name": "Star Master", "desc": "Earn 100 stars total", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "constellation", "name": "Constellation", "desc": "Earn all 111 possible stars", "category": "Progression", "target": 111, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 50},
+		# PROGRESSION — Daily & Meta (8)
 		{"id": "daily_devotee", "name": "Daily Devotee", "desc": "Claim 7 daily rewards", "category": "Progression", "target": 7, "reward_type": "stars", "reward_amount": 2},
+		{"id": "daily_streak_7", "name": "Weekly Warrior", "desc": "Log in 7 days in a row", "category": "Progression", "target": 7, "reward_type": "shards", "reward_amount": 20},
+		{"id": "daily_streak_30", "name": "Monthly Devotion", "desc": "Log in 30 days in a row", "category": "Progression", "target": 30, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "quest_complete_5", "name": "Quest Starter", "desc": "Complete 5 daily quests", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 15},
+		{"id": "quest_complete_25", "name": "Quest Hunter", "desc": "Complete 25 daily quests", "category": "Progression", "target": 25, "reward_type": "quills", "reward_amount": 12},
+		{"id": "quest_complete_100", "name": "Quest Legend", "desc": "Complete 100 daily quests", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "odyssey_complete", "name": "Odyssey Complete", "desc": "Complete an Odyssey run", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 30},
+		{"id": "odyssey_master", "name": "Odyssey Master", "desc": "Complete 10 Odyssey runs", "category": "Progression", "target": 10, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		# PROGRESSION — Achievements Meta (4)
+		{"id": "achievement_hunter", "name": "Achievement Hunter", "desc": "Unlock 25 achievements", "category": "Progression", "target": 25, "reward_type": "quills", "reward_amount": 10},
+		{"id": "achievement_addict", "name": "Achievement Addict", "desc": "Unlock 50 achievements", "category": "Progression", "target": 50, "reward_type": "stars", "reward_amount": 3},
+		{"id": "achievement_legend", "name": "Achievement Legend", "desc": "Unlock 100 achievements", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "completionist", "name": "Completionist", "desc": "Unlock all achievements", "category": "Progression", "target": 225, "reward_type": "stars", "reward_amount": 25, "trophy_bonus": 100},
+		# PROGRESSION — Arena & Competitive (6)
+		{"id": "arena_first", "name": "Arena Debut", "desc": "Complete your first Arena battle", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "arena_veteran", "name": "Arena Veteran", "desc": "Complete 25 Arena battles", "category": "Progression", "target": 25, "reward_type": "quills", "reward_amount": 12},
+		{"id": "arena_champion", "name": "Arena Champion", "desc": "Complete 100 Arena battles", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
+		{"id": "commander_tier_5", "name": "Commander Tier 5", "desc": "Reach Commander's Pass tier 5", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 20},
+		{"id": "commander_tier_10", "name": "Commander Tier 10", "desc": "Reach Commander's Pass tier 10", "category": "Progression", "target": 10, "reward_type": "quills", "reward_amount": 15},
+		{"id": "commander_max", "name": "Commander Max", "desc": "Max out the Commander's Pass", "category": "Progression", "target": 20, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 25},
 	]
 	for ach in achievement_definitions:
 		if not achievement_progress.has(ach["id"]):
@@ -5850,8 +6040,13 @@ func _process_momentum_scroll(delta: float) -> void:
 			story_map_scroll_y = maxf(0.0, story_map_scroll_y + _touch_scroll_velocity * delta * 60.0)
 		elif menu_current_view == "gear":
 			gear_scroll_offset = clampf(gear_scroll_offset + _touch_scroll_velocity * delta * 60.0, 0.0, 1200.0)
-		elif menu_current_view == "emporium" and emporium_sub_category == 8:
-			gear_shop_scroll = clampf(gear_shop_scroll + _touch_scroll_velocity * delta * 60.0, 0.0, 1200.0)
+		elif menu_current_view == "emporium":
+			if emporium_sub_category == 8:
+				gear_shop_scroll = clampf(gear_shop_scroll + _touch_scroll_velocity * delta * 60.0, 0.0, 1200.0)
+			elif emporium_sub_category < 0:
+				emporium_scroll = maxf(0.0, emporium_scroll + _touch_scroll_velocity * delta * 60.0)
+		elif menu_current_view == "achievements":
+			achievements_scroll = maxf(0.0, achievements_scroll + _touch_scroll_velocity * delta * 60.0)
 		elif menu_current_view == "survivors" and survivor_detail_open:
 			detail_gear_scroll = clampf(detail_gear_scroll + _touch_scroll_velocity * delta * 60.0, 0.0, 600.0)
 		queue_redraw()
@@ -5909,6 +6104,8 @@ func _on_nav_pressed(nav_name: String) -> void:
 	gear_scroll_offset = 0.0
 	gear_shop_scroll = 0.0
 	detail_gear_scroll = 0.0
+	emporium_scroll = 0.0
+	achievements_scroll = 0.0
 	# Menu Improvement 7: Slide transition between views
 	_start_menu_slide(menu_current_view, nav_name)
 	# Menu Improvement 17: Nav icon bounce on tab click
@@ -6044,18 +6241,22 @@ func _update_emporium_hover() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var tile_w = 340.0
-	var tile_h = 220.0
+	var tile_h = 160.0
 	var gap_x = 30.0
-	var gap_y = 24.0
-	var grid_w = 3.0 * tile_w + 2.0 * gap_x
+	var gap_y = 16.0
+	var emp_cols = 3
+	var grid_w = float(emp_cols) * tile_w + float(emp_cols - 1) * gap_x
 	var grid_start_x = panel_x + (panel_w - grid_w) * 0.5
 	var grid_start_y = panel_y + 58.0
+	var content_bottom = panel_y + 560.0 - 20.0
 	emporium_hover_index = -1
 	for i in range(emporium_categories.size()):
-		var col_idx = i % 3
-		var row = i / 3
+		var col_idx = i % emp_cols
+		var row = i / emp_cols
 		var tx = grid_start_x + float(col_idx) * (tile_w + gap_x)
-		var ty = grid_start_y + float(row) * (tile_h + gap_y)
+		var ty = grid_start_y + float(row) * (tile_h + gap_y) - emporium_scroll
+		if ty + tile_h < grid_start_y or ty > content_bottom:
+			continue
 		if mouse_pos.x >= tx and mouse_pos.x <= tx + tile_w and mouse_pos.y >= ty and mouse_pos.y <= ty + tile_h:
 			emporium_hover_index = i
 			break
@@ -10791,11 +10992,14 @@ func _draw_menu_background() -> void:
 		if _tab_icon_textures.has(_tik):
 			var alpha = 1.0 if is_act else 0.7
 			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false, Color(1, 1, 1, alpha))
-		# Label
-		var lbl_y = nav_draw_y + 78.0
+		# Label — centered within tab column
+		var lbl_y = nav_draw_y + 76.0
 		var lbl_col = _ca(tc, 0.95) if is_act else Color(0.55, 0.50, 0.40, 0.6)
 		var lbl_sz = 13 if is_act else 11
 		_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), lbl_sz, lbl_col)
+		# Active tab indicator dot
+		if is_act:
+			draw_circle(Vector2(tx + tab_w * 0.5, nav_draw_y + 90.0), 2.5, _ca(tc, 0.8))
 
 	if menu_current_view == "chapters":
 		_draw_story_map()
@@ -11111,27 +11315,25 @@ func _draw_emporium() -> void:
 	# === Title: THE EMPORIUM ===
 	var font = game_font
 	var title_text = "THE EMPORIUM"
-	var title_size = 28
-	var title_width = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size).x
-	var title_x = panel_x + (panel_w - title_width) * 0.5
-	var title_y = panel_y + 38.0
-	# Title glow
-	_udraw(font, Vector2(title_x, title_y), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, _ca(c_gold, 0.3))
-	_udraw(font, Vector2(title_x - 1, title_y - 1), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
+	var title_size = 26
+	var title_cx = panel_x + panel_w * 0.5
+	var title_y = panel_y + 36.0
+	# Title glow + text — properly centered
+	_udraw(font, Vector2(panel_x + 50, title_y), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 100), title_size, _ca(c_gold, 0.3))
+	_udraw(font, Vector2(panel_x + 49, title_y - 1), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 100), title_size, Color(0.95, 0.75, 0.2, 0.9))
 	# Decorative stars flanking title
-	var star_lx = title_x - 25.0
-	var star_rx = title_x + title_width + 10.0
+	var star_lx = title_cx - 110.0
+	var star_rx = title_cx + 95.0
 	var star_y = title_y - 10.0
 	for dx in [-2.0, 0.0, 2.0]:
 		draw_circle(Vector2(star_lx + dx, star_y + dx * 0.5), 2.0, _ca(c_gold, 0.4))
 		draw_circle(Vector2(star_rx + dx, star_y + dx * 0.5), 2.0, _ca(c_gold, 0.4))
 	# Underline — gold double line
-	var line_cx = panel_x + panel_w * 0.5
-	draw_line(Vector2(line_cx - 180, title_y + 8), Vector2(line_cx + 180, title_y + 8), _ca(menu_gold, 0.3), 1.5)
-	draw_line(Vector2(line_cx - 140, title_y + 12), Vector2(line_cx + 140, title_y + 12), _ca(menu_gold_dim, 0.15), 1.0)
+	draw_line(Vector2(title_cx - 180, title_y + 8), Vector2(title_cx + 180, title_y + 8), _ca(menu_gold, 0.3), 1.5)
+	draw_line(Vector2(title_cx - 140, title_y + 12), Vector2(title_cx + 140, title_y + 12), _ca(menu_gold_dim, 0.15), 1.0)
 
 	# === Animated spinning coin near title (Enhancement #33) ===
-	var coin_x = title_x - 50.0
+	var coin_x = title_cx - 130.0
 	var coin_y = title_y - 10.0
 	var coin_pulse = 0.7 + sin(_time * 3.0) * 0.3
 	var coin_radius = 7.0 + sin(_time * 2.0) * 1.5
@@ -11139,26 +11341,46 @@ func _draw_emporium() -> void:
 	draw_circle(Vector2(coin_x, coin_y), coin_radius, Color(0.9, 0.7, 0.15, 0.8 * coin_pulse))
 	draw_arc(Vector2(coin_x, coin_y), coin_radius - 2, -PI * 0.8, -PI * 0.2, 8, Color(0.95, 0.85, 0.3, 0.5), 1.5)
 	# Mirror coin on right side
-	var coin_rx = title_x + title_width + 35.0
+	var coin_rx = title_cx + 115.0
 	draw_circle(Vector2(coin_rx, coin_y), coin_radius + 2, _ca(c_gold, 0.15 * coin_pulse))
 	draw_circle(Vector2(coin_rx, coin_y), coin_radius, Color(0.9, 0.7, 0.15, 0.8 * coin_pulse))
 	draw_arc(Vector2(coin_rx, coin_y), coin_radius - 2, -PI * 0.8, -PI * 0.2, 8, Color(0.95, 0.85, 0.3, 0.5), 1.5)
 
-	# === 3x2 Grid of Emporium Tiles ===
+	# === Scrollable Grid of Emporium Tiles (3 columns) ===
 	var tile_w = 340.0
-	var tile_h = 220.0
+	var tile_h = 160.0
 	var gap_x = 30.0
-	var gap_y = 24.0
-	var grid_w = 3.0 * tile_w + 2.0 * gap_x
+	var gap_y = 16.0
+	var cols = 3
+	var grid_w = float(cols) * tile_w + float(cols - 1) * gap_x
 	var grid_start_x = panel_x + (panel_w - grid_w) * 0.5
 	var grid_start_y = panel_y + 58.0
+	var content_top = grid_start_y
+	var content_bottom = panel_y + panel_h - 20.0
+	var visible_h = content_bottom - content_top
+	var total_rows = (emporium_categories.size() + cols - 1) / cols
+	var total_content_h = float(total_rows) * (tile_h + gap_y)
+	var max_emp_scroll = maxf(0.0, total_content_h - visible_h)
+	emporium_scroll = clampf(emporium_scroll, 0.0, max_emp_scroll)
+
+	# Scroll indicator
+	if max_emp_scroll > 0:
+		var bar_h = visible_h
+		var thumb_h = maxf(30.0, bar_h * bar_h / (bar_h + max_emp_scroll))
+		var thumb_y = content_top + (emporium_scroll / max_emp_scroll) * (bar_h - thumb_h)
+		draw_rect(Rect2(panel_x + panel_w - 8, content_top, 4, bar_h), Color(0.15, 0.12, 0.25, 0.2))
+		draw_rect(Rect2(panel_x + panel_w - 8, thumb_y, 4, thumb_h), _ca(menu_gold, 0.4))
 
 	for i in range(emporium_categories.size()):
 		var cat = emporium_categories[i]
-		var col_idx = i % 3
-		var row = i / 3
+		var col_idx = i % cols
+		var row = i / cols
 		var tx = grid_start_x + float(col_idx) * (tile_w + gap_x)
-		var ty = grid_start_y + float(row) * (tile_h + gap_y)
+		var ty = grid_start_y + float(row) * (tile_h + gap_y) - emporium_scroll
+
+		# Skip tiles outside visible area
+		if ty + tile_h < content_top or ty > content_bottom:
+			continue
 		var is_hovered = (i == emporium_hover_index)
 
 		# Tile shadow (6px offset)
@@ -11268,16 +11490,14 @@ func _draw_emporium() -> void:
 
 		# === Procedural icon (center) ===
 		var icon_cx = tx + tile_w * 0.5
-		var icon_cy = ty + tile_h * 0.48
-		_draw_emporium_icon(Vector2(icon_cx, icon_cy), cat["icon"], 70.0)
+		var icon_cy = ty + tile_h * 0.45
+		_draw_emporium_icon(Vector2(icon_cx, icon_cy), cat["icon"], 55.0)
 
 		# === Description text (bottom) ===
-		var desc_size = 14
+		var desc_size = 13
 		var desc_text = cat["desc"]
-		var desc_w = font.get_string_size(desc_text, HORIZONTAL_ALIGNMENT_LEFT, -1, desc_size).x
-		var desc_x = tx + (tile_w - desc_w) * 0.5
-		var desc_y = ty + tile_h - 18.0
-		_udraw(font, Vector2(desc_x, desc_y), desc_text, HORIZONTAL_ALIGNMENT_LEFT, -1, desc_size, Color(0.65, 0.55, 0.4, 0.8))
+		var desc_y = ty + tile_h - 16.0
+		_udraw(font, Vector2(tx + tile_w * 0.5, desc_y), desc_text, HORIZONTAL_ALIGNMENT_CENTER, int(tile_w - 16), desc_size, Color(0.65, 0.55, 0.4, 0.8))
 
 		# === Badge ribbon (top-left) ===
 		if cat["badge"] != "":
@@ -13089,20 +13309,20 @@ func _draw_survivor_grid() -> void:
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), border_col)
 
 	# === "SURVIVORS" title banner ===
-	var title_y = panel_y + 6.0
+	var title_y = panel_y + 4.0
 	var title_text = "SURVIVORS"
-	var title_sz = 24
-	var title_w = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sz).x
+	var title_sz = 22
 	var title_cx = panel_x + panel_w * 0.5
+	var title_bar_w = 260.0
 	# Title background bar
-	draw_rect(Rect2(title_cx - title_w * 0.5 - 40, title_y, title_w + 80, 32), Color(0.03, 0.03, 0.08, 0.8))
-	draw_rect(Rect2(title_cx - title_w * 0.5 - 40, title_y + 31, title_w + 80, 2), _ca(menu_gold, 0.3))
-	# Title text with shadow
-	_udraw(font, Vector2(title_cx - title_w * 0.5 + 1, title_y + 24), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sz, c_shadow)
-	_udraw(font, Vector2(title_cx - title_w * 0.5, title_y + 23), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sz, menu_gold)
+	draw_rect(Rect2(title_cx - title_bar_w * 0.5, title_y, title_bar_w, 30), Color(0.03, 0.03, 0.08, 0.85))
+	draw_rect(Rect2(title_cx - title_bar_w * 0.5, title_y + 29, title_bar_w, 2), _ca(menu_gold, 0.3))
+	# Title text with shadow — properly centered
+	_udraw(font, Vector2(title_cx - title_bar_w * 0.5 + 5, title_y + 22), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(title_bar_w - 8), title_sz, c_shadow)
+	_udraw(font, Vector2(title_cx - title_bar_w * 0.5 + 4, title_y + 21), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(title_bar_w - 8), title_sz, menu_gold)
 	# Decorative lines beside title
-	draw_line(Vector2(title_cx - title_w * 0.5 - 80, title_y + 16), Vector2(title_cx - title_w * 0.5 - 44, title_y + 16), _ca(menu_gold, 0.3), 1.0)
-	draw_line(Vector2(title_cx + title_w * 0.5 + 44, title_y + 16), Vector2(title_cx + title_w * 0.5 + 80, title_y + 16), _ca(menu_gold, 0.3), 1.0)
+	draw_line(Vector2(title_cx - title_bar_w * 0.5 - 40, title_y + 15), Vector2(title_cx - title_bar_w * 0.5 - 4, title_y + 15), _ca(menu_gold, 0.3), 1.0)
+	draw_line(Vector2(title_cx + title_bar_w * 0.5 + 4, title_y + 15), Vector2(title_cx + title_bar_w * 0.5 + 40, title_y + 15), _ca(menu_gold, 0.3), 1.0)
 
 	# === PARTY count badge (top-right) ===
 	var unlocked_count = 0
@@ -13143,11 +13363,11 @@ func _draw_survivor_grid() -> void:
 
 	# Mobile-friendly grid: 4 columns x 3 rows with larger cards
 	var card_w = 260.0
-	var card_h = 150.0
+	var card_h = 165.0
 	var gap_x = 12.0
-	var gap_y = 10.0
+	var gap_y = 8.0
 	var cols = 4
-	var grid_start_y = panel_y + 60.0
+	var grid_start_y = panel_y + 58.0
 
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
@@ -13188,10 +13408,10 @@ func _draw_survivor_grid() -> void:
 			var gt = float(gi) / (draw_ch * 0.4)
 			draw_rect(Rect2(draw_cx, draw_cy + float(gi), draw_cw, 1), _ca(accent, 0.10 * (1.0 - gt)))
 
-		# === Character portrait (centered in card) ===
-		var portrait_sz = 120.0
+		# === Character portrait (centered in card, sized to not overlap badges/nameplate) ===
+		var portrait_sz = 105.0
 		var portrait_px = draw_cx + (draw_cw - portrait_sz) * 0.5
-		var portrait_py = draw_cy + 8.0
+		var portrait_py = draw_cy + 18.0
 		if unlocked:
 			_draw_story_portrait(portrait_px, portrait_py, portrait_sz, speaker_name)
 		else:
@@ -13264,52 +13484,57 @@ func _draw_survivor_grid() -> void:
 		# Star progress, gear count, and damage display removed — clean card layout
 
 		# === Character name plate with title (bottom) ===
-		var name_plate_y = draw_cy + draw_ch - 36.0
-		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 36), Color(0.03, 0.03, 0.08, 0.88))
+		var name_plate_y = draw_cy + draw_ch - 40.0
+		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 40), Color(0.03, 0.03, 0.08, 0.88))
 		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 1), _ca(accent, 0.35))
 		var name_str: String = info["name"]
-		var name_sz = 16
+		var name_sz = 15
 		var name_w = font.get_string_size(name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz).x
-		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5 + 1, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, c_shadow)
-		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5, name_plate_y + 14), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, menu_parchment if unlocked else Color(0.4, 0.38, 0.45))
-		# Mood icon beside name
+		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5 + 1, name_plate_y + 16), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, c_shadow)
+		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, menu_parchment if unlocked else Color(0.4, 0.38, 0.45))
+		# Mood icon (beside name)
 		if unlocked:
 			var mood_str = _get_mood_icon(tower_type)
 			if mood_str != "":
-				_udraw(font, Vector2(draw_cx + (draw_cw + name_w) * 0.5 + 4, name_plate_y + 14), mood_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.9, 0.85, 0.6, 0.7))
+				_udraw(font, Vector2(draw_cx + (draw_cw + name_w) * 0.5 + 4, name_plate_y + 15), mood_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.9, 0.85, 0.6, 0.6))
 		# Character title epithet
 		var title_str = _get_dynamic_title(i) if unlocked else (character_titles[i] if i < character_titles.size() else "")
-		if title_str.length() > 28:
-			title_str = title_str.substr(0, 26) + ".."
-		var title_sub_sz = 13
+		if title_str.length() > 30:
+			title_str = title_str.substr(0, 28) + ".."
+		var title_sub_sz = 12
 		var title_sub_w = font.get_string_size(title_str, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sub_sz).x
-		_udraw(font, Vector2(draw_cx + (draw_cw - title_sub_w) * 0.5, name_plate_y + 30), title_str, HORIZONTAL_ALIGNMENT_LEFT, int(draw_cw - 8), title_sub_sz, _ca(menu_text_muted, 0.65) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
+		_udraw(font, Vector2(draw_cx + (draw_cw - title_sub_w) * 0.5, name_plate_y + 32), title_str, HORIZONTAL_ALIGNMENT_LEFT, int(draw_cw - 8), title_sub_sz, _ca(menu_text_muted, 0.65) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
 
-		# === XP progress bar ===
+		# === XP progress bar (bottom edge of card) ===
 		if unlocked:
 			var progress_data = survivor_progress.get(tower_type, {"level": 1})
 			var xp_lvl = progress_data.get("level", 1)
 			var xp_ratio = clampf(float(xp_lvl) / 9.0, 0.0, 1.0)
-			var bar_y = draw_cy + draw_ch - 4.0
-			var bar_x = draw_cx + 8.0
-			var bar_w = draw_cw - 16.0
-			draw_rect(Rect2(bar_x, bar_y, bar_w, 4), Color(0.1, 0.1, 0.15, 0.6))
-			draw_rect(Rect2(bar_x, bar_y, bar_w * xp_ratio, 4), _ca(accent, 0.7))
+			var bar_y = draw_cy + draw_ch - 3.0
+			var bar_x = draw_cx + 3.0
+			var bar_w = draw_cw - 6.0
+			draw_rect(Rect2(bar_x, bar_y, bar_w, 3), Color(0.1, 0.1, 0.15, 0.7))
+			draw_rect(Rect2(bar_x, bar_y, bar_w * xp_ratio, 3), _ca(accent, 0.85))
+			# Bright tip on progress
+			if xp_ratio > 0.0 and xp_ratio < 1.0:
+				draw_rect(Rect2(bar_x + bar_w * xp_ratio - 1, bar_y, 2, 3), _ca(accent, 1.0))
 
-		# === Stat preview on hover ===
+		# === Stat preview on hover (left side, above name plate) ===
 		if is_hovered and unlocked:
-			var stat_x = draw_cx + 8.0
-			var stat_y = draw_cy + draw_ch - 54.0
-			var stat_w = 60.0
-			var stat_sz = 14
+			var stat_x = draw_cx + 6.0
+			var stat_y = draw_cy + draw_ch - 58.0
+			var stat_w = 50.0
+			var stat_sz = 12
 			var stat_names = ["DMG", "SPD", "RNG"]
 			var stat_values = [info.get("damage", 25) / 55.0, info.get("fire_rate", 0.5) / 1.0, info.get("range", 160) / 200.0]
 			var stat_colors = [Color(0.9, 0.3, 0.2), Color(0.3, 0.8, 0.4), Color(0.3, 0.5, 0.9)]
+			# Semi-transparent backdrop for stat bars
+			draw_rect(Rect2(stat_x - 2, stat_y - 2, 92, 42), Color(0.02, 0.02, 0.06, 0.8))
 			for si in range(3):
-				var sy = stat_y + float(si) * 14.0
-				_udraw(font, Vector2(stat_x, sy + 10), stat_names[si], HORIZONTAL_ALIGNMENT_LEFT, -1, stat_sz, Color(0.7, 0.7, 0.7, 0.7))
-				draw_rect(Rect2(stat_x + 30, sy + 4, stat_w, 5), Color(0.15, 0.15, 0.2, 0.5))
-				draw_rect(Rect2(stat_x + 30, sy + 4, stat_w * clampf(stat_values[si], 0.0, 1.0), 5), stat_colors[si])
+				var sy = stat_y + float(si) * 13.0
+				_udraw(font, Vector2(stat_x, sy + 9), stat_names[si], HORIZONTAL_ALIGNMENT_LEFT, -1, stat_sz, Color(0.7, 0.7, 0.7, 0.8))
+				draw_rect(Rect2(stat_x + 28, sy + 4, stat_w, 4), Color(0.15, 0.15, 0.2, 0.6))
+				draw_rect(Rect2(stat_x + 28, sy + 4, stat_w * clampf(stat_values[si], 0.0, 1.0), 4), stat_colors[si])
 
 		# === Card border frame ===
 		var bdr_col: Color
@@ -13356,10 +13581,10 @@ func _draw_survivor_grid() -> void:
 			_draw_upgrade_ready_indicator(draw_cx, draw_cy, draw_cw)
 		# === Favorite Icon ===
 		if unlocked:
-			_draw_favorite_icon(draw_cx + draw_cw - 15, draw_cy + draw_ch - 48, _is_favorite(tower_type))
+			_draw_favorite_icon(draw_cx + draw_cw - 15, draw_cy + draw_ch - 54, _is_favorite(tower_type))
 		# === Tier Rank Badge ===
 		if unlocked:
-			_draw_tier_rank_badge(draw_cx + 15, draw_cy + draw_ch - 48, tower_type)
+			_draw_tier_rank_badge(draw_cx + 15, draw_cy + draw_ch - 54, tower_type)
 		# === Bonus 10: Daily Bonus Hero Glow ===
 		if unlocked and i == _get_daily_bonus_hero():
 			_draw_daily_glow(draw_cx, draw_cy, draw_cw, draw_ch)
@@ -18031,8 +18256,16 @@ func _input(event: InputEvent) -> void:
 				queue_redraw()
 				get_viewport().set_input_as_handled()
 				return
-			elif menu_current_view == "emporium" and emporium_sub_category == 8:
-				gear_shop_scroll = clampf(gear_shop_scroll + delta_y, 0.0, 1200.0)
+			elif menu_current_view == "emporium":
+				if emporium_sub_category == 8:
+					gear_shop_scroll = clampf(gear_shop_scroll + delta_y, 0.0, 1200.0)
+				elif emporium_sub_category < 0:
+					emporium_scroll = maxf(0.0, emporium_scroll + delta_y)
+				queue_redraw()
+				get_viewport().set_input_as_handled()
+				return
+			elif menu_current_view == "achievements":
+				achievements_scroll = maxf(0.0, achievements_scroll + delta_y)
 				queue_redraw()
 				get_viewport().set_input_as_handled()
 				return
@@ -18050,7 +18283,7 @@ func _input(event: InputEvent) -> void:
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				story_map_scroll_y = maxf(0.0, story_map_scroll_y - 60.0)
 			else:
-				story_map_scroll_y = minf(story_map_scroll_y + 60.0, 2000.0)
+				story_map_scroll_y += 60.0  # Clamped dynamically in _draw_story_map
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
@@ -18062,11 +18295,26 @@ func _input(event: InputEvent) -> void:
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
-		elif menu_current_view == "emporium" and emporium_sub_category == 8 and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		elif menu_current_view == "emporium" and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+			if emporium_sub_category == 8:
+				if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+					gear_shop_scroll = maxf(0.0, gear_shop_scroll - 30.0)
+				else:
+					gear_shop_scroll = minf(gear_shop_scroll + 30.0, 1200.0)
+			elif emporium_sub_category < 0:
+				# Scroll emporium main grid
+				if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+					emporium_scroll = maxf(0.0, emporium_scroll - 40.0)
+				else:
+					emporium_scroll += 40.0
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "achievements" and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				gear_shop_scroll = maxf(0.0, gear_shop_scroll - 30.0)
+				achievements_scroll = maxf(0.0, achievements_scroll - 40.0)
 			else:
-				gear_shop_scroll = minf(gear_shop_scroll + 30.0, 1200.0)
+				achievements_scroll += 40.0
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
@@ -28999,9 +29247,9 @@ func _draw_achievements_tab() -> void:
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5 - 60, panel_y + 28), "ACHIEVEMENTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, _ca(menu_gold_light, 0.9))
-	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
+	# Title — centered properly
+	_udraw(font, Vector2(panel_x + 100, panel_y + 28), "ACHIEVEMENTS", HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 200), 20, _ca(menu_gold_light, 0.9))
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 	# Count unlocked
 	var unlocked_count = 0
 	for ach in achievement_definitions:
@@ -29027,14 +29275,37 @@ func _draw_achievements_tab() -> void:
 		for ri in range(recent_start, recent_achievements.size()):
 			recent_display.append(recent_achievements[ri])
 
-	# Draw achievement cards in a grid (5 columns, scrollable via categories)
+	# Draw achievement cards in a scrollable grid (4 columns)
 	var categories = ["Combat", "Tower", "Economy", "Progression"]
 	var cat_colors = [Color(0.8, 0.3, 0.2), Color(0.3, 0.7, 0.4), c_gold_warm, Color(0.4, 0.5, 0.85)]
 	var card_w = 260.0
 	var card_h = 52.0
 	var gap_x = 12.0
 	var gap_y = 6.0
-	var start_y = panel_y + 48.0
+	var ach_content_top = panel_y + 48.0
+	var ach_content_bottom = panel_y + panel_h - 8.0
+	var ach_visible_h = ach_content_bottom - ach_content_top
+	# Calculate total content height for scroll
+	var ach_total_h = 0.0
+	for _ci_pre in range(categories.size()):
+		var _cat_pre = categories[_ci_pre]
+		var _ca_count = 0
+		for _ach_pre in achievement_definitions:
+			if _ach_pre["category"] == _cat_pre:
+				_ca_count += 1
+		ach_total_h += 22.0  # Header
+		var _rows_pre = (_ca_count + 3) / 4
+		ach_total_h += float(_rows_pre) * (card_h + gap_y) + 8.0
+	var max_ach_scroll = maxf(0.0, ach_total_h - ach_visible_h)
+	achievements_scroll = clampf(achievements_scroll, 0.0, max_ach_scroll)
+	# Scroll indicator
+	if max_ach_scroll > 0:
+		var ach_bar_h = ach_visible_h
+		var ach_thumb_h = maxf(30.0, ach_bar_h * ach_bar_h / (ach_bar_h + max_ach_scroll))
+		var ach_thumb_y = ach_content_top + (achievements_scroll / max_ach_scroll) * (ach_bar_h - ach_thumb_h)
+		draw_rect(Rect2(panel_x + panel_w - 8, ach_content_top, 4, ach_bar_h), Color(0.15, 0.12, 0.25, 0.2))
+		draw_rect(Rect2(panel_x + panel_w - 8, ach_thumb_y, 4, ach_thumb_h), _ca(menu_gold, 0.4))
+	var start_y = ach_content_top - achievements_scroll
 	var cols = 4
 	for ci in range(categories.size()):
 		var cat = categories[ci]
@@ -29045,8 +29316,9 @@ func _draw_achievements_tab() -> void:
 				cat_achievements.append(ach)
 		# Category header
 		var hdr_y = start_y
-		draw_rect(Rect2(panel_x + 10, hdr_y, panel_w - 20, 18), Color(cat_col.r, cat_col.g, cat_col.b, 0.12))
-		_udraw(font, Vector2(panel_x + 20, hdr_y + 13), cat, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(cat_col.r, cat_col.g, cat_col.b, 0.9))
+		if hdr_y + 18 >= ach_content_top and hdr_y <= ach_content_bottom:
+			draw_rect(Rect2(panel_x + 10, hdr_y, panel_w - 20, 18), Color(cat_col.r, cat_col.g, cat_col.b, 0.12))
+			_udraw(font, Vector2(panel_x + 20, hdr_y + 13), cat, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(cat_col.r, cat_col.g, cat_col.b, 0.9))
 
 		# === Category completion progress bar (Enhancement #44) ===
 		var cat_unlocked = 0
@@ -29054,9 +29326,10 @@ func _draw_achievements_tab() -> void:
 			if achievements_unlocked.get(ach_c["id"], false):
 				cat_unlocked += 1
 		var cat_ratio = float(cat_unlocked) / float(max(1, cat_achievements.size()))
-		draw_rect(Rect2(panel_x + panel_w - 210, hdr_y + 6, 140, 6), Color(0.1, 0.1, 0.15, 0.5))
-		draw_rect(Rect2(panel_x + panel_w - 210, hdr_y + 6, 140 * cat_ratio, 6), Color(cat_col.r, cat_col.g, cat_col.b, 0.7))
-		_udraw(font, Vector2(panel_x + panel_w - 60, hdr_y + 13), "%d%%" % int(cat_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(cat_col.r, cat_col.g, cat_col.b, 0.6))
+		if hdr_y + 18 >= ach_content_top and hdr_y <= ach_content_bottom:
+			draw_rect(Rect2(panel_x + panel_w - 210, hdr_y + 6, 140, 6), Color(0.1, 0.1, 0.15, 0.5))
+			draw_rect(Rect2(panel_x + panel_w - 210, hdr_y + 6, 140 * cat_ratio, 6), Color(cat_col.r, cat_col.g, cat_col.b, 0.7))
+			_udraw(font, Vector2(panel_x + panel_w - 60, hdr_y + 13), "%d%%" % int(cat_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(cat_col.r, cat_col.g, cat_col.b, 0.6))
 
 		start_y += 22.0
 		# Cards
@@ -29066,6 +29339,9 @@ func _draw_achievements_tab() -> void:
 			var row_i = ai / cols
 			var cx = panel_x + 10 + float(col_i) * (card_w + gap_x)
 			var cy = start_y + float(row_i) * (card_h + gap_y)
+			# Skip cards outside visible scroll area
+			if cy + card_h < ach_content_top or cy > ach_content_bottom:
+				continue
 			var is_done = achievements_unlocked.get(ach["id"], false)
 			var prog = achievement_progress.get(ach["id"], 0)
 
