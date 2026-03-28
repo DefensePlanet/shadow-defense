@@ -1196,7 +1196,7 @@ func _draw() -> void:
 			draw_line(sp_pos - Vector2(0, sp_size), sp_pos + Vector2(0, sp_size), Color(0.6, 0.8, 1.0, sp_alpha), 0.8)
 
 	# === SPRITE RENDERING (animated — curious & light) ===
-	if false:  # Always use procedural character body
+	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1221,7 +1221,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if true:  # Procedural Bloons-style character
+	if not sprite_texture:
 		# === CHARACTER POSITIONS (chibi proportions ~48px) ===
 		var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
 		var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)

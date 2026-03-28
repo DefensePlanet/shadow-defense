@@ -18598,12 +18598,8 @@ func _try_place_tower(pos: Vector2) -> void:
 	tower.set_meta("tower_type_enum", selected_tower)
 	# Inject AI sprite texture if available
 	var _spr_key = _tower_type_to_name(selected_tower)
-	print("SPRITE DEBUG: key=", _spr_key, " has_key=", _tower_sprite_textures.has(_spr_key), " has_prop=", "sprite_texture" in tower, " dict_size=", _tower_sprite_textures.size())
 	if _tower_sprite_textures.has(_spr_key) and "sprite_texture" in tower:
 		tower.sprite_texture = _tower_sprite_textures[_spr_key]
-		print("SPRITE DEBUG: ASSIGNED texture to ", _spr_key, " tex=", tower.sprite_texture)
-	else:
-		print("SPRITE DEBUG: FAILED to assign for ", _spr_key)
 	towers_node.add_child(tower)
 	# Build animation
 	if "_build_timer" in tower:

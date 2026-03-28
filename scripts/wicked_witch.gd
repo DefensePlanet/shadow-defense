@@ -1457,7 +1457,7 @@ func _draw() -> void:
 			draw_line(bee_pos + Vector2(1, -1), bee_pos + Vector2(3, -3 - wing_buzz), Color(0.8, 0.8, 0.9, 0.4), 1.0)
 
 	# === SPRITE RENDERING (animated — slow & menacing) ===
-	if false:  # Always use procedural character body
+	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1483,7 +1483,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if true:  # Procedural Bloons-style character
+	if not sprite_texture:
 		# === 11. CHARACTER POSITIONS (chibi proportions ~48px) ===
 		var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
 		var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)

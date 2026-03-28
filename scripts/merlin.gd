@@ -1140,7 +1140,7 @@ func _draw() -> void:
 		draw_circle(exc_top.lerp(exc_bot, 0.5), 5.0, Color(0.7, 0.75, 1.0, 0.08 + sin(_time * 2.5) * 0.04))
 
 	# === SPRITE RENDERING (animated — mystical & floating) ===
-	if false:  # Always use procedural character body
+	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1166,7 +1166,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if true:  # Procedural Bloons-style character
+	if not sprite_texture:
 		# === 13. CHARACTER BODY (Bloons cartoon style) ===
 
 		# --- POINTED SHOE TIPS peeking under robe ---

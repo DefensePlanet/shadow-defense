@@ -1379,7 +1379,7 @@ func _draw() -> void:
 		draw_circle(body_offset, 6.0 + (1.0 - splash_alpha) * 10.0, Color(0.8, 0.05, 0.03, splash_alpha * 0.15))
 
 	# === SPRITE RENDERING (animated — elegant & sinister) ===
-	if false:  # Always use procedural character body
+	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 56.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1405,7 +1405,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if true:  # Procedural Bloons-style character
+	if not sprite_texture:
 		# === 13. CHARACTER BODY — BTD6 CARTOON STYLE ===
 		var OL = Color(0.06, 0.06, 0.08)
 		var breath = breathe
