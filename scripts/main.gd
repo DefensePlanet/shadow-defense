@@ -305,7 +305,7 @@ var menu_bg_card = Color(0.08, 0.08, 0.20)         # #141432
 var menu_bg_card_hover = Color(0.10, 0.10, 0.25)   # #1a1a40
 var menu_gold = Color(0.79, 0.66, 0.30)            # #c9a84c (unchanged)
 var menu_gold_light = Color(0.91, 0.83, 0.55)      # #e8d48b (unchanged)
-var menu_gold_dim = menu_gold_dim        # #8a7433 (unchanged)
+var menu_gold_dim = Color(0.54, 0.45, 0.20)    # #8a7433 (unchanged)
 var menu_parchment = Color(0.94, 0.90, 0.83)       # #f0e6d3 warm white
 var menu_text = Color(0.77, 0.73, 0.66)            # #c4baa8
 var menu_text_muted = Color(0.54, 0.51, 0.47)      # #8a8278
@@ -314,15 +314,15 @@ var menu_accent_glow = Color(0.30, 0.10, 0.50, 0.3) # soft purple glow
 # Standardized colors — replace the 8+ gold variants and scattered hardcoded colors
 var c_gold = Color(0.85, 0.65, 0.10)               # primary gold (replaces all 0.85,0.65,0.1 variants)
 var c_gold_bright = Color(1.0, 0.85, 0.20)          # bright gold highlight
-var c_gold_warm = c_gold_warm           # warm gold accent
+var c_gold_warm = Color(0.85, 0.70, 0.20)           # warm gold accent
 var c_dark = Color(0.10, 0.08, 0.06)                # standard dark bg
 var c_darker = Color(0.02, 0.02, 0.04)              # deepest dark
 var c_panel = Color(0.03, 0.03, 0.08)               # standard panel bg
-var c_green = c_green                  # success / confirm
-var c_red = c_red                   # danger / warning
-var c_cyan = c_cyan                   # info / special
-var c_shadow = c_shadow            # text shadow
-var c_overlay = c_overlay           # modal overlay
+var c_green = Color(0.3, 0.8, 0.3)                  # success / confirm
+var c_red = Color(0.7, 0.15, 0.1)                   # danger / warning
+var c_cyan = Color(0.3, 0.7, 0.9)                   # info / special
+var c_shadow = Color(0.0, 0.0, 0.0, 0.5)            # text shadow
+var c_overlay = Color(0.0, 0.0, 0.0, 0.7)           # modal overlay
 
 # Utility: create a color with modified alpha (replaces verbose Color(v.r, v.g, v.b, a) pattern)
 func _ca(base: Color, alpha: float) -> Color:
@@ -720,9 +720,9 @@ var lucky_spin_spinning: bool = false
 var lucky_spin_speed: float = 0.0
 var lucky_spin_open: bool = false
 const SPIN_WHEEL_PRIZES: Array = [
-	{"name": "50 Gold", "type": "gold", "amount": 50, "weight": 30, "col": c_gold},
+	{"name": "50 Gold", "type": "gold", "amount": 50, "weight": 30, "col": Color(0.85, 0.65, 0.10)},
 	{"name": "5 Quills", "type": "quills", "amount": 5, "weight": 25, "col": Color(0.7, 0.35, 0.9)},
-	{"name": "3 Shards", "type": "shards", "amount": 3, "weight": 20, "col": c_cyan},
+	{"name": "3 Shards", "type": "shards", "amount": 3, "weight": 20, "col": Color(0.3, 0.7, 0.9)},
 	{"name": "10 Crystals", "type": "crystals", "amount": 10, "weight": 15, "col": Color(0.4, 0.9, 0.6)},
 	{"name": "1 Streak Shield", "type": "shield", "amount": 1, "weight": 5, "col": Color(0.9, 0.5, 0.2)},
 	{"name": "25 Crystals", "type": "crystals", "amount": 25, "weight": 3, "col": Color(0.2, 1.0, 0.4)},
@@ -5701,6 +5701,22 @@ func _hide_chapter_diff_buttons(chapter_idx: int) -> void:
 		for d in range(3):
 			chapter_diff_buttons[chapter_idx][d].visible = false
 
+func _hide_chapter_ui() -> void:
+	for i in range(3):
+		chapter_title_labels[i].visible = false
+		chapter_desc_labels[i].visible = false
+		chapter_stat_labels[i].visible = false
+		chapter_star_labels[i].visible = false
+		chapter_lock_labels[i].visible = false
+		_hide_chapter_diff_buttons(i)
+
+func _reset_nav_common() -> void:
+	menu_showcase_panel.visible = false
+	survivor_grid_container.visible = false
+	menu_left_arrow.visible = false
+	menu_right_arrow.visible = false
+	_hide_chapter_ui()
+
 func _on_chapter_play(chapter: int, difficulty: int = 0) -> void:
 	selected_difficulty = difficulty
 	var arc = arc_data[menu_character_index]
@@ -5905,99 +5921,31 @@ func _on_nav_pressed(nav_name: String) -> void:
 	_menu_transition_alpha = 1.0  # Trigger dark overlay transition (enhancement #48)
 	chapters_diff_popup_level = -1
 	if nav_name == "chapters":
-		menu_showcase_panel.visible = false
-		survivor_grid_container.visible = false
-
-		menu_left_arrow.visible = false
-		menu_right_arrow.visible = false
-		# Hide old chapter UI — we draw everything procedurally now
-		for i in range(3):
-			chapter_title_labels[i].visible = false
-			chapter_desc_labels[i].visible = false
-			chapter_stat_labels[i].visible = false
-			chapter_star_labels[i].visible = false
-			chapter_lock_labels[i].visible = false
-			_hide_chapter_diff_buttons(i)
+		_reset_nav_common()
 		story_map_scroll_y = 0.0
 		queue_redraw()
 	elif nav_name == "survivors":
-		menu_showcase_panel.visible = false
-		survivor_grid_container.visible = false
+		_reset_nav_common()
 		survivor_detail_container.visible = false
 		survivor_detail_open = false
-	
-		menu_left_arrow.visible = false
-		menu_right_arrow.visible = false
-		# Hide chapter UI
-		for i in range(3):
-			chapter_title_labels[i].visible = false
-			chapter_desc_labels[i].visible = false
-			chapter_stat_labels[i].visible = false
-			chapter_star_labels[i].visible = false
-			chapter_lock_labels[i].visible = false
-			_hide_chapter_diff_buttons(i)
 		queue_redraw()
 	elif nav_name == "gear":
-		menu_showcase_panel.visible = false
-		survivor_grid_container.visible = false
-	
-		menu_left_arrow.visible = false
-		menu_right_arrow.visible = false
-		for i in range(3):
-			chapter_title_labels[i].visible = false
-			chapter_desc_labels[i].visible = false
-			chapter_stat_labels[i].visible = false
-			chapter_star_labels[i].visible = false
-			chapter_lock_labels[i].visible = false
-			_hide_chapter_diff_buttons(i)
+		_reset_nav_common()
 		gear_tab_hover_tier = -1
 		gear_tab_hover_row = -1
 		gear_tab_hover_col = -1
 		queue_redraw()
 	elif nav_name == "emporium":
-		menu_showcase_panel.visible = false
-		survivor_grid_container.visible = false
-	
-		menu_left_arrow.visible = false
-		menu_right_arrow.visible = false
-		for i in range(3):
-			chapter_title_labels[i].visible = false
-			chapter_desc_labels[i].visible = false
-			chapter_stat_labels[i].visible = false
-			chapter_star_labels[i].visible = false
-			chapter_lock_labels[i].visible = false
-			_hide_chapter_diff_buttons(i)
+		_reset_nav_common()
 		emporium_hover_index = -1
 		queue_redraw()
 	elif nav_name == "chronicles":
-		menu_showcase_panel.visible = false
-		survivor_grid_container.visible = false
-	
-		menu_left_arrow.visible = false
-		menu_right_arrow.visible = false
-		for i in range(3):
-			chapter_title_labels[i].visible = false
-			chapter_desc_labels[i].visible = false
-			chapter_stat_labels[i].visible = false
-			chapter_star_labels[i].visible = false
-			chapter_lock_labels[i].visible = false
-			_hide_chapter_diff_buttons(i)
+		_reset_nav_common()
 		chronicles_hover_branch = -1
 		chronicles_hover_node = -1
 		queue_redraw()
 	elif nav_name == "achievements":
-		menu_showcase_panel.visible = false
-		survivor_grid_container.visible = false
-	
-		menu_left_arrow.visible = false
-		menu_right_arrow.visible = false
-		for i in range(3):
-			chapter_title_labels[i].visible = false
-			chapter_desc_labels[i].visible = false
-			chapter_stat_labels[i].visible = false
-			chapter_star_labels[i].visible = false
-			chapter_lock_labels[i].visible = false
-			_hide_chapter_diff_buttons(i)
+		_reset_nav_common()
 		queue_redraw()
 	else:
 		menu_showcase_panel.visible = true

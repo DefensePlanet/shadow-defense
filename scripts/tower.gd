@@ -10,6 +10,7 @@ var target: Node2D = null
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
 var targeting_priority: int = 0
 var _recoil: float = 0.0
+var sprite_texture: Texture2D = null  # AI character sprite, set by main.gd
 
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null
@@ -88,9 +89,24 @@ func _shoot() -> void:
 		bullet.queue_free()
 
 func _draw() -> void:
-	# Range ring — only when selected (drawn in child scripts)
-	pass
+	# AI sprite rendering — use the character sprite if assigned by main.gd
+	if sprite_texture != null:
+		var tex_size = sprite_texture.get_size()
+		var fit = 48.0  # Tower visual diameter
+		var scl = fit / maxf(tex_size.x, tex_size.y)
+		var w = tex_size.x * scl
+		var h = tex_size.y * scl
+		# Subtle base shadow
+		draw_circle(Vector2(0, 4), 22.0, Color(0.0, 0.0, 0.0, 0.25))
+		# Draw character sprite
+		draw_texture_rect(sprite_texture, Rect2(-w * 0.5, -h * 0.5, w, h), false)
+		# Muzzle flash (on recoil) — small directional indicator
+		if _recoil > 0.5:
+			var dir = Vector2.from_angle(gun_angle)
+			draw_circle(dir * 28.0, 4.0, Color(1.0, 0.9, 0.3, _recoil * 0.6))
+		return
 
+	# Procedural fallback — gray circles + pistol
 	# Base platform
 	draw_circle(Vector2.ZERO, 24.0, Color(0.3, 0.3, 0.3))
 	draw_circle(Vector2.ZERO, 20.0, Color(0.52, 0.52, 0.52))
