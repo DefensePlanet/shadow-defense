@@ -19576,23 +19576,38 @@ func _draw_path_overlay() -> void:
 			if has_center:
 				draw_line(pts[k], pts[k + 1], detail_col, 2.0)
 
-	# --- AI path texture as primary road surface (rotated along segments) ---
+	# --- AI path texture as primary road surface (polygon quads per segment) ---
 	if _has_path_tex:
 		var _ptex = _path_textures[_pf]
+		var half_w = road_w * 0.5
+		# Accumulate path length for UV tiling
+		var accum_len = 0.0
 		for k in range(pts.size() - 1):
 			var seg_start = pts[k]
 			var seg_end = pts[k + 1]
 			var seg_len = seg_start.distance_to(seg_end)
 			if seg_len < 1.0:
+				accum_len += seg_len
 				continue
-			var seg_angle = (seg_end - seg_start).angle()
-			var mid = (seg_start + seg_end) * 0.5
-			var half_w = road_w * 0.5
-			# Rotate transform to align texture with segment direction
-			draw_set_transform(mid, seg_angle, Vector2.ONE)
-			# Draw texture centered on midpoint, stretched along segment length
-			draw_texture_rect(_ptex, Rect2(-seg_len * 0.5, -half_w, seg_len, road_w), true)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			var seg_dir = (seg_end - seg_start).normalized()
+			var seg_n = Vector2(-seg_dir.y, seg_dir.x)
+			# Build quad corners (4 points forming the road segment)
+			var tl = seg_start + seg_n * half_w
+			var bl = seg_start - seg_n * half_w
+			var tr = seg_end + seg_n * half_w
+			var br = seg_end - seg_n * half_w
+			# UV coordinates — tile texture along path length
+			var u0 = fmod(accum_len / road_w, 1.0)
+			var u1 = fmod((accum_len + seg_len) / road_w, 1.0)
+			if u1 < u0:
+				u1 = 1.0  # Avoid UV wrap-around artifacts
+			var verts = PackedVector2Array([tl, tr, br, bl])
+			var uvs = PackedVector2Array([Vector2(u0, 0.0), Vector2(u1, 0.0), Vector2(u1, 1.0), Vector2(u0, 1.0)])
+			draw_polygon(verts, PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]), uvs, _ptex)
+			# Fill corner gaps with a textured circle cap at each joint
+			if k > 0:
+				draw_circle(seg_start, half_w, edge_col)
+			accum_len += seg_len
 
 	# --- Edge detail lines ---
 	for k in range(0, pts.size() - 1, 2):
