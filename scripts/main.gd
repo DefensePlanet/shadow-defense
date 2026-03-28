@@ -13820,11 +13820,11 @@ func _update_world_map_hover() -> void:
 	var panel_x = 70.0 + _safe_left
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var card_w = 260.0
-	var card_h = 150.0
+	var card_h = 165.0
 	var gap_x = 12.0
-	var gap_y = 10.0
+	var gap_y = 8.0
 	var cols = 4
-	var grid_start_y = 38.0 + 60.0
+	var grid_start_y = 38.0 + 58.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
