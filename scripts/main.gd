@@ -12892,8 +12892,8 @@ func _draw_closed_book() -> void:
 		draw_rect(Rect2(bx, branch_start_y + 32, branch_w, 3), Color(0.1, 0.1, 0.15, 0.3))
 		draw_rect(Rect2(bx, branch_start_y + 32, branch_w * branch_ratio, 3), Color(bcol.r, bcol.g, bcol.b, 0.5))
 
-		# Nodes (vertical chain)
-		var node_cx = bx + branch_w * 0.5
+		# Nodes (vertical chain, left-aligned under title)
+		var node_cx = bx + node_radius + 6
 		for ni in range(branch["nodes"].size()):
 			var node = branch["nodes"][ni]
 			var node_key = "%d_%d" % [bi, ni]
@@ -12954,10 +12954,11 @@ func _draw_closed_book() -> void:
 				# Dim grey dot — locked
 				draw_circle(Vector2(ind_x, node_cy), 2, Color(0.3, 0.3, 0.3, 0.25))
 
-			# Node name and desc (centered below circle, full column width)
+			# Node name and desc (left-aligned under column title)
+			var text_x = bx + 4.0
 			var name_col = Color(0.9, 0.8, 0.5, 0.9) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.7) if can_unlock else Color(0.5, 0.45, 0.4, 0.5))
-			_udraw(font, Vector2(bx, node_cy + node_radius + 4), node["name"], HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 11, name_col)
-			_udraw(font, Vector2(bx, node_cy + node_radius + 16), node["desc"], HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 10, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
+			_udraw(font, Vector2(node_cx + node_radius + 4, node_cy - 2), node["name"], HORIZONTAL_ALIGNMENT_LEFT, int(bx + branch_w - node_cx - node_radius - 6), 11, name_col)
+			_udraw(font, Vector2(node_cx + node_radius + 4, node_cy + 10), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(bx + branch_w - node_cx - node_radius - 6), 10, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
 
 	# === Content fade masks at top/bottom edges (Enhancement #39) ===
 	var bg_base = menu_bg_section
@@ -12995,7 +12996,7 @@ func _update_knowledge_hover() -> void:
 	chronicles_hover_node = -1
 	for bi in range(knowledge_branches.size()):
 		var bx = branch_start_x + float(bi) * (branch_w + branch_gap)
-		var node_cx = bx + branch_w * 0.5
+		var node_cx = bx + node_radius + 6
 		for ni in range(knowledge_branches[bi]["nodes"].size()):
 			var node_cy = branch_start_y + 60.0 + float(ni) * node_spacing_y
 			if mouse_pos.distance_to(Vector2(node_cx, node_cy)) <= node_radius + 4:
