@@ -19559,20 +19559,8 @@ func _draw_path_overlay() -> void:
 			if has_center:
 				draw_line(pts[k], pts[k + 1], detail_col, 2.0)
 
-	# --- AI path texture as primary road surface ---
-	if _has_path_tex:
-		var _ptex = _path_textures[_pf]
-		for k in range(pts.size() - 1):
-			var seg_start = pts[k]
-			var seg_end = pts[k + 1]
-			var seg_dir = (seg_end - seg_start).normalized()
-			var seg_n = Vector2(-seg_dir.y, seg_dir.x)
-			var seg_len = seg_start.distance_to(seg_end)
-			var half_w = road_w * 0.5
-			# Draw texture rect along each segment
-			var mid = (seg_start + seg_end) * 0.5
-			var tex_rect = Rect2(mid.x - seg_len * 0.5, mid.y - half_w, seg_len, road_w)
-			draw_texture_rect(_ptex, tex_rect, true)
+	# AI path texture disabled — axis-aligned rects don't follow diagonal paths
+	# TODO: implement proper rotated texture rendering along path segments
 
 	# --- Edge detail lines ---
 	for k in range(0, pts.size() - 1, 2):
