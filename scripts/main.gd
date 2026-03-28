@@ -15140,7 +15140,7 @@ func _draw_story_map() -> void:
 	var list_y = 36.0
 	var list_w = 1200.0
 	var list_h = 610.0
-	var row_h = 82.0
+	var row_h = 110.0
 	var header_h = 32.0
 	var arc_gap = 6.0
 
@@ -15331,11 +15331,11 @@ func _draw_story_map() -> void:
 				draw_rect(Rect2(next_badge_x, next_badge_y, 80.0 * next_scale, 16), Color(0.2, 0.6, 0.15, next_text_a * 0.5))
 				_udraw(font, Vector2(next_badge_x + 40.0 * next_scale, next_badge_y + 12), ">> NEXT <<", HORIZONTAL_ALIGNMENT_CENTER, 78, 14, Color(0.4, 1.0, 0.4, next_text_a))
 
-			# --- Mini map thumbnail (70x52) ---
+			# --- Map thumbnail (large, prominent) ---
 			var thumb_x = rx + 12.0
-			var thumb_y = ry + 8.0
-			var thumb_w = 70.0
-			var thumb_h = 52.0
+			var thumb_y = ry + 6.0
+			var thumb_w = 120.0
+			var thumb_h = 90.0
 			# Try AI-generated map art first, fall back to procedural
 			if _map_thumb_textures.has(lvl_idx) and is_unlocked:
 				var thumb_tex = _map_thumb_textures[lvl_idx]
@@ -15382,19 +15382,19 @@ func _draw_story_map() -> void:
 			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 14, Color(0.90, 0.82, 0.55))
 
 			# --- Text info ---
-			var text_x = thumb_x + thumb_w + 14.0
+			var text_x = thumb_x + thumb_w + 18.0
 			var name_col = Color(0.92, 0.80, 0.35) if is_unlocked else Color(0.45, 0.38, 0.28, 0.6)
 			var sub_col = Color(0.70, 0.60, 0.42) if is_unlocked else Color(0.35, 0.30, 0.22, 0.5)
 			var stat_col = Color(0.55, 0.70, 0.45) if is_unlocked else Color(0.30, 0.28, 0.22, 0.4)
-			_udraw(font, Vector2(text_x, ry + 22), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, name_col)
-			_udraw(font, Vector2(text_x, ry + 38), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 440, 14, sub_col)
+			_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 440, 15, name_col)
+			_udraw(font, Vector2(text_x, ry + 46), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 440, 15, sub_col)
 
 			# Enhancement 22: Best wave indicator
 			var wave_info = "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]]
 			var best_w = level_best_wave.get(lvl_idx, 0)
 			if best_w > 0:
 				wave_info += "  |  Best: W%d" % best_w
-			_udraw(font, Vector2(text_x, ry + 54), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 440, 14, stat_col)
+			_udraw(font, Vector2(text_x, ry + 64), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 440, 14, stat_col)
 
 			# Enhancement 21: Reward preview icons on level cards
 			var level_rewards = _get_level_rewards(lvl_idx)
