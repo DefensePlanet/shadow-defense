@@ -5093,7 +5093,7 @@ func _create_ui() -> void:
 	info_label = Label.new()
 	info_label.position = Vector2(500, 8)
 	info_label.size = Vector2(660, 34)
-	info_label.add_theme_font_size_override("font_size", 16)
+	info_label.add_theme_font_size_override("font_size", 14)
 	info_label.add_theme_color_override("font_color", c_gold)
 	info_label.clip_text = true
 	info_label.text = ""
