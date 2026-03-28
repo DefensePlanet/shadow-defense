@@ -29827,12 +29827,13 @@ func _draw_trophy_store() -> void:
 			var is_owned = item["id"] in owned_cosmetics
 			var is_equipped = equipped_cosmetics.get(cat_key, "") == item["id"]
 			# Background
-			var bg = Color(0.12, 0.08, 0.14, 0.8) if is_owned else Color(0.06, 0.05, 0.08, 0.8)
+			var bg = Color(0.12, 0.08, 0.14, 0.85) if is_owned else Color(0.06, 0.05, 0.08, 0.85)
 			if is_equipped:
-				bg = Color(0.14, 0.12, 0.06, 0.8)
-			draw_rect(Rect2(ix, iy, card_w, card_h), bg)
+				bg = Color(0.14, 0.12, 0.06, 0.85)
 			var bdr = Color(0.85, 0.7, 0.2, 0.5) if is_owned else Color(0.3, 0.25, 0.3, 0.3)
-			draw_rect(Rect2(ix, iy, card_w, card_h), bdr, false, 1.0)
+			if is_equipped:
+				bdr = Color(0.4, 0.8, 0.3, 0.6)
+			_ds_panel(Rect2(ix, iy, card_w, card_h), bg, bdr, 1.5)
 			# Color swatch for auras/trails
 			if item.has("color"):
 				var swatch_col = item["color"]
@@ -29962,11 +29963,11 @@ func _draw_gear_shop() -> void:
 			if iy + card_h < content_top or iy > content_bottom:
 				continue
 			var count = owned_gear.get(b["id"], 0)
-			var bg = Color(0.12, 0.08, 0.14, 0.8) if count > 0 else Color(0.06, 0.05, 0.08, 0.8)
-			draw_rect(Rect2(ix, iy, card_w, card_h), bg)
-			draw_rect(Rect2(ix, iy, card_w, card_h), Color(TIER_COLORS[rarity].r, TIER_COLORS[rarity].g, TIER_COLORS[rarity].b, 0.3), false, 1.0)
-			_udraw(font, Vector2(ix + 8, iy + 16), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 80), 15, Color(0.8, 0.7, 0.5))
-			_udraw(font, Vector2(ix + 8, iy + 30), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 16), 14, Color(0.5, 0.45, 0.38))
+			var bg = Color(0.12, 0.08, 0.14, 0.85) if count > 0 else Color(0.06, 0.05, 0.08, 0.85)
+			var tier_col = TIER_COLORS[rarity]
+			_ds_panel(Rect2(ix, iy, card_w, card_h), bg, _ca(tier_col, 0.4), 1.5)
+			_udraw(font, Vector2(ix + 8, iy + 16), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 80), 14, Color(0.9, 0.8, 0.55))
+			_udraw(font, Vector2(ix + 8, iy + 30), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 16), 12, Color(0.6, 0.55, 0.45))
 			if count > 0:
 				_udraw(font, Vector2(ix + card_w - 35, iy + 16), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_green)
 			_udraw(font, Vector2(ix + card_w - 55, iy + 30), "%d S" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
