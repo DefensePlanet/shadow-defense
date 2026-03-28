@@ -1660,6 +1660,7 @@ var _wave_clear_num: int = 0
 var _screen_shake_intensity: float = 0.0
 var _screen_shake_offset: Vector2 = Vector2.ZERO
 var _ink_splatters: Array = []
+var _active_death_fx: Array = []  # AI death FX texture flashes
 var _death_flash_timer: float = 0.0
 
 # === VISUAL POLISH EFFECTS ===
@@ -5313,25 +5314,13 @@ func _create_ui() -> void:
 		# Keep a reference in chapter_buttons for the first button (for lock/unlock logic)
 		chapter_buttons.append(ch_diff_btns[0])
 
-	# === BOTTOM NAV BAR (bookmark ribbon style) ===
+	# === BOTTOM NAV BAR (input-only â€" visuals drawn procedurally in _draw_menu_background) ===
 	var nav_bar = ColorRect.new()
-	nav_bar.color = Color(0.04, 0.04, 0.10, 0.97)
+	nav_bar.color = Color(0, 0, 0, 0)  # Transparent â€" procedural _draw handles all visuals
 	nav_bar.position = Vector2(0, 620.0 - _safe_bottom)
 	nav_bar.size = Vector2(1280, 100.0 + _safe_bottom)
+	nav_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let clicks pass to buttons
 	menu_overlay.add_child(nav_bar)
-
-	# Nav bar top border â€” gold line (3px) + gold accent (1px)
-	var nav_border = ColorRect.new()
-	nav_border.color = Color(0.79, 0.66, 0.30, 0.4)
-	nav_border.position = Vector2(0, 0)
-	nav_border.size = Vector2(1280, 3)
-	nav_bar.add_child(nav_border)
-
-	var nav_gold_accent = ColorRect.new()
-	nav_gold_accent.color = Color(0.54, 0.45, 0.20, 0.25)
-	nav_gold_accent.position = Vector2(0, 3)
-	nav_gold_accent.size = Vector2(1280, 1)
-	nav_bar.add_child(nav_gold_accent)
 
 	var nav_names = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
 	nav_names.append("ACHIEVEMENTS")
@@ -5340,30 +5329,21 @@ func _create_ui() -> void:
 		var btn_x = int(_safe_left + float(i) * safe_tab_w)
 		var nav_btn = Button.new()
 		nav_btn.text = ""
+		nav_btn.flat = true  # Transparent â€" procedural draw handles visuals
 		nav_btn.position = Vector2(btn_x, 10)
 		nav_btn.custom_minimum_size = Vector2(int(safe_tab_w), 80)
 		nav_btn.pressed.connect(_on_nav_pressed.bind(nav_names[i].to_lower()))
 		nav_bar.add_child(nav_btn)
 		menu_nav_buttons.append(nav_btn)
 
+		# Labels hidden â€" procedural _draw renders icons + labels with enhanced styling
 		var nav_lbl = Label.new()
 		nav_lbl.text = nav_names[i]
-		nav_lbl.position = Vector2(btn_x, 64)
-		nav_lbl.size = Vector2(int(safe_tab_w), 20)
-		nav_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nav_lbl.add_theme_font_size_override("font_size", 14)
-		nav_lbl.add_theme_color_override("font_color", Color(0.65, 0.60, 0.52))
+		nav_lbl.visible = false  # Procedural draw handles all nav visuals
 		nav_bar.add_child(nav_lbl)
 		menu_nav_labels.append(nav_lbl)
 
-		# Vertical divider between buttons (gold line)
-		if i < 5:
-			var div_x_pos = btn_x + 125
-			var div_line = ColorRect.new()
-			div_line.color = Color(0.54, 0.45, 0.20, 0.15)
-			div_line.position = Vector2(div_x_pos, 12)
-			div_line.size = Vector2(1, 65)
-			nav_bar.add_child(div_line)
+		# Dividers drawn procedurally in _draw_menu_background
 
 	# === SURVIVOR GRID (BATTD-style character roster) ===
 	survivor_grid_container = Control.new()
@@ -6055,6 +6035,10 @@ func _open_survivor_detail(index: int) -> void:
 	_remove_detail_preview()
 	var tower_type = survivor_types[index]
 	survivor_detail_preview = tower_scenes[tower_type].instantiate()
+	# Inject AI sprite texture for preview
+	var _spr_key2 = _tower_type_to_name(tower_type)
+	if _tower_sprite_textures.has(_spr_key2) and "sprite_texture" in survivor_detail_preview:
+		survivor_detail_preview.sprite_texture = _tower_sprite_textures[_spr_key2]
 	survivor_detail_preview.position = Vector2(210, 240)
 	survivor_detail_preview.scale = Vector2(2.5, 2.5)
 	survivor_detail_preview.process_mode = Node.PROCESS_MODE_DISABLED
@@ -6717,6 +6701,10 @@ func _spawn_grid_previews() -> void:
 		if not tower_scenes.has(tower_type):
 			continue
 		var preview = tower_scenes[tower_type].instantiate()
+		# Inject AI sprite texture for grid preview
+		var _spr_key3 = _tower_type_to_name(tower_type)
+		if _tower_sprite_textures.has(_spr_key3) and "sprite_texture" in preview:
+			preview.sprite_texture = _tower_sprite_textures[_spr_key3]
 		preview.position = Vector2(cx + 70, cy + 115)
 		preview.scale = Vector2(1.8, 1.8)
 		preview.process_mode = Node.PROCESS_MODE_DISABLED
@@ -18567,6 +18555,10 @@ func _try_place_tower(pos: Vector2) -> void:
 	tower.position = pos
 	tower.base_cost = cost
 	tower.set_meta("tower_type_enum", selected_tower)
+	# Inject AI sprite texture if available
+	var _spr_key = _tower_type_to_name(selected_tower)
+	if _tower_sprite_textures.has(_spr_key) and "sprite_texture" in tower:
+		tower.sprite_texture = _tower_sprite_textures[_spr_key]
 	towers_node.add_child(tower)
 	# Build animation
 	if "_build_timer" in tower:
@@ -19156,6 +19148,20 @@ func _draw() -> void:
 		sp_col.a *= sp_alpha
 		draw_circle(sp["pos"], sp["radius"], sp_col)
 
+	# === AI DEATH FX TEXTURES ===
+	var _dfx_i = _active_death_fx.size() - 1
+	while _dfx_i >= 0:
+		var dfx = _active_death_fx[_dfx_i]
+		dfx["timer"] -= delta
+		if dfx["timer"] <= 0.0:
+			_active_death_fx.remove_at(_dfx_i)
+		else:
+			var dfx_alpha = clampf(dfx["timer"] / 0.4, 0.0, 1.0)
+			var dfx_sz = 48.0 * dfx["scale"] * (1.0 + (1.0 - dfx_alpha) * 0.5)
+			if _death_fx_textures.has(dfx["faction"]):
+				draw_texture_rect(_death_fx_textures[dfx["faction"]], Rect2(dfx["pos"].x - dfx_sz * 0.5, dfx["pos"].y - dfx_sz * 0.5, dfx_sz, dfx_sz), false, Color(1, 1, 1, dfx_alpha))
+		_dfx_i -= 1
+
 	# === AOE IMPACT CIRCLES ===
 	for aoe in _aoe_impacts:
 		var aoe_t = 1.0 - clampf(aoe["timer"] / aoe["max_timer"], 0.0, 1.0)
@@ -19552,6 +19558,19 @@ func _draw_path_overlay() -> void:
 		draw_line(pts[k] + n * half_w, pts[k + 1] + n * half_w, edge_line_col, border_w)
 		draw_line(pts[k] - n * half_w, pts[k + 1] - n * half_w, edge_line_col, border_w)
 
+	# --- AI path texture overlay (tiled along path segments) ---
+	var _pf = _get_level_faction_key(current_level)
+	if _path_textures.has(_pf):
+		var _ptex = _path_textures[_pf]
+		var _ptile = road_w * 1.5
+		var _pstep = 0.0
+		for k in range(pts.size() - 1):
+			var seg_len = pts[k].distance_to(pts[k + 1])
+			_pstep += seg_len
+			if _pstep >= _ptile:
+				_pstep -= _ptile
+				var mid = (pts[k] + pts[k + 1]) * 0.5
+				draw_texture_rect(_ptex, Rect2(mid.x - road_w * 0.5, mid.y - road_w * 0.5, road_w, road_w), false, Color(1, 1, 1, 0.35))
 	# --- Surface detail (cracks, bricks, cobbles, etc.) ---
 	_draw_path_surface_detail(pts, path_style)
 
@@ -19589,6 +19608,23 @@ func _draw_path_overlay() -> void:
 
 	# --- Entry and Exit markers ---
 	_draw_entry_exit_markers(pts)
+
+func _get_level_faction_key(level_idx: int) -> String:
+	match level_idx:
+		0: return "prologue"
+		1, 2, 3: return "sherlock"
+		4, 5, 6: return "merlin"
+		7, 8, 9: return "tarzan"
+		10, 11, 12: return "dracula"
+		13, 14, 15: return "frankenstein"
+		16, 17, 18: return "robin_hood"
+		19, 20, 21: return "alice"
+		22, 23, 24: return "oz"
+		25, 26, 27: return "peter_pan"
+		28, 29, 30: return "phantom"
+		31, 32, 33: return "scrooge"
+		34, 35, 36: return "shadow_author"
+	return "prologue"
 
 func _get_path_style() -> Dictionary:
 	# Default road: sandy-brown dirt road
@@ -21688,10 +21724,21 @@ func _draw_map_collectibles() -> void:
 		var pos = mc["pos"]
 		var pulse = (sin(_time * 2.5 + mc["pulse_offset"]) + 1.0) * 0.5
 		var r = 8.0 + pulse * 3.0
-		# Glowing orb
+		# Glowing orb background
 		draw_circle(pos, r + 6, Color(1.0, 0.85, 0.3, 0.08 + pulse * 0.05))
-		draw_circle(pos, r, Color(1.0, 0.9, 0.4, 0.5 + pulse * 0.3))
-		draw_circle(pos, r * 0.5, Color(1.0, 1.0, 0.8, 0.8))
+		# AI collectible texture (with procedural fallback)
+		var _coll_key = ""
+		match mc.get("reward_type", "gold"):
+			"gold": _coll_key = "gold_coin"
+			"shards": _coll_key = "crystal_shard"
+			"quills": _coll_key = "quill"
+		if _collectible_textures.has(_coll_key):
+			var csz = r * 2.5
+			var bob = sin(_time * 2.0 + mc["pulse_offset"]) * 2.0
+			draw_texture_rect(_collectible_textures[_coll_key], Rect2(pos.x - csz * 0.5, pos.y - csz * 0.5 + bob, csz, csz), false)
+		else:
+			draw_circle(pos, r, Color(1.0, 0.9, 0.4, 0.5 + pulse * 0.3))
+			draw_circle(pos, r * 0.5, Color(1.0, 1.0, 0.8, 0.8))
 		# Sparkle
 		var spark_a = _time * 3.0 + mc["pulse_offset"]
 		for s in range(3):
@@ -21881,6 +21928,10 @@ func _place_insta_tower(pos: Vector2, insta_idx: int) -> void:
 	tower.position = pos
 	tower.base_cost = 0
 	tower.set_meta("tower_type_enum", tower_type)
+	# Inject AI sprite texture for insta-tower
+	var _spr_key4 = _tower_type_to_name(tower_type)
+	if _tower_sprite_textures.has(_spr_key4) and "sprite_texture" in tower:
+		tower.sprite_texture = _tower_sprite_textures[_spr_key4]
 	towers_node.add_child(tower)
 	_apply_meta_buffs(tower, tower_type)
 	placed_tower_positions.append(pos)
@@ -22076,6 +22127,12 @@ func _draw_enemy_intel() -> void:
 	var spd = enemy.speed if "speed" in enemy else 0
 	var tier = enemy.enemy_tier if "enemy_tier" in enemy else 0
 	var is_boss = enemy.boss_scale > 1.0 if "boss_scale" in enemy else false
+	# AI enemy portrait (right side of intel panel)
+	var _faction = enemy.enemy_faction if "enemy_faction" in enemy else ""
+	var _etier_key = _faction + "/tier_" + str(tier)
+	if _enemy_portrait_textures.has(_etier_key):
+		var _ep_sz = 40.0
+		draw_texture_rect(_enemy_portrait_textures[_etier_key], Rect2(px + 96, py + 4, _ep_sz, _ep_sz), false, Color(1, 1, 1, alpha))
 	var y = py + 14.0
 	var font = game_font
 	_udraw(font, Vector2(px + 4, y), "HP: %s/%s" % [_format_number(hp), _format_number(max_hp)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 0.4, 0.3, alpha))
@@ -27897,8 +27954,13 @@ func report_crit_hit(pos: Vector2) -> void:
 	_crit_flashes.append({"pos": pos, "timer": 0.4, "max_timer": 0.4})
 
 # === DEATH EFFECTS ===
-func report_enemy_death(pos: Vector2, is_boss: bool, scale: float) -> void:
+func report_enemy_death(pos: Vector2, is_boss: bool, scale: float, faction: String = "") -> void:
 	_play_sfx(_sfx_enemy_death)
+	# Queue AI death FX texture flash
+	if faction == "":
+		faction = _get_level_faction_key(current_level)
+	if _death_fx_textures.has(faction):
+		_active_death_fx.append({"pos": pos, "timer": 0.6, "scale": scale, "faction": faction})
 	if is_boss:
 		# Screen shake
 		_screen_shake_timer = 0.5
