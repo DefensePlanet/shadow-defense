@@ -5111,9 +5111,9 @@ func _generate_decorations_for_level(index: int) -> void:
 func _create_ui() -> void:
 	var ui = $UI
 
-	# Top bar (dark wood / pirate ship plank style)
+	# Top bar — dark gothic matching menu
 	top_bar = ColorRect.new()
-	top_bar.color = Color(0.12, 0.08, 0.05, 0.9)
+	top_bar.color = Color(0.04, 0.03, 0.08, 0.95)
 	top_bar.position = Vector2(0, 0)
 	top_bar.size = Vector2(1280, 50)
 	ui.add_child(top_bar)
@@ -5151,9 +5151,9 @@ func _create_ui() -> void:
 	menu_exit_button.pressed.connect(_show_menu)
 	top_bar.add_child(menu_exit_button)
 
-	# Bottom panel
+	# Bottom panel — dark gothic theme matching menu
 	bottom_panel = ColorRect.new()
-	bottom_panel.color = Color(0.12, 0.08, 0.05, 0.9)
+	bottom_panel.color = Color(0.04, 0.03, 0.08, 0.95)
 	bottom_panel.position = Vector2(0, 628)
 	bottom_panel.size = Vector2(1280, 92)
 	bottom_panel.clip_contents = true
@@ -5803,6 +5803,10 @@ func _make_button(text: String, pos: Vector2, min_size: Vector2) -> Button:
 	btn.custom_minimum_size = min_size
 	if game_font != null:
 		btn.add_theme_font_override("font", game_font)
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_color_override("font_color", Color(0.9, 0.78, 0.28))
+	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.90, 0.40))
+	btn.add_theme_color_override("font_pressed_color", Color(1.0, 1.0, 0.60))
 	return btn
 
 func _apply_font_to_controls(node: Node) -> void:
