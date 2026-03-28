@@ -5212,6 +5212,10 @@ func _create_ui() -> void:
 	start_button.text = "  START WAVE  "
 	start_button.position = Vector2(960, 4)
 	start_button.custom_minimum_size = Vector2(160, 48)
+	start_button.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
+	start_button.add_theme_color_override("font_hover_color", Color(0.4, 1.0, 0.4))
+	start_button.add_theme_color_override("font_pressed_color", Color(0.5, 1.0, 0.5))
+	start_button.add_theme_font_size_override("font_size", 16)
 	start_button.pressed.connect(_on_start_wave_pressed)
 	bottom_panel.add_child(start_button)
 
@@ -5219,13 +5223,17 @@ func _create_ui() -> void:
 	speed_button.text = "  >>  "
 	speed_button.position = Vector2(1126, 2)
 	speed_button.custom_minimum_size = Vector2(72, 48)
+	speed_button.add_theme_color_override("font_color", Color(0.8, 0.7, 0.3))
+	speed_button.add_theme_font_size_override("font_size", 16)
 	speed_button.pressed.connect(_on_speed_pressed)
 	bottom_panel.add_child(speed_button)
 
 	restart_button = Button.new()
-	restart_button.text = "  â†º  "
+	restart_button.text = "  RESTART  "
 	restart_button.position = Vector2(1202, 2)
 	restart_button.custom_minimum_size = Vector2(72, 48)
+	restart_button.add_theme_color_override("font_color", Color(0.8, 0.4, 0.3))
+	restart_button.add_theme_font_size_override("font_size", 13)
 	restart_button.pressed.connect(_on_restart_pressed)
 	bottom_panel.add_child(restart_button)
 
