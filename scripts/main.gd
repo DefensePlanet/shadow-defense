@@ -305,12 +305,28 @@ var menu_bg_card = Color(0.08, 0.08, 0.20)         # #141432
 var menu_bg_card_hover = Color(0.10, 0.10, 0.25)   # #1a1a40
 var menu_gold = Color(0.79, 0.66, 0.30)            # #c9a84c (unchanged)
 var menu_gold_light = Color(0.91, 0.83, 0.55)      # #e8d48b (unchanged)
-var menu_gold_dim = Color(0.54, 0.45, 0.20)        # #8a7433 (unchanged)
+var menu_gold_dim = menu_gold_dim        # #8a7433 (unchanged)
 var menu_parchment = Color(0.94, 0.90, 0.83)       # #f0e6d3 warm white
 var menu_text = Color(0.77, 0.73, 0.66)            # #c4baa8
 var menu_text_muted = Color(0.54, 0.51, 0.47)      # #8a8278
 var menu_accent_purple = Color(0.16, 0.04, 0.23)   # #2a0a3a deep purple accent
 var menu_accent_glow = Color(0.30, 0.10, 0.50, 0.3) # soft purple glow
+# Standardized colors — replace the 8+ gold variants and scattered hardcoded colors
+var c_gold = Color(0.85, 0.65, 0.10)               # primary gold (replaces all 0.85,0.65,0.1 variants)
+var c_gold_bright = Color(1.0, 0.85, 0.20)          # bright gold highlight
+var c_gold_warm = c_gold_warm           # warm gold accent
+var c_dark = Color(0.10, 0.08, 0.06)                # standard dark bg
+var c_darker = Color(0.02, 0.02, 0.04)              # deepest dark
+var c_panel = Color(0.03, 0.03, 0.08)               # standard panel bg
+var c_green = c_green                  # success / confirm
+var c_red = c_red                   # danger / warning
+var c_cyan = c_cyan                   # info / special
+var c_shadow = c_shadow            # text shadow
+var c_overlay = c_overlay           # modal overlay
+
+# Utility: create a color with modified alpha (replaces verbose Color(v.r, v.g, v.b, a) pattern)
+func _ca(base: Color, alpha: float) -> Color:
+	return Color(base.r, base.g, base.b, alpha)
 
 # Storybook menu - animation (particles, lanterns, decorations)
 var _dust_positions: Array = []
@@ -485,7 +501,7 @@ var card_particle_themes: Dictionary = {
 	TowerType.ROBIN_HOOD: {"icon": "^", "col": Color(0.2, 0.6, 0.15, 0.5), "drift": -1.0},
 	TowerType.ALICE: {"icon": "~", "col": Color(0.6, 0.4, 0.9, 0.4), "drift": 0.5},
 	TowerType.WICKED_WITCH: {"icon": "+", "col": Color(0.1, 0.8, 0.1, 0.4), "drift": -0.8},
-	TowerType.PETER_PAN: {"icon": "*", "col": Color(1.0, 0.85, 0.2, 0.5), "drift": -1.2},
+	TowerType.PETER_PAN: {"icon": "*", "col": _ca(c_gold_bright, 0.5), "drift": -1.2},
 	TowerType.PHANTOM: {"icon": "~", "col": Color(0.8, 0.2, 0.3, 0.4), "drift": 0.3},
 	TowerType.SCROOGE: {"icon": "$", "col": Color(0.85, 0.7, 0.15, 0.5), "drift": -0.4},
 	TowerType.SHERLOCK: {"icon": ".", "col": Color(0.4, 0.5, 0.7, 0.3), "drift": 0.2},
@@ -704,9 +720,9 @@ var lucky_spin_spinning: bool = false
 var lucky_spin_speed: float = 0.0
 var lucky_spin_open: bool = false
 const SPIN_WHEEL_PRIZES: Array = [
-	{"name": "50 Gold", "type": "gold", "amount": 50, "weight": 30, "col": Color(0.85, 0.65, 0.1)},
+	{"name": "50 Gold", "type": "gold", "amount": 50, "weight": 30, "col": c_gold},
 	{"name": "5 Quills", "type": "quills", "amount": 5, "weight": 25, "col": Color(0.7, 0.35, 0.9)},
-	{"name": "3 Shards", "type": "shards", "amount": 3, "weight": 20, "col": Color(0.3, 0.7, 0.9)},
+	{"name": "3 Shards", "type": "shards", "amount": 3, "weight": 20, "col": c_cyan},
 	{"name": "10 Crystals", "type": "crystals", "amount": 10, "weight": 15, "col": Color(0.4, 0.9, 0.6)},
 	{"name": "1 Streak Shield", "type": "shield", "amount": 1, "weight": 5, "col": Color(0.9, 0.5, 0.2)},
 	{"name": "25 Crystals", "type": "crystals", "amount": 25, "weight": 3, "col": Color(0.2, 1.0, 0.4)},
@@ -790,7 +806,7 @@ var personal_bests: Dictionary = {}  # {stat_key: best_value} cross-level person
 var _milestone_popup_timer: float = 0.0
 var _milestone_popup_text: String = ""
 var _milestone_popup_sub: String = ""
-var _milestone_popup_color: Color = Color(0.85, 0.65, 0.1)
+var _milestone_popup_color: Color = c_gold
 const MILESTONE_THRESHOLDS: Dictionary = {
 	"kills": [100, 500, 1000, 5000, 10000],
 	"wins": [5, 10, 25, 50, 100],
@@ -2382,7 +2398,7 @@ var _gear_icon_map: Dictionary = {
 	"lost_boy_dagger": "drink_me",
 }
 
-var TIER_COLORS = {"common": Color(0.65, 0.65, 0.65), "uncommon": Color(0.3, 0.8, 0.3), "rare": Color(0.3, 0.5, 0.95), "epic": Color(0.7, 0.35, 0.9), "legendary": Color(1.0, 0.75, 0.1)}
+var TIER_COLORS = {"common": Color(0.65, 0.65, 0.65), "uncommon": c_green, "rare": Color(0.3, 0.5, 0.95), "epic": Color(0.7, 0.35, 0.9), "legendary": Color(1.0, 0.75, 0.1)}
 var TIER_SHARD_VALUES = {"common": 10, "uncommon": 25, "rare": 100, "epic": 300, "legendary": 1000}
 var TIER_ORDER = ["common", "uncommon", "rare", "epic", "legendary"]
 var owned_gear: Dictionary = {}  # gear_id -> count
@@ -3325,7 +3341,7 @@ func _odyssey_complete() -> void:
 	trophy_reward = clampi(trophy_reward, 10, 30)
 	trophy_currency += trophy_reward
 	game_over_label.text = "ODYSSEY COMPLETE! +%d Trophies" % trophy_reward
-	game_over_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+	game_over_label.add_theme_color_override("font_color", c_gold)
 	game_over_label.visible = true
 	return_button.visible = true
 	_save_game()
@@ -4843,7 +4859,7 @@ func _create_ui() -> void:
 	info_label.position = Vector2(500, 8)
 	info_label.size = Vector2(660, 34)
 	info_label.add_theme_font_size_override("font_size", 16)
-	info_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+	info_label.add_theme_color_override("font_color", c_gold)
 	info_label.clip_text = true
 	info_label.text = ""
 	top_bar.add_child(info_label)
@@ -4945,7 +4961,7 @@ func _create_ui() -> void:
 
 	# Panel border
 	var border = ColorRect.new()
-	border.color = Color(1.0, 0.85, 0.2, 0.6)
+	border.color = _ca(c_gold_bright, 0.6)
 	border.position = Vector2(-2, -2)
 	border.size = Vector2(704, 384)
 	border.z_index = -1
@@ -4983,7 +4999,7 @@ func _create_ui() -> void:
 
 	# Gold border
 	var upg_border = ColorRect.new()
-	upg_border.color = Color(0.85, 0.65, 0.1, 0.5)
+	upg_border.color = _ca(c_gold, 0.5)
 	upg_border.position = Vector2(-2, -2)
 	upg_border.size = Vector2(204, 682)
 	upg_border.z_index = -1
@@ -4995,19 +5011,19 @@ func _create_ui() -> void:
 	upgrade_name_label.size = Vector2(180, 30)
 	upgrade_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	upgrade_name_label.add_theme_font_size_override("font_size", 18)
-	upgrade_name_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+	upgrade_name_label.add_theme_color_override("font_color", c_gold)
 	upgrade_panel.add_child(upgrade_name_label)
 
 	# Separator line (drawn via a thin ColorRect)
 	var sep = ColorRect.new()
-	sep.color = Color(0.85, 0.65, 0.1, 0.3)
+	sep.color = _ca(c_gold, 0.3)
 	sep.position = Vector2(10, 42)
 	sep.size = Vector2(180, 1)
 	upgrade_panel.add_child(sep)
 
 	# Portrait area — border behind, dark bg, then drawable Control on top
 	var portrait_border = ColorRect.new()
-	portrait_border.color = Color(0.85, 0.65, 0.1, 0.3)
+	portrait_border.color = _ca(c_gold, 0.3)
 	portrait_border.position = Vector2(48, 48)
 	portrait_border.size = Vector2(104, 84)
 	portrait_border.z_index = -1
@@ -5182,7 +5198,7 @@ func _create_ui() -> void:
 	menu_star_total_label.size = Vector2(220, 30)
 	menu_star_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	menu_star_total_label.add_theme_font_size_override("font_size", 18)
-	menu_star_total_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+	menu_star_total_label.add_theme_color_override("font_color", c_gold)
 	menu_overlay.add_child(menu_star_total_label)
 
 	# === OPEN BOOK PANEL (two-page spread) ===
@@ -5227,7 +5243,7 @@ func _create_ui() -> void:
 	menu_level_stars_label.size = Vector2(500, 30)
 	menu_level_stars_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	menu_level_stars_label.add_theme_font_size_override("font_size", 20)
-	menu_level_stars_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+	menu_level_stars_label.add_theme_color_override("font_color", c_gold)
 	menu_showcase_panel.add_child(menu_level_stars_label)
 
 	# Left arrow (page turn)
@@ -5284,7 +5300,7 @@ func _create_ui() -> void:
 		ch_stars.position = Vector2(card_x, card_y + 104)
 		ch_stars.size = Vector2(200, 22)
 		ch_stars.add_theme_font_size_override("font_size", 18)
-		ch_stars.add_theme_color_override("font_color", Color(0.85, 0.65, 0.1))
+		ch_stars.add_theme_color_override("font_color", c_gold)
 		menu_showcase_panel.add_child(ch_stars)
 		chapter_star_labels.append(ch_stars)
 
@@ -5623,7 +5639,7 @@ func _update_menu_showcase() -> void:
 			var level = levels[level_idx]
 			var chap_num = ["I", "II", "III"]
 			var diff_names = ["Easy", "Medium", "Hard"]
-			var diff_colors = [Color(0.3, 0.8, 0.3), Color(0.8, 0.8, 0.2), Color(1.0, 0.4, 0.2)]
+			var diff_colors = [c_green, Color(0.8, 0.8, 0.2), Color(1.0, 0.4, 0.2)]
 
 			chapter_title_labels[i].text = "Chapter %s \u2014 %s" % [chap_num[i], level["name"]]
 			chapter_desc_labels[i].text = level["description"]
@@ -8661,7 +8677,7 @@ func _draw_story_dialog() -> void:
 		var test_w = font.get_string_size(test, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x
 		if test_w > max_line_w and current_line_text != "":
 			# Soft halo shadow
-			_udraw(font, Vector2(text_x + 2, draw_y + 2), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, Color(0.0, 0.0, 0.0, 0.5))
+			_udraw(font, Vector2(text_x + 2, draw_y + 2), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, c_shadow)
 			_udraw(font, Vector2(text_x + 1, draw_y + 1), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, Color(0.0, 0.0, 0.0, 0.3))
 			_udraw(font, Vector2(text_x, draw_y), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, text_color)
 			draw_y += line_height
@@ -8669,7 +8685,7 @@ func _draw_story_dialog() -> void:
 		else:
 			current_line_text = test
 	if current_line_text != "":
-		_udraw(font, Vector2(text_x + 2, draw_y + 2), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, Color(0.0, 0.0, 0.0, 0.5))
+		_udraw(font, Vector2(text_x + 2, draw_y + 2), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, c_shadow)
 		_udraw(font, Vector2(text_x + 1, draw_y + 1), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, Color(0.0, 0.0, 0.0, 0.3))
 		_udraw(font, Vector2(text_x, draw_y), current_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, text_color)
 
@@ -8736,7 +8752,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 	for gi in range(4):
 		var gr = (65.0 + float(gi) * 18.0) * s
 		var ga = glow_pulse * (0.12 - float(gi) * 0.025)
-		draw_circle(Vector2(cx, cy), gr, Color(glow_col.r, glow_col.g, glow_col.b, maxf(ga, 0.0)))
+		draw_circle(Vector2(cx, cy), gr, _ca(glow_col, maxf(ga, 0.0)))
 
 	# Draw the portrait texture if loaded
 	if speaker in _portrait_textures and _portrait_textures[speaker] != null:
@@ -8765,13 +8781,13 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 		# Head circle
 		draw_circle(Vector2(cx, cy - 65*s), 22*s, Color(glow_col.r * 0.2, glow_col.g * 0.2, glow_col.b * 0.2, 0.8))
 		# Glow outline
-		draw_arc(Vector2(cx, cy - 65*s), 23*s, 0, TAU, 24, Color(glow_col.r, glow_col.g, glow_col.b, 0.4), 1.5*s)
+		draw_arc(Vector2(cx, cy - 65*s), 23*s, 0, TAU, 24, _ca(glow_col, 0.4), 1.5*s)
 		# Glow dot for unknown character
-		draw_circle(Vector2(cx, cy - 60*s), 4*s, Color(glow_col.r, glow_col.g, glow_col.b, 0.5))
+		draw_circle(Vector2(cx, cy - 60*s), 4*s, _ca(glow_col, 0.5))
 
 	# Subtle rim light on portrait edge
 	var rim_pulse = 0.15 + sin(_time * 2.0) * 0.05
-	draw_arc(Vector2(cx, cy), size * 0.42, 0, TAU, 32, Color(glow_col.r, glow_col.g, glow_col.b, rim_pulse * 0.3), 1.5*s)
+	draw_arc(Vector2(cx, cy), size * 0.42, 0, TAU, 32, _ca(glow_col, rim_pulse * 0.3), 1.5*s)
 
 
 func _get_speaker_display_name(speaker: String) -> String:
@@ -9263,7 +9279,7 @@ func _check_kill_streak_quote(tower_type, kill_count_val: int) -> void:
 			if not is_instance_valid(tower):
 				continue
 			if "kill_count" in tower and tower.kill_count == kill_count_val:
-				var streak_col = Color(1.0, 0.85, 0.2) if kill_count_val < 50 else Color(1.0, 0.5, 0.1)
+				var streak_col = c_gold_bright if kill_count_val < 50 else Color(1.0, 0.5, 0.1)
 				spawn_floating_text(tower.global_position + Vector2(0, -40), "%d KILLS!" % kill_count_val, streak_col, 16.0, 1.5)
 				break
 
@@ -9499,7 +9515,7 @@ func _show_upgrade_callout(tower_type, tier: int) -> void:
 	if tier < 0 or tier >= names.size():
 		return
 	var callout = names[tier]
-	spawn_floating_text(Vector2(640, 250), callout, Color(1.0, 0.85, 0.2), 22.0, 2.0)
+	spawn_floating_text(Vector2(640, 250), callout, c_gold_bright, 22.0, 2.0)
 
 # 8. Track affinity and get trust level/dialogue
 func _increment_trust(tower_type) -> void:
@@ -9560,7 +9576,7 @@ func _draw_card_shimmer(cx: float, cy: float, cw: float, ch: float, accent: Colo
 	for si in range(3):
 		var sx = cx + shimmer_x + float(si) * 3.0
 		if sx >= cx and sx <= cx + cw:
-			draw_rect(Rect2(sx, cy, 2, ch), Color(accent.r, accent.g, accent.b, 0.15 - float(si) * 0.04))
+			draw_rect(Rect2(sx, cy, 2, ch), _ca(accent, 0.15 - float(si) * 0.04))
 
 # 12. Wave-start rally cry
 func _show_rally_cry() -> void:
@@ -9644,7 +9660,7 @@ func _draw_loot_crate_popup() -> void:
 	var cx = 640.0
 	var cy = 360.0
 	# Backdrop
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.7))
+	draw_rect(Rect2(0, 0, 1280, 720), c_overlay)
 	var quality_colors = [Color(0.6, 0.6, 0.65), Color(0.3, 0.6, 0.9), Color(0.7, 0.3, 0.9), Color(0.95, 0.75, 0.1)]
 	var qcol = quality_colors[mini(_loot_crate_quality, 3)]
 	# Phase 1: Drop animation
@@ -9674,13 +9690,13 @@ func _draw_loot_crate_popup() -> void:
 		_udraw(font, Vector2(cx, cy - 55), "STORYBOOK CRATE", HORIZONTAL_ALIGNMENT_CENTER, 300, 16, Color(0.7, 0.7, 0.7, 0.7))
 		var ry = cy - 20.0
 		if _loot_crate_reward.has("gold"):
-			_udraw(font, Vector2(cx, ry), "+%d Gold" % _loot_crate_reward["gold"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.85, 0.65, 0.1))
+			_udraw(font, Vector2(cx, ry), "+%d Gold" % _loot_crate_reward["gold"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_gold)
 			ry += 24.0
 		if _loot_crate_reward.has("quills"):
 			_udraw(font, Vector2(cx, ry), "+%d Quills" % _loot_crate_reward["quills"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.7, 0.35, 0.9))
 			ry += 24.0
 		if _loot_crate_reward.has("shards"):
-			_udraw(font, Vector2(cx, ry), "+%d Shards" % _loot_crate_reward["shards"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.3, 0.7, 0.9))
+			_udraw(font, Vector2(cx, ry), "+%d Shards" % _loot_crate_reward["shards"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_cyan)
 			ry += 24.0
 		if _loot_crate_reward.has("crystals"):
 			_udraw(font, Vector2(cx, ry), "+%d Crystals" % _loot_crate_reward["crystals"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.4, 0.9, 0.6))
@@ -9826,17 +9842,17 @@ func _draw_spin_wheel(cx: float, cy: float, radius: float) -> void:
 			pname = pname.substr(0, 7) + ".."
 		_udraw(font, Vector2(txt_x, txt_y + 4), pname, HORIZONTAL_ALIGNMENT_CENTER, int(radius * 0.6), 11, Color.WHITE)
 	# Outer ring
-	draw_arc(Vector2(cx, cy), radius, 0, TAU, 32, Color(0.85, 0.65, 0.1, 0.8), 3.0)
+	draw_arc(Vector2(cx, cy), radius, 0, TAU, 32, _ca(c_gold, 0.8), 3.0)
 	# Pointer triangle at top
 	var ptr_y = cy - radius - 8
 	draw_colored_polygon(PackedVector2Array([Vector2(cx, ptr_y + 16), Vector2(cx - 8, ptr_y), Vector2(cx + 8, ptr_y)]), Color(0.9, 0.2, 0.2))
 	# Center circle
 	draw_circle(Vector2(cx, cy), 18, Color(0.12, 0.08, 0.20))
-	draw_arc(Vector2(cx, cy), 18, 0, TAU, 16, Color(0.85, 0.65, 0.1, 0.6), 2.0)
+	draw_arc(Vector2(cx, cy), 18, 0, TAU, 16, _ca(c_gold, 0.6), 2.0)
 	if lucky_spin_spinning:
 		_udraw(font, Vector2(cx, cy + 4), "...", HORIZONTAL_ALIGNMENT_CENTER, 30, 14, Color.WHITE)
 	elif lucky_spin_available:
-		_udraw(font, Vector2(cx, cy + 4), "SPIN", HORIZONTAL_ALIGNMENT_CENTER, 30, 12, Color(0.85, 0.65, 0.1))
+		_udraw(font, Vector2(cx, cy + 4), "SPIN", HORIZONTAL_ALIGNMENT_CENTER, 30, 12, c_gold)
 	else:
 		_udraw(font, Vector2(cx, cy + 4), "DONE", HORIZONTAL_ALIGNMENT_CENTER, 30, 12, Color(0.5, 0.5, 0.5))
 
@@ -9862,7 +9878,7 @@ func _add_pass_xp(amount: int) -> void:
 	while commander_pass_xp >= COMMANDER_PASS_XP_PER_TIER and commander_pass_tier < COMMANDER_PASS_MAX:
 		commander_pass_xp -= COMMANDER_PASS_XP_PER_TIER
 		commander_pass_tier += 1
-		spawn_floating_text(Vector2(640, 120), "PASS TIER %d!" % commander_pass_tier, Color(0.85, 0.65, 0.1), 16.0, 2.0)
+		spawn_floating_text(Vector2(640, 120), "PASS TIER %d!" % commander_pass_tier, c_gold, 16.0, 2.0)
 		_haptic(0)
 
 func _generate_pass_rewards() -> void:
@@ -10067,7 +10083,7 @@ func _draw_fortress(fx: float, fy: float, size: float) -> void:
 	var font = game_font
 	var fl = fortress_level
 	# Base structure
-	var wall_col = Color(0.4, 0.3, 0.2, 0.8) if fl < 3 else Color(0.5, 0.5, 0.5, 0.8) if fl < 6 else Color(0.85, 0.65, 0.1, 0.8)
+	var wall_col = Color(0.4, 0.3, 0.2, 0.8) if fl < 3 else Color(0.5, 0.5, 0.5, 0.8) if fl < 6 else _ca(c_gold, 0.8)
 	# Ground
 	draw_rect(Rect2(fx - size * 0.6, fy, size * 1.2, size * 0.1), Color(0.2, 0.3, 0.15, 0.5))
 	# Main building
@@ -10090,7 +10106,7 @@ func _draw_fortress(fx: float, fy: float, size: float) -> void:
 	# Magic glow
 	if fl >= 9:
 		var glow = 0.15 + sin(_time * 2.0) * 0.08
-		draw_circle(Vector2(fx, fy - size * 0.3), size * 0.5, Color(0.85, 0.65, 0.1, glow))
+		draw_circle(Vector2(fx, fy - size * 0.3), size * 0.5, _ca(c_gold, glow))
 	# Level label
 	_udraw(font, Vector2(fx, fy + size * 0.2), "Fortress Lv.%d" % fl, HORIZONTAL_ALIGNMENT_CENTER, int(size), 12, wall_col)
 
@@ -10300,11 +10316,11 @@ func _draw_currency_bar() -> void:
 	for gi in range(grad_steps):
 		var grad_t = (float(gi) + 0.5) / float(grad_steps)
 		var purple_a = sin(grad_t * PI) * 0.06
-		draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, purple_a))
+		draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), _ca(menu_accent_purple, purple_a))
 	# Gold bottom accent line
-	draw_rect(Rect2(0, bar_y + bar_h - 1, 1280, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+	draw_rect(Rect2(0, bar_y + bar_h - 1, 1280, 1), _ca(menu_gold, 0.4))
 	# Subtle inner glow at bottom
-	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 2), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.08))
+	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 2), _ca(menu_gold, 0.08))
 
 	# Menu Improvement 1: Animated Logo Treatment (replaces static title)
 	_draw_animated_logo(bar_y)
@@ -10336,8 +10352,8 @@ func _draw_currency_bar() -> void:
 		# Menu Improvement 4: Use animated display value
 		var display_val = _get_display_currency(c["name"]) if _currency_display.has(c["name"]) else c["value"]
 		var val_str = _format_gold(display_val)
-		_udraw(font, Vector2(cx + 16, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), Color(0, 0, 0, 0.5))
-		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95))
+		_udraw(font, Vector2(cx + 16, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), c_shadow)
+		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), _ca(menu_parchment, 0.95))
 		cx += 130.0
 
 	# Total stars on far right
@@ -10375,8 +10391,8 @@ func _draw_menu_background() -> void:
 		# === Center radial glow (purple atmosphere — vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
 		if _quality_level >= 1:
-			draw_circle(Vector2(640, 360), 550.0, Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, 0.06 * center_pulse))
-			draw_circle(Vector2(640, 360), 400.0, Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, 0.10 * center_pulse))
+			draw_circle(Vector2(640, 360), 550.0, _ca(menu_accent_purple, 0.06 * center_pulse))
+			draw_circle(Vector2(640, 360), 400.0, _ca(menu_accent_purple, 0.10 * center_pulse))
 		draw_circle(Vector2(640, 360), 250.0, Color(0.35, 0.12, 0.55, 0.12 * center_pulse))
 		draw_circle(Vector2(640, 360), 120.0, Color(0.45, 0.18, 0.65, 0.08 * center_pulse))
 
@@ -10388,7 +10404,7 @@ func _draw_menu_background() -> void:
 
 		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
 		var orn_a = 0.22 + sin(_time * 0.8) * 0.06
-		var orn_col = Color(menu_gold.r, menu_gold.g, menu_gold.b, orn_a)
+		var orn_col = _ca(menu_gold, orn_a)
 		# Top-left ornament
 		for oi in range(_qcount(5)):
 			var olen = 30.0 + float(oi) * 12.0
@@ -10422,12 +10438,12 @@ func _draw_menu_background() -> void:
 			var spine_hue = 0.02 + float(bsi % 5) * 0.005
 			draw_rect(Rect2(bx, shelf_y - bh, 44, bh), Color(spine_hue, 0.03, 0.10 + float(bsi % 3) * 0.02, 0.65))
 			# Top edge highlight — brighter
-			draw_line(Vector2(bx, shelf_y - bh), Vector2(bx + 44, shelf_y - bh), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.15), 1.5)
+			draw_line(Vector2(bx, shelf_y - bh), Vector2(bx + 44, shelf_y - bh), _ca(menu_gold_dim, 0.15), 1.5)
 			# Spine line — more visible
-			draw_line(Vector2(bx + 22, shelf_y - bh + 4), Vector2(bx + 22, shelf_y - 4), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08), 1.0)
+			draw_line(Vector2(bx + 22, shelf_y - bh + 4), Vector2(bx + 22, shelf_y - 4), _ca(menu_gold_dim, 0.08), 1.0)
 		# Shelf plank — thicker, more visible
 		draw_rect(Rect2(0, shelf_y, 1280, 4), Color(0.08, 0.06, 0.14, 0.7))
-		draw_rect(Rect2(0, shelf_y, 1280, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
+		draw_rect(Rect2(0, shelf_y, 1280, 1), _ca(menu_gold_dim, 0.2))
 
 		# === Ink splatters (subtle background texture — pre-seeded) ===
 		var sp_col = Color(0.02, 0.01, 0.06, 0.12)
@@ -10458,7 +10474,7 @@ func _draw_menu_background() -> void:
 				Vector2(px + hw * cr - hh * sr, py + hw * sr + hh * cr),
 				Vector2(px + (-hw) * cr - hh * sr, py + (-hw) * sr + hh * cr),
 			])
-			draw_colored_polygon(corners, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, pa))
+			draw_colored_polygon(corners, _ca(menu_parchment, pa))
 			# Text lines on page
 			for tl in range(3):
 				var lx_start = px + (-hw * 0.6) * cr - (-hh * 0.3 + float(tl) * hh * 0.25) * sr
@@ -10519,8 +10535,8 @@ func _draw_menu_background() -> void:
 				draw_circle(Vector2(dx, dy), dsz + 3, Color(0.5, 0.25, 0.8, alpha * 0.15))
 				draw_circle(Vector2(dx, dy), dsz, Color(0.6, 0.35, 0.9, alpha * 0.8))
 			else:
-				draw_circle(Vector2(dx, dy), dsz + 3, Color(menu_gold.r, menu_gold.g, menu_gold.b, alpha * 0.15))
-				draw_circle(Vector2(dx, dy), dsz, Color(menu_gold.r, menu_gold.g, menu_gold.b, alpha))
+				draw_circle(Vector2(dx, dy), dsz + 3, _ca(menu_gold, alpha * 0.15))
+				draw_circle(Vector2(dx, dy), dsz, _ca(menu_gold, alpha))
 
 		# === 1. Gothic cathedral silhouette (parallax deep background) ===
 		var cath_y = 380.0 + sin(_time * 0.15) * 8.0
@@ -10829,7 +10845,7 @@ func _draw_menu_background() -> void:
 			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false, Color(1, 1, 1, alpha))
 		# Label
 		var lbl_y = nav_draw_y + 78.0
-		var lbl_col = Color(tc.r, tc.g, tc.b, 0.95) if is_act else Color(0.55, 0.50, 0.40, 0.6)
+		var lbl_col = _ca(tc, 0.95) if is_act else Color(0.55, 0.50, 0.40, 0.6)
 		var lbl_sz = 13 if is_act else 11
 		_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), lbl_sz, lbl_col)
 
@@ -10883,14 +10899,14 @@ func _draw_gear_tab() -> void:
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
 
 	# Gold border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR COMPENDIUM", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.9))
-	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR COMPENDIUM", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, _ca(menu_gold_light, 0.9))
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 
 	# Enhancement #26: Character filter indicators — show colored dots for characters that have gear
 	var char_filter_colors = {
@@ -11012,8 +11028,8 @@ func _draw_gear_tab() -> void:
 					break
 			if is_equipped:
 				var eq_pulse = 0.5 + sin(_time * 3.0) * 0.2
-				draw_rect(Rect2(cx - 1, cy - 1, card_w + 2, card_h + 2), Color(1.0, 0.85, 0.2, eq_pulse * 0.5))
-				_udraw(font, Vector2(cx + card_w - 70, cy + card_h - 10), "EQUIPPED", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.85, 0.2, 0.8))
+				draw_rect(Rect2(cx - 1, cy - 1, card_w + 2, card_h + 2), _ca(c_gold_bright, eq_pulse * 0.5))
+				_udraw(font, Vector2(cx + card_w - 70, cy + card_h - 10), "EQUIPPED", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold_bright, 0.8))
 
 			# Rarity stripe
 			draw_rect(Rect2(cx, cy, 3, card_h), Color(rc.r, rc.g, rc.b, 0.7 if is_owned else 0.2))
@@ -11040,11 +11056,11 @@ func _draw_gear_tab() -> void:
 			var name_alpha = 0.9 if is_owned else 0.35
 			_udraw(font, Vector2(cx + 44, cy + 18), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(rc.r, rc.g, rc.b, name_alpha))
 			var desc_alpha = 0.65 if is_owned else 0.25
-			_udraw(font, Vector2(cx + 44, cy + 36), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 13, Color(menu_text.r, menu_text.g, menu_text.b, desc_alpha))
+			_udraw(font, Vector2(cx + 44, cy + 36), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 13, _ca(menu_text, desc_alpha))
 
 			# Count badge
 			if is_owned:
-				_udraw(font, Vector2(cx + card_w - 30, cy + 18), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
+				_udraw(font, Vector2(cx + card_w - 30, cy + 18), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_green)
 
 			# Power level display + per_level scaling + special effect
 			if is_owned:
@@ -11068,7 +11084,7 @@ func _draw_gear_tab() -> void:
 			if is_card_hovered and is_owned and not is_equipped:
 				var hover_pulse = 0.6 + sin(_time * 4.0) * 0.15
 				draw_rect(Rect2(cx, cy, card_w, card_h), Color(rc.r, rc.g, rc.b, 0.06))
-				_udraw(font, Vector2(cx + card_w * 0.5, cy + card_h - 6), "Tap to equip", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, hover_pulse * 0.7))
+				_udraw(font, Vector2(cx + card_w * 0.5, cy + card_h - 6), "Tap to equip", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, _ca(menu_gold, hover_pulse * 0.7))
 			elif is_card_hovered and not is_owned:
 				draw_rect(Rect2(cx, cy, card_w, card_h), Color(0.3, 0.3, 0.4, 0.04))
 
@@ -11088,7 +11104,7 @@ func _draw_gear_tab() -> void:
 		var thumb_h = maxf(30.0, bar_h * bar_h / (bar_h + max_scroll))
 		var thumb_y = content_top + (gear_scroll_offset / max_scroll) * (bar_h - thumb_h)
 		draw_rect(Rect2(bar_x, content_top, 4, bar_h), Color(0.2, 0.2, 0.25, 0.3))
-		draw_rect(Rect2(bar_x, thumb_y, 4, thumb_h), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.5))
+		draw_rect(Rect2(bar_x, thumb_y, 4, thumb_h), _ca(menu_gold, 0.5))
 
 	# Footer (drawn over content, always visible)
 	draw_rect(Rect2(panel_x + 2, panel_y + panel_h - 28, panel_w - 4, 26), Color(0.03, 0.03, 0.06, 0.95))
@@ -11100,9 +11116,9 @@ func _draw_gear_tab() -> void:
 	for key in owned_gear:
 		if owned_gear[key] > 0:
 			unique_owned += 1
-	_udraw(font, Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
-	_udraw(font, Vector2(grid_left + 300, footer_y), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
-	_udraw(font, Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.6))
+	_udraw(font, Vector2(grid_left + 300, footer_y), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.6))
+	_udraw(font, Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.6))
 
 func _draw_emporium() -> void:
 	if emporium_sub_open:
@@ -11124,8 +11140,8 @@ func _draw_emporium() -> void:
 		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
 
 	# Ornate border — gold double frame
-	var emp_outer = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.35)
-	var emp_gold = Color(0.54, 0.45, 0.20, 0.2)
+	var emp_outer = _ca(menu_gold_dim, 0.35)
+	var emp_gold = _ca(menu_gold_dim, 0.2)
 	# Outer gold border (3px)
 	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), emp_outer)
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), emp_outer)
@@ -11139,10 +11155,10 @@ func _draw_emporium() -> void:
 
 	# Corner filigree ornaments (gold only)
 	for corner in [Vector2(panel_x + 14, panel_y + 14), Vector2(panel_x + panel_w - 14, panel_y + 14), Vector2(panel_x + 14, panel_y + panel_h - 14), Vector2(panel_x + panel_w - 14, panel_y + panel_h - 14)]:
-		draw_circle(corner, 7, Color(0.54, 0.45, 0.20, 0.2))
-		draw_circle(corner, 5, Color(0.54, 0.45, 0.20, 0.3))
-		draw_circle(corner, 3, Color(0.54, 0.45, 0.20, 0.25))
-		draw_arc(corner, 8, 0, TAU, 24, Color(0.54, 0.45, 0.20, 0.15), 1.0)
+		draw_circle(corner, 7, _ca(menu_gold_dim, 0.2))
+		draw_circle(corner, 5, _ca(menu_gold_dim, 0.3))
+		draw_circle(corner, 3, _ca(menu_gold_dim, 0.25))
+		draw_arc(corner, 8, 0, TAU, 24, _ca(menu_gold_dim, 0.15), 1.0)
 
 	# === Title: THE EMPORIUM ===
 	var font = game_font
@@ -11152,31 +11168,31 @@ func _draw_emporium() -> void:
 	var title_x = panel_x + (panel_w - title_width) * 0.5
 	var title_y = panel_y + 38.0
 	# Title glow
-	_udraw(font, Vector2(title_x, title_y), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.85, 0.65, 0.1, 0.3))
+	_udraw(font, Vector2(title_x, title_y), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, _ca(c_gold, 0.3))
 	_udraw(font, Vector2(title_x - 1, title_y - 1), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
 	# Decorative stars flanking title
 	var star_lx = title_x - 25.0
 	var star_rx = title_x + title_width + 10.0
 	var star_y = title_y - 10.0
 	for dx in [-2.0, 0.0, 2.0]:
-		draw_circle(Vector2(star_lx + dx, star_y + dx * 0.5), 2.0, Color(0.85, 0.65, 0.1, 0.4))
-		draw_circle(Vector2(star_rx + dx, star_y + dx * 0.5), 2.0, Color(0.85, 0.65, 0.1, 0.4))
+		draw_circle(Vector2(star_lx + dx, star_y + dx * 0.5), 2.0, _ca(c_gold, 0.4))
+		draw_circle(Vector2(star_rx + dx, star_y + dx * 0.5), 2.0, _ca(c_gold, 0.4))
 	# Underline — gold double line
 	var line_cx = panel_x + panel_w * 0.5
-	draw_line(Vector2(line_cx - 180, title_y + 8), Vector2(line_cx + 180, title_y + 8), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.5)
-	draw_line(Vector2(line_cx - 140, title_y + 12), Vector2(line_cx + 140, title_y + 12), Color(0.54, 0.45, 0.20, 0.15), 1.0)
+	draw_line(Vector2(line_cx - 180, title_y + 8), Vector2(line_cx + 180, title_y + 8), _ca(menu_gold, 0.3), 1.5)
+	draw_line(Vector2(line_cx - 140, title_y + 12), Vector2(line_cx + 140, title_y + 12), _ca(menu_gold_dim, 0.15), 1.0)
 
 	# === Animated spinning coin near title (Enhancement #33) ===
 	var coin_x = title_x - 50.0
 	var coin_y = title_y - 10.0
 	var coin_pulse = 0.7 + sin(_time * 3.0) * 0.3
 	var coin_radius = 7.0 + sin(_time * 2.0) * 1.5
-	draw_circle(Vector2(coin_x, coin_y), coin_radius + 2, Color(0.85, 0.65, 0.1, 0.15 * coin_pulse))
+	draw_circle(Vector2(coin_x, coin_y), coin_radius + 2, _ca(c_gold, 0.15 * coin_pulse))
 	draw_circle(Vector2(coin_x, coin_y), coin_radius, Color(0.9, 0.7, 0.15, 0.8 * coin_pulse))
 	draw_arc(Vector2(coin_x, coin_y), coin_radius - 2, -PI * 0.8, -PI * 0.2, 8, Color(0.95, 0.85, 0.3, 0.5), 1.5)
 	# Mirror coin on right side
 	var coin_rx = title_x + title_width + 35.0
-	draw_circle(Vector2(coin_rx, coin_y), coin_radius + 2, Color(0.85, 0.65, 0.1, 0.15 * coin_pulse))
+	draw_circle(Vector2(coin_rx, coin_y), coin_radius + 2, _ca(c_gold, 0.15 * coin_pulse))
 	draw_circle(Vector2(coin_rx, coin_y), coin_radius, Color(0.9, 0.7, 0.15, 0.8 * coin_pulse))
 	draw_arc(Vector2(coin_rx, coin_y), coin_radius - 2, -PI * 0.8, -PI * 0.2, 8, Color(0.95, 0.85, 0.3, 0.5), 1.5)
 
@@ -11209,12 +11225,12 @@ func _draw_emporium() -> void:
 		# Warm amber accent gradient at top
 		for g in range(6):
 			var gt = float(g) / 5.0
-			draw_rect(Rect2(tx, ty + float(g), tile_w, 1), Color(0.54, 0.45, 0.20, 0.12 * (1.0 - gt)))
+			draw_rect(Rect2(tx, ty + float(g), tile_w, 1), _ca(menu_gold_dim, 0.12 * (1.0 - gt)))
 
 		# Tile border
-		var tile_border = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3)
+		var tile_border = _ca(menu_gold_dim, 0.3)
 		if is_hovered:
-			tile_border = Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7)
+			tile_border = _ca(menu_gold, 0.7)
 		draw_rect(Rect2(tx, ty, tile_w, 2), tile_border)
 		draw_rect(Rect2(tx, ty + tile_h - 2, tile_w, 2), tile_border)
 		draw_rect(Rect2(tx, ty, 2, tile_h), tile_border)
@@ -11223,13 +11239,13 @@ func _draw_emporium() -> void:
 		# Hover glow (gold tint)
 		if is_hovered:
 			var glow_a = 0.06 + sin(_time * 3.5) * 0.03
-			draw_rect(Rect2(tx - 2, ty - 2, tile_w + 4, tile_h + 4), Color(menu_gold.r, menu_gold.g, menu_gold.b, glow_a))
+			draw_rect(Rect2(tx - 2, ty - 2, tile_w + 4, tile_h + 4), _ca(menu_gold, glow_a))
 
 		# === FEATURED item spotlight (Enhancement #31) — first tile gets golden glow ===
 		if i == 0:
 			var feat_pulse = 0.5 + sin(_time * 2.0) * 0.3
 			# Golden spotlight glow behind the featured card
-			draw_rect(Rect2(tx - 4, ty - 4, tile_w + 8, tile_h + 8), Color(0.85, 0.65, 0.1, 0.04 * feat_pulse))
+			draw_rect(Rect2(tx - 4, ty - 4, tile_w + 8, tile_h + 8), _ca(c_gold, 0.04 * feat_pulse))
 			draw_rect(Rect2(tx - 2, ty - 2, tile_w + 4, tile_h + 4), Color(0.95, 0.75, 0.2, 0.06 * feat_pulse))
 			# "FEATURED" label at top-right
 			var feat_text = "FEATURED"
@@ -11237,7 +11253,7 @@ func _draw_emporium() -> void:
 			var feat_tw = font.get_string_size(feat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, feat_fs).x + 12.0
 			var feat_x = tx + tile_w - feat_tw - 8.0
 			var feat_y_top = ty + 8.0
-			draw_rect(Rect2(feat_x, feat_y_top, feat_tw, 20), Color(0.85, 0.65, 0.1, 0.85))
+			draw_rect(Rect2(feat_x, feat_y_top, feat_tw, 20), _ca(c_gold, 0.85))
 			_udraw(font, Vector2(feat_x + 6, feat_y_top + 16), feat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, feat_fs, Color(0.05, 0.03, 0.0, 0.95))
 
 		# === "BEST VALUE" badge (Enhancement #32) on premium items (Survivor Packs, Gear Chests) ===
@@ -11253,7 +11269,7 @@ func _draw_emporium() -> void:
 			_udraw(font, Vector2(bv_x + 5, bv_y + 16), bv_text, HORIZONTAL_ALIGNMENT_LEFT, -1, bv_fs, Color(1, 1, 1, 0.95))
 
 		# Corner flourishes (gold only)
-		var fl = Color(0.54, 0.45, 0.20, 0.15)
+		var fl = _ca(menu_gold_dim, 0.15)
 		draw_line(Vector2(tx + 6, ty + 6), Vector2(tx + 26, ty + 6), fl, 1.0)
 		draw_line(Vector2(tx + 6, ty + 6), Vector2(tx + 6, ty + 26), fl, 1.0)
 		draw_line(Vector2(tx + tile_w - 6, ty + 6), Vector2(tx + tile_w - 26, ty + 6), fl, 1.0)
@@ -11362,7 +11378,7 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 			# Stack of 3 gold coins
 			for ci in range(3):
 				var off_y = float(ci) * -10.0
-				var coin_col = Color(0.85, 0.65, 0.1, 0.85 - float(ci) * 0.08)
+				var coin_col = _ca(c_gold, 0.85 - float(ci) * 0.08)
 				var coin_hi = Color(0.95, 0.78, 0.2, 0.7 - float(ci) * 0.08)
 				# Coin ellipse (top face)
 				draw_circle(Vector2(cx, cy + off_y), s * 0.42, coin_col)
@@ -11450,7 +11466,7 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 			# Ornate treasure chest
 			var wood_col = Color(0.5, 0.3, 0.12, 0.85)
 			var wood_dark = Color(0.35, 0.2, 0.08, 0.85)
-			var gold_col = Color(0.85, 0.65, 0.1, 0.9)
+			var gold_col = _ca(c_gold, 0.9)
 			# Chest body (bottom box)
 			draw_rect(Rect2(cx - s * 0.5, cy - s * 0.05, s * 1.0, s * 0.55), wood_col)
 			# Planks
@@ -11488,10 +11504,10 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 				Vector2(cx - s * 0.3, cy - s * 0.3),
 				Vector2(cx - s * 0.2, cy + s * 0.4),
 			]), sil_col)
-			draw_line(Vector2(cx - s * 0.48, cy - s * 0.2), Vector2(cx - s * 0.22, cy + s * 0.38), Color(0.85, 0.65, 0.1, 0.3), 1.0)
+			draw_line(Vector2(cx - s * 0.48, cy - s * 0.2), Vector2(cx - s * 0.22, cy + s * 0.38), _ca(c_gold, 0.3), 1.0)
 			# Book 2 (center, upright)
 			draw_rect(Rect2(cx - s * 0.15, cy - s * 0.4, s * 0.3, s * 0.85), Color(0.45, 0.25, 0.1, 0.75))
-			draw_rect(Rect2(cx - s * 0.12, cy - s * 0.35, s * 0.24, s * 0.08), Color(0.85, 0.65, 0.1, 0.4))
+			draw_rect(Rect2(cx - s * 0.12, cy - s * 0.35, s * 0.24, s * 0.08), _ca(c_gold, 0.4))
 			# Book 3 (right, leaning opposite)
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(cx + s * 0.2, cy + s * 0.45),
@@ -11499,7 +11515,7 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 				Vector2(cx + s * 0.5, cy - s * 0.25),
 				Vector2(cx + s * 0.4, cy + s * 0.45),
 			]), Color(0.5, 0.28, 0.12, 0.7))
-			draw_line(Vector2(cx + s * 0.32, cy - s * 0.25), Vector2(cx + s * 0.42, cy + s * 0.4), Color(0.85, 0.65, 0.1, 0.3), 1.0)
+			draw_line(Vector2(cx + s * 0.32, cy - s * 0.25), Vector2(cx + s * 0.42, cy + s * 0.4), _ca(c_gold, 0.3), 1.0)
 			# Character silhouettes peeking above books
 			draw_circle(Vector2(cx - s * 0.1, cy - s * 0.52), s * 0.12, Color(0.3, 0.2, 0.1, 0.5))
 			draw_circle(Vector2(cx + s * 0.15, cy - s * 0.48), s * 0.1, Color(0.3, 0.2, 0.1, 0.45))
@@ -11537,7 +11553,7 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 			draw_line(main_star + Vector2(0, -s * 0.35), main_star + Vector2(0, s * 0.35), Color(1, 1, 1, 0.3), 1.0)
 		"emp_trophy":
 			# Trophy cup icon
-			var trophy_col = Color(0.85, 0.65, 0.1, 0.85)
+			var trophy_col = _ca(c_gold, 0.85)
 			# Cup body
 			draw_rect(Rect2(cx - s * 0.3, cy - s * 0.3, s * 0.6, s * 0.5), trophy_col)
 			# Cup rim
@@ -11572,7 +11588,7 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 
 		"emp_wheel":
 			# Spinning wheel icon
-			var wh_col = Color(0.85, 0.65, 0.1, 0.8)
+			var wh_col = _ca(c_gold, 0.8)
 			draw_arc(Vector2(cx, cy), s * 0.48, 0, TAU, 16, wh_col, 3.0)
 			draw_arc(Vector2(cx, cy), s * 0.25, 0, TAU, 12, Color(0.6, 0.4, 0.1, 0.5), 1.5)
 			for wi in range(6):
@@ -11589,7 +11605,7 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 			draw_circle(Vector2(cx - s * 0.25, cy + s * 0.3), s * 0.1, Color(0.3, 0.3, 0.3, 0.8))
 			draw_circle(Vector2(cx + s * 0.25, cy + s * 0.3), s * 0.1, Color(0.3, 0.3, 0.3, 0.8))
 			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.15, cy - s * 0.25), Vector2(cx, cy - s * 0.55), Vector2(cx + s * 0.15, cy - s * 0.25)]), Color(0.5, 0.35, 0.15, 0.6))
-			draw_circle(Vector2(cx, cy - s * 0.05), s * 0.08, Color(0.85, 0.65, 0.1, 0.6))
+			draw_circle(Vector2(cx, cy - s * 0.05), s * 0.08, _ca(c_gold, 0.6))
 
 func _draw_emporium_sub_panel() -> void:
 	var panel_x = 70.0 + _safe_left
@@ -11605,8 +11621,8 @@ func _draw_emporium_sub_panel() -> void:
 		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
 
 	# Gold double-frame border
-	var emp_outer = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.35)
-	var emp_gold = Color(0.54, 0.45, 0.20, 0.2)
+	var emp_outer = _ca(menu_gold_dim, 0.35)
+	var emp_gold = _ca(menu_gold_dim, 0.2)
 	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), emp_outer)
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), emp_outer)
 	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), emp_outer)
@@ -11626,21 +11642,21 @@ func _draw_emporium_sub_panel() -> void:
 		_udraw(font, Vector2(tx, panel_y + 36), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
 		# Underline
 		var cx = panel_x + panel_w * 0.5
-		draw_line(Vector2(cx - 160, panel_y + 44), Vector2(cx + 160, panel_y + 44), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.5)
+		draw_line(Vector2(cx - 160, panel_y + 44), Vector2(cx + 160, panel_y + 44), _ca(menu_gold, 0.3), 1.5)
 
 	# Currency bar
 	var bar_y = panel_y + 60.0
 	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_gear_shards, player_storybook_stars, player_gold]
 	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
-	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.7))
+	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, _ca(menu_gold_light, 0.7))
 
 	# Chest inventory line
 	var chest_text = "Chests:  Bronze: %d  |  Silver: %d  |  Gold: %d" % [treasure_chests_owned["bronze"], treasure_chests_owned["silver"], treasure_chests_owned["gold"]]
 	var chest_tw = font.get_string_size(chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15).x
-	_udraw(font, Vector2(panel_x + (panel_w - chest_tw) * 0.5, bar_y + 32), chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
+	_udraw(font, Vector2(panel_x + (panel_w - chest_tw) * 0.5, bar_y + 32), chest_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, _ca(menu_text_muted, 0.7))
 
 	# Separator line
-	draw_line(Vector2(panel_x + 40, bar_y + 42), Vector2(panel_x + panel_w - 40, bar_y + 42), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.15), 1.0)
+	draw_line(Vector2(panel_x + 40, bar_y + 42), Vector2(panel_x + panel_w - 40, bar_y + 42), _ca(menu_gold, 0.15), 1.0)
 
 	# 3 item cards
 	if emporium_sub_category >= 0 and emporium_items.has(emporium_sub_category):
@@ -11675,7 +11691,7 @@ func _draw_emporium_sub_panel() -> void:
 			# Card border — color by item rarity/cost tier (Enhancement #36)
 			var rarity_col = Color(0.55, 0.38, 0.08, 0.35)  # Default gold-dim
 			if item["cost"] >= 100:
-				rarity_col = Color(0.85, 0.65, 0.1, 0.5)  # Gold/rare — expensive items
+				rarity_col = _ca(c_gold, 0.5)  # Gold/rare — expensive items
 			elif item["cost"] >= 30:
 				rarity_col = Color(0.55, 0.3, 0.7, 0.45)  # Purple/uncommon — mid-range
 			else:
@@ -11689,7 +11705,7 @@ func _draw_emporium_sub_panel() -> void:
 			# Hover glow
 			if is_hovered:
 				var ga = 0.06 + sin(_time * 3.5) * 0.03
-				draw_rect(Rect2(ix - 2, iy - 2, item_w + 4, item_h + 4), Color(menu_gold.r, menu_gold.g, menu_gold.b, ga))
+				draw_rect(Rect2(ix - 2, iy - 2, item_w + 4, item_h + 4), _ca(menu_gold, ga))
 
 			# Item name
 			var nw = font.get_string_size(item["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
@@ -11735,7 +11751,7 @@ func _draw_emporium_sub_panel() -> void:
 			# "BUY" label at bottom
 			var buy_text = "[ BUY ]"
 			var bw2 = font.get_string_size(buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
-			var buy_col = Color(0.85, 0.65, 0.1, 0.8) if is_hovered else Color(0.55, 0.42, 0.2, 0.5)
+			var buy_col = _ca(c_gold, 0.8) if is_hovered else Color(0.55, 0.42, 0.2, 0.5)
 			_udraw(font, Vector2(ix + (item_w - bw2) * 0.5, iy + item_h - 14), buy_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, buy_col)
 
 	# Purchase confirmation flash overlay (Enhancement #34)
@@ -11756,7 +11772,7 @@ func _draw_emporium_sub_panel() -> void:
 				var ow = 320.0
 				var oh = 36.0
 				draw_rect(Rect2(ox, open_y, ow, oh), Color(0.08, 0.07, 0.18, 0.85))
-				draw_rect(Rect2(ox, open_y, ow, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3))
+				draw_rect(Rect2(ox, open_y, ow, 1), _ca(menu_gold, 0.3))
 				var ot = "Open %s Chest (%d)" % [tier_names[ci], count]
 				var otw = font.get_string_size(ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
 				_udraw(font, Vector2(ox + (ow - otw) * 0.5, open_y + 24), ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.75, 0.2, 0.85))
@@ -11780,7 +11796,7 @@ func _draw_emporium_sub_panel() -> void:
 	var back_text = "<  BACK"
 	var back_x = panel_x + 20.0
 	var back_y = panel_y + panel_h - 30.0
-	_udraw(font, Vector2(back_x, back_y), back_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7))
+	_udraw(font, Vector2(back_x, back_y), back_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7))
 
 func _start_chest_opening(tier: int) -> void:
 	_haptic(2)  # Strong haptic on chest open
@@ -12060,10 +12076,10 @@ func _draw_chest_opening() -> void:
 	var cx = 640.0
 	# Victory chests use difficulty colors; emporium chests use classic tier colors
 	var tier_names = ["Apprentice", "Journeyman", "Master"]
-	var chest_colors = [Color(0.4, 0.6, 0.3), Color(0.5, 0.5, 0.7), Color(0.85, 0.65, 0.1)]
+	var chest_colors = [Color(0.4, 0.6, 0.3), Color(0.5, 0.5, 0.7), c_gold]
 	if not victory_chest_active:
 		tier_names = ["Bronze", "Silver", "Gold"]
-		chest_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), Color(0.85, 0.65, 0.1)]
+		chest_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), c_gold]
 	var tier_col = chest_colors[mini(chest_opening_tier, 2)]
 	var glow_col = Color(tier_col.r * 1.2, tier_col.g * 1.2, tier_col.b * 1.0)
 
@@ -12082,7 +12098,7 @@ func _draw_chest_opening() -> void:
 		for gi in range(5):
 			var gr = 160.0 - float(gi) * 22.0 + pulse * 12.0
 			var ga = 0.04 + float(gi) * 0.02 + pulse * 0.02
-			draw_circle(Vector2(cx, chest_cy + 20), gr, Color(glow_col.r, glow_col.g, glow_col.b, ga))
+			draw_circle(Vector2(cx, chest_cy + 20), gr, _ca(glow_col, ga))
 		# Outer golden haze
 		draw_circle(Vector2(cx, chest_cy + 20), 200.0 + pulse * 20.0, Color(1.0, 0.9, 0.5, 0.03))
 
@@ -12147,9 +12163,9 @@ func _draw_chest_opening() -> void:
 			var vic_text = "VICTORY!"
 			var vic_w = font.get_string_size(vic_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 52).x
 			# Glow behind text
-			draw_circle(Vector2(cx, 125), 80.0, Color(1.0, 0.85, 0.2, 0.08 + pulse * 0.06))
+			draw_circle(Vector2(cx, 125), 80.0, _ca(c_gold_bright, 0.08 + pulse * 0.06))
 			# Text shadow
-			_udraw(font, Vector2(cx - vic_w * 0.5 + 2, 132), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(0.0, 0.0, 0.0, 0.7))
+			_udraw(font, Vector2(cx - vic_w * 0.5 + 2, 132), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, c_overlay)
 			# Text with pulsing gold — large
 			var text_bright = 0.85 + pulse * 0.15
 			_udraw(font, Vector2(cx - vic_w * 0.5, 130), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(text_bright, text_bright * 0.85, 0.2, 0.95))
@@ -12166,7 +12182,7 @@ func _draw_chest_opening() -> void:
 					var star_pulse = sin(_time * 2.5 + float(si) * 0.8) * 0.15
 					star_size += star_pulse * 4.0
 					# Glow halo
-					draw_circle(Vector2(sx, star_y), star_size + 8.0, Color(1.0, 0.85, 0.2, 0.15 + star_pulse))
+					draw_circle(Vector2(sx, star_y), star_size + 8.0, _ca(c_gold_bright, 0.15 + star_pulse))
 				var star_pts = PackedVector2Array()
 				for sp in range(10):
 					var sa = float(sp) * TAU / 10.0 - PI / 2.0
@@ -12206,7 +12222,7 @@ func _draw_chest_opening() -> void:
 			var ray_len = 350.0 * progress
 			var ray_w = 2.0 + sin(float(r) * 1.5) * 1.5
 			var ray_end = Vector2(cx, 310) + Vector2.from_angle(angle) * ray_len
-			draw_line(Vector2(cx, 310), ray_end, Color(glow_col.r, glow_col.g, glow_col.b, 0.2 * progress), ray_w)
+			draw_line(Vector2(cx, 310), ray_end, _ca(glow_col, 0.2 * progress), ray_w)
 		# Bright center glows (layered)
 		draw_circle(Vector2(cx, 310), 120.0 * progress, Color(1.0, 0.95, 0.8, 0.15 * progress))
 		draw_circle(Vector2(cx, 310), 70.0 * progress, Color(1.0, 0.95, 0.85, 0.25 * progress))
@@ -12226,7 +12242,7 @@ func _draw_chest_opening() -> void:
 		# Dramatic radial glow behind the entire card area
 		for gi in range(6):
 			var gr = 380.0 - float(gi) * 50.0 + pulse * 15.0
-			draw_circle(Vector2(cx, card_y + card_h * 0.5), gr, Color(glow_col.r, glow_col.g, glow_col.b, 0.02 + float(gi) * 0.008))
+			draw_circle(Vector2(cx, card_y + card_h * 0.5), gr, _ca(glow_col, 0.02 + float(gi) * 0.008))
 
 		# Ambient floating sparkles across the screen
 		for sp in range(20):
@@ -12258,7 +12274,7 @@ func _draw_chest_opening() -> void:
 			for hi in range(4):
 				var hr = 140.0 - float(hi) * 25.0 + halo_pulse * 10.0
 				var ha = alpha * (0.04 + float(hi) * 0.015 + halo_pulse * 0.01)
-				draw_circle(card_center, hr, Color(glow_col.r, glow_col.g, glow_col.b, ha))
+				draw_circle(card_center, hr, _ca(glow_col, ha))
 
 			if not is_revealed:
 				# === Face-down card (ornate glowing back) ===
@@ -12443,7 +12459,7 @@ func _draw_chest_opening() -> void:
 		# Radial celebration glow
 		for gi in range(5):
 			var gr = 200.0 - float(gi) * 30.0 + res_pulse * 10.0
-			draw_circle(Vector2(cx, 330), gr, Color(glow_col.r, glow_col.g, glow_col.b, 0.02 + float(gi) * 0.01))
+			draw_circle(Vector2(cx, 330), gr, _ca(glow_col, 0.02 + float(gi) * 0.01))
 		# Celebration sparkles
 		for sp in range(15):
 			var spx = cx + sin(_time * 1.2 + float(sp) * 1.5) * 250.0
@@ -12460,7 +12476,7 @@ func _draw_chest_opening() -> void:
 			if is_trinket:
 				var result = "Gear Acquired!"
 				var rw = font.get_string_size(result, HORIZONTAL_ALIGNMENT_CENTER, -1, 32).x
-				_udraw(font, Vector2(cx - rw * 0.5 + 2, 302), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(0.0, 0.0, 0.0, 0.5))
+				_udraw(font, Vector2(cx - rw * 0.5 + 2, 302), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, c_shadow)
 				_udraw(font, Vector2(cx - rw * 0.5, 300), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0, 0.9, 0.35, 0.95))
 				var nw = font.get_string_size(card["name"], HORIZONTAL_ALIGNMENT_CENTER, -1, 22).x
 				_udraw(font, Vector2(cx - nw * 0.5, 340), card["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0, 0.95, 0.7, 0.95))
@@ -12470,7 +12486,7 @@ func _draw_chest_opening() -> void:
 			else:
 				var result = "You received: %s x%d" % [card["name"], card["amount"]]
 				var rw = font.get_string_size(result, HORIZONTAL_ALIGNMENT_CENTER, -1, 28).x
-				_udraw(font, Vector2(cx - rw * 0.5 + 2, 332), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0.0, 0.0, 0.0, 0.5))
+				_udraw(font, Vector2(cx - rw * 0.5 + 2, 332), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, c_shadow)
 				_udraw(font, Vector2(cx - rw * 0.5, 330), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0.5, 1.0, 0.5, 0.95))
 		var close_alpha = 0.5 + sin(_time * 2.0) * 0.3
 		var close_text = _get_action_text() + " anywhere to continue"
@@ -12483,7 +12499,7 @@ func _draw_chest_opening() -> void:
 
 func _draw_victory_equip_overlay() -> void:
 	# Darken behind
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.0, 0.7))
+	draw_rect(Rect2(0, 0, 1280, 720), c_overlay)
 	var font = game_font
 	var panel_x = 240.0
 	var panel_y = 120.0
@@ -12575,8 +12591,8 @@ func _draw_closed_book() -> void:
 		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
 
 	# Gold double-frame border
-	var border_outer = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.35)
-	var border_inner = Color(0.54, 0.45, 0.20, 0.2)
+	var border_outer = _ca(menu_gold_dim, 0.35)
+	var border_inner = _ca(menu_gold_dim, 0.2)
 	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), border_outer)
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), border_outer)
 	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), border_outer)
@@ -12593,7 +12609,7 @@ func _draw_closed_book() -> void:
 	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 34), title_text, HORIZONTAL_ALIGNMENT_CENTER, -1, title_size, Color(0.95, 0.75, 0.2, 0.9))
 	# Title underline
 	var cx = panel_x + panel_w * 0.5
-	draw_line(Vector2(cx - 160, panel_y + 42), Vector2(cx + 160, panel_y + 42), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.5)
+	draw_line(Vector2(cx - 160, panel_y + 42), Vector2(cx + 160, panel_y + 42), _ca(menu_gold, 0.3), 1.5)
 
 	# Knowledge Ink counter
 	var ink_text = "Knowledge Ink: %d" % knowledge_ink
@@ -12633,13 +12649,13 @@ func _draw_closed_book() -> void:
 		if bi > 0:
 			var div_x = bx - branch_gap * 0.5
 			# Vertical divider line
-			draw_line(Vector2(div_x, branch_start_y + 8), Vector2(div_x, branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 70), Color(0.54, 0.45, 0.20, 0.12), 1.0)
+			draw_line(Vector2(div_x, branch_start_y + 8), Vector2(div_x, branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 70), _ca(menu_gold_dim, 0.12), 1.0)
 			# Diamond ornament at top of divider
 			var div_dy = branch_start_y + 12
-			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_dy - 4), Vector2(div_x + 3, div_dy), Vector2(div_x, div_dy + 4), Vector2(div_x - 3, div_dy)]), Color(0.54, 0.45, 0.20, 0.25))
+			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_dy - 4), Vector2(div_x + 3, div_dy), Vector2(div_x, div_dy + 4), Vector2(div_x - 3, div_dy)]), _ca(menu_gold_dim, 0.25))
 			# Diamond ornament at bottom of divider
 			var div_by = branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 66
-			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_by - 4), Vector2(div_x + 3, div_by), Vector2(div_x, div_by + 4), Vector2(div_x - 3, div_by)]), Color(0.54, 0.45, 0.20, 0.25))
+			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_by - 4), Vector2(div_x + 3, div_by), Vector2(div_x, div_by + 4), Vector2(div_x - 3, div_by)]), _ca(menu_gold_dim, 0.25))
 
 		# Branch header
 		var bname = branch["name"]
@@ -12686,7 +12702,7 @@ func _draw_closed_book() -> void:
 				# Gold filled (unlocked)
 				draw_circle(Vector2(node_cx, node_cy), node_radius, Color(bcol.r * 0.3, bcol.g * 0.3, bcol.b * 0.3, 0.8))
 				draw_circle(Vector2(node_cx, node_cy), node_radius - 2, Color(bcol.r, bcol.g, bcol.b, 0.6))
-				draw_arc(Vector2(node_cx, node_cy), node_radius, 0, TAU, 24, Color(0.85, 0.65, 0.1, 0.7), 1.5)
+				draw_arc(Vector2(node_cx, node_cy), node_radius, 0, TAU, 24, _ca(c_gold, 0.7), 1.5)
 				# Checkmark (scaled for smaller radius)
 				draw_line(Vector2(node_cx - 5, node_cy), Vector2(node_cx - 1, node_cy + 4), Color(1, 1, 1, 0.8), 2.0)
 				draw_line(Vector2(node_cx - 1, node_cy + 4), Vector2(node_cx + 6, node_cy - 4), Color(1, 1, 1, 0.8), 2.0)
@@ -13058,7 +13074,7 @@ func _draw_daily_reward() -> void:
 		var claim_tw = font.get_string_size(claim_text, HORIZONTAL_ALIGNMENT_LEFT, -1, claim_fs).x
 		var claim_tx = btn_x + (btn_w - claim_tw) * 0.5
 		var claim_ty = btn_y + 36
-		_udraw(font, Vector2(claim_tx + 2, claim_ty + 2), claim_text, HORIZONTAL_ALIGNMENT_LEFT, -1, claim_fs, Color(0.0, 0.0, 0.0, 0.5))
+		_udraw(font, Vector2(claim_tx + 2, claim_ty + 2), claim_text, HORIZONTAL_ALIGNMENT_LEFT, -1, claim_fs, c_shadow)
 		_udraw(font, Vector2(claim_tx, claim_ty), claim_text, HORIZONTAL_ALIGNMENT_LEFT, -1, claim_fs, Color(1.0, 0.98, 0.92, 1.0))
 	else:
 		var done_text = "Reward Claimed! Return Tomorrow."
@@ -13118,7 +13134,7 @@ func _draw_survivor_grid() -> void:
 		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 57.0 + 1), bg_col)
 
 	# Accent border with inner glow
-	var border_col = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3)
+	var border_col = _ca(menu_gold_dim, 0.3)
 	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), border_col)
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), border_col)
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), border_col)
@@ -13132,13 +13148,13 @@ func _draw_survivor_grid() -> void:
 	var title_cx = panel_x + panel_w * 0.5
 	# Title background bar
 	draw_rect(Rect2(title_cx - title_w * 0.5 - 40, title_y, title_w + 80, 32), Color(0.03, 0.03, 0.08, 0.8))
-	draw_rect(Rect2(title_cx - title_w * 0.5 - 40, title_y + 31, title_w + 80, 2), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3))
+	draw_rect(Rect2(title_cx - title_w * 0.5 - 40, title_y + 31, title_w + 80, 2), _ca(menu_gold, 0.3))
 	# Title text with shadow
-	_udraw(font, Vector2(title_cx - title_w * 0.5 + 1, title_y + 24), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sz, Color(0, 0, 0, 0.5))
+	_udraw(font, Vector2(title_cx - title_w * 0.5 + 1, title_y + 24), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sz, c_shadow)
 	_udraw(font, Vector2(title_cx - title_w * 0.5, title_y + 23), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sz, menu_gold)
 	# Decorative lines beside title
-	draw_line(Vector2(title_cx - title_w * 0.5 - 80, title_y + 16), Vector2(title_cx - title_w * 0.5 - 44, title_y + 16), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.0)
-	draw_line(Vector2(title_cx + title_w * 0.5 + 44, title_y + 16), Vector2(title_cx + title_w * 0.5 + 80, title_y + 16), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3), 1.0)
+	draw_line(Vector2(title_cx - title_w * 0.5 - 80, title_y + 16), Vector2(title_cx - title_w * 0.5 - 44, title_y + 16), _ca(menu_gold, 0.3), 1.0)
+	draw_line(Vector2(title_cx + title_w * 0.5 + 44, title_y + 16), Vector2(title_cx + title_w * 0.5 + 80, title_y + 16), _ca(menu_gold, 0.3), 1.0)
 
 	# === PARTY count badge (top-right) ===
 	var unlocked_count = 0
@@ -13148,8 +13164,8 @@ func _draw_survivor_grid() -> void:
 	var party_sz = 16
 	var party_text = "PARTY: %d/%d" % [unlocked_count, survivor_types.size()]
 	var party_w = font.get_string_size(party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, party_sz).x
-	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 24, 24), Color(menu_accent_purple.r, menu_accent_purple.g, menu_accent_purple.b, 0.6))
-	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 24, 24), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.25), false, 1.0)
+	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 24, 24), _ca(menu_accent_purple, 0.6))
+	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 24, 24), _ca(menu_gold, 0.25), false, 1.0)
 	_udraw(font, Vector2(panel_x + panel_w - party_w - 18, title_y + 22), party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, party_sz, menu_gold_light)
 
 	var card_colors_grid = [
@@ -13222,7 +13238,7 @@ func _draw_survivor_grid() -> void:
 		# Accent gradient at top
 		for gi in range(int(draw_ch * 0.4)):
 			var gt = float(gi) / (draw_ch * 0.4)
-			draw_rect(Rect2(draw_cx, draw_cy + float(gi), draw_cw, 1), Color(accent.r, accent.g, accent.b, 0.10 * (1.0 - gt)))
+			draw_rect(Rect2(draw_cx, draw_cy + float(gi), draw_cw, 1), _ca(accent, 0.10 * (1.0 - gt)))
 
 		# === Character portrait (centered in card) ===
 		var portrait_sz = 120.0
@@ -13244,7 +13260,7 @@ func _draw_survivor_grid() -> void:
 			var badge_cy = draw_cy + 20.0
 			# Badge circle: dark background + accent ring
 			draw_circle(Vector2(badge_cx, badge_cy), 16, Color(0.02, 0.02, 0.06, 0.9))
-			draw_circle(Vector2(badge_cx, badge_cy), 14, Color(accent.r, accent.g, accent.b, 0.6))
+			draw_circle(Vector2(badge_cx, badge_cy), 14, _ca(accent, 0.6))
 			draw_circle(Vector2(badge_cx, badge_cy), 11, Color(0.03, 0.03, 0.08))
 			var lvl_str = str(lvl)
 			var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
@@ -13265,8 +13281,8 @@ func _draw_survivor_grid() -> void:
 			var role_y = draw_cy + 6.0
 			var role_tw = font.get_string_size(role, HORIZONTAL_ALIGNMENT_LEFT, -1, role_sz).x
 			draw_rect(Rect2(role_x - role_tw * 0.5 - 6, role_y, role_tw + 12, 18), Color(0.02, 0.02, 0.06, 0.85))
-			draw_rect(Rect2(role_x - role_tw * 0.5 - 6, role_y, role_tw + 12, 18), Color(accent.r, accent.g, accent.b, 0.3), false, 1.0)
-			_udraw(font, Vector2(role_x - role_tw * 0.5, role_y + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, role_sz, Color(accent.r, accent.g, accent.b, 0.9))
+			draw_rect(Rect2(role_x - role_tw * 0.5 - 6, role_y, role_tw + 12, 18), _ca(accent, 0.3), false, 1.0)
+			_udraw(font, Vector2(role_x - role_tw * 0.5, role_y + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, role_sz, _ca(accent, 0.9))
 
 		# === Star rating (top-right) ===
 		var stars_earned = 0
@@ -13285,7 +13301,7 @@ func _draw_survivor_grid() -> void:
 			var star_y = draw_cy + 16.0
 			# Star badge circle
 			draw_circle(Vector2(star_x, star_y), 13, Color(0.02, 0.02, 0.06, 0.8))
-			draw_circle(Vector2(star_x, star_y), 11, Color(0.85, 0.65, 0.1, 0.7))
+			draw_circle(Vector2(star_x, star_y), 11, _ca(c_gold, 0.7))
 			draw_circle(Vector2(star_x, star_y), 9, Color(0.03, 0.03, 0.08))
 			# Star icon
 			var sp = Vector2(star_x, star_y)
@@ -13295,18 +13311,18 @@ func _draw_survivor_grid() -> void:
 				var sa = -PI * 0.5 + float(si) * TAU / 10.0
 				var sd = sr if si % 2 == 0 else sr * 0.45
 				star_pts.append(sp + Vector2(cos(sa) * sd, sin(sa) * sd))
-			draw_colored_polygon(star_pts, Color(1.0, 0.85, 0.2, 0.9))
+			draw_colored_polygon(star_pts, _ca(c_gold_bright, 0.9))
 
 		# Star progress, gear count, and damage display removed — clean card layout
 
 		# === Character name plate with title (bottom) ===
 		var name_plate_y = draw_cy + draw_ch - 36.0
 		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 36), Color(0.03, 0.03, 0.08, 0.88))
-		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 1), Color(accent.r, accent.g, accent.b, 0.35))
+		draw_rect(Rect2(draw_cx, name_plate_y, draw_cw, 1), _ca(accent, 0.35))
 		var name_str: String = info["name"]
 		var name_sz = 16
 		var name_w = font.get_string_size(name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz).x
-		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5 + 1, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, Color(0, 0, 0, 0.5))
+		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5 + 1, name_plate_y + 15), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, c_shadow)
 		_udraw(font, Vector2(draw_cx + (draw_cw - name_w) * 0.5, name_plate_y + 14), name_str, HORIZONTAL_ALIGNMENT_LEFT, -1, name_sz, menu_parchment if unlocked else Color(0.4, 0.38, 0.45))
 		# Mood icon beside name
 		if unlocked:
@@ -13319,7 +13335,7 @@ func _draw_survivor_grid() -> void:
 			title_str = title_str.substr(0, 26) + ".."
 		var title_sub_sz = 13
 		var title_sub_w = font.get_string_size(title_str, HORIZONTAL_ALIGNMENT_LEFT, -1, title_sub_sz).x
-		_udraw(font, Vector2(draw_cx + (draw_cw - title_sub_w) * 0.5, name_plate_y + 30), title_str, HORIZONTAL_ALIGNMENT_LEFT, int(draw_cw - 8), title_sub_sz, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.65) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
+		_udraw(font, Vector2(draw_cx + (draw_cw - title_sub_w) * 0.5, name_plate_y + 30), title_str, HORIZONTAL_ALIGNMENT_LEFT, int(draw_cw - 8), title_sub_sz, _ca(menu_text_muted, 0.65) if unlocked else Color(0.3, 0.28, 0.35, 0.5))
 
 		# === XP progress bar ===
 		if unlocked:
@@ -13330,7 +13346,7 @@ func _draw_survivor_grid() -> void:
 			var bar_x = draw_cx + 8.0
 			var bar_w = draw_cw - 16.0
 			draw_rect(Rect2(bar_x, bar_y, bar_w, 4), Color(0.1, 0.1, 0.15, 0.6))
-			draw_rect(Rect2(bar_x, bar_y, bar_w * xp_ratio, 4), Color(accent.r, accent.g, accent.b, 0.7))
+			draw_rect(Rect2(bar_x, bar_y, bar_w * xp_ratio, 4), _ca(accent, 0.7))
 
 		# === Stat preview on hover ===
 		if is_hovered and unlocked:
@@ -13352,9 +13368,9 @@ func _draw_survivor_grid() -> void:
 		if not unlocked:
 			bdr_col = Color(0.25, 0.25, 0.35, 0.4)
 		elif is_hovered:
-			bdr_col = Color(accent.r, accent.g, accent.b, 0.8)
+			bdr_col = _ca(accent, 0.8)
 		else:
-			bdr_col = Color(accent.r, accent.g, accent.b, 0.4)
+			bdr_col = _ca(accent, 0.4)
 		# Outer border (thick frame like BATTD)
 		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, 3), bdr_col)
 		draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), bdr_col)
@@ -13428,12 +13444,12 @@ func _draw_survivor_grid() -> void:
 		if unlocked and is_hovered:
 			_draw_card_shimmer(draw_cx, draw_cy, draw_cw, draw_ch, accent)
 			var glow_a = 0.12 + 0.05 * sin(_time * 3.0)
-			draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw - 6, draw_ch - 6), Color(accent.r, accent.g, accent.b, glow_a))
+			draw_rect(Rect2(draw_cx + 3, draw_cy + 3, draw_cw - 6, draw_ch - 6), _ca(accent, glow_a))
 			# Bright border on hover
-			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, 3), Color(accent.r, accent.g, accent.b, 0.9))
-			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), Color(accent.r, accent.g, accent.b, 0.9))
-			draw_rect(Rect2(draw_cx, draw_cy, 3, draw_ch), Color(accent.r, accent.g, accent.b, 0.9))
-			draw_rect(Rect2(draw_cx + draw_cw - 3, draw_cy, 3, draw_ch), Color(accent.r, accent.g, accent.b, 0.9))
+			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, 3), _ca(accent, 0.9))
+			draw_rect(Rect2(draw_cx, draw_cy + draw_ch - 3, draw_cw, 3), _ca(accent, 0.9))
+			draw_rect(Rect2(draw_cx, draw_cy, 3, draw_ch), _ca(accent, 0.9))
+			draw_rect(Rect2(draw_cx + draw_cw - 3, draw_cy, 3, draw_ch), _ca(accent, 0.9))
 
 		# === Enhancement 9: Character-themed particles on hovered card ===
 		if unlocked and is_hovered:
@@ -13443,7 +13459,7 @@ func _draw_survivor_grid() -> void:
 				var px_off = cos(pa * 0.7) * (draw_cw * 0.3)
 				var pp = Vector2(draw_cx + draw_cw * 0.5 + px_off, draw_cy + draw_ch * 0.4 + py_off)
 				var p_alpha = 0.2 + sin(_time * 3.0 + float(pi)) * 0.1
-				draw_circle(pp, 2.0, Color(accent.r, accent.g, accent.b, p_alpha))
+				draw_circle(pp, 2.0, _ca(accent, p_alpha))
 
 		# === Floating DMG Preview on hover ===
 		if unlocked and is_hovered:
@@ -13580,14 +13596,20 @@ func _update_world_map_hover() -> void:
 			break
 
 func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color) -> void:
-	# Remap gear item IDs to icon drawing keys
-	if _gear_icon_map.has(icon_key):
-		icon_key = _gear_icon_map[icon_key]
-	# AI-generated gear icon with procedural fallback
+	# AI-generated gear icon — check ORIGINAL key first, then remapped key, then procedural fallback
 	if _gear_icon_textures.has(icon_key):
 		var half = sz * 0.5
 		draw_texture_rect(_gear_icon_textures[icon_key], Rect2(center.x - half, center.y - half, sz, sz), false)
 		return
+	# Remap gear item IDs to icon drawing keys for fallback lookup
+	var draw_key = icon_key
+	if _gear_icon_map.has(icon_key):
+		draw_key = _gear_icon_map[icon_key]
+		if _gear_icon_textures.has(draw_key):
+			var half = sz * 0.5
+			draw_texture_rect(_gear_icon_textures[draw_key], Rect2(center.x - half, center.y - half, sz, sz), false)
+			return
+	icon_key = draw_key
 	var cx = center.x
 	var cy = center.y
 	var s = sz * 0.5
@@ -13598,7 +13620,7 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 			draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.8), Vector2(cx + s * 0.7, cy + s * 0.8), Vector2(cx - s * 0.7, cy + s * 0.8)]), cloak_col)
 			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.3, cy - s * 0.6), Vector2(cx + s * 0.3, cy - s * 0.6), Vector2(cx + s * 0.15, cy - s * 0.35), Vector2(cx - s * 0.15, cy - s * 0.35)]), Color(0.15, 0.45, 0.1, 0.9))
 			# Clasp
-			draw_circle(Vector2(cx, cy - s * 0.45), s * 0.12, Color(0.85, 0.65, 0.1))
+			draw_circle(Vector2(cx, cy - s * 0.45), s * 0.12, c_gold)
 		"silver_arrow":
 			# Arrow pointing right
 			var arr_col = Color(0.8, 0.82, 0.85, 0.9)
@@ -13676,12 +13698,12 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 			# Blade
 			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.05, cy + s * 0.5), Vector2(cx + s * 0.05, cy + s * 0.5), Vector2(cx + s * 0.08, cy - s * 0.1), Vector2(cx + s * 0.15, cy - s * 0.25), Vector2(cx + s * 0.05, cy - s * 0.4), Vector2(cx + s * 0.1, cy - s * 0.6), Vector2(cx, cy - s * 0.8), Vector2(cx - s * 0.1, cy - s * 0.6), Vector2(cx - s * 0.05, cy - s * 0.4), Vector2(cx - s * 0.15, cy - s * 0.25), Vector2(cx - s * 0.08, cy - s * 0.1)]), blade_col)
 			# Guard
-			draw_rect(Rect2(cx - s * 0.25, cy + s * 0.45, s * 0.5, s * 0.08), Color(0.85, 0.65, 0.1, 0.8))
+			draw_rect(Rect2(cx - s * 0.25, cy + s * 0.45, s * 0.5, s * 0.08), _ca(c_gold, 0.8))
 			# Handle
 			draw_rect(Rect2(cx - s * 0.06, cy + s * 0.53, s * 0.12, s * 0.25), Color(0.5, 0.3, 0.15, 0.9))
 		"heart_scepter":
 			# Scepter with heart top
-			var scepter_col = Color(0.85, 0.65, 0.1, 0.9)
+			var scepter_col = _ca(c_gold, 0.9)
 			# Shaft
 			draw_rect(Rect2(cx - s * 0.06, cy - s * 0.15, s * 0.12, s * 0.85), scepter_col)
 			# Heart
@@ -13774,7 +13796,7 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 			draw_arc(Vector2(cx, cy + s * 0.1), s * 0.45, PI, TAU, 12, cap_col, 2.0)
 			draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.45, cy + s * 0.1), Vector2(cx + s * 0.45, cy + s * 0.1), Vector2(cx + s * 0.3, cy - s * 0.3), Vector2(cx, cy - s * 0.45), Vector2(cx - s * 0.3, cy - s * 0.3)]), cap_col)
 			# Brim
-			draw_rect(Rect2(cx - s * 0.55, cy + s * 0.08, s * 1.1, s * 0.1), Color(0.85, 0.65, 0.1, 0.9))
+			draw_rect(Rect2(cx - s * 0.55, cy + s * 0.08, s * 1.1, s * 0.1), _ca(c_gold, 0.9))
 			# Center jewel
 			draw_circle(Vector2(cx, cy - s * 0.1), s * 0.1, Color(0.6, 0.1, 0.5, 0.9))
 			# Rune marks
@@ -13816,7 +13838,7 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 			var hook_end_y = cy + s * 0.1 + s * 0.3 * sin(PI * 1.3)
 			draw_circle(Vector2(hook_end_x, hook_end_y), s * 0.05, hook_col)
 			# Guard ring
-			draw_arc(Vector2(cx, cy - s * 0.15), s * 0.15, 0, TAU, 8, Color(0.85, 0.65, 0.1, 0.6), 2.0)
+			draw_arc(Vector2(cx, cy - s * 0.15), s * 0.15, 0, TAU, 8, _ca(c_gold, 0.6), 2.0)
 		"star_map":
 			# Star map / scroll with stars
 			var map_col = Color(0.75, 0.7, 0.55, 0.8)
@@ -14050,16 +14072,16 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 				# Weapon: simple blade
 				var wc = Color(0.75, 0.78, 0.82, 0.85)
 				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.04, cy + s * 0.6), Vector2(cx + s * 0.04, cy + s * 0.6), Vector2(cx + s * 0.06, cy - s * 0.5), Vector2(cx, cy - s * 0.7), Vector2(cx - s * 0.06, cy - s * 0.5)]), wc)
-				draw_rect(Rect2(cx - s * 0.2, cy + s * 0.55, s * 0.4, s * 0.06), Color(0.85, 0.65, 0.1, 0.8))
+				draw_rect(Rect2(cx - s * 0.2, cy + s * 0.55, s * 0.4, s * 0.06), _ca(c_gold, 0.8))
 				draw_rect(Rect2(cx - s * 0.05, cy + s * 0.61, s * 0.1, s * 0.2), Color(0.5, 0.3, 0.15))
 			elif "staff" in icon_key or "wand" in icon_key or "rod" in icon_key or "crutch" in icon_key:
 				# Staff: vertical stick with glowing top
 				draw_rect(Rect2(cx - s * 0.06, cy - s * 0.3, s * 0.12, s * 0.95), Color(0.55, 0.35, 0.15, 0.85))
-				draw_circle(Vector2(cx, cy - s * 0.45), s * 0.2, Color(accent.r, accent.g, accent.b, 0.6))
+				draw_circle(Vector2(cx, cy - s * 0.45), s * 0.2, _ca(accent, 0.6))
 				draw_circle(Vector2(cx, cy - s * 0.45), s * 0.12, Color(accent.r * 1.2, accent.g * 1.2, accent.b * 1.2, 0.8))
 			elif "crown" in icon_key or "helm" in icon_key or "tiara" in icon_key or "cap" in icon_key or "mask" in icon_key:
 				# Crown: three-pointed crown
-				var cc = Color(0.85, 0.65, 0.1, 0.85)
+				var cc = _ca(c_gold, 0.85)
 				draw_rect(Rect2(cx - s * 0.5, cy + s * 0.1, s * 1.0, s * 0.3), cc)
 				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.45, cy + s * 0.1), Vector2(cx - s * 0.25, cy - s * 0.4), Vector2(cx - s * 0.05, cy + s * 0.1)]), cc)
 				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.15, cy + s * 0.1), Vector2(cx, cy - s * 0.55), Vector2(cx + s * 0.15, cy + s * 0.1)]), cc)
@@ -14067,21 +14089,21 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 				draw_circle(Vector2(cx, cy + s * 0.2), s * 0.08, Color(0.8, 0.1, 0.1, 0.7))
 			elif "ring" in icon_key or "band" in icon_key or "signet" in icon_key or "clasp" in icon_key or "brooch" in icon_key:
 				# Ring: circle with gem
-				draw_arc(Vector2(cx, cy + s * 0.1), s * 0.35, 0, TAU, 16, Color(0.85, 0.65, 0.1, 0.8), 2.5)
-				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.45), Vector2(cx + s * 0.15, cy - s * 0.2), Vector2(cx, cy - s * 0.05), Vector2(cx - s * 0.15, cy - s * 0.2)]), Color(accent.r, accent.g, accent.b, 0.7))
+				draw_arc(Vector2(cx, cy + s * 0.1), s * 0.35, 0, TAU, 16, _ca(c_gold, 0.8), 2.5)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.45), Vector2(cx + s * 0.15, cy - s * 0.2), Vector2(cx, cy - s * 0.05), Vector2(cx - s * 0.15, cy - s * 0.2)]), _ca(accent, 0.7))
 			elif "flask" in icon_key or "vial" in icon_key or "chalice" in icon_key or "inkwell" in icon_key or "potion" in icon_key:
 				# Bottle: simple flask shape
 				var bc = Color(0.4, 0.5, 0.7, 0.7)
 				draw_rect(Rect2(cx - s * 0.1, cy - s * 0.6, s * 0.2, s * 0.25), bc)
 				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.1, cy - s * 0.35), Vector2(cx + s * 0.1, cy - s * 0.35), Vector2(cx + s * 0.3, cy - s * 0.05), Vector2(cx + s * 0.3, cy + s * 0.55), Vector2(cx - s * 0.3, cy + s * 0.55), Vector2(cx - s * 0.3, cy - s * 0.05)]), bc)
-				draw_rect(Rect2(cx - s * 0.25, cy + s * 0.15, s * 0.5, s * 0.35), Color(accent.r, accent.g, accent.b, 0.45))
+				draw_rect(Rect2(cx - s * 0.25, cy + s * 0.15, s * 0.5, s * 0.35), _ca(accent, 0.45))
 			elif "book" in icon_key or "page" in icon_key or "journal" in icon_key or "manuscript" in icon_key or "ledger" in icon_key or "scroll" in icon_key or "tome" in icon_key:
 				# Book: rectangular book shape
 				var bkc = Color(0.5, 0.25, 0.1, 0.8)
 				draw_rect(Rect2(cx - s * 0.4, cy - s * 0.5, s * 0.8, s * 1.0), bkc)
 				draw_line(Vector2(cx, cy - s * 0.5), Vector2(cx, cy + s * 0.5), Color(0.85, 0.75, 0.55, 0.5), 1.5)
-				draw_rect(Rect2(cx - s * 0.35, cy - s * 0.35, s * 0.25, s * 0.06), Color(0.85, 0.65, 0.1, 0.5))
-				draw_rect(Rect2(cx - s * 0.35, cy - s * 0.2, s * 0.55, s * 0.04), Color(0.85, 0.65, 0.1, 0.3))
+				draw_rect(Rect2(cx - s * 0.35, cy - s * 0.35, s * 0.25, s * 0.06), _ca(c_gold, 0.5))
+				draw_rect(Rect2(cx - s * 0.35, cy - s * 0.2, s * 0.55, s * 0.04), _ca(c_gold, 0.3))
 			elif "key" in icon_key or "compass" in icon_key or "lens" in icon_key or "glass" in icon_key or "mirror" in icon_key or "monocle" in icon_key:
 				# Key: simple key shape
 				var kc = Color(0.85, 0.65, 0.15, 0.85)
@@ -14098,7 +14120,7 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 				draw_arc(Vector2(cx, cy + s * 0.35), s * 0.2, 0, TAU, 8, chc, 2.0)
 			elif "crystal" in icon_key or "gem" in icon_key or "shard" in icon_key or "pearl" in icon_key or "scale" in icon_key or "nail" in icon_key or "bolt" in icon_key or "tusk" in icon_key or "tooth" in icon_key:
 				# Gem: faceted crystal
-				var gc = Color(accent.r, accent.g, accent.b, 0.7)
+				var gc = _ca(accent, 0.7)
 				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.35, cy - s * 0.15), Vector2(cx - s * 0.15, cy - s * 0.5), Vector2(cx + s * 0.15, cy - s * 0.5), Vector2(cx + s * 0.35, cy - s * 0.15), Vector2(cx + s * 0.2, cy + s * 0.5), Vector2(cx - s * 0.2, cy + s * 0.5)]), gc)
 				draw_line(Vector2(cx - s * 0.15, cy - s * 0.5), Vector2(cx - s * 0.05, cy + s * 0.5), Color(1, 1, 1, 0.2), 1.0)
 				draw_line(Vector2(cx + s * 0.15, cy - s * 0.5), Vector2(cx + s * 0.05, cy + s * 0.5), Color(1, 1, 1, 0.2), 1.0)
@@ -14106,10 +14128,10 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 				# Plant: simple flower/leaf
 				var pc = Color(0.3, 0.65, 0.2, 0.8)
 				draw_line(Vector2(cx, cy + s * 0.6), Vector2(cx, cy - s * 0.1), pc, 2.0)
-				draw_circle(Vector2(cx, cy - s * 0.25), s * 0.2, Color(accent.r, accent.g, accent.b, 0.6))
-				draw_circle(Vector2(cx - s * 0.15, cy - s * 0.1), s * 0.15, Color(accent.r, accent.g, accent.b, 0.5))
-				draw_circle(Vector2(cx + s * 0.15, cy - s * 0.1), s * 0.15, Color(accent.r, accent.g, accent.b, 0.5))
-				draw_circle(Vector2(cx, cy - s * 0.22), s * 0.08, Color(1.0, 0.85, 0.2, 0.7))
+				draw_circle(Vector2(cx, cy - s * 0.25), s * 0.2, _ca(accent, 0.6))
+				draw_circle(Vector2(cx - s * 0.15, cy - s * 0.1), s * 0.15, _ca(accent, 0.5))
+				draw_circle(Vector2(cx + s * 0.15, cy - s * 0.1), s * 0.15, _ca(accent, 0.5))
+				draw_circle(Vector2(cx, cy - s * 0.22), s * 0.08, _ca(c_gold_bright, 0.7))
 			elif "quill" in icon_key or "ink" in icon_key or "pen" in icon_key or "cipher" in icon_key:
 				# Quill: feather pen
 				var qc = Color(0.85, 0.75, 0.55, 0.85)
@@ -14119,7 +14141,7 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 				# Flame: fire shape
 				var fc = Color(1.0, 0.5, 0.1, 0.8)
 				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.7), Vector2(cx + s * 0.3, cy - s * 0.1), Vector2(cx + s * 0.2, cy + s * 0.2), Vector2(cx + s * 0.35, cy + s * 0.55), Vector2(cx, cy + s * 0.35), Vector2(cx - s * 0.35, cy + s * 0.55), Vector2(cx - s * 0.2, cy + s * 0.2), Vector2(cx - s * 0.3, cy - s * 0.1)]), fc)
-				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.35), Vector2(cx + s * 0.12, cy + s * 0.1), Vector2(cx, cy + s * 0.3), Vector2(cx - s * 0.12, cy + s * 0.1)]), Color(1.0, 0.85, 0.2, 0.7))
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.35), Vector2(cx + s * 0.12, cy + s * 0.1), Vector2(cx, cy + s * 0.3), Vector2(cx - s * 0.12, cy + s * 0.1)]), _ca(c_gold_bright, 0.7))
 			elif "coffin" in icon_key or "blood" in icon_key or "ghost" in icon_key or "spectral" in icon_key or "reaper" in icon_key or "scythe" in icon_key or "veil" in icon_key or "soil" in icon_key or "crucifix" in icon_key:
 				# Dark: skull-like dark icon
 				var dc2 = Color(0.5, 0.35, 0.5, 0.7)
@@ -14132,15 +14154,15 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 				var sc2 = Color(0.5, 0.5, 0.55, 0.8)
 				draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy + s * 0.05), Vector2(cx, cy + s * 0.55), Vector2(cx - s * 0.4, cy + s * 0.05)]), sc2)
 				var shield_pts = PackedVector2Array([Vector2(cx - s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy - s * 0.5), Vector2(cx + s * 0.4, cy + s * 0.05), Vector2(cx, cy + s * 0.55), Vector2(cx - s * 0.4, cy + s * 0.05), Vector2(cx - s * 0.4, cy - s * 0.5)])
-				draw_polyline(shield_pts, Color(accent.r, accent.g, accent.b, 0.15), 1.5)
+				draw_polyline(shield_pts, _ca(accent, 0.15), 1.5)
 			elif "coin" in icon_key or "gold" in icon_key:
 				# Coin: circle with embossed center
-				draw_circle(Vector2(cx, cy), s * 0.4, Color(0.85, 0.65, 0.1, 0.8))
+				draw_circle(Vector2(cx, cy), s * 0.4, _ca(c_gold, 0.8))
 				draw_circle(Vector2(cx, cy), s * 0.3, Color(0.95, 0.75, 0.2, 0.6))
 				draw_arc(Vector2(cx, cy), s * 0.35, 0, TAU, 12, Color(0.7, 0.5, 0.05, 0.4), 1.0)
 			else:
 				# Final fallback: diamond icon
-				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.5), Vector2(cx + s * 0.35, cy), Vector2(cx, cy + s * 0.5), Vector2(cx - s * 0.35, cy)]), Color(accent.r, accent.g, accent.b, 0.4))
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s * 0.5), Vector2(cx + s * 0.35, cy), Vector2(cx, cy + s * 0.5), Vector2(cx - s * 0.35, cy)]), _ca(accent, 0.4))
 
 const HERO_ROLE_NAMES: Dictionary = {
 	TowerType.ROBIN_HOOD: "Marksman", TowerType.ALICE: "Controller",
@@ -14182,20 +14204,20 @@ func _get_level_rewards(level: int) -> Array:
 func _draw_ability_icon(center: Vector2, tier: int, accent: Color) -> void:
 	match tier:
 		0:  # Quill icon for T1
-			draw_line(center + Vector2(-5, 6), center + Vector2(5, -6), Color(accent.r, accent.g, accent.b, 0.9), 2.0)
-			draw_line(center + Vector2(4, -6), center + Vector2(6, -8), Color(accent.r, accent.g, accent.b, 0.7), 1.5)
-			draw_line(center + Vector2(-5, 6), center + Vector2(-6, 8), Color(accent.r, accent.g, accent.b, 0.5), 1.0)
+			draw_line(center + Vector2(-5, 6), center + Vector2(5, -6), _ca(accent, 0.9), 2.0)
+			draw_line(center + Vector2(4, -6), center + Vector2(6, -8), _ca(accent, 0.7), 1.5)
+			draw_line(center + Vector2(-5, 6), center + Vector2(-6, 8), _ca(accent, 0.5), 1.0)
 		1:  # Sword icon for T2
 			draw_line(center + Vector2(0, -8), center + Vector2(0, 7), Color(0.8, 0.82, 0.85, 0.9), 2.5)
 			draw_line(center + Vector2(-5, -2), center + Vector2(5, -2), Color(0.7, 0.55, 0.2, 0.9), 2.0)
-			draw_circle(center + Vector2(0, -8), 2, Color(0.85, 0.65, 0.1, 0.8))
+			draw_circle(center + Vector2(0, -8), 2, _ca(c_gold, 0.8))
 		2:  # Star icon for T3
 			var star_pts = PackedVector2Array()
 			for si in range(10):
 				var sa = -PI * 0.5 + float(si) * TAU / 10.0
 				var sd = 7.0 if si % 2 == 0 else 3.0
 				star_pts.append(center + Vector2(cos(sa) * sd, sin(sa) * sd))
-			draw_colored_polygon(star_pts, Color(accent.r, accent.g, accent.b, 0.8))
+			draw_colored_polygon(star_pts, _ca(accent, 0.8))
 		3:  # Crown icon for T4
 			var crown_pts = PackedVector2Array()
 			crown_pts.append(center + Vector2(-8, 4))
@@ -14205,8 +14227,8 @@ func _draw_ability_icon(center: Vector2, tier: int, accent: Color) -> void:
 			crown_pts.append(center + Vector2(2, 0))
 			crown_pts.append(center + Vector2(6, -4))
 			crown_pts.append(center + Vector2(8, 4))
-			draw_colored_polygon(crown_pts, Color(0.85, 0.65, 0.1, 0.85))
-			draw_rect(Rect2(center.x - 8, center.y + 4, 16, 3), Color(0.85, 0.65, 0.1, 0.85))
+			draw_colored_polygon(crown_pts, _ca(c_gold, 0.85))
+			draw_rect(Rect2(center.x - 8, center.y + 4, 16, 3), _ca(c_gold, 0.85))
 
 func _draw_survivor_detail() -> void:
 	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
@@ -14241,21 +14263,21 @@ func _draw_survivor_detail() -> void:
 		var col = menu_bg_section.lerp(menu_bg_dark, t)
 		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 57.0 + 1), Color(col.r, col.g, col.b, content_alpha))
 	# Outer border
-	var bdr = Color(accent.r, accent.g, accent.b, 0.5 * content_alpha)
+	var bdr = _ca(accent, 0.5 * content_alpha)
 	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), bdr)
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), bdr)
 	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), bdr)
 	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), bdr)
-	draw_rect(Rect2(panel_x + 3, panel_y + 3, panel_w - 6, panel_h - 6), Color(accent.r, accent.g, accent.b, 0.06 * content_alpha), false, 1.0)
+	draw_rect(Rect2(panel_x + 3, panel_y + 3, panel_w - 6, panel_h - 6), _ca(accent, 0.06 * content_alpha), false, 1.0)
 
 	# === TOP BAR (34px) ===
 	var top_y = panel_y + 8.0
-	_udraw(font, Vector2(panel_x + 20 - x_offset, top_y + 16), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7 * content_alpha))
+	_udraw(font, Vector2(panel_x + 20 - x_offset, top_y + 16), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, _ca(menu_gold, 0.7 * content_alpha))
 	var char_name = info["name"].to_upper()
 	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 	var name_cx = panel_x + 240.0
 	_udraw(font, Vector2(name_cx - name_w * 0.5 + 1, top_y + 21), char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(0, 0, 0, 0.4 * content_alpha))
-	_udraw(font, Vector2(name_cx - name_w * 0.5, top_y + 20), char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, content_alpha))
+	_udraw(font, Vector2(name_cx - name_w * 0.5, top_y + 20), char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, _ca(menu_parchment, content_alpha))
 	# Level badge star (next to name)
 	var badge_cx = name_cx + name_w * 0.5 + 24.0
 	var badge_cy = top_y + 14.0
@@ -14265,7 +14287,7 @@ func _draw_survivor_detail() -> void:
 		var sa = -PI * 0.5 + float(si) * TAU / 10.0
 		var sd = star_r if si % 2 == 0 else star_r * 0.45
 		star_pts.append(Vector2(badge_cx + cos(sa) * sd, badge_cy + sin(sa) * sd))
-	draw_colored_polygon(star_pts, Color(0.85, 0.65, 0.1, 0.95 * content_alpha))
+	draw_colored_polygon(star_pts, _ca(c_gold, 0.95 * content_alpha))
 	draw_circle(Vector2(badge_cx, badge_cy), 9, Color(0.04, 0.03, 0.08, content_alpha))
 	var lvl_str = str(char_level)
 	var lvl_w = font.get_string_size(lvl_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
@@ -14280,17 +14302,17 @@ func _draw_survivor_detail() -> void:
 	var pill_glow = 0.7 + sin(_time * 1.5) * 0.15
 	# Pill body (rect + end circles for rounded shape)
 	var pill_r = pill_h * 0.5
-	draw_circle(Vector2(pill_x + pill_r, pill_y + pill_r), pill_r, Color(accent.r, accent.g, accent.b, 0.5 * pill_glow * content_alpha))
-	draw_circle(Vector2(pill_x + pill_w - pill_r, pill_y + pill_r), pill_r, Color(accent.r, accent.g, accent.b, 0.5 * pill_glow * content_alpha))
-	draw_rect(Rect2(pill_x + pill_r, pill_y, pill_w - pill_h, pill_h), Color(accent.r, accent.g, accent.b, 0.5 * pill_glow * content_alpha))
+	draw_circle(Vector2(pill_x + pill_r, pill_y + pill_r), pill_r, _ca(accent, 0.5 * pill_glow * content_alpha))
+	draw_circle(Vector2(pill_x + pill_w - pill_r, pill_y + pill_r), pill_r, _ca(accent, 0.5 * pill_glow * content_alpha))
+	draw_rect(Rect2(pill_x + pill_r, pill_y, pill_w - pill_h, pill_h), _ca(accent, 0.5 * pill_glow * content_alpha))
 	# Pill border glow
-	draw_arc(Vector2(pill_x + pill_r, pill_y + pill_r), pill_r, PI * 0.5, PI * 1.5, 8, Color(accent.r, accent.g, accent.b, 0.6 * pill_glow * content_alpha), 1.5)
-	draw_arc(Vector2(pill_x + pill_w - pill_r, pill_y + pill_r), pill_r, -PI * 0.5, PI * 0.5, 8, Color(accent.r, accent.g, accent.b, 0.6 * pill_glow * content_alpha), 1.5)
-	draw_rect(Rect2(pill_x + pill_r, pill_y, pill_w - pill_h, 1), Color(accent.r, accent.g, accent.b, 0.6 * pill_glow * content_alpha))
-	draw_rect(Rect2(pill_x + pill_r, pill_y + pill_h - 1, pill_w - pill_h, 1), Color(accent.r, accent.g, accent.b, 0.6 * pill_glow * content_alpha))
+	draw_arc(Vector2(pill_x + pill_r, pill_y + pill_r), pill_r, PI * 0.5, PI * 1.5, 8, _ca(accent, 0.6 * pill_glow * content_alpha), 1.5)
+	draw_arc(Vector2(pill_x + pill_w - pill_r, pill_y + pill_r), pill_r, -PI * 0.5, PI * 0.5, 8, _ca(accent, 0.6 * pill_glow * content_alpha), 1.5)
+	draw_rect(Rect2(pill_x + pill_r, pill_y, pill_w - pill_h, 1), _ca(accent, 0.6 * pill_glow * content_alpha))
+	draw_rect(Rect2(pill_x + pill_r, pill_y + pill_h - 1, pill_w - pill_h, 1), _ca(accent, 0.6 * pill_glow * content_alpha))
 	_udraw(font, Vector2(pill_x + 12, pill_y + 16), party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 1, 1, content_alpha))
 	# Gold separator line
-	draw_rect(Rect2(panel_x + 10, top_y + 30, panel_w - 20, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3 * content_alpha))
+	draw_rect(Rect2(panel_x + 10, top_y + 30, panel_w - 20, 1), _ca(menu_gold_dim, 0.3 * content_alpha))
 
 	var content_y = top_y + 46.0  # Below top bar + separator
 
@@ -14319,7 +14341,7 @@ func _draw_survivor_detail() -> void:
 	var fw = port_w - frame_margin * 2
 	var fh = port_h - frame_margin * 2
 	var bk_len = 30.0
-	var bk_col = Color(accent.r, accent.g, accent.b, 0.5 * content_alpha)
+	var bk_col = _ca(accent, 0.5 * content_alpha)
 	# Top-left
 	draw_line(Vector2(fx, fy), Vector2(fx + bk_len, fy), bk_col, 2.0)
 	draw_line(Vector2(fx, fy), Vector2(fx, fy + bk_len), bk_col, 2.0)
@@ -14346,10 +14368,10 @@ func _draw_survivor_detail() -> void:
 	var xp_h = 22.0
 	var xp_ratio = clamp(progress["xp"] / max(progress["xp_next"], 1.0), 0.0, 1.0)
 	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), Color(0.03, 0.03, 0.08, content_alpha))
-	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), Color(accent.r, accent.g, accent.b, 0.25 * content_alpha), false, 1.0)
+	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), _ca(accent, 0.25 * content_alpha), false, 1.0)
 	if xp_ratio > 0:
 		var fill_w = (xp_w - 4) * xp_ratio
-		draw_rect(Rect2(port_x + 2, xp_y + 2, fill_w, xp_h - 4), Color(0.85, 0.65, 0.1, 0.8 * content_alpha))
+		draw_rect(Rect2(port_x + 2, xp_y + 2, fill_w, xp_h - 4), _ca(c_gold, 0.8 * content_alpha))
 		draw_rect(Rect2(port_x + 2, xp_y + 2, fill_w, (xp_h - 4) * 0.35), Color(1, 1, 1, 0.15 * content_alpha))
 		# XP shimmer sweep
 		var shimmer_pos = fmod(_time * 0.5, 1.0)
@@ -14366,24 +14388,24 @@ func _draw_survivor_detail() -> void:
 	var levelup_btn_y = xp_y + xp_h + 2.0
 	var levelup_btn_h = 26.0
 	if char_level >= MAX_SURVIVOR_LEVEL:
-		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.85, 0.65, 0.1, 0.12 * content_alpha))
-		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.85, 0.65, 0.1, 0.3 * content_alpha), false, 1.0)
+		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.12 * content_alpha))
+		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.3 * content_alpha), false, 1.0)
 		var max_str = "MAX LEVEL REACHED"
 		var max_w2 = font.get_string_size(max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		_udraw(font, Vector2(port_x + (xp_w - max_w2) * 0.5, levelup_btn_y + 17), max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.7 * content_alpha))
+		_udraw(font, Vector2(port_x + (xp_w - max_w2) * 0.5, levelup_btn_y + 17), max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold, 0.7 * content_alpha))
 	else:
 		var lvup_cost = _get_levelup_cost(char_level)
 		var can_afford = player_quills >= lvup_cost
 		var is_lvup_hover = (detail_hover_type == "levelup")
-		var btn_bg = Color(0.85, 0.65, 0.1, (0.25 if is_lvup_hover else 0.12) * content_alpha) if can_afford else Color(0.3, 0.3, 0.3, 0.15 * content_alpha)
-		var btn_border = Color(0.85, 0.65, 0.1, (0.7 if is_lvup_hover else 0.4) * content_alpha) if can_afford else Color(0.4, 0.4, 0.4, 0.3 * content_alpha)
+		var btn_bg = _ca(c_gold, (0.25 if is_lvup_hover else 0.12) * content_alpha) if can_afford else Color(0.3, 0.3, 0.3, 0.15 * content_alpha)
+		var btn_border = _ca(c_gold, (0.7 if is_lvup_hover else 0.4) * content_alpha) if can_afford else Color(0.4, 0.4, 0.4, 0.3 * content_alpha)
 		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), btn_bg)
 		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), btn_border, false, 1.5)
 		if is_lvup_hover and can_afford:
 			draw_rect(Rect2(port_x + 1, levelup_btn_y + 1, xp_w - 2, (levelup_btn_h - 2) * 0.4), Color(1, 1, 1, 0.06 * content_alpha))
 		var lvup_str = "LEVEL UP  \u2014  %d Quills" % lvup_cost
 		var lvup_tw2 = font.get_string_size(lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		var lvup_col = Color(0.85, 0.65, 0.1, 0.9 * content_alpha) if can_afford else Color(0.5, 0.48, 0.55, 0.6 * content_alpha)
+		var lvup_col = _ca(c_gold, 0.9 * content_alpha) if can_afford else Color(0.5, 0.48, 0.55, 0.6 * content_alpha)
 		_udraw(font, Vector2(port_x + (xp_w - lvup_tw2) * 0.5, levelup_btn_y + 17), lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, lvup_col)
 
 	# ================================================================
@@ -14406,13 +14428,13 @@ func _draw_survivor_detail() -> void:
 		var is_tab_hover = (detail_hover_type == "tab" and detail_hover_index == ti)
 		# Tab background
 		var tab_bg_alpha = 0.15 if is_active else (0.08 if is_tab_hover else 0.04)
-		draw_rect(Rect2(tx, tab_strip_y, tab_w, 32), Color(accent.r, accent.g, accent.b, tab_bg_alpha * content_alpha))
+		draw_rect(Rect2(tx, tab_strip_y, tab_w, 32), _ca(accent, tab_bg_alpha * content_alpha))
 		# Active underline
 		if is_active:
-			draw_rect(Rect2(tx, tab_strip_y + 30, tab_w, 2), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.9 * content_alpha))
+			draw_rect(Rect2(tx, tab_strip_y + 30, tab_w, 2), _ca(menu_gold, 0.9 * content_alpha))
 		# Tab label
 		var tab_label_w = font.get_string_size(tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		var tab_col = menu_gold if is_active else Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7)
+		var tab_col = menu_gold if is_active else _ca(menu_text_muted, 0.7)
 		_udraw(font, Vector2(tx + (tab_w - tab_label_w) * 0.5, tab_strip_y + 22), tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(tab_col.r, tab_col.g, tab_col.b, content_alpha))
 
 	# --- Tab content area (frosted panel) ---
@@ -14449,7 +14471,7 @@ func _draw_survivor_detail() -> void:
 			var card_bg = Color(0.05, 0.05, 0.12, 0.8 * tab_alpha) if not is_abil_hover else Color(0.07, 0.07, 0.16, 0.9 * tab_alpha)
 			draw_rect(Rect2(abil_cx, ay, card_width, card_height), card_bg)
 			# Accent left stripe
-			draw_rect(Rect2(abil_cx, ay, 4, card_height), Color(accent.r, accent.g, accent.b, 0.6 * tab_alpha))
+			draw_rect(Rect2(abil_cx, ay, 4, card_height), _ca(accent, 0.6 * tab_alpha))
 			# Top edge highlight
 			draw_rect(Rect2(abil_cx, ay, card_width, 1), Color(1, 1, 1, 0.04 * tab_alpha))
 			# 40px icon circle
@@ -14461,17 +14483,17 @@ func _draw_survivor_detail() -> void:
 			var ring_pulse = 1.0
 			if is_abil_hover:
 				ring_pulse = 0.8 + sin(_time * 2.5) * 0.2
-			draw_arc(Vector2(icon_cx, icon_cy), 19.0, 0, TAU, 20, Color(0.85, 0.65, 0.1, ring_alpha * ring_pulse), 2.0)
+			draw_arc(Vector2(icon_cx, icon_cy), 19.0, 0, TAU, 20, _ca(c_gold, ring_alpha * ring_pulse), 2.0)
 			_draw_ability_icon(Vector2(icon_cx, icon_cy), ai, accent)
 			# Name + cost top row
 			var a_name = abil_data[ai].get("name", "Tier %d" % (ai + 1))
-			_udraw(font, Vector2(abil_cx + 58, ay + 20), a_name, HORIZONTAL_ALIGNMENT_LEFT, int(card_width - 140), 15, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.95 * tab_alpha))
+			_udraw(font, Vector2(abil_cx + 58, ay + 20), a_name, HORIZONTAL_ALIGNMENT_LEFT, int(card_width - 140), 15, _ca(menu_parchment, 0.95 * tab_alpha))
 			var cost_str = "%dG" % abil_data[ai].get("cost", 0)
 			var cost_w = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-			_udraw(font, Vector2(abil_cx + card_width - cost_w - 12, ay + 20), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.65, 0.1, 0.7 * tab_alpha))
+			_udraw(font, Vector2(abil_cx + card_width - cost_w - 12, ay + 20), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(c_gold, 0.7 * tab_alpha))
 			# Description bottom row
 			var a_desc = abil_data[ai].get("desc", "")
-			_udraw(font, Vector2(abil_cx + 58, ay + 40), a_desc, HORIZONTAL_ALIGNMENT_LEFT, int(card_width - 80), 13, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.8 * tab_alpha))
+			_udraw(font, Vector2(abil_cx + 58, ay + 40), a_desc, HORIZONTAL_ALIGNMENT_LEFT, int(card_width - 80), 13, _ca(menu_text_muted, 0.8 * tab_alpha))
 			# Mastery pips (4 pips, filled based on level)
 			var pips_x = abil_cx + 58.0
 			var pips_y = ay + 56.0
@@ -14480,7 +14502,7 @@ func _draw_survivor_detail() -> void:
 				mastery_filled = 0
 			for pip_i in range(4):
 				var pip_filled = pip_i < mastery_filled
-				var pip_col = Color(0.85, 0.65, 0.1, 0.8 * tab_alpha) if pip_filled else Color(0.15, 0.15, 0.25, 0.5 * tab_alpha)
+				var pip_col = _ca(c_gold, 0.8 * tab_alpha) if pip_filled else Color(0.15, 0.15, 0.25, 0.5 * tab_alpha)
 				draw_circle(Vector2(pips_x + float(pip_i) * 16.0, pips_y), 4.0, pip_col)
 
 	# ================================================================
@@ -14491,7 +14513,7 @@ func _draw_survivor_detail() -> void:
 		var gear_cy = tab_content_y + 10.0
 		# Weapon slot (100x100)
 		var wslot_sz = 100.0
-		_udraw(font, Vector2(gear_cx, gear_cy + 14), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7 * tab_alpha))
+		_udraw(font, Vector2(gear_cx, gear_cy + 14), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
 		var wslot_y = gear_cy + 22.0
 		var gear_hover2 = (detail_hover_type == "weapon" and detail_hover_index == 0)
 		var wslot_tier_col = accent if gear_unlocked else Color(0.3, 0.28, 0.40)
@@ -14500,20 +14522,20 @@ func _draw_survivor_detail() -> void:
 			var wc = Vector2(gear_cx + wslot_sz * 0.5, wslot_y + wslot_sz * 0.45)
 			draw_line(wc + Vector2(0, -22), wc + Vector2(0, 18), Color(0.8, 0.82, 0.85, 0.8 * tab_alpha), 3.5)
 			draw_line(wc + Vector2(-12, -6), wc + Vector2(12, -6), Color(0.7, 0.55, 0.2, 0.8 * tab_alpha), 3.0)
-			draw_circle(wc + Vector2(0, -22), 4, Color(0.85, 0.65, 0.1, 0.7 * tab_alpha))
+			draw_circle(wc + Vector2(0, -22), 4, _ca(c_gold, 0.7 * tab_alpha))
 		else:
 			var lk = Vector2(gear_cx + wslot_sz * 0.5, wslot_y + wslot_sz * 0.4)
 			draw_rect(Rect2(lk.x - 14, lk.y + 2, 28, 20), Color(0.35, 0.30, 0.45, 0.6 * tab_alpha))
 			draw_arc(Vector2(lk.x, lk.y + 2), 10, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.6 * tab_alpha), 2.5)
 		var weap_name = gear_data["name"] if gear_unlocked else "LV.2"
 		var weap_nw = font.get_string_size(weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-		_udraw(font, Vector2(gear_cx + (wslot_sz - weap_nw) * 0.5, wslot_y + wslot_sz + 14), weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, (1.0 if gear_unlocked else 0.5) * tab_alpha))
+		_udraw(font, Vector2(gear_cx + (wslot_sz - weap_nw) * 0.5, wslot_y + wslot_sz + 14), weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_parchment, (1.0 if gear_unlocked else 0.5) * tab_alpha))
 
 		# Gear grid (3x2, right of weapon)
 		var gear_grid_x = gear_cx + wslot_sz + 20.0
 		var gear_slot_size = 80.0
 		var gear_gap = 10.0
-		_udraw(font, Vector2(gear_grid_x, gear_cy + 14), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7 * tab_alpha))
+		_udraw(font, Vector2(gear_grid_x, gear_cy + 14), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
 		var gear_slot_y = gear_cy + 22.0
 		for gsi in range(mini(max_gear_slots, 6)):
 			var g_row = gsi / 3
@@ -14537,8 +14559,8 @@ func _draw_survivor_detail() -> void:
 				var gnw2 = font.get_string_size(gname, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
 				_udraw(font, Vector2(gx + (gear_slot_size - gnw2) * 0.5, gy + gear_slot_size + 12), gname, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(gear_tier_col.r, gear_tier_col.g, gear_tier_col.b, tab_alpha))
 			else:
-				draw_rect(Rect2(gx + gear_slot_size * 0.5 - 4, gy + gear_slot_size * 0.35, 8, 24), Color(accent.r, accent.g, accent.b, 0.25 * tab_alpha))
-				draw_rect(Rect2(gx + gear_slot_size * 0.35, gy + gear_slot_size * 0.5 - 4, 24, 8), Color(accent.r, accent.g, accent.b, 0.25 * tab_alpha))
+				draw_rect(Rect2(gx + gear_slot_size * 0.5 - 4, gy + gear_slot_size * 0.35, 8, 24), _ca(accent, 0.25 * tab_alpha))
+				draw_rect(Rect2(gx + gear_slot_size * 0.35, gy + gear_slot_size * 0.5 - 4, 24, 8), _ca(accent, 0.25 * tab_alpha))
 
 		# Set bonus bar
 		var cn = tower_names_sb[tower_type] if tower_type >= 0 and tower_type < tower_names_sb.size() else ""
@@ -14550,15 +14572,15 @@ func _draw_survivor_detail() -> void:
 		if cgc >= 3:
 			var sbonus_y = gear_slot_y + 2.0 * (gear_slot_size + gear_gap + 16.0) + 4.0
 			var sb_str = "SET BONUS x%d (+%d%% ALL STATS)" % [cgc, cgc * 5]
-			draw_rect(Rect2(gear_grid_x, sbonus_y, 280, 22), Color(0.85, 0.65, 0.1, 0.08 * tab_alpha))
-			draw_rect(Rect2(gear_grid_x, sbonus_y, 280, 22), Color(0.85, 0.65, 0.1, 0.3 * tab_alpha), false, 1.0)
-			_udraw(font, Vector2(gear_grid_x + 8, sbonus_y + 16), sb_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.85, 0.2, 0.9 * tab_alpha))
+			draw_rect(Rect2(gear_grid_x, sbonus_y, 280, 22), _ca(c_gold, 0.08 * tab_alpha))
+			draw_rect(Rect2(gear_grid_x, sbonus_y, 280, 22), _ca(c_gold, 0.3 * tab_alpha), false, 1.0)
+			_udraw(font, Vector2(gear_grid_x + 8, sbonus_y + 16), sb_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(c_gold_bright, 0.9 * tab_alpha))
 
 		# Owned gear scroll list (below gear grid)
 		var browse_y = gear_cy + 240.0
 		var browse_bottom = tab_content_y + tab_content_h - 8.0
-		_udraw(font, Vector2(gear_cx, browse_y + 12), "OWNED GEAR", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6 * tab_alpha))
-		draw_rect(Rect2(gear_cx, browse_y + 16, 100, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2 * tab_alpha))
+		_udraw(font, Vector2(gear_cx, browse_y + 12), "OWNED GEAR", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold, 0.6 * tab_alpha))
+		draw_rect(Rect2(gear_cx, browse_y + 16, 100, 1), _ca(menu_gold, 0.2 * tab_alpha))
 		var bcol2 = 0
 		var brow2 = 0
 		var card_w2 = 210.0
@@ -14582,8 +14604,8 @@ func _draw_survivor_detail() -> void:
 			draw_rect(Rect2(bx, by, card_w2, card_h2), bg_c)
 			draw_rect(Rect2(bx, by, card_w2, card_h2), Color(rc.r, rc.g, rc.b, (0.3 if is_eq else 0.15) * tab_alpha), false, 1.0)
 			draw_rect(Rect2(bx, by, 3, card_h2), Color(rc.r, rc.g, rc.b, 0.6 * tab_alpha))
-			_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w2 - 40), 13, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, tab_alpha))
-			_udraw(font, Vector2(bx + 6, by + 26), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w2 - 12), 11, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6 * tab_alpha))
+			_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w2 - 40), 13, _ca(menu_parchment, tab_alpha))
+			_udraw(font, Vector2(bx + 6, by + 26), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w2 - 12), 11, _ca(menu_text_muted, 0.6 * tab_alpha))
 			var count_label = "EQ" if is_eq else ("x%d" % bcount)
 			_udraw(font, Vector2(bx + card_w2 - 28, by + 12), count_label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 13, Color(0.3, 0.8, 0.3, tab_alpha) if is_eq else Color(0.55, 0.52, 0.50, tab_alpha))
 
@@ -14597,8 +14619,8 @@ func _draw_survivor_detail() -> void:
 		for su in sk_unlocked_arr:
 			if su:
 				sk_count += 1
-		_udraw(font, Vector2(ally_cx, ally_cy + 14), "ALLIES (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(menu_gold.r, menu_gold.g, menu_gold.b, tab_alpha))
-		draw_rect(Rect2(ally_cx, ally_cy + 20, 120, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2 * tab_alpha))
+		_udraw(font, Vector2(ally_cx, ally_cy + 14), "ALLIES (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(menu_gold, tab_alpha))
+		draw_rect(Rect2(ally_cx, ally_cy + 20, 120, 1), _ca(menu_gold, 0.2 * tab_alpha))
 		# 4 sidekick slots horizontal (140x140)
 		var sk_slot_sz = 140.0
 		var sk_gap = 12.0
@@ -14615,27 +14637,27 @@ func _draw_survivor_detail() -> void:
 			if sk_unlocked and si < sk_data.size():
 				# Sidekick portrait silhouette (larger)
 				var sc = Vector2(sx + sk_slot_sz * 0.5, sy + sk_slot_sz * 0.38)
-				draw_circle(sc + Vector2(0, -12), 22, Color(accent.r, accent.g, accent.b, 0.3 * tab_alpha))
-				draw_rect(Rect2(sc.x - 16, sc.y + 6, 32, 28), Color(accent.r, accent.g, accent.b, 0.2 * tab_alpha))
+				draw_circle(sc + Vector2(0, -12), 22, _ca(accent, 0.3 * tab_alpha))
+				draw_rect(Rect2(sc.x - 16, sc.y + 6, 32, 28), _ca(accent, 0.2 * tab_alpha))
 				# Name below slot
 				var sk_name = sk_data[si]["name"]
 				if sk_name.length() > 14:
 					sk_name = sk_name.substr(0, 13) + ".."
 				var snw2 = font.get_string_size(sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-				_udraw(font, Vector2(sx + (sk_slot_sz - snw2) * 0.5, sy + sk_slot_sz + 14), sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.85 * tab_alpha))
+				_udraw(font, Vector2(sx + (sk_slot_sz - snw2) * 0.5, sy + sk_slot_sz + 14), sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_parchment, 0.85 * tab_alpha))
 				# Description
 				var sk_desc = sk_data[si].get("desc", "")
-				_udraw(font, Vector2(sx, sy + sk_slot_sz + 28), sk_desc, HORIZONTAL_ALIGNMENT_LEFT, int(sk_slot_sz), 11, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6 * tab_alpha))
+				_udraw(font, Vector2(sx, sy + sk_slot_sz + 28), sk_desc, HORIZONTAL_ALIGNMENT_LEFT, int(sk_slot_sz), 11, _ca(menu_text_muted, 0.6 * tab_alpha))
 			else:
 				if si == 0 or (si > 0 and (sk_unlocked_arr[si - 1] if si - 1 < sk_unlocked_arr.size() else false)):
-					draw_rect(Rect2(sx + sk_slot_sz * 0.5 - 4, sy + sk_slot_sz * 0.3, 8, 30), Color(accent.r, accent.g, accent.b, 0.3 * tab_alpha))
-					draw_rect(Rect2(sx + sk_slot_sz * 0.3, sy + sk_slot_sz * 0.5 - 4, 30, 8), Color(accent.r, accent.g, accent.b, 0.3 * tab_alpha))
+					draw_rect(Rect2(sx + sk_slot_sz * 0.5 - 4, sy + sk_slot_sz * 0.3, 8, 30), _ca(accent, 0.3 * tab_alpha))
+					draw_rect(Rect2(sx + sk_slot_sz * 0.3, sy + sk_slot_sz * 0.5 - 4, 30, 8), _ca(accent, 0.3 * tab_alpha))
 				else:
 					var lk = Vector2(sx + sk_slot_sz * 0.5, sy + sk_slot_sz * 0.4)
 					draw_rect(Rect2(lk.x - 12, lk.y + 2, 24, 18), Color(0.35, 0.30, 0.45, 0.5 * tab_alpha))
 					draw_arc(Vector2(lk.x, lk.y + 2), 9, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.5 * tab_alpha), 2.5)
 				# Lock badge
-				_udraw(font, Vector2(sx + sk_slot_sz * 0.5 - 14, sy + sk_slot_sz + 14), "LV.%d" % sk_levels[si], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.6 * tab_alpha))
+				_udraw(font, Vector2(sx + sk_slot_sz * 0.5 - 14, sy + sk_slot_sz + 14), "LV.%d" % sk_levels[si], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_text_muted, 0.6 * tab_alpha))
 
 	# ================================================================
 	# TAB 3: STATS
@@ -14652,8 +14674,8 @@ func _draw_survivor_detail() -> void:
 		var total_spd = (lvl_b.get("attack_speed", 0.0) + gear_b.get("attack_speed", 0.0) + _get_knowledge_bonus("attack_speed")) * 100.0
 		var total_crit = lvl_b.get("crit", 0.0) * 100.0
 		var total_gold = gear_b.get("gold", 0.0) * 100.0
-		_udraw(font, Vector2(stat_cx, stat_cy + 14), "COMBAT STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(menu_gold.r, menu_gold.g, menu_gold.b, tab_alpha))
-		draw_rect(Rect2(stat_cx, stat_cy + 20, 120, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2 * tab_alpha))
+		_udraw(font, Vector2(stat_cx, stat_cy + 14), "COMBAT STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(menu_gold, tab_alpha))
+		draw_rect(Rect2(stat_cx, stat_cy + 20, 120, 1), _ca(menu_gold, 0.2 * tab_alpha))
 		# 5 stat bars
 		var bar_y = stat_cy + 32.0
 		var bar_gap = 28.0
@@ -14661,7 +14683,7 @@ func _draw_survivor_detail() -> void:
 			["DMG", total_dmg, Color(0.9, 0.3, 0.2)],
 			["RNG", total_rng, Color(0.3, 0.6, 0.9)],
 			["SPD", total_spd, Color(0.3, 0.9, 0.4)],
-			["CRIT", total_crit, Color(0.85, 0.65, 0.1)],
+			["CRIT", total_crit, c_gold],
 			["GOLD", total_gold, Color(0.9, 0.75, 0.3)],
 		]
 		for sti in range(stat_entries.size()):
@@ -14669,15 +14691,15 @@ func _draw_survivor_detail() -> void:
 
 		# Combat record
 		var record_y = bar_y + 5.0 * bar_gap + 12.0
-		_udraw(font, Vector2(stat_cx, record_y + 14), "COMBAT RECORD", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7 * tab_alpha))
-		draw_rect(Rect2(stat_cx, record_y + 20, 100, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.15 * tab_alpha))
+		_udraw(font, Vector2(stat_cx, record_y + 14), "COMBAT RECORD", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
+		draw_rect(Rect2(stat_cx, record_y + 20, 100, 1), _ca(menu_gold, 0.15 * tab_alpha))
 		var dmg_total = session_damage.get(tower_type, 0.0)
-		_udraw(font, Vector2(stat_cx, record_y + 38), "Total Damage: %s" % _format_number(dmg_total), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7 * tab_alpha))
+		_udraw(font, Vector2(stat_cx, record_y + 38), "Total Damage: %s" % _format_number(dmg_total), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_text_muted, 0.7 * tab_alpha))
 
 		# Golden shields
 		var gs = progress.get("golden_shields", 0)
 		var gs_y = record_y + 56.0
-		_udraw(font, Vector2(stat_cx, gs_y + 14), "GOLDEN SHIELDS: %d" % gs, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.8 * tab_alpha))
+		_udraw(font, Vector2(stat_cx, gs_y + 14), "GOLDEN SHIELDS: %d" % gs, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold, 0.8 * tab_alpha))
 		for gsi2 in range(mini(gs, 5)):
 			var shield_cx = stat_cx + 180.0 + float(gsi2) * 28.0
 			var shield_r = 10.0
@@ -14685,12 +14707,12 @@ func _draw_survivor_detail() -> void:
 			for spi in range(6):
 				var spa = -PI * 0.5 + float(spi) * TAU / 6.0
 				shield_pts.append(Vector2(shield_cx + cos(spa) * shield_r, gs_y + 8 + sin(spa) * shield_r))
-			draw_colored_polygon(shield_pts, Color(0.85, 0.65, 0.1, 0.8 * tab_alpha))
+			draw_colored_polygon(shield_pts, _ca(c_gold, 0.8 * tab_alpha))
 
 		# Next rewards roadmap
 		var roadmap_y2 = gs_y + 32.0
-		_udraw(font, Vector2(stat_cx, roadmap_y2 + 14), "NEXT REWARDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7 * tab_alpha))
-		draw_rect(Rect2(stat_cx, roadmap_y2 + 20, 80, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.15 * tab_alpha))
+		_udraw(font, Vector2(stat_cx, roadmap_y2 + 14), "NEXT REWARDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
+		draw_rect(Rect2(stat_cx, roadmap_y2 + 20, 80, 1), _ca(menu_gold, 0.15 * tab_alpha))
 		var rm_y = roadmap_y2 + 28.0
 		var rewards_shown = 0
 		var check_level = char_level + 1
@@ -14698,22 +14720,22 @@ func _draw_survivor_detail() -> void:
 			var rewards = _get_level_rewards(check_level)
 			if rewards.size() > 1:
 				var badge_str = "LV.%d" % check_level
-				_udraw(font, Vector2(stat_cx, rm_y + 9), badge_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.65, 0.1, 0.8 * tab_alpha))
+				_udraw(font, Vector2(stat_cx, rm_y + 9), badge_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(c_gold, 0.8 * tab_alpha))
 				var reward_x = stat_cx + 42.0
 				for ri in range(1, mini(rewards.size(), 3)):
-					_udraw(font, Vector2(reward_x, rm_y + 9), rewards[ri], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.7 * tab_alpha))
+					_udraw(font, Vector2(reward_x, rm_y + 9), rewards[ri], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_parchment, 0.7 * tab_alpha))
 					rm_y += 14.0
 				rewards_shown += 1
 			check_level += 1
 		if char_level >= MAX_SURVIVOR_LEVEL:
-			_udraw(font, Vector2(stat_cx, rm_y + 9), "All rewards unlocked!", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.65, 0.1, 0.6 * tab_alpha))
+			_udraw(font, Vector2(stat_cx, rm_y + 9), "All rewards unlocked!", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(c_gold, 0.6 * tab_alpha))
 
 	# ================================================================
 	# BOTTOM STRIP: Novel title + stat pills
 	# ================================================================
 	var bottom_y = panel_y + panel_h - 24.0
 	var novel_str = character_novels[survivor_detail_index] if survivor_detail_index < character_novels.size() else ""
-	_udraw(font, Vector2(port_x + 6, bottom_y + 12), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(port_w - 10), 12, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5 * content_alpha))
+	_udraw(font, Vector2(port_x + 6, bottom_y + 12), novel_str, HORIZONTAL_ALIGNMENT_LEFT, int(port_w - 10), 12, _ca(menu_text_muted, 0.5 * content_alpha))
 	# Stat pills (right-aligned)
 	var lvl_b2 = _get_level_bonuses(tower_type)
 	var gear_b2 = _get_gear_bonuses(tower_type)
@@ -14721,7 +14743,7 @@ func _draw_survivor_detail() -> void:
 	var total_rng2 = lvl_b2.get("range", 0.0) + gear_b2.get("range", 0.0) + _get_knowledge_bonus("range")
 	var total_spd2 = lvl_b2.get("attack_speed", 0.0) + gear_b2.get("attack_speed", 0.0) + _get_knowledge_bonus("attack_speed")
 	var pill_labels2 = ["+%d%% DMG" % int(total_dmg2 * 100), "+%d%% RNG" % int(total_rng2 * 100), "+%d%% SPD" % int(total_spd2 * 100)]
-	var pill_colors2 = [Color(0.9, 0.3, 0.2), Color(0.3, 0.7, 0.9), Color(0.3, 0.9, 0.4)]
+	var pill_colors2 = [Color(0.9, 0.3, 0.2), c_cyan, Color(0.3, 0.9, 0.4)]
 	var pill_rx = panel_x + panel_w - 20.0
 	for pi in range(2, -1, -1):  # Right to left
 		var pw2 = font.get_string_size(pill_labels2[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 14
@@ -14778,14 +14800,14 @@ func _draw_survivor_detail() -> void:
 			if tt_y_pos < panel_y:
 				tt_y_pos = mouse_pos.y + 22
 			# Frosted tooltip
-			draw_rect(Rect2(tt_x - 1, tt_y_pos - 1, tt_w + 2, tt_h + 2), Color(0, 0, 0, 0.7))
+			draw_rect(Rect2(tt_x - 1, tt_y_pos - 1, tt_w + 2, tt_h + 2), c_overlay)
 			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.04, 0.03, 0.10, 0.95))
 			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, 1), Color(1, 1, 1, 0.05))
-			draw_rect(Rect2(tt_x, tt_y_pos, 3, tt_h), Color(accent.r, accent.g, accent.b, 0.4))
-			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(accent.r, accent.g, accent.b, 0.4), false, 1.5)
+			draw_rect(Rect2(tt_x, tt_y_pos, 3, tt_h), _ca(accent, 0.4))
+			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), _ca(accent, 0.4), false, 1.5)
 			_udraw(font, Vector2(tt_x + 10, tt_y_pos + 14), tt_title, HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 15, menu_gold)
 			for tli in range(tt_lines.size()):
-				_udraw(font, Vector2(tt_x + 10, tt_y_pos + 28 + tli * 14), tt_lines[tli], HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.85))
+				_udraw(font, Vector2(tt_x + 10, tt_y_pos + 28 + tli * 14), tt_lines[tli], HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 14, _ca(menu_text_muted, 0.85))
 
 	# === INFO OVERLAY (drawn on top of everything when open) ===
 	if detail_info_overlay_open:
@@ -14805,8 +14827,8 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 		var col = Color(0.06, 0.04, 0.12).lerp(Color(0.03, 0.02, 0.08), t)
 		draw_rect(Rect2(ov_x, ov_y + t * ov_h, ov_w, ov_h / 39.0 + 1), col)
 	# Border
-	draw_rect(Rect2(ov_x, ov_y, ov_w, ov_h), Color(accent.r, accent.g, accent.b, 0.6), false, 2.0)
-	draw_rect(Rect2(ov_x + 2, ov_y + 2, ov_w - 4, ov_h - 4), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.15), false, 1.0)
+	draw_rect(Rect2(ov_x, ov_y, ov_w, ov_h), _ca(accent, 0.6), false, 2.0)
+	draw_rect(Rect2(ov_x + 2, ov_y + 2, ov_w - 4, ov_h - 4), _ca(menu_gold_dim, 0.15), false, 1.0)
 	# Close button (X)
 	var close_x = ov_x + ov_w - 16.0
 	var close_y = ov_y + 16.0
@@ -14822,16 +14844,16 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var role = HERO_ROLE_NAMES.get(tower_type, "Hero")
 	var role_w = font.get_string_size(role, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x + 16
 	var role_x = cx + font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 14
-	draw_rect(Rect2(role_x, cy, role_w, 20), Color(accent.r, accent.g, accent.b, 0.3))
-	draw_rect(Rect2(role_x, cy, role_w, 20), Color(accent.r, accent.g, accent.b, 0.5), false, 1.0)
-	_udraw(font, Vector2(role_x + 8, cy + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(accent.r, accent.g, accent.b, 0.9))
-	draw_rect(Rect2(cx, cy + 22, ov_w - 40, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
+	draw_rect(Rect2(role_x, cy, role_w, 20), _ca(accent, 0.3))
+	draw_rect(Rect2(role_x, cy, role_w, 20), _ca(accent, 0.5), false, 1.0)
+	_udraw(font, Vector2(role_x + 8, cy + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, _ca(accent, 0.9))
+	draw_rect(Rect2(cx, cy + 22, ov_w - 40, 1), _ca(menu_gold_dim, 0.2))
 	cy += 32.0
 	# Character description
 	var desc = survivor_descriptions.get(tower_type, "A legendary hero.")
 	var desc_lines = desc.split("\n")
 	for dl in desc_lines:
-		_udraw(font, Vector2(cx, cy + 11), dl, HORIZONTAL_ALIGNMENT_LEFT, int(ov_w - 40), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.8))
+		_udraw(font, Vector2(cx, cy + 11), dl, HORIZONTAL_ALIGNMENT_LEFT, int(ov_w - 40), 14, _ca(menu_text_muted, 0.8))
 		cy += 14.0
 	cy += 8.0
 	# === Two columns: left = Stats, right = Synergies ===
@@ -14840,7 +14862,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var right_cx = cx + col_w + 20.0
 	# --- LEFT COLUMN: Combat Stats ---
 	_udraw(font, Vector2(left_cx, cy + 12), "COMBAT STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_gold)
-	draw_rect(Rect2(left_cx, cy + 16, 100, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.25))
+	draw_rect(Rect2(left_cx, cy + 16, 100, 1), _ca(menu_gold, 0.25))
 	cy += 24.0
 	var stat_left_y = cy
 	var total_dmg = progress.get("total_damage", 0.0)
@@ -14858,7 +14880,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	# Golden Shields display with upgrade button
 	var gs_level = _get_golden_shield_level(tower_type)
 	_draw_golden_shield_indicator(Vector2(left_cx + 8, stat_left_y + 6), gs_level, font)
-	_udraw(font, Vector2(left_cx + 26, stat_left_y + 11), "Golden Shields: %d / %d" % [gs_level, MAX_GOLDEN_SHIELD], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 26), 14, Color(0.85, 0.7, 0.2))
+	_udraw(font, Vector2(left_cx + 26, stat_left_y + 11), "Golden Shields: %d / %d" % [gs_level, MAX_GOLDEN_SHIELD], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 26), 14, c_gold_warm)
 	if gs_level < MAX_GOLDEN_SHIELD:
 		var gs_cost = GOLDEN_SHIELD_COSTS[gs_level]
 		var can_upgrade_gs = player_gear_shards >= gs_cost
@@ -14870,17 +14892,17 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 		var gs_hover = (detail_hover_type == "golden_shield") or _is_touch_pressed_in(_gs_upgrade_btn_rect)
 		var gs_bg = Color(0.2, 0.15, 0.05, 0.8) if (can_upgrade_gs and gs_hover) else Color(0.12, 0.08, 0.04, 0.7) if can_upgrade_gs else Color(0.08, 0.06, 0.08, 0.5)
 		draw_rect(Rect2(gs_btn_x, gs_btn_y, gs_btn_w, gs_btn_h), gs_bg)
-		draw_rect(Rect2(gs_btn_x, gs_btn_y, gs_btn_w, gs_btn_h), Color(0.85, 0.65, 0.1, 0.5) if can_upgrade_gs else Color(0.3, 0.25, 0.2, 0.3), false, 1.0)
+		draw_rect(Rect2(gs_btn_x, gs_btn_y, gs_btn_w, gs_btn_h), _ca(c_gold, 0.5) if can_upgrade_gs else Color(0.3, 0.25, 0.2, 0.3), false, 1.0)
 		var gs_text = "UPGRADE %dS" % gs_cost
-		_udraw(font, Vector2(gs_btn_x + gs_btn_w * 0.5, gs_btn_y + gs_btn_h * 0.72), gs_text, HORIZONTAL_ALIGNMENT_CENTER, int(gs_btn_w - 4), 14, Color(0.85, 0.7, 0.2) if can_upgrade_gs else Color(0.4, 0.35, 0.3))
+		_udraw(font, Vector2(gs_btn_x + gs_btn_w * 0.5, gs_btn_y + gs_btn_h * 0.72), gs_text, HORIZONTAL_ALIGNMENT_CENTER, int(gs_btn_w - 4), 14, c_gold_warm if can_upgrade_gs else Color(0.4, 0.35, 0.3))
 	else:
 		_udraw(font, Vector2(left_cx + col_w - 60, stat_left_y + 11), "MAXED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2, 0.6))
 	stat_left_y += 16.0
 	_udraw(font, Vector2(left_cx, stat_left_y + 11), "Slots: %d Gear | %d Sidekick" % [_get_gear_slots(tower_type), _get_sidekick_slot_count(tower_type)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w), 14, menu_text)
 	stat_left_y += 20.0
 	# Level Bonus Breakdown
-	_udraw(font, Vector2(left_cx, stat_left_y + 12), "BONUS BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.8))
-	draw_rect(Rect2(left_cx, stat_left_y + 16, 100, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2))
+	_udraw(font, Vector2(left_cx, stat_left_y + 12), "BONUS BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, _ca(menu_gold, 0.8))
+	draw_rect(Rect2(left_cx, stat_left_y + 16, 100, 1), _ca(menu_gold, 0.2))
 	stat_left_y += 24.0
 	var lvl_b = _get_level_bonuses(tower_type)
 	var kb_dmg = _get_knowledge_bonus("damage")
@@ -14896,30 +14918,30 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	]
 	for bl in bonus_lines:
 		if bl[1] > 0:
-			_udraw(font, Vector2(left_cx + 6, stat_left_y + 10), "%s: +%d%%" % [bl[0], int(bl[1] * 100)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 10), 14, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.7))
+			_udraw(font, Vector2(left_cx + 6, stat_left_y + 10), "%s: +%d%%" % [bl[0], int(bl[1] * 100)], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 10), 14, _ca(menu_parchment, 0.7))
 			stat_left_y += 13.0
 	# --- RIGHT COLUMN: Synergies ---
 	var syn_y = cy
 	_udraw(font, Vector2(right_cx, syn_y + 12), "SYNERGIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_gold)
-	draw_rect(Rect2(right_cx, syn_y + 16, 80, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.25))
+	draw_rect(Rect2(right_cx, syn_y + 16, 80, 1), _ca(menu_gold, 0.25))
 	syn_y += 24.0
 	var syn_count = 0
 	for syn in synergy_definitions:
 		if syn["tower_a"] == tower_type or syn["tower_b"] == tower_type:
 			# Synergy card
-			draw_rect(Rect2(right_cx, syn_y, col_w, 36), Color(accent.r, accent.g, accent.b, 0.06))
-			draw_rect(Rect2(right_cx, syn_y, col_w, 36), Color(accent.r, accent.g, accent.b, 0.15), false, 1.0)
-			_udraw(font, Vector2(right_cx + 6, syn_y + 13), syn["name"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, Color(0.85, 0.65, 0.1, 0.9))
-			_udraw(font, Vector2(right_cx + 6, syn_y + 27), syn["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
+			draw_rect(Rect2(right_cx, syn_y, col_w, 36), _ca(accent, 0.06))
+			draw_rect(Rect2(right_cx, syn_y, col_w, 36), _ca(accent, 0.15), false, 1.0)
+			_udraw(font, Vector2(right_cx + 6, syn_y + 13), syn["name"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, _ca(c_gold, 0.9))
+			_udraw(font, Vector2(right_cx + 6, syn_y + 27), syn["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, _ca(menu_text_muted, 0.7))
 			# Partner name
 			var partner = syn["tower_b"] if syn["tower_a"] == tower_type else syn["tower_a"]
 			var partner_name = tower_info[partner]["name"]
 			var pnw = font.get_string_size("+ " + partner_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-			_udraw(font, Vector2(right_cx + col_w - pnw - 6, syn_y + 13), "+ " + partner_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.6))
+			_udraw(font, Vector2(right_cx + col_w - pnw - 6, syn_y + 13), "+ " + partner_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_parchment, 0.6))
 			syn_y += 42.0
 			syn_count += 1
 	if syn_count == 0:
-		_udraw(font, Vector2(right_cx + 6, syn_y + 11), "No synergies discovered", HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
+		_udraw(font, Vector2(right_cx + 6, syn_y + 11), "No synergies discovered", HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 12), 14, _ca(menu_text_muted, 0.5))
 
 func _format_number(value: float) -> String:
 	if value >= 1000000:
@@ -14948,7 +14970,7 @@ func _draw_detail_level_star(center: Vector2, req_level: int, font: Font) -> voi
 		var sa = -PI * 0.5 + float(si) * TAU / 10.0
 		var sd = sr if si % 2 == 0 else sr * 0.4
 		spts.append(Vector2(center.x + cos(sa) * sd, center.y + sin(sa) * sd))
-	draw_colored_polygon(spts, Color(0.85, 0.65, 0.1, 0.85))
+	draw_colored_polygon(spts, _ca(c_gold, 0.85))
 	var ls = str(req_level)
 	var lw = font.get_string_size(ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	_udraw(font, Vector2(center.x - lw * 0.5, center.y + 3), ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.03, 0.03, 0.08))
@@ -15009,8 +15031,8 @@ func _draw_story_map() -> void:
 
 	# --- Background panel ---
 	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.05, 0.04, 0.08, 0.95))
-	draw_rect(Rect2(list_x, list_y, list_w, 2), Color(0.54, 0.45, 0.20, 0.4))
-	draw_rect(Rect2(list_x, list_y + list_h - 2, list_w, 2), Color(0.54, 0.45, 0.20, 0.25))
+	draw_rect(Rect2(list_x, list_y, list_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(list_x, list_y + list_h - 2, list_w, 2), _ca(menu_gold_dim, 0.25))
 
 	# --- Title bar ---
 	draw_rect(Rect2(list_x, list_y, list_w, 36), Color(0.08, 0.06, 0.12, 0.9))
@@ -15018,7 +15040,7 @@ func _draw_story_map() -> void:
 	var num_total = levels.size()
 	var title_text = "THE TOME OF SHADOWS  —  %d / %d" % [num_completed, num_total]
 	_udraw(font, Vector2(list_x + 20, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(list_w - 40), 16, Color(0.85, 0.70, 0.28))
-	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), Color(0.54, 0.45, 0.20, 0.3))
+	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), _ca(menu_gold_dim, 0.3))
 
 	var content_top = list_y + 40.0
 	var content_h = list_h - 40.0
@@ -15205,7 +15227,7 @@ func _draw_story_map() -> void:
 					var ty = thumb_y + thumb_h * 0.48 + sin(float(ti + lvl_idx) * 1.3) * 4.0
 					draw_circle(Vector2(tx, ty), 3.0, Color(gnd.r * 1.2, gnd.g * 1.2, gnd.b * 1.2, 0.25))
 			# Path preview removed — let the AI art speak for itself
-			draw_rect(Rect2(thumb_x, thumb_y, thumb_w, thumb_h), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
+			draw_rect(Rect2(thumb_x, thumb_y, thumb_w, thumb_h), _ca(menu_gold_dim, 0.3), false, 1.0)
 			# Level number badge
 			draw_circle(Vector2(thumb_x + 12, thumb_y + 12), 10, Color(0.0, 0.0, 0.0, 0.6))
 			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 14, Color(0.90, 0.82, 0.55))
@@ -15284,7 +15306,7 @@ func _draw_story_map() -> void:
 						if dsi < ds:
 							# Golden glow behind earned star
 							var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
-							draw_circle(Vector2(sx, sy), 6.0, Color(1.0, 0.85, 0.2, star_glow_a))
+							draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
 							_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
 						else:
 							_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
@@ -15300,7 +15322,7 @@ func _draw_story_map() -> void:
 			var dot_y = ry + row_h - 10.0
 			for di in range(3):
 				var dot_x = dot_base_x + float(di) * 44.0 + 19.0
-				var dot_col = [Color(0.3, 0.8, 0.3), Color(0.85, 0.7, 0.2), Color(0.9, 0.2, 0.15)][di]
+				var dot_col = [c_green, c_gold_warm, Color(0.9, 0.2, 0.15)][di]
 				if medals[di]:
 					draw_circle(Vector2(dot_x, dot_y), 3.0, dot_col)
 				else:
@@ -15319,7 +15341,7 @@ func _draw_story_map() -> void:
 					btn_col = Color(0.15, 0.40, 0.12, 0.6) if not btn_hover else Color(0.20, 0.50, 0.15, 0.8)
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), btn_col)
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, 2), Color(0.4, 0.8, 0.3, 0.3))
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.54, 0.45, 0.20, 0.4), false, 1.0)
+				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), _ca(menu_gold_dim, 0.4), false, 1.0)
 				_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + 25), "GO", HORIZONTAL_ALIGNMENT_CENTER, btn_w2 - 8, 14, Color(1, 1, 1, 0.95))
 				# Menu Improvement 5: Button shimmer sweep on GO button
 				if not is_complete:
@@ -15343,7 +15365,7 @@ func _draw_story_map() -> void:
 				_draw_animated_stars(rx + rw - 78.0, ry + row_h - 14.0, stars, 5.0)
 
 			# --- Bottom separator ---
-			draw_line(Vector2(rx + 8, ry + row_h - 2), Vector2(rx + rw - 8, ry + row_h - 2), Color(0.54, 0.45, 0.20, 0.08), 1.0)
+			draw_line(Vector2(rx + 8, ry + row_h - 2), Vector2(rx + rw - 8, ry + row_h - 2), _ca(menu_gold_dim, 0.08), 1.0)
 
 			cursor_y += row_h
 
@@ -15353,7 +15375,7 @@ func _draw_story_map() -> void:
 		var bar_h_vis = content_h * (content_h / total_h)
 		var bar_y_pos = content_top + (scroll_y / max_scroll) * (content_h - bar_h_vis)
 		draw_rect(Rect2(bar_x, content_top, 4, content_h), Color(0.2, 0.15, 0.10, 0.15))
-		draw_rect(Rect2(bar_x, bar_y_pos, 4, bar_h_vis), Color(0.54, 0.45, 0.20, 0.35))
+		draw_rect(Rect2(bar_x, bar_y_pos, 4, bar_h_vis), _ca(menu_gold_dim, 0.35))
 
 func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 	# Handle difficulty popup clicks first
@@ -15553,59 +15575,59 @@ func _draw_chapters_badges() -> void:
 
 		# Outer glow halo
 		var glow_r = badge_r + 8 + sin(_time * 2.0 + float(i)) * 3.0
-		draw_circle(Vector2(cx, cy), glow_r, Color(tc.r, tc.g, tc.b, pulse * (1.8 if is_hovered else 1.0)))
+		draw_circle(Vector2(cx, cy), glow_r, _ca(tc, pulse * (1.8 if is_hovered else 1.0)))
 		# Dark background circle
 		draw_circle(Vector2(cx, cy), badge_r, Color(0.05, 0.03, 0.07, 0.93))
 		# Inner gradient shine
 		draw_circle(Vector2(cx, cy - 3), badge_r * 0.6, Color(tc.r * 0.15, tc.g * 0.15, tc.b * 0.15, 0.3))
 		# Animated border ring
 		var border_a = 0.85 if is_hovered else 0.45
-		draw_arc(Vector2(cx, cy), badge_r, 0, TAU, 32, Color(tc.r, tc.g, tc.b, border_a), 2.5)
+		draw_arc(Vector2(cx, cy), badge_r, 0, TAU, 32, _ca(tc, border_a), 2.5)
 		if is_hovered:
-			draw_arc(Vector2(cx, cy), badge_r + 3, 0, TAU, 32, Color(tc.r, tc.g, tc.b, 0.2), 1.0)
+			draw_arc(Vector2(cx, cy), badge_r + 3, 0, TAU, 32, _ca(tc, 0.2), 1.0)
 
 		# Per-badge icon: AI art with procedural fallback
-		var ic = Color(tc.r, tc.g, tc.b, 0.9)
+		var ic = _ca(tc, 0.9)
 		var _badge_key = badge["id"]
 		if _badge_icon_textures.has(_badge_key):
 			var badge_sz = badge_r * 1.6
 			draw_texture_rect(_badge_icon_textures[_badge_key], Rect2(cx - badge_sz * 0.5, cy - badge_sz * 0.5, badge_sz, badge_sz), false)
 		elif i == 0:  # DEALS fallback
-			draw_circle(Vector2(cx, cy), 10, Color(tc.r, tc.g, tc.b, 0.35))
-			draw_arc(Vector2(cx, cy), 10, 0, TAU, 16, Color(tc.r, tc.g, tc.b, 0.5), 1.5)
+			draw_circle(Vector2(cx, cy), 10, _ca(tc, 0.35))
+			draw_arc(Vector2(cx, cy), 10, 0, TAU, 16, _ca(tc, 0.5), 1.5)
 			_udraw(font, Vector2(cx, cy + 5), "$", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, ic)
 		elif i == 1:  # QUESTS fallback
-			draw_rect(Rect2(cx - 7, cy - 10, 14, 20), Color(tc.r, tc.g, tc.b, 0.3))
+			draw_rect(Rect2(cx - 7, cy - 10, 14, 20), _ca(tc, 0.3))
 			draw_arc(Vector2(cx, cy - 10), 7, PI, TAU, 8, ic, 1.5)
 			draw_arc(Vector2(cx, cy + 10), 7, 0, PI, 8, ic, 1.5)
 			for li in range(3):
 				var ly = cy - 4.0 + float(li) * 5.0
-				draw_line(Vector2(cx - 5, ly), Vector2(cx + 5, ly), Color(tc.r, tc.g, tc.b, 0.6), 1.0)
+				draw_line(Vector2(cx - 5, ly), Vector2(cx + 5, ly), _ca(tc, 0.6), 1.0)
 		elif i == 2:  # ARENA fallback
 			draw_line(Vector2(cx - 9, cy + 9), Vector2(cx + 9, cy - 9), ic, 2.5)
 			draw_line(Vector2(cx + 9, cy + 9), Vector2(cx - 9, cy - 9), ic, 2.5)
-			draw_circle(Vector2(cx, cy), 3.5, Color(tc.r, tc.g, tc.b, 0.5))
+			draw_circle(Vector2(cx, cy), 3.5, _ca(tc, 0.5))
 		elif i == 3:  # ODYSSEY fallback
 			for si in range(4):
 				var sa = float(si) * TAU / 4.0 - PI * 0.25
 				var tip = Vector2(cx + cos(sa) * 10, cy + sin(sa) * 10)
 				draw_line(Vector2(cx, cy), tip, ic, 1.5)
 				draw_circle(tip, 1.5, ic)
-			draw_circle(Vector2(cx, cy), 3, Color(tc.r, tc.g, tc.b, 0.6))
+			draw_circle(Vector2(cx, cy), 3, _ca(tc, 0.6))
 		elif i == 4:  # ENDLESS fallback
 			draw_arc(Vector2(cx - 5, cy), 6, -PI * 0.75, PI * 0.75, 12, ic, 2.0)
 			draw_arc(Vector2(cx + 5, cy), 6, PI * 0.25, PI * 1.75, 12, ic, 2.0)
 
 		# Label below badge
 		var lbl_a = 0.85 if is_hovered else 0.5
-		_udraw(font, Vector2(cx, cy + badge_r + 13), badge["label"], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(tc.r, tc.g, tc.b, lbl_a))
+		_udraw(font, Vector2(cx, cy + badge_r + 13), badge["label"], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, _ca(tc, lbl_a))
 
 		# Orbiting sparkles on hover
 		if is_hovered:
 			for si in range(3):
 				var sa = _time * 3.0 + float(si) * TAU / 3.0
 				var sp = Vector2(cx + cos(sa) * (badge_r + 5), cy + sin(sa) * (badge_r + 5))
-				draw_circle(sp, 1.5, Color(tc.r, tc.g, tc.b, 0.45 + sin(_time * 4.0 + float(si)) * 0.2))
+				draw_circle(sp, 1.5, _ca(tc, 0.45 + sin(_time * 4.0 + float(si)) * 0.2))
 
 		# Notification dot (red pulsing) for actionable items
 		var show_dot = false
@@ -15647,35 +15669,35 @@ func _draw_chapters_overlay() -> void:
 		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 51.0 + 1), col)
 	# Animated glowing gold border
 	var bp = 0.5 + sin(_time * 2.0) * 0.15
-	var bc = Color(tc.r, tc.g, tc.b, bp)
+	var bc = _ca(tc, bp)
 	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), bc)
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), bc)
 	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), bc)
 	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), bc)
 	# Second inner border (double-line effect)
-	draw_rect(Rect2(panel_x + 4, panel_y + 4, panel_w - 8, 1), Color(tc.r, tc.g, tc.b, bp * 0.3))
-	draw_rect(Rect2(panel_x + 4, panel_y + panel_h - 5, panel_w - 8, 1), Color(tc.r, tc.g, tc.b, bp * 0.3))
-	draw_rect(Rect2(panel_x + 4, panel_y + 4, 1, panel_h - 8), Color(tc.r, tc.g, tc.b, bp * 0.3))
-	draw_rect(Rect2(panel_x + panel_w - 5, panel_y + 4, 1, panel_h - 8), Color(tc.r, tc.g, tc.b, bp * 0.3))
+	draw_rect(Rect2(panel_x + 4, panel_y + 4, panel_w - 8, 1), _ca(tc, bp * 0.3))
+	draw_rect(Rect2(panel_x + 4, panel_y + panel_h - 5, panel_w - 8, 1), _ca(tc, bp * 0.3))
+	draw_rect(Rect2(panel_x + 4, panel_y + 4, 1, panel_h - 8), _ca(tc, bp * 0.3))
+	draw_rect(Rect2(panel_x + panel_w - 5, panel_y + 4, 1, panel_h - 8), _ca(tc, bp * 0.3))
 	# Corner flourish decorations
 	var corners = [Vector2(panel_x, panel_y), Vector2(panel_x + panel_w, panel_y), Vector2(panel_x, panel_y + panel_h), Vector2(panel_x + panel_w, panel_y + panel_h)]
 	for ci in range(4):
 		var cp = corners[ci]
 		var dxf = 1.0 if ci % 2 == 0 else -1.0
 		var dyf = 1.0 if ci < 2 else -1.0
-		draw_line(cp, cp + Vector2(dxf * 25, 0), Color(tc.r, tc.g, tc.b, 0.5), 2.0)
-		draw_line(cp, cp + Vector2(0, dyf * 25), Color(tc.r, tc.g, tc.b, 0.5), 2.0)
+		draw_line(cp, cp + Vector2(dxf * 25, 0), _ca(tc, 0.5), 2.0)
+		draw_line(cp, cp + Vector2(0, dyf * 25), _ca(tc, 0.5), 2.0)
 		# Small decorative curl
-		draw_arc(cp + Vector2(dxf * 12, dyf * 12), 8, 0, TAU * 0.5, 8, Color(tc.r, tc.g, tc.b, 0.15), 1.0)
+		draw_arc(cp + Vector2(dxf * 12, dyf * 12), 8, 0, TAU * 0.5, 8, _ca(tc, 0.15), 1.0)
 	# Title bar with glow
 	draw_rect(Rect2(panel_x + 2, panel_y + 2, panel_w - 4, 48), Color(tc.r * 0.08, tc.g * 0.08, tc.b * 0.08, 0.6))
 	var title_map = {"deals": "DAILY DEALS", "quests": "DAILY QUESTS", "arena": "SHADOW ARENA", "odyssey": "ODYSSEY MODE", "endless": "THE ETERNAL CHAPTER"}
 	var title = title_map.get(menu_side_panel, "")
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 34), title, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 100), 20, tc)
 	# Title underline with glow
-	draw_rect(Rect2(panel_x + 20, panel_y + 50, panel_w - 40, 1), Color(tc.r, tc.g, tc.b, 0.4))
+	draw_rect(Rect2(panel_x + 20, panel_y + 50, panel_w - 40, 1), _ca(tc, 0.4))
 	# Subtle glow beneath title line
-	draw_rect(Rect2(panel_x + 40, panel_y + 51, panel_w - 80, 2), Color(tc.r, tc.g, tc.b, 0.08))
+	draw_rect(Rect2(panel_x + 40, panel_y + 51, panel_w - 80, 2), _ca(tc, 0.08))
 	# Close button (X) — top right (44x44 for mobile touch target)
 	var close_sz = 44.0 if _is_mobile else 30.0
 	var close_x = panel_x + panel_w - close_sz - 8.0
@@ -16021,7 +16043,7 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(1.0, 0.8, 0.2, 0.7), false, 2.0)
 				_udraw(font, Vector2(ix + iw - 58, iy + ih * 0.5 - 2), "CONFIRM", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.9, 0.4))
 				var bar_fill = clampf(_deal_confirm_timer / 3.0, 0.0, 1.0)
-				draw_rect(Rect2(ix + iw - 103, iy + ih * 0.5 + 14, 89 * bar_fill, 3), Color(1.0, 0.85, 0.2, 0.7))
+				draw_rect(Rect2(ix + iw - 103, iy + ih * 0.5 + 14, 89 * bar_fill, 3), _ca(c_gold_bright, 0.7))
 			else:
 				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(0.15, 0.12, 0.08, 0.8))
 				# Original price (crossed out) — Improvement 2
@@ -16350,11 +16372,11 @@ func _draw_open_book() -> void:
 	for i in range(5):
 		var sy = by + 60.0 + float(i) * 100.0
 		# All gold bands
-		draw_line(Vector2(spine_x - 5, sy), Vector2(spine_x + 15, sy), Color(0.54, 0.45, 0.20, 0.35), 2.0)
+		draw_line(Vector2(spine_x - 5, sy), Vector2(spine_x + 15, sy), _ca(menu_gold_dim, 0.35), 2.0)
 		# Embossed diamond shapes on spine
 		var diamond_cx = spine_x + 5.0
 		var diamond_cy = sy + 50.0
-		draw_colored_polygon(PackedVector2Array([Vector2(diamond_cx, diamond_cy - 6), Vector2(diamond_cx + 4, diamond_cy), Vector2(diamond_cx, diamond_cy + 6), Vector2(diamond_cx - 4, diamond_cy)]), Color(0.54, 0.45, 0.20, 0.2))
+		draw_colored_polygon(PackedVector2Array([Vector2(diamond_cx, diamond_cy - 6), Vector2(diamond_cx + 4, diamond_cy), Vector2(diamond_cx, diamond_cy + 6), Vector2(diamond_cx - 4, diamond_cy)]), _ca(menu_gold_dim, 0.2))
 	# Spine shadow gradient
 	for i in range(15):
 		var t = float(i) / 14.0
@@ -16362,8 +16384,8 @@ func _draw_open_book() -> void:
 		draw_line(Vector2(spine_x - 5 - t * 8, by), Vector2(spine_x - 5 - t * 8, by + ph), Color(0.0, 0.0, 0.0, 0.06 * (1.0 - t)), 1.0)
 
 	# Page borders — gold outer frame (3px) + gold inner frame (1px) — left page
-	var outer_border = Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3)
-	var gold_border = Color(0.54, 0.45, 0.20, 0.2)
+	var outer_border = _ca(menu_gold_dim, 0.3)
+	var gold_border = _ca(menu_gold_dim, 0.2)
 	# Left page outer gold border (3px)
 	draw_rect(Rect2(bx + 8, by + 8, pw - 16, 3), outer_border)
 	draw_rect(Rect2(bx + 8, by + ph - 11, pw - 16, 3), outer_border)
@@ -16387,34 +16409,34 @@ func _draw_open_book() -> void:
 	draw_rect(Rect2(rx + pw - 15, by + 14, 1, ph - 28), gold_border)
 
 	# Page edge glow — subtle gold line along outer page edges
-	draw_rect(Rect2(bx, by, pw, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
-	draw_rect(Rect2(bx, by + ph - 1, pw, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
-	draw_rect(Rect2(bx, by, 1, ph), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
-	draw_rect(Rect2(rx + pw - 1, by, 1, ph), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.08))
+	draw_rect(Rect2(bx, by, pw, 1), _ca(menu_gold_dim, 0.08))
+	draw_rect(Rect2(bx, by + ph - 1, pw, 1), _ca(menu_gold_dim, 0.08))
+	draw_rect(Rect2(bx, by, 1, ph), _ca(menu_gold_dim, 0.08))
+	draw_rect(Rect2(rx + pw - 1, by, 1, ph), _ca(menu_gold_dim, 0.08))
 
 	# L-bracket corner ornaments (left page — gold only)
 	for corner in [Vector2(bx + 18, by + 18), Vector2(bx + pw - 18, by + 18), Vector2(bx + 18, by + ph - 18), Vector2(bx + pw - 18, by + ph - 18)]:
 		var dx_sign = 1.0 if corner.x < bx + pw * 0.5 else -1.0
 		var dy_sign = 1.0 if corner.y < by + ph * 0.5 else -1.0
-		draw_line(corner, corner + Vector2(12 * dx_sign, 0), Color(0.54, 0.45, 0.20, 0.25), 1.0)
-		draw_line(corner, corner + Vector2(0, 12 * dy_sign), Color(0.54, 0.45, 0.20, 0.25), 1.0)
-		draw_line(corner + Vector2(12 * dx_sign, 0), corner + Vector2(12 * dx_sign, 4 * dy_sign), Color(0.54, 0.45, 0.20, 0.2), 1.0)
-		draw_line(corner + Vector2(0, 12 * dy_sign), corner + Vector2(4 * dx_sign, 12 * dy_sign), Color(0.54, 0.45, 0.20, 0.2), 1.0)
-		draw_circle(corner, 5, Color(0.54, 0.45, 0.20, 0.2))
-		draw_circle(corner, 3.5, Color(0.54, 0.45, 0.20, 0.15))
-		draw_circle(corner, 2, Color(0.54, 0.45, 0.20, 0.25))
+		draw_line(corner, corner + Vector2(12 * dx_sign, 0), _ca(menu_gold_dim, 0.25), 1.0)
+		draw_line(corner, corner + Vector2(0, 12 * dy_sign), _ca(menu_gold_dim, 0.25), 1.0)
+		draw_line(corner + Vector2(12 * dx_sign, 0), corner + Vector2(12 * dx_sign, 4 * dy_sign), _ca(menu_gold_dim, 0.2), 1.0)
+		draw_line(corner + Vector2(0, 12 * dy_sign), corner + Vector2(4 * dx_sign, 12 * dy_sign), _ca(menu_gold_dim, 0.2), 1.0)
+		draw_circle(corner, 5, _ca(menu_gold_dim, 0.2))
+		draw_circle(corner, 3.5, _ca(menu_gold_dim, 0.15))
+		draw_circle(corner, 2, _ca(menu_gold_dim, 0.25))
 
 	# L-bracket corner ornaments (right page — gold only)
 	for corner in [Vector2(rx + 18, by + 18), Vector2(rx + pw - 18, by + 18), Vector2(rx + 18, by + ph - 18), Vector2(rx + pw - 18, by + ph - 18)]:
 		var dx_sign2 = 1.0 if corner.x < rx + pw * 0.5 else -1.0
 		var dy_sign2 = 1.0 if corner.y < by + ph * 0.5 else -1.0
-		draw_line(corner, corner + Vector2(12 * dx_sign2, 0), Color(0.54, 0.45, 0.20, 0.25), 1.0)
-		draw_line(corner, corner + Vector2(0, 12 * dy_sign2), Color(0.54, 0.45, 0.20, 0.25), 1.0)
-		draw_line(corner + Vector2(12 * dx_sign2, 0), corner + Vector2(12 * dx_sign2, 4 * dy_sign2), Color(0.54, 0.45, 0.20, 0.2), 1.0)
-		draw_line(corner + Vector2(0, 12 * dy_sign2), corner + Vector2(4 * dx_sign2, 12 * dy_sign2), Color(0.54, 0.45, 0.20, 0.2), 1.0)
-		draw_circle(corner, 5, Color(0.54, 0.45, 0.20, 0.2))
-		draw_circle(corner, 3.5, Color(0.54, 0.45, 0.20, 0.15))
-		draw_circle(corner, 2, Color(0.54, 0.45, 0.20, 0.25))
+		draw_line(corner, corner + Vector2(12 * dx_sign2, 0), _ca(menu_gold_dim, 0.25), 1.0)
+		draw_line(corner, corner + Vector2(0, 12 * dy_sign2), _ca(menu_gold_dim, 0.25), 1.0)
+		draw_line(corner + Vector2(12 * dx_sign2, 0), corner + Vector2(12 * dx_sign2, 4 * dy_sign2), _ca(menu_gold_dim, 0.2), 1.0)
+		draw_line(corner + Vector2(0, 12 * dy_sign2), corner + Vector2(4 * dx_sign2, 12 * dy_sign2), _ca(menu_gold_dim, 0.2), 1.0)
+		draw_circle(corner, 5, _ca(menu_gold_dim, 0.2))
+		draw_circle(corner, 3.5, _ca(menu_gold_dim, 0.15))
+		draw_circle(corner, 2, _ca(menu_gold_dim, 0.25))
 
 	# Ink blot decorations (right page corners)
 	draw_circle(Vector2(rx + pw - 40, by + ph - 40), 6.0, Color(0.2, 0.15, 0.1, 0.06))
@@ -16427,9 +16449,9 @@ func _draw_open_book() -> void:
 		var motif_y = by + 160.0
 		var motif_x = bx + pw * 0.5
 		# Draw a simple emblem/crest area
-		draw_circle(Vector2(motif_x, motif_y + 80), 60, Color(0.54, 0.45, 0.20, 0.04))
-		draw_arc(Vector2(motif_x, motif_y + 80), 55, 0, TAU, 48, Color(0.54, 0.45, 0.20, 0.12), 1.5)
-		draw_arc(Vector2(motif_x, motif_y + 80), 45, 0, TAU, 48, Color(0.54, 0.45, 0.20, 0.08), 1.0)
+		draw_circle(Vector2(motif_x, motif_y + 80), 60, _ca(menu_gold_dim, 0.04))
+		draw_arc(Vector2(motif_x, motif_y + 80), 55, 0, TAU, 48, _ca(menu_gold_dim, 0.12), 1.5)
+		draw_arc(Vector2(motif_x, motif_y + 80), 45, 0, TAU, 48, _ca(menu_gold_dim, 0.08), 1.0)
 
 		# Character emblem icons (simple procedural)
 		match char_idx:
@@ -16461,10 +16483,10 @@ func _draw_open_book() -> void:
 			5:  # Scrooge - coin
 				draw_circle(Vector2(motif_x, motif_y + 80), 18, Color(0.75, 0.6, 0.1, 0.3))
 				draw_circle(Vector2(motif_x, motif_y + 80), 15, Color(0.85, 0.7, 0.15, 0.2))
-				draw_circle(Vector2(motif_x, motif_y + 80), 6, Color(0.54, 0.45, 0.20, 0.15))
+				draw_circle(Vector2(motif_x, motif_y + 80), 6, _ca(menu_gold_dim, 0.15))
 
 		# Decorative line under character quote
-		draw_line(Vector2(bx + 80, by + ph - 100), Vector2(bx + pw - 80, by + ph - 100), Color(0.54, 0.45, 0.20, 0.1), 1.0)
+		draw_line(Vector2(bx + 80, by + ph - 100), Vector2(bx + pw - 80, by + ph - 100), _ca(menu_gold_dim, 0.1), 1.0)
 
 	# Right page: chapter separator lines (between the 3 cards)
 	if menu_current_view == "chapters":
@@ -16473,10 +16495,10 @@ func _draw_open_book() -> void:
 			draw_line(Vector2(rx + 30, sep_y), Vector2(rx + pw - 30, sep_y), Color(0.5, 0.4, 0.25, 0.15), 1.0)
 			# Decorative diamond at center of separator
 			var sep_cx = rx + pw * 0.5
-			draw_colored_polygon(PackedVector2Array([Vector2(sep_cx, sep_y - 4), Vector2(sep_cx + 4, sep_y), Vector2(sep_cx, sep_y + 4), Vector2(sep_cx - 4, sep_y)]), Color(0.54, 0.45, 0.20, 0.15))
+			draw_colored_polygon(PackedVector2Array([Vector2(sep_cx, sep_y - 4), Vector2(sep_cx + 4, sep_y), Vector2(sep_cx, sep_y + 4), Vector2(sep_cx - 4, sep_y)]), _ca(menu_gold_dim, 0.15))
 			# Small gold dots at ends of separator
-			draw_circle(Vector2(rx + 30, sep_y), 2.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
-			draw_circle(Vector2(rx + pw - 30, sep_y), 2.0, Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
+			draw_circle(Vector2(rx + 30, sep_y), 2.0, _ca(menu_gold_dim, 0.2))
+			draw_circle(Vector2(rx + pw - 30, sep_y), 2.0, _ca(menu_gold_dim, 0.2))
 
 	# Page tab bookmarks on right edge (character quick nav) — enhanced gothic
 	var tab_colors = [Color(0.29, 0.55, 0.25), Color(0.44, 0.66, 0.86), Color(0.48, 0.25, 0.63), Color(0.90, 0.49, 0.13), Color(0.75, 0.22, 0.17), Color(0.79, 0.66, 0.30)]
@@ -16497,7 +16519,7 @@ func _draw_open_book() -> void:
 			# Gothic pointed bottom edge (triangle)
 			draw_colored_polygon(PackedVector2Array([Vector2(tab_x, tab_y + tab_h), Vector2(tab_x + tab_w, tab_y + tab_h), Vector2(tab_x + tab_w * 0.5, tab_y + tab_h + 8)]), tc)
 			# Thin gold border on inner edge
-			draw_line(Vector2(tab_x, tab_y), Vector2(tab_x, tab_y + tab_h), Color(0.54, 0.45, 0.20, 0.3), 1.0)
+			draw_line(Vector2(tab_x, tab_y), Vector2(tab_x, tab_y + tab_h), _ca(menu_gold_dim, 0.3), 1.0)
 
 # ============================================================
 # GAME LOOP
@@ -17844,7 +17866,7 @@ func _check_wave_complete() -> void:
 				add_gold(perfect_gold)
 				spawn_floating_text(Vector2(640, 200), "PERFECT WAVE! +%dG" % perfect_gold, Color(0.3, 1.0, 0.5), 18.0, 1.5)
 				if _wave_streak >= 3:
-					spawn_floating_text(Vector2(640, 225), "STREAK x%d!" % _wave_streak, Color(1.0, 0.85, 0.2), 15.0, 1.2)
+					spawn_floating_text(Vector2(640, 225), "STREAK x%d!" % _wave_streak, c_gold_bright, 15.0, 1.2)
 			else:
 				_wave_streak = 0
 			# BATTD4: Tower veterancy (surviving towers gain vet)
@@ -17878,7 +17900,7 @@ func _check_wave_complete() -> void:
 			# Bonus gold between waves — scales with progression
 			var bonus = 5 + wave * 2 + int(wave / 10) * 5
 			add_gold(bonus)
-			spawn_floating_text(Vector2(640, 340), "+%dG Wave Bonus" % bonus, Color(1.0, 0.85, 0.2), 14.0, 1.0)
+			spawn_floating_text(Vector2(640, 340), "+%dG Wave Bonus" % bonus, c_gold_bright, 14.0, 1.0)
 			_income_breakdown["wave_bonus"] = bonus
 			# Knowledge tree: life regen per wave
 			var life_regen = int(_get_knowledge_bonus("life_regen"))
@@ -18726,7 +18748,7 @@ func _draw() -> void:
 		var be_t = 1.0 - clampf(be["timer"] / be["max_timer"], 0.0, 1.0)
 		var be_alpha = 1.0 - be_t
 		var be_r = 40.0 * (1.0 - be_t) + 10.0
-		draw_arc(be["pos"], be_r, 0, TAU, 32, Color(1.0, 0.85, 0.2, be_alpha * 0.6), 2.5)
+		draw_arc(be["pos"], be_r, 0, TAU, 32, _ca(c_gold_bright, be_alpha * 0.6), 2.5)
 		# 6 orbiting sparkles
 		for si in range(6):
 			var sa = _time * 8.0 + float(si) * TAU / 6.0
@@ -18809,19 +18831,19 @@ func _draw() -> void:
 	# === STORYBOOK SHIELD INDICATOR ===
 	if storybook_shield_charges > 0:
 		var font = game_font
-		_udraw(font, Vector2(700, 35), "Shield: %d" % storybook_shield_charges, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.3, 0.7, 0.9))
+		_udraw(font, Vector2(700, 35), "Shield: %d" % storybook_shield_charges, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, c_cyan)
 
 	# === ENCHANTED TOWERS INDICATOR ===
 	if power_enchanted_timer > 0.0:
 		var font = game_font
-		_udraw(font, Vector2(820, 35), "Enchanted: %.0fs" % power_enchanted_timer, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1))
+		_udraw(font, Vector2(820, 35), "Enchanted: %.0fs" % power_enchanted_timer, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, c_gold)
 
 	# === SYNERGY BANNER ===
 	if synergy_banner_timer > 0.0:
 		var font = game_font
 		var s_alpha = clampf(synergy_banner_timer, 0.0, 1.0)
 		draw_rect(Rect2(240, 55, 800, 30), Color(0.1, 0.06, 0.02, 0.8 * s_alpha))
-		draw_rect(Rect2(240, 55, 800, 30), Color(0.85, 0.65, 0.1, 0.5 * s_alpha), false, 1.0)
+		draw_rect(Rect2(240, 55, 800, 30), _ca(c_gold, 0.5 * s_alpha), false, 1.0)
 		_udraw(font, Vector2(640, 76), synergy_banner_text, HORIZONTAL_ALIGNMENT_CENTER, 780, 16, Color(1.0, 0.9, 0.5, s_alpha))
 
 	# === ACHIEVEMENT POPUP ===
@@ -18842,8 +18864,8 @@ func _draw() -> void:
 	# === ODYSSEY TRANSITION OVERLAY ===
 	if odyssey_transition_active:
 		var font = game_font
-		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.7))
-		_udraw(font, Vector2(640, 340), "ODYSSEY — Next Map in %.0fs..." % odyssey_transition_timer, HORIZONTAL_ALIGNMENT_CENTER, -1, 24, Color(0.85, 0.7, 0.2))
+		draw_rect(Rect2(0, 0, 1280, 720), c_overlay)
+		_udraw(font, Vector2(640, 340), "ODYSSEY — Next Map in %.0fs..." % odyssey_transition_timer, HORIZONTAL_ALIGNMENT_CENTER, -1, 24, c_gold_warm)
 		if odyssey_current_map < odyssey_maps.size():
 			var next_name = levels[odyssey_maps[odyssey_current_map]]["name"] if odyssey_maps[odyssey_current_map] < levels.size() else "?"
 			_udraw(font, Vector2(640, 380), next_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.7, 0.6, 0.4))
@@ -19051,7 +19073,7 @@ func _draw() -> void:
 		if _wave_banner_timer > 2.0:
 			var bt2 = (2.5 - _wave_banner_timer) / 0.5
 			wb_bounce = sin(bt2 * PI) * 8.0
-		var wb_col = Color(0.9, 0.15, 0.1) if _wave_banner_is_boss else Color(1.0, 0.85, 0.2)
+		var wb_col = Color(0.9, 0.15, 0.1) if _wave_banner_is_boss else c_gold_bright
 		var wb_border_col = Color(0.7, 0.1, 0.05) if _wave_banner_is_boss else Color(0.8, 0.65, 0.1)
 		# Dark translucent backdrop bar
 		draw_rect(Rect2(wb_x_offset, wb_y - 20, 1280, 55), Color(0.0, 0.0, 0.0, wb_alpha * 0.65))
@@ -19217,8 +19239,8 @@ func _draw() -> void:
 		# "PAUSED" title in large gold text
 		var font = game_font
 		var pause_pulse = 0.85 + sin(_time * 2.0) * 0.1
-		_udraw(font, Vector2(642, 302), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, Color(0, 0, 0, 0.5))
-		_udraw(font, Vector2(640, 300), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, Color(1.0, 0.85, 0.2, pause_pulse))
+		_udraw(font, Vector2(642, 302), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, c_shadow)
+		_udraw(font, Vector2(640, 300), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, _ca(c_gold_bright, pause_pulse))
 		# Corner ornaments (small L-brackets)
 		for ci in range(4):
 			var cx = pp_x if ci % 2 == 0 else pp_x + pp_w
@@ -19258,7 +19280,7 @@ func _draw() -> void:
 		for ri in range(3):
 			var ring_r = (vb_t * 300.0 + float(ri) * 60.0)
 			var ring_alpha = vb_alpha * (0.3 - float(ri) * 0.08)
-			draw_arc(Vector2(640, 360), ring_r, 0, TAU, 48, Color(1.0, 0.85, 0.2, ring_alpha), 3.0 - float(ri) * 0.5)
+			draw_arc(Vector2(640, 360), ring_r, 0, TAU, 48, _ca(c_gold_bright, ring_alpha), 3.0 - float(ri) * 0.5)
 		# Warm vignette
 		if vb_alpha > 0.3:
 			draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 0.9, 0.5, vb_alpha * 0.08))
@@ -20270,7 +20292,7 @@ func _draw_dracula_ch1(sky_color: Color, ground_color: Color) -> void:
 	draw_rect(Rect2(0, 520, 1280, 120), Color(0.06, 0.04, 0.04))
 	# Blood moon
 	draw_circle(Vector2(200, 140), 45.0, Color(0.6, 0.1, 0.08, 0.15))
-	draw_circle(Vector2(200, 140), 35.0, Color(0.7, 0.15, 0.1))
+	draw_circle(Vector2(200, 140), 35.0, c_red)
 	draw_circle(Vector2(193, 135), 32.0, Color(0.6, 0.12, 0.08))
 	# Moon craters
 	draw_circle(Vector2(210, 130), 5.0, Color(0.5, 0.08, 0.06, 0.4))
@@ -21504,7 +21526,7 @@ func _draw_tower_buff_icons() -> void:
 		var tier = tower.upgrade_tier if "upgrade_tier" in tower else 0
 		if tier > 0:
 			for si in range(mini(tier, 4)):
-				draw_circle(Vector2(icon_x + si * 8, icon_y), 3.0, Color(1.0, 0.85, 0.2, 0.7))
+				draw_circle(Vector2(icon_x + si * 8, icon_y), 3.0, _ca(c_gold_bright, 0.7))
 			icon_count += 1
 		# Show if tower has active ability ready
 		if "active_ability_ready" in tower and tower.active_ability_ready:
@@ -21577,7 +21599,7 @@ func _check_collectible_click(mouse_pos: Vector2) -> bool:
 			_collectibles_found_this_game += 1
 			if mc["reward_type"] == "gold":
 				add_gold(mc["reward_amount"])
-				spawn_floating_text(mc["pos"], "+%dG" % mc["reward_amount"], Color(1.0, 0.85, 0.2), 16.0, 1.2)
+				spawn_floating_text(mc["pos"], "+%dG" % mc["reward_amount"], c_gold_bright, 16.0, 1.2)
 			elif mc["reward_type"] == "shards":
 				player_gear_shards += mc["reward_amount"]
 				spawn_floating_text(mc["pos"], "+%d Shards" % mc["reward_amount"], Color(0.6, 0.4, 1.0), 16.0, 1.2)
@@ -23375,9 +23397,9 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 			draw_circle(dpos + Vector2(-dsize * 0.3, -dsize * 0.2), dsize * 0.35, Color(0.03, 0.15, 0.03, 0.9))
 		elif dtype == "target":
 			draw_circle(dpos, 7.0, Color(0.8, 0.8, 0.7))
-			draw_circle(dpos, 5.0, Color(0.7, 0.15, 0.1))
+			draw_circle(dpos, 5.0, c_red)
 			draw_circle(dpos, 3.0, Color(0.8, 0.8, 0.7))
-			draw_circle(dpos, 1.5, Color(0.7, 0.15, 0.1))
+			draw_circle(dpos, 1.5, c_red)
 			draw_line(dpos + Vector2(-8, -4), dpos, Color(0.3, 0.2, 0.05), 1.5)
 			draw_line(Vector2(dpos.x, dpos.y + 7), Vector2(dpos.x, dpos.y + 16), Color(0.2, 0.12, 0.04), 2.5)
 		elif dtype == "bush":
@@ -23755,8 +23777,8 @@ func _draw_phantom_ch1(sky_color: Color, ground_color: Color) -> void:
 		var cx = 1270.0 - float(i) * 8.0
 		var fold = sin(float(i) * 1.2) * 4.0
 		draw_line(Vector2(cx - fold, 50), Vector2(cx - fold * 0.5, 620), Color(0.35, 0.04, 0.06, 0.55 - float(i) * 0.05), 8.0)
-	draw_circle(Vector2(85, 200), 6, Color(0.85, 0.65, 0.1, 0.5))
-	draw_circle(Vector2(1195, 200), 6, Color(0.85, 0.65, 0.1, 0.5))
+	draw_circle(Vector2(85, 200), 6, _ca(c_gold, 0.5))
+	draw_circle(Vector2(1195, 200), 6, _ca(c_gold, 0.5))
 	# Grand chandelier
 	var chandelier_sway = sin(_time * 0.6) * 8.0
 	var ch_center = Vector2(640 + chandelier_sway, 80)
@@ -23830,7 +23852,7 @@ func _draw_phantom_ch1(sky_color: Color, ground_color: Color) -> void:
 				draw_line(points[i] + perp * 12, points[i + 1] + perp * 12, Color(0.8, 0.6, 0.1, 0.18), 1.5)
 				draw_line(points[i] - perp * 12, points[i + 1] - perp * 12, Color(0.8, 0.6, 0.1, 0.18), 1.5)
 		for i in range(0, points.size() - 1, 24):
-			draw_colored_polygon(PackedVector2Array([points[i] + Vector2(0, -5), points[i] + Vector2(4, 0), points[i] + Vector2(0, 5), points[i] + Vector2(-4, 0)]), Color(0.85, 0.65, 0.1, 0.2))
+			draw_colored_polygon(PackedVector2Array([points[i] + Vector2(0, -5), points[i] + Vector2(4, 0), points[i] + Vector2(0, 5), points[i] + Vector2(-4, 0)]), _ca(c_gold, 0.2))
 	_draw_phantom_novel(1)
 	_draw_shadow_author_effects()
 
@@ -24102,9 +24124,9 @@ func _draw_robin_ch2(sky_color: Color, ground_color: Color) -> void:
 			draw_circle(dpos + Vector2(-dsize * 0.3, -dsize * 0.2), dsize * 0.35, Color(0.03, 0.15, 0.03, 0.9))
 		elif dtype == "target":
 			draw_circle(dpos, 7.0, Color(0.8, 0.8, 0.7))
-			draw_circle(dpos, 5.0, Color(0.7, 0.15, 0.1))
+			draw_circle(dpos, 5.0, c_red)
 			draw_circle(dpos, 3.0, Color(0.8, 0.8, 0.7))
-			draw_circle(dpos, 1.5, Color(0.7, 0.15, 0.1))
+			draw_circle(dpos, 1.5, c_red)
 			draw_line(dpos + Vector2(-8, -4), dpos, Color(0.3, 0.2, 0.05), 1.5)
 			draw_line(Vector2(dpos.x, dpos.y + 7), Vector2(dpos.x, dpos.y + 16), Color(0.2, 0.12, 0.04), 2.5)
 		elif dtype == "bush":
@@ -24397,9 +24419,9 @@ func _draw_robin_ch3(sky_color: Color, ground_color: Color) -> void:
 			draw_circle(dpos + Vector2(-dsize * 0.3, -dsize * 0.2), dsize * 0.35, Color(0.03, 0.15, 0.03, 0.9))
 		elif dtype == "target":
 			draw_circle(dpos, 7.0, Color(0.8, 0.8, 0.7))
-			draw_circle(dpos, 5.0, Color(0.7, 0.15, 0.1))
+			draw_circle(dpos, 5.0, c_red)
 			draw_circle(dpos, 3.0, Color(0.8, 0.8, 0.7))
-			draw_circle(dpos, 1.5, Color(0.7, 0.15, 0.1))
+			draw_circle(dpos, 1.5, c_red)
 			draw_line(dpos + Vector2(-8, -4), dpos, Color(0.3, 0.2, 0.05), 1.5)
 			draw_line(Vector2(dpos.x, dpos.y + 7), Vector2(dpos.x, dpos.y + 16), Color(0.2, 0.12, 0.04), 2.5)
 		elif dtype == "bush":
@@ -25532,7 +25554,7 @@ func _draw_peter_ch2(sky_color: Color, ground_color: Color) -> void:
 			lp.y += lbob
 			var lpulse = (sin(_time * 2.5 + float(li) * 1.1) + 1.0) * 0.5
 			# Lantern body
-			draw_circle(lp, 3.0, Color(1.0, 0.85, 0.2, 0.4 + lpulse * 0.3))
+			draw_circle(lp, 3.0, _ca(c_gold_bright, 0.4 + lpulse * 0.3))
 			# Glow
 			draw_circle(lp, 10.0 + lpulse * 4.0, Color(1.0, 0.9, 0.3, 0.04 + lpulse * 0.03))
 
@@ -25905,7 +25927,7 @@ func _draw_peter_ch3(sky_color: Color, ground_color: Color) -> void:
 			lid_open = 3.0
 			# Gold glow
 			var g_pulse = (sin(_time * 2.0 + 1.0) + 1.0) * 0.5
-			draw_circle(cp + Vector2(0, -16), 8.0, Color(1.0, 0.85, 0.2, 0.08 + g_pulse * 0.06))
+			draw_circle(cp + Vector2(0, -16), 8.0, _ca(c_gold_bright, 0.08 + g_pulse * 0.06))
 		draw_rect(Rect2(cp.x - 13, cp.y - 18 - lid_open, 26, 6), Color(0.4, 0.25, 0.08))
 		# Lock / clasp
 		draw_circle(cp + Vector2(0, -12), 2.0, Color(0.7, 0.6, 0.15, 0.6))
@@ -27078,7 +27100,7 @@ func _update_upgrade_panel() -> void:
 				# Affordable — gold border
 				cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 				status_rect.color = Color(0.14, 0.10, 0.06, 0.85)
-				status_rect.get_child(0).color = Color(0.85, 0.65, 0.1, 0.6)
+				status_rect.get_child(0).color = _ca(c_gold, 0.6)
 			else:
 				# Too expensive — dark
 				cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.3))
@@ -27224,7 +27246,7 @@ func _on_sell_pressed() -> void:
 
 	# Refund gold (tracked for achievements/quests)
 	add_gold(sell_value)
-	spawn_floating_text(tower_pos + Vector2(0, -20), "+%dG" % sell_value, Color(1.0, 0.85, 0.2), 16.0, 1.2)
+	spawn_floating_text(tower_pos + Vector2(0, -20), "+%dG" % sell_value, c_gold_bright, 16.0, 1.2)
 
 	# Remove tower position from placement tracking
 	for i in range(placed_tower_positions.size() - 1, -1, -1):
@@ -27739,14 +27761,14 @@ func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool) -> void:
 		color = Color(1.0, 0.3, 0.2, 1.0)
 		size = 20.0
 	elif amount > 500.0:
-		color = Color(1.0, 0.85, 0.2, 1.0)
+		color = _ca(c_gold_bright, 1.0)
 		text = str(int(amount)) + "!"
 		size = 17.0
 	spawn_floating_text(pos + Vector2(randf_range(-8, 8), randf_range(-12, -4)), text, color, size, 0.8)
 	_update_quest_progress("deal_damage", int(amount))
 
 func spawn_gold_text(pos: Vector2, amount: int) -> void:
-	spawn_floating_text(pos + Vector2(0, -10), "+%dg" % amount, Color(1.0, 0.85, 0.2, 0.9), 13.0, 1.0)
+	spawn_floating_text(pos + Vector2(0, -10), "+%dg" % amount, _ca(c_gold_bright, 0.9), 13.0, 1.0)
 	# Gold coin pickup arc animation
 	_gold_pickups.append({
 		"start": pos, "end": Vector2(310, 20), "pos": pos,
@@ -28306,7 +28328,7 @@ func game_over() -> void:
 	game_over_label.add_theme_color_override("font_color", Color.RED)
 	game_over_label.add_theme_constant_override("shadow_offset_x", 2)
 	game_over_label.add_theme_constant_override("shadow_offset_y", 3)
-	game_over_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	game_over_label.add_theme_color_override("font_shadow_color", c_overlay)
 	game_over_label.visible = true
 	return_button.visible = true
 	retry_button.visible = true
@@ -28594,7 +28616,7 @@ func _victory() -> void:
 	# Boss Rush completion
 	if boss_rush_mode:
 		boss_rush_completed = true
-		spawn_floating_text(Vector2(640, 250), "BOSS RUSH COMPLETE!", Color(1.0, 0.85, 0.2), 24.0, 3.0)
+		spawn_floating_text(Vector2(640, 250), "BOSS RUSH COMPLETE!", c_gold_bright, 24.0, 3.0)
 	# Daily Challenge completion
 	if daily_challenge_active:
 		var today = Time.get_date_string_from_system()
@@ -29025,13 +29047,13 @@ func _draw_achievements_tab() -> void:
 		var col = menu_bg_section.lerp(menu_bg_dark, t)
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
 	# Gold border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5 - 60, panel_y + 28), "ACHIEVEMENTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.9))
-	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5 - 60, panel_y + 28), "ACHIEVEMENTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, _ca(menu_gold_light, 0.9))
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
 	# Count unlocked
 	var unlocked_count = 0
 	for ach in achievement_definitions:
@@ -29042,8 +29064,8 @@ func _draw_achievements_tab() -> void:
 	# === Total completion percentage with progress bar (Enhancement #46) ===
 	var total_ratio = float(unlocked_count) / float(max(1, achievement_definitions.size()))
 	draw_rect(Rect2(panel_x + 40, panel_y + 36, panel_w - 80, 4), Color(0.1, 0.1, 0.15, 0.4))
-	draw_rect(Rect2(panel_x + 40, panel_y + 36, (panel_w - 80) * total_ratio, 4), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
-	_udraw(font, Vector2(panel_x + panel_w * 0.5 + 90, panel_y + 28), "%d%% COMPLETE" % int(total_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.5))
+	draw_rect(Rect2(panel_x + 40, panel_y + 36, (panel_w - 80) * total_ratio, 4), _ca(menu_gold, 0.6))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5 + 90, panel_y + 28), "%d%% COMPLETE" % int(total_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold, 0.5))
 
 	# === Recently unlocked section at top (Enhancement #47) ===
 	var recent_achievements: Array = []
@@ -29059,7 +29081,7 @@ func _draw_achievements_tab() -> void:
 
 	# Draw achievement cards in a grid (5 columns, scrollable via categories)
 	var categories = ["Combat", "Tower", "Economy", "Progression"]
-	var cat_colors = [Color(0.8, 0.3, 0.2), Color(0.3, 0.7, 0.4), Color(0.85, 0.7, 0.2), Color(0.4, 0.5, 0.85)]
+	var cat_colors = [Color(0.8, 0.3, 0.2), Color(0.3, 0.7, 0.4), c_gold_warm, Color(0.4, 0.5, 0.85)]
 	var card_w = 260.0
 	var card_h = 52.0
 	var gap_x = 12.0
@@ -29107,7 +29129,7 @@ func _draw_achievements_tab() -> void:
 			var bg = Color(0.10, 0.08, 0.22, 0.8) if is_done else Color(0.05, 0.05, 0.14, 0.8)
 			draw_rect(Rect2(cx, cy, card_w, card_h), bg)
 			# Border
-			var bc = Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6) if is_done else Color(0.25, 0.25, 0.40, 0.3)
+			var bc = _ca(menu_gold, 0.6) if is_done else Color(0.25, 0.25, 0.40, 0.3)
 			draw_rect(Rect2(cx, cy, card_w, 1), bc)
 			draw_rect(Rect2(cx, cy + card_h - 1, card_w, 1), bc)
 			draw_rect(Rect2(cx, cy, 1, card_h), bc)
@@ -29118,7 +29140,7 @@ func _draw_achievements_tab() -> void:
 			var ach_target = ach["target"]
 			var rarity_badge_col = Color(0.72, 0.50, 0.25, 0.7)  # Bronze
 			if ach_target >= 100:
-				rarity_badge_col = Color(0.85, 0.65, 0.1, 0.8)  # Gold
+				rarity_badge_col = _ca(c_gold, 0.8)  # Gold
 			elif ach_target >= 10:
 				rarity_badge_col = Color(0.75, 0.75, 0.80, 0.7)  # Silver
 			draw_circle(Vector2(cx + card_w - 10, cy + 10), 5, rarity_badge_col)
@@ -29139,7 +29161,7 @@ func _draw_achievements_tab() -> void:
 				draw_rect(Rect2(cx + 4, cy + card_h - 8, card_w - 8, 4), Color(0.3, 0.3, 0.4, 0.2), false, 1.0)
 			# Name and desc
 			var nx = cx + 42.0 if _achievement_icon_textures.has(_ach_icon_id) else cx + 30.0
-			var nc = Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 1.0) if is_done else Color(0.55, 0.52, 0.60)
+			var nc = _ca(menu_gold_light, 1.0) if is_done else Color(0.55, 0.52, 0.60)
 			_udraw(font, Vector2(nx, cy + 16), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 15, nc)
 			_udraw(font, Vector2(nx, cy + 31), ach["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 36), 15, Color(0.5, 0.45, 0.4))
 			if not is_done:
@@ -29165,8 +29187,8 @@ func _draw_achievements_tab() -> void:
 
 func _draw_achievement_showcase(ax: float, ay: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(ax + 60, ay + 14), "TOP ACHIEVEMENTS", HORIZONTAL_ALIGNMENT_CENTER, 200, 13, Color(0.85, 0.65, 0.1, 0.7))
-	draw_rect(Rect2(ax, ay + 18, 120, 1), Color(0.85, 0.65, 0.1, 0.3))
+	_udraw(font, Vector2(ax + 60, ay + 14), "TOP ACHIEVEMENTS", HORIZONTAL_ALIGNMENT_CENTER, 200, 13, _ca(c_gold, 0.7))
+	draw_rect(Rect2(ax, ay + 18, 120, 1), _ca(c_gold, 0.3))
 	# Show top 3 unlocked achievements
 	var showcased: Array = []
 	for ach in achievement_definitions:
@@ -29177,7 +29199,7 @@ func _draw_achievement_showcase(ax: float, ay: float) -> void:
 	for si in range(mini(3, showcased.size())):
 		var ach = showcased[si]
 		var sy = ay + 24 + float(si) * 22.0
-		var badge_col = Color(0.85, 0.65, 0.1, 0.8) if ach["target"] >= 100 else Color(0.75, 0.75, 0.8, 0.6)
+		var badge_col = _ca(c_gold, 0.8) if ach["target"] >= 100 else Color(0.75, 0.75, 0.8, 0.6)
 		draw_circle(Vector2(ax + 8, sy + 8), 4, badge_col)
 		_udraw(font, Vector2(ax + 18, sy + 12), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, 100, 12, Color(0.7, 0.65, 0.55))
 	if showcased.size() == 0:
@@ -29188,10 +29210,10 @@ func _draw_pass_progress_bar(px: float, py: float, pw: float) -> void:
 	# Commander's Pass progress bar
 	var bar_h = 20.0
 	draw_rect(Rect2(px, py, pw, bar_h), Color(0.04, 0.04, 0.1, 0.8))
-	draw_rect(Rect2(px, py, pw, bar_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3), false, 1.0)
+	draw_rect(Rect2(px, py, pw, bar_h), _ca(menu_gold_dim, 0.3), false, 1.0)
 	# Progress fill
 	var fill_ratio = float(commander_pass_tier) / float(max(1, COMMANDER_PASS_MAX))
-	draw_rect(Rect2(px + 1, py + 1, (pw - 2) * fill_ratio, bar_h - 2), Color(0.85, 0.65, 0.1, 0.5))
+	draw_rect(Rect2(px + 1, py + 1, (pw - 2) * fill_ratio, bar_h - 2), _ca(c_gold, 0.5))
 	# XP within current tier
 	if commander_pass_tier < COMMANDER_PASS_MAX:
 		var xp_ratio = float(commander_pass_xp) / float(max(1, COMMANDER_PASS_XP_PER_TIER))
@@ -29212,7 +29234,7 @@ func _draw_power_selection() -> void:
 	var px = (1280 - pw) / 2
 	var py = (720 - ph) / 2
 	draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.04, 0.10, 0.95))
-	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.5), false, 2.0)
+	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
 	_udraw(font, Vector2(px + pw * 0.5 - 80, py + 30), "SELECT BATTLE POWERS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.75, 0.4))
 	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 54), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.4))
 	# Cancel/Back button (top-right)
@@ -29238,7 +29260,7 @@ func _draw_power_selection() -> void:
 		# Count
 		_udraw(font, Vector2(bx + pw - 120, by + 18), "Owned: %d" % owned, HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.7, 0.6, 0.4) if owned > 0 else Color(0.4, 0.35, 0.3))
 		if is_selected_p:
-			_udraw(font, Vector2(bx + pw - 120, by + 34), "SELECTED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.3, 0.8, 0.3))
+			_udraw(font, Vector2(bx + pw - 120, by + 34), "SELECTED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, c_green)
 	# Start button — large and prominent
 	var sb_w = 260.0
 	var sb_h = 50.0
@@ -29293,7 +29315,7 @@ func _draw_odyssey_panel() -> void:
 			if odyssey_maps[mi] < levels.size():
 				map_names += levels[odyssey_maps[mi]]["name"]
 		_udraw(font, Vector2(ox + 12, oy + 40), map_names, HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 14, Color(0.6, 0.5, 0.4))
-		_udraw(font, Vector2(ox + 12, oy + 56), "Trophies: %d | Reward: 10-30" % trophy_currency, HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 14, Color(0.85, 0.7, 0.2))
+		_udraw(font, Vector2(ox + 12, oy + 56), "Trophies: %d | Reward: 10-30" % trophy_currency, HORIZONTAL_ALIGNMENT_LEFT, pw - 110, 14, c_gold_warm)
 		# Start button
 		draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 46), Color(0.30, 0.15, 0.50, 0.75))
 		draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 2), Color(0.5, 0.3, 0.7, 0.5))
@@ -29518,7 +29540,7 @@ func _do_prestige() -> void:
 	level_difficulty_medals.clear()
 	level_difficulty_stars.clear()
 	# Keep: currencies, characters, gear, cosmetics, knowledge, chests
-	spawn_floating_text(Vector2(640, 300), "NEW STORY! Prestige %d" % prestige_level, Color(1.0, 0.85, 0.2), 28.0, 3.0)
+	spawn_floating_text(Vector2(640, 300), "NEW STORY! Prestige %d" % prestige_level, c_gold_bright, 28.0, 3.0)
 	_save_game()
 
 func _can_prestige() -> bool:
@@ -29565,7 +29587,7 @@ func _check_milestones() -> void:
 				"shards": player_gear_shards += m["reward_amount"]
 				"quills": player_quills += m["reward_amount"]
 				"gold_chest": treasure_chests_owned["gold"] += m["reward_amount"]
-			spawn_floating_text(Vector2(640, 280), "MILESTONE: %s!" % m["name"], Color(1.0, 0.85, 0.2), 20.0, 2.5)
+			spawn_floating_text(Vector2(640, 280), "MILESTONE: %s!" % m["name"], c_gold_bright, 20.0, 2.5)
 			_save_game()
 
 # === CHARACTER MASTERY CHALLENGES ===
@@ -29607,14 +29629,14 @@ func _draw_trophy_store() -> void:
 		var col = menu_bg_section.lerp(menu_bg_dark, t)
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
 	# Gold border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title
 	_udraw(font, Vector2(panel_x + panel_w * 0.5 - 60, panel_y + 28), "TROPHY STORE", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.7, 0.2, 0.9))
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Trophies: %d" % trophy_currency, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
-	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Trophies: %d" % trophy_currency, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
 	# Categories
 	var store_cats = ["auras", "trails", "fanfares", "themes"]
 	var store_cat_names = ["Tower Auras", "Projectile Trails", "Victory Fanfares", "Menu Themes"]
@@ -29653,16 +29675,16 @@ func _draw_trophy_store() -> void:
 			_udraw(font, Vector2(ix + 34, iy + 18), item["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 15, Color(0.8, 0.7, 0.5))
 			_udraw(font, Vector2(ix + 34, iy + 32), item["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 40), 14, Color(0.5, 0.45, 0.38))
 			if is_equipped:
-				_udraw(font, Vector2(ix + card_w - 65, iy + 18), "EQUIPPED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
+				_udraw(font, Vector2(ix + card_w - 65, iy + 18), "EQUIPPED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_green)
 			elif is_owned:
 				_udraw(font, Vector2(ix + card_w - 50, iy + 18), "OWNED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.5, 0.7, 0.9))
 			else:
-				_udraw(font, Vector2(ix + card_w - 60, iy + 18), "%d T" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.85, 0.7, 0.2))
+				_udraw(font, Vector2(ix + card_w - 60, iy + 18), "%d T" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, c_gold_warm)
 		var rows_in_cat = (items.size() + 3) / 4
 		start_y += float(rows_in_cat) * (card_h + 6) + 8.0
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
+	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
 	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 # === CLICK HANDLERS FOR NEW FEATURES ===
@@ -29738,12 +29760,12 @@ func _draw_gear_shop() -> void:
 		var t = float(i) / 55.0
 		var col = menu_bg_section.lerp(menu_bg_dark, t)
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR SHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.85, 0.7, 0.2, 0.9))
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	var card_w = 260.0
 	var card_h = 48.0
 	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
@@ -29778,8 +29800,8 @@ func _draw_gear_shop() -> void:
 			_udraw(font, Vector2(ix + 8, iy + 16), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 80), 15, Color(0.8, 0.7, 0.5))
 			_udraw(font, Vector2(ix + 8, iy + 30), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 16), 14, Color(0.5, 0.45, 0.38))
 			if count > 0:
-				_udraw(font, Vector2(ix + card_w - 35, iy + 16), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.3, 0.8, 0.3))
-			_udraw(font, Vector2(ix + card_w - 55, iy + 30), "%d S" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.85, 0.7, 0.2))
+				_udraw(font, Vector2(ix + card_w - 35, iy + 16), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_green)
+			_udraw(font, Vector2(ix + card_w - 55, iy + 30), "%d S" % rarity_costs[rarity], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 		var rows_in_rarity = (gear_in_tier.size() + 3) / 4
 		var section_h = float(rows_in_rarity) * (card_h + 6) + 8.0
 		start_y += section_h
@@ -29798,7 +29820,7 @@ func _draw_gear_shop() -> void:
 	# Back button (always visible at bottom)
 	draw_rect(Rect2(panel_x + 2, panel_y + panel_h - 50, panel_w - 4, 48), Color(0.03, 0.03, 0.06, 0.95))
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
+	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
 	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_gear_shop_clicked(mouse_pos: Vector2) -> void:
@@ -29930,7 +29952,7 @@ func _draw_salvage_panel() -> void:
 	for i in range(56):
 		var t = float(i) / 55.0
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
+	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "SALVAGE WORKSHOP", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -29968,7 +29990,7 @@ func _draw_salvage_panel() -> void:
 			row += 1
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
+	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
 	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_salvage_clicked(mouse_pos: Vector2) -> void:
@@ -30014,13 +30036,13 @@ func _draw_chest_crafting() -> void:
 	for i in range(56):
 		var t = float(i) / 55.0
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
+	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "CHEST FORGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var tier_names = ["Bronze", "Silver", "Golden"]
 	var chest_keys = ["bronze", "silver", "gold"]
-	var chest_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), Color(0.85, 0.65, 0.1)]
+	var chest_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), c_gold]
 	for i in range(3):
 		var craft = golden_chest_craft_costs[i]
 		var cx = panel_x + 80 + float(i) * 360.0
@@ -30045,7 +30067,7 @@ func _draw_chest_crafting() -> void:
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 165), "FORGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.9, 0.85, 0.6) if can_afford else Color(0.4, 0.4, 0.4))
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
+	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
 	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_chest_crafting_clicked(mouse_pos: Vector2) -> void:
@@ -30455,6 +30477,19 @@ func _on_portrait_draw(ctrl: Control) -> void:
 	if selected_tower_node.has_meta("tower_type_enum"):
 		tower_type_int = int(selected_tower_node.get_meta("tower_type_enum"))
 
+	# Use AI portrait texture if available — skip procedural fallback
+	var speaker_name = _tower_type_to_name(tower_type_int)
+	if speaker_name != "" and _portrait_textures.has(speaker_name) and _portrait_textures[speaker_name] != null:
+		var tex = _portrait_textures[speaker_name]
+		var tex_size = tex.get_size()
+		var fit_size = 72.0  # Fit within 100x80 control with padding
+		var portrait_scale = fit_size / maxf(tex_size.x, tex_size.y)
+		var draw_w = tex_size.x * portrait_scale
+		var draw_h = tex_size.y * portrait_scale
+		ctrl.draw_texture_rect(tex, Rect2(cx - draw_w * 0.5, cy - draw_h * 0.5, draw_w, draw_h), false)
+		return
+
+	# Procedural fallback for missing portraits
 	match tower_type_int:
 		TowerType.ROBIN_HOOD:
 			var skin = Color(0.91, 0.74, 0.58)
@@ -30675,7 +30710,7 @@ func _draw_branch_upgrade_panel() -> void:
 				var can_afford = gold >= cost
 				var bg_c = Color(0.14, 0.10, 0.06, 0.9) if is_hover else Color(0.10, 0.07, 0.12, 0.85)
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), bg_c)
-				var bdr_c = Color(0.85, 0.65, 0.1, 0.6) if (can_afford and is_hover) else Color(0.5, 0.35, 0.6, 0.3)
+				var bdr_c = _ca(c_gold, 0.6) if (can_afford and is_hover) else Color(0.5, 0.35, 0.6, 0.3)
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), bdr_c, false, 1.0)
 				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.9, 0.8, 0.5))
 				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.75, 0.7, 0.65))
@@ -31025,7 +31060,7 @@ func _draw_instrument_shop() -> void:
 	for i in range(56):
 		var t = float(i) / 55.0
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4), false, 1.5)
+	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "LITERARY INSTRUMENTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Place instruments to buff nearby towers with aura effects", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -31055,7 +31090,7 @@ func _draw_instrument_shop() -> void:
 		_udraw(font, Vector2(btn_x + 41, btn_y + 20), "%dQ" % inst["cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_gold if can_buy else Color(0.4, 0.4, 0.4))
 	# Back button
 	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.54, 0.45, 0.20, 0.3), false, 1.0)
+	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
 	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
 
 func _on_instrument_shop_clicked(mouse_pos: Vector2) -> void:
@@ -31184,8 +31219,8 @@ func _draw_placed_instruments() -> void:
 		# Instrument body (small harp shape)
 		draw_circle(pos, 12.0, Color(0.6, 0.45, 0.15, 0.8))
 		draw_circle(pos, 8.0, Color(0.8, 0.65, 0.2, 0.9))
-		draw_line(pos + Vector2(0, -8), pos + Vector2(0, -18), Color(0.85, 0.7, 0.2), 2.0)
-		draw_line(pos + Vector2(-3, -16), pos + Vector2(3, -16), Color(0.85, 0.7, 0.2), 1.5)
+		draw_line(pos + Vector2(0, -8), pos + Vector2(0, -18), c_gold_warm, 2.0)
+		draw_line(pos + Vector2(-3, -16), pos + Vector2(3, -16), c_gold_warm, 1.5)
 		# Pulsing glow
 		var t = fmod(Time.get_ticks_msec() / 1000.0, TAU)
 		var pulse = 0.15 + sin(t * 2.0) * 0.08
@@ -31209,9 +31244,9 @@ func _draw_instrument_hud() -> void:
 	var is_placing = _placing_instrument != ""
 	var bg_col = Color(0.3, 0.2, 0.08, 0.85) if is_placing else Color(0.12, 0.08, 0.04, 0.75)
 	draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), bg_col)
-	draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.85, 0.65, 0.1, 0.5), false, 1.5)
+	draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), _ca(c_gold, 0.5), false, 1.5)
 	draw_circle(Vector2(btn_x + 16, btn_y + 19), 8, Color(0.85, 0.7, 0.2, 0.7))
-	_udraw(font, Vector2(btn_x + 28, btn_y + 24), "INSTRUMENTS", HORIZONTAL_ALIGNMENT_LEFT, int(btn_w - 32), 15, Color(0.85, 0.7, 0.2))
+	_udraw(font, Vector2(btn_x + 28, btn_y + 24), "INSTRUMENTS", HORIZONTAL_ALIGNMENT_LEFT, int(btn_w - 32), 15, c_gold_warm)
 	# If placing, show placement cursor
 	if is_placing:
 		var inst_data = null
@@ -31242,7 +31277,7 @@ func _draw_instrument_hud() -> void:
 				items.append(inst)
 		var ph = 8.0 + float(items.size()) * 32.0
 		draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.04, 0.08, 0.92))
-		draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.4), false, 1.0)
+		draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.4), false, 1.0)
 		for i in range(items.size()):
 			var inst = items[i]
 			var iy = py + 4 + float(i) * 32.0
@@ -31317,13 +31352,13 @@ func _draw_spin_wheel_panel() -> void:
 		var col = menu_bg_section.lerp(menu_bg_dark, t)
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
 	# Border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "LUCKY WHEEL", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.9))
-	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "LUCKY WHEEL", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, _ca(menu_gold_light, 0.9))
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
 	# Draw the wheel
 	var wheel_cx = panel_x + panel_w * 0.5
 	var wheel_cy = panel_y + panel_h * 0.45
@@ -31336,7 +31371,7 @@ func _draw_spin_wheel_panel() -> void:
 	var btn_y = wheel_cy + wheel_r + 30.0
 	if lucky_spin_available and not lucky_spin_spinning:
 		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.15, 0.5, 0.25, 0.9))
-		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.85, 0.65, 0.1, 0.6), false, 2.0)
+		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), _ca(c_gold, 0.6), false, 2.0)
 		_udraw(font, Vector2(wheel_cx, btn_y + 30), "SPIN FREE!", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 20), 18, Color(0.95, 0.85, 0.3))
 	elif lucky_spin_spinning:
 		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.12, 0.1, 0.2, 0.7))
@@ -31363,13 +31398,13 @@ func _draw_merchant_panel() -> void:
 		var col = menu_bg_section.lerp(menu_bg_dark, t)
 		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
 	# Border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
 	# Title
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "WANDERING MERCHANT", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(menu_gold_light.r, menu_gold_light.g, menu_gold_light.b, 0.9))
-	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 28), "WANDERING MERCHANT", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, _ca(menu_gold_light, 0.9))
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 	# Merchant inventory grid
 	if merchant_inventory.size() == 0:
 		_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + panel_h * 0.45), "The merchant has departed...", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, menu_text_muted)
@@ -31391,13 +31426,13 @@ func _draw_merchant_panel() -> void:
 			# Card bg
 			var hover = false  # Would be set by hover tracking
 			draw_rect(Rect2(ix, iy, card_w, card_h), menu_bg_card_hover if hover else menu_bg_card)
-			draw_rect(Rect2(ix, iy, card_w, card_h), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3), false, 1.0)
+			draw_rect(Rect2(ix, iy, card_w, card_h), _ca(menu_gold_dim, 0.3), false, 1.0)
 			# Item name
 			_udraw(font, Vector2(ix + card_w * 0.5, iy + 22), item["name"], HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 16), 16, menu_gold_light)
 			# Description
 			_udraw(font, Vector2(ix + card_w * 0.5, iy + 42), item["desc"], HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 16), 13, menu_text)
 			# Cost
-			var cost_col = Color(0.85, 0.65, 0.1) if item["cost_type"] == "gold" else Color(0.4, 0.9, 0.6)
+			var cost_col = c_gold if item["cost_type"] == "gold" else Color(0.4, 0.9, 0.6)
 			var cost_icon = "G" if item["cost_type"] == "gold" else "C"
 			_udraw(font, Vector2(ix + card_w * 0.5, iy + 66), "%d %s" % [item["cost"], cost_icon], HORIZONTAL_ALIGNMENT_CENTER, -1, 15, cost_col)
 			# Buy button
@@ -31407,7 +31442,7 @@ func _draw_merchant_panel() -> void:
 			var can_buy = (item["cost_type"] == "gold" and gold >= item["cost"]) or (item["cost_type"] == "crystals" and player_crystals >= item["cost"])
 			var bb_col = Color(0.12, 0.45, 0.2, 0.9) if can_buy else Color(0.15, 0.1, 0.1, 0.6)
 			draw_rect(Rect2(bb_x, bb_y, bb_w, 26), bb_col)
-			draw_rect(Rect2(bb_x, bb_y, bb_w, 26), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.3), false, 1.0)
+			draw_rect(Rect2(bb_x, bb_y, bb_w, 26), _ca(menu_gold_dim, 0.3), false, 1.0)
 			_udraw(font, Vector2(bb_x + bb_w * 0.5, bb_y + 18), "BUY" if can_buy else "CAN'T", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.9, 0.85, 0.5) if can_buy else Color(0.4, 0.35, 0.3))
 	# Back button
 	_udraw(font, Vector2(panel_x + 20, panel_y + 28), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_text_muted)
@@ -31497,7 +31532,7 @@ func _awaken_character(tower_type) -> bool:
 		levelup_fanfare_particles.append({
 			"pos": Vector2(640, 360),
 			"vel": Vector2(cos(angle) * speed, sin(angle) * speed),
-			"color": Color(1.0, 0.85, 0.2, 1.0),
+			"color": _ca(c_gold_bright, 1.0),
 			"life": rng.randf_range(1.0, 2.5),
 		})
 	_save_game()
@@ -31733,7 +31768,7 @@ func _draw_levelup_fanfare() -> void:
 	var cx = 640.0 - tw * 0.5
 	var cy = 280.0 - levelup_fanfare_timer * 15.0
 	_udraw(font, Vector2(cx + 2, cy + 2), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0, 0, 0, text_alpha * 0.5))
-	_udraw(font, Vector2(cx, cy), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1.0, 0.85, 0.2, text_alpha))
+	_udraw(font, Vector2(cx, cy), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, _ca(c_gold_bright, text_alpha))
 
 # ============================================================================
 # === BATTD3: SESSION STATS RECAP ===
@@ -31769,10 +31804,10 @@ func _draw_session_recap() -> void:
 	var pw = 800.0
 	var ph = 600.0
 	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
-	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.5), false, 2.0)
+	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
 	# Title
-	_udraw(font, Vector2(px + 20, py + 30), "SESSION STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.85, 0.65, 0.1))
-	draw_rect(Rect2(px + 20, py + 38, 150, 1), Color(0.85, 0.65, 0.1, 0.3))
+	_udraw(font, Vector2(px + 20, py + 30), "SESSION STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, c_gold)
+	draw_rect(Rect2(px + 20, py + 38, 150, 1), _ca(c_gold, 0.3))
 	# Stats
 	var sy = py + 60.0
 	var stat_items = [
@@ -31789,8 +31824,8 @@ func _draw_session_recap() -> void:
 		sy += 26.0
 	# Tower Breakdown
 	sy += 10.0
-	_udraw(font, Vector2(px + 40, sy + 14), "TOWER DAMAGE BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.65, 0.1, 0.8))
-	draw_rect(Rect2(px + 40, sy + 20, 200, 1), Color(0.85, 0.65, 0.1, 0.2))
+	_udraw(font, Vector2(px + 40, sy + 14), "TOWER DAMAGE BREAKDOWN", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(c_gold, 0.8))
+	draw_rect(Rect2(px + 40, sy + 20, 200, 1), _ca(c_gold, 0.2))
 	sy += 30.0
 	var breakdown = session_stats.get("tower_breakdown", [])
 	var max_dmg = 1.0
@@ -31800,10 +31835,10 @@ func _draw_session_recap() -> void:
 	for i in range(mini(breakdown.size(), 8)):
 		var entry = breakdown[i]
 		var bar_w = 350.0 * (entry["damage"] / max_dmg)
-		draw_rect(Rect2(px + 200, sy + 2, bar_w, 14), Color(0.85, 0.65, 0.1, 0.3))
+		draw_rect(Rect2(px + 200, sy + 2, bar_w, 14), _ca(c_gold, 0.3))
 		_udraw(font, Vector2(px + 40, sy + 14), entry["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_parchment)
 		var dmg_str = _format_number(entry["damage"])
-		_udraw(font, Vector2(px + 200 + bar_w + 8, sy + 14), dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1))
+		_udraw(font, Vector2(px + 200 + bar_w + 8, sy + 14), dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, c_gold)
 		sy += 22.0
 	# Close button
 	var close_x = px + pw - 40.0
@@ -31854,9 +31889,9 @@ func _draw_career_stats() -> void:
 	var pw = 880.0
 	var ph = 640.0
 	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
-	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.65, 0.1, 0.5), false, 2.0)
-	_udraw(font, Vector2(px + 30, py + 35), "CAREER STATISTICS", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.85, 0.65, 0.1))
-	draw_rect(Rect2(px + 30, py + 44, 200, 2), Color(0.85, 0.65, 0.1, 0.3))
+	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
+	_udraw(font, Vector2(px + 30, py + 35), "CAREER STATISTICS", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, c_gold)
+	draw_rect(Rect2(px + 30, py + 44, 200, 2), _ca(c_gold, 0.3))
 	var sy = py + 70.0
 	var stats = [
 		["Games Played", str(career_stats.get("total_games_played", 0))],
@@ -31903,7 +31938,7 @@ func _draw_career_stats() -> void:
 	var fav = career_stats.get("favorite_tower", -1)
 	if fav >= 0 and fav < character_names.size():
 		var fav_y = py + ph - 90.0
-		_udraw(font, Vector2(px + 50, fav_y + 14), "FAVORITE TOWER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.65, 0.1, 0.7))
+		_udraw(font, Vector2(px + 50, fav_y + 14), "FAVORITE TOWER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(c_gold, 0.7))
 		_udraw(font, Vector2(px + 50, fav_y + 34), character_names[fav], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, menu_parchment)
 	# Close button
 	_udraw(font, Vector2(px + pw - 40, py + 22), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.3, 0.2, 0.8))
@@ -31956,14 +31991,14 @@ func _draw_next_goals_widget() -> void:
 	var wx = 70.0
 	var wy = 575.0
 	var ww = 300.0
-	_udraw(font, Vector2(wx, wy + 12), "NEAREST GOALS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.5))
+	_udraw(font, Vector2(wx, wy + 12), "NEAREST GOALS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold, 0.5))
 	var gy = wy + 18.0
 	for goal in _next_goals:
 		var pct = goal["pct"]
 		var bar_w = ww - 20.0
 		# Progress bar
 		draw_rect(Rect2(wx, gy + 4, bar_w, 8), Color(0.1, 0.1, 0.15))
-		draw_rect(Rect2(wx, gy + 4, bar_w * pct, 8), Color(0.85, 0.65, 0.1, 0.6))
+		draw_rect(Rect2(wx, gy + 4, bar_w * pct, 8), _ca(c_gold, 0.6))
 		# Label
 		var type_icon = "[Q]" if goal["type"] == "quest" else "[A]"
 		var desc = "%s %s (%d/%d)" % [type_icon, goal["desc"], goal["progress"], goal["target"]]
@@ -32018,7 +32053,7 @@ func _draw_recent_items_widget() -> void:
 	var font = game_font
 	var wx = 900.0
 	var wy = 575.0
-	_udraw(font, Vector2(wx, wy + 12), "RECENT ITEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.65, 0.1, 0.5))
+	_udraw(font, Vector2(wx, wy + 12), "RECENT ITEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold, 0.5))
 	var iy = wy + 18.0
 	for item in recent_items:
 		var rc = TIER_COLORS.get(item.get("tier", "common"), Color(0.6, 0.6, 0.65))
@@ -32163,7 +32198,7 @@ func _draw_global_dps_meter() -> void:
 	if _global_dps_value > 500:
 		col = Color(0.3, 1.0, 0.4, 0.6)
 	if _global_dps_value > 2000:
-		col = Color(1.0, 0.85, 0.2, 0.7)
+		col = _ca(c_gold_bright, 0.7)
 	_udraw(font, Vector2(1200, 66), dps_text, HORIZONTAL_ALIGNMENT_RIGHT, -1, 12, col)
 
 # --- Feature 15: Placement Rating ---
@@ -32200,7 +32235,7 @@ func _calculate_placement_rating() -> String:
 
 func _draw_placement_rating() -> void:
 	var alpha = clampf(_placement_rating_timer / 2.0, 0.0, 1.0)
-	var rating_colors = {"S": Color(1.0, 0.85, 0.2), "A": Color(0.3, 1.0, 0.4), "B": Color(0.4, 0.7, 1.0), "C": Color(0.8, 0.7, 0.5), "D": Color(0.8, 0.3, 0.2)}
+	var rating_colors = {"S": c_gold_bright, "A": Color(0.3, 1.0, 0.4), "B": Color(0.4, 0.7, 1.0), "C": Color(0.8, 0.7, 0.5), "D": Color(0.8, 0.3, 0.2)}
 	var col = rating_colors.get(_placement_rating, Color(0.7, 0.7, 0.7))
 	var font = game_font
 	var rx = 120.0
@@ -32376,7 +32411,7 @@ func _create_paragon(tower_type) -> void:
 	_paragon_flash_pos = paragon_pos
 	_screen_shake_timer = 0.6
 	_screen_shake_intensity = 8.0
-	spawn_floating_text(paragon_pos + Vector2(0, -40), "PARAGON CREATED!", Color(1.0, 0.85, 0.2), 22.0, 2.5)
+	spawn_floating_text(paragon_pos + Vector2(0, -40), "PARAGON CREATED!", c_gold_bright, 22.0, 2.5)
 	_play_sfx(_sfx_victory)
 	_check_achievement("paragon_creator", 1)
 
@@ -32386,14 +32421,14 @@ func _draw_paragon_effects() -> void:
 			var tpos = tower.global_position
 			var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 			# Golden aura ring
-			draw_arc(tpos, 30.0 + pulse * 5.0, 0, TAU, 48, Color(1.0, 0.85, 0.2, 0.15 + pulse * 0.1), 2.5)
+			draw_arc(tpos, 30.0 + pulse * 5.0, 0, TAU, 48, _ca(c_gold_bright, 0.15 + pulse * 0.1), 2.5)
 			draw_arc(tpos, 20.0 + pulse * 3.0, 0, TAU, 32, Color(1.0, 0.7, 0.1, 0.1 + pulse * 0.05), 1.5)
 			# Crown icon above
 			var crown_y = tpos.y - 32.0 - pulse * 2.0
-			draw_line(Vector2(tpos.x - 8, crown_y), Vector2(tpos.x - 4, crown_y - 6), Color(1.0, 0.85, 0.2, 0.8), 2.0)
-			draw_line(Vector2(tpos.x - 4, crown_y - 6), Vector2(tpos.x, crown_y - 2), Color(1.0, 0.85, 0.2, 0.8), 2.0)
-			draw_line(Vector2(tpos.x, crown_y - 2), Vector2(tpos.x + 4, crown_y - 6), Color(1.0, 0.85, 0.2, 0.8), 2.0)
-			draw_line(Vector2(tpos.x + 4, crown_y - 6), Vector2(tpos.x + 8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+			draw_line(Vector2(tpos.x - 8, crown_y), Vector2(tpos.x - 4, crown_y - 6), _ca(c_gold_bright, 0.8), 2.0)
+			draw_line(Vector2(tpos.x - 4, crown_y - 6), Vector2(tpos.x, crown_y - 2), _ca(c_gold_bright, 0.8), 2.0)
+			draw_line(Vector2(tpos.x, crown_y - 2), Vector2(tpos.x + 4, crown_y - 6), _ca(c_gold_bright, 0.8), 2.0)
+			draw_line(Vector2(tpos.x + 4, crown_y - 6), Vector2(tpos.x + 8, crown_y), _ca(c_gold_bright, 0.8), 2.0)
 	if _paragon_flash_timer > 0.0:
 		var alpha = clampf(_paragon_flash_timer / 2.0, 0.0, 1.0)
 		var radius = (2.0 - _paragon_flash_timer) * 100.0
@@ -32486,7 +32521,7 @@ func _draw_tower_kill_counts() -> void:
 			# Small kill badge below tower
 			var badge_pos = tpos + Vector2(0, 22)
 			draw_circle(badge_pos, 10.0, Color(0.15, 0.15, 0.2, 0.8))
-			_udraw(game_font, badge_pos + Vector2(0, -5), kill_text, HORIZONTAL_ALIGNMENT_CENTER, 20, 9, Color(1.0, 0.85, 0.2))
+			_udraw(game_font, badge_pos + Vector2(0, -5), kill_text, HORIZONTAL_ALIGNMENT_CENTER, 20, 9, c_gold_bright)
 
 # --- Improvement 6: REGROW BLOCKER DEBUFF ---
 # Towers with anti-regrow ability prevent enemies from splitting on death
@@ -32960,10 +32995,10 @@ func _draw_animated_logo(bar_y: float) -> void:
 	_logo_glow_phase = _time
 	# Outer glow halo (pulsing)
 	var glow_r = 80.0 + sin(_time * 0.8) * 10.0
-	draw_circle(Vector2(logo_x + 50, logo_y - 2), glow_r, Color(0.85, 0.65, 0.1, 0.03 + sin(_time * 1.5) * 0.015))
+	draw_circle(Vector2(logo_x + 50, logo_y - 2), glow_r, _ca(c_gold, 0.03 + sin(_time * 1.5) * 0.015))
 	draw_circle(Vector2(logo_x + 50, logo_y - 2), glow_r * 0.6, Color(0.9, 0.7, 0.15, 0.04 + sin(_time * 2.0) * 0.02))
 	# Drop shadow (deeper)
-	_udraw(font, Vector2(logo_x + 2, logo_y + 3), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, 300, 18, Color(0, 0, 0, 0.7))
+	_udraw(font, Vector2(logo_x + 2, logo_y + 3), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, 300, 18, c_overlay)
 	# Main title with color gradient via two overlapping draws
 	var pulse = 0.9 + sin(_time * 1.2) * 0.1
 	_udraw(font, Vector2(logo_x, logo_y), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, 300, 18, Color(0.95 * pulse, 0.78 * pulse, 0.18, 1.0))
@@ -33013,7 +33048,7 @@ func _draw_nav_badge(center: Vector2, count: int) -> void:
 	var font = game_font
 	var badge_r = 9.0
 	# Red circle with white border
-	draw_circle(center, badge_r + 1, Color(0.0, 0.0, 0.0, 0.5))
+	draw_circle(center, badge_r + 1, c_shadow)
 	draw_circle(center, badge_r, Color(0.9, 0.15, 0.1, 0.95))
 	draw_arc(center, badge_r, 0, TAU, 16, Color(1, 1, 1, 0.3), 1.0)
 	# Shine highlight
@@ -33036,7 +33071,7 @@ func _get_hero_power_tier(tower_type) -> int:
 func _draw_hero_rarity_border(rx: float, ry: float, rw: float, rh: float, tier: int) -> void:
 	if tier == 0:
 		return
-	var cols = [Color(0.3, 0.7, 0.3), Color(0.3, 0.5, 0.9), Color(0.7, 0.4, 0.9), Color(1.0, 0.85, 0.2)]
+	var cols = [Color(0.3, 0.7, 0.3), Color(0.3, 0.5, 0.9), Color(0.7, 0.4, 0.9), c_gold_bright]
 	var c = cols[mini(tier, 3)]
 	var shimmer_speed = 60.0 + float(tier) * 30.0
 	# Animated border
@@ -33150,7 +33185,7 @@ func _draw_event_banner(panel_x: float, panel_y: float, panel_w: float) -> void:
 	if prestige_level > 0:
 		banners.append({"text": "PRESTIGE %d ACTIVE" % prestige_level, "sub": "+%d%% XP bonus" % (prestige_level * 10), "color": Color(0.7, 0.4, 0.9)})
 	if endless_high_wave > 0:
-		banners.append({"text": "ENDLESS MODE RECORD: WAVE %d" % endless_high_wave, "sub": "Can you beat it?", "color": Color(0.3, 0.7, 0.9)})
+		banners.append({"text": "ENDLESS MODE RECORD: WAVE %d" % endless_high_wave, "sub": "Can you beat it?", "color": c_cyan})
 	banners.append({"text": "ADVENTURE AWAITS!", "sub": "%d/%d levels completed" % [completed_levels.size(), levels.size()], "color": Color(0.35, 0.75, 0.35)})
 	if banners.size() == 0:
 		return
@@ -33197,7 +33232,7 @@ func _draw_hero_power_bar(cx: float, cy: float, cw: float, tower_type) -> void:
 	draw_rect(Rect2(bar_x, bar_y, bar_w, bar_h), Color(0.1, 0.1, 0.15, 0.7))
 	# Fill with tier-colored gradient
 	var tier = _get_hero_power_tier(tower_type)
-	var tier_cols = [Color(0.4, 0.4, 0.4), Color(0.3, 0.7, 0.3), Color(0.3, 0.5, 0.9), Color(0.7, 0.4, 0.9), Color(1.0, 0.85, 0.2)]
+	var tier_cols = [Color(0.4, 0.4, 0.4), Color(0.3, 0.7, 0.3), Color(0.3, 0.5, 0.9), Color(0.7, 0.4, 0.9), c_gold_bright]
 	var fc = tier_cols[mini(tier, 4)]
 	var fill_w = bar_w * pct
 	draw_rect(Rect2(bar_x, bar_y, fill_w, bar_h), Color(fc.r, fc.g, fc.b, 0.8))
@@ -33291,12 +33326,12 @@ func _draw_toast_notification() -> void:
 	var tw = 380.0
 	var th = 50.0
 	# Background
-	_draw_glass_panel(tx, ty, tw, th, Color(tc.r * 0.1, tc.g * 0.1, tc.b * 0.1), Color(tc.r, tc.g, tc.b, 0.5))
+	_draw_glass_panel(tx, ty, tw, th, Color(tc.r * 0.1, tc.g * 0.1, tc.b * 0.1), _ca(tc, 0.5))
 	# Accent stripe
-	draw_rect(Rect2(tx, ty, 4, th), Color(tc.r, tc.g, tc.b, 0.9))
+	draw_rect(Rect2(tx, ty, 4, th), _ca(tc, 0.9))
 	# Icon circle
-	draw_circle(Vector2(tx + 24, ty + th * 0.5), 12, Color(tc.r, tc.g, tc.b, 0.3))
-	draw_circle(Vector2(tx + 24, ty + th * 0.5), 8, Color(tc.r, tc.g, tc.b, 0.5))
+	draw_circle(Vector2(tx + 24, ty + th * 0.5), 12, _ca(tc, 0.3))
+	draw_circle(Vector2(tx + 24, ty + th * 0.5), 8, _ca(tc, 0.5))
 	_udraw(font, Vector2(tx + 24, ty + th * 0.5 + 5), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1, 1, 1, 0.9))
 	# Text
 	_udraw(font, Vector2(tx + 46, ty + 22), _toast_active["text"], HORIZONTAL_ALIGNMENT_LEFT, int(tw - 56), 14, Color(1, 1, 1, 0.95))
@@ -33529,7 +33564,7 @@ func _draw_filter_sort_bar(px: float, py: float, pw: float) -> void:
 	var bar_y = py
 	var filter_sz = 14
 	draw_rect(Rect2(px, bar_y, pw, 26), Color(0.03, 0.03, 0.08, 0.8))
-	draw_rect(Rect2(px, bar_y + 25, pw, 1), Color(menu_gold_dim.r, menu_gold_dim.g, menu_gold_dim.b, 0.2))
+	draw_rect(Rect2(px, bar_y + 25, pw, 1), _ca(menu_gold_dim, 0.2))
 	var fx = px + 8.0
 	for fi in range(_filter_options.size()):
 		var f = _filter_options[fi]
@@ -33537,8 +33572,8 @@ func _draw_filter_sort_bar(px: float, py: float, pw: float) -> void:
 		var fw = font.get_string_size(f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz).x + 16
 		var bg_a = 0.4 if is_active else 0.1
 		var fc = menu_gold if is_active else Color(0.6, 0.6, 0.6, 0.6)
-		draw_rect(Rect2(fx, bar_y + 3, fw, 20), Color(menu_gold.r, menu_gold.g, menu_gold.b, bg_a))
-		draw_rect(Rect2(fx, bar_y + 3, fw, 20), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3 if is_active else 0.1), false, 1.0)
+		draw_rect(Rect2(fx, bar_y + 3, fw, 20), _ca(menu_gold, bg_a))
+		draw_rect(Rect2(fx, bar_y + 3, fw, 20), _ca(menu_gold, 0.3 if is_active else 0.1), false, 1.0)
 		_udraw(font, Vector2(fx + 8, bar_y + 18), f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz, fc)
 		fx += fw + 4.0
 	var sort_text = "SORT: %s" % _grid_sort
@@ -33570,13 +33605,13 @@ func _draw_upgrade_ready_indicator(cx: float, cy: float, cw: float) -> void:
 	var pulse = 0.6 + sin(_time * 4.0) * 0.4
 	var arrow_x = cx + cw - 28.0
 	var arrow_y = cy + 4.0
-	draw_rect(Rect2(arrow_x, arrow_y + 6, 14, 10), Color(0.85, 0.65, 0.1, pulse * 0.8))
+	draw_rect(Rect2(arrow_x, arrow_y + 6, 14, 10), _ca(c_gold, pulse * 0.8))
 	var pts = PackedVector2Array([
 		Vector2(arrow_x + 7, arrow_y), Vector2(arrow_x - 2, arrow_y + 8), Vector2(arrow_x + 16, arrow_y + 8)
 	])
-	draw_colored_polygon(pts, Color(0.85, 0.65, 0.1, pulse))
-	draw_circle(Vector2(arrow_x + 7, arrow_y + 8), 10.0, Color(0.85, 0.65, 0.1, pulse * 0.1))
-	_udraw(game_font, Vector2(arrow_x + 7, arrow_y + 24), "UP!", HORIZONTAL_ALIGNMENT_CENTER, -1, 7, Color(0.85, 0.65, 0.1, pulse))
+	draw_colored_polygon(pts, _ca(c_gold, pulse))
+	draw_circle(Vector2(arrow_x + 7, arrow_y + 8), 10.0, _ca(c_gold, pulse * 0.1))
+	_udraw(game_font, Vector2(arrow_x + 7, arrow_y + 24), "UP!", HORIZONTAL_ALIGNMENT_CENTER, -1, 7, _ca(c_gold, pulse))
 
 func _can_hero_upgrade(tower_type) -> bool:
 	var prog = survivor_progress.get(tower_type, {})
@@ -33634,18 +33669,18 @@ func _draw_collection_milestones(px: float, py: float) -> void:
 		var m = milestones[mi]
 		var achieved = unlocked_count >= m
 		var dot_x = px + float(mi) * 24.0
-		var col = Color(0.85, 0.65, 0.1, 0.8) if achieved else Color(0.3, 0.3, 0.35, 0.4)
+		var col = _ca(c_gold, 0.8) if achieved else Color(0.3, 0.3, 0.35, 0.4)
 		draw_circle(Vector2(dot_x, py), 8.0, col)
 		_udraw(font, Vector2(dot_x, py + 4), str(m), HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(1, 1, 1, 0.8) if achieved else Color(0.5, 0.5, 0.5, 0.4))
 		if achieved:
-			draw_arc(Vector2(dot_x, py), 9.0, 0, TAU, 12, Color(0.85, 0.65, 0.1, 0.3 + sin(_time * 2.0 + float(mi)) * 0.15), 1.5)
+			draw_arc(Vector2(dot_x, py), 9.0, 0, TAU, 12, _ca(c_gold, 0.3 + sin(_time * 2.0 + float(mi)) * 0.15), 1.5)
 
 # --- CharMenu 7: ACTIVE PARTY SLOTS ---
 var _party_slots: Array = [0, 1, 2, 3, 4]
 
 func _draw_party_slots(px: float, py: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(px, py + 10), "ACTIVE PARTY", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4))
+	_udraw(font, Vector2(px, py + 10), "ACTIVE PARTY", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold, 0.4))
 	var slot_size = 24.0
 	var sx = px + 80.0
 	for pi in range(mini(_party_slots.size(), 5)):
@@ -33738,9 +33773,9 @@ func _draw_quick_info_popup(cx: float, cy: float, cw: float, tower_index: int) -
 	var ph = 110.0
 	var ppx = cx + cw * 0.5 - pw * 0.5
 	var ppy = cy - ph - 8.0
-	draw_rect(Rect2(ppx - 1, ppy - 1, pw + 2, ph + 2), Color(0, 0, 0, 0.7))
+	draw_rect(Rect2(ppx - 1, ppy - 1, pw + 2, ph + 2), c_overlay)
 	draw_rect(Rect2(ppx, ppy, pw, ph), Color(0.04, 0.03, 0.10, 0.95))
-	draw_rect(Rect2(ppx, ppy, pw, ph), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.4), false, 1.5)
+	draw_rect(Rect2(ppx, ppy, pw, ph), _ca(menu_gold, 0.4), false, 1.5)
 	_udraw(font, Vector2(ppx + 8, ppy + 16), info["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_gold)
 	_udraw(font, Vector2(ppx + 8, ppy + 32), "%s | %s" % [_get_hero_role_str(tower_index), _get_hero_element(tower_index)], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.7, 0.7, 0.7, 0.7))
 	_udraw(font, Vector2(ppx + 8, ppy + 50), "DMG: %d  SPD: %.2f  RNG: %d" % [info["damage"], info["fire_rate"], int(info["range"])], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, menu_parchment)
@@ -33752,7 +33787,7 @@ func _draw_quick_info_popup(cx: float, cy: float, cw: float, tower_index: int) -
 var _favorite_heroes: Array = []
 
 func _draw_favorite_icon(cx: float, cy: float, is_fav: bool) -> void:
-	var col = Color(1.0, 0.85, 0.2, 0.85) if is_fav else Color(0.35, 0.35, 0.4, 0.25)
+	var col = _ca(c_gold_bright, 0.85) if is_fav else Color(0.35, 0.35, 0.4, 0.25)
 	var sr = 5.5
 	var pts = PackedVector2Array()
 	for si in range(10):
@@ -33761,7 +33796,7 @@ func _draw_favorite_icon(cx: float, cy: float, is_fav: bool) -> void:
 		pts.append(Vector2(cx + cos(sa) * sd, cy + sin(sa) * sd))
 	draw_colored_polygon(pts, col)
 	if is_fav:
-		draw_circle(Vector2(cx, cy), 7.0, Color(1.0, 0.85, 0.2, 0.06 + sin(_time * 3.0) * 0.03))
+		draw_circle(Vector2(cx, cy), 7.0, _ca(c_gold_bright, 0.06 + sin(_time * 3.0) * 0.03))
 
 # --- CharMenu 12: CARD FLIP ANIMATION ---
 var _card_flip_index: int = -1
@@ -33789,9 +33824,9 @@ func _draw_detail_tabs(px: float, py: float, pw: float, accent: Color) -> void:
 	for ti in range(3):
 		var tx = px + float(ti) * tab_w
 		var is_active = (ti == _detail_tab)
-		draw_rect(Rect2(tx, py, tab_w, 26), Color(accent.r, accent.g, accent.b, 0.15 if is_active else 0.04))
+		draw_rect(Rect2(tx, py, tab_w, 26), _ca(accent, 0.15 if is_active else 0.04))
 		if is_active:
-			draw_rect(Rect2(tx, py + 24, tab_w, 2), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.8))
+			draw_rect(Rect2(tx, py + 24, tab_w, 2), _ca(menu_gold, 0.8))
 		_udraw(font, Vector2(tx + tab_w * 0.5, py + 17), _detail_tab_names[ti], HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_gold if is_active else Color(0.55, 0.55, 0.55, 0.6))
 
 func _handle_detail_tab_click(mouse_pos: Vector2, px: float, py: float, pw: float) -> bool:
@@ -33833,13 +33868,13 @@ func _draw_stat_radar(cx: float, cy: float, radius: float, tower_type, accent: C
 	for si in range(5):
 		var angle = float(si) * TAU / 5.0 - PI * 0.5
 		stat_pts.append(Vector2(cx + cos(angle) * radius * stats[si], cy + sin(angle) * radius * stats[si]))
-	draw_colored_polygon(stat_pts, Color(accent.r, accent.g, accent.b, 0.2))
+	draw_colored_polygon(stat_pts, _ca(accent, 0.2))
 	stat_pts.append(stat_pts[0])
 	for li in range(stat_pts.size() - 1):
-		draw_line(stat_pts[li], stat_pts[li + 1], Color(accent.r, accent.g, accent.b, 0.7), 2.0)
+		draw_line(stat_pts[li], stat_pts[li + 1], _ca(accent, 0.7), 2.0)
 	for si in range(5):
 		var angle = float(si) * TAU / 5.0 - PI * 0.5
-		draw_circle(Vector2(cx + cos(angle) * radius * stats[si], cy + sin(angle) * radius * stats[si]), 3.0, Color(accent.r, accent.g, accent.b, 0.9))
+		draw_circle(Vector2(cx + cos(angle) * radius * stats[si], cy + sin(angle) * radius * stats[si]), 3.0, _ca(accent, 0.9))
 		_udraw(font, Vector2(cx + cos(angle) * (radius + 14.0), cy + sin(angle) * (radius + 14.0) + 4), labels[si], HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.65, 0.65, 0.65, 0.55))
 
 # --- CharMenu 15: SWIPE BETWEEN HEROES ---
@@ -33857,9 +33892,9 @@ func _navigate_hero_detail(direction: int) -> void:
 func _draw_hero_nav_arrows(px: float, py: float, pw: float) -> void:
 	var font = game_font
 	draw_circle(Vector2(px + 14, py + 10), 12, Color(0.08, 0.08, 0.15, 0.7))
-	_udraw(font, Vector2(px + 14, py + 15), "<", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(px + 14, py + 15), "<", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, _ca(menu_gold, 0.6))
 	draw_circle(Vector2(px + pw - 14, py + 10), 12, Color(0.08, 0.08, 0.15, 0.7))
-	_udraw(font, Vector2(px + pw - 14, py + 15), ">", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.6))
+	_udraw(font, Vector2(px + pw - 14, py + 15), ">", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, _ca(menu_gold, 0.6))
 
 # --- CharMenu 16: LEVEL UP PREVIEW ---
 func _draw_levelup_preview(px: float, py: float, tower_type, lvl: int) -> void:
@@ -33882,17 +33917,17 @@ func _draw_skill_tree(px: float, py: float, pw: float, abilities: Array, accent:
 	for ai in range(mini(abilities.size(), 4) - 1):
 		var y1 = py + float(ai) * gap_y + node_r * 2
 		var y2 = py + float(ai + 1) * gap_y
-		draw_line(Vector2(cx, y1), Vector2(cx, y2), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.2), 2.0)
+		draw_line(Vector2(cx, y1), Vector2(cx, y2), _ca(menu_gold, 0.2), 2.0)
 	for ai in range(mini(abilities.size(), 4)):
 		var ny = py + float(ai) * gap_y
 		var is_hover = (detail_hover_type == "ability" and detail_hover_index == ai)
 		draw_circle(Vector2(cx, ny + node_r), node_r + 2, Color(0.03, 0.03, 0.08))
-		draw_circle(Vector2(cx, ny + node_r), node_r, Color(accent.r, accent.g, accent.b, 0.35 if is_hover else 0.15))
-		draw_arc(Vector2(cx, ny + node_r), node_r, 0, TAU, 16, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.7 if is_hover else 0.4), 2.0)
-		_udraw(font, Vector2(cx, ny + node_r + 5), str(ai + 1), HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.85, 0.65, 0.1, 0.9))
+		draw_circle(Vector2(cx, ny + node_r), node_r, _ca(accent, 0.35 if is_hover else 0.15))
+		draw_arc(Vector2(cx, ny + node_r), node_r, 0, TAU, 16, _ca(menu_gold, 0.7 if is_hover else 0.4), 2.0)
+		_udraw(font, Vector2(cx, ny + node_r + 5), str(ai + 1), HORIZONTAL_ALIGNMENT_CENTER, -1, 13, _ca(c_gold, 0.9))
 		_udraw(font, Vector2(cx + node_r + 10, ny + node_r - 2), abilities[ai].get("name", "Tier %d" % (ai + 1)), HORIZONTAL_ALIGNMENT_LEFT, int(pw - cx + px - node_r - 20), 11, menu_gold if is_hover else menu_parchment)
-		_udraw(font, Vector2(cx + node_r + 10, ny + node_r + 12), abilities[ai].get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - cx + px - node_r - 20), 9, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.7))
-		_udraw(font, Vector2(cx - node_r - 10, ny + node_r + 5), "%dG" % abilities[ai].get("cost", 0), HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color(0.85, 0.65, 0.1, 0.55))
+		_udraw(font, Vector2(cx + node_r + 10, ny + node_r + 12), abilities[ai].get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - cx + px - node_r - 20), 9, _ca(menu_text_muted, 0.7))
+		_udraw(font, Vector2(cx - node_r - 10, ny + node_r + 5), "%dG" % abilities[ai].get("cost", 0), HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, _ca(c_gold, 0.55))
 
 # --- CharMenu 18: CHARACTER QUOTES ---
 func _draw_character_quote_box(px: float, py: float, pw: float, hero_index: int) -> void:
@@ -33912,32 +33947,32 @@ func _draw_character_quote_box(px: float, py: float, pw: float, hero_index: int)
 	if quote == "":
 		return
 	draw_rect(Rect2(px, py, pw, 30), Color(0.04, 0.03, 0.08, 0.7))
-	draw_rect(Rect2(px, py, pw, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.15))
-	draw_rect(Rect2(px, py + 29, pw, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.15))
-	var qcol = Color(0.4, 0.8, 1.0, quote_alpha) if show_greeting else Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.85)
+	draw_rect(Rect2(px, py, pw, 1), _ca(menu_gold, 0.15))
+	draw_rect(Rect2(px, py + 29, pw, 1), _ca(menu_gold, 0.15))
+	var qcol = Color(0.4, 0.8, 1.0, quote_alpha) if show_greeting else _ca(menu_parchment, 0.85)
 	_udraw(font, Vector2(px + 12, py + 20), "\"%s\"" % quote, HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 16, qcol)
 
 # --- CharMenu 19: LORE SECTION ---
 func _draw_lore_section(px: float, py: float, pw: float, tower_type, hero_index: int) -> void:
 	var font = game_font
 	_udraw(font, Vector2(px, py + 14), "LORE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_gold)
-	draw_rect(Rect2(px, py + 18, 50, 1), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3))
+	draw_rect(Rect2(px, py + 18, 50, 1), _ca(menu_gold, 0.3))
 	var desc = survivor_descriptions.get(tower_type, "A legendary hero.")
 	var lines = desc.split("\n")
 	var ly = py + 28.0
 	for line in lines:
-		_udraw(font, Vector2(px, ly + 12), line, HORIZONTAL_ALIGNMENT_LEFT, int(pw), 14, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.7))
+		_udraw(font, Vector2(px, ly + 12), line, HORIZONTAL_ALIGNMENT_LEFT, int(pw), 14, _ca(menu_parchment, 0.7))
 		ly += 18.0
 	var novel = character_novels[hero_index] if hero_index < character_novels.size() else ""
-	_udraw(font, Vector2(px, ly + 14), "From: %s" % novel, HORIZONTAL_ALIGNMENT_LEFT, int(pw), 13, Color(menu_text_muted.r, menu_text_muted.g, menu_text_muted.b, 0.5))
+	_udraw(font, Vector2(px, ly + 14), "From: %s" % novel, HORIZONTAL_ALIGNMENT_LEFT, int(pw), 13, _ca(menu_text_muted, 0.5))
 
 # --- CharMenu 20: BOTTOM ACTION BAR ---
 func _draw_bottom_action_bar(px: float, py: float, pw: float, accent: Color) -> void:
 	var font = game_font
 	var bar_h = 42.0
 	draw_rect(Rect2(px, py, pw, bar_h), Color(0.03, 0.03, 0.08, 0.9))
-	draw_rect(Rect2(px, py, pw, 1), Color(accent.r, accent.g, accent.b, 0.3))
-	var actions = [{"l": "LEVEL UP", "c": Color(0.85, 0.65, 0.1)}, {"l": "EQUIP", "c": Color(0.3, 0.7, 0.9)}, {"l": "COMPARE", "c": Color(0.5, 0.7, 0.3)}, {"l": "FAVORITE", "c": Color(0.9, 0.3, 0.5)}]
+	draw_rect(Rect2(px, py, pw, 1), _ca(accent, 0.3))
+	var actions = [{"l": "LEVEL UP", "c": c_gold}, {"l": "EQUIP", "c": c_cyan}, {"l": "COMPARE", "c": Color(0.5, 0.7, 0.3)}, {"l": "FAVORITE", "c": Color(0.9, 0.3, 0.5)}]
 	var btn_w = (pw - 30.0) / float(actions.size())
 	for ai in range(actions.size()):
 		var bx = px + 6.0 + float(ai) * (btn_w + 6.0)
@@ -33967,7 +34002,7 @@ func _get_mastery_level(tower_type) -> int:
 func _draw_mastery_badge(cx: float, cy: float, mastery: int) -> void:
 	if mastery == 0:
 		return
-	var mc = [Color.WHITE, Color(0.6, 0.9, 0.6), Color(0.4, 0.6, 0.95), Color(0.7, 0.4, 0.9), Color(1.0, 0.85, 0.2), Color(1.0, 0.3, 0.3)][mini(mastery, 5)]
+	var mc = [Color.WHITE, Color(0.6, 0.9, 0.6), Color(0.4, 0.6, 0.95), Color(0.7, 0.4, 0.9), c_gold_bright, Color(1.0, 0.3, 0.3)][mini(mastery, 5)]
 	var pts = PackedVector2Array([Vector2(cx, cy - 9), Vector2(cx + 7, cy), Vector2(cx, cy + 9), Vector2(cx - 7, cy)])
 	draw_colored_polygon(pts, Color(mc.r, mc.g, mc.b, 0.7))
 	draw_circle(Vector2(cx, cy), 4.5, Color(0.02, 0.02, 0.06))
@@ -33986,10 +34021,10 @@ func _draw_gear_set_bonus_detail(px: float, py: float, pw: float, tower_type) ->
 			cgc += 1
 	if cgc == 0:
 		return
-	_udraw(font, Vector2(px, py + 10), "SET BONUS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.85, 0.2, 0.6))
+	_udraw(font, Vector2(px, py + 10), "SET BONUS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold_bright, 0.6))
 	draw_rect(Rect2(px, py + 14, pw, 5), Color(0.1, 0.1, 0.15, 0.4))
-	draw_rect(Rect2(px, py + 14, pw * clampf(float(cgc) / 5.0, 0.0, 1.0), 5), Color(1.0, 0.85, 0.2, 0.7))
-	_udraw(font, Vector2(px + pw + 6, py + 10), "+%d%%" % (cgc * 5), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.85, 0.2, 0.8))
+	draw_rect(Rect2(px, py + 14, pw * clampf(float(cgc) / 5.0, 0.0, 1.0), 5), _ca(c_gold_bright, 0.7))
+	_udraw(font, Vector2(px + pw + 6, py + 10), "+%d%%" % (cgc * 5), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold_bright, 0.8))
 
 # --- CharMenu 25: SIDE-BY-SIDE COMPARE ---
 var _compare_mode: bool = false
@@ -34039,7 +34074,7 @@ func _process_menu_bg_particles(delta: float) -> void:
 
 func _draw_menu_bg_particles() -> void:
 	for p in _menu_bg_particles:
-		draw_circle(p["pos"], p["size"], Color(0.85, 0.65, 0.1, p["alpha"] * (0.7 + sin(_time * 1.5 + p["phase"]) * 0.3)))
+		draw_circle(p["pos"], p["size"], _ca(c_gold, p["alpha"] * (0.7 + sin(_time * 1.5 + p["phase"]) * 0.3)))
 
 # --- Bonus 2: VOICE LINE ON TAP ---
 var _voice_line_text: String = ""
@@ -34061,8 +34096,8 @@ func _draw_voice_line_popup() -> void:
 	var tx = clampf(_voice_line_pos.x - tw * 0.5, 80, 1200 - tw)
 	var ty_pos = _voice_line_pos.y - 25 - rise
 	draw_rect(Rect2(tx, ty_pos, tw, 16), Color(0.04, 0.03, 0.10, 0.85 * alpha))
-	draw_rect(Rect2(tx, ty_pos, tw, 16), Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.3 * alpha), false, 1.0)
-	_udraw(font, Vector2(tx + 10, ty_pos + 12), "\"%s\"" % _voice_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, alpha))
+	draw_rect(Rect2(tx, ty_pos, tw, 16), _ca(menu_gold, 0.3 * alpha), false, 1.0)
+	_udraw(font, Vector2(tx + 10, ty_pos + 12), "\"%s\"" % _voice_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _ca(menu_parchment, alpha))
 
 # --- Bonus 3: DPS CALCULATOR ---
 func _calculate_hero_dps(tower_type) -> float:
@@ -34174,7 +34209,7 @@ func _get_hero_tier_rank(tower_type) -> String:
 
 func _draw_tier_rank_badge(cx: float, cy: float, tower_type) -> void:
 	var rank = _get_hero_tier_rank(tower_type)
-	var rc = {"S": Color(1.0, 0.85, 0.2), "A": Color(0.3, 0.8, 0.3), "B": Color(0.4, 0.6, 0.9), "C": Color(0.55, 0.55, 0.55)}.get(rank, Color(0.5, 0.5, 0.5))
+	var rc = {"S": c_gold_bright, "A": c_green, "B": Color(0.4, 0.6, 0.9), "C": Color(0.55, 0.55, 0.55)}.get(rank, Color(0.5, 0.5, 0.5))
 	draw_circle(Vector2(cx, cy), 9, Color(0.02, 0.02, 0.06, 0.8))
 	draw_circle(Vector2(cx, cy), 7, Color(rc.r, rc.g, rc.b, 0.25))
 	draw_arc(Vector2(cx, cy), 8, 0, TAU, 12, Color(rc.r, rc.g, rc.b, 0.55), 1.5)
@@ -34184,7 +34219,7 @@ func _draw_tier_rank_badge(cx: float, cy: float, tower_type) -> void:
 func _draw_weapon_preview(px: float, py: float, tower_type) -> void:
 	var gd = survivor_gear.get(tower_type, {"name": "Unknown", "desc": ""})
 	var unlocked = survivor_progress.get(tower_type, {}).get("gear_unlocked", false)
-	_udraw(game_font, Vector2(px, py + 10), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.5))
+	_udraw(game_font, Vector2(px, py + 10), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, _ca(menu_gold, 0.5))
 	_udraw(game_font, Vector2(px, py + 22), gd["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, menu_parchment if unlocked else Color(0.45, 0.45, 0.45, 0.5))
 
 # --- Bonus 15: SYNERGY SUGGESTION ---
@@ -34230,20 +34265,20 @@ func _draw_xp_mult(cx: float, cy: float) -> void:
 # --- Bonus 19: CARD PULSE BORDER ---
 func _draw_card_pulse(cx: float, cy: float, cw: float, ch: float, accent: Color) -> void:
 	var p = sin(_time * 2.5) * 0.5 + 0.5
-	draw_rect(Rect2(cx - 1, cy - 1, cw + 2, ch + 2), Color(accent.r, accent.g, accent.b, 0.1 + p * 0.1), false, 1.5)
+	draw_rect(Rect2(cx - 1, cy - 1, cw + 2, ch + 2), _ca(accent, 0.1 + p * 0.1), false, 1.5)
 
 # --- Bonus 20: PRESTIGE CROWN ---
 func _draw_prestige_crown(cx: float, cy: float) -> void:
 	if prestige_level <= 0: return
 	var pts = PackedVector2Array([Vector2(cx - 7, cy + 3), Vector2(cx - 5, cy - 2), Vector2(cx - 2, cy + 1), Vector2(cx, cy - 3), Vector2(cx + 2, cy + 1), Vector2(cx + 5, cy - 2), Vector2(cx + 7, cy + 3)])
-	draw_colored_polygon(pts, Color(0.85, 0.65, 0.1, 0.65))
-	draw_rect(Rect2(cx - 7, cy + 3, 14, 2), Color(0.85, 0.65, 0.1, 0.65))
+	draw_colored_polygon(pts, _ca(c_gold, 0.65))
+	draw_rect(Rect2(cx - 7, cy + 3, 14, 2), _ca(c_gold, 0.65))
 
 # --- Bonus 21: COMBAT SUMMARY ---
 func _draw_combat_summary(px: float, py: float, pw: float, tower_type) -> void:
 	var prog = survivor_progress.get(tower_type, {})
 	var td = prog.get("total_damage", 0.0)
-	_udraw(game_font, Vector2(px, py + 10), "COMBAT", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(menu_gold.r, menu_gold.g, menu_gold.b, 0.5))
+	_udraw(game_font, Vector2(px, py + 10), "COMBAT", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, _ca(menu_gold, 0.5))
 	_udraw(game_font, Vector2(px, py + 22), "DMG: %s" % _format_number(td), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, menu_parchment)
 	_udraw(game_font, Vector2(px, py + 33), "DPS: %.0f" % _calculate_hero_dps(tower_type), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.9, 0.4, 0.3, 0.65))
 
@@ -34506,7 +34541,7 @@ func _draw_frosted_panel(rect: Rect2, accent: Color, frost_alpha: float = 0.06) 
 	# Layer 3: Top edge highlight
 	draw_rect(Rect2(rect.position.x, rect.position.y, rect.size.x, 1), Color(1.0, 1.0, 1.0, 0.06))
 	# Layer 4: Left accent tint stripe
-	draw_rect(Rect2(rect.position.x, rect.position.y, 3, rect.size.y), Color(accent.r, accent.g, accent.b, 0.4))
+	draw_rect(Rect2(rect.position.x, rect.position.y, 3, rect.size.y), _ca(accent, 0.4))
 	# Layer 5: Bottom inner shadow
 	draw_rect(Rect2(rect.position.x + 1, rect.position.y + rect.size.y - 2, rect.size.x - 2, 2), Color(0.0, 0.0, 0.0, 0.15))
 
@@ -34523,8 +34558,8 @@ func _draw_hero_atmosphere(x: float, y: float, w: float, h: float, hero_idx: int
 		draw_rect(Rect2(x, y + t * h, w, h / float(steps) + 1), col)
 	# Central glow (pulsing)
 	var glow_alpha = 0.15 + sin(_time * 0.8) * 0.08
-	draw_circle(Vector2(x + w * 0.5, y + h * 0.45), w * 0.4, Color(glow_col.r, glow_col.g, glow_col.b, glow_alpha))
-	draw_circle(Vector2(x + w * 0.5, y + h * 0.45), w * 0.25, Color(glow_col.r, glow_col.g, glow_col.b, glow_alpha * 0.6))
+	draw_circle(Vector2(x + w * 0.5, y + h * 0.45), w * 0.4, _ca(glow_col, glow_alpha))
+	draw_circle(Vector2(x + w * 0.5, y + h * 0.45), w * 0.25, _ca(glow_col, glow_alpha * 0.6))
 	# Floating particles
 	for p in _detail_particles:
 		var px = x + p["x"]
@@ -34546,7 +34581,7 @@ func _draw_enhanced_gear_slot(pos: Vector2, sz: float, filled: bool, tier_col: C
 	# Corner-bracket frame (L-shaped lines at corners)
 	var bk_len = sz * 0.25
 	var bk_alpha = 0.9 if hovered else 0.6
-	var bk_col = Color(tier_col.r, tier_col.g, tier_col.b, bk_alpha) if filled else Color(accent.r, accent.g, accent.b, bk_alpha * 0.6)
+	var bk_col = Color(tier_col.r, tier_col.g, tier_col.b, bk_alpha) if filled else _ca(accent, bk_alpha * 0.6)
 	var bk_w = 2.0 if not hovered else 2.5
 	# Top-left
 	draw_line(Vector2(pos.x, pos.y), Vector2(pos.x + bk_len, pos.y), bk_col, bk_w)
@@ -34569,7 +34604,7 @@ func _draw_stat_bar(pos: Vector2, width: float, label: String, value: float, col
 	var bar_h = 18.0
 	var fill_w = width * clampf(value / 100.0, 0.0, 1.0)
 	# Label
-	_udraw(font, Vector2(pos.x, pos.y + 13), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, 0.85))
+	_udraw(font, Vector2(pos.x, pos.y + 13), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_parchment, 0.85))
 	var label_w = font.get_string_size(label.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 	var bar_x = pos.x + label_w + 10.0
 	var bar_w = width - label_w - 50.0
