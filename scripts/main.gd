@@ -10787,7 +10787,7 @@ func _draw_menu_background() -> void:
 	var nav_draw_y = 620.0 - _safe_bottom
 	# === BOTTOM NAV BAR — Polished, glowing, alive ===
 	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
-	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "TROPHIES"]
+	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
 	var nav_tab_cols = [
 		Color(0.85, 0.55, 0.25),  # Survivors: warm amber
 		Color(0.65, 0.40, 0.85),  # Gear: mystical purple
@@ -10810,95 +10810,25 @@ func _draw_menu_background() -> void:
 	var edge_glow = 0.4 + sin(_time * 1.8) * 0.1
 	for egi in range(3):
 		draw_rect(Rect2(0, nav_draw_y + float(egi), 1280, 1), Color(0.54, 0.38, 0.15, edge_glow * (1.0 - float(egi) * 0.3)))
-	var tab_w = (1280.0 - _safe_left - _safe_right) / 6.0  # safe-area-aware tab width
+	var tab_w = (1280.0 - _safe_left - _safe_right) / 6.0
+	var _tab_icon_keys = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements"]
 	for ni in range(6):
 		var tx = _safe_left + float(ni) * tab_w
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
-		var hover_pulse = sin(_time * 3.0 + float(ni) * 1.0) * 0.08
-		# Active tab: glowing background
-		if is_act:
-			# Radial glow behind icon
-			var glow_cx = tx + tab_w * 0.5
-			var glow_cy = nav_draw_y + 38.0
-			for gi in range(6):
-				var gr = 35.0 - float(gi) * 4.0
-				var ga = 0.06 + sin(_time * 2.0) * 0.02 - float(gi) * 0.008
-				draw_circle(Vector2(glow_cx, glow_cy), gr, Color(tc.r, tc.g, tc.b, ga))
-			# Bottom glow bar (pulsing)
-			var bar_glow = 0.7 + sin(_time * 2.5) * 0.2
-			draw_rect(Rect2(tx + 20, nav_draw_y + 92, tab_w - 40, 4), Color(tc.r, tc.g, tc.b, bar_glow * 0.8))
-			draw_rect(Rect2(tx + 30, nav_draw_y + 96, tab_w - 60, 2), Color(tc.r, tc.g, tc.b, bar_glow * 0.3))
-			# Top accent
-			draw_rect(Rect2(tx + 15, nav_draw_y, tab_w - 30, 2), Color(tc.r, tc.g, tc.b, bar_glow * 0.5))
 
-		# Icon circle
-		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 36.0)
-		var ic_r = 22.0 if is_act else 18.0
-		var ic_col = tc if is_act else Color(tc.r * 0.55, tc.g * 0.55, tc.b * 0.55)
-		var ic_bg_a = 0.35 + hover_pulse if is_act else 0.12
-		# Circle background
-		draw_circle(ic, ic_r, Color(tc.r * 0.15, tc.g * 0.15, tc.b * 0.15, ic_bg_a))
-		# Circle border (double ring for active)
-		draw_arc(ic, ic_r, 0, TAU, 32, Color(ic_col.r, ic_col.g, ic_col.b, 0.7 if is_act else 0.3), 2.0 if is_act else 1.5)
-		if is_act:
-			draw_arc(ic, ic_r + 3, 0, TAU, 32, Color(ic_col.r, ic_col.g, ic_col.b, 0.2), 1.0)
-		# Icon drawings (bigger, bolder) + Menu Improvement 17: bounce scale
-		var bounce_scale = _get_nav_bounce_scale(ni)
-		var s = (1.3 if is_act else 1.0) * bounce_scale
-		var _tab_icon_keys = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements"]
+		# Icon — big AI art, no borders
+		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 38.0)
+		var icon_sz = 60.0 if is_act else 48.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
 		if _tab_icon_textures.has(_tik):
-			# AI-generated tab icon
-			var icon_sz = ic_r * 2.0 * s
-			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false)
-		elif ni == 0:  # SURVIVORS — crossed swords (fallback)
-			draw_line(ic + Vector2(-8, 8) * s, ic + Vector2(8, -8) * s, ic_col, 2.5 * s)
-			draw_line(ic + Vector2(8, 8) * s, ic + Vector2(-8, -8) * s, ic_col, 2.5 * s)
-			draw_circle(ic, 3.0 * s, ic_col)
-		elif ni == 1:  # GEAR — glowing gem
-			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -11) * s, ic + Vector2(9, -2) * s, ic + Vector2(6, 9) * s, ic + Vector2(-6, 9) * s, ic + Vector2(-9, -2) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.7))
-			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -8) * s, ic + Vector2(4, -1) * s, ic + Vector2(0, 5) * s, ic + Vector2(-4, -1) * s]), Color(1, 1, 1, 0.15))
-		elif ni == 2:  # CHAPTERS — open book with glow
-			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -9) * s, ic + Vector2(-12, -7) * s, ic + Vector2(-12, 9) * s, ic + Vector2(0, 7) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.6))
-			draw_colored_polygon(PackedVector2Array([ic + Vector2(0, -9) * s, ic + Vector2(12, -7) * s, ic + Vector2(12, 9) * s, ic + Vector2(0, 7) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.4))
-			draw_line(ic + Vector2(0, -9) * s, ic + Vector2(0, 7) * s, ic_col, 2.0)
-			for li in range(3):
-				var ly = (-4.0 + float(li) * 4.0) * s
-				draw_line(ic + Vector2(-9, ly) * s, ic + Vector2(-3, ly) * s, Color(0, 0, 0, 0.25), 1.0)
-				draw_line(ic + Vector2(3, ly) * s, ic + Vector2(9, ly) * s, Color(0, 0, 0, 0.25), 1.0)
-		elif ni == 3:  # CHRONICLES — scroll with seal
-			draw_rect(Rect2(ic.x - 7 * s, ic.y - 9 * s, 14 * s, 18 * s), Color(ic_col.r, ic_col.g, ic_col.b, 0.5))
-			draw_arc(ic + Vector2(0, -9) * s, 7 * s, PI, TAU, 12, ic_col, 2.0)
-			draw_arc(ic + Vector2(0, 9) * s, 7 * s, 0, PI, 12, ic_col, 2.0)
-			draw_circle(ic + Vector2(0, 3) * s, 3 * s, Color(0.8, 0.2, 0.2, 0.6))
-		elif ni == 4:  # EMPORIUM — potion bottle
-			draw_colored_polygon(PackedVector2Array([ic + Vector2(-8, 0) * s, ic + Vector2(8, 0) * s, ic + Vector2(6, 10) * s, ic + Vector2(-6, 10) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.6))
-			draw_rect(Rect2(ic.x - 3 * s, ic.y - 10 * s, 6 * s, 10 * s), Color(ic_col.r, ic_col.g, ic_col.b, 0.5))
-			draw_line(ic + Vector2(-5, -10) * s, ic + Vector2(5, -10) * s, ic_col, 2.0)
-			draw_circle(ic + Vector2(0, 5) * s, 3 * s, Color(1, 1, 1, 0.12))
-		elif ni == 5:  # ACHIEVEMENTS — trophy cup
-			draw_colored_polygon(PackedVector2Array([ic + Vector2(-7, -9) * s, ic + Vector2(7, -9) * s, ic + Vector2(5, 0) * s, ic + Vector2(-5, 0) * s]), Color(ic_col.r, ic_col.g, ic_col.b, 0.7))
-			draw_line(ic + Vector2(0, 0) * s, ic + Vector2(0, 6) * s, ic_col, 2.5)
-			draw_line(ic + Vector2(-6, 6) * s, ic + Vector2(6, 6) * s, ic_col, 2.5)
-			draw_arc(ic + Vector2(-7, -4) * s, 4 * s, PI * 0.5, PI * 1.5, 8, ic_col, 2.0)
-			draw_arc(ic + Vector2(7, -4) * s, 4 * s, -PI * 0.5, PI * 0.5, 8, ic_col, 2.0)
-			# Star on trophy
-			if is_act:
-				draw_circle(ic + Vector2(0, -5) * s, 2.5, Color(1, 1, 1, 0.3))
-		# Menu Improvement 2: Red notification badges
-		var tab_name = nav_tab_names[ni]
-		if _nav_badge_counts.has(tab_name) and _nav_badge_counts[tab_name] > 0:
-			_draw_nav_badge(Vector2(ic.x + ic_r - 2, ic.y - ic_r + 2), _nav_badge_counts[tab_name])
-		# Tab label
-		var lbl_y = nav_draw_y + 68.0
-		var lbl_col = Color(tc.r, tc.g, tc.b, 0.95) if is_act else Color(0.50, 0.45, 0.38, 0.6)
-		var lbl_sz = 13 if is_act else 11
-		_udraw(font, Vector2(tx + tab_w * 0.5, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w - 10), lbl_sz, lbl_col)
-		# Divider line between tabs
-		if ni < 5:
-			var dx_div = tx + tab_w
-			draw_line(Vector2(dx_div, nav_draw_y + 12), Vector2(dx_div, nav_draw_y + 88), Color(0.3, 0.25, 0.15, 0.08), 1.0)
+			var alpha = 1.0 if is_act else 0.7
+			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false, Color(1, 1, 1, alpha))
+		# Label
+		var lbl_y = nav_draw_y + 78.0
+		var lbl_col = Color(tc.r, tc.g, tc.b, 0.95) if is_act else Color(0.55, 0.50, 0.40, 0.6)
+		var lbl_sz = 14 if is_act else 12
+		_udraw(font, Vector2(tx + tab_w * 0.5, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w - 4), lbl_sz, lbl_col)
 
 	if menu_current_view == "chapters":
 		_draw_story_map()
