@@ -436,6 +436,15 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		draw_rect(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), _ca(accent, 0.12))
 	draw_rect(Rect2(rx, ry, rw, rh), bdr, false, 2.0)
 
+# DS: Draw a section header (colored bar with text)
+func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
+	var font = game_font
+	if font == null:
+		return
+	draw_rect(Rect2(pos.x, pos.y, width, 22), Color(color.r * 0.15, color.g * 0.15, color.b * 0.15, 0.6))
+	draw_rect(Rect2(pos.x, pos.y + 21, width, 1), _ca(color, 0.4))
+	_udraw(font, Vector2(pos.x + 12, pos.y + 16), text, HORIZONTAL_ALIGNMENT_LEFT, int(width - 20), 14, Color(minf(color.r * 1.4, 1.0), minf(color.g * 1.4, 1.0), minf(color.b * 1.4, 1.0), 0.9))
+
 # Storybook menu - animation (particles, lanterns, decorations)
 var _dust_positions: Array = []
 var _book_candle_positions: Array = []
@@ -29280,11 +29289,10 @@ func _draw_achievements_tab() -> void:
 		for ach in achievement_definitions:
 			if ach["category"] == cat:
 				cat_achievements.append(ach)
-		# Category header
+		# Category header — design system
 		var hdr_y = start_y
-		if hdr_y + 18 >= ach_content_top and hdr_y <= ach_content_bottom:
-			draw_rect(Rect2(panel_x + 10, hdr_y, panel_w - 20, 18), Color(cat_col.r, cat_col.g, cat_col.b, 0.12))
-			_udraw(font, Vector2(panel_x + 20, hdr_y + 13), cat, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(cat_col.r, cat_col.g, cat_col.b, 0.9))
+		if hdr_y + 22 >= ach_content_top and hdr_y <= ach_content_bottom:
+			_ds_section_header(Vector2(panel_x + 10, hdr_y), panel_w - 20, cat, cat_col)
 
 		# === Category completion progress bar (Enhancement #44) ===
 		var cat_unlocked = 0
