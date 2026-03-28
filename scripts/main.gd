@@ -13402,12 +13402,7 @@ func _draw_survivor_grid() -> void:
 		Color(0.12, 0.08, 0.18),  # Shadow Author
 	]
 
-	# === Bonus 23: BG Grid Pattern ===
-	_draw_bg_grid(panel_x, panel_y, panel_w, panel_h)
-	# === Bonus 1: Menu BG Particles ===
-	_draw_menu_bg_particles()
-	# === Bonus 5: Seasonal Decoration ===
-	_draw_seasonal_accent(panel_x, panel_y, panel_w)
+	# No overlays — let the dark gothic menu background show clean
 
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
