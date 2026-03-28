@@ -3991,96 +3991,94 @@ func _cache_path_thumbnails() -> void:
 
 func _load_map_thumb_textures() -> void:
 	_map_thumb_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/map_thumbs/")
 	for idx in range(mini(MAP_THUMB_SLUGS.size(), levels.size())):
 		var slug = MAP_THUMB_SLUGS[idx]
-		var abs_path = base + slug + ".png"
-		var img = Image.new()
-		var err = img.load(abs_path)
-		if err == OK:
-			_map_thumb_textures[idx] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/map_thumbs/" + slug + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_map_thumb_textures[idx] = tex
 
 func _load_tab_icon_textures() -> void:
 	_tab_icon_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/tab_icons/")
 	var tab_names = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements"]
 	for tname in tab_names:
-		var abs_path = base + tname + ".png"
-		var img = Image.new()
-		var err = img.load(abs_path)
-		if err == OK:
-			_tab_icon_textures[tname] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/tab_icons/" + tname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_tab_icon_textures[tname] = tex
 
 func _load_badge_icon_textures() -> void:
 	_badge_icon_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/badge_icons/")
 	for bname in ["deals", "quests", "arena", "odyssey", "endless"]:
-		var abs_path = base + bname + ".png"
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_badge_icon_textures[bname] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/badge_icons/" + bname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_badge_icon_textures[bname] = tex
 
 func _load_level_bg_textures() -> void:
 	_level_bg_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/level_backgrounds/")
 	for idx in range(37):
-		var abs_path = base + "level_%02d.png" % idx
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_level_bg_textures[idx] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/level_backgrounds/level_%02d.png" % idx
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_level_bg_textures[idx] = tex
 
 func _load_path_textures() -> void:
 	_path_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/path_textures/")
 	var names = ["prologue", "sherlock", "merlin", "tarzan", "dracula", "frankenstein",
 		"robin_hood", "alice", "oz", "peter_pan", "phantom", "scrooge", "shadow_author"]
 	for pname in names:
-		var abs_path = base + "path_" + pname + ".png"
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_path_textures[pname] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/path_textures/path_" + pname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_path_textures[pname] = tex
 
 func _load_portrait_textures() -> void:
 	_portrait_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/portraits/")
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
 		"shadow_author", "narrator"]
 	for pname in names:
-		var abs_path = base + pname + ".png"
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_portrait_textures[pname] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/portraits/" + pname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_portrait_textures[pname] = tex
 
 func _load_tower_sprite_textures() -> void:
 	_tower_sprite_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/tower_sprites/")
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
 		"shadow_author"]
 	for tname in names:
-		var abs_path = base + tname + "_idle.png"
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_tower_sprite_textures[tname] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/tower_sprites/" + tname + "_idle.png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_tower_sprite_textures[tname] = tex
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/enemy_portraits/")
 	var factions = ["sherwood", "wonderland", "oz", "neverland", "opera", "victorian",
 		"shadow_author", "sherlock", "merlin", "tarzan", "dracula", "frankenstein",
 		"shadow_entities"]
 	for faction in factions:
 		for tier in range(4):
 			var key = faction + "/tier_" + str(tier)
-			var abs_path = base + faction + "/tier_" + str(tier) + ".png"
-			var img = Image.new()
-			if img.load(abs_path) == OK:
-				_enemy_portrait_textures[key] = ImageTexture.create_from_image(img)
+			var res_path = "res://assets/enemy_portraits/" + faction + "/tier_" + str(tier) + ".png"
+			if ResourceLoader.exists(res_path):
+				var tex = load(res_path)
+				if tex:
+					_enemy_portrait_textures[key] = tex
 
 func _load_gear_icon_textures() -> void:
 	_gear_icon_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/gear_icons/")
+	var base = "res://assets/gear_icons/"
 	var dir = DirAccess.open(base)
 	if dir:
 		dir.list_dir_begin()
@@ -4088,15 +4086,16 @@ func _load_gear_icon_textures() -> void:
 		while file_name != "":
 			if file_name.ends_with(".png"):
 				var key = file_name.get_basename()
-				var abs_path = base + file_name
-				var img = Image.new()
-				if img.load(abs_path) == OK:
-					_gear_icon_textures[key] = ImageTexture.create_from_image(img)
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_gear_icon_textures[key] = tex
 			file_name = dir.get_next()
 
 func _load_achievement_icon_textures() -> void:
 	_achievement_icon_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/achievement_icons/")
+	var base = "res://assets/achievement_icons/"
 	var dir = DirAccess.open(base)
 	if dir:
 		dir.list_dir_begin()
@@ -4104,43 +4103,44 @@ func _load_achievement_icon_textures() -> void:
 		while file_name != "":
 			if file_name.ends_with(".png"):
 				var key = file_name.get_basename()
-				var abs_path = base + file_name
-				var img = Image.new()
-				if img.load(abs_path) == OK:
-					_achievement_icon_textures[key] = ImageTexture.create_from_image(img)
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_achievement_icon_textures[key] = tex
 			file_name = dir.get_next()
 
 func _load_emporium_icon_textures() -> void:
 	_emporium_icon_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/emporium_icons/")
 	for ename in ["emp_chests", "emp_forge", "emp_gear", "emp_gold", "emp_instruments",
 		"emp_packs", "emp_powers", "emp_quills", "emp_salvage", "emp_shards",
 		"emp_stars", "emp_trophy"]:
-		var abs_path = base + ename + ".png"
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_emporium_icon_textures[ename] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/emporium_icons/" + ename + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_emporium_icon_textures[ename] = tex
 
 func _load_death_fx_textures() -> void:
 	_death_fx_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/death_fx/")
 	var names = ["sherwood", "wonderland", "oz", "neverland", "opera", "victorian",
 		"shadow_author", "shadow_entities", "sherlock", "merlin", "tarzan",
 		"dracula", "frankenstein"]
 	for dname in names:
-		var abs_path = base + dname + ".png"
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_death_fx_textures[dname] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/death_fx/" + dname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_death_fx_textures[dname] = tex
 
 func _load_collectible_textures() -> void:
 	_collectible_textures.clear()
-	var base = ProjectSettings.globalize_path("res://assets/collectible_sprites/")
 	for cname in ["gold_coin", "crystal_shard", "quill"]:
-		var abs_path = base + cname + ".png"
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_collectible_textures[cname] = ImageTexture.create_from_image(img)
+		var res_path = "res://assets/collectible_sprites/" + cname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_collectible_textures[cname] = tex
 
 func _load_all_art_assets() -> void:
 	_load_map_thumb_textures()
@@ -18814,44 +18814,46 @@ func _draw() -> void:
 	# AI-generated level background (full-screen art behind procedural details)
 	if _level_bg_textures.has(current_level):
 		draw_texture_rect(_level_bg_textures[current_level], Rect2(0, 50, 1280, 590), false)
-	match current_level:
-		0: _draw_prologue(sky_color, ground_color)
-		1: _draw_sherlock_ch1(sky_color, ground_color)
-		2: _draw_sherlock_ch2(sky_color, ground_color)
-		3: _draw_sherlock_ch3(sky_color, ground_color)
-		4: _draw_merlin_ch1(sky_color, ground_color)
-		5: _draw_merlin_ch2(sky_color, ground_color)
-		6: _draw_merlin_ch3(sky_color, ground_color)
-		7: _draw_tarzan_ch1(sky_color, ground_color)
-		8: _draw_tarzan_ch2(sky_color, ground_color)
-		9: _draw_tarzan_ch3(sky_color, ground_color)
-		10: _draw_dracula_ch1(sky_color, ground_color)
-		11: _draw_dracula_ch2(sky_color, ground_color)
-		12: _draw_dracula_ch3(sky_color, ground_color)
-		13: _draw_frankenstein_ch1(sky_color, ground_color)
-		14: _draw_frankenstein_ch2(sky_color, ground_color)
-		15: _draw_frankenstein_ch3(sky_color, ground_color)
-		16: _draw_robin_ch1(sky_color, ground_color)
-		17: _draw_robin_ch2(sky_color, ground_color)
-		18: _draw_robin_ch3(sky_color, ground_color)
-		19: _draw_alice_ch1(sky_color, ground_color)
-		20: _draw_alice_ch2(sky_color, ground_color)
-		21: _draw_alice_ch3(sky_color, ground_color)
-		22: _draw_oz_ch1(sky_color, ground_color)
-		23: _draw_oz_ch2(sky_color, ground_color)
-		24: _draw_oz_ch3(sky_color, ground_color)
-		25: _draw_peter_ch1(sky_color, ground_color)
-		26: _draw_peter_ch2(sky_color, ground_color)
-		27: _draw_peter_ch3(sky_color, ground_color)
-		28: _draw_phantom_ch1(sky_color, ground_color)
-		29: _draw_phantom_ch2(sky_color, ground_color)
-		30: _draw_phantom_ch3(sky_color, ground_color)
-		31: _draw_scrooge_ch1(sky_color, ground_color)
-		32: _draw_scrooge_ch2(sky_color, ground_color)
-		33: _draw_scrooge_ch3(sky_color, ground_color)
-		34: _draw_shadow_author_ch1(sky_color, ground_color)
-		35: _draw_shadow_author_ch2(sky_color, ground_color)
-		36: _draw_shadow_author_ch3(sky_color, ground_color)
+	else:
+		# Only draw procedural fallback when no AI background exists
+		match current_level:
+			0: _draw_prologue(sky_color, ground_color)
+			1: _draw_sherlock_ch1(sky_color, ground_color)
+			2: _draw_sherlock_ch2(sky_color, ground_color)
+			3: _draw_sherlock_ch3(sky_color, ground_color)
+			4: _draw_merlin_ch1(sky_color, ground_color)
+			5: _draw_merlin_ch2(sky_color, ground_color)
+			6: _draw_merlin_ch3(sky_color, ground_color)
+			7: _draw_tarzan_ch1(sky_color, ground_color)
+			8: _draw_tarzan_ch2(sky_color, ground_color)
+			9: _draw_tarzan_ch3(sky_color, ground_color)
+			10: _draw_dracula_ch1(sky_color, ground_color)
+			11: _draw_dracula_ch2(sky_color, ground_color)
+			12: _draw_dracula_ch3(sky_color, ground_color)
+			13: _draw_frankenstein_ch1(sky_color, ground_color)
+			14: _draw_frankenstein_ch2(sky_color, ground_color)
+			15: _draw_frankenstein_ch3(sky_color, ground_color)
+			16: _draw_robin_ch1(sky_color, ground_color)
+			17: _draw_robin_ch2(sky_color, ground_color)
+			18: _draw_robin_ch3(sky_color, ground_color)
+			19: _draw_alice_ch1(sky_color, ground_color)
+			20: _draw_alice_ch2(sky_color, ground_color)
+			21: _draw_alice_ch3(sky_color, ground_color)
+			22: _draw_oz_ch1(sky_color, ground_color)
+			23: _draw_oz_ch2(sky_color, ground_color)
+			24: _draw_oz_ch3(sky_color, ground_color)
+			25: _draw_peter_ch1(sky_color, ground_color)
+			26: _draw_peter_ch2(sky_color, ground_color)
+			27: _draw_peter_ch3(sky_color, ground_color)
+			28: _draw_phantom_ch1(sky_color, ground_color)
+			29: _draw_phantom_ch2(sky_color, ground_color)
+			30: _draw_phantom_ch3(sky_color, ground_color)
+			31: _draw_scrooge_ch1(sky_color, ground_color)
+			32: _draw_scrooge_ch2(sky_color, ground_color)
+			33: _draw_scrooge_ch3(sky_color, ground_color)
+			34: _draw_shadow_author_ch1(sky_color, ground_color)
+			35: _draw_shadow_author_ch2(sky_color, ground_color)
+			36: _draw_shadow_author_ch3(sky_color, ground_color)
 
 	# Apply screen shake
 	if _screen_shake_timer > 0.0:
@@ -19152,7 +19154,7 @@ func _draw() -> void:
 	var _dfx_i = _active_death_fx.size() - 1
 	while _dfx_i >= 0:
 		var dfx = _active_death_fx[_dfx_i]
-		dfx["timer"] -= delta
+		dfx["timer"] -= get_process_delta_time()
 		if dfx["timer"] <= 0.0:
 			_active_death_fx.remove_at(_dfx_i)
 		else:
@@ -19542,35 +19544,41 @@ func _draw_path_overlay() -> void:
 	var edge_line_col = Color(edge_col.r * 0.5, edge_col.g * 0.5, edge_col.b * 0.5, 0.5)
 	var has_center = path_style.get("center_line", false)
 
-	# --- Combined single pass: shadow + edge + road + edge lines ---
+	# --- AI path texture: use as primary surface when available ---
+	var _pf = _get_level_faction_key(current_level)
+	var _has_path_tex = _path_textures.has(_pf)
+
+	# --- Combined single pass: shadow + edge + road ---
 	for k in range(pts.size() - 1):
 		draw_line(pts[k], pts[k + 1], shadow_col, road_w + 10.0)
 		draw_line(pts[k], pts[k + 1], edge_col, road_w + 4.0)
-		draw_line(pts[k], pts[k + 1], road_col, road_w)
-		if has_center:
-			draw_line(pts[k], pts[k + 1], detail_col, 2.0)
+		if not _has_path_tex:
+			draw_line(pts[k], pts[k + 1], road_col, road_w)
+			if has_center:
+				draw_line(pts[k], pts[k + 1], detail_col, 2.0)
 
-	# --- Edge detail lines (combined into single pass) ---
+	# --- AI path texture as primary road surface ---
+	if _has_path_tex:
+		var _ptex = _path_textures[_pf]
+		for k in range(pts.size() - 1):
+			var seg_start = pts[k]
+			var seg_end = pts[k + 1]
+			var seg_dir = (seg_end - seg_start).normalized()
+			var seg_n = Vector2(-seg_dir.y, seg_dir.x)
+			var seg_len = seg_start.distance_to(seg_end)
+			var half_w = road_w * 0.5
+			# Draw texture rect along each segment
+			var mid = (seg_start + seg_end) * 0.5
+			var tex_rect = Rect2(mid.x - seg_len * 0.5, mid.y - half_w, seg_len, road_w)
+			draw_texture_rect(_ptex, tex_rect, true)
+
+	# --- Edge detail lines ---
 	for k in range(0, pts.size() - 1, 2):
 		var dir = (pts[k + 1] - pts[k]).normalized()
 		var n = Vector2(-dir.y, dir.x)
 		var half_w = road_w * 0.5
 		draw_line(pts[k] + n * half_w, pts[k + 1] + n * half_w, edge_line_col, border_w)
 		draw_line(pts[k] - n * half_w, pts[k + 1] - n * half_w, edge_line_col, border_w)
-
-	# --- AI path texture overlay (tiled along path segments) ---
-	var _pf = _get_level_faction_key(current_level)
-	if _path_textures.has(_pf):
-		var _ptex = _path_textures[_pf]
-		var _ptile = road_w * 1.5
-		var _pstep = 0.0
-		for k in range(pts.size() - 1):
-			var seg_len = pts[k].distance_to(pts[k + 1])
-			_pstep += seg_len
-			if _pstep >= _ptile:
-				_pstep -= _ptile
-				var mid = (pts[k] + pts[k + 1]) * 0.5
-				draw_texture_rect(_ptex, Rect2(mid.x - road_w * 0.5, mid.y - road_w * 0.5, road_w, road_w), false, Color(1, 1, 1, 0.35))
 	# --- Surface detail (cracks, bricks, cobbles, etc.) ---
 	_draw_path_surface_detail(pts, path_style)
 
