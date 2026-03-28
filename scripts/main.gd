@@ -5613,9 +5613,9 @@ func _create_ui() -> void:
 	var gap_x = 12.0
 	var gap_y = 8.0
 	var cols = 4
-	var grid_panel_x = 70.0
-	var grid_panel_w = 1140.0
-	var grid_start_y = 38.0 + 58.0
+	var grid_panel_x = 70.0 + _safe_left
+	var grid_panel_w = 1140.0 - _safe_left - _safe_right
+	var grid_start_y = 38.0 + _safe_top + 58.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
