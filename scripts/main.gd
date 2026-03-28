@@ -13224,17 +13224,17 @@ func _draw_survivor_grid() -> void:
 			var gt = float(gi) / (draw_ch * 0.4)
 			draw_rect(Rect2(draw_cx, draw_cy + float(gi), draw_cw, 1), Color(accent.r, accent.g, accent.b, 0.10 * (1.0 - gt)))
 
-		# === Character portrait (centered) ===
-		var portrait_cx = draw_cx + draw_cw * 0.5
-		var portrait_cy = draw_cy + draw_ch * 0.38
-		var idle_off = _get_character_idle_offset(i) if unlocked else Vector2.ZERO
-		var breath_offset = idle_off.y
+		# === Character portrait (centered in card) ===
+		var portrait_sz = 120.0
+		var portrait_px = draw_cx + (draw_cw - portrait_sz) * 0.5
+		var portrait_py = draw_cy + 8.0
 		if unlocked:
-			draw_circle(Vector2(portrait_cx + idle_off.x, portrait_cy + 10 + breath_offset), 48.0, Color(accent.r, accent.g, accent.b, 0.07))
-			_draw_story_portrait(portrait_cx + idle_off.x, portrait_cy + 25 + breath_offset, 110.0, speaker_name)
+			_draw_story_portrait(portrait_px, portrait_py, portrait_sz, speaker_name)
 		else:
-			draw_circle(Vector2(portrait_cx, portrait_cy), 32.0, Color(0.08, 0.08, 0.15, 0.5))
-			_udraw(font, Vector2(portrait_cx - 6, portrait_cy + 6), "?", HORIZONTAL_ALIGNMENT_CENTER, -1, 28, Color(0.3, 0.3, 0.4, 0.4))
+			var lock_cx = draw_cx + draw_cw * 0.5
+			var lock_cy = draw_cy + draw_ch * 0.4
+			draw_circle(Vector2(lock_cx, lock_cy), 32.0, Color(0.08, 0.08, 0.15, 0.5))
+			_udraw(font, Vector2(lock_cx - 6, lock_cy + 6), "?", HORIZONTAL_ALIGNMENT_CENTER, -1, 28, Color(0.3, 0.3, 0.4, 0.4))
 
 		# === Level badge (top-left corner circle) ===
 		if unlocked:
@@ -13297,48 +13297,7 @@ func _draw_survivor_grid() -> void:
 				star_pts.append(sp + Vector2(cos(sa) * sd, sin(sa) * sd))
 			draw_colored_polygon(star_pts, Color(1.0, 0.85, 0.2, 0.9))
 
-		# === Enhancement 8: Star progress bar ===
-		if unlocked and stars_earned > 0:
-			var max_stars = 9  # 3 levels x 3 stars each
-			var star_fill = clampf(float(stars_earned) / float(max_stars), 0.0, 1.0)
-			var sbar_x = draw_cx + draw_cw - 30.0
-			var sbar_y = draw_cy + 30.0
-			draw_rect(Rect2(sbar_x, sbar_y, 20, 3), Color(0.15, 0.15, 0.2, 0.5))
-			draw_rect(Rect2(sbar_x, sbar_y, 20 * star_fill, 3), Color(1.0, 0.85, 0.2, 0.7))
-
-		# === Gear count badge ===
-		if unlocked:
-			var eq_count = equipped_gear.get(tower_type, []).size()
-			var eq_max = _get_gear_slots(tower_type)
-			if eq_max > 0:
-				var eq_sz = 14
-				var eq_str = "%d/%d" % [eq_count, eq_max]
-				var eq_w = font.get_string_size(eq_str, HORIZONTAL_ALIGNMENT_LEFT, -1, eq_sz).x + 10
-				var eq_x = draw_cx + 6.0
-				var eq_y = draw_cy + 34.0
-				draw_rect(Rect2(eq_x, eq_y, eq_w, 18), Color(0.02, 0.02, 0.06, 0.8))
-				draw_rect(Rect2(eq_x, eq_y, eq_w, 18), Color(0.7, 0.35, 0.9, 0.3), false, 1.0)
-				_udraw(font, Vector2(eq_x + 5, eq_y + 14), eq_str, HORIZONTAL_ALIGNMENT_LEFT, -1, eq_sz, Color(0.7, 0.35, 0.9, 0.8))
-
-		# === Lifetime damage display ===
-		if unlocked:
-			var total_dmg = 0.0
-			for key in session_damage:
-				if key == tower_type:
-					total_dmg = session_damage[key]
-			var sp2 = survivor_progress.get(tower_type, {})
-			var lifetime_dmg = sp2.get("total_damage", 0.0)
-			if lifetime_dmg > 0:
-				var dmg_sz = 14
-				var dmg_str = ""
-				if lifetime_dmg >= 1000000:
-					dmg_str = "%.1fM" % (lifetime_dmg / 1000000.0)
-				elif lifetime_dmg >= 1000:
-					dmg_str = "%.1fK" % (lifetime_dmg / 1000.0)
-				else:
-					dmg_str = str(int(lifetime_dmg))
-				var dmg_w = font.get_string_size(dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, dmg_sz).x
-				_udraw(font, Vector2(draw_cx + draw_cw - dmg_w - 8, draw_cy + draw_ch - 44), dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, dmg_sz, Color(0.7, 0.7, 0.7, 0.5))
+		# Star progress, gear count, and damage display removed — clean card layout
 
 		# === Character name plate with title (bottom) ===
 		var name_plate_y = draw_cy + draw_ch - 36.0
