@@ -16077,7 +16077,7 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 	var mins_left = 59 - time_dict["minute"]
 	var countdown_str = "Resets in %dh %dm" % [hours_left, mins_left]
 	var is_weekend = date["weekday"] == 0 or date["weekday"] == 6
-	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY DEALS" + (" — WEEKEND!" if is_weekend else ""), HORIZONTAL_ALIGNMENT_CENTER, int(pw - 20), 15, Color(0.85, 0.70, 0.28))
+	_ds_title(Vector2(px + 10, py + 18), "DAILY DEALS" + (" — WEEKEND!" if is_weekend else ""), 16, Color(1.0, 0.85, 0.28), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5, py + 36), countdown_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.55, 0.2, 0.7 + sin(_time * 2.0) * 0.15))
 	# Improvement 5: Refresh button
 	var ref_x = px + pw - 130.0
@@ -16193,7 +16193,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 	var streak_str = "Streak: %d day%s" % [quest_streak, "s" if quest_streak != 1 else ""]
 	if quest_streak_best > 0:
 		streak_str += " (Best: %d)" % quest_streak_best
-	_udraw(font, Vector2(px + pw * 0.5, py + 18), "DAILY QUESTS", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.4, 0.8, 0.3))
+	_ds_title(Vector2(px + 10, py + 18), "DAILY QUESTS", 16, Color(0.45, 0.9, 0.35), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5, py + 34), streak_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.6, 0.75, 0.4))
 	# Improvement 19: Quest milestone counter
 	var next_milestone = 0
@@ -16328,7 +16328,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 
 func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(px + pw * 0.5, py + 18), "SHADOW ARENA", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.3, 0.9))
+	_ds_title(Vector2(px + 10, py + 18), "SHADOW ARENA", 16, Color(0.8, 0.4, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5, py + 38), "Weekly competitive challenge", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
 	# Modifiers
 	var mod_str = ""
