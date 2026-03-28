@@ -13,7 +13,7 @@ var fire_rate: float = 0.0  # No direct attacks
 var attack_range: float = 188.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
-var sprite_texture: Texture2D = null
+var sprite_texture: ImageTexture = null
 var target: Node2D = null
 var gold_bonus: int = 1
 
