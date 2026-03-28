@@ -29839,9 +29839,8 @@ func _draw_trophy_store() -> void:
 	for ci in range(store_cats.size()):
 		var cat_key = store_cats[ci]
 		var items = trophy_store_items.get(cat_key, [])
-		# Category header
-		draw_rect(Rect2(panel_x + 10, start_y, panel_w - 20, 18), Color(0.6, 0.3, 0.8, 0.10))
-		_udraw(font, Vector2(panel_x + 20, start_y + 13), store_cat_names[ci], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.7, 0.5, 0.85))
+		# Category header — design system
+		_ds_section_header(Vector2(panel_x + 10, start_y), panel_w - 20, store_cat_names[ci], Color(0.7, 0.4, 0.9))
 		start_y += 22.0
 		for ii in range(items.size()):
 			var item = items[ii]
