@@ -12491,13 +12491,14 @@ func _draw_chest_opening() -> void:
 		if victory_chest_active:
 			var vic_text = "VICTORY!"
 			var vic_w = font.get_string_size(vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52).x
-			# Glow behind text
-			draw_circle(Vector2(cx, 125), 80.0, _ca(c_gold_bright, 0.08 + pulse * 0.06))
-			# Text shadow
-			_udraw(font, Vector2(cx - vic_w * 0.5 + 2, 132), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, c_overlay)
-			# Text with pulsing gold — large
-			var text_bright = 0.85 + pulse * 0.15
-			_udraw(font, Vector2(cx - vic_w * 0.5, 130), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(text_bright, text_bright * 0.85, 0.2, 0.95))
+			# MASSIVE glow behind text
+			draw_circle(Vector2(cx, 120), 120.0, _ca(c_gold_bright, 0.06 + pulse * 0.04))
+			draw_circle(Vector2(cx, 120), 60.0, _ca(c_gold_bright, 0.10 + pulse * 0.06))
+			# Triple-layer text: shadow + bright + glow
+			_udraw(font, Vector2(cx - vic_w * 0.5 + 3, 133), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(0, 0, 0, 0.7))
+			var vp = 0.85 + pulse * 0.15
+			_udraw(font, Vector2(cx - vic_w * 0.5, 130), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(1.0 * vp, 0.88 * vp, 0.25, 1.0))
+			_udraw(font, Vector2(cx - vic_w * 0.5 - 1, 129), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(1.0, 0.95, 0.5, 0.25 * vp))
 		# Star display — large, animated victory stars
 		if victory_chest_active:
 			var star_y = 158.0
@@ -19180,13 +19181,13 @@ func _draw() -> void:
 			var p_dist = burst_progress * 160.0
 			var p_pos = Vector2(640 + cos(p_angle) * p_dist, wc_y - 6 + sin(p_angle) * p_dist * 0.5)
 			draw_circle(p_pos, (4.0 - burst_progress * 3.0) * wc_alpha, Color(0.4, 1.0, 0.5, wc_alpha * 0.5))
-		# Glow backdrop — larger and brighter
-		draw_circle(Vector2(640, wc_y - 6), 160.0, Color(0.2, 0.9, 0.3, wc_alpha * 0.12))
-		draw_circle(Vector2(640, wc_y - 6), 80.0, Color(0.3, 1.0, 0.4, wc_alpha * 0.18))
-		# Shadow text
-		_udraw(font, Vector2(642, wc_y + 2), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 40, Color(0, 0, 0, wc_alpha * 0.6))
-		# Main text — bigger, bright green
-		_udraw(font, Vector2(640, wc_y), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 40, Color(0.3, 1.0, 0.4, wc_alpha))
+		# Glow backdrop — massive and bright
+		draw_circle(Vector2(640, wc_y - 6), 180.0, Color(0.2, 0.9, 0.3, wc_alpha * 0.08))
+		draw_circle(Vector2(640, wc_y - 6), 90.0, Color(0.3, 1.0, 0.4, wc_alpha * 0.15))
+		# Triple-layer text
+		_udraw(font, Vector2(642, wc_y + 2), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 42, Color(0, 0, 0, wc_alpha * 0.7))
+		_udraw(font, Vector2(640, wc_y), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 42, Color(0.35, 1.0, 0.45, wc_alpha))
+		_udraw(font, Vector2(639, wc_y - 1), wc_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 42, Color(0.5, 1.0, 0.6, wc_alpha * 0.3))
 
 	# === WAVE NUMBER BANNER ===
 	if _wave_banner_timer > 0.0 and not victory_chest_active:
@@ -19234,10 +19235,13 @@ func _draw() -> void:
 		# Alert text with shadow
 		var font = game_font
 		var alert_size = int(44.0 * ba_scale)
-		_udraw(font, Vector2(642, 312), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(0, 0, 0, ba_alpha * 0.5))
-		_udraw(font, Vector2(640, 310), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(1.0, 0.2, 0.1, ba_alpha))
-		# Subtitle — larger for mobile
-		_udraw(font, Vector2(640, 344), "Prepare your defenses!", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(1.0, 0.7, 0.5, ba_alpha * 0.8))
+		# Boss alert — dramatic red glow
+		draw_circle(Vector2(640, 305), 120.0, Color(0.8, 0.1, 0.05, ba_alpha * 0.08))
+		_udraw(font, Vector2(642, 312), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(0, 0, 0, ba_alpha * 0.7))
+		_udraw(font, Vector2(640, 310), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(1.0, 0.25, 0.12, ba_alpha))
+		_udraw(font, Vector2(639, 309), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(1.0, 0.5, 0.2, ba_alpha * 0.3))
+		# Subtitle
+		_udraw(font, Vector2(640, 344), "Prepare your defenses!", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(1.0, 0.75, 0.5, ba_alpha * 0.85))
 
 	# === COMBO KILL HUD ===
 	if combo_count >= COMBO_MIN and combo_timer > 0.0:
