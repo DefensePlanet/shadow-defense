@@ -5324,9 +5324,10 @@ func _create_ui() -> void:
 
 	var nav_names = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
 	nav_names.append("ACHIEVEMENTS")
-	var safe_tab_w = (1280.0 - _safe_left - _safe_right) / 6.0
+	var _nav_margin = 20.0
+	var safe_tab_w = (1280.0 - _nav_margin * 2.0 - _safe_left - _safe_right) / 6.0
 	for i in range(6):
-		var btn_x = int(_safe_left + float(i) * safe_tab_w)
+		var btn_x = int(_nav_margin + _safe_left + float(i) * safe_tab_w)
 		var nav_btn = Button.new()
 		nav_btn.text = ""
 		nav_btn.flat = true  # Transparent — procedural draw handles visuals
@@ -10810,16 +10811,18 @@ func _draw_menu_background() -> void:
 	var edge_glow = 0.4 + sin(_time * 1.8) * 0.1
 	for egi in range(3):
 		draw_rect(Rect2(0, nav_draw_y + float(egi), 1280, 1), Color(0.54, 0.38, 0.15, edge_glow * (1.0 - float(egi) * 0.3)))
-	var tab_w = (1280.0 - _safe_left - _safe_right) / 6.0
+	var nav_margin = 20.0
+	var nav_total_w = 1280.0 - nav_margin * 2.0 - _safe_left - _safe_right
+	var tab_w = nav_total_w / 6.0
 	var _tab_icon_keys = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements"]
 	for ni in range(6):
-		var tx = _safe_left + float(ni) * tab_w
+		var tx = nav_margin + _safe_left + float(ni) * tab_w
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
 
 		# Icon — big AI art, no borders
 		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 38.0)
-		var icon_sz = 60.0 if is_act else 48.0
+		var icon_sz = 56.0 if is_act else 44.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
 		if _tab_icon_textures.has(_tik):
 			var alpha = 1.0 if is_act else 0.7
@@ -10827,8 +10830,8 @@ func _draw_menu_background() -> void:
 		# Label
 		var lbl_y = nav_draw_y + 78.0
 		var lbl_col = Color(tc.r, tc.g, tc.b, 0.95) if is_act else Color(0.55, 0.50, 0.40, 0.6)
-		var lbl_sz = 14 if is_act else 12
-		_udraw(font, Vector2(tx + tab_w * 0.5, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w - 4), lbl_sz, lbl_col)
+		var lbl_sz = 13 if is_act else 11
+		_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), lbl_sz, lbl_col)
 
 	if menu_current_view == "chapters":
 		_draw_story_map()
@@ -15055,7 +15058,7 @@ func _draw_story_map() -> void:
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
 	var title_text = "THE TOME OF SHADOWS  —  %d / %d" % [num_completed, num_total]
-	_udraw(font, Vector2(list_x + list_w * 0.5, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(list_w - 40), 16, Color(0.85, 0.70, 0.28))
+	_udraw(font, Vector2(list_x + 20, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(list_w - 40), 16, Color(0.85, 0.70, 0.28))
 	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), Color(0.54, 0.45, 0.20, 0.3))
 
 	var content_top = list_y + 40.0
