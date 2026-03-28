@@ -4406,6 +4406,12 @@ func _load_path_textures() -> void:
 			var tex = load(res_path)
 			if tex:
 				_path_textures[pname] = tex
+				continue
+		# Fallback: load raw PNG via Image (works even without .import cache)
+		var abs_path = ProjectSettings.globalize_path(res_path)
+		var img = Image.new()
+		if img.load(abs_path) == OK:
+			_path_textures[pname] = ImageTexture.create_from_image(img)
 
 func _load_portrait_textures() -> void:
 	_portrait_textures.clear()
@@ -19570,8 +19576,23 @@ func _draw_path_overlay() -> void:
 			if has_center:
 				draw_line(pts[k], pts[k + 1], detail_col, 2.0)
 
-	# AI path texture disabled — axis-aligned rects don't follow diagonal paths
-	# TODO: implement proper rotated texture rendering along path segments
+	# --- AI path texture as primary road surface (rotated along segments) ---
+	if _has_path_tex:
+		var _ptex = _path_textures[_pf]
+		for k in range(pts.size() - 1):
+			var seg_start = pts[k]
+			var seg_end = pts[k + 1]
+			var seg_len = seg_start.distance_to(seg_end)
+			if seg_len < 1.0:
+				continue
+			var seg_angle = (seg_end - seg_start).angle()
+			var mid = (seg_start + seg_end) * 0.5
+			var half_w = road_w * 0.5
+			# Rotate transform to align texture with segment direction
+			draw_set_transform(mid, seg_angle, Vector2.ONE)
+			# Draw texture centered on midpoint, stretched along segment length
+			draw_texture_rect(_ptex, Rect2(-seg_len * 0.5, -half_w, seg_len, road_w), true)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# --- Edge detail lines ---
 	for k in range(0, pts.size() - 1, 2):
