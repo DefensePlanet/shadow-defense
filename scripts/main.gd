@@ -5616,18 +5616,18 @@ func _create_ui() -> void:
 	var cols = 4
 	var grid_panel_x = 70.0 + _safe_left
 	var grid_panel_w = 1140.0 - _safe_left - _safe_right
-	var grid_start_y = 38.0 + _safe_top + 56.0
+	var grid_start_y = 38.0 + _safe_top + 48.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
-		var row_w = float(cols) * 268.0 + float(cols - 1) * 10.0
+		var row_w = float(cols) * 280.0 + float(cols - 1) * 8.0
 		var row_x = grid_panel_x + (grid_panel_w - row_w) * 0.5
-		var cx = row_x + float(col_i) * (268.0 + 10.0)
-		var cy = grid_start_y + float(row_i) * (155.0 + 6.0)
+		var cx = row_x + float(col_i) * (280.0 + 8.0)
+		var cy = grid_start_y + float(row_i) * (165.0 + 5.0)
 
 		var card_btn = Button.new()
 		card_btn.position = Vector2(cx, cy)
-		card_btn.custom_minimum_size = Vector2(268.0, 155.0)
+		card_btn.custom_minimum_size = Vector2(280.0, 165.0)
 		card_btn.flat = true
 		card_btn.pressed.connect(_on_survivor_card_pressed.bind(i))
 		card_btn.mouse_entered.connect(func(): queue_redraw())
@@ -13351,18 +13351,7 @@ func _draw_survivor_grid() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 570.0
 
-	# Panel background gradient
-	for row in range(58):
-		var t = float(row) / 57.0
-		var bg_col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 57.0 + 1), bg_col)
-
-	# Accent border with inner glow
-	var border_col = _ca(menu_gold_dim, 0.3)
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), border_col)
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), border_col)
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), border_col)
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), border_col)
+	# No panel background — let menu bg show through for seamless look
 
 	# === "SURVIVORS" title — GLOWING ===
 	var title_y = panel_y + 4.0
@@ -13421,13 +13410,13 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# 4x3 grid — sized to fit without clipping nav bar
-	var card_w = 268.0
-	var card_h = 155.0
-	var gap_x = 10.0
-	var gap_y = 6.0
+	# 4x3 grid — full width, cards start right below filter bar
+	var card_w = 280.0
+	var card_h = 165.0
+	var gap_x = 8.0
+	var gap_y = 5.0
 	var cols = 4
-	var grid_start_y = panel_y + 56.0
+	var grid_start_y = panel_y + 48.0
 
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
@@ -13466,9 +13455,16 @@ func _draw_survivor_grid() -> void:
 		# Dark base fill
 		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.04, 0.04, 0.08))
 
-		# === PORTRAIT — fills entire card ===
+		# === PORTRAIT — fills entire card width ===
 		if unlocked:
-			_draw_story_portrait(draw_cx, draw_cy, draw_ch, speaker_name)
+			# Draw portrait at card width so it fills edge-to-edge
+			var port_key = speaker_name
+			if port_key in _portrait_textures and _portrait_textures[port_key] != null:
+				var tex = _portrait_textures[port_key]
+				# Fill entire card — stretch to fit
+				draw_texture_rect(tex, Rect2(draw_cx, draw_cy, draw_cw, draw_ch), false)
+			else:
+				_draw_story_portrait(draw_cx, draw_cy, draw_cw, speaker_name)
 		else:
 			# Locked: dark with silhouette
 			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.06, 0.05, 0.10, 0.9))
@@ -13673,12 +13669,12 @@ func _update_world_map_hover() -> void:
 	world_map_hover_index = -1
 	var panel_x = 70.0 + _safe_left
 	var panel_w = 1140.0 - _safe_left - _safe_right
-	var card_w = 268.0
-	var card_h = 155.0
-	var gap_x = 10.0
-	var gap_y = 6.0
+	var card_w = 280.0
+	var card_h = 165.0
+	var gap_x = 8.0
+	var gap_y = 5.0
 	var cols = 4
-	var grid_start_y = 38.0 + 56.0
+	var grid_start_y = 38.0 + 48.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
