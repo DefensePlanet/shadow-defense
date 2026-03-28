@@ -14937,7 +14937,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var left_cx = cx
 	var right_cx = cx + col_w + 20.0
 	# --- LEFT COLUMN: Combat Stats ---
-	_udraw(font, Vector2(left_cx, cy + 12), "COMBAT STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_gold)
+	_ds_title(Vector2(left_cx, cy + 12), "COMBAT STATS", 15, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(left_cx, cy + 16, 100, 1), _ca(menu_gold, 0.25))
 	cy += 24.0
 	var stat_left_y = cy
@@ -14998,7 +14998,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 			stat_left_y += 13.0
 	# --- RIGHT COLUMN: Synergies ---
 	var syn_y = cy
-	_udraw(font, Vector2(right_cx, syn_y + 12), "SYNERGIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, menu_gold)
+	_ds_title(Vector2(right_cx, syn_y + 12), "SYNERGIES", 15, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(right_cx, syn_y + 16, 80, 1), _ca(menu_gold, 0.25))
 	syn_y += 24.0
 	var syn_count = 0
@@ -21601,8 +21601,10 @@ func _draw_boss_health_bar() -> void:
 	# HP text
 	var hp_text = "%s / %s" % [_format_number(hp), _format_number(max_hp)]
 	_udraw(game_font, Vector2(640, bar_y + 14), hp_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(1.0, 0.95, 0.9, 0.9))
-	# Boss name
-	_udraw(game_font, Vector2(640, bar_y - 4), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 0.7, 0.3, 0.8))
+	# Boss name — glowing red
+	_udraw(game_font, Vector2(641, bar_y - 3), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0, 0, 0, 0.5))
+	_udraw(game_font, Vector2(640, bar_y - 4), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(1.0, 0.3, 0.15, 0.9))
+	_udraw(game_font, Vector2(639, bar_y - 5), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(1.0, 0.5, 0.2, 0.25))
 
 # === BATTD: ENEMY KILL COUNTER ===
 func _draw_kill_counter() -> void:
@@ -34137,7 +34139,7 @@ func _draw_character_quote_box(px: float, py: float, pw: float, hero_index: int)
 # --- CharMenu 19: LORE SECTION ---
 func _draw_lore_section(px: float, py: float, pw: float, tower_type, hero_index: int) -> void:
 	var font = game_font
-	_udraw(font, Vector2(px, py + 14), "LORE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_gold)
+	_ds_title(Vector2(px, py + 14), "LORE", 14, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px, py + 18, 50, 1), _ca(menu_gold, 0.3))
 	var desc = survivor_descriptions.get(tower_type, "A legendary hero.")
 	var lines = desc.split("\n")
