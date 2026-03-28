@@ -1198,7 +1198,7 @@ func _draw() -> void:
 	# === SPRITE RENDERING (animated — curious & light) ===
 	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
-		var _sf = 56.0 / _ss.y
+		var _sf = 96.0 / _ss.y
 		var _sd = _ss * _sf
 		var breathe_scl = 1.0 + sin(_time * 2.2) * 0.020
 		var sway_rot = sin(_time * 1.5) * 0.028

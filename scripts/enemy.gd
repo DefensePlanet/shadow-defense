@@ -656,7 +656,7 @@ func _draw() -> void:
 	if _sprite_texture:
 		# === SPRITE RENDERING — matches tower draw_texture_rect pattern ===
 		var _ss = Vector2(_sprite_texture.get_width(), _sprite_texture.get_height())
-		var target_h = 56.0 * s
+		var target_h = 96.0 * s
 		var _sf = target_h / _ss.y
 		var _sd = _ss * _sf
 		var t = _wound_time
