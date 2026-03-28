@@ -12845,15 +12845,15 @@ func _draw_closed_book() -> void:
 	draw_rect(Rect2(panel_x + 40, panel_y + 46, (panel_w - 80) * knowledge_ratio, 4), Color(0.6, 0.45, 0.8, 0.6))
 	_udraw(font, Vector2(panel_x + 40, panel_y + 58), "%d / %d NODES  (%d%%)" % [unlocked_nodes, total_nodes, int(knowledge_ratio * 100)], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.6, 0.5, 0.7, 0.5))
 
-	# 5 branches side by side (compact layout)
+	# 5 branches side by side (fit within panel, no overflow)
 	var num_branches = knowledge_branches.size()
-	var branch_w = 210.0
-	var branch_gap = 14.0
+	var branch_gap = 8.0
+	var branch_w = (panel_w - 20.0 - float(num_branches - 1) * branch_gap) / float(num_branches)
 	var total_bw = float(num_branches) * branch_w + float(num_branches - 1) * branch_gap
 	var branch_start_x = panel_x + (panel_w - total_bw) * 0.5
 	var branch_start_y = panel_y + 62.0
-	var node_radius = 16.0
-	var node_spacing_y = 52.0
+	var node_radius = 14.0
+	var node_spacing_y = 50.0
 
 	for bi in range(knowledge_branches.size()):
 		var branch = knowledge_branches[bi]
@@ -12875,10 +12875,8 @@ func _draw_closed_book() -> void:
 		# Branch header
 		var bname = branch["name"]
 		var bdesc = "(%s)" % branch["desc"]
-		var bnw = font.get_string_size(bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
-		_udraw(font, Vector2(bx + (branch_w - bnw) * 0.5, branch_start_y + 14), bname, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(bcol.r, bcol.g, bcol.b, 0.9))
-		var bdw = font.get_string_size(bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-		_udraw(font, Vector2(bx + (branch_w - bdw) * 0.5, branch_start_y + 26), bdesc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(bcol.r, bcol.g, bcol.b, 0.5))
+		_udraw(font, Vector2(bx, branch_start_y + 14), bname, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 13, Color(bcol.r, bcol.g, bcol.b, 0.9))
+		_udraw(font, Vector2(bx, branch_start_y + 26), bdesc, HORIZONTAL_ALIGNMENT_CENTER, int(branch_w), 11, Color(bcol.r, bcol.g, bcol.b, 0.5))
 
 		# === Character portrait beside branch header (Enhancement #40) ===
 		var portrait_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom"]
@@ -12956,11 +12954,12 @@ func _draw_closed_book() -> void:
 				# Dim grey dot — locked
 				draw_circle(Vector2(ind_x, node_cy), 2, Color(0.3, 0.3, 0.3, 0.25))
 
-			# Node name and desc (to the right)
-			var text_x = node_cx + node_radius + 8
+			# Node name and desc (to the right, constrained to column width)
+			var text_x = node_cx + node_radius + 6
+			var text_max_w = int(bx + branch_w - text_x - 2)
 			var name_col = Color(0.9, 0.8, 0.5, 0.9) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.7) if can_unlock else Color(0.5, 0.45, 0.4, 0.5))
-			_udraw(font, Vector2(text_x, node_cy - 1), node["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, name_col)
-			_udraw(font, Vector2(text_x, node_cy + 11), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
+			_udraw(font, Vector2(text_x, node_cy - 1), node["name"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 13, name_col)
+			_udraw(font, Vector2(text_x, node_cy + 11), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 11, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
 
 	# === Content fade masks at top/bottom edges (Enhancement #39) ===
 	var bg_base = menu_bg_section
@@ -12987,13 +12986,13 @@ func _update_knowledge_hover() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var num_branches = knowledge_branches.size()
-	var branch_w = 210.0
-	var branch_gap = 14.0
+	var branch_gap = 8.0
+	var branch_w = (panel_w - 20.0 - float(num_branches - 1) * branch_gap) / float(num_branches)
 	var total_bw = float(num_branches) * branch_w + float(num_branches - 1) * branch_gap
 	var branch_start_x = panel_x + (panel_w - total_bw) * 0.5
 	var branch_start_y = panel_y + 62.0
-	var node_radius = 16.0
-	var node_spacing_y = 52.0
+	var node_radius = 14.0
+	var node_spacing_y = 50.0
 	chronicles_hover_branch = -1
 	chronicles_hover_node = -1
 	for bi in range(knowledge_branches.size()):
