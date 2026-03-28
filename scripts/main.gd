@@ -15286,7 +15286,7 @@ func _draw_story_map() -> void:
 			var tint_b = arc_col.b * 0.06
 			var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
 			if not is_unlocked:
-				row_bg = Color(0.06, 0.05, 0.04, 0.4)
+				row_bg = Color(0.06, 0.05, 0.08, 0.5)
 			draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
 			# Left accent bar
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
@@ -15342,9 +15342,9 @@ func _draw_story_map() -> void:
 
 			# --- Text info (brighter, bolder) ---
 			var text_x = thumb_x + thumb_w + 18.0
-			var name_col = Color(1.0, 0.88, 0.40) if is_unlocked else Color(0.45, 0.38, 0.28, 0.6)
-			var sub_col = Color(0.80, 0.68, 0.48) if is_unlocked else Color(0.35, 0.30, 0.22, 0.5)
-			var stat_col = Color(0.65, 0.80, 0.50) if is_unlocked else Color(0.30, 0.28, 0.22, 0.4)
+			var name_col = Color(1.0, 0.88, 0.40) if is_unlocked else Color(0.50, 0.42, 0.32, 0.65)
+			var sub_col = Color(0.80, 0.68, 0.48) if is_unlocked else Color(0.40, 0.35, 0.28, 0.55)
+			var stat_col = Color(0.65, 0.80, 0.50) if is_unlocked else Color(0.35, 0.32, 0.25, 0.45)
 			_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 380, 16, name_col)
 			_udraw(font, Vector2(text_x, ry + 46), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 380, 15, sub_col)
 
