@@ -16371,7 +16371,7 @@ func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> v
 
 func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(px + pw * 0.5, py + 20), "ODYSSEY MODE", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.82, 0.62, 0.92))
+	_ds_title(Vector2(px + 10, py + 20), "ODYSSEY MODE", 16, Color(0.9, 0.70, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(px + 10, py + 30, pw - 20, 1), Color(0.5, 0.3, 0.7, 0.3))
 	if odyssey_completed_this_week:
 		_udraw(font, Vector2(px + pw * 0.5, py + 55), "Completed this week!", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.5, 0.8, 0.3))
@@ -16392,7 +16392,7 @@ func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 
 func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(px + pw * 0.5, py + 20), "THE ETERNAL CHAPTER", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.52, 0.62, 0.92))
+	_ds_title(Vector2(px + 10, py + 20), "THE ETERNAL CHAPTER", 16, Color(0.60, 0.72, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(px + 10, py + 30, pw - 20, 1), Color(0.3, 0.4, 0.7, 0.3))
 	_udraw(font, Vector2(px + pw * 0.5, py + 55), "Infinite scaling waves.", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.6, 0.6, 0.75))
 	_udraw(font, Vector2(px + pw * 0.5, py + 73), "How far can you go?", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.6, 0.6, 0.75))
