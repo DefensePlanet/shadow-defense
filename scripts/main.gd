@@ -12020,23 +12020,20 @@ func _draw_emporium_sub_panel() -> void:
 			var iy = start_y + float(row_i) * (item_h + 12.0)
 			var is_hovered = (i == emporium_sub_hover)
 
-			# Card shadow
-			draw_rect(Rect2(ix + 4, iy + 4, item_w, item_h), Color(0.0, 0.0, 0.0, 0.3))
-			# Card background
+			# Card — rarity-colored border via design system
+			draw_rect(Rect2(ix + 4, iy + 4, item_w, item_h), Color(0.0, 0.0, 0.0, 0.35))
 			var bg = menu_bg_card_hover if is_hovered else menu_bg_card
-			draw_rect(Rect2(ix, iy, item_w, item_h), bg)
-			# Card border — color by item rarity/cost tier (Enhancement #36)
-			var rarity_col = Color(0.55, 0.38, 0.08, 0.35)  # Default gold-dim
+			var rarity_col = Color(0.55, 0.38, 0.08, 0.35)
 			if item["cost"] >= 100:
-				rarity_col = _ca(c_gold, 0.5)  # Gold/rare — expensive items
+				rarity_col = _ca(c_gold, 0.5)
 			elif item["cost"] >= 30:
-				rarity_col = Color(0.55, 0.3, 0.7, 0.45)  # Purple/uncommon — mid-range
+				rarity_col = Color(0.55, 0.3, 0.7, 0.45)
 			else:
-				rarity_col = Color(0.3, 0.5, 0.8, 0.4)  # Blue/common — cheap items
-			var bdr = Color(rarity_col.r * 1.3, rarity_col.g * 1.3, rarity_col.b * 1.3, 0.7) if is_hovered else rarity_col
-			draw_rect(Rect2(ix, iy, item_w, 2), bdr)
-			draw_rect(Rect2(ix, iy + item_h - 2, item_w, 2), bdr)
-			draw_rect(Rect2(ix, iy, 2, item_h), bdr)
+				rarity_col = Color(0.3, 0.5, 0.8, 0.4)
+			var bdr = Color(minf(rarity_col.r * 1.4, 1.0), minf(rarity_col.g * 1.4, 1.0), minf(rarity_col.b * 1.4, 1.0), 0.7) if is_hovered else rarity_col
+			_ds_panel(Rect2(ix, iy, item_w, item_h), bg, bdr, 2.0)
+			if is_hovered:
+				draw_rect(Rect2(ix - 2, iy - 2, item_w + 4, item_h + 4), _ca(rarity_col, 0.1))
 			draw_rect(Rect2(ix + item_w - 2, iy, 2, item_h), bdr)
 
 			# Hover glow
