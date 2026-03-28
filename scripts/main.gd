@@ -10519,14 +10519,14 @@ func _draw_currency_bar() -> void:
 	# Menu Improvement 1: Animated Logo Treatment (replaces static title)
 	_draw_animated_logo(bar_y)
 
-	# Currencies from left to right
+	# Currencies from left to right — with AI art icons
 	var currencies = [
-		{"icon": "G", "color": Color(0.9, 0.8, 0.2), "value": player_gold, "name": "Gold"},
-		{"icon": "Q", "color": Color(0.4, 0.7, 0.9), "value": player_quills, "name": "Quills"},
-		{"icon": "S", "color": Color(0.7, 0.4, 0.8), "value": player_gear_shards, "name": "Shards"},
-		{"icon": "*", "color": Color(1.0, 0.9, 0.3), "value": player_storybook_stars, "name": "Stars"},
-		{"icon": "K", "color": Color(0.3, 0.6, 0.4), "value": knowledge_ink, "name": "Ink"},
-		{"icon": "T", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
+		{"icon": "emp_gold", "color": Color(0.9, 0.8, 0.2), "value": player_gold, "name": "Gold"},
+		{"icon": "emp_quills", "color": Color(0.4, 0.7, 0.9), "value": player_quills, "name": "Quills"},
+		{"icon": "emp_shards", "color": Color(0.7, 0.4, 0.8), "value": player_gear_shards, "name": "Shards"},
+		{"icon": "emp_stars", "color": Color(1.0, 0.9, 0.3), "value": player_storybook_stars, "name": "Stars"},
+		{"icon": "emp_quills", "color": Color(0.3, 0.6, 0.4), "value": knowledge_ink, "name": "Ink"},
+		{"icon": "emp_trophy", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
 	]
 	var cx = 370.0 + _safe_left
 	for c in currencies:
@@ -10534,20 +10534,23 @@ func _draw_currency_bar() -> void:
 		var ic_y = bar_y + bar_h * 0.5
 		# Outer glow pulse
 		var ic_pulse = 0.8 + sin(_time * 1.5 + cx * 0.01) * 0.2
-		draw_circle(Vector2(cx, ic_y), 14, Color(cc.r, cc.g, cc.b, 0.08 * ic_pulse))
-		# Icon circle with bright fill
-		draw_circle(Vector2(cx, ic_y), 11, Color(cc.r, cc.g, cc.b, 0.18))
-		draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
-		draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
-		# Menu Improvement 13: Premium currency sparkle (Quills, Shards, Stars)
+		draw_circle(Vector2(cx, ic_y), 16, Color(cc.r, cc.g, cc.b, 0.08 * ic_pulse))
+		# AI art icon (emporium icons) — if loaded, use them; else procedural fallback
+		var _emp_icon_key = c["icon"]
+		if _emporium_icon_textures.has(_emp_icon_key):
+			var emp_sz = 22.0
+			draw_texture_rect(_emporium_icon_textures[_emp_icon_key], Rect2(cx - emp_sz * 0.5, ic_y - emp_sz * 0.5, emp_sz, emp_sz), false)
+		else:
+			draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
+			draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
+		# Menu Improvement 13: Premium currency sparkle
 		var is_premium = c["name"] in ["Quills", "Shards", "Stars"]
 		_draw_currency_shimmer(cx, ic_y, 10.0, cc, is_premium)
-		_udraw(font, Vector2(cx, bar_y + 22), c["icon"], HORIZONTAL_ALIGNMENT_CENTER, 20, _scaled_fs(15), cc)
-		# Menu Improvement 4: Use animated display value
+		# Value text — brighter
 		var display_val = _get_display_currency(c["name"]) if _currency_display.has(c["name"]) else c["value"]
 		var val_str = _format_gold(display_val)
 		_udraw(font, Vector2(cx + 16, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), c_shadow)
-		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), _ca(menu_parchment, 0.95))
+		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), Color(1.0, 0.95, 0.85, 0.95))
 		cx += 130.0
 
 	# Total stars on far right
@@ -11030,9 +11033,9 @@ func _draw_menu_background() -> void:
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
 
-		# Icon — big AI art, no borders (March 17 size match)
-		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 34.0)
-		var icon_sz = 70.0 if is_act else 56.0
+		# Icon — MASSIVE AI art, overlapping for pop (March 17 match)
+		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 28.0)
+		var icon_sz = 82.0 if is_act else 64.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
 		if _tab_icon_textures.has(_tik):
 			var alpha = 1.0 if is_act else 0.7
@@ -15281,8 +15284,18 @@ func _draw_story_map() -> void:
 	var num_total = levels.size()
 	var title_text = "THE TOME OF SHADOWS"
 	var count_text = "%d/%d LEVELS" % [num_completed, num_total]
-	_udraw(font, Vector2(list_x + list_w * 0.5 - 120, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.95, 0.78, 0.30))
-	_udraw(font, Vector2(list_x + list_w - 150, list_y + 24), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.60, 0.25))
+	# Title glow halo
+	var title_pulse = 0.85 + sin(_time * 1.0) * 0.15
+	var title_glow_cx = list_x + list_w * 0.4
+	draw_circle(Vector2(title_glow_cx, list_y + 18), 120.0, _ca(c_gold, 0.04 * title_pulse))
+	# Shadow
+	_udraw(font, Vector2(list_x + 22, list_y + 26), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.0, 0.0, 0.0, 0.6))
+	# Main — BIG, BRIGHT, GLOWING
+	_udraw(font, Vector2(list_x + 20, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0 * title_pulse, 0.85 * title_pulse, 0.28, 1.0))
+	# Glow pass
+	_udraw(font, Vector2(list_x + 19, list_y + 23), title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0, 0.92, 0.50, 0.2 * title_pulse))
+	# Count — right side
+	_udraw(font, Vector2(list_x + list_w - 160, list_y + 24), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(0.85, 0.70, 0.30))
 	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), _ca(menu_gold_dim, 0.3))
 
 	# --- Right sidebar: Deals, Quests, Arena, Odyssey, Endless ---
@@ -15302,16 +15315,25 @@ func _draw_story_map() -> void:
 	for si in range(side_labels.size()):
 		var sy = list_y + 40.0 + float(si) * (side_btn_h + side_gap)
 		var sc = side_colors[si]
-		# Button bg
-		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.15, sc.g * 0.15, sc.b * 0.15, 0.85))
-		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r, sc.g, sc.b, 0.25), false, 1.5)
-		# Icon circle
+		var side_hover = Rect2(side_x, sy, side_w, side_btn_h).has_point(get_viewport().get_mouse_position())
+		# Button bg with glow on hover
+		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.15, sc.g * 0.15, sc.b * 0.15, 0.9 if side_hover else 0.75))
+		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r, sc.g, sc.b, 0.5 if side_hover else 0.25), false, 2.0 if side_hover else 1.5)
+		if side_hover:
+			draw_rect(Rect2(side_x - 2, sy - 2, side_w + 4, side_btn_h + 4), Color(sc.r, sc.g, sc.b, 0.08))
+		# AI art icon from badge_icons folder
 		var icon_cx = side_x + side_w * 0.5
-		var icon_cy = sy + side_btn_h * 0.42
-		draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.3, sc.g * 0.3, sc.b * 0.3, 0.8))
-		draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r, sc.g, sc.b, 0.4), false, 1.5)
-		# Label
-		_udraw(font, Vector2(side_x + 4, sy + side_btn_h - 10), side_labels[si], HORIZONTAL_ALIGNMENT_CENTER, int(side_w - 8), 11, Color(sc.r, sc.g, sc.b, 0.9))
+		var icon_cy = sy + side_btn_h * 0.40
+		var badge_key = side_icons[si]
+		if _badge_icon_textures.has(badge_key):
+			var badge_sz = 52.0 if side_hover else 46.0
+			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(icon_cx - badge_sz * 0.5, icon_cy - badge_sz * 0.5, badge_sz, badge_sz), false)
+		else:
+			# Procedural fallback
+			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.3, sc.g * 0.3, sc.b * 0.3, 0.8))
+			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r, sc.g, sc.b, 0.4), false, 1.5)
+		# Label — brighter
+		_udraw(font, Vector2(side_x + 4, sy + side_btn_h - 8), side_labels[si], HORIZONTAL_ALIGNMENT_CENTER, int(side_w - 8), 12, Color(sc.r, sc.g, sc.b, 1.0 if side_hover else 0.85))
 
 	var content_top = list_y + 40.0
 	var content_h = list_h - 40.0
@@ -15607,16 +15629,30 @@ func _draw_story_map() -> void:
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
 				var btn_pulse = 0.85 + sin(_time * 3.0) * 0.15 if not is_complete else 0.7
-				var btn_col = Color(0.20, 0.58, 0.15, btn_pulse) if not btn_hover else Color(0.25, 0.68, 0.18, 1.0)
-				if is_complete:
-					btn_col = Color(0.15, 0.40, 0.12, 0.6) if not btn_hover else Color(0.20, 0.50, 0.15, 0.8)
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), btn_col)
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, 2), Color(0.4, 0.8, 0.3, 0.3))
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), _ca(menu_gold_dim, 0.4), false, 1.0)
-				_udraw(font, Vector2(btn_x + 4, btn_y2 + 32), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 20, Color(1, 1, 1, 0.95))
-				# Menu Improvement 5: Button shimmer sweep on GO button
+				# Glowing modern GO button
+				var btn_glow_r = 40.0 + sin(_time * 2.0) * 5.0
 				if not is_complete:
-					_draw_button_shimmer(btn_x, btn_y2, btn_w2, btn_h2, 50.0, Color(1, 1, 1, 0.12))
+					draw_circle(Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5), btn_glow_r, Color(0.2, 0.7, 0.15, 0.08 * btn_pulse))
+				# Gradient fill (multiple rects for depth)
+				var btn_base = Color(0.15, 0.52, 0.12) if not btn_hover else Color(0.18, 0.62, 0.15)
+				if is_complete:
+					btn_base = Color(0.12, 0.35, 0.10, 0.6) if not btn_hover else Color(0.15, 0.45, 0.12, 0.8)
+				for gi in range(5):
+					var gt = float(gi) / 4.0
+					var shade = 1.0 - gt * 0.3
+					draw_rect(Rect2(btn_x, btn_y2 + gt * btn_h2 * 0.2, btn_w2, btn_h2 * 0.2 + 1), Color(btn_base.r * shade, btn_base.g * shade, btn_base.b * shade, btn_pulse))
+				# Top highlight (glass effect)
+				draw_rect(Rect2(btn_x + 2, btn_y2 + 2, btn_w2 - 4, btn_h2 * 0.35), Color(1, 1, 1, 0.08 * btn_pulse))
+				# Border — bright gold
+				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.85, 0.70, 0.20, 0.6 * btn_pulse), false, 2.0)
+				# Inner border glow
+				draw_rect(Rect2(btn_x + 1, btn_y2 + 1, btn_w2 - 2, btn_h2 - 2), Color(0.4, 0.8, 0.3, 0.15 * btn_pulse), false, 1.0)
+				# GO text — big, white, glowing
+				_udraw(font, Vector2(btn_x + 5, btn_y2 + 34), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 22, Color(0, 0, 0, 0.4))
+				_udraw(font, Vector2(btn_x + 4, btn_y2 + 33), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 - 8), 22, Color(1, 1, 1, 0.95))
+				# Shimmer sweep
+				if not is_complete:
+					_draw_button_shimmer(btn_x, btn_y2, btn_w2, btn_h2, 50.0, Color(1, 1, 1, 0.15))
 			else:
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
 				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
@@ -33312,28 +33348,29 @@ var _logo_glow_phase: float = 0.0
 
 func _draw_animated_logo(bar_y: float) -> void:
 	var font = game_font
-	var logo_x = 70.0 + _safe_left
-	var logo_y = bar_y + 18.0 + sin(_time * 1.4) * 2.0
+	var logo_x = 16.0 + _safe_left
+	var logo_y = bar_y + 22.0 + sin(_time * 1.4) * 1.5
 	_logo_glow_phase = _time
-	# Outer glow halo (pulsing)
-	var glow_r = 80.0 + sin(_time * 0.8) * 10.0
-	draw_circle(Vector2(logo_x + 50, logo_y - 2), glow_r, _ca(c_gold, 0.03 + sin(_time * 1.5) * 0.015))
-	draw_circle(Vector2(logo_x + 50, logo_y - 2), glow_r * 0.6, Color(0.9, 0.7, 0.15, 0.04 + sin(_time * 2.0) * 0.02))
-	# Drop shadow (deeper)
-	_udraw(font, Vector2(logo_x + 2, logo_y + 3), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, 300, 18, c_overlay)
-	# Main title with color gradient via two overlapping draws
 	var pulse = 0.9 + sin(_time * 1.2) * 0.1
-	_udraw(font, Vector2(logo_x, logo_y), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, 300, 18, Color(0.95 * pulse, 0.78 * pulse, 0.18, 1.0))
-	# Highlight pass (brighter on left half for gradient feel)
-	_udraw(font, Vector2(logo_x, logo_y), "Shadow", HORIZONTAL_ALIGNMENT_LEFT, 100, 18, Color(1.0 * pulse, 0.88 * pulse, 0.35, 0.3))
-	# 4 orbiting sparkles around the title
-	for si in range(4):
-		var sa = _time * 1.5 + float(si) * TAU / 4.0
-		var sr = 55.0 + sin(_time * 2.0 + float(si)) * 8.0
-		var sp = Vector2(logo_x + 50 + cos(sa) * sr, logo_y - 2 + sin(sa) * sr * 0.35)
-		var sa2 = 0.3 + sin(_time * 4.0 + float(si) * 1.5) * 0.2
-		draw_circle(sp, 1.5, Color(1.0, 0.9, 0.4, sa2))
-		draw_circle(sp, 4.0, Color(1.0, 0.85, 0.3, sa2 * 0.15))
+	# Massive outer glow halo (pulsing, dramatic)
+	var glow_cx = logo_x + 90.0
+	var glow_r = 100.0 + sin(_time * 0.8) * 12.0
+	draw_circle(Vector2(glow_cx, logo_y - 2), glow_r, _ca(c_gold, 0.04 + sin(_time * 1.5) * 0.02))
+	draw_circle(Vector2(glow_cx, logo_y - 2), glow_r * 0.5, Color(1.0, 0.8, 0.2, 0.06 + sin(_time * 2.0) * 0.03))
+	# Drop shadow (deep)
+	_udraw(font, Vector2(logo_x + 2, logo_y + 3), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.0, 0.0, 0.0, 0.8))
+	# Main title — BIG, GLOWING, BRIGHT
+	_udraw(font, Vector2(logo_x, logo_y), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0 * pulse, 0.85 * pulse, 0.25, 1.0))
+	# Second bright pass for glow effect
+	_udraw(font, Vector2(logo_x - 1, logo_y - 1), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.92, 0.45, 0.25 * pulse))
+	# 6 orbiting sparkles
+	for si in range(6):
+		var sa = _time * 1.5 + float(si) * TAU / 6.0
+		var sr = 70.0 + sin(_time * 2.0 + float(si)) * 10.0
+		var sp = Vector2(glow_cx + cos(sa) * sr, logo_y - 2 + sin(sa) * sr * 0.3)
+		var sa2 = 0.35 + sin(_time * 4.0 + float(si) * 1.5) * 0.25
+		draw_circle(sp, 2.0, Color(1.0, 0.9, 0.4, sa2))
+		draw_circle(sp, 5.0, Color(1.0, 0.85, 0.3, sa2 * 0.2))
 
 # --- Menu Improvement 2: RED NOTIFICATION BADGES ---
 # Unread/claimable content dots on nav tabs (like every mobile game)
