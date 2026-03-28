@@ -12831,7 +12831,7 @@ func _draw_closed_book() -> void:
 	var ink_w = font.get_string_size(ink_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	_udraw(font, Vector2(panel_x + panel_w - ink_w - 30, panel_y + 20), ink_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.6, 0.45, 0.8, 0.85))
 
-	# === Total completion percentage header (Enhancement #46 style for knowledge) ===
+	# === Completion — in the title bar, not overlapping headers ===
 	var total_nodes = 0
 	var unlocked_nodes = 0
 	for kb in knowledge_branches:
@@ -12840,10 +12840,12 @@ func _draw_closed_book() -> void:
 		if knowledge_tree[kk]:
 			unlocked_nodes += 1
 	var knowledge_ratio = float(unlocked_nodes) / float(max(1, total_nodes))
-	# Progress bar under title
-	draw_rect(Rect2(panel_x + 40, panel_y + 46, panel_w - 80, 4), Color(0.1, 0.1, 0.15, 0.4))
-	draw_rect(Rect2(panel_x + 40, panel_y + 46, (panel_w - 80) * knowledge_ratio, 4), Color(0.6, 0.45, 0.8, 0.6))
-	_udraw(font, Vector2(panel_x + 40, panel_y + 58), "%d / %d NODES  (%d%%)" % [unlocked_nodes, total_nodes, int(knowledge_ratio * 100)], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.6, 0.5, 0.7, 0.5))
+	# Progress text beside title
+	var prog_text = "%d / %d NODES (%d%%)" % [unlocked_nodes, total_nodes, int(knowledge_ratio * 100)]
+	_udraw(font, Vector2(panel_x + 20, panel_y + 22), prog_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.5, 0.7, 0.6))
+	# Thin progress bar under title
+	draw_rect(Rect2(panel_x + 40, panel_y + 46, panel_w - 80, 3), Color(0.1, 0.1, 0.15, 0.4))
+	draw_rect(Rect2(panel_x + 40, panel_y + 46, (panel_w - 80) * knowledge_ratio, 3), Color(0.6, 0.45, 0.8, 0.6))
 
 	# 5 branches side by side (full width, text below nodes)
 	var num_branches = knowledge_branches.size()
@@ -12860,17 +12862,15 @@ func _draw_closed_book() -> void:
 		var bx = branch_start_x + float(bi) * (branch_w + branch_gap)
 		var bcol = branch["color"]
 
-		# === Branch divider ornament (Enhancement #38) — between branches ===
+		# === Branch divider — visible gold line between columns ===
 		if bi > 0:
 			var div_x = bx - branch_gap * 0.5
-			# Vertical divider line
-			draw_line(Vector2(div_x, branch_start_y + 8), Vector2(div_x, branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 70), _ca(menu_gold_dim, 0.12), 1.0)
-			# Diamond ornament at top of divider
-			var div_dy = branch_start_y + 12
-			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_dy - 4), Vector2(div_x + 3, div_dy), Vector2(div_x, div_dy + 4), Vector2(div_x - 3, div_dy)]), _ca(menu_gold_dim, 0.25))
-			# Diamond ornament at bottom of divider
+			draw_line(Vector2(div_x, branch_start_y), Vector2(div_x, branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 70), _ca(menu_gold_dim, 0.3), 1.5)
+			# Diamond ornaments
+			var div_dy = branch_start_y + 6
+			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_dy - 5), Vector2(div_x + 4, div_dy), Vector2(div_x, div_dy + 5), Vector2(div_x - 4, div_dy)]), _ca(menu_gold_dim, 0.45))
 			var div_by = branch_start_y + float(branch["nodes"].size()) * node_spacing_y + 66
-			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_by - 4), Vector2(div_x + 3, div_by), Vector2(div_x, div_by + 4), Vector2(div_x - 3, div_by)]), _ca(menu_gold_dim, 0.25))
+			draw_colored_polygon(PackedVector2Array([Vector2(div_x, div_by - 5), Vector2(div_x + 4, div_by), Vector2(div_x, div_by + 5), Vector2(div_x - 4, div_by)]), _ca(menu_gold_dim, 0.45))
 
 		# Branch header
 		var bname = branch["name"]
@@ -12892,8 +12892,8 @@ func _draw_closed_book() -> void:
 		draw_rect(Rect2(bx, branch_start_y + 32, branch_w, 3), Color(0.1, 0.1, 0.15, 0.3))
 		draw_rect(Rect2(bx, branch_start_y + 32, branch_w * branch_ratio, 3), Color(bcol.r, bcol.g, bcol.b, 0.5))
 
-		# Nodes (vertical chain, left-aligned under title)
-		var node_cx = bx + node_radius + 6
+		# Nodes (vertical chain, circle tight to left edge)
+		var node_cx = bx + node_radius + 2
 		for ni in range(branch["nodes"].size()):
 			var node = branch["nodes"][ni]
 			var node_key = "%d_%d" % [bi, ni]
@@ -12930,34 +12930,21 @@ func _draw_closed_book() -> void:
 				var csw = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
 				_udraw(font, Vector2(node_cx - csw * 0.5, node_cy + 4), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(bcol.r, bcol.g, bcol.b, pulse + 0.3))
 			else:
-				# Grey locked
-				draw_circle(Vector2(node_cx, node_cy), node_radius, Color(0.06, 0.05, 0.10, 0.8))
-				draw_arc(Vector2(node_cx, node_cy), node_radius, 0, TAU, 24, Color(0.3, 0.25, 0.2, 0.3), 1.5)
-				# Lock icon
-				draw_rect(Rect2(node_cx - 5, node_cy - 1, 10, 8), Color(0.3, 0.25, 0.2, 0.5))
-				draw_arc(Vector2(node_cx, node_cy - 2), 5, PI, TAU, 8, Color(0.3, 0.25, 0.2, 0.5), 2.0)
+				# Locked — visible but muted (not invisible)
+				draw_circle(Vector2(node_cx, node_cy), node_radius, Color(0.10, 0.08, 0.15, 0.8))
+				draw_arc(Vector2(node_cx, node_cy), node_radius, 0, TAU, 24, Color(0.4, 0.35, 0.3, 0.4), 1.5)
+				# Lock icon — brighter
+				draw_rect(Rect2(node_cx - 4, node_cy, 8, 7), Color(0.45, 0.38, 0.28, 0.6))
+				draw_arc(Vector2(node_cx, node_cy), 4, PI, TAU, 8, Color(0.45, 0.38, 0.28, 0.6), 2.0)
 
 			# Hover highlight
 			if is_hovered:
 				draw_arc(Vector2(node_cx, node_cy), node_radius + 4, 0, TAU, 24, Color(1, 1, 1, 0.3), 1.5)
 
-			# === Read/unread indicator dot (Enhancement #41) ===
-			var ind_x = node_cx - node_radius - 8
-			if is_unlocked:
-				# Bright solid dot — "read"/unlocked
-				draw_circle(Vector2(ind_x, node_cy), 3, Color(0.4, 0.8, 0.3, 0.8))
-			elif can_unlock:
-				# Pulsing dim dot — available to unlock
-				var dot_pulse = 0.4 + sin(_time * 3.5 + float(bi * 10 + ni)) * 0.3
-				draw_circle(Vector2(ind_x, node_cy), 3, Color(bcol.r, bcol.g, bcol.b, dot_pulse))
-			else:
-				# Dim grey dot — locked
-				draw_circle(Vector2(ind_x, node_cy), 2, Color(0.3, 0.3, 0.3, 0.25))
-
 			# Node name and desc — left to right: circle then text (storybook reading flow)
 			var text_x = node_cx + node_radius + 5
 			var text_max_w = int(bx + branch_w - text_x)
-			var name_col = Color(0.9, 0.8, 0.5, 0.9) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.7) if can_unlock else Color(0.5, 0.45, 0.4, 0.5))
+			var name_col = Color(0.95, 0.85, 0.5, 0.95) if is_unlocked else (Color(bcol.r, bcol.g, bcol.b, 0.8) if can_unlock else Color(0.55, 0.50, 0.45, 0.6))
 			_udraw(font, Vector2(text_x, node_cy - 2), node["name"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 12, name_col)
 			_udraw(font, Vector2(text_x, node_cy + 10), node["desc"], HORIZONTAL_ALIGNMENT_LEFT, text_max_w, 10, Color(name_col.r, name_col.g, name_col.b, name_col.a * 0.7))
 
@@ -12997,7 +12984,7 @@ func _update_knowledge_hover() -> void:
 	chronicles_hover_node = -1
 	for bi in range(knowledge_branches.size()):
 		var bx = branch_start_x + float(bi) * (branch_w + branch_gap)
-		var node_cx = bx + node_radius + 6
+		var node_cx = bx + node_radius + 2
 		for ni in range(knowledge_branches[bi]["nodes"].size()):
 			var node_cy = branch_start_y + 60.0 + float(ni) * node_spacing_y
 			if mouse_pos.distance_to(Vector2(node_cx, node_cy)) <= node_radius + 4:
