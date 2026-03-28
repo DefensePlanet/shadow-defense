@@ -10928,7 +10928,7 @@ func _draw_menu_background() -> void:
 	if menu_current_view == "chapters":
 		_draw_story_map()
 		# Menu Improvement 9: Featured event banner
-		_draw_event_banner(40.0, 36.0, 1200.0)
+		_draw_event_banner(40.0, 36.0, 1110.0)
 		_draw_chapters_badges()
 		_draw_diff_popup()
 		_draw_chapters_overlay()
@@ -15137,8 +15137,8 @@ func _draw_story_map() -> void:
 	var font = game_font
 	var list_x = 40.0 + _safe_left
 	var list_y = 36.0
-	var list_w = 1200.0
-	var list_h = 610.0
+	var list_w = 1110.0
+	var list_h = 575.0
 	var row_h = 110.0
 	var header_h = 32.0
 	var arc_gap = 6.0
@@ -15507,9 +15507,9 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 
 	var list_x = 40.0 + _safe_left
 	var list_y = 36.0
-	var list_w = 1200.0
-	var list_h = 610.0
-	var row_h = 82.0
+	var list_w = 1110.0
+	var list_h = 575.0
+	var row_h = 110.0
 	var header_h = 32.0
 	var arc_gap = 6.0
 	var content_top = list_y + 40.0
