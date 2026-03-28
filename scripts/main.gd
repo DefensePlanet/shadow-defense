@@ -49,8 +49,8 @@ var tower_info = {
 
 # Constants
 var total_waves: int = 20
-const MIN_PATH_DIST: float = 40.0
-const MIN_TOWER_DIST: float = 48.0
+const MIN_PATH_DIST: float = 25.0
+const MIN_TOWER_DIST: float = 40.0
 const MAX_SURVIVOR_LEVEL: int = 20
 # BTD6-inspired sub-exponential XP curve (19 entries, index = current_level - 1)
 const HERO_XP_TABLE: Array = [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 18200, 20100, 22100, 24200, 26400, 28800, 31400, 34200, 37200]
