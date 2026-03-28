@@ -10787,7 +10787,7 @@ func _draw_menu_background() -> void:
 	var nav_draw_y = 620.0 - _safe_bottom
 	# === BOTTOM NAV BAR — Polished, glowing, alive ===
 	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
-	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
+	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "TROPHIES"]
 	var nav_tab_cols = [
 		Color(0.85, 0.55, 0.25),  # Survivors: warm amber
 		Color(0.65, 0.40, 0.85),  # Gear: mystical purple
@@ -10810,13 +10810,6 @@ func _draw_menu_background() -> void:
 	var edge_glow = 0.4 + sin(_time * 1.8) * 0.1
 	for egi in range(3):
 		draw_rect(Rect2(0, nav_draw_y + float(egi), 1280, 1), Color(0.54, 0.38, 0.15, edge_glow * (1.0 - float(egi) * 0.3)))
-	# Floating ink particles above nav bar
-	for pi in range(_qcount(8)):
-		var px_p = fmod(float(pi) * 173.7 + _time * (8.0 + float(pi) * 3.0), 1280.0)
-		var py_p = nav_draw_y - 4.0 + sin(_time * 1.5 + float(pi) * 0.8) * 3.0
-		var pa = 0.08 + sin(_time * 2.0 + float(pi)) * 0.04
-		draw_circle(Vector2(px_p, py_p), 1.5, Color(0.6, 0.45, 0.15, pa))
-
 	var tab_w = (1280.0 - _safe_left - _safe_right) / 6.0  # safe-area-aware tab width
 	for ni in range(6):
 		var tx = _safe_left + float(ni) * tab_w
@@ -10838,21 +10831,10 @@ func _draw_menu_background() -> void:
 			draw_rect(Rect2(tx + 30, nav_draw_y + 96, tab_w - 60, 2), Color(tc.r, tc.g, tc.b, bar_glow * 0.3))
 			# Top accent
 			draw_rect(Rect2(tx + 15, nav_draw_y, tab_w - 30, 2), Color(tc.r, tc.g, tc.b, bar_glow * 0.5))
-			# === Animated gold underline (Enhancement #49) ===
-			# Sliding highlight segment that sweeps across the underline
-			var slide_t = fmod(_time * 0.8, 1.0)  # 0..1 sweep
-			var underline_w = tab_w - 40.0
-			var segment_w = underline_w * 0.35
-			var seg_x = tx + 20.0 + slide_t * (underline_w - segment_w)
-			var seg_glow = 0.6 + sin(_time * 4.0) * 0.2
-			draw_rect(Rect2(seg_x, nav_draw_y + 91, segment_w, 2), Color(menu_gold.r, menu_gold.g, menu_gold.b, seg_glow))
-			# Bright center point of sweep
-			var dot_x = seg_x + segment_w * 0.5
-			draw_circle(Vector2(dot_x, nav_draw_y + 92), 3, Color(menu_gold.r, menu_gold.g, menu_gold.b, seg_glow * 0.5))
 
-		# Icon circle (large, prominent — mobile-friendly)
+		# Icon circle
 		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 36.0)
-		var ic_r = 28.0 if is_act else 24.0
+		var ic_r = 22.0 if is_act else 18.0
 		var ic_col = tc if is_act else Color(tc.r * 0.55, tc.g * 0.55, tc.b * 0.55)
 		var ic_bg_a = 0.35 + hover_pulse if is_act else 0.12
 		# Circle background
@@ -10861,11 +10843,6 @@ func _draw_menu_background() -> void:
 		draw_arc(ic, ic_r, 0, TAU, 32, Color(ic_col.r, ic_col.g, ic_col.b, 0.7 if is_act else 0.3), 2.0 if is_act else 1.5)
 		if is_act:
 			draw_arc(ic, ic_r + 3, 0, TAU, 32, Color(ic_col.r, ic_col.g, ic_col.b, 0.2), 1.0)
-			# Animated sparkle dots orbiting active icon
-			for si in range(3):
-				var sa = _time * 2.0 + float(si) * TAU / 3.0
-				var sp = ic + Vector2(cos(sa), sin(sa)) * (ic_r + 6)
-				draw_circle(sp, 1.5, Color(tc.r, tc.g, tc.b, 0.4 + sin(_time * 4.0 + float(si)) * 0.2))
 		# Icon drawings (bigger, bolder) + Menu Improvement 17: bounce scale
 		var bounce_scale = _get_nav_bounce_scale(ni)
 		var s = (1.3 if is_act else 1.0) * bounce_scale
@@ -10913,13 +10890,10 @@ func _draw_menu_background() -> void:
 		var tab_name = nav_tab_names[ni]
 		if _nav_badge_counts.has(tab_name) and _nav_badge_counts[tab_name] > 0:
 			_draw_nav_badge(Vector2(ic.x + ic_r - 2, ic.y - ic_r + 2), _nav_badge_counts[tab_name])
-		# Menu Improvement 5: Shimmer sweep on active tab
-		if is_act:
-			_draw_button_shimmer(tx, nav_draw_y, tab_w, 100.0, 70.0, Color(1, 1, 1, 0.06))
 		# Tab label
-		var lbl_y = nav_draw_y + 72.0
+		var lbl_y = nav_draw_y + 68.0
 		var lbl_col = Color(tc.r, tc.g, tc.b, 0.95) if is_act else Color(0.50, 0.45, 0.38, 0.6)
-		var lbl_sz = 14 if is_act else 12
+		var lbl_sz = 13 if is_act else 11
 		_udraw(font, Vector2(tx + tab_w * 0.5, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w - 10), lbl_sz, lbl_col)
 		# Divider line between tabs
 		if ni < 5:
@@ -10928,9 +10902,6 @@ func _draw_menu_background() -> void:
 
 	if menu_current_view == "chapters":
 		_draw_story_map()
-		# Menu Improvement 9: Featured event banner
-		_draw_event_banner(40.0, 36.0, 1110.0)
-		_draw_chapters_badges()
 		_draw_diff_popup()
 		_draw_chapters_overlay()
 		# Fortress + Commander's Pass removed — clean March 17 layout
@@ -15138,7 +15109,7 @@ func _draw_story_map() -> void:
 	var font = game_font
 	var list_x = 40.0 + _safe_left
 	var list_y = 36.0
-	var list_w = 1110.0
+	var list_w = 1200.0
 	var list_h = 575.0
 	var row_h = 110.0
 	var header_h = 32.0
@@ -15151,18 +15122,10 @@ func _draw_story_map() -> void:
 
 	# --- Title bar ---
 	draw_rect(Rect2(list_x, list_y, list_w, 36), Color(0.08, 0.06, 0.12, 0.9))
-	_udraw(font, Vector2(list_x + list_w * 0.35, list_y + 25), "THE TOME OF SHADOWS", HORIZONTAL_ALIGNMENT_CENTER, list_w - 40, 16, Color(0.85, 0.70, 0.28))
-	# Level progress indicator
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
-	var progress_text = "%d/%d Levels" % [num_completed, num_total]
-	_udraw(font, Vector2(list_x + list_w - 160, list_y + 25), progress_text, HORIZONTAL_ALIGNMENT_RIGHT, 150, 15, Color(0.7, 0.65, 0.5, 0.8))
-	# Mini progress bar
-	var pb_x = list_x + list_w - 155
-	var pb_w = 105.0
-	draw_rect(Rect2(pb_x, list_y + 28, pb_w, 4), Color(0.2, 0.18, 0.25, 0.6))
-	var pb_fill = pb_w * clampf(float(num_completed) / float(maxi(num_total, 1)), 0.0, 1.0)
-	draw_rect(Rect2(pb_x, list_y + 28, pb_fill, 4), Color(0.85, 0.70, 0.28, 0.8))
+	var title_text = "THE TOME OF SHADOWS  —  %d / %d" % [num_completed, num_total]
+	_udraw(font, Vector2(list_x + list_w * 0.5, list_y + 24), title_text, HORIZONTAL_ALIGNMENT_CENTER, int(list_w - 40), 16, Color(0.85, 0.70, 0.28))
 	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), Color(0.54, 0.45, 0.20, 0.3))
 
 	var content_top = list_y + 40.0
@@ -15508,7 +15471,7 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 
 	var list_x = 40.0 + _safe_left
 	var list_y = 36.0
-	var list_w = 1110.0
+	var list_w = 1200.0
 	var list_h = 575.0
 	var row_h = 110.0
 	var header_h = 32.0
@@ -18756,8 +18719,7 @@ func _draw() -> void:
 			_udraw(font, Vector2(640, 53), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.5, 0.8, 0.3, a_alpha))
 		# Menu Improvement 14: Toast notifications overlay
 		_draw_toast_notification()
-		# Menu Improvement 19: News ticker
-		_draw_news_ticker()
+		# News ticker removed — cleaner layout
 		# Menu Improvement 20: Victory confetti
 		_draw_menu_confetti()
 		# Mobile: autosave indicator (top-right corner)
