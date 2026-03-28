@@ -15541,9 +15541,10 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 		_on_diff_popup_clicked(mouse_pos)
 		return
 
-	var list_x = 40.0 + _safe_left
+	# Must match _draw_story_map() layout exactly
+	var list_x = 24.0 + _safe_left
 	var list_y = 36.0
-	var list_w = 1200.0
+	var list_w = 1060.0
 	var list_h = 575.0
 	var row_h = 110.0
 	var header_h = 32.0
@@ -15570,11 +15571,11 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 			var rw = list_w - 16.0
 
 			if ry + row_h >= content_top and ry <= content_top + content_h:
-				# Check GO button click — opens difficulty popup
-				var btn_x = rx + rw - 100.0
-				var btn_y2 = ry + 14.0
-				var btn_w2 = 80.0
-				var btn_h2 = 48.0 if _is_mobile else 38.0
+				# Check GO button click — must match _draw_story_map GO button
+				var btn_x = rx + rw - 110.0
+				var btn_y2 = ry + 10.0
+				var btn_w2 = 95.0
+				var btn_h2 = 52.0
 				if Rect2(btn_x, btn_y2, btn_w2, btn_h2).has_point(mouse_pos):
 					if _is_level_unlocked(lvl_idx):
 						chapters_diff_popup_level = lvl_idx
