@@ -7240,8 +7240,7 @@ func _do_level_start(index: int) -> void:
 			break
 	if has_any_powers and not odyssey_active:
 		_open_power_selection()
-	# Improvement 4: Give free starting tower on first play
-	_give_free_starting_tower()
+	# Free tower disabled — player places their own towers
 
 func _reset_game() -> void:
 	for tower in get_tree().get_nodes_in_group("towers"):
