@@ -5616,18 +5616,20 @@ func _create_ui() -> void:
 	var cols = 4
 	var grid_panel_x = 70.0 + _safe_left
 	var grid_panel_w = 1140.0 - _safe_left - _safe_right
-	var grid_start_y = 38.0 + _safe_top + 48.0
+	var btn_gap_x = 6.0
+	var btn_gap_y = 5.0
+	var btn_card_h = (618.0 - (38.0 + _safe_top + 46.0) - 2.0 * btn_gap_y) / 3.0
+	var btn_card_w = (grid_panel_w - 3.0 * btn_gap_x) / 4.0
+	var grid_start_y = 38.0 + _safe_top + 46.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
-		var row_w = float(cols) * 280.0 + float(cols - 1) * 8.0
-		var row_x = grid_panel_x + (grid_panel_w - row_w) * 0.5
-		var cx = row_x + float(col_i) * (280.0 + 8.0)
-		var cy = grid_start_y + float(row_i) * (165.0 + 5.0)
+		var cx = grid_panel_x + float(col_i) * (btn_card_w + btn_gap_x)
+		var cy = grid_start_y + float(row_i) * (btn_card_h + btn_gap_y)
 
 		var card_btn = Button.new()
 		card_btn.position = Vector2(cx, cy)
-		card_btn.custom_minimum_size = Vector2(280.0, 165.0)
+		card_btn.custom_minimum_size = Vector2(btn_card_w, btn_card_h)
 		card_btn.flat = true
 		card_btn.pressed.connect(_on_survivor_card_pressed.bind(i))
 		card_btn.mouse_entered.connect(func(): queue_redraw())
@@ -13410,13 +13412,16 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# 4x3 grid — full width, cards start right below filter bar
-	var card_w = 280.0
-	var card_h = 165.0
-	var gap_x = 8.0
+	# 4x3 grid — cards fill available space between filter bar and nav
+	var grid_top = panel_y + 46.0
+	var grid_bottom = 618.0  # Just above nav bar
+	var available_h = grid_bottom - grid_top
+	var gap_x = 6.0
 	var gap_y = 5.0
 	var cols = 4
-	var grid_start_y = panel_y + 48.0
+	var card_h = (available_h - 2.0 * gap_y) / 3.0
+	var card_w = (panel_w - float(cols - 1) * gap_x) / float(cols)
+	var grid_start_y = grid_top
 
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
@@ -13455,16 +13460,23 @@ func _draw_survivor_grid() -> void:
 		# Dark base fill
 		draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.04, 0.04, 0.08))
 
-		# === PORTRAIT — fills entire card width ===
+		# === PORTRAIT — crop-to-fill entire card, no distortion ===
 		if unlocked:
-			# Draw portrait at card width so it fills edge-to-edge
 			var port_key = speaker_name
 			if port_key in _portrait_textures and _portrait_textures[port_key] != null:
 				var tex = _portrait_textures[port_key]
-				# Fill entire card — stretch to fit
-				draw_texture_rect(tex, Rect2(draw_cx, draw_cy, draw_cw, draw_ch), false)
+				var tex_sz = tex.get_size()
+				# Calculate crop-to-fill: scale up to cover card, then center-crop
+				var scale_x = draw_cw / tex_sz.x
+				var scale_y = draw_ch / tex_sz.y
+				var fill_scale = maxf(scale_x, scale_y)  # Use larger scale to FILL
+				var scaled_w = tex_sz.x * fill_scale
+				var scaled_h = tex_sz.y * fill_scale
+				var offset_x = draw_cx + (draw_cw - scaled_w) * 0.5
+				var offset_y = draw_cy + (draw_ch - scaled_h) * 0.5
+				draw_texture_rect(tex, Rect2(offset_x, offset_y, scaled_w, scaled_h), false)
 			else:
-				_draw_story_portrait(draw_cx, draw_cy, draw_cw, speaker_name)
+				_draw_story_portrait(draw_cx + draw_cw * 0.1, draw_cy, draw_cw * 0.8, speaker_name)
 		else:
 			# Locked: dark with silhouette
 			draw_rect(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), Color(0.06, 0.05, 0.10, 0.9))
@@ -13669,12 +13681,12 @@ func _update_world_map_hover() -> void:
 	world_map_hover_index = -1
 	var panel_x = 70.0 + _safe_left
 	var panel_w = 1140.0 - _safe_left - _safe_right
-	var card_w = 280.0
-	var card_h = 165.0
-	var gap_x = 8.0
+	var gap_x = 6.0
 	var gap_y = 5.0
 	var cols = 4
-	var grid_start_y = 38.0 + 48.0
+	var card_h = (618.0 - (38.0 + 46.0) - 2.0 * gap_y) / 3.0
+	var card_w = (panel_w - 3.0 * gap_x) / 4.0
+	var grid_start_y = 38.0 + 46.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
