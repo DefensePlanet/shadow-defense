@@ -15215,8 +15215,12 @@ func _draw_story_map() -> void:
 		# --- Arc header ---
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
-			draw_rect(Rect2(list_x + 4, hy, list_w - 8, header_h), Color(arc_col.r * 0.3, arc_col.g * 0.3, arc_col.b * 0.3, 0.8))
-			draw_rect(Rect2(list_x + 4, hy, 4, header_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.8))
+			# Gradient header with arc color
+			for hgi in range(4):
+				var hgt = float(hgi) / 3.0
+				draw_rect(Rect2(list_x + 4, hy + hgt * header_h * 0.25, list_w - 8, header_h * 0.25 + 1), Color(arc_col.r * (0.35 - hgt * 0.06), arc_col.g * (0.35 - hgt * 0.06), arc_col.b * (0.35 - hgt * 0.06), 0.85))
+			# Left accent bar
+			draw_rect(Rect2(list_x + 4, hy, 4, header_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.9))
 			# Character portrait next to chapter header
 			var _arc_char = arc.get("unlock_char", "")
 			var _arc_text_x = list_x + 18
