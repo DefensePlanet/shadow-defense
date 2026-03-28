@@ -183,11 +183,23 @@ func _ready() -> void:
 func load_sprite() -> void:
 	if enemy_theme < 0 or enemy_theme >= FACTION_NAMES.size():
 		return
+	# Try Godot resource loading first, fall back to manual Image loading
 	var res_path = "res://assets/enemy_sprites/" + FACTION_NAMES[enemy_theme] + "/tier_" + str(enemy_tier) + ".png"
 	if ResourceLoader.exists(res_path):
 		_sprite_texture = load(res_path)
+		return
+	# Fallback: load raw PNG via Image (works even without .import cache)
+	var abs_path = ProjectSettings.globalize_path(res_path)
+	var img = Image.new()
+	if img.load(abs_path) == OK:
+		_sprite_texture = ImageTexture.create_from_image(img)
 	else:
-		_sprite_texture = null
+		# Last resort: try portrait art
+		var portrait_path = "res://assets/enemy_portraits/" + FACTION_NAMES[enemy_theme] + "/tier_" + str(enemy_tier) + ".png"
+		if ResourceLoader.exists(portrait_path):
+			_sprite_texture = load(portrait_path)
+		else:
+			_sprite_texture = null
 
 func _process(delta: float) -> void:
 	if _spawn_fade > 0.0:
