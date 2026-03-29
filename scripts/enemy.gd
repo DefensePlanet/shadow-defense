@@ -202,6 +202,8 @@ func load_sprite() -> void:
 			_sprite_texture = null
 
 func _process(delta: float) -> void:
+	if _dead:
+		return
 	if _spawn_fade > 0.0:
 		_spawn_fade -= delta
 	_wound_time = fmod(_wound_time + delta, 628.0)
