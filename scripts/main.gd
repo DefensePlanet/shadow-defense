@@ -17201,6 +17201,7 @@ func _spawn_enemy() -> void:
 		elif endless_mutation == "Gold Drought":
 			enemy.gold_reward = maxi(1, enemy.gold_reward / 2)
 		_apply_enemy_modifiers(enemy, w, enemy.boss_scale > 1.0)
+		enemy.load_sprite()
 		enemy_path.add_child(enemy)
 		enemies_to_spawn -= 1
 		enemies_alive += 1
@@ -17216,6 +17217,7 @@ func _spawn_enemy() -> void:
 		enemy.boss_scale = 2.0 + float(wave) * 0.2
 		enemy.enemy_tier = clampi(wave / 3, 0, 3)
 		_apply_enemy_modifiers(enemy, wave, true)
+		enemy.load_sprite()
 		enemy_path.add_child(enemy)
 		enemies_to_spawn -= 1
 		enemies_alive += 1
@@ -17395,7 +17397,8 @@ func _spawn_enemy() -> void:
 	_apply_enemy_modifiers(enemy, w, is_boss_wave or is_final_villain or is_last_wave)
 	# Improvement 17: Maybe assign weakpoint
 	_maybe_assign_weakpoint(enemy)
-	enemy_path.add_child(enemy)
+	enemy.load_sprite()
+		enemy_path.add_child(enemy)
 	enemies_to_spawn -= 1
 	enemies_alive += 1
 	if (is_boss_wave or is_final_villain or is_last_wave) and _is_mobile:
