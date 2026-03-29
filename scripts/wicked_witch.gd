@@ -241,7 +241,7 @@ func _process(delta: float) -> void:
 	_orbit_angle += _orbit_speed * delta
 	if _orbit_angle > TAU:
 		_orbit_angle -= TAU
-	global_position = _home_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * _orbit_radius
+	global_position = global_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * _orbit_radius
 	aim_angle = _orbit_angle + PI * 0.5  # Face forward along orbit
 
 	# Beam attack logic
@@ -252,7 +252,7 @@ func _process(delta: float) -> void:
 		else:
 			# Check if target moved out of range
 			var max_range: float = attack_range * _range_mult()
-			if _home_position.distance_to(_beam_target.global_position) > max_range * 1.3:
+			if global_position.distance_to(_beam_target.global_position) > max_range * 1.3:
 				_end_beam()
 			else:
 				# Apply DPS damage each frame
@@ -348,7 +348,7 @@ func _has_enemies_in_range() -> bool:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
-		if _home_position.distance_to(enemy.global_position) < eff_range:
+		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
@@ -360,7 +360,7 @@ func _find_nearest_enemy() -> Node2D:
 	for enemy in enemies:
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
-		var dist = _home_position.distance_to(enemy.global_position)
+		var dist = global_position.distance_to(enemy.global_position)
 		if dist > max_range:
 			continue
 		match targeting_priority:
@@ -641,12 +641,12 @@ func _place_beehive() -> void:
 		var path_pts = main.get_path_points()
 		var nearest_dist: float = INF
 		for pt in path_pts:
-			var d = _home_position.distance_to(pt)
+			var d = global_position.distance_to(pt)
 			if d < nearest_dist:
 				nearest_dist = d
 				_beehive_pos = pt
 	else:
-		_beehive_pos = _home_position + Vector2(0, 30)
+		_beehive_pos = global_position + Vector2(0, 30)
 	# Init visual bees
 	_beehive_bees.clear()
 	for bi in range(8):
@@ -935,7 +935,7 @@ func _monkey_scout_mark() -> void:
 	var eff_range = attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
-		if _home_position.distance_to(e.global_position) < eff_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	if in_range.size() > 0:
 		var target_e = in_range[randi() % in_range.size()]
@@ -947,7 +947,7 @@ func _poppy_field_attack() -> void:
 	# Put enemies in range to sleep for 2s
 	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < eff_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.has_method("apply_sleep"):
 				e.apply_sleep(2.0)
 
@@ -956,7 +956,7 @@ func _tornado_attack() -> void:
 	# Push all enemies in range backwards using fear_reverse
 	var eff_range = attack_range * _range_mult()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < eff_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(2.0)
 
@@ -967,7 +967,7 @@ func _ruby_slippers_strike() -> void:
 	var furthest: Node2D = null
 	var furthest_dist: float = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		var dist = _home_position.distance_to(e.global_position)
+		var dist = global_position.distance_to(e.global_position)
 		if dist < eff_range and dist > furthest_dist:
 			furthest_dist = dist
 			furthest = e
@@ -993,7 +993,7 @@ func _winkies_march_attack() -> void:
 	var eff_range = attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
-		if _home_position.distance_to(e.global_position) < eff_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			in_range.append(e)
 	in_range.shuffle()
 	for i in range(mini(4, in_range.size())):
@@ -1014,7 +1014,7 @@ func _melting_curse_attack() -> void:
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < eff_range:
+		if global_position.distance_to(e.global_position) < eff_range:
 			if is_instance_valid(e) and e.health > most_hp:
 				most_hp = e.health
 				strongest = e

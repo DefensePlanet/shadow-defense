@@ -8,7 +8,7 @@ extends Node2D
 
 var damage: float = 22.0
 var fire_rate: float = 2.5
-var attack_range: float = 100.0
+var attack_range: float = 140.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var sprite_texture: Texture2D = null
@@ -254,7 +254,7 @@ func _process(delta: float) -> void:
 		if _shadow_damage_timer <= 0.0:
 			_shadow_damage_timer = 0.5  # hits twice per second
 			var eff_range = attack_range * _range_mult()
-			var shadow_pos = _home_position + Vector2(cos(_shadow_angle), sin(_shadow_angle)) * eff_range * 0.75
+			var shadow_pos = global_position + Vector2(cos(_shadow_angle), sin(_shadow_angle)) * eff_range * 0.75
 			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if shadow_pos.distance_to(enemy.global_position) < 25.0 and enemy.has_method("take_damage"):
 					var sdmg = damage * 0.25  # shadow damage
@@ -285,7 +285,7 @@ func _process(delta: float) -> void:
 			var eid = enemy.get_instance_id()
 			if _croc_seen_enemies.has(eid):
 				continue
-			var dist = _home_position.distance_to(enemy.global_position)
+			var dist = global_position.distance_to(enemy.global_position)
 			if dist < eff_range:
 				_croc_seen_enemies[eid] = enemy
 				_croc_range_count += 1
@@ -361,7 +361,7 @@ func _has_enemies_in_range() -> bool:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
-		if _home_position.distance_to(enemy.global_position) < eff_range:
+		if global_position.distance_to(enemy.global_position) < eff_range:
 			return true
 	return false
 
@@ -373,7 +373,7 @@ func _find_nearest_enemy() -> Node2D:
 	for enemy in enemies:
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
-		var dist = _home_position.distance_to(enemy.global_position)
+		var dist = global_position.distance_to(enemy.global_position)
 		if dist > max_range:
 			continue
 		match targeting_priority:
@@ -525,7 +525,7 @@ func _apply_fairy_dust_buffs() -> void:
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower == self:
 			continue
-		if _home_position.distance_to(tower.global_position) < attack_range * _range_mult():
+		if global_position.distance_to(tower.global_position) < attack_range * _range_mult():
 			if "damage" in tower and "attack_range" in tower:
 				tower.damage *= 1.03
 				tower.attack_range *= 1.03
@@ -733,10 +733,10 @@ func _lost_boys_attack() -> void:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			in_range.append(e)
 	# Sort by distance (nearest first)
-	in_range.sort_custom(func(a, b): return _home_position.distance_to(a.global_position) < _home_position.distance_to(b.global_position))
+	in_range.sort_custom(func(a, b): return global_position.distance_to(a.global_position) < global_position.distance_to(b.global_position))
 	for i in range(mini(2, in_range.size())):
 		if is_instance_valid(in_range[i]) and in_range[i].has_method("take_damage"):
 			var dmg = damage * 1.0
@@ -746,7 +746,7 @@ func _lost_boys_attack() -> void:
 func _fairy_dust_trail() -> void:
 	_fairy_dust_trail_flash = 1.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.5, 2.0)
 
@@ -755,7 +755,7 @@ func _mermaid_song() -> void:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
-		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			in_range.append(e)
 	in_range.shuffle()
 	for i in range(mini(3, in_range.size())):
@@ -768,7 +768,7 @@ func _walk_the_plank() -> void:
 	var furthest: Node2D = null
 	var most_progress: float = -1.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
+		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			var prog = e.path_progress if "path_progress" in e else 0.0
 			if prog > most_progress:
 				furthest = e
@@ -808,7 +808,7 @@ func _tinker_bell_light() -> void:
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower == self:
 			continue
-		if _home_position.distance_to(tower.global_position) < attack_range * _range_mult():
+		if global_position.distance_to(tower.global_position) < attack_range * _range_mult():
 			if "fire_rate" in tower:
 				tower.set_meta("tinker_bell_base_rate", tower.fire_rate)
 				tower.fire_rate *= 1.25
