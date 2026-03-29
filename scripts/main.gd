@@ -17398,7 +17398,7 @@ func _spawn_enemy() -> void:
 	# Improvement 17: Maybe assign weakpoint
 	_maybe_assign_weakpoint(enemy)
 	enemy.load_sprite()
-		enemy_path.add_child(enemy)
+	enemy_path.add_child(enemy)
 	enemies_to_spawn -= 1
 	enemies_alive += 1
 	if (is_boss_wave or is_final_villain or is_last_wave) and _is_mobile:
