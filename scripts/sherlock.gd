@@ -8,7 +8,7 @@ extends Node2D
 ## Tier 4: The Game is Afoot — legendary aura, all enemies auto-marked
 
 # Base stats
-var damage: float = 0.0  # Sherlock doesn't deal direct damage
+var damage: float = 20.0  # Sherlock doesn't deal direct damage
 var fire_rate: float = 0.0  # No direct attacks
 var attack_range: float = 188.0
 var fire_cooldown: float = 0.0

@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4: King of the Apes — 3 more apes join, throw enemies back to start
 
 # Base stats (bomb tower: slow but powerful)
-var damage: float = 46.0
-var fire_rate: float = 0.33
+var damage: float = 50.0
+var fire_rate: float = 0.9
 var attack_range: float = 120.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -238,7 +238,7 @@ func _process(delta: float) -> void:
 			_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 			if fire_cooldown <= 0.0:
 				_attack()
-				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+				fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
 				_draw_progress = 0.0
 				_attack_anim = 1.0
 		else:

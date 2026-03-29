@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3 (15000 DMG): "Chandelier" — periodic AoE burst (2x damage to all in range)
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
-var damage: float = 35.0
-var fire_rate: float = 0.33
+var damage: float = 55.0
+var fire_rate: float = 0.7
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -240,7 +240,7 @@ func _process(delta: float) -> void:
 			aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
 			if fire_cooldown <= 0.0:
 				_shoot()
-				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+				fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
 
 	# Update lasso pull animation
 	_update_lasso_pull(delta)

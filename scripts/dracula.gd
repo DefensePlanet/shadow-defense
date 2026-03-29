@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4: Lord of Darkness — glow red, dash and feast on enemies at will
 
 # Base stats
-var damage: float = 25.0
-var fire_rate: float = 0.91
+var damage: float = 40.0
+var fire_rate: float = 1.2
 var attack_range: float = 190.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -292,7 +292,7 @@ func _process(delta: float) -> void:
 		_cast_anim = min(_cast_anim + delta * 3.0, 1.0)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
 			_cast_anim = 0.0
 			_attack_anim = 1.0
 	else:

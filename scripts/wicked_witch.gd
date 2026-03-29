@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3: "Swarm of Bees" — beehive on path slows and damages enemies
 ## Tier 4: "The Golden Cap" — faster orbit, enhanced wolves (2x dmg) and crows (2x DoT)
 
-var damage: float = 21.0
-var fire_rate: float = 0.98
+var damage: float = 30.0
+var fire_rate: float = 1.3
 var attack_range: float = 154.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0

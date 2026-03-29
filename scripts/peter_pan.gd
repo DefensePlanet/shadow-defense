@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3: "Tick-Tock Croc" — crocodile eats every 30th enemy (instakill)
 ## Tier 4: "Never Land" — costs 1000 gold, glows gold, +20% damage
 
-var damage: float = 24.0
-var fire_rate: float = 0.56
+var damage: float = 22.0
+var fire_rate: float = 2.5
 var attack_range: float = 100.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -245,7 +245,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
 		if fire_cooldown <= 0.0:
 			_strike_target(target)
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
 
 	# Tier 1: Shadow orbits range circle, damages enemies it passes
 	if shadow_enabled:

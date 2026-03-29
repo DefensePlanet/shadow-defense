@@ -17227,10 +17227,10 @@ func _spawn_enemy() -> void:
 	# All phases have +25% HP global multiplier applied at end
 	var w = wave
 	if w <= 5:
-		# Phase 1: Gentle introduction — need 2+ towers to handle comfortably
-		enemy.max_health = 80.0 + w * 25.0
-		enemy.speed = 65.0 + w * 4.0
-		enemy.gold_reward = 1 + w / 2
+		# Phase 1: Gentle introduction — one tower can handle early waves
+		enemy.max_health = 30.0 + w * 15.0
+		enemy.speed = 55.0 + w * 4.0
+		enemy.gold_reward = 2 + w / 2
 	elif w <= 10:
 		# Phase 2: Building pressure — single tower can't keep up
 		enemy.max_health = 220.0 + (w - 5) * 55.0

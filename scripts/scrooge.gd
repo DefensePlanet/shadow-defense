@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3: "Ghost of Christmas Present" — Gives the team 25 gold twice per round
 ## Tier 4: "Ghost of Yet to Come" — Every other wave, massive coin blast damages all enemies
 
-var damage: float = 1.5
-var fire_rate: float = 0.43
+var damage: float = 15.0
+var fire_rate: float = 1.0
 var attack_range: float = 65.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -249,7 +249,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
 
 	# Tier 2: Ghost of Christmas Past — rescue enemies near end of path
 	if upgrade_tier >= 2:

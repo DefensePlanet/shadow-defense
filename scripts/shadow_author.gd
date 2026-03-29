@@ -7,8 +7,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Chapter — chain +2, %maxHP + execute low HP
 
 # Base stats
-var damage: float = 30.0
-var fire_rate: float = 0.72
+var damage: float = 45.0
+var fire_rate: float = 1.0
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0

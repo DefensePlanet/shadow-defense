@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): Archmage — permanent aura, Excalibur every 15s, spells chain to 3
 
 # Base stats
-var damage: float = 20.0
-var fire_rate: float = 0.91
+var damage: float = 32.0
+var fire_rate: float = 1.4
 var attack_range: float = 132.0
 var fire_cooldown: float = 0.0
 var staff_angle: float = 0.0
@@ -254,7 +254,7 @@ func _process(delta: float) -> void:
 		staff_angle = lerp_angle(staff_angle, desired, 8.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
 			_attack_anim = 1.0
 			_cast_hand_glow = 1.0
 

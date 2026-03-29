@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Arrow — splash damage (40px), +50% gold, double pierce
 
 # Base stats
-var damage: float = 25.0
-var fire_rate: float = 0.52
+var damage: float = 35.0
+var fire_rate: float = 1.5
 var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
@@ -211,7 +211,7 @@ func _process(delta: float) -> void:
 		_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 			_draw_progress = 0.0
 			_attack_anim = 1.0
 	else:
