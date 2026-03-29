@@ -11,7 +11,6 @@ var fire_rate: float = 0.65
 var attack_range: float = 85.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
-var sprite_texture: ImageTexture = null
 var target: Node2D = null
 var gold_bonus: int = 1
 
@@ -42,13 +41,6 @@ var _tea_flash: float = 0.0
 # Tier 4: Off With Their Heads
 var execute_threshold: float = 0.0
 var _execute_flash: float = 0.0
-
-# Tier 5: Through the Looking Glass — mirror dimension every 30s
-var _looking_glass_active: bool = false
-var _looking_glass_timer: float = 30.0
-var _looking_glass_flash: float = 0.0
-var _looking_glass_duration: float = 0.0  # Active effect duration (6s)
-var _looking_glass_mirror_rings: float = 0.0  # Expanding portal animation
 
 # Animation vars
 var _time: float = 0.0
@@ -87,7 +79,6 @@ var _eat_me_flash: float = 0.0
 var _jabberwock_flash: float = 0.0
 var _caterpillar_flash: float = 0.0
 
-const MAX_STAT_LEVEL: int = 10  # Cap stat scaling to prevent infinite power creep
 const STAT_UPGRADE_INTERVAL: float = 8000.0
 const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
@@ -95,19 +86,17 @@ var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
 	"Eat Me Cake",
-	"Cheshire Grin",
+	"Cheshire Cat",
 	"Mad Tea Party",
-	"Off With Their Heads!",
-	"Through the Looking Glass"
+	"Off With Their Heads!"
 ]
 const ABILITY_DESCRIPTIONS = [
 	"Cake 10% more sticky, slows enemies more, frosting DoT",
-	"Cheshire smile confuses enemies — they wander backward for 2s",
-	"Chaotic tea rain — AoE cups shatter on enemies + tower speed buff",
-	"Paints all enemies red, 20% HP execute threshold + splash",
-	"Mirror dimension — enemies split into allied reflections for 8s"
+	"10 second drum solo, 30% slow aura on all enemies in range",
+	"Towers in range drink tea, +5% fire rate",
+	"Paints all enemies red, low DoT, 5% HP execute"
 ]
-const TIER_COSTS = [130, 300, 550, 1000, 1800]
+const TIER_COSTS = [130, 300, 550, 1000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -310,7 +299,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 
 	# Tier 2: Cheshire Cat drum solo (10s duration, slows enemies in range)
 	if _drum_solo_active:
@@ -349,29 +338,6 @@ func _process(delta: float) -> void:
 					enemy.apply_paint()
 				if "painted_red" in enemy:
 					enemy.painted_red = true
-
-	# Tier 5: Through the Looking Glass — mirror dimension every 30s
-	if _looking_glass_active:
-		_looking_glass_flash = max(_looking_glass_flash - delta * 0.6, 0.0)
-		_looking_glass_mirror_rings = max(_looking_glass_mirror_rings - delta * 0.8, 0.0)
-		if _looking_glass_duration > 0.0:
-			# Active — slow ALL enemies to 15% speed, they take 2x damage
-			_looking_glass_duration -= delta
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
-				if enemy.has_method("apply_slow"):
-					enemy.apply_slow(0.85, 0.5)  # 85% slow = 15% speed
-				# Mirror damage: enemies take reflected damage
-				if enemy.has_method("take_damage"):
-					var mirror_dmg = damage * 0.3 * delta  # Continuous DPS
-					enemy.take_damage(mirror_dmg, "magic")
-					register_damage(mirror_dmg)
-		else:
-			_looking_glass_timer -= delta
-			if _looking_glass_timer <= 0.0:
-				_looking_glass_duration = 6.0
-				_looking_glass_flash = 2.5
-				_looking_glass_mirror_rings = 2.0
-				_looking_glass_timer = 30.0
 
 	_process_progressive_abilities(delta)
 	# Active ability cooldown
@@ -481,7 +447,7 @@ func register_kill() -> void:
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
-	while stat_upgrade_level < new_level and stat_upgrade_level < MAX_STAT_LEVEL:
+	while stat_upgrade_level < new_level:
 		stat_upgrade_level += 1
 		_apply_stat_boost()
 		_upgrade_flash = 2.0
@@ -537,30 +503,27 @@ func _apply_upgrade(tier: int) -> void:
 			frosting_dps = 1.5  # Frosting DoT unlocked
 			attack_range = 85.0
 			damage = 3.0
-			fire_rate = 0.65
+			fire_rate = 1.56
 		2: # Cheshire Cat — 10 second drum solo
 			damage = 4.0
-			fire_rate = 0.65
-			attack_range = 88.0
+			fire_rate = 1.82
+			attack_range = 93.0
 			cheshire_cooldown = 10.0
 			gold_bonus = 1
 			_start_drum_solo()
 		3: # Mad Tea Party — nearby towers +3% fire rate
-			damage = 4.0
-			fire_rate = 0.65
-			attack_range = 88.0
+			damage = 5.0
+			fire_rate = 2.08
+			attack_range = 100.0
 			gold_bonus = 2
 			_tea_aura_active = true  # Bug 10: Enable ongoing aura instead of one-shot
-		4: # Off With Their Heads! — paint enemies red, DoT, 20% execute
-			damage = 5.0
-			fire_rate = 0.65
-			attack_range = 92.0
+		4: # Off With Their Heads! — paint enemies red, DoT, 5% execute
+			damage = 7.0
+			fire_rate = 2.34
+			attack_range = 110.0
 			gold_bonus = 2
-			execute_threshold = 0.20  # Execute enemies below 20% HP
+			execute_threshold = 0.05  # Execute enemies below 5% HP
 			_paint_red_active = true
-		5: # Through the Looking Glass — mirror dimension
-			# No stat boost — the ultimate ability IS the reward
-			_looking_glass_active = true
 	# Bug 2: Re-apply accumulated progression boosts after tier stat reset
 	_reapply_progression_boosts()
 
@@ -645,7 +608,7 @@ func _cleanup_tea_party_aura() -> void:
 	_tea_buffed_towers.clear()
 
 func purchase_upgrade() -> bool:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return false
 	var cost = TIER_COSTS[upgrade_tier]
 	var main_node = get_tree().get_first_node_in_group("main")
@@ -663,7 +626,7 @@ func get_tower_display_name() -> String:
 	return "Alice"
 
 func get_next_upgrade_info() -> Dictionary:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return {}
 	return {
 		"name": TIER_NAMES[upgrade_tier],
@@ -683,46 +646,135 @@ func _exit_tree() -> void:
 
 func _generate_tier_sounds() -> void:
 	var mix_rate := 44100
-	var melody := [880.00, 784.00, 698.46, 659.26, 587.33, 523.25, 440.00, 587.33]
-	# A5 G5 F5 E5 D5 C5 A4 D5 -- twinkling music box descent
 	_attack_sounds_by_tier = []
-	for tier in range(5):
-		var tier_sounds: Array = []
-		var dur := 0.35 + tier * 0.04
-		var vol := 0.28 + tier * 0.015
-		for note_idx in melody.size():
-			var freq: float = melody[note_idx]
-			var buf_len := maxi(int(float(mix_rate) / freq), 2)
-			var buf := PackedFloat32Array()
-			buf.resize(buf_len)
-			# Music box: crisp attack, use half-noise half-sine init
-			var rng := RandomNumberGenerator.new()
-			rng.seed = note_idx * 2000 + tier * 200
-			for b in buf_len:
-				var noise := rng.randf_range(-0.5, 0.5)
-				var sine := sin(float(b) / float(buf_len) * TAU) * 0.5
-				buf[b] = noise * 0.4 + sine * 0.6
-			var total := int(mix_rate * dur)
-			var samples := PackedFloat32Array()
-			samples.resize(total)
-			var brightness := 0.9985
-			for i in total:
-				var idx := i % buf_len
-				var next_idx := (i + 1) % buf_len
-				samples[i] = buf[idx] * vol
-				buf[idx] = (buf[idx] + buf[next_idx]) * 0.5 * brightness
-			# Subtle inharmonic shimmer: add quiet high partial
-			for i in total:
-				var t := float(i) / float(mix_rate)
-				samples[i] += sin(t * freq * 3.003 * TAU) * 0.04 * exp(-t * 12.0)
-			var att_len := mini(int(0.001 * mix_rate), total)
-			for i in att_len:
-				samples[i] *= float(i) / float(att_len)
-			var rel_start := maxi(total - int(0.008 * mix_rate), 0)
-			for i in range(rel_start, total):
-				samples[i] *= 1.0 - float(i - rel_start) / float(total - rel_start)
-			tier_sounds.append(_samples_to_wav(samples, mix_rate))
-		_attack_sounds_by_tier.append(tier_sounds)
+
+	# --- Tier 0: Acoustic Kick + Snare ---
+	var t0 := []
+	var samples := PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.15))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var freq := lerpf(146.83, 36.71, minf(t * 15.0, 1.0))  # D3 -> D1
+		var env := exp(-t * 18.0)
+		var click := exp(-t * 300.0) * 0.6
+		samples[i] = clampf(sin(t * freq * TAU) * env * 0.8 + click, -1.0, 1.0)
+	t0.append(_samples_to_wav(samples, mix_rate))
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.12))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var body := sin(t * 146.83 * TAU) * exp(-t * 35.0) * 0.5  # D3
+		var noise := (randf() * 2.0 - 1.0) * exp(-t * 20.0) * 0.55
+		var snr_click := exp(-t * 400.0) * 0.3
+		samples[i] = clampf(body + noise + snr_click, -1.0, 1.0)
+	t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Tight Electronic Kick + Crisp Hi-Hat ---
+	var t1 := []
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.12))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var freq := lerpf(174.61, 36.71, minf(t * 25.0, 1.0))  # F3 -> D1
+		var env := exp(-t * 25.0)
+		var dist := clampf(sin(t * freq * TAU) * 1.5, -1.0, 1.0)
+		var ek_click := exp(-t * 500.0) * 0.7
+		samples[i] = clampf(dist * env * 0.7 + ek_click, -1.0, 1.0)
+	t1.append(_samples_to_wav(samples, mix_rate))
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.06))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var metal := sin(t * 6500.0 * TAU) * 0.3 + sin(t * 8300.0 * TAU) * 0.3
+		metal += sin(t * 11500.0 * TAU) * 0.2
+		var env := exp(-t * 60.0)
+		var hh_noise := (randf() * 2.0 - 1.0) * 0.3 * exp(-t * 50.0)
+		samples[i] = clampf((metal + hh_noise) * env, -1.0, 1.0)
+	t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Deep Tom + Woodblock ---
+	var t2 := []
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.2))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var freq := lerpf(146.83, 73.42, minf(t * 10.0, 1.0))  # D3 -> D2
+		var env := exp(-t * 12.0)
+		var tom_body := sin(t * freq * TAU) * 0.7
+		var overtone := sin(t * freq * 2.3 * TAU) * exp(-t * 20.0) * 0.3
+		var head_slap := (randf() * 2.0 - 1.0) * exp(-t * 100.0) * 0.4
+		samples[i] = clampf((tom_body + overtone) * env + head_slap, -1.0, 1.0)
+	t2.append(_samples_to_wav(samples, mix_rate))
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.08))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var fund := sin(t * 783.99 * TAU) * 0.5  # G5
+		var h2 := sin(t * 783.99 * 2.7 * TAU) * 0.3
+		var wb_env := exp(-t * 50.0)
+		var wb_click := exp(-t * 300.0) * 0.5
+		samples[i] = clampf((fund + h2) * wb_env + wb_click, -1.0, 1.0)
+	t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: 808 Kick + Handclap ---
+	var t3 := []
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.25))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var freq := lerpf(293.66, 36.71, minf(t * 30.0, 1.0))  # D4 -> D1
+		var env := exp(-t * 8.0)
+		var e_click := exp(-t * 200.0) * 0.6
+		samples[i] = clampf(sin(t * freq * TAU) * env * 0.9 + e_click, -1.0, 1.0)
+	t3.append(_samples_to_wav(samples, mix_rate))
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.15))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var s := 0.0
+		for c_off in [0.0, 0.008, 0.015]:
+			var dt: float = t - c_off
+			if dt >= 0.0:
+				s += (randf() * 2.0 - 1.0) * exp(-dt * 40.0) * 0.4
+		var clap_body := sin(t * 783.99 * TAU) * exp(-t * 30.0) * 0.2  # G5
+		samples[i] = clampf(s + clap_body, -1.0, 1.0)
+	t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Sub Boom + Electronic Crash Clap ---
+	var t4 := []
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.3))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var freq := lerpf(293.66, 36.71, minf(t * 20.0, 1.0))  # D4 -> D1
+		var env := exp(-t * 5.0)
+		var sub := sin(t * freq * TAU) * env * 0.8
+		var harmonics := sin(t * freq * 2.0 * TAU) * exp(-t * 15.0) * 0.3
+		var boom_click := exp(-t * 400.0) * 0.7
+		var dist := clampf(sub * 1.8, -1.0, 1.0) * 0.6
+		samples[i] = clampf(dist + harmonics * env + boom_click, -1.0, 1.0)
+	t4.append(_samples_to_wav(samples, mix_rate))
+	samples = PackedFloat32Array()
+	samples.resize(int(mix_rate * 0.25))
+	for i in samples.size():
+		var t := float(i) / mix_rate
+		var clap := 0.0
+		for c_off in [0.0, 0.006, 0.012, 0.02]:
+			var dt: float = t - c_off
+			if dt >= 0.0:
+				clap += (randf() * 2.0 - 1.0) * exp(-dt * 35.0) * 0.3
+		var crash := sin(t * 5000.0 * TAU) * 0.15 + sin(t * 7200.0 * TAU) * 0.1
+		crash += sin(t * 9800.0 * TAU) * 0.08
+		var crash_env := exp(-t * 8.0)
+		var cr_noise := (randf() * 2.0 - 1.0) * crash_env * 0.2
+		samples[i] = clampf(clap + (crash + cr_noise) * crash_env, -1.0, 1.0)
+	t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
 func _refresh_tier_sounds() -> void:
 	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
 	_attack_sounds = _attack_sounds_by_tier[tier]
@@ -931,12 +983,12 @@ func _draw_tower_aura() -> void:
 	# Tier 3+: rainbow-shifting glow ring
 	var pulse = sin(_time * 2.5) * 0.1 + 0.3
 	var rainbow_col = Color.from_hsv(fmod(_time * 0.3, 1.0), 0.7, 0.9, pulse * 0.4)
-	pass  #draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, rainbow_col, 1.5)
+	draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, rainbow_col, 1.5)
 	# Tier 4: outer rainbow ring + heart-shaped rune marks
 	if upgrade_tier >= 4:
 		var outer_pulse = sin(_time * 1.8) * 0.15 + 0.35
 		var outer_col = Color.from_hsv(fmod(_time * 0.3 + 0.5, 1.0), 0.7, 0.9, outer_pulse * 0.3)
-		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, outer_col, 2.0)
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, outer_col, 2.0)
 		# Heart-shaped rune marks
 		for i in range(6):
 			var ha = _time * 0.4 + float(i) * TAU / 6.0
@@ -975,36 +1027,37 @@ func _draw() -> void:
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
-		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
-		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
-		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
+		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
+		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
 	else:
-		pass  #draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1, 1, 1, 0.06), 1.0)
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === PROGRESSIVE ABILITY EFFECTS ===
 	if _eat_me_flash > 0.0:
 		var em_r = 30.0 + (1.0 - _eat_me_flash) * 60.0
-		pass  #draw_arc(Vector2.ZERO, em_r, 0, TAU, 24, Color(0.9, 0.5, 0.8, _eat_me_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, em_r, 0, TAU, 24, Color(0.9, 0.5, 0.8, _eat_me_flash * 0.4), 3.0)
 
 	if _jabberwock_flash > 0.0:
 		draw_line(Vector2(-80, -40), Vector2(80, 40), Color(0.4, 0.7, 0.3, _jabberwock_flash * 0.5), 4.0)
 		draw_line(Vector2(-70, -35), Vector2(70, 35), Color(0.5, 0.3, 0.6, _jabberwock_flash * 0.3), 2.0)
 
 	if _caterpillar_flash > 0.0:
-		pass  #draw_circle(Vector2.ZERO, 40.0, Color(0.5, 0.3, 0.7, _caterpillar_flash * 0.2))
+		draw_circle(Vector2.ZERO, 40.0, Color(0.5, 0.3, 0.7, _caterpillar_flash * 0.2))
 		draw_circle(Vector2(10, 5), 30.0, Color(0.4, 0.2, 0.6, _caterpillar_flash * 0.15))
 
 	# Bug 3: Painting the Roses Red flash effect
 	if _roses_red_flash > 0.0:
 		var rr_r = 25.0 + (1.0 - _roses_red_flash) * 50.0
-		pass  #draw_arc(Vector2.ZERO, rr_r, 0, TAU, 24, Color(0.95, 0.15, 0.15, _roses_red_flash * 0.5), 3.5)
-		pass  #draw_circle(Vector2.ZERO, rr_r * 0.5, Color(0.9, 0.1, 0.1, _roses_red_flash * 0.15))
+		draw_arc(Vector2.ZERO, rr_r, 0, TAU, 24, Color(0.95, 0.15, 0.15, _roses_red_flash * 0.5), 3.5)
+		draw_circle(Vector2.ZERO, rr_r * 0.5, Color(0.9, 0.1, 0.1, _roses_red_flash * 0.15))
 
 	# Bug 4: Wonderland Madness flash effect
 	if _madness_flash > 0.0:
 		var md_r = 35.0 + (1.0 - _madness_flash) * 80.0
-		pass  #draw_arc(Vector2.ZERO, md_r, 0, TAU, 32, Color(0.7, 0.2, 0.9, _madness_flash * 0.4), 4.0)
-		pass  #draw_arc(Vector2.ZERO, md_r * 0.6, 0, TAU, 20, Color(0.5, 0.1, 0.8, _madness_flash * 0.2), 2.5)
+		draw_arc(Vector2.ZERO, md_r, 0, TAU, 32, Color(0.7, 0.2, 0.9, _madness_flash * 0.4), 4.0)
+		draw_arc(Vector2.ZERO, md_r * 0.6, 0, TAU, 20, Color(0.5, 0.1, 0.8, _madness_flash * 0.2), 2.5)
 
 	if prog_abilities[6]:  # Tweedledee & Tweedledum orbiting
 		for ti in range(2):
@@ -1083,53 +1136,11 @@ func _draw() -> void:
 	var skin_shadow = Color(0.82, 0.70, 0.58)
 	var skin_highlight = Color(0.98, 0.90, 0.80)
 
-	# === Tier 5: Through the Looking Glass VFX ===
-	if _looking_glass_active:
-		# Mirror portal expanding rings when triggered
-		if _looking_glass_mirror_rings > 0.0:
-			var mr = _looking_glass_mirror_rings
-			for ri in range(4):
-				var ring_r = 40.0 + (2.0 - mr) * (60.0 + float(ri) * 40.0)
-				var ring_a = mr * (0.4 - float(ri) * 0.08)
-				pass  #draw_arc(Vector2.ZERO, ring_r, 0, TAU, 48, Color(0.6, 0.4, 0.9, ring_a), 3.0)
-			# Central mirror flash
-			pass  #draw_circle(Vector2.ZERO, 30.0 * mr, Color(0.8, 0.7, 1.0, mr * 0.2))
-		# Active mirror dimension — purple-silver warping field
-		if _looking_glass_duration > 0.0:
-			var warp = sin(_time * 5.0) * 0.08 + 0.18
-			# Outer mirror boundary
-			pass  #draw_arc(Vector2.ZERO, 70.0 + sin(_time * 3.0) * 5.0, 0, TAU, 48, Color(0.5, 0.3, 0.85, warp), 4.0)
-			# Inner reflective shimmer
-			pass  #draw_arc(Vector2.ZERO, 45.0 + sin(_time * 4.0) * 3.0, 0, TAU, 36, Color(0.7, 0.6, 0.95, warp * 0.7), 2.5)
-			# Floating mirror shards
-			for si in range(8):
-				var sa = _time * 2.0 + float(si) * TAU / 8.0
-				var sr = 50.0 + sin(_time * 3.0 + float(si) * 1.5) * 12.0
-				var spos = Vector2.from_angle(sa) * sr
-				# Diamond shard shape
-				var shard_size = 4.0 + sin(_time * 4.0 + float(si)) * 1.5
-				draw_line(spos + Vector2(0, -shard_size), spos + Vector2(shard_size * 0.5, 0), Color(0.85, 0.8, 1.0, 0.6), 1.5)
-				draw_line(spos + Vector2(shard_size * 0.5, 0), spos + Vector2(0, shard_size), Color(0.85, 0.8, 1.0, 0.6), 1.5)
-				draw_line(spos + Vector2(0, shard_size), spos + Vector2(-shard_size * 0.5, 0), Color(0.7, 0.6, 0.9, 0.5), 1.5)
-				draw_line(spos + Vector2(-shard_size * 0.5, 0), spos + Vector2(0, -shard_size), Color(0.7, 0.6, 0.9, 0.5), 1.5)
-			# Spiral energy threads
-			for ti in range(3):
-				var ta = _time * 1.5 + float(ti) * TAU / 3.0
-				for seg in range(8):
-					var seg_a = ta + float(seg) * 0.3
-					var seg_r = 20.0 + float(seg) * 6.0
-					var p1 = Vector2.from_angle(seg_a) * seg_r
-					var p2 = Vector2.from_angle(seg_a + 0.3) * (seg_r + 6.0)
-					draw_line(p1, p2, Color(0.6, 0.3, 0.9, 0.3 - float(seg) * 0.03), 1.5)
-		# Ready pulse when charging
-		elif _looking_glass_timer <= 3.0:
-			var rp = (sin(_time * 4.0) + 1.0) * 0.5
-			pass  #draw_arc(Vector2.ZERO, 35.0, 0, TAU, 32, Color(0.6, 0.4, 0.9, 0.1 + rp * 0.12), 2.5)
-
 	# === Tier 4: Red glow aura ===
 	if upgrade_tier >= 4:
 		var aura_pulse = sin(_time * 3.0) * 0.04 + 0.15
-		pass  #draw_arc(Vector2.ZERO, 55.0, 0, TAU, 24, Color(0.9, 0.15, 0.15, aura_pulse), 5.0)
+		draw_circle(Vector2.ZERO, 60.0, Color(0.9, 0.15, 0.15, aura_pulse))
+		draw_circle(Vector2.ZERO, 50.0, Color(0.95, 0.2, 0.1, aura_pulse * 0.5))
 		# Red cake crumb particles orbiting
 		for i in range(4):
 			var crumb_a = _time * 1.2 + float(i) * TAU / 4.0
@@ -1145,7 +1156,7 @@ func _draw() -> void:
 
 	# Upgrade flash
 	if _upgrade_flash > 0.0:
-		pass  #draw_arc(Vector2.ZERO, 65.0 + _upgrade_flash * 18.0, 0, TAU, 24, Color(0.8, 0.7, 1.0, _upgrade_flash * 0.2), 6.0)
+		draw_circle(Vector2.ZERO, 65.0 + _upgrade_flash * 18.0, Color(0.8, 0.7, 1.0, _upgrade_flash * 0.2))
 
 	# Cheshire flash (purple grin expanding)
 	if _cheshire_flash > 0.0:
@@ -1170,7 +1181,7 @@ func _draw() -> void:
 
 	# Tea party flash
 	if _tea_flash > 0.0:
-		pass  #draw_circle(Vector2.ZERO, 42.0 + (1.0 - _tea_flash) * 50.0, Color(0.9, 0.75, 0.3, _tea_flash * 0.25))
+		draw_circle(Vector2.ZERO, 42.0 + (1.0 - _tea_flash) * 50.0, Color(0.9, 0.75, 0.3, _tea_flash * 0.25))
 
 	if _tea_flash > 0.0:
 		# Floating teacup
@@ -1195,433 +1206,429 @@ func _draw() -> void:
 			draw_line(sp_pos - Vector2(sp_size, 0), sp_pos + Vector2(sp_size, 0), Color(0.6, 0.8, 1.0, sp_alpha), 0.8)
 			draw_line(sp_pos - Vector2(0, sp_size), sp_pos + Vector2(0, sp_size), Color(0.6, 0.8, 1.0, sp_alpha), 0.8)
 
-	# === SPRITE RENDERING (animated — curious & light) ===
-	if false:  # force procedural body
-		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
-		var _sf = 56.0 / _ss.y
-		var _sd = _ss * _sf
-		var breathe_scl = 1.0 + sin(_time * 2.2) * 0.020
-		var sway_rot = sin(_time * 1.5) * 0.028
-		var s_aim_lean = sin(aim_angle) * 0.035
-		var recoil_off = Vector2.ZERO
-		var atk_scl = Vector2.ONE
-		if _attack_anim > 0.0:
-			var rt = _attack_anim * _attack_anim
-			recoil_off = -Vector2.from_angle(aim_angle) * rt * 3.0
-			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
-			atk_scl = Vector2(1.0 + sq * 0.08, 1.0 - sq * 0.06)
-		var total_rot = sway_rot + s_aim_lean
-		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
-		var _fl = cos(aim_angle) < 0.0
-		if _fl:
-			total_scl.x *= -1.0
-			total_rot *= -1.0
-		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
-		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# === CHARACTER POSITIONS (chibi proportions ~48px) ===
+	var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
+	var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
+	var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -26.0)
 
-	if true:  # procedural Bloons character
-		# === CHARACTER POSITIONS (chibi proportions ~48px) ===
-		var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
-		var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
-		var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
-		var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
-		var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -26.0)
+	# === T1+: "Drink Me" bottle near platform ===
+	if upgrade_tier >= 1:
+		var bottle_pos = Vector2(-18, 6) + body_offset * 0.3
+		draw_circle(bottle_pos + Vector2(0, -4), 5.0, Color(0.1, 0.2, 0.5))
+		draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
+		draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
+		draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
 
-		# === T1+: "Drink Me" bottle near platform ===
-		if upgrade_tier >= 1:
-			var bottle_pos = Vector2(-18, 6) + body_offset * 0.3
-			draw_circle(bottle_pos + Vector2(0, -4), 5.0, Color(0.1, 0.2, 0.5))
-			draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
-			draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
-			draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
+	# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
+	var OL = Color(0.06, 0.06, 0.08)  # True black outline color
 
-		# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
-		var OL = Color(0.06, 0.06, 0.08)  # True black outline color
+	# --- Feet (cute ballet flats) ---
+	var l_foot = feet_y + Vector2(-4, 0)
+	var r_foot = feet_y + Vector2(4, 0)
+	# Outline
+	draw_circle(l_foot, 4.5, OL)
+	draw_circle(r_foot, 4.5, OL)
+	# Fill
+	draw_circle(l_foot, 3.2, Color(0.78, 0.68, 0.92))
+	draw_circle(r_foot, 3.2, Color(0.78, 0.68, 0.92))
+	# Highlight dot
+	draw_circle(l_foot + Vector2(-0.5, -0.8), 1.0, Color(0.92, 0.85, 1.0, 0.6))
+	draw_circle(r_foot + Vector2(-0.5, -0.8), 1.0, Color(0.92, 0.85, 1.0, 0.6))
 
-		# --- Feet (cute ballet flats) ---
-		var l_foot = feet_y + Vector2(-4, 0)
-		var r_foot = feet_y + Vector2(4, 0)
-		# Outline
-		draw_circle(l_foot, 4.5, OL)
-		draw_circle(r_foot, 4.5, OL)
-		# Fill
-		draw_circle(l_foot, 3.2, Color(0.78, 0.68, 0.92))
-		draw_circle(r_foot, 3.2, Color(0.78, 0.68, 0.92))
-		# Highlight dot
-		draw_circle(l_foot + Vector2(-0.5, -0.8), 1.0, Color(0.92, 0.85, 1.0, 0.6))
-		draw_circle(r_foot + Vector2(-0.5, -0.8), 1.0, Color(0.92, 0.85, 1.0, 0.6))
+	# --- Legs (short stubby, mostly hidden by dress) ---
+	draw_line(l_foot + Vector2(0, -2), Vector2(l_foot.x, leg_top.y + 2), OL, 5.0)
+	draw_line(l_foot + Vector2(0, -2), Vector2(l_foot.x, leg_top.y + 2), skin_base, 3.5)
+	draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), OL, 5.0)
+	draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), skin_base, 3.5)
 
-		# --- Legs (short stubby, mostly hidden by dress) ---
-		draw_line(l_foot + Vector2(0, -2), Vector2(l_foot.x, leg_top.y + 2), OL, 5.0)
-		draw_line(l_foot + Vector2(0, -2), Vector2(l_foot.x, leg_top.y + 2), skin_base, 3.5)
-		draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), OL, 5.0)
-		draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), skin_base, 3.5)
+	# --- Alice's dress (Bloons-style bold cartoon) ---
+	var dress_blue = Color(0.45, 0.72, 0.95)
+	var dress_lav = Color(0.70, 0.55, 0.90)
+	var dress_white = Color(0.92, 0.93, 0.98)
+	# Dress outline (bold black border around entire dress shape)
+	var dress_outline = PackedVector2Array([
+		feet_y + Vector2(-15, 3), feet_y + Vector2(15 + dress_sway * 0.8, 1),
+		Vector2(8, torso_center.y - 1), Vector2(8, neck_base.y + 3),
+		Vector2(4, neck_base.y + 2), Vector2(0, neck_base.y + 3.5),
+		Vector2(-4, neck_base.y + 2), Vector2(-8, neck_base.y + 3),
+		Vector2(-8, torso_center.y - 1),
+	])
+	draw_colored_polygon(dress_outline, OL)
+	# Dress fill — white base
+	var dress_fill = PackedVector2Array([
+		feet_y + Vector2(-13, 2), feet_y + Vector2(13 + dress_sway * 0.7, 0),
+		Vector2(6.5, torso_center.y), Vector2(6.5, neck_base.y + 4.5),
+		Vector2(3, neck_base.y + 3.5), Vector2(0, neck_base.y + 5),
+		Vector2(-3, neck_base.y + 3.5), Vector2(-6.5, neck_base.y + 4.5),
+		Vector2(-6.5, torso_center.y),
+	])
+	draw_colored_polygon(dress_fill, dress_white)
+	# Blue apron/pinafore (Alice's signature look)
+	var apron = PackedVector2Array([
+		feet_y + Vector2(-10, 1), feet_y + Vector2(10 + dress_sway * 0.4, -1),
+		Vector2(5.5, torso_center.y + 1), Vector2(5.5, neck_base.y + 6),
+		Vector2(-5.5, neck_base.y + 6), Vector2(-5.5, torso_center.y + 1),
+	])
+	draw_colored_polygon(apron, dress_blue)
+	# Apron pocket detail
+	draw_arc(Vector2(0, torso_center.y + 5), 3.5, 0, PI, 6, Color(0.35, 0.60, 0.85), 1.5)
+	# Waist sash (bold black line + white fill)
+	draw_line(Vector2(-7, torso_center.y + 0.5), Vector2(7, torso_center.y + 0.5), OL, 4.0)
+	draw_line(Vector2(-6.5, torso_center.y + 0.5), Vector2(6.5, torso_center.y + 0.5), Color(0.95, 0.95, 1.0), 2.5)
+	# Sash bow at back (two circles + knot)
+	draw_circle(Vector2(-7, torso_center.y + 1), 2.5, OL)
+	draw_circle(Vector2(-7, torso_center.y + 1), 1.8, Color(0.95, 0.95, 1.0))
+	# Hem scallops (cute wavy bottom edge)
+	for i in range(7):
+		var hx = -12.0 + float(i) * 4.0 + dress_sway * 0.15 * float(i) / 6.0
+		var hy = feet_y.y + 2.0 + sin(_time * 2.0 + float(i) * 1.0) * 1.0
+		draw_circle(Vector2(hx, hy), 2.5, OL)
+		draw_circle(Vector2(hx, hy), 1.8, dress_white)
+	# Cheshire grin pattern (T2+)
+	if upgrade_tier >= 2:
+		var grin_alpha = 0.1 + sin(_time * 1.5) * 0.04
+		draw_arc(Vector2(0, torso_center.y + 6), 5.0, 0.3, PI - 0.3, 6, Color(0.6, 0.2, 0.7, grin_alpha), 1.5)
 
-		# --- Alice's dress (Bloons-style bold cartoon) ---
-		var dress_blue = Color(0.45, 0.72, 0.95)
-		var dress_lav = Color(0.70, 0.55, 0.90)
-		var dress_white = Color(0.92, 0.93, 0.98)
-		# Dress outline (bold black border around entire dress shape)
-		var dress_outline = PackedVector2Array([
-			feet_y + Vector2(-15, 3), feet_y + Vector2(15 + dress_sway * 0.8, 1),
-			Vector2(8, torso_center.y - 1), Vector2(8, neck_base.y + 3),
-			Vector2(4, neck_base.y + 2), Vector2(0, neck_base.y + 3.5),
-			Vector2(-4, neck_base.y + 2), Vector2(-8, neck_base.y + 3),
-			Vector2(-8, torso_center.y - 1),
-		])
-		draw_colored_polygon(dress_outline, OL)
-		# Dress fill — white base
-		var dress_fill = PackedVector2Array([
-			feet_y + Vector2(-13, 2), feet_y + Vector2(13 + dress_sway * 0.7, 0),
-			Vector2(6.5, torso_center.y), Vector2(6.5, neck_base.y + 4.5),
-			Vector2(3, neck_base.y + 3.5), Vector2(0, neck_base.y + 5),
-			Vector2(-3, neck_base.y + 3.5), Vector2(-6.5, neck_base.y + 4.5),
-			Vector2(-6.5, torso_center.y),
-		])
-		draw_colored_polygon(dress_fill, dress_white)
-		# Blue apron/pinafore (Alice's signature look)
-		var apron = PackedVector2Array([
-			feet_y + Vector2(-10, 1), feet_y + Vector2(10 + dress_sway * 0.4, -1),
-			Vector2(5.5, torso_center.y + 1), Vector2(5.5, neck_base.y + 6),
-			Vector2(-5.5, neck_base.y + 6), Vector2(-5.5, torso_center.y + 1),
-		])
-		draw_colored_polygon(apron, dress_blue)
-		# Apron pocket detail
-		draw_arc(Vector2(0, torso_center.y + 5), 3.5, 0, PI, 6, Color(0.35, 0.60, 0.85), 1.5)
-		# Waist sash (bold black line + white fill)
-		draw_line(Vector2(-7, torso_center.y + 0.5), Vector2(7, torso_center.y + 0.5), OL, 4.0)
-		draw_line(Vector2(-6.5, torso_center.y + 0.5), Vector2(6.5, torso_center.y + 0.5), Color(0.95, 0.95, 1.0), 2.5)
-		# Sash bow at back (two circles + knot)
-		draw_circle(Vector2(-7, torso_center.y + 1), 2.5, OL)
-		draw_circle(Vector2(-7, torso_center.y + 1), 1.8, Color(0.95, 0.95, 1.0))
-		# Hem scallops (cute wavy bottom edge)
-		for i in range(7):
-			var hx = -12.0 + float(i) * 4.0 + dress_sway * 0.15 * float(i) / 6.0
-			var hy = feet_y.y + 2.0 + sin(_time * 2.0 + float(i) * 1.0) * 1.0
-			draw_circle(Vector2(hx, hy), 2.5, OL)
-			draw_circle(Vector2(hx, hy), 1.8, dress_white)
-		# Cheshire grin pattern (T2+)
-		if upgrade_tier >= 2:
-			var grin_alpha = 0.1 + sin(_time * 1.5) * 0.04
-			draw_arc(Vector2(0, torso_center.y + 6), 5.0, 0.3, PI - 0.3, 6, Color(0.6, 0.2, 0.7, grin_alpha), 1.5)
+	# === Shoulders (round cartoon joints) ===
+	var l_shoulder = Vector2(-8, neck_base.y + 2)
+	var r_shoulder = Vector2(8, neck_base.y + 2)
+	# Shoulder joints with outline
+	draw_circle(l_shoulder, 4.5, OL)
+	draw_circle(r_shoulder, 4.5, OL)
+	draw_circle(l_shoulder, 3.2, skin_base)
+	draw_circle(r_shoulder, 3.2, skin_base)
+	# Puff sleeve hints (dress fabric on shoulders)
+	draw_arc(l_shoulder, 4.0, PI * 0.5, PI * 1.5, 6, dress_blue, 2.0)
+	draw_arc(r_shoulder, 4.0, PI * 1.5, PI * 2.5, 6, dress_blue, 2.0)
 
-		# === Shoulders (round cartoon joints) ===
-		var l_shoulder = Vector2(-8, neck_base.y + 2)
-		var r_shoulder = Vector2(8, neck_base.y + 2)
-		# Shoulder joints with outline
-		draw_circle(l_shoulder, 4.5, OL)
-		draw_circle(r_shoulder, 4.5, OL)
-		draw_circle(l_shoulder, 3.2, skin_base)
-		draw_circle(r_shoulder, 3.2, skin_base)
-		# Puff sleeve hints (dress fabric on shoulders)
-		draw_arc(l_shoulder, 4.0, PI * 0.5, PI * 1.5, 6, dress_blue, 2.0)
-		draw_arc(r_shoulder, 4.0, PI * 1.5, PI * 2.5, 6, dress_blue, 2.0)
+	# === Arms (chunky cartoon limbs with proper attack animation) ===
+	var attack_extend = _attack_anim * 10.0
+	# RIGHT ARM (cake-throwing) — swings toward target on attack
+	var r_elbow = r_shoulder + dir * 6.0 + Vector2(3, 4)
+	var r_hand = r_shoulder + dir * (14.0 + attack_extend)
+	# Upper arm outline + fill
+	draw_line(r_shoulder, r_elbow, OL, 6.5)
+	draw_line(r_shoulder, r_elbow, skin_base, 4.5)
+	# Forearm outline + fill
+	draw_line(r_elbow, r_hand, OL, 6.0)
+	draw_line(r_elbow, r_hand, skin_base, 4.0)
+	# Elbow joint
+	draw_circle(r_elbow, 3.5, OL)
+	draw_circle(r_elbow, 2.5, skin_base)
+	# Hand (round cartoon hand)
+	draw_circle(r_hand, 3.5, OL)
+	draw_circle(r_hand, 2.5, skin_base)
+	draw_circle(r_hand + Vector2(-0.5, -0.5), 1.0, skin_highlight)
 
-		# === Arms (chunky cartoon limbs with proper attack animation) ===
-		var attack_extend = _attack_anim * 10.0
-		# RIGHT ARM (cake-throwing) — swings toward target on attack
-		var r_elbow = r_shoulder + dir * 6.0 + Vector2(3, 4)
-		var r_hand = r_shoulder + dir * (14.0 + attack_extend)
-		# Upper arm outline + fill
-		draw_line(r_shoulder, r_elbow, OL, 6.5)
-		draw_line(r_shoulder, r_elbow, skin_base, 4.5)
-		# Forearm outline + fill
-		draw_line(r_elbow, r_hand, OL, 6.0)
-		draw_line(r_elbow, r_hand, skin_base, 4.0)
-		# Elbow joint
-		draw_circle(r_elbow, 3.5, OL)
-		draw_circle(r_elbow, 2.5, skin_base)
-		# Hand (round cartoon hand)
-		draw_circle(r_hand, 3.5, OL)
-		draw_circle(r_hand, 2.5, skin_base)
-		draw_circle(r_hand + Vector2(-0.5, -0.5), 1.0, skin_highlight)
+	# LEFT ARM (at side, slightly posed)
+	var l_elbow = l_shoulder + Vector2(-5, 6)
+	var l_hand = l_shoulder + Vector2(-7, 14)
+	draw_line(l_shoulder, l_elbow, OL, 6.5)
+	draw_line(l_shoulder, l_elbow, skin_base, 4.5)
+	draw_line(l_elbow, l_hand, OL, 6.0)
+	draw_line(l_elbow, l_hand, skin_base, 4.0)
+	draw_circle(l_elbow, 3.5, OL)
+	draw_circle(l_elbow, 2.5, skin_base)
+	draw_circle(l_hand, 3.5, OL)
+	draw_circle(l_hand, 2.5, skin_base)
 
-		# LEFT ARM (at side, slightly posed)
-		var l_elbow = l_shoulder + Vector2(-5, 6)
-		var l_hand = l_shoulder + Vector2(-7, 14)
-		draw_line(l_shoulder, l_elbow, OL, 6.5)
-		draw_line(l_shoulder, l_elbow, skin_base, 4.5)
-		draw_line(l_elbow, l_hand, OL, 6.0)
-		draw_line(l_elbow, l_hand, skin_base, 4.0)
-		draw_circle(l_elbow, 3.5, OL)
-		draw_circle(l_elbow, 2.5, skin_base)
-		draw_circle(l_hand, 3.5, OL)
-		draw_circle(l_hand, 2.5, skin_base)
+	# === Cupcake in hand (bold, visible at any zoom) ===
+	var cake_pos = r_hand + dir * 5.0
+	var wrap_perp = dir.rotated(PI / 2.0)
+	# Wrapper outline + fill (bright pink)
+	draw_colored_polygon(PackedVector2Array([
+		cake_pos - wrap_perp * 4.5 + dir * 2.0,
+		cake_pos + wrap_perp * 4.5 + dir * 2.0,
+		cake_pos + wrap_perp * 5.5 - dir * 2.0,
+		cake_pos - wrap_perp * 5.5 - dir * 2.0,
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		cake_pos - wrap_perp * 3.5 + dir * 1.5,
+		cake_pos + wrap_perp * 3.5 + dir * 1.5,
+		cake_pos + wrap_perp * 4.5 - dir * 1.5,
+		cake_pos - wrap_perp * 4.5 - dir * 1.5,
+	]), Color(1.0, 0.45, 0.60))
+	# Frosted top — bold white dome
+	var frost_center = cake_pos + dir * 3.0
+	draw_circle(frost_center, 6.0, OL)
+	draw_circle(frost_center, 4.8, Color(1.0, 0.92, 0.95))
+	draw_circle(frost_center + dir * 0.5, 3.5, Color(1.0, 0.80, 0.85))
+	# Cherry on top
+	draw_circle(frost_center + dir * 4.0, 2.8, OL)
+	draw_circle(frost_center + dir * 4.0, 2.0, Color(0.95, 0.12, 0.18))
+	draw_circle(frost_center + dir * 4.0 + Vector2(-0.4, -0.5), 0.8, Color(1.0, 0.5, 0.5, 0.6))
 
-		# === Cupcake in hand (bold, visible at any zoom) ===
-		var cake_pos = r_hand + dir * 5.0
-		var wrap_perp = dir.rotated(PI / 2.0)
-		# Wrapper outline + fill (bright pink)
-		draw_colored_polygon(PackedVector2Array([
-			cake_pos - wrap_perp * 4.5 + dir * 2.0,
-			cake_pos + wrap_perp * 4.5 + dir * 2.0,
-			cake_pos + wrap_perp * 5.5 - dir * 2.0,
-			cake_pos - wrap_perp * 5.5 - dir * 2.0,
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			cake_pos - wrap_perp * 3.5 + dir * 1.5,
-			cake_pos + wrap_perp * 3.5 + dir * 1.5,
-			cake_pos + wrap_perp * 4.5 - dir * 1.5,
-			cake_pos - wrap_perp * 4.5 - dir * 1.5,
-		]), Color(1.0, 0.45, 0.60))
-		# Frosted top — bold white dome
-		var frost_center = cake_pos + dir * 3.0
-		draw_circle(frost_center, 6.0, OL)
-		draw_circle(frost_center, 4.8, Color(1.0, 0.92, 0.95))
-		draw_circle(frost_center + dir * 0.5, 3.5, Color(1.0, 0.80, 0.85))
-		# Cherry on top
-		draw_circle(frost_center + dir * 4.0, 2.8, OL)
-		draw_circle(frost_center + dir * 4.0, 2.0, Color(0.95, 0.12, 0.18))
-		draw_circle(frost_center + dir * 4.0 + Vector2(-0.4, -0.5), 0.8, Color(1.0, 0.5, 0.5, 0.6))
+	# Cake splat ring (AoE attack flash)
+	if _attack_anim > 0.2:
+		var splat_r = 20.0 + (1.0 - _attack_anim) * 40.0
+		var splat_alpha = _attack_anim * 0.5
+		draw_arc(Vector2.ZERO, splat_r, 0, TAU, 32, Color(0.95, 0.7, 0.75, splat_alpha), 3.0)
+		draw_arc(Vector2.ZERO, splat_r * 0.7, 0, TAU, 24, Color(1.0, 0.9, 0.92, splat_alpha * 0.6), 2.0)
+		for si in range(6):
+			var sp_a = TAU * float(si) / 6.0 + _time * 2.0
+			var sp_r2 = splat_r * (0.6 + sin(_time * 4.0 + float(si)) * 0.2)
+			var sp_p = Vector2.from_angle(sp_a) * sp_r2
+			draw_circle(sp_p, 2.5, Color(0.95, 0.8, 0.85, splat_alpha * 0.7))
 
-		# Cake splat — flying crumbs toward target (no rings)
-		if _attack_anim > 0.15:
-			var tier_scale = 1.0 + float(upgrade_tier) * 0.2
-			var splat_alpha = _attack_anim * 0.65
-			# Flying cake crumbs in attack direction
-			var crumb_count = 3 + upgrade_tier
-			for si in range(crumb_count):
-				var sp_spread = (float(si) - float(crumb_count) / 2.0) * 0.3
-				var sp_dist = (10.0 + (1.0 - _attack_anim) * 20.0) * tier_scale
-				var sp_dir = Vector2.from_angle(aim_angle + sp_spread)
-				var sp_p = sp_dir * sp_dist
-				var crumb_size = (2.5 + sin(_time * 5.0 + float(si)) * 0.8) * tier_scale
-				draw_circle(sp_p, crumb_size, Color(0.95, 0.8, 0.7, splat_alpha * 0.6))
-				draw_circle(sp_p, crumb_size * 0.5, Color(1.0, 0.95, 0.9, splat_alpha * 0.3))
-			# Frosting splat at impact point
-			var impact_dir = Vector2.from_angle(aim_angle)
-			var impact_pos = impact_dir * 18.0 * tier_scale
-			draw_circle(impact_pos, 4.0 * tier_scale, Color(0.95, 0.7, 0.78, splat_alpha * 0.4))
-			draw_circle(impact_pos, 2.0, Color(1.0, 0.92, 0.85, splat_alpha * 0.3))
+	# === NECK (cartoon connector) ===
+	var neck_top = head_center + Vector2(0, 9)
+	draw_line(neck_base, neck_top, OL, 7.0)
+	draw_line(neck_base, neck_top, skin_base, 5.0)
 
-		# === NECK (cartoon connector) ===
-		var neck_top = head_center + Vector2(0, 9)
-		draw_line(neck_base, neck_top, OL, 7.0)
-		draw_line(neck_base, neck_top, skin_base, 5.0)
+	# === HEAD — Big round cartoon head ===
+	var hair_wave = sin(_time * 1.5) * 3.0 + hair_wind
+	var hair_base = Color(0.85, 0.72, 0.28)
+	var hair_light = Color(0.95, 0.85, 0.40)
+	var hair_shine = Color(1.0, 0.95, 0.55)
 
-		# === HEAD — Big round cartoon head ===
-		var hair_wave = sin(_time * 1.5) * 3.0 + hair_wind
-		var hair_base = Color(0.85, 0.72, 0.28)
-		var hair_light = Color(0.95, 0.85, 0.40)
-		var hair_shine = Color(1.0, 0.95, 0.55)
+	# --- Hair back (drawn behind face) ---
+	# Back hair outline + fill
+	draw_circle(head_center + Vector2(-10, 14), 6.0, OL)
+	draw_circle(head_center + Vector2(-10, 14), 4.8, hair_base)
+	draw_circle(head_center + Vector2(10, 14), 6.0, OL)
+	draw_circle(head_center + Vector2(10, 14), 4.8, hair_base)
+	draw_circle(head_center + Vector2(-9, 22), 5.0, OL)
+	draw_circle(head_center + Vector2(-9, 22), 3.8, hair_light)
+	draw_circle(head_center + Vector2(9, 22), 5.0, OL)
+	draw_circle(head_center + Vector2(9, 22), 3.8, hair_light)
 
-		# --- Hair back (drawn behind face) ---
-		# Back hair outline + fill
-		draw_circle(head_center + Vector2(-10, 14), 6.0, OL)
-		draw_circle(head_center + Vector2(-10, 14), 4.8, hair_base)
-		draw_circle(head_center + Vector2(10, 14), 6.0, OL)
-		draw_circle(head_center + Vector2(10, 14), 4.8, hair_base)
-		draw_circle(head_center + Vector2(-9, 22), 5.0, OL)
-		draw_circle(head_center + Vector2(-9, 22), 3.8, hair_light)
-		draw_circle(head_center + Vector2(9, 22), 5.0, OL)
-		draw_circle(head_center + Vector2(9, 22), 3.8, hair_light)
+	# --- Main head shape (big circle) ---
+	# Hair volume outline
+	draw_circle(head_center, 14.0, OL)
+	draw_circle(head_center, 12.5, hair_base)
+	draw_circle(head_center + Vector2(0, -1), 11.5, hair_light)
+	# Side hair volume
+	draw_circle(head_center + Vector2(-12, 4), 6.5, OL)
+	draw_circle(head_center + Vector2(-12, 4), 5.2, hair_base)
+	draw_circle(head_center + Vector2(12, 4), 6.5, OL)
+	draw_circle(head_center + Vector2(12, 4), 5.2, hair_base)
+	# Crown shine
+	draw_circle(head_center + Vector2(-2, -4), 5.5, Color(hair_shine.r, hair_shine.g, hair_shine.b, 0.4))
+	# Hair shine arc
+	draw_arc(head_center + Vector2(0, -2), 10.0, PI * 0.5, PI * 0.9, 8, Color(1.0, 0.96, 0.60, 0.45), 3.0)
+	# Strand detail (just a few bold lines for texture)
+	for si in range(4):
+		var sx = -8.0 + float(si) * 5.5
+		var wave_off = hair_wave * (1.0 if sx > 0 else -1.0) * 0.25
+		var s_start = head_center + Vector2(sx, 4)
+		var s_end = head_center + Vector2(sx + wave_off, 20.0 + float(si % 2) * 3.0)
+		draw_line(s_start, s_end, hair_base, 2.0)
 
-		# --- Main head shape (big circle) ---
-		# Hair volume outline
-		draw_circle(head_center, 14.0, OL)
-		draw_circle(head_center, 12.5, hair_base)
-		draw_circle(head_center + Vector2(0, -1), 11.5, hair_light)
-		# Side hair volume
-		draw_circle(head_center + Vector2(-12, 4), 6.5, OL)
-		draw_circle(head_center + Vector2(-12, 4), 5.2, hair_base)
-		draw_circle(head_center + Vector2(12, 4), 6.5, OL)
-		draw_circle(head_center + Vector2(12, 4), 5.2, hair_base)
-		# Crown shine
-		draw_circle(head_center + Vector2(-2, -4), 5.5, Color(hair_shine.r, hair_shine.g, hair_shine.b, 0.4))
-		# Hair shine arc
-		draw_arc(head_center + Vector2(0, -2), 10.0, PI * 0.5, PI * 0.9, 8, Color(1.0, 0.96, 0.60, 0.45), 3.0)
-		# Strand detail (just a few bold lines for texture)
-		for si in range(4):
-			var sx = -8.0 + float(si) * 5.5
-			var wave_off = hair_wave * (1.0 if sx > 0 else -1.0) * 0.25
-			var s_start = head_center + Vector2(sx, 4)
-			var s_end = head_center + Vector2(sx + wave_off, 20.0 + float(si % 2) * 3.0)
-			draw_line(s_start, s_end, hair_base, 2.0)
+	# --- Face (big round cartoon face) ---
+	draw_circle(head_center + Vector2(0, 1.5), 12.0, OL)
+	draw_circle(head_center + Vector2(0, 1.5), 10.8, skin_base)
+	# Face highlight (top-left shine like Bloons)
+	draw_circle(head_center + Vector2(-3, -2), 5.0, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3))
 
-		# --- Face (big round cartoon face) ---
-		draw_circle(head_center + Vector2(0, 1.5), 12.0, OL)
-		draw_circle(head_center + Vector2(0, 1.5), 10.8, skin_base)
-		# Face highlight (top-left shine like Bloons)
-		draw_circle(head_center + Vector2(-3, -2), 5.0, Color(skin_highlight.r, skin_highlight.g, skin_highlight.b, 0.3))
+	# Rosy cheeks (Alice's signature — bold pink)
+	draw_circle(head_center + Vector2(-6.5, 4), 3.0, Color(1.0, 0.50, 0.50, 0.30))
+	draw_circle(head_center + Vector2(6.5, 4), 3.0, Color(1.0, 0.50, 0.50, 0.30))
 
-		# Rosy cheeks (Alice's signature — bold pink)
-		draw_circle(head_center + Vector2(-6.5, 4), 3.0, Color(1.0, 0.50, 0.50, 0.30))
-		draw_circle(head_center + Vector2(6.5, 4), 3.0, Color(1.0, 0.50, 0.50, 0.30))
+	# Ears (behind hair)
+	draw_circle(head_center + Vector2(-10.5, 2), 2.8, OL)
+	draw_circle(head_center + Vector2(-10.5, 2), 2.0, skin_base)
+	draw_circle(head_center + Vector2(10.5, 2), 2.8, OL)
+	draw_circle(head_center + Vector2(10.5, 2), 2.0, skin_base)
 
-		# Ears (behind hair)
-		draw_circle(head_center + Vector2(-10.5, 2), 2.8, OL)
-		draw_circle(head_center + Vector2(-10.5, 2), 2.0, skin_base)
-		draw_circle(head_center + Vector2(10.5, 2), 2.8, OL)
-		draw_circle(head_center + Vector2(10.5, 2), 2.0, skin_base)
+	# Flower behind ear (signature accessory)
+	var flower_pos = head_center + Vector2(-11, -3)
+	draw_circle(flower_pos, 4.0, OL)
+	draw_circle(flower_pos, 3.2, Color(1.0, 0.65, 0.75))
+	for petal_i in range(5):
+		var pa = float(petal_i) * TAU / 5.0 + _time * 0.3
+		draw_circle(flower_pos + Vector2.from_angle(pa) * 2.5, 1.8, Color(1.0, 0.55, 0.68))
+	draw_circle(flower_pos, 1.5, Color(1.0, 0.92, 0.35))
 
-		# Flower behind ear (signature accessory)
-		var flower_pos = head_center + Vector2(-11, -3)
-		draw_circle(flower_pos, 4.0, OL)
-		draw_circle(flower_pos, 3.2, Color(1.0, 0.65, 0.75))
-		for petal_i in range(5):
-			var pa = float(petal_i) * TAU / 5.0 + _time * 0.3
-			draw_circle(flower_pos + Vector2.from_angle(pa) * 2.5, 1.8, Color(1.0, 0.55, 0.68))
-		draw_circle(flower_pos, 1.5, Color(1.0, 0.92, 0.35))
+	# === BIG CARTOON EYES (Bloons-style — large, expressive, clean) ===
+	var look_dir = dir * 1.2
+	var l_eye = head_center + Vector2(-4.5, 0.5)
+	var r_eye = head_center + Vector2(4.5, 0.5)
+	# Eye outlines (thick black border)
+	draw_circle(l_eye, 5.8, OL)
+	draw_circle(r_eye, 5.8, OL)
+	# Eye whites
+	draw_circle(l_eye, 4.8, Color(1.0, 1.0, 1.0))
+	draw_circle(r_eye, 4.8, Color(1.0, 1.0, 1.0))
+	# Blue irises (Alice's signature blue — bold saturated)
+	draw_circle(l_eye + look_dir, 3.5, Color(0.12, 0.35, 0.70))
+	draw_circle(l_eye + look_dir, 2.8, Color(0.25, 0.50, 0.90))
+	draw_circle(r_eye + look_dir, 3.5, Color(0.12, 0.35, 0.70))
+	draw_circle(r_eye + look_dir, 2.8, Color(0.25, 0.50, 0.90))
+	# Pupils (solid black dots)
+	draw_circle(l_eye + look_dir * 1.05, 1.6, Color(0.02, 0.02, 0.05))
+	draw_circle(r_eye + look_dir * 1.05, 1.6, Color(0.02, 0.02, 0.05))
+	# Big sparkle highlights (key Bloons detail — makes eyes feel alive)
+	draw_circle(l_eye + Vector2(-1.3, -1.6), 1.8, Color(1.0, 1.0, 1.0, 0.95))
+	draw_circle(r_eye + Vector2(-1.3, -1.6), 1.8, Color(1.0, 1.0, 1.0, 0.95))
+	# Small secondary sparkle
+	draw_circle(l_eye + Vector2(1.2, 1.0), 0.9, Color(1.0, 1.0, 1.0, 0.55))
+	draw_circle(r_eye + Vector2(1.2, 1.0), 0.9, Color(1.0, 1.0, 1.0, 0.55))
+	# Bold upper eyelid line
+	draw_arc(l_eye, 5.2, PI + 0.15, TAU - 0.15, 10, OL, 1.8)
+	draw_arc(r_eye, 5.2, PI + 0.15, TAU - 0.15, 10, OL, 1.8)
+	# Eyelashes (3 bold lashes per eye)
+	for el in range(3):
+		var ela = PI + 0.25 + float(el) * 0.45
+		draw_line(l_eye + Vector2.from_angle(ela) * 5.2, l_eye + Vector2.from_angle(ela + 0.12) * 8.0, OL, 1.5)
+		draw_line(r_eye + Vector2.from_angle(ela) * 5.2, r_eye + Vector2.from_angle(ela + 0.12) * 8.0, OL, 1.5)
 
-		# === BIG CARTOON EYES (Bloons-style — large, expressive, clean) ===
-		var look_dir = dir * 1.2
-		var l_eye = head_center + Vector2(-4.5, 0.5)
-		var r_eye = head_center + Vector2(4.5, 0.5)
-		# Eye outlines (thick black border)
-		draw_circle(l_eye, 5.8, OL)
-		draw_circle(r_eye, 5.8, OL)
-		# Eye whites
-		draw_circle(l_eye, 4.8, Color(1.0, 1.0, 1.0))
-		draw_circle(r_eye, 4.8, Color(1.0, 1.0, 1.0))
-		# Blue irises (Alice's signature blue — bold saturated)
-		draw_circle(l_eye + look_dir, 3.5, Color(0.12, 0.35, 0.70))
-		draw_circle(l_eye + look_dir, 2.8, Color(0.25, 0.50, 0.90))
-		draw_circle(r_eye + look_dir, 3.5, Color(0.12, 0.35, 0.70))
-		draw_circle(r_eye + look_dir, 2.8, Color(0.25, 0.50, 0.90))
-		# Pupils (solid black dots)
-		draw_circle(l_eye + look_dir * 1.05, 1.6, Color(0.02, 0.02, 0.05))
-		draw_circle(r_eye + look_dir * 1.05, 1.6, Color(0.02, 0.02, 0.05))
-		# Big sparkle highlights (key Bloons detail — makes eyes feel alive)
-		draw_circle(l_eye + Vector2(-1.3, -1.6), 1.8, Color(1.0, 1.0, 1.0, 0.95))
-		draw_circle(r_eye + Vector2(-1.3, -1.6), 1.8, Color(1.0, 1.0, 1.0, 0.95))
-		# Small secondary sparkle
-		draw_circle(l_eye + Vector2(1.2, 1.0), 0.9, Color(1.0, 1.0, 1.0, 0.55))
-		draw_circle(r_eye + Vector2(1.2, 1.0), 0.9, Color(1.0, 1.0, 1.0, 0.55))
-		# Bold upper eyelid line
-		draw_arc(l_eye, 5.2, PI + 0.15, TAU - 0.15, 10, OL, 1.8)
-		draw_arc(r_eye, 5.2, PI + 0.15, TAU - 0.15, 10, OL, 1.8)
-		# Eyelashes (3 bold lashes per eye)
-		for el in range(3):
-			var ela = PI + 0.25 + float(el) * 0.45
-			draw_line(l_eye + Vector2.from_angle(ela) * 5.2, l_eye + Vector2.from_angle(ela + 0.12) * 8.0, OL, 1.5)
-			draw_line(r_eye + Vector2.from_angle(ela) * 5.2, r_eye + Vector2.from_angle(ela + 0.12) * 8.0, OL, 1.5)
+	# Eyebrows (bold, expressive arches)
+	draw_line(l_eye + Vector2(-3.5, -5), l_eye + Vector2(2.5, -6.5), Color(0.60, 0.48, 0.15), 2.2)
+	draw_line(r_eye + Vector2(-2.5, -6.5), r_eye + Vector2(3.5, -5), Color(0.60, 0.48, 0.15), 2.2)
 
-		# Eyebrows (bold, expressive arches)
-		draw_line(l_eye + Vector2(-3.5, -5), l_eye + Vector2(2.5, -6.5), Color(0.60, 0.48, 0.15), 2.2)
-		draw_line(r_eye + Vector2(-2.5, -6.5), r_eye + Vector2(3.5, -5), Color(0.60, 0.48, 0.15), 2.2)
+	# Cute button nose
+	draw_circle(head_center + Vector2(0, 4), 1.5, Color(0.92, 0.78, 0.66, 0.6))
+	draw_circle(head_center + Vector2(0.3, 3.8), 0.7, skin_highlight)
 
-		# Cute button nose
-		draw_circle(head_center + Vector2(0, 4), 1.5, Color(0.92, 0.78, 0.66, 0.6))
-		draw_circle(head_center + Vector2(0.3, 3.8), 0.7, skin_highlight)
+	# Cheerful smile (simple arc — Bloons style)
+	draw_arc(head_center + Vector2(0, 6), 4.0, 0.15, PI - 0.15, 10, OL, 1.8)
+	draw_arc(head_center + Vector2(0, 6), 3.5, 0.2, PI - 0.2, 8, Color(0.90, 0.40, 0.40), 1.2)
 
-		# Cheerful smile (simple arc — Bloons style)
-		draw_arc(head_center + Vector2(0, 6), 4.0, 0.15, PI - 0.15, 10, OL, 1.8)
-		draw_arc(head_center + Vector2(0, 6), 3.5, 0.2, PI - 0.2, 8, Color(0.90, 0.40, 0.40), 1.2)
+	# === Alice's Headband (black with bow — signature look) ===
+	draw_arc(head_center + Vector2(0, -2), 12.0, PI + 0.25, TAU - 0.25, 14, OL, 4.0)
+	draw_arc(head_center + Vector2(0, -2), 12.0, PI + 0.25, TAU - 0.25, 14, Color(0.10, 0.10, 0.15), 2.5)
+	# Headband bow (right side — bold)
+	var bow_ctr = head_center + Vector2(7, -10)
+	draw_circle(bow_ctr + Vector2(-2.5, 0), 2.8, OL)
+	draw_circle(bow_ctr + Vector2(2.5, 0), 2.8, OL)
+	draw_circle(bow_ctr + Vector2(-2.5, 0), 2.0, Color(0.10, 0.10, 0.15))
+	draw_circle(bow_ctr + Vector2(2.5, 0), 2.0, Color(0.10, 0.10, 0.15))
+	draw_circle(bow_ctr, 1.5, OL)
+	draw_circle(bow_ctr, 1.0, Color(0.15, 0.15, 0.20))
 
-		# === Alice's Headband (black with bow — signature look) ===
-		draw_arc(head_center + Vector2(0, -2), 12.0, PI + 0.25, TAU - 0.25, 14, OL, 4.0)
-		draw_arc(head_center + Vector2(0, -2), 12.0, PI + 0.25, TAU - 0.25, 14, Color(0.10, 0.10, 0.15), 2.5)
-		# Headband bow (right side — bold)
-		var bow_ctr = head_center + Vector2(7, -10)
-		draw_circle(bow_ctr + Vector2(-2.5, 0), 2.8, OL)
-		draw_circle(bow_ctr + Vector2(2.5, 0), 2.8, OL)
-		draw_circle(bow_ctr + Vector2(-2.5, 0), 2.0, Color(0.10, 0.10, 0.15))
-		draw_circle(bow_ctr + Vector2(2.5, 0), 2.0, Color(0.10, 0.10, 0.15))
-		draw_circle(bow_ctr, 1.5, OL)
-		draw_circle(bow_ctr, 1.0, Color(0.15, 0.15, 0.20))
+	# === T2+: Floating Cheshire Cat grin ===
+	if upgrade_tier >= 2:
+		var grin_float = sin(_time * 2.2) * 5.0
+		var grin_bob = cos(_time * 1.7) * 3.5
+		var grin_pos = body_offset + Vector2(28.0 + grin_bob, -8.0 + grin_float)
+		# Fading body outline (ghostly stripes)
+		var gbody_alpha = 0.12 + sin(_time * 1.5) * 0.04
+		draw_arc(grin_pos, 14.0, PI * 0.1, PI * 0.9, 10, Color(0.6, 0.3, 0.7, gbody_alpha), 1.5)
+		for gsi in range(3):
+			var gs_a = PI * 0.25 + float(gsi) * 0.25
+			var gs_s = grin_pos + Vector2.from_angle(gs_a) * 10.0
+			var gs_e = grin_pos + Vector2.from_angle(gs_a) * 16.0
+			draw_line(gs_s, gs_e, Color(0.55, 0.25, 0.65, gbody_alpha * 0.6), 1.5)
+		# Grin arc (wide purple smile)
+		draw_arc(grin_pos, 10.0, 0.2, PI - 0.2, 14, Color(0.7, 0.3, 0.8, 0.7), 3.5)
+		draw_arc(grin_pos, 8.0, 0.3, PI - 0.3, 10, Color(0.85, 0.4, 0.55, 0.25), 2.0)
+		# Teeth
+		for gti in range(6):
+			var tooth_a = 0.3 + float(gti) * 0.4
+			var tooth_s = grin_pos + Vector2.from_angle(tooth_a) * 7.5
+			var tooth_e = grin_pos + Vector2.from_angle(tooth_a) * 12.0
+			draw_line(tooth_s, tooth_e, Color(0.97, 0.97, 0.92, 0.55), 1.8)
+		# Cheshire eyes (glowing yellow-green)
+		var eye_glow = 0.5 + sin(_time * 3.0) * 0.1
+		draw_circle(grin_pos + Vector2(-6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
+		draw_circle(grin_pos + Vector2(6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
+		draw_circle(grin_pos + Vector2(-6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
+		draw_circle(grin_pos + Vector2(6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
+		# Cat eye slits
+		draw_line(grin_pos + Vector2(-6, -9), grin_pos + Vector2(-6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
+		draw_line(grin_pos + Vector2(6, -9), grin_pos + Vector2(6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
+		# Whiskers
+		draw_line(grin_pos + Vector2(10, -4), grin_pos + Vector2(16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+		draw_line(grin_pos + Vector2(10, -6), grin_pos + Vector2(16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+		draw_line(grin_pos + Vector2(-10, -4), grin_pos + Vector2(-16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+		draw_line(grin_pos + Vector2(-10, -6), grin_pos + Vector2(-16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
 
-		# === T2+: Floating Cheshire Cat grin ===
-		if upgrade_tier >= 2:
-			var grin_float = sin(_time * 2.2) * 5.0
-			var grin_bob = cos(_time * 1.7) * 3.5
-			var grin_pos = body_offset + Vector2(28.0 + grin_bob, -8.0 + grin_float)
-			# Fading body outline (ghostly stripes)
-			var gbody_alpha = 0.12 + sin(_time * 1.5) * 0.04
-			draw_arc(grin_pos, 14.0, PI * 0.1, PI * 0.9, 10, Color(0.6, 0.3, 0.7, gbody_alpha), 1.5)
-			for gsi in range(3):
-				var gs_a = PI * 0.25 + float(gsi) * 0.25
-				var gs_s = grin_pos + Vector2.from_angle(gs_a) * 10.0
-				var gs_e = grin_pos + Vector2.from_angle(gs_a) * 16.0
-				draw_line(gs_s, gs_e, Color(0.55, 0.25, 0.65, gbody_alpha * 0.6), 1.5)
-			# Grin arc (wide purple smile)
-			draw_arc(grin_pos, 10.0, 0.2, PI - 0.2, 14, Color(0.7, 0.3, 0.8, 0.7), 3.5)
-			draw_arc(grin_pos, 8.0, 0.3, PI - 0.3, 10, Color(0.85, 0.4, 0.55, 0.25), 2.0)
-			# Teeth
-			for gti in range(6):
-				var tooth_a = 0.3 + float(gti) * 0.4
-				var tooth_s = grin_pos + Vector2.from_angle(tooth_a) * 7.5
-				var tooth_e = grin_pos + Vector2.from_angle(tooth_a) * 12.0
-				draw_line(tooth_s, tooth_e, Color(0.97, 0.97, 0.92, 0.55), 1.8)
-			# Cheshire eyes (glowing yellow-green)
-			var eye_glow = 0.5 + sin(_time * 3.0) * 0.1
-			draw_circle(grin_pos + Vector2(-6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
-			draw_circle(grin_pos + Vector2(6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
-			draw_circle(grin_pos + Vector2(-6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
-			draw_circle(grin_pos + Vector2(6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
-			# Cat eye slits
-			draw_line(grin_pos + Vector2(-6, -9), grin_pos + Vector2(-6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
-			draw_line(grin_pos + Vector2(6, -9), grin_pos + Vector2(6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
-			# Whiskers
-			draw_line(grin_pos + Vector2(10, -4), grin_pos + Vector2(16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
-			draw_line(grin_pos + Vector2(10, -6), grin_pos + Vector2(16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
-			draw_line(grin_pos + Vector2(-10, -4), grin_pos + Vector2(-16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
-			draw_line(grin_pos + Vector2(-10, -6), grin_pos + Vector2(-16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+	# === T3+: Orbiting teacups with steam ===
+	if upgrade_tier >= 3:
+		for cup_i in range(3):
+			var cup_angle = _time * 0.6 + float(cup_i) * TAU / 3.0
+			var cup_r = 38.0 + sin(_time * 1.2 + float(cup_i)) * 4.0
+			var cup_pos = Vector2.from_angle(cup_angle) * cup_r
+			var cup_bob = sin(_time * 2.0 + float(cup_i) * 1.5) * 2.5
+			cup_pos.y += cup_bob
+			# Saucer
+			draw_arc(cup_pos + Vector2(0, 3), 8.0, 0.2, PI - 0.2, 8, Color(0.88, 0.85, 0.78), 2.0)
+			# Cup body
+			draw_arc(cup_pos, 6.0, 0.4, PI - 0.4, 8, Color(0.92, 0.88, 0.78), 3.0)
+			draw_line(cup_pos + Vector2.from_angle(0.5) * 6.0, cup_pos + Vector2.from_angle(PI - 0.5) * 6.0, Color(0.92, 0.88, 0.78), 1.5)
+			# Tea inside
+			draw_arc(cup_pos + Vector2(0, -1), 4.0, 0.6, PI - 0.6, 6, Color(0.6, 0.38, 0.18, 0.5), 2.0)
+			# Handle
+			draw_arc(cup_pos + Vector2(7, 0), 3.0, -PI * 0.4, PI * 0.4, 6, Color(0.88, 0.85, 0.78), 1.5)
+			# Gold rim
+			draw_arc(cup_pos, 6.5, 0.35, PI - 0.35, 6, Color(0.85, 0.75, 0.3, 0.35), 0.8)
+			# Steam wisps
+			for stm in range(2):
+				var steam_off = sin(_time * 2.0 + float(cup_i) * 2.0 + float(stm) * 1.5) * 2.5
+				var steam_p = cup_pos + Vector2(steam_off, -10.0 - float(stm) * 5.0)
+				draw_circle(steam_p, 2.5 - float(stm) * 0.4, Color(0.92, 0.92, 0.95, 0.25 - float(stm) * 0.08))
 
-		# === T3+: Orbiting teacups with steam ===
-		if upgrade_tier >= 3:
-			for cup_i in range(3):
-				var cup_angle = _time * 0.6 + float(cup_i) * TAU / 3.0
-				var cup_r = 38.0 + sin(_time * 1.2 + float(cup_i)) * 4.0
-				var cup_pos = Vector2.from_angle(cup_angle) * cup_r
-				var cup_bob = sin(_time * 2.0 + float(cup_i) * 1.5) * 2.5
-				cup_pos.y += cup_bob
-				# Saucer
-				draw_arc(cup_pos + Vector2(0, 3), 8.0, 0.2, PI - 0.2, 8, Color(0.88, 0.85, 0.78), 2.0)
-				# Cup body
-				draw_arc(cup_pos, 6.0, 0.4, PI - 0.4, 8, Color(0.92, 0.88, 0.78), 3.0)
-				draw_line(cup_pos + Vector2.from_angle(0.5) * 6.0, cup_pos + Vector2.from_angle(PI - 0.5) * 6.0, Color(0.92, 0.88, 0.78), 1.5)
-				# Tea inside
-				draw_arc(cup_pos + Vector2(0, -1), 4.0, 0.6, PI - 0.6, 6, Color(0.6, 0.38, 0.18, 0.5), 2.0)
-				# Handle
-				draw_arc(cup_pos + Vector2(7, 0), 3.0, -PI * 0.4, PI * 0.4, 6, Color(0.88, 0.85, 0.78), 1.5)
-				# Gold rim
-				draw_arc(cup_pos, 6.5, 0.35, PI - 0.35, 6, Color(0.85, 0.75, 0.3, 0.35), 0.8)
-				# Steam wisps
-				for stm in range(2):
-					var steam_off = sin(_time * 2.0 + float(cup_i) * 2.0 + float(stm) * 1.5) * 2.5
-					var steam_p = cup_pos + Vector2(steam_off, -10.0 - float(stm) * 5.0)
-					draw_circle(steam_p, 2.5 - float(stm) * 0.4, Color(0.92, 0.92, 0.95, 0.25 - float(stm) * 0.08))
+	# === Tier 4: Crown floating above head ===
+	if upgrade_tier >= 4:
+		var crown_hover = sin(_time * 1.8) * 1.5
+		var crown_center = head_center + Vector2(0, -12 + crown_hover)
+		var crown_r = 12.0
+		# Golden band
+		draw_arc(crown_center, crown_r, 0, TAU, 20, Color(0.95, 0.82, 0.2), 3.5)
+		draw_arc(crown_center, crown_r + 1.2, 0, TAU, 20, Color(0.85, 0.72, 0.15, 0.35), 0.8)
+		draw_arc(crown_center, crown_r - 1.2, 0, TAU, 20, Color(1.0, 0.92, 0.4, 0.25), 0.8)
+		# Crown spikes with suit gems
+		for csi in range(5):
+			var ca = PI * 0.5 + (float(csi) - 2.0) * 0.35
+			var spike_base_pos = crown_center + Vector2.from_angle(ca) * (crown_r - 1.5)
+			var spike_tip = crown_center + Vector2.from_angle(ca) * (crown_r + 10.0)
+			draw_line(spike_base_pos, spike_tip, Color(0.95, 0.82, 0.2), 3.0)
+			draw_line(spike_base_pos + Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
+			draw_line(spike_base_pos - Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
+			var suit_col = Color(0.95, 0.15, 0.15) if csi % 2 == 0 else Color(0.1, 0.1, 0.12)
+			draw_circle(spike_tip, 2.8, suit_col)
+			draw_circle(spike_tip + Vector2(-0.5, -0.5), 1.0, Color(1.0, 0.8, 0.8, 0.4) if csi % 2 == 0 else Color(0.45, 0.45, 0.5, 0.4))
+		# Band jewels
+		for ji in range(6):
+			var ja = TAU * float(ji) / 6.0
+			var jp = crown_center + Vector2.from_angle(ja) * crown_r
+			draw_circle(jp, 1.5, Color(0.9, 0.15, 0.15, 0.5) if ji % 2 == 0 else Color(0.2, 0.5, 0.9, 0.5))
 
-		# === Tier 4: Crown floating above head ===
-		if upgrade_tier >= 4:
-			var crown_hover = sin(_time * 1.8) * 1.5
-			var crown_center = head_center + Vector2(0, -12 + crown_hover)
-			var crown_r = 12.0
-			# Golden band
-			draw_arc(crown_center, crown_r, 0, TAU, 20, Color(0.95, 0.82, 0.2), 3.5)
-			draw_arc(crown_center, crown_r + 1.2, 0, TAU, 20, Color(0.85, 0.72, 0.15, 0.35), 0.8)
-			draw_arc(crown_center, crown_r - 1.2, 0, TAU, 20, Color(1.0, 0.92, 0.4, 0.25), 0.8)
-			# Crown spikes with suit gems
-			for csi in range(5):
-				var ca = PI * 0.5 + (float(csi) - 2.0) * 0.35
-				var spike_base_pos = crown_center + Vector2.from_angle(ca) * (crown_r - 1.5)
-				var spike_tip = crown_center + Vector2.from_angle(ca) * (crown_r + 10.0)
-				draw_line(spike_base_pos, spike_tip, Color(0.95, 0.82, 0.2), 3.0)
-				draw_line(spike_base_pos + Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
-				draw_line(spike_base_pos - Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
-				var suit_col = Color(0.95, 0.15, 0.15) if csi % 2 == 0 else Color(0.1, 0.1, 0.12)
-				draw_circle(spike_tip, 2.8, suit_col)
-				draw_circle(spike_tip + Vector2(-0.5, -0.5), 1.0, Color(1.0, 0.8, 0.8, 0.4) if csi % 2 == 0 else Color(0.45, 0.45, 0.5, 0.4))
-			# Band jewels
-			for ji in range(6):
-				var ja = TAU * float(ji) / 6.0
-				var jp = crown_center + Vector2.from_angle(ja) * crown_r
-				draw_circle(jp, 1.5, Color(0.9, 0.15, 0.15, 0.5) if ji % 2 == 0 else Color(0.2, 0.5, 0.9, 0.5))
+	# Reset transform for UI text
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-		# Reset transform for UI text
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# Awaiting ability choice indicator
+	if awaiting_ability_choice:
+		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
+		draw_circle(Vector2.ZERO, 60.0 + pulse * 6.0, Color(0.8, 0.7, 1.0, 0.1 + pulse * 0.1))
+		draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 32, Color(0.8, 0.7, 1.0, 0.3 + pulse * 0.3), 2.5)
+		var font3 = _game_font
+		draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.8, 0.7, 1.0, 0.7 + pulse * 0.3))
 
-		# Awaiting ability choice indicator
-		if awaiting_ability_choice:
-			var pulse = (sin(_time * 4.0) + 1.0) * 0.5
-			pass  #draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 24, Color(0.8, 0.7, 1.0, 0.3 + pulse * 0.3), 3.5)
-			var font3 = _game_font
-			draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.8, 0.7, 1.0, 0.7 + pulse * 0.3))
+	# === VISUAL TIER EVOLUTION ===
+	# Tier 1+: Pulsing glow outline (purple)
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.6, 0.2, 0.8, 0.15 + glow_pulse * 0.1), 2.0)
+	# Tier 2+: Orbiting sparkle particles (6)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.7, 0.3, 0.9, s_alpha))
+	# Tier 3+: Golden crown above head
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	# Tier 4: Radiating light beams (8)
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.7, 0.3, 0.9, b_alpha), 1.5)
 
-	# Damage dealt counter (only when selected)
-	if is_selected and damage_dealt > 0:
+	# Damage dealt counter
+	if damage_dealt > 0:
 		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
@@ -1646,7 +1653,7 @@ func _draw() -> void:
 	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
 	if cd_fill >= 1.0:
 		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
-		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.85, 0.15, 0.5, cd_pulse * 0.4), 2.0)
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.85, 0.15, 0.5, cd_pulse * 0.4), 2.0)
 	elif cd_fill > 0.0:
 		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.85, 0.15, 0.5, 0.3), 2.0)
 

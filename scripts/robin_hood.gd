@@ -11,7 +11,6 @@ var fire_rate: float = 0.52
 var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
-var sprite_texture: ImageTexture = null
 var target: Node2D = null
 var _draw_progress: float = 0.0
 var gold_bonus: int = 1
@@ -45,13 +44,6 @@ var _horn_flash: float = 0.0
 
 # Tier 4: Gold arrow flash
 var _gold_flash: float = 0.0
-
-# Tier 5: Sherwood Rising — arrow rain covers entire map every 45s
-var _sherwood_rising_active: bool = false
-var _sherwood_rising_timer: float = 45.0
-var _sherwood_rising_flash: float = 0.0
-var _sherwood_arrows: Array = []  # Active rain arrows
-var _sherwood_impacts: Array = []  # Impact explosion positions + timers
 
 # Kill tracking — steal coins every 10th kill
 var kill_count: int = 0
@@ -100,7 +92,6 @@ var _maid_marian_flash: float = 0.0
 var _outlaw_snare_flash: float = 0.0
 var _outlaw_snare_pos: Vector2 = Vector2.ZERO
 
-const MAX_STAT_LEVEL: int = 10  # Cap stat scaling to prevent infinite power creep
 const STAT_UPGRADE_INTERVAL: float = 8000.0
 const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
@@ -110,17 +101,15 @@ const TIER_NAMES = [
 	"Splitting the Wand",
 	"The Silver Arrow",
 	"Three Blasts of the Horn",
-	"The Final Arrow",
-	"Sherwood Rising"
+	"The Final Arrow"
 ]
 const ABILITY_DESCRIPTIONS = [
 	"Fire 2 arrows per attack",
 	"Every 10th arrow is silver — pierces 5 enemies",
 	"3 sky arrows every other round — insta-kill on landing",
-	"Silver becomes gold — pierces 10 enemies, splash damage",
-	"Arrow rain covers entire map every 45s — no enemy is safe"
+	"Silver becomes gold — pierces 10 enemies, splash damage"
 ]
-const TIER_COSTS = [150, 350, 650, 1200, 2000]
+const TIER_COSTS = [150, 350, 650, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -211,7 +200,7 @@ func _process(delta: float) -> void:
 		_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 			_draw_progress = 0.0
 			_attack_anim = 1.0
 	else:
@@ -225,15 +214,6 @@ func _process(delta: float) -> void:
 
 	# Update sky arrows
 	_update_sky_arrows(delta)
-
-	# Tier 5: Sherwood Rising — map-wide arrow rain every 45s
-	if _sherwood_rising_active:
-		_sherwood_rising_timer -= delta
-		_sherwood_rising_flash = max(_sherwood_rising_flash - delta * 0.8, 0.0)
-		if _sherwood_rising_timer <= 0.0:
-			_trigger_sherwood_rising()
-			_sherwood_rising_timer = 45.0
-		_update_sherwood_arrows(delta)
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
@@ -455,77 +435,9 @@ func _update_sky_arrows(delta: float) -> void:
 	for ri in range(to_remove.size() - 1, -1, -1):
 		_sky_arrows_active.remove_at(to_remove[ri])
 
-func _trigger_sherwood_rising() -> void:
-	_sherwood_rising_flash = 2.0
-	if _horn_player and not _is_sfx_muted(): _horn_player.play()
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
-	# Rain arrows on EVERY enemy on the map
-	for ei in range(enemies.size()):
-		var enemy = enemies[ei]
-		if not is_instance_valid(enemy): continue
-		_sherwood_arrows.append({
-			"start_x": enemy.global_position.x + randf_range(-20, 20),
-			"target": enemy,
-			"target_pos": enemy.global_position,
-			"delay": float(ei) * 0.08,  # Stagger for dramatic cascade
-			"fall_timer": 0.0,
-			"fall_duration": 0.5,
-			"phase": "wait",  # wait -> falling -> done
-		})
-	# Extra visual-only arrows for density (no damage target)
-	for i in range(10):
-		var rx = randf_range(100, 1150)
-		var ry = randf_range(80, 650)
-		_sherwood_arrows.append({
-			"start_x": rx + randf_range(-15, 15),
-			"target": null,
-			"target_pos": Vector2(rx, ry),
-			"delay": randf_range(0.0, 1.0),
-			"fall_timer": 0.0,
-			"fall_duration": 0.5,
-			"phase": "wait",
-		})
-
-func _update_sherwood_arrows(delta: float) -> void:
-	var to_remove: Array = []
-	for i in range(_sherwood_arrows.size()):
-		var a = _sherwood_arrows[i]
-		if a["phase"] == "wait":
-			a["delay"] -= delta
-			if a["delay"] <= 0.0:
-				a["phase"] = "falling"
-				a["fall_timer"] = 0.0
-		elif a["phase"] == "falling":
-			a["fall_timer"] += delta
-			var t = a["fall_timer"] / a["fall_duration"]
-			if t >= 1.0:
-				# Impact!
-				if a["target"] != null and is_instance_valid(a["target"]):
-					var dmg = damage * 2.5
-					a["target"].take_damage(dmg, "physical")
-					register_damage(dmg)
-					if is_instance_valid(a["target"]) and a["target"].health <= 0.0:
-						register_kill()
-				# Create impact flash
-				_sherwood_impacts.append({
-					"pos": a["target_pos"],
-					"timer": 0.6,
-				})
-				to_remove.append(i)
-	for ri in range(to_remove.size() - 1, -1, -1):
-		_sherwood_arrows.remove_at(to_remove[ri])
-	# Update impact flashes
-	var impact_remove: Array = []
-	for i in range(_sherwood_impacts.size()):
-		_sherwood_impacts[i]["timer"] -= delta
-		if _sherwood_impacts[i]["timer"] <= 0.0:
-			impact_remove.append(i)
-	for ri in range(impact_remove.size() - 1, -1, -1):
-		_sherwood_impacts.remove_at(impact_remove[ri])
-
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
-	while stat_upgrade_level < new_level and stat_upgrade_level < MAX_STAT_LEVEL:
+	while stat_upgrade_level < new_level:
 		stat_upgrade_level += 1
 		_apply_stat_boost()
 		_upgrade_flash = 2.0
@@ -537,8 +449,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 1.2
-	fire_rate += 0.008
+	damage += 2.0
+	fire_rate += 0.02
 	attack_range += 4.0
 
 func choose_ability(index: int) -> void:
@@ -552,30 +464,27 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Splitting the Wand — dual shot
-			damage = 27.0
-			fire_rate = 0.52
-			attack_range = 165.0
+			damage = 30.0
+			fire_rate = 0.85
+			attack_range = 172.0
 		2: # The Silver Arrow — every 10th arrow, pierces 5
-			damage = 29.0
-			fire_rate = 0.52
-			attack_range = 170.0
+			damage = 36.0
+			fire_rate = 1.04
+			attack_range = 184.0
 			gold_bonus = 2
 		3: # Three Blasts of the Horn — sky arrows every other wave
-			damage = 29.0
-			fire_rate = 0.52
-			attack_range = 170.0
+			damage = 38.0
+			fire_rate = 1.20
+			attack_range = 200.0
 			gold_bonus = 2
 		4: # The Final Arrow — gold arrow, pierces 10, splash 40px
-			damage = 31.0
-			fire_rate = 0.52
-			attack_range = 175.0
+			damage = 44.0
+			fire_rate = 1.40
+			attack_range = 216.0
 			gold_bonus = 3
-		5: # Sherwood Rising — arrow rain covers entire map every 45s
-			# No stat boost — the ultimate ability IS the reward
-			_sherwood_rising_active = true
 
 func purchase_upgrade() -> bool:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return false
 	var cost = TIER_COSTS[upgrade_tier]
 	var main_node = get_tree().get_first_node_in_group("main")
@@ -593,7 +502,7 @@ func get_tower_display_name() -> String:
 	return "Robin Hood"
 
 func get_next_upgrade_info() -> Dictionary:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return {}
 	return {
 		"name": TIER_NAMES[upgrade_tier],
@@ -608,46 +517,115 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
+	# Bowstring twang frequencies — plucked string fundamentals
+	var string_notes := [293.66, 349.23, 392.00, 440.00, 392.00, 349.23, 293.66, 440.00]  # D4, F4, G4, A4, G4, F4, D4, A4 (D minor heroic melody)
 	var mix_rate := 44100
-	var melody := [293.66, 349.23, 440.00, 392.00, 349.23, 293.66, 329.63, 220.00]
-	# D4 F4 A4 G4 F4 D4 E4 A3 -- heroic Sherwood melody
 	_attack_sounds_by_tier = []
-	for tier in range(5):
-		var tier_sounds: Array = []
-		var dur := 0.40 + tier * 0.05
-		var vol := 0.32 + tier * 0.02
-		var brightness := 0.997 - tier * 0.001
-		for note_idx in melody.size():
-			var freq: float = melody[note_idx]
-			var buf_len := maxi(int(float(mix_rate) / freq), 2)
-			var buf := PackedFloat32Array()
-			buf.resize(buf_len)
-			# Karplus-Strong: init buffer with shaped noise (pluck excitation)
-			var rng := RandomNumberGenerator.new()
-			rng.seed = note_idx * 1000 + tier * 100
-			for b in buf_len:
-				buf[b] = rng.randf_range(-0.8, 0.8)
-			# Pre-filter the noise for warmer tone
-			for b in range(1, buf_len):
-				buf[b] = buf[b] * 0.6 + buf[b - 1] * 0.4
-			var total := int(mix_rate * dur)
-			var samples := PackedFloat32Array()
-			samples.resize(total)
-			for i in total:
-				var idx := i % buf_len
-				var next_idx := (i + 1) % buf_len
-				samples[i] = buf[idx] * vol
-				buf[idx] = (buf[idx] + buf[next_idx]) * 0.5 * brightness
-			# 2ms attack ramp to prevent click
-			var att_len := mini(int(0.002 * mix_rate), total)
-			for i in att_len:
-				samples[i] *= float(i) / float(att_len)
-			# 10ms release ramp
-			var rel_start := maxi(total - int(0.01 * mix_rate), 0)
-			for i in range(rel_start, total):
-				samples[i] *= 1.0 - float(i - rel_start) / float(total - rel_start)
-			tier_sounds.append(_samples_to_wav(samples, mix_rate))
-		_attack_sounds_by_tier.append(tier_sounds)
+
+	# --- Tier 0: Simple Bowstring Twang (plucked string + soft thwack) ---
+	var t0 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.12))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Plucked bowstring — fast decay, odd harmonics
+			var env := exp(-t * 30.0) * 0.35
+			var fund := sin(t * freq * TAU)
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.2 * exp(-t * 45.0)
+			var h5 := sin(t * freq * 5.0 * TAU) * 0.08 * exp(-t * 60.0)
+			# Soft release thwack (very brief)
+			var thwack := (randf() * 2.0 - 1.0) * exp(-t * 600.0) * 0.2
+			samples[i] = clampf((fund + h3 + h5) * env + thwack, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Longbow Twang (deeper resonance, slight string buzz) ---
+	var t1 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.15))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 22.0) * 0.35
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.15 * exp(-t * 30.0)
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 40.0)
+			# String buzz — slight detuned double
+			var buzz := sin(t * freq * 1.01 * TAU) * 0.15 * exp(-t * 25.0)
+			var thwack := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.18
+			samples[i] = clampf((fund + h2 + h3 + buzz) * env + thwack, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Heavy Bow (weighty thump, low string resonance) ---
+	var t2 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.16))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Meaty low-end twang
+			var env := exp(-t * 20.0) * 0.35
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.2 * exp(-t * 28.0)
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.1 * exp(-t * 35.0)
+			# Wood thump from bow body
+			var thump := sin(t * 80.0 * TAU) * exp(-t * 100.0) * 0.2
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 700.0) * 0.15
+			samples[i] = clampf((fund + h2 + h3) * env + thump + click, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Rapid Volley (staggered twangs, 2 quick shots) ---
+	var t3 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.18))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# First twang
+			var env1 := exp(-t * 35.0) * 0.3
+			var s1 := sin(t * freq * TAU) * env1
+			s1 += sin(t * freq * 3.0 * TAU) * 0.15 * exp(-t * 50.0) * env1
+			# Second twang (slightly higher, delayed)
+			var dt := t - 0.035
+			var s2 := 0.0
+			if dt > 0.0:
+				var env2 := exp(-dt * 40.0) * 0.25
+				s2 = sin(dt * freq * 1.12 * TAU) * env2
+				s2 += sin(dt * freq * 3.36 * TAU) * 0.12 * exp(-dt * 55.0) * env2
+			var click := (randf() * 2.0 - 1.0) * exp(-t * 600.0) * 0.15
+			samples[i] = clampf(s1 + s2 + click, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Legendary Bow (rich harmonics + brief heroic ring) ---
+	var t4 := []
+	for note_idx in string_notes.size():
+		var freq: float = string_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.2))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Powerful pluck with rich harmonics
+			var env := exp(-t * 18.0) * 0.3
+			var fund := sin(t * freq * TAU)
+			var h2 := sin(t * freq * 2.0 * TAU) * 0.2
+			var h3 := sin(t * freq * 3.0 * TAU) * 0.12 * exp(-t * 25.0)
+			var h4 := sin(t * freq * 4.0 * TAU) * 0.06 * exp(-t * 30.0)
+			# Brief heroic shimmer (detuned chorus, subtle)
+			var shim := sin(t * freq * 2.005 * TAU) * 0.08 * exp(-t * 12.0)
+			shim += sin(t * freq * 1.995 * TAU) * 0.08 * exp(-t * 12.0)
+			var snap := (randf() * 2.0 - 1.0) * exp(-t * 500.0) * 0.15
+			samples[i] = clampf((fund + h2 + h3 + h4) * env + shim * env + snap, -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
 func _refresh_tier_sounds() -> void:
 	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
 	_attack_sounds = _attack_sounds_by_tier[tier]
@@ -857,11 +835,11 @@ func _draw_tower_aura() -> void:
 	var aura_col = Color(0.2, 0.7, 0.2)
 	# Tier 3+: subtle glow ring
 	var pulse = sin(_time * 2.5) * 0.1 + 0.3
-	pass  #draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, Color(aura_col.r, aura_col.g, aura_col.b, pulse * 0.4), 1.5)
+	draw_arc(Vector2.ZERO, 22.0, 0, TAU, 24, Color(aura_col.r, aura_col.g, aura_col.b, pulse * 0.4), 1.5)
 	# Tier 4: pulsing outer ring + ground rune
 	if upgrade_tier >= 4:
 		var outer_pulse = sin(_time * 1.8) * 0.15 + 0.35
-		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, Color(aura_col.r, aura_col.g, aura_col.b, outer_pulse * 0.3), 2.0)
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 28, Color(aura_col.r, aura_col.g, aura_col.b, outer_pulse * 0.3), 2.0)
 		# Ground rune circle
 		for i in range(6):
 			var a1 = _time * 0.5 + float(i) * TAU / 6.0
@@ -894,11 +872,12 @@ func _draw() -> void:
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
-		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
-		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
-		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
+		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
+		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
 	else:
-		pass  #draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1, 1, 1, 0.06), 1.0)
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(bow_angle)
@@ -921,11 +900,10 @@ func _draw() -> void:
 	var hip_shift = sin(_time * 1.2) * 1.5  # Weight shift at hips
 	var shoulder_counter = -sin(_time * 1.2) * 0.8  # Counter-sway shoulders
 
-	# String vibration after shot (tier-scaling — more intense at higher tiers)
+	# String vibration after shot
 	var string_vib = 0.0
-	if _attack_anim > 0.2:
-		var tier_vib = 1.0 + float(upgrade_tier) * 0.4
-		string_vib = sin(_attack_anim * 45.0) * 3.0 * _attack_anim * tier_vib
+	if _attack_anim > 0.3:
+		string_vib = sin(_attack_anim * 40.0) * 2.0 * _attack_anim
 
 	# === 5. SKIN COLORS ===
 	var skin_base = Color(0.91, 0.74, 0.58)
@@ -936,30 +914,30 @@ func _draw() -> void:
 	# === SILVER ARROW FLASH (T2) ===
 	if _silver_flash > 0.0:
 		var sr_r = 30.0 + (1.0 - _silver_flash) * 60.0
-		pass  #draw_arc(Vector2.ZERO, sr_r, 0, TAU, 32, Color(0.85, 0.88, 0.95, _silver_flash * 0.4), 3.0)
-		pass  #draw_arc(Vector2.ZERO, sr_r * 0.6, 0, TAU, 24, Color(0.9, 0.92, 1.0, _silver_flash * 0.25), 2.0)
-		pass  #draw_circle(Vector2.ZERO, sr_r * 0.3, Color(0.85, 0.88, 0.95, _silver_flash * 0.1))
+		draw_arc(Vector2.ZERO, sr_r, 0, TAU, 32, Color(0.85, 0.88, 0.95, _silver_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, sr_r * 0.6, 0, TAU, 24, Color(0.9, 0.92, 1.0, _silver_flash * 0.25), 2.0)
+		draw_circle(Vector2.ZERO, sr_r * 0.3, Color(0.85, 0.88, 0.95, _silver_flash * 0.1))
 
 	# === GOLD ARROW FLASH (T4) ===
 	if _gold_flash > 0.0:
 		for gi in range(3):
 			var gr = 20.0 + (1.0 - _gold_flash) * (50.0 + float(gi) * 30.0)
 			var ga = _gold_flash * (0.5 - float(gi) * 0.12)
-			pass  #draw_arc(Vector2.ZERO, gr, 0, TAU, 32, Color(1.0, 0.85, 0.3, ga), 2.5)
-		pass  #draw_circle(Vector2.ZERO, 15.0 * _gold_flash, Color(1.0, 0.95, 0.5, _gold_flash * 0.15))
+			draw_arc(Vector2.ZERO, gr, 0, TAU, 32, Color(1.0, 0.85, 0.3, ga), 2.5)
+		draw_circle(Vector2.ZERO, 15.0 * _gold_flash, Color(1.0, 0.95, 0.5, _gold_flash * 0.15))
 
 	# === 7. UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:
-		pass  #draw_arc(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, 0, TAU, 24, Color(0.3, 0.7, 0.2, _upgrade_flash * 0.25), 6.0)
+		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.3, 0.7, 0.2, _upgrade_flash * 0.25))
 
 	# === 8. HORN FLASH (T3 ability) ===
 	if _horn_flash > 0.0:
 		var horn_ring_r = 36.0 + (1.0 - _horn_flash) * 70.0
-		pass  #draw_arc(Vector2.ZERO, horn_ring_r, 0, TAU, 24, Color(1.0, 0.85, 0.3, _horn_flash * 0.15), 5.0)
-		pass  #draw_arc(Vector2.ZERO, horn_ring_r, 0, TAU, 32, Color(1.0, 0.9, 0.4, _horn_flash * 0.3), 2.5)
+		draw_circle(Vector2.ZERO, horn_ring_r, Color(1.0, 0.85, 0.3, _horn_flash * 0.15))
+		draw_arc(Vector2.ZERO, horn_ring_r, 0, TAU, 32, Color(1.0, 0.9, 0.4, _horn_flash * 0.3), 2.5)
 		# Inner ripple rings
-		pass  #draw_arc(Vector2.ZERO, horn_ring_r * 0.7, 0, TAU, 24, Color(1.0, 0.85, 0.3, _horn_flash * 0.2), 2.0)
-		pass  #draw_arc(Vector2.ZERO, horn_ring_r * 0.4, 0, TAU, 16, Color(1.0, 0.9, 0.5, _horn_flash * 0.15), 1.5)
+		draw_arc(Vector2.ZERO, horn_ring_r * 0.7, 0, TAU, 24, Color(1.0, 0.85, 0.3, _horn_flash * 0.2), 2.0)
+		draw_arc(Vector2.ZERO, horn_ring_r * 0.4, 0, TAU, 16, Color(1.0, 0.9, 0.5, _horn_flash * 0.15), 1.5)
 		# Radiating golden sparkle bursts
 		for hi in range(8):
 			var ha = TAU * float(hi) / 8.0 + _horn_flash * 2.0
@@ -970,8 +948,8 @@ func _draw() -> void:
 	# === HORN VOLLEY READY GLOW (T3) ===
 	if upgrade_tier >= 3 and _horn_flash <= 0.0 and _sky_arrows_active.size() == 0:
 		var ready_pulse = (sin(_time * 2.5) + 1.0) * 0.5
-		pass  #draw_arc(Vector2.ZERO, 38.0 + ready_pulse * 4.0, 0, TAU, 32, Color(0.2, 0.8, 0.2, 0.08 + ready_pulse * 0.06), 2.0)
-		pass  #draw_circle(Vector2.ZERO, 34.0, Color(0.2, 0.8, 0.2, 0.03 + ready_pulse * 0.02))
+		draw_arc(Vector2.ZERO, 38.0 + ready_pulse * 4.0, 0, TAU, 32, Color(0.2, 0.8, 0.2, 0.08 + ready_pulse * 0.06), 2.0)
+		draw_circle(Vector2.ZERO, 34.0, Color(0.2, 0.8, 0.2, 0.03 + ready_pulse * 0.02))
 
 	# === SKY ARROWS VISUAL ===
 	for sky_arrow in _sky_arrows_active:
@@ -991,59 +969,10 @@ func _draw() -> void:
 			draw_circle(sa_pos, 8.0, Color(1.0, 0.5, 0.1, 0.3))
 			draw_circle(sa_pos, 12.0, Color(1.0, 0.3, 0.05, 0.15))
 
-	# === SHERWOOD RISING VFX (T5) ===
-	if _sherwood_rising_flash > 0.0:
-		# Massive green-gold expanding ring
-		var sr_r = 50.0 + (2.0 - _sherwood_rising_flash) * 120.0
-		pass  #draw_arc(Vector2.ZERO, sr_r, 0, TAU, 48, Color(0.2, 0.85, 0.1, _sherwood_rising_flash * 0.4), 5.0)
-		pass  #draw_arc(Vector2.ZERO, sr_r * 0.7, 0, TAU, 36, Color(0.4, 0.95, 0.2, _sherwood_rising_flash * 0.25), 3.0)
-		# Inner golden burst
-		pass  #draw_circle(Vector2.ZERO, sr_r * 0.3, Color(1.0, 0.9, 0.3, _sherwood_rising_flash * 0.12))
-		# Radiating leaf-like lines
-		for li in range(12):
-			var la = TAU * float(li) / 12.0 + _sherwood_rising_flash * 1.5
-			var l_inner = Vector2.from_angle(la) * (sr_r * 0.4)
-			var l_outer = Vector2.from_angle(la) * (sr_r + 10.0)
-			draw_line(l_inner, l_outer, Color(0.3, 0.9, 0.15, _sherwood_rising_flash * 0.35), 2.0)
-	# Falling arrows
-	for sa in _sherwood_arrows:
-		if sa["phase"] == "falling":
-			var t = sa["fall_timer"] / sa["fall_duration"]
-			var start_y = -80.0
-			var end_pos = sa["target_pos"] - global_position
-			var cur_x = sa["start_x"] - global_position.x
-			var cur_y = start_y + (end_pos.y - start_y) * t
-			var arrow_pos = Vector2(cur_x, cur_y)
-			# Green arrow streak
-			var trail_top = Vector2(cur_x, cur_y - 25.0)
-			draw_line(trail_top, arrow_pos, Color(0.3, 0.9, 0.2, 0.7), 2.5)
-			draw_line(Vector2(cur_x, cur_y - 40.0), trail_top, Color(0.3, 0.9, 0.2, 0.25), 1.5)
-			# Arrow tip glow
-			draw_circle(arrow_pos, 4.0, Color(0.5, 1.0, 0.3, 0.8))
-			draw_circle(arrow_pos, 6.0, Color(0.3, 0.8, 0.1, 0.3))
-	# Impact explosions
-	for imp in _sherwood_impacts:
-		var it = imp["timer"] / 0.6  # Normalized 0->1 (starts at 1)
-		var imp_pos = imp["pos"] - global_position
-		var blast_r = 12.0 + (1.0 - it) * 20.0
-		draw_circle(imp_pos, blast_r, Color(0.4, 0.95, 0.2, it * 0.35))
-		pass  #draw_arc(imp_pos, blast_r * 1.3, 0, TAU, 16, Color(1.0, 0.9, 0.3, it * 0.5), 2.5)
-		pass  #draw_arc(imp_pos, blast_r * 0.6, 0, TAU, 12, Color(0.6, 1.0, 0.4, it * 0.3), 1.5)
-	# Sherwood Rising ready pulse (shows when ability is charged)
-	if _sherwood_rising_active and _sherwood_rising_timer <= 3.0 and _sherwood_arrows.size() == 0:
-		var ready_pulse = (sin(_time * 4.0) + 1.0) * 0.5
-		pass  #draw_arc(Vector2.ZERO, 32.0, 0, TAU, 32, Color(0.2, 0.9, 0.1, 0.15 + ready_pulse * 0.15), 3.0)
-		# Floating leaf particles
-		for fi in range(6):
-			var fa = _time * 1.5 + float(fi) * TAU / 6.0
-			var fr = 28.0 + sin(_time * 2.0 + float(fi)) * 6.0
-			var fpos = Vector2.from_angle(fa) * fr
-			draw_circle(fpos, 2.0, Color(0.3, 0.8, 0.15, 0.4 + ready_pulse * 0.2))
-
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 	# Ability 2: Lincoln Green — invisibility effect
 	if prog_abilities[1] and _lincoln_green_invis > 0.0:
-		pass  #draw_circle(Vector2.ZERO, 30.0, Color(0.2, 0.6, 0.15, 0.15))
+		draw_circle(Vector2.ZERO, 30.0, Color(0.2, 0.6, 0.15, 0.15))
 
 	# Ability 3: Merry Men flash
 	if _merry_men_flash > 0.0:
@@ -1057,15 +986,15 @@ func _draw() -> void:
 	if _friar_tuck_flash > 0.0:
 		var ft_pulse = clampf(sin(_time * 6.0) * 0.5 + 0.5, 0.0, 1.0)
 		var ft_r = 25.0 + (1.0 - _friar_tuck_flash) * 30.0
-		pass  #draw_circle(Vector2.ZERO, ft_r, Color(0.2, 0.9, 0.3, _friar_tuck_flash * 0.12))
-		pass  #draw_arc(Vector2.ZERO, ft_r, 0, TAU, 24, Color(0.2, 0.9, 0.3, _friar_tuck_flash * (0.3 + ft_pulse * 0.15)), 2.5)
-		pass  #draw_arc(Vector2.ZERO, ft_r * 0.6, 0, TAU, 16, Color(0.3, 1.0, 0.4, _friar_tuck_flash * 0.2), 1.5)
+		draw_circle(Vector2.ZERO, ft_r, Color(0.2, 0.9, 0.3, _friar_tuck_flash * 0.12))
+		draw_arc(Vector2.ZERO, ft_r, 0, TAU, 24, Color(0.2, 0.9, 0.3, _friar_tuck_flash * (0.3 + ft_pulse * 0.15)), 2.5)
+		draw_arc(Vector2.ZERO, ft_r * 0.6, 0, TAU, 16, Color(0.3, 1.0, 0.4, _friar_tuck_flash * 0.2), 1.5)
 
 	# Ability 5: Little John's Staff flash
 	if _little_john_flash > 0.0:
 		var lj_r = 30.0 + (1.0 - _little_john_flash) * 50.0
-		pass  #draw_arc(Vector2.ZERO, lj_r, 0, TAU, 24, Color(0.6, 0.4, 0.2, _little_john_flash * 0.4), 3.0)
-		pass  #draw_arc(Vector2.ZERO, lj_r * 0.6, 0, TAU, 16, Color(0.5, 0.35, 0.15, _little_john_flash * 0.3), 2.0)
+		draw_arc(Vector2.ZERO, lj_r, 0, TAU, 24, Color(0.6, 0.4, 0.2, _little_john_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, lj_r * 0.6, 0, TAU, 16, Color(0.5, 0.35, 0.15, _little_john_flash * 0.3), 2.0)
 
 	# Ability 6: Outlaw's Snare — brown rope trap on the ground
 	if _outlaw_snare_flash > 0.0:
@@ -1089,8 +1018,8 @@ func _draw() -> void:
 	if _maid_marian_flash > 0.0:
 		var mm_pulse = clampf(sin(_time * 5.0) * 0.5 + 0.5, 0.0, 1.0)
 		var mm_r = 20.0 + (1.0 - _maid_marian_flash) * 25.0
-		pass  #draw_circle(Vector2.ZERO, mm_r, Color(0.3, 0.95, 0.4, _maid_marian_flash * 0.1))
-		pass  #draw_arc(Vector2.ZERO, mm_r, 0, TAU, 24, Color(0.3, 0.95, 0.4, _maid_marian_flash * (0.25 + mm_pulse * 0.15)), 2.0)
+		draw_circle(Vector2.ZERO, mm_r, Color(0.3, 0.95, 0.4, _maid_marian_flash * 0.1))
+		draw_arc(Vector2.ZERO, mm_r, 0, TAU, 24, Color(0.3, 0.95, 0.4, _maid_marian_flash * (0.25 + mm_pulse * 0.15)), 2.0)
 		# Small cross/plus for healing indicator
 		var cx = Vector2.ZERO
 		draw_line(cx + Vector2(-5, 0), cx + Vector2(5, 0), Color(0.3, 1.0, 0.4, _maid_marian_flash * 0.5), 2.0)
@@ -1193,482 +1122,426 @@ func _draw() -> void:
 			draw_circle(fd_pos, fd_size, Color(1.0, 0.5 + fire_t * 0.4, 0.1, fd_alpha))
 			draw_circle(fd_pos, fd_size * 0.5, Color(1.0, 0.9, 0.4, fd_alpha * 0.6))
 
-	# === SPRITE RENDERING (animated character) ===
-	if false:  # force procedural body
-		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
-		var _sf = 56.0 / _ss.y
-		var _sd = _ss * _sf
+	# === 14. CHARACTER BODY (Bloons TD cartoon style) ===
 
-		# --- Idle: breathing + weight sway ---
-		var breathe_scl = 1.0 + sin(_time * 2.0) * 0.018
-		var sway_rot = sin(_time * 1.2) * 0.025  # ~1.4 deg
+	# --- Colors ---
+	var tunic_green = Color(0.15, 0.55, 0.12)
+	var tunic_dark = Color(0.10, 0.40, 0.08)
+	var boot_brown = Color(0.45, 0.28, 0.12)
+	var belt_brown = Color(0.40, 0.24, 0.10)
+	var hair_auburn = Color(0.50, 0.28, 0.12)
+	var hair_dark = Color(0.38, 0.20, 0.08)
 
-		# --- Aim lean: tilt toward target ---
-		var aim_lean = sin(bow_angle) * 0.04
+	# --- BOOTS ---
+	var l_foot = feet_y + Vector2(-5, 0)
+	var r_foot = feet_y + Vector2(5, 0)
+	draw_circle(l_foot, 5.0, OL)
+	draw_circle(l_foot, 3.8, boot_brown)
+	draw_circle(r_foot, 5.0, OL)
+	draw_circle(r_foot, 3.8, boot_brown)
+	# Boot highlights
+	draw_circle(l_foot + Vector2(0, -1), 2.0, Color(0.55, 0.36, 0.18, 0.4))
+	draw_circle(r_foot + Vector2(0, -1), 2.0, Color(0.55, 0.36, 0.18, 0.4))
+	# Boot cuffs
+	draw_line(l_foot + Vector2(-4, -3), l_foot + Vector2(4, -3), OL, 3.5)
+	draw_line(l_foot + Vector2(-3.5, -3), l_foot + Vector2(3.5, -3), Color(0.55, 0.36, 0.18), 2.0)
+	draw_line(r_foot + Vector2(-4, -3), r_foot + Vector2(4, -3), OL, 3.5)
+	draw_line(r_foot + Vector2(-3.5, -3), r_foot + Vector2(3.5, -3), Color(0.55, 0.36, 0.18), 2.0)
 
-		# --- Bow draw tension: lean back when pulling string ---
-		var draw_lean = -_draw_progress * 0.035
+	# --- LEGS (short thick lines) ---
+	var l_hip = leg_top + Vector2(-4, 0)
+	var r_hip = leg_top + Vector2(4, 0)
+	draw_line(l_foot + Vector2(0, -3), l_hip, OL, 7.0)
+	draw_line(l_foot + Vector2(0, -3), l_hip, tunic_green, 5.0)
+	draw_line(r_foot + Vector2(0, -3), r_hip, OL, 7.0)
+	draw_line(r_foot + Vector2(0, -3), r_hip, tunic_green, 5.0)
+	# Knee joints
+	var l_knee = l_foot.lerp(l_hip, 0.5)
+	var r_knee = r_foot.lerp(r_hip, 0.5)
+	draw_circle(l_knee, 3.5, OL)
+	draw_circle(l_knee, 2.5, tunic_green)
+	draw_circle(r_knee, 3.5, OL)
+	draw_circle(r_knee, 2.5, tunic_green)
 
-		# --- Attack recoil + squash-stretch (tier-scaling) ---
-		var recoil_off = Vector2.ZERO
-		var atk_scl = Vector2.ONE
-		if _attack_anim > 0.0:
-			var tier_recoil = 1.0 + float(upgrade_tier) * 0.2
-			var recoil_t = _attack_anim * _attack_anim
-			recoil_off = -Vector2.from_angle(bow_angle) * recoil_t * 3.5 * tier_recoil
-			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
-			atk_scl = Vector2(1.0 + sq * (0.10 + float(upgrade_tier) * 0.02), 1.0 - sq * (0.07 + float(upgrade_tier) * 0.015))
-			# Arrow release flash — expanding from bow position (tier-scaling)
-			var flash_dir = Vector2.from_angle(bow_angle)
-			var flash_r = (12.0 + (1.0 - _attack_anim) * 20.0) * tier_recoil
-			draw_arc(flash_dir * 10.0, flash_r, bow_angle - 0.4, bow_angle + 0.4, 12, Color(0.3, 0.7, 0.2, _attack_anim * 0.4), 2.5 * tier_recoil)
-			# Arrow trail streak
-			draw_line(flash_dir * 8.0, flash_dir * (20.0 + flash_r), Color(0.85, 0.88, 0.92, _attack_anim * 0.5), 2.0 * tier_recoil)
-			draw_line(flash_dir * 10.0, flash_dir * (18.0 + flash_r), Color(1.0, 1.0, 1.0, _attack_anim * 0.3), 1.0)
-			# Tier 2+: Green wind gust particles
-			if upgrade_tier >= 2:
-				for wi in range(upgrade_tier + 1):
-					var w_spread = (float(wi) - float(upgrade_tier) / 2.0) * 0.3
-					var w_dist = 15.0 + (1.0 - _attack_anim) * 25.0
-					var w_pos = flash_dir.rotated(w_spread) * w_dist
-					draw_circle(w_pos, 2.0, Color(0.3, 0.65, 0.2, _attack_anim * 0.35))
-			pass  # Arrow release effects are sufficient
+	# --- CAPE (behind body) ---
+	var cape_wind = sin(_time * 1.8) * 2.5
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-7, -1), neck_base + Vector2(7, -1),
+		torso_center + Vector2(10 + cape_wind * 0.3, 10),
+		torso_center + Vector2(-10 + cape_wind * 0.5, 8),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-5.5, 0), neck_base + Vector2(5.5, 0),
+		torso_center + Vector2(8.5 + cape_wind * 0.3, 9),
+		torso_center + Vector2(-8.5 + cape_wind * 0.5, 7),
+	]), tunic_dark)
 
-		# --- Compose transform ---
-		var total_rot = sway_rot + aim_lean + draw_lean
-		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
+	# --- QUIVER on back ---
+	var quiver_pos = neck_base + Vector2(-6, 3)
+	draw_colored_polygon(PackedVector2Array([
+		quiver_pos + Vector2(-4, 5), quiver_pos + Vector2(4, 5),
+		quiver_pos + Vector2(3, -12), quiver_pos + Vector2(-3, -12),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		quiver_pos + Vector2(-2.8, 3.8), quiver_pos + Vector2(2.8, 3.8),
+		quiver_pos + Vector2(2, -10.8), quiver_pos + Vector2(-2, -10.8),
+	]), Color(0.48, 0.30, 0.14))
+	# Quiver rim
+	draw_line(quiver_pos + Vector2(-3.5, -12), quiver_pos + Vector2(3.5, -12), OL, 3.0)
+	draw_line(quiver_pos + Vector2(-3, -12), quiver_pos + Vector2(3, -12), Color(0.55, 0.38, 0.18), 1.8)
+	# Strap across chest
+	draw_line(quiver_pos + Vector2(2, -6), torso_center + Vector2(6, 1), OL, 3.5)
+	draw_line(quiver_pos + Vector2(2, -6), torso_center + Vector2(6, 1), belt_brown, 2.0)
+	# Arrows sticking out
+	var arrow_count = 3 + upgrade_tier
+	for ai in range(arrow_count):
+		var ax = -1.5 + float(ai) * (3.0 / float(max(arrow_count - 1, 1)))
+		var arrow_top = quiver_pos + Vector2(ax, -14.0 - float(ai % 2) * 2.0)
+		var shaft_col = Color(0.58, 0.45, 0.25)
+		if upgrade_tier >= 2 and ai == 0:
+			shaft_col = Color(0.80, 0.78, 0.65)
+		if upgrade_tier >= 4 and ai <= 1:
+			shaft_col = Color(0.88, 0.72, 0.28)
+		draw_line(quiver_pos + Vector2(ax, -11), arrow_top, OL, 2.2)
+		draw_line(quiver_pos + Vector2(ax, -11), arrow_top, shaft_col, 1.2)
+		var fletch_col = Color(0.75, 0.15, 0.1) if ai % 2 == 0 else Color(0.9, 0.85, 0.75)
+		draw_line(arrow_top, arrow_top + Vector2(-1.5, -2), fletch_col, 1.2)
+		draw_line(arrow_top, arrow_top + Vector2(1.5, -2), fletch_col, 1.2)
 
-		# Face direction flip
-		var _fl = cos(bow_angle) < 0.0
-		if _fl:
-			total_scl.x *= -1.0
-			total_rot *= -1.0
-
-		# Anchor at feet — rotation pivots from base
-		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
-		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-
-	if true:  # procedural Bloons character
-		# === 14. CHARACTER BODY (Bloons TD cartoon style) ===
-
-		# --- Colors ---
-		var tunic_green = Color(0.15, 0.55, 0.12)
-		var tunic_dark = Color(0.10, 0.40, 0.08)
-		var boot_brown = Color(0.45, 0.28, 0.12)
-		var belt_brown = Color(0.40, 0.24, 0.10)
-		var hair_auburn = Color(0.50, 0.28, 0.12)
-		var hair_dark = Color(0.38, 0.20, 0.08)
-
-		# --- BOOTS ---
-		var l_foot = feet_y + Vector2(-5, 0)
-		var r_foot = feet_y + Vector2(5, 0)
-		draw_circle(l_foot, 5.0, OL)
-		draw_circle(l_foot, 3.8, boot_brown)
-		draw_circle(r_foot, 5.0, OL)
-		draw_circle(r_foot, 3.8, boot_brown)
-		# Boot highlights
-		draw_circle(l_foot + Vector2(0, -1), 2.0, Color(0.55, 0.36, 0.18, 0.4))
-		draw_circle(r_foot + Vector2(0, -1), 2.0, Color(0.55, 0.36, 0.18, 0.4))
-		# Boot cuffs
-		draw_line(l_foot + Vector2(-4, -3), l_foot + Vector2(4, -3), OL, 3.5)
-		draw_line(l_foot + Vector2(-3.5, -3), l_foot + Vector2(3.5, -3), Color(0.55, 0.36, 0.18), 2.0)
-		draw_line(r_foot + Vector2(-4, -3), r_foot + Vector2(4, -3), OL, 3.5)
-		draw_line(r_foot + Vector2(-3.5, -3), r_foot + Vector2(3.5, -3), Color(0.55, 0.36, 0.18), 2.0)
-
-		# --- LEGS (short thick lines) ---
-		var l_hip = leg_top + Vector2(-4, 0)
-		var r_hip = leg_top + Vector2(4, 0)
-		draw_line(l_foot + Vector2(0, -3), l_hip, OL, 7.0)
-		draw_line(l_foot + Vector2(0, -3), l_hip, tunic_green, 5.0)
-		draw_line(r_foot + Vector2(0, -3), r_hip, OL, 7.0)
-		draw_line(r_foot + Vector2(0, -3), r_hip, tunic_green, 5.0)
-		# Knee joints
-		var l_knee = l_foot.lerp(l_hip, 0.5)
-		var r_knee = r_foot.lerp(r_hip, 0.5)
-		draw_circle(l_knee, 3.5, OL)
-		draw_circle(l_knee, 2.5, tunic_green)
-		draw_circle(r_knee, 3.5, OL)
-		draw_circle(r_knee, 2.5, tunic_green)
-
-		# --- CAPE (behind body) ---
-		var cape_wind = sin(_time * 1.8) * 2.5
+	# --- GREEN TUNIC BODY ---
+	var tunic_pts_ol = PackedVector2Array([
+		leg_top + Vector2(-8, 1), leg_top + Vector2(8, 1),
+		neck_base + Vector2(11, 0), neck_base + Vector2(-11, 0),
+	])
+	draw_colored_polygon(tunic_pts_ol, OL)
+	var tunic_pts_fill = PackedVector2Array([
+		leg_top + Vector2(-6.5, 0), leg_top + Vector2(6.5, 0),
+		neck_base + Vector2(9.5, 0.8), neck_base + Vector2(-9.5, 0.8),
+	])
+	draw_colored_polygon(tunic_pts_fill, tunic_green)
+	# Tunic highlight
+	draw_circle(torso_center + Vector2(-2, -2), 4.0, Color(0.22, 0.62, 0.18, 0.3))
+	# V-neckline
+	draw_line(neck_base + Vector2(-3, 1), neck_base + Vector2(0, 4), OL, 1.5)
+	draw_line(neck_base + Vector2(3, 1), neck_base + Vector2(0, 4), OL, 1.5)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-2.5, 1), neck_base + Vector2(2.5, 1), neck_base + Vector2(0, 3.5),
+	]), Color(0.78, 0.68, 0.52))
+	# Scalloped hem
+	for hi in range(4):
+		var hx = -5.0 + float(hi) * 3.5
+		var h_depth = 2.0 + sin(float(hi) * 2.1 + _time * 1.2) * 1.0
 		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-7, -1), neck_base + Vector2(7, -1),
-			torso_center + Vector2(10 + cape_wind * 0.3, 10),
-			torso_center + Vector2(-10 + cape_wind * 0.5, 8),
+			leg_top + Vector2(hx - 1.5, 1), leg_top + Vector2(hx + 1.5, 1),
+			leg_top + Vector2(hx, 1 + h_depth),
 		]), OL)
 		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-5.5, 0), neck_base + Vector2(5.5, 0),
-			torso_center + Vector2(8.5 + cape_wind * 0.3, 9),
-			torso_center + Vector2(-8.5 + cape_wind * 0.5, 7),
-		]), tunic_dark)
-
-		# --- QUIVER on back ---
-		var quiver_pos = neck_base + Vector2(-6, 3)
-		draw_colored_polygon(PackedVector2Array([
-			quiver_pos + Vector2(-4, 5), quiver_pos + Vector2(4, 5),
-			quiver_pos + Vector2(3, -12), quiver_pos + Vector2(-3, -12),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			quiver_pos + Vector2(-2.8, 3.8), quiver_pos + Vector2(2.8, 3.8),
-			quiver_pos + Vector2(2, -10.8), quiver_pos + Vector2(-2, -10.8),
-		]), Color(0.48, 0.30, 0.14))
-		# Quiver rim
-		draw_line(quiver_pos + Vector2(-3.5, -12), quiver_pos + Vector2(3.5, -12), OL, 3.0)
-		draw_line(quiver_pos + Vector2(-3, -12), quiver_pos + Vector2(3, -12), Color(0.55, 0.38, 0.18), 1.8)
-		# Strap across chest
-		draw_line(quiver_pos + Vector2(2, -6), torso_center + Vector2(6, 1), OL, 3.5)
-		draw_line(quiver_pos + Vector2(2, -6), torso_center + Vector2(6, 1), belt_brown, 2.0)
-		# Arrows sticking out
-		var arrow_count = 3 + upgrade_tier
-		for ai in range(arrow_count):
-			var ax = -1.5 + float(ai) * (3.0 / float(max(arrow_count - 1, 1)))
-			var arrow_top = quiver_pos + Vector2(ax, -14.0 - float(ai % 2) * 2.0)
-			var shaft_col = Color(0.58, 0.45, 0.25)
-			if upgrade_tier >= 2 and ai == 0:
-				shaft_col = Color(0.80, 0.78, 0.65)
-			if upgrade_tier >= 4 and ai <= 1:
-				shaft_col = Color(0.88, 0.72, 0.28)
-			draw_line(quiver_pos + Vector2(ax, -11), arrow_top, OL, 2.2)
-			draw_line(quiver_pos + Vector2(ax, -11), arrow_top, shaft_col, 1.2)
-			var fletch_col = Color(0.75, 0.15, 0.1) if ai % 2 == 0 else Color(0.9, 0.85, 0.75)
-			draw_line(arrow_top, arrow_top + Vector2(-1.5, -2), fletch_col, 1.2)
-			draw_line(arrow_top, arrow_top + Vector2(1.5, -2), fletch_col, 1.2)
-
-		# --- GREEN TUNIC BODY ---
-		var tunic_pts_ol = PackedVector2Array([
-			leg_top + Vector2(-8, 1), leg_top + Vector2(8, 1),
-			neck_base + Vector2(11, 0), neck_base + Vector2(-11, 0),
-		])
-		draw_colored_polygon(tunic_pts_ol, OL)
-		var tunic_pts_fill = PackedVector2Array([
-			leg_top + Vector2(-6.5, 0), leg_top + Vector2(6.5, 0),
-			neck_base + Vector2(9.5, 0.8), neck_base + Vector2(-9.5, 0.8),
-		])
-		draw_colored_polygon(tunic_pts_fill, tunic_green)
-		# Tunic highlight
-		draw_circle(torso_center + Vector2(-2, -2), 4.0, Color(0.22, 0.62, 0.18, 0.3))
-		# V-neckline
-		draw_line(neck_base + Vector2(-3, 1), neck_base + Vector2(0, 4), OL, 1.5)
-		draw_line(neck_base + Vector2(3, 1), neck_base + Vector2(0, 4), OL, 1.5)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-2.5, 1), neck_base + Vector2(2.5, 1), neck_base + Vector2(0, 3.5),
-		]), Color(0.78, 0.68, 0.52))
-		# Scalloped hem
-		for hi in range(4):
-			var hx = -5.0 + float(hi) * 3.5
-			var h_depth = 2.0 + sin(float(hi) * 2.1 + _time * 1.2) * 1.0
-			draw_colored_polygon(PackedVector2Array([
-				leg_top + Vector2(hx - 1.5, 1), leg_top + Vector2(hx + 1.5, 1),
-				leg_top + Vector2(hx, 1 + h_depth),
-			]), OL)
-			draw_colored_polygon(PackedVector2Array([
-				leg_top + Vector2(hx - 1.0, 1), leg_top + Vector2(hx + 1.0, 1),
-				leg_top + Vector2(hx, 1.0 + h_depth * 0.8),
-			]), tunic_green)
-
-		# --- BELT with brass buckle ---
-		draw_line(leg_top + Vector2(-8, 0), leg_top + Vector2(8, 0), OL, 5.0)
-		draw_line(leg_top + Vector2(-7, 0), leg_top + Vector2(7, 0), belt_brown, 3.5)
-		draw_line(leg_top + Vector2(-6, -1.2), leg_top + Vector2(6, -1.2), Color(0.52, 0.34, 0.16, 0.4), 1.0)
-		# Brass buckle
-		var buckle_c = leg_top
-		draw_circle(buckle_c, 3.8, OL)
-		draw_circle(buckle_c, 2.8, Color(0.85, 0.72, 0.28))
-		draw_circle(buckle_c, 1.5, Color(0.95, 0.85, 0.40))
-		draw_circle(buckle_c + Vector2(-0.5, -0.8), 0.8, Color(1.0, 1.0, 0.9, 0.5))
-
-		# --- Tier 3+: Hunting horn on belt ---
-		if upgrade_tier >= 3:
-			var horn_base = leg_top + Vector2(6, 2)
-			var horn_bell = horn_base + Vector2(8, 7)
-			draw_line(horn_base, horn_bell, OL, 4.5)
-			draw_line(horn_base, horn_bell, Color(0.80, 0.65, 0.25), 3.0)
-			draw_circle(horn_bell, 3.5, OL)
-			draw_circle(horn_bell, 2.5, Color(0.85, 0.70, 0.28))
-			draw_circle(horn_base, 2.0, OL)
-			draw_circle(horn_base, 1.2, Color(0.90, 0.78, 0.35))
-			if upgrade_tier >= 4:
-				draw_circle(horn_bell, 5.0, Color(1.0, 0.85, 0.3, 0.12 + sin(_time * 3.0) * 0.06))
-
-		# --- SHOULDERS (round joints) ---
-		var l_shoulder = neck_base + Vector2(-10, 0)
-		var r_shoulder = neck_base + Vector2(10, 0)
-		draw_circle(l_shoulder, 5.0, OL)
-		draw_circle(l_shoulder, 3.8, tunic_green)
-		draw_circle(r_shoulder, 5.0, OL)
-		draw_circle(r_shoulder, 3.8, tunic_green)
-
-		# --- BOW ARM (right) — extends toward aim direction ---
-		var bow_hand = r_shoulder + dir * 18.0
-		var bow_elbow = r_shoulder + (bow_hand - r_shoulder) * 0.45
-		# Upper arm: outline then fill
-		draw_line(r_shoulder, bow_elbow, OL, 6.5)
-		draw_line(r_shoulder, bow_elbow, tunic_green, 4.5)
-		# Elbow joint
-		draw_circle(bow_elbow, 3.5, OL)
-		draw_circle(bow_elbow, 2.5, tunic_green)
-		# Forearm: outline then fill
-		draw_line(bow_elbow, bow_hand, OL, 6.5)
-		draw_line(bow_elbow, bow_hand, skin_base, 4.5)
-		# Bow hand
-		draw_circle(bow_hand, 3.8, OL)
-		draw_circle(bow_hand, 2.8, skin_base)
-		draw_circle(bow_hand + Vector2(0, -0.5), 1.5, skin_highlight)
-
-		# --- DRAW ARM (left) — pulls bowstring back ---
-		var string_pull_vec = dir * (-10.0 * _draw_progress)
-		var draw_hand = l_shoulder + dir * 8.0 + string_pull_vec
-		var draw_elbow = l_shoulder + (draw_hand - l_shoulder) * 0.45
-		# Upper arm
-		draw_line(l_shoulder, draw_elbow, OL, 6.5)
-		draw_line(l_shoulder, draw_elbow, tunic_green, 4.5)
-		# Elbow joint
-		draw_circle(draw_elbow, 3.5, OL)
-		draw_circle(draw_elbow, 2.5, tunic_green)
-		# Forearm
-		draw_line(draw_elbow, draw_hand, OL, 6.5)
-		draw_line(draw_elbow, draw_hand, skin_base, 4.5)
-		# Draw hand
-		draw_circle(draw_hand, 3.8, OL)
-		draw_circle(draw_hand, 2.8, skin_base)
-		# Fingers on string
-		draw_line(draw_hand, draw_hand + dir * 2.5 + perp * 1.5, OL, 2.5)
-		draw_line(draw_hand, draw_hand + dir * 2.5 + perp * 1.5, skin_base, 1.5)
-		draw_line(draw_hand, draw_hand + dir * 3.0, OL, 2.5)
-		draw_line(draw_hand, draw_hand + dir * 3.0, skin_base, 1.5)
-		draw_line(draw_hand, draw_hand + dir * 2.5 - perp * 1.5, OL, 2.5)
-		draw_line(draw_hand, draw_hand + dir * 2.5 - perp * 1.5, skin_base, 1.5)
-
-		# === 15. WEAPON — LONGBOW ===
-		var bow_center = bow_hand + dir * 2.0
-		var bow_top = bow_center + Vector2(0, -18.0)
-		var bow_bottom = bow_center + Vector2(0, 18.0)
-		var bow_curve_pt = bow_center + dir * 6.0
-
-		# Bow limb colors (silver at tier 2+)
-		var bow_wood = Color(0.48, 0.28, 0.10) if upgrade_tier < 2 else Color(0.55, 0.55, 0.58)
-		var bow_light = Color(0.60, 0.38, 0.16) if upgrade_tier < 2 else Color(0.70, 0.72, 0.78)
-
-		# Tier 2+: Silver glow along bow
-		if upgrade_tier >= 2:
-			var silver_p = (sin(_time * 2.8) + 1.0) * 0.5
-			draw_circle(bow_curve_pt, 6.0, Color(0.8, 0.85, 0.95, 0.08 + silver_p * 0.06))
-
-		# Bow limbs — outline then fill
-		draw_line(bow_top, bow_curve_pt, OL, 5.5)
-		draw_line(bow_top, bow_curve_pt, bow_light, 3.5)
-		draw_line(bow_curve_pt, bow_bottom, OL, 5.5)
-		draw_line(bow_curve_pt, bow_bottom, bow_light, 3.5)
-		# Nock tips
-		draw_circle(bow_top, 2.5, OL)
-		draw_circle(bow_top, 1.5, Color(0.90, 0.88, 0.80))
-		draw_circle(bow_bottom, 2.5, OL)
-		draw_circle(bow_bottom, 1.5, Color(0.90, 0.88, 0.80))
-		# Grip wrap
-		draw_line(bow_curve_pt + Vector2(0, -3), bow_curve_pt + Vector2(0, 3), OL, 6.0)
-		draw_line(bow_curve_pt + Vector2(0, -2.5), bow_curve_pt + Vector2(0, 2.5), belt_brown, 4.5)
-
-		# Bowstring
-		var string_pull_offset = dir * (-8.0 * _draw_progress)
-		var vib_offset = perp * string_vib
-		var string_nock_pt = bow_center + string_pull_offset + vib_offset
-		draw_line(bow_top, string_nock_pt, OL, 2.0)
-		draw_line(bow_bottom, string_nock_pt, OL, 2.0)
-		draw_line(bow_top, string_nock_pt, Color(0.82, 0.76, 0.60), 1.0)
-		draw_line(bow_bottom, string_nock_pt, Color(0.82, 0.76, 0.60), 1.0)
-
-		# Arrow nocked on string (visible when drawing)
-		if _draw_progress > 0.15:
-			var arrow_nock = bow_center + string_pull_offset
-			var arrow_tip = bow_center + dir * 24.0
-			# Silver arrow detection
-			var next_is_silver = upgrade_tier >= 2 and (shot_count + 1) % silver_interval == 0
-			var next_is_gold = upgrade_tier >= 4 and next_is_silver
-			var shaft_col = Color(0.58, 0.46, 0.28)
-			var head_col = Color(0.50, 0.50, 0.55)
-			if next_is_gold:
-				shaft_col = Color(0.95, 0.85, 0.30)
-				head_col = Color(1.0, 0.88, 0.25)
-			elif next_is_silver:
-				shaft_col = Color(0.82, 0.78, 0.55)
-				head_col = Color(0.88, 0.80, 0.35)
-			# Arrow shaft — outline then fill
-			draw_line(arrow_nock, arrow_tip, OL, 2.5)
-			draw_line(arrow_nock, arrow_tip, shaft_col, 1.5)
-			# Broadhead
-			var head_base = arrow_tip - dir * 3.0
-			draw_colored_polygon(PackedVector2Array([
-				arrow_tip, head_base + perp * 3.0, head_base - perp * 3.0,
-			]), OL)
-			draw_colored_polygon(PackedVector2Array([
-				arrow_tip - dir * 0.5, head_base + perp * 2.0, head_base - perp * 2.0,
-			]), head_col)
-			# Fletching
-			var fletch_start = arrow_nock + dir * 1.0
-			draw_line(fletch_start + perp * 2.0, fletch_start + dir * 4.0 + perp * 1.0, Color(0.85, 0.18, 0.10), 1.5)
-			draw_line(fletch_start - perp * 2.0, fletch_start + dir * 4.0 - perp * 1.0, Color(0.85, 0.85, 0.80), 1.5)
-			# Silver/Gold glow
-			if next_is_gold:
-				var gglow = (sin(_time * 4.0) + 1.0) * 0.5
-				draw_circle(arrow_tip, 5.0 + gglow * 2.0, Color(1.0, 0.90, 0.3, 0.28))
-				draw_circle(arrow_tip, 3.0 + gglow, Color(1.0, 0.95, 0.5, 0.15))
-			elif next_is_silver:
-				var sglow = (sin(_time * 4.0) + 1.0) * 0.5
-				draw_circle(arrow_tip, 4.0 + sglow * 2.0, Color(0.88, 0.90, 1.0, 0.22))
-			# Tier 4: Fiery arrow tip
-			if upgrade_tier >= 4:
-				var ff1 = sin(_time * 8.0) * 0.5 + 0.5
-				draw_circle(arrow_tip, 4.0 + ff1 * 1.5, Color(1.0, 0.4, 0.05, 0.2 + ff1 * 0.08))
-				draw_circle(arrow_tip, 2.0 + ff1 * 0.5, Color(1.0, 0.7, 0.1, 0.3))
-				draw_circle(arrow_tip, 1.0, Color(1.0, 0.95, 0.5, 0.35))
-
-		# === NECK (thick cartoon connector) ===
-		draw_line(neck_base, head_center + Vector2(0, 10), OL, 7.0)
-		draw_line(neck_base, head_center + Vector2(0, 10), skin_base, 5.0)
-
-		# === HEAD (big Bloons TD round head ~45% of height) ===
-
-		# --- Auburn hair mass (back layer, behind face) ---
-		var hair_sway = sin(_time * 2.5) * 1.5
-		draw_circle(head_center, 14.5, OL)
-		draw_circle(head_center, 13.0, hair_dark)
-		draw_circle(head_center + Vector2(0, -1), 12.0, hair_auburn)
-		# Messy hair tufts sticking out
-		for ti in range(6):
-			var ta = 0.4 + float(ti) * 0.8 + sin(_time * 1.5 + float(ti)) * 0.1
-			var tuft_p = head_center + Vector2.from_angle(ta) * 12.5
-			var tuft_tip = tuft_p + Vector2.from_angle(ta) * (4.0 + sin(_time * 2.0 + float(ti) * 1.5) * 1.0) + Vector2(hair_sway * 0.3, 0)
-			draw_line(tuft_p, tuft_tip, OL, 3.5)
-			draw_line(tuft_p, tuft_tip, hair_auburn, 2.0)
-		# Side tufts at ears
-		draw_circle(head_center + Vector2(-11, 3), 4.0, OL)
-		draw_circle(head_center + Vector2(-11, 3), 3.0, hair_auburn)
-		draw_circle(head_center + Vector2(11, 3), 4.0, OL)
-		draw_circle(head_center + Vector2(11, 3), 3.0, hair_auburn)
-
-		# --- Face (big round) ---
-		draw_circle(head_center + Vector2(0, 1), 11.5, OL)
-		draw_circle(head_center + Vector2(0, 1), 10.2, skin_base)
-		# Face highlight
-		draw_circle(head_center + Vector2(-1.5, -1), 5.0, skin_highlight)
-
-		# --- Ears ---
-		draw_circle(head_center + Vector2(-10, 0), 3.0, OL)
-		draw_circle(head_center + Vector2(-10, 0), 2.0, skin_base)
-		draw_circle(head_center + Vector2(10, 0), 3.0, OL)
-		draw_circle(head_center + Vector2(10, 0), 2.0, skin_base)
-
-		# --- Big cartoon eyes ---
-		var look_dir = dir * 1.5
-		var l_eye = head_center + Vector2(-4.0, -1.0)
-		var r_eye = head_center + Vector2(4.0, -1.0)
-		# Eye outlines (big Bloons size)
-		draw_circle(l_eye, 5.5, OL)
-		draw_circle(r_eye, 5.5, OL)
-		# Eye whites
-		draw_circle(l_eye, 4.5, Color(0.98, 0.98, 1.0))
-		draw_circle(r_eye, 4.5, Color(0.98, 0.98, 1.0))
-		# Green irises (following aim)
-		draw_circle(l_eye + look_dir, 3.0, Color(0.10, 0.45, 0.15))
-		draw_circle(l_eye + look_dir, 2.2, Color(0.18, 0.60, 0.22))
-		draw_circle(r_eye + look_dir, 3.0, Color(0.10, 0.45, 0.15))
-		draw_circle(r_eye + look_dir, 2.2, Color(0.18, 0.60, 0.22))
-		# Black pupils
-		draw_circle(l_eye + look_dir * 1.1, 1.4, Color(0.04, 0.04, 0.06))
-		draw_circle(r_eye + look_dir * 1.1, 1.4, Color(0.04, 0.04, 0.06))
-		# Big white sparkle highlights
-		draw_circle(l_eye + Vector2(-1.2, -1.5), 1.5, Color(1.0, 1.0, 1.0, 0.95))
-		draw_circle(r_eye + Vector2(-1.2, -1.5), 1.5, Color(1.0, 1.0, 1.0, 0.95))
-		# Small secondary sparkle
-		draw_circle(l_eye + Vector2(1.5, 0.8), 0.7, Color(1.0, 1.0, 1.0, 0.6))
-		draw_circle(r_eye + Vector2(1.5, 0.8), 0.7, Color(1.0, 1.0, 1.0, 0.6))
-
-		# --- Brown eyebrows (bold, one cocked for confidence) ---
-		# Left brow (raised higher — cocky)
-		draw_line(l_eye + Vector2(-3.5, -5.5), l_eye + Vector2(2.5, -5.0), OL, 2.8)
-		draw_line(l_eye + Vector2(-3.0, -5.5), l_eye + Vector2(2.0, -5.0), hair_auburn, 1.8)
-		# Right brow (slightly lower — asymmetric for character)
-		draw_line(r_eye + Vector2(-2.5, -4.8), r_eye + Vector2(3.5, -4.5), OL, 2.8)
-		draw_line(r_eye + Vector2(-2.0, -4.8), r_eye + Vector2(3.0, -4.5), hair_auburn, 1.8)
-
-		# --- Nose (simple cartoon bump) ---
-		draw_circle(head_center + Vector2(0, 3.0), 2.0, OL)
-		draw_circle(head_center + Vector2(0, 3.0), 1.3, skin_highlight)
-
-		# --- Confident smirk ---
-		draw_arc(head_center + Vector2(0.5, 6.0), 4.0, 0.15, PI - 0.3, 10, OL, 2.0)
-		draw_arc(head_center + Vector2(0.5, 6.0), 4.0, 0.2, PI - 0.35, 10, Color(0.65, 0.25, 0.18), 1.2)
-		# Smirk upturn on right side
-		draw_line(head_center + Vector2(4.0, 5.5), head_center + Vector2(5.2, 4.2), OL, 1.8)
-		draw_line(head_center + Vector2(4.0, 5.5), head_center + Vector2(5.0, 4.4), Color(0.65, 0.25, 0.18), 1.0)
-		# Flash of teeth behind smirk
-		draw_arc(head_center + Vector2(0.5, 6.2), 3.0, 0.3, PI - 0.5, 8, Color(0.98, 0.96, 0.92), 1.5)
-
-		# === FEATHERED CAP (iconic pointed hat) ===
-		var hat_base = head_center + Vector2(0, -8)
-		var hat_tip = hat_base + Vector2(10, -14)
-		# Hat outline polygon
-		draw_colored_polygon(PackedVector2Array([
-			hat_base + Vector2(-11, 3), hat_base + Vector2(11, 3), hat_tip,
-		]), OL)
-		# Hat fill
-		draw_colored_polygon(PackedVector2Array([
-			hat_base + Vector2(-9.5, 2), hat_base + Vector2(9.5, 2),
-			hat_tip + Vector2(-0.5, 0.8),
+			leg_top + Vector2(hx - 1.0, 1), leg_top + Vector2(hx + 1.0, 1),
+			leg_top + Vector2(hx, 1.0 + h_depth * 0.8),
 		]), tunic_green)
-		# Hat highlight
-		draw_colored_polygon(PackedVector2Array([
-			hat_base + Vector2(3, 2), hat_base + Vector2(9, 2),
-			hat_tip + Vector2(0, 1),
-		]), Color(0.22, 0.62, 0.18, 0.35))
-		# Hat brim line
-		draw_line(hat_base + Vector2(-11, 3), hat_base + Vector2(11, 3), OL, 3.5)
-		draw_line(hat_base + Vector2(-10, 3), hat_base + Vector2(10, 3), Color(0.12, 0.42, 0.08), 2.0)
-		# Hat band
-		draw_line(hat_base + Vector2(-9.5, 1), hat_base + Vector2(9.5, 1), OL, 2.5)
-		draw_line(hat_base + Vector2(-9, 1), hat_base + Vector2(9, 1), tunic_dark, 1.5)
-		# Tip circle
-		draw_circle(hat_tip, 2.2, OL)
-		draw_circle(hat_tip, 1.4, tunic_green)
 
-		# --- Red feather on hat ---
-		var feather_bob = sin(_time * 3.0) * 1.5
-		var feather_base = hat_base + Vector2(5, 0)
-		var feather_tip = feather_base + Vector2(16, -11 + feather_bob)
-		# Feather quill: outline then fill
-		draw_line(feather_base, feather_tip, OL, 3.5)
-		draw_line(feather_base, feather_tip, Color(0.88, 0.16, 0.08), 2.0)
-		# Feather body (wider red plume)
-		draw_line(feather_base.lerp(feather_tip, 0.1), feather_tip, OL, 6.5)
-		draw_line(feather_base.lerp(feather_tip, 0.12), feather_tip - (feather_tip - feather_base).normalized() * 0.5, Color(0.90, 0.18, 0.10), 4.5)
-		# Feather barbs
-		var f_d = (feather_tip - feather_base).normalized()
-		var f_p = f_d.rotated(PI / 2.0)
-		for fbi in range(6):
-			var bt = 0.1 + float(fbi) * 0.14
-			var barb_o = feather_base + (feather_tip - feather_base) * bt
-			var blen = 3.5 - abs(float(fbi) - 2.5) * 0.4
-			draw_line(barb_o, barb_o + f_p * blen, Color(0.85, 0.14, 0.06, 0.7), 1.0)
-			draw_line(barb_o, barb_o - f_p * blen, Color(0.85, 0.14, 0.06, 0.7), 1.0)
-		# Quill base
-		draw_circle(feather_base, 1.5, OL)
-		draw_circle(feather_base, 0.8, Color(0.92, 0.88, 0.78))
+	# --- BELT with brass buckle ---
+	draw_line(leg_top + Vector2(-8, 0), leg_top + Vector2(8, 0), OL, 5.0)
+	draw_line(leg_top + Vector2(-7, 0), leg_top + Vector2(7, 0), belt_brown, 3.5)
+	draw_line(leg_top + Vector2(-6, -1.2), leg_top + Vector2(6, -1.2), Color(0.52, 0.34, 0.16, 0.4), 1.0)
+	# Brass buckle
+	var buckle_c = leg_top
+	draw_circle(buckle_c, 3.8, OL)
+	draw_circle(buckle_c, 2.8, Color(0.85, 0.72, 0.28))
+	draw_circle(buckle_c, 1.5, Color(0.95, 0.85, 0.40))
+	draw_circle(buckle_c + Vector2(-0.5, -0.8), 0.8, Color(1.0, 1.0, 0.9, 0.5))
 
-		# Tier 4: Golden feather overlay
+	# --- Tier 3+: Hunting horn on belt ---
+	if upgrade_tier >= 3:
+		var horn_base = leg_top + Vector2(6, 2)
+		var horn_bell = horn_base + Vector2(8, 7)
+		draw_line(horn_base, horn_bell, OL, 4.5)
+		draw_line(horn_base, horn_bell, Color(0.80, 0.65, 0.25), 3.0)
+		draw_circle(horn_bell, 3.5, OL)
+		draw_circle(horn_bell, 2.5, Color(0.85, 0.70, 0.28))
+		draw_circle(horn_base, 2.0, OL)
+		draw_circle(horn_base, 1.2, Color(0.90, 0.78, 0.35))
 		if upgrade_tier >= 4:
-			var gold_tip = feather_base + Vector2(16, -12 + feather_bob)
-			draw_line(feather_base, gold_tip, Color(1.0, 0.85, 0.2), 2.5)
-			draw_line(feather_base, gold_tip, Color(1.0, 0.95, 0.5, 0.4), 1.2)
-			draw_circle(feather_base.lerp(gold_tip, 0.5), 4.0, Color(1.0, 0.9, 0.3, 0.1 + sin(_time * 3.0) * 0.05))
+			draw_circle(horn_bell, 5.0, Color(1.0, 0.85, 0.3, 0.12 + sin(_time * 3.0) * 0.06))
+
+	# --- SHOULDERS (round joints) ---
+	var l_shoulder = neck_base + Vector2(-10, 0)
+	var r_shoulder = neck_base + Vector2(10, 0)
+	draw_circle(l_shoulder, 5.0, OL)
+	draw_circle(l_shoulder, 3.8, tunic_green)
+	draw_circle(r_shoulder, 5.0, OL)
+	draw_circle(r_shoulder, 3.8, tunic_green)
+
+	# --- BOW ARM (right) — extends toward aim direction ---
+	var bow_hand = r_shoulder + dir * 18.0
+	var bow_elbow = r_shoulder + (bow_hand - r_shoulder) * 0.45
+	# Upper arm: outline then fill
+	draw_line(r_shoulder, bow_elbow, OL, 6.5)
+	draw_line(r_shoulder, bow_elbow, tunic_green, 4.5)
+	# Elbow joint
+	draw_circle(bow_elbow, 3.5, OL)
+	draw_circle(bow_elbow, 2.5, tunic_green)
+	# Forearm: outline then fill
+	draw_line(bow_elbow, bow_hand, OL, 6.5)
+	draw_line(bow_elbow, bow_hand, skin_base, 4.5)
+	# Bow hand
+	draw_circle(bow_hand, 3.8, OL)
+	draw_circle(bow_hand, 2.8, skin_base)
+	draw_circle(bow_hand + Vector2(0, -0.5), 1.5, skin_highlight)
+
+	# --- DRAW ARM (left) — pulls bowstring back ---
+	var string_pull_vec = dir * (-10.0 * _draw_progress)
+	var draw_hand = l_shoulder + dir * 8.0 + string_pull_vec
+	var draw_elbow = l_shoulder + (draw_hand - l_shoulder) * 0.45
+	# Upper arm
+	draw_line(l_shoulder, draw_elbow, OL, 6.5)
+	draw_line(l_shoulder, draw_elbow, tunic_green, 4.5)
+	# Elbow joint
+	draw_circle(draw_elbow, 3.5, OL)
+	draw_circle(draw_elbow, 2.5, tunic_green)
+	# Forearm
+	draw_line(draw_elbow, draw_hand, OL, 6.5)
+	draw_line(draw_elbow, draw_hand, skin_base, 4.5)
+	# Draw hand
+	draw_circle(draw_hand, 3.8, OL)
+	draw_circle(draw_hand, 2.8, skin_base)
+	# Fingers on string
+	draw_line(draw_hand, draw_hand + dir * 2.5 + perp * 1.5, OL, 2.5)
+	draw_line(draw_hand, draw_hand + dir * 2.5 + perp * 1.5, skin_base, 1.5)
+	draw_line(draw_hand, draw_hand + dir * 3.0, OL, 2.5)
+	draw_line(draw_hand, draw_hand + dir * 3.0, skin_base, 1.5)
+	draw_line(draw_hand, draw_hand + dir * 2.5 - perp * 1.5, OL, 2.5)
+	draw_line(draw_hand, draw_hand + dir * 2.5 - perp * 1.5, skin_base, 1.5)
+
+	# === 15. WEAPON — LONGBOW ===
+	var bow_center = bow_hand + dir * 2.0
+	var bow_top = bow_center + Vector2(0, -18.0)
+	var bow_bottom = bow_center + Vector2(0, 18.0)
+	var bow_curve_pt = bow_center + dir * 6.0
+
+	# Bow limb colors (silver at tier 2+)
+	var bow_wood = Color(0.48, 0.28, 0.10) if upgrade_tier < 2 else Color(0.55, 0.55, 0.58)
+	var bow_light = Color(0.60, 0.38, 0.16) if upgrade_tier < 2 else Color(0.70, 0.72, 0.78)
+
+	# Tier 2+: Silver glow along bow
+	if upgrade_tier >= 2:
+		var silver_p = (sin(_time * 2.8) + 1.0) * 0.5
+		draw_circle(bow_curve_pt, 6.0, Color(0.8, 0.85, 0.95, 0.08 + silver_p * 0.06))
+
+	# Bow limbs — outline then fill
+	draw_line(bow_top, bow_curve_pt, OL, 5.5)
+	draw_line(bow_top, bow_curve_pt, bow_light, 3.5)
+	draw_line(bow_curve_pt, bow_bottom, OL, 5.5)
+	draw_line(bow_curve_pt, bow_bottom, bow_light, 3.5)
+	# Nock tips
+	draw_circle(bow_top, 2.5, OL)
+	draw_circle(bow_top, 1.5, Color(0.90, 0.88, 0.80))
+	draw_circle(bow_bottom, 2.5, OL)
+	draw_circle(bow_bottom, 1.5, Color(0.90, 0.88, 0.80))
+	# Grip wrap
+	draw_line(bow_curve_pt + Vector2(0, -3), bow_curve_pt + Vector2(0, 3), OL, 6.0)
+	draw_line(bow_curve_pt + Vector2(0, -2.5), bow_curve_pt + Vector2(0, 2.5), belt_brown, 4.5)
+
+	# Bowstring
+	var string_pull_offset = dir * (-8.0 * _draw_progress)
+	var vib_offset = perp * string_vib
+	var string_nock_pt = bow_center + string_pull_offset + vib_offset
+	draw_line(bow_top, string_nock_pt, OL, 2.0)
+	draw_line(bow_bottom, string_nock_pt, OL, 2.0)
+	draw_line(bow_top, string_nock_pt, Color(0.82, 0.76, 0.60), 1.0)
+	draw_line(bow_bottom, string_nock_pt, Color(0.82, 0.76, 0.60), 1.0)
+
+	# Arrow nocked on string (visible when drawing)
+	if _draw_progress > 0.15:
+		var arrow_nock = bow_center + string_pull_offset
+		var arrow_tip = bow_center + dir * 24.0
+		# Silver arrow detection
+		var next_is_silver = upgrade_tier >= 2 and (shot_count + 1) % silver_interval == 0
+		var next_is_gold = upgrade_tier >= 4 and next_is_silver
+		var shaft_col = Color(0.58, 0.46, 0.28)
+		var head_col = Color(0.50, 0.50, 0.55)
+		if next_is_gold:
+			shaft_col = Color(0.95, 0.85, 0.30)
+			head_col = Color(1.0, 0.88, 0.25)
+		elif next_is_silver:
+			shaft_col = Color(0.82, 0.78, 0.55)
+			head_col = Color(0.88, 0.80, 0.35)
+		# Arrow shaft — outline then fill
+		draw_line(arrow_nock, arrow_tip, OL, 2.5)
+		draw_line(arrow_nock, arrow_tip, shaft_col, 1.5)
+		# Broadhead
+		var head_base = arrow_tip - dir * 3.0
+		draw_colored_polygon(PackedVector2Array([
+			arrow_tip, head_base + perp * 3.0, head_base - perp * 3.0,
+		]), OL)
+		draw_colored_polygon(PackedVector2Array([
+			arrow_tip - dir * 0.5, head_base + perp * 2.0, head_base - perp * 2.0,
+		]), head_col)
+		# Fletching
+		var fletch_start = arrow_nock + dir * 1.0
+		draw_line(fletch_start + perp * 2.0, fletch_start + dir * 4.0 + perp * 1.0, Color(0.85, 0.18, 0.10), 1.5)
+		draw_line(fletch_start - perp * 2.0, fletch_start + dir * 4.0 - perp * 1.0, Color(0.85, 0.85, 0.80), 1.5)
+		# Silver/Gold glow
+		if next_is_gold:
+			var gglow = (sin(_time * 4.0) + 1.0) * 0.5
+			draw_circle(arrow_tip, 5.0 + gglow * 2.0, Color(1.0, 0.90, 0.3, 0.28))
+			draw_circle(arrow_tip, 3.0 + gglow, Color(1.0, 0.95, 0.5, 0.15))
+		elif next_is_silver:
+			var sglow = (sin(_time * 4.0) + 1.0) * 0.5
+			draw_circle(arrow_tip, 4.0 + sglow * 2.0, Color(0.88, 0.90, 1.0, 0.22))
+		# Tier 4: Fiery arrow tip
+		if upgrade_tier >= 4:
+			var ff1 = sin(_time * 8.0) * 0.5 + 0.5
+			draw_circle(arrow_tip, 4.0 + ff1 * 1.5, Color(1.0, 0.4, 0.05, 0.2 + ff1 * 0.08))
+			draw_circle(arrow_tip, 2.0 + ff1 * 0.5, Color(1.0, 0.7, 0.1, 0.3))
+			draw_circle(arrow_tip, 1.0, Color(1.0, 0.95, 0.5, 0.35))
+
+	# === NECK (thick cartoon connector) ===
+	draw_line(neck_base, head_center + Vector2(0, 10), OL, 7.0)
+	draw_line(neck_base, head_center + Vector2(0, 10), skin_base, 5.0)
+
+	# === HEAD (big Bloons TD round head ~45% of height) ===
+
+	# --- Auburn hair mass (back layer, behind face) ---
+	var hair_sway = sin(_time * 2.5) * 1.5
+	draw_circle(head_center, 14.5, OL)
+	draw_circle(head_center, 13.0, hair_dark)
+	draw_circle(head_center + Vector2(0, -1), 12.0, hair_auburn)
+	# Messy hair tufts sticking out
+	for ti in range(6):
+		var ta = 0.4 + float(ti) * 0.8 + sin(_time * 1.5 + float(ti)) * 0.1
+		var tuft_p = head_center + Vector2.from_angle(ta) * 12.5
+		var tuft_tip = tuft_p + Vector2.from_angle(ta) * (4.0 + sin(_time * 2.0 + float(ti) * 1.5) * 1.0) + Vector2(hair_sway * 0.3, 0)
+		draw_line(tuft_p, tuft_tip, OL, 3.5)
+		draw_line(tuft_p, tuft_tip, hair_auburn, 2.0)
+	# Side tufts at ears
+	draw_circle(head_center + Vector2(-11, 3), 4.0, OL)
+	draw_circle(head_center + Vector2(-11, 3), 3.0, hair_auburn)
+	draw_circle(head_center + Vector2(11, 3), 4.0, OL)
+	draw_circle(head_center + Vector2(11, 3), 3.0, hair_auburn)
+
+	# --- Face (big round) ---
+	draw_circle(head_center + Vector2(0, 1), 11.5, OL)
+	draw_circle(head_center + Vector2(0, 1), 10.2, skin_base)
+	# Face highlight
+	draw_circle(head_center + Vector2(-1.5, -1), 5.0, skin_highlight)
+
+	# --- Ears ---
+	draw_circle(head_center + Vector2(-10, 0), 3.0, OL)
+	draw_circle(head_center + Vector2(-10, 0), 2.0, skin_base)
+	draw_circle(head_center + Vector2(10, 0), 3.0, OL)
+	draw_circle(head_center + Vector2(10, 0), 2.0, skin_base)
+
+	# --- Big cartoon eyes ---
+	var look_dir = dir * 1.5
+	var l_eye = head_center + Vector2(-4.0, -1.0)
+	var r_eye = head_center + Vector2(4.0, -1.0)
+	# Eye outlines (big Bloons size)
+	draw_circle(l_eye, 5.5, OL)
+	draw_circle(r_eye, 5.5, OL)
+	# Eye whites
+	draw_circle(l_eye, 4.5, Color(0.98, 0.98, 1.0))
+	draw_circle(r_eye, 4.5, Color(0.98, 0.98, 1.0))
+	# Green irises (following aim)
+	draw_circle(l_eye + look_dir, 3.0, Color(0.10, 0.45, 0.15))
+	draw_circle(l_eye + look_dir, 2.2, Color(0.18, 0.60, 0.22))
+	draw_circle(r_eye + look_dir, 3.0, Color(0.10, 0.45, 0.15))
+	draw_circle(r_eye + look_dir, 2.2, Color(0.18, 0.60, 0.22))
+	# Black pupils
+	draw_circle(l_eye + look_dir * 1.1, 1.4, Color(0.04, 0.04, 0.06))
+	draw_circle(r_eye + look_dir * 1.1, 1.4, Color(0.04, 0.04, 0.06))
+	# Big white sparkle highlights
+	draw_circle(l_eye + Vector2(-1.2, -1.5), 1.5, Color(1.0, 1.0, 1.0, 0.95))
+	draw_circle(r_eye + Vector2(-1.2, -1.5), 1.5, Color(1.0, 1.0, 1.0, 0.95))
+	# Small secondary sparkle
+	draw_circle(l_eye + Vector2(1.5, 0.8), 0.7, Color(1.0, 1.0, 1.0, 0.6))
+	draw_circle(r_eye + Vector2(1.5, 0.8), 0.7, Color(1.0, 1.0, 1.0, 0.6))
+
+	# --- Brown eyebrows (bold, one cocked for confidence) ---
+	# Left brow (raised higher — cocky)
+	draw_line(l_eye + Vector2(-3.5, -5.5), l_eye + Vector2(2.5, -5.0), OL, 2.8)
+	draw_line(l_eye + Vector2(-3.0, -5.5), l_eye + Vector2(2.0, -5.0), hair_auburn, 1.8)
+	# Right brow (slightly lower — asymmetric for character)
+	draw_line(r_eye + Vector2(-2.5, -4.8), r_eye + Vector2(3.5, -4.5), OL, 2.8)
+	draw_line(r_eye + Vector2(-2.0, -4.8), r_eye + Vector2(3.0, -4.5), hair_auburn, 1.8)
+
+	# --- Nose (simple cartoon bump) ---
+	draw_circle(head_center + Vector2(0, 3.0), 2.0, OL)
+	draw_circle(head_center + Vector2(0, 3.0), 1.3, skin_highlight)
+
+	# --- Confident smirk ---
+	draw_arc(head_center + Vector2(0.5, 6.0), 4.0, 0.15, PI - 0.3, 10, OL, 2.0)
+	draw_arc(head_center + Vector2(0.5, 6.0), 4.0, 0.2, PI - 0.35, 10, Color(0.65, 0.25, 0.18), 1.2)
+	# Smirk upturn on right side
+	draw_line(head_center + Vector2(4.0, 5.5), head_center + Vector2(5.2, 4.2), OL, 1.8)
+	draw_line(head_center + Vector2(4.0, 5.5), head_center + Vector2(5.0, 4.4), Color(0.65, 0.25, 0.18), 1.0)
+	# Flash of teeth behind smirk
+	draw_arc(head_center + Vector2(0.5, 6.2), 3.0, 0.3, PI - 0.5, 8, Color(0.98, 0.96, 0.92), 1.5)
+
+	# === FEATHERED CAP (iconic pointed hat) ===
+	var hat_base = head_center + Vector2(0, -8)
+	var hat_tip = hat_base + Vector2(10, -14)
+	# Hat outline polygon
+	draw_colored_polygon(PackedVector2Array([
+		hat_base + Vector2(-11, 3), hat_base + Vector2(11, 3), hat_tip,
+	]), OL)
+	# Hat fill
+	draw_colored_polygon(PackedVector2Array([
+		hat_base + Vector2(-9.5, 2), hat_base + Vector2(9.5, 2),
+		hat_tip + Vector2(-0.5, 0.8),
+	]), tunic_green)
+	# Hat highlight
+	draw_colored_polygon(PackedVector2Array([
+		hat_base + Vector2(3, 2), hat_base + Vector2(9, 2),
+		hat_tip + Vector2(0, 1),
+	]), Color(0.22, 0.62, 0.18, 0.35))
+	# Hat brim line
+	draw_line(hat_base + Vector2(-11, 3), hat_base + Vector2(11, 3), OL, 3.5)
+	draw_line(hat_base + Vector2(-10, 3), hat_base + Vector2(10, 3), Color(0.12, 0.42, 0.08), 2.0)
+	# Hat band
+	draw_line(hat_base + Vector2(-9.5, 1), hat_base + Vector2(9.5, 1), OL, 2.5)
+	draw_line(hat_base + Vector2(-9, 1), hat_base + Vector2(9, 1), tunic_dark, 1.5)
+	# Tip circle
+	draw_circle(hat_tip, 2.2, OL)
+	draw_circle(hat_tip, 1.4, tunic_green)
+
+	# --- Red feather on hat ---
+	var feather_bob = sin(_time * 3.0) * 1.5
+	var feather_base = hat_base + Vector2(5, 0)
+	var feather_tip = feather_base + Vector2(16, -11 + feather_bob)
+	# Feather quill: outline then fill
+	draw_line(feather_base, feather_tip, OL, 3.5)
+	draw_line(feather_base, feather_tip, Color(0.88, 0.16, 0.08), 2.0)
+	# Feather body (wider red plume)
+	draw_line(feather_base.lerp(feather_tip, 0.1), feather_tip, OL, 6.5)
+	draw_line(feather_base.lerp(feather_tip, 0.12), feather_tip - (feather_tip - feather_base).normalized() * 0.5, Color(0.90, 0.18, 0.10), 4.5)
+	# Feather barbs
+	var f_d = (feather_tip - feather_base).normalized()
+	var f_p = f_d.rotated(PI / 2.0)
+	for fbi in range(6):
+		var bt = 0.1 + float(fbi) * 0.14
+		var barb_o = feather_base + (feather_tip - feather_base) * bt
+		var blen = 3.5 - abs(float(fbi) - 2.5) * 0.4
+		draw_line(barb_o, barb_o + f_p * blen, Color(0.85, 0.14, 0.06, 0.7), 1.0)
+		draw_line(barb_o, barb_o - f_p * blen, Color(0.85, 0.14, 0.06, 0.7), 1.0)
+	# Quill base
+	draw_circle(feather_base, 1.5, OL)
+	draw_circle(feather_base, 0.8, Color(0.92, 0.88, 0.78))
+
+	# Tier 4: Golden feather overlay
+	if upgrade_tier >= 4:
+		var gold_tip = feather_base + Vector2(16, -12 + feather_bob)
+		draw_line(feather_base, gold_tip, Color(1.0, 0.85, 0.2), 2.5)
+		draw_line(feather_base, gold_tip, Color(1.0, 0.95, 0.5, 0.4), 1.2)
+		draw_circle(feather_base.lerp(gold_tip, 0.5), 4.0, Color(1.0, 0.9, 0.3, 0.1 + sin(_time * 3.0) * 0.05))
 
 	# === Tier 4: Golden-green aura around whole character ===
 	if upgrade_tier >= 4:
 		var aura_pulse = sin(_time * 2.5) * 4.0
-		pass  #draw_arc(body_offset, 48.0 + aura_pulse, 0, TAU, 24, Color(0.4, 0.8, 0.35, 0.15), 5.0)
-		pass  #draw_arc(body_offset, 40.0 + aura_pulse * 0.5, 0, TAU, 20, Color(1.0, 0.90, 0.4, 0.08), 3.0)
+		draw_circle(body_offset, 52.0 + aura_pulse, Color(0.4, 0.8, 0.3, 0.05))
+		draw_circle(body_offset, 44.0 + aura_pulse * 0.6, Color(0.5, 0.85, 0.35, 0.07))
+		draw_arc(body_offset, 48.0 + aura_pulse, 0, TAU, 32, Color(0.4, 0.8, 0.35, 0.15), 2.5)
+		draw_arc(body_offset, 40.0 + aura_pulse * 0.5, 0, TAU, 24, Color(1.0, 0.90, 0.4, 0.08), 1.8)
 		for gs in range(5):
 			var gs_a = _time * (0.7 + float(gs % 3) * 0.25) + float(gs) * TAU / 5.0
 			var gs_r = 40.0 + aura_pulse + float(gs % 3) * 3.0
@@ -1680,12 +1553,45 @@ func _draw() -> void:
 	# === 21. AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:
 		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
-		pass  #draw_arc(Vector2.ZERO, 68.0 + pulse * 6.0, 0, TAU, 24, Color(0.3, 0.7, 0.2, 0.3 + pulse * 0.3), 3.5)
+		draw_circle(Vector2.ZERO, 68.0 + pulse * 6.0, Color(0.3, 0.7, 0.2, 0.1 + pulse * 0.1))
+		draw_arc(Vector2.ZERO, 68.0 + pulse * 6.0, 0, TAU, 32, Color(0.3, 0.7, 0.2, 0.3 + pulse * 0.3), 2.5)
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -80), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.3, 0.7, 0.2, 0.7 + pulse * 0.3))
 
-	# === 22. DAMAGE COUNTER (only when selected) ===
-	if is_selected and damage_dealt > 0:
+	# === VISUAL TIER EVOLUTION ===
+	# Tier 1+: Pulsing glow outline (forest green)
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.2, 0.7, 0.15, 0.15 + glow_pulse * 0.1), 2.0)
+	# Tier 2+: Orbiting sparkle particles (6)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.3, 0.9, 0.2, s_alpha))
+	# Tier 3+: Golden crown above head
+	if upgrade_tier >= 3:
+		var crown_y = body_offset.y - 58.0
+		var crown_bob = sin(_time * 1.5) * 2.0
+		var cy = crown_y + crown_bob
+		draw_line(Vector2(-8, cy), Vector2(8, cy), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, cy), Vector2(cx, cy - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, cy - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	# Tier 4: Radiating light beams (8)
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(1.0, 0.9, 0.3, b_alpha), 1.5)
+
+	# === 22. DAMAGE COUNTER ===
+	if damage_dealt > 0:
 		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
@@ -1711,7 +1617,7 @@ func _draw() -> void:
 		var cd_fill = clampf(1.0 - _little_john_timer / 12.0, 0.0, 1.0)
 		if cd_fill >= 1.0:
 			var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
-			pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.3, 0.7, 0.2, cd_pulse * 0.4), 2.0)
+			draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.3, 0.7, 0.2, cd_pulse * 0.4), 2.0)
 		elif cd_fill > 0.0:
 			draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.3, 0.7, 0.2, 0.3), 2.0)
 

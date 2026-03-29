@@ -11,7 +11,6 @@ var fire_rate: float = 0.91
 var attack_range: float = 190.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
-var sprite_texture: ImageTexture = null
 var target: Node2D = null
 var _cast_anim: float = 0.0
 var gold_bonus: int = 1
@@ -49,17 +48,6 @@ var _bat_devour_flash: float = 0.0
 var _thrall_kill_counter: int = 0
 var _thrall_flash: float = 0.0
 var _active_thralls: Array = []  # kept for visual indicator
-
-# Tier 3: Children of the Night — vampire thralls
-var _children_of_night_active: bool = false
-var _children_of_night_flash: float = 0.0
-
-# Tier 5: Walpurgis Night — mass HP damage
-var _walpurgis_night_active: bool = false
-var _walpurgis_night_timer: float = 35.0
-var _walpurgis_night_flash: float = 0.0
-var _walpurgis_duration: float = 0.0  # Active phase (6s drain)
-var _walpurgis_blood_drops: Array = []  # [{pos, vel, life, max_life}]
 
 # Tier 4: Lord of Darkness — constant feast
 var _lord_active: bool = false
@@ -112,7 +100,6 @@ var _prince_flash: float = 0.0
 var _brides_kiss_flash: float = 0.0
 var _hypnotic_flash: float = 0.0
 
-const MAX_STAT_LEVEL: int = 10  # Cap stat scaling to prevent infinite power creep
 const STAT_UPGRADE_INTERVAL: float = 8000.0
 const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
@@ -121,18 +108,16 @@ var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
 	"Vampiric Touch",
 	"Bat Swarm",
-	"Children of the Night",
-	"Nosferatu Rising",
-	"Walpurgis Night"
+	"Thrall",
+	"Lord of Darkness"
 ]
 const ABILITY_DESCRIPTIONS = [
 	"Every 5th kill — dash and bite for major damage",
 	"Each wave — transform into bats, devour 3-5 enemies",
-	"Killed enemies rise as vampire thralls that fight for you",
-	"True form — map darkens, drain all enemies in range continuously",
-	"30% max HP damage to ALL enemies on map + full heal + darkness"
+	"Every 15th kill — drain life to restore 1 lost life",
+	"Glow red — dash and feast on enemies at will"
 ]
-const TIER_COSTS = [150, 350, 650, 1200, 2200]
+const TIER_COSTS = [150, 350, 650, 1200]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -276,7 +261,6 @@ func _process(delta: float) -> void:
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	_brides_kiss_flash = max(_brides_kiss_flash - delta * 1.5, 0.0)
 	_hypnotic_flash = max(_hypnotic_flash - delta * 2.0, 0.0)
-	_walpurgis_night_flash = max(_walpurgis_night_flash - delta * 0.8, 0.0)
 
 	# Store home position if not set (deferred from _ready for global_position accuracy)
 	if _home_position == Vector2.ZERO and global_position != Vector2.ZERO:
@@ -292,7 +276,7 @@ func _process(delta: float) -> void:
 		_cast_anim = min(_cast_anim + delta * 3.0, 1.0)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 			_cast_anim = 0.0
 			_attack_anim = 1.0
 	else:
@@ -316,51 +300,6 @@ func _process(delta: float) -> void:
 
 	# Manage thrall visuals
 	_update_thralls(delta)
-
-	# Tier 5: Walpurgis Night — blood rain mass drain
-	if _walpurgis_night_active:
-		_walpurgis_night_timer -= delta
-		if _walpurgis_duration > 0.0:
-			_walpurgis_duration -= delta
-			# Continuous drain: 30% max HP over 6s = 5% per second
-			var enemies = _main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")
-			for enemy in enemies:
-				if is_instance_valid(enemy) and enemy.has_method("take_damage"):
-					var max_hp = enemy.max_health if "max_health" in enemy else 100.0
-					enemy.take_damage(max_hp * 0.05 * delta)
-			# Spawn blood rain drops
-			for i in range(3):
-				var drop_x = global_position.x + randf_range(-120.0, 120.0)
-				var drop_y = global_position.y - 200.0
-				_walpurgis_blood_drops.append({
-					"pos": Vector2(drop_x, drop_y),
-					"vel": Vector2(randf_range(-20.0, 20.0), randf_range(250.0, 400.0)),
-					"life": 1.2,
-					"max_life": 1.2
-				})
-		elif _walpurgis_night_timer <= 0.0:
-			# Trigger Walpurgis Night
-			_walpurgis_night_timer = 35.0
-			_walpurgis_duration = 6.0
-			_walpurgis_night_flash = 1.0
-			if is_instance_valid(_main_node):
-				_main_node.trigger_screen_dark(2.0, Color(0.3, 0.0, 0.0))
-				_main_node.trigger_camera_shake(12.0, 1.0)
-				pass  #_main_node.trigger_shockwave(global_position, 250.0, 300.0, Color(0.8, 0.0, 0.0, 0.7))
-				# Blood lightning bolts radiating outward
-				for i in range(6):
-					var angle = TAU * i / 6.0
-					var end = global_position + Vector2(cos(angle), sin(angle)) * 200.0
-					_main_node.trigger_lightning(global_position, end, Color(0.9, 0.1, 0.0), 1.5)
-		# Update blood rain drops
-		var drops_alive: Array = []
-		for drop in _walpurgis_blood_drops:
-			drop.life -= delta
-			drop.pos += drop.vel * delta
-			drop.vel.y += 300.0 * delta  # gravity
-			if drop.life > 0.0:
-				drops_alive.append(drop)
-		_walpurgis_blood_drops = drops_alive
 
 	# Active ability cooldown
 	if not active_ability_ready:
@@ -461,11 +400,7 @@ func _fire_blood_bolt(t: Node2D) -> void:
 	# Ability 1: Undead Fortitude — faster bolts
 	if prog_abilities[0]:
 		bolt.speed *= 1.15
-	var _main = get_tree().get_first_node_in_group("main")
-	if _main:
-		_main.add_child(bolt)
-	else:
-		bolt.queue_free()
+	get_tree().get_first_node_in_group("main").add_child(bolt)
 
 func receive_life_drain(amount: float) -> void:
 	# Visual feedback for life drain on blood bolts
@@ -664,7 +599,7 @@ func register_kill() -> void:
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
-	while stat_upgrade_level < new_level and stat_upgrade_level < MAX_STAT_LEVEL:
+	while stat_upgrade_level < new_level:
 		stat_upgrade_level += 1
 		_apply_stat_boost()
 		_upgrade_flash = 2.0
@@ -676,8 +611,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 1.2
-	fire_rate += 0.012
+	damage += 2.0
+	fire_rate += 0.03
 	attack_range += 4.0
 
 func choose_ability(index: int) -> void:
@@ -690,9 +625,9 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	# Base stats for each tier (each strictly higher than previous)
-	var tier_base_damage := [27.0, 29.0, 29.0, 31.0, 35.0]
-	var tier_base_fire_rate := [0.91, 0.91, 0.91, 0.91, 0.95]
-	var tier_base_range := [195.0, 198.0, 198.0, 202.0, 215.0]
+	var tier_base_damage := [30.0, 36.0, 44.0, 52.0]
+	var tier_base_fire_rate := [1.30, 1.56, 1.82, 2.20]
+	var tier_base_range := [205.0, 220.0, 240.0, 260.0]
 	var tier_idx := tier - 1
 	# Preserve accumulated boosts from stat upgrades above the tier base
 	var dmg_bonus := maxf(damage - tier_base_damage[maxi(tier_idx - 1, 0)], 0.0) if tier_idx > 0 else 0.0
@@ -709,27 +644,20 @@ func _apply_upgrade(tier: int) -> void:
 			fire_rate = tier_base_fire_rate[1] + fr_bonus
 			attack_range = tier_base_range[1] + range_bonus
 			gold_bonus = 2
-		3: # Children of the Night — killed enemies become vampire thralls
+		3: # Thrall — life restore every 15 kills
 			damage = tier_base_damage[2] + dmg_bonus
 			fire_rate = tier_base_fire_rate[2] + fr_bonus
 			attack_range = tier_base_range[2] + range_bonus
 			gold_bonus = 2
-			_children_of_night_active = true
-		4: # Nosferatu Rising — true form, drain all in range
+		4: # Lord of Darkness — constant feast
 			_lord_active = true
 			damage = tier_base_damage[3] + dmg_bonus
 			fire_rate = tier_base_fire_rate[3] + fr_bonus
 			attack_range = tier_base_range[3] + range_bonus
 			gold_bonus = 3
-			_children_of_night_active = true
-		5: # Walpurgis Night — 30% max HP damage to ALL enemies
-			_lord_active = true
-			_children_of_night_active = true
-			_walpurgis_night_active = true
-			# No stat boost — the ultimate ability IS the reward
 
 func purchase_upgrade() -> bool:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return false
 	var cost = TIER_COSTS[upgrade_tier]
 	var main_node = get_tree().get_first_node_in_group("main")
@@ -747,7 +675,7 @@ func get_tower_display_name() -> String:
 	return "Dracula"
 
 func get_next_upgrade_info() -> Dictionary:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return {}
 	return {
 		"name": TIER_NAMES[upgrade_tier],
@@ -769,48 +697,109 @@ func register_damage(amount: float) -> void:
 	_check_upgrades()
 
 func _generate_tier_sounds() -> void:
+	# Dark swooshing whisper — breathy noise + low sinusoidal sweep
+	var dark_notes := [110.00, 130.81, 146.83, 174.61, 146.83, 130.81, 110.00, 146.83]  # A2, C3, D3, F3, D3, C3, A2, D3 (D minor dark arpeggio)
 	var mix_rate := 44100
-	var melody := [73.42, 73.42, 87.31, 87.31, 98.00, 98.00, 110.00, 110.00]
-	# D2 D2 F2 F2 G2 G2 A2 A2 -- slow dark cello foundation
 	_attack_sounds_by_tier = []
-	for tier in range(5):
-		var tier_sounds: Array = []
-		var dur := 0.50 + tier * 0.06
-		var vol := 0.24 + tier * 0.015
-		var num_harmonics := 6 + tier
-		for note_idx in melody.size():
-			var freq: float = melody[note_idx]
-			var total := int(mix_rate * dur)
-			var samples := PackedFloat32Array()
-			samples.resize(total)
-			for i in total:
-				var t := float(i) / float(mix_rate)
-				# Bowing attack: slow fade-in
-				var env := minf(t * 12.0, 1.0) * exp(-maxf(t - dur * 0.6, 0.0) * 4.0)
-				# Vibrato: delayed onset, 4.5 Hz
-				var vib_depth := 2.5 * minf(t * 3.0, 1.0)
-				var vib := sin(t * 4.5 * TAU) * vib_depth
-				# Bowed string: sawtooth-like harmonics (1/n amplitude)
-				var s := 0.0
-				for h in range(1, num_harmonics + 1):
-					var amp := 1.0 / float(h)
-					# Odd harmonics stronger (bowed string characteristic)
-					if h % 2 == 1:
-						amp *= 1.2
-					s += sin(t * (freq + vib) * float(h) * TAU) * amp
-				s *= 0.12
-				# Bow pressure variation
-				s *= 1.0 + sin(t * 2.3 * TAU) * 0.04
-				samples[i] = clampf(s * env * vol, -1.0, 1.0)
-			# Gradual attack
-			var att_len := mini(int(0.025 * mix_rate), total)
-			for i in att_len:
-				samples[i] *= float(i) / float(att_len)
-			var rel_start := maxi(total - int(0.02 * mix_rate), 0)
-			for i in range(rel_start, total):
-				samples[i] *= 1.0 - float(i - rel_start) / float(total - rel_start)
-			tier_sounds.append(_samples_to_wav(samples, mix_rate))
-		_attack_sounds_by_tier.append(tier_sounds)
+
+	# --- Tier 0: Simple dark whisper swoosh ---
+	var t0 := []
+	for note_idx in dark_notes.size():
+		var freq: float = dark_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.18))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Breathy whisper — filtered noise with tonal component
+			var env := exp(-t * 15.0) * 0.3
+			var onset := minf(t * 60.0, 1.0)
+			var tone := sin(TAU * freq * t) * 0.4
+			var sweep := sin(TAU * (freq * 2.0 + t * 800.0) * t) * 0.15 * exp(-t * 20.0)
+			var breath := (randf() * 2.0 - 1.0) * exp(-t * 12.0) * 0.3
+			samples[i] = clampf((tone + sweep + breath) * env * onset, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Deeper vampiric swoosh with resonance ---
+	var t1 := []
+	for note_idx in dark_notes.size():
+		var freq: float = dark_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.2))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 12.0) * 0.35
+			var onset := minf(t * 50.0, 1.0)
+			var tone := sin(TAU * freq * t) * 0.45
+			var h2 := sin(TAU * freq * 2.0 * t) * 0.15 * exp(-t * 18.0)
+			var sweep := sin(TAU * (freq * 1.5 + t * 600.0) * t) * 0.12 * exp(-t * 16.0)
+			var breath := (randf() * 2.0 - 1.0) * exp(-t * 10.0) * 0.25
+			samples[i] = clampf((tone + h2 + sweep + breath) * env * onset, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Menacing swoosh with bat flutter undertone ---
+	var t2 := []
+	for note_idx in dark_notes.size():
+		var freq: float = dark_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.22))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 10.0) * 0.35
+			var onset := minf(t * 45.0, 1.0)
+			var tone := sin(TAU * freq * t) * 0.4
+			var h2 := sin(TAU * freq * 2.0 * t) * 0.18 * exp(-t * 14.0)
+			# Bat wing flutter modulation
+			var flutter := sin(TAU * 22.0 * t) * 0.3 + 0.7
+			var sweep := sin(TAU * (freq * 3.0 + t * 500.0) * t) * 0.1 * exp(-t * 12.0)
+			var breath := (randf() * 2.0 - 1.0) * exp(-t * 8.0) * 0.2
+			samples[i] = clampf((tone + h2 + sweep) * env * onset * flutter + breath * env, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Spectral swoosh with ghostly harmonics ---
+	var t3 := []
+	for note_idx in dark_notes.size():
+		var freq: float = dark_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.24))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 9.0) * 0.35
+			var onset := minf(t * 40.0, 1.0)
+			var tone := sin(TAU * freq * t) * 0.35
+			var ghost := sin(TAU * freq * 3.0 * t + sin(TAU * 5.0 * t) * 2.0) * 0.12 * exp(-t * 12.0)
+			var spectral := sin(TAU * freq * 5.0 * t) * 0.06 * exp(-t * 15.0)
+			var flutter := sin(TAU * 18.0 * t) * 0.25 + 0.75
+			var breath := (randf() * 2.0 - 1.0) * exp(-t * 7.0) * 0.18
+			samples[i] = clampf((tone + ghost + spectral) * env * onset * flutter + breath * env, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Lord of Darkness — deep reverberant dark power ---
+	var t4 := []
+	for note_idx in dark_notes.size():
+		var freq: float = dark_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.28))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 7.0) * 0.35
+			var onset := minf(t * 35.0, 1.0)
+			var tone := sin(TAU * freq * t) * 0.4
+			var h2 := sin(TAU * freq * 2.0 * t) * 0.2
+			var h3 := sin(TAU * freq * 3.0 * t) * 0.1 * exp(-t * 10.0)
+			var sub := sin(TAU * freq * 0.5 * t) * 0.15 * exp(-t * 5.0)
+			# Dark power shimmer
+			var shimmer := sin(TAU * freq * 4.01 * t) * 0.06 * exp(-t * 8.0)
+			shimmer += sin(TAU * freq * 3.99 * t) * 0.06 * exp(-t * 8.0)
+			var flutter := sin(TAU * 15.0 * t) * 0.2 + 0.8
+			var breath := (randf() * 2.0 - 1.0) * exp(-t * 6.0) * 0.15
+			samples[i] = clampf((tone + h2 + h3 + sub + shimmer) * env * onset * flutter + breath * env, -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
 func _refresh_tier_sounds() -> void:
 	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
 	_attack_sounds = _attack_sounds_by_tier[tier]
@@ -1063,11 +1052,12 @@ func _draw() -> void:
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
-		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.8, 0.1, 0.1, 0.25 + pulse * 0.15), 2.0)
-		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 28, Color(0.8, 0.1, 0.1, ring_alpha), 2.5)
-		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 28, Color(0.8, 0.1, 0.1, ring_alpha * 0.4), 1.5)
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.8, 0.1, 0.1, 0.25 + pulse * 0.15), 2.0)
+		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(0.8, 0.1, 0.1, ring_alpha), 2.5)
+		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(0.8, 0.1, 0.1, ring_alpha * 0.4), 1.5)
 	else:
-		pass  #draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1, 1, 1, 0.06), 1.0)
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -1100,13 +1090,13 @@ func _draw() -> void:
 
 	# === 6. UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:
-		pass  #draw_arc(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, 0, TAU, 24, Color(0.5, 0.05, 0.05, _upgrade_flash * 0.25), 6.0)
+		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.5, 0.05, 0.05, _upgrade_flash * 0.25))
 
 	# === 7. BAT DEVOUR FLASH (tier 2 ability) ===
 	if _bat_devour_flash > 0.0:
 		var bat_ring_r = 36.0 + (1.0 - _bat_devour_flash) * 70.0
-		pass  #draw_arc(Vector2.ZERO, bat_ring_r, 0, TAU, 24, Color(0.3, 0.0, 0.0, _bat_devour_flash * 0.15), 5.0)
-		pass  #draw_arc(Vector2.ZERO, bat_ring_r, 0, TAU, 32, Color(0.6, 0.1, 0.1, _bat_devour_flash * 0.3), 2.5)
+		draw_circle(Vector2.ZERO, bat_ring_r, Color(0.3, 0.0, 0.0, _bat_devour_flash * 0.15))
+		draw_arc(Vector2.ZERO, bat_ring_r, 0, TAU, 32, Color(0.6, 0.1, 0.1, _bat_devour_flash * 0.3), 2.5)
 		for bi in range(8):
 			var ba = TAU * float(bi) / 8.0 + _bat_devour_flash * 3.0
 			var b_inner = Vector2.from_angle(ba) * (bat_ring_r * 0.5)
@@ -1120,7 +1110,7 @@ func _draw() -> void:
 			var ma = TAU * float(mi) / 6.0 + _time * 0.8
 			var mpos = body_offset + Vector2.from_angle(ma) * 25.0
 			draw_circle(mpos, 8.0, Color(0.6, 0.6, 0.7, 0.08))
-		pass  #draw_circle(body_offset, 35.0, Color(0.5, 0.5, 0.6, 0.06))
+		draw_circle(body_offset, 35.0, Color(0.5, 0.5, 0.6, 0.06))
 
 	# Ability 3: Wolf flash
 	if _wolf_flash > 0.0:
@@ -1139,7 +1129,7 @@ func _draw() -> void:
 			var ha = _time * 4.0 + TAU * float(hi) / 6.0
 			var hpos = body_offset + Vector2.from_angle(ha) * hyp_r
 			draw_circle(hpos, 2.5, Color(0.5, 0.1, 0.6, _hypnotic_flash * 0.5))
-		pass  #draw_arc(body_offset, hyp_r, 0, TAU, 24, Color(0.6, 0.15, 0.7, _hypnotic_flash * 0.3), 2.0)
+		draw_arc(body_offset, hyp_r, 0, TAU, 24, Color(0.6, 0.15, 0.7, _hypnotic_flash * 0.3), 2.0)
 		draw_circle(body_offset, hyp_r * 0.4, Color(0.4, 0.05, 0.5, _hypnotic_flash * 0.12))
 
 	# Ability 5: Blood Moon flash
@@ -1170,7 +1160,7 @@ func _draw() -> void:
 		var kiss_r = 18.0 + (1.0 - _brides_kiss_flash) * 20.0
 		# Pink healing glow
 		draw_circle(body_offset, kiss_r, Color(0.9, 0.3, 0.4, _brides_kiss_flash * 0.12))
-		pass  #draw_arc(body_offset, kiss_r, 0, TAU, 24, Color(0.95, 0.2, 0.35, _brides_kiss_flash * 0.35), 2.0)
+		draw_arc(body_offset, kiss_r, 0, TAU, 24, Color(0.95, 0.2, 0.35, _brides_kiss_flash * 0.35), 2.0)
 		# Rising heart particles
 		for ki in range(5):
 			var ky = body_offset.y - 30.0 - (1.0 - _brides_kiss_flash) * 25.0 - float(ki) * 8.0
@@ -1181,8 +1171,8 @@ func _draw() -> void:
 	# Ability 9: Prince of Darkness flash — dark wave expanding
 	if _prince_flash > 0.0:
 		var wave_r = 30.0 + (1.0 - _prince_flash) * 120.0
-		pass  #draw_arc(Vector2.ZERO, wave_r, 0, TAU, 32, Color(0.3, 0.0, 0.0, _prince_flash * 0.4), 3.0)
-		pass  #draw_arc(Vector2.ZERO, wave_r * 0.7, 0, TAU, 24, Color(0.4, 0.02, 0.02, _prince_flash * 0.25), 2.0)
+		draw_arc(Vector2.ZERO, wave_r, 0, TAU, 32, Color(0.3, 0.0, 0.0, _prince_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, wave_r * 0.7, 0, TAU, 24, Color(0.4, 0.02, 0.02, _prince_flash * 0.25), 2.0)
 		for pi in range(8):
 			var pa = TAU * float(pi) / 8.0 + _prince_flash * 2.0
 			var pr = wave_r * 0.8
@@ -1291,8 +1281,8 @@ func _draw() -> void:
 		# Thrall flash — green/red glow when life restored
 		if _thrall_flash > 0.0:
 			var tf_alpha = clampf(_thrall_flash, 0.0, 1.0)
-			pass  #draw_circle(body_offset, 38.0 + _thrall_flash * 8.0, Color(0.2, 0.6, 0.15, tf_alpha * 0.12))
-			pass  #draw_arc(body_offset, 36.0 + _thrall_flash * 6.0, 0, TAU, 24, Color(0.3, 0.8, 0.2, tf_alpha * 0.25), 2.5)
+			draw_circle(body_offset, 38.0 + _thrall_flash * 8.0, Color(0.2, 0.6, 0.15, tf_alpha * 0.12))
+			draw_arc(body_offset, 36.0 + _thrall_flash * 6.0, 0, TAU, 24, Color(0.3, 0.8, 0.2, tf_alpha * 0.25), 2.5)
 			# Cross/heart symbol for life restore
 			var cross_y = body_offset.y - 45.0 - _thrall_flash * 10.0
 			draw_line(Vector2(body_offset.x, cross_y - 4), Vector2(body_offset.x, cross_y + 4), Color(0.3, 0.85, 0.2, tf_alpha * 0.7), 2.5)
@@ -1302,10 +1292,13 @@ func _draw() -> void:
 	if upgrade_tier >= 4:
 		var lord_pulse = sin(_lord_glow) * 0.5 + 0.5
 		# Inner red glow
+		draw_circle(body_offset, 48.0 + lord_pulse * 8.0, Color(0.6, 0.02, 0.02, 0.06 + lord_pulse * 0.04))
+		draw_circle(body_offset, 38.0 + lord_pulse * 5.0, Color(0.7, 0.05, 0.03, 0.08 + lord_pulse * 0.05))
 		# Outer pulsing ring
-		pass  #draw_arc(body_offset, 50.0 + lord_pulse * 8.0, 0, TAU, 24, Color(0.85, 0.08, 0.05, 0.10 + lord_pulse * 0.12), 4.0)
+		draw_arc(body_offset, 50.0 + lord_pulse * 8.0, 0, TAU, 32, Color(0.85, 0.08, 0.05, 0.10 + lord_pulse * 0.12), 2.5)
+		draw_arc(body_offset, 44.0 + lord_pulse * 5.0, 0, TAU, 24, Color(0.7, 0.05, 0.03, 0.08 + lord_pulse * 0.08), 1.5)
 		# Dark red particles rising
-		for dp in range(6):
+		for dp in range(8):
 			var dp_a = _time * (0.6 + fmod(float(dp) * 0.3, 0.5)) + float(dp) * TAU / 8.0
 			var dp_r = 30.0 + lord_pulse * 6.0 + fmod(float(dp) * 5.3, 12.0)
 			var dp_pos = body_offset + Vector2(cos(dp_a) * dp_r, sin(dp_a) * dp_r * 0.5 - fmod(_time * 15.0 + float(dp) * 7.0, 30.0))
@@ -1378,603 +1371,572 @@ func _draw() -> void:
 			draw_circle(splash_pos, 2.0 + splash_alpha * 1.5, Color(0.7, 0.02, 0.02, splash_alpha * 0.4))
 		draw_circle(body_offset, 6.0 + (1.0 - splash_alpha) * 10.0, Color(0.8, 0.05, 0.03, splash_alpha * 0.15))
 
-	# === SPRITE RENDERING (animated — elegant & sinister) ===
-	if false:  # force procedural body
-		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
-		var _sf = 56.0 / _ss.y
-		var _sd = _ss * _sf
-		var breathe_scl = 1.0 + sin(_time * 1.5) * 0.016
-		var sway_rot = sin(_time * 0.7) * 0.022
-		var s_aim_lean = sin(aim_angle) * 0.045
-		var recoil_off = Vector2.ZERO
-		var atk_scl = Vector2.ONE
-		if _attack_anim > 0.0:
-			var tier_r = 1.0 + float(upgrade_tier) * 0.15
-			var rt = _attack_anim * _attack_anim
-			recoil_off = -Vector2.from_angle(aim_angle) * rt * 3.5 * tier_r
-			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
-			atk_scl = Vector2(1.0 + sq * (0.09 + float(upgrade_tier) * 0.02), 1.0 - sq * (0.07 + float(upgrade_tier) * 0.015))
-		var total_rot = sway_rot + s_aim_lean
-		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
-		var _fl = cos(aim_angle) < 0.0
-		if _fl:
-			total_scl.x *= -1.0
-			total_rot *= -1.0
-		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
-		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# === 13. CHARACTER BODY — BTD6 CARTOON STYLE ===
+	var OL = Color(0.06, 0.06, 0.08)
+	var breath = breathe
 
-	if true:  # procedural Bloons character
-		# === 13. CHARACTER BODY — BTD6 CARTOON STYLE ===
-		var OL = Color(0.06, 0.06, 0.08)
-		var breath = breathe
+	# Chibi positions
+	var sway = hip_shift
+	var feet_y = body_offset + Vector2(sway * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(sway * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(sway * 0.3, -8.0 - breath * 0.5)
+	var neck_base = body_offset + Vector2(sway * 0.15, -14.0 - breath * 0.3)
+	var head_center = body_offset + Vector2(sway * 0.08, -26.0)
 
-		# Chibi positions
-		var sway = hip_shift
-		var feet_y = body_offset + Vector2(sway * 1.0, 10.0)
-		var leg_top = body_offset + Vector2(sway * 0.6, 0.0)
-		var torso_center = body_offset + Vector2(sway * 0.3, -8.0 - breath * 0.5)
-		var neck_base = body_offset + Vector2(sway * 0.15, -14.0 - breath * 0.3)
-		var head_center = body_offset + Vector2(sway * 0.08, -26.0)
+	# Colors
+	var skin = Color(0.92, 0.85, 0.82)
+	var skin_hi = Color(0.97, 0.93, 0.91)
+	var skin_dark = Color(0.78, 0.72, 0.70)
+	var suit_black = Color(0.10, 0.08, 0.10)
+	var suit_dark = Color(0.06, 0.04, 0.06)
+	var cape_black = Color(0.08, 0.05, 0.07)
+	var cape_red = Color(0.78, 0.08, 0.06)
+	var cape_red_dark = Color(0.55, 0.04, 0.04)
+	var cravat_red = Color(0.85, 0.10, 0.08)
+	var hair_col = Color(0.06, 0.04, 0.05)
+	var hair_hi = Color(0.16, 0.10, 0.14)
 
-		# Colors
-		var skin = Color(0.92, 0.85, 0.82)
-		var skin_hi = Color(0.97, 0.93, 0.91)
-		var skin_dark = Color(0.78, 0.72, 0.70)
-		var suit_black = Color(0.10, 0.08, 0.10)
-		var suit_dark = Color(0.06, 0.04, 0.06)
-		var cape_black = Color(0.08, 0.05, 0.07)
-		var cape_red = Color(0.78, 0.08, 0.06)
-		var cape_red_dark = Color(0.55, 0.04, 0.04)
-		var cravat_red = Color(0.85, 0.10, 0.08)
-		var hair_col = Color(0.06, 0.04, 0.05)
-		var hair_hi = Color(0.16, 0.10, 0.14)
+	# === 14. DRAMATIC CAPE (drawn BEHIND body) ===
+	var cape_top_l = neck_base + Vector2(-11, -2)
+	var cape_top_r = neck_base + Vector2(11, -2)
+	var cape_mid_l = torso_center + Vector2(-20 + cape_wind * 0.5, 8.0)
+	var cape_mid_r = torso_center + Vector2(20 + cape_wind * 0.4, 9.0)
+	var cape_bot_l = feet_y + Vector2(-24 + cape_wind * 0.8, 12.0 + cape_flutter)
+	var cape_bot_r = feet_y + Vector2(24 + cape_wind * 0.6, 13.0 + cape_flutter * 0.8)
+	var cape_bot_c = feet_y + Vector2(cape_wind * 0.35, 16.0 + cape_flutter * 0.5)
+	# Cape outline
+	draw_colored_polygon(PackedVector2Array([
+		cape_top_l + Vector2(-1.5, -1.5), cape_top_r + Vector2(1.5, -1.5),
+		cape_mid_r + Vector2(1.5, 0), cape_bot_r + Vector2(1.5, 1.5),
+		cape_bot_c + Vector2(0, 1.5), cape_bot_l + Vector2(-1.5, 1.5),
+		cape_mid_l + Vector2(-1.5, 0),
+	]), OL)
+	# Cape fill (black outer)
+	draw_colored_polygon(PackedVector2Array([
+		cape_top_l, cape_top_r, cape_mid_r, cape_bot_r,
+		cape_bot_c, cape_bot_l, cape_mid_l,
+	]), cape_black)
+	# Red lining — right edge exposed
+	var lining_show = 0.35 + abs(cape_wind) * 0.025
+	draw_colored_polygon(PackedVector2Array([
+		cape_top_r + Vector2(-3, 1), cape_top_r,
+		cape_mid_r, cape_mid_r + Vector2(-5, -2),
+	]), Color(cape_red.r, cape_red.g, cape_red.b, lining_show))
+	# Red lining — left edge
+	draw_colored_polygon(PackedVector2Array([
+		cape_top_l, cape_top_l + Vector2(3, 1),
+		cape_mid_l + Vector2(5, -2), cape_mid_l,
+	]), Color(cape_red.r, cape_red.g, cape_red.b, lining_show * 0.75))
+	# Red lining — bottom peek
+	draw_colored_polygon(PackedVector2Array([
+		cape_mid_r + Vector2(-3, 0), cape_mid_r,
+		cape_bot_r, cape_bot_r + Vector2(-4, -3),
+	]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, lining_show * 0.6))
+	draw_colored_polygon(PackedVector2Array([
+		cape_mid_l, cape_mid_l + Vector2(3, 0),
+		cape_bot_l + Vector2(4, -3), cape_bot_l,
+	]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, lining_show * 0.45))
+	# Cape fold lines (bold dark)
+	draw_line(cape_top_l.lerp(cape_top_r, 0.3), cape_mid_l.lerp(cape_mid_r, 0.2), Color(0.02, 0.0, 0.02, 0.5), 1.2)
+	draw_line(cape_top_l.lerp(cape_top_r, 0.6), cape_mid_l.lerp(cape_mid_r, 0.55), Color(0.02, 0.0, 0.02, 0.45), 1.2)
+	draw_line(cape_top_l.lerp(cape_top_r, 0.85), cape_mid_l.lerp(cape_mid_r, 0.8), Color(0.02, 0.0, 0.02, 0.35), 1.0)
+	# Bat-shaped cape clasps at shoulders
+	for ci in range(2):
+		var clasp_x = -10.0 if ci == 0 else 10.0
+		var clasp_pos = neck_base + Vector2(clasp_x, -1)
+		draw_circle(clasp_pos, 3.2, OL)
+		draw_circle(clasp_pos, 2.2, Color(0.55, 0.45, 0.35))
+		draw_line(clasp_pos + Vector2(-2.5, 0), clasp_pos + Vector2(-4, -2.5), OL, 1.5)
+		draw_line(clasp_pos + Vector2(2.5, 0), clasp_pos + Vector2(4, -2.5), OL, 1.5)
 
-		# === 14. DRAMATIC CAPE (drawn BEHIND body) ===
-		var cape_top_l = neck_base + Vector2(-11, -2)
-		var cape_top_r = neck_base + Vector2(11, -2)
-		var cape_mid_l = torso_center + Vector2(-20 + cape_wind * 0.5, 8.0)
-		var cape_mid_r = torso_center + Vector2(20 + cape_wind * 0.4, 9.0)
-		var cape_bot_l = feet_y + Vector2(-24 + cape_wind * 0.8, 12.0 + cape_flutter)
-		var cape_bot_r = feet_y + Vector2(24 + cape_wind * 0.6, 13.0 + cape_flutter * 0.8)
-		var cape_bot_c = feet_y + Vector2(cape_wind * 0.35, 16.0 + cape_flutter * 0.5)
-		# Cape outline
-		draw_colored_polygon(PackedVector2Array([
-			cape_top_l + Vector2(-1.5, -1.5), cape_top_r + Vector2(1.5, -1.5),
-			cape_mid_r + Vector2(1.5, 0), cape_bot_r + Vector2(1.5, 1.5),
-			cape_bot_c + Vector2(0, 1.5), cape_bot_l + Vector2(-1.5, 1.5),
-			cape_mid_l + Vector2(-1.5, 0),
-		]), OL)
-		# Cape fill (black outer)
-		draw_colored_polygon(PackedVector2Array([
-			cape_top_l, cape_top_r, cape_mid_r, cape_bot_r,
-			cape_bot_c, cape_bot_l, cape_mid_l,
-		]), cape_black)
-		# Red lining — right edge exposed
-		var lining_show = 0.35 + abs(cape_wind) * 0.025
-		draw_colored_polygon(PackedVector2Array([
-			cape_top_r + Vector2(-3, 1), cape_top_r,
-			cape_mid_r, cape_mid_r + Vector2(-5, -2),
-		]), Color(cape_red.r, cape_red.g, cape_red.b, lining_show))
-		# Red lining — left edge
-		draw_colored_polygon(PackedVector2Array([
-			cape_top_l, cape_top_l + Vector2(3, 1),
-			cape_mid_l + Vector2(5, -2), cape_mid_l,
-		]), Color(cape_red.r, cape_red.g, cape_red.b, lining_show * 0.75))
-		# Red lining — bottom peek
-		draw_colored_polygon(PackedVector2Array([
-			cape_mid_r + Vector2(-3, 0), cape_mid_r,
-			cape_bot_r, cape_bot_r + Vector2(-4, -3),
-		]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, lining_show * 0.6))
-		draw_colored_polygon(PackedVector2Array([
-			cape_mid_l, cape_mid_l + Vector2(3, 0),
-			cape_bot_l + Vector2(4, -3), cape_bot_l,
-		]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, lining_show * 0.45))
-		# Cape fold lines (bold dark)
-		draw_line(cape_top_l.lerp(cape_top_r, 0.3), cape_mid_l.lerp(cape_mid_r, 0.2), Color(0.02, 0.0, 0.02, 0.5), 1.2)
-		draw_line(cape_top_l.lerp(cape_top_r, 0.6), cape_mid_l.lerp(cape_mid_r, 0.55), Color(0.02, 0.0, 0.02, 0.45), 1.2)
-		draw_line(cape_top_l.lerp(cape_top_r, 0.85), cape_mid_l.lerp(cape_mid_r, 0.8), Color(0.02, 0.0, 0.02, 0.35), 1.0)
-		# Bat-shaped cape clasps at shoulders
-		for ci in range(2):
-			var clasp_x = -10.0 if ci == 0 else 10.0
-			var clasp_pos = neck_base + Vector2(clasp_x, -1)
-			draw_circle(clasp_pos, 3.2, OL)
-			draw_circle(clasp_pos, 2.2, Color(0.55, 0.45, 0.35))
-			draw_line(clasp_pos + Vector2(-2.5, 0), clasp_pos + Vector2(-4, -2.5), OL, 1.5)
-			draw_line(clasp_pos + Vector2(2.5, 0), clasp_pos + Vector2(4, -2.5), OL, 1.5)
+	# === 15. CHUNKY CHIBI BODY ===
 
-		# === 15. CHUNKY CHIBI BODY ===
+	# --- FEET (chunky rounded shoes) ---
+	var l_foot = feet_y + Vector2(-5, 0)
+	var r_foot = feet_y + Vector2(5, 0)
+	draw_circle(l_foot, 5.5, OL)
+	draw_circle(r_foot, 5.5, OL)
+	draw_circle(l_foot, 4.2, suit_black)
+	draw_circle(r_foot, 4.2, suit_black)
+	# Shoe highlight
+	draw_circle(l_foot + Vector2(-0.8, -1.2), 1.8, Color(0.22, 0.18, 0.20, 0.5))
+	draw_circle(r_foot + Vector2(0.8, -1.2), 1.8, Color(0.22, 0.18, 0.20, 0.5))
+	# Silver buckle
+	draw_circle(l_foot + Vector2(0, -1), 1.5, OL)
+	draw_circle(l_foot + Vector2(0, -1), 0.9, Color(0.72, 0.70, 0.65))
+	draw_circle(r_foot + Vector2(0, -1), 1.5, OL)
+	draw_circle(r_foot + Vector2(0, -1), 0.9, Color(0.72, 0.70, 0.65))
 
-		# --- FEET (chunky rounded shoes) ---
-		var l_foot = feet_y + Vector2(-5, 0)
-		var r_foot = feet_y + Vector2(5, 0)
-		draw_circle(l_foot, 5.5, OL)
-		draw_circle(r_foot, 5.5, OL)
-		draw_circle(l_foot, 4.2, suit_black)
-		draw_circle(r_foot, 4.2, suit_black)
-		# Shoe highlight
-		draw_circle(l_foot + Vector2(-0.8, -1.2), 1.8, Color(0.22, 0.18, 0.20, 0.5))
-		draw_circle(r_foot + Vector2(0.8, -1.2), 1.8, Color(0.22, 0.18, 0.20, 0.5))
-		# Silver buckle
-		draw_circle(l_foot + Vector2(0, -1), 1.5, OL)
-		draw_circle(l_foot + Vector2(0, -1), 0.9, Color(0.72, 0.70, 0.65))
-		draw_circle(r_foot + Vector2(0, -1), 1.5, OL)
-		draw_circle(r_foot + Vector2(0, -1), 0.9, Color(0.72, 0.70, 0.65))
+	# --- LEGS (short chunky, black trousers) ---
+	var l_hip = leg_top + Vector2(-4, 0)
+	var r_hip = leg_top + Vector2(4, 0)
+	# Left leg
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(-4.5, 0), l_hip + Vector2(4.0, 0),
+		l_foot + Vector2(3.5, -2), l_foot + Vector2(-3.5, -2),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		l_hip + Vector2(-3.2, 0.5), l_hip + Vector2(2.8, 0.5),
+		l_foot + Vector2(2.2, -2.5), l_foot + Vector2(-2.2, -2.5),
+	]), suit_dark)
+	# Right leg
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-4.0, 0), r_hip + Vector2(4.5, 0),
+		r_foot + Vector2(3.5, -2), r_foot + Vector2(-3.5, -2),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		r_hip + Vector2(-2.8, 0.5), r_hip + Vector2(3.2, 0.5),
+		r_foot + Vector2(2.2, -2.5), r_foot + Vector2(-2.2, -2.5),
+	]), suit_dark)
+	# Trouser crease
+	draw_line(l_hip, l_foot + Vector2(0, -3), Color(0.02, 0.0, 0.02, 0.3), 0.8)
+	draw_line(r_hip, r_foot + Vector2(0, -3), Color(0.02, 0.0, 0.02, 0.3), 0.8)
 
-		# --- LEGS (short chunky, black trousers) ---
-		var l_hip = leg_top + Vector2(-4, 0)
-		var r_hip = leg_top + Vector2(4, 0)
-		# Left leg
-		draw_colored_polygon(PackedVector2Array([
-			l_hip + Vector2(-4.5, 0), l_hip + Vector2(4.0, 0),
-			l_foot + Vector2(3.5, -2), l_foot + Vector2(-3.5, -2),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			l_hip + Vector2(-3.2, 0.5), l_hip + Vector2(2.8, 0.5),
-			l_foot + Vector2(2.2, -2.5), l_foot + Vector2(-2.2, -2.5),
-		]), suit_dark)
-		# Right leg
-		draw_colored_polygon(PackedVector2Array([
-			r_hip + Vector2(-4.0, 0), r_hip + Vector2(4.5, 0),
-			r_foot + Vector2(3.5, -2), r_foot + Vector2(-3.5, -2),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			r_hip + Vector2(-2.8, 0.5), r_hip + Vector2(3.2, 0.5),
-			r_foot + Vector2(2.2, -2.5), r_foot + Vector2(-2.2, -2.5),
-		]), suit_dark)
-		# Trouser crease
-		draw_line(l_hip, l_foot + Vector2(0, -3), Color(0.02, 0.0, 0.02, 0.3), 0.8)
-		draw_line(r_hip, r_foot + Vector2(0, -3), Color(0.02, 0.0, 0.02, 0.3), 0.8)
+	# --- TORSO (formal black suit, chunky chibi) ---
+	var torso_ol = PackedVector2Array([
+		leg_top + Vector2(-9.5, 2),
+		torso_center + Vector2(-13.5, -1),
+		neck_base + Vector2(-14.5, 0),
+		neck_base + Vector2(14.5, 0),
+		torso_center + Vector2(13.5, -1),
+		leg_top + Vector2(9.5, 2),
+	])
+	draw_colored_polygon(torso_ol, OL)
+	var torso_fill = PackedVector2Array([
+		leg_top + Vector2(-8, 1),
+		torso_center + Vector2(-12, 0),
+		neck_base + Vector2(-13, 1),
+		neck_base + Vector2(13, 1),
+		torso_center + Vector2(12, 0),
+		leg_top + Vector2(8, 1),
+	])
+	draw_colored_polygon(torso_fill, suit_dark)
 
-		# --- TORSO (formal black suit, chunky chibi) ---
-		var torso_ol = PackedVector2Array([
-			leg_top + Vector2(-9.5, 2),
-			torso_center + Vector2(-13.5, -1),
-			neck_base + Vector2(-14.5, 0),
-			neck_base + Vector2(14.5, 0),
-			torso_center + Vector2(13.5, -1),
-			leg_top + Vector2(9.5, 2),
-		])
-		draw_colored_polygon(torso_ol, OL)
-		var torso_fill = PackedVector2Array([
-			leg_top + Vector2(-8, 1),
-			torso_center + Vector2(-12, 0),
-			neck_base + Vector2(-13, 1),
-			neck_base + Vector2(13, 1),
-			torso_center + Vector2(12, 0),
-			leg_top + Vector2(8, 1),
-		])
-		draw_colored_polygon(torso_fill, suit_dark)
+	# White shirt front V-shape
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-4, 2),
+		neck_base + Vector2(4, 2),
+		torso_center + Vector2(2, 6),
+		torso_center + Vector2(-2, 6),
+	]), Color(0.92, 0.90, 0.88))
+	draw_line(neck_base + Vector2(-4, 2), torso_center + Vector2(-2, 6), OL, 1.2)
+	draw_line(neck_base + Vector2(4, 2), torso_center + Vector2(2, 6), OL, 1.2)
 
-		# White shirt front V-shape
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-4, 2),
-			neck_base + Vector2(4, 2),
-			torso_center + Vector2(2, 6),
-			torso_center + Vector2(-2, 6),
-		]), Color(0.92, 0.90, 0.88))
-		draw_line(neck_base + Vector2(-4, 2), torso_center + Vector2(-2, 6), OL, 1.2)
-		draw_line(neck_base + Vector2(4, 2), torso_center + Vector2(2, 6), OL, 1.2)
+	# Suit lapels — bold dark V
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-5, 1), neck_base + Vector2(-12, 2),
+		torso_center + Vector2(-9, 3), torso_center + Vector2(-3, 5),
+	]), suit_black)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(5, 1), neck_base + Vector2(12, 2),
+		torso_center + Vector2(9, 3), torso_center + Vector2(3, 5),
+	]), suit_black)
+	draw_line(neck_base + Vector2(-5, 1), torso_center + Vector2(-3, 5), OL, 2.0)
+	draw_line(neck_base + Vector2(5, 1), torso_center + Vector2(3, 5), OL, 2.0)
 
-		# Suit lapels — bold dark V
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-5, 1), neck_base + Vector2(-12, 2),
-			torso_center + Vector2(-9, 3), torso_center + Vector2(-3, 5),
-		]), suit_black)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(5, 1), neck_base + Vector2(12, 2),
-			torso_center + Vector2(9, 3), torso_center + Vector2(3, 5),
-		]), suit_black)
-		draw_line(neck_base + Vector2(-5, 1), torso_center + Vector2(-3, 5), OL, 2.0)
-		draw_line(neck_base + Vector2(5, 1), torso_center + Vector2(3, 5), OL, 2.0)
+	# Suit buttons (3 dark shiny)
+	for bi in range(3):
+		var by = torso_center.y - 1.0 + float(bi) * 3.5
+		var btn_pos = Vector2(torso_center.x, by)
+		draw_circle(btn_pos, 1.8, OL)
+		draw_circle(btn_pos, 1.0, Color(0.25, 0.18, 0.22))
 
-		# Suit buttons (3 dark shiny)
-		for bi in range(3):
-			var by = torso_center.y - 1.0 + float(bi) * 3.5
-			var btn_pos = Vector2(torso_center.x, by)
-			draw_circle(btn_pos, 1.8, OL)
-			draw_circle(btn_pos, 1.0, Color(0.25, 0.18, 0.22))
+	# Red cravat at throat
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-4, 1.5), neck_base + Vector2(4, 1.5),
+		neck_base + Vector2(2.5, 7), neck_base + Vector2(0, 8.5),
+		neck_base + Vector2(-2.5, 7),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-3.2, 2.2), neck_base + Vector2(3.2, 2.2),
+		neck_base + Vector2(1.8, 6.2), neck_base + Vector2(0, 7.5),
+		neck_base + Vector2(-1.8, 6.2),
+	]), cravat_red)
+	# Cravat highlight
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-1.5, 3), neck_base + Vector2(1.5, 3),
+		neck_base + Vector2(0.8, 5.5), neck_base + Vector2(-0.8, 5.5),
+	]), Color(0.95, 0.20, 0.15, 0.5))
 
-		# Red cravat at throat
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-4, 1.5), neck_base + Vector2(4, 1.5),
-			neck_base + Vector2(2.5, 7), neck_base + Vector2(0, 8.5),
-			neck_base + Vector2(-2.5, 7),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-3.2, 2.2), neck_base + Vector2(3.2, 2.2),
-			neck_base + Vector2(1.8, 6.2), neck_base + Vector2(0, 7.5),
-			neck_base + Vector2(-1.8, 6.2),
-		]), cravat_red)
-		# Cravat highlight
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-1.5, 3), neck_base + Vector2(1.5, 3),
-			neck_base + Vector2(0.8, 5.5), neck_base + Vector2(-0.8, 5.5),
-		]), Color(0.95, 0.20, 0.15, 0.5))
+	# Red gem brooch
+	var brooch_pos = neck_base + Vector2(0, 2)
+	draw_circle(brooch_pos, 3.5, OL)
+	draw_circle(brooch_pos, 2.5, Color(0.75, 0.08, 0.06))
+	draw_circle(brooch_pos, 1.6, Color(0.92, 0.18, 0.12))
+	var gem_pulse = sin(_time * 3.0) * 0.15 + 0.85
+	draw_circle(brooch_pos + Vector2(-0.5, -0.6), 0.7, Color(1.0, 0.5, 0.4, 0.5 * gem_pulse))
 
-		# Red gem brooch
-		var brooch_pos = neck_base + Vector2(0, 2)
-		draw_circle(brooch_pos, 3.5, OL)
-		draw_circle(brooch_pos, 2.5, Color(0.75, 0.08, 0.06))
-		draw_circle(brooch_pos, 1.6, Color(0.92, 0.18, 0.12))
-		var gem_pulse = sin(_time * 3.0) * 0.15 + 0.85
-		draw_circle(brooch_pos + Vector2(-0.5, -0.6), 0.7, Color(1.0, 0.5, 0.4, 0.5 * gem_pulse))
+	# High collar — bold pointed upward
+	# Left collar
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-6, -1), neck_base + Vector2(-13, 0),
+		neck_base + Vector2(-10, -10), neck_base + Vector2(-5, -8),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-5.5, -0.5), neck_base + Vector2(-11.5, 0.5),
+		neck_base + Vector2(-9, -8.5), neck_base + Vector2(-4.5, -7),
+	]), suit_dark)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-5, -1.5), neck_base + Vector2(-9.5, -0.5),
+		neck_base + Vector2(-8, -7), neck_base + Vector2(-4, -5.5),
+	]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, 0.5))
+	# Right collar
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(6, -1), neck_base + Vector2(13, 0),
+		neck_base + Vector2(10, -10), neck_base + Vector2(5, -8),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(5.5, -0.5), neck_base + Vector2(11.5, 0.5),
+		neck_base + Vector2(9, -8.5), neck_base + Vector2(4.5, -7),
+	]), suit_dark)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(5, -1.5), neck_base + Vector2(9.5, -0.5),
+		neck_base + Vector2(8, -7), neck_base + Vector2(4, -5.5),
+	]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, 0.5))
 
-		# High collar — bold pointed upward
-		# Left collar
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-6, -1), neck_base + Vector2(-13, 0),
-			neck_base + Vector2(-10, -10), neck_base + Vector2(-5, -8),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-5.5, -0.5), neck_base + Vector2(-11.5, 0.5),
-			neck_base + Vector2(-9, -8.5), neck_base + Vector2(-4.5, -7),
-		]), suit_dark)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-5, -1.5), neck_base + Vector2(-9.5, -0.5),
-			neck_base + Vector2(-8, -7), neck_base + Vector2(-4, -5.5),
-		]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, 0.5))
-		# Right collar
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(6, -1), neck_base + Vector2(13, 0),
-			neck_base + Vector2(10, -10), neck_base + Vector2(5, -8),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(5.5, -0.5), neck_base + Vector2(11.5, 0.5),
-			neck_base + Vector2(9, -8.5), neck_base + Vector2(4.5, -7),
-		]), suit_dark)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(5, -1.5), neck_base + Vector2(9.5, -0.5),
-			neck_base + Vector2(8, -7), neck_base + Vector2(4, -5.5),
-		]), Color(cape_red_dark.r, cape_red_dark.g, cape_red_dark.b, 0.5))
+	# --- SHOULDERS (chunky round) ---
+	var l_shoulder = neck_base + Vector2(-12, 1)
+	var r_shoulder = neck_base + Vector2(12, 1)
+	draw_circle(l_shoulder, 6.0, OL)
+	draw_circle(l_shoulder, 4.5, suit_dark)
+	draw_circle(l_shoulder + Vector2(-0.5, -1), 2.0, Color(suit_black.r, suit_black.g, suit_black.b, 0.4))
+	draw_circle(r_shoulder, 6.0, OL)
+	draw_circle(r_shoulder, 4.5, suit_dark)
+	draw_circle(r_shoulder + Vector2(0.5, -1), 2.0, Color(suit_black.r, suit_black.g, suit_black.b, 0.4))
 
-		# --- SHOULDERS (chunky round) ---
-		var l_shoulder = neck_base + Vector2(-12, 1)
-		var r_shoulder = neck_base + Vector2(12, 1)
-		draw_circle(l_shoulder, 6.0, OL)
-		draw_circle(l_shoulder, 4.5, suit_dark)
-		draw_circle(l_shoulder + Vector2(-0.5, -1), 2.0, Color(suit_black.r, suit_black.g, suit_black.b, 0.4))
-		draw_circle(r_shoulder, 6.0, OL)
-		draw_circle(r_shoulder, 4.5, suit_dark)
-		draw_circle(r_shoulder + Vector2(0.5, -1), 2.0, Color(suit_black.r, suit_black.g, suit_black.b, 0.4))
+	# --- RIGHT ARM (casting arm — extends toward target) ---
+	var cast_extend = _cast_anim * 12.0
+	var cast_hand = r_shoulder + Vector2(0, 2) + dir * (10.0 + cast_extend)
+	var cast_elbow = r_shoulder + (cast_hand - r_shoulder) * 0.45 + Vector2(0, 4)
+	# Upper arm
+	var ca_d = (cast_elbow - r_shoulder).normalized()
+	var ca_p = ca_d.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + ca_p * 5.0, r_shoulder - ca_p * 4.5,
+		cast_elbow - ca_p * 4.0, cast_elbow + ca_p * 4.5,
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		r_shoulder + ca_p * 3.5, r_shoulder - ca_p * 3.0,
+		cast_elbow - ca_p * 2.8, cast_elbow + ca_p * 3.0,
+	]), suit_dark)
+	# Elbow joint
+	draw_circle(cast_elbow, 4.2, OL)
+	draw_circle(cast_elbow, 3.0, suit_dark)
+	# Forearm
+	var cf_d = (cast_hand - cast_elbow).normalized()
+	var cf_p = cf_d.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		cast_elbow + cf_p * 4.2, cast_elbow - cf_p * 3.8,
+		cast_hand - cf_p * 2.8, cast_hand + cf_p * 3.0,
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		cast_elbow + cf_p * 2.8, cast_elbow - cf_p * 2.5,
+		cast_hand - cf_p * 1.8, cast_hand + cf_p * 2.0,
+	]), suit_dark)
+	# White cuff at wrist
+	var cuff_pos = cast_hand - cf_d * 3.0
+	draw_line(cuff_pos - cf_p * 3.0, cuff_pos + cf_p * 3.0, OL, 3.0)
+	draw_line(cuff_pos - cf_p * 2.2, cuff_pos + cf_p * 2.2, Color(0.92, 0.90, 0.88), 2.0)
+	# Hand — pale with pointed nails
+	draw_circle(cast_hand, 4.0, OL)
+	draw_circle(cast_hand, 2.8, skin)
+	# Fingers extended (casting pose)
+	for fi in range(4):
+		var fa = float(fi - 1.5) * 0.22
+		var f_tip = cast_hand + dir.rotated(fa) * 5.5
+		var f_base = cast_hand + dir.rotated(fa) * 1.5
+		draw_line(f_base, f_tip, OL, 2.2)
+		draw_line(f_base, f_tip, skin, 1.4)
+		# Pointed nail
+		var nail_tip = f_tip + dir.rotated(fa) * 2.0
+		draw_line(f_tip, nail_tip, OL, 1.5)
+		draw_line(f_tip, nail_tip, Color(0.50, 0.45, 0.42), 0.8)
+	# Thumb
+	draw_line(cast_hand, cast_hand + perp * 3.5 + dir * 1.0, OL, 2.2)
+	draw_line(cast_hand, cast_hand + perp * 3.5 + dir * 1.0, skin, 1.4)
+	# Cast energy at fingertips when attacking
+	if _attack_anim > 0.2:
+		var cast_alpha = _attack_anim * 0.6
+		draw_circle(cast_hand + dir * 6.0, 5.0, Color(0.65, 0.05, 0.05, cast_alpha * 0.5))
+		draw_circle(cast_hand + dir * 6.5, 3.5, Color(0.85, 0.10, 0.08, cast_alpha * 0.7))
+		draw_circle(cast_hand + dir * 7.0, 2.0, Color(1.0, 0.25, 0.15, cast_alpha))
 
-		# --- RIGHT ARM (casting arm — extends toward target) ---
-		var cast_extend = _cast_anim * 12.0
-		var cast_hand = r_shoulder + Vector2(0, 2) + dir * (10.0 + cast_extend)
-		var cast_elbow = r_shoulder + (cast_hand - r_shoulder) * 0.45 + Vector2(0, 4)
-		# Upper arm
-		var ca_d = (cast_elbow - r_shoulder).normalized()
-		var ca_p = ca_d.rotated(PI / 2.0)
-		draw_colored_polygon(PackedVector2Array([
-			r_shoulder + ca_p * 5.0, r_shoulder - ca_p * 4.5,
-			cast_elbow - ca_p * 4.0, cast_elbow + ca_p * 4.5,
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			r_shoulder + ca_p * 3.5, r_shoulder - ca_p * 3.0,
-			cast_elbow - ca_p * 2.8, cast_elbow + ca_p * 3.0,
-		]), suit_dark)
-		# Elbow joint
-		draw_circle(cast_elbow, 4.2, OL)
-		draw_circle(cast_elbow, 3.0, suit_dark)
-		# Forearm
-		var cf_d = (cast_hand - cast_elbow).normalized()
-		var cf_p = cf_d.rotated(PI / 2.0)
-		draw_colored_polygon(PackedVector2Array([
-			cast_elbow + cf_p * 4.2, cast_elbow - cf_p * 3.8,
-			cast_hand - cf_p * 2.8, cast_hand + cf_p * 3.0,
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			cast_elbow + cf_p * 2.8, cast_elbow - cf_p * 2.5,
-			cast_hand - cf_p * 1.8, cast_hand + cf_p * 2.0,
-		]), suit_dark)
-		# White cuff at wrist
-		var cuff_pos = cast_hand - cf_d * 3.0
-		draw_line(cuff_pos - cf_p * 3.0, cuff_pos + cf_p * 3.0, OL, 3.0)
-		draw_line(cuff_pos - cf_p * 2.2, cuff_pos + cf_p * 2.2, Color(0.92, 0.90, 0.88), 2.0)
-		# Hand — pale with pointed nails
-		draw_circle(cast_hand, 4.0, OL)
-		draw_circle(cast_hand, 2.8, skin)
-		# Fingers extended (casting pose)
-		for fi in range(4):
-			var fa = float(fi - 1.5) * 0.22
-			var f_tip = cast_hand + dir.rotated(fa) * 5.5
-			var f_base = cast_hand + dir.rotated(fa) * 1.5
-			draw_line(f_base, f_tip, OL, 2.2)
-			draw_line(f_base, f_tip, skin, 1.4)
-			# Pointed nail
-			var nail_tip = f_tip + dir.rotated(fa) * 2.0
-			draw_line(f_tip, nail_tip, OL, 1.5)
-			draw_line(f_tip, nail_tip, Color(0.50, 0.45, 0.42), 0.8)
-		# Thumb
-		draw_line(cast_hand, cast_hand + perp * 3.5 + dir * 1.0, OL, 2.2)
-		draw_line(cast_hand, cast_hand + perp * 3.5 + dir * 1.0, skin, 1.4)
-		# Cast energy at fingertips when attacking (tier-scaling blood burst)
-		if _attack_anim > 0.1:
-			var cast_alpha = _attack_anim * 0.7
-			var tier_scale = 1.0 + float(upgrade_tier) * 0.25
-			# Outer blood mist
-			draw_circle(cast_hand + dir * 6.0, 9.0 * tier_scale, Color(0.55, 0.02, 0.02, cast_alpha * 0.25))
-			# Crimson energy orb
-			draw_circle(cast_hand + dir * 6.5, 6.0 * tier_scale, Color(0.75, 0.05, 0.05, cast_alpha * 0.5))
-			draw_circle(cast_hand + dir * 7.0, 3.5 * tier_scale, Color(0.95, 0.12, 0.08, cast_alpha * 0.8))
-			draw_circle(cast_hand + dir * 7.5, 1.8, Color(1.0, 0.35, 0.2, cast_alpha))
-			# Blood spark tendrils radiating from cast hand
-			for bi in range(3 + upgrade_tier):
-				var b_a = float(bi) * TAU / float(3 + upgrade_tier) + _time * 8.0
-				var b_len = (6.0 + sin(_time * 12.0 + float(bi) * 2.0) * 3.0) * tier_scale
-				var b_start = cast_hand + dir * 5.0
-				var b_end = b_start + Vector2.from_angle(b_a) * b_len
-				draw_line(b_start, b_end, Color(0.85, 0.08, 0.05, cast_alpha * 0.6), 1.5)
-			# Tier 2+: Blood drip particles flying outward
-			if upgrade_tier >= 2:
-				for di in range(3):
-					var d_spread = (float(di) - 1.0) * 0.4
-					var d_dist = (8.0 + (1.0 - _attack_anim) * 18.0) * tier_scale
-					var d_pos = cast_hand + dir.rotated(d_spread) * d_dist
-					draw_circle(d_pos, 2.0 * tier_scale, Color(0.7, 0.02, 0.0, cast_alpha * 0.6))
-					# Drip trail
-					draw_line(d_pos, d_pos - dir * 5.0, Color(0.6, 0.02, 0.0, cast_alpha * 0.3), 1.5)
-			pass  # Tier effects handled by cast hand visuals
+	# --- LEFT ARM (cape-holding arm, dramatic pose) ---
+	var cape_hand = l_shoulder + Vector2(-7 + cape_wind * 0.2, 10)
+	var cape_elbow = l_shoulder + (cape_hand - l_shoulder) * 0.45 + Vector2(-3, 3)
+	# Upper arm
+	var la_d = (cape_elbow - l_shoulder).normalized()
+	var la_p = la_d.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder - la_p * 5.0, l_shoulder + la_p * 4.5,
+		cape_elbow + la_p * 4.0, cape_elbow - la_p * 4.5,
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		l_shoulder - la_p * 3.5, l_shoulder + la_p * 3.0,
+		cape_elbow + la_p * 2.8, cape_elbow - la_p * 3.0,
+	]), suit_dark)
+	# Elbow joint
+	draw_circle(cape_elbow, 4.2, OL)
+	draw_circle(cape_elbow, 3.0, suit_dark)
+	# Forearm
+	var lf_d = (cape_hand - cape_elbow).normalized()
+	var lf_p = lf_d.rotated(PI / 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		cape_elbow - lf_p * 4.2, cape_elbow + lf_p * 3.8,
+		cape_hand + lf_p * 2.8, cape_hand - lf_p * 3.0,
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		cape_elbow - lf_p * 2.8, cape_elbow + lf_p * 2.5,
+		cape_hand + lf_p * 1.8, cape_hand - lf_p * 2.0,
+	]), suit_dark)
+	# White cuff
+	var lcuff_pos = cape_hand - lf_d * 3.0
+	draw_line(lcuff_pos - lf_p * 3.0, lcuff_pos + lf_p * 3.0, OL, 3.0)
+	draw_line(lcuff_pos - lf_p * 2.2, lcuff_pos + lf_p * 2.2, Color(0.92, 0.90, 0.88), 2.0)
+	# Cape-holding hand
+	draw_circle(cape_hand, 4.0, OL)
+	draw_circle(cape_hand, 2.8, skin)
+	# Fingers gripping cape
+	for fi in range(3):
+		var fpos = cape_hand + Vector2(-2.0 + float(fi) * 2.0, 2.0)
+		draw_circle(fpos, 1.4, OL)
+		draw_circle(fpos, 0.8, skin)
 
-		# --- LEFT ARM (cape-holding arm, dramatic pose) ---
-		var cape_hand = l_shoulder + Vector2(-7 + cape_wind * 0.2, 10)
-		var cape_elbow = l_shoulder + (cape_hand - l_shoulder) * 0.45 + Vector2(-3, 3)
-		# Upper arm
-		var la_d = (cape_elbow - l_shoulder).normalized()
-		var la_p = la_d.rotated(PI / 2.0)
-		draw_colored_polygon(PackedVector2Array([
-			l_shoulder - la_p * 5.0, l_shoulder + la_p * 4.5,
-			cape_elbow + la_p * 4.0, cape_elbow - la_p * 4.5,
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			l_shoulder - la_p * 3.5, l_shoulder + la_p * 3.0,
-			cape_elbow + la_p * 2.8, cape_elbow - la_p * 3.0,
-		]), suit_dark)
-		# Elbow joint
-		draw_circle(cape_elbow, 4.2, OL)
-		draw_circle(cape_elbow, 3.0, suit_dark)
-		# Forearm
-		var lf_d = (cape_hand - cape_elbow).normalized()
-		var lf_p = lf_d.rotated(PI / 2.0)
-		draw_colored_polygon(PackedVector2Array([
-			cape_elbow - lf_p * 4.2, cape_elbow + lf_p * 3.8,
-			cape_hand + lf_p * 2.8, cape_hand - lf_p * 3.0,
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			cape_elbow - lf_p * 2.8, cape_elbow + lf_p * 2.5,
-			cape_hand + lf_p * 1.8, cape_hand - lf_p * 2.0,
-		]), suit_dark)
-		# White cuff
-		var lcuff_pos = cape_hand - lf_d * 3.0
-		draw_line(lcuff_pos - lf_p * 3.0, lcuff_pos + lf_p * 3.0, OL, 3.0)
-		draw_line(lcuff_pos - lf_p * 2.2, lcuff_pos + lf_p * 2.2, Color(0.92, 0.90, 0.88), 2.0)
-		# Cape-holding hand
-		draw_circle(cape_hand, 4.0, OL)
-		draw_circle(cape_hand, 2.8, skin)
-		# Fingers gripping cape
-		for fi in range(3):
-			var fpos = cape_hand + Vector2(-2.0 + float(fi) * 2.0, 2.0)
-			draw_circle(fpos, 1.4, OL)
-			draw_circle(fpos, 0.8, skin)
+	# === 16. BIG ROUND HEAD ===
+	# Neck (short, chunky)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-5, 0), neck_base + Vector2(5, 0),
+		head_center + Vector2(4, 9), head_center + Vector2(-4, 9),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		neck_base + Vector2(-3.5, 0.5), neck_base + Vector2(3.5, 0.5),
+		head_center + Vector2(2.8, 9), head_center + Vector2(-2.8, 9),
+	]), skin_dark)
 
-		# === 16. BIG ROUND HEAD ===
-		# Neck (short, chunky)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-5, 0), neck_base + Vector2(5, 0),
-			head_center + Vector2(4, 9), head_center + Vector2(-4, 9),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			neck_base + Vector2(-3.5, 0.5), neck_base + Vector2(3.5, 0.5),
-			head_center + Vector2(2.8, 9), head_center + Vector2(-2.8, 9),
-		]), skin_dark)
+	# Hair back layer (outline + fill)
+	draw_circle(head_center, 14.0, OL)
+	draw_circle(head_center, 12.5, hair_col)
+	# Hair sheen
+	draw_circle(head_center + Vector2(-2.5, -5), 4.5, Color(hair_hi.r, hair_hi.g, hair_hi.b, 0.35))
+	# Slicked-back strands
+	for si in range(7):
+		var sa = PI + 0.25 + float(si) * (PI - 0.5) / 6.0
+		var s_base = head_center + Vector2.from_angle(sa) * 11.0
+		var s_tip = s_base + Vector2.from_angle(sa) * 4.5 + Vector2(0, -1)
+		draw_line(s_base, s_tip, OL, 2.0)
+		draw_line(s_base, s_tip, hair_hi, 1.0)
 
-		# Hair back layer (outline + fill)
-		draw_circle(head_center, 14.0, OL)
-		draw_circle(head_center, 12.5, hair_col)
-		# Hair sheen
-		draw_circle(head_center + Vector2(-2.5, -5), 4.5, Color(hair_hi.r, hair_hi.g, hair_hi.b, 0.35))
-		# Slicked-back strands
-		for si in range(7):
-			var sa = PI + 0.25 + float(si) * (PI - 0.5) / 6.0
-			var s_base = head_center + Vector2.from_angle(sa) * 11.0
-			var s_tip = s_base + Vector2.from_angle(sa) * 4.5 + Vector2(0, -1)
-			draw_line(s_base, s_tip, OL, 2.0)
-			draw_line(s_base, s_tip, hair_hi, 1.0)
+	# Face circle (outline + fill)
+	draw_circle(head_center + Vector2(0, 1), 12.0, OL)
+	draw_circle(head_center + Vector2(0, 1), 10.8, skin)
+	# Pointed chin accent
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-5, 8), head_center + Vector2(5, 8),
+		head_center + Vector2(0, 12.5),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-4, 8), head_center + Vector2(4, 8),
+		head_center + Vector2(0, 11.5),
+	]), skin)
+	# Face highlight (top-left Bloons shine)
+	draw_circle(head_center + Vector2(-3, -2), 4.5, Color(skin_hi.r, skin_hi.g, skin_hi.b, 0.3))
 
-		# Face circle (outline + fill)
-		draw_circle(head_center + Vector2(0, 1), 12.0, OL)
-		draw_circle(head_center + Vector2(0, 1), 10.8, skin)
-		# Pointed chin accent
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-5, 8), head_center + Vector2(5, 8),
-			head_center + Vector2(0, 12.5),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-4, 8), head_center + Vector2(4, 8),
-			head_center + Vector2(0, 11.5),
-		]), skin)
-		# Face highlight (top-left Bloons shine)
-		draw_circle(head_center + Vector2(-3, -2), 4.5, Color(skin_hi.r, skin_hi.g, skin_hi.b, 0.3))
+	# Widow's peak hairline (bold black)
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-10, -6), head_center + Vector2(0, -9.5),
+		head_center + Vector2(10, -6), head_center + Vector2(7, -10),
+		head_center + Vector2(0, -13), head_center + Vector2(-7, -10),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-9, -6), head_center + Vector2(0, -8.5),
+		head_center + Vector2(9, -6), head_center + Vector2(6.5, -9.5),
+		head_center + Vector2(0, -12), head_center + Vector2(-6.5, -9.5),
+	]), hair_col)
+	# Widow's peak downward point
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-4, -6), head_center + Vector2(4, -6),
+		head_center + Vector2(0, -2.5),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-3, -6), head_center + Vector2(3, -6),
+		head_center + Vector2(0, -3.5),
+	]), hair_col)
+	# Hairline sheen lines
+	draw_line(head_center + Vector2(-6, -8.5), head_center + Vector2(0, -3.5), hair_hi, 0.8)
+	draw_line(head_center + Vector2(6, -8.5), head_center + Vector2(0, -3.5), hair_hi, 0.8)
 
-		# Widow's peak hairline (bold black)
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-10, -6), head_center + Vector2(0, -9.5),
-			head_center + Vector2(10, -6), head_center + Vector2(7, -10),
-			head_center + Vector2(0, -13), head_center + Vector2(-7, -10),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-9, -6), head_center + Vector2(0, -8.5),
-			head_center + Vector2(9, -6), head_center + Vector2(6.5, -9.5),
-			head_center + Vector2(0, -12), head_center + Vector2(-6.5, -9.5),
-		]), hair_col)
-		# Widow's peak downward point
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-4, -6), head_center + Vector2(4, -6),
-			head_center + Vector2(0, -2.5),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-3, -6), head_center + Vector2(3, -6),
-			head_center + Vector2(0, -3.5),
-		]), hair_col)
-		# Hairline sheen lines
-		draw_line(head_center + Vector2(-6, -8.5), head_center + Vector2(0, -3.5), hair_hi, 0.8)
-		draw_line(head_center + Vector2(6, -8.5), head_center + Vector2(0, -3.5), hair_hi, 0.8)
+	# Ears (slightly pointed)
+	var l_ear = head_center + Vector2(-10, -1)
+	var r_ear = head_center + Vector2(10, -1)
+	draw_colored_polygon(PackedVector2Array([
+		l_ear + Vector2(1, -2), l_ear + Vector2(-2, -4), l_ear + Vector2(-1, 1),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		l_ear + Vector2(1.2, -1.5), l_ear + Vector2(-1, -3), l_ear + Vector2(-0.5, 0.5),
+	]), skin)
+	draw_colored_polygon(PackedVector2Array([
+		r_ear + Vector2(-1, -2), r_ear + Vector2(2, -4), r_ear + Vector2(1, 1),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		r_ear + Vector2(-1.2, -1.5), r_ear + Vector2(1, -3), r_ear + Vector2(0.5, 0.5),
+	]), skin)
 
-		# Ears (slightly pointed)
-		var l_ear = head_center + Vector2(-10, -1)
-		var r_ear = head_center + Vector2(10, -1)
-		draw_colored_polygon(PackedVector2Array([
-			l_ear + Vector2(1, -2), l_ear + Vector2(-2, -4), l_ear + Vector2(-1, 1),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			l_ear + Vector2(1.2, -1.5), l_ear + Vector2(-1, -3), l_ear + Vector2(-0.5, 0.5),
-		]), skin)
-		draw_colored_polygon(PackedVector2Array([
-			r_ear + Vector2(-1, -2), r_ear + Vector2(2, -4), r_ear + Vector2(1, 1),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			r_ear + Vector2(-1.2, -1.5), r_ear + Vector2(1, -3), r_ear + Vector2(0.5, 0.5),
-		]), skin)
+	# === EYES — RED with slit pupils! ===
+	var look_dir = dir * 1.2
+	var l_eye = head_center + Vector2(-4.0, -1.0)
+	var r_eye = head_center + Vector2(4.0, -1.0)
+	# Eye socket shadow
+	draw_circle(l_eye, 5.0, Color(0.40, 0.28, 0.32, 0.4))
+	draw_circle(r_eye, 5.0, Color(0.40, 0.28, 0.32, 0.4))
+	# Eye outline
+	draw_circle(l_eye, 5.8, OL)
+	draw_circle(r_eye, 5.8, OL)
+	# Eye whites
+	draw_circle(l_eye, 4.8, Color(0.94, 0.90, 0.90))
+	draw_circle(r_eye, 4.8, Color(0.94, 0.90, 0.90))
+	# Bloodshot veins (subtle)
+	for vi in range(3):
+		var va = TAU * float(vi) / 3.0 + 0.5
+		draw_line(l_eye + Vector2.from_angle(va) * 3.0, l_eye + Vector2.from_angle(va) * 4.5, Color(0.7, 0.2, 0.15, 0.15), 0.5)
+		draw_line(r_eye + Vector2.from_angle(va) * 3.0, r_eye + Vector2.from_angle(va) * 4.5, Color(0.7, 0.2, 0.15, 0.15), 0.5)
+	# RED irises (vivid, glowing)
+	var eye_glow = sin(_time * 2.5) * 0.1 + 0.9
+	draw_circle(l_eye + look_dir, 3.0, Color(0.60, 0.04, 0.02))
+	draw_circle(l_eye + look_dir, 2.4, Color(0.82, 0.08, 0.04))
+	draw_circle(l_eye + look_dir, 1.6, Color(0.95, 0.15, 0.08))
+	draw_circle(r_eye + look_dir, 3.0, Color(0.60, 0.04, 0.02))
+	draw_circle(r_eye + look_dir, 2.4, Color(0.82, 0.08, 0.04))
+	draw_circle(r_eye + look_dir, 1.6, Color(0.95, 0.15, 0.08))
+	# Iris glow halo
+	draw_circle(l_eye + look_dir, 4.0, Color(0.85, 0.1, 0.05, 0.10 * eye_glow))
+	draw_circle(r_eye + look_dir, 4.0, Color(0.85, 0.1, 0.05, 0.10 * eye_glow))
+	# VERTICAL SLIT PUPILS
+	draw_line(l_eye + look_dir * 1.1 + Vector2(0, -1.8), l_eye + look_dir * 1.1 + Vector2(0, 1.8), Color(0.02, 0.01, 0.01), 1.6)
+	draw_line(r_eye + look_dir * 1.1 + Vector2(0, -1.8), r_eye + look_dir * 1.1 + Vector2(0, 1.8), Color(0.02, 0.01, 0.01), 1.6)
+	# Primary highlight (big round Bloons style)
+	draw_circle(l_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 0.7, 0.6, 0.8))
+	draw_circle(r_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 0.7, 0.6, 0.8))
+	# Secondary highlight
+	draw_circle(l_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 0.5, 0.4, 0.5))
+	draw_circle(r_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 0.5, 0.4, 0.5))
+	# Heavy sinister upper eyelids
+	draw_arc(l_eye, 4.8, PI + 0.1, TAU - 0.1, 10, OL, 2.2)
+	draw_arc(r_eye, 4.8, PI + 0.1, TAU - 0.1, 10, OL, 2.2)
 
-		# === EYES — RED with slit pupils! ===
-		var look_dir = dir * 1.2
-		var l_eye = head_center + Vector2(-4.0, -1.0)
-		var r_eye = head_center + Vector2(4.0, -1.0)
-		# Eye socket shadow
-		draw_circle(l_eye, 5.0, Color(0.40, 0.28, 0.32, 0.4))
-		draw_circle(r_eye, 5.0, Color(0.40, 0.28, 0.32, 0.4))
-		# Eye outline
-		draw_circle(l_eye, 5.8, OL)
-		draw_circle(r_eye, 5.8, OL)
-		# Eye whites
-		draw_circle(l_eye, 4.8, Color(0.94, 0.90, 0.90))
-		draw_circle(r_eye, 4.8, Color(0.94, 0.90, 0.90))
-		# Bloodshot veins (subtle)
-		for vi in range(3):
-			var va = TAU * float(vi) / 3.0 + 0.5
-			draw_line(l_eye + Vector2.from_angle(va) * 3.0, l_eye + Vector2.from_angle(va) * 4.5, Color(0.7, 0.2, 0.15, 0.15), 0.5)
-			draw_line(r_eye + Vector2.from_angle(va) * 3.0, r_eye + Vector2.from_angle(va) * 4.5, Color(0.7, 0.2, 0.15, 0.15), 0.5)
-		# RED irises (vivid, glowing)
-		var eye_glow = sin(_time * 2.5) * 0.1 + 0.9
-		draw_circle(l_eye + look_dir, 3.0, Color(0.60, 0.04, 0.02))
-		draw_circle(l_eye + look_dir, 2.4, Color(0.82, 0.08, 0.04))
-		draw_circle(l_eye + look_dir, 1.6, Color(0.95, 0.15, 0.08))
-		draw_circle(r_eye + look_dir, 3.0, Color(0.60, 0.04, 0.02))
-		draw_circle(r_eye + look_dir, 2.4, Color(0.82, 0.08, 0.04))
-		draw_circle(r_eye + look_dir, 1.6, Color(0.95, 0.15, 0.08))
-		# Iris glow halo
-		draw_circle(l_eye + look_dir, 4.0, Color(0.85, 0.1, 0.05, 0.10 * eye_glow))
-		draw_circle(r_eye + look_dir, 4.0, Color(0.85, 0.1, 0.05, 0.10 * eye_glow))
-		# VERTICAL SLIT PUPILS
-		draw_line(l_eye + look_dir * 1.1 + Vector2(0, -1.8), l_eye + look_dir * 1.1 + Vector2(0, 1.8), Color(0.02, 0.01, 0.01), 1.6)
-		draw_line(r_eye + look_dir * 1.1 + Vector2(0, -1.8), r_eye + look_dir * 1.1 + Vector2(0, 1.8), Color(0.02, 0.01, 0.01), 1.6)
-		# Primary highlight (big round Bloons style)
-		draw_circle(l_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 0.7, 0.6, 0.8))
-		draw_circle(r_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 0.7, 0.6, 0.8))
-		# Secondary highlight
-		draw_circle(l_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 0.5, 0.4, 0.5))
-		draw_circle(r_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 0.5, 0.4, 0.5))
-		# Heavy sinister upper eyelids
-		draw_arc(l_eye, 4.8, PI + 0.1, TAU - 0.1, 10, OL, 2.2)
-		draw_arc(r_eye, 4.8, PI + 0.1, TAU - 0.1, 10, OL, 2.2)
+	# Eyebrows — sharp angular, thick
+	draw_line(l_eye + Vector2(-4.5, -5.5), l_eye + Vector2(1.0, -6.5), OL, 2.5)
+	draw_line(l_eye + Vector2(1.0, -6.5), l_eye + Vector2(4.0, -5.0), OL, 1.5)
+	draw_line(r_eye + Vector2(-4.0, -5.0), r_eye + Vector2(-1.0, -6.5), OL, 2.5)
+	draw_line(r_eye + Vector2(-1.0, -6.5), r_eye + Vector2(4.5, -5.5), OL, 1.5)
 
-		# Eyebrows — sharp angular, thick
-		draw_line(l_eye + Vector2(-4.5, -5.5), l_eye + Vector2(1.0, -6.5), OL, 2.5)
-		draw_line(l_eye + Vector2(1.0, -6.5), l_eye + Vector2(4.0, -5.0), OL, 1.5)
-		draw_line(r_eye + Vector2(-4.0, -5.0), r_eye + Vector2(-1.0, -6.5), OL, 2.5)
-		draw_line(r_eye + Vector2(-1.0, -6.5), r_eye + Vector2(4.5, -5.5), OL, 1.5)
+	# Nose — small chibi bump
+	draw_circle(head_center + Vector2(0, 3.5), 2.0, OL)
+	draw_circle(head_center + Vector2(0, 3.5), 1.2, skin)
+	draw_circle(head_center + Vector2(-0.3, 3.0), 0.5, Color(1.0, 0.95, 0.92, 0.5))
 
-		# Nose — small chibi bump
-		draw_circle(head_center + Vector2(0, 3.5), 2.0, OL)
-		draw_circle(head_center + Vector2(0, 3.5), 1.2, skin)
-		draw_circle(head_center + Vector2(-0.3, 3.0), 0.5, Color(1.0, 0.95, 0.92, 0.5))
+	# Mouth — thin smirk with visible FANGS
+	draw_arc(head_center + Vector2(0, 6.0), 4.0, 0.15, PI - 0.15, 12, OL, 1.8)
+	draw_line(head_center + Vector2(3.8, 5.7), head_center + Vector2(5.2, 4.5), OL, 1.5)
+	# Teeth row
+	for thi in range(5):
+		var tooth_x = -2.2 + float(thi) * 1.1
+		draw_circle(head_center + Vector2(tooth_x, 6.0), 0.6, Color(0.98, 0.96, 0.92))
+	# FANGS — two prominent white triangles
+	var fang_extend = 0.0
+	if _attack_anim > 0.0:
+		fang_extend = _attack_anim * 3.0
+	else:
+		fang_extend = 1.8 + sin(_time * 2.0) * 0.3
+	# Left fang
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-3.2, 5.8), head_center + Vector2(-1.8, 5.8),
+		head_center + Vector2(-2.5, 5.8 + fang_extend),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(-3.0, 6.0), head_center + Vector2(-2.0, 6.0),
+		head_center + Vector2(-2.5, 5.8 + fang_extend - 0.3),
+	]), Color(0.98, 0.96, 0.92))
+	# Right fang
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(1.8, 5.8), head_center + Vector2(3.2, 5.8),
+		head_center + Vector2(2.5, 5.8 + fang_extend),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		head_center + Vector2(2.0, 6.0), head_center + Vector2(3.0, 6.0),
+		head_center + Vector2(2.5, 5.8 + fang_extend - 0.3),
+	]), Color(0.98, 0.96, 0.92))
+	# Fang tips glow red when attacking
+	if _attack_anim > 0.3:
+		draw_circle(head_center + Vector2(-2.5, 5.8 + fang_extend), 1.5, Color(0.75, 0.10, 0.05, _attack_anim * 0.4))
+		draw_circle(head_center + Vector2(2.5, 5.8 + fang_extend), 1.5, Color(0.75, 0.10, 0.05, _attack_anim * 0.4))
 
-		# Mouth — thin smirk with visible FANGS
-		draw_arc(head_center + Vector2(0, 6.0), 4.0, 0.15, PI - 0.15, 12, OL, 1.8)
-		draw_line(head_center + Vector2(3.8, 5.7), head_center + Vector2(5.2, 4.5), OL, 1.5)
-		# Teeth row
-		for thi in range(5):
-			var tooth_x = -2.2 + float(thi) * 1.1
-			draw_circle(head_center + Vector2(tooth_x, 6.0), 0.6, Color(0.98, 0.96, 0.92))
-		# FANGS — two prominent white triangles
-		var fang_extend = 0.0
-		if _attack_anim > 0.0:
-			fang_extend = _attack_anim * 3.0
-		else:
-			fang_extend = 1.8 + sin(_time * 2.0) * 0.3
-		# Left fang
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-3.2, 5.8), head_center + Vector2(-1.8, 5.8),
-			head_center + Vector2(-2.5, 5.8 + fang_extend),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(-3.0, 6.0), head_center + Vector2(-2.0, 6.0),
-			head_center + Vector2(-2.5, 5.8 + fang_extend - 0.3),
-		]), Color(0.98, 0.96, 0.92))
-		# Right fang
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(1.8, 5.8), head_center + Vector2(3.2, 5.8),
-			head_center + Vector2(2.5, 5.8 + fang_extend),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			head_center + Vector2(2.0, 6.0), head_center + Vector2(3.0, 6.0),
-			head_center + Vector2(2.5, 5.8 + fang_extend - 0.3),
-		]), Color(0.98, 0.96, 0.92))
-		# Fang tips glow red when attacking
-		if _attack_anim > 0.2:
-			var fang_tier = 1.0 + float(upgrade_tier) * 0.3
-			# Blood drips from fangs — bigger at higher tiers
-			var drip_y = 5.8 + fang_extend + (1.0 - _attack_anim) * 4.0 * fang_tier
-			draw_circle(head_center + Vector2(-2.5, drip_y), 2.0 * fang_tier, Color(0.75, 0.10, 0.05, _attack_anim * 0.5))
-			draw_circle(head_center + Vector2(2.5, drip_y), 2.0 * fang_tier, Color(0.75, 0.10, 0.05, _attack_anim * 0.5))
-			# Drip trail
-			draw_line(head_center + Vector2(-2.5, 5.8 + fang_extend), head_center + Vector2(-2.5, drip_y), Color(0.65, 0.05, 0.02, _attack_anim * 0.35), 1.5)
-			draw_line(head_center + Vector2(2.5, 5.8 + fang_extend), head_center + Vector2(2.5, drip_y), Color(0.65, 0.05, 0.02, _attack_anim * 0.35), 1.5)
-			# Tier 3+: Eyes glow red on attack
-			if upgrade_tier >= 3:
-				draw_circle(head_center + Vector2(-3.5, -1.0), 3.5, Color(0.8, 0.05, 0.02, _attack_anim * 0.25))
-				draw_circle(head_center + Vector2(3.5, -1.0), 3.5, Color(0.8, 0.05, 0.02, _attack_anim * 0.25))
+	# Cheek blush (subtle purple-ish for vampire)
+	draw_circle(head_center + Vector2(-6, 3), 2.5, Color(0.60, 0.35, 0.45, 0.12))
+	draw_circle(head_center + Vector2(6, 3), 2.5, Color(0.60, 0.35, 0.45, 0.12))
 
-		# Cheek blush (subtle purple-ish for vampire)
-		draw_circle(head_center + Vector2(-6, 3), 2.5, Color(0.60, 0.35, 0.45, 0.12))
-		draw_circle(head_center + Vector2(6, 3), 2.5, Color(0.60, 0.35, 0.45, 0.12))
+	# === NOSFERATU FORM OVERLAY (Ability 8 active) ===
+	if prog_abilities[7] and _nosferatu_active > 0.0:
+		var nos_alpha = clampf(_nosferatu_active / 4.0, 0.0, 1.0) * 0.3
+		draw_circle(body_offset, 42.0, Color(0.2, 0.0, 0.0, nos_alpha))
+		draw_arc(body_offset, 40.0, 0, TAU, 24, Color(0.5, 0.05, 0.05, nos_alpha * 1.5), 2.5)
+		draw_circle(head_center + Vector2(0, -2), 14.0, Color(0.15, 0.0, 0.0, nos_alpha * 0.4))
 
-		# === NOSFERATU FORM OVERLAY (Ability 8 active) ===
-		if prog_abilities[7] and _nosferatu_active > 0.0:
-			var nos_alpha = clampf(_nosferatu_active / 4.0, 0.0, 1.0) * 0.3
-			pass  #draw_arc(body_offset, 42.0, 0, TAU, 24, Color(0.5, 0.05, 0.05, nos_alpha * 1.5), 4.0)
-			draw_circle(head_center + Vector2(0, -2), 14.0, Color(0.15, 0.0, 0.0, nos_alpha * 0.4))
-
-		# === Tier 4: Lord of Darkness — glowing red eyes + crimson overlay ===
-		if upgrade_tier >= 4:
-			var lord_p = sin(_lord_glow) * 0.5 + 0.5
-			# Glowing red eyes overlay (intensified on top of normal eyes)
-			var glow_eyes_l = head_center + Vector2(-4.0, -1.0)
-			var glow_eyes_r = head_center + Vector2(4.0, -1.0)
-			var eye_glow_a = 0.3 + lord_p * 0.4
-			draw_circle(glow_eyes_l, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
-			draw_circle(glow_eyes_r, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
-			draw_circle(glow_eyes_l, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
-			draw_circle(glow_eyes_r, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
-			# Crimson body outline shimmer
-			pass  #draw_arc(body_offset, 32.0, 0, TAU, 24, Color(0.85, 0.06, 0.04, 0.06 + lord_p * 0.06), 1.5)
-			# Dark red particle trails rising from feet
-			for pt in range(5):
-				var pt_x = body_offset.x + sin(_time * 1.2 + float(pt) * 1.7) * 12.0
-				var pt_y = body_offset.y + 12.0 - fmod(_time * 20.0 + float(pt) * 8.0, 35.0)
-				var pt_alpha = 0.12 + lord_p * 0.08
-				draw_circle(Vector2(pt_x, pt_y), 1.0 + lord_p * 0.5, Color(0.7, 0.03, 0.02, pt_alpha))
+	# === Tier 4: Lord of Darkness — glowing red eyes + crimson overlay ===
+	if upgrade_tier >= 4:
+		var lord_p = sin(_lord_glow) * 0.5 + 0.5
+		# Glowing red eyes overlay (intensified on top of normal eyes)
+		var glow_eyes_l = head_center + Vector2(-4.0, -1.0)
+		var glow_eyes_r = head_center + Vector2(4.0, -1.0)
+		var eye_glow_a = 0.3 + lord_p * 0.4
+		draw_circle(glow_eyes_l, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
+		draw_circle(glow_eyes_r, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
+		draw_circle(glow_eyes_l, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
+		draw_circle(glow_eyes_r, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
+		# Crimson body outline shimmer
+		draw_arc(body_offset, 32.0, 0, TAU, 24, Color(0.85, 0.06, 0.04, 0.06 + lord_p * 0.06), 1.5)
+		# Dark red particle trails rising from feet
+		for pt in range(5):
+			var pt_x = body_offset.x + sin(_time * 1.2 + float(pt) * 1.7) * 12.0
+			var pt_y = body_offset.y + 12.0 - fmod(_time * 20.0 + float(pt) * 8.0, 35.0)
+			var pt_alpha = 0.12 + lord_p * 0.08
+			draw_circle(Vector2(pt_x, pt_y), 1.0 + lord_p * 0.5, Color(0.7, 0.03, 0.02, pt_alpha))
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:
 		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
-		pass  #draw_arc(Vector2.ZERO, 68.0 + pulse * 6.0, 0, TAU, 24, Color(0.6, 0.1, 0.1, 0.3 + pulse * 0.3), 3.5)
+		draw_circle(Vector2.ZERO, 68.0 + pulse * 6.0, Color(0.6, 0.1, 0.1, 0.1 + pulse * 0.1))
+		draw_arc(Vector2.ZERO, 68.0 + pulse * 6.0, 0, TAU, 32, Color(0.6, 0.1, 0.1, 0.3 + pulse * 0.3), 2.5)
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -80), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.6, 0.1, 0.1, 0.7 + pulse * 0.3))
 
-	# === DAMAGE COUNTER (only when selected) ===
-	if is_selected and damage_dealt > 0:
+	# === VISUAL TIER EVOLUTION ===
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.7, 0.05, 0.1, 0.15 + glow_pulse * 0.1), 2.0)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.8, 0.1, 0.1, s_alpha))
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.7, 0.05, 0.1, b_alpha), 1.5)
+
+	# === DAMAGE COUNTER ===
+	if damage_dealt > 0:
 		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
@@ -2000,59 +1962,9 @@ func _draw() -> void:
 	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
 	if cd_fill >= 1.0:
 		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
-		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.6, 0.05, 0.05, cd_pulse * 0.4), 2.0)
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.6, 0.05, 0.05, cd_pulse * 0.4), 2.0)
 	elif cd_fill > 0.0:
 		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.6, 0.05, 0.05, 0.3), 2.0)
-
-	# === TIER 5: WALPURGIS NIGHT VFX ===
-	if _walpurgis_night_active:
-		# Blood rain drops falling
-		for drop in _walpurgis_blood_drops:
-			var alpha = clampf(drop.life / drop.max_life, 0.0, 1.0)
-			var dpos = drop.pos - global_position
-			# Blood drop (elongated teardrop)
-			var drop_len = drop.vel.length() * 0.02
-			var drop_dir = drop.vel.normalized()
-			draw_line(dpos - drop_dir * drop_len, dpos + drop_dir * drop_len, Color(0.8, 0.02, 0.02, alpha * 0.7), 2.0)
-			draw_circle(dpos + drop_dir * drop_len, 1.5, Color(0.9, 0.05, 0.05, alpha * 0.5))
-		# Active drain phase — pulsing crimson field
-		if _walpurgis_duration > 0.0:
-			var w_pulse = sin(_time * 8.0) * 0.5 + 0.5
-			var w_alpha = clampf(_walpurgis_duration / 6.0, 0.0, 1.0) * 0.3
-			# Dark crimson expanding rings
-			for ri in range(3):
-				var r_phase = fmod(_time * 2.0 + float(ri) * 0.7, 1.5)
-				var r_radius = 40.0 + r_phase * 120.0
-				var r_alpha_val = (1.0 - r_phase / 1.5) * w_alpha
-				pass  #draw_arc(Vector2.ZERO, r_radius, 0, TAU, 32, Color(0.9, 0.05, 0.02, r_alpha_val), 2.5)
-			# Bat silhouettes orbiting
-			for bi in range(8):
-				var b_angle = _time * 3.0 + float(bi) * TAU / 8.0
-				var b_r = 60.0 + sin(_time * 2.0 + float(bi)) * 20.0
-				var bpos = Vector2(cos(b_angle) * b_r, sin(b_angle) * b_r * 0.5)
-				var wing = sin(_time * 16.0 + float(bi) * 3.0) * 4.0
-				draw_circle(bpos, 2.5, Color(0.15, 0.0, 0.0, 0.6))
-				draw_line(bpos, bpos + Vector2(-5, wing), Color(0.2, 0.0, 0.0, 0.5), 1.5)
-				draw_line(bpos, bpos + Vector2(5, wing), Color(0.2, 0.0, 0.0, 0.5), 1.5)
-			# Central blood vortex
-			for vi in range(12):
-				var v_angle = _time * 4.0 + float(vi) * TAU / 12.0
-				var v_r = 20.0 + sin(_time * 6.0 + float(vi) * 0.5) * 8.0
-				var vpos = Vector2(cos(v_angle) * v_r, sin(v_angle) * v_r * 0.4)
-				draw_circle(vpos, 1.5 + w_pulse, Color(0.95, 0.1, 0.05, w_alpha + w_pulse * 0.1))
-		# Trigger flash
-		if _walpurgis_night_flash > 0.0:
-			var wf = _walpurgis_night_flash
-			pass  #draw_circle(Vector2.ZERO, 30.0 + (1.0 - wf) * 80.0, Color(0.9, 0.0, 0.0, wf * 0.25))
-			# Radiating red lines
-			for ri in range(12):
-				var ra = TAU * float(ri) / 12.0
-				var rlen = 40.0 + (1.0 - wf) * 100.0
-				draw_line(Vector2.ZERO, Vector2(cos(ra) * rlen, sin(ra) * rlen), Color(0.8, 0.05, 0.02, wf * 0.4), 1.5)
-		# Ready pulse — blood moon indicator
-		elif _walpurgis_night_timer < 5.0:
-			var ready_pulse = sin(_time * 6.0) * 0.5 + 0.5
-			pass  #draw_arc(Vector2.ZERO, 35.0 + ready_pulse * 5.0, 0, TAU, 24, Color(0.8, 0.05, 0.02, 0.15 + ready_pulse * 0.1), 2.0)
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}

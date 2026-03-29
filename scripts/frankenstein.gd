@@ -11,7 +11,6 @@ var fire_rate: float = 0.65
 var attack_range: float = 140.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
-var sprite_texture: ImageTexture = null
 var target: Node2D = null
 var gold_bonus: int = 1
 
@@ -52,13 +51,6 @@ var _aura_active: bool = false
 var _aura_timer: float = 0.0
 var _aura_tick: float = 0.0
 
-# Tier 5: It's Alive! IT'S ALIVE! — lightning storm
-var _its_alive_active: bool = false
-var _its_alive_timer: float = 30.0
-var _its_alive_flash: float = 0.0
-var _its_alive_duration: float = 0.0  # Active storm phase (5s)
-var _its_alive_bolt_timer: float = 0.0  # Sub-timer for bolt strikes
-
 # Progressive abilities (9 tiers, unlocked via lifetime damage)
 const PROG_ABILITY_NAMES = [
 	"Reanimated Strength", "Pain Resistance", "Electric Charge", "Blind Man's Kindness",
@@ -91,7 +83,6 @@ var _sorrow_flash: float = 0.0
 var _promethean_flash: float = 0.0
 var _immortal_flash: float = 0.0
 
-const MAX_STAT_LEVEL: int = 10  # Cap stat scaling to prevent infinite power creep
 const STAT_UPGRADE_INTERVAL: float = 8000.0
 const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
@@ -101,17 +92,15 @@ const TIER_NAMES = [
 	"Galvanic Surge",
 	"Stitched Resilience",
 	"Lightning Conductor",
-	"Modern Prometheus",
-	"It's Alive! IT'S ALIVE!"
+	"Modern Prometheus"
 ]
 const ABILITY_DESCRIPTIONS = [
 	"Smash radius +30%",
 	"Kill stacks give +3% instead of +2%",
 	"Chain lightning arcs to 10 enemies",
-	"Massive storm, permanent electric aura",
-	"Lightning storm — 3 bolts every 2s for 10s, devastating AoE"
+	"Massive storm, permanent electric aura"
 ]
-const TIER_COSTS = [175, 400, 750, 1300, 2500]
+const TIER_COSTS = [175, 400, 750, 1300]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -202,7 +191,6 @@ func _process(delta: float) -> void:
 	fire_cooldown -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_thunder_flash = max(_thunder_flash - delta * 2.0, 0.0)
-	_its_alive_flash = max(_its_alive_flash - delta * 0.8, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
 	_smash_anim = max(_smash_anim - delta * 4.0, 0.0)
 	target = _find_nearest_enemy()
@@ -212,7 +200,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 6.0 * delta)
 		if fire_cooldown <= 0.0:
 			_attack()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
 			_attack_anim = 1.0
 			_smash_anim = 1.0
 
@@ -233,42 +221,6 @@ func _process(delta: float) -> void:
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
-
-	# Tier 5: It's Alive! IT'S ALIVE! — massive lightning storm
-	if _its_alive_active:
-		_its_alive_timer -= delta
-		if _its_alive_duration > 0.0:
-			_its_alive_duration -= delta
-			_its_alive_bolt_timer -= delta
-			# Lightning strikes every 0.3s hitting ALL enemies
-			if _its_alive_bolt_timer <= 0.0:
-				_its_alive_bolt_timer = 0.3
-				var enemies = _main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")
-				for enemy in enemies:
-					if is_instance_valid(enemy) and enemy.has_method("take_damage"):
-						enemy.take_damage(damage * 1.5)
-						# Lightning bolt from sky to each enemy
-						if is_instance_valid(_main_node):
-							var sky_pos = enemy.global_position + Vector2(randf_range(-30.0, 30.0), -250.0)
-							_main_node.trigger_lightning(sky_pos, enemy.global_position, Color(0.6, 0.8, 1.0), 0.4)
-							_main_node.trigger_explosion(enemy.global_position, 4, Color(0.7, 0.9, 1.0))
-		elif _its_alive_timer <= 0.0:
-			# Trigger the storm
-			_its_alive_timer = 30.0
-			_its_alive_duration = 5.0
-			_its_alive_bolt_timer = 0.0
-			_its_alive_flash = 1.0
-			if is_instance_valid(_main_node):
-				_main_node.trigger_screen_dark(1.5, Color(0.05, 0.08, 0.15))
-				_main_node.trigger_camera_shake(14.0, 1.0)
-				# Central massive bolt from sky
-				_main_node.trigger_lightning(global_position + Vector2(0, -300.0), global_position, Color(0.8, 0.9, 1.0), 2.0)
-				pass  #_main_node.trigger_shockwave(global_position, 280.0, 400.0, Color(0.5, 0.7, 1.0, 0.6))
-				# Radiating electric arcs
-				for i in range(6):
-					var angle = TAU * float(i) / 6.0
-					var end = global_position + Vector2(cos(angle), sin(angle)) * 150.0
-					_main_node.trigger_lightning(global_position, end, Color(0.6, 0.85, 1.0), 1.0)
 
 	# Active ability cooldown
 	if not active_ability_ready:
@@ -368,11 +320,7 @@ func _attack() -> void:
 	fist.gold_bonus = int(gold_bonus * _gold_mult())
 	# Ability 5: Arctic Endurance — slow enemies
 	fist.apply_slow = prog_abilities[4]
-	var _main = get_tree().get_first_node_in_group("main")
-	if _main:
-		_main.add_child(fist)
-	else:
-		fist.queue_free()
+	get_tree().get_first_node_in_group("main").add_child(fist)
 
 func _thunder_storm() -> void:
 	if _thunder_player and not _is_sfx_muted():
@@ -439,7 +387,7 @@ func absorb_damage(incoming: float) -> float:
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
-	while stat_upgrade_level < new_level and stat_upgrade_level < MAX_STAT_LEVEL:
+	while stat_upgrade_level < new_level:
 		stat_upgrade_level += 1
 		_apply_stat_boost()
 		_upgrade_flash = 2.0
@@ -476,34 +424,31 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Galvanic Surge — smash radius +30%
 			smash_radius = 78.0
-			damage = 43.0
-			fire_rate = 0.65
-			attack_range = 145.0
+			damage = 50.0
+			fire_rate = 1.44
+			attack_range = 155.0
 		2: # Stitched Resilience — kill stacks +3% instead of +2%
 			_kill_stack_rate = 0.03
-			damage = 46.0
-			fire_rate = 0.65
-			attack_range = 150.0
+			damage = 60.0
+			fire_rate = 1.56
+			attack_range = 165.0
 			gold_bonus = 2
 		3: # Lightning Conductor — chain lightning arcs to 10
 			chain_count = 10
-			damage = 46.0
-			fire_rate = 0.65
-			attack_range = 150.0
+			damage = 73.0
+			fire_rate = 1.70
+			attack_range = 175.0
 			gold_bonus = 2
 			_thunder_storm_cooldown = 20.0
 		4: # Modern Prometheus — massive storm + permanent aura
-			damage = 49.0
-			fire_rate = 0.65
-			attack_range = 155.0
+			damage = 75.0
+			fire_rate = 1.70
+			attack_range = 190.0
 			gold_bonus = 3
 			chain_count = 10
 			smash_radius = 90.0
 			_thunder_storm_cooldown = 18.0
 			_aura_active = true
-		5: # It's Alive! IT'S ALIVE! — devastating lightning storm
-			_its_alive_active = true
-			# No stat boost — the ultimate ability IS the reward
 	# Re-apply accumulated stat boosts so tier upgrade doesn't clobber them
 	damage += _accumulated_stat_boosts["damage"]
 	fire_rate += _accumulated_stat_boosts["fire_rate"]
@@ -511,7 +456,7 @@ func _apply_upgrade(tier: int) -> void:
 	gold_bonus += _accumulated_stat_boosts["gold_bonus"]
 
 func purchase_upgrade() -> bool:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return false
 	var cost = TIER_COSTS[upgrade_tier]
 	var main_node = get_tree().get_first_node_in_group("main")
@@ -530,7 +475,7 @@ func get_tower_display_name() -> String:
 	return "Frankenstein's Monster"
 
 func get_next_upgrade_info() -> Dictionary:
-	if upgrade_tier >= TIER_COSTS.size():
+	if upgrade_tier >= 4:
 		return {}
 	return {
 		"name": TIER_NAMES[upgrade_tier],
@@ -545,37 +490,114 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
+	# Heavy impact thud frequencies with electric crackle overtones
+	var impact_notes := [36.71, 55.00, 73.42, 55.00, 36.71, 73.42, 55.00, 98.00]  # D1, A1, D2, A1, D1, D2, A1, G2 (D minor timpani ostinato)
 	var mix_rate := 44100
-	var melody := [329.63, 349.23, 392.00, 440.00, 392.00, 349.23, 329.63, 293.66]
-	# E4 F4 G4 A4 G4 F4 E4 D4 -- eerie ascending/descending
 	_attack_sounds_by_tier = []
-	for tier in range(5):
-		var tier_sounds: Array = []
-		var dur := 0.45 + tier * 0.05
-		var vol := 0.24 + tier * 0.015
-		for note_idx in melody.size():
-			var freq: float = melody[note_idx]
-			var total := int(mix_rate * dur)
-			var samples := PackedFloat32Array()
-			samples.resize(total)
-			for i in total:
-				var t := float(i) / float(mix_rate)
-				var env := minf(t * 15.0, 1.0) * exp(-t * 2.8)
-				# Theremin: pure sine with slow vibrato + tremolo
-				var vib := sin(t * 7.0 * TAU) * 8.0  # 7 Hz vibrato, 8 Hz depth
-				var trem := 1.0 + sin(t * 5.5 * TAU) * 0.15  # Amplitude tremolo
-				var s := sin(t * (freq + vib) * TAU) * trem
-				# Add faint octave above for eeriness
-				s += sin(t * (freq * 2.0 + vib * 1.5) * TAU) * 0.12
-				samples[i] = clampf(s * env * vol * 0.45, -1.0, 1.0)
-			var att_len := mini(int(0.012 * mix_rate), total)
-			for i in att_len:
-				samples[i] *= float(i) / float(att_len)
-			var rel_start := maxi(total - int(0.02 * mix_rate), 0)
-			for i in range(rel_start, total):
-				samples[i] *= 1.0 - float(i - rel_start) / float(total - rel_start)
-			tier_sounds.append(_samples_to_wav(samples, mix_rate))
-		_attack_sounds_by_tier.append(tier_sounds)
+
+	# --- Tier 0: Basic fist smash (low thud + brief crackle) ---
+	var t0 := []
+	for note_idx in impact_notes.size():
+		var freq: float = impact_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.2))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Heavy meaty thud
+			var env := exp(-t * 15.0) * 0.4
+			var thud := sin(TAU * freq * t) + sin(TAU * freq * 0.5 * t) * 0.3
+			# Brief impact noise
+			var impact := (randf() * 2.0 - 1.0) * exp(-t * 200.0) * 0.3
+			# Faint electric crackle
+			var crackle := sin(TAU * 1800.0 * t + sin(TAU * 120.0 * t) * 3.0) * 0.06 * exp(-t * 20.0)
+			samples[i] = clampf(thud * env + impact + crackle, -1.0, 1.0)
+		t0.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t0)
+
+	# --- Tier 1: Galvanic smash (deeper thud + louder crackle) ---
+	var t1 := []
+	for note_idx in impact_notes.size():
+		var freq: float = impact_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.25))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 12.0) * 0.42
+			var thud := sin(TAU * freq * t) + sin(TAU * freq * 0.5 * t) * 0.35
+			var impact := (randf() * 2.0 - 1.0) * exp(-t * 180.0) * 0.32
+			# More prominent crackle
+			var crackle := sin(TAU * 2000.0 * t + sin(TAU * 140.0 * t) * 4.0) * 0.1 * exp(-t * 15.0)
+			crackle += (randf() * 2.0 - 1.0) * 0.05 * exp(-t * 18.0)
+			var sub := sin(TAU * 28.0 * t) * 0.15 * exp(-t * 8.0)
+			samples[i] = clampf(thud * env + impact + crackle + sub, -1.0, 1.0)
+		t1.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t1)
+
+	# --- Tier 2: Resilient smash (meaty impact + sustained zap) ---
+	var t2 := []
+	for note_idx in impact_notes.size():
+		var freq: float = impact_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.28))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 10.0) * 0.42
+			var thud := sin(TAU * freq * t) + sin(TAU * freq * 0.5 * t) * 0.4
+			thud += sin(TAU * freq * 1.5 * t) * 0.1 * exp(-t * 20.0)
+			var impact := (randf() * 2.0 - 1.0) * exp(-t * 160.0) * 0.3
+			# Sustained electric zap
+			var zap := sin(TAU * 2400.0 * t + sin(TAU * 180.0 * t) * 5.0) * 0.12 * exp(-t * 8.0)
+			zap += (randf() * 2.0 - 1.0) * 0.06 * exp(-t * 10.0)
+			var sub := sin(TAU * 25.0 * t) * 0.18 * exp(-t * 6.0)
+			samples[i] = clampf(thud * env + impact + zap + sub, -1.0, 1.0)
+		t2.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t2)
+
+	# --- Tier 3: Lightning conductor (heavy thud + bright electric arc) ---
+	var t3 := []
+	for note_idx in impact_notes.size():
+		var freq: float = impact_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.3))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			var env := exp(-t * 9.0) * 0.4
+			var thud := sin(TAU * freq * t) + sin(TAU * freq * 0.5 * t) * 0.35
+			var impact := (randf() * 2.0 - 1.0) * exp(-t * 150.0) * 0.28
+			# Bright arcing electric sound
+			var arc := sin(TAU * 3000.0 * t + sin(TAU * 250.0 * t) * 8.0) * 0.15 * exp(-t * 7.0)
+			arc += sin(TAU * 4500.0 * t + sin(TAU * 300.0 * t) * 4.0) * 0.06 * exp(-t * 10.0)
+			arc += (randf() * 2.0 - 1.0) * 0.07 * exp(-t * 8.0)
+			var sub := sin(TAU * 22.0 * t) * 0.2 * exp(-t * 5.0)
+			samples[i] = clampf(thud * env + impact + arc + sub, -1.0, 1.0)
+		t3.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t3)
+
+	# --- Tier 4: Prometheus slam (massive earth-shaking hit + storm) ---
+	var t4 := []
+	for note_idx in impact_notes.size():
+		var freq: float = impact_notes[note_idx]
+		var samples := PackedFloat32Array()
+		samples.resize(int(mix_rate * 0.35))
+		for i in samples.size():
+			var t := float(i) / mix_rate
+			# Massive earth-shaking impact
+			var env := exp(-t * 7.0) * 0.45
+			var thud := sin(TAU * freq * t) + sin(TAU * freq * 0.5 * t) * 0.4
+			thud += sin(TAU * freq * 1.5 * t) * 0.15 * exp(-t * 12.0)
+			var impact := (randf() * 2.0 - 1.0) * exp(-t * 120.0) * 0.35
+			# Full storm electric effect
+			var storm := sin(TAU * 3500.0 * t + sin(TAU * 350.0 * t) * 10.0) * 0.14 * exp(-t * 5.0)
+			storm += sin(TAU * 5000.0 * t + sin(TAU * 400.0 * t) * 6.0) * 0.08 * exp(-t * 7.0)
+			storm += (randf() * 2.0 - 1.0) * 0.1 * exp(-t * 6.0)
+			# Deep sub-bass resonance
+			var sub := sin(TAU * 18.0 * t) * 0.25 * exp(-t * 4.0)
+			# Heroic shimmer
+			var shim := sin(TAU * freq * 4.0 * t) * 0.05 * exp(-t * 3.0)
+			samples[i] = clampf(thud * env + impact + storm + sub + shim, -1.0, 1.0)
+		t4.append(_samples_to_wav(samples, mix_rate))
+	_attack_sounds_by_tier.append(t4)
+
 func _refresh_tier_sounds() -> void:
 	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
 	_attack_sounds = _attack_sounds_by_tier[tier]
@@ -797,11 +819,12 @@ func _draw() -> void:
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
-		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.4, 0.7, 1.0, 0.25 + pulse * 0.15), 2.0)
-		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 28, Color(0.4, 0.7, 1.0, ring_alpha), 2.5)
-		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 28, Color(0.4, 0.7, 1.0, ring_alpha * 0.4), 1.5)
+		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(0.4, 0.7, 1.0, 0.25 + pulse * 0.15), 2.0)
+		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(0.4, 0.7, 1.0, ring_alpha), 2.5)
+		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(0.4, 0.7, 1.0, ring_alpha * 0.4), 1.5)
 	else:
-		pass  #draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1, 1, 1, 0.06), 1.0)
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -840,15 +863,15 @@ func _draw() -> void:
 
 	# === 6. UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:
-		pass  #draw_arc(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, 0, TAU, 24, Color(0.3, 0.5, 0.9, _upgrade_flash * 0.25), 6.0)
+		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.3, 0.5, 0.9, _upgrade_flash * 0.25))
 
 	# === 7. THUNDER FLASH ===
 	if _thunder_flash > 0.0:
 		var flash_r = 40.0 + (1.0 - _thunder_flash) * 80.0
-		pass  #draw_arc(Vector2.ZERO, flash_r, 0, TAU, 24, Color(0.5, 0.7, 1.0, _thunder_flash * 0.15), 5.0)
-		pass  #draw_arc(Vector2.ZERO, flash_r, 0, TAU, 32, Color(0.6, 0.8, 1.0, _thunder_flash * 0.35), 2.5)
+		draw_circle(Vector2.ZERO, flash_r, Color(0.5, 0.7, 1.0, _thunder_flash * 0.15))
+		draw_arc(Vector2.ZERO, flash_r, 0, TAU, 32, Color(0.6, 0.8, 1.0, _thunder_flash * 0.35), 2.5)
 		# Inner crackle rings
-		pass  #draw_arc(Vector2.ZERO, flash_r * 0.6, 0, TAU, 24, Color(0.5, 0.7, 1.0, _thunder_flash * 0.25), 2.0)
+		draw_arc(Vector2.ZERO, flash_r * 0.6, 0, TAU, 24, Color(0.5, 0.7, 1.0, _thunder_flash * 0.25), 2.0)
 		# Radiating lightning bolt bursts
 		for hi in range(6):
 			var ha = TAU * float(hi) / 6.0 + _thunder_flash * 3.0
@@ -865,7 +888,7 @@ func _draw() -> void:
 	# Ability 6: Creator's Sorrow stun flash
 	if _sorrow_flash > 0.0:
 		var sr = 30.0 + (1.0 - _sorrow_flash) * 60.0
-		pass  #draw_arc(Vector2.ZERO, sr, 0, TAU, 24, Color(0.4, 0.5, 0.8, _sorrow_flash * 0.4), 3.0)
+		draw_arc(Vector2.ZERO, sr, 0, TAU, 24, Color(0.4, 0.5, 0.8, _sorrow_flash * 0.4), 3.0)
 
 	# Ability 7: Promethean Fire flash — draw bolt toward actual target position
 	if _promethean_flash > 0.0 and _promethean_had_target:
@@ -886,7 +909,7 @@ func _draw() -> void:
 		var ic_max_r = attack_range * _range_mult() * 3.0
 		for ri in range(3):
 			var ring_r = minf(30.0 + float(ri) * 25.0 + (1.0 - _immortal_flash) * 40.0, ic_max_r)
-			pass  #draw_arc(Vector2.ZERO, ring_r, 0, TAU, 32, Color(0.5, 0.7, 1.0, _immortal_flash * 0.35 / float(ri + 1)), 3.0 - float(ri) * 0.5)
+			draw_arc(Vector2.ZERO, ring_r, 0, TAU, 32, Color(0.5, 0.7, 1.0, _immortal_flash * 0.35 / float(ri + 1)), 3.0 - float(ri) * 0.5)
 		for si in range(8):
 			var sa = TAU * float(si) / 8.0 + _immortal_flash * 3.0
 			var sr = minf(50.0 + (1.0 - _immortal_flash) * 60.0, ic_max_r)
@@ -899,7 +922,7 @@ func _draw() -> void:
 	draw_circle(Vector2(0, plat_y + 5), 30.0, Color(0, 0, 0, 0.18))
 	# Metal slab platform (drawn as squished circles)
 	draw_set_transform(Vector2(0, plat_y), 0, Vector2(1.0, 0.45))
-	pass  #draw_circle(Vector2.ZERO, 30.0, Color(0.22, 0.22, 0.24))
+	draw_circle(Vector2.ZERO, 30.0, Color(0.22, 0.22, 0.24))
 	draw_circle(Vector2.ZERO, 27.0, Color(0.32, 0.32, 0.35))
 	draw_circle(Vector2.ZERO, 22.0, Color(0.38, 0.38, 0.42))
 	# Metal rivets
@@ -994,481 +1017,440 @@ func _draw() -> void:
 			draw_circle(dp, 2.0 + sin(_time + float(di)) * 0.5, Color(0.35, 0.32, 0.28, 0.4))
 			draw_circle(dp, 1.0, Color(0.45, 0.42, 0.38, 0.3))
 
-	# === SPRITE RENDERING (animated — heavy & lumbering) ===
-	if false:  # force procedural body
-		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
-		var _sf = 56.0 / _ss.y
-		var _sd = _ss * _sf
-		var breathe_scl = 1.0 + sin(_time * 1.2) * 0.010
-		var sway_rot = sin(_time * 0.6) * 0.015
-		var s_aim_lean = sin(aim_angle) * 0.030
-		var recoil_off = Vector2.ZERO
-		var atk_scl = Vector2.ONE
-		if _attack_anim > 0.0:
-			var tier_r = 1.0 + float(upgrade_tier) * 0.15
-			var rt = _attack_anim * _attack_anim
-			recoil_off = Vector2.from_angle(aim_angle) * rt * 5.5 * tier_r  # massive forward smash
-			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
-			atk_scl = Vector2(1.0 + sq * (0.18 + float(upgrade_tier) * 0.03), 1.0 - sq * (0.12 + float(upgrade_tier) * 0.02))
-		var total_rot = sway_rot + s_aim_lean
-		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
-		var _fl = cos(aim_angle) < 0.0
-		if _fl:
-			total_scl.x *= -1.0
-			total_rot *= -1.0
-		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
-		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
+	var OL = Color(0.06, 0.06, 0.08)
+	var breath = breathe * 0.5
 
-	if true:  # procedural Bloons character
-		# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
-		var OL = Color(0.06, 0.06, 0.08)
-		var breath = breathe * 0.5
+	# Chibi positions (big head, stocky body)
+	var feet_y = body_offset + Vector2(hip_shift * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(hip_shift * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(hip_shift * 0.3, -8.0 - breath * 0.5)
+	var neck_base = body_offset + Vector2(hip_shift * 0.15, -14.0 - breath * 0.3)
+	var head_center = body_offset + Vector2(hip_shift * 0.08, -26.0)
 
-		# Chibi positions (big head, stocky body)
-		var feet_y = body_offset + Vector2(hip_shift * 1.0, 10.0)
-		var leg_top = body_offset + Vector2(hip_shift * 0.6, 0.0)
-		var torso_center = body_offset + Vector2(hip_shift * 0.3, -8.0 - breath * 0.5)
-		var neck_base = body_offset + Vector2(hip_shift * 0.15, -14.0 - breath * 0.3)
-		var head_center = body_offset + Vector2(hip_shift * 0.08, -26.0)
+	# Skin colors — saturated sickly green
+	var sk = Color(0.55, 0.70, 0.45)
+	var sk_dark = Color(0.38, 0.52, 0.30)
+	var sk_hi = Color(0.68, 0.82, 0.55)
+	# Clothing — dark tattered
+	var cloth = Color(0.14, 0.12, 0.10)
+	var cloth_hi = Color(0.22, 0.19, 0.16)
+	# Chain/bolt metal
+	var metal = Color(0.58, 0.58, 0.63)
+	var metal_hi = Color(0.76, 0.76, 0.82)
+	var metal_dk = Color(0.38, 0.38, 0.42)
+	# Boot color
+	var boot_col = Color(0.18, 0.14, 0.10)
+	var boot_hi = Color(0.28, 0.23, 0.18)
 
-		# Skin colors — saturated sickly green
-		var sk = Color(0.55, 0.70, 0.45)
-		var sk_dark = Color(0.38, 0.52, 0.30)
-		var sk_hi = Color(0.68, 0.82, 0.55)
-		# Clothing — dark tattered
-		var cloth = Color(0.14, 0.12, 0.10)
-		var cloth_hi = Color(0.22, 0.19, 0.16)
-		# Chain/bolt metal
-		var metal = Color(0.58, 0.58, 0.63)
-		var metal_hi = Color(0.76, 0.76, 0.82)
-		var metal_dk = Color(0.38, 0.38, 0.42)
-		# Boot color
-		var boot_col = Color(0.18, 0.14, 0.10)
-		var boot_hi = Color(0.28, 0.23, 0.18)
+	# Smash extend toward target
+	var smash_extend = dir * smash_offset
 
-		# Smash extend toward target
-		var smash_extend = dir * smash_offset
+	# === BOOTS (heavy, chunky) ===
+	var l_foot = feet_y + Vector2(-7, 0)
+	var r_foot = feet_y + Vector2(7, 0)
+	# Left boot outline + fill
+	var lb_pts = PackedVector2Array([
+		l_foot + Vector2(-8, 2), l_foot + Vector2(6, 2),
+		l_foot + Vector2(6, -4), l_foot + Vector2(5, -9),
+		l_foot + Vector2(-6, -9), l_foot + Vector2(-7, -4),
+	])
+	draw_colored_polygon(lb_pts, OL)
+	var lb_inner = PackedVector2Array([
+		l_foot + Vector2(-6.5, 0.5), l_foot + Vector2(4.5, 0.5),
+		l_foot + Vector2(4.5, -3), l_foot + Vector2(3.5, -7.5),
+		l_foot + Vector2(-4.5, -7.5), l_foot + Vector2(-5.5, -3),
+	])
+	draw_colored_polygon(lb_inner, boot_col)
+	# Boot toe cap
+	draw_circle(l_foot + Vector2(-6, -1), 4.0, OL)
+	draw_circle(l_foot + Vector2(-6, -1), 2.5, boot_hi)
+	# Boot sole highlight
+	draw_line(l_foot + Vector2(-7, 1), l_foot + Vector2(5, 1), boot_hi, 1.5)
+	# Boot cuff
+	draw_line(l_foot + Vector2(-5.5, -8), l_foot + Vector2(4.5, -8), OL, 2.5)
+	draw_line(l_foot + Vector2(-4.5, -8), l_foot + Vector2(3.5, -8), Color(0.32, 0.27, 0.22), 1.5)
 
-		# === BOOTS (heavy, chunky) ===
-		var l_foot = feet_y + Vector2(-7, 0)
-		var r_foot = feet_y + Vector2(7, 0)
-		# Left boot outline + fill
-		var lb_pts = PackedVector2Array([
-			l_foot + Vector2(-8, 2), l_foot + Vector2(6, 2),
-			l_foot + Vector2(6, -4), l_foot + Vector2(5, -9),
-			l_foot + Vector2(-6, -9), l_foot + Vector2(-7, -4),
-		])
-		draw_colored_polygon(lb_pts, OL)
-		var lb_inner = PackedVector2Array([
-			l_foot + Vector2(-6.5, 0.5), l_foot + Vector2(4.5, 0.5),
-			l_foot + Vector2(4.5, -3), l_foot + Vector2(3.5, -7.5),
-			l_foot + Vector2(-4.5, -7.5), l_foot + Vector2(-5.5, -3),
-		])
-		draw_colored_polygon(lb_inner, boot_col)
-		# Boot toe cap
-		draw_circle(l_foot + Vector2(-6, -1), 4.0, OL)
-		draw_circle(l_foot + Vector2(-6, -1), 2.5, boot_hi)
-		# Boot sole highlight
-		draw_line(l_foot + Vector2(-7, 1), l_foot + Vector2(5, 1), boot_hi, 1.5)
-		# Boot cuff
-		draw_line(l_foot + Vector2(-5.5, -8), l_foot + Vector2(4.5, -8), OL, 2.5)
-		draw_line(l_foot + Vector2(-4.5, -8), l_foot + Vector2(3.5, -8), Color(0.32, 0.27, 0.22), 1.5)
+	# Right boot outline + fill
+	var rb_pts = PackedVector2Array([
+		r_foot + Vector2(-6, 2), r_foot + Vector2(8, 2),
+		r_foot + Vector2(7, -4), r_foot + Vector2(6, -9),
+		r_foot + Vector2(-5, -9), r_foot + Vector2(-6, -4),
+	])
+	draw_colored_polygon(rb_pts, OL)
+	var rb_inner = PackedVector2Array([
+		r_foot + Vector2(-4.5, 0.5), r_foot + Vector2(6.5, 0.5),
+		r_foot + Vector2(5.5, -3), r_foot + Vector2(4.5, -7.5),
+		r_foot + Vector2(-3.5, -7.5), r_foot + Vector2(-4.5, -3),
+	])
+	draw_colored_polygon(rb_inner, boot_col)
+	draw_circle(r_foot + Vector2(6, -1), 4.0, OL)
+	draw_circle(r_foot + Vector2(6, -1), 2.5, boot_hi)
+	draw_line(r_foot + Vector2(-5, 1), r_foot + Vector2(7, 1), boot_hi, 1.5)
+	draw_line(r_foot + Vector2(-3.5, -8), r_foot + Vector2(5.5, -8), OL, 2.5)
+	draw_line(r_foot + Vector2(-2.5, -8), r_foot + Vector2(4.5, -8), Color(0.32, 0.27, 0.22), 1.5)
 
-		# Right boot outline + fill
-		var rb_pts = PackedVector2Array([
-			r_foot + Vector2(-6, 2), r_foot + Vector2(8, 2),
-			r_foot + Vector2(7, -4), r_foot + Vector2(6, -9),
-			r_foot + Vector2(-5, -9), r_foot + Vector2(-6, -4),
-		])
-		draw_colored_polygon(rb_pts, OL)
-		var rb_inner = PackedVector2Array([
-			r_foot + Vector2(-4.5, 0.5), r_foot + Vector2(6.5, 0.5),
-			r_foot + Vector2(5.5, -3), r_foot + Vector2(4.5, -7.5),
-			r_foot + Vector2(-3.5, -7.5), r_foot + Vector2(-4.5, -3),
-		])
-		draw_colored_polygon(rb_inner, boot_col)
-		draw_circle(r_foot + Vector2(6, -1), 4.0, OL)
-		draw_circle(r_foot + Vector2(6, -1), 2.5, boot_hi)
-		draw_line(r_foot + Vector2(-5, 1), r_foot + Vector2(7, 1), boot_hi, 1.5)
-		draw_line(r_foot + Vector2(-3.5, -8), r_foot + Vector2(5.5, -8), OL, 2.5)
-		draw_line(r_foot + Vector2(-2.5, -8), r_foot + Vector2(4.5, -8), Color(0.32, 0.27, 0.22), 1.5)
+	# === LEGS (short, thick — chibi proportions) ===
+	var l_knee = l_foot.lerp(leg_top, 0.5) + Vector2(-1, 0)
+	var r_knee = r_foot.lerp(leg_top, 0.5) + Vector2(1, 0)
 
-		# === LEGS (short, thick — chibi proportions) ===
-		var l_knee = l_foot.lerp(leg_top, 0.5) + Vector2(-1, 0)
-		var r_knee = r_foot.lerp(leg_top, 0.5) + Vector2(1, 0)
+	# Left leg — outline then fill (torn dark pants)
+	draw_line(l_foot + Vector2(0, -7), l_knee, OL, 12.0)
+	draw_line(l_foot + Vector2(0, -7), l_knee, cloth, 9.0)
+	draw_line(l_knee, leg_top + Vector2(-5, 0), OL, 13.0)
+	draw_line(l_knee, leg_top + Vector2(-5, 0), cloth, 10.0)
+	# Left knee joint outline
+	draw_circle(l_knee, 6.5, OL)
+	draw_circle(l_knee, 4.8, cloth)
 
-		# Left leg — outline then fill (torn dark pants)
-		draw_line(l_foot + Vector2(0, -7), l_knee, OL, 12.0)
-		draw_line(l_foot + Vector2(0, -7), l_knee, cloth, 9.0)
-		draw_line(l_knee, leg_top + Vector2(-5, 0), OL, 13.0)
-		draw_line(l_knee, leg_top + Vector2(-5, 0), cloth, 10.0)
-		# Left knee joint outline
-		draw_circle(l_knee, 6.5, OL)
-		draw_circle(l_knee, 4.8, cloth)
+	# Right leg
+	draw_line(r_foot + Vector2(0, -7), r_knee, OL, 12.0)
+	draw_line(r_foot + Vector2(0, -7), r_knee, cloth, 9.0)
+	draw_line(r_knee, leg_top + Vector2(5, 0), OL, 13.0)
+	draw_line(r_knee, leg_top + Vector2(5, 0), cloth, 10.0)
+	draw_circle(r_knee, 6.5, OL)
+	draw_circle(r_knee, 4.8, cloth)
 
-		# Right leg
-		draw_line(r_foot + Vector2(0, -7), r_knee, OL, 12.0)
-		draw_line(r_foot + Vector2(0, -7), r_knee, cloth, 9.0)
-		draw_line(r_knee, leg_top + Vector2(5, 0), OL, 13.0)
-		draw_line(r_knee, leg_top + Vector2(5, 0), cloth, 10.0)
-		draw_circle(r_knee, 6.5, OL)
-		draw_circle(r_knee, 4.8, cloth)
+	# Torn fabric edges on pants (ragged hems)
+	for ti in range(4):
+		var t_x = -4.0 + float(ti) * 2.8
+		var tl_base = l_knee + Vector2(t_x, 4.0)
+		draw_line(tl_base, tl_base + Vector2(0, 2.5 + sin(float(ti) * 2.1) * 1.5), OL, 1.5)
+		var tr_base = r_knee + Vector2(t_x, 4.0)
+		draw_line(tr_base, tr_base + Vector2(0, 2.5 + sin(float(ti) * 1.7) * 1.5), OL, 1.5)
 
-		# Torn fabric edges on pants (ragged hems)
-		for ti in range(4):
-			var t_x = -4.0 + float(ti) * 2.8
-			var tl_base = l_knee + Vector2(t_x, 4.0)
-			draw_line(tl_base, tl_base + Vector2(0, 2.5 + sin(float(ti) * 2.1) * 1.5), OL, 1.5)
-			var tr_base = r_knee + Vector2(t_x, 4.0)
-			draw_line(tr_base, tr_base + Vector2(0, 2.5 + sin(float(ti) * 1.7) * 1.5), OL, 1.5)
+	# Skin visible between pants and boots (green shin)
+	draw_line(l_knee + Vector2(0, 3), l_foot + Vector2(0, -8), OL, 9.0)
+	draw_line(l_knee + Vector2(0, 3), l_foot + Vector2(0, -8), sk, 6.0)
+	draw_line(r_knee + Vector2(0, 3), r_foot + Vector2(0, -8), OL, 9.0)
+	draw_line(r_knee + Vector2(0, 3), r_foot + Vector2(0, -8), sk, 6.0)
 
-		# Skin visible between pants and boots (green shin)
-		draw_line(l_knee + Vector2(0, 3), l_foot + Vector2(0, -8), OL, 9.0)
-		draw_line(l_knee + Vector2(0, 3), l_foot + Vector2(0, -8), sk, 6.0)
-		draw_line(r_knee + Vector2(0, 3), r_foot + Vector2(0, -8), OL, 9.0)
-		draw_line(r_knee + Vector2(0, 3), r_foot + Vector2(0, -8), sk, 6.0)
+	# === TORSO (broad, stocky, tattered dark shirt) ===
+	var torso_pts_ol = PackedVector2Array([
+		leg_top + Vector2(-11, 2), leg_top + Vector2(11, 2),
+		torso_center + Vector2(16, 2), neck_base + Vector2(18, 2),
+		neck_base + Vector2(18, -2), neck_base + Vector2(-18, -2),
+		neck_base + Vector2(-18, 2), torso_center + Vector2(-16, 2),
+	])
+	draw_colored_polygon(torso_pts_ol, OL)
+	var torso_pts = PackedVector2Array([
+		leg_top + Vector2(-9, 0), leg_top + Vector2(9, 0),
+		torso_center + Vector2(14, 0), neck_base + Vector2(16, 0),
+		neck_base + Vector2(-16, 0), torso_center + Vector2(-14, 0),
+	])
+	draw_colored_polygon(torso_pts, cloth)
+	# Chest highlight stripe
+	draw_colored_polygon(PackedVector2Array([
+		torso_center + Vector2(-8, -2), torso_center + Vector2(8, -2),
+		neck_base + Vector2(10, 2), neck_base + Vector2(-10, 2),
+	]), cloth_hi)
 
-		# === TORSO (broad, stocky, tattered dark shirt) ===
-		var torso_pts_ol = PackedVector2Array([
-			leg_top + Vector2(-11, 2), leg_top + Vector2(11, 2),
-			torso_center + Vector2(16, 2), neck_base + Vector2(18, 2),
-			neck_base + Vector2(18, -2), neck_base + Vector2(-18, -2),
-			neck_base + Vector2(-18, 2), torso_center + Vector2(-16, 2),
-		])
-		draw_colored_polygon(torso_pts_ol, OL)
-		var torso_pts = PackedVector2Array([
-			leg_top + Vector2(-9, 0), leg_top + Vector2(9, 0),
-			torso_center + Vector2(14, 0), neck_base + Vector2(16, 0),
-			neck_base + Vector2(-16, 0), torso_center + Vector2(-14, 0),
-		])
-		draw_colored_polygon(torso_pts, cloth)
-		# Chest highlight stripe
-		draw_colored_polygon(PackedVector2Array([
-			torso_center + Vector2(-8, -2), torso_center + Vector2(8, -2),
-			neck_base + Vector2(10, 2), neck_base + Vector2(-10, 2),
-		]), cloth_hi)
+	# Torn shirt rip — green skin showing through
+	var rip1 = torso_center + Vector2(-8, -1)
+	draw_line(rip1, rip1 + Vector2(-4, 3), OL, 3.5)
+	draw_line(rip1, rip1 + Vector2(-4, 3), sk, 2.0)
+	var rip2 = neck_base + Vector2(7, 4)
+	draw_line(rip2, rip2 + Vector2(3, 4), OL, 3.0)
+	draw_line(rip2, rip2 + Vector2(3, 4), sk, 1.8)
 
-		# Torn shirt rip — green skin showing through
-		var rip1 = torso_center + Vector2(-8, -1)
-		draw_line(rip1, rip1 + Vector2(-4, 3), OL, 3.5)
-		draw_line(rip1, rip1 + Vector2(-4, 3), sk, 2.0)
-		var rip2 = neck_base + Vector2(7, 4)
-		draw_line(rip2, rip2 + Vector2(3, 4), OL, 3.0)
-		draw_line(rip2, rip2 + Vector2(3, 4), sk, 1.8)
+	# Torso stitching (cross-stitch down center)
+	var stitch_dark = Color(0.20, 0.18, 0.15, 0.8)
+	draw_line(neck_base + Vector2(0, 3), torso_center + Vector2(0, 3), stitch_dark, 1.2)
+	for sti in range(5):
+		var st_y = neck_base.y + 3.0 + float(sti) * (torso_center.y - neck_base.y) / 5.0
+		var st_x = neck_base.x + (torso_center.x - neck_base.x) * float(sti) / 5.0
+		draw_line(Vector2(st_x - 2.5, st_y), Vector2(st_x + 2.5, st_y), stitch_dark, 0.9)
 
-		# Torso stitching (cross-stitch down center)
-		var stitch_dark = Color(0.20, 0.18, 0.15, 0.8)
-		draw_line(neck_base + Vector2(0, 3), torso_center + Vector2(0, 3), stitch_dark, 1.2)
-		for sti in range(5):
-			var st_y = neck_base.y + 3.0 + float(sti) * (torso_center.y - neck_base.y) / 5.0
-			var st_x = neck_base.x + (torso_center.x - neck_base.x) * float(sti) / 5.0
-			draw_line(Vector2(st_x - 2.5, st_y), Vector2(st_x + 2.5, st_y), stitch_dark, 0.9)
+	# Belt/waist
+	draw_line(leg_top + Vector2(-9, -1), leg_top + Vector2(9, -1), OL, 3.5)
+	draw_line(leg_top + Vector2(-8, -1), leg_top + Vector2(8, -1), Color(0.30, 0.25, 0.20), 2.0)
+	draw_circle(leg_top + Vector2(0, -1), 2.2, OL)
+	draw_circle(leg_top + Vector2(0, -1), 1.5, Color(0.50, 0.48, 0.42))
 
-		# Belt/waist
-		draw_line(leg_top + Vector2(-9, -1), leg_top + Vector2(9, -1), OL, 3.5)
-		draw_line(leg_top + Vector2(-8, -1), leg_top + Vector2(8, -1), Color(0.30, 0.25, 0.20), 2.0)
-		draw_circle(leg_top + Vector2(0, -1), 2.2, OL)
-		draw_circle(leg_top + Vector2(0, -1), 1.5, Color(0.50, 0.48, 0.42))
+	# === SHOULDERS (extra broad, chunky) ===
+	var l_shoulder = neck_base + Vector2(-16, 1)
+	var r_shoulder = neck_base + Vector2(16, 1)
+	draw_circle(l_shoulder, 9.0, OL)
+	draw_circle(l_shoulder, 7.0, sk_dark)
+	draw_circle(l_shoulder + Vector2(-0.5, -1), 5.0, sk)
+	draw_circle(r_shoulder, 9.0, OL)
+	draw_circle(r_shoulder, 7.0, sk_dark)
+	draw_circle(r_shoulder + Vector2(0.5, -1), 5.0, sk)
+	draw_arc(l_shoulder, 7.5, PI * 0.2, PI * 0.8, 8, stitch_col, 1.2)
+	draw_arc(r_shoulder, 7.5, PI * 0.2, PI * 0.8, 8, stitch_col, 1.2)
 
-		# === SHOULDERS (extra broad, chunky) ===
-		var l_shoulder = neck_base + Vector2(-16, 1)
-		var r_shoulder = neck_base + Vector2(16, 1)
-		draw_circle(l_shoulder, 9.0, OL)
-		draw_circle(l_shoulder, 7.0, sk_dark)
-		draw_circle(l_shoulder + Vector2(-0.5, -1), 5.0, sk)
-		draw_circle(r_shoulder, 9.0, OL)
-		draw_circle(r_shoulder, 7.0, sk_dark)
-		draw_circle(r_shoulder + Vector2(0.5, -1), 5.0, sk)
-		draw_arc(l_shoulder, 7.5, PI * 0.2, PI * 0.8, 8, stitch_col, 1.2)
-		draw_arc(r_shoulder, 7.5, PI * 0.2, PI * 0.8, 8, stitch_col, 1.2)
+	# === LEFT ARM (smashing arm — extends on attack) ===
+	var l_hand = l_shoulder + Vector2(-3, 16) + smash_extend
+	var l_elbow = l_shoulder.lerp(l_hand, 0.45) + Vector2(-3, 0)
+	draw_line(l_shoulder, l_elbow, OL, 13.0)
+	draw_line(l_shoulder, l_elbow, sk_dark, 10.0)
+	draw_line(l_shoulder + Vector2(0, 1), l_elbow + Vector2(0, 1), sk, 7.0)
+	draw_circle(l_elbow, 6.5, OL)
+	draw_circle(l_elbow, 5.0, sk_dark)
+	draw_circle(l_elbow + Vector2(-0.5, -0.5), 3.5, sk)
+	draw_line(l_elbow, l_hand, OL, 12.0)
+	draw_line(l_elbow, l_hand, sk_dark, 9.0)
+	draw_line(l_elbow + Vector2(0, 1), l_hand + Vector2(0, 1), sk, 6.0)
 
-		# === LEFT ARM (smashing arm — extends on attack) ===
-		var l_hand = l_shoulder + Vector2(-3, 16) + smash_extend
-		var l_elbow = l_shoulder.lerp(l_hand, 0.45) + Vector2(-3, 0)
-		draw_line(l_shoulder, l_elbow, OL, 13.0)
-		draw_line(l_shoulder, l_elbow, sk_dark, 10.0)
-		draw_line(l_shoulder + Vector2(0, 1), l_elbow + Vector2(0, 1), sk, 7.0)
-		draw_circle(l_elbow, 6.5, OL)
-		draw_circle(l_elbow, 5.0, sk_dark)
-		draw_circle(l_elbow + Vector2(-0.5, -0.5), 3.5, sk)
-		draw_line(l_elbow, l_hand, OL, 12.0)
-		draw_line(l_elbow, l_hand, sk_dark, 9.0)
-		draw_line(l_elbow + Vector2(0, 1), l_hand + Vector2(0, 1), sk, 6.0)
+	# Left arm stitch
+	var l_stitch_p = l_shoulder.lerp(l_elbow, 0.5)
+	var la_d = (l_elbow - l_shoulder).normalized()
+	var la_p = la_d.rotated(PI / 2.0)
+	draw_line(l_stitch_p - la_p * 5.5, l_stitch_p + la_p * 5.5, stitch_col, 1.3)
+	for lsi in range(4):
+		var ls_pt = l_stitch_p + la_p * (-3.0 + float(lsi) * 2.0)
+		draw_line(ls_pt + la_d * 1.5, ls_pt - la_d * 1.5, stitch_col, 0.9)
 
-		# Left arm stitch
-		var l_stitch_p = l_shoulder.lerp(l_elbow, 0.5)
-		var la_d = (l_elbow - l_shoulder).normalized()
-		var la_p = la_d.rotated(PI / 2.0)
-		draw_line(l_stitch_p - la_p * 5.5, l_stitch_p + la_p * 5.5, stitch_col, 1.3)
-		for lsi in range(4):
-			var ls_pt = l_stitch_p + la_p * (-3.0 + float(lsi) * 2.0)
-			draw_line(ls_pt + la_d * 1.5, ls_pt - la_d * 1.5, stitch_col, 0.9)
+	# Broken chain on left wrist
+	var l_wrist = l_elbow.lerp(l_hand, 0.82)
+	draw_circle(l_wrist, 5.0, OL)
+	draw_circle(l_wrist, 3.8, metal_dk)
+	draw_circle(l_wrist + Vector2(-0.5, -0.5), 2.8, metal)
+	for cli in range(3):
+		var cl_pos = l_wrist + Vector2(-1, 3.5 + float(cli) * 4.0)
+		draw_arc(cl_pos, 2.5, 0, PI, 6, OL, 2.5)
+		draw_arc(cl_pos, 2.5, 0, PI, 6, metal, 1.5)
+		draw_arc(cl_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, OL, 2.5)
+		draw_arc(cl_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, metal_dk, 1.5)
 
-		# Broken chain on left wrist
-		var l_wrist = l_elbow.lerp(l_hand, 0.82)
-		draw_circle(l_wrist, 5.0, OL)
-		draw_circle(l_wrist, 3.8, metal_dk)
-		draw_circle(l_wrist + Vector2(-0.5, -0.5), 2.8, metal)
-		for cli in range(3):
-			var cl_pos = l_wrist + Vector2(-1, 3.5 + float(cli) * 4.0)
-			draw_arc(cl_pos, 2.5, 0, PI, 6, OL, 2.5)
-			draw_arc(cl_pos, 2.5, 0, PI, 6, metal, 1.5)
-			draw_arc(cl_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, OL, 2.5)
-			draw_arc(cl_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, metal_dk, 1.5)
+	# Left FIST (massive, chunky)
+	draw_circle(l_hand, 7.0, OL)
+	draw_circle(l_hand, 5.5, sk_dark)
+	draw_circle(l_hand + Vector2(-0.5, -0.5), 4.0, sk)
+	for ki in range(4):
+		var ka = float(ki - 1.5) * 0.3
+		var kp = l_hand + Vector2.from_angle(aim_angle + ka) * 5.5
+		draw_circle(kp, 2.5, OL)
+		draw_circle(kp, 1.5, sk_hi)
 
-		# Left FIST (massive, chunky)
-		draw_circle(l_hand, 7.0, OL)
-		draw_circle(l_hand, 5.5, sk_dark)
-		draw_circle(l_hand + Vector2(-0.5, -0.5), 4.0, sk)
-		for ki in range(4):
-			var ka = float(ki - 1.5) * 0.3
-			var kp = l_hand + Vector2.from_angle(aim_angle + ka) * 5.5
-			draw_circle(kp, 2.5, OL)
-			draw_circle(kp, 1.5, sk_hi)
+	# Lightning crackling from left fist on attack
+	if _attack_anim > 0.0:
+		for fi in range(4):
+			var f_angle = aim_angle + float(fi - 1.5) * 0.35
+			var f_start = l_hand + Vector2.from_angle(f_angle) * 6.0
+			var f_end = f_start + Vector2.from_angle(f_angle) * (7.0 + sin(_time * 15.0 + float(fi)) * 3.0)
+			var f_mid = f_start.lerp(f_end, 0.5) + Vector2(sin(_time * 20.0 + float(fi) * 3.0) * 3.0, cos(_time * 18.0 + float(fi)) * 3.0)
+			draw_line(f_start, f_mid, Color(0.5, 0.75, 1.0, _attack_anim * 0.7), 2.5)
+			draw_line(f_mid, f_end, Color(0.8, 0.92, 1.0, _attack_anim * 0.6), 2.0)
+			draw_circle(f_end, 2.0, Color(0.95, 0.97, 1.0, _attack_anim * 0.5))
 
-		# Lightning crackling from left fist on attack (tier-scaling electric storm)
-		if _attack_anim > 0.0:
-			var tier_scale = 1.0 + float(upgrade_tier) * 0.3
-			# Fist glow — electric charge buildup
-			draw_circle(l_hand, 8.0 * tier_scale, Color(0.4, 0.65, 1.0, _attack_anim * 0.15))
-			draw_circle(l_hand, 5.0 * tier_scale, Color(0.6, 0.8, 1.0, _attack_anim * 0.25))
-			# Lightning bolts — more at higher tiers
-			var bolt_count = 4 + upgrade_tier * 2
-			for fi in range(bolt_count):
-				var f_angle = aim_angle + (float(fi) - float(bolt_count) / 2.0) * 0.3
-				var f_start = l_hand + Vector2.from_angle(f_angle) * 6.0
-				var f_len = (10.0 + sin(_time * 15.0 + float(fi)) * 4.0) * tier_scale
-				var f_end = f_start + Vector2.from_angle(f_angle) * f_len
-				var f_mid = f_start.lerp(f_end, 0.5) + Vector2(sin(_time * 20.0 + float(fi) * 3.0) * 4.0, cos(_time * 18.0 + float(fi)) * 4.0)
-				draw_line(f_start, f_mid, Color(0.5, 0.75, 1.0, _attack_anim * 0.8), 3.0)
-				draw_line(f_mid, f_end, Color(0.8, 0.92, 1.0, _attack_anim * 0.7), 2.5)
-				draw_circle(f_end, 2.5 * tier_scale, Color(0.95, 0.97, 1.0, _attack_anim * 0.6))
-				# Branch lightning at tips
-				if fi % 2 == 0:
-					var branch_dir = Vector2.from_angle(f_angle + sin(_time * 25.0 + float(fi)) * 0.8)
-					var branch_end = f_end + branch_dir * 5.0 * tier_scale
-					draw_line(f_end, branch_end, Color(0.7, 0.85, 1.0, _attack_anim * 0.4), 1.5)
-			pass  # Lightning bolts from fist are sufficient
+	# === RIGHT ARM ===
+	var r_hand = r_shoulder + Vector2(3, 14)
+	var r_elbow = r_shoulder.lerp(r_hand, 0.45) + Vector2(3, 0)
+	draw_line(r_shoulder, r_elbow, OL, 13.0)
+	draw_line(r_shoulder, r_elbow, sk_dark, 10.0)
+	draw_line(r_shoulder + Vector2(0, 1), r_elbow + Vector2(0, 1), sk, 7.0)
+	draw_circle(r_elbow, 6.5, OL)
+	draw_circle(r_elbow, 5.0, sk_dark)
+	draw_circle(r_elbow + Vector2(0.5, -0.5), 3.5, sk)
+	draw_line(r_elbow, r_hand, OL, 12.0)
+	draw_line(r_elbow, r_hand, sk_dark, 9.0)
+	draw_line(r_elbow + Vector2(0, 1), r_hand + Vector2(0, 1), sk, 6.0)
 
-		# === RIGHT ARM ===
-		var r_hand = r_shoulder + Vector2(3, 14)
-		var r_elbow = r_shoulder.lerp(r_hand, 0.45) + Vector2(3, 0)
-		draw_line(r_shoulder, r_elbow, OL, 13.0)
-		draw_line(r_shoulder, r_elbow, sk_dark, 10.0)
-		draw_line(r_shoulder + Vector2(0, 1), r_elbow + Vector2(0, 1), sk, 7.0)
-		draw_circle(r_elbow, 6.5, OL)
-		draw_circle(r_elbow, 5.0, sk_dark)
-		draw_circle(r_elbow + Vector2(0.5, -0.5), 3.5, sk)
-		draw_line(r_elbow, r_hand, OL, 12.0)
-		draw_line(r_elbow, r_hand, sk_dark, 9.0)
-		draw_line(r_elbow + Vector2(0, 1), r_hand + Vector2(0, 1), sk, 6.0)
+	# Right arm stitch
+	var r_stitch_p = r_elbow.lerp(r_hand, 0.5)
+	var ra_d = (r_hand - r_elbow).normalized()
+	var ra_p = ra_d.rotated(PI / 2.0)
+	draw_line(r_stitch_p - ra_p * 5.0, r_stitch_p + ra_p * 5.0, stitch_col, 1.3)
+	for rsi in range(4):
+		var rs_pt = r_stitch_p + ra_p * (-3.0 + float(rsi) * 2.0)
+		draw_line(rs_pt + ra_d * 1.5, rs_pt - ra_d * 1.5, stitch_col, 0.9)
 
-		# Right arm stitch
-		var r_stitch_p = r_elbow.lerp(r_hand, 0.5)
-		var ra_d = (r_hand - r_elbow).normalized()
-		var ra_p = ra_d.rotated(PI / 2.0)
-		draw_line(r_stitch_p - ra_p * 5.0, r_stitch_p + ra_p * 5.0, stitch_col, 1.3)
-		for rsi in range(4):
-			var rs_pt = r_stitch_p + ra_p * (-3.0 + float(rsi) * 2.0)
-			draw_line(rs_pt + ra_d * 1.5, rs_pt - ra_d * 1.5, stitch_col, 0.9)
+	# Broken chain on right wrist
+	var r_wrist = r_elbow.lerp(r_hand, 0.82)
+	draw_circle(r_wrist, 5.0, OL)
+	draw_circle(r_wrist, 3.8, metal_dk)
+	draw_circle(r_wrist + Vector2(0.5, -0.5), 2.8, metal)
+	for cri in range(3):
+		var cr_pos = r_wrist + Vector2(1, 3.5 + float(cri) * 4.0)
+		draw_arc(cr_pos, 2.5, 0, PI, 6, OL, 2.5)
+		draw_arc(cr_pos, 2.5, 0, PI, 6, metal, 1.5)
+		draw_arc(cr_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, OL, 2.5)
+		draw_arc(cr_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, metal_dk, 1.5)
 
-		# Broken chain on right wrist
-		var r_wrist = r_elbow.lerp(r_hand, 0.82)
-		draw_circle(r_wrist, 5.0, OL)
-		draw_circle(r_wrist, 3.8, metal_dk)
-		draw_circle(r_wrist + Vector2(0.5, -0.5), 2.8, metal)
-		for cri in range(3):
-			var cr_pos = r_wrist + Vector2(1, 3.5 + float(cri) * 4.0)
-			draw_arc(cr_pos, 2.5, 0, PI, 6, OL, 2.5)
-			draw_arc(cr_pos, 2.5, 0, PI, 6, metal, 1.5)
-			draw_arc(cr_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, OL, 2.5)
-			draw_arc(cr_pos + Vector2(0, 2.5), 2.5, PI, TAU, 6, metal_dk, 1.5)
+	# Right FIST
+	draw_circle(r_hand, 7.0, OL)
+	draw_circle(r_hand, 5.5, sk_dark)
+	draw_circle(r_hand + Vector2(0.5, -0.5), 4.0, sk)
+	for ki in range(4):
+		var ka = float(ki - 1.5) * 0.3
+		var kp = r_hand + Vector2.from_angle(aim_angle + PI + ka) * 5.5
+		draw_circle(kp, 2.5, OL)
+		draw_circle(kp, 1.5, sk_hi)
 
-		# Right FIST
-		draw_circle(r_hand, 7.0, OL)
-		draw_circle(r_hand, 5.5, sk_dark)
-		draw_circle(r_hand + Vector2(0.5, -0.5), 4.0, sk)
-		for ki in range(4):
-			var ka = float(ki - 1.5) * 0.3
-			var kp = r_hand + Vector2.from_angle(aim_angle + PI + ka) * 5.5
-			draw_circle(kp, 2.5, OL)
-			draw_circle(kp, 1.5, sk_hi)
+	# Periodic lightning flicker from right fist
+	var spark_phase = fmod(_time * 1.5, 3.0)
+	if spark_phase < 0.5:
+		var sp_alpha = 1.0 - spark_phase / 0.5
+		for sfi in range(3):
+			var sf_a = float(sfi - 1) * 0.4
+			var sf_start = r_hand + Vector2.from_angle(aim_angle + PI + sf_a) * 6.0
+			var sf_end = sf_start + Vector2(sin(_time * 12.0 + float(sfi)) * 5.0, cos(_time * 10.0 + float(sfi)) * 4.0)
+			draw_line(sf_start, sf_end, Color(0.5, 0.75, 1.0, sp_alpha * 0.5), 1.8)
+			draw_circle(sf_end, 1.5, Color(0.9, 0.95, 1.0, sp_alpha * 0.4))
 
-		# Periodic lightning flicker from right fist
-		var spark_phase = fmod(_time * 1.5, 3.0)
-		if spark_phase < 0.5:
-			var sp_alpha = 1.0 - spark_phase / 0.5
-			for sfi in range(3):
-				var sf_a = float(sfi - 1) * 0.4
-				var sf_start = r_hand + Vector2.from_angle(aim_angle + PI + sf_a) * 6.0
-				var sf_end = sf_start + Vector2(sin(_time * 12.0 + float(sfi)) * 5.0, cos(_time * 10.0 + float(sfi)) * 4.0)
-				draw_line(sf_start, sf_end, Color(0.5, 0.75, 1.0, sp_alpha * 0.5), 1.8)
-				draw_circle(sf_end, 1.5, Color(0.9, 0.95, 1.0, sp_alpha * 0.4))
+	# === NECK (thick, powerful) ===
+	var neck_top = head_center + Vector2(0, 10)
+	draw_line(neck_base, neck_top, OL, 16.0)
+	draw_line(neck_base, neck_top, sk_dark, 13.0)
+	draw_line(neck_base + Vector2(0, 1), neck_top + Vector2(0, 1), sk, 9.0)
 
-		# === NECK (thick, powerful) ===
-		var neck_top = head_center + Vector2(0, 10)
-		draw_line(neck_base, neck_top, OL, 16.0)
-		draw_line(neck_base, neck_top, sk_dark, 13.0)
-		draw_line(neck_base + Vector2(0, 1), neck_top + Vector2(0, 1), sk, 9.0)
+	# === NECK BOLTS (prominent metal cylinders!) ===
+	var neck_mid = neck_base.lerp(neck_top, 0.45)
+	var l_bolt = neck_mid + Vector2(-9, 0)
+	var r_bolt = neck_mid + Vector2(9, 0)
+	# Left bolt stem
+	draw_line(l_bolt, l_bolt + Vector2(-8, 0), OL, 5.5)
+	draw_line(l_bolt, l_bolt + Vector2(-8, 0), metal, 3.5)
+	draw_line(l_bolt + Vector2(-1, -0.8), l_bolt + Vector2(-7, -0.8), metal_hi, 1.5)
+	draw_circle(l_bolt + Vector2(-8, 0), 4.5, OL)
+	draw_circle(l_bolt + Vector2(-8, 0), 3.2, metal)
+	draw_circle(l_bolt + Vector2(-8.5, -0.8), 2.0, metal_hi)
+	draw_line(l_bolt + Vector2(-10, 0), l_bolt + Vector2(-6, 0), metal_dk, 1.3)
+	# Right bolt stem
+	draw_line(r_bolt, r_bolt + Vector2(8, 0), OL, 5.5)
+	draw_line(r_bolt, r_bolt + Vector2(8, 0), metal, 3.5)
+	draw_line(r_bolt + Vector2(1, -0.8), r_bolt + Vector2(7, -0.8), metal_hi, 1.5)
+	draw_circle(r_bolt + Vector2(8, 0), 4.5, OL)
+	draw_circle(r_bolt + Vector2(8, 0), 3.2, metal)
+	draw_circle(r_bolt + Vector2(8.5, -0.8), 2.0, metal_hi)
+	draw_line(r_bolt + Vector2(6, 0), r_bolt + Vector2(10, 0), metal_dk, 1.3)
 
-		# === NECK BOLTS (prominent metal cylinders!) ===
-		var neck_mid = neck_base.lerp(neck_top, 0.45)
-		var l_bolt = neck_mid + Vector2(-9, 0)
-		var r_bolt = neck_mid + Vector2(9, 0)
-		# Left bolt stem
-		draw_line(l_bolt, l_bolt + Vector2(-8, 0), OL, 5.5)
-		draw_line(l_bolt, l_bolt + Vector2(-8, 0), metal, 3.5)
-		draw_line(l_bolt + Vector2(-1, -0.8), l_bolt + Vector2(-7, -0.8), metal_hi, 1.5)
-		draw_circle(l_bolt + Vector2(-8, 0), 4.5, OL)
-		draw_circle(l_bolt + Vector2(-8, 0), 3.2, metal)
-		draw_circle(l_bolt + Vector2(-8.5, -0.8), 2.0, metal_hi)
-		draw_line(l_bolt + Vector2(-10, 0), l_bolt + Vector2(-6, 0), metal_dk, 1.3)
-		# Right bolt stem
-		draw_line(r_bolt, r_bolt + Vector2(8, 0), OL, 5.5)
-		draw_line(r_bolt, r_bolt + Vector2(8, 0), metal, 3.5)
-		draw_line(r_bolt + Vector2(1, -0.8), r_bolt + Vector2(7, -0.8), metal_hi, 1.5)
-		draw_circle(r_bolt + Vector2(8, 0), 4.5, OL)
-		draw_circle(r_bolt + Vector2(8, 0), 3.2, metal)
-		draw_circle(r_bolt + Vector2(8.5, -0.8), 2.0, metal_hi)
-		draw_line(r_bolt + Vector2(6, 0), r_bolt + Vector2(10, 0), metal_dk, 1.3)
+	# Bolt sparking
+	var bolt_spark_t = fmod(_time * 1.8, 2.5)
+	if bolt_spark_t < 0.4:
+		var bspark_a = 1.0 - bolt_spark_t / 0.4
+		draw_circle(l_bolt + Vector2(-8, 0), 4.0, Color(0.5, 0.7, 1.0, bspark_a * 0.4))
+		draw_circle(l_bolt + Vector2(-8, 0), 2.0, Color(0.9, 0.95, 1.0, bspark_a * 0.6))
+		draw_circle(r_bolt + Vector2(8, 0), 4.0, Color(0.5, 0.7, 1.0, bspark_a * 0.4))
+		draw_circle(r_bolt + Vector2(8, 0), 2.0, Color(0.9, 0.95, 1.0, bspark_a * 0.6))
+		for bsi in range(2):
+			var bs_dir_v = Vector2.from_angle(fmod((_time * 7.3 + float(bsi) * 2.1) * 13.37, TAU))
+			draw_line(l_bolt + Vector2(-8, 0), l_bolt + Vector2(-8, 0) + bs_dir_v * 5.0, Color(0.6, 0.8, 1.0, bspark_a * 0.5), 1.2)
+			draw_line(r_bolt + Vector2(8, 0), r_bolt + Vector2(8, 0) + bs_dir_v * 5.0, Color(0.6, 0.8, 1.0, bspark_a * 0.5), 1.2)
 
-		# Bolt sparking
-		var bolt_spark_t = fmod(_time * 1.8, 2.5)
-		if bolt_spark_t < 0.4:
-			var bspark_a = 1.0 - bolt_spark_t / 0.4
-			draw_circle(l_bolt + Vector2(-8, 0), 4.0, Color(0.5, 0.7, 1.0, bspark_a * 0.4))
-			draw_circle(l_bolt + Vector2(-8, 0), 2.0, Color(0.9, 0.95, 1.0, bspark_a * 0.6))
-			draw_circle(r_bolt + Vector2(8, 0), 4.0, Color(0.5, 0.7, 1.0, bspark_a * 0.4))
-			draw_circle(r_bolt + Vector2(8, 0), 2.0, Color(0.9, 0.95, 1.0, bspark_a * 0.6))
-			for bsi in range(2):
-				var bs_dir_v = Vector2.from_angle(fmod((_time * 7.3 + float(bsi) * 2.1) * 13.37, TAU))
-				draw_line(l_bolt + Vector2(-8, 0), l_bolt + Vector2(-8, 0) + bs_dir_v * 5.0, Color(0.6, 0.8, 1.0, bspark_a * 0.5), 1.2)
-				draw_line(r_bolt + Vector2(8, 0), r_bolt + Vector2(8, 0) + bs_dir_v * 5.0, Color(0.6, 0.8, 1.0, bspark_a * 0.5), 1.2)
+	# === HEAD (FLAT-TOP! polygon, NOT circle) ===
+	var hc = head_center
+	var head_pts_ol = PackedVector2Array([
+		hc + Vector2(-13, 4), hc + Vector2(-14, -1), hc + Vector2(-13, -6),
+		hc + Vector2(-12, -11), hc + Vector2(-11, -15),
+		hc + Vector2(-10, -17), hc + Vector2(10, -17),
+		hc + Vector2(11, -15), hc + Vector2(12, -11),
+		hc + Vector2(13, -6), hc + Vector2(14, -1), hc + Vector2(13, 4),
+		hc + Vector2(10, 9), hc + Vector2(5, 11), hc + Vector2(0, 12),
+		hc + Vector2(-5, 11), hc + Vector2(-10, 9),
+	])
+	draw_colored_polygon(head_pts_ol, OL)
+	var head_pts = PackedVector2Array([
+		hc + Vector2(-11, 3), hc + Vector2(-12, -1), hc + Vector2(-11, -5.5),
+		hc + Vector2(-10, -10), hc + Vector2(-9, -13.5),
+		hc + Vector2(-8.5, -15.5), hc + Vector2(8.5, -15.5),
+		hc + Vector2(9, -13.5), hc + Vector2(10, -10),
+		hc + Vector2(11, -5.5), hc + Vector2(12, -1), hc + Vector2(11, 3),
+		hc + Vector2(8.5, 8), hc + Vector2(4, 9.5), hc + Vector2(0, 10.5),
+		hc + Vector2(-4, 9.5), hc + Vector2(-8.5, 8),
+	])
+	draw_colored_polygon(head_pts, sk_dark)
+	var head_hi_pts = PackedVector2Array([
+		hc + Vector2(-8, -2), hc + Vector2(-9, -8), hc + Vector2(-7, -13),
+		hc + Vector2(-4, -14.5), hc + Vector2(2, -14.5),
+		hc + Vector2(5, -12), hc + Vector2(6, -6), hc + Vector2(5, 0),
+		hc + Vector2(2, 5), hc + Vector2(-3, 6), hc + Vector2(-6, 3),
+	])
+	draw_colored_polygon(head_hi_pts, sk)
+	draw_line(hc + Vector2(-8, -15.5), hc + Vector2(8, -15.5), sk_hi, 2.0)
 
-		# === HEAD (FLAT-TOP! polygon, NOT circle) ===
-		var hc = head_center
-		var head_pts_ol = PackedVector2Array([
-			hc + Vector2(-13, 4), hc + Vector2(-14, -1), hc + Vector2(-13, -6),
-			hc + Vector2(-12, -11), hc + Vector2(-11, -15),
-			hc + Vector2(-10, -17), hc + Vector2(10, -17),
-			hc + Vector2(11, -15), hc + Vector2(12, -11),
-			hc + Vector2(13, -6), hc + Vector2(14, -1), hc + Vector2(13, 4),
-			hc + Vector2(10, 9), hc + Vector2(5, 11), hc + Vector2(0, 12),
-			hc + Vector2(-5, 11), hc + Vector2(-10, 9),
-		])
-		draw_colored_polygon(head_pts_ol, OL)
-		var head_pts = PackedVector2Array([
-			hc + Vector2(-11, 3), hc + Vector2(-12, -1), hc + Vector2(-11, -5.5),
-			hc + Vector2(-10, -10), hc + Vector2(-9, -13.5),
-			hc + Vector2(-8.5, -15.5), hc + Vector2(8.5, -15.5),
-			hc + Vector2(9, -13.5), hc + Vector2(10, -10),
-			hc + Vector2(11, -5.5), hc + Vector2(12, -1), hc + Vector2(11, 3),
-			hc + Vector2(8.5, 8), hc + Vector2(4, 9.5), hc + Vector2(0, 10.5),
-			hc + Vector2(-4, 9.5), hc + Vector2(-8.5, 8),
-		])
-		draw_colored_polygon(head_pts, sk_dark)
-		var head_hi_pts = PackedVector2Array([
-			hc + Vector2(-8, -2), hc + Vector2(-9, -8), hc + Vector2(-7, -13),
-			hc + Vector2(-4, -14.5), hc + Vector2(2, -14.5),
-			hc + Vector2(5, -12), hc + Vector2(6, -6), hc + Vector2(5, 0),
-			hc + Vector2(2, 5), hc + Vector2(-3, 6), hc + Vector2(-6, 3),
-		])
-		draw_colored_polygon(head_hi_pts, sk)
-		draw_line(hc + Vector2(-8, -15.5), hc + Vector2(8, -15.5), sk_hi, 2.0)
+	# === HEAVY BROW RIDGE ===
+	draw_colored_polygon(PackedVector2Array([
+		hc + Vector2(-11.5, -7), hc + Vector2(11.5, -7),
+		hc + Vector2(10.5, -4), hc + Vector2(-10.5, -4),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		hc + Vector2(-10.5, -6.5), hc + Vector2(10.5, -6.5),
+		hc + Vector2(9.5, -4.5), hc + Vector2(-9.5, -4.5),
+	]), Color(0.32, 0.44, 0.26))
 
-		# === HEAVY BROW RIDGE ===
-		draw_colored_polygon(PackedVector2Array([
-			hc + Vector2(-11.5, -7), hc + Vector2(11.5, -7),
-			hc + Vector2(10.5, -4), hc + Vector2(-10.5, -4),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			hc + Vector2(-10.5, -6.5), hc + Vector2(10.5, -6.5),
-			hc + Vector2(9.5, -4.5), hc + Vector2(-9.5, -4.5),
-		]), Color(0.32, 0.44, 0.26))
+	# === FOREHEAD STITCHING ===
+	draw_line(hc + Vector2(-9, -10), hc + Vector2(9, -10), OL, 1.8)
+	for fsi in range(7):
+		var fsx = -7.5 + float(fsi) * 2.5
+		draw_line(Vector2(hc.x + fsx, hc.y - 11.5), Vector2(hc.x + fsx, hc.y - 8.5), OL, 1.2)
 
-		# === FOREHEAD STITCHING ===
-		draw_line(hc + Vector2(-9, -10), hc + Vector2(9, -10), OL, 1.8)
-		for fsi in range(7):
-			var fsx = -7.5 + float(fsi) * 2.5
-			draw_line(Vector2(hc.x + fsx, hc.y - 11.5), Vector2(hc.x + fsx, hc.y - 8.5), OL, 1.2)
+	# === EYES (smaller, sunken) ===
+	var look_dir = dir * 1.0
+	var l_eye = hc + Vector2(-5, -1.5)
+	var r_eye = hc + Vector2(5, -1.5)
+	draw_circle(l_eye, 5.5, Color(0.25, 0.32, 0.22, 0.5))
+	draw_circle(r_eye, 5.5, Color(0.25, 0.32, 0.22, 0.5))
+	draw_circle(l_eye, 4.5, OL)
+	draw_circle(l_eye, 3.5, Color(0.88, 0.85, 0.78))
+	draw_circle(r_eye, 4.5, OL)
+	draw_circle(r_eye, 3.5, Color(0.88, 0.85, 0.78))
+	var iris_col = Color(0.45, 0.55, 0.25)
+	draw_circle(l_eye + look_dir * 0.5, 2.5, Color(0.35, 0.45, 0.18))
+	draw_circle(l_eye + look_dir * 0.5, 1.8, iris_col)
+	draw_circle(r_eye + look_dir * 0.5, 2.5, Color(0.35, 0.45, 0.18))
+	draw_circle(r_eye + look_dir * 0.5, 1.8, iris_col)
+	draw_circle(l_eye + look_dir * 0.6, 1.0, OL)
+	draw_circle(r_eye + look_dir * 0.6, 1.0, OL)
+	draw_circle(l_eye + Vector2(-0.8, -1.2), 1.0, Color(1.0, 1.0, 1.0, 0.85))
+	draw_circle(r_eye + Vector2(-0.8, -1.2), 1.0, Color(1.0, 1.0, 1.0, 0.85))
+	draw_circle(l_eye + Vector2(0.8, 0.5), 0.5, Color(1.0, 1.0, 1.0, 0.4))
+	draw_circle(r_eye + Vector2(0.8, 0.5), 0.5, Color(1.0, 1.0, 1.0, 0.4))
+	draw_arc(l_eye, 4.0, 0.3, PI - 0.3, 8, Color(0.30, 0.25, 0.22, 0.45), 2.0)
+	draw_arc(r_eye, 4.0, 0.3, PI - 0.3, 8, Color(0.30, 0.25, 0.22, 0.45), 2.0)
+	draw_arc(l_eye, 4.2, PI + 0.15, PI + 0.85, 8, OL, 2.2)
+	draw_arc(r_eye, 4.2, TAU - 0.85, TAU - 0.15, 8, OL, 2.2)
+	draw_line(l_eye + Vector2(-5, -4.5), l_eye + Vector2(2.5, -3.0), OL, 2.8)
+	draw_line(r_eye + Vector2(-2.5, -3.0), r_eye + Vector2(5, -4.5), OL, 2.8)
 
-		# === EYES (smaller, sunken) ===
-		var look_dir = dir * 1.0
-		var l_eye = hc + Vector2(-5, -1.5)
-		var r_eye = hc + Vector2(5, -1.5)
-		draw_circle(l_eye, 5.5, Color(0.25, 0.32, 0.22, 0.5))
-		draw_circle(r_eye, 5.5, Color(0.25, 0.32, 0.22, 0.5))
-		draw_circle(l_eye, 4.5, OL)
-		draw_circle(l_eye, 3.5, Color(0.88, 0.85, 0.78))
-		draw_circle(r_eye, 4.5, OL)
-		draw_circle(r_eye, 3.5, Color(0.88, 0.85, 0.78))
-		var iris_col = Color(0.45, 0.55, 0.25)
-		draw_circle(l_eye + look_dir * 0.5, 2.5, Color(0.35, 0.45, 0.18))
-		draw_circle(l_eye + look_dir * 0.5, 1.8, iris_col)
-		draw_circle(r_eye + look_dir * 0.5, 2.5, Color(0.35, 0.45, 0.18))
-		draw_circle(r_eye + look_dir * 0.5, 1.8, iris_col)
-		draw_circle(l_eye + look_dir * 0.6, 1.0, OL)
-		draw_circle(r_eye + look_dir * 0.6, 1.0, OL)
-		draw_circle(l_eye + Vector2(-0.8, -1.2), 1.0, Color(1.0, 1.0, 1.0, 0.85))
-		draw_circle(r_eye + Vector2(-0.8, -1.2), 1.0, Color(1.0, 1.0, 1.0, 0.85))
-		draw_circle(l_eye + Vector2(0.8, 0.5), 0.5, Color(1.0, 1.0, 1.0, 0.4))
-		draw_circle(r_eye + Vector2(0.8, 0.5), 0.5, Color(1.0, 1.0, 1.0, 0.4))
-		draw_arc(l_eye, 4.0, 0.3, PI - 0.3, 8, Color(0.30, 0.25, 0.22, 0.45), 2.0)
-		draw_arc(r_eye, 4.0, 0.3, PI - 0.3, 8, Color(0.30, 0.25, 0.22, 0.45), 2.0)
-		draw_arc(l_eye, 4.2, PI + 0.15, PI + 0.85, 8, OL, 2.2)
-		draw_arc(r_eye, 4.2, TAU - 0.85, TAU - 0.15, 8, OL, 2.2)
-		draw_line(l_eye + Vector2(-5, -4.5), l_eye + Vector2(2.5, -3.0), OL, 2.8)
-		draw_line(r_eye + Vector2(-2.5, -3.0), r_eye + Vector2(5, -4.5), OL, 2.8)
+	# === NOSE ===
+	draw_line(hc + Vector2(-1, 0), hc + Vector2(-1.5, 4), OL, 2.5)
+	draw_line(hc + Vector2(1, 0), hc + Vector2(1.5, 4), OL, 2.5)
+	draw_line(hc + Vector2(-2.5, 4), hc + Vector2(2.5, 4), OL, 2.0)
 
-		# === NOSE ===
-		draw_line(hc + Vector2(-1, 0), hc + Vector2(-1.5, 4), OL, 2.5)
-		draw_line(hc + Vector2(1, 0), hc + Vector2(1.5, 4), OL, 2.5)
-		draw_line(hc + Vector2(-2.5, 4), hc + Vector2(2.5, 4), OL, 2.0)
+	# === MOUTH ===
+	draw_line(hc + Vector2(-5, 6.5), hc + Vector2(0, 5.5), OL, 2.5)
+	draw_line(hc + Vector2(0, 5.5), hc + Vector2(5, 6.5), OL, 2.5)
+	draw_line(hc + Vector2(-3.5, 7.0), hc + Vector2(3.5, 7.0), sk_hi, 1.2)
 
-		# === MOUTH ===
-		draw_line(hc + Vector2(-5, 6.5), hc + Vector2(0, 5.5), OL, 2.5)
-		draw_line(hc + Vector2(0, 5.5), hc + Vector2(5, 6.5), OL, 2.5)
-		draw_line(hc + Vector2(-3.5, 7.0), hc + Vector2(3.5, 7.0), sk_hi, 1.2)
+	# === JAW + FACE STITCHES ===
+	draw_arc(hc + Vector2(0, 3), 11.5, 0.15, PI - 0.15, 12, OL, 2.0)
+	draw_line(hc + Vector2(-7, -3), hc + Vector2(-6, 7), OL, 1.5)
+	for fcsi in range(4):
+		var fcs_y = -2.0 + float(fcsi) * 2.5
+		draw_line(hc + Vector2(-8, fcs_y), hc + Vector2(-5, fcs_y), OL, 1.0)
+	draw_line(hc + Vector2(5, -1), hc + Vector2(7, 5), OL, 1.3)
+	for fcri in range(3):
+		var fcr_y = 0.0 + float(fcri) * 2.0
+		draw_line(hc + Vector2(4, fcr_y), hc + Vector2(7, fcr_y), OL, 0.9)
 
-		# === JAW + FACE STITCHES ===
-		draw_arc(hc + Vector2(0, 3), 11.5, 0.15, PI - 0.15, 12, OL, 2.0)
-		draw_line(hc + Vector2(-7, -3), hc + Vector2(-6, 7), OL, 1.5)
-		for fcsi in range(4):
-			var fcs_y = -2.0 + float(fcsi) * 2.5
-			draw_line(hc + Vector2(-8, fcs_y), hc + Vector2(-5, fcs_y), OL, 1.0)
-		draw_line(hc + Vector2(5, -1), hc + Vector2(7, 5), OL, 1.3)
-		for fcri in range(3):
-			var fcr_y = 0.0 + float(fcri) * 2.0
-			draw_line(hc + Vector2(4, fcr_y), hc + Vector2(7, fcr_y), OL, 0.9)
+	# === EARS ===
+	draw_circle(hc + Vector2(-12, 1), 3.5, OL)
+	draw_circle(hc + Vector2(-12, 1), 2.2, sk_dark)
+	draw_circle(hc + Vector2(12, 1), 3.5, OL)
+	draw_circle(hc + Vector2(12, 1), 2.2, sk_dark)
 
-		# === EARS ===
-		draw_circle(hc + Vector2(-12, 1), 3.5, OL)
-		draw_circle(hc + Vector2(-12, 1), 2.2, sk_dark)
-		draw_circle(hc + Vector2(12, 1), 3.5, OL)
-		draw_circle(hc + Vector2(12, 1), 2.2, sk_dark)
-
-		# === SMASH IMPACT EFFECT ===
-		if _smash_anim > 0.0:
-			var crack_alpha = _smash_anim * 0.6
-			var crack_r = 20.0 + (1.0 - _smash_anim) * smash_radius * 0.6
-			for ci in range(8):
-				var ca = TAU * float(ci) / 8.0 + _smash_anim * 0.5
-				var c_start_pt = Vector2.from_angle(ca) * 10.0 + l_hand
-				var c_end_pt = Vector2.from_angle(ca) * crack_r + l_hand
-				var c_mid_pt = c_start_pt.lerp(c_end_pt, 0.5) + Vector2(sin(float(ci) * 3.1) * 5.0, cos(float(ci) * 2.7) * 4.0)
-				draw_line(c_start_pt, c_mid_pt, Color(0.5, 0.75, 1.0, crack_alpha), 2.5)
-				draw_line(c_mid_pt, c_end_pt, Color(0.4, 0.65, 1.0, crack_alpha * 0.6), 2.0)
-			draw_circle(l_hand, 10.0, Color(0.8, 0.9, 1.0, _smash_anim * 0.35))
-			draw_circle(l_hand, 5.0, Color(1.0, 1.0, 1.0, _smash_anim * 0.55))
+	# === SMASH IMPACT EFFECT ===
+	if _smash_anim > 0.0:
+		var crack_alpha = _smash_anim * 0.6
+		var crack_r = 20.0 + (1.0 - _smash_anim) * smash_radius * 0.6
+		for ci in range(8):
+			var ca = TAU * float(ci) / 8.0 + _smash_anim * 0.5
+			var c_start_pt = Vector2.from_angle(ca) * 10.0 + l_hand
+			var c_end_pt = Vector2.from_angle(ca) * crack_r + l_hand
+			var c_mid_pt = c_start_pt.lerp(c_end_pt, 0.5) + Vector2(sin(float(ci) * 3.1) * 5.0, cos(float(ci) * 2.7) * 4.0)
+			draw_line(c_start_pt, c_mid_pt, Color(0.5, 0.75, 1.0, crack_alpha), 2.5)
+			draw_line(c_mid_pt, c_end_pt, Color(0.4, 0.65, 1.0, crack_alpha * 0.6), 2.0)
+		draw_circle(l_hand, 10.0, Color(0.8, 0.9, 1.0, _smash_anim * 0.35))
+		draw_circle(l_hand, 5.0, Color(1.0, 1.0, 1.0, _smash_anim * 0.55))
 
 	# === 21. ELECTRIC AURA (T4 permanent) ===
 	if _aura_active:
 		var aura_pulse = (sin(_time * 2.0) + 1.0) * 0.5
 		var aura_r = smash_radius * 1.2
-		pass  #draw_arc(Vector2.ZERO, aura_r, 0, TAU, 28, Color(0.4, 0.6, 1.0, 0.08 + aura_pulse * 0.04), 2.5)
-		pass  #draw_arc(Vector2.ZERO, aura_r * 0.8, 0, TAU, 24, Color(0.5, 0.7, 1.0, 0.06 + aura_pulse * 0.03), 1.5)
+		draw_arc(Vector2.ZERO, aura_r, 0, TAU, 48, Color(0.4, 0.6, 1.0, 0.08 + aura_pulse * 0.04), 1.5)
+		draw_arc(Vector2.ZERO, aura_r * 0.8, 0, TAU, 36, Color(0.5, 0.7, 1.0, 0.06 + aura_pulse * 0.03), 1.0)
 		# Orbiting electric motes
 		for ai in range(6):
 			var aa = _time * 0.8 + float(ai) * TAU / 6.0
@@ -1476,7 +1458,31 @@ func _draw() -> void:
 			var ap = Vector2(cos(aa) * ar, sin(aa) * ar * 0.4)
 			draw_circle(ap, 1.5, Color(0.6, 0.8, 1.0, 0.25 + aura_pulse * 0.1))
 
-	pass # Tier evolution effects removed
+	# === VISUAL TIER EVOLUTION ===
+	if upgrade_tier >= 1:
+		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.4, 0.7, 1.0, 0.15 + glow_pulse * 0.1), 2.0)
+	if upgrade_tier >= 2:
+		for si in range(6):
+			var sa = _time * 1.2 + float(si) * TAU / 6.0
+			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
+			var sp = Vector2.from_angle(sa) * sr
+			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
+			draw_circle(sp, 1.8, Color(0.5, 0.8, 1.0, s_alpha))
+	if upgrade_tier >= 3:
+		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
+		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
+		for ci in range(3):
+			var cx = -6.0 + float(ci) * 6.0
+			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
+			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
+	if upgrade_tier >= 4:
+		for bi in range(8):
+			var ba = _time * 0.5 + float(bi) * TAU / 8.0
+			var b_inner = Vector2.from_angle(ba) * 45.0
+			var b_outer = Vector2.from_angle(ba) * 65.0
+			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
+			draw_line(b_inner, b_outer, Color(0.4, 0.7, 1.0, b_alpha), 1.5)
 
 	# === 22. KILL STACK INDICATOR ===
 	if kill_stack_bonus > 0.0:
@@ -1504,52 +1510,6 @@ func _draw() -> void:
 	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
 	if cd_fill >= 1.0:
 		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
-		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.4, 0.7, 1.0, cd_pulse * 0.4), 2.0)
+		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.4, 0.7, 1.0, cd_pulse * 0.4), 2.0)
 	elif cd_fill > 0.0:
 		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.4, 0.7, 1.0, 0.3), 2.0)
-
-	# === TIER 5: IT'S ALIVE! VFX ===
-	if _its_alive_active:
-		# Active storm phase — crackling electric field
-		if _its_alive_duration > 0.0:
-			var s_pulse = sin(_time * 10.0) * 0.5 + 0.5
-			var s_alpha = clampf(_its_alive_duration / 5.0, 0.0, 1.0) * 0.4
-			# Electric field expanding rings
-			for ri in range(4):
-				var r_phase = fmod(_time * 3.0 + float(ri) * 0.5, 1.0)
-				var r_radius = 30.0 + r_phase * 150.0
-				var r_a = (1.0 - r_phase) * s_alpha
-				pass  #draw_arc(Vector2.ZERO, r_radius, 0, TAU, 32, Color(0.5, 0.8, 1.0, r_a), 2.0)
-			# Crackling arcs between random points
-			for ai in range(6):
-				var a1 = _time * 5.0 + float(ai) * TAU / 6.0
-				var a2 = a1 + randf_range(0.5, 1.5)
-				var p1 = Vector2(cos(a1) * 40.0, sin(a1) * 40.0)
-				var p2 = Vector2(cos(a2) * 70.0, sin(a2) * 70.0)
-				var flicker = 0.3 + sin(_time * 15.0 + float(ai) * 4.0) * 0.3
-				if flicker > 0.3:
-					draw_line(p1, p2, Color(0.6, 0.9, 1.0, flicker * s_alpha), 1.5)
-					# Spark at endpoints
-					draw_circle(p2, 2.0, Color(0.8, 0.95, 1.0, flicker * s_alpha * 0.7))
-			# Central storm eye
-			draw_circle(Vector2.ZERO, 15.0 + s_pulse * 5.0, Color(0.4, 0.7, 1.0, s_alpha * 0.2))
-			pass  #draw_arc(Vector2.ZERO, 18.0 + s_pulse * 5.0, 0, TAU, 24, Color(0.6, 0.9, 1.0, s_alpha * 0.4), 2.5)
-			# Bolts orbiting with electricity
-			for bi in range(8):
-				var b_angle = _time * 4.0 + float(bi) * TAU / 8.0
-				var b_r = 50.0 + sin(_time * 3.0 + float(bi)) * 15.0
-				var bpos = Vector2(cos(b_angle) * b_r, sin(b_angle) * b_r * 0.6)
-				var b_flick = sin(_time * 20.0 + float(bi) * 5.0) * 0.5 + 0.5
-				draw_circle(bpos, 2.0 + b_flick, Color(0.7, 0.9, 1.0, s_alpha * b_flick))
-		# Trigger flash — white-blue burst
-		if _its_alive_flash > 0.0:
-			var ff = _its_alive_flash
-			pass  #draw_circle(Vector2.ZERO, 25.0 + (1.0 - ff) * 90.0, Color(0.7, 0.9, 1.0, ff * 0.2))
-			for ri in range(10):
-				var ra = TAU * float(ri) / 10.0
-				var rlen = 40.0 + (1.0 - ff) * 130.0
-				draw_line(Vector2.ZERO, Vector2(cos(ra) * rlen, sin(ra) * rlen), Color(0.5, 0.8, 1.0, ff * 0.35), 2.0)
-		# Ready pulse
-		elif _its_alive_timer < 5.0:
-			var rp = sin(_time * 6.0) * 0.5 + 0.5
-			pass  #draw_arc(Vector2.ZERO, 35.0 + rp * 5.0, 0, TAU, 24, Color(0.5, 0.8, 1.0, 0.12 + rp * 0.08), 2.0)
