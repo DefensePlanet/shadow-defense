@@ -11,6 +11,7 @@ var fire_rate: float = 0.33
 var attack_range: float = 120.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
+var sprite_texture: Texture2D = null
 var target: Node2D = null
 var _draw_progress: float = 0.0
 var gold_bonus: int = 1
@@ -41,6 +42,11 @@ var _ape_call_timer: float = 0.0
 
 # Tier 4: King of the Apes
 var _king_apes_active: bool = false
+
+# Tier 5: Legend of Greystoke — jungle stampede
+var _greystoke_active: bool = false
+var _greystoke_timer: float = 40.0
+var _greystoke_flash: float = 0.0
 
 # Kill tracking
 var kill_count: int = 0
@@ -86,6 +92,7 @@ var _mangani_flash: float = 0.0
 var _opar_flash: float = 0.0
 var _legend_allies: Array = []
 
+const MAX_STAT_LEVEL: int = 10  # Cap stat scaling to prevent infinite power creep
 const STAT_UPGRADE_INTERVAL: float = 8000.0
 const ABILITY_THRESHOLD: float = 28000.0
 var stat_upgrade_level: int = 0
@@ -93,17 +100,19 @@ var ability_chosen: bool = false
 var awaiting_ability_choice: bool = false
 const TIER_NAMES = [
 	"Vine Swing",
-	"Ape Strength",
-	"Animal Call",
-	"King of the Apes"
+	"Victory Cry of the Bull Ape",
+	"Call of the Wild",
+	"King of the Apes",
+	"Legend of Greystoke"
 ]
 const ABILITY_DESCRIPTIONS = [
 	"Vine swing AoE smash — powerful ground pound",
-	"Ape strength — +6% damage boost",
-	"Call an ape ally for 15s every other wave",
-	"3 more apes join — throw enemies back to start"
+	"War cry fears enemies for 2s + all towers gain +8% damage for 5s",
+	"Tantor the elephant charges path + ape allies join every wave",
+	"Tarzan wrestles strongest enemy — massive damage + stun",
+	"All jungle animals flood the path for 8s — unstoppable stampede"
 ]
-const TIER_COSTS = [160, 350, 600, 1200]
+const TIER_COSTS = [160, 350, 600, 1200, 2000]
 var is_selected: bool = false
 var base_cost: int = 0
 
@@ -229,7 +238,7 @@ func _process(delta: float) -> void:
 			_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 			if fire_cooldown <= 0.0:
 				_attack()
-				fire_cooldown = 1.0 / (fire_rate * _speed_mult())
+				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
 				_draw_progress = 0.0
 				_attack_anim = 1.0
 		else:
@@ -296,6 +305,29 @@ func _process(delta: float) -> void:
 	to_remove.reverse()
 	for idx in to_remove:
 		_animal_allies.remove_at(idx)
+
+	# Tier 5: Legend of Greystoke — jungle stampede every 40s
+	if _greystoke_active:
+		_greystoke_flash = max(_greystoke_flash - delta * 0.6, 0.0)
+		_greystoke_timer -= delta
+		if _greystoke_timer <= 0.0:
+			_greystoke_timer = 40.0
+			_greystoke_flash = 2.0
+			if is_instance_valid(_main_node):
+				_main_node.trigger_camera_shake(12.0, 0.8)
+				pass  #_main_node.trigger_shockwave(global_position, 350.0, 250.0, Color(0.4, 0.6, 0.1))
+				_main_node.trigger_explosion(global_position, 20, Color(0.5, 0.35, 0.1))
+				# Earthquake rumble — multiple small shockwaves
+				for si in range(3):
+					var offset = Vector2(randf_range(-100, 100), randf_range(-50, 50))
+					pass  #_main_node.trigger_shockwave(global_position + offset, 150.0, 400.0, Color(0.6, 0.5, 0.2))
+			# Stampede damages ALL enemies heavily
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+				if enemy.has_method("take_damage"):
+					enemy.take_damage(damage * 3.5, "physical")
+					register_damage(damage * 3.5)
+				if enemy.has_method("apply_slow"):
+					enemy.apply_slow(0.5, 3.0)
 
 	# Progressive abilities
 	_process_progressive_abilities(delta)
@@ -531,7 +563,7 @@ func register_kill() -> void:
 
 func _check_upgrades() -> void:
 	var new_level = int(damage_dealt / STAT_UPGRADE_INTERVAL)
-	while stat_upgrade_level < new_level:
+	while stat_upgrade_level < new_level and stat_upgrade_level < MAX_STAT_LEVEL:
 		stat_upgrade_level += 1
 		_apply_stat_boost()
 		_upgrade_flash = 2.0
@@ -543,8 +575,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 3.0
-	fire_rate += 0.013
+	damage += 1.8
+	fire_rate += 0.005
 	attack_range += 3.0
 
 func choose_ability(index: int) -> void:
@@ -558,28 +590,30 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Vine Swing — AoE ground pound smash (slow but powerful)
-			damage = 49.0
-			fire_rate = 0.66
-			attack_range = 130.0
+			damage = 48.0
+			fire_rate = 0.38
+			attack_range = 124.0
 		2: # Ape Strength — +6% damage boost
-			damage = 52.0
-			fire_rate = 0.66
-			attack_range = 140.0
+			damage = 50.0
+			fire_rate = 0.38
+			attack_range = 128.0
 			gold_bonus = 2
 		3: # Animal Call — 1 ape ally for 15s every other wave
-			damage = 63.0
-			fire_rate = 0.66
-			attack_range = 150.0
+			damage = 50.0
+			fire_rate = 0.38
+			attack_range = 128.0
 			gold_bonus = 3
-		4: # King of the Apes — 3 more apes, throw enemies back
-			damage = 81.0
-			fire_rate = 0.66
-			attack_range = 160.0
+		4: # King of the Apes — Tarzan wrestles strongest enemy
+			damage = 53.0
+			fire_rate = 0.38
+			attack_range = 132.0
 			gold_bonus = 3
 			_king_apes_active = true
+		5: # Legend of Greystoke — jungle stampede
+			_greystoke_active = true
 
 func purchase_upgrade() -> bool:
-	if upgrade_tier >= 4:
+	if upgrade_tier >= TIER_COSTS.size():
 		return false
 	var cost = TIER_COSTS[upgrade_tier]
 	var main_node = get_tree().get_first_node_in_group("main")
@@ -597,7 +631,7 @@ func get_tower_display_name() -> String:
 	return "Tarzan"
 
 func get_next_upgrade_info() -> Dictionary:
-	if upgrade_tier >= 4:
+	if upgrade_tier >= TIER_COSTS.size():
 		return {}
 	return {
 		"name": TIER_NAMES[upgrade_tier],
@@ -612,138 +646,50 @@ func get_sell_value() -> int:
 	return int(total * 0.6)
 
 func _generate_tier_sounds() -> void:
-	# Jungle drums in D minor — deep tonal percussion with warm harmonics
-	# D minor walking bass: D2, F2, G2, A2, Bb2, C3, D3, A2
-	var dm_notes := [73.42, 87.31, 98.00, 110.00, 116.54, 130.81, 146.83, 110.00]
 	var mix_rate := 44100
+	# Drum pattern: kick-rest-snare-rest-kick-kick-snare-rest (pitches encode drum type)
+	var melody := [60.0, 80.0, 200.0, 80.0, 60.0, 60.0, 200.0, 80.0]
+	# Low = kick, High = snare, Mid = tom
 	_attack_sounds_by_tier = []
-
-	# --- Tier 0: Jungle Log Drum (warm tonal hit, wooden character) ---
-	var t0 := []
-	for note_idx in dm_notes.size():
-		var freq: float = dm_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.18))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			# Pitch drops slightly for woody character
-			var f := freq * (1.0 + exp(-t * 40.0) * 0.15)
-			var env := exp(-t * 14.0) * 0.5
-			# Warm fundamental with soft overtones
-			var drum := sin(t * f * TAU) * 0.6
-			drum += sin(t * f * 2.0 * TAU) * 0.15 * exp(-t * 20.0)
-			drum += sin(t * f * 3.0 * TAU) * 0.06 * exp(-t * 30.0)
-			# Woody transient (short filtered click)
-			var click := sin(t * f * 6.0 * TAU) * exp(-t * 200.0) * 0.2
-			# Sub warmth
-			var sub := sin(t * freq * 0.5 * TAU) * 0.12 * exp(-t * 10.0)
-			samples[i] = clampf((drum + sub) * env + click, -1.0, 1.0)
-		t0.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t0)
-
-	# --- Tier 1: Djembe Slap (tighter attack, mid-frequency ring) ---
-	var t1 := []
-	for note_idx in dm_notes.size():
-		var freq: float = dm_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.16))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var f := freq * 2.0  # One octave up for slap tone
-			var env := exp(-t * 18.0) * 0.45
-			# Tight slap tone
-			var slap := sin(t * f * TAU) * 0.5
-			slap += sin(t * f * 1.5 * TAU) * 0.2 * exp(-t * 25.0)  # Fifth harmonic color
-			slap += sin(t * f * 2.0 * TAU) * 0.12 * exp(-t * 30.0)
-			# Sharp transient
-			var trans := sin(t * f * 4.0 * TAU) * exp(-t * 300.0) * 0.25
-			# Low body underneath
-			var body := sin(t * freq * TAU) * 0.2 * exp(-t * 12.0)
-			samples[i] = clampf((slap * env) + trans + body * 0.4, -1.0, 1.0)
-		t1.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t1)
-
-	# --- Tier 2: War Drum (heavy hit, D minor fifth power, deep resonance) ---
-	var t2 := []
-	for note_idx in dm_notes.size():
-		var freq: float = dm_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.22))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var f := freq * (1.0 + exp(-t * 50.0) * 0.1)
-			var env := exp(-t * 10.0) * 0.5
-			# Deep war drum with D power fifth (D + A)
-			var drum := sin(t * f * TAU) * 0.55
-			var fifth := sin(t * f * 1.5 * TAU) * 0.2 * exp(-t * 14.0)
-			drum += sin(t * f * 2.0 * TAU) * 0.12 * exp(-t * 18.0)
-			# Membrane vibration (slight pitch wobble)
-			var wobble := sin(t * 6.0 * TAU) * 0.003
-			drum += sin(t * f * (1.0 + wobble) * TAU) * 0.08
-			# Sub boom
-			var boom := sin(t * freq * 0.5 * TAU) * 0.18 * exp(-t * 7.0)
-			# Impact transient
-			var hit := sin(t * f * 5.0 * TAU) * exp(-t * 250.0) * 0.18
-			samples[i] = clampf((drum + fifth) * env + boom * 0.4 + hit, -1.0, 1.0)
-		t2.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t2)
-
-	# --- Tier 3: Tribal Thunder Drum (double-strike, D minor chord, rich) ---
-	var t3 := []
-	for note_idx in dm_notes.size():
-		var freq: float = dm_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.25))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			# First strike — deep drum
-			var f1 := freq * (1.0 + exp(-t * 45.0) * 0.12)
-			var env1 := exp(-t * 12.0) * 0.45
-			var s1 := sin(t * f1 * TAU) * 0.5
-			s1 += sin(t * f1 * 2.0 * TAU) * 0.15 * exp(-t * 20.0)
-			# Second strike (delayed, minor third up for Dm feel)
-			var dt := t - 0.06
-			var s2 := 0.0
-			if dt > 0.0:
-				var f2 := freq * 1.2  # Minor third interval
-				s2 = sin(dt * f2 * TAU) * exp(-dt * 16.0) * 0.3
-				s2 += sin(dt * f2 * 2.0 * TAU) * exp(-dt * 22.0) * 0.1
-			# Sub layer
-			var sub := sin(t * freq * 0.5 * TAU) * 0.15 * exp(-t * 6.0)
-			# Crisp transient
-			var trans := sin(t * freq * 7.0 * TAU) * exp(-t * 350.0) * 0.15
-			samples[i] = clampf(s1 * env1 + s2 + sub * 0.4 + trans, -1.0, 1.0)
-		t3.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t3)
-
-	# --- Tier 4: King of the Jungle (massive Dm chord, reverberant, heroic) ---
-	var t4 := []
-	for note_idx in dm_notes.size():
-		var freq: float = dm_notes[note_idx]
-		var samples := PackedFloat32Array()
-		samples.resize(int(mix_rate * 0.32))
-		for i in samples.size():
-			var t := float(i) / mix_rate
-			var f := freq * (1.0 + exp(-t * 55.0) * 0.08)
-			var env := exp(-t * 7.0) * 0.45
-			# Full D minor chord: root + minor third + fifth
-			var root := sin(t * f * TAU) * 0.45
-			var third := sin(t * f * 1.2 * TAU) * 0.2 * exp(-t * 9.0)  # Minor third
-			var fifth := sin(t * f * 1.5 * TAU) * 0.18 * exp(-t * 10.0)  # Perfect fifth
-			# Warm overtones
-			root += sin(t * f * 2.0 * TAU) * 0.1 * exp(-t * 12.0)
-			root += sin(t * f * 3.0 * TAU) * 0.05 * exp(-t * 16.0)
-			# Deep sub-bass boom
-			var boom := sin(t * freq * 0.5 * TAU) * 0.2 * exp(-t * 5.0)
-			# Octave shimmer (heroic sparkle)
-			var shim := sin(t * f * 4.0 * TAU) * 0.06 * exp(-t * 14.0)
-			shim += sin(t * f * 4.005 * TAU) * 0.04 * exp(-t * 12.0)  # Chorus detune
-			# Sharp attack transient
-			var trans := sin(t * freq * 8.0 * TAU) * exp(-t * 300.0) * 0.15
-			samples[i] = clampf((root + third + fifth + shim) * env + boom * 0.35 + trans, -1.0, 1.0)
-		t4.append(_samples_to_wav(samples, mix_rate))
-	_attack_sounds_by_tier.append(t4)
-
+	for tier in range(5):
+		var tier_sounds: Array = []
+		var dur := 0.20 + tier * 0.02
+		var vol := 0.30 + tier * 0.02
+		for note_idx in melody.size():
+			var pitch: float = melody[note_idx]
+			var total := int(mix_rate * dur)
+			var samples := PackedFloat32Array()
+			samples.resize(total)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = note_idx * 4000 + tier * 400
+			var is_kick := pitch < 80.0
+			var is_snare := pitch > 150.0
+			for i in total:
+				var t := float(i) / float(mix_rate)
+				var s := 0.0
+				if is_kick:
+					# Kick: sine with exponential pitch drop
+					var p := 150.0 * exp(-t * 30.0) + pitch
+					var phase := t * p * TAU
+					s = sin(phase) * exp(-t * 10.0) * 0.7
+					# Low-end body
+					s += sin(t * pitch * 0.5 * TAU) * exp(-t * 8.0) * 0.3
+				elif is_snare:
+					# Snare: tone + noise
+					s = sin(t * pitch * TAU) * exp(-t * 25.0) * 0.3
+					s += rng.randf_range(-1.0, 1.0) * exp(-t * 20.0) * 0.4
+				else:
+					# Tom: pitched membrane
+					var p := pitch * 1.5 * exp(-t * 15.0) + pitch
+					s = sin(t * p * TAU) * exp(-t * 12.0) * 0.5
+					s += sin(t * p * 0.5 * TAU) * exp(-t * 10.0) * 0.2
+				samples[i] = clampf(s * vol, -1.0, 1.0)
+			# Ultra-fast attack (percussive)
+			var att_len := mini(int(0.0003 * mix_rate), total)
+			for i in att_len:
+				samples[i] *= float(i) / float(att_len)
+			tier_sounds.append(_samples_to_wav(samples, mix_rate))
+		_attack_sounds_by_tier.append(tier_sounds)
 func _refresh_tier_sounds() -> void:
 	var tier := mini(upgrade_tier, _attack_sounds_by_tier.size() - 1)
 	_attack_sounds = _attack_sounds_by_tier[tier]
@@ -923,14 +869,11 @@ func _draw() -> void:
 	if is_selected:
 		var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 		var ring_alpha = 0.5 + pulse * 0.3
-		# Full range circle when selected
-		draw_circle(Vector2.ZERO, eff_range, Color(1.0, 1.0, 1.0, 0.04))
-		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
-		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
-		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 48, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
+		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.15), 2.0)
+		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
+		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
 	else:
-		# === 2. RANGE ARC (subtle) ===
-		draw_arc(Vector2.ZERO, eff_range, 0, TAU, 64, Color(1, 1, 1, 0.06), 1.0)
+		pass  #draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1, 1, 1, 0.06), 1.0)
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(aim_angle)
@@ -965,80 +908,229 @@ func _draw() -> void:
 
 	# === 6. UPGRADE FLASH ===
 	if _upgrade_flash > 0.0:
-		draw_circle(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, Color(0.2, 0.6, 0.1, _upgrade_flash * 0.25))
+		pass  #draw_arc(Vector2.ZERO, 80.0 + _upgrade_flash * 24.0, 0, TAU, 24, Color(0.2, 0.6, 0.1, _upgrade_flash * 0.25), 8.0)
 
 	# === 7. ABILITY FLASH (ape allies summoned) ===
 	if _ability_flash > 0.0:
 		var ring_r = 36.0 + (1.0 - _ability_flash) * 80.0
-		draw_circle(Vector2.ZERO, ring_r, Color(0.3, 0.7, 0.1, _ability_flash * 0.15))
-		draw_arc(Vector2.ZERO, ring_r, 0, TAU, 32, Color(0.4, 0.8, 0.2, _ability_flash * 0.3), 2.5)
-		for hi in range(10):
-			var ha = TAU * float(hi) / 10.0 + _ability_flash * 3.0
+		pass  #draw_arc(Vector2.ZERO, ring_r, 0, TAU, 24, Color(0.4, 0.8, 0.2, _ability_flash * 0.3), 2.5)
+		for hi in range(6):
+			var ha = TAU * float(hi) / 6.0 + _ability_flash * 3.0
 			var h_inner = Vector2.from_angle(ha) * (ring_r * 0.4)
 			var h_outer = Vector2.from_angle(ha) * (ring_r + 5.0)
 			draw_line(h_inner, h_outer, Color(0.3, 0.8, 0.15, _ability_flash * 0.4), 1.5)
 
-	# === SMASH FLASH (vine swing ground pound impact) ===
+	# === SMASH FLASH (vine swing ground pound — dust puff only) ===
 	if _smash_flash > 0.0:
-		# Expanding shockwave ring — 25% larger radius
-		var sw_r = 25.0 + (1.0 - _smash_flash) * 100.0
-		draw_arc(Vector2.ZERO, sw_r, 0, TAU, 48, Color(0.85, 0.65, 0.2, _smash_flash * 0.5), 4.0)
-		draw_arc(Vector2.ZERO, sw_r * 0.7, 0, TAU, 32, Color(1.0, 0.85, 0.3, _smash_flash * 0.3), 2.5)
-		draw_arc(Vector2.ZERO, sw_r * 0.4, 0, TAU, 24, Color(1.0, 0.9, 0.4, _smash_flash * 0.2), 1.5)
-		# Radial crack lines — more detail with forking
-		for ci in range(16):
-			var ca = TAU * float(ci) / 16.0 + _smash_flash * 2.0
-			var c_inner = Vector2.from_angle(ca) * 6.0
-			var c_outer = Vector2.from_angle(ca) * (sw_r * 0.95)
-			draw_line(c_inner, c_outer, Color(0.6, 0.4, 0.15, _smash_flash * 0.4), 2.5)
-			# Fork branches on every other crack line
-			if ci % 2 == 0:
-				var fork_pt = Vector2.from_angle(ca) * (sw_r * 0.55)
-				var fork_a1 = ca + 0.25
-				var fork_a2 = ca - 0.25
-				var fork_end1 = fork_pt + Vector2.from_angle(fork_a1) * (sw_r * 0.35)
-				var fork_end2 = fork_pt + Vector2.from_angle(fork_a2) * (sw_r * 0.3)
-				draw_line(fork_pt, fork_end1, Color(0.55, 0.35, 0.12, _smash_flash * 0.3), 1.5)
-				draw_line(fork_pt, fork_end2, Color(0.55, 0.35, 0.12, _smash_flash * 0.25), 1.2)
-		# Dust cloud particles
-		for di in range(10):
-			var da = TAU * float(di) / 10.0 + _time * 1.5
-			var d_r = sw_r * (0.3 + sin(_time * 4.0 + float(di)) * 0.2)
-			var dp = Vector2.from_angle(da) * d_r
-			draw_circle(dp, 5.0 + _smash_flash * 4.0, Color(0.55, 0.42, 0.25, _smash_flash * 0.25))
-		# Ground impact flash — larger
-		draw_circle(Vector2.ZERO, 20.0 * _smash_flash, Color(1.0, 0.9, 0.5, _smash_flash * 0.35))
+		# Small dust puffs at landing spot
+		for di in range(5):
+			var da = TAU * float(di) / 5.0 + _smash_flash * 1.5
+			var d_dist = 8.0 + (1.0 - _smash_flash) * 18.0
+			var dp = Vector2.from_angle(da) * d_dist
+			dp.y += 4.0  # ground level
+			var dust_sz = 3.0 + _smash_flash * 3.0
+			draw_circle(dp, dust_sz, Color(0.55, 0.42, 0.25, _smash_flash * 0.35))
+		# Short ground crack lines (subtle, close to center)
+		for ci in range(6):
+			var ca = TAU * float(ci) / 6.0
+			var c_inner = Vector2.from_angle(ca) * 3.0
+			var c_outer = Vector2.from_angle(ca) * (8.0 + (1.0 - _smash_flash) * 10.0)
+			c_inner.y += 4.0
+			c_outer.y += 4.0
+			draw_line(c_inner, c_outer, Color(0.5, 0.38, 0.2, _smash_flash * 0.4), 1.5)
 
 	# === VINE SWING ANIMATION (tier 1+) ===
 	if _vine_swing_active and upgrade_tier >= 1:
-		var swing_angle = _vine_swing_start_angle + _vine_swing_phase * TAU * 0.75  # Swing 270 degrees
-		var swing_r = attack_range * 0.5
+		var swing_angle = _vine_swing_start_angle + _vine_swing_phase * TAU * 0.75
+		var swing_r = attack_range * 0.6
 		var swing_height = 0.0
 		if _vine_swing_phase < 0.6:
-			# Swinging phase: arc around
-			swing_height = -30.0 - sin(_vine_swing_phase / 0.6 * PI) * 20.0
+			swing_height = -40.0 - sin(_vine_swing_phase / 0.6 * PI) * 30.0
 		elif _vine_swing_phase < 0.8:
-			# Rising up phase
 			var rise_t = (_vine_swing_phase - 0.6) / 0.2
-			swing_height = -50.0 - rise_t * 30.0
+			swing_height = -70.0 - rise_t * 40.0
 		else:
-			# Smashing down phase
 			var smash_t = (_vine_swing_phase - 0.8) / 0.2
-			swing_height = -80.0 + smash_t * 80.0
+			swing_height = -110.0 + smash_t * 110.0
 		var swing_pos = Vector2.from_angle(swing_angle) * swing_r * minf(_vine_swing_phase * 3.0, 1.0)
 		swing_pos.y += swing_height
-		# Vine line from top of screen to Tarzan
-		var vine_anchor = Vector2(swing_pos.x * 0.3, -200.0)
-		draw_line(vine_anchor, swing_pos, Color(0.14, 0.50, 0.10, 0.7), 3.0)
-		draw_line(vine_anchor, swing_pos, Color(0.22, 0.62, 0.18, 0.4), 1.5)
-		# Tarzan silhouette at swing position (small circle with fists)
-		draw_circle(swing_pos, 8.0, Color(0.78, 0.56, 0.36, 0.6))
-		draw_circle(swing_pos + Vector2(0, -6), 6.0, Color(0.32, 0.18, 0.08, 0.5))
-		# Double fists below if smashing down
+		# Thick vine from canopy anchor to swing position
+		var vine_anchor = Vector2(swing_pos.x * 0.3, -160.0)
+		# Vine shadow/glow
+		draw_line(vine_anchor, swing_pos, Color(0.08, 0.30, 0.04, 0.5), 8.0)
+		# Main vine (thick, organic)
+		draw_line(vine_anchor, swing_pos, Color(0.14, 0.50, 0.10, 0.9), 5.0)
+		# Vine highlight
+		draw_line(vine_anchor, swing_pos, Color(0.28, 0.68, 0.22, 0.5), 2.0)
+		# Leaf accents along vine
+		for lf in range(4):
+			var lf_t = 0.15 + float(lf) * 0.2
+			var lf_pos = vine_anchor.lerp(swing_pos, lf_t)
+			var lf_dir = (swing_pos - vine_anchor).normalized().rotated(PI / 2.0)
+			var lf_wave = sin(_time * 6.0 + float(lf) * 1.5) * 4.0
+			draw_circle(lf_pos + lf_dir * (5.0 + lf_wave), 3.0, Color(0.2, 0.6, 0.15, 0.6))
+		# Motion trail — 4 afterimages behind Tarzan
+		for trail_i in range(4):
+			var trail_phase = maxf(_vine_swing_phase - float(trail_i) * 0.06, 0.0)
+			var trail_angle = _vine_swing_start_angle + trail_phase * TAU * 0.75
+			var trail_h = 0.0
+			if trail_phase < 0.6:
+				trail_h = -40.0 - sin(trail_phase / 0.6 * PI) * 30.0
+			elif trail_phase < 0.8:
+				trail_h = -70.0 - (trail_phase - 0.6) / 0.2 * 40.0
+			else:
+				trail_h = -110.0 + (trail_phase - 0.8) / 0.2 * 110.0
+			var trail_pos = Vector2.from_angle(trail_angle) * swing_r * minf(trail_phase * 3.0, 1.0)
+			trail_pos.y += trail_h
+			var trail_a = (1.0 - float(trail_i) / 4.0) * 0.25
+			draw_circle(trail_pos, 10.0 - float(trail_i) * 1.5, Color(0.78, 0.56, 0.36, trail_a))
+		# Speed lines radiating from swing direction
+		var swing_vel = Vector2.from_angle(swing_angle + PI / 2.0) * 8.0
+		for sl in range(5):
+			var sl_off = Vector2(randf_range(-12, 12), randf_range(-8, 8))
+			var sl_start = swing_pos + sl_off
+			draw_line(sl_start, sl_start - swing_vel * (1.5 + float(sl) * 0.4), Color(1.0, 1.0, 0.9, 0.3 - float(sl) * 0.05), 1.5)
+		# Tarzan body at swing position — full BTD6-style character
+		var sk = Color(0.78, 0.56, 0.36)
+		var sk_hi = Color(0.85, 0.65, 0.45)
+		var sk_dk = Color(0.65, 0.44, 0.28)
+		var OL_sw = Color(0.06, 0.06, 0.08)
+		var hair_col = Color(0.32, 0.18, 0.08)
+		var loin = Color(0.55, 0.40, 0.18)
+		var arm_dir = swing_vel.normalized() if swing_vel.length() > 0.1 else Vector2(1, 0)
+		var perp_dir = arm_dir.rotated(PI / 2.0)
+		# === Legs (dangling, bent at knees) ===
+		var hip_l = swing_pos + perp_dir * 3.5 + Vector2(0, 6)
+		var hip_r = swing_pos - perp_dir * 3.5 + Vector2(0, 6)
+		var knee_l = hip_l + Vector2(-2, 10) + arm_dir * -3.0
+		var knee_r = hip_r + Vector2(2, 10) + arm_dir * 2.0
+		var foot_l = knee_l + Vector2(-1, 8)
+		var foot_r = knee_r + Vector2(1, 7)
+		# Left leg outline+fill
+		draw_line(hip_l, knee_l, OL_sw, 8.0)
+		draw_line(hip_l, knee_l, sk_dk, 5.5)
+		draw_line(knee_l, foot_l, OL_sw, 7.0)
+		draw_line(knee_l, foot_l, sk, 4.5)
+		draw_circle(knee_l, 4.0, OL_sw)
+		draw_circle(knee_l, 2.8, sk_dk)
+		draw_circle(foot_l, 3.5, OL_sw)
+		draw_circle(foot_l, 2.5, sk_dk)
+		# Right leg outline+fill
+		draw_line(hip_r, knee_r, OL_sw, 8.0)
+		draw_line(hip_r, knee_r, sk_dk, 5.5)
+		draw_line(knee_r, foot_r, OL_sw, 7.0)
+		draw_line(knee_r, foot_r, sk, 4.5)
+		draw_circle(knee_r, 4.0, OL_sw)
+		draw_circle(knee_r, 2.8, sk_dk)
+		draw_circle(foot_r, 3.5, OL_sw)
+		draw_circle(foot_r, 2.5, sk_dk)
+		# === Loincloth (draped between hips) ===
+		var loin_pts = PackedVector2Array([
+			swing_pos + perp_dir * 5.5 + Vector2(0, 3),
+			swing_pos + Vector2(0, 12),
+			swing_pos - perp_dir * 5.5 + Vector2(0, 3),
+			swing_pos - perp_dir * 2.0 + Vector2(0, 1),
+			swing_pos + perp_dir * 2.0 + Vector2(0, 1),
+		])
+		draw_colored_polygon(loin_pts, OL_sw)
+		var loin_inner = PackedVector2Array([
+			swing_pos + perp_dir * 4.5 + Vector2(0, 3.5),
+			swing_pos + Vector2(0, 10.5),
+			swing_pos - perp_dir * 4.5 + Vector2(0, 3.5),
+			swing_pos - perp_dir * 1.5 + Vector2(0, 2),
+			swing_pos + perp_dir * 1.5 + Vector2(0, 2),
+		])
+		draw_colored_polygon(loin_inner, loin)
+		# === Torso (V-shaped, muscular) ===
+		var torso_pts_ol = PackedVector2Array([
+			swing_pos + perp_dir * 8.0 + Vector2(0, -6),
+			swing_pos + perp_dir * 5.0 + Vector2(0, 5),
+			swing_pos - perp_dir * 5.0 + Vector2(0, 5),
+			swing_pos - perp_dir * 8.0 + Vector2(0, -6),
+		])
+		draw_colored_polygon(torso_pts_ol, OL_sw)
+		var torso_pts = PackedVector2Array([
+			swing_pos + perp_dir * 6.5 + Vector2(0, -5),
+			swing_pos + perp_dir * 4.0 + Vector2(0, 4),
+			swing_pos - perp_dir * 4.0 + Vector2(0, 4),
+			swing_pos - perp_dir * 6.5 + Vector2(0, -5),
+		])
+		draw_colored_polygon(torso_pts, sk)
+		# Chest highlight
+		draw_line(swing_pos + Vector2(-2, -4), swing_pos + Vector2(-2, 1), sk_hi, 2.5)
+		# Abs lines
+		draw_line(swing_pos + Vector2(0, -2), swing_pos + Vector2(0, 3), Color(sk_dk.r, sk_dk.g, sk_dk.b, 0.3), 1.0)
+		draw_line(swing_pos + perp_dir * 2.5 + Vector2(0, 0), swing_pos + perp_dir * 2.5 + Vector2(0, 2), Color(sk_dk.r, sk_dk.g, sk_dk.b, 0.2), 0.8)
+		draw_line(swing_pos - perp_dir * 2.5 + Vector2(0, 0), swing_pos - perp_dir * 2.5 + Vector2(0, 2), Color(sk_dk.r, sk_dk.g, sk_dk.b, 0.2), 0.8)
+		# === Arms (muscular, reaching for vine) ===
+		var l_shoulder = swing_pos + perp_dir * 7.0 + Vector2(0, -5)
+		var r_shoulder = swing_pos - perp_dir * 7.0 + Vector2(0, -5)
+		# Vine-holding arm (reaching up toward vine)
+		var vine_hand = swing_pos + Vector2(swing_pos.x * -0.02, -18.0)
+		var vine_elbow = l_shoulder.lerp(vine_hand, 0.5) + perp_dir * 3.0
+		draw_line(l_shoulder, vine_elbow, OL_sw, 9.0)
+		draw_line(l_shoulder, vine_elbow, sk, 6.0)
+		draw_circle(vine_elbow, 4.0, OL_sw)
+		draw_circle(vine_elbow, 2.8, sk_dk)
+		draw_line(vine_elbow, vine_hand, OL_sw, 8.0)
+		draw_line(vine_elbow, vine_hand, sk, 5.5)
+		draw_circle(vine_hand, 4.5, OL_sw)
+		draw_circle(vine_hand, 3.2, sk)
+		# Free arm (trailing behind / pumping forward)
+		var free_hand = swing_pos + arm_dir * 16.0 + Vector2(0, -3)
+		var free_elbow = r_shoulder.lerp(free_hand, 0.45) + Vector2(0, 3)
+		draw_line(r_shoulder, free_elbow, OL_sw, 9.0)
+		draw_line(r_shoulder, free_elbow, sk, 6.0)
+		draw_circle(free_elbow, 4.0, OL_sw)
+		draw_circle(free_elbow, 2.8, sk_dk)
+		draw_line(free_elbow, free_hand, OL_sw, 8.0)
+		draw_line(free_elbow, free_hand, sk, 5.5)
+		draw_circle(free_hand, 4.5, OL_sw)
+		draw_circle(free_hand, 3.2, sk)
+		# === Head (big chibi head with face) ===
+		var head_pos = swing_pos + Vector2(0, -13)
+		# Hair back volume
+		draw_circle(head_pos + Vector2(-3, 3), 5.0, hair_col)
+		draw_circle(head_pos + Vector2(3, 3), 5.0, hair_col)
+		# Head outline + fill
+		draw_circle(head_pos, 9.0, OL_sw)
+		draw_circle(head_pos, 7.5, Color(0.82, 0.62, 0.42))
+		draw_circle(head_pos + Vector2(-0.5, -0.5), 6.5, sk_hi)
+		# Hair top
+		draw_circle(head_pos + Vector2(0, -4), 6.5, OL_sw)
+		draw_circle(head_pos + Vector2(0, -4), 5.2, hair_col)
+		draw_circle(head_pos + Vector2(-3, -5), 4.0, Color(0.38, 0.22, 0.10))
+		draw_circle(head_pos + Vector2(3, -3), 3.5, Color(0.28, 0.15, 0.06))
+		# Eyes (determined expression)
+		var eye_off = arm_dir * 1.5
+		draw_circle(head_pos + Vector2(-2.5, -1) + eye_off, 2.0, Color(1.0, 1.0, 1.0))
+		draw_circle(head_pos + Vector2(2.5, -1) + eye_off, 2.0, Color(1.0, 1.0, 1.0))
+		draw_circle(head_pos + Vector2(-2.5 + arm_dir.x * 0.5, -1) + eye_off, 1.0, Color(0.18, 0.12, 0.08))
+		draw_circle(head_pos + Vector2(2.5 + arm_dir.x * 0.5, -1) + eye_off, 1.0, Color(0.18, 0.12, 0.08))
+		# Brow (fierce)
+		draw_line(head_pos + Vector2(-4, -3) + eye_off, head_pos + Vector2(-1, -2.5) + eye_off, OL_sw, 1.5)
+		draw_line(head_pos + Vector2(1, -2.5) + eye_off, head_pos + Vector2(4, -3) + eye_off, OL_sw, 1.5)
+		# Mouth (open yell)
+		draw_circle(head_pos + Vector2(0, 3) + eye_off, 2.0, OL_sw)
+		draw_circle(head_pos + Vector2(0, 3) + eye_off, 1.2, Color(0.4, 0.15, 0.12))
+		pass  # No wind particles — body animation speaks for itself
+		# Smashing down phase — fists coming down
 		if _vine_swing_phase > 0.8:
-			var fist_y = swing_pos + Vector2(0, 10.0)
-			draw_circle(fist_y + Vector2(-4, 0), 4.0, Color(0.78, 0.56, 0.36, 0.7))
-			draw_circle(fist_y + Vector2(4, 0), 4.0, Color(0.78, 0.56, 0.36, 0.7))
+			var smash_t2 = (_vine_swing_phase - 0.8) / 0.2
+			var fist_y = swing_pos + Vector2(0, 14.0)
+			# Big fists coming down (proper fists with outlines)
+			draw_circle(fist_y + Vector2(-6, 0), 6.0, OL_sw)
+			draw_circle(fist_y + Vector2(-6, 0), 4.5, sk)
+			draw_circle(fist_y + Vector2(-6, -1), 2.0, sk_hi)
+			draw_circle(fist_y + Vector2(6, 0), 6.0, OL_sw)
+			draw_circle(fist_y + Vector2(6, 0), 4.5, sk)
+			draw_circle(fist_y + Vector2(6, -1), 2.0, sk_hi)
+			# Small dust kicked up on ground impact
+			if smash_t2 > 0.7:
+				var dust_a = (smash_t2 - 0.7) * 3.3
+				for di in range(3):
+					var d_off = Vector2((-1.0 + float(di)) * 8.0, 6.0)
+					draw_circle(fist_y + d_off, 2.5 * dust_a, Color(0.55, 0.42, 0.25, (1.0 - dust_a) * 0.3))
 
 	# === PROGRESSIVE ABILITY VISUAL EFFECTS ===
 
@@ -1054,8 +1146,8 @@ func _draw() -> void:
 	# Ability 4: Tantor's Charge flash
 	if _tantor_flash > 0.0:
 		var tc_r = 25.0 + (1.0 - _tantor_flash) * 60.0
-		draw_arc(Vector2.ZERO, tc_r, 0, TAU, 24, Color(0.5, 0.4, 0.3, _tantor_flash * 0.4), 3.5)
-		draw_arc(Vector2.ZERO, tc_r * 0.6, 0, TAU, 16, Color(0.6, 0.5, 0.3, _tantor_flash * 0.3), 2.5)
+		pass  #draw_arc(Vector2.ZERO, tc_r, 0, TAU, 24, Color(0.5, 0.4, 0.3, _tantor_flash * 0.4), 3.5)
+		pass  #draw_arc(Vector2.ZERO, tc_r * 0.6, 0, TAU, 16, Color(0.6, 0.5, 0.3, _tantor_flash * 0.3), 2.5)
 
 	# Ability 4: Tantor's Charge — visual dash trail with dust clouds
 	if _tantor_dash_flash > 0.0:
@@ -1087,13 +1179,13 @@ func _draw() -> void:
 				draw_circle(dust_pos, dust_size * 0.6, Color(0.65, 0.52, 0.30, dash_alpha * 0.2))
 			# Impact circle at target
 			var impact_r = 12.0 + (1.0 - _tantor_dash_flash) * 20.0
-			draw_arc(_tantor_dash_to, impact_r, 0, TAU, 16, Color(0.6, 0.4, 0.2, dash_alpha * 0.6), 3.0)
+			pass  #draw_arc(_tantor_dash_to, impact_r, 0, TAU, 16, Color(0.6, 0.4, 0.2, dash_alpha * 0.6), 3.0)
 
 	# Ability 6: Predator Sense — subtle pulse showing detection range
 	if prog_abilities[5]:
 		var sense_pulse = sin(_time * 2.0) * 0.03 + 0.05
 		var sense_r = attack_range * _range_mult()
-		draw_arc(Vector2.ZERO, sense_r, 0, TAU, 32, Color(0.9, 0.3, 0.1, sense_pulse), 1.5)
+		pass  #draw_arc(Vector2.ZERO, sense_r, 0, TAU, 32, Color(0.9, 0.3, 0.1, sense_pulse), 1.5)
 		# Eye icons on revealed enemies direction
 		for re in _predator_sense_revealed:
 			if is_instance_valid(re):
@@ -1104,7 +1196,7 @@ func _draw() -> void:
 	# Ability 7: Mangani War Cry flash
 	if _mangani_flash > 0.0:
 		var mc_r = 40.0 + (1.0 - _mangani_flash) * 100.0
-		draw_arc(Vector2.ZERO, mc_r, 0, TAU, 32, Color(0.6, 0.3, 0.1, _mangani_flash * 0.3), 3.0)
+		pass  #draw_arc(Vector2.ZERO, mc_r, 0, TAU, 32, Color(0.6, 0.3, 0.1, _mangani_flash * 0.3), 3.0)
 		for mi in range(6):
 			var ma = TAU * float(mi) / 6.0 + _mangani_flash * 4.0
 			draw_line(Vector2.from_angle(ma) * 20.0, Vector2.from_angle(ma) * mc_r, Color(0.7, 0.4, 0.1, _mangani_flash * 0.25), 2.0)
@@ -1187,24 +1279,20 @@ func _draw() -> void:
 		# Ground dust cloud when stomping
 		if abs(walk_cycle) > 0.9:
 			for dci in range(3):
-				var dust_off = Vector2((randf() - 0.5) * 12.0 * ape_scale, body_h * 0.6 + 2.0)
+				var dust_off = Vector2((sin(_time * 5.0 + float(dci) * 2.1 + ally["angle"]) * 0.5) * 12.0 * ape_scale, body_h * 0.6 + 2.0)
 				var dust_a = (abs(walk_cycle) - 0.9) * 5.0
 				draw_circle(ap + dust_off, 3.0 * ape_scale, Color(0.5, 0.4, 0.25, dust_a * 0.2))
 		# Golden glow for tier 4 throwback apes — more intense
 		if is_king_ape:
-			draw_circle(ap, body_w + 10.0, Color(0.85, 0.72, 0.25, 0.15 + sin(_time * 3.0) * 0.08))
-			draw_circle(ap, body_w + 6.0, Color(1.0, 0.85, 0.3, 0.08 + sin(_time * 4.5) * 0.04))
+			pass  #draw_arc(ap, body_w + 8.0, 0, TAU, 20, Color(0.85, 0.72, 0.25, 0.15 + sin(_time * 3.0) * 0.08), 5.0)
 		# Punch impact flash — bigger, with shockwave
 		if punch > 0.5:
 			var flash_dir = Vector2.from_angle(ally.get("punch_dir", 0.0))
 			var flash_pos = ap + flash_dir * (body_w + 10.0)
 			var flash_a = (punch - 0.5) * 2.0
-			draw_circle(flash_pos, 14.0 * flash_a, Color(1.0, 0.85, 0.2, flash_a * 0.3))
-			draw_circle(flash_pos, 8.0 * flash_a, Color(1.0, 0.9, 0.3, flash_a * 0.5))
-			draw_circle(flash_pos, 4.0 * flash_a, Color(1.0, 1.0, 0.8, flash_a * 0.4))
-			# Shockwave ring
-			var ring_r = 12.0 + (1.0 - flash_a) * 20.0
-			draw_arc(flash_pos, ring_r, 0, TAU, 16, Color(1.0, 0.9, 0.4, flash_a * 0.3), 2.0)
+			draw_circle(flash_pos, 10.0 * flash_a, Color(1.0, 0.88, 0.25, flash_a * 0.4))
+			draw_circle(flash_pos, 4.0 * flash_a, Color(1.0, 1.0, 0.8, flash_a * 0.5))
+			pass  # No ring effect
 		# === Legs (thick, muscular, powerful) ===
 		var leg_stride = walk_cycle * 5.0 * ape_scale
 		var l_foot = ap + Vector2(-5.0 * facing, body_h * 0.55 + leg_stride)
@@ -1445,498 +1533,517 @@ func _draw() -> void:
 		draw_line(ally_pos + Vector2(2.0, 4.0), ally_pos + Vector2(3.0, 7.0), ap_ol, 2.5)
 		draw_line(ally_pos + Vector2(2.0, 4.0), ally_pos + Vector2(3.0, 7.0), Color(0.30, 0.18, 0.08, 0.8), 1.8)
 
-	# Scale up character for portrait-quality detail
-	var _CS = 1.5
-	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
-	feet_y -= body_offset
-	leg_top -= body_offset
-	torso_center -= body_offset
-	neck_base -= body_offset
-	head_center -= body_offset
+	# Default head_center for sprite mode (used by tier effects outside body block)
+	var head_center = body_offset + Vector2(0, -26.0)
 
-	# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
-	var breath = breathe
-	var sway = weight_shift
+	# === SPRITE RENDERING (animated — wild & powerful) ===
+	if sprite_texture:
+		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
+		var _sf = 120.0 / _ss.y
+		var _sd = _ss * _sf
+		var breathe_scl = 1.0 + sin(_time * 2.5) * 0.024
+		var sway_rot = sin(_time * 1.4) * 0.035
+		var s_aim_lean = sin(aim_angle) * 0.050
+		var recoil_off = Vector2.ZERO
+		var atk_scl = Vector2.ONE
+		if _attack_anim > 0.0:
+			var rt = _attack_anim * _attack_anim
+			recoil_off = Vector2.from_angle(aim_angle) * rt * 5.0  # big forward smash
+			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
+			atk_scl = Vector2(1.0 + sq * 0.15, 1.0 - sq * 0.10)
+		var total_rot = sway_rot + s_aim_lean
+		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
+		var _fl = cos(aim_angle) < 0.0
+		if _fl:
+			total_scl.x *= -1.0
+			total_rot *= -1.0
+		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
+		draw_set_transform(anchor, total_rot, total_scl)
+		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	# Chibi positions (big head, chunky body)
-	var feet_y = body_offset + Vector2(sway * 1.0, 10.0)
-	var leg_top = body_offset + Vector2(sway * 0.6, 0.0)
-	var torso_center = body_offset + Vector2(sway * 0.3, -8.0 - breath * 0.5)
-	var neck_base = body_offset + Vector2(sway * 0.15, -14.0 - breath * 0.3)
-	var head_center = body_offset + Vector2(sway * 0.08, -26.0)
+	if not sprite_texture:
+		# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
+		var breath = breathe
+		var sway = weight_shift
 
-	# Saturated Tarzan colors
-	var skin = Color(0.78, 0.56, 0.36)
-	var skin_dk = Color(0.62, 0.42, 0.26)
-	var skin_lt = Color(0.90, 0.70, 0.48)
-	var hair_col = Color(0.32, 0.18, 0.08)
-	var hair_lt = Color(0.46, 0.30, 0.14)
-	var loin_col = Color(0.50, 0.30, 0.12)
-	var loin_dk = Color(0.36, 0.20, 0.08)
-	var vine_col = Color(0.14, 0.50, 0.10)
-	var vine_dk = Color(0.08, 0.34, 0.06)
-	var leaf_col = Color(0.22, 0.62, 0.18)
-	var leaf_dk = Color(0.14, 0.44, 0.10)
+		# Chibi positions (big head, chunky body)
+		var feet_y = body_offset + Vector2(sway * 1.0, 10.0)
+		var leg_top = body_offset + Vector2(sway * 0.6, 0.0)
+		var torso_center = body_offset + Vector2(sway * 0.3, -8.0 - breath * 0.5)
+		var neck_base = body_offset + Vector2(sway * 0.15, -14.0 - breath * 0.3)
+		head_center = body_offset + Vector2(sway * 0.08, -26.0)
 
-	# Spear thrust on attack
-	var spear_ext = 0.0
-	if _attack_anim > 0.3:
-		spear_ext = sin(_attack_anim * 6.0) * 12.0 * _attack_anim
+		# Saturated Tarzan colors
+		var skin = Color(0.78, 0.56, 0.36)
+		var skin_dk = Color(0.62, 0.42, 0.26)
+		var skin_lt = Color(0.90, 0.70, 0.48)
+		var hair_col = Color(0.32, 0.18, 0.08)
+		var hair_lt = Color(0.46, 0.30, 0.14)
+		var loin_col = Color(0.50, 0.30, 0.12)
+		var loin_dk = Color(0.36, 0.20, 0.08)
+		var vine_col = Color(0.14, 0.50, 0.10)
+		var vine_dk = Color(0.08, 0.34, 0.06)
+		var leaf_col = Color(0.22, 0.62, 0.18)
+		var leaf_dk = Color(0.14, 0.44, 0.10)
 
-	# === TIER-SPECIFIC EFFECTS ===
+		# Spear thrust on attack
+		var spear_ext = 0.0
+		if _attack_anim > 0.3:
+			spear_ext = sin(_attack_anim * 6.0) * 12.0 * _attack_anim
 
-	# Tier 1+: Vine tendrils swirling around body (swing vines)
-	if upgrade_tier >= 1:
-		for li in range(4 + upgrade_tier):
-			var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
-			var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
-			var vp = body_offset + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 4.0)
-			var va = 0.3 + sin(_time * 1.5 + float(li)) * 0.1
-			draw_circle(vp, 2.8, Color(vine_dk.r, vine_dk.g, vine_dk.b, va))
-			draw_circle(vp, 1.8, Color(leaf_col.r, leaf_col.g, leaf_col.b, va))
+		# === TIER-SPECIFIC EFFECTS ===
 
-	# Tier 2+: Green strength aura glow (ape strength)
-	if upgrade_tier >= 2:
-		var str_pulse = (sin(_time * 2.5) + 1.0) * 0.5
-		draw_circle(body_offset, 22.0 + str_pulse * 3.0, Color(0.2, 0.7, 0.1, 0.04 + str_pulse * 0.02))
-		# Subtle muscle glow particles
-		for mi in range(4):
-			var ma = _time * 1.2 + float(mi) * TAU / 4.0
-			var mp = body_offset + Vector2(cos(ma) * 14.0, sin(ma) * 8.0 - 5.0)
-			draw_circle(mp, 2.0 + str_pulse, Color(0.3, 0.8, 0.2, 0.15 + str_pulse * 0.08))
+		# Tier 1+: Vine tendrils swirling around body (swing vines)
+		if upgrade_tier >= 1:
+			for li in range(4 + upgrade_tier):
+				var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
+				var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
+				var vp = body_offset + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 4.0)
+				var va = 0.3 + sin(_time * 1.5 + float(li)) * 0.1
+				draw_circle(vp, 2.8, Color(vine_dk.r, vine_dk.g, vine_dk.b, va))
+				draw_circle(vp, 1.8, Color(leaf_col.r, leaf_col.g, leaf_col.b, va))
 
-	# Tier 3+: Waiting-for-apes indicator (when allies not active)
-	if upgrade_tier >= 3 and _animal_allies.size() == 0:
-		# Subtle ape silhouette ghosts showing readiness
-		for ai in range(1 if upgrade_tier == 3 else 4):
-			var aa = _time * 0.4 + float(ai) * TAU / (1.0 if upgrade_tier == 3 else 4.0)
-			var apos = body_offset + Vector2(cos(aa) * 28.0, sin(aa) * 10.0 + 12.0)
-			var ghost_a = 0.12 + sin(_time * 1.5 + float(ai)) * 0.05
-			draw_circle(apos, 5.0, Color(0.35, 0.22, 0.10, ghost_a))
-			draw_circle(apos + Vector2(0, -3), 3.5, Color(0.42, 0.28, 0.14, ghost_a))
+		# Tier 2+: Green strength aura glow (ape strength)
+		if upgrade_tier >= 2:
+			var str_pulse = (sin(_time * 2.5) + 1.0) * 0.5
+			pass  #draw_circle(body_offset, 22.0 + str_pulse * 3.0, Color(0.2, 0.7, 0.1, 0.04 + str_pulse * 0.02))
+			# Subtle muscle glow particles
+			for mi in range(4):
+				var ma = _time * 1.2 + float(mi) * TAU / 4.0
+				var mp = body_offset + Vector2(cos(ma) * 14.0, sin(ma) * 8.0 - 5.0)
+				draw_circle(mp, 2.0 + str_pulse, Color(0.3, 0.8, 0.2, 0.15 + str_pulse * 0.08))
 
-	# Tier 4: King crown particles + golden glow
-	if upgrade_tier >= 4:
-		# Golden crown sparkles around Tarzan
-		for fd in range(6):
-			var fd_seed = float(fd) * 2.37
-			var fd_angle = _time * (0.4 + fmod(fd_seed, 0.3)) + fd_seed
-			var fd_radius = 24.0 + fmod(fd_seed * 3.7, 18.0)
-			var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6 - 10.0)
-			var fd_alpha = 0.3 + sin(_time * 3.0 + fd_seed * 2.0) * 0.15
-			draw_circle(fd_pos, 2.0, Color(0.85, 0.72, 0.25, fd_alpha))
-			draw_circle(fd_pos, 1.2, Color(1.0, 0.9, 0.5, fd_alpha * 0.6))
+		# Tier 3+: Waiting-for-apes indicator (when allies not active)
+		if upgrade_tier >= 3 and _animal_allies.size() == 0:
+			# Subtle ape silhouette ghosts showing readiness
+			for ai in range(1 if upgrade_tier == 3 else 4):
+				var aa = _time * 0.4 + float(ai) * TAU / (1.0 if upgrade_tier == 3 else 4.0)
+				var apos = body_offset + Vector2(cos(aa) * 28.0, sin(aa) * 10.0 + 12.0)
+				var ghost_a = 0.12 + sin(_time * 1.5 + float(ai)) * 0.05
+				draw_circle(apos, 5.0, Color(0.35, 0.22, 0.10, ghost_a))
+				draw_circle(apos + Vector2(0, -3), 3.5, Color(0.42, 0.28, 0.14, ghost_a))
 
-	# === CHARACTER BODY ===
+		# Tier 4: King crown particles + golden glow
+		if upgrade_tier >= 4:
+			# Golden crown sparkles around Tarzan
+			for fd in range(6):
+				var fd_seed = float(fd) * 2.37
+				var fd_angle = _time * (0.4 + fmod(fd_seed, 0.3)) + fd_seed
+				var fd_radius = 24.0 + fmod(fd_seed * 3.7, 18.0)
+				var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6 - 10.0)
+				var fd_alpha = 0.3 + sin(_time * 3.0 + fd_seed * 2.0) * 0.15
+				draw_circle(fd_pos, 2.0, Color(0.85, 0.72, 0.25, fd_alpha))
+				draw_circle(fd_pos, 1.2, Color(1.0, 0.9, 0.5, fd_alpha * 0.6))
 
-	# --- BARE FEET (chunky round, no shoes) ---
-	var l_foot = feet_y + Vector2(-6, 0)
-	var r_foot = feet_y + Vector2(6, 0)
-	# Left foot: OL then skin fill
-	draw_circle(l_foot, 5.5, OL)
-	draw_circle(l_foot, 4.2, skin)
-	draw_circle(l_foot + Vector2(-1, -0.5), 2.5, skin_lt)
-	# Right foot
-	draw_circle(r_foot, 5.5, OL)
-	draw_circle(r_foot, 4.2, skin)
-	draw_circle(r_foot + Vector2(1, -0.5), 2.5, skin_lt)
-	# Leaf ankle bands
-	for ab_i in range(2):
-		var ab_ft = l_foot if ab_i == 0 else r_foot
-		var ab_s = -1.0 if ab_i == 0 else 1.0
-		draw_arc(ab_ft + Vector2(0, -3), 5.0, PI + 0.4, TAU - 0.4, 8, OL, 3.5)
-		draw_arc(ab_ft + Vector2(0, -3), 5.0, PI + 0.4, TAU - 0.4, 8, vine_col, 2.5)
-		var lf_pt = ab_ft + Vector2(ab_s * 4.5, -4)
-		draw_circle(lf_pt, 2.8, OL)
-		draw_circle(lf_pt, 2.0, leaf_col)
+		# === CHARACTER BODY ===
 
-	# --- CHUNKY LEGS (2-segment, bare skin with bold outlines) ---
-	var l_hip = leg_top + Vector2(-5, 0)
-	var r_hip = leg_top + Vector2(5, 0)
-	var l_knee = l_foot.lerp(l_hip, 0.45) + Vector2(-2, 0)
-	var r_knee = r_foot.lerp(r_hip, 0.45) + Vector2(2, 0)
+		# --- BARE FEET (chunky round, no shoes) ---
+		var l_foot = feet_y + Vector2(-6, 0)
+		var r_foot = feet_y + Vector2(6, 0)
+		# Left foot: OL then skin fill
+		draw_circle(l_foot, 5.5, OL)
+		draw_circle(l_foot, 4.2, skin)
+		draw_circle(l_foot + Vector2(-1, -0.5), 2.5, skin_lt)
+		# Right foot
+		draw_circle(r_foot, 5.5, OL)
+		draw_circle(r_foot, 4.2, skin)
+		draw_circle(r_foot + Vector2(1, -0.5), 2.5, skin_lt)
+		# Leaf ankle bands
+		for ab_i in range(2):
+			var ab_ft = l_foot if ab_i == 0 else r_foot
+			var ab_s = -1.0 if ab_i == 0 else 1.0
+			draw_arc(ab_ft + Vector2(0, -3), 5.0, PI + 0.4, TAU - 0.4, 8, OL, 3.5)
+			draw_arc(ab_ft + Vector2(0, -3), 5.0, PI + 0.4, TAU - 0.4, 8, vine_col, 2.5)
+			var lf_pt = ab_ft + Vector2(ab_s * 4.5, -4)
+			draw_circle(lf_pt, 2.8, OL)
+			draw_circle(lf_pt, 2.0, leaf_col)
 
-	# Left upper leg
-	draw_line(l_hip, l_knee, OL, 11.0)
-	draw_line(l_hip, l_knee, skin, 8.0)
-	draw_line(l_hip + Vector2(-1, 0), l_knee + Vector2(-1, 0), skin_lt, 3.0)
-	# Left lower leg
-	draw_line(l_knee, l_foot, OL, 10.0)
-	draw_line(l_knee, l_foot, skin, 7.0)
-	draw_line(l_knee + Vector2(-1, 0), l_foot + Vector2(-1, 0), skin_lt, 2.5)
-	# Left knee joint
-	draw_circle(l_knee, 6.0, OL)
-	draw_circle(l_knee, 4.5, skin)
-	draw_circle(l_knee + Vector2(-1, -0.5), 2.5, skin_lt)
+		# --- CHUNKY LEGS (2-segment, bare skin with bold outlines) ---
+		var l_hip = leg_top + Vector2(-5, 0)
+		var r_hip = leg_top + Vector2(5, 0)
+		var l_knee = l_foot.lerp(l_hip, 0.45) + Vector2(-2, 0)
+		var r_knee = r_foot.lerp(r_hip, 0.45) + Vector2(2, 0)
 
-	# Right upper leg
-	draw_line(r_hip, r_knee, OL, 11.0)
-	draw_line(r_hip, r_knee, skin, 8.0)
-	draw_line(r_hip + Vector2(1, 0), r_knee + Vector2(1, 0), skin_lt, 3.0)
-	# Right lower leg
-	draw_line(r_knee, r_foot, OL, 10.0)
-	draw_line(r_knee, r_foot, skin, 7.0)
-	draw_line(r_knee + Vector2(1, 0), r_foot + Vector2(1, 0), skin_lt, 2.5)
-	# Right knee joint
-	draw_circle(r_knee, 6.0, OL)
-	draw_circle(r_knee, 4.5, skin)
-	draw_circle(r_knee + Vector2(1, -0.5), 2.5, skin_lt)
+		# Left upper leg
+		draw_line(l_hip, l_knee, OL, 11.0)
+		draw_line(l_hip, l_knee, skin, 8.0)
+		draw_line(l_hip + Vector2(-1, 0), l_knee + Vector2(-1, 0), skin_lt, 3.0)
+		# Left lower leg
+		draw_line(l_knee, l_foot, OL, 10.0)
+		draw_line(l_knee, l_foot, skin, 7.0)
+		draw_line(l_knee + Vector2(-1, 0), l_foot + Vector2(-1, 0), skin_lt, 2.5)
+		# Left knee joint
+		draw_circle(l_knee, 6.0, OL)
+		draw_circle(l_knee, 4.5, skin)
+		draw_circle(l_knee + Vector2(-1, -0.5), 2.5, skin_lt)
 
-	# --- LOINCLOTH (animal skin wrap with bold outlines) ---
-	var lc_w1 = sin(_time * 2.0) * 2.0
-	var lc_w2 = sin(_time * 2.2 + 0.5) * 2.0
-	# Front flap: OL polygon then fill polygon
-	var loin_ol = PackedVector2Array([
-		leg_top + Vector2(-10, -2),
-		leg_top + Vector2(10, -2),
-		leg_top + Vector2(7, 8),
-		leg_top + Vector2(2, 12 + lc_w1),
-		leg_top + Vector2(-2, 11 + lc_w2),
-		leg_top + Vector2(-7, 8),
-	])
-	draw_colored_polygon(loin_ol, OL)
-	var loin_fill = PackedVector2Array([
-		leg_top + Vector2(-8.5, -1),
-		leg_top + Vector2(8.5, -1),
-		leg_top + Vector2(5.5, 7),
-		leg_top + Vector2(1, 10.5 + lc_w1),
-		leg_top + Vector2(-1, 9.5 + lc_w2),
-		leg_top + Vector2(-5.5, 7),
-	])
-	draw_colored_polygon(loin_fill, loin_col)
-	# Lighter center stripe
-	var loin_ctr = PackedVector2Array([
-		leg_top + Vector2(-3, 0),
-		leg_top + Vector2(3, 0),
-		leg_top + Vector2(2, 7),
-		leg_top + Vector2(-2, 7),
-	])
-	draw_colored_polygon(loin_ctr, Color(0.60, 0.38, 0.18))
-	# Frayed edges (bold scallops)
-	for fi in range(5):
-		var fx = -6.0 + float(fi) * 3.0
-		var fray_y = 8.5 + sin(_time * 1.8 + float(fi) * 1.3) * 1.5
-		draw_circle(leg_top + Vector2(fx, fray_y), 2.5, OL)
-		draw_circle(leg_top + Vector2(fx, fray_y), 1.6, loin_dk)
+		# Right upper leg
+		draw_line(r_hip, r_knee, OL, 11.0)
+		draw_line(r_hip, r_knee, skin, 8.0)
+		draw_line(r_hip + Vector2(1, 0), r_knee + Vector2(1, 0), skin_lt, 3.0)
+		# Right lower leg
+		draw_line(r_knee, r_foot, OL, 10.0)
+		draw_line(r_knee, r_foot, skin, 7.0)
+		draw_line(r_knee + Vector2(1, 0), r_foot + Vector2(1, 0), skin_lt, 2.5)
+		# Right knee joint
+		draw_circle(r_knee, 6.0, OL)
+		draw_circle(r_knee, 4.5, skin)
+		draw_circle(r_knee + Vector2(1, -0.5), 2.5, skin_lt)
 
-	# --- VINE BELT (bold green with leaf accents) ---
-	draw_line(leg_top + Vector2(-11, -2), leg_top + Vector2(11, -2), OL, 5.5)
-	draw_line(leg_top + Vector2(-10, -2), leg_top + Vector2(10, -2), vine_col, 4.0)
-	draw_line(leg_top + Vector2(-9, -2.5), leg_top + Vector2(9, -2.5), leaf_col, 1.8)
-	# Leaves on belt
-	for bli in range(4):
-		var blx = -8.0 + float(bli) * 5.5
-		var bl_sw = sin(_time * 1.5 + float(bli) * 1.2) * 1.0
-		var bl_p = leg_top + Vector2(blx, -2)
-		draw_circle(bl_p + Vector2(bl_sw, 2), 3.5, OL)
-		draw_circle(bl_p + Vector2(bl_sw, 2), 2.5, leaf_col)
-		draw_circle(bl_p + Vector2(bl_sw + 0.5, 1.5), 1.3, Color(0.30, 0.72, 0.24))
+		# --- LOINCLOTH (animal skin wrap with bold outlines) ---
+		var lc_w1 = sin(_time * 2.0) * 2.0
+		var lc_w2 = sin(_time * 2.2 + 0.5) * 2.0
+		# Front flap: OL polygon then fill polygon
+		var loin_ol = PackedVector2Array([
+			leg_top + Vector2(-10, -2),
+			leg_top + Vector2(10, -2),
+			leg_top + Vector2(7, 8),
+			leg_top + Vector2(2, 12 + lc_w1),
+			leg_top + Vector2(-2, 11 + lc_w2),
+			leg_top + Vector2(-7, 8),
+		])
+		draw_colored_polygon(loin_ol, OL)
+		var loin_fill = PackedVector2Array([
+			leg_top + Vector2(-8.5, -1),
+			leg_top + Vector2(8.5, -1),
+			leg_top + Vector2(5.5, 7),
+			leg_top + Vector2(1, 10.5 + lc_w1),
+			leg_top + Vector2(-1, 9.5 + lc_w2),
+			leg_top + Vector2(-5.5, 7),
+		])
+		draw_colored_polygon(loin_fill, loin_col)
+		# Lighter center stripe
+		var loin_ctr = PackedVector2Array([
+			leg_top + Vector2(-3, 0),
+			leg_top + Vector2(3, 0),
+			leg_top + Vector2(2, 7),
+			leg_top + Vector2(-2, 7),
+		])
+		draw_colored_polygon(loin_ctr, Color(0.60, 0.38, 0.18))
+		# Frayed edges (bold scallops)
+		for fi in range(5):
+			var fx = -6.0 + float(fi) * 3.0
+			var fray_y = 8.5 + sin(_time * 1.8 + float(fi) * 1.3) * 1.5
+			draw_circle(leg_top + Vector2(fx, fray_y), 2.5, OL)
+			draw_circle(leg_top + Vector2(fx, fray_y), 1.6, loin_dk)
 
-	# --- BARE CHEST TORSO (chunky, exposed skin, V-taper with bold OL) ---
-	var torso_ol = PackedVector2Array([
-		leg_top + Vector2(-9, 0),
-		torso_center + Vector2(-14, 0),
-		neck_base + Vector2(-15, 0),
-		neck_base + Vector2(15, 0),
-		torso_center + Vector2(14, 0),
-		leg_top + Vector2(9, 0),
-	])
-	draw_colored_polygon(torso_ol, OL)
-	var torso_fl = PackedVector2Array([
-		leg_top + Vector2(-7.5, 0.5),
-		torso_center + Vector2(-12.5, 0.5),
-		neck_base + Vector2(-13.5, 0.5),
-		neck_base + Vector2(13.5, 0.5),
-		torso_center + Vector2(12.5, 0.5),
-		leg_top + Vector2(7.5, 0.5),
-	])
-	draw_colored_polygon(torso_fl, skin)
-	# Pec highlights (chunky cartoon pecs)
-	draw_circle(neck_base + Vector2(-5, 5), 5.5, skin_lt)
-	draw_circle(neck_base + Vector2(5, 5), 5.5, skin_lt)
-	# Sternum line (bold cartoon divider)
-	draw_line(neck_base + Vector2(0, 2), torso_center + Vector2(0, 1), OL, 1.5)
-	# Belly area
-	draw_circle(torso_center + Vector2(0, 2), 5.0, skin_dk)
-	draw_circle(torso_center + Vector2(0, 1.5), 4.0, skin)
+		# --- VINE BELT (bold green with leaf accents) ---
+		draw_line(leg_top + Vector2(-11, -2), leg_top + Vector2(11, -2), OL, 5.5)
+		draw_line(leg_top + Vector2(-10, -2), leg_top + Vector2(10, -2), vine_col, 4.0)
+		draw_line(leg_top + Vector2(-9, -2.5), leg_top + Vector2(9, -2.5), leaf_col, 1.8)
+		# Leaves on belt
+		for bli in range(4):
+			var blx = -8.0 + float(bli) * 5.5
+			var bl_sw = sin(_time * 1.5 + float(bli) * 1.2) * 1.0
+			var bl_p = leg_top + Vector2(blx, -2)
+			draw_circle(bl_p + Vector2(bl_sw, 2), 3.5, OL)
+			draw_circle(bl_p + Vector2(bl_sw, 2), 2.5, leaf_col)
+			draw_circle(bl_p + Vector2(bl_sw + 0.5, 1.5), 1.3, Color(0.30, 0.72, 0.24))
 
-	# Chest scar (bold cartoon scar)
-	draw_line(neck_base + Vector2(-8, 4), neck_base + Vector2(-2, 8), OL, 2.0)
-	draw_line(neck_base + Vector2(-7.5, 4.3), neck_base + Vector2(-2.3, 7.7), Color(0.82, 0.58, 0.46), 1.0)
+		# --- BARE CHEST TORSO (chunky, exposed skin, V-taper with bold OL) ---
+		var torso_ol = PackedVector2Array([
+			leg_top + Vector2(-9, 0),
+			torso_center + Vector2(-14, 0),
+			neck_base + Vector2(-15, 0),
+			neck_base + Vector2(15, 0),
+			torso_center + Vector2(14, 0),
+			leg_top + Vector2(9, 0),
+		])
+		draw_colored_polygon(torso_ol, OL)
+		var torso_fl = PackedVector2Array([
+			leg_top + Vector2(-7.5, 0.5),
+			torso_center + Vector2(-12.5, 0.5),
+			neck_base + Vector2(-13.5, 0.5),
+			neck_base + Vector2(13.5, 0.5),
+			torso_center + Vector2(12.5, 0.5),
+			leg_top + Vector2(7.5, 0.5),
+		])
+		draw_colored_polygon(torso_fl, skin)
+		# Pec highlights (chunky cartoon pecs)
+		draw_circle(neck_base + Vector2(-5, 5), 5.5, skin_lt)
+		draw_circle(neck_base + Vector2(5, 5), 5.5, skin_lt)
+		# Sternum line (bold cartoon divider)
+		draw_line(neck_base + Vector2(0, 2), torso_center + Vector2(0, 1), OL, 1.5)
+		# Belly area
+		draw_circle(torso_center + Vector2(0, 2), 5.0, skin_dk)
+		draw_circle(torso_center + Vector2(0, 1.5), 4.0, skin)
 
-	# --- BONE NECKLACE (bold outlined teeth) ---
-	var nkl_ctr = neck_base + Vector2(0, 3)
-	draw_arc(nkl_ctr, 10.0, 0.15, PI - 0.15, 12, OL, 3.0)
-	draw_arc(nkl_ctr, 10.0, 0.15, PI - 0.15, 12, Color(0.56, 0.42, 0.26), 1.8)
-	for bi in range(5):
-		var bone_a = 0.25 + float(bi) * 0.13 * PI
-		var bone_p = nkl_ctr + Vector2.from_angle(bone_a) * 10.0
-		draw_line(bone_p, bone_p + Vector2(0, 4.0), OL, 3.5)
-		draw_line(bone_p, bone_p + Vector2(0, 4.0), Color(0.92, 0.86, 0.76), 2.2)
-		draw_circle(bone_p + Vector2(0, 4.0), 1.5, OL)
-		draw_circle(bone_p + Vector2(0, 4.0), 1.0, Color(0.88, 0.82, 0.70))
+		# Chest scar (bold cartoon scar)
+		draw_line(neck_base + Vector2(-8, 4), neck_base + Vector2(-2, 8), OL, 2.0)
+		draw_line(neck_base + Vector2(-7.5, 4.3), neck_base + Vector2(-2.3, 7.7), Color(0.82, 0.58, 0.46), 1.0)
 
-	# --- KNIFE AT BELT ---
-	var kn_pos = leg_top + Vector2(9, 0)
-	draw_line(kn_pos, kn_pos + Vector2(2, 10), OL, 5.5)
-	draw_line(kn_pos, kn_pos + Vector2(2, 10), Color(0.42, 0.28, 0.14), 4.0)
-	draw_line(kn_pos + Vector2(0, -1), kn_pos + Vector2(-1, -6), OL, 4.5)
-	draw_line(kn_pos + Vector2(0, -1), kn_pos + Vector2(-1, -6), Color(0.56, 0.40, 0.22), 3.0)
-	draw_circle(kn_pos + Vector2(-1, -6), 2.2, OL)
-	draw_circle(kn_pos + Vector2(-1, -6), 1.5, Color(0.78, 0.60, 0.25))
+		# --- BONE NECKLACE (bold outlined teeth) ---
+		var nkl_ctr = neck_base + Vector2(0, 3)
+		draw_arc(nkl_ctr, 10.0, 0.15, PI - 0.15, 12, OL, 3.0)
+		draw_arc(nkl_ctr, 10.0, 0.15, PI - 0.15, 12, Color(0.56, 0.42, 0.26), 1.8)
+		for bi in range(5):
+			var bone_a = 0.25 + float(bi) * 0.13 * PI
+			var bone_p = nkl_ctr + Vector2.from_angle(bone_a) * 10.0
+			draw_line(bone_p, bone_p + Vector2(0, 4.0), OL, 3.5)
+			draw_line(bone_p, bone_p + Vector2(0, 4.0), Color(0.92, 0.86, 0.76), 2.2)
+			draw_circle(bone_p + Vector2(0, 4.0), 1.5, OL)
+			draw_circle(bone_p + Vector2(0, 4.0), 1.0, Color(0.88, 0.82, 0.70))
 
-	# --- SHOULDERS (chunky round cartoon joints) ---
-	var l_shoulder = neck_base + Vector2(-14, 0)
-	var r_shoulder = neck_base + Vector2(14, 0)
-	draw_circle(l_shoulder, 8.5, OL)
-	draw_circle(l_shoulder, 6.8, skin)
-	draw_circle(l_shoulder + Vector2(-1, -1.5), 3.5, skin_lt)
-	draw_circle(r_shoulder, 8.5, OL)
-	draw_circle(r_shoulder, 6.8, skin)
-	draw_circle(r_shoulder + Vector2(1, -1.5), 3.5, skin_lt)
+		# --- KNIFE AT BELT ---
+		var kn_pos = leg_top + Vector2(9, 0)
+		draw_line(kn_pos, kn_pos + Vector2(2, 10), OL, 5.5)
+		draw_line(kn_pos, kn_pos + Vector2(2, 10), Color(0.42, 0.28, 0.14), 4.0)
+		draw_line(kn_pos + Vector2(0, -1), kn_pos + Vector2(-1, -6), OL, 4.5)
+		draw_line(kn_pos + Vector2(0, -1), kn_pos + Vector2(-1, -6), Color(0.56, 0.40, 0.22), 3.0)
+		draw_circle(kn_pos + Vector2(-1, -6), 2.2, OL)
+		draw_circle(kn_pos + Vector2(-1, -6), 1.5, Color(0.78, 0.60, 0.25))
 
-	# --- LEFT ARM (raised, holding vine — 2-segment chunky) ---
-	var vine_hand = l_shoulder + Vector2(-5, -18 + sin(_time * 1.2) * 3.0)
-	var l_elbow = l_shoulder + (vine_hand - l_shoulder) * 0.48 + Vector2(-3, 0)
-	# Upper arm: OL then fill then highlight
-	draw_line(l_shoulder, l_elbow, OL, 11.0)
-	draw_line(l_shoulder, l_elbow, skin, 8.0)
-	draw_line(l_shoulder + Vector2(-1, 0), l_elbow + Vector2(-1, 0), skin_lt, 3.0)
-	# Elbow joint
-	draw_circle(l_elbow, 6.0, OL)
-	draw_circle(l_elbow, 4.5, skin)
-	draw_circle(l_elbow + Vector2(-1, -0.5), 2.5, skin_lt)
-	# Forearm
-	draw_line(l_elbow, vine_hand, OL, 10.0)
-	draw_line(l_elbow, vine_hand, skin, 7.0)
-	draw_line(l_elbow + Vector2(-1, 0), vine_hand + Vector2(-1, 0), skin_lt, 2.5)
-	# Leaf wristband
-	var lw_p = l_elbow.lerp(vine_hand, 0.8)
-	draw_arc(lw_p, 4.5, 0, TAU, 10, OL, 3.5)
-	draw_arc(lw_p, 4.5, 0, TAU, 10, vine_col, 2.5)
-	draw_circle(lw_p + Vector2(-3, -1), 2.5, OL)
-	draw_circle(lw_p + Vector2(-3, -1), 1.8, leaf_col)
-	# Hand gripping vine
-	draw_circle(vine_hand, 5.5, OL)
-	draw_circle(vine_hand, 4.2, skin)
-	draw_circle(vine_hand + Vector2(-0.5, -1), 2.2, skin_lt)
+		# --- SHOULDERS (chunky round cartoon joints) ---
+		var l_shoulder = neck_base + Vector2(-14, 0)
+		var r_shoulder = neck_base + Vector2(14, 0)
+		draw_circle(l_shoulder, 8.5, OL)
+		draw_circle(l_shoulder, 6.8, skin)
+		draw_circle(l_shoulder + Vector2(-1, -1.5), 3.5, skin_lt)
+		draw_circle(r_shoulder, 8.5, OL)
+		draw_circle(r_shoulder, 6.8, skin)
+		draw_circle(r_shoulder + Vector2(1, -1.5), 3.5, skin_lt)
 
-	# Vine going up from hand
-	var vine_top = vine_hand + Vector2(-2, -22 + sin(_time * 0.8) * 2.0)
-	draw_line(vine_hand, vine_top, OL, 5.0)
-	draw_line(vine_hand, vine_top, vine_col, 3.5)
-	draw_line(vine_hand, vine_top, leaf_col, 1.5)
-	# Leaves on vine
-	for vli in range(3):
-		var vlt = 0.2 + float(vli) * 0.3
-		var vlp = vine_hand.lerp(vine_top, vlt)
-		var vl_sw = sin(_time * 2.0 + float(vli) * 1.5) * 2.0
-		var vl_d = Vector2(3.5 + vl_sw, -1.0)
-		draw_line(vlp, vlp + vl_d, OL, 3.5)
-		draw_line(vlp, vlp + vl_d, leaf_col, 2.2)
-		draw_line(vlp, vlp + vl_d.rotated(0.6) * 0.7, leaf_dk, 1.5)
+		# --- LEFT ARM (raised, holding vine — 2-segment chunky) ---
+		var vine_hand = l_shoulder + Vector2(-5, -18 + sin(_time * 1.2) * 3.0)
+		var l_elbow = l_shoulder + (vine_hand - l_shoulder) * 0.48 + Vector2(-3, 0)
+		# Upper arm: OL then fill then highlight
+		draw_line(l_shoulder, l_elbow, OL, 11.0)
+		draw_line(l_shoulder, l_elbow, skin, 8.0)
+		draw_line(l_shoulder + Vector2(-1, 0), l_elbow + Vector2(-1, 0), skin_lt, 3.0)
+		# Elbow joint
+		draw_circle(l_elbow, 6.0, OL)
+		draw_circle(l_elbow, 4.5, skin)
+		draw_circle(l_elbow + Vector2(-1, -0.5), 2.5, skin_lt)
+		# Forearm
+		draw_line(l_elbow, vine_hand, OL, 10.0)
+		draw_line(l_elbow, vine_hand, skin, 7.0)
+		draw_line(l_elbow + Vector2(-1, 0), vine_hand + Vector2(-1, 0), skin_lt, 2.5)
+		# Leaf wristband
+		var lw_p = l_elbow.lerp(vine_hand, 0.8)
+		draw_arc(lw_p, 4.5, 0, TAU, 10, OL, 3.5)
+		draw_arc(lw_p, 4.5, 0, TAU, 10, vine_col, 2.5)
+		draw_circle(lw_p + Vector2(-3, -1), 2.5, OL)
+		draw_circle(lw_p + Vector2(-3, -1), 1.8, leaf_col)
+		# Hand gripping vine
+		draw_circle(vine_hand, 5.5, OL)
+		draw_circle(vine_hand, 4.2, skin)
+		draw_circle(vine_hand + Vector2(-0.5, -1), 2.2, skin_lt)
 
-	# --- RIGHT ARM (holding spear, thrusts toward target — 2-segment chunky) ---
-	var spear_hand = r_shoulder + Vector2(6, 2) + dir * (16.0 + spear_ext)
-	var r_elbow = r_shoulder + (spear_hand - r_shoulder) * 0.4 + Vector2(0, 2)
-	# Upper arm
-	draw_line(r_shoulder, r_elbow, OL, 11.0)
-	draw_line(r_shoulder, r_elbow, skin, 8.0)
-	draw_line(r_shoulder + Vector2(1, 0), r_elbow + Vector2(1, 0), skin_lt, 3.0)
-	# Elbow
-	draw_circle(r_elbow, 6.0, OL)
-	draw_circle(r_elbow, 4.5, skin)
-	draw_circle(r_elbow + Vector2(1, -0.5), 2.5, skin_lt)
-	# Forearm
-	var r_hand = r_elbow + (spear_hand - r_elbow).normalized() * (r_elbow.distance_to(spear_hand) * 0.7)
-	draw_line(r_elbow, r_hand, OL, 10.0)
-	draw_line(r_elbow, r_hand, skin, 7.0)
-	draw_line(r_elbow + Vector2(1, 0), r_hand + Vector2(1, 0), skin_lt, 2.5)
-	# Leaf wristband (right)
-	var rw_p = r_elbow.lerp(r_hand, 0.8)
-	draw_arc(rw_p, 4.5, 0, TAU, 10, OL, 3.5)
-	draw_arc(rw_p, 4.5, 0, TAU, 10, vine_col, 2.5)
-	draw_circle(rw_p + Vector2(3, -1), 2.5, OL)
-	draw_circle(rw_p + Vector2(3, -1), 1.8, leaf_col)
-	# Hand gripping spear
-	draw_circle(r_hand, 5.5, OL)
-	draw_circle(r_hand, 4.2, skin)
-	draw_circle(r_hand + Vector2(0.5, -1), 2.2, skin_lt)
+		# Vine going up from hand
+		var vine_top = vine_hand + Vector2(-2, -22 + sin(_time * 0.8) * 2.0)
+		draw_line(vine_hand, vine_top, OL, 5.0)
+		draw_line(vine_hand, vine_top, vine_col, 3.5)
+		draw_line(vine_hand, vine_top, leaf_col, 1.5)
+		# Leaves on vine
+		for vli in range(3):
+			var vlt = 0.2 + float(vli) * 0.3
+			var vlp = vine_hand.lerp(vine_top, vlt)
+			var vl_sw = sin(_time * 2.0 + float(vli) * 1.5) * 2.0
+			var vl_d = Vector2(3.5 + vl_sw, -1.0)
+			draw_line(vlp, vlp + vl_d, OL, 3.5)
+			draw_line(vlp, vlp + vl_d, leaf_col, 2.2)
+			draw_line(vlp, vlp + vl_d.rotated(0.6) * 0.7, leaf_dk, 1.5)
 
-	# --- SPEAR (extends past the hand toward target) ---
-	var sp_dir = (spear_hand - r_hand).normalized()
-	var sp_butt = r_hand - sp_dir * 14.0
-	var sp_tip = spear_hand + sp_dir * 4.0
-	# Shaft: OL then wood fill then highlight
-	draw_line(sp_butt, sp_tip, OL, 5.5)
-	draw_line(sp_butt, sp_tip, Color(0.52, 0.34, 0.16), 4.0)
-	draw_line(sp_butt, sp_tip, Color(0.64, 0.46, 0.26), 1.5)
-	# Spear tip (stone/bone — triangle with bold outline)
-	var tip_base = sp_tip - sp_dir * 6.0
-	var tip_perp = sp_dir.rotated(PI / 2.0)
-	var tip_ol = PackedVector2Array([
-		sp_tip + sp_dir * 2.5,
-		tip_base + tip_perp * 5.0,
-		tip_base - tip_perp * 5.0,
-	])
-	draw_colored_polygon(tip_ol, OL)
-	var tip_fl = PackedVector2Array([
-		sp_tip + sp_dir * 1.0,
-		tip_base + tip_perp * 3.5,
-		tip_base - tip_perp * 3.5,
-	])
-	draw_colored_polygon(tip_fl, Color(0.72, 0.68, 0.60))
-	draw_line(sp_tip + sp_dir * 0.5, tip_base, Color(0.88, 0.84, 0.76, 0.5), 1.5)
-	# Vine binding wraps near tip
-	var bind_p = tip_base - sp_dir * 2.0
-	draw_line(bind_p + tip_perp * 3.5, bind_p - tip_perp * 3.5, OL, 3.5)
-	draw_line(bind_p + tip_perp * 3.0, bind_p - tip_perp * 3.0, vine_col, 2.2)
-	# Tier 2+ glowing spear tip
-	if upgrade_tier >= 2:
-		var gp = (sin(_time * 3.5) + 1.0) * 0.5
-		draw_circle(sp_tip, 7.0 + gp * 2.5, Color(0.95, 0.65, 0.15, 0.06 + gp * 0.04))
-		draw_circle(sp_tip, 4.0 + gp * 1.5, Color(1.0, 0.80, 0.30, 0.05))
+		# --- RIGHT ARM (holding spear, thrusts toward target — 2-segment chunky) ---
+		var spear_hand = r_shoulder + Vector2(6, 2) + dir * (16.0 + spear_ext)
+		var r_elbow = r_shoulder + (spear_hand - r_shoulder) * 0.4 + Vector2(0, 2)
+		# Upper arm
+		draw_line(r_shoulder, r_elbow, OL, 11.0)
+		draw_line(r_shoulder, r_elbow, skin, 8.0)
+		draw_line(r_shoulder + Vector2(1, 0), r_elbow + Vector2(1, 0), skin_lt, 3.0)
+		# Elbow
+		draw_circle(r_elbow, 6.0, OL)
+		draw_circle(r_elbow, 4.5, skin)
+		draw_circle(r_elbow + Vector2(1, -0.5), 2.5, skin_lt)
+		# Forearm
+		var r_hand = r_elbow + (spear_hand - r_elbow).normalized() * (r_elbow.distance_to(spear_hand) * 0.7)
+		draw_line(r_elbow, r_hand, OL, 10.0)
+		draw_line(r_elbow, r_hand, skin, 7.0)
+		draw_line(r_elbow + Vector2(1, 0), r_hand + Vector2(1, 0), skin_lt, 2.5)
+		# Leaf wristband (right)
+		var rw_p = r_elbow.lerp(r_hand, 0.8)
+		draw_arc(rw_p, 4.5, 0, TAU, 10, OL, 3.5)
+		draw_arc(rw_p, 4.5, 0, TAU, 10, vine_col, 2.5)
+		draw_circle(rw_p + Vector2(3, -1), 2.5, OL)
+		draw_circle(rw_p + Vector2(3, -1), 1.8, leaf_col)
+		# Hand gripping spear
+		draw_circle(r_hand, 5.5, OL)
+		draw_circle(r_hand, 4.2, skin)
+		draw_circle(r_hand + Vector2(0.5, -1), 2.2, skin_lt)
 
-	# Spear thrust attack flash
-	if _attack_anim > 0.2:
-		var thr_r = 15.0 + (1.0 - _attack_anim) * 30.0
-		var thr_a = _attack_anim * 0.4
-		draw_arc(r_hand + dir * 10.0, thr_r, 0, TAU, 24, Color(0.85, 0.70, 0.35, thr_a), 2.5)
-		for si in range(4):
-			var sp_a = TAU * float(si) / 4.0 + _time * 3.0
-			var sp_r2 = thr_r * (0.5 + sin(_time * 5.0 + float(si)) * 0.2)
-			var sp_p = r_hand + dir * 10.0 + Vector2.from_angle(sp_a) * sp_r2
-			draw_circle(sp_p, 2.0, Color(0.95, 0.80, 0.40, thr_a * 0.6))
+		# --- SPEAR (extends past the hand toward target) ---
+		var sp_dir = (spear_hand - r_hand).normalized()
+		var sp_butt = r_hand - sp_dir * 14.0
+		var sp_tip = spear_hand + sp_dir * 4.0
+		# Shaft: OL then wood fill then highlight
+		draw_line(sp_butt, sp_tip, OL, 5.5)
+		draw_line(sp_butt, sp_tip, Color(0.52, 0.34, 0.16), 4.0)
+		draw_line(sp_butt, sp_tip, Color(0.64, 0.46, 0.26), 1.5)
+		# Spear tip (stone/bone — triangle with bold outline)
+		var tip_base = sp_tip - sp_dir * 6.0
+		var tip_perp = sp_dir.rotated(PI / 2.0)
+		var tip_ol = PackedVector2Array([
+			sp_tip + sp_dir * 2.5,
+			tip_base + tip_perp * 5.0,
+			tip_base - tip_perp * 5.0,
+		])
+		draw_colored_polygon(tip_ol, OL)
+		var tip_fl = PackedVector2Array([
+			sp_tip + sp_dir * 1.0,
+			tip_base + tip_perp * 3.5,
+			tip_base - tip_perp * 3.5,
+		])
+		draw_colored_polygon(tip_fl, Color(0.72, 0.68, 0.60))
+		draw_line(sp_tip + sp_dir * 0.5, tip_base, Color(0.88, 0.84, 0.76, 0.5), 1.5)
+		# Vine binding wraps near tip
+		var bind_p = tip_base - sp_dir * 2.0
+		draw_line(bind_p + tip_perp * 3.5, bind_p - tip_perp * 3.5, OL, 3.5)
+		draw_line(bind_p + tip_perp * 3.0, bind_p - tip_perp * 3.0, vine_col, 2.2)
+		# Tier 2+ glowing spear tip
+		if upgrade_tier >= 2:
+			var gp = (sin(_time * 3.5) + 1.0) * 0.5
+			draw_circle(sp_tip, 7.0 + gp * 2.5, Color(0.95, 0.65, 0.15, 0.06 + gp * 0.04))
+			draw_circle(sp_tip, 4.0 + gp * 1.5, Color(1.0, 0.80, 0.30, 0.05))
 
-	# === HEAD ===
+		# Spear thrust attack flash
+		if _attack_anim > 0.2:
+			var thr_r = 15.0 + (1.0 - _attack_anim) * 30.0
+			var thr_a = _attack_anim * 0.4
+			pass  #draw_arc(r_hand + dir * 10.0, thr_r, 0, TAU, 24, Color(0.85, 0.70, 0.35, thr_a), 2.5)
+			for si in range(4):
+				var sp_a = TAU * float(si) / 4.0 + _time * 3.0
+				var sp_r2 = thr_r * (0.5 + sin(_time * 5.0 + float(si)) * 0.2)
+				var sp_p = r_hand + dir * 10.0 + Vector2.from_angle(sp_a) * sp_r2
+				draw_circle(sp_p, 2.0, Color(0.95, 0.80, 0.40, thr_a * 0.6))
 
-	# Neck (chunky, bold outlined)
-	draw_line(neck_base, head_center + Vector2(0, 8), OL, 11.0)
-	draw_line(neck_base, head_center + Vector2(0, 8), skin, 8.0)
-	draw_line(neck_base + Vector2(-2, 0), head_center + Vector2(-2, 8), skin_lt, 2.5)
+		# === HEAD ===
 
-	# --- WILD HAIR (back layer — big messy mass, signature Tarzan) ---
-	var hair_sway = sin(_time * 2.0) * 2.5
-	# Large hair mass behind head (OL then fill)
-	draw_circle(head_center, 16.0, OL)
-	draw_circle(head_center, 14.0, hair_col)
-	draw_circle(head_center + Vector2(0, -1), 12.0, hair_lt)
+		# Neck (chunky, bold outlined)
+		draw_line(neck_base, head_center + Vector2(0, 8), OL, 11.0)
+		draw_line(neck_base, head_center + Vector2(0, 8), skin, 8.0)
+		draw_line(neck_base + Vector2(-2, 0), head_center + Vector2(-2, 8), skin_lt, 2.5)
 
-	# Wild spiky strands radiating outward (messy in all directions)
-	var tuft_angles = [
-		[-2.8, 11.0, 3.8], [-2.2, 10.0, 3.2], [-1.6, 12.0, 3.5], [-1.0, 10.5, 3.2],
-		[-0.4, 11.5, 3.5], [0.2, 10.0, 3.8], [0.8, 12.5, 3.2], [1.4, 10.0, 3.5],
-		[2.0, 11.0, 3.4], [2.6, 10.5, 3.2], [3.2, 12.0, 3.5],
-	]
-	for h in range(tuft_angles.size()):
-		var ha: float = tuft_angles[h][0]
-		var tlen: float = tuft_angles[h][1]
-		var twid: float = tuft_angles[h][2]
-		var tuft_root = head_center + Vector2.from_angle(ha) * 12.0
-		var sway_d = 1.0 if h % 2 == 0 else -1.0
-		var s_wave = sin(ha * 2.5 + _time * 1.8) * 2.0
-		var tuft_end = tuft_root + Vector2.from_angle(ha) * tlen + Vector2(hair_sway * sway_d * 0.5 + s_wave, s_wave * 0.3)
-		# Bold OL stroke then colored fill
-		draw_line(tuft_root, tuft_end, OL, twid + 2.0)
-		var tcol = hair_col if h % 3 == 0 else hair_lt if h % 3 == 1 else Color(0.40, 0.26, 0.12)
-		draw_line(tuft_root, tuft_end, tcol, twid)
+		# --- WILD HAIR (back layer — big messy mass, signature Tarzan) ---
+		var hair_sway = sin(_time * 2.0) * 2.5
+		# Large hair mass behind head (OL then fill)
+		draw_circle(head_center, 16.0, OL)
+		draw_circle(head_center, 14.0, hair_col)
+		draw_circle(head_center + Vector2(0, -1), 12.0, hair_lt)
 
-	# Forehead bangs (bold strands hanging down)
-	for fri in range(5):
-		var fr_x = -5.0 + float(fri) * 2.5
-		var fr_base = head_center + Vector2(fr_x, -11)
-		var fr_wave = sin(_time * 2.2 + float(fri) * 1.1) * 1.0
-		var fr_tip = fr_base + Vector2(fr_wave, 8.0 + float(fri) * 0.3)
-		draw_line(fr_base, fr_tip, OL, 3.5)
-		draw_line(fr_base, fr_tip, hair_lt if fri % 2 == 0 else hair_col, 2.2)
+		# Wild spiky strands radiating outward (messy in all directions)
+		var tuft_angles = [
+			[-2.8, 11.0, 3.8], [-2.2, 10.0, 3.2], [-1.6, 12.0, 3.5], [-1.0, 10.5, 3.2],
+			[-0.4, 11.5, 3.5], [0.2, 10.0, 3.8], [0.8, 12.5, 3.2], [1.4, 10.0, 3.5],
+			[2.0, 11.0, 3.4], [2.6, 10.5, 3.2], [3.2, 12.0, 3.5],
+		]
+		for h in range(tuft_angles.size()):
+			var ha: float = tuft_angles[h][0]
+			var tlen: float = tuft_angles[h][1]
+			var twid: float = tuft_angles[h][2]
+			var tuft_root = head_center + Vector2.from_angle(ha) * 12.0
+			var sway_d = 1.0 if h % 2 == 0 else -1.0
+			var s_wave = sin(ha * 2.5 + _time * 1.8) * 2.0
+			var tuft_end = tuft_root + Vector2.from_angle(ha) * tlen + Vector2(hair_sway * sway_d * 0.5 + s_wave, s_wave * 0.3)
+			# Bold OL stroke then colored fill
+			draw_line(tuft_root, tuft_end, OL, twid + 2.0)
+			var tcol = hair_col if h % 3 == 0 else hair_lt if h % 3 == 1 else Color(0.40, 0.26, 0.12)
+			draw_line(tuft_root, tuft_end, tcol, twid)
 
-	# --- FACE ---
-	# Head circle: 14 OL -> 12.5 hair -> face 12 OL -> 10.8 skin
-	draw_circle(head_center, 14.0, OL)
-	draw_circle(head_center, 12.5, hair_col)
-	# Face oval
-	draw_circle(head_center + Vector2(0, 1.0), 12.0, OL)
-	draw_circle(head_center + Vector2(0, 1.0), 10.8, skin)
-	# Face highlight (top-left Bloons shine)
-	draw_circle(head_center + Vector2(-2.5, -1.5), 6.0, skin_lt)
+		# Forehead bangs (bold strands hanging down)
+		for fri in range(5):
+			var fr_x = -5.0 + float(fri) * 2.5
+			var fr_base = head_center + Vector2(fr_x, -11)
+			var fr_wave = sin(_time * 2.2 + float(fri) * 1.1) * 1.0
+			var fr_tip = fr_base + Vector2(fr_wave, 8.0 + float(fri) * 0.3)
+			draw_line(fr_base, fr_tip, OL, 3.5)
+			draw_line(fr_base, fr_tip, hair_lt if fri % 2 == 0 else hair_col, 2.2)
 
-	# Ears (bold outlined circles)
-	var l_ear = head_center + Vector2(-11.0, -0.5)
-	var r_ear = head_center + Vector2(11.0, -0.5)
-	draw_circle(l_ear, 3.8, OL)
-	draw_circle(l_ear, 2.8, skin)
-	draw_circle(l_ear + Vector2(-0.3, 0), 1.5, skin_lt)
-	draw_circle(r_ear, 3.8, OL)
-	draw_circle(r_ear, 2.8, skin)
-	draw_circle(r_ear + Vector2(0.3, 0), 1.5, skin_lt)
+		# --- FACE ---
+		# Head circle: 14 OL -> 12.5 hair -> face 12 OL -> 10.8 skin
+		draw_circle(head_center, 14.0, OL)
+		draw_circle(head_center, 12.5, hair_col)
+		# Face oval
+		draw_circle(head_center + Vector2(0, 1.0), 12.0, OL)
+		draw_circle(head_center + Vector2(0, 1.0), 10.8, skin)
+		# Face highlight (top-left Bloons shine)
+		draw_circle(head_center + Vector2(-2.5, -1.5), 6.0, skin_lt)
 
-	# --- EYES (BTD6 style: 5.8 OL, 4.8 white, iris, pupil, sparkle) ---
-	var look_dir = dir * 1.5
-	var l_eye = head_center + Vector2(-4.2, -1.0)
-	var r_eye = head_center + Vector2(4.2, -1.0)
-	# Eye outlines (bold black)
-	draw_circle(l_eye, 5.8, OL)
-	draw_circle(r_eye, 5.8, OL)
-	# Eye whites
-	draw_circle(l_eye, 4.8, Color(0.98, 0.98, 1.0))
-	draw_circle(r_eye, 4.8, Color(0.98, 0.98, 1.0))
-	# Green irises (intense saturated jungle green)
-	draw_circle(l_eye + look_dir, 3.0, Color(0.06, 0.35, 0.08))
-	draw_circle(l_eye + look_dir, 2.4, Color(0.10, 0.52, 0.14))
-	draw_circle(r_eye + look_dir, 3.0, Color(0.06, 0.35, 0.08))
-	draw_circle(r_eye + look_dir, 2.4, Color(0.10, 0.52, 0.14))
-	# Pupils (solid black)
-	draw_circle(l_eye + look_dir * 1.1, 1.4, OL)
-	draw_circle(r_eye + look_dir * 1.1, 1.4, OL)
-	# Primary sparkle (big, bright — key Bloons detail)
-	draw_circle(l_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 1.0, 1.0, 0.95))
-	draw_circle(r_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 1.0, 1.0, 0.95))
-	# Secondary sparkle
-	draw_circle(l_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 1.0, 1.0, 0.55))
-	draw_circle(r_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 1.0, 1.0, 0.55))
-	# Feral green glint (unique to Tarzan)
-	var glint_t = sin(_time * 2.5) * 0.2
-	draw_circle(l_eye + Vector2(0.5, -0.5), 0.6, Color(0.20, 0.85, 0.30, 0.3 + glint_t))
-	draw_circle(r_eye + Vector2(0.5, -0.5), 0.6, Color(0.20, 0.85, 0.30, 0.3 + glint_t))
+		# Ears (bold outlined circles)
+		var l_ear = head_center + Vector2(-11.0, -0.5)
+		var r_ear = head_center + Vector2(11.0, -0.5)
+		draw_circle(l_ear, 3.8, OL)
+		draw_circle(l_ear, 2.8, skin)
+		draw_circle(l_ear + Vector2(-0.3, 0), 1.5, skin_lt)
+		draw_circle(r_ear, 3.8, OL)
+		draw_circle(r_ear, 2.8, skin)
+		draw_circle(r_ear + Vector2(0.3, 0), 1.5, skin_lt)
 
-	# Bold eyebrows (thick, angular — primal fierce)
-	draw_line(l_eye + Vector2(-4.5, -5.0), l_eye + Vector2(1.0, -6.0), OL, 4.0)
-	draw_line(l_eye + Vector2(-4.0, -5.0), l_eye + Vector2(0.5, -5.8), hair_col, 2.8)
-	draw_line(r_eye + Vector2(-1.0, -6.0), r_eye + Vector2(4.5, -5.0), OL, 4.0)
-	draw_line(r_eye + Vector2(-0.5, -5.8), r_eye + Vector2(4.0, -5.0), hair_col, 2.8)
+		# --- EYES (BTD6 style: 5.8 OL, 4.8 white, iris, pupil, sparkle) ---
+		var look_dir = dir * 1.5
+		var l_eye = head_center + Vector2(-4.2, -1.0)
+		var r_eye = head_center + Vector2(4.2, -1.0)
+		# Eye outlines (bold black)
+		draw_circle(l_eye, 5.8, OL)
+		draw_circle(r_eye, 5.8, OL)
+		# Eye whites
+		draw_circle(l_eye, 4.8, Color(0.98, 0.98, 1.0))
+		draw_circle(r_eye, 4.8, Color(0.98, 0.98, 1.0))
+		# Green irises (intense saturated jungle green)
+		draw_circle(l_eye + look_dir, 3.0, Color(0.06, 0.35, 0.08))
+		draw_circle(l_eye + look_dir, 2.4, Color(0.10, 0.52, 0.14))
+		draw_circle(r_eye + look_dir, 3.0, Color(0.06, 0.35, 0.08))
+		draw_circle(r_eye + look_dir, 2.4, Color(0.10, 0.52, 0.14))
+		# Pupils (solid black)
+		draw_circle(l_eye + look_dir * 1.1, 1.4, OL)
+		draw_circle(r_eye + look_dir * 1.1, 1.4, OL)
+		# Primary sparkle (big, bright — key Bloons detail)
+		draw_circle(l_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 1.0, 1.0, 0.95))
+		draw_circle(r_eye + Vector2(-1.2, -1.5), 1.6, Color(1.0, 1.0, 1.0, 0.95))
+		# Secondary sparkle
+		draw_circle(l_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 1.0, 1.0, 0.55))
+		draw_circle(r_eye + Vector2(1.0, 0.8), 0.8, Color(1.0, 1.0, 1.0, 0.55))
+		# Feral green glint (unique to Tarzan)
+		var glint_t = sin(_time * 2.5) * 0.2
+		draw_circle(l_eye + Vector2(0.5, -0.5), 0.6, Color(0.20, 0.85, 0.30, 0.3 + glint_t))
+		draw_circle(r_eye + Vector2(0.5, -0.5), 0.6, Color(0.20, 0.85, 0.30, 0.3 + glint_t))
 
-	# Nose (chunky cartoon nose with bold OL)
-	draw_circle(head_center + Vector2(0, 3.5), 3.0, OL)
-	draw_circle(head_center + Vector2(0, 3.5), 2.2, skin_lt)
-	draw_circle(head_center + Vector2(0.3, 3.2), 1.3, Color(0.95, 0.78, 0.56))
-	# Nostrils
-	draw_circle(head_center + Vector2(-1.3, 4.2), 0.9, OL)
-	draw_circle(head_center + Vector2(1.3, 4.2), 0.9, OL)
+		# Bold eyebrows (thick, angular — primal fierce)
+		draw_line(l_eye + Vector2(-4.5, -5.0), l_eye + Vector2(1.0, -6.0), OL, 4.0)
+		draw_line(l_eye + Vector2(-4.0, -5.0), l_eye + Vector2(0.5, -5.8), hair_col, 2.8)
+		draw_line(r_eye + Vector2(-1.0, -6.0), r_eye + Vector2(4.5, -5.0), OL, 4.0)
+		draw_line(r_eye + Vector2(-0.5, -5.8), r_eye + Vector2(4.0, -5.0), hair_col, 2.8)
 
-	# Mouth (determined grin, gritted teeth — cartoon fierce)
-	draw_arc(head_center + Vector2(0, 6.0), 4.5, 0.15, PI - 0.15, 12, OL, 3.0)
-	draw_arc(head_center + Vector2(0, 6.0), 4.5, 0.15, PI - 0.15, 12, Color(0.55, 0.25, 0.15), 1.8)
-	# Gritted teeth (bold)
-	for thi in range(4):
-		var tooth_x = -2.2 + float(thi) * 1.5
-		draw_circle(head_center + Vector2(tooth_x, 6.2), 1.2, OL)
-		draw_circle(head_center + Vector2(tooth_x, 6.2), 0.8, Color(0.98, 0.96, 0.92))
+		# Nose (chunky cartoon nose with bold OL)
+		draw_circle(head_center + Vector2(0, 3.5), 3.0, OL)
+		draw_circle(head_center + Vector2(0, 3.5), 2.2, skin_lt)
+		draw_circle(head_center + Vector2(0.3, 3.2), 1.3, Color(0.95, 0.78, 0.56))
+		# Nostrils
+		draw_circle(head_center + Vector2(-1.3, 4.2), 0.9, OL)
+		draw_circle(head_center + Vector2(1.3, 4.2), 0.9, OL)
 
-	# Scars (bold outlined — jungle warrior)
-	# Cheek scar
-	draw_line(head_center + Vector2(-7.5, 0.0), head_center + Vector2(-3.5, 3.5), OL, 2.0)
-	draw_line(head_center + Vector2(-7.0, 0.2), head_center + Vector2(-3.8, 3.3), Color(0.82, 0.58, 0.46), 1.2)
-	# Chin scar
-	draw_line(head_center + Vector2(2.0, 7.5), head_center + Vector2(3.5, 9.0), OL, 1.8)
-	draw_line(head_center + Vector2(2.2, 7.7), head_center + Vector2(3.3, 8.8), Color(0.82, 0.58, 0.46), 1.0)
+		# Mouth (determined grin, gritted teeth — cartoon fierce)
+		draw_arc(head_center + Vector2(0, 6.0), 4.5, 0.15, PI - 0.15, 12, OL, 3.0)
+		draw_arc(head_center + Vector2(0, 6.0), 4.5, 0.15, PI - 0.15, 12, Color(0.55, 0.25, 0.15), 1.8)
+		# Gritted teeth (bold)
+		for thi in range(4):
+			var tooth_x = -2.2 + float(thi) * 1.5
+			draw_circle(head_center + Vector2(tooth_x, 6.2), 1.2, OL)
+			draw_circle(head_center + Vector2(tooth_x, 6.2), 0.8, Color(0.98, 0.96, 0.92))
+
+		# Scars (bold outlined — jungle warrior)
+		# Cheek scar
+		draw_line(head_center + Vector2(-7.5, 0.0), head_center + Vector2(-3.5, 3.5), OL, 2.0)
+		draw_line(head_center + Vector2(-7.0, 0.2), head_center + Vector2(-3.8, 3.3), Color(0.82, 0.58, 0.46), 1.2)
+		# Chin scar
+		draw_line(head_center + Vector2(2.0, 7.5), head_center + Vector2(3.5, 9.0), OL, 1.8)
+		draw_line(head_center + Vector2(2.2, 7.7), head_center + Vector2(3.3, 8.8), Color(0.82, 0.58, 0.46), 1.0)
 
 	# === Tier 4: King of the Apes — golden crown + primal aura ===
 	if upgrade_tier >= 4:
 		var aura_pulse = sin(_time * 2.0) * 4.0
 		# Golden primal aura
-		draw_circle(body_offset, 55.0 + aura_pulse, Color(0.85, 0.72, 0.25, 0.04))
-		draw_circle(body_offset, 45.0 + aura_pulse * 0.6, Color(0.9, 0.78, 0.3, 0.05))
-		draw_arc(body_offset, 50.0 + aura_pulse, 0, TAU, 32, Color(0.85, 0.72, 0.25, 0.12), 2.5)
+		pass  #draw_arc(body_offset, 50.0 + aura_pulse, 0, TAU, 24, Color(0.85, 0.72, 0.25, 0.12), 4.0)
 		# Crown on head
 		var crown_base = head_center + Vector2(0, -13)
 		var crown_col = Color(0.85, 0.72, 0.25)
@@ -1953,58 +2060,23 @@ func _draw() -> void:
 			draw_line(cp_base, cp_tip, crown_col, 2.0)
 			draw_circle(cp_tip, 1.5, crown_bright)
 		# Orbiting golden sparkles
-		for gs in range(6):
-			var gs_a = _time * (0.6 + float(gs % 3) * 0.15) + float(gs) * TAU / 6.0
-			var gs_r = 40.0 + aura_pulse + float(gs % 3) * 4.0
+		for gs in range(4):
+			var gs_a = _time * (0.6 + float(gs % 2) * 0.15) + float(gs) * TAU / 4.0
+			var gs_r = 40.0 + aura_pulse + float(gs % 2) * 4.0
 			var gs_p = body_offset + Vector2.from_angle(gs_a) * gs_r
 			var gs_size = 1.8 + sin(_time * 3.0 + float(gs) * 1.5) * 0.6
 			var gs_alpha = 0.35 + sin(_time * 2.5 + float(gs)) * 0.12
 			draw_circle(gs_p, gs_size, Color(0.85, 0.72, 0.25, gs_alpha))
 
-	# Reset character scale transform
-	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-	feet_y += body_offset
-	leg_top += body_offset
-	torso_center += body_offset
-	neck_base += body_offset
-	head_center += body_offset
-
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:
 		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
-		draw_circle(Vector2.ZERO, 68.0 + pulse * 6.0, Color(0.2, 0.6, 0.1, 0.1 + pulse * 0.1))
-		draw_arc(Vector2.ZERO, 68.0 + pulse * 6.0, 0, TAU, 32, Color(0.2, 0.6, 0.1, 0.3 + pulse * 0.3), 2.5)
+		pass  #draw_arc(Vector2.ZERO, 68.0 + pulse * 6.0, 0, TAU, 24, Color(0.2, 0.6, 0.1, 0.3 + pulse * 0.3), 3.5)
 		var font3 = _game_font
 		draw_string(font3, Vector2(-16, -80), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.2, 0.6, 0.1, 0.7 + pulse * 0.3))
 
-	# === VISUAL TIER EVOLUTION ===
-	if upgrade_tier >= 1:
-		var glow_pulse = (sin(_time * 2.0) + 1.0) * 0.5
-		draw_arc(Vector2.ZERO, 28.0 + glow_pulse * 3.0, 0, TAU, 32, Color(0.5, 0.7, 0.15, 0.15 + glow_pulse * 0.1), 2.0)
-	if upgrade_tier >= 2:
-		for si in range(6):
-			var sa = _time * 1.2 + float(si) * TAU / 6.0
-			var sr = 34.0 + sin(_time * 2.5 + float(si)) * 3.0
-			var sp = Vector2.from_angle(sa) * sr
-			var s_alpha = 0.4 + sin(_time * 3.0 + float(si) * 1.1) * 0.2
-			draw_circle(sp, 1.8, Color(0.5, 0.8, 0.15, s_alpha))
-	if upgrade_tier >= 3:
-		var crown_y = -58.0 + sin(_time * 1.5) * 2.0
-		draw_line(Vector2(-8, crown_y), Vector2(8, crown_y), Color(1.0, 0.85, 0.2, 0.8), 2.0)
-		for ci in range(3):
-			var cx = -6.0 + float(ci) * 6.0
-			draw_line(Vector2(cx, crown_y), Vector2(cx, crown_y - 5.0), Color(1.0, 0.85, 0.2, 0.7), 1.5)
-			draw_circle(Vector2(cx, crown_y - 5.0), 1.5, Color(1.0, 0.95, 0.5, 0.6))
-	if upgrade_tier >= 4:
-		for bi in range(8):
-			var ba = _time * 0.5 + float(bi) * TAU / 8.0
-			var b_inner = Vector2.from_angle(ba) * 45.0
-			var b_outer = Vector2.from_angle(ba) * 65.0
-			var b_alpha = 0.15 + sin(_time * 2.0 + float(bi) * 0.8) * 0.08
-			draw_line(b_inner, b_outer, Color(0.5, 0.7, 0.15, b_alpha), 1.5)
-
-	# === DAMAGE COUNTER ===
-	if damage_dealt > 0:
+	# === DAMAGE COUNTER (only when selected) ===
+	if is_selected and damage_dealt > 0:
 		var font = _game_font
 		var dmg_text = str(int(damage_dealt)) + " DMG"
 		if stat_upgrade_level > 0:
@@ -2029,7 +2101,7 @@ func _draw() -> void:
 	var cd_fill = clampf(1.0 - fire_cooldown / cd_max, 0.0, 1.0)
 	if cd_fill >= 1.0:
 		var cd_pulse = 0.5 + sin(_time * 4.0) * 0.3
-		draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.3, 0.65, 0.2, cd_pulse * 0.4), 2.0)
+		pass  #draw_arc(Vector2.ZERO, 28.0, 0, TAU, 32, Color(0.3, 0.65, 0.2, cd_pulse * 0.4), 2.0)
 	elif cd_fill > 0.0:
 		draw_arc(Vector2.ZERO, 28.0, -PI / 2.0, -PI / 2.0 + TAU * cd_fill, 32, Color(0.3, 0.65, 0.2, 0.3), 2.0)
 
