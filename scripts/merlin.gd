@@ -1169,6 +1169,15 @@ func _draw() -> void:
 		draw_circle(exc_bot + Vector2(0, 2), 2.0, Color(0.9, 0.8, 0.35, 0.25))
 		draw_circle(exc_top.lerp(exc_bot, 0.5), 5.0, Color(0.7, 0.75, 1.0, 0.08 + sin(_time * 2.5) * 0.04))
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === 13. CHARACTER BODY (Bloons cartoon style) ===
 
 	# --- POINTED SHOE TIPS peeking under robe ---
@@ -1741,6 +1750,14 @@ func _draw() -> void:
 	var tip_glow = 0.5 + sin(_time * 3.0) * 0.3
 	draw_circle(hat_tip_pos, 1.5, Color(gold_trim.r, gold_trim.g, gold_trim.b, tip_glow))
 	draw_circle(hat_tip_pos, 3.0, Color(gold_trim.r, gold_trim.g, gold_trim.b, tip_glow * 0.3))
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === Tier 4: Cosmic aura around whole character ===
 	if upgrade_tier >= 4:

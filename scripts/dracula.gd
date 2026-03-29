@@ -1371,6 +1371,15 @@ func _draw() -> void:
 			draw_circle(splash_pos, 2.0 + splash_alpha * 1.5, Color(0.7, 0.02, 0.02, splash_alpha * 0.4))
 		draw_circle(body_offset, 6.0 + (1.0 - splash_alpha) * 10.0, Color(0.8, 0.05, 0.03, splash_alpha * 0.15))
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === 13. CHARACTER BODY — BTD6 CARTOON STYLE ===
 	var OL = Color(0.06, 0.06, 0.08)
 	var breath = breathe
@@ -1900,6 +1909,14 @@ func _draw() -> void:
 			var pt_y = body_offset.y + 12.0 - fmod(_time * 20.0 + float(pt) * 8.0, 35.0)
 			var pt_alpha = 0.12 + lord_p * 0.08
 			draw_circle(Vector2(pt_x, pt_y), 1.0 + lord_p * 0.5, Color(0.7, 0.03, 0.02, pt_alpha))
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

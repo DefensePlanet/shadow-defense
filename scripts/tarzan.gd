@@ -1445,6 +1445,15 @@ func _draw() -> void:
 		draw_line(ally_pos + Vector2(2.0, 4.0), ally_pos + Vector2(3.0, 7.0), ap_ol, 2.5)
 		draw_line(ally_pos + Vector2(2.0, 4.0), ally_pos + Vector2(3.0, 7.0), Color(0.30, 0.18, 0.08, 0.8), 1.8)
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
 	var breath = breathe
 	var sway = weight_shift
@@ -1951,6 +1960,14 @@ func _draw() -> void:
 			var gs_size = 1.8 + sin(_time * 3.0 + float(gs) * 1.5) * 0.6
 			var gs_alpha = 0.35 + sin(_time * 2.5 + float(gs)) * 0.12
 			draw_circle(gs_p, gs_size, Color(0.85, 0.72, 0.25, gs_alpha))
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

@@ -940,6 +940,15 @@ func _draw() -> void:
 	draw_line(hood_pts[0], hood_pts[1], Color(0.3, 0.12, 0.4, 0.5), 1.0)
 	draw_line(hood_pts[1], hood_pts[2], Color(0.3, 0.12, 0.4, 0.5), 1.0)
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === 14. HOOD INTERIOR — pure darkness, no face ===
 	draw_colored_polygon(PackedVector2Array([
 		body_offset + Vector2(-7, -22), body_offset + Vector2(0, -38),
@@ -1088,6 +1097,14 @@ func _draw() -> void:
 		# Pulsing red halo
 		var halo_r = 50.0 + sin(_time * 1.8) * 5.0
 		draw_arc(Vector2.ZERO, halo_r, 0, TAU, 48, Color(0.8, 0.1, 0.05, 0.08 + sin(_time * 2.0) * 0.04), 1.5)
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === 21. CHAIN COUNT INDICATOR ===
 	if upgrade_tier > 0:

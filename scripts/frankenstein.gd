@@ -1017,6 +1017,15 @@ func _draw() -> void:
 			draw_circle(dp, 2.0 + sin(_time + float(di)) * 0.5, Color(0.35, 0.32, 0.28, 0.4))
 			draw_circle(dp, 1.0, Color(0.45, 0.42, 0.38, 0.3))
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
 	var OL = Color(0.06, 0.06, 0.08)
 	var breath = breathe * 0.5
@@ -1444,6 +1453,14 @@ func _draw() -> void:
 			draw_line(c_mid_pt, c_end_pt, Color(0.4, 0.65, 1.0, crack_alpha * 0.6), 2.0)
 		draw_circle(l_hand, 10.0, Color(0.8, 0.9, 1.0, _smash_anim * 0.35))
 		draw_circle(l_hand, 5.0, Color(1.0, 1.0, 1.0, _smash_anim * 0.55))
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === 21. ELECTRIC AURA (T4 permanent) ===
 	if _aura_active:

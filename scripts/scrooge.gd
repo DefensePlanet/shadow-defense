@@ -1417,6 +1417,15 @@ func _draw() -> void:
 		leg_top + Vector2(7.5, 14 - tail_sway_v * 0.7), leg_top + Vector2(3, 13 - tail_sway_v),
 	]), coat_col)
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === FEET (polished black Victorian shoes) ===
 	var walk_cycle = sin(_time * 3.0) * 1.0
 	var l_foot = feet_y + Vector2(-5, walk_cycle * 0.4)
@@ -2017,6 +2026,14 @@ func _draw() -> void:
 			draw_circle(w_pos, 3.0, Color(0.1, 0.05, 0.15, 0.1))
 			var w_tail = body_offset + Vector2(0, -10) + Vector2.from_angle(w_a - 0.4) * (w_r - 8.0)
 			draw_line(w_pos, w_tail, Color(0.1, 0.05, 0.15, 0.06), 1.5)
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

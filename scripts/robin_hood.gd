@@ -1122,15 +1122,24 @@ func _draw() -> void:
 			draw_circle(fd_pos, fd_size, Color(1.0, 0.5 + fire_t * 0.4, 0.1, fd_alpha))
 			draw_circle(fd_pos, fd_size * 0.5, Color(1.0, 0.9, 0.4, fd_alpha * 0.6))
 
-	# === 14. CHARACTER BODY (Bloons TD cartoon style) ===
+	# === 14. CHARACTER BODY (Bloons TD cartoon style — scaled to match portrait art) ===
+	# Scale up entire character body for better detail visibility
+	var _CS = 1.5  # Character scale factor (March 22nd proportions)
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	# Recalculate positions relative to transform origin
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
 
-	# --- Colors ---
-	var tunic_green = Color(0.15, 0.55, 0.12)
-	var tunic_dark = Color(0.10, 0.40, 0.08)
-	var boot_brown = Color(0.45, 0.28, 0.12)
-	var belt_brown = Color(0.40, 0.24, 0.10)
-	var hair_auburn = Color(0.50, 0.28, 0.12)
-	var hair_dark = Color(0.38, 0.20, 0.08)
+	# --- Colors (matched to Robin Hood portrait art — vibrant greens, warm browns) ---
+	var tunic_green = Color(0.18, 0.62, 0.15)
+	var tunic_dark = Color(0.12, 0.45, 0.10)
+	var boot_brown = Color(0.50, 0.32, 0.14)
+	var belt_brown = Color(0.45, 0.28, 0.12)
+	var hair_auburn = Color(0.55, 0.32, 0.14)
+	var hair_dark = Color(0.42, 0.24, 0.10)
 
 	# --- BOOTS ---
 	var l_foot = feet_y + Vector2(-5, 0)
@@ -1284,6 +1293,10 @@ func _draw() -> void:
 	# Forearm: outline then fill
 	draw_line(bow_elbow, bow_hand, OL, 6.5)
 	draw_line(bow_elbow, bow_hand, skin_base, 4.5)
+	# Leather bracer (from portrait — brown wrap on forearm)
+	var bow_bracer = bow_elbow.lerp(bow_hand, 0.5)
+	draw_line(bow_bracer + (bow_hand - bow_elbow).normalized() * -3.0, bow_bracer + (bow_hand - bow_elbow).normalized() * 3.0, OL, 7.5)
+	draw_line(bow_bracer + (bow_hand - bow_elbow).normalized() * -2.5, bow_bracer + (bow_hand - bow_elbow).normalized() * 2.5, Color(0.50, 0.32, 0.14), 5.5)
 	# Bow hand
 	draw_circle(bow_hand, 3.8, OL)
 	draw_circle(bow_hand, 2.8, skin_base)
@@ -1302,6 +1315,10 @@ func _draw() -> void:
 	# Forearm
 	draw_line(draw_elbow, draw_hand, OL, 6.5)
 	draw_line(draw_elbow, draw_hand, skin_base, 4.5)
+	# Leather bracer (from portrait)
+	var draw_bracer = draw_elbow.lerp(draw_hand, 0.5)
+	draw_line(draw_bracer + (draw_hand - draw_elbow).normalized() * -3.0, draw_bracer + (draw_hand - draw_elbow).normalized() * 3.0, OL, 7.5)
+	draw_line(draw_bracer + (draw_hand - draw_elbow).normalized() * -2.5, draw_bracer + (draw_hand - draw_elbow).normalized() * 2.5, Color(0.50, 0.32, 0.14), 5.5)
 	# Draw hand
 	draw_circle(draw_hand, 3.8, OL)
 	draw_circle(draw_hand, 2.8, skin_base)
@@ -1534,6 +1551,15 @@ func _draw() -> void:
 		draw_line(feather_base, gold_tip, Color(1.0, 0.85, 0.2), 2.5)
 		draw_line(feather_base, gold_tip, Color(1.0, 0.95, 0.5, 0.4), 1.2)
 		draw_circle(feather_base.lerp(gold_tip, 0.5), 4.0, Color(1.0, 0.9, 0.3, 0.1 + sin(_time * 3.0) * 0.05))
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# Restore positions for post-body elements
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === Tier 4: Golden-green aura around whole character ===
 	if upgrade_tier >= 4:

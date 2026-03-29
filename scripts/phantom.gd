@@ -1402,6 +1402,15 @@ func _draw() -> void:
 	var neck_base = body_offset + Vector2(sway * 0.15, -16.0 - breathe * 0.3)
 	var head_center = body_offset + Vector2(sway * 0.08, -30.0)
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === CHARACTER BODY (Bloons BTD6 style — bold outlines, chunky, saturated) ===
 	var OL = Color(0.06, 0.06, 0.08)
 
@@ -1949,6 +1958,14 @@ func _draw() -> void:
 			draw_line(flame_base2 + Vector2(0, -1), flame_tip2 + Vector2(0, 2), Color(0.9, 0.25, 0.1, 0.3), 1.5)
 		draw_circle(crown_center, 12.0, Color(0.7, 0.1, 0.05, 0.08))
 
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

@@ -1372,6 +1372,15 @@ func _draw() -> void:
 			draw_colored_polygon(paper_pts, Color(0.95, 0.92, 0.85, ep_alpha))
 			draw_line(ep_pos - p_dir_e * 2.0, ep_pos + p_dir_e * 1.5, Color(0.3, 0.3, 0.3, ep_alpha * 0.5), 0.6)
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === 13. CHARACTER BODY (BTD6 Cartoon Style) ===
 
 	# --- CHUNKY SHOES (brown leather) ---
@@ -1868,6 +1877,14 @@ func _draw() -> void:
 			var gs_size = 1.2 + sin(_time * 3.0 + float(gs) * 1.5) * 0.5
 			var gs_alpha = 0.25 + sin(_time * 3.0 + float(gs)) * 0.15
 			draw_circle(gs_p, gs_size, Color(1.0, 0.90, 0.45, gs_alpha))
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

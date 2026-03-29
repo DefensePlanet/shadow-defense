@@ -1428,6 +1428,15 @@ func _draw() -> void:
 	draw_circle(Vector2(body_offset.x * 0.5, 0), 18.0, Color(0, 0, 0, 0.18))
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
 	var OL = Color(0.06, 0.05, 0.08)  # True black outline color
 
@@ -1993,6 +2002,14 @@ func _draw() -> void:
 	# Shine
 	draw_circle(whistle_droop + w_dir * 2.0 + Vector2(0, -0.8), 0.6, Color(0.95, 0.95, 1.0, 0.5))
 
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

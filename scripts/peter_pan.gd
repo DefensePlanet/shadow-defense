@@ -1437,6 +1437,15 @@ func _draw() -> void:
 		draw_circle(shadow_off + Vector2(-3, -14), 1.5, Color(0.8, 0.1, 0.1, shadow_alpha * 1.5))
 		draw_circle(shadow_off + Vector2(3, -14), 1.5, Color(0.8, 0.1, 0.1, shadow_alpha * 1.5))
 
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
+
 	# === BLOONS TD CARTOON CHARACTER BODY ===
 	var green_dark = Color(0.14, 0.48, 0.10)
 	var green_mid = Color(0.18, 0.58, 0.15)
@@ -1803,6 +1812,14 @@ func _draw() -> void:
 			var sp_alpha = 0.3 + sin(_time * 2.5 + float(sp)) * 0.15
 			draw_circle(sp_p, 1.5, Color(0.4, 1.0, 0.5, sp_alpha))
 			draw_circle(sp_p, 0.8, Color(0.8, 1.0, 0.6, sp_alpha * 1.5))
+
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
 
 	# === Tier 4: Never Land golden glow ===
 	if neverland_active:

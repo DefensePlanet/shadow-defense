@@ -1136,6 +1136,14 @@ func _draw() -> void:
 	var skin_shadow = Color(0.82, 0.70, 0.58)
 	var skin_highlight = Color(0.98, 0.90, 0.80)
 
+	# Reset character scale transform
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	feet_y += body_offset
+	leg_top += body_offset
+	torso_center += body_offset
+	neck_base += body_offset
+	head_center += body_offset
+
 	# === Tier 4: Red glow aura ===
 	if upgrade_tier >= 4:
 		var aura_pulse = sin(_time * 3.0) * 0.04 + 0.15
@@ -1220,6 +1228,15 @@ func _draw() -> void:
 		draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
 		draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
 		draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
+
+	# Scale up character for portrait-quality detail
+	var _CS = 1.5
+	draw_set_transform(body_offset, 0, Vector2(_CS, _CS))
+	feet_y -= body_offset
+	leg_top -= body_offset
+	torso_center -= body_offset
+	neck_base -= body_offset
+	head_center -= body_offset
 
 	# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
 	var OL = Color(0.06, 0.06, 0.08)  # True black outline color
