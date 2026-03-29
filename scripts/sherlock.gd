@@ -500,7 +500,7 @@ func _process(delta: float) -> void:
 		if _mind_palace_duration > 0.0:
 			_mind_palace_duration -= delta
 			# Mark ALL enemies on map (not just in range)
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(damage * 0.5 * delta, "magic")
 					register_damage(damage * 0.5 * delta)
@@ -514,7 +514,7 @@ func _process(delta: float) -> void:
 					pass  #_main_node.trigger_shockwave(global_position, 300.0, 250.0, Color(0.3, 0.5, 1.0))
 					_main_node.trigger_camera_shake(6.0, 0.25)
 					# Blue deduction lightning to every enemy
-					for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+					for enemy in get_tree().get_nodes_in_group("enemies"):
 						if is_instance_valid(enemy):
 							_main_node.trigger_lightning(global_position, enemy.global_position, Color(0.3, 0.6, 1.0), 0.25)
 
@@ -598,7 +598,7 @@ func _update_marks(delta: float) -> void:
 
 func _auto_mark_enemies() -> void:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -607,7 +607,7 @@ func _auto_mark_enemies() -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -625,7 +625,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -667,7 +667,7 @@ func get_targeting_label() -> String:
 	return "FIRST"
 
 func _find_strongest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	var eff_range_val = attack_range * _range_mult()
@@ -963,7 +963,7 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _observation_reveal() -> void:
 	_observation_flash = 1.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("reveal"):
 				e.reveal(4.0)
@@ -1004,7 +1004,7 @@ func _remove_watson_buff() -> void:
 
 func _violin_slow() -> void:
 	_violin_flash = 1.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.6, 3.0)
@@ -1014,7 +1014,7 @@ func _reichenbach_strike() -> void:
 	# Play dramatic crash sound (Bug #10)
 	if _reichenbach_gambit_player and not _is_sfx_muted():
 		_reichenbach_gambit_player.play()
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("take_damage"):
 				# Bug #2: damage was 0 because base damage is 0.0. Use flat 50 base * 10 * mult
@@ -1073,7 +1073,7 @@ func _hound_attack() -> void:
 		nearest.take_damage(dmg * 3.0, "magic")
 		register_damage(dmg * 3.0)
 		# Fear: enemies near the target walk backwards for 2s
-		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		for e in get_tree().get_nodes_in_group("enemies"):
 			if nearest.global_position.distance_to(e.global_position) < 60.0:
 				if e.has_method("apply_slow"):
 					e.apply_slow(-0.5, 2.0)  # Negative slow = walk backward
@@ -1101,7 +1101,7 @@ func _reichenbach_cascade() -> void:
 	_cascade_flash = 1.0
 	# Reichenbach Falls cascade — 5x damage to all in range + 2s stun
 	var eff_range_val = attack_range * _range_mult()
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < eff_range_val:
 			if e.has_method("take_damage"):
 				var dmg = 50.0 * 5.0 * _damage_mult()  # Base 50 × 5 = 250
@@ -2003,7 +2003,7 @@ var active_ability_max_cd: float = 30.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var strongest = null
 	var max_hp = 0.0
 	for e in enemies:

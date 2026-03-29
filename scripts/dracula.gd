@@ -373,7 +373,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -391,7 +391,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -525,7 +525,7 @@ func _update_bite_dash(delta: float) -> void:
 				global_position = global_position.lerp(_home_position, return_progress)
 
 func _trigger_bat_devour() -> void:
-	var all_enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var all_enemies = get_tree().get_nodes_in_group("enemies")
 	var enemies: Array = []
 	for enemy in all_enemies:
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -965,7 +965,7 @@ func _wolf_strike() -> void:
 	var weakest: Node2D = null
 	var least_hp: float = 999999.0
 	var eff_range := attack_range * _range_mult()
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if "health" in e and e.health < least_hp:
 				least_hp = e.health
@@ -1006,7 +1006,7 @@ func _blood_moon_expire() -> void:
 func _castle_defense() -> void:
 	_castle_defense_flash = 1.0
 	# Block 2 nearest enemies (stun them) for 2s
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var eff_range := attack_range * _range_mult()
 	var in_range: Array = []
 	for e in enemies:
@@ -1027,7 +1027,7 @@ func _brides_kiss() -> void:
 	# Drain strongest enemy in range
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if "health" in e and e.health > most_hp:
 				most_hp = e.health
@@ -1045,7 +1045,7 @@ func _prince_darkness_wave() -> void:
 	_prince_flash = 1.0
 	# Dark wave damages enemies within 3x effective range
 	var prince_range := attack_range * _range_mult() * 3.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage") and global_position.distance_to(e.global_position) < prince_range:
 			var dmg = damage * 2.0 * _damage_mult()
 			e.take_damage(dmg, "magic")
@@ -2089,7 +2089,7 @@ func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
 	var total_dmg = 0.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if is_instance_valid(e) and e.has_method("take_damage"):
 				var dmg = damage * 4.0 * _damage_mult()

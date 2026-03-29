@@ -344,7 +344,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -362,7 +362,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -447,7 +447,7 @@ func _attack() -> void:
 	# Ability 3: Page Tear — AoE every 5th attack
 	if prog_abilities[3] and _attack_count % 5 == 0:
 		var aoe_range = 60.0
-		for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		for enemy in get_tree().get_nodes_in_group("enemies"):
 			if not enemy in hit_enemies and global_position.distance_to(enemy.global_position) < aoe_range + attack_range * _range_mult():
 				if enemy.has_method("take_damage"):
 					var aoe_dmg = eff_damage * 0.5
@@ -480,7 +480,7 @@ func _apply_chain_effects(enemy: Node2D, dmg: float) -> void:
 func _find_chain_target(from_pos: Vector2, exclude: Array) -> Node2D:
 	var best: Node2D = null
 	var best_dist: float = CHAIN_SEARCH_RANGE
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy in exclude:
 			continue
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -496,7 +496,7 @@ func _find_chain_target(from_pos: Vector2, exclude: Array) -> Node2D:
 # T2: Plot Twist — reverse enemies backward on the path
 func _plot_twist() -> void:
 	_plot_twist_flash = 1.0
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	var eff_range = attack_range * _range_mult() * 1.2
 	for enemy in enemies:
@@ -549,7 +549,7 @@ func _update_ghosts(delta: float) -> void:
 			# Find and attack nearest enemy
 			var nearest: Node2D = null
 			var nearest_dist: float = 150.0
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if enemy.has_method("is_targetable") and not enemy.is_targetable():
 					continue
 				var dist = Vector2(g["pos"]).distance_to(enemy.global_position)
@@ -582,7 +582,7 @@ func _the_final_chapter() -> void:
 	_final_chapter_flash = 1.0
 	_final_chapter_book_open = 1.5
 	var eff_range = attack_range * _range_mult() * 1.8
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(enemy):
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -620,7 +620,7 @@ func _ink_storm() -> void:
 	_ink_storm_flash = 1.0
 	var storm_dmg = damage * 1.5 * _damage_mult()
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(storm_dmg, "magic")
@@ -633,12 +633,12 @@ func _rewrite_reality() -> void:
 	var effect = randi() % 4
 	match effect:
 		0:  # Mass slow
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if enemy.has_method("apply_slow"):
 					enemy.apply_slow(0.3, 5.0)
 		1:  # Mass damage
 			var burst_dmg = damage * 3.0 * _damage_mult()
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(burst_dmg, "magic")
 					register_damage(burst_dmg)
@@ -647,7 +647,7 @@ func _rewrite_reality() -> void:
 			if main and main.has_method("add_gold"):
 				main.add_gold(50)
 		3:  # Execute low HP enemies
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if enemy.health / enemy.max_health < 0.2:
 					if enemy.has_method("take_damage"):
 						enemy.take_damage(enemy.health + 1.0, "true")
@@ -864,7 +864,7 @@ func activate_hero_ability() -> void:
 		return
 	_narrative_collapse_flash = 1.5
 	var total_hero_dmg: float = 0.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(e) and e.has_method("take_damage"):
 			var dmg = damage * 10.0 * _damage_mult()
 			e.take_damage(dmg, "magic")

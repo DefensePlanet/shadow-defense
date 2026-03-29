@@ -281,7 +281,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -299,7 +299,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -378,7 +378,7 @@ func _thunder_storm() -> void:
 	if _thunder_player and not _is_sfx_muted():
 		_thunder_player.play()
 	_thunder_flash = 1.0
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for enemy in enemies:
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -398,7 +398,7 @@ func _thunder_storm() -> void:
 
 func _aura_pulse() -> void:
 	var aura_dmg = damage * 0.3 * _damage_mult() * (1.0 + kill_stack_bonus)
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < smash_radius * 1.2:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(aura_dmg, "magic")
@@ -672,7 +672,7 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _creators_sorrow_stun() -> void:
 	_sorrow_flash = 1.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(2.0)
@@ -681,7 +681,7 @@ func _promethean_fire_strike() -> void:
 	_promethean_flash = 1.0
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.health > most_hp:
 				most_hp = e.health
@@ -702,7 +702,7 @@ func _immortal_construct_pulse() -> void:
 	_immortal_flash = 1.0
 	var dmg = damage * 3.0 * _damage_mult() * (1.0 + kill_stack_bonus)
 	var pulse_range = attack_range * _range_mult() * 3.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) <= pulse_range and e.has_method("take_damage"):
 			var hp_before = e.health if "health" in e else 0.0
 			e.take_damage(dmg, "magic")
@@ -741,7 +741,7 @@ var active_ability_max_cd: float = 30.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var hit_count = 0
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult() * 1.5:

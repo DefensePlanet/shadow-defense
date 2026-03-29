@@ -255,7 +255,7 @@ func _process(delta: float) -> void:
 
 	# Process animal allies — move toward enemies, punch them
 	var to_remove: Array = []
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	for i in range(_animal_allies.size()):
 		_animal_allies[i]["timer"] -= delta
 		_animal_allies[i]["punch_anim"] = maxf(_animal_allies[i]["punch_anim"] - delta * 4.0, 0.0)
@@ -322,7 +322,7 @@ func _process(delta: float) -> void:
 					var offset = Vector2(randf_range(-100, 100), randf_range(-50, 50))
 					pass  #_main_node.trigger_shockwave(global_position + offset, 150.0, 400.0, Color(0.6, 0.5, 0.2))
 			# Stampede damages ALL enemies heavily
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(damage * 3.5, "physical")
 					register_damage(damage * 3.5)
@@ -343,7 +343,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -361,7 +361,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -479,7 +479,7 @@ func _vine_swing_smash() -> void:
 	# Prog ability 1: Jungle Instinct — +20% damage
 	if prog_abilities[0]:
 		dmg *= 1.2
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - dmg <= 0.0
@@ -546,7 +546,7 @@ func use_ability() -> void:
 
 	# Stun all enemies in range for 2s
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("apply_sleep"):
 				enemy.apply_sleep(2.0)
@@ -773,7 +773,7 @@ func _process_progressive_abilities(delta: float) -> void:
 				e.is_shadow_infested = true
 		_predator_sense_revealed = still_revealed
 		# Reveal new shadow-infested enemies entering range
-		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		for e in get_tree().get_nodes_in_group("enemies"):
 			if is_instance_valid(e) and "is_shadow_infested" in e and e.is_shadow_infested:
 				if global_position.distance_to(e.global_position) < sense_range:
 					e.is_shadow_infested = false
@@ -842,7 +842,7 @@ func _mangani_war_cry() -> void:
 	if _yell_player and not _is_sfx_muted():
 		_yell_player.play()
 	var cry_range = attack_range * _range_mult() * 2.5
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < cry_range:
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.0)
@@ -850,7 +850,7 @@ func _mangani_war_cry() -> void:
 func _opar_strike() -> void:
 	_opar_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 6.0 * _damage_mult()
@@ -2132,7 +2132,7 @@ var active_ability_max_cd: float = 30.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if is_instance_valid(e) and e.has_method("take_damage"):
 				var dmg = damage * 3.0 * _damage_mult()

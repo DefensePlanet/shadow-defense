@@ -259,7 +259,7 @@ func _process(delta: float) -> void:
 			_ghost_past_ready -= delta
 			if _ghost_past_ready <= 0.0:
 				# Check if any enemies are near the end of the path (progress > 0.8)
-				var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+				var enemies = get_tree().get_nodes_in_group("enemies")
 				for enemy in enemies:
 					if enemy.has_method("is_targetable") and not enemy.is_targetable():
 						continue
@@ -313,7 +313,7 @@ func _process(delta: float) -> void:
 					pass  #_main_node.trigger_shockwave(global_position, 300.0, 200.0, Color(1.0, 0.85, 0.2))
 					_main_node.trigger_camera_shake(6.0, 0.3)
 				# Damage all enemies for 2x
-				for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+				for enemy in get_tree().get_nodes_in_group("enemies"):
 					if enemy.has_method("take_damage"):
 						enemy.take_damage(damage * 2.0, "magic")
 						register_damage(damage * 2.0)
@@ -332,7 +332,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -350,7 +350,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -407,7 +407,7 @@ func _shoot() -> void:
 		kb *= 1.2
 	var eff_range = attack_range * _range_mult()
 	var enemies_hit = 0
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(enemy.global_position) <= eff_range:
 			# Knockback — push enemies back on path
 			enemy.progress = max(0.0, enemy.progress - kb)
@@ -434,7 +434,7 @@ func on_wave_start(_wave_num: int) -> void:
 func _trigger_ghost_past() -> void:
 	_ghost_flash = 1.0
 	# Find up to 5 enemies with the highest progress values (nearest to end)
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var candidates: Array = []
 	for enemy in enemies:
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -475,7 +475,7 @@ func _trigger_coin_blast() -> void:
 	_coin_blast_flash = 2.0
 	# Massive AoE damage to ALL enemies on screen
 	var dmg = damage * 25.0 * _damage_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 			enemy.take_damage(dmg, "physical")
 			register_damage(dmg)
@@ -754,7 +754,7 @@ func _process_progressive_abilities(delta: float) -> void:
 func _marleys_warning() -> void:
 	_ghost_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -767,7 +767,7 @@ func _marleys_warning() -> void:
 func _marleys_chains_link() -> void:
 	_ghost_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -820,14 +820,14 @@ func _remove_fezziwig_aura() -> void:
 func _knocker_reverse() -> void:
 	_knocker_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(3.0)
 
 func _christmas_turkey() -> void:
 	_turkey_flash = 1.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage"):
 			var dmg = damage * 2.0 * _damage_mult()
 			e.take_damage(dmg, "physical")
@@ -842,7 +842,7 @@ func _scrooges_redemption() -> void:
 	var dmg = gold * 0.05
 	if dmg <= 0:
 		return
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.has_method("take_damage"):
 			e.take_damage(dmg, "physical")
 			register_damage(dmg)
@@ -2059,7 +2059,7 @@ var active_ability_max_cd: float = 30.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():

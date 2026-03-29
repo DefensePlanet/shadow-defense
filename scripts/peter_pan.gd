@@ -255,7 +255,7 @@ func _process(delta: float) -> void:
 			_shadow_damage_timer = 0.5  # hits twice per second
 			var eff_range = attack_range * _range_mult()
 			var shadow_pos = _home_position + Vector2(cos(_shadow_angle), sin(_shadow_angle)) * eff_range * 0.75
-			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if shadow_pos.distance_to(enemy.global_position) < 25.0 and enemy.has_method("take_damage"):
 					var sdmg = damage * 0.25  # shadow damage
 					enemy.take_damage(sdmg, "physical")
@@ -277,7 +277,7 @@ func _process(delta: float) -> void:
 		for eid in to_remove:
 			_croc_seen_enemies.erase(eid)
 		# Count new enemies entering range
-		for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+		for enemy in get_tree().get_nodes_in_group("enemies"):
 			if not is_instance_valid(enemy):
 				continue
 			if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -329,7 +329,7 @@ func _process(delta: float) -> void:
 					pass  #_main_node.trigger_shockwave(global_position, 300.0, 500.0, Color(1.0, 0.9, 0.3))
 					pass  #_main_node.trigger_shockwave(global_position, 200.0, 300.0, Color(0.3, 0.8, 1.0))
 					_main_node.trigger_explosion(global_position, 24, Color(1.0, 0.85, 0.2))
-				for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+				for enemy in get_tree().get_nodes_in_group("enemies"):
 					if enemy.has_method("take_damage"):
 						var crash_dmg = damage * 4.0
 						enemy.take_damage(crash_dmg, "physical")
@@ -358,7 +358,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if _home_position.distance_to(enemy.global_position) < eff_range:
@@ -366,7 +366,7 @@ func _has_enemies_in_range() -> bool:
 	return false
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -730,7 +730,7 @@ func register_kill_progressive() -> void:
 
 func _lost_boys_attack() -> void:
 	_lost_boys_flash = 1.0
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
@@ -745,14 +745,14 @@ func _lost_boys_attack() -> void:
 
 func _fairy_dust_trail() -> void:
 	_fairy_dust_trail_flash = 1.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.5, 2.0)
 
 func _mermaid_song() -> void:
 	_mermaid_song_flash = 1.0
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
@@ -767,7 +767,7 @@ func _walk_the_plank() -> void:
 	# Find enemy furthest along the path (closest to escaping)
 	var furthest: Node2D = null
 	var most_progress: float = -1.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if _home_position.distance_to(e.global_position) < attack_range * _range_mult():
 			var prog = e.path_progress if "path_progress" in e else 0.0
 			if prog > most_progress:
@@ -784,7 +784,7 @@ func _croc_devour() -> void:
 	# Find strongest enemy on entire map
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.health > most_hp:
 			strongest = e
 			most_hp = e.health
@@ -819,7 +819,7 @@ func _neverland_flight() -> void:
 	if _fairy_player and not _is_sfx_muted():
 		_fairy_player.play()
 	# Peter swoops to 8 random enemies across the map, dealing 2x damage each (direct strikes)
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var targets: Array = enemies.duplicate()
 	targets.shuffle()
 	var count = mini(8, targets.size())
@@ -1888,7 +1888,7 @@ var active_ability_max_cd: float = 35.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	var enemies = get_tree().get_nodes_in_group("enemies")
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
