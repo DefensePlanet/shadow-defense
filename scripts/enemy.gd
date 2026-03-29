@@ -203,6 +203,7 @@ func load_sprite() -> void:
 
 func _process(delta: float) -> void:
 	if _dead:
+		visible = false
 		return
 	if _spawn_fade > 0.0:
 		_spawn_fade -= delta
@@ -490,6 +491,8 @@ func _die() -> void:
 			main.start_boss_rescue(global_position, self)
 			return
 	_dead = true
+	visible = false
+	set_process(false)
 	var main = get_tree().get_first_node_in_group("main")
 	if main:
 		main.add_gold(gold_reward)
