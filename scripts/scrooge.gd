@@ -1356,50 +1356,51 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
+	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
+	# === CHARACTER POSITIONS (Bloons chibi proportions) ===
+	var OL = Color(0.06, 0.06, 0.08)
+	var feet_y = body_offset + Vector2(sway * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(sway * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(sway * 0.3 + hunch_rock * 0.4, -8.0 - breathe * 0.5)
+	var neck_base = body_offset + Vector2(sway * 0.15 + hunch_rock * 0.6, -14.0 - breathe * 0.3)
+	var head_center = body_offset + Vector2(sway * 0.08 + hunch_rock * 0.8, -26.0 + hunch_rock * 0.5)
+
+	# === PALETTE ===
+	var coat_col = Color(0.10, 0.08, 0.12)
+	var coat_hi = Color(0.18, 0.15, 0.22)
+	var coat_dark = Color(0.05, 0.04, 0.06)
+	var vest_col = Color(0.55, 0.18, 0.14)
+	var vest_hi = Color(0.70, 0.28, 0.20)
+	var shirt_col = Color(0.96, 0.94, 0.92)
+	var gold_col = Color(0.92, 0.78, 0.15)
+	var gold_hi = Color(1.0, 0.92, 0.45)
+	var gold_dk = Color(0.65, 0.52, 0.08)
+	var shoe_col = Color(0.08, 0.06, 0.06)
+	var shoe_hi = Color(0.24, 0.22, 0.25)
+	var hair_col = Color(0.90, 0.88, 0.84)
+
+	# === COAT TAILS (behind legs — drawn first) ===
+	var tail_sway_v = sin(_time * 1.5) * 2.0
+	# Left tail OL -> fill
+	draw_colored_polygon(PackedVector2Array([
+		torso_center + Vector2(-8, 3), torso_center + Vector2(-3, 3),
+		leg_top + Vector2(-2, 14 + tail_sway_v), leg_top + Vector2(-9, 15 + tail_sway_v * 0.7),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		torso_center + Vector2(-6.5, 4), torso_center + Vector2(-4, 4),
+		leg_top + Vector2(-3, 13 + tail_sway_v), leg_top + Vector2(-7.5, 14 + tail_sway_v * 0.7),
+	]), coat_col)
+	# Right tail OL -> fill
+	draw_colored_polygon(PackedVector2Array([
+		torso_center + Vector2(3, 3), torso_center + Vector2(8, 3),
+		leg_top + Vector2(9, 15 - tail_sway_v * 0.7), leg_top + Vector2(2, 14 - tail_sway_v),
+	]), OL)
+	draw_colored_polygon(PackedVector2Array([
+		torso_center + Vector2(4, 4), torso_center + Vector2(6.5, 4),
+		leg_top + Vector2(7.5, 14 - tail_sway_v * 0.7), leg_top + Vector2(3, 13 - tail_sway_v),
+	]), coat_col)
+
 	if not sprite_texture:
-		# === CHARACTER POSITIONS (Bloons chibi proportions) ===
-		var OL = Color(0.06, 0.06, 0.08)
-		var feet_y = body_offset + Vector2(sway * 1.0, 10.0)
-		var leg_top = body_offset + Vector2(sway * 0.6, 0.0)
-		var torso_center = body_offset + Vector2(sway * 0.3 + hunch_rock * 0.4, -8.0 - breathe * 0.5)
-		var neck_base = body_offset + Vector2(sway * 0.15 + hunch_rock * 0.6, -14.0 - breathe * 0.3)
-		var head_center = body_offset + Vector2(sway * 0.08 + hunch_rock * 0.8, -26.0 + hunch_rock * 0.5)
-
-		# === PALETTE ===
-		var coat_col = Color(0.10, 0.08, 0.12)
-		var coat_hi = Color(0.18, 0.15, 0.22)
-		var coat_dark = Color(0.05, 0.04, 0.06)
-		var vest_col = Color(0.55, 0.18, 0.14)
-		var vest_hi = Color(0.70, 0.28, 0.20)
-		var shirt_col = Color(0.96, 0.94, 0.92)
-		var gold_col = Color(0.92, 0.78, 0.15)
-		var gold_hi = Color(1.0, 0.92, 0.45)
-		var gold_dk = Color(0.65, 0.52, 0.08)
-		var shoe_col = Color(0.08, 0.06, 0.06)
-		var shoe_hi = Color(0.24, 0.22, 0.25)
-		var hair_col = Color(0.90, 0.88, 0.84)
-
-		# === COAT TAILS (behind legs — drawn first) ===
-		var tail_sway_v = sin(_time * 1.5) * 2.0
-		# Left tail OL -> fill
-		draw_colored_polygon(PackedVector2Array([
-			torso_center + Vector2(-8, 3), torso_center + Vector2(-3, 3),
-			leg_top + Vector2(-2, 14 + tail_sway_v), leg_top + Vector2(-9, 15 + tail_sway_v * 0.7),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			torso_center + Vector2(-6.5, 4), torso_center + Vector2(-4, 4),
-			leg_top + Vector2(-3, 13 + tail_sway_v), leg_top + Vector2(-7.5, 14 + tail_sway_v * 0.7),
-		]), coat_col)
-		# Right tail OL -> fill
-		draw_colored_polygon(PackedVector2Array([
-			torso_center + Vector2(3, 3), torso_center + Vector2(8, 3),
-			leg_top + Vector2(9, 15 - tail_sway_v * 0.7), leg_top + Vector2(2, 14 - tail_sway_v),
-		]), OL)
-		draw_colored_polygon(PackedVector2Array([
-			torso_center + Vector2(4, 4), torso_center + Vector2(6.5, 4),
-			leg_top + Vector2(7.5, 14 - tail_sway_v * 0.7), leg_top + Vector2(3, 13 - tail_sway_v),
-		]), coat_col)
-
 		# === FEET (polished black Victorian shoes) ===
 		var walk_cycle = sin(_time * 3.0) * 1.0
 		var l_foot = feet_y + Vector2(-5, walk_cycle * 0.4)

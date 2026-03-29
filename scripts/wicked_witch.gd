@@ -1483,19 +1483,20 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
+	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
+	# === 11. CHARACTER POSITIONS (chibi proportions ~48px) ===
+	var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
+	var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
+	var head_center = body_offset + Vector2(hip_sway * 0.08, -26.0)
+
+	# Character shadow on platform
+	draw_set_transform(Vector2(0, plat_y - 1), 0, Vector2(1.0, 0.3))
+	draw_circle(Vector2(body_offset.x * 0.5, 0), 18.0, Color(0, 0, 0, 0.18))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
 	if not sprite_texture:
-		# === 11. CHARACTER POSITIONS (chibi proportions ~48px) ===
-		var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
-		var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
-		var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
-		var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
-		var head_center = body_offset + Vector2(hip_sway * 0.08, -26.0)
-
-		# Character shadow on platform
-		draw_set_transform(Vector2(0, plat_y - 1), 0, Vector2(1.0, 0.3))
-		draw_circle(Vector2(body_offset.x * 0.5, 0), 18.0, Color(0, 0, 0, 0.18))
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-
 		# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
 		var OL = Color(0.06, 0.05, 0.08)  # True black outline color
 

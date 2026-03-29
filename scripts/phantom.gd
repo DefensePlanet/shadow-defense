@@ -1313,6 +1313,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
+	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
 	if not sprite_texture:
 		# === CHARACTER BODY (Bloons BTD6 style — bold outlines, chunky, saturated) ===
 		var OL = Color(0.06, 0.06, 0.08)

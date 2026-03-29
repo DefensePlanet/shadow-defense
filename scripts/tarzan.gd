@@ -1562,6 +1562,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
+	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
 	if not sprite_texture:
 		# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
 		var breath = breathe
@@ -2039,8 +2040,8 @@ func _draw() -> void:
 		draw_line(head_center + Vector2(2.0, 7.5), head_center + Vector2(3.5, 9.0), OL, 1.8)
 		draw_line(head_center + Vector2(2.2, 7.7), head_center + Vector2(3.3, 8.8), Color(0.82, 0.58, 0.46), 1.0)
 
-	# === Tier 4: King of the Apes — golden crown + primal aura ===
-	if upgrade_tier >= 4:
+		# === Tier 4: King of the Apes — golden crown + primal aura ===
+		if upgrade_tier >= 4:
 		var aura_pulse = sin(_time * 2.0) * 4.0
 		# Golden primal aura
 		pass  #draw_arc(body_offset, 50.0 + aura_pulse, 0, TAU, 24, Color(0.85, 0.72, 0.25, 0.12), 4.0)

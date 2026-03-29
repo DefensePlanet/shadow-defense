@@ -1221,22 +1221,23 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
+	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
+	# === CHARACTER POSITIONS (chibi proportions ~48px) ===
+	var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
+	var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
+	var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
+	var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
+	var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -26.0)
+
+	# === T1+: "Drink Me" bottle near platform ===
+	if upgrade_tier >= 1:
+		var bottle_pos = Vector2(-18, 6) + body_offset * 0.3
+		draw_circle(bottle_pos + Vector2(0, -4), 5.0, Color(0.1, 0.2, 0.5))
+		draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
+		draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
+		draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
+
 	if not sprite_texture:
-		# === CHARACTER POSITIONS (chibi proportions ~48px) ===
-		var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
-		var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
-		var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
-		var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
-		var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -26.0)
-
-		# === T1+: "Drink Me" bottle near platform ===
-		if upgrade_tier >= 1:
-			var bottle_pos = Vector2(-18, 6) + body_offset * 0.3
-			draw_circle(bottle_pos + Vector2(0, -4), 5.0, Color(0.1, 0.2, 0.5))
-			draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
-			draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
-			draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
-
 		# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
 		var OL = Color(0.06, 0.06, 0.08)  # True black outline color
 
