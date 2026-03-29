@@ -500,7 +500,7 @@ func _die() -> void:
 		if main.has_method("spawn_gold_text"):
 			main.spawn_gold_text(global_position, gold_reward)
 		if main.has_method("report_enemy_death"):
-			main.report_enemy_death(global_position, boss_scale > 1.0, boss_scale, enemy_theme)
+			main.report_enemy_death(global_position, boss_scale > 1.0, boss_scale, str(enemy_theme))
 		# MOAB: spawn children on death
 		if is_moab and moab_tier > 0 and main.has_method("spawn_moab_children"):
 			main.spawn_moab_children(progress, enemy_theme, moab_tier - 1, moab_children_count)

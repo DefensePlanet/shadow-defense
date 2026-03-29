@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): Modern Prometheus — 500 base dmg storm, permanent electric aura
 
 # Base stats
-var damage: float = 40.0
-var fire_rate: float = 0.65
+var damage: float = 60.0
+var fire_rate: float = 0.6
 var attack_range: float = 140.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -212,7 +212,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 6.0 * delta)
 		if fire_cooldown <= 0.0:
 			_attack()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 			_attack_anim = 1.0
 			_smash_anim = 1.0
 
@@ -476,26 +476,26 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Galvanic Surge — smash radius +30%
 			smash_radius = 78.0
-			damage = 43.0
-			fire_rate = 0.65
+			damage = 70.0
+			fire_rate = 0.7
 			attack_range = 145.0
 		2: # Stitched Resilience — kill stacks +3% instead of +2%
 			_kill_stack_rate = 0.03
-			damage = 46.0
-			fire_rate = 0.65
+			damage = 82.0
+			fire_rate = 0.8
 			attack_range = 150.0
 			gold_bonus = 2
 		3: # Lightning Conductor — chain lightning arcs to 10
 			chain_count = 10
-			damage = 46.0
-			fire_rate = 0.65
-			attack_range = 150.0
+			damage = 95.0
+			fire_rate = 0.9
+			attack_range = 155.0
 			gold_bonus = 2
 			_thunder_storm_cooldown = 20.0
 		4: # Modern Prometheus — massive storm + permanent aura
-			damage = 49.0
-			fire_rate = 0.65
-			attack_range = 155.0
+			damage = 115.0
+			fire_rate = 1.0
+			attack_range = 160.0
 			gold_bonus = 3
 			chain_count = 10
 			smash_radius = 90.0
@@ -1449,19 +1449,22 @@ func _draw() -> void:
 		draw_circle(hc + Vector2(12, 1), 3.5, OL)
 		draw_circle(hc + Vector2(12, 1), 2.2, sk_dark)
 
-		# === SMASH IMPACT EFFECT ===
-		if _smash_anim > 0.0:
-			var crack_alpha = _smash_anim * 0.6
-			var crack_r = 20.0 + (1.0 - _smash_anim) * smash_radius * 0.6
-			for ci in range(8):
-				var ca = TAU * float(ci) / 8.0 + _smash_anim * 0.5
-				var c_start_pt = Vector2.from_angle(ca) * 10.0 + l_hand
-				var c_end_pt = Vector2.from_angle(ca) * crack_r + l_hand
-				var c_mid_pt = c_start_pt.lerp(c_end_pt, 0.5) + Vector2(sin(float(ci) * 3.1) * 5.0, cos(float(ci) * 2.7) * 4.0)
-				draw_line(c_start_pt, c_mid_pt, Color(0.5, 0.75, 1.0, crack_alpha), 2.5)
-				draw_line(c_mid_pt, c_end_pt, Color(0.4, 0.65, 1.0, crack_alpha * 0.6), 2.0)
-			draw_circle(l_hand, 10.0, Color(0.8, 0.9, 1.0, _smash_anim * 0.35))
-			draw_circle(l_hand, 5.0, Color(1.0, 1.0, 1.0, _smash_anim * 0.55))
+		pass  # Smash impact effect moved outside sprite block
+
+	# === SMASH IMPACT EFFECT ===
+	if _smash_anim > 0.0:
+		var smash_hand = body_offset + Vector2(-10, 8) + Vector2.from_angle(aim_angle) * smash_offset
+		var crack_alpha = _smash_anim * 0.6
+		var crack_r = 20.0 + (1.0 - _smash_anim) * smash_radius * 0.6
+		for ci in range(8):
+			var ca = TAU * float(ci) / 8.0 + _smash_anim * 0.5
+			var c_start_pt = Vector2.from_angle(ca) * 10.0 + smash_hand
+			var c_end_pt = Vector2.from_angle(ca) * crack_r + smash_hand
+			var c_mid_pt = c_start_pt.lerp(c_end_pt, 0.5) + Vector2(sin(float(ci) * 3.1) * 5.0, cos(float(ci) * 2.7) * 4.0)
+			draw_line(c_start_pt, c_mid_pt, Color(0.5, 0.75, 1.0, crack_alpha), 2.5)
+			draw_line(c_mid_pt, c_end_pt, Color(0.4, 0.65, 1.0, crack_alpha * 0.6), 2.0)
+		draw_circle(smash_hand, 10.0, Color(0.8, 0.9, 1.0, _smash_anim * 0.35))
+		draw_circle(smash_hand, 5.0, Color(1.0, 1.0, 1.0, _smash_anim * 0.55))
 
 	# === 21. ELECTRIC AURA (T4 permanent) ===
 	if _aura_active:

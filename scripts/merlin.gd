@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): Archmage — permanent aura, Excalibur every 15s, spells chain to 3
 
 # Base stats
-var damage: float = 20.0
-var fire_rate: float = 0.91
+var damage: float = 45.0
+var fire_rate: float = 1.0
 var attack_range: float = 132.0
 var fire_cooldown: float = 0.0
 var staff_angle: float = 0.0
@@ -254,7 +254,7 @@ func _process(delta: float) -> void:
 		staff_angle = lerp_angle(staff_angle, desired, 8.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 			_attack_anim = 1.0
 			_cast_hand_glow = 1.0
 
@@ -559,25 +559,25 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Arcane Mastery — spells bounce to 1 extra enemy
 			bounce_count = 1
-			damage = 22.0
-			fire_rate = 0.91
-			attack_range = 138.0
+			damage = 52.0
+			fire_rate = 1.1
+			attack_range = 140.0
 		2: # Enchanted Aura — nearby towers +15% speed
-			damage = 24.0
-			fire_rate = 0.91
-			attack_range = 144.0
+			damage = 60.0
+			fire_rate = 1.2
+			attack_range = 148.0
 			aura_active = true
 			gold_bonus = 2
 		3: # Curse of Ages — hit enemies take +20% damage
-			damage = 24.0
-			fire_rate = 0.91
-			attack_range = 144.0
+			damage = 70.0
+			fire_rate = 1.3
+			attack_range = 155.0
 			curse_on_hit = true
 			gold_bonus = 2
 		4: # Archmage of Camelot — spectral knights
-			damage = 26.0
-			fire_rate = 0.91
-			attack_range = 150.0
+			damage = 82.0
+			fire_rate = 1.5
+			attack_range = 165.0
 			gold_bonus = 3
 			bounce_count = 3
 			excalibur_cooldown = 15.0

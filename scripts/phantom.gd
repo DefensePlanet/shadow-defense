@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3 (15000 DMG): "Chandelier" — periodic AoE burst (2x damage to all in range)
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
-var damage: float = 35.0
-var fire_rate: float = 0.33
+var damage: float = 55.0
+var fire_rate: float = 0.7
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -240,7 +240,7 @@ func _process(delta: float) -> void:
 			aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
 			if fire_cooldown <= 0.0:
 				_shoot()
-				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 
 	# Update lasso pull animation
 	_update_lasso_pull(delta)
@@ -558,8 +558,8 @@ func _check_upgrades() -> void:
 			main.show_ability_choice(self)
 
 func _apply_stat_boost() -> void:
-	damage += 1.4
-	fire_rate += 0.003
+	damage += 2.5
+	fire_rate += 0.012
 	attack_range += 3.5
 
 func choose_ability(index: int) -> void:
@@ -574,23 +574,23 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Punjab Lasso — kill-count insta-kill
-			damage = 38.0
-			fire_rate = 0.33
-			attack_range = 185.0
-		2: # Angel of Music — extended range
-			damage = 40.0
-			fire_rate = 0.33
+			damage = 65.0
+			fire_rate = 0.85
 			attack_range = 190.0
+		2: # Angel of Music — extended range + slow aura
+			damage = 75.0
+			fire_rate = 1.0
+			attack_range = 200.0
 			gold_bonus = 2
-		3: # Chandelier — kill-count drop
-			damage = 40.0
-			fire_rate = 0.33
-			attack_range = 190.0
+		3: # Chandelier — kill-count AoE drop
+			damage = 90.0
+			fire_rate = 1.1
+			attack_range = 210.0
 			gold_bonus = 2
-		4: # Phantom's Wrath — melee rush
-			damage = 43.0
-			fire_rate = 0.33
-			attack_range = 195.0
+		4: # Phantom's Wrath — melee rush + DoT notes
+			damage = 110.0
+			fire_rate = 1.3
+			attack_range = 220.0
 			gold_bonus = 3
 			_has_sword = true
 		5: # The Point of No Return — opera house collapse
@@ -1859,27 +1859,25 @@ func _draw() -> void:
 		draw_circle(head_center + Vector2(-1, 11), 2.8, skin_base)
 		draw_circle(head_center + Vector2(-1.3, 10.5), 1.2, skin_highlight)
 
-		# === TIER 4: DARK RED OPERA AURA on character ===
-		if upgrade_tier >= 4:
-			draw_circle(torso_center, 28.0, Color(0.6, 0.08, 0.08, 0.06 + sin(_time * 2.0) * 0.03))
-			draw_circle(head_center, 20.0, Color(0.6, 0.08, 0.08, 0.05 + sin(_time * 2.5) * 0.02))
 
-		# (Aura ring removed — Angel of Music is now range-based)
+	# === TIER 4: DARK RED OPERA AURA on character ===
+	if upgrade_tier >= 4:
+		draw_circle(torso_center, 28.0, Color(0.6, 0.08, 0.08, 0.06 + sin(_time * 2.0) * 0.03))
+		draw_circle(head_center, 20.0, Color(0.6, 0.08, 0.08, 0.05 + sin(_time * 2.5) * 0.02))
 
-		# === T4: Crown of dark flame above head ===
-		if upgrade_tier >= 4:
-			var crown_hover = sin(_time * 1.8) * 1.5
-			var crown_center = head_center + Vector2(0, -14 + crown_hover)
-			for fi in range(5):
-				var flame_x = crown_center.x - 8.0 + float(fi) * 4.0
-				var flame_h = 8.0 + sin(_time * 5.0 + float(fi) * 2.0) * 3.0
-				var flame_sway2 = sin(_time * 3.0 + float(fi) * 1.5) * 2.0
-				var flame_base2 = Vector2(flame_x + flame_sway2, crown_center.y)
-				var flame_tip2 = flame_base2 + Vector2(0, -flame_h)
-				draw_line(flame_base2, flame_tip2, Color(0.5, 0.05, 0.05, 0.4), 3.0)
-				draw_line(flame_base2 + Vector2(0, -1), flame_tip2 + Vector2(0, 2), Color(0.9, 0.25, 0.1, 0.3), 1.5)
-			draw_circle(crown_center, 12.0, Color(0.7, 0.1, 0.05, 0.08))
-
+	# === T4: Crown of dark flame above head ===
+	if upgrade_tier >= 4:
+		var crown_hover = sin(_time * 1.8) * 1.5
+		var crown_center = head_center + Vector2(0, -14 + crown_hover)
+		for fi in range(5):
+			var flame_x = crown_center.x - 8.0 + float(fi) * 4.0
+			var flame_h = 8.0 + sin(_time * 5.0 + float(fi) * 2.0) * 3.0
+			var flame_sway2 = sin(_time * 3.0 + float(fi) * 1.5) * 2.0
+			var flame_base2 = Vector2(flame_x + flame_sway2, crown_center.y)
+			var flame_tip2 = flame_base2 + Vector2(0, -flame_h)
+			draw_line(flame_base2, flame_tip2, Color(0.5, 0.05, 0.05, 0.4), 3.0)
+			draw_line(flame_base2 + Vector2(0, -1), flame_tip2 + Vector2(0, 2), Color(0.9, 0.25, 0.1, 0.3), 1.5)
+		draw_circle(crown_center, 12.0, Color(0.7, 0.1, 0.05, 0.08))
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

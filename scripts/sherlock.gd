@@ -1336,6 +1336,54 @@ func _draw() -> void:
 		draw_circle(pip_pos, 4.0, pip_col)
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
+	# === TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body — render regardless of sprite mode) ===
+
+	# Tier 1+: Faint golden motes around magnifying glass area
+	if upgrade_tier >= 1:
+		for li in range(4 + upgrade_tier):
+			var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
+			var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
+			var sparkle_pos = body_offset + Vector2(cos(la) * lr + 15.0, sin(la) * lr * 0.5 - 5.0)
+			var sparkle_alpha = 0.18 + sin(_time * 2.0 + float(li)) * 0.1
+			draw_circle(sparkle_pos, 1.5, Color(1.0, 0.90, 0.40, sparkle_alpha))
+			draw_circle(sparkle_pos, 0.7, Color(1.0, 0.95, 0.7, sparkle_alpha * 0.8))
+
+	# Tier 2+: Visible beam line from lens when targeting
+	if upgrade_tier >= 2 and target:
+		var beam_alpha = 0.08 + sin(_time * 4.0) * 0.04
+		var beam_end_t = (target.global_position - global_position).normalized() * 60.0
+		draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.92, 0.5, beam_alpha), 2.0)
+		draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.97, 0.8, beam_alpha * 0.5), 1.0)
+
+	# Tier 3+: Dual orbiting magnifying glass icons
+	if upgrade_tier >= 3:
+		for mi_vis in range(2):
+			var ma_vis = _time * 0.8 + float(mi_vis) * PI
+			var m_pos = body_offset + Vector2(cos(ma_vis) * 32.0, sin(ma_vis) * 12.0 - 5.0)
+			var m_alpha = 0.18 + sin(_time * 2.5 + float(mi_vis) * 1.5) * 0.1
+			pass  #draw_arc(m_pos, 4.0, 0, TAU, 10, Color(0.85, 0.72, 0.25, m_alpha), 1.2)
+			draw_line(m_pos + Vector2(3, 3), m_pos + Vector2(6, 6), Color(0.85, 0.72, 0.25, m_alpha * 0.7), 1.0)
+
+	# Tier 4: Floating evidence papers
+	if upgrade_tier >= 4:
+		for ep in range(6):
+			var ep_seed = float(ep) * 2.37
+			var ep_angle = _time * (0.4 + fmod(ep_seed, 0.3)) + ep_seed
+			var ep_radius = 35.0 + fmod(ep_seed * 5.3, 20.0)
+			var ep_pos = body_offset + Vector2(cos(ep_angle) * ep_radius, sin(ep_angle) * ep_radius * 0.6)
+			var ep_alpha = 0.25 + sin(_time * 2.0 + ep_seed * 2.0) * 0.12
+			var ep_rot = _time * 1.5 + ep_seed
+			var p_dir_e = Vector2.from_angle(ep_rot)
+			var p_perp_e = p_dir_e.rotated(PI / 2.0)
+			var paper_pts = PackedVector2Array([
+				ep_pos - p_dir_e * 3.5 - p_perp_e * 2.5,
+				ep_pos + p_dir_e * 3.5 - p_perp_e * 2.5,
+				ep_pos + p_dir_e * 3.5 + p_perp_e * 2.5,
+				ep_pos - p_dir_e * 3.5 + p_perp_e * 2.5,
+			])
+			draw_colored_polygon(paper_pts, Color(0.95, 0.92, 0.85, ep_alpha))
+			draw_line(ep_pos - p_dir_e * 2.0, ep_pos + p_dir_e * 1.5, Color(0.3, 0.3, 0.3, ep_alpha * 0.5), 0.6)
+
 	# === SPRITE RENDERING (animated — precise & analytical) ===
 	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
@@ -1385,54 +1433,6 @@ func _draw() -> void:
 		var shoe_hi = Color(0.34, 0.22, 0.12)
 		var brass_col = Color(0.85, 0.68, 0.18)
 		var brass_hi = Color(1.0, 0.88, 0.35)
-
-		# === 12. TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body) ===
-
-		# Tier 1+: Faint golden motes around magnifying glass area
-		if upgrade_tier >= 1:
-			for li in range(4 + upgrade_tier):
-				var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
-				var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
-				var sparkle_pos = body_offset + Vector2(cos(la) * lr + 15.0, sin(la) * lr * 0.5 - 5.0)
-				var sparkle_alpha = 0.18 + sin(_time * 2.0 + float(li)) * 0.1
-				draw_circle(sparkle_pos, 1.5, Color(1.0, 0.90, 0.40, sparkle_alpha))
-				draw_circle(sparkle_pos, 0.7, Color(1.0, 0.95, 0.7, sparkle_alpha * 0.8))
-
-		# Tier 2+: Visible beam line from lens when targeting
-		if upgrade_tier >= 2 and target:
-			var beam_alpha = 0.08 + sin(_time * 4.0) * 0.04
-			var beam_end_t = (target.global_position - global_position).normalized() * 60.0
-			draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.92, 0.5, beam_alpha), 2.0)
-			draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.97, 0.8, beam_alpha * 0.5), 1.0)
-
-		# Tier 3+: Dual orbiting magnifying glass icons
-		if upgrade_tier >= 3:
-			for mi_vis in range(2):
-				var ma_vis = _time * 0.8 + float(mi_vis) * PI
-				var m_pos = body_offset + Vector2(cos(ma_vis) * 32.0, sin(ma_vis) * 12.0 - 5.0)
-				var m_alpha = 0.18 + sin(_time * 2.5 + float(mi_vis) * 1.5) * 0.1
-				pass  #draw_arc(m_pos, 4.0, 0, TAU, 10, Color(0.85, 0.72, 0.25, m_alpha), 1.2)
-				draw_line(m_pos + Vector2(3, 3), m_pos + Vector2(6, 6), Color(0.85, 0.72, 0.25, m_alpha * 0.7), 1.0)
-
-		# Tier 4: Floating evidence papers
-		if upgrade_tier >= 4:
-			for ep in range(6):
-				var ep_seed = float(ep) * 2.37
-				var ep_angle = _time * (0.4 + fmod(ep_seed, 0.3)) + ep_seed
-				var ep_radius = 35.0 + fmod(ep_seed * 5.3, 20.0)
-				var ep_pos = body_offset + Vector2(cos(ep_angle) * ep_radius, sin(ep_angle) * ep_radius * 0.6)
-				var ep_alpha = 0.25 + sin(_time * 2.0 + ep_seed * 2.0) * 0.12
-				var ep_rot = _time * 1.5 + ep_seed
-				var p_dir_e = Vector2.from_angle(ep_rot)
-				var p_perp_e = p_dir_e.rotated(PI / 2.0)
-				var paper_pts = PackedVector2Array([
-					ep_pos - p_dir_e * 3.5 - p_perp_e * 2.5,
-					ep_pos + p_dir_e * 3.5 - p_perp_e * 2.5,
-					ep_pos + p_dir_e * 3.5 + p_perp_e * 2.5,
-					ep_pos - p_dir_e * 3.5 + p_perp_e * 2.5,
-				])
-				draw_colored_polygon(paper_pts, Color(0.95, 0.92, 0.85, ep_alpha))
-				draw_line(ep_pos - p_dir_e * 2.0, ep_pos + p_dir_e * 1.5, Color(0.3, 0.3, 0.3, ep_alpha * 0.5), 0.6)
 
 		# === 13. CHARACTER BODY (BTD6 Cartoon Style) ===
 

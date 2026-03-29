@@ -7,8 +7,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Chapter — chain +2, %maxHP + execute low HP
 
 # Base stats
-var damage: float = 30.0
-var fire_rate: float = 0.72
+var damage: float = 40.0
+var fire_rate: float = 1.2
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -206,7 +206,7 @@ func _process(delta: float) -> void:
 			var speed_mult_val = _speed_mult()
 			if _clone_active:
 				speed_mult_val *= 2.0
-			fire_cooldown = maxf(1.0 / (fire_rate * speed_mult_val), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = maxf(1.0 / (fire_rate * speed_mult_val), 0.15)  # Min cooldown cap
 			_attack_anim = 1.0
 			_quill_flash = 1.0
 
@@ -725,26 +725,26 @@ func _apply_upgrade(tier: int) -> void:
 		1:  # Ink Torrent — chain +1, ink DoT
 			_chain_count = 4
 			_ink_dot_dps = damage * 0.25
-			damage = 32.0
-			fire_rate = 0.72
-			attack_range = 174.0
+			damage = 48.0
+			fire_rate = 1.35
+			attack_range = 175.0
 		2:  # Plot Twist — chain +1, reverse enemies
 			_chain_count = 5
-			damage = 34.0
-			fire_rate = 0.72
-			attack_range = 178.0
+			damage = 56.0
+			fire_rate = 1.5
+			attack_range = 180.0
 			gold_bonus = 2
 		3:  # Ghostwriter — chain +1, spectral copies
 			_chain_count = 6
-			damage = 34.0
-			fire_rate = 0.72
-			attack_range = 178.0
+			damage = 65.0
+			fire_rate = 1.65
+			attack_range = 185.0
 			gold_bonus = 2
 		4:  # The Final Chapter — chain +2, %maxHP + execute
 			_chain_count = 8
-			damage = 36.0
-			fire_rate = 0.72
-			attack_range = 182.0
+			damage = 78.0
+			fire_rate = 1.8
+			attack_range = 190.0
 			gold_bonus = 3
 		5:  # THE END — enemies below 30% erased, rest take 50% max HP
 			_the_end_active = true
@@ -1124,65 +1124,67 @@ func _draw() -> void:
 		var lh = body_offset + Vector2(-12 + sin(_time * 1.8) * 2.0, -12)
 		draw_circle(lh, 3.0, Color(0.01, 0.005, 0.015, 0.8))
 
-		# === 17. BLACK SMOKE CHAIN VISUAL ===
-		if _chain_flash > 0.0 and _chain_targets.size() >= 2:
-			var smoke_alpha = _chain_flash * 0.7
-			# Draw smoke tendrils between chained enemies
-			var wand_tip_global = global_position + wand_top
-			var prev_pos = _chain_targets[0] - global_position  # First target in local coords
-			# Smoke from wand to first target
-			_draw_smoke_tendril(wand_top, prev_pos, smoke_alpha, 3.0)
-			# Chain between targets
-			for ci in range(1, _chain_targets.size()):
-				var next_pos = _chain_targets[ci] - global_position
-				var chain_alpha = smoke_alpha * pow(0.85, float(ci))
-				_draw_smoke_tendril(prev_pos, next_pos, chain_alpha, 2.5 - float(ci) * 0.2)
-				# Impact burst at each chain point
-				draw_circle(next_pos, 6.0 * _chain_flash, Color(0.08, 0.02, 0.12, chain_alpha * 0.5))
-				draw_circle(next_pos, 3.0 * _chain_flash, Color(0.2, 0.05, 0.25, chain_alpha * 0.8))
-				prev_pos = next_pos
-			# Impact on first target
-			var first_local = _chain_targets[0] - global_position
-			draw_circle(first_local, 8.0 * _chain_flash, Color(0.1, 0.02, 0.15, smoke_alpha * 0.4))
-			draw_circle(first_local, 4.0 * _chain_flash, Color(0.3, 0.08, 0.35, smoke_alpha * 0.7))
-		elif _chain_flash > 0.0 and _chain_targets.size() == 1:
-			# Single target hit visual
-			var hit_local = _chain_targets[0] - global_position
-			_draw_smoke_tendril(wand_top, hit_local, _chain_flash * 0.7, 3.0)
-			draw_circle(hit_local, 8.0 * _chain_flash, Color(0.1, 0.02, 0.15, _chain_flash * 0.5))
+		pass  # Chain visual + ghostwriter copies moved outside sprite block
 
-		# === 18. GHOSTWRITER COPIES ===
-		for g in _ghosts:
-			var gp = Vector2(g["pos"]) - global_position
-			var ghost_alpha = clampf(g["life"] / 2.0, 0.0, 1.0)
-			# Spectral ink warrior — translucent hooded figure with blue-purple glow
-			# Body
-			draw_circle(gp + Vector2(0, 2), 6.0, Color(0.08, 0.04, 0.15, ghost_alpha * 0.5))
-			# Mini cloak
-			var gc_pts = PackedVector2Array()
-			gc_pts.append(gp + Vector2(-5, -6))
-			gc_pts.append(gp + Vector2(-6, 2))
-			gc_pts.append(gp + Vector2(-4, 8))
-			gc_pts.append(gp + Vector2(0, 9))
-			gc_pts.append(gp + Vector2(4, 8))
-			gc_pts.append(gp + Vector2(6, 2))
-			gc_pts.append(gp + Vector2(5, -6))
-			draw_colored_polygon(gc_pts, Color(0.05, 0.02, 0.1, ghost_alpha * 0.6))
-			# Hood
-			var gh_pts = PackedVector2Array()
-			gh_pts.append(gp + Vector2(-5, -5))
-			gh_pts.append(gp + Vector2(0, -14))
-			gh_pts.append(gp + Vector2(5, -5))
-			draw_colored_polygon(gh_pts, Color(0.04, 0.01, 0.08, ghost_alpha * 0.7))
-			# Glowing eyes — cyan/blue for ghosts
-			draw_circle(gp + Vector2(-1.5, -7), 1.0, Color(0.3, 0.6, 1.0, ghost_alpha * 0.9))
-			draw_circle(gp + Vector2(1.5, -7), 1.0, Color(0.3, 0.6, 1.0, ghost_alpha * 0.9))
-			# Spectral glow aura
-			draw_circle(gp, 10.0, Color(0.2, 0.3, 0.7, ghost_alpha * 0.1))
-			# Attack beam to target
-			if g["attacking"] and g["target_pos"] != Vector2.ZERO:
-				var tgt_local = Vector2(g["target_pos"]) - global_position
-				draw_line(gp, tgt_local, Color(0.3, 0.5, 0.9, ghost_alpha * 0.3), 1.5)
+	# === 17. BLACK SMOKE CHAIN VISUAL ===
+	var _wand_top_approx = body_offset + Vector2(18, -38)
+	if _chain_flash > 0.0 and _chain_targets.size() >= 2:
+		var smoke_alpha = _chain_flash * 0.7
+		# Draw smoke tendrils between chained enemies
+		var prev_pos = _chain_targets[0] - global_position  # First target in local coords
+		# Smoke from wand to first target
+		_draw_smoke_tendril(_wand_top_approx, prev_pos, smoke_alpha, 3.0)
+		# Chain between targets
+		for ci in range(1, _chain_targets.size()):
+			var next_pos = _chain_targets[ci] - global_position
+			var chain_alpha = smoke_alpha * pow(0.85, float(ci))
+			_draw_smoke_tendril(prev_pos, next_pos, chain_alpha, 2.5 - float(ci) * 0.2)
+			# Impact burst at each chain point
+			draw_circle(next_pos, 6.0 * _chain_flash, Color(0.08, 0.02, 0.12, chain_alpha * 0.5))
+			draw_circle(next_pos, 3.0 * _chain_flash, Color(0.2, 0.05, 0.25, chain_alpha * 0.8))
+			prev_pos = next_pos
+		# Impact on first target
+		var first_local = _chain_targets[0] - global_position
+		draw_circle(first_local, 8.0 * _chain_flash, Color(0.1, 0.02, 0.15, smoke_alpha * 0.4))
+		draw_circle(first_local, 4.0 * _chain_flash, Color(0.3, 0.08, 0.35, smoke_alpha * 0.7))
+	elif _chain_flash > 0.0 and _chain_targets.size() == 1:
+		# Single target hit visual
+		var hit_local = _chain_targets[0] - global_position
+		_draw_smoke_tendril(_wand_top_approx, hit_local, _chain_flash * 0.7, 3.0)
+		draw_circle(hit_local, 8.0 * _chain_flash, Color(0.1, 0.02, 0.15, _chain_flash * 0.5))
+
+	# === 18. GHOSTWRITER COPIES ===
+	for g in _ghosts:
+		var gp = Vector2(g["pos"]) - global_position
+		var ghost_alpha = clampf(g["life"] / 2.0, 0.0, 1.0)
+		# Spectral ink warrior — translucent hooded figure with blue-purple glow
+		# Body
+		draw_circle(gp + Vector2(0, 2), 6.0, Color(0.08, 0.04, 0.15, ghost_alpha * 0.5))
+		# Mini cloak
+		var gc_pts = PackedVector2Array()
+		gc_pts.append(gp + Vector2(-5, -6))
+		gc_pts.append(gp + Vector2(-6, 2))
+		gc_pts.append(gp + Vector2(-4, 8))
+		gc_pts.append(gp + Vector2(0, 9))
+		gc_pts.append(gp + Vector2(4, 8))
+		gc_pts.append(gp + Vector2(6, 2))
+		gc_pts.append(gp + Vector2(5, -6))
+		draw_colored_polygon(gc_pts, Color(0.05, 0.02, 0.1, ghost_alpha * 0.6))
+		# Hood
+		var gh_pts = PackedVector2Array()
+		gh_pts.append(gp + Vector2(-5, -5))
+		gh_pts.append(gp + Vector2(0, -14))
+		gh_pts.append(gp + Vector2(5, -5))
+		draw_colored_polygon(gh_pts, Color(0.04, 0.01, 0.08, ghost_alpha * 0.7))
+		# Glowing eyes — cyan/blue for ghosts
+		draw_circle(gp + Vector2(-1.5, -7), 1.0, Color(0.3, 0.6, 1.0, ghost_alpha * 0.9))
+		draw_circle(gp + Vector2(1.5, -7), 1.0, Color(0.3, 0.6, 1.0, ghost_alpha * 0.9))
+		# Spectral glow aura
+		draw_circle(gp, 10.0, Color(0.2, 0.3, 0.7, ghost_alpha * 0.1))
+		# Attack beam to target
+		if g["attacking"] and g["target_pos"] != Vector2.ZERO:
+			var tgt_local = Vector2(g["target_pos"]) - global_position
+			draw_line(gp, tgt_local, Color(0.3, 0.5, 0.9, ghost_alpha * 0.3), 1.5)
 
 	# === 19. SHIELD INDICATOR ===
 	if _shield_active:

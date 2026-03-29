@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4: King of the Apes — 3 more apes join, throw enemies back to start
 
 # Base stats (bomb tower: slow but powerful)
-var damage: float = 46.0
-var fire_rate: float = 0.33
+var damage: float = 50.0
+var fire_rate: float = 0.8
 var attack_range: float = 120.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -238,7 +238,7 @@ func _process(delta: float) -> void:
 			_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 			if fire_cooldown <= 0.0:
 				_attack()
-				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 				_draw_progress = 0.0
 				_attack_anim = 1.0
 		else:
@@ -590,23 +590,23 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Vine Swing — AoE ground pound smash (slow but powerful)
-			damage = 48.0
-			fire_rate = 0.38
-			attack_range = 124.0
+			damage = 60.0
+			fire_rate = 0.9
+			attack_range = 125.0
 		2: # Ape Strength — +6% damage boost
-			damage = 50.0
-			fire_rate = 0.38
-			attack_range = 128.0
+			damage = 72.0
+			fire_rate = 1.0
+			attack_range = 130.0
 			gold_bonus = 2
 		3: # Animal Call — 1 ape ally for 15s every other wave
-			damage = 50.0
-			fire_rate = 0.38
-			attack_range = 128.0
+			damage = 85.0
+			fire_rate = 1.1
+			attack_range = 135.0
 			gold_bonus = 3
 		4: # King of the Apes — Tarzan wrestles strongest enemy
-			damage = 53.0
-			fire_rate = 0.38
-			attack_range = 132.0
+			damage = 100.0
+			fire_rate = 1.2
+			attack_range = 140.0
 			gold_bonus = 3
 			_king_apes_active = true
 		5: # Legend of Greystoke — jungle stampede
@@ -1536,6 +1536,52 @@ func _draw() -> void:
 	# Default head_center for sprite mode (used by tier effects outside body block)
 	var head_center = body_offset + Vector2(0, -26.0)
 
+	# === TIER-SPECIFIC EFFECTS (render regardless of sprite mode) ===
+
+	# Tier 1+: Vine tendrils swirling around body (swing vines)
+	if upgrade_tier >= 1:
+		var _vine_dk = Color(0.08, 0.34, 0.06)
+		var _leaf_col = Color(0.22, 0.62, 0.18)
+		for li in range(4 + upgrade_tier):
+			var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
+			var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
+			var vp = body_offset + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 4.0)
+			var va = 0.3 + sin(_time * 1.5 + float(li)) * 0.1
+			draw_circle(vp, 2.8, Color(_vine_dk.r, _vine_dk.g, _vine_dk.b, va))
+			draw_circle(vp, 1.8, Color(_leaf_col.r, _leaf_col.g, _leaf_col.b, va))
+
+	# Tier 2+: Green strength aura glow (ape strength)
+	if upgrade_tier >= 2:
+		var str_pulse = (sin(_time * 2.5) + 1.0) * 0.5
+		pass  #draw_circle(body_offset, 22.0 + str_pulse * 3.0, Color(0.2, 0.7, 0.1, 0.04 + str_pulse * 0.02))
+		# Subtle muscle glow particles
+		for mi in range(4):
+			var ma = _time * 1.2 + float(mi) * TAU / 4.0
+			var mp = body_offset + Vector2(cos(ma) * 14.0, sin(ma) * 8.0 - 5.0)
+			draw_circle(mp, 2.0 + str_pulse, Color(0.3, 0.8, 0.2, 0.15 + str_pulse * 0.08))
+
+	# Tier 3+: Waiting-for-apes indicator (when allies not active)
+	if upgrade_tier >= 3 and _animal_allies.size() == 0:
+		# Subtle ape silhouette ghosts showing readiness
+		for ai in range(1 if upgrade_tier == 3 else 4):
+			var aa = _time * 0.4 + float(ai) * TAU / (1.0 if upgrade_tier == 3 else 4.0)
+			var apos = body_offset + Vector2(cos(aa) * 28.0, sin(aa) * 10.0 + 12.0)
+			var ghost_a = 0.12 + sin(_time * 1.5 + float(ai)) * 0.05
+			draw_circle(apos, 5.0, Color(0.35, 0.22, 0.10, ghost_a))
+			draw_circle(apos + Vector2(0, -3), 3.5, Color(0.42, 0.28, 0.14, ghost_a))
+
+	# Tier 4: King crown particles + golden glow
+	if upgrade_tier >= 4:
+		# Golden crown sparkles around Tarzan
+		for fd in range(6):
+			var fd_seed = float(fd) * 2.37
+			var fd_angle = _time * (0.4 + fmod(fd_seed, 0.3)) + fd_seed
+			var fd_radius = 24.0 + fmod(fd_seed * 3.7, 18.0)
+			var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6 - 10.0)
+			var fd_alpha = 0.3 + sin(_time * 3.0 + fd_seed * 2.0) * 0.15
+			draw_circle(fd_pos, 2.0, Color(0.85, 0.72, 0.25, fd_alpha))
+			draw_circle(fd_pos, 1.2, Color(1.0, 0.9, 0.5, fd_alpha * 0.6))
+
 	# === SPRITE RENDERING (animated — wild & powerful) ===
 	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
@@ -1591,50 +1637,6 @@ func _draw() -> void:
 		var spear_ext = 0.0
 		if _attack_anim > 0.3:
 			spear_ext = sin(_attack_anim * 6.0) * 12.0 * _attack_anim
-
-		# === TIER-SPECIFIC EFFECTS ===
-
-		# Tier 1+: Vine tendrils swirling around body (swing vines)
-		if upgrade_tier >= 1:
-			for li in range(4 + upgrade_tier):
-				var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
-				var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
-				var vp = body_offset + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 4.0)
-				var va = 0.3 + sin(_time * 1.5 + float(li)) * 0.1
-				draw_circle(vp, 2.8, Color(vine_dk.r, vine_dk.g, vine_dk.b, va))
-				draw_circle(vp, 1.8, Color(leaf_col.r, leaf_col.g, leaf_col.b, va))
-
-		# Tier 2+: Green strength aura glow (ape strength)
-		if upgrade_tier >= 2:
-			var str_pulse = (sin(_time * 2.5) + 1.0) * 0.5
-			pass  #draw_circle(body_offset, 22.0 + str_pulse * 3.0, Color(0.2, 0.7, 0.1, 0.04 + str_pulse * 0.02))
-			# Subtle muscle glow particles
-			for mi in range(4):
-				var ma = _time * 1.2 + float(mi) * TAU / 4.0
-				var mp = body_offset + Vector2(cos(ma) * 14.0, sin(ma) * 8.0 - 5.0)
-				draw_circle(mp, 2.0 + str_pulse, Color(0.3, 0.8, 0.2, 0.15 + str_pulse * 0.08))
-
-		# Tier 3+: Waiting-for-apes indicator (when allies not active)
-		if upgrade_tier >= 3 and _animal_allies.size() == 0:
-			# Subtle ape silhouette ghosts showing readiness
-			for ai in range(1 if upgrade_tier == 3 else 4):
-				var aa = _time * 0.4 + float(ai) * TAU / (1.0 if upgrade_tier == 3 else 4.0)
-				var apos = body_offset + Vector2(cos(aa) * 28.0, sin(aa) * 10.0 + 12.0)
-				var ghost_a = 0.12 + sin(_time * 1.5 + float(ai)) * 0.05
-				draw_circle(apos, 5.0, Color(0.35, 0.22, 0.10, ghost_a))
-				draw_circle(apos + Vector2(0, -3), 3.5, Color(0.42, 0.28, 0.14, ghost_a))
-
-		# Tier 4: King crown particles + golden glow
-		if upgrade_tier >= 4:
-			# Golden crown sparkles around Tarzan
-			for fd in range(6):
-				var fd_seed = float(fd) * 2.37
-				var fd_angle = _time * (0.4 + fmod(fd_seed, 0.3)) + fd_seed
-				var fd_radius = 24.0 + fmod(fd_seed * 3.7, 18.0)
-				var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6 - 10.0)
-				var fd_alpha = 0.3 + sin(_time * 3.0 + fd_seed * 2.0) * 0.15
-				draw_circle(fd_pos, 2.0, Color(0.85, 0.72, 0.25, fd_alpha))
-				draw_circle(fd_pos, 1.2, Color(1.0, 0.9, 0.5, fd_alpha * 0.6))
 
 		# === CHARACTER BODY ===
 

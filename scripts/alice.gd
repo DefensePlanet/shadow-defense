@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3: "Mad Tea Party" — Towers in range drink tea, +5% fire rate
 ## Tier 4: "Off With Their Heads!" — Paints ALL enemies red, low DoT as they walk
 
-var damage: float = 3.0
-var fire_rate: float = 0.65
+var damage: float = 18.0
+var fire_rate: float = 1.8
 var attack_range: float = 85.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -310,7 +310,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 12.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 
 	# Tier 2: Cheshire Cat drum solo (10s duration, slows enemies in range)
 	if _drum_solo_active:
@@ -535,26 +535,26 @@ func _apply_upgrade(tier: int) -> void:
 			slow_amount = 0.6  # Increased from 0.5
 			slow_duration += 0.5
 			frosting_dps = 1.5  # Frosting DoT unlocked
-			attack_range = 85.0
-			damage = 3.0
-			fire_rate = 0.65
+			attack_range = 90.0
+			damage = 22.0
+			fire_rate = 2.0
 		2: # Cheshire Cat — 10 second drum solo
-			damage = 4.0
-			fire_rate = 0.65
-			attack_range = 88.0
+			damage = 26.0
+			fire_rate = 2.2
+			attack_range = 95.0
 			cheshire_cooldown = 10.0
 			gold_bonus = 1
 			_start_drum_solo()
 		3: # Mad Tea Party — nearby towers +3% fire rate
-			damage = 4.0
-			fire_rate = 0.65
-			attack_range = 88.0
+			damage = 30.0
+			fire_rate = 2.4
+			attack_range = 100.0
 			gold_bonus = 2
 			_tea_aura_active = true  # Bug 10: Enable ongoing aura instead of one-shot
 		4: # Off With Their Heads! — paint enemies red, DoT, 20% execute
-			damage = 5.0
-			fire_rate = 0.65
-			attack_range = 92.0
+			damage = 36.0
+			fire_rate = 2.6
+			attack_range = 105.0
 			gold_bonus = 2
 			execute_threshold = 0.20  # Execute enemies below 20% HP
 			_paint_red_active = true
@@ -1229,14 +1229,6 @@ func _draw() -> void:
 		var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
 		var head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -26.0)
 
-		# === T1+: "Drink Me" bottle near platform ===
-		if upgrade_tier >= 1:
-			var bottle_pos = Vector2(-18, 6) + body_offset * 0.3
-			draw_circle(bottle_pos + Vector2(0, -4), 5.0, Color(0.1, 0.2, 0.5))
-			draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
-			draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
-			draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
-
 		# === CARTOON BODY WITH BOLD OUTLINES (Bloons-style) ===
 		var OL = Color(0.06, 0.06, 0.08)  # True black outline color
 
@@ -1376,26 +1368,6 @@ func _draw() -> void:
 		draw_circle(frost_center + dir * 4.0, 2.0, Color(0.95, 0.12, 0.18))
 		draw_circle(frost_center + dir * 4.0 + Vector2(-0.4, -0.5), 0.8, Color(1.0, 0.5, 0.5, 0.6))
 
-		# Cake splat — flying crumbs toward target (no rings)
-		if _attack_anim > 0.15:
-			var tier_scale = 1.0 + float(upgrade_tier) * 0.2
-			var splat_alpha = _attack_anim * 0.65
-			# Flying cake crumbs in attack direction
-			var crumb_count = 3 + upgrade_tier
-			for si in range(crumb_count):
-				var sp_spread = (float(si) - float(crumb_count) / 2.0) * 0.3
-				var sp_dist = (10.0 + (1.0 - _attack_anim) * 20.0) * tier_scale
-				var sp_dir = Vector2.from_angle(aim_angle + sp_spread)
-				var sp_p = sp_dir * sp_dist
-				var crumb_size = (2.5 + sin(_time * 5.0 + float(si)) * 0.8) * tier_scale
-				draw_circle(sp_p, crumb_size, Color(0.95, 0.8, 0.7, splat_alpha * 0.6))
-				draw_circle(sp_p, crumb_size * 0.5, Color(1.0, 0.95, 0.9, splat_alpha * 0.3))
-			# Frosting splat at impact point
-			var impact_dir = Vector2.from_angle(aim_angle)
-			var impact_pos = impact_dir * 18.0 * tier_scale
-			draw_circle(impact_pos, 4.0 * tier_scale, Color(0.95, 0.7, 0.78, splat_alpha * 0.4))
-			draw_circle(impact_pos, 2.0, Color(1.0, 0.92, 0.85, splat_alpha * 0.3))
-
 		# === NECK (cartoon connector) ===
 		var neck_top = head_center + Vector2(0, 9)
 		draw_line(neck_base, neck_top, OL, 7.0)
@@ -1522,103 +1494,135 @@ func _draw() -> void:
 		draw_circle(bow_ctr, 1.5, OL)
 		draw_circle(bow_ctr, 1.0, Color(0.15, 0.15, 0.20))
 
-		# === T2+: Floating Cheshire Cat grin ===
-		if upgrade_tier >= 2:
-			var grin_float = sin(_time * 2.2) * 5.0
-			var grin_bob = cos(_time * 1.7) * 3.5
-			var grin_pos = body_offset + Vector2(28.0 + grin_bob, -8.0 + grin_float)
-			# Fading body outline (ghostly stripes)
-			var gbody_alpha = 0.12 + sin(_time * 1.5) * 0.04
-			draw_arc(grin_pos, 14.0, PI * 0.1, PI * 0.9, 10, Color(0.6, 0.3, 0.7, gbody_alpha), 1.5)
-			for gsi in range(3):
-				var gs_a = PI * 0.25 + float(gsi) * 0.25
-				var gs_s = grin_pos + Vector2.from_angle(gs_a) * 10.0
-				var gs_e = grin_pos + Vector2.from_angle(gs_a) * 16.0
-				draw_line(gs_s, gs_e, Color(0.55, 0.25, 0.65, gbody_alpha * 0.6), 1.5)
-			# Grin arc (wide purple smile)
-			draw_arc(grin_pos, 10.0, 0.2, PI - 0.2, 14, Color(0.7, 0.3, 0.8, 0.7), 3.5)
-			draw_arc(grin_pos, 8.0, 0.3, PI - 0.3, 10, Color(0.85, 0.4, 0.55, 0.25), 2.0)
-			# Teeth
-			for gti in range(6):
-				var tooth_a = 0.3 + float(gti) * 0.4
-				var tooth_s = grin_pos + Vector2.from_angle(tooth_a) * 7.5
-				var tooth_e = grin_pos + Vector2.from_angle(tooth_a) * 12.0
-				draw_line(tooth_s, tooth_e, Color(0.97, 0.97, 0.92, 0.55), 1.8)
-			# Cheshire eyes (glowing yellow-green)
-			var eye_glow = 0.5 + sin(_time * 3.0) * 0.1
-			draw_circle(grin_pos + Vector2(-6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
-			draw_circle(grin_pos + Vector2(6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
-			draw_circle(grin_pos + Vector2(-6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
-			draw_circle(grin_pos + Vector2(6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
-			# Cat eye slits
-			draw_line(grin_pos + Vector2(-6, -9), grin_pos + Vector2(-6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
-			draw_line(grin_pos + Vector2(6, -9), grin_pos + Vector2(6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
-			# Whiskers
-			draw_line(grin_pos + Vector2(10, -4), grin_pos + Vector2(16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
-			draw_line(grin_pos + Vector2(10, -6), grin_pos + Vector2(16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
-			draw_line(grin_pos + Vector2(-10, -4), grin_pos + Vector2(-16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
-			draw_line(grin_pos + Vector2(-10, -6), grin_pos + Vector2(-16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
 
-		# === T3+: Orbiting teacups with steam ===
-		if upgrade_tier >= 3:
-			for cup_i in range(3):
-				var cup_angle = _time * 0.6 + float(cup_i) * TAU / 3.0
-				var cup_r = 38.0 + sin(_time * 1.2 + float(cup_i)) * 4.0
-				var cup_pos = Vector2.from_angle(cup_angle) * cup_r
-				var cup_bob = sin(_time * 2.0 + float(cup_i) * 1.5) * 2.5
-				cup_pos.y += cup_bob
-				# Saucer
-				draw_arc(cup_pos + Vector2(0, 3), 8.0, 0.2, PI - 0.2, 8, Color(0.88, 0.85, 0.78), 2.0)
-				# Cup body
-				draw_arc(cup_pos, 6.0, 0.4, PI - 0.4, 8, Color(0.92, 0.88, 0.78), 3.0)
-				draw_line(cup_pos + Vector2.from_angle(0.5) * 6.0, cup_pos + Vector2.from_angle(PI - 0.5) * 6.0, Color(0.92, 0.88, 0.78), 1.5)
-				# Tea inside
-				draw_arc(cup_pos + Vector2(0, -1), 4.0, 0.6, PI - 0.6, 6, Color(0.6, 0.38, 0.18, 0.5), 2.0)
-				# Handle
-				draw_arc(cup_pos + Vector2(7, 0), 3.0, -PI * 0.4, PI * 0.4, 6, Color(0.88, 0.85, 0.78), 1.5)
-				# Gold rim
-				draw_arc(cup_pos, 6.5, 0.35, PI - 0.35, 6, Color(0.85, 0.75, 0.3, 0.35), 0.8)
-				# Steam wisps
-				for stm in range(2):
-					var steam_off = sin(_time * 2.0 + float(cup_i) * 2.0 + float(stm) * 1.5) * 2.5
-					var steam_p = cup_pos + Vector2(steam_off, -10.0 - float(stm) * 5.0)
-					draw_circle(steam_p, 2.5 - float(stm) * 0.4, Color(0.92, 0.92, 0.95, 0.25 - float(stm) * 0.08))
+	# === ABILITY VISUAL EFFECTS (render regardless of sprite mode) ===
+	var _fx_head_center = body_offset + Vector2(hip_sway * 0.08 + hair_wind * 0.1, -26.0)
 
-		# === Tier 4: Crown floating above head ===
-		if upgrade_tier >= 4:
-			var crown_hover = sin(_time * 1.8) * 1.5
-			var crown_center = head_center + Vector2(0, -12 + crown_hover)
-			var crown_r = 12.0
-			# Golden band
-			draw_arc(crown_center, crown_r, 0, TAU, 20, Color(0.95, 0.82, 0.2), 3.5)
-			draw_arc(crown_center, crown_r + 1.2, 0, TAU, 20, Color(0.85, 0.72, 0.15, 0.35), 0.8)
-			draw_arc(crown_center, crown_r - 1.2, 0, TAU, 20, Color(1.0, 0.92, 0.4, 0.25), 0.8)
-			# Crown spikes with suit gems
-			for csi in range(5):
-				var ca = PI * 0.5 + (float(csi) - 2.0) * 0.35
-				var spike_base_pos = crown_center + Vector2.from_angle(ca) * (crown_r - 1.5)
-				var spike_tip = crown_center + Vector2.from_angle(ca) * (crown_r + 10.0)
-				draw_line(spike_base_pos, spike_tip, Color(0.95, 0.82, 0.2), 3.0)
-				draw_line(spike_base_pos + Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
-				draw_line(spike_base_pos - Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
-				var suit_col = Color(0.95, 0.15, 0.15) if csi % 2 == 0 else Color(0.1, 0.1, 0.12)
-				draw_circle(spike_tip, 2.8, suit_col)
-				draw_circle(spike_tip + Vector2(-0.5, -0.5), 1.0, Color(1.0, 0.8, 0.8, 0.4) if csi % 2 == 0 else Color(0.45, 0.45, 0.5, 0.4))
-			# Band jewels
-			for ji in range(6):
-				var ja = TAU * float(ji) / 6.0
-				var jp = crown_center + Vector2.from_angle(ja) * crown_r
-				draw_circle(jp, 1.5, Color(0.9, 0.15, 0.15, 0.5) if ji % 2 == 0 else Color(0.2, 0.5, 0.9, 0.5))
+	# === T1+: "Drink Me" bottle near platform ===
+	if upgrade_tier >= 1:
+		var bottle_pos = Vector2(-18, 6) + body_offset * 0.3
+		draw_circle(bottle_pos + Vector2(0, -4), 5.0, Color(0.1, 0.2, 0.5))
+		draw_circle(bottle_pos + Vector2(0, -4), 4.0, Color(0.25, 0.4, 0.8))
+		draw_rect(Rect2(bottle_pos.x - 2, bottle_pos.y - 12, 4, 4), Color(0.6, 0.45, 0.25))
+		draw_rect(Rect2(bottle_pos.x - 3, bottle_pos.y - 3, 6, 5), Color(0.95, 0.92, 0.85))
 
-		# Reset transform for UI text
-		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	# Cake splat — flying crumbs toward target (no rings)
+	if _attack_anim > 0.15:
+		var tier_scale = 1.0 + float(upgrade_tier) * 0.2
+		var splat_alpha = _attack_anim * 0.65
+		# Flying cake crumbs in attack direction
+		var crumb_count = 3 + upgrade_tier
+		for si in range(crumb_count):
+			var sp_spread = (float(si) - float(crumb_count) / 2.0) * 0.3
+			var sp_dist = (10.0 + (1.0 - _attack_anim) * 20.0) * tier_scale
+			var sp_dir = Vector2.from_angle(aim_angle + sp_spread)
+			var sp_p = sp_dir * sp_dist
+			var crumb_size = (2.5 + sin(_time * 5.0 + float(si)) * 0.8) * tier_scale
+			draw_circle(sp_p, crumb_size, Color(0.95, 0.8, 0.7, splat_alpha * 0.6))
+			draw_circle(sp_p, crumb_size * 0.5, Color(1.0, 0.95, 0.9, splat_alpha * 0.3))
+		# Frosting splat at impact point
+		var impact_dir = Vector2.from_angle(aim_angle)
+		var impact_pos = impact_dir * 18.0 * tier_scale
+		draw_circle(impact_pos, 4.0 * tier_scale, Color(0.95, 0.7, 0.78, splat_alpha * 0.4))
+		draw_circle(impact_pos, 2.0, Color(1.0, 0.92, 0.85, splat_alpha * 0.3))
 
-		# Awaiting ability choice indicator
-		if awaiting_ability_choice:
-			var pulse = (sin(_time * 4.0) + 1.0) * 0.5
-			pass  #draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 24, Color(0.8, 0.7, 1.0, 0.3 + pulse * 0.3), 3.5)
-			var font3 = _game_font
-			draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.8, 0.7, 1.0, 0.7 + pulse * 0.3))
+	# === T2+: Floating Cheshire Cat grin ===
+	if upgrade_tier >= 2:
+		var grin_float = sin(_time * 2.2) * 5.0
+		var grin_bob = cos(_time * 1.7) * 3.5
+		var grin_pos = body_offset + Vector2(28.0 + grin_bob, -8.0 + grin_float)
+		# Fading body outline (ghostly stripes)
+		var gbody_alpha = 0.12 + sin(_time * 1.5) * 0.04
+		draw_arc(grin_pos, 14.0, PI * 0.1, PI * 0.9, 10, Color(0.6, 0.3, 0.7, gbody_alpha), 1.5)
+		for gsi in range(3):
+			var gs_a = PI * 0.25 + float(gsi) * 0.25
+			var gs_s = grin_pos + Vector2.from_angle(gs_a) * 10.0
+			var gs_e = grin_pos + Vector2.from_angle(gs_a) * 16.0
+			draw_line(gs_s, gs_e, Color(0.55, 0.25, 0.65, gbody_alpha * 0.6), 1.5)
+		# Grin arc (wide purple smile)
+		draw_arc(grin_pos, 10.0, 0.2, PI - 0.2, 14, Color(0.7, 0.3, 0.8, 0.7), 3.5)
+		draw_arc(grin_pos, 8.0, 0.3, PI - 0.3, 10, Color(0.85, 0.4, 0.55, 0.25), 2.0)
+		# Teeth
+		for gti in range(6):
+			var tooth_a = 0.3 + float(gti) * 0.4
+			var tooth_s = grin_pos + Vector2.from_angle(tooth_a) * 7.5
+			var tooth_e = grin_pos + Vector2.from_angle(tooth_a) * 12.0
+			draw_line(tooth_s, tooth_e, Color(0.97, 0.97, 0.92, 0.55), 1.8)
+		# Cheshire eyes (glowing yellow-green)
+		var eye_glow = 0.5 + sin(_time * 3.0) * 0.1
+		draw_circle(grin_pos + Vector2(-6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
+		draw_circle(grin_pos + Vector2(6, -7), 3.5, Color(0.85, 0.8, 0.2, eye_glow))
+		draw_circle(grin_pos + Vector2(-6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
+		draw_circle(grin_pos + Vector2(6, -7), 2.0, Color(0.95, 0.9, 0.3, eye_glow * 0.5))
+		# Cat eye slits
+		draw_line(grin_pos + Vector2(-6, -9), grin_pos + Vector2(-6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
+		draw_line(grin_pos + Vector2(6, -9), grin_pos + Vector2(6, -5), Color(0.15, 0.08, 0.2, eye_glow), 1.5)
+		# Whiskers
+		draw_line(grin_pos + Vector2(10, -4), grin_pos + Vector2(16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+		draw_line(grin_pos + Vector2(10, -6), grin_pos + Vector2(16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+		draw_line(grin_pos + Vector2(-10, -4), grin_pos + Vector2(-16, -2), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+		draw_line(grin_pos + Vector2(-10, -6), grin_pos + Vector2(-16, -7), Color(0.6, 0.3, 0.7, 0.15), 0.7)
+
+	# === T3+: Orbiting teacups with steam ===
+	if upgrade_tier >= 3:
+		for cup_i in range(3):
+			var cup_angle = _time * 0.6 + float(cup_i) * TAU / 3.0
+			var cup_r = 38.0 + sin(_time * 1.2 + float(cup_i)) * 4.0
+			var cup_pos = Vector2.from_angle(cup_angle) * cup_r
+			var cup_bob = sin(_time * 2.0 + float(cup_i) * 1.5) * 2.5
+			cup_pos.y += cup_bob
+			# Saucer
+			draw_arc(cup_pos + Vector2(0, 3), 8.0, 0.2, PI - 0.2, 8, Color(0.88, 0.85, 0.78), 2.0)
+			# Cup body
+			draw_arc(cup_pos, 6.0, 0.4, PI - 0.4, 8, Color(0.92, 0.88, 0.78), 3.0)
+			draw_line(cup_pos + Vector2.from_angle(0.5) * 6.0, cup_pos + Vector2.from_angle(PI - 0.5) * 6.0, Color(0.92, 0.88, 0.78), 1.5)
+			# Tea inside
+			draw_arc(cup_pos + Vector2(0, -1), 4.0, 0.6, PI - 0.6, 6, Color(0.6, 0.38, 0.18, 0.5), 2.0)
+			# Handle
+			draw_arc(cup_pos + Vector2(7, 0), 3.0, -PI * 0.4, PI * 0.4, 6, Color(0.88, 0.85, 0.78), 1.5)
+			# Gold rim
+			draw_arc(cup_pos, 6.5, 0.35, PI - 0.35, 6, Color(0.85, 0.75, 0.3, 0.35), 0.8)
+			# Steam wisps
+			for stm in range(2):
+				var steam_off = sin(_time * 2.0 + float(cup_i) * 2.0 + float(stm) * 1.5) * 2.5
+				var steam_p = cup_pos + Vector2(steam_off, -10.0 - float(stm) * 5.0)
+				draw_circle(steam_p, 2.5 - float(stm) * 0.4, Color(0.92, 0.92, 0.95, 0.25 - float(stm) * 0.08))
+
+	# === Tier 4: Crown floating above head ===
+	if upgrade_tier >= 4:
+		var crown_hover = sin(_time * 1.8) * 1.5
+		var crown_center = _fx_head_center + Vector2(0, -12 + crown_hover)
+		var crown_r = 12.0
+		# Golden band
+		draw_arc(crown_center, crown_r, 0, TAU, 20, Color(0.95, 0.82, 0.2), 3.5)
+		draw_arc(crown_center, crown_r + 1.2, 0, TAU, 20, Color(0.85, 0.72, 0.15, 0.35), 0.8)
+		draw_arc(crown_center, crown_r - 1.2, 0, TAU, 20, Color(1.0, 0.92, 0.4, 0.25), 0.8)
+		# Crown spikes with suit gems
+		for csi in range(5):
+			var ca = PI * 0.5 + (float(csi) - 2.0) * 0.35
+			var spike_base_pos = crown_center + Vector2.from_angle(ca) * (crown_r - 1.5)
+			var spike_tip = crown_center + Vector2.from_angle(ca) * (crown_r + 10.0)
+			draw_line(spike_base_pos, spike_tip, Color(0.95, 0.82, 0.2), 3.0)
+			draw_line(spike_base_pos + Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
+			draw_line(spike_base_pos - Vector2.from_angle(ca + PI * 0.5) * 2.5, spike_tip, Color(0.95, 0.82, 0.2), 1.2)
+			var suit_col = Color(0.95, 0.15, 0.15) if csi % 2 == 0 else Color(0.1, 0.1, 0.12)
+			draw_circle(spike_tip, 2.8, suit_col)
+			draw_circle(spike_tip + Vector2(-0.5, -0.5), 1.0, Color(1.0, 0.8, 0.8, 0.4) if csi % 2 == 0 else Color(0.45, 0.45, 0.5, 0.4))
+		# Band jewels
+		for ji in range(6):
+			var ja = TAU * float(ji) / 6.0
+			var jp = crown_center + Vector2.from_angle(ja) * crown_r
+			draw_circle(jp, 1.5, Color(0.9, 0.15, 0.15, 0.5) if ji % 2 == 0 else Color(0.2, 0.5, 0.9, 0.5))
+
+	# Reset transform for UI text
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+	# Awaiting ability choice indicator
+	if awaiting_ability_choice:
+		var pulse = (sin(_time * 4.0) + 1.0) * 0.5
+		pass  #draw_arc(Vector2.ZERO, 60.0 + pulse * 6.0, 0, TAU, 24, Color(0.8, 0.7, 1.0, 0.3 + pulse * 0.3), 3.5)
+		var font3 = _game_font
+		draw_string(font3, Vector2(-16, -68), "!", HORIZONTAL_ALIGNMENT_CENTER, 32, 30, Color(0.8, 0.7, 1.0, 0.7 + pulse * 0.3))
 
 	# Damage dealt counter (only when selected)
 	if is_selected and damage_dealt > 0:

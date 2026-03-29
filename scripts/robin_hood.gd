@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Arrow — splash damage (40px), +50% gold, double pierce
 
 # Base stats
-var damage: float = 25.0
-var fire_rate: float = 0.52
+var damage: float = 32.0
+var fire_rate: float = 0.6
 var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
@@ -211,7 +211,7 @@ func _process(delta: float) -> void:
 		_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 			_draw_progress = 0.0
 			_attack_anim = 1.0
 	else:
@@ -552,23 +552,23 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Splitting the Wand — dual shot
-			damage = 27.0
-			fire_rate = 0.52
+			damage = 34.5
+			fire_rate = 0.66
 			attack_range = 165.0
 		2: # The Silver Arrow — every 10th arrow, pierces 5
-			damage = 29.0
-			fire_rate = 0.52
+			damage = 39.0
+			fire_rate = 0.71
 			attack_range = 170.0
 			gold_bonus = 2
 		3: # Three Blasts of the Horn — sky arrows every other wave
-			damage = 29.0
-			fire_rate = 0.52
-			attack_range = 170.0
+			damage = 43.7
+			fire_rate = 0.77
+			attack_range = 175.0
 			gold_bonus = 2
 		4: # The Final Arrow — gold arrow, pierces 10, splash 40px
-			damage = 31.0
-			fire_rate = 0.52
-			attack_range = 175.0
+			damage = 50.6
+			fire_rate = 0.83
+			attack_range = 180.0
 			gold_bonus = 3
 		5: # Sherwood Rising — arrow rain covers entire map every 45s
 			# No stat boost — the ultimate ability IS the reward

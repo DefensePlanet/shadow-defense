@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4: Lord of Darkness — glow red, dash and feast on enemies at will
 
 # Base stats
-var damage: float = 25.0
-var fire_rate: float = 0.91
+var damage: float = 35.0
+var fire_rate: float = 1.5
 var attack_range: float = 190.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -292,7 +292,7 @@ func _process(delta: float) -> void:
 		_cast_anim = min(_cast_anim + delta * 3.0, 1.0)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 			_cast_anim = 0.0
 			_attack_anim = 1.0
 	else:
@@ -690,9 +690,9 @@ func choose_ability(index: int) -> void:
 
 func _apply_upgrade(tier: int) -> void:
 	# Base stats for each tier (each strictly higher than previous)
-	var tier_base_damage := [27.0, 29.0, 29.0, 31.0, 35.0]
-	var tier_base_fire_rate := [0.91, 0.91, 0.91, 0.91, 0.95]
-	var tier_base_range := [195.0, 198.0, 198.0, 202.0, 215.0]
+	var tier_base_damage := [40.0, 48.0, 55.0, 65.0, 75.0]
+	var tier_base_fire_rate := [1.65, 1.8, 1.95, 2.1, 2.3]
+	var tier_base_range := [195.0, 200.0, 205.0, 210.0, 220.0]
 	var tier_idx := tier - 1
 	# Preserve accumulated boosts from stat upgrades above the tier base
 	var dmg_bonus := maxf(damage - tier_base_damage[maxi(tier_idx - 1, 0)], 0.0) if tier_idx > 0 else 0.0
@@ -1940,31 +1940,34 @@ func _draw() -> void:
 		draw_circle(head_center + Vector2(-6, 3), 2.5, Color(0.60, 0.35, 0.45, 0.12))
 		draw_circle(head_center + Vector2(6, 3), 2.5, Color(0.60, 0.35, 0.45, 0.12))
 
-		# === NOSFERATU FORM OVERLAY (Ability 8 active) ===
-		if prog_abilities[7] and _nosferatu_active > 0.0:
-			var nos_alpha = clampf(_nosferatu_active / 4.0, 0.0, 1.0) * 0.3
-			pass  #draw_arc(body_offset, 42.0, 0, TAU, 24, Color(0.5, 0.05, 0.05, nos_alpha * 1.5), 4.0)
-			draw_circle(head_center + Vector2(0, -2), 14.0, Color(0.15, 0.0, 0.0, nos_alpha * 0.4))
+		pass  # Nosferatu + Lord overlays moved outside sprite block
 
-		# === Tier 4: Lord of Darkness — glowing red eyes + crimson overlay ===
-		if upgrade_tier >= 4:
-			var lord_p = sin(_lord_glow) * 0.5 + 0.5
-			# Glowing red eyes overlay (intensified on top of normal eyes)
-			var glow_eyes_l = head_center + Vector2(-4.0, -1.0)
-			var glow_eyes_r = head_center + Vector2(4.0, -1.0)
-			var eye_glow_a = 0.3 + lord_p * 0.4
-			draw_circle(glow_eyes_l, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
-			draw_circle(glow_eyes_r, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
-			draw_circle(glow_eyes_l, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
-			draw_circle(glow_eyes_r, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
-			# Crimson body outline shimmer
-			pass  #draw_arc(body_offset, 32.0, 0, TAU, 24, Color(0.85, 0.06, 0.04, 0.06 + lord_p * 0.06), 1.5)
-			# Dark red particle trails rising from feet
-			for pt in range(5):
-				var pt_x = body_offset.x + sin(_time * 1.2 + float(pt) * 1.7) * 12.0
-				var pt_y = body_offset.y + 12.0 - fmod(_time * 20.0 + float(pt) * 8.0, 35.0)
-				var pt_alpha = 0.12 + lord_p * 0.08
-				draw_circle(Vector2(pt_x, pt_y), 1.0 + lord_p * 0.5, Color(0.7, 0.03, 0.02, pt_alpha))
+	# === NOSFERATU FORM OVERLAY (Ability 8 active) ===
+	var _head_center_approx = body_offset + Vector2(0, -26)
+	if prog_abilities[7] and _nosferatu_active > 0.0:
+		var nos_alpha = clampf(_nosferatu_active / 4.0, 0.0, 1.0) * 0.3
+		pass  #draw_arc(body_offset, 42.0, 0, TAU, 24, Color(0.5, 0.05, 0.05, nos_alpha * 1.5), 4.0)
+		draw_circle(_head_center_approx + Vector2(0, -2), 14.0, Color(0.15, 0.0, 0.0, nos_alpha * 0.4))
+
+	# === Tier 4: Lord of Darkness — glowing red eyes + crimson overlay ===
+	if upgrade_tier >= 4:
+		var lord_p = sin(_lord_glow) * 0.5 + 0.5
+		# Glowing red eyes overlay (intensified on top of normal eyes)
+		var glow_eyes_l = _head_center_approx + Vector2(-4.0, -1.0)
+		var glow_eyes_r = _head_center_approx + Vector2(4.0, -1.0)
+		var eye_glow_a = 0.3 + lord_p * 0.4
+		draw_circle(glow_eyes_l, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
+		draw_circle(glow_eyes_r, 6.0, Color(0.9, 0.05, 0.02, eye_glow_a * 0.2))
+		draw_circle(glow_eyes_l, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
+		draw_circle(glow_eyes_r, 3.5, Color(1.0, 0.1, 0.05, eye_glow_a * 0.35))
+		# Crimson body outline shimmer
+		pass  #draw_arc(body_offset, 32.0, 0, TAU, 24, Color(0.85, 0.06, 0.04, 0.06 + lord_p * 0.06), 1.5)
+		# Dark red particle trails rising from feet
+		for pt in range(5):
+			var pt_x = body_offset.x + sin(_time * 1.2 + float(pt) * 1.7) * 12.0
+			var pt_y = body_offset.y + 12.0 - fmod(_time * 20.0 + float(pt) * 8.0, 35.0)
+			var pt_alpha = 0.12 + lord_p * 0.08
+			draw_circle(Vector2(pt_x, pt_y), 1.0 + lord_p * 0.5, Color(0.7, 0.03, 0.02, pt_alpha))
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

@@ -93,9 +93,9 @@ var selected_tower_node: Node2D = null
 const TOWER_SELECT_RADIUS: float = 48.0
 var upgrade_panel: ColorRect
 var upgrade_name_label: Label
-var upgrade_buttons: Array = []  # 4 upgrade tier buttons
-var upgrade_cost_labels: Array = []  # 4 cost labels
-var upgrade_desc_labels: Array = []  # 4 description labels
+var upgrade_buttons: Array = []  # 5 upgrade tier buttons
+var upgrade_cost_labels: Array = []  # 5 cost labels
+var upgrade_desc_labels: Array = []  # 5 description labels
 var upgrade_status_rects: Array = []  # 4 background rects for status coloring
 var sell_button: Button
 var sell_value_label: Label
@@ -5385,7 +5385,7 @@ func _create_ui() -> void:
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
 	ability_panel.add_child(subtitle)
 
-	for i in range(4):
+	for i in range(5):
 		var btn = Button.new()
 		btn.position = Vector2(20, 75 + i * 72)
 		btn.custom_minimum_size = Vector2(660, 60)
@@ -5397,7 +5397,7 @@ func _create_ui() -> void:
 	upgrade_panel = ColorRect.new()
 	upgrade_panel.color = Color(0.08, 0.05, 0.12, 0.95)
 	upgrade_panel.position = Vector2(1080, 15)
-	upgrade_panel.size = Vector2(200, 678)
+	upgrade_panel.size = Vector2(200, 710)
 	upgrade_panel.visible = false
 	ui.add_child(upgrade_panel)
 
@@ -5405,7 +5405,7 @@ func _create_ui() -> void:
 	var upg_border = ColorRect.new()
 	upg_border.color = _ca(c_gold, 0.5)
 	upg_border.position = Vector2(-2, -2)
-	upg_border.size = Vector2(204, 682)
+	upg_border.size = Vector2(204, 714)
 	upg_border.z_index = -1
 	upgrade_panel.add_child(upg_border)
 
@@ -5460,14 +5460,14 @@ func _create_ui() -> void:
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
 
-	# 4 upgrade slots stacked vertically
-	for i in range(4):
-		var slot_y = 170 + i * 100
+	# 5 upgrade slots stacked vertically
+	for i in range(5):
+		var slot_y = 158 + i * 76
 
 		# Status background rect (changes color based on state)
 		var status_rect = ColorRect.new()
 		status_rect.position = Vector2(10, slot_y)
-		status_rect.size = Vector2(180, 85)
+		status_rect.size = Vector2(180, 66)
 		status_rect.color = Color(0.12, 0.08, 0.16, 0.8)
 		upgrade_panel.add_child(status_rect)
 		upgrade_status_rects.append(status_rect)
@@ -5476,7 +5476,7 @@ func _create_ui() -> void:
 		var slot_border = ColorRect.new()
 		slot_border.color = Color(0.4, 0.3, 0.5, 0.4)
 		slot_border.position = Vector2(-1, -1)
-		slot_border.size = Vector2(182, 87)
+		slot_border.size = Vector2(182, 68)
 		slot_border.z_index = -1
 		status_rect.add_child(slot_border)
 
@@ -5509,7 +5509,7 @@ func _create_ui() -> void:
 
 		# Cost label (right side)
 		var cost_label = Label.new()
-		cost_label.position = Vector2(4, 64)
+		cost_label.position = Vector2(4, 4)
 		cost_label.size = Vector2(172, 20)
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		cost_label.add_theme_font_size_override("font_size", 14)
@@ -5521,7 +5521,7 @@ func _create_ui() -> void:
 	var hero_ability_button = Button.new()
 	hero_ability_button.name = "HeroAbilityBtn"
 	hero_ability_button.text = "ABILITY"
-	hero_ability_button.position = Vector2(10, 560)
+	hero_ability_button.position = Vector2(10, 580)
 	hero_ability_button.custom_minimum_size = Vector2(180, 28)
 	hero_ability_button.add_theme_font_size_override("font_size", 12)
 	hero_ability_button.visible = false
@@ -5531,14 +5531,14 @@ func _create_ui() -> void:
 	# Sell button
 	sell_button = Button.new()
 	sell_button.text = "SELL"
-	sell_button.position = Vector2(20, 594)
+	sell_button.position = Vector2(20, 640)
 	sell_button.custom_minimum_size = Vector2(160, 36)
 	sell_button.pressed.connect(_on_sell_pressed)
 	upgrade_panel.add_child(sell_button)
 
 	# Sell value / refund label
 	sell_value_label = Label.new()
-	sell_value_label.position = Vector2(20, 634)
+	sell_value_label.position = Vector2(20, 680)
 	sell_value_label.size = Vector2(160, 20)
 	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sell_value_label.add_theme_font_size_override("font_size", 13)
@@ -27295,8 +27295,8 @@ func _update_upgrade_panel() -> void:
 	else:
 		targeting_button.visible = false
 
-	# Update all 4 upgrade slots
-	for i in range(4):
+	# Update all 5 upgrade slots
+	for i in range(5):
 		var btn = upgrade_buttons[i]
 		var cost_lbl = upgrade_cost_labels[i]
 		var status_rect = upgrade_status_rects[i]

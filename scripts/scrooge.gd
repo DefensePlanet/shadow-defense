@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3: "Ghost of Christmas Present" — Gives the team 25 gold twice per round
 ## Tier 4: "Ghost of Yet to Come" — Every other wave, massive coin blast damages all enemies
 
-var damage: float = 1.5
-var fire_rate: float = 0.43
+var damage: float = 15.0
+var fire_rate: float = 1.4
 var attack_range: float = 65.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -249,7 +249,7 @@ func _process(delta: float) -> void:
 		aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 
 	# Tier 2: Ghost of Christmas Past — rescue enemies near end of path
 	if upgrade_tier >= 2:
@@ -539,27 +539,27 @@ func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Bah, Humbug! — blast knockback +15% stronger
 			knockback_amount = 34.5
-			attack_range = 68.0
+			attack_range = 72.0
 			gold_per_ring = 3
 			bonus_gold_per_enemy = 1
-			fire_rate = 0.43
-			damage = 2.0
+			fire_rate = 1.6
+			damage = 18.0
 		2: # Ghost of Christmas Past — ghost rescues 5 enemies from path end
 			knockback_amount = 55.0
-			damage = 2.5
-			fire_rate = 0.43
-			attack_range = 72.0
+			damage = 22.0
+			fire_rate = 1.8
+			attack_range = 76.0
 			gold_bonus = 2
 		3: # Ghost of Christmas Present — gives 25 gold twice per round
-			damage = 2.5
-			fire_rate = 0.43
-			attack_range = 72.0
+			damage = 26.0
+			fire_rate = 2.0
+			attack_range = 80.0
 			knockback_amount = 65.0
 			gold_bonus = 2
 		4: # Ghost of Yet to Come — coin blast every other wave
-			damage = 3.0
-			fire_rate = 0.43
-			attack_range = 76.0
+			damage = 32.0
+			fire_rate = 2.2
+			attack_range = 85.0
 			knockback_amount = 80.0
 			gold_bonus = 3
 		5: # God Bless Us, Every One! — global tower boost + gold rain
@@ -1979,18 +1979,18 @@ func _draw() -> void:
 			draw_circle(torso_center, 16.0, Color(0.85, 0.70, 0.20, light_strength * 0.06))
 
 
-		# === T4: EERIE DARK AURA around Scrooge himself ===
-		if upgrade_tier >= 4:
-			var aura_pulse = sin(_time * 2.0) * 0.03
-			pass  #draw_arc(body_offset + Vector2(0, -10), 50.0, 0, TAU, 24, Color(0.15, 0.08, 0.2, 0.08 + aura_pulse), 4.0)
-			# Dark energy wisps around body
-			for i in range(4):
-				var w_a = _time * 0.6 + float(i) * TAU / 4.0
-				var w_r = 42.0 + sin(_time * 1.5 + float(i) * 2.0) * 5.0
-				var w_pos = body_offset + Vector2(0, -10) + Vector2.from_angle(w_a) * w_r
-				draw_circle(w_pos, 3.0, Color(0.1, 0.05, 0.15, 0.1))
-				var w_tail = body_offset + Vector2(0, -10) + Vector2.from_angle(w_a - 0.4) * (w_r - 8.0)
-				draw_line(w_pos, w_tail, Color(0.1, 0.05, 0.15, 0.06), 1.5)
+	# === T4: EERIE DARK AURA around Scrooge himself ===
+	if upgrade_tier >= 4:
+		var aura_pulse = sin(_time * 2.0) * 0.03
+		pass  #draw_arc(body_offset + Vector2(0, -10), 50.0, 0, TAU, 24, Color(0.15, 0.08, 0.2, 0.08 + aura_pulse), 4.0)
+		# Dark energy wisps around body
+		for i in range(4):
+			var w_a = _time * 0.6 + float(i) * TAU / 4.0
+			var w_r = 42.0 + sin(_time * 1.5 + float(i) * 2.0) * 5.0
+			var w_pos = body_offset + Vector2(0, -10) + Vector2.from_angle(w_a) * w_r
+			draw_circle(w_pos, 3.0, Color(0.1, 0.05, 0.15, 0.1))
+			var w_tail = body_offset + Vector2(0, -10) + Vector2.from_angle(w_a - 0.4) * (w_r - 8.0)
+			draw_line(w_pos, w_tail, Color(0.1, 0.05, 0.15, 0.06), 1.5)
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:

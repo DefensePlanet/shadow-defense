@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3: "Swarm of Bees" — beehive on path slows and damages enemies
 ## Tier 4: "The Golden Cap" — faster orbit, enhanced wolves (2x dmg) and crows (2x DoT)
 
-var damage: float = 21.0
-var fire_rate: float = 0.98
+var damage: float = 30.0
+var fire_rate: float = 1.6
 var attack_range: float = 154.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -34,7 +34,7 @@ var _build_timer: float = 0.0
 var _home_position: Vector2 = Vector2.ZERO
 var _orbit_angle: float = 0.0
 var _orbit_radius: float = 60.0
-var _orbit_speed: float = 1.8  # radians per second
+var _orbit_speed: float = 0.9  # radians per second
 
 # Tier 1: Pack of Wolves — run down path every other wave
 var _wolves_active: Array = []
@@ -241,7 +241,7 @@ func _process(delta: float) -> void:
 	_orbit_angle += _orbit_speed * delta
 	if _orbit_angle > TAU:
 		_orbit_angle -= TAU
-	global_position = global_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * _orbit_radius
+	global_position = _home_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * _orbit_radius
 	aim_angle = _orbit_angle + PI * 0.5  # Face forward along orbit
 
 	# Beam attack logic
@@ -423,7 +423,7 @@ func _end_beam() -> void:
 	_beam_active = false
 	_beam_target = null
 	_beam_timer = 0.0
-	_beam_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
+	_beam_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.15)  # Min cooldown cap
 	_attack_anim = 0.0
 
 func _fire_bolt(t: Node2D) -> void:
@@ -715,27 +715,27 @@ func choose_ability(index: int) -> void:
 func _apply_upgrade(tier: int) -> void:
 	match tier:
 		1: # Pack of Wolves — wolves run down path every 10 waves
-			damage = 23.0
-			fire_rate = 0.98
+			damage = 34.0
+			fire_rate = 1.8
 			attack_range = 158.0
 		2: # Murder of Crows — crows dive-bomb every 5 waves
-			damage = 25.0
-			fire_rate = 0.98
+			damage = 38.0
+			fire_rate = 2.0
 			attack_range = 162.0
 			gold_bonus = 2
 		3: # Swarm of Bees — beehive on path
-			damage = 25.0
-			fire_rate = 0.98
-			attack_range = 162.0
+			damage = 42.0
+			fire_rate = 2.2
+			attack_range = 165.0
 			gold_bonus = 2
 			_place_beehive()
 		4: # The Golden Cap — enhanced everything
-			damage = 27.0
-			fire_rate = 0.98
-			attack_range = 166.0
+			damage = 50.0
+			fire_rate = 2.5
+			attack_range = 170.0
 			gold_bonus = 3
 			_golden_cap_active = true
-			_orbit_speed = 2.8
+			_orbit_speed = 1.4
 		5: # Surrender Dorothy — map darkens, -30% enemy speed, flying monkeys
 			# No stat boost — the ultimate ability IS the reward
 			_surrender_dorothy_active = true
@@ -1718,101 +1718,6 @@ func _draw() -> void:
 		draw_line(r_hand, thumb_tip, OL, 2.0)
 		draw_line(r_hand, thumb_tip, skin_shadow, 1.3)
 
-		# Attack green glow from pointing hand (tier-scaling toxic burst)
-		if _attack_anim > 0.0:
-			var tier_scale = 1.0 + float(upgrade_tier) * 0.25
-			# Outer toxic cloud
-			draw_circle(r_hand, (10.0 + _attack_anim * 8.0) * tier_scale, Color(0.2, 0.65, 0.1, _attack_anim * 0.12))
-			# Mid glow
-			draw_circle(r_hand, (7.0 + _attack_anim * 5.0) * tier_scale, Color(0.3, 0.8, 0.15, _attack_anim * 0.25))
-			# Core energy
-			draw_circle(r_hand, (4.0 + _attack_anim * 2.5) * tier_scale, Color(0.4, 0.95, 0.2, _attack_anim * 0.4))
-			draw_circle(r_hand, 2.5, Color(0.7, 1.0, 0.5, _attack_anim * 0.5))
-			# Toxic spark tendrils
-			for ti in range(3 + upgrade_tier):
-				var t_a = TAU * float(ti) / float(3 + upgrade_tier) + _time * 7.0
-				var t_len = (6.0 + sin(_time * 12.0 + float(ti) * 2.0) * 3.0) * tier_scale
-				var t_end = r_hand + Vector2.from_angle(t_a) * t_len
-				draw_line(r_hand, t_end, Color(0.3, 0.9, 0.1, _attack_anim * 0.5), 1.8)
-				draw_circle(t_end, 1.5, Color(0.5, 1.0, 0.3, _attack_anim * 0.4))
-
-		# === BEAM ATTACK DRAWING ===
-		if _beam_active and is_instance_valid(_beam_target):
-			var beam_start = r_hand
-			var beam_end = _beam_target.global_position - global_position
-			var beam_progress = 1.0 - clampf(_beam_timer / 2.5, 0.0, 1.0)  # 0 at start, 1 at end
-			var beam_intensity = 0.6 + sin(_time * 12.0) * 0.2 + sin(_time * 7.3) * 0.1  # Pulsing
-
-			# Outer glow (wide, semi-transparent)
-			draw_line(beam_start, beam_end, Color(0.2, 0.7, 0.1, 0.08 + beam_intensity * 0.06), 12.0)
-			# Mid glow
-			draw_line(beam_start, beam_end, Color(0.3, 0.85, 0.15, 0.12 + beam_intensity * 0.08), 6.0)
-			# Core beam (bright green, narrow)
-			draw_line(beam_start, beam_end, Color(0.5, 1.0, 0.3, 0.6 + beam_intensity * 0.3), 2.5)
-			# Inner white-hot core
-			draw_line(beam_start, beam_end, Color(0.8, 1.0, 0.7, 0.3 + beam_intensity * 0.2), 1.0)
-
-			# Crackling energy particles along the beam
-			var beam_vec = beam_end - beam_start
-			var beam_len = beam_vec.length()
-			var beam_dir_n = beam_vec.normalized() if beam_len > 0.0 else Vector2.RIGHT
-			var beam_perp_n = beam_dir_n.rotated(PI / 2.0)
-			var num_particles = int(beam_len / 15.0)
-			for pi in range(num_particles):
-				var pt = float(pi + 1) / float(num_particles + 1)
-				var spark_pos = beam_start.lerp(beam_end, pt)
-				# Offset perpendicular to beam with randomized flicker
-				var spark_offset = sin(_time * 15.0 + float(pi) * 3.7) * (3.0 + beam_progress * 4.0)
-				spark_pos += beam_perp_n * spark_offset
-				var spark_size = 1.5 + sin(_time * 20.0 + float(pi) * 2.1) * 0.8
-				draw_circle(spark_pos, spark_size, Color(0.4, 1.0, 0.2, 0.3 + beam_intensity * 0.2))
-
-			# Wand tip sparkle/glow
-			draw_circle(beam_start, 6.0 + sin(_time * 10.0) * 2.0, Color(0.4, 0.9, 0.2, 0.25))
-			draw_circle(beam_start, 3.0, Color(0.6, 1.0, 0.4, 0.5))
-
-			# Impact glow at target
-			var impact_size = 8.0 + sin(_time * 8.0) * 3.0 + beam_progress * 4.0
-			draw_circle(beam_end, impact_size, Color(0.3, 0.8, 0.1, 0.15 + beam_intensity * 0.1))
-			draw_circle(beam_end, impact_size * 0.5, Color(0.5, 1.0, 0.3, 0.2))
-		elif _attack_anim > 0.0:
-			# Green bolt streaks (only when NOT beaming — tier-scaling)
-			var tier_scale_b = 1.0 + float(upgrade_tier) * 0.25
-			var bolt_ct = 3 + upgrade_tier
-			for si in range(bolt_ct):
-				var s_angle = aim_angle + (float(si) - float(bolt_ct) / 2.0) * 0.3
-				var s_dir_v = Vector2.from_angle(s_angle)
-				var s_len = (18.0 + _attack_anim * 14.0) * tier_scale_b
-				draw_line(r_hand + s_dir_v * 5.0, r_hand + s_dir_v * s_len, Color(0.3, 0.9, 0.1, _attack_anim * 0.5), 2.5 * tier_scale_b)
-				draw_circle(r_hand + s_dir_v * s_len, 2.0 * tier_scale_b, Color(0.5, 1.0, 0.3, _attack_anim * 0.4))
-
-		# === T2+: CROW perched on shoulder ===
-		if upgrade_tier >= 2:
-			var crow_base = r_shoulder + Vector2(3, -6)
-			var crow_head_pos = crow_base + Vector2(3, -4)
-			# Crow body outline + fill
-			draw_circle(crow_base, 4.5, OL)
-			draw_circle(crow_base, 3.2, Color(0.08, 0.08, 0.12))
-			# Crow head outline + fill
-			draw_circle(crow_head_pos, 3.0, OL)
-			draw_circle(crow_head_pos, 2.2, Color(0.08, 0.08, 0.12))
-			# Beak
-			var beak_tip_pos = crow_head_pos + Vector2(4, 0.5)
-			var beak_pts_top = PackedVector2Array([crow_head_pos + Vector2(1.5, -1), beak_tip_pos, crow_head_pos + Vector2(1.5, 0.5)])
-			draw_colored_polygon(beak_pts_top, Color(0.15, 0.12, 0.05))
-			# Wing (folded)
-			var wing_bob = sin(_time * 4.0) * 1.5
-			var cwl_pts = PackedVector2Array([crow_base + Vector2(-1, -1), crow_base + Vector2(-5, -4 + wing_bob), crow_base + Vector2(-3, -1.5 + wing_bob * 0.5), crow_base + Vector2(-1, 2)])
-			draw_colored_polygon(cwl_pts, OL)
-			# Beady eye (Bloons style)
-			draw_circle(crow_head_pos + Vector2(1.2, -0.8), 1.5, OL)
-			draw_circle(crow_head_pos + Vector2(1.2, -0.8), 1.0, Color(0.95, 0.30, 0.05))
-			draw_circle(crow_head_pos + Vector2(1.5, -1.0), 0.4, Color(1.0, 1.0, 0.9, 0.7))
-			# Tail feathers
-			for tfi in range(2):
-				var tf_end = crow_base + Vector2(-5 - float(tfi), 1 + float(tfi) * 0.5)
-				draw_line(crow_base + Vector2(-1.5, 0), tf_end, OL, 1.8)
-
 		# === NECK (cartoon connector — green skin) ===
 		var neck_top = head_center + Vector2(0, 9)
 		draw_line(neck_base, neck_top, OL, 7.0)
@@ -2018,45 +1923,6 @@ func _draw() -> void:
 		draw_circle(buckle_c, 1.2, Color(0.20, 0.65, 0.15))
 		draw_circle(buckle_c + Vector2(-0.2, -0.2), 0.5, Color(0.35, 0.85, 0.25, 0.5))
 
-		# Tier 4: Golden Cap overlay on hat
-		if _golden_cap_active:
-			# Gold overlay on hat
-			draw_colored_polygon(PackedVector2Array([
-				hat_base_pos + Vector2(-9, 2), hat_base_pos + Vector2(9, 2),
-				hat_tip_pos + Vector2(-0.5, 0.8),
-			]), Color(0.95, 0.85, 0.25, 0.35))
-			# Gold brim
-			draw_line(hat_base_pos + Vector2(-10, 3), hat_base_pos + Vector2(10, 3), Color(0.95, 0.85, 0.25), 2.5)
-			# Jeweled buckle with ruby
-			var buckle_pos = hat_base_pos + Vector2(0, 1)
-			draw_circle(buckle_pos, 4.0, Color(0.06, 0.06, 0.08))
-			draw_circle(buckle_pos, 3.0, Color(0.95, 0.85, 0.25))
-			draw_circle(buckle_pos, 1.5, Color(0.85, 0.1, 0.1))  # Ruby
-			# Shimmer sparkles
-			for si in range(4):
-				var sp_a = _time * 2.0 + float(si) * TAU / 4.0
-				var sp_r = 6.0 + sin(_time * 3.0 + float(si)) * 2.0
-				var sp_pos = hat_tip_pos + Vector2(cos(sp_a) * sp_r, sin(sp_a) * sp_r * 0.5)
-				draw_circle(sp_pos, 1.5, Color(1.0, 0.95, 0.5, 0.3 + sin(_time * 4.0 + float(si)) * 0.15))
-
-		# === GREEN MAGIC PARTICLES floating around ===
-		var particle_count = 4 + upgrade_tier * 2
-		for i in range(particle_count):
-			var phase = float(i) * TAU / float(particle_count)
-			var p_orbit_speed = 1.2 + float(i) * 0.25
-			var p_orbit_radius = 42.0 + float(i % 4) * 7.0
-			var px = cos(_time * p_orbit_speed + phase) * p_orbit_radius
-			var py = sin(_time * p_orbit_speed + phase) * p_orbit_radius * 0.6 + sin(_time * 2.5 + phase) * 5.0
-			var p_alpha = 0.25 + sin(_time * 3.0 + phase) * 0.12
-			var p_size = 3.0 + sin(_time * 2.0 + phase) * 0.8
-			var use_purple = (i % 3 == 0) and (upgrade_tier >= 2)
-			var p_col = Color(0.50, 0.20, 0.70, p_alpha * 0.7) if use_purple else Color(0.30, 0.85, 0.20, p_alpha)
-			# Glow halo
-			draw_circle(Vector2(px, py), p_size + 3.0, Color(p_col.r, p_col.g, p_col.b, p_alpha * 0.2))
-			# Core particle
-			draw_circle(Vector2(px, py), p_size, p_col)
-			# Bright center
-			draw_circle(Vector2(px, py), p_size * 0.35, Color(min(p_col.r + 0.3, 1.0), min(p_col.g + 0.15, 1.0), min(p_col.b + 0.3, 1.0), p_alpha * 0.7))
 
 		# === Silver whistle on chain around neck ===
 		var whistle_anchor = neck_base + Vector2(0, 2)
@@ -2078,6 +1944,151 @@ func _draw() -> void:
 		# Shine
 		draw_circle(whistle_droop + w_dir * 2.0 + Vector2(0, -0.8), 0.6, Color(0.95, 0.95, 1.0, 0.5))
 
+
+	# === ABILITY VISUAL EFFECTS (render regardless of sprite mode) ===
+	# Recalculate positions for sprite-independent effects
+	var _fx_head = body_offset + Vector2(hip_sway * 0.08, -26.0)
+	var _fx_hat_base = _fx_head + Vector2(0, -8)
+	var _fx_hat_tip = _fx_hat_base + Vector2(3, -38) + Vector2(sin(_time * 3.5) * 2.0, 0)
+	var _fx_neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
+	var _fx_r_shoulder = Vector2(8, _fx_neck_base.y + 2)
+	var _fx_r_hand = _fx_r_shoulder + dir * (14.0 + _attack_anim * 8.0)
+	var _fx_OL = Color(0.06, 0.05, 0.08)
+
+	# Attack green glow from pointing hand (tier-scaling toxic burst)
+	if _attack_anim > 0.0:
+		var tier_scale = 1.0 + float(upgrade_tier) * 0.25
+		# Outer toxic cloud
+		draw_circle(_fx_r_hand, (10.0 + _attack_anim * 8.0) * tier_scale, Color(0.2, 0.65, 0.1, _attack_anim * 0.12))
+		# Mid glow
+		draw_circle(_fx_r_hand, (7.0 + _attack_anim * 5.0) * tier_scale, Color(0.3, 0.8, 0.15, _attack_anim * 0.25))
+		# Core energy
+		draw_circle(_fx_r_hand, (4.0 + _attack_anim * 2.5) * tier_scale, Color(0.4, 0.95, 0.2, _attack_anim * 0.4))
+		draw_circle(_fx_r_hand, 2.5, Color(0.7, 1.0, 0.5, _attack_anim * 0.5))
+		# Toxic spark tendrils
+		for ti in range(3 + upgrade_tier):
+			var t_a = TAU * float(ti) / float(3 + upgrade_tier) + _time * 7.0
+			var t_len = (6.0 + sin(_time * 12.0 + float(ti) * 2.0) * 3.0) * tier_scale
+			var t_end = _fx_r_hand + Vector2.from_angle(t_a) * t_len
+			draw_line(_fx_r_hand, t_end, Color(0.3, 0.9, 0.1, _attack_anim * 0.5), 1.8)
+			draw_circle(t_end, 1.5, Color(0.5, 1.0, 0.3, _attack_anim * 0.4))
+
+	# === BEAM ATTACK DRAWING ===
+	if _beam_active and is_instance_valid(_beam_target):
+		var beam_start = _fx_r_hand
+		var beam_end = _beam_target.global_position - global_position
+		var beam_progress = 1.0 - clampf(_beam_timer / 2.5, 0.0, 1.0)  # 0 at start, 1 at end
+		var beam_intensity = 0.6 + sin(_time * 12.0) * 0.2 + sin(_time * 7.3) * 0.1  # Pulsing
+
+		# Outer glow (wide, semi-transparent)
+		draw_line(beam_start, beam_end, Color(0.2, 0.7, 0.1, 0.08 + beam_intensity * 0.06), 12.0)
+		# Mid glow
+		draw_line(beam_start, beam_end, Color(0.3, 0.85, 0.15, 0.12 + beam_intensity * 0.08), 6.0)
+		# Core beam (bright green, narrow)
+		draw_line(beam_start, beam_end, Color(0.5, 1.0, 0.3, 0.6 + beam_intensity * 0.3), 2.5)
+		# Inner white-hot core
+		draw_line(beam_start, beam_end, Color(0.8, 1.0, 0.7, 0.3 + beam_intensity * 0.2), 1.0)
+
+		# Crackling energy particles along the beam
+		var beam_vec = beam_end - beam_start
+		var beam_len = beam_vec.length()
+		var beam_dir_n = beam_vec.normalized() if beam_len > 0.0 else Vector2.RIGHT
+		var beam_perp_n = beam_dir_n.rotated(PI / 2.0)
+		var num_particles = int(beam_len / 15.0)
+		for pi in range(num_particles):
+			var pt = float(pi + 1) / float(num_particles + 1)
+			var spark_pos = beam_start.lerp(beam_end, pt)
+			# Offset perpendicular to beam with randomized flicker
+			var spark_offset = sin(_time * 15.0 + float(pi) * 3.7) * (3.0 + beam_progress * 4.0)
+			spark_pos += beam_perp_n * spark_offset
+			var spark_size = 1.5 + sin(_time * 20.0 + float(pi) * 2.1) * 0.8
+			draw_circle(spark_pos, spark_size, Color(0.4, 1.0, 0.2, 0.3 + beam_intensity * 0.2))
+
+		# Wand tip sparkle/glow
+		draw_circle(beam_start, 6.0 + sin(_time * 10.0) * 2.0, Color(0.4, 0.9, 0.2, 0.25))
+		draw_circle(beam_start, 3.0, Color(0.6, 1.0, 0.4, 0.5))
+
+		# Impact glow at target
+		var impact_size = 8.0 + sin(_time * 8.0) * 3.0 + beam_progress * 4.0
+		draw_circle(beam_end, impact_size, Color(0.3, 0.8, 0.1, 0.15 + beam_intensity * 0.1))
+		draw_circle(beam_end, impact_size * 0.5, Color(0.5, 1.0, 0.3, 0.2))
+	elif _attack_anim > 0.0:
+		# Green bolt streaks (only when NOT beaming — tier-scaling)
+		var tier_scale_b = 1.0 + float(upgrade_tier) * 0.25
+		var bolt_ct = 3 + upgrade_tier
+		for si in range(bolt_ct):
+			var s_angle = aim_angle + (float(si) - float(bolt_ct) / 2.0) * 0.3
+			var s_dir_v = Vector2.from_angle(s_angle)
+			var s_len = (18.0 + _attack_anim * 14.0) * tier_scale_b
+			draw_line(_fx_r_hand + s_dir_v * 5.0, _fx_r_hand + s_dir_v * s_len, Color(0.3, 0.9, 0.1, _attack_anim * 0.5), 2.5 * tier_scale_b)
+			draw_circle(_fx_r_hand + s_dir_v * s_len, 2.0 * tier_scale_b, Color(0.5, 1.0, 0.3, _attack_anim * 0.4))
+
+	# === T2+: CROW perched on shoulder ===
+	if upgrade_tier >= 2:
+		var crow_base = _fx_r_shoulder + Vector2(3, -6)
+		var crow_head_pos = crow_base + Vector2(3, -4)
+		# Crow body outline + fill
+		draw_circle(crow_base, 4.5, _fx_OL)
+		draw_circle(crow_base, 3.2, Color(0.08, 0.08, 0.12))
+		# Crow head outline + fill
+		draw_circle(crow_head_pos, 3.0, _fx_OL)
+		draw_circle(crow_head_pos, 2.2, Color(0.08, 0.08, 0.12))
+		# Beak
+		var beak_tip_pos = crow_head_pos + Vector2(4, 0.5)
+		var beak_pts_top = PackedVector2Array([crow_head_pos + Vector2(1.5, -1), beak_tip_pos, crow_head_pos + Vector2(1.5, 0.5)])
+		draw_colored_polygon(beak_pts_top, Color(0.15, 0.12, 0.05))
+		# Wing (folded)
+		var wing_bob = sin(_time * 4.0) * 1.5
+		var cwl_pts = PackedVector2Array([crow_base + Vector2(-1, -1), crow_base + Vector2(-5, -4 + wing_bob), crow_base + Vector2(-3, -1.5 + wing_bob * 0.5), crow_base + Vector2(-1, 2)])
+		draw_colored_polygon(cwl_pts, _fx_OL)
+		# Beady eye (Bloons style)
+		draw_circle(crow_head_pos + Vector2(1.2, -0.8), 1.5, _fx_OL)
+		draw_circle(crow_head_pos + Vector2(1.2, -0.8), 1.0, Color(0.95, 0.30, 0.05))
+		draw_circle(crow_head_pos + Vector2(1.5, -1.0), 0.4, Color(1.0, 1.0, 0.9, 0.7))
+		# Tail feathers
+		for tfi in range(2):
+			var tf_end = crow_base + Vector2(-5 - float(tfi), 1 + float(tfi) * 0.5)
+			draw_line(crow_base + Vector2(-1.5, 0), tf_end, _fx_OL, 1.8)
+
+	# Tier 4: Golden Cap overlay on hat
+	if _golden_cap_active:
+		# Gold overlay on hat
+		draw_colored_polygon(PackedVector2Array([
+			_fx_hat_base + Vector2(-9, 2), _fx_hat_base + Vector2(9, 2),
+			_fx_hat_tip + Vector2(-0.5, 0.8),
+		]), Color(0.95, 0.85, 0.25, 0.35))
+		# Gold brim
+		draw_line(_fx_hat_base + Vector2(-10, 3), _fx_hat_base + Vector2(10, 3), Color(0.95, 0.85, 0.25), 2.5)
+		# Jeweled buckle with ruby
+		var buckle_pos = _fx_hat_base + Vector2(0, 1)
+		draw_circle(buckle_pos, 4.0, Color(0.06, 0.06, 0.08))
+		draw_circle(buckle_pos, 3.0, Color(0.95, 0.85, 0.25))
+		draw_circle(buckle_pos, 1.5, Color(0.85, 0.1, 0.1))  # Ruby
+		# Shimmer sparkles
+		for si in range(4):
+			var sp_a = _time * 2.0 + float(si) * TAU / 4.0
+			var sp_r = 6.0 + sin(_time * 3.0 + float(si)) * 2.0
+			var sp_pos = _fx_hat_tip + Vector2(cos(sp_a) * sp_r, sin(sp_a) * sp_r * 0.5)
+			draw_circle(sp_pos, 1.5, Color(1.0, 0.95, 0.5, 0.3 + sin(_time * 4.0 + float(si)) * 0.15))
+
+	# === GREEN MAGIC PARTICLES floating around ===
+	var particle_count = 4 + upgrade_tier * 2
+	for i in range(particle_count):
+		var phase = float(i) * TAU / float(particle_count)
+		var p_orbit_speed = 1.2 + float(i) * 0.25
+		var p_orbit_radius = 42.0 + float(i % 4) * 7.0
+		var px = cos(_time * p_orbit_speed + phase) * p_orbit_radius
+		var py = sin(_time * p_orbit_speed + phase) * p_orbit_radius * 0.6 + sin(_time * 2.5 + phase) * 5.0
+		var p_alpha = 0.25 + sin(_time * 3.0 + phase) * 0.12
+		var p_size = 3.0 + sin(_time * 2.0 + phase) * 0.8
+		var use_purple = (i % 3 == 0) and (upgrade_tier >= 2)
+		var p_col = Color(0.50, 0.20, 0.70, p_alpha * 0.7) if use_purple else Color(0.30, 0.85, 0.20, p_alpha)
+		# Glow halo
+		draw_circle(Vector2(px, py), p_size + 3.0, Color(p_col.r, p_col.g, p_col.b, p_alpha * 0.2))
+		# Core particle
+		draw_circle(Vector2(px, py), p_size, p_col)
+		# Bright center
+		draw_circle(Vector2(px, py), p_size * 0.35, Color(min(p_col.r + 0.3, 1.0), min(p_col.g + 0.15, 1.0), min(p_col.b + 0.3, 1.0), p_alpha * 0.7))
 
 	# === AWAITING ABILITY CHOICE INDICATOR ===
 	if awaiting_ability_choice:
