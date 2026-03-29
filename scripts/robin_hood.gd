@@ -6,9 +6,9 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Arrow — splash damage (40px), +50% gold, double pierce
 
 # Base stats
-var damage: float = 35.0
-var fire_rate: float = 1.5
-var attack_range: float = 220.0
+var damage: float = 25.0
+var fire_rate: float = 0.52
+var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0
 var sprite_texture: Texture2D = null
@@ -211,7 +211,7 @@ func _process(delta: float) -> void:
 		_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 		if fire_cooldown <= 0.0:
 			_shoot()
-			fire_cooldown = 1.0 / (fire_rate * _speed_mult())
+			fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
 			_draw_progress = 0.0
 			_attack_anim = 1.0
 	else:
@@ -248,7 +248,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -272,7 +272,7 @@ func _find_second_target(exclude: Node2D) -> Node2D:
 	return _find_target_by_priority(exclude)
 
 func _find_target_by_priority(exclude: Node2D) -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -394,7 +394,7 @@ func _spawn_sky_arrows() -> void:
 	if _horn_player and not _is_sfx_muted(): _horn_player.play()
 	_sky_arrow_flash = 1.0
 	_horn_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	if enemies.size() == 0:
 		return
 	var shuffled = enemies.duplicate()
@@ -458,7 +458,7 @@ func _update_sky_arrows(delta: float) -> void:
 func _trigger_sherwood_rising() -> void:
 	_sherwood_rising_flash = 2.0
 	if _horn_player and not _is_sfx_muted(): _horn_player.play()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	# Rain arrows on EVERY enemy on the map
 	for ei in range(enemies.size()):
 		var enemy = enemies[ei]
@@ -779,7 +779,7 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _merry_men_attack() -> void:
 	_merry_men_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
@@ -793,7 +793,7 @@ func _merry_men_attack() -> void:
 
 func _little_john_stun() -> void:
 	_little_john_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.5)
@@ -815,7 +815,7 @@ func _maid_marian_strike() -> void:
 	# Strike strongest enemy in range
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.health > most_hp:
 				most_hp = e.health
@@ -829,7 +829,7 @@ func _golden_arrow_strike() -> void:
 	_golden_arrow_flash = 1.0
 	# Pierce ALL enemies in a line from tower toward target direction
 	var dir = Vector2.from_angle(bow_angle)
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		# Check if enemy is roughly in the line (within 40px perpendicular distance)
 		var to_enemy = e.global_position - global_position
 		var proj = to_enemy.dot(dir)
@@ -845,7 +845,7 @@ func _king_sherwood_rain() -> void:
 	_king_sherwood_flash = 1.0
 	var rain_range = attack_range * _range_mult() * 2.5
 	# Deal 1.5x damage to enemies within 2.5x range
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < rain_range and e.has_method("take_damage"):
 			var dmg = damage * 1.5 * _damage_mult()
 			e.take_damage(dmg, "physical")
@@ -1196,7 +1196,7 @@ func _draw() -> void:
 	# === SPRITE RENDERING (animated character) ===
 	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
-		var _sf = 120.0 / _ss.y  # Render at 120px for clear chibi detail
+		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
 
 		# --- Idle: breathing + weight sway ---
@@ -1250,7 +1250,6 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
 	if not sprite_texture:
 		# === 14. CHARACTER BODY (Bloons TD cartoon style) ===
 
@@ -1748,7 +1747,7 @@ func activate_hero_ability() -> void:
 		return
 	# AoE stun all enemies in range for 2s
 	_little_john_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(2.0)

@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 3 (15000 DMG): "Chandelier" — periodic AoE burst (2x damage to all in range)
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
-var damage: float = 55.0
-var fire_rate: float = 0.7
+var damage: float = 35.0
+var fire_rate: float = 0.33
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -240,7 +240,7 @@ func _process(delta: float) -> void:
 			aim_angle = lerp_angle(aim_angle, desired, 8.0 * delta)
 			if fire_cooldown <= 0.0:
 				_shoot()
-				fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
+				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
 
 	# Update lasso pull animation
 	_update_lasso_pull(delta)
@@ -267,7 +267,7 @@ func _process(delta: float) -> void:
 					_main_node.trigger_lightning(global_position, end, Color(0.9, 0.3, 0.1), 0.3)
 				_main_node.trigger_explosion(global_position, 30, Color(0.9, 0.2, 0.05))
 			# Stun + damage ALL enemies
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(damage * 3.0, "physical")
 					register_damage(damage * 3.0)
@@ -288,7 +288,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -306,7 +306,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var max_range: float = attack_range * _range_mult()
 	# Ability 9: Beneath the Opera — unlimited range
 	if prog_abilities[8]:
@@ -387,7 +387,7 @@ func _trigger_lasso() -> void:
 		return
 	var closest: Node2D = null
 	var closest_dist: float = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		var dist = global_position.distance_to(enemy.global_position)
@@ -409,7 +409,7 @@ func _chandelier_drop() -> void:
 	_chandelier_flash = 1.5
 	var chandelier_dmg = damage * 2.0 * _damage_mult()
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - chandelier_dmg <= 0.0
@@ -489,7 +489,7 @@ func _update_melee_rush(delta: float) -> void:
 				_melee_slash_count = 0
 				# Deal damage to all enemies nearby
 				var sword_dmg = damage * 3.0 * _damage_mult()
-				for enemy in get_tree().get_nodes_in_group("enemies"):
+				for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 					if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 						if (_melee_home + _melee_pos).distance_to(enemy.global_position) < 55.0:
 							var will_kill = enemy.health - sword_dmg <= 0.0
@@ -763,7 +763,7 @@ func _process_progressive_abilities(delta: float) -> void:
 			_box_five_active -= delta
 			# Deal damage * delta to all enemies in range each frame (framerate-independent)
 			var eff_range_b5 = attack_range * _range_mult()
-			for e in get_tree().get_nodes_in_group("enemies"):
+			for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if global_position.distance_to(e.global_position) < eff_range_b5:
 					if e.has_method("take_damage"):
 						var dmg = damage * _damage_mult() * delta
@@ -799,7 +799,7 @@ func _process_progressive_abilities(delta: float) -> void:
 func _red_death_burst() -> void:
 	_red_death_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("apply_fear_reverse"):
 				e.apply_fear_reverse(2.0)
@@ -807,7 +807,7 @@ func _red_death_burst() -> void:
 func _christines_aria() -> void:
 	_christines_aria_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	for e in enemies:
 		if global_position.distance_to(e.global_position) < eff_range:
@@ -823,7 +823,7 @@ func _trap_door() -> void:
 	# Find weakest enemy in range
 	var weakest: Node2D = null
 	var lowest_hp: float = INF
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.health < lowest_hp:
 				lowest_hp = e.health
@@ -847,19 +847,19 @@ func _box_five_activate() -> void:
 
 func _underground_lake() -> void:
 	_underground_lake_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("apply_slow"):
 			e.apply_slow(0.4, 3.0)
 
 func _requiem_mass() -> void:
 	_requiem_mass_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("apply_sleep"):
 			e.apply_sleep(2.0)
 
 func _organs_fury() -> void:
 	_organs_fury_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if e.has_method("take_damage"):
 			var dmg = damage * 3.0 * _damage_mult()
 			e.take_damage(dmg, "magic")
@@ -1313,7 +1313,6 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
 	if not sprite_texture:
 		# === CHARACTER BODY (Bloons BTD6 style — bold outlines, chunky, saturated) ===
 		var OL = Color(0.06, 0.06, 0.08)
@@ -1948,7 +1947,7 @@ var active_ability_max_cd: float = 40.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if is_instance_valid(e) and e.has_method("apply_sleep"):
 			e.apply_sleep(2.0)
 	active_ability_ready = false

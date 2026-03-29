@@ -8,7 +8,7 @@ extends Node2D
 ## Tier 4: The Game is Afoot — legendary aura, all enemies auto-marked
 
 # Base stats
-var damage: float = 20.0  # Sherlock doesn't deal direct damage
+var damage: float = 0.0  # Sherlock doesn't deal direct damage
 var fire_rate: float = 0.0  # No direct attacks
 var attack_range: float = 188.0
 var fire_cooldown: float = 0.0
@@ -500,7 +500,7 @@ func _process(delta: float) -> void:
 		if _mind_palace_duration > 0.0:
 			_mind_palace_duration -= delta
 			# Mark ALL enemies on map (not just in range)
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(damage * 0.5 * delta, "magic")
 					register_damage(damage * 0.5 * delta)
@@ -514,7 +514,7 @@ func _process(delta: float) -> void:
 					pass  #_main_node.trigger_shockwave(global_position, 300.0, 250.0, Color(0.3, 0.5, 1.0))
 					_main_node.trigger_camera_shake(6.0, 0.25)
 					# Blue deduction lightning to every enemy
-					for enemy in get_tree().get_nodes_in_group("enemies"):
+					for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 						if is_instance_valid(enemy):
 							_main_node.trigger_lightning(global_position, enemy.global_position, Color(0.3, 0.6, 1.0), 0.25)
 
@@ -598,7 +598,7 @@ func _update_marks(delta: float) -> void:
 
 func _auto_mark_enemies() -> void:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -607,7 +607,7 @@ func _auto_mark_enemies() -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -625,7 +625,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -667,7 +667,7 @@ func get_targeting_label() -> String:
 	return "FIRST"
 
 func _find_strongest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var strongest: Node2D = null
 	var most_hp: float = 0.0
 	var eff_range_val = attack_range * _range_mult()
@@ -963,7 +963,7 @@ func _process_progressive_abilities(delta: float) -> void:
 
 func _observation_reveal() -> void:
 	_observation_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("reveal"):
 				e.reveal(4.0)
@@ -1004,7 +1004,7 @@ func _remove_watson_buff() -> void:
 
 func _violin_slow() -> void:
 	_violin_flash = 1.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("apply_slow"):
 				e.apply_slow(0.6, 3.0)
@@ -1014,7 +1014,7 @@ func _reichenbach_strike() -> void:
 	# Play dramatic crash sound (Bug #10)
 	if _reichenbach_gambit_player and not _is_sfx_muted():
 		_reichenbach_gambit_player.play()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if e.has_method("take_damage"):
 				# Bug #2: damage was 0 because base damage is 0.0. Use flat 50 base * 10 * mult
@@ -1073,7 +1073,7 @@ func _hound_attack() -> void:
 		nearest.take_damage(dmg * 3.0, "magic")
 		register_damage(dmg * 3.0)
 		# Fear: enemies near the target walk backwards for 2s
-		for e in get_tree().get_nodes_in_group("enemies"):
+		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if nearest.global_position.distance_to(e.global_position) < 60.0:
 				if e.has_method("apply_slow"):
 					e.apply_slow(-0.5, 2.0)  # Negative slow = walk backward
@@ -1101,7 +1101,7 @@ func _reichenbach_cascade() -> void:
 	_cascade_flash = 1.0
 	# Reichenbach Falls cascade — 5x damage to all in range + 2s stun
 	var eff_range_val = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range_val:
 			if e.has_method("take_damage"):
 				var dmg = 50.0 * 5.0 * _damage_mult()  # Base 50 × 5 = 250
@@ -1363,78 +1363,77 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
-	# === 11. CHARACTER POSITIONS (BTD6 chibi proportions) ===
-	var OL = Color(0.06, 0.06, 0.08)
-	var hip_sway = hip_shift
-	var chest_breathe = breathe
-	var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
-	var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
-	var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
-	var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
-	var head_center = body_offset + Vector2(hip_sway * 0.08, -26.0)
-
-	# Saturated color palette
-	var tweed_dark = Color(0.38, 0.26, 0.12)
-	var tweed_mid = Color(0.52, 0.38, 0.18)
-	var tweed_light = Color(0.62, 0.48, 0.26)
-	var trouser_col = Color(0.40, 0.32, 0.18)
-	var trouser_hi = Color(0.50, 0.40, 0.24)
-	var shirt_col = Color(0.94, 0.92, 0.88)
-	var shoe_col = Color(0.22, 0.14, 0.08)
-	var shoe_hi = Color(0.34, 0.22, 0.12)
-	var brass_col = Color(0.85, 0.68, 0.18)
-	var brass_hi = Color(1.0, 0.88, 0.35)
-
-	# === 12. TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body) ===
-
-	# Tier 1+: Faint golden motes around magnifying glass area
-	if upgrade_tier >= 1:
-		for li in range(4 + upgrade_tier):
-			var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
-			var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
-			var sparkle_pos = body_offset + Vector2(cos(la) * lr + 15.0, sin(la) * lr * 0.5 - 5.0)
-			var sparkle_alpha = 0.18 + sin(_time * 2.0 + float(li)) * 0.1
-			draw_circle(sparkle_pos, 1.5, Color(1.0, 0.90, 0.40, sparkle_alpha))
-			draw_circle(sparkle_pos, 0.7, Color(1.0, 0.95, 0.7, sparkle_alpha * 0.8))
-
-	# Tier 2+: Visible beam line from lens when targeting
-	if upgrade_tier >= 2 and target:
-		var beam_alpha = 0.08 + sin(_time * 4.0) * 0.04
-		var beam_end_t = (target.global_position - global_position).normalized() * 60.0
-		draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.92, 0.5, beam_alpha), 2.0)
-		draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.97, 0.8, beam_alpha * 0.5), 1.0)
-
-	# Tier 3+: Dual orbiting magnifying glass icons
-	if upgrade_tier >= 3:
-		for mi_vis in range(2):
-			var ma_vis = _time * 0.8 + float(mi_vis) * PI
-			var m_pos = body_offset + Vector2(cos(ma_vis) * 32.0, sin(ma_vis) * 12.0 - 5.0)
-			var m_alpha = 0.18 + sin(_time * 2.5 + float(mi_vis) * 1.5) * 0.1
-			pass  #draw_arc(m_pos, 4.0, 0, TAU, 10, Color(0.85, 0.72, 0.25, m_alpha), 1.2)
-			draw_line(m_pos + Vector2(3, 3), m_pos + Vector2(6, 6), Color(0.85, 0.72, 0.25, m_alpha * 0.7), 1.0)
-
-	# Tier 4: Floating evidence papers
-	if upgrade_tier >= 4:
-		for ep in range(6):
-			var ep_seed = float(ep) * 2.37
-			var ep_angle = _time * (0.4 + fmod(ep_seed, 0.3)) + ep_seed
-			var ep_radius = 35.0 + fmod(ep_seed * 5.3, 20.0)
-			var ep_pos = body_offset + Vector2(cos(ep_angle) * ep_radius, sin(ep_angle) * ep_radius * 0.6)
-			var ep_alpha = 0.25 + sin(_time * 2.0 + ep_seed * 2.0) * 0.12
-			var ep_rot = _time * 1.5 + ep_seed
-			var p_dir_e = Vector2.from_angle(ep_rot)
-			var p_perp_e = p_dir_e.rotated(PI / 2.0)
-			var paper_pts = PackedVector2Array([
-				ep_pos - p_dir_e * 3.5 - p_perp_e * 2.5,
-				ep_pos + p_dir_e * 3.5 - p_perp_e * 2.5,
-				ep_pos + p_dir_e * 3.5 + p_perp_e * 2.5,
-				ep_pos - p_dir_e * 3.5 + p_perp_e * 2.5,
-			])
-			draw_colored_polygon(paper_pts, Color(0.95, 0.92, 0.85, ep_alpha))
-			draw_line(ep_pos - p_dir_e * 2.0, ep_pos + p_dir_e * 1.5, Color(0.3, 0.3, 0.3, ep_alpha * 0.5), 0.6)
-
 	if not sprite_texture:
+		# === 11. CHARACTER POSITIONS (BTD6 chibi proportions) ===
+		var OL = Color(0.06, 0.06, 0.08)
+		var hip_sway = hip_shift
+		var chest_breathe = breathe
+		var feet_y = body_offset + Vector2(hip_sway * 1.0, 10.0)
+		var leg_top = body_offset + Vector2(hip_sway * 0.6, 0.0)
+		var torso_center = body_offset + Vector2(hip_sway * 0.3, -8.0 - chest_breathe * 0.5)
+		var neck_base = body_offset + Vector2(hip_sway * 0.15, -14.0 - chest_breathe * 0.3)
+		var head_center = body_offset + Vector2(hip_sway * 0.08, -26.0)
+
+		# Saturated color palette
+		var tweed_dark = Color(0.38, 0.26, 0.12)
+		var tweed_mid = Color(0.52, 0.38, 0.18)
+		var tweed_light = Color(0.62, 0.48, 0.26)
+		var trouser_col = Color(0.40, 0.32, 0.18)
+		var trouser_hi = Color(0.50, 0.40, 0.24)
+		var shirt_col = Color(0.94, 0.92, 0.88)
+		var shoe_col = Color(0.22, 0.14, 0.08)
+		var shoe_hi = Color(0.34, 0.22, 0.12)
+		var brass_col = Color(0.85, 0.68, 0.18)
+		var brass_hi = Color(1.0, 0.88, 0.35)
+
+		# === 12. TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body) ===
+
+		# Tier 1+: Faint golden motes around magnifying glass area
+		if upgrade_tier >= 1:
+			for li in range(4 + upgrade_tier):
+				var la = _time * (0.5 + fmod(float(li) * 1.37, 0.4)) + float(li) * TAU / float(4 + upgrade_tier)
+				var lr = 18.0 + fmod(float(li) * 3.7, 12.0)
+				var sparkle_pos = body_offset + Vector2(cos(la) * lr + 15.0, sin(la) * lr * 0.5 - 5.0)
+				var sparkle_alpha = 0.18 + sin(_time * 2.0 + float(li)) * 0.1
+				draw_circle(sparkle_pos, 1.5, Color(1.0, 0.90, 0.40, sparkle_alpha))
+				draw_circle(sparkle_pos, 0.7, Color(1.0, 0.95, 0.7, sparkle_alpha * 0.8))
+
+		# Tier 2+: Visible beam line from lens when targeting
+		if upgrade_tier >= 2 and target:
+			var beam_alpha = 0.08 + sin(_time * 4.0) * 0.04
+			var beam_end_t = (target.global_position - global_position).normalized() * 60.0
+			draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.92, 0.5, beam_alpha), 2.0)
+			draw_line(body_offset + Vector2(18, -8), beam_end_t, Color(1.0, 0.97, 0.8, beam_alpha * 0.5), 1.0)
+
+		# Tier 3+: Dual orbiting magnifying glass icons
+		if upgrade_tier >= 3:
+			for mi_vis in range(2):
+				var ma_vis = _time * 0.8 + float(mi_vis) * PI
+				var m_pos = body_offset + Vector2(cos(ma_vis) * 32.0, sin(ma_vis) * 12.0 - 5.0)
+				var m_alpha = 0.18 + sin(_time * 2.5 + float(mi_vis) * 1.5) * 0.1
+				pass  #draw_arc(m_pos, 4.0, 0, TAU, 10, Color(0.85, 0.72, 0.25, m_alpha), 1.2)
+				draw_line(m_pos + Vector2(3, 3), m_pos + Vector2(6, 6), Color(0.85, 0.72, 0.25, m_alpha * 0.7), 1.0)
+
+		# Tier 4: Floating evidence papers
+		if upgrade_tier >= 4:
+			for ep in range(6):
+				var ep_seed = float(ep) * 2.37
+				var ep_angle = _time * (0.4 + fmod(ep_seed, 0.3)) + ep_seed
+				var ep_radius = 35.0 + fmod(ep_seed * 5.3, 20.0)
+				var ep_pos = body_offset + Vector2(cos(ep_angle) * ep_radius, sin(ep_angle) * ep_radius * 0.6)
+				var ep_alpha = 0.25 + sin(_time * 2.0 + ep_seed * 2.0) * 0.12
+				var ep_rot = _time * 1.5 + ep_seed
+				var p_dir_e = Vector2.from_angle(ep_rot)
+				var p_perp_e = p_dir_e.rotated(PI / 2.0)
+				var paper_pts = PackedVector2Array([
+					ep_pos - p_dir_e * 3.5 - p_perp_e * 2.5,
+					ep_pos + p_dir_e * 3.5 - p_perp_e * 2.5,
+					ep_pos + p_dir_e * 3.5 + p_perp_e * 2.5,
+					ep_pos - p_dir_e * 3.5 + p_perp_e * 2.5,
+				])
+				draw_colored_polygon(paper_pts, Color(0.95, 0.92, 0.85, ep_alpha))
+				draw_line(ep_pos - p_dir_e * 2.0, ep_pos + p_dir_e * 1.5, Color(0.3, 0.3, 0.3, ep_alpha * 0.5), 0.6)
+
 		# === 13. CHARACTER BODY (BTD6 Cartoon Style) ===
 
 		# --- CHUNKY SHOES (brown leather) ---
@@ -1926,8 +1925,8 @@ func _draw() -> void:
 		if upgrade_tier >= 4:
 			draw_circle(hat_base_y + Vector2(0, -5), 18.0, Color(1.0, 0.90, 0.45, 0.05 + sin(_time * 2.0) * 0.03))
 
-		# === Tier 4: Golden-amber aura around whole character ===
-		if upgrade_tier >= 4:
+	# === Tier 4: Golden-amber aura around whole character ===
+	if upgrade_tier >= 4:
 		var t4_aura_pulse = sin(_time * 2.5) * 5.0
 		pass  #draw_arc(body_offset, 56.0 + t4_aura_pulse, 0, TAU, 24, Color(0.85, 0.72, 0.25, 0.15), 5.0)
 		pass  #draw_arc(body_offset, 46.0 + t4_aura_pulse * 0.5, 0, TAU, 20, Color(1.0, 0.90, 0.45, 0.08), 3.0)
@@ -2004,7 +2003,7 @@ var active_ability_max_cd: float = 30.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var strongest = null
 	var max_hp = 0.0
 	for e in enemies:

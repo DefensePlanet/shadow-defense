@@ -7,8 +7,8 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Chapter — chain +2, %maxHP + execute low HP
 
 # Base stats
-var damage: float = 45.0
-var fire_rate: float = 1.0
+var damage: float = 30.0
+var fire_rate: float = 0.72
 var attack_range: float = 170.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -344,7 +344,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -362,7 +362,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -447,7 +447,7 @@ func _attack() -> void:
 	# Ability 3: Page Tear — AoE every 5th attack
 	if prog_abilities[3] and _attack_count % 5 == 0:
 		var aoe_range = 60.0
-		for enemy in get_tree().get_nodes_in_group("enemies"):
+		for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if not enemy in hit_enemies and global_position.distance_to(enemy.global_position) < aoe_range + attack_range * _range_mult():
 				if enemy.has_method("take_damage"):
 					var aoe_dmg = eff_damage * 0.5
@@ -480,7 +480,7 @@ func _apply_chain_effects(enemy: Node2D, dmg: float) -> void:
 func _find_chain_target(from_pos: Vector2, exclude: Array) -> Node2D:
 	var best: Node2D = null
 	var best_dist: float = CHAIN_SEARCH_RANGE
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy in exclude:
 			continue
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
@@ -496,7 +496,7 @@ func _find_chain_target(from_pos: Vector2, exclude: Array) -> Node2D:
 # T2: Plot Twist — reverse enemies backward on the path
 func _plot_twist() -> void:
 	_plot_twist_flash = 1.0
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var in_range: Array = []
 	var eff_range = attack_range * _range_mult() * 1.2
 	for enemy in enemies:
@@ -549,7 +549,7 @@ func _update_ghosts(delta: float) -> void:
 			# Find and attack nearest enemy
 			var nearest: Node2D = null
 			var nearest_dist: float = 150.0
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("is_targetable") and not enemy.is_targetable():
 					continue
 				var dist = Vector2(g["pos"]).distance_to(enemy.global_position)
@@ -582,7 +582,7 @@ func _the_final_chapter() -> void:
 	_final_chapter_flash = 1.0
 	_final_chapter_book_open = 1.5
 	var eff_range = attack_range * _range_mult() * 1.8
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if not is_instance_valid(enemy):
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -620,7 +620,7 @@ func _ink_storm() -> void:
 	_ink_storm_flash = 1.0
 	var storm_dmg = damage * 1.5 * _damage_mult()
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(storm_dmg, "magic")
@@ -633,12 +633,12 @@ func _rewrite_reality() -> void:
 	var effect = randi() % 4
 	match effect:
 		0:  # Mass slow
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("apply_slow"):
 					enemy.apply_slow(0.3, 5.0)
 		1:  # Mass damage
 			var burst_dmg = damage * 3.0 * _damage_mult()
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(burst_dmg, "magic")
 					register_damage(burst_dmg)
@@ -647,7 +647,7 @@ func _rewrite_reality() -> void:
 			if main and main.has_method("add_gold"):
 				main.add_gold(50)
 		3:  # Execute low HP enemies
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.health / enemy.max_health < 0.2:
 					if enemy.has_method("take_damage"):
 						enemy.take_damage(enemy.health + 1.0, "true")
@@ -864,7 +864,7 @@ func activate_hero_ability() -> void:
 		return
 	_narrative_collapse_flash = 1.5
 	var total_hero_dmg: float = 0.0
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if is_instance_valid(e) and e.has_method("take_damage"):
 			var dmg = damage * 10.0 * _damage_mult()
 			e.take_damage(dmg, "magic")
@@ -1038,39 +1038,38 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
-	# === 12. CLOAK/ROBE BODY ===
-	var cloak_pts = PackedVector2Array()
-	cloak_pts.append(body_offset + Vector2(-10, -28))
-	cloak_pts.append(body_offset + Vector2(-13, -10))
-	cloak_pts.append(body_offset + Vector2(-15, 8))
-	cloak_pts.append(body_offset + Vector2(-12, 20 + sin(_time * 2.0) * 2.0))
-	cloak_pts.append(body_offset + Vector2(-5, 22 + sin(_time * 2.5 + 1.0) * 1.5))
-	cloak_pts.append(body_offset + Vector2(0, 21 + sin(_time * 3.0) * 1.0))
-	cloak_pts.append(body_offset + Vector2(5, 22 + sin(_time * 2.5 + 2.0) * 1.5))
-	cloak_pts.append(body_offset + Vector2(12, 20 + sin(_time * 2.0 + 1.5) * 2.0))
-	cloak_pts.append(body_offset + Vector2(15, 8))
-	cloak_pts.append(body_offset + Vector2(13, -10))
-	cloak_pts.append(body_offset + Vector2(10, -28))
-	var cloak_color = Color(0.06, 0.02, 0.1, 0.9)
-	if upgrade_tier >= 4:
-		cloak_color = Color(0.08, 0.03, 0.14, 0.95)
-	draw_colored_polygon(cloak_pts, cloak_color)
-	for i in range(cloak_pts.size() - 1):
-		draw_line(cloak_pts[i], cloak_pts[i + 1], Color(0.25, 0.1, 0.35, 0.4), 1.0)
-
-	# === 13. HOOD ===
-	var hood_pts = PackedVector2Array()
-	hood_pts.append(body_offset + Vector2(-12, -27))
-	hood_pts.append(body_offset + Vector2(0, -42))
-	hood_pts.append(body_offset + Vector2(12, -27))
-	hood_pts.append(body_offset + Vector2(7, -22))
-	hood_pts.append(body_offset + Vector2(-7, -22))
-	draw_colored_polygon(hood_pts, Color(0.04, 0.01, 0.08, 0.95))
-	draw_line(hood_pts[0], hood_pts[1], Color(0.3, 0.12, 0.4, 0.5), 1.0)
-	draw_line(hood_pts[1], hood_pts[2], Color(0.3, 0.12, 0.4, 0.5), 1.0)
-
 	if not sprite_texture:
+		# === 12. CLOAK/ROBE BODY ===
+		var cloak_pts = PackedVector2Array()
+		cloak_pts.append(body_offset + Vector2(-10, -28))
+		cloak_pts.append(body_offset + Vector2(-13, -10))
+		cloak_pts.append(body_offset + Vector2(-15, 8))
+		cloak_pts.append(body_offset + Vector2(-12, 20 + sin(_time * 2.0) * 2.0))
+		cloak_pts.append(body_offset + Vector2(-5, 22 + sin(_time * 2.5 + 1.0) * 1.5))
+		cloak_pts.append(body_offset + Vector2(0, 21 + sin(_time * 3.0) * 1.0))
+		cloak_pts.append(body_offset + Vector2(5, 22 + sin(_time * 2.5 + 2.0) * 1.5))
+		cloak_pts.append(body_offset + Vector2(12, 20 + sin(_time * 2.0 + 1.5) * 2.0))
+		cloak_pts.append(body_offset + Vector2(15, 8))
+		cloak_pts.append(body_offset + Vector2(13, -10))
+		cloak_pts.append(body_offset + Vector2(10, -28))
+		var cloak_color = Color(0.06, 0.02, 0.1, 0.9)
+		if upgrade_tier >= 4:
+			cloak_color = Color(0.08, 0.03, 0.14, 0.95)
+		draw_colored_polygon(cloak_pts, cloak_color)
+		for i in range(cloak_pts.size() - 1):
+			draw_line(cloak_pts[i], cloak_pts[i + 1], Color(0.25, 0.1, 0.35, 0.4), 1.0)
+
+		# === 13. HOOD ===
+		var hood_pts = PackedVector2Array()
+		hood_pts.append(body_offset + Vector2(-12, -27))
+		hood_pts.append(body_offset + Vector2(0, -42))
+		hood_pts.append(body_offset + Vector2(12, -27))
+		hood_pts.append(body_offset + Vector2(7, -22))
+		hood_pts.append(body_offset + Vector2(-7, -22))
+		draw_colored_polygon(hood_pts, Color(0.04, 0.01, 0.08, 0.95))
+		draw_line(hood_pts[0], hood_pts[1], Color(0.3, 0.12, 0.4, 0.5), 1.0)
+		draw_line(hood_pts[1], hood_pts[2], Color(0.3, 0.12, 0.4, 0.5), 1.0)
+
 		# === 14. HOOD INTERIOR — pure darkness, no face ===
 		draw_colored_polygon(PackedVector2Array([
 			body_offset + Vector2(-7, -22), body_offset + Vector2(0, -38),
@@ -1185,19 +1184,19 @@ func _draw() -> void:
 				var tgt_local = Vector2(g["target_pos"]) - global_position
 				draw_line(gp, tgt_local, Color(0.3, 0.5, 0.9, ghost_alpha * 0.3), 1.5)
 
-		# === 19. SHIELD INDICATOR ===
-		if _shield_active:
+	# === 19. SHIELD INDICATOR ===
+	if _shield_active:
 		var shield_pulse = (sin(_time * 5.0) + 1.0) * 0.5
 		pass  #draw_arc(body_offset, 20.0 + shield_pulse * 3.0, 0, TAU, 24, Color(0.4, 0.2, 0.7, 0.3 + shield_pulse * 0.2), 2.0)
 
-		# === 20. CLONE INDICATOR ===
-		if _clone_active:
+	# === 20. CLONE INDICATOR ===
+	if _clone_active:
 		var ghost_offset1 = body_offset + Vector2(-8, 0)
 		var ghost_offset2 = body_offset + Vector2(8, 0)
 		draw_circle(ghost_offset1, 8.0, Color(0.15, 0.05, 0.2, 0.2))
 		draw_circle(ghost_offset2, 8.0, Color(0.15, 0.05, 0.2, 0.2))
 
-		pass # Tier evolution effects removed
+	pass # Tier evolution effects removed
 
 	# === 21. CHAIN COUNT INDICATOR ===
 	if upgrade_tier > 0:

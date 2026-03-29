@@ -6,8 +6,8 @@ extends Node2D
 ## Tier 4: King of the Apes — 3 more apes join, throw enemies back to start
 
 # Base stats (bomb tower: slow but powerful)
-var damage: float = 50.0
-var fire_rate: float = 0.9
+var damage: float = 46.0
+var fire_rate: float = 0.33
 var attack_range: float = 120.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
@@ -238,7 +238,7 @@ func _process(delta: float) -> void:
 			_draw_progress = min(_draw_progress + delta * 3.0, 1.0)
 			if fire_cooldown <= 0.0:
 				_attack()
-				fire_cooldown = 1.0 / (fire_rate * _speed_mult())  # Cap: 1 beat at 90 BPM
+				fire_cooldown = maxf(1.0 / (fire_rate * _speed_mult()), 0.667)  # Cap: 1 beat at 90 BPM
 				_draw_progress = 0.0
 				_attack_anim = 1.0
 		else:
@@ -255,7 +255,7 @@ func _process(delta: float) -> void:
 
 	# Process animal allies — move toward enemies, punch them
 	var to_remove: Array = []
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	for i in range(_animal_allies.size()):
 		_animal_allies[i]["timer"] -= delta
 		_animal_allies[i]["punch_anim"] = maxf(_animal_allies[i]["punch_anim"] - delta * 4.0, 0.0)
@@ -322,7 +322,7 @@ func _process(delta: float) -> void:
 					var offset = Vector2(randf_range(-100, 100), randf_range(-50, 50))
 					pass  #_main_node.trigger_shockwave(global_position + offset, 150.0, 400.0, Color(0.6, 0.5, 0.2))
 			# Stampede damages ALL enemies heavily
-			for enemy in get_tree().get_nodes_in_group("enemies"):
+			for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 				if enemy.has_method("take_damage"):
 					enemy.take_damage(damage * 3.5, "physical")
 					register_damage(damage * 3.5)
@@ -343,7 +343,7 @@ func _process(delta: float) -> void:
 
 func _has_enemies_in_range() -> bool:
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
 		if global_position.distance_to(enemy.global_position) < eff_range:
@@ -361,7 +361,7 @@ func _is_sfx_muted() -> bool:
 	return main and main.get("sfx_muted") == true
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
 	var best: Node2D = null
 	var max_range: float = attack_range * _range_mult()
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
@@ -479,7 +479,7 @@ func _vine_swing_smash() -> void:
 	# Prog ability 1: Jungle Instinct — +20% damage
 	if prog_abilities[0]:
 		dmg *= 1.2
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("take_damage"):
 				var will_kill = enemy.health - dmg <= 0.0
@@ -546,7 +546,7 @@ func use_ability() -> void:
 
 	# Stun all enemies in range for 2s
 	var eff_range = attack_range * _range_mult()
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(enemy.global_position) < eff_range:
 			if enemy.has_method("apply_sleep"):
 				enemy.apply_sleep(2.0)
@@ -773,7 +773,7 @@ func _process_progressive_abilities(delta: float) -> void:
 				e.is_shadow_infested = true
 		_predator_sense_revealed = still_revealed
 		# Reveal new shadow-infested enemies entering range
-		for e in get_tree().get_nodes_in_group("enemies"):
+		for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 			if is_instance_valid(e) and "is_shadow_infested" in e and e.is_shadow_infested:
 				if global_position.distance_to(e.global_position) < sense_range:
 					e.is_shadow_infested = false
@@ -842,7 +842,7 @@ func _mangani_war_cry() -> void:
 	if _yell_player and not _is_sfx_muted():
 		_yell_player.play()
 	var cry_range = attack_range * _range_mult() * 2.5
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < cry_range:
 			if e.has_method("apply_sleep"):
 				e.apply_sleep(1.0)
@@ -850,7 +850,7 @@ func _mangani_war_cry() -> void:
 func _opar_strike() -> void:
 	_opar_flash = 1.0
 	var eff_range = attack_range * _range_mult()
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < eff_range:
 			if e.has_method("take_damage"):
 				var dmg = damage * 6.0 * _damage_mult()
@@ -1562,7 +1562,6 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	# === ABILITY EFFECTS + PROCEDURAL FALLBACK ===
 	if not sprite_texture:
 		# === 11. CHARACTER BODY — BLOONS TD6 CARTOON STYLE ===
 		var breath = breathe
@@ -2040,8 +2039,8 @@ func _draw() -> void:
 		draw_line(head_center + Vector2(2.0, 7.5), head_center + Vector2(3.5, 9.0), OL, 1.8)
 		draw_line(head_center + Vector2(2.2, 7.7), head_center + Vector2(3.3, 8.8), Color(0.82, 0.58, 0.46), 1.0)
 
-		# === Tier 4: King of the Apes — golden crown + primal aura ===
-		if upgrade_tier >= 4:
+	# === Tier 4: King of the Apes — golden crown + primal aura ===
+	if upgrade_tier >= 4:
 		var aura_pulse = sin(_time * 2.0) * 4.0
 		# Golden primal aura
 		pass  #draw_arc(body_offset, 50.0 + aura_pulse, 0, TAU, 24, Color(0.85, 0.72, 0.25, 0.12), 4.0)
@@ -2133,7 +2132,7 @@ var active_ability_max_cd: float = 30.0
 func activate_hero_ability() -> void:
 	if not active_ability_ready:
 		return
-	for e in get_tree().get_nodes_in_group("enemies"):
+	for e in (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies")):
 		if global_position.distance_to(e.global_position) < attack_range * _range_mult():
 			if is_instance_valid(e) and e.has_method("take_damage"):
 				var dmg = damage * 3.0 * _damage_mult()
