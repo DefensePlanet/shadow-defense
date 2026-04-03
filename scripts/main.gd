@@ -10422,7 +10422,7 @@ func _draw_boss_kill_ceremony() -> void:
 	if _boss_kill_slowmo > 0.0:
 		var font = game_font
 		var alpha = minf(_boss_kill_slowmo, 1.0)
-		_udraw(font, Vector2(340, 300), _boss_kill_name + " DEFEATED!", HORIZONTAL_ALIGNMENT_CENTER, 600, 28, Color(0.95, 0.75, 0.1, alpha))
+		_ds_outlined_text(Vector2(640, 300), _boss_kill_name + " DEFEATED!", 30, Color(0.95, 0.78, 0.12, alpha), 600, HORIZONTAL_ALIGNMENT_CENTER, 3)
 		# Radial burst at kill position
 		for bi in range(12):
 			var ba = float(bi) * TAU / 12.0
@@ -12581,10 +12581,9 @@ func _draw_chest_opening() -> void:
 			# MASSIVE glow behind text
 			draw_circle(Vector2(cx, 120), 120.0, _ca(c_gold_bright, 0.06 + pulse * 0.04))
 			draw_circle(Vector2(cx, 120), 60.0, _ca(c_gold_bright, 0.10 + pulse * 0.06))
-			# Triple-layer text: shadow + bright + glow
-			_udraw(font, Vector2(cx - vic_w * 0.5 + 3, 133), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(0, 0, 0, 0.7))
+			# Triple-layer text: shadow + outlined Bloons style + glow
 			var vp = 0.85 + pulse * 0.15
-			_udraw(font, Vector2(cx - vic_w * 0.5, 130), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(1.0 * vp, 0.88 * vp, 0.25, 1.0))
+			_ds_outlined_text(Vector2(cx, 130), vic_text, 52, Color(1.0 * vp, 0.88 * vp, 0.25, 1.0), -1, HORIZONTAL_ALIGNMENT_CENTER, 4)
 			_udraw(font, Vector2(cx - vic_w * 0.5 - 1, 129), vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color(1.0, 0.95, 0.5, 0.25 * vp))
 		# Star display — large, animated victory stars
 		if victory_chest_active:
@@ -14418,12 +14417,11 @@ func _draw_survivor_detail() -> void:
 
 	# === TOP BAR (34px) ===
 	var top_y = panel_y + 8.0
-	_udraw(font, Vector2(panel_x + 20 - x_offset, top_y + 16), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, _ca(menu_gold, 0.7 * content_alpha))
+	_ds_button(Rect2(panel_x + 10 - x_offset, top_y + 2, 90, 28), "< BACK", Color(0.25, 0.18, 0.10), false, 13)
 	var char_name = info["name"].to_upper()
-	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
 	var name_cx = panel_x + 240.0
-	_udraw(font, Vector2(name_cx - name_w * 0.5 + 1, top_y + 21), char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(0, 0, 0, 0.4 * content_alpha))
-	_udraw(font, Vector2(name_cx - name_w * 0.5, top_y + 20), char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, _ca(menu_parchment, content_alpha))
+	_ds_outlined_text(Vector2(name_cx - name_w * 0.5, top_y + 22), char_name, 28, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, content_alpha), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 	# Level badge star (next to name)
 	var badge_cx = name_cx + name_w * 0.5 + 24.0
 	var badge_cy = top_y + 14.0
@@ -14513,12 +14511,13 @@ func _draw_survivor_detail() -> void:
 	var xp_w = port_w
 	var xp_h = 22.0
 	var xp_ratio = clamp(progress["xp"] / max(progress["xp_next"], 1.0), 0.0, 1.0)
-	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), Color(0.08, 0.07, 0.14, content_alpha))
-	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), _ca(accent, 0.35 * content_alpha), false, 2.0)
+	draw_colored_polygon(_rrp(Rect2(port_x, xp_y, xp_w, xp_h), 6.0), Color(0.08, 0.07, 0.14, content_alpha))
+	draw_colored_polygon(_rrp(Rect2(port_x - 1.5, xp_y - 1.5, xp_w + 3, xp_h + 3), 7.5), _ca(accent, 0.35 * content_alpha))
+	draw_colored_polygon(_rrp(Rect2(port_x, xp_y, xp_w, xp_h), 6.0), Color(0.08, 0.07, 0.14, content_alpha))
 	if xp_ratio > 0:
 		var fill_w = (xp_w - 4) * xp_ratio
-		draw_rect(Rect2(port_x + 2, xp_y + 2, fill_w, xp_h - 4), _ca(c_gold, 0.8 * content_alpha))
-		draw_rect(Rect2(port_x + 2, xp_y + 2, fill_w, (xp_h - 4) * 0.35), Color(1, 1, 1, 0.15 * content_alpha))
+		draw_colored_polygon(_rrp(Rect2(port_x + 2, xp_y + 2, fill_w, xp_h - 4), 5.0), _ca(c_gold, 0.8 * content_alpha))
+		draw_colored_polygon(_rrp(Rect2(port_x + 2, xp_y + 2, fill_w, (xp_h - 4) * 0.35), 5.0), Color(1, 1, 1, 0.15 * content_alpha))
 		# XP shimmer sweep
 		var shimmer_pos = fmod(_time * 0.5, 1.0)
 		var shimmer_x = port_x + 2 + fill_w * shimmer_pos
@@ -14534,25 +14533,19 @@ func _draw_survivor_detail() -> void:
 	var levelup_btn_y = xp_y + xp_h + 2.0
 	var levelup_btn_h = 26.0
 	if char_level >= MAX_SURVIVOR_LEVEL:
-		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.12 * content_alpha))
-		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.3 * content_alpha), false, 1.0)
+		_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.12 * content_alpha), _ca(c_gold, 0.3 * content_alpha), 1.5, 6.0)
 		var max_str = "MAX LEVEL REACHED"
-		var max_w2 = font.get_string_size(max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		_udraw(font, Vector2(port_x + (xp_w - max_w2) * 0.5, levelup_btn_y + 17), max_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold, 0.7 * content_alpha))
+		_ds_outlined_text(Vector2(port_x + xp_w * 0.5, levelup_btn_y + 17), max_str, 13, _ca(c_gold, 0.7 * content_alpha), int(xp_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
 		var lvup_cost = _get_levelup_cost(char_level)
 		var can_afford = player_quills >= lvup_cost
 		var is_lvup_hover = (detail_hover_type == "levelup")
-		var btn_bg = _ca(c_gold, (0.25 if is_lvup_hover else 0.12) * content_alpha) if can_afford else Color(0.3, 0.3, 0.3, 0.15 * content_alpha)
-		var btn_border = _ca(c_gold, (0.7 if is_lvup_hover else 0.4) * content_alpha) if can_afford else Color(0.4, 0.4, 0.4, 0.3 * content_alpha)
-		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), btn_bg)
-		draw_rect(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), btn_border, false, 1.5)
-		if is_lvup_hover and can_afford:
-			draw_rect(Rect2(port_x + 1, levelup_btn_y + 1, xp_w - 2, (levelup_btn_h - 2) * 0.4), Color(1, 1, 1, 0.06 * content_alpha))
 		var lvup_str = "LEVEL UP  \u2014  %d Quills" % lvup_cost
-		var lvup_tw2 = font.get_string_size(lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		var lvup_col = _ca(c_gold, 0.9 * content_alpha) if can_afford else Color(0.5, 0.48, 0.55, 0.6 * content_alpha)
-		_udraw(font, Vector2(port_x + (xp_w - lvup_tw2) * 0.5, levelup_btn_y + 17), lvup_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, lvup_col)
+		if can_afford:
+			_ds_button(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), lvup_str, Color(0.55, 0.42, 0.08), is_lvup_hover, 13)
+		else:
+			_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.15, 0.15, 0.15, 0.4 * content_alpha), Color(0.3, 0.3, 0.3, 0.3 * content_alpha), 1.5, 6.0)
+			_ds_outlined_text(Vector2(port_x + xp_w * 0.5, levelup_btn_y + 17), lvup_str, 13, Color(0.5, 0.48, 0.55, 0.6 * content_alpha), int(xp_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	# ================================================================
 	# RIGHT SIDE: Tab System
@@ -14572,16 +14565,22 @@ func _draw_survivor_detail() -> void:
 		var tx = tab_strip_x + float(ti) * (tab_w + tab_gap)
 		var is_active = (detail_active_tab == ti)
 		var is_tab_hover = (detail_hover_type == "tab" and detail_hover_index == ti)
-		# Tab background
-		var tab_bg_alpha = 0.15 if is_active else (0.08 if is_tab_hover else 0.04)
-		draw_rect(Rect2(tx, tab_strip_y, tab_w, 32), _ca(accent, tab_bg_alpha * content_alpha))
-		# Active underline
+		# Tab background — rounded panel
 		if is_active:
-			draw_rect(Rect2(tx, tab_strip_y + 30, tab_w, 2), _ca(menu_gold, 0.9 * content_alpha))
-		# Tab label
-		var tab_label_w = font.get_string_size(tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		var tab_col = menu_gold if is_active else _ca(menu_text_muted, 0.7)
-		_udraw(font, Vector2(tx + (tab_w - tab_label_w) * 0.5, tab_strip_y + 22), tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(tab_col.r, tab_col.g, tab_col.b, content_alpha))
+			_ds_panel(Rect2(tx, tab_strip_y, tab_w, 32), _ca(accent, 0.18 * content_alpha), _ca(menu_gold, 0.6 * content_alpha), 1.5, 6.0)
+		elif is_tab_hover:
+			draw_colored_polygon(_rrp(Rect2(tx, tab_strip_y, tab_w, 32), 6.0), _ca(accent, 0.10 * content_alpha))
+		else:
+			draw_colored_polygon(_rrp(Rect2(tx, tab_strip_y, tab_w, 32), 6.0), _ca(accent, 0.04 * content_alpha))
+		# Active underline (gold bar)
+		if is_active:
+			draw_colored_polygon(_rrp(Rect2(tx + 4, tab_strip_y + 29, tab_w - 8, 3), 1.5), _ca(menu_gold, 0.9 * content_alpha))
+		# Tab label — outlined text for active
+		if is_active:
+			_ds_outlined_text(Vector2(tx + tab_w * 0.5, tab_strip_y + 22), tab_names[ti], 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, content_alpha), int(tab_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		else:
+			var tab_col = _ca(menu_text_muted, 0.7)
+			_udraw(font, Vector2(tx + (tab_w - font.get_string_size(tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x) * 0.5, tab_strip_y + 22), tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(tab_col.r, tab_col.g, tab_col.b, content_alpha))
 
 	# --- Tab content area (frosted panel) ---
 	_draw_frosted_panel(Rect2(tab_content_x, tab_content_y, tab_content_w, tab_content_h), accent, 0.04 * content_alpha)
@@ -14613,13 +14612,11 @@ func _draw_survivor_detail() -> void:
 		for ai in range(mini(abil_data.size(), 4)):
 			var ay = abil_cy + float(ai) * (card_height + card_gap_v)
 			var is_abil_hover = (detail_hover_type == "ability" and detail_hover_index == ai)
-			# Frosted card background
+			# Frosted card background — rounded
 			var card_bg = Color(0.10, 0.09, 0.18, 0.82 * tab_alpha) if not is_abil_hover else Color(0.14, 0.12, 0.24, 0.92 * tab_alpha)
-			draw_rect(Rect2(abil_cx, ay, card_width, card_height), card_bg)
-			# Accent left stripe
-			draw_rect(Rect2(abil_cx, ay, 4, card_height), _ca(accent, 0.6 * tab_alpha))
-			# Top edge highlight
-			draw_rect(Rect2(abil_cx, ay, card_width, 1), Color(1, 1, 1, 0.04 * tab_alpha))
+			_ds_panel(Rect2(abil_cx, ay, card_width, card_height), card_bg, _ca(accent, 0.35 * tab_alpha), 1.5, 8.0)
+			# Accent left stripe (rounded)
+			draw_colored_polygon(_rrp(Rect2(abil_cx, ay + 4, 4, card_height - 8), 2.0), _ca(accent, 0.6 * tab_alpha))
 			# 40px icon circle
 			var icon_cx = abil_cx + 32.0
 			var icon_cy = ay + 30.0
@@ -14633,7 +14630,7 @@ func _draw_survivor_detail() -> void:
 			_draw_ability_icon(Vector2(icon_cx, icon_cy), ai, accent)
 			# Name + cost top row
 			var a_name = abil_data[ai].get("name", "Tier %d" % (ai + 1))
-			_udraw(font, Vector2(abil_cx + 58, ay + 20), a_name, HORIZONTAL_ALIGNMENT_LEFT, int(card_width - 140), 15, _ca(menu_parchment, 0.95 * tab_alpha))
+			_ds_outlined_text(Vector2(abil_cx + 58, ay + 20), a_name, 15, _ca(menu_parchment, 0.95 * tab_alpha), int(card_width - 140), HORIZONTAL_ALIGNMENT_LEFT, 1)
 			var cost_str = "%dG" % abil_data[ai].get("cost", 0)
 			var cost_w = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 			_udraw(font, Vector2(abil_cx + card_width - cost_w - 12, ay + 20), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(c_gold, 0.7 * tab_alpha))
@@ -18798,18 +18795,19 @@ func _draw_wave_preview() -> void:
 	var ph = 80.0
 	# Rounded crimson panel
 	_ds_panel(Rect2(px, py, pw, ph), Color(0.10, 0.07, 0.14, 0.93), Color(0.7, 0.15, 0.1, 0.8), 3.0, 10.0)
-	# Title
-	_udraw(font, Vector2(px, py + 18), "NEXT WAVE: %d" % (wave + 1), HORIZONTAL_ALIGNMENT_CENTER, int(pw), 16, Color(1.0, 0.85, 0.3))
+	# Title — outlined Bloons style
+	_ds_outlined_text(Vector2(px + pw * 0.5, py + 18), "NEXT WAVE: %d" % (wave + 1), 18, Color(1.0, 0.88, 0.3), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Enemy info
 	var info_parts: Array = []
 	for wd in wave_preview_data:
 		info_parts.append("%dx T%d" % [wd.get("count", 0), wd.get("tier", 0)])
 	var info_text = " | ".join(info_parts)
 	_udraw(font, Vector2(px, py + 40), info_text, HORIZONTAL_ALIGNMENT_CENTER, int(pw), 13, Color(0.9, 0.85, 0.8))
-	# Timer bar
+	# Timer bar — rounded
 	var bar_pct = clampf(wave_preview_timer / 3.0, 0.0, 1.0)
-	draw_rect(Rect2(px + 10, py + ph - 14, (pw - 20) * bar_pct, 6), Color(0.8, 0.65, 0.2, 0.7))
-	draw_rect(Rect2(px + 10, py + ph - 14, pw - 20, 6), Color(0.4, 0.3, 0.2, 0.3))
+	draw_colored_polygon(_rrp(Rect2(px + 10, py + ph - 14, pw - 20, 6), 3.0), Color(0.4, 0.3, 0.2, 0.3))
+	if bar_pct > 0.01:
+		draw_colored_polygon(_rrp(Rect2(px + 10, py + ph - 14, (pw - 20) * bar_pct, 6), 3.0), Color(0.8, 0.65, 0.2, 0.7))
 	# Modifier badges
 	if wave_preview_data.size() > 0:
 		var mods = wave_preview_data[0].get("modifiers", [])
@@ -29979,10 +29977,8 @@ func _draw_trophy_store() -> void:
 				_udraw(font, Vector2(ix + card_w - 60, iy + 18), "%d T" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, c_gold_warm)
 		var rows_in_cat = (items.size() + 3) / 4
 		start_y += float(rows_in_cat) * (card_h + 6) + 8.0
-	# Back button
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
+	# Back button — Bloons style
+	_ds_button(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), "< BACK", Color(0.25, 0.18, 0.10), false, 14)
 
 # === CLICK HANDLERS FOR NEW FEATURES ===
 func _on_chapters_odyssey_clicked(mouse_pos: Vector2) -> void:
@@ -30107,11 +30103,9 @@ func _draw_gear_shop() -> void:
 		var thumb_y = content_top + (gear_shop_scroll / max_scroll) * (bar_h - thumb_h)
 		draw_rect(Rect2(bar_x, content_top, 4, bar_h), Color(0.2, 0.2, 0.25, 0.3))
 		draw_rect(Rect2(bar_x, thumb_y, 4, thumb_h), Color(0.85, 0.7, 0.2, 0.5))
-	# Back button (always visible at bottom)
-	draw_rect(Rect2(panel_x + 2, panel_y + panel_h - 50, panel_w - 4, 48), Color(0.03, 0.03, 0.06, 0.95))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
+	# Back button (always visible at bottom) — Bloons style
+	draw_colored_polygon(_rrp(Rect2(panel_x + 2, panel_y + panel_h - 50, panel_w - 4, 48), 8.0), Color(0.03, 0.03, 0.06, 0.95))
+	_ds_button(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), "< BACK", Color(0.25, 0.18, 0.10), false, 14)
 
 func _on_gear_shop_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0 + _safe_left
@@ -30262,23 +30256,18 @@ func _draw_salvage_panel() -> void:
 		if iy + card_h > panel_y + panel_h - 50:
 			break
 		var rarity_col = TIER_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
-		draw_rect(Rect2(ix, iy, card_w, card_h), Color(0.08, 0.06, 0.10, 0.85))
-		draw_rect(Rect2(ix, iy, card_w, card_h), Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.3), false, 1.0)
-		_udraw(font, Vector2(ix + 8, iy + 16), gear_data.get("name", "?"), HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 90), 15, Color(0.8, 0.7, 0.5))
+		_ds_panel(Rect2(ix, iy, card_w, card_h), Color(0.08, 0.06, 0.10, 0.85), Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.3), 1.5, 8.0)
+		_ds_outlined_text(Vector2(ix + 8, iy + 16), gear_data.get("name", "?"), 14, Color(0.9, 0.8, 0.55), int(card_w - 90), HORIZONTAL_ALIGNMENT_LEFT, 1)
 		_udraw(font, Vector2(ix + 8, iy + 32), "x%d" % owned_gear[bid], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.5, 0.8, 0.5))
-		# Salvage button
-		draw_rect(Rect2(ix + card_w - 75, iy + 8, 65, 34), Color(0.5, 0.15, 0.1, 0.7))
-		draw_rect(Rect2(ix + card_w - 75, iy + 8, 65, 34), Color(0.8, 0.3, 0.2, 0.4), false, 1.0)
-		_udraw(font, Vector2(ix + card_w - 42, iy + 22), "SALVAGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.8, 0.6))
-		_udraw(font, Vector2(ix + card_w - 42, iy + 36), "+%d S" % shards_val, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
+		# Salvage button — rounded Bloons style
+		_ds_button(Rect2(ix + card_w - 75, iy + 8, 65, 34), "SALVAGE", Color(0.5, 0.15, 0.1), false, 11)
+		_udraw(font, Vector2(ix + card_w - 42, iy + 36), "+%d S" % shards_val, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_gold)
 		col += 1
 		if col >= col_count:
 			col = 0
 			row += 1
-	# Back button
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
+	# Back button — Bloons style
+	_ds_button(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), "< BACK", Color(0.25, 0.18, 0.10), false, 14)
 
 func _on_salvage_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0 + _safe_left
@@ -30334,26 +30323,24 @@ func _draw_chest_crafting() -> void:
 		var cy = panel_y + 100.0
 		var cw = 320.0
 		var ch = 300.0
-		draw_rect(Rect2(cx, cy, cw, ch), Color(0.06, 0.05, 0.08, 0.9))
-		draw_rect(Rect2(cx, cy, cw, ch), Color(chest_colors[i].r, chest_colors[i].g, chest_colors[i].b, 0.4), false, 2.0)
-		# Chest icon (simple rectangle chest)
+		_ds_panel(Rect2(cx, cy, cw, ch), Color(0.06, 0.05, 0.08, 0.9), Color(chest_colors[i].r, chest_colors[i].g, chest_colors[i].b, 0.4), 2.0, 12.0)
+		# Chest icon (rounded rectangle chest)
 		var icon_y = cy + 40
-		draw_rect(Rect2(cx + cw * 0.5 - 30, icon_y, 60, 45), chest_colors[i])
-		draw_rect(Rect2(cx + cw * 0.5 - 32, icon_y, 64, 5), Color(chest_colors[i].r * 0.7, chest_colors[i].g * 0.7, chest_colors[i].b * 0.7))
-		draw_rect(Rect2(cx + cw * 0.5 - 5, icon_y + 15, 10, 15), Color(0.2, 0.15, 0.1))
-		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 70), tier_names[i] + " Treasure Chest", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, chest_colors[i])
+		draw_colored_polygon(_rrp(Rect2(cx + cw * 0.5 - 30, icon_y, 60, 45), 6.0), chest_colors[i])
+		draw_colored_polygon(_rrp(Rect2(cx + cw * 0.5 - 32, icon_y, 64, 5), 2.0), Color(chest_colors[i].r * 0.7, chest_colors[i].g * 0.7, chest_colors[i].b * 0.7))
+		draw_colored_polygon(_rrp(Rect2(cx + cw * 0.5 - 5, icon_y + 15, 10, 15), 3.0), Color(0.2, 0.15, 0.1))
+		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 70), tier_names[i] + " Treasure Chest", 15, chest_colors[i], -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 92), "Owned: %d" % treasure_chests_owned.get(chest_keys[i], 0), HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text)
-		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["shard_cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 16, menu_gold)
-		# Craft button
+		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["shard_cost"], 16, menu_gold, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		# Craft button — Bloons style
 		var can_afford = player_gear_shards >= craft["shard_cost"]
-		var btn_col = Color(0.15, 0.35, 0.15, 0.8) if can_afford else Color(0.12, 0.1, 0.1, 0.6)
-		draw_rect(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), btn_col)
-		draw_rect(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), Color(0.4, 0.8, 0.3, 0.4) if can_afford else Color(0.3, 0.3, 0.3, 0.3), false, 1.0)
-		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 165), "FORGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.9, 0.85, 0.6) if can_afford else Color(0.4, 0.4, 0.4))
-	# Back button
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
+		if can_afford:
+			_ds_button(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), "FORGE", Color(0.15, 0.45, 0.15), false, 15)
+		else:
+			_ds_panel(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), Color(0.12, 0.1, 0.1, 0.6), Color(0.3, 0.3, 0.3, 0.3), 1.0, 8.0)
+			_udraw(font, Vector2(cx + cw * 0.5, icon_y + 165), "FORGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.4, 0.4))
+	# Back button — Bloons style
+	_ds_button(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), "< BACK", Color(0.25, 0.18, 0.10), false, 14)
 
 func _on_chest_crafting_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0 + _safe_left
@@ -31356,25 +31343,24 @@ func _draw_instrument_shop() -> void:
 		var ix = panel_x + 20 + float(col_i) * (cw + 15)
 		var iy = panel_y + 65 + float(row_i) * (ch + 10)
 		var owned = owned_instruments.get(inst["id"], 0)
-		draw_rect(Rect2(ix, iy, cw, ch), Color(0.07, 0.06, 0.10, 0.85))
-		draw_rect(Rect2(ix, iy, cw, ch), Color(0.6, 0.4, 0.2, 0.3), false, 1.0)
+		_ds_panel(Rect2(ix, iy, cw, ch), Color(0.07, 0.06, 0.10, 0.85), Color(0.6, 0.4, 0.2, 0.3), 1.5, 10.0)
 		# Instrument icon (music note)
 		draw_circle(Vector2(ix + 30, iy + 40), 10, Color(0.85, 0.7, 0.2, 0.7))
 		draw_line(Vector2(ix + 38, iy + 40), Vector2(ix + 38, iy + 18), Color(0.85, 0.7, 0.2, 0.7), 2.0)
-		_udraw(font, Vector2(ix + 55, iy + 22), inst["name"], HORIZONTAL_ALIGNMENT_LEFT, int(cw - 65), 16, Color(0.9, 0.8, 0.5))
+		_ds_outlined_text(Vector2(ix + 55, iy + 22), inst["name"], 16, Color(0.95, 0.85, 0.55), int(cw - 65), HORIZONTAL_ALIGNMENT_LEFT, 1)
 		_udraw(font, Vector2(ix + 55, iy + 40), inst["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(cw - 65), 14, menu_text_muted)
 		_udraw(font, Vector2(ix + 55, iy + 58), "Radius: %d  |  Owned: %d" % [int(inst["radius"]), owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_text)
-		# Buy button
+		# Buy button — Bloons style
 		var btn_x = ix + cw - 95
 		var btn_y = iy + ch - 38
 		var can_buy = player_quills >= inst["cost"]
-		draw_rect(Rect2(btn_x, btn_y, 82, 30), Color(0.15, 0.3, 0.15, 0.7) if can_buy else Color(0.1, 0.1, 0.1, 0.5))
-		draw_rect(Rect2(btn_x, btn_y, 82, 30), Color(0.4, 0.7, 0.3, 0.4) if can_buy else Color(0.3, 0.3, 0.3, 0.3), false, 1.0)
-		_udraw(font, Vector2(btn_x + 41, btn_y + 20), "%dQ" % inst["cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_gold if can_buy else Color(0.4, 0.4, 0.4))
-	# Back button
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), Color(0.15, 0.10, 0.08, 0.8))
-	draw_rect(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), _ca(menu_gold_dim, 0.3), false, 1.0)
-	_udraw(font, Vector2(panel_x + 30, panel_y + panel_h - 22), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 0.4))
+		if can_buy:
+			_ds_button(Rect2(btn_x, btn_y, 82, 30), "%dQ" % inst["cost"], Color(0.15, 0.4, 0.15), false, 13)
+		else:
+			_ds_panel(Rect2(btn_x, btn_y, 82, 30), Color(0.1, 0.1, 0.1, 0.5), Color(0.3, 0.3, 0.3, 0.3), 1.0, 6.0)
+			_udraw(font, Vector2(btn_x + 41, btn_y + 20), "%dQ" % inst["cost"], HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.4, 0.4, 0.4))
+	# Back button — Bloons style
+	_ds_button(Rect2(panel_x + 10, panel_y + panel_h - 45, 110, 35), "< BACK", Color(0.25, 0.18, 0.10), false, 14)
 
 func _on_instrument_shop_clicked(mouse_pos: Vector2) -> void:
 	var panel_x = 70.0 + _safe_left
@@ -31645,21 +31631,19 @@ func _draw_spin_wheel_panel() -> void:
 	var btn_x = wheel_cx - btn_w * 0.5
 	var btn_y = wheel_cy + wheel_r + 30.0
 	if lucky_spin_available and not lucky_spin_spinning:
-		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.15, 0.5, 0.25, 0.9))
-		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), _ca(c_gold, 0.6), false, 2.0)
-		_udraw(font, Vector2(wheel_cx, btn_y + 30), "SPIN FREE!", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 20), 18, Color(0.95, 0.85, 0.3))
+		_ds_button(Rect2(btn_x, btn_y, btn_w, btn_h), "SPIN FREE!", Color(0.15, 0.55, 0.25), false, 18)
 	elif lucky_spin_spinning:
-		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.12, 0.1, 0.2, 0.7))
-		_udraw(font, Vector2(wheel_cx, btn_y + 30), "SPINNING...", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 20), 18, Color(0.6, 0.6, 0.6))
+		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.12, 0.1, 0.2, 0.7), Color(0.4, 0.35, 0.5, 0.4), 1.5, 10.0)
+		_ds_outlined_text(Vector2(wheel_cx, btn_y + 30), "SPINNING...", 18, Color(0.6, 0.6, 0.6), int(btn_w - 20), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		draw_rect(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.08, 0.06, 0.12, 0.7))
+		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.08, 0.06, 0.12, 0.7), Color(0.3, 0.25, 0.3, 0.3), 1.5, 10.0)
 		_udraw(font, Vector2(wheel_cx, btn_y + 30), "USED TODAY", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 20), 16, Color(0.45, 0.45, 0.45))
 	# Result display
 	if not lucky_spin_spinning and not lucky_spin_available and lucky_spin_result >= 0:
 		var prize = SPIN_WHEEL_PRIZES[lucky_spin_result]
-		_udraw(font, Vector2(wheel_cx, btn_y + btn_h + 24), "You won: %s!" % prize["name"], HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 80), 16, prize["col"])
-	# Back button
-	_udraw(font, Vector2(panel_x + 20, panel_y + 28), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_text_muted)
+		_ds_outlined_text(Vector2(wheel_cx, btn_y + btn_h + 24), "You won: %s!" % prize["name"], 18, prize["col"], int(panel_w - 80), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Back button — Bloons style
+	_ds_button(Rect2(panel_x + 5, panel_y + 10, 90, 28), "< BACK", Color(0.25, 0.18, 0.10), false, 13)
 
 func _draw_merchant_panel() -> void:
 	var font = game_font
@@ -31690,29 +31674,29 @@ func _draw_merchant_panel() -> void:
 			var cy_row = mi / cols
 			var ix = start_x + float(cx) * (card_w + gap)
 			var iy = start_y + float(cy_row) * (card_h + gap)
-			# Card bg
+			# Card bg — rounded Bloons panel
 			var hover = false  # Would be set by hover tracking
-			draw_rect(Rect2(ix, iy, card_w, card_h), menu_bg_card_hover if hover else menu_bg_card)
-			draw_rect(Rect2(ix, iy, card_w, card_h), _ca(menu_gold_dim, 0.3), false, 1.0)
-			# Item name
-			_udraw(font, Vector2(ix + card_w * 0.5, iy + 22), item["name"], HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 16), 16, menu_gold_light)
+			_ds_panel(Rect2(ix, iy, card_w, card_h), menu_bg_card_hover if hover else menu_bg_card, _ca(menu_gold_dim, 0.3), 1.5, 10.0)
+			# Item name — outlined
+			_ds_outlined_text(Vector2(ix + card_w * 0.5, iy + 22), item["name"], 16, menu_gold_light, int(card_w - 16), HORIZONTAL_ALIGNMENT_CENTER, 1)
 			# Description
 			_udraw(font, Vector2(ix + card_w * 0.5, iy + 42), item["desc"], HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 16), 13, menu_text)
-			# Cost
+			# Cost — outlined
 			var cost_col = c_gold if item["cost_type"] == "gold" else Color(0.4, 0.9, 0.6)
 			var cost_icon = "G" if item["cost_type"] == "gold" else "C"
-			_udraw(font, Vector2(ix + card_w * 0.5, iy + 66), "%d %s" % [item["cost"], cost_icon], HORIZONTAL_ALIGNMENT_CENTER, -1, 15, cost_col)
-			# Buy button
+			_ds_outlined_text(Vector2(ix + card_w * 0.5, iy + 66), "%d %s" % [item["cost"], cost_icon], 15, cost_col, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+			# Buy button — Bloons style
 			var bb_y = iy + card_h - 34
 			var bb_w = 100.0
 			var bb_x = ix + (card_w - bb_w) * 0.5
 			var can_buy = (item["cost_type"] == "gold" and gold >= item["cost"]) or (item["cost_type"] == "crystals" and player_crystals >= item["cost"])
-			var bb_col = Color(0.12, 0.45, 0.2, 0.9) if can_buy else Color(0.15, 0.1, 0.1, 0.6)
-			draw_rect(Rect2(bb_x, bb_y, bb_w, 26), bb_col)
-			draw_rect(Rect2(bb_x, bb_y, bb_w, 26), _ca(menu_gold_dim, 0.3), false, 1.0)
-			_udraw(font, Vector2(bb_x + bb_w * 0.5, bb_y + 18), "BUY" if can_buy else "CAN'T", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.9, 0.85, 0.5) if can_buy else Color(0.4, 0.35, 0.3))
-	# Back button
-	_udraw(font, Vector2(panel_x + 20, panel_y + 28), "< BACK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, menu_text_muted)
+			if can_buy:
+				_ds_button(Rect2(bb_x, bb_y, bb_w, 26), "BUY", Color(0.12, 0.48, 0.2), false, 13)
+			else:
+				_ds_panel(Rect2(bb_x, bb_y, bb_w, 26), Color(0.15, 0.1, 0.1, 0.6), Color(0.3, 0.25, 0.25, 0.3), 1.0, 6.0)
+				_udraw(font, Vector2(bb_x + bb_w * 0.5, bb_y + 18), "CAN'T", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.4, 0.35, 0.3))
+	# Back button — Bloons style
+	_ds_button(Rect2(panel_x + 5, panel_y + 10, 90, 28), "< BACK", Color(0.25, 0.18, 0.10), false, 13)
 
 # ============================================================================
 # === BATTD3: CHARACTER AFFINITY ===
@@ -33844,22 +33828,22 @@ func _draw_filter_sort_bar(px: float, py: float, pw: float) -> void:
 	var font = game_font
 	var bar_y = py
 	var filter_sz = 14
-	draw_rect(Rect2(px, bar_y, pw, 28), Color(0.08, 0.07, 0.14, 0.82))
-	draw_rect(Rect2(px, bar_y + 25, pw, 1), _ca(menu_gold_dim, 0.2))
+	_ds_panel(Rect2(px, bar_y, pw, 28), Color(0.08, 0.07, 0.14, 0.88), Color(0.5, 0.4, 0.15, 0.3), 1.5, 8.0)
 	var fx = px + 8.0
 	for fi in range(_filter_options.size()):
 		var f = _filter_options[fi]
 		var is_active = (f == _grid_filter)
 		var fw = font.get_string_size(f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz).x + 16
-		var bg_a = 0.4 if is_active else 0.1
 		var fc = menu_gold if is_active else Color(0.75, 0.72, 0.65, 0.75)
-		draw_rect(Rect2(fx, bar_y + 3, fw, 20), _ca(menu_gold, bg_a))
-		draw_rect(Rect2(fx, bar_y + 3, fw, 20), _ca(menu_gold, 0.3 if is_active else 0.1), false, 1.0)
+		if is_active:
+			_ds_panel(Rect2(fx, bar_y + 3, fw, 20), _ca(menu_gold, 0.4), _ca(menu_gold, 0.6), 1.0, 6.0)
+		else:
+			draw_colored_polygon(_rrp(Rect2(fx, bar_y + 3, fw, 20), 6.0), _ca(menu_gold, 0.08))
 		_udraw(font, Vector2(fx + 8, bar_y + 18), f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz, fc)
 		fx += fw + 4.0
 	var sort_text = "SORT: %s" % _grid_sort
 	var sw = font.get_string_size(sort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz).x
-	_udraw(font, Vector2(px + pw - sw - 12, bar_y + 18), sort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz, Color(0.75, 0.68, 0.55, 0.8))
+	_ds_outlined_text(Vector2(px + pw - sw * 0.5 - 12, bar_y + 18), sort_text, filter_sz, Color(0.75, 0.68, 0.55, 0.8), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 func _handle_filter_click(mouse_pos: Vector2, px: float, py: float, pw: float) -> bool:
 	if mouse_pos.y < py + 3 or mouse_pos.y > py + 23:
