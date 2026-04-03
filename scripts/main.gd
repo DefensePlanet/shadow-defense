@@ -11560,7 +11560,7 @@ func _draw_gear_tab() -> void:
 		draw_rect(Rect2(bar_x, thumb_y, 4, thumb_h), _ca(menu_gold, 0.5))
 
 	# Footer (drawn over content, always visible)
-	draw_rect(Rect2(panel_x + 2, panel_y + panel_h - 28, panel_w - 4, 26), Color(0.08, 0.07, 0.14, 0.95))
+	draw_colored_polygon(_rrp(Rect2(panel_x + 2, panel_y + panel_h - 28, panel_w - 4, 26), 6.0), Color(0.08, 0.07, 0.14, 0.95))
 	var footer_y = panel_y + panel_h - 10
 	var total_owned = 0
 	for key in owned_gear:
@@ -33970,9 +33970,7 @@ func _draw_quick_info_popup(cx: float, cy: float, cw: float, tower_index: int) -
 	var ph = 110.0
 	var ppx = cx + cw * 0.5 - pw * 0.5
 	var ppy = cy - ph - 8.0
-	draw_rect(Rect2(ppx - 1, ppy - 1, pw + 2, ph + 2), c_overlay)
-	draw_rect(Rect2(ppx, ppy, pw, ph), Color(0.04, 0.03, 0.10, 0.95))
-	draw_rect(Rect2(ppx, ppy, pw, ph), _ca(menu_gold, 0.4), false, 1.5)
+	_ds_panel(Rect2(ppx, ppy, pw, ph), Color(0.06, 0.04, 0.12, 0.95), _ca(menu_gold, 0.4), 1.5, 8.0)
 	_udraw(font, Vector2(ppx + 8, ppy + 16), info["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_gold)
 	_udraw(font, Vector2(ppx + 8, ppy + 32), "%s | %s" % [_get_hero_role_str(tower_index), _get_hero_element(tower_index)], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.7, 0.7, 0.7, 0.7))
 	_udraw(font, Vector2(ppx + 8, ppy + 50), "DMG: %d  SPD: %.2f  RNG: %d" % [info["damage"], info["fire_rate"], int(info["range"])], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, menu_parchment)
