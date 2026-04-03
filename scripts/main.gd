@@ -350,9 +350,9 @@ func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = fal
 	if is_hover:
 		draw_colored_polygon(_rrp(Rect2(r.position - Vector2(4, 4), r.size + Vector2(8, 8)), rad + 4), Color(col.r, col.g, col.b, 0.12))
 	# Dark outer border (rounded)
-	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(3, 3), r.size + Vector2(6, 6)), rad + 3), Color(0.05, 0.03, 0.01, 0.95))
-	# Gold border (rounded)
-	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(1.5, 1.5), r.size + Vector2(3, 3)), rad + 1.5), Color(1.0, 0.85, 0.25, 0.9))
+	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(3, 3), r.size + Vector2(6, 6)), rad + 3), Color(0.05, 0.08, 0.15, 0.95))
+	# Cyan/blue border (Bloons BATD style)
+	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(1.5, 1.5), r.size + Vector2(3, 3)), rad + 1.5), Color(0.25, 0.65, 0.85, 0.9))
 	# Button body — bright top color
 	var top_col = Color(minf(col.r * 1.3, 1.0), minf(col.g * 1.3, 1.0), minf(col.b * 1.3, 1.0))
 	draw_colored_polygon(_rrp(r, rad), top_col)
@@ -13526,7 +13526,7 @@ func _draw_survivor_grid() -> void:
 
 	# === "SURVIVORS" title — left aligned ===
 	var title_y = panel_y + 4.0
-	_ds_outlined_text(Vector2(panel_x + 20, title_y + 22), "SURVIVORS", 24, Color(1.0, 0.90, 0.32))
+	_ds_outlined_text(Vector2(panel_x + 20, title_y + 22), "SURVIVORS", 24, Color(1.0, 1.0, 1.0))
 
 	# === PARTY count badge — right aligned, not overlapping ===
 	var unlocked_count = 0
@@ -15162,9 +15162,9 @@ func _draw_story_map() -> void:
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
 	# Title — Bloons outlined style
-	_ds_outlined_text(Vector2(list_x + 20, list_y + 27), "THE TOME OF SHADOWS", 24, Color(1.0, 0.92, 0.35), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
+	_ds_outlined_text(Vector2(list_x + 20, list_y + 27), "THE TOME OF SHADOWS", 24, Color(1.0, 1.0, 1.0), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 	var count_text = "%d/%d LEVELS" % [num_completed, num_total]
-	_ds_outlined_text(Vector2(list_x + list_w - 170, list_y + 27), count_text, 18, Color(0.95, 0.80, 0.40), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
+	_ds_outlined_text(Vector2(list_x + list_w - 170, list_y + 27), count_text, 18, Color(0.85, 0.92, 1.0), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 
 	# --- Right sidebar: Deals, Quests, Arena, Odyssey, Endless ---
 	var side_x = list_x + list_w + 12.0
@@ -15283,7 +15283,7 @@ func _draw_story_map() -> void:
 				var _pt_sz = header_h - 4
 				draw_texture_rect(_portrait_textures[_arc_char], Rect2(list_x + 12, hy + 2, _pt_sz, _pt_sz), false)
 				_arc_text_x = list_x + 12 + _pt_sz + 6
-			_ds_outlined_text(Vector2(_arc_text_x, hy + 23), arc_name.to_upper(), 15, Color(1.0, 0.88, 0.30), 200, HORIZONTAL_ALIGNMENT_LEFT, 1)
+			_ds_outlined_text(Vector2(_arc_text_x, hy + 23), arc_name.to_upper(), 15, Color(1.0, 1.0, 1.0), 200, HORIZONTAL_ALIGNMENT_LEFT, 1)
 			# Arc completion shown via progress bar only (no overlapping text)
 			# Enhancement 14: Chapter progress bar
 			var cpb_x = list_x + 200.0
