@@ -1611,6 +1611,8 @@ var _ui_frame_textures: Dictionary = {}  # frame slug -> ImageTexture
 var _faction_banner_textures: Dictionary = {}  # faction slug -> ImageTexture
 var _story_panel_textures: Dictionary = {}  # panel slug -> ImageTexture
 var _victory_defeat_textures: Dictionary = {}  # victory/defeat slug -> ImageTexture
+var _ui_element_textures: Dictionary = {}  # UI element slug -> ImageTexture
+var _mode_bg_textures: Dictionary = {}  # mode background slug -> ImageTexture
 
 # Map thumb slug mapping (level index -> filename without extension)
 const MAP_THUMB_SLUGS: Array = [
@@ -4790,6 +4792,34 @@ func _load_victory_defeat_textures() -> void:
 		if tex:
 			_victory_defeat_textures[fname] = tex
 
+func _load_ui_element_textures() -> void:
+	_ui_element_textures.clear()
+	var files = [
+		"go_button", "locked_button", "buy_button", "sell_button", "upgrade_button",
+		"difficulty_gems", "three_stars", "level_card_bg", "survivor_card_frame",
+		"shop_item_card", "nav_bar_bg", "header_bar", "tower_select_bar",
+		"upgrade_panel_bg", "progress_bar", "xp_bar", "cooldown_ring",
+		"tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles",
+		"tab_emporium", "tab_achievements", "side_panel_buttons",
+		"gear_slots", "stats_panel", "achievement_badges", "achievement_progress_card",
+		"health_hearts", "gold_purse", "wave_banner", "speed_controls",
+		"dialogue_box", "tooltip_frame", "notification_popup",
+		"reward_chest", "level_badge", "synergy_link", "targeting_icons",
+		"chapter_divider", "daily_deals_banner", "currency_exchange", "path_tile"
+	]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/ui_elements/" + fname + ".png")
+		if tex:
+			_ui_element_textures[fname] = tex
+
+func _load_mode_bg_textures() -> void:
+	_mode_bg_textures.clear()
+	var files = ["arena_bg", "quest_board_bg", "odyssey_map_bg", "endless_void_bg", "chronicle_tome"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/menu_art/" + fname + ".png")
+		if tex:
+			_mode_bg_textures[fname] = tex
+
 func _load_all_art_assets() -> void:
 	_load_map_thumb_textures()
 	_load_tab_icon_textures()
@@ -4811,6 +4841,8 @@ func _load_all_art_assets() -> void:
 	_load_faction_banner_textures()
 	_load_story_panel_textures()
 	_load_victory_defeat_textures()
+	_load_ui_element_textures()
+	_load_mode_bg_textures()
 
 func _generate_decorations_for_level(index: int) -> void:
 	_decorations.clear()
@@ -9230,7 +9262,7 @@ func _draw_story_dialog() -> void:
 			elif key == "finale" or key == "ending": _sp_key = "dark_portal"
 			else: _sp_key = "heroes_surrounded"
 	if _sp_key != "" and _story_panel_textures.has(_sp_key):
-		draw_texture_rect(_story_panel_textures[_sp_key], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.12))
+		draw_texture_rect(_story_panel_textures[_sp_key], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.30))
 	# Vignette corners
 	for vi in range(15):
 		var vt = float(vi) / 14.0
@@ -9321,6 +9353,9 @@ func _draw_story_dialog() -> void:
 	# === FROSTED GLASS TEXT PANEL ===
 	var panel_y = 500.0
 	var panel_h = 200.0
+	# AI art: Dialogue box texture behind text panel
+	if _ui_element_textures.has("dialogue_box"):
+		draw_texture_rect(_ui_element_textures["dialogue_box"], Rect2(0, panel_y - 8, 1280, panel_h + 16), false, Color(1, 1, 1, 0.75))
 	_draw_frosted_panel(Rect2(0, panel_y, 1280, panel_h), char_glow, 0.08)
 	# Character-colored glowing accent edge on top
 	for ei in range(3):
@@ -11005,8 +11040,12 @@ func _draw_currency_bar() -> void:
 	# Fill status bar area behind notch/cutout
 	if _safe_top > 0:
 		draw_rect(Rect2(0, 0, 1280, _safe_top), Color(0.02, 0.02, 0.08, 0.95))
-	# Deep navy bar with subtle purple gradient
-	draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
+	# AI art: Header bar texture behind currency bar
+	if _ui_element_textures.has("header_bar"):
+		draw_texture_rect(_ui_element_textures["header_bar"], Rect2(0, bar_y, 1280, bar_h), false, Color(1, 1, 1, 0.85))
+	else:
+		# Deep navy bar with subtle purple gradient (procedural fallback)
+		draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
 	var grad_steps = 16
 	var step_w = 1280.0 / float(grad_steps)
 	for gi in range(grad_steps):
@@ -11094,9 +11133,11 @@ func _draw_menu_background() -> void:
 			"gear": _art_bg_key = "gear_shop_bg"
 			"emporium": _art_bg_key = "emporium_bg"
 			"achievements": _art_bg_key = "achievements_bg"
+			"chronicles": _art_bg_key = "chronicles_bg"
+			"survivors": _art_bg_key = "survivors_bg"
 			_: _art_bg_key = "menu_background"
 		if _menu_art_textures.has(_art_bg_key):
-			draw_texture_rect(_menu_art_textures[_art_bg_key], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.18))
+			draw_texture_rect(_menu_art_textures[_art_bg_key], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.30))
 
 		# === Center radial glow (purple atmosphere — vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
@@ -11540,16 +11581,20 @@ func _draw_menu_background() -> void:
 		Color(0.90, 0.75, 0.25),  # Emporium: gold
 		Color(0.80, 0.65, 0.20),  # Achievements: bronze gold
 	]
-	# Dark gradient background with subtle texture
-	var nav_grad_steps = _qcount(20)
-	var nav_grad_h = 100.0 / float(nav_grad_steps)
-	for ngi in range(nav_grad_steps):
-		var t = float(ngi) / float(maxi(1, nav_grad_steps - 1))
-		var bg_col = Color(0.03, 0.02, 0.08, 0.95).lerp(Color(0.01, 0.01, 0.04, 0.98), t)
-		draw_rect(Rect2(0, nav_draw_y + float(ngi) * nav_grad_h, 1280, nav_grad_h + 1.0), bg_col)
-	# Fill safe area below nav bar (home indicator padding)
-	if _safe_bottom > 0:
-		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.01, 0.01, 0.04, 0.98))
+	# AI art: Nav bar background texture
+	if _ui_element_textures.has("nav_bar_bg"):
+		draw_texture_rect(_ui_element_textures["nav_bar_bg"], Rect2(0, nav_draw_y, 1280, 100.0 + _safe_bottom), false, Color(1, 1, 1, 0.9))
+	else:
+		# Dark gradient background with subtle texture (procedural fallback)
+		var nav_grad_steps = _qcount(20)
+		var nav_grad_h = 100.0 / float(nav_grad_steps)
+		for ngi in range(nav_grad_steps):
+			var t = float(ngi) / float(maxi(1, nav_grad_steps - 1))
+			var bg_col = Color(0.03, 0.02, 0.08, 0.95).lerp(Color(0.01, 0.01, 0.04, 0.98), t)
+			draw_rect(Rect2(0, nav_draw_y + float(ngi) * nav_grad_h, 1280, nav_grad_h + 1.0), bg_col)
+		# Fill safe area below nav bar (home indicator padding)
+		if _safe_bottom > 0:
+			draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.01, 0.01, 0.04, 0.98))
 	# Top edge glow line (animated)
 	var edge_glow = 0.4 + sin(_time * 1.8) * 0.1
 	for egi in range(3):
@@ -11567,7 +11612,16 @@ func _draw_menu_background() -> void:
 		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 32.0)
 		var icon_sz = 58.0 if is_act else 46.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
-		if _tab_icon_textures.has(_tik):
+		# AI art: Use dedicated tab textures from ui_elements, fallback to tab_icon_textures
+		var _ui_tab_key = _tik.replace("tab_", "tab_")  # keys match: tab_survivors, tab_gear, etc.
+		if _ui_element_textures.has(_ui_tab_key):
+			var alpha = 1.0 if is_act else 0.55
+			var glow_sz = icon_sz + (6.0 if is_act else 0.0)
+			if is_act:
+				# Active tab glow behind icon
+				draw_circle(ic, glow_sz * 0.5, Color(tc.r, tc.g, tc.b, 0.12 + sin(_time * 2.0) * 0.04))
+			draw_texture_rect(_ui_element_textures[_ui_tab_key], Rect2(ic.x - glow_sz * 0.5, ic.y - glow_sz * 0.5, glow_sz, glow_sz), false, Color(1, 1, 1, alpha))
+		elif _tab_icon_textures.has(_tik):
 			var alpha = 1.0 if is_act else 0.7
 			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false, Color(1, 1, 1, alpha))
 		# Label — below icon, properly sized
@@ -12825,7 +12879,7 @@ func _draw_chest_opening() -> void:
 
 	# AI art: Team splash as backdrop for chest screen
 	if _menu_art_textures.has("team_splash"):
-		draw_texture_rect(_menu_art_textures["team_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.08))
+		draw_texture_rect(_menu_art_textures["team_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.22))
 
 	if chest_opening_phase == 0 or chest_opening_phase == 1:
 		# === GLOWING TREASURE CHEST ===
@@ -12837,6 +12891,11 @@ func _draw_chest_opening() -> void:
 		var bw = 200.0
 		var bh = 120.0
 		var pulse = (sin(_time * 2.5) + 1.0) * 0.5
+
+		# AI art: Reward chest texture replacing procedural chest
+		if _ui_element_textures.has("reward_chest"):
+			var rc_sz = 180.0 + pulse * 20.0
+			draw_texture_rect(_ui_element_textures["reward_chest"], Rect2(chest_cx - rc_sz * 0.5, chest_cy - rc_sz * 0.5, rc_sz, rc_sz), false, Color(1, 1, 1, 0.9))
 
 		# Multiple layered glow rings behind chest (bright and dramatic)
 		for gi in range(5):
@@ -12906,7 +12965,7 @@ func _draw_chest_opening() -> void:
 		if victory_chest_active:
 			# AI art: Stained glass decorative element behind victory
 			if _menu_art_textures.has("stained_glass"):
-				draw_texture_rect(_menu_art_textures["stained_glass"], Rect2(cx - 150, 20, 300, 120), false, Color(1, 1, 1, 0.2))
+				draw_texture_rect(_menu_art_textures["stained_glass"], Rect2(cx - 150, 20, 300, 120), false, Color(1, 1, 1, 0.45))
 			var vic_text = "VICTORY!"
 			var vic_w = font.get_string_size(vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52).x
 			# MASSIVE glow behind text
@@ -13334,7 +13393,7 @@ func _draw_closed_book() -> void:
 
 	# AI art: Chronicles background overlay
 	if _menu_art_textures.has("chronicles_bg"):
-		draw_texture_rect(_menu_art_textures["chronicles_bg"], Rect2(panel_x, panel_y, panel_w, panel_h), false, Color(1, 1, 1, 0.12))
+		draw_texture_rect(_menu_art_textures["chronicles_bg"], Rect2(panel_x, panel_y, panel_w, panel_h), false, Color(1, 1, 1, 0.28))
 
 	# Navy gradient background
 	for i in range(56):
@@ -13881,9 +13940,9 @@ func _draw_survivor_grid() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 570.0
 
-	# AI art: Survivors background overlay
+	# AI art: Survivors background overlay (strong presence)
 	if _menu_art_textures.has("survivors_bg"):
-		draw_texture_rect(_menu_art_textures["survivors_bg"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.15))
+		draw_texture_rect(_menu_art_textures["survivors_bg"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.30))
 
 	# No panel background — let menu bg show through for seamless look
 
@@ -13963,6 +14022,10 @@ func _draw_survivor_grid() -> void:
 			draw_cw += 6.0
 			draw_ch += 6.0
 
+		# AI art: Survivor card frame texture behind hero card
+		if _ui_element_textures.has("survivor_card_frame"):
+			var frame_alpha = 0.9 if (is_hovered and unlocked) else (0.7 if unlocked else 0.35)
+			draw_texture_rect(_ui_element_textures["survivor_card_frame"], Rect2(draw_cx - 2, draw_cy - 2, draw_cw + 4, draw_ch + 4), false, Color(1, 1, 1, frame_alpha))
 		# === USE DESIGN SYSTEM HERO CARD ===
 		var char_lvl = survivor_progress.get(tower_type, {"level": 1}).get("level", 1) if unlocked else 0
 		var title_str = _get_dynamic_title(i) if unlocked else (character_titles[i] if i < character_titles.size() else "")
@@ -15678,6 +15741,9 @@ func _draw_story_map() -> void:
 		# --- Arc header ---
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
+			# AI art: Chapter divider between arcs
+			if ai > 0 and _ui_element_textures.has("chapter_divider"):
+				draw_texture_rect(_ui_element_textures["chapter_divider"], Rect2(list_x + 20, hy - 4, list_w - 40, 6), false, Color(1, 1, 1, 0.5))
 			# Gradient header with arc color
 			for hgi in range(4):
 				var hgt = float(hgi) / 3.0
@@ -15705,12 +15771,15 @@ func _draw_story_map() -> void:
 			if cpb_fill > 0 and arc_done < arc_total:
 				var tip_glow = 0.4 + sin(_time * 3.0) * 0.2
 				draw_circle(Vector2(cpb_x + cpb_fill, cpb_y + 1.5), 3.0, Color(arc_col.r, arc_col.g, arc_col.b, tip_glow))
-			# AI art: Chapter card icon in arc header
+			# AI art: Chapter card icon in arc header — prominent display
 			var _cc_key = _arc_to_chapter_card.get(arc_name, "")
 			if _cc_key != "" and _chapter_card_textures.has(_cc_key):
-				var cc_sz = header_h - 4
+				var cc_sz = header_h - 2
 				var cc_x = list_x + list_w - cc_sz - 160.0
-				draw_texture_rect(_chapter_card_textures[_cc_key], Rect2(cc_x, hy + 2, cc_sz, cc_sz), false, Color(1, 1, 1, 0.7))
+				# Draw a slightly larger version as a subtle bg behind the header
+				draw_texture_rect(_chapter_card_textures[_cc_key], Rect2(list_x + 4, hy, list_w - 8, header_h), false, Color(1, 1, 1, 0.12))
+				# Draw the icon prominently
+				draw_texture_rect(_chapter_card_textures[_cc_key], Rect2(cc_x, hy + 1, cc_sz, cc_sz), false, Color(1, 1, 1, 0.90))
 		cursor_y += header_h + arc_gap
 
 		# --- Level rows ---
@@ -15749,6 +15818,10 @@ func _draw_story_map() -> void:
 
 			# --- Row background ---
 			var is_hovered = Rect2(rx, maxf(ry, content_top), rw, row_h).has_point(mouse_pos) and ry >= content_top
+			# AI art: Level card background texture
+			if _ui_element_textures.has("level_card_bg"):
+				var card_alpha = 0.85 if is_hovered else (0.65 if is_unlocked else 0.35)
+				draw_texture_rect(_ui_element_textures["level_card_bg"], Rect2(rx, ry, rw, row_h - 2), false, Color(1, 1, 1, card_alpha))
 			# Enhancement 20: Chapter theme accent colors — tint row bg with arc color
 			var tint_r = arc_col.r * 0.06
 			var tint_g = arc_col.g * 0.06
@@ -15756,7 +15829,8 @@ func _draw_story_map() -> void:
 			var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
 			if not is_unlocked:
 				row_bg = Color(0.06, 0.05, 0.08, 0.5)
-			draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
+			if not _ui_element_textures.has("level_card_bg"):
+				draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
 			# Left accent bar
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
 			draw_rect(Rect2(rx, ry, 3, row_h - 2), accent_col)
@@ -15860,50 +15934,76 @@ func _draw_story_map() -> void:
 					_udraw(font, Vector2(reward_icon_x + float(reward_count) * 18.0 + 4, reward_icon_y + 3), "%d rewards" % level_rewards.size(), HORIZONTAL_ALIGNMENT_LEFT, 100, 14, Color(0.6, 0.55, 0.40, 0.5))
 
 			# --- Difficulty shields (large, prominent) ---
-			var medal_x = rx + rw - 340.0
-			var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15), Color(0.85, 0.15, 0.15)]
-			var medal_labels = ["E", "M", "H", "P"]
-			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
-			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
-			for di in range(4):
-				var mx = medal_x + float(di) * 52.0
-				var my = ry + 8.0
-				var mw = 46.0
-				var mh = 56.0
-				var earned = medals[di]
-				if earned:
-					# Filled shield with difficulty color
-					var mc = medal_colors[di]
-					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, mc, true)
-					# Enhancement 15: Star glow behind earned stars
-					var ds = diff_stars_arr[di]
-					for dsi in range(3):
-						var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
-						var sy = my + mh * 0.5 + 8.0
-						if dsi < ds:
-							# Golden glow behind earned star
-							var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
-							draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
-							_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
-						else:
-							_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
-				else:
-					# Gray outline shield (unearned)
-					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, Color(0.3, 0.25, 0.2, 0.3), false)
-				# Difficulty letter below shield
-				var lbl_col = medal_colors[di] if earned else Color(0.35, 0.30, 0.22, 0.4)
-				_udraw(font, Vector2(mx + mw * 0.5, my + mh - 2), medal_labels[di], HORIZONTAL_ALIGNMENT_CENTER, 20, 14, lbl_col)
-
-			# Enhancement 13: Level difficulty medals (Easy/Med/Hard dots)
-			var dot_base_x = medal_x
-			var dot_y = ry + row_h - 10.0
-			for di in range(3):
-				var dot_x = dot_base_x + float(di) * 52.0 + 23.0
-				var dot_col = [c_green, c_gold_warm, Color(0.9, 0.2, 0.15)][di]
-				if medals[di]:
-					draw_circle(Vector2(dot_x, dot_y), 3.0, dot_col)
-				else:
-					draw_arc(Vector2(dot_x, dot_y), 3.0, 0, TAU, 8, Color(dot_col.r, dot_col.g, dot_col.b, 0.2), 1.0)
+			# AI art: Difficulty gems texture strip (4 gem types)
+			if _ui_element_textures.has("difficulty_gems"):
+				var gem_strip = _ui_element_textures["difficulty_gems"]
+				var gem_strip_w = float(gem_strip.get_width())
+				var gem_strip_h = float(gem_strip.get_height())
+				var gem_single_w = gem_strip_w / 4.0
+				var gem_draw_sz = 38.0
+				var gem_base_x = rx + rw - 340.0
+				var gem_medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
+				var gem_diff_stars = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
+				for gdi in range(4):
+					var gx = gem_base_x + float(gdi) * 52.0 + 4.0
+					var gy = ry + 10.0
+					var gem_earned = gem_medals[gdi]
+					var gem_alpha = 1.0 if gem_earned else 0.25
+					# Draw the gem from the strip (assumes 4 gems side by side)
+					var src_rect = Rect2(float(gdi) * gem_single_w, 0, gem_single_w, gem_strip_h)
+					draw_texture_rect_region(gem_strip, Rect2(gx, gy, gem_draw_sz, gem_draw_sz), src_rect, Color(1, 1, 1, gem_alpha))
+					# Stars below gem
+					if gem_earned:
+						var ds = gem_diff_stars[gdi]
+						for dsi in range(3):
+							var sx = gx + gem_draw_sz * 0.5 - 8.0 + float(dsi) * 8.0
+							var sy = gy + gem_draw_sz + 4.0
+							if dsi < ds:
+								var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
+								draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
+								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
+							else:
+								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
+			else:
+				# Procedural difficulty shields fallback
+				var medal_x = rx + rw - 340.0
+				var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15), Color(0.85, 0.15, 0.15)]
+				var medal_labels = ["E", "M", "H", "P"]
+				var medals_fb = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
+				var diff_stars_fb = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
+				for di in range(4):
+					var mx = medal_x + float(di) * 52.0
+					var my = ry + 8.0
+					var mw = 46.0
+					var mh = 56.0
+					var earned = medals_fb[di]
+					if earned:
+						var mc = medal_colors[di]
+						_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, mc, true)
+						var ds = diff_stars_fb[di]
+						for dsi in range(3):
+							var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
+							var sy = my + mh * 0.5 + 8.0
+							if dsi < ds:
+								var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
+								draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
+								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
+							else:
+								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
+					else:
+						_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, Color(0.3, 0.25, 0.2, 0.3), false)
+					var lbl_col = medal_colors[di] if earned else Color(0.35, 0.30, 0.22, 0.4)
+					_udraw(font, Vector2(mx + mw * 0.5, my + mh - 2), medal_labels[di], HORIZONTAL_ALIGNMENT_CENTER, 20, 14, lbl_col)
+				# Enhancement 13: Level difficulty medals (Easy/Med/Hard dots)
+				var dot_base_x = medal_x
+				var dot_y = ry + row_h - 10.0
+				for di in range(3):
+					var dot_x = dot_base_x + float(di) * 52.0 + 23.0
+					var dot_col = [c_green, c_gold_warm, Color(0.9, 0.2, 0.15)][di]
+					if medals_fb[di]:
+						draw_circle(Vector2(dot_x, dot_y), 3.0, dot_col)
+					else:
+						draw_arc(Vector2(dot_x, dot_y), 3.0, 0, TAU, 8, Color(dot_col.r, dot_col.g, dot_col.b, 0.2), 1.0)
 
 			# --- GO button (large, prominent) ---
 			var btn_x = rx + rw - 110.0
@@ -15912,15 +16012,31 @@ func _draw_story_map() -> void:
 			var btn_h2 = 52.0
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
-				var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
-				_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
+				# AI art: GO button texture
+				if _ui_element_textures.has("go_button"):
+					var go_alpha = 1.0 if btn_hover else 0.85
+					var go_scale = 1.05 if btn_hover else 1.0
+					var go_w = btn_w2 * go_scale
+					var go_h = btn_h2 * go_scale
+					var go_x = btn_x + (btn_w2 - go_w) * 0.5
+					var go_y = btn_y2 + (btn_h2 - go_h) * 0.5
+					draw_texture_rect(_ui_element_textures["go_button"], Rect2(go_x, go_y, go_w, go_h), false, Color(1, 1, 1, go_alpha))
+					# "GO" text overlay on the button
+					_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.6), "GO", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2), 20, Color(1.0, 1.0, 1.0, go_alpha))
+				else:
+					var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
+					_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
 			else:
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
-				# Lock icon
-				var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
-				draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
-				draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
+				# AI art: Locked button texture
+				if _ui_element_textures.has("locked_button"):
+					draw_texture_rect(_ui_element_textures["locked_button"], Rect2(btn_x, btn_y2, btn_w2, btn_h2), false, Color(1, 1, 1, 0.75))
+				else:
+					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
+					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
+					# Lock icon
+					var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
+					draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
+					draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
 				# Enhancement 19: Locked level requirement text
 				if lvl_idx > 0:
 					var req_lvl = lvl_idx - 1
@@ -16042,7 +16158,7 @@ func _draw_diff_popup() -> void:
 	var popup_y = 310.0 - popup_h * 0.5
 	# AI art: Golden frame behind difficulty popup
 	if _ui_frame_textures.has("golden_frame"):
-		draw_texture_rect(_ui_frame_textures["golden_frame"], Rect2(popup_x - 8, popup_y - 8, popup_w + 16, popup_h + 16), false, Color(1, 1, 1, 0.25))
+		draw_texture_rect(_ui_frame_textures["golden_frame"], Rect2(popup_x - 8, popup_y - 8, popup_w + 16, popup_h + 16), false, Color(1, 1, 1, 0.55))
 	# Background gradient
 	for gi in range(22):
 		var t = float(gi) / 21.0
@@ -16231,7 +16347,7 @@ func _draw_chapters_overlay() -> void:
 	var panel_h = 520.0
 	# AI art: Scroll banner decorative frame behind panel
 	if _ui_frame_textures.has("scroll_banner"):
-		draw_texture_rect(_ui_frame_textures["scroll_banner"], Rect2(panel_x - 10, panel_y - 10, panel_w + 20, panel_h + 20), false, Color(1, 1, 1, 0.15))
+		draw_texture_rect(_ui_frame_textures["scroll_banner"], Rect2(panel_x - 10, panel_y - 10, panel_w + 20, panel_h + 20), false, Color(1, 1, 1, 0.40))
 	var content_y = panel_y + 52.0
 	var content_h = panel_h - 60.0
 	# Panel theme color
@@ -16285,6 +16401,14 @@ func _draw_chapters_overlay() -> void:
 	var x_margin = close_sz * 0.22
 	draw_line(Vector2(close_x + x_margin, close_y + x_margin), Vector2(close_x + close_sz - x_margin, close_y + close_sz - x_margin), xc, 2.5)
 	draw_line(Vector2(close_x + close_sz - x_margin, close_y + x_margin), Vector2(close_x + x_margin, close_y + close_sz - x_margin), xc, 2.5)
+	# AI art: Mode-specific background inside panel
+	var _mode_bg_map = {"arena": "arena_bg", "quests": "quest_board_bg", "odyssey": "odyssey_map_bg", "endless": "endless_void_bg"}
+	var _mode_bg_key = _mode_bg_map.get(menu_side_panel, "")
+	if _mode_bg_key != "" and _mode_bg_textures.has(_mode_bg_key):
+		draw_texture_rect(_mode_bg_textures[_mode_bg_key], Rect2(panel_x + 2, content_y, panel_w - 4, content_h), false, Color(1, 1, 1, 0.20))
+	# AI art: Daily deals banner
+	if menu_side_panel == "deals" and _ui_element_textures.has("daily_deals_banner"):
+		draw_texture_rect(_ui_element_textures["daily_deals_banner"], Rect2(panel_x + 10, content_y - 4, panel_w - 20, 40), false, Color(1, 1, 1, 0.7))
 	# Draw the selected panel content (reuses existing sidebar draw functions)
 	if menu_side_panel == "deals":
 		_draw_daily_deals_sidebar(panel_x, content_y, panel_w, content_h)
@@ -19676,6 +19800,12 @@ func _draw() -> void:
 	if _screen_shake_timer > 0.0:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
+	# === AI ART: Tower select bar behind bottom panel ===
+	if _ui_element_textures.has("tower_select_bar") and bottom_panel and bottom_panel.visible:
+		var bp_pos = bottom_panel.position
+		var bp_sz = bottom_panel.size
+		draw_texture_rect(_ui_element_textures["tower_select_bar"], Rect2(bp_pos.x, bp_pos.y - 4, bp_sz.x, bp_sz.y + 8), false, Color(1, 1, 1, 0.8))
+
 	# === MICRO-DETAIL HUD ENHANCEMENTS ===
 	# #1: Illustrated hearts replace plain lives counter
 	_draw_illustrated_lives()
@@ -20089,13 +20219,13 @@ func _draw() -> void:
 		# AI art: Victory/Defeat splash overlays
 		if _last_game_was_victory:
 			if _victory_defeat_textures.has("victory_splash"):
-				draw_texture_rect(_victory_defeat_textures["victory_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.25))
+				draw_texture_rect(_victory_defeat_textures["victory_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.55))
 			_draw_victory_character_lineup()   # Feature 10: Victory lineup
 		else:
 			if _victory_defeat_textures.has("defeat_splash"):
-				draw_texture_rect(_victory_defeat_textures["defeat_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.2))
+				draw_texture_rect(_victory_defeat_textures["defeat_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.50))
 			elif _victory_defeat_textures.has("game_over_book"):
-				draw_texture_rect(_victory_defeat_textures["game_over_book"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.2))
+				draw_texture_rect(_victory_defeat_textures["game_over_book"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.50))
 			_draw_defeat_character_scene()     # Feature 11: Defeat dejected chibis
 
 	# === VICTORY BURST EFFECT ===
@@ -30050,6 +30180,10 @@ func _draw_achievements_tab() -> void:
 			if is_done:
 				draw_rect(Rect2(cx - 2, cy - 2, card_w + 4, card_h + 4), Color(cat_col.r, cat_col.g, cat_col.b, 0.08 + sin(_time * 2.0 + float(ai)) * 0.03))
 
+			# AI art: Achievement card frame texture
+			if _ui_element_textures.has("achievement_progress_card"):
+				var apc_alpha = 0.8 if is_done else 0.45
+				draw_texture_rect(_ui_element_textures["achievement_progress_card"], Rect2(cx - 1, cy - 1, card_w + 2, card_h + 2), false, Color(1, 1, 1, apc_alpha))
 			# Card — using design system panel
 			var bg = Color(0.10, 0.08, 0.22, 0.85) if is_done else Color(0.05, 0.05, 0.14, 0.85)
 			var bc = _ca(cat_col, 0.5) if is_done else Color(0.25, 0.25, 0.40, 0.3)
@@ -31977,7 +32111,11 @@ func _draw_branch_upgrade_panel() -> void:
 		# Show branch selection (A vs B)
 		var ph = 160.0
 		py = 540.0
-		draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95))
+		# AI art: Upgrade panel background
+		if _ui_element_textures.has("upgrade_panel_bg"):
+			draw_texture_rect(_ui_element_textures["upgrade_panel_bg"], Rect2(px - 4, py - 4, pw + 8, ph + 8), false, Color(1, 1, 1, 0.85))
+		else:
+			draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95))
 		draw_rect(Rect2(px, py, pw, ph), Color(0.6, 0.3, 0.8, 0.5), false, 1.5)
 		_udraw(font, Vector2(px + pw * 0.5, py + 16), "CHOOSE PATH", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.8, 0.6, 1.0))
 		draw_rect(Rect2(px + 10, py + 22, pw - 20, 1), Color(0.6, 0.3, 0.8, 0.3))
@@ -34335,7 +34473,7 @@ func _draw_animated_logo(bar_y: float) -> void:
 	if _menu_art_textures.has("game_title"):
 		var _gt_w = 200.0
 		var _gt_h = 60.0
-		draw_texture_rect(_menu_art_textures["game_title"], Rect2(logo_x - 10, logo_y - 30, _gt_w, _gt_h), false, Color(1, 1, 1, 0.5))
+		draw_texture_rect(_menu_art_textures["game_title"], Rect2(logo_x - 10, logo_y - 30, _gt_w, _gt_h), false, Color(1, 1, 1, 0.85))
 	# Massive outer glow halo (pulsing, dramatic)
 	var glow_cx = logo_x + 90.0
 	var glow_r = 100.0 + sin(_time * 0.8) * 12.0
@@ -34750,6 +34888,20 @@ func _process_nav_bounces(delta: float) -> void:
 # --- Menu Improvement 18: LEVEL STAR ANIMATION ---
 # Stars on completed levels animate in with a staggered bounce
 func _draw_animated_stars(px: float, py: float, count: int, size: float) -> void:
+	# AI art: Three stars texture strip (earned vs unearned)
+	if _ui_element_textures.has("three_stars"):
+		var ts_tex = _ui_element_textures["three_stars"]
+		var ts_w = float(ts_tex.get_width())
+		var ts_h = float(ts_tex.get_height())
+		var star_draw_sz = size * 2.2
+		var total_w = star_draw_sz * 3.0 + 4.0
+		# Draw full strip dimmed, then earned portion bright
+		draw_texture_rect(ts_tex, Rect2(px - 2, py - star_draw_sz * 0.5, total_w, star_draw_sz), false, Color(1, 1, 1, 0.2))
+		if count > 0:
+			var earned_w = total_w * (float(count) / 3.0)
+			var src_earned = Rect2(0, 0, ts_w * (float(count) / 3.0), ts_h)
+			draw_texture_rect_region(ts_tex, Rect2(px - 2, py - star_draw_sz * 0.5, earned_w, star_draw_sz), src_earned, Color(1, 1, 1, 0.95))
+		return
 	for si in range(3):
 		var star_x = px + float(si) * (size * 1.8)
 		var star_y = py
@@ -37203,7 +37355,7 @@ func _draw_boss_reveal() -> void:
 		_boss_portrait_key = "shadow_king"
 	if _boss_portrait_key != "" and _boss_portrait_textures.has(_boss_portrait_key):
 		var portrait_sz = sil_size * 1.8
-		var portrait_alpha = t * alpha * 0.4  # Fade in as silhouette grows
+		var portrait_alpha = t * alpha * 0.65  # Fade in as silhouette grows (strong presence)
 		draw_texture_rect(_boss_portrait_textures[_boss_portrait_key], Rect2(cx - portrait_sz * 0.5, cy - portrait_sz * 0.5, portrait_sz, portrait_sz), false, Color(1, 1, 1, portrait_alpha))
 	draw_circle(Vector2(cx, cy), sil_size * 0.5, Color(0.08, 0.02, 0.02, sil_alpha))
 	draw_circle(Vector2(cx, cy - sil_size * 0.4), sil_size * 0.25, Color(0.08, 0.02, 0.02, sil_alpha))
@@ -37633,6 +37785,17 @@ func trigger_treasure_chest(pos: Vector2) -> void:
 
 # 1. Illustrated Health Bar — hearts/shields that crack as lives are lost
 func _draw_illustrated_lives() -> void:
+	# AI art: Health hearts texture behind lives display
+	if _ui_element_textures.has("health_hearts"):
+		var hh_x = 400.0
+		var hh_y = 2.0
+		var hh_w = 200.0
+		var hh_h = 36.0
+		draw_texture_rect(_ui_element_textures["health_hearts"], Rect2(hh_x, hh_y, hh_w, hh_h), false, Color(1, 1, 1, 0.85))
+		# Draw lives count on top
+		var lives_text = "%d" % lives
+		_udraw(game_font, Vector2(hh_x + hh_w * 0.5, hh_y + hh_h * 0.7), lives_text, HORIZONTAL_ALIGNMENT_CENTER, int(hh_w), 18, Color(1.0, 0.95, 0.9, 0.95))
+		return
 	var max_lives_display = 20
 	var heart_count = mini(max_lives_display, 20)
 	var hx = 410.0
@@ -37661,6 +37824,15 @@ func _draw_illustrated_lives() -> void:
 
 # 2. Illustrated Gold Counter — coin purse that bulges with gold
 func _draw_gold_purse() -> void:
+	# AI art: Gold purse texture
+	if _ui_element_textures.has("gold_purse"):
+		var gp_x = 280.0
+		var gp_y = 2.0
+		var gp_w = 36.0
+		var gp_h = 32.0
+		draw_texture_rect(_ui_element_textures["gold_purse"], Rect2(gp_x, gp_y, gp_w, gp_h), false, Color(1, 1, 1, 0.9))
+		_udraw(game_font, Vector2(gp_x + gp_w + 4, gp_y + 22), _format_gold(gold), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.88, 0.2, 0.95))
+		return
 	var px = 290.0
 	var py = 12.0
 	var purse_w = 24.0
@@ -37689,6 +37861,22 @@ func _draw_gold_purse() -> void:
 
 # 3. Wave Progress Scroll — unrolling parchment with wave markers
 func _draw_wave_scroll() -> void:
+	# AI art: Wave banner texture behind wave progress
+	if _ui_element_textures.has("wave_banner"):
+		var wb_x = 4.0
+		var wb_y = 2.0
+		var wb_w = 220.0
+		var wb_h = 36.0
+		draw_texture_rect(_ui_element_textures["wave_banner"], Rect2(wb_x, wb_y, wb_w, wb_h), false, Color(1, 1, 1, 0.85))
+		# Wave text on top of banner
+		var progress = clampf(float(wave) / float(maxi(total_waves, 1)), 0.0, 1.0)
+		# Progress fill bar inside banner
+		var fill_x = wb_x + 12.0
+		var fill_y = wb_y + wb_h - 8.0
+		var fill_w = (wb_w - 24.0) * progress
+		draw_rect(Rect2(fill_x, fill_y, fill_w, 4), Color(1.0, 0.85, 0.3, 0.7))
+		_udraw(game_font, Vector2(wb_x + wb_w * 0.5, wb_y + wb_h * 0.55), "W%d/%d" % [wave, total_waves], HORIZONTAL_ALIGNMENT_CENTER, int(wb_w), 14, Color(0.15, 0.08, 0.02, 0.95))
+		return
 	var sx = 10.0
 	var sy = 6.0
 	var sw = 200.0
