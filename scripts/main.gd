@@ -674,7 +674,7 @@ var _idle_quirk_timers: Dictionary = {}  # tower_instance_id -> float (countdown
 var _last_panic_time: float = 0.0
 var _last_bond_banter_time: float = 0.0
 var _greeting_shown_for: int = -1  # survivor_detail_index that was greeted
-var _greeting_timer: float = 0.0
+var _greeting_timer_detail: float = 0.0  # renamed to avoid duplicate
 
 # === ADVANCED CHARACTER PERSONALITY (Round 2) ===
 
