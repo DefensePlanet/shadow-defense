@@ -334,18 +334,6 @@ func _ca(base: Color, alpha: float) -> Color:
 
 # DS: Draw a rounded panel with optional border
 # DS: Draw a glowing title (shadow + bright + glow pass)
-func _ds_title(pos: Vector2, text: String, size: int, color: Color, width: int = -1, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:
-	var font = game_font
-	if font == null:
-		return
-	var pulse = 0.85 + sin(_time * 1.0) * 0.15
-	# Shadow
-	_udraw(font, Vector2(pos.x + 1, pos.y + 1), text, align, width, size, Color(0, 0, 0, 0.7))
-	# Bright
-	_udraw(font, pos, text, align, width, size, Color(color.r * pulse, color.g * pulse, color.b * pulse, 1.0))
-	# Glow pass
-	_udraw(font, Vector2(pos.x - 1, pos.y - 1), text, align, width, size, Color(color.r, color.g, color.b, 0.25 * pulse))
-
 # DS: ROUNDED Bloons-style 3D button
 func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = false, text_size: int = 16) -> void:
 	var font = game_font
@@ -12063,7 +12051,7 @@ func _draw_emporium_sub_panel() -> void:
 	if emporium_sub_category >= 0 and emporium_sub_category < emporium_categories.size():
 		var cat = emporium_categories[emporium_sub_category]
 		var title_text = cat["name"].to_upper()
-		_ds_title(Vector2(panel_x, panel_y + 36), title_text, 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+		_ds_outlined_text(Vector2(panel_x, panel_y + 36), title_text, 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 		# Underline
 		var cx = panel_x + panel_w * 0.5
 		draw_line(Vector2(cx - 160, panel_y + 44), Vector2(cx + 160, panel_y + 44), _ca(menu_gold, 0.3), 1.5)
@@ -13025,7 +13013,7 @@ func _draw_closed_book() -> void:
 	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), border_inner)
 
 	# Title — using design system
-	_ds_title(Vector2(panel_x, panel_y + 34), "STORYBOOK KNOWLEDGE", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 34), "STORYBOOK KNOWLEDGE", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	# Title underline
 	var cx = panel_x + panel_w * 0.5
 	draw_line(Vector2(cx - 180, panel_y + 42), Vector2(cx + 180, panel_y + 42), _ca(menu_gold, 0.4), 1.5)
@@ -13284,7 +13272,7 @@ func _draw_daily_reward() -> void:
 	var title = "DAILY REWARDS"
 	var title_size = 34
 	var title_y = modal_y + 44
-	_ds_title(Vector2(modal_x, title_y), title, title_size, Color(1.0, 0.90, 0.50), int(modal_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(modal_x, title_y), title, title_size, Color(1.0, 0.90, 0.50), int(modal_w), HORIZONTAL_ALIGNMENT_CENTER)
 
 	# Decorative line under title with center diamond
 	var line_w = 200.0
@@ -14418,18 +14406,8 @@ func _draw_survivor_detail() -> void:
 	var content_alpha = ease_t
 	var x_offset = (1.0 - ease_t) * 40.0
 
-	# === Panel background gradient ===
-	for i in range(58):
-		var t = float(i) / 57.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 57.0 + 1), Color(col.r, col.g, col.b, content_alpha))
-	# Outer border
-	var bdr = _ca(accent, 0.5 * content_alpha)
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), bdr)
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), bdr)
-	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), bdr)
-	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), bdr)
-	draw_rect(Rect2(panel_x + 3, panel_y + 3, panel_w - 6, panel_h - 6), _ca(accent, 0.10 * content_alpha), false, 2.0)
+	# === Rounded panel background ===
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_bg_section.r, menu_bg_section.g, menu_bg_section.b, content_alpha), _ca(accent, 0.5 * content_alpha), 3.0, 14.0)
 
 	# === TOP BAR (34px) ===
 	var top_y = panel_y + 8.0
@@ -15022,7 +15000,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var left_cx = cx
 	var right_cx = cx + col_w + 20.0
 	# --- LEFT COLUMN: Combat Stats ---
-	_ds_title(Vector2(left_cx, cy + 12), "COMBAT STATS", 15, Color(1.0, 0.85, 0.28))
+	_ds_outlined_text(Vector2(left_cx, cy + 12), "COMBAT STATS", 15, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(left_cx, cy + 16, 100, 1), _ca(menu_gold, 0.25))
 	cy += 24.0
 	var stat_left_y = cy
@@ -15083,7 +15061,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 			stat_left_y += 13.0
 	# --- RIGHT COLUMN: Synergies ---
 	var syn_y = cy
-	_ds_title(Vector2(right_cx, syn_y + 12), "SYNERGIES", 15, Color(1.0, 0.85, 0.28))
+	_ds_outlined_text(Vector2(right_cx, syn_y + 12), "SYNERGIES", 15, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(right_cx, syn_y + 16, 80, 1), _ca(menu_gold, 0.25))
 	syn_y += 24.0
 	var syn_count = 0
@@ -15726,19 +15704,11 @@ func _draw_diff_popup() -> void:
 	var popup_h = 220.0
 	var popup_x = 640.0 - popup_w * 0.5
 	var popup_y = 310.0 - popup_h * 0.5
-	# Background gradient
-	for gi in range(22):
-		var t = float(gi) / 21.0
-		var col = Color(0.14, 0.10, 0.20).lerp(Color(0.08, 0.06, 0.14), t)
-		draw_rect(Rect2(popup_x, popup_y + t * popup_h, popup_w, popup_h / 21.0 + 1), col)
-	# Gold border
-	var bp = 0.6 + sin(_time * 2.0) * 0.15
-	draw_rect(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.85, 0.70, 0.28, bp), false, 2.0)
-	# Inner border
-	draw_rect(Rect2(popup_x + 3, popup_y + 3, popup_w - 6, popup_h - 6), Color(0.85, 0.70, 0.28, bp * 0.3), false, 2.0)
+	# Rounded panel background
+	_ds_panel(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.11, 0.08, 0.17, 0.95), Color(0.85, 0.70, 0.28, 0.7), 3.0, 14.0)
 
 	# Title
-	_ds_title(Vector2(popup_x + 10, popup_y + 24), level["name"], 16, Color(1.0, 0.88, 0.40), int(popup_w - 20), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(popup_x + 10, popup_y + 24), level["name"], 16, Color(1.0, 0.88, 0.40), int(popup_w - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(popup_x + popup_w * 0.5, popup_y + 46), "Select Difficulty", HORIZONTAL_ALIGNMENT_CENTER, int(popup_w - 20), 14, Color(0.65, 0.55, 0.40))
 	draw_rect(Rect2(popup_x + 15, popup_y + 55, popup_w - 30, 1), Color(0.85, 0.70, 0.28, 0.3))
 
@@ -15917,23 +15887,9 @@ func _draw_chapters_overlay() -> void:
 	# Panel theme color
 	var color_map = {"deals": Color(0.85, 0.70, 0.28), "quests": Color(0.4, 0.8, 0.3), "arena": Color(0.7, 0.3, 0.9), "odyssey": Color(0.82, 0.62, 0.92), "endless": Color(0.52, 0.62, 0.92)}
 	var tc = color_map.get(menu_side_panel, menu_gold)
-	# Panel background with subtle gradient
-	for gi in range(52):
-		var t = float(gi) / 51.0
-		var col = Color(0.12, 0.08, 0.16).lerp(Color(0.07, 0.05, 0.10), t)
-		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 51.0 + 1), col)
-	# Animated glowing gold border
+	# Rounded panel background
 	var bp = 0.5 + sin(_time * 2.0) * 0.15
-	var bc = _ca(tc, bp)
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), bc)
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), bc)
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), bc)
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), bc)
-	# Second inner border (double-line effect)
-	draw_rect(Rect2(panel_x + 4, panel_y + 4, panel_w - 8, 1), _ca(tc, bp * 0.3))
-	draw_rect(Rect2(panel_x + 4, panel_y + panel_h - 5, panel_w - 8, 1), _ca(tc, bp * 0.3))
-	draw_rect(Rect2(panel_x + 4, panel_y + 4, 1, panel_h - 8), _ca(tc, bp * 0.3))
-	draw_rect(Rect2(panel_x + panel_w - 5, panel_y + 4, 1, panel_h - 8), _ca(tc, bp * 0.3))
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.06, 0.13, 0.95), _ca(tc, bp), 3.0, 14.0)
 	# Corner flourish decorations
 	var corners = [Vector2(panel_x, panel_y), Vector2(panel_x + panel_w, panel_y), Vector2(panel_x, panel_y + panel_h), Vector2(panel_x + panel_w, panel_y + panel_h)]
 	for ci in range(4):
@@ -15948,7 +15904,7 @@ func _draw_chapters_overlay() -> void:
 	draw_rect(Rect2(panel_x + 2, panel_y + 2, panel_w - 4, 48), Color(tc.r * 0.08, tc.g * 0.08, tc.b * 0.08, 0.6))
 	var title_map = {"deals": "DAILY DEALS", "quests": "DAILY QUESTS", "arena": "SHADOW ARENA", "odyssey": "ODYSSEY MODE", "endless": "THE ETERNAL CHAPTER"}
 	var title = title_map.get(menu_side_panel, "")
-	_ds_title(Vector2(panel_x + 50, panel_y + 34), title, 20, tc, int(panel_w - 100), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x + 50, panel_y + 34), title, 20, tc, int(panel_w - 100), HORIZONTAL_ALIGNMENT_CENTER)
 	# Title underline with glow
 	draw_rect(Rect2(panel_x + 20, panel_y + 50, panel_w - 40, 1), _ca(tc, 0.4))
 	# Subtle glow beneath title line
@@ -16227,7 +16183,7 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 	var mins_left = 59 - time_dict["minute"]
 	var countdown_str = "Resets in %dh %dm" % [hours_left, mins_left]
 	var is_weekend = date["weekday"] == 0 or date["weekday"] == 6
-	_ds_title(Vector2(px + 10, py + 18), "DAILY DEALS" + (" — WEEKEND!" if is_weekend else ""), 16, Color(1.0, 0.85, 0.28), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(px + 10, py + 18), "DAILY DEALS" + (" — WEEKEND!" if is_weekend else ""), 16, Color(1.0, 0.85, 0.28), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5, py + 36), countdown_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.55, 0.2, 0.7 + sin(_time * 2.0) * 0.15))
 	# Improvement 5: Refresh button
 	var ref_x = px + pw - 130.0
@@ -16343,7 +16299,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 	var streak_str = "Streak: %d day%s" % [quest_streak, "s" if quest_streak != 1 else ""]
 	if quest_streak_best > 0:
 		streak_str += " (Best: %d)" % quest_streak_best
-	_ds_title(Vector2(px + 10, py + 18), "DAILY QUESTS", 16, Color(0.45, 0.9, 0.35), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(px + 10, py + 18), "DAILY QUESTS", 16, Color(0.45, 0.9, 0.35), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5, py + 34), streak_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.6, 0.75, 0.4))
 	# Improvement 19: Quest milestone counter
 	var next_milestone = 0
@@ -16478,7 +16434,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 
 func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_ds_title(Vector2(px + 10, py + 18), "SHADOW ARENA", 16, Color(0.8, 0.4, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(px + 10, py + 18), "SHADOW ARENA", 16, Color(0.8, 0.4, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5, py + 38), "Weekly competitive challenge", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_text_muted)
 	# Modifiers
 	var mod_str = ""
@@ -16521,7 +16477,7 @@ func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> v
 
 func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_ds_title(Vector2(px + 10, py + 20), "ODYSSEY MODE", 16, Color(0.9, 0.70, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(px + 10, py + 20), "ODYSSEY MODE", 16, Color(0.9, 0.70, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(px + 10, py + 30, pw - 20, 1), Color(0.5, 0.3, 0.7, 0.3))
 	if odyssey_completed_this_week:
 		_udraw(font, Vector2(px + pw * 0.5, py + 55), "Completed this week!", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.5, 0.8, 0.3))
@@ -16542,7 +16498,7 @@ func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 
 func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
-	_ds_title(Vector2(px + 10, py + 20), "THE ETERNAL CHAPTER", 16, Color(0.60, 0.72, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(px + 10, py + 20), "THE ETERNAL CHAPTER", 16, Color(0.60, 0.72, 1.0), int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(px + 10, py + 30, pw - 20, 1), Color(0.3, 0.4, 0.7, 0.3))
 	_udraw(font, Vector2(px + pw * 0.5, py + 55), "Infinite scaling waves.", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.6, 0.6, 0.75))
 	_udraw(font, Vector2(px + pw * 0.5, py + 73), "How far can you go?", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 15, Color(0.6, 0.6, 0.75))
@@ -18829,10 +18785,8 @@ func _draw_wave_preview() -> void:
 	var py = 90.0
 	var pw = 600.0
 	var ph = 80.0
-	# Crimson border panel
-	draw_rect(Rect2(px - 3, py - 3, pw + 6, ph + 6), Color(0.7, 0.15, 0.1, 0.8))
-	draw_rect(Rect2(px - 1, py - 1, pw + 2, ph + 2), Color(0.85, 0.7, 0.2, 0.6))
-	draw_rect(Rect2(px, py, pw, ph), Color(0.10, 0.07, 0.14, 0.93))
+	# Rounded crimson panel
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.10, 0.07, 0.14, 0.93), Color(0.7, 0.15, 0.1, 0.8), 3.0, 10.0)
 	# Title
 	_udraw(font, Vector2(px, py + 18), "NEXT WAVE: %d" % (wave + 1), HORIZONTAL_ALIGNMENT_CENTER, int(pw), 16, Color(1.0, 0.85, 0.3))
 	# Enemy info
@@ -29576,7 +29530,7 @@ func _draw_power_selection() -> void:
 	var py = (720 - ph) / 2
 	draw_rect(Rect2(px, py, pw, ph), Color(0.12, 0.08, 0.18, 0.95))
 	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
-	_ds_title(Vector2(px, py + 30), "SELECT BATTLE POWERS", 20, Color(1.0, 0.85, 0.28), int(pw), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(px, py + 30), "SELECT BATTLE POWERS", 20, Color(1.0, 0.85, 0.28), int(pw), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 54), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.4))
 	# Cancel/Back button (top-right)
 	draw_rect(Rect2(px + pw - 112, py + 10, 100, 40), Color(0.4, 0.15, 0.15, 0.8))
@@ -29964,18 +29918,10 @@ func _draw_trophy_store() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
-	# Background
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
-	# Gold border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	# Rounded panel background
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
 	# Title
-	_ds_title(Vector2(panel_x, panel_y + 28), "TROPHY STORE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "TROPHY STORE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Trophies: %d" % trophy_currency, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
 	# Categories
@@ -30097,15 +30043,9 @@ func _draw_gear_shop() -> void:
 	var panel_h = 560.0
 	var content_top = panel_y + 48.0
 	var content_bottom = panel_y + panel_h - 50.0
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	_ds_title(Vector2(panel_x, panel_y + 28), "GEAR SHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	# Rounded panel background
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "GEAR SHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	var card_w = 260.0
 	var card_h = 48.0
@@ -30288,12 +30228,9 @@ func _draw_salvage_panel() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
-	# Background
-	for i in range(56):
-		var t = float(i) / 55.0
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
-	_ds_title(Vector2(panel_x, panel_y + 28), "SALVAGE WORKSHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	# Rounded panel background
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "SALVAGE WORKSHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var card_w = 260.0
@@ -30373,11 +30310,9 @@ func _draw_chest_crafting() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
-	for i in range(56):
-		var t = float(i) / 55.0
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
-	_ds_title(Vector2(panel_x, panel_y + 28), "CHEST FORGE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	# Rounded panel background
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "CHEST FORGE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var tier_names = ["Bronze", "Silver", "Golden"]
@@ -31397,11 +31332,9 @@ func _draw_instrument_shop() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
-	for i in range(56):
-		var t = float(i) / 55.0
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), menu_bg_section.lerp(menu_bg_dark, t))
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), _ca(menu_gold_dim, 0.4), false, 1.5)
-	_ds_title(Vector2(panel_x, panel_y + 28), "LITERARY INSTRUMENTS", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	# Rounded panel background
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "LITERARY INSTRUMENTS", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Place instruments to buff nearby towers with aura effects", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	for i in range(literary_instruments.size()):
@@ -31686,18 +31619,10 @@ func _draw_spin_wheel_panel() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
-	# Background
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
-	# Border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	# Rounded panel background
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
 	# Title
-	_ds_title(Vector2(panel_x, panel_y + 28), "LUCKY WHEEL", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "LUCKY WHEEL", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
 	# Draw the wheel
 	var wheel_cx = panel_x + panel_w * 0.5
@@ -31732,18 +31657,10 @@ func _draw_merchant_panel() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
-	# Background
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
-	# Border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
+	# Rounded panel background
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
 	# Title
-	_ds_title(Vector2(panel_x, panel_y + 28), "WANDERING MERCHANT", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "WANDERING MERCHANT", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 	# Merchant inventory grid
 	if merchant_inventory.size() == 0:
@@ -32150,7 +32067,7 @@ func _draw_session_recap() -> void:
 	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
 	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
 	# Title
-	_ds_title(Vector2(px + 20, py + 30), "SESSION STATS", 22, Color(1.0, 0.85, 0.28))
+	_ds_outlined_text(Vector2(px + 20, py + 30), "SESSION STATS", 22, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px + 20, py + 38, 150, 1), _ca(c_gold, 0.3))
 	# Stats
 	var sy = py + 60.0
@@ -32168,7 +32085,7 @@ func _draw_session_recap() -> void:
 		sy += 26.0
 	# Tower Breakdown
 	sy += 10.0
-	_ds_title(Vector2(px + 40, sy + 14), "TOWER DAMAGE BREAKDOWN", 16, Color(1.0, 0.85, 0.28))
+	_ds_outlined_text(Vector2(px + 40, sy + 14), "TOWER DAMAGE BREAKDOWN", 16, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px + 40, sy + 20, 200, 1), _ca(c_gold, 0.2))
 	sy += 30.0
 	var breakdown = session_stats.get("tower_breakdown", [])
@@ -32234,7 +32151,7 @@ func _draw_career_stats() -> void:
 	var ph = 640.0
 	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
 	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
-	_ds_title(Vector2(px + 30, py + 35), "CAREER STATISTICS", 24, Color(1.0, 0.85, 0.28))
+	_ds_outlined_text(Vector2(px + 30, py + 35), "CAREER STATISTICS", 24, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px + 30, py + 44, 200, 2), _ca(c_gold, 0.3))
 	var sy = py + 70.0
 	var stats = [
@@ -34308,7 +34225,7 @@ func _draw_character_quote_box(px: float, py: float, pw: float, hero_index: int)
 # --- CharMenu 19: LORE SECTION ---
 func _draw_lore_section(px: float, py: float, pw: float, tower_type, hero_index: int) -> void:
 	var font = game_font
-	_ds_title(Vector2(px, py + 14), "LORE", 14, Color(1.0, 0.85, 0.28))
+	_ds_outlined_text(Vector2(px, py + 14), "LORE", 14, Color(1.0, 0.85, 0.28))
 	draw_rect(Rect2(px, py + 18, 50, 1), _ca(menu_gold, 0.3))
 	var desc = survivor_descriptions.get(tower_type, "A legendary hero.")
 	var lines = desc.split("\n")
