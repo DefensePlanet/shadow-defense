@@ -346,55 +346,36 @@ func _ds_title(pos: Vector2, text: String, size: int, color: Color, width: int =
 	# Glow pass
 	_udraw(font, Vector2(pos.x - 1, pos.y - 1), text, align, width, size, Color(color.r, color.g, color.b, 0.25 * pulse))
 
-# DS: Draw a BLOONS-STYLE chunky 3D button (bright gradient, thick border, glow)
+# DS: ROUNDED Bloons-style 3D button
 func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = false, text_size: int = 16) -> void:
 	var font = game_font
 	if font == null:
 		return
 	var r = rect
+	var rad = minf(r.size.y * 0.35, 14.0)
 	var col = base_col
 	if is_hover:
-		col = Color(col.r * 1.25, col.g * 1.25, col.b * 1.25)
-	# Drop shadow behind button
-	draw_rect(Rect2(r.position.x + 2, r.position.y + 3, r.size.x, r.size.y), Color(0, 0, 0, 0.5))
-	# Outer glow on hover
+		col = Color(minf(col.r * 1.3, 1.0), minf(col.g * 1.3, 1.0), minf(col.b * 1.3, 1.0))
+	# Rounded drop shadow
+	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(2, 3), r.size), rad), Color(0, 0, 0, 0.55))
+	# Hover glow
 	if is_hover:
-		for gi in range(3):
-			var glow_expand = float(gi + 1) * 2.0
-			draw_rect(Rect2(r.position.x - glow_expand, r.position.y - glow_expand, r.size.x + glow_expand * 2, r.size.y + glow_expand * 2), Color(col.r, col.g, col.b, 0.08 - float(gi) * 0.02))
-	# Thick dark border (3px)
-	draw_rect(Rect2(r.position.x - 2, r.position.y - 2, r.size.x + 4, r.size.y + 4), Color(0.08, 0.05, 0.02, 0.95))
-	# Main button body — bright top half, darker bottom half (3D candy look)
-	var half_h = r.size.y * 0.5
-	# Top half — bright
-	for gi in range(8):
-		var gt = float(gi) / 7.0
-		var shade = 1.3 - gt * 0.3
-		var band_y = r.position.y + gt * half_h
-		draw_rect(Rect2(r.position.x, band_y, r.size.x, half_h / 8.0 + 1), Color(col.r * shade, col.g * shade, col.b * shade, 1.0))
-	# Bottom half — darker
-	for gi in range(8):
-		var gt = float(gi) / 7.0
-		var shade = 1.0 - gt * 0.35
-		var band_y = r.position.y + half_h + gt * half_h
-		draw_rect(Rect2(r.position.x, band_y, r.size.x, half_h / 8.0 + 1), Color(col.r * shade * 0.85, col.g * shade * 0.85, col.b * shade * 0.85, 1.0))
-	# Glass shine (top 30%) — bright white highlight
-	draw_rect(Rect2(r.position.x + 3, r.position.y + 2, r.size.x - 6, r.size.y * 0.28), Color(1, 1, 1, 0.22))
-	draw_rect(Rect2(r.position.x + 6, r.position.y + 3, r.size.x - 12, r.size.y * 0.15), Color(1, 1, 1, 0.15))
-	# Gold border (2px)
-	draw_rect(r, Color(1.0, 0.85, 0.25, 0.9), false, 2.0)
-	# Inner highlight line at top
-	draw_rect(Rect2(r.position.x + 1, r.position.y + 1, r.size.x - 2, 1), Color(1, 1, 1, 0.3))
-	# Text — thick outline + bright center (Bloons style)
+		draw_colored_polygon(_rrp(Rect2(r.position - Vector2(4, 4), r.size + Vector2(8, 8)), rad + 4), Color(col.r, col.g, col.b, 0.12))
+	# Dark outer border (rounded)
+	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(3, 3), r.size + Vector2(6, 6)), rad + 3), Color(0.05, 0.03, 0.01, 0.95))
+	# Gold border (rounded)
+	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(1.5, 1.5), r.size + Vector2(3, 3)), rad + 1.5), Color(1.0, 0.85, 0.25, 0.9))
+	# Button body — bright top color
+	var top_col = Color(minf(col.r * 1.3, 1.0), minf(col.g * 1.3, 1.0), minf(col.b * 1.3, 1.0))
+	draw_colored_polygon(_rrp(r, rad), top_col)
+	# Bottom half darker overlay
+	draw_colored_polygon(_rrp(Rect2(Vector2(r.position.x + 1, r.position.y + r.size.y * 0.45), Vector2(r.size.x - 2, r.size.y * 0.54)), maxf(rad - 1, 2)), Color(0, 0, 0, 0.2))
+	# Glass shine top (rounded)
+	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(4, 2), Vector2(r.size.x - 8, r.size.y * 0.3)), maxf(rad - 3, 2)), Color(1, 1, 1, 0.25))
+	# Text — outlined
 	var tx = r.position.x
 	var ty = r.position.y + r.size.y * 0.65
-	# Black outline (draw in 8 directions)
-	for ox in [-2, -1, 0, 1, 2]:
-		for oy in [-2, -1, 0, 1, 2]:
-			if ox != 0 or oy != 0:
-				_udraw(font, Vector2(tx + ox, ty + oy), text, HORIZONTAL_ALIGNMENT_CENTER, int(r.size.x), text_size, Color(0, 0, 0, 0.7))
-	# White text
-	_udraw(font, Vector2(tx, ty), text, HORIZONTAL_ALIGNMENT_CENTER, int(r.size.x), text_size, Color(1, 1, 1, 1.0))
+	_ds_outlined_text(Vector2(tx + r.size.x * 0.5, ty), text, text_size, Color(1, 1, 1, 1.0), int(r.size.x), HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 # DS: Draw outlined text (Bloons style — thick black outline, bright fill)
 func _ds_outlined_text(pos: Vector2, text: String, size: int, color: Color, width: int = -1, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, outline_size: int = 2) -> void:
@@ -2690,6 +2671,14 @@ func _ready() -> void:
 	if game_font == null:
 		game_font = ThemeDB.fallback_font
 	_init_survivor_progress()
+	# Apply Fredoka font globally — find first Control child under UI
+	if game_font:
+		var ui_theme = Theme.new()
+		ui_theme.set_default_font(game_font)
+		if has_node("UI"):
+			for child in $UI.get_children():
+				if child is Control:
+					child.theme = ui_theme
 	_init_emporium_items()
 	_init_knowledge_tree()
 	_init_equipped_gear()
