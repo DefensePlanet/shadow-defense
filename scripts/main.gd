@@ -432,8 +432,9 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var ry = rect.position.y
 	var rw = rect.size.x
 	var rh = rect.size.y
-	# Shadow
-	draw_rect(Rect2(rx + 4, ry + 4, rw, rh), Color(0, 0, 0, 0.5))
+	# Bloons-style drop shadow (chunky)
+	draw_rect(Rect2(rx + 4, ry + 5, rw, rh), Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(rx + 2, ry + 3, rw, rh), Color(0, 0, 0, 0.3))
 	# Dark base
 	draw_rect(Rect2(rx, ry, rw, rh), Color(0.04, 0.04, 0.08))
 	# Portrait — crop-to-fill
@@ -457,8 +458,11 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	for gi in range(20):
 		var gt = float(gi) / 19.0
 		draw_rect(Rect2(rx, ry + rh - 46.0 + gt * 46.0, rw, 46.0 / 19.0 + 1), Color(0.0, 0.0, 0.0, gt * 0.88))
-	# Name
-	_udraw(font, Vector2(rx + 4, ry + rh - 26), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 15, Color(1.0, 0.95, 0.88) if unlocked else Color(0.55, 0.52, 0.58))
+	# Name — Bloons outlined
+	if unlocked:
+		_ds_outlined_text(Vector2(rx + 4, ry + rh - 26), char_name, 15, Color(1.0, 0.95, 0.88), int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 1)
+	else:
+		_udraw(font, Vector2(rx + 4, ry + rh - 26), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 15, Color(0.55, 0.52, 0.58))
 	# Title
 	_udraw(font, Vector2(rx + 4, ry + rh - 10), title, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 10, _ca(accent, 0.75) if unlocked else Color(0.4, 0.38, 0.45, 0.5))
 	# Level badge
@@ -476,12 +480,20 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		draw_rect(Rect2(rx, ry + rh - 3, rw, 3), Color(0, 0, 0, 0.5))
 		var xp_r = clampf(float(level) / 9.0, 0.0, 1.0)
 		draw_rect(Rect2(rx, ry + rh - 3, rw * xp_r, 3), _ca(accent, 0.9))
-	# Border
-	var bdr = _ca(accent, 0.5) if unlocked else Color(0.3, 0.28, 0.4, 0.35)
+	# Border — Bloons thick chunky border
+	var bdr = _ca(accent, 0.6) if unlocked else Color(0.3, 0.28, 0.4, 0.35)
 	if is_hovered and unlocked:
 		bdr = Color(minf(accent.r * 1.5, 1.0), minf(accent.g * 1.5, 1.0), minf(accent.b * 1.5, 1.0), 0.95)
-		draw_rect(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), _ca(accent, 0.12))
-	draw_rect(Rect2(rx, ry, rw, rh), bdr, false, 2.0)
+		# Glow behind hovered card
+		draw_rect(Rect2(rx - 4, ry - 4, rw + 8, rh + 8), _ca(accent, 0.15))
+		draw_rect(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), _ca(accent, 0.08))
+	# Outer dark border
+	draw_rect(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), Color(0.02, 0.02, 0.04, 0.9), false, 1.5)
+	# Colored border
+	draw_rect(Rect2(rx, ry, rw, rh), bdr, false, 3.0)
+	# Inner highlight at top
+	if unlocked:
+		draw_rect(Rect2(rx + 2, ry + 2, rw - 4, 1), Color(1, 1, 1, 0.15))
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
@@ -13576,13 +13588,14 @@ func _draw_survivor_grid() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 570.0
 
-	# No panel background — let menu bg show through for seamless look
+	# Bloons-style panel background with border
+	_ds_panel(Rect2(panel_x - 4, panel_y, panel_w + 8, panel_h), Color(0.05, 0.04, 0.10, 0.85), Color(0.55, 0.42, 0.15, 0.6), 2.0)
 
-	# === "SURVIVORS" title — using design system ===
+	# === "SURVIVORS" title — Bloons outlined style ===
 	var title_y = panel_y + 4.0
-	_ds_title(Vector2(panel_x, title_y + 18), "SURVIVORS", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, title_y + 20), "SURVIVORS", 26, Color(1.0, 0.88, 0.30), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 
-	# === PARTY count badge (top-right) ===
+	# === PARTY count badge (Bloons pill badge style) ===
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
@@ -13590,9 +13603,8 @@ func _draw_survivor_grid() -> void:
 	var party_sz = 16
 	var party_text = "PARTY: %d/%d" % [unlocked_count, survivor_types.size()]
 	var party_w = font.get_string_size(party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, party_sz).x
-	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 24, 24), _ca(menu_accent_purple, 0.6))
-	draw_rect(Rect2(panel_x + panel_w - party_w - 30, title_y + 4, party_w + 24, 24), _ca(menu_gold, 0.25), false, 1.0)
-	_udraw(font, Vector2(panel_x + panel_w - party_w - 18, title_y + 22), party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, party_sz, menu_gold_light)
+	_ds_panel(Rect2(panel_x + panel_w - party_w - 32, title_y + 3, party_w + 28, 26), Color(0.12, 0.06, 0.20, 0.9), Color(0.7, 0.55, 0.15, 0.6), 1.5)
+	_ds_outlined_text(Vector2(panel_x + panel_w - party_w - 18, title_y + 22), party_text, party_sz, menu_gold_light)
 
 	var card_colors_grid = [
 		Color(0.29, 0.55, 0.25),  # Robin Hood
