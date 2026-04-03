@@ -298,19 +298,19 @@ var emporium_categories = [
 ]
 var emporium_hover_index: int = -1
 
-# Menu color palette — BRIGHT Bloons-style (warm, vibrant, inviting)
-var menu_bg_dark = Color(0.08, 0.06, 0.16)         # Warmer, brighter base
-var menu_bg_section = Color(0.10, 0.08, 0.20)      # Brighter sections
-var menu_bg_card = Color(0.14, 0.12, 0.26)         # Visible card backgrounds
-var menu_bg_card_hover = Color(0.18, 0.15, 0.32)   # Bright hover
-var menu_gold = Color(0.95, 0.78, 0.20)            # BRIGHTER gold
-var menu_gold_light = Color(1.0, 0.92, 0.50)       # Vivid light gold
-var menu_gold_dim = Color(0.70, 0.55, 0.15)        # Brighter dim gold
-var menu_parchment = Color(0.96, 0.92, 0.85)       # Warm white
-var menu_text = Color(0.90, 0.87, 0.80)            # BRIGHTER text
-var menu_text_muted = Color(0.70, 0.65, 0.58)      # Brighter muted
-var menu_accent_purple = Color(0.22, 0.08, 0.35)   # Richer purple
-var menu_accent_glow = Color(0.40, 0.15, 0.60, 0.4) # Brighter glow
+# Menu color palette — BLOONS ADVENTURE TIME STYLE (bright blue, not dark purple!)
+var menu_bg_dark = Color(0.15, 0.25, 0.45)          # Bright blue base (like Bloons BATD)
+var menu_bg_section = Color(0.20, 0.35, 0.55)       # Blue sections
+var menu_bg_card = Color(0.25, 0.42, 0.65)          # Bright blue card backgrounds
+var menu_bg_card_hover = Color(0.30, 0.50, 0.75)    # Bright blue hover
+var menu_gold = Color(0.95, 0.78, 0.20)             # Gold
+var menu_gold_light = Color(1.0, 0.92, 0.50)        # Vivid light gold
+var menu_gold_dim = Color(0.70, 0.55, 0.15)         # Dim gold
+var menu_parchment = Color(0.96, 0.92, 0.85)        # Warm white
+var menu_text = Color(1.0, 1.0, 1.0)                # WHITE text (like Bloons)
+var menu_text_muted = Color(0.80, 0.85, 0.90)       # Light muted
+var menu_accent_purple = Color(0.15, 0.30, 0.55)    # Blue accent (was purple)
+var menu_accent_glow = Color(0.20, 0.50, 0.80, 0.4) # Blue glow
 # Standardized colors — replace the 8+ gold variants and scattered hardcoded colors
 var c_gold = Color(0.85, 0.65, 0.10)               # primary gold (replaces all 0.85,0.65,0.1 variants)
 var c_gold_bright = Color(1.0, 0.85, 0.20)          # bright gold highlight
@@ -5247,7 +5247,7 @@ func _create_ui() -> void:
 
 	# Top bar — Bloons-style warm dark bar
 	top_bar = ColorRect.new()
-	top_bar.color = Color(0.10, 0.07, 0.16, 0.95)
+	top_bar.color = Color(0.15, 0.28, 0.48, 0.95)
 	top_bar.position = Vector2(0, 0)
 	top_bar.size = Vector2(1280, 50)
 	ui.add_child(top_bar)
@@ -5290,7 +5290,7 @@ func _create_ui() -> void:
 
 	# Bottom panel — Bloons-style warm dark bar
 	bottom_panel = ColorRect.new()
-	bottom_panel.color = Color(0.10, 0.07, 0.16, 0.95)
+	bottom_panel.color = Color(0.15, 0.28, 0.48, 0.95)
 	bottom_panel.position = Vector2(0, 628)
 	bottom_panel.size = Vector2(1280, 92)
 	bottom_panel.clip_contents = true
@@ -5486,7 +5486,7 @@ func _create_ui() -> void:
 
 	# === Tower upgrade panel (right-side, hidden by default) ===
 	upgrade_panel = ColorRect.new()
-	upgrade_panel.color = Color(0.12, 0.10, 0.22, 0.96)
+	upgrade_panel.color = Color(0.18, 0.32, 0.52, 0.96)
 	upgrade_panel.position = Vector2(1080, 15)
 	upgrade_panel.size = Vector2(200, 710)
 	upgrade_panel.visible = false
@@ -10770,17 +10770,18 @@ func _draw_currency_bar() -> void:
 	# Fill status bar area behind notch/cutout
 	if _safe_top > 0:
 		draw_rect(Rect2(0, 0, 1280, _safe_top), Color(0.06, 0.05, 0.14, 0.95))
-	# Bloons-style chunky top bar with 3D gradient
-	# Dark body with depth
+	# BLOONS BATD style — bright blue top bar
 	for gi in range(8):
 		var gt = float(gi) / 7.0
-		var shade = 0.10 - gt * 0.06
-		draw_rect(Rect2(0, bar_y + gt * bar_h, 1280, bar_h / 8.0 + 1), Color(shade, shade * 0.6, shade * 1.4, 0.97))
+		var br = lerpf(0.15, 0.10, gt)
+		var bg = lerpf(0.30, 0.22, gt)
+		var bb = lerpf(0.55, 0.42, gt)
+		draw_rect(Rect2(0, bar_y + gt * bar_h, 1280, bar_h / 8.0 + 1), Color(br, bg, bb, 0.97))
 	# Glass highlight at top
-	draw_rect(Rect2(0, bar_y, 1280, bar_h * 0.3), Color(1, 1, 1, 0.04))
-	# Thick gold bottom border
-	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 3), Color(0.85, 0.68, 0.18, 0.85))
-	draw_rect(Rect2(0, bar_y + bar_h, 1280, 1), Color(0.4, 0.3, 0.08, 0.6))
+	draw_rect(Rect2(0, bar_y, 1280, bar_h * 0.3), Color(1, 1, 1, 0.08))
+	# Cyan bottom border (like Bloons)
+	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 3), Color(0.30, 0.70, 0.90, 0.85))
+	draw_rect(Rect2(0, bar_y + bar_h, 1280, 1), Color(0.15, 0.35, 0.50, 0.6))
 
 	# Menu Improvement 1: Animated Logo Treatment (replaces static title)
 	_draw_animated_logo(bar_y)
@@ -10839,21 +10840,21 @@ func _draw_menu_background() -> void:
 				break
 
 	if menu_current_view != "survivors" or survivor_detail_open:
-		# === BRIGHT Bloons-style gradient background ===
-		# Rich warm purple-blue gradient — NOT dark/cold
+		# === BLOONS BATD STYLE — BRIGHT BLUE gradient background ===
 		var bg_bands = _qcount(20)
 		var grad_step = 720 / maxi(1, bg_bands)
 		for gy in range(0, 720, grad_step):
 			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
-			var r = lerpf(0.12, 0.06, gt)
-			var g = lerpf(0.08, 0.04, gt)
-			var b = lerpf(0.28, 0.18, gt)
+			# Deep blue at top, slightly darker blue at bottom
+			var r = lerpf(0.12, 0.08, gt)
+			var g = lerpf(0.22, 0.15, gt)
+			var b = lerpf(0.42, 0.32, gt)
 			draw_rect(Rect2(0, gy, 1280, grad_step), Color(r, g, b, 1.0))
 
-		# === Vivid warm center glow ===
+		# === Subtle blue center glow ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
-		draw_circle(Vector2(640, 320), 550.0, Color(0.20, 0.08, 0.35, 0.15 * center_pulse))
-		draw_circle(Vector2(640, 320), 380.0, Color(0.28, 0.12, 0.45, 0.18 * center_pulse))
+		draw_circle(Vector2(640, 320), 550.0, Color(0.15, 0.30, 0.55, 0.10 * center_pulse))
+		draw_circle(Vector2(640, 320), 380.0, Color(0.20, 0.40, 0.65, 0.08 * center_pulse))
 		draw_circle(Vector2(640, 320), 220.0, Color(0.35, 0.15, 0.55, 0.12 * center_pulse))
 
 		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
@@ -11259,22 +11260,27 @@ func _draw_menu_background() -> void:
 	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
 	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
 	var nav_tab_cols = [
-		Color(0.90, 0.55, 0.20),  # Survivors: warm amber
-		Color(0.65, 0.40, 0.90),  # Gear: mystical purple
-		Color(0.30, 0.80, 0.30),  # Chapters: bright green
-		Color(0.40, 0.65, 0.95),  # Chronicles: bright blue
-		Color(0.95, 0.80, 0.20),  # Emporium: bright gold
-		Color(0.85, 0.65, 0.15),  # Achievements: bronze gold
+		Color(0.30, 0.75, 0.95),  # Survivors: cyan (like Bloons)
+		Color(0.30, 0.75, 0.95),  # Gear: cyan
+		Color(0.30, 0.75, 0.95),  # Chapters: cyan
+		Color(0.30, 0.75, 0.95),  # Chronicles: cyan
+		Color(0.30, 0.75, 0.95),  # Emporium: cyan
+		Color(0.30, 0.75, 0.95),  # Achievements: cyan
 	]
 	# Chunky dark bar with thick gold top border
-	draw_rect(Rect2(0, nav_draw_y - 4, 1280, 4), Color(0.85, 0.68, 0.18, 0.9))
-	# Dark gradient body
+	# Wooden shelf bar like Bloons BATD — warm brown wood texture feel
+	# Wood grain gradient (warm brown tones)
 	for ngi in range(10):
 		var t = float(ngi) / 9.0
-		var shade = 0.08 - t * 0.04
-		draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(shade, shade * 0.7, shade * 1.5, 0.97))
+		var wr = lerpf(0.35, 0.25, t)
+		var wg = lerpf(0.25, 0.16, t)
+		var wb = lerpf(0.15, 0.08, t)
+		draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(wr, wg, wb, 0.97))
+	# Top edge — bright highlight (wood shelf edge)
+	draw_rect(Rect2(0, nav_draw_y - 2, 1280, 3), Color(0.50, 0.38, 0.22, 0.9))
+	draw_rect(Rect2(0, nav_draw_y + 1, 1280, 1), Color(0.60, 0.48, 0.30, 0.5))
 	if _safe_bottom > 0:
-		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.06, 0.04, 0.10, 0.98))
+		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.20, 0.14, 0.08, 0.98))
 	var nav_margin = 15.0
 	var nav_total_w = 1280.0 - nav_margin * 2.0 - _safe_left - _safe_right
 	var tab_w = nav_total_w / 6.0
@@ -13516,7 +13522,7 @@ func _draw_survivor_grid() -> void:
 	var panel_h = 570.0
 
 	# Bloons-style panel background with border
-	_ds_panel(Rect2(panel_x - 4, panel_y, panel_w + 8, panel_h), Color(0.10, 0.08, 0.16, 0.88), Color(0.60, 0.48, 0.20, 0.7), 3.0)
+	_ds_panel(Rect2(panel_x - 4, panel_y, panel_w + 8, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0)
 
 	# === "SURVIVORS" title — left aligned ===
 	var title_y = panel_y + 4.0
@@ -13529,7 +13535,7 @@ func _draw_survivor_grid() -> void:
 			unlocked_count += 1
 	var party_sz = 14
 	var party_text = "%d/%d" % [unlocked_count, survivor_types.size()]
-	_ds_panel(Rect2(panel_x + panel_w - 80, title_y + 5, 70, 22), Color(0.15, 0.10, 0.25, 0.9), Color(0.7, 0.55, 0.15, 0.6), 1.5, 6.0)
+	_ds_panel(Rect2(panel_x + panel_w - 80, title_y + 5, 70, 22), Color(0.20, 0.38, 0.60, 0.9), Color(0.35, 0.75, 0.95, 0.7), 1.5, 6.0)
 	_ds_outlined_text(Vector2(panel_x + panel_w - 45, title_y + 20), party_text, party_sz, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	var card_colors_grid = [
@@ -15143,7 +15149,7 @@ func _draw_story_map() -> void:
 	var arc_gap = 8.0
 
 	# --- Background panel (Bloons-style bordered panel with shadow) ---
-	_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.12, 0.10, 0.18, 0.95), Color(0.60, 0.48, 0.20, 0.85), 3.0)
+	_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.85), 3.0)
 
 	# --- Title bar (Bloons-style gradient header) ---
 	# Dark gradient header
@@ -15445,7 +15451,7 @@ func _draw_story_map() -> void:
 						draw_line(Vector2(rix + 7, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
 					elif "Weapon" in reward_text or "Slot" in reward_text:
 						# Unlock — small star icon
-						_draw_mini_star(Vector2(rix + 4, reward_icon_y - 1), 4.0, Color(0.85, 0.70, 0.28, 0.7))
+						_draw_mini_star(Vector2(rix + 4, reward_icon_y - 1), 4.0, Color(0.35, 0.75, 0.95, 0.8))
 					elif "Gear" in reward_text:
 						# Gear — small diamond
 						var dc = Color(0.7, 0.3, 0.9, 0.6)
@@ -15692,7 +15698,7 @@ func _draw_diff_popup() -> void:
 	var popup_x = 640.0 - popup_w * 0.5
 	var popup_y = 310.0 - popup_h * 0.5
 	# Rounded panel background
-	_ds_panel(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.11, 0.08, 0.17, 0.95), Color(0.85, 0.70, 0.28, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.35, 0.75, 0.95, 0.8), 3.0, 14.0)
 
 	# Title
 	_ds_outlined_text(Vector2(popup_x + 10, popup_y + 24), level["name"], 16, Color(1.0, 0.88, 0.40), int(popup_w - 20), HORIZONTAL_ALIGNMENT_CENTER)
@@ -21970,7 +21976,7 @@ func _draw_stats_recap() -> void:
 	var font = game_font
 	var cx = 640.0
 	var cy = 280.0
-	_ds_panel(Rect2(340, 200, 600, 280), Color(0.08, 0.06, 0.14, 0.96), Color(0.8, 0.6, 0.2, 0.8), 3.0, 12.0)
+	_ds_panel(Rect2(340, 200, 600, 280), Color(0.18, 0.35, 0.58, 0.96), Color(0.35, 0.75, 0.95, 0.85), 3.0, 12.0)
 	_ds_outlined_text(Vector2(cx, 228), "BATTLE RECAP", 22, Color(1.0, 0.90, 0.35), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	var stats_list = [
 		["Waves Cleared", str(_session_stats.get("waves_cleared", 0))],
@@ -29872,7 +29878,7 @@ func _draw_trophy_store() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
 	# Title
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "TROPHY STORE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Trophies: %d" % trophy_currency, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
@@ -29995,7 +30001,7 @@ func _draw_gear_shop() -> void:
 	var content_top = panel_y + 48.0
 	var content_bottom = panel_y + panel_h - 50.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "GEAR SHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	var card_w = 260.0
@@ -30178,7 +30184,7 @@ func _draw_salvage_panel() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "SALVAGE WORKSHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -30255,7 +30261,7 @@ func _draw_chest_crafting() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "CHEST FORGE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -31269,7 +31275,7 @@ func _draw_instrument_shop() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "LITERARY INSTRUMENTS", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Place instruments to buff nearby towers with aura effects", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -31554,7 +31560,7 @@ func _draw_spin_wheel_panel() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
 	# Title
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "LUCKY WHEEL", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
@@ -31590,7 +31596,7 @@ func _draw_merchant_panel() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.09, 0.07, 0.18, 0.95), Color(0.6, 0.45, 0.15, 0.7), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
 	# Title
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "WANDERING MERCHANT", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
