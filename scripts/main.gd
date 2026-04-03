@@ -407,21 +407,37 @@ func _ds_outlined_text(pos: Vector2, text: String, size: int, color: Color, widt
 				_udraw(font, Vector2(pos.x + ox, pos.y + oy), text, align, width, size, Color(0, 0, 0, 0.8))
 	_udraw(font, pos, text, align, width, size, color)
 
-# DS: Draw a chunky panel with border and shadow (Bloons card style)
-func _ds_panel(rect: Rect2, bg_color: Color, border_color: Color, border_width: float = 3.0) -> void:
-	# Drop shadow
-	draw_rect(Rect2(rect.position.x + 3, rect.position.y + 3, rect.size.x, rect.size.y), Color(0, 0, 0, 0.4))
-	# Border
-	draw_rect(Rect2(rect.position.x - border_width, rect.position.y - border_width, rect.size.x + border_width * 2, rect.size.y + border_width * 2), border_color)
-	# Fill — gradient (lighter top, darker bottom)
-	var bands = 10
-	for gi in range(bands):
-		var gt = float(gi) / float(bands - 1)
-		var shade = 1.15 - gt * 0.3
-		var band_h = rect.size.y / float(bands) + 1
-		draw_rect(Rect2(rect.position.x, rect.position.y + gt * rect.size.y, rect.size.x, band_h), Color(bg_color.r * shade, bg_color.g * shade, bg_color.b * shade, bg_color.a))
-	# Inner highlight at top
-	draw_rect(Rect2(rect.position.x + 1, rect.position.y + 1, rect.size.x - 2, 2), Color(1, 1, 1, 0.1))
+# Rounded rect polygon points
+func _rrp(r: Rect2, rad: float) -> PackedVector2Array:
+	var p = PackedVector2Array()
+	var cr = minf(rad, minf(r.size.x * 0.5, r.size.y * 0.5))
+	var x = r.position.x; var y = r.position.y; var w = r.size.x; var h = r.size.y
+	for i in range(7):
+		var a = PI + float(i) * PI * 0.5 / 6.0
+		p.append(Vector2(x + cr + cos(a) * cr, y + cr + sin(a) * cr))
+	for i in range(7):
+		var a = PI * 1.5 + float(i) * PI * 0.5 / 6.0
+		p.append(Vector2(x + w - cr + cos(a) * cr, y + cr + sin(a) * cr))
+	for i in range(7):
+		var a = float(i) * PI * 0.5 / 6.0
+		p.append(Vector2(x + w - cr + cos(a) * cr, y + h - cr + sin(a) * cr))
+	for i in range(7):
+		var a = PI * 0.5 + float(i) * PI * 0.5 / 6.0
+		p.append(Vector2(x + cr + cos(a) * cr, y + h - cr + sin(a) * cr))
+	return p
+
+# DS: ROUNDED panel — shadow, border, fill (Bloons style)
+func _ds_panel(rect: Rect2, bg_color: Color, border_color: Color, border_width: float = 3.0, rad: float = 10.0) -> void:
+	# Rounded shadow
+	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 4), rect.size), rad), Color(0, 0, 0, 0.5))
+	# Rounded border
+	draw_colored_polygon(_rrp(Rect2(rect.position - Vector2(border_width, border_width), rect.size + Vector2(border_width * 2, border_width * 2)), rad + border_width), border_color)
+	# Rounded fill
+	draw_colored_polygon(_rrp(rect, rad), bg_color)
+	# Glass highlight top
+	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 2), Vector2(rect.size.x - 6, rect.size.y * 0.35)), maxf(rad - 2, 2)), Color(1, 1, 1, 0.08))
+	# Dark bottom
+	draw_colored_polygon(_rrp(Rect2(Vector2(rect.position.x + 3, rect.position.y + rect.size.y * 0.6), Vector2(rect.size.x - 6, rect.size.y * 0.38)), maxf(rad - 2, 2)), Color(0, 0, 0, 0.1))
 
 # DS: Draw a hero card (portrait fills card, name at bottom, level badge)
 func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: String, level: int, accent: Color, unlocked: bool, is_hovered: bool) -> void:
