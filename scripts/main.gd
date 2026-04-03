@@ -298,19 +298,19 @@ var emporium_categories = [
 ]
 var emporium_hover_index: int = -1
 
-# Menu color palette — deep navy-purple + gold (matches defenseplanet.org)
-var menu_bg_dark = Color(0.04, 0.04, 0.10)        # #0a0a1a deep navy
-var menu_bg_section = Color(0.055, 0.055, 0.14)    # #0e0e24
-var menu_bg_card = Color(0.08, 0.08, 0.20)         # #141432
-var menu_bg_card_hover = Color(0.10, 0.10, 0.25)   # #1a1a40
-var menu_gold = Color(0.79, 0.66, 0.30)            # #c9a84c (unchanged)
-var menu_gold_light = Color(0.91, 0.83, 0.55)      # #e8d48b (unchanged)
-var menu_gold_dim = Color(0.54, 0.45, 0.20)    # #8a7433 (unchanged)
-var menu_parchment = Color(0.94, 0.90, 0.83)       # #f0e6d3 warm white
-var menu_text = Color(0.77, 0.73, 0.66)            # #c4baa8
-var menu_text_muted = Color(0.54, 0.51, 0.47)      # #8a8278
-var menu_accent_purple = Color(0.16, 0.04, 0.23)   # #2a0a3a deep purple accent
-var menu_accent_glow = Color(0.30, 0.10, 0.50, 0.3) # soft purple glow
+# Menu color palette — BRIGHT Bloons-style (warm, vibrant, inviting)
+var menu_bg_dark = Color(0.08, 0.06, 0.16)         # Warmer, brighter base
+var menu_bg_section = Color(0.10, 0.08, 0.20)      # Brighter sections
+var menu_bg_card = Color(0.14, 0.12, 0.26)         # Visible card backgrounds
+var menu_bg_card_hover = Color(0.18, 0.15, 0.32)   # Bright hover
+var menu_gold = Color(0.95, 0.78, 0.20)            # BRIGHTER gold
+var menu_gold_light = Color(1.0, 0.92, 0.50)       # Vivid light gold
+var menu_gold_dim = Color(0.70, 0.55, 0.15)        # Brighter dim gold
+var menu_parchment = Color(0.96, 0.92, 0.85)       # Warm white
+var menu_text = Color(0.90, 0.87, 0.80)            # BRIGHTER text
+var menu_text_muted = Color(0.70, 0.65, 0.58)      # Brighter muted
+var menu_accent_purple = Color(0.22, 0.08, 0.35)   # Richer purple
+var menu_accent_glow = Color(0.40, 0.15, 0.60, 0.4) # Brighter glow
 # Standardized colors — replace the 8+ gold variants and scattered hardcoded colors
 var c_gold = Color(0.85, 0.65, 0.10)               # primary gold (replaces all 0.85,0.65,0.1 variants)
 var c_gold_bright = Color(1.0, 0.85, 0.20)          # bright gold highlight
@@ -2655,11 +2655,14 @@ func _ready() -> void:
 		_portrait_hem_offsets.append(rng_port.randf_range(-5, 5))
 	for _i in range(12):
 		_portrait_hair_offsets.append(rng_port.randf_range(5, 15))
-	# Load Cinzel display font for all game text
-	game_font = load("res://fonts/Cinzel.ttf")
+	# Load Fredoka thick cartoon font (Bloons-style) for all game text
+	game_font = load("res://fonts/Fredoka.ttf")
 	if game_font == null:
-		# Fallback: load font bytes directly from disk (bypasses import cache)
-		var font_abs = ProjectSettings.globalize_path("res://fonts/Cinzel.ttf")
+		game_font = load("res://fonts/LuckiestGuy.ttf")
+	if game_font == null:
+		game_font = load("res://fonts/Cinzel.ttf")
+	if game_font == null:
+		var font_abs = ProjectSettings.globalize_path("res://fonts/Fredoka.ttf")
 		var fa = FileAccess.open(font_abs, FileAccess.READ)
 		if fa == null:
 			fa = FileAccess.open("res://fonts/Cinzel.ttf", FileAccess.READ)
@@ -10825,29 +10828,22 @@ func _draw_menu_background() -> void:
 				break
 
 	if menu_current_view != "survivors" or survivor_detail_open:
-		# === Bloons-style rich gradient background ===
-		draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
-		# Rich vertical gradient — deep purple to dark blue
+		# === BRIGHT Bloons-style gradient background ===
+		# Rich warm purple-blue gradient — NOT dark/cold
 		var bg_bands = _qcount(20)
 		var grad_step = 720 / maxi(1, bg_bands)
 		for gy in range(0, 720, grad_step):
 			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
-			var r = lerpf(0.06, 0.03, gt)
-			var g = lerpf(0.04, 0.02, gt)
-			var b = lerpf(0.14, 0.08, gt)
-			draw_rect(Rect2(0, gy, 1280, grad_step), Color(r, g, b, 0.8))
+			var r = lerpf(0.12, 0.06, gt)
+			var g = lerpf(0.08, 0.04, gt)
+			var b = lerpf(0.28, 0.18, gt)
+			draw_rect(Rect2(0, gy, 1280, grad_step), Color(r, g, b, 1.0))
 
-		# === Vivid center radial glow (more visible than before) ===
+		# === Vivid warm center glow ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
-		draw_circle(Vector2(640, 340), 500.0, Color(0.15, 0.05, 0.30, 0.12 * center_pulse))
-		draw_circle(Vector2(640, 340), 350.0, Color(0.20, 0.08, 0.40, 0.15 * center_pulse))
-		draw_circle(Vector2(640, 340), 200.0, Color(0.30, 0.12, 0.50, 0.10 * center_pulse))
-
-		# === Corner darkening for depth ===
-		for corner_i in range(4):
-			var corner_x = 0.0 if corner_i % 2 == 0 else 1280.0
-			var corner_y = 0.0 if corner_i < 2 else 720.0
-			draw_circle(Vector2(corner_x, corner_y), 450.0, Color(0.0, 0.0, 0.02, 0.1))
+		draw_circle(Vector2(640, 320), 550.0, Color(0.20, 0.08, 0.35, 0.15 * center_pulse))
+		draw_circle(Vector2(640, 320), 380.0, Color(0.28, 0.12, 0.45, 0.18 * center_pulse))
+		draw_circle(Vector2(640, 320), 220.0, Color(0.35, 0.15, 0.55, 0.12 * center_pulse))
 
 		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
 		var orn_a = 0.22 + sin(_time * 0.8) * 0.06
@@ -15382,20 +15378,20 @@ func _draw_story_map() -> void:
 			prev_row_center = row_center
 			prev_row_visible = true
 
-			# --- Row background (Bloons-style card with border + shadow) ---
+			# --- Row background (BRIGHT Bloons-style card) ---
 			var is_hovered = Rect2(rx, maxf(ry, content_top), rw, row_h).has_point(mouse_pos) and ry >= content_top
 			var card_bg: Color
 			var card_border: Color
 			if is_unlocked:
-				var br = 0.12 + arc_col.r * 0.08
-				var bg = 0.10 + arc_col.g * 0.08
-				var bb = 0.08 + arc_col.b * 0.08
-				card_bg = Color(br, bg, bb, 0.85) if not is_hovered else Color(br * 1.4, bg * 1.4, bb * 1.4, 0.92)
-				card_border = Color(arc_col.r * 0.8, arc_col.g * 0.8, arc_col.b * 0.8, 0.7) if not is_hovered else Color(arc_col.r, arc_col.g, arc_col.b, 0.9)
+				var br = 0.16 + arc_col.r * 0.12
+				var bg2 = 0.13 + arc_col.g * 0.12
+				var bb = 0.12 + arc_col.b * 0.12
+				card_bg = Color(br, bg2, bb, 0.92) if not is_hovered else Color(br * 1.5, bg2 * 1.5, bb * 1.5, 0.95)
+				card_border = Color(arc_col.r, arc_col.g, arc_col.b, 0.85) if not is_hovered else Color(minf(arc_col.r * 1.3, 1.0), minf(arc_col.g * 1.3, 1.0), minf(arc_col.b * 1.3, 1.0), 1.0)
 			else:
-				card_bg = Color(0.06, 0.05, 0.08, 0.7)
-				card_border = Color(0.2, 0.18, 0.15, 0.4)
-			_ds_panel(Rect2(rx, ry, rw, row_h - 4), card_bg, card_border, 2.0)
+				card_bg = Color(0.08, 0.07, 0.12, 0.8)
+				card_border = Color(0.25, 0.22, 0.18, 0.5)
+			_ds_panel(Rect2(rx, ry, rw, row_h - 4), card_bg, card_border, 3.0)
 			# Left accent bar (thick, glowing)
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
 			draw_rect(Rect2(rx, ry, 5, row_h - 4), Color(accent_col.r, accent_col.g, accent_col.b, 0.9))
@@ -15450,16 +15446,16 @@ func _draw_story_map() -> void:
 			draw_circle(Vector2(thumb_x + 12, thumb_y + 12), 10, Color(0.0, 0.0, 0.0, 0.6))
 			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 14, Color(0.90, 0.82, 0.55))
 
-			# --- Text info (Bloons style — outlined, bold) ---
+			# --- Text info (BRIGHT Bloons style) ---
 			var text_x = thumb_x + thumb_w + 18.0
-			var name_col = Color(1.0, 0.92, 0.45) if is_unlocked else Color(0.50, 0.42, 0.32, 0.65)
-			var sub_col = Color(0.85, 0.75, 0.55) if is_unlocked else Color(0.40, 0.35, 0.28, 0.55)
-			var stat_col = Color(0.65, 0.85, 0.50) if is_unlocked else Color(0.35, 0.32, 0.25, 0.45)
+			var name_col = Color(1.0, 0.95, 0.50) if is_unlocked else Color(0.55, 0.48, 0.38, 0.65)
+			var sub_col = Color(0.92, 0.82, 0.60) if is_unlocked else Color(0.45, 0.40, 0.32, 0.55)
+			var stat_col = Color(0.70, 0.92, 0.55) if is_unlocked else Color(0.40, 0.38, 0.30, 0.45)
 			if is_unlocked:
-				_ds_outlined_text(Vector2(text_x, ry + 26), level["name"], 17, name_col, 380)
+				_ds_outlined_text(Vector2(text_x, ry + 28), level["name"], 18, name_col, 380)
 			else:
-				_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 380, 16, name_col)
-			_udraw(font, Vector2(text_x, ry + 46), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 380, 15, sub_col)
+				_udraw(font, Vector2(text_x, ry + 28), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 380, 17, name_col)
+			_udraw(font, Vector2(text_x, ry + 48), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 380, 15, sub_col)
 
 			# Enhancement 22: Best wave indicator
 			var wave_info = "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]]
@@ -15509,25 +15505,28 @@ func _draw_story_map() -> void:
 			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
 			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
 			if _ui_tex.has("difficulty_gems"):
-				# Use nano-banana gem strip — 4 gems side by side
+				# Use nano-banana gem strip — 4 gems, maintain aspect ratio
 				var gem_tex = _ui_tex["difficulty_gems"]
 				var gem_strip_w = float(gem_tex.get_width())
 				var gem_strip_h = float(gem_tex.get_height())
 				var gem_one_w = gem_strip_w / 4.0
-				var gem_sz = 42.0
+				# Calculate proper aspect ratio for each gem
+				var gem_aspect = gem_one_w / gem_strip_h
+				var gem_target_h = 48.0
+				var gem_target_w = gem_target_h * gem_aspect
 				for di in range(4):
-					var mx = medal_x + float(di) * 52.0 + 2.0
-					var my = ry + 10.0
+					var mx = medal_x + float(di) * (gem_target_w + 4.0)
+					var my = ry + 6.0
 					var earned = medals[di]
-					var gem_a = 1.0 if earned else 0.2
+					var gem_a = 1.0 if earned else 0.18
 					var src = Rect2(float(di) * gem_one_w, 0, gem_one_w, gem_strip_h)
-					draw_texture_rect_region(gem_tex, Rect2(mx, my, gem_sz, gem_sz), src, Color(1, 1, 1, gem_a))
+					draw_texture_rect_region(gem_tex, Rect2(mx, my, gem_target_w, gem_target_h), src, Color(1, 1, 1, gem_a))
 					# Stars below gem
 					if earned:
 						var ds = diff_stars_arr[di]
 						for dsi in range(3):
-							var sx = mx + gem_sz * 0.5 - 8.0 + float(dsi) * 8.0
-							var sy = my + gem_sz + 4.0
+							var sx = mx + gem_target_w * 0.5 - 8.0 + float(dsi) * 8.0
+							var sy = my + gem_target_h + 4.0
 							if dsi < ds:
 								draw_circle(Vector2(sx, sy), 5.0, _ca(c_gold_bright, 0.2))
 								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
@@ -15585,11 +15584,18 @@ func _draw_story_map() -> void:
 				if _ui_tex.has("go_button"):
 					var go_a = 1.0 if btn_hover else 0.85
 					var go_s = 1.08 if btn_hover else 1.0
-					var gw = btn_w2 * go_s
-					var gh = btn_h2 * go_s
+					# Maintain aspect ratio
+					var go_tex = _ui_tex["go_button"]
+					var go_tex_sz = Vector2(go_tex.get_width(), go_tex.get_height())
+					var go_scale = minf(btn_w2 / go_tex_sz.x, btn_h2 / go_tex_sz.y) * go_s
+					var gw = go_tex_sz.x * go_scale
+					var gh = go_tex_sz.y * go_scale
 					var gx = btn_x + (btn_w2 - gw) * 0.5
 					var gy = btn_y2 + (btn_h2 - gh) * 0.5
-					draw_texture_rect(_ui_tex["go_button"], Rect2(gx, gy, gw, gh), false, Color(1, 1, 1, go_a))
+					# Glow behind on hover
+					if btn_hover:
+						draw_circle(Vector2(gx + gw * 0.5, gy + gh * 0.5), gw * 0.5 + 5, Color(0.2, 0.8, 0.2, 0.15))
+					draw_texture_rect(go_tex, Rect2(gx, gy, gw, gh), false, Color(1, 1, 1, go_a))
 				else:
 					var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
 					_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
