@@ -9110,24 +9110,19 @@ func _draw_story_dialog() -> void:
 	var badge_x = 560.0
 	var badge_y = panel_y - 20.0
 	var badge_h = 36.0
-	# Badge background
-	draw_rect(Rect2(badge_x, badge_y, name_w, badge_h), Color(0.12, 0.08, 0.18, 0.95))
-	# Rounded corners via small circles
-	draw_circle(Vector2(badge_x + 4, badge_y + 4), 4, Color(0.12, 0.08, 0.18, 0.95))
-	draw_circle(Vector2(badge_x + name_w - 4, badge_y + 4), 4, Color(0.12, 0.08, 0.18, 0.95))
-	draw_circle(Vector2(badge_x + 4, badge_y + badge_h - 4), 4, Color(0.12, 0.08, 0.18, 0.95))
-	draw_circle(Vector2(badge_x + name_w - 4, badge_y + badge_h - 4), 4, Color(0.12, 0.08, 0.18, 0.95))
-	# Pulsing glow border
+	# Badge background (proper rounded rect)
+	draw_colored_polygon(_rrp(Rect2(badge_x + 1, badge_y + 2, name_w, badge_h), 8.0), Color(0.0, 0.0, 0.0, 0.4))
+	draw_colored_polygon(_rrp(Rect2(badge_x, badge_y, name_w, badge_h), 8.0), Color(0.12, 0.08, 0.18, 0.95))
+	# Pulsing glow border (rounded polyline)
 	var badge_glow = 0.45 + sin(_time * 2.5) * 0.15
-	draw_rect(Rect2(badge_x, badge_y, name_w, 2), Color(char_glow.r, char_glow.g, char_glow.b, badge_glow))
-	draw_rect(Rect2(badge_x, badge_y + badge_h - 2, name_w, 2), Color(char_glow.r, char_glow.g, char_glow.b, badge_glow * 0.6))
-	draw_rect(Rect2(badge_x, badge_y, 2, badge_h), Color(char_glow.r, char_glow.g, char_glow.b, badge_glow * 0.7))
-	draw_rect(Rect2(badge_x + name_w - 2, badge_y, 2, badge_h), Color(char_glow.r, char_glow.g, char_glow.b, badge_glow * 0.7))
+	var _badge_pts = _rrp(Rect2(badge_x, badge_y, name_w, badge_h), 8.0)
+	_badge_pts.append(_badge_pts[0])
+	draw_polyline(_badge_pts, Color(char_glow.r, char_glow.g, char_glow.b, badge_glow), 2.0)
 	# Character color accent dot with glow
 	draw_circle(Vector2(badge_x + 16, badge_y + badge_h * 0.5), 6, Color(char_glow.r, char_glow.g, char_glow.b, 0.8))
 	draw_circle(Vector2(badge_x + 16, badge_y + badge_h * 0.5), 10, Color(char_glow.r, char_glow.g, char_glow.b, 0.15))
-	# Name text
-	_udraw(font, Vector2(badge_x + 30, badge_y + 25), speaker_display, HORIZONTAL_ALIGNMENT_LEFT, name_w - 36, 18, Color(0.92, 0.82, 0.45))
+	# Name text (outlined)
+	_ds_outlined_text(Vector2(badge_x + 30, badge_y + 25), speaker_display, 18, Color(0.95, 0.85, 0.45), name_w - 36, HORIZONTAL_ALIGNMENT_LEFT, 2)
 
 	# === DIALOG TEXT (word-wrapped, with enhanced shadows) ===
 	var text_x = 580.0
@@ -9178,14 +9173,11 @@ func _draw_story_dialog() -> void:
 	var line_count_text = "%d / %d" % [story_state.line_index + 1, dlines.size()]
 	_udraw(font, Vector2(1220, panel_y + panel_h - 8), line_count_text, HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, Color(0.4, 0.35, 0.3, 0.45))
 
-	# === SKIP BUTTON (top-right) ===
+	# === SKIP BUTTON (top-right, rounded) ===
 	var skip_x = 1140.0
 	var skip_y = 20.0
-	draw_rect(Rect2(skip_x, skip_y, 120, 36), Color(0.14, 0.10, 0.20, 0.88))
-	draw_rect(Rect2(skip_x, skip_y, 120, 36), Color(0.5, 0.4, 0.3, 0.3), false, 1.0)
-	var skip_text = "SKIP >>"
-	var skip_tw = font.get_string_size(skip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-	_udraw(font, Vector2(skip_x + (120 - skip_tw) * 0.5, skip_y + 24), skip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.7, 0.6, 0.45, 0.7))
+	var _skip_hover = Rect2(skip_x, skip_y, 120, 36).has_point(get_viewport().get_mouse_position())
+	_ds_button(Rect2(skip_x, skip_y, 120, 36), "SKIP >>", Color(0.35, 0.25, 0.18), _skip_hover, 16)
 
 func _get_character_glow_color(speaker: String) -> Color:
 	match speaker:
@@ -12634,14 +12626,14 @@ func _draw_chest_opening() -> void:
 		# Chest tier name
 		var title = "%s Chest" % tier_names[mini(chest_opening_tier, 2)]
 		var tw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-		_udraw(font, Vector2(cx - tw * 0.5, chest_cy + bh + 35), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(tier_col.r, tier_col.g, tier_col.b, 0.8))
+		_ds_outlined_text(Vector2(cx, chest_cy + bh + 35), title, 20, Color(tier_col.r, tier_col.g, tier_col.b, 0.9), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 		# "Tap to Open" prompt (phase 0 only, pulsing)
 		if chest_opening_phase == 0:
 			var tap_alpha = 0.5 + sin(_time * 3.0) * 0.3
 			var tap_text = _get_action_text() + " to Open"
 			var tap_w = font.get_string_size(tap_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
-			_udraw(font, Vector2(cx - tap_w * 0.5, chest_cy + bh + 60), tap_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.9, 0.6, tap_alpha))
+			_ds_outlined_text(Vector2(cx, chest_cy + bh + 60), tap_text, 18, Color(1.0, 0.9, 0.6, tap_alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 		# Rising sparkle particles
 		for p in range(12):
@@ -12943,24 +12935,17 @@ func _draw_victory_equip_overlay() -> void:
 	var panel_y = 120.0
 	var panel_w = 800.0
 	var panel_h = 380.0
-	# Panel background
-	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.12, 0.08, 0.18, 0.95))
-	# Border
-	for edge in [Rect2(panel_x, panel_y, panel_w, 2), Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2),
-		Rect2(panel_x, panel_y, 2, panel_h), Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h)]:
-		draw_rect(edge, Color(0.6, 0.3, 0.75, 0.5))
-	# Title
+	# Panel background (rounded Bloons panel)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.12, 0.08, 0.18, 0.95), Color(0.6, 0.3, 0.75, 0.5), 3.0, 12.0)
+	# Title (outlined)
 	var title = "Equip Gear: %s" % victory_trinket_pending.get("name", "")
-	var tw = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-	_udraw(font, Vector2(panel_x + (panel_w - tw) * 0.5, panel_y + 30), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.9, 0.75, 0.3, 0.95))
+	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + 30), title, 20, Color(0.9, 0.75, 0.3, 0.95), int(panel_w - 40), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Subtitle
 	var sub = "Choose a character to equip this gear on:"
-	var sw = font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-	_udraw(font, Vector2(panel_x + (panel_w - sw) * 0.5, panel_y + 55), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.7, 0.6, 0.5, 0.7))
+	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + 55), sub, 16, Color(0.7, 0.6, 0.5, 0.8), int(panel_w - 40), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	# Gear desc
 	var desc = victory_trinket_pending.get("desc", "")
-	var dw = font.get_string_size(desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	_udraw(font, Vector2(panel_x + (panel_w - dw) * 0.5, panel_y + 78), desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.6, 0.5, 0.7, 0.7))
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 78), desc, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 80), 14, Color(0.6, 0.5, 0.7, 0.7))
 	# Character grid (2 rows: 6 + 6)
 	var tower_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge",
 		"sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
@@ -15327,7 +15312,10 @@ func _draw_story_map() -> void:
 			draw_colored_polygon(_rrp(Rect2(cpb_x, cpb_y, cpb_w, 5), 2.5), Color(0.15, 0.12, 0.10, 0.6))
 			var cpb_fill = cpb_w * clampf(float(arc_done) / float(maxi(arc_total, 1)), 0.0, 1.0)
 			var cpb_col = Color(0.45, 0.80, 0.30, 0.8) if arc_done == arc_total else Color(arc_col.r, arc_col.g, arc_col.b, 0.7)
-			draw_rect(Rect2(cpb_x, cpb_y, cpb_fill, 3), cpb_col)
+			if cpb_fill > 4.0:
+				draw_colored_polygon(_rrp(Rect2(cpb_x, cpb_y, cpb_fill, 5), 2.5), cpb_col)
+			elif cpb_fill > 0.0:
+				draw_rect(Rect2(cpb_x, cpb_y, cpb_fill, 5), cpb_col)
 			# Glowing tip on progress bar
 			if cpb_fill > 0 and arc_done < arc_total:
 				var tip_glow = 0.4 + sin(_time * 3.0) * 0.2
@@ -15409,8 +15397,12 @@ func _draw_story_map() -> void:
 				var next_badge_y = ry + 56.0
 				var next_text_a = 0.7 + sin(_time * 4.0) * 0.3
 				var next_scale = 1.0 + sin(_time * 3.0) * 0.05
-				draw_rect(Rect2(next_badge_x, next_badge_y, 80.0 * next_scale, 16), Color(0.2, 0.6, 0.15, next_text_a * 0.5))
-				_udraw(font, Vector2(next_badge_x + 1.0 * next_scale, next_badge_y + 12), ">> NEXT <<", HORIZONTAL_ALIGNMENT_CENTER, int(80.0 * next_scale), 14, Color(0.4, 1.0, 0.4, next_text_a))
+				var _next_w = 80.0 * next_scale
+				draw_colored_polygon(_rrp(Rect2(next_badge_x, next_badge_y, _next_w, 18), 6.0), Color(0.15, 0.45, 0.12, next_text_a * 0.6))
+				var _next_bdr = _rrp(Rect2(next_badge_x, next_badge_y, _next_w, 18), 6.0)
+				_next_bdr.append(_next_bdr[0])
+				draw_polyline(_next_bdr, Color(0.3, 0.85, 0.25, next_text_a * 0.5), 1.0)
+				_ds_outlined_text(Vector2(next_badge_x + _next_w * 0.5, next_badge_y + 14), ">> NEXT <<", 14, Color(0.4, 1.0, 0.4, next_text_a), int(_next_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 			# --- Map thumbnail (large, prominent) ---
 			var thumb_x = rx + 12.0
@@ -15432,9 +15424,17 @@ func _draw_story_map() -> void:
 					draw_circle(Vector2(tx, ty), 3.0, Color(gnd.r * 1.2, gnd.g * 1.2, gnd.b * 1.2, 0.25))
 			# Path preview removed — let the AI art speak for itself
 			draw_rect(Rect2(thumb_x, thumb_y, thumb_w, thumb_h), _ca(menu_gold_dim, 0.3), false, 1.0)
-			# Level number badge
-			draw_circle(Vector2(thumb_x + 12, thumb_y + 12), 10, Color(0.0, 0.0, 0.0, 0.6))
-			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 14, Color(0.90, 0.82, 0.55))
+			# Level number badge (rounded panel)
+			var _lbx = thumb_x + 2.0
+			var _lby = thumb_y + 2.0
+			var _lbw = 22.0
+			var _lbh = 22.0
+			draw_colored_polygon(_rrp(Rect2(_lbx + 1, _lby + 1, _lbw, _lbh), 6.0), Color(0.0, 0.0, 0.0, 0.5))
+			draw_colored_polygon(_rrp(Rect2(_lbx, _lby, _lbw, _lbh), 6.0), Color(0.12, 0.08, 0.18, 0.92))
+			var _lb_border = _rrp(Rect2(_lbx, _lby, _lbw, _lbh), 6.0)
+			_lb_border.append(_lb_border[0])
+			draw_polyline(_lb_border, Color(0.85, 0.68, 0.18, 0.8), 1.5)
+			_ds_outlined_text(Vector2(_lbx + _lbw * 0.5, _lby + 16), str(lvl_idx + 1), 14, Color(0.95, 0.88, 0.45), int(_lbw), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 			# --- Text info (BRIGHT Bloons style) ---
 			var text_x = thumb_x + thumb_w + 18.0
@@ -16402,8 +16402,12 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		var pct = float(wq.get("progress", 0)) / float(max(1, wq.get("target", 1)))
 		var bar_w = 100.0
 		var bar_x = px + pw - 120.0
-		draw_rect(Rect2(bar_x, iy + 6, bar_w, 12), Color(0.12, 0.12, 0.12))
-		draw_rect(Rect2(bar_x, iy + 6, bar_w * clampf(pct, 0.0, 1.0), 12), Color(0.2, 0.5, 0.8) if not claimed else Color(0.15, 0.35, 0.55))
+		draw_colored_polygon(_rrp(Rect2(bar_x, iy + 6, bar_w, 12), 4.0), Color(0.12, 0.12, 0.12))
+		var _qbar_fill = bar_w * clampf(pct, 0.0, 1.0)
+		if _qbar_fill > 6.0:
+			draw_colored_polygon(_rrp(Rect2(bar_x, iy + 6, _qbar_fill, 12), 4.0), Color(0.2, 0.5, 0.8) if not claimed else Color(0.15, 0.35, 0.55))
+		elif _qbar_fill > 0.0:
+			draw_rect(Rect2(bar_x, iy + 6, _qbar_fill, 12), Color(0.2, 0.5, 0.8) if not claimed else Color(0.15, 0.35, 0.55))
 		_udraw(font, Vector2(bar_x + bar_w * 0.5, iy + 16), "%d/%d" % [wq.get("progress", 0), wq.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.8, 0.85, 0.9))
 		var reward_str = "+%d %s" % [wq.get("reward_amount", 0), wq.get("reward_type", "").capitalize()]
 		if claimed:
@@ -19093,19 +19097,23 @@ func _draw() -> void:
 	if synergy_banner_timer > 0.0:
 		var font = game_font
 		var s_alpha = clampf(synergy_banner_timer, 0.0, 1.0)
-		draw_rect(Rect2(240, 55, 800, 30), Color(0.1, 0.06, 0.02, 0.8 * s_alpha))
-		draw_rect(Rect2(240, 55, 800, 30), _ca(c_gold, 0.5 * s_alpha), false, 1.0)
-		_udraw(font, Vector2(250, 76), synergy_banner_text, HORIZONTAL_ALIGNMENT_CENTER, 780, 16, Color(1.0, 0.9, 0.5, s_alpha))
+		draw_colored_polygon(_rrp(Rect2(240, 55, 800, 30), 8.0), Color(0.1, 0.06, 0.02, 0.8 * s_alpha))
+		var _syn_pts = _rrp(Rect2(240, 55, 800, 30), 8.0)
+		_syn_pts.append(_syn_pts[0])
+		draw_polyline(_syn_pts, _ca(c_gold, 0.5 * s_alpha), 1.0)
+		_ds_outlined_text(Vector2(640, 76), synergy_banner_text, 16, Color(1.0, 0.9, 0.5, s_alpha), 780, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	# === ACHIEVEMENT POPUP ===
 	if achievement_popup_timer > 0.0:
 		var font = game_font
 		var a_alpha = clampf(achievement_popup_timer, 0.0, 1.0)
 		var a_y = 90.0
-		draw_rect(Rect2(340, a_y, 600, 40), Color(0.14, 0.20, 0.08, 0.88 * a_alpha))
-		draw_rect(Rect2(340, a_y, 600, 40), Color(0.4, 0.8, 0.2, 0.5 * a_alpha), false, 1.0)
-		_udraw(font, Vector2(350, a_y + 17), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
-		_udraw(font, Vector2(350, a_y + 33), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, 580, 15, Color(0.5, 0.8, 0.3, a_alpha))
+		draw_colored_polygon(_rrp(Rect2(340, a_y, 600, 40), 8.0), Color(0.14, 0.20, 0.08, 0.88 * a_alpha))
+		var _ach_pts = _rrp(Rect2(340, a_y, 600, 40), 8.0)
+		_ach_pts.append(_ach_pts[0])
+		draw_polyline(_ach_pts, Color(0.4, 0.8, 0.2, 0.5 * a_alpha), 1.0)
+		_ds_outlined_text(Vector2(640, a_y + 17), achievement_popup_text, 14, Color(0.85, 0.75, 0.4, a_alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(640, a_y + 33), achievement_popup_reward, 15, Color(0.5, 0.8, 0.3, a_alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	# === ODYSSEY PROGRESS INDICATOR ===
 	if odyssey_active:
@@ -19334,12 +19342,10 @@ func _draw() -> void:
 		# Wave number text with bounce
 		var wb_text = "WAVE %d" % _wave_banner_num
 		var font = game_font
-		# Wave banner — triple glow
-		_udraw(font, Vector2(640 + wb_x_offset + 2, wb_y + 3 - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 34, Color(0, 0, 0, wb_alpha * 0.6))
-		_udraw(font, Vector2(640 + wb_x_offset, wb_y - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 34, Color(wb_col.r, wb_col.g, wb_col.b, wb_alpha))
-		_udraw(font, Vector2(640 + wb_x_offset - 1, wb_y - 1 - wb_bounce), wb_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 34, Color(wb_col.r, wb_col.g, wb_col.b, wb_alpha * 0.25))
-		# Subtitle wave name — brighter
-		_udraw(font, Vector2(640 + wb_x_offset, wb_y + 24), _wave_banner_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.85, 0.85, wb_alpha * 0.7))
+		# Wave banner — outlined Bloons style
+		_ds_outlined_text(Vector2(640 + wb_x_offset, wb_y - wb_bounce), wb_text, 34, Color(wb_col.r, wb_col.g, wb_col.b, wb_alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 3)
+		# Subtitle wave name — outlined
+		_ds_outlined_text(Vector2(640 + wb_x_offset, wb_y + 24), _wave_banner_name, 14, Color(0.92, 0.88, 0.75, wb_alpha * 0.8), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	# === BOSS WAVE ALERT (with glow) ===
 	if _boss_alert_timer > 0.0:
@@ -19358,11 +19364,10 @@ func _draw() -> void:
 		var alert_size = int(44.0 * ba_scale)
 		# Boss alert — dramatic red glow
 		draw_circle(Vector2(640, 305), 120.0, Color(0.8, 0.1, 0.05, ba_alpha * 0.08))
-		_udraw(font, Vector2(642, 312), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(0, 0, 0, ba_alpha * 0.7))
-		_udraw(font, Vector2(640, 310), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(1.0, 0.25, 0.12, ba_alpha))
+		_ds_outlined_text(Vector2(640, 310), _boss_alert_text, alert_size, Color(1.0, 0.25, 0.12, ba_alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 3)
 		_udraw(font, Vector2(639, 309), _boss_alert_text, HORIZONTAL_ALIGNMENT_CENTER, -1, alert_size, Color(1.0, 0.5, 0.2, ba_alpha * 0.3))
 		# Subtitle
-		_udraw(font, Vector2(640, 344), "Prepare your defenses!", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(1.0, 0.75, 0.5, ba_alpha * 0.85))
+		_ds_outlined_text(Vector2(640, 344), "Prepare your defenses!", 18, Color(1.0, 0.75, 0.5, ba_alpha * 0.85), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 	# === COMBO KILL HUD ===
 	if combo_count >= COMBO_MIN and combo_timer > 0.0:
@@ -19486,17 +19491,16 @@ func _draw() -> void:
 		var pp_y = 240.0
 		var pp_w = 500.0
 		var pp_h = 240.0
-		# Crimson outer border
-		draw_rect(Rect2(pp_x - 3, pp_y - 3, pp_w + 6, pp_h + 6), Color(0.6, 0.1, 0.08, 0.8))
-		# Gold inner border
-		draw_rect(Rect2(pp_x - 1, pp_y - 1, pp_w + 2, pp_h + 2), Color(0.8, 0.65, 0.2, 0.7))
-		# Dark panel fill
-		draw_rect(Rect2(pp_x, pp_y, pp_w, pp_h), Color(0.10, 0.06, 0.14, 0.95))
+		# Rounded gothic panel with crimson border
+		_ds_panel(Rect2(pp_x, pp_y, pp_w, pp_h), Color(0.10, 0.06, 0.14, 0.95), Color(0.6, 0.1, 0.08, 0.8), 3.0, 14.0)
+		# Gold inner accent line (polyline around rounded rect)
+		var _pp_inner = _rrp(Rect2(pp_x + 4, pp_y + 4, pp_w - 8, pp_h - 8), 10.0)
+		_pp_inner.append(_pp_inner[0])
+		draw_polyline(_pp_inner, Color(0.8, 0.65, 0.2, 0.55), 1.5)
 		# "PAUSED" title in large gold text
 		var font = game_font
 		var pause_pulse = 0.85 + sin(_time * 2.0) * 0.1
-		_udraw(font, Vector2(642, 302), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, c_shadow)
-		_udraw(font, Vector2(640, 300), "PAUSED", HORIZONTAL_ALIGNMENT_CENTER, -1, 48, _ca(c_gold_bright, pause_pulse))
+		_ds_outlined_text(Vector2(640, 300), "PAUSED", 48, _ca(c_gold_bright, pause_pulse), -1, HORIZONTAL_ALIGNMENT_CENTER, 4)
 		# Corner ornaments (small L-brackets)
 		for ci in range(4):
 			var cx = pp_x if ci % 2 == 0 else pp_x + pp_w
@@ -19505,15 +19509,14 @@ func _draw() -> void:
 			var cdy = 1.0 if ci < 2 else -1.0
 			draw_line(Vector2(cx, cy), Vector2(cx + 15 * cdx, cy), Color(0.8, 0.65, 0.2, 0.6), 1.5)
 			draw_line(Vector2(cx, cy), Vector2(cx, cy + 15 * cdy), Color(0.8, 0.65, 0.2, 0.6), 1.5)
-		# Resume button area (drawn as highlight)
-		var rb_y = 340.0
-		draw_rect(Rect2(pp_x + 100, rb_y, pp_w - 200, 32), Color(0.15, 0.08, 0.2, 0.6))
-		draw_rect(Rect2(pp_x + 100, rb_y, pp_w - 200, 32), Color(0.6, 0.1, 0.08, 0.4))
-		_udraw(font, Vector2(640, rb_y + 22), "Resume", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.9, 0.85, 0.7, 0.9))
-		# Quit to Menu button area
-		var qb_y = 388.0
-		draw_rect(Rect2(pp_x + 100, qb_y, pp_w - 200, 32), Color(0.15, 0.08, 0.2, 0.4))
-		_udraw(font, Vector2(640, qb_y + 22), "Quit to Menu", HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.7, 0.65, 0.6, 0.7))
+		# Resume button (Bloons 3D style)
+		var rb_y = 336.0
+		var rb_hover = Rect2(pp_x + 100, rb_y, pp_w - 200, 36).has_point(get_viewport().get_mouse_position())
+		_ds_button(Rect2(pp_x + 100, rb_y, pp_w - 200, 36), "Resume", Color(0.25, 0.55, 0.20), rb_hover, 18)
+		# Quit to Menu button (Bloons 3D style)
+		var qb_y = 386.0
+		var qb_hover = Rect2(pp_x + 100, qb_y, pp_w - 200, 36).has_point(get_viewport().get_mouse_position())
+		_ds_button(Rect2(pp_x + 100, qb_y, pp_w - 200, 36), "Quit to Menu", Color(0.45, 0.18, 0.15), qb_hover, 18)
 		# Instructions
 		_udraw(font, Vector2(640, 448), "%s or press Start Wave to continue" % _get_action_text(), HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.6, 0.6, 0.6, 0.5))
 
