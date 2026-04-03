@@ -14923,12 +14923,9 @@ func _draw_survivor_detail() -> void:
 			var tt_y_pos = mouse_pos.y - tt_h - 10
 			if tt_y_pos < panel_y:
 				tt_y_pos = mouse_pos.y + 22
-			# Frosted tooltip
-			draw_rect(Rect2(tt_x - 1, tt_y_pos - 1, tt_w + 2, tt_h + 2), c_overlay)
-			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.10, 0.08, 0.18, 0.95))
-			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, 1), Color(1, 1, 1, 0.05))
+			# Frosted tooltip (rounded)
+			_ds_panel(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.10, 0.08, 0.18, 0.95), _ca(accent, 0.5), 2.0, 8.0)
 			draw_rect(Rect2(tt_x, tt_y_pos, 3, tt_h), _ca(accent, 0.4))
-			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), _ca(accent, 0.5), false, 2.0)
 			_udraw(font, Vector2(tt_x + 10, tt_y_pos + 14), tt_title, HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 15, menu_gold)
 			for tli in range(tt_lines.size()):
 				_udraw(font, Vector2(tt_x + 10, tt_y_pos + 28 + tli * 14), tt_lines[tli], HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 14, _ca(menu_text_muted, 0.85))
@@ -14968,8 +14965,10 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	var role = HERO_ROLE_NAMES.get(tower_type, "Hero")
 	var role_w = font.get_string_size(role, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x + 16
 	var role_x = cx + font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 14
-	draw_rect(Rect2(role_x, cy, role_w, 20), _ca(accent, 0.3))
-	draw_rect(Rect2(role_x, cy, role_w, 20), _ca(accent, 0.5), false, 1.0)
+	draw_colored_polygon(_rrp(Rect2(role_x, cy, role_w, 20), 6.0), _ca(accent, 0.3))
+	var _role_pts = _rrp(Rect2(role_x, cy, role_w, 20), 6.0)
+	_role_pts.append(_role_pts[0])
+	draw_polyline(_role_pts, _ca(accent, 0.5), 1.0)
 	_udraw(font, Vector2(role_x + 8, cy + 14), role, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, _ca(accent, 0.9))
 	draw_rect(Rect2(cx, cy + 22, ov_w - 40, 1), _ca(menu_gold_dim, 0.2))
 	cy += 32.0
@@ -15149,9 +15148,9 @@ func _draw_story_map() -> void:
 	var list_y = 36.0
 	var list_w = 1060.0
 	var list_h = 575.0
-	var row_h = 110.0
-	var header_h = 32.0
-	var arc_gap = 6.0
+	var row_h = 116.0
+	var header_h = 36.0
+	var arc_gap = 8.0
 
 	# --- Background panel (Bloons-style bordered panel with shadow) ---
 	_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.12, 0.10, 0.18, 0.95), Color(0.60, 0.48, 0.20, 0.85), 3.0)
@@ -15370,8 +15369,8 @@ func _draw_story_map() -> void:
 				draw_rect(Rect2(rx, ry, 2, 12), Color(0.9, 0.2, 0.1, 0.6))
 				draw_rect(Rect2(rx + rw - 12, ry, 12, 2), Color(0.9, 0.2, 0.1, 0.6))
 				draw_rect(Rect2(rx + rw - 2, ry, 2, 12), Color(0.9, 0.2, 0.1, 0.6))
-				# "BOSS" label in top-right corner
-				_udraw(font, Vector2(rx + rw - 45, ry + 12), "BOSS", HORIZONTAL_ALIGNMENT_RIGHT, 40, 14, Color(0.9, 0.25, 0.15, 0.7))
+				# "BOSS" label in top-right corner (outlined)
+				_ds_outlined_text(Vector2(rx + rw - 45, ry + 14), "BOSS", 14, Color(1.0, 0.30, 0.15, 0.85), 40, HORIZONTAL_ALIGNMENT_RIGHT, 1)
 
 			# Enhancement 18: NEXT pulse on recommended level
 			if lvl_idx == first_uncompleted_level:
@@ -15392,8 +15391,8 @@ func _draw_story_map() -> void:
 			# --- Map thumbnail (large, prominent) ---
 			var thumb_x = rx + 12.0
 			var thumb_y = ry + 6.0
-			var thumb_w = 120.0
-			var thumb_h = 90.0
+			var thumb_w = 135.0
+			var thumb_h = 100.0
 			# Try AI-generated map art first, fall back to procedural
 			if _map_thumb_textures.has(lvl_idx) and is_unlocked:
 				var thumb_tex = _map_thumb_textures[lvl_idx]
@@ -15618,9 +15617,9 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 	var list_y = 36.0
 	var list_w = 1060.0
 	var list_h = 575.0
-	var row_h = 110.0
-	var header_h = 32.0
-	var arc_gap = 6.0
+	var row_h = 116.0
+	var header_h = 36.0
+	var arc_gap = 8.0
 	var content_top = list_y + 40.0
 	var content_h = list_h - 40.0
 	var scroll_y = story_map_scroll_y
@@ -16241,13 +16240,13 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 			var cost_str = "%d %s" % [cost, deal.get("cost_type", "").capitalize()]
 			# Confirm state
 			if _deal_confirm_index == i and _deal_confirm_timer > 0.0:
-				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(0.25, 0.18, 0.05, 0.9))
-				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(1.0, 0.8, 0.2, 0.7), false, 2.0)
-				_udraw(font, Vector2(ix + iw - 58, iy + ih * 0.5 - 2), "CONFIRM", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.9, 0.4))
+				_ds_button(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), "CONFIRM", Color(0.55, 0.42, 0.10), true, 14)
 				var bar_fill = clampf(_deal_confirm_timer / 3.0, 0.0, 1.0)
-				draw_rect(Rect2(ix + iw - 103, iy + ih * 0.5 + 14, 89 * bar_fill, 3), _ca(c_gold_bright, 0.7))
+				if bar_fill > 0.05:
+					draw_colored_polygon(_rrp(Rect2(ix + iw - 103, iy + ih * 0.5 + 14, 89 * bar_fill, 3), 1.5), _ca(c_gold_bright, 0.7))
 			else:
-				draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), Color(0.15, 0.12, 0.08, 0.8))
+				var _deal_hov = Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36).has_point(get_viewport().get_mouse_position())
+				draw_colored_polygon(_rrp(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 93, 36), 8.0), Color(0.15, 0.12, 0.08, 0.9 if _deal_hov else 0.8))
 				# Original price (crossed out) — Improvement 2
 				if discount_pct > 10:
 					_udraw(font, Vector2(ix + iw - 58, iy + ih * 0.5 - 8), "%d" % original, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.5, 0.4, 0.3))
@@ -16255,8 +16254,8 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 					var orig_str = "%d" % original
 					var str_w = float(orig_str.length()) * 6.5
 					draw_line(Vector2(ix + iw - 58 - str_w * 0.5, iy + ih * 0.5 - 5), Vector2(ix + iw - 58 + str_w * 0.5, iy + ih * 0.5 - 5), Color(0.8, 0.3, 0.2, 0.7), 1.5)
-					# Discount badge
-					draw_rect(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 32, 14), Color(0.7, 0.15, 0.1, 0.8))
+					# Discount badge (rounded)
+					draw_colored_polygon(_rrp(Rect2(ix + iw - 105, iy + ih * 0.5 - 18, 32, 14), 4.0), Color(0.7, 0.15, 0.1, 0.8))
 					_udraw(font, Vector2(ix + iw - 89, iy + ih * 0.5 - 8), "-%d%%" % discount_pct, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(1.0, 0.85, 0.7))
 				_udraw(font, Vector2(ix + iw - 58, iy + ih * 0.5 + 8), cost_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, menu_gold)
 		# Flash overlay (Improvement 9)
@@ -16479,10 +16478,9 @@ func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 		_udraw(font, Vector2(px + pw * 0.5, py + 55), "Journey through:", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 14, Color(0.6, 0.5, 0.7))
 		_udraw(font, Vector2(px + pw * 0.5, py + 75), map_names, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 30), 14, Color(0.7, 0.6, 0.5))
 		_udraw(font, Vector2(px + pw * 0.5, py + 100), "Trophies: %d | Reward: 10-30" % trophy_currency, HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 14, Color(0.85, 0.70, 0.28))
-		# Start button
-		draw_rect(Rect2(px + pw * 0.5 - 60, py + 120, 120, 40), Color(0.30, 0.15, 0.50, 0.75))
-		draw_rect(Rect2(px + pw * 0.5 - 60, py + 120, 120, 2), Color(0.6, 0.3, 0.8, 0.6))
-		_udraw(font, Vector2(px + pw * 0.5 - 54, py + 146), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.88, 0.78, 0.98))
+		# Start button (Bloons 3D style)
+		var _ody_start_hov = Rect2(px + pw * 0.5 - 60, py + 120, 120, 40).has_point(get_viewport().get_mouse_position())
+		_ds_button(Rect2(px + pw * 0.5 - 60, py + 120, 120, 40), "START", Color(0.30, 0.15, 0.50), _ody_start_hov, 14)
 
 func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
@@ -16493,10 +16491,9 @@ func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	if endless_high_wave > 0:
 		_udraw(font, Vector2(px + pw * 0.5, py + 100), "Best: Wave %d" % endless_high_wave, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.85, 0.70, 0.28))
 	_udraw(font, Vector2(px + pw * 0.5, py + 125), "Hard difficulty | Random themes", HORIZONTAL_ALIGNMENT_CENTER, pw - 20, 14, Color(0.45, 0.45, 0.55))
-	# Start button
-	draw_rect(Rect2(px + pw * 0.5 - 60, py + 145, 120, 40), Color(0.15, 0.20, 0.48, 0.75))
-	draw_rect(Rect2(px + pw * 0.5 - 60, py + 145, 120, 2), Color(0.3, 0.4, 0.7, 0.6))
-	_udraw(font, Vector2(px + pw * 0.5 - 54, py + 171), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.72, 0.82, 0.98))
+	# Start button (Bloons 3D style)
+	var _end_start_hov = Rect2(px + pw * 0.5 - 60, py + 145, 120, 40).has_point(get_viewport().get_mouse_position())
+	_ds_button(Rect2(px + pw * 0.5 - 60, py + 145, 120, 40), "START", Color(0.18, 0.25, 0.52), _end_start_hov, 14)
 
 func _draw_mini_star(center: Vector2, size: float, color: Color) -> void:
 	# Use golden star texture if bright enough (earned stars)
