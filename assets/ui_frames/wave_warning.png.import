@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cnqntccfjrtg"
-valid=false
+uid="uid://c7s4ibyg20uby"
+path="res://.godot/imported/wave_warning.png-140564583b55156ea66e234d69034b35.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/wave_warning.png"
+dest_files=["res://.godot/imported/wave_warning.png-140564583b55156ea66e234d69034b35.ctex"]
 
 [params]
 

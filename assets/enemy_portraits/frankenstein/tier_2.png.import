@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bdrpyroowesw7"
-valid=false
+uid="uid://c161piuu81cvu"
+path="res://.godot/imported/tier_2.png-f8850867fe8c89a417e01d4c46039a00.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/frankenstein/tier_2.png"
+dest_files=["res://.godot/imported/tier_2.png-f8850867fe8c89a417e01d4c46039a00.ctex"]
 
 [params]
 

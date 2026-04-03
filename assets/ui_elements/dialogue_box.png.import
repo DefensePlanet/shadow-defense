@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://choblnc7nrgbg"
-valid=false
+uid="uid://bcu8g63xr1xu3"
+path="res://.godot/imported/dialogue_box.png-8ca538c69ef70668550cc03e46bc0d16.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/dialogue_box.png"
+dest_files=["res://.godot/imported/dialogue_box.png-8ca538c69ef70668550cc03e46bc0d16.ctex"]
 
 [params]
 

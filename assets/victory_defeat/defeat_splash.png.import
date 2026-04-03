@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6deapixgc7qo"
-valid=false
+uid="uid://d2nhp5dtbn28j"
+path="res://.godot/imported/defeat_splash.png-adb513c0317d24332b751fe3f88d38ea.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/victory_defeat/defeat_splash.png"
+dest_files=["res://.godot/imported/defeat_splash.png-adb513c0317d24332b751fe3f88d38ea.ctex"]
 
 [params]
 

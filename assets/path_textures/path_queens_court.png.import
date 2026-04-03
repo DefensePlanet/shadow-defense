@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpvdkbjyvph42"
-valid=false
+uid="uid://bvjeuhfcbkis1"
+path="res://.godot/imported/path_queens_court.png-c8f8b09d33f5de979c8b7b012e1136d2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_queens_court.png"
+dest_files=["res://.godot/imported/path_queens_court.png-c8f8b09d33f5de979c8b7b012e1136d2.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3m0muiaebils"
-valid=false
+uid="uid://ddj5q5bfagaou"
+path="res://.godot/imported/path_round_table.png-c70441c2318877691a41af43e92c5125.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_round_table.png"
+dest_files=["res://.godot/imported/path_round_table.png-c70441c2318877691a41af43e92c5125.ctex"]
 
 [params]
 

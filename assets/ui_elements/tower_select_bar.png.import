@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhyneg52uk6qp"
-valid=false
+uid="uid://crauhc2kpskwv"
+path="res://.godot/imported/tower_select_bar.png-f8c2c7e01439ab60037c2a353173538d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/tower_select_bar.png"
+dest_files=["res://.godot/imported/tower_select_bar.png-f8c2c7e01439ab60037c2a353173538d.ctex"]
 
 [params]
 

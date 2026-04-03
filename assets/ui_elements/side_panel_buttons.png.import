@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c4obo3taobng3"
-valid=false
+uid="uid://ndsj1n3ys5im"
+path="res://.godot/imported/side_panel_buttons.png-7390cb3115cbbbe65babd632da1a0b94.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/side_panel_buttons.png"
+dest_files=["res://.godot/imported/side_panel_buttons.png-7390cb3115cbbbe65babd632da1a0b94.ctex"]
 
 [params]
 

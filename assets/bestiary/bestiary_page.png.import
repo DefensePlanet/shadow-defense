@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bswyd0sq4si4k"
-valid=false
+uid="uid://c24ud5grbm0w7"
+path="res://.godot/imported/bestiary_page.png-baea2225327744f75dcb200d4713dfe6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/bestiary/bestiary_page.png"
+dest_files=["res://.godot/imported/bestiary_page.png-baea2225327744f75dcb200d4713dfe6.ctex"]
 
 [params]
 

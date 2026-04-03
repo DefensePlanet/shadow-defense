@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dni8xdy3jptu3"
-valid=false
+uid="uid://3o38acyqoim7"
+path="res://.godot/imported/peter_pan_idle.png-fa62b1b29467f874eed4a879b859aa23.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/peter_pan_idle.png"
+dest_files=["res://.godot/imported/peter_pan_idle.png-fa62b1b29467f874eed4a879b859aa23.ctex"]
 
 [params]
 

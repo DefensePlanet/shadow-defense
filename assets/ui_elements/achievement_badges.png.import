@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ufcmk6b84r0a"
-valid=false
+uid="uid://dqi3boyj1w8em"
+path="res://.godot/imported/achievement_badges.png-f4ab3c913b09f8e01ccfb5a4a31cf85c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/achievement_badges.png"
+dest_files=["res://.godot/imported/achievement_badges.png-f4ab3c913b09f8e01ccfb5a4a31cf85c.ctex"]
 
 [params]
 

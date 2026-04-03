@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://178kqafae0tf"
-valid=false
+uid="uid://xctiilxddbod"
+path="res://.godot/imported/peter_pan_shadow.png-a5771ac4314bd42c72ed1ca407f93942.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/peter_pan_shadow.png"
+dest_files=["res://.godot/imported/peter_pan_shadow.png-a5771ac4314bd42c72ed1ca407f93942.ctex"]
 
 [params]
 

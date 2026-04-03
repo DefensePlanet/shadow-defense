@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://k14eb3oy1yql"
-valid=false
+uid="uid://cmcxuddjfqetr"
+path="res://.godot/imported/wicked_witch_boss.png-63f0ae8abf1f7e13db731e55ca2ff361.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/wicked_witch_boss.png"
+dest_files=["res://.godot/imported/wicked_witch_boss.png-63f0ae8abf1f7e13db731e55ca2ff361.ctex"]
 
 [params]
 

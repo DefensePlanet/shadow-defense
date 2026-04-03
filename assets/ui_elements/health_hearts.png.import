@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://crbog2bmchnu2"
-valid=false
+uid="uid://djrjxxvoitgfg"
+path="res://.godot/imported/health_hearts.png-c2dec50e6d9e9229a96c90d2eec9700d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/health_hearts.png"
+dest_files=["res://.godot/imported/health_hearts.png-c2dec50e6d9e9229a96c90d2eec9700d.ctex"]
 
 [params]
 

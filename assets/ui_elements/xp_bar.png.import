@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bblsl7w6cardd"
-valid=false
+uid="uid://c0pv7cxvpogqh"
+path="res://.godot/imported/xp_bar.png-74fbe9803bf33d43b20675a6adecfa9b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/xp_bar.png"
+dest_files=["res://.godot/imported/xp_bar.png-74fbe9803bf33d43b20675a6adecfa9b.ctex"]
 
 [params]
 

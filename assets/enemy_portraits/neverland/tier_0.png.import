@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1ottrg3bnk1p"
-valid=false
+uid="uid://cs2rxldqihjjs"
+path="res://.godot/imported/tier_0.png-97a080a3cdf515ee154b33d07fbd43c4.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/neverland/tier_0.png"
+dest_files=["res://.godot/imported/tier_0.png-97a080a3cdf515ee154b33d07fbd43c4.ctex"]
 
 [params]
 

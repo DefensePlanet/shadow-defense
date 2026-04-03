@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cijcmm8jpfi56"
-valid=false
+uid="uid://c3odn2nscyxf6"
+path="res://.godot/imported/camelot.png-0b2cece10e3744ea11a2f8aa824fee2d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/faction_banners/camelot.png"
+dest_files=["res://.godot/imported/camelot.png-0b2cece10e3744ea11a2f8aa824fee2d.ctex"]
 
 [params]
 

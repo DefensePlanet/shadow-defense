@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5xekdgxwt22i"
-valid=false
+uid="uid://d32l6evld1ye2"
+path="res://.godot/imported/merlin_idle.png-c1a8f2fc6ae5fb2cee10f5e0efc17e5d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/merlin_idle.png"
+dest_files=["res://.godot/imported/merlin_idle.png-c1a8f2fc6ae5fb2cee10f5e0efc17e5d.ctex"]
 
 [params]
 

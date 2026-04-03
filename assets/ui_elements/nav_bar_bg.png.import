@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nsmf7pv75fjb"
-valid=false
+uid="uid://bhrsdi8tiq3h1"
+path="res://.godot/imported/nav_bar_bg.png-042343ea88c5970b0f0f38f6ae1ec91b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/nav_bar_bg.png"
+dest_files=["res://.godot/imported/nav_bar_bg.png-042343ea88c5970b0f0f38f6ae1ec91b.ctex"]
 
 [params]
 

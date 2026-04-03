@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2cmbfnjd8n2n"
-valid=false
+uid="uid://dntf6g4e4fu2t"
+path="res://.godot/imported/merlin_crystal_cave.png-b989982dbeab0abee59e643f9e479813.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/merlin_crystal_cave.png"
+dest_files=["res://.godot/imported/merlin_crystal_cave.png-b989982dbeab0abee59e643f9e479813.ctex"]
 
 [params]
 

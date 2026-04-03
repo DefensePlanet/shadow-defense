@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6p68f0okqpit"
-valid=false
+uid="uid://brggcgtj7gjcj"
+path="res://.godot/imported/tick_tock_croc.png-196e241432f0845e5007ede139e37eb6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/tick_tock_croc.png"
+dest_files=["res://.godot/imported/tick_tock_croc.png-196e241432f0845e5007ede139e37eb6.ctex"]
 
 [params]
 

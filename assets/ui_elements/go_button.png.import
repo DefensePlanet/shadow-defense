@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cotrxd478tpaq"
-valid=false
+uid="uid://bqbfn0jic0tbk"
+path="res://.godot/imported/go_button.png-97c8dda4640d316c09b1e9a1a5006f2d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/go_button.png"
+dest_files=["res://.godot/imported/go_button.png-97c8dda4640d316c09b1e9a1a5006f2d.ctex"]
 
 [params]
 

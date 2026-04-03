@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ghq7v0krlqfx"
-valid=false
+uid="uid://td70f0j5x108"
+path="res://.godot/imported/tier_1.png-fc2a34a5ad116521f74a201238256223.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/sherlock/tier_1.png"
+dest_files=["res://.godot/imported/tier_1.png-fc2a34a5ad116521f74a201238256223.ctex"]
 
 [params]
 

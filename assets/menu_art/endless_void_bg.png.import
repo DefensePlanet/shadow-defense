@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7mcwu5t243jr"
-valid=false
+uid="uid://b8u6jwa6wbxxi"
+path="res://.godot/imported/endless_void_bg.png-53a20ffb52b095d913e82f3e0e08d2f1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/endless_void_bg.png"
+dest_files=["res://.godot/imported/endless_void_bg.png-53a20ffb52b095d913e82f3e0e08d2f1.ctex"]
 
 [params]
 

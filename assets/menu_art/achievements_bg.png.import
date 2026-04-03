@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://byalcpdsvvv51"
-valid=false
+uid="uid://c18xyrrmeahm2"
+path="res://.godot/imported/achievements_bg.png-ee20fb598cd95448bf0c79790c9c163a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/achievements_bg.png"
+dest_files=["res://.godot/imported/achievements_bg.png-ee20fb598cd95448bf0c79790c9c163a.ctex"]
 
 [params]
 

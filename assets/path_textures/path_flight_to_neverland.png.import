@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cj3fsjcwg1hs4"
-valid=false
+uid="uid://lsjhu5ac72ek"
+path="res://.godot/imported/path_flight_to_neverland.png-588fc7671ef0e890c00e35f11f56a638.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_flight_to_neverland.png"
+dest_files=["res://.godot/imported/path_flight_to_neverland.png-588fc7671ef0e890c00e35f11f56a638.ctex"]
 
 [params]
 

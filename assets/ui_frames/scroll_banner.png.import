@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qqhakj8mla3f"
-valid=false
+uid="uid://cl6kcpordjv8s"
+path="res://.godot/imported/scroll_banner.png-dff5b7c2b4711ef18b2b19123c7c526d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/scroll_banner.png"
+dest_files=["res://.godot/imported/scroll_banner.png-dff5b7c2b4711ef18b2b19123c7c526d.ctex"]
 
 [params]
 

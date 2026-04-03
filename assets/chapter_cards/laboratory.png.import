@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b8f11g5fwf2so"
-valid=false
+uid="uid://c8itowl3julps"
+path="res://.godot/imported/laboratory.png-8045e11671b0c1d42f94333583d93ece.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/chapter_cards/laboratory.png"
+dest_files=["res://.godot/imported/laboratory.png-8045e11671b0c1d42f94333583d93ece.ctex"]
 
 [params]
 

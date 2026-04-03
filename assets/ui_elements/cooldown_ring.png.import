@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cs1nndb2m1imh"
-valid=false
+uid="uid://ftr4vx0xpwnk"
+path="res://.godot/imported/cooldown_ring.png-a32bd8d10deef4e04627f614c55cf7aa.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/cooldown_ring.png"
+dest_files=["res://.godot/imported/cooldown_ring.png-a32bd8d10deef4e04627f614c55cf7aa.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cnisvgtejdvm8"
-valid=false
+uid="uid://bnckv7qq2qcdw"
+path="res://.godot/imported/currency_exchange.png-5411ba33f00b11d316032b13fdd6350a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/currency_exchange.png"
+dest_files=["res://.godot/imported/currency_exchange.png-5411ba33f00b11d316032b13fdd6350a.ctex"]
 
 [params]
 

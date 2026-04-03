@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6gwb8y3qk4wu"
-valid=false
+uid="uid://bn2fb3dle5jp1"
+path="res://.godot/imported/gear_icons.png-4b1fd5f9801ef4e65bf0194fd031df6d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/gear_icons.png"
+dest_files=["res://.godot/imported/gear_icons.png-4b1fd5f9801ef4e65bf0194fd031df6d.ctex"]
 
 [params]
 

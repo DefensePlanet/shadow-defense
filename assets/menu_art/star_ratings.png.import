@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1jd14qyumvod"
-valid=false
+uid="uid://ds06puxyckpj1"
+path="res://.godot/imported/star_ratings.png-813fa551fe671ff3a2eaf4697b152245.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/star_ratings.png"
+dest_files=["res://.godot/imported/star_ratings.png-813fa551fe671ff3a2eaf4697b152245.ctex"]
 
 [params]
 

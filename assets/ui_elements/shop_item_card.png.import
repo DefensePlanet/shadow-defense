@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgh2sni7o0rt0"
-valid=false
+uid="uid://byeb8l3myhdj3"
+path="res://.godot/imported/shop_item_card.png-1167747a35c505e5f0a000a51d5f2f51.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/shop_item_card.png"
+dest_files=["res://.godot/imported/shop_item_card.png-1167747a35c505e5f0a000a51d5f2f51.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dahj7p2il6bde"
-valid=false
+uid="uid://c86hn5fmutln5"
+path="res://.godot/imported/tier_0.png-4f894ca975a35ee3fc051091ad729b11.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/oz/tier_0.png"
+dest_files=["res://.godot/imported/tier_0.png-4f894ca975a35ee3fc051091ad729b11.ctex"]
 
 [params]
 

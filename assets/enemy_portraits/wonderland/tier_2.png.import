@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bfpnqw4joom1s"
-valid=false
+uid="uid://n8mij1cmaku2"
+path="res://.godot/imported/tier_2.png-f0585a17f5905286ac25637ee793fb71.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/wonderland/tier_2.png"
+dest_files=["res://.godot/imported/tier_2.png-f0585a17f5905286ac25637ee793fb71.ctex"]
 
 [params]
 

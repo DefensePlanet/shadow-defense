@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bspm5lufdu4rn"
-valid=false
+uid="uid://b4f5e88c7f3tx"
+path="res://.godot/imported/level_card_bg.png-0d8eb92cf13255e7e90c15fd06f76f79.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/level_card_bg.png"
+dest_files=["res://.godot/imported/level_card_bg.png-0d8eb92cf13255e7e90c15fd06f76f79.ctex"]
 
 [params]
 

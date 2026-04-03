@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3mu13fcqvumc"
-valid=false
+uid="uid://tyr2aufvrmva"
+path="res://.godot/imported/upgrade_panel_bg.png-03eb4f0b3aa70097ed9ecae6b1622e6e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/upgrade_panel_bg.png"
+dest_files=["res://.godot/imported/upgrade_panel_bg.png-03eb4f0b3aa70097ed9ecae6b1622e6e.ctex"]
 
 [params]
 

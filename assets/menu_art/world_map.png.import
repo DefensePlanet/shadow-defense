@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b0i52btv7m6tb"
-valid=false
+uid="uid://cr0br08xvo0aa"
+path="res://.godot/imported/world_map.png-ab1ee70d3e1b0b5607eb2377c4dc936c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/world_map.png"
+dest_files=["res://.godot/imported/world_map.png-ab1ee70d3e1b0b5607eb2377c4dc936c.ctex"]
 
 [params]
 

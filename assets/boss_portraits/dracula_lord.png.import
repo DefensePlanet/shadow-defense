@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bdg4ao77q60th"
-valid=false
+uid="uid://ccaec41tciwkj"
+path="res://.godot/imported/dracula_lord.png-2b294c7f7ed638549d86e2d2e5139035.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/dracula_lord.png"
+dest_files=["res://.godot/imported/dracula_lord.png-2b294c7f7ed638549d86e2d2e5139035.ctex"]
 
 [params]
 

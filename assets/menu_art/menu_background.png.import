@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://doq1rexinx6hn"
-valid=false
+uid="uid://cyu5m58tctwy3"
+path="res://.godot/imported/menu_background.png-787cc84b2cde8fab6dd110a83fa346b7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/menu_background.png"
+dest_files=["res://.godot/imported/menu_background.png-787cc84b2cde8fab6dd110a83fa346b7.ctex"]
 
 [params]
 

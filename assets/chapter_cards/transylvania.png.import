@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d0aq8qjlbaqts"
-valid=false
+uid="uid://da2n43a8a0u3m"
+path="res://.godot/imported/transylvania.png-e3b70088c9a6122ca6e61388b3471174.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/chapter_cards/transylvania.png"
+dest_files=["res://.godot/imported/transylvania.png-e3b70088c9a6122ca6e61388b3471174.ctex"]
 
 [params]
 

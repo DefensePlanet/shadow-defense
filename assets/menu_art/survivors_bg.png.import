@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://l5yuyff3e7g"
-valid=false
+uid="uid://c55h57njrk4cy"
+path="res://.godot/imported/survivors_bg.png-9d6d60af2e51b5e91003caa334f0a1d3.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/survivors_bg.png"
+dest_files=["res://.godot/imported/survivors_bg.png-9d6d60af2e51b5e91003caa334f0a1d3.ctex"]
 
 [params]
 

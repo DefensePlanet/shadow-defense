@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vlsjtuk4u4o"
-valid=false
+uid="uid://brbssfktaybml"
+path="res://.godot/imported/heroes_surrounded.png-91bfd04c15d864e4e6e707a0d97d046d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/heroes_surrounded.png"
+dest_files=["res://.godot/imported/heroes_surrounded.png-91bfd04c15d864e4e6e707a0d97d046d.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8m147rbww6s7"
-valid=false
+uid="uid://brrke1vohusvg"
+path="res://.godot/imported/african_jungle.png-bf508870964c185be5b244d01750082b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/chapter_cards/african_jungle.png"
+dest_files=["res://.godot/imported/african_jungle.png-bf508870964c185be5b244d01750082b.ctex"]
 
 [params]
 

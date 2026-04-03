@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1n6edqtbw31o"
-valid=false
+uid="uid://cdq5pmul51byj"
+path="res://.godot/imported/emporium_bg.png-ce7faad062ef936c7c19d71baef302a0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/emporium_bg.png"
+dest_files=["res://.godot/imported/emporium_bg.png-ce7faad062ef936c7c19d71baef302a0.ctex"]
 
 [params]
 

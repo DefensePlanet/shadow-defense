@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cc7pp4r6bptgu"
-valid=false
+uid="uid://tk5s1gkm7a5b"
+path="res://.godot/imported/locked_button.png-3f3e962192ad80c5195e5c7d7be71115.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/locked_button.png"
+dest_files=["res://.godot/imported/locked_button.png-3f3e962192ad80c5195e5c7d7be71115.ctex"]
 
 [params]
 

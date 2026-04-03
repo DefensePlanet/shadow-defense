@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://75jhbgx57sro"
-valid=false
+uid="uid://pa2lv0ec82uv"
+path="res://.godot/imported/land_of_oz.png-436ddd2b38a1741984daab28af19565d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/faction_banners/land_of_oz.png"
+dest_files=["res://.godot/imported/land_of_oz.png-436ddd2b38a1741984daab28af19565d.ctex"]
 
 [params]
 

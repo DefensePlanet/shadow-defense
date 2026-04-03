@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://6wx8y17nvy2a"
-valid=false
+uid="uid://bo403cpvmkluw"
+path="res://.godot/imported/upgrade_button.png-8b29f66a305c79f2c00d4e818b694f59.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/upgrade_button.png"
+dest_files=["res://.godot/imported/upgrade_button.png-8b29f66a305c79f2c00d4e818b694f59.ctex"]
 
 [params]
 

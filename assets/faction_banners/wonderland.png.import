@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bg5gdmcwrg0kp"
-valid=false
+uid="uid://dp8uoi6pl7i2p"
+path="res://.godot/imported/wonderland.png-64b11312b08806d809c4ffd84558278f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/faction_banners/wonderland.png"
+dest_files=["res://.godot/imported/wonderland.png-64b11312b08806d809c4ffd84558278f.ctex"]
 
 [params]
 

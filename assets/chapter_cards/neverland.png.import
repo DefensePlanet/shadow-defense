@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://igdwl348f2sn"
-valid=false
+uid="uid://b45kwo4r3s0fk"
+path="res://.godot/imported/neverland.png-a8919ea4d8d6eac4a76fe6b0b892bfcf.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/chapter_cards/neverland.png"
+dest_files=["res://.godot/imported/neverland.png-a8919ea4d8d6eac4a76fe6b0b892bfcf.ctex"]
 
 [params]
 

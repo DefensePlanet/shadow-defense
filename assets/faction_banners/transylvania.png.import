@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6dc87rw88u51"
-valid=false
+uid="uid://ngmpdf7110f6"
+path="res://.godot/imported/transylvania.png-ed55801e40f3af0ff2c20774587eda40.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/faction_banners/transylvania.png"
+dest_files=["res://.godot/imported/transylvania.png-ed55801e40f3af0ff2c20774587eda40.ctex"]
 
 [params]
 

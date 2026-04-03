@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dubp1d0abby08"
-valid=false
+uid="uid://ccsgi17akgh7f"
+path="res://.godot/imported/synergy_link.png-4a57d5e1818328753e6461b08fcd5d47.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/synergy_link.png"
+dest_files=["res://.godot/imported/synergy_link.png-4a57d5e1818328753e6461b08fcd5d47.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cjhk7aatcu035"
-valid=false
+uid="uid://caoj8evayk5ix"
+path="res://.godot/imported/frankenstein_boss.png-ae83de80f419ae093c573ef46451b29d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/frankenstein_boss.png"
+dest_files=["res://.godot/imported/frankenstein_boss.png-ae83de80f419ae093c573ef46451b29d.ctex"]
 
 [params]
 

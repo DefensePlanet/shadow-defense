@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6wyt00qw5kjp"
-valid=false
+uid="uid://bfo3phbcdkiy5"
+path="res://.godot/imported/treasure_chest.png-27233c5b48712d7f2f29ff345b7d1a8c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/treasure_chest.png"
+dest_files=["res://.godot/imported/treasure_chest.png-27233c5b48712d7f2f29ff345b7d1a8c.ctex"]
 
 [params]
 

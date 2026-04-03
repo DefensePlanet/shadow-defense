@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ky18qxaaacip"
-valid=false
+uid="uid://vcl2mjyc6r6l"
+path="res://.godot/imported/tier_3.png-43ab601c897e6c042f01657a6ad1f65d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/merlin/tier_3.png"
+dest_files=["res://.godot/imported/tier_3.png-43ab601c897e6c042f01657a6ad1f65d.ctex"]
 
 [params]
 

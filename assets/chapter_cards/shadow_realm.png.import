@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dlvikiqftiv2b"
-valid=false
+uid="uid://bf0b7pb444bj8"
+path="res://.godot/imported/shadow_realm.png-a12a86801dd0db2061904820595c0a12.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/chapter_cards/shadow_realm.png"
+dest_files=["res://.godot/imported/shadow_realm.png-a12a86801dd0db2061904820595c0a12.ctex"]
 
 [params]
 

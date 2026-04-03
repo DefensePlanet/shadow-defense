@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3miccriumggm"
-valid=false
+uid="uid://1o18oonmx6qj"
+path="res://.godot/imported/path_final_chapter.png-537e34bb6833a476c1416ad521291c1a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_final_chapter.png"
+dest_files=["res://.godot/imported/path_final_chapter.png-537e34bb6833a476c1416ad521291c1a.ctex"]
 
 [params]
 

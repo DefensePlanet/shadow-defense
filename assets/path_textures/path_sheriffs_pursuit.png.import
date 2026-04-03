@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ufmf24aopjk2"
-valid=false
+uid="uid://dfcub3siyh7xh"
+path="res://.godot/imported/path_sheriffs_pursuit.png-076aa52b3fd133ddbbb2e3217e65f2c2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_sheriffs_pursuit.png"
+dest_files=["res://.godot/imported/path_sheriffs_pursuit.png-076aa52b3fd133ddbbb2e3217e65f2c2.ctex"]
 
 [params]
 

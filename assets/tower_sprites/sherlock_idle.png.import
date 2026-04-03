@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cmwmbkctpq4s7"
-valid=false
+uid="uid://iydsuhslw84h"
+path="res://.godot/imported/sherlock_idle.png-ced036c5ec96d5a17043302a56549100.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/sherlock_idle.png"
+dest_files=["res://.godot/imported/sherlock_idle.png-ced036c5ec96d5a17043302a56549100.ctex"]
 
 [params]
 

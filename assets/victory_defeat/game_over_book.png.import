@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bba2defymyuvt"
-valid=false
+uid="uid://c12s7nf0c65o8"
+path="res://.godot/imported/game_over_book.png-a4bde31bbb26c2b75b90f05177e8f032.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/victory_defeat/game_over_book.png"
+dest_files=["res://.godot/imported/game_over_book.png-a4bde31bbb26c2b75b90f05177e8f032.ctex"]
 
 [params]
 

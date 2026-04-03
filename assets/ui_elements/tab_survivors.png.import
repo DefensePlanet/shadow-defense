@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b8wopsfhckmex"
-valid=false
+uid="uid://bcknuhyeoi6s0"
+path="res://.godot/imported/tab_survivors.png-d857780a846bc99086df2d68eddd665a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/tab_survivors.png"
+dest_files=["res://.godot/imported/tab_survivors.png-d857780a846bc99086df2d68eddd665a.ctex"]
 
 [params]
 

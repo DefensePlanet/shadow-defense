@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://thwych5s0bwv"
-valid=false
+uid="uid://c2ox8tj3hkjow"
+path="res://.godot/imported/sell_button.png-e489e0439b322f1f8fc3cb46c185ac49.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/sell_button.png"
+dest_files=["res://.godot/imported/sell_button.png-e489e0439b322f1f8fc3cb46c185ac49.ctex"]
 
 [params]
 

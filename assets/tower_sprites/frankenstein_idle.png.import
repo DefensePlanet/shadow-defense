@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bkoj6jkh56l2h"
-valid=false
+uid="uid://c6cka543h8b8g"
+path="res://.godot/imported/frankenstein_idle.png-99cd184a0015d112070b291eea8a52c5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/frankenstein_idle.png"
+dest_files=["res://.godot/imported/frankenstein_idle.png-99cd184a0015d112070b291eea8a52c5.ctex"]
 
 [params]
 

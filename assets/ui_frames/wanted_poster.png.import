@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://id1c1laxbcdq"
-valid=false
+uid="uid://18dh41xfcn7i"
+path="res://.godot/imported/wanted_poster.png-ce9e23802d99b5795c29982fb0d4a189.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/wanted_poster.png"
+dest_files=["res://.godot/imported/wanted_poster.png-ce9e23802d99b5795c29982fb0d4a189.ctex"]
 
 [params]
 

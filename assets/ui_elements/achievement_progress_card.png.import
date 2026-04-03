@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d1k8pq8c4bwe6"
-valid=false
+uid="uid://dh4tolotb8amm"
+path="res://.godot/imported/achievement_progress_card.png-f9bfc8c66631f63e0336aebb54906c56.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/achievement_progress_card.png"
+dest_files=["res://.godot/imported/achievement_progress_card.png-f9bfc8c66631f63e0336aebb54906c56.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d60ktweiuex3"
-valid=false
+uid="uid://ksjfex168p82"
+path="res://.godot/imported/shadow_author_idle.png-ac3bc272cdccda244af9ea7ba344b30c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/shadow_author_idle.png"
+dest_files=["res://.godot/imported/shadow_author_idle.png-ac3bc272cdccda244af9ea7ba344b30c.ctex"]
 
 [params]
 

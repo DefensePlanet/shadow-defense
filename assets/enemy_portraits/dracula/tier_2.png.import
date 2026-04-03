@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dqlaise2u1d5p"
-valid=false
+uid="uid://bsnon5tfuwu7u"
+path="res://.godot/imported/tier_2.png-54f89262c0f9b24e4646c49cb46d14b0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/dracula/tier_2.png"
+dest_files=["res://.godot/imported/tier_2.png-54f89262c0f9b24e4646c49cb46d14b0.ctex"]
 
 [params]
 

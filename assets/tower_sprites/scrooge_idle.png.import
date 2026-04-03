@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ci34c6mfn8wr8"
-valid=false
+uid="uid://bp3hy0kqbxyxs"
+path="res://.godot/imported/scrooge_idle.png-57a94c9268830ac8aacaef07ed4d253d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/scrooge_idle.png"
+dest_files=["res://.godot/imported/scrooge_idle.png-57a94c9268830ac8aacaef07ed4d253d.ctex"]
 
 [params]
 

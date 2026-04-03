@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5ulplji5kvd5"
-valid=false
+uid="uid://urc7opsrf3wf"
+path="res://.godot/imported/loading_screen.png-73911afe71954be1e3c196ef2f0ab045.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/loading_screen.png"
+dest_files=["res://.godot/imported/loading_screen.png-73911afe71954be1e3c196ef2f0ab045.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bg3oqb2rr3hti"
-valid=false
+uid="uid://bby215vcvprm5"
+path="res://.godot/imported/frankenstein_awakening.png-d1615515f6b3d1f5215df07f316088ca.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/frankenstein_awakening.png"
+dest_files=["res://.godot/imported/frankenstein_awakening.png-d1615515f6b3d1f5215df07f316088ca.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bmq7sankfkq6p"
-valid=false
+uid="uid://b4widxtyxinow"
+path="res://.godot/imported/shadow_king.png-d50fdcdac536d6d4426a09b1c9a88c38.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/shadow_king.png"
+dest_files=["res://.godot/imported/shadow_king.png-d50fdcdac536d6d4426a09b1c9a88c38.ctex"]
 
 [params]
 

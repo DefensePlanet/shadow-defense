@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bumue8ryxgxqs"
-valid=false
+uid="uid://b53abk27dx2r0"
+path="res://.godot/imported/chapter_divider.png-78192f73c80a735433ea35285f9539b5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/chapter_divider.png"
+dest_files=["res://.godot/imported/chapter_divider.png-78192f73c80a735433ea35285f9539b5.ctex"]
 
 [params]
 

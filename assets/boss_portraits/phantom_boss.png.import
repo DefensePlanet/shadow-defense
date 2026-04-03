@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ds0wjlqvvnxyd"
-valid=false
+uid="uid://csvix812821td"
+path="res://.godot/imported/phantom_boss.png-7906b56e3fee42f645afa226323d13d0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/phantom_boss.png"
+dest_files=["res://.godot/imported/phantom_boss.png-7906b56e3fee42f645afa226323d13d0.ctex"]
 
 [params]
 

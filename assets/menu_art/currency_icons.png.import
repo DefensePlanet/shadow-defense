@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1jg1dk3d7qlf"
-valid=false
+uid="uid://b144e80qh6rvx"
+path="res://.godot/imported/currency_icons.png-cee1a96bbae974e274a10d11c8462f7b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/currency_icons.png"
+dest_files=["res://.godot/imported/currency_icons.png-cee1a96bbae974e274a10d11c8462f7b.ctex"]
 
 [params]
 

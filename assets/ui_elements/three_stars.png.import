@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://kskbjurftksf"
-valid=false
+uid="uid://dcffpy0v5sexh"
+path="res://.godot/imported/three_stars.png-ec88720ebb6a9d32f3a2eaf0ba73fcd8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/three_stars.png"
+dest_files=["res://.godot/imported/three_stars.png-ec88720ebb6a9d32f3a2eaf0ba73fcd8.ctex"]
 
 [params]
 

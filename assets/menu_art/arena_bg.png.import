@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dcdjmr2xowx4b"
-valid=false
+uid="uid://b68gesr1svf4e"
+path="res://.godot/imported/arena_bg.png-dde417172cb983a299655e3070f14e5d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/arena_bg.png"
+dest_files=["res://.godot/imported/arena_bg.png-dde417172cb983a299655e3070f14e5d.ctex"]
 
 [params]
 

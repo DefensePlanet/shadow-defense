@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://de7owcu3hwaws"
-valid=false
+uid="uid://dgk40pv0kamt8"
+path="res://.godot/imported/gear_slots.png-9355de1dcfed5759bde0b03b6049bd9b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/gear_slots.png"
+dest_files=["res://.godot/imported/gear_slots.png-9355de1dcfed5759bde0b03b6049bd9b.ctex"]
 
 [params]
 

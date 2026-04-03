@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ca8rof65qh17y"
-valid=false
+uid="uid://dlrqmve2lbve5"
+path="res://.godot/imported/christmas_ghosts.png-5948f8a724aaba11b937193226bd33eb.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/christmas_ghosts.png"
+dest_files=["res://.godot/imported/christmas_ghosts.png-5948f8a724aaba11b937193226bd33eb.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bm38xgto1g0uy"
-valid=false
+uid="uid://b5tjqki2ircul"
+path="res://.godot/imported/path_labyrinth.png-1616c2eb7a46d09226605742ba8de4ed.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_labyrinth.png"
+dest_files=["res://.godot/imported/path_labyrinth.png-1616c2eb7a46d09226605742ba8de4ed.ctex"]
 
 [params]
 

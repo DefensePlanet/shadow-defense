@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1v3u3aagyncm"
-valid=false
+uid="uid://osjvhnj2i162"
+path="res://.godot/imported/tier_2.png-6a177130bbfe0ddca7cdefb46600d3fb.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/victorian/tier_2.png"
+dest_files=["res://.godot/imported/tier_2.png-6a177130bbfe0ddca7cdefb46600d3fb.ctex"]
 
 [params]
 

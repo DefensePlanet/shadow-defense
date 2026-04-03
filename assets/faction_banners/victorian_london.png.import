@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cktv6brpld3c7"
-valid=false
+uid="uid://csgdo74wlajp1"
+path="res://.godot/imported/victorian_london.png-014c3d654a4ccc715970a8b45e8612e7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/faction_banners/victorian_london.png"
+dest_files=["res://.godot/imported/victorian_london.png-014c3d654a4ccc715970a8b45e8612e7.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cnequxouiqtdn"
-valid=false
+uid="uid://twx221bnfdmr"
+path="res://.godot/imported/scrooge_ghost.png-c381c1c4175065cf6d7f7e9a9bad6cd1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/scrooge_ghost.png"
+dest_files=["res://.godot/imported/scrooge_ghost.png-c381c1c4175065cf6d7f7e9a9bad6cd1.ctex"]
 
 [params]
 

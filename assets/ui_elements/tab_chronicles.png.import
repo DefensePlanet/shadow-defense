@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qhro6v7ybfm"
-valid=false
+uid="uid://dxitae5ld55rg"
+path="res://.godot/imported/tab_chronicles.png-083792517b262529f7ead8936972afaa.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/tab_chronicles.png"
+dest_files=["res://.godot/imported/tab_chronicles.png-083792517b262529f7ead8936972afaa.ctex"]
 
 [params]
 

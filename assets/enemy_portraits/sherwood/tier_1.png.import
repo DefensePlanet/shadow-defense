@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ca27ksl2axnik"
-valid=false
+uid="uid://d6wv888x2xjj"
+path="res://.godot/imported/tier_1.png-8335c365603450125a14aefec6011cbd.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/sherwood/tier_1.png"
+dest_files=["res://.godot/imported/tier_1.png-8335c365603450125a14aefec6011cbd.ctex"]
 
 [params]
 

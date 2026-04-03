@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ghyad4c7yuwk"
-valid=false
+uid="uid://2wyxje82ii65"
+path="res://.godot/imported/notification_popup.png-228ac4208e328ab7f1d6239183d017df.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/notification_popup.png"
+dest_files=["res://.godot/imported/notification_popup.png-228ac4208e328ab7f1d6239183d017df.ctex"]
 
 [params]
 

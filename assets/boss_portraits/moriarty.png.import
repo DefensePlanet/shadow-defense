@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dafj4p86c84k2"
-valid=false
+uid="uid://canluopcotwpt"
+path="res://.godot/imported/moriarty.png-4a25566b2b3569955a68c5d73e6f928b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/moriarty.png"
+dest_files=["res://.godot/imported/moriarty.png-4a25566b2b3569955a68c5d73e6f928b.ctex"]
 
 [params]
 

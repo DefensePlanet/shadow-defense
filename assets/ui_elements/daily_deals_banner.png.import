@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b70yswv14hb7c"
-valid=false
+uid="uid://ca8awa3lo6wga"
+path="res://.godot/imported/daily_deals_banner.png-eafeb5cd2f19616c6dda5ad4cbb81eb9.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/daily_deals_banner.png"
+dest_files=["res://.godot/imported/daily_deals_banner.png-eafeb5cd2f19616c6dda5ad4cbb81eb9.ctex"]
 
 [params]
 

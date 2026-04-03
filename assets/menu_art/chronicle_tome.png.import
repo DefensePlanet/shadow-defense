@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b8x7x8f2k7kca"
-valid=false
+uid="uid://cn1huioy4brp0"
+path="res://.godot/imported/chronicle_tome.png-963265689435eaa3a482bdd1ccbbc506.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/chronicle_tome.png"
+dest_files=["res://.godot/imported/chronicle_tome.png-963265689435eaa3a482bdd1ccbbc506.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bajcm14b6saxh"
-valid=false
+uid="uid://be2de6omtqct4"
+path="res://.godot/imported/survivor_card_frame.png-1058009ebf52266a904a4aff7fa9e112.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/survivor_card_frame.png"
+dest_files=["res://.godot/imported/survivor_card_frame.png-1058009ebf52266a904a4aff7fa9e112.ctex"]
 
 [params]
 

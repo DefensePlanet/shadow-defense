@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bsuksmqud4aif"
-valid=false
+uid="uid://476vcio521qe"
+path="res://.godot/imported/tier_3.png-314d037963f4bcbe038e0f4daa55ce77.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/opera/tier_3.png"
+dest_files=["res://.godot/imported/tier_3.png-314d037963f4bcbe038e0f4daa55ce77.ctex"]
 
 [params]
 

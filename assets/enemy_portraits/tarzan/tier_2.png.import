@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://tyvx4kv6tx1b"
-valid=false
+uid="uid://notrgf60xqnp"
+path="res://.godot/imported/tier_2.png-51c9f3445d0328aaf065777884bfe1f2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/tarzan/tier_2.png"
+dest_files=["res://.godot/imported/tier_2.png-51c9f3445d0328aaf065777884bfe1f2.ctex"]
 
 [params]
 

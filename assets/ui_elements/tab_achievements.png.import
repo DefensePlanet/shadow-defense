@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2urafp4iiqp6"
-valid=false
+uid="uid://cvyiaj76c8cp3"
+path="res://.godot/imported/tab_achievements.png-bcaba644685a94c8da2697af5096efab.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/tab_achievements.png"
+dest_files=["res://.godot/imported/tab_achievements.png-bcaba644685a94c8da2697af5096efab.ctex"]
 
 [params]
 

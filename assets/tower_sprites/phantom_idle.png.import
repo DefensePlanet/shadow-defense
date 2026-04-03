@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dk7ibgqiiledy"
-valid=false
+uid="uid://bahtbcbi5e2nt"
+path="res://.godot/imported/phantom_idle.png-937b84476d80f45bd53402523a2a7721.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/phantom_idle.png"
+dest_files=["res://.godot/imported/phantom_idle.png-937b84476d80f45bd53402523a2a7721.ctex"]
 
 [params]
 

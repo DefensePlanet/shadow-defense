@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dd0ijgqh37ds1"
-valid=false
+uid="uid://cvxmur4jjc33a"
+path="res://.godot/imported/game_title.png-7113184b05478f4572652e69a9deca0c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/game_title.png"
+dest_files=["res://.godot/imported/game_title.png-7113184b05478f4572652e69a9deca0c.ctex"]
 
 [params]
 

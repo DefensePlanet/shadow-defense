@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dcydpaavq53al"
-valid=false
+uid="uid://m3uf2o2xt3ko"
+path="res://.godot/imported/golden_frame.png-3351b138efd0253a75a37c0f5c88e9ba.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/golden_frame.png"
+dest_files=["res://.godot/imported/golden_frame.png-3351b138efd0253a75a37c0f5c88e9ba.ctex"]
 
 [params]
 

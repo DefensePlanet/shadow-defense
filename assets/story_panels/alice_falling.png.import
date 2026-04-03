@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b862gbqjfdmqq"
-valid=false
+uid="uid://d2ruwf6cvhy6c"
+path="res://.godot/imported/alice_falling.png-4d170ab214de04cc1c2630b54614b4d7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/alice_falling.png"
+dest_files=["res://.godot/imported/alice_falling.png-4d170ab214de04cc1c2630b54614b4d7.ctex"]
 
 [params]
 

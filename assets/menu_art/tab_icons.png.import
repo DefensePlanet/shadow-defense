@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c51clenli10cl"
-valid=false
+uid="uid://cktb54td0vdbv"
+path="res://.godot/imported/tab_icons.png-44733229f8a67fe6c474bccb93baec6a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/tab_icons.png"
+dest_files=["res://.godot/imported/tab_icons.png-44733229f8a67fe6c474bccb93baec6a.ctex"]
 
 [params]
 

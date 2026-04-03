@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bcxls81lg7sd1"
-valid=false
+uid="uid://deghvmxym3rh8"
+path="res://.godot/imported/odyssey_map_bg.png-08a47eec529751585333f22b0d74481e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/odyssey_map_bg.png"
+dest_files=["res://.godot/imported/odyssey_map_bg.png-08a47eec529751585333f22b0d74481e.ctex"]
 
 [params]
 

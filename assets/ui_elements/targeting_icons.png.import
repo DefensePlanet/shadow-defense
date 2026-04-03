@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bmn8dkjxs51go"
-valid=false
+uid="uid://b82omxtv854yi"
+path="res://.godot/imported/targeting_icons.png-f6959bb2f90a322c020ff0c8191dcc6b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/targeting_icons.png"
+dest_files=["res://.godot/imported/targeting_icons.png-f6959bb2f90a322c020ff0c8191dcc6b.ctex"]
 
 [params]
 

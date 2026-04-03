@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cy7xbaglxn8r0"
-valid=false
+uid="uid://ccsig6t4fwu5p"
+path="res://.godot/imported/queen_of_hearts.png-6f4d85dca19891581ea53a4bcd14c074.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/queen_of_hearts.png"
+dest_files=["res://.godot/imported/queen_of_hearts.png-6f4d85dca19891581ea53a4bcd14c074.ctex"]
 
 [params]
 

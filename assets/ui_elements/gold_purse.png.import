@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5vhsqdielng5"
-valid=false
+uid="uid://b715eubs35vk7"
+path="res://.godot/imported/gold_purse.png-a789eb9af612009adeadada35ae5b522.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/gold_purse.png"
+dest_files=["res://.godot/imported/gold_purse.png-a789eb9af612009adeadada35ae5b522.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddkklomjv6tdl"
-valid=false
+uid="uid://bbnwn84taxgv5"
+path="res://.godot/imported/tarzan_boss.png-dd9a6f6b3ccc19aa7bca314b5c5f7876.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/boss_portraits/tarzan_boss.png"
+dest_files=["res://.godot/imported/tarzan_boss.png-dd9a6f6b3ccc19aa7bca314b5c5f7876.ctex"]
 
 [params]
 

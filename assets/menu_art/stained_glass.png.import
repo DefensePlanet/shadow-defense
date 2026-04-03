@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7yq4r8sqboxi"
-valid=false
+uid="uid://cishwtpcmijj4"
+path="res://.godot/imported/stained_glass.png-43f7a3710d3a70ab4e46c6b6267c1f92.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/stained_glass.png"
+dest_files=["res://.godot/imported/stained_glass.png-43f7a3710d3a70ab4e46c6b6267c1f92.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bvnp3axtuv4xb"
-valid=false
+uid="uid://bn0hn12ijslu1"
+path="res://.godot/imported/tab_gear.png-28a5437b65e0d5404f2ae9c875739695.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/tab_gear.png"
+dest_files=["res://.godot/imported/tab_gear.png-28a5437b65e0d5404f2ae9c875739695.ctex"]
 
 [params]
 

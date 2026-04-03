@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dqot8aaneq62f"
-valid=false
+uid="uid://byxkswcrmgetx"
+path="res://.godot/imported/victorian_london.png-7e3e88c068971fbea7d188356b8c650f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/chapter_cards/victorian_london.png"
+dest_files=["res://.godot/imported/victorian_london.png-7e3e88c068971fbea7d188356b8c650f.ctex"]
 
 [params]
 

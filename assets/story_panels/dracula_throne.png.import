@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqbph608i3587"
-valid=false
+uid="uid://cqefq7cbxu0me"
+path="res://.godot/imported/dracula_throne.png-75d90bf32fd1f73ed73389d992d5d2f2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/dracula_throne.png"
+dest_files=["res://.godot/imported/dracula_throne.png-75d90bf32fd1f73ed73389d992d5d2f2.ctex"]
 
 [params]
 

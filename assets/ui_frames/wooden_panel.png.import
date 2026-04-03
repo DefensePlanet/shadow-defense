@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b87ek861y5l05"
-valid=false
+uid="uid://cil8wj10m47h"
+path="res://.godot/imported/wooden_panel.png-457d1e041cb5151f1864774f5892d8a4.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/wooden_panel.png"
+dest_files=["res://.godot/imported/wooden_panel.png-457d1e041cb5151f1864774f5892d8a4.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bjco3pwxeytt8"
-valid=false
+uid="uid://cjpaodorwr7hi"
+path="res://.godot/imported/popup_frame.png-76d6fb62498c7ade07bc7b0daa83daf2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/popup_frame.png"
+dest_files=["res://.godot/imported/popup_frame.png-76d6fb62498c7ade07bc7b0daa83daf2.ctex"]
 
 [params]
 

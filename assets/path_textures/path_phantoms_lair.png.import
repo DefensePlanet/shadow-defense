@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jwb3cnenki3q"
-valid=false
+uid="uid://dkhhdkryg86hx"
+path="res://.godot/imported/path_phantoms_lair.png-41b0f7f30822e49be6bfb3e5eb657d5b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_phantoms_lair.png"
+dest_files=["res://.godot/imported/path_phantoms_lair.png-41b0f7f30822e49be6bfb3e5eb657d5b.ctex"]
 
 [params]
 

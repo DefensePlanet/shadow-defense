@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://byl8ghybb6ads"
-valid=false
+uid="uid://g3qxj4qam1fi"
+path="res://.godot/imported/intro_sequence.png-2898f45bb2830390bca0ad3ab1d7c6c2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/intro_sequence.png"
+dest_files=["res://.godot/imported/intro_sequence.png-2898f45bb2830390bca0ad3ab1d7c6c2.ctex"]
 
 [params]
 

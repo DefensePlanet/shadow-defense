@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://chi08rngburi1"
-valid=false
+uid="uid://c2we0m4mdscpl"
+path="res://.godot/imported/sherlock_investigation.png-27bf742d3a28a55666b03671d114abe1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/sherlock_investigation.png"
+dest_files=["res://.godot/imported/sherlock_investigation.png-27bf742d3a28a55666b03671d114abe1.ctex"]
 
 [params]
 

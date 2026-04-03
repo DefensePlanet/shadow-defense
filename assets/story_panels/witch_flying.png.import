@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cf0nbpsmv2qnw"
-valid=false
+uid="uid://bxotr5nsy28gt"
+path="res://.godot/imported/witch_flying.png-71a259783c97bb704cf66faac2d115f9.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/witch_flying.png"
+dest_files=["res://.godot/imported/witch_flying.png-71a259783c97bb704cf66faac2d115f9.ctex"]
 
 [params]
 

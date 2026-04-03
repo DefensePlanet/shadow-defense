@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cp8f4dr6vfbqm"
-valid=false
+uid="uid://csmea82bbc0mi"
+path="res://.godot/imported/hud_bar.png-25dcd927090660906cf2a87476fe0581.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/hud_bar.png"
+dest_files=["res://.godot/imported/hud_bar.png-25dcd927090660906cf2a87476fe0581.ctex"]
 
 [params]
 

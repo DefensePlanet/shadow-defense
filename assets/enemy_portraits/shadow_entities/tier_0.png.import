@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bncqup3ob11jq"
-valid=false
+uid="uid://cognqleddjbxf"
+path="res://.godot/imported/tier_0.png-2512b9034409937e2a223f81250afc15.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/enemy_portraits/shadow_entities/tier_0.png"
+dest_files=["res://.godot/imported/tier_0.png-2512b9034409937e2a223f81250afc15.ctex"]
 
 [params]
 

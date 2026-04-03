@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://devp4xs7ma81r"
-valid=false
+uid="uid://doj13glax6yk2"
+path="res://.godot/imported/wave_banner.png-46470ffc745d88bafc13ef608f8c57dd.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/wave_banner.png"
+dest_files=["res://.godot/imported/wave_banner.png-46470ffc745d88bafc13ef608f8c57dd.ctex"]
 
 [params]
 

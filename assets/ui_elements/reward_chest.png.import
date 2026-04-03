@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://deagphdhv0kpq"
-valid=false
+uid="uid://csaempd550u0r"
+path="res://.godot/imported/reward_chest.png-c5fcb175c6961487019ca65416d0fa7e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/reward_chest.png"
+dest_files=["res://.godot/imported/reward_chest.png-c5fcb175c6961487019ca65416d0fa7e.ctex"]
 
 [params]
 

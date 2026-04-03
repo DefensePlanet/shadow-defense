@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ckgjhk3y2rdsm"
-valid=false
+uid="uid://dvdnqh7bmp4re"
+path="res://.godot/imported/tarzan_jungle.png-1339c9e39b93cb8ec27d1a3f24034d5c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/tarzan_jungle.png"
+dest_files=["res://.godot/imported/tarzan_jungle.png-1339c9e39b93cb8ec27d1a3f24034d5c.ctex"]
 
 [params]
 

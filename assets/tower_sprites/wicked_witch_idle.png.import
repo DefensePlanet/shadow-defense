@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://be7ks4eh8piny"
-valid=false
+uid="uid://b5uh86olfbjmg"
+path="res://.godot/imported/wicked_witch_idle.png-2883b814981c7df1ca5c13e53141530f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/wicked_witch_idle.png"
+dest_files=["res://.godot/imported/wicked_witch_idle.png-2883b814981c7df1ca5c13e53141530f.ctex"]
 
 [params]
 

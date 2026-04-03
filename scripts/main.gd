@@ -15609,13 +15609,20 @@ func _draw_story_map() -> void:
 	var header_h = 32.0
 	var arc_gap = 6.0
 
-	# --- Background panel (left-aligned, room for sidebar on right) ---
-	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.05, 0.10, 0.95))
+	# --- Background panel — use world map texture or fallback ---
+	if _menu_art_textures.has("world_map"):
+		draw_texture_rect(_menu_art_textures["world_map"], Rect2(list_x, list_y, list_w, list_h), false, Color(1, 1, 1, 0.4))
+		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.02, 0.01, 0.05, 0.6))
+	else:
+		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.05, 0.10, 0.95))
 	draw_rect(Rect2(list_x, list_y, list_w, 2), _ca(menu_gold_dim, 0.5))
 	draw_rect(Rect2(list_x, list_y + list_h - 2, list_w, 2), _ca(menu_gold_dim, 0.3))
 
-	# --- Title bar ---
-	draw_rect(Rect2(list_x, list_y, list_w, 36), Color(0.08, 0.06, 0.12, 0.9))
+	# --- Title bar — use header texture or fallback ---
+	if _ui_element_textures.has("header_bar"):
+		draw_texture_rect(_ui_element_textures["header_bar"], Rect2(list_x, list_y, list_w, 36), false, Color(1, 1, 1, 0.9))
+	else:
+		draw_rect(Rect2(list_x, list_y, list_w, 36), Color(0.08, 0.06, 0.12, 0.9))
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
 	# Title — using design system
@@ -15822,18 +15829,15 @@ func _draw_story_map() -> void:
 			if _ui_element_textures.has("level_card_bg"):
 				var card_alpha = 0.85 if is_hovered else (0.65 if is_unlocked else 0.35)
 				draw_texture_rect(_ui_element_textures["level_card_bg"], Rect2(rx, ry, rw, row_h - 2), false, Color(1, 1, 1, card_alpha))
-			# Enhancement 20: Chapter theme accent colors — tint row bg with arc color
-			var tint_r = arc_col.r * 0.06
-			var tint_g = arc_col.g * 0.06
-			var tint_b = arc_col.b * 0.06
-			var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
-			if not is_unlocked:
-				row_bg = Color(0.06, 0.05, 0.08, 0.5)
+			# Enhancement 20: Chapter theme accent colors — only draw procedural bg when no texture
 			if not _ui_element_textures.has("level_card_bg"):
+				var tint_r = arc_col.r * 0.06
+				var tint_g = arc_col.g * 0.06
+				var tint_b = arc_col.b * 0.06
+				var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
+				if not is_unlocked:
+					row_bg = Color(0.06, 0.05, 0.08, 0.5)
 				draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
-			# Left accent bar
-			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
-			draw_rect(Rect2(rx, ry, 3, row_h - 2), accent_col)
 
 			# Enhancement 16: Boss level red border
 			if is_boss and is_unlocked:

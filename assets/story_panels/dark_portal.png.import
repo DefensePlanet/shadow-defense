@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ca1464bqshnx6"
-valid=false
+uid="uid://o3kgkgt020fh"
+path="res://.godot/imported/dark_portal.png-5b022a6a182469df9fce844026a71e15.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/story_panels/dark_portal.png"
+dest_files=["res://.godot/imported/dark_portal.png-5b022a6a182469df9fce844026a71e15.ctex"]
 
 [params]
 

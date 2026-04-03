@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bby5h6fynafli"
-valid=false
+uid="uid://chhjyg5ywlptt"
+path="res://.godot/imported/opera_house.png-5bb75fa95a9e0ecbab9c7c26eb12de1c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/chapter_cards/opera_house.png"
+dest_files=["res://.godot/imported/opera_house.png-5bb75fa95a9e0ecbab9c7c26eb12de1c.ctex"]
 
 [params]
 

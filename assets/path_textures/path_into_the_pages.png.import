@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1v368478umcm"
-valid=false
+uid="uid://cp5puld48ipu0"
+path="res://.godot/imported/path_into_the_pages.png-a948479a2541abe9aabc65bf18e8176f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_into_the_pages.png"
+dest_files=["res://.godot/imported/path_into_the_pages.png-a948479a2541abe9aabc65bf18e8176f.ctex"]
 
 [params]
 
