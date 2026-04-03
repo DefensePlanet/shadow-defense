@@ -1311,7 +1311,7 @@ var levels = [
 		"character": -1, "chapter": 0, "enemy_theme": 11,
 		"waves": 18, "gold": 110, "lives": 24, "difficulty": 1.2,
 		"sky_color": Color(0.04, 0.04, 0.06),
-		"ground_color": Color(0.08, 0.08, 0.08),
+		"ground_color": Color(0.13, 0.11, 0.16),
 	},
 	{
 		"name": "The Angry Village", "subtitle": "Frankenstein — Chapter 2",
@@ -8980,7 +8980,7 @@ func _draw_story_dialog() -> void:
 	var shown_text = full_text.substr(0, story_state.char_index)
 
 	# === FULL-SCREEN CINEMATIC OVERLAY ===
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.04, 0.03, 0.07, 1.0))
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.08, 0.06, 0.14, 1.0))
 	# Vignette corners
 	for vi in range(15):
 		var vt = float(vi) / 14.0
@@ -12487,7 +12487,7 @@ func _on_victory_equip_clicked(mouse_pos: Vector2) -> void:
 
 func _draw_chest_opening() -> void:
 	# Full-screen OPAQUE dark overlay — completely hides everything behind
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.05, 0.03, 0.10, 1.0))
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.09, 0.06, 0.16, 1.0))
 	var font = game_font
 	var cx = 640.0
 	# Victory chests use difficulty colors; emporium chests use classic tier colors
@@ -16570,7 +16570,7 @@ func _draw_open_book() -> void:
 	var spine_x = bx + pw + 10  # spine center
 
 	# Book shadow
-	draw_rect(Rect2(bx - 5 + 8, by - 5 + 8, pw * 2 + 30, ph + 10), Color(0.05, 0.04, 0.10, 0.40))
+	draw_rect(Rect2(bx - 5 + 8, by - 5 + 8, pw * 2 + 30, ph + 10), Color(0.10, 0.08, 0.18, 0.40))
 
 	# Left page (aged cream paper)
 	for i in range(55):
@@ -18861,11 +18861,11 @@ func _draw() -> void:
 		# Menu view transition fade
 		if menu_transition_alpha < 1.0:
 			menu_transition_alpha = minf(menu_transition_alpha + 0.08, 1.0)
-			draw_rect(Rect2(0, 35, 1280, 585), Color(0.05, 0.04, 0.10, (1.0 - menu_transition_alpha) * 0.7))
+			draw_rect(Rect2(0, 35, 1280, 585), Color(0.10, 0.08, 0.18, (1.0 - menu_transition_alpha) * 0.7))
 			queue_redraw()
 		# === View transition dark overlay fade (Enhancement #48) ===
 		if _menu_transition_alpha > 0.0:
-			draw_rect(Rect2(0, 0, 1280, 720), Color(0.05, 0.04, 0.10, _menu_transition_alpha * 0.4))
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.10, 0.08, 0.18, _menu_transition_alpha * 0.4))
 		# Stats banner removed — kept clean like March 17 design
 
 		if chest_opening_active:
@@ -20153,7 +20153,7 @@ func _draw_prologue(sky_color: Color, ground_color: Color) -> void:
 		var by := 460.0 + float(bk) * 15.0
 		var glow := 0.3 + 0.2 * sin(_time * 1.5 + float(bk) * 0.9)
 		draw_rect(Rect2(bx, by, 60, 8), Color(0.5, 0.3, 0.8, glow))
-		draw_rect(Rect2(bx - 2, by + 8, 64, 35), Color(0.06, 0.04, 0.08))
+		draw_rect(Rect2(bx - 2, by + 8, 64, 35), Color(0.11, 0.08, 0.15))
 		draw_rect(Rect2(bx, by + 10, 60, 3), Color(0.4, 0.25, 0.6, glow * 0.5))
 		draw_rect(Rect2(bx, by + 16, 60, 3), Color(0.4, 0.25, 0.6, glow * 0.3))
 	# Floating ink drops
@@ -20705,11 +20705,11 @@ func _draw_frankenstein_ch1(sky_color: Color, ground_color: Color) -> void:
 		var t := float(i) / 24.0
 		draw_rect(Rect2(0, 50.0 + float(i) * 19.0, 1280, 20.0), sky_top.lerp(sky_bottom, t))
 	# Stone floor
-	draw_rect(Rect2(0, 520, 1280, 120), Color(0.08, 0.08, 0.08))
+	draw_rect(Rect2(0, 520, 1280, 120), Color(0.13, 0.11, 0.16))
 	for sx in range(20):
 		for sy in range(2):
 			var off := 32.0 if sy % 2 == 1 else 0.0
-			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.07, 0.07, 0.07))
+			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.12, 0.10, 0.14))
 			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.05, 0.05, 0.05), false, 1.0)
 	# Tesla coils
 	for tc in range(4):
@@ -20758,12 +20758,12 @@ func _draw_frankenstein_ch2(sky_color: Color, ground_color: Color) -> void:
 	for i in range(25):
 		var t := float(i) / 24.0
 		draw_rect(Rect2(0, 50.0 + float(i) * 19.0, 1280, 20.0), sky_top.lerp(sky_bottom, t))
-	draw_rect(Rect2(0, 520, 1280, 120), Color(0.07, 0.07, 0.07))
+	draw_rect(Rect2(0, 520, 1280, 120), Color(0.12, 0.10, 0.14))
 	# Stone floor tiles
 	for sx in range(20):
 		for sy in range(2):
 			var off := 32.0 if sy % 2 == 1 else 0.0
-			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.06, 0.06, 0.06))
+			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.10, 0.09, 0.13))
 			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.04, 0.04, 0.04), false, 1.0)
 	# Operating table silhouette
 	draw_rect(Rect2(500, 460, 200, 10), Color(0.10, 0.08, 0.06))
@@ -20811,12 +20811,12 @@ func _draw_frankenstein_ch3(sky_color: Color, ground_color: Color) -> void:
 	for i in range(25):
 		var t := float(i) / 24.0
 		draw_rect(Rect2(0, 50.0 + float(i) * 19.0, 1280, 20.0), sky_top.lerp(sky_bottom, t))
-	draw_rect(Rect2(0, 520, 1280, 120), Color(0.08, 0.08, 0.08))
+	draw_rect(Rect2(0, 520, 1280, 120), Color(0.13, 0.11, 0.16))
 	# Stone floor
 	for sx in range(20):
 		for sy in range(2):
 			var off := 32.0 if sy % 2 == 1 else 0.0
-			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.06, 0.06, 0.06))
+			draw_rect(Rect2(float(sx) * 64.0 + off, 525.0 + float(sy) * 40.0, 62, 38), Color(0.10, 0.09, 0.13))
 	# Giant apparatus in center
 	draw_rect(Rect2(560, 250, 160, 8), Color(0.12, 0.10, 0.08))
 	draw_rect(Rect2(580, 258, 8, 262), Color(0.10, 0.08, 0.06))
@@ -26305,7 +26305,7 @@ func _draw_phantom_ch2(sky_color: Color, ground_color: Color) -> void:
 	# === CEILING / SKY — Dark underground brick tunnel ceiling ===
 	for y_strip in range(0, 300, 4):
 		var t = float(y_strip) / 300.0
-		var ceiling_col = sky_color.lerp(Color(0.06, 0.04, 0.08, 1.0), t)
+		var ceiling_col = sky_color.lerp(Color(0.11, 0.08, 0.15, 1.0), t)
 		# Subtle moisture shimmer on ceiling
 		var moisture = sin(_time * 0.8 + float(y_strip) * 0.05) * 0.015
 		ceiling_col = ceiling_col.lerp(Color(0.15, 0.18, 0.25), clampf(moisture, 0.0, 1.0))
@@ -31003,7 +31003,7 @@ func _draw_branch_upgrade_panel() -> void:
 				_udraw(font, Vector2(px + pw - 14, ty + 52), "%dG" % cost, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, cost_col)
 			else:
 				# Locked
-				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.06, 0.04, 0.08, 0.7))
+				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.11, 0.08, 0.15, 0.7))
 				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.3, 0.25, 0.35, 0.25), false, 1.0)
 				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.45, 0.4, 0.4))
 				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.4, 0.35, 0.35))
@@ -31559,7 +31559,7 @@ func _draw_instrument_hud() -> void:
 			if count > 0:
 				items.append(inst)
 		var ph = 8.0 + float(items.size()) * 32.0
-		draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.04, 0.08, 0.92))
+		draw_rect(Rect2(px, py, pw, ph), Color(0.11, 0.08, 0.15, 0.92))
 		draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.4), false, 1.0)
 		for i in range(items.size()):
 			var inst = items[i]
