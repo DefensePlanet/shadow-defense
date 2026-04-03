@@ -435,6 +435,12 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		bdr = Color(minf(accent.r * 1.5, 1.0), minf(accent.g * 1.5, 1.0), minf(accent.b * 1.5, 1.0), 0.95)
 		draw_rect(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), _ca(accent, 0.12))
 	draw_rect(Rect2(rx, ry, rw, rh), bdr, false, 2.0)
+	# Enhancement: Prestige border for high-level characters
+	if unlocked and level >= 5:
+		_draw_prestige_border(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), level)
+	# Enhancement: Mastery crown for max-level characters
+	if unlocked and level >= MAX_SURVIVOR_LEVEL:
+		_draw_mastery_crown(Vector2(rx + rw * 0.5, ry - 6), 24.0)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
@@ -453,6 +459,65 @@ var _menu_ink_splatters: Array = []
 var _menu_splatter_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _quill_positions: Array = []
 var _bookshelf_heights: Array = []
+
+# === VISUAL MENU ENHANCEMENTS (15 features) ===
+# 1. Ink splatter transitions
+var _ink_transition_alpha: float = 0.0
+var _ink_splatter_points: Array = []
+# 2. Candle-lit vignette (no state needed — driven by _time)
+# 3. Vine borders (no state needed — procedural from _time)
+# 4. Ink button style (helper, no global state)
+# 5. Quill pen particles
+var _quill_particles: Array = []
+# 6. Page flip transition
+var _page_flip_progress: float = 0.0
+var _page_flip_direction: float = 1.0
+# 7. Parchment overlay (no state — uses noise pattern from seed)
+# 8. Gold leaf accents (no state — procedural shimmer)
+# 9. Wax seal decorations (no state — uses draw params)
+# 10. Ornate dividers (no state — procedural scrollwork)
+# 11. Floating dust motes
+var _dust_mote_seeds: Array = []
+# 12. Stained glass glow
+var _stained_glass_colors: Array = []
+# 13. Ink drip decorations (no state — procedural)
+# 14. Flickering torch sconces
+var _torch_flicker_offsets: Array = []
+# 15. Gothic arch frames (no state — uses draw params)
+
+# === CHARACTER ART VISUAL ENHANCEMENTS (15 features) ===
+# 1. Character greeting popup
+var _greeting_char_key: String = ""
+var _greeting_timer: float = 0.0
+var _greeting_y_offset: float = 80.0
+var _greeting_quote: String = ""
+var _greeting_active: bool = false
+# 4. Character mood bounce on hover
+var _hover_bounce_offsets: Dictionary = {}
+var _hover_bounce_timers: Dictionary = {}
+# 5. Sell confirmation sad face
+var _sell_hover_active: bool = false
+# 8. Tower speech bubbles
+var _tower_speech_bubbles: Array = []
+const SPEECH_BUBBLE_DURATION: float = 2.5
+const SPEECH_BUBBLE_MAX: int = 3
+# 12. Character spotlight on title
+var _spotlight_char_index: int = 0
+var _spotlight_fade: float = 1.0
+var _spotlight_timer: float = 0.0
+const SPOTLIGHT_HOLD_TIME: float = 4.0
+const SPOTLIGHT_FADE_TIME: float = 0.8
+# 14. Level-up celebration
+var _levelup_celeb_particles: Array = []
+var _levelup_celeb_char_key: String = ""
+var _levelup_celeb_timer: float = 0.0
+var _levelup_celeb_pos: Vector2 = Vector2.ZERO
+# 15. Wave announcement character
+var _wave_announce_char_key: String = ""
+var _wave_announce_timer: float = 0.0
+var _wave_announce_quote: String = ""
+const WAVE_ANNOUNCE_DURATION: float = 2.5
+var battle_cry_quotes: Dictionary = {}
 
 # World map data
 var world_map_hover_index: int = -1
@@ -1813,6 +1878,50 @@ var _wave_banner_is_boss: bool = false
 var _gold_pickups: Array = []
 var _gold_pickup_flash: float = 0.0
 
+# === GAME EVENT VISUAL ENHANCEMENTS ===
+# 1. Wanted poster (new enemy types)
+var _seen_enemy_types: Dictionary = {}
+var _wanted_poster_timer: float = 0.0
+var _wanted_poster_name: String = ""
+var _wanted_poster_bounty: int = 0
+var _wanted_poster_danger: int = 1
+# 2. Boss reveal
+var _boss_reveal_timer: float = 0.0
+var _boss_reveal_active: bool = false
+var _boss_reveal_name: String = ""
+# 4. Star celebration
+var _star_celebration_timer: float = 0.0
+var _star_celebration_count: int = 0
+# 5. Kill streak counter
+var _kill_streak_counts: Dictionary = {}
+var _kill_streak_display: Array = []
+# 6. Gold splash
+var _gold_splashes: Array = []
+# 7. Enemy death effects
+var _enemy_death_effects: Array = []
+# 8. Danger warning
+var _danger_vignette_alpha: float = 0.0
+# 9. Tower upgrade burst
+var _upgrade_bursts: Array = []
+# 10. Wave complete fanfare
+var _wave_complete_fanfare_timer: float = 0.0
+var _wave_complete_kills: int = 0
+var _wave_complete_gold: int = 0
+# 11. Perfect wave badge
+var _perfect_badge_timer: float = 0.0
+# 12. First blood
+var _first_blood_timer: float = 0.0
+var _first_blood_triggered: bool = false
+# 13. Faction banner
+var _seen_factions: Dictionary = {}
+var _faction_banner_timer: float = 0.0
+var _faction_banner_name: String = ""
+var _faction_banner_color: Color = Color.WHITE
+# 14. Crit pop
+var _crit_pops: Array = []
+# 15. Treasure chest drops
+var _treasure_chests: Array = []
+
 # === BATTD FEATURE: GEAR FUSION FORGE ===
 var fusion_selected_ids: Array = []  # Gear IDs selected for fusion
 
@@ -1826,6 +1935,32 @@ var _show_stats_screen: bool = false
 
 # === BATTD FEATURE: EARLY WAVE SEND BONUS ===
 var _early_send_bonus: int = 0
+
+# === MICRO-DETAIL VISUAL ENHANCEMENTS ===
+# 5: Ambient wildlife (menu background creatures)
+var _ambient_creatures: Array = []
+var _ambient_creatures_inited: bool = false
+# 6: Easter egg character scenes
+var _easter_egg_active: bool = false
+var _easter_egg_timer: float = 0.0
+var _easter_egg_type: int = -1  # 0=Dracula sunbathing, 1=Frankenstein poetry, 2=Robin taxes
+var _easter_egg_cooldown: float = 60.0
+# 11: Floating story text
+var _floating_lore_text: String = ""
+var _floating_lore_timer: float = 0.0
+var _floating_lore_x: float = 1300.0
+var _floating_lore_cooldown: float = 0.0
+# 12: Weather effects
+var _weather_particles: Array = []
+var _weather_inited: bool = false
+# 13: Cursor trail
+var _cursor_trail: Array = []  # [{pos: Vector2, age: float}]
+# 14: Dramatic zoom on ability use
+var _ability_zoom_timer: float = 0.0
+var _ability_zoom_pos: Vector2 = Vector2.ZERO
+# 15: Share card
+var _share_card_active: bool = false
+var _share_card_timer: float = 0.0
 
 # === BATTD FEATURE: LUCKY LOOT DROPS ===
 const LUCKY_DROP_CHANCE: float = 0.05  # 5% per kill
@@ -2529,6 +2664,22 @@ var emporium_scroll: float = 0.0  # Scroll offset for emporium main grid
 var achievements_scroll: float = 0.0  # Scroll offset for achievements tab
 var chronicles_scroll: float = 0.0  # Scroll offset for chronicles/knowledge tree
 
+# === PROGRESSION/REWARD VISUAL ENHANCEMENTS (15 features) ===
+var _ach_unlock_splash_active: bool = false
+var _ach_unlock_splash_timer: float = 0.0
+var _ach_unlock_splash_id: String = ""
+var _ach_unlock_splash_name: String = ""
+var _milestone_splash_active: bool = false
+var _milestone_splash_timer: float = 0.0
+var _milestone_splash_char: String = ""
+var _milestone_splash_count: int = 0
+var _gear_set_complete_active: bool = false
+var _gear_set_complete_timer: float = 0.0
+var _gear_set_complete_name: String = ""
+var _newspaper_active: bool = false
+var _newspaper_timer: float = 0.0
+var _gallery_scroll: float = 0.0
+
 # === STORY DIALOG SYSTEM ===
 var story_dialogs: Dictionary = {}  # "pre_level_N" -> [{speaker, text, voice_type}]
 var story_state: Dictionary = {
@@ -2583,6 +2734,7 @@ const OLD_TO_NEW_LEVEL_MAP = {0:16, 1:17, 2:18, 3:19, 4:20, 5:21, 6:22, 7:23, 8:
 
 func _ready() -> void:
 	add_to_group("main")
+	_init_battle_cry_quotes()  # Feature 15: Init battle cry quotes
 	_is_mobile = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
 	# Default medium quality on mobile for smooth performance
 	if _is_mobile and _quality_level == 2:
@@ -3535,6 +3687,11 @@ func _check_achievement(id: String, value = 1) -> void:
 			reward_str += " + %d Trophies" % trophy_bonus
 		achievement_popup_reward = reward_str
 		achievement_popup_timer = 3.0
+		# Enhancement: Achievement unlock splash overlay
+		_ach_unlock_splash_active = true
+		_ach_unlock_splash_timer = 0.0
+		_ach_unlock_splash_id = id
+		_ach_unlock_splash_name = def_data["name"]
 		_save_game()
 
 # === BATTLE POWER SYSTEM ===
@@ -5573,6 +5730,25 @@ func _create_ui() -> void:
 	for i in range(26):
 		_bookshelf_heights.append(rng2.randf_range(20, 55))
 
+	# === Visual menu enhancement initialization ===
+	# Quill particles (floating feathers)
+	for i in range(12):
+		_quill_particles.append({"x": rng2.randf_range(-50, 1330), "y": rng2.randf_range(40, 650), "rot": rng2.randf_range(-0.5, 0.5), "size": rng2.randf_range(8, 18), "speed_x": rng2.randf_range(0.1, 0.4), "speed_y": rng2.randf_range(0.05, 0.25), "drift": rng2.randf_range(0.0, TAU), "barbs": rng2.randi_range(3, 6)})
+	# Dust motes (golden particles in light shafts)
+	for i in range(30):
+		_dust_mote_seeds.append({"x": rng2.randf_range(40, 1240), "y": rng2.randf_range(50, 600), "size": rng2.randf_range(0.5, 2.5), "speed": rng2.randf_range(0.2, 0.8), "phase": rng2.randf_range(0, TAU), "drift_x": rng2.randf_range(-0.3, 0.3), "brightness": rng2.randf_range(0.6, 1.0)})
+	# Stained glass color pools
+	_stained_glass_colors = [
+		{"x": 180.0, "y": 200.0, "r": 120.0, "color": Color(0.6, 0.15, 0.15, 0.04), "speed": 0.3},
+		{"x": 450.0, "y": 280.0, "r": 100.0, "color": Color(0.15, 0.35, 0.6, 0.035), "speed": 0.4},
+		{"x": 900.0, "y": 180.0, "r": 130.0, "color": Color(0.5, 0.2, 0.55, 0.03), "speed": 0.25},
+		{"x": 1050.0, "y": 350.0, "r": 90.0, "color": Color(0.15, 0.5, 0.25, 0.03), "speed": 0.35},
+		{"x": 350.0, "y": 450.0, "r": 110.0, "color": Color(0.55, 0.45, 0.1, 0.035), "speed": 0.28},
+	]
+	# Torch flicker phase offsets (left and right sconces)
+	for i in range(4):
+		_torch_flicker_offsets.append({"phase": rng2.randf_range(0, TAU), "speed": rng2.randf_range(3.5, 7.0), "intensity": rng2.randf_range(0.7, 1.0)})
+
 	# World map data
 	var rng3 = RandomNumberGenerator.new()
 	rng3.seed = 200
@@ -5979,6 +6155,12 @@ func _show_menu() -> void:
 	if _last_game_was_victory:
 		_trigger_menu_confetti()
 		_last_game_was_victory = false
+	# === CHARACTER ART: Init greeting popup (Feature 1) ===
+	_init_character_greeting()
+	# === CHARACTER ART: Init spotlight rotation (Feature 12) ===
+	_spotlight_char_index = randi() % survivor_types.size()
+	_spotlight_timer = 0.0
+	_spotlight_fade = 1.0
 	queue_redraw()
 
 func _check_daily_reward() -> void:
@@ -7355,6 +7537,26 @@ func _reset_game() -> void:
 	_wave_banner_timer = 0.0
 	_gold_pickups.clear()
 	_gold_pickup_flash = 0.0
+	# Reset game event visual enhancements
+	_seen_enemy_types.clear()
+	_wanted_poster_timer = 0.0
+	_boss_reveal_timer = 0.0
+	_boss_reveal_active = false
+	_star_celebration_timer = 0.0
+	_kill_streak_counts.clear()
+	_kill_streak_display.clear()
+	_gold_splashes.clear()
+	_enemy_death_effects.clear()
+	_danger_vignette_alpha = 0.0
+	_upgrade_bursts.clear()
+	_wave_complete_fanfare_timer = 0.0
+	_perfect_badge_timer = 0.0
+	_first_blood_timer = 0.0
+	_first_blood_triggered = false
+	_seen_factions.clear()
+	_faction_banner_timer = 0.0
+	_crit_pops.clear()
+	_treasure_chests.clear()
 	# Reset boss rescue animation
 	boss_rescue_active = false
 	boss_rescue_timer = 0.0
@@ -10723,8 +10925,8 @@ func _draw_currency_bar() -> void:
 			var emp_sz = 22.0
 			draw_texture_rect(_emporium_icon_textures[_emp_icon_key], Rect2(cx - emp_sz * 0.5, ic_y - emp_sz * 0.5, emp_sz, emp_sz), false)
 		else:
-			draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
-			draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
+			# Enhancement: Hand-crafted currency icons
+			_draw_currency_icon(Vector2(cx, ic_y), c["name"].to_lower(), 20.0)
 		# Menu Improvement 13: Premium currency sparkle
 		var is_premium = c["name"] in ["Quills", "Shards", "Stars"]
 		_draw_currency_shimmer(cx, ic_y, 10.0, cc, is_premium)
@@ -11176,6 +11378,23 @@ func _draw_menu_background() -> void:
 		_udraw(font, Vector2(637, 430), "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
 		_udraw(font, Vector2(637, 445), "D", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
 
+		# === VISUAL MENU ENHANCEMENTS (background layer) ===
+		_draw_stained_glass_light()   # 12. Colored light pools from stained glass
+		_draw_candle_vignette()       # 2. Flickering warm glow at edges
+		_draw_dust_motes()            # 11. Golden dust particles in light shafts
+		_draw_quill_particles()       # 5. Floating quill feathers
+		_draw_vine_borders()          # 3. Animated ivy/vine tendrils along edges
+		_draw_torch_sconces()         # 14. Flickering torch light sources
+		# Ornate dividers at natural section breaks
+		_draw_ornate_divider(115.0, 800.0)  # 10. Below top bar area
+		_draw_ornate_divider(605.0, 800.0)  # 10. Above bottom nav area
+		# Gold leaf accents on the main content area
+		_draw_gold_leaf(Vector2(75.0, 48.0), Vector2(1130.0, 555.0))  # 8. Shimmer corners
+		# Ink drips on main panel edges
+		_draw_ink_drips(Rect2(70, 40, 1140, 565))  # 13. Weathered ink drips
+		# Parchment texture on the main content area
+		_draw_parchment_overlay(Rect2(80, 50, 1120, 550))  # 7. Paper grain overlay
+
 	# === TOP CURRENCY BAR ===
 	_draw_currency_bar()
 
@@ -11290,6 +11509,8 @@ func _draw_gear_tab() -> void:
 	# Title
 	_ds_title(Vector2(panel_x, panel_y + 28), "GEAR COMPENDIUM", 18, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
+	# Enhancement: Gear forge animation at top
+	_draw_gear_forge_bg(panel_x, panel_y, panel_w)
 
 	# Enhancement #26: Character filter indicators — show colored dots for characters that have gear
 	var char_filter_colors = {
@@ -13249,6 +13470,8 @@ func _draw_daily_reward() -> void:
 		draw_circle(corner, 6, Color(0.90, 0.70, 0.20, 0.5))
 		draw_circle(corner, 3.5, Color(1.0, 0.85, 0.35, 0.7))
 
+	# Enhancement: Calendar art decorations
+	_draw_daily_reward_calendar_art(modal_x, modal_y, modal_w)
 	# === TITLE ===
 	var title = "DAILY REWARDS"
 	var title_size = 34
@@ -13602,6 +13825,23 @@ func _draw_survivor_grid() -> void:
 		if title_str.length() > 28:
 			title_str = title_str.substr(0, 26) + ".."
 		_ds_hero_card(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), speaker_name, info["name"], title_str, char_lvl, accent, unlocked, is_hovered)
+
+		# === CHARACTER ART: Grid enhancements ===
+		if unlocked:
+			# Feature 2: Chibi sprite portrait overlay on card
+			_draw_card_chibi_portrait(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), speaker_name, 1.0)
+			# Feature 4: Hover bounce
+			if is_hovered:
+				var bounce_off = _update_hover_bounce(i, true, get_process_delta_time())
+				# Redraw card shifted by bounce (visual only, draws a subtle bouncing chibi)
+				if _tower_sprite_textures.has(speaker_name) and abs(bounce_off) > 0.5:
+					var bsz = 24.0
+					draw_texture_rect(_tower_sprite_textures[speaker_name], Rect2(draw_cx + draw_cw * 0.5 - bsz * 0.5, draw_cy + draw_ch * 0.15 + bounce_off, bsz, bsz), false, Color(1, 1, 1, 0.3))
+			else:
+				_update_hover_bounce(i, false, get_process_delta_time())
+		else:
+			# Feature 13: Lock screen silhouette
+			_draw_locked_silhouette(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), i)
 
 		# Unlock progress on locked cards
 		if not unlocked:
@@ -14463,6 +14703,9 @@ func _draw_survivor_detail() -> void:
 	var portrait_cx = port_x + port_w * 0.5
 	var portrait_cy = port_y + port_h * 0.42 + bob_y
 	_draw_story_portrait(portrait_cx, portrait_cy, 350.0 * breath_scale, speaker_name)
+
+	# Feature 3: Animated chibi sprite with breathing overlay
+	_draw_detail_chibi_breathing(portrait_cx, portrait_cy, speaker_name, content_alpha)
 
 	# Corner-bracket portrait frame
 	var frame_margin = 8.0
@@ -16693,6 +16936,15 @@ func get_cached_enemies() -> Array:
 
 func _process(delta: float) -> void:
 	_time += delta
+	# === Enhancement decay timers ===
+	if _ink_transition_alpha > 0.0:
+		_ink_transition_alpha -= delta * 1.5  # Fades over ~0.67 seconds
+		if _ink_transition_alpha < 0.0:
+			_ink_transition_alpha = 0.0
+	if _page_flip_progress > 0.0:
+		_page_flip_progress -= delta * 1.2  # Completes over ~0.83 seconds
+		if _page_flip_progress < 0.0:
+			_page_flip_progress = 0.0
 	# Cache enemy list once per frame for performance
 	if game_state == GameState.PLAYING:
 		_cached_enemies = get_tree().get_nodes_in_group("enemies")
@@ -16731,6 +16983,23 @@ func _process(delta: float) -> void:
 	# Achievement popup timer
 	if achievement_popup_timer > 0.0:
 		achievement_popup_timer -= delta
+	# Enhancement: Progression visual timers
+	if _ach_unlock_splash_active:
+		_ach_unlock_splash_timer += delta
+		if _ach_unlock_splash_timer > 3.0:
+			_ach_unlock_splash_active = false
+	if _milestone_splash_active:
+		_milestone_splash_timer += delta
+		if _milestone_splash_timer > 2.5:
+			_milestone_splash_active = false
+	if _gear_set_complete_active:
+		_gear_set_complete_timer += delta
+		if _gear_set_complete_timer > 3.0:
+			_gear_set_complete_active = false
+	if _newspaper_active:
+		_newspaper_timer += delta
+	# === CHARACTER ART: Process timers ===
+	_process_character_art_timers(delta)
 	if game_state != GameState.PLAYING:
 		# Chest opening animation (phase 0=idle/click to open, 1=shake, 2=burst, 3=slide, 4=flip, 5=pick, 6=done)
 		if chest_opening_active:
@@ -17113,6 +17382,86 @@ func _process(delta: float) -> void:
 	# Update wave banner
 	if _wave_banner_timer > 0.0:
 		_wave_banner_timer -= delta
+	# === GAME EVENT VISUAL ENHANCEMENTS — Timer Updates ===
+	if _wanted_poster_timer > 0.0:
+		_wanted_poster_timer -= delta
+	if _boss_reveal_timer > 0.0:
+		_boss_reveal_timer -= delta
+		if _boss_reveal_timer <= 0.0:
+			_boss_reveal_active = false
+	if _star_celebration_timer > 0.0:
+		_star_celebration_timer -= delta
+	# Kill streak display
+	var ks_i = _kill_streak_display.size() - 1
+	while ks_i >= 0:
+		_kill_streak_display[ks_i]["timer"] -= delta
+		if _kill_streak_display[ks_i]["timer"] <= 0.0:
+			_kill_streak_display.remove_at(ks_i)
+		ks_i -= 1
+	# Kill streak counts decay
+	for ks_key in _kill_streak_counts.keys():
+		_kill_streak_counts[ks_key]["timer"] -= delta
+		if _kill_streak_counts[ks_key]["timer"] <= 0.0:
+			_kill_streak_counts.erase(ks_key)
+	# Gold splashes
+	var gs_i = _gold_splashes.size() - 1
+	while gs_i >= 0:
+		_gold_splashes[gs_i]["timer"] -= delta
+		if _gold_splashes[gs_i]["timer"] <= 0.0:
+			_gold_splashes.remove_at(gs_i)
+		gs_i -= 1
+	# Enemy death effects
+	var de_i = _enemy_death_effects.size() - 1
+	while de_i >= 0:
+		_enemy_death_effects[de_i]["timer"] -= delta
+		if _enemy_death_effects[de_i]["timer"] <= 0.0:
+			_enemy_death_effects.remove_at(de_i)
+		de_i -= 1
+	# Danger vignette
+	if _proximity_alert_alpha > 0.3:
+		_danger_vignette_alpha = minf(_danger_vignette_alpha + delta * 2.0, 1.0)
+	else:
+		_danger_vignette_alpha = maxf(_danger_vignette_alpha - delta * 3.0, 0.0)
+	# Upgrade bursts
+	var ub_i = _upgrade_bursts.size() - 1
+	while ub_i >= 0:
+		_upgrade_bursts[ub_i]["timer"] -= delta
+		if _upgrade_bursts[ub_i]["timer"] <= 0.0:
+			_upgrade_bursts.remove_at(ub_i)
+		ub_i -= 1
+	# Wave complete fanfare
+	if _wave_complete_fanfare_timer > 0.0:
+		_wave_complete_fanfare_timer -= delta
+	# Perfect badge
+	if _perfect_badge_timer > 0.0:
+		_perfect_badge_timer -= delta
+	# First blood
+	if _first_blood_timer > 0.0:
+		_first_blood_timer -= delta
+	# Faction banner
+	if _faction_banner_timer > 0.0:
+		_faction_banner_timer -= delta
+	# Crit pops
+	var cp_i = _crit_pops.size() - 1
+	while cp_i >= 0:
+		_crit_pops[cp_i]["timer"] -= delta
+		if _crit_pops[cp_i]["timer"] <= 0.0:
+			_crit_pops.remove_at(cp_i)
+		cp_i -= 1
+	# Treasure chests
+	var tc_i = _treasure_chests.size() - 1
+	while tc_i >= 0:
+		_treasure_chests[tc_i]["timer"] -= delta
+		if _treasure_chests[tc_i]["timer"] <= 0.0:
+			_treasure_chests.remove_at(tc_i)
+		else:
+			# Phase transitions
+			var tc = _treasure_chests[tc_i]
+			if tc["phase"] == 0 and tc["timer"] < 1.5:
+				tc["phase"] = 1
+			elif tc["phase"] == 1 and tc["timer"] < 0.8:
+				tc["phase"] = 2
+		tc_i -= 1
 	# Update gold pickups
 	var gp_i = _gold_pickups.size() - 1
 	while gp_i >= 0:
@@ -18007,6 +18356,8 @@ func _check_wave_complete() -> void:
 		_wave_clear_num = wave
 		_play_sfx(_sfx_wave_complete)
 		_haptic(1)  # Medium haptic on wave clear
+		# Enhancement 10: Wave complete fanfare with stats
+		trigger_wave_complete_fanfare(_wave_enemies_killed, total_gold_earned)
 		# Polyrhythm system: wave end events (triumphant resolve chord, perfect wave bonus)
 		if _poly != null:
 			_poly.on_wave_end(wave)
@@ -18031,6 +18382,8 @@ func _check_wave_complete() -> void:
 				var perfect_gold = PERFECT_WAVE_GOLD + _wave_streak * WAVE_STREAK_GOLD_PER
 				add_gold(perfect_gold)
 				spawn_floating_text(Vector2(640, 200), "PERFECT WAVE! +%dG" % perfect_gold, Color(0.3, 1.0, 0.5), 18.0, 1.5)
+				# Enhancement 11: Perfect wave golden stamp
+				_perfect_badge_timer = 2.5
 				if _wave_streak >= 3:
 					spawn_floating_text(Vector2(640, 225), "STREAK x%d!" % _wave_streak, c_gold_bright, 15.0, 1.2)
 			else:
@@ -18798,8 +19151,14 @@ func _udraw(fnt: Font, pos: Vector2, text: String, halign: HorizontalAlignment =
 func _draw() -> void:
 	if game_state == GameState.MENU:
 		_draw_menu_background()
+		# Micro-detail #5: Ambient wildlife (butterflies, ravens, fireflies)
+		_draw_ambient_creatures()
+		# Micro-detail #6: Easter egg character scenes
+		_draw_easter_egg()
 		# Menu Improvement 15: Time-of-day ambient tint
 		_draw_time_ambient()
+		# Enhancement: Season banner across menu top
+		_draw_season_banner()
 		# Menu view transition fade
 		if menu_transition_alpha < 1.0:
 			menu_transition_alpha = minf(menu_transition_alpha + 0.08, 1.0)
@@ -18815,6 +19174,11 @@ func _draw() -> void:
 		_draw_levelup_fanfare()
 		_draw_session_recap()
 		_draw_career_stats()
+		# Enhancement overlays: newspaper, achievement splash, milestone, gear set
+		_draw_newspaper_stats()
+		_draw_achievement_unlock_splash()
+		_draw_milestone_splash()
+		_draw_gear_set_complete()
 		if daily_reward_open:
 			_draw_daily_reward()
 		# Story dialog overlay (draws on top of everything in menu)
@@ -18835,6 +19199,14 @@ func _draw() -> void:
 		_draw_menu_confetti()
 		# Mobile: autosave indicator (top-right corner)
 		_draw_autosave_indicator()
+		# === CHARACTER ART: Menu overlays ===
+		_draw_character_greeting()       # Feature 1: Greeting popup
+		_draw_character_spotlight()      # Feature 12: Rotating spotlight on title
+		# === VISUAL MENU ENHANCEMENTS (overlay layer) ===
+		_draw_ink_transition()           # 1. Ink splatter tab transition
+		_draw_page_flip()               # 6. Book page turning animation
+		# Micro-detail #13: Cursor sparkle trail
+		_draw_cursor_trail()
 		return
 
 	var sky_color = Color(0.04, 0.06, 0.14)
@@ -18921,8 +19293,21 @@ func _draw() -> void:
 					draw_circle(ep_pos, ep_s * 0.5, Color(0.4, 0.7, 1.0, fk))
 				_: draw_circle(ep_pos, ep_s, Color(0.5, 0.5, 0.5, ep_a * 0.5))
 
+	# Micro-detail #12: Weather effects (snow, rain, fairy dust, leaves)
+	if current_level >= 0 and current_level < levels.size():
+		var _md_weather_theme = levels[current_level].get("character", 0)
+		_draw_weather_effect(_md_weather_theme)
+
 	# === Universal path overlay with direction arrows ===
 	_draw_path_overlay()
+
+	# Micro-detail #9: Enemy path decorations (flowers, cobblestones, etc.)
+	_draw_path_decorations()
+
+	# Micro-detail #10: Tower aura ground art (thematic range patterns)
+	var _md_towers = get_tree().get_nodes_in_group("towers")
+	for _md_t in _md_towers:
+		_draw_tower_ground_art(_md_t)
 
 	# === Draw placed Literary Instruments ===
 	_draw_placed_instruments()
@@ -18932,6 +19317,8 @@ func _draw() -> void:
 		var valid = _is_valid_placement(ghost_position)
 		var color = Color(0.2, 0.8, 0.2, 0.35) if valid else Color(0.9, 0.2, 0.2, 0.35)
 		draw_circle(ghost_position, 24.0, color)
+		# === CHARACTER ART Feature 6: Ghost chibi sprite at placement ===
+		_draw_placement_ghost_sprite()
 		if valid:
 			var preview_range = tower_info[selected_tower]["range"]
 			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0)
@@ -19118,6 +19505,23 @@ func _draw() -> void:
 	# Reset transform (screen shake should not affect UI overlays)
 	if _screen_shake_timer > 0.0:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# === MICRO-DETAIL HUD ENHANCEMENTS ===
+	# #1: Illustrated hearts replace plain lives counter
+	_draw_illustrated_lives()
+	# #2: Gold purse icon
+	_draw_gold_purse()
+	# #3: Wave progress scroll
+	_draw_wave_scroll()
+	# #4: Minimap with tower/enemy dots
+	_draw_minimap()
+	# #11: Floating flavor text
+	_draw_floating_lore()
+	# #13: Cursor sparkle trail
+	_draw_cursor_trail()
+	# #14: Ability zoom pulse effect
+	_ability_zoom_timer -= get_process_delta_time()
+	_draw_ability_zoom(_ability_zoom_pos)
 
 	# === FLOATING DAMAGE TEXTS ===
 	# BATTD2: Path traps
@@ -19414,6 +19818,22 @@ func _draw() -> void:
 	if _loot_crate_pending:
 		_draw_loot_crate_popup()
 
+	# === GAME EVENT VISUAL ENHANCEMENTS — Draw Calls ===
+	_draw_wanted_poster()
+	_draw_boss_reveal()
+	_draw_star_celebration()
+	_draw_kill_streak()
+	_draw_gold_splash_effects()
+	_draw_enemy_death_effect_all()
+	_draw_danger_warning()
+	_draw_upgrade_burst_all()
+	_draw_wave_complete_fanfare()
+	_draw_perfect_badge()
+	_draw_first_blood()
+	_draw_faction_banner()
+	_draw_crit_pop_all()
+	_draw_treasure_chest_all()
+
 	# === PAUSED OVERLAY (gothic themed) ===
 	if game_paused:
 		# Dark translucent backdrop
@@ -19474,6 +19894,19 @@ func _draw() -> void:
 	if selected_tower_node and is_instance_valid(selected_tower_node) and upgrade_panel.visible:
 		_draw_branch_upgrade_panel()
 
+	# === CHARACTER ART: Gameplay overlays ===
+	_draw_tower_speech_bubbles()          # Feature 8: Speech bubbles on kills/upgrades
+	_draw_sell_sad_face()                 # Feature 5: Sad face on sell hover
+	_draw_tower_info_chibi()              # Feature 7: Chibi in upgrade panel header
+	_draw_wave_announce_character()       # Feature 15: Wave announcement chibi
+	_draw_levelup_celebration()           # Feature 14: Level-up particles
+	# === CHARACTER ART: Victory/Defeat overlays ===
+	if game_state == GameState.GAME_OVER_STATE:
+		if _last_game_was_victory:
+			_draw_victory_character_lineup()   # Feature 10: Victory lineup
+		else:
+			_draw_defeat_character_scene()     # Feature 11: Defeat dejected chibis
+
 	# === VICTORY BURST EFFECT ===
 	if _victory_burst_timer > 0.0:
 		var vb_t = 1.0 - clampf(_victory_burst_timer / 2.0, 0.0, 1.0)
@@ -19532,6 +19965,8 @@ func _draw() -> void:
 		_draw_story_dialog()
 	# Mobile: autosave indicator (gameplay)
 	_draw_autosave_indicator()
+	# Micro-detail #15: Share card (victory summary)
+	_draw_share_card()
 
 func _draw_ability_popup() -> void:
 	var alpha = clampf(_ability_popup_timer, 0.0, 1.0)
@@ -27404,6 +27839,8 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 			if _utt != null:
 				_show_upgrade_callout(_utt, selected_tower_node.upgrade_tier)
 				_update_character_mood(_utt, 10.0)
+				# Enhancement 9: Tower upgrade burst
+				_trigger_upgrade_burst(selected_tower_node.global_position, _utt)
 			_update_quest_progress("upgrade_towers", 1)
 			# Addiction: Power spike at tier 3 and 5 + weekly quest
 			_update_weekly_quest("upgrades", 1)
@@ -27713,6 +28150,8 @@ func _start_next_wave() -> void:
 	_play_sfx(_sfx_wave_start)
 	_haptic(1)  # Medium haptic on wave start
 	_show_rally_cry()
+	# Feature 15: Wave announcement character
+	_trigger_wave_announce_character()
 	# Addiction: Wave rush bonus + weekly quest + pass XP
 	_check_wave_rush_bonus()
 	_update_weekly_quest("waves", 1)
@@ -27738,6 +28177,10 @@ func _start_next_wave() -> void:
 	_wave_banner_num = wave
 	_wave_banner_name = wave_name
 	_wave_banner_is_boss = wave in [20, 25, 30, 35] or wave == total_waves
+	# Enhancement 1 & 13: Wanted poster + Faction banner for new enemy types
+	var _et = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
+	trigger_wanted_poster(_et)
+	trigger_faction_banner(_et)
 	# Boss wave alert
 	if wave in [20, 25, 30, 35] or wave == total_waves or (wave >= 39 and selected_difficulty >= 2):
 		_boss_alert_timer = 2.5
@@ -27754,6 +28197,8 @@ func _start_next_wave() -> void:
 		# Polyrhythm system: boss bass drop + visual overlay
 		if _poly != null:
 			_poly.on_boss_spawn()
+		# Enhancement 2: Boss reveal animation
+		trigger_boss_reveal(_boss_alert_text)
 	# Endless mode: mutate every 5 waves
 	if endless_mode and wave > 0 and wave % 5 == 0:
 		endless_mutation = ENDLESS_MUTATIONS[randi() % ENDLESS_MUTATIONS.size()]
@@ -27899,6 +28344,29 @@ func enemy_died(enemy_node = null) -> void:
 	_record_enemy_in_bestiary(enemy_node)
 	# Addiction: Kill combo
 	_register_combo_kill()
+	# Enhancement 12: First blood
+	if not _first_blood_triggered and total_enemies_killed == 1:
+		_first_blood_triggered = true
+		_first_blood_timer = 1.5
+	# Enhancement 5: Kill streak (attribute to nearest tower)
+	if enemy_node and is_instance_valid(enemy_node):
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if is_instance_valid(tower):
+				var _ks_d = tower.global_position.distance_to(enemy_node.global_position)
+				if _ks_d < 200.0:
+					register_kill_streak(tower.get_instance_id(), tower.global_position)
+					break
+	# Enhancement 6: Gold splash at kill position
+	if enemy_node and is_instance_valid(enemy_node):
+		var _gs_bounty = 5 + wave * 2
+		_draw_gold_splash(enemy_node.global_position, _gs_bounty)
+	# Enhancement 7: Faction-themed death effect
+	if enemy_node and is_instance_valid(enemy_node):
+		var _de_theme = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
+		_trigger_enemy_death_effect(enemy_node.global_position, _de_theme)
+	# Enhancement 15: Rare treasure chest drop (3% chance)
+	if enemy_node and is_instance_valid(enemy_node) and randf() < 0.03:
+		trigger_treasure_chest(enemy_node.global_position)
 	# Addiction: Boss kill ceremony
 	if enemy_node and is_instance_valid(enemy_node):
 		var _bk_scale = enemy_node.boss_scale if "boss_scale" in enemy_node else 1.0
@@ -28024,6 +28492,8 @@ func report_aoe_impact(pos: Vector2, radius: float, color: Color) -> void:
 
 func report_crit_hit(pos: Vector2) -> void:
 	_crit_flashes.append({"pos": pos, "timer": 0.4, "max_timer": 0.4})
+	# Enhancement 14: Comic-book crit pop
+	_trigger_crit_pop(pos)
 
 # === DEATH EFFECTS ===
 func report_enemy_death(pos: Vector2, is_boss: bool, scale: float, faction: String = "") -> void:
@@ -28796,6 +29266,8 @@ func _victory() -> void:
 		stars = 3
 	elif lives >= int(max_lives * 0.5):
 		stars = 2
+	# Enhancement 4: Star celebration
+	trigger_star_celebration(stars)
 	if current_level >= 0 and not current_level in completed_levels:
 		completed_levels.append(current_level)
 	var old_stars = level_stars.get(current_level, 0)
@@ -29106,6 +29578,8 @@ func _on_survivor_level_up(tower_type, new_level: int) -> void:
 	if not survivor_progress.has(tower_type):
 		return
 	_trigger_levelup_fanfare(tower_type, new_level)
+	# Feature 14: Level-up celebration particles
+	_trigger_levelup_celebration(tower_type)
 	var p = survivor_progress[tower_type]
 	if new_level >= 2:
 		p["gear_unlocked"] = true
@@ -29270,6 +29744,8 @@ func _draw_achievements_tab() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
+	# Enhancement: Trophy shelf background layer
+	_draw_trophy_shelf(panel_x, panel_y, panel_w, panel_h)
 	# Background
 	for i in range(56):
 		var t = float(i) / 55.0
@@ -29283,6 +29759,8 @@ func _draw_achievements_tab() -> void:
 	# Title — centered properly
 	_ds_title(Vector2(panel_x, panel_y + 28), "ACHIEVEMENTS", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
+	# Enhancement: Rank badge (based on commander pass tier)
+	_draw_rank_insignia_badge(Vector2(panel_x + 35, panel_y + 28), commander_pass_tier, 40.0)
 	# Count unlocked
 	var unlocked_count = 0
 	for ach in achievement_definitions:
@@ -29292,8 +29770,8 @@ func _draw_achievements_tab() -> void:
 
 	# === Total completion percentage with progress bar (Enhancement #46) ===
 	var total_ratio = float(unlocked_count) / float(max(1, achievement_definitions.size()))
-	draw_rect(Rect2(panel_x + 40, panel_y + 36, panel_w - 80, 4), Color(0.1, 0.1, 0.15, 0.4))
-	draw_rect(Rect2(panel_x + 40, panel_y + 36, (panel_w - 80) * total_ratio, 4), _ca(menu_gold, 0.6))
+	# Enhancement: Scroll progress bar art replaces plain bar
+	_draw_scroll_progress(Rect2(panel_x + 40, panel_y + 36, panel_w - 80, 6), total_ratio, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5 + 90, panel_y + 28), "%d%% COMPLETE" % int(total_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold, 0.5))
 
 	# === Recently unlocked section at top (Enhancement #47) ===
@@ -29398,6 +29876,9 @@ func _draw_achievements_tab() -> void:
 			draw_arc(Vector2(cx + card_w - 10, cy + 10), 5, 0, TAU, 12, Color(rarity_badge_col.r, rarity_badge_col.g, rarity_badge_col.b, 0.4), 1.0)
 
 			# AI achievement icon or check mark
+			# Enhancement: Achievement illustration when no AI art
+			if not _achievement_icon_textures.has(ach["id"]):
+				_draw_achievement_illustration(Vector2(cx + 16, cy + card_h * 0.5), ach["id"], card_h * 0.5)
 			var _ach_icon_id = ach["id"]
 			if _achievement_icon_textures.has(_ach_icon_id):
 				var _ai_sz = card_h * 0.7
@@ -29455,6 +29936,401 @@ func _draw_achievement_showcase(ax: float, ay: float) -> void:
 		_udraw(font, Vector2(ax + 18, sy + 12), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, 100, 12, Color(0.7, 0.65, 0.55))
 	if showcased.size() == 0:
 		_udraw(font, Vector2(ax + 60, ay + 38), "None yet!", HORIZONTAL_ALIGNMENT_CENTER, 120, 12, Color(0.5, 0.45, 0.4, 0.5))
+
+
+# ============================================================================
+# === PROGRESSION/REWARD VISUAL ENHANCEMENTS (15 features) ===
+# ============================================================================
+
+# --- 1. Achievement Illustration Mini-Scenes ---
+func _draw_achievement_illustration(center: Vector2, achievement_id: String, size: float) -> void:
+	var s = size * 0.5
+	var c = center
+	if achievement_id.begins_with("first_blood") or achievement_id.begins_with("bug_squasher"):
+		draw_line(c + Vector2(-s * 0.6, -s * 0.4), c + Vector2(s * 0.6, s * 0.4), Color(0.75, 0.75, 0.8, 0.7), 2.0)
+		draw_line(c + Vector2(s * 0.6, -s * 0.4), c + Vector2(-s * 0.6, s * 0.4), Color(0.75, 0.75, 0.8, 0.7), 2.0)
+		draw_circle(c, s * 0.15, Color(0.8, 0.2, 0.1, 0.6))
+	elif "boss" in achievement_id:
+		draw_circle(c + Vector2(0, -s * 0.1), s * 0.3, Color(0.85, 0.80, 0.70, 0.6))
+		draw_circle(c + Vector2(-s * 0.12, -s * 0.15), s * 0.08, Color(0.1, 0.08, 0.05, 0.9))
+		draw_circle(c + Vector2(s * 0.12, -s * 0.15), s * 0.08, Color(0.1, 0.08, 0.05, 0.9))
+		draw_line(c + Vector2(-s * 0.1, s * 0.1), c + Vector2(s * 0.1, s * 0.1), Color(0.7, 0.65, 0.55, 0.5), 1.5)
+	elif "gold" in achievement_id or "economy" in achievement_id or "scrooge" in achievement_id:
+		for i in range(3):
+			var oy = -float(i) * s * 0.15
+			draw_circle(c + Vector2(0, oy), s * 0.22, Color(0.85, 0.65, 0.1, 0.7 - float(i) * 0.1))
+			draw_arc(c + Vector2(0, oy), s * 0.18, 0, PI, 8, Color(0.95, 0.8, 0.2, 0.5), 1.0)
+	elif "wave" in achievement_id or "streak" in achievement_id:
+		for i in range(5):
+			var wx = c.x - s * 0.4 + float(i) * s * 0.2
+			var wh = s * 0.15 * (float(i + 1))
+			draw_line(Vector2(wx, c.y + s * 0.3), Vector2(wx, c.y + s * 0.3 - wh), Color(0.3, 0.6, 0.85, 0.5 + float(i) * 0.1), 2.0)
+	elif "damage" in achievement_id or "cataclysm" in achievement_id:
+		for i in range(8):
+			var ang = float(i) * TAU / 8.0
+			var len_r = s * 0.3 + sin(_time * 3.0 + float(i)) * s * 0.05
+			draw_line(c, c + Vector2.from_angle(ang) * len_r, Color(0.9, 0.4, 0.1, 0.6), 1.5)
+		draw_circle(c, s * 0.1, Color(1.0, 0.8, 0.2, 0.7))
+	elif "tower" in achievement_id or "full_roster" in achievement_id:
+		draw_rect(Rect2(c.x - s * 0.15, c.y - s * 0.2, s * 0.3, s * 0.4), Color(0.5, 0.45, 0.55, 0.5))
+		draw_rect(Rect2(c.x - s * 0.25, c.y - s * 0.3, s * 0.12, s * 0.15), Color(0.5, 0.45, 0.55, 0.4))
+		draw_rect(Rect2(c.x + s * 0.13, c.y - s * 0.3, s * 0.12, s * 0.15), Color(0.5, 0.45, 0.55, 0.4))
+	elif "star" in achievement_id or "flawless" in achievement_id:
+		var star_pts = PackedVector2Array()
+		for i in range(10):
+			var ang = -PI * 0.5 + float(i) * TAU / 10.0
+			var r = s * 0.35 if i % 2 == 0 else s * 0.15
+			star_pts.append(c + Vector2.from_angle(ang) * r)
+		draw_colored_polygon(star_pts, Color(1.0, 0.85, 0.2, 0.6))
+	else:
+		draw_colored_polygon(PackedVector2Array([c + Vector2(0, -s * 0.35), c + Vector2(s * 0.25, -s * 0.15), c + Vector2(s * 0.25, s * 0.1), c + Vector2(0, s * 0.35), c + Vector2(-s * 0.25, s * 0.1), c + Vector2(-s * 0.25, -s * 0.15)]), Color(0.4, 0.55, 0.7, 0.5))
+		draw_circle(c + Vector2(0, -s * 0.05), s * 0.1, Color(0.85, 0.65, 0.1, 0.6))
+
+# --- 2. Trophy Shelf Display ---
+func _draw_trophy_shelf(shelf_x: float, shelf_y: float, shelf_w: float, shelf_h: float) -> void:
+	var shelf_count = 4
+	var each_h = shelf_h / float(shelf_count)
+	for si in range(shelf_count):
+		var sy = shelf_y + float(si) * each_h + each_h - 8.0
+		draw_rect(Rect2(shelf_x + 8, sy, shelf_w - 16, 6), Color(0.35, 0.22, 0.10, 0.6))
+		draw_rect(Rect2(shelf_x + 8, sy, shelf_w - 16, 2), Color(0.45, 0.30, 0.14, 0.4))
+	draw_rect(Rect2(shelf_x + 4, shelf_y, 4, shelf_h), Color(0.30, 0.18, 0.08, 0.5))
+	draw_rect(Rect2(shelf_x + shelf_w - 8, shelf_y, 4, shelf_h), Color(0.30, 0.18, 0.08, 0.5))
+	var unlocked_achs: Array = []
+	for ach in achievement_definitions:
+		if achievements_unlocked.get(ach["id"], false):
+			unlocked_achs.append(ach)
+	var ips = maxi(ceili(float(maxi(unlocked_achs.size(), 1)) / float(shelf_count)), 1)
+	for i in range(unlocked_achs.size()):
+		var si2 = mini(i / ips, shelf_count - 1)
+		var item_spacing = (shelf_w - 40) / float(maxi(ips, 1))
+		var tx = shelf_x + 20 + float(i % ips) * item_spacing + item_spacing * 0.5
+		var ty = shelf_y + float(si2) * each_h + each_h - 14.0
+		var target = unlocked_achs[i]["target"]
+		if target >= 100:
+			draw_colored_polygon(PackedVector2Array([Vector2(tx - 6, ty - 18), Vector2(tx + 6, ty - 18), Vector2(tx + 4, ty - 6), Vector2(tx - 4, ty - 6)]), Color(0.85, 0.65, 0.1, 0.8))
+			draw_rect(Rect2(tx - 5, ty - 2, 10, 3), Color(0.7, 0.5, 0.1, 0.6))
+		elif target >= 10:
+			draw_circle(Vector2(tx, ty - 12), 7, Color(0.75, 0.75, 0.8, 0.7))
+		else:
+			draw_rect(Rect2(tx - 5, ty - 16, 10, 14), Color(0.55, 0.35, 0.15, 0.6))
+
+# --- 3. Achievement Unlock Splash ---
+func _draw_achievement_unlock_splash() -> void:
+	if not _ach_unlock_splash_active:
+		return
+	var font = game_font
+	var t = _ach_unlock_splash_timer
+	var alpha = clampf(1.0 - (t / 3.0), 0.0, 1.0) if t > 2.0 else 1.0
+	if t < 0.3:
+		alpha = t / 0.3
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.7 * alpha))
+	var cx = 640.0
+	var cy = 320.0
+	for i in range(16):
+		var ang = float(i) * TAU / 16.0 + _time * 0.5
+		var len_r = 120.0 + sin(_time * 3.0 + float(i)) * 30.0
+		draw_line(Vector2(cx, cy) + Vector2.from_angle(ang) * 30.0, Vector2(cx, cy) + Vector2.from_angle(ang) * len_r, Color(1.0, 0.85, 0.2, 0.3 * alpha), 3.0)
+	draw_arc(Vector2(cx, cy), 80.0 + sin(_time * 2.0) * 10.0, 0, TAU, 32, Color(1.0, 0.8, 0.2, 0.25 * alpha), 4.0)
+	var ts = 1.0 + sin(_time * 4.0) * 0.05
+	draw_colored_polygon(PackedVector2Array([Vector2(cx - 20 * ts, cy - 40), Vector2(cx + 20 * ts, cy - 40), Vector2(cx + 15 * ts, cy - 10), Vector2(cx - 15 * ts, cy - 10)]), Color(0.9, 0.7, 0.15, alpha))
+	draw_line(Vector2(cx, cy - 10), Vector2(cx, cy + 5), Color(0.75, 0.55, 0.1, alpha), 3.0)
+	draw_rect(Rect2(cx - 15 * ts, cy + 5, 30 * ts, 6), Color(0.75, 0.55, 0.1, alpha))
+	for i in range(20):
+		var sf = float(i) * 7.3 + 1.1
+		var ppx = cx + sin(sf + _time * 1.5) * 200.0
+		var ppy = cy - 80 + fmod((sf * 30.0 + _time * 60.0), 300.0)
+		var cc = [Color(1, 0.3, 0.3), Color(0.3, 1, 0.3), Color(0.3, 0.3, 1), Color(1, 0.85, 0.2), Color(1, 0.5, 0.8)][i % 5]
+		cc.a = alpha * 0.8
+		draw_rect(Rect2(ppx, ppy, 4, 6), cc)
+	_udraw(font, Vector2(cx - 200, cy + 50), "ACHIEVEMENT UNLOCKED!", HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Color(1.0, 0.9, 0.5, alpha))
+	_udraw(font, Vector2(cx - 200, cy + 80), _ach_unlock_splash_name, HORIZONTAL_ALIGNMENT_CENTER, 400, 18, Color(0.9, 0.8, 0.5, alpha * 0.85))
+
+# --- 4. Rank Insignia Badges ---
+func _draw_rank_insignia_badge(pos: Vector2, rank: int, size: float) -> void:
+	var s = size * 0.5
+	var tier_col = Color(0.72, 0.50, 0.25)
+	if rank >= 40: tier_col = Color(0.6, 0.85, 1.0)
+	elif rank >= 25: tier_col = Color(0.85, 0.65, 0.1)
+	elif rank >= 10: tier_col = Color(0.75, 0.75, 0.8)
+	var shield = PackedVector2Array([pos + Vector2(0, -s * 0.9), pos + Vector2(s * 0.7, -s * 0.4), pos + Vector2(s * 0.7, s * 0.2), pos + Vector2(0, s * 0.9), pos + Vector2(-s * 0.7, s * 0.2), pos + Vector2(-s * 0.7, -s * 0.4)])
+	draw_colored_polygon(shield, Color(0.05, 0.05, 0.12, 0.85))
+	var inner = PackedVector2Array()
+	for pt in shield:
+		inner.append(pos + (pt - pos) * 0.78)
+	draw_colored_polygon(inner, Color(tier_col.r * 0.2, tier_col.g * 0.2, tier_col.b * 0.2, 0.7))
+	for i in range(shield.size()):
+		draw_line(shield[i], shield[(i + 1) % shield.size()], _ca(tier_col, 0.6), 1.5)
+	if game_font:
+		var r_str = str(rank)
+		var rw = game_font.get_string_size(r_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+		_udraw(game_font, Vector2(pos.x - rw * 0.5, pos.y + 6), r_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, tier_col)
+	for i in range(mini(rank / 10, 4)):
+		var cvy = pos.y + s * 0.35 + float(i) * 6.0
+		draw_line(Vector2(pos.x - s * 0.3, cvy), Vector2(pos.x, cvy + 4), _ca(tier_col, 0.7), 1.5)
+		draw_line(Vector2(pos.x, cvy + 4), Vector2(pos.x + s * 0.3, cvy), _ca(tier_col, 0.7), 1.5)
+
+# --- 5. Milestone Splash Art ---
+func _draw_milestone_splash() -> void:
+	if not _milestone_splash_active:
+		return
+	var font = game_font
+	var t = _milestone_splash_timer
+	var alpha = 1.0
+	if t < 0.3: alpha = t / 0.3
+	elif t > 2.0: alpha = clampf(1.0 - ((t - 2.0) / 0.5), 0.0, 1.0)
+	var bw = 500.0
+	var bx = (1280 - bw) * 0.5
+	var by = 80.0
+	draw_rect(Rect2(bx, by, bw, 60), Color(0.08, 0.06, 0.15, 0.9 * alpha))
+	draw_rect(Rect2(bx, by, bw, 60), Color(0.85, 0.65, 0.1, 0.5 * alpha), false, 2.0)
+	for side in [-1.0, 1.0]:
+		var lx = bx + bw * 0.5 + side * 180.0
+		for li in range(5):
+			var la = (float(li) * 0.3 - 0.6) * side
+			draw_line(Vector2(lx, by + 30), Vector2(lx + cos(la) * 20.0 * side, by + 30 + sin(la) * 15.0 - 8.0), Color(0.3, 0.6, 0.2, 0.6 * alpha), 1.5)
+	_udraw(font, Vector2(bx, by + 24), "%d KILLS!" % _milestone_splash_count, HORIZONTAL_ALIGNMENT_CENTER, int(bw), 20, Color(1.0, 0.85, 0.2, alpha))
+	_udraw(font, Vector2(bx, by + 46), _milestone_splash_char.replace("_", " ").to_upper() + " MILESTONE", HORIZONTAL_ALIGNMENT_CENTER, int(bw), 14, Color(0.8, 0.7, 0.5, alpha * 0.8))
+
+# --- 6. Mastery Crown ---
+func _draw_mastery_crown(pos: Vector2, size: float) -> void:
+	var s = size * 0.5
+	var bob = sin(_time * 2.0) * 2.0
+	var cy = pos.y + bob
+	var cx = pos.x
+	draw_colored_polygon(PackedVector2Array([Vector2(cx - s * 0.6, cy + s * 0.1), Vector2(cx - s * 0.4, cy - s * 0.4), Vector2(cx - s * 0.2, cy), Vector2(cx, cy - s * 0.5), Vector2(cx + s * 0.2, cy), Vector2(cx + s * 0.4, cy - s * 0.4), Vector2(cx + s * 0.6, cy + s * 0.1)]), Color(0.9, 0.7, 0.15, 0.85))
+	draw_rect(Rect2(cx - s * 0.6, cy + s * 0.1, s * 1.2, s * 0.2), Color(0.85, 0.65, 0.1, 0.85))
+	draw_circle(Vector2(cx - s * 0.4, cy - s * 0.35), s * 0.08, Color(0.8, 0.2, 0.2, 0.9))
+	draw_circle(Vector2(cx, cy - s * 0.45), s * 0.1, Color(0.2, 0.4, 0.9, 0.9))
+	draw_circle(Vector2(cx + s * 0.4, cy - s * 0.35), s * 0.08, Color(0.2, 0.8, 0.3, 0.9))
+	var ph = fmod(_time * 2.0, 3.0)
+	var sp: Vector2
+	var pha: float
+	if ph < 1.0: sp = Vector2(cx - s * 0.4, cy - s * 0.35); pha = ph
+	elif ph < 2.0: sp = Vector2(cx, cy - s * 0.45); pha = ph - 1.0
+	else: sp = Vector2(cx + s * 0.4, cy - s * 0.35); pha = ph - 2.0
+	draw_circle(sp, 2.0 + pha * 2.0, Color(1, 1, 1, 0.6 * (1.0 - pha)))
+
+# --- 7. Prestige Borders ---
+func _draw_prestige_border(rect: Rect2, prestige_level: int) -> void:
+	if prestige_level <= 0: return
+	var rx = rect.position.x
+	var ry = rect.position.y
+	var rw = rect.size.x
+	var rh = rect.size.y
+	var bc: Color
+	if prestige_level >= 20: bc = Color.from_hsv(fmod(_time * 0.2, 1.0), 0.6, 0.9)
+	elif prestige_level >= 15: bc = Color(0.6, 0.3, 0.85)
+	elif prestige_level >= 10: bc = Color(0.85, 0.65, 0.1)
+	elif prestige_level >= 5: bc = Color(0.75, 0.75, 0.8)
+	else: bc = Color(0.72, 0.50, 0.25)
+	draw_rect(rect, _ca(bc, 0.7), false, 1.5 + minf(float(prestige_level) * 0.15, 2.0))
+	if prestige_level >= 5:
+		for corner in [Vector2(rx, ry), Vector2(rx + rw, ry), Vector2(rx, ry + rh), Vector2(rx + rw, ry + rh)]:
+			draw_circle(corner, (8.0 + float(prestige_level) * 0.3) * 0.4, _ca(bc, 0.4))
+	if prestige_level >= 10:
+		var fa = 0.3 + sin(_time * 1.5) * 0.1
+		var fl = 20.0 + float(prestige_level) * 0.5
+		draw_line(Vector2(rx + rw * 0.3, ry), Vector2(rx + rw * 0.3 + fl, ry - 4), _ca(bc, fa), 1.0)
+		draw_line(Vector2(rx + rw * 0.7, ry), Vector2(rx + rw * 0.7 - fl, ry - 4), _ca(bc, fa), 1.0)
+	if prestige_level >= 15:
+		draw_rect(Rect2(rx + 2, ry + 2, rw - 4, rh - 4), _ca(bc, 0.04 + sin(_time * 2.0) * 0.02))
+
+# --- 8. Post-Game Newspaper ---
+func _draw_newspaper_stats() -> void:
+	if not _newspaper_active: return
+	var font = game_font
+	var alpha = clampf(_newspaper_timer / 0.5, 0.0, 1.0)
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.8 * alpha))
+	var pw = 700.0
+	var ph = 500.0
+	var ppx = (1280 - pw) * 0.5
+	var ppy = (720 - ph) * 0.5
+	draw_rect(Rect2(ppx, ppy, pw, ph), Color(0.92, 0.87, 0.78, alpha))
+	draw_rect(Rect2(ppx + 20, ppy + 10, pw - 40, 2), Color(0.2, 0.15, 0.1, 0.6 * alpha))
+	draw_rect(Rect2(ppx + 20, ppy + 50, pw - 40, 2), Color(0.2, 0.15, 0.1, 0.6 * alpha))
+	_udraw(font, Vector2(ppx, ppy + 40), "THE DAILY STORYBOOK", HORIZONTAL_ALIGNMENT_CENTER, int(pw), 26, Color(0.15, 0.1, 0.05, alpha))
+	var breakdown = session_stats.get("tower_breakdown", [])
+	var top_tower = "A HERO"
+	if breakdown.size() > 0:
+		var best = breakdown[0]
+		for entry in breakdown:
+			if entry["damage"] > best["damage"]: best = entry
+		top_tower = best["name"].to_upper()
+	_udraw(font, Vector2(ppx + 30, ppy + 100), "%s SLAYS %d!" % [top_tower, session_stats.get("enemies_killed", 0)], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 60), 22, Color(0.12, 0.08, 0.03, alpha))
+	_udraw(font, Vector2(ppx + 30, ppy + 130), "Heroes survived %d waves" % session_stats.get("waves_survived", 0), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.3, 0.25, 0.15, alpha * 0.65))
+	var chart_y = ppy + 160.0
+	_udraw(font, Vector2(ppx + 30, chart_y + 14), "HERO PERFORMANCE", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.2, 0.15, 0.1, alpha * 0.8))
+	var max_dmg = 1.0
+	for entry in breakdown:
+		if entry["damage"] > max_dmg: max_dmg = entry["damage"]
+	for i in range(mini(breakdown.size(), 6)):
+		var entry = breakdown[i]
+		var bar_y = chart_y + 28 + float(i) * 18.0
+		draw_rect(Rect2(ppx + 180, bar_y, 250.0 * (entry["damage"] / max_dmg), 12), Color(0.6, 0.45, 0.2, 0.5 * alpha))
+		_udraw(font, Vector2(ppx + 35, bar_y + 11), entry["name"], HORIZONTAL_ALIGNMENT_LEFT, 140, 11, Color(0.2, 0.15, 0.1, alpha * 0.7))
+	_udraw(font, Vector2(ppx, ppy + ph - 20), "TAP TO CLOSE", HORIZONTAL_ALIGNMENT_CENTER, int(pw), 12, Color(0.4, 0.35, 0.25, alpha * 0.5))
+
+# --- 9. Gear Forge Animation ---
+func _draw_gear_forge_bg(gf_x: float, gf_y: float, gf_w: float) -> void:
+	var forge_cx = gf_x + gf_w * 0.5
+	var forge_y = gf_y + 20.0
+	draw_rect(Rect2(forge_cx - 18, forge_y + 2, 36, 8), Color(0.3, 0.28, 0.32, 0.3))
+	var fp = 0.6 + sin(_time * 4.0) * 0.2
+	draw_circle(Vector2(forge_cx, forge_y - 4), 14, Color(0.9, 0.4, 0.05, 0.06 * fp))
+	draw_circle(Vector2(forge_cx, forge_y - 2), 8, Color(1.0, 0.6, 0.1, 0.08 * fp))
+	var ha = sin(_time * 3.0) * 0.3
+	var he = Vector2(forge_cx + 22 + cos(ha - 0.8) * 16, forge_y - 6 + sin(ha - 0.8) * 16)
+	draw_line(Vector2(forge_cx + 22, forge_y - 6), he, Color(0.5, 0.35, 0.15, 0.4), 2.0)
+	draw_rect(Rect2(he.x - 4, he.y - 2, 8, 5), Color(0.55, 0.52, 0.58, 0.5))
+	for i in range(6):
+		var sf = float(i) * 3.7
+		var sx = forge_cx + sin(sf + _time * 2.5) * 20.0
+		var sy = forge_y - fmod(sf * 5.0 + _time * 40.0, 30.0) - 5.0
+		draw_circle(Vector2(sx, sy), 1.5, Color(1.0, 0.7, 0.2, clampf(1.0 - (forge_y - sy - 5.0) / 25.0, 0.0, 0.8) * 0.6))
+
+# --- 10. Gear Set Completion Art ---
+func _draw_gear_set_complete() -> void:
+	if not _gear_set_complete_active: return
+	var font = game_font
+	var t = _gear_set_complete_timer
+	var alpha = 1.0
+	if t < 0.4: alpha = t / 0.4
+	elif t > 2.5: alpha = clampf(1.0 - ((t - 2.5) / 0.5), 0.0, 1.0)
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.6 * alpha))
+	var cx = 640.0
+	var cy = 340.0
+	var ct = clampf(t / 1.5, 0.0, 1.0)
+	for i in range(6):
+		var ang = float(i) * TAU / 6.0 - PI * 0.5
+		var gx = cx + cos(ang) * 150.0 * (1.0 - ct)
+		var gy = cy + sin(ang) * 150.0 * (1.0 - ct)
+		draw_colored_polygon(PackedVector2Array([Vector2(gx, gy - 10), Vector2(gx + 8, gy), Vector2(gx, gy + 10), Vector2(gx - 8, gy)]), Color(0.7, 0.5, 0.85, alpha * (0.5 + ct * 0.5)))
+	if t > 1.5:
+		var fa = (1.0 - clampf((t - 1.5) / 0.5, 0.0, 1.0)) * alpha
+		draw_circle(Vector2(cx, cy), 30 + (t - 1.5) * 40, Color(0.8, 0.6, 1.0, fa * 0.3))
+	_udraw(font, Vector2(cx - 200, cy + 60), "GEAR SET COMPLETE!", HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Color(0.85, 0.7, 1.0, alpha))
+	_udraw(font, Vector2(cx - 200, cy + 85), _gear_set_complete_name.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 400, 16, Color(0.7, 0.55, 0.85, alpha * 0.8))
+
+# --- 11. Currency Art Icons ---
+func _draw_currency_icon(pos: Vector2, type: String, size: float) -> void:
+	var s = size * 0.5
+	if type == "gold":
+		for i in range(3):
+			draw_circle(Vector2(pos.x, pos.y - float(i) * s * 0.22), s * 0.4, Color(0.85, 0.65, 0.1, 0.8 - float(i) * 0.1))
+	elif type == "quills":
+		draw_line(Vector2(pos.x - s * 0.3, pos.y + s * 0.4), Vector2(pos.x + s * 0.2, pos.y - s * 0.5), Color(0.4, 0.6, 0.85, 0.8), 2.5)
+		for i in range(4):
+			var base = Vector2(pos.x - s * 0.3, pos.y + s * 0.4).lerp(Vector2(pos.x + s * 0.2, pos.y - s * 0.5), 0.3 + float(i) * 0.15)
+			draw_line(base, base + Vector2(s * 0.15, -s * 0.08), Color(0.5, 0.7, 0.9, 0.5), 1.0)
+		draw_circle(Vector2(pos.x - s * 0.3, pos.y + s * 0.45), 2, Color(0.15, 0.1, 0.35, 0.7))
+	elif type == "shards":
+		draw_colored_polygon(PackedVector2Array([Vector2(pos.x, pos.y - s * 0.5), Vector2(pos.x + s * 0.25, pos.y - s * 0.1), Vector2(pos.x + s * 0.15, pos.y + s * 0.4), Vector2(pos.x - s * 0.15, pos.y + s * 0.4), Vector2(pos.x - s * 0.25, pos.y - s * 0.1)]), Color(0.55, 0.35, 0.85, 0.7))
+		draw_circle(Vector2(pos.x, pos.y - s * 0.2), 2, Color(1, 1, 1, 0.4 + sin(_time * 3.0) * 0.2))
+	elif type == "stars":
+		draw_circle(pos, s * 0.55, Color(1.0, 0.9, 0.3, 0.3 + sin(_time * 2.0) * 0.15))
+		var pts = PackedVector2Array()
+		for i in range(10):
+			var ang = -PI * 0.5 + float(i) * TAU / 10.0
+			var r = s * 0.45 if i % 2 == 0 else s * 0.2
+			pts.append(Vector2(pos.x + cos(ang) * r, pos.y + sin(ang) * r))
+		draw_colored_polygon(pts, Color(1.0, 0.85, 0.2, 0.85))
+
+# --- 12. Daily Login Calendar Art ---
+func _draw_daily_reward_calendar_art(modal_x: float, modal_y: float, modal_w: float) -> void:
+	draw_colored_polygon(PackedVector2Array([Vector2(modal_x + modal_w - 20, modal_y + 10), Vector2(modal_x + modal_w - 20, modal_y + 40), Vector2(modal_x + modal_w - 45, modal_y + 40)]), Color(0.82, 0.77, 0.68, 0.4))
+	for i in range(5):
+		var rx = modal_x + 100.0 + float(i) * (modal_w - 200) / 4.0
+		draw_circle(Vector2(rx, modal_y + 6), 3, Color(0.5, 0.45, 0.35, 0.3))
+
+# --- 13. Collection Gallery Room ---
+func _draw_gallery_room() -> void:
+	var font = game_font
+	var px = 70.0 + _safe_left
+	var py = 45.0 + _safe_top
+	var pw = 1140.0 - _safe_left - _safe_right
+	var ph = 560.0
+	draw_rect(Rect2(px, py, pw, ph), Color(0.12, 0.08, 0.06, 0.9))
+	draw_rect(Rect2(px, py + ph * 0.7, pw, ph * 0.3), Color(0.08, 0.05, 0.04, 0.8))
+	draw_rect(Rect2(px, py + ph - 12, pw, 12), Color(0.25, 0.15, 0.08, 0.7))
+	draw_rect(Rect2(px, py, pw, 3), Color(0.45, 0.30, 0.14, 0.6))
+	_ds_title(Vector2(px, py + 26), "COLLECTION GALLERY", 20, Color(1.0, 0.85, 0.28), int(pw), HORIZONTAL_ALIGNMENT_CENTER)
+	var items: Array = []
+	for ach in achievement_definitions:
+		if achievements_unlocked.get(ach["id"], false):
+			items.append(ach)
+	var fw = 100.0
+	var fh = 80.0
+	var fg = 16.0
+	var fpr = maxi(int((pw - 40) / (fw + fg)), 1)
+	var ct = py + 44.0
+	var vh = ph * 0.65 - 44.0
+	var rh = fh + fg + 24.0
+	_gallery_scroll = clampf(_gallery_scroll, 0.0, maxf(0.0, float((items.size() + fpr - 1) / fpr) * rh - vh))
+	for i in range(items.size()):
+		var fx = px + 20 + float(i % fpr) * (fw + fg)
+		var fy = ct + float(i / fpr) * rh - _gallery_scroll
+		if fy + fh < ct or fy > ct + vh: continue
+		draw_rect(Rect2(fx - 4, fy - 4, fw + 8, fh + 8), Color(0.55, 0.40, 0.15, 0.7))
+		draw_rect(Rect2(fx, fy, fw, fh), Color(0.06, 0.05, 0.08, 0.9))
+		_draw_achievement_illustration(Vector2(fx + fw * 0.5, fy + fh * 0.4), items[i]["id"], minf(fw, fh) * 0.6)
+		draw_rect(Rect2(fx + 10, fy + fh + 2, fw - 20, 16), Color(0.35, 0.22, 0.10, 0.6))
+		_udraw(font, Vector2(fx + 10, fy + fh + 14), items[i]["name"], HORIZONTAL_ALIGNMENT_CENTER, int(fw - 20), 9, Color(0.85, 0.75, 0.55, 0.8))
+	if items.size() == 0:
+		_udraw(font, Vector2(px + pw * 0.5 - 100, py + ph * 0.4), "No achievements yet!", HORIZONTAL_ALIGNMENT_CENTER, 200, 16, Color(0.5, 0.4, 0.3, 0.5))
+
+# --- 14. Scroll Progress Bar Art ---
+func _draw_scroll_progress(rect: Rect2, fill: float, color: Color) -> void:
+	var rx = rect.position.x
+	var ry = rect.position.y
+	var rw = rect.size.x
+	var rh = rect.size.y
+	fill = clampf(fill, 0.0, 1.0)
+	draw_rect(Rect2(rx, ry, rw, rh), Color(0.20, 0.15, 0.08, 0.5))
+	var roll_r = rh * 0.6
+	draw_circle(Vector2(rx, ry + rh * 0.5), roll_r, Color(0.45, 0.30, 0.14, 0.6))
+	draw_circle(Vector2(rx + rw * fill, ry + rh * 0.5), roll_r, Color(0.45, 0.30, 0.14, 0.6))
+	if fill > 0.01:
+		draw_rect(Rect2(rx + roll_r * 0.3, ry + 1, maxf((rw * fill) - roll_r * 0.3, 0), rh - 2), Color(0.85, 0.78, 0.62, 0.6))
+		draw_rect(Rect2(rx + 2, ry + rh - 2, (rw - 4) * fill, 2), _ca(color, 0.7))
+
+# --- 15. Season Banner ---
+func _draw_season_banner() -> void:
+	var date_dict = Time.get_date_dict_from_system()
+	var month = date_dict.get("month", 1)
+	var season_col: Color
+	var season: String
+	if month in [3, 4, 5]: season = "spring"; season_col = Color(0.4, 0.75, 0.35)
+	elif month in [6, 7, 8]: season = "summer"; season_col = Color(0.9, 0.7, 0.15)
+	elif month in [9, 10, 11]: season = "autumn"; season_col = Color(0.85, 0.45, 0.12)
+	else: season = "winter"; season_col = Color(0.6, 0.8, 0.95)
+	var by = 32.0 + _safe_top
+	draw_rect(Rect2(0, by, 1280.0, 2), _ca(season_col, 0.25))
+	if season == "spring":
+		for i in range(12):
+			var fx = 60.0 + float(i) * 100.0 + sin(float(i) * 2.3) * 15.0
+			for p in range(5):
+				draw_circle(Vector2(fx + cos(float(p) * TAU / 5.0 + _time * 0.3) * 3.0, by + 1 + sin(float(p) * TAU / 5.0 + _time * 0.3) * 3.0), 1.5, Color(0.9, 0.5, 0.6, 0.35))
+			draw_circle(Vector2(fx, by + 1), 1.5, Color(1, 0.9, 0.3, 0.4))
+	elif season == "summer":
+		for i in range(8):
+			var sx = 160.0 + float(i) * 130.0
+			for r in range(4):
+				var ra = float(r) * TAU / 4.0 + _time * 0.5 + float(i)
+				draw_line(Vector2(sx, by + 1), Vector2(sx + cos(ra) * 6, by + 1 + sin(ra) * 3), Color(1, 0.85, 0.2, 0.2), 1.0)
+	elif season == "autumn":
+		for i in range(10):
+			var sf = float(i) * 5.1
+			var lx = fmod(sf * 120.0 + _time * 15.0, 1280.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(lx, by - 2), Vector2(lx + 3, by), Vector2(lx, by + 2), Vector2(lx - 3, by)]), Color(0.85, 0.45, 0.1, 0.3) if i % 2 == 0 else Color(0.9, 0.25, 0.1, 0.25))
+	else:
+		for i in range(10):
+			var sf = float(i) * 4.7
+			var sx = fmod(sf * 115.0 + _time * 10.0, 1280.0)
+			var sy = by + sin(sf + _time) * 1.5
+			draw_circle(Vector2(sx, sy), 1.5, Color(0.9, 0.95, 1.0, 0.3))
+
+# === END PROGRESSION/REWARD VISUAL ENHANCEMENTS ===
 
 func _draw_pass_progress_bar(px: float, py: float, pw: float) -> void:
 	var font = game_font
@@ -32757,6 +33633,20 @@ func _register_tower_kill(tower_instance_id: int) -> void:
 				var tt = _get_tower_type_from_node(tower)
 				_check_kill_streak_quote(tt, new_count)
 				_update_character_mood(tt, 2.0)
+				# Feature 8: Speech bubble on kill streak
+				var _sk_char = _tower_type_to_name(tt)
+				if kill_streak_quotes.has(tt) and kill_streak_quotes[tt].has(new_count):
+					_add_tower_speech_bubble(tower.global_position, kill_streak_quotes[tt][new_count], _sk_char)
+				break
+	# Feature 8: Random speech bubble on kill (2% chance)
+	elif randf() < 0.02 and _tower_speech_bubbles.size() < SPEECH_BUBBLE_MAX:
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if is_instance_valid(tower) and tower.get_instance_id() == tower_instance_id:
+				var tt = _get_tower_type_from_node(tower)
+				if tt != null:
+					var _sk_idx = survivor_types.find(tt)
+					if _sk_idx >= 0 and _sk_idx < character_quotes.size():
+						_add_tower_speech_bubble(tower.global_position, character_quotes[_sk_idx], _tower_type_to_name(tt))
 				break
 
 func _draw_tower_kill_counts() -> void:
@@ -33158,6 +34048,8 @@ func _draw_synergy_connections() -> void:
 					var pulse = (sin(_time * 3.0) + 1.0) * 0.5
 					var col = Color(0.4, 0.8, 1.0, 0.08 + pulse * 0.06)
 					draw_line(ta.global_position, tb.global_position, col, 1.5)
+					# Feature 9: Chibi faces at synergy connection endpoints
+					_draw_synergy_chibi_endpoints(ta.global_position, tb.global_position, pair[0], pair[1], 0.15 + pulse * 0.1)
 
 # --- Improvement 19: WAVE MODIFIER ANNOUNCEMENTS ---
 var _wave_modifier_text: String = ""
@@ -33404,6 +34296,17 @@ func _start_menu_slide(from_view: String, to_view: String) -> void:
 	var from_idx = tab_names.find(from_view)
 	var to_idx = tab_names.find(to_view)
 	_menu_slide_direction = 1.0 if to_idx > from_idx else -1.0
+	# === Enhancement 1: Trigger ink splatter transition on tab change ===
+	_ink_transition_alpha = 1.0
+	_ink_splatter_points.clear()
+	var rng_ink = RandomNumberGenerator.new()
+	rng_ink.seed = Time.get_ticks_msec()
+	for _si in range(rng_ink.randi_range(5, 9)):
+		_ink_splatter_points.append({"x": rng_ink.randf_range(50, 1230), "y": rng_ink.randf_range(60, 660), "r": rng_ink.randf_range(15, 50), "seed": rng_ink.randi(), "drops": rng_ink.randi_range(3, 7)})
+	# === Enhancement 6: Trigger page flip on chapter-related transitions ===
+	if from_view == "chapters" or to_view == "chapters":
+		_page_flip_progress = 1.0
+		_page_flip_direction = 1.0 if to_idx > from_idx else -1.0
 
 func _get_menu_slide_offset() -> float:
 	if _menu_slide_timer <= 0.0:
@@ -34863,6 +35766,620 @@ func _draw_enhanced_gear_slot(pos: Vector2, sz: float, filled: bool, tier_col: C
 		var pulse = 0.6 + sin(_time * 3.0) * 0.2
 		draw_rect(Rect2(pos.x - 1, pos.y - 1, sz + 2, sz + 2), Color(tier_col.r, tier_col.g, tier_col.b, pulse * 0.15), false, 1.5)
 
+
+# ==============================================================================
+# === 15 VISUAL MENU ENHANCEMENTS =============================================
+# ==============================================================================
+
+# --- Enhancement 1: INK SPLATTER TRANSITION ---
+# Full-screen ink splatters that spread when switching tabs, then fade out.
+# Triggered by setting _ink_transition_alpha = 1.0 and generating splatter points.
+func _draw_ink_transition() -> void:
+	if _ink_transition_alpha <= 0.0:
+		return
+	var a = _ink_transition_alpha
+	# Each splatter point expands as alpha decreases (spreading effect)
+	var expansion = (1.0 - a) * 2.5  # 0..2.5 as it fades
+	for sp in _ink_splatter_points:
+		var cx: float = sp["x"]
+		var cy: float = sp["y"]
+		var base_r: float = sp["r"]
+		var seed_val: int = sp["seed"]
+		var r = base_r * (0.3 + expansion * 0.7)
+		# Main splatter blob
+		draw_circle(Vector2(cx, cy), r, Color(0.02, 0.01, 0.06, 0.85 * a))
+		# Satellite droplets — use deterministic offsets from seed
+		_menu_splatter_rng.seed = seed_val
+		var num_drops = sp.get("drops", 5)
+		for di in range(num_drops):
+			var dx = cx + _menu_splatter_rng.randf_range(-r * 2.5, r * 2.5) * (0.5 + expansion * 0.5)
+			var dy = cy + _menu_splatter_rng.randf_range(-r * 2.0, r * 2.0) * (0.5 + expansion * 0.5)
+			var dr = _menu_splatter_rng.randf_range(2.0, r * 0.6)
+			draw_circle(Vector2(dx, dy), dr, Color(0.02, 0.01, 0.06, 0.7 * a))
+		# Thin trailing streaks (ink flung outward)
+		for si in range(3):
+			var sa = _menu_splatter_rng.randf_range(0, TAU)
+			var slen = r * _menu_splatter_rng.randf_range(1.5, 3.5) * (0.3 + expansion * 0.7)
+			var ex = cx + cos(sa) * slen
+			var ey = cy + sin(sa) * slen
+			draw_line(Vector2(cx, cy), Vector2(ex, ey), Color(0.02, 0.01, 0.06, 0.5 * a), 1.5)
+			# Drip at end of streak
+			draw_circle(Vector2(ex, ey), _menu_splatter_rng.randf_range(1.0, 3.0), Color(0.02, 0.01, 0.06, 0.4 * a))
+
+# --- Enhancement 2: CANDLE-LIT VIGNETTE ---
+# Flickering warm amber/orange glow at screen edges, like candlelight illumination.
+func _draw_candle_vignette() -> void:
+	# Four corner warm glows with independent flicker rates
+	var corners = [
+		{"x": 0.0, "y": 0.0, "phase": 0.0},
+		{"x": 1280.0, "y": 0.0, "phase": 1.7},
+		{"x": 0.0, "y": 720.0, "phase": 3.2},
+		{"x": 1280.0, "y": 720.0, "phase": 4.8},
+	]
+	for c in corners:
+		# Multi-frequency flicker for realistic candle feel
+		var flicker = sin(_time * 3.8 + c["phase"]) * 0.3 + sin(_time * 7.2 + c["phase"] * 1.5) * 0.15 + sin(_time * 11.0 + c["phase"] * 2.3) * 0.08
+		var intensity = 0.035 + flicker * 0.015
+		# Outer warm haze (large, very subtle)
+		draw_circle(Vector2(c["x"], c["y"]), 350.0, Color(0.9, 0.55, 0.15, intensity * 0.4))
+		# Mid amber glow
+		draw_circle(Vector2(c["x"], c["y"]), 200.0, Color(0.85, 0.5, 0.12, intensity * 0.6))
+		# Inner warm core
+		draw_circle(Vector2(c["x"], c["y"]), 100.0, Color(0.95, 0.65, 0.2, intensity * 0.8))
+	# Top and bottom edge warm wash (horizontal bands)
+	var top_flicker = 0.02 + sin(_time * 4.5) * 0.008
+	var bot_flicker = 0.02 + sin(_time * 3.9 + 2.0) * 0.008
+	draw_rect(Rect2(0, 0, 1280, 60), Color(0.85, 0.55, 0.15, top_flicker))
+	draw_rect(Rect2(0, 660, 1280, 60), Color(0.85, 0.55, 0.15, bot_flicker))
+
+# --- Enhancement 3: ANIMATED VINE BORDERS ---
+# Procedural ivy/vine tendrils that grow along panel edges with organic bezier curves.
+func _draw_vine_borders() -> void:
+	var vine_green = Color(0.18, 0.35, 0.12, 0.10)
+	var leaf_green = Color(0.22, 0.42, 0.14, 0.08)
+	# Left border vine — grows along y-axis with sinusoidal tendrils
+	var growth_factor = clampf(sin(_time * 0.15) * 0.5 + 0.5, 0.3, 1.0)
+	var segments = 20
+	var prev_pos = Vector2(15.0, 80.0)
+	for i in range(segments):
+		var t = float(i) / float(segments - 1) * growth_factor
+		var y_pos = 80.0 + t * 500.0
+		var x_wave = 15.0 + sin(t * 6.0 + _time * 0.25) * 12.0 + sin(t * 10.0 + _time * 0.4) * 5.0
+		var curr_pos = Vector2(x_wave, y_pos)
+		# Main vine stem with varying thickness
+		var thickness = 2.0 - t * 0.8
+		draw_line(prev_pos, curr_pos, vine_green, thickness)
+		# Branching tendrils at intervals
+		if i % 3 == 1:
+			var tendril_len = 15.0 + sin(_time * 0.3 + float(i)) * 5.0
+			var tendril_angle = -0.3 + sin(_time * 0.2 + float(i) * 0.7) * 0.3
+			var tend_end = curr_pos + Vector2(cos(tendril_angle) * tendril_len, sin(tendril_angle) * tendril_len * 0.5)
+			draw_line(curr_pos, tend_end, vine_green, 1.0)
+			# Leaf at tendril end — simple diamond shape
+			var leaf_sz = 4.0 + sin(_time * 0.5 + float(i)) * 1.0
+			var lr = tendril_angle + sin(_time * 0.3 + float(i)) * 0.2
+			var lc = cos(lr)
+			var ls = sin(lr)
+			draw_colored_polygon(PackedVector2Array([
+				tend_end + Vector2(leaf_sz * lc, leaf_sz * ls),
+				tend_end + Vector2(-leaf_sz * 0.4 * ls, leaf_sz * 0.4 * lc),
+				tend_end + Vector2(-leaf_sz * lc, -leaf_sz * ls),
+				tend_end + Vector2(leaf_sz * 0.4 * ls, -leaf_sz * 0.4 * lc),
+			]), leaf_green)
+		prev_pos = curr_pos
+	# Right border vine (mirrored)
+	prev_pos = Vector2(1265.0, 100.0)
+	for i in range(segments):
+		var t = float(i) / float(segments - 1) * growth_factor
+		var y_pos = 100.0 + t * 480.0
+		var x_wave = 1265.0 - sin(t * 5.5 + _time * 0.22) * 12.0 - sin(t * 9.0 + _time * 0.38) * 5.0
+		var curr_pos = Vector2(x_wave, y_pos)
+		var thickness = 2.0 - t * 0.8
+		draw_line(prev_pos, curr_pos, vine_green, thickness)
+		if i % 3 == 2:
+			var tendril_len = 14.0 + sin(_time * 0.35 + float(i)) * 4.0
+			var tendril_angle = PI + 0.3 - sin(_time * 0.25 + float(i) * 0.6) * 0.3
+			var tend_end = curr_pos + Vector2(cos(tendril_angle) * tendril_len, sin(tendril_angle) * tendril_len * 0.5)
+			draw_line(curr_pos, tend_end, vine_green, 1.0)
+			var leaf_sz = 3.5 + sin(_time * 0.45 + float(i)) * 1.0
+			var lr = tendril_angle + sin(_time * 0.35 + float(i)) * 0.2
+			draw_colored_polygon(PackedVector2Array([
+				tend_end + Vector2(leaf_sz * cos(lr), leaf_sz * sin(lr)),
+				tend_end + Vector2(-leaf_sz * 0.4 * sin(lr), leaf_sz * 0.4 * cos(lr)),
+				tend_end + Vector2(-leaf_sz * cos(lr), -leaf_sz * sin(lr)),
+				tend_end + Vector2(leaf_sz * 0.4 * sin(lr), -leaf_sz * 0.4 * cos(lr)),
+			]), leaf_green)
+		prev_pos = curr_pos
+
+# --- Enhancement 4: ILLUSTRATED INK BUTTON ---
+# Parchment-textured button with hand-drawn wobbly ink borders for organic feel.
+func _draw_ink_button(pos: Vector2, sz: Vector2, text: String, hovered: bool, pressed: bool) -> void:
+	var font = game_font
+	if font == null:
+		return
+	# Parchment fill — slightly warm, with depth when pressed
+	var fill_col = Color(0.88, 0.82, 0.72, 0.85) if not pressed else Color(0.80, 0.74, 0.64, 0.9)
+	if hovered:
+		fill_col = Color(0.92, 0.87, 0.78, 0.90)
+	draw_rect(Rect2(pos.x + 2, pos.y + 2, sz.x - 4, sz.y - 4), fill_col)
+	# Subtle inner gradient (darker at bottom for depth)
+	draw_rect(Rect2(pos.x + 2, pos.y + sz.y * 0.6, sz.x - 4, sz.y * 0.4 - 2), Color(0.0, 0.0, 0.0, 0.04))
+	# Hand-drawn wobbly border — 4 edges with wobble
+	var ink_col = Color(0.15, 0.10, 0.05, 0.7) if not hovered else Color(0.10, 0.06, 0.02, 0.85)
+	var border_width = 1.5 if not pressed else 2.0
+	var wobble_seed = int(pos.x * 7 + pos.y * 13) % 1000
+	# Top edge
+	for ei in range(8):
+		var t0 = float(ei) / 8.0
+		var t1 = float(ei + 1) / 8.0
+		var w0 = sin(float(wobble_seed + ei * 37) * 0.1) * 1.5
+		var w1 = sin(float(wobble_seed + (ei + 1) * 37) * 0.1) * 1.5
+		draw_line(Vector2(pos.x + sz.x * t0, pos.y + w0), Vector2(pos.x + sz.x * t1, pos.y + w1), ink_col, border_width)
+	# Bottom edge
+	for ei in range(8):
+		var t0 = float(ei) / 8.0
+		var t1 = float(ei + 1) / 8.0
+		var w0 = sin(float(wobble_seed + 200 + ei * 41) * 0.1) * 1.5
+		var w1 = sin(float(wobble_seed + 200 + (ei + 1) * 41) * 0.1) * 1.5
+		draw_line(Vector2(pos.x + sz.x * t0, pos.y + sz.y + w0), Vector2(pos.x + sz.x * t1, pos.y + sz.y + w1), ink_col, border_width)
+	# Left edge
+	for ei in range(6):
+		var t0 = float(ei) / 6.0
+		var t1 = float(ei + 1) / 6.0
+		var w0 = sin(float(wobble_seed + 400 + ei * 31) * 0.1) * 1.5
+		var w1 = sin(float(wobble_seed + 400 + (ei + 1) * 31) * 0.1) * 1.5
+		draw_line(Vector2(pos.x + w0, pos.y + sz.y * t0), Vector2(pos.x + w1, pos.y + sz.y * t1), ink_col, border_width)
+	# Right edge
+	for ei in range(6):
+		var t0 = float(ei) / 6.0
+		var t1 = float(ei + 1) / 6.0
+		var w0 = sin(float(wobble_seed + 600 + ei * 29) * 0.1) * 1.5
+		var w1 = sin(float(wobble_seed + 600 + (ei + 1) * 29) * 0.1) * 1.5
+		draw_line(Vector2(pos.x + sz.x + w0, pos.y + sz.y * t0), Vector2(pos.x + sz.x + w1, pos.y + sz.y * t1), ink_col, border_width)
+	# Rounded corner embellishments — small ink dots at each corner
+	var dot_r = 2.0
+	draw_circle(Vector2(pos.x + 3, pos.y + 3), dot_r, ink_col)
+	draw_circle(Vector2(pos.x + sz.x - 3, pos.y + 3), dot_r, ink_col)
+	draw_circle(Vector2(pos.x + 3, pos.y + sz.y - 3), dot_r, ink_col)
+	draw_circle(Vector2(pos.x + sz.x - 3, pos.y + sz.y - 3), dot_r, ink_col)
+	# Hover glow shimmer
+	if hovered:
+		var shimmer = 0.08 + sin(_time * 3.0) * 0.03
+		draw_rect(Rect2(pos.x, pos.y, sz.x, sz.y), _ca(menu_gold, shimmer))
+	# Text — dark ink, centered
+	var text_col = Color(0.12, 0.08, 0.04, 0.9) if not pressed else Color(0.08, 0.05, 0.02, 0.95)
+	_udraw(font, Vector2(pos.x + 4, pos.y + sz.y * 0.65), text, HORIZONTAL_ALIGNMENT_CENTER, int(sz.x - 8), 14, text_col)
+
+# --- Enhancement 5: QUILL PEN PARTICLES ---
+# Floating quill feathers drifting across the menu background with barb detail.
+func _draw_quill_particles() -> void:
+	for q in _quill_particles:
+		# Animate position — gentle drift with sine wobble
+		var qx = fmod(q["x"] + _time * 12.0 * q["speed_x"], 1400.0) - 60.0
+		var qy = q["y"] + sin(_time * q["speed_y"] * 2.0 + q["drift"]) * 30.0
+		var qrot = q["rot"] + sin(_time * 0.3 + q["drift"]) * 0.15
+		var qsz = q["size"]
+		var qa = 0.07 + sin(_time * 0.8 + q["drift"]) * 0.02
+		var qcr = cos(qrot)
+		var qsr = sin(qrot)
+		# Central rachis (shaft) — thin line
+		var shaft_start = Vector2(qx - qsz * 0.5 * qcr, qy - qsz * 0.5 * qsr)
+		var shaft_end = Vector2(qx + qsz * 0.5 * qcr, qy + qsz * 0.5 * qsr)
+		draw_line(shaft_start, shaft_end, Color(0.55, 0.40, 0.18, qa), 1.0)
+		# Barbs — alternating from shaft, giving feather silhouette
+		var num_barbs: int = q["barbs"]
+		for bi in range(num_barbs):
+			var bt = 0.15 + float(bi) / float(num_barbs) * 0.7
+			var bx = qx + (bt - 0.5) * qsz * qcr
+			var by = qy + (bt - 0.5) * qsz * qsr
+			var barb_len = qsz * 0.35 * (1.0 - absf(bt - 0.4))
+			# Upper barb
+			draw_line(Vector2(bx, by), Vector2(bx - barb_len * qsr * 0.7, by + barb_len * qcr * 0.7), Color(0.50, 0.38, 0.16, qa * 0.6), 0.5)
+			# Lower barb
+			draw_line(Vector2(bx, by), Vector2(bx + barb_len * qsr * 0.7, by - barb_len * qcr * 0.7), Color(0.50, 0.38, 0.16, qa * 0.6), 0.5)
+		# Calamus (quill tip) — small tapered point
+		var tip_x = qx - qsz * 0.55 * qcr
+		var tip_y = qy - qsz * 0.55 * qsr
+		draw_circle(Vector2(tip_x, tip_y), 1.0, Color(0.3, 0.2, 0.35, qa))
+
+# --- Enhancement 6: PAGE FLIP TRANSITION ---
+# Animated book page turning when navigating between chapters.
+# Set _page_flip_progress > 0.0 to activate. Decays in _process.
+func _draw_page_flip() -> void:
+	if _page_flip_progress <= 0.0:
+		return
+	var t = 1.0 - _page_flip_progress  # 0..1 as flip completes
+	var dir = _page_flip_direction
+	var cx = 640.0  # Center spine
+	var cy = 360.0
+	var page_w = 500.0
+	var page_h = 450.0
+	# The turning page rotates around the spine
+	var flip_angle = t * PI * dir  # 0..PI
+	# Page shadow underneath
+	var shadow_w = page_w * absf(cos(flip_angle)) * 0.8
+	var shadow_x = cx + (page_w * 0.5 - shadow_w) * dir * -1
+	draw_rect(Rect2(shadow_x, cy - page_h * 0.5, shadow_w, page_h), Color(0.0, 0.0, 0.0, 0.15 * _page_flip_progress))
+	# Turning page — perspective-squished rectangle
+	var squish = absf(cos(flip_angle))
+	if squish < 0.02:
+		return
+	var pw = page_w * squish
+	var offset_x = cx - pw * 0.5 if t < 0.5 else cx + pw * 0.5 - pw
+	if dir < 0:
+		offset_x = cx - pw if t < 0.5 else cx
+	# Page body
+	var page_col = Color(0.92, 0.88, 0.80, 0.9 * _page_flip_progress)
+	draw_rect(Rect2(offset_x, cy - page_h * 0.5, pw, page_h), page_col)
+	# Faux text lines on the turning page
+	var line_col = Color(0.3, 0.25, 0.15, 0.3 * _page_flip_progress * squish)
+	for li in range(12):
+		var ly = cy - page_h * 0.4 + float(li) * 30.0
+		var lw = pw * 0.75 * (0.6 + sin(float(li) * 2.1) * 0.4)
+		var lx = offset_x + (pw - lw) * 0.5
+		draw_line(Vector2(lx, ly), Vector2(lx + lw, ly), line_col, 0.5)
+	# Page edge highlight (spine side)
+	draw_line(Vector2(cx, cy - page_h * 0.5), Vector2(cx, cy + page_h * 0.5), Color(0.6, 0.5, 0.35, 0.2 * _page_flip_progress), 1.0)
+	# Curling corner effect
+	var curl_sz = 15.0 * squish * _page_flip_progress
+	var corner_x = offset_x + pw
+	var corner_y = cy + page_h * 0.5
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(corner_x, corner_y),
+		Vector2(corner_x - curl_sz, corner_y),
+		Vector2(corner_x, corner_y - curl_sz),
+	]), Color(0.82, 0.78, 0.70, 0.7 * _page_flip_progress))
+
+# --- Enhancement 7: PARCHMENT TEXTURE OVERLAY ---
+# Subtle noise/grain pattern over panels for old paper feel using deterministic dots.
+func _draw_parchment_overlay(rect: Rect2) -> void:
+	# Semi-transparent stipple pattern — creates paper grain without textures
+	_menu_splatter_rng.seed = int(rect.position.x * 3 + rect.position.y * 7) + 42
+	var density = int(rect.size.x * rect.size.y / 400.0)
+	density = mini(density, 120)  # Cap for performance
+	for i in range(density):
+		var dx = rect.position.x + _menu_splatter_rng.randf_range(0, rect.size.x)
+		var dy = rect.position.y + _menu_splatter_rng.randf_range(0, rect.size.y)
+		var dsize = _menu_splatter_rng.randf_range(0.3, 1.2)
+		# Alternate warm and cool specks for natural paper look
+		if i % 3 == 0:
+			draw_circle(Vector2(dx, dy), dsize, Color(0.45, 0.38, 0.28, 0.04))
+		elif i % 3 == 1:
+			draw_circle(Vector2(dx, dy), dsize, Color(0.30, 0.25, 0.20, 0.03))
+		else:
+			draw_circle(Vector2(dx, dy), dsize, Color(0.55, 0.48, 0.35, 0.025))
+	# Subtle age stains — a few larger translucent spots
+	for j in range(3):
+		var sx = rect.position.x + _menu_splatter_rng.randf_range(rect.size.x * 0.1, rect.size.x * 0.9)
+		var sy = rect.position.y + _menu_splatter_rng.randf_range(rect.size.y * 0.1, rect.size.y * 0.9)
+		var sr = _menu_splatter_rng.randf_range(8.0, 20.0)
+		draw_circle(Vector2(sx, sy), sr, Color(0.4, 0.32, 0.2, 0.015))
+
+# --- Enhancement 8: GOLD LEAF ACCENTS ---
+# Shimmering gold decorative elements on panel corners and dividers.
+func _draw_gold_leaf(pos: Vector2, sz: Vector2) -> void:
+	# Animated shimmer that catches light
+	var shimmer = 0.15 + sin(_time * 2.5) * 0.06 + sin(_time * 5.3) * 0.03
+	var gold_col = Color(0.85, 0.70, 0.25, shimmer)
+	var bright_gold = Color(1.0, 0.90, 0.45, shimmer * 1.3)
+	# Top-left corner flourish
+	draw_line(Vector2(pos.x, pos.y + 20), Vector2(pos.x, pos.y), gold_col, 1.5)
+	draw_line(Vector2(pos.x, pos.y), Vector2(pos.x + 20, pos.y), gold_col, 1.5)
+	# Decorative curl
+	draw_arc(Vector2(pos.x + 12, pos.y + 12), 10, PI, PI * 1.5, 8, gold_col, 1.0)
+	draw_circle(Vector2(pos.x + 5, pos.y + 5), 2.5, bright_gold)
+	# Top-right corner flourish
+	var rx = pos.x + sz.x
+	draw_line(Vector2(rx, pos.y + 20), Vector2(rx, pos.y), gold_col, 1.5)
+	draw_line(Vector2(rx, pos.y), Vector2(rx - 20, pos.y), gold_col, 1.5)
+	draw_arc(Vector2(rx - 12, pos.y + 12), 10, PI * 1.5, TAU, 8, gold_col, 1.0)
+	draw_circle(Vector2(rx - 5, pos.y + 5), 2.5, bright_gold)
+	# Bottom-left corner flourish
+	var by = pos.y + sz.y
+	draw_line(Vector2(pos.x, by - 20), Vector2(pos.x, by), gold_col, 1.5)
+	draw_line(Vector2(pos.x, by), Vector2(pos.x + 20, by), gold_col, 1.5)
+	draw_arc(Vector2(pos.x + 12, by - 12), 10, PI * 0.5, PI, 8, gold_col, 1.0)
+	draw_circle(Vector2(pos.x + 5, by - 5), 2.5, bright_gold)
+	# Bottom-right corner flourish
+	draw_line(Vector2(rx, by - 20), Vector2(rx, by), gold_col, 1.5)
+	draw_line(Vector2(rx, by), Vector2(rx - 20, by), gold_col, 1.5)
+	draw_arc(Vector2(rx - 12, by - 12), 10, 0, PI * 0.5, 8, gold_col, 1.0)
+	draw_circle(Vector2(rx - 5, by - 5), 2.5, bright_gold)
+	# Glint highlight that travels along edges
+	var glint_t = fmod(_time * 0.4, 4.0)
+	var glint_col = Color(1.0, 0.95, 0.6, 0.25 + sin(_time * 6.0) * 0.1)
+	if glint_t < 1.0:
+		var gx = pos.x + glint_t * sz.x
+		draw_circle(Vector2(gx, pos.y), 3.0, glint_col)
+	elif glint_t < 2.0:
+		var gy = pos.y + (glint_t - 1.0) * sz.y
+		draw_circle(Vector2(rx, gy), 3.0, glint_col)
+	elif glint_t < 3.0:
+		var gx = rx - (glint_t - 2.0) * sz.x
+		draw_circle(Vector2(gx, by), 3.0, glint_col)
+	else:
+		var gy = by - (glint_t - 3.0) * sz.y
+		draw_circle(Vector2(pos.x, gy), 3.0, glint_col)
+
+# --- Enhancement 9: WAX SEAL DECORATIONS ---
+# Round wax seal stamps with embossed cross/shield emblem for chapter badges.
+func _draw_wax_seal(center: Vector2, radius: float, color: Color) -> void:
+	# Irregular edge — wax doesn't form perfect circles
+	var outer_pts = PackedVector2Array()
+	var num_pts = 24
+	for i in range(num_pts):
+		var angle = float(i) / float(num_pts) * TAU
+		var wobble = sin(float(i) * 3.7 + 42.0) * radius * 0.08 + sin(float(i) * 7.1 + 13.0) * radius * 0.04
+		var r = radius + wobble
+		outer_pts.append(center + Vector2(cos(angle) * r, sin(angle) * r))
+	# Main wax body
+	draw_colored_polygon(outer_pts, Color(color.r, color.g, color.b, 0.85))
+	# Inner raised disc
+	draw_circle(center, radius * 0.75, Color(color.r * 1.1, color.g * 1.1, color.b * 1.1, 0.7))
+	# Highlight crescent (top-left light source)
+	draw_arc(center + Vector2(-radius * 0.15, -radius * 0.15), radius * 0.65, PI * 1.1, PI * 1.8, 10, Color(1.0, 0.9, 0.8, 0.15), 2.0)
+	# Shadow crescent (bottom-right)
+	draw_arc(center + Vector2(radius * 0.1, radius * 0.1), radius * 0.7, 0, PI * 0.6, 8, Color(0.0, 0.0, 0.0, 0.12), 2.0)
+	# Embossed emblem — shield cross
+	var emb_col = Color(color.r * 0.7, color.g * 0.7, color.b * 0.7, 0.5)
+	# Vertical bar
+	draw_rect(Rect2(center.x - 1.5, center.y - radius * 0.4, 3.0, radius * 0.8), emb_col)
+	# Horizontal bar
+	draw_rect(Rect2(center.x - radius * 0.35, center.y - 1.5, radius * 0.7, 3.0), emb_col)
+	# Shield outline
+	draw_arc(center, radius * 0.45, 0, TAU, 12, Color(color.r * 0.6, color.g * 0.6, color.b * 0.6, 0.35), 1.0)
+	# Shimmer pulse
+	var shimmer = sin(_time * 2.0) * 0.04
+	draw_circle(center, radius * 0.3, Color(1.0, 0.95, 0.85, shimmer))
+
+# --- Enhancement 10: ORNATE DIVIDER LINES ---
+# Decorative horizontal dividers with scrollwork flourishes between sections.
+func _draw_ornate_divider(y_pos: float, width: float) -> void:
+	var cx = 640.0  # Screen center
+	var half_w = width * 0.5
+	var col = _ca(menu_gold_dim, 0.25 + sin(_time * 1.5) * 0.05)
+	var bright_col = _ca(menu_gold, 0.15 + sin(_time * 1.5) * 0.04)
+	# Central horizontal line
+	draw_line(Vector2(cx - half_w, y_pos), Vector2(cx + half_w, y_pos), col, 1.0)
+	# Center diamond ornament
+	var diamond_sz = 5.0
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(cx, y_pos - diamond_sz),
+		Vector2(cx + diamond_sz, y_pos),
+		Vector2(cx, y_pos + diamond_sz),
+		Vector2(cx - diamond_sz, y_pos),
+	]), bright_col)
+	draw_circle(Vector2(cx, y_pos), 2.0, _ca(menu_gold, 0.3))
+	# Left scrollwork curl
+	draw_arc(Vector2(cx - half_w * 0.3, y_pos), 8, PI * 0.5, PI * 1.5, 8, col, 1.0)
+	draw_arc(Vector2(cx - half_w * 0.3 - 6, y_pos - 4), 4, 0, PI, 6, col, 0.8)
+	# Right scrollwork curl (mirrored)
+	draw_arc(Vector2(cx + half_w * 0.3, y_pos), 8, -PI * 0.5, PI * 0.5, 8, col, 1.0)
+	draw_arc(Vector2(cx + half_w * 0.3 + 6, y_pos - 4), 4, 0, PI, 6, col, 0.8)
+	# Left end flourish — teardrop curl
+	draw_arc(Vector2(cx - half_w + 8, y_pos), 5, PI * 0.8, PI * 1.8, 6, col, 1.0)
+	draw_circle(Vector2(cx - half_w + 4, y_pos), 1.5, bright_col)
+	# Right end flourish
+	draw_arc(Vector2(cx + half_w - 8, y_pos), 5, -PI * 0.8, PI * 0.2, 6, col, 1.0)
+	draw_circle(Vector2(cx + half_w - 4, y_pos), 1.5, bright_col)
+	# Inner decorative dots along the line
+	for di in range(5):
+		var dx = cx - half_w * 0.15 + float(di) * half_w * 0.075
+		draw_circle(Vector2(dx, y_pos), 1.0, col)
+		draw_circle(Vector2(cx * 2 - dx, y_pos), 1.0, col)
+
+# --- Enhancement 11: FLOATING DUST MOTES ---
+# Tiny golden dust particles drifting in background light shafts with gentle movement.
+func _draw_dust_motes() -> void:
+	for dm in _dust_mote_seeds:
+		var dx = dm["x"] + sin(_time * dm["speed"] + dm["phase"]) * 25.0 + _time * dm["drift_x"] * 8.0
+		var dy = dm["y"] + cos(_time * dm["speed"] * 0.7 + dm["phase"] * 1.3) * 18.0
+		# Wrap horizontally
+		dx = fmod(dx + 60.0, 1400.0) - 60.0
+		var brightness = dm["brightness"]
+		var sz = dm["size"]
+		var pulse = 0.5 + sin(_time * 2.5 + dm["phase"]) * 0.3 + sin(_time * 5.0 + dm["phase"] * 2.0) * 0.15
+		var alpha = 0.06 * brightness * pulse
+		# Warm golden core
+		draw_circle(Vector2(dx, dy), sz, Color(0.9, 0.78, 0.4, alpha))
+		# Soft glow halo
+		draw_circle(Vector2(dx, dy), sz * 3.0, Color(0.9, 0.78, 0.4, alpha * 0.15))
+
+# --- Enhancement 12: STAINED GLASS GLOW ---
+# Colored light pools on the menu background as if filtered through stained glass windows.
+func _draw_stained_glass_light() -> void:
+	for sg in _stained_glass_colors:
+		var cx: float = sg["x"] + sin(_time * sg["speed"] * 0.5) * 20.0
+		var cy: float = sg["y"] + cos(_time * sg["speed"] * 0.3) * 15.0
+		var r: float = sg["r"]
+		var col: Color = sg["color"]
+		# Slow breathing effect
+		var breath = 0.8 + sin(_time * sg["speed"]) * 0.2
+		var r_actual = r * breath
+		# Outermost haze
+		draw_circle(Vector2(cx, cy), r_actual * 1.2, Color(col.r, col.g, col.b, col.a * 0.3))
+		# Main color pool
+		draw_circle(Vector2(cx, cy), r_actual, Color(col.r, col.g, col.b, col.a * 0.7))
+		# Brighter center
+		draw_circle(Vector2(cx, cy), r_actual * 0.5, Color(col.r * 1.2, col.g * 1.2, col.b * 1.2, col.a * 0.9))
+		# Hot spot — almost white center
+		draw_circle(Vector2(cx, cy), r_actual * 0.15, Color(minf(col.r * 1.5, 1.0), minf(col.g * 1.5, 1.0), minf(col.b * 1.5, 1.0), col.a * 0.5))
+		# Geometric edge pattern — faint lead lines mimicking stained glass mullions
+		for mi in range(6):
+			var ma = float(mi) / 6.0 * TAU + _time * 0.05
+			var mx1 = cx + cos(ma) * r_actual * 0.3
+			var my1 = cy + sin(ma) * r_actual * 0.3
+			var mx2 = cx + cos(ma) * r_actual * 0.9
+			var my2 = cy + sin(ma) * r_actual * 0.9
+			draw_line(Vector2(mx1, my1), Vector2(mx2, my2), Color(0.0, 0.0, 0.0, 0.015), 0.5)
+
+# --- Enhancement 13: INK DRIP DECORATIONS ---
+# Ink drips along the edges of panels for weathered gothic aesthetic.
+func _draw_ink_drips(panel_rect: Rect2) -> void:
+	var top = panel_rect.position.y
+	var left = panel_rect.position.x
+	var ink_dark = Color(0.03, 0.02, 0.07, 0.12)
+	var ink_mid = Color(0.05, 0.03, 0.10, 0.08)
+	# Drips along top edge (hanging down)
+	_menu_splatter_rng.seed = int(panel_rect.position.x * 11 + panel_rect.position.y * 7)
+	var num_drips = int(panel_rect.size.x / 60.0)
+	for i in range(num_drips):
+		var dx = left + _menu_splatter_rng.randf_range(10, panel_rect.size.x - 10)
+		var drip_len = _menu_splatter_rng.randf_range(8.0, 35.0)
+		var drip_w = _menu_splatter_rng.randf_range(1.5, 3.5)
+		# Main drip body — thicker at top, tapers
+		for seg in range(5):
+			var st = float(seg) / 4.0
+			var sy1 = top + drip_len * st
+			var sy2 = top + drip_len * minf(st + 0.25, 1.0)
+			var sw = drip_w * (1.0 - st * 0.6)
+			draw_line(Vector2(dx, sy1), Vector2(dx, sy2), ink_dark, sw)
+		# Droplet at bottom
+		draw_circle(Vector2(dx, top + drip_len), drip_w * 0.8, ink_mid)
+		# Occasional satellite drip
+		if i % 3 == 0:
+			var sdx = dx + _menu_splatter_rng.randf_range(-4, 4)
+			var sdy = top + drip_len * 0.4
+			var slen = _menu_splatter_rng.randf_range(4, 12)
+			draw_line(Vector2(sdx, sdy), Vector2(sdx, sdy + slen), ink_mid, 1.0)
+	# Drips along bottom edge (pooling)
+	var bottom = top + panel_rect.size.y
+	for i in range(int(num_drips * 0.6)):
+		var dx = left + _menu_splatter_rng.randf_range(15, panel_rect.size.x - 15)
+		var pool_w = _menu_splatter_rng.randf_range(4, 12)
+		draw_circle(Vector2(dx, bottom), pool_w * 0.5, Color(0.03, 0.02, 0.07, 0.06))
+		# Upward smear
+		draw_line(Vector2(dx, bottom), Vector2(dx + _menu_splatter_rng.randf_range(-3, 3), bottom - _menu_splatter_rng.randf_range(3, 10)), ink_mid, 1.0)
+
+# --- Enhancement 14: FLICKERING TORCH SCONCES ---
+# Animated torch/lantern light sources mounted on the sides of the menu.
+func _draw_torch_sconces() -> void:
+	# Two sconces on each side (4 total), positioned at different heights
+	var sconce_positions = [
+		Vector2(25.0, 200.0),   # Left upper
+		Vector2(25.0, 420.0),   # Left lower
+		Vector2(1255.0, 200.0), # Right upper
+		Vector2(1255.0, 420.0), # Right lower
+	]
+	for si in range(sconce_positions.size()):
+		var sp = sconce_positions[si]
+		var tf = _torch_flicker_offsets[si] if si < _torch_flicker_offsets.size() else {"phase": 0.0, "speed": 5.0, "intensity": 0.85}
+		# Multi-frequency flicker for realistic fire
+		var flicker = sin(_time * tf["speed"] + tf["phase"]) * 0.25 + sin(_time * tf["speed"] * 1.7 + tf["phase"] * 2.0) * 0.12 + sin(_time * tf["speed"] * 3.1 + tf["phase"] * 0.7) * 0.06
+		var intensity = tf["intensity"] * (0.7 + flicker)
+		# Iron bracket / mounting plate
+		var bracket_col = Color(0.2, 0.15, 0.12, 0.5)
+		draw_rect(Rect2(sp.x - 4, sp.y - 2, 8, 30), bracket_col)
+		draw_rect(Rect2(sp.x - 8, sp.y + 24, 16, 4), bracket_col)
+		# Torch cup
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(sp.x - 6, sp.y - 4),
+			Vector2(sp.x + 6, sp.y - 4),
+			Vector2(sp.x + 4, sp.y - 16),
+			Vector2(sp.x - 4, sp.y - 16),
+		]), Color(0.25, 0.18, 0.12, 0.6))
+		# Flame layers — from outer glow to bright core
+		var flame_y = sp.y - 18.0
+		var flame_sway = sin(_time * tf["speed"] * 0.8 + tf["phase"]) * 3.0
+		# Large warm glow (ambient light on wall)
+		draw_circle(Vector2(sp.x + flame_sway * 0.5, flame_y), 60.0, Color(0.9, 0.5, 0.1, 0.03 * intensity))
+		draw_circle(Vector2(sp.x + flame_sway * 0.5, flame_y), 35.0, Color(0.9, 0.55, 0.15, 0.05 * intensity))
+		# Outer flame (red-orange)
+		var outer_h = 14.0 + flicker * 6.0
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(sp.x - 5 + flame_sway * 0.3, sp.y - 16),
+			Vector2(sp.x + 5 + flame_sway * 0.3, sp.y - 16),
+			Vector2(sp.x + 2 + flame_sway, flame_y - outer_h * 0.5),
+			Vector2(sp.x + flame_sway, flame_y - outer_h),
+			Vector2(sp.x - 2 + flame_sway, flame_y - outer_h * 0.5),
+		]), Color(0.9, 0.35, 0.08, 0.5 * intensity))
+		# Mid flame (orange-yellow)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(sp.x - 3 + flame_sway * 0.5, sp.y - 16),
+			Vector2(sp.x + 3 + flame_sway * 0.5, sp.y - 16),
+			Vector2(sp.x + flame_sway * 0.7, flame_y - outer_h * 0.7),
+		]), Color(0.95, 0.6, 0.12, 0.6 * intensity))
+		# Core flame (bright yellow-white)
+		draw_circle(Vector2(sp.x + flame_sway * 0.4, flame_y - 2), 3.0, Color(1.0, 0.9, 0.5, 0.7 * intensity))
+		draw_circle(Vector2(sp.x + flame_sway * 0.4, flame_y - 4), 2.0, Color(1.0, 0.95, 0.8, 0.8 * intensity))
+		# Sparks (occasional upward particles)
+		var spark_phase = fmod(_time * 2.0 + tf["phase"], 3.0)
+		if spark_phase < 1.5:
+			var spark_y = flame_y - outer_h - spark_phase * 20.0
+			var spark_x = sp.x + flame_sway + sin(spark_phase * 5.0 + tf["phase"]) * 6.0
+			var spark_a = (1.5 - spark_phase) / 1.5
+			draw_circle(Vector2(spark_x, spark_y), 1.0, Color(1.0, 0.7, 0.2, 0.4 * spark_a * intensity))
+
+# --- Enhancement 15: GOTHIC ARCH FRAMES ---
+# Pointed arch frames around character portraits and panels (ogival arch).
+func _draw_gothic_arch(rect: Rect2) -> void:
+	var x = rect.position.x
+	var y = rect.position.y
+	var w = rect.size.x
+	var h = rect.size.y
+	var arch_col = _ca(menu_gold_dim, 0.18 + sin(_time * 1.2) * 0.04)
+	var inner_col = _ca(menu_gold_dim, 0.10 + sin(_time * 1.2) * 0.02)
+	# Apex of pointed arch (top center)
+	var apex_x = x + w * 0.5
+	var apex_y = y - h * 0.15  # Pointed arch extends above rect
+	# Left side of arch — bezier-like segments from bottom-left to apex
+	var arch_segments = 12
+	var prev_l = Vector2(x, y + h)
+	var prev_r = Vector2(x + w, y + h)
+	for i in range(1, arch_segments + 1):
+		var t = float(i) / float(arch_segments)
+		# Left arch curve — bulges outward then converges to apex
+		var lx_offset = sin(t * PI * 0.5) * w * 0.08  # Slight outward bulge
+		var lx = lerpf(float(x), apex_x, t * t) - lx_offset * (1.0 - t)
+		var ly = lerpf(float(y + h), apex_y, t)
+		var curr_l = Vector2(lx, ly)
+		draw_line(prev_l, curr_l, arch_col, 1.5)
+		prev_l = curr_l
+		# Right arch curve (mirrored)
+		var rx = lerpf(float(x + w), apex_x, t * t) + lx_offset * (1.0 - t)
+		var curr_r = Vector2(rx, ly)
+		draw_line(prev_r, curr_r, arch_col, 1.5)
+		prev_r = curr_r
+	# Inner arch (slightly smaller, for depth)
+	var inset = 3.0
+	prev_l = Vector2(x + inset, y + h - inset)
+	prev_r = Vector2(x + w - inset, y + h - inset)
+	for i in range(1, arch_segments + 1):
+		var t = float(i) / float(arch_segments)
+		var ly = lerpf(float(y + h - inset), apex_y + inset * 2, t)
+		var lx_offset = sin(t * PI * 0.5) * (w - inset * 2) * 0.08
+		var lx = lerpf(float(x + inset), apex_x, t * t) - lx_offset * (1.0 - t)
+		draw_line(prev_l, Vector2(lx, ly), inner_col, 1.0)
+		prev_l = Vector2(lx, ly)
+		var rx = lerpf(float(x + w - inset), apex_x, t * t) + lx_offset * (1.0 - t)
+		draw_line(prev_r, Vector2(rx, ly), inner_col, 1.0)
+		prev_r = Vector2(rx, ly)
+	# Vertical side pillars
+	draw_line(Vector2(x, y + h), Vector2(x, y + h * 0.3), arch_col, 2.0)
+	draw_line(Vector2(x + w, y + h), Vector2(x + w, y + h * 0.3), arch_col, 2.0)
+	# Pillar capitals (small decorative widening at top of pillar)
+	draw_rect(Rect2(x - 3, y + h * 0.28, 6, 4), arch_col)
+	draw_rect(Rect2(x + w - 3, y + h * 0.28, 6, 4), arch_col)
+	# Pillar base
+	draw_rect(Rect2(x - 2, y + h - 2, 4, 4), arch_col)
+	draw_rect(Rect2(x + w - 2, y + h - 2, 4, 4), arch_col)
+	# Keystone at apex
+	var ks = 6.0
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(apex_x, apex_y - 2),
+		Vector2(apex_x + ks, apex_y + ks),
+		Vector2(apex_x - ks, apex_y + ks),
+	]), _ca(menu_gold, 0.12 + sin(_time * 2.0) * 0.04))
+	# Trefoil ornament inside the arch (gothic tracery)
+	var tref_y = apex_y + h * 0.15
+	var tref_r = w * 0.08
+	draw_arc(Vector2(apex_x - tref_r, tref_y), tref_r, PI, TAU, 8, inner_col, 0.8)
+	draw_arc(Vector2(apex_x + tref_r, tref_y), tref_r, PI, TAU, 8, inner_col, 0.8)
+	draw_arc(Vector2(apex_x, tref_y - tref_r * 0.6), tref_r * 0.8, PI * 0.8, PI * 2.2, 8, inner_col, 0.8)
+
+# ==============================================================================
+# === END 15 VISUAL MENU ENHANCEMENTS =========================================
+# ==============================================================================
 func _draw_stat_bar(pos: Vector2, width: float, label: String, value: float, color: Color, font: Font) -> void:
 	var bar_h = 18.0
 	var fill_w = width * clampf(value / 100.0, 0.0, 1.0)
@@ -34883,3 +36400,1561 @@ func _draw_stat_bar(pos: Vector2, width: float, label: String, value: float, col
 	var pct_str = "+%d%%" % int(value)
 	var pct_w = font.get_string_size(pct_str.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	_udraw(font, Vector2(bar_x + bar_w + 6, pos.y + 13), pct_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(color.r, color.g, color.b, 0.9))
+
+# ============================================================
+# CHARACTER ART VISUAL ENHANCEMENTS (15 features)
+# ============================================================
+
+# --- Shared: sprite key list for iterating all characters ---
+var _sprite_keys: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
+	"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+
+# === Feature 1: Character Greeting Popup ===
+func _init_character_greeting() -> void:
+	if _tower_sprite_textures.is_empty():
+		_greeting_active = false
+		return
+	var keys = _tower_sprite_textures.keys()
+	if keys.is_empty():
+		_greeting_active = false
+		return
+	_greeting_char_key = keys[randi() % keys.size()]
+	var idx = _sprite_keys.find(_greeting_char_key)
+	_greeting_quote = character_quotes[idx] if idx >= 0 and idx < character_quotes.size() else "Welcome back!"
+	_greeting_timer = 4.0
+	_greeting_y_offset = 80.0
+	_greeting_active = true
+
+func _draw_character_greeting() -> void:
+	if not _greeting_active or _greeting_timer <= 0.0:
+		return
+	if not _tower_sprite_textures.has(_greeting_char_key):
+		return
+	var font = game_font
+	if font == null:
+		return
+	var alpha = clampf(_greeting_timer, 0.0, 1.0)
+	# Bob up from below
+	var target_y = 0.0
+	_greeting_y_offset = lerpf(_greeting_y_offset, target_y, 0.08)
+	var bob = sin(_time * 2.5) * 4.0
+	var sprite_x = 1100.0
+	var sprite_y = 520.0 + _greeting_y_offset + bob
+	var sprite_sz = 120.0
+	# Draw chibi sprite
+	var tex = _tower_sprite_textures[_greeting_char_key]
+	draw_texture_rect(tex, Rect2(sprite_x, sprite_y, sprite_sz, sprite_sz), false, Color(1, 1, 1, alpha))
+	# Speech bubble
+	var bubble_x = sprite_x - 200.0
+	var bubble_y = sprite_y - 20.0
+	var bubble_w = 190.0
+	var bubble_h = 60.0
+	draw_rect(Rect2(bubble_x, bubble_y, bubble_w, bubble_h), Color(0.04, 0.04, 0.10, 0.9 * alpha))
+	draw_rect(Rect2(bubble_x, bubble_y, bubble_w, bubble_h), _ca(menu_gold, 0.5 * alpha), false, 1.5)
+	# Bubble tail triangle
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(bubble_x + bubble_w - 5, bubble_y + bubble_h * 0.3),
+		Vector2(bubble_x + bubble_w + 12, bubble_y + bubble_h * 0.5),
+		Vector2(bubble_x + bubble_w - 5, bubble_y + bubble_h * 0.7),
+	]), Color(0.04, 0.04, 0.10, 0.9 * alpha))
+	# Quote text (wrapped)
+	var q = _greeting_quote
+	if q.length() > 42:
+		q = q.substr(0, 40) + ".."
+	var line1 = q.substr(0, 21) if q.length() > 21 else q
+	var line2 = q.substr(21) if q.length() > 21 else ""
+	_udraw(font, Vector2(bubble_x + 8, bubble_y + 20), line1, HORIZONTAL_ALIGNMENT_LEFT, int(bubble_w - 16), 11, _ca(menu_parchment, alpha))
+	if line2 != "":
+		_udraw(font, Vector2(bubble_x + 8, bubble_y + 36), line2, HORIZONTAL_ALIGNMENT_LEFT, int(bubble_w - 16), 11, _ca(menu_parchment, alpha * 0.85))
+
+# === Feature 2: Character Card Chibi Portraits in Survivor Grid ===
+# Injected into _ds_hero_card by drawing chibi overlay on unlocked cards
+func _draw_card_chibi_portrait(rect: Rect2, speaker_name: String, alpha: float) -> void:
+	if not _tower_sprite_textures.has(speaker_name):
+		return
+	var tex = _tower_sprite_textures[speaker_name]
+	var margin = 4.0
+	var sz = minf(rect.size.x - margin * 2, rect.size.y * 0.55)
+	var cx = rect.position.x + (rect.size.x - sz) * 0.5
+	var cy = rect.position.y + rect.size.y * 0.08
+	draw_texture_rect(tex, Rect2(cx, cy, sz, sz), false, Color(1, 1, 1, alpha * 0.35))
+
+# === Feature 3: Animated Character Preview (breathing/bobbing) ===
+# Already handled inline — the survivor detail uses sin(_time) for bob_y and breath_scale.
+# Enhancement: draw chibi sprite overlay in the portrait zone with breathing
+func _draw_detail_chibi_breathing(port_cx: float, port_cy: float, speaker_name: String, content_alpha: float) -> void:
+	if not _tower_sprite_textures.has(speaker_name):
+		return
+	var tex = _tower_sprite_textures[speaker_name]
+	var bob = sin(_time * 1.2) * 3.0
+	var breath = 1.0 + sin(_time * 2.0) * 0.015
+	var sz = 100.0 * breath
+	var x = port_cx - sz * 0.5
+	var y = port_cy + 80.0 + bob - sz * 0.5
+	draw_texture_rect(tex, Rect2(x, y, sz, sz), false, Color(1, 1, 1, content_alpha * 0.5))
+
+# === Feature 4: Character Mood Bounce on Hover ===
+func _update_hover_bounce(char_idx: int, is_hovered: bool, delta: float) -> float:
+	if is_hovered:
+		_hover_bounce_timers[char_idx] = _hover_bounce_timers.get(char_idx, 0.0) + delta * 8.0
+		_hover_bounce_offsets[char_idx] = abs(sin(_hover_bounce_timers.get(char_idx, 0.0))) * -6.0
+	else:
+		_hover_bounce_offsets[char_idx] = lerpf(_hover_bounce_offsets.get(char_idx, 0.0), 0.0, 0.15)
+		_hover_bounce_timers[char_idx] = 0.0
+	return _hover_bounce_offsets.get(char_idx, 0.0)
+
+# === Feature 5: Sell Confirmation Sad Face ===
+func _draw_sell_sad_face() -> void:
+	if not _sell_hover_active:
+		return
+	if not selected_tower_node or not is_instance_valid(selected_tower_node):
+		_sell_hover_active = false
+		return
+	var tt = _get_tower_type_from_node(selected_tower_node)
+	if tt == null:
+		return
+	var char_key = _tower_type_to_name(tt)
+	if not _tower_sprite_textures.has(char_key):
+		return
+	var tex = _tower_sprite_textures[char_key]
+	var tpos = selected_tower_node.global_position
+	var sz = 48.0
+	var x = tpos.x - sz * 0.5
+	var y = tpos.y - 70.0
+	var wobble = sin(_time * 5.0) * 2.0
+	# Draw chibi slightly desaturated
+	draw_texture_rect(tex, Rect2(x + wobble, y, sz, sz), false, Color(0.7, 0.7, 0.8, 0.85))
+	# Procedural sad overlay: droopy eyes
+	var eye_y = y + sz * 0.35
+	var eye_lx = x + sz * 0.33 + wobble
+	var eye_rx = x + sz * 0.67 + wobble
+	# Droopy eyelids (arcs pointing down)
+	draw_arc(Vector2(eye_lx, eye_y), 4.0, 0.2, PI - 0.2, 8, Color(0.1, 0.1, 0.2, 0.8), 2.0)
+	draw_arc(Vector2(eye_rx, eye_y), 4.0, 0.2, PI - 0.2, 8, Color(0.1, 0.1, 0.2, 0.8), 2.0)
+	# Tear drop
+	var tear_y = eye_y + 6.0 + sin(_time * 3.0) * 2.0
+	draw_circle(Vector2(eye_lx + 3, tear_y), 2.0, Color(0.4, 0.6, 1.0, 0.7))
+
+# === Feature 6: Character Placement Ghost ===
+func _draw_placement_ghost_sprite() -> void:
+	if not placing_tower:
+		return
+	var char_key = _tower_type_to_name(selected_tower)
+	if not _tower_sprite_textures.has(char_key):
+		return
+	var tex = _tower_sprite_textures[char_key]
+	var sz = 64.0
+	var float_y = sin(_time * 3.0) * 4.0
+	var x = ghost_position.x - sz * 0.5
+	var y = ghost_position.y - sz * 0.5 + float_y - 10.0
+	# Translucent ghost version
+	draw_texture_rect(tex, Rect2(x, y, sz, sz), false, Color(1, 1, 1, 0.4))
+	# Ethereal glow ring
+	draw_arc(ghost_position + Vector2(0, float_y - 10.0), sz * 0.4, 0, TAU, 24, Color(1, 1, 1, 0.1), 1.5)
+
+# === Feature 7: Tower Info Tooltip Chibi Art ===
+func _draw_tower_info_chibi() -> void:
+	if not selected_tower_node or not is_instance_valid(selected_tower_node):
+		return
+	if not upgrade_panel or not upgrade_panel.visible:
+		return
+	var tt = _get_tower_type_from_node(selected_tower_node)
+	if tt == null:
+		return
+	var char_key = _tower_type_to_name(tt)
+	if not _tower_sprite_textures.has(char_key):
+		return
+	var tex = _tower_sprite_textures[char_key]
+	var panel_pos = upgrade_panel.global_position
+	var sz = 48.0
+	var bob = sin(_time * 2.0) * 3.0
+	var x = panel_pos.x + 8.0
+	var y = panel_pos.y + 8.0 + bob
+	draw_texture_rect(tex, Rect2(x, y, sz, sz), false, Color(1, 1, 1, 0.85))
+
+# === Feature 8: Tower Speech Bubbles ===
+func _add_tower_speech_bubble(pos: Vector2, text: String, char_key: String) -> void:
+	if _tower_speech_bubbles.size() >= SPEECH_BUBBLE_MAX:
+		_tower_speech_bubbles.pop_front()
+	_tower_speech_bubbles.append({
+		"pos": pos,
+		"text": text,
+		"timer": SPEECH_BUBBLE_DURATION,
+		"char_key": char_key,
+	})
+
+func _draw_tower_speech_bubbles() -> void:
+	var font = game_font
+	if font == null:
+		return
+	for bubble in _tower_speech_bubbles:
+		if bubble["timer"] <= 0.0:
+			continue
+		var alpha = clampf(bubble["timer"] / 0.5, 0.0, 1.0)
+		var bpos = bubble["pos"] + Vector2(0, -60.0)
+		var float_y = -sin(_time * 2.0) * 3.0
+		var text = bubble["text"]
+		if text.length() > 35:
+			text = text.substr(0, 33) + ".."
+		var tw = font.get_string_size(text.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		var bw = tw + 16.0
+		var bh = 24.0
+		var bx = bpos.x - bw * 0.5
+		var by = bpos.y + float_y - bh
+		# Background
+		draw_rect(Rect2(bx, by, bw, bh), Color(0.02, 0.02, 0.06, 0.85 * alpha))
+		draw_rect(Rect2(bx, by, bw, bh), _ca(c_gold, 0.4 * alpha), false, 1.0)
+		# Tail
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(bpos.x - 4, by + bh),
+			Vector2(bpos.x + 4, by + bh),
+			Vector2(bpos.x, by + bh + 6),
+		]), Color(0.02, 0.02, 0.06, 0.85 * alpha))
+		# Text
+		_udraw(font, Vector2(bx + 8, by + 16), text, HORIZONTAL_ALIGNMENT_LEFT, int(bw - 16), 10, Color(1, 1, 0.9, alpha))
+		# Tiny chibi face
+		if _tower_sprite_textures.has(bubble["char_key"]):
+			var face_sz = 18.0
+			draw_texture_rect(_tower_sprite_textures[bubble["char_key"]], Rect2(bx - face_sz - 2, by + (bh - face_sz) * 0.5, face_sz, face_sz), false, Color(1, 1, 1, alpha))
+
+# === Feature 9: Enhanced Synergy Pairing Art ===
+# Injected in existing _draw_synergy_connections — we enhance with chibi faces
+func _draw_synergy_chibi_endpoints(pos_a: Vector2, pos_b: Vector2, type_a, type_b, alpha: float) -> void:
+	var key_a = _tower_type_to_name(type_a)
+	var key_b = _tower_type_to_name(type_b)
+	var face_sz = 20.0
+	if _tower_sprite_textures.has(key_a):
+		draw_texture_rect(_tower_sprite_textures[key_a], Rect2(pos_a.x - face_sz * 0.5, pos_a.y - 35 - face_sz * 0.5, face_sz, face_sz), false, Color(1, 1, 1, alpha))
+	if _tower_sprite_textures.has(key_b):
+		draw_texture_rect(_tower_sprite_textures[key_b], Rect2(pos_b.x - face_sz * 0.5, pos_b.y - 35 - face_sz * 0.5, face_sz, face_sz), false, Color(1, 1, 1, alpha))
+
+# === Feature 10: Victory Character Lineup ===
+func _draw_victory_character_lineup() -> void:
+	var placed_towers = get_tree().get_nodes_in_group("towers")
+	if placed_towers.is_empty():
+		return
+	var font = game_font
+	var count = mini(placed_towers.size(), 12)
+	var total_w = float(count) * 70.0
+	var start_x = (1280.0 - total_w) * 0.5
+	var base_y = 580.0
+	var pulse = (sin(_time * 3.0) + 1.0) * 0.5
+	for i in range(count):
+		var tower = placed_towers[i]
+		if not is_instance_valid(tower):
+			continue
+		var tt = _get_tower_type_from_node(tower)
+		if tt == null:
+			continue
+		var char_key = _tower_type_to_name(tt)
+		if not _tower_sprite_textures.has(char_key):
+			continue
+		var tex = _tower_sprite_textures[char_key]
+		var sz = 56.0
+		var x = start_x + float(i) * 70.0
+		var bounce = sin(_time * 2.5 + float(i) * 0.7) * 6.0
+		var y = base_y + bounce
+		# Victory glow behind each chibi
+		draw_circle(Vector2(x + sz * 0.5, y + sz * 0.5), sz * 0.4, Color(1.0, 0.85, 0.3, 0.1 + pulse * 0.08))
+		# Draw chibi
+		draw_texture_rect(tex, Rect2(x, y, sz, sz), false, Color(1, 1, 1, 0.9))
+		# Star above head
+		var star_y = y - 8.0 - sin(_time * 4.0 + float(i)) * 3.0
+		_draw_mini_star(Vector2(x + sz * 0.5, star_y), 5.0, _ca(c_gold_bright, 0.8))
+
+# === Feature 11: Defeat Character Scene ===
+func _draw_defeat_character_scene() -> void:
+	var placed_towers = get_tree().get_nodes_in_group("towers")
+	if placed_towers.is_empty():
+		return
+	var count = mini(placed_towers.size(), 12)
+	var total_w = float(count) * 70.0
+	var start_x = (1280.0 - total_w) * 0.5
+	var base_y = 580.0
+	for i in range(count):
+		var tower = placed_towers[i]
+		if not is_instance_valid(tower):
+			continue
+		var tt = _get_tower_type_from_node(tower)
+		if tt == null:
+			continue
+		var char_key = _tower_type_to_name(tt)
+		if not _tower_sprite_textures.has(char_key):
+			continue
+		var tex = _tower_sprite_textures[char_key]
+		var sz = 50.0
+		var x = start_x + float(i) * 70.0
+		var y = base_y + sin(_time * 0.5 + float(i)) * 2.0
+		# Draw chibi slightly rotated and desaturated
+		var lean = sin(float(i) * 1.5) * 0.15  # slight tilt
+		draw_set_transform(Vector2(x + sz * 0.5, y + sz * 0.5), lean, Vector2.ONE)
+		draw_texture_rect(tex, Rect2(-sz * 0.5, -sz * 0.5, sz, sz), false, Color(0.5, 0.5, 0.6, 0.7))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		# Dark cloud above
+		var cloud_y = y - 12.0
+		draw_circle(Vector2(x + sz * 0.5, cloud_y), 8.0, Color(0.15, 0.1, 0.2, 0.4))
+		draw_circle(Vector2(x + sz * 0.5 - 6, cloud_y + 2), 5.0, Color(0.15, 0.1, 0.2, 0.3))
+		draw_circle(Vector2(x + sz * 0.5 + 6, cloud_y + 2), 5.0, Color(0.15, 0.1, 0.2, 0.3))
+
+# === Feature 12: Character Spotlight on Title ===
+func _draw_character_spotlight() -> void:
+	if menu_current_view != "chapters":
+		return
+	if _tower_sprite_textures.is_empty():
+		return
+	var font = game_font
+	if font == null:
+		return
+	var idx = _spotlight_char_index % _sprite_keys.size()
+	var char_key = _sprite_keys[idx]
+	if not _tower_sprite_textures.has(char_key):
+		return
+	var tex = _tower_sprite_textures[char_key]
+	var alpha = _spotlight_fade
+	var sz = 200.0
+	var x = 60.0
+	var y = 100.0
+	var bob = sin(_time * 1.0) * 5.0
+	# Ambient glow
+	draw_circle(Vector2(x + sz * 0.5, y + sz * 0.5 + bob), sz * 0.45, Color(0.3, 0.2, 0.5, 0.05 * alpha))
+	# Draw large chibi
+	draw_texture_rect(tex, Rect2(x, y + bob, sz, sz), false, Color(1, 1, 1, alpha * 0.3))
+	# Character name below
+	if idx < character_names.size():
+		_udraw(font, Vector2(x, y + sz + 15 + bob), character_names[idx], HORIZONTAL_ALIGNMENT_CENTER, int(sz), 14, _ca(menu_gold_light, alpha * 0.4))
+
+# === Feature 13: Lock Screen Silhouettes ===
+func _draw_locked_silhouette(rect: Rect2, char_idx: int) -> void:
+	var font = game_font
+	if char_idx < 0 or char_idx >= _sprite_keys.size():
+		return
+	var char_key = _sprite_keys[char_idx]
+	if not _tower_sprite_textures.has(char_key):
+		return
+	var tex = _tower_sprite_textures[char_key]
+	var margin = 8.0
+	var sz = minf(rect.size.x - margin * 2, rect.size.y * 0.5)
+	var cx = rect.position.x + (rect.size.x - sz) * 0.5
+	var cy = rect.position.y + rect.size.y * 0.12
+	# Draw dark silhouette (black tint)
+	draw_texture_rect(tex, Rect2(cx, cy, sz, sz), false, Color(0.05, 0.03, 0.08, 0.6))
+	# "?" overlay
+	if font != null:
+		var q_sz = 28
+		_udraw(font, Vector2(cx + sz * 0.5 - 8, cy + sz * 0.55), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, q_sz, Color(0.6, 0.5, 0.7, 0.7))
+
+# === Feature 14: Level-Up Celebration ===
+func _trigger_levelup_celebration(tower_type) -> void:
+	var char_key = _tower_type_to_name(tower_type)
+	_levelup_celeb_char_key = char_key
+	_levelup_celeb_timer = 2.0
+	# Find tower position (if placed)
+	var pos = Vector2(640, 360)
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if is_instance_valid(tower):
+			var tt = _get_tower_type_from_node(tower)
+			if tt == tower_type:
+				pos = tower.global_position
+				break
+	_levelup_celeb_pos = pos
+	# Generate celebration particles
+	_levelup_celeb_particles.clear()
+	for i in range(20):
+		var angle = randf() * TAU
+		var speed = randf_range(60.0, 180.0)
+		_levelup_celeb_particles.append({
+			"pos": pos,
+			"vel": Vector2(cos(angle), sin(angle)) * speed,
+			"timer": randf_range(1.0, 2.0),
+			"color": Color(1.0, randf_range(0.6, 1.0), randf_range(0.1, 0.5)),
+			"size": randf_range(2.0, 5.0),
+		})
+
+func _draw_levelup_celebration() -> void:
+	if _levelup_celeb_timer <= 0.0:
+		return
+	var alpha = clampf(_levelup_celeb_timer / 0.5, 0.0, 1.0)
+	# Draw chibi with crown/star
+	if _tower_sprite_textures.has(_levelup_celeb_char_key):
+		var tex = _tower_sprite_textures[_levelup_celeb_char_key]
+		var sz = 52.0
+		var pos = _levelup_celeb_pos
+		var bob = sin(_time * 4.0) * 5.0
+		draw_texture_rect(tex, Rect2(pos.x - sz * 0.5, pos.y - 70 + bob - sz * 0.5, sz, sz), false, Color(1, 1, 1, alpha))
+		# Crown above head
+		var crown_y = pos.y - 70 + bob - sz * 0.5 - 12.0
+		var crown_cx = pos.x
+		var crown_pts = PackedVector2Array([
+			Vector2(crown_cx - 10, crown_y + 8),
+			Vector2(crown_cx - 8, crown_y),
+			Vector2(crown_cx - 3, crown_y + 5),
+			Vector2(crown_cx, crown_y - 4),
+			Vector2(crown_cx + 3, crown_y + 5),
+			Vector2(crown_cx + 8, crown_y),
+			Vector2(crown_cx + 10, crown_y + 8),
+		])
+		draw_colored_polygon(crown_pts, _ca(c_gold_bright, alpha * 0.9))
+	# Particles
+	for p in _levelup_celeb_particles:
+		if p["timer"] > 0.0:
+			var pa = clampf(p["timer"] / 1.0, 0.0, 1.0)
+			var pcol = p["color"]
+			draw_circle(p["pos"], p["size"] * pa, Color(pcol.r, pcol.g, pcol.b, pa * 0.8))
+
+# === Feature 15: Wave Announcement Character ===
+func _trigger_wave_announce_character() -> void:
+	var placed_towers = get_tree().get_nodes_in_group("towers")
+	if placed_towers.is_empty():
+		_wave_announce_timer = 0.0
+		return
+	var tower = placed_towers[randi() % placed_towers.size()]
+	if not is_instance_valid(tower):
+		return
+	var tt = _get_tower_type_from_node(tower)
+	if tt == null:
+		return
+	_wave_announce_char_key = _tower_type_to_name(tt)
+	# Pick battle cry quote
+	if battle_cry_quotes.has(tt):
+		var quotes = battle_cry_quotes[tt]
+		_wave_announce_quote = quotes[randi() % quotes.size()]
+	elif tt is int and tt >= 0 and tt < character_quotes.size():
+		_wave_announce_quote = character_quotes[tt]
+	else:
+		var idx = survivor_types.find(tt)
+		_wave_announce_quote = character_quotes[idx] if idx >= 0 and idx < character_quotes.size() else "To battle!"
+	_wave_announce_timer = WAVE_ANNOUNCE_DURATION
+
+func _draw_wave_announce_character() -> void:
+	if _wave_announce_timer <= 0.0:
+		return
+	if not _tower_sprite_textures.has(_wave_announce_char_key):
+		return
+	var font = game_font
+	if font == null:
+		return
+	var alpha = clampf(_wave_announce_timer / 0.5, 0.0, 1.0)
+	# Slide in from left
+	var slide = 1.0 - clampf((_wave_announce_timer - (WAVE_ANNOUNCE_DURATION - 0.3)) / 0.3, 0.0, 1.0)
+	var slide_out = clampf(_wave_announce_timer / 0.4, 0.0, 1.0)
+	var x_off = (1.0 - slide) * -80.0 + (1.0 - slide_out) * -80.0
+	var tex = _tower_sprite_textures[_wave_announce_char_key]
+	var sz = 70.0
+	var x = 15.0 + x_off
+	var y = 75.0
+	var bob = sin(_time * 3.0) * 3.0
+	# Draw chibi
+	draw_texture_rect(tex, Rect2(x, y + bob, sz, sz), false, Color(1, 1, 1, alpha))
+	# Speech bubble with battle cry
+	var bx = x + sz + 8.0
+	var by = y + 10.0 + bob
+	var text = _wave_announce_quote
+	if text.length() > 30:
+		text = text.substr(0, 28) + ".."
+	var tw = font.get_string_size(text.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	var bw = tw + 20.0
+	var bh = 28.0
+	draw_rect(Rect2(bx, by, bw, bh), Color(0.03, 0.03, 0.08, 0.85 * alpha))
+	draw_rect(Rect2(bx, by, bw, bh), Color(1.0, 0.5, 0.2, 0.5 * alpha), false, 1.5)
+	_udraw(font, Vector2(bx + 10, by + 19), text, HORIZONTAL_ALIGNMENT_LEFT, int(bw - 20), 12, Color(1.0, 0.9, 0.7, alpha))
+
+# === Process Timer Updates for All Character Art Features ===
+func _process_character_art_timers(delta: float) -> void:
+	# Feature 1: Greeting
+	if _greeting_active and _greeting_timer > 0.0:
+		_greeting_timer -= delta
+		if _greeting_timer <= 0.0:
+			_greeting_active = false
+		queue_redraw()
+	# Feature 8: Speech bubbles
+	var i = _tower_speech_bubbles.size() - 1
+	while i >= 0:
+		_tower_speech_bubbles[i]["timer"] -= delta
+		if _tower_speech_bubbles[i]["timer"] <= 0.0:
+			_tower_speech_bubbles.remove_at(i)
+		i -= 1
+	if _tower_speech_bubbles.size() > 0:
+		queue_redraw()
+	# Feature 12: Spotlight rotation
+	if game_state == GameState.MENU:
+		_spotlight_timer += delta
+		if _spotlight_timer >= SPOTLIGHT_HOLD_TIME + SPOTLIGHT_FADE_TIME:
+			_spotlight_char_index = (_spotlight_char_index + 1) % _sprite_keys.size()
+			_spotlight_timer = 0.0
+			_spotlight_fade = 0.0
+		elif _spotlight_timer < SPOTLIGHT_FADE_TIME:
+			_spotlight_fade = clampf(_spotlight_timer / SPOTLIGHT_FADE_TIME, 0.0, 1.0)
+		else:
+			_spotlight_fade = 1.0
+	# Feature 14: Level-up celebration
+	if _levelup_celeb_timer > 0.0:
+		_levelup_celeb_timer -= delta
+		for p in _levelup_celeb_particles:
+			if p["timer"] > 0.0:
+				p["timer"] -= delta
+				p["pos"] += p["vel"] * delta
+				p["vel"].y += 120.0 * delta  # gravity
+		queue_redraw()
+	# Feature 15: Wave announcement
+	if _wave_announce_timer > 0.0:
+		_wave_announce_timer -= delta
+		queue_redraw()
+	# Feature 5: Sell hover detection
+	if game_state == GameState.PLAYING and selected_tower_node and is_instance_valid(selected_tower_node):
+		if is_instance_valid(sell_button) and sell_button.visible:
+			var mouse = get_viewport().get_mouse_position()
+			var sb_rect = Rect2(sell_button.global_position, sell_button.size)
+			_sell_hover_active = sb_rect.has_point(mouse)
+		else:
+			_sell_hover_active = false
+	else:
+		_sell_hover_active = false
+
+# === Init battle cry quotes (called from _ready or first use) ===
+func _init_battle_cry_quotes() -> void:
+	battle_cry_quotes = {
+		TowerType.ROBIN_HOOD: ["For Sherwood!", "Notch and loose!", "The greenwood strikes!"],
+		TowerType.ALICE: ["Curiouser and curiouser!", "Off with their heads!", "Down the rabbit hole!"],
+		TowerType.WICKED_WITCH: ["Fly, my pretties!", "I'll get you!", "Feel my wrath!"],
+		TowerType.PETER_PAN: ["To die would be an awfully big adventure!", "Here I come!", "Second star to the right!"],
+		TowerType.PHANTOM: ["The music plays!", "My opera begins!", "Sing for me!"],
+		TowerType.SCROOGE: ["Bah! Humbug to the lot of you!", "Count your last coins!", "Ghosts guide me!"],
+		TowerType.SHERLOCK: ["The game is afoot!", "Elementary!", "I've deduced your doom!"],
+		TowerType.TARZAN: ["AHHHH-ah-ah-AH!", "Jungle strong!", "Tarzan fights!"],
+		TowerType.DRACULA: ["The night hungers!", "Come to me!", "Darkness falls!"],
+		TowerType.MERLIN: ["By the ancient arts!", "Magic awakens!", "Sorcery unleashed!"],
+		TowerType.FRANKENSTEIN: ["I... WILL... FIGHT!", "RAAAGH!", "Not... a monster... a WARRIOR!"],
+		TowerType.SHADOW_AUTHOR: ["A new chapter begins!", "I write your end!", "The ink flows!"],
+	}
+
+
+# ============================================================
+# GAME EVENT VISUAL ENHANCEMENTS — 15 Draw Functions + Triggers
+# ============================================================
+
+# --- Enhancement 1: Enemy Introduction "WANTED" Poster ---
+func _draw_wanted_poster() -> void:
+	if _wanted_poster_timer <= 0.0:
+		return
+	var font = game_font
+	var duration = 3.0
+	var alpha = clampf(_wanted_poster_timer / duration, 0.0, 1.0)
+	var slide_x = 0.0
+	if _wanted_poster_timer > duration - 0.4:
+		slide_x = (duration - _wanted_poster_timer) / 0.4 * 260.0 - 260.0
+		slide_x = -slide_x
+	elif _wanted_poster_timer < 0.4:
+		slide_x = (0.4 - _wanted_poster_timer) / 0.4 * 260.0
+	var px = 1020.0 + slide_x
+	var py = 120.0
+	var pw = 240.0
+	var ph = 180.0
+	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.78, 0.60, alpha * 0.95))
+	draw_rect(Rect2(px, py, pw, ph), Color(0.30, 0.20, 0.10, alpha * 0.9), false, 3.0)
+	draw_rect(Rect2(px + 3, py + 3, pw - 6, ph - 6), Color(0.50, 0.35, 0.15, alpha * 0.4), false, 1.0)
+	_udraw(font, Vector2(px + pw * 0.5, py + 22), "WANTED", HORIZONTAL_ALIGNMENT_CENTER, -1, 24, Color(0.7, 0.1, 0.05, alpha))
+	draw_line(Vector2(px + 20, py + 30), Vector2(px + pw - 20, py + 30), Color(0.4, 0.25, 0.1, alpha * 0.6), 1.5)
+	var cx = px + pw * 0.5
+	var cy = py + 75.0
+	draw_circle(Vector2(cx, cy), 25.0, Color(0.15, 0.10, 0.05, alpha * 0.8))
+	draw_circle(Vector2(cx - 8, cy - 4), 3.0, Color(0.9, 0.2, 0.1, alpha))
+	draw_circle(Vector2(cx + 8, cy - 4), 3.0, Color(0.9, 0.2, 0.1, alpha))
+	_udraw(font, Vector2(px + pw * 0.5, py + 115), _wanted_poster_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.2, 0.1, 0.05, alpha))
+	_udraw(font, Vector2(px + pw * 0.5, py + 135), "BOUNTY: %dG" % _wanted_poster_bounty, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.6, 0.1, 0.0, alpha))
+	var danger_text = ""
+	for di in range(_wanted_poster_danger):
+		danger_text += "X "
+	_udraw(font, Vector2(px + pw * 0.5, py + 158), "DANGER: " + danger_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.5, 0.2, 0.1, alpha))
+	for ci in [Vector2(px + 8, py + 8), Vector2(px + pw - 8, py + 8), Vector2(px + 8, py + ph - 8), Vector2(px + pw - 8, py + ph - 8)]:
+		draw_circle(ci, 3.0, Color(0.3, 0.25, 0.15, alpha * 0.7))
+
+func trigger_wanted_poster(enemy_theme: int) -> void:
+	if _seen_enemy_types.has(enemy_theme):
+		return
+	_seen_enemy_types[enemy_theme] = true
+	var theme_names = ["Sherwood", "Wonderland", "Oz", "Neverland", "Opera", "London", "Shadow", "Baker St", "Camelot", "Jungle", "Transylvania", "Laboratory", "Ink Realm"]
+	_wanted_poster_name = theme_names[enemy_theme] if enemy_theme < theme_names.size() else "Unknown"
+	_wanted_poster_bounty = 50 + enemy_theme * 25
+	_wanted_poster_danger = clampi(1 + enemy_theme / 3, 1, 5)
+	_wanted_poster_timer = 3.0
+
+# --- Enhancement 2: Boss Entrance Dramatic Reveal ---
+func _draw_boss_reveal() -> void:
+	if not _boss_reveal_active or _boss_reveal_timer <= 0.0:
+		return
+	var font = game_font
+	var duration = 2.5
+	var t = 1.0 - clampf(_boss_reveal_timer / duration, 0.0, 1.0)
+	var alpha = clampf(_boss_reveal_timer / duration, 0.0, 1.0)
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.0, alpha * 0.7))
+	var sil_size = 30.0 + t * 200.0
+	var sil_alpha = alpha * (0.8 - t * 0.3)
+	var cx = 640.0
+	var cy = 360.0
+	draw_circle(Vector2(cx, cy), sil_size * 0.5, Color(0.08, 0.02, 0.02, sil_alpha))
+	draw_circle(Vector2(cx, cy - sil_size * 0.4), sil_size * 0.25, Color(0.08, 0.02, 0.02, sil_alpha))
+	var eye_pulse = (sin(_time * 10.0) + 1.0) * 0.5
+	var eye_r = sil_size * 0.06 + eye_pulse * 2.0
+	draw_circle(Vector2(cx - sil_size * 0.1, cy - sil_size * 0.45), eye_r, Color(1.0, 0.15, 0.05, sil_alpha))
+	draw_circle(Vector2(cx + sil_size * 0.1, cy - sil_size * 0.45), eye_r, Color(1.0, 0.15, 0.05, sil_alpha))
+	if _boss_reveal_timer < 0.5:
+		var shatter_t = 1.0 - _boss_reveal_timer / 0.5
+		for si in range(12):
+			var sa = float(si) * TAU / 12.0
+			var sd = shatter_t * 300.0
+			var sp = Vector2(cx + cos(sa) * sd, cy + sin(sa) * sd)
+			var ss = (1.0 - shatter_t) * 15.0
+			draw_rect(Rect2(sp.x - ss * 0.5, sp.y - ss * 0.5, ss, ss), Color(0.1, 0.02, 0.02, (1.0 - shatter_t) * 0.6))
+	var name_alpha = alpha * (0.5 + (sin(_time * 4.0) + 1.0) * 0.25)
+	_udraw(font, Vector2(cx + 2, cy + sil_size * 0.45 + 2), _boss_reveal_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(0, 0, 0, name_alpha * 0.6))
+	_udraw(font, Vector2(cx, cy + sil_size * 0.45), _boss_reveal_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(1.0, 0.2, 0.1, name_alpha))
+
+func trigger_boss_reveal(boss_name: String) -> void:
+	_boss_reveal_active = true
+	_boss_reveal_timer = 2.5
+	_boss_reveal_name = boss_name
+
+# --- Enhancement 4: Star Rating Celebration ---
+func _draw_star_celebration() -> void:
+	if _star_celebration_timer <= 0.0:
+		return
+	var font = game_font
+	var duration = 3.0
+	var t = 1.0 - clampf(_star_celebration_timer / duration, 0.0, 1.0)
+	var alpha = clampf(_star_celebration_timer / duration, 0.0, 1.0)
+	var cx = 640.0
+	var cy = 300.0
+	for si in range(_star_celebration_count):
+		var star_delay = float(si) * 0.3
+		var star_t = clampf((t * duration - star_delay) / 0.5, 0.0, 1.0)
+		if star_t <= 0.0:
+			continue
+		var sx = cx + (float(si) - float(_star_celebration_count - 1) * 0.5) * 80.0
+		var bounce = 1.0
+		if star_t < 0.6:
+			bounce = star_t / 0.6
+		elif star_t < 0.8:
+			bounce = 1.0 + sin((star_t - 0.6) / 0.2 * PI) * 0.15
+		var sy = cy - 200.0 * (1.0 - bounce)
+		var star_size = 20.0 + star_t * 10.0
+		var star_alpha = alpha * star_t
+		draw_circle(Vector2(sx, sy), star_size * 2.0, Color(1.0, 0.85, 0.2, star_alpha * 0.1))
+		_draw_event_star(Vector2(sx, sy), star_size, Color(1.0, 0.85, 0.15, star_alpha))
+		if _star_celebration_count >= 3:
+			for pi in range(5):
+				var pa = _time * 3.0 + float(pi) * TAU / 5.0 + float(si)
+				var pr = star_size * 1.5 + sin(_time * 5.0 + float(pi)) * 8.0
+				var pp = Vector2(sx + cos(pa) * pr, sy + sin(pa) * pr)
+				draw_circle(pp, 2.0, Color(1.0, 0.9, 0.3, star_alpha * 0.5))
+		elif _star_celebration_count == 1:
+			var sparkle_a = (sin(_time * 6.0) + 1.0) * 0.5
+			draw_circle(Vector2(sx + 15, sy - 10), 2.0, Color(1.0, 1.0, 0.8, star_alpha * sparkle_a * 0.4))
+
+func _draw_event_star(center: Vector2, size: float, color: Color) -> void:
+	for i in range(5):
+		var a1 = float(i) * TAU / 5.0 - PI / 2.0
+		var a2 = float((i + 2) % 5) * TAU / 5.0 - PI / 2.0
+		var p1 = center + Vector2(cos(a1), sin(a1)) * size
+		var p2 = center + Vector2(cos(a2), sin(a2)) * size
+		draw_line(p1, p2, color, 2.5)
+	draw_circle(center, size * 0.35, Color(color.r, color.g, color.b, color.a * 0.4))
+
+func trigger_star_celebration(star_count: int) -> void:
+	_star_celebration_count = clampi(star_count, 1, 3)
+	_star_celebration_timer = 3.0
+
+# --- Enhancement 5: Kill Streak Counter ---
+func _draw_kill_streak() -> void:
+	for ks in _kill_streak_display:
+		var alpha = clampf(ks["timer"] / 1.5, 0.0, 1.0)
+		var pos = ks["pos"] + Vector2(0, -30.0 * (1.0 - alpha))
+		var count = ks["count"]
+		var font = game_font
+		var pulse = (sin(_time * 8.0) + 1.0) * 0.5
+		var text_size = 16 + mini(count - 5, 10) * 2
+		var streak_color: Color
+		if count < 10:
+			streak_color = Color(1.0, 0.85, 0.2, alpha)
+		elif count < 20:
+			streak_color = Color(1.0, 0.5, 0.1, alpha)
+		else:
+			streak_color = Color(1.0, 0.15, 0.05, alpha)
+		draw_circle(pos, 20.0 + pulse * 5.0, Color(streak_color.r, streak_color.g, streak_color.b, alpha * 0.1))
+		_udraw(font, Vector2(pos.x + 1, pos.y + 1), "x%d STREAK!" % count, HORIZONTAL_ALIGNMENT_CENTER, -1, text_size, Color(0, 0, 0, alpha * 0.5))
+		_udraw(font, Vector2(pos.x, pos.y), "x%d STREAK!" % count, HORIZONTAL_ALIGNMENT_CENTER, -1, text_size, streak_color)
+		if count >= 10:
+			for fi in range(4):
+				var fa = _time * 4.0 + float(fi) * TAU / 4.0
+				var fp = pos + Vector2(cos(fa) * 25.0, sin(fa) * 15.0 - 10.0)
+				draw_circle(fp, 2.0 + pulse, Color(1.0, 0.4, 0.1, alpha * 0.4))
+
+func register_kill_streak(tower_id: int, tower_pos: Vector2) -> void:
+	if _kill_streak_counts.has(tower_id):
+		_kill_streak_counts[tower_id]["count"] += 1
+		_kill_streak_counts[tower_id]["timer"] = 2.0
+		_kill_streak_counts[tower_id]["pos"] = tower_pos
+	else:
+		_kill_streak_counts[tower_id] = {"count": 1, "timer": 2.0, "pos": tower_pos}
+	var count = _kill_streak_counts[tower_id]["count"]
+	if count >= 5 and count % 5 == 0:
+		_kill_streak_display.append({"pos": tower_pos, "count": count, "timer": 1.5})
+
+# --- Enhancement 6: Gold Splash on Earn ---
+func _draw_gold_splash_effects() -> void:
+	for gs in _gold_splashes:
+		var alpha = clampf(gs["timer"] / 1.0, 0.0, 1.0)
+		var t = 1.0 - alpha
+		var pos = gs["pos"]
+		for pi in range(gs["particles"].size()):
+			var p = gs["particles"][pi]
+			var ppx = pos.x + p["dx"] * t * 40.0
+			var ppy = pos.y - p["dy"] * t * 60.0 + t * t * 40.0
+			var coin_size = 3.0 * alpha
+			draw_circle(Vector2(ppx, ppy), coin_size, Color(1.0, 0.85, 0.15, alpha * 0.8))
+			draw_circle(Vector2(ppx, ppy), coin_size * 0.5, Color(1.0, 0.95, 0.5, alpha * 0.5))
+		var font = game_font
+		_udraw(font, Vector2(pos.x, pos.y - 20 - t * 30.0), "+%dG" % gs["amount"], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1.0, 0.85, 0.15, alpha))
+
+func _draw_gold_splash(pos: Vector2, amount: int) -> void:
+	var particles = []
+	for i in range(6):
+		particles.append({"dx": randf_range(-1.0, 1.0), "dy": randf_range(0.5, 1.5)})
+	_gold_splashes.append({"pos": pos, "amount": amount, "timer": 1.0, "particles": particles})
+
+# --- Enhancement 7: Enemy Death Effects by Faction ---
+func _draw_enemy_death_effect_all() -> void:
+	for de in _enemy_death_effects:
+		var alpha = clampf(de["timer"] / 0.8, 0.0, 1.0)
+		var t = 1.0 - alpha
+		var pos = de["pos"]
+		var faction = de["faction"]
+		match faction:
+			6:  # Shadow Author — ink splatter
+				for pi in range(de["particles"].size()):
+					var p = de["particles"][pi]
+					var pp = pos + p["dir"] * t * 50.0
+					var sz = p["size"] * alpha
+					draw_circle(pp, sz, Color(0.05, 0.02, 0.12, alpha * 0.7))
+					draw_line(pp, pp + Vector2(0, sz * 2.0 * t), Color(0.05, 0.02, 0.12, alpha * 0.3), 1.5)
+			1:  # Alice/Wonderland — playing cards scattering
+				for pi in range(de["particles"].size()):
+					var p = de["particles"][pi]
+					var pp = pos + p["dir"] * t * 70.0
+					var card_w = 8.0 * alpha
+					var card_h = 12.0 * alpha
+					draw_rect(Rect2(pp.x - card_w * 0.5, pp.y - card_h * 0.5, card_w, card_h), Color(0.95, 0.92, 0.85, alpha * 0.8))
+					draw_rect(Rect2(pp.x - card_w * 0.5, pp.y - card_h * 0.5, card_w, card_h), Color(0.7, 0.1, 0.1, alpha * 0.5), false, 1.0)
+					draw_circle(pp, 2.0, Color(0.8, 0.1, 0.1, alpha * 0.6))
+			0:  # Sherwood — leaves
+				for pi in range(de["particles"].size()):
+					var p = de["particles"][pi]
+					var pp = pos + p["dir"] * t * 60.0 + Vector2(sin(_time * 3.0 + float(pi)) * 10.0, t * 20.0)
+					var leaf_size = p["size"] * alpha
+					draw_circle(pp, leaf_size, Color(0.2, 0.7, 0.15, alpha * 0.6))
+					draw_circle(pp, leaf_size * 0.5, Color(0.3, 0.85, 0.2, alpha * 0.3))
+			_:  # Default — generic burst
+				for pi in range(de["particles"].size()):
+					var p = de["particles"][pi]
+					var pp = pos + p["dir"] * t * 50.0
+					draw_circle(pp, p["size"] * alpha, Color(0.8, 0.8, 0.8, alpha * 0.5))
+
+func _trigger_enemy_death_effect(pos: Vector2, faction: int) -> void:
+	var particles = []
+	for i in range(6):
+		var angle = randf() * TAU
+		var speed = randf_range(0.5, 1.5)
+		particles.append({
+			"dir": Vector2(cos(angle), sin(angle)) * speed,
+			"size": randf_range(3.0, 7.0),
+			"spin": randf_range(0.5, 2.0),
+		})
+	_enemy_death_effects.append({"pos": pos, "faction": faction, "timer": 0.8, "particles": particles})
+
+# --- Enhancement 8: Danger Warning (Enhanced Vignette) ---
+func _draw_danger_warning() -> void:
+	if _danger_vignette_alpha <= 0.0:
+		return
+	var pulse = (sin(_time * 6.0) + 1.0) * 0.5
+	var a = _danger_vignette_alpha * 0.25 * (0.7 + pulse * 0.3)
+	var thick = 40.0 + pulse * 15.0
+	for vi in range(3):
+		var va = a * (0.6 - float(vi) * 0.15)
+		var vt = thick + float(vi) * 20.0
+		draw_rect(Rect2(0, 0, 1280, vt), Color(0.8, 0.05, 0.02, va))
+		draw_rect(Rect2(0, 720 - vt, 1280, vt), Color(0.8, 0.05, 0.02, va))
+		draw_rect(Rect2(0, 0, vt, 720), Color(0.8, 0.05, 0.02, va))
+		draw_rect(Rect2(1280 - vt, 0, vt, 720), Color(0.8, 0.05, 0.02, va))
+	var font = game_font
+	var text_alpha = _danger_vignette_alpha * (0.6 + pulse * 0.4)
+	_udraw(font, Vector2(642, 72), "DANGER", HORIZONTAL_ALIGNMENT_CENTER, -1, 28, Color(0, 0, 0, text_alpha * 0.5))
+	_udraw(font, Vector2(640, 70), "DANGER", HORIZONTAL_ALIGNMENT_CENTER, -1, 28, Color(1.0, 0.15, 0.05, text_alpha))
+
+# --- Enhancement 9: Tower Upgrade Burst ---
+func _draw_upgrade_burst_all() -> void:
+	for ub in _upgrade_bursts:
+		var alpha = clampf(ub["timer"] / 1.2, 0.0, 1.0)
+		var t = 1.0 - alpha
+		var pos = ub["pos"]
+		var col = ub["color"]
+		var ring_r = 20.0 + t * 80.0
+		draw_arc(pos, ring_r, 0, TAU, 32, Color(col.r, col.g, col.b, alpha * 0.5), 3.0 - t * 2.0)
+		draw_arc(pos, ring_r * 0.7, 0, TAU, 32, Color(col.r, col.g, col.b, alpha * 0.25), 2.0)
+		for pi in range(ub["particles"].size()):
+			var p = ub["particles"][pi]
+			var pa = p["angle"] + t * p["spin"]
+			var pd = t * 80.0 * p["speed"]
+			var pp = pos + Vector2(cos(pa), sin(pa)) * pd
+			var ps = (3.0 + p["size"]) * alpha
+			draw_circle(pp, ps, Color(col.r, col.g, col.b, alpha * 0.6))
+			draw_circle(pp, ps * 0.5, Color(1.0, 1.0, 1.0, alpha * 0.2))
+
+func _trigger_upgrade_burst(pos: Vector2, tower_type) -> void:
+	var col = kill_effect_colors.get(tower_type, c_gold)
+	var particles = []
+	for i in range(10):
+		particles.append({
+			"angle": randf() * TAU,
+			"speed": randf_range(0.5, 1.5),
+			"spin": randf_range(-1.0, 1.0),
+			"size": randf_range(1.0, 4.0),
+		})
+	_upgrade_bursts.append({"pos": pos, "timer": 1.2, "color": col, "particles": particles})
+
+# --- Enhancement 10: Wave Complete Fanfare ---
+func _draw_wave_complete_fanfare() -> void:
+	if _wave_complete_fanfare_timer <= 0.0:
+		return
+	var font = game_font
+	var duration = 2.5
+	var alpha = clampf(_wave_complete_fanfare_timer / duration, 0.0, 1.0)
+	var cx = 640.0
+	var cy = 260.0
+	var fw = 400.0
+	var fh = 100.0
+	var fx = cx - fw * 0.5
+	var fy = cy - fh * 0.5
+	draw_rect(Rect2(fx, fy, fw, fh), Color(0.02, 0.02, 0.06, alpha * 0.85))
+	draw_rect(Rect2(fx, fy, fw, fh), Color(0.8, 0.65, 0.15, alpha * 0.7), false, 2.0)
+	for ci in range(4):
+		var corner_x = fx if ci % 2 == 0 else fx + fw
+		var corner_y = fy if ci < 2 else fy + fh
+		var dx = 1.0 if ci % 2 == 0 else -1.0
+		var dy = 1.0 if ci < 2 else -1.0
+		draw_line(Vector2(corner_x, corner_y), Vector2(corner_x + 20 * dx, corner_y), Color(1.0, 0.85, 0.2, alpha * 0.8), 2.0)
+		draw_line(Vector2(corner_x, corner_y), Vector2(corner_x, corner_y + 20 * dy), Color(1.0, 0.85, 0.2, alpha * 0.8), 2.0)
+	_udraw(font, Vector2(cx, cy - 15), "WAVE COMPLETE!", HORIZONTAL_ALIGNMENT_CENTER, -1, 26, Color(0.3, 1.0, 0.4, alpha))
+	_udraw(font, Vector2(cx - 80, cy + 18), "KILLS: %d" % _wave_complete_kills, HORIZONTAL_ALIGNMENT_CENTER, 160, 14, Color(0.8, 0.7, 0.5, alpha * 0.8))
+	_udraw(font, Vector2(cx + 80, cy + 18), "GOLD: %d" % _wave_complete_gold, HORIZONTAL_ALIGNMENT_CENTER, 160, 14, Color(1.0, 0.85, 0.2, alpha * 0.8))
+
+func trigger_wave_complete_fanfare(kills: int, gold_earned_amt: int) -> void:
+	_wave_complete_fanfare_timer = 2.5
+	_wave_complete_kills = kills
+	_wave_complete_gold = gold_earned_amt
+
+# --- Enhancement 11: Perfect Wave Badge ---
+func _draw_perfect_badge() -> void:
+	if _perfect_badge_timer <= 0.0:
+		return
+	var font = game_font
+	var duration = 2.5
+	var alpha = clampf(_perfect_badge_timer / duration, 0.0, 1.0)
+	var t = 1.0 - alpha
+	var cx = 640.0
+	var cy = 340.0
+	var scale = 1.0
+	if t < 0.15:
+		scale = t / 0.15 * 1.3
+	elif t < 0.25:
+		scale = 1.3 - (t - 0.15) / 0.1 * 0.3
+	var seal_r = 40.0 * scale
+	draw_circle(Vector2(cx, cy), seal_r, Color(0.7, 0.15, 0.05, alpha * 0.85))
+	draw_arc(Vector2(cx, cy), seal_r, 0, TAU, 32, Color(0.9, 0.25, 0.1, alpha * 0.6), 2.0)
+	draw_arc(Vector2(cx, cy), seal_r * 0.7, 0, TAU, 24, Color(1.0, 0.85, 0.2, alpha * 0.4), 1.5)
+	var text_scale = int(28.0 * scale)
+	_udraw(font, Vector2(cx + 1, cy - 18 * scale + 1), "PERFECT", HORIZONTAL_ALIGNMENT_CENTER, -1, text_scale, Color(0, 0, 0, alpha * 0.4))
+	_udraw(font, Vector2(cx, cy - 18 * scale), "PERFECT", HORIZONTAL_ALIGNMENT_CENTER, -1, text_scale, Color(1.0, 0.88, 0.25, alpha))
+	_udraw(font, Vector2(cx, cy + 10 * scale), "NO ENEMIES LEAKED!", HORIZONTAL_ALIGNMENT_CENTER, -1, int(12.0 * scale), Color(1.0, 0.95, 0.7, alpha * 0.7))
+	for si in range(8):
+		var sa = _time * 2.0 + float(si) * TAU / 8.0
+		var sd = seal_r * 1.4 + sin(_time * 4.0 + float(si)) * 5.0
+		var sp = Vector2(cx + cos(sa) * sd, cy + sin(sa) * sd)
+		draw_circle(sp, 2.0, Color(1.0, 0.9, 0.3, alpha * 0.5))
+
+# --- Enhancement 12: First Blood Flash ---
+func _draw_first_blood() -> void:
+	if _first_blood_timer <= 0.0:
+		return
+	var font = game_font
+	var duration = 1.5
+	var alpha = clampf(_first_blood_timer / duration, 0.0, 1.0)
+	var t = 1.0 - alpha
+	var cx = 640.0
+	var cy = 200.0
+	if t < 0.1:
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0.8, 0.05, 0.02, (0.1 - t) / 0.1 * 0.15))
+	var slash_t = clampf(t / 0.3, 0.0, 1.0)
+	var slash_len = slash_t * 200.0
+	draw_line(Vector2(cx - slash_len, cy - slash_len * 0.3), Vector2(cx + slash_len, cy + slash_len * 0.3), Color(1.0, 0.1, 0.05, alpha * 0.6), 3.0)
+	draw_line(Vector2(cx + slash_len * 0.5, cy - slash_len * 0.5), Vector2(cx - slash_len * 0.5, cy + slash_len * 0.5), Color(1.0, 0.1, 0.05, alpha * 0.4), 2.0)
+	var text_size = 30 + int(t * 5.0)
+	_udraw(font, Vector2(cx + 2, cy + 2), "FIRST BLOOD", HORIZONTAL_ALIGNMENT_CENTER, -1, text_size, Color(0, 0, 0, alpha * 0.6))
+	_udraw(font, Vector2(cx, cy), "FIRST BLOOD", HORIZONTAL_ALIGNMENT_CENTER, -1, text_size, Color(1.0, 0.2, 0.08, alpha))
+	_udraw(font, Vector2(cx - 1, cy - 1), "FIRST BLOOD", HORIZONTAL_ALIGNMENT_CENTER, -1, text_size, Color(1.0, 0.5, 0.2, alpha * 0.25))
+
+# --- Enhancement 13: Enemy Faction Banner ---
+func _draw_faction_banner() -> void:
+	if _faction_banner_timer <= 0.0:
+		return
+	var font = game_font
+	var duration = 2.5
+	var alpha = clampf(_faction_banner_timer / duration, 0.0, 1.0)
+	var slide = 0.0
+	if _faction_banner_timer > duration - 0.3:
+		slide = (duration - _faction_banner_timer) / 0.3
+		slide = -300.0 * (1.0 - slide)
+	elif _faction_banner_timer < 0.3:
+		slide = (0.3 - _faction_banner_timer) / 0.3 * 300.0
+	var bx = 50.0 + slide
+	var by = 140.0
+	var bw = 280.0
+	var bh = 70.0
+	draw_rect(Rect2(bx, by, bw, bh), Color(0.03, 0.03, 0.08, alpha * 0.9))
+	draw_rect(Rect2(bx, by, bw, bh), Color(_faction_banner_color.r, _faction_banner_color.g, _faction_banner_color.b, alpha * 0.5), false, 2.0)
+	for pi in range(3):
+		var py = by + 10.0 + float(pi) * 20.0
+		draw_line(Vector2(bx + bw, py), Vector2(bx + bw + 15, py + 10), Color(_faction_banner_color.r, _faction_banner_color.g, _faction_banner_color.b, alpha * 0.3), 2.0)
+		draw_line(Vector2(bx + bw + 15, py + 10), Vector2(bx + bw, py + 20), Color(_faction_banner_color.r, _faction_banner_color.g, _faction_banner_color.b, alpha * 0.3), 2.0)
+	var emblem_cx = bx + 35.0
+	var emblem_cy = by + bh * 0.5
+	draw_circle(Vector2(emblem_cx, emblem_cy), 18.0, Color(_faction_banner_color.r, _faction_banner_color.g, _faction_banner_color.b, alpha * 0.2))
+	draw_arc(Vector2(emblem_cx, emblem_cy), 18.0, 0, TAU, 16, Color(_faction_banner_color.r, _faction_banner_color.g, _faction_banner_color.b, alpha * 0.6), 2.0)
+	draw_line(Vector2(emblem_cx - 10, emblem_cy - 10), Vector2(emblem_cx + 10, emblem_cy + 10), Color(_faction_banner_color.r, _faction_banner_color.g, _faction_banner_color.b, alpha * 0.5), 1.5)
+	draw_line(Vector2(emblem_cx + 10, emblem_cy - 10), Vector2(emblem_cx - 10, emblem_cy + 10), Color(_faction_banner_color.r, _faction_banner_color.g, _faction_banner_color.b, alpha * 0.5), 1.5)
+	_udraw(font, Vector2(bx + 65, by + 30), _faction_banner_name, HORIZONTAL_ALIGNMENT_LEFT, int(bw - 75), 18, Color(1.0, 0.95, 0.85, alpha))
+	_udraw(font, Vector2(bx + 65, by + 50), "FORCES APPROACH", HORIZONTAL_ALIGNMENT_LEFT, int(bw - 75), 12, Color(0.8, 0.7, 0.5, alpha * 0.7))
+
+func trigger_faction_banner(enemy_theme: int) -> void:
+	if _seen_factions.has(enemy_theme):
+		return
+	_seen_factions[enemy_theme] = true
+	var theme_names = ["Sherwood", "Wonderland", "Oz", "Neverland", "Opera", "London", "Shadow", "Baker St", "Camelot", "Jungle", "Transylvania", "Laboratory", "Ink Realm"]
+	var theme_colors = [
+		Color(0.2, 0.7, 0.15), Color(0.6, 0.3, 0.85), Color(0.3, 0.8, 0.2), Color(0.9, 0.8, 0.2),
+		Color(0.8, 0.15, 0.2), Color(0.7, 0.6, 0.4), Color(0.15, 0.08, 0.25), Color(0.4, 0.5, 0.7),
+		Color(0.3, 0.4, 0.9), Color(0.3, 0.6, 0.15), Color(0.6, 0.05, 0.1), Color(0.3, 0.7, 0.8), Color(0.1, 0.05, 0.2)
+	]
+	_faction_banner_name = theme_names[enemy_theme] if enemy_theme < theme_names.size() else "Unknown"
+	_faction_banner_color = theme_colors[enemy_theme] if enemy_theme < theme_colors.size() else Color.WHITE
+	_faction_banner_timer = 2.5
+
+# --- Enhancement 14: Critical Hit Visual ---
+func _draw_crit_pop_all() -> void:
+	for cp in _crit_pops:
+		var alpha = clampf(cp["timer"] / 0.6, 0.0, 1.0)
+		var t = 1.0 - alpha
+		var pos = cp["pos"] + Vector2(0, -t * 25.0)
+		var font = game_font
+		var pop_scale = 1.0
+		if t < 0.15:
+			pop_scale = 0.5 + t / 0.15 * 0.8
+		elif t < 0.3:
+			pop_scale = 1.3 - (t - 0.15) / 0.15 * 0.3
+		var text_size = int(20.0 * pop_scale)
+		var text = cp["text"]
+		var burst_r = 18.0 * pop_scale
+		for bi in range(8):
+			var ba = float(bi) * TAU / 8.0
+			draw_line(pos, pos + Vector2(cos(ba), sin(ba)) * burst_r, Color(1.0, 0.9, 0.2, alpha * 0.3), 2.0)
+		_udraw(font, Vector2(pos.x + 1, pos.y + 1), text, HORIZONTAL_ALIGNMENT_CENTER, -1, text_size, Color(0, 0, 0, alpha * 0.6))
+		_udraw(font, Vector2(pos.x, pos.y), text, HORIZONTAL_ALIGNMENT_CENTER, -1, text_size, Color(1.0, 0.95, 0.3, alpha))
+
+func _trigger_crit_pop(pos: Vector2) -> void:
+	var texts = ["CRACK!", "POW!", "WHAM!", "ZAP!", "BAM!"]
+	_crit_pops.append({"pos": pos, "text": texts[randi() % texts.size()], "timer": 0.6})
+
+# --- Enhancement 15: Treasure Chest Drops ---
+func _draw_treasure_chest_all() -> void:
+	for tc in _treasure_chests:
+		var alpha = clampf(tc["timer"] / 2.0, 0.0, 1.0)
+		var pos = tc["pos"]
+		var phase = tc["phase"]
+		match phase:
+			0:
+				var drop_t = clampf((2.0 - tc["timer"]) / 0.5, 0.0, 1.0)
+				var dy = -40.0 * (1.0 - drop_t)
+				var chest_pos = pos + Vector2(0, dy)
+				_draw_chest_drop_icon(chest_pos, 1.0, alpha)
+			1:
+				_draw_chest_drop_icon(pos, 1.0, alpha)
+				var open_t = clampf((1.5 - tc["timer"]) / 0.7, 0.0, 1.0)
+				var lid_y = pos.y - 12.0 - open_t * 8.0
+				draw_rect(Rect2(pos.x - 14, lid_y, 28, 8), Color(0.7, 0.5, 0.15, alpha * 0.8))
+				draw_rect(Rect2(pos.x - 14, lid_y, 28, 8), Color(0.9, 0.7, 0.2, alpha * 0.5), false, 1.0)
+			2:
+				_draw_chest_drop_icon(pos, 1.0, alpha)
+				var glow_pulse = (sin(_time * 6.0) + 1.0) * 0.5
+				var glow_r = 20.0 + glow_pulse * 15.0
+				draw_circle(pos + Vector2(0, -8), glow_r, Color(1.0, 0.85, 0.2, alpha * 0.15))
+				draw_circle(pos + Vector2(0, -8), glow_r * 0.5, Color(1.0, 0.9, 0.4, alpha * 0.25))
+				for si in range(4):
+					var sa = _time * 2.0 + float(si) * TAU / 4.0
+					var sy = pos.y - 15.0 - fmod(_time * 30.0 + float(si) * 15.0, 40.0)
+					var sx = pos.x + sin(sa) * 10.0
+					draw_circle(Vector2(sx, sy), 1.5, Color(1.0, 0.9, 0.3, alpha * 0.6))
+
+func _draw_chest_drop_icon(pos: Vector2, scale: float, alpha: float) -> void:
+	var w = 28.0 * scale
+	var h = 20.0 * scale
+	draw_rect(Rect2(pos.x - w * 0.5, pos.y - h * 0.5, w, h), Color(0.55, 0.35, 0.1, alpha * 0.9))
+	draw_rect(Rect2(pos.x - w * 0.5, pos.y - h * 0.5, w, h), Color(0.8, 0.6, 0.2, alpha * 0.6), false, 1.5)
+	draw_rect(Rect2(pos.x - w * 0.5, pos.y - 2, w, 4), Color(0.7, 0.55, 0.15, alpha * 0.5))
+	draw_circle(pos + Vector2(0, -1), 3.0, Color(0.9, 0.75, 0.2, alpha * 0.7))
+
+func trigger_treasure_chest(pos: Vector2) -> void:
+	_treasure_chests.append({"pos": pos, "timer": 2.0, "phase": 0})
+
+# ============================================================
+# === MICRO-DETAIL VISUAL ENHANCEMENTS (15 features) ===
+# ============================================================
+
+# 1. Illustrated Health Bar — hearts/shields that crack as lives are lost
+func _draw_illustrated_lives() -> void:
+	var max_lives_display = 20
+	var heart_count = mini(max_lives_display, 20)
+	var hx = 410.0
+	var hy = 12.0
+	var heart_size = 8.0
+	var spacing = 18.0
+	for i in range(heart_count):
+		var cx = hx + float(i % 10) * spacing
+		var cy = hy + float(i / 10) * 16.0
+		if i < lives:
+			var pulse = 1.0 + sin(_time * 2.0 + float(i) * 0.3) * 0.08
+			var hs = heart_size * pulse
+			draw_circle(Vector2(cx - hs * 0.3, cy - hs * 0.15), hs * 0.45, Color(0.85, 0.15, 0.12, 0.9))
+			draw_circle(Vector2(cx + hs * 0.3, cy - hs * 0.15), hs * 0.45, Color(0.85, 0.15, 0.12, 0.9))
+			var tri = PackedVector2Array([Vector2(cx - hs * 0.65, cy + hs * 0.05), Vector2(cx + hs * 0.65, cy + hs * 0.05), Vector2(cx, cy + hs * 0.75)])
+			draw_colored_polygon(tri, Color(0.85, 0.15, 0.12, 0.9))
+			draw_circle(Vector2(cx - hs * 0.2, cy - hs * 0.25), hs * 0.18, Color(1.0, 0.5, 0.4, 0.5))
+		elif i < max_lives_display:
+			var hs = heart_size
+			draw_circle(Vector2(cx - hs * 0.3, cy - hs * 0.15), hs * 0.45, Color(0.3, 0.1, 0.1, 0.4))
+			draw_circle(Vector2(cx + hs * 0.3, cy - hs * 0.15), hs * 0.45, Color(0.3, 0.1, 0.1, 0.4))
+			var tri = PackedVector2Array([Vector2(cx - hs * 0.65, cy + hs * 0.05), Vector2(cx + hs * 0.65, cy + hs * 0.05), Vector2(cx, cy + hs * 0.75)])
+			draw_colored_polygon(tri, Color(0.3, 0.1, 0.1, 0.4))
+			draw_line(Vector2(cx - 2, cy - hs * 0.3), Vector2(cx + 1, cy), Color(0.15, 0.05, 0.05, 0.6), 1.0)
+			draw_line(Vector2(cx + 1, cy), Vector2(cx - 1, cy + hs * 0.4), Color(0.15, 0.05, 0.05, 0.6), 1.0)
+
+# 2. Illustrated Gold Counter — coin purse that bulges with gold
+func _draw_gold_purse() -> void:
+	var px = 290.0
+	var py = 12.0
+	var purse_w = 24.0
+	var purse_h = 20.0
+	var gold_ratio = clampf(float(gold) / 500.0, 0.0, 1.0)
+	var bulge = 1.0 + gold_ratio * 0.4
+	var purse_pts = PackedVector2Array()
+	for i in range(16):
+		var a = PI + float(i) / 15.0 * PI
+		purse_pts.append(Vector2(px + cos(a) * purse_w * 0.5 * bulge, py + purse_h * 0.5 + sin(a) * purse_h * 0.5 * bulge))
+	purse_pts.append(Vector2(px + purse_w * 0.5 * bulge, py + purse_h * 0.5))
+	if purse_pts.size() >= 3:
+		draw_colored_polygon(purse_pts, Color(0.45, 0.28, 0.08, 0.85))
+	draw_line(Vector2(px - purse_w * 0.35, py + purse_h * 0.3), Vector2(px, py), Color(0.55, 0.35, 0.1, 0.9), 2.0)
+	draw_line(Vector2(px + purse_w * 0.35, py + purse_h * 0.3), Vector2(px, py), Color(0.55, 0.35, 0.1, 0.9), 2.0)
+	var coin_count = int(gold_ratio * 5.0)
+	for ci in range(coin_count):
+		var coin_x = px + purse_w * 0.3 + float(ci) * 8.0
+		var coin_y = py + purse_h * 0.2 + sin(_time * 1.5 + float(ci)) * 2.0
+		var coin_r = 4.0
+		var spin = abs(cos(_time * 2.0 + float(ci) * 1.2))
+		draw_circle(Vector2(coin_x, coin_y), coin_r, Color(0.85, 0.72, 0.2, 0.9))
+		draw_arc(Vector2(coin_x, coin_y), coin_r, 0, TAU, 8, Color(0.7, 0.55, 0.1, 0.7), 1.0)
+		draw_circle(Vector2(coin_x - 1, coin_y - 1), coin_r * 0.35, Color(1.0, 0.92, 0.4, 0.5 * spin))
+	_udraw(game_font, Vector2(px + purse_w * 0.5 * bulge + 8, py + 16), _format_gold(gold), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.88, 0.2, 0.95))
+
+# 3. Wave Progress Scroll — unrolling parchment with wave markers
+func _draw_wave_scroll() -> void:
+	var sx = 10.0
+	var sy = 6.0
+	var sw = 200.0
+	var sh = 28.0
+	var progress = clampf(float(wave) / float(maxi(total_waves, 1)), 0.0, 1.0)
+	var unroll = sw * progress
+	if unroll > 1:
+		draw_rect(Rect2(sx, sy, unroll, sh), Color(0.82, 0.72, 0.52, 0.7))
+	for li in range(int(unroll / 12)):
+		var lx = sx + float(li) * 12.0 + 6.0
+		draw_line(Vector2(lx, sy + 4), Vector2(lx, sy + sh - 4), Color(0.7, 0.6, 0.4, 0.15), 0.5)
+	if unroll > 1:
+		draw_rect(Rect2(sx, sy, unroll, 2), Color(0.55, 0.42, 0.25, 0.6))
+		draw_rect(Rect2(sx, sy + sh - 2, unroll, 2), Color(0.55, 0.42, 0.25, 0.6))
+	if unroll > 5:
+		draw_circle(Vector2(sx + unroll, sy + sh * 0.5), sh * 0.42, Color(0.72, 0.62, 0.42, 0.8))
+		draw_circle(Vector2(sx + unroll, sy + sh * 0.5), sh * 0.28, Color(0.78, 0.68, 0.48, 0.6))
+	draw_circle(Vector2(sx, sy + sh * 0.5), sh * 0.42, Color(0.72, 0.62, 0.42, 0.8))
+	draw_circle(Vector2(sx, sy + sh * 0.5), sh * 0.28, Color(0.78, 0.68, 0.48, 0.6))
+	for wi in range(total_waves):
+		var wx = sx + (float(wi + 1) / float(maxi(total_waves, 1))) * sw
+		if wx <= sx + unroll:
+			var dot_r = 2.5 if wi + 1 != wave else 4.0
+			var dot_col = c_gold_bright if wi + 1 <= wave else Color(0.5, 0.4, 0.25, 0.5)
+			if (wi + 1) % 5 == 0: dot_r += 1.0
+			draw_circle(Vector2(wx, sy + sh * 0.5), dot_r, dot_col)
+	_udraw(game_font, Vector2(sx + 16, sy + 20), "W%d/%d" % [wave, total_waves], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.25, 0.15, 0.05, 0.9))
+
+# 4. Minimap with character dots
+func _draw_minimap() -> void:
+	var mm_x = 1180.0
+	var mm_y = 540.0
+	var mm_w = 90.0
+	var mm_h = 70.0
+	var scale_x = mm_w / 1280.0
+	var scale_y = mm_h / 720.0
+	draw_rect(Rect2(mm_x, mm_y, mm_w, mm_h), Color(0.02, 0.02, 0.06, 0.7))
+	draw_rect(Rect2(mm_x, mm_y, mm_w, mm_h), Color(0.5, 0.4, 0.2, 0.3), false, 1.0)
+	if enemy_path and enemy_path.curve and enemy_path.curve.point_count > 1:
+		var prev = Vector2.ZERO
+		for pi in range(enemy_path.curve.point_count):
+			var pt = enemy_path.curve.get_point_position(pi)
+			var mpt = Vector2(mm_x + pt.x * scale_x, mm_y + pt.y * scale_y)
+			if pi > 0:
+				draw_line(prev, mpt, Color(0.6, 0.5, 0.3, 0.4), 1.0)
+			prev = mpt
+	var towers = get_tree().get_nodes_in_group("towers")
+	for tower in towers:
+		var tp = tower.global_position
+		var mtp = Vector2(mm_x + tp.x * scale_x, mm_y + tp.y * scale_y)
+		var tcol = c_cyan
+		if "tower_type" in tower:
+			match tower.tower_type:
+				0: tcol = Color(0.2, 0.7, 0.2)
+				1: tcol = Color(0.6, 0.3, 0.8)
+				2: tcol = Color(0.4, 0.9, 0.2)
+				3: tcol = Color(0.3, 0.8, 0.9)
+				4: tcol = Color(0.8, 0.8, 0.8)
+				5: tcol = Color(0.9, 0.8, 0.2)
+				_: tcol = Color(0.5, 0.5, 0.9)
+		var pulse = 1.0 + sin(_time * 3.0 + tp.x * 0.01) * 0.3
+		draw_circle(mtp, 2.5 * pulse, tcol)
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	for en in enemies:
+		if is_instance_valid(en):
+			var ep = en.global_position
+			var mep = Vector2(mm_x + ep.x * scale_x, mm_y + ep.y * scale_y)
+			draw_circle(mep, 1.5, Color(0.9, 0.2, 0.1, 0.7))
+	_udraw(game_font, Vector2(mm_x + 2, mm_y - 2), "MAP", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.6, 0.5, 0.3, 0.6))
+
+# 5. Ambient Wildlife — small creatures wandering menu background
+func _draw_ambient_creatures() -> void:
+	if not _ambient_creatures_inited:
+		_ambient_creatures_inited = true
+		var rng = RandomNumberGenerator.new()
+		rng.seed = 42
+		var count = rng.randi_range(12, 18)
+		for i in range(count):
+			_ambient_creatures.append({"x": rng.randf_range(50, 1230), "y": rng.randf_range(80, 600), "type": rng.randi_range(0, 2), "speed": rng.randf_range(15.0, 40.0), "phase": rng.randf_range(0.0, TAU), "dir": rng.randf_range(-1.0, 1.0), "size": rng.randf_range(3.0, 6.0)})
+	var dt = get_process_delta_time()
+	for c in _ambient_creatures:
+		c["x"] += c["dir"] * c["speed"] * dt
+		c["y"] += sin(_time * 1.5 + c["phase"]) * 0.3
+		if c["x"] > 1320: c["x"] = -20.0
+		if c["x"] < -40: c["x"] = 1300.0
+		var cx = c["x"]
+		var cy = c["y"]
+		var sz = c["size"]
+		match c["type"]:
+			0:
+				var flap = sin(_time * 6.0 + c["phase"]) * 0.6
+				var wing_col = Color(0.7, 0.4, 0.8, 0.35 + sin(_time + c["phase"]) * 0.1)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy), Vector2(cx - sz * (1.2 + flap), cy - sz), Vector2(cx - sz * 0.5, cy + sz * 0.3)]), wing_col)
+				draw_colored_polygon(PackedVector2Array([Vector2(cx, cy), Vector2(cx + sz * (1.2 + flap), cy - sz), Vector2(cx + sz * 0.5, cy + sz * 0.3)]), wing_col)
+				draw_line(Vector2(cx, cy - sz * 0.5), Vector2(cx, cy + sz * 0.5), Color(0.3, 0.2, 0.4, 0.4), 1.0)
+			1:
+				var bob = sin(_time * 2.0 + c["phase"]) * 1.5
+				var bird_col = Color(0.08, 0.06, 0.12, 0.45)
+				draw_circle(Vector2(cx, cy + bob), sz * 0.6, bird_col)
+				var wing_up = sin(_time * 4.0 + c["phase"]) * sz * 0.4
+				draw_line(Vector2(cx, cy + bob), Vector2(cx - sz * 1.5, cy + bob - sz * 0.5 + wing_up), bird_col, 1.5)
+				draw_line(Vector2(cx, cy + bob), Vector2(cx + sz * 1.5, cy + bob - sz * 0.5 + wing_up), bird_col, 1.5)
+			2:
+				var glow = 0.3 + sin(_time * 4.0 + c["phase"]) * 0.25
+				draw_circle(Vector2(cx, cy), sz * 1.5, Color(0.8, 0.9, 0.2, glow * 0.15))
+				draw_circle(Vector2(cx, cy), sz * 0.5, Color(0.9, 1.0, 0.3, glow))
+
+# 6. Easter Egg Character Scenes
+func _draw_easter_egg() -> void:
+	if not _easter_egg_active:
+		_easter_egg_cooldown -= get_process_delta_time()
+		if _easter_egg_cooldown <= 0.0:
+			if randf() < 0.1:
+				_easter_egg_active = true
+				_easter_egg_timer = 6.0
+				_easter_egg_type = randi() % 3
+			_easter_egg_cooldown = 45.0 + randf() * 30.0
+		return
+	_easter_egg_timer -= get_process_delta_time()
+	if _easter_egg_timer <= 0.0:
+		_easter_egg_active = false
+		return
+	var alpha = clampf(_easter_egg_timer, 0.0, 1.0) * clampf((6.0 - _easter_egg_timer) / 0.5, 0.0, 1.0)
+	var ex = 900.0
+	var ey = 480.0
+	var font = game_font
+	match _easter_egg_type:
+		0:
+			draw_rect(Rect2(ex - 30, ey + 10, 60, 20), Color(0.8, 0.2, 0.2, 0.5 * alpha))
+			draw_circle(Vector2(ex, ey), 8, Color(0.3, 0.02, 0.02, 0.7 * alpha))
+			draw_line(Vector2(ex, ey + 8), Vector2(ex, ey + 25), Color(0.15, 0.02, 0.02, 0.6 * alpha), 2.0)
+			draw_line(Vector2(ex - 5, ey - 1), Vector2(ex + 5, ey - 1), Color(0.0, 0.0, 0.0, 0.8 * alpha), 2.0)
+			var sun_pulse = 0.8 + sin(_time * 2.0) * 0.2
+			draw_circle(Vector2(ex + 50, ey - 40), 14, Color(1.0, 0.9, 0.3, 0.4 * alpha * sun_pulse))
+			for ri in range(8):
+				var ra = float(ri) * TAU / 8.0 + _time * 0.3
+				draw_line(Vector2(ex + 50, ey - 40), Vector2(ex + 50 + cos(ra) * 22, ey - 40 + sin(ra) * 22), Color(1.0, 0.85, 0.2, 0.25 * alpha), 1.0)
+			_udraw(font, Vector2(ex - 40, ey - 20), "Just 5 more minutes...", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.8, 0.7, 0.6, alpha * 0.8))
+		1:
+			draw_rect(Rect2(ex - 10, ey + 5, 20, 15), Color(0.5, 0.25, 0.1, 0.6 * alpha))
+			draw_rect(Rect2(ex - 8, ey - 15, 16, 18), Color(0.3, 0.5, 0.3, 0.6 * alpha))
+			draw_circle(Vector2(ex - 10, ey - 6), 2, Color(0.5, 0.5, 0.5, 0.7 * alpha))
+			draw_circle(Vector2(ex + 10, ey - 6), 2, Color(0.5, 0.5, 0.5, 0.7 * alpha))
+			var tear_y = ey - 2 + fmod(_time * 8.0, 10.0)
+			draw_circle(Vector2(ex - 3, tear_y), 1.5, Color(0.3, 0.5, 0.8, 0.5 * alpha))
+			_udraw(font, Vector2(ex - 50, ey - 28), "Roses are red...", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.8, 0.7, 0.6, alpha * 0.8))
+		2:
+			draw_rect(Rect2(ex - 30, ey + 8, 60, 8), Color(0.4, 0.25, 0.1, 0.6 * alpha))
+			for pi in range(3):
+				draw_rect(Rect2(ex + 10, ey + float(pi) * -3, 12, 10), Color(0.85, 0.8, 0.7, 0.5 * alpha))
+			draw_circle(Vector2(ex - 8, ey - 6), 7, Color(0.2, 0.5, 0.15, 0.6 * alpha))
+			draw_line(Vector2(ex - 4, ey + 2), Vector2(ex + 5, ey + 5), Color(0.3, 0.2, 0.1, 0.5 * alpha), 1.5)
+			draw_rect(Rect2(ex - 22, ey, 10, 12), Color(0.2, 0.2, 0.2, 0.5 * alpha))
+			_udraw(font, Vector2(ex - 55, ey - 22), "Tax deductible?", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.8, 0.7, 0.6, alpha * 0.8))
+
+# 7. Tooltip Art Frames
+func _draw_art_tooltip(rect: Rect2, text: String) -> void:
+	var font = game_font
+	var rx = rect.position.x
+	var ry = rect.position.y
+	var rw = rect.size.x
+	var rh = rect.size.y
+	draw_rect(rect, Color(0.82, 0.72, 0.52, 0.92))
+	draw_rect(Rect2(rx, ry, rw, 3), Color(0.6, 0.5, 0.3, 0.5))
+	draw_rect(Rect2(rx, ry + rh - 3, rw, 3), Color(0.6, 0.5, 0.3, 0.5))
+	draw_rect(Rect2(rx, ry, 3, rh), Color(0.6, 0.5, 0.3, 0.5))
+	draw_rect(Rect2(rx + rw - 3, ry, 3, rh), Color(0.6, 0.5, 0.3, 0.5))
+	draw_rect(rect, Color(0.55, 0.4, 0.2, 0.8), false, 2.0)
+	draw_rect(Rect2(rx + 3, ry + 3, rw - 6, rh - 6), Color(0.65, 0.5, 0.25, 0.4), false, 1.0)
+	var curl_r = 8.0
+	draw_arc(Vector2(rx + curl_r, ry + curl_r), curl_r, PI, PI * 1.5, 8, Color(0.5, 0.38, 0.18, 0.6), 1.5)
+	draw_arc(Vector2(rx + rw - curl_r, ry + curl_r), curl_r, PI * 1.5, TAU, 8, Color(0.5, 0.38, 0.18, 0.6), 1.5)
+	draw_arc(Vector2(rx + curl_r, ry + rh - curl_r), curl_r, PI * 0.5, PI, 8, Color(0.5, 0.38, 0.18, 0.6), 1.5)
+	draw_arc(Vector2(rx + rw - curl_r, ry + rh - curl_r), curl_r, 0, PI * 0.5, 8, Color(0.5, 0.38, 0.18, 0.6), 1.5)
+	draw_colored_polygon(PackedVector2Array([Vector2(rx, ry), Vector2(rx + curl_r, ry), Vector2(rx, ry + curl_r)]), Color(0.65, 0.55, 0.35, 0.3))
+	draw_colored_polygon(PackedVector2Array([Vector2(rx + rw, ry), Vector2(rx + rw - curl_r, ry), Vector2(rx + rw, ry + curl_r)]), Color(0.65, 0.55, 0.35, 0.3))
+	draw_circle(Vector2(rx + rw - 12, ry + rh - 12), 3, Color(0.2, 0.15, 0.1, 0.15))
+	_udraw(font, Vector2(rx + 10, ry + rh * 0.55), text, HORIZONTAL_ALIGNMENT_LEFT, int(rw - 20), 13, Color(0.2, 0.12, 0.05, 0.9))
+
+# 8. Animated Chapter Icons
+func _draw_chapter_icon(center: Vector2, chapter_id: int, size: float) -> void:
+	var t = _time
+	match chapter_id:
+		0:
+			var tilt = sin(t * 1.2) * 0.15
+			draw_arc(center, size * 0.4, 0, TAU, 16, Color(0.7, 0.6, 0.4, 0.7), 2.0)
+			draw_line(center + Vector2(cos(tilt + 0.8), sin(tilt + 0.8)) * size * 0.35, center + Vector2(cos(tilt + 0.8), sin(tilt + 0.8)) * size * 0.7, Color(0.5, 0.4, 0.25, 0.7), 2.5)
+			draw_circle(center + Vector2(-size * 0.1, -size * 0.1), size * 0.12, Color(1.0, 1.0, 0.9, 0.3 + sin(t * 2.0) * 0.2))
+		1:
+			draw_arc(center, size * 0.45, 0, TAU, 24, Color(0.3, 0.4, 0.9, 0.6), 2.0)
+			draw_circle(center, size * 0.35, Color(0.15, 0.2, 0.5, 0.3))
+			for si in range(3):
+				var sa = t * 1.5 + float(si) * TAU / 3.0
+				draw_circle(center + Vector2(cos(sa), sin(sa)) * size * 0.2, size * 0.08, Color(0.5, 0.6, 1.0, 0.3 + sin(t * 2.0 + float(si)) * 0.15))
+		2:
+			var swing = sin(t * 1.8) * size * 0.3
+			draw_line(Vector2(center.x, center.y - size * 0.5), Vector2(center.x + swing, center.y + size * 0.3), Color(0.3, 0.5, 0.15, 0.6), 2.0)
+			draw_circle(Vector2(center.x, center.y - size * 0.5), size * 0.15, Color(0.2, 0.6, 0.15, 0.5))
+		3:
+			var flap = sin(t * 4.0) * size * 0.15
+			draw_circle(center, size * 0.15, Color(0.3, 0.02, 0.02, 0.6))
+			draw_line(center, center + Vector2(-size * 0.5, -size * 0.2 - flap), Color(0.2, 0.02, 0.02, 0.5), 2.0)
+			draw_line(center, center + Vector2(size * 0.5, -size * 0.2 - flap), Color(0.2, 0.02, 0.02, 0.5), 2.0)
+		4:
+			var bolt_flash = 0.4 + sin(t * 8.0) * 0.3
+			draw_line(center + Vector2(-size * 0.15, -size * 0.4), center + Vector2(size * 0.05, -size * 0.05), Color(0.5, 0.7, 1.0, bolt_flash), 2.5)
+			draw_line(center + Vector2(size * 0.05, -size * 0.05), center + Vector2(-size * 0.05, 0), Color(0.5, 0.7, 1.0, bolt_flash), 2.5)
+			draw_line(center + Vector2(-size * 0.05, 0), center + Vector2(size * 0.15, size * 0.4), Color(0.5, 0.7, 1.0, bolt_flash), 2.5)
+			draw_circle(center, size * 0.3, Color(0.4, 0.6, 1.0, bolt_flash * 0.15))
+		5:
+			var arrow_a = t * 2.0
+			var arrow_dir = Vector2(cos(arrow_a), sin(arrow_a))
+			draw_line(center - arrow_dir * size * 0.4, center + arrow_dir * size * 0.4, Color(0.3, 0.6, 0.2, 0.6), 2.0)
+		6:
+			draw_arc(center + Vector2(0, size * 0.1), size * 0.25, 0, PI, 12, Color(0.8, 0.7, 0.5, 0.6), 2.0)
+			for si in range(3):
+				var steam_y = center.y - size * 0.1 - fmod(t * 20.0 + float(si) * 10.0, size * 0.5)
+				var steam_a = 0.3 - fmod(t * 0.6 + float(si) * 0.3, 0.5) * 0.5
+				if steam_a > 0:
+					draw_circle(Vector2(center.x + sin(t * 2.0 + float(si) * 1.5) * size * 0.15, steam_y), 2.0, Color(0.8, 0.8, 0.8, steam_a))
+		7:
+			var twinkle = 0.5 + sin(t * 3.0) * 0.4
+			_draw_mini_star(center, size * 0.5 * (0.8 + twinkle * 0.4), Color(1.0, 0.9, 0.3, twinkle))
+		8:
+			draw_arc(center, size * 0.3, PI * 0.7, PI * 1.8, 12, Color(0.85, 0.82, 0.75, 0.6), 2.5)
+			var flame_flicker = 0.7 + sin(t * 6.0) * 0.2
+			draw_circle(center + Vector2(size * 0.35, -size * 0.15), 3.0, Color(1.0, 0.7, 0.2, flame_flicker))
+		9:
+			var coin_spin = abs(cos(t * 2.5))
+			draw_circle(center, size * 0.3 * coin_spin + size * 0.1, Color(0.85, 0.72, 0.2, 0.6))
+		_:
+			draw_circle(center, size * 0.3, Color(0.5, 0.5, 0.5, 0.3 + sin(t * 2.0) * 0.1))
+
+# 9. Enemy Path Decorations
+func _draw_path_decorations() -> void:
+	if not enemy_path or not enemy_path.curve or enemy_path.curve.point_count < 2:
+		return
+	var char_idx = levels[current_level].get("character", 0) if current_level >= 0 and current_level < levels.size() else 0
+	var path_len = enemy_path.curve.get_baked_length()
+	var count = mini(int(path_len / 60.0), 30)
+	for i in range(count):
+		var offset = float(i) * 60.0 + 30.0
+		if offset >= path_len: break
+		var pt = enemy_path.curve.sample_baked(offset)
+		var seed_val = int(pt.x * 7.0 + pt.y * 13.0 + float(i) * 97.0)
+		var side = 1.0 if (seed_val % 2 == 0) else -1.0
+		var next_pt = enemy_path.curve.sample_baked(minf(offset + 5.0, path_len))
+		var tangent = (next_pt - pt).normalized()
+		var perp = Vector2(-tangent.y, tangent.x) * side * 20.0
+		var dp = pt + perp
+		match char_idx:
+			0:
+				if seed_val % 3 == 0:
+					for pi in range(5):
+						draw_circle(dp + Vector2(cos(float(pi) * TAU / 5.0), sin(float(pi) * TAU / 5.0)) * 3.5, 2.0, Color(0.8, 0.3, 0.4, 0.35))
+					draw_circle(dp, 2.0, Color(0.9, 0.85, 0.3, 0.4))
+				else:
+					draw_line(dp, dp + Vector2(0, 5), Color(0.7, 0.65, 0.5, 0.3), 1.5)
+					draw_arc(dp, 4.0, PI, TAU, 8, Color(0.7, 0.2, 0.15, 0.35), 3.0)
+			1:
+				if seed_val % 3 == 0:
+					draw_rect(Rect2(dp.x - 3, dp.y - 4, 6, 8), Color(0.85, 0.82, 0.75, 0.3))
+			2: draw_circle(dp, 3.0 + sin(_time + float(i)) * 0.5, Color(0.3, 0.8, 0.15, 0.2))
+			3: draw_circle(dp, 2.0, Color(1.0, 0.9, 0.3, 0.2 + sin(_time * 2.0 + float(i)) * 0.1))
+			4:
+				draw_rect(Rect2(dp.x - 1.5, dp.y, 3, 6), Color(0.8, 0.75, 0.6, 0.3))
+				draw_circle(dp + Vector2(0, -1), 2.0, Color(1.0, 0.7, 0.2, 0.3 + sin(_time * 5.0 + float(i) * 2.0) * 0.15))
+			5:
+				draw_circle(dp, 2.5, Color(0.75, 0.62, 0.15, 0.25))
+			_:
+				draw_circle(dp, 3.0, Color(0.35, 0.32, 0.28, 0.15))
+
+# 10. Tower Aura Ground Art
+func _draw_tower_ground_art(tower) -> void:
+	if not is_instance_valid(tower): return
+	var pos = tower.global_position
+	var atk_range = tower.get_attack_range() if tower.has_method("get_attack_range") else 100.0
+	var tower_type_val = tower.tower_type if "tower_type" in tower else -1
+	var pulse = (sin(_time * 1.5 + pos.x * 0.01) + 1.0) * 0.5
+	var base_alpha = 0.06 + pulse * 0.04
+	match tower_type_val:
+		0:
+			for ri in range(12):
+				var a_start = float(ri) * TAU / 12.0 + sin(_time * 0.5) * 0.1
+				draw_arc(pos, atk_range * 0.95, a_start, a_start + TAU / 16.0, 6, Color(0.2, 0.6, 0.15, base_alpha), 3.0)
+			for li in range(8):
+				var la = float(li) * TAU / 8.0 + _time * 0.2
+				draw_circle(pos + Vector2(cos(la), sin(la)) * atk_range * 0.9, 3.0, Color(0.3, 0.65, 0.2, base_alpha * 1.5))
+		9:
+			draw_arc(pos, atk_range, 0, TAU, 48, Color(0.3, 0.4, 0.9, base_alpha), 2.0)
+			draw_arc(pos, atk_range * 0.7, 0, TAU, 36, Color(0.4, 0.5, 1.0, base_alpha * 0.7), 1.5)
+			for ri in range(8):
+				var ra = float(ri) * TAU / 8.0 + _time * 0.15
+				var rp = pos + Vector2(cos(ra), sin(ra)) * atk_range * 0.85
+				draw_line(rp + Vector2(-4, 0), rp + Vector2(4, 0), Color(0.4, 0.5, 1.0, base_alpha * 2.0), 1.0)
+				draw_line(rp + Vector2(0, -4), rp + Vector2(0, 4), Color(0.4, 0.5, 1.0, base_alpha * 2.0), 1.0)
+		8:
+			for ci in range(3):
+				draw_circle(pos, atk_range * (0.85 + float(ci) * 0.05), Color(0.08, 0.02, 0.02, base_alpha * (0.8 - float(ci) * 0.2)))
+			for wi in range(16):
+				var wa = float(wi) * TAU / 16.0 + sin(_time * 0.8 + float(wi)) * 0.2
+				draw_circle(pos + Vector2(cos(wa), sin(wa)) * (atk_range + sin(_time * 1.2 + float(wi) * 1.7) * atk_range * 0.08), 4.0, Color(0.5, 0.02, 0.02, base_alpha * 1.2))
+		10:
+			for ei in range(6):
+				var ea = float(ei) * TAU / 6.0 + _time * 0.8
+				var e_start = pos + Vector2(cos(ea), sin(ea)) * atk_range * 0.3
+				var e_end = pos + Vector2(cos(ea + 0.3), sin(ea + 0.3)) * atk_range * 0.9
+				var mid1 = e_start.lerp(e_end, 0.33) + Vector2(sin(_time * 8.0 + float(ei)) * 10.0, cos(_time * 7.0 + float(ei)) * 10.0)
+				var bolt_a = base_alpha * 2.0 * (0.5 + sin(_time * 6.0 + float(ei) * 2.0) * 0.5)
+				draw_line(e_start, mid1, Color(0.4, 0.6, 1.0, bolt_a), 1.0)
+				draw_line(mid1, e_end, Color(0.4, 0.6, 1.0, bolt_a), 1.0)
+		_:
+			for di in range(24):
+				var da = float(di) * TAU / 24.0
+				draw_circle(pos + Vector2(cos(da), sin(da)) * atk_range, 2.0, Color(0.6, 0.6, 0.6, base_alpha))
+
+# 11. Floating Story Text
+func _draw_floating_lore() -> void:
+	var lore_texts = ["Second star to the right, and straight on till morning...", "Off with their heads!", "Elementary, my dear Watson...", "The game is afoot!", "All that glitters is not gold...", "To be or not to be... defended.", "We're all mad here.", "A wizard is never late.", "It's alive! IT'S ALIVE!", "The Shadow Author writes your doom...", "Curiouser and curiouser..."]
+	if _floating_lore_timer <= 0.0:
+		_floating_lore_cooldown -= get_process_delta_time()
+		if _floating_lore_cooldown <= 0.0:
+			_floating_lore_text = lore_texts[randi() % lore_texts.size()]
+			_floating_lore_timer = 12.0
+			_floating_lore_x = 1300.0
+			_floating_lore_cooldown = 20.0 + randf() * 15.0
+		return
+	_floating_lore_timer -= get_process_delta_time()
+	_floating_lore_x -= 45.0 * get_process_delta_time()
+	var alpha = clampf(_floating_lore_timer / 2.0, 0.0, 1.0) * clampf((12.0 - _floating_lore_timer) / 1.0, 0.0, 1.0)
+	var y_bob = 68.0 + sin(_time * 0.8) * 4.0
+	_udraw(game_font, Vector2(_floating_lore_x + 1, y_bob + 1), _floating_lore_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.0, 0.0, 0.0, alpha * 0.4))
+	_udraw(game_font, Vector2(_floating_lore_x, y_bob), _floating_lore_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.8, 0.7, 0.5, alpha * 0.5))
+
+# 12. Weather Effects
+func _draw_weather_effect(chapter_theme: int) -> void:
+	if not _weather_inited:
+		_weather_inited = true
+		_weather_particles.clear()
+		var rng = RandomNumberGenerator.new()
+		rng.seed = 123 + chapter_theme
+		for i in range(30):
+			_weather_particles.append({"x": rng.randf_range(0, 1280), "y": rng.randf_range(50, 640), "speed_x": rng.randf_range(-10, 10), "speed_y": rng.randf_range(40, 100), "size": rng.randf_range(1.5, 4.0), "phase": rng.randf_range(0, TAU)})
+	var dt = get_process_delta_time()
+	for p in _weather_particles:
+		match chapter_theme:
+			5, 9:
+				p["x"] += (p["speed_x"] + sin(_time * 0.5 + p["phase"]) * 15.0) * dt
+				p["y"] += p["speed_y"] * 0.5 * dt
+				if p["y"] > 640: p["y"] = 50.0; p["x"] = randf() * 1280.0
+				if p["x"] > 1280: p["x"] = 0.0
+				if p["x"] < 0: p["x"] = 1280.0
+				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 0.7, Color(0.9, 0.92, 1.0, 0.3 + sin(_time + p["phase"]) * 0.1))
+			8, 10:
+				p["x"] += p["speed_x"] * dt
+				p["y"] += p["speed_y"] * dt
+				if p["y"] > 640: p["y"] = 50.0; p["x"] = randf() * 1280.0
+				draw_line(Vector2(p["x"], p["y"]), Vector2(p["x"] + p["speed_x"] * 0.05, p["y"] + p["size"] * 4.0), Color(0.5, 0.55, 0.7, 0.25), 1.0)
+			3, 7:
+				p["x"] += sin(_time * 0.7 + p["phase"]) * 20.0 * dt
+				p["y"] -= 5.0 * dt
+				if p["y"] < 50: p["y"] = 600.0
+				if p["x"] > 1280: p["x"] = 0.0
+				if p["x"] < 0: p["x"] = 1280.0
+				var dust_col = Color(1.0, 0.9, 0.3, 0.2 + sin(_time * 3.0 + p["phase"]) * 0.15) if chapter_theme == 3 else Color(0.6, 0.6, 0.6, 0.12)
+				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 0.6, dust_col)
+			0:
+				p["x"] += (p["speed_x"] + sin(_time + p["phase"]) * 12.0) * dt
+				p["y"] += p["speed_y"] * 0.3 * dt
+				if p["y"] > 640: p["y"] = 50.0; p["x"] = randf() * 1280.0
+				var leaf_rot = _time * 1.5 + p["phase"]
+				var lp = Vector2(p["x"], p["y"])
+				draw_line(lp + Vector2(cos(leaf_rot), sin(leaf_rot)) * p["size"], lp - Vector2(cos(leaf_rot), sin(leaf_rot)) * p["size"], Color(0.35, 0.6, 0.15, 0.2), 2.0)
+			_:
+				p["x"] += sin(_time * 0.5 + p["phase"]) * 8.0 * dt
+				p["y"] += p["speed_y"] * 0.15 * dt
+				if p["y"] > 640: p["y"] = 50.0
+				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 0.5, Color(0.6, 0.55, 0.45, 0.12))
+
+# 13. Cursor Trail
+func _draw_cursor_trail() -> void:
+	var mouse_pos = get_viewport().get_mouse_position()
+	_cursor_trail.append({"pos": mouse_pos, "age": 0.0})
+	var dt = get_process_delta_time()
+	var i = _cursor_trail.size() - 1
+	while i >= 0:
+		_cursor_trail[i]["age"] += dt
+		if _cursor_trail[i]["age"] > 0.5:
+			_cursor_trail.remove_at(i)
+		else:
+			var t = _cursor_trail[i]["age"] / 0.5
+			var alpha = (1.0 - t) * 0.5
+			var sz = (1.0 - t) * 3.0 + 0.5
+			var trail_pos = _cursor_trail[i]["pos"]
+			draw_circle(trail_pos, sz, Color(1.0, 0.85 + t * 0.15, 0.4 + t * 0.4, alpha))
+			if i % 4 == 0:
+				draw_line(trail_pos + Vector2(-sz * 1.5, 0), trail_pos + Vector2(sz * 1.5, 0), Color(1.0, 0.9, 0.6, alpha * 0.6), 0.8)
+				draw_line(trail_pos + Vector2(0, -sz * 1.5), trail_pos + Vector2(0, sz * 1.5), Color(1.0, 0.9, 0.6, alpha * 0.6), 0.8)
+		i -= 1
+	while _cursor_trail.size() > 20:
+		_cursor_trail.remove_at(0)
+
+# 14. Dramatic Zoom on Ability Use
+func _draw_ability_zoom(pos: Vector2) -> void:
+	if _ability_zoom_timer <= 0.0: return
+	var t = clampf(_ability_zoom_timer / 0.4, 0.0, 1.0)
+	for ri in range(3):
+		var ring_t = clampf(t - float(ri) * 0.15, 0.0, 1.0)
+		if ring_t > 0.0:
+			draw_arc(pos, (1.0 - ring_t) * 120.0 + 20.0, 0, TAU, 32, Color(1.0, 0.85, 0.4, ring_t * 0.3), 2.5 * ring_t)
+	for li in range(8):
+		var la = float(li) * TAU / 8.0
+		var line_dir = Vector2(cos(la), sin(la))
+		draw_line(pos + line_dir * 30.0 * (1.0 - t), pos + line_dir * (60.0 + 40.0 * (1.0 - t)), Color(1.0, 0.9, 0.5, t * 0.25), 1.5)
+	if t > 0.7:
+		draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 0.95, 0.8, (t - 0.7) / 0.3 * 0.1))
+
+func trigger_ability_zoom(pos: Vector2) -> void:
+	_ability_zoom_timer = 0.4
+	_ability_zoom_pos = pos
+
+# 15. Share Card Generator
+func _draw_share_card() -> void:
+	if not _share_card_active: return
+	_share_card_timer -= get_process_delta_time()
+	if _share_card_timer <= 0.0:
+		_share_card_active = false
+		return
+	var alpha = clampf(_share_card_timer / 1.0, 0.0, 1.0) * clampf((8.0 - _share_card_timer) / 0.5, 0.0, 1.0)
+	var font = game_font
+	var cx = 640.0
+	var cy = 360.0
+	var cw = 500.0
+	var ch = 380.0
+	var card_x = cx - cw * 0.5
+	var card_y = cy - ch * 0.5
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.0, 0.6 * alpha))
+	draw_rect(Rect2(card_x, card_y, cw, ch), Color(0.82, 0.72, 0.52, 0.95 * alpha))
+	draw_rect(Rect2(card_x, card_y, cw, ch), Color(0.75, 0.6, 0.2, 0.9 * alpha), false, 3.0)
+	draw_rect(Rect2(card_x + 5, card_y + 5, cw - 10, ch - 10), Color(0.6, 0.45, 0.15, 0.5 * alpha), false, 1.5)
+	for ci in range(4):
+		var ox = card_x if ci % 2 == 0 else card_x + cw
+		var oy = card_y if ci < 2 else card_y + ch
+		var dx = 1.0 if ci % 2 == 0 else -1.0
+		var dy = 1.0 if ci < 2 else -1.0
+		draw_line(Vector2(ox, oy), Vector2(ox + 20 * dx, oy), Color(0.85, 0.7, 0.2, 0.7 * alpha), 2.0)
+		draw_line(Vector2(ox, oy), Vector2(ox, oy + 20 * dy), Color(0.85, 0.7, 0.2, 0.7 * alpha), 2.0)
+		draw_circle(Vector2(ox + 3 * dx, oy + 3 * dy), 4, Color(0.85, 0.7, 0.2, 0.4 * alpha))
+	_udraw(font, Vector2(cx + 1, card_y + 36), "VICTORY!", HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(0.0, 0.0, 0.0, 0.4 * alpha))
+	_udraw(font, Vector2(cx, card_y + 35), "VICTORY!", HORIZONTAL_ALIGNMENT_CENTER, -1, 32, Color(0.55, 0.35, 0.08, alpha))
+	draw_line(Vector2(card_x + 50, card_y + 52), Vector2(card_x + cw - 50, card_y + 52), Color(0.7, 0.55, 0.15, 0.5 * alpha), 1.5)
+	var level_name = levels[current_level]["name"] if current_level >= 0 and current_level < levels.size() else "Unknown"
+	_udraw(font, Vector2(cx, card_y + 75), level_name, HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(0.3, 0.2, 0.08, 0.9 * alpha))
+	var stats_y = card_y + 105
+	var stat_entries = [["Waves Survived", str(wave)], ["Gold Earned", _format_gold(gold)], ["Lives Remaining", str(lives)]]
+	for si in range(stat_entries.size()):
+		var sy = stats_y + float(si) * 28.0
+		_udraw(font, Vector2(card_x + 40, sy + 16), stat_entries[si][0], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.35, 0.25, 0.1, 0.8 * alpha))
+		_udraw(font, Vector2(card_x + cw - 40, sy + 16), stat_entries[si][1], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.55, 0.38, 0.08, 0.9 * alpha))
+	var lineup_y = stats_y + 100.0
+	_udraw(font, Vector2(cx, lineup_y + 14), "YOUR DEFENDERS", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.4, 0.3, 0.12, 0.7 * alpha))
+	draw_line(Vector2(card_x + 50, lineup_y + 22), Vector2(card_x + cw - 50, lineup_y + 22), Color(0.6, 0.45, 0.15, 0.3 * alpha), 1.0)
+	var towers = get_tree().get_nodes_in_group("towers")
+	var tower_names_used = {}
+	for tower in towers:
+		if "tower_type" in tower:
+			var tt = tower.tower_type
+			if not tower_names_used.has(tt): tower_names_used[tt] = 0
+			tower_names_used[tt] += 1
+	var lineup_x = card_x + 50.0
+	var col_idx = 0
+	for tt in tower_names_used.keys():
+		var tname = tower_info[tt]["name"] if tower_info.has(tt) else "?"
+		var tx = lineup_x + float(col_idx % 3) * 150.0
+		var ty = lineup_y + 35.0 + float(col_idx / 3) * 22.0
+		draw_circle(Vector2(tx, ty), 4, Color(0.6, 0.45, 0.15, 0.6 * alpha))
+		_udraw(font, Vector2(tx + 10, ty + 5), "%s x%d" % [tname, tower_names_used[tt]], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.35, 0.25, 0.1, 0.8 * alpha))
+		col_idx += 1
+	_udraw(font, Vector2(cx, card_y + ch - 22), "SHADOW DEFENSE", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.5, 0.38, 0.15, 0.5 * alpha))
+
+func trigger_share_card() -> void:
+	_share_card_active = true
+	_share_card_timer = 8.0
