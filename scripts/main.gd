@@ -1537,6 +1537,7 @@ var _enemy_portrait_textures: Dictionary = {}  # "faction/tier_N" -> ImageTextur
 var _gear_icon_textures: Dictionary = {}  # gear_id -> ImageTexture
 var _achievement_icon_textures: Dictionary = {}  # ach_id -> ImageTexture
 var _emporium_icon_textures: Dictionary = {}  # emp_key -> ImageTexture
+var _ui_textures: Dictionary = {}  # UI element textures (go_button, locked_button, etc.)
 var _death_fx_textures: Dictionary = {}  # faction_key -> ImageTexture
 var _collectible_textures: Dictionary = {}  # item_key -> ImageTexture
 
@@ -4387,6 +4388,29 @@ func _load_badge_icon_textures() -> void:
 			if tex:
 				_badge_icon_textures[bname] = tex
 
+func _load_ui_textures() -> void:
+	_ui_textures.clear()
+	var items = {
+		"go_button": "res://assets/ui_elements/go_button.png",
+		"locked_button": "res://assets/ui_elements/locked_button.png",
+		"difficulty_gems": "res://assets/ui_elements/difficulty_gems.png",
+		"level_card_bg": "res://assets/ui_elements/level_card_bg.png",
+		"nav_bar_bg": "res://assets/ui_elements/nav_bar_bg.png",
+		"header_bar": "res://assets/ui_elements/header_bar.png",
+		"three_stars": "res://assets/ui_elements/three_stars.png",
+		"world_map": "res://assets/menu_art/world_map.png",
+		"level_badge": "res://assets/ui_elements/level_badge.png",
+		"chapter_divider": "res://assets/ui_elements/chapter_divider.png",
+		"survivor_card_frame": "res://assets/ui_elements/survivor_card_frame.png",
+		"upgrade_panel_bg": "res://assets/ui_elements/upgrade_panel_bg.png",
+		"menu_background": "res://assets/menu_art/menu_background.png",
+	}
+	for key in items:
+		if ResourceLoader.exists(items[key]):
+			var tex = load(items[key])
+			if tex:
+				_ui_textures[key] = tex
+
 func _load_level_bg_textures() -> void:
 	_level_bg_textures.clear()
 	for idx in range(37):
@@ -4549,6 +4573,7 @@ func _load_all_art_assets() -> void:
 	_load_map_thumb_textures()
 	_load_tab_icon_textures()
 	_load_badge_icon_textures()
+	_load_ui_textures()
 	_load_level_bg_textures()
 	_load_path_textures()
 	_load_portrait_textures()
@@ -10685,14 +10710,20 @@ func _draw_currency_bar() -> void:
 	# Fill status bar area behind notch/cutout
 	if _safe_top > 0:
 		draw_rect(Rect2(0, 0, 1280, _safe_top), Color(0.02, 0.02, 0.08, 0.95))
-	# Deep navy bar with subtle purple gradient
-	draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
-	var grad_steps = 16
-	var step_w = 1280.0 / float(grad_steps)
-	for gi in range(grad_steps):
-		var grad_t = (float(gi) + 0.5) / float(grad_steps)
-		var purple_a = sin(grad_t * PI) * 0.06
-		draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), _ca(menu_accent_purple, purple_a))
+	# Header bar — AI texture or procedural fallback
+	if _ui_textures.has("header_bar"):
+		draw_texture_rect(_ui_textures["header_bar"], Rect2(0, bar_y, 1280, bar_h), false)
+		# Subtle dark tint for text readability
+		draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.0, 0.0, 0.05, 0.35))
+	else:
+		# Deep navy bar with subtle purple gradient
+		draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
+		var grad_steps = 16
+		var step_w = 1280.0 / float(grad_steps)
+		for gi in range(grad_steps):
+			var grad_t = (float(gi) + 0.5) / float(grad_steps)
+			var purple_a = sin(grad_t * PI) * 0.06
+			draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), _ca(menu_accent_purple, purple_a))
 	# Gold bottom accent line
 	draw_rect(Rect2(0, bar_y + bar_h - 1, 1280, 1), _ca(menu_gold, 0.4))
 	# Subtle inner glow at bottom
@@ -10756,16 +10787,23 @@ func _draw_menu_background() -> void:
 				break
 
 	if menu_current_view != "survivors" or survivor_detail_open:
-		# === Deep navy background with vertical gradient ===
-		draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
-		# Vertical gradient — darker at top, slight purple warmth at bottom (20 bands)
-		var bg_bands = _qcount(20)
-		var grad_step = 720 / maxi(1, bg_bands)
-		for gy in range(0, 720, grad_step):
-			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
-			var purple_shift = gt * gt * 0.04
-			var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
-			draw_rect(Rect2(0, gy, 1280, grad_step), col)
+		# === Background: AI art or deep navy gradient ===
+		if _ui_textures.has("menu_background"):
+			# AI art background at low opacity with dark base
+			draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
+			draw_texture_rect(_ui_textures["menu_background"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.35))
+			# Dark overlay for readability
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.02, 0.06, 0.55))
+		else:
+			draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
+			# Vertical gradient — darker at top, slight purple warmth at bottom (20 bands)
+			var bg_bands = _qcount(20)
+			var grad_step = 720 / maxi(1, bg_bands)
+			for gy in range(0, 720, grad_step):
+				var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
+				var purple_shift = gt * gt * 0.04
+				var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
+				draw_rect(Rect2(0, gy, 1280, grad_step), col)
 
 		# === Center radial glow (purple atmosphere — vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
@@ -11192,13 +11230,18 @@ func _draw_menu_background() -> void:
 		Color(0.90, 0.75, 0.25),  # Emporium: gold
 		Color(0.80, 0.65, 0.20),  # Achievements: bronze gold
 	]
-	# Dark gradient background with subtle texture
-	var nav_grad_steps = _qcount(20)
-	var nav_grad_h = 100.0 / float(nav_grad_steps)
-	for ngi in range(nav_grad_steps):
-		var t = float(ngi) / float(maxi(1, nav_grad_steps - 1))
-		var bg_col = Color(0.03, 0.02, 0.08, 0.95).lerp(Color(0.01, 0.01, 0.04, 0.98), t)
-		draw_rect(Rect2(0, nav_draw_y + float(ngi) * nav_grad_h, 1280, nav_grad_h + 1.0), bg_col)
+	# Nav bar background — AI texture or procedural fallback
+	if _ui_textures.has("nav_bar_bg"):
+		draw_texture_rect(_ui_textures["nav_bar_bg"], Rect2(0, nav_draw_y, 1280, 100.0), false)
+		# Dark tint for readability
+		draw_rect(Rect2(0, nav_draw_y, 1280, 100.0), Color(0.0, 0.0, 0.05, 0.3))
+	else:
+		var nav_grad_steps = _qcount(20)
+		var nav_grad_h = 100.0 / float(nav_grad_steps)
+		for ngi in range(nav_grad_steps):
+			var t = float(ngi) / float(maxi(1, nav_grad_steps - 1))
+			var bg_col = Color(0.03, 0.02, 0.08, 0.95).lerp(Color(0.01, 0.01, 0.04, 0.98), t)
+			draw_rect(Rect2(0, nav_draw_y + float(ngi) * nav_grad_h, 1280, nav_grad_h + 1.0), bg_col)
 	# Fill safe area below nav bar (home indicator padding)
 	if _safe_bottom > 0:
 		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.01, 0.01, 0.04, 0.98))
@@ -15160,7 +15203,13 @@ func _draw_story_map() -> void:
 	var arc_gap = 6.0
 
 	# --- Background panel (left-aligned, room for sidebar on right) ---
-	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.05, 0.10, 0.95))
+	if _ui_textures.has("world_map"):
+		# World map at low opacity behind everything
+		draw_texture_rect(_ui_textures["world_map"], Rect2(list_x, list_y, list_w, list_h), false, Color(1, 1, 1, 0.3))
+		# Dark overlay for readability
+		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.04, 0.03, 0.08, 0.75))
+	else:
+		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.05, 0.10, 0.95))
 	draw_rect(Rect2(list_x, list_y, list_w, 2), _ca(menu_gold_dim, 0.5))
 	draw_rect(Rect2(list_x, list_y + list_h - 2, list_w, 2), _ca(menu_gold_dim, 0.3))
 
@@ -15277,10 +15326,15 @@ func _draw_story_map() -> void:
 		# --- Arc header ---
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
-			# Gradient header with arc color
-			for hgi in range(4):
-				var hgt = float(hgi) / 3.0
-				draw_rect(Rect2(list_x + 4, hy + hgt * header_h * 0.25, list_w - 8, header_h * 0.25 + 1), Color(arc_col.r * (0.35 - hgt * 0.06), arc_col.g * (0.35 - hgt * 0.06), arc_col.b * (0.35 - hgt * 0.06), 0.85))
+			# Chapter header background
+			if _ui_textures.has("chapter_divider"):
+				draw_texture_rect(_ui_textures["chapter_divider"], Rect2(list_x + 4, hy, list_w - 8, header_h), false, Color(1, 1, 1, 0.8))
+				# Arc-colored tint overlay
+				draw_rect(Rect2(list_x + 4, hy, list_w - 8, header_h), Color(arc_col.r * 0.3, arc_col.g * 0.3, arc_col.b * 0.3, 0.5))
+			else:
+				for hgi in range(4):
+					var hgt = float(hgi) / 3.0
+					draw_rect(Rect2(list_x + 4, hy + hgt * header_h * 0.25, list_w - 8, header_h * 0.25 + 1), Color(arc_col.r * (0.35 - hgt * 0.06), arc_col.g * (0.35 - hgt * 0.06), arc_col.b * (0.35 - hgt * 0.06), 0.85))
 			# Left accent bar
 			draw_rect(Rect2(list_x + 4, hy, 4, header_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.9))
 			# Character portrait next to chapter header
@@ -15342,14 +15396,31 @@ func _draw_story_map() -> void:
 
 			# --- Row background ---
 			var is_hovered = Rect2(rx, maxf(ry, content_top), rw, row_h).has_point(mouse_pos) and ry >= content_top
-			# Enhancement 20: Chapter theme accent colors — tint row bg with arc color
-			var tint_r = arc_col.r * 0.06
-			var tint_g = arc_col.g * 0.06
-			var tint_b = arc_col.b * 0.06
-			var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
-			if not is_unlocked:
-				row_bg = Color(0.06, 0.05, 0.08, 0.5)
-			draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
+			if _ui_textures.has("level_card_bg") and is_unlocked:
+				# AI art level card background — aspect-ratio preserved
+				var _lcb_tex = _ui_textures["level_card_bg"]
+				var _lcb_ts = Vector2(_lcb_tex.get_width(), _lcb_tex.get_height())
+				var _lcb_scale = maxf(rw / _lcb_ts.x, (row_h - 2) / _lcb_ts.y)
+				var _lcb_dw = _lcb_ts.x * _lcb_scale
+				var _lcb_dh = _lcb_ts.y * _lcb_scale
+				var _lcb_dx = rx + (rw - _lcb_dw) * 0.5
+				var _lcb_dy = ry + ((row_h - 2) - _lcb_dh) * 0.5
+				var _lcb_alpha = 0.85 if is_hovered else 0.6
+				draw_texture_rect(_lcb_tex, Rect2(_lcb_dx, _lcb_dy, _lcb_dw, _lcb_dh), false, Color(1, 1, 1, _lcb_alpha))
+				# Tint overlay with arc color
+				draw_rect(Rect2(rx, ry, rw, row_h - 2), Color(arc_col.r * 0.1, arc_col.g * 0.1, arc_col.b * 0.1, 0.4))
+				# Brighter on hover
+				if is_hovered:
+					draw_rect(Rect2(rx, ry, rw, row_h - 2), Color(1.0, 0.9, 0.6, 0.06))
+			else:
+				# Procedural fallback
+				var tint_r = arc_col.r * 0.06
+				var tint_g = arc_col.g * 0.06
+				var tint_b = arc_col.b * 0.06
+				var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
+				if not is_unlocked:
+					row_bg = Color(0.06, 0.05, 0.08, 0.5)
+				draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
 			# Left accent bar
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
 			draw_rect(Rect2(rx, ry, 3, row_h - 2), accent_col)
@@ -15452,38 +15523,63 @@ func _draw_story_map() -> void:
 				if reward_count > 0:
 					_udraw(font, Vector2(reward_icon_x + float(reward_count) * 18.0 + 4, reward_icon_y + 3), "%d rewards" % level_rewards.size(), HORIZONTAL_ALIGNMENT_LEFT, 100, 14, Color(0.6, 0.55, 0.40, 0.5))
 
-			# --- Difficulty shields (large, prominent) ---
+			# --- Difficulty gems (large, prominent) ---
 			var medal_x = rx + rw - 340.0
 			var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15), Color(0.85, 0.15, 0.15)]
 			var medal_labels = ["E", "M", "H", "P"]
 			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
 			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
+			var _has_gem_tex = _ui_textures.has("difficulty_gems")
+			var _gem_tex = _ui_textures.get("difficulty_gems", null)
 			for di in range(4):
 				var mx = medal_x + float(di) * 52.0
 				var my = ry + 8.0
 				var mw = 46.0
 				var mh = 56.0
 				var earned = medals[di]
-				if earned:
-					# Filled shield with difficulty color
-					var mc = medal_colors[di]
-					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, mc, true)
-					# Enhancement 15: Star glow behind earned stars
-					var ds = diff_stars_arr[di]
-					for dsi in range(3):
-						var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
-						var sy = my + mh * 0.5 + 8.0
-						if dsi < ds:
-							# Golden glow behind earned star
-							var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
-							draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
-							_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
-						else:
-							_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
+				if _has_gem_tex and _gem_tex != null:
+					# AI art gems from sprite strip (4 gems side by side)
+					var gem_tw = _gem_tex.get_width() / 4.0
+					var gem_th = float(_gem_tex.get_height())
+					var gem_region = Rect2(float(di) * gem_tw, 0, gem_tw, gem_th)
+					var gem_draw_sz = minf(mw, mh * 0.7)
+					var gem_scale = minf(gem_draw_sz / gem_tw, gem_draw_sz / gem_th)
+					var gem_dw = gem_tw * gem_scale
+					var gem_dh = gem_th * gem_scale
+					var gem_dx = mx + (mw - gem_dw) * 0.5
+					var gem_dy = my + (mh * 0.45 - gem_dh * 0.5)
+					var gem_alpha = 1.0 if earned else 0.25
+					draw_texture_rect_region(_gem_tex, Rect2(gem_dx, gem_dy, gem_dw, gem_dh), gem_region, Color(1, 1, 1, gem_alpha))
+					# Star row below gem
+					if earned:
+						var ds = diff_stars_arr[di]
+						for dsi in range(3):
+							var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
+							var sy = my + mh * 0.5 + 8.0
+							if dsi < ds:
+								var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
+								draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
+								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
+							else:
+								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
 				else:
-					# Gray outline shield (unearned)
-					_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, Color(0.3, 0.25, 0.2, 0.3), false)
-				# Difficulty letter below shield
+					# Procedural fallback
+					if earned:
+						var mc = medal_colors[di]
+						_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, mc, true)
+						var ds = diff_stars_arr[di]
+						for dsi in range(3):
+							var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
+							var sy = my + mh * 0.5 + 8.0
+							if dsi < ds:
+								var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
+								draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
+								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
+							else:
+								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
+					else:
+						_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, Color(0.3, 0.25, 0.2, 0.3), false)
+				# Difficulty letter below gem/shield
 				var lbl_col = medal_colors[di] if earned else Color(0.35, 0.30, 0.22, 0.4)
 				_udraw(font, Vector2(mx + mw * 0.5, my + mh - 2), medal_labels[di], HORIZONTAL_ALIGNMENT_CENTER, 20, 14, lbl_col)
 
@@ -15505,15 +15601,43 @@ func _draw_story_map() -> void:
 			var btn_h2 = 52.0
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
-				var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
-				_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
+				if _ui_textures.has("go_button"):
+					# AI art GO button — aspect ratio preserved
+					var _go_tex = _ui_textures["go_button"]
+					var _go_ts = Vector2(_go_tex.get_width(), _go_tex.get_height())
+					var _go_scale = minf(btn_w2 / _go_ts.x, btn_h2 / _go_ts.y)
+					var _go_dw = _go_ts.x * _go_scale
+					var _go_dh = _go_ts.y * _go_scale
+					var _go_dx = btn_x + (btn_w2 - _go_dw) * 0.5
+					var _go_dy = btn_y2 + (btn_h2 - _go_dh) * 0.5
+					var _go_alpha = 1.0 if btn_hover else 0.9
+					# Glow on hover
+					if btn_hover:
+						draw_rect(Rect2(btn_x - 3, btn_y2 - 3, btn_w2 + 6, btn_h2 + 6), Color(0.3, 0.8, 0.2, 0.15))
+					draw_texture_rect(_go_tex, Rect2(_go_dx, _go_dy, _go_dw, _go_dh), false, Color(1, 1, 1, _go_alpha))
+					# "GO" text overlay for clarity
+					_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5 + 7), "GO", HORIZONTAL_ALIGNMENT_CENTER, btn_w2, 20, Color(1.0, 1.0, 1.0, 0.95))
+				else:
+					var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
+					_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
 			else:
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
-				# Lock icon
-				var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
-				draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
-				draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
+				if _ui_textures.has("locked_button"):
+					# AI art locked button
+					var _lk_tex = _ui_textures["locked_button"]
+					var _lk_ts = Vector2(_lk_tex.get_width(), _lk_tex.get_height())
+					var _lk_scale = minf(btn_w2 / _lk_ts.x, btn_h2 / _lk_ts.y)
+					var _lk_dw = _lk_ts.x * _lk_scale
+					var _lk_dh = _lk_ts.y * _lk_scale
+					var _lk_dx = btn_x + (btn_w2 - _lk_dw) * 0.5
+					var _lk_dy = btn_y2 + (btn_h2 - _lk_dh) * 0.5
+					draw_texture_rect(_lk_tex, Rect2(_lk_dx, _lk_dy, _lk_dw, _lk_dh), false, Color(1, 1, 1, 0.7))
+				else:
+					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
+					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
+					# Lock icon
+					var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
+					draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
+					draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
 				# Enhancement 19: Locked level requirement text
 				if lvl_idx > 0:
 					var req_lvl = lvl_idx - 1
