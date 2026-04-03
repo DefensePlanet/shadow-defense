@@ -10605,11 +10605,10 @@ func _draw_milestone_popup() -> void:
 	var alpha = minf(_milestone_popup_timer, 1.0)
 	var slide = maxf(0.0, 1.0 - _milestone_popup_timer / 0.5)
 	var cy = lerpf(-60, 60, 1.0 - slide)
-	# Banner
-	draw_rect(Rect2(340, cy, 600, 50), Color(0.12, 0.08, 0.20, 0.95 * alpha))
-	draw_rect(Rect2(340, cy, 600, 50), Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, 0.6 * alpha), false, 2.0)
-	_udraw(font, Vector2(350, cy + 22), _milestone_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 20, Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, alpha))
-	_udraw(font, Vector2(350, cy + 40), _milestone_popup_sub, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.7, 0.7, 0.7, alpha * 0.7))
+	# Banner — Bloons style
+	_ds_panel(Rect2(340, cy, 600, 50), Color(0.12, 0.08, 0.20, 0.95 * alpha), Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, 0.6 * alpha), 2.0, 10.0)
+	_ds_outlined_text(Vector2(640, cy + 22), _milestone_popup_text, 20, Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_udraw(font, Vector2(640, cy + 40), _milestone_popup_sub, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.7, 0.7, 0.7, alpha * 0.7))
 
 # --- 21. SEASONAL DECORATIONS ---
 func _get_current_season() -> String:
@@ -18723,9 +18722,8 @@ func _draw_tower_stats_overlay() -> void:
 	var panel_y = clampf(tpos.y - 60.0, 60.0, 520.0)
 	var pw = 170.0
 	var ph = 140.0
-	# Dark panel with gold border (gothic style)
-	draw_rect(Rect2(panel_x - 2, panel_y - 2, pw + 4, ph + 4), Color(0.8, 0.65, 0.2, 0.7))
-	draw_rect(Rect2(panel_x, panel_y, pw, ph), Color(0.10, 0.07, 0.14, 0.92))
+	# Rounded Bloons panel with gold border
+	_ds_panel(Rect2(panel_x, panel_y, pw, ph), Color(0.10, 0.07, 0.14, 0.92), Color(0.8, 0.65, 0.2, 0.7), 2.0, 10.0)
 	var font = game_font
 	var dmg = tower.damage_dealt if "damage_dealt" in tower else 0.0
 	var kills = tower.kill_count if "kill_count" in tower else 0
@@ -19572,14 +19570,10 @@ func _draw_ability_popup() -> void:
 	var cy = 360.0
 	var pw = 500.0
 	var ph = 120.0
-	# Dark translucent background
-	draw_rect(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.10, 0.07, 0.14, 0.88 * alpha))
-	# Gold ornate border
-	draw_rect(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.85, 0.7, 0.2, 0.9 * alpha), false, 3.0)
-	draw_rect(Rect2(cx - pw / 2 + 4, cy - ph / 2 + 4, pw - 8, ph - 8), Color(0.7, 0.55, 0.15, 0.4 * alpha), false, 1.0)
-	# Title — glowing
-	_udraw(game_font, Vector2(cx - 121, cy - 26), "NEW ABILITY UNLOCKED!", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.5, alpha * 0.25))
-	_udraw(game_font, Vector2(cx - 120, cy - 25), "NEW ABILITY UNLOCKED!", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.88, 0.35, alpha))
+	# Bloons-style rounded panel
+	_ds_panel(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.10, 0.07, 0.14, 0.88 * alpha), Color(0.85, 0.7, 0.2, 0.9 * alpha), 3.0, 14.0)
+	# Title — Bloons outlined
+	_ds_outlined_text(Vector2(cx, cy - 25), "NEW ABILITY UNLOCKED!", 18, Color(1.0, 0.90, 0.38, alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Character name + ability name
 	var char_name = character_names[_ability_popup_tower_type] if _ability_popup_tower_type >= 0 and _ability_popup_tower_type < character_names.size() else ""
 	_udraw(game_font, Vector2(cx - 140, cy + 5), char_name + " — " + _ability_popup_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 1.0, 0.9, alpha))
@@ -32323,7 +32317,7 @@ func _draw_proximity_alert() -> void:
 	draw_circle(exit_pt, 25.0, Color(1.0, 0.15, 0.05, a * 0.5))
 	draw_arc(exit_pt, 50.0, 0, TAU, 24, Color(1.0, 0.2, 0.1, a * 0.7), 2.0)
 	# Warning text
-	_udraw(game_font, Vector2(exit_pt.x, exit_pt.y - 55), "DANGER!", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(1.0, 0.2, 0.1, a))
+	_ds_outlined_text(Vector2(exit_pt.x, exit_pt.y - 55), "DANGER!", 18, Color(1.0, 0.25, 0.1, a), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 # --- Feature 10: Start Button Pulse ---
 func _draw_start_button_pulse() -> void:
@@ -32439,10 +32433,9 @@ func _draw_placement_rating() -> void:
 	var font = game_font
 	var rx = 120.0
 	var ry = 580.0
-	# Badge background
-	draw_rect(Rect2(rx - 20, ry - 16, 40, 30), Color(0.03, 0.02, 0.06, 0.8 * alpha))
-	draw_rect(Rect2(rx - 20, ry - 16, 40, 30), Color(col.r, col.g, col.b, 0.4 * alpha), false, 1.5)
-	_udraw(font, Vector2(rx, ry + 8), _placement_rating, HORIZONTAL_ALIGNMENT_CENTER, -1, 24, Color(col.r, col.g, col.b, alpha))
+	# Badge background — rounded
+	_ds_panel(Rect2(rx - 20, ry - 16, 40, 30), Color(0.03, 0.02, 0.06, 0.8 * alpha), Color(col.r, col.g, col.b, 0.4 * alpha), 1.5, 8.0)
+	_ds_outlined_text(Vector2(rx, ry + 8), _placement_rating, 24, Color(col.r, col.g, col.b, alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	_udraw(font, Vector2(rx, ry + 22), "COVERAGE", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.7, 0.7, 0.7, alpha * 0.6))
 
 # --- Feature 16: Speed Trails ---
