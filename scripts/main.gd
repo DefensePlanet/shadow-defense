@@ -11345,20 +11345,11 @@ func _draw_gear_tab() -> void:
 	var content_top = panel_y + 44.0
 	var content_bottom = panel_y + panel_h - 28.0
 
-	# Navy background gradient
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
+	# Chunky Bloons-style panel with gradient + drop shadow
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.6), 3.0)
 
-	# Gold border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-
-	# Title
-	_ds_title(Vector2(panel_x, panel_y + 28), "GEAR COMPENDIUM", 18, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	# Title — outlined Bloons-style
+	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR COMPENDIUM", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 
 	# Enhancement #26: Character filter indicators — show colored dots for characters that have gear
@@ -11458,6 +11449,8 @@ func _draw_gear_tab() -> void:
 			var is_owned = count > 0
 
 			var bg_col = rarity_bg[rarity] if is_owned else Color(0.05, 0.05, 0.10)
+			# Drop shadow behind gear slot
+			draw_rect(Rect2(cx + 3, cy + 3, card_w, card_h), Color(0, 0, 0, 0.35))
 			draw_rect(Rect2(cx, cy, card_w, card_h), bg_col)
 
 			# Enhancement #30: Owned gear subtle animated glow
@@ -11466,10 +11459,11 @@ func _draw_gear_tab() -> void:
 				draw_rect(Rect2(cx, cy, card_w, card_h), Color(rc.r, rc.g, rc.b, glow_pulse))
 
 			var b_alpha = 0.5 if is_owned else 0.15
-			draw_rect(Rect2(cx, cy, card_w, 1), Color(rc.r, rc.g, rc.b, b_alpha))
-			draw_rect(Rect2(cx, cy + card_h - 1, card_w, 1), Color(rc.r, rc.g, rc.b, b_alpha))
-			draw_rect(Rect2(cx, cy, 1, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
-			draw_rect(Rect2(cx + card_w - 1, cy, 1, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
+			# Chunky 2px border around gear cards
+			draw_rect(Rect2(cx, cy, card_w, 2), Color(rc.r, rc.g, rc.b, b_alpha))
+			draw_rect(Rect2(cx, cy + card_h - 2, card_w, 2), Color(rc.r, rc.g, rc.b, b_alpha))
+			draw_rect(Rect2(cx, cy, 2, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
+			draw_rect(Rect2(cx + card_w - 2, cy, 2, card_h), Color(rc.r, rc.g, rc.b, b_alpha))
 
 			# Enhancement #24: Equipped gear highlighted with golden glow
 			var is_equipped = false
@@ -11567,9 +11561,9 @@ func _draw_gear_tab() -> void:
 	for key in owned_gear:
 		if owned_gear[key] > 0:
 			unique_owned += 1
-	_udraw(font, Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.6))
-	_udraw(font, Vector2(grid_left + 300, footer_y), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.6))
-	_udraw(font, Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.6))
+	_ds_outlined_text(Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	_ds_outlined_text(Vector2(grid_left + 300, footer_y), "Shards: %d" % player_gear_shards, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	_ds_outlined_text(Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
 
 func _draw_emporium() -> void:
 	if emporium_sub_open:
@@ -11581,28 +11575,14 @@ func _draw_emporium() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 
-	# Navy gradient background
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		var grain = sin(float(i) * 2.3) * 0.005
-		col.r += grain
-		col.b += grain * 1.5
-		draw_rect(Rect2(panel_x, panel_y + t * panel_h, panel_w, panel_h / 55.0 + 1), col)
-
-	# Ornate border — gold double frame
-	var emp_outer = _ca(menu_gold_dim, 0.35)
+	# Chunky Bloons-style panel with gradient + drop shadow
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.55), 4.0)
+	# Inner gold accent border
 	var emp_gold = _ca(menu_gold_dim, 0.2)
-	# Outer gold border (3px)
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 3), emp_outer)
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), emp_outer)
-	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), emp_outer)
-	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), emp_outer)
-	# Inner gold border (1px)
-	draw_rect(Rect2(panel_x + 6, panel_y + 6, panel_w - 12, 1), emp_gold)
-	draw_rect(Rect2(panel_x + 6, panel_y + panel_h - 7, panel_w - 12, 1), emp_gold)
-	draw_rect(Rect2(panel_x + 6, panel_y + 6, 1, panel_h - 12), emp_gold)
-	draw_rect(Rect2(panel_x + panel_w - 7, panel_y + 6, 1, panel_h - 12), emp_gold)
+	draw_rect(Rect2(panel_x + 8, panel_y + 8, panel_w - 16, 1), emp_gold)
+	draw_rect(Rect2(panel_x + 8, panel_y + panel_h - 9, panel_w - 16, 1), emp_gold)
+	draw_rect(Rect2(panel_x + 8, panel_y + 8, 1, panel_h - 16), emp_gold)
+	draw_rect(Rect2(panel_x + panel_w - 9, panel_y + 8, 1, panel_h - 16), emp_gold)
 
 	# Corner filigree ornaments (gold only)
 	for corner in [Vector2(panel_x + 14, panel_y + 14), Vector2(panel_x + panel_w - 14, panel_y + 14), Vector2(panel_x + 14, panel_y + panel_h - 14), Vector2(panel_x + panel_w - 14, panel_y + panel_h - 14)]:
@@ -11617,8 +11597,8 @@ func _draw_emporium() -> void:
 	var title_size = 26
 	var title_cx = panel_x + panel_w * 0.5
 	var title_y = panel_y + 36.0
-	# Title — using design system
-	_ds_title(Vector2(panel_x, title_y), title_text, title_size, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	# Title — Bloons-style outlined
+	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, title_y), title_text, title_size, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER, 3)
 	# Decorative stars flanking title
 	var star_lx = title_cx - 110.0
 	var star_rx = title_cx + 95.0
@@ -11681,28 +11661,14 @@ func _draw_emporium() -> void:
 			continue
 		var is_hovered = (i == emporium_hover_index)
 
-		# Tile shadow (6px offset)
-		draw_rect(Rect2(tx + 6, ty + 6, tile_w, tile_h), Color(0.0, 0.0, 0.0, 0.35))
-
-		# Tile background (navy card)
+		# Tile — chunky Bloons-style panel with drop shadow + thick border
 		var bg = menu_bg_card
 		if is_hovered:
 			bg = menu_bg_card_hover
-		draw_rect(Rect2(tx, ty, tile_w, tile_h), bg)
-
-		# Warm amber accent gradient at top
-		for g in range(6):
-			var gt = float(g) / 5.0
-			draw_rect(Rect2(tx, ty + float(g), tile_w, 1), _ca(menu_gold_dim, 0.12 * (1.0 - gt)))
-
-		# Tile border
-		var tile_border = _ca(menu_gold_dim, 0.3)
+		var tile_border_col = _ca(menu_gold_dim, 0.4)
 		if is_hovered:
-			tile_border = _ca(menu_gold, 0.7)
-		draw_rect(Rect2(tx, ty, tile_w, 2), tile_border)
-		draw_rect(Rect2(tx, ty + tile_h - 2, tile_w, 2), tile_border)
-		draw_rect(Rect2(tx, ty, 2, tile_h), tile_border)
-		draw_rect(Rect2(tx + tile_w - 2, ty, 2, tile_h), tile_border)
+			tile_border_col = _ca(menu_gold, 0.8)
+		_ds_panel(Rect2(tx, ty, tile_w, tile_h), bg, tile_border_col, 3.0)
 
 		# Hover glow (gold tint)
 		if is_hovered:
@@ -11754,7 +11720,7 @@ func _draw_emporium() -> void:
 		var icon_offset = 14.0  # Space for category icon
 		var name_x = tx + (tile_w - name_w - icon_offset) * 0.5 + icon_offset
 		var name_y_pos = ty + 28.0
-		_udraw(font, Vector2(name_x, name_y_pos), name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size, Color(0.9, 0.72, 0.2, 0.95))
+		_ds_outlined_text(Vector2(name_x, name_y_pos), name_text, name_size, Color(0.9, 0.72, 0.2, 0.95), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 		# Small procedural icon beside category name (Enhancement #35)
 		var ic_x = name_x - 14.0
 		var ic_y = name_y_pos - 6.0
@@ -29392,25 +29358,17 @@ func _draw_achievements_tab() -> void:
 	var panel_y = 45.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
-	# Background
-	for i in range(56):
-		var t = float(i) / 55.0
-		var col = menu_bg_section.lerp(menu_bg_dark, t)
-		draw_rect(Rect2(panel_x, panel_y + float(i) * 10.0, panel_w, 10.0), col)
-	# Gold border
-	draw_rect(Rect2(panel_x, panel_y, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y + panel_h - 2, panel_w, 2), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	draw_rect(Rect2(panel_x + panel_w - 2, panel_y, 2, panel_h), _ca(menu_gold_dim, 0.4))
-	# Title — centered properly
-	_ds_title(Vector2(panel_x, panel_y + 28), "ACHIEVEMENTS", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	# Chunky Bloons-style panel with gradient + drop shadow
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.6), 3.0)
+	# Title — Bloons-style outlined
+	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + 28), "ACHIEVEMENTS", 24, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER, 3)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 	# Count unlocked
 	var unlocked_count = 0
 	for ach in achievement_definitions:
 		if achievements_unlocked.get(ach["id"], false):
 			unlocked_count += 1
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "%d / %d" % [unlocked_count, achievement_definitions.size()], HORIZONTAL_ALIGNMENT_RIGHT, -1, 16, menu_text_muted)
+	_ds_outlined_text(Vector2(panel_x + panel_w - 180, panel_y + 28), "%d / %d" % [unlocked_count, achievement_definitions.size()], 16, menu_text_muted, -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
 
 	# === Total completion percentage with progress bar (Enhancement #46) ===
 	var total_ratio = float(unlocked_count) / float(max(1, achievement_definitions.size()))
@@ -29499,14 +29457,16 @@ func _draw_achievements_tab() -> void:
 			var is_done = achievements_unlocked.get(ach["id"], false)
 			var prog = achievement_progress.get(ach["id"], 0)
 
-			# === Achievement unlock glow (Enhancement #43) ===
+			# === Achievement unlock glow (Enhancement #43) — Bloons-style bright glow ===
 			if is_done:
-				draw_rect(Rect2(cx - 2, cy - 2, card_w + 4, card_h + 4), Color(cat_col.r, cat_col.g, cat_col.b, 0.08 + sin(_time * 2.0 + float(ai)) * 0.03))
+				var ach_glow = 0.12 + sin(_time * 2.0 + float(ai)) * 0.06
+				draw_rect(Rect2(cx - 4, cy - 4, card_w + 8, card_h + 8), Color(cat_col.r, cat_col.g, cat_col.b, ach_glow * 0.5))
+				draw_rect(Rect2(cx - 2, cy - 2, card_w + 4, card_h + 4), Color(cat_col.r, cat_col.g, cat_col.b, ach_glow))
 
-			# Card — using design system panel
-			var bg = Color(0.10, 0.08, 0.22, 0.85) if is_done else Color(0.05, 0.05, 0.14, 0.85)
-			var bc = _ca(cat_col, 0.5) if is_done else Color(0.25, 0.25, 0.40, 0.3)
-			_ds_panel(Rect2(cx, cy, card_w, card_h), bg, bc, 1.5)
+			# Card — chunky Bloons-style panel with thicker borders
+			var bg = Color(0.12, 0.10, 0.24, 0.90) if is_done else Color(0.05, 0.05, 0.14, 0.85)
+			var bc = _ca(cat_col, 0.7) if is_done else Color(0.25, 0.25, 0.40, 0.3)
+			_ds_panel(Rect2(cx, cy, card_w, card_h), bg, bc, 2.0)
 
 			# === Achievement rarity badge (Enhancement #45) ===
 			# Color based on target difficulty: low=bronze, mid=silver, high=gold
@@ -29532,10 +29492,13 @@ func _draw_achievements_tab() -> void:
 				var pct = clampf(float(prog) / float(max(1, ach["target"])), 0.0, 1.0)
 				draw_rect(Rect2(cx + 4, cy + card_h - 8, (card_w - 8) * pct, 4), Color(cat_col.r, cat_col.g, cat_col.b, 0.5))
 				draw_rect(Rect2(cx + 4, cy + card_h - 8, card_w - 8, 4), Color(0.3, 0.3, 0.4, 0.2), false, 1.0)
-			# Name and desc — brighter
+			# Name and desc — brighter, outlined for earned
 			var nx = cx + 42.0 if _achievement_icon_textures.has(_ach_icon_id) else cx + 30.0
 			var nc = Color(1.0, 0.92, 0.60) if is_done else Color(0.60, 0.56, 0.65)
-			_udraw(font, Vector2(nx, cy + 16), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 14, nc)
+			if is_done:
+				_ds_outlined_text(Vector2(nx, cy + 16), ach["name"], 14, nc, int(card_w - 50), HORIZONTAL_ALIGNMENT_LEFT, 1)
+			else:
+				_udraw(font, Vector2(nx, cy + 16), ach["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 14, nc)
 			_udraw(font, Vector2(nx, cy + 30), ach["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w - 50), 12, Color(0.60, 0.55, 0.48) if not is_done else Color(0.75, 0.68, 0.55))
 			if not is_done:
 				_udraw(font, Vector2(nx, cy + 42), "%d / %d" % [prog, ach["target"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_text_muted)
