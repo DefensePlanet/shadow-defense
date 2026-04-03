@@ -12205,17 +12205,13 @@ func _draw_emporium_sub_panel() -> void:
 				var ox = open_start_x + float(ci) * 340.0
 				var ow = 320.0
 				var oh = 36.0
-				draw_rect(Rect2(ox, open_y, ow, oh), Color(0.14, 0.12, 0.24, 0.88))
-				draw_rect(Rect2(ox, open_y, ow, 1), _ca(menu_gold, 0.3))
-				var ot = "Open %s Chest (%d)" % [tier_names[ci], count]
-				var otw = font.get_string_size(ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-				_udraw(font, Vector2(ox + (ow - otw) * 0.5, open_y + 24), ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.75, 0.2, 0.85))
+				var _oc_hover = Rect2(ox, open_y, ow, oh).has_point(get_viewport().get_mouse_position())
+				_ds_button(Rect2(ox, open_y, ow, oh), "Open %s Chest (%d)" % [tier_names[ci], count], Color(0.25, 0.20, 0.40), _oc_hover, 16)
 
 	# Purchase feedback message with visual countdown timer
 	if emporium_sub_message != "":
 		var msg_col = Color(0.3, 0.85, 0.3, 0.95) if emporium_sub_message == "Purchased!" else Color(0.9, 0.3, 0.2, 0.95)
-		var mw = font.get_string_size(emporium_sub_message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
-		_udraw(font, Vector2(panel_x + (panel_w - mw) * 0.5, panel_y + panel_h - 80), emporium_sub_message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, msg_col)
+		_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + panel_h - 80), emporium_sub_message, 18, msg_col, int(panel_w - 40), HORIZONTAL_ALIGNMENT_CENTER, 2)
 		# Visual countdown bar for confirmation
 		if _emporium_confirm_timer > 0.0:
 			var cbar_w = 200.0
@@ -12223,8 +12219,12 @@ func _draw_emporium_sub_panel() -> void:
 			var cbar_x = panel_x + (panel_w - cbar_w) * 0.5
 			var cbar_y = panel_y + panel_h - 60
 			var fill_ratio = clampf(_emporium_confirm_timer / 3.0, 0.0, 1.0)
-			draw_rect(Rect2(cbar_x, cbar_y, cbar_w, cbar_h), Color(0.2, 0.15, 0.1, 0.5))
-			draw_rect(Rect2(cbar_x, cbar_y, cbar_w * fill_ratio, cbar_h), Color(0.9, 0.7, 0.2, 0.8))
+			draw_colored_polygon(_rrp(Rect2(cbar_x, cbar_y, cbar_w, cbar_h), 3.0), Color(0.2, 0.15, 0.1, 0.5))
+			var _cbar_fill = cbar_w * fill_ratio
+			if _cbar_fill > 4.0:
+				draw_colored_polygon(_rrp(Rect2(cbar_x, cbar_y, _cbar_fill, cbar_h), 3.0), Color(0.9, 0.7, 0.2, 0.8))
+			elif _cbar_fill > 0.0:
+				draw_rect(Rect2(cbar_x, cbar_y, _cbar_fill, cbar_h), Color(0.9, 0.7, 0.2, 0.8))
 
 	# Back button (drawn, detected via click)
 	var back_text = "<  BACK"
@@ -13469,36 +13469,17 @@ func _draw_daily_reward() -> void:
 		var btn_h = 54.0
 		var btn_x = cx - btn_w * 0.5
 		var btn_y = modal_y + modal_h - 82.0
-		# Outer glow
+		# Outer glow (rounded)
 		var btn_glow = 0.18 + sin(_time * 2.5) * 0.10
 		for bg in range(3):
 			var bg_sz = float(bg + 1) * 3.0
-			draw_rect(Rect2(btn_x - bg_sz, btn_y - bg_sz, btn_w + bg_sz * 2, btn_h + bg_sz * 2), Color(1.0, 0.80, 0.25, btn_glow * (0.4 - float(bg) * 0.12)))
-		# Button background gradient
-		for bi in range(6):
-			var bt = float(bi) / 5.0
-			var bc = Color(0.72, 0.58, 0.18, 0.95).lerp(Color(0.50, 0.38, 0.10, 0.98), bt)
-			draw_rect(Rect2(btn_x, btn_y + bt * btn_h, btn_w, btn_h / 5.0 + 1), bc)
-		# Button border
-		draw_rect(Rect2(btn_x, btn_y, btn_w, 3), Color(1.0, 0.88, 0.40, 0.8))
-		draw_rect(Rect2(btn_x, btn_y + btn_h - 2, btn_w, 2), Color(0.35, 0.28, 0.10, 0.6))
-		draw_rect(Rect2(btn_x, btn_y, 3, btn_h), Color(1.0, 0.85, 0.35, 0.5))
-		draw_rect(Rect2(btn_x + btn_w - 3, btn_y, 3, btn_h), Color(1.0, 0.85, 0.35, 0.5))
-		draw_rect(Rect2(btn_x + 4, btn_y + 4, btn_w - 8, 1), Color(1.0, 0.95, 0.65, 0.3))
-		# Button text
-		var claim_text = "CLAIM REWARD"
-		var claim_fs = 22
-		var claim_tw = font.get_string_size(claim_text, HORIZONTAL_ALIGNMENT_LEFT, -1, claim_fs).x
-		var claim_tx = btn_x + (btn_w - claim_tw) * 0.5
-		var claim_ty = btn_y + 36
-		_udraw(font, Vector2(claim_tx + 2, claim_ty + 2), claim_text, HORIZONTAL_ALIGNMENT_LEFT, -1, claim_fs, c_shadow)
-		_udraw(font, Vector2(claim_tx, claim_ty), claim_text, HORIZONTAL_ALIGNMENT_LEFT, -1, claim_fs, Color(1.0, 0.98, 0.92, 1.0))
+			draw_colored_polygon(_rrp(Rect2(btn_x - bg_sz, btn_y - bg_sz, btn_w + bg_sz * 2, btn_h + bg_sz * 2), 14.0 + bg_sz), Color(1.0, 0.80, 0.25, btn_glow * (0.4 - float(bg) * 0.12)))
+		# Button (Bloons 3D style)
+		var _claim_hover = Rect2(btn_x, btn_y, btn_w, btn_h).has_point(get_viewport().get_mouse_position())
+		_ds_button(Rect2(btn_x, btn_y, btn_w, btn_h), "CLAIM REWARD", Color(0.65, 0.50, 0.15), _claim_hover, 22)
 	else:
 		var done_text = "Reward Claimed! Return Tomorrow."
-		var done_fs = 16
-		var done_w = font.get_string_size(done_text, HORIZONTAL_ALIGNMENT_LEFT, -1, done_fs).x
-		_udraw(font, Vector2(cx - done_w * 0.5 + 1, modal_y + modal_h - 48), done_text, HORIZONTAL_ALIGNMENT_LEFT, -1, done_fs, Color(0.0, 0.0, 0.0, 0.3))
-		_udraw(font, Vector2(cx - done_w * 0.5, modal_y + modal_h - 49), done_text, HORIZONTAL_ALIGNMENT_LEFT, -1, done_fs, Color(0.50, 0.82, 0.50, 0.75))
+		_ds_outlined_text(Vector2(cx, modal_y + modal_h - 49), done_text, 16, Color(0.50, 0.82, 0.50, 0.75), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 	# === Close button (circle with X) ===
 	var close_cx = modal_x + modal_w - 30.0
@@ -13585,8 +13566,8 @@ func _draw_survivor_grid() -> void:
 	var grid_top = panel_y + 46.0
 	var grid_bottom = 560.0  # 60px clear above nav bar at 620
 	var available_h = grid_bottom - grid_top
-	var gap_x = 6.0
-	var gap_y = 5.0
+	var gap_x = 10.0
+	var gap_y = 8.0
 	var cols = 4
 	var card_h = (available_h - 2.0 * gap_y) / 3.0
 	var card_w = (panel_w - float(cols - 1) * gap_x) / float(cols)
@@ -13733,8 +13714,8 @@ func _update_world_map_hover() -> void:
 	world_map_hover_index = -1
 	var panel_x = 70.0 + _safe_left
 	var panel_w = 1140.0 - _safe_left - _safe_right
-	var gap_x = 6.0
-	var gap_y = 5.0
+	var gap_x = 10.0
+	var gap_y = 8.0
 	var cols = 4
 	var card_h = (560.0 - (38.0 + 46.0) - 2.0 * gap_y) / 3.0
 	var card_w = (panel_w - 3.0 * gap_x) / 4.0
@@ -16398,9 +16379,9 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		var bg = Color(0.06, 0.10, 0.18, 0.55) if claimed else (Color(0.10, 0.18, 0.24, 0.72) if completed else Color(0.10, 0.09, 0.14, 0.65))
 		draw_rect(Rect2(px + 8, iy, pw - 16, ih), bg)
 		draw_rect(Rect2(px + 8, iy, pw - 16, ih), Color(0.3, 0.5, 0.8, 0.25), false, 1.0)
-		# Weekly badge
-		draw_rect(Rect2(px + 10, iy + 2, 60, 18), Color(0.2, 0.4, 0.7, 0.3))
-		_udraw(font, Vector2(px + 40, iy + 15), "WEEKLY", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.65, 0.9))
+		# Weekly badge (rounded)
+		draw_colored_polygon(_rrp(Rect2(px + 10, iy + 2, 60, 18), 5.0), Color(0.2, 0.4, 0.7, 0.3))
+		_ds_outlined_text(Vector2(px + 40, iy + 15), "WEEKLY", 14, Color(0.4, 0.65, 0.9), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		_udraw(font, Vector2(px + 16, iy + 28), wq.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 150), 13, Color(0.75, 0.75, 0.85) if not claimed else Color(0.4, 0.4, 0.45))
 		# Progress
 		var pct = float(wq.get("progress", 0)) / float(max(1, wq.get("target", 1)))
