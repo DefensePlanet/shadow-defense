@@ -10158,12 +10158,16 @@ func _draw_loot_crate_popup() -> void:
 		if _loot_crate_reward.has("crystals"):
 			_udraw(font, Vector2(cx - 150, ry), "+%d Crystals" % _loot_crate_reward["crystals"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.4, 0.9, 0.6))
 			ry += 24.0
-		# Pity meter
+		# Pity meter (rounded)
 		var pity_ratio = float(_total_drops_no_legendary) / float(PITY_GUARANTEE_AT)
-		draw_rect(Rect2(cx - 100, ry + 10, 200, 8), Color(0.1, 0.1, 0.15, 0.5))
-		draw_rect(Rect2(cx - 100, ry + 10, 200.0 * pity_ratio, 8), Color(0.95, 0.75, 0.1, 0.7))
+		draw_colored_polygon(_rrp(Rect2(cx - 100, ry + 10, 200, 8), 4.0), Color(0.1, 0.1, 0.15, 0.5))
+		var _pity_fill = 200.0 * pity_ratio
+		if _pity_fill > 6.0:
+			draw_colored_polygon(_rrp(Rect2(cx - 100, ry + 10, _pity_fill, 8), 4.0), Color(0.95, 0.75, 0.1, 0.7))
+		elif _pity_fill > 0.0:
+			draw_rect(Rect2(cx - 100, ry + 10, _pity_fill, 8), Color(0.95, 0.75, 0.1, 0.7))
 		_udraw(font, Vector2(cx - 100, ry + 28), "Pity: %d/%d" % [_total_drops_no_legendary, PITY_GUARANTEE_AT], HORIZONTAL_ALIGNMENT_CENTER, 200, 12, Color(0.6, 0.6, 0.6, 0.6))
-		_udraw(font, Vector2(cx - 150, ry + 50), "TAP TO COLLECT", HORIZONTAL_ALIGNMENT_CENTER, 300, 16, Color(1, 1, 1, 0.5 + sin(_time * 3.0) * 0.3))
+		_ds_outlined_text(Vector2(cx, ry + 50), "TAP TO COLLECT", 16, Color(1, 1, 1, 0.5 + sin(_time * 3.0) * 0.3), 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 # --- 3. STREAK SHIELD ---
 func _use_streak_shield() -> bool:
@@ -16418,9 +16422,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 			var btn_y = iy + 28.0
 			var wclaim_h = 44.0 if _is_mobile else 20.0
 			var btn_hov = _is_hover_or_pressed(Rect2(btn_x, btn_y, 95, wclaim_h), mouse_pos)
-			draw_rect(Rect2(btn_x, btn_y, 95, wclaim_h), Color(0.1, 0.2, 0.35, 0.9 if btn_hov else 0.7))
-			draw_rect(Rect2(btn_x, btn_y, 95, wclaim_h), Color(0.3, 0.6, 0.9, claim_pulse if btn_hov else 0.5), false, 2.0)
-			_udraw(font, Vector2(btn_x + 48, btn_y + 15), "CLAIM!", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.4, 0.7, 1.0, claim_pulse))
+			_ds_button(Rect2(btn_x, btn_y, 95, wclaim_h), "CLAIM!", Color(0.15, 0.35, 0.60), btn_hov, 13)
 			_udraw(font, Vector2(px + 16, iy + 42), reward_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.70, 0.28))
 		else:
 			_udraw(font, Vector2(px + pw - 70, iy + 42), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.85, 0.70, 0.28))
