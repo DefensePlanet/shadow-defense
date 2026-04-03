@@ -5455,7 +5455,7 @@ func _create_ui() -> void:
 
 	# === Tower upgrade panel (right-side, hidden by default) ===
 	upgrade_panel = ColorRect.new()
-	upgrade_panel.color = Color(0.14, 0.10, 0.20, 0.95)
+	upgrade_panel.color = Color(0.12, 0.10, 0.22, 0.96)
 	upgrade_panel.position = Vector2(1080, 15)
 	upgrade_panel.size = Vector2(200, 710)
 	upgrade_panel.visible = false
