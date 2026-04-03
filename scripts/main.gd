@@ -10147,16 +10147,16 @@ func _draw_loot_crate_popup() -> void:
 		_ds_outlined_text(Vector2(cx, cy - 55), "STORYBOOK CRATE", 16, Color(0.75, 0.75, 0.75, 0.8), 300, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		var ry = cy - 20.0
 		if _loot_crate_reward.has("gold"):
-			_udraw(font, Vector2(cx - 150, ry), "+%d Gold" % _loot_crate_reward["gold"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_gold)
+			_ds_outlined_text(Vector2(cx, ry), "+%d Gold" % _loot_crate_reward["gold"], 18, c_gold, 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
 			ry += 24.0
 		if _loot_crate_reward.has("quills"):
-			_udraw(font, Vector2(cx - 150, ry), "+%d Quills" % _loot_crate_reward["quills"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.7, 0.35, 0.9))
+			_ds_outlined_text(Vector2(cx, ry), "+%d Quills" % _loot_crate_reward["quills"], 18, Color(0.7, 0.35, 0.9), 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
 			ry += 24.0
 		if _loot_crate_reward.has("shards"):
-			_udraw(font, Vector2(cx - 150, ry), "+%d Shards" % _loot_crate_reward["shards"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_cyan)
+			_ds_outlined_text(Vector2(cx, ry), "+%d Shards" % _loot_crate_reward["shards"], 18, c_cyan, 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
 			ry += 24.0
 		if _loot_crate_reward.has("crystals"):
-			_udraw(font, Vector2(cx - 150, ry), "+%d Crystals" % _loot_crate_reward["crystals"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, Color(0.4, 0.9, 0.6))
+			_ds_outlined_text(Vector2(cx, ry), "+%d Crystals" % _loot_crate_reward["crystals"], 18, Color(0.4, 0.9, 0.6), 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
 			ry += 24.0
 		# Pity meter (rounded)
 		var pity_ratio = float(_total_drops_no_legendary) / float(PITY_GUARANTEE_AT)
