@@ -16443,17 +16443,16 @@ func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> v
 		var can_buy = arena_crystals >= item["cost"]
 		var item_col = Color(0.9, 0.85, 1.0) if can_buy else Color(0.5, 0.4, 0.5)
 		var is_confirming = (_arena_confirm_index == si and _arena_confirm_timer > 0.0)
-		draw_rect(Rect2(px + 8, iy, pw - 16, 36), Color(0.25, 0.12, 0.35, 0.8) if is_confirming else Color(0.15, 0.08, 0.2, 0.6))
 		if is_confirming:
-			draw_rect(Rect2(px + 8, iy, pw - 16, 36), Color(0.7, 0.3, 0.9, 0.6), false, 2.0)
+			_ds_panel(Rect2(px + 8, iy, pw - 16, 36), Color(0.25, 0.12, 0.35, 0.8), Color(0.7, 0.3, 0.9, 0.6), 2.0, 8.0)
+		else:
+			_ds_panel(Rect2(px + 8, iy, pw - 16, 36), Color(0.15, 0.08, 0.2, 0.6), Color(0.45, 0.25, 0.55, 0.25), 1.0, 8.0)
 		_udraw(font, Vector2(px + 14, iy + 14), item["name"], HORIZONTAL_ALIGNMENT_LEFT, int(pw - 100), 14, item_col)
 		_udraw(font, Vector2(px + 14, iy + 28), item["desc"] if not is_confirming else "Tap again to confirm", HORIZONTAL_ALIGNMENT_LEFT, int(pw - 100), 14, Color(1.0, 0.8, 0.3) if is_confirming else Color(0.5, 0.45, 0.55))
 		_udraw(font, Vector2(px + pw - 20, iy + 20), "%d" % item["cost"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 15, Color(0.6, 0.3, 0.9) if can_buy else Color(0.4, 0.3, 0.4))
 	# Enter button
 	var enter_y = shop_y + 16 + float(shop_items.size()) * 42.0 + 10
-	draw_rect(Rect2(px + pw * 0.5 - 60, enter_y, 120, 36), Color(0.30, 0.15, 0.50, 0.75))
-	draw_rect(Rect2(px + pw * 0.5 - 60, enter_y, 120, 2), Color(0.5, 0.3, 0.7, 0.5))
-	_udraw(font, Vector2(px + pw * 0.5 - 54, enter_y + 24), "ENTER", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.88, 0.78, 0.98))
+	_ds_button(Rect2(px + pw * 0.5 - 60, enter_y, 120, 36), "ENTER", Color(0.35, 0.15, 0.55), false, 15)
 
 func _draw_odyssey_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	var font = game_font
@@ -29514,9 +29513,8 @@ func _draw_power_selection() -> void:
 	var ph = 480.0
 	var px = (1280 - pw) / 2
 	var py = (720 - ph) / 2
-	draw_rect(Rect2(px, py, pw, ph), Color(0.12, 0.08, 0.18, 0.95))
-	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
-	_ds_outlined_text(Vector2(px, py + 30), "SELECT BATTLE POWERS", 20, Color(1.0, 0.85, 0.28), int(pw), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.12, 0.08, 0.18, 0.95), _ca(c_gold, 0.5), 3.0, 14.0)
+	_ds_outlined_text(Vector2(px + pw * 0.5, py + 30), "SELECT BATTLE POWERS", 22, Color(1.0, 0.85, 0.28), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	_udraw(font, Vector2(px + pw * 0.5 - 100, py + 54), "Choose up to 3 powers for this battle", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.6, 0.5, 0.4))
 	# Cancel/Back button (top-right)
 	draw_rect(Rect2(px + pw - 112, py + 10, 100, 40), Color(0.4, 0.15, 0.15, 0.8))
@@ -29531,10 +29529,8 @@ func _draw_power_selection() -> void:
 		var is_selected_p = bp["id"] in selected_powers
 		# Background
 		var bg_c = Color(0.15, 0.12, 0.06, 0.8) if is_selected_p else Color(0.08, 0.06, 0.10, 0.8)
-		draw_rect(Rect2(bx, by, pw - 60, 48), bg_c)
-		# Border
 		var bdr = Color(0.85, 0.7, 0.2, 0.6) if is_selected_p else Color(0.3, 0.25, 0.2, 0.3)
-		draw_rect(Rect2(bx, by, pw - 60, 48), bdr, false, 1.0)
+		_ds_panel(Rect2(bx, by, pw - 60, 48), bg_c, bdr, 1.5, 8.0)
 		# Name & desc
 		_udraw(font, Vector2(bx + 12, by + 18), bp["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.75, 0.5))
 		_udraw(font, Vector2(bx + 12, by + 34), bp["desc"], HORIZONTAL_ALIGNMENT_LEFT, 350, 14, Color(0.55, 0.48, 0.38))
@@ -29548,29 +29544,10 @@ func _draw_power_selection() -> void:
 	var sbx = px + (pw - sb_w) * 0.5
 	var sby = py + ph - sb_h - 16
 	var sb_pulse = (sin(_time * 3.0) + 1.0) * 0.5
-	# Glow behind button
-	draw_rect(Rect2(sbx - 4, sby - 4, sb_w + 8, sb_h + 8), Color(0.2, 0.7, 0.2, 0.08 + sb_pulse * 0.06))
-	# Button background
-	draw_rect(Rect2(sbx, sby, sb_w, sb_h), Color(0.15, 0.55, 0.15, 0.9))
-	# Top highlight
-	draw_rect(Rect2(sbx, sby, sb_w, sb_h * 0.4), Color(0.3, 0.7, 0.3, 0.2))
-	# Border
-	draw_rect(Rect2(sbx, sby, sb_w, sb_h), Color(0.4, 0.9, 0.3, 0.7 + sb_pulse * 0.3), false, 2.5)
-	# Text
-	var sb_text = "START BATTLE"
-	var sb_tw = font.get_string_size(sb_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-	_udraw(font, Vector2(sbx + (sb_w - sb_tw) * 0.5 + 1, sby + 33), sb_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0, 0, 0, 0.3))
-	_udraw(font, Vector2(sbx + (sb_w - sb_tw) * 0.5, sby + 32), sb_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
-	# Cancel button (top-right corner of panel)
-	var cancel_w = 100.0
-	var cancel_h = 40.0
-	var cancel_x = px + pw - cancel_w - 12
-	var cancel_y = py + 10
-	draw_rect(Rect2(cancel_x, cancel_y, cancel_w, cancel_h), Color(0.5, 0.15, 0.15, 0.8))
-	draw_rect(Rect2(cancel_x, cancel_y, cancel_w, cancel_h), Color(0.8, 0.3, 0.3, 0.5), false, 1.0)
-	var cancel_text = "CANCEL"
-	var ctw = font.get_string_size(cancel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	_udraw(font, Vector2(cancel_x + (cancel_w - ctw) * 0.5, cancel_y + 26), cancel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.8, 0.8))
+	# START BATTLE — Bloons 3D button
+	_ds_button(Rect2(sbx, sby, sb_w, sb_h), "START BATTLE", Color(0.15, 0.55, 0.15), false, 20)
+	# Cancel button — Bloons style
+	_ds_button(Rect2(px + pw - 112, py + 10, 100, 40), "CANCEL", Color(0.5, 0.15, 0.15), false, 14)
 
 # === ODYSSEY DRAWING ===
 func _draw_odyssey_panel() -> void:
@@ -34848,14 +34825,14 @@ func _draw_stat_bar(pos: Vector2, width: float, label: String, value: float, col
 	var label_w = font.get_string_size(label.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 	var bar_x = pos.x + label_w + 10.0
 	var bar_w = width - label_w - 50.0
-	# Bar background
-	draw_rect(Rect2(bar_x, pos.y + 1, bar_w, bar_h), Color(0.04, 0.04, 0.10))
-	# Fill
+	# Bar background — rounded
+	draw_colored_polygon(_rrp(Rect2(bar_x, pos.y + 1, bar_w, bar_h), 4.0), Color(0.04, 0.04, 0.10))
+	# Fill — rounded
 	var fill_actual = bar_w * clampf(value / 100.0, 0.0, 1.0)
 	if fill_actual > 0:
-		draw_rect(Rect2(bar_x, pos.y + 1, fill_actual, bar_h), Color(color.r, color.g, color.b, 0.7))
+		draw_colored_polygon(_rrp(Rect2(bar_x, pos.y + 1, fill_actual, bar_h), 4.0), Color(color.r, color.g, color.b, 0.7))
 		# Top highlight stripe
-		draw_rect(Rect2(bar_x, pos.y + 1, fill_actual, bar_h * 0.3), Color(1, 1, 1, 0.1))
+		draw_colored_polygon(_rrp(Rect2(bar_x, pos.y + 1, fill_actual, bar_h * 0.3), 4.0), Color(1, 1, 1, 0.1))
 	# Percentage text
 	var pct_str = "+%d%%" % int(value)
 	var pct_w = font.get_string_size(pct_str.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
