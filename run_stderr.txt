@@ -1,0 +1,21 @@
+SCRIPT ERROR: Invalid assignment of property or key 'sprite_texture' with value of type 'CompressedTexture2D' on a base object of type 'Node2D (robin_hood.gd)'.
+   at: _try_place_tower (res://scripts/main.gd:18569)
+   GDScript backtrace (most recent call first):
+       [0] _try_place_tower (res://scripts/main.gd:18569)
+       [1] _unhandled_input (res://scripts/main.gd:18511)
+SCRIPT ERROR: Invalid assignment of property or key 'sprite_texture' with value of type 'CompressedTexture2D' on a base object of type 'Node2D (robin_hood.gd)'.
+   at: _try_place_tower (res://scripts/main.gd:18569)
+   GDScript backtrace (most recent call first):
+       [0] _try_place_tower (res://scripts/main.gd:18569)
+       [1] _unhandled_input (res://scripts/main.gd:18482)
+SCRIPT ERROR: Invalid assignment of property or key 'sprite_texture' with value of type 'CompressedTexture2D' on a base object of type 'Node2D (robin_hood.gd)'.
+   at: _try_place_tower (res://scripts/main.gd:18569)
+   GDScript backtrace (most recent call first):
+       [0] _try_place_tower (res://scripts/main.gd:18569)
+       [1] _unhandled_input (res://scripts/main.gd:18511)
+WARNING: 3 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2692)
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2641)
+ERROR: 3 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:810)
