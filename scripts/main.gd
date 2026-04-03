@@ -316,7 +316,7 @@ var c_gold = Color(0.85, 0.65, 0.10)               # primary gold (replaces all 
 var c_gold_bright = Color(1.0, 0.85, 0.20)          # bright gold highlight
 var c_gold_warm = Color(0.85, 0.70, 0.20)           # warm gold accent
 var c_dark = Color(0.10, 0.08, 0.06)                # standard dark bg
-var c_darker = Color(0.06, 0.05, 0.10)              # deepest dark (brightened)
+var c_darker = Color(0.14, 0.28, 0.48)              # deepest dark (brightened)
 var c_panel = Color(0.08, 0.07, 0.14)               # standard panel bg (brightened)
 var c_green = Color(0.3, 0.8, 0.3)                  # success / confirm
 var c_red = Color(0.7, 0.15, 0.1)                   # danger / warning
@@ -5445,7 +5445,7 @@ func _create_ui() -> void:
 
 	# === Ability choice panel (centered, hidden by default) ===
 	ability_panel = ColorRect.new()
-	ability_panel.color = Color(0.14, 0.10, 0.20, 0.95)
+	ability_panel.color = Color(0.22, 0.38, 0.58, 0.95)
 	ability_panel.position = Vector2(290, 150)
 	ability_panel.size = Vector2(700, 380)
 	ability_panel.visible = false
@@ -5528,7 +5528,7 @@ func _create_ui() -> void:
 	upgrade_panel.add_child(portrait_border)
 
 	var portrait_bg = ColorRect.new()
-	portrait_bg.color = Color(0.12, 0.08, 0.16, 0.85)
+	portrait_bg.color = Color(0.20, 0.35, 0.55, 0.85)
 	portrait_bg.position = Vector2(50, 50)
 	portrait_bg.size = Vector2(100, 80)
 	upgrade_panel.add_child(portrait_bg)
@@ -5559,7 +5559,7 @@ func _create_ui() -> void:
 		var status_rect = ColorRect.new()
 		status_rect.position = Vector2(10, slot_y)
 		status_rect.size = Vector2(180, 66)
-		status_rect.color = Color(0.12, 0.08, 0.16, 0.8)
+		status_rect.color = Color(0.20, 0.35, 0.55, 0.8)
 		upgrade_panel.add_child(status_rect)
 		upgrade_status_rects.append(status_rect)
 
@@ -9004,7 +9004,7 @@ func _draw_story_dialog() -> void:
 	var shown_text = full_text.substr(0, story_state.char_index)
 
 	# === FULL-SCREEN CINEMATIC OVERLAY ===
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.08, 0.06, 0.14, 1.0))
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.16, 0.30, 0.50, 1.0))
 	# Vignette corners
 	for vi in range(15):
 		var vt = float(vi) / 14.0
@@ -14597,7 +14597,7 @@ func _draw_survivor_detail() -> void:
 			# 40px icon circle
 			var icon_cx = abil_cx + 32.0
 			var icon_cy = ay + 30.0
-			draw_circle(Vector2(icon_cx, icon_cy), 20.0, Color(0.10, 0.08, 0.18, tab_alpha))
+			draw_circle(Vector2(icon_cx, icon_cy), 20.0, Color(0.20, 0.36, 0.56, tab_alpha))
 			var ring_alpha = (0.9 if is_abil_hover else 0.5) * tab_alpha
 			# Pulsing ring on hover
 			var ring_pulse = 1.0
@@ -14751,7 +14751,7 @@ func _draw_survivor_detail() -> void:
 			var sk_unlocked = sk_unlocked_arr[si] if si < sk_unlocked_arr.size() else false
 			var sk_hover = (detail_hover_type == "sidekick" and detail_hover_index == si)
 			# Slot background with corner brackets
-			draw_rect(Rect2(sx, sy, sk_slot_sz, sk_slot_sz), Color(0.10, 0.08, 0.18, tab_alpha))
+			draw_rect(Rect2(sx, sy, sk_slot_sz, sk_slot_sz), Color(0.20, 0.36, 0.56, tab_alpha))
 			var sk_bdr_col = accent if sk_unlocked else Color(0.3, 0.28, 0.40)
 			_draw_enhanced_gear_slot(Vector2(sx, sy), sk_slot_sz, sk_unlocked, sk_bdr_col, accent, sk_hover)
 			if sk_unlocked and si < sk_data.size():
@@ -14920,7 +14920,7 @@ func _draw_survivor_detail() -> void:
 			if tt_y_pos < panel_y:
 				tt_y_pos = mouse_pos.y + 22
 			# Frosted tooltip (rounded)
-			_ds_panel(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.10, 0.08, 0.18, 0.95), _ca(accent, 0.5), 2.0, 8.0)
+			_ds_panel(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.20, 0.36, 0.56, 0.95), _ca(accent, 0.5), 2.0, 8.0)
 			draw_rect(Rect2(tt_x, tt_y_pos, 3, tt_h), _ca(accent, 0.4))
 			_udraw(font, Vector2(tt_x + 10, tt_y_pos + 14), tt_title, HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 15, menu_gold)
 			for tli in range(tt_lines.size()):
@@ -14941,7 +14941,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	# Panel background
 	for i in range(40):
 		var t = float(i) / 39.0
-		var col = Color(0.12, 0.08, 0.20).lerp(Color(0.08, 0.06, 0.14), t)
+		var col = Color(0.12, 0.08, 0.20).lerp(Color(0.16, 0.30, 0.50), t)
 		draw_rect(Rect2(ov_x, ov_y + t * ov_h, ov_w, ov_h / 39.0 + 1), col)
 	# Border
 	draw_rect(Rect2(ov_x, ov_y, ov_w, ov_h), _ca(accent, 0.6), false, 2.0)
@@ -15413,7 +15413,7 @@ func _draw_story_map() -> void:
 			draw_colored_polygon(_rrp(Rect2(_lbx, _lby, _lbw, _lbh), 6.0), Color(0.12, 0.08, 0.18, 0.92))
 			var _lb_border = _rrp(Rect2(_lbx, _lby, _lbw, _lbh), 6.0)
 			_lb_border.append(_lb_border[0])
-			draw_polyline(_lb_border, Color(0.85, 0.68, 0.18, 0.8), 1.5)
+			draw_polyline(_lb_border, Color(0.30, 0.70, 0.90, 0.8), 1.5)
 			_ds_outlined_text(Vector2(_lbx + _lbw * 0.5, _lby + 16), str(lvl_idx + 1), 14, Color(0.95, 0.88, 0.45), int(_lbw), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 			# --- Text info (BRIGHT Bloons style) ---
@@ -15794,7 +15794,7 @@ func _draw_chapters_badges() -> void:
 		var glow_r = badge_r + 8 + sin(_time * 2.0 + float(i)) * 3.0
 		draw_circle(Vector2(cx, cy), glow_r, _ca(tc, pulse * (1.8 if is_hovered else 1.0)))
 		# Dark background circle
-		draw_circle(Vector2(cx, cy), badge_r, Color(0.10, 0.07, 0.14, 0.93))
+		draw_circle(Vector2(cx, cy), badge_r, Color(0.18, 0.32, 0.52, 0.93))
 		# Inner gradient shine
 		draw_circle(Vector2(cx, cy - 3), badge_r * 0.6, Color(tc.r * 0.15, tc.g * 0.15, tc.b * 0.15, 0.3))
 		# Animated border ring
@@ -16547,7 +16547,7 @@ func _draw_open_book() -> void:
 	var spine_x = bx + pw + 10  # spine center
 
 	# Book shadow
-	draw_rect(Rect2(bx - 5 + 8, by - 5 + 8, pw * 2 + 30, ph + 10), Color(0.10, 0.08, 0.18, 0.40))
+	draw_rect(Rect2(bx - 5 + 8, by - 5 + 8, pw * 2 + 30, ph + 10), Color(0.20, 0.36, 0.56, 0.40))
 
 	# Left page (aged cream paper)
 	for i in range(55):
@@ -18726,7 +18726,7 @@ func _draw_tower_stats_overlay() -> void:
 	var pw = 170.0
 	var ph = 140.0
 	# Rounded Bloons panel with gold border
-	_ds_panel(Rect2(panel_x, panel_y, pw, ph), Color(0.10, 0.07, 0.14, 0.92), Color(0.8, 0.65, 0.2, 0.7), 2.0, 10.0)
+	_ds_panel(Rect2(panel_x, panel_y, pw, ph), Color(0.18, 0.32, 0.52, 0.92), Color(0.8, 0.65, 0.2, 0.7), 2.0, 10.0)
 	var font = game_font
 	var dmg = tower.damage_dealt if "damage_dealt" in tower else 0.0
 	var kills = tower.kill_count if "kill_count" in tower else 0
@@ -18773,7 +18773,7 @@ func _draw_wave_preview() -> void:
 	var pw = 600.0
 	var ph = 80.0
 	# Rounded crimson panel
-	_ds_panel(Rect2(px, py, pw, ph), Color(0.10, 0.07, 0.14, 0.93), Color(0.7, 0.15, 0.1, 0.8), 3.0, 10.0)
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.18, 0.32, 0.52, 0.93), Color(0.7, 0.15, 0.1, 0.8), 3.0, 10.0)
 	# Title — outlined Bloons style
 	_ds_outlined_text(Vector2(px + pw * 0.5, py + 18), "NEXT WAVE: %d" % (wave + 1), 18, Color(1.0, 0.88, 0.3), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Enemy info
@@ -18838,11 +18838,11 @@ func _draw() -> void:
 		# Menu view transition fade
 		if menu_transition_alpha < 1.0:
 			menu_transition_alpha = minf(menu_transition_alpha + 0.08, 1.0)
-			draw_rect(Rect2(0, 35, 1280, 585), Color(0.10, 0.08, 0.18, (1.0 - menu_transition_alpha) * 0.7))
+			draw_rect(Rect2(0, 35, 1280, 585), Color(0.20, 0.36, 0.56, (1.0 - menu_transition_alpha) * 0.7))
 			queue_redraw()
 		# === View transition dark overlay fade (Enhancement #48) ===
 		if _menu_transition_alpha > 0.0:
-			draw_rect(Rect2(0, 0, 1280, 720), Color(0.10, 0.08, 0.18, _menu_transition_alpha * 0.4))
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.20, 0.36, 0.56, _menu_transition_alpha * 0.4))
 		# Stats banner removed — kept clean like March 17 design
 
 		if chest_opening_active:
@@ -19573,7 +19573,7 @@ func _draw_ability_popup() -> void:
 	var pw = 500.0
 	var ph = 120.0
 	# Bloons-style rounded panel
-	_ds_panel(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.10, 0.07, 0.14, 0.88 * alpha), Color(0.85, 0.7, 0.2, 0.9 * alpha), 3.0, 14.0)
+	_ds_panel(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.18, 0.32, 0.52, 0.88 * alpha), Color(0.85, 0.7, 0.2, 0.9 * alpha), 3.0, 14.0)
 	# Title — Bloons outlined
 	_ds_outlined_text(Vector2(cx, cy - 25), "NEW ABILITY UNLOCKED!", 18, Color(1.0, 0.90, 0.38, alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Character name + ability name
@@ -31580,7 +31580,7 @@ func _draw_spin_wheel_panel() -> void:
 		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.12, 0.1, 0.2, 0.7), Color(0.4, 0.35, 0.5, 0.4), 1.5, 10.0)
 		_ds_outlined_text(Vector2(wheel_cx, btn_y + 30), "SPINNING...", 18, Color(0.6, 0.6, 0.6), int(btn_w - 20), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.08, 0.06, 0.12, 0.7), Color(0.3, 0.25, 0.3, 0.3), 1.5, 10.0)
+		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.16, 0.30, 0.50, 0.7), Color(0.3, 0.25, 0.3, 0.3), 1.5, 10.0)
 		_udraw(font, Vector2(wheel_cx, btn_y + 30), "USED TODAY", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 20), 16, Color(0.45, 0.45, 0.45))
 	# Result display
 	if not lucky_spin_spinning and not lucky_spin_available and lucky_spin_result >= 0:
