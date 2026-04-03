@@ -11431,9 +11431,10 @@ func _draw_gear_tab() -> void:
 			for ch in char_rarity_counts:
 				if char_rarity_counts[ch] >= 3:
 					var set_col = char_filter_colors.get(ch, Color(0.8, 0.7, 0.2))
-					draw_rect(Rect2(set_badge_x, sec_y + 2, 42, 18), Color(set_col.r, set_col.g, set_col.b, 0.25))
-					draw_rect(Rect2(set_badge_x, sec_y + 2, 42, 1), Color(set_col.r, set_col.g, set_col.b, 0.5))
-					draw_rect(Rect2(set_badge_x, sec_y + 19, 42, 1), Color(set_col.r, set_col.g, set_col.b, 0.5))
+					draw_colored_polygon(_rrp(Rect2(set_badge_x, sec_y + 2, 42, 18), 5.0), Color(set_col.r, set_col.g, set_col.b, 0.25))
+					var _set_pts = _rrp(Rect2(set_badge_x, sec_y + 2, 42, 18), 5.0)
+					_set_pts.append(_set_pts[0])
+					draw_polyline(_set_pts, Color(set_col.r, set_col.g, set_col.b, 0.5), 1.0)
 					_udraw(font, Vector2(set_badge_x + 21, sec_y + 16), "SET", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(set_col.r, set_col.g, set_col.b, 0.9))
 					set_badge_x += 48.0
 
@@ -15162,8 +15163,8 @@ func _draw_story_map() -> void:
 	# --- Right sidebar: Deals, Quests, Arena, Odyssey, Endless ---
 	var side_x = list_x + list_w + 12.0
 	var side_w = 1280.0 - _safe_right - side_x - 4.0
-	var side_btn_h = 90.0
-	var side_gap = 8.0
+	var side_btn_h = 95.0
+	var side_gap = 6.0
 	var side_labels = ["DEALS", "QUESTS", "ARENA", "ODYSSEY", "ENDLESS"]
 	var side_colors = [
 		Color(0.75, 0.45, 0.15),  # Deals - orange
@@ -15188,7 +15189,7 @@ func _draw_story_map() -> void:
 		var icon_cy = sy + side_btn_h * 0.40
 		var badge_key = side_icons[si]
 		if _badge_icon_textures.has(badge_key):
-			var badge_sz = 56.0 if side_hover else 48.0
+			var badge_sz = 62.0 if side_hover else 52.0
 			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(icon_cx - badge_sz * 0.5, icon_cy - badge_sz * 0.5, badge_sz, badge_sz), false, Color(1, 1, 1, 1.0 if side_hover else 0.85))
 		else:
 			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.4, sc.g * 0.4, sc.b * 0.4, 0.8))
@@ -31483,8 +31484,7 @@ func _draw_instrument_hud() -> void:
 			if count > 0:
 				items.append(inst)
 		var ph = 8.0 + float(items.size()) * 32.0
-		draw_rect(Rect2(px, py, pw, ph), Color(0.11, 0.08, 0.15, 0.92))
-		draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.4), false, 1.0)
+		_ds_panel(Rect2(px, py, pw, ph), Color(0.11, 0.08, 0.15, 0.92), _ca(c_gold, 0.4), 1.0, 8.0)
 		for i in range(items.size()):
 			var inst = items[i]
 			var iy = py + 4 + float(i) * 32.0
