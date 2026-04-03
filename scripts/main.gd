@@ -1604,6 +1604,13 @@ var _achievement_icon_textures: Dictionary = {}  # ach_id -> ImageTexture
 var _emporium_icon_textures: Dictionary = {}  # emp_key -> ImageTexture
 var _death_fx_textures: Dictionary = {}  # faction_key -> ImageTexture
 var _collectible_textures: Dictionary = {}  # item_key -> ImageTexture
+var _menu_art_textures: Dictionary = {}  # menu art key -> ImageTexture
+var _chapter_card_textures: Dictionary = {}  # chapter slug -> ImageTexture
+var _boss_portrait_textures: Dictionary = {}  # boss slug -> ImageTexture
+var _ui_frame_textures: Dictionary = {}  # frame slug -> ImageTexture
+var _faction_banner_textures: Dictionary = {}  # faction slug -> ImageTexture
+var _story_panel_textures: Dictionary = {}  # panel slug -> ImageTexture
+var _victory_defeat_textures: Dictionary = {}  # victory/defeat slug -> ImageTexture
 
 # Map thumb slug mapping (level index -> filename without extension)
 const MAP_THUMB_SLUGS: Array = [
@@ -4702,6 +4709,87 @@ func _load_collectible_textures() -> void:
 			if tex:
 				_collectible_textures[cname] = tex
 
+func _load_art_texture(path: String) -> Texture2D:
+	# Helper: try ResourceLoader first, fallback to raw Image load
+	if ResourceLoader.exists(path):
+		var tex = load(path)
+		if tex:
+			return tex
+	var abs_path = ProjectSettings.globalize_path(path)
+	var img = Image.new()
+	if img.load(abs_path) == OK:
+		return ImageTexture.create_from_image(img)
+	return null
+
+func _load_menu_art_textures() -> void:
+	_menu_art_textures.clear()
+	var files = ["menu_background", "loading_screen", "world_map", "survivors_bg",
+		"gear_shop_bg", "emporium_bg", "achievements_bg", "chronicles_bg",
+		"settings_bg", "team_splash", "stained_glass", "game_title",
+		"currency_icons", "tab_icons", "gear_icons", "star_ratings", "treasure_chest"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/menu_art/" + fname + ".png")
+		if tex:
+			_menu_art_textures[fname] = tex
+
+func _load_chapter_card_textures() -> void:
+	_chapter_card_textures.clear()
+	var files = ["sherwood_forest", "wonderland", "land_of_oz", "neverland",
+		"opera_house", "victorian_london", "african_jungle", "transylvania",
+		"camelot", "laboratory", "shadow_realm"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/chapter_cards/" + fname + ".png")
+		if tex:
+			_chapter_card_textures[fname] = tex
+
+func _load_boss_portrait_textures() -> void:
+	_boss_portrait_textures.clear()
+	var files = ["shadow_king", "captain_hook", "queen_of_hearts", "moriarty",
+		"dracula_lord", "wicked_witch_boss", "frankenstein_boss", "phantom_boss",
+		"tarzan_boss"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/boss_portraits/" + fname + ".png")
+		if tex:
+			_boss_portrait_textures[fname] = tex
+
+func _load_ui_frame_textures() -> void:
+	_ui_frame_textures.clear()
+	var files = ["golden_frame", "scroll_banner", "wanted_poster", "wooden_panel",
+		"popup_frame", "hud_bar", "wave_warning"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/ui_frames/" + fname + ".png")
+		if tex:
+			_ui_frame_textures[fname] = tex
+
+func _load_faction_banner_textures() -> void:
+	_faction_banner_textures.clear()
+	var files = ["sherwood", "wonderland", "transylvania", "neverland",
+		"victorian_london", "camelot", "laboratory", "land_of_oz"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/faction_banners/" + fname + ".png")
+		if tex:
+			_faction_banner_textures[fname] = tex
+
+func _load_story_panel_textures() -> void:
+	_story_panel_textures.clear()
+	var files = ["intro_sequence", "heroes_surrounded", "dark_portal",
+		"alice_falling", "dracula_throne", "frankenstein_awakening",
+		"merlin_crystal_cave", "peter_pan_shadow", "phantom_organ",
+		"scrooge_ghost", "shadow_author_writing", "sherlock_investigation",
+		"tarzan_jungle", "witch_flying"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/story_panels/" + fname + ".png")
+		if tex:
+			_story_panel_textures[fname] = tex
+
+func _load_victory_defeat_textures() -> void:
+	_victory_defeat_textures.clear()
+	var files = ["victory_splash", "defeat_splash", "game_over_book"]
+	for fname in files:
+		var tex = _load_art_texture("res://assets/victory_defeat/" + fname + ".png")
+		if tex:
+			_victory_defeat_textures[fname] = tex
+
 func _load_all_art_assets() -> void:
 	_load_map_thumb_textures()
 	_load_tab_icon_textures()
@@ -4716,6 +4804,13 @@ func _load_all_art_assets() -> void:
 	_load_emporium_icon_textures()
 	_load_death_fx_textures()
 	_load_collectible_textures()
+	_load_menu_art_textures()
+	_load_chapter_card_textures()
+	_load_boss_portrait_textures()
+	_load_ui_frame_textures()
+	_load_faction_banner_textures()
+	_load_story_panel_textures()
+	_load_victory_defeat_textures()
 
 func _generate_decorations_for_level(index: int) -> void:
 	_decorations.clear()
@@ -9116,6 +9211,26 @@ func _draw_story_dialog() -> void:
 
 	# === FULL-SCREEN CINEMATIC OVERLAY ===
 	draw_rect(Rect2(0, 0, 1280, 720), Color(0.015, 0.01, 0.035, 1.0))
+	# AI art: Story panel background based on speaker/scene
+	var _sp_key = ""
+	match speaker:
+		"alice": _sp_key = "alice_falling"
+		"dracula", "count_dracula": _sp_key = "dracula_throne"
+		"frankenstein", "the_monster": _sp_key = "frankenstein_awakening"
+		"merlin": _sp_key = "merlin_crystal_cave"
+		"peter_pan": _sp_key = "peter_pan_shadow"
+		"phantom", "the_phantom": _sp_key = "phantom_organ"
+		"scrooge": _sp_key = "scrooge_ghost"
+		"shadow_author": _sp_key = "shadow_author_writing"
+		"sherlock", "sherlock_holmes": _sp_key = "sherlock_investigation"
+		"tarzan": _sp_key = "tarzan_jungle"
+		"wicked_witch": _sp_key = "witch_flying"
+		"narrator":
+			if key == "prologue": _sp_key = "intro_sequence"
+			elif key == "finale" or key == "ending": _sp_key = "dark_portal"
+			else: _sp_key = "heroes_surrounded"
+	if _sp_key != "" and _story_panel_textures.has(_sp_key):
+		draw_texture_rect(_story_panel_textures[_sp_key], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.12))
 	# Vignette corners
 	for vi in range(15):
 		var vt = float(vi) / 14.0
@@ -10557,6 +10672,9 @@ func _draw_boss_kill_ceremony() -> void:
 	if _boss_kill_slowmo > 0.0:
 		var font = game_font
 		var alpha = minf(_boss_kill_slowmo, 1.0)
+		# AI art: Wooden panel behind boss defeated text
+		if _ui_frame_textures.has("wooden_panel"):
+			draw_texture_rect(_ui_frame_textures["wooden_panel"], Rect2(240, 270, 800, 60), false, Color(1, 1, 1, alpha * 0.35))
 		_udraw(font, Vector2(340, 300), _boss_kill_name + " DEFEATED!", HORIZONTAL_ALIGNMENT_CENTER, 600, 28, Color(0.95, 0.75, 0.1, alpha))
 		# Radial burst at kill position
 		for bi in range(12):
@@ -10968,6 +11086,17 @@ func _draw_menu_background() -> void:
 			var purple_shift = gt * gt * 0.04
 			var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
 			draw_rect(Rect2(0, gy, 1280, grad_step), col)
+
+		# === AI ART BACKGROUND OVERLAY (semi-transparent behind procedural UI) ===
+		var _art_bg_key = ""
+		match menu_current_view:
+			"chapters": _art_bg_key = "world_map"
+			"gear": _art_bg_key = "gear_shop_bg"
+			"emporium": _art_bg_key = "emporium_bg"
+			"achievements": _art_bg_key = "achievements_bg"
+			_: _art_bg_key = "menu_background"
+		if _menu_art_textures.has(_art_bg_key):
+			draw_texture_rect(_menu_art_textures[_art_bg_key], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.18))
 
 		# === Center radial glow (purple atmosphere — vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
@@ -12694,6 +12823,10 @@ func _draw_chest_opening() -> void:
 	var tier_col = chest_colors[mini(chest_opening_tier, 2)]
 	var glow_col = Color(tier_col.r * 1.2, tier_col.g * 1.2, tier_col.b * 1.0)
 
+	# AI art: Team splash as backdrop for chest screen
+	if _menu_art_textures.has("team_splash"):
+		draw_texture_rect(_menu_art_textures["team_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.08))
+
 	if chest_opening_phase == 0 or chest_opening_phase == 1:
 		# === GLOWING TREASURE CHEST ===
 		var chest_cy = 300.0
@@ -12771,6 +12904,9 @@ func _draw_chest_opening() -> void:
 
 		# === VICTORY text (centered above chest) ===
 		if victory_chest_active:
+			# AI art: Stained glass decorative element behind victory
+			if _menu_art_textures.has("stained_glass"):
+				draw_texture_rect(_menu_art_textures["stained_glass"], Rect2(cx - 150, 20, 300, 120), false, Color(1, 1, 1, 0.2))
 			var vic_text = "VICTORY!"
 			var vic_w = font.get_string_size(vic_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 52).x
 			# MASSIVE glow behind text
@@ -13195,6 +13331,10 @@ func _draw_closed_book() -> void:
 	var panel_w = 1264.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	var font = game_font
+
+	# AI art: Chronicles background overlay
+	if _menu_art_textures.has("chronicles_bg"):
+		draw_texture_rect(_menu_art_textures["chronicles_bg"], Rect2(panel_x, panel_y, panel_w, panel_h), false, Color(1, 1, 1, 0.12))
 
 	# Navy gradient background
 	for i in range(56):
@@ -13740,6 +13880,10 @@ func _draw_survivor_grid() -> void:
 	var panel_y = 38.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 570.0
+
+	# AI art: Survivors background overlay
+	if _menu_art_textures.has("survivors_bg"):
+		draw_texture_rect(_menu_art_textures["survivors_bg"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.15))
 
 	# No panel background — let menu bg show through for seamless look
 
@@ -15497,6 +15641,20 @@ func _draw_story_map() -> void:
 		"Scrooge": Color(0.82, 0.68, 0.32),
 		"Shadow Author": Color(0.25, 0.10, 0.30),
 	}
+	# AI art: Map arc names to chapter card texture keys
+	var _arc_to_chapter_card = {
+		"Robin Hood": "sherwood_forest",
+		"Alice": "wonderland",
+		"Wicked Witch": "land_of_oz",
+		"Peter Pan": "neverland",
+		"Phantom": "opera_house",
+		"Sherlock Holmes": "victorian_london",
+		"Tarzan": "african_jungle",
+		"Dracula": "transylvania",
+		"Merlin": "camelot",
+		"Frankenstein": "laboratory",
+		"Shadow Author": "shadow_realm",
+	}
 
 	for ai in range(arc_data.size()):
 		var arc = arc_data[ai]
@@ -15547,6 +15705,12 @@ func _draw_story_map() -> void:
 			if cpb_fill > 0 and arc_done < arc_total:
 				var tip_glow = 0.4 + sin(_time * 3.0) * 0.2
 				draw_circle(Vector2(cpb_x + cpb_fill, cpb_y + 1.5), 3.0, Color(arc_col.r, arc_col.g, arc_col.b, tip_glow))
+			# AI art: Chapter card icon in arc header
+			var _cc_key = _arc_to_chapter_card.get(arc_name, "")
+			if _cc_key != "" and _chapter_card_textures.has(_cc_key):
+				var cc_sz = header_h - 4
+				var cc_x = list_x + list_w - cc_sz - 160.0
+				draw_texture_rect(_chapter_card_textures[_cc_key], Rect2(cc_x, hy + 2, cc_sz, cc_sz), false, Color(1, 1, 1, 0.7))
 		cursor_y += header_h + arc_gap
 
 		# --- Level rows ---
@@ -15876,6 +16040,9 @@ func _draw_diff_popup() -> void:
 	var popup_h = 220.0
 	var popup_x = 640.0 - popup_w * 0.5
 	var popup_y = 310.0 - popup_h * 0.5
+	# AI art: Golden frame behind difficulty popup
+	if _ui_frame_textures.has("golden_frame"):
+		draw_texture_rect(_ui_frame_textures["golden_frame"], Rect2(popup_x - 8, popup_y - 8, popup_w + 16, popup_h + 16), false, Color(1, 1, 1, 0.25))
 	# Background gradient
 	for gi in range(22):
 		var t = float(gi) / 21.0
@@ -16062,6 +16229,9 @@ func _draw_chapters_overlay() -> void:
 	var panel_y = 55.0
 	var panel_w = 780.0
 	var panel_h = 520.0
+	# AI art: Scroll banner decorative frame behind panel
+	if _ui_frame_textures.has("scroll_banner"):
+		draw_texture_rect(_ui_frame_textures["scroll_banner"], Rect2(panel_x - 10, panel_y - 10, panel_w + 20, panel_h + 20), false, Color(1, 1, 1, 0.15))
 	var content_y = panel_y + 52.0
 	var content_h = panel_h - 60.0
 	# Panel theme color
@@ -19678,6 +19848,17 @@ func _draw() -> void:
 		var wb_border_col = Color(0.7, 0.1, 0.05) if _wave_banner_is_boss else Color(0.8, 0.65, 0.1)
 		# Dark translucent backdrop bar
 		draw_rect(Rect2(wb_x_offset, wb_y - 20, 1280, 55), Color(0.0, 0.0, 0.0, wb_alpha * 0.65))
+		# AI art: Faction banner behind wave banner
+		var _wb_faction_map = {"Sherwood": "sherwood", "Wonderland": "wonderland", "Oz": "land_of_oz", "Neverland": "neverland", "London": "victorian_london", "Baker St": "victorian_london", "Camelot": "camelot", "Jungle": "neverland", "Transylvania": "transylvania", "Laboratory": "laboratory"}
+		var _wb_faction_key = ""
+		for _wbk in _wb_faction_map:
+			if _wave_banner_name.to_lower().contains(_wbk.to_lower()):
+				_wb_faction_key = _wb_faction_map[_wbk]
+				break
+		if _wb_faction_key != "" and _faction_banner_textures.has(_wb_faction_key):
+			var _fb_sz = 44.0
+			draw_texture_rect(_faction_banner_textures[_wb_faction_key], Rect2(wb_x_offset + 50, wb_y - 17, _fb_sz, _fb_sz), false, Color(1, 1, 1, wb_alpha * 0.6))
+			draw_texture_rect(_faction_banner_textures[_wb_faction_key], Rect2(wb_x_offset + 1280 - 50 - _fb_sz, wb_y - 17, _fb_sz, _fb_sz), false, Color(1, 1, 1, wb_alpha * 0.6))
 		# Gold/red borders
 		draw_rect(Rect2(wb_x_offset, wb_y - 20, 1280, 3), Color(wb_border_col.r, wb_border_col.g, wb_border_col.b, wb_alpha * 0.8))
 		draw_rect(Rect2(wb_x_offset, wb_y + 32, 1280, 3), Color(wb_border_col.r, wb_border_col.g, wb_border_col.b, wb_alpha * 0.8))
@@ -19697,6 +19878,9 @@ func _draw() -> void:
 		var ba_scale = 1.0 + (1.0 - ba_alpha) * 0.3
 		# Dark vignette
 		draw_rect(Rect2(0, 240, 1280, 120), Color(0.0, 0.0, 0.0, ba_alpha * 0.7))
+		# AI art: Wave warning frame behind boss alert
+		if _ui_frame_textures.has("wave_warning"):
+			draw_texture_rect(_ui_frame_textures["wave_warning"], Rect2(240, 240, 800, 120), false, Color(1, 1, 1, ba_alpha * 0.35))
 		# Red glow behind text
 		draw_circle(Vector2(640, 305), 180.0, Color(0.9, 0.1, 0.05, ba_alpha * 0.08))
 		draw_circle(Vector2(640, 305), 90.0, Color(1.0, 0.15, 0.05, ba_alpha * 0.12))
@@ -19902,9 +20086,16 @@ func _draw() -> void:
 	_draw_levelup_celebration()           # Feature 14: Level-up particles
 	# === CHARACTER ART: Victory/Defeat overlays ===
 	if game_state == GameState.GAME_OVER_STATE:
+		# AI art: Victory/Defeat splash overlays
 		if _last_game_was_victory:
+			if _victory_defeat_textures.has("victory_splash"):
+				draw_texture_rect(_victory_defeat_textures["victory_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.25))
 			_draw_victory_character_lineup()   # Feature 10: Victory lineup
 		else:
+			if _victory_defeat_textures.has("defeat_splash"):
+				draw_texture_rect(_victory_defeat_textures["defeat_splash"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.2))
+			elif _victory_defeat_textures.has("game_over_book"):
+				draw_texture_rect(_victory_defeat_textures["game_over_book"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.2))
 			_draw_defeat_character_scene()     # Feature 11: Defeat dejected chibis
 
 	# === VICTORY BURST EFFECT ===
@@ -34140,6 +34331,11 @@ func _draw_animated_logo(bar_y: float) -> void:
 	var logo_y = bar_y + 22.0 + sin(_time * 1.4) * 1.5
 	_logo_glow_phase = _time
 	var pulse = 0.9 + sin(_time * 1.2) * 0.1
+	# AI art: Game title logo overlay
+	if _menu_art_textures.has("game_title"):
+		var _gt_w = 200.0
+		var _gt_h = 60.0
+		draw_texture_rect(_menu_art_textures["game_title"], Rect2(logo_x - 10, logo_y - 30, _gt_w, _gt_h), false, Color(1, 1, 1, 0.5))
 	# Massive outer glow halo (pulsing, dramatic)
 	var glow_cx = logo_x + 90.0
 	var glow_r = 100.0 + sin(_time * 0.8) * 12.0
@@ -36949,7 +37145,11 @@ func _draw_wanted_poster() -> void:
 	var py = 120.0
 	var pw = 240.0
 	var ph = 180.0
-	draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.78, 0.60, alpha * 0.95))
+	# AI art: Wanted poster frame texture
+	if _ui_frame_textures.has("wanted_poster"):
+		draw_texture_rect(_ui_frame_textures["wanted_poster"], Rect2(px - 4, py - 4, pw + 8, ph + 8), false, Color(1, 1, 1, alpha * 0.7))
+	else:
+		draw_rect(Rect2(px, py, pw, ph), Color(0.85, 0.78, 0.60, alpha * 0.95))
 	draw_rect(Rect2(px, py, pw, ph), Color(0.30, 0.20, 0.10, alpha * 0.9), false, 3.0)
 	draw_rect(Rect2(px + 3, py + 3, pw - 6, ph - 6), Color(0.50, 0.35, 0.15, alpha * 0.4), false, 1.0)
 	_udraw(font, Vector2(px + pw * 0.5, py + 22), "WANTED", HORIZONTAL_ALIGNMENT_CENTER, -1, 24, Color(0.7, 0.1, 0.05, alpha))
@@ -36991,6 +37191,20 @@ func _draw_boss_reveal() -> void:
 	var sil_alpha = alpha * (0.8 - t * 0.3)
 	var cx = 640.0
 	var cy = 360.0
+	# AI art: Boss portrait behind silhouette reveal (map enemy_theme to portrait)
+	var _boss_portrait_key = ""
+	var _bp_level = levels[current_level] if current_level >= 0 and current_level < levels.size() else null
+	var _bp_theme = _bp_level["enemy_theme"] if _bp_level != null and _bp_level.has("enemy_theme") else -1
+	# enemy_theme -> boss portrait mapping
+	var _boss_theme_to_portrait = {0: "shadow_king", 1: "queen_of_hearts", 2: "wicked_witch_boss", 3: "captain_hook", 4: "phantom_boss", 7: "moriarty", 9: "tarzan_boss", 10: "dracula_lord", 11: "frankenstein_boss"}
+	if _boss_theme_to_portrait.has(_bp_theme):
+		_boss_portrait_key = _boss_theme_to_portrait[_bp_theme]
+	elif _boss_reveal_name == "FINAL WAVE" or _boss_reveal_name == "FINAL VILLAIN":
+		_boss_portrait_key = "shadow_king"
+	if _boss_portrait_key != "" and _boss_portrait_textures.has(_boss_portrait_key):
+		var portrait_sz = sil_size * 1.8
+		var portrait_alpha = t * alpha * 0.4  # Fade in as silhouette grows
+		draw_texture_rect(_boss_portrait_textures[_boss_portrait_key], Rect2(cx - portrait_sz * 0.5, cy - portrait_sz * 0.5, portrait_sz, portrait_sz), false, Color(1, 1, 1, portrait_alpha))
 	draw_circle(Vector2(cx, cy), sil_size * 0.5, Color(0.08, 0.02, 0.02, sil_alpha))
 	draw_circle(Vector2(cx, cy - sil_size * 0.4), sil_size * 0.25, Color(0.08, 0.02, 0.02, sil_alpha))
 	var eye_pulse = (sin(_time * 10.0) + 1.0) * 0.5
