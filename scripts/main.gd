@@ -13249,24 +13249,14 @@ func _draw_daily_reward() -> void:
 	var modal_x = cx - modal_w * 0.5
 	var modal_y = 100.0
 
-	# Panel background gradient
-	for i in range(24):
-		var t = float(i) / 23.0
-		var col = Color(0.14, 0.10, 0.24).lerp(Color(0.08, 0.06, 0.16), t)
-		draw_rect(Rect2(modal_x, modal_y + t * modal_h, modal_w, modal_h / 23.0 + 1), col)
-
-	# THICK outer border — bright gold (4px)
-	var bdr_bright = Color(0.85, 0.68, 0.25, 0.9)
-	var bdr_dim = Color(0.55, 0.42, 0.15, 0.6)
-	draw_rect(Rect2(modal_x, modal_y, modal_w, 4), bdr_bright)
-	draw_rect(Rect2(modal_x, modal_y + modal_h - 4, modal_w, 4), bdr_bright)
-	draw_rect(Rect2(modal_x, modal_y, 4, modal_h), bdr_bright)
-	draw_rect(Rect2(modal_x + modal_w - 4, modal_y, 4, modal_h), bdr_bright)
+	# Panel background — premium Bloons panel with gradient fill
+	_ds_panel(Rect2(modal_x, modal_y, modal_w, modal_h), Color(0.11, 0.08, 0.20, 0.97), Color(0.85, 0.68, 0.25, 0.9), 4.0, 16.0)
 	# Inner accent line (1px inset by 8)
-	draw_rect(Rect2(modal_x + 8, modal_y + 8, modal_w - 16, 1), bdr_dim)
-	draw_rect(Rect2(modal_x + 8, modal_y + modal_h - 9, modal_w - 16, 1), bdr_dim)
-	draw_rect(Rect2(modal_x + 8, modal_y + 8, 1, modal_h - 16), bdr_dim)
-	draw_rect(Rect2(modal_x + modal_w - 9, modal_y + 8, 1, modal_h - 16), bdr_dim)
+	var bdr_dim = Color(0.55, 0.42, 0.15, 0.6)
+	draw_colored_polygon(_rrp(Rect2(modal_x + 8, modal_y + 8, modal_w - 16, modal_h - 16), 12.0), Color(0, 0, 0, 0.0))
+	# Inner border as subtle rounded rect outline
+	draw_colored_polygon(_rrp(Rect2(modal_x + 7, modal_y + 7, modal_w - 14, modal_h - 14), 12.0), bdr_dim)
+	draw_colored_polygon(_rrp(Rect2(modal_x + 8, modal_y + 8, modal_w - 16, modal_h - 16), 11.0), Color(0.11, 0.08, 0.20, 0.97))
 
 	# Corner gems (4 corners)
 	for corner in [Vector2(modal_x + 14, modal_y + 14), Vector2(modal_x + modal_w - 14, modal_y + 14),
@@ -16192,9 +16182,7 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 	var mouse_pos = get_viewport().get_mouse_position()
 	var ref_btn_h = 44.0 if _is_mobile else 28.0
 	var ref_hov = _is_hover_or_pressed(Rect2(ref_x, ref_y, 120, ref_btn_h), mouse_pos)
-	draw_rect(Rect2(ref_x, ref_y, 120, ref_btn_h), Color(0.15, 0.10, 0.05, 0.9 if ref_hov else 0.6))
-	draw_rect(Rect2(ref_x, ref_y, 120, ref_btn_h), Color(0.85, 0.65, 0.2, 0.6 if ref_hov else 0.3), false, 1.5)
-	_udraw(font, Vector2(ref_x + 60, ref_y + 20), "REFRESH %dQ" % DEAL_REFRESH_COST, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.9, 0.8, 0.4) if ref_hov else Color(0.7, 0.6, 0.3))
+	_ds_button(Rect2(ref_x, ref_y, 120, ref_btn_h), "REFRESH %dQ" % DEAL_REFRESH_COST, Color(0.30, 0.20, 0.08), ref_hov, 12)
 	var card_y = py + 48.0
 	for i in range(daily_deals.size()):
 		var deal = daily_deals[i]
@@ -16212,14 +16200,12 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		for pf in _deal_purchase_flash:
 			if pf["index"] == i:
 				flash_alpha = clampf(pf["timer"], 0.0, 1.0)
-		# Background with rarity tint (Improvement 1)
+		# Background with rarity tint — rounded panel (Improvement 1)
 		var bg_col = Color(0.08, 0.20, 0.08, 0.65) if purchased else Color(rarity_col.r * 0.14, rarity_col.g * 0.14, rarity_col.b * 0.14, 0.78)
-		draw_rect(Rect2(ix, iy, iw, ih), bg_col)
-		# Rarity border (Improvement 1)
 		var border_alpha = 0.5 + sin(_time * 2.5 + float(i)) * 0.15
 		if deal_rarity == "legendary":
 			border_alpha = 0.7 + sin(_time * 3.0) * 0.25
-		draw_rect(Rect2(ix, iy, iw, ih), Color(rarity_col.r, rarity_col.g, rarity_col.b, border_alpha), false, 2.0 if is_featured else 1.5)
+		_ds_panel(Rect2(ix, iy, iw, ih), bg_col, Color(rarity_col.r, rarity_col.g, rarity_col.b, border_alpha), 2.0 if is_featured else 1.5, 8.0)
 		# Featured badge (Improvement 3)
 		if is_featured:
 			draw_rect(Rect2(ix + 2, iy + 2, 65, 16), Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.25))
@@ -16229,7 +16215,10 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		_udraw(font, Vector2(ix + iw - 15, iy + 14 + badge_y_off), deal_rarity.to_upper(), HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.7))
 		# Deal name and description
 		var name_y = iy + 20 + badge_y_off
-		_udraw(font, Vector2(ix + 10, name_y), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 140), 15, Color(0.9, 0.82, 0.6) if not purchased else Color(0.5, 0.5, 0.4))
+		if not purchased:
+			_ds_outlined_text(Vector2(ix + 10, name_y), deal.get("name", "Deal"), 15, Color(0.95, 0.85, 0.6), int(iw - 140), HORIZONTAL_ALIGNMENT_LEFT, 1)
+		else:
+			_udraw(font, Vector2(ix + 10, name_y), deal.get("name", "Deal"), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 140), 15, Color(0.5, 0.5, 0.4))
 		_udraw(font, Vector2(ix + 10, name_y + 18), deal.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(iw - 140), 14, menu_text_muted if not purchased else Color(0.35, 0.35, 0.3))
 		if purchased:
 			# Improvement 10: Enhanced sold-out visual with checkmark
@@ -16281,9 +16270,8 @@ func _draw_daily_deals_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 	if daily_deals.size() > 0:
 		var bonus_y = card_y + 4.0
 		if all_purchased and not daily_deals_all_bonus_claimed:
-			draw_rect(Rect2(px + 10, bonus_y, pw - 20, 32), Color(0.15, 0.25, 0.1, 0.8))
-			draw_rect(Rect2(px + 10, bonus_y, pw - 20, 32), Color(0.5, 0.9, 0.3, 0.5), false, 2.0)
-			_udraw(font, Vector2(px + pw * 0.5, bonus_y + 22), "ALL PURCHASED! CLAIM +15 SHARDS BONUS", HORIZONTAL_ALIGNMENT_CENTER, int(pw - 40), 14, Color(0.5, 0.9, 0.3))
+			_ds_panel(Rect2(px + 10, bonus_y, pw - 20, 32), Color(0.15, 0.25, 0.1, 0.8), Color(0.5, 0.9, 0.3, 0.5), 2.0, 8.0)
+			_ds_outlined_text(Vector2(px + pw * 0.5, bonus_y + 22), "ALL PURCHASED! CLAIM +15 SHARDS BONUS", 14, Color(0.5, 0.9, 0.3), int(pw - 40), HORIZONTAL_ALIGNMENT_CENTER, 1)
 		elif daily_deals_all_bonus_claimed:
 			_udraw(font, Vector2(px + pw * 0.5, bonus_y + 18), "Buy-All Bonus Claimed!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.4, 0.6, 0.3))
 		elif not all_purchased:
@@ -32020,10 +32008,9 @@ func _draw_levelup_fanfare() -> void:
 	var cy = 280.0 - levelup_fanfare_timer * 15.0
 	# Glow halo
 	draw_circle(Vector2(640, cy - 4), 100.0, Color(1.0, 0.85, 0.2, text_alpha * 0.08))
-	# Triple-layer text
-	_udraw(font, Vector2(cx + 2, cy + 2), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(0, 0, 0, text_alpha * 0.6))
-	_udraw(font, Vector2(cx, cy), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0 * text_alpha, 0.88 * text_alpha, 0.25, text_alpha))
-	_udraw(font, Vector2(cx - 1, cy - 1), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0, 0.95, 0.5, text_alpha * 0.25))
+	# Bloons-style outlined text
+	_ds_outlined_text(Vector2(640, cy), label, 34, Color(1.0 * text_alpha, 0.88 * text_alpha, 0.25, text_alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 3)
+	_udraw(font, Vector2(cx - 1, cy - 1), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(1.0, 0.95, 0.5, text_alpha * 0.25))
 
 # ============================================================================
 # === BATTD3: SESSION STATS RECAP ===
@@ -32058,10 +32045,9 @@ func _draw_session_recap() -> void:
 	var py = 60.0
 	var pw = 800.0
 	var ph = 600.0
-	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
-	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10, 0.97), _ca(c_gold, 0.5), 3.0, 14.0)
 	# Title
-	_ds_outlined_text(Vector2(px + 20, py + 30), "SESSION STATS", 22, Color(1.0, 0.85, 0.28))
+	_ds_outlined_text(Vector2(px + 20, py + 30), "SESSION STATS", 24, Color(1.0, 0.85, 0.28), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 	draw_rect(Rect2(px + 20, py + 38, 150, 1), _ca(c_gold, 0.3))
 	# Stats
 	var sy = py + 60.0
@@ -32090,15 +32076,13 @@ func _draw_session_recap() -> void:
 	for i in range(mini(breakdown.size(), 8)):
 		var entry = breakdown[i]
 		var bar_w = 350.0 * (entry["damage"] / max_dmg)
-		draw_rect(Rect2(px + 200, sy + 2, bar_w, 14), _ca(c_gold, 0.3))
+		draw_colored_polygon(_rrp(Rect2(px + 200, sy + 2, bar_w, 14), 4.0), _ca(c_gold, 0.3))
 		_udraw(font, Vector2(px + 40, sy + 14), entry["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, menu_parchment)
 		var dmg_str = _format_number(entry["damage"])
 		_udraw(font, Vector2(px + 200 + bar_w + 8, sy + 14), dmg_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, c_gold)
 		sy += 22.0
-	# Close button
-	var close_x = px + pw - 40.0
-	var close_y = py + 10.0
-	_udraw(font, Vector2(close_x, close_y + 16), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.3, 0.2, 0.8))
+	# Close button — Bloons style
+	_ds_button(Rect2(px + pw - 50, py + 8, 38, 28), "X", Color(0.6, 0.15, 0.1), false, 16)
 
 # ============================================================================
 # === BATTD3: CAREER STATS ===
@@ -32143,9 +32127,8 @@ func _draw_career_stats() -> void:
 	var py = 40.0
 	var pw = 880.0
 	var ph = 640.0
-	draw_rect(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10))
-	draw_rect(Rect2(px, py, pw, ph), _ca(c_gold, 0.5), false, 2.0)
-	_ds_outlined_text(Vector2(px + 30, py + 35), "CAREER STATISTICS", 24, Color(1.0, 0.85, 0.28))
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.04, 0.04, 0.10, 0.97), _ca(c_gold, 0.5), 3.0, 14.0)
+	_ds_outlined_text(Vector2(px + 30, py + 35), "CAREER STATISTICS", 26, Color(1.0, 0.85, 0.28), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 	draw_rect(Rect2(px + 30, py + 44, 200, 2), _ca(c_gold, 0.3))
 	var sy = py + 70.0
 	var stats = [
@@ -32195,8 +32178,8 @@ func _draw_career_stats() -> void:
 		var fav_y = py + ph - 90.0
 		_udraw(font, Vector2(px + 50, fav_y + 14), "FAVORITE TOWER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(c_gold, 0.7))
 		_udraw(font, Vector2(px + 50, fav_y + 34), character_names[fav], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, menu_parchment)
-	# Close button
-	_udraw(font, Vector2(px + pw - 40, py + 22), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.3, 0.2, 0.8))
+	# Close button — Bloons style
+	_ds_button(Rect2(px + pw - 50, py + 8, 38, 28), "X", Color(0.6, 0.15, 0.1), false, 16)
 
 # ============================================================================
 # === BATTD3: NEXT GOAL TRACKER ===
