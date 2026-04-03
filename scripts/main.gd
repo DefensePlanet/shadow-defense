@@ -10744,8 +10744,8 @@ func _update_rival() -> void:
 
 func _draw_rival_comparison(rx: float, ry: float) -> void:
 	var font = game_font
-	_udraw(font, Vector2(rx - 100, ry + 14), "YOUR RIVAL", HORIZONTAL_ALIGNMENT_CENTER, 200, 14, Color(0.8, 0.3, 0.3, 0.8))
-	_udraw(font, Vector2(rx - 100, ry + 30), rival_data["name"], HORIZONTAL_ALIGNMENT_CENTER, 200, 16, Color(0.9, 0.4, 0.4, 0.9))
+	_ds_outlined_text(Vector2(rx - 100, ry + 14), "YOUR RIVAL", 14, Color(0.8, 0.3, 0.3, 0.8), 200, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	_ds_outlined_text(Vector2(rx - 100, ry + 30), rival_data["name"], 16, Color(0.9, 0.4, 0.4, 0.9), 200, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	_udraw(font, Vector2(rx - 100, ry + 48), "Score: %d" % rival_data["score"], HORIZONTAL_ALIGNMENT_CENTER, 200, 13, Color(0.7, 0.35, 0.35, 0.7))
 	# Player comparison
 	var diff = player_rivalry_score - rival_data["score"]
@@ -10815,8 +10815,7 @@ func _draw_currency_bar() -> void:
 		# Value text — brighter
 		var display_val = _get_display_currency(c["name"]) if _currency_display.has(c["name"]) else c["value"]
 		var val_str = _format_gold(display_val)
-		_udraw(font, Vector2(cx + 16, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), c_shadow)
-		_udraw(font, Vector2(cx + 15, bar_y + 21), val_str, HORIZONTAL_ALIGNMENT_LEFT, 85, _scaled_fs(16), Color(1.0, 0.95, 0.85, 0.95))
+		_ds_outlined_text(Vector2(cx + 15, bar_y + 21), val_str, _scaled_fs(16), Color(1.0, 0.95, 0.85, 0.95), 85, HORIZONTAL_ALIGNMENT_LEFT, 1)
 		cx += 130.0
 
 	# Total stars on far right
@@ -11292,7 +11291,7 @@ func _draw_menu_background() -> void:
 			draw_circle(ic, 35.0, Color(tc.r, tc.g, tc.b, 0.15))
 			draw_circle(ic, 25.0, Color(tc.r, tc.g, tc.b, 0.1))
 		# Icon
-		var icon_sz = 62.0 if is_act else 48.0
+		var icon_sz = 68.0 if is_act else 52.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
 		if _tab_icon_textures.has(_tik):
 			var alpha = 1.0 if is_act else 0.6
@@ -12880,12 +12879,10 @@ func _draw_chest_opening() -> void:
 		# "Choose Your Reward!" instruction (bigger, brighter, pulsing)
 		if chest_opening_phase == 5 and chest_opening_picked < 0:
 			var inst = "Choose Your Reward!"
-			var iw = font.get_string_size(inst, HORIZONTAL_ALIGNMENT_CENTER, -1, 28).x
 			var inst_pulse = 0.7 + sin(_time * 3.0) * 0.3
 			# Text glow
 			draw_circle(Vector2(cx, 180), 80, Color(1.0, 0.9, 0.4, 0.04))
-			_udraw(font, Vector2(cx - iw * 0.5 + 2, 192), inst, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0.0, 0.0, 0.0, 0.4))
-			_udraw(font, Vector2(cx - iw * 0.5, 190), inst, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1.0, 0.95, 0.5, inst_pulse))
+			_ds_outlined_text(Vector2(cx, 190), inst, 28, Color(1.0, 0.95, 0.5, inst_pulse), -1, HORIZONTAL_ALIGNMENT_CENTER, 3)
 
 	if chest_opening_phase == 6:
 		# === RESULT DISPLAY (bright & celebratory) ===
@@ -12908,24 +12905,16 @@ func _draw_chest_opening() -> void:
 			draw_circle(Vector2(cx, 330), 100, Color(res_col.r, res_col.g, res_col.b, 0.1))
 			draw_circle(Vector2(cx, 330), 50, Color(res_col.r, res_col.g, res_col.b, 0.06))
 			if is_trinket:
-				var result = "Gear Acquired!"
-				var rw = font.get_string_size(result, HORIZONTAL_ALIGNMENT_CENTER, -1, 32).x
-				_udraw(font, Vector2(cx - rw * 0.5 + 2, 302), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, c_shadow)
-				_udraw(font, Vector2(cx - rw * 0.5, 300), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0, 0.9, 0.35, 0.95))
-				var nw = font.get_string_size(card["name"], HORIZONTAL_ALIGNMENT_CENTER, -1, 22).x
-				_udraw(font, Vector2(cx - nw * 0.5, 340), card["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0, 0.95, 0.7, 0.95))
+				_ds_outlined_text(Vector2(cx, 300), "Gear Acquired!", 32, Color(1.0, 0.9, 0.35, 0.95), -1, HORIZONTAL_ALIGNMENT_CENTER, 3)
+				_ds_outlined_text(Vector2(cx, 340), card["name"], 22, Color(1.0, 0.95, 0.7, 0.95), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 				var desc = card.get("desc", "")
-				var dw = font.get_string_size(desc, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
-				_udraw(font, Vector2(cx - dw * 0.5, 370), desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.8, 0.6, 0.85))
+				_udraw(font, Vector2(cx, 370), desc, HORIZONTAL_ALIGNMENT_CENTER, 500, 16, Color(0.85, 0.8, 0.6, 0.85))
 			else:
 				var result = "You received: %s x%d" % [card["name"], card["amount"]]
-				var rw = font.get_string_size(result, HORIZONTAL_ALIGNMENT_CENTER, -1, 28).x
-				_udraw(font, Vector2(cx - rw * 0.5 + 2, 332), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, c_shadow)
-				_udraw(font, Vector2(cx - rw * 0.5, 330), result, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(0.5, 1.0, 0.5, 0.95))
+				_ds_outlined_text(Vector2(cx, 330), result, 28, Color(0.5, 1.0, 0.5, 0.95), -1, HORIZONTAL_ALIGNMENT_CENTER, 3)
 		var close_alpha = 0.5 + sin(_time * 2.0) * 0.3
 		var close_text = _get_action_text() + " anywhere to continue"
-		var clw = font.get_string_size(close_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16).x
-		_udraw(font, Vector2(cx - clw * 0.5, 430), close_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.8, 0.5, close_alpha))
+		_ds_outlined_text(Vector2(cx, 430), close_text, 16, Color(0.9, 0.8, 0.5, close_alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	# Victory equip overlay (character selection for gear)
 	if victory_equip_active:
