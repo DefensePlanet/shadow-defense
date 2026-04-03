@@ -4597,8 +4597,15 @@ func _load_collectible_textures() -> void:
 var _ui_tex: Dictionary = {}
 
 func _load_ui_art() -> void:
-	for item in ["go_button", "locked_button", "difficulty_gems"]:
+	for item in ["go_button", "locked_button", "difficulty_gems", "golden_star", "play_button"]:
 		var path = "res://assets/ui_elements/" + item + ".png"
+		if ResourceLoader.exists(path):
+			var tex = load(path)
+			if tex:
+				_ui_tex[item] = tex
+	# Load menu art textures
+	for item in ["game_logo"]:
+		var path = "res://assets/menu_art/" + item + ".png"
 		if ResourceLoader.exists(path):
 			var tex = load(path)
 			if tex:
@@ -33249,26 +33256,35 @@ var _logo_glow_phase: float = 0.0
 
 func _draw_animated_logo(bar_y: float) -> void:
 	var font = game_font
-	var logo_x = 16.0 + _safe_left
-	var logo_y = bar_y + 22.0 + sin(_time * 1.4) * 1.5
+	var logo_x = 8.0 + _safe_left
+	var logo_y = bar_y + 2.0
 	_logo_glow_phase = _time
 	var pulse = 0.9 + sin(_time * 1.2) * 0.1
-	# Massive outer glow halo (pulsing, dramatic)
-	var glow_cx = logo_x + 90.0
-	var glow_r = 100.0 + sin(_time * 0.8) * 12.0
-	draw_circle(Vector2(glow_cx, logo_y - 2), glow_r, _ca(c_gold, 0.04 + sin(_time * 1.5) * 0.02))
-	draw_circle(Vector2(glow_cx, logo_y - 2), glow_r * 0.5, Color(1.0, 0.8, 0.2, 0.06 + sin(_time * 2.0) * 0.03))
-	# Drop shadow (deep)
-	_udraw(font, Vector2(logo_x + 2, logo_y + 3), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.0, 0.0, 0.0, 0.8))
-	# Main title — BIG, GLOWING, BRIGHT
-	_udraw(font, Vector2(logo_x, logo_y), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0 * pulse, 0.85 * pulse, 0.25, 1.0))
-	# Second bright pass for glow effect
-	_udraw(font, Vector2(logo_x - 1, logo_y - 1), "Shadow Defense", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1.0, 0.92, 0.45, 0.25 * pulse))
-	# 6 orbiting sparkles
+	# Try nano-banana game logo texture first
+	var logo_tex_key = "game_logo"
+	if _ui_tex.has(logo_tex_key):
+		var logo_tex = _ui_tex[logo_tex_key]
+		var tex_w = float(logo_tex.get_width())
+		var tex_h = float(logo_tex.get_height())
+		var target_h = 28.0
+		var scale = target_h / tex_h
+		var draw_w = tex_w * scale
+		var bob = sin(_time * 1.4) * 1.5
+		# Subtle glow behind logo
+		draw_circle(Vector2(logo_x + draw_w * 0.5, logo_y + target_h * 0.5 + bob), draw_w * 0.4, Color(1.0, 0.8, 0.2, 0.05 * pulse))
+		draw_texture_rect(logo_tex, Rect2(logo_x, logo_y + bob, draw_w, target_h), false, Color(1, 1, 1, pulse))
+	else:
+		# Fallback: outlined text logo
+		var bob = sin(_time * 1.4) * 1.5
+		var glow_cx = logo_x + 90.0
+		draw_circle(Vector2(glow_cx, logo_y + 18 + bob), 80.0, _ca(c_gold, 0.04 * pulse))
+		_ds_outlined_text(Vector2(logo_x, logo_y + 20 + bob), "SHADOW DEFENSE", 22, Color(1.0 * pulse, 0.88 * pulse, 0.28, 1.0))
+	# 6 orbiting sparkles around logo
+	var sparkle_cx = logo_x + 100.0
 	for si in range(6):
 		var sa = _time * 1.5 + float(si) * TAU / 6.0
 		var sr = 70.0 + sin(_time * 2.0 + float(si)) * 10.0
-		var sp = Vector2(glow_cx + cos(sa) * sr, logo_y - 2 + sin(sa) * sr * 0.3)
+		var sp = Vector2(sparkle_cx + cos(sa) * sr, logo_y + 14 + sin(sa) * sr * 0.3)
 		var sa2 = 0.35 + sin(_time * 4.0 + float(si) * 1.5) * 0.25
 		draw_circle(sp, 2.0, Color(1.0, 0.9, 0.4, sa2))
 		draw_circle(sp, 5.0, Color(1.0, 0.85, 0.3, sa2 * 0.2))
