@@ -10743,18 +10743,17 @@ func _draw_currency_bar() -> void:
 	# Fill status bar area behind notch/cutout
 	if _safe_top > 0:
 		draw_rect(Rect2(0, 0, 1280, _safe_top), Color(0.02, 0.02, 0.08, 0.95))
-	# Deep navy bar with subtle purple gradient
-	draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
-	var grad_steps = 16
-	var step_w = 1280.0 / float(grad_steps)
-	for gi in range(grad_steps):
-		var grad_t = (float(gi) + 0.5) / float(grad_steps)
-		var purple_a = sin(grad_t * PI) * 0.06
-		draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), _ca(menu_accent_purple, purple_a))
-	# Gold bottom accent line
-	draw_rect(Rect2(0, bar_y + bar_h - 1, 1280, 1), _ca(menu_gold, 0.4))
-	# Subtle inner glow at bottom
-	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 2), _ca(menu_gold, 0.08))
+	# Bloons-style chunky top bar with 3D gradient
+	# Dark body with depth
+	for gi in range(8):
+		var gt = float(gi) / 7.0
+		var shade = 0.10 - gt * 0.06
+		draw_rect(Rect2(0, bar_y + gt * bar_h, 1280, bar_h / 8.0 + 1), Color(shade, shade * 0.6, shade * 1.4, 0.97))
+	# Glass highlight at top
+	draw_rect(Rect2(0, bar_y, 1280, bar_h * 0.3), Color(1, 1, 1, 0.04))
+	# Thick gold bottom border
+	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 3), Color(0.85, 0.68, 0.18, 0.85))
+	draw_rect(Rect2(0, bar_y + bar_h, 1280, 1), Color(0.4, 0.3, 0.08, 0.6))
 
 	# Menu Improvement 1: Animated Logo Treatment (replaces static title)
 	_draw_animated_logo(bar_y)
@@ -10814,30 +10813,29 @@ func _draw_menu_background() -> void:
 				break
 
 	if menu_current_view != "survivors" or survivor_detail_open:
-		# === Deep navy background with vertical gradient ===
+		# === Bloons-style rich gradient background ===
 		draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
-		# Vertical gradient — darker at top, slight purple warmth at bottom (20 bands)
+		# Rich vertical gradient — deep purple to dark blue
 		var bg_bands = _qcount(20)
 		var grad_step = 720 / maxi(1, bg_bands)
 		for gy in range(0, 720, grad_step):
 			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
-			var purple_shift = gt * gt * 0.04
-			var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
-			draw_rect(Rect2(0, gy, 1280, grad_step), col)
+			var r = lerpf(0.06, 0.03, gt)
+			var g = lerpf(0.04, 0.02, gt)
+			var b = lerpf(0.14, 0.08, gt)
+			draw_rect(Rect2(0, gy, 1280, grad_step), Color(r, g, b, 0.8))
 
-		# === Center radial glow (purple atmosphere — vivid for mobile) ===
+		# === Vivid center radial glow (more visible than before) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
-		if _quality_level >= 1:
-			draw_circle(Vector2(640, 360), 550.0, _ca(menu_accent_purple, 0.06 * center_pulse))
-			draw_circle(Vector2(640, 360), 400.0, _ca(menu_accent_purple, 0.10 * center_pulse))
-		draw_circle(Vector2(640, 360), 250.0, Color(0.35, 0.12, 0.55, 0.12 * center_pulse))
-		draw_circle(Vector2(640, 360), 120.0, Color(0.45, 0.18, 0.65, 0.08 * center_pulse))
+		draw_circle(Vector2(640, 340), 500.0, Color(0.15, 0.05, 0.30, 0.12 * center_pulse))
+		draw_circle(Vector2(640, 340), 350.0, Color(0.20, 0.08, 0.40, 0.15 * center_pulse))
+		draw_circle(Vector2(640, 340), 200.0, Color(0.30, 0.12, 0.50, 0.10 * center_pulse))
 
-		# === Corner vignette (dark edges for depth) ===
+		# === Corner darkening for depth ===
 		for corner_i in range(4):
 			var corner_x = 0.0 if corner_i % 2 == 0 else 1280.0
 			var corner_y = 0.0 if corner_i < 2 else 720.0
-			draw_circle(Vector2(corner_x, corner_y), 400.0, Color(0.0, 0.0, 0.02, 0.06))
+			draw_circle(Vector2(corner_x, corner_y), 450.0, Color(0.0, 0.0, 0.02, 0.1))
 
 		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
 		var orn_a = 0.22 + sin(_time * 0.8) * 0.06
@@ -11237,34 +11235,28 @@ func _draw_menu_background() -> void:
 	# === TOP CURRENCY BAR ===
 	_draw_currency_bar()
 
-	# === Bottom nav bar ===
+	# === Bottom nav bar (BLOONS STYLE — chunky, bright, glowing) ===
 	var nav_draw_y = 620.0 - _safe_bottom
-	# === BOTTOM NAV BAR — Polished, glowing, alive ===
 	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
 	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
 	var nav_tab_cols = [
-		Color(0.85, 0.55, 0.25),  # Survivors: warm amber
-		Color(0.65, 0.40, 0.85),  # Gear: mystical purple
-		Color(0.35, 0.75, 0.35),  # Chapters: forest green
-		Color(0.55, 0.70, 0.90),  # Chronicles: ink blue
-		Color(0.90, 0.75, 0.25),  # Emporium: gold
-		Color(0.80, 0.65, 0.20),  # Achievements: bronze gold
+		Color(0.90, 0.55, 0.20),  # Survivors: warm amber
+		Color(0.65, 0.40, 0.90),  # Gear: mystical purple
+		Color(0.30, 0.80, 0.30),  # Chapters: bright green
+		Color(0.40, 0.65, 0.95),  # Chronicles: bright blue
+		Color(0.95, 0.80, 0.20),  # Emporium: bright gold
+		Color(0.85, 0.65, 0.15),  # Achievements: bronze gold
 	]
-	# Dark gradient background with subtle texture
-	var nav_grad_steps = _qcount(20)
-	var nav_grad_h = 100.0 / float(nav_grad_steps)
-	for ngi in range(nav_grad_steps):
-		var t = float(ngi) / float(maxi(1, nav_grad_steps - 1))
-		var bg_col = Color(0.03, 0.02, 0.08, 0.95).lerp(Color(0.01, 0.01, 0.04, 0.98), t)
-		draw_rect(Rect2(0, nav_draw_y + float(ngi) * nav_grad_h, 1280, nav_grad_h + 1.0), bg_col)
-	# Fill safe area below nav bar (home indicator padding)
+	# Chunky dark bar with thick gold top border
+	draw_rect(Rect2(0, nav_draw_y - 4, 1280, 4), Color(0.85, 0.68, 0.18, 0.9))
+	# Dark gradient body
+	for ngi in range(10):
+		var t = float(ngi) / 9.0
+		var shade = 0.08 - t * 0.04
+		draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(shade, shade * 0.7, shade * 1.5, 0.97))
 	if _safe_bottom > 0:
-		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.01, 0.01, 0.04, 0.98))
-	# Top edge glow line (animated)
-	var edge_glow = 0.4 + sin(_time * 1.8) * 0.1
-	for egi in range(3):
-		draw_rect(Rect2(0, nav_draw_y + float(egi), 1280, 1), Color(0.54, 0.38, 0.15, edge_glow * (1.0 - float(egi) * 0.3)))
-	var nav_margin = 20.0
+		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.02, 0.01, 0.04, 0.98))
+	var nav_margin = 15.0
 	var nav_total_w = 1280.0 - nav_margin * 2.0 - _safe_left - _safe_right
 	var tab_w = nav_total_w / 6.0
 	var _tab_icon_keys = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements"]
@@ -11272,23 +11264,31 @@ func _draw_menu_background() -> void:
 		var tx = nav_margin + _safe_left + float(ni) * tab_w
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
-
-		# Icon — sized per industry standard (large but not overlapping)
-		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 32.0)
-		var icon_sz = 58.0 if is_act else 46.0
+		var ic = Vector2(tx + tab_w * 0.5, nav_draw_y + 35.0)
+		# Active tab: bright glow background
+		if is_act:
+			draw_rect(Rect2(tx + 4, nav_draw_y + 2, tab_w - 8, 94), Color(tc.r * 0.15, tc.g * 0.15, tc.b * 0.15, 0.6))
+			# Glow circle behind icon
+			draw_circle(ic, 35.0, Color(tc.r, tc.g, tc.b, 0.15))
+			draw_circle(ic, 25.0, Color(tc.r, tc.g, tc.b, 0.1))
+		# Icon
+		var icon_sz = 62.0 if is_act else 48.0
 		var _tik = _tab_icon_keys[ni] if ni < _tab_icon_keys.size() else ""
 		if _tab_icon_textures.has(_tik):
-			var alpha = 1.0 if is_act else 0.7
+			var alpha = 1.0 if is_act else 0.6
 			draw_texture_rect(_tab_icon_textures[_tik], Rect2(ic.x - icon_sz * 0.5, ic.y - icon_sz * 0.5, icon_sz, icon_sz), false, Color(1, 1, 1, alpha))
-		# Label — below icon, properly sized
-		var lbl_y = nav_draw_y + 72.0
-		var lbl_col = _ca(tc, 1.0) if is_act else Color(0.55, 0.50, 0.42, 0.6)
-		var lbl_sz = 12 if is_act else 10
-		_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), lbl_sz, lbl_col)
-		# Active tab underline (not dot — industry standard)
+		# Label — Bloons outlined style for active, plain for inactive
+		var lbl_y = nav_draw_y + 76.0
 		if is_act:
-			var ul_w = minf(tab_w * 0.6, 80.0)
-			draw_rect(Rect2(tx + (tab_w - ul_w) * 0.5, nav_draw_y + 84.0, ul_w, 2), _ca(tc, 0.9))
+			_ds_outlined_text(Vector2(tx, lbl_y), nav_tab_labels[ni], 13, tc, int(tab_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		else:
+			_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), 11, Color(0.5, 0.45, 0.38, 0.5))
+		# Active underline — thick glowing bar
+		if is_act:
+			var ul_w = minf(tab_w * 0.65, 85.0)
+			var ul_x = tx + (tab_w - ul_w) * 0.5
+			draw_rect(Rect2(ul_x, nav_draw_y + 90.0, ul_w, 3), Color(tc.r, tc.g, tc.b, 0.9))
+			draw_rect(Rect2(ul_x - 2, nav_draw_y + 89.0, ul_w + 4, 5), Color(tc.r, tc.g, tc.b, 0.2))
 
 	if menu_current_view == "chapters":
 		_draw_story_map()
@@ -15253,24 +15253,27 @@ func _draw_story_map() -> void:
 		var sy = list_y + 40.0 + float(si) * (side_btn_h + side_gap)
 		var sc = side_colors[si]
 		var side_hover = Rect2(side_x, sy, side_w, side_btn_h).has_point(get_viewport().get_mouse_position())
-		# Button bg with glow on hover
-		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.15, sc.g * 0.15, sc.b * 0.15, 0.9 if side_hover else 0.75))
-		draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r, sc.g, sc.b, 0.5 if side_hover else 0.25), false, 2.0 if side_hover else 1.5)
+		# Bloons-style chunky side button with 3D effect
+		_ds_panel(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 0.92), Color(sc.r * 0.6, sc.g * 0.6, sc.b * 0.6, 0.7 if side_hover else 0.4), 2.0)
 		if side_hover:
-			draw_rect(Rect2(side_x - 2, sy - 2, side_w + 4, side_btn_h + 4), Color(sc.r, sc.g, sc.b, 0.08))
+			# Bright glow on hover
+			draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r, sc.g, sc.b, 0.12))
+			draw_rect(Rect2(side_x - 2, sy - 2, side_w + 4, side_btn_h + 4), Color(sc.r, sc.g, sc.b, 0.06))
 		# AI art icon from badge_icons folder
 		var icon_cx = side_x + side_w * 0.5
 		var icon_cy = sy + side_btn_h * 0.40
 		var badge_key = side_icons[si]
 		if _badge_icon_textures.has(badge_key):
-			var badge_sz = 52.0 if side_hover else 46.0
-			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(icon_cx - badge_sz * 0.5, icon_cy - badge_sz * 0.5, badge_sz, badge_sz), false)
+			var badge_sz = 56.0 if side_hover else 48.0
+			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(icon_cx - badge_sz * 0.5, icon_cy - badge_sz * 0.5, badge_sz, badge_sz), false, Color(1, 1, 1, 1.0 if side_hover else 0.85))
 		else:
-			# Procedural fallback
-			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.3, sc.g * 0.3, sc.b * 0.3, 0.8))
-			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r, sc.g, sc.b, 0.4), false, 1.5)
-		# Label — brighter
-		_udraw(font, Vector2(side_x + 4, sy + side_btn_h - 8), side_labels[si], HORIZONTAL_ALIGNMENT_CENTER, int(side_w - 8), 12, Color(sc.r, sc.g, sc.b, 1.0 if side_hover else 0.85))
+			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.4, sc.g * 0.4, sc.b * 0.4, 0.8))
+			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r, sc.g, sc.b, 0.5), false, 2.0)
+		# Label — Bloons outlined
+		if side_hover:
+			_ds_outlined_text(Vector2(side_x + 4, sy + side_btn_h - 6), side_labels[si], 13, Color(sc.r, sc.g, sc.b, 1.0), int(side_w - 8), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		else:
+			_udraw(font, Vector2(side_x + 4, sy + side_btn_h - 8), side_labels[si], HORIZONTAL_ALIGNMENT_CENTER, int(side_w - 8), 12, Color(sc.r, sc.g, sc.b, 0.85))
 
 	var content_top = list_y + 40.0
 	var content_h = list_h - 40.0
