@@ -15292,12 +15292,10 @@ func _draw_story_map() -> void:
 		# --- Arc header ---
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
-			# Gradient header with arc color
-			for hgi in range(4):
-				var hgt = float(hgi) / 3.0
-				draw_rect(Rect2(list_x + 4, hy + hgt * header_h * 0.25, list_w - 8, header_h * 0.25 + 1), Color(arc_col.r * (0.35 - hgt * 0.06), arc_col.g * (0.35 - hgt * 0.06), arc_col.b * (0.35 - hgt * 0.06), 0.85))
-			# Left accent bar
-			draw_rect(Rect2(list_x + 4, hy, 4, header_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.9))
+			# Rounded arc header banner
+			draw_colored_polygon(_rrp(Rect2(list_x + 4, hy, list_w - 8, header_h), 6.0), Color(arc_col.r * 0.35, arc_col.g * 0.35, arc_col.b * 0.35, 0.92))
+			# Bright accent bar
+			draw_rect(Rect2(list_x + 4, hy + 2, 5, header_h - 4), Color(arc_col.r, arc_col.g, arc_col.b, 0.95))
 			# Character portrait next to chapter header
 			var _arc_char = arc.get("unlock_char", "")
 			var _arc_text_x = list_x + 18
@@ -15305,13 +15303,13 @@ func _draw_story_map() -> void:
 				var _pt_sz = header_h - 4
 				draw_texture_rect(_portrait_textures[_arc_char], Rect2(list_x + 12, hy + 2, _pt_sz, _pt_sz), false)
 				_arc_text_x = list_x + 12 + _pt_sz + 6
-			_udraw(font, Vector2(_arc_text_x, hy + 22), arc_name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, 180, 14, Color(0.92, 0.78, 0.28))
+			_ds_outlined_text(Vector2(_arc_text_x, hy + 23), arc_name.to_upper(), 15, Color(1.0, 0.88, 0.30), 200, HORIZONTAL_ALIGNMENT_LEFT, 1)
 			# Arc completion shown via progress bar only (no overlapping text)
 			# Enhancement 14: Chapter progress bar
 			var cpb_x = list_x + 200.0
 			var cpb_w = list_w - 420.0
 			var cpb_y = hy + 26.0
-			draw_rect(Rect2(cpb_x, cpb_y, cpb_w, 3), Color(0.2, 0.18, 0.15, 0.5))
+			draw_colored_polygon(_rrp(Rect2(cpb_x, cpb_y, cpb_w, 5), 2.5), Color(0.15, 0.12, 0.10, 0.6))
 			var cpb_fill = cpb_w * clampf(float(arc_done) / float(maxi(arc_total, 1)), 0.0, 1.0)
 			var cpb_col = Color(0.45, 0.80, 0.30, 0.8) if arc_done == arc_total else Color(arc_col.r, arc_col.g, arc_col.b, 0.7)
 			draw_rect(Rect2(cpb_x, cpb_y, cpb_fill, 3), cpb_col)
