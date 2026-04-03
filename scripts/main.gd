@@ -333,11 +333,6 @@ func _ca(base: Color, alpha: float) -> Color:
 # ============================================================
 
 # DS: Draw a rounded panel with optional border
-func _ds_panel(rect: Rect2, bg: Color, border_col: Color = Color.TRANSPARENT, border_w: float = 0.0) -> void:
-	draw_rect(rect, bg)
-	if border_w > 0.0 and border_col.a > 0.0:
-		draw_rect(rect, border_col, false, border_w)
-
 # DS: Draw a glowing title (shadow + bright + glow pass)
 func _ds_title(pos: Vector2, text: String, size: int, color: Color, width: int = -1, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:
 	var font = game_font
@@ -351,30 +346,82 @@ func _ds_title(pos: Vector2, text: String, size: int, color: Color, width: int =
 	# Glow pass
 	_udraw(font, Vector2(pos.x - 1, pos.y - 1), text, align, width, size, Color(color.r, color.g, color.b, 0.25 * pulse))
 
-# DS: Draw a modern button (gradient, glass highlight, gold border)
+# DS: Draw a BLOONS-STYLE chunky 3D button (bright gradient, thick border, glow)
 func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = false, text_size: int = 16) -> void:
 	var font = game_font
 	if font == null:
 		return
-	var pulse = 0.85 + sin(_time * 3.0) * 0.15
-	var col = Color(base_col.r * (1.2 if is_hover else 1.0), base_col.g * (1.2 if is_hover else 1.0), base_col.b * (1.2 if is_hover else 1.0))
-	# Glow behind on hover
+	var r = rect
+	var col = base_col
 	if is_hover:
-		draw_rect(Rect2(rect.position.x - 3, rect.position.y - 3, rect.size.x + 6, rect.size.y + 6), _ca(col, 0.12))
-	# Gradient fill
-	for gi in range(5):
-		var gt = float(gi) / 4.0
-		var shade = 1.0 - gt * 0.3
-		draw_rect(Rect2(rect.position.x, rect.position.y + gt * rect.size.y * 0.2, rect.size.x, rect.size.y * 0.2 + 1), Color(col.r * shade, col.g * shade, col.b * shade, pulse))
-	# Glass highlight
-	draw_rect(Rect2(rect.position.x + 2, rect.position.y + 2, rect.size.x - 4, rect.size.y * 0.35), Color(1, 1, 1, 0.08 * pulse))
-	# Gold border
-	draw_rect(rect, Color(0.85, 0.70, 0.20, 0.6 * pulse), false, 2.0)
-	# Text — centered, shadow + bright
-	var tx = rect.position.x
-	var ty = rect.position.y + rect.size.y * 0.62
-	_udraw(font, Vector2(tx + 1, ty + 1), text, HORIZONTAL_ALIGNMENT_CENTER, int(rect.size.x), text_size, Color(0, 0, 0, 0.5))
-	_udraw(font, Vector2(tx, ty), text, HORIZONTAL_ALIGNMENT_CENTER, int(rect.size.x), text_size, Color(1, 1, 1, 0.95))
+		col = Color(col.r * 1.25, col.g * 1.25, col.b * 1.25)
+	# Drop shadow behind button
+	draw_rect(Rect2(r.position.x + 2, r.position.y + 3, r.size.x, r.size.y), Color(0, 0, 0, 0.5))
+	# Outer glow on hover
+	if is_hover:
+		for gi in range(3):
+			var glow_expand = float(gi + 1) * 2.0
+			draw_rect(Rect2(r.position.x - glow_expand, r.position.y - glow_expand, r.size.x + glow_expand * 2, r.size.y + glow_expand * 2), Color(col.r, col.g, col.b, 0.08 - float(gi) * 0.02))
+	# Thick dark border (3px)
+	draw_rect(Rect2(r.position.x - 2, r.position.y - 2, r.size.x + 4, r.size.y + 4), Color(0.08, 0.05, 0.02, 0.95))
+	# Main button body — bright top half, darker bottom half (3D candy look)
+	var half_h = r.size.y * 0.5
+	# Top half — bright
+	for gi in range(8):
+		var gt = float(gi) / 7.0
+		var shade = 1.3 - gt * 0.3
+		var band_y = r.position.y + gt * half_h
+		draw_rect(Rect2(r.position.x, band_y, r.size.x, half_h / 8.0 + 1), Color(col.r * shade, col.g * shade, col.b * shade, 1.0))
+	# Bottom half — darker
+	for gi in range(8):
+		var gt = float(gi) / 7.0
+		var shade = 1.0 - gt * 0.35
+		var band_y = r.position.y + half_h + gt * half_h
+		draw_rect(Rect2(r.position.x, band_y, r.size.x, half_h / 8.0 + 1), Color(col.r * shade * 0.85, col.g * shade * 0.85, col.b * shade * 0.85, 1.0))
+	# Glass shine (top 30%) — bright white highlight
+	draw_rect(Rect2(r.position.x + 3, r.position.y + 2, r.size.x - 6, r.size.y * 0.28), Color(1, 1, 1, 0.22))
+	draw_rect(Rect2(r.position.x + 6, r.position.y + 3, r.size.x - 12, r.size.y * 0.15), Color(1, 1, 1, 0.15))
+	# Gold border (2px)
+	draw_rect(r, Color(1.0, 0.85, 0.25, 0.9), false, 2.0)
+	# Inner highlight line at top
+	draw_rect(Rect2(r.position.x + 1, r.position.y + 1, r.size.x - 2, 1), Color(1, 1, 1, 0.3))
+	# Text — thick outline + bright center (Bloons style)
+	var tx = r.position.x
+	var ty = r.position.y + r.size.y * 0.65
+	# Black outline (draw in 8 directions)
+	for ox in [-2, -1, 0, 1, 2]:
+		for oy in [-2, -1, 0, 1, 2]:
+			if ox != 0 or oy != 0:
+				_udraw(font, Vector2(tx + ox, ty + oy), text, HORIZONTAL_ALIGNMENT_CENTER, int(r.size.x), text_size, Color(0, 0, 0, 0.7))
+	# White text
+	_udraw(font, Vector2(tx, ty), text, HORIZONTAL_ALIGNMENT_CENTER, int(r.size.x), text_size, Color(1, 1, 1, 1.0))
+
+# DS: Draw outlined text (Bloons style — thick black outline, bright fill)
+func _ds_outlined_text(pos: Vector2, text: String, size: int, color: Color, width: int = -1, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, outline_size: int = 2) -> void:
+	var font = game_font
+	if font == null:
+		return
+	for ox in range(-outline_size, outline_size + 1):
+		for oy in range(-outline_size, outline_size + 1):
+			if ox != 0 or oy != 0:
+				_udraw(font, Vector2(pos.x + ox, pos.y + oy), text, align, width, size, Color(0, 0, 0, 0.8))
+	_udraw(font, pos, text, align, width, size, color)
+
+# DS: Draw a chunky panel with border and shadow (Bloons card style)
+func _ds_panel(rect: Rect2, bg_color: Color, border_color: Color, border_width: float = 3.0) -> void:
+	# Drop shadow
+	draw_rect(Rect2(rect.position.x + 3, rect.position.y + 3, rect.size.x, rect.size.y), Color(0, 0, 0, 0.4))
+	# Border
+	draw_rect(Rect2(rect.position.x - border_width, rect.position.y - border_width, rect.size.x + border_width * 2, rect.size.y + border_width * 2), border_color)
+	# Fill — gradient (lighter top, darker bottom)
+	var bands = 10
+	for gi in range(bands):
+		var gt = float(gi) / float(bands - 1)
+		var shade = 1.15 - gt * 0.3
+		var band_h = rect.size.y / float(bands) + 1
+		draw_rect(Rect2(rect.position.x, rect.position.y + gt * rect.size.y, rect.size.x, band_h), Color(bg_color.r * shade, bg_color.g * shade, bg_color.b * shade, bg_color.a))
+	# Inner highlight at top
+	draw_rect(Rect2(rect.position.x + 1, rect.position.y + 1, rect.size.x - 2, 2), Color(1, 1, 1, 0.1))
 
 # DS: Draw a hero card (portrait fills card, name at bottom, level badge)
 func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: String, level: int, accent: Color, unlocked: bool, is_hovered: bool) -> void:
@@ -1537,7 +1584,6 @@ var _enemy_portrait_textures: Dictionary = {}  # "faction/tier_N" -> ImageTextur
 var _gear_icon_textures: Dictionary = {}  # gear_id -> ImageTexture
 var _achievement_icon_textures: Dictionary = {}  # ach_id -> ImageTexture
 var _emporium_icon_textures: Dictionary = {}  # emp_key -> ImageTexture
-var _ui_textures: Dictionary = {}  # UI element textures (go_button, locked_button, etc.)
 var _death_fx_textures: Dictionary = {}  # faction_key -> ImageTexture
 var _collectible_textures: Dictionary = {}  # item_key -> ImageTexture
 
@@ -4388,29 +4434,6 @@ func _load_badge_icon_textures() -> void:
 			if tex:
 				_badge_icon_textures[bname] = tex
 
-func _load_ui_textures() -> void:
-	_ui_textures.clear()
-	var items = {
-		"go_button": "res://assets/ui_elements/go_button.png",
-		"locked_button": "res://assets/ui_elements/locked_button.png",
-		"difficulty_gems": "res://assets/ui_elements/difficulty_gems.png",
-		"level_card_bg": "res://assets/ui_elements/level_card_bg.png",
-		"nav_bar_bg": "res://assets/ui_elements/nav_bar_bg.png",
-		"header_bar": "res://assets/ui_elements/header_bar.png",
-		"three_stars": "res://assets/ui_elements/three_stars.png",
-		"world_map": "res://assets/menu_art/world_map.png",
-		"level_badge": "res://assets/ui_elements/level_badge.png",
-		"chapter_divider": "res://assets/ui_elements/chapter_divider.png",
-		"survivor_card_frame": "res://assets/ui_elements/survivor_card_frame.png",
-		"upgrade_panel_bg": "res://assets/ui_elements/upgrade_panel_bg.png",
-		"menu_background": "res://assets/menu_art/menu_background.png",
-	}
-	for key in items:
-		if ResourceLoader.exists(items[key]):
-			var tex = load(items[key])
-			if tex:
-				_ui_textures[key] = tex
-
 func _load_level_bg_textures() -> void:
 	_level_bg_textures.clear()
 	for idx in range(37):
@@ -4569,11 +4592,20 @@ func _load_collectible_textures() -> void:
 			if tex:
 				_collectible_textures[cname] = tex
 
+var _ui_tex: Dictionary = {}
+
+func _load_ui_art() -> void:
+	for item in ["go_button", "locked_button", "difficulty_gems"]:
+		var path = "res://assets/ui_elements/" + item + ".png"
+		if ResourceLoader.exists(path):
+			var tex = load(path)
+			if tex:
+				_ui_tex[item] = tex
+
 func _load_all_art_assets() -> void:
 	_load_map_thumb_textures()
 	_load_tab_icon_textures()
 	_load_badge_icon_textures()
-	_load_ui_textures()
 	_load_level_bg_textures()
 	_load_path_textures()
 	_load_portrait_textures()
@@ -4582,6 +4614,7 @@ func _load_all_art_assets() -> void:
 	_load_gear_icon_textures()
 	_load_achievement_icon_textures()
 	_load_emporium_icon_textures()
+	_load_ui_art()
 	_load_death_fx_textures()
 	_load_collectible_textures()
 
@@ -10710,20 +10743,14 @@ func _draw_currency_bar() -> void:
 	# Fill status bar area behind notch/cutout
 	if _safe_top > 0:
 		draw_rect(Rect2(0, 0, 1280, _safe_top), Color(0.02, 0.02, 0.08, 0.95))
-	# Header bar — AI texture or procedural fallback
-	if _ui_textures.has("header_bar"):
-		draw_texture_rect(_ui_textures["header_bar"], Rect2(0, bar_y, 1280, bar_h), false)
-		# Subtle dark tint for text readability
-		draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.0, 0.0, 0.05, 0.35))
-	else:
-		# Deep navy bar with subtle purple gradient
-		draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
-		var grad_steps = 16
-		var step_w = 1280.0 / float(grad_steps)
-		for gi in range(grad_steps):
-			var grad_t = (float(gi) + 0.5) / float(grad_steps)
-			var purple_a = sin(grad_t * PI) * 0.06
-			draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), _ca(menu_accent_purple, purple_a))
+	# Deep navy bar with subtle purple gradient
+	draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.02, 0.02, 0.08, 0.95))
+	var grad_steps = 16
+	var step_w = 1280.0 / float(grad_steps)
+	for gi in range(grad_steps):
+		var grad_t = (float(gi) + 0.5) / float(grad_steps)
+		var purple_a = sin(grad_t * PI) * 0.06
+		draw_rect(Rect2(float(gi) * step_w, bar_y, step_w, bar_h), _ca(menu_accent_purple, purple_a))
 	# Gold bottom accent line
 	draw_rect(Rect2(0, bar_y + bar_h - 1, 1280, 1), _ca(menu_gold, 0.4))
 	# Subtle inner glow at bottom
@@ -10787,23 +10814,16 @@ func _draw_menu_background() -> void:
 				break
 
 	if menu_current_view != "survivors" or survivor_detail_open:
-		# === Background: AI art or deep navy gradient ===
-		if _ui_textures.has("menu_background"):
-			# AI art background at low opacity with dark base
-			draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
-			draw_texture_rect(_ui_textures["menu_background"], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.35))
-			# Dark overlay for readability
-			draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.02, 0.06, 0.55))
-		else:
-			draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
-			# Vertical gradient — darker at top, slight purple warmth at bottom (20 bands)
-			var bg_bands = _qcount(20)
-			var grad_step = 720 / maxi(1, bg_bands)
-			for gy in range(0, 720, grad_step):
-				var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
-				var purple_shift = gt * gt * 0.04
-				var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
-				draw_rect(Rect2(0, gy, 1280, grad_step), col)
+		# === Deep navy background with vertical gradient ===
+		draw_rect(Rect2(0, 0, 1280, 720), theme_bg)
+		# Vertical gradient — darker at top, slight purple warmth at bottom (20 bands)
+		var bg_bands = _qcount(20)
+		var grad_step = 720 / maxi(1, bg_bands)
+		for gy in range(0, 720, grad_step):
+			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
+			var purple_shift = gt * gt * 0.04
+			var col = Color(theme_bg.r + purple_shift * 0.8, theme_bg.g + purple_shift * 0.2, theme_bg.b + purple_shift * 1.5, 0.6)
+			draw_rect(Rect2(0, gy, 1280, grad_step), col)
 
 		# === Center radial glow (purple atmosphere — vivid for mobile) ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
@@ -11230,18 +11250,13 @@ func _draw_menu_background() -> void:
 		Color(0.90, 0.75, 0.25),  # Emporium: gold
 		Color(0.80, 0.65, 0.20),  # Achievements: bronze gold
 	]
-	# Nav bar background — AI texture or procedural fallback
-	if _ui_textures.has("nav_bar_bg"):
-		draw_texture_rect(_ui_textures["nav_bar_bg"], Rect2(0, nav_draw_y, 1280, 100.0), false)
-		# Dark tint for readability
-		draw_rect(Rect2(0, nav_draw_y, 1280, 100.0), Color(0.0, 0.0, 0.05, 0.3))
-	else:
-		var nav_grad_steps = _qcount(20)
-		var nav_grad_h = 100.0 / float(nav_grad_steps)
-		for ngi in range(nav_grad_steps):
-			var t = float(ngi) / float(maxi(1, nav_grad_steps - 1))
-			var bg_col = Color(0.03, 0.02, 0.08, 0.95).lerp(Color(0.01, 0.01, 0.04, 0.98), t)
-			draw_rect(Rect2(0, nav_draw_y + float(ngi) * nav_grad_h, 1280, nav_grad_h + 1.0), bg_col)
+	# Dark gradient background with subtle texture
+	var nav_grad_steps = _qcount(20)
+	var nav_grad_h = 100.0 / float(nav_grad_steps)
+	for ngi in range(nav_grad_steps):
+		var t = float(ngi) / float(maxi(1, nav_grad_steps - 1))
+		var bg_col = Color(0.03, 0.02, 0.08, 0.95).lerp(Color(0.01, 0.01, 0.04, 0.98), t)
+		draw_rect(Rect2(0, nav_draw_y + float(ngi) * nav_grad_h, 1280, nav_grad_h + 1.0), bg_col)
 	# Fill safe area below nav bar (home indicator padding)
 	if _safe_bottom > 0:
 		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.01, 0.01, 0.04, 0.98))
@@ -15202,26 +15217,23 @@ func _draw_story_map() -> void:
 	var header_h = 32.0
 	var arc_gap = 6.0
 
-	# --- Background panel (left-aligned, room for sidebar on right) ---
-	if _ui_textures.has("world_map"):
-		# World map at low opacity behind everything
-		draw_texture_rect(_ui_textures["world_map"], Rect2(list_x, list_y, list_w, list_h), false, Color(1, 1, 1, 0.3))
-		# Dark overlay for readability
-		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.04, 0.03, 0.08, 0.75))
-	else:
-		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.05, 0.10, 0.95))
-	draw_rect(Rect2(list_x, list_y, list_w, 2), _ca(menu_gold_dim, 0.5))
-	draw_rect(Rect2(list_x, list_y + list_h - 2, list_w, 2), _ca(menu_gold_dim, 0.3))
+	# --- Background panel (Bloons-style bordered panel with shadow) ---
+	_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.07, 0.06, 0.12, 0.95), Color(0.55, 0.42, 0.15, 0.8), 3.0)
 
-	# --- Title bar ---
-	draw_rect(Rect2(list_x, list_y, list_w, 36), Color(0.08, 0.06, 0.12, 0.9))
+	# --- Title bar (Bloons-style gradient header) ---
+	# Dark gradient header
+	for hgi in range(6):
+		var hgt = float(hgi) / 5.0
+		var hshade = 0.15 - hgt * 0.05
+		draw_rect(Rect2(list_x + 1, list_y + 1 + hgt * 34.0, list_w - 2, 6.0), Color(hshade, hshade * 0.7, hshade * 1.8, 0.95))
+	# Gold bottom line
+	draw_rect(Rect2(list_x + 1, list_y + 35, list_w - 2, 2), Color(0.85, 0.70, 0.20, 0.7))
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
-	# Title — using design system
-	_ds_title(Vector2(list_x + 20, list_y + 24), "THE TOME OF SHADOWS", 22, Color(1.0, 0.85, 0.28))
+	# Title — Bloons outlined style
+	_ds_outlined_text(Vector2(list_x + 20, list_y + 25), "THE TOME OF SHADOWS", 22, Color(1.0, 0.88, 0.30))
 	var count_text = "%d/%d LEVELS" % [num_completed, num_total]
-	_udraw(font, Vector2(list_x + list_w - 160, list_y + 24), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(0.85, 0.70, 0.30))
-	draw_rect(Rect2(list_x, list_y + 36, list_w, 1), _ca(menu_gold_dim, 0.3))
+	_ds_outlined_text(Vector2(list_x + list_w - 160, list_y + 25), count_text, 17, Color(0.90, 0.75, 0.35))
 
 	# --- Right sidebar: Deals, Quests, Arena, Odyssey, Endless ---
 	var side_x = list_x + list_w + 12.0
@@ -15326,15 +15338,10 @@ func _draw_story_map() -> void:
 		# --- Arc header ---
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
-			# Chapter header background
-			if _ui_textures.has("chapter_divider"):
-				draw_texture_rect(_ui_textures["chapter_divider"], Rect2(list_x + 4, hy, list_w - 8, header_h), false, Color(1, 1, 1, 0.8))
-				# Arc-colored tint overlay
-				draw_rect(Rect2(list_x + 4, hy, list_w - 8, header_h), Color(arc_col.r * 0.3, arc_col.g * 0.3, arc_col.b * 0.3, 0.5))
-			else:
-				for hgi in range(4):
-					var hgt = float(hgi) / 3.0
-					draw_rect(Rect2(list_x + 4, hy + hgt * header_h * 0.25, list_w - 8, header_h * 0.25 + 1), Color(arc_col.r * (0.35 - hgt * 0.06), arc_col.g * (0.35 - hgt * 0.06), arc_col.b * (0.35 - hgt * 0.06), 0.85))
+			# Gradient header with arc color
+			for hgi in range(4):
+				var hgt = float(hgi) / 3.0
+				draw_rect(Rect2(list_x + 4, hy + hgt * header_h * 0.25, list_w - 8, header_h * 0.25 + 1), Color(arc_col.r * (0.35 - hgt * 0.06), arc_col.g * (0.35 - hgt * 0.06), arc_col.b * (0.35 - hgt * 0.06), 0.85))
 			# Left accent bar
 			draw_rect(Rect2(list_x + 4, hy, 4, header_h), Color(arc_col.r, arc_col.g, arc_col.b, 0.9))
 			# Character portrait next to chapter header
@@ -15394,36 +15401,25 @@ func _draw_story_map() -> void:
 			prev_row_center = row_center
 			prev_row_visible = true
 
-			# --- Row background ---
+			# --- Row background (Bloons-style card with border + shadow) ---
 			var is_hovered = Rect2(rx, maxf(ry, content_top), rw, row_h).has_point(mouse_pos) and ry >= content_top
-			if _ui_textures.has("level_card_bg") and is_unlocked:
-				# AI art level card background — aspect-ratio preserved
-				var _lcb_tex = _ui_textures["level_card_bg"]
-				var _lcb_ts = Vector2(_lcb_tex.get_width(), _lcb_tex.get_height())
-				var _lcb_scale = maxf(rw / _lcb_ts.x, (row_h - 2) / _lcb_ts.y)
-				var _lcb_dw = _lcb_ts.x * _lcb_scale
-				var _lcb_dh = _lcb_ts.y * _lcb_scale
-				var _lcb_dx = rx + (rw - _lcb_dw) * 0.5
-				var _lcb_dy = ry + ((row_h - 2) - _lcb_dh) * 0.5
-				var _lcb_alpha = 0.85 if is_hovered else 0.6
-				draw_texture_rect(_lcb_tex, Rect2(_lcb_dx, _lcb_dy, _lcb_dw, _lcb_dh), false, Color(1, 1, 1, _lcb_alpha))
-				# Tint overlay with arc color
-				draw_rect(Rect2(rx, ry, rw, row_h - 2), Color(arc_col.r * 0.1, arc_col.g * 0.1, arc_col.b * 0.1, 0.4))
-				# Brighter on hover
-				if is_hovered:
-					draw_rect(Rect2(rx, ry, rw, row_h - 2), Color(1.0, 0.9, 0.6, 0.06))
+			var card_bg: Color
+			var card_border: Color
+			if is_unlocked:
+				var br = 0.12 + arc_col.r * 0.08
+				var bg = 0.10 + arc_col.g * 0.08
+				var bb = 0.08 + arc_col.b * 0.08
+				card_bg = Color(br, bg, bb, 0.85) if not is_hovered else Color(br * 1.4, bg * 1.4, bb * 1.4, 0.92)
+				card_border = Color(arc_col.r * 0.8, arc_col.g * 0.8, arc_col.b * 0.8, 0.7) if not is_hovered else Color(arc_col.r, arc_col.g, arc_col.b, 0.9)
 			else:
-				# Procedural fallback
-				var tint_r = arc_col.r * 0.06
-				var tint_g = arc_col.g * 0.06
-				var tint_b = arc_col.b * 0.06
-				var row_bg = Color(0.10 + tint_r, 0.08 + tint_g, 0.06 + tint_b, 0.5) if not is_hovered else Color(0.15 + tint_r, 0.12 + tint_g, 0.08 + tint_b, 0.7)
-				if not is_unlocked:
-					row_bg = Color(0.06, 0.05, 0.08, 0.5)
-				draw_rect(Rect2(rx, ry, rw, row_h - 2), row_bg)
-			# Left accent bar
+				card_bg = Color(0.06, 0.05, 0.08, 0.7)
+				card_border = Color(0.2, 0.18, 0.15, 0.4)
+			_ds_panel(Rect2(rx, ry, rw, row_h - 4), card_bg, card_border, 2.0)
+			# Left accent bar (thick, glowing)
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
-			draw_rect(Rect2(rx, ry, 3, row_h - 2), accent_col)
+			draw_rect(Rect2(rx, ry, 5, row_h - 4), Color(accent_col.r, accent_col.g, accent_col.b, 0.9))
+			if is_unlocked and is_hovered:
+				draw_rect(Rect2(rx - 1, ry, 7, row_h - 4), Color(accent_col.r, accent_col.g, accent_col.b, 0.3))
 
 			# Enhancement 16: Boss level red border
 			if is_boss and is_unlocked:
@@ -15473,12 +15469,15 @@ func _draw_story_map() -> void:
 			draw_circle(Vector2(thumb_x + 12, thumb_y + 12), 10, Color(0.0, 0.0, 0.0, 0.6))
 			_udraw(font, Vector2(thumb_x + 12, thumb_y + 16), str(lvl_idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 20, 14, Color(0.90, 0.82, 0.55))
 
-			# --- Text info (brighter, bolder) ---
+			# --- Text info (Bloons style — outlined, bold) ---
 			var text_x = thumb_x + thumb_w + 18.0
-			var name_col = Color(1.0, 0.88, 0.40) if is_unlocked else Color(0.50, 0.42, 0.32, 0.65)
-			var sub_col = Color(0.80, 0.68, 0.48) if is_unlocked else Color(0.40, 0.35, 0.28, 0.55)
-			var stat_col = Color(0.65, 0.80, 0.50) if is_unlocked else Color(0.35, 0.32, 0.25, 0.45)
-			_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 380, 16, name_col)
+			var name_col = Color(1.0, 0.92, 0.45) if is_unlocked else Color(0.50, 0.42, 0.32, 0.65)
+			var sub_col = Color(0.85, 0.75, 0.55) if is_unlocked else Color(0.40, 0.35, 0.28, 0.55)
+			var stat_col = Color(0.65, 0.85, 0.50) if is_unlocked else Color(0.35, 0.32, 0.25, 0.45)
+			if is_unlocked:
+				_ds_outlined_text(Vector2(text_x, ry + 26), level["name"], 17, name_col, 380)
+			else:
+				_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 380, 16, name_col)
 			_udraw(font, Vector2(text_x, ry + 46), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 380, 15, sub_col)
 
 			# Enhancement 22: Best wave indicator
@@ -15523,65 +15522,66 @@ func _draw_story_map() -> void:
 				if reward_count > 0:
 					_udraw(font, Vector2(reward_icon_x + float(reward_count) * 18.0 + 4, reward_icon_y + 3), "%d rewards" % level_rewards.size(), HORIZONTAL_ALIGNMENT_LEFT, 100, 14, Color(0.6, 0.55, 0.40, 0.5))
 
-			# --- Difficulty gems (large, prominent) ---
+			# --- Difficulty gems (Bloons style) ---
 			var medal_x = rx + rw - 340.0
-			var medal_colors = [Color(0.45, 0.72, 0.35), Color(0.82, 0.72, 0.22), Color(0.90, 0.45, 0.15), Color(0.85, 0.15, 0.15)]
-			var medal_labels = ["E", "M", "H", "P"]
+			var medal_colors = [Color(0.3, 0.9, 0.3), Color(0.3, 0.5, 1.0), Color(0.9, 0.2, 0.2), Color(0.7, 0.2, 0.9)]
 			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
 			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
-			var _has_gem_tex = _ui_textures.has("difficulty_gems")
-			var _gem_tex = _ui_textures.get("difficulty_gems", null)
-			for di in range(4):
-				var mx = medal_x + float(di) * 52.0
-				var my = ry + 8.0
-				var mw = 46.0
-				var mh = 56.0
-				var earned = medals[di]
-				if _has_gem_tex and _gem_tex != null:
-					# AI art gems from sprite strip (4 gems side by side)
-					var gem_tw = _gem_tex.get_width() / 4.0
-					var gem_th = float(_gem_tex.get_height())
-					var gem_region = Rect2(float(di) * gem_tw, 0, gem_tw, gem_th)
-					var gem_draw_sz = minf(mw, mh * 0.7)
-					var gem_scale = minf(gem_draw_sz / gem_tw, gem_draw_sz / gem_th)
-					var gem_dw = gem_tw * gem_scale
-					var gem_dh = gem_th * gem_scale
-					var gem_dx = mx + (mw - gem_dw) * 0.5
-					var gem_dy = my + (mh * 0.45 - gem_dh * 0.5)
-					var gem_alpha = 1.0 if earned else 0.25
-					draw_texture_rect_region(_gem_tex, Rect2(gem_dx, gem_dy, gem_dw, gem_dh), gem_region, Color(1, 1, 1, gem_alpha))
-					# Star row below gem
+			if _ui_tex.has("difficulty_gems"):
+				# Use nano-banana gem strip — 4 gems side by side
+				var gem_tex = _ui_tex["difficulty_gems"]
+				var gem_strip_w = float(gem_tex.get_width())
+				var gem_strip_h = float(gem_tex.get_height())
+				var gem_one_w = gem_strip_w / 4.0
+				var gem_sz = 42.0
+				for di in range(4):
+					var mx = medal_x + float(di) * 52.0 + 2.0
+					var my = ry + 10.0
+					var earned = medals[di]
+					var gem_a = 1.0 if earned else 0.2
+					var src = Rect2(float(di) * gem_one_w, 0, gem_one_w, gem_strip_h)
+					draw_texture_rect_region(gem_tex, Rect2(mx, my, gem_sz, gem_sz), src, Color(1, 1, 1, gem_a))
+					# Stars below gem
 					if earned:
 						var ds = diff_stars_arr[di]
 						for dsi in range(3):
-							var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
-							var sy = my + mh * 0.5 + 8.0
+							var sx = mx + gem_sz * 0.5 - 8.0 + float(dsi) * 8.0
+							var sy = my + gem_sz + 4.0
 							if dsi < ds:
-								var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
-								draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
+								draw_circle(Vector2(sx, sy), 5.0, _ca(c_gold_bright, 0.2))
 								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
 							else:
 								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
-				else:
-					# Procedural fallback
+			else:
+				# Procedural Bloons-style gem fallback
+				for di in range(4):
+					var mx = medal_x + float(di) * 52.0
+					var my = ry + 8.0
+					var gem_sz = 38.0
+					var earned = medals[di]
+					var mc = medal_colors[di]
+					var alpha = 1.0 if earned else 0.2
+					# Gem body — bright gradient circle
+					draw_circle(Vector2(mx + 23, my + 20), 16.0, Color(0, 0, 0, 0.4 * alpha))
+					for gi in range(8):
+						var gr = 15.0 - float(gi) * 1.5
+						var shade = 0.6 + float(gi) * 0.05
+						draw_circle(Vector2(mx + 23, my + 20 - float(gi) * 0.3), gr, Color(mc.r * shade, mc.g * shade, mc.b * shade, alpha))
+					# Glass highlight
+					draw_circle(Vector2(mx + 20, my + 16), 6.0, Color(1, 1, 1, 0.25 * alpha))
+					# Gold setting border
+					draw_arc(Vector2(mx + 23, my + 20), 17.0, 0, TAU, 16, Color(0.9, 0.75, 0.2, 0.8 * alpha), 2.5)
+					# Stars below
 					if earned:
-						var mc = medal_colors[di]
-						_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, mc, true)
 						var ds = diff_stars_arr[di]
 						for dsi in range(3):
-							var sx = mx + mw * 0.5 - 8.0 + float(dsi) * 8.0
-							var sy = my + mh * 0.5 + 8.0
+							var sx = mx + 23.0 - 8.0 + float(dsi) * 8.0
+							var sy = my + 42.0
 							if dsi < ds:
-								var star_glow_a = 0.15 + sin(_time * 2.5 + float(dsi) * 0.5) * 0.08
-								draw_circle(Vector2(sx, sy), 6.0, _ca(c_gold_bright, star_glow_a))
+								draw_circle(Vector2(sx, sy), 5.0, _ca(c_gold_bright, 0.2))
 								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
 							else:
 								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
-					else:
-						_draw_shield(Vector2(mx + mw * 0.5, my + mh * 0.45), 20.0, Color(0.3, 0.25, 0.2, 0.3), false)
-				# Difficulty letter below gem/shield
-				var lbl_col = medal_colors[di] if earned else Color(0.35, 0.30, 0.22, 0.4)
-				_udraw(font, Vector2(mx + mw * 0.5, my + mh - 2), medal_labels[di], HORIZONTAL_ALIGNMENT_CENTER, 20, 14, lbl_col)
 
 			# Enhancement 13: Level difficulty medals (Easy/Med/Hard dots)
 			var dot_base_x = medal_x
@@ -15601,40 +15601,23 @@ func _draw_story_map() -> void:
 			var btn_h2 = 52.0
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
-				if _ui_textures.has("go_button"):
-					# AI art GO button — aspect ratio preserved
-					var _go_tex = _ui_textures["go_button"]
-					var _go_ts = Vector2(_go_tex.get_width(), _go_tex.get_height())
-					var _go_scale = minf(btn_w2 / _go_ts.x, btn_h2 / _go_ts.y)
-					var _go_dw = _go_ts.x * _go_scale
-					var _go_dh = _go_ts.y * _go_scale
-					var _go_dx = btn_x + (btn_w2 - _go_dw) * 0.5
-					var _go_dy = btn_y2 + (btn_h2 - _go_dh) * 0.5
-					var _go_alpha = 1.0 if btn_hover else 0.9
-					# Glow on hover
-					if btn_hover:
-						draw_rect(Rect2(btn_x - 3, btn_y2 - 3, btn_w2 + 6, btn_h2 + 6), Color(0.3, 0.8, 0.2, 0.15))
-					draw_texture_rect(_go_tex, Rect2(_go_dx, _go_dy, _go_dw, _go_dh), false, Color(1, 1, 1, _go_alpha))
-					# "GO" text overlay for clarity
-					_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5 + 7), "GO", HORIZONTAL_ALIGNMENT_CENTER, btn_w2, 20, Color(1.0, 1.0, 1.0, 0.95))
+				if _ui_tex.has("go_button"):
+					var go_a = 1.0 if btn_hover else 0.85
+					var go_s = 1.08 if btn_hover else 1.0
+					var gw = btn_w2 * go_s
+					var gh = btn_h2 * go_s
+					var gx = btn_x + (btn_w2 - gw) * 0.5
+					var gy = btn_y2 + (btn_h2 - gh) * 0.5
+					draw_texture_rect(_ui_tex["go_button"], Rect2(gx, gy, gw, gh), false, Color(1, 1, 1, go_a))
 				else:
 					var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
 					_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
 			else:
-				if _ui_textures.has("locked_button"):
-					# AI art locked button
-					var _lk_tex = _ui_textures["locked_button"]
-					var _lk_ts = Vector2(_lk_tex.get_width(), _lk_tex.get_height())
-					var _lk_scale = minf(btn_w2 / _lk_ts.x, btn_h2 / _lk_ts.y)
-					var _lk_dw = _lk_ts.x * _lk_scale
-					var _lk_dh = _lk_ts.y * _lk_scale
-					var _lk_dx = btn_x + (btn_w2 - _lk_dw) * 0.5
-					var _lk_dy = btn_y2 + (btn_h2 - _lk_dh) * 0.5
-					draw_texture_rect(_lk_tex, Rect2(_lk_dx, _lk_dy, _lk_dw, _lk_dh), false, Color(1, 1, 1, 0.7))
+				if _ui_tex.has("locked_button"):
+					draw_texture_rect(_ui_tex["locked_button"], Rect2(btn_x, btn_y2, btn_w2, btn_h2), false, Color(1, 1, 1, 0.8))
 				else:
 					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
 					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
-					# Lock icon
 					var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
 					draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
 					draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
