@@ -15738,9 +15738,8 @@ func _draw_diff_popup() -> void:
 		var is_hovered = _is_hover_or_pressed(Rect2(bx, btn_y, btn_w, btn_h), mouse_pos)
 		var earned = medals[di]
 
-		# Button background
-		var bg_alpha = 0.7 if is_hovered else 0.4
-		draw_rect(Rect2(bx, btn_y, btn_w, btn_h), Color(dc.r * 0.15, dc.g * 0.15, dc.b * 0.15, bg_alpha))
+		# Rounded difficulty button
+		_ds_panel(Rect2(bx, btn_y, btn_w, btn_h), Color(dc.r * 0.2, dc.g * 0.2, dc.b * 0.2, 0.9 if is_hovered else 0.7), Color(dc.r, dc.g, dc.b, 0.8 if is_hovered else 0.5), 2.0, 8.0)
 		# Border (glowing if earned)
 		var border_a = 0.9 if is_hovered else (0.6 if earned else 0.3)
 		draw_rect(Rect2(bx, btn_y, btn_w, btn_h), Color(dc.r, dc.g, dc.b, border_a), false, 2.0 if earned else 1.0)
@@ -22007,9 +22006,8 @@ func _draw_stats_recap() -> void:
 	var font = game_font
 	var cx = 640.0
 	var cy = 280.0
-	draw_rect(Rect2(340, 200, 600, 280), Color(0.03, 0.02, 0.06, 0.95))
-	draw_rect(Rect2(340, 200, 600, 280), Color(0.7, 0.55, 0.2, 0.6), false, 2.0)
-	_udraw(font, Vector2(cx, 225), "BATTLE RECAP", HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(1.0, 0.85, 0.3))
+	_ds_panel(Rect2(340, 200, 600, 280), Color(0.08, 0.06, 0.14, 0.96), Color(0.8, 0.6, 0.2, 0.8), 3.0, 12.0)
+	_ds_outlined_text(Vector2(cx, 228), "BATTLE RECAP", 22, Color(1.0, 0.90, 0.35), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	var stats_list = [
 		["Waves Cleared", str(_session_stats.get("waves_cleared", 0))],
 		["Enemies Defeated", str(_session_stats.get("total_kills", 0))],
