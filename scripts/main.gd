@@ -15341,14 +15341,15 @@ func _draw_story_map() -> void:
 			var card_bg: Color
 			var card_border: Color
 			if is_unlocked:
-				var br = 0.16 + arc_col.r * 0.12
-				var bg2 = 0.13 + arc_col.g * 0.12
-				var bb = 0.12 + arc_col.b * 0.12
-				card_bg = Color(br, bg2, bb, 0.92) if not is_hovered else Color(br * 1.5, bg2 * 1.5, bb * 1.5, 0.95)
-				card_border = Color(arc_col.r, arc_col.g, arc_col.b, 0.85) if not is_hovered else Color(minf(arc_col.r * 1.3, 1.0), minf(arc_col.g * 1.3, 1.0), minf(arc_col.b * 1.3, 1.0), 1.0)
+				# Bright blue card with slight arc color tint
+				var br = 0.20 + arc_col.r * 0.06
+				var bg2 = 0.36 + arc_col.g * 0.06
+				var bb = 0.56 + arc_col.b * 0.06
+				card_bg = Color(br, bg2, bb, 0.95) if not is_hovered else Color(minf(br * 1.2, 0.5), minf(bg2 * 1.2, 0.6), minf(bb * 1.1, 0.75), 0.98)
+				card_border = Color(0.30, 0.70, 0.90, 0.8) if not is_hovered else Color(0.40, 0.80, 0.98, 1.0)
 			else:
-				card_bg = Color(0.14, 0.12, 0.20, 0.82)
-				card_border = Color(0.25, 0.22, 0.18, 0.5)
+				card_bg = Color(0.18, 0.28, 0.42, 0.85)
+				card_border = Color(0.30, 0.40, 0.55, 0.5)
 			_ds_panel(Rect2(rx, ry, rw, row_h - 4), card_bg, card_border, 3.0)
 			# Left accent bar (thick, glowing)
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
