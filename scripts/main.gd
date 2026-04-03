@@ -15189,9 +15189,9 @@ func _draw_story_map() -> void:
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
 	# Title — Bloons outlined style
-	_ds_outlined_text(Vector2(list_x + 20, list_y + 25), "THE TOME OF SHADOWS", 22, Color(1.0, 0.88, 0.30))
+	_ds_outlined_text(Vector2(list_x + 20, list_y + 27), "THE TOME OF SHADOWS", 24, Color(1.0, 0.92, 0.35), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 	var count_text = "%d/%d LEVELS" % [num_completed, num_total]
-	_ds_outlined_text(Vector2(list_x + list_w - 160, list_y + 25), count_text, 17, Color(0.90, 0.75, 0.35))
+	_ds_outlined_text(Vector2(list_x + list_w - 170, list_y + 27), count_text, 18, Color(0.95, 0.80, 0.40), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 
 	# --- Right sidebar: Deals, Quests, Arena, Odyssey, Endless ---
 	var side_x = list_x + list_w + 12.0
@@ -16516,12 +16516,19 @@ func _draw_endless_sidebar(px: float, py: float, pw: float, ph: float) -> void:
 	_udraw(font, Vector2(px + pw * 0.5 - 54, py + 171), "START", HORIZONTAL_ALIGNMENT_CENTER, 108, 14, Color(0.72, 0.82, 0.98))
 
 func _draw_mini_star(center: Vector2, size: float, color: Color) -> void:
-	var pts = PackedVector2Array()
-	for i in range(10):
-		var angle = -PI / 2.0 + float(i) * TAU / 10.0
-		var r = size if i % 2 == 0 else size * 0.4
-		pts.append(center + Vector2.from_angle(angle) * r)
-	draw_colored_polygon(pts, color)
+	# Use golden star texture if bright enough (earned stars)
+	if _ui_tex.has("golden_star") and color.a > 0.5 and size >= 3.0:
+		var tex = _ui_tex["golden_star"]
+		var draw_sz = size * 4.0
+		draw_texture_rect(tex, Rect2(center.x - draw_sz * 0.5, center.y - draw_sz * 0.5, draw_sz, draw_sz), false, Color(1, 1, 1, color.a))
+	else:
+		# Procedural fallback for dim/small stars
+		var pts = PackedVector2Array()
+		for i in range(10):
+			var angle = -PI / 2.0 + float(i) * TAU / 10.0
+			var r = size if i % 2 == 0 else size * 0.4
+			pts.append(center + Vector2.from_angle(angle) * r)
+		draw_colored_polygon(pts, color)
 
 func _draw_shield(center: Vector2, size: float, color: Color, filled: bool) -> void:
 	# Shield/badge shape: rounded top, pointed bottom
