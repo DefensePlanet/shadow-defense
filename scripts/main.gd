@@ -10109,8 +10109,7 @@ func _draw_loot_crate_popup() -> void:
 	# Phase 1: Drop animation
 	if _loot_crate_phase == 1:
 		var drop_y = lerpf(-100.0, cy, minf(_loot_crate_anim_timer / 0.5, 1.0))
-		draw_rect(Rect2(cx - 40, drop_y - 30, 80, 60), Color(0.15, 0.10, 0.25))
-		draw_rect(Rect2(cx - 40, drop_y - 30, 80, 60), qcol, false, 3.0)
+		_ds_panel(Rect2(cx - 40, drop_y - 30, 80, 60), Color(0.15, 0.10, 0.25), qcol, 3.0, 10.0)
 		_udraw(font, Vector2(cx - 6, drop_y + 6), "?", HORIZONTAL_ALIGNMENT_CENTER, -1, 28, qcol)
 		if _loot_crate_anim_timer >= 0.5:
 			_loot_crate_phase = 2
@@ -10119,8 +10118,7 @@ func _draw_loot_crate_popup() -> void:
 	elif _loot_crate_phase == 2:
 		var shake = sin(_loot_crate_anim_timer * 30.0) * 3.0
 		draw_rect(Rect2(cx - 50 + shake, cy - 40, 100, 80), Color(qcol.r, qcol.g, qcol.b, 0.15))
-		draw_rect(Rect2(cx - 40 + shake, cy - 30, 80, 60), Color(0.15, 0.10, 0.25))
-		draw_rect(Rect2(cx - 40 + shake, cy - 30, 80, 60), qcol, false, 3.0)
+		_ds_panel(Rect2(cx - 40 + shake, cy - 30, 80, 60), Color(0.15, 0.10, 0.25), qcol, 3.0, 10.0)
 		var glow = 0.3 + sin(_loot_crate_anim_timer * 8.0) * 0.2
 		draw_circle(Vector2(cx + shake, cy), 55.0, Color(qcol.r, qcol.g, qcol.b, glow))
 		_udraw(font, Vector2(cx - 6 + shake, cy + 6), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 28, qcol)
@@ -10129,8 +10127,8 @@ func _draw_loot_crate_popup() -> void:
 			_loot_crate_anim_timer = 0.0
 	# Phase 3: Open — reveal rewards
 	elif _loot_crate_phase >= 3:
-		_udraw(font, Vector2(cx - 150, cy - 80), _loot_crate_reward.get("quality_name", "Loot"), HORIZONTAL_ALIGNMENT_CENTER, 300, 28, qcol)
-		_udraw(font, Vector2(cx - 150, cy - 55), "STORYBOOK CRATE", HORIZONTAL_ALIGNMENT_CENTER, 300, 16, Color(0.7, 0.7, 0.7, 0.7))
+		_ds_outlined_text(Vector2(cx, cy - 80), _loot_crate_reward.get("quality_name", "Loot"), 30, qcol, 300, HORIZONTAL_ALIGNMENT_CENTER, 3)
+		_ds_outlined_text(Vector2(cx, cy - 55), "STORYBOOK CRATE", 16, Color(0.75, 0.75, 0.75, 0.8), 300, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		var ry = cy - 20.0
 		if _loot_crate_reward.has("gold"):
 			_udraw(font, Vector2(cx - 150, ry), "+%d Gold" % _loot_crate_reward["gold"], HORIZONTAL_ALIGNMENT_CENTER, 300, 18, c_gold)
@@ -10395,7 +10393,7 @@ func _draw_combo_counter() -> void:
 	var sz = int(14.0 * scale_mult)
 	var combo_text = "COMBO x%d" % _kill_combo
 	var col = Color(1.0, 0.9, 0.2, alpha) if _kill_combo < 25 else Color(1.0, 0.5, 0.1, alpha) if _kill_combo < 50 else Color(1.0, 0.2, 0.2, alpha)
-	_udraw(font, Vector2(1040, 60), combo_text, HORIZONTAL_ALIGNMENT_CENTER, 120, sz, col)
+	_ds_outlined_text(Vector2(1100, 60), combo_text, sz, col, 120, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 # --- 12. BOSS KILL CEREMONY ---
 func _trigger_boss_kill_ceremony(pos: Vector2, boss_name: String) -> void:
@@ -10454,7 +10452,7 @@ func _draw_near_miss() -> void:
 	var font = game_font
 	var alpha = minf(_near_miss_timer, 1.0)
 	var pulse = 0.7 + sin(_time * 6.0) * 0.3
-	_udraw(font, Vector2(440, 100), _near_miss_text, HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Color(1.0, 0.2, 0.15, alpha * pulse))
+	_ds_outlined_text(Vector2(640, 100), _near_miss_text, 24, Color(1.0, 0.25, 0.15, alpha * pulse), 400, HORIZONTAL_ALIGNMENT_CENTER, 3)
 	# Vignette effect
 	var vig_alpha = alpha * 0.15
 	draw_rect(Rect2(0, 0, 1280, 30), Color(0.8, 0.1, 0.05, vig_alpha))
@@ -10486,8 +10484,8 @@ func _draw_power_spike() -> void:
 	var tname = tower_info[_power_spike_tower_type]["name"] if tower_info.has(_power_spike_tower_type) else "Hero"
 	var tier_labels = ["", "Tier I", "Tier II", "POWER SPIKE!", "ULTIMATE FORM!"]
 	var label = tier_labels[mini(_power_spike_tier, tier_labels.size() - 1)]
-	_udraw(font, Vector2(440, 340), tname, HORIZONTAL_ALIGNMENT_CENTER, 400, 24, Color(0.95, 0.75, 0.1, alpha))
-	_udraw(font, Vector2(440, 370), label, HORIZONTAL_ALIGNMENT_CENTER, 400, 20, Color(1.0, 0.9, 0.3, alpha))
+	_ds_outlined_text(Vector2(640, 340), tname, 26, Color(0.95, 0.78, 0.12, alpha), 400, HORIZONTAL_ALIGNMENT_CENTER, 3)
+	_ds_outlined_text(Vector2(640, 370), label, 22, Color(1.0, 0.92, 0.3, alpha), 400, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Flash overlay
 	if _power_spike_timer > 1.5:
 		draw_rect(Rect2(0, 0, 1280, 720), Color(1, 1, 1, (_power_spike_timer - 1.5) * 0.4))
@@ -10510,7 +10508,8 @@ func _draw_comeback_banner() -> void:
 	if not _comeback_bonus_active or _comeback_timer <= 0.0:
 		return
 	var font = game_font
-	_udraw(font, Vector2(340, 50), "WELCOME BACK! %.0fx REWARDS (%d games left)" % [_comeback_multiplier, int(_comeback_timer)], HORIZONTAL_ALIGNMENT_CENTER, 600, 16, Color(0.4, 0.9, 0.6, 0.8))
+	_ds_panel(Rect2(340, 35, 600, 28), Color(0.06, 0.15, 0.10, 0.85), Color(0.3, 0.8, 0.5, 0.5), 1.5, 8.0)
+	_ds_outlined_text(Vector2(640, 55), "WELCOME BACK! %.0fx REWARDS (%d games left)" % [_comeback_multiplier, int(_comeback_timer)], 16, Color(0.4, 0.95, 0.6, 0.9), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 # --- 17. FORTRESS EVOLUTION ---
 func _update_fortress_level() -> void:
@@ -15906,12 +15905,7 @@ func _draw_chapters_overlay() -> void:
 	var close_y = panel_y + 6.0
 	var mouse_pos = get_viewport().get_mouse_position()
 	var close_hov = _is_hover_or_pressed(Rect2(close_x, close_y, close_sz, close_sz), mouse_pos)
-	draw_rect(Rect2(close_x, close_y, close_sz, close_sz), Color(0.6, 0.1, 0.1, 0.55 if close_hov else 0.2))
-	draw_rect(Rect2(close_x, close_y, close_sz, close_sz), Color(0.9, 0.3, 0.3, 0.5 if close_hov else 0.2), false, 1.0)
-	var xc = Color(0.95, 0.35, 0.3, 0.95 if close_hov else 0.6)
-	var x_margin = close_sz * 0.22
-	draw_line(Vector2(close_x + x_margin, close_y + x_margin), Vector2(close_x + close_sz - x_margin, close_y + close_sz - x_margin), xc, 2.5)
-	draw_line(Vector2(close_x + close_sz - x_margin, close_y + x_margin), Vector2(close_x + x_margin, close_y + close_sz - x_margin), xc, 2.5)
+	_ds_button(Rect2(close_x, close_y, close_sz, close_sz), "X", Color(0.6, 0.12, 0.1), close_hov, 16)
 	# Draw the selected panel content (reuses existing sidebar draw functions)
 	if menu_side_panel == "deals":
 		_draw_daily_deals_sidebar(panel_x, content_y, panel_w, content_h)
@@ -16314,18 +16308,16 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		var diff_colors = [Color(0.4, 0.75, 0.35), Color(0.85, 0.7, 0.25), Color(0.85, 0.3, 0.25)]
 		var diff_names = ["EASY", "MEDIUM", "HARD"]
 		var diff_col = diff_colors[clampi(difficulty, 0, 2)]
-		# Background
+		# Background — rounded card
 		var bg = Color(0.06, 0.14, 0.06, 0.55) if claimed else (Color(0.12, 0.24, 0.08, 0.72) if completed else Color(0.10, 0.10, 0.14, 0.65))
-		draw_rect(Rect2(px + 8, iy, pw - 16, ih), bg)
+		_ds_panel(Rect2(px + 8, iy, pw - 16, ih), bg, Color(diff_col.r, diff_col.g, diff_col.b, 0.3 if not completed else 0.15), 1.0, 8.0)
 		# Claim flash animation (Improvement 14)
 		var claim_flash = 0.0
 		for cf in _quest_claim_flash:
 			if cf["index"] == i:
 				claim_flash = clampf(cf["timer"], 0.0, 1.0)
 		if claim_flash > 0.0:
-			draw_rect(Rect2(px + 8, iy, pw - 16, ih), Color(0.4, 0.9, 0.3, claim_flash * 0.35))
-		# Border color by difficulty (Improvement 11)
-		draw_rect(Rect2(px + 8, iy, pw - 16, ih), Color(diff_col.r, diff_col.g, diff_col.b, 0.3 if not completed else 0.15), false, 1.0)
+			draw_colored_polygon(_rrp(Rect2(px + 8, iy, pw - 16, ih), 8.0), Color(0.4, 0.9, 0.3, claim_flash * 0.35))
 		# Difficulty badge (Improvement 11)
 		draw_rect(Rect2(px + 10, iy + 2, 55, 18), Color(diff_col.r, diff_col.g, diff_col.b, 0.2))
 		_udraw(font, Vector2(px + 38, iy + 15), diff_names[clampi(difficulty, 0, 2)], HORIZONTAL_ALIGNMENT_CENTER, -1, 14, diff_col)
@@ -16335,9 +16327,10 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		var pct = float(q.get("progress", 0)) / float(max(1, q.get("target", 1)))
 		var bar_w = 100.0
 		var bar_x = px + pw - 120.0
-		draw_rect(Rect2(bar_x, iy + 8, bar_w, 12), Color(0.12, 0.12, 0.12))
+		draw_colored_polygon(_rrp(Rect2(bar_x, iy + 8, bar_w, 12), 4.0), Color(0.12, 0.12, 0.12))
 		var bar_col = Color(0.2, 0.5, 0.2) if claimed else (Color(0.3, 0.85, 0.3) if completed else Color(0.3, 0.6, 0.3))
-		draw_rect(Rect2(bar_x, iy + 8, bar_w * clampf(pct, 0.0, 1.0), 12), bar_col)
+		if pct > 0.01:
+			draw_colored_polygon(_rrp(Rect2(bar_x, iy + 8, bar_w * clampf(pct, 0.0, 1.0), 12), 4.0), bar_col)
 		_udraw(font, Vector2(bar_x + bar_w * 0.5, iy + 18), "%d/%d" % [q.get("progress", 0), q.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.85, 0.85, 0.85))
 		# Reward display
 		var reward_str = "+%d %s" % [q.get("reward_amount", 0), q.get("reward_type", "").capitalize()]
@@ -16350,9 +16343,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 			var btn_y = iy + 32.0
 			var claim_h = 44.0 if _is_mobile else 24.0
 			var btn_hov = _is_hover_or_pressed(Rect2(btn_x, btn_y, 95, claim_h), mouse_pos)
-			draw_rect(Rect2(btn_x, btn_y, 95, claim_h), Color(0.15, 0.35, 0.1, 0.9 if btn_hov else 0.7))
-			draw_rect(Rect2(btn_x, btn_y, 95, claim_h), Color(0.4, 0.9, 0.3, claim_pulse if btn_hov else 0.5), false, 2.0)
-			_udraw(font, Vector2(btn_x + 48, btn_y + 18), "CLAIM!", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.5, 1.0, 0.3, claim_pulse))
+			_ds_button(Rect2(btn_x, btn_y, 95, claim_h), "CLAIM!", Color(0.15, 0.45, 0.12), btn_hov, 13)
 			_udraw(font, Vector2(px + 16, iy + 48), reward_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.70, 0.28))
 		else:
 			_udraw(font, Vector2(px + pw - 70, iy + 48), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.85, 0.70, 0.28))
@@ -18868,10 +18859,9 @@ func _draw() -> void:
 		if achievement_popup_timer > 0.0:
 			var font = game_font
 			var a_alpha = clampf(achievement_popup_timer, 0.0, 1.0)
-			draw_rect(Rect2(340, 20, 600, 40), Color(0.14, 0.20, 0.08, 0.88 * a_alpha))
-			draw_rect(Rect2(340, 20, 600, 40), Color(0.4, 0.8, 0.2, 0.5 * a_alpha), false, 1.0)
-			_udraw(font, Vector2(350, 37), achievement_popup_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.85, 0.75, 0.4, a_alpha))
-			_udraw(font, Vector2(350, 53), achievement_popup_reward, HORIZONTAL_ALIGNMENT_CENTER, 580, 15, Color(0.5, 0.8, 0.3, a_alpha))
+			_ds_panel(Rect2(340, 20, 600, 40), Color(0.14, 0.20, 0.08, 0.88 * a_alpha), Color(0.4, 0.8, 0.2, 0.5 * a_alpha), 1.5, 10.0)
+			_ds_outlined_text(Vector2(640, 37), achievement_popup_text, 14, Color(0.90, 0.80, 0.45, a_alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
+			_ds_outlined_text(Vector2(640, 53), achievement_popup_reward, 15, Color(0.5, 0.85, 0.3, a_alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		# Menu Improvement 14: Toast notifications overlay
 		_draw_toast_notification()
 		# News ticker removed — cleaner layout
@@ -21713,12 +21703,13 @@ func _draw_boss_health_bar() -> void:
 	var bar_w = 600.0
 	var bar_h = 18.0
 	var pct = clampf(float(hp) / float(max_hp), 0.0, 1.0)
-	# Background
-	draw_rect(Rect2(bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4), Color(0.7, 0.15, 0.1, 0.8))
-	draw_rect(Rect2(bar_x, bar_y, bar_w, bar_h), Color(0.05, 0.02, 0.05, 0.9))
-	# HP fill (red to yellow gradient based on HP)
+	# Background — rounded Bloons style
+	draw_colored_polygon(_rrp(Rect2(bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4), 6.0), Color(0.7, 0.15, 0.1, 0.8))
+	draw_colored_polygon(_rrp(Rect2(bar_x, bar_y, bar_w, bar_h), 5.0), Color(0.05, 0.02, 0.05, 0.9))
+	# HP fill (red to yellow gradient based on HP) — rounded
 	var fill_col = Color(0.9, 0.15, 0.1) if pct < 0.3 else (Color(0.9, 0.6, 0.1) if pct < 0.6 else Color(0.7, 0.15, 0.4))
-	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, bar_h), _cb_color(fill_col))
+	if pct > 0.01:
+		draw_colored_polygon(_rrp(Rect2(bar_x, bar_y, bar_w * pct, bar_h), 5.0), _cb_color(fill_col))
 	# Shimmer
 	var shimmer_x = bar_x + fmod(_time * 120.0, bar_w)
 	if shimmer_x < bar_x + bar_w * pct:
@@ -21726,10 +21717,8 @@ func _draw_boss_health_bar() -> void:
 	# HP text
 	var hp_text = "%s / %s" % [_format_number(hp), _format_number(max_hp)]
 	_udraw(game_font, Vector2(640, bar_y + 14), hp_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(1.0, 0.95, 0.9, 0.9))
-	# Boss name — glowing red
-	_udraw(game_font, Vector2(641, bar_y - 3), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0, 0, 0, 0.5))
-	_udraw(game_font, Vector2(640, bar_y - 4), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(1.0, 0.3, 0.15, 0.9))
-	_udraw(game_font, Vector2(639, bar_y - 5), "BOSS", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(1.0, 0.5, 0.2, 0.25))
+	# Boss name — Bloons outlined
+	_ds_outlined_text(Vector2(640, bar_y - 4), "BOSS", 14, Color(1.0, 0.3, 0.15, 0.9), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 # === BATTD: ENEMY KILL COUNTER ===
 func _draw_kill_counter() -> void:
@@ -29327,8 +29316,9 @@ func _draw_achievements_tab() -> void:
 
 	# === Total completion percentage with progress bar (Enhancement #46) ===
 	var total_ratio = float(unlocked_count) / float(max(1, achievement_definitions.size()))
-	draw_rect(Rect2(panel_x + 40, panel_y + 36, panel_w - 80, 4), Color(0.1, 0.1, 0.15, 0.4))
-	draw_rect(Rect2(panel_x + 40, panel_y + 36, (panel_w - 80) * total_ratio, 4), _ca(menu_gold, 0.6))
+	draw_colored_polygon(_rrp(Rect2(panel_x + 40, panel_y + 36, panel_w - 80, 4), 2.0), Color(0.1, 0.1, 0.15, 0.4))
+	if total_ratio > 0.01:
+		draw_colored_polygon(_rrp(Rect2(panel_x + 40, panel_y + 36, (panel_w - 80) * total_ratio, 4), 2.0), _ca(menu_gold, 0.6))
 	_udraw(font, Vector2(panel_x + panel_w * 0.5 + 90, panel_y + 28), "%d%% COMPLETE" % int(total_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold, 0.5))
 
 	# === Recently unlocked section at top (Enhancement #47) ===
@@ -30920,10 +30910,9 @@ func _draw_branch_upgrade_panel() -> void:
 		# Show branch selection (A vs B)
 		var ph = 160.0
 		py = 540.0
-		draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95))
-		draw_rect(Rect2(px, py, pw, ph), Color(0.6, 0.3, 0.8, 0.5), false, 1.5)
-		_udraw(font, Vector2(px + pw * 0.5, py + 16), "CHOOSE PATH", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(0.8, 0.6, 1.0))
-		draw_rect(Rect2(px + 10, py + 22, pw - 20, 1), Color(0.6, 0.3, 0.8, 0.3))
+		_ds_panel(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95), Color(0.6, 0.3, 0.8, 0.5), 2.0, 10.0)
+		_ds_outlined_text(Vector2(px + pw * 0.5, py + 16), "CHOOSE PATH", 15, Color(0.85, 0.65, 1.0), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		draw_colored_polygon(_rrp(Rect2(px + 10, py + 22, pw - 20, 1), 1.0), Color(0.6, 0.3, 0.8, 0.3))
 		for bi in range(2):
 			var bkey = "A" if bi == 0 else "B"
 			var bdata = branches.get(bkey, {})
@@ -30931,9 +30920,8 @@ func _draw_branch_upgrade_panel() -> void:
 			var by = py + 28 + float(bi) * 64.0
 			var is_hover = _branch_hover == bkey
 			var bg_col = Color(0.15, 0.08, 0.22, 0.9) if is_hover else Color(0.08, 0.05, 0.14, 0.8)
-			draw_rect(Rect2(px + 6, by, pw - 12, 58), bg_col)
-			draw_rect(Rect2(px + 6, by, pw - 12, 58), Color(0.7, 0.4, 0.9, 0.4) if is_hover else Color(0.5, 0.3, 0.6, 0.25), false, 1.0)
-			_udraw(font, Vector2(px + 14, by + 16), bkey + ": " + bname, HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.9, 0.8, 0.5) if is_hover else Color(0.8, 0.7, 0.4))
+			_ds_panel(Rect2(px + 6, by, pw - 12, 58), bg_col, Color(0.7, 0.4, 0.9, 0.4) if is_hover else Color(0.5, 0.3, 0.6, 0.25), 1.0, 8.0)
+			_ds_outlined_text(Vector2(px + 14, by + 16), bkey + ": " + bname, 14, Color(0.9, 0.8, 0.5) if is_hover else Color(0.8, 0.7, 0.4), int(pw - 24), HORIZONTAL_ALIGNMENT_LEFT, 1)
 			# Show tier 1 preview
 			var tiers = bdata.get("tiers", [])
 			if tiers.size() > 0:
@@ -30949,18 +30937,16 @@ func _draw_branch_upgrade_panel() -> void:
 			current_tier = selected_tower_node.get_meta("branch_tier_" + chosen)
 		var ph = 30.0 + float(tiers.size()) * 68.0
 		py = 540.0
-		draw_rect(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95))
-		draw_rect(Rect2(px, py, pw, ph), Color(0.6, 0.3, 0.8, 0.5), false, 1.5)
-		_udraw(font, Vector2(px + pw * 0.5, py + 16), chosen + ": " + bname, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 10), 15, Color(0.8, 0.6, 1.0))
-		draw_rect(Rect2(px + 10, py + 22, pw - 20, 1), Color(0.6, 0.3, 0.8, 0.3))
+		_ds_panel(Rect2(px, py, pw, ph), Color(0.06, 0.03, 0.10, 0.95), Color(0.6, 0.3, 0.8, 0.5), 2.0, 10.0)
+		_ds_outlined_text(Vector2(px + pw * 0.5, py + 16), chosen + ": " + bname, 15, Color(0.85, 0.65, 1.0), int(pw - 10), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		draw_colored_polygon(_rrp(Rect2(px + 10, py + 22, pw - 20, 1), 1.0), Color(0.6, 0.3, 0.8, 0.3))
 		for ti in range(tiers.size()):
 			var tier = tiers[ti]
 			var ty = py + 28 + float(ti) * 68.0
 			var is_hover = (_branch_tier_hover == ti)
 			if ti < current_tier:
 				# Purchased
-				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.06, 0.15, 0.06, 0.85))
-				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.3, 0.7, 0.2, 0.4), false, 1.0)
+				_ds_panel(Rect2(px + 6, ty, pw - 12, 62), Color(0.06, 0.15, 0.06, 0.85), Color(0.3, 0.7, 0.2, 0.4), 1.0, 8.0)
 				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.5, 0.8, 0.4))
 				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.5, 0.65, 0.4))
 				_udraw(font, Vector2(px + pw - 14, ty + 52), "OWNED", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.4, 0.7, 0.3))
@@ -30969,17 +30955,15 @@ func _draw_branch_upgrade_panel() -> void:
 				var cost = tier.get("cost", 0)
 				var can_afford = gold >= cost
 				var bg_c = Color(0.14, 0.10, 0.06, 0.9) if is_hover else Color(0.10, 0.07, 0.12, 0.85)
-				draw_rect(Rect2(px + 6, ty, pw - 12, 62), bg_c)
 				var bdr_c = _ca(c_gold, 0.6) if (can_afford and is_hover) else Color(0.5, 0.35, 0.6, 0.3)
-				draw_rect(Rect2(px + 6, ty, pw - 12, 62), bdr_c, false, 1.0)
+				_ds_panel(Rect2(px + 6, ty, pw - 12, 62), bg_c, bdr_c, 1.0, 8.0)
 				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.9, 0.8, 0.5))
 				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.75, 0.7, 0.65))
 				var cost_col = Color(1.0, 0.84, 0.0) if can_afford else Color(0.6, 0.4, 0.3)
 				_udraw(font, Vector2(px + pw - 14, ty + 52), "%dG" % cost, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, cost_col)
 			else:
 				# Locked
-				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.11, 0.08, 0.15, 0.7))
-				draw_rect(Rect2(px + 6, ty, pw - 12, 62), Color(0.3, 0.25, 0.35, 0.25), false, 1.0)
+				_ds_panel(Rect2(px + 6, ty, pw - 12, 62), Color(0.11, 0.08, 0.15, 0.7), Color(0.3, 0.25, 0.35, 0.25), 1.0, 8.0)
 				_udraw(font, Vector2(px + 14, ty + 16), tier.get("name", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 15, Color(0.45, 0.4, 0.4))
 				_udraw(font, Vector2(px + 14, ty + 32), tier.get("desc", ""), HORIZONTAL_ALIGNMENT_LEFT, int(pw - 24), 14, Color(0.4, 0.35, 0.35))
 				_udraw(font, Vector2(px + pw - 14, ty + 52), "%dG" % tier.get("cost", 0), HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, Color(0.4, 0.35, 0.3))
@@ -33169,9 +33153,9 @@ func _draw_wave_modifier_announcement() -> void:
 	var alpha = clampf(_wave_modifier_timer / 3.0, 0.0, 1.0)
 	var vw = get_viewport_rect().size.x
 	var y = 55.0
-	# Background bar
-	draw_rect(Rect2(0, y - 2, vw, 22), Color(0.3, 0.1, 0.1, 0.5 * alpha))
-	_udraw(game_font, Vector2(vw / 2.0, y), _wave_modifier_text, HORIZONTAL_ALIGNMENT_CENTER, vw, 13, Color(1.0, 0.4, 0.2, alpha))
+	# Background bar — rounded Bloons panel
+	_ds_panel(Rect2(vw * 0.2, y - 4, vw * 0.6, 24), Color(0.3, 0.1, 0.1, 0.6 * alpha), Color(0.8, 0.3, 0.15, 0.5 * alpha), 1.5, 8.0)
+	_ds_outlined_text(Vector2(vw * 0.5, y + 12), _wave_modifier_text, 14, Color(1.0, 0.45, 0.22, alpha), int(vw * 0.55), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 # --- Improvement 20: TOWER LOYALTY BONUS ---
 # Towers that survive the entire game gain increasing stat bonuses
