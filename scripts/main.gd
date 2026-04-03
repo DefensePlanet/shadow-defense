@@ -12193,7 +12193,7 @@ func _draw_emporium_sub_panel() -> void:
 				var ox = open_start_x + float(ci) * 340.0
 				var ow = 320.0
 				var oh = 36.0
-				draw_rect(Rect2(ox, open_y, ow, oh), Color(0.08, 0.07, 0.18, 0.85))
+				draw_rect(Rect2(ox, open_y, ow, oh), Color(0.14, 0.12, 0.24, 0.88))
 				draw_rect(Rect2(ox, open_y, ow, 1), _ca(menu_gold, 0.3))
 				var ot = "Open %s Chest (%d)" % [tier_names[ci], count]
 				var otw = font.get_string_size(ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
@@ -14430,7 +14430,7 @@ func _draw_survivor_detail() -> void:
 	draw_rect(Rect2(panel_x, panel_y + panel_h - 3, panel_w, 3), bdr)
 	draw_rect(Rect2(panel_x, panel_y, 3, panel_h), bdr)
 	draw_rect(Rect2(panel_x + panel_w - 3, panel_y, 3, panel_h), bdr)
-	draw_rect(Rect2(panel_x + 3, panel_y + 3, panel_w - 6, panel_h - 6), _ca(accent, 0.06 * content_alpha), false, 1.0)
+	draw_rect(Rect2(panel_x + 3, panel_y + 3, panel_w - 6, panel_h - 6), _ca(accent, 0.10 * content_alpha), false, 2.0)
 
 	# === TOP BAR (34px) ===
 	var top_y = panel_y + 8.0
@@ -14530,7 +14530,7 @@ func _draw_survivor_detail() -> void:
 	var xp_h = 22.0
 	var xp_ratio = clamp(progress["xp"] / max(progress["xp_next"], 1.0), 0.0, 1.0)
 	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), Color(0.08, 0.07, 0.14, content_alpha))
-	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), _ca(accent, 0.25 * content_alpha), false, 1.0)
+	draw_rect(Rect2(port_x, xp_y, xp_w, xp_h), _ca(accent, 0.35 * content_alpha), false, 2.0)
 	if xp_ratio > 0:
 		var fill_w = (xp_w - 4) * xp_ratio
 		draw_rect(Rect2(port_x + 2, xp_y + 2, fill_w, xp_h - 4), _ca(c_gold, 0.8 * content_alpha))
@@ -14966,7 +14966,7 @@ func _draw_survivor_detail() -> void:
 			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.10, 0.08, 0.18, 0.95))
 			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, 1), Color(1, 1, 1, 0.05))
 			draw_rect(Rect2(tt_x, tt_y_pos, 3, tt_h), _ca(accent, 0.4))
-			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), _ca(accent, 0.4), false, 1.5)
+			draw_rect(Rect2(tt_x, tt_y_pos, tt_w, tt_h), _ca(accent, 0.5), false, 2.0)
 			_udraw(font, Vector2(tt_x + 10, tt_y_pos + 14), tt_title, HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 15, menu_gold)
 			for tli in range(tt_lines.size()):
 				_udraw(font, Vector2(tt_x + 10, tt_y_pos + 28 + tli * 14), tt_lines[tli], HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 14, _ca(menu_text_muted, 0.85))
@@ -15052,7 +15052,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 		var gs_btn_h = 36.0 if _is_mobile else 18.0
 		_gs_upgrade_btn_rect = Rect2(gs_btn_x, gs_btn_y, gs_btn_w, gs_btn_h)
 		var gs_hover = (detail_hover_type == "golden_shield") or _is_touch_pressed_in(_gs_upgrade_btn_rect)
-		var gs_bg = Color(0.2, 0.15, 0.05, 0.8) if (can_upgrade_gs and gs_hover) else Color(0.12, 0.08, 0.04, 0.7) if can_upgrade_gs else Color(0.08, 0.06, 0.08, 0.5)
+		var gs_bg = Color(0.25, 0.20, 0.08, 0.82) if (can_upgrade_gs and gs_hover) else Color(0.16, 0.12, 0.06, 0.72) if can_upgrade_gs else Color(0.12, 0.10, 0.14, 0.55)
 		draw_rect(Rect2(gs_btn_x, gs_btn_y, gs_btn_w, gs_btn_h), gs_bg)
 		draw_rect(Rect2(gs_btn_x, gs_btn_y, gs_btn_w, gs_btn_h), _ca(c_gold, 0.5) if can_upgrade_gs else Color(0.3, 0.25, 0.2, 0.3), false, 1.0)
 		var gs_text = "UPGRADE %dS" % gs_cost
@@ -15736,7 +15736,7 @@ func _draw_diff_popup() -> void:
 	var bp = 0.6 + sin(_time * 2.0) * 0.15
 	draw_rect(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.85, 0.70, 0.28, bp), false, 2.0)
 	# Inner border
-	draw_rect(Rect2(popup_x + 3, popup_y + 3, popup_w - 6, popup_h - 6), Color(0.85, 0.70, 0.28, bp * 0.2), false, 1.0)
+	draw_rect(Rect2(popup_x + 3, popup_y + 3, popup_w - 6, popup_h - 6), Color(0.85, 0.70, 0.28, bp * 0.3), false, 2.0)
 
 	# Title
 	_ds_title(Vector2(popup_x + 10, popup_y + 24), level["name"], 16, Color(1.0, 0.88, 0.40), int(popup_w - 20), HORIZONTAL_ALIGNMENT_CENTER)
@@ -19875,7 +19875,7 @@ func _get_path_style() -> Dictionary:
 			style["width"] = 36.0
 		34, 35, 36:  # Shadow Author — dark void
 			style["road_color"] = Color(0.10, 0.06, 0.16, 0.95)
-			style["edge_color"] = Color(0.06, 0.03, 0.10, 0.90)
+			style["edge_color"] = Color(0.10, 0.06, 0.16, 0.90)
 			style["detail_color"] = Color(0.18, 0.10, 0.28, 0.4)
 			style["detail_type"] = "ink"
 			style["width"] = 38.0
@@ -19899,11 +19899,11 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 					var dir = (pts[k + 1] - pts[k]).normalized()
 					var n = Vector2(-dir.y, dir.x)
 					# Cross lines (mortar)
-					draw_line(p + n * (half_w - 2), p - n * (half_w - 2), Color(0.08, 0.06, 0.04, 0.3), 1.0)
+					draw_line(p + n * (half_w - 2), p - n * (half_w - 2), Color(0.14, 0.10, 0.06, 0.35), 1.0)
 					# Offset bricks
 					if int(step * 10) % 2 == 0:
 						var mid = p + n * (half_w * 0.3)
-						draw_line(mid + dir * 4, mid - dir * 4, Color(0.08, 0.06, 0.04, 0.25), 1.0)
+						draw_line(mid + dir * 4, mid - dir * 4, Color(0.14, 0.10, 0.06, 0.30), 1.0)
 		"brick":
 			# Brick pattern (yellow brick road style)
 			var step = 0.0
@@ -19933,10 +19933,10 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 					var n = Vector2(-dir.y, dir.x)
 					# Irregular cracks
 					var crack_off = sin(float(k) * 1.7) * half_w * 0.4
-					draw_line(p + n * (half_w - 2), p + n * crack_off, Color(0.06, 0.06, 0.04, 0.25), 1.0)
-					draw_line(p - n * (half_w - 2), p - n * crack_off, Color(0.06, 0.06, 0.04, 0.25), 1.0)
+					draw_line(p + n * (half_w - 2), p + n * crack_off, Color(0.10, 0.10, 0.06, 0.30), 1.0)
+					draw_line(p - n * (half_w - 2), p - n * crack_off, Color(0.10, 0.10, 0.06, 0.30), 1.0)
 					# Cross joint
-					draw_line(p + n * (half_w - 3), p - n * (half_w - 3), Color(0.06, 0.06, 0.04, 0.2), 1.0)
+					draw_line(p + n * (half_w - 3), p - n * (half_w - 3), Color(0.10, 0.10, 0.06, 0.25), 1.0)
 		"dirt":
 			# Dirt path — ruts and pebbles
 			for k in range(0, pts.size() - 1, 6):
@@ -20090,7 +20090,7 @@ func _draw_entry_exit_markers(pts: PackedVector2Array) -> void:
 			var sp = entry + Vector2(cos(sa), sin(sa)) * sr
 			draw_circle(sp, 2.0, Color(0.4, 0.15, 0.6, pi_a * 0.5))
 		# Central dark void
-		draw_circle(entry, 8.0, Color(0.05, 0.0, 0.1, pi_a * 0.7))
+		draw_circle(entry, 8.0, Color(0.10, 0.04, 0.16, pi_a * 0.75))
 
 	# === ENTRY marker (green, pulsing) ===
 	var entry_pulse = 0.6 + sin(_time * 3.0) * 0.2
@@ -21327,7 +21327,7 @@ func _draw_robin_novel(ch: int) -> void:
 	draw_line(Vector2(750 + sc_sway, 395), Vector2(750 + sc_sway + 5, 410), Color(0.2, 0.5, 0.25, 0.15), 1.5)
 	# 8. Sheriff's dark banner
 	var ban_sway := sin(_time * 1.5) * 4.0
-	draw_line(Vector2(1000, 350), Vector2(1000, 320), Color(0.08, 0.06, 0.04, 0.3), 2.0)
+	draw_line(Vector2(1000, 350), Vector2(1000, 320), Color(0.14, 0.10, 0.06, 0.35), 2.0)
 	draw_colored_polygon(PackedVector2Array([Vector2(1000, 320), Vector2(1018 + ban_sway, 325), Vector2(1015 + ban_sway, 340), Vector2(1000, 335)]), Color(0.1, 0.02, 0.02, 0.25))
 	# 9. Lincoln green cloth on bush
 	for lg in range(2):
@@ -21344,7 +21344,7 @@ func _draw_alice_novel(ch: int) -> void:
 	# 1. Rabbit hole (dark opening in ground)
 	var rh_x := 120.0 + float(ch) * 30.0
 	draw_circle(Vector2(rh_x, 510), 12.0, Color(0.03, 0.02, 0.02, 0.4))
-	draw_arc(Vector2(rh_x, 510), 12.0, 0, TAU, 16, Color(0.08, 0.06, 0.04, 0.3), 2.0)
+	draw_arc(Vector2(rh_x, 510), 12.0, 0, TAU, 16, Color(0.14, 0.10, 0.06, 0.35), 2.0)
 	var card_fall := fmod(_time * 0.5, 3.0)
 	if card_fall < 1.5:
 		var cfy := 490.0 + card_fall * 20.0
@@ -21592,7 +21592,7 @@ func _draw_phantom_novel(ch: int) -> void:
 	draw_line(Vector2(bx_x, 398), Vector2(bx_x + 30, 398), Color(0.5, 0.4, 0.15, 0.15), 1.5)
 	# 7. Trapdoor (the Phantom's escape routes)
 	var td_x := 700.0 - float(ch) * 20.0
-	draw_rect(Rect2(td_x - 10, 512, 20, 4), Color(0.08, 0.06, 0.04, 0.3))
+	draw_rect(Rect2(td_x - 10, 512, 20, 4), Color(0.14, 0.10, 0.06, 0.35))
 	draw_rect(Rect2(td_x - 8, 510, 16, 4), Color(0.02, 0.01, 0.02, 0.35))
 	# 8. Christine's mirror (two-way mirror to lair)
 	draw_rect(Rect2(238, 390 - float(ch) * 10.0, 24, 36), Color(0.4, 0.3, 0.15, 0.2))
