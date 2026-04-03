@@ -417,10 +417,10 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var ry = rect.position.y
 	var rw = rect.size.x
 	var rh = rect.size.y
-	# Rounded card shadow + base
+	# Rounded card shadow + base (bright blue like Bloons)
 	var crad = 8.0
-	draw_colored_polygon(_rrp(Rect2(rx + 4, ry + 5, rw, rh), crad), Color(0, 0, 0, 0.6))
-	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.10, 0.08, 0.16))
+	draw_colored_polygon(_rrp(Rect2(rx + 4, ry + 5, rw, rh), crad), Color(0, 0, 0, 0.5))
+	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.20, 0.38, 0.60))
 	# Portrait — crop-to-fill
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
@@ -488,14 +488,14 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		var xp_r = clampf(float(level) / 9.0, 0.0, 1.0)
 		if xp_r > 0:
 			draw_colored_polygon(_rrp(Rect2(rx + 2, ry + rh - 6, (rw - 4) * xp_r, 5), 2.5), _ca(accent, 0.95))
-	# Border — Rounded Bloons thick border
-	var bdr = _ca(accent, 0.7) if unlocked else Color(0.3, 0.28, 0.4, 0.35)
+	# Border — Bloons BATD style (light gray/white border, not colored)
+	var bdr = Color(0.75, 0.78, 0.82, 0.85) if unlocked else Color(0.35, 0.38, 0.42, 0.5)
 	if is_hovered and unlocked:
-		bdr = Color(minf(accent.r * 1.5, 1.0), minf(accent.g * 1.5, 1.0), minf(accent.b * 1.5, 1.0), 0.95)
-		draw_colored_polygon(_rrp(Rect2(rx - 5, ry - 5, rw + 10, rh + 10), crad + 3), _ca(accent, 0.15))
-	# Dark outline + colored border (rounded)
-	draw_colored_polygon(_rrp(Rect2(rx - 3, ry - 3, rw + 6, rh + 6), crad + 2), Color(0.04, 0.03, 0.08, 0.95))
-	draw_colored_polygon(_rrp(Rect2(rx - 1.5, ry - 1.5, rw + 3, rh + 3), crad + 1), bdr)
+		bdr = Color(0.90, 0.92, 0.95, 1.0)
+		draw_colored_polygon(_rrp(Rect2(rx - 5, ry - 5, rw + 10, rh + 10), crad + 3), Color(0.40, 0.75, 0.95, 0.2))
+	# Outer dark outline + light border (Bloons style)
+	draw_colored_polygon(_rrp(Rect2(rx - 4, ry - 4, rw + 8, rh + 8), crad + 3), Color(0.10, 0.15, 0.25, 0.9))
+	draw_colored_polygon(_rrp(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), crad + 1.5), bdr)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
