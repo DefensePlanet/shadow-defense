@@ -430,40 +430,64 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		var fill_scale = maxf(scale_x, scale_y)
 		var sw = tex_sz.x * fill_scale
 		var sh = tex_sz.y * fill_scale
-		draw_texture_rect(tex, Rect2(rx + (rw - sw) * 0.5, ry + (rh - sh) * 0.5, sw, sh), false)
+		# Position face at TOP of card (offset upward by 15% of overflow)
+		var y_offset = minf(0, (rh - sh) * 0.15)
+		draw_texture_rect(tex, Rect2(rx + (rw - sw) * 0.5, ry + y_offset, sw, sh), false)
 	elif not unlocked:
-		draw_rect(Rect2(rx, ry, rw, rh), Color(0.12, 0.10, 0.18, 0.9))
+		# Show portrait darkened/silhouetted (Bloons style) — not flat color
+		if speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
+			var tex = _portrait_textures[speaker_name]
+			var tex_sz = tex.get_size()
+			var scale_x2 = rw / tex_sz.x
+			var scale_y2 = rh / tex_sz.y
+			var fill_scale2 = maxf(scale_x2, scale_y2)
+			var sw2 = tex_sz.x * fill_scale2
+			var sh2 = tex_sz.y * fill_scale2
+			# Draw portrait very dark (silhouette effect)
+			draw_texture_rect(tex, Rect2(rx + (rw - sw2) * 0.5, ry + (rh - sh2) * 0.5, sw2, sh2), false, Color(0.15, 0.12, 0.18, 1.0))
+		else:
+			draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.10, 0.08, 0.16, 0.9))
+		# Dark overlay
+		draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0, 0, 0, 0.5))
+		# Lock icon — larger, more visible
 		var lk_cx = rx + rw * 0.5
 		var lk_cy = ry + rh * 0.4
-		draw_rect(Rect2(lk_cx - 16, lk_cy + 2, 32, 24), Color(0.4, 0.35, 0.50, 0.6))
-		draw_arc(Vector2(lk_cx, lk_cy + 2), 13, PI, TAU, 12, Color(0.45, 0.40, 0.55, 0.6), 3.0)
-		draw_circle(Vector2(lk_cx, lk_cy + 14), 4, Color(0.85, 0.70, 0.20, 0.6))
-	# Bottom gradient for text
-	for gi in range(20):
-		var gt = float(gi) / 19.0
-		draw_rect(Rect2(rx, ry + rh - 46.0 + gt * 46.0, rw, 46.0 / 19.0 + 1), Color(0.0, 0.0, 0.0, gt * 0.88))
-	# Name — Bloons outlined
+		# Lock body
+		draw_colored_polygon(_rrp(Rect2(lk_cx - 18, lk_cy, 36, 28), 4.0), Color(0.35, 0.30, 0.45, 0.8))
+		# Lock shackle
+		draw_arc(Vector2(lk_cx, lk_cy), 14, PI, TAU, 12, Color(0.4, 0.35, 0.5, 0.8), 4.0)
+		# Keyhole
+		draw_circle(Vector2(lk_cx, lk_cy + 12), 5, Color(0.15, 0.12, 0.20, 0.9))
+		draw_rect(Rect2(lk_cx - 2, lk_cy + 14, 4, 8), Color(0.15, 0.12, 0.20, 0.9))
+		# "?" text
+		_ds_outlined_text(Vector2(lk_cx, lk_cy - 20), "?", 24, Color(0.8, 0.65, 0.2, 0.7), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Bottom gradient for text — taller, more visible
+	for gi in range(16):
+		var gt = float(gi) / 15.0
+		draw_rect(Rect2(rx, ry + rh - 55.0 + gt * 55.0, rw, 55.0 / 15.0 + 1), Color(0.0, 0.0, 0.0, gt * 0.92))
+	# Name — BIGGER, bolder, Bloons outlined
 	if unlocked:
-		_ds_outlined_text(Vector2(rx + 4, ry + rh - 26), char_name, 15, Color(1.0, 0.95, 0.88), int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 28), char_name, 16, Color(1.0, 0.95, 0.90), int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	else:
-		_udraw(font, Vector2(rx + 4, ry + rh - 26), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 15, Color(0.55, 0.52, 0.58))
-	# Title
-	_udraw(font, Vector2(rx + 4, ry + rh - 10), title, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 10, _ca(accent, 0.75) if unlocked else Color(0.4, 0.38, 0.45, 0.5))
-	# Level badge
+		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 28), char_name, 14, Color(0.5, 0.48, 0.55), int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Title — slightly brighter
+	if title != "":
+		_udraw(font, Vector2(rx + 4, ry + rh - 12), title, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 10, _ca(accent, 0.85) if unlocked else Color(0.4, 0.38, 0.45, 0.5))
+	# Level badge — BIGGER, more prominent
 	if unlocked and level > 0:
-		var bcx = rx + 18.0
-		var bcy = ry + 18.0
-		draw_circle(Vector2(bcx, bcy), 15, Color(0, 0, 0, 0.8))
-		draw_circle(Vector2(bcx, bcy), 13, _ca(accent, 0.8))
-		draw_circle(Vector2(bcx, bcy), 10, Color(0.08, 0.06, 0.14))
+		var bcx = rx + 20.0
+		var bcy = ry + 20.0
+		draw_colored_polygon(_rrp(Rect2(bcx - 16, bcy - 16, 32, 32), 8.0), Color(0, 0, 0, 0.85))
+		draw_colored_polygon(_rrp(Rect2(bcx - 14, bcy - 14, 28, 28), 7.0), _ca(accent, 0.9))
+		draw_colored_polygon(_rrp(Rect2(bcx - 11, bcy - 11, 22, 22), 6.0), Color(0.06, 0.05, 0.12, 0.95))
 		var ls = str(level)
-		var lw = font.get_string_size(ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-		_udraw(font, Vector2(bcx - lw * 0.5, bcy + 5), ls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
-	# XP bar
+		_ds_outlined_text(Vector2(bcx, bcy + 6), ls, 16, Color.WHITE, -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# XP bar — THICKER, rounded, more visible
 	if unlocked:
-		draw_rect(Rect2(rx, ry + rh - 3, rw, 3), Color(0, 0, 0, 0.5))
+		draw_colored_polygon(_rrp(Rect2(rx + 2, ry + rh - 6, rw - 4, 5), 2.5), Color(0, 0, 0, 0.6))
 		var xp_r = clampf(float(level) / 9.0, 0.0, 1.0)
-		draw_rect(Rect2(rx, ry + rh - 3, rw * xp_r, 3), _ca(accent, 0.9))
+		if xp_r > 0:
+			draw_colored_polygon(_rrp(Rect2(rx + 2, ry + rh - 6, (rw - 4) * xp_r, 5), 2.5), _ca(accent, 0.95))
 	# Border — Rounded Bloons thick border
 	var bdr = _ca(accent, 0.7) if unlocked else Color(0.3, 0.28, 0.4, 0.35)
 	if is_hovered and unlocked:
@@ -13534,20 +13558,19 @@ func _draw_survivor_grid() -> void:
 	# Bloons-style panel background with border
 	_ds_panel(Rect2(panel_x - 4, panel_y, panel_w + 8, panel_h), Color(0.10, 0.08, 0.16, 0.88), Color(0.60, 0.48, 0.20, 0.7), 3.0)
 
-	# === "SURVIVORS" title — Bloons outlined style ===
+	# === "SURVIVORS" title — left aligned ===
 	var title_y = panel_y + 4.0
-	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, title_y + 20), "SURVIVORS", 26, Color(1.0, 0.88, 0.30), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x + 20, title_y + 22), "SURVIVORS", 24, Color(1.0, 0.90, 0.32))
 
-	# === PARTY count badge (Bloons pill badge style) ===
+	# === PARTY count badge — right aligned, not overlapping ===
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
 			unlocked_count += 1
-	var party_sz = 16
-	var party_text = "PARTY: %d/%d" % [unlocked_count, survivor_types.size()]
-	var party_w = font.get_string_size(party_text, HORIZONTAL_ALIGNMENT_LEFT, -1, party_sz).x
-	_ds_panel(Rect2(panel_x + panel_w - party_w - 32, title_y + 3, party_w + 28, 26), Color(0.12, 0.06, 0.20, 0.9), Color(0.7, 0.55, 0.15, 0.6), 1.5)
-	_ds_outlined_text(Vector2(panel_x + panel_w - party_w - 18, title_y + 22), party_text, party_sz, menu_gold_light)
+	var party_sz = 14
+	var party_text = "%d/%d" % [unlocked_count, survivor_types.size()]
+	_ds_panel(Rect2(panel_x + panel_w - 80, title_y + 5, 70, 22), Color(0.15, 0.10, 0.25, 0.9), Color(0.7, 0.55, 0.15, 0.6), 1.5, 6.0)
+	_ds_outlined_text(Vector2(panel_x + panel_w - 45, title_y + 20), party_text, party_sz, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	var card_colors_grid = [
 		Color(0.29, 0.55, 0.25),  # Robin Hood
