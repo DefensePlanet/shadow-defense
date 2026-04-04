@@ -428,21 +428,14 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	# Card base
 	var card_bg = Color(0.10, 0.07, 0.16) if unlocked else Color(0.07, 0.05, 0.11)
 	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
-	# Portrait — crop-to-fill, inset by 3px so rounded corners of card show
+	# Portrait — show the FULL image, fit to card (no aggressive crop)
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
-		var tex_sz = tex.get_size()
 		var inset = 3.0
 		var draw_w = rw - inset * 2
 		var draw_h = portrait_h - inset - 1
-		var src_w = tex_sz.x
-		var src_h = tex_sz.x * (draw_h / draw_w)
-		if src_h > tex_sz.y:
-			src_h = tex_sz.y
-			src_w = tex_sz.y * (draw_w / draw_h)
-		var src_x = (tex_sz.x - src_w) * 0.5
-		var src_y = (tex_sz.y - src_h) * 0.3
-		draw_texture_rect_region(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), Rect2(src_x, src_y, src_w, src_h))
+		# Draw full texture fitted to card area — shows entire character
+		draw_texture_rect(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), false)
 	elif not unlocked:
 		# Locked — dark with larger, more visible lock icon
 		var lk_cx = rx + rw * 0.5
@@ -13510,11 +13503,11 @@ func _draw_survivor_grid() -> void:
 	_remove_detail_preview()
 	_clear_grid_previews()
 	var font = game_font
-	# Panel — truly full width, minimal margins
+	# Panel — full width, stops above nav bar
 	var panel_x = 6.0
 	var panel_y = 36.0
 	var panel_w = 1268.0
-	var panel_h = 578.0
+	var panel_h = 560.0
 
 	# Dark gothic panel
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.30, 0.18, 0.45, 0.5), 1.5)
@@ -13704,7 +13697,7 @@ func _update_world_map_hover() -> void:
 	var panel_x = 6.0
 	var panel_y = 36.0
 	var panel_w = 1268.0
-	var panel_h = 578.0
+	var panel_h = 560.0
 	var margin = 6.0
 	var gap = 4.0
 	var cols = 4
