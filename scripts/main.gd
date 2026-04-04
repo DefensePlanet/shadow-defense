@@ -14356,10 +14356,11 @@ func _draw_ability_icon(center: Vector2, tier: int, accent: Color) -> void:
 func _draw_survivor_detail() -> void:
 	if survivor_detail_index < 0 or survivor_detail_index >= survivor_types.size():
 		return
-	var panel_x = 70.0 + _safe_left
-	var panel_y = 38.0 + _safe_top
-	var panel_w = 1140.0 - _safe_left - _safe_right
-	var panel_h = 570.0
+	# Full-width panel matching survivor grid
+	var panel_x = 6.0
+	var panel_y = 36.0
+	var panel_w = 1268.0
+	var panel_h = 560.0
 	var tower_type = survivor_types[survivor_detail_index]
 	var info = tower_info[tower_type]
 	var progress = survivor_progress.get(tower_type, {"level": 1, "xp": 0.0, "xp_next": float(HERO_XP_TABLE[0]), "gear_unlocked": false, "sidekicks_unlocked": [false, false, false, false], "gear_slots_unlocked": [false, false, false, false, false, false]})
@@ -14376,19 +14377,19 @@ func _draw_survivor_detail() -> void:
 
 	# Slide-in animation
 	var slide_t = clampf(_detail_slide_in, 0.0, 1.0)
-	var ease_t = 1.0 - pow(1.0 - slide_t, 3.0)  # ease-out cubic
+	var ease_t = 1.0 - pow(1.0 - slide_t, 3.0)
 	var content_alpha = ease_t
 	var x_offset = (1.0 - ease_t) * 40.0
 
-	# === Rounded panel background ===
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_bg_section.r, menu_bg_section.g, menu_bg_section.b, content_alpha), _ca(accent, 0.5 * content_alpha), 3.0, 14.0)
+	# === Dark gothic panel ===
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_bg_section.r, menu_bg_section.g, menu_bg_section.b, content_alpha), _ca(accent, 0.4 * content_alpha), 2.0, 10.0)
 
 	# === TOP BAR (34px) ===
 	var top_y = panel_y + 8.0
-	_ds_button(Rect2(panel_x + 10 - x_offset, top_y + 2, 90, 28), "< BACK", Color(0.25, 0.18, 0.10), false, 13)
+	_ds_button(Rect2(panel_x + 10 - x_offset, top_y + 2, 90, 28), "< BACK", Color(0.25, 0.15, 0.35), false, 13)
 	var char_name = info["name"].to_upper()
 	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
-	var name_cx = panel_x + 240.0
+	var name_cx = panel_x + 260.0
 	_ds_outlined_text(Vector2(name_cx - name_w * 0.5, top_y + 22), char_name, 28, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, content_alpha), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 	# Level badge star (next to name)
 	var badge_cx = name_cx + name_w * 0.5 + 24.0
@@ -14429,12 +14430,12 @@ func _draw_survivor_detail() -> void:
 	var content_y = top_y + 46.0  # Below top bar + separator
 
 	# ================================================================
-	# LEFT SIDE: Portrait Zone (400x430)
+	# LEFT SIDE: Portrait + XP + Level Up (420px wide)
 	# ================================================================
-	var port_x = panel_x + 6.0
+	var port_x = panel_x + 10.0
 	var port_y = content_y
-	var port_w = 400.0
-	var port_h = 430.0
+	var port_w = 420.0
+	var port_h = panel_y + panel_h - port_y - 30.0
 
 	# Hero atmosphere (gradient + particles + glow)
 	_draw_hero_atmosphere(port_x, port_y, port_w, port_h, survivor_detail_index)
@@ -14516,45 +14517,14 @@ func _draw_survivor_detail() -> void:
 			_ds_outlined_text(Vector2(port_x + xp_w * 0.5, levelup_btn_y + 17), lvup_str, 13, Color(0.5, 0.48, 0.55, 0.6 * content_alpha), int(xp_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	# ================================================================
-	# RIGHT SIDE: Tab System
+	# RIGHT SIDE: Weapon + Allies + Trinkets (ALL VISIBLE, no tabs)
 	# ================================================================
-	var tab_strip_x = panel_x + 420.0
-	var tab_strip_y = content_y
-	var tab_w = 170.0
-	var tab_gap = 8.0
-	var tab_names = ["ABILITIES", "GEAR", "ALLIES", "STATS"]
-	var tab_content_x = tab_strip_x
-	var tab_content_y = tab_strip_y + 40.0
-	var tab_content_w = panel_x + panel_w - tab_strip_x - 10.0
-	var tab_content_h = panel_y + panel_h - tab_content_y - 10.0
+	var right_x = panel_x + 450.0
+	var right_y = content_y
+	var right_w = panel_x + panel_w - right_x - 10.0
+	var tab_alpha = content_alpha
 
-	# --- Tab strip ---
-	for ti in range(4):
-		var tx = tab_strip_x + float(ti) * (tab_w + tab_gap)
-		var is_active = (detail_active_tab == ti)
-		var is_tab_hover = (detail_hover_type == "tab" and detail_hover_index == ti)
-		# Tab background — rounded panel
-		if is_active:
-			_ds_panel(Rect2(tx, tab_strip_y, tab_w, 32), _ca(accent, 0.18 * content_alpha), _ca(menu_gold, 0.6 * content_alpha), 1.5, 6.0)
-		elif is_tab_hover:
-			draw_colored_polygon(_rrp(Rect2(tx, tab_strip_y, tab_w, 32), 6.0), _ca(accent, 0.10 * content_alpha))
-		else:
-			draw_colored_polygon(_rrp(Rect2(tx, tab_strip_y, tab_w, 32), 6.0), _ca(accent, 0.04 * content_alpha))
-		# Active underline (gold bar)
-		if is_active:
-			draw_colored_polygon(_rrp(Rect2(tx + 4, tab_strip_y + 29, tab_w - 8, 3), 1.5), _ca(menu_gold, 0.9 * content_alpha))
-		# Tab label — outlined text for active
-		if is_active:
-			_ds_outlined_text(Vector2(tx + tab_w * 0.5, tab_strip_y + 22), tab_names[ti], 14, Color(menu_gold.r, menu_gold.g, menu_gold.b, content_alpha), int(tab_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
-		else:
-			var tab_col = _ca(menu_text_muted, 0.7)
-			_udraw(font, Vector2(tx + (tab_w - font.get_string_size(tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x) * 0.5, tab_strip_y + 22), tab_names[ti], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(tab_col.r, tab_col.g, tab_col.b, content_alpha))
-
-	# --- Tab content area (frosted panel) ---
-	_draw_frosted_panel(Rect2(tab_content_x, tab_content_y, tab_content_w, tab_content_h), accent, 0.04 * content_alpha)
-	var tab_alpha = clampf(_detail_tab_transition, 0.0, 1.0) * content_alpha
-
-	# Shared data needed by multiple tabs
+	# Shared data
 	var gear_data = survivor_gear.get(tower_type, {"name": "Unknown", "desc": ""})
 	var gear_unlocked = progress.get("gear_unlocked", false)
 	var sk_data = survivor_sidekicks.get(tower_type, [])
@@ -14568,278 +14538,120 @@ func _draw_survivor_detail() -> void:
 	var sk_levels = [3, 5, 8, 10]
 	var tower_names_sb = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 
-	# ================================================================
-	# TAB 0: ABILITIES
-	# ================================================================
-	if detail_active_tab == 0:
-		var abil_cx = tab_content_x + 12.0
-		var abil_cy = tab_content_y + 10.0
-		var card_width = tab_content_w - 24.0
-		var card_height = 80.0
-		var card_gap_v = 8.0
-		for ai in range(mini(abil_data.size(), 4)):
-			var ay = abil_cy + float(ai) * (card_height + card_gap_v)
-			var is_abil_hover = (detail_hover_type == "ability" and detail_hover_index == ai)
-			# Frosted card background — rounded
-			var card_bg = Color(0.10, 0.09, 0.18, 0.82 * tab_alpha) if not is_abil_hover else Color(0.14, 0.12, 0.24, 0.92 * tab_alpha)
-			_ds_panel(Rect2(abil_cx, ay, card_width, card_height), card_bg, _ca(accent, 0.35 * tab_alpha), 1.5, 8.0)
-			# Accent left stripe (rounded)
-			draw_colored_polygon(_rrp(Rect2(abil_cx, ay + 4, 4, card_height - 8), 2.0), _ca(accent, 0.6 * tab_alpha))
-			# 40px icon circle
-			var icon_cx = abil_cx + 32.0
-			var icon_cy = ay + 30.0
-			draw_circle(Vector2(icon_cx, icon_cy), 20.0, Color(0.14, 0.10, 0.24, tab_alpha))
-			var ring_alpha = (0.9 if is_abil_hover else 0.5) * tab_alpha
-			# Pulsing ring on hover
-			var ring_pulse = 1.0
-			if is_abil_hover:
-				ring_pulse = 0.8 + sin(_time * 2.5) * 0.2
-			draw_arc(Vector2(icon_cx, icon_cy), 19.0, 0, TAU, 20, _ca(c_gold, ring_alpha * ring_pulse), 2.0)
-			_draw_ability_icon(Vector2(icon_cx, icon_cy), ai, accent)
-			# Name + cost top row
-			var a_name = abil_data[ai].get("name", "Tier %d" % (ai + 1))
-			_ds_outlined_text(Vector2(abil_cx + 58, ay + 20), a_name, 15, _ca(menu_parchment, 0.95 * tab_alpha), int(card_width - 140), HORIZONTAL_ALIGNMENT_LEFT, 1)
-			var cost_str = "%dG" % abil_data[ai].get("cost", 0)
-			var cost_w = font.get_string_size(cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-			_udraw(font, Vector2(abil_cx + card_width - cost_w - 12, ay + 20), cost_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(c_gold, 0.7 * tab_alpha))
-			# Description bottom row
-			var a_desc = abil_data[ai].get("desc", "")
-			_udraw(font, Vector2(abil_cx + 58, ay + 40), a_desc, HORIZONTAL_ALIGNMENT_LEFT, int(card_width - 80), 13, _ca(menu_text_muted, 0.8 * tab_alpha))
-			# Mastery pips (4 pips, filled based on level)
-			var pips_x = abil_cx + 58.0
-			var pips_y = ay + 56.0
-			var mastery_filled = mini(char_level / 5, 4)
-			if ai > mastery_filled:
-				mastery_filled = 0
-			for pip_i in range(4):
-				var pip_filled = pip_i < mastery_filled
-				var pip_col = _ca(c_gold, 0.8 * tab_alpha) if pip_filled else Color(0.15, 0.15, 0.25, 0.5 * tab_alpha)
-				draw_circle(Vector2(pips_x + float(pip_i) * 16.0, pips_y), 4.0, pip_col)
+	# --- WEAPON SECTION (top-left of right side) ---
+	var weap_x = right_x
+	var weap_y = right_y
+	_ds_outlined_text(Vector2(weap_x, weap_y + 16), "WEAPON", 16, _ca(menu_gold, 0.9 * tab_alpha))
+	var wslot_sz = 90.0
+	var wslot_y = weap_y + 24.0
+	var gear_hover2 = (detail_hover_type == "weapon" and detail_hover_index == 0)
+	var wslot_tier_col = accent if gear_unlocked else Color(0.3, 0.28, 0.40)
+	_draw_enhanced_gear_slot(Vector2(weap_x, wslot_y), wslot_sz, gear_unlocked, wslot_tier_col, accent, gear_hover2)
+	if gear_unlocked:
+		var wc = Vector2(weap_x + wslot_sz * 0.5, wslot_y + wslot_sz * 0.45)
+		draw_line(wc + Vector2(0, -22), wc + Vector2(0, 18), Color(0.8, 0.82, 0.85, 0.8 * tab_alpha), 3.5)
+		draw_line(wc + Vector2(-12, -6), wc + Vector2(12, -6), Color(0.7, 0.55, 0.2, 0.8 * tab_alpha), 3.0)
+		draw_circle(wc + Vector2(0, -22), 4, _ca(c_gold, 0.7 * tab_alpha))
+	else:
+		var lk = Vector2(weap_x + wslot_sz * 0.5, wslot_y + wslot_sz * 0.4)
+		draw_rect(Rect2(lk.x - 14, lk.y + 2, 28, 20), Color(0.35, 0.30, 0.45, 0.6 * tab_alpha))
+		draw_arc(Vector2(lk.x, lk.y + 2), 10, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.6 * tab_alpha), 2.5)
+	var weap_name = gear_data["name"] if gear_unlocked else "LV.2"
+	_udraw(font, Vector2(weap_x, wslot_y + wslot_sz + 14), weap_name, HORIZONTAL_ALIGNMENT_CENTER, int(wslot_sz), 12, _ca(menu_parchment, (1.0 if gear_unlocked else 0.5) * tab_alpha))
 
-	# ================================================================
-	# TAB 1: GEAR
-	# ================================================================
-	elif detail_active_tab == 1:
-		var gear_cx = tab_content_x + 12.0
-		var gear_cy = tab_content_y + 10.0
-		# Weapon slot (100x100)
-		var wslot_sz = 100.0
-		_udraw(font, Vector2(gear_cx, gear_cy + 14), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
-		var wslot_y = gear_cy + 22.0
-		var gear_hover2 = (detail_hover_type == "weapon" and detail_hover_index == 0)
-		var wslot_tier_col = accent if gear_unlocked else Color(0.3, 0.28, 0.40)
-		_draw_enhanced_gear_slot(Vector2(gear_cx, wslot_y), wslot_sz, gear_unlocked, wslot_tier_col, accent, gear_hover2)
-		if gear_unlocked:
-			var wc = Vector2(gear_cx + wslot_sz * 0.5, wslot_y + wslot_sz * 0.45)
-			draw_line(wc + Vector2(0, -22), wc + Vector2(0, 18), Color(0.8, 0.82, 0.85, 0.8 * tab_alpha), 3.5)
-			draw_line(wc + Vector2(-12, -6), wc + Vector2(12, -6), Color(0.7, 0.55, 0.2, 0.8 * tab_alpha), 3.0)
-			draw_circle(wc + Vector2(0, -22), 4, _ca(c_gold, 0.7 * tab_alpha))
+	# --- ALLIES SECTION (top-right of right side) ---
+	var ally_x = weap_x + wslot_sz + 20.0
+	var ally_y = right_y
+	var sk_count = 0
+	for su in sk_unlocked_arr:
+		if su:
+			sk_count += 1
+	_ds_outlined_text(Vector2(ally_x, ally_y + 16), "ALLIES (%d/%d)" % [sk_count, sk_max], 16, _ca(menu_gold, 0.9 * tab_alpha))
+	var ally_slot_sz = 80.0
+	var ally_gap = 8.0
+	var ally_slot_y = ally_y + 24.0
+	for si in range(sk_max):
+		var sx = ally_x + float(si) * (ally_slot_sz + ally_gap)
+		var sy = ally_slot_y
+		var sk_unlocked = sk_unlocked_arr[si] if si < sk_unlocked_arr.size() else false
+		var sk_hover = (detail_hover_type == "sidekick" and detail_hover_index == si)
+		var sk_bdr_col = accent if sk_unlocked else Color(0.3, 0.28, 0.40)
+		_draw_enhanced_gear_slot(Vector2(sx, sy), ally_slot_sz, sk_unlocked, sk_bdr_col, accent, sk_hover)
+		if sk_unlocked and si < sk_data.size():
+			var sc = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.38)
+			draw_circle(sc + Vector2(0, -10), 18, _ca(accent, 0.3 * tab_alpha))
+			draw_rect(Rect2(sc.x - 12, sc.y + 6, 24, 22), _ca(accent, 0.2 * tab_alpha))
+			var sk_name = sk_data[si]["name"]
+			if sk_name.length() > 10:
+				sk_name = sk_name.substr(0, 9) + ".."
+			_udraw(font, Vector2(sx, sy + ally_slot_sz + 12), sk_name, HORIZONTAL_ALIGNMENT_CENTER, int(ally_slot_sz), 10, _ca(menu_parchment, 0.85 * tab_alpha))
 		else:
-			var lk = Vector2(gear_cx + wslot_sz * 0.5, wslot_y + wslot_sz * 0.4)
-			draw_rect(Rect2(lk.x - 14, lk.y + 2, 28, 20), Color(0.35, 0.30, 0.45, 0.6 * tab_alpha))
-			draw_arc(Vector2(lk.x, lk.y + 2), 10, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.6 * tab_alpha), 2.5)
-		var weap_name = gear_data["name"] if gear_unlocked else "LV.2"
-		var weap_nw = font.get_string_size(weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-		_udraw(font, Vector2(gear_cx + (wslot_sz - weap_nw) * 0.5, wslot_y + wslot_sz + 14), weap_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_parchment, (1.0 if gear_unlocked else 0.5) * tab_alpha))
-
-		# Gear grid (3x2, right of weapon)
-		var gear_grid_x = gear_cx + wslot_sz + 20.0
-		var gear_slot_size = 80.0
-		var gear_gap = 10.0
-		_udraw(font, Vector2(gear_grid_x, gear_cy + 14), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
-		var gear_slot_y = gear_cy + 22.0
-		for gsi in range(mini(max_gear_slots, 6)):
-			var g_row = gsi / 3
-			var g_col = gsi % 3
-			var gx = gear_grid_x + float(g_col) * (gear_slot_size + gear_gap)
-			var gy = gear_slot_y + float(g_row) * (gear_slot_size + gear_gap + 16.0)
-			var is_gear_hover = (detail_hover_type == "gear_item" and detail_hover_index == gsi)
-			var has_gear = gsi < eq_gear_ids.size()
-			var gear_tier_col = Color(0.65, 0.65, 0.65)
-			if has_gear:
-				var gdata2 = _find_gear(eq_gear_ids[gsi])
-				gear_tier_col = TIER_COLORS.get(gdata2.get("tier", "common"), gear_tier_col)
-			_draw_enhanced_gear_slot(Vector2(gx, gy), gear_slot_size, has_gear, gear_tier_col, accent, is_gear_hover)
-			if has_gear:
-				var gid = eq_gear_ids[gsi]
-				var gdata3 = _find_gear(gid)
-				_draw_gear_icon(Vector2(gx + gear_slot_size * 0.5, gy + gear_slot_size * 0.4), gdata3.get("id", ""), gear_slot_size * 0.45, gear_tier_col)
-				var gname = gdata3.get("name", "")
-				if gname.length() > 10:
-					gname = gname.substr(0, 9) + ".."
-				var gnw2 = font.get_string_size(gname, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
-				_udraw(font, Vector2(gx + (gear_slot_size - gnw2) * 0.5, gy + gear_slot_size + 12), gname, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(gear_tier_col.r, gear_tier_col.g, gear_tier_col.b, tab_alpha))
+			if not sk_unlocked:
+				var lk2 = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.4)
+				draw_rect(Rect2(lk2.x - 10, lk2.y + 2, 20, 16), Color(0.35, 0.30, 0.45, 0.5 * tab_alpha))
+				draw_arc(Vector2(lk2.x, lk2.y + 2), 8, PI, TAU, 10, Color(0.4, 0.35, 0.50, 0.5 * tab_alpha), 2.0)
+				_udraw(font, Vector2(sx, sy + ally_slot_sz + 12), "LV.%d" % sk_levels[si], HORIZONTAL_ALIGNMENT_CENTER, int(ally_slot_sz), 10, _ca(menu_text_muted, 0.6 * tab_alpha))
 			else:
-				draw_rect(Rect2(gx + gear_slot_size * 0.5 - 4, gy + gear_slot_size * 0.35, 8, 24), _ca(accent, 0.25 * tab_alpha))
-				draw_rect(Rect2(gx + gear_slot_size * 0.35, gy + gear_slot_size * 0.5 - 4, 24, 8), _ca(accent, 0.25 * tab_alpha))
+				# Empty unlocked slot — "+" icon
+				draw_rect(Rect2(sx + ally_slot_sz * 0.5 - 3, sy + ally_slot_sz * 0.3, 6, 24), _ca(accent, 0.3 * tab_alpha))
+				draw_rect(Rect2(sx + ally_slot_sz * 0.3, sy + ally_slot_sz * 0.5 - 3, 24, 6), _ca(accent, 0.3 * tab_alpha))
+	_udraw(font, Vector2(ally_x, ally_slot_y + ally_slot_sz + 26), "Allies: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _ca(menu_text_muted, 0.5 * tab_alpha))
 
-		# Set bonus bar
-		var cn = tower_names_sb[tower_type] if tower_type >= 0 and tower_type < tower_names_sb.size() else ""
-		var cgc = 0
-		for eqb in eq_gear_ids:
-			var bd = _find_gear(eqb)
-			if bd.get("character", "") == cn:
-				cgc += 1
-		if cgc >= 3:
-			var sbonus_y = gear_slot_y + 2.0 * (gear_slot_size + gear_gap + 16.0) + 4.0
-			var sb_str = "SET BONUS x%d (+%d%% ALL STATS)" % [cgc, cgc * 5]
-			draw_rect(Rect2(gear_grid_x, sbonus_y, 280, 22), _ca(c_gold, 0.08 * tab_alpha))
-			draw_rect(Rect2(gear_grid_x, sbonus_y, 280, 22), _ca(c_gold, 0.3 * tab_alpha), false, 1.0)
-			_udraw(font, Vector2(gear_grid_x + 8, sbonus_y + 16), sb_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(c_gold_bright, 0.9 * tab_alpha))
+	# --- TRINKETS/GEAR SECTION (below weapon + allies) ---
+	var trinket_y = wslot_y + wslot_sz + 36.0
+	_ds_outlined_text(Vector2(right_x, trinket_y + 16), "TRINKETS (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], 16, _ca(menu_gold, 0.9 * tab_alpha))
+	var gear_slot_size = 80.0
+	var gear_gap = 8.0
+	var gear_slot_y = trinket_y + 24.0
+	var gear_cols = mini(max_gear_slots, 6)
+	for gsi in range(mini(max_gear_slots, 6)):
+		var gx = right_x + float(gsi) * (gear_slot_size + gear_gap)
+		var gy = gear_slot_y
+		var is_gear_hover = (detail_hover_type == "gear_item" and detail_hover_index == gsi)
+		var has_gear = gsi < eq_gear_ids.size()
+		var gear_tier_col = Color(0.65, 0.65, 0.65)
+		if has_gear:
+			var gdata2 = _find_gear(eq_gear_ids[gsi])
+			gear_tier_col = TIER_COLORS.get(gdata2.get("tier", "common"), gear_tier_col)
+		_draw_enhanced_gear_slot(Vector2(gx, gy), gear_slot_size, has_gear, gear_tier_col, accent, is_gear_hover)
+		if has_gear:
+			var gid = eq_gear_ids[gsi]
+			var gdata3 = _find_gear(gid)
+			_draw_gear_icon(Vector2(gx + gear_slot_size * 0.5, gy + gear_slot_size * 0.4), gdata3.get("id", ""), gear_slot_size * 0.45, gear_tier_col)
+			var gname = gdata3.get("name", "")
+			if gname.length() > 10:
+				gname = gname.substr(0, 9) + ".."
+			_udraw(font, Vector2(gx, gy + gear_slot_size + 12), gname, HORIZONTAL_ALIGNMENT_CENTER, int(gear_slot_size), 10, Color(gear_tier_col.r, gear_tier_col.g, gear_tier_col.b, tab_alpha))
+		else:
+			draw_rect(Rect2(gx + gear_slot_size * 0.5 - 3, gx + gear_slot_size * 0.3 - gx + gy, 6, 24), _ca(accent, 0.25 * tab_alpha))
+			draw_rect(Rect2(gx + gear_slot_size * 0.3, gy + gear_slot_size * 0.5 - 3, 24, 6), _ca(accent, 0.25 * tab_alpha))
+	_udraw(font, Vector2(right_x, gear_slot_y + gear_slot_size + 26), "Trinkets: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _ca(menu_text_muted, 0.5 * tab_alpha))
 
-		# Owned gear scroll list (below gear grid)
-		var browse_y = gear_cy + 240.0
-		var browse_bottom = tab_content_y + tab_content_h - 8.0
-		_udraw(font, Vector2(gear_cx, browse_y + 12), "OWNED GEAR", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold, 0.6 * tab_alpha))
-		draw_rect(Rect2(gear_cx, browse_y + 16, 100, 1), _ca(menu_gold, 0.2 * tab_alpha))
-		var bcol2 = 0
-		var brow2 = 0
-		var card_w2 = 210.0
-		var card_h2 = 36.0
-		var gear_browse_y = browse_y + 22.0
-		for b in GEAR_ITEMS:
-			var bcount = owned_gear.get(b["id"], 0)
-			if bcount <= 0:
-				continue
-			var bx = gear_cx + float(bcol2) * (card_w2 + 8)
-			var by = gear_browse_y + float(brow2) * (card_h2 + 3) - detail_gear_scroll
-			bcol2 += 1
-			if bcol2 >= 3:
-				bcol2 = 0
-				brow2 += 1
-			if by + card_h2 < gear_browse_y or by > browse_bottom:
-				continue
-			var is_eq = b["id"] in eq_gear_ids
-			var rc = TIER_COLORS.get(b.get("tier", "common"), Color(0.6, 0.6, 0.65))
-			var bg_c = Color(0.14, 0.12, 0.26, 0.82 * tab_alpha) if is_eq else Color(0.10, 0.09, 0.20, 0.75 * tab_alpha)
-			draw_rect(Rect2(bx, by, card_w2, card_h2), bg_c)
-			draw_rect(Rect2(bx, by, card_w2, card_h2), Color(rc.r, rc.g, rc.b, (0.3 if is_eq else 0.15) * tab_alpha), false, 1.0)
-			draw_rect(Rect2(bx, by, 3, card_h2), Color(rc.r, rc.g, rc.b, 0.6 * tab_alpha))
-			_udraw(font, Vector2(bx + 6, by + 12), b["name"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w2 - 40), 13, _ca(menu_parchment, tab_alpha))
-			_udraw(font, Vector2(bx + 6, by + 26), b["desc"], HORIZONTAL_ALIGNMENT_LEFT, int(card_w2 - 12), 11, _ca(menu_text_muted, 0.6 * tab_alpha))
-			var count_label = "EQ" if is_eq else ("x%d" % bcount)
-			_udraw(font, Vector2(bx + card_w2 - 28, by + 12), count_label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 13, Color(0.3, 0.8, 0.3, tab_alpha) if is_eq else Color(0.55, 0.52, 0.50, tab_alpha))
-
-	# ================================================================
-	# TAB 2: ALLIES
-	# ================================================================
-	elif detail_active_tab == 2:
-		var ally_cx = tab_content_x + 12.0
-		var ally_cy = tab_content_y + 14.0
-		var sk_count = 0
-		for su in sk_unlocked_arr:
-			if su:
-				sk_count += 1
-		_udraw(font, Vector2(ally_cx, ally_cy + 14), "ALLIES (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(menu_gold, tab_alpha))
-		draw_rect(Rect2(ally_cx, ally_cy + 20, 120, 1), _ca(menu_gold, 0.2 * tab_alpha))
-		# 4 sidekick slots horizontal (140x140)
-		var sk_slot_sz = 140.0
-		var sk_gap = 12.0
-		var sk_start_y = ally_cy + 30.0
-		for si in range(sk_max):
-			var sx = ally_cx + float(si) * (sk_slot_sz + sk_gap)
-			var sy = sk_start_y
-			var sk_unlocked = sk_unlocked_arr[si] if si < sk_unlocked_arr.size() else false
-			var sk_hover = (detail_hover_type == "sidekick" and detail_hover_index == si)
-			# Slot background with corner brackets
-			draw_rect(Rect2(sx, sy, sk_slot_sz, sk_slot_sz), Color(0.14, 0.10, 0.24, tab_alpha))
-			var sk_bdr_col = accent if sk_unlocked else Color(0.3, 0.28, 0.40)
-			_draw_enhanced_gear_slot(Vector2(sx, sy), sk_slot_sz, sk_unlocked, sk_bdr_col, accent, sk_hover)
-			if sk_unlocked and si < sk_data.size():
-				# Sidekick portrait silhouette (larger)
-				var sc = Vector2(sx + sk_slot_sz * 0.5, sy + sk_slot_sz * 0.38)
-				draw_circle(sc + Vector2(0, -12), 22, _ca(accent, 0.3 * tab_alpha))
-				draw_rect(Rect2(sc.x - 16, sc.y + 6, 32, 28), _ca(accent, 0.2 * tab_alpha))
-				# Name below slot
-				var sk_name = sk_data[si]["name"]
-				if sk_name.length() > 14:
-					sk_name = sk_name.substr(0, 13) + ".."
-				var snw2 = font.get_string_size(sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-				_udraw(font, Vector2(sx + (sk_slot_sz - snw2) * 0.5, sy + sk_slot_sz + 14), sk_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_parchment, 0.85 * tab_alpha))
-				# Description
-				var sk_desc = sk_data[si].get("desc", "")
-				_udraw(font, Vector2(sx, sy + sk_slot_sz + 28), sk_desc, HORIZONTAL_ALIGNMENT_LEFT, int(sk_slot_sz), 11, _ca(menu_text_muted, 0.6 * tab_alpha))
-			else:
-				if si == 0 or (si > 0 and (sk_unlocked_arr[si - 1] if si - 1 < sk_unlocked_arr.size() else false)):
-					draw_rect(Rect2(sx + sk_slot_sz * 0.5 - 4, sy + sk_slot_sz * 0.3, 8, 30), _ca(accent, 0.3 * tab_alpha))
-					draw_rect(Rect2(sx + sk_slot_sz * 0.3, sy + sk_slot_sz * 0.5 - 4, 30, 8), _ca(accent, 0.3 * tab_alpha))
-				else:
-					var lk = Vector2(sx + sk_slot_sz * 0.5, sy + sk_slot_sz * 0.4)
-					draw_rect(Rect2(lk.x - 12, lk.y + 2, 24, 18), Color(0.35, 0.30, 0.45, 0.5 * tab_alpha))
-					draw_arc(Vector2(lk.x, lk.y + 2), 9, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.5 * tab_alpha), 2.5)
-				# Lock badge
-				_udraw(font, Vector2(sx + sk_slot_sz * 0.5 - 14, sy + sk_slot_sz + 14), "LV.%d" % sk_levels[si], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_text_muted, 0.6 * tab_alpha))
-
-	# ================================================================
-	# TAB 3: STATS
-	# ================================================================
-	elif detail_active_tab == 3:
-		var stat_cx = tab_content_x + 16.0
-		var stat_cy = tab_content_y + 14.0
-		var stat_w = tab_content_w - 32.0
-		# Stat bonuses
-		var lvl_b = _get_level_bonuses(tower_type)
-		var gear_b = _get_gear_bonuses(tower_type)
-		var total_dmg = (lvl_b.get("damage", 0.0) + gear_b.get("damage", 0.0) + _get_knowledge_bonus("damage")) * 100.0
-		var total_rng = (lvl_b.get("range", 0.0) + gear_b.get("range", 0.0) + _get_knowledge_bonus("range")) * 100.0
-		var total_spd = (lvl_b.get("attack_speed", 0.0) + gear_b.get("attack_speed", 0.0) + _get_knowledge_bonus("attack_speed")) * 100.0
-		var total_crit = lvl_b.get("crit", 0.0) * 100.0
-		var total_gold = gear_b.get("gold", 0.0) * 100.0
-		_udraw(font, Vector2(stat_cx, stat_cy + 14), "COMBAT STATS", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(menu_gold, tab_alpha))
-		draw_rect(Rect2(stat_cx, stat_cy + 20, 120, 1), _ca(menu_gold, 0.2 * tab_alpha))
-		# 5 stat bars
-		var bar_y = stat_cy + 32.0
-		var bar_gap = 28.0
-		var stat_entries = [
-			["DMG", total_dmg, Color(0.9, 0.3, 0.2)],
-			["RNG", total_rng, Color(0.3, 0.6, 0.9)],
-			["SPD", total_spd, Color(0.3, 0.9, 0.4)],
-			["CRIT", total_crit, c_gold],
-			["GOLD", total_gold, Color(0.9, 0.75, 0.3)],
-		]
-		for sti in range(stat_entries.size()):
-			_draw_stat_bar(Vector2(stat_cx, bar_y + float(sti) * bar_gap), stat_w * 0.7, stat_entries[sti][0], stat_entries[sti][1], stat_entries[sti][2], font)
-
-		# Combat record
-		var record_y = bar_y + 5.0 * bar_gap + 12.0
-		_udraw(font, Vector2(stat_cx, record_y + 14), "COMBAT RECORD", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
-		draw_rect(Rect2(stat_cx, record_y + 20, 100, 1), _ca(menu_gold, 0.15 * tab_alpha))
-		var dmg_total = session_damage.get(tower_type, 0.0)
-		_udraw(font, Vector2(stat_cx, record_y + 38), "Total Damage: %s" % _format_number(dmg_total), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_text_muted, 0.7 * tab_alpha))
-
-		# Golden shields
-		var gs = progress.get("golden_shields", 0)
-		var gs_y = record_y + 56.0
-		_udraw(font, Vector2(stat_cx, gs_y + 14), "GOLDEN SHIELDS: %d" % gs, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold, 0.8 * tab_alpha))
-		for gsi2 in range(mini(gs, 5)):
-			var shield_cx = stat_cx + 180.0 + float(gsi2) * 28.0
-			var shield_r = 10.0
-			var shield_pts = PackedVector2Array()
-			for spi in range(6):
-				var spa = -PI * 0.5 + float(spi) * TAU / 6.0
-				shield_pts.append(Vector2(shield_cx + cos(spa) * shield_r, gs_y + 8 + sin(spa) * shield_r))
-			draw_colored_polygon(shield_pts, _ca(c_gold, 0.8 * tab_alpha))
-
-		# Next rewards roadmap
-		var roadmap_y2 = gs_y + 32.0
-		_udraw(font, Vector2(stat_cx, roadmap_y2 + 14), "NEXT REWARDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(menu_gold, 0.7 * tab_alpha))
-		draw_rect(Rect2(stat_cx, roadmap_y2 + 20, 80, 1), _ca(menu_gold, 0.15 * tab_alpha))
-		var rm_y = roadmap_y2 + 28.0
-		var rewards_shown = 0
-		var check_level = char_level + 1
-		while rewards_shown < 3 and check_level <= MAX_SURVIVOR_LEVEL:
-			var rewards = _get_level_rewards(check_level)
-			if rewards.size() > 1:
-				var badge_str = "LV.%d" % check_level
-				_udraw(font, Vector2(stat_cx, rm_y + 9), badge_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(c_gold, 0.8 * tab_alpha))
-				var reward_x = stat_cx + 42.0
-				for ri in range(1, mini(rewards.size(), 3)):
-					_udraw(font, Vector2(reward_x, rm_y + 9), rewards[ri], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_parchment, 0.7 * tab_alpha))
-					rm_y += 14.0
-				rewards_shown += 1
-			check_level += 1
-		if char_level >= MAX_SURVIVOR_LEVEL:
-			_udraw(font, Vector2(stat_cx, rm_y + 9), "All rewards unlocked!", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(c_gold, 0.6 * tab_alpha))
+	# --- ABILITIES SECTION (below trinkets) ---
+	var abil_y = gear_slot_y + gear_slot_size + 44.0
+	_ds_outlined_text(Vector2(right_x, abil_y + 16), "ABILITIES", 16, _ca(menu_gold, 0.9 * tab_alpha))
+	var abil_icon_y = abil_y + 26.0
+	var abil_sz = 60.0
+	var abil_gap = 8.0
+	for ai in range(mini(abil_data.size(), 6)):
+		var ax = right_x + float(ai) * (abil_sz + abil_gap)
+		var ay = abil_icon_y
+		var is_abil_hover = (detail_hover_type == "ability" and detail_hover_index == ai)
+		# Ability icon circle
+		var abil_bg = Color(0.12, 0.08, 0.20, 0.85 * tab_alpha) if not is_abil_hover else Color(0.18, 0.14, 0.30, 0.95 * tab_alpha)
+		draw_colored_polygon(_rrp(Rect2(ax, ay, abil_sz, abil_sz), 8.0), abil_bg)
+		if is_abil_hover:
+			draw_colored_polygon(_rrp(Rect2(ax - 2, ay - 2, abil_sz + 4, abil_sz + 4), 10.0), _ca(accent, 0.25 * tab_alpha))
+		# Ability tier ring
+		var abil_center = Vector2(ax + abil_sz * 0.5, ay + abil_sz * 0.5)
+		draw_arc(abil_center, abil_sz * 0.4, 0, TAU, 16, _ca(c_gold, 0.5 * tab_alpha), 2.0)
+		_draw_ability_icon(abil_center, ai, accent)
+		# Ability name below icon
+		if ai < abil_data.size():
+			var a_name = abil_data[ai].get("name", "T%d" % (ai + 1))
+			if a_name.length() > 8:
+				a_name = a_name.substr(0, 7) + "."
+			_udraw(font, Vector2(ax, ay + abil_sz + 10), a_name, HORIZONTAL_ALIGNMENT_CENTER, int(abil_sz), 9, _ca(menu_parchment, 0.7 * tab_alpha))
 
 	# ================================================================
 	# BOTTOM STRIP: Novel title + stat pills
@@ -14854,9 +14666,9 @@ func _draw_survivor_detail() -> void:
 	var total_rng2 = lvl_b2.get("range", 0.0) + gear_b2.get("range", 0.0) + _get_knowledge_bonus("range")
 	var total_spd2 = lvl_b2.get("attack_speed", 0.0) + gear_b2.get("attack_speed", 0.0) + _get_knowledge_bonus("attack_speed")
 	var pill_labels2 = ["+%d%% DMG" % int(total_dmg2 * 100), "+%d%% RNG" % int(total_rng2 * 100), "+%d%% SPD" % int(total_spd2 * 100)]
-	var pill_colors2 = [Color(0.9, 0.3, 0.2), c_cyan, Color(0.3, 0.9, 0.4)]
+	var pill_colors2 = [Color(0.9, 0.3, 0.2), Color(0.4, 0.25, 0.60), Color(0.3, 0.9, 0.4)]
 	var pill_rx = panel_x + panel_w - 20.0
-	for pi in range(2, -1, -1):  # Right to left
+	for pi in range(2, -1, -1):
 		var pw2 = font.get_string_size(pill_labels2[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 14
 		pill_rx -= pw2
 		draw_rect(Rect2(pill_rx, bottom_y + 2, pw2, 16), Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.12 * content_alpha))
