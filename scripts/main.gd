@@ -417,57 +417,39 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var ry = rect.position.y
 	var rw = rect.size.x
 	var rh = rect.size.y
-	# Rounded card with dark base (portrait covers it completely)
-	var crad = 8.0
-	draw_colored_polygon(_rrp(Rect2(rx + 3, ry + 4, rw, rh), crad), Color(0, 0, 0, 0.5))
-	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.08, 0.12, 0.22))
-	# Portrait — crop-to-fill
+	# === BLOONS BATD CHARACTER CARD ===
+	var crad = 6.0
+	var name_bar_h = 28.0  # Light gray name bar at bottom of card
+	var portrait_h = rh - name_bar_h  # Portrait area above name bar
+	# Card shadow
+	draw_colored_polygon(_rrp(Rect2(rx + 2, ry + 3, rw, rh), crad), Color(0, 0, 0, 0.4))
+	# Card background — light colored (like Bloons cards)
+	var card_bg = Color(0.75, 0.82, 0.88) if unlocked else Color(0.30, 0.35, 0.42)
+	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
+	# Portrait — resize to FIT inside the card area
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
-		var tex_sz = tex.get_size()
-		var scale_x = rw / tex_sz.x
-		var scale_y = rh / tex_sz.y
-		var fill_scale = maxf(scale_x, scale_y)
-		var sw = tex_sz.x * fill_scale
-		var sh = tex_sz.y * fill_scale
-		# Center portrait — face should be visible in middle of card
-		draw_texture_rect(tex, Rect2(rx + (rw - sw) * 0.5, ry + (rh - sh) * 0.5, sw, sh), false)
+		# Just draw it to fill the portrait area — simple
+		draw_texture_rect(tex, Rect2(rx + 1, ry + 1, rw - 2, portrait_h - 1), false)
 	elif not unlocked:
-		# Show portrait darkened/silhouetted (Bloons style) — not flat color
-		if speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
-			var tex = _portrait_textures[speaker_name]
-			var tex_sz = tex.get_size()
-			var scale_x2 = rw / tex_sz.x
-			var scale_y2 = rh / tex_sz.y
-			var fill_scale2 = maxf(scale_x2, scale_y2)
-			var sw2 = tex_sz.x * fill_scale2
-			var sh2 = tex_sz.y * fill_scale2
-			# Draw portrait very dark (silhouette effect)
-			draw_texture_rect(tex, Rect2(rx + (rw - sw2) * 0.5, ry + (rh - sh2) * 0.5, sw2, sh2), false, Color(0.15, 0.12, 0.18, 1.0))
-		else:
-			draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.10, 0.08, 0.16, 0.9))
-		# Dark overlay
-		draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0, 0, 0, 0.5))
-		# Lock icon — larger, more visible
+		# Locked — dark with lock icon
+		draw_colored_polygon(_rrp(Rect2(rx, ry, rw, portrait_h), crad), Color(0.18, 0.22, 0.30, 0.95))
 		var lk_cx = rx + rw * 0.5
-		var lk_cy = ry + rh * 0.4
-		# Lock body
-		draw_colored_polygon(_rrp(Rect2(lk_cx - 18, lk_cy, 36, 28), 4.0), Color(0.35, 0.30, 0.45, 0.8))
-		# Lock shackle
-		draw_arc(Vector2(lk_cx, lk_cy), 14, PI, TAU, 12, Color(0.4, 0.35, 0.5, 0.8), 4.0)
-		# Keyhole
-		draw_circle(Vector2(lk_cx, lk_cy + 12), 5, Color(0.15, 0.12, 0.20, 0.9))
-		draw_rect(Rect2(lk_cx - 2, lk_cy + 14, 4, 8), Color(0.15, 0.12, 0.20, 0.9))
-		# "?" text
-		_ds_outlined_text(Vector2(lk_cx, lk_cy - 20), "?", 24, Color(0.8, 0.65, 0.2, 0.7), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
-	# Name BELOW card (not inside) — like Bloons BATD
+		var lk_cy = ry + portrait_h * 0.45
+		draw_circle(Vector2(lk_cx, lk_cy + 8), 12, Color(0.4, 0.45, 0.55, 0.6))
+		draw_arc(Vector2(lk_cx, lk_cy), 10, PI, TAU, 10, Color(0.45, 0.50, 0.60, 0.6), 3.0)
+		_ds_outlined_text(Vector2(lk_cx, lk_cy - 16), "?", 20, Color(0.6, 0.65, 0.72, 0.7), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Name bar — light gray at bottom of card (INSIDE card, like Bloons)
+	var nb_y = ry + rh - name_bar_h
+	draw_colored_polygon(_rrp(Rect2(rx, nb_y, rw, name_bar_h), crad), Color(0.82, 0.85, 0.88) if unlocked else Color(0.35, 0.38, 0.42))
+	# Character name — dark bold text (like Bloons)
 	var display_name = char_name
 	if display_name.length() > 14:
 		display_name = display_name.substr(0, 13) + "."
 	if unlocked:
-		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh + 14), display_name, 12, Color(1.0, 1.0, 1.0), int(rw), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(rx + rw * 0.5, nb_y + 18), display_name, 13, Color(0.15, 0.15, 0.20), int(rw - 4), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		_udraw(font, Vector2(rx, ry + rh + 14), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw), 11, Color(0.5, 0.52, 0.58))
+		_udraw(font, Vector2(rx, nb_y + 18), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw), 12, Color(0.45, 0.48, 0.55))
 	# Level badge — GOLD STAR in top-right (like Bloons BATD)
 	if unlocked and level > 0:
 		var bcx = rx + rw - 18.0
