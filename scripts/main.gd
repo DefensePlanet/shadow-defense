@@ -10829,7 +10829,7 @@ func _draw_currency_bar() -> void:
 		# Value text — bright gold with label
 		var display_val = _get_display_currency(c["name"]) if _currency_display.has(c["name"]) else c["value"]
 		var val_str = _format_gold(display_val)
-		_udraw(font, Vector2(cx + 15, bar_y + 14), c["name"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(cc.r, cc.g, cc.b, 0.6))
+		_udraw(font, Vector2(cx + 15, bar_y + 12), c["name"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(cc.r, cc.g, cc.b, 0.8))
 		_udraw(font, Vector2(cx + 15, bar_y + 26), val_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.95, 0.85, 0.95))
 		cx += 130.0
 
@@ -13569,12 +13569,12 @@ func _draw_survivor_grid() -> void:
 
 	# No overlays — let the dark gothic menu background show clean
 
-	# === Filter/Sort Bar — inside header bar, after SURVIVORS title ===
+	# === Filter/Sort Bar — same line as SURVIVORS ===
 	_draw_filter_sort_bar(panel_x + 170, panel_y + 2.0, panel_w - 260)
 
-	# Card grid — right after header bar
+	# Card grid — ZERO gap after header
 	var margin = 10.0
-	var grid_top = panel_y + 38.0
+	var grid_top = panel_y + 18.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -13740,7 +13740,7 @@ func _update_world_map_hover() -> void:
 	var margin = 10.0
 	var gap = 8.0
 	var cols = 4
-	var grid_top = panel_y + 38.0
+	var grid_top = panel_y + 18.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
