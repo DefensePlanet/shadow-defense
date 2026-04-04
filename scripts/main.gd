@@ -13569,9 +13569,9 @@ func _draw_survivor_grid() -> void:
 	# === Filter/Sort Bar — on same line as SURVIVORS title ===
 	_draw_filter_sort_bar(panel_x + 130, panel_y - 2.0, panel_w - 134)
 
-	# Card grid — right below SURVIVORS title line
+	# Card grid — tight to header
 	var margin = 10.0
-	var grid_top = panel_y + 14.0
+	var grid_top = panel_y + 6.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -13737,7 +13737,7 @@ func _update_world_map_hover() -> void:
 	var margin = 10.0
 	var gap = 8.0
 	var cols = 4
-	var grid_top = panel_y + 14.0
+	var grid_top = panel_y + 6.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
