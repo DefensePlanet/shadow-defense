@@ -14606,12 +14606,17 @@ func _draw_survivor_detail() -> void:
 		if si < sk_data.size() and _sidekick_textures.has(sk_tex_key):
 			var sk_tex = _sidekick_textures[sk_tex_key]
 			var inset = 4.0
+			var draw_sz = ally_slot_sz - inset * 2
+			# Crop center square from the source texture
+			var tsz = sk_tex.get_size()
+			var crop_sz = minf(tsz.x, tsz.y)
+			var src_rect = Rect2((tsz.x - crop_sz) * 0.5, (tsz.y - crop_sz) * 0.15, crop_sz, crop_sz)
 			if sk_unlocked:
 				# Full color portrait — unlocked
-				draw_texture_rect(sk_tex, Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), false)
+				draw_texture_rect_region(sk_tex, Rect2(sx + inset, sy + inset, draw_sz, draw_sz), src_rect)
 			else:
-				# Shaded portrait — locked but clearly visible (teaser to entice player)
-				draw_texture_rect(sk_tex, Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), false, Color(0.45, 0.35, 0.50, 0.85))
+				# Shaded portrait — locked but clearly visible (teaser)
+				draw_texture_rect_region(sk_tex, Rect2(sx + inset, sy + inset, draw_sz, draw_sz), src_rect, Color(0.45, 0.35, 0.50, 0.85))
 				# Subtle dark overlay — NOT too dark
 				draw_colored_polygon(_rrp(Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), 4.0), Color(0.08, 0.05, 0.15, 0.3))
 				# Lock + star with kill requirement
