@@ -14610,10 +14610,10 @@ func _draw_survivor_detail() -> void:
 				# Full color portrait — unlocked
 				draw_texture_rect(sk_tex, Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), false)
 			else:
-				# Dark shaded portrait — locked but visible (teaser)
-				draw_texture_rect(sk_tex, Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), false, Color(0.3, 0.2, 0.35, 0.7))
-				# Dark overlay
-				draw_colored_polygon(_rrp(Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), 4.0), Color(0.05, 0.03, 0.10, 0.45))
+				# Shaded portrait — locked but clearly visible (teaser to entice player)
+				draw_texture_rect(sk_tex, Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), false, Color(0.45, 0.35, 0.50, 0.85))
+				# Subtle dark overlay — NOT too dark
+				draw_colored_polygon(_rrp(Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), 4.0), Color(0.08, 0.05, 0.15, 0.3))
 				# Lock + star with kill requirement
 				var lk2 = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.35)
 				draw_colored_polygon(_rrp(Rect2(lk2.x - 12, lk2.y + 4, 24, 18), 3.0), Color(0.25, 0.18, 0.35, 0.7))
