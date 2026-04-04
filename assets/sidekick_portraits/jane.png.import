@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c05d3r8ajp0vt"
-valid=false
+uid="uid://bgei4ewe0jq0k"
+path="res://.godot/imported/jane.png-f794ace00f54495638239d65eb8c27f7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/jane.png"
+dest_files=["res://.godot/imported/jane.png-f794ace00f54495638239d65eb8c27f7.ctex"]
 
 [params]
 

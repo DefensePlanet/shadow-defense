@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5rq7yu1wsci"
-valid=false
+uid="uid://c5x5lim3ctw55"
+path="res://.godot/imported/little_john.png-56bb13f8165e659f73d07eb6118be5bd.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/little_john.png"
+dest_files=["res://.godot/imported/little_john.png-56bb13f8165e659f73d07eb6118be5bd.ctex"]
 
 [params]
 

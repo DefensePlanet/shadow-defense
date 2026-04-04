@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cj38175xikk3h"
-valid=false
+uid="uid://c76545r3kbf0r"
+path="res://.godot/imported/tin_woodman.png-1c6a68bfb870ad9a6f9f6cb53271e6ad.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/tin_woodman.png"
+dest_files=["res://.godot/imported/tin_woodman.png-1c6a68bfb870ad9a6f9f6cb53271e6ad.ctex"]
 
 [params]
 

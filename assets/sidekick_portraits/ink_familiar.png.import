@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bhciikar65osr"
-valid=false
+uid="uid://cijgy78a4dfip"
+path="res://.godot/imported/ink_familiar.png-6dcec653f616f00f375f3b4779f4510a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/ink_familiar.png"
+dest_files=["res://.godot/imported/ink_familiar.png-6dcec653f616f00f375f3b4779f4510a.ctex"]
 
 [params]
 

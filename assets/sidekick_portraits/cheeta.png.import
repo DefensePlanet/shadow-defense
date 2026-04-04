@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dcnodcxxrrmgn"
-valid=false
+uid="uid://ctr5nbt7pfgi5"
+path="res://.godot/imported/cheeta.png-2314560456d48041cf3ec4d9c41132da.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/cheeta.png"
+dest_files=["res://.godot/imported/cheeta.png-2314560456d48041cf3ec4d9c41132da.ctex"]
 
 [params]
 

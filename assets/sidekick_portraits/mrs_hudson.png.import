@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwqj0uakti18f"
-valid=false
+uid="uid://bl1k185k7ci7u"
+path="res://.godot/imported/mrs_hudson.png-fd73a4f5fb85898e32b112950bd82d27.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/mrs_hudson.png"
+dest_files=["res://.godot/imported/mrs_hudson.png-fd73a4f5fb85898e32b112950bd82d27.ctex"]
 
 [params]
 

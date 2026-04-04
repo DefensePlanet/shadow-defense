@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x4n5dk4krye3"
-valid=false
+uid="uid://bviapdcfrjnl8"
+path="res://.godot/imported/white_rabbit.png-695d43d04c3a8de29dcaf44b78feb037.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/white_rabbit.png"
+dest_files=["res://.godot/imported/white_rabbit.png-695d43d04c3a8de29dcaf44b78feb037.ctex"]
 
 [params]
 

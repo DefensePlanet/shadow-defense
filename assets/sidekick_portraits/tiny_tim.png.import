@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://djao78gf63bsg"
-valid=false
+uid="uid://drqrp56a3ueip"
+path="res://.godot/imported/tiny_tim.png-5cba123652ae9e751c6032e4de3b420e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/tiny_tim.png"
+dest_files=["res://.godot/imported/tiny_tim.png-5cba123652ae9e751c6032e4de3b420e.ctex"]
 
 [params]
 

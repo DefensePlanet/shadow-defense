@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ct0vq5ly4cjm1"
-valid=false
+uid="uid://cy1d4ri7cvtij"
+path="res://.godot/imported/friar_tuck.png-b320695f7e454e94bd2e7e1aa8cbd6f9.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/friar_tuck.png"
+dest_files=["res://.godot/imported/friar_tuck.png-b320695f7e454e94bd2e7e1aa8cbd6f9.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://6h06r26260c7"
-valid=false
+uid="uid://chaf0la1jfh3i"
+path="res://.godot/imported/archimedes.png-7260e2c538e9dad380dbd09bc4ace0db.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/archimedes.png"
+dest_files=["res://.godot/imported/archimedes.png-7260e2c538e9dad380dbd09bc4ace0db.ctex"]
 
 [params]
 

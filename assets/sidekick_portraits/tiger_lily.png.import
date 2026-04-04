@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4dw4l4yhebn0"
-valid=false
+uid="uid://6lp5cdv25p06"
+path="res://.godot/imported/tiger_lily.png-1b6b93432f57650859b5f1bf87d65864.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/tiger_lily.png"
+dest_files=["res://.godot/imported/tiger_lily.png-1b6b93432f57650859b5f1bf87d65864.ctex"]
 
 [params]
 

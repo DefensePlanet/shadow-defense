@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dtjpju2tnkswf"
-valid=false
+uid="uid://cnhjt1jgc8j4c"
+path="res://.godot/imported/victors_notes.png-89d0db32d3c5110992b804a53ad84307.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/victors_notes.png"
+dest_files=["res://.godot/imported/victors_notes.png-89d0db32d3c5110992b804a53ad84307.ctex"]
 
 [params]
 

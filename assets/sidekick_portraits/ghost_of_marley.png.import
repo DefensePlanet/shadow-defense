@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0syl1prje0gp"
-valid=false
+uid="uid://1ojvyba83vo5"
+path="res://.godot/imported/ghost_of_marley.png-bfe491cc38cb49c8f4cd41ad5e304842.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/ghost_of_marley.png"
+dest_files=["res://.godot/imported/ghost_of_marley.png-bfe491cc38cb49c8f4cd41ad5e304842.ctex"]
 
 [params]
 

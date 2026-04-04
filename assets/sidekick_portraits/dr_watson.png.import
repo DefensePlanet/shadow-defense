@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dfb2g28sp54t8"
-valid=false
+uid="uid://dox3w7eoftxjs"
+path="res://.godot/imported/dr_watson.png-bdd9e13ddb9582562b6c4e91dc202d54.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/dr_watson.png"
+dest_files=["res://.godot/imported/dr_watson.png-bdd9e13ddb9582562b6c4e91dc202d54.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://camk3k1tq6qkj"
-valid=false
+uid="uid://bwqboi7skq86"
+path="res://.godot/imported/lightning_coil.png-fa23c379a0680726282c97464ad6db3c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/lightning_coil.png"
+dest_files=["res://.godot/imported/lightning_coil.png-fa23c379a0680726282c97464ad6db3c.ctex"]
 
 [params]
 

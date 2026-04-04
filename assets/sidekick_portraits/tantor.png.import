@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://du1rhtitugwal"
-valid=false
+uid="uid://dvl3aqeh1dm3r"
+path="res://.godot/imported/tantor.png-33a5c7d693cce26a6a23edc4a2eb28d6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/tantor.png"
+dest_files=["res://.godot/imported/tantor.png-33a5c7d693cce26a6a23edc4a2eb28d6.ctex"]
 
 [params]
 

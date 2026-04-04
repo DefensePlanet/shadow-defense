@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgvl8g7y8sf5r"
-valid=false
+uid="uid://cjrj6yyfij1xi"
+path="res://.godot/imported/igor.png-cc792c4f01f10f78c7b52d4cb310ed72.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/igor.png"
+dest_files=["res://.godot/imported/igor.png-cc792c4f01f10f78c7b52d4cb310ed72.ctex"]
 
 [params]
 

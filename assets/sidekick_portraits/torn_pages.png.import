@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://brsbm81cc2xgd"
-valid=false
+uid="uid://4e2d4ta6mk0u"
+path="res://.godot/imported/torn_pages.png-609e2d63813a00e225f3a979035f8040.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/torn_pages.png"
+dest_files=["res://.godot/imported/torn_pages.png-609e2d63813a00e225f3a979035f8040.ctex"]
 
 [params]
 

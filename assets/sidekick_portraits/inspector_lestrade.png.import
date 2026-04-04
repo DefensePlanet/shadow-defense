@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bb0ixqec6gtuv"
-valid=false
+uid="uid://kkcm4d6ioa7n"
+path="res://.godot/imported/inspector_lestrade.png-cb09c7afe16572d96f0e29e889629e37.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/inspector_lestrade.png"
+dest_files=["res://.godot/imported/inspector_lestrade.png-cb09c7afe16572d96f0e29e889629e37.ctex"]
 
 [params]
 

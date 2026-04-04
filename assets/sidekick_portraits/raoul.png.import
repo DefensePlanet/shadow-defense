@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ffily5tenhh2"
-valid=false
+uid="uid://byvxe3gnxbclp"
+path="res://.godot/imported/raoul.png-1ab258ae59c045b13d747bd5f322186d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/raoul.png"
+dest_files=["res://.godot/imported/raoul.png-1ab258ae59c045b13d747bd5f322186d.ctex"]
 
 [params]
 

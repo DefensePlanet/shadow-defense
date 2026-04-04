@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bihlscggyk6s3"
-valid=false
+uid="uid://d1633th8e317r"
+path="res://.godot/imported/toto.png-1d06e99d0bf18d20c38c6670ee659392.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/toto.png"
+dest_files=["res://.godot/imported/toto.png-1d06e99d0bf18d20c38c6670ee659392.ctex"]
 
 [params]
 

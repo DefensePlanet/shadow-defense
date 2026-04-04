@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bs6i5wogokvgo"
-valid=false
+uid="uid://d0hqeunsd3lh0"
+path="res://.godot/imported/christine.png-431ff22229663039c3dd31abdcdd68d5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/christine.png"
+dest_files=["res://.godot/imported/christine.png-431ff22229663039c3dd31abdcdd68d5.ctex"]
 
 [params]
 

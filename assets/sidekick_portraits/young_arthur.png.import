@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyv632myk33eh"
-valid=false
+uid="uid://bd1xclj16dkkp"
+path="res://.godot/imported/young_arthur.png-2cf57bbf24200940d28b1a75845a2cab.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/young_arthur.png"
+dest_files=["res://.godot/imported/young_arthur.png-2cf57bbf24200940d28b1a75845a2cab.ctex"]
 
 [params]
 

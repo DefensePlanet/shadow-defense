@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bc3qvcajarnen"
-valid=false
+uid="uid://cr46et7p35jxu"
+path="res://.godot/imported/bob_cratchit.png-25e6639285d3f8b2d1fc72c98de4615e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/bob_cratchit.png"
+dest_files=["res://.godot/imported/bob_cratchit.png-25e6639285d3f8b2d1fc72c98de4615e.ctex"]
 
 [params]
 

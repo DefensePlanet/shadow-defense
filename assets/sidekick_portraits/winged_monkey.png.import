@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bs63nf5h14rku"
-valid=false
+uid="uid://dkwn572begbb8"
+path="res://.godot/imported/winged_monkey.png-3bc3ee4f348bc9c3279be1c56ae89227.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/winged_monkey.png"
+dest_files=["res://.godot/imported/winged_monkey.png-3bc3ee4f348bc9c3279be1c56ae89227.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dma5f7llcwfde"
-valid=false
+uid="uid://6ycgmtmu3xbm"
+path="res://.godot/imported/maid_marian.png-7934819830f5acbd77fbf988c1bc3726.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/maid_marian.png"
+dest_files=["res://.godot/imported/maid_marian.png-7934819830f5acbd77fbf988c1bc3726.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://loa3lqbafaft"
-valid=false
+uid="uid://cu33ek5u4fh2s"
+path="res://.godot/imported/lost_boys.png-338461fe8781fa7ab02d5d6af8d4ce08.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/lost_boys.png"
+dest_files=["res://.godot/imported/lost_boys.png-338461fe8781fa7ab02d5d6af8d4ce08.ctex"]
 
 [params]
 

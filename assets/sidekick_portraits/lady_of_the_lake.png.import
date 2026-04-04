@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bvrd4r0wmx7fc"
-valid=false
+uid="uid://b7nrw5d5c7cjo"
+path="res://.godot/imported/lady_of_the_lake.png-e9605e6cc8d4ef8559c0e39663f91d90.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/lady_of_the_lake.png"
+dest_files=["res://.godot/imported/lady_of_the_lake.png-e9605e6cc8d4ef8559c0e39663f91d90.ctex"]
 
 [params]
 

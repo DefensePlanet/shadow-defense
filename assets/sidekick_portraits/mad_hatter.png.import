@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cnyy6p067jxk8"
-valid=false
+uid="uid://cfwnjwvg7wy7g"
+path="res://.godot/imported/mad_hatter.png-5d49f4adbf5140630ce4b81d9946d559.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/mad_hatter.png"
+dest_files=["res://.godot/imported/mad_hatter.png-5d49f4adbf5140630ce4b81d9946d559.ctex"]
 
 [params]
 

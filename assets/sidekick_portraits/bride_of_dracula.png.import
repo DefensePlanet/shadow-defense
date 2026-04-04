@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bswj28xbwr6e2"
-valid=false
+uid="uid://4r3ghepae3vx"
+path="res://.godot/imported/bride_of_dracula.png-d793f06a366341f6b7e17276268c978b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/bride_of_dracula.png"
+dest_files=["res://.godot/imported/bride_of_dracula.png-d793f06a366341f6b7e17276268c978b.ctex"]
 
 [params]
 

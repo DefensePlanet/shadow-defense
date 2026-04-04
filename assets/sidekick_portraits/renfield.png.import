@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ca1nmul5u5kat"
-valid=false
+uid="uid://xfb5rpw1e6sv"
+path="res://.godot/imported/renfield.png-aefd0486d2d708353fef28d918605aa1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/renfield.png"
+dest_files=["res://.godot/imported/renfield.png-aefd0486d2d708353fef28d918605aa1.ctex"]
 
 [params]
 
