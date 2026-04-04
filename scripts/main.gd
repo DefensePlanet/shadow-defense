@@ -499,6 +499,7 @@ var _bookshelf_heights: Array = []
 
 # World map data
 var world_map_hover_index: int = -1
+var survivor_grid_scroll: float = 0.0  # Scroll offset for survivor grid
 var world_map_zone_centers: Array = [
 	Vector2(200, 310), Vector2(500, 260), Vector2(1060, 300),
 	Vector2(200, 490), Vector2(640, 460), Vector2(1060, 490)
@@ -13579,15 +13580,24 @@ func _draw_survivor_grid() -> void:
 	var grid_w = grid_right - grid_left
 	var grid_h = grid_bottom - grid_top
 	var card_w = (grid_w - float(cols - 1) * gap) / float(cols)
-	var card_h = card_w * 1.25  # Portrait ratio — taller than wide
+	var card_h = card_w * 1.2  # Portrait ratio — taller than wide
 	var grid_start_x = grid_left
 	var grid_start_y = grid_top
+
+	# Clamp scroll
+	var total_rows = ceili(float(survivor_types.size()) / float(cols))
+	var total_grid_h = float(total_rows) * card_h + float(total_rows - 1) * gap
+	var max_scroll = maxf(total_grid_h - grid_h, 0.0)
+	survivor_grid_scroll = clampf(survivor_grid_scroll, 0.0, max_scroll)
 
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
 		var cx = grid_start_x + float(col_i) * (card_w + gap)
-		var cy = grid_start_y + float(row_i) * (card_h + gap)
+		var cy = grid_start_y + float(row_i) * (card_h + gap) - survivor_grid_scroll
+		# Skip cards outside visible area
+		if cy + card_h < grid_top - 10 or cy > grid_bottom + 10:
+			continue
 
 		var tower_type = survivor_types[i]
 		var info = tower_info[tower_type]
@@ -13734,13 +13744,13 @@ func _update_world_map_hover() -> void:
 	var grid_w = grid_right - grid_left
 	var grid_h = grid_bottom - grid_top
 	var card_w = (grid_w - float(cols - 1) * gap) / float(cols)
-	var card_h = card_w * 1.25  # Portrait ratio — taller than wide
+	var card_h = card_w * 1.2  # Portrait ratio — taller than wide
 	var grid_start_x = grid_left
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
 		var cx = grid_start_x + float(col_i) * (card_w + gap)
-		var cy = grid_top + float(row_i) * (card_h + gap)
+		var cy = grid_top + float(row_i) * (card_h + gap) - survivor_grid_scroll
 		if Rect2(cx, cy, card_w, card_h).has_point(mouse_pos):
 			world_map_hover_index = i
 			break
@@ -18204,6 +18214,14 @@ func _input(event: InputEvent) -> void:
 				chronicles_scroll = maxf(0.0, chronicles_scroll - 40.0)
 			else:
 				chronicles_scroll += 40.0
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "survivors" and not survivor_detail_open and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				survivor_grid_scroll = maxf(0.0, survivor_grid_scroll - 40.0)
+			else:
+				survivor_grid_scroll += 40.0
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
