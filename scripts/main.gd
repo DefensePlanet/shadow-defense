@@ -436,17 +436,8 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		var inset = 3.0
 		var draw_w = rw - inset * 2
 		var draw_h = portrait_h - inset - 1
-		var tsz = tex.get_size()
-		# Crop center from source, biased up for faces
-		var src_aspect = draw_w / draw_h
-		var src_w2 = tsz.x
-		var src_h2 = tsz.x / src_aspect
-		if src_h2 > tsz.y:
-			src_h2 = tsz.y
-			src_w2 = tsz.y * src_aspect
-		var src_x2 = (tsz.x - src_w2) * 0.5
-		var src_y2 = (tsz.y - src_h2) * 0.2  # Bias up for faces
-		draw_texture_rect_region(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), Rect2(src_x2, src_y2, src_w2, src_h2))
+		# Show full character — fit entire image into card area
+		draw_texture_rect(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), false)
 	elif not unlocked:
 		# Locked — dark with larger, more visible lock icon
 		var lk_cx = rx + rw * 0.5
@@ -13580,7 +13571,7 @@ func _draw_survivor_grid() -> void:
 
 	# Card grid — clean spacing, no border overlap
 	var margin = 10.0
-	var grid_top = panel_y + 16.0
+	var grid_top = panel_y + 40.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -13589,7 +13580,7 @@ func _draw_survivor_grid() -> void:
 	var grid_w = grid_right - grid_left
 	var grid_h = grid_bottom - grid_top
 	var card_w = (grid_w - float(cols - 1) * gap) / float(cols)
-	var card_h = (grid_h - 2.0 * gap) / 3.0
+	var card_h = card_w * 1.25  # Portrait ratio — taller than wide
 	var grid_start_x = grid_left
 	var grid_start_y = grid_top
 
@@ -13737,14 +13728,14 @@ func _update_world_map_hover() -> void:
 	var margin = 10.0
 	var gap = 8.0
 	var cols = 4
-	var grid_top = panel_y + 16.0
+	var grid_top = panel_y + 40.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
 	var grid_w = grid_right - grid_left
 	var grid_h = grid_bottom - grid_top
 	var card_w = (grid_w - float(cols - 1) * gap) / float(cols)
-	var card_h = (grid_h - 2.0 * gap) / 3.0
+	var card_h = card_w * 1.25  # Portrait ratio — taller than wide
 	var grid_start_x = grid_left
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
