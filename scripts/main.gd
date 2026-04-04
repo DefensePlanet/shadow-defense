@@ -14386,14 +14386,14 @@ func _draw_survivor_detail() -> void:
 
 	# === TOP BAR (34px) ===
 	var top_y = panel_y + 8.0
-	_ds_button(Rect2(panel_x + 10 - x_offset, top_y + 2, 90, 28), "< BACK", Color(0.25, 0.15, 0.35), false, 13)
+	_ds_button(Rect2(panel_x + 10, top_y + 2, 90, 28), "< BACK", Color(0.25, 0.15, 0.35), false, 13)
 	var char_name = info["name"].to_upper()
-	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
-	var name_cx = panel_x + 260.0
-	_ds_outlined_text(Vector2(name_cx - name_w * 0.5, top_y + 22), char_name, 28, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, content_alpha), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
-	# Level badge star (next to name)
-	var badge_cx = name_cx + name_w * 0.5 + 24.0
-	var badge_cy = top_y + 14.0
+	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
+	var name_cx = panel_x + panel_w * 0.5
+	_udraw(font, Vector2(panel_x + 110, top_y + 24), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 220), 24, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, content_alpha))
+	# Level badge star (next to name — right of center)
+	var badge_cx = name_cx + name_w * 0.5 + 20.0
+	var badge_cy = top_y + 16.0
 	var star_r = 16.0
 	var star_pts = PackedVector2Array()
 	for si in range(10):
@@ -14430,53 +14430,42 @@ func _draw_survivor_detail() -> void:
 	var content_y = top_y + 46.0  # Below top bar + separator
 
 	# ================================================================
-	# LEFT SIDE: Portrait + XP + Level Up (420px wide)
+	# LEFT SIDE: Portrait Card (like Bloons — framed portrait, compact)
 	# ================================================================
-	var port_x = panel_x + 10.0
-	var port_y = content_y
-	var port_w = 420.0
-	var port_h = panel_y + panel_h - port_y - 30.0
+	var port_x = panel_x + 16.0
+	var port_y = content_y + 4.0
+	var port_w = 280.0
+	var port_h = 320.0
 
-	# Hero atmosphere (gradient + particles + glow)
-	_draw_hero_atmosphere(port_x, port_y, port_w, port_h, survivor_detail_index)
+	# Portrait card background
+	draw_colored_polygon(_rrp(Rect2(port_x, port_y, port_w, port_h), 8.0), Color(0.08, 0.05, 0.14, content_alpha))
+	# Portrait border — accent colored
+	draw_colored_polygon(_rrp(Rect2(port_x - 2, port_y - 2, port_w + 4, port_h + 4), 10.0), _ca(accent, 0.6 * content_alpha))
+	draw_colored_polygon(_rrp(Rect2(port_x, port_y, port_w, port_h), 8.0), Color(0.08, 0.05, 0.14, content_alpha))
+	# Portrait image — use portrait texture, fill the card
+	if speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
+		var tex = _portrait_textures[speaker_name]
+		draw_texture_rect(tex, Rect2(port_x + 4, port_y + 4, port_w - 8, port_h - 8), false)
+	# Level star badge (top-right corner of portrait)
+	var star_cx = port_x + port_w - 24.0
+	var star_cy = port_y + 24.0
+	draw_circle(Vector2(star_cx, star_cy), 18, Color(0, 0, 0, 0.6 * content_alpha))
+	var star_pts2 = PackedVector2Array()
+	for si in range(10):
+		var sa = -PI * 0.5 + float(si) * TAU / 10.0
+		var sd = 16.0 if si % 2 == 0 else 7.0
+		star_pts2.append(Vector2(star_cx + cos(sa) * sd, star_cy + sin(sa) * sd))
+	draw_colored_polygon(star_pts2, _ca(c_gold, 0.95 * content_alpha))
+	_udraw(font, Vector2(star_cx - 6, star_cy + 5), str(char_level), HORIZONTAL_ALIGNMENT_CENTER, 12, 14, Color(1, 1, 1, content_alpha))
+	# "Collect XP to gain levels" text next to portrait
+	var info_x = port_x + port_w + 16.0
+	var info_y = port_y
+	var info_w = 420.0 - port_w - 32.0
+	_udraw(font, Vector2(info_x, info_y + 16), "Collect XP to", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_text_muted, 0.7 * content_alpha))
+	_udraw(font, Vector2(info_x, info_y + 30), "gain levels", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_text_muted, 0.7 * content_alpha))
 
-	# Portrait with idle bob + breathing
-	var bob_y = sin(_time * 1.2) * 3.0
-	var breath_scale = 1.0 + sin(_time * 2.0) * 0.008
-	var portrait_cx = port_x + port_w * 0.5
-	var portrait_cy = port_y + port_h * 0.42 + bob_y
-	_draw_story_portrait(portrait_cx, portrait_cy, 350.0 * breath_scale, speaker_name)
-
-	# Corner-bracket portrait frame
-	var frame_margin = 8.0
-	var fx = port_x + frame_margin
-	var fy = port_y + frame_margin
-	var fw = port_w - frame_margin * 2
-	var fh = port_h - frame_margin * 2
-	var bk_len = 30.0
-	var bk_col = _ca(accent, 0.5 * content_alpha)
-	# Top-left
-	draw_line(Vector2(fx, fy), Vector2(fx + bk_len, fy), bk_col, 2.0)
-	draw_line(Vector2(fx, fy), Vector2(fx, fy + bk_len), bk_col, 2.0)
-	# Top-right
-	draw_line(Vector2(fx + fw, fy), Vector2(fx + fw - bk_len, fy), bk_col, 2.0)
-	draw_line(Vector2(fx + fw, fy), Vector2(fx + fw, fy + bk_len), bk_col, 2.0)
-	# Bottom-left
-	draw_line(Vector2(fx, fy + fh), Vector2(fx + bk_len, fy + fh), bk_col, 2.0)
-	draw_line(Vector2(fx, fy + fh), Vector2(fx, fy + fh - bk_len), bk_col, 2.0)
-	# Bottom-right
-	draw_line(Vector2(fx + fw, fy + fh), Vector2(fx + fw - bk_len, fy + fh), bk_col, 2.0)
-	draw_line(Vector2(fx + fw, fy + fh), Vector2(fx + fw, fy + fh - bk_len), bk_col, 2.0)
-
-	# Info icon (bottom-left of portrait)
-	var info_icon_hover = (detail_hover_type == "info_icon")
-	draw_circle(Vector2(port_x + 28, port_y + port_h - 28), 14, Color(0.2, 0.4, 0.8, (0.85 if info_icon_hover else 0.6) * content_alpha))
-	if info_icon_hover:
-		draw_arc(Vector2(port_x + 28, port_y + port_h - 28), 15, 0, TAU, 16, Color(0.4, 0.7, 1.0, 0.6 * content_alpha), 1.5)
-	_udraw(font, Vector2(port_x + 24, port_y + port_h - 23), "i", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 1, 1, content_alpha))
-
-	# --- XP bar (bottom of portrait zone) ---
-	var xp_y = port_y + port_h + 4.0
+	# --- XP bar (below portrait card) ---
+	var xp_y = port_y + port_h + 8.0
 	var xp_w = port_w
 	var xp_h = 22.0
 	var xp_ratio = clamp(progress["xp"] / max(progress["xp_next"], 1.0), 0.0, 1.0)
@@ -14519,7 +14508,7 @@ func _draw_survivor_detail() -> void:
 	# ================================================================
 	# RIGHT SIDE: Weapon + Allies + Trinkets (ALL VISIBLE, no tabs)
 	# ================================================================
-	var right_x = panel_x + 450.0
+	var right_x = panel_x + 320.0
 	var right_y = content_y
 	var right_w = panel_x + panel_w - right_x - 10.0
 	var tab_alpha = content_alpha
@@ -14541,8 +14530,8 @@ func _draw_survivor_detail() -> void:
 	# --- WEAPON SECTION (top-left of right side) ---
 	var weap_x = right_x
 	var weap_y = right_y
-	_ds_outlined_text(Vector2(weap_x, weap_y + 16), "WEAPON", 16, _ca(menu_gold, 0.9 * tab_alpha))
-	var wslot_sz = 90.0
+	_ds_outlined_text(Vector2(weap_x, weap_y + 18), "WEAPON", 18, _ca(menu_gold, 0.9 * tab_alpha))
+	var wslot_sz = 100.0
 	var wslot_y = weap_y + 24.0
 	var gear_hover2 = (detail_hover_type == "weapon" and detail_hover_index == 0)
 	var wslot_tier_col = accent if gear_unlocked else Color(0.3, 0.28, 0.40)
@@ -14566,9 +14555,9 @@ func _draw_survivor_detail() -> void:
 	for su in sk_unlocked_arr:
 		if su:
 			sk_count += 1
-	_ds_outlined_text(Vector2(ally_x, ally_y + 16), "ALLIES (%d/%d)" % [sk_count, sk_max], 16, _ca(menu_gold, 0.9 * tab_alpha))
-	var ally_slot_sz = 80.0
-	var ally_gap = 8.0
+	_ds_outlined_text(Vector2(ally_x, ally_y + 18), "ALLIES (%d/%d)" % [sk_count, sk_max], 18, _ca(menu_gold, 0.9 * tab_alpha))
+	var ally_slot_sz = 100.0
+	var ally_gap = 10.0
 	var ally_slot_y = ally_y + 24.0
 	for si in range(sk_max):
 		var sx = ally_x + float(si) * (ally_slot_sz + ally_gap)
@@ -14599,9 +14588,9 @@ func _draw_survivor_detail() -> void:
 
 	# --- TRINKETS/GEAR SECTION (below weapon + allies) ---
 	var trinket_y = wslot_y + wslot_sz + 36.0
-	_ds_outlined_text(Vector2(right_x, trinket_y + 16), "TRINKETS (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], 16, _ca(menu_gold, 0.9 * tab_alpha))
-	var gear_slot_size = 80.0
-	var gear_gap = 8.0
+	_ds_outlined_text(Vector2(right_x, trinket_y + 18), "TRINKETS (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], 18, _ca(menu_gold, 0.9 * tab_alpha))
+	var gear_slot_size = 100.0
+	var gear_gap = 10.0
 	var gear_slot_y = trinket_y + 24.0
 	var gear_cols = mini(max_gear_slots, 6)
 	for gsi in range(mini(max_gear_slots, 6)):
@@ -14623,8 +14612,9 @@ func _draw_survivor_detail() -> void:
 				gname = gname.substr(0, 9) + ".."
 			_udraw(font, Vector2(gx, gy + gear_slot_size + 12), gname, HORIZONTAL_ALIGNMENT_CENTER, int(gear_slot_size), 10, Color(gear_tier_col.r, gear_tier_col.g, gear_tier_col.b, tab_alpha))
 		else:
-			draw_rect(Rect2(gx + gear_slot_size * 0.5 - 3, gx + gear_slot_size * 0.3 - gx + gy, 6, 24), _ca(accent, 0.25 * tab_alpha))
-			draw_rect(Rect2(gx + gear_slot_size * 0.3, gy + gear_slot_size * 0.5 - 3, 24, 6), _ca(accent, 0.25 * tab_alpha))
+			# "+" icon for empty slot
+			draw_rect(Rect2(gx + gear_slot_size * 0.5 - 3, gy + gear_slot_size * 0.3, 6, gear_slot_size * 0.4), _ca(accent, 0.35 * tab_alpha))
+			draw_rect(Rect2(gx + gear_slot_size * 0.3, gy + gear_slot_size * 0.5 - 3, gear_slot_size * 0.4, 6), _ca(accent, 0.35 * tab_alpha))
 	_udraw(font, Vector2(right_x, gear_slot_y + gear_slot_size + 26), "Trinkets: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _ca(menu_text_muted, 0.5 * tab_alpha))
 
 	# --- ABILITIES SECTION (below trinkets) ---
