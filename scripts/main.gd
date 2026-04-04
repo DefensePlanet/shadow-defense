@@ -13503,11 +13503,11 @@ func _draw_survivor_grid() -> void:
 	_remove_detail_preview()
 	_clear_grid_previews()
 	var font = game_font
-	# Panel — full width, stops above nav bar
+	# Panel — full width, stops well above nav bar (nav starts ~620)
 	var panel_x = 6.0
 	var panel_y = 36.0
 	var panel_w = 1268.0
-	var panel_h = 560.0
+	var panel_h = 540.0
 
 	# Dark gothic panel
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.30, 0.18, 0.45, 0.5), 1.5)
@@ -13697,7 +13697,7 @@ func _update_world_map_hover() -> void:
 	var panel_x = 6.0
 	var panel_y = 36.0
 	var panel_w = 1268.0
-	var panel_h = 560.0
+	var panel_h = 540.0
 	var margin = 6.0
 	var gap = 4.0
 	var cols = 4
@@ -33774,7 +33774,8 @@ func _draw_filter_sort_bar(px: float, py: float, pw: float) -> void:
 		fx += fw + 4.0
 	var sort_text = "SORT: %s" % _grid_sort
 	var sw = font.get_string_size(sort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz).x
-	_ds_outlined_text(Vector2(px + pw - sw * 0.5 - 12, bar_y + 18), sort_text, filter_sz, Color(0.75, 0.68, 0.55, 0.8), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Draw right-aligned: position at right edge minus text width
+	_ds_outlined_text(Vector2(px + pw - sw - 14, bar_y + 18), sort_text, filter_sz, Color(0.75, 0.68, 0.55, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
 
 func _handle_filter_click(mouse_pos: Vector2, px: float, py: float, pw: float) -> bool:
 	if mouse_pos.y < py + 3 or mouse_pos.y > py + 23:
