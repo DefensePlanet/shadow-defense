@@ -298,26 +298,26 @@ var emporium_categories = [
 ]
 var emporium_hover_index: int = -1
 
-# Menu color palette — BLOONS ADVENTURE TIME STYLE (bright blue, not dark purple!)
-var menu_bg_dark = Color(0.15, 0.25, 0.45)          # Bright blue base (like Bloons BATD)
-var menu_bg_section = Color(0.20, 0.35, 0.55)       # Blue sections
-var menu_bg_card = Color(0.25, 0.42, 0.65)          # Bright blue card backgrounds
-var menu_bg_card_hover = Color(0.30, 0.50, 0.75)    # Bright blue hover
+# Menu color palette — DARK GOTHIC PURPLE (shadow world storybook)
+var menu_bg_dark = Color(0.08, 0.05, 0.14)          # Deep purple-black base
+var menu_bg_section = Color(0.12, 0.08, 0.20)       # Dark purple sections
+var menu_bg_card = Color(0.14, 0.10, 0.24)          # Dark purple card backgrounds
+var menu_bg_card_hover = Color(0.18, 0.12, 0.30)    # Purple hover
 var menu_gold = Color(0.95, 0.78, 0.20)             # Gold
 var menu_gold_light = Color(1.0, 0.92, 0.50)        # Vivid light gold
 var menu_gold_dim = Color(0.70, 0.55, 0.15)         # Dim gold
-var menu_parchment = Color(0.96, 0.92, 0.85)        # Warm white
-var menu_text = Color(1.0, 1.0, 1.0)                # WHITE text (like Bloons)
-var menu_text_muted = Color(0.80, 0.85, 0.90)       # Light muted
-var menu_accent_purple = Color(0.15, 0.30, 0.55)    # Blue accent (was purple)
-var menu_accent_glow = Color(0.20, 0.50, 0.80, 0.4) # Blue glow
-# Standardized colors — replace the 8+ gold variants and scattered hardcoded colors
-var c_gold = Color(0.85, 0.65, 0.10)               # primary gold (replaces all 0.85,0.65,0.1 variants)
+var menu_parchment = Color(0.92, 0.88, 0.80)        # Aged parchment
+var menu_text = Color(1.0, 1.0, 1.0)                # White text
+var menu_text_muted = Color(0.72, 0.65, 0.80)       # Muted lavender
+var menu_accent_purple = Color(0.30, 0.15, 0.50)    # Purple accent
+var menu_accent_glow = Color(0.35, 0.18, 0.55, 0.4) # Purple glow
+# Standardized colors
+var c_gold = Color(0.85, 0.65, 0.10)               # primary gold
 var c_gold_bright = Color(1.0, 0.85, 0.20)          # bright gold highlight
 var c_gold_warm = Color(0.85, 0.70, 0.20)           # warm gold accent
-var c_dark = Color(0.10, 0.08, 0.06)                # standard dark bg
-var c_darker = Color(0.14, 0.28, 0.48)              # deepest dark (brightened)
-var c_panel = Color(0.08, 0.07, 0.14)               # standard panel bg (brightened)
+var c_dark = Color(0.06, 0.04, 0.10)                # standard dark bg
+var c_darker = Color(0.04, 0.02, 0.08)              # deepest dark
+var c_panel = Color(0.08, 0.06, 0.14)               # standard panel bg
 var c_green = Color(0.3, 0.8, 0.3)                  # success / confirm
 var c_red = Color(0.7, 0.15, 0.1)                   # danger / warning
 var c_cyan = Color(0.3, 0.7, 0.9)                   # info / special
@@ -350,9 +350,9 @@ func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = fal
 	if is_hover:
 		draw_colored_polygon(_rrp(Rect2(r.position - Vector2(4, 4), r.size + Vector2(8, 8)), rad + 4), Color(col.r, col.g, col.b, 0.12))
 	# Dark outer border (rounded)
-	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(3, 3), r.size + Vector2(6, 6)), rad + 3), Color(0.05, 0.08, 0.15, 0.95))
-	# Cyan/blue border (Bloons BATD style)
-	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(1.5, 1.5), r.size + Vector2(3, 3)), rad + 1.5), Color(0.25, 0.65, 0.85, 0.9))
+	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(3, 3), r.size + Vector2(6, 6)), rad + 3), Color(0.05, 0.03, 0.10, 0.95))
+	# Purple-gold border (gothic style)
+	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(1.5, 1.5), r.size + Vector2(3, 3)), rad + 1.5), Color(0.50, 0.35, 0.65, 0.9))
 	# Button body — bright top color
 	var top_col = Color(minf(col.r * 1.3, 1.0), minf(col.g * 1.3, 1.0), minf(col.b * 1.3, 1.0))
 	draw_colored_polygon(_rrp(r, rad), top_col)
@@ -5470,7 +5470,7 @@ func _create_ui() -> void:
 
 	# === Tower upgrade panel (right-side, hidden by default) ===
 	upgrade_panel = ColorRect.new()
-	upgrade_panel.color = Color(0.18, 0.32, 0.52, 0.96)
+	upgrade_panel.color = Color(0.12, 0.08, 0.20, 0.96)
 	upgrade_panel.position = Vector2(1080, 15)
 	upgrade_panel.size = Vector2(200, 710)
 	upgrade_panel.visible = false
@@ -5512,7 +5512,7 @@ func _create_ui() -> void:
 	upgrade_panel.add_child(portrait_border)
 
 	var portrait_bg = ColorRect.new()
-	portrait_bg.color = Color(0.20, 0.35, 0.55, 0.85)
+	portrait_bg.color = Color(0.14, 0.10, 0.24, 0.85)
 	portrait_bg.position = Vector2(50, 50)
 	portrait_bg.size = Vector2(100, 80)
 	upgrade_panel.add_child(portrait_bg)
@@ -5543,7 +5543,7 @@ func _create_ui() -> void:
 		var status_rect = ColorRect.new()
 		status_rect.position = Vector2(10, slot_y)
 		status_rect.size = Vector2(180, 66)
-		status_rect.color = Color(0.20, 0.35, 0.55, 0.8)
+		status_rect.color = Color(0.14, 0.10, 0.24, 0.8)
 		upgrade_panel.add_child(status_rect)
 		upgrade_status_rects.append(status_rect)
 
@@ -8988,7 +8988,7 @@ func _draw_story_dialog() -> void:
 	var shown_text = full_text.substr(0, story_state.char_index)
 
 	# === FULL-SCREEN CINEMATIC OVERLAY ===
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.16, 0.30, 0.50, 1.0))
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.12, 0.08, 0.20, 1.0))
 	# Vignette corners
 	for vi in range(15):
 		var vt = float(vi) / 14.0
@@ -10754,18 +10754,18 @@ func _draw_currency_bar() -> void:
 	# Fill status bar area behind notch/cutout
 	if _safe_top > 0:
 		draw_rect(Rect2(0, 0, 1280, _safe_top), Color(0.06, 0.05, 0.14, 0.95))
-	# BLOONS BATD style — bright blue top bar
+	# Dark gothic purple top bar
 	for gi in range(8):
 		var gt = float(gi) / 7.0
-		var br = lerpf(0.15, 0.10, gt)
-		var bg = lerpf(0.30, 0.22, gt)
-		var bb = lerpf(0.55, 0.42, gt)
-		draw_rect(Rect2(0, bar_y + gt * bar_h, 1280, bar_h / 8.0 + 1), Color(br, bg, bb, 0.97))
-	# Glass highlight at top
-	draw_rect(Rect2(0, bar_y, 1280, bar_h * 0.3), Color(1, 1, 1, 0.08))
-	# Cyan bottom border (like Bloons)
-	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 3), Color(0.35, 0.20, 0.50, 0.6))
-	draw_rect(Rect2(0, bar_y + bar_h, 1280, 1), Color(0.15, 0.35, 0.50, 0.6))
+		var br = lerpf(0.10, 0.06, gt)
+		var bg2 = lerpf(0.06, 0.04, gt)
+		var bb = lerpf(0.18, 0.12, gt)
+		draw_rect(Rect2(0, bar_y + gt * bar_h, 1280, bar_h / 8.0 + 1), Color(br, bg2, bb, 0.97))
+	# Subtle glass highlight
+	draw_rect(Rect2(0, bar_y, 1280, bar_h * 0.3), Color(1, 1, 1, 0.04))
+	# Gold bottom border
+	draw_rect(Rect2(0, bar_y + bar_h - 2, 1280, 2), Color(0.55, 0.40, 0.15, 0.5))
+	draw_rect(Rect2(0, bar_y + bar_h, 1280, 1), Color(0.35, 0.20, 0.45, 0.4))
 
 	# Menu Improvement 1: Animated Logo Treatment (replaces static title)
 	_draw_animated_logo(bar_y)
@@ -13528,7 +13528,7 @@ func _draw_survivor_grid() -> void:
 		Color(0.90, 0.49, 0.13),  # Peter Pan
 		Color(0.75, 0.22, 0.17),  # Phantom
 		Color(0.79, 0.66, 0.30),  # Scrooge
-		Color(0.20, 0.35, 0.55),  # Sherlock
+		Color(0.14, 0.10, 0.24),  # Sherlock
 		Color(0.30, 0.50, 0.20),  # Tarzan
 		Color(0.50, 0.10, 0.15),  # Dracula
 		Color(0.25, 0.20, 0.55),  # Merlin
@@ -14369,7 +14369,7 @@ func _draw_survivor_detail() -> void:
 	var card_colors = [
 		Color(0.29, 0.55, 0.25), Color(0.44, 0.66, 0.86), Color(0.48, 0.25, 0.63),
 		Color(0.90, 0.49, 0.13), Color(0.75, 0.22, 0.17), Color(0.79, 0.66, 0.30),
-		Color(0.20, 0.35, 0.55), Color(0.30, 0.50, 0.20), Color(0.50, 0.10, 0.15),
+		Color(0.14, 0.10, 0.24), Color(0.30, 0.50, 0.20), Color(0.50, 0.10, 0.15),
 		Color(0.25, 0.20, 0.55), Color(0.35, 0.40, 0.30), Color(0.12, 0.08, 0.18),
 	]
 	var accent = card_colors[mini(survivor_detail_index, card_colors.size() - 1)]
@@ -14588,7 +14588,7 @@ func _draw_survivor_detail() -> void:
 			# 40px icon circle
 			var icon_cx = abil_cx + 32.0
 			var icon_cy = ay + 30.0
-			draw_circle(Vector2(icon_cx, icon_cy), 20.0, Color(0.20, 0.36, 0.56, tab_alpha))
+			draw_circle(Vector2(icon_cx, icon_cy), 20.0, Color(0.14, 0.10, 0.24, tab_alpha))
 			var ring_alpha = (0.9 if is_abil_hover else 0.5) * tab_alpha
 			# Pulsing ring on hover
 			var ring_pulse = 1.0
@@ -14742,7 +14742,7 @@ func _draw_survivor_detail() -> void:
 			var sk_unlocked = sk_unlocked_arr[si] if si < sk_unlocked_arr.size() else false
 			var sk_hover = (detail_hover_type == "sidekick" and detail_hover_index == si)
 			# Slot background with corner brackets
-			draw_rect(Rect2(sx, sy, sk_slot_sz, sk_slot_sz), Color(0.20, 0.36, 0.56, tab_alpha))
+			draw_rect(Rect2(sx, sy, sk_slot_sz, sk_slot_sz), Color(0.14, 0.10, 0.24, tab_alpha))
 			var sk_bdr_col = accent if sk_unlocked else Color(0.3, 0.28, 0.40)
 			_draw_enhanced_gear_slot(Vector2(sx, sy), sk_slot_sz, sk_unlocked, sk_bdr_col, accent, sk_hover)
 			if sk_unlocked and si < sk_data.size():
@@ -14911,7 +14911,7 @@ func _draw_survivor_detail() -> void:
 			if tt_y_pos < panel_y:
 				tt_y_pos = mouse_pos.y + 22
 			# Frosted tooltip (rounded)
-			_ds_panel(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.20, 0.36, 0.56, 0.95), _ca(accent, 0.5), 2.0, 8.0)
+			_ds_panel(Rect2(tt_x, tt_y_pos, tt_w, tt_h), Color(0.14, 0.10, 0.24, 0.95), _ca(accent, 0.5), 2.0, 8.0)
 			draw_rect(Rect2(tt_x, tt_y_pos, 3, tt_h), _ca(accent, 0.4))
 			_udraw(font, Vector2(tt_x + 10, tt_y_pos + 14), tt_title, HORIZONTAL_ALIGNMENT_LEFT, int(tt_w - 16), 15, menu_gold)
 			for tli in range(tt_lines.size()):
@@ -14932,7 +14932,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	# Panel background
 	for i in range(40):
 		var t = float(i) / 39.0
-		var col = Color(0.12, 0.08, 0.20).lerp(Color(0.16, 0.30, 0.50), t)
+		var col = Color(0.12, 0.08, 0.20).lerp(Color(0.12, 0.08, 0.20), t)
 		draw_rect(Rect2(ov_x, ov_y + t * ov_h, ov_w, ov_h / 39.0 + 1), col)
 	# Border
 	draw_rect(Rect2(ov_x, ov_y, ov_w, ov_h), _ca(accent, 0.6), false, 2.0)
@@ -15167,7 +15167,7 @@ func _draw_story_map() -> void:
 		Color(0.75, 0.45, 0.15),  # Deals - orange
 		Color(0.35, 0.70, 0.40),  # Quests - green
 		Color(0.55, 0.35, 0.75),  # Arena - purple
-		Color(0.25, 0.55, 0.80),  # Odyssey - blue
+		Color(0.40, 0.25, 0.60),  # Odyssey - blue
 		Color(0.60, 0.60, 0.70),  # Endless - silver
 	]
 	var side_icons = ["deals", "quests", "arena", "odyssey", "endless"]
@@ -15327,16 +15327,16 @@ func _draw_story_map() -> void:
 			prev_row_center = row_center
 			prev_row_visible = true
 
-			# --- Row background (BRIGHT Bloons-style card) ---
+			# --- Row background (dark gothic card) ---
 			var is_hovered = Rect2(rx, maxf(ry, content_top), rw, row_h).has_point(mouse_pos) and ry >= content_top
 			var card_bg: Color
 			var card_border: Color
 			if is_unlocked:
-				# Bright blue card with slight arc color tint
-				var br = 0.20 + arc_col.r * 0.06
-				var bg2 = 0.36 + arc_col.g * 0.06
-				var bb = 0.56 + arc_col.b * 0.06
-				card_bg = Color(br, bg2, bb, 0.95) if not is_hovered else Color(minf(br * 1.2, 0.5), minf(bg2 * 1.2, 0.6), minf(bb * 1.1, 0.75), 0.98)
+				# Dark purple card with slight arc color tint
+				var br = 0.10 + arc_col.r * 0.04
+				var bg2 = 0.07 + arc_col.g * 0.04
+				var bb = 0.18 + arc_col.b * 0.04
+				card_bg = Color(br, bg2, bb, 0.95) if not is_hovered else Color(minf(br * 1.4, 0.25), minf(bg2 * 1.4, 0.15), minf(bb * 1.3, 0.35), 0.98)
 				card_border = Color(0.35, 0.20, 0.50, 0.6) if not is_hovered else Color(0.40, 0.80, 0.98, 1.0)
 			else:
 				card_bg = Color(0.18, 0.28, 0.42, 0.85)
@@ -15766,7 +15766,7 @@ func _draw_chapters_badges() -> void:
 		{"id": "quests", "label": "QUESTS", "col": Color(0.4, 0.8, 0.3)},
 		{"id": "arena", "label": "ARENA", "col": Color(0.7, 0.3, 0.9)},
 		{"id": "odyssey", "label": "ODYSSEY", "col": Color(0.82, 0.62, 0.92)},
-		{"id": "endless", "label": "ENDLESS", "col": Color(0.52, 0.62, 0.92)},
+		{"id": "endless", "label": "ENDLESS", "col": Color(0.60, 0.45, 0.75)},
 	]
 	var badge_x = 1222.0
 	var badge_start_y = 85.0
@@ -15786,7 +15786,7 @@ func _draw_chapters_badges() -> void:
 		var glow_r = badge_r + 8 + sin(_time * 2.0 + float(i)) * 3.0
 		draw_circle(Vector2(cx, cy), glow_r, _ca(tc, pulse * (1.8 if is_hovered else 1.0)))
 		# Dark background circle
-		draw_circle(Vector2(cx, cy), badge_r, Color(0.18, 0.32, 0.52, 0.93))
+		draw_circle(Vector2(cx, cy), badge_r, Color(0.12, 0.08, 0.20, 0.93))
 		# Inner gradient shine
 		draw_circle(Vector2(cx, cy - 3), badge_r * 0.6, Color(tc.r * 0.15, tc.g * 0.15, tc.b * 0.15, 0.3))
 		# Animated border ring
@@ -15869,7 +15869,7 @@ func _draw_chapters_overlay() -> void:
 	var content_y = panel_y + 52.0
 	var content_h = panel_h - 60.0
 	# Panel theme color
-	var color_map = {"deals": Color(0.85, 0.70, 0.28), "quests": Color(0.4, 0.8, 0.3), "arena": Color(0.7, 0.3, 0.9), "odyssey": Color(0.82, 0.62, 0.92), "endless": Color(0.52, 0.62, 0.92)}
+	var color_map = {"deals": Color(0.85, 0.70, 0.28), "quests": Color(0.4, 0.8, 0.3), "arena": Color(0.7, 0.3, 0.9), "odyssey": Color(0.82, 0.62, 0.92), "endless": Color(0.60, 0.45, 0.75)}
 	var tc = color_map.get(menu_side_panel, menu_gold)
 	# Rounded panel background
 	var bp = 0.5 + sin(_time * 2.0) * 0.15
@@ -16377,9 +16377,9 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 		draw_colored_polygon(_rrp(Rect2(bar_x, iy + 6, bar_w, 12), 4.0), Color(0.12, 0.12, 0.12))
 		var _qbar_fill = bar_w * clampf(pct, 0.0, 1.0)
 		if _qbar_fill > 6.0:
-			draw_colored_polygon(_rrp(Rect2(bar_x, iy + 6, _qbar_fill, 12), 4.0), Color(0.2, 0.5, 0.8) if not claimed else Color(0.15, 0.35, 0.55))
+			draw_colored_polygon(_rrp(Rect2(bar_x, iy + 6, _qbar_fill, 12), 4.0), Color(0.4, 0.25, 0.60) if not claimed else Color(0.12, 0.08, 0.20))
 		elif _qbar_fill > 0.0:
-			draw_rect(Rect2(bar_x, iy + 6, _qbar_fill, 12), Color(0.2, 0.5, 0.8) if not claimed else Color(0.15, 0.35, 0.55))
+			draw_rect(Rect2(bar_x, iy + 6, _qbar_fill, 12), Color(0.4, 0.25, 0.60) if not claimed else Color(0.12, 0.08, 0.20))
 		_udraw(font, Vector2(bar_x + bar_w * 0.5, iy + 16), "%d/%d" % [wq.get("progress", 0), wq.get("target", 1)], HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.8, 0.85, 0.9))
 		var reward_str = "+%d %s" % [wq.get("reward_amount", 0), wq.get("reward_type", "").capitalize()]
 		if claimed:
@@ -16390,7 +16390,7 @@ func _draw_quest_panel_sidebar(px: float, py: float, pw: float, ph: float) -> vo
 			var btn_y = iy + 28.0
 			var wclaim_h = 44.0 if _is_mobile else 20.0
 			var btn_hov = _is_hover_or_pressed(Rect2(btn_x, btn_y, 95, wclaim_h), mouse_pos)
-			_ds_button(Rect2(btn_x, btn_y, 95, wclaim_h), "CLAIM!", Color(0.15, 0.35, 0.60), btn_hov, 13)
+			_ds_button(Rect2(btn_x, btn_y, 95, wclaim_h), "CLAIM!", Color(0.14, 0.10, 0.24), btn_hov, 13)
 			_udraw(font, Vector2(px + 16, iy + 42), reward_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.70, 0.28))
 		else:
 			_udraw(font, Vector2(px + pw - 70, iy + 42), reward_str, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.85, 0.70, 0.28))
@@ -16539,7 +16539,7 @@ func _draw_open_book() -> void:
 	var spine_x = bx + pw + 10  # spine center
 
 	# Book shadow
-	draw_rect(Rect2(bx - 5 + 8, by - 5 + 8, pw * 2 + 30, ph + 10), Color(0.20, 0.36, 0.56, 0.40))
+	draw_rect(Rect2(bx - 5 + 8, by - 5 + 8, pw * 2 + 30, ph + 10), Color(0.14, 0.10, 0.24, 0.40))
 
 	# Left page (aged cream paper)
 	for i in range(55):
@@ -18718,7 +18718,7 @@ func _draw_tower_stats_overlay() -> void:
 	var pw = 170.0
 	var ph = 140.0
 	# Rounded Bloons panel with gold border
-	_ds_panel(Rect2(panel_x, panel_y, pw, ph), Color(0.18, 0.32, 0.52, 0.92), Color(0.8, 0.65, 0.2, 0.7), 2.0, 10.0)
+	_ds_panel(Rect2(panel_x, panel_y, pw, ph), Color(0.12, 0.08, 0.20, 0.92), Color(0.8, 0.65, 0.2, 0.7), 2.0, 10.0)
 	var font = game_font
 	var dmg = tower.damage_dealt if "damage_dealt" in tower else 0.0
 	var kills = tower.kill_count if "kill_count" in tower else 0
@@ -18765,7 +18765,7 @@ func _draw_wave_preview() -> void:
 	var pw = 600.0
 	var ph = 80.0
 	# Rounded crimson panel
-	_ds_panel(Rect2(px, py, pw, ph), Color(0.18, 0.32, 0.52, 0.93), Color(0.7, 0.15, 0.1, 0.8), 3.0, 10.0)
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.12, 0.08, 0.20, 0.93), Color(0.7, 0.15, 0.1, 0.8), 3.0, 10.0)
 	# Title — outlined Bloons style
 	_ds_outlined_text(Vector2(px + pw * 0.5, py + 18), "NEXT WAVE: %d" % (wave + 1), 18, Color(1.0, 0.88, 0.3), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Enemy info
@@ -18830,11 +18830,11 @@ func _draw() -> void:
 		# Menu view transition fade
 		if menu_transition_alpha < 1.0:
 			menu_transition_alpha = minf(menu_transition_alpha + 0.08, 1.0)
-			draw_rect(Rect2(0, 35, 1280, 585), Color(0.20, 0.36, 0.56, (1.0 - menu_transition_alpha) * 0.7))
+			draw_rect(Rect2(0, 35, 1280, 585), Color(0.14, 0.10, 0.24, (1.0 - menu_transition_alpha) * 0.7))
 			queue_redraw()
 		# === View transition dark overlay fade (Enhancement #48) ===
 		if _menu_transition_alpha > 0.0:
-			draw_rect(Rect2(0, 0, 1280, 720), Color(0.20, 0.36, 0.56, _menu_transition_alpha * 0.4))
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.14, 0.10, 0.24, _menu_transition_alpha * 0.4))
 		# Stats banner removed — kept clean like March 17 design
 
 		if chest_opening_active:
@@ -19565,7 +19565,7 @@ func _draw_ability_popup() -> void:
 	var pw = 500.0
 	var ph = 120.0
 	# Bloons-style rounded panel
-	_ds_panel(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.18, 0.32, 0.52, 0.88 * alpha), Color(0.85, 0.7, 0.2, 0.9 * alpha), 3.0, 14.0)
+	_ds_panel(Rect2(cx - pw / 2, cy - ph / 2, pw, ph), Color(0.12, 0.08, 0.20, 0.88 * alpha), Color(0.85, 0.7, 0.2, 0.9 * alpha), 3.0, 14.0)
 	# Title — Bloons outlined
 	_ds_outlined_text(Vector2(cx, cy - 25), "NEW ABILITY UNLOCKED!", 18, Color(1.0, 0.90, 0.38, alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Character name + ability name
@@ -29575,12 +29575,12 @@ func _draw_endless_panel() -> void:
 	var oy = 520.0
 	var pw = 385.0
 	var ph = 82.0
-	# Panel background
-	draw_rect(Rect2(ox, oy, pw, ph), Color(0.06, 0.08, 0.14, 0.85))
-	draw_rect(Rect2(ox, oy, pw, ph), Color(0.28, 0.38, 0.75, 0.35), false, 1.5)
-	# Blue accent line at top
-	draw_rect(Rect2(ox, oy, pw, 2), Color(0.3, 0.4, 0.8, 0.6))
-	_udraw(font, Vector2(ox + 12, oy + 20), "THE ETERNAL CHAPTER", HORIZONTAL_ALIGNMENT_LEFT, pw - 100, 14, Color(0.52, 0.62, 0.92))
+	# Panel background — gothic purple
+	draw_rect(Rect2(ox, oy, pw, ph), Color(0.06, 0.04, 0.12, 0.85))
+	draw_rect(Rect2(ox, oy, pw, ph), Color(0.35, 0.20, 0.50, 0.35), false, 1.5)
+	# Purple-gold accent line at top
+	draw_rect(Rect2(ox, oy, pw, 2), Color(0.55, 0.35, 0.65, 0.6))
+	_udraw(font, Vector2(ox + 12, oy + 20), "THE ETERNAL CHAPTER", HORIZONTAL_ALIGNMENT_LEFT, pw - 100, 14, Color(0.65, 0.50, 0.80))
 	if endless_high_wave > 0:
 		_udraw(font, Vector2(ox + 12, oy + 40), "Best: Wave %d" % endless_high_wave, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.7, 0.7, 0.85))
 	else:
@@ -31572,7 +31572,7 @@ func _draw_spin_wheel_panel() -> void:
 		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.12, 0.1, 0.2, 0.7), Color(0.4, 0.35, 0.5, 0.4), 1.5, 10.0)
 		_ds_outlined_text(Vector2(wheel_cx, btn_y + 30), "SPINNING...", 18, Color(0.6, 0.6, 0.6), int(btn_w - 20), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.16, 0.30, 0.50, 0.7), Color(0.3, 0.25, 0.3, 0.3), 1.5, 10.0)
+		_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.12, 0.08, 0.20, 0.7), Color(0.3, 0.25, 0.3, 0.3), 1.5, 10.0)
 		_udraw(font, Vector2(wheel_cx, btn_y + 30), "USED TODAY", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w - 20), 16, Color(0.45, 0.45, 0.45))
 	# Result display
 	if not lucky_spin_spinning and not lucky_spin_available and lucky_spin_result >= 0:
@@ -33886,7 +33886,7 @@ func _draw_party_slots(px: float, py: float) -> void:
 		if idx < 0 or idx >= survivor_types.size():
 			continue
 		var tt = survivor_types[idx]
-		var card_cols = [Color(0.29, 0.55, 0.25), Color(0.44, 0.66, 0.86), Color(0.48, 0.25, 0.63), Color(0.90, 0.49, 0.13), Color(0.75, 0.22, 0.17), Color(0.79, 0.66, 0.30), Color(0.20, 0.35, 0.55), Color(0.30, 0.50, 0.20), Color(0.50, 0.10, 0.15), Color(0.25, 0.20, 0.55), Color(0.35, 0.40, 0.30), Color(0.12, 0.08, 0.18)]
+		var card_cols = [Color(0.29, 0.55, 0.25), Color(0.44, 0.66, 0.86), Color(0.48, 0.25, 0.63), Color(0.90, 0.49, 0.13), Color(0.75, 0.22, 0.17), Color(0.79, 0.66, 0.30), Color(0.14, 0.10, 0.24), Color(0.30, 0.50, 0.20), Color(0.50, 0.10, 0.15), Color(0.25, 0.20, 0.55), Color(0.35, 0.40, 0.30), Color(0.12, 0.08, 0.18)]
 		var ac = card_cols[mini(idx, 11)]
 		var x = sx + float(pi) * (slot_size + 4.0)
 		draw_circle(Vector2(x + slot_size * 0.5, py + 6), slot_size * 0.45, Color(0.03, 0.03, 0.08))
