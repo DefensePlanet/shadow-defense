@@ -6504,8 +6504,9 @@ func _open_survivor_detail(index: int) -> void:
 	var _spr_key2 = _tower_type_to_name(tower_type)
 	if _tower_sprite_textures.has(_spr_key2) and "sprite_texture" in survivor_detail_preview:
 		survivor_detail_preview.sprite_texture = _tower_sprite_textures[_spr_key2]
-	survivor_detail_preview.position = Vector2(210, 240)
-	survivor_detail_preview.scale = Vector2(2.5, 2.5)
+	survivor_detail_preview.position = Vector2(-500, -500)  # Off-screen — data only, not displayed
+	survivor_detail_preview.scale = Vector2(0.01, 0.01)
+	survivor_detail_preview.visible = false
 	survivor_detail_preview.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(survivor_detail_preview)
 
@@ -14461,8 +14462,8 @@ func _draw_survivor_detail() -> void:
 	var info_x = port_x + port_w + 16.0
 	var info_y = port_y
 	var info_w = 420.0 - port_w - 32.0
-	_udraw(font, Vector2(info_x, info_y + 16), "Collect XP to", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_text_muted, 0.7 * content_alpha))
-	_udraw(font, Vector2(info_x, info_y + 30), "gain levels", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, _ca(menu_text_muted, 0.7 * content_alpha))
+	_udraw(font, Vector2(info_x, info_y + 16), "Collect XP to", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold_dim, 0.8 * content_alpha))
+	_udraw(font, Vector2(info_x, info_y + 32), "gain levels", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold_dim, 0.8 * content_alpha))
 
 	# --- XP bar (below portrait card) ---
 	var xp_y = port_y + port_h + 8.0
@@ -14530,7 +14531,7 @@ func _draw_survivor_detail() -> void:
 	# --- WEAPON SECTION (top-left of right side) ---
 	var weap_x = right_x
 	var weap_y = right_y
-	_ds_outlined_text(Vector2(weap_x, weap_y + 18), "WEAPON", 18, _ca(menu_gold, 0.9 * tab_alpha))
+	_ds_outlined_text(Vector2(weap_x, weap_y + 18), "WEAPON", 18, _ca(menu_gold_light, 0.95 * tab_alpha))
 	var wslot_sz = 100.0
 	var wslot_y = weap_y + 24.0
 	var gear_hover2 = (detail_hover_type == "weapon" and detail_hover_index == 0)
@@ -14555,7 +14556,7 @@ func _draw_survivor_detail() -> void:
 	for su in sk_unlocked_arr:
 		if su:
 			sk_count += 1
-	_ds_outlined_text(Vector2(ally_x, ally_y + 18), "ALLIES (%d/%d)" % [sk_count, sk_max], 18, _ca(menu_gold, 0.9 * tab_alpha))
+	_ds_outlined_text(Vector2(ally_x, ally_y + 18), "SIDEKICKS (%d/%d)" % [sk_count, sk_max], 18, _ca(menu_gold_light, 0.95 * tab_alpha))
 	var ally_slot_sz = 100.0
 	var ally_gap = 10.0
 	var ally_slot_y = ally_y + 24.0
@@ -14584,11 +14585,11 @@ func _draw_survivor_detail() -> void:
 				# Empty unlocked slot — "+" icon
 				draw_rect(Rect2(sx + ally_slot_sz * 0.5 - 3, sy + ally_slot_sz * 0.3, 6, 24), _ca(accent, 0.3 * tab_alpha))
 				draw_rect(Rect2(sx + ally_slot_sz * 0.3, sy + ally_slot_sz * 0.5 - 3, 24, 6), _ca(accent, 0.3 * tab_alpha))
-	_udraw(font, Vector2(ally_x, ally_slot_y + ally_slot_sz + 26), "Allies: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _ca(menu_text_muted, 0.5 * tab_alpha))
+	_udraw(font, Vector2(ally_x, ally_slot_y + ally_slot_sz + 26), "Sidekicks: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, _ca(menu_gold_dim, 0.6 * tab_alpha))
 
 	# --- TRINKETS/GEAR SECTION (below weapon + allies) ---
 	var trinket_y = wslot_y + wslot_sz + 36.0
-	_ds_outlined_text(Vector2(right_x, trinket_y + 18), "TRINKETS (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], 18, _ca(menu_gold, 0.9 * tab_alpha))
+	_ds_outlined_text(Vector2(right_x, trinket_y + 18), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], 18, _ca(menu_gold_light, 0.95 * tab_alpha))
 	var gear_slot_size = 100.0
 	var gear_gap = 10.0
 	var gear_slot_y = trinket_y + 24.0
@@ -14615,11 +14616,11 @@ func _draw_survivor_detail() -> void:
 			# "+" icon for empty slot
 			draw_rect(Rect2(gx + gear_slot_size * 0.5 - 3, gy + gear_slot_size * 0.3, 6, gear_slot_size * 0.4), _ca(accent, 0.35 * tab_alpha))
 			draw_rect(Rect2(gx + gear_slot_size * 0.3, gy + gear_slot_size * 0.5 - 3, gear_slot_size * 0.4, 6), _ca(accent, 0.35 * tab_alpha))
-	_udraw(font, Vector2(right_x, gear_slot_y + gear_slot_size + 26), "Trinkets: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _ca(menu_text_muted, 0.5 * tab_alpha))
+	_udraw(font, Vector2(right_x, gear_slot_y + gear_slot_size + 26), "Gear: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, _ca(menu_gold_dim, 0.6 * tab_alpha))
 
 	# --- ABILITIES SECTION (below trinkets) ---
 	var abil_y = gear_slot_y + gear_slot_size + 44.0
-	_ds_outlined_text(Vector2(right_x, abil_y + 16), "ABILITIES", 16, _ca(menu_gold, 0.9 * tab_alpha))
+	_ds_outlined_text(Vector2(right_x, abil_y + 18), "ABILITIES", 18, _ca(menu_gold_light, 0.95 * tab_alpha))
 	var abil_icon_y = abil_y + 26.0
 	var abil_sz = 60.0
 	var abil_gap = 8.0
