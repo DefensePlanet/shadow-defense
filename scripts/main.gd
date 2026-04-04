@@ -14383,16 +14383,15 @@ func _draw_survivor_detail() -> void:
 	# === Dark gothic panel ===
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_bg_section.r, menu_bg_section.g, menu_bg_section.b, content_alpha), _ca(accent, 0.4 * content_alpha), 2.0, 10.0)
 
-	# === TOP BAR (34px) ===
-	var top_y = panel_y + 8.0
-	_ds_button(Rect2(panel_x + 10, top_y + 2, 90, 28), "< BACK", Color(0.30, 0.18, 0.45), false, 13)
+	# === TOP BAR ===
+	var top_y = panel_y + 6.0
+	_ds_button(Rect2(panel_x + 10, top_y + 2, 80, 26), "< BACK", Color(0.30, 0.18, 0.45), false, 12)
 	var char_name = info["name"].to_upper()
-	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
-	var name_cx = panel_x + panel_w * 0.5
-	# Character name — BIG bright gold, centered (use _udraw with LEFT x for proper centering)
-	_udraw(font, Vector2(panel_x + 120, top_y + 26), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 240), 26, Color(1.0, 0.92, 0.45, content_alpha))
-	# Level badge star (next to name — right of center)
-	var badge_cx = name_cx + name_w * 0.5 + 20.0
+	# Character name — centered between BACK and IN PARTY
+	_udraw(font, Vector2(panel_x + 100, top_y + 24), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 300), 24, Color(1.0, 0.92, 0.45, content_alpha))
+	# Level badge star — after name, not overlapping
+	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
+	var badge_cx = panel_x + panel_w * 0.5 + name_w * 0.5 + 18.0
 	var badge_cy = top_y + 16.0
 	var star_r = 16.0
 	var star_pts = PackedVector2Array()
@@ -14457,15 +14456,9 @@ func _draw_survivor_detail() -> void:
 		star_pts2.append(Vector2(star_cx + cos(sa) * sd, star_cy + sin(sa) * sd))
 	draw_colored_polygon(star_pts2, _ca(c_gold, 0.95 * content_alpha))
 	_udraw(font, Vector2(star_cx - 6, star_cy + 5), str(char_level), HORIZONTAL_ALIGNMENT_CENTER, 12, 14, Color(1, 1, 1, content_alpha))
-	# "Collect XP to gain levels" text next to portrait
-	var info_x = port_x + port_w + 16.0
-	var info_y = port_y
-	var info_w = 420.0 - port_w - 32.0
-	_udraw(font, Vector2(info_x, info_y + 16), "Collect XP to", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold_dim, 0.8 * content_alpha))
-	_udraw(font, Vector2(info_x, info_y + 32), "gain levels", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, _ca(menu_gold_dim, 0.8 * content_alpha))
 
 	# --- XP bar (below portrait card) ---
-	var xp_y = port_y + port_h + 8.0
+	var xp_y = port_y + port_h + 6.0
 	var xp_w = port_w
 	var xp_h = 22.0
 	var xp_ratio = clamp(progress["xp"] / max(progress["xp_next"], 1.0), 0.0, 1.0)
@@ -14488,22 +14481,21 @@ func _draw_survivor_detail() -> void:
 	_udraw(font, Vector2(port_x + (xp_w - xp_tw) * 0.5, xp_y + 16), xp_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, content_alpha))
 
 	# --- LEVEL UP button ---
-	var levelup_btn_y = xp_y + xp_h + 2.0
-	var levelup_btn_h = 26.0
+	var levelup_btn_y = xp_y + xp_h + 4.0
+	var levelup_btn_h = 28.0
 	if char_level >= MAX_SURVIVOR_LEVEL:
-		_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.12 * content_alpha), _ca(c_gold, 0.3 * content_alpha), 1.5, 6.0)
-		var max_str = "MAX LEVEL REACHED"
-		_ds_outlined_text(Vector2(port_x + xp_w * 0.5, levelup_btn_y + 17), max_str, 13, _ca(c_gold, 0.7 * content_alpha), int(xp_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.15), _ca(c_gold, 0.4), 1.5, 6.0)
+		_udraw(font, Vector2(port_x + 4, levelup_btn_y + 18), "MAX LEVEL", HORIZONTAL_ALIGNMENT_CENTER, int(xp_w - 8), 13, Color(1.0, 0.88, 0.30))
 	else:
 		var lvup_cost = _get_levelup_cost(char_level)
 		var can_afford = player_quills >= lvup_cost
 		var is_lvup_hover = (detail_hover_type == "levelup")
-		var lvup_str = "LEVEL UP  \u2014  %d Quills" % lvup_cost
+		var lvup_str = "LEVEL UP  %d QUILLS" % lvup_cost
 		if can_afford:
-			_ds_button(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), lvup_str, Color(0.55, 0.42, 0.08), is_lvup_hover, 13)
+			_ds_button(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), lvup_str, Color(0.55, 0.42, 0.08), is_lvup_hover, 12)
 		else:
-			_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.15, 0.15, 0.15, 0.4 * content_alpha), Color(0.3, 0.3, 0.3, 0.3 * content_alpha), 1.5, 6.0)
-			_ds_outlined_text(Vector2(port_x + xp_w * 0.5, levelup_btn_y + 17), lvup_str, 13, Color(0.5, 0.48, 0.55, 0.6 * content_alpha), int(xp_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
+			_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.12, 0.10, 0.18, 0.6), Color(0.25, 0.20, 0.35, 0.4), 1.5, 6.0)
+			_udraw(font, Vector2(port_x + 4, levelup_btn_y + 18), lvup_str, HORIZONTAL_ALIGNMENT_CENTER, int(xp_w - 8), 12, Color(0.5, 0.45, 0.55, 0.6))
 
 	# ================================================================
 	# RIGHT SIDE: Weapon + Allies + Trinkets (ALL VISIBLE, no tabs)
@@ -14527,78 +14519,97 @@ func _draw_survivor_detail() -> void:
 	var sk_levels = [3, 5, 8, 10]
 	var tower_names_sb = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 
-	# --- WEAPON SECTION (top-left of right side) ---
+	# --- WEAPON SECTION ---
 	var weap_x = right_x
 	var weap_y = right_y
-	_udraw(font, Vector2(weap_x, weap_y + 18), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
-	var wslot_sz = 100.0
-	var wslot_y = weap_y + 24.0
+	# Section header bar
+	draw_colored_polygon(_rrp(Rect2(weap_x, weap_y, right_w, 22), 4.0), Color(0.12, 0.08, 0.20, 0.6))
+	_udraw(font, Vector2(weap_x + 8, weap_y + 16), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.92, 0.45))
+	var wslot_sz = 90.0
+	var wslot_y = weap_y + 26.0
 	var gear_hover2 = (detail_hover_type == "weapon" and detail_hover_index == 0)
 	var wslot_tier_col = accent if gear_unlocked else Color(0.3, 0.28, 0.40)
 	_draw_enhanced_gear_slot(Vector2(weap_x, wslot_y), wslot_sz, gear_unlocked, wslot_tier_col, accent, gear_hover2)
 	if gear_unlocked:
+		# Draw weapon icon
 		var wc = Vector2(weap_x + wslot_sz * 0.5, wslot_y + wslot_sz * 0.45)
-		draw_line(wc + Vector2(0, -22), wc + Vector2(0, 18), Color(0.8, 0.82, 0.85, 0.8 * tab_alpha), 3.5)
-		draw_line(wc + Vector2(-12, -6), wc + Vector2(12, -6), Color(0.7, 0.55, 0.2, 0.8 * tab_alpha), 3.0)
-		draw_circle(wc + Vector2(0, -22), 4, _ca(c_gold, 0.7 * tab_alpha))
+		draw_line(wc + Vector2(0, -24), wc + Vector2(0, 20), Color(0.85, 0.85, 0.90, 0.9), 4.0)
+		draw_line(wc + Vector2(-14, -6), wc + Vector2(14, -6), Color(0.75, 0.60, 0.25, 0.9), 3.5)
+		draw_circle(wc + Vector2(0, -24), 5, Color(1.0, 0.88, 0.25, 0.9))
 	else:
-		var lk = Vector2(weap_x + wslot_sz * 0.5, wslot_y + wslot_sz * 0.4)
-		draw_rect(Rect2(lk.x - 14, lk.y + 2, 28, 20), Color(0.35, 0.30, 0.45, 0.6 * tab_alpha))
-		draw_arc(Vector2(lk.x, lk.y + 2), 10, PI, TAU, 12, Color(0.4, 0.35, 0.50, 0.6 * tab_alpha), 2.5)
+		# Lock icon with level requirement
+		var lk = Vector2(weap_x + wslot_sz * 0.5, wslot_y + wslot_sz * 0.35)
+		draw_colored_polygon(_rrp(Rect2(lk.x - 14, lk.y + 4, 28, 20), 3.0), Color(0.30, 0.22, 0.40, 0.7))
+		draw_arc(Vector2(lk.x, lk.y + 4), 10, PI, TAU, 10, Color(0.40, 0.30, 0.55, 0.7), 2.5)
+		# Yellow star with level req
+		var lk_star_y = wslot_y + wslot_sz - 18.0
+		draw_circle(Vector2(weap_x + wslot_sz * 0.5, lk_star_y), 10, Color(0, 0, 0, 0.5))
+		_draw_mini_star(Vector2(weap_x + wslot_sz * 0.5, lk_star_y), 9.0, Color(0.9, 0.75, 0.15, 0.9))
+		_udraw(font, Vector2(weap_x + wslot_sz * 0.5 - 4, lk_star_y + 4), "2", HORIZONTAL_ALIGNMENT_CENTER, 8, 9, Color.WHITE)
 	var weap_name = gear_data["name"] if gear_unlocked else "LV.2"
-	_udraw(font, Vector2(weap_x, wslot_y + wslot_sz + 14), weap_name, HORIZONTAL_ALIGNMENT_CENTER, int(wslot_sz), 12, _ca(menu_parchment, (1.0 if gear_unlocked else 0.5) * tab_alpha))
+	_udraw(font, Vector2(weap_x, wslot_y + wslot_sz + 12), weap_name, HORIZONTAL_ALIGNMENT_CENTER, int(wslot_sz), 11, Color(1.0, 0.92, 0.45, 0.9 if gear_unlocked else 0.5))
 
-	# --- ALLIES SECTION (top-right of right side) ---
-	var ally_x = weap_x + wslot_sz + 20.0
+	# --- SIDEKICKS SECTION ---
+	var ally_x = weap_x + wslot_sz + 16.0
 	var ally_y = right_y
 	var sk_count = 0
 	for su in sk_unlocked_arr:
 		if su:
 			sk_count += 1
-	_udraw(font, Vector2(ally_x, ally_y + 18), "SIDEKICKS (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
-	var ally_slot_sz = 100.0
-	var ally_gap = 10.0
-	var ally_slot_y = ally_y + 24.0
+	# Section header bar (extends from sidekicks across)
+	draw_colored_polygon(_rrp(Rect2(ally_x, ally_y, right_w - wslot_sz - 16, 22), 4.0), Color(0.12, 0.08, 0.20, 0.6))
+	_udraw(font, Vector2(ally_x + 8, ally_y + 16), "SIDEKICKS (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.92, 0.45))
+	var ally_slot_sz = 90.0
+	var ally_gap = 8.0
+	var ally_slot_y = ally_y + 26.0
 	for si in range(sk_max):
 		var sx = ally_x + float(si) * (ally_slot_sz + ally_gap)
 		var sy = ally_slot_y
 		var sk_unlocked = sk_unlocked_arr[si] if si < sk_unlocked_arr.size() else false
 		var sk_hover = (detail_hover_type == "sidekick" and detail_hover_index == si)
-		var sk_bdr_col = accent if sk_unlocked else Color(0.3, 0.28, 0.40)
+		var sk_bdr_col = accent if sk_unlocked else Color(0.25, 0.20, 0.35)
 		_draw_enhanced_gear_slot(Vector2(sx, sy), ally_slot_sz, sk_unlocked, sk_bdr_col, accent, sk_hover)
 		if sk_unlocked and si < sk_data.size():
-			var sc = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.38)
-			draw_circle(sc + Vector2(0, -10), 18, _ca(accent, 0.3 * tab_alpha))
-			draw_rect(Rect2(sc.x - 12, sc.y + 6, 24, 22), _ca(accent, 0.2 * tab_alpha))
+			# Sidekick portrait silhouette
+			var sc = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.35)
+			draw_circle(sc, 20, _ca(accent, 0.35))
+			draw_colored_polygon(_rrp(Rect2(sc.x - 14, sc.y + 16, 28, 24), 3.0), _ca(accent, 0.25))
 			var sk_name = sk_data[si]["name"]
-			if sk_name.length() > 10:
-				sk_name = sk_name.substr(0, 9) + ".."
-			_udraw(font, Vector2(sx, sy + ally_slot_sz + 12), sk_name, HORIZONTAL_ALIGNMENT_CENTER, int(ally_slot_sz), 10, _ca(menu_parchment, 0.85 * tab_alpha))
+			if sk_name.length() > 12:
+				sk_name = sk_name.substr(0, 11) + "."
+			_udraw(font, Vector2(sx, sy + ally_slot_sz + 12), sk_name, HORIZONTAL_ALIGNMENT_CENTER, int(ally_slot_sz), 10, Color(1.0, 0.92, 0.45, 0.85))
 		else:
 			if not sk_unlocked:
-				var lk2 = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.4)
-				draw_rect(Rect2(lk2.x - 10, lk2.y + 2, 20, 16), Color(0.35, 0.30, 0.45, 0.5 * tab_alpha))
-				draw_arc(Vector2(lk2.x, lk2.y + 2), 8, PI, TAU, 10, Color(0.4, 0.35, 0.50, 0.5 * tab_alpha), 2.0)
-				_udraw(font, Vector2(sx, sy + ally_slot_sz + 12), "LV.%d" % sk_levels[si], HORIZONTAL_ALIGNMENT_CENTER, int(ally_slot_sz), 10, _ca(menu_text_muted, 0.6 * tab_alpha))
+				# Lock + star with level requirement
+				var lk2 = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.35)
+				draw_colored_polygon(_rrp(Rect2(lk2.x - 12, lk2.y + 4, 24, 18), 3.0), Color(0.28, 0.22, 0.38, 0.6))
+				draw_arc(Vector2(lk2.x, lk2.y + 4), 9, PI, TAU, 8, Color(0.35, 0.28, 0.48, 0.6), 2.0)
+				var sk_star_y = sy + ally_slot_sz - 16.0
+				draw_circle(Vector2(sx + ally_slot_sz * 0.5, sk_star_y), 9, Color(0, 0, 0, 0.5))
+				_draw_mini_star(Vector2(sx + ally_slot_sz * 0.5, sk_star_y), 8.0, Color(0.9, 0.75, 0.15, 0.85))
+				_udraw(font, Vector2(sx + ally_slot_sz * 0.5 - 4, sk_star_y + 3), str(sk_levels[si]), HORIZONTAL_ALIGNMENT_CENTER, 8, 8, Color.WHITE)
 			else:
-				# Empty unlocked slot — "+" icon
-				draw_rect(Rect2(sx + ally_slot_sz * 0.5 - 3, sy + ally_slot_sz * 0.3, 6, 24), _ca(accent, 0.3 * tab_alpha))
-				draw_rect(Rect2(sx + ally_slot_sz * 0.3, sy + ally_slot_sz * 0.5 - 3, 24, 6), _ca(accent, 0.3 * tab_alpha))
-	_udraw(font, Vector2(ally_x, ally_slot_y + ally_slot_sz + 26), "Sidekicks: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, _ca(menu_gold_dim, 0.6 * tab_alpha))
+				# Empty unlocked — bright "+" icon
+				var plus_col = Color(1.0, 0.92, 0.45, 0.6)
+				draw_rect(Rect2(sx + ally_slot_sz * 0.5 - 3, sy + ally_slot_sz * 0.28, 6, ally_slot_sz * 0.44), plus_col)
+				draw_rect(Rect2(sx + ally_slot_sz * 0.28, sy + ally_slot_sz * 0.5 - 3, ally_slot_sz * 0.44, 6), plus_col)
+	_udraw(font, Vector2(ally_x, ally_slot_y + ally_slot_sz + 26), "Sidekicks: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.7, 0.6, 0.45, 0.5))
 
-	# --- TRINKETS/GEAR SECTION (below weapon + allies) ---
-	var trinket_y = wslot_y + wslot_sz + 36.0
-	_udraw(font, Vector2(right_x, trinket_y + 18), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
-	var gear_slot_size = 100.0
-	var gear_gap = 10.0
-	var gear_slot_y = trinket_y + 24.0
-	var gear_cols = mini(max_gear_slots, 6)
-	for gsi in range(mini(max_gear_slots, 6)):
-		var gx = right_x + float(gsi) * (gear_slot_size + gear_gap)
-		var gy = gear_slot_y
+	# --- GEAR SECTION (2 rows of 4) ---
+	var trinket_y = wslot_y + wslot_sz + 32.0
+	draw_colored_polygon(_rrp(Rect2(right_x, trinket_y, right_w, 22), 4.0), Color(0.12, 0.08, 0.20, 0.6))
+	_udraw(font, Vector2(right_x + 8, trinket_y + 16), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.92, 0.45))
+	var gear_slot_size = 90.0
+	var gear_gap = 8.0
+	var gear_slot_y = trinket_y + 26.0
+	for gsi in range(mini(max_gear_slots, 8)):
+		var g_col = gsi % 4
+		var g_row = gsi / 4
+		var gx = right_x + float(g_col) * (gear_slot_size + gear_gap)
+		var gy = gear_slot_y + float(g_row) * (gear_slot_size + gear_gap + 16)
 		var is_gear_hover = (detail_hover_type == "gear_item" and detail_hover_index == gsi)
 		var has_gear = gsi < eq_gear_ids.size()
-		var gear_tier_col = Color(0.65, 0.65, 0.65)
+		var gear_tier_col = Color(0.50, 0.40, 0.60)
 		if has_gear:
 			var gdata2 = _find_gear(eq_gear_ids[gsi])
 			gear_tier_col = TIER_COLORS.get(gdata2.get("tier", "common"), gear_tier_col)
@@ -14609,20 +14620,22 @@ func _draw_survivor_detail() -> void:
 			_draw_gear_icon(Vector2(gx + gear_slot_size * 0.5, gy + gear_slot_size * 0.4), gdata3.get("id", ""), gear_slot_size * 0.45, gear_tier_col)
 			var gname = gdata3.get("name", "")
 			if gname.length() > 10:
-				gname = gname.substr(0, 9) + ".."
-			_udraw(font, Vector2(gx, gy + gear_slot_size + 12), gname, HORIZONTAL_ALIGNMENT_CENTER, int(gear_slot_size), 10, Color(gear_tier_col.r, gear_tier_col.g, gear_tier_col.b, tab_alpha))
+				gname = gname.substr(0, 9) + "."
+			_udraw(font, Vector2(gx, gy + gear_slot_size + 10), gname, HORIZONTAL_ALIGNMENT_CENTER, int(gear_slot_size), 9, Color(gear_tier_col.r, gear_tier_col.g, gear_tier_col.b, 0.9))
 		else:
-			# "+" icon for empty slot
-			draw_rect(Rect2(gx + gear_slot_size * 0.5 - 3, gy + gear_slot_size * 0.3, 6, gear_slot_size * 0.4), _ca(accent, 0.35 * tab_alpha))
-			draw_rect(Rect2(gx + gear_slot_size * 0.3, gy + gear_slot_size * 0.5 - 3, gear_slot_size * 0.4, 6), _ca(accent, 0.35 * tab_alpha))
-	_udraw(font, Vector2(right_x, gear_slot_y + gear_slot_size + 26), "Gear: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, _ca(menu_gold_dim, 0.6 * tab_alpha))
+			# Bright "+" icon
+			var plus_col2 = Color(1.0, 0.92, 0.45, 0.5)
+			draw_rect(Rect2(gx + gear_slot_size * 0.5 - 3, gy + gear_slot_size * 0.28, 6, gear_slot_size * 0.44), plus_col2)
+			draw_rect(Rect2(gx + gear_slot_size * 0.28, gy + gear_slot_size * 0.5 - 3, gear_slot_size * 0.44, 6), plus_col2)
+	_udraw(font, Vector2(right_x, gear_slot_y + 2.0 * (gear_slot_size + gear_gap + 16) - 10), "Gear: Add extra attacks, damage, or effects", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.7, 0.6, 0.45, 0.5))
 
-	# --- ABILITIES SECTION (below trinkets) ---
-	var abil_y = gear_slot_y + gear_slot_size + 44.0
-	_udraw(font, Vector2(right_x, abil_y + 18), "ABILITIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
-	var abil_icon_y = abil_y + 26.0
-	var abil_sz = 60.0
-	var abil_gap = 8.0
+	# --- ABILITIES SECTION ---
+	var abil_y = gear_slot_y + 2.0 * (gear_slot_size + gear_gap + 16) + 4.0
+	draw_colored_polygon(_rrp(Rect2(right_x, abil_y, right_w, 22), 4.0), Color(0.12, 0.08, 0.20, 0.6))
+	_udraw(font, Vector2(right_x + 8, abil_y + 16), "ABILITIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.92, 0.45))
+	var abil_icon_y = abil_y + 28.0
+	var abil_sz = 65.0
+	var abil_gap = 10.0
 	for ai in range(mini(abil_data.size(), 6)):
 		var ax = right_x + float(ai) * (abil_sz + abil_gap)
 		var ay = abil_icon_y
@@ -14659,12 +14672,13 @@ func _draw_survivor_detail() -> void:
 	var pill_colors2 = [Color(0.9, 0.3, 0.2), Color(0.4, 0.25, 0.60), Color(0.3, 0.9, 0.4)]
 	var pill_rx = panel_x + panel_w - 20.0
 	for pi in range(2, -1, -1):
-		var pw2 = font.get_string_size(pill_labels2[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 14
+		var pw2 = font.get_string_size(pill_labels2[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 14
 		pill_rx -= pw2
-		draw_rect(Rect2(pill_rx, bottom_y + 2, pw2, 16), Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.12 * content_alpha))
-		draw_rect(Rect2(pill_rx, bottom_y + 2, pw2, 16), Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.25 * content_alpha), false, 1.0)
-		_udraw(font, Vector2(pill_rx + 7, bottom_y + 14), pill_labels2[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.9 * content_alpha))
-		pill_rx -= 6.0
+		draw_colored_polygon(_rrp(Rect2(pill_rx, bottom_y + 2, pw2, 16), 4.0), Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.12))
+		draw_colored_polygon(_rrp(Rect2(pill_rx - 1, bottom_y + 1, pw2 + 2, 18), 5.0), Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.25))
+		draw_colored_polygon(_rrp(Rect2(pill_rx, bottom_y + 2, pw2, 16), 4.0), Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.12))
+		_udraw(font, Vector2(pill_rx + 7, bottom_y + 14), pill_labels2[pi], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(pill_colors2[pi].r, pill_colors2[pi].g, pill_colors2[pi].b, 0.9))
+		pill_rx -= 8.0
 
 	# === TOOLTIP (drawn last, on top) ===
 	if detail_hover_type != "" and detail_hover_index >= 0 and detail_hover_type != "tab":
@@ -34584,10 +34598,10 @@ func _draw_enhanced_gear_slot(pos: Vector2, sz: float, filled: bool, tier_col: C
 	# Solid dark fill — visible against panel background
 	var fill_col = Color(0.08, 0.05, 0.14, 0.95) if not filled else Color(0.10, 0.07, 0.18, 0.95)
 	draw_colored_polygon(_rrp(Rect2(pos.x, pos.y, sz, sz), rad), fill_col)
-	# Thick bright border — SOLID, not corner brackets
-	var bdr_col = _ca(tier_col, 0.8) if filled else _ca(accent, 0.5)
+	# Bright border — purple-gold for gothic theme
+	var bdr_col = _ca(tier_col, 0.7) if filled else Color(0.45, 0.32, 0.60, 0.5)
 	if hovered:
-		bdr_col = _ca(tier_col, 1.0) if filled else _ca(accent, 0.8)
+		bdr_col = _ca(tier_col, 1.0) if filled else Color(0.60, 0.45, 0.75, 0.8)
 		# Hover glow
 		draw_colored_polygon(_rrp(Rect2(pos.x - 3, pos.y - 3, sz + 6, sz + 6), rad + 2), _ca(tier_col if filled else accent, 0.2))
 	draw_colored_polygon(_rrp(Rect2(pos.x - 2, pos.y - 2, sz + 4, sz + 4), rad + 1), bdr_col)
