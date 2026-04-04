@@ -13757,7 +13757,9 @@ func _update_world_map_hover() -> void:
 		var row_i = i / cols
 		var cx = grid_start_x + float(col_i) * (card_w + gap)
 		var cy = grid_top + float(row_i) * (card_h + gap) - survivor_grid_scroll
-		if Rect2(cx, cy, card_w, card_h).has_point(mouse_pos):
+		if cy > 610 or cy + card_h < grid_top:
+			continue
+		if Rect2(cx, cy, card_w, card_h).has_point(mouse_pos) and mouse_pos.y < 616:
 			world_map_hover_index = i
 			break
 
