@@ -10831,7 +10831,7 @@ func _draw_currency_bar() -> void:
 		var val_str = _format_gold(display_val)
 		var val_w = font.get_string_size(val_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		_udraw(font, Vector2(cx + 15, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.95, 0.85, 0.95))
-		_udraw(font, Vector2(cx + 17 + val_w, bar_y + 22), c["name"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(cc.r, cc.g, cc.b, 0.6))
+		_udraw(font, Vector2(cx + 17 + val_w, bar_y + 22), c["name"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.92, 0.45, 0.9))
 		cx += 130.0
 
 	# Total stars on far right
