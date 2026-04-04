@@ -11271,12 +11271,39 @@ func _draw_menu_background() -> void:
 	# === TOP CURRENCY BAR ===
 	_draw_currency_bar()
 
-	# Draw survivor grid BEFORE nav bar so nav bar is always on top
-	if menu_current_view == "survivors":
+	# === ALL CONTENT draws BEFORE nav bar so nav bar is always on top ===
+	if menu_current_view == "chapters":
+		_draw_story_map()
+		_draw_diff_popup()
+		_draw_chapters_overlay()
+	elif menu_current_view == "survivors":
 		if survivor_detail_open:
 			_draw_survivor_detail()
 		else:
 			_draw_survivor_grid()
+	elif menu_current_view == "gear":
+		_draw_gear_tab()
+	elif menu_current_view == "emporium":
+		if emporium_sub_category == 6:
+			_draw_trophy_store()
+		elif emporium_sub_category == 8:
+			_draw_gear_shop()
+		elif emporium_sub_category == 9:
+			_draw_salvage_panel()
+		elif emporium_sub_category == 10:
+			_draw_chest_crafting()
+		elif emporium_sub_category == 11:
+			_draw_instrument_shop()
+		elif emporium_sub_category == 12:
+			_draw_spin_wheel_panel()
+		elif emporium_sub_category == 13:
+			_draw_merchant_panel()
+		else:
+			_draw_emporium()
+	elif menu_current_view == "achievements":
+		_draw_achievements_tab()
+	else:
+		_draw_closed_book()
 
 	# === Bottom nav bar (ALWAYS ON TOP — draws after all content) ===
 	var nav_draw_y = 620.0 - _safe_bottom
@@ -11338,34 +11365,7 @@ func _draw_menu_background() -> void:
 			draw_rect(Rect2(ul_x, nav_draw_y + 90.0, ul_w, 3), Color(tc.r, tc.g, tc.b, 0.9))
 			draw_rect(Rect2(ul_x - 2, nav_draw_y + 89.0, ul_w + 4, 5), Color(tc.r, tc.g, tc.b, 0.2))
 
-	if menu_current_view == "chapters":
-		_draw_story_map()
-		_draw_diff_popup()
-		_draw_chapters_overlay()
-		# Fortress + Commander's Pass removed — clean March 17 layout
-	elif menu_current_view == "gear":
-		_draw_gear_tab()
-	elif menu_current_view == "emporium":
-		if emporium_sub_category == 6:
-			_draw_trophy_store()
-		elif emporium_sub_category == 8:
-			_draw_gear_shop()
-		elif emporium_sub_category == 9:
-			_draw_salvage_panel()
-		elif emporium_sub_category == 10:
-			_draw_chest_crafting()
-		elif emporium_sub_category == 11:
-			_draw_instrument_shop()
-		elif emporium_sub_category == 12:
-			_draw_spin_wheel_panel()
-		elif emporium_sub_category == 13:
-			_draw_merchant_panel()
-		else:
-			_draw_emporium()
-	elif menu_current_view == "achievements":
-		_draw_achievements_tab()
-	else:
-		_draw_closed_book()
+	# (all content now draws BEFORE the nav bar above)
 
 func _draw_gear_tab() -> void:
 	var panel_x = 70.0 + _safe_left
