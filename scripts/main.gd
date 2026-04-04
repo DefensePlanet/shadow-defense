@@ -420,22 +420,31 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var crad = 6.0
 	var name_bar_h = 24.0
 	var portrait_h = rh - name_bar_h
-	# Hover glow — visible purple aura behind the card
+	# Hover glow — subtle, stays INSIDE card bounds
 	if is_hovered and unlocked:
-		draw_colored_polygon(_rrp(Rect2(rx - 4, ry - 4, rw + 8, rh + 8), crad + 3), Color(0.55, 0.35, 0.80, 0.35))
-	# Card shadow
-	draw_colored_polygon(_rrp(Rect2(rx + 2, ry + 3, rw, rh), crad), Color(0, 0, 0, 0.5))
+		draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.45, 0.30, 0.65, 0.15))
+	# Card shadow — small, no overlap
+	draw_colored_polygon(_rrp(Rect2(rx + 1, ry + 2, rw, rh), crad), Color(0, 0, 0, 0.4))
 	# Card base
 	var card_bg = Color(0.10, 0.07, 0.16) if unlocked else Color(0.07, 0.05, 0.11)
 	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
-	# Portrait — show the FULL image, fit to card (no aggressive crop)
+	# Portrait — CROP-TO-FILL center square, not stretched
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
 		var inset = 3.0
 		var draw_w = rw - inset * 2
 		var draw_h = portrait_h - inset - 1
-		# Draw full texture fitted to card area — shows entire character
-		draw_texture_rect(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), false)
+		var tsz = tex.get_size()
+		# Crop center from source, biased up for faces
+		var src_aspect = draw_w / draw_h
+		var src_w2 = tsz.x
+		var src_h2 = tsz.x / src_aspect
+		if src_h2 > tsz.y:
+			src_h2 = tsz.y
+			src_w2 = tsz.y * src_aspect
+		var src_x2 = (tsz.x - src_w2) * 0.5
+		var src_y2 = (tsz.y - src_h2) * 0.2  # Bias up for faces
+		draw_texture_rect_region(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), Rect2(src_x2, src_y2, src_w2, src_h2))
 	elif not unlocked:
 		# Locked — dark with larger, more visible lock icon
 		var lk_cx = rx + rw * 0.5
@@ -466,20 +475,20 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		_udraw(font, Vector2(rx + 4, nb_y + 16), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), name_sz, menu_gold_light)
 	else:
 		_udraw(font, Vector2(rx + 4, nb_y + 16), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 9, Color(0.35, 0.28, 0.45))
-	# Level badge — bigger gold star, more visible
+	# Level badge — gold star INSIDE card bounds
 	if unlocked and level > 0:
-		var bcx = rx + rw - 18.0
-		var bcy = ry + 18.0
-		# Dark circle behind star for contrast
-		draw_circle(Vector2(bcx, bcy), 14, Color(0, 0, 0, 0.5))
-		_draw_mini_star(Vector2(bcx, bcy), 13.0, Color(0.80, 0.65, 0.10, 0.95))
-		_draw_mini_star(Vector2(bcx, bcy), 10.0, Color(1.0, 0.88, 0.25, 1.0))
-		_udraw(font, Vector2(bcx - 8, bcy + 5), str(level), HORIZONTAL_ALIGNMENT_CENTER, 16, 11, Color.WHITE)
-	# Thin border
-	var bdr = Color(0.28, 0.18, 0.40, 0.45) if unlocked else Color(0.15, 0.10, 0.22, 0.3)
+		var bcx = rx + rw - 16.0
+		var bcy = ry + 16.0
+		draw_circle(Vector2(bcx, bcy), 12, Color(0, 0, 0, 0.6))
+		_draw_mini_star(Vector2(bcx, bcy), 11.0, Color(0.85, 0.70, 0.12, 0.95))
+		_draw_mini_star(Vector2(bcx, bcy), 8.0, Color(1.0, 0.88, 0.25, 1.0))
+		_udraw(font, Vector2(bcx - 5, bcy + 4), str(level), HORIZONTAL_ALIGNMENT_CENTER, 10, 9, Color.WHITE)
+	# Border — thin outline that doesn't extend past card edges
+	var bdr = Color(0.32, 0.22, 0.48, 0.55) if unlocked else Color(0.18, 0.12, 0.25, 0.3)
 	if is_hovered and unlocked:
-		bdr = Color(0.55, 0.40, 0.75, 0.8)
-	draw_colored_polygon(_rrp(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), crad + 1), bdr)
+		bdr = Color(0.55, 0.40, 0.75, 0.85)
+	draw_colored_polygon(_rrp(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), crad + 0.5), bdr)
+	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
@@ -13572,13 +13581,13 @@ func _draw_survivor_grid() -> void:
 	# === Filter/Sort Bar — tight ===
 	_draw_filter_sort_bar(panel_x + 2, panel_y + 22.0, panel_w - 4)
 
-	# Card grid — tight to filter bar, fills panel
-	var margin = 6.0
+	# Card grid — clean spacing, no border overlap
+	var margin = 10.0
 	var grid_top = panel_y + 38.0
-	var grid_bottom = panel_y + panel_h - 4.0
+	var grid_bottom = panel_y + panel_h - 6.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
-	var gap = 4.0
+	var gap = 8.0
 	var cols = 4
 	var grid_w = grid_right - grid_left
 	var grid_h = grid_bottom - grid_top
@@ -13728,8 +13737,8 @@ func _update_world_map_hover() -> void:
 	var panel_y = 34.0
 	var panel_w = 1268.0
 	var panel_h = 520.0
-	var margin = 6.0
-	var gap = 4.0
+	var margin = 10.0
+	var gap = 8.0
 	var cols = 4
 	var grid_top = panel_y + 38.0
 	var grid_bottom = panel_y + panel_h - 4.0
