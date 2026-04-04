@@ -460,41 +460,31 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		draw_rect(Rect2(lk_cx - 2, lk_cy + 14, 4, 8), Color(0.15, 0.12, 0.20, 0.9))
 		# "?" text
 		_ds_outlined_text(Vector2(lk_cx, lk_cy - 20), "?", 24, Color(0.8, 0.65, 0.2, 0.7), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
-	# Bottom gradient for text — taller, more visible
-	for gi in range(16):
-		var gt = float(gi) / 15.0
-		draw_rect(Rect2(rx, ry + rh - 55.0 + gt * 55.0, rw, 55.0 / 15.0 + 1), Color(0.0, 0.0, 0.0, gt * 0.92))
-	# Name — BIGGER, bolder, Bloons outlined
+	# Bottom area for name — solid dark bar like Bloons
+	draw_colored_polygon(_rrp(Rect2(rx, ry + rh - 30, rw, 30), crad), Color(0.12, 0.15, 0.22, 0.9))
+	# Name — BIG, bold, centered, Bloons style
 	if unlocked:
-		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 28), char_name, 16, Color(1.0, 0.95, 0.90), int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 2)
+		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 10), char_name, 14, Color(1.0, 1.0, 1.0), int(rw - 6), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	else:
-		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 28), char_name, 14, Color(0.5, 0.48, 0.55), int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 1)
-	# Title — slightly brighter
-	if title != "":
-		_udraw(font, Vector2(rx + 4, ry + rh - 12), title, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 10, _ca(accent, 0.85) if unlocked else Color(0.4, 0.38, 0.45, 0.5))
-	# Level badge — BIGGER, more prominent
+		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 10), char_name, 12, Color(0.5, 0.52, 0.58), int(rw - 6), HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Level badge — GOLD STAR in top-right (like Bloons BATD)
 	if unlocked and level > 0:
-		var bcx = rx + 20.0
-		var bcy = ry + 20.0
-		draw_colored_polygon(_rrp(Rect2(bcx - 16, bcy - 16, 32, 32), 8.0), Color(0, 0, 0, 0.85))
-		draw_colored_polygon(_rrp(Rect2(bcx - 14, bcy - 14, 28, 28), 7.0), _ca(accent, 0.9))
-		draw_colored_polygon(_rrp(Rect2(bcx - 11, bcy - 11, 22, 22), 6.0), Color(0.06, 0.05, 0.12, 0.95))
+		var bcx = rx + rw - 18.0
+		var bcy = ry + 18.0
+		# Gold star background
+		_draw_mini_star(Vector2(bcx, bcy), 12.0, Color(0.90, 0.75, 0.15, 0.95))
+		_draw_mini_star(Vector2(bcx, bcy), 9.0, Color(1.0, 0.88, 0.25, 1.0))
+		# Level number on the star
 		var ls = str(level)
-		_ds_outlined_text(Vector2(bcx, bcy + 6), ls, 16, Color.WHITE, -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
-	# XP bar — THICKER, rounded, more visible
-	if unlocked:
-		draw_colored_polygon(_rrp(Rect2(rx + 2, ry + rh - 6, rw - 4, 5), 2.5), Color(0, 0, 0, 0.6))
-		var xp_r = clampf(float(level) / 9.0, 0.0, 1.0)
-		if xp_r > 0:
-			draw_colored_polygon(_rrp(Rect2(rx + 2, ry + rh - 6, (rw - 4) * xp_r, 5), 2.5), _ca(accent, 0.95))
-	# Border — Bloons BATD style (light gray/white border, not colored)
-	var bdr = Color(0.75, 0.78, 0.82, 0.85) if unlocked else Color(0.35, 0.38, 0.42, 0.5)
+		_ds_outlined_text(Vector2(bcx, bcy + 5), ls, 12, Color.WHITE, -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# XP bar removed from grid view — shown in detail view only
+	# Border — thin light gray like Bloons BATD character cards
+	var bdr = Color(0.70, 0.72, 0.75, 0.8) if unlocked else Color(0.30, 0.32, 0.38, 0.5)
 	if is_hovered and unlocked:
-		bdr = Color(0.90, 0.92, 0.95, 1.0)
-		draw_colored_polygon(_rrp(Rect2(rx - 5, ry - 5, rw + 10, rh + 10), crad + 3), Color(0.40, 0.75, 0.95, 0.2))
-	# Outer dark outline + light border (Bloons style)
-	draw_colored_polygon(_rrp(Rect2(rx - 4, ry - 4, rw + 8, rh + 8), crad + 3), Color(0.10, 0.15, 0.25, 0.9))
-	draw_colored_polygon(_rrp(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), crad + 1.5), bdr)
+		bdr = Color(0.85, 0.88, 0.92, 1.0)
+		draw_colored_polygon(_rrp(Rect2(rx - 3, ry - 3, rw + 6, rh + 6), crad + 2), Color(1, 1, 1, 0.15))
+	# Thin border only — no thick double border
+	draw_colored_polygon(_rrp(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), crad + 1), bdr)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
@@ -13557,15 +13547,20 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# 4x3 grid — fits within panel, never overflows
+	# Bloons-style PORTRAIT cards — taller than wide, 4 columns, scrollable
 	var grid_top = panel_y + 50.0
-	var grid_bottom = minf(panel_y + panel_h - 15.0, 605.0)  # Stay inside panel
+	var grid_bottom = minf(panel_y + panel_h - 10.0, 608.0)
 	var available_h = grid_bottom - grid_top
-	var gap_x = 12.0
-	var gap_y = 10.0
+	var gap_x = 8.0
+	var gap_y = 6.0
 	var cols = 4
-	var card_h = (available_h - 2.0 * gap_y) / 3.0
 	var card_w = (panel_w - float(cols - 1) * gap_x) / float(cols)
+	# Portrait ratio — cards are TALLER than wide (like Bloons)
+	var card_h = card_w * 1.15  # Slightly taller than wide
+	# If 3 rows don't fit, shrink card_h to fit
+	var max_card_h = (available_h - 2.0 * gap_y) / 3.0
+	if card_h > max_card_h:
+		card_h = max_card_h
 	var grid_start_y = grid_top
 
 	for i in range(survivor_types.size()):
