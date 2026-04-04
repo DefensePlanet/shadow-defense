@@ -4505,7 +4505,7 @@ func _load_sidekick_textures() -> void:
 		"little_john", "friar_tuck", "maid_marian",
 		"cheshire_cat", "white_rabbit", "mad_hatter",
 		"winged_monkey", "toto", "tin_woodman",
-		"tinkerbell", "lost_boys", "tiger_lily",
+		"tinker_bell", "lost_boys", "tiger_lily",
 		"christine", "madame_giry", "raoul",
 		"bob_cratchit", "tiny_tim", "ghost_of_marley",
 		"dr_watson", "mrs_hudson", "inspector_lestrade",

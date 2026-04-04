@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bbgu271ciumay"
-path="res://.godot/imported/tinkerbell.png-22cd40637f194799db528d40b701785a.ctex"
+uid="uid://bgut07p6dn3gs"
+path="res://.godot/imported/tinker_bell.png-ca943955201adb742c0a0fe3d1f12ad8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sidekick_portraits/tinkerbell.png"
-dest_files=["res://.godot/imported/tinkerbell.png-22cd40637f194799db528d40b701785a.ctex"]
+source_file="res://assets/sidekick_portraits/tinker_bell.png"
+dest_files=["res://.godot/imported/tinker_bell.png-ca943955201adb742c0a0fe3d1f12ad8.ctex"]
 
 [params]
 
