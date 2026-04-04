@@ -420,13 +420,15 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var crad = 6.0
 	var name_bar_h = 24.0
 	var portrait_h = rh - name_bar_h
-	# Hover glow — subtle, stays INSIDE card bounds
-	if is_hovered and unlocked:
-		draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.45, 0.30, 0.65, 0.15))
-	# Card shadow — small, no overlap
-	draw_colored_polygon(_rrp(Rect2(rx + 1, ry + 2, rw, rh), crad), Color(0, 0, 0, 0.4))
-	# Card base
 	var card_bg = Color(0.10, 0.07, 0.16) if unlocked else Color(0.07, 0.05, 0.11)
+	# Border FIRST (behind card)
+	var bdr = Color(0.32, 0.22, 0.48, 0.55) if unlocked else Color(0.18, 0.12, 0.25, 0.3)
+	if is_hovered and unlocked:
+		bdr = Color(0.55, 0.40, 0.75, 0.85)
+	draw_colored_polygon(_rrp(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), crad + 0.5), bdr)
+	# Card shadow — small
+	draw_colored_polygon(_rrp(Rect2(rx + 1, ry + 2, rw, rh), crad), Color(0, 0, 0, 0.35))
+	# Card base on top of border
 	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
 	# Portrait — CROP-TO-FILL center square, not stretched
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
@@ -483,12 +485,7 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		_draw_mini_star(Vector2(bcx, bcy), 11.0, Color(0.85, 0.70, 0.12, 0.95))
 		_draw_mini_star(Vector2(bcx, bcy), 8.0, Color(1.0, 0.88, 0.25, 1.0))
 		_udraw(font, Vector2(bcx - 5, bcy + 4), str(level), HORIZONTAL_ALIGNMENT_CENTER, 10, 9, Color.WHITE)
-	# Border — thin outline that doesn't extend past card edges
-	var bdr = Color(0.32, 0.22, 0.48, 0.55) if unlocked else Color(0.18, 0.12, 0.25, 0.3)
-	if is_hovered and unlocked:
-		bdr = Color(0.55, 0.40, 0.75, 0.85)
-	draw_colored_polygon(_rrp(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), crad + 0.5), bdr)
-	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
+	# (border already drawn at top of function, behind all card content)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
