@@ -13498,11 +13498,11 @@ func _draw_survivor_grid() -> void:
 	_remove_detail_preview()
 	_clear_grid_previews()
 	var font = game_font
-	# Full-width panel — edge to edge with small margin
-	var panel_x = 10.0 + _safe_left
+	# Full-width panel — edge to edge, stops above nav bar
+	var panel_x = 14.0 + _safe_left
 	var panel_y = 38.0 + _safe_top
-	var panel_w = 1260.0 - _safe_left - _safe_right
-	var panel_h = 580.0
+	var panel_w = 1252.0 - _safe_left - _safe_right
+	var panel_h = 568.0
 
 	# Dark gothic panel — deep purple
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 2.0)
@@ -13690,14 +13690,14 @@ func _draw_zone_character(idx: int, center: Vector2, col: Color, pulse: float) -
 func _update_world_map_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 	world_map_hover_index = -1
-	var panel_x = 10.0 + _safe_left
+	var panel_x = 14.0 + _safe_left
 	var panel_y = 38.0 + _safe_top
-	var panel_w = 1260.0 - _safe_left - _safe_right
+	var panel_w = 1252.0 - _safe_left - _safe_right
 	var pad = 8.0
 	var gap = 6.0
 	var cols = 4
 	var grid_top = panel_y + 56.0
-	var grid_bottom = panel_y + 580.0 - pad
+	var grid_bottom = panel_y + 568.0 - pad
 	var available_h = grid_bottom - grid_top
 	var available_w = panel_w - pad * 2.0
 	var card_w = (available_w - float(cols - 1) * gap) / float(cols)
