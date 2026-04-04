@@ -13494,14 +13494,18 @@ func _on_daily_reward_clicked(mouse_pos: Vector2) -> void:
 		queue_redraw()
 
 func _draw_survivor_grid() -> void:
+	# Kill any stale detail preview nodes
+	_remove_detail_preview()
+	_clear_grid_previews()
 	var font = game_font
-	var panel_x = 70.0 + _safe_left
+	# Full-width panel — edge to edge with small margin
+	var panel_x = 10.0 + _safe_left
 	var panel_y = 38.0 + _safe_top
-	var panel_w = 1140.0 - _safe_left - _safe_right
-	var panel_h = 570.0
+	var panel_w = 1260.0 - _safe_left - _safe_right
+	var panel_h = 580.0
 
-	# Dark gothic panel — deep purple, not blue
-	_ds_panel(Rect2(panel_x - 4, panel_y, panel_w + 8, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 2.0)
+	# Dark gothic panel — deep purple
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 2.0)
 
 	# === "SURVIVORS" title — gold on dark ===
 	var title_y = panel_y + 4.0
@@ -13512,10 +13516,9 @@ func _draw_survivor_grid() -> void:
 	for st in survivor_types:
 		if _is_character_unlocked(st):
 			unlocked_count += 1
-	var party_sz = 13
 	var party_text = "%d/%d" % [unlocked_count, survivor_types.size()]
 	_ds_panel(Rect2(panel_x + panel_w - 80, title_y + 5, 70, 22), Color(0.10, 0.06, 0.18, 0.9), Color(0.45, 0.30, 0.60, 0.6), 1.5, 6.0)
-	_ds_outlined_text(Vector2(panel_x + panel_w - 45, title_y + 20), party_text, party_sz, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	_ds_outlined_text(Vector2(panel_x + panel_w - 45, title_y + 20), party_text, 13, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	var card_colors_grid = [
 		Color(0.29, 0.55, 0.25),  # Robin Hood
@@ -13537,25 +13540,24 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# Card grid — 3 rows x 4 cols, padded inside panel
-	var pad_x = 12.0  # Side padding inside panel
-	var grid_top = panel_y + 58.0
-	var grid_bottom = panel_y + panel_h - 10.0
+	# Card grid — 3 rows x 4 cols, cards FILL the panel
+	var pad = 8.0
+	var grid_top = panel_y + 56.0
+	var grid_bottom = panel_y + panel_h - pad
 	var available_h = grid_bottom - grid_top
-	var available_w = panel_w - pad_x * 2.0
-	var gap_x = 10.0
-	var gap_y = 8.0
+	var available_w = panel_w - pad * 2.0
+	var gap = 6.0
 	var cols = 4
-	var card_w = (available_w - float(cols - 1) * gap_x) / float(cols)
-	var card_h = (available_h - 2.0 * gap_y) / 3.0
-	var grid_start_x = panel_x + pad_x
+	var card_w = (available_w - float(cols - 1) * gap) / float(cols)
+	var card_h = (available_h - 2.0 * gap) / 3.0
+	var grid_start_x = panel_x + pad
 	var grid_start_y = grid_top
 
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
-		var cx = grid_start_x + float(col_i) * (card_w + gap_x)
-		var cy = grid_start_y + float(row_i) * (card_h + gap_y)
+		var cx = grid_start_x + float(col_i) * (card_w + gap)
+		var cy = grid_start_y + float(row_i) * (card_h + gap)
 
 		var tower_type = survivor_types[i]
 		var info = tower_info[tower_type]
@@ -13688,26 +13690,24 @@ func _draw_zone_character(idx: int, center: Vector2, col: Color, pulse: float) -
 func _update_world_map_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 	world_map_hover_index = -1
-	var panel_x = 70.0 + _safe_left
+	var panel_x = 10.0 + _safe_left
 	var panel_y = 38.0 + _safe_top
-	var panel_w = 1140.0 - _safe_left - _safe_right
-	var panel_h = 570.0
-	var pad_x = 12.0
-	var gap_x = 10.0
-	var gap_y = 8.0
+	var panel_w = 1260.0 - _safe_left - _safe_right
+	var pad = 8.0
+	var gap = 6.0
 	var cols = 4
-	var grid_top = panel_y + 58.0
-	var grid_bottom = panel_y + panel_h - 10.0
+	var grid_top = panel_y + 56.0
+	var grid_bottom = panel_y + 580.0 - pad
 	var available_h = grid_bottom - grid_top
-	var available_w = panel_w - pad_x * 2.0
-	var card_w = (available_w - float(cols - 1) * gap_x) / float(cols)
-	var card_h = (available_h - 2.0 * gap_y) / 3.0
-	var grid_start_x = panel_x + pad_x
+	var available_w = panel_w - pad * 2.0
+	var card_w = (available_w - float(cols - 1) * gap) / float(cols)
+	var card_h = (available_h - 2.0 * gap) / 3.0
+	var grid_start_x = panel_x + pad
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
-		var cx = grid_start_x + float(col_i) * (card_w + gap_x)
-		var cy = grid_top + float(row_i) * (card_h + gap_y)
+		var cx = grid_start_x + float(col_i) * (card_w + gap)
+		var cy = grid_top + float(row_i) * (card_h + gap)
 		if Rect2(cx, cy, card_w, card_h).has_point(mouse_pos):
 			world_map_hover_index = i
 			break
