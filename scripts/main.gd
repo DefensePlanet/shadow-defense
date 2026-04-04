@@ -13549,7 +13549,7 @@ func _draw_survivor_grid() -> void:
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.30, 0.18, 0.45, 0.5), 1.5)
 
 	# === "SURVIVORS" title + count badge — compact ===
-	_ds_outlined_text(Vector2(panel_x + 14, panel_y + 18), "SURVIVORS", 18, menu_gold_light)
+	_ds_outlined_text(Vector2(panel_x + 14, panel_y + 12), "SURVIVORS", 16, menu_gold_light)
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
@@ -13576,11 +13576,11 @@ func _draw_survivor_grid() -> void:
 	# No overlays — let the dark gothic menu background show clean
 
 	# === Filter/Sort Bar — right under title ===
-	_draw_filter_sort_bar(panel_x + 2, panel_y + 20.0, panel_w - 4)
+	_draw_filter_sort_bar(panel_x + 2, panel_y + 14.0, panel_w - 4)
 
 	# Card grid — clean spacing, no border overlap
 	var margin = 10.0
-	var grid_top = panel_y + 26.0
+	var grid_top = panel_y + 16.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -13737,7 +13737,7 @@ func _update_world_map_hover() -> void:
 	var margin = 10.0
 	var gap = 8.0
 	var cols = 4
-	var grid_top = panel_y + 26.0
+	var grid_top = panel_y + 16.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
