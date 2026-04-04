@@ -10826,10 +10826,11 @@ func _draw_currency_bar() -> void:
 		# Menu Improvement 13: Premium currency sparkle
 		var is_premium = c["name"] in ["Quills", "Shards", "Stars"]
 		_draw_currency_shimmer(cx, ic_y, 10.0, cc, is_premium)
-		# Value text — brighter
+		# Value text — bright gold with label
 		var display_val = _get_display_currency(c["name"]) if _currency_display.has(c["name"]) else c["value"]
 		var val_str = _format_gold(display_val)
-		_ds_outlined_text(Vector2(cx + 15, bar_y + 21), val_str, _scaled_fs(16), Color(1.0, 0.95, 0.85, 0.95), 85, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		_udraw(font, Vector2(cx + 15, bar_y + 14), c["name"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(cc.r, cc.g, cc.b, 0.6))
+		_udraw(font, Vector2(cx + 15, bar_y + 26), val_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.95, 0.85, 0.95))
 		cx += 130.0
 
 	# Total stars on far right
@@ -13537,17 +13538,19 @@ func _draw_survivor_grid() -> void:
 	var panel_w = 1268.0
 	var panel_h = 586.0
 
-	# No panel background — let the menu bg show through, cards are the content
+	# Header bar — dark background for title + filter
+	draw_colored_polygon(_rrp(Rect2(panel_x, panel_y, panel_w, 36), 6.0), Color(0.06, 0.04, 0.10, 0.9))
+	draw_rect(Rect2(panel_x, panel_y + 35, panel_w, 1), Color(0.55, 0.40, 0.15, 0.4))
 
-	# === "SURVIVORS" title — in the currency bar line ===
-	_ds_outlined_text(Vector2(panel_x + 10, panel_y + 10), "SURVIVORS", 14, menu_gold_light)
+	# === "SURVIVORS" title — BIG and gold ===
+	_udraw(font, Vector2(panel_x + 12, panel_y + 24), "SURVIVORS", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0, 0.92, 0.45))
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
 			unlocked_count += 1
 	var party_text = "%d/%d" % [unlocked_count, survivor_types.size()]
-	_ds_panel(Rect2(panel_x + panel_w - 74, panel_y + 2, 64, 18), Color(0.10, 0.06, 0.18, 0.9), Color(0.40, 0.28, 0.55, 0.5), 1.0, 6.0)
-	_ds_outlined_text(Vector2(panel_x + panel_w - 42, panel_y + 15), party_text, 11, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	_ds_panel(Rect2(panel_x + panel_w - 80, panel_y + 6, 70, 24), Color(0.10, 0.06, 0.18, 0.9), Color(0.45, 0.30, 0.60, 0.5), 1.5, 8.0)
+	_udraw(font, Vector2(panel_x + panel_w - 76, panel_y + 23), party_text, HORIZONTAL_ALIGNMENT_CENTER, 62, 14, Color(1.0, 0.92, 0.45))
 
 	var card_colors_grid = [
 		Color(0.29, 0.55, 0.25),  # Robin Hood
@@ -13566,12 +13569,12 @@ func _draw_survivor_grid() -> void:
 
 	# No overlays — let the dark gothic menu background show clean
 
-	# === Filter/Sort Bar — on same line as SURVIVORS title ===
-	_draw_filter_sort_bar(panel_x + 130, panel_y - 2.0, panel_w - 134)
+	# === Filter/Sort Bar — inside header bar, after SURVIVORS title ===
+	_draw_filter_sort_bar(panel_x + 170, panel_y + 2.0, panel_w - 260)
 
-	# Card grid — tight to header
+	# Card grid — right after header bar
 	var margin = 10.0
-	var grid_top = panel_y + 6.0
+	var grid_top = panel_y + 38.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -13737,7 +13740,7 @@ func _update_world_map_hover() -> void:
 	var margin = 10.0
 	var gap = 8.0
 	var cols = 4
-	var grid_top = panel_y + 6.0
+	var grid_top = panel_y + 38.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -33634,24 +33637,22 @@ func _get_filtered_survivor_indices() -> Array:
 func _draw_filter_sort_bar(px: float, py: float, pw: float) -> void:
 	var font = game_font
 	var bar_y = py
-	var filter_sz = 14
-	_ds_panel(Rect2(px, bar_y, pw, 28), Color(0.08, 0.07, 0.14, 0.88), Color(0.5, 0.4, 0.15, 0.3), 1.5, 8.0)
-	var fx = px + 8.0
+	var filter_sz = 16
+	var fx = px + 4.0
 	for fi in range(_filter_options.size()):
 		var f = _filter_options[fi]
 		var is_active = (f == _grid_filter)
-		var fw = font.get_string_size(f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz).x + 16
-		var fc = menu_gold if is_active else Color(0.75, 0.72, 0.65, 0.75)
+		var fw = font.get_string_size(f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz).x + 22
+		var fc = Color(1.0, 0.92, 0.45) if is_active else Color(0.70, 0.65, 0.55, 0.7)
 		if is_active:
-			_ds_panel(Rect2(fx, bar_y + 3, fw, 20), _ca(menu_gold, 0.4), _ca(menu_gold, 0.6), 1.0, 6.0)
+			_ds_panel(Rect2(fx, bar_y + 2, fw, 28), _ca(menu_gold, 0.35), _ca(menu_gold, 0.6), 1.5, 8.0)
 		else:
-			draw_colored_polygon(_rrp(Rect2(fx, bar_y + 3, fw, 20), 6.0), _ca(menu_gold, 0.08))
-		_udraw(font, Vector2(fx + 8, bar_y + 18), f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz, fc)
-		fx += fw + 4.0
+			draw_colored_polygon(_rrp(Rect2(fx, bar_y + 2, fw, 28), 8.0), Color(0.12, 0.08, 0.20, 0.5))
+		_udraw(font, Vector2(fx + 11, bar_y + 22), f, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz, fc)
+		fx += fw + 6.0
 	var sort_text = "SORT: %s" % _grid_sort
-	var sw = font.get_string_size(sort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, filter_sz).x
-	# Draw right-aligned: position at right edge minus text width
-	_ds_outlined_text(Vector2(px + pw - sw - 14, bar_y + 18), sort_text, filter_sz, Color(0.75, 0.68, 0.55, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	var sw = font.get_string_size(sort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	_udraw(font, Vector2(px + pw - sw - 8, bar_y + 22), sort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.80, 0.72, 0.50, 0.8))
 
 func _handle_filter_click(mouse_pos: Vector2, px: float, py: float, pw: float) -> bool:
 	if mouse_pos.y < py + 3 or mouse_pos.y > py + 23:
