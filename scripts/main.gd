@@ -1578,6 +1578,7 @@ var _badge_icon_textures: Dictionary = {}  # "deals"/"quests"/etc -> ImageTextur
 var _level_bg_textures: Dictionary = {}  # level_idx -> ImageTexture
 var _path_textures: Dictionary = {}  # faction_key -> ImageTexture
 var _portrait_textures: Dictionary = {}  # character_key -> ImageTexture
+var _sidekick_textures: Dictionary = {}  # sidekick_key -> ImageTexture
 var _tower_sprite_textures: Dictionary = {}  # character_key -> ImageTexture
 var _enemy_portrait_textures: Dictionary = {}  # "faction/tier_N" -> ImageTexture
 var _gear_icon_textures: Dictionary = {}  # gear_id -> ImageTexture
@@ -4498,6 +4499,34 @@ func _load_portrait_textures() -> void:
 			if tex:
 				_portrait_textures[pname] = tex
 
+func _load_sidekick_textures() -> void:
+	_sidekick_textures.clear()
+	var sk_names = [
+		"little_john", "friar_tuck", "maid_marian",
+		"cheshire_cat", "white_rabbit", "mad_hatter",
+		"winged_monkey", "toto", "tin_woodman",
+		"tinkerbell", "lost_boys", "tiger_lily",
+		"christine", "madame_giry", "raoul",
+		"bob_cratchit", "tiny_tim", "ghost_of_marley",
+		"dr_watson", "mrs_hudson", "inspector_lestrade",
+		"cheeta", "tantor", "jane",
+		"renfield", "bat_swarm", "bride_of_dracula",
+		"archimedes", "lady_of_the_lake", "young_arthur",
+		"igor", "lightning_coil", "victors_notes",
+		"ink_familiar", "torn_pages", "dark_muse",
+	]
+	for sk in sk_names:
+		var res_path = "res://assets/sidekick_portraits/" + sk + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_sidekick_textures[sk] = tex
+			continue
+		# Fallback: load raw PNG via Image
+		var img = Image.new()
+		if img.load(res_path.replace("res://", "")) == OK:
+			_sidekick_textures[sk] = ImageTexture.create_from_image(img)
+
 func _load_tower_sprite_textures() -> void:
 	_tower_sprite_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
@@ -4626,6 +4655,7 @@ func _load_all_art_assets() -> void:
 	_load_level_bg_textures()
 	_load_path_textures()
 	_load_portrait_textures()
+	_load_sidekick_textures()
 	_load_tower_sprite_textures()
 	_load_enemy_portrait_textures()
 	_load_gear_icon_textures()
@@ -14569,30 +14599,42 @@ func _draw_survivor_detail() -> void:
 		var sk_hover = (detail_hover_type == "sidekick" and detail_hover_index == si)
 		var sk_bdr_col = accent if sk_unlocked else Color(0.25, 0.20, 0.35)
 		_draw_enhanced_gear_slot(Vector2(sx, sy), ally_slot_sz, sk_unlocked, sk_bdr_col, accent, sk_hover)
-		if sk_unlocked and si < sk_data.size():
-			# Sidekick portrait silhouette
-			var sc = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.35)
-			draw_circle(sc, 20, _ca(accent, 0.35))
-			draw_colored_polygon(_rrp(Rect2(sc.x - 14, sc.y + 16, 28, 24), 3.0), _ca(accent, 0.25))
+		# Get sidekick texture key from name
+		var sk_tex_key = ""
+		if si < sk_data.size():
+			sk_tex_key = sk_data[si]["name"].to_lower().replace(" ", "_").replace(".", "").replace("'", "")
+		if si < sk_data.size() and _sidekick_textures.has(sk_tex_key):
+			var sk_tex = _sidekick_textures[sk_tex_key]
+			var inset = 4.0
+			if sk_unlocked:
+				# Full color portrait — unlocked
+				draw_texture_rect(sk_tex, Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), false)
+			else:
+				# Dark shaded portrait — locked but visible (teaser)
+				draw_texture_rect(sk_tex, Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), false, Color(0.3, 0.2, 0.35, 0.7))
+				# Dark overlay
+				draw_colored_polygon(_rrp(Rect2(sx + inset, sy + inset, ally_slot_sz - inset * 2, ally_slot_sz - inset * 2), 4.0), Color(0.05, 0.03, 0.10, 0.45))
+				# Lock + star with kill requirement
+				var lk2 = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.35)
+				draw_colored_polygon(_rrp(Rect2(lk2.x - 12, lk2.y + 4, 24, 18), 3.0), Color(0.25, 0.18, 0.35, 0.7))
+				draw_arc(Vector2(lk2.x, lk2.y + 4), 9, PI, TAU, 8, Color(0.35, 0.25, 0.50, 0.7), 2.0)
+				# Star badge with level req
+				var sk_star_y = sy + ally_slot_sz - 16.0
+				draw_circle(Vector2(sx + ally_slot_sz * 0.5, sk_star_y), 10, Color(0, 0, 0, 0.6))
+				_draw_mini_star(Vector2(sx + ally_slot_sz * 0.5, sk_star_y), 9.0, Color(0.9, 0.75, 0.15, 0.9))
+				_udraw(font, Vector2(sx + ally_slot_sz * 0.5 - 5, sk_star_y + 4), str(sk_levels[si]), HORIZONTAL_ALIGNMENT_CENTER, 10, 9, Color.WHITE)
+		elif not sk_unlocked:
+			# No texture fallback — just lock
+			var lk2 = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.35)
+			draw_colored_polygon(_rrp(Rect2(lk2.x - 12, lk2.y + 4, 24, 18), 3.0), Color(0.28, 0.22, 0.38, 0.6))
+			draw_arc(Vector2(lk2.x, lk2.y + 4), 9, PI, TAU, 8, Color(0.35, 0.28, 0.48, 0.6), 2.0)
+		# Name below slot
+		if si < sk_data.size():
 			var sk_name = sk_data[si]["name"]
 			if sk_name.length() > 12:
 				sk_name = sk_name.substr(0, 11) + "."
-			_udraw(font, Vector2(sx, sy + ally_slot_sz + 12), sk_name, HORIZONTAL_ALIGNMENT_CENTER, int(ally_slot_sz), 10, Color(1.0, 0.92, 0.45, 0.85))
-		else:
-			if not sk_unlocked:
-				# Lock + star with level requirement
-				var lk2 = Vector2(sx + ally_slot_sz * 0.5, sy + ally_slot_sz * 0.35)
-				draw_colored_polygon(_rrp(Rect2(lk2.x - 12, lk2.y + 4, 24, 18), 3.0), Color(0.28, 0.22, 0.38, 0.6))
-				draw_arc(Vector2(lk2.x, lk2.y + 4), 9, PI, TAU, 8, Color(0.35, 0.28, 0.48, 0.6), 2.0)
-				var sk_star_y = sy + ally_slot_sz - 16.0
-				draw_circle(Vector2(sx + ally_slot_sz * 0.5, sk_star_y), 9, Color(0, 0, 0, 0.5))
-				_draw_mini_star(Vector2(sx + ally_slot_sz * 0.5, sk_star_y), 8.0, Color(0.9, 0.75, 0.15, 0.85))
-				_udraw(font, Vector2(sx + ally_slot_sz * 0.5 - 4, sk_star_y + 3), str(sk_levels[si]), HORIZONTAL_ALIGNMENT_CENTER, 8, 8, Color.WHITE)
-			else:
-				# Empty unlocked — bright "+" icon
-				var plus_col = Color(1.0, 0.92, 0.45, 0.6)
-				draw_rect(Rect2(sx + ally_slot_sz * 0.5 - 3, sy + ally_slot_sz * 0.28, 6, ally_slot_sz * 0.44), plus_col)
-				draw_rect(Rect2(sx + ally_slot_sz * 0.28, sy + ally_slot_sz * 0.5 - 3, ally_slot_sz * 0.44, 6), plus_col)
+			var name_alpha = 0.9 if sk_unlocked else 0.45
+			_udraw(font, Vector2(sx, sy + ally_slot_sz + 12), sk_name, HORIZONTAL_ALIGNMENT_CENTER, int(ally_slot_sz), 10, Color(1.0, 0.92, 0.45, name_alpha))
 	_udraw(font, Vector2(ally_x, ally_slot_y + ally_slot_sz + 26), "Sidekicks: Call in extra characters", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.7, 0.6, 0.45, 0.5))
 
 	# --- GEAR SECTION (2 rows of 4) ---
