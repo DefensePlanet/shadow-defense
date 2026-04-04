@@ -14391,8 +14391,8 @@ func _draw_survivor_detail() -> void:
 	var char_name = info["name"].to_upper()
 	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 	var name_cx = panel_x + panel_w * 0.5
-	# Character name — BIG, bright, centered, outlined
-	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, top_y + 26), char_name, 26, Color(1.0, 0.95, 0.75, content_alpha), int(panel_w - 240), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Character name — BIG bright gold, centered (use _udraw with LEFT x for proper centering)
+	_udraw(font, Vector2(panel_x + 120, top_y + 26), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 240), 26, Color(1.0, 0.92, 0.45, content_alpha))
 	# Level badge star (next to name — right of center)
 	var badge_cx = name_cx + name_w * 0.5 + 20.0
 	var badge_cy = top_y + 16.0
@@ -14532,7 +14532,7 @@ func _draw_survivor_detail() -> void:
 	# --- WEAPON SECTION (top-left of right side) ---
 	var weap_x = right_x
 	var weap_y = right_y
-	_ds_outlined_text(Vector2(weap_x, weap_y + 18), "WEAPON", 18, _ca(menu_gold_light, 0.95 * tab_alpha))
+	_udraw(font, Vector2(weap_x, weap_y + 18), "WEAPON", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
 	var wslot_sz = 100.0
 	var wslot_y = weap_y + 24.0
 	var gear_hover2 = (detail_hover_type == "weapon" and detail_hover_index == 0)
@@ -14557,7 +14557,7 @@ func _draw_survivor_detail() -> void:
 	for su in sk_unlocked_arr:
 		if su:
 			sk_count += 1
-	_ds_outlined_text(Vector2(ally_x, ally_y + 18), "SIDEKICKS (%d/%d)" % [sk_count, sk_max], 18, _ca(menu_gold_light, 0.95 * tab_alpha))
+	_udraw(font, Vector2(ally_x, ally_y + 18), "SIDEKICKS (%d/%d)" % [sk_count, sk_max], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
 	var ally_slot_sz = 100.0
 	var ally_gap = 10.0
 	var ally_slot_y = ally_y + 24.0
@@ -14590,7 +14590,7 @@ func _draw_survivor_detail() -> void:
 
 	# --- TRINKETS/GEAR SECTION (below weapon + allies) ---
 	var trinket_y = wslot_y + wslot_sz + 36.0
-	_ds_outlined_text(Vector2(right_x, trinket_y + 18), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], 18, _ca(menu_gold_light, 0.95 * tab_alpha))
+	_udraw(font, Vector2(right_x, trinket_y + 18), "GEAR (%d/%d)" % [eq_gear_ids.size(), max_gear_slots], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
 	var gear_slot_size = 100.0
 	var gear_gap = 10.0
 	var gear_slot_y = trinket_y + 24.0
@@ -14621,7 +14621,7 @@ func _draw_survivor_detail() -> void:
 
 	# --- ABILITIES SECTION (below trinkets) ---
 	var abil_y = gear_slot_y + gear_slot_size + 44.0
-	_ds_outlined_text(Vector2(right_x, abil_y + 18), "ABILITIES", 18, _ca(menu_gold_light, 0.95 * tab_alpha))
+	_udraw(font, Vector2(right_x, abil_y + 18), "ABILITIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.92, 0.45, tab_alpha))
 	var abil_icon_y = abil_y + 26.0
 	var abil_sz = 60.0
 	var abil_gap = 8.0
