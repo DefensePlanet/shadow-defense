@@ -417,64 +417,76 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var ry = rect.position.y
 	var rw = rect.size.x
 	var rh = rect.size.y
-	var crad = 8.0
-	var name_bar_h = 28.0
+	var crad = 6.0
+	var name_bar_h = 24.0
 	var portrait_h = rh - name_bar_h
-	# Border — subtle purple glow, brighter on hover (drawn FIRST, behind card)
-	var bdr = Color(0.30, 0.20, 0.45, 0.5) if unlocked else Color(0.15, 0.10, 0.22, 0.3)
+	# Hover glow — visible purple aura behind the card
 	if is_hovered and unlocked:
-		bdr = Color(0.60, 0.45, 0.80, 0.9)
-	draw_colored_polygon(_rrp(Rect2(rx - 1.5, ry - 1.5, rw + 3, rh + 3), crad + 1), bdr)
+		draw_colored_polygon(_rrp(Rect2(rx - 4, ry - 4, rw + 8, rh + 8), crad + 3), Color(0.55, 0.35, 0.80, 0.35))
 	# Card shadow
-	draw_colored_polygon(_rrp(Rect2(rx + 2, ry + 3, rw, rh), crad), Color(0, 0, 0, 0.45))
-	# Card base — dark purple-black
-	var card_bg = Color(0.12, 0.08, 0.18) if unlocked else Color(0.08, 0.06, 0.12)
+	draw_colored_polygon(_rrp(Rect2(rx + 2, ry + 3, rw, rh), crad), Color(0, 0, 0, 0.5))
+	# Card base
+	var card_bg = Color(0.10, 0.07, 0.16) if unlocked else Color(0.07, 0.05, 0.11)
 	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
-	# Portrait — crop-to-fill maintaining aspect ratio
+	# Portrait — crop-to-fill, inset by 3px so rounded corners of card show
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
 		var tex_sz = tex.get_size()
-		# Crop-to-fill: use source rect to avoid stretching
+		var inset = 3.0
+		var draw_w = rw - inset * 2
+		var draw_h = portrait_h - inset - 1
 		var src_w = tex_sz.x
-		var src_h = tex_sz.x * (portrait_h / rw)  # Match card aspect ratio
+		var src_h = tex_sz.x * (draw_h / draw_w)
 		if src_h > tex_sz.y:
 			src_h = tex_sz.y
-			src_w = tex_sz.y * (rw / portrait_h)
+			src_w = tex_sz.y * (draw_w / draw_h)
 		var src_x = (tex_sz.x - src_w) * 0.5
-		var src_y = (tex_sz.y - src_h) * 0.3  # Bias up to show face
-		draw_texture_rect_region(tex, Rect2(rx + 1, ry + 1, rw - 2, portrait_h - 1), Rect2(src_x, src_y, src_w, src_h))
+		var src_y = (tex_sz.y - src_h) * 0.3
+		draw_texture_rect_region(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), Rect2(src_x, src_y, src_w, src_h))
 	elif not unlocked:
-		# Locked — very dark with subtle "?"
+		# Locked — dark with larger, more visible lock icon
 		var lk_cx = rx + rw * 0.5
-		var lk_cy = ry + portrait_h * 0.42
-		draw_circle(Vector2(lk_cx, lk_cy + 6), 9, Color(0.20, 0.15, 0.30, 0.4))
-		draw_arc(Vector2(lk_cx, lk_cy), 7, PI, TAU, 8, Color(0.25, 0.18, 0.35, 0.4), 2.0)
-		_udraw(font, Vector2(rx, lk_cy - 18), "?", HORIZONTAL_ALIGNMENT_CENTER, int(rw), 16, Color(0.40, 0.30, 0.50, 0.5))
-	# Name bar — slightly lighter purple, visually distinct from card body
+		var lk_cy = ry + portrait_h * 0.4
+		# Lock body
+		draw_colored_polygon(_rrp(Rect2(lk_cx - 16, lk_cy, 32, 24), 4.0), Color(0.22, 0.16, 0.32, 0.6))
+		# Shackle
+		draw_arc(Vector2(lk_cx, lk_cy), 12, PI, TAU, 10, Color(0.28, 0.20, 0.38, 0.5), 3.0)
+		# Keyhole
+		draw_circle(Vector2(lk_cx, lk_cy + 10), 4, Color(0.10, 0.07, 0.15, 0.8))
+		draw_rect(Rect2(lk_cx - 1.5, lk_cy + 13, 3, 6), Color(0.10, 0.07, 0.15, 0.8))
+		# "?" below lock
+		_udraw(font, Vector2(rx, lk_cy + 30), "?", HORIZONTAL_ALIGNMENT_CENTER, int(rw), 20, Color(0.35, 0.25, 0.50, 0.45))
+	# Name bar — noticeably lighter than card body so it stands out
 	var nb_y = ry + rh - name_bar_h
-	var nb_col = Color(0.14, 0.10, 0.22, 0.95) if unlocked else Color(0.10, 0.07, 0.16, 0.9)
+	var nb_col = Color(0.18, 0.13, 0.28, 0.95) if unlocked else Color(0.12, 0.09, 0.18, 0.9)
 	draw_colored_polygon(_rrp(Rect2(rx, nb_y, rw, name_bar_h), crad), nb_col)
-	# Gold separator line
-	draw_rect(Rect2(rx + 6, nb_y + 1, rw - 12, 1), Color(0.6, 0.45, 0.20, 0.35))
-	# Character name — use _udraw with LEFT x position so width clipping works
+	# Gold line separator — thicker, more visible
+	draw_rect(Rect2(rx + 4, nb_y, rw - 8, 2), Color(0.65, 0.50, 0.20, 0.5))
+	# Character name
 	var display_name = char_name.to_upper()
 	var name_sz = 11 if display_name.length() <= 12 else 9
 	if unlocked:
-		# Outline: draw black behind, then gold on top — all using _udraw with proper clipping
 		for ox in [-1, 0, 1]:
 			for oy in [-1, 0, 1]:
 				if ox != 0 or oy != 0:
-					_udraw(font, Vector2(rx + 4 + ox, nb_y + 18 + oy), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), name_sz, Color(0, 0, 0, 0.7))
-		_udraw(font, Vector2(rx + 4, nb_y + 18), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), name_sz, menu_gold_light)
+					_udraw(font, Vector2(rx + 4 + ox, nb_y + 16 + oy), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), name_sz, Color(0, 0, 0, 0.75))
+		_udraw(font, Vector2(rx + 4, nb_y + 16), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), name_sz, menu_gold_light)
 	else:
-		_udraw(font, Vector2(rx + 4, nb_y + 18), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 9, Color(0.30, 0.24, 0.40))
-	# Level badge — gold star top-right, inset from edge
+		_udraw(font, Vector2(rx + 4, nb_y + 16), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 9, Color(0.35, 0.28, 0.45))
+	# Level badge — bigger gold star, more visible
 	if unlocked and level > 0:
-		var bcx = rx + rw - 14.0
-		var bcy = ry + 14.0
-		_draw_mini_star(Vector2(bcx, bcy), 10.0, Color(0.85, 0.70, 0.12, 0.9))
-		_draw_mini_star(Vector2(bcx, bcy), 7.0, Color(1.0, 0.88, 0.25, 1.0))
-		_udraw(font, Vector2(bcx - 6, bcy + 4), str(level), HORIZONTAL_ALIGNMENT_CENTER, 12, 9, Color.WHITE)
+		var bcx = rx + rw - 18.0
+		var bcy = ry + 18.0
+		# Dark circle behind star for contrast
+		draw_circle(Vector2(bcx, bcy), 14, Color(0, 0, 0, 0.5))
+		_draw_mini_star(Vector2(bcx, bcy), 13.0, Color(0.80, 0.65, 0.10, 0.95))
+		_draw_mini_star(Vector2(bcx, bcy), 10.0, Color(1.0, 0.88, 0.25, 1.0))
+		_udraw(font, Vector2(bcx - 8, bcy + 5), str(level), HORIZONTAL_ALIGNMENT_CENTER, 16, 11, Color.WHITE)
+	# Thin border
+	var bdr = Color(0.28, 0.18, 0.40, 0.45) if unlocked else Color(0.15, 0.10, 0.22, 0.3)
+	if is_hovered and unlocked:
+		bdr = Color(0.55, 0.40, 0.75, 0.8)
+	draw_colored_polygon(_rrp(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), crad + 1), bdr)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
@@ -13498,27 +13510,25 @@ func _draw_survivor_grid() -> void:
 	_remove_detail_preview()
 	_clear_grid_previews()
 	var font = game_font
-	# Full-width panel — edge to edge, stops above nav bar
-	var panel_x = 14.0 + _safe_left
-	var panel_y = 38.0 + _safe_top
-	var panel_w = 1252.0 - _safe_left - _safe_right
-	var panel_h = 568.0
+	# Panel — full width with breathing room, stops cleanly above nav bar
+	var panel_x = 20.0 + _safe_left
+	var panel_y = 40.0 + _safe_top
+	var panel_w = 1240.0 - _safe_left - _safe_right
+	var panel_h = 565.0
 
-	# Dark gothic panel — deep purple
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 2.0)
+	# Dark gothic panel
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.30, 0.18, 0.45, 0.5), 1.5)
 
-	# === "SURVIVORS" title — gold on dark ===
-	var title_y = panel_y + 4.0
-	_ds_outlined_text(Vector2(panel_x + 20, title_y + 22), "SURVIVORS", 22, menu_gold_light)
-
-	# === PARTY count badge — right aligned ===
+	# === "SURVIVORS" title + count badge on same line ===
+	var title_y = panel_y + 3.0
+	_ds_outlined_text(Vector2(panel_x + 16, title_y + 20), "SURVIVORS", 20, menu_gold_light)
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
 			unlocked_count += 1
 	var party_text = "%d/%d" % [unlocked_count, survivor_types.size()]
-	_ds_panel(Rect2(panel_x + panel_w - 80, title_y + 5, 70, 22), Color(0.10, 0.06, 0.18, 0.9), Color(0.45, 0.30, 0.60, 0.6), 1.5, 6.0)
-	_ds_outlined_text(Vector2(panel_x + panel_w - 45, title_y + 20), party_text, 13, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	_ds_panel(Rect2(panel_x + panel_w - 76, title_y + 4, 66, 20), Color(0.10, 0.06, 0.18, 0.9), Color(0.40, 0.28, 0.55, 0.5), 1.0, 6.0)
+	_ds_outlined_text(Vector2(panel_x + panel_w - 43, title_y + 18), party_text, 12, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	var card_colors_grid = [
 		Color(0.29, 0.55, 0.25),  # Robin Hood
@@ -13537,13 +13547,13 @@ func _draw_survivor_grid() -> void:
 
 	# No overlays — let the dark gothic menu background show clean
 
-	# === CharMenu 1: Filter/Sort Bar ===
-	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
+	# === Filter/Sort Bar — tight to title ===
+	_draw_filter_sort_bar(panel_x, panel_y + 30.0, panel_w)
 
-	# Card grid — 3 rows x 4 cols, cards FILL the panel
-	var pad = 8.0
-	var grid_top = panel_y + 56.0
-	var grid_bottom = panel_y + panel_h - pad
+	# Card grid — 3 rows x 4 cols, tight to filter bar
+	var pad = 10.0
+	var grid_top = panel_y + 48.0
+	var grid_bottom = panel_y + panel_h - 6.0
 	var available_h = grid_bottom - grid_top
 	var available_w = panel_w - pad * 2.0
 	var gap = 6.0
@@ -13690,14 +13700,14 @@ func _draw_zone_character(idx: int, center: Vector2, col: Color, pulse: float) -
 func _update_world_map_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 	world_map_hover_index = -1
-	var panel_x = 14.0 + _safe_left
-	var panel_y = 38.0 + _safe_top
-	var panel_w = 1252.0 - _safe_left - _safe_right
-	var pad = 8.0
+	var panel_x = 20.0 + _safe_left
+	var panel_y = 40.0 + _safe_top
+	var panel_w = 1240.0 - _safe_left - _safe_right
+	var pad = 10.0
 	var gap = 6.0
 	var cols = 4
-	var grid_top = panel_y + 56.0
-	var grid_bottom = panel_y + 568.0 - pad
+	var grid_top = panel_y + 48.0
+	var grid_bottom = panel_y + 565.0 - 6.0
 	var available_h = grid_bottom - grid_top
 	var available_w = panel_w - pad * 2.0
 	var card_w = (available_w - float(cols - 1) * gap) / float(cols)
@@ -33838,15 +33848,15 @@ func _draw_unlock_progress(cx: float, cy: float, cw: float, ch: float, tower_ind
 		return
 	var current = completed_levels.size()
 	var pct = clampf(float(current) / float(required), 0.0, 1.0)
-	# Progress bar INSIDE card, above name bar (name bar is 28px from bottom)
-	var bar_y = cy + ch - 42.0
-	var bar_x = cx + 10.0
-	var bar_w = cw - 20.0
+	# Progress bar INSIDE card, above name bar (name bar is 24px from bottom)
+	var bar_y = cy + ch - 36.0
+	var bar_x = cx + 8.0
+	var bar_w = cw - 16.0
 	draw_rect(Rect2(bar_x, bar_y, bar_w, 4), Color(0.12, 0.10, 0.18, 0.6))
-	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, 4), Color(0.45, 0.60, 0.80, 0.75))
-	# Progress text BELOW the bar, ABOVE the name — small and contained
+	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, 4), Color(0.50, 0.65, 0.85, 0.8))
+	# Progress text centered below bar
 	var prog_text = "%d/%d" % [mini(current, required), required]
-	_udraw(font, Vector2(cx + 4, bar_y + 13), prog_text, HORIZONTAL_ALIGNMENT_CENTER, int(cw - 8), 8, Color(0.45, 0.55, 0.70, 0.5))
+	_udraw(font, Vector2(cx + 4, bar_y + 12), prog_text, HORIZONTAL_ALIGNMENT_CENTER, int(cw - 8), 9, Color(0.50, 0.60, 0.75, 0.55))
 
 # --- CharMenu 6: COLLECTION MILESTONES ---
 func _draw_collection_milestones(px: float, py: float) -> void:
