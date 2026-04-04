@@ -454,12 +454,12 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	draw_colored_polygon(_rrp(Rect2(rx, nb_y, rw, name_bar_h), crad), nb_col)
 	# Thin separator line between portrait and name
 	draw_colored_polygon(_rrp(Rect2(rx + 4, nb_y, rw - 8, 1), 0.5), Color(0.5, 0.35, 0.15, 0.4))
-	# Character name — gold/cream text
-	var display_name = char_name
+	# Character name — gold/cream text, clipped to card width
+	var display_name = char_name.to_upper()
 	if unlocked:
-		_ds_outlined_text(Vector2(rx + rw * 0.5, nb_y + 17), display_name, 11, menu_gold_light, int(rw - 6), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(rx + rw * 0.5, nb_y + 17), display_name, 10, menu_gold_light, int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		_udraw(font, Vector2(rx, nb_y + 17), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw), 10, Color(0.35, 0.28, 0.45))
+		_udraw(font, Vector2(rx + 4, nb_y + 17), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 9, Color(0.35, 0.28, 0.45))
 	# Level badge — gold star top-right
 	if unlocked and level > 0:
 		var bcx = rx + rw - 16.0
@@ -10757,7 +10757,7 @@ func _draw_currency_bar() -> void:
 	# Glass highlight at top
 	draw_rect(Rect2(0, bar_y, 1280, bar_h * 0.3), Color(1, 1, 1, 0.08))
 	# Cyan bottom border (like Bloons)
-	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 3), Color(0.30, 0.70, 0.90, 0.85))
+	draw_rect(Rect2(0, bar_y + bar_h - 3, 1280, 3), Color(0.35, 0.20, 0.50, 0.6))
 	draw_rect(Rect2(0, bar_y + bar_h, 1280, 1), Color(0.15, 0.35, 0.50, 0.6))
 
 	# Menu Improvement 1: Animated Logo Treatment (replaces static title)
@@ -11237,12 +11237,12 @@ func _draw_menu_background() -> void:
 	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
 	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
 	var nav_tab_cols = [
-		Color(0.30, 0.75, 0.95),  # Survivors: cyan (like Bloons)
-		Color(0.30, 0.75, 0.95),  # Gear: cyan
-		Color(0.30, 0.75, 0.95),  # Chapters: cyan
-		Color(0.30, 0.75, 0.95),  # Chronicles: cyan
-		Color(0.30, 0.75, 0.95),  # Emporium: cyan
-		Color(0.30, 0.75, 0.95),  # Achievements: cyan
+		Color(0.85, 0.72, 0.40),  # Survivors: gold
+		Color(0.85, 0.72, 0.40),  # Gear: gold
+		Color(0.85, 0.72, 0.40),  # Chapters: gold
+		Color(0.85, 0.72, 0.40),  # Chronicles: gold
+		Color(0.85, 0.72, 0.40),  # Emporium: gold
+		Color(0.85, 0.72, 0.40),  # Achievements: gold
 	]
 	# Chunky dark bar with thick gold top border
 	# Wooden shelf bar like Bloons BATD — warm brown wood texture feel
@@ -15130,7 +15130,7 @@ func _draw_story_map() -> void:
 	var arc_gap = 8.0
 
 	# --- Background panel (Bloons-style bordered panel with shadow) ---
-	_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.85), 3.0)
+	_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0)
 
 	# --- Title bar (Bloons-style gradient header) ---
 	# Dark gradient header
@@ -15327,7 +15327,7 @@ func _draw_story_map() -> void:
 				var bg2 = 0.36 + arc_col.g * 0.06
 				var bb = 0.56 + arc_col.b * 0.06
 				card_bg = Color(br, bg2, bb, 0.95) if not is_hovered else Color(minf(br * 1.2, 0.5), minf(bg2 * 1.2, 0.6), minf(bb * 1.1, 0.75), 0.98)
-				card_border = Color(0.30, 0.70, 0.90, 0.8) if not is_hovered else Color(0.40, 0.80, 0.98, 1.0)
+				card_border = Color(0.35, 0.20, 0.50, 0.6) if not is_hovered else Color(0.40, 0.80, 0.98, 1.0)
 			else:
 				card_bg = Color(0.18, 0.28, 0.42, 0.85)
 				card_border = Color(0.30, 0.40, 0.55, 0.5)
@@ -15395,7 +15395,7 @@ func _draw_story_map() -> void:
 			draw_colored_polygon(_rrp(Rect2(_lbx, _lby, _lbw, _lbh), 6.0), Color(0.12, 0.08, 0.18, 0.92))
 			var _lb_border = _rrp(Rect2(_lbx, _lby, _lbw, _lbh), 6.0)
 			_lb_border.append(_lb_border[0])
-			draw_polyline(_lb_border, Color(0.30, 0.70, 0.90, 0.8), 1.5)
+			draw_polyline(_lb_border, Color(0.35, 0.20, 0.50, 0.6), 1.5)
 			_ds_outlined_text(Vector2(_lbx + _lbw * 0.5, _lby + 16), str(lvl_idx + 1), 14, Color(0.95, 0.88, 0.45), int(_lbw), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 			# --- Text info (BRIGHT Bloons style) ---
@@ -15433,7 +15433,7 @@ func _draw_story_map() -> void:
 						draw_line(Vector2(rix + 7, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
 					elif "Weapon" in reward_text or "Slot" in reward_text:
 						# Unlock — small star icon
-						_draw_mini_star(Vector2(rix + 4, reward_icon_y - 1), 4.0, Color(0.35, 0.75, 0.95, 0.8))
+						_draw_mini_star(Vector2(rix + 4, reward_icon_y - 1), 4.0, Color(0.40, 0.25, 0.55, 0.6))
 					elif "Gear" in reward_text:
 						# Gear — small diamond
 						var dc = Color(0.7, 0.3, 0.9, 0.6)
@@ -15680,7 +15680,7 @@ func _draw_diff_popup() -> void:
 	var popup_x = 640.0 - popup_w * 0.5
 	var popup_y = 310.0 - popup_h * 0.5
 	# Rounded panel background
-	_ds_panel(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.35, 0.75, 0.95, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(popup_x, popup_y, popup_w, popup_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.40, 0.25, 0.55, 0.6), 3.0, 14.0)
 
 	# Title
 	_ds_outlined_text(Vector2(popup_x + 10, popup_y + 24), level["name"], 16, Color(1.0, 0.88, 0.40), int(popup_w - 20), HORIZONTAL_ALIGNMENT_CENTER)
@@ -21958,7 +21958,7 @@ func _draw_stats_recap() -> void:
 	var font = game_font
 	var cx = 640.0
 	var cy = 280.0
-	_ds_panel(Rect2(340, 200, 600, 280), Color(0.18, 0.35, 0.58, 0.96), Color(0.35, 0.75, 0.95, 0.85), 3.0, 12.0)
+	_ds_panel(Rect2(340, 200, 600, 280), Color(0.06, 0.04, 0.10, 0.92), Color(0.40, 0.25, 0.55, 0.6), 3.0, 12.0)
 	_ds_outlined_text(Vector2(cx, 228), "BATTLE RECAP", 22, Color(1.0, 0.90, 0.35), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	var stats_list = [
 		["Waves Cleared", str(_session_stats.get("waves_cleared", 0))],
@@ -29860,7 +29860,7 @@ func _draw_trophy_store() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	# Title
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "TROPHY STORE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Trophies: %d" % trophy_currency, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
@@ -29983,7 +29983,7 @@ func _draw_gear_shop() -> void:
 	var content_top = panel_y + 48.0
 	var content_bottom = panel_y + panel_h - 50.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "GEAR SHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	var card_w = 260.0
@@ -30166,7 +30166,7 @@ func _draw_salvage_panel() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "SALVAGE WORKSHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -30243,7 +30243,7 @@ func _draw_chest_crafting() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "CHEST FORGE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -31257,7 +31257,7 @@ func _draw_instrument_shop() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "LITERARY INSTRUMENTS", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Quills: %d" % player_quills, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Place instruments to buff nearby towers with aura effects", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
@@ -31542,7 +31542,7 @@ func _draw_spin_wheel_panel() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	# Title
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "LUCKY WHEEL", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 34, 160, 1), _ca(menu_gold, 0.4))
@@ -31578,7 +31578,7 @@ func _draw_merchant_panel() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	# Rounded panel background
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0, 14.0)
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	# Title
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "WANDERING MERCHANT", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
@@ -33834,13 +33834,15 @@ func _draw_unlock_progress(cx: float, cy: float, cw: float, ch: float, tower_ind
 		return
 	var current = completed_levels.size()
 	var pct = clampf(float(current) / float(required), 0.0, 1.0)
-	var bar_y = cy + ch - 28.0
-	var bar_x = cx + 10.0
-	var bar_w = cw - 20.0
-	draw_rect(Rect2(bar_x, bar_y, bar_w, 6), Color(0.15, 0.15, 0.2, 0.5))
-	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, 6), Color(0.4, 0.7, 0.9, 0.7))
+	# Progress bar INSIDE card, above name bar (name bar is 26px from bottom)
+	var bar_y = cy + ch - 38.0
+	var bar_x = cx + 8.0
+	var bar_w = cw - 16.0
+	draw_rect(Rect2(bar_x, bar_y, bar_w, 5), Color(0.15, 0.12, 0.22, 0.6))
+	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, 5), Color(0.4, 0.65, 0.85, 0.8))
+	# Progress text inside name bar area
 	var prog_text = "%d/%d" % [mini(current, required), required]
-	_udraw(font, Vector2(cx + cw * 0.5, bar_y + 16), prog_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.5, 0.7, 0.9, 0.6))
+	_udraw(font, Vector2(cx, cy + ch - 9), prog_text, HORIZONTAL_ALIGNMENT_CENTER, int(cw), 9, Color(0.5, 0.65, 0.8, 0.55))
 
 # --- CharMenu 6: COLLECTION MILESTONES ---
 func _draw_collection_milestones(px: float, py: float) -> void:
