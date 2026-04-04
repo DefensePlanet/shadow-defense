@@ -408,7 +408,7 @@ func _ds_panel(rect: Rect2, bg_color: Color, border_color: Color, border_width: 
 	# Dark bottom
 	draw_colored_polygon(_rrp(Rect2(Vector2(rect.position.x + 3, rect.position.y + rect.size.y * 0.6), Vector2(rect.size.x - 6, rect.size.y * 0.38)), maxf(rad - 2, 2)), Color(0, 0, 0, 0.1))
 
-# DS: Draw a hero card (portrait fills card, name at bottom, level badge)
+# DS: Draw a hero card — dark gothic style, portrait fills card, name at bottom
 func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: String, level: int, accent: Color, unlocked: bool, is_hovered: bool) -> void:
 	var font = game_font
 	if font == null:
@@ -417,57 +417,62 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var ry = rect.position.y
 	var rw = rect.size.x
 	var rh = rect.size.y
-	# === BLOONS BATD CHARACTER CARD ===
-	var crad = 6.0
-	var name_bar_h = 28.0  # Light gray name bar at bottom of card
-	var portrait_h = rh - name_bar_h  # Portrait area above name bar
+	var crad = 8.0
+	var name_bar_h = 26.0
+	var portrait_h = rh - name_bar_h
 	# Card shadow
-	draw_colored_polygon(_rrp(Rect2(rx + 2, ry + 3, rw, rh), crad), Color(0, 0, 0, 0.4))
-	# Card background — light colored (like Bloons cards)
-	var card_bg = Color(0.75, 0.82, 0.88) if unlocked else Color(0.30, 0.35, 0.42)
+	draw_colored_polygon(_rrp(Rect2(rx + 3, ry + 4, rw, rh), crad), Color(0, 0, 0, 0.55))
+	# Card base — dark purple-black
+	var card_bg = Color(0.12, 0.08, 0.18) if unlocked else Color(0.08, 0.06, 0.12)
 	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
-	# Portrait — resize to FIT inside the card area
+	# Portrait — crop-to-fill maintaining aspect ratio
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
-		# Just draw it to fill the portrait area — simple
-		draw_texture_rect(tex, Rect2(rx + 1, ry + 1, rw - 2, portrait_h - 1), false)
+		var tex_sz = tex.get_size()
+		var scale_x = rw / tex_sz.x
+		var scale_y = portrait_h / tex_sz.y
+		var fill_scale = maxf(scale_x, scale_y)
+		var sw = tex_sz.x * fill_scale
+		var sh = tex_sz.y * fill_scale
+		# Crop-to-fill centered in portrait area
+		var src_w = rw / fill_scale
+		var src_h = portrait_h / fill_scale
+		var src_x = (tex_sz.x - src_w) * 0.5
+		var src_y = (tex_sz.y - src_h) * 0.35  # Bias upward to show face
+		draw_texture_rect_region(tex, Rect2(rx, ry, rw, portrait_h), Rect2(src_x, src_y, src_w, src_h))
 	elif not unlocked:
-		# Locked — dark with lock icon
-		draw_colored_polygon(_rrp(Rect2(rx, ry, rw, portrait_h), crad), Color(0.18, 0.22, 0.30, 0.95))
+		# Locked — very dark with subtle lock
+		draw_colored_polygon(_rrp(Rect2(rx, ry, rw, portrait_h), crad), Color(0.06, 0.04, 0.10, 0.95))
 		var lk_cx = rx + rw * 0.5
 		var lk_cy = ry + portrait_h * 0.45
-		draw_circle(Vector2(lk_cx, lk_cy + 8), 12, Color(0.4, 0.45, 0.55, 0.6))
-		draw_arc(Vector2(lk_cx, lk_cy), 10, PI, TAU, 10, Color(0.45, 0.50, 0.60, 0.6), 3.0)
-		_ds_outlined_text(Vector2(lk_cx, lk_cy - 16), "?", 20, Color(0.6, 0.65, 0.72, 0.7), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
-	# Name bar — light gray at bottom of card (INSIDE card, like Bloons)
+		draw_circle(Vector2(lk_cx, lk_cy + 8), 10, Color(0.25, 0.18, 0.35, 0.5))
+		draw_arc(Vector2(lk_cx, lk_cy), 8, PI, TAU, 10, Color(0.30, 0.22, 0.40, 0.5), 2.5)
+		_ds_outlined_text(Vector2(lk_cx, lk_cy - 14), "?", 18, Color(0.45, 0.35, 0.55, 0.6), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Name bar — dark with subtle accent tint
 	var nb_y = ry + rh - name_bar_h
-	draw_colored_polygon(_rrp(Rect2(rx, nb_y, rw, name_bar_h), crad), Color(0.82, 0.85, 0.88) if unlocked else Color(0.35, 0.38, 0.42))
-	# Character name — dark bold text (like Bloons)
+	var nb_col = Color(0.10, 0.07, 0.15, 0.92) if unlocked else Color(0.08, 0.06, 0.12, 0.9)
+	draw_colored_polygon(_rrp(Rect2(rx, nb_y, rw, name_bar_h), crad), nb_col)
+	# Thin separator line between portrait and name
+	draw_colored_polygon(_rrp(Rect2(rx + 4, nb_y, rw - 8, 1), 0.5), Color(0.5, 0.35, 0.15, 0.4))
+	# Character name — gold/cream text
 	var display_name = char_name
-	if display_name.length() > 14:
-		display_name = display_name.substr(0, 13) + "."
 	if unlocked:
-		_ds_outlined_text(Vector2(rx + rw * 0.5, nb_y + 18), display_name, 13, Color(0.15, 0.15, 0.20), int(rw - 4), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(rx + rw * 0.5, nb_y + 17), display_name, 11, menu_gold_light, int(rw - 6), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		_udraw(font, Vector2(rx, nb_y + 18), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw), 12, Color(0.45, 0.48, 0.55))
-	# Level badge — GOLD STAR in top-right (like Bloons BATD)
+		_udraw(font, Vector2(rx, nb_y + 17), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw), 10, Color(0.35, 0.28, 0.45))
+	# Level badge — gold star top-right
 	if unlocked and level > 0:
-		var bcx = rx + rw - 18.0
-		var bcy = ry + 18.0
-		# Gold star background
-		_draw_mini_star(Vector2(bcx, bcy), 12.0, Color(0.90, 0.75, 0.15, 0.95))
-		_draw_mini_star(Vector2(bcx, bcy), 9.0, Color(1.0, 0.88, 0.25, 1.0))
-		# Level number on the star
-		var ls = str(level)
-		_ds_outlined_text(Vector2(bcx, bcy + 5), ls, 12, Color.WHITE, -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
-	# XP bar removed from grid view — shown in detail view only
-	# Border — thin light gray like Bloons BATD character cards
-	var bdr = Color(0.70, 0.72, 0.75, 0.8) if unlocked else Color(0.30, 0.32, 0.38, 0.5)
+		var bcx = rx + rw - 16.0
+		var bcy = ry + 16.0
+		_draw_mini_star(Vector2(bcx, bcy), 11.0, Color(0.90, 0.75, 0.15, 0.95))
+		_draw_mini_star(Vector2(bcx, bcy), 8.0, Color(1.0, 0.88, 0.25, 1.0))
+		_ds_outlined_text(Vector2(bcx, bcy + 5), str(level), 10, Color.WHITE, -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Border — subtle purple glow, brighter on hover
+	var bdr = Color(0.30, 0.20, 0.45, 0.6) if unlocked else Color(0.18, 0.12, 0.28, 0.4)
 	if is_hovered and unlocked:
-		bdr = Color(0.85, 0.88, 0.92, 1.0)
-		draw_colored_polygon(_rrp(Rect2(rx - 3, ry - 3, rw + 6, rh + 6), crad + 2), Color(1, 1, 1, 0.15))
-	# Thin border only — no thick double border
-	draw_colored_polygon(_rrp(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), crad + 1), bdr)
+		bdr = Color(0.55, 0.40, 0.75, 0.9)
+		draw_colored_polygon(_rrp(Rect2(rx - 2, ry - 2, rw + 4, rh + 4), crad + 1), Color(0.5, 0.3, 0.7, 0.15))
+	draw_colored_polygon(_rrp(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), crad), bdr)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
@@ -13493,21 +13498,21 @@ func _draw_survivor_grid() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 570.0
 
-	# Bloons-style panel background with border
-	_ds_panel(Rect2(panel_x - 4, panel_y, panel_w + 8, panel_h), Color(0.18, 0.35, 0.58, 0.95), Color(0.30, 0.70, 0.90, 0.8), 3.0)
+	# Dark gothic panel — deep purple, not blue
+	_ds_panel(Rect2(panel_x - 4, panel_y, panel_w + 8, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 2.0)
 
-	# === "SURVIVORS" title — left aligned ===
+	# === "SURVIVORS" title — gold on dark ===
 	var title_y = panel_y + 4.0
-	_ds_outlined_text(Vector2(panel_x + 20, title_y + 22), "SURVIVORS", 24, Color(1.0, 1.0, 1.0))
+	_ds_outlined_text(Vector2(panel_x + 20, title_y + 22), "SURVIVORS", 22, menu_gold_light)
 
-	# === PARTY count badge — right aligned, not overlapping ===
+	# === PARTY count badge — right aligned ===
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
 			unlocked_count += 1
-	var party_sz = 14
+	var party_sz = 13
 	var party_text = "%d/%d" % [unlocked_count, survivor_types.size()]
-	_ds_panel(Rect2(panel_x + panel_w - 80, title_y + 5, 70, 22), Color(0.20, 0.38, 0.60, 0.9), Color(0.35, 0.75, 0.95, 0.7), 1.5, 6.0)
+	_ds_panel(Rect2(panel_x + panel_w - 80, title_y + 5, 70, 22), Color(0.10, 0.06, 0.18, 0.9), Color(0.45, 0.30, 0.60, 0.6), 1.5, 6.0)
 	_ds_outlined_text(Vector2(panel_x + panel_w - 45, title_y + 20), party_text, party_sz, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	var card_colors_grid = [
@@ -13530,18 +13535,15 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# Bloons-style cards — 3 rows, name BELOW card (not inside)
-	var grid_top = panel_y + 54.0
-	var name_h = 18.0  # Space below each card for the name
-	var grid_bottom = 598.0
+	# Card grid — 3 rows x 4 cols, fits within panel
+	var grid_top = panel_y + 56.0
+	var grid_bottom = panel_y + panel_h - 8.0
 	var available_h = grid_bottom - grid_top
-	var gap_x = 8.0
-	var gap_y = 4.0  # Small gap between name and next row
+	var gap_x = 10.0
+	var gap_y = 8.0
 	var cols = 4
-	var card_w = (panel_w - float(cols - 1) * gap_x) / float(cols)
-	# Each row = card_h + name_h + gap_y. 3 rows must fit.
-	var row_total = (available_h - 2.0 * gap_y) / 3.0  # Total per row including name
-	var card_h = row_total - name_h  # Portrait area only
+	var card_w = (panel_w - float(cols - 1) * gap_x - 16.0) / float(cols)
+	var card_h = (available_h - 2.0 * gap_y) / 3.0
 	var grid_start_y = grid_top
 
 	for i in range(survivor_types.size()):
@@ -13550,7 +13552,7 @@ func _draw_survivor_grid() -> void:
 		var row_w = float(cols) * card_w + float(cols - 1) * gap_x
 		var row_x = panel_x + (panel_w - row_w) * 0.5
 		var cx = row_x + float(col_i) * (card_w + gap_x)
-		var cy = grid_start_y + float(row_i) * (card_h + name_h + gap_y)
+		var cy = grid_start_y + float(row_i) * (card_h + gap_y)
 
 		var tower_type = survivor_types[i]
 		var info = tower_info[tower_type]
@@ -13686,22 +13688,22 @@ func _update_world_map_hover() -> void:
 	var panel_x = 70.0 + _safe_left
 	var panel_y = 38.0 + _safe_top
 	var panel_w = 1140.0 - _safe_left - _safe_right
-	var gap_x = 8.0
-	var gap_y = 4.0
-	var hover_name_h = 18.0
+	var panel_h = 570.0
+	var gap_x = 10.0
+	var gap_y = 8.0
 	var cols = 4
-	var grid_top = panel_y + 54.0
-	var available_h = 598.0 - grid_top
-	var card_w = (panel_w - float(cols - 1) * gap_x) / float(cols)
-	var row_total = (available_h - 2.0 * gap_y) / 3.0
-	var card_h = row_total - hover_name_h
+	var grid_top = panel_y + 56.0
+	var grid_bottom = panel_y + panel_h - 8.0
+	var available_h = grid_bottom - grid_top
+	var card_w = (panel_w - float(cols - 1) * gap_x - 16.0) / float(cols)
+	var card_h = (available_h - 2.0 * gap_y) / 3.0
 	for i in range(survivor_types.size()):
 		var col_i = i % cols
 		var row_i = i / cols
 		var row_w = float(cols) * card_w + float(cols - 1) * gap_x
 		var row_x = panel_x + (panel_w - row_w) * 0.5
 		var cx = row_x + float(col_i) * (card_w + gap_x)
-		var cy = grid_top + float(row_i) * (card_h + hover_name_h + gap_y)
+		var cy = grid_top + float(row_i) * (card_h + gap_y)
 		if Rect2(cx, cy, card_w, card_h).has_point(mouse_pos):
 			world_map_hover_index = i
 			break
