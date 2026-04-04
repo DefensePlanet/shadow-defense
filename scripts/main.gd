@@ -11283,6 +11283,8 @@ func _draw_menu_background() -> void:
 		Color(0.85, 0.72, 0.40),  # Emporium: gold
 		Color(0.85, 0.72, 0.40),  # Achievements: gold
 	]
+	# Solid cover below nav bar — hides any card overflow
+	draw_rect(Rect2(0, nav_draw_y - 4, 1280, 8), Color(0.05, 0.03, 0.08, 1.0))
 	# Dark gothic nav bar — deep purple with gold accent line
 	for ngi in range(10):
 		var t = float(ngi) / 9.0
@@ -13599,8 +13601,8 @@ func _draw_survivor_grid() -> void:
 		var row_i = i / cols
 		var cx = grid_start_x + float(col_i) * (card_w + gap)
 		var cy = grid_start_y + float(row_i) * (card_h + gap) - survivor_grid_scroll
-		# Skip cards outside visible area
-		if cy + card_h < grid_top - 10 or cy > grid_bottom + 10:
+		# Skip cards outside visible area (don't draw over nav bar at y=616)
+		if cy + card_h < grid_top - 10 or cy > 614:
 			continue
 
 		var tower_type = survivor_types[i]
