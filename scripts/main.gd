@@ -13503,24 +13503,24 @@ func _draw_survivor_grid() -> void:
 	_remove_detail_preview()
 	_clear_grid_previews()
 	var font = game_font
-	# Panel — full width, stops well above nav bar (nav starts ~620)
+	# Panel — full width, clear gap above nav bar (nav icons at ~670)
 	var panel_x = 6.0
-	var panel_y = 36.0
+	var panel_y = 34.0
 	var panel_w = 1268.0
-	var panel_h = 540.0
+	var panel_h = 520.0
 
 	# Dark gothic panel
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.30, 0.18, 0.45, 0.5), 1.5)
 
-	# === "SURVIVORS" title + count badge ===
-	_ds_outlined_text(Vector2(panel_x + 14, panel_y + 22), "SURVIVORS", 20, menu_gold_light)
+	# === "SURVIVORS" title + count badge — compact ===
+	_ds_outlined_text(Vector2(panel_x + 14, panel_y + 18), "SURVIVORS", 18, menu_gold_light)
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
 			unlocked_count += 1
 	var party_text = "%d/%d" % [unlocked_count, survivor_types.size()]
-	_ds_panel(Rect2(panel_x + panel_w - 74, panel_y + 4, 64, 20), Color(0.10, 0.06, 0.18, 0.9), Color(0.40, 0.28, 0.55, 0.5), 1.0, 6.0)
-	_ds_outlined_text(Vector2(panel_x + panel_w - 42, panel_y + 18), party_text, 12, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	_ds_panel(Rect2(panel_x + panel_w - 74, panel_y + 2, 64, 18), Color(0.10, 0.06, 0.18, 0.9), Color(0.40, 0.28, 0.55, 0.5), 1.0, 6.0)
+	_ds_outlined_text(Vector2(panel_x + panel_w - 42, panel_y + 15), party_text, 11, menu_gold_light, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 	var card_colors_grid = [
 		Color(0.29, 0.55, 0.25),  # Robin Hood
@@ -13539,12 +13539,12 @@ func _draw_survivor_grid() -> void:
 
 	# No overlays — let the dark gothic menu background show clean
 
-	# === Filter/Sort Bar ===
-	_draw_filter_sort_bar(panel_x + 2, panel_y + 28.0, panel_w - 4)
+	# === Filter/Sort Bar — tight ===
+	_draw_filter_sort_bar(panel_x + 2, panel_y + 22.0, panel_w - 4)
 
-	# Card grid — 3x4, cards FILL the panel edge to edge
+	# Card grid — tight to filter bar, fills panel
 	var margin = 6.0
-	var grid_top = panel_y + 46.0
+	var grid_top = panel_y + 38.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -13695,13 +13695,13 @@ func _update_world_map_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 	world_map_hover_index = -1
 	var panel_x = 6.0
-	var panel_y = 36.0
+	var panel_y = 34.0
 	var panel_w = 1268.0
-	var panel_h = 540.0
+	var panel_h = 520.0
 	var margin = 6.0
 	var gap = 4.0
 	var cols = 4
-	var grid_top = panel_y + 46.0
+	var grid_top = panel_y + 38.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
