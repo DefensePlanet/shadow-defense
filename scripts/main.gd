@@ -11283,8 +11283,8 @@ func _draw_menu_background() -> void:
 		Color(0.85, 0.72, 0.40),  # Emporium: gold
 		Color(0.85, 0.72, 0.40),  # Achievements: gold
 	]
-	# Solid cover below nav bar — hides any card overflow
-	draw_rect(Rect2(0, nav_draw_y - 4, 1280, 8), Color(0.05, 0.03, 0.08, 1.0))
+	# Solid cover — hides ALL card overflow below nav bar
+	draw_rect(Rect2(0, nav_draw_y - 2, 1280, 120), Color(0.05, 0.03, 0.08, 1.0))
 	# Dark gothic nav bar — deep purple with gold accent line
 	for ngi in range(10):
 		var t = float(ngi) / 9.0
