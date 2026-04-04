@@ -10823,23 +10823,24 @@ func _draw_menu_background() -> void:
 				theme_accent = theme_item["accent"]
 				break
 
-	if menu_current_view != "survivors" or survivor_detail_open:
-		# === BLOONS BATD STYLE — BRIGHT BLUE gradient background ===
+	# ALL tabs get the dark gothic purple background
+	if true:
+		# === DARK GOTHIC PURPLE gradient — shadow world storybook ===
 		var bg_bands = _qcount(20)
 		var grad_step = 720 / maxi(1, bg_bands)
 		for gy in range(0, 720, grad_step):
 			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
-			# Deep blue at top, slightly darker blue at bottom
-			var r = lerpf(0.12, 0.08, gt)
-			var g = lerpf(0.22, 0.15, gt)
-			var b = lerpf(0.42, 0.32, gt)
+			# Deep purple-black at top, darker at bottom
+			var r = lerpf(0.10, 0.05, gt)
+			var g = lerpf(0.06, 0.03, gt)
+			var b = lerpf(0.18, 0.12, gt)
 			draw_rect(Rect2(0, gy, 1280, grad_step), Color(r, g, b, 1.0))
 
-		# === Subtle blue center glow ===
+		# === Subtle purple center glow ===
 		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
-		draw_circle(Vector2(640, 320), 550.0, Color(0.15, 0.30, 0.55, 0.10 * center_pulse))
-		draw_circle(Vector2(640, 320), 380.0, Color(0.20, 0.40, 0.65, 0.08 * center_pulse))
-		draw_circle(Vector2(640, 320), 220.0, Color(0.35, 0.15, 0.55, 0.12 * center_pulse))
+		draw_circle(Vector2(640, 320), 550.0, Color(0.20, 0.08, 0.35, 0.10 * center_pulse))
+		draw_circle(Vector2(640, 320), 380.0, Color(0.25, 0.10, 0.40, 0.08 * center_pulse))
+		draw_circle(Vector2(640, 320), 220.0, Color(0.35, 0.15, 0.50, 0.12 * center_pulse))
 
 		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
 		var orn_a = 0.22 + sin(_time * 0.8) * 0.06
@@ -11251,20 +11252,18 @@ func _draw_menu_background() -> void:
 		Color(0.85, 0.72, 0.40),  # Emporium: gold
 		Color(0.85, 0.72, 0.40),  # Achievements: gold
 	]
-	# Chunky dark bar with thick gold top border
-	# Wooden shelf bar like Bloons BATD — warm brown wood texture feel
-	# Wood grain gradient (warm brown tones)
+	# Dark gothic nav bar — deep purple with gold accent line
 	for ngi in range(10):
 		var t = float(ngi) / 9.0
-		var wr = lerpf(0.35, 0.25, t)
-		var wg = lerpf(0.25, 0.16, t)
-		var wb = lerpf(0.15, 0.08, t)
-		draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(wr, wg, wb, 0.97))
-	# Top edge — bright highlight (wood shelf edge)
-	draw_rect(Rect2(0, nav_draw_y - 2, 1280, 3), Color(0.50, 0.38, 0.22, 0.9))
-	draw_rect(Rect2(0, nav_draw_y + 1, 1280, 1), Color(0.60, 0.48, 0.30, 0.5))
+		var nr = lerpf(0.10, 0.05, t)
+		var ng = lerpf(0.06, 0.03, t)
+		var nb = lerpf(0.16, 0.10, t)
+		draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(nr, ng, nb, 0.97))
+	# Top edge — gold accent line
+	draw_rect(Rect2(0, nav_draw_y - 1, 1280, 2), Color(0.65, 0.50, 0.20, 0.7))
+	draw_rect(Rect2(0, nav_draw_y + 1, 1280, 1), Color(0.50, 0.35, 0.15, 0.3))
 	if _safe_bottom > 0:
-		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.20, 0.14, 0.08, 0.98))
+		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.05, 0.03, 0.10, 0.98))
 	var nav_margin = 15.0
 	var nav_total_w = 1280.0 - nav_margin * 2.0 - _safe_left - _safe_right
 	var tab_w = nav_total_w / 6.0
@@ -11291,7 +11290,7 @@ func _draw_menu_background() -> void:
 		if is_act:
 			_ds_outlined_text(Vector2(tx, lbl_y), nav_tab_labels[ni], 13, tc, int(tab_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
 		else:
-			_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), 11, Color(0.5, 0.45, 0.38, 0.5))
+			_udraw(font, Vector2(tx, lbl_y), nav_tab_labels[ni], HORIZONTAL_ALIGNMENT_CENTER, int(tab_w), 11, Color(0.50, 0.40, 0.60, 0.5))
 		# Active underline — thick glowing bar
 		if is_act:
 			var ul_w = minf(tab_w * 0.65, 85.0)
