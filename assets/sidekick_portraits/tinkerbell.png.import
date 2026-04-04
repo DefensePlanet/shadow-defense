@@ -2,16 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbvnhb3ivxvd1"
-path="res://.godot/imported/tinkerbell.png-22cd40637f194799db528d40b701785a.ctex"
-metadata={
-"vram_texture": false
-}
+uid="uid://coh21d7j7wkoa"
+valid=false
 
 [deps]
 
 source_file="res://assets/sidekick_portraits/tinkerbell.png"
-dest_files=["res://.godot/imported/tinkerbell.png-22cd40637f194799db528d40b701785a.ctex"]
 
 [params]
 

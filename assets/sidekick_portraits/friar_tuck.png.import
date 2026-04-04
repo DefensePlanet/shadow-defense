@@ -2,12 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5rq7yu1wsci"
+uid="uid://ct0vq5ly4cjm1"
 valid=false
 
 [deps]
 
-source_file="res://assets/sidekick_portraits/little_john.png"
+source_file="res://assets/sidekick_portraits/friar_tuck.png"
 
 [params]
 

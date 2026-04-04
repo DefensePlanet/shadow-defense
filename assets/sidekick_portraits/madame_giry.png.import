@@ -2,12 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5rq7yu1wsci"
+uid="uid://cg6p56wry51ev"
 valid=false
 
 [deps]
 
-source_file="res://assets/sidekick_portraits/little_john.png"
+source_file="res://assets/sidekick_portraits/madame_giry.png"
 
 [params]
 
