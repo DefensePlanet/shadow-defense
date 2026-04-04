@@ -14376,11 +14376,9 @@ func _draw_survivor_detail() -> void:
 	]
 	var accent = card_colors[mini(survivor_detail_index, card_colors.size() - 1)]
 
-	# Slide-in animation
-	var slide_t = clampf(_detail_slide_in, 0.0, 1.0)
-	var ease_t = 1.0 - pow(1.0 - slide_t, 3.0)
-	var content_alpha = ease_t
-	var x_offset = (1.0 - ease_t) * 40.0
+	# Content always fully visible (slide-in animation disabled — was broken, alpha stuck at 0)
+	var content_alpha = 1.0
+	var x_offset = 0.0
 
 	# === Dark gothic panel ===
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(menu_bg_section.r, menu_bg_section.g, menu_bg_section.b, content_alpha), _ca(accent, 0.4 * content_alpha), 2.0, 10.0)
