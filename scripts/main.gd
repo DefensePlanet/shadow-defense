@@ -14387,11 +14387,12 @@ func _draw_survivor_detail() -> void:
 
 	# === TOP BAR (34px) ===
 	var top_y = panel_y + 8.0
-	_ds_button(Rect2(panel_x + 10, top_y + 2, 90, 28), "< BACK", Color(0.25, 0.15, 0.35), false, 13)
+	_ds_button(Rect2(panel_x + 10, top_y + 2, 90, 28), "< BACK", Color(0.30, 0.18, 0.45), false, 13)
 	var char_name = info["name"].to_upper()
-	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
+	var name_w = font.get_string_size(char_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 	var name_cx = panel_x + panel_w * 0.5
-	_udraw(font, Vector2(panel_x + 110, top_y + 24), char_name, HORIZONTAL_ALIGNMENT_CENTER, int(panel_w - 220), 24, Color(menu_parchment.r, menu_parchment.g, menu_parchment.b, content_alpha))
+	# Character name — BIG, bright, centered, outlined
+	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, top_y + 26), char_name, 26, Color(1.0, 0.95, 0.75, content_alpha), int(panel_w - 240), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	# Level badge star (next to name — right of center)
 	var badge_cx = name_cx + name_w * 0.5 + 20.0
 	var badge_cy = top_y + 16.0
@@ -34581,31 +34582,20 @@ func _draw_hero_atmosphere(x: float, y: float, w: float, h: float, hero_idx: int
 		draw_rect(Rect2(x + w - 1, y + vi, 1, h - vi * 2), Color(0, 0, 0, 0.15 * (1.0 - va)))
 
 func _draw_enhanced_gear_slot(pos: Vector2, sz: float, filled: bool, tier_col: Color, accent: Color, hovered: bool) -> void:
-	# Background
-	draw_rect(Rect2(pos.x, pos.y, sz, sz), Color(0.03, 0.03, 0.08, 0.9))
-	if filled:
-		draw_rect(Rect2(pos.x + 2, pos.y + 2, sz - 4, sz - 4), Color(tier_col.r, tier_col.g, tier_col.b, 0.06))
-	# Corner-bracket frame (L-shaped lines at corners)
-	var bk_len = sz * 0.25
-	var bk_alpha = 0.9 if hovered else 0.6
-	var bk_col = Color(tier_col.r, tier_col.g, tier_col.b, bk_alpha) if filled else _ca(accent, bk_alpha * 0.6)
-	var bk_w = 2.0 if not hovered else 2.5
-	# Top-left
-	draw_line(Vector2(pos.x, pos.y), Vector2(pos.x + bk_len, pos.y), bk_col, bk_w)
-	draw_line(Vector2(pos.x, pos.y), Vector2(pos.x, pos.y + bk_len), bk_col, bk_w)
-	# Top-right
-	draw_line(Vector2(pos.x + sz, pos.y), Vector2(pos.x + sz - bk_len, pos.y), bk_col, bk_w)
-	draw_line(Vector2(pos.x + sz, pos.y), Vector2(pos.x + sz, pos.y + bk_len), bk_col, bk_w)
-	# Bottom-left
-	draw_line(Vector2(pos.x, pos.y + sz), Vector2(pos.x + bk_len, pos.y + sz), bk_col, bk_w)
-	draw_line(Vector2(pos.x, pos.y + sz), Vector2(pos.x, pos.y + sz - bk_len), bk_col, bk_w)
-	# Bottom-right
-	draw_line(Vector2(pos.x + sz, pos.y + sz), Vector2(pos.x + sz - bk_len, pos.y + sz), bk_col, bk_w)
-	draw_line(Vector2(pos.x + sz, pos.y + sz), Vector2(pos.x + sz, pos.y + sz - bk_len), bk_col, bk_w)
-	# Hover glow halo (animated pulse)
-	if hovered and filled:
-		var pulse = 0.6 + sin(_time * 3.0) * 0.2
-		draw_rect(Rect2(pos.x - 1, pos.y - 1, sz + 2, sz + 2), Color(tier_col.r, tier_col.g, tier_col.b, pulse * 0.15), false, 1.5)
+	var rad = 8.0
+	# Solid dark fill — visible against panel background
+	var fill_col = Color(0.08, 0.05, 0.14, 0.95) if not filled else Color(0.10, 0.07, 0.18, 0.95)
+	draw_colored_polygon(_rrp(Rect2(pos.x, pos.y, sz, sz), rad), fill_col)
+	# Thick bright border — SOLID, not corner brackets
+	var bdr_col = _ca(tier_col, 0.8) if filled else _ca(accent, 0.5)
+	if hovered:
+		bdr_col = _ca(tier_col, 1.0) if filled else _ca(accent, 0.8)
+		# Hover glow
+		draw_colored_polygon(_rrp(Rect2(pos.x - 3, pos.y - 3, sz + 6, sz + 6), rad + 2), _ca(tier_col if filled else accent, 0.2))
+	draw_colored_polygon(_rrp(Rect2(pos.x - 2, pos.y - 2, sz + 4, sz + 4), rad + 1), bdr_col)
+	draw_colored_polygon(_rrp(Rect2(pos.x, pos.y, sz, sz), rad), fill_col)
+	# Inner subtle highlight at top
+	draw_colored_polygon(_rrp(Rect2(pos.x + 2, pos.y + 2, sz - 4, sz * 0.3), rad - 1), Color(1, 1, 1, 0.04))
 
 func _draw_stat_bar(pos: Vector2, width: float, label: String, value: float, color: Color, font: Font) -> void:
 	var bar_h = 18.0
