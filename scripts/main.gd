@@ -417,10 +417,10 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 	var ry = rect.position.y
 	var rw = rect.size.x
 	var rh = rect.size.y
-	# Rounded card shadow + base (bright blue like Bloons)
+	# Rounded card with dark base (portrait covers it completely)
 	var crad = 8.0
-	draw_colored_polygon(_rrp(Rect2(rx + 4, ry + 5, rw, rh), crad), Color(0, 0, 0, 0.5))
-	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.20, 0.38, 0.60))
+	draw_colored_polygon(_rrp(Rect2(rx + 3, ry + 4, rw, rh), crad), Color(0, 0, 0, 0.5))
+	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), Color(0.08, 0.12, 0.22))
 	# Portrait — crop-to-fill
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
@@ -430,9 +430,8 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		var fill_scale = maxf(scale_x, scale_y)
 		var sw = tex_sz.x * fill_scale
 		var sh = tex_sz.y * fill_scale
-		# Position face at TOP of card (offset upward by 15% of overflow)
-		var y_offset = minf(0, (rh - sh) * 0.15)
-		draw_texture_rect(tex, Rect2(rx + (rw - sw) * 0.5, ry + y_offset, sw, sh), false)
+		# Center portrait — face should be visible in middle of card
+		draw_texture_rect(tex, Rect2(rx + (rw - sw) * 0.5, ry + (rh - sh) * 0.5, sw, sh), false)
 	elif not unlocked:
 		# Show portrait darkened/silhouetted (Bloons style) — not flat color
 		if speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
@@ -13558,12 +13557,12 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# 4x3 grid — conservative sizing to NEVER touch nav bar
-	var grid_top = panel_y + 46.0
-	var grid_bottom = 560.0  # 60px clear above nav bar at 620
+	# 4x3 grid — fits within panel, never overflows
+	var grid_top = panel_y + 50.0
+	var grid_bottom = minf(panel_y + panel_h - 15.0, 605.0)  # Stay inside panel
 	var available_h = grid_bottom - grid_top
-	var gap_x = 10.0
-	var gap_y = 8.0
+	var gap_x = 12.0
+	var gap_y = 10.0
 	var cols = 4
 	var card_h = (available_h - 2.0 * gap_y) / 3.0
 	var card_w = (panel_w - float(cols - 1) * gap_x) / float(cols)
