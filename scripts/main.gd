@@ -13575,13 +13575,13 @@ func _draw_survivor_grid() -> void:
 
 	# No overlays — let the dark gothic menu background show clean
 
-	# === Filter/Sort Bar — tight ===
-	_draw_filter_sort_bar(panel_x + 2, panel_y + 22.0, panel_w - 4)
+	# === Filter/Sort Bar — right under title ===
+	_draw_filter_sort_bar(panel_x + 2, panel_y + 20.0, panel_w - 4)
 
 	# Card grid — clean spacing, no border overlap
 	var margin = 10.0
-	var grid_top = panel_y + 38.0
-	var grid_bottom = panel_y + panel_h - 6.0
+	var grid_top = panel_y + 26.0
+	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
 	var gap = 8.0
@@ -13737,7 +13737,7 @@ func _update_world_map_hover() -> void:
 	var margin = 10.0
 	var gap = 8.0
 	var cols = 4
-	var grid_top = panel_y + 38.0
+	var grid_top = panel_y + 26.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
