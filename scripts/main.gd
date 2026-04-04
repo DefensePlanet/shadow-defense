@@ -11271,7 +11271,14 @@ func _draw_menu_background() -> void:
 	# === TOP CURRENCY BAR ===
 	_draw_currency_bar()
 
-	# === Bottom nav bar (BLOONS STYLE — chunky, bright, glowing) ===
+	# Draw survivor grid BEFORE nav bar so nav bar is always on top
+	if menu_current_view == "survivors":
+		if survivor_detail_open:
+			_draw_survivor_detail()
+		else:
+			_draw_survivor_grid()
+
+	# === Bottom nav bar (ALWAYS ON TOP — draws after all content) ===
 	var nav_draw_y = 620.0 - _safe_bottom
 	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
 	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
@@ -11336,11 +11343,6 @@ func _draw_menu_background() -> void:
 		_draw_diff_popup()
 		_draw_chapters_overlay()
 		# Fortress + Commander's Pass removed — clean March 17 layout
-	elif menu_current_view == "survivors":
-		if survivor_detail_open:
-			_draw_survivor_detail()
-		else:
-			_draw_survivor_grid()
 	elif menu_current_view == "gear":
 		_draw_gear_tab()
 	elif menu_current_view == "emporium":
