@@ -460,13 +460,16 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		draw_rect(Rect2(lk_cx - 2, lk_cy + 14, 4, 8), Color(0.15, 0.12, 0.20, 0.9))
 		# "?" text
 		_ds_outlined_text(Vector2(lk_cx, lk_cy - 20), "?", 24, Color(0.8, 0.65, 0.2, 0.7), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
-	# Bottom area for name — solid dark bar like Bloons
-	draw_colored_polygon(_rrp(Rect2(rx, ry + rh - 30, rw, 30), crad), Color(0.12, 0.15, 0.22, 0.9))
-	# Name — BIG, bold, centered, Bloons style
+	# Bottom name bar — dark, with name text
+	draw_colored_polygon(_rrp(Rect2(rx, ry + rh - 24, rw, 24), crad), Color(0.10, 0.12, 0.20, 0.92))
+	# Name — fits within card width
+	var display_name = char_name
+	if display_name.length() > 12:
+		display_name = display_name.substr(0, 11) + "."
 	if unlocked:
-		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 10), char_name, 14, Color(1.0, 1.0, 1.0), int(rw - 6), HORIZONTAL_ALIGNMENT_CENTER, 2)
+		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 6), display_name, 12, Color(1.0, 1.0, 1.0), int(rw - 4), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		_ds_outlined_text(Vector2(rx + rw * 0.5, ry + rh - 10), char_name, 12, Color(0.5, 0.52, 0.58), int(rw - 6), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_udraw(font, Vector2(rx + 2, ry + rh - 6), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 4), 11, Color(0.5, 0.52, 0.58))
 	# Level badge — GOLD STAR in top-right (like Bloons BATD)
 	if unlocked and level > 0:
 		var bcx = rx + rw - 18.0
@@ -13547,20 +13550,16 @@ func _draw_survivor_grid() -> void:
 	# === CharMenu 1: Filter/Sort Bar ===
 	_draw_filter_sort_bar(panel_x, panel_y + 36.0, panel_w)
 
-	# Bloons-style PORTRAIT cards — taller than wide, 4 columns, scrollable
-	var grid_top = panel_y + 50.0
-	var grid_bottom = minf(panel_y + panel_h - 10.0, 608.0)
+	# Bloons-style PORTRAIT cards — MUST fit 3 rows exactly
+	var grid_top = panel_y + 54.0
+	var grid_bottom = 600.0  # Hard stop before nav bar
 	var available_h = grid_bottom - grid_top
 	var gap_x = 8.0
 	var gap_y = 6.0
 	var cols = 4
 	var card_w = (panel_w - float(cols - 1) * gap_x) / float(cols)
-	# Portrait ratio — cards are TALLER than wide (like Bloons)
-	var card_h = card_w * 1.15  # Slightly taller than wide
-	# If 3 rows don't fit, shrink card_h to fit
-	var max_card_h = (available_h - 2.0 * gap_y) / 3.0
-	if card_h > max_card_h:
-		card_h = max_card_h
+	# Force exactly 3 rows to fit
+	var card_h = (available_h - 2.0 * gap_y) / 3.0
 	var grid_start_y = grid_top
 
 	for i in range(survivor_types.size()):
