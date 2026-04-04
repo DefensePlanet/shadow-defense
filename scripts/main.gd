@@ -13530,17 +13530,16 @@ func _draw_survivor_grid() -> void:
 	_remove_detail_preview()
 	_clear_grid_previews()
 	var font = game_font
-	# Panel — full width, clear gap above nav bar (nav icons at ~670)
+	# Panel — starts right at currency bar bottom
 	var panel_x = 6.0
-	var panel_y = 34.0
+	var panel_y = 30.0
 	var panel_w = 1268.0
-	var panel_h = 520.0
+	var panel_h = 586.0
 
-	# Dark gothic panel
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.30, 0.18, 0.45, 0.5), 1.5)
+	# No panel background — let the menu bg show through, cards are the content
 
-	# === "SURVIVORS" title + count badge — compact ===
-	_ds_outlined_text(Vector2(panel_x + 14, panel_y + 12), "SURVIVORS", 16, menu_gold_light)
+	# === "SURVIVORS" title — in the currency bar line ===
+	_ds_outlined_text(Vector2(panel_x + 10, panel_y + 10), "SURVIVORS", 14, menu_gold_light)
 	var unlocked_count = 0
 	for st in survivor_types:
 		if _is_character_unlocked(st):
@@ -13566,12 +13565,12 @@ func _draw_survivor_grid() -> void:
 
 	# No overlays — let the dark gothic menu background show clean
 
-	# === Filter/Sort Bar — right under title ===
-	_draw_filter_sort_bar(panel_x + 2, panel_y + 14.0, panel_w - 4)
+	# === Filter/Sort Bar — compact, right after title ===
+	_draw_filter_sort_bar(panel_x + 2, panel_y + 12.0, panel_w - 4)
 
-	# Card grid — clean spacing, no border overlap
+	# Card grid — IMMEDIATELY after filter bar, zero gap
 	var margin = 10.0
-	var grid_top = panel_y + 40.0
+	var grid_top = panel_y + 36.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
@@ -13722,13 +13721,13 @@ func _update_world_map_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 	world_map_hover_index = -1
 	var panel_x = 6.0
-	var panel_y = 34.0
+	var panel_y = 30.0
 	var panel_w = 1268.0
-	var panel_h = 520.0
+	var panel_h = 586.0
 	var margin = 10.0
 	var gap = 8.0
 	var cols = 4
-	var grid_top = panel_y + 40.0
+	var grid_top = panel_y + 36.0
 	var grid_bottom = panel_y + panel_h - 4.0
 	var grid_left = panel_x + margin
 	var grid_right = panel_x + panel_w - margin
