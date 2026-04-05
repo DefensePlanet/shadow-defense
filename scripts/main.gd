@@ -2616,19 +2616,19 @@ var character_unlock_map: Dictionary = {
 
 # Arc data for menu navigation (37 levels across 13 arcs)
 var arc_data = [
-	{"name": "Prologue", "levels": [0], "icon": "book"},
+	{"name": "Prologue", "levels": [0], "icon": "book", "unlock_char": "shadow_author"},
 	{"name": "Sherlock Holmes", "levels": [1, 2, 3], "unlock_char": "sherlock"},
 	{"name": "Merlin", "levels": [4, 5, 6], "unlock_char": "merlin"},
 	{"name": "Tarzan", "levels": [7, 8, 9], "unlock_char": "tarzan"},
 	{"name": "Dracula", "levels": [10, 11, 12], "unlock_char": "dracula"},
 	{"name": "Frankenstein", "levels": [13, 14, 15], "unlock_char": "frankenstein"},
-	{"name": "Robin Hood", "levels": [16, 17, 18]},
-	{"name": "Alice", "levels": [19, 20, 21]},
-	{"name": "Wicked Witch", "levels": [22, 23, 24]},
-	{"name": "Peter Pan", "levels": [25, 26, 27]},
-	{"name": "Phantom", "levels": [28, 29, 30]},
-	{"name": "Scrooge", "levels": [31, 32, 33]},
-	{"name": "Shadow Author", "levels": [34, 35, 36], "icon": "skull"},
+	{"name": "Robin Hood", "levels": [16, 17, 18], "unlock_char": "robin_hood"},
+	{"name": "Alice", "levels": [19, 20, 21], "unlock_char": "alice"},
+	{"name": "Wicked Witch", "levels": [22, 23, 24], "unlock_char": "wicked_witch"},
+	{"name": "Peter Pan", "levels": [25, 26, 27], "unlock_char": "peter_pan"},
+	{"name": "Phantom", "levels": [28, 29, 30], "unlock_char": "phantom"},
+	{"name": "Scrooge", "levels": [31, 32, 33], "unlock_char": "scrooge"},
+	{"name": "Shadow Author", "levels": [34, 35, 36], "icon": "skull", "unlock_char": "shadow_author"},
 ]
 
 # Save version for migration
@@ -10840,7 +10840,11 @@ func _draw_currency_bar() -> void:
 		{"icon": "emp_quills", "color": Color(0.3, 0.6, 0.4), "value": knowledge_ink, "name": "Ink"},
 		{"icon": "emp_trophy", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
 	]
-	var cx = 370.0 + _safe_left
+	# Evenly space currencies across the bar (left-aligned, compact)
+	var currency_count = currencies.size()
+	var currency_start = 100.0 + _safe_left
+	var currency_spacing = 115.0
+	var cx = currency_start
 	for c in currencies:
 		var cc = c["color"]
 		var ic_y = bar_y + bar_h * 0.5
@@ -10864,22 +10868,12 @@ func _draw_currency_bar() -> void:
 		var val_w = font.get_string_size(val_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		_udraw(font, Vector2(cx + 18, bar_y + 22), val_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.95, 0.85, 0.95))
 		_udraw(font, Vector2(cx + 24 + val_w, bar_y + 22), c["name"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.92, 0.45, 0.9))
-		cx += 130.0
+		cx += currency_spacing
 
-	# Total stars
-	var total_stars = 0
-	for ls_key in level_stars:
-		total_stars += level_stars[ls_key]
-	var max_stars = levels.size() * 3
-	_udraw(font, Vector2(1100, bar_y + 22), "%d/%d" % [total_stars, max_stars], HORIZONTAL_ALIGNMENT_RIGHT, 100, 14, Color(1.0, 0.9, 0.3, 0.9))
-
-	# Now Playing — song title + skip indicator (far right of currency bar)
+	# Now Playing — song title (right of currencies, before skip button)
 	if _current_song_title != "":
-		var np_x = 1130.0
-		var np_y = bar_y + 12.0
-		# Music note icon
-		_udraw(font, Vector2(np_x, np_y + 10), "now playing", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.60, 0.50, 0.75, 0.6))
-		_udraw(font, Vector2(np_x, np_y + 22), _current_song_title, HORIZONTAL_ALIGNMENT_LEFT, 140, 10, Color(0.80, 0.70, 0.95, 0.9))
+		var np_x = cx + 20.0
+		_udraw(font, Vector2(np_x, bar_y + 14), _current_song_title, HORIZONTAL_ALIGNMENT_LEFT, 200, 11, Color(0.80, 0.70, 0.95, 0.85))
 
 func _draw_menu_background() -> void:
 	var font = game_font
@@ -15109,6 +15103,8 @@ func _draw_story_map() -> void:
 		var badge_key = side_icons[si]
 		if _badge_icon_textures.has(badge_key):
 			var badge_sz = 62.0 if side_hover else 52.0
+			# Dark circle mask behind icon to hide any white corner artifacts
+			draw_circle(Vector2(icon_cx, icon_cy), badge_sz * 0.5 + 1, Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 0.95))
 			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(icon_cx - badge_sz * 0.5, icon_cy - badge_sz * 0.5, badge_sz, badge_sz), false, Color(1, 1, 1, 1.0 if side_hover else 0.85))
 		else:
 			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.4, sc.g * 0.4, sc.b * 0.4, 0.8))
@@ -15458,40 +15454,21 @@ func _draw_story_map() -> void:
 				else:
 					draw_arc(Vector2(dot_x, dot_y), 3.0, 0, TAU, 8, Color(dot_col.r, dot_col.g, dot_col.b, 0.2), 1.0)
 
-			# --- GO button (large, prominent) ---
+			# --- GO button (large, prominent — procedural for clean look) ---
 			var btn_x = rx + rw - 110.0
 			var btn_y2 = ry + 10.0
 			var btn_w2 = 95.0
 			var btn_h2 = 52.0
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
-				if _ui_tex.has("go_button"):
-					var go_a = 1.0 if btn_hover else 0.85
-					var go_s = 1.08 if btn_hover else 1.0
-					# Maintain aspect ratio
-					var go_tex = _ui_tex["go_button"]
-					var go_tex_sz = Vector2(go_tex.get_width(), go_tex.get_height())
-					var go_scale = minf(btn_w2 / go_tex_sz.x, btn_h2 / go_tex_sz.y) * go_s
-					var gw = go_tex_sz.x * go_scale
-					var gh = go_tex_sz.y * go_scale
-					var gx = btn_x + (btn_w2 - gw) * 0.5
-					var gy = btn_y2 + (btn_h2 - gh) * 0.5
-					# Glow behind on hover
-					if btn_hover:
-						draw_circle(Vector2(gx + gw * 0.5, gy + gh * 0.5), gw * 0.5 + 5, Color(0.2, 0.8, 0.2, 0.15))
-					draw_texture_rect(go_tex, Rect2(gx, gy, gw, gh), false, Color(1, 1, 1, go_a))
-				else:
-					var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
-					_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
+				var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
+				_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
 			else:
-				if _ui_tex.has("locked_button"):
-					draw_texture_rect(_ui_tex["locked_button"], Rect2(btn_x, btn_y2, btn_w2, btn_h2), false, Color(1, 1, 1, 0.8))
-				else:
-					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
-					draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
-					var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
-					draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
-					draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
+				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
+				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
+				var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
+				draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
+				draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
 				# Enhancement 19: Locked level requirement text
 				if lvl_idx > 0:
 					var req_lvl = lvl_idx - 1
