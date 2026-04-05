@@ -13,6 +13,9 @@ var master_volume: float = 1.0
 var music_volume: float = 0.8
 var sfx_volume: float = 1.0
 var voice_volume: float = 1.0
+var music_muted: bool = false
+var sfx_muted: bool = false
+var voice_muted: bool = false
 var audio_ducking: bool = true  # Enhancement #41: duck music during voice
 
 # Graphics
@@ -156,6 +159,9 @@ func save_settings() -> void:
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("audio", "sfx_volume", sfx_volume)
 	config.set_value("audio", "voice_volume", voice_volume)
+	config.set_value("audio", "music_muted", music_muted)
+	config.set_value("audio", "sfx_muted", sfx_muted)
+	config.set_value("audio", "voice_muted", voice_muted)
 	config.set_value("audio", "audio_ducking", audio_ducking)
 	# Graphics
 	config.set_value("graphics", "quality_level", quality_level)
@@ -201,6 +207,9 @@ func load_settings() -> void:
 	music_volume = config.get_value("audio", "music_volume", 0.8)
 	sfx_volume = config.get_value("audio", "sfx_volume", 1.0)
 	voice_volume = config.get_value("audio", "voice_volume", 1.0)
+	music_muted = config.get_value("audio", "music_muted", false)
+	sfx_muted = config.get_value("audio", "sfx_muted", false)
+	voice_muted = config.get_value("audio", "voice_muted", false)
 	audio_ducking = config.get_value("audio", "audio_ducking", true)
 	# Graphics
 	quality_level = config.get_value("graphics", "quality_level", -1)
@@ -239,9 +248,9 @@ func load_settings() -> void:
 func _apply_settings() -> void:
 	# Enhancement #38: Apply audio bus volumes to separate buses
 	_apply_audio_bus("Master", master_volume)
-	_apply_audio_bus("Music", music_volume * master_volume)
-	_apply_audio_bus("SFX", sfx_volume * master_volume)
-	_apply_audio_bus("Voice", voice_volume * master_volume)
+	_apply_audio_bus("Music", 0.0 if music_muted else music_volume * master_volume)
+	_apply_audio_bus("SFX", 0.0 if sfx_muted else sfx_volume * master_volume)
+	_apply_audio_bus("Voice", 0.0 if voice_muted else voice_volume * master_volume)
 	# Enhancement #42: Respect silent mode
 	_check_silent_mode()
 	# Apply FPS limit
@@ -272,6 +281,9 @@ func reset_to_defaults() -> void:
 	music_volume = 0.8
 	sfx_volume = 1.0
 	voice_volume = 1.0
+	music_muted = false
+	sfx_muted = false
+	voice_muted = false
 	audio_ducking = true
 	quality_level = -1
 	particle_effects = true

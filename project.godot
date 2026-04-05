@@ -35,6 +35,7 @@ LocalizationManager="*res://scripts/autoloads/localization_manager.gd"
 TutorialManager="*res://scripts/autoloads/tutorial_manager.gd"
 PrivacyManager="*res://scripts/autoloads/privacy_manager.gd"
 PerformanceMonitor="*res://scripts/autoloads/performance_monitor.gd"
+MusicManager="*res://scripts/autoloads/music_manager.gd"
 
 [display]
 

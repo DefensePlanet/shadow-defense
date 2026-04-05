@@ -101,6 +101,15 @@ var sell_button: Button
 var sell_value_label: Label
 var targeting_button: Button
 
+# Now Playing UI (top right, near currencies)
+var now_playing_label: Label
+var skip_song_button: Button
+var _current_song_title: String = ""
+
+# Settings panel
+var settings_panel: Control
+var settings_open: bool = false
+
 # Game state & levels
 enum GameState { MENU, PLAYING, GAME_OVER_STATE }
 var game_state: int = GameState.MENU
@@ -5300,6 +5309,29 @@ func _create_ui() -> void:
 	menu_exit_button.pressed.connect(_show_menu)
 	top_bar.add_child(menu_exit_button)
 
+	# Now Playing — song title + skip button (top bar, right side before MENU button)
+	now_playing_label = Label.new()
+	now_playing_label.position = Vector2(780, 10)
+	now_playing_label.size = Vector2(280, 30)
+	now_playing_label.add_theme_font_size_override("font_size", 12)
+	now_playing_label.add_theme_color_override("font_color", Color(0.75, 0.65, 0.90))
+	now_playing_label.add_theme_constant_override("shadow_offset_x", 1)
+	now_playing_label.add_theme_constant_override("shadow_offset_y", 1)
+	now_playing_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	now_playing_label.clip_text = true
+	now_playing_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	now_playing_label.text = ""
+	top_bar.add_child(now_playing_label)
+
+	skip_song_button = Button.new()
+	skip_song_button.text = " >> "
+	skip_song_button.position = Vector2(1070, 8)
+	skip_song_button.custom_minimum_size = Vector2(44, 34)
+	skip_song_button.add_theme_color_override("font_color", Color(0.75, 0.65, 0.90))
+	skip_song_button.add_theme_font_size_override("font_size", 12)
+	skip_song_button.pressed.connect(_on_skip_song_pressed)
+	top_bar.add_child(skip_song_button)
+
 	# Bottom panel — Bloons-style warm dark bar
 	bottom_panel = ColorRect.new()
 	bottom_panel.color = Color(0.15, 0.28, 0.48, 0.95)
@@ -5848,11 +5880,23 @@ func _create_ui() -> void:
 	nav_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let clicks pass to buttons
 	menu_overlay.add_child(nav_bar)
 
+	# Menu skip song button (top-right, visible during menu)
+	var menu_skip_btn = Button.new()
+	menu_skip_btn.text = " >> "
+	menu_skip_btn.position = Vector2(1225, 4)
+	menu_skip_btn.custom_minimum_size = Vector2(44, 28)
+	menu_skip_btn.add_theme_color_override("font_color", Color(0.65, 0.55, 0.80))
+	menu_skip_btn.add_theme_font_size_override("font_size", 11)
+	menu_skip_btn.flat = true
+	menu_skip_btn.pressed.connect(_on_skip_song_pressed)
+	menu_overlay.add_child(menu_skip_btn)
+
 	var nav_names = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
 	nav_names.append("ACHIEVEMENTS")
+	nav_names.append("SETTINGS")
 	var _nav_margin = 20.0
-	var safe_tab_w = (1280.0 - _nav_margin * 2.0 - _safe_left - _safe_right) / 6.0
-	for i in range(6):
+	var safe_tab_w = (1280.0 - _nav_margin * 2.0 - _safe_left - _safe_right) / 7.0
+	for i in range(7):
 		var btn_x = int(_nav_margin + _safe_left + float(i) * safe_tab_w)
 		var nav_btn = Button.new()
 		nav_btn.text = ""
@@ -6406,7 +6450,7 @@ func _draw_autosave_indicator() -> void:
 
 # Get menu tab list for swipe navigation
 func _get_menu_tab_order() -> Array:
-	return ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
+	return ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements", "settings"]
 
 # Navigate to adjacent tab (direction: -1 = left, +1 = right)
 func _swipe_to_adjacent_tab(direction: int) -> void:
@@ -6440,7 +6484,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	# Menu Improvement 7: Slide transition between views
 	_start_menu_slide(menu_current_view, nav_name)
 	# Menu Improvement 17: Nav icon bounce on tab click
-	var _bounce_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
+	var _bounce_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements", "settings"]
 	var _bounce_idx = _bounce_tab_names.find(nav_name)
 	if _bounce_idx >= 0:
 		_trigger_nav_bounce(_bounce_idx)
@@ -7311,6 +7355,7 @@ func _do_level_start(index: int) -> void:
 	# Improvement 12: Generate environmental hazards for this map
 	_generate_env_hazards(index)
 	_stop_music()
+	MusicManager.start_map_music(index)
 	_start_layered_music(index)
 	# Polyrhythm system: initialize world music mode, swing, drum style for this level
 	if _poly != null:
@@ -7958,12 +8003,12 @@ func _setup_path_for_level(index: int) -> void:
 # AUDIO — Procedural hip hop beat + character voice clips
 # ============================================================
 func _setup_audio() -> void:
-	# Menu music player (shuffle playlist of gothic piano tracks)
+	# Menu music player (legacy — now delegated to MusicManager autoload)
 	music_player = AudioStreamPlayer.new()
 	music_player.volume_db = -6.0
 	add_child(music_player)
-	music_player.finished.connect(_on_music_finished)
-	_load_music_tracks()
+	# Connect MusicManager song change signal for Now Playing UI
+	MusicManager.song_changed.connect(_on_song_changed)
 
 	# Voice player (one-shot clips via AudioStreamWAV — formant "character flavor")
 	voice_player = AudioStreamPlayer.new()
@@ -7991,44 +8036,31 @@ func _setup_audio() -> void:
 	_generate_ui_sfx()
 
 func _load_music_tracks() -> void:
-	var track_paths = [
-		"res://audio/music/vampires_piano.mp3",
-		"res://audio/music/haunting_piano.mp3",
-		"res://audio/music/haunted_track_minor.mp3",
-		"res://audio/music/cold_silence.ogg",
-		"res://audio/music/dark_rooms.mp3",
-	]
-	for path in track_paths:
-		if ResourceLoader.exists(path):
-			var track = load(path)
-			if track:
-				music_tracks.append(track)
-	# Shuffle on load
-	music_tracks.shuffle()
+	# Music loading now handled by MusicManager autoload
+	pass
 
 func _start_music() -> void:
-	if music_tracks.is_empty():
-		return
+	MusicManager.start_menu_music()
 	music_playing = true
-	_play_next_track()
 
 func _stop_music() -> void:
-	music_player.stop()
+	MusicManager.stop_music()
 	music_playing = false
 
 func _play_next_track() -> void:
-	if music_tracks.is_empty():
-		return
-	music_player.stream = music_tracks[music_index]
-	music_player.play()
-	music_index = (music_index + 1) % music_tracks.size()
-	# Reshuffle when we've cycled through all tracks
-	if music_index == 0:
-		music_tracks.shuffle()
+	MusicManager.skip_track()
 
 func _on_music_finished() -> void:
-	if music_playing:
-		_play_next_track()
+	# Handled by MusicManager autoload
+	pass
+
+func _on_song_changed(title: String) -> void:
+	_current_song_title = title
+	if now_playing_label:
+		now_playing_label.text = "♪ " + title
+
+func _on_skip_song_pressed() -> void:
+	MusicManager.skip_track()
 
 func _samples_to_wav(samples: PackedFloat32Array, rate: int = 22050) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -10834,12 +10866,20 @@ func _draw_currency_bar() -> void:
 		_udraw(font, Vector2(cx + 24 + val_w, bar_y + 22), c["name"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.92, 0.45, 0.9))
 		cx += 130.0
 
-	# Total stars on far right
+	# Total stars
 	var total_stars = 0
 	for ls_key in level_stars:
 		total_stars += level_stars[ls_key]
 	var max_stars = levels.size() * 3
-	_udraw(font, Vector2(1222, bar_y + 22), "%d/%d" % [total_stars, max_stars], HORIZONTAL_ALIGNMENT_RIGHT, 100, 14, Color(1.0, 0.9, 0.3, 0.9))
+	_udraw(font, Vector2(1100, bar_y + 22), "%d/%d" % [total_stars, max_stars], HORIZONTAL_ALIGNMENT_RIGHT, 100, 14, Color(1.0, 0.9, 0.3, 0.9))
+
+	# Now Playing — song title + skip indicator (far right of currency bar)
+	if _current_song_title != "":
+		var np_x = 1130.0
+		var np_y = bar_y + 12.0
+		# Music note icon
+		_udraw(font, Vector2(np_x, np_y + 10), "now playing", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.60, 0.50, 0.75, 0.6))
+		_udraw(font, Vector2(np_x, np_y + 22), _current_song_title, HORIZONTAL_ALIGNMENT_LEFT, 140, 10, Color(0.80, 0.70, 0.95, 0.9))
 
 func _draw_menu_background() -> void:
 	var font = game_font
@@ -11302,13 +11342,15 @@ func _draw_menu_background() -> void:
 			_draw_emporium()
 	elif menu_current_view == "achievements":
 		_draw_achievements_tab()
+	elif menu_current_view == "settings":
+		_draw_settings_tab()
 	else:
 		_draw_closed_book()
 
 	# === Bottom nav bar (ALWAYS ON TOP — draws after all content) ===
 	var nav_draw_y = 620.0 - _safe_bottom
-	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
-	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS"]
+	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements", "settings"]
+	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS", "SETTINGS"]
 	var nav_tab_cols = [
 		Color(0.85, 0.72, 0.40),  # Survivors: gold
 		Color(0.85, 0.72, 0.40),  # Gear: gold
@@ -11316,6 +11358,7 @@ func _draw_menu_background() -> void:
 		Color(0.85, 0.72, 0.40),  # Chronicles: gold
 		Color(0.85, 0.72, 0.40),  # Emporium: gold
 		Color(0.85, 0.72, 0.40),  # Achievements: gold
+		Color(0.65, 0.55, 0.80),  # Settings: purple
 	]
 	# Solid cover — hides ALL card overflow below nav bar
 	draw_rect(Rect2(0, nav_draw_y - 2, 1280, 120), Color(0.05, 0.03, 0.08, 1.0))
@@ -11333,9 +11376,9 @@ func _draw_menu_background() -> void:
 		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.05, 0.03, 0.10, 0.98))
 	var nav_margin = 15.0
 	var nav_total_w = 1280.0 - nav_margin * 2.0 - _safe_left - _safe_right
-	var tab_w = nav_total_w / 6.0
-	var _tab_icon_keys = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements"]
-	for ni in range(6):
+	var tab_w = nav_total_w / 7.0
+	var _tab_icon_keys = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements", "tab_settings"]
+	for ni in range(7):
 		var tx = nav_margin + _safe_left + float(ni) * tab_w
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
@@ -18337,6 +18380,11 @@ func _input(event: InputEvent) -> void:
 		elif menu_current_view == "chronicles":
 			_on_knowledge_tree_clicked(mouse_pos)
 			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "settings":
+			_on_settings_clicked(mouse_pos)
+			get_viewport().set_input_as_handled()
+			queue_redraw()
 			return
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -29170,6 +29218,163 @@ func _toggle_power_selection(power_id: String) -> void:
 	queue_redraw()
 
 # === ACHIEVEMENT DRAWING ===
+# === SETTINGS TAB ===
+# Settings scroll for touch
+var settings_scroll_y: float = 0.0
+
+func _draw_settings_tab() -> void:
+	var font = game_font
+	var panel_x = 120.0 + _safe_left
+	var panel_y = 55.0 + _safe_top
+	var panel_w = 1040.0 - _safe_left - _safe_right
+	var panel_h = 540.0
+
+	# Background panel
+	draw_rect(Rect2(panel_x - 10, panel_y - 10, panel_w + 20, panel_h + 20), Color(0.08, 0.05, 0.15, 0.9))
+	draw_rect(Rect2(panel_x - 10, panel_y - 10, panel_w + 20, panel_h + 20), Color(0.55, 0.40, 0.15, 0.4), false, 2.0)
+
+	# Title
+	_ds_outlined_text(Vector2(panel_x, panel_y + 10), "SETTINGS", 22, Color(0.85, 0.72, 0.40), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER, 2)
+
+	var section_y = panel_y + 55.0
+	var col1_x = panel_x + 40.0
+	var slider_w = 200.0
+	var row_h = 52.0
+
+	# === AUDIO SECTION ===
+	_udraw(font, Vector2(col1_x, section_y), "AUDIO", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.85, 0.72, 0.40))
+	draw_rect(Rect2(col1_x, section_y + 6, 80.0, 2), Color(0.55, 0.40, 0.15, 0.5))
+	section_y += 35.0
+
+	# Music Volume
+	_draw_settings_slider(font, col1_x, section_y, "MUSIC VOLUME", GameSettings.music_volume, GameSettings.music_muted, "music", slider_w)
+	section_y += row_h
+
+	# SFX Volume
+	_draw_settings_slider(font, col1_x, section_y, "SFX VOLUME", GameSettings.sfx_volume, GameSettings.sfx_muted, "sfx", slider_w)
+	section_y += row_h
+
+	# Voice Volume
+	_draw_settings_slider(font, col1_x, section_y, "VOICE VOLUME", GameSettings.voice_volume, GameSettings.sfx_muted == false and GameSettings.voice_muted, "voice", slider_w)
+	section_y += row_h
+
+	# Master Volume
+	_draw_settings_slider(font, col1_x, section_y, "MASTER VOLUME", GameSettings.master_volume, false, "master", slider_w)
+	section_y += row_h + 15.0
+
+	# === NOW PLAYING SECTION ===
+	_udraw(font, Vector2(col1_x, section_y), "NOW PLAYING", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.85, 0.72, 0.40))
+	draw_rect(Rect2(col1_x, section_y + 6, 120.0, 2), Color(0.55, 0.40, 0.15, 0.5))
+	section_y += 35.0
+
+	if _current_song_title != "":
+		_udraw(font, Vector2(col1_x + 10, section_y), _current_song_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.80, 0.70, 0.95, 0.95))
+		# Skip button area (drawn as a styled rect)
+		var skip_x = col1_x + 320.0
+		var skip_y = section_y - 12.0
+		draw_rect(Rect2(skip_x, skip_y, 100.0, 32.0), Color(0.25, 0.15, 0.40, 0.8))
+		draw_rect(Rect2(skip_x, skip_y, 100.0, 32.0), Color(0.55, 0.40, 0.70, 0.6), false, 1.5)
+		_udraw(font, Vector2(skip_x, skip_y + 22), "SKIP >>", HORIZONTAL_ALIGNMENT_CENTER, 100, 14, Color(0.85, 0.75, 0.95))
+	else:
+		_udraw(font, Vector2(col1_x + 10, section_y), "No music playing", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.50, 0.40, 0.60, 0.6))
+
+	# === RIGHT COLUMN: Mute toggles ===
+	var col2_x = panel_x + panel_w * 0.55
+	var toggle_y = panel_y + 90.0
+
+	_draw_settings_toggle(font, col2_x, toggle_y, "MUTE MUSIC", GameSettings.music_muted, "mute_music")
+	toggle_y += row_h
+	_draw_settings_toggle(font, col2_x, toggle_y, "MUTE SFX", GameSettings.sfx_muted, "mute_sfx")
+	toggle_y += row_h
+	_draw_settings_toggle(font, col2_x, toggle_y, "MUTE VOICE", GameSettings.voice_muted, "mute_voice")
+
+func _draw_settings_slider(font: Font, x: float, y: float, label: String, value: float, muted: bool, key: String, w: float) -> void:
+	var label_col = Color(0.50, 0.40, 0.55, 0.5) if muted else Color(0.75, 0.65, 0.85, 0.9)
+	_udraw(font, Vector2(x, y), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, label_col)
+	# Slider track
+	var track_x = x + 180.0
+	var track_y = y - 10.0
+	draw_rect(Rect2(track_x, track_y, w, 8.0), Color(0.15, 0.10, 0.25, 0.8))
+	# Filled portion
+	var fill_w = w * value
+	var fill_col = Color(0.35, 0.25, 0.50, 0.4) if muted else Color(0.65, 0.50, 0.80, 0.8)
+	draw_rect(Rect2(track_x, track_y, fill_w, 8.0), fill_col)
+	# Thumb
+	var thumb_x = track_x + fill_w
+	draw_circle(Vector2(thumb_x, track_y + 4.0), 8.0, fill_col)
+	# Percentage
+	var pct = "%d%%" % int(value * 100)
+	_udraw(font, Vector2(track_x + w + 15, y), pct, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, label_col)
+
+func _draw_settings_toggle(font: Font, x: float, y: float, label: String, is_on: bool, key: String) -> void:
+	_udraw(font, Vector2(x, y), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.75, 0.65, 0.85, 0.9))
+	# Toggle box
+	var box_x = x + 180.0
+	var box_y = y - 14.0
+	var box_sz = 24.0
+	draw_rect(Rect2(box_x, box_y, box_sz, box_sz), Color(0.15, 0.10, 0.25, 0.8))
+	draw_rect(Rect2(box_x, box_y, box_sz, box_sz), Color(0.55, 0.40, 0.70, 0.6), false, 1.5)
+	if is_on:
+		# X mark for muted
+		draw_line(Vector2(box_x + 5, box_y + 5), Vector2(box_x + box_sz - 5, box_y + box_sz - 5), Color(1.0, 0.4, 0.3, 0.9), 2.5)
+		draw_line(Vector2(box_x + box_sz - 5, box_y + 5), Vector2(box_x + 5, box_y + box_sz - 5), Color(1.0, 0.4, 0.3, 0.9), 2.5)
+
+func _on_settings_clicked(pos: Vector2) -> void:
+	var panel_x = 120.0 + _safe_left
+	var panel_y = 55.0 + _safe_top
+	var panel_w = 1040.0 - _safe_left - _safe_right
+	var col1_x = panel_x + 40.0
+	var col2_x = panel_x + panel_w * 0.55
+	var row_h = 52.0
+	var slider_w = 200.0
+
+	# Check volume sliders (col1)
+	var slider_base_y = panel_y + 90.0
+	var slider_configs = [
+		{"y": slider_base_y, "key": "music"},
+		{"y": slider_base_y + row_h, "key": "sfx"},
+		{"y": slider_base_y + row_h * 2, "key": "voice"},
+		{"y": slider_base_y + row_h * 3, "key": "master"},
+	]
+	for sc in slider_configs:
+		var track_x = col1_x + 180.0
+		var track_y = sc["y"] - 10.0
+		if pos.x >= track_x - 10 and pos.x <= track_x + slider_w + 10 and pos.y >= track_y - 15 and pos.y <= track_y + 25:
+			var val = clampf((pos.x - track_x) / slider_w, 0.0, 1.0)
+			match sc["key"]:
+				"music": GameSettings.music_volume = val
+				"sfx": GameSettings.sfx_volume = val
+				"voice": GameSettings.voice_volume = val
+				"master": GameSettings.master_volume = val
+			GameSettings.save_settings()
+			return
+
+	# Check mute toggles (col2)
+	var toggle_base_y = panel_y + 90.0
+	var toggle_configs = [
+		{"y": toggle_base_y, "key": "mute_music"},
+		{"y": toggle_base_y + row_h, "key": "mute_sfx"},
+		{"y": toggle_base_y + row_h * 2, "key": "mute_voice"},
+	]
+	for tc in toggle_configs:
+		var box_x = col2_x + 180.0
+		var box_y = tc["y"] - 14.0
+		if pos.x >= box_x and pos.x <= box_x + 24 and pos.y >= box_y and pos.y <= box_y + 24:
+			match tc["key"]:
+				"mute_music": GameSettings.music_muted = !GameSettings.music_muted
+				"mute_sfx": GameSettings.sfx_muted = !GameSettings.sfx_muted
+				"mute_voice": GameSettings.voice_muted = !GameSettings.voice_muted
+			GameSettings.save_settings()
+			return
+
+	# Check skip button
+	var np_section_y = panel_y + 90.0 + row_h * 4 + 15.0 + 35.0
+	var skip_x = col1_x + 320.0
+	var skip_y = np_section_y - 12.0
+	if pos.x >= skip_x and pos.x <= skip_x + 100 and pos.y >= skip_y and pos.y <= skip_y + 32:
+		MusicManager.skip_track()
+		_play_sfx(_sfx_ui_click)
+
 func _draw_achievements_tab() -> void:
 	var font = game_font
 	var panel_x = 70.0 + _safe_left
@@ -33227,7 +33432,7 @@ const MENU_SLIDE_DURATION = 0.25
 func _start_menu_slide(from_view: String, to_view: String) -> void:
 	_menu_slide_from = from_view
 	_menu_slide_timer = MENU_SLIDE_DURATION
-	var tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements"]
+	var tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements", "settings"]
 	var from_idx = tab_names.find(from_view)
 	var to_idx = tab_names.find(to_view)
 	_menu_slide_direction = 1.0 if to_idx > from_idx else -1.0
