@@ -15379,8 +15379,8 @@ func _draw_story_map() -> void:
 				var mc = medal_colors[di]
 				var alpha = 1.0 if earned else 0.35
 				# Card background
-				var card_bg = Color(mc.r * 0.12, mc.g * 0.12, mc.b * 0.12, 0.85) if earned else Color(0.06, 0.04, 0.08, 0.6)
-				draw_colored_polygon(_rrp(Rect2(card_x, gem_base_y, gem_card_w, gem_card_h), 6.0), card_bg)
+				var gem_bg = Color(mc.r * 0.12, mc.g * 0.12, mc.b * 0.12, 0.85) if earned else Color(0.06, 0.04, 0.08, 0.6)
+				draw_colored_polygon(_rrp(Rect2(card_x, gem_base_y, gem_card_w, gem_card_h), 6.0), gem_bg)
 				# Colored border
 				var bdr_pts = _rrp(Rect2(card_x, gem_base_y, gem_card_w, gem_card_h), 6.0)
 				bdr_pts.append(bdr_pts[0])
