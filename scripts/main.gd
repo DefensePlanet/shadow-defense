@@ -15060,7 +15060,7 @@ func _draw_story_map() -> void:
 	var list_y = 36.0
 	var list_w = 1060.0
 	var list_h = 575.0
-	var row_h = 138.0
+	var row_h = 132.0
 	var header_h = 36.0
 	var arc_gap = 8.0
 
@@ -15361,30 +15361,65 @@ func _draw_story_map() -> void:
 				wave_info += "  |  Best: W%d" % best_w
 			_udraw(font, Vector2(text_x, ry + 60), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 340, 12, stat_col)
 
-			# --- Difficulty medals (bottom of row, labeled, large) ---
+			# --- Difficulty gems (nano-banana art, large, with stars below each) ---
 			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
+			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
 			var diff_labels = ["EASY", "MED", "HARD", "PURE"]
 			var medal_colors = [Color(0.3, 0.85, 0.3), Color(0.85, 0.75, 0.15), Color(0.9, 0.2, 0.15), Color(0.7, 0.2, 0.9)]
-			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
-			var medal_x = text_x
-			var medal_y = ry + 76.0
-			for di in range(4):
-				var mx = medal_x + float(di) * 80.0
-				var earned = medals[di]
-				var mc = medal_colors[di]
-				var alpha = 1.0 if earned else 0.25
-				# Medal circle
-				draw_circle(Vector2(mx + 12, medal_y + 10), 10.0, Color(0, 0, 0, 0.4 * alpha))
-				draw_circle(Vector2(mx + 12, medal_y + 10), 9.0, Color(mc.r * 0.7, mc.g * 0.7, mc.b * 0.7, alpha))
-				if earned:
-					draw_circle(Vector2(mx + 10, medal_y + 8), 4.0, Color(1, 1, 1, 0.2))
-				draw_arc(Vector2(mx + 12, medal_y + 10), 10.0, 0, TAU, 16, Color(mc.r, mc.g, mc.b, 0.7 * alpha), 1.5)
-				# Difficulty label
-				_udraw(font, Vector2(mx + 26, medal_y + 14), diff_labels[di], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(mc.r, mc.g, mc.b, 0.7 * alpha))
-				# Stars next to label
-				if earned and diff_stars_arr[di] > 0:
-					for dsi in range(mini(diff_stars_arr[di], 3)):
-						_draw_mini_star(Vector2(mx + 58 + float(dsi) * 10.0, medal_y + 10), 4.0, Color(1, 0.95, 0.7, 0.9))
+			var gem_base_x = text_x
+			var gem_base_y = ry + 70.0
+			var gem_spacing = 80.0
+			if _ui_tex.has("difficulty_gems"):
+				var gem_tex = _ui_tex["difficulty_gems"]
+				var gem_strip_w = float(gem_tex.get_width())
+				var gem_strip_h = float(gem_tex.get_height())
+				var gem_one_w = gem_strip_w / 4.0
+				var gem_draw_h = 40.0
+				var gem_draw_w = gem_draw_h * (gem_one_w / gem_strip_h)
+				for di in range(4):
+					var mx = gem_base_x + float(di) * gem_spacing
+					var earned = medals[di]
+					var gem_a = 1.0 if earned else 0.2
+					var src = Rect2(float(di) * gem_one_w, 0, gem_one_w, gem_strip_h)
+					# Dark bg behind gem to hide any artifacts
+					draw_rect(Rect2(mx, gem_base_y, gem_draw_w, gem_draw_h), Color(0.06, 0.04, 0.10, 0.8))
+					draw_texture_rect_region(gem_tex, Rect2(mx, gem_base_y, gem_draw_w, gem_draw_h), src, Color(1, 1, 1, gem_a))
+					# Paint over corners
+					var csz = 5.0
+					var ccol = Color(0.06, 0.04, 0.10, 1.0)
+					draw_rect(Rect2(mx, gem_base_y, csz, csz), ccol)
+					draw_rect(Rect2(mx + gem_draw_w - csz, gem_base_y, csz, csz), ccol)
+					draw_rect(Rect2(mx, gem_base_y + gem_draw_h - csz, csz, csz), ccol)
+					draw_rect(Rect2(mx + gem_draw_w - csz, gem_base_y + gem_draw_h - csz, csz, csz), ccol)
+					# 3 stars below gem
+					var star_y = gem_base_y + gem_draw_h + 8.0
+					var ds = diff_stars_arr[di] if earned else 0
+					for dsi in range(3):
+						var sx = mx + gem_draw_w * 0.5 - 12.0 + float(dsi) * 12.0
+						if dsi < ds:
+							_draw_mini_star(Vector2(sx, star_y), 5.0, Color(1, 0.90, 0.30, 0.95))
+						else:
+							_draw_mini_star(Vector2(sx, star_y), 4.5, Color(0.3, 0.25, 0.18, 0.3))
+			else:
+				# Procedural fallback
+				for di in range(4):
+					var mx = gem_base_x + float(di) * gem_spacing
+					var earned = medals[di]
+					var mc = medal_colors[di]
+					var alpha = 1.0 if earned else 0.25
+					draw_circle(Vector2(mx + 16, gem_base_y + 16), 14.0, Color(mc.r * 0.6, mc.g * 0.6, mc.b * 0.6, alpha))
+					draw_arc(Vector2(mx + 16, gem_base_y + 16), 14.0, 0, TAU, 16, Color(mc.r, mc.g, mc.b, 0.7 * alpha), 2.0)
+					if earned:
+						draw_circle(Vector2(mx + 13, gem_base_y + 12), 5.0, Color(1, 1, 1, 0.15))
+					_udraw(font, Vector2(mx, gem_base_y + 38), diff_labels[di], HORIZONTAL_ALIGNMENT_CENTER, 32, 10, Color(mc.r, mc.g, mc.b, 0.7 * alpha))
+					var ds = diff_stars_arr[di] if earned else 0
+					for dsi in range(3):
+						var sx = mx + 16.0 - 12.0 + float(dsi) * 12.0
+						var star_y = gem_base_y + 48.0
+						if dsi < ds:
+							_draw_mini_star(Vector2(sx, star_y), 5.0, Color(1, 0.90, 0.30, 0.95))
+						else:
+							_draw_mini_star(Vector2(sx, star_y), 4.5, Color(0.3, 0.25, 0.18, 0.3))
 
 			# --- GO button (right side, vertically centered, large) ---
 			var btn_w2 = 100.0
@@ -15395,9 +15430,6 @@ func _draw_story_map() -> void:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
 				var btn_col = Color(0.15, 0.55, 0.12) if not is_complete else Color(0.12, 0.38, 0.10)
 				_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "PLAY", btn_col, btn_hover, 18)
-				# Stars below button
-				if is_complete and stars > 0:
-					_draw_animated_stars(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 + 14.0, stars, 6.0)
 			else:
 				# Locked — dark panel with lock icon
 				_ds_panel(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.10, 0.08, 0.06, 0.7), Color(0.25, 0.20, 0.15, 0.4), 2.0)
@@ -15436,7 +15468,7 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 	var list_y = 36.0
 	var list_w = 1060.0
 	var list_h = 575.0
-	var row_h = 138.0
+	var row_h = 132.0
 	var header_h = 36.0
 	var arc_gap = 8.0
 	var content_top = list_y + 40.0
