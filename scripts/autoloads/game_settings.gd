@@ -196,6 +196,7 @@ func save_settings() -> void:
 	# Language
 	config.set_value("general", "language", language)
 	config.save(SETTINGS_PATH)
+	_apply_settings()
 	settings_changed.emit()
 
 func load_settings() -> void:
