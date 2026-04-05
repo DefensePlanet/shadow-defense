@@ -369,10 +369,10 @@ func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = fal
 	draw_colored_polygon(_rrp(Rect2(Vector2(r.position.x + 1, r.position.y + r.size.y * 0.45), Vector2(r.size.x - 2, r.size.y * 0.54)), maxf(rad - 1, 2)), Color(0, 0, 0, 0.2))
 	# Glass shine top (rounded)
 	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(4, 2), Vector2(r.size.x - 8, r.size.y * 0.3)), maxf(rad - 3, 2)), Color(1, 1, 1, 0.25))
-	# Text — outlined
+	# Text — outlined and centered
 	var tx = r.position.x
-	var ty = r.position.y + r.size.y * 0.65
-	_ds_outlined_text(Vector2(tx + r.size.x * 0.5, ty), text, text_size, Color(1, 1, 1, 1.0), int(r.size.x), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	var ty = r.position.y + r.size.y * 0.5 + float(text_size) * 0.35
+	_ds_outlined_text(Vector2(tx, ty), text, text_size, Color(1, 1, 1, 1.0), int(r.size.x), HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 # DS: Draw outlined text (Bloons style — thick black outline, bright fill)
 func _ds_outlined_text(pos: Vector2, text: String, size: int, color: Color, width: int = -1, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, outline_size: int = 2) -> void:
@@ -15060,7 +15060,7 @@ func _draw_story_map() -> void:
 	var list_y = 36.0
 	var list_w = 1060.0
 	var list_h = 575.0
-	var row_h = 116.0
+	var row_h = 138.0
 	var header_h = 36.0
 	var arc_gap = 8.0
 
@@ -15342,162 +15342,78 @@ func _draw_story_map() -> void:
 			draw_polyline(_lb_border, Color(0.35, 0.20, 0.50, 0.6), 1.5)
 			_ds_outlined_text(Vector2(_lbx + _lbw * 0.5, _lby + 16), str(lvl_idx + 1), 14, Color(0.95, 0.88, 0.45), int(_lbw), HORIZONTAL_ALIGNMENT_CENTER, 1)
 
-			# --- Text info (BRIGHT Bloons style) ---
+			# --- Text info (clean layout with breathing room) ---
 			var text_x = thumb_x + thumb_w + 18.0
 			var name_col = Color(1.0, 0.95, 0.50) if is_unlocked else Color(0.55, 0.48, 0.38, 0.65)
-			var sub_col = Color(0.92, 0.82, 0.60) if is_unlocked else Color(0.45, 0.40, 0.32, 0.55)
-			var stat_col = Color(0.70, 0.92, 0.55) if is_unlocked else Color(0.40, 0.38, 0.30, 0.45)
+			var sub_col = Color(0.80, 0.72, 0.55) if is_unlocked else Color(0.45, 0.40, 0.32, 0.55)
+			var stat_col = Color(0.60, 0.85, 0.45) if is_unlocked else Color(0.40, 0.38, 0.30, 0.45)
+			# Level name — large, bright
 			if is_unlocked:
-				_ds_outlined_text(Vector2(text_x, ry + 28), level["name"], 18, name_col, 380)
+				_ds_outlined_text(Vector2(text_x, ry + 26), level["name"], 17, name_col, 340)
 			else:
-				_udraw(font, Vector2(text_x, ry + 28), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 380, 17, name_col)
-			_udraw(font, Vector2(text_x, ry + 48), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 380, 15, sub_col)
-
-			# Enhancement 22: Best wave indicator
+				_udraw(font, Vector2(text_x, ry + 26), level["name"], HORIZONTAL_ALIGNMENT_LEFT, 340, 16, name_col)
+			# Subtitle — smaller, muted
+			_udraw(font, Vector2(text_x, ry + 44), level["subtitle"], HORIZONTAL_ALIGNMENT_LEFT, 340, 13, sub_col)
+			# Stats — separated line
 			var wave_info = "Waves: %d  |  Gold: %d  |  Lives: %d" % [level["waves"], level["gold"], level["lives"]]
 			var best_w = level_best_wave.get(lvl_idx, 0)
 			if best_w > 0:
 				wave_info += "  |  Best: W%d" % best_w
-			_udraw(font, Vector2(text_x, ry + 64), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 380, 14, stat_col)
+			_udraw(font, Vector2(text_x, ry + 60), wave_info, HORIZONTAL_ALIGNMENT_LEFT, 340, 12, stat_col)
 
-			# Enhancement 21: Reward preview icons on level cards
-			var level_rewards = _get_level_rewards(lvl_idx)
-			if level_rewards.size() > 0 and is_unlocked:
-				var reward_icon_x = text_x
-				var reward_icon_y = ry + 68.0
-				# Show up to 3 small reward hint icons
-				var reward_count = mini(level_rewards.size(), 3)
-				for ri in range(reward_count):
-					var rix = reward_icon_x + float(ri) * 18.0
-					var reward_text = level_rewards[ri]
-					if "DMG" in reward_text or "SPD" in reward_text or "RNG" in reward_text:
-						# Stat boost — small up-arrow icon
-						draw_line(Vector2(rix + 4, reward_icon_y + 2), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
-						draw_line(Vector2(rix + 1, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
-						draw_line(Vector2(rix + 7, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 4), Color(0.4, 0.8, 0.3, 0.6), 1.5)
-					elif "Weapon" in reward_text or "Slot" in reward_text:
-						# Unlock — small star icon
-						_draw_mini_star(Vector2(rix + 4, reward_icon_y - 1), 4.0, Color(0.40, 0.25, 0.55, 0.6))
-					elif "Gear" in reward_text:
-						# Gear — small diamond
-						var dc = Color(0.7, 0.3, 0.9, 0.6)
-						draw_line(Vector2(rix + 4, reward_icon_y - 5), Vector2(rix + 8, reward_icon_y - 1), dc, 1.5)
-						draw_line(Vector2(rix + 8, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y + 3), dc, 1.5)
-						draw_line(Vector2(rix + 4, reward_icon_y + 3), Vector2(rix, reward_icon_y - 1), dc, 1.5)
-						draw_line(Vector2(rix, reward_icon_y - 1), Vector2(rix + 4, reward_icon_y - 5), dc, 1.5)
-					elif "Gear" in reward_text:
-						# Gear — small book icon
-						draw_rect(Rect2(rix + 1, reward_icon_y - 4, 6, 8), Color(0.6, 0.4, 0.2, 0.5))
-						draw_line(Vector2(rix + 4, reward_icon_y - 4), Vector2(rix + 4, reward_icon_y + 4), Color(0.85, 0.70, 0.28, 0.4), 1.0)
-					else:
-						# Generic reward — small circle
-						draw_circle(Vector2(rix + 4, reward_icon_y - 1), 3.0, Color(0.85, 0.70, 0.28, 0.4))
-				if reward_count > 0:
-					_udraw(font, Vector2(reward_icon_x + float(reward_count) * 18.0 + 4, reward_icon_y + 3), "%d rewards" % level_rewards.size(), HORIZONTAL_ALIGNMENT_LEFT, 100, 14, Color(0.6, 0.55, 0.40, 0.5))
-
-			# --- Difficulty gems (Bloons style) ---
-			var medal_x = rx + rw - 340.0
-			var medal_colors = [Color(0.3, 0.9, 0.3), Color(0.3, 0.5, 1.0), Color(0.9, 0.2, 0.2), Color(0.7, 0.2, 0.9)]
+			# --- Difficulty medals (bottom of row, labeled, large) ---
 			var medals = level_difficulty_medals.get(lvl_idx, [false, false, false, false])
+			var diff_labels = ["EASY", "MED", "HARD", "PURE"]
+			var medal_colors = [Color(0.3, 0.85, 0.3), Color(0.85, 0.75, 0.15), Color(0.9, 0.2, 0.15), Color(0.7, 0.2, 0.9)]
 			var diff_stars_arr = level_difficulty_stars.get(lvl_idx, [0, 0, 0, 0])
-			if _ui_tex.has("difficulty_gems"):
-				# Use nano-banana gem strip — 4 gems, maintain aspect ratio
-				var gem_tex = _ui_tex["difficulty_gems"]
-				var gem_strip_w = float(gem_tex.get_width())
-				var gem_strip_h = float(gem_tex.get_height())
-				var gem_one_w = gem_strip_w / 4.0
-				# Calculate proper aspect ratio for each gem
-				var gem_aspect = gem_one_w / gem_strip_h
-				var gem_target_h = 48.0
-				var gem_target_w = gem_target_h * gem_aspect
-				for di in range(4):
-					var mx = medal_x + float(di) * (gem_target_w + 4.0)
-					var my = ry + 6.0
-					var earned = medals[di]
-					var gem_a = 1.0 if earned else 0.18
-					var src = Rect2(float(di) * gem_one_w, 0, gem_one_w, gem_strip_h)
-					draw_texture_rect_region(gem_tex, Rect2(mx, my, gem_target_w, gem_target_h), src, Color(1, 1, 1, gem_a))
-					# Stars below gem
-					if earned:
-						var ds = diff_stars_arr[di]
-						for dsi in range(3):
-							var sx = mx + gem_target_w * 0.5 - 8.0 + float(dsi) * 8.0
-							var sy = my + gem_target_h + 4.0
-							if dsi < ds:
-								draw_circle(Vector2(sx, sy), 5.0, _ca(c_gold_bright, 0.2))
-								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
-							else:
-								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
-			else:
-				# Procedural Bloons-style gem fallback
-				for di in range(4):
-					var mx = medal_x + float(di) * 52.0
-					var my = ry + 8.0
-					var gem_sz = 38.0
-					var earned = medals[di]
-					var mc = medal_colors[di]
-					var alpha = 1.0 if earned else 0.2
-					# Gem body — bright gradient circle
-					draw_circle(Vector2(mx + 23, my + 20), 16.0, Color(0, 0, 0, 0.4 * alpha))
-					for gi in range(8):
-						var gr = 15.0 - float(gi) * 1.5
-						var shade = 0.6 + float(gi) * 0.05
-						draw_circle(Vector2(mx + 23, my + 20 - float(gi) * 0.3), gr, Color(mc.r * shade, mc.g * shade, mc.b * shade, alpha))
-					# Glass highlight
-					draw_circle(Vector2(mx + 20, my + 16), 6.0, Color(1, 1, 1, 0.25 * alpha))
-					# Gold setting border
-					draw_arc(Vector2(mx + 23, my + 20), 17.0, 0, TAU, 16, Color(0.9, 0.75, 0.2, 0.8 * alpha), 2.5)
-					# Stars below
-					if earned:
-						var ds = diff_stars_arr[di]
-						for dsi in range(3):
-							var sx = mx + 23.0 - 8.0 + float(dsi) * 8.0
-							var sy = my + 42.0
-							if dsi < ds:
-								draw_circle(Vector2(sx, sy), 5.0, _ca(c_gold_bright, 0.2))
-								_draw_mini_star(Vector2(sx, sy), 3.5, Color(1, 0.95, 0.7, 0.95))
-							else:
-								_draw_mini_star(Vector2(sx, sy), 3.0, Color(0.5, 0.4, 0.3, 0.25))
+			var medal_x = text_x
+			var medal_y = ry + 76.0
+			for di in range(4):
+				var mx = medal_x + float(di) * 80.0
+				var earned = medals[di]
+				var mc = medal_colors[di]
+				var alpha = 1.0 if earned else 0.25
+				# Medal circle
+				draw_circle(Vector2(mx + 12, medal_y + 10), 10.0, Color(0, 0, 0, 0.4 * alpha))
+				draw_circle(Vector2(mx + 12, medal_y + 10), 9.0, Color(mc.r * 0.7, mc.g * 0.7, mc.b * 0.7, alpha))
+				if earned:
+					draw_circle(Vector2(mx + 10, medal_y + 8), 4.0, Color(1, 1, 1, 0.2))
+				draw_arc(Vector2(mx + 12, medal_y + 10), 10.0, 0, TAU, 16, Color(mc.r, mc.g, mc.b, 0.7 * alpha), 1.5)
+				# Difficulty label
+				_udraw(font, Vector2(mx + 26, medal_y + 14), diff_labels[di], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(mc.r, mc.g, mc.b, 0.7 * alpha))
+				# Stars next to label
+				if earned and diff_stars_arr[di] > 0:
+					for dsi in range(mini(diff_stars_arr[di], 3)):
+						_draw_mini_star(Vector2(mx + 58 + float(dsi) * 10.0, medal_y + 10), 4.0, Color(1, 0.95, 0.7, 0.9))
 
-			# Enhancement 13: Level difficulty medals (Easy/Med/Hard dots)
-			var dot_base_x = medal_x
-			var dot_y = ry + row_h - 10.0
-			for di in range(3):
-				var dot_x = dot_base_x + float(di) * 52.0 + 23.0
-				var dot_col = [c_green, c_gold_warm, Color(0.9, 0.2, 0.15)][di]
-				if medals[di]:
-					draw_circle(Vector2(dot_x, dot_y), 3.0, dot_col)
-				else:
-					draw_arc(Vector2(dot_x, dot_y), 3.0, 0, TAU, 8, Color(dot_col.r, dot_col.g, dot_col.b, 0.2), 1.0)
-
-			# --- GO button (large, prominent — procedural for clean look) ---
-			var btn_x = rx + rw - 110.0
-			var btn_y2 = ry + 10.0
-			var btn_w2 = 95.0
-			var btn_h2 = 52.0
+			# --- GO button (right side, vertically centered, large) ---
+			var btn_w2 = 100.0
+			var btn_h2 = 56.0
+			var btn_x = rx + rw - btn_w2 - 12.0
+			var btn_y2 = ry + (row_h - btn_h2) * 0.5 - 10.0
 			if is_unlocked:
 				var btn_hover = _is_hover_or_pressed(Rect2(btn_x, btn_y2, btn_w2, btn_h2), mouse_pos) and ry >= content_top
-				var btn_col = Color(0.15, 0.52, 0.12) if not is_complete else Color(0.12, 0.35, 0.10)
-				_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "GO", btn_col, btn_hover, 20)
+				var btn_col = Color(0.15, 0.55, 0.12) if not is_complete else Color(0.12, 0.38, 0.10)
+				_ds_button(Rect2(btn_x, btn_y2, btn_w2, btn_h2), "PLAY", btn_col, btn_hover, 18)
+				# Stars below button
+				if is_complete and stars > 0:
+					_draw_animated_stars(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 + 14.0, stars, 6.0)
 			else:
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.12, 0.10, 0.08, 0.5))
-				draw_rect(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.3, 0.25, 0.18, 0.3), false, 1.0)
-				var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.5)
-				draw_rect(Rect2(lc.x - 5, lc.y - 1, 10, 9), Color(0.40, 0.32, 0.20, 0.5))
-				draw_arc(Vector2(lc.x, lc.y - 3), 5.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.5), 1.5)
-				# Enhancement 19: Locked level requirement text
+				# Locked — dark panel with lock icon
+				_ds_panel(Rect2(btn_x, btn_y2, btn_w2, btn_h2), Color(0.10, 0.08, 0.06, 0.7), Color(0.25, 0.20, 0.15, 0.4), 2.0)
+				var lc = Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 * 0.45)
+				draw_rect(Rect2(lc.x - 6, lc.y + 1, 12, 10), Color(0.40, 0.32, 0.20, 0.6))
+				draw_arc(Vector2(lc.x, lc.y - 1), 6.0, PI, TAU, 10, Color(0.40, 0.32, 0.20, 0.6), 2.0)
+				_udraw(font, Vector2(btn_x, btn_y2 + btn_h2 - 4), "LOCKED", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2), 10, Color(0.45, 0.35, 0.25, 0.5))
+				# Requirement text below
 				if lvl_idx > 0:
 					var req_lvl = lvl_idx - 1
 					var req_name = levels[req_lvl]["name"] if req_lvl < levels.size() else "Level %d" % req_lvl
-					_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 + 10), "Complete:", HORIZONTAL_ALIGNMENT_CENTER, btn_w2 + 20, 14, Color(0.5, 0.38, 0.25, 0.5))
-					_udraw(font, Vector2(btn_x + btn_w2 * 0.5, btn_y2 + btn_h2 + 22), req_name, HORIZONTAL_ALIGNMENT_CENTER, btn_w2 + 40, 14, Color(0.65, 0.50, 0.30, 0.6))
-
-			# Menu Improvement 18: Animated bouncing stars for overall level rating
-			if is_complete and stars > 0:
-				_draw_animated_stars(rx + rw - 78.0, ry + row_h - 14.0, stars, 5.0)
+					_udraw(font, Vector2(btn_x, btn_y2 + btn_h2 + 10), "Complete:", HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2), 10, Color(0.45, 0.35, 0.25, 0.45))
+					_udraw(font, Vector2(btn_x, btn_y2 + btn_h2 + 22), req_name, HORIZONTAL_ALIGNMENT_CENTER, int(btn_w2 + 20), 10, Color(0.55, 0.42, 0.28, 0.55))
 
 			# --- Bottom separator ---
-			draw_line(Vector2(rx + 8, ry + row_h - 2), Vector2(rx + rw - 8, ry + row_h - 2), _ca(menu_gold_dim, 0.08), 1.0)
+			draw_line(Vector2(rx + 10, ry + row_h - 4), Vector2(rx + rw - 10, ry + row_h - 4), _ca(menu_gold_dim, 0.12), 1.0)
 
 			cursor_y += row_h
 
@@ -15520,7 +15436,7 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 	var list_y = 36.0
 	var list_w = 1060.0
 	var list_h = 575.0
-	var row_h = 116.0
+	var row_h = 138.0
 	var header_h = 36.0
 	var arc_gap = 8.0
 	var content_top = list_y + 40.0
@@ -15545,11 +15461,11 @@ func _on_story_map_clicked(mouse_pos: Vector2) -> void:
 			var rw = list_w - 16.0
 
 			if ry + row_h >= content_top and ry <= content_top + content_h:
-				# Check GO button click — must match _draw_story_map GO button
-				var btn_x = rx + rw - 110.0
-				var btn_y2 = ry + 10.0
-				var btn_w2 = 95.0
-				var btn_h2 = 52.0
+				# Check PLAY button click — must match _draw_story_map button layout
+				var btn_w2 = 100.0
+				var btn_h2 = 56.0
+				var btn_x = rx + rw - btn_w2 - 12.0
+				var btn_y2 = ry + (row_h - btn_h2) * 0.5 - 10.0
 				if Rect2(btn_x, btn_y2, btn_w2, btn_h2).has_point(mouse_pos):
 					if _is_level_unlocked(lvl_idx):
 						chapters_diff_popup_level = lvl_idx
