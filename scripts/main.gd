@@ -15101,10 +15101,10 @@ func _draw_story_map() -> void:
 		var icon_cx = side_x + side_w * 0.5
 		var icon_cy = sy + side_btn_h * 0.40
 		var badge_key = side_icons[si]
-		if _badge_icon_textures.has(badge_key):
+		# Skip deals/endless textures (white corner artifacts), use procedural for those
+		var _skip_tex = badge_key in ["deals", "endless"]
+		if not _skip_tex and _badge_icon_textures.has(badge_key):
 			var badge_sz = 62.0 if side_hover else 52.0
-			# Dark circle mask behind icon to hide any white corner artifacts
-			draw_circle(Vector2(icon_cx, icon_cy), badge_sz * 0.5 + 1, Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 0.95))
 			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(icon_cx - badge_sz * 0.5, icon_cy - badge_sz * 0.5, badge_sz, badge_sz), false, Color(1, 1, 1, 1.0 if side_hover else 0.85))
 		else:
 			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.4, sc.g * 0.4, sc.b * 0.4, 0.8))
