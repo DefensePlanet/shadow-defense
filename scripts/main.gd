@@ -29255,7 +29255,7 @@ func _draw_settings_tab() -> void:
 	section_y += row_h
 
 	# Voice Volume
-	_draw_settings_slider(font, col1_x, section_y, "VOICE VOLUME", GameSettings.voice_volume, GameSettings.sfx_muted == false and GameSettings.voice_muted, "voice", slider_w)
+	_draw_settings_slider(font, col1_x, section_y, "VOICE VOLUME", GameSettings.voice_volume, GameSettings.voice_muted, "voice", slider_w)
 	section_y += row_h
 
 	# Master Volume
