@@ -124,7 +124,7 @@ var _current_track_idx: int = -1
 var _menu_playlist: Array = []  # Shuffled indices for menu mode
 var _menu_playlist_pos: int = 0
 var _is_map_mode: bool = false  # true = map music (half vol), false = menu music
-var _map_volume_db: float = -6.0  # Half volume for maps (~-6dB)
+var _map_volume_db: float = -12.0  # 25% volume for maps
 var _menu_volume_db: float = 0.0  # Full volume for menu
 
 func _ready() -> void:
