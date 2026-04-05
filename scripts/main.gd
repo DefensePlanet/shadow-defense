@@ -10855,7 +10855,16 @@ func _draw_currency_bar() -> void:
 		var _emp_icon_key = c["icon"]
 		if _emporium_icon_textures.has(_emp_icon_key):
 			var emp_sz = 22.0
-			draw_texture_rect(_emporium_icon_textures[_emp_icon_key], Rect2(cx - emp_sz * 0.5, ic_y - emp_sz * 0.5, emp_sz, emp_sz), false)
+			var ex = cx - emp_sz * 0.5
+			var ey = ic_y - emp_sz * 0.5
+			draw_texture_rect(_emporium_icon_textures[_emp_icon_key], Rect2(ex, ey, emp_sz, emp_sz), false)
+			# Paint over white corner artifacts
+			var csz = 4.0
+			var ccol = Color(0.08, 0.05, 0.15, 1.0)
+			draw_rect(Rect2(ex, ey, csz, csz), ccol)
+			draw_rect(Rect2(ex + emp_sz - csz, ey, csz, csz), ccol)
+			draw_rect(Rect2(ex, ey + emp_sz - csz, csz, csz), ccol)
+			draw_rect(Rect2(ex + emp_sz - csz, ey + emp_sz - csz, csz, csz), ccol)
 		else:
 			draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
 			draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
@@ -15101,11 +15110,18 @@ func _draw_story_map() -> void:
 		var icon_cx = side_x + side_w * 0.5
 		var icon_cy = sy + side_btn_h * 0.40
 		var badge_key = side_icons[si]
-		# Skip deals/endless textures (white corner artifacts), use procedural for those
-		var _skip_tex = badge_key in ["deals", "endless"]
-		if not _skip_tex and _badge_icon_textures.has(badge_key):
+		if _badge_icon_textures.has(badge_key):
 			var badge_sz = 62.0 if side_hover else 52.0
-			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(icon_cx - badge_sz * 0.5, icon_cy - badge_sz * 0.5, badge_sz, badge_sz), false, Color(1, 1, 1, 1.0 if side_hover else 0.85))
+			var bx = icon_cx - badge_sz * 0.5
+			var by = icon_cy - badge_sz * 0.5
+			draw_texture_rect(_badge_icon_textures[badge_key], Rect2(bx, by, badge_sz, badge_sz), false, Color(1, 1, 1, 1.0 if side_hover else 0.85))
+			# Paint over white corner artifacts with dark squares
+			var corner_sz = 8.0
+			var corner_col = Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 1.0)
+			draw_rect(Rect2(bx, by, corner_sz, corner_sz), corner_col)  # top-left
+			draw_rect(Rect2(bx + badge_sz - corner_sz, by, corner_sz, corner_sz), corner_col)  # top-right
+			draw_rect(Rect2(bx, by + badge_sz - corner_sz, corner_sz, corner_sz), corner_col)  # bottom-left
+			draw_rect(Rect2(bx + badge_sz - corner_sz, by + badge_sz - corner_sz, corner_sz, corner_sz), corner_col)  # bottom-right
 		else:
 			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r * 0.4, sc.g * 0.4, sc.b * 0.4, 0.8))
 			draw_circle(Vector2(icon_cx, icon_cy), 24.0, Color(sc.r, sc.g, sc.b, 0.5), false, 2.0)
