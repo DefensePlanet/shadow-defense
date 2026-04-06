@@ -5343,7 +5343,7 @@ func _create_ui() -> void:
 	skip_song_button.pressed.connect(_on_skip_song_pressed)
 	top_bar.add_child(skip_song_button)
 
-	# Bottom panel — gothic dark bar (extended up to fill gap)
+	# Bottom panel — gothic dark bar
 	bottom_panel = ColorRect.new()
 	bottom_panel.color = Color(0.12, 0.07, 0.20, 0.95)
 	bottom_panel.position = Vector2(0, 620)
@@ -5351,41 +5351,49 @@ func _create_ui() -> void:
 	bottom_panel.clip_contents = true
 	ui.add_child(bottom_panel)
 
-	var btn_h = 40
-	var row1_y = 10
-	var row2_y = 54
+	var btn_h = 44
+	var row1_y = 4
+	var row2_y = 52
 	var btn_w = 152
 
-	# Row 1: Base 6 towers stretched across
+	# Row 1: Base 6 towers — transparent buttons (visuals drawn procedurally)
 	var base_towers = [
-		[TowerType.ROBIN_HOOD, "Robin [75G]", "Robin Hood — long range archer, gold bonus."],
-		[TowerType.ALICE, "Alice [85G]", "Alice — cake, slows enemies in area."],
-		[TowerType.WICKED_WITCH, "Witch [100G]", "Wicked Witch — eye blast, wolves."],
-		[TowerType.PETER_PAN, "Peter [90G]", "Peter Pan — fast daggers, shadow."],
-		[TowerType.PHANTOM, "Phantom [95G]", "Phantom — heavy hits, stun, chandelier."],
-		[TowerType.SCROOGE, "Scrooge [60G]", "Scrooge — bell, knockback & gold gen."],
+		[TowerType.ROBIN_HOOD, "", "Robin Hood — long range archer, gold bonus."],
+		[TowerType.ALICE, "", "Alice — cake, slows enemies in area."],
+		[TowerType.WICKED_WITCH, "", "Wicked Witch — eye blast, wolves."],
+		[TowerType.PETER_PAN, "", "Peter Pan — fast daggers, shadow."],
+		[TowerType.PHANTOM, "", "Phantom — heavy hits, stun, chandelier."],
+		[TowerType.SCROOGE, "", "Scrooge — bell, knockback & gold gen."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
 		var bx = 8 + i * (btn_w + 6)
-		var btn = _make_button(bt[1], Vector2(bx, row1_y), Vector2(btn_w, btn_h))
+		var btn = Button.new()
+		btn.text = ""
+		btn.flat = true
+		btn.position = Vector2(bx, row1_y)
+		btn.custom_minimum_size = Vector2(btn_w, btn_h)
 		btn.pressed.connect(_on_tower_pressed.bind(bt[0], bt[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[bt[0]] = btn
 
-	# Row 2: Unlockable characters stretched across (hidden until unlocked)
+	# Row 2: Unlockable characters — transparent buttons (visuals drawn procedurally)
 	var new_chars = [
-		[TowerType.SHERLOCK, "Holmes [110G]", "Sherlock — focus beam, deduction mark."],
-		[TowerType.TARZAN, "Tarzan [100G]", "Tarzan — melee beast, vine swing, animals."],
-		[TowerType.DRACULA, "Dracula [105G]", "Dracula — life drain, bats, minion control."],
-		[TowerType.MERLIN, "Merlin [115G]", "Merlin — buffs, curses, Excalibur strikes."],
-		[TowerType.FRANKENSTEIN, "Monster [130G]", "Frankenstein — AoE lightning fist smash."],
-		[TowerType.SHADOW_AUTHOR, "Author [250G]", "Shadow Author — ink attacks, rewrite, shadow servants."],
+		[TowerType.SHERLOCK, "", "Sherlock — focus beam, deduction mark."],
+		[TowerType.TARZAN, "", "Tarzan — melee beast, vine swing, animals."],
+		[TowerType.DRACULA, "", "Dracula — life drain, bats, minion control."],
+		[TowerType.MERLIN, "", "Merlin — buffs, curses, Excalibur strikes."],
+		[TowerType.FRANKENSTEIN, "", "Frankenstein — AoE lightning fist smash."],
+		[TowerType.SHADOW_AUTHOR, "", "Shadow Author — ink attacks, rewrite, shadow servants."],
 	]
 	for i in range(new_chars.size()):
 		var nc = new_chars[i]
 		var bx = 8 + i * (btn_w + 6)
-		var btn = _make_button(nc[1], Vector2(bx, row2_y), Vector2(btn_w, btn_h))
+		var btn = Button.new()
+		btn.text = ""
+		btn.flat = true
+		btn.position = Vector2(bx, row2_y)
+		btn.custom_minimum_size = Vector2(btn_w, btn_h)
 		btn.pressed.connect(_on_tower_pressed.bind(nc[0], nc[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[nc[0]] = btn
@@ -19522,31 +19530,81 @@ func _draw() -> void:
 func _draw_tower_button_portraits() -> void:
 	if game_state != GameState.PLAYING or not bottom_panel or not bottom_panel.visible:
 		return
-	# Map tower type to portrait key and button position
-	var row1_chars = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge"]
-	var row2_chars = ["sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+	var font = game_font
+	var row1_data = [
+		["robin_hood", "Robin", "75G", TowerType.ROBIN_HOOD],
+		["alice", "Alice", "85G", TowerType.ALICE],
+		["wicked_witch", "Witch", "100G", TowerType.WICKED_WITCH],
+		["peter_pan", "Peter", "90G", TowerType.PETER_PAN],
+		["phantom", "Phantom", "95G", TowerType.PHANTOM],
+		["scrooge", "Scrooge", "60G", TowerType.SCROOGE],
+	]
+	var row2_data = [
+		["sherlock", "Holmes", "110G", TowerType.SHERLOCK],
+		["tarzan", "Tarzan", "100G", TowerType.TARZAN],
+		["dracula", "Dracula", "105G", TowerType.DRACULA],
+		["merlin", "Merlin", "115G", TowerType.MERLIN],
+		["frankenstein", "Monster", "130G", TowerType.FRANKENSTEIN],
+		["shadow_author", "Author", "250G", TowerType.SHADOW_AUTHOR],
+	]
 	var btn_w = 152.0
+	var btn_h = 44.0
 	var btn_gap = 6.0
 	var panel_y = 620.0
-	var portrait_sz = 28.0
-	# Row 1
-	for i in range(row1_chars.size()):
-		var char_key = row1_chars[i]
-		if _portrait_textures.has(char_key):
+	var portrait_sz = 36.0
+	var rows = [
+		{"data": row1_data, "y_offset": 4.0},
+		{"data": row2_data, "y_offset": 52.0},
+	]
+	for row in rows:
+		for i in range(row["data"].size()):
+			var d = row["data"][i]
+			var char_key = d[0]
+			var name = d[1]
+			var cost = d[2]
+			var tt = d[3]
+			if not tower_buttons.has(tt) or not tower_buttons[tt].visible:
+				continue
 			var bx = 8.0 + float(i) * (btn_w + btn_gap)
-			var px = bx + 4.0
-			var py = panel_y + 10.0 + 6.0
-			draw_texture_rect(_portrait_textures[char_key], Rect2(px, py, portrait_sz, portrait_sz), false)
-	# Row 2
-	for i in range(row2_chars.size()):
-		var char_key = row2_chars[i]
-		if _portrait_textures.has(char_key):
-			var tt = TowerType.values()[6 + i]
-			if tower_buttons.has(tt) and tower_buttons[tt].visible:
-				var bx = 8.0 + float(i) * (btn_w + btn_gap)
+			var by = panel_y + row["y_offset"]
+			var is_placed = purchased_towers.has(tt)
+			var can_afford = gold >= tower_info[tt]["cost"] and not is_placed
+			var mouse_pos = get_viewport().get_mouse_position()
+			var is_hover = Rect2(bx, by, btn_w, btn_h).has_point(mouse_pos)
+			# Card background
+			var bg_alpha = 0.85 if is_hover else 0.6
+			var bg_col: Color
+			if is_placed:
+				bg_col = Color(0.08, 0.15, 0.08, bg_alpha)
+			elif can_afford:
+				bg_col = Color(0.12, 0.08, 0.22, bg_alpha)
+			else:
+				bg_col = Color(0.08, 0.05, 0.10, bg_alpha)
+			draw_colored_polygon(_rrp(Rect2(bx, by, btn_w, btn_h), 6.0), bg_col)
+			# Border
+			var bdr_col = Color(0.50, 0.35, 0.65, 0.7) if can_afford else Color(0.25, 0.18, 0.30, 0.4)
+			if is_placed:
+				bdr_col = Color(0.3, 0.5, 0.3, 0.5)
+			if is_hover and not is_placed:
+				bdr_col = Color(0.70, 0.55, 0.90, 0.9)
+			var bdr_pts = _rrp(Rect2(bx, by, btn_w, btn_h), 6.0)
+			bdr_pts.append(bdr_pts[0])
+			draw_polyline(bdr_pts, bdr_col, 1.5)
+			# Portrait (left side, large)
+			if _portrait_textures.has(char_key):
 				var px = bx + 4.0
-				var py = panel_y + 54.0 + 6.0
-				draw_texture_rect(_portrait_textures[char_key], Rect2(px, py, portrait_sz, portrait_sz), false)
+				var py = by + (btn_h - portrait_sz) * 0.5
+				draw_texture_rect(_portrait_textures[char_key], Rect2(px, py, portrait_sz, portrait_sz), false, Color(1, 1, 1, 0.3 if is_placed else 1.0))
+			# Name + cost (right of portrait)
+			var text_x = bx + portrait_sz + 12.0
+			var name_col = Color(0.50, 0.70, 0.45, 0.7) if is_placed else (Color(1.0, 0.95, 0.80) if can_afford else Color(0.55, 0.45, 0.40, 0.6))
+			var cost_col = Color(1.0, 0.88, 0.20, 0.9) if can_afford else Color(0.50, 0.40, 0.30, 0.5)
+			if is_placed:
+				_udraw(font, Vector2(text_x, by + 18), "PLACED", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.4, 0.65, 0.35, 0.6))
+				_udraw(font, Vector2(text_x, by + 34), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, name_col)
+			else:
+				_udraw(font, Vector2(text_x, by + 18), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, name_col)
+				_udraw(font, Vector2(text_x, by + 34), cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, cost_col)
 
 func _draw_ingame_settings() -> void:
 	var font = game_font
