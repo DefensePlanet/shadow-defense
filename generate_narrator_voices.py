@@ -22,8 +22,8 @@ except ImportError:
     sys.exit(1)
 
 # === CONFIGURATION ===
-# "Josh" — deep, strong, authoritative American male
-VOICE_ID = "TxGEqnHWrfWFTfGW9XjX"
+# "Clyde" — deep, gruff, war veteran, commanding American military
+VOICE_ID = "2EiwWnXFnvU5JabPnv8n"
 MODEL_ID = "eleven_turbo_v2_5"
 # Voice settings for commanding narrator delivery
 VOICE_SETTINGS = {
@@ -40,45 +40,45 @@ def parse_narrator_lines(main_gd_path: str) -> list[tuple[str, str]]:
     """
     Parse main.gd to extract all narrator dialog lines with their clip keys.
     Returns list of (clip_key, text) tuples.
+    Handles format: story_dialogs["key"] = [ {speaker, text, voice_type}, ... ]
     """
     with open(main_gd_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Find all story_dialogs entries
-    # Pattern: "dialog_key": [ ... ]
+    # Pattern: story_dialogs["dialog_key"] = [ ... ]
     dialog_pattern = re.compile(
-        r'"([\w]+)":\s*\[\s*((?:\{[^}]+\},?\s*)+)\]',
+        r'story_dialogs\["([\w]+)"\]\s*=\s*\[(.*?)\](?=\s*(?:story_dialogs|func |var |#))',
         re.DOTALL
     )
 
     # Pattern for individual lines within a dialog
     line_pattern = re.compile(
-        r'\{"speaker":\s*"(\w+)",\s*"text":\s*"([^"]+)"',
+        r'"speaker":\s*"(\w+)".*?"text":\s*"([^"]+)"',
     )
 
     results = []
-    # Find the story_dialogs dict
-    sd_start = content.find("var story_dialogs")
+    sd_start = content.find("func _init_story_dialogs")
     if sd_start == -1:
-        print("ERROR: Could not find story_dialogs in main.gd")
+        print("ERROR: Could not find _init_story_dialogs in main.gd")
         return results
 
-    # Get the block (it's a huge dict, go until we find the closing pattern)
     sd_block = content[sd_start:]
 
     for dialog_match in dialog_pattern.finditer(sd_block):
         dialog_key = dialog_match.group(1)
         dialog_body = dialog_match.group(2)
 
-        # Count narrator lines within this dialog
-        narrator_idx = 0
+        # Count narrator/shadow_author lines together (combined index for clip keys)
+        combined_idx = 0
         for line_match in line_pattern.finditer(dialog_body):
             speaker = line_match.group(1)
             text = line_match.group(2)
             if speaker == "narrator":
-                clip_key = f"{dialog_key}_{narrator_idx}"
+                clip_key = f"{dialog_key}_{combined_idx}"
                 results.append((clip_key, text))
-                narrator_idx += 1
+                combined_idx += 1
+            elif speaker == "shadow_author":
+                combined_idx += 1  # Count but don't generate
 
     return results
 
