@@ -22,8 +22,8 @@ except ImportError:
     sys.exit(1)
 
 # === CONFIGURATION ===
-# "Clyde" — deep, gruff, war veteran, commanding American military
-VOICE_ID = "2EiwWnXFnvU5JabPnv8n"
+# "Brian" — Deep, Resonant and Comforting (American, middle-aged)
+VOICE_ID = "nPczCjzI2devNBz1zQrb"
 MODEL_ID = "eleven_turbo_v2_5"
 # Voice settings for commanding narrator delivery
 VOICE_SETTINGS = {
