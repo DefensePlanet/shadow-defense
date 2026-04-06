@@ -9005,16 +9005,22 @@ func _play_story_voice() -> void:
 		"frankenstein": TowerType.FRANKENSTEIN,
 		"shadow_author": TowerType.SHADOW_AUTHOR,
 	}
-	# For narrator/shadow_author lines, try Shadow Author ElevenLabs MP3 clip first
-	if (speaker == "narrator" or speaker == "shadow_author") and shadow_author_story_clips.size() > 0:
-		# Count which narrator/shadow_author line this is within the current dialog
-		var narrator_idx := 0
+	# For narrator/shadow_author lines, use separate voice clip dictionaries
+	# Combined index (both speakers share the line counter for key lookup)
+	if speaker == "narrator" or speaker == "shadow_author":
+		var combined_idx := 0
 		for i in range(story_state.line_index):
 			var s = lines[i].get("speaker", "narrator")
 			if s == "narrator" or s == "shadow_author":
-				narrator_idx += 1
-		var clip_key = key + "_" + str(narrator_idx)
-		if shadow_author_story_clips.has(clip_key):
+				combined_idx += 1
+		var clip_key = key + "_" + str(combined_idx)
+		# Route to correct voice based on speaker
+		if speaker == "narrator" and narrator_story_clips.has(clip_key):
+			catchphrase_player.stop()
+			catchphrase_player.stream = narrator_story_clips[clip_key]
+			catchphrase_player.play()
+			return
+		elif speaker == "shadow_author" and shadow_author_story_clips.has(clip_key):
 			catchphrase_player.stop()
 			catchphrase_player.stream = shadow_author_story_clips[clip_key]
 			catchphrase_player.play()
