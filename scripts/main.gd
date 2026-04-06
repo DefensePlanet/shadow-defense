@@ -9489,6 +9489,8 @@ func _load_voice_clips() -> void:
 			fighting_voice_clips[tower_type] = fight_clips
 	# Load Shadow Author narrator clips (triple-voice: Dominic->Matthew->Dominic)
 	_load_shadow_author_clips()
+	# Load Narrator clips (Brian — separate voice from Shadow Author)
+	_load_narrator_clips()
 
 func _load_shadow_author_clips() -> void:
 	var base = "res://audio/voices/shadow_author/"
