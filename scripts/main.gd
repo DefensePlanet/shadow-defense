@@ -5356,42 +5356,36 @@ func _create_ui() -> void:
 	var row2_y = 46
 	var btn_w = 152
 
-	# Row 1: Base 6 towers
+	# Row 1: Base 6 towers (proven working button style)
 	var base_towers = [
-		[TowerType.ROBIN_HOOD, " ", "Robin Hood — long range archer, gold bonus."],
-		[TowerType.ALICE, " ", "Alice — cake, slows enemies in area."],
-		[TowerType.WICKED_WITCH, " ", "Wicked Witch — eye blast, wolves."],
-		[TowerType.PETER_PAN, " ", "Peter Pan — fast daggers, shadow."],
-		[TowerType.PHANTOM, " ", "Phantom — heavy hits, stun, chandelier."],
-		[TowerType.SCROOGE, " ", "Scrooge — bell, knockback & gold gen."],
+		[TowerType.ROBIN_HOOD, "Robin [75G]", "Robin Hood — long range archer, gold bonus."],
+		[TowerType.ALICE, "Alice [85G]", "Alice — cake, slows enemies in area."],
+		[TowerType.WICKED_WITCH, "Witch [100G]", "Wicked Witch — eye blast, wolves."],
+		[TowerType.PETER_PAN, "Peter [90G]", "Peter Pan — fast daggers, shadow."],
+		[TowerType.PHANTOM, "Phantom [95G]", "Phantom — heavy hits, stun, chandelier."],
+		[TowerType.SCROOGE, "Scrooge [60G]", "Scrooge — bell, knockback & gold gen."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
 		var bx = 8 + i * (btn_w + 6)
 		var btn = _make_button(bt[1], Vector2(bx, row1_y), Vector2(btn_w, btn_h))
-		btn.add_theme_color_override("font_color", Color(0, 0, 0, 0))
-		btn.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
-		btn.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
 		btn.pressed.connect(_on_tower_pressed.bind(bt[0], bt[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[bt[0]] = btn
 
-	# Row 2: Unlockable characters
+	# Row 2: Unlockable characters (hidden until unlocked)
 	var new_chars = [
-		[TowerType.SHERLOCK, " ", "Sherlock — focus beam, deduction mark."],
-		[TowerType.TARZAN, " ", "Tarzan — melee beast, vine swing, animals."],
-		[TowerType.DRACULA, " ", "Dracula — life drain, bats, minion control."],
-		[TowerType.MERLIN, " ", "Merlin — buffs, curses, Excalibur strikes."],
-		[TowerType.FRANKENSTEIN, " ", "Frankenstein — AoE lightning fist smash."],
-		[TowerType.SHADOW_AUTHOR, " ", "Shadow Author — ink attacks, rewrite, shadow servants."],
+		[TowerType.SHERLOCK, "Holmes [110G]", "Sherlock — focus beam, deduction mark."],
+		[TowerType.TARZAN, "Tarzan [100G]", "Tarzan — melee beast, vine swing, animals."],
+		[TowerType.DRACULA, "Dracula [105G]", "Dracula — life drain, bats, minion control."],
+		[TowerType.MERLIN, "Merlin [115G]", "Merlin — buffs, curses, Excalibur strikes."],
+		[TowerType.FRANKENSTEIN, "Monster [130G]", "Frankenstein — AoE lightning fist smash."],
+		[TowerType.SHADOW_AUTHOR, "Author [250G]", "Shadow Author — ink attacks, rewrite, shadow servants."],
 	]
 	for i in range(new_chars.size()):
 		var nc = new_chars[i]
 		var bx = 8 + i * (btn_w + 6)
 		var btn = _make_button(nc[1], Vector2(bx, row2_y), Vector2(btn_w, btn_h))
-		btn.add_theme_color_override("font_color", Color(0, 0, 0, 0))
-		btn.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
-		btn.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
 		btn.pressed.connect(_on_tower_pressed.bind(nc[0], nc[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[nc[0]] = btn
@@ -19517,8 +19511,8 @@ func _draw() -> void:
 	# Story dialog in GAME_OVER state
 	if story_state.active:
 		_draw_story_dialog()
-	# Survivor portraits on bottom panel tower buttons
-	_draw_tower_button_portraits()
+	# Survivor portraits drawn on bottom panel (below UI, won't block clicks)
+	pass
 	# In-game settings popup (draws on top of everything)
 	if ingame_settings_open and game_state == GameState.PLAYING:
 		_draw_ingame_settings()
