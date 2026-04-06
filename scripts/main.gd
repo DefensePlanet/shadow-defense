@@ -9043,24 +9043,8 @@ func _play_story_voice() -> void:
 			catchphrase_player.stream = character_story_clips[char_clip_key]
 			catchphrase_player.play()
 			return
-	# Play a random existing ElevenLabs clip for this character (placement or fighting voice)
-	# This ensures the character's assigned voice is heard during story narration
-	if speaker_to_tower.has(speaker):
-		var tt: TowerType = speaker_to_tower[speaker]
-		var clips_pool: Array = []
-		if placement_voice_clips.has(tt):
-			clips_pool.append_array(placement_voice_clips[tt])
-		if fighting_voice_clips.has(tt):
-			clips_pool.append_array(fighting_voice_clips[tt])
-		if clips_pool.size() > 0:
-			catchphrase_player.stop()
-			catchphrase_player.stream = clips_pool[randi() % clips_pool.size()]
-			catchphrase_player.play()
-			return
-	# Final fallback: TTS (only if no ElevenLabs clips exist at all)
-	if DisplayServer.tts_get_voices().size() > 0:
-		DisplayServer.tts_stop()
-		DisplayServer.tts_speak(text, "", 80, 1.0, 1.0, 0, true)
+	# No fallback — if no matching clip exists, stay silent rather than
+	# playing wrong audio or robot TTS. Silence > wrong voice.
 
 func _on_story_dialog_clicked(_mouse_pos: Vector2) -> void:
 	if not story_state.active:
@@ -9245,7 +9229,7 @@ func _draw_story_dialog() -> void:
 	# === DIALOG TEXT (word-wrapped, with enhanced shadows) ===
 	var text_x = 580.0
 	var text_y = panel_y + 30.0
-	var max_line_w = 660.0
+	var max_line_w = 600.0
 	var line_height = 26.0
 	var text_size = 16
 	var text_color = Color(0.92, 0.89, 0.80)
