@@ -5343,17 +5343,17 @@ func _create_ui() -> void:
 	skip_song_button.pressed.connect(_on_skip_song_pressed)
 	top_bar.add_child(skip_song_button)
 
-	# Bottom panel — Bloons-style warm dark bar
+	# Bottom panel — gothic dark bar (extended up to fill gap)
 	bottom_panel = ColorRect.new()
 	bottom_panel.color = Color(0.12, 0.07, 0.20, 0.95)
-	bottom_panel.position = Vector2(0, 628)
-	bottom_panel.size = Vector2(1280, 92)
+	bottom_panel.position = Vector2(0, 620)
+	bottom_panel.size = Vector2(1280, 100)
 	bottom_panel.clip_contents = true
 	ui.add_child(bottom_panel)
 
 	var btn_h = 40
-	var row1_y = 2
-	var row2_y = 46
+	var row1_y = 10
+	var row2_y = 54
 	var btn_w = 152
 
 	# Row 1: Base 6 towers stretched across
@@ -19511,11 +19511,42 @@ func _draw() -> void:
 	# Story dialog in GAME_OVER state
 	if story_state.active:
 		_draw_story_dialog()
+	# Survivor portraits on bottom panel tower buttons
+	_draw_tower_button_portraits()
 	# In-game settings popup (draws on top of everything)
 	if ingame_settings_open and game_state == GameState.PLAYING:
 		_draw_ingame_settings()
 	# Mobile: autosave indicator (gameplay)
 	_draw_autosave_indicator()
+
+func _draw_tower_button_portraits() -> void:
+	if game_state != GameState.PLAYING or not bottom_panel or not bottom_panel.visible:
+		return
+	# Map tower type to portrait key and button position
+	var row1_chars = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge"]
+	var row2_chars = ["sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+	var btn_w = 152.0
+	var btn_gap = 6.0
+	var panel_y = 620.0
+	var portrait_sz = 28.0
+	# Row 1
+	for i in range(row1_chars.size()):
+		var char_key = row1_chars[i]
+		if _portrait_textures.has(char_key):
+			var bx = 8.0 + float(i) * (btn_w + btn_gap)
+			var px = bx + 4.0
+			var py = panel_y + 10.0 + 6.0
+			draw_texture_rect(_portrait_textures[char_key], Rect2(px, py, portrait_sz, portrait_sz), false)
+	# Row 2
+	for i in range(row2_chars.size()):
+		var char_key = row2_chars[i]
+		if _portrait_textures.has(char_key):
+			var tt = TowerType.values()[6 + i]
+			if tower_buttons.has(tt) and tower_buttons[tt].visible:
+				var bx = 8.0 + float(i) * (btn_w + btn_gap)
+				var px = bx + 4.0
+				var py = panel_y + 54.0 + 6.0
+				draw_texture_rect(_portrait_textures[char_key], Rect2(px, py, portrait_sz, portrait_sz), false)
 
 func _draw_ingame_settings() -> void:
 	var font = game_font

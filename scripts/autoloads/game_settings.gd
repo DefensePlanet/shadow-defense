@@ -14,7 +14,7 @@ var music_volume: float = 0.45
 var sfx_volume: float = 0.2
 var voice_volume: float = 1.0
 var music_muted: bool = false
-var sfx_muted: bool = false
+var sfx_muted: bool = true
 var voice_muted: bool = false
 var audio_ducking: bool = true  # Enhancement #41: duck music during voice
 
