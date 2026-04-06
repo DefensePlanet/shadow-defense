@@ -1571,7 +1571,7 @@ var wave_start_gold: int = 0
 var wave_start_lives: int = 0
 
 # Audio mute toggles
-var sfx_muted: bool = false
+var sfx_muted: bool = true  # SFX permanently disabled — only voice + music
 var voices_muted: bool = false
 var sfx_mute_button: Button
 var voice_mute_button: Button
@@ -5429,11 +5429,9 @@ func _create_ui() -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	bottom_panel.add_child(restart_button)
 
+	# SFX button removed — SFX permanently disabled, only voice + music
 	sfx_mute_button = Button.new()
-	sfx_mute_button.text = " SFX "
-	sfx_mute_button.position = Vector2(1126, 42)
-	sfx_mute_button.custom_minimum_size = Vector2(72, 48)
-	sfx_mute_button.pressed.connect(_on_sfx_mute_pressed)
+	sfx_mute_button.visible = false
 	bottom_panel.add_child(sfx_mute_button)
 
 	voice_mute_button = Button.new()
@@ -19511,8 +19509,8 @@ func _draw() -> void:
 	# Story dialog in GAME_OVER state
 	if story_state.active:
 		_draw_story_dialog()
-	# Survivor portraits drawn on bottom panel (below UI, won't block clicks)
-	pass
+	# Survivor portraits on bottom panel (Node2D draw = below UI, won't block clicks)
+	_draw_tower_button_portraits()
 	# In-game settings popup (draws on top of everything)
 	if ingame_settings_open and game_state == GameState.PLAYING:
 		_draw_ingame_settings()
@@ -19522,81 +19520,24 @@ func _draw() -> void:
 func _draw_tower_button_portraits() -> void:
 	if game_state != GameState.PLAYING or not bottom_panel or not bottom_panel.visible:
 		return
-	var font = game_font
-	var row1_data = [
-		["robin_hood", "Robin", "75G", TowerType.ROBIN_HOOD],
-		["alice", "Alice", "85G", TowerType.ALICE],
-		["wicked_witch", "Witch", "100G", TowerType.WICKED_WITCH],
-		["peter_pan", "Peter", "90G", TowerType.PETER_PAN],
-		["phantom", "Phantom", "95G", TowerType.PHANTOM],
-		["scrooge", "Scrooge", "60G", TowerType.SCROOGE],
-	]
-	var row2_data = [
-		["sherlock", "Holmes", "110G", TowerType.SHERLOCK],
-		["tarzan", "Tarzan", "100G", TowerType.TARZAN],
-		["dracula", "Dracula", "105G", TowerType.DRACULA],
-		["merlin", "Merlin", "115G", TowerType.MERLIN],
-		["frankenstein", "Monster", "130G", TowerType.FRANKENSTEIN],
-		["shadow_author", "Author", "250G", TowerType.SHADOW_AUTHOR],
-	]
+	# Simple portrait icons drawn via Node2D (below UI controls, can't block clicks)
+	var row1_chars = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge"]
+	var row2_chars = ["sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+	var row2_types = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var btn_w = 152.0
-	var btn_h = 40.0
 	var btn_gap = 6.0
 	var panel_y = 628.0
-	var portrait_sz = 32.0
-	var rows = [
-		{"data": row1_data, "y_offset": 2.0},
-		{"data": row2_data, "y_offset": 46.0},
-	]
-	for row in rows:
-		for i in range(row["data"].size()):
-			var d = row["data"][i]
-			var char_key = d[0]
-			var name = d[1]
-			var cost = d[2]
-			var tt = d[3]
-			if not tower_buttons.has(tt) or not tower_buttons[tt].visible:
-				continue
+	var psz = 30.0
+	# Row 1 portraits
+	for i in range(row1_chars.size()):
+		if _portrait_textures.has(row1_chars[i]):
 			var bx = 8.0 + float(i) * (btn_w + btn_gap)
-			var by = panel_y + row["y_offset"]
-			var is_placed = purchased_towers.has(tt)
-			var can_afford = gold >= tower_info[tt]["cost"] and not is_placed
-			var mouse_pos = get_viewport().get_mouse_position()
-			var is_hover = Rect2(bx, by, btn_w, btn_h).has_point(mouse_pos)
-			# Card background
-			var bg_alpha = 0.85 if is_hover else 0.6
-			var bg_col: Color
-			if is_placed:
-				bg_col = Color(0.08, 0.15, 0.08, bg_alpha)
-			elif can_afford:
-				bg_col = Color(0.12, 0.08, 0.22, bg_alpha)
-			else:
-				bg_col = Color(0.08, 0.05, 0.10, bg_alpha)
-			draw_colored_polygon(_rrp(Rect2(bx, by, btn_w, btn_h), 6.0), bg_col)
-			# Border
-			var bdr_col = Color(0.50, 0.35, 0.65, 0.7) if can_afford else Color(0.25, 0.18, 0.30, 0.4)
-			if is_placed:
-				bdr_col = Color(0.3, 0.5, 0.3, 0.5)
-			if is_hover and not is_placed:
-				bdr_col = Color(0.70, 0.55, 0.90, 0.9)
-			var bdr_pts = _rrp(Rect2(bx, by, btn_w, btn_h), 6.0)
-			bdr_pts.append(bdr_pts[0])
-			draw_polyline(bdr_pts, bdr_col, 1.5)
-			# Portrait (left side, large)
-			if _portrait_textures.has(char_key):
-				var px = bx + 4.0
-				var py = by + (btn_h - portrait_sz) * 0.5
-				draw_texture_rect(_portrait_textures[char_key], Rect2(px, py, portrait_sz, portrait_sz), false, Color(1, 1, 1, 0.3 if is_placed else 1.0))
-			# Name + cost (right of portrait)
-			var text_x = bx + portrait_sz + 12.0
-			var name_col = Color(0.50, 0.70, 0.45, 0.7) if is_placed else (Color(1.0, 0.95, 0.80) if can_afford else Color(0.55, 0.45, 0.40, 0.6))
-			var cost_col = Color(1.0, 0.88, 0.20, 0.9) if can_afford else Color(0.50, 0.40, 0.30, 0.5)
-			if is_placed:
-				_udraw(font, Vector2(text_x, by + 18), "PLACED", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.4, 0.65, 0.35, 0.6))
-				_udraw(font, Vector2(text_x, by + 34), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, name_col)
-			else:
-				_udraw(font, Vector2(text_x, by + 18), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, name_col)
-				_udraw(font, Vector2(text_x, by + 34), cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, cost_col)
+			draw_texture_rect(_portrait_textures[row1_chars[i]], Rect2(bx + 2, panel_y + 7, psz, psz), false)
+	# Row 2 portraits
+	for i in range(row2_chars.size()):
+		if _portrait_textures.has(row2_chars[i]) and tower_buttons.has(row2_types[i]) and tower_buttons[row2_types[i]].visible:
+			var bx = 8.0 + float(i) * (btn_w + btn_gap)
+			draw_texture_rect(_portrait_textures[row2_chars[i]], Rect2(bx + 2, panel_y + 51, psz, psz), false)
 
 func _draw_ingame_settings() -> void:
 	var font = game_font
