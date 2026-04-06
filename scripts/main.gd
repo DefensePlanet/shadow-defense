@@ -5346,66 +5346,52 @@ func _create_ui() -> void:
 	# Bottom panel — gothic dark bar
 	bottom_panel = ColorRect.new()
 	bottom_panel.color = Color(0.12, 0.07, 0.20, 0.95)
-	bottom_panel.position = Vector2(0, 620)
-	bottom_panel.size = Vector2(1280, 100)
+	bottom_panel.position = Vector2(0, 628)
+	bottom_panel.size = Vector2(1280, 92)
 	bottom_panel.clip_contents = true
 	ui.add_child(bottom_panel)
 
-	var btn_h = 44
-	var row1_y = 4
-	var row2_y = 52
+	var btn_h = 40
+	var row1_y = 2
+	var row2_y = 46
 	var btn_w = 152
 
-	# Row 1: Base 6 towers — transparent buttons (visuals drawn procedurally)
+	# Row 1: Base 6 towers
 	var base_towers = [
-		[TowerType.ROBIN_HOOD, "", "Robin Hood — long range archer, gold bonus."],
-		[TowerType.ALICE, "", "Alice — cake, slows enemies in area."],
-		[TowerType.WICKED_WITCH, "", "Wicked Witch — eye blast, wolves."],
-		[TowerType.PETER_PAN, "", "Peter Pan — fast daggers, shadow."],
-		[TowerType.PHANTOM, "", "Phantom — heavy hits, stun, chandelier."],
-		[TowerType.SCROOGE, "", "Scrooge — bell, knockback & gold gen."],
+		[TowerType.ROBIN_HOOD, " ", "Robin Hood — long range archer, gold bonus."],
+		[TowerType.ALICE, " ", "Alice — cake, slows enemies in area."],
+		[TowerType.WICKED_WITCH, " ", "Wicked Witch — eye blast, wolves."],
+		[TowerType.PETER_PAN, " ", "Peter Pan — fast daggers, shadow."],
+		[TowerType.PHANTOM, " ", "Phantom — heavy hits, stun, chandelier."],
+		[TowerType.SCROOGE, " ", "Scrooge — bell, knockback & gold gen."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
 		var bx = 8 + i * (btn_w + 6)
-		var btn = Button.new()
-		btn.text = " "
-		btn.flat = true
-		btn.position = Vector2(bx, row1_y)
-		btn.size = Vector2(btn_w, btn_h)
-		btn.custom_minimum_size = Vector2(btn_w, btn_h)
+		var btn = _make_button(bt[1], Vector2(bx, row1_y), Vector2(btn_w, btn_h))
 		btn.add_theme_color_override("font_color", Color(0, 0, 0, 0))
 		btn.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
 		btn.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
-		btn.add_theme_font_size_override("font_size", 1)
-		btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		btn.pressed.connect(_on_tower_pressed.bind(bt[0], bt[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[bt[0]] = btn
 
-	# Row 2: Unlockable characters — transparent buttons (visuals drawn procedurally)
+	# Row 2: Unlockable characters
 	var new_chars = [
-		[TowerType.SHERLOCK, "", "Sherlock — focus beam, deduction mark."],
-		[TowerType.TARZAN, "", "Tarzan — melee beast, vine swing, animals."],
-		[TowerType.DRACULA, "", "Dracula — life drain, bats, minion control."],
-		[TowerType.MERLIN, "", "Merlin — buffs, curses, Excalibur strikes."],
-		[TowerType.FRANKENSTEIN, "", "Frankenstein — AoE lightning fist smash."],
-		[TowerType.SHADOW_AUTHOR, "", "Shadow Author — ink attacks, rewrite, shadow servants."],
+		[TowerType.SHERLOCK, " ", "Sherlock — focus beam, deduction mark."],
+		[TowerType.TARZAN, " ", "Tarzan — melee beast, vine swing, animals."],
+		[TowerType.DRACULA, " ", "Dracula — life drain, bats, minion control."],
+		[TowerType.MERLIN, " ", "Merlin — buffs, curses, Excalibur strikes."],
+		[TowerType.FRANKENSTEIN, " ", "Frankenstein — AoE lightning fist smash."],
+		[TowerType.SHADOW_AUTHOR, " ", "Shadow Author — ink attacks, rewrite, shadow servants."],
 	]
 	for i in range(new_chars.size()):
 		var nc = new_chars[i]
 		var bx = 8 + i * (btn_w + 6)
-		var btn = Button.new()
-		btn.text = " "
-		btn.flat = true
-		btn.position = Vector2(bx, row2_y)
-		btn.size = Vector2(btn_w, btn_h)
-		btn.custom_minimum_size = Vector2(btn_w, btn_h)
+		var btn = _make_button(nc[1], Vector2(bx, row2_y), Vector2(btn_w, btn_h))
 		btn.add_theme_color_override("font_color", Color(0, 0, 0, 0))
 		btn.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
 		btn.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
-		btn.add_theme_font_size_override("font_size", 1)
-		btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		btn.pressed.connect(_on_tower_pressed.bind(nc[0], nc[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[nc[0]] = btn
@@ -19560,13 +19546,13 @@ func _draw_tower_button_portraits() -> void:
 		["shadow_author", "Author", "250G", TowerType.SHADOW_AUTHOR],
 	]
 	var btn_w = 152.0
-	var btn_h = 44.0
+	var btn_h = 40.0
 	var btn_gap = 6.0
-	var panel_y = 620.0
-	var portrait_sz = 36.0
+	var panel_y = 628.0
+	var portrait_sz = 32.0
 	var rows = [
-		{"data": row1_data, "y_offset": 4.0},
-		{"data": row2_data, "y_offset": 52.0},
+		{"data": row1_data, "y_offset": 2.0},
+		{"data": row2_data, "y_offset": 46.0},
 	]
 	for row in rows:
 		for i in range(row["data"].size()):
