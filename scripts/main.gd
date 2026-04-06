@@ -9018,14 +9018,27 @@ func _play_story_voice() -> void:
 			catchphrase_player.play()
 			return
 	if speaker == "shadow_author":
+		# Combined index (narrator + shadow_author counted together) — matches original clip naming
+		var combined_idx := 0
+		for i in range(story_state.line_index):
+			var s = lines[i].get("speaker", "narrator")
+			if s == "narrator" or s == "shadow_author":
+				combined_idx += 1
+		# Try original naming first (key_N), then new naming (key_shadow_author_N)
+		var clip_key_old = key + "_" + str(combined_idx)
 		var sa_idx := 0
 		for i in range(story_state.line_index):
 			if lines[i].get("speaker", "") == "shadow_author":
 				sa_idx += 1
-		var clip_key = key + "_shadow_author_" + str(sa_idx)
-		if shadow_author_story_clips.has(clip_key):
+		var clip_key_new = key + "_shadow_author_" + str(sa_idx)
+		if shadow_author_story_clips.has(clip_key_old):
 			catchphrase_player.stop()
-			catchphrase_player.stream = shadow_author_story_clips[clip_key]
+			catchphrase_player.stream = shadow_author_story_clips[clip_key_old]
+			catchphrase_player.play()
+			return
+		elif shadow_author_story_clips.has(clip_key_new):
+			catchphrase_player.stop()
+			catchphrase_player.stream = shadow_author_story_clips[clip_key_new]
 			catchphrase_player.play()
 			return
 	# For character lines, try character-specific story clips first (keyed like Shadow Author)
