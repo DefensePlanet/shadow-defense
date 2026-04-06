@@ -22522,6 +22522,8 @@ func _get_song_for_level(level_idx: int) -> int:
 	return 0  # Default to first song
 
 func _start_layered_music(level_idx: int) -> void:
+	# Layered music disabled — only Wave soundtrack plays during gameplay
+	return
 	_stop_layered_music()
 	_music_song_index = _get_song_for_level(level_idx)
 	var song = MAP_SONGS[_music_song_index]
