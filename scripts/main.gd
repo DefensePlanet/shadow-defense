@@ -5373,6 +5373,9 @@ func _create_ui() -> void:
 		btn.flat = true
 		btn.position = Vector2(bx, row1_y)
 		btn.custom_minimum_size = Vector2(btn_w, btn_h)
+		btn.add_theme_color_override("font_color", Color(0, 0, 0, 0))
+		btn.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
+		btn.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
 		btn.pressed.connect(_on_tower_pressed.bind(bt[0], bt[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[bt[0]] = btn
@@ -5394,6 +5397,9 @@ func _create_ui() -> void:
 		btn.flat = true
 		btn.position = Vector2(bx, row2_y)
 		btn.custom_minimum_size = Vector2(btn_w, btn_h)
+		btn.add_theme_color_override("font_color", Color(0, 0, 0, 0))
+		btn.add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
+		btn.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
 		btn.pressed.connect(_on_tower_pressed.bind(nc[0], nc[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
 		tower_buttons[nc[0]] = btn
