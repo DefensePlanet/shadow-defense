@@ -24,7 +24,9 @@ except ImportError:
 
 # === VOICE CONFIGURATION ===
 NARRATOR_VOICE_ID = "nPczCjzI2devNBz1zQrb"  # Brian — Deep, Resonant
-SHADOW_AUTHOR_VOICE_ID = "yhf80q1381zd2JJQ4tM7"  # Dominic — British, Dark, Brooding
+# Shadow Author uses a blend of two voices (Dominic + Matthew) alternating
+SHADOW_AUTHOR_VOICE_A = "yhf80q1381zd2JJQ4tM7"  # Dominic — British, Dark, Brooding (calm taunts)
+SHADOW_AUTHOR_VOICE_B = "rCYFsCX2waxtHCgVD0e8"  # Matthew Schmitz — The Demon (intense threats)
 MODEL_ID = "eleven_v3"  # Highest quality model
 
 NARRATOR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio", "voices", "narrator")
@@ -137,7 +139,12 @@ def main():
     failed = 0
 
     for speaker, clip_key, text, out_dir in lines:
-        voice_id = NARRATOR_VOICE_ID if speaker == "narrator" else SHADOW_AUTHOR_VOICE_ID
+        if speaker == "narrator":
+            voice_id = NARRATOR_VOICE_ID
+        else:
+            # Alternate Dominic (A) and Matthew (B) for Shadow Author blend
+            sa_line_num = int(clip_key.split("_")[-1])
+            voice_id = SHADOW_AUTHOR_VOICE_A if sa_line_num % 2 == 0 else SHADOW_AUTHOR_VOICE_B
         output_path = os.path.join(out_dir, f"{clip_key}.mp3")
 
         print(f"  [{speaker:15s}] {clip_key}")

@@ -9227,9 +9227,9 @@ func _draw_story_dialog() -> void:
 	_ds_outlined_text(Vector2(badge_x + 30, badge_y + 25), speaker_display, 18, Color(0.95, 0.85, 0.45), name_w - 36, HORIZONTAL_ALIGNMENT_LEFT, 2)
 
 	# === DIALOG TEXT (word-wrapped, with enhanced shadows) ===
-	var text_x = 580.0
+	var text_x = 540.0
 	var text_y = panel_y + 30.0
-	var max_line_w = 600.0
+	var max_line_w = 620.0
 	var line_height = 26.0
 	var text_size = 16
 	var text_color = Color(0.92, 0.89, 0.80)
