@@ -24,7 +24,7 @@ except ImportError:
 # === CONFIGURATION ===
 # "Brian" — Deep, Resonant and Comforting (American, middle-aged)
 VOICE_ID = "nPczCjzI2devNBz1zQrb"
-MODEL_ID = "eleven_turbo_v2_5"
+MODEL_ID = "eleven_v3"
 # Voice settings for commanding narrator delivery
 VOICE_SETTINGS = {
     "stability": 0.70,          # Steady, authoritative
