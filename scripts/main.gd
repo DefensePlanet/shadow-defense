@@ -109,6 +109,7 @@ var _current_song_title: String = ""
 # Settings panel
 var settings_panel: Control
 var settings_open: bool = false
+var ingame_settings_open: bool = false
 
 # Game state & levels
 enum GameState { MENU, PLAYING, GAME_OVER_STATE }
@@ -5268,7 +5269,7 @@ func _create_ui() -> void:
 
 	# Top bar — Bloons-style warm dark bar
 	top_bar = ColorRect.new()
-	top_bar.color = Color(0.15, 0.28, 0.48, 0.95)
+	top_bar.color = Color(0.12, 0.07, 0.20, 0.95)
 	top_bar.position = Vector2(0, 0)
 	top_bar.size = Vector2(1280, 50)
 	ui.add_child(top_bar)
@@ -5299,6 +5300,16 @@ func _create_ui() -> void:
 	lives_label.add_theme_constant_override("shadow_offset_y", 2)
 	lives_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	top_bar.add_child(lives_label)
+
+	# Settings gear button (gameplay)
+	var settings_gear_btn = Button.new()
+	settings_gear_btn.text = " SET "
+	settings_gear_btn.position = Vector2(1118, 6)
+	settings_gear_btn.custom_minimum_size = Vector2(56, 38)
+	settings_gear_btn.add_theme_color_override("font_color", Color(0.65, 0.55, 0.80))
+	settings_gear_btn.add_theme_font_size_override("font_size", 12)
+	settings_gear_btn.pressed.connect(_toggle_ingame_settings)
+	top_bar.add_child(settings_gear_btn)
 
 	menu_exit_button = Button.new()
 	menu_exit_button.text = "  MENU  "
@@ -5334,7 +5345,7 @@ func _create_ui() -> void:
 
 	# Bottom panel — Bloons-style warm dark bar
 	bottom_panel = ColorRect.new()
-	bottom_panel.color = Color(0.15, 0.28, 0.48, 0.95)
+	bottom_panel.color = Color(0.12, 0.07, 0.20, 0.95)
 	bottom_panel.position = Vector2(0, 628)
 	bottom_panel.size = Vector2(1280, 92)
 	bottom_panel.clip_contents = true
@@ -6055,6 +6066,7 @@ func _on_retry_level() -> void:
 
 func _show_menu() -> void:
 	_reset_game()
+	ingame_settings_open = false
 	game_state = GameState.MENU
 	get_tree().paused = false
 	Engine.time_scale = 1.0
@@ -8061,6 +8073,60 @@ func _on_song_changed(title: String) -> void:
 
 func _on_skip_song_pressed() -> void:
 	MusicManager.skip_track()
+
+func _toggle_ingame_settings() -> void:
+	ingame_settings_open = !ingame_settings_open
+	queue_redraw()
+
+func _on_ingame_settings_clicked(pos: Vector2) -> void:
+	var px = 380.0
+	var py = 120.0
+	var pw = 520.0
+	var ph = 420.0
+	# Click outside panel closes it
+	if not Rect2(px, py, pw, ph).has_point(pos):
+		ingame_settings_open = false
+		return
+	# Volume sliders
+	var slider_x = px + 40.0
+	var slider_y = py + 70.0
+	var slider_w = 200.0
+	var row_gap = 56.0
+	var tx = slider_x + 120.0
+	for si in range(4):
+		var sy = slider_y + float(si) * row_gap - 10.0
+		if pos.x >= tx - 10 and pos.x <= tx + slider_w + 10 and pos.y >= sy - 10 and pos.y <= sy + 25:
+			var val = clampf((pos.x - tx) / slider_w, 0.0, 1.0)
+			match si:
+				0: GameSettings.music_volume = val
+				1: GameSettings.sfx_volume = val
+				2: GameSettings.voice_volume = val
+				3: GameSettings.master_volume = val
+			GameSettings.save_settings()
+			return
+	# Mute toggles
+	for si in range(3):
+		var mute_x = tx + slider_w + 70.0
+		var mute_y = slider_y + float(si) * row_gap - 14.0
+		if pos.x >= mute_x and pos.x <= mute_x + 60 and pos.y >= mute_y and pos.y <= mute_y + 24:
+			match si:
+				0: GameSettings.music_muted = !GameSettings.music_muted
+				1: GameSettings.sfx_muted = !GameSettings.sfx_muted
+				2: GameSettings.voice_muted = !GameSettings.voice_muted
+			GameSettings.save_settings()
+			return
+	# Skip button
+	var np_y = slider_y + 4.0 * row_gap + 10.0
+	var skip_x = slider_x + 350.0
+	var skip_y2 = np_y - 14.0
+	if pos.x >= skip_x and pos.x <= skip_x + 80 and pos.y >= skip_y2 and pos.y <= skip_y2 + 28:
+		MusicManager.skip_track()
+		return
+	# Close button
+	var close_y = py + ph - 50.0
+	var close_x = px + (pw - 120) * 0.5
+	if pos.x >= close_x and pos.x <= close_x + 120 and pos.y >= close_y and pos.y <= close_y + 36:
+		ingame_settings_open = false
 
 func _samples_to_wav(samples: PackedFloat32Array, rate: int = 22050) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -15273,8 +15339,8 @@ func _draw_story_map() -> void:
 				card_bg = Color(br, bg2, bb, 0.95) if not is_hovered else Color(minf(br * 1.4, 0.25), minf(bg2 * 1.4, 0.15), minf(bb * 1.3, 0.35), 0.98)
 				card_border = Color(0.35, 0.20, 0.50, 0.6) if not is_hovered else Color(0.40, 0.80, 0.98, 1.0)
 			else:
-				card_bg = Color(0.18, 0.28, 0.42, 0.85)
-				card_border = Color(0.30, 0.40, 0.55, 0.5)
+				card_bg = Color(0.14, 0.10, 0.22, 0.85)
+				card_border = Color(0.30, 0.22, 0.40, 0.5)
 			_ds_panel(Rect2(rx, ry, rw, row_h - 4), card_bg, card_border, 3.0)
 			# Left accent bar (thick, glowing)
 			var accent_col = arc_col if is_unlocked else Color(0.3, 0.25, 0.2, 0.3)
@@ -18418,6 +18484,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
+			# In-game settings overlay click handling
+			if ingame_settings_open:
+				_on_ingame_settings_clicked(event.position)
+				get_viewport().set_input_as_handled()
+				queue_redraw()
+				return
 			# Loot crate collection during gameplay
 			if _loot_crate_pending and _loot_crate_phase == 3:
 				_collect_loot_crate()
@@ -19439,8 +19511,81 @@ func _draw() -> void:
 	# Story dialog in GAME_OVER state
 	if story_state.active:
 		_draw_story_dialog()
+	# In-game settings popup (draws on top of everything)
+	if ingame_settings_open and game_state == GameState.PLAYING:
+		_draw_ingame_settings()
 	# Mobile: autosave indicator (gameplay)
 	_draw_autosave_indicator()
+
+func _draw_ingame_settings() -> void:
+	var font = game_font
+	# Dim background
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.55))
+	# Panel
+	var px = 380.0
+	var py = 120.0
+	var pw = 520.0
+	var ph = 420.0
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.08, 0.05, 0.15, 0.95), Color(0.55, 0.40, 0.15, 0.5), 3.0, 12.0)
+	# Title
+	_ds_outlined_text(Vector2(px, py + 30), "SETTINGS", 20, Color(0.85, 0.72, 0.40), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	draw_rect(Rect2(px + 30, py + 42, pw - 60, 1), Color(0.55, 0.40, 0.15, 0.4))
+	# Volume sliders
+	var slider_x = px + 40.0
+	var slider_y = py + 70.0
+	var slider_w = 200.0
+	var row_gap = 56.0
+	var slider_labels = ["MUSIC", "SFX", "VOICE", "MASTER"]
+	var slider_values = [GameSettings.music_volume, GameSettings.sfx_volume, GameSettings.voice_volume, GameSettings.master_volume]
+	var slider_muted = [GameSettings.music_muted, GameSettings.sfx_muted, GameSettings.voice_muted, false]
+	for si in range(4):
+		var sy = slider_y + float(si) * row_gap
+		var muted = slider_muted[si]
+		var label_col = Color(0.45, 0.35, 0.50, 0.5) if muted else Color(0.75, 0.65, 0.85, 0.9)
+		_udraw(font, Vector2(slider_x, sy), slider_labels[si], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, label_col)
+		# Track
+		var tx = slider_x + 120.0
+		var ty = sy - 10.0
+		draw_colored_polygon(_rrp(Rect2(tx, ty, slider_w, 10), 5.0), Color(0.15, 0.10, 0.25, 0.8))
+		# Fill
+		var fill_w = slider_w * slider_values[si]
+		var fill_col = Color(0.30, 0.20, 0.45, 0.4) if muted else Color(0.55, 0.40, 0.75, 0.8)
+		if fill_w > 4:
+			draw_colored_polygon(_rrp(Rect2(tx, ty, fill_w, 10), 5.0), fill_col)
+		# Thumb
+		draw_circle(Vector2(tx + fill_w, ty + 5), 8.0, fill_col)
+		draw_circle(Vector2(tx + fill_w, ty + 5), 8.0, Color(1, 1, 1, 0.15 if muted else 0.3), false, 1.5)
+		# Percentage
+		_udraw(font, Vector2(tx + slider_w + 15, sy), "%d%%" % int(slider_values[si] * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, label_col)
+		# Mute toggle (right side)
+		if si < 3:
+			var mute_x = tx + slider_w + 70.0
+			var mute_y = sy - 14.0
+			draw_colored_polygon(_rrp(Rect2(mute_x, mute_y, 60, 24), 6.0), Color(0.15, 0.10, 0.22, 0.8))
+			var bdr2 = _rrp(Rect2(mute_x, mute_y, 60, 24), 6.0)
+			bdr2.append(bdr2[0])
+			draw_polyline(bdr2, Color(0.45, 0.30, 0.60, 0.5), 1.0)
+			if muted:
+				_udraw(font, Vector2(mute_x, mute_y + 17), "MUTED", HORIZONTAL_ALIGNMENT_CENTER, 60, 11, Color(1.0, 0.4, 0.3, 0.8))
+			else:
+				_udraw(font, Vector2(mute_x, mute_y + 17), "ON", HORIZONTAL_ALIGNMENT_CENTER, 60, 11, Color(0.4, 0.85, 0.4, 0.7))
+	# Now Playing
+	var np_y = slider_y + 4.0 * row_gap + 10.0
+	_udraw(font, Vector2(slider_x, np_y), "NOW PLAYING", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.72, 0.40))
+	if _current_song_title != "":
+		_udraw(font, Vector2(slider_x + 140, np_y), _current_song_title, HORIZONTAL_ALIGNMENT_LEFT, 200, 14, Color(0.80, 0.70, 0.95, 0.9))
+		# Skip button
+		var skip_x = slider_x + 350.0
+		var skip_y2 = np_y - 14.0
+		draw_colored_polygon(_rrp(Rect2(skip_x, skip_y2, 80, 28), 6.0), Color(0.20, 0.12, 0.35, 0.8))
+		var bdr3 = _rrp(Rect2(skip_x, skip_y2, 80, 28), 6.0)
+		bdr3.append(bdr3[0])
+		draw_polyline(bdr3, Color(0.50, 0.35, 0.65, 0.5), 1.0)
+		_udraw(font, Vector2(skip_x, skip_y2 + 19), "SKIP >>", HORIZONTAL_ALIGNMENT_CENTER, 80, 12, Color(0.80, 0.70, 0.95))
+	# Close button
+	var close_y = py + ph - 50.0
+	var close_x = px + (pw - 120) * 0.5
+	_ds_button(Rect2(close_x, close_y, 120, 36), "CLOSE", Color(0.35, 0.20, 0.50), false, 14)
 
 func _draw_ability_popup() -> void:
 	var alpha = clampf(_ability_popup_timer, 0.0, 1.0)

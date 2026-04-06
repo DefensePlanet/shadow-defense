@@ -11,7 +11,7 @@ const SETTINGS_PATH := "user://settings.cfg"
 # Audio
 var master_volume: float = 1.0
 var music_volume: float = 0.45
-var sfx_volume: float = 1.0
+var sfx_volume: float = 0.2
 var voice_volume: float = 1.0
 var music_muted: bool = false
 var sfx_muted: bool = false
@@ -280,7 +280,7 @@ func _check_silent_mode() -> void:
 func reset_to_defaults() -> void:
 	master_volume = 1.0
 	music_volume = 0.45
-	sfx_volume = 1.0
+	sfx_volume = 0.2
 	voice_volume = 1.0
 	music_muted = false
 	sfx_muted = false
