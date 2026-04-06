@@ -34897,61 +34897,21 @@ func _update_narration_particles(delta: float) -> void:
 			p["x"] = randf_range(-120.0, 120.0)
 
 func _load_narrator_clips() -> void:
+	# Scan narrator voice directory and load all MP3 clips found
 	var base = "res://audio/voices/narrator/"
-	# Same key structure as shadow_author  --  dialogkey_lineindex.mp3
-	var story_keys: Array = [
-		"prologue_0", "prologue_1", "prologue_2", "prologue_3",
-		"pre_level_0_0", "pre_level_0_1", "post_level_0_0", "post_level_0_1",
-		"pre_level_1_0", "pre_level_1_1", "post_level_1_0",
-		"pre_level_2_0",
-		"pre_level_3_0", "pre_level_3_1", "post_level_3_0",
-		"pre_level_4_0", "pre_level_4_1",
-		"pre_level_5_0", "post_level_5_0",
-		"pre_level_6_0", "post_level_6_0",
-		"pre_level_7_0", "pre_level_7_1", "post_level_7_0",
-		"pre_level_8_0",
-		"pre_level_9_0", "post_level_9_0",
-		"pre_level_10_0", "pre_level_10_1",
-		"pre_level_11_0", "post_level_11_0",
-		"pre_level_12_0", "post_level_12_0",
-		"pre_level_13_0", "pre_level_13_1",
-		"pre_level_14_0",
-		"pre_level_15_0", "post_level_15_0",
-		"act2_intro_0", "act2_intro_1", "act2_intro_2",
-		"pre_level_16_0", "pre_level_16_1", "post_level_16_0",
-		"pre_level_17_0",
-		"pre_level_18_0", "post_level_18_0",
-		"pre_level_19_0", "pre_level_19_1",
-		"pre_level_20_0",
-		"pre_level_21_0", "post_level_21_0",
-		"pre_level_22_0",
-		"pre_level_23_0",
-		"pre_level_24_0", "post_level_24_0",
-		"pre_level_25_0", "pre_level_25_1",
-		"pre_level_26_0",
-		"pre_level_27_0", "post_level_27_0",
-		"pre_level_28_0",
-		"pre_level_29_0",
-		"pre_level_30_0", "post_level_30_0",
-		"pre_level_31_0",
-		"pre_level_32_0",
-		"pre_level_33_0", "post_level_33_0",
-		"act3_intro_0", "act3_intro_1", "act3_intro_2",
-		"pre_level_34_0", "post_level_34_0",
-		"pre_level_35_0",
-		"pre_level_36_0", "pre_level_36_1", "pre_level_36_2",
-		"post_level_36_0", "post_level_36_1", "post_level_36_2", "post_level_36_3",
-		"unlock_sherlock_0", "unlock_sherlock_1",
-		"unlock_tarzan_0", "unlock_tarzan_1",
-		"unlock_dracula_0", "unlock_dracula_1",
-		"unlock_merlin_0", "unlock_merlin_1",
-		"unlock_frankenstein_0", "unlock_frankenstein_1",
-		"all_unlocked_0", "all_unlocked_1", "all_unlocked_2",
-	]
-	for key in story_keys:
-		var path = base + key + ".mp3"
-		if ResourceLoader.exists(path):
-			narrator_story_clips[key] = load(path)
+	var dir = DirAccess.open(base)
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	var fname = dir.get_next()
+	while fname != "":
+		if fname.ends_with(".mp3"):
+			var key = fname.replace(".mp3", "")
+			var path = base + fname
+			if ResourceLoader.exists(path):
+				narrator_story_clips[key] = load(path)
+		fname = dir.get_next()
+	dir.list_dir_end()
 
 func _draw_frosted_panel(rect: Rect2, accent: Color, frost_alpha: float = 0.06) -> void:
 	# Layer 1: Dark base (85% opaque)
