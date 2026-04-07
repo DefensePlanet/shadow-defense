@@ -38,7 +38,7 @@ var tower_info = {
 	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 30, "fire_rate": 0.45},
 	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0, "damage": 14, "fire_rate": 0.80},
 	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 28, "fire_rate": 0.50},
-	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0, "damage": 11, "fire_rate": 0.70},
+	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0, "damage": 5, "fire_rate": 0.70},
 	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 20, "fire_rate": 0.50},
 	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 35, "fire_rate": 0.40},
 	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0, "damage": 38, "fire_rate": 0.35},
