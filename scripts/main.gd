@@ -34,7 +34,7 @@ var tower_buttons: Dictionary = {}
 
 var tower_info = {
 	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0, "damage": 25, "fire_rate": 0.55},
-	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 17, "fire_rate": 0.65},
+	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 8, "fire_rate": 0.65},
 	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 30, "fire_rate": 0.45},
 	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0, "damage": 14, "fire_rate": 0.80},
 	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 28, "fire_rate": 0.50},
