@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://b141p37foagsc"
+path="res://.godot/imported/Rust Crown Iron.wav-da56535192e9f52656d8a18f1e084c66.sample"
+
+[deps]
+
+source_file="res://audio/music/Rust Crown Iron.wav"
+dest_files=["res://.godot/imported/Rust Crown Iron.wav-da56535192e9f52656d8a18f1e084c66.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

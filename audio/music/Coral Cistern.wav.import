@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://chkkda3eiebru"
+path="res://.godot/imported/Coral Cistern.wav-c52c4e7d7be6f8409a460dd776c52dc8.sample"
+
+[deps]
+
+source_file="res://audio/music/Coral Cistern.wav"
+dest_files=["res://.godot/imported/Coral Cistern.wav-c52c4e7d7be6f8409a460dd776c52dc8.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

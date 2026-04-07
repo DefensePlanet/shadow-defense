@@ -6,7 +6,7 @@ extends Node
 signal song_changed(title: String)
 signal music_stopped
 
-# All 26 soundtrack tracks (order matches filenames)
+# All 34 soundtrack tracks
 const TRACK_FILES: Array = [
 	"res://audio/music/01-Parchment_Tongues.wav",
 	"res://audio/music/02-Poisoned_Waltz.wav",
@@ -34,6 +34,14 @@ const TRACK_FILES: Array = [
 	"res://audio/music/24-Nightshade_Waltz.wav",
 	"res://audio/music/25-Oracle_Thread_II.wav",
 	"res://audio/music/26-Brass_Dominion.wav",
+	"res://audio/music/Coral Cistern.wav",
+	"res://audio/music/Coral Crownfall.wav",
+	"res://audio/music/Coral Gullet.wav",
+	"res://audio/music/Coral Silt Throne.wav",
+	"res://audio/music/Coral Wreckage.wav",
+	"res://audio/music/Coral Wreckage (1).wav",
+	"res://audio/music/Iron Throne.wav",
+	"res://audio/music/Rust Crown Iron.wav",
 ]
 
 # Human-readable titles (derived from filenames)
@@ -64,6 +72,14 @@ const TRACK_TITLES: Array = [
 	"Nightshade Waltz",
 	"Oracle Thread II",
 	"Brass Dominion",
+	"Coral Cistern",
+	"Coral Crownfall",
+	"Coral Gullet",
+	"Coral Silt Throne",
+	"Coral Wreckage",
+	"Coral Wreckage II",
+	"Iron Throne",
+	"Rust Crown Iron",
 ]
 
 # Map level_idx -> track index (0-25). Brass Dominion (25) reserved for final map (36).
