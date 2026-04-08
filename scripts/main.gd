@@ -6807,6 +6807,50 @@ func _on_emporium_sub_input(mouse_pos: Vector2) -> void:
 					_start_chest_opening(ci)
 					return
 
+func _on_gear_compendium_clicked() -> void:
+	# Find which gear item was clicked using hover state
+	if gear_tab_hover_tier < 0:
+		return
+	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
+	var rarity = rarity_order[gear_tab_hover_tier]
+	var items_in_tier: Array = []
+	for b in GEAR_ITEMS:
+		if b["tier"] == rarity:
+			items_in_tier.append(b)
+	var idx = gear_tab_hover_row * 4 + gear_tab_hover_col
+	if idx < 0 or idx >= items_in_tier.size():
+		return
+	var gear = items_in_tier[idx]
+	var gear_id = gear["id"]
+	# Must own the gear
+	if owned_gear.get(gear_id, 0) <= 0:
+		return
+	# Find the character this gear belongs to
+	var char_name = gear.get("character", "")
+	if char_name == "":
+		return  # Universal gear — skip for now
+	var char_names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+	var tower_type = -1
+	for i in range(char_names.size()):
+		if char_names[i] == char_name:
+			tower_type = i
+			break
+	if tower_type < 0:
+		return
+	# Toggle equip/unequip
+	if not equipped_gear.has(tower_type):
+		equipped_gear[tower_type] = []
+	var eq = equipped_gear[tower_type]
+	if gear_id in eq:
+		eq.erase(gear_id)
+		_play_sfx(_sfx_ui_click)
+	else:
+		var max_slots = _get_gear_slots(tower_type)
+		if eq.size() < max_slots:
+			eq.append(gear_id)
+			_play_sfx(_sfx_ui_click)
+	_save_game()
+
 func _update_gear_tab_hover() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 	var panel_x = 70.0 + _safe_left
@@ -18392,6 +18436,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif menu_current_view == "survivors" and not survivor_detail_open:
 			if world_map_hover_index >= 0:
 				_on_survivor_card_pressed(world_map_hover_index)
+		# Handle gear tab clicks — equip/unequip gear on matching survivor
+		elif menu_current_view == "gear":
+			if gear_tab_hover_tier >= 0:
+				_on_gear_compendium_clicked()
+			get_viewport().set_input_as_handled()
+			queue_redraw()
+			return
 		# Handle emporium clicks
 		elif menu_current_view == "emporium":
 			if emporium_sub_category == 6:
