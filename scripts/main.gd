@@ -9464,7 +9464,7 @@ func _draw_story_portrait(px: float, py: float, size: float, speaker: String) ->
 
 func _get_speaker_display_name(speaker: String) -> String:
 	match speaker:
-		"narrator": return "The Shadow Author"
+		"narrator": return "The Narrator"
 		"robin_hood": return "Robin Hood"
 		"alice": return "Alice"
 		"wicked_witch": return "The Wicked Witch"
