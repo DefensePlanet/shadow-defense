@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4: "Never Land" — costs 1000 gold, glows gold, +20% damage
 
 var damage: float = 15.0
-var fire_rate: float = 2.5
+var fire_rate: float = 2.0
 var attack_range: float = 100.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0

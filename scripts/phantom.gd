@@ -7,7 +7,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
 var damage: float = 30.0
-var fire_rate: float = 0.7
+var fire_rate: float = 0.8
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0

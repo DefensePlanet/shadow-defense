@@ -7,7 +7,7 @@ extends Node2D
 
 # Base stats
 var damage: float = 20.0
-var fire_rate: float = 0.6
+var fire_rate: float = 0.85
 var attack_range: float = 160.0
 var fire_cooldown: float = 0.0
 var bow_angle: float = 0.0

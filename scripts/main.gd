@@ -33,11 +33,11 @@ var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 
 var tower_info = {
-	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 160.0, "damage": 20, "fire_rate": 0.60},
+	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 160.0, "damage": 20, "fire_rate": 0.85},
 	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 12, "fire_rate": 1.80},
 	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 18, "fire_rate": 1.60},
-	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 100.0, "damage": 15, "fire_rate": 2.50},
-	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 30, "fire_rate": 0.70},
+	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 100.0, "damage": 15, "fire_rate": 2.00},
+	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 30, "fire_rate": 0.80},
 	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 65.0, "damage": 8, "fire_rate": 1.40},
 	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 0, "fire_rate": 0.0},
 	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 28, "fire_rate": 0.80},
@@ -53,7 +53,7 @@ const MIN_PATH_DIST: float = 25.0
 const MIN_TOWER_DIST: float = 40.0
 const MAX_SURVIVOR_LEVEL: int = 20
 # BTD6-inspired sub-exponential XP curve (19 entries, index = current_level - 1)
-const HERO_XP_TABLE: Array = [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 18200, 20100, 22100, 24200, 26400, 28800, 31400, 34200, 37200]
+const HERO_XP_TABLE: Array = [200, 500, 1000, 1800, 2800, 4000, 5500, 7200, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 25000, 27000, 30000]
 
 # Preloads
 var tower_scenes = {
@@ -1892,8 +1892,8 @@ const XP_SHARE_RATIO: float = 0.15  # 15% of avg XP to unused chars (nerfed from
 
 # === PROGRESSION: Wave-based XP system ===
 # XP per wave completed, scaled by wave number (later waves = more XP)
-const WAVE_BASE_XP: float = 40.0  # Base XP for wave 1
-const WAVE_XP_GROWTH: float = 15.0  # Additional XP per wave number
+const WAVE_BASE_XP: float = 80.0  # Base XP for wave 1
+const WAVE_XP_GROWTH: float = 25.0  # Additional XP per wave number
 # Difficulty XP multipliers: Easy=0.5x, Medium=1.0x, Hard=1.5x, Pure=3.0x
 const DIFFICULTY_XP_MULT: Array = [0.5, 1.0, 1.5, 3.0]
 # Difficulty gear drop quality cap: 0=common/uncommon, 1=up to rare, 2=up to epic, 3=up to legendary
