@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): The Final Arrow — splash damage (40px), +50% gold, double pierce
 
 # Base stats
-var damage: float = 32.0
+var damage: float = 20.0
 var fire_rate: float = 0.6
 var attack_range: float = 160.0
 var fire_cooldown: float = 0.0

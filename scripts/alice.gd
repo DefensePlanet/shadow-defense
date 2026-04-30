@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 3: "Mad Tea Party" — Towers in range drink tea, +5% fire rate
 ## Tier 4: "Off With Their Heads!" — Paints ALL enemies red, low DoT as they walk
 
-var damage: float = 18.0
+var damage: float = 12.0
 var fire_rate: float = 1.8
 var attack_range: float = 85.0
 var fire_cooldown: float = 0.0

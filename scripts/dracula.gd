@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4: Lord of Darkness — glow red, dash and feast on enemies at will
 
 # Base stats
-var damage: float = 35.0
+var damage: float = 22.0
 var fire_rate: float = 1.5
 var attack_range: float = 190.0
 var fire_cooldown: float = 0.0

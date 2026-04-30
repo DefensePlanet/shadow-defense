@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 3: "Tick-Tock Croc" — crocodile eats every 30th enemy (instakill)
 ## Tier 4: "Never Land" — costs 1000 gold, glows gold, +20% damage
 
-var damage: float = 22.0
+var damage: float = 15.0
 var fire_rate: float = 2.5
 var attack_range: float = 100.0
 var fire_cooldown: float = 0.0

@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 3: "Ghost of Christmas Present" — Gives the team 25 gold twice per round
 ## Tier 4: "Ghost of Yet to Come" — Every other wave, massive coin blast damages all enemies
 
-var damage: float = 15.0
+var damage: float = 8.0
 var fire_rate: float = 1.4
 var attack_range: float = 65.0
 var fire_cooldown: float = 0.0

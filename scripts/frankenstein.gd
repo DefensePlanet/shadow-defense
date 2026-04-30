@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): Modern Prometheus — 500 base dmg storm, permanent electric aura
 
 # Base stats
-var damage: float = 60.0
+var damage: float = 32.0
 var fire_rate: float = 0.6
 var attack_range: float = 140.0
 var fire_cooldown: float = 0.0

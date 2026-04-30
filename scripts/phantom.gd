@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 3 (15000 DMG): "Chandelier" — periodic AoE burst (2x damage to all in range)
 ## Tier 4 (20000 DMG): "Phantom's Wrath" — notes apply DoT, all stats boosted
 
-var damage: float = 55.0
+var damage: float = 30.0
 var fire_rate: float = 0.7
 var attack_range: float = 180.0
 var fire_cooldown: float = 0.0

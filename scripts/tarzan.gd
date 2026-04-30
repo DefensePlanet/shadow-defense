@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4: King of the Apes — 3 more apes join, throw enemies back to start
 
 # Base stats (bomb tower: slow but powerful)
-var damage: float = 50.0
+var damage: float = 28.0
 var fire_rate: float = 0.8
 var attack_range: float = 120.0
 var fire_cooldown: float = 0.0

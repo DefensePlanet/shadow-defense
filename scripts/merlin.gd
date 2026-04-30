@@ -6,7 +6,7 @@ extends Node2D
 ## Tier 4 (20000 DMG): Archmage — permanent aura, Excalibur every 15s, spells chain to 3
 
 # Base stats
-var damage: float = 45.0
+var damage: float = 25.0
 var fire_rate: float = 1.0
 var attack_range: float = 132.0
 var fire_cooldown: float = 0.0

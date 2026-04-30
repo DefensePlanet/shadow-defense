@@ -33,18 +33,18 @@ var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 
 var tower_info = {
-	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 200.0, "damage": 25, "fire_rate": 0.55},
-	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 8, "fire_rate": 0.65},
-	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 30, "fire_rate": 0.45},
-	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 85.0, "damage": 14, "fire_rate": 0.80},
-	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 28, "fire_rate": 0.50},
-	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 70.0, "damage": 5, "fire_rate": 0.70},
-	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 20, "fire_rate": 0.50},
-	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 35, "fire_rate": 0.40},
-	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0, "damage": 38, "fire_rate": 0.35},
-	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0, "damage": 42, "fire_rate": 0.40},
-	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0, "damage": 48, "fire_rate": 0.30},
-	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 250, "range": 170.0, "damage": 55, "fire_rate": 0.35},
+	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 160.0, "damage": 20, "fire_rate": 0.60},
+	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 12, "fire_rate": 1.80},
+	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 18, "fire_rate": 1.60},
+	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 100.0, "damage": 15, "fire_rate": 2.50},
+	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 30, "fire_rate": 0.70},
+	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 65.0, "damage": 8, "fire_rate": 1.40},
+	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 0, "fire_rate": 0.0},
+	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 28, "fire_rate": 0.80},
+	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0, "damage": 22, "fire_rate": 1.50},
+	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0, "damage": 25, "fire_rate": 1.00},
+	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0, "damage": 32, "fire_rate": 0.60},
+	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 250, "range": 170.0, "damage": 25, "fire_rate": 1.20},
 }
 
 # Constants
@@ -1888,7 +1888,38 @@ var _lucky_drops_this_game: int = 0
 
 # === BATTD FEATURE: XP SHARING ===
 var xp_sharing_enabled: bool = true
-const XP_SHARE_RATIO: float = 0.25  # 25% of avg XP to unused chars
+const XP_SHARE_RATIO: float = 0.15  # 15% of avg XP to unused chars (nerfed from 25%)
+
+# === PROGRESSION: Wave-based XP system ===
+# XP per wave completed, scaled by wave number (later waves = more XP)
+const WAVE_BASE_XP: float = 40.0  # Base XP for wave 1
+const WAVE_XP_GROWTH: float = 15.0  # Additional XP per wave number
+# Difficulty XP multipliers: Easy=0.5x, Medium=1.0x, Hard=1.5x, Pure=3.0x
+const DIFFICULTY_XP_MULT: Array = [0.5, 1.0, 1.5, 3.0]
+# Difficulty gear drop quality cap: 0=common/uncommon, 1=up to rare, 2=up to epic, 3=up to legendary
+const DIFFICULTY_GEAR_CAP: Array = [1, 2, 3, 4]
+# Difficulty gold multiplier
+const DIFFICULTY_GOLD_MULT: Array = [0.75, 1.0, 1.25, 1.5]
+
+# === PROGRESSION: Gear slot gating by survivor level ===
+# Gear slots unlock at these survivor levels (2 base + 4 unlockable = 6 total)
+const GEAR_SLOT_UNLOCK_LEVELS: Array = [1, 1, 4, 8, 12, 16]
+
+# === PROGRESSION: Ability tier gating by survivor level ===
+# In-match tier upgrades unlock at these survivor levels
+const ABILITY_TIER_LEVEL_GATES: Array = [1, 3, 7, 12, 18]  # Tier 0-4 unlock at these levels
+
+# === PROGRESSION: Kill milestone rewards ===
+const KILL_MILESTONES: Array = [
+	{"kills": 100, "title": "Novice", "reward_type": "shards", "reward_amount": 5},
+	{"kills": 500, "title": "", "reward_type": "chest_bronze", "reward_amount": 1},
+	{"kills": 1000, "title": "Veteran", "reward_type": "shards", "reward_amount": 25},
+	{"kills": 5000, "title": "", "reward_type": "chest_silver", "reward_amount": 1},
+	{"kills": 10000, "title": "Legend", "reward_type": "chest_gold", "reward_amount": 1},
+	{"kills": 25000, "title": "", "reward_type": "quills", "reward_amount": 25},
+	{"kills": 50000, "title": "Mythic", "reward_type": "stars", "reward_amount": 3},
+	{"kills": 100000, "title": "Prestige", "reward_type": "stars", "reward_amount": 10},
+]
 
 # === BATTD FEATURE: INCOME BREAKDOWN ===
 var _income_breakdown: Dictionary = {"kills": 0, "wave_bonus": 0, "combo": 0, "early_send": 0, "lucky": 0}
@@ -2747,6 +2778,8 @@ func _init_survivor_progress() -> void:
 			"sidekicks_unlocked": [false, false, false, false],
 			"gear_slots_unlocked": [false, false, false, false, false, false],
 			"total_damage": 0.0,
+			"total_kills": 0,
+			"kill_milestones_claimed": [],  # Array of milestone kill thresholds already awarded
 			"abilities_unlocked": [false, false, false, false, false, false, false, false, false],
 			"golden_shields": 0,
 			"upgrade_branch": "",  # "" = not chosen, "A" or "B"
@@ -2770,46 +2803,64 @@ func _get_level_bonuses(tower_type) -> Dictionary:
 	var lvls = level - 1  # Bonuses start at level 2
 	if lvls <= 0:
 		return bonuses
-	# Universal bonuses: +2% damage, +1.5% range, +1% attack speed per level
-	bonuses["damage"] += lvls * 0.02
-	bonuses["range"] += lvls * 0.015
-	bonuses["attack_speed"] += lvls * 0.01
+	# Universal bonuses: +3% damage, +2% range, +1.5% attack speed per level (buffed for progression feel)
+	bonuses["damage"] += lvls * 0.03
+	bonuses["range"] += lvls * 0.02
+	bonuses["attack_speed"] += lvls * 0.015
 	# Role-specific extras per level
 	match tower_type:
 		TowerType.ROBIN_HOOD:
-			bonuses["range"] += lvls * 0.015
+			bonuses["range"] += lvls * 0.02
 		TowerType.ALICE:
-			bonuses["range"] += lvls * 0.01  # AoE radius mapped to range
+			bonuses["range"] += lvls * 0.015  # AoE radius mapped to range
 		TowerType.WICKED_WITCH:
-			bonuses["damage"] += lvls * 0.015
+			bonuses["damage"] += lvls * 0.02
 		TowerType.PETER_PAN:
-			bonuses["attack_speed"] += lvls * 0.015
+			bonuses["attack_speed"] += lvls * 0.02
 		TowerType.PHANTOM:
-			bonuses["damage"] += lvls * 0.01
-			bonuses["range"] += lvls * 0.005
-		TowerType.SCROOGE:
-			bonuses["gold_bonus"] += lvls * 0.015
-		TowerType.SHERLOCK:
-			bonuses["damage"] += lvls * 0.01
-			bonuses["crit"] += lvls * 0.005
-		TowerType.TARZAN:
-			bonuses["damage"] += lvls * 0.02
-		TowerType.DRACULA:
-			bonuses["damage"] += lvls * 0.01
-		TowerType.MERLIN:
-			bonuses["range"] += lvls * 0.015
-		TowerType.FRANKENSTEIN:
-			bonuses["damage"] += lvls * 0.02
-		TowerType.SHADOW_AUTHOR:
 			bonuses["damage"] += lvls * 0.015
 			bonuses["range"] += lvls * 0.01
-	# Milestone bonuses
-	if level >= 5:
-		bonuses["damage"] += 0.05
-	if level >= 15:
-		bonuses["damage"] += 0.10
-		bonuses["range"] += 0.10
+		TowerType.SCROOGE:
+			bonuses["gold_bonus"] += lvls * 0.02
+		TowerType.SHERLOCK:
+			bonuses["damage"] += lvls * 0.015
+			bonuses["crit"] += lvls * 0.008
+		TowerType.TARZAN:
+			bonuses["damage"] += lvls * 0.025
+		TowerType.DRACULA:
+			bonuses["damage"] += lvls * 0.015
+		TowerType.MERLIN:
+			bonuses["range"] += lvls * 0.02
+		TowerType.FRANKENSTEIN:
+			bonuses["damage"] += lvls * 0.025
+		TowerType.SHADOW_AUTHOR:
+			bonuses["damage"] += lvls * 0.02
+			bonuses["range"] += lvls * 0.015
+	# PROGRESSION: Named milestone power spikes (5 milestones across 20 levels)
+	# Level 4: "Awakening" — first real power bump, unlocks gear slot 3
+	if level >= 4:
+		bonuses["damage"] += 0.08
+		bonuses["attack_speed"] += 0.05
+	# Level 8: "Battle-Hardened" — mid-early game spike, unlocks gear slot 4
+	if level >= 8:
+		bonuses["damage"] += 0.12
+		bonuses["range"] += 0.08
+	# Level 12: "Veteran" — mid-game spike, unlocks gear slot 5 + tier 3 ability
+	if level >= 12:
+		bonuses["damage"] += 0.15
 		bonuses["attack_speed"] += 0.10
+		bonuses["range"] += 0.10
+	# Level 16: "Elite" — late-game spike, unlocks gear slot 6
+	if level >= 16:
+		bonuses["damage"] += 0.18
+		bonuses["range"] += 0.12
+		bonuses["attack_speed"] += 0.12
+	# Level 20: "Legendary" — max level capstone
+	if level >= 20:
+		bonuses["damage"] += 0.25
+		bonuses["range"] += 0.15
+		bonuses["attack_speed"] += 0.15
+		bonuses["crit"] += 0.10
 	return bonuses
 
 func _get_gear_bonuses(tower_type) -> Dictionary:
@@ -4132,6 +4183,9 @@ func _load_game() -> void:
 		var ab = saved.get("abilities_unlocked", [])
 		for i in range(mini(ab.size(), 9)):
 			survivor_progress[t]["abilities_unlocked"][i] = bool(ab[i])
+		# PROGRESSION: Load kill tracking
+		survivor_progress[t]["total_kills"] = int(saved.get("total_kills", 0))
+		survivor_progress[t]["kill_milestones_claimed"] = saved.get("kill_milestones_claimed", [])
 	# (Old equipped_relics removed - gear migration handled below)
 	# Knowledge tree
 	var kt = data.get("knowledge_tree", {})
@@ -17981,6 +18035,8 @@ func _check_wave_complete() -> void:
 		_wave_clear_num = wave
 		_play_sfx(_sfx_wave_complete)
 		_haptic(1)  # Medium haptic on wave clear
+		# PROGRESSION: Award wave-based XP (proportional to tower cost)
+		_award_wave_xp()
 		# Polyrhythm system: wave end events (triumphant resolve chord, perfect wave bonus)
 		if _poly != null:
 			_poly.on_wave_end(wave)
@@ -27408,27 +27464,41 @@ func _update_upgrade_panel() -> void:
 			# Green border
 			status_rect.get_child(0).color = Color(0.3, 0.7, 0.2, 0.5)
 		elif i == tower.upgrade_tier:
-			# Next available — check if affordable
+			# Next available — check level gate first, then affordability
+			var _gate_tt = _get_tower_type_from_node(tower)
+			var _gate_level = survivor_progress.get(_gate_tt, {}).get("level", 1) if _gate_tt != null else 1
+			var _required_level = ABILITY_TIER_LEVEL_GATES[i] if i < ABILITY_TIER_LEVEL_GATES.size() else 1
+			var _level_locked = _gate_level < _required_level
 			btn.text = tier_name
-			var can_afford = gold >= tier_cost
-			btn.disabled = not can_afford
-			cost_lbl.text = "%dG" % tier_cost
-			desc_lbl.add_theme_color_override("font_color", Color(0.85, 0.82, 0.75, 0.9))
-			if can_afford:
-				# Affordable — gold border
-				cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
-				status_rect.color = Color(0.14, 0.10, 0.06, 0.85)
-				status_rect.get_child(0).color = _ca(c_gold, 0.6)
+			if _level_locked:
+				# Level-locked — red tint, show level requirement
+				btn.disabled = true
+				cost_lbl.text = "LVL %d REQ" % _required_level
+				cost_lbl.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3))
+				desc_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4, 0.7))
+				status_rect.color = Color(0.15, 0.05, 0.05, 0.85)
+				status_rect.get_child(0).color = Color(0.5, 0.2, 0.2, 0.5)
 			else:
-				# Too expensive — dark
-				cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.3))
-				status_rect.color = Color(0.10, 0.07, 0.12, 0.85)
-				status_rect.get_child(0).color = Color(0.4, 0.3, 0.5, 0.3)
+				var can_afford = gold >= tier_cost
+				btn.disabled = not can_afford
+				cost_lbl.text = "%dG" % tier_cost
+				desc_lbl.add_theme_color_override("font_color", Color(0.85, 0.82, 0.75, 0.9))
+				if can_afford:
+					# Affordable — gold border
+					cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
+					status_rect.color = Color(0.14, 0.10, 0.06, 0.85)
+					status_rect.get_child(0).color = _ca(c_gold, 0.6)
+				else:
+					# Too expensive — dark
+					cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.3))
+					status_rect.color = Color(0.10, 0.07, 0.12, 0.85)
+					status_rect.get_child(0).color = Color(0.4, 0.3, 0.5, 0.3)
 		else:
-			# Locked — gray
+			# Locked — gray, show level requirement if applicable
 			btn.text = tier_name
 			btn.disabled = true
-			cost_lbl.text = "%dG" % tier_cost
+			var _future_req = ABILITY_TIER_LEVEL_GATES[i] if i < ABILITY_TIER_LEVEL_GATES.size() else 99
+			cost_lbl.text = "%dG (LVL %d)" % [tier_cost, _future_req]
 			cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.35, 0.3))
 			desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.48, 0.55, 0.5))
 			status_rect.color = Color(0.08, 0.06, 0.10, 0.7)
@@ -27476,6 +27546,15 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 	# Only allow purchasing the next tier in sequence
 	if tier_index != selected_tower_node.upgrade_tier:
 		return
+	# PROGRESSION: Check survivor level gate for this tier
+	var _utt_gate = _get_tower_type_from_node(selected_tower_node)
+	if _utt_gate != null and tier_index < ABILITY_TIER_LEVEL_GATES.size():
+		var required_level = ABILITY_TIER_LEVEL_GATES[tier_index]
+		var current_level = survivor_progress.get(_utt_gate, {}).get("level", 1)
+		if current_level < required_level:
+			info_label.text = "Requires Survivor Level %d! (Currently %d)" % [required_level, current_level]
+			_insufficient_gold_flash = 1.0
+			return
 	if selected_tower_node.has_method("purchase_upgrade"):
 		# Check cost before attempting purchase for feedback
 		var upgrade_cost = 0
@@ -27902,6 +27981,11 @@ func get_path_points() -> PackedVector2Array:
 	return path_points
 
 func add_gold(amount: int) -> void:
+	# PROGRESSION: Difficulty gold multiplier (Easy=0.75x, Medium=1.0x, Hard=1.25x, Pure=1.5x)
+	if amount > 0 and is_wave_active:
+		var diff_idx = mini(selected_difficulty, 3)
+		amount = int(float(amount) * DIFFICULTY_GOLD_MULT[diff_idx])
+		amount = maxi(amount, 1)  # Always give at least 1 gold
 	# BATTD: Double Cash Mode doubles all gold income
 	if double_cash_enabled and amount > 0:
 		amount *= 2
@@ -28473,15 +28557,17 @@ func _get_highest_completed_level() -> int:
 	return highest
 
 func _get_gear_slots(tower_type) -> int:
-	# Starts at 2, gains 1 per 3 survivor levels (max 8 at level 20)
+	# PROGRESSION: Gear slots gate by survivor level (2 base, unlock at 4/8/12/16)
 	var level = survivor_progress.get(tower_type, {}).get("level", 1)
-	var base_slots = 2 + int(level / 3)
-	base_slots = mini(base_slots, 8)
-	# Golden Shield adds +2 slots
+	var base_slots = 0
+	for unlock_level in GEAR_SLOT_UNLOCK_LEVELS:
+		if level >= unlock_level:
+			base_slots += 1
+	# Golden Shield adds +1 slot (not +2, nerfed)
 	var shields = _get_golden_shield_level(tower_type)
 	if shields > 0:
-		base_slots += 2
-	return mini(base_slots, 10)
+		base_slots += 1
+	return mini(base_slots, 7)
 
 
 func _get_ally_slots(tower_type) -> int:
@@ -28558,20 +28644,19 @@ func game_over() -> void:
 		var tt = _get_tower_type_from_node(tower)
 		if tt != null:
 			_update_character_mood(tt, -15.0)
-	# BATTD: XP Sharing — unused characters get 25% of avg XP earned
-	if xp_sharing_enabled:
-		var total_xp_earned = 0.0
+	# BATTD: XP Sharing — unused characters get 15% of avg wave XP earned
+	if xp_sharing_enabled and wave > 0:
 		var used_types: Array = []
+		var type_map = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR}
 		for tower in get_tree().get_nodes_in_group("towers"):
-			if tower.get("damage_dealt") != null and tower.damage_dealt > 0:
-				total_xp_earned += tower.damage_dealt
-				var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
-				var type_map = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR}
-				if type_map.has(sp) and not type_map[sp] in used_types:
-					used_types.append(type_map[sp])
-		if used_types.size() > 0 and total_xp_earned > 0:
-			var avg_xp = total_xp_earned / float(used_types.size())
-			var shared_xp = avg_xp * XP_SHARE_RATIO
+			var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
+			if type_map.has(sp) and not type_map[sp] in used_types:
+				used_types.append(type_map[sp])
+		if used_types.size() > 0:
+			# Calculate what total wave XP would have been (avg per wave × waves completed)
+			var diff_idx = mini(selected_difficulty, 3)
+			var avg_wave_xp = (WAVE_BASE_XP + (wave * 0.5 * WAVE_XP_GROWTH)) * DIFFICULTY_XP_MULT[diff_idx]
+			var shared_xp = avg_wave_xp * wave * XP_SHARE_RATIO / float(maxi(used_types.size(), 1))
 			for tt in survivor_progress:
 				if not tt in used_types and survivor_progress[tt]["level"] < MAX_SURVIVOR_LEVEL:
 					var xp_mult = 1.0 + _get_knowledge_bonus("xp_gain")
@@ -29165,29 +29250,100 @@ func _collect_session_damage() -> void:
 		"frankenstein.gd": TowerType.FRANKENSTEIN,
 		"shadow_author.gd": TowerType.SHADOW_AUTHOR,
 	}
+	# Collect damage and kill totals for session tracking (used for tier upgrades, not XP)
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if tower.get("damage_dealt") != null:
 			var dmg = tower.damage_dealt
+			var kills = tower.kill_count if "kill_count" in tower else 0
 			var script_path = tower.get_script().resource_path if tower.get_script() else ""
 			var fname = script_path.get_file()
 			if script_to_type.has(fname):
 				var tt = script_to_type[fname]
 				session_damage[tt] = session_damage.get(tt, 0.0) + dmg
-				# Apply to persistent progression
+				# Accumulate total_damage for progressive abilities (still damage-based)
 				if survivor_progress.has(tt):
-					var xp_mult = 1.0 + _get_knowledge_bonus("xp_gain")
-					if selected_difficulty == PURE_MODE:
-						xp_mult *= 3.0
-					survivor_progress[tt]["xp"] += dmg * xp_mult
-					# Accumulate total_damage for progressive abilities
 					survivor_progress[tt]["total_damage"] = survivor_progress[tt].get("total_damage", 0.0) + dmg
+					# PROGRESSION: Accumulate persistent kill count + check milestones
+					survivor_progress[tt]["total_kills"] = survivor_progress[tt].get("total_kills", 0) + kills
+					_check_kill_milestones(tt)
 					_check_ability_unlocks(tt)
-					# Check for level ups (cap at MAX_SURVIVOR_LEVEL)
-					while survivor_progress[tt]["xp"] >= survivor_progress[tt]["xp_next"] and survivor_progress[tt]["level"] < MAX_SURVIVOR_LEVEL:
-						survivor_progress[tt]["xp"] -= survivor_progress[tt]["xp_next"]
-						survivor_progress[tt]["level"] += 1
-						survivor_progress[tt]["xp_next"] = _get_xp_for_level(survivor_progress[tt]["level"])
-						_on_survivor_level_up(tt, survivor_progress[tt]["level"])
+
+func _award_wave_xp() -> void:
+	# Called at end of each wave — awards XP based on wave number, difficulty, and tower cost proportion
+	var diff_idx = mini(selected_difficulty, 3)
+	var diff_mult = DIFFICULTY_XP_MULT[diff_idx]
+	var xp_knowledge_mult = 1.0 + _get_knowledge_bonus("xp_gain")
+	# Wave XP scales with wave number (later waves = more XP)
+	var wave_xp = WAVE_BASE_XP + (wave * WAVE_XP_GROWTH)
+	var total_xp = wave_xp * diff_mult * xp_knowledge_mult
+	# Distribute XP proportionally by tower cost (BTD6 style)
+	var placed_towers: Array = []  # [{type, cost}]
+	var total_cost: float = 0.0
+	var script_to_type = {
+		"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE,
+		"wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN,
+		"phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE,
+		"sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN,
+		"dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN,
+		"frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR,
+	}
+	for tower in get_tree().get_nodes_in_group("towers"):
+		var script_path = tower.get_script().resource_path if tower.get_script() else ""
+		var fname = script_path.get_file()
+		if script_to_type.has(fname):
+			var tt = script_to_type[fname]
+			var cost = float(tower_info.get(tt, {}).get("cost", 100))
+			placed_towers.append({"type": tt, "cost": cost})
+			total_cost += cost
+	if total_cost <= 0.0 or placed_towers.is_empty():
+		return
+	# Award XP proportionally — expensive towers earn more
+	for entry in placed_towers:
+		var tt = entry["type"]
+		var proportion = entry["cost"] / total_cost
+		var tower_xp = total_xp * proportion
+		if survivor_progress.has(tt) and survivor_progress[tt]["level"] < MAX_SURVIVOR_LEVEL:
+			survivor_progress[tt]["xp"] += tower_xp
+			# Check for level ups
+			while survivor_progress[tt]["xp"] >= survivor_progress[tt]["xp_next"] and survivor_progress[tt]["level"] < MAX_SURVIVOR_LEVEL:
+				survivor_progress[tt]["xp"] -= survivor_progress[tt]["xp_next"]
+				survivor_progress[tt]["level"] += 1
+				survivor_progress[tt]["xp_next"] = _get_xp_for_level(survivor_progress[tt]["level"])
+				_on_survivor_level_up(tt, survivor_progress[tt]["level"])
+
+func _check_kill_milestones(tower_type) -> void:
+	if not survivor_progress.has(tower_type):
+		return
+	var p = survivor_progress[tower_type]
+	var total_kills = p.get("total_kills", 0)
+	var claimed = p.get("kill_milestones_claimed", [])
+	for milestone in KILL_MILESTONES:
+		var kill_threshold = milestone["kills"]
+		if total_kills >= kill_threshold and not kill_threshold in claimed:
+			claimed.append(kill_threshold)
+			# Award the milestone reward
+			match milestone["reward_type"]:
+				"shards":
+					player_gear_shards += milestone["reward_amount"]
+				"quills":
+					player_quills += milestone["reward_amount"]
+				"stars":
+					player_storybook_stars += milestone["reward_amount"]
+				"chest_bronze":
+					treasure_chests_owned["bronze"] = treasure_chests_owned.get("bronze", 0) + milestone["reward_amount"]
+				"chest_silver":
+					treasure_chests_owned["silver"] = treasure_chests_owned.get("silver", 0) + milestone["reward_amount"]
+				"chest_gold":
+					treasure_chests_owned["gold"] = treasure_chests_owned.get("gold", 0) + milestone["reward_amount"]
+			# Show milestone popup
+			var char_names = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock", "Tarzan", "Dracula", "Merlin", "The Monster", "Shadow Author"]
+			var char_name = char_names[tower_type] if tower_type >= 0 and tower_type < char_names.size() else "Hero"
+			var title = milestone.get("title", "")
+			var msg = "%s: %d kills!" % [char_name, kill_threshold]
+			if title != "":
+				msg = "%s earned '%s'! (%d kills)" % [char_name, title, kill_threshold]
+			spawn_floating_text(Vector2(640, 160), msg, Color(1.0, 0.85, 0.2), 18.0, 2.5)
+	p["kill_milestones_claimed"] = claimed
 
 func _on_survivor_level_up(tower_type, new_level: int) -> void:
 	# Unlock gear at level 2, sidekicks at 3/5/8
