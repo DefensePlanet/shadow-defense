@@ -29,10 +29,10 @@ var _flair_phase_timer: float = 0.0    # Timer within current flair phase
 var _flair_set: int = 0                # Which flair set to play (0=dance, 1+=single frame flairs)
 var _flair_current_single: Texture2D = null
 const FLAIR_INTERVAL: float = 8.0      # Flair every 8 seconds of idle
-const FLAIR_KICK_TIME: float = 0.5
-const FLAIR_SPIN_TIME: float = 0.6
-const FLAIR_HEADSPIN_TIME: float = 1.0
-const FLAIR_SINGLE_TIME: float = 0.8   # Single-frame flair display time
+const FLAIR_KICK_TIME: float = 0.8
+const FLAIR_SPIN_TIME: float = 0.9
+const FLAIR_HEADSPIN_TIME: float = 1.4
+const FLAIR_SINGLE_TIME: float = 1.5   # Single-frame flair display time
 var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong

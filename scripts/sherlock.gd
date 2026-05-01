@@ -21,7 +21,7 @@ var _flair_timer: float = 0.0
 var _flair_active: float = 0.0  # > 0 = showing flair
 var _flair_current: Texture2D = null
 const _FLAIR_INTERVAL: float = 8.0
-const _FLAIR_DURATION: float = 0.8
+const _FLAIR_DURATION: float = 1.5
 var target: Node2D = null
 var gold_bonus: int = 1
 
