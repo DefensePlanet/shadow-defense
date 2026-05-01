@@ -16,17 +16,19 @@ var target: Node2D = null
 var _draw_progress: float = 0.0
 
 # Frame-based sprite animation (idle → draw → shoot cycle + flair sequence)
-var _sprite_attack: Texture2D = null   # Bow drawn back
-var _sprite_shoot: Texture2D = null    # Arrow released
-var _sprite_flair: Texture2D = null    # Kick/leg move
-var _sprite_spindown: Texture2D = null # Floor spin
-var _anim_frame: int = 0  # 0=idle, 1=attack/draw, 2=shoot, 3=kick, 4=spindown
-var _flair_timer: float = 0.0         # Counts up to flair interval
-var _flair_phase: int = 0             # 0=not dancing, 1=kick, 2=spindown
-var _flair_phase_timer: float = 0.0   # Timer within current flair phase
-const FLAIR_INTERVAL: float = 8.0     # Dance every 8 seconds of idle
-const FLAIR_KICK_TIME: float = 0.5    # Show kick for 0.5s
-const FLAIR_SPIN_TIME: float = 0.7    # Show floor spin for 0.7s
+var _sprite_attack: Texture2D = null    # Bow drawn back
+var _sprite_shoot: Texture2D = null     # Arrow released
+var _sprite_flair: Texture2D = null     # Kick/leg move
+var _sprite_spin360: Texture2D = null   # 360 twirl
+var _sprite_spindown: Texture2D = null  # Headspin
+var _anim_frame: int = 0  # 0=idle, 1=attack, 2=shoot, 3=kick, 4=spin360, 5=headspin
+var _flair_timer: float = 0.0          # Counts up to flair interval
+var _flair_phase: int = 0              # 0=not dancing, 1=kick, 2=spin360, 3=headspin
+var _flair_phase_timer: float = 0.0    # Timer within current flair phase
+const FLAIR_INTERVAL: float = 8.0      # Dance every 8 seconds of idle
+const FLAIR_KICK_TIME: float = 0.5     # Show kick for 0.5s
+const FLAIR_SPIN_TIME: float = 0.6     # Show 360 spin for 0.6s
+const FLAIR_HEADSPIN_TIME: float = 1.0 # Show headspin for 1.0s (slow it down)
 var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
@@ -210,6 +212,7 @@ func _ready() -> void:
 	var _atk_path = "res://assets/tower_sprites/robin_hood_attack.png"
 	var _sht_path = "res://assets/tower_sprites/robin_hood_shoot.png"
 	var _flr_path = "res://assets/tower_sprites/robin_hood_flair.png"
+	var _s36_path = "res://assets/tower_sprites/robin_hood_spin360.png"
 	var _spd_path = "res://assets/tower_sprites/robin_hood_spindown.png"
 	if ResourceLoader.exists(_atk_path):
 		_sprite_attack = load(_atk_path)
@@ -217,6 +220,8 @@ func _ready() -> void:
 		_sprite_shoot = load(_sht_path)
 	if ResourceLoader.exists(_flr_path):
 		_sprite_flair = load(_flr_path)
+	if ResourceLoader.exists(_s36_path):
+		_sprite_spin360 = load(_s36_path)
 	if ResourceLoader.exists(_spd_path):
 		_sprite_spindown = load(_spd_path)
 
@@ -243,7 +248,7 @@ func _process(delta: float) -> void:
 	else:
 		_draw_progress = max(_draw_progress - delta * 2.0, 0.0)
 
-	# Frame-based animation: idle(0) → draw(1) → shoot(2) → kick(3) → spindown(4)
+	# Frame-based animation: idle(0) → draw(1) → shoot(2) → kick(3) → spin(4) → headspin(5)
 	if _sprite_attack and _sprite_shoot:
 		if _attack_anim > 0.15:
 			_anim_frame = 2  # Just shot — show release frame
@@ -254,21 +259,28 @@ func _process(delta: float) -> void:
 			_flair_timer = 0.0
 			_flair_phase = 0
 		elif _flair_phase > 0:
-			# Flair sequence in progress
+			# Flair sequence: kick → 360 spin → headspin
 			_flair_phase_timer -= delta
 			if _flair_phase == 1:
 				_anim_frame = 3  # Kick pose
 				if _flair_phase_timer <= 0.0:
-					# Transition to spindown
-					if _sprite_spindown:
+					if _sprite_spin360:
 						_flair_phase = 2
 						_flair_phase_timer = FLAIR_SPIN_TIME
 					else:
-						_flair_phase = 0  # No spindown sprite, end flair
+						_flair_phase = 0
 			elif _flair_phase == 2:
-				_anim_frame = 4  # Floor spin pose
+				_anim_frame = 4  # 360 twirl
 				if _flair_phase_timer <= 0.0:
-					_flair_phase = 0  # End flair sequence
+					if _sprite_spindown:
+						_flair_phase = 3
+						_flair_phase_timer = FLAIR_HEADSPIN_TIME
+					else:
+						_flair_phase = 0
+			elif _flair_phase == 3:
+				_anim_frame = 5  # Headspin (held longer)
+				if _flair_phase_timer <= 0.0:
+					_flair_phase = 0  # End sequence
 		else:
 			_anim_frame = 0  # Idle
 			# Flair timer: only counts up when idle (no target)
@@ -1267,8 +1279,11 @@ func _draw() -> void:
 					if _sprite_flair:
 						_active_tex = _sprite_flair  # kick move
 				4:
+					if _sprite_spin360:
+						_active_tex = _sprite_spin360  # 360 twirl
+				5:
 					if _sprite_spindown:
-						_active_tex = _sprite_spindown  # floor spin
+						_active_tex = _sprite_spindown  # headspin
 		var _ss = Vector2(_active_tex.get_width(), _active_tex.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
