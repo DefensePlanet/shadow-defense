@@ -24,19 +24,6 @@ var _time: float = 0.0
 var _attack_anim: float = 0.0
 var _build_timer: float = 0.0
 
-# === RIGGED SPRITE PARTS ===
-var _rig_ready: bool = false
-var _rig_head: Sprite2D = null
-var _rig_torso: Sprite2D = null
-var _rig_bow_arm: Sprite2D = null
-var _rig_legs: Sprite2D = null
-# Part offsets relative to character center-bottom (feet) at 120px render height
-const RIG_SCALE: float = 120.0 / 934.0  # full sprite height
-const RIG_HEAD_POS := Vector2(0.0, -96.0)     # center of head
-const RIG_TORSO_POS := Vector2(0.0, -58.0)    # center of torso
-const RIG_BOW_POS := Vector2(-26.0, -68.0)    # bow arm (left side)
-const RIG_LEGS_POS := Vector2(0.0, -23.0)     # center of legs
-
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
 var upgrade_tier: int = 0
@@ -206,93 +193,6 @@ func _ready() -> void:
 	_upgrade_player.stream = _upgrade_sound
 	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
-	# Initialize rigged sprite parts
-	_init_rig()
-
-func _init_rig() -> void:
-	var parts_dir = "res://assets/tower_sprites/parts/robin_hood/"
-	var part_files = {"head": "head.png", "torso": "torso.png", "bow_arm": "bow_arm.png", "legs": "legs.png"}
-	# Check all parts exist
-	for key in part_files:
-		if not ResourceLoader.exists(parts_dir + part_files[key]):
-			return  # Parts not imported yet, fall back to old rendering
-	# Create sprite nodes for each part (drawn in back-to-front order via z_index)
-	_rig_legs = Sprite2D.new()
-	_rig_legs.texture = load(parts_dir + "legs.png")
-	_rig_legs.scale = Vector2(RIG_SCALE, RIG_SCALE)
-	_rig_legs.position = RIG_LEGS_POS
-	_rig_legs.z_index = 0
-	add_child(_rig_legs)
-
-	_rig_torso = Sprite2D.new()
-	_rig_torso.texture = load(parts_dir + "torso.png")
-	_rig_torso.scale = Vector2(RIG_SCALE, RIG_SCALE)
-	_rig_torso.position = RIG_TORSO_POS
-	_rig_torso.z_index = 1
-	add_child(_rig_torso)
-
-	_rig_bow_arm = Sprite2D.new()
-	_rig_bow_arm.texture = load(parts_dir + "bow_arm.png")
-	_rig_bow_arm.scale = Vector2(RIG_SCALE, RIG_SCALE)
-	_rig_bow_arm.position = RIG_BOW_POS
-	_rig_bow_arm.z_index = 2
-	add_child(_rig_bow_arm)
-
-	_rig_head = Sprite2D.new()
-	_rig_head.texture = load(parts_dir + "head.png")
-	_rig_head.scale = Vector2(RIG_SCALE, RIG_SCALE)
-	_rig_head.position = RIG_HEAD_POS
-	_rig_head.z_index = 3
-	add_child(_rig_head)
-
-	_rig_ready = true
-
-func _animate_rig() -> void:
-	if not _rig_ready:
-		return
-	var _fl = cos(bow_angle) < 0.0
-	var flip_x = -1.0 if _fl else 1.0
-
-	# --- LEGS: planted, subtle weight shift ---
-	_rig_legs.position = RIG_LEGS_POS + Vector2(sin(_time * 1.2) * 0.5 * flip_x, 0)
-	_rig_legs.rotation = sin(_time * 1.2) * 0.008 * flip_x
-	_rig_legs.scale = Vector2(RIG_SCALE * flip_x, RIG_SCALE)
-
-	# --- TORSO: breathing, aim lean, attack snap ---
-	var breathe_y = sin(_time * 2.0) * 1.5
-	var aim_lean = sin(bow_angle) * 0.06
-	var draw_lean = -_draw_progress * 0.05
-	var torso_rot = sin(_time * 1.2) * 0.025 + aim_lean + draw_lean
-	var recoil_off = Vector2.ZERO
-	if _attack_anim > 0.0:
-		var snap = sin(_attack_anim * PI * 2.0) * 0.08
-		torso_rot += snap
-		recoil_off = -Vector2.from_angle(bow_angle) * _attack_anim * _attack_anim * 4.0
-	_rig_torso.position = RIG_TORSO_POS + Vector2(0, -breathe_y) + recoil_off * 0.5
-	_rig_torso.rotation = torso_rot * flip_x
-	_rig_torso.scale = Vector2(RIG_SCALE * flip_x, RIG_SCALE)
-
-	# --- HEAD: follows torso + independent bob/look ---
-	var head_bob = sin(_time * 2.5) * 1.0
-	var head_tilt = sin(_time * 0.8) * 0.03  # slow curious tilt
-	var head_look = sin(bow_angle) * 0.04  # look toward target
-	_rig_head.position = RIG_HEAD_POS + Vector2(0, -breathe_y - head_bob) + recoil_off * 0.3
-	_rig_head.rotation = (torso_rot * 0.5 + head_tilt + head_look) * flip_x
-	_rig_head.scale = Vector2(RIG_SCALE * flip_x, RIG_SCALE)
-
-	# --- BOW ARM: aim toward target, draw tension, release snap ---
-	var bow_rot = bow_angle * 0.3  # partial rotation toward aim
-	var draw_tension = _draw_progress * 0.08  # pull back when drawing
-	if _attack_anim > 0.0:
-		# Release snap — arm whips forward
-		bow_rot += sin(_attack_anim * PI) * 0.15
-	var bow_pos = RIG_BOW_POS + Vector2(0, -breathe_y) + recoil_off * 0.7
-	# When flipped, bow arm goes to right side
-	if _fl:
-		bow_pos.x = -RIG_BOW_POS.x
-	_rig_bow_arm.position = bow_pos
-	_rig_bow_arm.rotation = (bow_rot - draw_tension) * flip_x
-	_rig_bow_arm.scale = Vector2(RIG_SCALE * flip_x, RIG_SCALE)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -303,7 +203,6 @@ func _process(delta: float) -> void:
 	_silver_flash = max(_silver_flash - delta * 3.0, 0.0)
 	_gold_flash = max(_gold_flash - delta * 3.0, 0.0)
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
-	_animate_rig()
 	target = _find_nearest_enemy()
 
 	if target:
@@ -1295,9 +1194,7 @@ func _draw() -> void:
 			draw_circle(fd_pos, fd_size * 0.5, Color(1.0, 0.9, 0.4, fd_alpha * 0.6))
 
 	# === SPRITE RENDERING (animated character) ===
-	if _rig_ready:
-		pass  # Rigged parts render as child Sprite2D nodes — skip old draw
-	elif sprite_texture:
+	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1353,7 +1250,7 @@ func _draw() -> void:
 		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
-	if not sprite_texture and not _rig_ready:
+	if not sprite_texture:
 		# === 14. CHARACTER BODY (Bloons TD cartoon style) ===
 
 		# --- Colors ---
