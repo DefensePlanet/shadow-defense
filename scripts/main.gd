@@ -4625,9 +4625,11 @@ func _load_tower_sprite_textures() -> void:
 			if ResourceLoader.exists(fp):
 				flairs.append(load(fp))
 			# Don't break — files may be non-sequential (flair, flair2, flair3)
-		# Also load flair.png (Robin's original kick)
+		# Also load flair.png — but NOT if this character has a dance sequence (spin360)
+		# because flair.png is the dance kick frame, handled separately
 		var flair0_path = "res://assets/tower_sprites/" + tname + "_flair.png"
-		if ResourceLoader.exists(flair0_path):
+		var has_dance = ResourceLoader.exists("res://assets/tower_sprites/" + tname + "_spin360.png")
+		if ResourceLoader.exists(flair0_path) and not has_dance:
 			flairs.insert(0, load(flair0_path))
 		# Load spin poses for multi-frame sequences
 		var spin360_path = "res://assets/tower_sprites/" + tname + "_spin360.png"

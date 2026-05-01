@@ -14,6 +14,7 @@ var aim_angle: float = 0.0
 var sprite_texture: Texture2D = null
 # Flair animation (idle poses — randomized every 8s)
 var flair_textures: Array = []  # Injected by main.gd
+var _sprite_attack: Texture2D = null  # Attack pose, injected by main.gd
 var _flair_timer: float = 0.0
 var _flair_active: float = 0.0  # > 0 = showing flair
 var _flair_current: Texture2D = null
@@ -1308,7 +1309,9 @@ func _draw() -> void:
 	# === SPRITE RENDERING (animated — dramatic & operatic) ===
 	if sprite_texture:
 		var _active_tex = sprite_texture
-		if _flair_active > 0.0 and _flair_current:
+		if _attack_anim > 0.15 and _sprite_attack:
+			_active_tex = _sprite_attack
+		elif _flair_active > 0.0 and _flair_current:
 			_active_tex = _flair_current
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 120.0 / _ss.y
