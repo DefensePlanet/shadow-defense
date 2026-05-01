@@ -1193,61 +1193,90 @@ func _draw() -> void:
 			draw_circle(fd_pos, fd_size, Color(1.0, 0.5 + fire_t * 0.4, 0.1, fd_alpha))
 			draw_circle(fd_pos, fd_size * 0.5, Color(1.0, 0.9, 0.4, fd_alpha * 0.6))
 
-	# === SPRITE RENDERING (animated character) ===
+	# === SPRITE RENDERING (split-body animated character) ===
 	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
 
-		# --- Idle: breathing + weight sway ---
-		var breathe_scl = 1.0 + sin(_time * 2.0) * 0.018
-		var sway_rot = sin(_time * 1.2) * 0.025  # ~1.4 deg
+		# Split point: 55% from top = waist line on chibi sprites
+		var split_pct = 0.55
+		var top_src = Rect2(0, 0, _ss.x, _ss.y * split_pct)  # head + torso + arms
+		var bot_src = Rect2(0, _ss.y * split_pct, _ss.x, _ss.y * (1.0 - split_pct))  # legs + feet
+		var top_h = _sd.y * split_pct
+		var bot_h = _sd.y * (1.0 - split_pct)
 
-		# --- Aim lean: tilt toward target ---
-		var aim_lean = sin(bow_angle) * 0.04
+		# --- LEGS (bottom half): planted, minimal movement ---
+		var leg_breathe = 1.0 + sin(_time * 2.0) * 0.006  # very subtle
+		var leg_sway = sin(_time * 1.2) * 0.008  # barely noticeable
+		# Weight shift on attack — legs brace
+		var leg_brace = 0.0
+		if _attack_anim > 0.0:
+			leg_brace = sin(_attack_anim * PI) * 0.015  # slight outward lean
 
-		# --- Bow draw tension: lean back when pulling string ---
-		var draw_lean = -_draw_progress * 0.035
+		# Face direction flip
+		var _fl = cos(bow_angle) < 0.0
+		var leg_scl = Vector2(leg_breathe, leg_breathe)
+		var leg_rot = leg_sway + leg_brace
+		if _fl:
+			leg_scl.x *= -1.0
+			leg_rot *= -1.0
 
-		# --- Attack recoil + squash-stretch (tier-scaling) ---
+		var leg_anchor = body_offset + Vector2(0, 10.0)
+		draw_set_transform(leg_anchor, leg_rot, leg_scl)
+		draw_texture_rect_region(sprite_texture, Rect2(-_sd.x / 2.0, -bot_h, _sd.x, bot_h), bot_src)
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+		# --- TORSO (top half): active, expressive ---
+		var breathe_scl = 1.0 + sin(_time * 2.0) * 0.022
+		var sway_rot = sin(_time * 1.2) * 0.030
+
+		# Aim lean: torso twists toward target aggressively
+		var aim_lean = sin(bow_angle) * 0.06
+
+		# Bow draw tension: lean back, torso coils
+		var draw_lean = -_draw_progress * 0.055
+
+		# Attack recoil + squash-stretch (tier-scaling)
 		var recoil_off = Vector2.ZERO
 		var atk_scl = Vector2.ONE
+		# Wind-up anticipation: torso pulls back before shot
+		var windup_lean = 0.0
+		if fire_cooldown > 0.0 and fire_cooldown < 0.15 and _attack_anim <= 0.0:
+			windup_lean = (0.15 - fire_cooldown) / 0.15 * 0.04  # subtle pull-back
+
 		if _attack_anim > 0.0:
 			var tier_recoil = 1.0 + float(upgrade_tier) * 0.2
 			var recoil_t = _attack_anim * _attack_anim
-			recoil_off = -Vector2.from_angle(bow_angle) * recoil_t * 3.5 * tier_recoil
+			recoil_off = -Vector2.from_angle(bow_angle) * recoil_t * 5.0 * tier_recoil
 			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
-			atk_scl = Vector2(1.0 + sq * (0.10 + float(upgrade_tier) * 0.02), 1.0 - sq * (0.07 + float(upgrade_tier) * 0.015))
-			# Arrow release flash — expanding from bow position (tier-scaling)
+			atk_scl = Vector2(1.0 + sq * (0.14 + float(upgrade_tier) * 0.025), 1.0 - sq * (0.10 + float(upgrade_tier) * 0.02))
+			# Torso snap forward on release
+			sway_rot += sin(_attack_anim * PI * 2.0) * 0.06 * tier_recoil
+			# Arrow release flash
 			var flash_dir = Vector2.from_angle(bow_angle)
 			var flash_r = (12.0 + (1.0 - _attack_anim) * 20.0) * tier_recoil
 			draw_arc(flash_dir * 10.0, flash_r, bow_angle - 0.4, bow_angle + 0.4, 12, Color(0.3, 0.7, 0.2, _attack_anim * 0.4), 2.5 * tier_recoil)
-			# Arrow trail streak
 			draw_line(flash_dir * 8.0, flash_dir * (20.0 + flash_r), Color(0.85, 0.88, 0.92, _attack_anim * 0.5), 2.0 * tier_recoil)
 			draw_line(flash_dir * 10.0, flash_dir * (18.0 + flash_r), Color(1.0, 1.0, 1.0, _attack_anim * 0.3), 1.0)
-			# Tier 2+: Green wind gust particles
 			if upgrade_tier >= 2:
 				for wi in range(upgrade_tier + 1):
 					var w_spread = (float(wi) - float(upgrade_tier) / 2.0) * 0.3
 					var w_dist = 15.0 + (1.0 - _attack_anim) * 25.0
 					var w_pos = flash_dir.rotated(w_spread) * w_dist
 					draw_circle(w_pos, 2.0, Color(0.3, 0.65, 0.2, _attack_anim * 0.35))
-			pass  # Arrow release effects are sufficient
 
-		# --- Compose transform ---
-		var total_rot = sway_rot + aim_lean + draw_lean
+		# Compose torso transform
+		var total_rot = sway_rot + aim_lean + draw_lean + windup_lean
 		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
-
-		# Face direction flip
-		var _fl = cos(bow_angle) < 0.0
 		if _fl:
 			total_scl.x *= -1.0
 			total_rot *= -1.0
 
-		# Anchor at feet — rotation pivots from base
-		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
-		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
+		# Torso anchors at waist (where legs end), pivots from there
+		var torso_anchor = body_offset + Vector2(0, 10.0 - bot_h) + recoil_off
+		draw_set_transform(torso_anchor, total_rot, total_scl)
+		draw_texture_rect_region(sprite_texture, Rect2(-_sd.x / 2.0, -top_h, _sd.x, top_h), top_src)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 	if not sprite_texture:

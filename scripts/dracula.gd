@@ -1378,14 +1378,46 @@ func _draw() -> void:
 			draw_circle(splash_pos, 2.0 + splash_alpha * 1.5, Color(0.7, 0.02, 0.02, splash_alpha * 0.4))
 		draw_circle(body_offset, 6.0 + (1.0 - splash_alpha) * 10.0, Color(0.8, 0.05, 0.03, splash_alpha * 0.15))
 
-	# === SPRITE RENDERING (animated — elegant & sinister) ===
+	# === SPRITE RENDERING (split-body animated — elegant & sinister) ===
 	if sprite_texture:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
-		var breathe_scl = 1.0 + sin(_time * 1.5) * 0.016
-		var sway_rot = sin(_time * 0.7) * 0.022
-		var s_aim_lean = sin(aim_angle) * 0.045
+
+		# Split point: 55% from top = waist line on chibi sprites
+		var split_pct = 0.55
+		var top_src = Rect2(0, 0, _ss.x, _ss.y * split_pct)  # head + torso + arms
+		var bot_src = Rect2(0, _ss.y * split_pct, _ss.x, _ss.y * (1.0 - split_pct))  # legs + feet
+		var top_h = _sd.y * split_pct
+		var bot_h = _sd.y * (1.0 - split_pct)
+
+		# --- LEGS (bottom half): planted, elegant stillness ---
+		var leg_breathe = 1.0 + sin(_time * 1.5) * 0.004  # very subtle
+		var leg_sway = sin(_time * 0.7) * 0.006  # barely noticeable
+		var leg_brace = 0.0
+		if _attack_anim > 0.0:
+			leg_brace = sin(_attack_anim * PI) * 0.012
+
+		var _fl = cos(aim_angle) < 0.0
+		var leg_scl = Vector2(leg_breathe, leg_breathe)
+		var leg_rot = leg_sway + leg_brace
+		if _fl:
+			leg_scl.x *= -1.0
+			leg_rot *= -1.0
+
+		var leg_anchor = body_offset + Vector2(0, 10.0)
+		draw_set_transform(leg_anchor, leg_rot, leg_scl)
+		draw_texture_rect_region(sprite_texture, Rect2(-_sd.x / 2.0, -bot_h, _sd.x, bot_h), bot_src)
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+		# --- TORSO (top half): active, sinister elegance ---
+		var breathe_scl = 1.0 + sin(_time * 1.5) * 0.024
+		var sway_rot = sin(_time * 0.7) * 0.033
+
+		# Aim lean: torso twists toward target
+		var aim_lean = sin(aim_angle) * 0.068
+
+		# Attack recoil + squash-stretch (tier-scaling)
 		var recoil_off = Vector2.ZERO
 		var atk_scl = Vector2.ONE
 		if _attack_anim > 0.0:
@@ -1393,16 +1425,20 @@ func _draw() -> void:
 			var rt = _attack_anim * _attack_anim
 			recoil_off = -Vector2.from_angle(aim_angle) * rt * 3.5 * tier_r
 			var sq = clampf(_attack_anim * 2.5, 0.0, 1.0)
-			atk_scl = Vector2(1.0 + sq * (0.09 + float(upgrade_tier) * 0.02), 1.0 - sq * (0.07 + float(upgrade_tier) * 0.015))
-		var total_rot = sway_rot + s_aim_lean
+			atk_scl = Vector2(1.0 + sq * (0.14 + float(upgrade_tier) * 0.025), 1.0 - sq * (0.10 + float(upgrade_tier) * 0.02))
+			# Torso snap on attack
+			sway_rot += sin(_attack_anim * PI * 2.0) * 0.05 * tier_r
+
+		var total_rot = sway_rot + aim_lean
 		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
-		var _fl = cos(aim_angle) < 0.0
 		if _fl:
 			total_scl.x *= -1.0
 			total_rot *= -1.0
-		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
-		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
+
+		# Torso anchors at waist (where legs end), pivots from there
+		var torso_anchor = body_offset + Vector2(0, 10.0 - bot_h) + recoil_off
+		draw_set_transform(torso_anchor, total_rot, total_scl)
+		draw_texture_rect_region(sprite_texture, Rect2(-_sd.x / 2.0, -top_h, _sd.x, top_h), top_src)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 	if not sprite_texture:
