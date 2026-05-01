@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://fv7q1qsxmrjh"
-valid=false
+uid="uid://qybxg2sf57nq"
+path="res://.godot/imported/robin_hood_shoot.png-975fac06c2592ca0d19e82d76a4c7cd3.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/robin_hood_shoot.png"
+dest_files=["res://.godot/imported/robin_hood_shoot.png-975fac06c2592ca0d19e82d76a4c7cd3.ctex"]
 
 [params]
 

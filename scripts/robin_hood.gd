@@ -15,10 +15,15 @@ var sprite_texture: Texture2D = null
 var target: Node2D = null
 var _draw_progress: float = 0.0
 
-# Frame-based sprite animation (idle → draw → shoot cycle)
+# Frame-based sprite animation (idle → draw → shoot cycle + flair)
 var _sprite_attack: Texture2D = null  # Bow drawn back
 var _sprite_shoot: Texture2D = null   # Arrow released
-var _anim_frame: int = 0  # 0=idle, 1=attack/draw, 2=shoot
+var _sprite_flair: Texture2D = null   # Dance/spin move
+var _anim_frame: int = 0  # 0=idle, 1=attack/draw, 2=shoot, 3=flair
+var _flair_timer: float = 0.0        # Counts up to flair interval
+var _flair_duration: float = 0.0     # How long flair frame shows
+const FLAIR_INTERVAL: float = 8.0    # Dance every 8 seconds of idle
+const FLAIR_SHOW_TIME: float = 0.6   # Show flair pose for 0.6s
 var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
@@ -201,10 +206,13 @@ func _ready() -> void:
 	# Load animation frame sprites
 	var _atk_path = "res://assets/tower_sprites/robin_hood_attack.png"
 	var _sht_path = "res://assets/tower_sprites/robin_hood_shoot.png"
+	var _flr_path = "res://assets/tower_sprites/robin_hood_flair.png"
 	if ResourceLoader.exists(_atk_path):
 		_sprite_attack = load(_atk_path)
 	if ResourceLoader.exists(_sht_path):
 		_sprite_shoot = load(_sht_path)
+	if ResourceLoader.exists(_flr_path):
+		_sprite_flair = load(_flr_path)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -214,7 +222,7 @@ func _process(delta: float) -> void:
 	_horn_flash = max(_horn_flash - delta * 2.0, 0.0)
 	_silver_flash = max(_silver_flash - delta * 3.0, 0.0)
 	_gold_flash = max(_gold_flash - delta * 3.0, 0.0)
-	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)
+	_attack_anim = max(_attack_anim - delta * 1.8, 0.0)  # Slower decay so attack/shoot poses are visible
 	target = _find_nearest_enemy()
 
 	if target:
@@ -229,14 +237,25 @@ func _process(delta: float) -> void:
 	else:
 		_draw_progress = max(_draw_progress - delta * 2.0, 0.0)
 
-	# Frame-based animation: idle(0) → draw(1) → shoot(2) → idle(0)
+	# Frame-based animation: idle(0) → draw(1) → shoot(2) → flair(3)
 	if _sprite_attack and _sprite_shoot:
-		if _attack_anim > 0.5:
+		if _attack_anim > 0.15:
 			_anim_frame = 2  # Just shot — show release frame
-		elif _draw_progress > 0.3:
+			_flair_timer = 0.0  # Reset flair timer during combat
+		elif _draw_progress > 0.15:
 			_anim_frame = 1  # Drawing bow back
+			_flair_timer = 0.0
+		elif _flair_duration > 0.0:
+			_anim_frame = 3  # Flair/dance pose
+			_flair_duration -= delta
 		else:
 			_anim_frame = 0  # Idle
+			# Flair timer: only counts up when idle (no target)
+			if not target and _sprite_flair:
+				_flair_timer += delta
+				if _flair_timer >= FLAIR_INTERVAL:
+					_flair_timer = 0.0
+					_flair_duration = FLAIR_SHOW_TIME
 
 	# Sky arrow spawn timer
 	if _sky_arrow_spawn_timer > 0.0:
@@ -1222,6 +1241,9 @@ func _draw() -> void:
 			match _anim_frame:
 				1: _active_tex = _sprite_attack  # drawing bow
 				2: _active_tex = _sprite_shoot   # arrow released
+				3:
+					if _sprite_flair:
+						_active_tex = _sprite_flair  # dance/spin move
 		var _ss = Vector2(_active_tex.get_width(), _active_tex.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf

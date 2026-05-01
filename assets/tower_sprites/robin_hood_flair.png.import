@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dttscuhf4i1vr"
-path="res://.godot/imported/robin_hood_attack.png-077a467b124b062dabe90a2b76ece5bb.ctex"
+uid="uid://5hun0w4ncvvb"
+path="res://.godot/imported/robin_hood_flair.png-e3ac2fe31d5445a842b93491e5d3b820.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/tower_sprites/robin_hood_attack.png"
-dest_files=["res://.godot/imported/robin_hood_attack.png-077a467b124b062dabe90a2b76ece5bb.ctex"]
+source_file="res://assets/tower_sprites/robin_hood_flair.png"
+dest_files=["res://.godot/imported/robin_hood_flair.png-e3ac2fe31d5445a842b93491e5d3b820.ctex"]
 
 [params]
 
