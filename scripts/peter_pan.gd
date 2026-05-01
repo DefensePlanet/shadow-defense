@@ -241,7 +241,7 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	if _build_timer > 0.0: _build_timer -= delta
-	_attack_anim = max(_attack_anim - delta * 1.5, 0.0)  # Slower swing, less glitchy
+	_attack_anim = max(_attack_anim - delta * 0.9, 0.0)  # Very slow decay — holds each pose longer
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_fairy_flash = max(_fairy_flash - delta * 2.0, 0.0)
 	_croc_flash = max(_croc_flash - delta * 2.0, 0.0)
