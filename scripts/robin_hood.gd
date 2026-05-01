@@ -14,6 +14,11 @@ var bow_angle: float = 0.0
 var sprite_texture: Texture2D = null
 var target: Node2D = null
 var _draw_progress: float = 0.0
+
+# Frame-based sprite animation (idle → draw → shoot cycle)
+var _sprite_attack: Texture2D = null  # Bow drawn back
+var _sprite_shoot: Texture2D = null   # Arrow released
+var _anim_frame: int = 0  # 0=idle, 1=attack/draw, 2=shoot
 var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
@@ -193,6 +198,13 @@ func _ready() -> void:
 	_upgrade_player.stream = _upgrade_sound
 	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
+	# Load animation frame sprites
+	var _atk_path = "res://assets/tower_sprites/robin_hood_attack.png"
+	var _sht_path = "res://assets/tower_sprites/robin_hood_shoot.png"
+	if ResourceLoader.exists(_atk_path):
+		_sprite_attack = load(_atk_path)
+	if ResourceLoader.exists(_sht_path):
+		_sprite_shoot = load(_sht_path)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -216,6 +228,15 @@ func _process(delta: float) -> void:
 			_attack_anim = 1.0
 	else:
 		_draw_progress = max(_draw_progress - delta * 2.0, 0.0)
+
+	# Frame-based animation: idle(0) → draw(1) → shoot(2) → idle(0)
+	if _sprite_attack and _sprite_shoot:
+		if _attack_anim > 0.5:
+			_anim_frame = 2  # Just shot — show release frame
+		elif _draw_progress > 0.3:
+			_anim_frame = 1  # Drawing bow back
+		else:
+			_anim_frame = 0  # Idle
 
 	# Sky arrow spawn timer
 	if _sky_arrow_spawn_timer > 0.0:
@@ -1193,9 +1214,15 @@ func _draw() -> void:
 			draw_circle(fd_pos, fd_size, Color(1.0, 0.5 + fire_t * 0.4, 0.1, fd_alpha))
 			draw_circle(fd_pos, fd_size * 0.5, Color(1.0, 0.9, 0.4, fd_alpha * 0.6))
 
-	# === SPRITE RENDERING (animated character) ===
+	# === SPRITE RENDERING (frame-based animated character) ===
 	if sprite_texture:
-		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
+		# Select the right frame texture
+		var _active_tex = sprite_texture  # default: idle
+		if _sprite_attack and _sprite_shoot:
+			match _anim_frame:
+				1: _active_tex = _sprite_attack  # drawing bow
+				2: _active_tex = _sprite_shoot   # arrow released
+		var _ss = Vector2(_active_tex.get_width(), _active_tex.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
 
@@ -1247,7 +1274,7 @@ func _draw() -> void:
 		# Anchor at feet — rotation pivots from base
 		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
 		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
+		draw_texture_rect(_active_tex, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 	if not sprite_texture:
