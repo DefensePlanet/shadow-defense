@@ -12,6 +12,13 @@ var attack_range: float = 180.0
 var fire_cooldown: float = 0.0
 var aim_angle: float = 0.0
 var sprite_texture: Texture2D = null
+# Flair animation (idle poses — randomized every 8s)
+var flair_textures: Array = []  # Injected by main.gd
+var _flair_timer: float = 0.0
+var _flair_active: float = 0.0  # > 0 = showing flair
+var _flair_current: Texture2D = null
+const _FLAIR_INTERVAL: float = 8.0
+const _FLAIR_DURATION: float = 0.8
 var target: Node2D = null
 var gold_bonus: int = 1
 
@@ -227,6 +234,18 @@ func _process(delta: float) -> void:
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
 	_lasso_flash = max(_lasso_flash - delta * 2.0, 0.0)
 	_chandelier_flash = max(_chandelier_flash - delta * 1.5, 0.0)
+	# Flair animation: random idle pose every 8s when no enemies
+	if _flair_active > 0.0:
+		_flair_active -= delta
+	elif flair_textures.size() > 0 and not target:
+		_flair_timer += delta
+		if _flair_timer >= _FLAIR_INTERVAL:
+			_flair_timer = 0.0
+			_flair_current = flair_textures[randi() % flair_textures.size()]
+			_flair_active = _FLAIR_DURATION
+	if target:
+		_flair_timer = 0.0
+		_flair_active = 0.0
 	target = _find_nearest_enemy()
 
 	if _has_sword:
@@ -1288,6 +1307,9 @@ func _draw() -> void:
 
 	# === SPRITE RENDERING (animated — dramatic & operatic) ===
 	if sprite_texture:
+		var _active_tex = sprite_texture
+		if _flair_active > 0.0 and _flair_current:
+			_active_tex = _flair_current
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
@@ -1310,7 +1332,7 @@ func _draw() -> void:
 			total_rot *= -1.0
 		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
 		draw_set_transform(anchor, total_rot, total_scl)
-		draw_texture_rect(sprite_texture, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
+		draw_texture_rect(_active_tex, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 	if not sprite_texture:

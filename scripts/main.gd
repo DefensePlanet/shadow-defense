@@ -1588,6 +1588,9 @@ var _path_textures: Dictionary = {}  # faction_key -> ImageTexture
 var _portrait_textures: Dictionary = {}  # character_key -> ImageTexture
 var _sidekick_textures: Dictionary = {}  # sidekick_key -> ImageTexture
 var _tower_sprite_textures: Dictionary = {}  # character_key -> ImageTexture
+var _tower_flair_textures: Dictionary = {}  # character_key -> Array of Texture2D (flair poses)
+var _tower_attack_textures: Dictionary = {}  # character_key -> Texture2D (attack pose)
+var _tower_shoot_textures: Dictionary = {}  # character_key -> Texture2D (shoot pose)
 var _enemy_portrait_textures: Dictionary = {}  # "faction/tier_N" -> ImageTexture
 var _gear_icon_textures: Dictionary = {}  # gear_id -> ImageTexture
 var _achievement_icon_textures: Dictionary = {}  # ach_id -> ImageTexture
@@ -4606,6 +4609,36 @@ func _load_tower_sprite_textures() -> void:
 		var img = Image.new()
 		if img.load(abs_path) == OK:
 			_tower_sprite_textures[tname] = ImageTexture.create_from_image(img)
+	# Load flair, attack, shoot textures for frame-based animation
+	for tname in names:
+		# Attack + shoot poses
+		var atk_path = "res://assets/tower_sprites/" + tname + "_attack.png"
+		var sht_path = "res://assets/tower_sprites/" + tname + "_shoot.png"
+		if ResourceLoader.exists(atk_path):
+			_tower_attack_textures[tname] = load(atk_path)
+		if ResourceLoader.exists(sht_path):
+			_tower_shoot_textures[tname] = load(sht_path)
+		# Flair poses (flair1, flair2, flair3 + any spin/spindown variants)
+		var flairs: Array = []
+		for fi in range(1, 10):  # flair1 through flair9
+			var fp = "res://assets/tower_sprites/" + tname + "_flair" + str(fi) + ".png"
+			if ResourceLoader.exists(fp):
+				flairs.append(load(fp))
+			else:
+				break
+		# Also load flair.png (Robin's original kick)
+		var flair0_path = "res://assets/tower_sprites/" + tname + "_flair.png"
+		if ResourceLoader.exists(flair0_path):
+			flairs.insert(0, load(flair0_path))
+		# Load spin poses for multi-frame sequences
+		var spin360_path = "res://assets/tower_sprites/" + tname + "_spin360.png"
+		var spindown_path = "res://assets/tower_sprites/" + tname + "_spindown.png"
+		if ResourceLoader.exists(spin360_path):
+			_tower_sprite_textures[tname + "_spin360"] = load(spin360_path)
+		if ResourceLoader.exists(spindown_path):
+			_tower_sprite_textures[tname + "_spindown"] = load(spindown_path)
+		if flairs.size() > 0:
+			_tower_flair_textures[tname] = flairs
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
@@ -18659,6 +18692,18 @@ func _try_place_tower(pos: Vector2) -> void:
 	var _spr_key = _tower_type_to_name(selected_tower)
 	if _tower_sprite_textures.has(_spr_key) and "sprite_texture" in tower:
 		tower.sprite_texture = _tower_sprite_textures[_spr_key]
+	# Inject frame-based animation textures (attack, shoot, flair)
+	if "flair_textures" in tower and _tower_flair_textures.has(_spr_key):
+		tower.flair_textures = _tower_flair_textures[_spr_key]
+	if "_sprite_attack" in tower and _tower_attack_textures.has(_spr_key):
+		tower._sprite_attack = _tower_attack_textures[_spr_key]
+	if "_sprite_shoot" in tower and _tower_shoot_textures.has(_spr_key):
+		tower._sprite_shoot = _tower_shoot_textures[_spr_key]
+	# Robin special: inject spin sequence textures
+	if "_sprite_spin360" in tower and _tower_sprite_textures.has(_spr_key + "_spin360"):
+		tower._sprite_spin360 = _tower_sprite_textures[_spr_key + "_spin360"]
+	if "_sprite_spindown" in tower and _tower_sprite_textures.has(_spr_key + "_spindown"):
+		tower._sprite_spindown = _tower_sprite_textures[_spr_key + "_spindown"]
 	towers_node.add_child(tower)
 	# Build animation
 	if "_build_timer" in tower:
