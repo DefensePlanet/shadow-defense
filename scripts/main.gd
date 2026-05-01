@@ -4624,8 +4624,7 @@ func _load_tower_sprite_textures() -> void:
 			var fp = "res://assets/tower_sprites/" + tname + "_flair" + str(fi) + ".png"
 			if ResourceLoader.exists(fp):
 				flairs.append(load(fp))
-			else:
-				break
+			# Don't break — files may be non-sequential (flair, flair2, flair3)
 		# Also load flair.png (Robin's original kick)
 		var flair0_path = "res://assets/tower_sprites/" + tname + "_flair.png"
 		if ResourceLoader.exists(flair0_path):
