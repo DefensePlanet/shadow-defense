@@ -15,20 +15,24 @@ var sprite_texture: Texture2D = null
 var target: Node2D = null
 var _draw_progress: float = 0.0
 
-# Frame-based sprite animation (idle → draw → shoot cycle + flair sequence)
+# Frame-based sprite animation (idle → draw → shoot cycle + flair)
 var _sprite_attack: Texture2D = null    # Bow drawn back
 var _sprite_shoot: Texture2D = null     # Arrow released
-var _sprite_flair: Texture2D = null     # Kick/leg move
-var _sprite_spin360: Texture2D = null   # 360 twirl
-var _sprite_spindown: Texture2D = null  # Headspin
-var _anim_frame: int = 0  # 0=idle, 1=attack, 2=shoot, 3=kick, 4=spin360, 5=headspin
+var _sprite_flair: Texture2D = null     # Kick/leg move (dance seq frame 1)
+var _sprite_spin360: Texture2D = null   # 360 twirl (dance seq frame 2)
+var _sprite_spindown: Texture2D = null  # Headspin (dance seq frame 3)
+var flair_textures: Array = []          # Single-frame flairs (flair2, flair3) injected by main.gd
+var _anim_frame: int = 0  # 0=idle, 1=attack, 2=shoot, 3=kick, 4=spin360, 5=headspin, 6=single_flair
 var _flair_timer: float = 0.0          # Counts up to flair interval
-var _flair_phase: int = 0              # 0=not dancing, 1=kick, 2=spin360, 3=headspin
+var _flair_phase: int = 0              # 0=not dancing, 1=kick, 2=spin360, 3=headspin, 4=single_flair
 var _flair_phase_timer: float = 0.0    # Timer within current flair phase
-const FLAIR_INTERVAL: float = 8.0      # Dance every 8 seconds of idle
-const FLAIR_KICK_TIME: float = 0.5     # Show kick for 0.5s
-const FLAIR_SPIN_TIME: float = 0.6     # Show 360 spin for 0.6s
-const FLAIR_HEADSPIN_TIME: float = 1.0 # Show headspin for 1.0s (slow it down)
+var _flair_set: int = 0                # Which flair set to play (0=dance, 1+=single frame flairs)
+var _flair_current_single: Texture2D = null
+const FLAIR_INTERVAL: float = 8.0      # Flair every 8 seconds of idle
+const FLAIR_KICK_TIME: float = 0.5
+const FLAIR_SPIN_TIME: float = 0.6
+const FLAIR_HEADSPIN_TIME: float = 1.0
+const FLAIR_SINGLE_TIME: float = 0.8   # Single-frame flair display time
 var gold_bonus: int = 1
 
 # Targeting priority: 0=First, 1=Last, 2=Close, 3=Strong
@@ -259,10 +263,9 @@ func _process(delta: float) -> void:
 			_flair_timer = 0.0
 			_flair_phase = 0
 		elif _flair_phase > 0:
-			# Flair sequence: kick → 360 spin → headspin
 			_flair_phase_timer -= delta
 			if _flair_phase == 1:
-				_anim_frame = 3  # Kick pose
+				_anim_frame = 3  # Kick (dance sequence)
 				if _flair_phase_timer <= 0.0:
 					if _sprite_spin360:
 						_flair_phase = 2
@@ -278,18 +281,31 @@ func _process(delta: float) -> void:
 					else:
 						_flair_phase = 0
 			elif _flair_phase == 3:
-				_anim_frame = 5  # Headspin (held longer)
+				_anim_frame = 5  # Headspin
 				if _flair_phase_timer <= 0.0:
-					_flair_phase = 0  # End sequence
+					_flair_phase = 0
+			elif _flair_phase == 4:
+				_anim_frame = 6  # Single-frame flair
+				if _flair_phase_timer <= 0.0:
+					_flair_phase = 0
 		else:
 			_anim_frame = 0  # Idle
-			# Flair timer: only counts up when idle (no target)
 			if not target and _sprite_flair:
 				_flair_timer += delta
 				if _flair_timer >= FLAIR_INTERVAL:
 					_flair_timer = 0.0
-					_flair_phase = 1  # Start kick
-					_flair_phase_timer = FLAIR_KICK_TIME
+					# Randomly pick: dance sequence (0) or single-frame flairs (1+)
+					var total_options = 1 + flair_textures.size()  # 1 dance + N singles
+					_flair_set = randi() % total_options
+					if _flair_set == 0:
+						# Dance sequence: kick → spin → headspin
+						_flair_phase = 1
+						_flair_phase_timer = FLAIR_KICK_TIME
+					else:
+						# Single-frame flair from flair_textures
+						_flair_current_single = flair_textures[_flair_set - 1]
+						_flair_phase = 4
+						_flair_phase_timer = FLAIR_SINGLE_TIME
 
 	# Sky arrow spawn timer
 	if _sky_arrow_spawn_timer > 0.0:
@@ -1284,6 +1300,9 @@ func _draw() -> void:
 				5:
 					if _sprite_spindown:
 						_active_tex = _sprite_spindown  # headspin
+				6:
+					if _flair_current_single:
+						_active_tex = _flair_current_single  # single flair
 		var _ss = Vector2(_active_tex.get_width(), _active_tex.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
