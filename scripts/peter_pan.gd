@@ -1129,16 +1129,16 @@ func _draw() -> void:
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
-		var breathe_scl = 1.0 + sin(_time * 2.8) * 0.022
-		var sway_rot = sin(_time * 1.8) * 0.030
-		var s_aim_lean = sin(aim_angle) * 0.025
+		var breathe_scl = 1.0 + sin(_time * 2.0) * 0.010  # Gentle breathing, not bouncy
+		var sway_rot = sin(_time * 1.2) * 0.012  # Subtle idle sway
+		var s_aim_lean = sin(aim_angle) * 0.015  # Light lean toward target
 		var recoil_off = Vector2.ZERO
 		var atk_scl = Vector2.ONE
 		if _attack_anim > 0.0:
-			# Sword swing arc — quick rotation snap then return
-			var swing_t = clampf(_attack_anim * 3.0, 0.0, 1.0)
-			sway_rot += sin(swing_t * PI) * 0.25  # arc rotation for swing
-			recoil_off = Vector2(0, -swing_t * 2.0)  # slight upward lift, not forward thrust
+			# Minimal body movement — the sprite frames show the arm swing
+			var swing_t = clampf(_attack_anim * 2.0, 0.0, 1.0)
+			sway_rot += sin(swing_t * PI) * 0.04  # Very slight body lean into swing
+			recoil_off = Vector2(0, -swing_t * 0.5)  # Tiny upward lift
 		var total_rot = sway_rot + s_aim_lean
 		var total_scl = Vector2(breathe_scl, breathe_scl) * atk_scl
 		var _fl = cos(aim_angle) < 0.0
