@@ -266,14 +266,17 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 
 func _play(idx: int, diff: int) -> void:
 	if not _main:
-		# Try to find main again
 		_main = get_tree().get_first_node_in_group("main")
-	if not _main:
-		return
+	if not _main: return
 	if not _main._is_level_unlocked(idx): return
 	_main.selected_difficulty = diff
+	# Hide v2 menu first
 	if _main.has_method("_hide_menu_v2"): _main._hide_menu_v2()
-	if _main.has_method("_do_level_start"): _main._do_level_start(idx)
+	# Use _on_level_selected which triggers story dialogs THEN starts level
+	if _main.has_method("_on_level_selected"):
+		_main._on_level_selected(idx)
+	elif _main.has_method("_do_level_start"):
+		_main._do_level_start(idx)
 
 # ======================== SURVIVORS ========================
 func _build_survivors() -> void:
@@ -380,7 +383,20 @@ func _survivor_card(idx: int) -> Button:
 		tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08))
 	return btn
 
+var _detail_idx: int = -1
+var _detail_tab: int = 0  # 0=Stats, 1=Gear, 2=Allies, 3=Abilities
+
+func _switch_detail_tab(tab: int) -> void:
+	_detail_tab = tab
+	_build_detail_view()
+
 func _open_survivor_detail(idx: int) -> void:
+	_detail_idx = idx
+	_detail_tab = 0
+	_build_detail_view()
+
+func _build_detail_view() -> void:
+	var idx = _detail_idx
 	_clear()
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -426,9 +442,30 @@ func _open_survivor_detail(idx: int) -> void:
 	back.add_theme_color_override("font_color", Color(0.8,0.75,0.65))
 	back.pressed.connect(_build_survivors)
 	right.add_child(back)
+	# TAB BUTTONS — Stats / Gear / Allies / Abilities
+	var tab_row = HBoxContainer.new()
+	tab_row.add_theme_constant_override("separation", 4)
+	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for ti in range(4):
+		var tab_names_arr = ["STATS", "GEAR", "ALLIES", "ABILITIES"]
+		var tb = Button.new()
+		tb.text = tab_names_arr[ti]
+		tb.custom_minimum_size = Vector2(90, 26)
+		var ts = StyleBoxFlat.new()
+		ts.bg_color = Color(0.18, 0.14, 0.28, 0.9) if ti == _detail_tab else Color(0.08, 0.06, 0.14, 0.5)
+		ts.set_corner_radius_all(4)
+		ts.border_color = Color(0.65, 0.50, 0.20, 0.6) if ti == _detail_tab else Color(0.30, 0.25, 0.18, 0.3)
+		ts.set_border_width_all(1)
+		tb.add_theme_stylebox_override("normal", ts)
+		tb.add_theme_font_size_override("font_size", 10)
+		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if ti == _detail_tab else Color(0.55, 0.50, 0.45))
+		tb.pressed.connect(_switch_detail_tab.bind(ti))
+		tab_row.add_child(tb)
+	right.add_child(tab_row)
 	# Get tower type for stats lookup
 	var tt = _main.survivor_types[idx] if _main and idx < _main.survivor_types.size() else null
-	# Character level + XP
+	# === TAB CONTENT ===
+	# Character level shown on ALL tabs
 	right.add_child(_lbl("CHARACTER LEVEL", 14, Color(0.85,0.72,0.40)))
 	if tt != null and _main.survivor_progress.has(tt):
 		var prog = _main.survivor_progress[tt]
@@ -444,16 +481,18 @@ func _open_survivor_detail(idx: int) -> void:
 			right.add_child(_lbl("Total Damage: %s" % _format_num(total_dmg), 10, Color(0.6, 0.5, 0.45)))
 	else:
 		right.add_child(_lbl("Level 1", 18, Color(1.0, 0.92, 0.45)))
-	# Stats section
-	right.add_child(_lbl("COMBAT STATS", 14, Color(0.85,0.72,0.40)))
+	# === TAB 0: STATS ===
+	if _detail_tab == 0:
+		right.add_child(_lbl("COMBAT STATS", 14, Color(0.85,0.72,0.40)))
 	if tt != null and _main.tower_info.has(tt):
 		var info = _main.tower_info[tt]
 		right.add_child(_stat_bar("Damage", info.get("damage", 0), 50, Color(0.9,0.3,0.2)))
 		right.add_child(_stat_bar("Range", info.get("range", 0), 200, Color(0.3,0.7,0.9)))
 		right.add_child(_stat_bar("Fire Rate", info.get("fire_rate", 0), 2.5, Color(0.9,0.7,0.2)))
 		right.add_child(_lbl("Cost: %d Gold" % info.get("cost", 0), 12, Color(0.85,0.70,0.20)))
-	# Gear section with icon
-	right.add_child(_lbl("EQUIPPED GEAR", 14, Color(0.85,0.72,0.40)))
+	# === TAB 1: GEAR ===
+	if _detail_tab == 0 or _detail_tab == 1:
+		right.add_child(_lbl("EQUIPPED GEAR", 14, Color(0.85,0.72,0.40)))
 	if tt != null and _main.survivor_gear.has(tt):
 		var gear = _main.survivor_gear[tt]
 		var gp = PanelContainer.new()
@@ -502,16 +541,18 @@ func _open_survivor_detail(idx: int) -> void:
 			gv.add_child(_lbl(bonus_text.strip_edges(), 10, Color(0.3, 0.8, 0.4)))
 		gear_row.add_child(gv)
 		right.add_child(gp)
-	# Sidekicks
-	right.add_child(_lbl("SIDEKICKS", 14, Color(0.85,0.72,0.40)))
+	# === TAB 2: ALLIES ===
+	if _detail_tab == 0 or _detail_tab == 2:
+		right.add_child(_lbl("SIDEKICKS", 14, Color(0.85,0.72,0.40)))
 	if tt != null and _main.survivor_sidekicks.has(tt):
 		for sk in _main.survivor_sidekicks[tt]:
 			var skp = HBoxContainer.new()
 			skp.add_child(_lbl(sk.get("name",""), 12, Color(0.9,0.82,0.55)))
 			skp.add_child(_lbl(" — " + sk.get("desc",""), 10, Color(0.55,0.50,0.45)))
 			right.add_child(skp)
-	# Abilities — show actual ability names with lock status
-	right.add_child(_lbl("ABILITIES", 14, Color(0.85,0.72,0.40)))
+	# === TAB 3: ABILITIES ===
+	if _detail_tab == 0 or _detail_tab == 3:
+		right.add_child(_lbl("ABILITIES", 14, Color(0.85,0.72,0.40)))
 	# Get tower script to read ability names
 	var tower_scenes_map = {0: "robin_hood", 1: "alice", 2: "wicked_witch", 3: "peter_pan", 4: "phantom", 5: "scrooge", 6: "sherlock", 7: "tarzan", 8: "dracula", 9: "merlin", 10: "frankenstein", 11: "shadow_author"}
 	var tower_key = tower_scenes_map.get(idx, "")
@@ -577,25 +618,150 @@ func _build_emporium() -> void:
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	vb.add_child(grid)
-	for cat in _main.emporium_categories:
-		var p = PanelContainer.new()
-		p.custom_minimum_size = Vector2(0, 75)
+	for ci in range(_main.emporium_categories.size()):
+		var cat = _main.emporium_categories[ci]
+		# Each category is a BUTTON so it's clickable
+		var btn = Button.new()
+		btn.custom_minimum_size = Vector2(0, 80)
+		btn.text = ""
 		var s = StyleBoxFlat.new()
 		s.bg_color = Color(0.08,0.06,0.14,0.65)
 		s.border_color = Color(0.55,0.42,0.18,0.4)
 		s.set_border_width_all(1); s.set_corner_radius_all(6)
 		s.content_margin_left = 10; s.content_margin_right = 10
 		s.content_margin_top = 6; s.content_margin_bottom = 6
-		p.add_theme_stylebox_override("panel", s)
+		btn.add_theme_stylebox_override("normal", s)
+		var sh = s.duplicate(); sh.bg_color = Color(0.12,0.09,0.20,0.75); sh.border_color = Color(0.70,0.55,0.25,0.6)
+		btn.add_theme_stylebox_override("hover", sh)
+		var sp = s.duplicate(); sp.bg_color = Color(0.06,0.04,0.12,0.80)
+		btn.add_theme_stylebox_override("pressed", sp)
 		var cv = VBoxContainer.new()
-		p.add_child(cv)
-		cv.add_child(_lbl(cat.get("name",""), 14, Color(1,0.85,0.3)))
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(cv)
+		var name_lbl = _lbl(cat.get("name",""), 14, Color(1,0.85,0.3))
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(name_lbl)
 		var d = _lbl(cat.get("desc",""), 10, Color(0.55,0.50,0.45))
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(d)
 		if cat.get("badge","") != "":
-			cv.add_child(_lbl(cat["badge"], 10, Color(0.3,0.9,0.3)))
-		grid.add_child(p)
+			var badge = _lbl(cat["badge"], 10, Color(0.3,0.9,0.3))
+			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cv.add_child(badge)
+		btn.pressed.connect(_open_emporium_category.bind(ci))
+		grid.add_child(btn)
+
+func _open_emporium_category(cat_idx: int) -> void:
+	_clear()
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
+	var vb = VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sc.add_child(vb)
+	if not _main: return
+	var cat = _main.emporium_categories[cat_idx]
+	# Back button
+	var back = Button.new()
+	back.text = "< BACK TO EMPORIUM"
+	back.custom_minimum_size = Vector2(180, 30)
+	var bs = StyleBoxFlat.new(); bs.bg_color = Color(0.15,0.12,0.25,0.8); bs.set_corner_radius_all(4)
+	back.add_theme_stylebox_override("normal", bs)
+	back.add_theme_font_size_override("font_size", 11)
+	back.add_theme_color_override("font_color", Color(0.8,0.75,0.65))
+	back.pressed.connect(_build_emporium)
+	vb.add_child(back)
+	vb.add_child(_title(cat.get("name", "SHOP")))
+	vb.add_child(_lbl(cat.get("desc", ""), 12, Color(0.60,0.55,0.48)))
+	# Show items based on category
+	match cat_idx:
+		0: _build_gold_exchange(vb)
+		1: _build_quill_shop(vb)
+		2, 3: _build_gear_shard_shop(vb)
+		4: _build_survivor_packs(vb)
+		6: _build_trophy_store_items(vb)
+		12: _build_lucky_wheel_ui(vb)
+		13: _build_merchant_items(vb)
+		_: _build_generic_shop(vb, cat)
+
+func _build_gold_exchange(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("Exchange gold for other currencies", 12, Color(0.60,0.55,0.48)))
+	var exchanges = [["100 Gold → 5 Quills", 100, "quills", 5], ["250 Gold → 15 Shards", 250, "shards", 15], ["500 Gold → 3 Stars", 500, "stars", 3]]
+	for ex in exchanges:
+		var row = HBoxContainer.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", 12)
+		var el = _lbl(ex[0], 13, Color(0.85,0.78,0.65))
+		el.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		el.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(el)
+		var buy = Button.new()
+		buy.text = "EXCHANGE"
+		buy.custom_minimum_size = Vector2(100, 30)
+		var bys = StyleBoxFlat.new(); bys.bg_color = Color(0.15,0.45,0.15,0.8); bys.set_corner_radius_all(4)
+		buy.add_theme_stylebox_override("normal", bys)
+		buy.add_theme_font_size_override("font_size", 11)
+		buy.add_theme_color_override("font_color", Color.WHITE)
+		row.add_child(buy)
+		parent.add_child(row)
+
+func _build_quill_shop(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("Spend Quills on rare treasures", 12, Color(0.60,0.55,0.48)))
+	_build_generic_shop(parent, {"name": "Quill Shop"})
+
+func _build_gear_shard_shop(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("Collect and forge Gear Shards", 12, Color(0.60,0.55,0.48)))
+	# Show gear shards owned
+	if _main:
+		parent.add_child(_lbl("You have: %d Gear Shards" % _main.player_gear_shards, 14, Color(0.3,0.75,0.9)))
+	_build_generic_shop(parent, {"name": "Gear Shards"})
+
+func _build_survivor_packs(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("Bundles of literary might — boost your Survivors!", 12, Color(0.60,0.55,0.48)))
+	_build_generic_shop(parent, {"name": "Survivor Packs"})
+
+func _build_trophy_store_items(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("Spend Trophies on cosmetic upgrades", 12, Color(0.60,0.55,0.48)))
+	if _main:
+		parent.add_child(_lbl("You have: %d Trophies" % (_main.player_storybook_stars if "player_storybook_stars" in _main else 0), 14, Color(1,0.85,0.3)))
+	_build_generic_shop(parent, {"name": "Trophy Store"})
+
+func _build_lucky_wheel_ui(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("Spin the Lucky Wheel for prizes!", 14, Color(1,0.85,0.3)))
+	parent.add_child(_lbl("One FREE spin per day!", 12, Color(0.3,0.9,0.3)))
+	var spin_btn = Button.new()
+	spin_btn.text = "SPIN!"
+	spin_btn.custom_minimum_size = Vector2(200, 50)
+	var ss = StyleBoxFlat.new(); ss.bg_color = Color(0.6,0.15,0.6,0.9); ss.set_corner_radius_all(12)
+	spin_btn.add_theme_stylebox_override("normal", ss)
+	var ssh = ss.duplicate(); ssh.bg_color = Color(0.7,0.25,0.7)
+	spin_btn.add_theme_stylebox_override("hover", ssh)
+	spin_btn.add_theme_font_size_override("font_size", 20)
+	spin_btn.add_theme_color_override("font_color", Color.WHITE)
+	parent.add_child(spin_btn)
+	# Show prizes
+	parent.add_child(_lbl("Possible Prizes:", 12, Color(0.65,0.58,0.50)))
+	if _main:
+		for prize in _main.SPIN_WHEEL_PRIZES:
+			parent.add_child(_lbl("• %s" % prize.get("name",""), 11, prize.get("col", Color.WHITE)))
+
+func _build_merchant_items(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("The Wandering Merchant has rare items...", 12, Color(0.60,0.55,0.48)))
+	if _main and _main.merchant_inventory.size() > 0:
+		for item in _main.merchant_inventory:
+			var row = HBoxContainer.new()
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(_lbl(item.get("name","???"), 13, Color(0.90,0.80,0.50)))
+			row.add_child(_lbl(" — %d %s" % [item.get("cost",0), item.get("cost_type","gold")], 11, Color(0.65,0.58,0.50)))
+			parent.add_child(row)
+	else:
+		parent.add_child(_lbl("The merchant will return soon...", 11, Color(0.50,0.45,0.40)))
+
+func _build_generic_shop(parent: VBoxContainer, cat: Dictionary) -> void:
+	parent.add_child(_lbl("Items coming soon to %s" % cat.get("name","Shop"), 12, Color(0.50,0.45,0.40)))
 
 # ======================== CODEX ========================
 var _codex_subtab: String = "gear"

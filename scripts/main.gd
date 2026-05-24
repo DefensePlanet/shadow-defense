@@ -6230,21 +6230,17 @@ func _show_menu_v2() -> void:
 	_load_menu_v2()
 	if _menu_v2_scene == null:
 		return
-	if _menu_v2_instance == null:
-		_menu_v2_instance = _menu_v2_scene.instantiate()
-		var canvas = CanvasLayer.new()
-		canvas.name = "MenuV2Layer"
-		canvas.layer = 50
-		canvas.add_child(_menu_v2_instance)
-		add_child(canvas)
-	else:
-		# Instance was destroyed — recreate
-		_menu_v2_instance = _menu_v2_scene.instantiate()
-		var canvas = CanvasLayer.new()
-		canvas.name = "MenuV2Layer"
-		canvas.layer = 50
-		canvas.add_child(_menu_v2_instance)
-		add_child(canvas)
+	# Always create fresh — previous was queue_free'd
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
+		# Already showing — just make sure it's visible
+		_menu_v2_instance.visible = true
+		return
+	_menu_v2_instance = _menu_v2_scene.instantiate()
+	var canvas = CanvasLayer.new()
+	canvas.name = "MenuV2Layer"
+	canvas.layer = 50
+	canvas.add_child(_menu_v2_instance)
+	add_child(canvas)
 	# CRITICAL: Hide ALL old menu interactive elements so they don't eat clicks
 	if menu_overlay:
 		menu_overlay.visible = false
