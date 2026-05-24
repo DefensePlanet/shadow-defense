@@ -29,7 +29,7 @@ func _load_textures() -> void:
 	for k in bgs:
 		if ResourceLoader.exists(bgs[k]):
 			_backgrounds[k] = load(bgs[k])
-	var ui = {"game_logo": "res://assets/ui_elements/play_button.png", "header_bar": "res://assets/ui_elements/header_bar.png", "nav_spine": "res://assets/ui_frames/nav_book_spine.png", "tab_chapters": "res://assets/ui_elements/tab_chapters.png", "tab_survivors": "res://assets/ui_elements/tab_survivors.png", "tab_emporium": "res://assets/ui_elements/tab_emporium.png", "tab_chronicles": "res://assets/ui_elements/tab_chronicles.png", "settings_gear": "res://assets/ui_elements/settings_gear.png"}
+	var ui = {"game_logo": "res://assets/ui_elements/play_button.png", "header_bar": "res://assets/ui_elements/header_bar.png", "nav_spine": "res://assets/ui_frames/nav_book_spine.png", "tab_chapters": "res://assets/ui_elements/tab_chapters.png", "tab_survivors": "res://assets/ui_elements/tab_survivors.png", "tab_emporium": "res://assets/ui_elements/tab_emporium.png", "tab_chronicles": "res://assets/ui_elements/tab_chronicles.png", "settings_gear": "res://assets/ui_elements/settings_gear.png", "go_button": "res://assets/ui_elements/go_button.png", "difficulty_gems": "res://assets/ui_elements/difficulty_gems.png", "buy_button": "res://assets/ui_elements/buy_button.png", "level_card": "res://assets/ui_elements/level_card_bg.png", "survivor_frame": "res://assets/ui_elements/survivor_card_frame.png"}
 	for k in ui:
 		if ResourceLoader.exists(ui[k]):
 			_ui_tex[k] = load(ui[k])
@@ -101,6 +101,15 @@ func _setup_nav_bar() -> void:
 		cont.add_child(lbl)
 		nav_buttons_container.add_child(cont)
 
+func _hover_btn(btn: Control) -> void:
+	btn.pivot_offset = btn.size / 2.0
+	var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(btn, "scale", Vector2(1.12, 1.12), 0.1)
+
+func _unhover_btn(btn: Control) -> void:
+	var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
+	tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08)
+
 func _on_tab(tab: String) -> void:
 	if current_view == tab:
 		return
@@ -149,14 +158,26 @@ func _build_chapters_view() -> void:
 
 func _make_level_card(idx: int, lvl: Dictionary, unlocked: bool, complete: bool) -> PanelContainer:
 	var p = PanelContainer.new()
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.08, 0.05, 0.14, 0.70) if unlocked else Color(0.06, 0.04, 0.10, 0.50)
-	s.border_color = Color(0.45, 0.35, 0.20, 0.6) if unlocked else Color(0.25, 0.20, 0.18, 0.3)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
-	if complete:
-		s.border_color = Color(0.3, 0.7, 0.3, 0.7)
-	p.add_theme_stylebox_override("panel", s)
+	# Use level_card_bg.png as the panel background if available
+	if _ui_tex.has("level_card") and unlocked:
+		var s = StyleBoxTexture.new()
+		s.texture = _ui_tex["level_card"]
+		s.texture_margin_left = 16
+		s.texture_margin_right = 16
+		s.texture_margin_top = 12
+		s.texture_margin_bottom = 12
+		s.content_margin_left = 12
+		s.content_margin_right = 12
+		s.content_margin_top = 8
+		s.content_margin_bottom = 8
+		p.add_theme_stylebox_override("panel", s)
+	else:
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.06, 0.04, 0.10, 0.50)
+		s.border_color = Color(0.25, 0.20, 0.18, 0.3)
+		s.set_border_width_all(1)
+		s.set_corner_radius_all(6)
+		p.add_theme_stylebox_override("panel", s)
 	var hbox = HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 10)
 	p.add_child(hbox)
@@ -180,50 +201,43 @@ func _make_level_card(idx: int, lvl: Dictionary, unlocked: bool, complete: bool)
 	info.add_child(_make_label(lvl.get("name", "Level"), 14, Color(1.0, 0.95, 0.85) if unlocked else Color(0.5, 0.45, 0.4)))
 	info.add_child(_make_label(lvl.get("subtitle", ""), 10, Color(0.6, 0.5, 0.45)))
 	info.add_child(_make_label("Waves: %d | Gold: %d | Lives: %d" % [lvl.get("waves", 20), lvl.get("gold", 100), lvl.get("lives", 20)], 9, Color(0.5, 0.45, 0.4)))
-	# Difficulty row
+	# Difficulty row — use difficulty_gems.png art (cropped per gem)
 	var diff_row = HBoxContainer.new()
-	diff_row.add_theme_constant_override("separation", 6)
-	for d in ["Easy", "Med", "Hard"]:
-		var db = Button.new()
-		db.text = d.to_upper()
-		db.custom_minimum_size = Vector2(55, 22)
-		var ds = StyleBoxFlat.new()
-		match d:
-			"Easy": ds.bg_color = Color(0.15, 0.45, 0.15, 0.8)
-			"Med": ds.bg_color = Color(0.45, 0.35, 0.10, 0.8)
-			"Hard": ds.bg_color = Color(0.50, 0.12, 0.10, 0.8)
-		ds.set_corner_radius_all(4)
-		db.add_theme_stylebox_override("normal", ds)
-		var dh = ds.duplicate()
-		dh.bg_color = dh.bg_color.lightened(0.2)
-		db.add_theme_stylebox_override("hover", dh)
-		db.add_theme_font_size_override("font_size", 9)
-		db.add_theme_color_override("font_color", Color.WHITE)
-		var diff_idx = ["Easy", "Med", "Hard"].find(d)
-		db.pressed.connect(_on_play_level.bind(idx, diff_idx))
+	diff_row.add_theme_constant_override("separation", 4)
+	var diff_names = ["Easy", "Med", "Hard"]
+	for di in range(diff_names.size()):
+		var db = TextureButton.new()
+		db.custom_minimum_size = Vector2(50, 40)
+		db.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		db.ignore_texture_size = true
+		# Crop each gem from the difficulty_gems atlas
+		if _ui_tex.has("difficulty_gems"):
+			var atlas = AtlasTexture.new()
+			atlas.atlas = _ui_tex["difficulty_gems"]
+			var gem_w = _ui_tex["difficulty_gems"].get_width() / 4.0
+			var gem_h = _ui_tex["difficulty_gems"].get_height()
+			atlas.region = Rect2(di * gem_w, 0, gem_w, gem_h)
+			db.texture_normal = atlas
+		db.pressed.connect(_on_play_level.bind(idx, di))
+		db.mouse_entered.connect(func(): _hover_btn(db))
+		db.mouse_exited.connect(func(): _unhover_btn(db))
 		if not unlocked:
 			db.disabled = true
+			db.modulate = Color(0.4, 0.4, 0.4)
 		diff_row.add_child(db)
 	info.add_child(diff_row)
 	hbox.add_child(info)
-	# Play button (big green)
+	# Play button — use go_button.png art asset
 	if unlocked:
-		var play = Button.new()
-		play.text = "PLAY"
-		play.custom_minimum_size = Vector2(70, 55)
-		var ps = StyleBoxFlat.new()
-		ps.bg_color = Color(0.12, 0.50, 0.12, 0.9)
-		ps.set_corner_radius_all(8)
-		play.add_theme_stylebox_override("normal", ps)
-		var ph = ps.duplicate()
-		ph.bg_color = Color(0.18, 0.65, 0.18, 0.95)
-		play.add_theme_stylebox_override("hover", ph)
-		var pp = ps.duplicate()
-		pp.bg_color = Color(0.08, 0.35, 0.08, 0.95)
-		play.add_theme_stylebox_override("pressed", pp)
-		play.add_theme_font_size_override("font_size", 14)
-		play.add_theme_color_override("font_color", Color.WHITE)
+		var play = TextureButton.new()
+		play.custom_minimum_size = Vector2(90, 55)
+		play.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		play.ignore_texture_size = true
+		if _ui_tex.has("go_button"):
+			play.texture_normal = _ui_tex["go_button"]
 		play.pressed.connect(_on_play_level.bind(idx, 0))
+		play.mouse_entered.connect(func(): _hover_btn(play))
+		play.mouse_exited.connect(func(): _unhover_btn(play))
 		hbox.add_child(play)
 	else:
 		var lock = _make_label("LOCKED", 11, Color(0.4, 0.35, 0.3))

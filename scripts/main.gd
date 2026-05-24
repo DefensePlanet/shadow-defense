@@ -6229,22 +6229,45 @@ func _load_menu_v2() -> void:
 func _show_menu_v2() -> void:
 	_load_menu_v2()
 	if _menu_v2_scene == null:
-		return  # Fallback to old menu if scene missing
+		return
 	if _menu_v2_instance == null:
 		_menu_v2_instance = _menu_v2_scene.instantiate()
-		# Add as top-level CanvasLayer child so it covers everything
 		var canvas = CanvasLayer.new()
 		canvas.name = "MenuV2Layer"
-		canvas.layer = 50  # Above everything
+		canvas.layer = 50
 		canvas.add_child(_menu_v2_instance)
 		add_child(canvas)
 	else:
 		_menu_v2_instance.get_parent().visible = true
 		_menu_v2_instance.visible = true
+	# CRITICAL: Hide ALL old menu interactive elements so they don't eat clicks
+	if menu_overlay:
+		menu_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for child in menu_overlay.get_children():
+			if child is Button or child is Control:
+				child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				if child is BaseButton:
+					child.disabled = true
+				for grandchild in child.get_children():
+					if grandchild is BaseButton:
+						grandchild.disabled = true
+					grandchild.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _hide_menu_v2() -> void:
 	if _menu_v2_instance != null:
 		_menu_v2_instance.get_parent().visible = false
+	# Re-enable old menu inputs for gameplay UI
+	if menu_overlay:
+		menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+		for child in menu_overlay.get_children():
+			if child is Control:
+				child.mouse_filter = Control.MOUSE_FILTER_STOP
+				if child is BaseButton:
+					child.disabled = false
+				for grandchild in child.get_children():
+					if grandchild is BaseButton:
+						grandchild.disabled = false
+					grandchild.mouse_filter = Control.MOUSE_FILTER_STOP
 
 func _show_menu() -> void:
 	_reset_game()
