@@ -11605,10 +11605,14 @@ func _draw_gear_tab() -> void:
 	var content_top = panel_y + 44.0
 	var content_bottom = panel_y + panel_h - 28.0
 
-	# Chunky Bloons-style panel with gradient + drop shadow
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.6), 3.0)
+	# Phase 2: Gear background art (craftsman workbench)
+	if _ui_tex.has("gear_bg_workbench"):
+		draw_texture_rect(_ui_tex["gear_bg_workbench"], Rect2(panel_x, panel_y, panel_w, panel_h), false)
+		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.03, 0.02, 0.06, 0.55))
+	else:
+		_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.6), 3.0)
 
-	# Title — outlined Bloons-style
+	# Title — outlined
 	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR COMPENDIUM", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER, 2)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
 
@@ -11836,21 +11840,16 @@ func _draw_emporium() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 
-	# Chunky Bloons-style panel with gradient + drop shadow
-	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.55), 4.0)
-	# Inner gold accent border
-	var emp_gold = _ca(menu_gold_dim, 0.2)
-	draw_rect(Rect2(panel_x + 8, panel_y + 8, panel_w - 16, 1), emp_gold)
-	draw_rect(Rect2(panel_x + 8, panel_y + panel_h - 9, panel_w - 16, 1), emp_gold)
-	draw_rect(Rect2(panel_x + 8, panel_y + 8, 1, panel_h - 16), emp_gold)
-	draw_rect(Rect2(panel_x + panel_w - 9, panel_y + 8, 1, panel_h - 16), emp_gold)
-
-	# Corner filigree ornaments (gold only)
-	for corner in [Vector2(panel_x + 14, panel_y + 14), Vector2(panel_x + panel_w - 14, panel_y + 14), Vector2(panel_x + 14, panel_y + panel_h - 14), Vector2(panel_x + panel_w - 14, panel_y + panel_h - 14)]:
-		draw_circle(corner, 7, _ca(menu_gold_dim, 0.2))
-		draw_circle(corner, 5, _ca(menu_gold_dim, 0.3))
-		draw_circle(corner, 3, _ca(menu_gold_dim, 0.25))
-		draw_arc(corner, 8, 0, TAU, 24, _ca(menu_gold_dim, 0.15), 1.0)
+	# Phase 2: Emporium background art (merchant desk)
+	if _ui_tex.has("emporium_bg_merchant"):
+		draw_texture_rect(_ui_tex["emporium_bg_merchant"], Rect2(panel_x, panel_y, panel_w, panel_h), false)
+		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.03, 0.02, 0.06, 0.50))
+	else:
+		_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.55), 4.0)
+	# Gold border on top
+	var _emp_border = _rrp(Rect2(panel_x, panel_y, panel_w, panel_h), 10.0)
+	_emp_border.append(_emp_border[0])
+	draw_polyline(_emp_border, Color(0.50, 0.38, 0.22, 0.5), 2.0)
 
 	# === Title: THE EMPORIUM ===
 	var font = game_font
@@ -13772,8 +13771,12 @@ func _draw_survivor_grid() -> void:
 	var panel_w = 1268.0
 	var panel_h = 586.0
 
-	# Header bar — dark background for title + filter
-	draw_colored_polygon(_rrp(Rect2(panel_x, panel_y, panel_w, 36), 6.0), Color(0.06, 0.04, 0.10, 0.9))
+	# Phase 2: Survivors background art (glowing novels on bookshelf)
+	if _ui_tex.has("survivors_bg_books"):
+		draw_texture_rect(_ui_tex["survivors_bg_books"], Rect2(panel_x, panel_y, panel_w, panel_h), false)
+		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.03, 0.02, 0.06, 0.50))
+	# Header bar — semi-transparent for art to peek through
+	draw_colored_polygon(_rrp(Rect2(panel_x, panel_y, panel_w, 36), 6.0), Color(0.06, 0.04, 0.10, 0.80))
 	draw_rect(Rect2(panel_x, panel_y + 35, panel_w, 1), Color(0.55, 0.40, 0.15, 0.4))
 
 	# === "SURVIVORS" title — BIG and gold ===
@@ -15247,16 +15250,23 @@ func _draw_story_map() -> void:
 	var header_h = 36.0
 	var arc_gap = 8.0
 
-	# --- Background panel (Bloons-style bordered panel with shadow) ---
-	_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0)
+	# --- Phase 2: Chapters background art (ink-drawn parchment map) ---
+	if _ui_tex.has("chapters_bg_map"):
+		draw_texture_rect(_ui_tex["chapters_bg_map"], Rect2(list_x, list_y, list_w, list_h), false)
+		# Dark overlay for card readability
+		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.03, 0.02, 0.06, 0.55))
+	else:
+		_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0)
+	# Border on top of background
+	var _border_pts = _rrp(Rect2(list_x, list_y, list_w, list_h), 10.0)
+	_border_pts.append(_border_pts[0])
+	draw_polyline(_border_pts, Color(0.50, 0.38, 0.22, 0.6), 2.0)
 
-	# --- Title bar (Bloons-style gradient header) ---
-	# Dark gradient header
+	# --- Title bar ---
 	for hgi in range(6):
 		var hgt = float(hgi) / 5.0
 		var hshade = 0.15 - hgt * 0.05
-		draw_rect(Rect2(list_x + 1, list_y + 1 + hgt * 34.0, list_w - 2, 6.0), Color(hshade, hshade * 0.7, hshade * 1.8, 0.95))
-	# Gold bottom line
+		draw_rect(Rect2(list_x + 1, list_y + 1 + hgt * 34.0, list_w - 2, 6.0), Color(hshade, hshade * 0.7, hshade * 1.8, 0.85))
 	draw_rect(Rect2(list_x + 1, list_y + 35, list_w - 2, 2), Color(0.85, 0.70, 0.20, 0.7))
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
