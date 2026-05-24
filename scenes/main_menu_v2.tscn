@@ -36,7 +36,7 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 35.0
 grow_horizontal = 2
-color = Color(0.05, 0.03, 0.10, 0.85)
+color = Color(0.05, 0.03, 0.10, 0.60)
 mouse_filter = 2
 
 [node name="ContentArea" type="Control" parent="."]
@@ -57,7 +57,7 @@ anchor_bottom = 1.0
 offset_top = -80.0
 grow_horizontal = 2
 grow_vertical = 0
-color = Color(0.05, 0.03, 0.10, 0.92)
+color = Color(0.05, 0.03, 0.10, 0.70)
 mouse_filter = 2
 
 [node name="NavButtons" type="HBoxContainer" parent="NavBar"]

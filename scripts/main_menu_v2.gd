@@ -699,7 +699,7 @@ func _build_emporium() -> void:
 		btn.text = ""
 		# Styled card with accent color left stripe
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.06,0.04,0.12,0.50)  # Semi-transparent — art shows through
+		s.bg_color = Color(0.04,0.03,0.08,0.40)  # Very transparent — art shows through
 		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
 		s.border_width_left = 4  # Thick accent stripe
 		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
@@ -719,7 +719,7 @@ func _build_emporium() -> void:
 		# Icon from emporium_icons
 		var icon_key = cat.get("icon", "")
 		var icon_rect = TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(52, 52)
+		icon_rect.custom_minimum_size = Vector2(64, 64)
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
