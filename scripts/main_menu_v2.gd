@@ -2,6 +2,7 @@ extends Control
 ## MainMenuV2 — Full interactive menu. Art backgrounds, working buttons, detail panels.
 
 var _backgrounds: Dictionary = {}
+var _ui_art: Dictionary = {}  # UI texture art assets
 var _main: Node = null
 var current_view: String = "chapters"
 # Portrait key mapping — character_names[] index → portrait texture key
@@ -10,7 +11,7 @@ const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan"
 @onready var background: TextureRect = $Background
 @onready var content_area: Control = $ContentArea
 @onready var nav_buttons_container: HBoxContainer = $NavBar/NavButtons
-@onready var top_bar: ColorRect = $TopBar
+@onready var top_bar: TextureRect = $TopBar
 @onready var nav_bar: ColorRect = $NavBar
 @onready var fade_rect: ColorRect = $FadeRect
 
@@ -23,6 +24,7 @@ const PARTICLE_COUNT: int = 15
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
 	_load_bgs()
+	_load_ui_art()
 	_set_bg("chapters")
 	_build_currency_bar()
 	_build_music_display()
@@ -66,6 +68,36 @@ func _load_bgs() -> void:
 		if ResourceLoader.exists(m[k]):
 			_backgrounds[k] = load(m[k])
 
+func _load_ui_art() -> void:
+	var assets = {
+		"shop_card": "res://assets/ui_elements/shop_item_card.png",
+		"detail_panel": "res://assets/ui_elements/detail_panel_bg.png",
+		"stats_panel": "res://assets/ui_elements/stats_panel.png",
+		"buy_button": "res://assets/ui_elements/buy_button.png",
+		"locked_card": "res://assets/ui_elements/back_button.png",
+		"level_card": "res://assets/ui_elements/level_card_bg.png",
+		"play_button": "res://assets/ui_elements/play_button_v2.png",
+		"survivor_frame": "res://assets/ui_elements/survivor_card_frame.png",
+		"header_bar": "res://assets/ui_elements/header_bar.png",
+		"hud_top": "res://assets/ui_elements/hud_top_bar.png",
+		"nav_bar": "res://assets/ui_elements/nav_bar_bg.png",
+		"scroll_header": "res://assets/ui_frames/scroll_header_storybook.png",
+		"popup_frame": "res://assets/ui_frames/popup_frame.png",
+		"wooden_panel": "res://assets/ui_frames/wooden_panel.png",
+		"card_frame": "res://assets/ui_frames/card_frame_storybook.png",
+		"menu_button": "res://assets/ui_elements/menu_button.png",
+		"claim_button": "res://assets/ui_elements/claim_button.png",
+		"upgrade_button": "res://assets/ui_elements/upgrade_button.png",
+		"reward_chest": "res://assets/ui_elements/reward_chest.png",
+		"daily_banner": "res://assets/ui_elements/daily_deals_banner.png",
+		"tooltip": "res://assets/ui_elements/tooltip_frame.png",
+		"progress_bar": "res://assets/ui_elements/progress_bar.png",
+		"xp_bar": "res://assets/ui_elements/xp_bar.png",
+	}
+	for k in assets:
+		if ResourceLoader.exists(assets[k]):
+			_ui_art[k] = load(assets[k])
+
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
@@ -74,6 +106,9 @@ func _set_bg(view: String) -> void:
 
 func _build_currency_bar() -> void:
 	if not _main: return
+	# Set header bar texture
+	if _ui_art.has("header_bar"):
+		top_bar.texture = _ui_art["header_bar"]
 	var h = HBoxContainer.new()
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h.add_theme_constant_override("separation", 24)
@@ -205,13 +240,25 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var unlocked = _main._is_level_unlocked(idx)
 	var complete = idx in _main.completed_levels
 	var p = PanelContainer.new()
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.04,0.03,0.10,0.55) if unlocked else Color(0.03,0.02,0.06,0.40)
-	s.border_color = Color(0.3,0.65,0.25,0.6) if complete else Color(0.35,0.25,0.18,0.3)
-	s.set_border_width_all(1 if not complete else 2)
-	s.set_corner_radius_all(6)
-	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
-	p.add_theme_stylebox_override("panel", s)
+	# Use level_card_bg texture for unlocked levels
+	if unlocked and _ui_art.has("level_card"):
+		var s = StyleBoxTexture.new()
+		s.texture = _ui_art["level_card"]
+		s.texture_margin_left = 16; s.texture_margin_right = 16
+		s.texture_margin_top = 10; s.texture_margin_bottom = 10
+		s.content_margin_left = 12; s.content_margin_right = 12
+		s.content_margin_top = 6; s.content_margin_bottom = 6
+		if complete:
+			s.modulate_color = Color(0.85, 1.0, 0.85)  # Green tint for completed
+		p.add_theme_stylebox_override("panel", s)
+	else:
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.03,0.02,0.06,0.40)
+		s.border_color = Color(0.25,0.20,0.15,0.3)
+		s.set_border_width_all(1); s.set_corner_radius_all(6)
+		s.content_margin_left = 8; s.content_margin_right = 8
+		s.content_margin_top = 4; s.content_margin_bottom = 4
+		p.add_theme_stylebox_override("panel", s)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS  # Let clicks through to children
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -269,16 +316,24 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			db.pressed.connect(_play.bind(idx, d[0]))
 			dr.add_child(db)
 		btns.add_child(dr)
-		var pb = Button.new()
-		pb.text = "PLAY"; pb.custom_minimum_size = Vector2(150, 30)
-		var ps = StyleBoxFlat.new(); ps.bg_color = Color(0.12,0.50,0.12,0.9); ps.set_corner_radius_all(6)
-		pb.add_theme_stylebox_override("normal", ps)
-		var psh = ps.duplicate(); psh.bg_color = Color(0.18,0.65,0.18)
-		pb.add_theme_stylebox_override("hover", psh)
-		pb.add_theme_font_size_override("font_size", 13)
-		pb.add_theme_color_override("font_color", Color.WHITE)
-		pb.pressed.connect(_play.bind(idx, 0))
-		btns.add_child(pb)
+		# PLAY button — use art texture if available
+		if _ui_art.has("play_button"):
+			var pb = TextureButton.new()
+			pb.custom_minimum_size = Vector2(160, 45)
+			pb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			pb.ignore_texture_size = true
+			pb.texture_normal = _ui_art["play_button"]
+			pb.pressed.connect(_play.bind(idx, 0))
+			btns.add_child(pb)
+		else:
+			var pb = Button.new()
+			pb.text = "PLAY"; pb.custom_minimum_size = Vector2(150, 30)
+			var ps = StyleBoxFlat.new(); ps.bg_color = Color(0.12,0.50,0.12,0.9); ps.set_corner_radius_all(6)
+			pb.add_theme_stylebox_override("normal", ps)
+			pb.add_theme_font_size_override("font_size", 13)
+			pb.add_theme_color_override("font_color", Color.WHITE)
+			pb.pressed.connect(_play.bind(idx, 0))
+			btns.add_child(pb)
 		row.add_child(btns)
 	else:
 		var lock_vb = VBoxContainer.new()
@@ -361,21 +416,29 @@ func _survivor_card(idx: int) -> Button:
 	var btn = Button.new()
 	btn.custom_minimum_size = Vector2(200, 270)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # FILL the grid column
-	# Style the button to look like a card
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.06,0.04,0.12,0.70)
-	s.border_color = Color(0.45,0.35,0.20,0.5)
-	s.set_border_width_all(2); s.set_corner_radius_all(8)
-	s.content_margin_left = 4; s.content_margin_right = 4
-	s.content_margin_top = 4; s.content_margin_bottom = 4
-	btn.add_theme_stylebox_override("normal", s)
-	var sh = s.duplicate()
-	sh.bg_color = Color(0.10,0.07,0.18,0.80)
-	sh.border_color = Color(0.65,0.50,0.25,0.8)
-	btn.add_theme_stylebox_override("hover", sh)
-	var sp = s.duplicate()
-	sp.bg_color = Color(0.12,0.08,0.20,0.85)
-	btn.add_theme_stylebox_override("pressed", sp)
+	# Use level_card_bg.png as card texture if available
+	if _ui_art.has("level_card"):
+		var s = StyleBoxTexture.new()
+		s.texture = _ui_art["level_card"]
+		s.texture_margin_left = 16; s.texture_margin_right = 16
+		s.texture_margin_top = 12; s.texture_margin_bottom = 12
+		s.content_margin_left = 14; s.content_margin_right = 14
+		s.content_margin_top = 10; s.content_margin_bottom = 10
+		btn.add_theme_stylebox_override("normal", s)
+		var sh = s.duplicate()
+		sh.modulate_color = Color(1.2, 1.15, 1.0)
+		btn.add_theme_stylebox_override("hover", sh)
+		var sp = s.duplicate()
+		sp.modulate_color = Color(0.9, 0.85, 0.8)
+		btn.add_theme_stylebox_override("pressed", sp)
+	else:
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.06,0.04,0.12,0.70)
+		s.border_color = Color(0.45,0.35,0.20,0.5)
+		s.set_border_width_all(2); s.set_corner_radius_all(8)
+		s.content_margin_left = 4; s.content_margin_right = 4
+		s.content_margin_top = 4; s.content_margin_bottom = 4
+		btn.add_theme_stylebox_override("normal", s)
 	btn.text = ""
 	# Content fills entire button area — centered
 	var vb = VBoxContainer.new()
@@ -697,20 +760,28 @@ func _build_emporium() -> void:
 		btn.custom_minimum_size = Vector2(0, 80)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
-		# Styled card with accent color left stripe
-		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.04,0.03,0.08,0.40)  # Very transparent — art shows through
-		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
-		s.border_width_left = 4  # Thick accent stripe
-		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
-		s.set_corner_radius_all(8)
-		s.content_margin_left = 10; s.content_margin_right = 10
-		s.content_margin_top = 8; s.content_margin_bottom = 8
-		btn.add_theme_stylebox_override("normal", s)
-		var sh = s.duplicate()
-		sh.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.65)
-		sh.border_color = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.7)
-		btn.add_theme_stylebox_override("hover", sh)
+		# Use shop_item_card.png as StyleBoxTexture if available
+		if _ui_art.has("shop_card"):
+			var s = StyleBoxTexture.new()
+			s.texture = _ui_art["shop_card"]
+			s.texture_margin_left = 20; s.texture_margin_right = 20
+			s.texture_margin_top = 16; s.texture_margin_bottom = 16
+			s.content_margin_left = 22; s.content_margin_right = 22
+			s.content_margin_top = 18; s.content_margin_bottom = 18
+			btn.add_theme_stylebox_override("normal", s)
+			var sh = s.duplicate()
+			sh.modulate_color = Color(1.2, 1.1, 0.9)  # Brighter on hover
+			btn.add_theme_stylebox_override("hover", sh)
+		else:
+			var s = StyleBoxFlat.new()
+			s.bg_color = Color(0.04,0.03,0.08,0.40)
+			s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
+			s.border_width_left = 4
+			s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
+			s.set_corner_radius_all(8)
+			s.content_margin_left = 10; s.content_margin_right = 10
+			s.content_margin_top = 8; s.content_margin_bottom = 8
+			btn.add_theme_stylebox_override("normal", s)
 		# Content: Icon + Name + Desc + Badge
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
