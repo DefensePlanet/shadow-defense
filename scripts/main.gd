@@ -114,7 +114,8 @@ var ingame_settings_open: bool = false
 # Game state & levels
 enum GameState { MENU, PLAYING, GAME_OVER_STATE }
 var game_state: int = GameState.MENU
-var game_font: Font
+var game_font: Font  # Body/stats font (Fredoka)
+var display_font: Font  # Title/header font (Cinzel) — Phase 1 typography
 var current_level: int = -1
 
 # Menu UI
@@ -344,33 +345,62 @@ func _ca(base: Color, alpha: float) -> Color:
 
 # DS: Draw a rounded panel with optional border
 # DS: Draw a glowing title (shadow + bright + glow pass)
-# DS: ROUNDED Bloons-style 3D button
-func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = false, text_size: int = 16) -> void:
+# DS: ROUNDED premium button with press animation + hover glow
+# Phase 1 Enhancement: Button press scale (0.97x spring), hover brightness, depth layers
+var _btn_press_scale: float = 1.0  # Animated: 1.0 → 0.97 → 1.0 (spring)
+var _btn_press_rect: Rect2 = Rect2()  # Which button is currently pressed
+var _btn_press_timer: float = 0.0  # Spring animation timer
+
+func _ds_button(rect: Rect2, text: String, base_col: Color, is_hover: bool = false, text_size: int = 16, is_pressed: bool = false, is_disabled: bool = false) -> void:
 	var font = game_font
 	if font == null:
 		return
+	# Phase 1: Disabled state (40% opacity, no interaction)
+	if is_disabled:
+		var r = rect
+		var rad = minf(r.size.y * 0.35, 14.0)
+		draw_colored_polygon(_rrp(r, rad), Color(0.15, 0.12, 0.20, 0.4))
+		var tx = r.position.x
+		var ty = r.position.y + r.size.y * 0.5 + float(text_size) * 0.35
+		_udraw(font, Vector2(tx, ty), text, HORIZONTAL_ALIGNMENT_CENTER, int(r.size.x), text_size, Color(0.5, 0.5, 0.5, 0.4))
+		return
+	# Phase 1: Press scale animation — shrink 0.97x toward center
+	var scale = 1.0
+	if is_pressed:
+		scale = 0.97
 	var r = rect
+	if scale != 1.0:
+		var cx = r.position.x + r.size.x * 0.5
+		var cy = r.position.y + r.size.y * 0.5
+		var sw = r.size.x * scale
+		var sh = r.size.y * scale
+		r = Rect2(cx - sw * 0.5, cy - sh * 0.5, sw, sh)
 	var rad = minf(r.size.y * 0.35, 14.0)
 	var col = base_col
 	if is_hover:
 		col = Color(minf(col.r * 1.3, 1.0), minf(col.g * 1.3, 1.0), minf(col.b * 1.3, 1.0))
-	# Rounded drop shadow
-	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(2, 3), r.size), rad), Color(0, 0, 0, 0.55))
-	# Hover glow
+	# Phase 1: Deeper drop shadow (not pure black)
+	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(2, 4), r.size), rad), Color(0.02, 0.01, 0.05, 0.65))
+	# Phase 1: Hover glow — wider, softer
 	if is_hover:
-		draw_colored_polygon(_rrp(Rect2(r.position - Vector2(4, 4), r.size + Vector2(8, 8)), rad + 4), Color(col.r, col.g, col.b, 0.12))
-	# Dark outer border (rounded)
+		draw_colored_polygon(_rrp(Rect2(r.position - Vector2(6, 6), r.size + Vector2(12, 12)), rad + 6), Color(col.r, col.g, col.b, 0.10))
+		draw_colored_polygon(_rrp(Rect2(r.position - Vector2(3, 3), r.size + Vector2(6, 6)), rad + 3), Color(col.r, col.g, col.b, 0.08))
+	# Dark outer border (rounded) — deep purple, not pure black
 	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(3, 3), r.size + Vector2(6, 6)), rad + 3), Color(0.05, 0.03, 0.10, 0.95))
-	# Purple-gold border (gothic style)
-	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(1.5, 1.5), r.size + Vector2(3, 3)), rad + 1.5), Color(0.50, 0.35, 0.65, 0.9))
-	# Button body — bright top color
-	var top_col = Color(minf(col.r * 1.3, 1.0), minf(col.g * 1.3, 1.0), minf(col.b * 1.3, 1.0))
+	# Gold-tinted border (gothic illuminated manuscript style)
+	draw_colored_polygon(_rrp(Rect2(r.position - Vector2(1.5, 1.5), r.size + Vector2(3, 3)), rad + 1.5), Color(0.50, 0.38, 0.22, 0.85))
+	# Button body — 3-stop gradient (lighter top → mid → darker bottom)
+	var top_col = Color(minf(col.r * 1.35, 1.0), minf(col.g * 1.35, 1.0), minf(col.b * 1.35, 1.0))
 	draw_colored_polygon(_rrp(r, rad), top_col)
-	# Bottom half darker overlay
-	draw_colored_polygon(_rrp(Rect2(Vector2(r.position.x + 1, r.position.y + r.size.y * 0.45), Vector2(r.size.x - 2, r.size.y * 0.54)), maxf(rad - 1, 2)), Color(0, 0, 0, 0.2))
-	# Glass shine top (rounded)
-	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(4, 2), Vector2(r.size.x - 8, r.size.y * 0.3)), maxf(rad - 3, 2)), Color(1, 1, 1, 0.25))
-	# Text — outlined and centered
+	# Mid section darker
+	draw_colored_polygon(_rrp(Rect2(Vector2(r.position.x + 1, r.position.y + r.size.y * 0.40), Vector2(r.size.x - 2, r.size.y * 0.58)), maxf(rad - 1, 2)), Color(0.0, 0.0, 0.0, 0.18))
+	# Bottom shadow strip
+	draw_colored_polygon(_rrp(Rect2(Vector2(r.position.x + 2, r.position.y + r.size.y * 0.75), Vector2(r.size.x - 4, r.size.y * 0.23)), maxf(rad - 2, 2)), Color(0.0, 0.0, 0.0, 0.12))
+	# Glass shine top — brighter, tighter
+	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(4, 2), Vector2(r.size.x - 8, r.size.y * 0.25)), maxf(rad - 3, 2)), Color(1, 1, 1, 0.28))
+	# Inner top-edge highlight (simulates glass refraction)
+	draw_colored_polygon(_rrp(Rect2(r.position + Vector2(2, 1), Vector2(r.size.x - 4, 2)), maxf(rad - 2, 2)), Color(1, 1, 1, 0.15))
+	# Text — outlined and centered (using display font for buttons)
 	var tx = r.position.x
 	var ty = r.position.y + r.size.y * 0.5 + float(text_size) * 0.35
 	_ds_outlined_text(Vector2(tx, ty), text, text_size, Color(1, 1, 1, 1.0), int(r.size.x), HORIZONTAL_ALIGNMENT_CENTER, 2)
@@ -385,6 +415,19 @@ func _ds_outlined_text(pos: Vector2, text: String, size: int, color: Color, widt
 			if ox != 0 or oy != 0:
 				_udraw(font, Vector2(pos.x + ox, pos.y + oy), text, align, width, size, Color(0, 0, 0, 0.8))
 	_udraw(font, pos, text, align, width, size, color)
+
+# Phase 1: Display font title text (Cinzel serif for headers/titles)
+# Uses display_font (Cinzel) for premium storybook feel, falls back to game_font
+func _ds_title_text(pos: Vector2, text: String, size: int, color: Color, width: int = -1, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:
+	var font = display_font if display_font != null else game_font
+	if font == null:
+		return
+	# Soft shadow (purple-tinted, not pure black)
+	_udraw(font, Vector2(pos.x + 1, pos.y + 2), text, align, width, size, Color(0.05, 0.02, 0.10, 0.6))
+	# Warm glow behind text
+	_udraw(font, Vector2(pos.x, pos.y), text, align, width, size, Color(color.r * 0.5, color.g * 0.4, color.b * 0.2, 0.15))
+	# Main text
+	_udraw(font, Vector2(pos.x, pos.y), text, align, width, size, color)
 
 # Rounded rect polygon points
 func _rrp(r: Rect2, rad: float) -> PackedVector2Array:
@@ -405,88 +448,102 @@ func _rrp(r: Rect2, rad: float) -> PackedVector2Array:
 		p.append(Vector2(x + cr + cos(a) * cr, y + h - cr + sin(a) * cr))
 	return p
 
-# DS: ROUNDED panel — shadow, border, fill (Bloons style)
+# DS: ROUNDED panel — frosted glass style with depth layers
+# Phase 1: Added top-edge highlight, inner shadow, bottom darkening for depth
 func _ds_panel(rect: Rect2, bg_color: Color, border_color: Color, border_width: float = 3.0, rad: float = 10.0) -> void:
-	# Rounded shadow
-	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 4), rect.size), rad), Color(0, 0, 0, 0.5))
+	# Rounded shadow — deeper, not pure black
+	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 5), rect.size), rad), Color(0.02, 0.01, 0.05, 0.55))
 	# Rounded border
 	draw_colored_polygon(_rrp(Rect2(rect.position - Vector2(border_width, border_width), rect.size + Vector2(border_width * 2, border_width * 2)), rad + border_width), border_color)
 	# Rounded fill
 	draw_colored_polygon(_rrp(rect, rad), bg_color)
+	# Phase 1: Top edge highlight (glass refraction simulation)
+	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(2, 1), Vector2(rect.size.x - 4, 2)), maxf(rad - 1, 2)), Color(1, 1, 1, 0.10))
+	# Phase 1: Top shine gradient
+	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 2), Vector2(rect.size.x - 6, rect.size.y * 0.3)), maxf(rad - 2, 2)), Color(1, 1, 1, 0.05))
+	# Phase 1: Bottom inner shadow (depth)
+	draw_colored_polygon(_rrp(Rect2(Vector2(rect.position.x + 2, rect.position.y + rect.size.y * 0.7), Vector2(rect.size.x - 4, rect.size.y * 0.28)), maxf(rad - 2, 2)), Color(0, 0, 0, 0.08))
 	# Glass highlight top
 	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 2), Vector2(rect.size.x - 6, rect.size.y * 0.35)), maxf(rad - 2, 2)), Color(1, 1, 1, 0.08))
 	# Dark bottom
 	draw_colored_polygon(_rrp(Rect2(Vector2(rect.position.x + 3, rect.position.y + rect.size.y * 0.6), Vector2(rect.size.x - 6, rect.size.y * 0.38)), maxf(rad - 2, 2)), Color(0, 0, 0, 0.1))
 
-# DS: Draw a hero card — dark gothic style, portrait fills card, name at bottom
+# DS: Draw a hero card — PREMIUM gothic style with rarity glow, lift, frosted name plate
+# Phase 1: Rarity glow, hover lift 4px, left-border rarity stripe, frosted name plate, breathing
 func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: String, level: int, accent: Color, unlocked: bool, is_hovered: bool) -> void:
 	var font = game_font
 	if font == null:
 		return
+	# Phase 1: Hover lift — card rises 4px when hovered, shadow deepens
+	var lift = 4.0 if (is_hovered and unlocked) else 0.0
 	var rx = rect.position.x
-	var ry = rect.position.y
+	var ry = rect.position.y - lift
 	var rw = rect.size.x
 	var rh = rect.size.y
-	var crad = 6.0
-	var name_bar_h = 24.0
+	var crad = 8.0  # Slightly more rounded for premium feel
+	var name_bar_h = 28.0  # Taller name plate for breathing room
 	var portrait_h = rh - name_bar_h
-	var card_bg = Color(0.10, 0.07, 0.16) if unlocked else Color(0.07, 0.05, 0.11)
-	# Border FIRST (behind card)
-	var bdr = Color(0.32, 0.22, 0.48, 0.55) if unlocked else Color(0.18, 0.12, 0.25, 0.3)
+	var card_bg = Color(0.10, 0.07, 0.16) if unlocked else Color(0.06, 0.04, 0.10)
+	# Phase 1: Rarity outer glow (accent color, only on unlocked hovered cards)
 	if is_hovered and unlocked:
-		bdr = Color(0.55, 0.40, 0.75, 0.85)
-	draw_colored_polygon(_rrp(Rect2(rx - 1, ry - 1, rw + 2, rh + 2), crad + 0.5), bdr)
-	# Card shadow — small
-	draw_colored_polygon(_rrp(Rect2(rx + 1, ry + 2, rw, rh), crad), Color(0, 0, 0, 0.35))
-	# Card base on top of border
+		# Large soft outer glow — rarity colored
+		draw_colored_polygon(_rrp(Rect2(rx - 8, ry - 8, rw + 16, rh + 16), crad + 8), Color(accent.r, accent.g, accent.b, 0.12))
+		draw_colored_polygon(_rrp(Rect2(rx - 4, ry - 4, rw + 8, rh + 8), crad + 4), Color(accent.r, accent.g, accent.b, 0.08))
+	# Phase 1: Deeper shadow when lifted
+	var shadow_offset = 4.0 + lift * 1.5
+	var shadow_alpha = 0.35 + lift * 0.05
+	draw_colored_polygon(_rrp(Rect2(rx + 2, ry + shadow_offset, rw, rh), crad), Color(0.02, 0.01, 0.05, shadow_alpha))
+	# Border — rarity-tinted
+	var bdr = Color(accent.r * 0.6, accent.g * 0.6, accent.b * 0.6, 0.45) if unlocked else Color(0.15, 0.10, 0.22, 0.3)
+	if is_hovered and unlocked:
+		bdr = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.85)
+	draw_colored_polygon(_rrp(Rect2(rx - 1.5, ry - 1.5, rw + 3, rh + 3), crad + 1), bdr)
+	# Card base
 	draw_colored_polygon(_rrp(Rect2(rx, ry, rw, rh), crad), card_bg)
-	# Portrait — CROP-TO-FILL center square, not stretched
+	# Phase 1: Left-border rarity stripe (Dead Cells style — thin, impactful)
+	if unlocked:
+		draw_rect(Rect2(rx, ry + 4, 3, rh - 8), Color(accent.r, accent.g, accent.b, 0.75))
+	# Portrait — CROP-TO-FILL
 	if unlocked and speaker_name in _portrait_textures and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
 		var inset = 3.0
 		var draw_w = rw - inset * 2
 		var draw_h = portrait_h - inset - 1
-		# Show full character — fit entire image into card area
 		draw_texture_rect(tex, Rect2(rx + inset, ry + inset, draw_w, draw_h), false)
 	elif not unlocked:
-		# Locked — dark with larger, more visible lock icon
 		var lk_cx = rx + rw * 0.5
 		var lk_cy = ry + portrait_h * 0.4
-		# Lock body
-		draw_colored_polygon(_rrp(Rect2(lk_cx - 16, lk_cy, 32, 24), 4.0), Color(0.22, 0.16, 0.32, 0.6))
-		# Shackle
-		draw_arc(Vector2(lk_cx, lk_cy), 12, PI, TAU, 10, Color(0.28, 0.20, 0.38, 0.5), 3.0)
-		# Keyhole
-		draw_circle(Vector2(lk_cx, lk_cy + 10), 4, Color(0.10, 0.07, 0.15, 0.8))
-		draw_rect(Rect2(lk_cx - 1.5, lk_cy + 13, 3, 6), Color(0.10, 0.07, 0.15, 0.8))
-		# "?" below lock
-		_udraw(font, Vector2(rx, lk_cy + 30), "?", HORIZONTAL_ALIGNMENT_CENTER, int(rw), 20, Color(0.35, 0.25, 0.50, 0.45))
-	# Name bar — noticeably lighter than card body so it stands out
+		draw_colored_polygon(_rrp(Rect2(lk_cx - 16, lk_cy, 32, 24), 4.0), Color(0.18, 0.12, 0.28, 0.6))
+		draw_arc(Vector2(lk_cx, lk_cy), 12, PI, TAU, 10, Color(0.25, 0.18, 0.35, 0.5), 3.0)
+		draw_circle(Vector2(lk_cx, lk_cy + 10), 4, Color(0.08, 0.05, 0.12, 0.8))
+		draw_rect(Rect2(lk_cx - 1.5, lk_cy + 13, 3, 6), Color(0.08, 0.05, 0.12, 0.8))
+		_udraw(font, Vector2(rx, lk_cy + 30), "?", HORIZONTAL_ALIGNMENT_CENTER, int(rw), 20, Color(0.30, 0.22, 0.45, 0.45))
+	# Phase 1: Frosted glass name plate (semi-transparent, not solid)
 	var nb_y = ry + rh - name_bar_h
-	var nb_col = Color(0.18, 0.13, 0.28, 0.95) if unlocked else Color(0.12, 0.09, 0.18, 0.9)
+	var nb_col = Color(0.10, 0.07, 0.18, 0.82) if unlocked else Color(0.08, 0.06, 0.14, 0.85)
 	draw_colored_polygon(_rrp(Rect2(rx, nb_y, rw, name_bar_h), crad), nb_col)
-	# Gold line separator — thicker, more visible
-	draw_rect(Rect2(rx + 4, nb_y, rw - 8, 2), Color(0.65, 0.50, 0.20, 0.5))
-	# Character name
+	# Top-edge glass refraction line
+	draw_rect(Rect2(rx + 4, nb_y, rw - 8, 1), Color(1.0, 1.0, 1.0, 0.08))
+	# Gold accent separator
+	draw_rect(Rect2(rx + 6, nb_y + 1, rw - 12, 1.5), Color(0.65, 0.50, 0.20, 0.40))
+	# Character name — using Cinzel-style outlined text, larger
 	var display_name = char_name.to_upper()
-	var name_sz = 11 if display_name.length() <= 12 else 9
+	var name_sz = 12 if display_name.length() <= 12 else 10
 	if unlocked:
-		for ox in [-1, 0, 1]:
-			for oy in [-1, 0, 1]:
-				if ox != 0 or oy != 0:
-					_udraw(font, Vector2(rx + 4 + ox, nb_y + 16 + oy), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), name_sz, Color(0, 0, 0, 0.75))
-		_udraw(font, Vector2(rx + 4, nb_y + 16), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), name_sz, menu_gold_light)
+		_ds_outlined_text(Vector2(rx + 4, nb_y + 18), display_name, name_sz, menu_gold_light, int(rw - 8), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	else:
-		_udraw(font, Vector2(rx + 4, nb_y + 16), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 9, Color(0.35, 0.28, 0.45))
-	# Level badge — gold star INSIDE card bounds
+		_udraw(font, Vector2(rx + 4, nb_y + 18), display_name, HORIZONTAL_ALIGNMENT_CENTER, int(rw - 8), 9, Color(0.30, 0.22, 0.40))
+	# Level badge — refined with accent color ring
 	if unlocked and level > 0:
 		var bcx = rx + rw - 16.0
 		var bcy = ry + 16.0
-		draw_circle(Vector2(bcx, bcy), 12, Color(0, 0, 0, 0.6))
-		_draw_mini_star(Vector2(bcx, bcy), 11.0, Color(0.85, 0.70, 0.12, 0.95))
-		_draw_mini_star(Vector2(bcx, bcy), 8.0, Color(1.0, 0.88, 0.25, 1.0))
+		# Dark circle background
+		draw_circle(Vector2(bcx, bcy), 13, Color(0.03, 0.02, 0.06, 0.8))
+		# Accent color ring
+		draw_arc(Vector2(bcx, bcy), 12, 0, TAU, 16, Color(accent.r, accent.g, accent.b, 0.6), 1.5)
+		_draw_mini_star(Vector2(bcx, bcy), 9.0, Color(0.85, 0.70, 0.12, 0.95))
+		_draw_mini_star(Vector2(bcx, bcy), 6.5, Color(1.0, 0.88, 0.25, 1.0))
 		_udraw(font, Vector2(bcx - 5, bcy + 4), str(level), HORIZONTAL_ALIGNMENT_CENTER, 10, 9, Color.WHITE)
-	# (border already drawn at top of function, behind all card content)
 
 # DS: Draw a section header (colored bar with text)
 func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) -> void:
@@ -2685,7 +2742,10 @@ func _ready() -> void:
 		_portrait_hem_offsets.append(rng_port.randf_range(-5, 5))
 	for _i in range(12):
 		_portrait_hair_offsets.append(rng_port.randf_range(5, 15))
-	# Load Fredoka thick cartoon font (Bloons-style) for all game text
+	# Phase 1: Typography hierarchy — Cinzel for display/titles, Fredoka for body/stats
+	# Load display font first (Cinzel = gothic serif, perfect for storybook titles)
+	display_font = load("res://fonts/Cinzel.ttf")
+	# Load Fredoka thick cartoon font for body/stats text
 	game_font = load("res://fonts/Fredoka.ttf")
 	if game_font == null:
 		game_font = load("res://fonts/LuckiestGuy.ttf")
@@ -11270,205 +11330,143 @@ func _draw_menu_background() -> void:
 			var ray_len = 60.0 + sin(_time * 0.3 + float(ri)) * 15.0
 			draw_line(Vector2(moon_x, moon_y), Vector2(moon_x + cos(ray_a) * ray_len, moon_y + sin(ray_a) * ray_len), Color(0.6, 0.55, 0.75, 0.03), 1.0)
 
-		# === 5. Raven silhouettes (2 circling slowly) ===
-		for rvi in range(2):
-			var rv_angle = _time * (0.12 + float(rvi) * 0.05) + float(rvi) * PI
-			var rv_cx = 640.0 + cos(rv_angle) * (300.0 + float(rvi) * 100.0)
-			var rv_cy = 200.0 + sin(rv_angle * 0.7) * 80.0 + float(rvi) * 50.0
-			var rv_dir = cos(rv_angle)  # facing direction
-			var rv_a = 0.15 + sin(_time * 2.0 + float(rvi)) * 0.05
-			var wing_flap = sin(_time * 4.0 + float(rvi) * 3.0) * 8.0
-			# Body
-			draw_circle(Vector2(rv_cx, rv_cy), 4, Color(0.02, 0.01, 0.05, rv_a))
-			# Wings
-			draw_line(Vector2(rv_cx - 8 * rv_dir, rv_cy + wing_flap), Vector2(rv_cx, rv_cy), Color(0.02, 0.01, 0.05, rv_a), 2.0)
-			draw_line(Vector2(rv_cx + 8 * rv_dir, rv_cy + wing_flap), Vector2(rv_cx, rv_cy), Color(0.02, 0.01, 0.05, rv_a), 2.0)
+		# === Phase 1 CLUTTER REDUCTION ===
+		# Ravens, drips, skulls, wax seals, chains, banners — ALL REMOVED
+		# "Restraint is the most premium signal" — Monument Valley principle
+		# Kept: floating pages, dust motes, lantern glow (above)
 
-		# === 6. Dripping wax/ink drops from top edge ===
-		for di in range(6):
-			var drip_x = 80.0 + float(di) * 200.0 + sin(float(di) * 1.7) * 40.0
-			var drip_phase = fmod(_time * 0.3 + float(di) * 1.1, 4.0)
-			if drip_phase < 2.0:
-				var drip_y = drip_phase * 60.0
-				var drip_a = 0.12 * (1.0 - drip_phase * 0.5)
-				draw_circle(Vector2(drip_x, drip_y), 2.5, Color(0.5, 0.1, 0.15, drip_a))
-				draw_circle(Vector2(drip_x, drip_y + 4), 1.5, Color(0.5, 0.1, 0.15, drip_a * 0.6))
+		# === Phase 1 CLUTTER REDUCTION continued ===
+		# Cobwebs, candelabra, ink tendrils, moths, blood pool, petals,
+		# whisper characters, vines, dust in beams, spine details — ALL REMOVED
+		# Premium = fewer things, done better
+		if false:  # Dead code gate — preserved for future reference
+			pass
+		# === Phase 1: REMOVED ambient clutter (items 11-20) ===
+		# Cobwebs, candelabra, ink tendrils, moths, blood pool, petals,
+		# whisper characters, vines, dust motes, spine details — cut for premium restraint
+		if false:  # Dead code gate — restore selectively if needed
+			var web_col = Color(0.5, 0.48, 0.55, 0.06)
+			# Top-left cobweb
+			for wbi in range(4):
+				var wa = float(wbi) * PI * 0.5 / 4.0
+				draw_line(Vector2(0, 0), Vector2(cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
+			for wri in range(3):
+				var wr = 20.0 + float(wri) * 20.0
+				draw_arc(Vector2(0, 0), wr, 0, PI * 0.5, 8, web_col, 0.5)
+			# Top-right cobweb
+			for wbi in range(4):
+				var wa = PI * 0.5 + float(wbi) * PI * 0.5 / 4.0
+				draw_line(Vector2(1280, 0), Vector2(1280 + cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
+			for wri in range(3):
+				var wr = 20.0 + float(wri) * 20.0
+				draw_arc(Vector2(1280, 0), wr, PI * 0.5, PI, 8, web_col, 0.5)
 
-		# === 7. Skull difficulty indicators along spine ===
-		var spine_x = 640.0
-		for si in range(3):
-			var skull_y = 200.0 + float(si) * 80.0
-			var skull_a = 0.08 + sin(_time * 1.5 + float(si) * 1.2) * 0.03
-			# Skull outline
-			draw_circle(Vector2(spine_x, skull_y), 8, Color(0.6, 0.55, 0.5, skull_a))
-			draw_circle(Vector2(spine_x, skull_y + 2), 6, Color(0.6, 0.55, 0.5, skull_a * 0.7))
-			# Eye sockets
-			draw_circle(Vector2(spine_x - 3, skull_y - 1), 1.5, Color(0.02, 0.01, 0.05, skull_a * 1.5))
-			draw_circle(Vector2(spine_x + 3, skull_y - 1), 1.5, Color(0.02, 0.01, 0.05, skull_a * 1.5))
-			# Fire in eyes for harder skulls
-			if si >= 1:
-				var fire_a = skull_a * (0.8 + sin(_time * 5.0 + float(si)) * 0.3)
-				draw_circle(Vector2(spine_x - 3, skull_y - 1), 1.0, Color(0.7, 0.2, 0.1, fire_a))
-				draw_circle(Vector2(spine_x + 3, skull_y - 1), 1.0, Color(0.7, 0.2, 0.1, fire_a))
+			# === 12. Flickering candelabra (book spine area) ===
+			var cand_x = 640.0
+			var cand_y = 500.0
+			var cand_a = 0.15
+			# Stand
+			draw_rect(Rect2(cand_x - 2, cand_y, 4, 20), Color(0.3, 0.22, 0.15, cand_a))
+			draw_rect(Rect2(cand_x - 12, cand_y + 20, 24, 3), Color(0.3, 0.22, 0.15, cand_a))
+			# Arms
+			for arm_i in range(3):
+				var arm_x = cand_x + (float(arm_i) - 1.0) * 16.0
+				draw_rect(Rect2(arm_x - 1, cand_y - 8, 2, 8), Color(0.3, 0.22, 0.15, cand_a))
+				# Flame
+				var fl_flicker = sin(_time * 6.0 + float(arm_i) * 2.1) * 0.15
+				draw_circle(Vector2(arm_x, cand_y - 12), 4, Color(0.9, 0.5, 0.1, (cand_a + fl_flicker) * 0.6))
+				draw_circle(Vector2(arm_x, cand_y - 14), 2.5, Color(1.0, 0.8, 0.3, (cand_a + fl_flicker) * 0.8))
+				# Glow
+				draw_circle(Vector2(arm_x, cand_y - 12), 15, Color(0.9, 0.5, 0.1, 0.02 + fl_flicker * 0.01))
 
-		# === 8. Wax seal impressions (decorative along edges) ===
-		for wi in range(4):
-			var seal_x = 30.0 + float(wi) * 310.0
-			var seal_y = 580.0
-			var seal_pulse = 0.08 + sin(_time * 0.8 + float(wi) * 1.5) * 0.02
-			draw_circle(Vector2(seal_x, seal_y), 12, Color(0.6, 0.12, 0.1, seal_pulse))
-			draw_circle(Vector2(seal_x, seal_y), 10, Color(0.7, 0.15, 0.12, seal_pulse * 0.8))
-			# Seal emblem (cross pattern)
-			draw_line(Vector2(seal_x - 5, seal_y), Vector2(seal_x + 5, seal_y), Color(0.9, 0.7, 0.2, seal_pulse * 0.6), 1.0)
-			draw_line(Vector2(seal_x, seal_y - 5), Vector2(seal_x, seal_y + 5), Color(0.9, 0.7, 0.2, seal_pulse * 0.6), 1.0)
+			# === 13. Swirling ink tendrils (animated) ===
+			for ti_ink in range(3):
+				var ink_cx = 200.0 + float(ti_ink) * 400.0
+				var ink_cy = 350.0 + sin(_time * 0.2 + float(ti_ink)) * 80.0
+				var ink_a = 0.04
+				for seg in range(8):
+					var sa = _time * 0.5 + float(seg) * 0.8 + float(ti_ink) * 2.0
+					var sr2 = 30.0 + float(seg) * 8.0
+					var sx = ink_cx + cos(sa) * sr2
+					var sy = ink_cy + sin(sa * 1.3) * sr2 * 0.6
+					draw_circle(Vector2(sx, sy), 3.0 - float(seg) * 0.3, Color(0.1, 0.05, 0.2, ink_a * (1.0 - float(seg) * 0.1)))
 
-		# === 9. Gothic chain links (hanging from corners) ===
-		var chain_col = Color(0.25, 0.2, 0.35, 0.10)
-		for ci in range(2):
-			var cx_base = 20.0 if ci == 0 else 1260.0
-			for cli in range(5):
-				var cy_chain = 100.0 + float(cli) * 22.0 + sin(_time * 0.6 + float(cli) * 0.4) * 3.0
-				draw_arc(Vector2(cx_base, cy_chain), 6, 0, PI if cli % 2 == 0 else -PI, 8, chain_col, 1.5)
+			# === 14. Moth/firefly particles near lanterns ===
+			for mi in range(5):
+				var moth_phase = _time * (1.5 + float(mi) * 0.3) + float(mi) * 2.5
+				var moth_cx = 200.0 + float(mi) * 220.0
+				var moth_cy = 250.0 + float(mi % 3) * 80.0
+				var moth_x = moth_cx + cos(moth_phase) * 25.0
+				var moth_y = moth_cy + sin(moth_phase * 1.4) * 18.0
+				var moth_a = 0.15 + sin(_time * 3.0 + float(mi)) * 0.08
+				draw_circle(Vector2(moth_x, moth_y), 1.5, Color(0.9, 0.8, 0.5, moth_a))
+				draw_circle(Vector2(moth_x, moth_y), 5, Color(0.9, 0.8, 0.5, moth_a * 0.1))
 
-		# === 10. Tattered banner/pennant (top center) ===
-		var banner_cx = 640.0
-		var banner_y = 2.0
-		var banner_w = 80.0
-		var banner_h = 35.0
-		var banner_sway = sin(_time * 0.8) * 4.0
-		var banner_col2 = Color(0.35, 0.08, 0.12, 0.12)
-		draw_rect(Rect2(banner_cx - banner_w * 0.5, banner_y, banner_w, banner_h), banner_col2)
-		# Tattered bottom edge
-		for bi in range(8):
-			var bx_b = banner_cx - banner_w * 0.5 + float(bi) * 10.0
-			var by_b = banner_y + banner_h + sin(_time * 1.2 + float(bi) * 0.8) * 3.0
-			draw_line(Vector2(bx_b, banner_y + banner_h), Vector2(bx_b + 5, by_b + 6), Color(0.35, 0.08, 0.12, 0.08), 1.0)
-		# Pennant emblem
-		draw_circle(Vector2(banner_cx + banner_sway * 0.3, banner_y + banner_h * 0.45), 8, Color(0.8, 0.6, 0.1, 0.08))
+			# === 15. Blood pool / crimson puddle (bottom area) ===
+			var pool_x = 400.0
+			var pool_y = 600.0
+			var pool_pulse = sin(_time * 0.5) * 0.01
+			draw_circle(Vector2(pool_x, pool_y), 30, Color(0.4, 0.05, 0.08, 0.04 + pool_pulse))
+			draw_circle(Vector2(pool_x + 15, pool_y + 5), 18, Color(0.35, 0.04, 0.06, 0.03 + pool_pulse))
+			# Ripple
+			var ripple_r = fmod(_time * 8.0, 30.0)
+			draw_arc(Vector2(pool_x, pool_y), ripple_r, 0, TAU, 16, Color(0.5, 0.1, 0.1, 0.03 * (1.0 - ripple_r / 30.0)), 0.5)
 
-		# === 11. Cobweb corners (top corners) ===
-		var web_col = Color(0.5, 0.48, 0.55, 0.06)
-		# Top-left cobweb
-		for wbi in range(4):
-			var wa = float(wbi) * PI * 0.5 / 4.0
-			draw_line(Vector2(0, 0), Vector2(cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
-		for wri in range(3):
-			var wr = 20.0 + float(wri) * 20.0
-			draw_arc(Vector2(0, 0), wr, 0, PI * 0.5, 8, web_col, 0.5)
-		# Top-right cobweb
-		for wbi in range(4):
-			var wa = PI * 0.5 + float(wbi) * PI * 0.5 / 4.0
-			draw_line(Vector2(1280, 0), Vector2(1280 + cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
-		for wri in range(3):
-			var wr = 20.0 + float(wri) * 20.0
-			draw_arc(Vector2(1280, 0), wr, PI * 0.5, PI, 8, web_col, 0.5)
+			# === 16. Falling rose petals ===
+			for pi_petal in range(4):
+				var petal_x = fmod(float(pi_petal) * 337.0 + _time * 15.0, 1400.0) - 60.0
+				var petal_y = fmod(float(pi_petal) * 193.0 + _time * 25.0, 800.0) - 40.0
+				var petal_rot = _time * 1.5 + float(pi_petal) * 1.8
+				var petal_a = 0.08 + sin(_time + float(pi_petal)) * 0.03
+				var pr_cos = cos(petal_rot)
+				var pr_sin = sin(petal_rot)
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(petal_x + 4 * pr_cos, petal_y + 4 * pr_sin),
+					Vector2(petal_x - 2 * pr_sin, petal_y + 2 * pr_cos),
+					Vector2(petal_x - 4 * pr_cos, petal_y - 4 * pr_sin),
+					Vector2(petal_x + 2 * pr_sin, petal_y - 2 * pr_cos),
+				]), Color(0.7, 0.15, 0.2, petal_a))
 
-		# === 12. Flickering candelabra (book spine area) ===
-		var cand_x = 640.0
-		var cand_y = 500.0
-		var cand_a = 0.15
-		# Stand
-		draw_rect(Rect2(cand_x - 2, cand_y, 4, 20), Color(0.3, 0.22, 0.15, cand_a))
-		draw_rect(Rect2(cand_x - 12, cand_y + 20, 24, 3), Color(0.3, 0.22, 0.15, cand_a))
-		# Arms
-		for arm_i in range(3):
-			var arm_x = cand_x + (float(arm_i) - 1.0) * 16.0
-			draw_rect(Rect2(arm_x - 1, cand_y - 8, 2, 8), Color(0.3, 0.22, 0.15, cand_a))
-			# Flame
-			var fl_flicker = sin(_time * 6.0 + float(arm_i) * 2.1) * 0.15
-			draw_circle(Vector2(arm_x, cand_y - 12), 4, Color(0.9, 0.5, 0.1, (cand_a + fl_flicker) * 0.6))
-			draw_circle(Vector2(arm_x, cand_y - 14), 2.5, Color(1.0, 0.8, 0.3, (cand_a + fl_flicker) * 0.8))
-			# Glow
-			draw_circle(Vector2(arm_x, cand_y - 12), 15, Color(0.9, 0.5, 0.1, 0.02 + fl_flicker * 0.01))
+			# === 17. Spectral character whispers (faint character outlines) ===
+			var whisper_chars = [
+				{"x": 90, "y": 340, "char": "R"},   # Robin
+				{"x": 1190, "y": 320, "char": "A"},  # Alice
+				{"x": 120, "y": 480, "char": "P"},   # Phantom
+				{"x": 1160, "y": 460, "char": "S"},  # Scrooge
+			]
+			for wc in whisper_chars:
+				var wc_a = 0.03 + sin(_time * 0.6 + float(wc["x"]) * 0.01) * 0.015
+				_udraw(font, Vector2(wc["x"], wc["y"]), wc["char"], HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.5, 0.4, 0.6, wc_a))
 
-		# === 13. Swirling ink tendrils (animated) ===
-		for ti_ink in range(3):
-			var ink_cx = 200.0 + float(ti_ink) * 400.0
-			var ink_cy = 350.0 + sin(_time * 0.2 + float(ti_ink)) * 80.0
-			var ink_a = 0.04
-			for seg in range(8):
-				var sa = _time * 0.5 + float(seg) * 0.8 + float(ti_ink) * 2.0
-				var sr2 = 30.0 + float(seg) * 8.0
-				var sx = ink_cx + cos(sa) * sr2
-				var sy = ink_cy + sin(sa * 1.3) * sr2 * 0.6
-				draw_circle(Vector2(sx, sy), 3.0 - float(seg) * 0.3, Color(0.1, 0.05, 0.2, ink_a * (1.0 - float(seg) * 0.1)))
+			# === 18. Creeping vine tendrils along edges ===
+			var vine_col = Color(0.15, 0.3, 0.1, 0.08)
+			# Left vine
+			var vine_pts_l: Array = []
+			for vi in range(12):
+				var vt = float(vi) / 11.0
+				var vx = 8.0 + sin(vt * 4.0 + _time * 0.2) * 10.0
+				var vy = 150.0 + vt * 350.0
+				if vi > 0:
+					draw_line(Vector2(vine_pts_l[vi - 1][0], vine_pts_l[vi - 1][1]), Vector2(vx, vy), vine_col, 1.5)
+				vine_pts_l.append([vx, vy])
+				# Tiny leaf
+				if vi % 3 == 1:
+					draw_circle(Vector2(vx + 6, vy), 3, Color(0.2, 0.35, 0.12, 0.06))
 
-		# === 14. Moth/firefly particles near lanterns ===
-		for mi in range(5):
-			var moth_phase = _time * (1.5 + float(mi) * 0.3) + float(mi) * 2.5
-			var moth_cx = 200.0 + float(mi) * 220.0
-			var moth_cy = 250.0 + float(mi % 3) * 80.0
-			var moth_x = moth_cx + cos(moth_phase) * 25.0
-			var moth_y = moth_cy + sin(moth_phase * 1.4) * 18.0
-			var moth_a = 0.15 + sin(_time * 3.0 + float(mi)) * 0.08
-			draw_circle(Vector2(moth_x, moth_y), 1.5, Color(0.9, 0.8, 0.5, moth_a))
-			draw_circle(Vector2(moth_x, moth_y), 5, Color(0.9, 0.8, 0.5, moth_a * 0.1))
+			# === 19. Dust motes in light beams ===
+			for dmi in range(8):
+				var dm_x = 950.0 + float(dmi % 4) * 30.0 + sin(_time * 0.5 + float(dmi) * 0.9) * 20.0
+				var dm_y = 60.0 + float(dmi) * 35.0 + cos(_time * 0.3 + float(dmi)) * 10.0
+				var dm_a = 0.06 + sin(_time * 2.0 + float(dmi) * 1.3) * 0.03
+				draw_circle(Vector2(dm_x, dm_y), 1.0, Color(0.8, 0.75, 0.6, dm_a))
 
-		# === 15. Blood pool / crimson puddle (bottom area) ===
-		var pool_x = 400.0
-		var pool_y = 600.0
-		var pool_pulse = sin(_time * 0.5) * 0.01
-		draw_circle(Vector2(pool_x, pool_y), 30, Color(0.4, 0.05, 0.08, 0.04 + pool_pulse))
-		draw_circle(Vector2(pool_x + 15, pool_y + 5), 18, Color(0.35, 0.04, 0.06, 0.03 + pool_pulse))
-		# Ripple
-		var ripple_r = fmod(_time * 8.0, 30.0)
-		draw_arc(Vector2(pool_x, pool_y), ripple_r, 0, TAU, 16, Color(0.5, 0.1, 0.1, 0.03 * (1.0 - ripple_r / 30.0)), 0.5)
-
-		# === 16. Falling rose petals ===
-		for pi_petal in range(4):
-			var petal_x = fmod(float(pi_petal) * 337.0 + _time * 15.0, 1400.0) - 60.0
-			var petal_y = fmod(float(pi_petal) * 193.0 + _time * 25.0, 800.0) - 40.0
-			var petal_rot = _time * 1.5 + float(pi_petal) * 1.8
-			var petal_a = 0.08 + sin(_time + float(pi_petal)) * 0.03
-			var pr_cos = cos(petal_rot)
-			var pr_sin = sin(petal_rot)
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(petal_x + 4 * pr_cos, petal_y + 4 * pr_sin),
-				Vector2(petal_x - 2 * pr_sin, petal_y + 2 * pr_cos),
-				Vector2(petal_x - 4 * pr_cos, petal_y - 4 * pr_sin),
-				Vector2(petal_x + 2 * pr_sin, petal_y - 2 * pr_cos),
-			]), Color(0.7, 0.15, 0.2, petal_a))
-
-		# === 17. Spectral character whispers (faint character outlines) ===
-		var whisper_chars = [
-			{"x": 90, "y": 340, "char": "R"},   # Robin
-			{"x": 1190, "y": 320, "char": "A"},  # Alice
-			{"x": 120, "y": 480, "char": "P"},   # Phantom
-			{"x": 1160, "y": 460, "char": "S"},  # Scrooge
-		]
-		for wc in whisper_chars:
-			var wc_a = 0.03 + sin(_time * 0.6 + float(wc["x"]) * 0.01) * 0.015
-			_udraw(font, Vector2(wc["x"], wc["y"]), wc["char"], HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.5, 0.4, 0.6, wc_a))
-
-		# === 18. Creeping vine tendrils along edges ===
-		var vine_col = Color(0.15, 0.3, 0.1, 0.08)
-		# Left vine
-		var vine_pts_l: Array = []
-		for vi in range(12):
-			var vt = float(vi) / 11.0
-			var vx = 8.0 + sin(vt * 4.0 + _time * 0.2) * 10.0
-			var vy = 150.0 + vt * 350.0
-			if vi > 0:
-				draw_line(Vector2(vine_pts_l[vi - 1][0], vine_pts_l[vi - 1][1]), Vector2(vx, vy), vine_col, 1.5)
-			vine_pts_l.append([vx, vy])
-			# Tiny leaf
-			if vi % 3 == 1:
-				draw_circle(Vector2(vx + 6, vy), 3, Color(0.2, 0.35, 0.12, 0.06))
-
-		# === 19. Dust motes in light beams ===
-		for dmi in range(8):
-			var dm_x = 950.0 + float(dmi % 4) * 30.0 + sin(_time * 0.5 + float(dmi) * 0.9) * 20.0
-			var dm_y = 60.0 + float(dmi) * 35.0 + cos(_time * 0.3 + float(dmi)) * 10.0
-			var dm_a = 0.06 + sin(_time * 2.0 + float(dmi) * 1.3) * 0.03
-			draw_circle(Vector2(dm_x, dm_y), 1.0, Color(0.8, 0.75, 0.6, dm_a))
-
-		# === 20. Animated book spine details (center divider) ===
-		var spine_col2 = Color(0.2, 0.15, 0.3, 0.06)
-		# Spine ridges
-		for sri in range(8):
-			var sr_y = 120.0 + float(sri) * 60.0
-			draw_rect(Rect2(636, sr_y, 8, 3), spine_col2)
-		# Spine title embossing
+			# === 20. Animated book spine details (center divider) ===
+			var spine_col2 = Color(0.2, 0.15, 0.3, 0.06)
+			# Spine ridges
+			for sri in range(8):
+				var sr_y = 120.0 + float(sri) * 60.0
+				draw_rect(Rect2(636, sr_y, 8, 3), spine_col2)
+			# Spine title embossing
 		var emboss_a = 0.04 + sin(_time * 0.5) * 0.01
 		_udraw(font, Vector2(637, 430), "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
 		_udraw(font, Vector2(637, 445), "D", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
@@ -11507,6 +11505,9 @@ func _draw_menu_background() -> void:
 			_draw_emporium()
 	elif menu_current_view == "achievements":
 		_draw_achievements_tab()
+	elif menu_current_view == "codex":
+		# Phase 1: Codex = merged Achievements + Chronicles + Gear
+		_draw_achievements_tab()
 	elif menu_current_view == "settings":
 		_draw_settings_tab()
 	else:
@@ -11514,16 +11515,16 @@ func _draw_menu_background() -> void:
 
 	# === Bottom nav bar (ALWAYS ON TOP — draws after all content) ===
 	var nav_draw_y = 620.0 - _safe_bottom
-	var nav_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements", "settings"]
-	var nav_tab_labels = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM", "ACHIEVEMENTS", "SETTINGS"]
+	# Phase 1: Consolidated from 7 tabs to 5 (research: 4-5 tabs is premium standard)
+	# Gear → accessible from Survivors detail page. Achievements + Chronicles → merged into CODEX
+	var nav_tab_names = ["chapters", "survivors", "emporium", "codex", "settings"]
+	var nav_tab_labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	var nav_tab_cols = [
-		Color(0.85, 0.72, 0.40),  # Survivors: gold
-		Color(0.85, 0.72, 0.40),  # Gear: gold
-		Color(0.85, 0.72, 0.40),  # Chapters: gold
-		Color(0.85, 0.72, 0.40),  # Chronicles: gold
-		Color(0.85, 0.72, 0.40),  # Emporium: gold
-		Color(0.85, 0.72, 0.40),  # Achievements: gold
-		Color(0.65, 0.55, 0.80),  # Settings: purple
+		Color(0.85, 0.72, 0.40),  # Chapters: warm gold
+		Color(0.85, 0.72, 0.40),  # Survivors: warm gold
+		Color(0.85, 0.72, 0.40),  # Emporium: warm gold
+		Color(0.70, 0.55, 0.85),  # Codex: purple (knowledge/collection)
+		Color(0.55, 0.48, 0.68),  # Settings: muted purple
 	]
 	# Solid cover — hides ALL card overflow below nav bar
 	draw_rect(Rect2(0, nav_draw_y - 2, 1280, 120), Color(0.05, 0.03, 0.08, 1.0))
@@ -11541,9 +11542,9 @@ func _draw_menu_background() -> void:
 		draw_rect(Rect2(0, nav_draw_y + 100.0, 1280, _safe_bottom), Color(0.05, 0.03, 0.10, 0.98))
 	var nav_margin = 15.0
 	var nav_total_w = 1280.0 - nav_margin * 2.0 - _safe_left - _safe_right
-	var tab_w = nav_total_w / 7.0
-	var _tab_icon_keys = ["tab_survivors", "tab_gear", "tab_chapters", "tab_chronicles", "tab_emporium", "tab_achievements", "tab_settings"]
-	for ni in range(7):
+	var tab_w = nav_total_w / 5.0
+	var _tab_icon_keys = ["tab_chapters", "tab_survivors", "tab_emporium", "tab_codex", "tab_settings"]
+	for ni in range(5):
 		var tx = nav_margin + _safe_left + float(ni) * tab_w
 		var is_act = (menu_current_view == nav_tab_names[ni])
 		var tc = nav_tab_cols[ni]
@@ -15715,7 +15716,7 @@ func _draw_diff_popup() -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
 
 	# Dim background
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.03, 0.02, 0.06, 0.6))
 
 	# Popup panel
 	var popup_w = 440.0
@@ -19642,7 +19643,7 @@ func _draw() -> void:
 	# === PAUSED OVERLAY (gothic themed) ===
 	if game_paused:
 		# Dark translucent backdrop
-		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.55))
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0.03, 0.02, 0.06, 0.55))
 		# Dim pulsing vignette edges
 		var pv_pulse = 0.15 + sin(_time * 1.5) * 0.05
 		for pvi in range(4):
@@ -19786,7 +19787,7 @@ func _draw_tower_button_portraits() -> void:
 func _draw_ingame_settings() -> void:
 	var font = game_font
 	# Dim background
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.55))
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.03, 0.02, 0.06, 0.55))
 	# Panel
 	var px = 380.0
 	var py = 120.0
