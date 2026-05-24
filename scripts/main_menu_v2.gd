@@ -285,19 +285,34 @@ func _build_survivors() -> void:
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
+	# Centered margin container
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(vb)
-	vb.add_child(_title("SURVIVORS"))
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 8)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vb)
+	var t = _title("SURVIVORS")
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(t)
 	if not _main: return
 	var unlocked_ct = 0
 	for tt in _main.survivor_types:
 		if _main._is_character_unlocked(tt): unlocked_ct += 1
-	vb.add_child(_lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 12, Color(0.65,0.58,0.50)))
+	var sub = _lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 12, Color(0.65,0.58,0.50))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(sub)
 	var grid = GridContainer.new()
-	grid.columns = 4  # Bigger cards, fill screen better
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(grid)
