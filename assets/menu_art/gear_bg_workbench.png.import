@@ -2,12 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyu5m58tctwy3"
+uid="uid://ce2xkc0wcnd7"
 valid=false
 
 [deps]
 
-source_file="res://assets/menu_art/menu_background.png"
+source_file="res://assets/menu_art/gear_bg_workbench.png"
 
 [params]
 

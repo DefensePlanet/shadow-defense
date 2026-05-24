@@ -2,12 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyu5m58tctwy3"
+uid="uid://yxsmvjrbr6k"
 valid=false
 
 [deps]
 
-source_file="res://assets/menu_art/menu_background.png"
+source_file="res://assets/menu_art/chapters_bg_map.png"
 
 [params]
 
