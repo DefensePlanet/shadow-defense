@@ -6,12 +6,12 @@ var _ui_tex: Dictionary = {}
 var _main: Node = null
 var current_view: String = "chapters"
 
-@onready var background: TextureRect = $BackgroundLayer/Background
-@onready var content_area: Control = $UILayer/UI/ContentArea
-@onready var nav_buttons_container: HBoxContainer = $UILayer/UI/NavBar/NavButtons
-@onready var top_bar: TextureRect = $UILayer/UI/TopBar
-@onready var nav_bar: TextureRect = $UILayer/UI/NavBar
-@onready var fade_rect: ColorRect = $TransitionLayer/FadeRect
+@onready var background: TextureRect = $Background
+@onready var content_area: Control = $ContentArea
+@onready var nav_buttons_container: HBoxContainer = $NavBar/NavButtons
+@onready var top_bar: ColorRect = $TopBar
+@onready var nav_bar: ColorRect = $NavBar
+@onready var fade_rect: ColorRect = $FadeRect
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
@@ -55,18 +55,7 @@ func _setup_currency_bar() -> void:
 		hbox.add_child(lbl)
 
 func _setup_nav_bar() -> void:
-	# Solid dark bar for clear nav visibility
-	nav_bar.modulate = Color(1, 1, 1, 1)
-	# Add a dark background behind the nav
-	# Dark background behind nav — MUST be mouse_filter IGNORE
-	var nav_bg = ColorRect.new()
-	nav_bg.color = Color(0.05, 0.03, 0.10, 0.92)
-	nav_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	nav_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	nav_bar.add_child(nav_bg)
-	nav_bar.move_child(nav_bg, 0)
-	# NavButtons container must pass clicks TO the buttons
-	nav_buttons_container.mouse_filter = Control.MOUSE_FILTER_PASS
+	# NavBar is a dark ColorRect in scene. Just set up buttons.
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	for i in range(tabs.size()):
