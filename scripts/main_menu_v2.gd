@@ -130,10 +130,14 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	s.set_corner_radius_all(6)
 	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
 	p.add_theme_stylebox_override("panel", s)
+	p.mouse_filter = Control.MOUSE_FILTER_PASS  # Let clicks through to children
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
-	row.add_child(_lbl(str(idx+1), 18, Color(0.85,0.72,0.40) if unlocked else Color(0.35,0.30,0.25)))
+	var num_lbl = _lbl(str(idx+1), 18, Color(0.85,0.72,0.40) if unlocked else Color(0.35,0.30,0.25))
+	num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(num_lbl)
 	# Thumbnail
 	var th = TextureRect.new()
 	th.custom_minimum_size = Vector2(90, 60)
@@ -144,9 +148,16 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	row.add_child(th)
 	var info = VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(_lbl(lvl.get("name",""), 14, Color(1,0.95,0.85) if unlocked else Color(0.45,0.40,0.35)))
-	info.add_child(_lbl(lvl.get("subtitle",""), 10, Color(0.55,0.48,0.42)))
-	info.add_child(_lbl("W:%d G:%d L:%d" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 9, Color(0.45,0.40,0.38)))
+	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var n = _lbl(lvl.get("name",""), 14, Color(1,0.95,0.85) if unlocked else Color(0.45,0.40,0.35))
+	n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info.add_child(n)
+	var st = _lbl(lvl.get("subtitle",""), 10, Color(0.55,0.48,0.42))
+	st.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info.add_child(st)
+	var stats = _lbl("W:%d G:%d L:%d" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 9, Color(0.45,0.40,0.38))
+	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info.add_child(stats)
 	row.add_child(info)
 	if unlocked:
 		var btns = VBoxContainer.new()
@@ -210,20 +221,32 @@ func _build_survivors() -> void:
 	for i in range(PORTRAIT_KEYS.size()):
 		grid.add_child(_survivor_card(i))
 
-func _survivor_card(idx: int) -> PanelContainer:
-	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(170, 230)
+func _survivor_card(idx: int) -> Button:
+	# The card IS a Button — no overlay needed, clicks just work
+	var btn = Button.new()
+	btn.custom_minimum_size = Vector2(170, 230)
+	# Style the button to look like a card
 	var s = StyleBoxFlat.new()
 	s.bg_color = Color(0.06,0.04,0.12,0.70)
 	s.border_color = Color(0.45,0.35,0.20,0.5)
 	s.set_border_width_all(2); s.set_corner_radius_all(8)
 	s.content_margin_left = 4; s.content_margin_right = 4
 	s.content_margin_top = 4; s.content_margin_bottom = 4
-	p.add_theme_stylebox_override("panel", s)
+	btn.add_theme_stylebox_override("normal", s)
+	var sh = s.duplicate()
+	sh.bg_color = Color(0.10,0.07,0.18,0.80)
+	sh.border_color = Color(0.65,0.50,0.25,0.8)
+	btn.add_theme_stylebox_override("hover", sh)
+	var sp = s.duplicate()
+	sp.bg_color = Color(0.12,0.08,0.20,0.85)
+	btn.add_theme_stylebox_override("pressed", sp)
+	btn.text = ""  # No text — we add children manually
+	# Content inside the button
 	var vb = VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	p.add_child(vb)
-	# Portrait — use correct key
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(vb)
+	# Portrait
 	var port = TextureRect.new()
 	port.custom_minimum_size = Vector2(150, 150)
 	port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -234,23 +257,19 @@ func _survivor_card(idx: int) -> PanelContainer:
 		port.texture = _main._portrait_textures[pkey]
 	vb.add_child(port)
 	# Name
-	var name = _main.character_names[idx] if _main and idx < _main.character_names.size() else "?"
-	var nl = _lbl(name.to_upper(), 11, Color(1,0.92,0.45))
+	var cname = _main.character_names[idx] if _main and idx < _main.character_names.size() else "?"
+	var nl = _lbl(cname.to_upper(), 11, Color(1,0.92,0.45))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(nl)
 	# Title
-	var title = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
-	var tl = _lbl(title, 9, Color(0.55,0.48,0.42))
+	var ctitle = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
+	var tl = _lbl(ctitle, 9, Color(0.55,0.48,0.42))
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(tl)
-	# Make clickable — opens detail
-	var btn_overlay = Button.new()
-	btn_overlay.flat = true
-	btn_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	btn_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	btn_overlay.pressed.connect(_open_survivor_detail.bind(idx))
-	p.add_child(btn_overlay)
-	return p
+	btn.pressed.connect(_open_survivor_detail.bind(idx))
+	return btn
 
 func _open_survivor_detail(idx: int) -> void:
 	print("[V2] Open survivor detail: ", idx)
