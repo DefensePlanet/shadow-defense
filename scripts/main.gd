@@ -19573,6 +19573,62 @@ func _draw() -> void:
 
 	# === SEASONAL DECORATIONS ===
 	_draw_seasonal_particles(0.0, 0.0, 1280.0, 720.0)
+	# === ENHANCEMENT 300 OVERLAYS ===
+	# Enhancement #118: Gold coin pickup particles
+	_draw_gold_coins()
+	# Enhancement #11: Crit flash particles
+	for cf in _crit_flash_positions:
+		var cf_a = cf["timer"] / 0.3
+		draw_circle(cf["pos"], 12.0 * cf_a, Color(1.0, 0.85, 0.0, cf_a * 0.6))
+		draw_circle(cf["pos"], 6.0 * cf_a, Color(1.0, 1.0, 1.0, cf_a * 0.8))
+	# Enhancement #47: Boss dialogue speech bubble
+	if _boss_dialogue_timer > 0.0 and _boss_dialogue_text != "":
+		var bd_alpha = clampf(_boss_dialogue_timer, 0.0, 1.0)
+		_ds_panel(Rect2(340, 80, 600, 50), Color(0.08, 0.04, 0.14, 0.92 * bd_alpha), Color(0.6, 0.15, 0.1, 0.8 * bd_alpha), 2.0, 10.0)
+		_ds_outlined_text(Vector2(350, 112), _boss_dialogue_text, 13, Color(1.0, 0.9, 0.7, bd_alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Enhancement #15: Rush bonus banner
+	if _wave_overlap_active and _rush_bonus_timer > 0.0:
+		var rb_alpha = clampf(_rush_bonus_timer, 0.0, 1.0)
+		_ds_outlined_text(Vector2(640, 75), "RUSH BONUS +15% GOLD!", 16, Color(c_gold.r, c_gold.g, c_gold.b, rb_alpha), 400, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Enhancement #7: Auto-start countdown
+	_draw_auto_countdown()
+	# Enhancement #3: Wave preview overlay
+	_draw_wave_preview_enhanced()
+	# Enhancement #133: Heartbeat vignette
+	if _heartbeat_active:
+		var hb_pulse = abs(sin(_heartbeat_timer * _heartbeat_bpm * PI / 30.0))
+		var hb_alpha = hb_pulse * 0.15
+		# Red vignette edges
+		for hvi in range(3):
+			var hv_w = 30.0 + float(hvi) * 20.0
+			draw_rect(Rect2(0, 0, 1280, hv_w), Color(0.6, 0.05, 0.05, hb_alpha * (0.4 - float(hvi) * 0.1)))
+			draw_rect(Rect2(0, 720 - hv_w, 1280, hv_w), Color(0.6, 0.05, 0.05, hb_alpha * (0.4 - float(hvi) * 0.1)))
+			draw_rect(Rect2(0, 0, hv_w, 720), Color(0.6, 0.05, 0.05, hb_alpha * (0.4 - float(hvi) * 0.1)))
+			draw_rect(Rect2(1280 - hv_w, 0, hv_w, 720), Color(0.6, 0.05, 0.05, hb_alpha * (0.4 - float(hvi) * 0.1)))
+	# Enhancement #240: Bonus wave prompt
+	_draw_bonus_wave_prompt()
+	# Enhancement #13: Synergy counter badge
+	if _active_synergy_count > 0:
+		var sc_x = 1200.0
+		var sc_y = 90.0
+		draw_circle(Vector2(sc_x, sc_y), 16, Color(0.1, 0.08, 0.2, 0.85))
+		draw_circle(Vector2(sc_x, sc_y), 14, Color(0.15, 0.12, 0.3, 0.9))
+		_ds_outlined_text(Vector2(sc_x - 12, sc_y + 4), "⚡%d" % _active_synergy_count, 11, c_gold_bright, 24, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Enhancement #32: Elite enemy gold border (drawn on enemies)
+	for enemy in _cached_enemies:
+		if is_instance_valid(enemy) and enemy.get("is_elite") and enemy.visible:
+			var epos = enemy.global_position
+			var esize = 16.0 * enemy.boss_scale if "boss_scale" in enemy else 16.0
+			draw_arc(epos, esize + 4, 0, TAU, 16, Color(1.0, 0.85, 0.0, 0.7), 2.0)
+			if enemy.elite_name != "":
+				_udraw(game_font, Vector2(epos.x - 40, epos.y - esize - 10), enemy.elite_name, HORIZONTAL_ALIGNMENT_CENTER, 80, 8, Color(1.0, 0.85, 0.0, 0.9))
+	# Enhancement #100: Ghost health bar on enemies
+	for enemy in _cached_enemies:
+		if is_instance_valid(enemy) and enemy.visible and enemy.get("_ghost_health") != null:
+			if enemy._ghost_health < 0:
+				enemy._ghost_health = enemy.health
+			elif enemy._ghost_health > enemy.health:
+				enemy._ghost_health = lerpf(enemy._ghost_health, enemy.health, 0.05)
 	# === ADDICTION SYSTEM OVERLAYS ===
 	_draw_combo_counter()
 	_draw_boss_kill_ceremony()
@@ -27748,6 +27804,16 @@ func _on_sell_pressed() -> void:
 	var sell_value = 0
 	if tower.has_method("get_sell_value"):
 		sell_value = tower.get_sell_value()
+	# Enhancement #1: Sell multiplier scales with affinity
+	var _sell_tower_type = _get_tower_type_from_node(tower)
+	if _sell_tower_type != null:
+		var sell_mult = _get_sell_multiplier(_sell_tower_type)
+		if sell_value > 0:
+			sell_value = int(float(sell_value) * sell_mult / 0.6)  # Adjust from base 60% to affinity-scaled
+		elif "base_cost" in tower:
+			sell_value = int(float(tower.base_cost) * sell_mult)
+	# Enhancement #10: Push undo for sell action
+	_push_undo("sell", {"tower_type": _sell_tower_type, "position": tower.global_position, "sell_value": sell_value})
 	# Include branch upgrade costs in sell refund (60% like base)
 	if tower.has_meta("branch_upgrades"):
 		var branch_ups = tower.get_meta("branch_upgrades")
@@ -27984,6 +28050,20 @@ func _start_next_wave() -> void:
 	wave += 1
 	is_wave_active = true
 	game_paused = false
+	# Enhancement #15: Check rush bonus (starting wave while enemies alive)
+	if enemies_alive > 0:
+		_wave_overlap_active = true
+		_rush_bonus_timer = 2.0
+	# Enhancement #38: Roll wave modifier for milestone waves
+	_wave_modifier_active = _roll_wave_modifier(wave)
+	if _wave_modifier_active.size() > 0:
+		spawn_floating_text(Vector2(640, 200), _wave_modifier_active.get("name", ""), Color(0.9, 0.6, 0.1), 20.0, 2.5)
+		spawn_floating_text(Vector2(640, 225), _wave_modifier_active.get("desc", ""), Color(0.8, 0.75, 0.6), 13.0, 2.5)
+	# Enhancement #72: Relic — Pandora's Lid reset per wave
+	if has_meta("pandora_used_this_wave"):
+		remove_meta("pandora_used_this_wave")
+	# Enhancement #238: Adaptive difficulty check
+	_adjust_adaptive_difficulty()
 	# Improvement 19: Announce wave modifiers
 	_announce_wave_modifiers(wave)
 	# Improvement 14: Extended wave forecast

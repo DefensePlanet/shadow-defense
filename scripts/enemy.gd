@@ -334,6 +334,35 @@ func _process(delta: float) -> void:
 	if boss_mechanic != "":
 		_process_boss_mechanics(delta)
 
+	# Enhancement #33: Enemy ability processing
+	if enemy_ability != "":
+		_ability_timer -= delta
+		match enemy_ability:
+			"healer":
+				if _ability_timer <= 0.0:
+					_ability_timer = 3.0
+					# Heal nearby enemies for 5% max HP
+					for other in get_tree().get_nodes_in_group("enemies"):
+						if is_instance_valid(other) and other != self:
+							if other.global_position.distance_to(global_position) < 80.0:
+								other.health = minf(other.health + other.max_health * 0.05, other.max_health)
+			"commander":
+				# Passive: +20% speed aura for nearby allies (checked by main)
+				pass
+			"berserker":
+				if not _berserker_activated and health < max_health * 0.3:
+					_berserker_activated = true
+					speed *= 2.0
+			"teleporter":
+				_teleport_cooldown -= delta
+				if _teleport_cooldown <= 0.0:
+					_teleport_cooldown = 8.0
+					progress += 100.0  # Blink forward along path
+
+	# Enhancement #100: Ghost health bar decay
+	if _ghost_health > health:
+		_ghost_health = lerpf(_ghost_health, health, _ghost_health_decay * delta)
+
 	# Fear reverse — walk backwards
 	if fear_reverse_timer > 0.0:
 		fear_reverse_timer -= delta
@@ -459,12 +488,37 @@ func take_damage(amount: float, damage_type = "physical") -> void:
 		else:
 			final_dmg -= bound_shield
 			bound_shield = 0.0
+	# Enhancement #11: Critical hit system
+	var _is_crit = false
+	var main = get_tree().get_first_node_in_group("main")
+	if main and main.has_method("_check_crit"):
+		var crit_result = main._check_crit(0)  # Tower type 0 as default
+		if crit_result["is_crit"]:
+			final_dmg *= crit_result["multiplier"]
+			_is_crit = true
+	# Enhancement #34: Armor break at 50% HP for fortified enemies
+	if is_fortified and not _armor_broken and health > 0 and (health - final_dmg) <= max_health * 0.5:
+		_armor_broken = true
+		speed *= 1.3  # Faster without armor
+		# Armor broken — no more physical resistance
+		if main and main.has_method("spawn_floating_text"):
+			main.spawn_floating_text(global_position + Vector2(0, -25), "ARMOR BREAK!", Color(0.8, 0.5, 0.1), 16.0, 1.0)
+	# Enhancement #39: Enemy evolution at 50% path progress
+	if not _has_evolved and path_remaining_ratio <= 0.5 and not is_named_boss and boss_scale <= 1.0:
+		_has_evolved = true
+		max_health *= 1.5
+		health = minf(health + max_health * 0.25, max_health)
+		boss_scale = 1.2
+		if main and main.has_method("spawn_floating_text"):
+			main.spawn_floating_text(global_position + Vector2(0, -20), "EVOLVED!", Color(0.5, 0.2, 0.8), 16.0, 1.2)
+	# Enhancement #100: Update ghost health bar
+	if _ghost_health < 0:
+		_ghost_health = health
 	health -= final_dmg
 	_hit_flash = 0.12
-	# Floating damage number
-	var main = get_tree().get_first_node_in_group("main")
+	# Floating damage number (with crit support)
 	if main and main.has_method("spawn_damage_number"):
-		main.spawn_damage_number(global_position, final_dmg, boss_scale > 1.0)
+		main.spawn_damage_number(global_position, final_dmg, boss_scale > 1.0, _is_crit)
 	# Chain damage sharing
 	if chain_timer > 0.0 and chain_share > 0.0 and chain_group.size() > 0:
 		var shared = final_dmg * chain_share
