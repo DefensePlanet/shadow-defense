@@ -17,6 +17,27 @@ const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan"
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		print("[V2] Click: ", event.position)
+	# Debug keyboard shortcuts for testing
+	if event is InputEventKey and event.pressed:
+		match event.keycode:
+			KEY_1:
+				print("[V2] KEY 1 — Playing level 0")
+				_play(0, 0)
+			KEY_2:
+				print("[V2] KEY 2 — Switch to survivors")
+				_on_tab("survivors")
+			KEY_3:
+				print("[V2] KEY 3 — Switch to emporium")
+				_on_tab("emporium")
+			KEY_4:
+				print("[V2] KEY 4 — Switch to codex")
+				_on_tab("codex")
+			KEY_5:
+				print("[V2] KEY 5 — Switch to settings")
+				_on_tab("settings")
+			KEY_0:
+				print("[V2] KEY 0 — Switch to chapters")
+				_on_tab("chapters")
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
