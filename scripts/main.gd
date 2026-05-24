@@ -6063,12 +6063,11 @@ func _create_ui() -> void:
 	menu_skip_btn.pressed.connect(_on_skip_song_pressed)
 	menu_overlay.add_child(menu_skip_btn)
 
-	var nav_names = ["SURVIVORS", "GEAR", "CHAPTERS", "CHRONICLES", "EMPORIUM"]
-	nav_names.append("ACHIEVEMENTS")
-	nav_names.append("SETTINGS")
+	# Phase 1: Consolidated 5 tabs (was 7)
+	var nav_names = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	var _nav_margin = 20.0
-	var safe_tab_w = (1280.0 - _nav_margin * 2.0 - _safe_left - _safe_right) / 7.0
-	for i in range(7):
+	var safe_tab_w = (1280.0 - _nav_margin * 2.0 - _safe_left - _safe_right) / 5.0
+	for i in range(5):
 		var btn_x = int(_nav_margin + _safe_left + float(i) * safe_tab_w)
 		var nav_btn = Button.new()
 		nav_btn.text = ""
@@ -6657,7 +6656,7 @@ func _on_nav_pressed(nav_name: String) -> void:
 	# Menu Improvement 7: Slide transition between views
 	_start_menu_slide(menu_current_view, nav_name)
 	# Menu Improvement 17: Nav icon bounce on tab click
-	var _bounce_tab_names = ["survivors", "gear", "chapters", "chronicles", "emporium", "achievements", "settings"]
+	var _bounce_tab_names = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var _bounce_idx = _bounce_tab_names.find(nav_name)
 	if _bounce_idx >= 0:
 		_trigger_nav_bounce(_bounce_idx)
@@ -6690,6 +6689,9 @@ func _on_nav_pressed(nav_name: String) -> void:
 		chronicles_hover_node = -1
 		queue_redraw()
 	elif nav_name == "achievements":
+		_reset_nav_common()
+		queue_redraw()
+	elif nav_name == "codex":
 		_reset_nav_common()
 		queue_redraw()
 	else:
