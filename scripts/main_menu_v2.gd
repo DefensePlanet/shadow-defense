@@ -310,9 +310,10 @@ func _build_survivors() -> void:
 		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(i * 0.05)
 
 func _survivor_card(idx: int) -> Button:
-	# The card IS a Button — no overlay needed, clicks just work
+	# The card IS a Button — fills grid cell
 	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(250, 280)
+	btn.custom_minimum_size = Vector2(200, 270)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # FILL the grid column
 	# Style the button to look like a card
 	var s = StyleBoxFlat.new()
 	s.bg_color = Color(0.06,0.04,0.12,0.70)
@@ -614,15 +615,17 @@ func _build_emporium() -> void:
 	vb.add_child(_title("THE EMPORIUM"))
 	if not _main: return
 	var grid = GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.columns = 2  # 2 columns — bigger, more shop-like
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 10)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(grid)
 	for ci in range(_main.emporium_categories.size()):
 		var cat = _main.emporium_categories[ci]
-		# Each category is a BUTTON so it's clickable
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 80)
+		btn.custom_minimum_size = Vector2(0, 90)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
 		var s = StyleBoxFlat.new()
 		s.bg_color = Color(0.08,0.06,0.14,0.65)
@@ -638,7 +641,7 @@ func _build_emporium() -> void:
 		var cv = VBoxContainer.new()
 		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		btn.add_child(cv)
-		var name_lbl = _lbl(cat.get("name",""), 14, Color(1,0.85,0.3))
+		var name_lbl = _lbl(cat.get("name",""), 16, Color(1,0.85,0.3))
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(name_lbl)
 		var d = _lbl(cat.get("desc",""), 10, Color(0.55,0.50,0.45))
