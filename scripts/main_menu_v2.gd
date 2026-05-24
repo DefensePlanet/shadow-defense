@@ -448,7 +448,7 @@ func _open_survivor_detail(idx: int) -> void:
 		right.add_child(_stat_bar("Range", info.get("range", 0), 200, Color(0.3,0.7,0.9)))
 		right.add_child(_stat_bar("Fire Rate", info.get("fire_rate", 0), 2.5, Color(0.9,0.7,0.2)))
 		right.add_child(_lbl("Cost: %d Gold" % info.get("cost", 0), 12, Color(0.85,0.70,0.20)))
-	# Gear section
+	# Gear section with icon
 	right.add_child(_lbl("EQUIPPED GEAR", 14, Color(0.85,0.72,0.40)))
 	if tt != null and _main.survivor_gear.has(tt):
 		var gear = _main.survivor_gear[tt]
@@ -457,11 +457,46 @@ func _open_survivor_detail(idx: int) -> void:
 		gs.set_border_width_all(1); gs.border_color = Color(0.55,0.42,0.18,0.5)
 		gs.content_margin_left = 8; gs.content_margin_right = 8; gs.content_margin_top = 6; gs.content_margin_bottom = 6
 		gp.add_theme_stylebox_override("panel", gs)
+		var gear_row = HBoxContainer.new()
+		gear_row.add_theme_constant_override("separation", 12)
+		gear_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		gp.add_child(gear_row)
+		# Gear icon
+		var gear_icon = TextureRect.new()
+		gear_icon.custom_minimum_size = Vector2(64, 64)
+		gear_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		gear_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		gear_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Try to find matching gear icon
+		var gear_name_key = gear.get("name", "").to_lower().replace(" ", "_").replace("'", "")
+		if _main._gear_icon_textures.has(gear_name_key):
+			gear_icon.texture = _main._gear_icon_textures[gear_name_key]
+		else:
+			# Try partial match
+			for gk in _main._gear_icon_textures:
+				if gear_name_key.find(gk) >= 0 or gk.find(gear_name_key.split("_")[0]) >= 0:
+					gear_icon.texture = _main._gear_icon_textures[gk]
+					break
+		gear_row.add_child(gear_icon)
+		# Gear info
 		var gv = VBoxContainer.new()
-		gp.add_child(gv)
+		gv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		gv.add_child(_lbl(gear.get("name", "None"), 14, Color(1,0.85,0.3)))
 		gv.add_child(_lbl(gear.get("type", ""), 10, Color(0.6,0.55,0.48)))
-		gv.add_child(_lbl(gear.get("desc", ""), 10, Color(0.55,0.50,0.45)))
+		var desc = _lbl(gear.get("desc", ""), 10, Color(0.55,0.50,0.45))
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.custom_minimum_size.x = 300
+		gv.add_child(desc)
+		# Stat bonuses
+		var bonus_text = ""
+		for key in gear:
+			if key not in ["name", "type", "desc"] and typeof(gear[key]) == TYPE_FLOAT:
+				var pct = int(gear[key] * 100)
+				if pct > 0:
+					bonus_text += "+%d%% %s  " % [pct, key.capitalize()]
+		if bonus_text != "":
+			gv.add_child(_lbl(bonus_text.strip_edges(), 10, Color(0.3, 0.8, 0.4)))
+		gear_row.add_child(gv)
 		right.add_child(gp)
 	# Sidekicks
 	right.add_child(_lbl("SIDEKICKS", 14, Color(0.85,0.72,0.40)))
@@ -471,9 +506,32 @@ func _open_survivor_detail(idx: int) -> void:
 			skp.add_child(_lbl(sk.get("name",""), 12, Color(0.9,0.82,0.55)))
 			skp.add_child(_lbl(" — " + sk.get("desc",""), 10, Color(0.55,0.50,0.45)))
 			right.add_child(skp)
-	# Abilities
+	# Abilities — show actual ability names with lock status
 	right.add_child(_lbl("ABILITIES", 14, Color(0.85,0.72,0.40)))
-	right.add_child(_lbl("Unlock through combat damage", 10, Color(0.50,0.45,0.40)))
+	# Get tower script to read ability names
+	var tower_scenes_map = {0: "robin_hood", 1: "alice", 2: "wicked_witch", 3: "peter_pan", 4: "phantom", 5: "scrooge", 6: "sherlock", 7: "tarzan", 8: "dracula", 9: "merlin", 10: "frankenstein", 11: "shadow_author"}
+	var tower_key = tower_scenes_map.get(idx, "")
+	# Try to get ability names from the tower script constants
+	var ability_names = []
+	if tower_key == "robin_hood":
+		ability_names = ["Sherwood Aim", "Lincoln Green", "Merry Men", "Friar Tuck's Blessing", "Little John's Staff", "The Outlaw's Snare", "Maid Marian's Arrow", "The Golden Arrow", "King of Sherwood"]
+	elif tower_key == "alice":
+		ability_names = ["Eat Me Cake", "Cheshire Cat", "Mad Tea Party", "Queen's Flamingo", "Looking Glass", "Wonderland Logic", "Vorpal Blade", "Jabberwock's Fury", "Queen of Wonderland"]
+	elif tower_key == "merlin":
+		ability_names = ["Crystal Sight", "Ancient Ward", "Lady of the Lake", "Excalibur's Edge", "Time Warp", "Prophecy Shield", "Spell of Ages", "Avalon's Call", "The Last Enchanter"]
+	# Show first few abilities
+	if ability_names.size() > 0:
+		for ai in range(mini(ability_names.size(), 5)):
+			var unlocked_ab = ai < 2  # Placeholder — first 2 unlocked
+			var ab_color = Color(0.7, 0.85, 0.5) if unlocked_ab else Color(0.35, 0.32, 0.28)
+			var prefix = "✓ " if unlocked_ab else "🔒 "
+			var ab_lbl = _lbl(prefix + ability_names[ai], 10, ab_color)
+			ab_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			right.add_child(ab_lbl)
+		if ability_names.size() > 5:
+			right.add_child(_lbl("... +%d more abilities" % (ability_names.size() - 5), 9, Color(0.45, 0.40, 0.38)))
+	else:
+		right.add_child(_lbl("Unlock through combat damage", 10, Color(0.50,0.45,0.40)))
 
 func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBoxContainer:
 	var row = HBoxContainer.new()
@@ -536,33 +594,127 @@ func _build_emporium() -> void:
 		grid.add_child(p)
 
 # ======================== CODEX ========================
+var _codex_subtab: String = "gear"
+
 func _build_codex() -> void:
 	_clear()
+	var main_vb = VBoxContainer.new()
+	main_vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_area.add_child(main_vb)
+	main_vb.add_child(_title("THE CODEX"))
+	# Sub-tabs
+	var tab_row = HBoxContainer.new()
+	tab_row.add_theme_constant_override("separation", 8)
+	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVEMENTS"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["stats", "STATISTICS"]]:
+		var tb = Button.new()
+		tb.text = tab[1]
+		tb.custom_minimum_size = Vector2(120, 28)
+		var ts = StyleBoxFlat.new()
+		ts.bg_color = Color(0.15, 0.10, 0.25, 0.7) if _codex_subtab == tab[0] else Color(0.08, 0.06, 0.14, 0.5)
+		ts.set_corner_radius_all(4)
+		tb.add_theme_stylebox_override("normal", ts)
+		tb.add_theme_font_size_override("font_size", 11)
+		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if _codex_subtab == tab[0] else Color(0.55, 0.50, 0.45))
+		tb.pressed.connect(_codex_switch.bind(tab[0]))
+		tab_row.add_child(tb)
+	main_vb.add_child(tab_row)
+	# Content area for sub-tab
 	var sc = ScrollContainer.new()
-	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	content_area.add_child(sc)
-	var vb = VBoxContainer.new()
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(vb)
-	vb.add_child(_title("THE CODEX"))
-	vb.add_child(_lbl("Your archive of knowledge, achievements, and lore.", 12, Color(0.60,0.55,0.48)))
-	# Sub-sections
-	var sections = [["ACHIEVEMENTS", "Track your accomplishments"], ["BESTIARY", "Catalog of enemies encountered"], ["STORY JOURNAL", "Character journal entries and lore"], ["STATISTICS", "Your gameplay numbers"]]
-	for sec in sections:
-		var p = PanelContainer.new()
-		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.06,0.04,0.12,0.60)
-		s.border_color = Color(0.45,0.35,0.20,0.4)
-		s.set_border_width_all(1); s.set_corner_radius_all(6)
-		s.content_margin_left = 16; s.content_margin_right = 16
-		s.content_margin_top = 12; s.content_margin_bottom = 12
-		p.add_theme_stylebox_override("panel", s)
-		var sv = VBoxContainer.new()
-		p.add_child(sv)
-		sv.add_child(_lbl(sec[0], 18, Color(0.90,0.80,0.50)))
-		sv.add_child(_lbl(sec[1], 11, Color(0.55,0.50,0.45)))
-		vb.add_child(p)
+	main_vb.add_child(sc)
+	var content = VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sc.add_child(content)
+	match _codex_subtab:
+		"gear": _build_gear_grid(content)
+		"achievements": _build_achievements_list(content)
+		"bestiary": content.add_child(_lbl("Enemy catalog coming soon...", 14, Color(0.55, 0.50, 0.45)))
+		"journal": content.add_child(_lbl("Character journals coming soon...", 14, Color(0.55, 0.50, 0.45)))
+		"stats": _build_stats_page(content)
+
+func _codex_switch(tab: String) -> void:
+	_codex_subtab = tab
+	_build_codex()
+
+func _build_gear_grid(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 14, Color(0.85, 0.72, 0.40)))
+	var grid = GridContainer.new()
+	grid.columns = 10
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(grid)
+	if not _main: return
+	var keys = _main._gear_icon_textures.keys()
+	keys.sort()
+	for gk in keys:
+		var icon = TextureRect.new()
+		icon.texture = _main._gear_icon_textures[gk]
+		icon.custom_minimum_size = Vector2(64, 64)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.tooltip_text = gk.replace("_", " ").capitalize()
+		grid.add_child(icon)
+
+func _build_achievements_list(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("ACHIEVEMENTS", 14, Color(0.85, 0.72, 0.40)))
+	if not _main or not _main.has_method("_get_achievement_list"):
+		# Show achievement icons from textures
+		if _main._achievement_icon_textures.size() > 0:
+			parent.add_child(_lbl("%d Achievement Icons Available" % _main._achievement_icon_textures.size(), 12, Color(0.6, 0.55, 0.48)))
+			var grid = GridContainer.new()
+			grid.columns = 8
+			grid.add_theme_constant_override("h_separation", 6)
+			grid.add_theme_constant_override("v_separation", 6)
+			grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			parent.add_child(grid)
+			var keys = _main._achievement_icon_textures.keys()
+			keys.sort()
+			for ak in keys:
+				var icon = TextureRect.new()
+				icon.texture = _main._achievement_icon_textures[ak]
+				icon.custom_minimum_size = Vector2(48, 48)
+				icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				icon.tooltip_text = ak.replace("_", " ").capitalize()
+				grid.add_child(icon)
+		else:
+			parent.add_child(_lbl("No achievements loaded yet.", 12, Color(0.55, 0.50, 0.45)))
+		return
+
+func _build_stats_page(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("GAMEPLAY STATISTICS", 14, Color(0.85, 0.72, 0.40)))
+	if not _main: return
+	var stats_data = [
+		["Total Enemies Killed", _main.total_enemies_killed if "total_enemies_killed" in _main else 0],
+		["Total Gold Earned", _main.total_gold_earned if "total_gold_earned" in _main else 0],
+		["Levels Completed", _main.completed_levels.size() if "completed_levels" in _main else 0],
+		["Total Stars", 0],
+		["Bosses Defeated", 0],
+		["Account Level", _main.account_level if "account_level" in _main else 1],
+	]
+	# Calculate total stars
+	if "level_stars" in _main:
+		for k in _main.level_stars:
+			stats_data[3][1] += _main.level_stars[k]
+	for sd in stats_data:
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 20)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var nl = _lbl(sd[0], 14, Color(0.75, 0.68, 0.58))
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(nl)
+		var vl = _lbl(str(sd[1]), 16, Color(1.0, 0.92, 0.45))
+		vl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(vl)
+		parent.add_child(row)
 
 # ======================== SETTINGS ========================
 func _build_settings() -> void:
