@@ -622,55 +622,110 @@ func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBo
 	return row
 
 # ======================== EMPORIUM ========================
+# Category theme colors
+const EMPORIUM_COLORS: Array = [
+	Color(0.85,0.65,0.10), Color(0.70,0.50,0.90), Color(0.30,0.70,0.90),
+	Color(0.50,0.75,0.40), Color(0.90,0.45,0.15), Color(0.90,0.80,0.30),
+	Color(0.80,0.55,0.20), Color(0.60,0.30,0.70), Color(0.85,0.72,0.40),
+	Color(0.45,0.65,0.80), Color(0.70,0.40,0.20), Color(0.55,0.40,0.75),
+	Color(0.90,0.30,0.50), Color(0.50,0.70,0.35),
+]
+
 func _build_emporium() -> void:
 	_clear()
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(vb)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_theme_constant_override("separation", 8)
+	margin.add_child(vb)
 	vb.add_child(_title("THE EMPORIUM"))
+	vb.add_child(_lbl("Browse wares from across the literary worlds", 11, Color(0.55,0.50,0.45)))
 	if not _main: return
 	var grid = GridContainer.new()
-	grid.columns = 2  # 2 columns — bigger, more shop-like
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 8)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(grid)
 	for ci in range(_main.emporium_categories.size()):
 		var cat = _main.emporium_categories[ci]
+		var accent = EMPORIUM_COLORS[ci % EMPORIUM_COLORS.size()]
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 90)
+		btn.custom_minimum_size = Vector2(0, 80)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
+		# Styled card with accent color left stripe
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.08,0.06,0.14,0.65)
-		s.border_color = Color(0.55,0.42,0.18,0.4)
-		s.set_border_width_all(1); s.set_corner_radius_all(6)
+		s.bg_color = Color(0.06,0.04,0.12,0.50)  # Semi-transparent — art shows through
+		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
+		s.border_width_left = 4  # Thick accent stripe
+		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
+		s.set_corner_radius_all(8)
 		s.content_margin_left = 10; s.content_margin_right = 10
-		s.content_margin_top = 6; s.content_margin_bottom = 6
+		s.content_margin_top = 8; s.content_margin_bottom = 8
 		btn.add_theme_stylebox_override("normal", s)
-		var sh = s.duplicate(); sh.bg_color = Color(0.12,0.09,0.20,0.75); sh.border_color = Color(0.70,0.55,0.25,0.6)
+		var sh = s.duplicate()
+		sh.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.65)
+		sh.border_color = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.7)
 		btn.add_theme_stylebox_override("hover", sh)
-		var sp = s.duplicate(); sp.bg_color = Color(0.06,0.04,0.12,0.80)
-		btn.add_theme_stylebox_override("pressed", sp)
-		var cv = VBoxContainer.new()
-		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		btn.add_child(cv)
-		var name_lbl = _lbl(cat.get("name",""), 16, Color(1,0.85,0.3))
+		# Content: Icon + Name + Desc + Badge
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(row)
+		# Icon from emporium_icons
+		var icon_key = cat.get("icon", "")
+		var icon_rect = TextureRect.new()
+		icon_rect.custom_minimum_size = Vector2(52, 52)
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if _main._emporium_icon_textures.has(icon_key):
+			icon_rect.texture = _main._emporium_icon_textures[icon_key]
+		row.add_child(icon_rect)
+		# Text column
+		var text_col = VBoxContainer.new()
+		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var name_lbl = _lbl(cat.get("name",""), 15, accent)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cv.add_child(name_lbl)
+		text_col.add_child(name_lbl)
 		var d = _lbl(cat.get("desc",""), 10, Color(0.55,0.50,0.45))
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cv.add_child(d)
+		text_col.add_child(d)
+		row.add_child(text_col)
+		# Badge
 		if cat.get("badge","") != "":
-			var badge = _lbl(cat["badge"], 10, Color(0.3,0.9,0.3))
-			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			cv.add_child(badge)
+			var badge_panel = PanelContainer.new()
+			var badge_s = StyleBoxFlat.new()
+			var badge_text = cat["badge"]
+			match badge_text:
+				"SALE!": badge_s.bg_color = Color(0.8, 0.15, 0.1, 0.8)
+				"NEW!": badge_s.bg_color = Color(0.15, 0.6, 0.15, 0.8)
+				"FREE!": badge_s.bg_color = Color(0.1, 0.5, 0.8, 0.8)
+				"AVAILABLE!": badge_s.bg_color = Color(0.6, 0.4, 0.1, 0.8)
+				_: badge_s.bg_color = Color(0.4, 0.3, 0.6, 0.8)
+			badge_s.set_corner_radius_all(10)
+			badge_s.content_margin_left = 8; badge_s.content_margin_right = 8
+			badge_s.content_margin_top = 2; badge_s.content_margin_bottom = 2
+			badge_panel.add_theme_stylebox_override("panel", badge_s)
+			badge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var bl = _lbl(badge_text, 9, Color.WHITE)
+			bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			badge_panel.add_child(bl)
+			row.add_child(badge_panel)
 		btn.pressed.connect(_open_emporium_category.bind(ci))
 		grid.add_child(btn)
 
@@ -951,9 +1006,9 @@ func _build_settings() -> void:
 	# Audio section
 	vb.add_child(_lbl("AUDIO", 16, Color(0.85, 0.72, 0.40)))
 	if _main:
-		_add_setting_row(vb, "Music Volume", "%d%%" % int(GameSettings.music_volume * 100), func(): GameSettings.music_volume = fmod(GameSettings.music_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings())
-		_add_setting_row(vb, "SFX Volume", "%d%%" % int(GameSettings.sfx_volume * 100), func(): GameSettings.sfx_volume = fmod(GameSettings.sfx_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings())
-		_add_setting_row(vb, "Voice Volume", "%d%%" % int(GameSettings.voice_volume * 100), func(): GameSettings.voice_volume = fmod(GameSettings.voice_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Music Volume", "%d%%" % int(GameSettings.music_volume * 100), func(): GameSettings.music_volume = fmod(GameSettings.music_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.music_volume)
+		_add_setting_row(vb, "SFX Volume", "%d%%" % int(GameSettings.sfx_volume * 100), func(): GameSettings.sfx_volume = fmod(GameSettings.sfx_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.sfx_volume)
+		_add_setting_row(vb, "Voice Volume", "%d%%" % int(GameSettings.voice_volume * 100), func(): GameSettings.voice_volume = fmod(GameSettings.voice_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.voice_volume)
 		_add_setting_row(vb, "Music Muted", "YES" if GameSettings.music_muted else "NO", func(): GameSettings.music_muted = not GameSettings.music_muted; GameSettings.save_settings(); _build_settings())
 	# Graphics section
 	vb.add_child(_lbl("GRAPHICS", 16, Color(0.85, 0.72, 0.40)))
@@ -980,26 +1035,44 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
 
-func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable) -> void:
+func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable, is_volume: bool = false, volume_pct: float = 0.0) -> void:
 	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 20)
+	row.add_theme_constant_override("separation", 12)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var nl = _lbl(label, 14, Color(0.85, 0.78, 0.65))
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(nl)
+	# Volume bar visualization
+	if is_volume:
+		var bar_bg = ColorRect.new()
+		bar_bg.custom_minimum_size = Vector2(120, 18)
+		bar_bg.color = Color(0.08, 0.06, 0.14, 0.8)
+		bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var bar_fill = ColorRect.new()
+		bar_fill.custom_minimum_size = Vector2(120 * volume_pct, 18)
+		bar_fill.color = Color(0.3, 0.7, 0.4, 0.9)
+		bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar_bg.add_child(bar_fill)
+		row.add_child(bar_bg)
 	var btn = Button.new()
 	btn.text = value
-	btn.custom_minimum_size = Vector2(120, 32)
+	btn.custom_minimum_size = Vector2(100, 30)
 	var bs = StyleBoxFlat.new()
-	bs.bg_color = Color(0.15, 0.12, 0.25, 0.8)
+	# Color code ON/OFF
+	if value == "ON" or value.ends_with("%") or value == "AUTO" or value.begins_with("1") or value.begins_with("2") or value.begins_with("3"):
+		bs.bg_color = Color(0.12, 0.35, 0.15, 0.8)
+	elif value == "OFF" or value == "NO":
+		bs.bg_color = Color(0.35, 0.12, 0.12, 0.8)
+	else:
+		bs.bg_color = Color(0.15, 0.12, 0.25, 0.8)
 	bs.set_corner_radius_all(6)
 	bs.content_margin_left = 8; bs.content_margin_right = 8
 	btn.add_theme_stylebox_override("normal", bs)
-	var bsh = bs.duplicate(); bsh.bg_color = Color(0.25, 0.20, 0.38, 0.9)
+	var bsh = bs.duplicate(); bsh.bg_color = bs.bg_color.lightened(0.2)
 	btn.add_theme_stylebox_override("hover", bsh)
-	btn.add_theme_font_size_override("font_size", 13)
-	btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
+	btn.add_theme_font_size_override("font_size", 12)
+	btn.add_theme_color_override("font_color", Color(1.0, 0.95, 0.85))
 	btn.pressed.connect(callback)
 	row.add_child(btn)
 	parent.add_child(row)
