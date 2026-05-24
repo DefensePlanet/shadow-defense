@@ -6238,10 +6238,12 @@ func _show_menu_v2() -> void:
 		canvas.add_child(_menu_v2_instance)
 		add_child(canvas)
 	else:
+		# Re-add the canvas if it was removed
+		if has_meta("_menu_v2_canvas"):
+			var canvas = get_meta("_menu_v2_canvas")
+			if canvas and not canvas.is_inside_tree():
+				add_child(canvas)
 		_menu_v2_instance.visible = true
-		var canvas = _menu_v2_instance.get_parent()
-		if canvas is CanvasLayer:
-			canvas.layer = 50  # Restore to top layer
 	# CRITICAL: Hide ALL old menu interactive elements so they don't eat clicks
 	if menu_overlay:
 		menu_overlay.visible = false
@@ -6258,11 +6260,11 @@ func _show_menu_v2() -> void:
 
 func _hide_menu_v2() -> void:
 	if _menu_v2_instance != null:
-		_menu_v2_instance.visible = false
-		# CanvasLayer doesn't have .visible — set layer to -100 to hide it
 		var canvas = _menu_v2_instance.get_parent()
-		if canvas is CanvasLayer:
-			canvas.layer = -100  # Renders behind everything = effectively hidden
+		if canvas and canvas.is_inside_tree():
+			remove_child(canvas)
+			# Store reference so we can re-add it later
+			set_meta("_menu_v2_canvas", canvas)
 	# Re-enable old menu inputs for gameplay UI
 	if menu_overlay:
 		menu_overlay.visible = true
