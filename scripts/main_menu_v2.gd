@@ -2,6 +2,8 @@ extends Control
 ## MainMenuV2 — Full interactive menu. Art backgrounds, working buttons, detail panels.
 
 var _backgrounds: Dictionary = {}
+var _art: Dictionary = {}  # UI art textures
+var _black_key_shader: Shader = null
 var _main: Node = null
 var current_view: String = "chapters"
 # Portrait key mapping — character_names[] index → portrait texture key
@@ -10,8 +12,8 @@ const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan"
 @onready var background: TextureRect = $Background
 @onready var content_area: Control = $ContentArea
 @onready var nav_buttons_container: HBoxContainer = $NavBar/NavButtons
-@onready var top_bar: ColorRect = $TopBar
-@onready var nav_bar: ColorRect = $NavBar
+@onready var top_bar: TextureRect = $TopBar
+@onready var nav_bar: TextureRect = $NavBar
 @onready var fade_rect: ColorRect = $FadeRect
 
 
@@ -23,6 +25,7 @@ const PARTICLE_COUNT: int = 15
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
 	_load_bgs()
+	_load_art()
 	_set_bg("chapters")
 	_build_currency_bar()
 	_build_music_display()
@@ -67,6 +70,152 @@ func _load_bgs() -> void:
 		if exists:
 			_backgrounds[k] = load(m[k])
 
+func _load_art() -> void:
+	# Load the black-key shader
+	if ResourceLoader.exists("res://shaders/black_key.gdshader"):
+		_black_key_shader = load("res://shaders/black_key.gdshader")
+	# Load ALL UI art textures
+	var paths = {
+		"level_card": "res://assets/ui_elements/level_card_bg.png",
+		"shop_card": "res://assets/ui_elements/shop_item_card.png",
+		"detail_panel": "res://assets/ui_elements/detail_panel_bg.png",
+		"stats_panel": "res://assets/ui_elements/stats_panel.png",
+		"buy_button": "res://assets/ui_elements/buy_button.png",
+		"play_button": "res://assets/ui_elements/play_button_v2.png",
+		"header_bar": "res://assets/ui_elements/header_bar.png",
+		"nav_bar": "res://assets/ui_frames/nav_book_spine.png",
+		"scroll_header": "res://assets/ui_frames/scroll_header_storybook.png",
+		"card_frame": "res://assets/ui_frames/card_frame_storybook.png",
+		"popup_frame": "res://assets/ui_frames/popup_frame.png",
+		"locked_card": "res://assets/ui_elements/back_button.png",
+		"golden_star": "res://assets/ui_elements/golden_star.png",
+		"empty_star": "res://assets/ui_elements/empty_star.png",
+		"reward_chest": "res://assets/ui_elements/reward_chest.png",
+		"daily_banner": "res://assets/ui_elements/daily_deals_banner.png",
+		"button_gothic": "res://assets/ui_frames/button_gothic.png",
+		"chapter_divider": "res://assets/ui_elements/chapter_divider.png",
+	}
+	for k in paths:
+		if ResourceLoader.exists(paths[k]):
+			_art[k] = load(paths[k])
+
+# Create a TextureRect with black-key shader applied
+func _art_tex(texture: Texture2D, min_size: Vector2 = Vector2.ZERO) -> TextureRect:
+	var tr = TextureRect.new()
+	tr.texture = texture
+	if min_size != Vector2.ZERO:
+		tr.custom_minimum_size = min_size
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Apply black-key shader to remove black background
+	if _black_key_shader:
+		var mat = ShaderMaterial.new()
+		mat.shader = _black_key_shader
+		mat.set_shader_parameter("threshold", 0.08)
+		mat.set_shader_parameter("smoothness", 0.05)
+		tr.material = mat
+	return tr
+
+# Create a card with art background + content on top
+func _art_card(art_key: String, size: Vector2, content_margins: Vector4 = Vector4(20, 20, 25, 20)) -> Array:
+	# Returns [container, content_vbox] — add children to content_vbox
+	var card = Control.new()
+	card.custom_minimum_size = size
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Art background layer
+	if _art.has(art_key):
+		var bg = _art_tex(_art[art_key])
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		card.add_child(bg)
+	else:
+		# Fallback: semi-transparent dark panel
+		var fb = ColorRect.new()
+		fb.color = Color(0.06, 0.04, 0.12, 0.55)
+		fb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		fb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(fb)
+	# Content layer with margins (inside the ornate border)
+	var margin = MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", int(content_margins.x))
+	margin.add_theme_constant_override("margin_right", int(content_margins.y))
+	margin.add_theme_constant_override("margin_top", int(content_margins.z))
+	margin.add_theme_constant_override("margin_bottom", int(content_margins.w))
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(margin)
+	var vb = VBoxContainer.new()
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_child(vb)
+	return [card, vb]
+
+# Create an art-backed button
+func _art_btn(text: String, art_key: String, size: Vector2, callback: Callable) -> Control:
+	if _art.has(art_key):
+		var btn = TextureButton.new()
+		btn.texture_normal = _art[art_key]
+		btn.ignore_texture_size = true
+		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		btn.custom_minimum_size = size
+		# Apply black-key shader
+		if _black_key_shader:
+			var mat = ShaderMaterial.new()
+			mat.shader = _black_key_shader
+			mat.set_shader_parameter("threshold", 0.08)
+			mat.set_shader_parameter("smoothness", 0.05)
+			btn.material = mat
+		btn.pressed.connect(callback)
+		# Hover feedback
+		btn.mouse_entered.connect(func(): btn.modulate = Color(1.2, 1.15, 1.0))
+		btn.mouse_exited.connect(func(): btn.modulate = Color.WHITE)
+		# Text label on top
+		if text != "":
+			var lbl = Label.new()
+			lbl.text = text
+			lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lbl.add_theme_font_size_override("font_size", 14)
+			lbl.add_theme_color_override("font_color", Color.WHITE)
+			lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+			lbl.add_theme_constant_override("shadow_offset_x", 2)
+			lbl.add_theme_constant_override("shadow_offset_y", 2)
+			lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			btn.add_child(lbl)
+		return btn
+	else:
+		# Fallback flat button
+		var btn = Button.new()
+		btn.text = text
+		btn.custom_minimum_size = size
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.15, 0.12, 0.25, 0.8)
+		s.set_corner_radius_all(6)
+		btn.add_theme_stylebox_override("normal", s)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.add_theme_color_override("font_color", Color.WHITE)
+		btn.pressed.connect(callback)
+		return btn
+
+# Art-backed title banner
+func _art_title(text: String) -> Control:
+	var container = Control.new()
+	container.custom_minimum_size = Vector2(0, 55)
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _art.has("scroll_header"):
+		var banner = _art_tex(_art["scroll_header"])
+		banner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		banner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		container.add_child(banner)
+	var label = _lbl(text, 22, Color(0.20, 0.12, 0.05))
+	label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(label)
+	return container
+
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
@@ -76,6 +225,15 @@ func _set_bg(view: String) -> void:
 
 func _build_currency_bar() -> void:
 	if not _main: return
+	# Set art texture on top bar with black-key shader
+	if _art.has("header_bar"):
+		top_bar.texture = _art["header_bar"]
+		if _black_key_shader:
+			var mat = ShaderMaterial.new()
+			mat.shader = _black_key_shader
+			mat.set_shader_parameter("threshold", 0.06)
+			mat.set_shader_parameter("smoothness", 0.04)
+			top_bar.material = mat
 	var h = HBoxContainer.new()
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h.add_theme_constant_override("separation", 24)
@@ -119,6 +277,15 @@ func _build_music_display() -> void:
 	music_row.add_child(skip)
 
 func _build_nav() -> void:
+	# Set art texture on nav bar with black-key shader
+	if _art.has("nav_bar"):
+		nav_bar.texture = _art["nav_bar"]
+		if _black_key_shader:
+			var mat = ShaderMaterial.new()
+			mat.shader = _black_key_shader
+			mat.set_shader_parameter("threshold", 0.06)
+			mat.set_shader_parameter("smoothness", 0.04)
+			nav_bar.material = mat
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	for i in range(5):
@@ -198,22 +365,19 @@ func _build_chapters() -> void:
 		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(card_idx * 0.03)
 		card_idx += 1
 
-func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
+func _level_card(idx: int, lvl: Dictionary) -> Control:
 	var unlocked = _main._is_level_unlocked(idx)
 	var complete = idx in _main.completed_levels
-	var p = PanelContainer.new()
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.04,0.03,0.10,0.55) if unlocked else Color(0.03,0.02,0.06,0.40)
-	s.border_color = Color(0.3,0.65,0.25,0.6) if complete else Color(0.35,0.25,0.18,0.3)
-	s.set_border_width_all(1 if not complete else 2)
-	s.set_corner_radius_all(6)
-	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
-	p.add_theme_stylebox_override("panel", s)
-	p.mouse_filter = Control.MOUSE_FILTER_PASS  # Let clicks through to children
+	# Art card with level_card_bg.png as background
+	var card_data = _art_card("level_card" if unlocked else "", Vector2(0, 85), Vector4(14, 14, 8, 8))
+	var p = card_data[0]
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	if complete:
+		p.modulate = Color(0.9, 1.0, 0.9)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(row)
+	card_data[1].add_child(row)
 	var num_lbl = _lbl(str(idx+1), 18, Color(0.85,0.72,0.40) if unlocked else Color(0.35,0.30,0.25))
 	num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(num_lbl)
@@ -1107,10 +1271,8 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 	parent.add_child(row)
 
 # ======================== UTILITY ========================
-func _title(text: String) -> Label:
-	var l = _lbl(text, 24, Color(1,0.92,0.45))
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	return l
+func _title(text: String) -> Control:
+	return _art_title(text)
 
 func _lbl(text: String, size: int, color: Color) -> Label:
 	var l = Label.new()
