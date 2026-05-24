@@ -135,15 +135,17 @@ func _clear() -> void:
 # ======================== CHAPTERS ========================
 func _build_chapters() -> void:
 	_clear()
-	# Direct VBoxContainer — no ScrollContainer to eat clicks
-	# TODO: Add manual scroll with _gui_input later
+	# ScrollContainer with all children set to mouse_filter=IGNORE
+	# Only Button nodes receive clicks — ScrollContainer handles scrolling
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
 	var vb = VBoxContainer.new()
-	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_theme_constant_override("separation", 6)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.clip_contents = true
-	content_area.add_child(vb)
+	sc.add_child(vb)
 	vb.add_child(_title("THE TOME OF SHADOWS"))
 	vb.add_child(_lbl("Heroes pulled from their stories. One Author controls them all.", 11, Color(0.55,0.50,0.45)))
 	if not _main: return
@@ -290,9 +292,11 @@ func _build_survivors() -> void:
 		if _main._is_character_unlocked(tt): unlocked_ct += 1
 	vb.add_child(_lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 12, Color(0.65,0.58,0.50)))
 	var grid = GridContainer.new()
-	grid.columns = 6
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.columns = 4  # Bigger cards, fill screen better
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(grid)
 	for i in range(PORTRAIT_KEYS.size()):
 		var card = _survivor_card(i)
@@ -305,7 +309,7 @@ func _build_survivors() -> void:
 func _survivor_card(idx: int) -> Button:
 	# The card IS a Button — no overlay needed, clicks just work
 	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(170, 230)
+	btn.custom_minimum_size = Vector2(250, 280)
 	# Style the button to look like a card
 	var s = StyleBoxFlat.new()
 	s.bg_color = Color(0.06,0.04,0.12,0.70)
@@ -329,7 +333,7 @@ func _survivor_card(idx: int) -> Button:
 	btn.add_child(vb)
 	# Portrait
 	var port = TextureRect.new()
-	port.custom_minimum_size = Vector2(150, 150)
+	port.custom_minimum_size = Vector2(200, 190)
 	port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	port.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -641,25 +645,47 @@ func _codex_switch(tab: String) -> void:
 	_build_codex()
 
 func _build_gear_grid(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 16, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_lbl("Collect gear from battles and the Emporium to empower your Survivors", 11, Color(0.55, 0.50, 0.45)))
 	var grid = GridContainer.new()
-	grid.columns = 10
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 6)
+	grid.columns = 8
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(grid)
 	if not _main: return
 	var keys = _main._gear_icon_textures.keys()
 	keys.sort()
 	for gk in keys:
+		# Each gear item in a styled panel
+		var card = PanelContainer.new()
+		var cs = StyleBoxFlat.new()
+		cs.bg_color = Color(0.06, 0.04, 0.12, 0.55)
+		cs.border_color = Color(0.45, 0.35, 0.20, 0.4)
+		cs.set_border_width_all(1)
+		cs.set_corner_radius_all(6)
+		cs.content_margin_left = 4; cs.content_margin_right = 4
+		cs.content_margin_top = 4; cs.content_margin_bottom = 4
+		card.add_theme_stylebox_override("panel", cs)
+		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var cv = VBoxContainer.new()
+		cv.alignment = BoxContainer.ALIGNMENT_CENTER
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(cv)
 		var icon = TextureRect.new()
 		icon.texture = _main._gear_icon_textures[gk]
-		icon.custom_minimum_size = Vector2(64, 64)
+		icon.custom_minimum_size = Vector2(72, 72)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.tooltip_text = gk.replace("_", " ").capitalize()
-		grid.add_child(icon)
+		cv.add_child(icon)
+		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 8, Color(0.65, 0.58, 0.50))
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		name_lbl.clip_text = true
+		name_lbl.custom_minimum_size.x = 80
+		cv.add_child(name_lbl)
+		grid.add_child(card)
 
 func _build_achievements_list(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("ACHIEVEMENTS", 14, Color(0.85, 0.72, 0.40)))
@@ -719,34 +745,76 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 # ======================== SETTINGS ========================
 func _build_settings() -> void:
 	_clear()
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
 	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 150)
-	margin.add_theme_constant_override("margin_right", 150)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 100)
+	margin.add_theme_constant_override("margin_right", 100)
 	margin.add_theme_constant_override("margin_top", 10)
-	content_area.add_child(margin)
+	sc.add_child(margin)
 	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 8)
+	vb.add_theme_constant_override("separation", 10)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
 	vb.add_child(_title("SETTINGS"))
-	var settings = [["Music Volume","music"],["SFX Volume","sfx"],["Voice Volume","voice"],["Quality","quality"],["Text Size","text"],["Colorblind Mode","colorblind"],["Game Speed","speed"],["Screen Shake","shake"],["Damage Numbers","numbers"]]
-	for s in settings:
-		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 20)
-		var nl = _lbl(s[0], 14, Color(0.85,0.78,0.65))
-		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(nl)
-		var btn = Button.new()
-		btn.text = "Toggle"
-		btn.custom_minimum_size = Vector2(90, 28)
-		var bs = StyleBoxFlat.new(); bs.bg_color = Color(0.15,0.12,0.25,0.8); bs.set_corner_radius_all(4)
-		btn.add_theme_stylebox_override("normal", bs)
-		var bsh = bs.duplicate(); bsh.bg_color = Color(0.22,0.18,0.35,0.9)
-		btn.add_theme_stylebox_override("hover", bsh)
-		btn.add_theme_font_size_override("font_size", 11)
-		btn.add_theme_color_override("font_color", Color(0.8,0.75,0.65))
-		row.add_child(btn)
-		vb.add_child(row)
+	# Audio section
+	vb.add_child(_lbl("AUDIO", 16, Color(0.85, 0.72, 0.40)))
+	if _main:
+		_add_setting_row(vb, "Music Volume", "%d%%" % int(GameSettings.music_volume * 100), func(): GameSettings.music_volume = fmod(GameSettings.music_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "SFX Volume", "%d%%" % int(GameSettings.sfx_volume * 100), func(): GameSettings.sfx_volume = fmod(GameSettings.sfx_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Voice Volume", "%d%%" % int(GameSettings.voice_volume * 100), func(): GameSettings.voice_volume = fmod(GameSettings.voice_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Music Muted", "YES" if GameSettings.music_muted else "NO", func(): GameSettings.music_muted = not GameSettings.music_muted; GameSettings.save_settings(); _build_settings())
+	# Graphics section
+	vb.add_child(_lbl("GRAPHICS", 16, Color(0.85, 0.72, 0.40)))
+	if _main:
+		_add_setting_row(vb, "Quality", GameSettings.get_quality_name(), func(): GameSettings.cycle_quality(); _build_settings())
+		_add_setting_row(vb, "Particle Effects", "ON" if GameSettings.particle_effects else "OFF", func(): GameSettings.particle_effects = not GameSettings.particle_effects; GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Screen Shake", "ON" if GameSettings.screen_shake else "OFF", func(): GameSettings.screen_shake = not GameSettings.screen_shake; GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Damage Numbers", "ON" if GameSettings.show_damage_numbers else "OFF", func(): GameSettings.show_damage_numbers = not GameSettings.show_damage_numbers; GameSettings.save_settings(); _build_settings())
+	# Gameplay section
+	vb.add_child(_lbl("GAMEPLAY", 16, Color(0.85, 0.72, 0.40)))
+	if _main:
+		var speed_names = ["1x", "2x", "3x"]
+		_add_setting_row(vb, "Game Speed", speed_names[clampi(GameSettings.game_speed - 1, 0, 2)], func(): GameSettings.cycle_speed(); _build_settings())
+		_add_setting_row(vb, "Auto Wave", "ON" if GameSettings.auto_wave else "OFF", func(): GameSettings.auto_wave = not GameSettings.auto_wave; GameSettings.save_settings(); _build_settings())
+	# Accessibility section
+	vb.add_child(_lbl("ACCESSIBILITY", 16, Color(0.85, 0.72, 0.40)))
+	if _main:
+		var text_sizes = ["1.0x", "1.25x", "1.5x"]
+		var ts_idx = [1.0, 1.25, 1.5].find(GameSettings.font_scale)
+		if ts_idx < 0: ts_idx = 0
+		_add_setting_row(vb, "Text Size", text_sizes[ts_idx], func(): var sizes = [1.0, 1.25, 1.5]; var ci = sizes.find(GameSettings.font_scale); GameSettings.font_scale = sizes[(ci + 1) % 3]; GameSettings.save_settings(); _build_settings())
+		var cb_names = ["Off", "Deuteranopia", "Protanopia", "Tritanopia"]
+		_add_setting_row(vb, "Colorblind Mode", cb_names[clampi(GameSettings.colorblind_mode, 0, 3)], func(): GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4; GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
+
+func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable) -> void:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var nl = _lbl(label, 14, Color(0.85, 0.78, 0.65))
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(nl)
+	var btn = Button.new()
+	btn.text = value
+	btn.custom_minimum_size = Vector2(120, 32)
+	var bs = StyleBoxFlat.new()
+	bs.bg_color = Color(0.15, 0.12, 0.25, 0.8)
+	bs.set_corner_radius_all(6)
+	bs.content_margin_left = 8; bs.content_margin_right = 8
+	btn.add_theme_stylebox_override("normal", bs)
+	var bsh = bs.duplicate(); bsh.bg_color = Color(0.25, 0.20, 0.38, 0.9)
+	btn.add_theme_stylebox_override("hover", bsh)
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
+	btn.pressed.connect(callback)
+	row.add_child(btn)
+	parent.add_child(row)
 
 # ======================== UTILITY ========================
 func _title(text: String) -> Label:
