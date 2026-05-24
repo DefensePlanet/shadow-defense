@@ -16,6 +16,10 @@ const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan"
 
 
 
+# Phase 8: Ambient floating particles
+var _particles: Array = []
+const PARTICLE_COUNT: int = 15
+
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
 	_load_bgs()
@@ -24,8 +28,36 @@ func _ready() -> void:
 	_build_music_display()
 	_build_nav()
 	_build_chapters()
+	_init_particles()
 	_fade_in()
 	# Portraits verified loaded — all 12 keys match
+
+func _init_particles() -> void:
+	_particles.clear()
+	for i in range(PARTICLE_COUNT):
+		_particles.append({
+			"x": randf_range(0, 1280),
+			"y": randf_range(0, 720),
+			"speed": randf_range(8, 25),
+			"size": randf_range(1.5, 3.5),
+			"alpha": randf_range(0.1, 0.35),
+			"offset": randf_range(0, TAU),
+		})
+
+func _process(delta: float) -> void:
+	for p in _particles:
+		p["y"] -= p["speed"] * delta
+		p["x"] += sin(p["offset"] + p["y"] * 0.01) * 0.3
+		if p["y"] < -10:
+			p["y"] = 730
+			p["x"] = randf_range(0, 1280)
+	queue_redraw()
+
+func _draw() -> void:
+	# Phase 8: Floating gold dust particles
+	for p in _particles:
+		var flicker = p["alpha"] * (0.7 + sin(p["offset"] + p["y"] * 0.02) * 0.3)
+		draw_circle(Vector2(p["x"], p["y"]), p["size"], Color(0.85, 0.70, 0.40, flicker))
 	# Auto-test removed
 
 func _load_bgs() -> void:
