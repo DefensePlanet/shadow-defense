@@ -6266,9 +6266,13 @@ func _hide_menu_v2() -> void:
 		_menu_v2_instance = null  # Clear reference
 		if canvas:
 			canvas.queue_free()  # Destroy the entire CanvasLayer + menu
-	# Re-enable old menu inputs for gameplay UI
+	# Re-enable old UI controls for gameplay
 	if menu_overlay:
 		menu_overlay.visible = true
+	if has_node("UI"):
+		for child in $UI.get_children():
+			if child is Control:
+				child.mouse_filter = Control.MOUSE_FILTER_STOP
 	if has_node("UI"):
 		for child in $UI.get_children():
 			if child is Control:
