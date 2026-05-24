@@ -448,25 +448,18 @@ func _rrp(r: Rect2, rad: float) -> PackedVector2Array:
 		p.append(Vector2(x + cr + cos(a) * cr, y + h - cr + sin(a) * cr))
 	return p
 
-# DS: ROUNDED panel — frosted glass style with depth layers
-# Phase 1: Added top-edge highlight, inner shadow, bottom darkening for depth
+# DS: ROUNDED panel — glass style, TRANSPARENT fill, border is OUTLINE not filled
 func _ds_panel(rect: Rect2, bg_color: Color, border_color: Color, border_width: float = 3.0, rad: float = 10.0) -> void:
-	# Rounded shadow — deeper, not pure black
-	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 5), rect.size), rad), Color(0.02, 0.01, 0.05, 0.55))
-	# Rounded border
-	draw_colored_polygon(_rrp(Rect2(rect.position - Vector2(border_width, border_width), rect.size + Vector2(border_width * 2, border_width * 2)), rad + border_width), border_color)
-	# Rounded fill
+	# Soft shadow (low alpha, doesn't block art)
+	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(2, 3), rect.size), rad), Color(0.01, 0.01, 0.03, 0.25))
+	# Transparent fill — lets background art show through
 	draw_colored_polygon(_rrp(rect, rad), bg_color)
-	# Phase 1: Top edge highlight (glass refraction simulation)
-	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(2, 1), Vector2(rect.size.x - 4, 2)), maxf(rad - 1, 2)), Color(1, 1, 1, 0.10))
-	# Phase 1: Top shine gradient
-	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 2), Vector2(rect.size.x - 6, rect.size.y * 0.3)), maxf(rad - 2, 2)), Color(1, 1, 1, 0.05))
-	# Phase 1: Bottom inner shadow (depth)
-	draw_colored_polygon(_rrp(Rect2(Vector2(rect.position.x + 2, rect.position.y + rect.size.y * 0.7), Vector2(rect.size.x - 4, rect.size.y * 0.28)), maxf(rad - 2, 2)), Color(0, 0, 0, 0.08))
-	# Glass highlight top
-	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 2), Vector2(rect.size.x - 6, rect.size.y * 0.35)), maxf(rad - 2, 2)), Color(1, 1, 1, 0.08))
-	# Dark bottom
-	draw_colored_polygon(_rrp(Rect2(Vector2(rect.position.x + 3, rect.position.y + rect.size.y * 0.6), Vector2(rect.size.x - 6, rect.size.y * 0.38)), maxf(rad - 2, 2)), Color(0, 0, 0, 0.1))
+	# Border as OUTLINE only — NOT a filled polygon behind the panel
+	var border_pts = _rrp(rect, rad)
+	border_pts.append(border_pts[0])
+	draw_polyline(border_pts, border_color, border_width)
+	# Top edge highlight
+	draw_colored_polygon(_rrp(Rect2(rect.position + Vector2(3, 1), Vector2(rect.size.x - 6, 1.5)), maxf(rad - 2, 2)), Color(1, 1, 1, 0.12))
 
 # DS: Draw a hero card — PREMIUM gothic style with rarity glow, lift, frosted name plate
 # Phase 1: Rarity glow, hover lift 4px, left-border rarity stripe, frosted name plate, breathing
@@ -520,7 +513,7 @@ func _ds_hero_card(rect: Rect2, speaker_name: String, char_name: String, title: 
 		_udraw(font, Vector2(rx, lk_cy + 30), "?", HORIZONTAL_ALIGNMENT_CENTER, int(rw), 20, Color(0.30, 0.22, 0.45, 0.45))
 	# Phase 1: Frosted glass name plate (semi-transparent, not solid)
 	var nb_y = ry + rh - name_bar_h
-	var nb_col = Color(0.10, 0.07, 0.18, 0.82) if unlocked else Color(0.08, 0.06, 0.14, 0.85)
+	var nb_col = Color(0.10, 0.07, 0.18, 0.50) if unlocked else Color(0.08, 0.06, 0.14, 0.50)
 	draw_colored_polygon(_rrp(Rect2(rx, nb_y, rw, name_bar_h), crad), nb_col)
 	# Top-edge glass refraction line
 	draw_rect(Rect2(rx + 4, nb_y, rw - 8, 1), Color(1.0, 1.0, 1.0, 0.08))
@@ -550,9 +543,9 @@ func _ds_section_header(pos: Vector2, width: float, text: String, color: Color) 
 	var font = game_font
 	if font == null:
 		return
-	# Rounded section header
-	draw_colored_polygon(_rrp(Rect2(pos.x, pos.y, width, 26), 6.0), Color(color.r * 0.3, color.g * 0.3, color.b * 0.3, 0.85))
-	draw_colored_polygon(_rrp(Rect2(pos.x, pos.y + 24, width, 2), 1.0), _ca(color, 0.7))
+	# Rounded section header — transparent so art shows
+	draw_colored_polygon(_rrp(Rect2(pos.x, pos.y, width, 26), 6.0), Color(color.r * 0.2, color.g * 0.2, color.b * 0.2, 0.35))
+	draw_colored_polygon(_rrp(Rect2(pos.x, pos.y + 24, width, 2), 1.0), _ca(color, 0.5))
 	_ds_outlined_text(Vector2(pos.x + 14, pos.y + 18), text, 15, Color(minf(color.r * 1.6, 1.0), minf(color.g * 1.6, 1.0), minf(color.b * 1.6, 1.0), 1.0), int(width - 20), HORIZONTAL_ALIGNMENT_LEFT, 1)
 
 # Storybook menu - animation (particles, lanterns, decorations)
@@ -11054,13 +11047,8 @@ func _draw_currency_bar() -> void:
 	# Fill status bar area behind notch/cutout
 	if _safe_top > 0:
 		draw_rect(Rect2(0, 0, 1280, _safe_top), Color(0.06, 0.05, 0.14, 0.95))
-	# Dark gothic purple top bar
-	for gi in range(8):
-		var gt = float(gi) / 7.0
-		var br = lerpf(0.10, 0.06, gt)
-		var bg2 = lerpf(0.06, 0.04, gt)
-		var bb = lerpf(0.18, 0.12, gt)
-		draw_rect(Rect2(0, bar_y + gt * bar_h, 1280, bar_h / 8.0 + 1), Color(br, bg2, bb, 0.97))
+	# Top bar — semi-transparent so art peeks through
+	draw_rect(Rect2(0, bar_y, 1280, bar_h), Color(0.06, 0.04, 0.12, 0.70))
 	# Subtle glass highlight
 	draw_rect(Rect2(0, bar_y, 1280, bar_h * 0.3), Color(1, 1, 1, 0.04))
 	# Gold bottom border
@@ -11237,11 +11225,11 @@ func _draw_menu_background() -> void:
 	if _ui_tex.has("nav_book_spine"):
 		draw_texture_rect(_ui_tex["nav_book_spine"], Rect2(0, nav_draw_y - 10, 1280, 110), false)
 	else:
-		# Fallback: solid dark cover
-		draw_rect(Rect2(0, nav_draw_y - 2, 1280, 120), Color(0.05, 0.03, 0.08, 1.0))
+		# Fallback: semi-transparent dark cover
+		draw_rect(Rect2(0, nav_draw_y - 2, 1280, 120), Color(0.05, 0.03, 0.08, 0.85))
 		for ngi in range(10):
 			var t = float(ngi) / 9.0
-			draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(lerpf(0.10, 0.05, t), lerpf(0.06, 0.03, t), lerpf(0.16, 0.10, t), 0.97))
+			draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(lerpf(0.10, 0.05, t), lerpf(0.06, 0.03, t), lerpf(0.16, 0.10, t), 0.80))
 	# Top edge — gold accent line
 	draw_rect(Rect2(0, nav_draw_y - 1, 1280, 2), Color(0.65, 0.50, 0.20, 0.7))
 	draw_rect(Rect2(0, nav_draw_y + 1, 1280, 1), Color(0.50, 0.35, 0.15, 0.3))
