@@ -210,12 +210,25 @@ func _level_card(idx: int) -> PanelContainer:
 		btns.add_child(drow)
 		# PLAY button — ornate emerald gemstone art
 		var play = TextureButton.new()
-		play.custom_minimum_size = Vector2(160, 45)
+		play.custom_minimum_size = Vector2(200, 55)
 		play.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		play.ignore_texture_size = true
-		var play_tex = load("res://assets/ui_elements/play_button_v2.png") if ResourceLoader.exists("res://assets/ui_elements/play_button_v2.png") else null
-		if play_tex:
-			play.texture_normal = play_tex
+		if ResourceLoader.exists("res://assets/ui_elements/play_button_v2.png"):
+			play.texture_normal = load("res://assets/ui_elements/play_button_v2.png")
+		else:
+			# Fallback — simple green button if art missing
+			var fb = Button.new()
+			fb.text = "PLAY"
+			fb.custom_minimum_size = Vector2(150, 40)
+			var fbs = StyleBoxFlat.new()
+			fbs.bg_color = Color(0.15, 0.55, 0.15)
+			fbs.set_corner_radius_all(6)
+			fb.add_theme_stylebox_override("normal", fbs)
+			fb.add_theme_font_size_override("font_size", 14)
+			fb.add_theme_color_override("font_color", Color.WHITE)
+			fb.pressed.connect(_play.bind(idx, 0))
+			btns.add_child(fb)
+			return p
 		play.pressed.connect(_play.bind(idx, 0))
 		btns.add_child(play)
 		row.add_child(btns)
