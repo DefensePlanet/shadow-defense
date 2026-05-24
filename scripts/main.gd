@@ -6217,10 +6217,41 @@ func _on_retry_level() -> void:
 		spawn_floating_text(Vector2(640, 300), "REVENGE +%dG!" % revenge_gold, Color(1.0, 0.4, 0.2), 20.0, 2.0)
 		_revenge_available = false
 
+# === NEW MENU V2 — Scene-based overlay ===
+var _menu_v2_scene: PackedScene = null
+var _menu_v2_instance: Control = null
+
+func _load_menu_v2() -> void:
+	if _menu_v2_scene == null:
+		if ResourceLoader.exists("res://scenes/main_menu_v2.tscn"):
+			_menu_v2_scene = load("res://scenes/main_menu_v2.tscn")
+
+func _show_menu_v2() -> void:
+	_load_menu_v2()
+	if _menu_v2_scene == null:
+		return  # Fallback to old menu if scene missing
+	if _menu_v2_instance == null:
+		_menu_v2_instance = _menu_v2_scene.instantiate()
+		# Add as top-level CanvasLayer child so it covers everything
+		var canvas = CanvasLayer.new()
+		canvas.name = "MenuV2Layer"
+		canvas.layer = 50  # Above everything
+		canvas.add_child(_menu_v2_instance)
+		add_child(canvas)
+	else:
+		_menu_v2_instance.get_parent().visible = true
+		_menu_v2_instance.visible = true
+
+func _hide_menu_v2() -> void:
+	if _menu_v2_instance != null:
+		_menu_v2_instance.get_parent().visible = false
+
 func _show_menu() -> void:
 	_reset_game()
 	ingame_settings_open = false
 	game_state = GameState.MENU
+	# Show the new scene-based menu on top
+	_show_menu_v2()
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	fast_forward = false
