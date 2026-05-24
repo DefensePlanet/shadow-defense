@@ -55,8 +55,15 @@ func _setup_currency_bar() -> void:
 		hbox.add_child(lbl)
 
 func _setup_nav_bar() -> void:
-	# Simple dark bar — no texture that might look weird
-	nav_bar.modulate = Color(0.2, 0.15, 0.3, 1.0)
+	# Solid dark bar for clear nav visibility
+	nav_bar.modulate = Color(1, 1, 1, 1)
+	# Add a dark background behind the nav
+	var nav_bg = ColorRect.new()
+	nav_bg.color = Color(0.05, 0.03, 0.10, 0.92)
+	nav_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	nav_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nav_bar.add_child(nav_bg)
+	nav_bar.move_child(nav_bg, 0)  # Behind nav buttons
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	for i in range(tabs.size()):
@@ -139,7 +146,7 @@ func _level_card(idx: int) -> PanelContainer:
 	var complete = idx in _main.completed_levels
 	var p = PanelContainer.new()
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.06, 0.04, 0.12, 0.75) if unlocked else Color(0.04, 0.03, 0.08, 0.60)
+	s.bg_color = Color(0.04, 0.03, 0.10, 0.55) if unlocked else Color(0.03, 0.02, 0.06, 0.40)
 	if complete:
 		s.border_color = Color(0.3, 0.65, 0.25, 0.6)
 		s.set_border_width_all(2)
@@ -201,27 +208,14 @@ func _level_card(idx: int) -> PanelContainer:
 			db.pressed.connect(_play.bind(idx, d[1]))
 			drow.add_child(db)
 		btns.add_child(drow)
-		# PLAY button
-		var play = Button.new()
-		play.text = "PLAY"
-		play.custom_minimum_size = Vector2(150, 32)
-		var ps = StyleBoxFlat.new()
-		ps.bg_color = Color(0.15, 0.55, 0.15, 0.95)
-		ps.set_corner_radius_all(6)
-		ps.content_margin_left = 8
-		ps.content_margin_right = 8
-		play.add_theme_stylebox_override("normal", ps)
-		var ph = ps.duplicate()
-		ph.bg_color = Color(0.2, 0.7, 0.2)
-		play.add_theme_stylebox_override("hover", ph)
-		var pp = ps.duplicate()
-		pp.bg_color = Color(0.1, 0.4, 0.1)
-		play.add_theme_stylebox_override("pressed", pp)
-		play.add_theme_font_size_override("font_size", 14)
-		play.add_theme_color_override("font_color", Color.WHITE)
-		play.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-		play.add_theme_constant_override("shadow_offset_x", 1)
-		play.add_theme_constant_override("shadow_offset_y", 1)
+		# PLAY button — ornate emerald gemstone art
+		var play = TextureButton.new()
+		play.custom_minimum_size = Vector2(160, 45)
+		play.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		play.ignore_texture_size = true
+		var play_tex = load("res://assets/ui_elements/play_button_v2.png") if ResourceLoader.exists("res://assets/ui_elements/play_button_v2.png") else null
+		if play_tex:
+			play.texture_normal = play_tex
 		play.pressed.connect(_play.bind(idx, 0))
 		btns.add_child(play)
 		row.add_child(btns)
