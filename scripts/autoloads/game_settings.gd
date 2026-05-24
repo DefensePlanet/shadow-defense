@@ -315,3 +315,109 @@ func reset_to_defaults() -> void:
 	language = "en"
 	_auto_detect_quality()
 	save_settings()
+
+# =====================================================================================
+# === 300 ENHANCEMENTS — Persistent Data ===============================================
+# =====================================================================================
+
+# Enhancement #61: Prestige Currency
+var player_ink: int = 0
+
+# Enhancement #62: Account Level
+var account_level: int = 1
+var account_xp: int = 0
+
+# Enhancement #64: Achievement Rarity
+var achievement_rarity_cache: Dictionary = {}
+
+# Enhancement #66: Login Calendar
+var login_calendar_day: int = 0
+var login_calendar_claimed: Array = []
+var login_streak: int = 0
+var login_streak_best: int = 0
+var last_login_date: String = ""
+
+# Enhancement #68: Difficulty Medals (enhanced)
+var total_medals: Dictionary = {"bronze": 0, "silver": 0, "gold": 0, "diamond": 0}
+
+# Enhancement #72: Relics
+var owned_relics: Array = []
+var equipped_relics: Array = []
+
+# Enhancement #74: Tower Personal Records
+var tower_records: Dictionary = {}  # {tower_type: {max_damage, max_kills, max_streak, fastest_boss}}
+
+# Enhancement #75: Completionist Progress
+var completionist_percent: float = 0.0
+
+# Enhancement #151: Endless Mode Records
+var endless_best_wave: int = 0
+
+# Enhancement #152: Daily Challenge
+var daily_challenge_completed: bool = false
+var daily_challenge_date: String = ""
+var daily_challenge_streak: int = 0
+
+# Enhancement #154: Prestige Level
+var prestige_level: int = 0
+
+# Enhancement #177: Book Collection
+var books_collected: Array = []
+
+# Enhancement #180: Bestiary
+var bestiary_data: Dictionary = {}  # {enemy_key: {kills, first_seen}}
+
+# Enhancement #192: Mystery Box
+var mystery_box_pity: int = 0  # Levels since last box
+
+# Enhancement #195: First-Time Flags
+var first_time_flags: Dictionary = {}
+
+# Enhancement #202: Auto-Play
+var auto_play_mode: bool = false
+
+# Enhancement #203: Battery Saver
+var battery_saver: bool = false
+
+func save_enhancement_data() -> void:
+	var config = ConfigFile.new()
+	config.set_value("enhancements", "player_ink", player_ink)
+	config.set_value("enhancements", "account_level", account_level)
+	config.set_value("enhancements", "account_xp", account_xp)
+	config.set_value("enhancements", "login_calendar_day", login_calendar_day)
+	config.set_value("enhancements", "login_streak", login_streak)
+	config.set_value("enhancements", "login_streak_best", login_streak_best)
+	config.set_value("enhancements", "last_login_date", last_login_date)
+	config.set_value("enhancements", "owned_relics", owned_relics)
+	config.set_value("enhancements", "equipped_relics", equipped_relics)
+	config.set_value("enhancements", "endless_best_wave", endless_best_wave)
+	config.set_value("enhancements", "daily_challenge_streak", daily_challenge_streak)
+	config.set_value("enhancements", "prestige_level", prestige_level)
+	config.set_value("enhancements", "books_collected", books_collected)
+	config.set_value("enhancements", "bestiary_data", bestiary_data)
+	config.set_value("enhancements", "first_time_flags", first_time_flags)
+	config.set_value("enhancements", "tower_records", tower_records)
+	config.set_value("enhancements", "battery_saver", battery_saver)
+	config.save("user://enhancements.cfg")
+
+func load_enhancement_data() -> void:
+	var config = ConfigFile.new()
+	if config.load("user://enhancements.cfg") != OK:
+		return
+	player_ink = config.get_value("enhancements", "player_ink", 0)
+	account_level = config.get_value("enhancements", "account_level", 1)
+	account_xp = config.get_value("enhancements", "account_xp", 0)
+	login_calendar_day = config.get_value("enhancements", "login_calendar_day", 0)
+	login_streak = config.get_value("enhancements", "login_streak", 0)
+	login_streak_best = config.get_value("enhancements", "login_streak_best", 0)
+	last_login_date = config.get_value("enhancements", "last_login_date", "")
+	owned_relics = config.get_value("enhancements", "owned_relics", [])
+	equipped_relics = config.get_value("enhancements", "equipped_relics", [])
+	endless_best_wave = config.get_value("enhancements", "endless_best_wave", 0)
+	daily_challenge_streak = config.get_value("enhancements", "daily_challenge_streak", 0)
+	prestige_level = config.get_value("enhancements", "prestige_level", 0)
+	books_collected = config.get_value("enhancements", "books_collected", [])
+	bestiary_data = config.get_value("enhancements", "bestiary_data", {})
+	first_time_flags = config.get_value("enhancements", "first_time_flags", {})
+	tower_records = config.get_value("enhancements", "tower_records", {})
+	battery_saver = config.get_value("enhancements", "battery_saver", false)

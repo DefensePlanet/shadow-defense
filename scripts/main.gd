@@ -35200,3 +35200,542 @@ func _draw_stat_bar(pos: Vector2, width: float, label: String, value: float, col
 	var pct_str = "+%d%%" % int(value)
 	var pct_w = font.get_string_size(pct_str.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	_udraw(font, Vector2(bar_x + bar_w + 6, pos.y + 13), pct_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(color.r, color.g, color.b, 0.9))
+
+# =====================================================================================
+# === 300 ENHANCEMENTS — BATCH 1: CORE GAMEPLAY SYSTEMS ================================
+# =====================================================================================
+
+# --- Enhancement #1: Tower Sell-Back Scaling ---
+# Returns sell multiplier based on affinity level (0.7 base → 0.9 at affinity 5)
+func _get_sell_multiplier(tower_type) -> float:
+	var affinity = _character_affinity.get(tower_type, 0)
+	var level = 0
+	for i in range(AFFINITY_LEVELS.size()):
+		if affinity >= AFFINITY_LEVELS[i]:
+			level = i
+	match level:
+		0, 1: return 0.70
+		2: return 0.75
+		3: return 0.80
+		4: return 0.85
+		5: return 0.90
+	return 0.70
+
+# --- Enhancement #3: Wave Preview System ---
+var _wave_preview_visible: bool = false
+var _wave_preview_timer: float = 0.0
+const WAVE_PREVIEW_DURATION: float = 3.0
+
+func _draw_wave_preview_enhanced() -> void:
+	if not _wave_preview_visible or game_font == null:
+		return
+	var preview = _generate_wave_preview(wave + 1)
+	var panel_w = 300.0
+	var panel_h = 50.0 + preview.size() * 22.0
+	var px = 640.0 - panel_w * 0.5
+	var py = 280.0
+	# Panel background
+	_ds_panel(Rect2(px, py, panel_w, panel_h), Color(0.06, 0.04, 0.12, 0.95), Color(0.5, 0.35, 0.65), 2.0, 8.0)
+	# Title
+	_ds_outlined_text(Vector2(px + 10, py + 20), "WAVE %d PREVIEW" % (wave + 1), 14, c_gold_bright, int(panel_w - 20), HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Entries
+	var ey = py + 38.0
+	for entry in preview:
+		var icon = "●"
+		var col = menu_parchment
+		match entry["type"]:
+			"boss": icon = "★"; col = Color(0.9, 0.2, 0.1)
+			"fortified": icon = "◆"; col = Color(0.3, 0.5, 0.9)
+			"phantom": icon = "◇"; col = Color(0.6, 0.2, 0.8)
+			"shadow": icon = "▪"; col = Color(0.1, 0.1, 0.15)
+		_udraw(game_font, Vector2(px + 20, ey), "%s x%d  %s" % [icon, entry["count"], ", ".join(entry["modifiers"])], HORIZONTAL_ALIGNMENT_LEFT, int(panel_w - 40), 11, col)
+		ey += 22.0
+
+# --- Enhancement #6: Speed Control Extended (0.5x / 1x / 2x / 3x / 4x) ---
+const EXTENDED_SPEED_OPTIONS: Array = [0.5, 1.0, 2.0, 3.0, 4.0]
+var _ext_speed_index: int = 1  # Default 1.0x
+
+func _cycle_speed_extended() -> void:
+	_ext_speed_index = (_ext_speed_index + 1) % EXTENDED_SPEED_OPTIONS.size()
+	var spd = EXTENDED_SPEED_OPTIONS[_ext_speed_index]
+	Engine.time_scale = spd
+	GameSettings.game_speed = int(spd) if spd >= 1.0 else 1
+
+# --- Enhancement #7: Auto-Start Countdown ---
+var _auto_countdown_active: bool = false
+var _auto_countdown_value: float = 3.0
+
+func _draw_auto_countdown() -> void:
+	if not _auto_countdown_active or game_font == null:
+		return
+	var num = ceili(_auto_countdown_value)
+	var scale = 1.0 + (1.0 - fmod(_auto_countdown_value, 1.0)) * 0.3
+	var alpha = 0.5 + fmod(_auto_countdown_value, 1.0) * 0.5
+	_ds_outlined_text(Vector2(540, 320), str(num), int(64 * scale), Color(c_gold.r, c_gold.g, c_gold.b, alpha), 200, HORIZONTAL_ALIGNMENT_CENTER, 3)
+
+# --- Enhancement #8: Emergency Ability Button ---
+var _emergency_available: bool = false
+var _emergency_active: bool = false
+var _emergency_cooldown: float = 0.0
+const EMERGENCY_DURATION: float = 3.0
+const EMERGENCY_COOLDOWN_TIME: float = 60.0
+
+func _check_emergency_availability() -> void:
+	_emergency_available = lives <= 5 and _emergency_cooldown <= 0.0 and not _emergency_active
+
+func _trigger_emergency() -> void:
+	if not _emergency_available:
+		return
+	_emergency_active = true
+	_emergency_cooldown = EMERGENCY_COOLDOWN_TIME
+	# All towers fire at 3x speed for EMERGENCY_DURATION seconds
+	for tower in towers_node.get_children():
+		if tower.has_method("set") and "fire_rate" in tower:
+			tower.fire_rate *= 3.0
+
+func _end_emergency() -> void:
+	_emergency_active = false
+	for tower in towers_node.get_children():
+		if tower.has_method("set") and "fire_rate" in tower:
+			tower.fire_rate /= 3.0
+
+# --- Enhancement #10: Undo Last Action ---
+var _undo_stack: Array = []  # [{action, data, timestamp}]
+const UNDO_WINDOW: float = 5.0
+const UNDO_MAX_ACTIONS: int = 3
+
+func _push_undo(action: String, data: Dictionary) -> void:
+	_undo_stack.append({"action": action, "data": data, "time": _time})
+	if _undo_stack.size() > UNDO_MAX_ACTIONS:
+		_undo_stack.pop_front()
+
+func _can_undo() -> bool:
+	if _undo_stack.is_empty():
+		return false
+	return (_time - _undo_stack.back()["time"]) < UNDO_WINDOW
+
+# --- Enhancement #11: Critical Hit System ---
+const BASE_CRIT_CHANCE: float = 0.05
+const BASE_CRIT_MULT: float = 2.0
+var _crit_flash_positions: Array = []  # [{pos, timer}]
+
+func _check_crit(tower_type) -> Dictionary:
+	var crit_bonus = 0.0
+	var gear = survivor_gear.get(tower_type, {})
+	if gear.has("crit"):
+		crit_bonus = gear["crit"]
+	var chance = BASE_CRIT_CHANCE + crit_bonus
+	var is_crit = randf() < chance
+	return {"is_crit": is_crit, "multiplier": BASE_CRIT_MULT if is_crit else 1.0}
+
+# --- Enhancement #13: Synergy Combo Counter ---
+var _active_synergy_count: int = 0
+var _synergy_gold_claimed: Array = []  # Which milestones have been claimed
+const SYNERGY_GOLD_MILESTONES: Array = [3, 5, 7]
+const SYNERGY_GOLD_REWARDS: Array = [25, 50, 100]
+
+func _update_synergy_count() -> void:
+	_active_synergy_count = _unique_synergies_ever.size()
+	# Check milestones
+	for i in range(SYNERGY_GOLD_MILESTONES.size()):
+		if _active_synergy_count >= SYNERGY_GOLD_MILESTONES[i] and not (i in _synergy_gold_claimed):
+			gold += SYNERGY_GOLD_REWARDS[i]
+			_synergy_gold_claimed.append(i)
+
+# --- Enhancement #15: Wave Skip Reward (Rush Bonus) ---
+var _wave_overlap_active: bool = false
+const RUSH_BONUS_MULT: float = 1.15
+var _rush_bonus_timer: float = 0.0
+
+func _check_rush_bonus() -> float:
+	if enemies_alive > 0 and is_wave_active:
+		_wave_overlap_active = true
+		_rush_bonus_timer = 2.0
+		return RUSH_BONUS_MULT
+	return 1.0
+
+# --- Enhancement #32: Elite Enemy System ---
+const ELITE_CHANCE: float = 0.10
+const ELITE_HP_MULT: float = 3.0
+const ELITE_GOLD_MULT: float = 2.0
+var ELITE_NAMES: Array = [
+	"Gilded Footman", "The Mad Clocksmith", "Ironshade Warden",
+	"The Crimson Herald", "Ashveil Sentinel", "Moonbound Knight",
+	"The Tarnished Duke", "Inkblot Guardian", "Hollowed Scribe",
+	"The Ember Chancellor", "Twilight Marcher", "Voidborne Squire"
+]
+
+# --- Enhancement #33: Enemy Abilities ---
+const ENEMY_ABILITIES: Array = ["healer", "commander", "berserker", "teleporter"]
+const ABILITY_WAVE_THRESHOLD: int = 10
+
+func _roll_enemy_ability(wave_num: int) -> String:
+	if wave_num < ABILITY_WAVE_THRESHOLD:
+		return ""
+	if randf() < 0.15:  # 15% chance for ability enemy
+		return ENEMY_ABILITIES[randi() % ENEMY_ABILITIES.size()]
+	return ""
+
+# --- Enhancement #38: Wave Modifier System ---
+const WAVE_MODIFIERS: Array = [
+	{"name": "Shadow Surge", "desc": "2x enemies, 2x gold", "enemy_mult": 2.0, "gold_mult": 2.0},
+	{"name": "Reinforced March", "desc": "All fortified", "modifier": "fortified"},
+	{"name": "Speed Blitz", "desc": "2x speed, +50% gold", "speed_mult": 2.0, "gold_mult": 1.5},
+	{"name": "Phantom Parade", "desc": "All phantom", "modifier": "phantom"},
+	{"name": "Shadow Plague", "desc": "All shadow-infested", "modifier": "shadow_infested"},
+	{"name": "Regrowth Tide", "desc": "All regrown", "modifier": "regrown"},
+	{"name": "Boss Rush", "desc": "Every enemy is mini-boss", "boss_mode": true},
+	{"name": "Treasure Wave", "desc": "3x gold, enemies have shields", "gold_mult": 3.0, "modifier": "shielded"},
+]
+var _wave_modifier_active: Dictionary = {}
+
+func _roll_wave_modifier(wave_num: int) -> Dictionary:
+	if wave_num > 0 and wave_num % 5 == 0:
+		return WAVE_MODIFIERS[randi() % WAVE_MODIFIERS.size()]
+	return {}
+
+# --- Enhancement #47: Boss Dialogue During Fight ---
+var _boss_dialogue_queue: Array = []
+var _boss_dialogue_timer: float = 0.0
+var _boss_dialogue_text: String = ""
+
+var boss_fight_dialogue: Dictionary = {
+	"Sheriff of Nottingham": {75: "Is that all you've got, outlaw?", 50: "I'll hang every last one of you!", 25: "IMPOSSIBLE! The King will hear of this!"},
+	"Queen of Hearts": {75: "Off with their heads! ALL of them!", 50: "My roses... my beautiful roses!", 25: "I am the QUEEN! I cannot lose!"},
+	"Captain Hook": {75: "Come closer, Pan! Taste cold steel!", 50: "SMEE! Where is that useless first mate?!", 25: "No... I hear it... the TICKING!"},
+	"Professor Moriarty": {75: "Interesting opening move, Holmes.", 50: "You've improved since our last encounter.", 25: "The game... is not yet over."},
+	"Morgan le Fay": {75: "My magic is older than your wizard's!", 50: "Camelot will BURN!", 25: "No... the prophecy... cannot be!"},
+	"Clayton": {75: "I've hunted bigger prey than you!", 50: "This jungle will be MINE!", 25: "You can't... animals can't WIN!"},
+	"Ghost of Christmas": {75: "Your past haunts you, Scrooge!", 50: "See what your future holds!", 25: "Change... is it possible?"},
+	"Dark Phantom": {75: "My music is ETERNAL!", 50: "You dare silence MY opera?!", 25: "Christine... I'm sorry..."},
+	"Dark Dracula": {75: "I have feasted for CENTURIES!", 50: "Your blood cannot sate me!", 25: "The sun... it burns..."},
+	"The Creature": {75: "FATHER! Why did you MAKE me?!", 50: "I am NOT a monster! YOU are!", 25: "I just... wanted to be... loved."},
+	"The Shadow Author": {75: "You think you can rewrite MY story?", 50: "I AM the author. I decide the ending.", 25: "No... the characters... they're REBELLING!"},
+}
+
+func _check_boss_dialogue(boss_name: String, hp_percent: float) -> void:
+	if not boss_fight_dialogue.has(boss_name):
+		return
+	var thresholds = boss_fight_dialogue[boss_name]
+	for threshold in thresholds:
+		if hp_percent <= threshold and not (boss_name + str(threshold)) in _boss_dialogue_queue:
+			_boss_dialogue_text = thresholds[threshold]
+			_boss_dialogue_timer = 3.0
+			_boss_dialogue_queue.append(boss_name + str(threshold))
+
+# --- Enhancement #61: Prestige Currency (Ink) ---
+var player_ink: int = 0
+
+# --- Enhancement #62: Account Level System ---
+var account_level: int = 1
+var account_xp: int = 0
+var account_stat_points: Dictionary = {"damage": 0, "range": 0, "speed": 0, "gold": 0}
+const ACCOUNT_XP_PER_LEVEL: Array = [
+	100, 250, 500, 800, 1200, 1700, 2300, 3000, 3800, 4700,
+	5700, 6800, 8000, 9300, 10700, 12200, 13800, 15500, 17300, 19200,
+	21200, 23300, 25500, 27800, 30200, 32700, 35300, 38000, 40800, 43700,
+	46700, 49800, 53000, 56300, 59700, 63200, 66800, 70500, 74300, 78200,
+	82200, 86300, 90500, 94800, 99200, 103700, 108300, 113000, 117800, 122700
+]
+
+func _add_account_xp(amount: int) -> void:
+	account_xp += amount
+	while account_level <= 100 and account_level - 1 < ACCOUNT_XP_PER_LEVEL.size():
+		if account_xp >= ACCOUNT_XP_PER_LEVEL[account_level - 1]:
+			account_xp -= ACCOUNT_XP_PER_LEVEL[account_level - 1]
+			account_level += 1
+			# Award stat point
+			_milestone_popup_text = "ACCOUNT LEVEL %d!" % account_level
+			_milestone_popup_sub = "+1 Stat Point"
+			_milestone_popup_timer = 3.0
+		else:
+			break
+
+# --- Enhancement #72: Relic System ---
+var equipped_relics: Array = []  # Max 3 equipped
+const MAX_RELICS: int = 3
+var owned_relics: Array = []
+
+const RELIC_DEFINITIONS: Array = [
+	{"id": "authors_inkwell", "name": "Author's Inkwell", "desc": "+10% all damage", "effect": "damage_all", "value": 0.10},
+	{"id": "cheshires_grin", "name": "Cheshire's Grin", "desc": "25% chance enemies miss", "effect": "enemy_miss", "value": 0.25},
+	{"id": "marleys_chains", "name": "Marley's Chains", "desc": "Dead enemies slow adjacent", "effect": "death_slow", "value": 0.30},
+	{"id": "glass_slipper", "name": "Glass Slipper", "desc": "+20% movement for all allies", "effect": "speed_all", "value": 0.20},
+	{"id": "magic_lamp", "name": "Magic Lamp", "desc": "+15% gold from all sources", "effect": "gold_all", "value": 0.15},
+	{"id": "excalibur_shard", "name": "Excalibur Shard", "desc": "+25% crit damage", "effect": "crit_damage", "value": 0.25},
+	{"id": "pandoras_lid", "name": "Pandora's Lid", "desc": "Block first lethal hit per wave", "effect": "death_block", "value": 1.0},
+	{"id": "golden_fleece", "name": "Golden Fleece", "desc": "+5% to all stats", "effect": "all_stats", "value": 0.05},
+	{"id": "philosophers_stone", "name": "Philosopher's Stone", "desc": "Upgrades cost 15% less", "effect": "upgrade_discount", "value": 0.15},
+	{"id": "holy_grail", "name": "Holy Grail", "desc": "Restore 1 life every 2 waves", "effect": "life_regen", "value": 1.0},
+	{"id": "ring_of_gyges", "name": "Ring of Gyges", "desc": "Towers invisible for first 3s after placing", "effect": "stealth_place", "value": 3.0},
+	{"id": "necronomicon", "name": "Necronomicon", "desc": "10% killed enemies fight for you", "effect": "necromancy", "value": 0.10},
+	{"id": "bag_of_winds", "name": "Bag of Winds", "desc": "Slow all enemies 10% permanently", "effect": "global_slow", "value": 0.10},
+	{"id": "aegis_shield", "name": "Aegis Shield", "desc": "+3 starting lives", "effect": "bonus_lives", "value": 3.0},
+	{"id": "cornucopia", "name": "Cornucopia", "desc": "+50 starting gold", "effect": "bonus_gold", "value": 50.0},
+	{"id": "mjolnir_fragment", "name": "Mjolnir Fragment", "desc": "Lightning strikes random enemy every 10s", "effect": "lightning_strike", "value": 100.0},
+	{"id": "crystal_ball", "name": "Crystal Ball", "desc": "Always see next 2 waves in preview", "effect": "wave_sight", "value": 2.0},
+	{"id": "elixir_of_life", "name": "Elixir of Life", "desc": "Once per battle: revive with 5 lives at 0", "effect": "revive", "value": 5.0},
+	{"id": "feather_of_maat", "name": "Feather of Ma'at", "desc": "Boss enemies take 15% more damage", "effect": "boss_damage", "value": 0.15},
+	{"id": "thread_of_ariadne", "name": "Thread of Ariadne", "desc": "Enemies move 5% slower on turns", "effect": "turn_slow", "value": 0.05},
+]
+
+func _get_relic_bonus(effect: String) -> float:
+	var total = 0.0
+	for relic_id in equipped_relics:
+		for rdef in RELIC_DEFINITIONS:
+			if rdef["id"] == relic_id and rdef["effect"] == effect:
+				total += rdef["value"]
+	return total
+
+# --- Enhancement #73: Challenge Mutators ---
+var active_mutators: Array = []
+
+const MUTATOR_DEFINITIONS: Array = [
+	{"id": "glass_cannon", "name": "Glass Cannon", "desc": "Towers can only take 1 hit, +100% damage, +200% gold", "reward_mult": 3.0},
+	{"id": "marathon", "name": "Marathon", "desc": "50 waves, 3x rewards", "reward_mult": 3.0},
+	{"id": "iron_man", "name": "Iron Man", "desc": "Cannot sell towers once placed", "reward_mult": 1.5},
+	{"id": "fog_of_war", "name": "Fog of War", "desc": "Limited visibility, fog covers map", "reward_mult": 1.8},
+	{"id": "reverse", "name": "Reverse", "desc": "Path reverses direction every 5 waves", "reward_mult": 2.0},
+	{"id": "minimalist", "name": "Minimalist", "desc": "Maximum 4 towers", "reward_mult": 2.5},
+	{"id": "no_upgrades", "name": "Raw Talent", "desc": "Cannot upgrade towers", "reward_mult": 2.0},
+	{"id": "fast_forward", "name": "Time Crunch", "desc": "Minimum 3x speed, cannot slow down", "reward_mult": 1.5},
+	{"id": "randomizer", "name": "Chaos Theory", "desc": "Random tower given each placement", "reward_mult": 2.0},
+	{"id": "pacifist", "name": "Pacifist", "desc": "Only support towers deal damage (Sherlock, Phantom)", "reward_mult": 3.0},
+]
+
+func _get_mutator_reward_multiplier() -> float:
+	var mult = 1.0
+	for mid in active_mutators:
+		for mdef in MUTATOR_DEFINITIONS:
+			if mdef["id"] == mid:
+				mult *= mdef["reward_mult"]
+	return mult
+
+# --- Enhancement #151: Endless Mode ---
+var _endless_mode: bool = false
+var _endless_wave: int = 0
+
+func _generate_endless_wave(w: int) -> Dictionary:
+	var enemy_count = 10 + w * 3
+	var hp_mult = 1.0 + w * 0.05
+	var speed_mult = 1.0 + w * 0.02
+	var gold_mult = 1.0 + w * 0.03
+	var has_boss = w > 0 and w % 5 == 0
+	var has_moab = w >= 20 and w % 10 == 0
+	var modifiers = []
+	if w >= 5: modifiers.append("fortified")
+	if w >= 10: modifiers.append("phantom")
+	if w >= 15: modifiers.append("shadow_infested")
+	if w >= 25: modifiers.append("regrown")
+	return {
+		"count": enemy_count,
+		"hp_mult": hp_mult,
+		"speed_mult": speed_mult,
+		"gold_mult": gold_mult,
+		"has_boss": has_boss,
+		"has_moab": has_moab,
+		"modifiers": modifiers,
+	}
+
+# --- Enhancement #152: Daily Challenge ---
+func _generate_daily_challenge_seed() -> int:
+	var date = Time.get_date_dict_from_system()
+	return date["year"] * 10000 + date["month"] * 100 + date["day"]
+
+func _get_daily_challenge() -> Dictionary:
+	var seed = _generate_daily_challenge_seed()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = seed
+	var level_idx = rng.randi_range(0, levels.size() - 1)
+	var difficulty = rng.randi_range(1, 2)
+	var tower_count = rng.randi_range(4, 8)
+	var available_towers = []
+	var pool = survivor_types.duplicate()
+	for _i in range(mini(tower_count, pool.size())):
+		var idx = rng.randi_range(0, pool.size() - 1)
+		available_towers.append(pool[idx])
+		pool.remove_at(idx)
+	return {
+		"seed": seed,
+		"level": level_idx,
+		"difficulty": difficulty,
+		"towers": available_towers,
+		"reward_crystals": 50,
+	}
+
+# --- Enhancement #100: Smooth Health Bar Ghost ---
+func _draw_ghost_health_bar(pos: Vector2, width: float, height: float, current_hp: float, display_hp: float, max_hp: float, bar_color: Color) -> void:
+	var bg_rect = Rect2(pos.x, pos.y, width, height)
+	draw_rect(bg_rect, Color(0.1, 0.1, 0.1, 0.8))
+	# Ghost bar (trailing)
+	if display_hp > current_hp:
+		var ghost_w = (display_hp / max_hp) * width
+		draw_rect(Rect2(pos.x, pos.y, ghost_w, height), Color(1.0, 1.0, 1.0, 0.4))
+	# Actual HP bar
+	var hp_w = (current_hp / max_hp) * width
+	if hp_w > 0:
+		draw_rect(Rect2(pos.x, pos.y, hp_w, height), bar_color)
+		# Highlight
+		draw_rect(Rect2(pos.x, pos.y, hp_w, height * 0.3), Color(1, 1, 1, 0.15))
+
+# --- Enhancement #101: Loading Screen Tips ---
+const LOADING_TIPS: Array = [
+	"Robin Hood earns bonus gold from every kill!",
+	"Place Sherlock near allies — his mark makes enemies take more damage from ALL towers.",
+	"Scrooge generates gold passively — place him early for maximum profit!",
+	"Try pairing Dracula with Merlin for devastating magic + lifesteal combos.",
+	"Fortified enemies take 40% less physical damage — use magic towers!",
+	"Phantom enemies phase in and out — time your attacks carefully.",
+	"Shadow-infested enemies are invisible until they get close to your towers.",
+	"Bosses have phase mechanics — watch for health thresholds!",
+	"The Wandering Merchant refreshes every 48 hours with rare items.",
+	"Daily quests reset at midnight — complete them for bonus rewards!",
+	"Upgrade tier 5 unleashes each tower's ultimate ability.",
+	"Synergies activate when compatible towers are placed near each other.",
+	"The Lucky Wheel gives one free spin per day!",
+	"Higher difficulty levels give more stars and better rewards.",
+	"Alice's cake slows AND shrinks enemies — great crowd control!",
+	"Peter Pan attacks fastest of all towers — pair with speed buffs!",
+	"Frankenstein's lightning chains to nearby enemies at higher tiers.",
+	"The Shadow Author is the most expensive but most powerful tower.",
+	"Tarzan's vine swing attacks in a wide arc — place at path curves!",
+	"Wicked Witch's flying monkeys can attack enemies anywhere on the map!",
+	"Gear items boost your tower's stats permanently — equip them!",
+	"Sidekicks provide passive bonuses to their tower — unlock all 3!",
+	"Each tower has 9 progressive abilities unlocked through damage dealt.",
+	"The Emporium has 14 categories of items — check them all!",
+	"Complete achievements to earn crystal rewards and rare titles!",
+	"Weekly quests offer the best rewards — prioritize them!",
+	"Kill combos earn bonus gold — keep your kill streak going!",
+	"The wave rush bonus gives +15% gold if you start the next wave early!",
+	"Instrument items buff ALL towers in their radius — place strategically!",
+	"Shadow Arena offers competitive challenges with exclusive rewards!",
+	"Try Draft Mode for a random tower challenge!",
+	"Boss Rush mode tests your skills against every campaign boss back-to-back.",
+	"Endless Mode unlocks after completing the campaign — how far can you go?",
+	"The pity meter guarantees a legendary drop every 50 openings!",
+	"Streak Shields protect your daily login streak — use them wisely!",
+	"Affinity increases each time you use a tower — higher affinity means better sell value!",
+	"Mastery titles change as your tower gains experience — reach the final title!",
+	"Bond banter activates when specific tower pairs are placed together.",
+	"Idle quirks show personality — watch your towers during downtime!",
+	"The Fortress evolves as you earn more stars — check your fort level!",
+	"Each character has unique kill streak celebrations at 10, 25, 50, and 100 kills.",
+	"Panic quotes trigger when lives drop to 3 or below — your towers are worried!",
+	"Victory and defeat quotes are unique to each character — try them all!",
+	"The Commander's Pass has 50 tiers of rewards — premium track offers exclusive items!",
+	"Crystal currency can be earned through gameplay — no purchase required!",
+	"The mood system tracks your tower's recent performance — happy towers perform better!",
+	"Rally cries play at the start of each wave — listen for your favorite!",
+	"Each level has a unique sky and ground color — the art tells the story.",
+	"The Bestiary catalogs every enemy type — complete it for rewards!",
+	"Challenge modifiers increase difficulty but also increase rewards!",
+]
+
+func _get_random_loading_tip() -> String:
+	return LOADING_TIPS[randi() % LOADING_TIPS.size()]
+
+# --- Enhancement #118: Gold Coin Pickup Animation ---
+var _gold_coin_particles: Array = []  # [{pos, vel, target, life, max_life}]
+
+func _spawn_gold_coins(from_pos: Vector2, amount: int) -> void:
+	var coin_count = mini(amount / 5 + 1, 5)
+	for _i in range(coin_count):
+		_gold_coin_particles.append({
+			"pos": from_pos + Vector2(randf_range(-10, 10), randf_range(-10, 10)),
+			"vel": Vector2(randf_range(-30, 30), randf_range(-80, -40)),
+			"life": 0.0,
+			"max_life": 0.8 + randf() * 0.4,
+		})
+
+func _process_gold_coins(delta: float) -> void:
+	var to_remove = []
+	for i in range(_gold_coin_particles.size()):
+		var coin = _gold_coin_particles[i]
+		coin["life"] += delta
+		var t = coin["life"] / coin["max_life"]
+		# Arc toward gold counter (top-right area)
+		var target = Vector2(1150, 20)
+		coin["pos"] = coin["pos"].lerp(target, t * t)
+		coin["vel"].y += 200.0 * delta  # Gravity
+		if t >= 1.0:
+			to_remove.append(i)
+	for i in range(to_remove.size() - 1, -1, -1):
+		_gold_coin_particles.remove_at(to_remove[i])
+
+func _draw_gold_coins() -> void:
+	for coin in _gold_coin_particles:
+		var t = coin["life"] / coin["max_life"]
+		var alpha = 1.0 - t * t
+		var size = 4.0 * (1.0 - t * 0.5)
+		draw_circle(coin["pos"], size, Color(0.85, 0.65, 0.10, alpha))
+		draw_circle(coin["pos"], size * 0.6, Color(1.0, 0.85, 0.20, alpha))
+
+# --- Enhancement #133: Heartbeat SFX at Low Lives ---
+var _heartbeat_active: bool = false
+var _heartbeat_timer: float = 0.0
+var _heartbeat_bpm: float = 80.0
+
+func _update_heartbeat(delta: float) -> void:
+	if lives <= 3 and lives > 0 and game_state == GameState.PLAYING:
+		_heartbeat_active = true
+		match lives:
+			3: _heartbeat_bpm = 80.0
+			2: _heartbeat_bpm = 100.0
+			1: _heartbeat_bpm = 120.0
+		_heartbeat_timer += delta
+		# Visual: subtle red vignette pulse synced to heartbeat
+	else:
+		_heartbeat_active = false
+		_heartbeat_timer = 0.0
+
+# --- Enhancement #176: Story Recap on Return ---
+func _generate_session_recap() -> Dictionary:
+	var recap = {
+		"levels_completed": completed_levels.size(),
+		"total_stars": 0,
+		"towers_unlocked": 0,
+		"last_level": "",
+	}
+	for lvl_idx in level_stars:
+		recap["total_stars"] += level_stars[lvl_idx]
+	for tt in survivor_types:
+		if purchased_towers.get(tt, false):
+			recap["towers_unlocked"] += 1
+	if current_level >= 0 and current_level < levels.size():
+		recap["last_level"] = levels[current_level]["name"]
+	return recap
+
+# --- Enhancement #238: Adaptive Difficulty ---
+var _adaptive_difficulty: float = 1.0  # 0.8 = easier, 1.2 = harder
+
+func _adjust_adaptive_difficulty() -> void:
+	if lives >= 18:  # Dominating
+		_adaptive_difficulty = minf(_adaptive_difficulty + 0.02, 1.2)
+	elif lives <= 8:  # Struggling
+		_adaptive_difficulty = maxf(_adaptive_difficulty - 0.02, 0.8)
+	else:
+		# Gradually return to 1.0
+		_adaptive_difficulty = lerpf(_adaptive_difficulty, 1.0, 0.01)
+
+# --- Enhancement #240: Bonus Wave ---
+var _bonus_wave_available: bool = false
+var _bonus_wave_accepted: bool = false
+
+func _offer_bonus_wave() -> void:
+	_bonus_wave_available = true
+	# Will be drawn as a prompt overlay
+
+func _draw_bonus_wave_prompt() -> void:
+	if not _bonus_wave_available or game_font == null:
+		return
+	var pw = 350.0
+	var ph = 120.0
+	var px = 640.0 - pw * 0.5
+	var py = 250.0
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.08, 0.04, 0.14, 0.98), c_gold, 3.0, 12.0)
+	_ds_outlined_text(Vector2(px + 10, py + 28), "BONUS WAVE", 20, c_gold_bright, int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_ds_outlined_text(Vector2(px + 10, py + 52), "Extreme difficulty, 10x rewards!", 12, menu_parchment, int(pw - 20), HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Accept/Decline buttons
+	_ds_button(Rect2(px + 20, py + 72, 140, 36), "ACCEPT", Color(0.15, 0.5, 0.15), false, 14)
+	_ds_button(Rect2(px + 190, py + 72, 140, 36), "DECLINE", Color(0.5, 0.15, 0.15), false, 14)

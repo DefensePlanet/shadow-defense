@@ -111,6 +111,45 @@ var is_moab: bool = false             # Large villain enemy
 var moab_tier: int = 0                # 0=MOAB, 1=BFB equivalent, 2=ZOMG equivalent
 var moab_children_count: int = 4      # How many children spawn on death
 
+# === ENHANCEMENT BATCH 1: Enemy Improvements ===
+
+# Enhancement #32: Elite Enemy System
+var is_elite: bool = false
+var elite_name: String = ""
+
+# Enhancement #33: Enemy Abilities
+var enemy_ability: String = ""  # "healer", "commander", "berserker", "teleporter"
+var _ability_timer: float = 0.0
+var _berserker_activated: bool = false
+var _teleport_cooldown: float = 8.0
+
+# Enhancement #34: Armor Break Visual
+var _armor_broken: bool = false
+
+# Enhancement #39: Enemy Evolution Mid-Wave
+var _has_evolved: bool = false
+
+# Enhancement #40: Minion Spawner
+var is_spawner: bool = false
+var _spawner_timer: float = 6.0
+
+# Enhancement #42: Corrupted Hero
+var is_corrupted_hero: bool = false
+var corrupted_hero_type: int = -1
+
+# Enhancement #43: Shield Generator
+var is_shield_generator: bool = false
+
+# Enhancement #46: Boss HP Segments
+var _boss_segment_broken: Array = []  # Track which segments have been broken
+
+# Enhancement #51: Boss Revenge Attack
+var _revenge_attack_pending: bool = false
+
+# Enhancement #100: Ghost Health Bar
+var _ghost_health: float = -1.0
+var _ghost_health_decay: float = 3.0  # Speed of ghost bar catching up
+
 ## Reset state for object pool reuse
 func pool_reset() -> void:
 	_dead = false
@@ -147,6 +186,22 @@ func pool_reset() -> void:
 	boss_invulnerable = false
 	boss_enraged = false
 	visible = true
+	# Enhancement resets
+	is_elite = false
+	elite_name = ""
+	enemy_ability = ""
+	_ability_timer = 0.0
+	_berserker_activated = false
+	_armor_broken = false
+	_has_evolved = false
+	is_spawner = false
+	_spawner_timer = 6.0
+	is_corrupted_hero = false
+	corrupted_hero_type = -1
+	is_shield_generator = false
+	_boss_segment_broken.clear()
+	_revenge_attack_pending = false
+	_ghost_health = -1.0
 
 ## Cleanup before returning to pool
 func pool_cleanup() -> void:
