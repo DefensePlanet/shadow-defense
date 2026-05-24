@@ -48,6 +48,17 @@ func _ready() -> void:
 	_build_nav()
 	_build_chapters()
 	_fade_in()
+	# AUTO-TEST: play level 0 after 8 seconds (REMOVE before release)
+	await get_tree().create_timer(8.0).timeout
+	print("[V2] AUTO-TEST: _main = ", _main)
+	print("[V2] AUTO-TEST: _main is null? ", _main == null)
+	if _main:
+		print("[V2] AUTO-TEST: has _do_level_start? ", _main.has_method("_do_level_start"))
+		print("[V2] AUTO-TEST: has _hide_menu_v2? ", _main.has_method("_hide_menu_v2"))
+		print("[V2] AUTO-TEST: _is_level_unlocked(0)? ", _main._is_level_unlocked(0))
+	print("[V2] AUTO-TEST: Calling _play(0, 0)")
+	_play(0, 0)
+	print("[V2] AUTO-TEST: _play returned")
 
 func _load_bgs() -> void:
 	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/codex_bg.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
