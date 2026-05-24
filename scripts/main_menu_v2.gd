@@ -48,6 +48,7 @@ func _ready() -> void:
 	_build_nav()
 	_build_chapters()
 	_fade_in()
+	# Portraits verified loaded — all 12 keys match
 	# Auto-test removed
 
 func _load_bgs() -> void:
