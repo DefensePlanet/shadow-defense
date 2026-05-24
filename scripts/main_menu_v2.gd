@@ -88,9 +88,12 @@ func _setup_nav_bar() -> void:
 		nav_buttons_container.add_child(btn)
 
 func _on_tab(tab: String) -> void:
+	print("[MENU V2] Tab clicked: ", tab)
 	if current_view == tab:
+		print("[MENU V2] Already on this tab, skipping")
 		return
 	current_view = tab
+	print("[MENU V2] Switching to: ", tab)
 	_setup_background(tab)
 	# Rebuild nav highlight
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
@@ -262,7 +265,9 @@ func _level_card(idx: int) -> PanelContainer:
 	return p
 
 func _play(idx: int, diff: int) -> void:
+	print("[MENU V2] PLAY clicked! Level: ", idx, " Difficulty: ", diff)
 	if not _main:
+		print("[MENU V2] ERROR: _main is null!")
 		return
 	if not _main._is_level_unlocked(idx):
 		return
