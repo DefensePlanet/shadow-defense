@@ -132,7 +132,13 @@ func _on_tab(tab: String) -> void:
 	print("[V2] Tab: ", tab)
 	if current_view == tab: return
 	current_view = tab
+	# Background crossfade
+	var bg_tw = create_tween()
+	bg_tw.tween_property(background, "modulate:a", 0.0, 0.12)
+	await bg_tw.finished
 	_set_bg(tab)
+	bg_tw = create_tween()
+	bg_tw.tween_property(background, "modulate:a", 1.0, 0.12)
 	# Update nav highlight
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	for i in range(nav_buttons_container.get_child_count()):
@@ -166,6 +172,7 @@ func _build_chapters() -> void:
 	vb.add_child(_lbl("Heroes pulled from their stories. One Author controls them all.", 11, Color(0.55,0.50,0.45)))
 	if not _main: return
 	var cur_arc = ""
+	var card_idx = 0
 	for i in range(_main.levels.size()):
 		var lvl = _main.levels[i]
 		var sub = lvl.get("subtitle", "")
@@ -174,9 +181,15 @@ func _build_chapters() -> void:
 		if arc != cur_arc:
 			cur_arc = arc
 			var hdr = _lbl(arc.to_upper(), 16, Color(0.90,0.80,0.50))
-			hdr.add_theme_constant_override("margin_top", 8)
+			hdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			vb.add_child(hdr)
-		vb.add_child(_level_card(i, lvl))
+		var card = _level_card(i, lvl)
+		vb.add_child(card)
+		# Staggered entrance animation
+		card.modulate.a = 0.0
+		var tw = create_tween()
+		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(card_idx * 0.03)
+		card_idx += 1
 
 func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var unlocked = _main._is_level_unlocked(idx)
@@ -297,7 +310,12 @@ func _build_survivors() -> void:
 	grid.add_theme_constant_override("v_separation", 8)
 	vb.add_child(grid)
 	for i in range(PORTRAIT_KEYS.size()):
-		grid.add_child(_survivor_card(i))
+		var card = _survivor_card(i)
+		grid.add_child(card)
+		# Staggered entrance
+		card.modulate.a = 0.0
+		var tw = create_tween()
+		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(i * 0.05)
 
 func _survivor_card(idx: int) -> Button:
 	# The card IS a Button — no overlay needed, clicks just work
