@@ -135,6 +135,11 @@ func _build_chapters_view() -> void:
 	var title = _lbl("THE TOME OF SHADOWS", 24, Color(1.0, 0.92, 0.45))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
+	# Once Upon a Time story hook
+	var story_hook = _lbl("Heroes pulled from their stories. Villains rewritten as weapons. One Author controls them all.", 11, Color(0.60, 0.55, 0.48))
+	story_hook.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	story_hook.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(story_hook)
 	if not _main:
 		return
 	# Group levels into story arcs with headers
