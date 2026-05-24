@@ -162,8 +162,10 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	if unlocked:
 		var btns = VBoxContainer.new()
 		btns.add_theme_constant_override("separation", 2)
+		btns.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var dr = HBoxContainer.new()
 		dr.add_theme_constant_override("separation", 4)
+		dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		for d in [[0,"EASY",Color(0.2,0.6,0.2)],[1,"MED",Color(0.6,0.5,0.1)],[2,"HARD",Color(0.6,0.15,0.1)]]:
 			var db = Button.new()
 			db.text = d[1]; db.custom_minimum_size = Vector2(50,22)
