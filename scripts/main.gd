@@ -11125,374 +11125,59 @@ func _draw_currency_bar() -> void:
 
 func _draw_menu_background() -> void:
 	var font = game_font
-	# === MENU THEME COSMETIC OVERRIDE ===
-	var theme_bg = menu_bg_dark
-	var theme_accent = menu_gold_dim
-	var equipped_theme = equipped_cosmetics.get("themes", "")
-	if equipped_theme != "":
-		for theme_item in trophy_store_items.get("themes", []):
-			if theme_item["id"] == equipped_theme:
-				theme_bg = theme_item["bg"]
-				theme_accent = theme_item["accent"]
-				break
+	# =============================================================
+	# REBUILT MENU BACKGROUND — Art-first, no procedural shapes
+	# =============================================================
 
-	# === Phase 2: STORYBOOK BACKGROUND ART (replaces procedural gradient) ===
-	# Choose background based on current menu view
-	var _bg_key = "menu_bg_storybook"
+	# LAYER 1: Full-screen background art based on current view
+	var bg_key = "menu_bg_storybook"  # default
 	match menu_current_view:
-		"chapters": _bg_key = "chapters_bg_map"
-		"survivors": _bg_key = "survivors_bg_books"
-		"emporium": _bg_key = "emporium_bg_merchant"
-		"gear": _bg_key = "gear_bg_workbench"
-		"codex": _bg_key = "survivors_bg_books"
-	# Render the storybook background art
-	if _ui_tex.has(_bg_key):
-		# Full-screen background art — this single change transforms the menu
-		draw_texture_rect(_ui_tex[_bg_key], Rect2(0, 0, 1280, 720), false)
-		# Subtle dark overlay for UI readability (content draws on top)
-		draw_rect(Rect2(0, 0, 1280, 720), Color(0.03, 0.02, 0.06, 0.45))
+		"chapters": bg_key = "chapters_bg_map"
+		"survivors": bg_key = "survivors_bg_books"
+		"emporium": bg_key = "emporium_bg_merchant"
+		"gear": bg_key = "gear_bg_workbench"
+		"codex": bg_key = "survivors_bg_books"
+		"settings": bg_key = "menu_bg_storybook"
+		"achievements": bg_key = "menu_bg_storybook"
+		"chronicles": bg_key = "menu_bg_storybook"
+
+	if _ui_tex.has(bg_key):
+		draw_texture_rect(_ui_tex[bg_key], Rect2(0, 0, 1280, 720), false)
 	else:
-		# Fallback: dark gradient if art not loaded
-		for gy in range(0, 720, 36):
-			var gt = (float(gy) + 18.0) / 720.0
-			var r = lerpf(0.10, 0.05, gt)
-			var g = lerpf(0.06, 0.03, gt)
-			var b = lerpf(0.18, 0.12, gt)
-			draw_rect(Rect2(0, gy, 1280, 36), Color(r, g, b, 1.0))
-	if true:
+		# Minimal fallback gradient — NOT the old 371-line mess
+		for gy in range(0, 720, 40):
+			var t = float(gy) / 720.0
+			draw_rect(Rect2(0, gy, 1280, 40), Color(lerpf(0.08, 0.03, t), lerpf(0.05, 0.02, t), lerpf(0.14, 0.08, t)))
 
-		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
-		var orn_a = 0.22 + sin(_time * 0.8) * 0.06
-		var orn_col = _ca(menu_gold, orn_a)
-		# Top-left ornament
-		for oi in range(_qcount(5)):
-			var olen = 30.0 + float(oi) * 12.0
-			draw_line(Vector2(4, 36 + float(oi) * 8), Vector2(4 + olen, 36 + float(oi) * 8), orn_col, 1.0)
-			draw_line(Vector2(36 + float(oi) * 8, 4), Vector2(36 + float(oi) * 8, 4 + olen), orn_col, 1.0)
-		draw_arc(Vector2(4, 36), 32, -PI * 0.5, 0.0, 16, orn_col, 1.0)
-		# Top-right ornament
-		for oi in range(_qcount(5)):
-			var olen = 30.0 + float(oi) * 12.0
-			draw_line(Vector2(1276, 36 + float(oi) * 8), Vector2(1276 - olen, 36 + float(oi) * 8), orn_col, 1.0)
-			draw_line(Vector2(1244 - float(oi) * 8, 4), Vector2(1244 - float(oi) * 8, 4 + olen), orn_col, 1.0)
-		draw_arc(Vector2(1276, 36), 32, PI, PI * 1.5, 16, orn_col, 1.0)
-		# Bottom-left ornament
-		for oi in range(_qcount(5)):
-			var olen = 25.0 + float(oi) * 10.0
-			draw_line(Vector2(4, 608 - float(oi) * 7), Vector2(4 + olen, 608 - float(oi) * 7), orn_col, 1.0)
-		draw_arc(Vector2(4, 608), 28, 0.0, PI * 0.5, 12, orn_col, 1.0)
-		# Bottom-right ornament
-		for oi in range(_qcount(5)):
-			var olen = 25.0 + float(oi) * 10.0
-			draw_line(Vector2(1276, 608 - float(oi) * 7), Vector2(1276 - olen, 608 - float(oi) * 7), orn_col, 1.0)
-		draw_arc(Vector2(1276, 608), 28, PI * 0.5, PI, 12, orn_col, 1.0)
+	# LAYER 2: Dark overlay for text readability (40% — lets art breathe)
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.01, 0.04, 0.40))
 
-		# === Bookshelf silhouette along bottom (more visible for mobile) ===
-		var shelf_y = 610.0
-		var shelf_col = Color(0.08, 0.06, 0.16, 0.70)
-		for bsi in range(_bookshelf_heights.size()):
-			var bx = float(bsi) * 50.0
-			var bh = _bookshelf_heights[bsi]
-			# Book spine with slight color variation
-			var spine_hue = 0.02 + float(bsi % 5) * 0.005
-			draw_rect(Rect2(bx, shelf_y - bh, 44, bh), Color(spine_hue, 0.03, 0.10 + float(bsi % 3) * 0.02, 0.65))
-			# Top edge highlight — brighter
-			draw_line(Vector2(bx, shelf_y - bh), Vector2(bx + 44, shelf_y - bh), _ca(menu_gold_dim, 0.15), 1.5)
-			# Spine line — more visible
-			draw_line(Vector2(bx + 22, shelf_y - bh + 4), Vector2(bx + 22, shelf_y - 4), _ca(menu_gold_dim, 0.08), 1.0)
-		# Shelf plank — thicker, more visible
-		draw_rect(Rect2(0, shelf_y, 1280, 4), Color(0.14, 0.10, 0.22, 0.75))
-		draw_rect(Rect2(0, shelf_y, 1280, 1), _ca(menu_gold_dim, 0.2))
+	# LAYER 3: Subtle vignette (darkened edges only — clean, premium)
+	for vi in range(8):
+		var va = 0.08 * (1.0 - float(vi) / 8.0)
+		var vw = float(vi) * 6.0
+		draw_rect(Rect2(0, 0, 1280, vw), Color(0.0, 0.0, 0.02, va))
+		draw_rect(Rect2(0, 720 - vw, 1280, vw), Color(0.0, 0.0, 0.02, va))
+		draw_rect(Rect2(0, 0, vw, 720), Color(0.0, 0.0, 0.02, va))
+		draw_rect(Rect2(1280 - vw, 0, vw, 720), Color(0.0, 0.0, 0.02, va))
 
-		# === Ink splatters (subtle background texture — pre-seeded) ===
-		var sp_col = Color(0.06, 0.04, 0.12, 0.15)
-		var sp_dot_col = Color(0.06, 0.04, 0.12, 0.10)
-		for splat in _menu_ink_splatters:
-			_menu_splatter_rng.seed = splat["seed"]
-			draw_circle(Vector2(splat["x"], splat["y"]), splat["size"], sp_col)
-			for _di in range(splat["dots"]):
-				var dot_x = splat["x"] + _menu_splatter_rng.randf_range(-splat["size"] * 2, splat["size"] * 2)
-				var dot_y = splat["y"] + _menu_splatter_rng.randf_range(-splat["size"] * 1.5, splat["size"] * 1.5)
-				draw_circle(Vector2(dot_x, dot_y), _menu_splatter_rng.randf_range(1, 4), sp_dot_col)
+	# LAYER 4: Minimal ambient particles (10 only — restrained, premium)
+	for dust in _dust_positions:
+		if _dust_positions.find(dust) >= 10:
+			break  # Only render first 10
+		var dx = dust["x"] + sin(_time * dust["speed"] + dust["offset"]) * 30.0
+		var dy = dust["y"] + cos(_time * dust["speed"] * 0.5 + dust["offset"]) * 20.0
+		var alpha = 0.15 + 0.10 * sin(_time * 1.2 + dust["offset"])
+		draw_circle(Vector2(dx, dy), dust["size"], Color(0.85, 0.70, 0.40, alpha))
 
-		# === Floating book pages (drifting gently) ===
-		for page in _floating_pages:
-			var px = page["x"] + sin(_time * page["speed"] + page["offset"]) * 40.0
-			var py = page["y"] + cos(_time * page["speed"] * 0.5 + page["offset"] * 1.3) * 25.0
-			var prot = page["rot"] + sin(_time * 0.3 + page["offset"]) * 0.15
-			var psz = page["size"]
-			var pa = 0.12 + sin(_time * 0.8 + page["offset"]) * 0.04
-			# Page body (rotated rectangle via polygon)
-			var hw = psz * 0.35
-			var hh = psz * 0.5
-			var cr = cos(prot)
-			var sr = sin(prot)
-			var corners = PackedVector2Array([
-				Vector2(px + (-hw) * cr - (-hh) * sr, py + (-hw) * sr + (-hh) * cr),
-				Vector2(px + hw * cr - (-hh) * sr, py + hw * sr + (-hh) * cr),
-				Vector2(px + hw * cr - hh * sr, py + hw * sr + hh * cr),
-				Vector2(px + (-hw) * cr - hh * sr, py + (-hw) * sr + hh * cr),
-			])
-			draw_colored_polygon(corners, _ca(menu_parchment, pa))
-			# Text lines on page
-			for tl in range(3):
-				var lx_start = px + (-hw * 0.6) * cr - (-hh * 0.3 + float(tl) * hh * 0.25) * sr
-				var ly_start = py + (-hw * 0.6) * sr + (-hh * 0.3 + float(tl) * hh * 0.25) * cr
-				var lx_end = px + (hw * 0.5) * cr - (-hh * 0.3 + float(tl) * hh * 0.25) * sr
-				var ly_end = py + (hw * 0.5) * sr + (-hh * 0.3 + float(tl) * hh * 0.25) * cr
-				draw_line(Vector2(lx_start, ly_start), Vector2(lx_end, ly_end), Color(0.3, 0.25, 0.15, pa * 0.6), 0.5)
+	# LAYER 5: Game logo on chapters view
+	if menu_current_view == "chapters" and _ui_tex.has("game_logo"):
+		pass  # Logo rendered by story map, not here
 
-		# === Quill pens (decorative, static with gentle sway) ===
-		for quill in _quill_positions:
-			var qx = quill["x"]
-			var qy = quill["y"] + sin(_time * 0.5 + qx * 0.01) * 3.0
-			var qrot = quill["rot"] + sin(_time * 0.4) * 0.05
-			var qsz = quill["size"]
-			var qa = 0.06
-			var qcr = cos(qrot)
-			var qsr = sin(qrot)
-			# Shaft
-			draw_line(Vector2(qx, qy), Vector2(qx + qsz * qcr, qy + qsz * qsr), Color(0.5, 0.35, 0.15, qa), 1.5)
-			# Feather barbs
-			for fb in range(4):
-				var ft = 0.2 + float(fb) * 0.2
-				var fx = qx + qsz * ft * qcr
-				var fy = qy + qsz * ft * qsr
-				draw_line(Vector2(fx, fy), Vector2(fx - 6 * qsr, fy + 6 * qcr), Color(0.5, 0.35, 0.15, qa * 0.7), 1.0)
-				draw_line(Vector2(fx, fy), Vector2(fx + 6 * qsr, fy - 6 * qcr), Color(0.5, 0.35, 0.15, qa * 0.7), 1.0)
-			# Nib
-			draw_circle(Vector2(qx - 2 * qcr, qy - 2 * qsr), 1.5, Color(0.3, 0.25, 0.4, qa))
-
-		# === Ethereal lantern glow (purple/blue wisps — bright for mobile) ===
-		for candle in _book_candle_positions:
-			var cx_pos = candle["x"]
-			var cy_pos = candle["y"]
-			var flicker = sin(_time * 4.0 + candle["offset"]) * 0.3 + sin(_time * 7.0 + candle["offset"] * 2.0) * 0.15
-			var glow_r = 100.0 + flicker * 25.0
-			# Outer purple glow — MUCH brighter for visibility
-			draw_circle(Vector2(cx_pos, cy_pos), glow_r, Color(0.4, 0.18, 0.6, 0.06 + flicker * 0.02))
-			draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.6, Color(0.5, 0.25, 0.7, 0.08 + flicker * 0.03))
-			draw_circle(Vector2(cx_pos, cy_pos), glow_r * 0.3, Color(0.6, 0.35, 0.85, 0.06 + flicker * 0.02))
-			# Lantern body — dark iron bracket
-			draw_rect(Rect2(cx_pos - 4, cy_pos + 12, 8, 20), Color(0.15, 0.12, 0.25, 0.7))
-			draw_rect(Rect2(cx_pos - 6, cy_pos + 10, 12, 3), Color(0.2, 0.15, 0.3, 0.6))
-			# Flame — purple-blue wisp (larger, brighter)
-			var flame_h = 10.0 + flicker * 6.0
-			draw_circle(Vector2(cx_pos, cy_pos + 6 - flame_h * 0.3), 6.0, Color(0.5, 0.3, 0.9, 0.6 + flicker * 0.2))
-			draw_circle(Vector2(cx_pos, cy_pos + 3 - flame_h * 0.5), 4.0, Color(0.7, 0.5, 1.0, 0.7 + flicker * 0.15))
-			draw_circle(Vector2(cx_pos, cy_pos + 1 - flame_h * 0.6), 2.5, Color(0.9, 0.8, 1.0, 0.8))
-
-		# === Floating particles (gold + purple mix — vivid for mobile) ===
-		for dust_i in range(_dust_positions.size()):
-			var dust = _dust_positions[dust_i]
-			var dx = dust["x"] + sin(_time * dust["speed"] + dust["offset"]) * 35.0
-			var dy = dust["y"] + cos(_time * dust["speed"] * 0.6 + dust["offset"]) * 25.0
-			var alpha = 0.25 + 0.15 * sin(_time * 1.5 + dust["offset"])
-			var dsz = dust["size"] * 1.3
-			# Alternate between gold and purple particles with glow halo
-			if dust_i % 3 == 0:
-				draw_circle(Vector2(dx, dy), dsz + 3, Color(0.5, 0.25, 0.8, alpha * 0.15))
-				draw_circle(Vector2(dx, dy), dsz, Color(0.6, 0.35, 0.9, alpha * 0.8))
-			else:
-				draw_circle(Vector2(dx, dy), dsz + 3, _ca(menu_gold, alpha * 0.15))
-				draw_circle(Vector2(dx, dy), dsz, _ca(menu_gold, alpha))
-
-		# === 1. Gothic cathedral silhouette (parallax deep background) ===
-		var cath_y = 380.0 + sin(_time * 0.15) * 8.0
-		var cath_col = Color(0.07, 0.05, 0.12, 0.40)
-		# Central spire
-		draw_colored_polygon(PackedVector2Array([Vector2(640, cath_y - 180), Vector2(630, cath_y - 40), Vector2(650, cath_y - 40)]), cath_col)
-		# Left tower
-		draw_rect(Rect2(560, cath_y - 120, 30, 120), cath_col)
-		draw_colored_polygon(PackedVector2Array([Vector2(575, cath_y - 150), Vector2(560, cath_y - 120), Vector2(590, cath_y - 120)]), cath_col)
-		# Right tower
-		draw_rect(Rect2(690, cath_y - 120, 30, 120), cath_col)
-		draw_colored_polygon(PackedVector2Array([Vector2(705, cath_y - 150), Vector2(690, cath_y - 120), Vector2(720, cath_y - 120)]), cath_col)
-		# Rose window
-		draw_arc(Vector2(640, cath_y - 80), 18, 0, TAU, 16, Color(0.3, 0.1, 0.4, 0.15), 1.5)
-		draw_arc(Vector2(640, cath_y - 80), 12, 0, TAU, 12, Color(0.4, 0.15, 0.5, 0.12), 1.0)
-		# Buttresses
-		draw_line(Vector2(555, cath_y - 60), Vector2(530, cath_y), Color(0.07, 0.05, 0.12, 0.30), 2.0)
-		draw_line(Vector2(725, cath_y - 60), Vector2(750, cath_y), Color(0.07, 0.05, 0.12, 0.30), 2.0)
-
-		# === 2. Drifting fog banks (3 parallax layers) ===
-		for fi in range(3):
-			var fog_speed = 0.08 + float(fi) * 0.04
-			var fog_y = 300.0 + float(fi) * 100.0
-			var fog_a = 0.03 - float(fi) * 0.008
-			for fj in range(4):
-				var fog_x = fmod(float(fj) * 350.0 + _time * (20.0 + float(fi) * 10.0) * fog_speed, 1600.0) - 160.0
-				var fog_w = 200.0 + float(fj % 3) * 80.0
-				draw_circle(Vector2(fog_x, fog_y + sin(_time * 0.3 + float(fj)) * 15.0), fog_w * 0.4, Color(0.4, 0.3, 0.55, fog_a))
-
-		# === 3. Dead tree branches (left and right frame) ===
-		var branch_col = Color(0.10, 0.07, 0.16, 0.35)
-		# Left tree
-		draw_line(Vector2(-10, 200), Vector2(60, 120), branch_col, 3.0)
-		draw_line(Vector2(60, 120), Vector2(100, 80), branch_col, 2.0)
-		draw_line(Vector2(60, 120), Vector2(40, 60), branch_col, 2.0)
-		draw_line(Vector2(40, 60), Vector2(55, 20), branch_col, 1.5)
-		draw_line(Vector2(100, 80), Vector2(130, 50 + sin(_time * 0.5) * 4.0), branch_col, 1.5)
-		draw_line(Vector2(100, 80), Vector2(120, 110 + sin(_time * 0.4) * 3.0), branch_col, 1.0)
-		# Right tree
-		draw_line(Vector2(1290, 180), Vector2(1220, 100), branch_col, 3.0)
-		draw_line(Vector2(1220, 100), Vector2(1180, 60), branch_col, 2.0)
-		draw_line(Vector2(1220, 100), Vector2(1240, 40), branch_col, 2.0)
-		draw_line(Vector2(1180, 60), Vector2(1150, 30 + sin(_time * 0.6) * 4.0), branch_col, 1.5)
-
-		# === 4. Moonlit glow (top-right, subtle) ===
-		var moon_x = 1100.0
-		var moon_y = 80.0
-		var moon_pulse = 0.8 + sin(_time * 0.4) * 0.2
-		draw_circle(Vector2(moon_x, moon_y), 80, Color(0.15, 0.12, 0.25, 0.04 * moon_pulse))
-		draw_circle(Vector2(moon_x, moon_y), 40, Color(0.2, 0.18, 0.35, 0.06 * moon_pulse))
-		draw_circle(Vector2(moon_x, moon_y), 22, Color(0.7, 0.65, 0.8, 0.08 * moon_pulse))
-		# Moon rays
-		for ri in range(6):
-			var ray_a = float(ri) * TAU / 6.0 + _time * 0.05
-			var ray_len = 60.0 + sin(_time * 0.3 + float(ri)) * 15.0
-			draw_line(Vector2(moon_x, moon_y), Vector2(moon_x + cos(ray_a) * ray_len, moon_y + sin(ray_a) * ray_len), Color(0.6, 0.55, 0.75, 0.03), 1.0)
-
-		# === Phase 1 CLUTTER REDUCTION ===
-		# Ravens, drips, skulls, wax seals, chains, banners — ALL REMOVED
-		# "Restraint is the most premium signal" — Monument Valley principle
-		# Kept: floating pages, dust motes, lantern glow (above)
-
-		# === Phase 1 CLUTTER REDUCTION continued ===
-		# Cobwebs, candelabra, ink tendrils, moths, blood pool, petals,
-		# whisper characters, vines, dust in beams, spine details — ALL REMOVED
-		# Premium = fewer things, done better
-		if false:  # Dead code gate — preserved for future reference
-			pass
-		# === Phase 1: REMOVED ambient clutter (items 11-20) ===
-		# Cobwebs, candelabra, ink tendrils, moths, blood pool, petals,
-		# whisper characters, vines, dust motes, spine details — cut for premium restraint
-		if false:  # Dead code gate — restore selectively if needed
-			var web_col = Color(0.5, 0.48, 0.55, 0.06)
-			# Top-left cobweb
-			for wbi in range(4):
-				var wa = float(wbi) * PI * 0.5 / 4.0
-				draw_line(Vector2(0, 0), Vector2(cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
-			for wri in range(3):
-				var wr = 20.0 + float(wri) * 20.0
-				draw_arc(Vector2(0, 0), wr, 0, PI * 0.5, 8, web_col, 0.5)
-			# Top-right cobweb
-			for wbi in range(4):
-				var wa = PI * 0.5 + float(wbi) * PI * 0.5 / 4.0
-				draw_line(Vector2(1280, 0), Vector2(1280 + cos(wa) * 70, sin(wa) * 70), web_col, 0.5)
-			for wri in range(3):
-				var wr = 20.0 + float(wri) * 20.0
-				draw_arc(Vector2(1280, 0), wr, PI * 0.5, PI, 8, web_col, 0.5)
-
-			# === 12. Flickering candelabra (book spine area) ===
-			var cand_x = 640.0
-			var cand_y = 500.0
-			var cand_a = 0.15
-			# Stand
-			draw_rect(Rect2(cand_x - 2, cand_y, 4, 20), Color(0.3, 0.22, 0.15, cand_a))
-			draw_rect(Rect2(cand_x - 12, cand_y + 20, 24, 3), Color(0.3, 0.22, 0.15, cand_a))
-			# Arms
-			for arm_i in range(3):
-				var arm_x = cand_x + (float(arm_i) - 1.0) * 16.0
-				draw_rect(Rect2(arm_x - 1, cand_y - 8, 2, 8), Color(0.3, 0.22, 0.15, cand_a))
-				# Flame
-				var fl_flicker = sin(_time * 6.0 + float(arm_i) * 2.1) * 0.15
-				draw_circle(Vector2(arm_x, cand_y - 12), 4, Color(0.9, 0.5, 0.1, (cand_a + fl_flicker) * 0.6))
-				draw_circle(Vector2(arm_x, cand_y - 14), 2.5, Color(1.0, 0.8, 0.3, (cand_a + fl_flicker) * 0.8))
-				# Glow
-				draw_circle(Vector2(arm_x, cand_y - 12), 15, Color(0.9, 0.5, 0.1, 0.02 + fl_flicker * 0.01))
-
-			# === 13. Swirling ink tendrils (animated) ===
-			for ti_ink in range(3):
-				var ink_cx = 200.0 + float(ti_ink) * 400.0
-				var ink_cy = 350.0 + sin(_time * 0.2 + float(ti_ink)) * 80.0
-				var ink_a = 0.04
-				for seg in range(8):
-					var sa = _time * 0.5 + float(seg) * 0.8 + float(ti_ink) * 2.0
-					var sr2 = 30.0 + float(seg) * 8.0
-					var sx = ink_cx + cos(sa) * sr2
-					var sy = ink_cy + sin(sa * 1.3) * sr2 * 0.6
-					draw_circle(Vector2(sx, sy), 3.0 - float(seg) * 0.3, Color(0.1, 0.05, 0.2, ink_a * (1.0 - float(seg) * 0.1)))
-
-			# === 14. Moth/firefly particles near lanterns ===
-			for mi in range(5):
-				var moth_phase = _time * (1.5 + float(mi) * 0.3) + float(mi) * 2.5
-				var moth_cx = 200.0 + float(mi) * 220.0
-				var moth_cy = 250.0 + float(mi % 3) * 80.0
-				var moth_x = moth_cx + cos(moth_phase) * 25.0
-				var moth_y = moth_cy + sin(moth_phase * 1.4) * 18.0
-				var moth_a = 0.15 + sin(_time * 3.0 + float(mi)) * 0.08
-				draw_circle(Vector2(moth_x, moth_y), 1.5, Color(0.9, 0.8, 0.5, moth_a))
-				draw_circle(Vector2(moth_x, moth_y), 5, Color(0.9, 0.8, 0.5, moth_a * 0.1))
-
-			# === 15. Blood pool / crimson puddle (bottom area) ===
-			var pool_x = 400.0
-			var pool_y = 600.0
-			var pool_pulse = sin(_time * 0.5) * 0.01
-			draw_circle(Vector2(pool_x, pool_y), 30, Color(0.4, 0.05, 0.08, 0.04 + pool_pulse))
-			draw_circle(Vector2(pool_x + 15, pool_y + 5), 18, Color(0.35, 0.04, 0.06, 0.03 + pool_pulse))
-			# Ripple
-			var ripple_r = fmod(_time * 8.0, 30.0)
-			draw_arc(Vector2(pool_x, pool_y), ripple_r, 0, TAU, 16, Color(0.5, 0.1, 0.1, 0.03 * (1.0 - ripple_r / 30.0)), 0.5)
-
-			# === 16. Falling rose petals ===
-			for pi_petal in range(4):
-				var petal_x = fmod(float(pi_petal) * 337.0 + _time * 15.0, 1400.0) - 60.0
-				var petal_y = fmod(float(pi_petal) * 193.0 + _time * 25.0, 800.0) - 40.0
-				var petal_rot = _time * 1.5 + float(pi_petal) * 1.8
-				var petal_a = 0.08 + sin(_time + float(pi_petal)) * 0.03
-				var pr_cos = cos(petal_rot)
-				var pr_sin = sin(petal_rot)
-				draw_colored_polygon(PackedVector2Array([
-					Vector2(petal_x + 4 * pr_cos, petal_y + 4 * pr_sin),
-					Vector2(petal_x - 2 * pr_sin, petal_y + 2 * pr_cos),
-					Vector2(petal_x - 4 * pr_cos, petal_y - 4 * pr_sin),
-					Vector2(petal_x + 2 * pr_sin, petal_y - 2 * pr_cos),
-				]), Color(0.7, 0.15, 0.2, petal_a))
-
-			# === 17. Spectral character whispers (faint character outlines) ===
-			var whisper_chars = [
-				{"x": 90, "y": 340, "char": "R"},   # Robin
-				{"x": 1190, "y": 320, "char": "A"},  # Alice
-				{"x": 120, "y": 480, "char": "P"},   # Phantom
-				{"x": 1160, "y": 460, "char": "S"},  # Scrooge
-			]
-			for wc in whisper_chars:
-				var wc_a = 0.03 + sin(_time * 0.6 + float(wc["x"]) * 0.01) * 0.015
-				_udraw(font, Vector2(wc["x"], wc["y"]), wc["char"], HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.5, 0.4, 0.6, wc_a))
-
-			# === 18. Creeping vine tendrils along edges ===
-			var vine_col = Color(0.15, 0.3, 0.1, 0.08)
-			# Left vine
-			var vine_pts_l: Array = []
-			for vi in range(12):
-				var vt = float(vi) / 11.0
-				var vx = 8.0 + sin(vt * 4.0 + _time * 0.2) * 10.0
-				var vy = 150.0 + vt * 350.0
-				if vi > 0:
-					draw_line(Vector2(vine_pts_l[vi - 1][0], vine_pts_l[vi - 1][1]), Vector2(vx, vy), vine_col, 1.5)
-				vine_pts_l.append([vx, vy])
-				# Tiny leaf
-				if vi % 3 == 1:
-					draw_circle(Vector2(vx + 6, vy), 3, Color(0.2, 0.35, 0.12, 0.06))
-
-			# === 19. Dust motes in light beams ===
-			for dmi in range(8):
-				var dm_x = 950.0 + float(dmi % 4) * 30.0 + sin(_time * 0.5 + float(dmi) * 0.9) * 20.0
-				var dm_y = 60.0 + float(dmi) * 35.0 + cos(_time * 0.3 + float(dmi)) * 10.0
-				var dm_a = 0.06 + sin(_time * 2.0 + float(dmi) * 1.3) * 0.03
-				draw_circle(Vector2(dm_x, dm_y), 1.0, Color(0.8, 0.75, 0.6, dm_a))
-
-			# === 20. Animated book spine details (center divider) ===
-			var spine_col2 = Color(0.2, 0.15, 0.3, 0.06)
-			# Spine ridges
-			for sri in range(8):
-				var sr_y = 120.0 + float(sri) * 60.0
-				draw_rect(Rect2(636, sr_y, 8, 3), spine_col2)
-			# Spine title embossing
-		var emboss_a = 0.04 + sin(_time * 0.5) * 0.01
-		_udraw(font, Vector2(637, 430), "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
-		_udraw(font, Vector2(637, 445), "D", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 0.45, 0.2, emboss_a))
+	# That's it. No procedural cathedrals, trees, ravens, skulls,
+	# chains, cobwebs, blood pools, fog banks, candelabras, vines,
+	# rose petals, moths, ink tendrils, banners, or spine details.
+	# "Restraint is the most premium signal."
 
 	# === TOP CURRENCY BAR ===
 	_draw_currency_bar()
@@ -11607,12 +11292,7 @@ func _draw_gear_tab() -> void:
 	var content_top = panel_y + 44.0
 	var content_bottom = panel_y + panel_h - 28.0
 
-	# Phase 2: Gear background art (craftsman workbench)
-	if _ui_tex.has("gear_bg_workbench"):
-		draw_texture_rect(_ui_tex["gear_bg_workbench"], Rect2(panel_x, panel_y, panel_w, panel_h), false)
-		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.03, 0.02, 0.06, 0.55))
-	else:
-		_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.6), 3.0)
+	# Background art renders from _draw_menu_background — no duplicate needed
 
 	# Title — outlined
 	_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + 28), "GEAR COMPENDIUM", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER, 2)
@@ -11842,16 +11522,9 @@ func _draw_emporium() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 
-	# Phase 2: Emporium background art (merchant desk)
-	if _ui_tex.has("emporium_bg_merchant"):
-		draw_texture_rect(_ui_tex["emporium_bg_merchant"], Rect2(panel_x, panel_y, panel_w, panel_h), false)
-		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.03, 0.02, 0.06, 0.50))
-	else:
-		_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), menu_bg_section, _ca(menu_gold_dim, 0.55), 4.0)
-	# Gold border on top
-	var _emp_border = _rrp(Rect2(panel_x, panel_y, panel_w, panel_h), 10.0)
-	_emp_border.append(_emp_border[0])
-	draw_polyline(_emp_border, Color(0.50, 0.38, 0.22, 0.5), 2.0)
+	# Background art renders from _draw_menu_background — no duplicate needed
+	# Light panel tint so items are readable over art
+	draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.04, 0.02, 0.08, 0.30))
 
 	# === Title: THE EMPORIUM ===
 	var font = game_font
@@ -13773,12 +13446,9 @@ func _draw_survivor_grid() -> void:
 	var panel_w = 1268.0
 	var panel_h = 586.0
 
-	# Phase 2: Survivors background art (glowing novels on bookshelf)
-	if _ui_tex.has("survivors_bg_books"):
-		draw_texture_rect(_ui_tex["survivors_bg_books"], Rect2(panel_x, panel_y, panel_w, panel_h), false)
-		draw_rect(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.03, 0.02, 0.06, 0.50))
-	# Header bar — semi-transparent for art to peek through
-	draw_colored_polygon(_rrp(Rect2(panel_x, panel_y, panel_w, 36), 6.0), Color(0.06, 0.04, 0.10, 0.80))
+	# Background art renders from _draw_menu_background — no duplicate here
+	# Header bar — transparent so art shows
+	draw_colored_polygon(_rrp(Rect2(panel_x, panel_y, panel_w, 36), 6.0), Color(0.06, 0.04, 0.10, 0.55))
 	draw_rect(Rect2(panel_x, panel_y + 35, panel_w, 1), Color(0.55, 0.40, 0.15, 0.4))
 
 	# === "SURVIVORS" title — BIG and gold ===
@@ -15252,17 +14922,11 @@ func _draw_story_map() -> void:
 	var header_h = 36.0
 	var arc_gap = 8.0
 
-	# --- Phase 2: Chapters background art (ink-drawn parchment map) ---
-	if _ui_tex.has("chapters_bg_map"):
-		draw_texture_rect(_ui_tex["chapters_bg_map"], Rect2(list_x, list_y, list_w, list_h), false)
-		# Dark overlay for card readability
-		draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.03, 0.02, 0.06, 0.55))
-	else:
-		_ds_panel(Rect2(list_x, list_y, list_w, list_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0)
-	# Border on top of background
+	# --- Content panel: transparent with thin gold border (art shows through from background) ---
+	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.04, 0.02, 0.08, 0.25))
 	var _border_pts = _rrp(Rect2(list_x, list_y, list_w, list_h), 10.0)
 	_border_pts.append(_border_pts[0])
-	draw_polyline(_border_pts, Color(0.50, 0.38, 0.22, 0.6), 2.0)
+	draw_polyline(_border_pts, Color(0.50, 0.38, 0.22, 0.4), 1.5)
 
 	# --- Title bar ---
 	for hgi in range(6):
@@ -15296,7 +14960,7 @@ func _draw_story_map() -> void:
 		var sc = side_colors[si]
 		var side_hover = Rect2(side_x, sy, side_w, side_btn_h).has_point(get_viewport().get_mouse_position())
 		# Bloons-style chunky side button with 3D effect
-		_ds_panel(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 0.92), Color(sc.r * 0.6, sc.g * 0.6, sc.b * 0.6, 0.7 if side_hover else 0.4), 2.0)
+		_ds_panel(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 0.65), Color(sc.r * 0.6, sc.g * 0.6, sc.b * 0.6, 0.7 if side_hover else 0.4), 2.0)
 		if side_hover:
 			# Bright glow on hover
 			draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r, sc.g, sc.b, 0.12))
@@ -15393,7 +15057,7 @@ func _draw_story_map() -> void:
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
 			# Rounded arc header banner
-			draw_colored_polygon(_rrp(Rect2(list_x + 4, hy, list_w - 8, header_h), 6.0), Color(arc_col.r * 0.35, arc_col.g * 0.35, arc_col.b * 0.35, 0.92))
+			draw_colored_polygon(_rrp(Rect2(list_x + 4, hy, list_w - 8, header_h), 6.0), Color(arc_col.r * 0.35, arc_col.g * 0.35, arc_col.b * 0.35, 0.70))
 			# Bright accent bar
 			draw_rect(Rect2(list_x + 4, hy + 2, 5, header_h - 4), Color(arc_col.r, arc_col.g, arc_col.b, 0.95))
 			# Character portrait next to chapter header
@@ -15465,10 +15129,10 @@ func _draw_story_map() -> void:
 				var br = 0.10 + arc_col.r * 0.04
 				var bg2 = 0.07 + arc_col.g * 0.04
 				var bb = 0.18 + arc_col.b * 0.04
-				card_bg = Color(br, bg2, bb, 0.95) if not is_hovered else Color(minf(br * 1.4, 0.25), minf(bg2 * 1.4, 0.15), minf(bb * 1.3, 0.35), 0.98)
+				card_bg = Color(br, bg2, bb, 0.70) if not is_hovered else Color(minf(br * 1.4, 0.25), minf(bg2 * 1.4, 0.15), minf(bb * 1.3, 0.35), 0.98)
 				card_border = Color(0.35, 0.20, 0.50, 0.6) if not is_hovered else Color(0.40, 0.80, 0.98, 1.0)
 			else:
-				card_bg = Color(0.14, 0.10, 0.22, 0.85)
+				card_bg = Color(0.14, 0.10, 0.22, 0.65)
 				card_border = Color(0.30, 0.22, 0.40, 0.5)
 			_ds_panel(Rect2(rx, ry, rw, row_h - 4), card_bg, card_border, 3.0)
 			# Left accent bar (thick, glowing)
