@@ -95,13 +95,16 @@ func _clear() -> void:
 # ======================== CHAPTERS ========================
 func _build_chapters() -> void:
 	_clear()
+	# Use ScrollContainer but ensure it doesn't eat button clicks
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.follow_focus = true
 	content_area.add_child(sc)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_theme_constant_override("separation", 6)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sc.add_child(vb)
 	vb.add_child(_title("THE TOME OF SHADOWS"))
 	vb.add_child(_lbl("Heroes pulled from their stories. One Author controls them all.", 11, Color(0.55,0.50,0.45)))
@@ -193,7 +196,13 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 
 func _play(idx: int, diff: int) -> void:
 	print("[V2] PLAY level ", idx, " diff ", diff)
-	if not _main: return
+	if not _main:
+		# Try to find main again
+		_main = get_tree().get_first_node_in_group("main")
+		print("[V2] Re-acquired main: ", _main)
+	if not _main:
+		print("[V2] ERROR: Cannot find main node!")
+		return
 	if not _main._is_level_unlocked(idx): return
 	_main.selected_difficulty = diff
 	if _main.has_method("_hide_menu_v2"): _main._hide_menu_v2()
