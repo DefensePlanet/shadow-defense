@@ -328,16 +328,28 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			db.pressed.connect(_play.bind(idx, d[0]))
 			dr.add_child(db)
 		btns.add_child(dr)
-		var pb = Button.new()
-		pb.text = "PLAY"; pb.custom_minimum_size = Vector2(150, 30)
-		var ps = StyleBoxFlat.new(); ps.bg_color = Color(0.12,0.50,0.12,0.9); ps.set_corner_radius_all(6)
-		pb.add_theme_stylebox_override("normal", ps)
-		var psh = ps.duplicate(); psh.bg_color = Color(0.18,0.65,0.18)
-		pb.add_theme_stylebox_override("hover", psh)
-		pb.add_theme_font_size_override("font_size", 13)
-		pb.add_theme_color_override("font_color", Color.WHITE)
-		pb.pressed.connect(_play.bind(idx, 0))
-		btns.add_child(pb)
+		# PLAY button — use art if available
+		if _art.has("play_button"):
+			var pb = TextureButton.new()
+			pb.texture_normal = _art["play_button"]
+			pb.ignore_texture_size = true
+			pb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			pb.custom_minimum_size = Vector2(170, 48)
+			var mat = _make_black_key_mat(0.08, 0.05)
+			if mat: pb.material = mat
+			pb.mouse_entered.connect(func(): pb.modulate = Color(1.15, 1.1, 1.0))
+			pb.mouse_exited.connect(func(): pb.modulate = Color.WHITE)
+			pb.pressed.connect(_play.bind(idx, 0))
+			btns.add_child(pb)
+		else:
+			var pb = Button.new()
+			pb.text = "PLAY"; pb.custom_minimum_size = Vector2(150, 30)
+			var ps = StyleBoxFlat.new(); ps.bg_color = Color(0.12,0.50,0.12,0.9); ps.set_corner_radius_all(6)
+			pb.add_theme_stylebox_override("normal", ps)
+			pb.add_theme_font_size_override("font_size", 13)
+			pb.add_theme_color_override("font_color", Color.WHITE)
+			pb.pressed.connect(_play.bind(idx, 0))
+			btns.add_child(pb)
 		row.add_child(btns)
 	else:
 		var lock_vb = VBoxContainer.new()
