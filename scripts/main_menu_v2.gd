@@ -44,6 +44,7 @@ func _ready() -> void:
 	_load_bgs()
 	_set_bg("chapters")
 	_build_currency_bar()
+	_build_music_display()
 	_build_nav()
 	_build_chapters()
 	_fade_in()
@@ -69,6 +70,40 @@ func _build_currency_bar() -> void:
 	top_bar.add_child(h)
 	for c in [["GOLD", _main.gold, Color(1,0.85,0.2)], ["QUILLS", _main.player_quills, Color(0.7,0.5,0.9)], ["SHARDS", _main.player_gear_shards, Color(0.3,0.75,0.9)], ["STARS", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
 		h.add_child(_lbl("%d %s" % [c[1], c[0]], 12, c[2]))
+
+func _build_music_display() -> void:
+	# Now Playing + Skip button in top-right
+	var music_row = HBoxContainer.new()
+	music_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	music_row.add_theme_constant_override("separation", 8)
+	music_row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	music_row.position = Vector2(-250, 8)
+	music_row.size = Vector2(240, 24)
+	top_bar.add_child(music_row)
+	# Song title
+	var song_name = ""
+	if _main and _main.has_method("_get_current_song_title"):
+		song_name = _main._get_current_song_title()
+	elif _main and "_current_song_title" in _main:
+		song_name = _main._current_song_title
+	var song_lbl = _lbl(song_name if song_name != "" else "Now Playing...", 10, Color(0.70, 0.60, 0.85))
+	song_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	song_lbl.clip_text = true
+	song_lbl.custom_minimum_size.x = 180
+	music_row.add_child(song_lbl)
+	# Skip button
+	var skip = Button.new()
+	skip.text = ">>"
+	skip.custom_minimum_size = Vector2(40, 22)
+	var ss = StyleBoxFlat.new()
+	ss.bg_color = Color(0.15, 0.12, 0.25, 0.7)
+	ss.set_corner_radius_all(4)
+	skip.add_theme_stylebox_override("normal", ss)
+	skip.add_theme_font_size_override("font_size", 10)
+	skip.add_theme_color_override("font_color", Color(0.7, 0.6, 0.85))
+	if _main and _main.has_method("_on_skip_song_pressed"):
+		skip.pressed.connect(_main._on_skip_song_pressed)
+	music_row.add_child(skip)
 
 func _build_nav() -> void:
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
@@ -180,6 +215,17 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var stats = _lbl("W:%d G:%d L:%d" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 9, Color(0.45,0.40,0.38))
 	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.add_child(stats)
+	# Star rating
+	if _main and _main.level_stars.has(idx):
+		var star_count = _main.level_stars[idx]
+		var star_text = ""
+		for _si in range(star_count):
+			star_text += "★"
+		for _si in range(3 - star_count):
+			star_text += "☆"
+		var stars_lbl = _lbl(star_text, 12, Color(1.0, 0.85, 0.15) if star_count > 0 else Color(0.35, 0.30, 0.25))
+		stars_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		info.add_child(stars_lbl)
 	row.add_child(info)
 	if unlocked:
 		var btns = VBoxContainer.new()
@@ -348,9 +394,26 @@ func _open_survivor_detail(idx: int) -> void:
 	back.add_theme_color_override("font_color", Color(0.8,0.75,0.65))
 	back.pressed.connect(_build_survivors)
 	right.add_child(back)
+	# Get tower type for stats lookup
+	var tt = _main.survivor_types[idx] if _main and idx < _main.survivor_types.size() else null
+	# Character level + XP
+	right.add_child(_lbl("CHARACTER LEVEL", 14, Color(0.85,0.72,0.40)))
+	if tt != null and _main.survivor_progress.has(tt):
+		var prog = _main.survivor_progress[tt]
+		var level = prog.get("level", 1)
+		var xp = prog.get("xp", 0)
+		var next_xp = _main.HERO_XP_TABLE[mini(level - 1, _main.HERO_XP_TABLE.size() - 1)] if level <= _main.MAX_SURVIVOR_LEVEL else 0
+		right.add_child(_lbl("Level %d" % level, 18, Color(1.0, 0.92, 0.45)))
+		if next_xp > 0:
+			right.add_child(_stat_bar("XP", xp, next_xp, Color(0.3, 0.8, 0.4)))
+		# Total damage dealt
+		var total_dmg = prog.get("total_damage", 0.0)
+		if total_dmg > 0:
+			right.add_child(_lbl("Total Damage: %s" % _format_num(total_dmg), 10, Color(0.6, 0.5, 0.45)))
+	else:
+		right.add_child(_lbl("Level 1", 18, Color(1.0, 0.92, 0.45)))
 	# Stats section
 	right.add_child(_lbl("COMBAT STATS", 14, Color(0.85,0.72,0.40)))
-	var tt = _main.survivor_types[idx] if _main and idx < _main.survivor_types.size() else null
 	if tt != null and _main.tower_info.has(tt):
 		var info = _main.tower_info[tt]
 		right.add_child(_stat_bar("Damage", info.get("damage", 0), 50, Color(0.9,0.3,0.2)))
@@ -520,6 +583,11 @@ func _lbl(text: String, size: int, color: Color) -> Label:
 	l.add_theme_constant_override("shadow_offset_x", 1)
 	l.add_theme_constant_override("shadow_offset_y", 1)
 	return l
+
+func _format_num(val: float) -> String:
+	if val >= 1000000: return "%.1fM" % (val / 1000000.0)
+	if val >= 1000: return "%.1fK" % (val / 1000.0)
+	return str(int(val))
 
 func _fade_in() -> void:
 	fade_rect.color = Color(0,0,0,1)
