@@ -6260,7 +6260,6 @@ func _show_menu_v2() -> void:
 				child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _hide_menu_v2() -> void:
-	print("[MAIN] _hide_menu_v2 called")
 	if _menu_v2_instance != null:
 		var canvas = _menu_v2_instance.get_parent()
 		_menu_v2_instance = null  # Clear reference
@@ -7561,7 +7560,6 @@ func _on_level_selected(index: int) -> void:
 var _pending_level_start: int = -1
 
 func _do_level_start(index: int) -> void:
-	print("[MAIN] _do_level_start called with index: ", index)
 	_remove_survivor_preview()
 	current_level = index
 	_reset_game()

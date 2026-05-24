@@ -14,30 +14,7 @@ const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan"
 @onready var nav_bar: ColorRect = $NavBar
 @onready var fade_rect: ColorRect = $FadeRect
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		print("[V2] Click: ", event.position)
-	# Debug keyboard shortcuts for testing
-	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_1:
-				print("[V2] KEY 1 — Playing level 0")
-				_play(0, 0)
-			KEY_2:
-				print("[V2] KEY 2 — Switch to survivors")
-				_on_tab("survivors")
-			KEY_3:
-				print("[V2] KEY 3 — Switch to emporium")
-				_on_tab("emporium")
-			KEY_4:
-				print("[V2] KEY 4 — Switch to codex")
-				_on_tab("codex")
-			KEY_5:
-				print("[V2] KEY 5 — Switch to settings")
-				_on_tab("settings")
-			KEY_0:
-				print("[V2] KEY 0 — Switch to chapters")
-				_on_tab("chapters")
+
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
@@ -129,7 +106,6 @@ func _build_nav() -> void:
 		nav_buttons_container.add_child(btn)
 
 func _on_tab(tab: String) -> void:
-	print("[V2] Tab: ", tab)
 	if current_view == tab: return
 	current_view = tab
 	# Background crossfade
@@ -271,17 +247,26 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		btns.add_child(pb)
 		row.add_child(btns)
 	else:
-		row.add_child(_lbl("LOCKED", 11, Color(0.4,0.35,0.3)))
+		var lock_vb = VBoxContainer.new()
+		lock_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		lock_vb.custom_minimum_size = Vector2(120, 0)
+		var lock_icon = _lbl("🔒", 20, Color(0.4,0.35,0.3))
+		lock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_vb.add_child(lock_icon)
+		var lock_text = _lbl("Complete\nprevious level", 9, Color(0.4,0.35,0.3))
+		lock_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_vb.add_child(lock_text)
+		row.add_child(lock_vb)
 	return p
 
 func _play(idx: int, diff: int) -> void:
-	print("[V2] PLAY level ", idx, " diff ", diff)
 	if not _main:
 		# Try to find main again
 		_main = get_tree().get_first_node_in_group("main")
-		print("[V2] Re-acquired main: ", _main)
 	if not _main:
-		print("[V2] ERROR: Cannot find main node!")
 		return
 	if not _main._is_level_unlocked(idx): return
 	_main.selected_difficulty = diff
@@ -364,11 +349,34 @@ func _survivor_card(idx: int) -> Button:
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(tl)
+	# Level badge
+	var tt = _main.survivor_types[idx] if _main and idx < _main.survivor_types.size() else null
+	if tt != null and _main.survivor_progress.has(tt):
+		var lvl = _main.survivor_progress[tt].get("level", 1)
+		var badge = _lbl("Lv.%d" % lvl, 9, Color(0.85, 0.72, 0.40))
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(badge)
+	# Source novel
+	if _main and idx < _main.character_novels.size():
+		var novel = _lbl(_main.character_novels[idx], 8, Color(0.42, 0.38, 0.35))
+		novel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		novel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		novel.clip_text = true
+		novel.custom_minimum_size.x = 150
+		vb.add_child(novel)
 	btn.pressed.connect(_open_survivor_detail.bind(idx))
+	# Hover effect
+	btn.mouse_entered.connect(func():
+		btn.pivot_offset = btn.size / 2.0
+		var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.1))
+	btn.mouse_exited.connect(func():
+		var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
+		tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08))
 	return btn
 
 func _open_survivor_detail(idx: int) -> void:
-	print("[V2] Open survivor detail: ", idx)
 	_clear()
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
