@@ -344,15 +344,17 @@ func _survivor_card(idx: int) -> Button:
 	var sp = s.duplicate()
 	sp.bg_color = Color(0.12,0.08,0.20,0.85)
 	btn.add_theme_stylebox_override("pressed", sp)
-	btn.text = ""  # No text — we add children manually
-	# Content inside the button
+	btn.text = ""
+	# Content fills entire button area — centered
 	var vb = VBoxContainer.new()
+	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(vb)
-	# Portrait
+	# Portrait — fills width, centered
 	var port = TextureRect.new()
-	port.custom_minimum_size = Vector2(200, 190)
+	port.custom_minimum_size = Vector2(0, 190)
+	port.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	port.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -364,12 +366,13 @@ func _survivor_card(idx: int) -> Button:
 	var cname = _main.character_names[idx] if _main and idx < _main.character_names.size() else "?"
 	var nl = _lbl(cname.to_upper(), 11, Color(1,0.92,0.45))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(nl)
-	# Title
 	var ctitle = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
 	var tl = _lbl(ctitle, 9, Color(0.55,0.48,0.42))
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(tl)
 	# Level badge
@@ -378,15 +381,16 @@ func _survivor_card(idx: int) -> Button:
 		var lvl = _main.survivor_progress[tt].get("level", 1)
 		var badge = _lbl("Lv.%d" % lvl, 9, Color(0.85, 0.72, 0.40))
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(badge)
 	# Source novel
 	if _main and idx < _main.character_novels.size():
 		var novel = _lbl(_main.character_novels[idx], 8, Color(0.42, 0.38, 0.35))
 		novel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		novel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		novel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		novel.clip_text = true
-		novel.custom_minimum_size.x = 150
 		vb.add_child(novel)
 	btn.pressed.connect(_open_survivor_detail.bind(idx))
 	# Hover effect
