@@ -116,17 +116,15 @@ func _clear() -> void:
 # ======================== CHAPTERS ========================
 func _build_chapters() -> void:
 	_clear()
-	# Use ScrollContainer but ensure it doesn't eat button clicks
-	var sc = ScrollContainer.new()
-	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.follow_focus = true
-	content_area.add_child(sc)
+	# Direct VBoxContainer — no ScrollContainer to eat clicks
+	# TODO: Add manual scroll with _gui_input later
 	var vb = VBoxContainer.new()
+	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_theme_constant_override("separation", 6)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sc.add_child(vb)
+	vb.clip_contents = true
+	content_area.add_child(vb)
 	vb.add_child(_title("THE TOME OF SHADOWS"))
 	vb.add_child(_lbl("Heroes pulled from their stories. One Author controls them all.", 11, Color(0.55,0.50,0.45)))
 	if not _main: return
