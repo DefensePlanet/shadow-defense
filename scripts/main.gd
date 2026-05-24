@@ -4796,9 +4796,24 @@ func _load_ui_art() -> void:
 			var tex = load(path)
 			if tex:
 				_ui_tex[item] = tex
-	# Load menu art textures
-	for item in ["game_logo"]:
+	# Load menu art textures — Phase 2 storybook backgrounds
+	var menu_art_items = [
+		"game_logo", "menu_bg_storybook", "survivors_bg_books",
+		"chapters_bg_map", "emporium_bg_merchant", "gear_bg_workbench"
+	]
+	for item in menu_art_items:
 		var path = "res://assets/menu_art/" + item + ".png"
+		if ResourceLoader.exists(path):
+			var tex = load(path)
+			if tex:
+				_ui_tex[item] = tex
+	# Load UI frame textures
+	var frame_items = [
+		"card_frame_storybook", "scroll_header_storybook",
+		"nav_book_spine", "button_gothic"
+	]
+	for item in frame_items:
+		var path = "res://assets/ui_frames/" + item + ".png"
 		if ResourceLoader.exists(path):
 			var tex = load(path)
 			if tex:
@@ -11119,24 +11134,30 @@ func _draw_menu_background() -> void:
 				theme_accent = theme_item["accent"]
 				break
 
-	# ALL tabs get the dark gothic purple background
-	if true:
-		# === DARK GOTHIC PURPLE gradient — shadow world storybook ===
-		var bg_bands = _qcount(20)
-		var grad_step = 720 / maxi(1, bg_bands)
-		for gy in range(0, 720, grad_step):
-			var gt = (float(gy) + float(grad_step) * 0.5) / 720.0
-			# Deep purple-black at top, darker at bottom
+	# === Phase 2: STORYBOOK BACKGROUND ART (replaces procedural gradient) ===
+	# Choose background based on current menu view
+	var _bg_key = "menu_bg_storybook"
+	match menu_current_view:
+		"chapters": _bg_key = "chapters_bg_map"
+		"survivors": _bg_key = "survivors_bg_books"
+		"emporium": _bg_key = "emporium_bg_merchant"
+		"gear": _bg_key = "gear_bg_workbench"
+		"codex": _bg_key = "survivors_bg_books"
+	# Render the storybook background art
+	if _ui_tex.has(_bg_key):
+		# Full-screen background art — this single change transforms the menu
+		draw_texture_rect(_ui_tex[_bg_key], Rect2(0, 0, 1280, 720), false)
+		# Subtle dark overlay for UI readability (content draws on top)
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0.03, 0.02, 0.06, 0.45))
+	else:
+		# Fallback: dark gradient if art not loaded
+		for gy in range(0, 720, 36):
+			var gt = (float(gy) + 18.0) / 720.0
 			var r = lerpf(0.10, 0.05, gt)
 			var g = lerpf(0.06, 0.03, gt)
 			var b = lerpf(0.18, 0.12, gt)
-			draw_rect(Rect2(0, gy, 1280, grad_step), Color(r, g, b, 1.0))
-
-		# === Subtle purple center glow ===
-		var center_pulse = 0.9 + sin(_time * 0.6) * 0.1
-		draw_circle(Vector2(640, 320), 550.0, Color(0.20, 0.08, 0.35, 0.10 * center_pulse))
-		draw_circle(Vector2(640, 320), 380.0, Color(0.25, 0.10, 0.40, 0.08 * center_pulse))
-		draw_circle(Vector2(640, 320), 220.0, Color(0.35, 0.15, 0.50, 0.12 * center_pulse))
+			draw_rect(Rect2(0, gy, 1280, 36), Color(r, g, b, 1.0))
+	if true:
 
 		# === Gothic corner ornaments (all 4 corners — bright for mobile) ===
 		var orn_a = 0.22 + sin(_time * 0.8) * 0.06
@@ -11515,26 +11536,25 @@ func _draw_menu_background() -> void:
 
 	# === Bottom nav bar (ALWAYS ON TOP — draws after all content) ===
 	var nav_draw_y = 620.0 - _safe_bottom
-	# Phase 1: Consolidated from 7 tabs to 5 (research: 4-5 tabs is premium standard)
-	# Gear → accessible from Survivors detail page. Achievements + Chronicles → merged into CODEX
+	# Phase 1: Consolidated from 7 tabs to 5
 	var nav_tab_names = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var nav_tab_labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	var nav_tab_cols = [
 		Color(0.85, 0.72, 0.40),  # Chapters: warm gold
 		Color(0.85, 0.72, 0.40),  # Survivors: warm gold
 		Color(0.85, 0.72, 0.40),  # Emporium: warm gold
-		Color(0.70, 0.55, 0.85),  # Codex: purple (knowledge/collection)
+		Color(0.70, 0.55, 0.85),  # Codex: purple
 		Color(0.55, 0.48, 0.68),  # Settings: muted purple
 	]
-	# Solid cover — hides ALL card overflow below nav bar
-	draw_rect(Rect2(0, nav_draw_y - 2, 1280, 120), Color(0.05, 0.03, 0.08, 1.0))
-	# Dark gothic nav bar — deep purple with gold accent line
-	for ngi in range(10):
-		var t = float(ngi) / 9.0
-		var nr = lerpf(0.10, 0.05, t)
-		var ng = lerpf(0.06, 0.03, t)
-		var nb = lerpf(0.16, 0.10, t)
-		draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(nr, ng, nb, 0.97))
+	# Phase 2: Book spine nav bar texture (replaces procedural gradient)
+	if _ui_tex.has("nav_book_spine"):
+		draw_texture_rect(_ui_tex["nav_book_spine"], Rect2(0, nav_draw_y - 10, 1280, 110), false)
+	else:
+		# Fallback: solid dark cover
+		draw_rect(Rect2(0, nav_draw_y - 2, 1280, 120), Color(0.05, 0.03, 0.08, 1.0))
+		for ngi in range(10):
+			var t = float(ngi) / 9.0
+			draw_rect(Rect2(0, nav_draw_y + t * 100.0, 1280, 11.0), Color(lerpf(0.10, 0.05, t), lerpf(0.06, 0.03, t), lerpf(0.16, 0.10, t), 0.97))
 	# Top edge — gold accent line
 	draw_rect(Rect2(0, nav_draw_y - 1, 1280, 2), Color(0.65, 0.50, 0.20, 0.7))
 	draw_rect(Rect2(0, nav_draw_y + 1, 1280, 1), Color(0.50, 0.35, 0.15, 0.3))
