@@ -6250,8 +6250,8 @@ func _show_menu() -> void:
 	_reset_game()
 	ingame_settings_open = false
 	game_state = GameState.MENU
-	# V2 menu disabled until it has full interactivity
-	# _show_menu_v2()
+	# V2 menu — scene-based with real art
+	_show_menu_v2()
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	fast_forward = false
