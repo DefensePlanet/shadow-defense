@@ -140,13 +140,8 @@ func _build_nav() -> void:
 func _on_tab(tab: String) -> void:
 	if current_view == tab: return
 	current_view = tab
-	# Background crossfade
-	var bg_tw = create_tween()
-	bg_tw.tween_property(background, "modulate:a", 0.0, 0.12)
-	await bg_tw.finished
+	# Set background immediately — no crossfade that can break
 	_set_bg(tab)
-	bg_tw = create_tween()
-	bg_tw.tween_property(background, "modulate:a", 1.0, 0.12)
 	# Update nav highlight
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	for i in range(nav_buttons_container.get_child_count()):
