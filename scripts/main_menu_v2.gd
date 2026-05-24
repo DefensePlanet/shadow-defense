@@ -436,6 +436,18 @@ func _survivor_card(idx: int) -> Button:
 	sp.bg_color = Color(0.12,0.08,0.20,0.85)
 	btn.add_theme_stylebox_override("pressed", sp)
 	btn.text = ""
+	# Art frame layer behind content (card_frame with black keyed out)
+	if _art.has("card_frame"):
+		var frame_art = TextureRect.new()
+		frame_art.texture = _art["card_frame"]
+		frame_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		frame_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		frame_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		frame_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame_art.modulate.a = 0.35  # Subtle art overlay
+		var mat = _make_black_key_mat(0.08, 0.05)
+		if mat: frame_art.material = mat
+		btn.add_child(frame_art)
 	# Content fills entire button area — centered
 	var vb = VBoxContainer.new()
 	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -770,6 +782,18 @@ func _build_emporium() -> void:
 		sh.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.65)
 		sh.border_color = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.7)
 		btn.add_theme_stylebox_override("hover", sh)
+		# Art layer behind content (shop_item_card with black keyed out)
+		if _art.has("shop_card"):
+			var card_art = TextureRect.new()
+			card_art.texture = _art["shop_card"]
+			card_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card_art.modulate.a = 0.4  # Subtle — art shows but doesn't overpower
+			var mat = _make_black_key_mat(0.08, 0.05)
+			if mat: card_art.material = mat
+			btn.add_child(card_art)
 		# Content: Icon + Name + Desc + Badge
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
