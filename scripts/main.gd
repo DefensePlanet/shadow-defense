@@ -6238,12 +6238,13 @@ func _show_menu_v2() -> void:
 		canvas.add_child(_menu_v2_instance)
 		add_child(canvas)
 	else:
-		# Re-add the canvas if it was removed
-		if has_meta("_menu_v2_canvas"):
-			var canvas = get_meta("_menu_v2_canvas")
-			if canvas and not canvas.is_inside_tree():
-				add_child(canvas)
-		_menu_v2_instance.visible = true
+		# Instance was destroyed — recreate
+		_menu_v2_instance = _menu_v2_scene.instantiate()
+		var canvas = CanvasLayer.new()
+		canvas.name = "MenuV2Layer"
+		canvas.layer = 50
+		canvas.add_child(_menu_v2_instance)
+		add_child(canvas)
 	# CRITICAL: Hide ALL old menu interactive elements so they don't eat clicks
 	if menu_overlay:
 		menu_overlay.visible = false
@@ -6261,14 +6262,10 @@ func _show_menu_v2() -> void:
 func _hide_menu_v2() -> void:
 	print("[MAIN] _hide_menu_v2 called")
 	if _menu_v2_instance != null:
-		_menu_v2_instance.visible = false
-		_menu_v2_instance.process_mode = Node.PROCESS_MODE_DISABLED
 		var canvas = _menu_v2_instance.get_parent()
-		if canvas is CanvasLayer:
-			print("[MAIN] Removing CanvasLayer from tree")
-			canvas.process_mode = Node.PROCESS_MODE_DISABLED
-			call_deferred("remove_child", canvas)
-			set_meta("_menu_v2_canvas", canvas)
+		_menu_v2_instance = null  # Clear reference
+		if canvas:
+			canvas.queue_free()  # Destroy the entire CanvasLayer + menu
 	# Re-enable old menu inputs for gameplay UI
 	if menu_overlay:
 		menu_overlay.visible = true
