@@ -166,7 +166,7 @@ func _level_card(idx: int) -> PanelContainer:
 	row.add_child(_lbl(str(idx + 1), 20, Color(0.85, 0.72, 0.40) if unlocked else Color(0.35, 0.30, 0.25)))
 	# Thumbnail
 	var thumb = TextureRect.new()
-	thumb.custom_minimum_size = Vector2(90, 60)
+	thumb.custom_minimum_size = Vector2(100, 70)
 	thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	if _main._map_thumb_textures.has(idx):
@@ -191,7 +191,7 @@ func _level_card(idx: int) -> PanelContainer:
 			diff_tex = load("res://assets/ui_elements/difficulty_buttons_v2.png")
 		for di in range(3):
 			var db = TextureButton.new()
-			db.custom_minimum_size = Vector2(55, 45)
+			db.custom_minimum_size = Vector2(75, 60)
 			db.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 			db.ignore_texture_size = true
 			if diff_tex:
@@ -205,7 +205,7 @@ func _level_card(idx: int) -> PanelContainer:
 		btns.add_child(drow)
 		# PLAY button — ornate emerald gemstone art
 		var play = TextureButton.new()
-		play.custom_minimum_size = Vector2(200, 55)
+		play.custom_minimum_size = Vector2(220, 65)
 		play.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		play.ignore_texture_size = true
 		if ResourceLoader.exists("res://assets/ui_elements/play_button_v2.png"):
