@@ -183,29 +183,24 @@ func _level_card(idx: int) -> PanelContainer:
 	if unlocked:
 		var btns = VBoxContainer.new()
 		btns.add_theme_constant_override("separation", 3)
-		# Difficulty row
+		# Difficulty row — ornate gem buttons
 		var drow = HBoxContainer.new()
 		drow.add_theme_constant_override("separation", 4)
-		var diffs = [["EASY", 0, Color(0.2, 0.6, 0.2)], ["MED", 1, Color(0.6, 0.5, 0.1)], ["HARD", 2, Color(0.6, 0.15, 0.1)]]
-		for d in diffs:
-			var db = Button.new()
-			db.text = d[0]
-			db.custom_minimum_size = Vector2(48, 24)
-			var ds = StyleBoxFlat.new()
-			ds.bg_color = d[2]
-			ds.set_corner_radius_all(4)
-			ds.content_margin_left = 4
-			ds.content_margin_right = 4
-			db.add_theme_stylebox_override("normal", ds)
-			var dh = ds.duplicate()
-			dh.bg_color = d[2].lightened(0.25)
-			db.add_theme_stylebox_override("hover", dh)
-			var dp = ds.duplicate()
-			dp.bg_color = d[2].darkened(0.2)
-			db.add_theme_stylebox_override("pressed", dp)
-			db.add_theme_font_size_override("font_size", 10)
-			db.add_theme_color_override("font_color", Color.WHITE)
-			db.pressed.connect(_play.bind(idx, d[1]))
+		var diff_tex = null
+		if ResourceLoader.exists("res://assets/ui_elements/difficulty_buttons_v2.png"):
+			diff_tex = load("res://assets/ui_elements/difficulty_buttons_v2.png")
+		for di in range(3):
+			var db = TextureButton.new()
+			db.custom_minimum_size = Vector2(55, 45)
+			db.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			db.ignore_texture_size = true
+			if diff_tex:
+				var atlas = AtlasTexture.new()
+				atlas.atlas = diff_tex
+				var gem_w = diff_tex.get_width() / 3.0
+				atlas.region = Rect2(di * gem_w, 0, gem_w, diff_tex.get_height())
+				db.texture_normal = atlas
+			db.pressed.connect(_play.bind(idx, di))
 			drow.add_child(db)
 		btns.add_child(drow)
 		# PLAY button — ornate emerald gemstone art
