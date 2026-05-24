@@ -137,7 +137,29 @@ func _build_chapters_view() -> void:
 	vbox.add_child(title)
 	if not _main:
 		return
+	# Group levels into story arcs with headers
+	var current_arc = ""
 	for i in range(_main.levels.size()):
+		var lvl = _main.levels[i]
+		var subtitle = lvl.get("subtitle", "")
+		# Extract arc name from subtitle (e.g. "Sherlock Holmes — Chapter 1" → "Sherlock Holmes")
+		var arc_name = subtitle.split(" — ")[0] if " — " in subtitle else subtitle.split(" —")[0] if " —" in subtitle else "Prologue"
+		if arc_name == "":
+			arc_name = "Prologue"
+		if arc_name != current_arc:
+			current_arc = arc_name
+			# Arc header
+			var header = PanelContainer.new()
+			var hs = StyleBoxFlat.new()
+			hs.bg_color = Color(0.10, 0.06, 0.18, 0.60)
+			hs.set_corner_radius_all(4)
+			hs.content_margin_left = 12
+			hs.content_margin_top = 4
+			hs.content_margin_bottom = 4
+			header.add_theme_stylebox_override("panel", hs)
+			var hl = _lbl(arc_name.to_upper(), 16, Color(0.90, 0.80, 0.50))
+			header.add_child(hl)
+			vbox.add_child(header)
 		vbox.add_child(_level_card(i))
 
 func _level_card(idx: int) -> PanelContainer:
@@ -178,6 +200,13 @@ func _level_card(idx: int) -> PanelContainer:
 	info.add_child(_lbl(lvl.get("name", ""), 16, Color(1, 0.95, 0.85) if unlocked else Color(0.45, 0.40, 0.35)))
 	info.add_child(_lbl(lvl.get("subtitle", ""), 11, Color(0.55, 0.48, 0.42)))
 	info.add_child(_lbl("W:%d G:%d L:%d" % [lvl.get("waves", 20), lvl.get("gold", 100), lvl.get("lives", 20)], 10, Color(0.45, 0.40, 0.38)))
+	# Story flavor text from the level description
+	var desc_text = lvl.get("description", "")
+	if desc_text != "" and unlocked:
+		var flavor = _lbl(desc_text, 9, Color(0.50, 0.45, 0.40))
+		flavor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		flavor.custom_minimum_size.x = 400
+		info.add_child(flavor)
 	row.add_child(info)
 	# Difficulty + Play buttons
 	if unlocked:
