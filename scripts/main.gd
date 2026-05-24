@@ -16924,6 +16924,52 @@ func _process(delta: float) -> void:
 	_check_panic_lines()
 	if _greeting_timer > 0:
 		_greeting_timer -= delta
+	# === ENHANCEMENT SYSTEMS (300 batch) ===
+	# Enhancement #133: Heartbeat at low lives
+	_update_heartbeat(delta)
+	# Enhancement #118: Process gold coin particles
+	_process_gold_coins(delta)
+	# Enhancement #8: Emergency cooldown
+	if _emergency_cooldown > 0.0:
+		_emergency_cooldown -= delta
+	if _emergency_active:
+		_emergency_cooldown -= delta  # Intentional: use as duration timer too
+		if _emergency_cooldown <= EMERGENCY_COOLDOWN_TIME - EMERGENCY_DURATION:
+			_end_emergency()
+	_check_emergency_availability()
+	# Enhancement #7: Auto-countdown
+	if _auto_countdown_active:
+		_auto_countdown_value -= delta
+		if _auto_countdown_value <= 0.0:
+			_auto_countdown_active = false
+			_start_next_wave()
+	# Enhancement #47: Boss dialogue display timer
+	if _boss_dialogue_timer > 0.0:
+		_boss_dialogue_timer -= delta
+		if _boss_dialogue_timer <= 0.0:
+			_boss_dialogue_text = ""
+	# Enhancement #47: Check boss HP thresholds each frame
+	for enemy in _cached_enemies:
+		if is_instance_valid(enemy) and enemy.has_meta("boss_dialogue_name"):
+			var bn = enemy.get_meta("boss_dialogue_name")
+			var hp_pct = (enemy.health / maxf(enemy.max_health, 1.0)) * 100.0
+			_check_boss_dialogue(bn, hp_pct)
+	# Enhancement #15: Rush bonus timer
+	if _rush_bonus_timer > 0.0:
+		_rush_bonus_timer -= delta
+		if _rush_bonus_timer <= 0.0:
+			_wave_overlap_active = false
+	# Enhancement #10: Undo window expiry
+	while not _undo_stack.is_empty() and (_time - _undo_stack[0]["time"]) > UNDO_WINDOW:
+		_undo_stack.pop_front()
+	# Enhancement #11: Crit flash decay
+	var _crit_to_remove = []
+	for i in range(_crit_flash_positions.size()):
+		_crit_flash_positions[i]["timer"] -= delta
+		if _crit_flash_positions[i]["timer"] <= 0.0:
+			_crit_to_remove.append(i)
+	for i in range(_crit_to_remove.size() - 1, -1, -1):
+		_crit_flash_positions.remove_at(_crit_to_remove[i])
 	# === ADDICTION SYSTEMS TIMERS ===
 	_process_combo(delta)
 	_process_boss_kill_ceremony(delta)
@@ -17263,6 +17309,15 @@ func _spawn_enemy() -> void:
 		elif endless_mutation == "Gold Drought":
 			enemy.gold_reward = maxi(1, enemy.gold_reward / 2)
 		_apply_enemy_modifiers(enemy, w, enemy.boss_scale > 1.0)
+		# Enhancement #32: Elite enemy roll
+		_roll_elite_enemy(enemy, w)
+		# Enhancement #33: Enemy ability roll
+		var ability = _roll_enemy_ability(w)
+		if ability != "":
+			enemy.enemy_ability = ability
+		# Enhancement #238: Adaptive difficulty
+		enemy.max_health *= _adaptive_difficulty
+		enemy.health = enemy.max_health
 		enemy.load_sprite()
 		enemy_path.add_child(enemy)
 		enemies_to_spawn -= 1
@@ -17459,6 +17514,20 @@ func _spawn_enemy() -> void:
 	_apply_enemy_modifiers(enemy, w, is_boss_wave or is_final_villain or is_last_wave)
 	# Improvement 17: Maybe assign weakpoint
 	_maybe_assign_weakpoint(enemy)
+	# Enhancement #32: Elite enemy roll (campaign)
+	_roll_elite_enemy(enemy, w)
+	# Enhancement #33: Enemy ability roll (campaign)
+	var _ability = _roll_enemy_ability(w)
+	if _ability != "":
+		enemy.enemy_ability = _ability
+	# Enhancement #238: Adaptive difficulty scaling
+	enemy.max_health *= _adaptive_difficulty
+	enemy.health = enemy.max_health
+	# Enhancement #47: Boss dialogue init
+	if is_boss_wave or is_final_villain or is_last_wave:
+		var _bn = enemy.boss_name if enemy.is_named_boss else BOSS_VILLAIN_NAMES.get(enemy.enemy_theme, "")
+		if _bn != "":
+			enemy.set_meta("boss_dialogue_name", _bn)
 	enemy.load_sprite()
 	enemy_path.add_child(enemy)
 	enemies_to_spawn -= 1
@@ -28035,6 +28104,13 @@ func add_gold(amount: int) -> void:
 	# BATTD: Double Cash Mode doubles all gold income
 	if double_cash_enabled and amount > 0:
 		amount *= 2
+	# Enhancement #72: Relic — Magic Lamp (+15% gold from all sources)
+	var gold_relic_bonus = _get_relic_bonus("gold_all")
+	if gold_relic_bonus > 0.0 and amount > 0:
+		amount = int(float(amount) * (1.0 + gold_relic_bonus))
+	# Enhancement #15: Rush bonus
+	if _wave_overlap_active and amount > 0:
+		amount = int(float(amount) * RUSH_BONUS_MULT)
 	gold += amount
 	total_gold_earned += amount
 	_check_achievement("penny_pincher", amount)
@@ -28053,6 +28129,12 @@ func spend_gold(amount: int) -> bool:
 func lose_life() -> void:
 	if game_state != GameState.PLAYING:
 		return
+	# Enhancement #72: Relic — Pandora's Lid blocks first lethal hit per wave
+	if lives <= 1 and _get_relic_bonus("death_block") > 0.0:
+		if not has_meta("pandora_used_this_wave"):
+			set_meta("pandora_used_this_wave", true)
+			spawn_floating_text(Vector2(640, 350), "PANDORA'S LID SAVED YOU!", Color(0.8, 0.4, 1.0), 18.0, 1.5)
+			return
 	# Storybook Shield blocks life loss
 	if storybook_shield_charges > 0:
 		storybook_shield_charges -= 1
@@ -28079,6 +28161,12 @@ func lose_life() -> void:
 			_update_character_mood(_mtt, -5.0)
 	# Addiction: Near miss drama check
 	_check_near_miss()
+	# Enhancement #8: Check emergency ability availability
+	_check_emergency_availability()
+	# Enhancement #133: Heartbeat at low lives
+	_update_heartbeat(0.0)
+	# Enhancement #238: Adaptive difficulty — player struggling
+	_adjust_adaptive_difficulty()
 	update_hud()
 	if lives <= 0:
 		if odyssey_active:
@@ -28179,6 +28267,33 @@ func enemy_died(enemy_node = null) -> void:
 					elif bounty["reward_type"] == "quills":
 						player_quills += bounty["reward_amount"]
 					spawn_floating_text(Vector2(640, 280), "BOUNTY COMPLETE! +%d %s" % [bounty["reward_amount"], bounty["reward_type"].capitalize()], Color(1.0, 0.7, 0.1), 18.0, 2.0)
+	# Enhancement #118: Gold coin pickup animation
+	if enemy_node and is_instance_valid(enemy_node):
+		_spawn_gold_coins(enemy_node.global_position, enemy_node.gold_reward if "gold_reward" in enemy_node else 10)
+	# Enhancement #32: Elite enemy bonus
+	if enemy_node and is_instance_valid(enemy_node) and enemy_node.get("is_elite"):
+		var elite_bonus = enemy_node.gold_reward if "gold_reward" in enemy_node else 10
+		add_gold(elite_bonus)
+		spawn_floating_text(enemy_node.global_position + Vector2(0, -45), "ELITE! +%dG" % elite_bonus, Color(1.0, 0.85, 0.0), 18.0, 1.2)
+	# Enhancement #62: Account XP from kills
+	_add_account_xp(1)
+	# Enhancement #47: Boss dialogue check on HP thresholds
+	if enemy_node and is_instance_valid(enemy_node) and enemy_node.has_meta("boss_dialogue_name"):
+		var bn = enemy_node.get_meta("boss_dialogue_name")
+		var hp_pct = (enemy_node.health / maxf(enemy_node.max_health, 1.0)) * 100.0
+		_check_boss_dialogue(bn, hp_pct)
+	# Enhancement #15: Rush bonus tracking
+	if _wave_overlap_active:
+		_rush_bonus_timer -= 0.016  # approximate frame time
+	# Enhancement #72: Relic — Marley's Chains (death slow)
+	if _get_relic_bonus("death_slow") > 0.0 and enemy_node and is_instance_valid(enemy_node):
+		for other_enemy in _cached_enemies:
+			if is_instance_valid(other_enemy) and other_enemy != enemy_node:
+				if other_enemy.global_position.distance_to(enemy_node.global_position) < 80.0:
+					other_enemy.slow_factor = minf(other_enemy.slow_factor, 1.0 - _get_relic_bonus("death_slow"))
+					other_enemy.slow_timer = maxf(other_enemy.slow_timer, 3.0)
+	# Enhancement #13: Update synergy counter
+	_update_synergy_count()
 	# Combo kill tracking
 	combo_count += 1
 	combo_timer = COMBO_WINDOW
@@ -28201,11 +28316,17 @@ func spawn_floating_text(pos: Vector2, text: String, color: Color, size: float =
 		"duration": duration, "timer": duration, "vel_y": -60.0
 	})
 
-func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool) -> void:
+func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool, is_crit: bool = false) -> void:
 	var text = str(int(amount))
 	var color = Color(1.0, 1.0, 1.0, 0.9)
 	var size = 14.0
-	if is_boss:
+	# Enhancement #11: Critical hit display
+	if is_crit:
+		color = Color(1.0, 0.85, 0.0, 1.0)
+		text = "★" + str(int(amount))
+		size = 22.0
+		_crit_flash_positions.append({"pos": pos, "timer": 0.3})
+	elif is_boss:
 		color = Color(1.0, 0.3, 0.2, 1.0)
 		size = 20.0
 	elif amount > 500.0:
@@ -35368,6 +35489,20 @@ var ELITE_NAMES: Array = [
 # --- Enhancement #33: Enemy Abilities ---
 const ENEMY_ABILITIES: Array = ["healer", "commander", "berserker", "teleporter"]
 const ABILITY_WAVE_THRESHOLD: int = 10
+
+# --- Enhancement #32: Roll for elite enemy ---
+func _roll_elite_enemy(enemy, wave_num: int) -> void:
+	if wave_num < 5:
+		return
+	if enemy.boss_scale > 1.0 or enemy.is_moab:
+		return  # Bosses/MOABs can't be elite
+	if randf() < ELITE_CHANCE:
+		enemy.is_elite = true
+		enemy.elite_name = ELITE_NAMES[randi() % ELITE_NAMES.size()]
+		enemy.max_health *= ELITE_HP_MULT
+		enemy.health = enemy.max_health
+		enemy.gold_reward = int(float(enemy.gold_reward) * ELITE_GOLD_MULT)
+		enemy.boss_scale = 1.3  # Slightly larger
 
 func _roll_enemy_ability(wave_num: int) -> String:
 	if wave_num < ABILITY_WAVE_THRESHOLD:
