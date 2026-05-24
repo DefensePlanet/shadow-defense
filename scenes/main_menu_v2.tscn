@@ -48,14 +48,15 @@ grow_horizontal = 2
 stretch_mode = 1
 
 [node name="GameLogo" type="TextureRect" parent="UILayer/UI"]
+visible = false
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -150.0
+offset_left = -100.0
 offset_top = 2.0
-offset_right = 150.0
-offset_bottom = 34.0
+offset_right = 100.0
+offset_bottom = 24.0
 grow_horizontal = 2
 stretch_mode = 5
 mouse_filter = 2

@@ -6242,32 +6242,28 @@ func _show_menu_v2() -> void:
 		_menu_v2_instance.visible = true
 	# CRITICAL: Hide ALL old menu interactive elements so they don't eat clicks
 	if menu_overlay:
-		menu_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		for child in menu_overlay.get_children():
-			if child is Button or child is Control:
+		menu_overlay.visible = false
+	# Also hide other old menu containers
+	if survivor_grid_container:
+		survivor_grid_container.visible = false
+	if survivor_detail_container:
+		survivor_detail_container.visible = false
+	# Disable ALL controls under UI node to prevent click interception
+	if has_node("UI"):
+		for child in $UI.get_children():
+			if child is Control:
 				child.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				if child is BaseButton:
-					child.disabled = true
-				for grandchild in child.get_children():
-					if grandchild is BaseButton:
-						grandchild.disabled = true
-					grandchild.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _hide_menu_v2() -> void:
 	if _menu_v2_instance != null:
 		_menu_v2_instance.get_parent().visible = false
 	# Re-enable old menu inputs for gameplay UI
 	if menu_overlay:
-		menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-		for child in menu_overlay.get_children():
+		menu_overlay.visible = true
+	if has_node("UI"):
+		for child in $UI.get_children():
 			if child is Control:
 				child.mouse_filter = Control.MOUSE_FILTER_STOP
-				if child is BaseButton:
-					child.disabled = false
-				for grandchild in child.get_children():
-					if grandchild is BaseButton:
-						grandchild.disabled = false
-					grandchild.mouse_filter = Control.MOUSE_FILTER_STOP
 
 func _show_menu() -> void:
 	_reset_game()

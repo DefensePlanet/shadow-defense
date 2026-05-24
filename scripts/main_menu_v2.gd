@@ -1,5 +1,5 @@
 extends Control
-## MainMenuV2 — Full menu with currency bar, difficulty select, all views.
+## MainMenuV2 — Clean, functional menu. Art backgrounds, simple UI, everything works.
 
 var _backgrounds: Dictionary = {}
 var _ui_tex: Dictionary = {}
@@ -9,7 +9,6 @@ var current_view: String = "chapters"
 @onready var background: TextureRect = $BackgroundLayer/Background
 @onready var content_area: Control = $UILayer/UI/ContentArea
 @onready var nav_buttons_container: HBoxContainer = $UILayer/UI/NavBar/NavButtons
-@onready var game_logo: TextureRect = $UILayer/UI/GameLogo
 @onready var top_bar: TextureRect = $UILayer/UI/TopBar
 @onready var nav_bar: TextureRect = $UILayer/UI/NavBar
 @onready var fade_rect: ColorRect = $TransitionLayer/FadeRect
@@ -18,7 +17,6 @@ func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
 	_load_textures()
 	_setup_background("chapters")
-	_setup_logo()
 	_setup_currency_bar()
 	_setup_nav_bar()
 	_build_chapters_view()
@@ -29,10 +27,6 @@ func _load_textures() -> void:
 	for k in bgs:
 		if ResourceLoader.exists(bgs[k]):
 			_backgrounds[k] = load(bgs[k])
-	var ui = {"game_logo": "res://assets/ui_elements/play_button.png", "header_bar": "res://assets/ui_elements/header_bar.png", "nav_spine": "res://assets/ui_frames/nav_book_spine.png", "tab_chapters": "res://assets/ui_elements/tab_chapters.png", "tab_survivors": "res://assets/ui_elements/tab_survivors.png", "tab_emporium": "res://assets/ui_elements/tab_emporium.png", "tab_chronicles": "res://assets/ui_elements/tab_chronicles.png", "settings_gear": "res://assets/ui_elements/settings_gear.png", "go_button": "res://assets/ui_elements/go_button.png", "difficulty_gems": "res://assets/ui_elements/difficulty_gems.png", "buy_button": "res://assets/ui_elements/buy_button.png", "level_card": "res://assets/ui_elements/level_card_bg.png", "survivor_frame": "res://assets/ui_elements/survivor_card_frame.png"}
-	for k in ui:
-		if ResourceLoader.exists(ui[k]):
-			_ui_tex[k] = load(ui[k])
 
 func _setup_background(view: String) -> void:
 	if _backgrounds.has(view):
@@ -40,87 +34,75 @@ func _setup_background(view: String) -> void:
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 
-func _setup_logo() -> void:
-	if _ui_tex.has("game_logo"):
-		game_logo.texture = _ui_tex["game_logo"]
-		game_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-
 func _setup_currency_bar() -> void:
 	if not _main:
 		return
-	# Build currency display on the top bar
 	var hbox = HBoxContainer.new()
 	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hbox.add_theme_constant_override("separation", 20)
+	hbox.add_theme_constant_override("separation", 24)
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	top_bar.add_child(hbox)
+	# Dark background for readability
+	top_bar.modulate = Color(1, 1, 1, 0.9)
 	var currencies = [
-		["GOLD", _main.gold if "gold" in _main else 0, Color(1.0, 0.85, 0.2)],
-		["QUILLS", _main.player_quills if "player_quills" in _main else 0, Color(0.7, 0.5, 0.9)],
-		["SHARDS", _main.player_gear_shards if "player_gear_shards" in _main else 0, Color(0.3, 0.7, 0.9)],
-		["STARS", _main.player_storybook_stars if "player_storybook_stars" in _main else 0, Color(1.0, 0.9, 0.3)],
-		["INK", _main.player_ink if "player_ink" in _main else 0, Color(0.5, 0.3, 0.8)],
+		[str(_main.gold) if "gold" in _main else "0", "GOLD", Color(1.0, 0.85, 0.2)],
+		[str(_main.player_quills) if "player_quills" in _main else "0", "QUILLS", Color(0.7, 0.5, 0.9)],
+		[str(_main.player_gear_shards) if "player_gear_shards" in _main else "0", "SHARDS", Color(0.3, 0.75, 0.9)],
+		[str(_main.player_storybook_stars) if "player_storybook_stars" in _main else "0", "STARS", Color(1.0, 0.9, 0.3)],
 	]
 	for c in currencies:
-		var lbl = Label.new()
-		lbl.text = "%d %s" % [c[1], c[0]]
-		lbl.add_theme_font_size_override("font_size", 12)
-		lbl.add_theme_color_override("font_color", c[2])
-		lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-		lbl.add_theme_constant_override("shadow_offset_x", 1)
-		lbl.add_theme_constant_override("shadow_offset_y", 1)
+		var lbl = _lbl(c[0] + " " + c[1], 13, c[2])
 		hbox.add_child(lbl)
 
 func _setup_nav_bar() -> void:
-	if _ui_tex.has("nav_spine"):
-		nav_bar.texture = _ui_tex["nav_spine"]
-		nav_bar.stretch_mode = TextureRect.STRETCH_SCALE
+	# Simple dark bar — no texture that might look weird
+	nav_bar.modulate = Color(0.2, 0.15, 0.3, 1.0)
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
-	var icons = ["tab_chapters", "tab_survivors", "tab_emporium", "tab_chronicles", "settings_gear"]
 	for i in range(tabs.size()):
-		var cont = VBoxContainer.new()
-		cont.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cont.alignment = BoxContainer.ALIGNMENT_CENTER
-		var btn = TextureButton.new()
-		btn.custom_minimum_size = Vector2(60, 45)
-		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		btn.ignore_texture_size = true
-		if _ui_tex.has(icons[i]):
-			btn.texture_normal = _ui_tex[icons[i]]
+		var btn = Button.new()
+		btn.text = labels[i]
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.custom_minimum_size = Vector2(0, 70)
+		# Style
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.12, 0.08, 0.20, 0.0)  # Transparent by default
+		s.set_corner_radius_all(0)
+		btn.add_theme_stylebox_override("normal", s)
+		var sh = s.duplicate()
+		sh.bg_color = Color(0.25, 0.18, 0.40, 0.5)
+		btn.add_theme_stylebox_override("hover", sh)
+		var sp = s.duplicate()
+		sp.bg_color = Color(0.15, 0.10, 0.30, 0.7)
+		btn.add_theme_stylebox_override("pressed", sp)
+		btn.add_theme_font_size_override("font_size", 13)
+		# Highlight current tab
+		if tabs[i] == current_view:
+			btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
+		else:
+			btn.add_theme_color_override("font_color", Color(0.6, 0.55, 0.50))
+		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		btn.add_theme_constant_override("shadow_offset_x", 1)
+		btn.add_theme_constant_override("shadow_offset_y", 1)
+		btn.flat = false
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
-		cont.add_child(btn)
-		var lbl = Label.new()
-		lbl.text = labels[i]
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", 10)
-		lbl.add_theme_color_override("font_color", Color(0.85, 0.72, 0.40))
-		lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-		lbl.add_theme_constant_override("shadow_offset_x", 1)
-		lbl.add_theme_constant_override("shadow_offset_y", 1)
-		cont.add_child(lbl)
-		nav_buttons_container.add_child(cont)
-
-func _hover_btn(btn: Control) -> void:
-	btn.pivot_offset = btn.size / 2.0
-	var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tw.tween_property(btn, "scale", Vector2(1.12, 1.12), 0.1)
-
-func _unhover_btn(btn: Control) -> void:
-	var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
-	tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08)
+		nav_buttons_container.add_child(btn)
 
 func _on_tab(tab: String) -> void:
 	if current_view == tab:
 		return
 	current_view = tab
-	var tw = create_tween()
-	tw.tween_property(background, "modulate:a", 0.0, 0.1)
-	await tw.finished
 	_setup_background(tab)
-	tw = create_tween()
-	tw.tween_property(background, "modulate:a", 1.0, 0.1)
-	_clear_content()
+	# Rebuild nav highlight
+	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
+	for i in range(nav_buttons_container.get_child_count()):
+		var btn = nav_buttons_container.get_child(i)
+		if btn is Button:
+			if tabs[i] == tab:
+				btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
+			else:
+				btn.add_theme_color_override("font_color", Color(0.6, 0.55, 0.50))
+	_clear()
 	match tab:
 		"chapters": _build_chapters_view()
 		"survivors": _build_survivors_view()
@@ -128,135 +110,143 @@ func _on_tab(tab: String) -> void:
 		"codex": _build_codex_view()
 		"settings": _build_settings_view()
 
-func _clear_content() -> void:
+func _clear() -> void:
 	for c in content_area.get_children():
 		c.queue_free()
 
-# ===================== CHAPTERS =====================
+# ==================== CHAPTERS ====================
 func _build_chapters_view() -> void:
-	_clear_content()
+	_clear()
 	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(scroll)
 	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 6)
 	scroll.add_child(vbox)
-	# Title
-	var t = _make_label("THE TOME OF SHADOWS", 22, Color(1.0, 0.92, 0.45))
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(t)
+	var title = _lbl("THE TOME OF SHADOWS", 24, Color(1.0, 0.92, 0.45))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
 	if not _main:
 		return
 	for i in range(_main.levels.size()):
-		var lvl = _main.levels[i]
-		var is_unlocked = _main._is_level_unlocked(i) if _main.has_method("_is_level_unlocked") else true
-		var is_complete = i in _main.completed_levels if "completed_levels" in _main else false
-		var card = _make_level_card(i, lvl, is_unlocked, is_complete)
-		vbox.add_child(card)
+		vbox.add_child(_level_card(i))
 
-func _make_level_card(idx: int, lvl: Dictionary, unlocked: bool, complete: bool) -> PanelContainer:
+func _level_card(idx: int) -> PanelContainer:
+	var lvl = _main.levels[idx]
+	var unlocked = _main._is_level_unlocked(idx)
+	var complete = idx in _main.completed_levels
 	var p = PanelContainer.new()
-	# Use level_card_bg.png as the panel background if available
-	if _ui_tex.has("level_card") and unlocked:
-		var s = StyleBoxTexture.new()
-		s.texture = _ui_tex["level_card"]
-		s.texture_margin_left = 16
-		s.texture_margin_right = 16
-		s.texture_margin_top = 12
-		s.texture_margin_bottom = 12
-		s.content_margin_left = 12
-		s.content_margin_right = 12
-		s.content_margin_top = 8
-		s.content_margin_bottom = 8
-		p.add_theme_stylebox_override("panel", s)
+	var s = StyleBoxFlat.new()
+	s.bg_color = Color(0.06, 0.04, 0.12, 0.75) if unlocked else Color(0.04, 0.03, 0.08, 0.60)
+	if complete:
+		s.border_color = Color(0.3, 0.65, 0.25, 0.6)
+		s.set_border_width_all(2)
 	else:
-		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.06, 0.04, 0.10, 0.50)
-		s.border_color = Color(0.25, 0.20, 0.18, 0.3)
+		s.border_color = Color(0.35, 0.25, 0.18, 0.4)
 		s.set_border_width_all(1)
-		s.set_corner_radius_all(6)
-		p.add_theme_stylebox_override("panel", s)
-	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
-	p.add_child(hbox)
-	# Level number
-	var num = _make_label(str(idx + 1), 18, Color(0.85, 0.72, 0.40) if unlocked else Color(0.4, 0.35, 0.3))
-	num.custom_minimum_size = Vector2(30, 0)
-	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	num.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hbox.add_child(num)
-	# Thumbnail from map_thumbnails if available
+	s.set_corner_radius_all(6)
+	s.content_margin_left = 8
+	s.content_margin_right = 8
+	s.content_margin_top = 6
+	s.content_margin_bottom = 6
+	p.add_theme_stylebox_override("panel", s)
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	p.add_child(row)
+	# Number
+	row.add_child(_lbl(str(idx + 1), 20, Color(0.85, 0.72, 0.40) if unlocked else Color(0.35, 0.30, 0.25)))
+	# Thumbnail
 	var thumb = TextureRect.new()
-	thumb.custom_minimum_size = Vector2(80, 55)
+	thumb.custom_minimum_size = Vector2(90, 60)
 	thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	if _main and _main._map_thumb_textures.has(idx):
+	if _main._map_thumb_textures.has(idx):
 		thumb.texture = _main._map_thumb_textures[idx]
-	hbox.add_child(thumb)
-	# Info
+	row.add_child(thumb)
+	# Info column
 	var info = VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(_make_label(lvl.get("name", "Level"), 14, Color(1.0, 0.95, 0.85) if unlocked else Color(0.5, 0.45, 0.4)))
-	info.add_child(_make_label(lvl.get("subtitle", ""), 10, Color(0.6, 0.5, 0.45)))
-	info.add_child(_make_label("Waves: %d | Gold: %d | Lives: %d" % [lvl.get("waves", 20), lvl.get("gold", 100), lvl.get("lives", 20)], 9, Color(0.5, 0.45, 0.4)))
-	# Difficulty row — use difficulty_gems.png art (cropped per gem)
-	var diff_row = HBoxContainer.new()
-	diff_row.add_theme_constant_override("separation", 4)
-	var diff_names = ["Easy", "Med", "Hard"]
-	for di in range(diff_names.size()):
-		var db = TextureButton.new()
-		db.custom_minimum_size = Vector2(50, 40)
-		db.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		db.ignore_texture_size = true
-		# Crop each gem from the difficulty_gems atlas
-		if _ui_tex.has("difficulty_gems"):
-			var atlas = AtlasTexture.new()
-			atlas.atlas = _ui_tex["difficulty_gems"]
-			var gem_w = _ui_tex["difficulty_gems"].get_width() / 4.0
-			var gem_h = _ui_tex["difficulty_gems"].get_height()
-			atlas.region = Rect2(di * gem_w, 0, gem_w, gem_h)
-			db.texture_normal = atlas
-		db.pressed.connect(_on_play_level.bind(idx, di))
-		db.mouse_entered.connect(func(): _hover_btn(db))
-		db.mouse_exited.connect(func(): _unhover_btn(db))
-		if not unlocked:
-			db.disabled = true
-			db.modulate = Color(0.4, 0.4, 0.4)
-		diff_row.add_child(db)
-	info.add_child(diff_row)
-	hbox.add_child(info)
-	# Play button — use go_button.png art asset
+	info.add_child(_lbl(lvl.get("name", ""), 16, Color(1, 0.95, 0.85) if unlocked else Color(0.45, 0.40, 0.35)))
+	info.add_child(_lbl(lvl.get("subtitle", ""), 11, Color(0.55, 0.48, 0.42)))
+	info.add_child(_lbl("W:%d G:%d L:%d" % [lvl.get("waves", 20), lvl.get("gold", 100), lvl.get("lives", 20)], 10, Color(0.45, 0.40, 0.38)))
+	row.add_child(info)
+	# Difficulty + Play buttons
 	if unlocked:
-		var play = TextureButton.new()
-		play.custom_minimum_size = Vector2(90, 55)
-		play.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		play.ignore_texture_size = true
-		if _ui_tex.has("go_button"):
-			play.texture_normal = _ui_tex["go_button"]
-		play.pressed.connect(_on_play_level.bind(idx, 0))
-		play.mouse_entered.connect(func(): _hover_btn(play))
-		play.mouse_exited.connect(func(): _unhover_btn(play))
-		hbox.add_child(play)
+		var btns = VBoxContainer.new()
+		btns.add_theme_constant_override("separation", 3)
+		# Difficulty row
+		var drow = HBoxContainer.new()
+		drow.add_theme_constant_override("separation", 4)
+		var diffs = [["EASY", 0, Color(0.2, 0.6, 0.2)], ["MED", 1, Color(0.6, 0.5, 0.1)], ["HARD", 2, Color(0.6, 0.15, 0.1)]]
+		for d in diffs:
+			var db = Button.new()
+			db.text = d[0]
+			db.custom_minimum_size = Vector2(48, 24)
+			var ds = StyleBoxFlat.new()
+			ds.bg_color = d[2]
+			ds.set_corner_radius_all(4)
+			ds.content_margin_left = 4
+			ds.content_margin_right = 4
+			db.add_theme_stylebox_override("normal", ds)
+			var dh = ds.duplicate()
+			dh.bg_color = d[2].lightened(0.25)
+			db.add_theme_stylebox_override("hover", dh)
+			var dp = ds.duplicate()
+			dp.bg_color = d[2].darkened(0.2)
+			db.add_theme_stylebox_override("pressed", dp)
+			db.add_theme_font_size_override("font_size", 10)
+			db.add_theme_color_override("font_color", Color.WHITE)
+			db.pressed.connect(_play.bind(idx, d[1]))
+			drow.add_child(db)
+		btns.add_child(drow)
+		# PLAY button
+		var play = Button.new()
+		play.text = "PLAY"
+		play.custom_minimum_size = Vector2(150, 32)
+		var ps = StyleBoxFlat.new()
+		ps.bg_color = Color(0.15, 0.55, 0.15, 0.95)
+		ps.set_corner_radius_all(6)
+		ps.content_margin_left = 8
+		ps.content_margin_right = 8
+		play.add_theme_stylebox_override("normal", ps)
+		var ph = ps.duplicate()
+		ph.bg_color = Color(0.2, 0.7, 0.2)
+		play.add_theme_stylebox_override("hover", ph)
+		var pp = ps.duplicate()
+		pp.bg_color = Color(0.1, 0.4, 0.1)
+		play.add_theme_stylebox_override("pressed", pp)
+		play.add_theme_font_size_override("font_size", 14)
+		play.add_theme_color_override("font_color", Color.WHITE)
+		play.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		play.add_theme_constant_override("shadow_offset_x", 1)
+		play.add_theme_constant_override("shadow_offset_y", 1)
+		play.pressed.connect(_play.bind(idx, 0))
+		btns.add_child(play)
+		row.add_child(btns)
 	else:
-		var lock = _make_label("LOCKED", 11, Color(0.4, 0.35, 0.3))
-		lock.custom_minimum_size = Vector2(70, 55)
+		var lock = _lbl("LOCKED", 12, Color(0.4, 0.35, 0.3))
+		lock.custom_minimum_size = Vector2(100, 60)
 		lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		hbox.add_child(lock)
+		row.add_child(lock)
 	return p
 
-func _on_play_level(idx: int, difficulty: int) -> void:
-	if _main:
-		_main.selected_difficulty = difficulty
-		get_parent().visible = false
-		if _main.has_method("_do_level_start"):
-			_main._do_level_start(idx)
+func _play(idx: int, diff: int) -> void:
+	if not _main:
+		return
+	if not _main._is_level_unlocked(idx):
+		return
+	_main.selected_difficulty = diff
+	if _main.has_method("_hide_menu_v2"):
+		_main._hide_menu_v2()
+	if _main.has_method("_do_level_start"):
+		_main._do_level_start(idx)
 
-# ===================== SURVIVORS =====================
+# ==================== SURVIVORS ====================
 func _build_survivors_view() -> void:
-	_clear_content()
+	_clear()
 	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -264,50 +254,51 @@ func _build_survivors_view() -> void:
 	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(vbox)
-	var t = _make_label("SURVIVORS", 22, Color(1.0, 0.92, 0.45))
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(t)
+	vbox.add_child(_lbl("SURVIVORS", 24, Color(1.0, 0.92, 0.45)))
+	if not _main:
+		return
 	var grid = GridContainer.new()
 	grid.columns = 6
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
 	vbox.add_child(grid)
-	if not _main:
-		return
-	for i in range(_main.survivor_types.size()):
-		var card = _make_survivor_card(i)
-		grid.add_child(card)
+	for i in range(_main.character_names.size()):
+		var name = _main.character_names[i]
+		var title = _main.character_titles[i] if i < _main.character_titles.size() else ""
+		var p = PanelContainer.new()
+		p.custom_minimum_size = Vector2(170, 210)
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.07, 0.05, 0.14, 0.70)
+		s.border_color = Color(0.45, 0.35, 0.20, 0.5)
+		s.set_border_width_all(2)
+		s.set_corner_radius_all(8)
+		s.content_margin_left = 6
+		s.content_margin_right = 6
+		s.content_margin_top = 6
+		s.content_margin_bottom = 6
+		p.add_theme_stylebox_override("panel", s)
+		var vb = VBoxContainer.new()
+		vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		p.add_child(vb)
+		# Portrait
+		var port = TextureRect.new()
+		port.custom_minimum_size = Vector2(140, 140)
+		port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		if _main._portrait_textures.has(name):
+			port.texture = _main._portrait_textures[name]
+		vb.add_child(port)
+		var nl = _lbl(name.to_upper(), 12, Color(1.0, 0.92, 0.45))
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(nl)
+		var tl = _lbl(title, 9, Color(0.55, 0.48, 0.42))
+		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(tl)
+		grid.add_child(p)
 
-func _make_survivor_card(idx: int) -> PanelContainer:
-	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(160, 200)
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.08, 0.05, 0.14, 0.65)
-	s.border_color = Color(0.50, 0.38, 0.22, 0.5)
-	s.set_border_width_all(2)
-	s.set_corner_radius_all(8)
-	p.add_theme_stylebox_override("panel", s)
-	var vb = VBoxContainer.new()
-	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	p.add_child(vb)
-	var portrait = TextureRect.new()
-	portrait.custom_minimum_size = Vector2(140, 130)
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	var name = _main.character_names[idx] if _main and idx < _main.character_names.size() else "?"
-	if _main and _main._portrait_textures.has(name):
-		portrait.texture = _main._portrait_textures[name]
-	vb.add_child(portrait)
-	vb.add_child(_make_label(name.to_upper(), 12, Color(1.0, 0.92, 0.45)))
-	var title = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
-	var tl = _make_label(title, 9, Color(0.6, 0.5, 0.45))
-	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(tl)
-	return p
-
-# ===================== EMPORIUM =====================
+# ==================== EMPORIUM ====================
 func _build_emporium_view() -> void:
-	_clear_content()
+	_clear()
 	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -315,81 +306,95 @@ func _build_emporium_view() -> void:
 	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(vbox)
-	var t = _make_label("THE EMPORIUM", 22, Color(1.0, 0.92, 0.45))
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(t)
-	var grid = GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	vbox.add_child(grid)
+	vbox.add_child(_lbl("THE EMPORIUM", 24, Color(1.0, 0.92, 0.45)))
 	if not _main:
 		return
-	for i in range(_main.emporium_categories.size()):
-		var cat = _main.emporium_categories[i]
-		var card = _make_shop_card(cat)
-		grid.add_child(card)
+	var grid = GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	vbox.add_child(grid)
+	for cat in _main.emporium_categories:
+		var p = PanelContainer.new()
+		p.custom_minimum_size = Vector2(0, 75)
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.08, 0.06, 0.14, 0.70)
+		s.border_color = Color(0.55, 0.42, 0.18, 0.4)
+		s.set_border_width_all(1)
+		s.set_corner_radius_all(6)
+		s.content_margin_left = 10
+		s.content_margin_right = 10
+		s.content_margin_top = 6
+		s.content_margin_bottom = 6
+		p.add_theme_stylebox_override("panel", s)
+		var vb = VBoxContainer.new()
+		p.add_child(vb)
+		vb.add_child(_lbl(cat.get("name", ""), 14, Color(1.0, 0.85, 0.3)))
+		var d = _lbl(cat.get("desc", ""), 10, Color(0.55, 0.50, 0.45))
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vb.add_child(d)
+		if cat.get("badge", "") != "":
+			vb.add_child(_lbl(cat["badge"], 10, Color(0.3, 0.9, 0.3)))
+		grid.add_child(p)
 
-func _make_shop_card(cat: Dictionary) -> PanelContainer:
-	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(0, 80)
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.10, 0.07, 0.16, 0.65)
-	s.border_color = Color(0.65, 0.50, 0.20, 0.4)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
-	p.add_theme_stylebox_override("panel", s)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
-	p.add_child(vb)
-	vb.add_child(_make_label(cat.get("name", ""), 14, Color(1.0, 0.85, 0.3)))
-	var d = _make_label(cat.get("desc", ""), 10, Color(0.6, 0.55, 0.48))
-	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vb.add_child(d)
-	if cat.get("badge", "") != "":
-		vb.add_child(_make_label(cat["badge"], 9, Color(0.2, 0.9, 0.3)))
-	return p
-
-# ===================== CODEX =====================
+# ==================== CODEX ====================
 func _build_codex_view() -> void:
-	_clear_content()
-	var c = CenterContainer.new()
-	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content_area.add_child(c)
-	var l = _make_label("CODEX\n\nAchievements, Chronicles, and Gear\nComing soon.", 18, Color(0.8, 0.7, 0.55))
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	c.add_child(l)
-
-# ===================== SETTINGS =====================
-func _build_settings_view() -> void:
-	_clear_content()
+	_clear()
 	var c = CenterContainer.new()
 	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	content_area.add_child(c)
 	var vb = VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 12)
 	c.add_child(vb)
-	vb.add_child(_make_label("SETTINGS", 22, Color(1.0, 0.92, 0.45)))
-	# Actual setting buttons
-	for setting in ["Music Volume", "SFX Volume", "Voice Volume", "Quality", "Text Size", "Colorblind Mode"]:
+	vb.add_child(_lbl("CODEX", 28, Color(1.0, 0.92, 0.45)))
+	vb.add_child(_lbl("Achievements, Chronicles, Gear & Lore", 14, Color(0.65, 0.58, 0.50)))
+	vb.add_child(_lbl("Coming soon to the Tome...", 12, Color(0.50, 0.45, 0.40)))
+
+# ==================== SETTINGS ====================
+func _build_settings_view() -> void:
+	_clear()
+	var margin = MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 200)
+	margin.add_theme_constant_override("margin_right", 200)
+	margin.add_theme_constant_override("margin_top", 20)
+	content_area.add_child(margin)
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	margin.add_child(vb)
+	vb.add_child(_lbl("SETTINGS", 24, Color(1.0, 0.92, 0.45)))
+	var settings = [
+		["Music Volume", "music"],
+		["SFX Volume", "sfx"],
+		["Voice Volume", "voice"],
+		["Quality", "quality"],
+		["Text Size", "text"],
+		["Colorblind Mode", "colorblind"],
+		["Game Speed", "speed"],
+	]
+	for s in settings:
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 20)
-		row.add_child(_make_label(setting, 14, Color(0.85, 0.78, 0.65)))
+		var name_lbl = _lbl(s[0], 15, Color(0.85, 0.78, 0.65))
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
 		var btn = Button.new()
 		btn.text = "Toggle"
-		btn.custom_minimum_size = Vector2(80, 30)
+		btn.custom_minimum_size = Vector2(100, 30)
 		var bs = StyleBoxFlat.new()
-		bs.bg_color = Color(0.15, 0.12, 0.25, 0.7)
+		bs.bg_color = Color(0.18, 0.14, 0.28, 0.8)
 		bs.set_corner_radius_all(4)
 		btn.add_theme_stylebox_override("normal", bs)
-		btn.add_theme_font_size_override("font_size", 11)
-		btn.add_theme_color_override("font_color", Color.WHITE)
+		var bh = bs.duplicate()
+		bh.bg_color = Color(0.25, 0.20, 0.38, 0.9)
+		btn.add_theme_stylebox_override("hover", bh)
+		btn.add_theme_font_size_override("font_size", 12)
+		btn.add_theme_color_override("font_color", Color(0.8, 0.75, 0.65))
 		row.add_child(btn)
 		vb.add_child(row)
 
-# ===================== UTILITY =====================
-func _make_label(text: String, size: int, color: Color) -> Label:
+# ==================== UTILITY ====================
+func _lbl(text: String, size: int, color: Color) -> Label:
 	var l = Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
