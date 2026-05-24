@@ -18701,6 +18701,9 @@ func _udraw(fnt: Font, pos: Vector2, text: String, halign: HorizontalAlignment =
 # ============================================================
 func _draw() -> void:
 	if game_state == GameState.MENU:
+		# Skip ALL old menu drawing when v2 menu is active
+		if _menu_v2_instance != null and _menu_v2_instance.visible:
+			return
 		_draw_menu_background()
 		# Menu Improvement 15: Time-of-day ambient tint
 		_draw_time_ambient()
