@@ -21,6 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 stretch_mode = 6
+mouse_filter = 2
 
 [node name="DarkOverlay" type="ColorRect" parent="BackgroundLayer"]
 anchors_preset = 15
@@ -29,6 +30,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.02, 0.01, 0.04, 0.15)
+mouse_filter = 2
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 1
@@ -38,6 +40,7 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 
 [node name="TopBar" type="TextureRect" parent="UILayer/UI"]
 layout_mode = 1
@@ -46,6 +49,7 @@ anchor_right = 1.0
 offset_bottom = 35.0
 grow_horizontal = 2
 stretch_mode = 1
+mouse_filter = 2
 
 [node name="GameLogo" type="TextureRect" parent="UILayer/UI"]
 visible = false
@@ -71,6 +75,7 @@ offset_top = -80.0
 grow_horizontal = 2
 grow_vertical = 0
 stretch_mode = 1
+mouse_filter = 2
 
 [node name="NavButtons" type="HBoxContainer" parent="UILayer/UI/NavBar"]
 layout_mode = 1
@@ -86,6 +91,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = 36.0
 offset_bottom = -80.0
+mouse_filter = 2
 
 [node name="TransitionLayer" type="CanvasLayer" parent="."]
 layer = 10

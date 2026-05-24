@@ -58,12 +58,15 @@ func _setup_nav_bar() -> void:
 	# Solid dark bar for clear nav visibility
 	nav_bar.modulate = Color(1, 1, 1, 1)
 	# Add a dark background behind the nav
+	# Dark background behind nav — MUST be mouse_filter IGNORE
 	var nav_bg = ColorRect.new()
 	nav_bg.color = Color(0.05, 0.03, 0.10, 0.92)
 	nav_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	nav_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	nav_bar.add_child(nav_bg)
-	nav_bar.move_child(nav_bg, 0)  # Behind nav buttons
+	nav_bar.move_child(nav_bg, 0)
+	# NavButtons container must pass clicks TO the buttons
+	nav_buttons_container.mouse_filter = Control.MOUSE_FILTER_PASS
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	for i in range(tabs.size()):
