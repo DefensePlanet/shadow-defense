@@ -11150,7 +11150,7 @@ func _draw_menu_background() -> void:
 			draw_rect(Rect2(0, gy, 1280, 40), Color(lerpf(0.08, 0.03, t), lerpf(0.05, 0.02, t), lerpf(0.14, 0.08, t)))
 
 	# LAYER 2: Dark overlay for text readability (40% — lets art breathe)
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.01, 0.04, 0.40))
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.01, 0.04, 0.20))
 
 	# LAYER 3: Subtle vignette (darkened edges only — clean, premium)
 	for vi in range(8):
@@ -14923,7 +14923,7 @@ func _draw_story_map() -> void:
 	var arc_gap = 8.0
 
 	# --- Content panel: transparent with thin gold border (art shows through from background) ---
-	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.04, 0.02, 0.08, 0.25))
+	draw_rect(Rect2(list_x, list_y, list_w, list_h), Color(0.04, 0.02, 0.08, 0.12))
 	var _border_pts = _rrp(Rect2(list_x, list_y, list_w, list_h), 10.0)
 	_border_pts.append(_border_pts[0])
 	draw_polyline(_border_pts, Color(0.50, 0.38, 0.22, 0.4), 1.5)
@@ -14932,7 +14932,7 @@ func _draw_story_map() -> void:
 	for hgi in range(6):
 		var hgt = float(hgi) / 5.0
 		var hshade = 0.15 - hgt * 0.05
-		draw_rect(Rect2(list_x + 1, list_y + 1 + hgt * 34.0, list_w - 2, 6.0), Color(hshade, hshade * 0.7, hshade * 1.8, 0.85))
+		draw_rect(Rect2(list_x + 1, list_y + 1 + hgt * 34.0, list_w - 2, 6.0), Color(hshade, hshade * 0.7, hshade * 1.8, 0.50))
 	draw_rect(Rect2(list_x + 1, list_y + 35, list_w - 2, 2), Color(0.85, 0.70, 0.20, 0.7))
 	var num_completed = completed_levels.size()
 	var num_total = levels.size()
@@ -14960,7 +14960,7 @@ func _draw_story_map() -> void:
 		var sc = side_colors[si]
 		var side_hover = Rect2(side_x, sy, side_w, side_btn_h).has_point(get_viewport().get_mouse_position())
 		# Bloons-style chunky side button with 3D effect
-		_ds_panel(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 0.65), Color(sc.r * 0.6, sc.g * 0.6, sc.b * 0.6, 0.7 if side_hover else 0.4), 2.0)
+		_ds_panel(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r * 0.18, sc.g * 0.18, sc.b * 0.18, 0.40), Color(sc.r * 0.6, sc.g * 0.6, sc.b * 0.6, 0.7 if side_hover else 0.4), 2.0)
 		if side_hover:
 			# Bright glow on hover
 			draw_rect(Rect2(side_x, sy, side_w, side_btn_h), Color(sc.r, sc.g, sc.b, 0.12))
@@ -15057,7 +15057,7 @@ func _draw_story_map() -> void:
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
 			# Rounded arc header banner
-			draw_colored_polygon(_rrp(Rect2(list_x + 4, hy, list_w - 8, header_h), 6.0), Color(arc_col.r * 0.35, arc_col.g * 0.35, arc_col.b * 0.35, 0.70))
+			draw_colored_polygon(_rrp(Rect2(list_x + 4, hy, list_w - 8, header_h), 6.0), Color(arc_col.r * 0.35, arc_col.g * 0.35, arc_col.b * 0.35, 0.45))
 			# Bright accent bar
 			draw_rect(Rect2(list_x + 4, hy + 2, 5, header_h - 4), Color(arc_col.r, arc_col.g, arc_col.b, 0.95))
 			# Character portrait next to chapter header
@@ -15129,10 +15129,10 @@ func _draw_story_map() -> void:
 				var br = 0.10 + arc_col.r * 0.04
 				var bg2 = 0.07 + arc_col.g * 0.04
 				var bb = 0.18 + arc_col.b * 0.04
-				card_bg = Color(br, bg2, bb, 0.70) if not is_hovered else Color(minf(br * 1.4, 0.25), minf(bg2 * 1.4, 0.15), minf(bb * 1.3, 0.35), 0.98)
+				card_bg = Color(br, bg2, bb, 0.45) if not is_hovered else Color(minf(br * 1.4, 0.25), minf(bg2 * 1.4, 0.15), minf(bb * 1.3, 0.35), 0.98)
 				card_border = Color(0.35, 0.20, 0.50, 0.6) if not is_hovered else Color(0.40, 0.80, 0.98, 1.0)
 			else:
-				card_bg = Color(0.14, 0.10, 0.22, 0.65)
+				card_bg = Color(0.14, 0.10, 0.22, 0.40)
 				card_border = Color(0.30, 0.22, 0.40, 0.5)
 			_ds_panel(Rect2(rx, ry, rw, row_h - 4), card_bg, card_border, 3.0)
 			# Left accent bar (thick, glowing)
