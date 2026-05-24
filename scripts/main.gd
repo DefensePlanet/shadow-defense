@@ -18025,6 +18025,9 @@ func _handle_back_button() -> void:
 			return
 
 func _input(event: InputEvent) -> void:
+	# Skip ALL input processing when v2 menu is active — let v2 handle it
+	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
+		return
 	# Input debouncing for buttons
 	if _input_cooldown > 0:
 		return
@@ -18305,6 +18308,9 @@ func _input(event: InputEvent) -> void:
 			return
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Skip when v2 menu is active
+	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
+		return
 	if game_state != GameState.PLAYING:
 		if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 			return
