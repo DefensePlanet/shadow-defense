@@ -13,6 +13,10 @@ var current_view: String = "chapters"
 @onready var nav_bar: ColorRect = $NavBar
 @onready var fade_rect: ColorRect = $FadeRect
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		print("[MENU V2] Mouse click at: ", event.position)
+
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
 	_load_textures()
