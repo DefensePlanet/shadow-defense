@@ -63,12 +63,14 @@ func _draw() -> void:
 func _load_bgs() -> void:
 	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/codex_bg.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
-		if ResourceLoader.exists(m[k]):
+		var exists = ResourceLoader.exists(m[k])
+		if exists:
 			_backgrounds[k] = load(m[k])
 
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
+	background.modulate.a = 1.0  # FORCE visible — never leave at 0
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 
