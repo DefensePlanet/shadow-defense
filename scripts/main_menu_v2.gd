@@ -2,6 +2,8 @@ extends Control
 ## MainMenuV2 — Full interactive menu. Art backgrounds, working buttons, detail panels.
 
 var _backgrounds: Dictionary = {}
+var _art: Dictionary = {}
+var _black_key: Shader = null
 var _main: Node = null
 var current_view: String = "chapters"
 # Portrait key mapping — character_names[] index → portrait texture key
@@ -23,6 +25,7 @@ const PARTICLE_COUNT: int = 15
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
 	_load_bgs()
+	_load_art()
 	_set_bg("chapters")
 	_build_currency_bar()
 	_build_music_display()
@@ -67,6 +70,40 @@ func _load_bgs() -> void:
 		if exists:
 			_backgrounds[k] = load(m[k])
 
+func _load_art() -> void:
+	if ResourceLoader.exists("res://shaders/black_key.gdshader"):
+		_black_key = load("res://shaders/black_key.gdshader")
+	var paths = {
+		"level_card": "res://assets/ui_elements/level_card_bg.png",
+		"shop_card": "res://assets/ui_elements/shop_item_card.png",
+		"detail_panel": "res://assets/ui_elements/detail_panel_bg.png",
+		"stats_panel": "res://assets/ui_elements/stats_panel.png",
+		"buy_button": "res://assets/ui_elements/buy_button.png",
+		"play_button": "res://assets/ui_elements/play_button_v2.png",
+		"header_bar": "res://assets/ui_elements/header_bar.png",
+		"nav_spine": "res://assets/ui_frames/nav_book_spine.png",
+		"scroll_header": "res://assets/ui_frames/scroll_header_storybook.png",
+		"card_frame": "res://assets/ui_frames/card_frame_storybook.png",
+		"locked_card": "res://assets/ui_elements/back_button.png",
+		"golden_star": "res://assets/ui_elements/golden_star.png",
+		"button_gothic": "res://assets/ui_frames/button_gothic.png",
+		"popup_frame": "res://assets/ui_frames/popup_frame.png",
+		"reward_chest": "res://assets/ui_elements/reward_chest.png",
+	}
+	for k in paths:
+		if ResourceLoader.exists(paths[k]):
+			_art[k] = load(paths[k])
+
+# Helper: create a ShaderMaterial with black-key effect
+func _make_black_key_mat(thresh: float = 0.08, smooth: float = 0.05) -> ShaderMaterial:
+	if not _black_key:
+		return null
+	var mat = ShaderMaterial.new()
+	mat.shader = _black_key
+	mat.set_shader_parameter("threshold", thresh)
+	mat.set_shader_parameter("smoothness", smooth)
+	return mat
+
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
@@ -76,6 +113,18 @@ func _set_bg(view: String) -> void:
 
 func _build_currency_bar() -> void:
 	if not _main: return
+	# Apply header bar art behind currency text
+	if _art.has("header_bar"):
+		var art_bg = TextureRect.new()
+		art_bg.texture = _art["header_bar"]
+		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		art_bg.stretch_mode = TextureRect.STRETCH_SCALE
+		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: art_bg.material = mat
+		top_bar.add_child(art_bg)
+		top_bar.color = Color(0, 0, 0, 0)  # Transparent so art shows
 	var h = HBoxContainer.new()
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h.add_theme_constant_override("separation", 24)
@@ -119,6 +168,19 @@ func _build_music_display() -> void:
 	music_row.add_child(skip)
 
 func _build_nav() -> void:
+	# Apply nav spine art behind NavButtons (NavBar is ColorRect)
+	if _art.has("nav_spine"):
+		var art_bg = TextureRect.new()
+		art_bg.texture = _art["nav_spine"]
+		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		art_bg.stretch_mode = TextureRect.STRETCH_SCALE
+		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: art_bg.material = mat
+		nav_bar.add_child(art_bg)
+		nav_bar.move_child(art_bg, 0)
+		nav_bar.color = Color(0, 0, 0, 0)  # Make ColorRect transparent so art shows
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	for i in range(5):
