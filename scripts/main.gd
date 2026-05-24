@@ -6259,11 +6259,15 @@ func _show_menu_v2() -> void:
 				child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _hide_menu_v2() -> void:
+	print("[MAIN] _hide_menu_v2 called")
 	if _menu_v2_instance != null:
+		_menu_v2_instance.visible = false
+		_menu_v2_instance.process_mode = Node.PROCESS_MODE_DISABLED
 		var canvas = _menu_v2_instance.get_parent()
-		if canvas and canvas.is_inside_tree():
-			remove_child(canvas)
-			# Store reference so we can re-add it later
+		if canvas is CanvasLayer:
+			print("[MAIN] Removing CanvasLayer from tree")
+			canvas.process_mode = Node.PROCESS_MODE_DISABLED
+			call_deferred("remove_child", canvas)
 			set_meta("_menu_v2_canvas", canvas)
 	# Re-enable old menu inputs for gameplay UI
 	if menu_overlay:
@@ -7556,6 +7560,7 @@ func _on_level_selected(index: int) -> void:
 var _pending_level_start: int = -1
 
 func _do_level_start(index: int) -> void:
+	print("[MAIN] _do_level_start called with index: ", index)
 	_remove_survivor_preview()
 	current_level = index
 	_reset_game()
