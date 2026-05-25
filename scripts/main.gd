@@ -6234,9 +6234,31 @@ func _make_button(text: String, pos: Vector2, min_size: Vector2) -> Button:
 	if game_font != null:
 		btn.add_theme_font_override("font", game_font)
 	btn.add_theme_font_size_override("font_size", 13)
-	btn.add_theme_color_override("font_color", Color(0.9, 0.78, 0.28))
-	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.90, 0.40))
+	btn.add_theme_color_override("font_color", Color(0.95, 0.82, 0.30))
+	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.92, 0.45))
 	btn.add_theme_color_override("font_pressed_color", Color(1.0, 1.0, 0.60))
+	btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	btn.add_theme_constant_override("shadow_offset_x", 1)
+	btn.add_theme_constant_override("shadow_offset_y", 1)
+	# Modern styled button
+	var s = StyleBoxFlat.new()
+	s.bg_color = Color(0.12, 0.08, 0.20, 0.85)
+	s.set_corner_radius_all(8)
+	s.border_color = Color(0.65, 0.50, 0.18, 0.5)
+	s.set_border_width_all(1)
+	s.shadow_color = Color(0, 0, 0, 0.15)
+	s.shadow_size = 2
+	s.content_margin_left = 8; s.content_margin_right = 8
+	s.content_margin_top = 4; s.content_margin_bottom = 4
+	btn.add_theme_stylebox_override("normal", s)
+	var sh = s.duplicate()
+	sh.bg_color = Color(0.18, 0.12, 0.28, 0.9)
+	sh.border_color = Color(0.80, 0.60, 0.20, 0.7)
+	btn.add_theme_stylebox_override("hover", sh)
+	var sp = s.duplicate()
+	sp.bg_color = Color(0.08, 0.06, 0.14, 0.9)
+	sp.shadow_size = 0
+	btn.add_theme_stylebox_override("pressed", sp)
 	return btn
 
 func _apply_font_to_controls(node: Node) -> void:
