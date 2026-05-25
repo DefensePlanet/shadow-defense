@@ -27611,7 +27611,10 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 			_refresh_music_max_tier()  # Update tempo scaling cache
 			var tier_name = selected_tower_node.TIER_NAMES[selected_tower_node.upgrade_tier - 1]
 			info_label.text = "Upgraded: %s!" % tier_name
-			spawn_floating_text(selected_tower_node.global_position + Vector2(0, -30), tier_name + "!", Color(0.4, 1.0, 0.5), 15.0, 1.2)
+			spawn_floating_text(selected_tower_node.global_position + Vector2(0, -40), "⬆ " + tier_name + " ⬆", Color(0.4, 1.0, 0.5), 18.0, 1.5)
+			_screen_shake_intensity = 4.0
+			_screen_shake_timer = 0.25
+			_play_sfx(_sfx_ui_click)
 			# Personality upgrade callout
 			var _utt = _get_tower_type_from_node(selected_tower_node)
 			if _utt != null:
