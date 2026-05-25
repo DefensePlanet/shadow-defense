@@ -111,6 +111,12 @@ func _process(delta: float) -> void:
 		if p["y"] < -10:
 			p["y"] = 730
 			p["x"] = randf_range(0, 1280)
+	# Parallax: offset background based on scroll
+	for c in content_area.get_children():
+		if c is ScrollContainer:
+			var scroll_y = c.scroll_vertical
+			background.position.y = -scroll_y * 0.05  # Subtle parallax
+			break
 	# Check for song change every 2 seconds
 	_song_check_timer += delta
 	if _song_check_timer >= 2.0:
@@ -1741,6 +1747,12 @@ func _build_emporium() -> void:
 	vb.add_child(_title("THE EMPORIUM"))
 	vb.add_child(_lbl("Browse wares from across the literary worlds", 11, Color(0.55,0.50,0.45)))
 	if not _main: return
+	# Shop rotation timer
+	var hours_left = 24 - (Time.get_ticks_msec() / 3600000) % 24
+	var timer_lbl = _lbl("🕐 Shop refreshes in %dh" % hours_left, 10, Color(0.55, 0.48, 0.42))
+	timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	timer_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(timer_lbl)
 	# Featured daily deals banner
 	if _art.has("daily_deals"):
 		var deals_panel = PanelContainer.new()
@@ -2066,8 +2078,8 @@ func _build_survivor_packs(parent: VBoxContainer) -> void:
 	var packs = [
 		["Starter Bundle", "XP Boost for 3 characters + 500 Gold", 50, "quills", Color(0.3, 0.7, 0.3)],
 		["Hero's Journey", "Level up any character by 1 + Random Gear", 100, "quills", Color(0.2, 0.5, 0.9)],
-		["Epic Collection", "3 Gear Chests + 1000 Gold + 50 Shards", 200, "quills", Color(0.7, 0.3, 0.9)],
-		["Legendary Tome", "Unlock next character + Full Gear Set", 500, "quills", Color(1.0, 0.7, 0.1)],
+		["Epic Collection", "3 Gear Chests + 1000 Gold + 50 Shards  (Save 30%!)", 200, "quills", Color(0.7, 0.3, 0.9)],
+		["Legendary Tome", "Unlock next character + Full Gear Set  (Best Value!)", 500, "quills", Color(1.0, 0.7, 0.1)],
 	]
 	for pk in packs:
 		var card = PanelContainer.new()
@@ -2523,6 +2535,12 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 	var time_str = "%dh %dm" % [session_hr, session_min % 60] if session_hr > 0 else "%dm %ds" % [session_min, session_secs % 60]
 	stats_data.append(["Session Time", time_str])
 	stats_data.append(["Current FPS", Engine.get_frames_per_second()])
+	# Trophy showcase
+	if "showcase_achievements" in _main and _main.showcase_achievements.size() > 0:
+		var trophy_text = ""
+		for sa in _main.showcase_achievements:
+			trophy_text += "🏆 %s  " % str(sa)
+		stats_data.append(["Trophy Showcase", trophy_text.strip_edges()])
 	for si in range(stats_data.size()):
 		var sd = stats_data[si]
 		# Styled stat row with alternating backgrounds
