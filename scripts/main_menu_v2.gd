@@ -53,7 +53,7 @@ const BOND_PAIRS: Dictionary = {
 
 # Phase 8: Ambient floating particles
 var _particles: Array = []
-const PARTICLE_COUNT: int = 15
+const PARTICLE_COUNT: int = 25
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
@@ -92,9 +92,9 @@ func _init_particles() -> void:
 		_particles.append({
 			"x": randf_range(0, 1280),
 			"y": randf_range(0, 720),
-			"speed": randf_range(8, 25),
-			"size": randf_range(1.5, 3.5),
-			"alpha": randf_range(0.1, 0.35),
+			"speed": randf_range(10, 30),
+			"size": randf_range(2.0, 4.5),
+			"alpha": randf_range(0.15, 0.45),
 			"offset": randf_range(0, TAU),
 		})
 
@@ -427,11 +427,18 @@ func _build_chapters() -> void:
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
+	# Margin container for card breathing room
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 6)
+	vb.add_theme_constant_override("separation", 8)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sc.add_child(vb)
+	margin.add_child(vb)
 	# Title with entrance animation
 	var title_container = CenterContainer.new()
 	title_container.custom_minimum_size = Vector2(0, 50)
@@ -1593,12 +1600,12 @@ func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBo
 	row.add_child(nl)
 	# Bar background with rounded corners
 	var bar_panel = PanelContainer.new()
-	bar_panel.custom_minimum_size = Vector2(200, 16)
+	bar_panel.custom_minimum_size = Vector2(200, 18)
 	bar_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bar_style = StyleBoxFlat.new()
-	bar_style.bg_color = Color(0.06, 0.04, 0.10, 0.8)
-	bar_style.set_corner_radius_all(4)
-	bar_style.border_color = Color(0.25, 0.20, 0.15, 0.4)
+	bar_style.bg_color = Color(0.04, 0.03, 0.08, 0.85)
+	bar_style.set_corner_radius_all(6)
+	bar_style.border_color = Color(0.28, 0.22, 0.15, 0.4)
 	bar_style.set_border_width_all(1)
 	bar_panel.add_theme_stylebox_override("panel", bar_style)
 	row.add_child(bar_panel)
