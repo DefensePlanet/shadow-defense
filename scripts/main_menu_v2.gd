@@ -107,7 +107,7 @@ func _draw() -> void:
 	# Auto-test removed
 
 func _load_bgs() -> void:
-	var m = {"chapters": "res://assets/menu_art/menu_bg_storybook.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/menu_background.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/codex_bg.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		var exists = ResourceLoader.exists(m[k])
 		if exists:
@@ -505,25 +505,13 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var complete = idx in _main.completed_levels
 	var p = PanelContainer.new()
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.02, 0.01, 0.05, 0.3)  # Near-transparent — let art show
-	s.border_color = Color(0.4, 0.75, 0.3, 0.7) if complete else Color(0.55, 0.40, 0.20, 0.4)
-	s.set_border_width_all(2 if complete else 1)
-	s.set_corner_radius_all(8)
-	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 6; s.content_margin_bottom = 6
+	s.bg_color = Color(0.04, 0.03, 0.10, 0.55) if unlocked else Color(0.03, 0.02, 0.06, 0.40)
+	s.border_color = Color(0.3, 0.65, 0.25, 0.6) if complete else Color(0.35, 0.25, 0.18, 0.3)
+	s.set_border_width_all(1 if not complete else 2)
+	s.set_corner_radius_all(6)
+	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
 	p.add_theme_stylebox_override("panel", s)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
-	# Art background layer on card
-	if _art.has("level_card"):
-		var card_bg = TextureRect.new()
-		card_bg.texture = _art["level_card"]
-		card_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		card_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		card_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		card_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card_bg.modulate.a = 0.5 if unlocked else 0.25
-		var mat = _make_black_key_mat(0.06, 0.04)
-		if mat: card_bg.material = mat
-		p.add_child(card_bg)
 	# Hover feedback on level card
 	p.mouse_entered.connect(func():
 		var tw = p.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
