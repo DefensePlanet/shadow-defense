@@ -601,8 +601,13 @@ func _die() -> void:
 			main.start_boss_rescue(global_position, self)
 			return
 	_dead = true
-	visible = false
 	set_process(false)
+	# Brief death squash animation before despawn
+	var death_tw = create_tween()
+	death_tw.set_parallel(true)
+	death_tw.tween_property(self, "scale", Vector2(1.3, 0.3), 0.12).set_ease(Tween.EASE_IN)
+	death_tw.tween_property(self, "modulate:a", 0.0, 0.15)
+	death_tw.chain().tween_callback(func(): visible = false)
 	var main = get_tree().get_first_node_in_group("main")
 	if main:
 		main.add_gold(gold_reward)
