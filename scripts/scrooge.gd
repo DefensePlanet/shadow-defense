@@ -147,7 +147,7 @@ var _main_node: Node2D = null
 
 func _ready() -> void:
 	_main_node = get_tree().get_first_node_in_group("main")
-	_game_font = load("res://fonts/Cinzel.ttf")
+	_game_font = preload("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_load_progressive_abilities()
 	_generate_tier_sounds()

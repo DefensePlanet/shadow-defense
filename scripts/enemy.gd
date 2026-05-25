@@ -219,7 +219,7 @@ func _despawn() -> void:
 		queue_free()
 
 func _ready() -> void:
-	_game_font = load("res://fonts/Cinzel.ttf")
+	_game_font = preload("res://fonts/Cinzel.ttf")
 	health = max_health
 	rotates = false
 	# Generate random wound positions using instance id as seed

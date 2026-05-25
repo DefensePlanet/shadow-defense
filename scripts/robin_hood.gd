@@ -45,6 +45,7 @@ var _build_timer: float = 0.0
 
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
+var crit_count: int = 0
 var upgrade_tier: int = 0
 var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
@@ -163,7 +164,7 @@ var _main_node: Node2D = null
 
 func _ready() -> void:
 	_main_node = get_tree().get_first_node_in_group("main")
-	_game_font = load("res://fonts/Cinzel.ttf")
+	_game_font = preload("res://fonts/Cinzel.ttf")
 	add_to_group("towers")
 	_load_progressive_abilities()
 	_generate_tier_sounds()
@@ -455,6 +456,7 @@ func _fire_arrow(t: Node2D, silver: bool = false, gold: bool = false) -> void:
 		arrow.pierce_count = 5
 		arrow.is_silver = true
 		_silver_flash = 0.8
+		crit_count += 1
 		var main = get_tree().get_first_node_in_group("main")
 		if main and main.has_method("report_crit_hit"):
 			main.report_crit_hit(global_position)
