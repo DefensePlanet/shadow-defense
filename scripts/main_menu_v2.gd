@@ -831,24 +831,36 @@ func _build_detail_view() -> void:
 	var back = _art_button("< BACK", Color(0.12, 0.10, 0.22), Vector2(90, 30))
 	back.pressed.connect(_build_survivors)
 	right.add_child(back)
-	# TAB BUTTONS — Stats / Gear / Allies / Abilities
+	# TAB BUTTONS — Stats / Gear / Allies / Abilities (styled with glow)
 	var tab_row = HBoxContainer.new()
 	tab_row.add_theme_constant_override("separation", 4)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for ti in range(4):
 		var tab_names_arr = ["STATS", "GEAR", "ALLIES", "ABILITIES"]
+		var is_active_tab = ti == _detail_tab
 		var tb = Button.new()
 		tb.text = tab_names_arr[ti]
-		tb.custom_minimum_size = Vector2(90, 26)
+		tb.custom_minimum_size = Vector2(100, 30)
 		var ts = StyleBoxFlat.new()
-		ts.bg_color = Color(0.18, 0.14, 0.28, 0.9) if ti == _detail_tab else Color(0.08, 0.06, 0.14, 0.5)
-		ts.set_corner_radius_all(4)
-		ts.border_color = Color(0.65, 0.50, 0.20, 0.6) if ti == _detail_tab else Color(0.30, 0.25, 0.18, 0.3)
-		ts.set_border_width_all(1)
+		ts.bg_color = Color(0.15, 0.10, 0.25, 0.85) if is_active_tab else Color(0.06, 0.04, 0.12, 0.4)
+		ts.set_corner_radius_all(6)
+		ts.border_color = Color(0.85, 0.65, 0.20, 0.7) if is_active_tab else Color(0.25, 0.20, 0.15, 0.3)
+		ts.set_border_width_all(2 if is_active_tab else 1)
+		if is_active_tab:
+			ts.shadow_color = Color(0.5, 0.35, 0.1, 0.2)
+			ts.shadow_size = 3
 		tb.add_theme_stylebox_override("normal", ts)
-		tb.add_theme_font_size_override("font_size", 10)
-		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if ti == _detail_tab else Color(0.55, 0.50, 0.45))
+		var tsh = ts.duplicate()
+		tsh.bg_color = Color(0.20, 0.14, 0.32, 0.9)
+		tsh.border_color = Color(0.70, 0.55, 0.20, 0.6)
+		tb.add_theme_stylebox_override("hover", tsh)
+		tb.add_theme_font_size_override("font_size", 11)
+		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if is_active_tab else Color(0.55, 0.50, 0.45))
+		tb.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		tb.add_theme_constant_override("shadow_offset_x", 1)
+		tb.add_theme_constant_override("shadow_offset_y", 1)
 		tb.pressed.connect(_switch_detail_tab.bind(ti))
+		_add_press_feedback(tb)
 		tab_row.add_child(tb)
 	right.add_child(tab_row)
 	# Get tower type for stats lookup
@@ -1379,18 +1391,30 @@ func _build_codex() -> void:
 	tab_row.add_theme_constant_override("separation", 8)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVEMENTS"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["stats", "STATISTICS"]]:
+		var is_active_codex = _codex_subtab == tab[0]
 		var tb = Button.new()
 		tb.text = tab[1]
-		tb.custom_minimum_size = Vector2(120, 28)
+		tb.custom_minimum_size = Vector2(120, 30)
 		var ts = StyleBoxFlat.new()
-		ts.bg_color = Color(0.15, 0.10, 0.25, 0.7) if _codex_subtab == tab[0] else Color(0.08, 0.06, 0.14, 0.5)
-		ts.set_corner_radius_all(4)
+		ts.bg_color = Color(0.15, 0.10, 0.25, 0.85) if is_active_codex else Color(0.06, 0.04, 0.12, 0.4)
+		ts.set_corner_radius_all(6)
+		ts.border_color = Color(0.85, 0.65, 0.20, 0.7) if is_active_codex else Color(0.25, 0.20, 0.15, 0.3)
+		ts.set_border_width_all(2 if is_active_codex else 1)
+		if is_active_codex:
+			ts.shadow_color = Color(0.5, 0.35, 0.1, 0.2)
+			ts.shadow_size = 3
 		tb.add_theme_stylebox_override("normal", ts)
-		var tsh = ts.duplicate(); tsh.bg_color = Color(0.22, 0.16, 0.35, 0.8)
+		var tsh = ts.duplicate()
+		tsh.bg_color = Color(0.20, 0.14, 0.32, 0.9)
+		tsh.border_color = Color(0.70, 0.55, 0.20, 0.6)
 		tb.add_theme_stylebox_override("hover", tsh)
 		tb.add_theme_font_size_override("font_size", 11)
-		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if _codex_subtab == tab[0] else Color(0.55, 0.50, 0.45))
+		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if is_active_codex else Color(0.55, 0.50, 0.45))
+		tb.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		tb.add_theme_constant_override("shadow_offset_x", 1)
+		tb.add_theme_constant_override("shadow_offset_y", 1)
 		tb.pressed.connect(_codex_switch.bind(tab[0]))
+		_add_press_feedback(tb)
 		tab_row.add_child(tb)
 	main_vb.add_child(tab_row)
 	# Content area for sub-tab
@@ -1698,6 +1722,30 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Colorblind Mode", cb_names[clampi(GameSettings.colorblind_mode, 0, 3)], func(): GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
+	# Credits / About section
+	vb.add_child(_lbl("ABOUT", 16, Color(0.85, 0.72, 0.40)))
+	var credits_panel = PanelContainer.new()
+	var cps = StyleBoxFlat.new()
+	cps.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	cps.set_corner_radius_all(8)
+	cps.content_margin_left = 16; cps.content_margin_right = 16
+	cps.content_margin_top = 12; cps.content_margin_bottom = 12
+	credits_panel.add_theme_stylebox_override("panel", cps)
+	credits_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var credits_vb = VBoxContainer.new()
+	credits_vb.add_theme_constant_override("separation", 6)
+	credits_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	credits_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	credits_panel.add_child(credits_vb)
+	credits_vb.add_child(_lbl("SHADOW DEFENSE: TALES FROM THE PAGES", 14, Color(1, 0.92, 0.45)))
+	credits_vb.add_child(_lbl("A Literary Tower Defense Adventure", 11, Color(0.65, 0.55, 0.45)))
+	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
+	credits_vb.add_child(_lbl("Created by Defense Planet", 12, Color(0.75, 0.68, 0.58)))
+	credits_vb.add_child(_lbl("Art generated with nano-banana + Gemini", 10, Color(0.55, 0.50, 0.45)))
+	credits_vb.add_child(_lbl("Built with Godot Engine 4.6", 10, Color(0.55, 0.50, 0.45)))
+	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
+	credits_vb.add_child(_lbl("Version 0.9.0", 11, Color(0.65, 0.58, 0.50)))
+	vb.add_child(credits_panel)
 
 func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable, is_volume: bool = false, volume_pct: float = 0.0) -> void:
 	# Setting row with art-styled panel
