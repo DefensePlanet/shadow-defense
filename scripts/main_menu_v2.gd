@@ -18,6 +18,17 @@ const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan"
 
 
 
+# Test navigation — F1-F5 switch tabs, F6 plays level 0
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		match event.keycode:
+			KEY_F1: _on_tab("chapters")
+			KEY_F2: _on_tab("survivors")
+			KEY_F3: _on_tab("emporium")
+			KEY_F4: _on_tab("codex")
+			KEY_F5: _on_tab("settings")
+			KEY_F6: _play(0, 0)
+
 # Phase 8: Ambient floating particles
 var _particles: Array = []
 const PARTICLE_COUNT: int = 15
