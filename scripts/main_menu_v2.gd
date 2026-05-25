@@ -1449,11 +1449,17 @@ func _build_detail_view() -> void:
 		right.add_child(_stat_bar("Damage", info.get("damage", 0), 50, Color(0.9,0.3,0.2)))
 		right.add_child(_stat_bar("Range", info.get("range", 0), 200, Color(0.3,0.7,0.9)))
 		right.add_child(_stat_bar("Fire Rate", info.get("fire_rate", 0), 2.5, Color(0.9,0.7,0.2)))
-		# DPS calculation
+		# DPS calculation + cost
 		var dmg = info.get("damage", 0)
 		var rate = info.get("fire_rate", 1.0)
 		var dps = dmg * rate if rate > 0 else 0
-		right.add_child(_lbl("DPS: %.1f  |  Cost: %d Gold" % [dps, info.get("cost", 0)], 12, Color(0.85, 0.70, 0.20)))
+		var cost_row = HBoxContainer.new()
+		cost_row.add_theme_constant_override("separation", 16)
+		cost_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cost_row.add_child(_lbl("⚔ DPS: %.1f" % dps, 12, Color(0.9, 0.3, 0.2)))
+		cost_row.add_child(_lbl("🪙 Cost: %d" % info.get("cost", 0), 12, Color(0.85, 0.70, 0.20)))
+		cost_row.add_child(_lbl("📏 Range: %d" % int(info.get("range", 0)), 12, Color(0.3, 0.7, 0.9)))
+		right.add_child(cost_row)
 	# === TAB 1: GEAR ===
 	if _detail_tab == 0 or _detail_tab == 1:
 		right.add_child(_section_header("EQUIPPED GEAR"))
@@ -2597,6 +2603,10 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 			ach_row.add_child(_lbl("%d/%d" % [mini(prog, ad.get("target", 1)), ad.get("target", 1)], 9, Color(0.45, 0.40, 0.38)))
 			var reward_text = "+%d %s" % [ad.get("reward_amount", 0), ad.get("reward_type", "").capitalize()]
 			ach_row.add_child(_lbl(reward_text, 9, Color(0.4, 0.7, 0.3) if is_done else Color(0.35, 0.30, 0.25)))
+			# Difficulty tier badge
+			var target_val = ad.get("target", 1)
+			var tier_text = "🥉" if target_val < 100 else ("🥈" if target_val < 1000 else "🥇")
+			ach_row.add_child(_lbl(tier_text, 10, Color.WHITE))
 			# CLAIM button for completed achievements
 			if is_done:
 				var claim = _art_button("CLAIM", Color(0.12, 0.40, 0.12), Vector2(60, 22))
@@ -2633,6 +2643,13 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 	for st in _main.survivor_types:
 		if _main._is_character_unlocked(st): rescued += 1
 	stats_data[10][1] = rescued
+	# Endless mode best
+	if "endless_top_runs" in _main and _main.endless_top_runs.size() > 0:
+		var best_wave = 0
+		for run in _main.endless_top_runs:
+			if run.get("wave", 0) > best_wave:
+				best_wave = run["wave"]
+		stats_data.append(["Endless Best Wave", best_wave])
 	# Add session time and FPS
 	var session_secs = int(Time.get_ticks_msec() / 1000.0)
 	var session_min = session_secs / 60
