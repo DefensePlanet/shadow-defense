@@ -1794,6 +1794,23 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		name_lbl.clip_text = true
 		name_lbl.custom_minimum_size.x = 80
 		cv.add_child(name_lbl)
+		# Check if equipped by any character
+		var equipped_by = ""
+		for si in range(_main.survivor_types.size()):
+			var stt = _main.survivor_types[si]
+			if _main.survivor_gear.has(stt):
+				var sg = _main.survivor_gear[stt]
+				var sg_key = sg.get("name", "").to_lower().replace(" ", "_").replace("'", "")
+				if sg_key == gk or gk in sg_key or sg_key in gk:
+					equipped_by = _main.character_names[si] if si < _main.character_names.size() else ""
+					break
+		if equipped_by != "":
+			var eq_lbl = _lbl(equipped_by, 7, Color(0.4, 0.8, 0.3))
+			eq_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			eq_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			eq_lbl.clip_text = true
+			eq_lbl.custom_minimum_size.x = 80
+			cv.add_child(eq_lbl)
 		grid.add_child(card)
 
 func _build_achievements_list(parent: VBoxContainer) -> void:
@@ -2040,6 +2057,9 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Colorblind Mode", cb_names[clampi(GameSettings.colorblind_mode, 0, 3)], func(): GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
+	# Language
+	vb.add_child(_lbl("LANGUAGE", 16, Color(0.85, 0.72, 0.40)))
+	_add_setting_row(vb, "Language", "English", func(): pass)  # Placeholder
 	# Reset to defaults
 	var reset_btn = _art_button("RESET TO DEFAULTS", Color(0.5, 0.12, 0.12), Vector2(180, 34))
 	reset_btn.pressed.connect(func():
