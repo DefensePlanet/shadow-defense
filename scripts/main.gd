@@ -5514,12 +5514,12 @@ func _create_ui() -> void:
 
 	# Row 1: Base 6 towers (proven working button style)
 	var base_towers = [
-		[TowerType.ROBIN_HOOD, "Robin [75G]", "Robin Hood — long range archer, gold bonus."],
-		[TowerType.ALICE, "Alice [85G]", "Alice — cake, slows enemies in area."],
-		[TowerType.WICKED_WITCH, "Witch [100G]", "Wicked Witch — eye blast, wolves."],
-		[TowerType.PETER_PAN, "Peter [90G]", "Peter Pan — fast daggers, shadow."],
-		[TowerType.PHANTOM, "Phantom [95G]", "Phantom — heavy hits, stun, chandelier."],
-		[TowerType.SCROOGE, "Scrooge [60G]", "Scrooge — bell, knockback & gold gen."],
+		[TowerType.ROBIN_HOOD, "Robin [%dG]" % tower_info[TowerType.ROBIN_HOOD]["cost"], "Robin Hood — long range archer, gold bonus."],
+		[TowerType.ALICE, "Alice [%dG]" % tower_info[TowerType.ALICE]["cost"], "Alice — cake, slows enemies in area."],
+		[TowerType.WICKED_WITCH, "Witch [%dG]" % tower_info[TowerType.WICKED_WITCH]["cost"], "Wicked Witch — eye blast, wolves."],
+		[TowerType.PETER_PAN, "Peter [%dG]" % tower_info[TowerType.PETER_PAN]["cost"], "Peter Pan — fast daggers, shadow."],
+		[TowerType.PHANTOM, "Phantom [%dG]" % tower_info[TowerType.PHANTOM]["cost"], "Phantom — heavy hits, stun, chandelier."],
+		[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
@@ -5531,12 +5531,12 @@ func _create_ui() -> void:
 
 	# Row 2: Unlockable characters (hidden until unlocked)
 	var new_chars = [
-		[TowerType.SHERLOCK, "Holmes [110G]", "Sherlock — focus beam, deduction mark."],
-		[TowerType.TARZAN, "Tarzan [100G]", "Tarzan — melee beast, vine swing, animals."],
-		[TowerType.DRACULA, "Dracula [105G]", "Dracula — life drain, bats, minion control."],
-		[TowerType.MERLIN, "Merlin [115G]", "Merlin — buffs, curses, Excalibur strikes."],
-		[TowerType.FRANKENSTEIN, "Monster [130G]", "Frankenstein — AoE lightning fist smash."],
-		[TowerType.SHADOW_AUTHOR, "Author [250G]", "Shadow Author — ink attacks, rewrite, shadow servants."],
+		[TowerType.SHERLOCK, "Holmes [%dG]" % tower_info[TowerType.SHERLOCK]["cost"], "Sherlock — focus beam, deduction mark."],
+		[TowerType.TARZAN, "Tarzan [%dG]" % tower_info[TowerType.TARZAN]["cost"], "Tarzan — melee beast, vine swing, animals."],
+		[TowerType.DRACULA, "Dracula [%dG]" % tower_info[TowerType.DRACULA]["cost"], "Dracula — life drain, bats, minion control."],
+		[TowerType.MERLIN, "Merlin [%dG]" % tower_info[TowerType.MERLIN]["cost"], "Merlin — buffs, curses, Excalibur strikes."],
+		[TowerType.FRANKENSTEIN, "Monster [%dG]" % tower_info[TowerType.FRANKENSTEIN]["cost"], "Frankenstein — AoE lightning fist smash."],
+		[TowerType.SHADOW_AUTHOR, "Author [%dG]" % tower_info[TowerType.SHADOW_AUTHOR]["cost"], "Shadow Author — ink attacks, rewrite, shadow servants."],
 	]
 	for i in range(new_chars.size()):
 		var nc = new_chars[i]
@@ -5695,19 +5695,26 @@ func _create_ui() -> void:
 
 	# === Tower upgrade panel (right-side, hidden by default) ===
 	upgrade_panel = ColorRect.new()
-	upgrade_panel.color = Color(0.12, 0.08, 0.20, 0.96)
-	upgrade_panel.position = Vector2(1080, 15)
-	upgrade_panel.size = Vector2(200, 710)
+	upgrade_panel.color = Color(0, 0, 0, 0)  # Transparent — styled panel container handles visual
+	upgrade_panel.position = Vector2(1078, 13)
+	upgrade_panel.size = Vector2(204, 714)
 	upgrade_panel.visible = false
 	ui.add_child(upgrade_panel)
 
-	# Gold border
-	var upg_border = ColorRect.new()
-	upg_border.color = _ca(c_gold, 0.5)
-	upg_border.position = Vector2(-2, -2)
-	upg_border.size = Vector2(204, 714)
-	upg_border.z_index = -1
-	upgrade_panel.add_child(upg_border)
+	# Styled background with gradient feel
+	var upg_bg = PanelContainer.new()
+	var upg_style = StyleBoxFlat.new()
+	upg_style.bg_color = Color(0.10, 0.07, 0.18, 0.94)
+	upg_style.set_corner_radius_all(10)
+	upg_style.border_color = Color(0.75, 0.58, 0.18, 0.6)
+	upg_style.set_border_width_all(2)
+	upg_style.shadow_color = Color(0.0, 0.0, 0.0, 0.3)
+	upg_style.shadow_size = 6
+	upg_bg.add_theme_stylebox_override("panel", upg_style)
+	upg_bg.position = Vector2(0, 0)
+	upg_bg.size = Vector2(204, 714)
+	upg_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	upgrade_panel.add_child(upg_bg)
 
 	# Tower name label at top
 	upgrade_name_label = Label.new()
