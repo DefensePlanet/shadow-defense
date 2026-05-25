@@ -5582,6 +5582,9 @@ func _create_ui() -> void:
 	info_label.size = Vector2(660, 34)
 	info_label.add_theme_font_size_override("font_size", 14)
 	info_label.add_theme_color_override("font_color", c_gold)
+	info_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	info_label.add_theme_constant_override("shadow_offset_x", 1)
+	info_label.add_theme_constant_override("shadow_offset_y", 1)
 	info_label.clip_text = true
 	info_label.text = ""
 	top_bar.add_child(info_label)
