@@ -132,6 +132,9 @@ var _tea_sound: AudioStreamWAV
 var _tea_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+static var _cached_alice_cheshire: AudioStreamWAV = null
+static var _cached_alice_tea: AudioStreamWAV = null
+static var _cached_alice_upgrade: AudioStreamWAV = null
 var _game_font: Font
 var _main_node: Node2D = null
 
@@ -248,7 +251,8 @@ func _ready() -> void:
 		if t < 0.05: master = t / 0.05
 		if t > 9.5: master = (ch_dur - t) / 0.5
 		ch_samples[i] = clampf(s * master, -1.0, 1.0)
-	_cheshire_sound = _samples_to_wav(ch_samples, ch_rate)
+	_cheshire_sound = _cached_alice_cheshire if _cached_alice_cheshire else _samples_to_wav(ch_samples, ch_rate)
+	if not _cached_alice_cheshire: _cached_alice_cheshire = _cheshire_sound
 	_cheshire_player = AudioStreamPlayer.new()
 	_cheshire_player.stream = _cheshire_sound
 	_cheshire_player.volume_db = -10.0
@@ -273,7 +277,8 @@ func _ready() -> void:
 			var pt := t - 0.3
 			s += sin(TAU * 1200.0 * pt) * (randf() * 0.3) * exp(-pt * 8.0) * 0.3
 		tea_samples[i] = clampf(s, -1.0, 1.0)
-	_tea_sound = _samples_to_wav(tea_samples, tea_rate)
+	_tea_sound = _cached_alice_tea if _cached_alice_tea else _samples_to_wav(tea_samples, tea_rate)
+	if not _cached_alice_tea: _cached_alice_tea = _tea_sound
 	_tea_player = AudioStreamPlayer.new()
 	_tea_player.stream = _tea_sound
 	_tea_player.volume_db = -12.0
@@ -293,7 +298,8 @@ func _ready() -> void:
 		var freq: float = up_notes[ni]
 		var env := minf(nt * 50.0, 1.0) * exp(-nt * 10.0) * 0.4
 		up_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.3) * env, -1.0, 1.0)
-	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
+	_upgrade_sound = _cached_alice_upgrade if _cached_alice_upgrade else _samples_to_wav(up_samples, up_rate)
+	if not _cached_alice_upgrade: _cached_alice_upgrade = _upgrade_sound
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
 	_upgrade_player.volume_db = -10.0
