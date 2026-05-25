@@ -5825,6 +5825,9 @@ func _create_ui() -> void:
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		cost_label.add_theme_font_size_override("font_size", 14)
 		cost_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
+		cost_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+		cost_label.add_theme_constant_override("shadow_offset_x", 1)
+		cost_label.add_theme_constant_override("shadow_offset_y", 1)
 		status_rect.add_child(cost_label)
 		upgrade_cost_labels.append(cost_label)
 
