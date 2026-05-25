@@ -2373,7 +2373,7 @@ func _build_codex() -> void:
 	var tab_row = HBoxContainer.new()
 	tab_row.add_theme_constant_override("separation", 8)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVE"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["books", "BOOKS"], ["stats", "STATS"], ["calendar", "EVENTS"]]:
+	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVE"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["books", "BOOKS"], ["glossary", "GUIDE"], ["stats", "STATS"], ["calendar", "EVENTS"]]:
 		var is_active_codex = _codex_subtab == tab[0]
 		var tb = Button.new()
 		tb.text = tab[1]
@@ -2417,6 +2417,7 @@ func _build_codex() -> void:
 		"journal": _build_journal(content)
 		"stats": _build_stats_page(content)
 		"books": _build_book_collection(content)
+		"glossary": _build_glossary(content)
 		"calendar": _build_event_calendar(content)
 
 func _codex_switch(tab: String) -> void:
@@ -2840,6 +2841,42 @@ func _build_event_calendar(parent: VBoxContainer) -> void:
 		ev_row.add_child(ev_name)
 		ev_row.add_child(_lbl(ev[1], 11, Color(0.55, 0.48, 0.42)))
 		parent.add_child(ev_panel)
+
+func _build_glossary(parent: VBoxContainer) -> void:
+	parent.add_child(_section_header("GLOSSARY"))
+	parent.add_child(_lbl("Game terms and mechanics explained", 11, Color(0.55, 0.50, 0.45)))
+	var terms = [
+		["Synergy", "Bonus when bonded characters placed near each other. Check Allies tab for bonds."],
+		["Gear Shards", "Currency dropped from battles. Spend at the Emporium's Gear Chest shop."],
+		["Quills", "Premium currency earned from quests and achievements. Buy rare items."],
+		["Storybook Stars", "Earned by completing levels. Used for progression and rewards."],
+		["Prestige", "Reset a max-level character for permanent stat bonuses."],
+		["Targeting Priority", "Tap a placed tower to cycle: First → Last → Close → Strong."],
+		["Active Ability", "Unlocked at Tier 3 upgrade. Cooldown-based special power."],
+		["Boss Phase", "Bosses change behavior at 66% and 33% HP. Watch for new attacks."],
+		["Combo", "Kill enemies quickly in succession for gold bonuses (x2 and up)."],
+		["Perfect Wave", "Complete a wave without losing any lives for bonus gold."],
+		["Adaptive Difficulty", "Game adjusts enemy HP based on your remaining lives."],
+		["Wave Rush", "Start the next wave while enemies are alive for a gold bonus."],
+	]
+	for term in terms:
+		var term_panel = PanelContainer.new()
+		var tms = StyleBoxFlat.new()
+		tms.bg_color = Color(0.04, 0.03, 0.08, 0.45)
+		tms.set_corner_radius_all(6)
+		tms.content_margin_left = 10; tms.content_margin_right = 10
+		tms.content_margin_top = 4; tms.content_margin_bottom = 4
+		term_panel.add_theme_stylebox_override("panel", tms)
+		term_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var tv = VBoxContainer.new()
+		tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		term_panel.add_child(tv)
+		tv.add_child(_lbl(term[0], 12, Color(0.85, 0.78, 0.60)))
+		var def_lbl = _lbl(term[1], 9, Color(0.55, 0.50, 0.45))
+		def_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		def_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tv.add_child(def_lbl)
+		parent.add_child(term_panel)
 
 func _build_book_collection(parent: VBoxContainer) -> void:
 	parent.add_child(_section_header("BOOK COLLECTION"))
