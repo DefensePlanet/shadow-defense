@@ -1430,6 +1430,70 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 		cv.add_child(name_lbl)
 		grid.add_child(card)
 
+func _show_popup(title: String, message: String, confirm_text: String = "OK", on_confirm: Callable = Callable()) -> void:
+	# Dark overlay
+	var overlay = ColorRect.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0, 0, 0, 0.6)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	# Popup panel
+	var popup = PanelContainer.new()
+	popup.set_anchors_preset(Control.PRESET_CENTER)
+	popup.custom_minimum_size = Vector2(400, 180)
+	popup.position = Vector2(440, 270)
+	var pps = StyleBoxFlat.new()
+	pps.bg_color = Color(0.08, 0.06, 0.15, 0.95)
+	pps.set_corner_radius_all(12)
+	pps.border_color = Color(0.65, 0.50, 0.20, 0.6)
+	pps.set_border_width_all(2)
+	pps.shadow_color = Color(0, 0, 0, 0.4)
+	pps.shadow_size = 8
+	pps.content_margin_left = 24; pps.content_margin_right = 24
+	pps.content_margin_top = 20; pps.content_margin_bottom = 20
+	popup.add_theme_stylebox_override("panel", pps)
+	# Art frame behind popup
+	if _art.has("popup_frame"):
+		var pa = TextureRect.new()
+		pa.texture = _art["popup_frame"]
+		pa.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pa.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pa.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pa.modulate.a = 0.25
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: pa.material = mat
+		popup.add_child(pa)
+	var pvb = VBoxContainer.new()
+	pvb.add_theme_constant_override("separation", 12)
+	pvb.alignment = BoxContainer.ALIGNMENT_CENTER
+	popup.add_child(pvb)
+	pvb.add_child(_lbl(title, 18, Color(1, 0.92, 0.45)))
+	var msg = _lbl(message, 12, Color(0.70, 0.65, 0.55))
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pvb.add_child(msg)
+	var btn_row = HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_row.add_theme_constant_override("separation", 12)
+	pvb.add_child(btn_row)
+	if on_confirm.is_valid():
+		var yes = _art_button(confirm_text, Color(0.12, 0.40, 0.12), Vector2(120, 34))
+		yes.pressed.connect(func(): overlay.queue_free(); popup.queue_free(); on_confirm.call())
+		btn_row.add_child(yes)
+	var no = _art_button("CANCEL" if on_confirm.is_valid() else "OK", Color(0.35, 0.12, 0.12), Vector2(120, 34))
+	no.pressed.connect(func(): overlay.queue_free(); popup.queue_free())
+	btn_row.add_child(no)
+	overlay.add_child(popup)
+	# Entrance animation
+	popup.modulate.a = 0.0
+	popup.scale = Vector2(0.8, 0.8)
+	popup.pivot_offset = Vector2(200, 90)
+	var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.set_parallel(true)
+	tw.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.2)
+	tw.tween_property(popup, "modulate:a", 1.0, 0.15)
+
 func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBoxContainer:
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -1693,13 +1757,15 @@ func _build_gold_exchange(parent: VBoxContainer) -> void:
 			var buy = _art_button("EXCHANGE", Color(0.12, 0.40, 0.12))
 			var currency_key = ex[3]
 			var amount = ex[4]
+			var cost_val = cost
 			buy.pressed.connect(func():
-				_main.gold -= cost
-				match currency_key:
-					"quills": _main.player_quills += amount
-					"shards": _main.player_gear_shards += amount
-					"stars": _main.player_storybook_stars += amount
-				_open_emporium_category(0))
+				_show_popup("Confirm Exchange", "Spend %d Gold for %d %s?" % [cost_val, amount, currency_key.capitalize()], "CONFIRM", func():
+					_main.gold -= cost_val
+					match currency_key:
+						"quills": _main.player_quills += amount
+						"shards": _main.player_gear_shards += amount
+						"stars": _main.player_storybook_stars += amount
+					_open_emporium_category(0)))
 			row.add_child(buy)
 		else:
 			row.add_child(_lbl("NOT ENOUGH GOLD", 10, Color(0.8, 0.2, 0.15)))
@@ -2222,21 +2288,22 @@ func _build_settings() -> void:
 	# Reset to defaults
 	var reset_btn = _art_button("RESET TO DEFAULTS", Color(0.5, 0.12, 0.12), Vector2(180, 34))
 	reset_btn.pressed.connect(func():
-		GameSettings.music_volume = 1.0
-		GameSettings.sfx_volume = 1.0
-		GameSettings.voice_volume = 1.0
-		GameSettings.music_muted = false
-		GameSettings.particle_effects = true
-		GameSettings.screen_shake = true
-		GameSettings.show_damage_numbers = true
-		GameSettings.game_speed = 1
-		GameSettings.auto_wave = false
-		GameSettings.font_scale = 1.0
-		GameSettings.colorblind_mode = 0
-		GameSettings.reduced_motion = false
-		GameSettings.left_handed = false
-		GameSettings.save_settings()
-		_build_settings())
+		_show_popup("Reset Settings", "Reset all settings to defaults?", "RESET", func():
+			GameSettings.music_volume = 1.0
+			GameSettings.sfx_volume = 1.0
+			GameSettings.voice_volume = 1.0
+			GameSettings.music_muted = false
+			GameSettings.particle_effects = true
+			GameSettings.screen_shake = true
+			GameSettings.show_damage_numbers = true
+			GameSettings.game_speed = 1
+			GameSettings.auto_wave = false
+			GameSettings.font_scale = 1.0
+			GameSettings.colorblind_mode = 0
+			GameSettings.reduced_motion = false
+			GameSettings.left_handed = false
+			GameSettings.save_settings()
+			_build_settings()))
 	vb.add_child(reset_btn)
 	# Credits / About section
 	vb.add_child(_lbl("ABOUT", 16, Color(0.85, 0.72, 0.40)))
