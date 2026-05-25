@@ -1823,10 +1823,17 @@ func _open_emporium_category(cat_idx: int) -> void:
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", 8)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sc.add_child(vb)
+	margin.add_child(vb)
 	if not _main: return
 	var cat = _main.emporium_categories[cat_idx]
 	# Back button with art styling
@@ -2737,7 +2744,7 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 	row.add_theme_constant_override("separation", 12)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row_panel.add_child(row)
-	var nl = _lbl(label, 14, Color(0.85, 0.78, 0.65))
+	var nl = _lbl(label, 13, Color(0.85, 0.78, 0.65))
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(nl)
@@ -2762,7 +2769,7 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 		bar_panel.add_child(bar_fill)
 	var btn = Button.new()
 	btn.text = value
-	btn.custom_minimum_size = Vector2(100, 32)
+	btn.custom_minimum_size = Vector2(110, 34)
 	var bs = StyleBoxFlat.new()
 	# Color code — green for active/enabled, neutral for values, red only for destructive
 	if value == "ON" or value == "YES":
