@@ -315,6 +315,28 @@ func _build_nav_buttons() -> void:
 		btn.add_theme_constant_override("shadow_offset_y", 1)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
 		_add_press_feedback(btn)
+		# Notification dot for tabs with unclaimed content
+		var has_notification = false
+		match tabs[i]:
+			"emporium":
+				if _main and "merchant_inventory" in _main and _main.merchant_inventory.size() > 0:
+					has_notification = true
+			"codex":
+				# Check for unclaimed achievements
+				if _main and "achievement_progress" in _main:
+					for ak in _main.achievement_progress:
+						var ap = _main.achievement_progress[ak]
+						if ap is Dictionary and ap.get("completed", false) and not ap.get("claimed", true):
+							has_notification = true
+							break
+		if has_notification:
+			var dot = ColorRect.new()
+			dot.custom_minimum_size = Vector2(8, 8)
+			dot.color = Color(0.9, 0.15, 0.1)
+			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			dot.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			dot.position = Vector2(-14, 6)
+			btn.add_child(dot)
 		# Hover feedback on nav tabs
 		btn.mouse_entered.connect(func():
 			btn.pivot_offset = btn.size / 2.0
@@ -1160,6 +1182,9 @@ func _build_detail_view() -> void:
 		right.add_child(level_row)
 		if next_xp > 0:
 			right.add_child(_stat_bar("XP", xp, next_xp, Color(0.3, 0.8, 0.4)))
+			right.add_child(_lbl("%d / %d XP to Level %d" % [xp, next_xp, level + 1], 9, Color(0.50, 0.45, 0.40)))
+		elif level >= _main.MAX_SURVIVOR_LEVEL:
+			right.add_child(_lbl("MAX LEVEL", 12, Color(1.0, 0.85, 0.15)))
 		# Total damage dealt
 		var total_dmg = prog.get("total_damage", 0.0)
 		if total_dmg > 0:
@@ -1978,8 +2003,10 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		var rarity_idx = clampi(gear_idx % 5, 0, 4)
 		var rarity_col = rarity_colors[rarity_idx]
 		gear_idx += 1
-		# Each gear item in a styled panel
-		var card = PanelContainer.new()
+		# Each gear item as a clickable button
+		var card = Button.new()
+		card.text = ""
+		card.custom_minimum_size = Vector2(90, 100)
 		var cs = StyleBoxFlat.new()
 		cs.bg_color = Color(0.04, 0.03, 0.08, 0.6)
 		cs.border_color = Color(rarity_col.r * 0.7, rarity_col.g * 0.7, rarity_col.b * 0.7, 0.5)
@@ -1989,8 +2016,15 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		cs.shadow_size = 3
 		cs.content_margin_left = 4; cs.content_margin_right = 4
 		cs.content_margin_top = 4; cs.content_margin_bottom = 4
-		card.add_theme_stylebox_override("panel", cs)
-		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_theme_stylebox_override("normal", cs)
+		var csh = cs.duplicate()
+		csh.bg_color = Color(0.08, 0.06, 0.15, 0.8)
+		csh.border_color = Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.8)
+		card.add_theme_stylebox_override("hover", csh)
+		var gear_name_display = gk.replace("_", " ").capitalize()
+		card.tooltip_text = gear_name_display
+		card.pressed.connect(func(): _show_popup(gear_name_display, "A piece of equipment from the literary worlds.\nRarity: %s" % ["Common", "Uncommon", "Rare", "Epic", "Legendary"][rarity_idx]))
+		_add_press_feedback(card)
 		var cv = VBoxContainer.new()
 		cv.alignment = BoxContainer.ALIGNMENT_CENTER
 		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2036,7 +2070,8 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 		total_ach = _main.achievement_definitions.size()
 	if _main and "achievement_progress" in _main:
 		for ak in _main.achievement_progress:
-			if _main.achievement_progress[ak].get("completed", false):
+			var ap = _main.achievement_progress[ak]
+			if ap is Dictionary and ap.get("completed", false):
 				earned += 1
 	if total_ach > 0:
 		parent.add_child(_lbl("%d / %d Achievements Earned" % [earned, total_ach], 13, Color(0.85, 0.70, 0.20)))
@@ -2233,6 +2268,13 @@ func _build_journal(parent: VBoxContainer) -> void:
 		row.add_child(text_col)
 		if unlocked:
 			text_col.add_child(_lbl(cname, 14, Color(1, 0.92, 0.45)))
+			# Source novel
+			if i < _main.character_novels.size():
+				text_col.add_child(_lbl("from \"%s\"" % _main.character_novels[i], 9, Color(0.50, 0.42, 0.38)))
+			# Title
+			if i < _main.character_titles.size():
+				text_col.add_child(_lbl(_main.character_titles[i], 10, Color(0.60, 0.52, 0.44)))
+			# Quote
 			if i < _main.character_quotes.size():
 				var quote = _lbl('"' + _main.character_quotes[i] + '"', 10, Color(0.55, 0.50, 0.45))
 				quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
