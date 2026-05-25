@@ -827,18 +827,9 @@ func _build_detail_view() -> void:
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", 8)
 	main_hbox.add_child(right)
-	# Back button
-	var back = Button.new()
-	back.text = "< BACK"
-	back.custom_minimum_size = Vector2(80, 28)
-	var bs = StyleBoxFlat.new(); bs.bg_color = Color(0.15,0.12,0.25,0.8); bs.set_corner_radius_all(4)
-	back.add_theme_stylebox_override("normal", bs)
-	back.add_theme_font_size_override("font_size", 11)
-	back.add_theme_color_override("font_color", Color(0.8,0.75,0.65))
+	# Back button with art styling
+	var back = _art_button("< BACK", Color(0.12, 0.10, 0.22), Vector2(90, 30))
 	back.pressed.connect(_build_survivors)
-	_add_press_feedback(back)
-	var bsh = bs.duplicate(); bsh.bg_color = Color(0.22, 0.18, 0.35, 0.9)
-	back.add_theme_stylebox_override("hover", bsh)
 	right.add_child(back)
 	# TAB BUTTONS — Stats / Gear / Allies / Abilities
 	var tab_row = HBoxContainer.new()
@@ -1227,14 +1218,8 @@ func _open_emporium_category(cat_idx: int) -> void:
 	sc.add_child(vb)
 	if not _main: return
 	var cat = _main.emporium_categories[cat_idx]
-	# Back button
-	var back = Button.new()
-	back.text = "< BACK TO EMPORIUM"
-	back.custom_minimum_size = Vector2(180, 30)
-	var bs = StyleBoxFlat.new(); bs.bg_color = Color(0.15,0.12,0.25,0.8); bs.set_corner_radius_all(4)
-	back.add_theme_stylebox_override("normal", bs)
-	back.add_theme_font_size_override("font_size", 11)
-	back.add_theme_color_override("font_color", Color(0.8,0.75,0.65))
+	# Back button with art styling
+	var back = _art_button("< BACK TO EMPORIUM", Color(0.12, 0.10, 0.22), Vector2(190, 32))
 	back.pressed.connect(_build_emporium)
 	vb.add_child(back)
 	vb.add_child(_title(cat.get("name", "SHOP")))
@@ -1252,24 +1237,46 @@ func _open_emporium_category(cat_idx: int) -> void:
 
 func _build_gold_exchange(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("Exchange gold for other currencies", 12, Color(0.60,0.55,0.48)))
-	var exchanges = [["100 Gold → 5 Quills", 100, "quills", 5], ["250 Gold → 15 Shards", 250, "shards", 15], ["500 Gold → 3 Stars", 500, "stars", 3]]
-	for ex in exchanges:
+	# Currency exchange art
+	if _art.has("currency_exchange"):
+		var ex_art = TextureRect.new()
+		ex_art.texture = _art["currency_exchange"]
+		ex_art.custom_minimum_size = Vector2(0, 60)
+		ex_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ex_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ex_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ex_art.modulate.a = 0.5
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: ex_art.material = mat
+		parent.add_child(ex_art)
+	var exchange_data = [
+		["100 Gold", "5 Quills", 100, Color(1,0.85,0.2), Color(0.7,0.5,0.9)],
+		["250 Gold", "15 Shards", 250, Color(1,0.85,0.2), Color(0.3,0.75,0.9)],
+		["500 Gold", "3 Stars", 500, Color(1,0.85,0.2), Color(1,0.9,0.3)],
+	]
+	for ex in exchange_data:
+		var card = PanelContainer.new()
+		var cs = StyleBoxFlat.new()
+		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		cs.set_corner_radius_all(8)
+		cs.border_color = Color(0.55, 0.42, 0.18, 0.4)
+		cs.set_border_width_all(1)
+		cs.content_margin_left = 12; cs.content_margin_right = 12
+		cs.content_margin_top = 8; cs.content_margin_bottom = 8
+		card.add_theme_stylebox_override("panel", cs)
 		var row = HBoxContainer.new()
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_theme_constant_override("separation", 12)
-		var el = _lbl(ex[0], 13, Color(0.85,0.78,0.65))
-		el.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		el.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(el)
-		var buy = Button.new()
-		buy.text = "EXCHANGE"
-		buy.custom_minimum_size = Vector2(100, 30)
-		var bys = StyleBoxFlat.new(); bys.bg_color = Color(0.15,0.45,0.15,0.8); bys.set_corner_radius_all(4)
-		buy.add_theme_stylebox_override("normal", bys)
-		buy.add_theme_font_size_override("font_size", 11)
-		buy.add_theme_color_override("font_color", Color.WHITE)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(row)
+		row.add_child(_lbl(ex[0], 14, ex[3]))
+		row.add_child(_lbl("→", 16, Color(0.65, 0.55, 0.45)))
+		var recv = _lbl(ex[1], 14, ex[4])
+		recv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		recv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(recv)
+		var buy = _art_button("EXCHANGE", Color(0.12, 0.40, 0.12))
 		row.add_child(buy)
-		parent.add_child(row)
+		parent.add_child(card)
 
 func _build_quill_shop(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("Spend Quills on rare treasures", 12, Color(0.60,0.55,0.48)))
@@ -1293,23 +1300,54 @@ func _build_trophy_store_items(parent: VBoxContainer) -> void:
 	_build_generic_shop(parent, {"name": "Trophy Store"})
 
 func _build_lucky_wheel_ui(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("Spin the Lucky Wheel for prizes!", 14, Color(1,0.85,0.3)))
-	parent.add_child(_lbl("One FREE spin per day!", 12, Color(0.3,0.9,0.3)))
-	var spin_btn = Button.new()
-	spin_btn.text = "SPIN!"
-	spin_btn.custom_minimum_size = Vector2(200, 50)
-	var ss = StyleBoxFlat.new(); ss.bg_color = Color(0.6,0.15,0.6,0.9); ss.set_corner_radius_all(12)
-	spin_btn.add_theme_stylebox_override("normal", ss)
-	var ssh = ss.duplicate(); ssh.bg_color = Color(0.7,0.25,0.7)
-	spin_btn.add_theme_stylebox_override("hover", ssh)
+	# Wheel header with art
+	var wheel_panel = PanelContainer.new()
+	var wps = StyleBoxFlat.new()
+	wps.bg_color = Color(0.08, 0.04, 0.15, 0.5)
+	wps.set_corner_radius_all(12)
+	wps.border_color = Color(0.7, 0.5, 0.1, 0.5)
+	wps.set_border_width_all(2)
+	wps.shadow_color = Color(0.4, 0.2, 0.6, 0.15)
+	wps.shadow_size = 6
+	wps.content_margin_left = 20; wps.content_margin_right = 20
+	wps.content_margin_top = 16; wps.content_margin_bottom = 16
+	wheel_panel.add_theme_stylebox_override("panel", wps)
+	var wv = VBoxContainer.new()
+	wv.add_theme_constant_override("separation", 10)
+	wv.alignment = BoxContainer.ALIGNMENT_CENTER
+	wv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wheel_panel.add_child(wv)
+	wv.add_child(_lbl("LUCKY WHEEL", 20, Color(1, 0.85, 0.3)))
+	wv.add_child(_lbl("One FREE spin per day!", 13, Color(0.3, 0.9, 0.3)))
+	var spin_btn = _art_button("SPIN!", Color(0.5, 0.12, 0.5), Vector2(200, 50))
 	spin_btn.add_theme_font_size_override("font_size", 20)
-	spin_btn.add_theme_color_override("font_color", Color.WHITE)
-	parent.add_child(spin_btn)
-	# Show prizes
-	parent.add_child(_lbl("Possible Prizes:", 12, Color(0.65,0.58,0.50)))
+	_add_press_feedback(spin_btn)
+	wv.add_child(spin_btn)
+	parent.add_child(wheel_panel)
+	# Prize list
+	parent.add_child(_lbl("Possible Prizes:", 13, Color(0.65, 0.58, 0.50)))
 	if _main:
+		var prize_grid = GridContainer.new()
+		prize_grid.columns = 2
+		prize_grid.add_theme_constant_override("h_separation", 8)
+		prize_grid.add_theme_constant_override("v_separation", 6)
+		prize_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		prize_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		parent.add_child(prize_grid)
 		for prize in _main.SPIN_WHEEL_PRIZES:
-			parent.add_child(_lbl("• %s" % prize.get("name",""), 11, prize.get("col", Color.WHITE)))
+			var pp = PanelContainer.new()
+			var pps = StyleBoxFlat.new()
+			pps.bg_color = Color(0.04, 0.03, 0.08, 0.4)
+			pps.set_corner_radius_all(6)
+			pps.content_margin_left = 8; pps.content_margin_right = 8
+			pps.content_margin_top = 4; pps.content_margin_bottom = 4
+			pp.add_theme_stylebox_override("panel", pps)
+			pp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			pp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var pl = _lbl(prize.get("name",""), 11, prize.get("col", Color.WHITE))
+			pl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			pp.add_child(pl)
+			prize_grid.add_child(pp)
 
 func _build_merchant_items(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("The Wandering Merchant has rare items...", 12, Color(0.60,0.55,0.48)))
@@ -1773,6 +1811,35 @@ func _lbl(text: String, size: int, color: Color) -> Label:
 	l.add_theme_constant_override("shadow_offset_x", 1)
 	l.add_theme_constant_override("shadow_offset_y", 1)
 	return l
+
+func _art_button(text: String, color: Color, min_size: Vector2 = Vector2(110, 32)) -> Button:
+	var btn = Button.new()
+	btn.text = text
+	btn.custom_minimum_size = min_size
+	var s = StyleBoxFlat.new()
+	s.bg_color = color
+	s.set_corner_radius_all(8)
+	s.border_color = Color(color.r * 1.8, color.g * 1.8, color.b * 1.8, 0.6)
+	s.set_border_width_all(1)
+	s.shadow_color = Color(0, 0, 0, 0.2)
+	s.shadow_size = 2
+	s.content_margin_left = 8; s.content_margin_right = 8
+	btn.add_theme_stylebox_override("normal", s)
+	var sh = s.duplicate()
+	sh.bg_color = color.lightened(0.2)
+	sh.border_color = Color(color.r * 2.0, color.g * 2.0, color.b * 2.0, 0.7)
+	btn.add_theme_stylebox_override("hover", sh)
+	var sp = s.duplicate()
+	sp.bg_color = color.darkened(0.15)
+	sp.shadow_size = 0
+	btn.add_theme_stylebox_override("pressed", sp)
+	btn.add_theme_font_size_override("font_size", 11)
+	btn.add_theme_color_override("font_color", Color.WHITE)
+	btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	btn.add_theme_constant_override("shadow_offset_x", 1)
+	btn.add_theme_constant_override("shadow_offset_y", 1)
+	_add_press_feedback(btn)
+	return btn
 
 func _format_num(val: float) -> String:
 	if val >= 1000000: return "%.1fM" % (val / 1000000.0)
