@@ -6,6 +6,8 @@ var _art: Dictionary = {}
 var _black_key: Shader = null
 var _main: Node = null
 var current_view: String = "chapters"
+var _song_label: Label = null
+var _last_song: String = ""
 # Portrait key mapping — character_names[] index → portrait texture key
 const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 # Map arc name prefixes to portrait keys for arc header icons
@@ -79,6 +81,8 @@ func _init_particles() -> void:
 			"offset": randf_range(0, TAU),
 		})
 
+var _song_check_timer: float = 0.0
+
 func _process(delta: float) -> void:
 	for p in _particles:
 		p["y"] -= p["speed"] * delta
@@ -86,6 +90,11 @@ func _process(delta: float) -> void:
 		if p["y"] < -10:
 			p["y"] = 730
 			p["x"] = randf_range(0, 1280)
+	# Check for song change every 2 seconds
+	_song_check_timer += delta
+	if _song_check_timer >= 2.0:
+		_song_check_timer = 0.0
+		_update_song_display()
 	queue_redraw()
 
 func _draw() -> void:
@@ -147,6 +156,13 @@ func _load_art() -> void:
 		"tab_achievements": "res://assets/ui_elements/tab_achievements.png",
 		"tab_gear": "res://assets/ui_elements/tab_gear.png",
 		"upgrade_arrow": "res://assets/ui_elements/upgrade_arrow.png",
+		"game_logo": "res://assets/menu_art/game_logo.png",
+		"game_title": "res://assets/menu_art/game_title.png",
+		"side_panel_buttons": "res://assets/ui_elements/side_panel_buttons.png",
+		"tooltip_frame": "res://assets/ui_elements/tooltip_frame.png",
+		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
+		"card_frame_epic": "res://assets/ui_frames/card_frame_epic.png",
+		"wanted_poster": "res://assets/ui_frames/wanted_poster.png",
 	}
 	for k in paths:
 		if ResourceLoader.exists(paths[k]):
@@ -195,35 +211,53 @@ func _build_music_display() -> void:
 	# Now Playing + Skip button in top-right
 	var music_row = HBoxContainer.new()
 	music_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	music_row.add_theme_constant_override("separation", 8)
+	music_row.add_theme_constant_override("separation", 6)
 	music_row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	music_row.position = Vector2(-250, 8)
-	music_row.size = Vector2(240, 24)
+	music_row.position = Vector2(-260, 6)
+	music_row.size = Vector2(250, 26)
 	top_bar.add_child(music_row)
-	# Song title
-	var song_name = ""
-	if _main and _main.has_method("_get_current_song_title"):
-		song_name = _main._get_current_song_title()
-	elif _main and "_current_song_title" in _main:
-		song_name = _main._current_song_title
-	var song_lbl = _lbl(song_name if song_name != "" else "Now Playing...", 10, Color(0.70, 0.60, 0.85))
-	song_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	song_lbl.clip_text = true
-	song_lbl.custom_minimum_size.x = 180
-	music_row.add_child(song_lbl)
-	# Skip button
-	var skip = Button.new()
-	skip.text = ">>"
-	skip.custom_minimum_size = Vector2(40, 22)
-	var ss = StyleBoxFlat.new()
-	ss.bg_color = Color(0.15, 0.12, 0.25, 0.7)
-	ss.set_corner_radius_all(4)
-	skip.add_theme_stylebox_override("normal", ss)
+	# Music icon
+	var icon = _lbl("♫", 12, Color(0.65, 0.55, 0.80))
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	music_row.add_child(icon)
+	# Song title — stored for live updates
+	var song_name = _get_song_name()
+	_song_label = _lbl(song_name if song_name != "" else "Now Playing...", 10, Color(0.70, 0.60, 0.85))
+	_song_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_song_label.clip_text = true
+	_song_label.custom_minimum_size.x = 180
+	_last_song = song_name
+	music_row.add_child(_song_label)
+	# Skip button with art styling
+	var skip = _art_button(">>", Color(0.12, 0.10, 0.22), Vector2(36, 22))
 	skip.add_theme_font_size_override("font_size", 10)
-	skip.add_theme_color_override("font_color", Color(0.7, 0.6, 0.85))
 	if _main and _main.has_method("_on_skip_song_pressed"):
-		skip.pressed.connect(_main._on_skip_song_pressed)
+		skip.pressed.connect(func():
+			if _main.has_method("_on_skip_song_pressed"):
+				_main._on_skip_song_pressed()
+			# Flash the song label briefly
+			if _song_label:
+				_song_label.text = "..."
+				get_tree().create_timer(0.3).timeout.connect(func(): _update_song_display()))
 	music_row.add_child(skip)
+
+func _get_song_name() -> String:
+	if _main and _main.has_method("_get_current_song_title"):
+		return _main._get_current_song_title()
+	elif _main and "_current_song_title" in _main:
+		return _main._current_song_title
+	return ""
+
+func _update_song_display() -> void:
+	if not _song_label: return
+	var current = _get_song_name()
+	if current != _last_song and current != "":
+		_last_song = current
+		# Fade out, change text, fade in
+		var tw = create_tween()
+		tw.tween_property(_song_label, "modulate:a", 0.0, 0.15)
+		tw.tween_callback(func(): _song_label.text = current)
+		tw.tween_property(_song_label, "modulate:a", 1.0, 0.15)
 
 func _build_nav() -> void:
 	# Apply nav spine art behind NavButtons (NavBar is ColorRect)
@@ -326,7 +360,19 @@ func _build_chapters() -> void:
 	vb.add_theme_constant_override("separation", 6)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sc.add_child(vb)
-	vb.add_child(_title("THE TOME OF SHADOWS"))
+	# Game logo art
+	if _art.has("game_logo"):
+		var logo = TextureRect.new()
+		logo.texture = _art["game_logo"]
+		logo.custom_minimum_size = Vector2(0, 80)
+		logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: logo.material = mat
+		vb.add_child(logo)
+	else:
+		vb.add_child(_title("THE TOME OF SHADOWS"))
 	# Story tagline with storybook styling
 	var tagline = _lbl("Heroes pulled from their stories. One Author controls them all.", 12, Color(0.65, 0.55, 0.45))
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -422,6 +468,21 @@ func _build_chapters() -> void:
 		var tw = create_tween()
 		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(card_idx * 0.03)
 		card_idx += 1
+		# Pulsing "NEXT" indicator on first uncompleted unlocked level
+		var is_unlocked = _main._is_level_unlocked(i)
+		var is_complete = i in _main.completed_levels
+		if is_unlocked and not is_complete:
+			# Only pulse the FIRST one
+			var already_pulsing = false
+			for prev_idx in range(i):
+				if _main._is_level_unlocked(prev_idx) and prev_idx not in _main.completed_levels:
+					already_pulsing = true
+					break
+			if not already_pulsing:
+				# Add pulsing gold border glow
+				var pulse_tw = create_tween().set_loops()
+				pulse_tw.tween_property(card, "modulate", Color(1.2, 1.15, 1.0), 0.6).set_ease(Tween.EASE_IN_OUT)
+				pulse_tw.tween_property(card, "modulate", Color(1.0, 1.0, 1.0), 0.6).set_ease(Tween.EASE_IN_OUT)
 
 func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var unlocked = _main._is_level_unlocked(idx)
@@ -674,24 +735,29 @@ func _build_survivors() -> void:
 		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(i * 0.05)
 
 func _survivor_card(idx: int) -> Button:
+	# Check if character is unlocked
+	var is_unlocked = false
+	var tt = _main.survivor_types[idx] if _main and idx < _main.survivor_types.size() else null
+	if tt != null and _main:
+		is_unlocked = _main._is_character_unlocked(tt)
 	# The card IS a Button — fills grid cell
 	var btn = Button.new()
 	btn.custom_minimum_size = Vector2(200, 270)
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # FILL the grid column
-	# Style the button to look like a card
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Style based on unlock status
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.06,0.04,0.12,0.70)
-	s.border_color = Color(0.45,0.35,0.20,0.5)
+	s.bg_color = Color(0.06, 0.04, 0.12, 0.70) if is_unlocked else Color(0.03, 0.02, 0.06, 0.50)
+	s.border_color = Color(0.45, 0.35, 0.20, 0.5) if is_unlocked else Color(0.20, 0.18, 0.15, 0.3)
 	s.set_border_width_all(2); s.set_corner_radius_all(8)
 	s.content_margin_left = 4; s.content_margin_right = 4
 	s.content_margin_top = 4; s.content_margin_bottom = 4
 	btn.add_theme_stylebox_override("normal", s)
 	var sh = s.duplicate()
-	sh.bg_color = Color(0.10,0.07,0.18,0.80)
-	sh.border_color = Color(0.65,0.50,0.25,0.8)
+	sh.bg_color = Color(0.10, 0.07, 0.18, 0.80) if is_unlocked else Color(0.05, 0.03, 0.10, 0.6)
+	sh.border_color = Color(0.65, 0.50, 0.25, 0.8) if is_unlocked else Color(0.30, 0.25, 0.18, 0.4)
 	btn.add_theme_stylebox_override("hover", sh)
 	var sp = s.duplicate()
-	sp.bg_color = Color(0.12,0.08,0.20,0.85)
+	sp.bg_color = Color(0.12, 0.08, 0.20, 0.85)
 	btn.add_theme_stylebox_override("pressed", sp)
 	btn.text = ""
 	# Art frame layer behind content (survivor_card_frame or card_frame with black keyed out)
@@ -713,7 +779,7 @@ func _survivor_card(idx: int) -> Button:
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(vb)
-	# Portrait — fills width, centered
+	# Portrait — fills width, centered. Silhouette if locked.
 	var port = TextureRect.new()
 	port.custom_minimum_size = Vector2(0, 190)
 	port.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -723,31 +789,39 @@ func _survivor_card(idx: int) -> Button:
 	var pkey = PORTRAIT_KEYS[idx]
 	if _main and _main._portrait_textures.has(pkey):
 		port.texture = _main._portrait_textures[pkey]
+		if not is_unlocked:
+			port.modulate = Color(0.08, 0.06, 0.12)  # Dark silhouette
 	vb.add_child(port)
-	# Name
+	# Name — show "???" for locked
 	var cname = _main.character_names[idx] if _main and idx < _main.character_names.size() else "?"
-	var nl = _lbl(cname.to_upper(), 11, Color(1,0.92,0.45))
+	var display_name = cname.to_upper() if is_unlocked else "???"
+	var nl = _lbl(display_name, 11, Color(1, 0.92, 0.45) if is_unlocked else Color(0.35, 0.30, 0.25))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(nl)
+	# Locked indicator
+	if not is_unlocked:
+		var lock_lbl = _lbl("🔒 LOCKED", 10, Color(0.40, 0.35, 0.30))
+		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(lock_lbl)
 	var ctitle = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
-	var tl = _lbl(ctitle, 9, Color(0.55,0.48,0.42))
+	var tl = _lbl(ctitle if is_unlocked else "", 9, Color(0.55, 0.48, 0.42))
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(tl)
-	# Level badge
-	var tt = _main.survivor_types[idx] if _main and idx < _main.survivor_types.size() else null
-	if tt != null and _main.survivor_progress.has(tt):
+	# Level badge (only for unlocked)
+	if is_unlocked and tt != null and _main.survivor_progress.has(tt):
 		var lvl = _main.survivor_progress[tt].get("level", 1)
 		var badge = _lbl("Lv.%d" % lvl, 9, Color(0.85, 0.72, 0.40))
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(badge)
-	# Source novel
-	if _main and idx < _main.character_novels.size():
+	# Source novel (only for unlocked)
+	if is_unlocked and _main and idx < _main.character_novels.size():
 		var novel = _lbl(_main.character_novels[idx], 8, Color(0.42, 0.38, 0.35))
 		novel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		novel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
