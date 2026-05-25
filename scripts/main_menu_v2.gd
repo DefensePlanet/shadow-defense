@@ -8,6 +8,7 @@ var _main: Node = null
 var current_view: String = "chapters"
 var _song_label: Label = null
 var _last_song: String = ""
+var _scroll_positions: Dictionary = {}  # View name → scroll position
 # Portrait key mapping — character_names[] index → portrait texture key
 const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 # Map arc name prefixes to portrait keys for arc header icons
@@ -323,6 +324,8 @@ func _build_nav_buttons() -> void:
 
 func _on_tab(tab: String) -> void:
 	if current_view == tab: return
+	# Save scroll position of current view
+	_save_scroll_position()
 	# Fade out content, then switch
 	var tw = create_tween()
 	tw.tween_property(content_area, "modulate:a", 0.0, 0.1)
@@ -339,9 +342,27 @@ func _on_tab(tab: String) -> void:
 			"emporium": _build_emporium()
 			"codex": _build_codex()
 			"settings": _build_settings()
+		# Restore scroll position
+		_restore_scroll_position()
 		# Fade in new content
 		var tw_in = create_tween()
 		tw_in.tween_property(content_area, "modulate:a", 1.0, 0.15))
+
+func _save_scroll_position() -> void:
+	for c in content_area.get_children():
+		if c is ScrollContainer:
+			_scroll_positions[current_view] = c.scroll_vertical
+			break
+
+func _restore_scroll_position() -> void:
+	if not _scroll_positions.has(current_view): return
+	var target = _scroll_positions[current_view]
+	# Defer to next frame so layout is done
+	get_tree().create_timer(0.05).timeout.connect(func():
+		for c in content_area.get_children():
+			if c is ScrollContainer:
+				c.scroll_vertical = target
+				break)
 
 func _clear() -> void:
 	for c in content_area.get_children(): c.queue_free()
@@ -520,9 +541,21 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
-	var num_lbl = _lbl(str(idx+1), 18, Color(0.85,0.72,0.40) if unlocked else Color(0.35,0.30,0.25))
+	# Level number with boss skull for every 3rd level
+	var is_boss = (idx + 1) % 3 == 0 and idx > 0
+	var num_col = VBoxContainer.new()
+	num_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	num_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var num_lbl = _lbl(str(idx+1), 18, Color(0.85, 0.72, 0.40) if unlocked else Color(0.35, 0.30, 0.25))
+	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(num_lbl)
+	num_col.add_child(num_lbl)
+	if is_boss:
+		var skull = _lbl("💀", 14, Color(0.8, 0.2, 0.15))
+		skull.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		skull.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		num_col.add_child(skull)
+	row.add_child(num_col)
 	# Thumbnail
 	var th = TextureRect.new()
 	th.custom_minimum_size = Vector2(90, 60)
@@ -534,9 +567,41 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var info = VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var n = _lbl(lvl.get("name",""), 14, Color(1,0.95,0.85) if unlocked else Color(0.45,0.40,0.35))
+	var name_row = HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 6)
+	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var n = _lbl(lvl.get("name",""), 14, Color(1, 0.95, 0.85) if unlocked else Color(0.45, 0.40, 0.35))
 	n.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	info.add_child(n)
+	name_row.add_child(n)
+	# NEW badge — unlocked but not completed
+	if unlocked and not complete:
+		var new_badge = PanelContainer.new()
+		var nbs = StyleBoxFlat.new()
+		nbs.bg_color = Color(0.15, 0.6, 0.15, 0.85)
+		nbs.set_corner_radius_all(8)
+		nbs.content_margin_left = 6; nbs.content_margin_right = 6
+		nbs.content_margin_top = 1; nbs.content_margin_bottom = 1
+		new_badge.add_theme_stylebox_override("panel", nbs)
+		new_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var badge_lbl = _lbl("NEW", 8, Color.WHITE)
+		badge_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		new_badge.add_child(badge_lbl)
+		name_row.add_child(new_badge)
+	# Boss level badge
+	if is_boss and unlocked:
+		var boss_badge = PanelContainer.new()
+		var bbs = StyleBoxFlat.new()
+		bbs.bg_color = Color(0.6, 0.12, 0.1, 0.85)
+		bbs.set_corner_radius_all(8)
+		bbs.content_margin_left = 6; bbs.content_margin_right = 6
+		bbs.content_margin_top = 1; bbs.content_margin_bottom = 1
+		boss_badge.add_theme_stylebox_override("panel", bbs)
+		boss_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var boss_lbl = _lbl("BOSS", 8, Color.WHITE)
+		boss_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		boss_badge.add_child(boss_lbl)
+		name_row.add_child(boss_badge)
+	info.add_child(name_row)
 	var st = _lbl(lvl.get("subtitle",""), 10, Color(0.55,0.48,0.42))
 	st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.add_child(st)
