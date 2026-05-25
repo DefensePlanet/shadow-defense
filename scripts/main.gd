@@ -1936,7 +1936,7 @@ var _show_stats_screen: bool = false
 var _early_send_bonus: int = 0
 
 # === BATTD FEATURE: LUCKY LOOT DROPS ===
-const LUCKY_DROP_CHANCE: float = 0.05  # 5% per kill
+const LUCKY_DROP_CHANCE: float = 0.02  # 2% per kill — reduced from 5%
 var _lucky_drops_this_game: int = 0
 
 # === BATTD FEATURE: XP SHARING ===
