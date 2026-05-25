@@ -16642,8 +16642,13 @@ func _process(delta: float) -> void:
 		_handle_spawning(delta)
 		_check_wave_complete()
 	elif wave_auto_timer > 0.0:
+		var prev_sec = int(ceilf(wave_auto_timer))
 		wave_auto_timer -= delta
+		var cur_sec = int(ceilf(wave_auto_timer))
 		start_button.text = "  NEXT IN %.0fs  " % maxf(wave_auto_timer, 0.0)
+		# Big countdown number for last 3 seconds
+		if cur_sec != prev_sec and cur_sec <= 3 and cur_sec > 0:
+			spawn_floating_text(Vector2(640, 300), str(cur_sec), Color(1.0, 0.9, 0.3), 32.0, 0.8)
 		if wave_auto_timer <= 0.0:
 			wave_auto_timer = -1.0
 			_start_next_wave()
