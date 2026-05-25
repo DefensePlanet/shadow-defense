@@ -5425,10 +5425,25 @@ func _create_ui() -> void:
 
 	# Top bar — Bloons-style warm dark bar
 	top_bar = ColorRect.new()
-	top_bar.color = Color(0.12, 0.07, 0.20, 0.95)
+	top_bar.color = Color(0, 0, 0, 0)
 	top_bar.position = Vector2(0, 0)
 	top_bar.size = Vector2(1280, 50)
 	ui.add_child(top_bar)
+	# Styled top HUD bar
+	var top_hud_bg = PanelContainer.new()
+	var thb_style = StyleBoxFlat.new()
+	thb_style.bg_color = Color(0.08, 0.05, 0.16, 0.90)
+	thb_style.border_color = Color(0.45, 0.35, 0.15, 0.35)
+	thb_style.border_width_bottom = 2
+	thb_style.border_width_top = 0; thb_style.border_width_left = 0; thb_style.border_width_right = 0
+	thb_style.shadow_color = Color(0, 0, 0, 0.15)
+	thb_style.shadow_size = 3
+	top_hud_bg.add_theme_stylebox_override("panel", thb_style)
+	top_hud_bg.position = Vector2(0, 0)
+	top_hud_bg.size = Vector2(1280, 50)
+	top_hud_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_bar.add_child(top_hud_bg)
+	top_bar.move_child(top_hud_bg, 0)
 
 	wave_label = Label.new()
 	wave_label.position = Vector2(10, 8)
@@ -5501,11 +5516,26 @@ func _create_ui() -> void:
 
 	# Bottom panel — gothic dark bar
 	bottom_panel = ColorRect.new()
-	bottom_panel.color = Color(0.12, 0.07, 0.20, 0.95)
-	bottom_panel.position = Vector2(0, 628)
-	bottom_panel.size = Vector2(1280, 92)
+	bottom_panel.color = Color(0, 0, 0, 0)  # Transparent — styled panel behind
+	bottom_panel.position = Vector2(0, 626)
+	bottom_panel.size = Vector2(1280, 94)
 	bottom_panel.clip_contents = true
 	ui.add_child(bottom_panel)
+	# Styled tower bar background
+	var tower_bar_bg = PanelContainer.new()
+	var tbg_style = StyleBoxFlat.new()
+	tbg_style.bg_color = Color(0.10, 0.06, 0.18, 0.92)
+	tbg_style.border_color = Color(0.55, 0.42, 0.18, 0.4)
+	tbg_style.border_width_top = 2
+	tbg_style.border_width_bottom = 0; tbg_style.border_width_left = 0; tbg_style.border_width_right = 0
+	tbg_style.shadow_color = Color(0, 0, 0, 0.2)
+	tbg_style.shadow_size = 4
+	tower_bar_bg.add_theme_stylebox_override("panel", tbg_style)
+	tower_bar_bg.position = Vector2(0, 0)
+	tower_bar_bg.size = Vector2(1280, 94)
+	tower_bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom_panel.add_child(tower_bar_bg)
+	bottom_panel.move_child(tower_bar_bg, 0)
 
 	var btn_h = 40
 	var row1_y = 2
@@ -5654,11 +5684,26 @@ func _create_ui() -> void:
 
 	# === Ability choice panel (centered, hidden by default) ===
 	ability_panel = ColorRect.new()
-	ability_panel.color = Color(0.22, 0.38, 0.58, 0.95)
-	ability_panel.position = Vector2(290, 150)
-	ability_panel.size = Vector2(700, 380)
+	ability_panel.color = Color(0, 0, 0, 0)  # Transparent — styled panel behind
+	ability_panel.position = Vector2(288, 148)
+	ability_panel.size = Vector2(704, 384)
 	ability_panel.visible = false
 	ui.add_child(ability_panel)
+	# Styled background for ability panel
+	var ability_bg = PanelContainer.new()
+	var abs = StyleBoxFlat.new()
+	abs.bg_color = Color(0.12, 0.10, 0.22, 0.95)
+	abs.set_corner_radius_all(12)
+	abs.border_color = Color(0.5, 0.7, 0.9, 0.6)
+	abs.set_border_width_all(2)
+	abs.shadow_color = Color(0, 0, 0, 0.4)
+	abs.shadow_size = 8
+	ability_bg.add_theme_stylebox_override("panel", abs)
+	ability_bg.position = Vector2(0, 0)
+	ability_bg.size = Vector2(704, 384)
+	ability_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ability_panel.add_child(ability_bg)
+	ability_panel.move_child(ability_bg, 0)
 
 	# Panel border
 	var border = ColorRect.new()
@@ -28789,7 +28834,11 @@ func game_over() -> void:
 		game_over_label.text = "DAILY CHALLENGE FAILED\n%s" % daily_challenge_modifier
 		daily_challenge_active = false
 	else:
-		game_over_label.text = "GAME OVER"
+		# Defeat stats
+		var defeat_kills = _wave_enemies_killed
+		var defeat_wave = wave
+		var defeat_towers = get_tree().get_nodes_in_group("towers").size()
+		game_over_label.text = "GAME OVER\nWave %d  |  %d Kills  |  %d Towers\n\nRevenge retry: +20%% gold bonus!" % [defeat_wave, defeat_kills, defeat_towers]
 		# BATTD2: Reset victory streak on defeat
 		victory_streak = 0
 		# BATTD: Enable revenge retry with bonus gold
