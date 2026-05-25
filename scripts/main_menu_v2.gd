@@ -425,6 +425,39 @@ func _build_chapters() -> void:
 	sa_attr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(sa_attr)
 	if not _main: return
+	# "Previously on..." story recap for returning players
+	if _main.completed_levels.size() > 0:
+		var last_level = 0
+		for cl in _main.completed_levels:
+			if cl > last_level: last_level = cl
+		var last_name = _main.levels[last_level].get("name", "") if last_level < _main.levels.size() else ""
+		var recap_panel = PanelContainer.new()
+		var rps = StyleBoxFlat.new()
+		rps.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+		rps.set_corner_radius_all(8)
+		rps.border_color = Color(0.55, 0.42, 0.18, 0.3)
+		rps.set_border_width_all(1)
+		rps.content_margin_left = 16; rps.content_margin_right = 16
+		rps.content_margin_top = 6; rps.content_margin_bottom = 6
+		recap_panel.add_theme_stylebox_override("panel", rps)
+		recap_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var recap_vb = VBoxContainer.new()
+		recap_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		recap_panel.add_child(recap_vb)
+		var recap_title = _lbl("Previously on Shadow Defense...", 11, Color(0.65, 0.55, 0.45))
+		recap_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		recap_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		recap_vb.add_child(recap_title)
+		var recap_text = _lbl("You completed \"%s\" — %d levels cleared, %d characters rescued" % [last_name, _main.completed_levels.size(), 0], 10, Color(0.55, 0.48, 0.42))
+		recap_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		recap_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		recap_vb.add_child(recap_text)
+		# Count rescued
+		var r_count = 0
+		for st in _main.survivor_types:
+			if _main._is_character_unlocked(st): r_count += 1
+		recap_text.text = "You completed \"%s\" — %d levels cleared, %d characters rescued" % [last_name, _main.completed_levels.size(), r_count]
+		vb.add_child(recap_panel)
 	# Total star counter
 	var total_stars = 0
 	var max_stars = _main.levels.size() * 3
@@ -548,6 +581,7 @@ func _build_chapters() -> void:
 func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var unlocked = _main._is_level_unlocked(idx)
 	var complete = idx in _main.completed_levels
+	var is_boss = (idx + 1) % 3 == 0 and idx > 0
 	var p = PanelContainer.new()
 	var s = StyleBoxFlat.new()
 	s.bg_color = Color(0.04, 0.03, 0.10, 0.75) if unlocked else Color(0.03, 0.02, 0.06, 0.60)
@@ -557,10 +591,20 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
 	p.add_theme_stylebox_override("panel", s)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
-	# Tooltip with story description
-	var story = lvl.get("story_hook", lvl.get("subtitle", ""))
-	if story != "":
-		p.tooltip_text = story
+	# Tooltip — boss levels get villain taunts
+	if is_boss:
+		var taunts = [
+			"Think you can survive MY chapter? Adorable.",
+			"The ink runs red in this one...",
+			"I wrote your defeat on page one.",
+			"This is where heroes come to be erased.",
+			"My finest creation awaits you here.",
+		]
+		p.tooltip_text = taunts[idx % taunts.size()]
+	else:
+		var story = lvl.get("story_hook", lvl.get("subtitle", ""))
+		if story != "":
+			p.tooltip_text = story
 	# Hover feedback on level card
 	p.mouse_entered.connect(func():
 		var tw = p.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
@@ -574,7 +618,6 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
 	# Level number with boss skull for every 3rd level
-	var is_boss = (idx + 1) % 3 == 0 and idx > 0
 	var num_col = VBoxContainer.new()
 	num_col.alignment = BoxContainer.ALIGNMENT_CENTER
 	num_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1027,11 +1070,27 @@ func _build_detail_view() -> void:
 	left.add_child(_lbl(name.to_upper(), 22, Color(1,0.92,0.45)))
 	var title = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
 	left.add_child(_lbl(title, 13, Color(0.65,0.55,0.45)))
-	# Quote
+	# Quote in styled speech bubble
 	if _main and idx < _main.character_quotes.size():
-		var q = _lbl('"' + _main.character_quotes[idx] + '"', 11, Color(0.55,0.50,0.45))
+		var bubble = PanelContainer.new()
+		var bbs = StyleBoxFlat.new()
+		bbs.bg_color = Color(0.06, 0.04, 0.12, 0.6)
+		bbs.set_corner_radius_all(10)
+		bbs.border_color = Color(0.45, 0.35, 0.20, 0.35)
+		bbs.set_border_width_all(1)
+		bbs.content_margin_left = 12; bbs.content_margin_right = 12
+		bbs.content_margin_top = 8; bbs.content_margin_bottom = 8
+		bubble.add_theme_stylebox_override("panel", bbs)
+		bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var q = _lbl('"' + _main.character_quotes[idx] + '"', 11, Color(0.65, 0.58, 0.50))
 		q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		left.add_child(q)
+		q.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bubble.add_child(q)
+		# Animate in
+		bubble.modulate.a = 0.0
+		left.add_child(bubble)
+		var qtw = create_tween().set_ease(Tween.EASE_OUT)
+		qtw.tween_property(bubble, "modulate:a", 1.0, 0.4).set_delay(0.3)
 	# RIGHT: Stats, gear, abilities
 	var right = VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1083,7 +1142,19 @@ func _build_detail_view() -> void:
 		var level = prog.get("level", 1)
 		var xp = prog.get("xp", 0)
 		var next_xp = _main.HERO_XP_TABLE[mini(level - 1, _main.HERO_XP_TABLE.size() - 1)] if level <= _main.MAX_SURVIVOR_LEVEL else 0
-		right.add_child(_lbl("Level %d" % level, 18, Color(1.0, 0.92, 0.45)))
+		# Level + prestige stars
+		var star_count = clampi(level / 2, 0, 5)
+		var level_row = HBoxContainer.new()
+		level_row.add_theme_constant_override("separation", 6)
+		level_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		level_row.add_child(_lbl("Level %d" % level, 18, Color(1.0, 0.92, 0.45)))
+		# Prestige stars
+		if star_count > 0:
+			for _si in range(star_count):
+				var star = _lbl("★", 14, Color(1.0, 0.85, 0.15))
+				star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				level_row.add_child(star)
+		right.add_child(level_row)
 		if next_xp > 0:
 			right.add_child(_stat_bar("XP", xp, next_xp, Color(0.3, 0.8, 0.4)))
 		# Total damage dealt
