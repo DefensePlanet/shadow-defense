@@ -968,6 +968,37 @@ func _build_emporium() -> void:
 	vb.add_child(_title("THE EMPORIUM"))
 	vb.add_child(_lbl("Browse wares from across the literary worlds", 11, Color(0.55,0.50,0.45)))
 	if not _main: return
+	# Featured daily deals banner
+	if _art.has("daily_deals"):
+		var deals_panel = PanelContainer.new()
+		var dps = StyleBoxFlat.new()
+		dps.bg_color = Color(0.08, 0.04, 0.15, 0.5)
+		dps.set_corner_radius_all(10)
+		dps.border_color = Color(0.85, 0.65, 0.10, 0.5)
+		dps.set_border_width_all(2)
+		dps.shadow_color = Color(0.4, 0.3, 0.05, 0.15)
+		dps.shadow_size = 4
+		dps.content_margin_left = 8; dps.content_margin_right = 8
+		dps.content_margin_top = 6; dps.content_margin_bottom = 6
+		deals_panel.add_theme_stylebox_override("panel", dps)
+		deals_panel.custom_minimum_size = Vector2(0, 80)
+		deals_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var deals_art = TextureRect.new()
+		deals_art.texture = _art["daily_deals"]
+		deals_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		deals_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		deals_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		deals_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		deals_art.modulate.a = 0.5
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: deals_art.material = mat
+		deals_panel.add_child(deals_art)
+		var deals_lbl = _lbl("DAILY DEALS — New offers every day!", 14, Color(1, 0.85, 0.3))
+		deals_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		deals_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		deals_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		deals_panel.add_child(deals_lbl)
+		vb.add_child(deals_panel)
 	var grid = GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 10)
@@ -1334,18 +1365,29 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 	if "level_stars" in _main:
 		for k in _main.level_stars:
 			stats_data[3][1] += _main.level_stars[k]
-	for sd in stats_data:
+	for si in range(stats_data.size()):
+		var sd = stats_data[si]
+		# Styled stat row with alternating backgrounds
+		var row_panel = PanelContainer.new()
+		var rps = StyleBoxFlat.new()
+		rps.bg_color = Color(0.04, 0.03, 0.08, 0.5) if si % 2 == 0 else Color(0.06, 0.04, 0.10, 0.4)
+		rps.set_corner_radius_all(6)
+		rps.content_margin_left = 16; rps.content_margin_right = 16
+		rps.content_margin_top = 8; rps.content_margin_bottom = 8
+		row_panel.add_theme_stylebox_override("panel", rps)
+		row_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 20)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_panel.add_child(row)
 		var nl = _lbl(sd[0], 14, Color(0.75, 0.68, 0.58))
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(nl)
-		var vl = _lbl(str(sd[1]), 16, Color(1.0, 0.92, 0.45))
+		var vl = _lbl(_format_num(float(sd[1])) if sd[1] is float or sd[1] > 999 else str(sd[1]), 18, Color(1.0, 0.92, 0.45))
 		vl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(vl)
-		parent.add_child(row)
+		parent.add_child(row_panel)
 
 # ======================== SETTINGS ========================
 func _build_settings() -> void:
@@ -1398,46 +1440,73 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
 
 func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable, is_volume: bool = false, volume_pct: float = 0.0) -> void:
+	# Setting row with art-styled panel
+	var row_panel = PanelContainer.new()
+	var rps = StyleBoxFlat.new()
+	rps.bg_color = Color(0.04, 0.03, 0.08, 0.4)
+	rps.set_corner_radius_all(6)
+	rps.content_margin_left = 12; rps.content_margin_right = 12
+	rps.content_margin_top = 6; rps.content_margin_bottom = 6
+	row_panel.add_theme_stylebox_override("panel", rps)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row_panel.add_child(row)
 	var nl = _lbl(label, 14, Color(0.85, 0.78, 0.65))
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(nl)
-	# Volume bar visualization
+	# Volume slider bar visualization
 	if is_volume:
-		var bar_bg = ColorRect.new()
-		bar_bg.custom_minimum_size = Vector2(120, 18)
-		bar_bg.color = Color(0.08, 0.06, 0.14, 0.8)
-		bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var bar_panel = PanelContainer.new()
+		bar_panel.custom_minimum_size = Vector2(140, 20)
+		bar_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var bps = StyleBoxFlat.new()
+		bps.bg_color = Color(0.06, 0.04, 0.10, 0.8)
+		bps.set_corner_radius_all(4)
+		bps.border_color = Color(0.25, 0.20, 0.15, 0.4)
+		bps.set_border_width_all(1)
+		bar_panel.add_theme_stylebox_override("panel", bps)
+		row.add_child(bar_panel)
 		var bar_fill = ColorRect.new()
-		bar_fill.custom_minimum_size = Vector2(120 * volume_pct, 18)
-		bar_fill.color = Color(0.3, 0.7, 0.4, 0.9)
+		bar_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		bar_fill.offset_left = 2; bar_fill.offset_top = 2; bar_fill.offset_bottom = -2
+		bar_fill.offset_right = -140 + (136 * volume_pct)
+		bar_fill.color = Color(0.3, 0.75, 0.45, 0.9)
 		bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		bar_bg.add_child(bar_fill)
-		row.add_child(bar_bg)
+		bar_panel.add_child(bar_fill)
 	var btn = Button.new()
 	btn.text = value
-	btn.custom_minimum_size = Vector2(100, 30)
+	btn.custom_minimum_size = Vector2(100, 32)
 	var bs = StyleBoxFlat.new()
-	# Color code ON/OFF
+	# Color code ON/OFF with glow
 	if value == "ON" or value.ends_with("%") or value == "AUTO" or value.begins_with("1") or value.begins_with("2") or value.begins_with("3"):
-		bs.bg_color = Color(0.12, 0.35, 0.15, 0.8)
-	elif value == "OFF" or value == "NO":
-		bs.bg_color = Color(0.35, 0.12, 0.12, 0.8)
+		bs.bg_color = Color(0.10, 0.30, 0.12, 0.85)
+		bs.border_color = Color(0.2, 0.6, 0.25, 0.5)
+	elif value == "OFF" or value == "NO" or value == "YES":
+		bs.bg_color = Color(0.30, 0.10, 0.10, 0.85)
+		bs.border_color = Color(0.6, 0.2, 0.2, 0.5)
 	else:
-		bs.bg_color = Color(0.15, 0.12, 0.25, 0.8)
-	bs.set_corner_radius_all(6)
+		bs.bg_color = Color(0.12, 0.10, 0.22, 0.85)
+		bs.border_color = Color(0.35, 0.28, 0.45, 0.5)
+	bs.set_corner_radius_all(8)
+	bs.set_border_width_all(1)
+	bs.shadow_color = Color(0.1, 0.1, 0.1, 0.2)
+	bs.shadow_size = 2
 	bs.content_margin_left = 8; bs.content_margin_right = 8
 	btn.add_theme_stylebox_override("normal", bs)
 	var bsh = bs.duplicate(); bsh.bg_color = bs.bg_color.lightened(0.2)
+	bsh.border_color = bs.border_color.lightened(0.2)
 	btn.add_theme_stylebox_override("hover", bsh)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.add_theme_color_override("font_color", Color(1.0, 0.95, 0.85))
+	btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	btn.add_theme_constant_override("shadow_offset_x", 1)
+	btn.add_theme_constant_override("shadow_offset_y", 1)
 	btn.pressed.connect(callback)
+	_add_press_feedback(btn)
 	row.add_child(btn)
-	parent.add_child(row)
+	parent.add_child(row_panel)
 
 # ======================== UTILITY ========================
 func _title(text: String) -> Control:
