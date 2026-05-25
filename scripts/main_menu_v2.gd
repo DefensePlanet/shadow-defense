@@ -1813,10 +1813,44 @@ func _build_quill_shop(parent: VBoxContainer) -> void:
 	_build_generic_shop(parent, {"name": "Quill Shop"})
 
 func _build_gear_shard_shop(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("Collect and forge Gear Shards", 12, Color(0.60,0.55,0.48)))
-	# Show gear shards owned
+	parent.add_child(_lbl("Collect and forge Gear Shards", 12, Color(0.60, 0.55, 0.48)))
 	if _main:
-		parent.add_child(_lbl("You have: %d Gear Shards" % _main.player_gear_shards, 14, Color(0.3,0.75,0.9)))
+		parent.add_child(_lbl("You have: %d Gear Shards" % _main.player_gear_shards, 14, Color(0.3, 0.75, 0.9)))
+	# Chest opening option
+	if _art.has("reward_chest"):
+		var chest_panel = PanelContainer.new()
+		var cps = StyleBoxFlat.new()
+		cps.bg_color = Color(0.06, 0.04, 0.12, 0.5)
+		cps.set_corner_radius_all(10)
+		cps.border_color = Color(0.7, 0.5, 0.15, 0.5)
+		cps.set_border_width_all(2)
+		cps.content_margin_left = 16; cps.content_margin_right = 16
+		cps.content_margin_top = 12; cps.content_margin_bottom = 12
+		chest_panel.add_theme_stylebox_override("panel", cps)
+		var cv = VBoxContainer.new()
+		cv.alignment = BoxContainer.ALIGNMENT_CENTER
+		cv.add_theme_constant_override("separation", 8)
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chest_panel.add_child(cv)
+		var chest_art = TextureRect.new()
+		chest_art.texture = _art["reward_chest"]
+		chest_art.custom_minimum_size = Vector2(80, 60)
+		chest_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		chest_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		chest_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = _make_black_key_mat(0.08, 0.05)
+		if mat: chest_art.material = mat
+		cv.add_child(chest_art)
+		cv.add_child(_lbl("Gear Chest — 50 Shards", 13, Color(0.85, 0.70, 0.20)))
+		cv.add_child(_lbl("Contains 1 random piece of Gear", 10, Color(0.55, 0.50, 0.45)))
+		var open_btn = _art_button("OPEN CHEST", Color(0.5, 0.35, 0.10), Vector2(140, 34))
+		if _main and _main.player_gear_shards >= 50:
+			open_btn.pressed.connect(func():
+				_show_popup("Chest Opened!", "You received a new piece of Gear!\n+1 Random Gear Item"))
+		else:
+			open_btn.disabled = true
+		cv.add_child(open_btn)
+		parent.add_child(chest_panel)
 	_build_generic_shop(parent, {"name": "Gear Shards"})
 
 func _build_survivor_packs(parent: VBoxContainer) -> void:
@@ -1946,7 +1980,7 @@ func _build_codex() -> void:
 	var tab_row = HBoxContainer.new()
 	tab_row.add_theme_constant_override("separation", 8)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVEMENTS"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["stats", "STATISTICS"]]:
+	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVEMENTS"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["books", "BOOKS"], ["stats", "STATISTICS"]]:
 		var is_active_codex = _codex_subtab == tab[0]
 		var tb = Button.new()
 		tb.text = tab[1]
@@ -1988,6 +2022,7 @@ func _build_codex() -> void:
 		"bestiary": _build_bestiary(content)
 		"journal": _build_journal(content)
 		"stats": _build_stats_page(content)
+		"books": _build_book_collection(content)
 
 func _codex_switch(tab: String) -> void:
 	_codex_subtab = tab
@@ -2303,6 +2338,54 @@ func _build_journal(parent: VBoxContainer) -> void:
 			text_col.add_child(_lbl("???", 14, Color(0.35, 0.30, 0.25)))
 			text_col.add_child(_lbl("Rescue this character to unlock their journal", 10, Color(0.35, 0.30, 0.25)))
 		parent.add_child(entry)
+
+func _build_book_collection(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("BOOK COLLECTION", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_lbl("The literary works that power your Survivors", 11, Color(0.55, 0.50, 0.45)))
+	if not _main: return
+	# Collect unique novels
+	var novels = []
+	for i in range(_main.character_novels.size()):
+		var novel = _main.character_novels[i]
+		if novel not in novels:
+			novels.append(novel)
+	parent.add_child(_lbl("%d / %d Books Collected" % [novels.size(), novels.size()], 13, Color(0.85, 0.70, 0.20)))
+	var grid = GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(grid)
+	for ni in range(novels.size()):
+		var book_card = PanelContainer.new()
+		var bcs = StyleBoxFlat.new()
+		# Color based on genre
+		var book_colors = [Color(0.3, 0.6, 0.2), Color(0.6, 0.3, 0.6), Color(0.2, 0.5, 0.7), Color(0.7, 0.4, 0.2), Color(0.5, 0.2, 0.3), Color(0.4, 0.5, 0.3)]
+		var bc = book_colors[ni % book_colors.size()]
+		bcs.bg_color = Color(bc.r * 0.3, bc.g * 0.3, bc.b * 0.3, 0.6)
+		bcs.set_corner_radius_all(8)
+		bcs.border_color = Color(bc.r * 0.6, bc.g * 0.6, bc.b * 0.6, 0.5)
+		bcs.set_border_width_all(2)
+		bcs.content_margin_left = 10; bcs.content_margin_right = 10
+		bcs.content_margin_top = 8; bcs.content_margin_bottom = 8
+		book_card.add_theme_stylebox_override("panel", bcs)
+		book_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		book_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var bvb = VBoxContainer.new()
+		bvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		book_card.add_child(bvb)
+		bvb.add_child(_lbl("📖", 20, Color.WHITE))
+		var title_lbl = _lbl(novels[ni], 11, Color(0.85, 0.78, 0.65))
+		title_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bvb.add_child(title_lbl)
+		# Find which character comes from this novel
+		for ci in range(_main.character_novels.size()):
+			if _main.character_novels[ci] == novels[ni] and ci < _main.character_names.size():
+				bvb.add_child(_lbl(_main.character_names[ci], 9, Color(0.55, 0.48, 0.42)))
+				break
+		grid.add_child(book_card)
 
 # ======================== SETTINGS ========================
 func _build_settings() -> void:
