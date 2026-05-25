@@ -1659,9 +1659,9 @@ func _show_popup(title: String, message: String, confirm_text: String = "OK", on
 	add_child(overlay)
 	# Popup panel
 	var popup = PanelContainer.new()
-	popup.set_anchors_preset(Control.PRESET_CENTER)
-	popup.custom_minimum_size = Vector2(400, 180)
-	popup.position = Vector2(440, 270)
+	popup.custom_minimum_size = Vector2(400, 200)
+	popup.size = Vector2(400, 200)
+	popup.position = Vector2(440, 260)
 	var pps = StyleBoxFlat.new()
 	pps.bg_color = Color(0.08, 0.06, 0.15, 0.95)
 	pps.set_corner_radius_all(12)
@@ -1699,16 +1699,16 @@ func _show_popup(title: String, message: String, confirm_text: String = "OK", on
 	pvb.add_child(btn_row)
 	if on_confirm.is_valid():
 		var yes = _art_button(confirm_text, Color(0.12, 0.40, 0.12), Vector2(120, 34))
-		yes.pressed.connect(func(): overlay.queue_free(); popup.queue_free(); on_confirm.call())
+		yes.pressed.connect(func(): overlay.queue_free(); on_confirm.call())
 		btn_row.add_child(yes)
 	var no = _art_button("CANCEL" if on_confirm.is_valid() else "OK", Color(0.35, 0.12, 0.12), Vector2(120, 34))
-	no.pressed.connect(func(): overlay.queue_free(); popup.queue_free())
+	no.pressed.connect(func(): overlay.queue_free())
 	btn_row.add_child(no)
 	overlay.add_child(popup)
 	# Entrance animation
 	popup.modulate.a = 0.0
-	popup.scale = Vector2(0.8, 0.8)
-	popup.pivot_offset = Vector2(200, 90)
+	popup.scale = Vector2(0.9, 0.9)
+	popup.pivot_offset = popup.custom_minimum_size / 2.0
 	var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	tw.set_parallel(true)
 	tw.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.2)
