@@ -477,6 +477,22 @@ func _build_chapters() -> void:
 				if mat: div_right.material = mat
 				hdr_container.add_child(div_right)
 			vb.add_child(hdr_container)
+			# Arc completion count
+			var arc_total = 0
+			var arc_done = 0
+			for li in range(_main.levels.size()):
+				var lsub = _main.levels[li].get("subtitle", "")
+				var larc = lsub.split(" — ")[0] if " — " in lsub else "Prologue"
+				if larc == "" : larc = "Prologue"
+				if larc == arc:
+					arc_total += 1
+					if li in _main.completed_levels:
+						arc_done += 1
+			if arc_total > 0:
+				var pct_lbl = _lbl("%d / %d completed" % [arc_done, arc_total], 10, Color(0.55, 0.48, 0.42))
+				pct_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				pct_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				vb.add_child(pct_lbl)
 		var card = _level_card(i, lvl)
 		vb.add_child(card)
 		# Staggered entrance animation
@@ -512,6 +528,10 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
 	p.add_theme_stylebox_override("panel", s)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	# Tooltip with story description
+	var story = lvl.get("story_hook", lvl.get("subtitle", ""))
+	if story != "":
+		p.tooltip_text = story
 	# Hover feedback on level card
 	p.mouse_entered.connect(func():
 		var tw = p.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
@@ -1480,11 +1500,13 @@ func _build_gold_exchange(parent: VBoxContainer) -> void:
 		if mat: ex_art.material = mat
 		parent.add_child(ex_art)
 	var exchange_data = [
-		["100 Gold", "5 Quills", 100, Color(1,0.85,0.2), Color(0.7,0.5,0.9)],
-		["250 Gold", "15 Shards", 250, Color(1,0.85,0.2), Color(0.3,0.75,0.9)],
-		["500 Gold", "3 Stars", 500, Color(1,0.85,0.2), Color(1,0.9,0.3)],
+		["100 Gold", "5 Quills", 100, "quills", 5, Color(1,0.85,0.2), Color(0.7,0.5,0.9)],
+		["250 Gold", "15 Shards", 250, "shards", 15, Color(1,0.85,0.2), Color(0.3,0.75,0.9)],
+		["500 Gold", "3 Stars", 500, "stars", 3, Color(1,0.85,0.2), Color(1,0.9,0.3)],
 	]
 	for ex in exchange_data:
+		var cost = ex[2]
+		var can_afford = _main.gold >= cost
 		var card = PanelContainer.new()
 		var cs = StyleBoxFlat.new()
 		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
@@ -1498,14 +1520,26 @@ func _build_gold_exchange(parent: VBoxContainer) -> void:
 		row.add_theme_constant_override("separation", 12)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(row)
-		row.add_child(_lbl(ex[0], 14, ex[3]))
+		row.add_child(_lbl(ex[0], 14, ex[5]))
 		row.add_child(_lbl("→", 16, Color(0.65, 0.55, 0.45)))
-		var recv = _lbl(ex[1], 14, ex[4])
+		var recv = _lbl(ex[1], 14, ex[6])
 		recv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		recv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(recv)
-		var buy = _art_button("EXCHANGE", Color(0.12, 0.40, 0.12))
-		row.add_child(buy)
+		if can_afford:
+			var buy = _art_button("EXCHANGE", Color(0.12, 0.40, 0.12))
+			var currency_key = ex[3]
+			var amount = ex[4]
+			buy.pressed.connect(func():
+				_main.gold -= cost
+				match currency_key:
+					"quills": _main.player_quills += amount
+					"shards": _main.player_gear_shards += amount
+					"stars": _main.player_storybook_stars += amount
+				_open_emporium_category(0))
+			row.add_child(buy)
+		else:
+			row.add_child(_lbl("NOT ENOUGH GOLD", 10, Color(0.8, 0.2, 0.15)))
 		parent.add_child(card)
 
 func _build_quill_shop(parent: VBoxContainer) -> void:
@@ -1940,6 +1974,25 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Colorblind Mode", cb_names[clampi(GameSettings.colorblind_mode, 0, 3)], func(): GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
+	# Reset to defaults
+	var reset_btn = _art_button("RESET TO DEFAULTS", Color(0.5, 0.12, 0.12), Vector2(180, 34))
+	reset_btn.pressed.connect(func():
+		GameSettings.music_volume = 1.0
+		GameSettings.sfx_volume = 1.0
+		GameSettings.voice_volume = 1.0
+		GameSettings.music_muted = false
+		GameSettings.particle_effects = true
+		GameSettings.screen_shake = true
+		GameSettings.show_damage_numbers = true
+		GameSettings.game_speed = 1
+		GameSettings.auto_wave = false
+		GameSettings.font_scale = 1.0
+		GameSettings.colorblind_mode = 0
+		GameSettings.reduced_motion = false
+		GameSettings.left_handed = false
+		GameSettings.save_settings()
+		_build_settings())
+	vb.add_child(reset_btn)
 	# Credits / About section
 	vb.add_child(_lbl("ABOUT", 16, Color(0.85, 0.72, 0.40)))
 	var credits_panel = PanelContainer.new()
