@@ -77,6 +77,9 @@ func _ready() -> void:
 			if _main.completed_levels.size() == 0:
 				# First-time player tutorial
 				_show_popup("Welcome, Reader!", "Welcome to Shadow Defense: Tales from the Pages!\n\nHeroes from classic novels fight to protect their stories from the Shadow Author.\n\nTap a level to begin your adventure!", "BEGIN")
+			elif _main.completed_levels.size() == 3:
+				# After 3 wins — rate prompt
+				_show_popup("Enjoying the Adventure?", "You've completed 3 levels!\n\nIf you're enjoying Shadow Defense,\nplease rate us — it helps a lot!", "RATE US")
 			else:
 				# Returning player daily reward
 				_show_popup("Welcome Back!", "Daily login bonus:\n+100 Gold  +10 Quills\n\nKeep playing to earn more!", "COLLECT"))
@@ -618,6 +621,20 @@ func _build_chapters() -> void:
 	comp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(star_bar)
 	vb.add_child(comp_bar)
+	# Quest streak display
+	if "quest_streak" in _main and _main.quest_streak > 0:
+		var streak_row = HBoxContainer.new()
+		streak_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		streak_row.add_theme_constant_override("separation", 6)
+		streak_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		streak_row.add_child(_lbl("🔥 %d Day Streak" % _main.quest_streak, 12, Color(1.0, 0.6, 0.2)))
+		vb.add_child(streak_row)
+	# Comeback bonus display
+	if "_comeback_bonus_active" in _main and _main._comeback_bonus_active:
+		var comeback_lbl = _lbl("⚡ %.0fx Comeback Bonus Active!" % _main._comeback_multiplier, 12, Color(0.4, 0.9, 1.0))
+		comeback_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		comeback_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(comeback_lbl)
 	var cur_arc = ""
 	var card_idx = 0
 	for i in range(_main.levels.size()):
@@ -2885,6 +2902,34 @@ func _build_settings() -> void:
 	credits_vb.add_child(_lbl("Built with Godot Engine 4.6", 10, Color(0.55, 0.50, 0.45)))
 	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
 	credits_vb.add_child(_lbl("Version 0.9.0", 11, Color(0.65, 0.58, 0.50)))
+	# What's New / Patch Notes
+	vb.add_child(_section_header("WHAT'S NEW"))
+	var patch_panel = PanelContainer.new()
+	var pns = StyleBoxFlat.new()
+	pns.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	pns.set_corner_radius_all(8)
+	pns.content_margin_left = 12; pns.content_margin_right = 12
+	pns.content_margin_top = 8; pns.content_margin_bottom = 8
+	patch_panel.add_theme_stylebox_override("panel", pns)
+	patch_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pnvb = VBoxContainer.new()
+	pnvb.add_theme_constant_override("separation", 4)
+	pnvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	patch_panel.add_child(pnvb)
+	pnvb.add_child(_lbl("v0.9.0 — Menu Overhaul Update", 12, Color(0.85, 0.78, 0.60)))
+	var notes = ["• Complete menu redesign with art backgrounds", "• 12 character ability trees with 108 named abilities", "• Gear picker + equipment system", "• Achievement tracking with progress bars", "• Bestiary with 12 enemy types", "• Gold economy rebalance", "• Wave preview on start button", "• Boss entrance announcements", "• Keyboard shortcuts (1-9, Space, Esc)", "• Damage numbers scale with hit size"]
+	for note in notes:
+		var nl = _lbl(note, 9, Color(0.55, 0.50, 0.45))
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pnvb.add_child(nl)
+	vb.add_child(patch_panel)
+	# Coming Soon roadmap
+	vb.add_child(_section_header("COMING SOON"))
+	var roadmap_items = ["🗺️ New campaign: The Enchanted Library", "🗡️ Tower skins & cosmetics", "👥 Co-op multiplayer mode", "🏆 Ranked competitive seasons", "🎃 Seasonal events & limited-time content"]
+	for ri in roadmap_items:
+		var rl = _lbl(ri, 10, Color(0.55, 0.50, 0.45))
+		rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(rl)
 	vb.add_child(credits_panel)
 
 func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable, is_volume: bool = false, volume_pct: float = 0.0) -> void:
