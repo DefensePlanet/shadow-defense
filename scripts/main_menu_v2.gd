@@ -1809,8 +1809,38 @@ func _build_gold_exchange(parent: VBoxContainer) -> void:
 		parent.add_child(card)
 
 func _build_quill_shop(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("Spend Quills on rare treasures", 12, Color(0.60,0.55,0.48)))
-	_build_generic_shop(parent, {"name": "Quill Shop"})
+	parent.add_child(_lbl("Spend Quills on rare treasures", 12, Color(0.60, 0.55, 0.48)))
+	if _main:
+		parent.add_child(_lbl("🪶 %d Quills available" % _main.player_quills, 14, Color(0.7, 0.5, 0.9)))
+	var items = [
+		["Enchanted Bookmark", "Marks a level for bonus rewards", 25, Color(0.6, 0.4, 0.8)],
+		["Story Fragment", "Unlocks a hidden lore passage", 40, Color(0.4, 0.6, 0.7)],
+		["Author's Ink", "Boost one character's XP by 500", 60, Color(0.3, 0.3, 0.5)],
+		["Plot Armor", "One free revive in your next battle", 100, Color(0.8, 0.7, 0.2)],
+	]
+	for item in items:
+		var card = PanelContainer.new()
+		var is2 = StyleBoxFlat.new()
+		is2.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		is2.set_corner_radius_all(8)
+		is2.border_color = Color(item[3].r * 0.5, item[3].g * 0.5, item[3].b * 0.5, 0.4)
+		is2.set_border_width_all(1)
+		is2.content_margin_left = 12; is2.content_margin_right = 12
+		is2.content_margin_top = 6; is2.content_margin_bottom = 6
+		card.add_theme_stylebox_override("panel", is2)
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(row)
+		var nl = _lbl(item[0], 13, item[3])
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(nl)
+		row.add_child(_lbl(item[1], 9, Color(0.50, 0.45, 0.40)))
+		row.add_child(_lbl("🪶 %d" % item[2], 11, Color(0.7, 0.5, 0.9)))
+		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
+		row.add_child(buy)
+		parent.add_child(card)
 
 func _build_gear_shard_shop(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("Collect and forge Gear Shards", 12, Color(0.60, 0.55, 0.48)))
@@ -1854,14 +1884,82 @@ func _build_gear_shard_shop(parent: VBoxContainer) -> void:
 	_build_generic_shop(parent, {"name": "Gear Shards"})
 
 func _build_survivor_packs(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("Bundles of literary might — boost your Survivors!", 12, Color(0.60,0.55,0.48)))
-	_build_generic_shop(parent, {"name": "Survivor Packs"})
+	parent.add_child(_lbl("Bundles of literary might — boost your Survivors!", 12, Color(0.60, 0.55, 0.48)))
+	var packs = [
+		["Starter Bundle", "XP Boost for 3 characters + 500 Gold", 50, "quills", Color(0.3, 0.7, 0.3)],
+		["Hero's Journey", "Level up any character by 1 + Random Gear", 100, "quills", Color(0.2, 0.5, 0.9)],
+		["Epic Collection", "3 Gear Chests + 1000 Gold + 50 Shards", 200, "quills", Color(0.7, 0.3, 0.9)],
+		["Legendary Tome", "Unlock next character + Full Gear Set", 500, "quills", Color(1.0, 0.7, 0.1)],
+	]
+	for pk in packs:
+		var card = PanelContainer.new()
+		var cs = StyleBoxFlat.new()
+		cs.bg_color = Color(pk[4].r * 0.15, pk[4].g * 0.15, pk[4].b * 0.15, 0.6)
+		cs.set_corner_radius_all(10)
+		cs.border_color = Color(pk[4].r * 0.5, pk[4].g * 0.5, pk[4].b * 0.5, 0.5)
+		cs.set_border_width_all(2)
+		cs.shadow_color = Color(pk[4].r * 0.2, pk[4].g * 0.2, pk[4].b * 0.2, 0.15)
+		cs.shadow_size = 3
+		cs.content_margin_left = 14; cs.content_margin_right = 14
+		cs.content_margin_top = 10; cs.content_margin_bottom = 10
+		card.add_theme_stylebox_override("panel", cs)
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(row)
+		var info = VBoxContainer.new()
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(info)
+		info.add_child(_lbl(pk[0], 15, pk[4]))
+		var desc = _lbl(pk[1], 10, Color(0.55, 0.50, 0.45))
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		info.add_child(desc)
+		info.add_child(_lbl("%d %s" % [pk[2], pk[3].capitalize()], 11, Color(0.7, 0.5, 0.9)))
+		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(80, 32))
+		var cost = pk[2]
+		buy.pressed.connect(func():
+			_show_popup("Purchase Pack", "Buy %s for %d Quills?" % [pk[0], cost], "BUY", func():
+				_show_popup("Pack Opened!", pk[1] + "\nRewards added to your collection!")))
+		row.add_child(buy)
+		parent.add_child(card)
 
 func _build_trophy_store_items(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("Spend Trophies on cosmetic upgrades", 12, Color(0.60,0.55,0.48)))
+	parent.add_child(_lbl("Spend Trophies on cosmetic upgrades", 12, Color(0.60, 0.55, 0.48)))
 	if _main:
-		parent.add_child(_lbl("You have: %d Trophies" % (_main.player_storybook_stars if "player_storybook_stars" in _main else 0), 14, Color(1,0.85,0.3)))
-	_build_generic_shop(parent, {"name": "Trophy Store"})
+		parent.add_child(_lbl("⭐ %d Trophies available" % (_main.player_storybook_stars if "player_storybook_stars" in _main else 0), 14, Color(1, 0.85, 0.3)))
+	var trophies = [
+		["Golden Path Trail", "Your towers leave a glittering path", 5, Color(1.0, 0.85, 0.15)],
+		["Ink Splash Effect", "Enemies burst into ink on defeat", 10, Color(0.3, 0.3, 0.5)],
+		["Story Narrator Voice", "Unlock dramatic level introductions", 15, Color(0.7, 0.5, 0.2)],
+		["Enchanted Aura", "Characters glow with literary magic", 20, Color(0.5, 0.3, 0.9)],
+		["Shadow Crown", "Cosmetic crown for your favorite character", 30, Color(0.8, 0.6, 0.1)],
+	]
+	for tr in trophies:
+		var card = PanelContainer.new()
+		var trs = StyleBoxFlat.new()
+		trs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		trs.set_corner_radius_all(8)
+		trs.border_color = Color(tr[3].r * 0.5, tr[3].g * 0.5, tr[3].b * 0.5, 0.4)
+		trs.set_border_width_all(1)
+		trs.content_margin_left = 12; trs.content_margin_right = 12
+		trs.content_margin_top = 8; trs.content_margin_bottom = 8
+		card.add_theme_stylebox_override("panel", trs)
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(row)
+		var info = VBoxContainer.new()
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(info)
+		info.add_child(_lbl(tr[0], 13, tr[3]))
+		info.add_child(_lbl(tr[1], 10, Color(0.55, 0.50, 0.45)))
+		row.add_child(_lbl("⭐ %d" % tr[2], 12, Color(1, 0.85, 0.3)))
+		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
+		row.add_child(buy)
+		parent.add_child(card)
 
 func _build_lucky_wheel_ui(parent: VBoxContainer) -> void:
 	# Wheel header with art
