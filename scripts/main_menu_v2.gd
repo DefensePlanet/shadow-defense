@@ -1645,8 +1645,8 @@ func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBo
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var nl = _lbl(label, 12, Color(0.75,0.68,0.58))
-	nl.custom_minimum_size.x = 80
+	var nl = _lbl(label, 12, Color(0.75, 0.68, 0.58))
+	nl.custom_minimum_size.x = 90
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(nl)
 	# Bar background with rounded corners
@@ -2204,10 +2204,16 @@ var _codex_subtab: String = "gear"
 
 func _build_codex() -> void:
 	_clear()
+	var codex_margin = MarginContainer.new()
+	codex_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	codex_margin.add_theme_constant_override("margin_left", 16)
+	codex_margin.add_theme_constant_override("margin_right", 16)
+	codex_margin.add_theme_constant_override("margin_top", 4)
+	content_area.add_child(codex_margin)
 	var main_vb = VBoxContainer.new()
-	main_vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content_area.add_child(main_vb)
+	codex_margin.add_child(main_vb)
 	main_vb.add_child(_title("THE CODEX"))
 	# Sub-tabs
 	var tab_row = HBoxContainer.new()
