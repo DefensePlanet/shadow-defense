@@ -5807,11 +5807,7 @@ func _create_ui() -> void:
 	upgrade_panel.add_child(portrait_draw_ctrl)
 
 	# Targeting priority button (between portrait and upgrades)
-	targeting_button = Button.new()
-	targeting_button.text = "Target: FIRST"
-	targeting_button.position = Vector2(20, 134)
-	targeting_button.custom_minimum_size = Vector2(160, 30)
-	targeting_button.add_theme_font_size_override("font_size", 13)
+	targeting_button = _make_button("Target: FIRST", Vector2(20, 134), Vector2(160, 30))
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
 
@@ -5884,10 +5880,8 @@ func _create_ui() -> void:
 	upgrade_panel.add_child(hero_ability_button)
 
 	# Sell button
-	sell_button = Button.new()
-	sell_button.text = "SELL"
-	sell_button.position = Vector2(20, 640)
-	sell_button.custom_minimum_size = Vector2(160, 36)
+	sell_button = _make_button("SELL", Vector2(20, 640), Vector2(160, 36))
+	sell_button.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	sell_button.pressed.connect(_on_sell_pressed)
 	upgrade_panel.add_child(sell_button)
 
