@@ -1159,13 +1159,20 @@ func _build_detail_view() -> void:
 	var tower_scenes_map = {0: "robin_hood", 1: "alice", 2: "wicked_witch", 3: "peter_pan", 4: "phantom", 5: "scrooge", 6: "sherlock", 7: "tarzan", 8: "dracula", 9: "merlin", 10: "frankenstein", 11: "shadow_author"}
 	var tower_key = tower_scenes_map.get(idx, "")
 	# Try to get ability names from the tower script constants
-	var ability_names = []
-	if tower_key == "robin_hood":
-		ability_names = ["Sherwood Aim", "Lincoln Green", "Merry Men", "Friar Tuck's Blessing", "Little John's Staff", "The Outlaw's Snare", "Maid Marian's Arrow", "The Golden Arrow", "King of Sherwood"]
-	elif tower_key == "alice":
-		ability_names = ["Eat Me Cake", "Cheshire Cat", "Mad Tea Party", "Queen's Flamingo", "Looking Glass", "Wonderland Logic", "Vorpal Blade", "Jabberwock's Fury", "Queen of Wonderland"]
-	elif tower_key == "merlin":
-		ability_names = ["Crystal Sight", "Ancient Ward", "Lady of the Lake", "Excalibur's Edge", "Time Warp", "Prophecy Shield", "Spell of Ages", "Avalon's Call", "The Last Enchanter"]
+	var all_abilities = {
+		"robin_hood": ["Sherwood Aim", "Lincoln Green", "Merry Men", "Friar Tuck's Blessing", "Little John's Staff", "The Outlaw's Snare", "Maid Marian's Arrow", "The Golden Arrow", "King of Sherwood"],
+		"alice": ["Eat Me Cake", "Cheshire Cat", "Mad Tea Party", "Queen's Flamingo", "Looking Glass", "Wonderland Logic", "Vorpal Blade", "Jabberwock's Fury", "Queen of Wonderland"],
+		"wicked_witch": ["Winged Monkeys", "Emerald Blast", "Poppy Field", "Flying Broom", "Crystal Ball", "Tornado Fury", "Ruby Slippers Curse", "Oz's Wrath", "Wicked Dominion"],
+		"peter_pan": ["Fairy Dust", "Lost Boys Rally", "Tick-Tock Croc", "Shadow Strike", "Never Grow Up", "Tinker Bell's Light", "Captain's Hook", "Neverland Flight", "Eternal Youth"],
+		"phantom": ["Organ Blast", "Masquerade", "Chandelier Drop", "Underground Lake", "Christine's Song", "Music of Night", "Mirror Shatter", "Phantom's Rage", "Opera Ghost"],
+		"scrooge": ["Coin Toss", "Ghost of Past", "Ghost of Present", "Ghost of Future", "Bah Humbug", "Tiny Tim's Hope", "Chain Rattle", "Redemption", "Christmas Spirit"],
+		"sherlock": ["Deduction", "Watson's Aid", "Pipe Smoke", "Magnifying Glass", "Baker Street Irregular", "The Game's Afoot", "Moriarty's Trap", "Final Problem", "Master Detective"],
+		"tarzan": ["Jungle Call", "Vine Swing", "Ape Strength", "Elephant Stampede", "Jane's Courage", "Jungle Drums", "Sabor's Claw", "Tree Top Assault", "Lord of the Jungle"],
+		"dracula": ["Blood Drain", "Bat Swarm", "Hypnotic Gaze", "Mist Form", "Castle Rampart", "Night Hunter", "Stake Reversal", "Coffin Surge", "Prince of Darkness"],
+		"frankenstein": ["Lightning Bolt", "Monster's Rage", "Bride's Kiss", "Chain Break", "Fire Fear", "Igor's Help", "Galvanic Surge", "Undying Will", "Creator's Remorse"],
+		"shadow_author": ["Ink Splash", "Page Turn", "Plot Twist", "Character Summon", "Story Rewrite", "Chapter End", "Bookmark Shield", "Narrative Control", "The Final Page"],
+	}
+	var ability_names = all_abilities.get(tower_key, [])
 	# Show abilities with styled cards
 	if ability_names.size() > 0:
 		for ai in range(ability_names.size()):
@@ -1626,7 +1633,29 @@ func _build_merchant_items(parent: VBoxContainer) -> void:
 		parent.add_child(_lbl("The merchant will return soon...", 11, Color(0.50,0.45,0.40)))
 
 func _build_generic_shop(parent: VBoxContainer, cat: Dictionary) -> void:
-	parent.add_child(_lbl("Items coming soon to %s" % cat.get("name","Shop"), 12, Color(0.50,0.45,0.40)))
+	parent.add_child(_lbl("Coming soon to %s..." % cat.get("name","Shop"), 13, Color(0.60, 0.55, 0.48)))
+	# Show placeholder items with locked styling
+	var placeholders = ["Mystery Item I", "Mystery Item II", "Mystery Item III"]
+	for pi in range(3):
+		var row_panel = PanelContainer.new()
+		var rps = StyleBoxFlat.new()
+		rps.bg_color = Color(0.04, 0.03, 0.08, 0.4)
+		rps.set_corner_radius_all(6)
+		rps.content_margin_left = 12; rps.content_margin_right = 12
+		rps.content_margin_top = 6; rps.content_margin_bottom = 6
+		row_panel.add_theme_stylebox_override("panel", rps)
+		row_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_panel.add_child(row)
+		row.add_child(_lbl("🔒", 16, Color(0.35, 0.30, 0.25)))
+		var il = _lbl(placeholders[pi], 13, Color(0.40, 0.35, 0.30))
+		il.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		il.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(il)
+		row.add_child(_lbl("???", 12, Color(0.35, 0.30, 0.25)))
+		parent.add_child(row_panel)
 
 # ======================== CODEX ========================
 var _codex_subtab: String = "gear"
