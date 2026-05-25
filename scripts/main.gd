@@ -1843,7 +1843,7 @@ var combo_timer: float = 0.0
 var combo_last_pos: Vector2 = Vector2.ZERO
 var combo_best: int = 0
 const COMBO_WINDOW: float = 1.5
-const COMBO_MIN: int = 3
+const COMBO_MIN: int = 2  # Show combo from x2 (was 3)
 
 # === UNDO TOWER PLACEMENT ===
 var undo_tower_data: Dictionary = {}  # {node, type, position, cost, timer}
@@ -17913,6 +17913,10 @@ func _check_wave_complete() -> void:
 				var endless_bonus = 50 + wave * 3
 				add_gold(endless_bonus)
 				spawn_floating_text(Vector2(640, 300), "+%dG Endless Bonus!" % endless_bonus, Color(1.0, 0.9, 0.2), 18.0, 1.5)
+			# Wave complete celebration
+			spawn_floating_text(Vector2(640, 260), "WAVE %d COMPLETE!" % wave, Color(0.3, 1.0, 0.5), 22.0, 1.5)
+			_screen_shake_intensity = 3.0
+			_screen_shake_timer = 0.2
 			# Wave preview on button
 			var next_w = wave + 1
 			var next_count = _get_wave_enemy_count(next_w)
@@ -28212,21 +28216,25 @@ func spawn_floating_text(pos: Vector2, text: String, color: Color, size: float =
 func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool, is_crit: bool = false) -> void:
 	var text = str(int(amount))
 	var color = Color(1.0, 1.0, 1.0, 0.9)
-	var size = 14.0
+	# Scale size with damage amount — big hits = big numbers
+	var size = clampf(14.0 + amount / 25.0, 14.0, 28.0)
 	# Enhancement #11: Critical hit display
 	if is_crit:
 		color = Color(1.0, 0.85, 0.0, 1.0)
-		text = "★" + str(int(amount))
-		size = 22.0
+		text = "★" + str(int(amount)) + "★"
+		size = clampf(24.0 + amount / 20.0, 24.0, 36.0)
 		_crit_flash_positions.append({"pos": pos, "timer": 0.3})
 	elif is_boss:
 		color = Color(1.0, 0.3, 0.2, 1.0)
-		size = 20.0
+		size = clampf(20.0 + amount / 30.0, 20.0, 32.0)
 	elif amount > 500.0:
 		color = _ca(c_gold_bright, 1.0)
 		text = str(int(amount)) + "!"
-		size = 17.0
-	spawn_floating_text(pos + Vector2(randf_range(-8, 8), randf_range(-12, -4)), text, color, size, 0.8)
+		size = 22.0
+	elif amount > 100.0:
+		color = Color(1.0, 0.95, 0.7, 0.95)
+		size = 18.0
+	spawn_floating_text(pos + Vector2(randf_range(-10, 10), randf_range(-15, -5)), text, color, size, 0.9)
 	_update_quest_progress("deal_damage", int(amount))
 
 func spawn_gold_text(pos: Vector2, amount: int) -> void:
@@ -29018,6 +29026,19 @@ func _victory() -> void:
 		})
 	_collect_session_damage()
 	_show_victory_quote()
+	# MVP Tower spotlight — find tower with most damage
+	var mvp_tower: Node2D = null
+	var mvp_damage: float = 0.0
+	var mvp_name: String = ""
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if is_instance_valid(tower) and "damage_dealt" in tower:
+			if tower.damage_dealt > mvp_damage:
+				mvp_damage = tower.damage_dealt
+				mvp_tower = tower
+				mvp_name = tower.get_tower_display_name() if tower.has_method("get_tower_display_name") else "Tower"
+	if mvp_tower:
+		spawn_floating_text(mvp_tower.global_position + Vector2(0, -50), "⭐ MVP: %s ⭐" % mvp_name, Color(1.0, 0.9, 0.3), 20.0, 3.0)
+		spawn_floating_text(mvp_tower.global_position + Vector2(0, -30), "%s damage" % _format_number(mvp_damage), Color(0.85, 0.78, 0.55), 14.0, 2.5)
 	# Update mood: all placed towers get happy
 	for tower in get_tree().get_nodes_in_group("towers"):
 		var tt = _get_tower_type_from_node(tower)
