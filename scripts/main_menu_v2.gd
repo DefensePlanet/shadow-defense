@@ -439,31 +439,53 @@ func _build_chapters() -> void:
 	vb.add_theme_constant_override("separation", 8)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
-	# Title with entrance animation
-	var title_container = CenterContainer.new()
-	title_container.custom_minimum_size = Vector2(0, 50)
-	title_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Title in styled frame with entrance animation
+	var title_panel = PanelContainer.new()
+	var tps = StyleBoxFlat.new()
+	tps.bg_color = Color(0.06, 0.04, 0.12, 0.7)
+	tps.set_corner_radius_all(12)
+	tps.border_color = Color(0.65, 0.50, 0.18, 0.5)
+	tps.set_border_width_all(2)
+	tps.shadow_color = Color(0.3, 0.2, 0.05, 0.2)
+	tps.shadow_size = 5
+	tps.content_margin_left = 40; tps.content_margin_right = 40
+	tps.content_margin_top = 8; tps.content_margin_bottom = 8
+	title_panel.add_theme_stylebox_override("panel", tps)
+	title_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# Art behind title
+	if _art.has("scroll_header"):
+		var ta = TextureRect.new()
+		ta.texture = _art["scroll_header"]
+		ta.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		ta.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		ta.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ta.modulate.a = 0.3
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: ta.material = mat
+		title_panel.add_child(ta)
 	var title_vb = VBoxContainer.new()
 	title_vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	title_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_container.add_child(title_vb)
-	var main_title = _lbl("SHADOW DEFENSE", 28, Color(1.0, 0.90, 0.40))
+	title_panel.add_child(title_vb)
+	var main_title = _lbl("SHADOW DEFENSE", 26, Color(1.0, 0.92, 0.40))
 	main_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title_vb.add_child(main_title)
-	var subtitle = _lbl("Tales from the Pages", 14, Color(0.70, 0.60, 0.48))
+	var subtitle = _lbl("Tales from the Pages", 12, Color(0.70, 0.60, 0.48))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title_vb.add_child(subtitle)
 	# Entrance animation
-	title_container.modulate.a = 0.0
-	title_container.scale = Vector2(0.85, 0.85)
-	title_container.pivot_offset = Vector2(640, 25)
+	title_panel.modulate.a = 0.0
+	title_panel.scale = Vector2(0.9, 0.9)
+	title_panel.pivot_offset = Vector2(200, 25)
 	var title_tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	title_tw.set_parallel(true)
-	title_tw.tween_property(title_container, "scale", Vector2(1.0, 1.0), 0.4)
-	title_tw.tween_property(title_container, "modulate:a", 1.0, 0.25)
-	vb.add_child(title_container)
+	title_tw.tween_property(title_panel, "scale", Vector2(1.0, 1.0), 0.35)
+	title_tw.tween_property(title_panel, "modulate:a", 1.0, 0.2)
+	vb.add_child(title_panel)
 	# Shadow Author rotating quote
 	var sa_quotes = [
 		"Heroes pulled from their stories. One Author controls them all.",
