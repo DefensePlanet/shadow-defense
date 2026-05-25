@@ -18571,6 +18571,9 @@ func _try_place_tower(pos: Vector2) -> void:
 	if not spend_gold(cost):
 		info_label.text = "Need %dG! (Have %dG)" % [cost, gold]
 		_insufficient_gold_flash = 1.0
+		spawn_floating_text(ghost_position + Vector2(0, -20), "💰 Need %d🪙!" % cost, Color(1.0, 0.3, 0.15), 16.0, 1.0)
+		_screen_shake_intensity = 2.0
+		_screen_shake_timer = 0.1
 		return
 
 	var tower = tower_scenes[selected_tower].instantiate()
@@ -21843,8 +21846,11 @@ func _draw_boss_health_bar() -> void:
 	# HP text
 	var hp_text = "%s / %s" % [_format_number(hp), _format_number(max_hp)]
 	_udraw(game_font, Vector2(640, bar_y + 14), hp_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(1.0, 0.95, 0.9, 0.9))
-	# Boss name — Bloons outlined
-	_ds_outlined_text(Vector2(640, bar_y - 4), "BOSS", 14, Color(1.0, 0.3, 0.15, 0.9), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Boss name — show actual villain name if available
+	var boss_display = "BOSS"
+	if is_instance_valid(_active_boss_node) and "boss_name" in _active_boss_node and _active_boss_node.boss_name != "":
+		boss_display = "💀 %s 💀" % _active_boss_node.boss_name
+	_ds_outlined_text(Vector2(640, bar_y - 4), boss_display, 14, Color(1.0, 0.3, 0.15, 0.9), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 # === BATTD: ENEMY KILL COUNTER ===
 func _draw_kill_counter() -> void:
@@ -21859,7 +21865,13 @@ func _draw_kill_counter() -> void:
 	var col = Color(0.7, 0.85, 1.0, 0.7)
 	if pct > 0.8:
 		col = Color(0.3, 1.0, 0.4, 0.8)
-	_udraw(game_font, Vector2(640, 695), text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, col)
+	# Kill progress mini-bar
+	var kbar_x = 590.0
+	var kbar_w = 100.0
+	var kbar_y = 700.0
+	draw_rect(Rect2(kbar_x, kbar_y, kbar_w, 4), Color(0.15, 0.12, 0.20, 0.5))
+	draw_rect(Rect2(kbar_x, kbar_y, kbar_w * pct, 4), col)
+	_udraw(game_font, Vector2(640, 693), text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, col)
 
 # === BATTD: INCOME BREAKDOWN ===
 func _draw_income_breakdown() -> void:
