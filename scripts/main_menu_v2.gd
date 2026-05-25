@@ -433,42 +433,54 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		var dr = HBoxContainer.new()
 		dr.add_theme_constant_override("separation", 4)
 		dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Difficulty buttons — use gem art if available
-		var diff_tex = _art.get("detail_panel", null)  # Fallback texture
-		for d in [[0,"EASY",Color(0.2,0.7,0.2)],[1,"MED",Color(0.7,0.55,0.1)],[2,"HARD",Color(0.7,0.15,0.1)]]:
+		# Difficulty buttons — gem-style with glow
+		for d in [[0,"EASY",Color(0.15,0.55,0.15)],[1,"MED",Color(0.60,0.45,0.05)],[2,"HARD",Color(0.60,0.10,0.08)]]:
 			var db = Button.new()
-			db.text = d[1]; db.custom_minimum_size = Vector2(55,26)
+			db.text = d[1]; db.custom_minimum_size = Vector2(58, 28)
 			var ds = StyleBoxFlat.new()
-			ds.bg_color = d[2]
-			ds.set_corner_radius_all(6)
-			ds.border_color = Color(d[2].r * 1.5, d[2].g * 1.5, d[2].b * 1.5, 0.6)
-			ds.set_border_width_all(1)
+			ds.bg_color = Color(d[2].r * 0.4, d[2].g * 0.4, d[2].b * 0.4, 0.85)
+			ds.set_corner_radius_all(8)
+			ds.border_color = Color(d[2].r * 1.8, d[2].g * 1.8, d[2].b * 1.8, 0.7)
+			ds.set_border_width_all(2)
+			ds.shadow_color = Color(d[2].r, d[2].g, d[2].b, 0.3)
+			ds.shadow_size = 3
 			db.add_theme_stylebox_override("normal", ds)
-			var dsh = ds.duplicate(); dsh.bg_color = d[2].lightened(0.2)
+			var dsh = ds.duplicate()
+			dsh.bg_color = Color(d[2].r * 0.6, d[2].g * 0.6, d[2].b * 0.6, 0.9)
+			dsh.border_color = Color(d[2].r * 2.0, d[2].g * 2.0, d[2].b * 2.0, 0.85)
+			dsh.shadow_size = 5
 			db.add_theme_stylebox_override("hover", dsh)
-			var dsp = ds.duplicate(); dsp.bg_color = d[2].darkened(0.2)
+			var dsp = ds.duplicate()
+			dsp.bg_color = d[2].darkened(0.15)
+			dsp.shadow_size = 1
 			db.add_theme_stylebox_override("pressed", dsp)
 			db.add_theme_font_size_override("font_size", 10)
 			db.add_theme_color_override("font_color", Color.WHITE)
-			db.add_theme_color_override("font_shadow_color", Color(0,0,0,0.8))
+			db.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 			db.add_theme_constant_override("shadow_offset_x", 1)
 			db.add_theme_constant_override("shadow_offset_y", 1)
 			db.pressed.connect(_play.bind(idx, d[0]))
 			_add_press_feedback(db)
 			dr.add_child(db)
 		btns.add_child(dr)
-		# PLAY button — use art if available
-		if _art.has("play_button"):
+		# PLAY button — use go_button or play_button art
+		var play_art_key = "go_button" if _art.has("go_button") else ("play_button" if _art.has("play_button") else "")
+		if play_art_key != "":
 			var pb = TextureButton.new()
-			pb.texture_normal = _art["play_button"]
+			pb.texture_normal = _art[play_art_key]
 			pb.ignore_texture_size = true
 			pb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 			pb.custom_minimum_size = Vector2(170, 48)
 			var mat = _make_black_key_mat(0.08, 0.05)
 			if mat: pb.material = mat
-			pb.mouse_entered.connect(func(): pb.modulate = Color(1.15, 1.1, 1.0))
-			pb.mouse_exited.connect(func(): pb.modulate = Color.WHITE)
+			pb.mouse_entered.connect(func():
+				var tw = pb.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+				tw.tween_property(pb, "modulate", Color(1.2, 1.15, 1.0), 0.1))
+			pb.mouse_exited.connect(func():
+				var tw = pb.create_tween().set_ease(Tween.EASE_OUT)
+				tw.tween_property(pb, "modulate", Color.WHITE, 0.08))
 			pb.pressed.connect(_play.bind(idx, 0))
+			_add_press_feedback(pb)
 			btns.add_child(pb)
 		else:
 			var pb = Button.new()
@@ -478,6 +490,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			pb.add_theme_font_size_override("font_size", 13)
 			pb.add_theme_color_override("font_color", Color.WHITE)
 			pb.pressed.connect(_play.bind(idx, 0))
+			_add_press_feedback(pb)
 			btns.add_child(pb)
 		row.add_child(btns)
 	else:
@@ -675,16 +688,17 @@ func _open_survivor_detail(idx: int) -> void:
 func _build_detail_view() -> void:
 	var idx = _detail_idx
 	_clear()
-	# Detail panel art background
-	if _art.has("detail_panel"):
+	# Detail panel art background — character_info_card
+	var detail_art_key = "character_info_card" if _art.has("character_info_card") else "detail_panel"
+	if _art.has(detail_art_key):
 		var detail_bg = TextureRect.new()
-		detail_bg.texture = _art["detail_panel"]
+		detail_bg.texture = _art[detail_art_key]
 		detail_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		detail_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		detail_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		detail_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		detail_bg.modulate.a = 0.3  # Subtle art behind content
-		var mat = _make_black_key_mat(0.08, 0.05)
+		detail_bg.modulate.a = 0.35
+		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: detail_bg.material = mat
 		content_area.add_child(detail_bg)
 	var sc = ScrollContainer.new()
@@ -788,10 +802,27 @@ func _build_detail_view() -> void:
 	if tt != null and _main.survivor_gear.has(tt):
 		var gear = _main.survivor_gear[tt]
 		var gp = PanelContainer.new()
-		var gs = StyleBoxFlat.new(); gs.bg_color = Color(0.08,0.06,0.14,0.7); gs.set_corner_radius_all(6)
-		gs.set_border_width_all(1); gs.border_color = Color(0.55,0.42,0.18,0.5)
-		gs.content_margin_left = 8; gs.content_margin_right = 8; gs.content_margin_top = 6; gs.content_margin_bottom = 6
+		var gs = StyleBoxFlat.new()
+		gs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		gs.set_corner_radius_all(8)
+		gs.set_border_width_all(2)
+		gs.border_color = Color(0.65, 0.50, 0.20, 0.6)
+		gs.shadow_color = Color(0.4, 0.3, 0.1, 0.15)
+		gs.shadow_size = 4
+		gs.content_margin_left = 10; gs.content_margin_right = 10; gs.content_margin_top = 8; gs.content_margin_bottom = 8
 		gp.add_theme_stylebox_override("panel", gs)
+		# Art behind gear panel
+		if _art.has("gear_slots"):
+			var gear_art = TextureRect.new()
+			gear_art.texture = _art["gear_slots"]
+			gear_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			gear_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			gear_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			gear_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			gear_art.modulate.a = 0.25
+			var mat = _make_black_key_mat(0.06, 0.04)
+			if mat: gear_art.material = mat
+			gp.add_child(gear_art)
 		var gear_row = HBoxContainer.new()
 		gear_row.add_theme_constant_override("separation", 12)
 		gear_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -873,24 +904,38 @@ func _build_detail_view() -> void:
 func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBoxContainer:
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var nl = _lbl(label, 12, Color(0.75,0.68,0.58))
 	nl.custom_minimum_size.x = 80
+	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(nl)
-	# Bar background
-	var bar_bg = ColorRect.new()
-	bar_bg.custom_minimum_size = Vector2(200, 14)
-	bar_bg.color = Color(0.08,0.06,0.12,0.8)
-	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(bar_bg)
-	# Bar fill
-	var bar_fill = ColorRect.new()
+	# Bar background with rounded corners
+	var bar_panel = PanelContainer.new()
+	bar_panel.custom_minimum_size = Vector2(200, 16)
+	bar_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bar_style = StyleBoxFlat.new()
+	bar_style.bg_color = Color(0.06, 0.04, 0.10, 0.8)
+	bar_style.set_corner_radius_all(4)
+	bar_style.border_color = Color(0.25, 0.20, 0.15, 0.4)
+	bar_style.set_border_width_all(1)
+	bar_panel.add_theme_stylebox_override("panel", bar_style)
+	row.add_child(bar_panel)
+	# Bar fill — animate width
 	var fill_pct = clampf(value / max_val, 0, 1)
-	bar_fill.custom_minimum_size = Vector2(200 * fill_pct, 14)
+	var bar_fill = ColorRect.new()
+	bar_fill.custom_minimum_size = Vector2(0, 12)  # Start at 0 for animation
 	bar_fill.color = color
 	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar_fill.position = Vector2.ZERO
-	bar_bg.add_child(bar_fill)
-	row.add_child(_lbl(str(int(value)), 12, color))
+	bar_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	bar_fill.offset_left = 2; bar_fill.offset_top = 2; bar_fill.offset_bottom = -2
+	bar_panel.add_child(bar_fill)
+	# Animate fill width
+	var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(bar_fill, "offset_right", -200 + (196 * fill_pct), 0.4)
+	# Value text
+	var val_lbl = _lbl(str(int(value)), 12, color)
+	val_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(val_lbl)
 	return row
 
 # ======================== EMPORIUM ========================
@@ -1186,14 +1231,22 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	if not _main: return
 	var keys = _main._gear_icon_textures.keys()
 	keys.sort()
+	var gear_idx = 0
 	for gk in keys:
+		# Rarity color based on position (simulate rarity distribution)
+		var rarity_colors = [Color(0.5, 0.5, 0.5), Color(0.3, 0.7, 0.3), Color(0.2, 0.5, 0.9), Color(0.7, 0.3, 0.9), Color(1.0, 0.7, 0.1)]
+		var rarity_idx = clampi(gear_idx % 5, 0, 4)
+		var rarity_col = rarity_colors[rarity_idx]
+		gear_idx += 1
 		# Each gear item in a styled panel
 		var card = PanelContainer.new()
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.06, 0.04, 0.12, 0.55)
-		cs.border_color = Color(0.45, 0.35, 0.20, 0.4)
-		cs.set_border_width_all(1)
-		cs.set_corner_radius_all(6)
+		cs.bg_color = Color(0.04, 0.03, 0.08, 0.6)
+		cs.border_color = Color(rarity_col.r * 0.7, rarity_col.g * 0.7, rarity_col.b * 0.7, 0.5)
+		cs.set_border_width_all(2)
+		cs.set_corner_radius_all(8)
+		cs.shadow_color = Color(rarity_col.r * 0.3, rarity_col.g * 0.3, rarity_col.b * 0.3, 0.2)
+		cs.shadow_size = 3
 		cs.content_margin_left = 4; cs.content_margin_right = 4
 		cs.content_margin_top = 4; cs.content_margin_bottom = 4
 		card.add_theme_stylebox_override("panel", cs)
@@ -1220,26 +1273,48 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 func _build_achievements_list(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("ACHIEVEMENTS", 14, Color(0.85, 0.72, 0.40)))
 	if not _main or not _main.has_method("_get_achievement_list"):
-		# Show achievement icons from textures
+		# Show achievement icons from textures with styled cards
 		if _main._achievement_icon_textures.size() > 0:
-			parent.add_child(_lbl("%d Achievement Icons Available" % _main._achievement_icon_textures.size(), 12, Color(0.6, 0.55, 0.48)))
+			parent.add_child(_lbl("%d Achievements Discovered" % _main._achievement_icon_textures.size(), 12, Color(0.6, 0.55, 0.48)))
 			var grid = GridContainer.new()
-			grid.columns = 8
-			grid.add_theme_constant_override("h_separation", 6)
-			grid.add_theme_constant_override("v_separation", 6)
+			grid.columns = 6
+			grid.add_theme_constant_override("h_separation", 8)
+			grid.add_theme_constant_override("v_separation", 8)
 			grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			parent.add_child(grid)
 			var keys = _main._achievement_icon_textures.keys()
 			keys.sort()
 			for ak in keys:
+				# Achievement card with art border
+				var card = PanelContainer.new()
+				var cs = StyleBoxFlat.new()
+				cs.bg_color = Color(0.05, 0.03, 0.10, 0.6)
+				cs.border_color = Color(0.65, 0.50, 0.20, 0.4)
+				cs.set_border_width_all(1)
+				cs.set_corner_radius_all(6)
+				cs.content_margin_left = 4; cs.content_margin_right = 4
+				cs.content_margin_top = 4; cs.content_margin_bottom = 4
+				card.add_theme_stylebox_override("panel", cs)
+				card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				card.tooltip_text = ak.replace("_", " ").capitalize()
+				var cv = VBoxContainer.new()
+				cv.alignment = BoxContainer.ALIGNMENT_CENTER
+				cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				card.add_child(cv)
 				var icon = TextureRect.new()
 				icon.texture = _main._achievement_icon_textures[ak]
-				icon.custom_minimum_size = Vector2(48, 48)
+				icon.custom_minimum_size = Vector2(56, 56)
 				icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				icon.tooltip_text = ak.replace("_", " ").capitalize()
-				grid.add_child(icon)
+				cv.add_child(icon)
+				var name_lbl = _lbl(ak.replace("_", " ").capitalize(), 7, Color(0.60, 0.55, 0.48))
+				name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				name_lbl.clip_text = true
+				name_lbl.custom_minimum_size.x = 72
+				name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				cv.add_child(name_lbl)
+				grid.add_child(card)
 		else:
 			parent.add_child(_lbl("No achievements loaded yet.", 12, Color(0.55, 0.50, 0.45)))
 		return
