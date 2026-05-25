@@ -214,6 +214,9 @@ func _build_currency_bar() -> void:
 	h.add_theme_constant_override("separation", 24)
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	top_bar.add_child(h)
+	# Account level badge
+	var acct_lvl = _main.account_level if "account_level" in _main else 1
+	h.add_child(_lbl("Lv.%d" % acct_lvl, 11, Color(0.85, 0.75, 0.55)))
 	for c in [["🪙", "GOLD", _main.gold, Color(1,0.85,0.2)], ["🪶", "QUILLS", _main.player_quills, Color(0.7,0.5,0.9)], ["💎", "SHARDS", _main.player_gear_shards, Color(0.3,0.75,0.9)], ["⭐", "STARS", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
 		h.add_child(_lbl("%s %d" % [c[0], c[2]], 12, c[3]))
 
@@ -2142,14 +2145,18 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 	if not _main: return
 	# Show enemy types from the game data
 	var enemy_types = [
-		["Ink Blot", "Basic ranged unit. Slow but steady.", Color(0.3, 0.3, 0.3)],
-		["Page Ripper", "Fast melee unit. Shreds defenses.", Color(0.7, 0.3, 0.3)],
-		["Spine Crawler", "Armored. Takes extra hits.", Color(0.5, 0.5, 0.6)],
-		["Plot Twist", "Teleports past towers.", Color(0.6, 0.3, 0.7)],
-		["Chapter Boss", "Elite enemy. Massive HP.", Color(0.8, 0.6, 0.2)],
-		["Eraser", "Removes tower buffs on contact.", Color(0.9, 0.9, 0.9)],
-		["Bookmark", "Heals nearby enemies.", Color(0.3, 0.7, 0.3)],
-		["Red Herring", "Decoy that splits on death.", Color(0.8, 0.2, 0.2)],
+		["Ink Blot", "Basic unit. Slow and steady. The foot soldiers of every chapter.", "HP: Low  SPD: Slow", Color(0.3, 0.3, 0.3)],
+		["Page Ripper", "Fast melee unit. Shreds tower defenses on contact.", "HP: Low  SPD: Fast", Color(0.7, 0.3, 0.3)],
+		["Spine Crawler", "Heavily armored. Absorbs massive punishment.", "HP: High  SPD: Slow", Color(0.5, 0.5, 0.6)],
+		["Plot Twist", "Teleports past tower range. Unpredictable pathing.", "HP: Med  SPD: Med", Color(0.6, 0.3, 0.7)],
+		["Bookmark", "Healer. Restores HP to all nearby enemies.", "HP: Med  SPD: Med", Color(0.3, 0.7, 0.3)],
+		["Red Herring", "Decoy. Splits into 2 smaller units on death.", "HP: Low  SPD: Fast", Color(0.8, 0.2, 0.2)],
+		["Eraser", "Strips tower buffs and upgrades on contact.", "HP: Med  SPD: Med", Color(0.9, 0.9, 0.9)],
+		["Margin Note", "Tiny, fast, comes in swarms of 10+.", "HP: Tiny  SPD: Very Fast", Color(0.6, 0.6, 0.4)],
+		["Footnote", "Invisible until close. Bypasses early towers.", "HP: Low  SPD: Fast", Color(0.4, 0.4, 0.5)],
+		["Cliffhanger", "Stops moving at 50% HP. Regenerates if not killed fast.", "HP: High  SPD: Med", Color(0.7, 0.5, 0.2)],
+		["Chapter Boss", "Elite enemy. Massive HP pool with unique abilities.", "HP: BOSS  SPD: Slow", Color(0.8, 0.6, 0.2)],
+		["The Author's Hand", "Final boss summon. Writes new enemies into existence.", "HP: BOSS  SPD: Varies", Color(0.9, 0.4, 0.8)],
 	]
 	var grid = GridContainer.new()
 	grid.columns = 2
@@ -2163,7 +2170,7 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 		var cs = StyleBoxFlat.new()
 		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
 		cs.set_corner_radius_all(8)
-		cs.border_color = Color(e[2].r * 0.5, e[2].g * 0.5, e[2].b * 0.5, 0.4)
+		cs.border_color = Color(e[3].r * 0.5, e[3].g * 0.5, e[3].b * 0.5, 0.4)
 		cs.set_border_width_all(1)
 		cs.content_margin_left = 10; cs.content_margin_right = 10
 		cs.content_margin_top = 8; cs.content_margin_bottom = 8
@@ -2173,11 +2180,14 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 		var cv = VBoxContainer.new()
 		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(cv)
-		cv.add_child(_lbl(e[0], 14, e[2]))
+		cv.add_child(_lbl(e[0], 14, e[3]))
 		var desc = _lbl(e[1], 10, Color(0.55, 0.50, 0.45))
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(desc)
+		var stats_lbl = _lbl(e[2], 8, Color(0.45, 0.40, 0.38))
+		stats_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(stats_lbl)
 		grid.add_child(card)
 
 func _build_journal(parent: VBoxContainer) -> void:
