@@ -26,6 +26,21 @@ const ARC_PORTRAITS: Dictionary = {
 	"Frankenstein": "frankenstein", "Monster": "frankenstein",
 	"Shadow Author": "shadow_author", "Final": "shadow_author",
 }
+# Bond pairs — characters that synergize when placed together
+const BOND_PAIRS: Dictionary = {
+	0: [6],      # Robin Hood ↔ Sherlock (both London)
+	1: [2],      # Alice ↔ Wicked Witch (both fantasy realms)
+	2: [1],      # Wicked Witch ↔ Alice
+	3: [7],      # Peter Pan ↔ Tarzan (both wild/nature)
+	4: [5],      # Phantom ↔ Scrooge (both haunted by ghosts)
+	5: [4],      # Scrooge ↔ Phantom
+	6: [0, 8],   # Sherlock ↔ Robin Hood, Dracula (detective vs villain)
+	7: [3],      # Tarzan ↔ Peter Pan
+	8: [6, 10],  # Dracula ↔ Sherlock, Frankenstein (classic monsters)
+	9: [11],     # Merlin ↔ Shadow Author (both magic)
+	10: [8],     # Frankenstein ↔ Dracula
+	11: [9],     # Shadow Author ↔ Merlin
+}
 
 @onready var background: TextureRect = $Background
 @onready var content_area: Control = $ContentArea
@@ -1141,6 +1156,41 @@ func _build_detail_view() -> void:
 			right.add_child(equip_btn)
 	# === TAB 2: ALLIES ===
 	if _detail_tab == 0 or _detail_tab == 2:
+		# Bond pairs
+		if BOND_PAIRS.has(idx):
+			right.add_child(_lbl("BOND SYNERGIES", 14, Color(0.85, 0.72, 0.40)))
+			var bond_row = HBoxContainer.new()
+			bond_row.add_theme_constant_override("separation", 8)
+			bond_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			for bi in BOND_PAIRS[idx]:
+				if bi < _main.character_names.size():
+					var bond_panel = PanelContainer.new()
+					var bps = StyleBoxFlat.new()
+					bps.bg_color = Color(0.06, 0.04, 0.12, 0.5)
+					bps.set_corner_radius_all(6)
+					bps.border_color = Color(0.8, 0.5, 0.2, 0.4)
+					bps.set_border_width_all(1)
+					bps.content_margin_left = 8; bps.content_margin_right = 8
+					bps.content_margin_top = 4; bps.content_margin_bottom = 4
+					bond_panel.add_theme_stylebox_override("panel", bps)
+					bond_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+					var br = HBoxContainer.new()
+					br.add_theme_constant_override("separation", 6)
+					br.mouse_filter = Control.MOUSE_FILTER_IGNORE
+					bond_panel.add_child(br)
+					# Small portrait
+					var bport = TextureRect.new()
+					bport.custom_minimum_size = Vector2(28, 28)
+					bport.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					bport.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+					bport.mouse_filter = Control.MOUSE_FILTER_IGNORE
+					var bpkey = PORTRAIT_KEYS[bi]
+					if _main._portrait_textures.has(bpkey):
+						bport.texture = _main._portrait_textures[bpkey]
+					br.add_child(bport)
+					br.add_child(_lbl(_main.character_names[bi], 10, Color(0.9, 0.75, 0.4)))
+					bond_row.add_child(bond_panel)
+			right.add_child(bond_row)
 		right.add_child(_lbl("SIDEKICKS", 14, Color(0.85,0.72,0.40)))
 	if tt != null and _main.survivor_sidekicks.has(tt):
 		for sk in _main.survivor_sidekicks[tt]:
@@ -1887,6 +1937,8 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 	for st in _main.survivor_types:
 		if _main._is_character_unlocked(st): rescued += 1
 	stats_data[10][1] = rescued
+	# Add FPS
+	stats_data.append(["Current FPS", Engine.get_frames_per_second()])
 	for si in range(stats_data.size()):
 		var sd = stats_data[si]
 		# Styled stat row with alternating backgrounds
