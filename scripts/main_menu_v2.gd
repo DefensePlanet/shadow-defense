@@ -199,6 +199,14 @@ func _build_nav() -> void:
 		btn.add_theme_constant_override("shadow_offset_x", 1)
 		btn.add_theme_constant_override("shadow_offset_y", 1)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
+		# Hover feedback on nav tabs
+		btn.mouse_entered.connect(func():
+			btn.pivot_offset = btn.size / 2.0
+			var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+			tw.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.1))
+		btn.mouse_exited.connect(func():
+			var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
+			tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08))
 		nav_buttons_container.add_child(btn)
 
 func _on_tab(tab: String) -> void:
@@ -271,7 +279,10 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	s.set_corner_radius_all(6)
 	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
 	p.add_theme_stylebox_override("panel", s)
-	p.mouse_filter = Control.MOUSE_FILTER_PASS  # Let clicks through to children
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	# Hover feedback on level card
+	p.mouse_entered.connect(func(): p.modulate = Color(1.1, 1.08, 1.0))
+	p.mouse_exited.connect(func(): p.modulate = Color.WHITE if not complete else Color(0.9, 1.0, 0.9))
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -299,17 +310,33 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var stats = _lbl("W:%d G:%d L:%d" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 9, Color(0.45,0.40,0.38))
 	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.add_child(stats)
-	# Star rating
+	# Star rating — use golden_star art if available
 	if _main and _main.level_stars.has(idx):
 		var star_count = _main.level_stars[idx]
-		var star_text = ""
-		for _si in range(star_count):
-			star_text += "★"
-		for _si in range(3 - star_count):
-			star_text += "☆"
-		var stars_lbl = _lbl(star_text, 12, Color(1.0, 0.85, 0.15) if star_count > 0 else Color(0.35, 0.30, 0.25))
-		stars_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		info.add_child(stars_lbl)
+		if _art.has("golden_star"):
+			var star_row = HBoxContainer.new()
+			star_row.add_theme_constant_override("separation", 2)
+			star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			for _si in range(3):
+				var star = TextureRect.new()
+				star.texture = _art["golden_star"]
+				star.custom_minimum_size = Vector2(16, 16)
+				star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				if _si >= star_count:
+					star.modulate = Color(0.3, 0.25, 0.2, 0.4)  # Dim unearned
+				var mat = _make_black_key_mat(0.1, 0.05)
+				if mat: star.material = mat
+				star_row.add_child(star)
+			info.add_child(star_row)
+		else:
+			var star_text = ""
+			for _si in range(star_count): star_text += "★"
+			for _si in range(3 - star_count): star_text += "☆"
+			var stars_lbl = _lbl(star_text, 12, Color(1.0, 0.85, 0.15) if star_count > 0 else Color(0.35, 0.30, 0.25))
+			stars_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			info.add_child(stars_lbl)
 	row.add_child(info)
 	if unlocked:
 		var btns = VBoxContainer.new()
@@ -318,13 +345,26 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		var dr = HBoxContainer.new()
 		dr.add_theme_constant_override("separation", 4)
 		dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		for d in [[0,"EASY",Color(0.2,0.6,0.2)],[1,"MED",Color(0.6,0.5,0.1)],[2,"HARD",Color(0.6,0.15,0.1)]]:
+		# Difficulty buttons — use gem art if available
+		var diff_tex = _art.get("detail_panel", null)  # Fallback texture
+		for d in [[0,"EASY",Color(0.2,0.7,0.2)],[1,"MED",Color(0.7,0.55,0.1)],[2,"HARD",Color(0.7,0.15,0.1)]]:
 			var db = Button.new()
-			db.text = d[1]; db.custom_minimum_size = Vector2(50,22)
-			var ds = StyleBoxFlat.new(); ds.bg_color = d[2]; ds.set_corner_radius_all(4)
+			db.text = d[1]; db.custom_minimum_size = Vector2(55,26)
+			var ds = StyleBoxFlat.new()
+			ds.bg_color = d[2]
+			ds.set_corner_radius_all(6)
+			ds.border_color = Color(d[2].r * 1.5, d[2].g * 1.5, d[2].b * 1.5, 0.6)
+			ds.set_border_width_all(1)
 			db.add_theme_stylebox_override("normal", ds)
-			db.add_theme_font_size_override("font_size", 9)
+			var dsh = ds.duplicate(); dsh.bg_color = d[2].lightened(0.2)
+			db.add_theme_stylebox_override("hover", dsh)
+			var dsp = ds.duplicate(); dsp.bg_color = d[2].darkened(0.2)
+			db.add_theme_stylebox_override("pressed", dsp)
+			db.add_theme_font_size_override("font_size", 10)
 			db.add_theme_color_override("font_color", Color.WHITE)
+			db.add_theme_color_override("font_shadow_color", Color(0,0,0,0.8))
+			db.add_theme_constant_override("shadow_offset_x", 1)
+			db.add_theme_constant_override("shadow_offset_y", 1)
 			db.pressed.connect(_play.bind(idx, d[0]))
 			dr.add_child(db)
 		btns.add_child(dr)
@@ -356,10 +396,22 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		lock_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lock_vb.alignment = BoxContainer.ALIGNMENT_CENTER
 		lock_vb.custom_minimum_size = Vector2(120, 0)
-		var lock_icon = _lbl("🔒", 20, Color(0.4,0.35,0.3))
-		lock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lock_vb.add_child(lock_icon)
+		# Use locked card art if available
+		if _art.has("locked_card"):
+			var lock_art = TextureRect.new()
+			lock_art.texture = _art["locked_card"]
+			lock_art.custom_minimum_size = Vector2(80, 55)
+			lock_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			lock_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			lock_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var mat = _make_black_key_mat(0.08, 0.05)
+			if mat: lock_art.material = mat
+			lock_vb.add_child(lock_art)
+		else:
+			var lock_icon = _lbl("🔒", 20, Color(0.4,0.35,0.3))
+			lock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			lock_vb.add_child(lock_icon)
 		var lock_text = _lbl("Complete\nprevious level", 9, Color(0.4,0.35,0.3))
 		lock_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -989,6 +1041,8 @@ func _build_codex() -> void:
 		ts.bg_color = Color(0.15, 0.10, 0.25, 0.7) if _codex_subtab == tab[0] else Color(0.08, 0.06, 0.14, 0.5)
 		ts.set_corner_radius_all(4)
 		tb.add_theme_stylebox_override("normal", ts)
+		var tsh = ts.duplicate(); tsh.bg_color = Color(0.22, 0.16, 0.35, 0.8)
+		tb.add_theme_stylebox_override("hover", tsh)
 		tb.add_theme_font_size_override("font_size", 11)
 		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if _codex_subtab == tab[0] else Color(0.55, 0.50, 0.45))
 		tb.pressed.connect(_codex_switch.bind(tab[0]))
