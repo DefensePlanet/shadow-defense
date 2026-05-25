@@ -11,6 +11,7 @@ var target: Node2D = null
 var targeting_priority: int = 0
 var _recoil: float = 0.0
 var sprite_texture: Texture2D = null  # AI character sprite, set by main.gd
+var is_selected: bool = false  # Show range circle when selected
 
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null
@@ -19,6 +20,7 @@ func _ready() -> void:
 	_main_node = get_tree().get_first_node_in_group("main")
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)  # Cap at 50ms to prevent physics spikes
 	fire_cooldown -= delta
 	_recoil = max(_recoil - delta * 8.0, 0.0)
 	target = _find_nearest_enemy()
@@ -80,7 +82,7 @@ func _shoot() -> void:
 		return
 	var bullet = bullet_scene.instantiate()
 	bullet.global_position = global_position + Vector2.from_angle(gun_angle) * 20.0
-	bullet.damage = damage
+	bullet.damage = damage * randf_range(0.85, 1.15)  # ±15% damage variance
 	bullet.target = target
 	var _main = get_tree().get_first_node_in_group("main")
 	if _main:
@@ -89,6 +91,8 @@ func _shoot() -> void:
 		bullet.queue_free()
 
 func _draw() -> void:
+	# Range + selection visuals (drawn under everything)
+	_draw_selection()
 	# AI sprite rendering — use the character sprite if assigned by main.gd
 	if sprite_texture != null:
 		var tex_size = sprite_texture.get_size()
@@ -133,3 +137,20 @@ func _draw() -> void:
 	# Muzzle flash (on recoil)
 	if _recoil > 0.5:
 		draw_circle(barrel_end + dir * 4.0, 5.0, Color(1.0, 0.9, 0.3, _recoil * 0.8))
+
+func _draw_selection() -> void:
+	# Range circle when selected
+	if is_selected:
+		# Range circle
+		draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, Color(0.3, 0.8, 0.4, 0.25), 2.0)
+		# Filled range area (very subtle)
+		for r in range(int(attack_range), 0, -4):
+			draw_arc(Vector2.ZERO, float(r), 0, TAU, 48, Color(0.3, 0.8, 0.4, 0.008), 4.0)
+		# Selection ring around tower
+		draw_arc(Vector2.ZERO, 26.0, 0, TAU, 32, Color(1.0, 0.9, 0.3, 0.7), 2.5)
+		# Targeting mode label above tower
+		var tgt_label = get_targeting_label()
+		var font = ThemeDB.fallback_font
+		if font:
+			var tgt_color = Color(0.3, 0.9, 0.4) if targeting_priority == 0 else Color(0.9, 0.7, 0.2) if targeting_priority == 3 else Color(0.5, 0.7, 0.9)
+			draw_string(font, Vector2(-20, -32), tgt_label, HORIZONTAL_ALIGNMENT_CENTER, 40, 9, tgt_color)
