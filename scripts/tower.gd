@@ -12,6 +12,7 @@ var targeting_priority: int = 0
 var _recoil: float = 0.0
 var sprite_texture: Texture2D = null  # AI character sprite, set by main.gd
 var is_selected: bool = false  # Show range circle when selected
+var damage_type: String = "physical"  # physical, magic, fire, ice, dark, holy
 
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null

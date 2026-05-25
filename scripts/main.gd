@@ -19086,6 +19086,18 @@ func _draw() -> void:
 	_draw_storybook_page()
 	# BATTD2: Enemy intel
 	_draw_enemy_intel()
+	# Strongest enemy indicator — red diamond above the most dangerous enemy
+	if is_wave_active:
+		var strongest: Node2D = null
+		var max_hp: float = 0.0
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if is_instance_valid(e) and "health" in e and e.health > max_hp:
+				max_hp = e.health
+				strongest = e
+		if strongest and max_hp > 50:
+			var sp = strongest.global_position
+			var pulse = (sin(_time * 5.0) + 1.0) * 0.5
+			draw_circle(sp + Vector2(0, -25), 4.0 + pulse * 2.0, Color(1.0, 0.2, 0.15, 0.6 + pulse * 0.3))
 	# BATTD2: Blessing indicator
 	_draw_blessing_indicator()
 	# BATTD: Boss health bar
