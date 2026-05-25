@@ -32,8 +32,25 @@ func _ready() -> void:
 	_build_nav()
 	_build_chapters()
 	_init_particles()
+	_add_vignette()
 	_fade_in()
 	# Portraits verified loaded — all 12 keys match
+
+func _add_vignette() -> void:
+	var vig = ColorRect.new()
+	vig.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vig.z_index = 0  # Above background, below content
+	if ResourceLoader.exists("res://shaders/vignette.gdshader"):
+		var shader = load("res://shaders/vignette.gdshader")
+		var mat = ShaderMaterial.new()
+		mat.shader = shader
+		mat.set_shader_parameter("intensity", 0.35)
+		mat.set_shader_parameter("softness", 0.55)
+		vig.material = mat
+		# Insert above DarkOverlay but below TopBar
+		add_child(vig)
+		move_child(vig, 2)  # After Background and DarkOverlay
 
 func _init_particles() -> void:
 	_particles.clear()
@@ -207,6 +224,9 @@ func _build_nav() -> void:
 		nav_bar.add_child(art_bg)
 		nav_bar.move_child(art_bg, 0)
 		nav_bar.color = Color(0, 0, 0, 0)  # Make ColorRect transparent so art shows
+	_build_nav_buttons()
+
+func _build_nav_buttons() -> void:
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
 	var tab_icon_keys = ["tab_chapters", "tab_survivors", "tab_emporium", "tab_gear", "tab_achievements"]
@@ -254,22 +274,25 @@ func _build_nav() -> void:
 
 func _on_tab(tab: String) -> void:
 	if current_view == tab: return
-	current_view = tab
-	# Set background immediately — no crossfade that can break
-	_set_bg(tab)
-	# Update nav highlight
-	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
-	for i in range(nav_buttons_container.get_child_count()):
-		var b = nav_buttons_container.get_child(i)
-		if b is Button:
-			b.add_theme_color_override("font_color", Color(1,0.92,0.45) if tabs[i] == tab else Color(0.55,0.50,0.45))
-	_clear()
-	match tab:
-		"chapters": _build_chapters()
-		"survivors": _build_survivors()
-		"emporium": _build_emporium()
-		"codex": _build_codex()
-		"settings": _build_settings()
+	# Fade out content, then switch
+	var tw = create_tween()
+	tw.tween_property(content_area, "modulate:a", 0.0, 0.1)
+	tw.tween_callback(func():
+		current_view = tab
+		_set_bg(tab)
+		# Rebuild nav with updated active state
+		for c in nav_buttons_container.get_children(): c.queue_free()
+		_build_nav_buttons()
+		_clear()
+		match tab:
+			"chapters": _build_chapters()
+			"survivors": _build_survivors()
+			"emporium": _build_emporium()
+			"codex": _build_codex()
+			"settings": _build_settings()
+		# Fade in new content
+		var tw_in = create_tween()
+		tw_in.tween_property(content_area, "modulate:a", 1.0, 0.15))
 
 func _clear() -> void:
 	for c in content_area.get_children(): c.queue_free()
