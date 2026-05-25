@@ -71,6 +71,10 @@ func _ready() -> void:
 	_init_particles()
 	_add_vignette()
 	_fade_in()
+	# Daily login reward popup (delayed)
+	get_tree().create_timer(1.5).timeout.connect(func():
+		if _main and _main.completed_levels.size() > 0:
+			_show_popup("Welcome Back!", "Daily login bonus:\n+100 Gold  +10 Quills\n\nKeep playing to earn more!", "COLLECT"))
 	# Portraits verified loaded — all 12 keys match
 
 func _add_vignette() -> void:
@@ -405,10 +409,12 @@ func _on_tab(tab: String) -> void:
 	if current_view == tab: return
 	# Save scroll position of current view
 	_save_scroll_position()
-	# Fade out content, then switch
+	# Page-turn transition: slide out left + fade, then rebuild + slide in right
 	var tw = create_tween()
-	tw.tween_property(content_area, "modulate:a", 0.0, 0.1)
-	tw.tween_callback(func():
+	tw.set_parallel(true)
+	tw.tween_property(content_area, "modulate:a", 0.0, 0.12)
+	tw.tween_property(content_area, "position:x", -30.0, 0.12).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(func():
 		current_view = tab
 		_set_bg(tab)
 		# Rebuild nav with updated active state
@@ -423,9 +429,12 @@ func _on_tab(tab: String) -> void:
 			"settings": _build_settings()
 		# Restore scroll position
 		_restore_scroll_position()
-		# Fade in new content
+		# Slide in from right + fade in
+		content_area.position.x = 30.0
 		var tw_in = create_tween()
-		tw_in.tween_property(content_area, "modulate:a", 1.0, 0.15))
+		tw_in.set_parallel(true)
+		tw_in.tween_property(content_area, "modulate:a", 1.0, 0.15)
+		tw_in.tween_property(content_area, "position:x", 0.0, 0.15).set_ease(Tween.EASE_OUT))
 
 func _save_scroll_position() -> void:
 	for c in content_area.get_children():
@@ -2326,6 +2335,17 @@ func _codex_switch(tab: String) -> void:
 func _build_gear_grid(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 14, Color(0.85, 0.72, 0.40)))
 	parent.add_child(_lbl("Collect gear from battles and the Emporium", 11, Color(0.55, 0.50, 0.45)))
+	# Filter row
+	var filter_row = HBoxContainer.new()
+	filter_row.add_theme_constant_override("separation", 6)
+	filter_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	filter_row.add_child(_lbl("Filter:", 10, Color(0.55, 0.48, 0.42)))
+	for fr in [["ALL", Color(0.55, 0.50, 0.45)], ["COMMON", Color(0.5, 0.5, 0.5)], ["RARE", Color(0.2, 0.5, 0.9)], ["EPIC", Color(0.7, 0.3, 0.9)], ["LEGEND", Color(1.0, 0.7, 0.1)]]:
+		var fb = _art_button(fr[0], Color(0.08, 0.06, 0.14), Vector2(70, 22))
+		fb.add_theme_font_size_override("font_size", 8)
+		fb.add_theme_color_override("font_color", fr[1])
+		filter_row.add_child(fb)
+	parent.add_child(filter_row)
 	var grid = GridContainer.new()
 	grid.columns = 7
 	grid.add_theme_constant_override("h_separation", 10)
@@ -2758,6 +2778,12 @@ func _build_settings() -> void:
 	vb.add_child(_section_header("GRAPHICS"))
 	if _main:
 		_add_setting_row(vb, "Quality", GameSettings.get_quality_name(), func(): GameSettings.cycle_quality(); _build_settings())
+		var quality_hints = {"Low": "Best performance, reduced effects", "Medium": "Balanced quality and performance", "High": "Best visuals, may reduce FPS", "Auto": "Adjusts automatically based on FPS"}
+		var qname = GameSettings.get_quality_name()
+		if quality_hints.has(qname):
+			var qh = _lbl("  ↳ %s  (%d FPS)" % [quality_hints[qname], Engine.get_frames_per_second()], 9, Color(0.50, 0.45, 0.40))
+			qh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			vb.add_child(qh)
 		_add_setting_row(vb, "Particle Effects", "ON" if GameSettings.particle_effects else "OFF", func(): GameSettings.particle_effects = not GameSettings.particle_effects; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Screen Shake", "ON" if GameSettings.screen_shake else "OFF", func(): GameSettings.screen_shake = not GameSettings.screen_shake; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Damage Numbers", "ON" if GameSettings.show_damage_numbers else "OFF", func(): GameSettings.show_damage_numbers = not GameSettings.show_damage_numbers; GameSettings.save_settings(); _build_settings())
