@@ -27931,6 +27931,15 @@ func _start_next_wave() -> void:
 	wave += 1
 	is_wave_active = true
 	game_paused = false
+	# Dramatic wave start announcement
+	var wave_text = "WAVE %d" % wave
+	if wave > 0 and wave % 10 == 0:
+		wave_text = "⚠ BOSS WAVE %d ⚠" % wave
+	elif wave >= 20:
+		wave_text = "WAVE %d — DANGER" % wave
+	spawn_floating_text(Vector2(640, 280), wave_text, Color(1.0, 0.9, 0.3), 26.0, 1.2)
+	_screen_shake_intensity = 2.0
+	_screen_shake_timer = 0.15
 	# Enhancement #15: Check rush bonus (starting wave while enemies alive)
 	if enemies_alive > 0:
 		_wave_overlap_active = true
