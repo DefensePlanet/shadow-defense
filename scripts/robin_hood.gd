@@ -993,7 +993,20 @@ func _draw() -> void:
 		draw_arc(Vector2.ZERO, 40.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha), 2.5)
 		draw_arc(Vector2.ZERO, 43.0, 0, TAU, 28, Color(1.0, 0.84, 0.0, ring_alpha * 0.4), 1.5)
 	else:
-		pass  #draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1, 1, 1, 0.06), 1.0)
+		pass
+
+	# === 2b. ABILITY COOLDOWN PIE ===
+	if not active_ability_ready and active_ability_max_cd > 0:
+		var cd_pct = clampf(active_ability_cooldown / active_ability_max_cd, 0.0, 1.0)
+		var cd_angle = TAU * (1.0 - cd_pct)
+		# Dark pie background
+		draw_arc(Vector2(0, -30), 10.0, 0, TAU, 24, Color(0.15, 0.12, 0.25, 0.7), 10.0)
+		# Bright fill showing remaining cooldown
+		if cd_angle > 0.01:
+			draw_arc(Vector2(0, -30), 10.0, -PI/2.0, -PI/2.0 + cd_angle, 24, Color(0.3, 0.8, 0.4, 0.8), 10.0)
+	elif active_ability_ready and upgrade_tier >= 3:
+		# Ready indicator — small green dot
+		draw_circle(Vector2(0, -30), 5.0, Color(0.3, 0.9, 0.3, 0.7 + sin(_time * 4.0) * 0.3))
 
 	# === 3. AIM DIRECTION ===
 	var dir = Vector2.from_angle(bow_angle)

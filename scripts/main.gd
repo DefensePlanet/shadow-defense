@@ -18048,6 +18048,25 @@ func _input(event: InputEvent) -> void:
 	# Input debouncing for buttons
 	if _input_cooldown > 0:
 		return
+	# === KEYBOARD SHORTCUTS (desktop) ===
+	if event is InputEventKey and event.pressed and game_state == GameState.PLAYING:
+		match event.keycode:
+			KEY_SPACE:
+				if not is_wave_active:
+					_start_next_wave()
+			KEY_ESCAPE:
+				_deselect_tower()
+				placing_tower = false
+			KEY_1: selected_tower = TowerType.ROBIN_HOOD; placing_tower = true
+			KEY_2: selected_tower = TowerType.ALICE; placing_tower = true
+			KEY_3: selected_tower = TowerType.WICKED_WITCH; placing_tower = true
+			KEY_4: selected_tower = TowerType.PETER_PAN; placing_tower = true
+			KEY_5: selected_tower = TowerType.PHANTOM; placing_tower = true
+			KEY_6: selected_tower = TowerType.SCROOGE; placing_tower = true
+			KEY_7: selected_tower = TowerType.SHERLOCK; placing_tower = true
+			KEY_8: selected_tower = TowerType.TARZAN; placing_tower = true
+			KEY_9: selected_tower = TowerType.DRACULA; placing_tower = true
+		queue_redraw()
 	# === Android back button / gesture back ===
 	if event is InputEventKey and event.pressed and event.keycode == KEY_BACK:
 		if game_state == GameState.MENU:
