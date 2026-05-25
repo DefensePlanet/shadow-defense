@@ -155,6 +155,9 @@ var _horn_sound: AudioStreamWAV
 var _horn_player: AudioStreamPlayer
 var _upgrade_sound: AudioStreamWAV
 var _upgrade_player: AudioStreamPlayer
+# Static cache — generate audio once, share across all instances
+static var _cached_horn: AudioStreamWAV = null
+static var _cached_upgrade: AudioStreamWAV = null
 var _game_font: Font
 var _main_node: Node2D = null
 
@@ -187,7 +190,8 @@ func _ready() -> void:
 		var env := att * dec * 0.45
 		var s := sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.4 + sin(TAU * freq * 3.0 * t) * 0.15
 		horn_samples[i] = clampf(s * env, -1.0, 1.0)
-	_horn_sound = _samples_to_wav(horn_samples, horn_rate)
+	_horn_sound = _cached_horn if _cached_horn else _samples_to_wav(horn_samples, horn_rate)
+	if not _cached_horn: _cached_horn = _horn_sound
 	_horn_player = AudioStreamPlayer.new()
 	_horn_player.stream = _horn_sound
 	_horn_player.volume_db = -12.0
@@ -207,7 +211,8 @@ func _ready() -> void:
 		var freq: float = up_notes[ni]
 		var env := minf(nt * 50.0, 1.0) * exp(-nt * 10.0) * 0.4
 		up_samples[i] = clampf((sin(TAU * freq * t) + sin(TAU * freq * 2.0 * t) * 0.3) * env, -1.0, 1.0)
-	_upgrade_sound = _samples_to_wav(up_samples, up_rate)
+	_upgrade_sound = _cached_upgrade if _cached_upgrade else _samples_to_wav(up_samples, up_rate)
+	if not _cached_upgrade: _cached_upgrade = _upgrade_sound
 	_upgrade_player = AudioStreamPlayer.new()
 	_upgrade_player.stream = _upgrade_sound
 	_upgrade_player.volume_db = -10.0
