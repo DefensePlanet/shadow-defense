@@ -16229,7 +16229,8 @@ func _draw_shadow_arena_sidebar(px: float, py: float, pw: float, ph: float) -> v
 		var entry = arena_leaderboard[i]
 		var ey = py + 90 + float(i) * 20.0
 		var name_col = Color(0.9, 0.8, 0.3) if entry["name"] == "YOU" else menu_text
-		_udraw(font, Vector2(px + 15, ey), "#%d  %s" % [i + 1, entry["name"]], HORIZONTAL_ALIGNMENT_LEFT, int(pw * 0.6), 14, name_col)
+		var rank_badge = "🥇" if i == 0 else ("🥈" if i == 1 else ("🥉" if i == 2 else "#%d" % (i + 1)))
+		_udraw(font, Vector2(px + 15, ey), "%s  %s" % [rank_badge, entry["name"]], HORIZONTAL_ALIGNMENT_LEFT, int(pw * 0.6), 14, name_col)
 		_udraw(font, Vector2(px + pw - 15, ey), "Wave %d" % entry["score"], HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_text_muted)
 	# Your best + crystals
 	var info_y = py + 260
