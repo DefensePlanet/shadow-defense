@@ -71,10 +71,15 @@ func _ready() -> void:
 	_init_particles()
 	_add_vignette()
 	_fade_in()
-	# Daily login reward popup (delayed)
+	# First-time tutorial OR daily login reward
 	get_tree().create_timer(1.5).timeout.connect(func():
-		if _main and _main.completed_levels.size() > 0:
-			_show_popup("Welcome Back!", "Daily login bonus:\n+100 Gold  +10 Quills\n\nKeep playing to earn more!", "COLLECT"))
+		if _main:
+			if _main.completed_levels.size() == 0:
+				# First-time player tutorial
+				_show_popup("Welcome, Reader!", "Welcome to Shadow Defense: Tales from the Pages!\n\nHeroes from classic novels fight to protect their stories from the Shadow Author.\n\nTap a level to begin your adventure!", "BEGIN")
+			else:
+				# Returning player daily reward
+				_show_popup("Welcome Back!", "Daily login bonus:\n+100 Gold  +10 Quills\n\nKeep playing to earn more!", "COLLECT"))
 	# Portraits verified loaded — all 12 keys match
 
 func _add_vignette() -> void:
@@ -145,10 +150,18 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	# Phase 8: Floating gold dust particles
+	# Floating particles with seasonal tint
+	var month = Time.get_date_dict_from_system().get("month", 1)
+	var particle_color = Color(0.85, 0.70, 0.40)  # Default gold
+	if month == 12 or month == 1:  # Winter — snow white
+		particle_color = Color(0.90, 0.92, 0.95)
+	elif month == 10:  # Halloween — orange
+		particle_color = Color(0.95, 0.60, 0.15)
+	elif month >= 3 and month <= 5:  # Spring — pink/green
+		particle_color = Color(0.85, 0.70, 0.75)
 	for p in _particles:
 		var flicker = p["alpha"] * (0.7 + sin(p["offset"] + p["y"] * 0.02) * 0.3)
-		draw_circle(Vector2(p["x"], p["y"]), p["size"], Color(0.85, 0.70, 0.40, flicker))
+		draw_circle(Vector2(p["x"], p["y"]), p["size"], Color(particle_color.r, particle_color.g, particle_color.b, flicker))
 	# Auto-test removed
 
 func _load_bgs() -> void:
@@ -856,25 +869,25 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var stats = _lbl("⚔ %d Waves  •  🪙 %d Gold  •  ❤ %d Lives" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 10, Color(0.50, 0.45, 0.40))
 	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stats_row.add_child(stats)
-	# Difficulty medals for completed levels (bronze=Easy, silver=Med, gold=Hard)
+	# Difficulty medals + best wave for completed levels
 	if complete:
-		var medal_colors = [
-			["E", Color(0.72, 0.45, 0.20)],  # Bronze — Easy
-			["M", Color(0.70, 0.70, 0.75)],   # Silver — Med
-			["H", Color(1.0, 0.85, 0.15)],    # Gold — Hard
-		]
+		var medal_colors = [Color(0.72, 0.45, 0.20), Color(0.70, 0.70, 0.75), Color(1.0, 0.85, 0.15)]
 		var medals_row = HBoxContainer.new()
-		medals_row.add_theme_constant_override("separation", 2)
+		medals_row.add_theme_constant_override("separation", 3)
 		medals_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Check which difficulties are completed
-		var completed_diffs = _main.level_difficulty_completions.get(idx, []) if "level_difficulty_completions" in _main else []
+		# Real difficulty medals from game data
+		var diff_medals = _main.level_difficulty_medals.get(idx, [false, false, false]) if "level_difficulty_medals" in _main else [false, false, false]
 		for mi in range(3):
-			var earned = mi in completed_diffs if completed_diffs is Array else (mi == 0)
-			var medal = _lbl("●", 10, medal_colors[mi][1] if earned else Color(0.25, 0.22, 0.20, 0.4))
+			var earned = diff_medals[mi] if mi < diff_medals.size() else false
+			var medal = _lbl("●", 12, medal_colors[mi] if earned else Color(0.25, 0.22, 0.20, 0.4))
 			medal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			medal.tooltip_text = ["Easy", "Medium", "Hard"][mi]
+			medal.tooltip_text = ["Easy", "Medium", "Hard"][mi] + (" ✓" if earned else "")
 			medals_row.add_child(medal)
 		stats_row.add_child(medals_row)
+	# Best wave record
+	if "level_best_wave" in _main and _main.level_best_wave.has(idx):
+		var bw = _main.level_best_wave[idx]
+		stats_row.add_child(_lbl("Best: W%d" % bw, 9, Color(0.55, 0.48, 0.42)))
 	info.add_child(stats_row)
 	# Star rating — use golden_star art if available
 	if _main and _main.level_stars.has(idx):
@@ -903,6 +916,18 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			var stars_lbl = _lbl(star_text, 12, Color(1.0, 0.85, 0.15) if star_count > 0 else Color(0.35, 0.30, 0.25))
 			stars_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			info.add_child(stars_lbl)
+	# Per-difficulty star counts
+	if "level_difficulty_stars" in _main and _main.level_difficulty_stars.has(idx):
+		var ds = _main.level_difficulty_stars[idx]
+		var diff_names = ["E", "M", "H"]
+		var diff_row = HBoxContainer.new()
+		diff_row.add_theme_constant_override("separation", 6)
+		diff_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for di in range(mini(ds.size(), 3)):
+			if ds[di] > 0:
+				diff_row.add_child(_lbl("%s:%d★" % [diff_names[di], ds[di]], 8, Color(0.55, 0.48, 0.42)))
+		if diff_row.get_child_count() > 0:
+			info.add_child(diff_row)
 	row.add_child(info)
 	if unlocked:
 		var btns = VBoxContainer.new()
@@ -2770,9 +2795,9 @@ func _build_settings() -> void:
 	# Audio section
 	vb.add_child(_section_header("AUDIO"))
 	if _main:
-		_add_setting_row(vb, "Music Volume", "%d%%" % int(GameSettings.music_volume * 100), func(): GameSettings.music_volume = fmod(GameSettings.music_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.music_volume)
-		_add_setting_row(vb, "SFX Volume", "%d%%" % int(GameSettings.sfx_volume * 100), func(): GameSettings.sfx_volume = fmod(GameSettings.sfx_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.sfx_volume)
-		_add_setting_row(vb, "Voice Volume", "%d%%" % int(GameSettings.voice_volume * 100), func(): GameSettings.voice_volume = fmod(GameSettings.voice_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.voice_volume)
+		_add_setting_row(vb, "Music Volume", "%d%%" % int(GameSettings.music_volume * 100), func(): GameSettings.music_volume = fmod(GameSettings.music_volume + 0.25, 1.25); GameSettings.save_settings(); _play_ui_click(); _build_settings(), true, GameSettings.music_volume)
+		_add_setting_row(vb, "SFX Volume", "%d%%" % int(GameSettings.sfx_volume * 100), func(): GameSettings.sfx_volume = fmod(GameSettings.sfx_volume + 0.25, 1.25); GameSettings.save_settings(); _play_ui_click(); _build_settings(), true, GameSettings.sfx_volume)
+		_add_setting_row(vb, "Voice Volume", "%d%%" % int(GameSettings.voice_volume * 100), func(): GameSettings.voice_volume = fmod(GameSettings.voice_volume + 0.25, 1.25); GameSettings.save_settings(); _play_ui_click(); _build_settings(), true, GameSettings.voice_volume)
 		_add_setting_row(vb, "Music Muted", "YES" if GameSettings.music_muted else "NO", func(): GameSettings.music_muted = not GameSettings.music_muted; GameSettings.save_settings(); _build_settings())
 	# Graphics section
 	vb.add_child(_section_header("GRAPHICS"))
@@ -2812,6 +2837,8 @@ func _build_settings() -> void:
 			vb.add_child(desc)
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "Haptic Feedback", "ON" if GameSettings.haptic_feedback else "OFF", func(): GameSettings.haptic_feedback = not GameSettings.haptic_feedback; GameSettings.save_settings(); _build_settings())
+		_add_setting_row(vb, "One-Handed Mode", "ON" if GameSettings.one_handed else "OFF", func(): GameSettings.one_handed = not GameSettings.one_handed; GameSettings.save_settings(); _build_settings())
 	# Language
 	vb.add_child(_section_header("LANGUAGE"))
 	_add_setting_row(vb, "Language", "English", func(): pass)  # Placeholder
@@ -2968,12 +2995,15 @@ func _title(text: String) -> Control:
 	outer.add_child(l)
 	return outer
 
-# Add press feedback to any button
+# Add press feedback + SFX to any button
 func _add_press_feedback(btn: BaseButton) -> void:
 	btn.button_down.connect(func():
 		btn.pivot_offset = btn.size / 2.0
 		var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
-		tw.tween_property(btn, "scale", Vector2(0.95, 0.95), 0.05))
+		tw.tween_property(btn, "scale", Vector2(0.95, 0.95), 0.05)
+		# Play UI click SFX
+		if _main and "_sfx_ui_click" in _main and _main.has_method("_play_sfx"):
+			_main._play_sfx(_main._sfx_ui_click))
 	btn.button_up.connect(func():
 		var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.1))
@@ -3040,6 +3070,10 @@ func _section_header(text: String) -> Control:
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_r)
 	return row
+
+func _play_ui_click() -> void:
+	if _main and "_sfx_ui_click" in _main and _main.has_method("_play_sfx"):
+		_main._play_sfx(_main._sfx_ui_click)
 
 func _add_scroll_hint(parent_control: Control) -> void:
 	# Pulsing down arrow at bottom center
