@@ -1852,6 +1852,33 @@ func _build_emporium() -> void:
 	timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	timer_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(timer_lbl)
+	# Limited time offer banner
+	var lto_panel = PanelContainer.new()
+	var ltos = StyleBoxFlat.new()
+	ltos.bg_color = Color(0.12, 0.04, 0.04, 0.6)
+	ltos.set_corner_radius_all(10)
+	ltos.border_color = Color(0.9, 0.25, 0.15, 0.6)
+	ltos.set_border_width_all(2)
+	ltos.content_margin_left = 12; ltos.content_margin_right = 12
+	ltos.content_margin_top = 6; ltos.content_margin_bottom = 6
+	lto_panel.add_theme_stylebox_override("panel", ltos)
+	lto_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var lto_row = HBoxContainer.new()
+	lto_row.add_theme_constant_override("separation", 10)
+	lto_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lto_panel.add_child(lto_row)
+	lto_row.add_child(_lbl("🔥 LIMITED OFFER", 13, Color(1.0, 0.4, 0.2)))
+	var lto_desc = _lbl("Starter Pack: 500 Gold + 50 Shards", 11, Color(0.85, 0.78, 0.65))
+	lto_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lto_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lto_row.add_child(lto_desc)
+	var time_d = Time.get_time_dict_from_system()
+	lto_row.add_child(_lbl("⏰ %dh left" % (24 - time_d.get("hour", 0)), 10, Color(0.9, 0.3, 0.2)))
+	vb.add_child(lto_panel)
+	# Pulse the offer
+	var lto_tw = create_tween().set_loops()
+	lto_tw.tween_property(lto_panel, "modulate", Color(1.1, 1.05, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
+	lto_tw.tween_property(lto_panel, "modulate", Color(1.0, 1.0, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
 	# Featured daily deals banner
 	if _art.has("daily_deals"):
 		var deals_panel = PanelContainer.new()
@@ -3052,6 +3079,7 @@ func _build_settings() -> void:
 	credits_vb.add_child(_lbl("Created by Defense Planet", 12, Color(0.75, 0.68, 0.58)))
 	credits_vb.add_child(_lbl("Art generated with nano-banana + Gemini", 10, Color(0.55, 0.50, 0.45)))
 	credits_vb.add_child(_lbl("Built with Godot Engine 4.6", 10, Color(0.55, 0.50, 0.45)))
+	credits_vb.add_child(_lbl("Inspired by BTD6, Arknights, Kingdom Rush", 9, Color(0.45, 0.40, 0.38)))
 	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
 	credits_vb.add_child(_lbl("Version 0.9.0", 11, Color(0.65, 0.58, 0.50)))
 	# What's New / Patch Notes
