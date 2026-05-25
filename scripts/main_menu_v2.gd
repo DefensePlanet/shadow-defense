@@ -2312,7 +2312,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		grid.add_child(card)
 
 func _build_achievements_list(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("ACHIEVEMENTS", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_section_header("ACHIEVEMENTS"))
 	# Show progress if available
 	var earned = 0
 	var total_ach = 0
@@ -2378,7 +2378,7 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 			var cat = ad.get("category", "")
 			if cat != cur_cat:
 				cur_cat = cat
-				parent.add_child(_lbl(cat.to_upper(), 12, Color(0.75, 0.65, 0.50)))
+				parent.add_child(_section_header(cat.to_upper()))
 			var ach_id = ad.get("id", "")
 			var prog = 0
 			var is_done = false
@@ -2406,7 +2406,7 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 	return
 
 func _build_stats_page(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("GAMEPLAY STATISTICS", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_section_header("GAMEPLAY STATISTICS"))
 	if not _main: return
 	var stats_data = [
 		["Account Level", _main.account_level if "account_level" in _main else 1],
@@ -2467,7 +2467,7 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 		parent.add_child(row_panel)
 
 func _build_bestiary(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("BESTIARY", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_section_header("BESTIARY"))
 	parent.add_child(_lbl("Enemies encountered in your battles", 11, Color(0.55, 0.50, 0.45)))
 	if not _main: return
 	# Show enemy types from the game data
@@ -2512,13 +2512,13 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(desc)
-		var stats_lbl = _lbl(e[2], 8, Color(0.45, 0.40, 0.38))
+		var stats_lbl = _lbl(e[2], 9, Color(0.50, 0.45, 0.40))
 		stats_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(stats_lbl)
 		grid.add_child(card)
 
 func _build_journal(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("CHARACTER JOURNALS", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_section_header("CHARACTER JOURNALS"))
 	parent.add_child(_lbl("Unlock journal entries by rescuing characters and completing levels", 11, Color(0.55, 0.50, 0.45)))
 	if not _main: return
 	# Show unlocked character journal entries
@@ -2578,7 +2578,7 @@ func _build_journal(parent: VBoxContainer) -> void:
 		parent.add_child(entry)
 
 func _build_book_collection(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("BOOK COLLECTION", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_section_header("BOOK COLLECTION"))
 	parent.add_child(_lbl("The literary works that power your Survivors", 11, Color(0.55, 0.50, 0.45)))
 	if not _main: return
 	# Collect unique novels
