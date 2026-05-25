@@ -1107,6 +1107,18 @@ func _build_survivors() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(sub)
+	# Contextual gameplay tip
+	var tips = [
+		"💡 Tip: Place bonded characters near each other for synergy damage boosts!",
+		"💡 Tip: Upgrade characters in battle to unlock powerful abilities!",
+		"💡 Tip: Each character has a unique active ability at Tier 3+",
+		"💡 Tip: Check the Codex for gear equipped on each character",
+	]
+	var tip_lbl = _lbl(tips[randi() % tips.size()], 10, Color(0.55, 0.50, 0.45))
+	tip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(tip_lbl)
 	var grid = GridContainer.new()
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 12)
@@ -1813,8 +1825,9 @@ func _build_emporium() -> void:
 	vb.add_child(_title("THE EMPORIUM"))
 	vb.add_child(_lbl("Browse wares from across the literary worlds", 11, Color(0.55,0.50,0.45)))
 	if not _main: return
-	# Shop rotation timer
-	var hours_left = 24 - (Time.get_ticks_msec() / 3600000) % 24
+	# Shop rotation timer + daily/weekly reset info
+	var time_dict = Time.get_time_dict_from_system()
+	var hours_left = 24 - time_dict.get("hour", 0)
 	var timer_lbl = _lbl("🕐 Shop refreshes in %dh" % hours_left, 10, Color(0.55, 0.48, 0.42))
 	timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	timer_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2870,6 +2883,10 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Haptic Feedback", "ON" if GameSettings.haptic_feedback else "OFF", func(): GameSettings.haptic_feedback = not GameSettings.haptic_feedback; GameSettings.save_settings(); _build_settings())
+		if GameSettings.haptic_feedback:
+			var haptic_hint = _lbl("  ↳ Vibration on tower placement, boss kills, and life loss", 9, Color(0.50, 0.45, 0.40))
+			haptic_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			vb.add_child(haptic_hint)
 		_add_setting_row(vb, "One-Handed Mode", "ON" if GameSettings.one_handed else "OFF", func(): GameSettings.one_handed = not GameSettings.one_handed; GameSettings.save_settings(); _build_settings())
 	# Language
 	vb.add_child(_section_header("LANGUAGE"))
