@@ -27631,11 +27631,18 @@ func _on_speed_pressed() -> void:
 		if not game_paused:
 			Engine.time_scale = 4.0
 		speed_button.text = "  [4x]  "
+	elif not game_paused:
+		# Pause
+		game_paused = true
+		Engine.time_scale = 0.0
+		speed_button.text = " [PAUSED] "
+		spawn_floating_text(Vector2(640, 300), "PAUSED", Color(1.0, 0.9, 0.3), 24.0, 0.5)
 	else:
+		# Resume from pause → back to 1x
+		game_paused = false
 		fast_forward = false
 		_game_speed_level = 1.0
-		if not game_paused:
-			Engine.time_scale = 1.0
+		Engine.time_scale = 1.0
 		speed_button.text = "  >>  "
 		current_game_fast_forward_only = false
 
@@ -27916,7 +27923,10 @@ func update_hud() -> void:
 		var max_lives = difficulty_fixed_lives[mini(selected_difficulty, difficulty_fixed_lives.size() - 1)] if selected_difficulty < difficulty_fixed_lives.size() else 100
 		var life_pct = float(lives) / float(max(1, max_lives))
 		if life_pct <= 0.2:
-			lives_label.add_theme_color_override("font_color", Color(1.0, 0.15, 0.1))
+			# Critical — pulse red
+			var pulse = (sin(_time * 6.0) + 1.0) * 0.5
+			lives_label.add_theme_color_override("font_color", Color(1.0, 0.15 + pulse * 0.3, 0.1 + pulse * 0.2))
+			lives_label.add_theme_font_size_override("font_size", 20 + int(pulse * 4))
 		elif life_pct <= 0.5:
 			lives_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2))
 		else:

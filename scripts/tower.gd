@@ -91,8 +91,6 @@ func _shoot() -> void:
 		bullet.queue_free()
 
 func _draw() -> void:
-	# Range + selection visuals (drawn under everything)
-	_draw_selection()
 	# AI sprite rendering — use the character sprite if assigned by main.gd
 	if sprite_texture != null:
 		var tex_size = sprite_texture.get_size()
