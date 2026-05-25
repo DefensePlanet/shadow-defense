@@ -22363,8 +22363,9 @@ func _draw_enemy_intel() -> void:
 	var py = pos.y - 60.0
 	if px + 140.0 > 1260.0:
 		px = pos.x - 170.0
-	draw_rect(Rect2(px - 2, py - 2, 144, 72), Color(0.7, 0.15, 0.1, 0.6 * alpha))
-	draw_rect(Rect2(px, py, 140, 68), Color(0.05, 0.03, 0.06, 0.9 * alpha))
+	# Rounded enemy intel panel
+	draw_colored_polygon(_rrp(Rect2(px - 2, py - 2, 144, 72), 8.0), Color(0.7, 0.15, 0.1, 0.5 * alpha))
+	draw_colored_polygon(_rrp(Rect2(px, py, 140, 68), 6.0), Color(0.05, 0.03, 0.06, 0.9 * alpha))
 	var hp = enemy.health if "health" in enemy else 0
 	var max_hp = enemy.max_health if "max_health" in enemy else 1
 	var spd = enemy.speed if "speed" in enemy else 0
