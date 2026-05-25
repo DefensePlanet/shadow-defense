@@ -404,12 +404,26 @@ func _build_chapters() -> void:
 	title_tw.tween_property(title_container, "scale", Vector2(1.0, 1.0), 0.4)
 	title_tw.tween_property(title_container, "modulate:a", 1.0, 0.25)
 	vb.add_child(title_container)
-	# Story tagline with storybook styling
-	var tagline = _lbl("Heroes pulled from their stories. One Author controls them all.", 12, Color(0.65, 0.55, 0.45))
+	# Shadow Author rotating quote
+	var sa_quotes = [
+		"Heroes pulled from their stories. One Author controls them all.",
+		"Every page I turn reveals another world to consume...",
+		"They think they're the heroes. How charming.",
+		"The ink is drying, and with it, their hope.",
+		"I wrote their endings before they even began.",
+		"Come, little characters. The final chapter awaits.",
+		"The pen is mightier than the sword. I have both.",
+	]
+	var quote_text = sa_quotes[randi() % sa_quotes.size()]
+	var tagline = _lbl('"%s"' % quote_text, 12, Color(0.65, 0.55, 0.45))
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tagline.add_theme_font_size_override("font_size", 12)
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tagline.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(tagline)
+	var sa_attr = _lbl("— The Shadow Author", 10, Color(0.50, 0.42, 0.38))
+	sa_attr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sa_attr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(sa_attr)
 	if not _main: return
 	# Total star counter
 	var total_stars = 0
@@ -924,10 +938,20 @@ func _survivor_card(idx: int) -> Button:
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(tl)
-	# Level badge (only for unlocked)
+	# Level badge with mastery title (only for unlocked)
 	if is_unlocked and tt != null and _main.survivor_progress.has(tt):
 		var lvl = _main.survivor_progress[tt].get("level", 1)
-		var badge = _lbl("Lv.%d" % lvl, 9, Color(0.85, 0.72, 0.40))
+		var mastery = "Novice"
+		if lvl >= 10: mastery = "Legend"
+		elif lvl >= 8: mastery = "Master"
+		elif lvl >= 6: mastery = "Expert"
+		elif lvl >= 4: mastery = "Veteran"
+		elif lvl >= 2: mastery = "Adept"
+		var mastery_col = Color(0.55, 0.48, 0.42)
+		if lvl >= 8: mastery_col = Color(1.0, 0.7, 0.1)
+		elif lvl >= 6: mastery_col = Color(0.6, 0.3, 0.9)
+		elif lvl >= 4: mastery_col = Color(0.2, 0.5, 0.9)
+		var badge = _lbl("Lv.%d — %s" % [lvl, mastery], 9, mastery_col)
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1865,10 +1889,22 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 
 func _build_achievements_list(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("ACHIEVEMENTS", 14, Color(0.85, 0.72, 0.40)))
+	# Show progress if available
+	var earned = 0
+	var total_ach = 0
+	if _main and "achievement_definitions" in _main:
+		total_ach = _main.achievement_definitions.size()
+	if _main and "achievement_progress" in _main:
+		for ak in _main.achievement_progress:
+			if _main.achievement_progress[ak].get("completed", false):
+				earned += 1
+	if total_ach > 0:
+		parent.add_child(_lbl("%d / %d Achievements Earned" % [earned, total_ach], 13, Color(0.85, 0.70, 0.20)))
+		parent.add_child(_stat_bar("Completion", earned, total_ach, Color(0.85, 0.70, 0.20)))
 	if not _main or not _main.has_method("_get_achievement_list"):
 		# Show achievement icons from textures with styled cards
 		if _main._achievement_icon_textures.size() > 0:
-			parent.add_child(_lbl("%d Achievements Discovered" % _main._achievement_icon_textures.size(), 12, Color(0.6, 0.55, 0.48)))
+			parent.add_child(_lbl("%d Achievement Icons Available" % _main._achievement_icon_textures.size(), 12, Color(0.6, 0.55, 0.48)))
 			var grid = GridContainer.new()
 			grid.columns = 6
 			grid.add_theme_constant_override("h_separation", 8)
