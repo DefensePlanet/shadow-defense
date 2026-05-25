@@ -1619,6 +1619,10 @@ func _build_emporium() -> void:
 		deals_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		deals_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		deals_panel.add_child(deals_lbl)
+		# Pulsing glow animation on deals banner
+		var deals_tw = create_tween().set_loops()
+		deals_tw.tween_property(deals_panel, "modulate", Color(1.15, 1.1, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
+		deals_tw.tween_property(deals_panel, "modulate", Color(1.0, 1.0, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
 		vb.add_child(deals_panel)
 	var grid = GridContainer.new()
 	grid.columns = 2
@@ -2262,8 +2266,40 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				cv.add_child(name_lbl)
 				grid.add_child(card)
 		else:
-			parent.add_child(_lbl("No achievements loaded yet.", 12, Color(0.55, 0.50, 0.45)))
-		return
+			parent.add_child(_lbl("No achievement icons loaded yet.", 12, Color(0.55, 0.50, 0.45)))
+	# Show achievement definitions list with progress
+	if _main and "achievement_definitions" in _main and _main.achievement_definitions.size() > 0:
+		var cur_cat = ""
+		for ad in _main.achievement_definitions:
+			var cat = ad.get("category", "")
+			if cat != cur_cat:
+				cur_cat = cat
+				parent.add_child(_lbl(cat.to_upper(), 12, Color(0.75, 0.65, 0.50)))
+			var ach_id = ad.get("id", "")
+			var prog = 0
+			var is_done = false
+			if "achievement_progress" in _main and _main.achievement_progress.has(ach_id):
+				var ap = _main.achievement_progress[ach_id]
+				if ap is Dictionary:
+					prog = ap.get("progress", 0)
+					is_done = ap.get("completed", false)
+				elif ap is int:
+					prog = ap
+					is_done = prog >= ad.get("target", 1)
+			var ach_row = HBoxContainer.new()
+			ach_row.add_theme_constant_override("separation", 8)
+			ach_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var icon_txt = "✅" if is_done else "⬜"
+			ach_row.add_child(_lbl(icon_txt, 10, Color.WHITE))
+			var name_l = _lbl(ad.get("name", ""), 10, Color(0.85, 0.78, 0.60) if is_done else Color(0.50, 0.45, 0.40))
+			name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ach_row.add_child(name_l)
+			ach_row.add_child(_lbl("%d/%d" % [mini(prog, ad.get("target", 1)), ad.get("target", 1)], 9, Color(0.45, 0.40, 0.38)))
+			var reward_text = "+%d %s" % [ad.get("reward_amount", 0), ad.get("reward_type", "").capitalize()]
+			ach_row.add_child(_lbl(reward_text, 8, Color(0.4, 0.7, 0.3) if is_done else Color(0.35, 0.30, 0.25)))
+			parent.add_child(ach_row)
+	return
 
 func _build_stats_page(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("GAMEPLAY STATISTICS", 14, Color(0.85, 0.72, 0.40)))
