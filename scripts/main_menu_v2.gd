@@ -64,7 +64,7 @@ func _draw() -> void:
 	# Auto-test removed
 
 func _load_bgs() -> void:
-	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/codex_bg.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/menu_art/chapters_bg_map.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/codex_bg.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		var exists = ResourceLoader.exists(m[k])
 		if exists:
@@ -89,6 +89,32 @@ func _load_art() -> void:
 		"button_gothic": "res://assets/ui_frames/button_gothic.png",
 		"popup_frame": "res://assets/ui_frames/popup_frame.png",
 		"reward_chest": "res://assets/ui_elements/reward_chest.png",
+		# Additional art assets
+		"survivor_card_frame": "res://assets/ui_elements/survivor_card_frame.png",
+		"difficulty_gems": "res://assets/ui_elements/difficulty_gems.png",
+		"chapter_divider": "res://assets/ui_elements/chapter_divider.png",
+		"section_header": "res://assets/ui_frames/section_header_banner.png",
+		"golden_frame": "res://assets/ui_frames/golden_frame.png",
+		"wooden_panel": "res://assets/ui_frames/wooden_panel.png",
+		"nav_bar_bg": "res://assets/ui_frames/nav_bar_bg.png",
+		"xp_bar": "res://assets/ui_elements/xp_bar.png",
+		"gear_slots": "res://assets/ui_elements/gear_slots.png",
+		"daily_deals": "res://assets/ui_elements/daily_deals_banner.png",
+		"claim_button": "res://assets/ui_elements/claim_button.png",
+		"coin_burst": "res://assets/ui_elements/coin_burst.png",
+		"currency_exchange": "res://assets/ui_elements/currency_exchange.png",
+		"achievement_badges": "res://assets/ui_elements/achievement_badges.png",
+		"achievement_card": "res://assets/ui_elements/achievement_progress_card.png",
+		"character_info_card": "res://assets/ui_elements/character_info_card.png",
+		"go_button": "res://assets/ui_elements/go_button.png",
+		"three_stars": "res://assets/ui_elements/three_stars.png",
+		"empty_star": "res://assets/ui_elements/empty_star.png",
+		"tab_chapters": "res://assets/ui_elements/tab_chapters.png",
+		"tab_survivors": "res://assets/ui_elements/tab_survivors.png",
+		"tab_emporium": "res://assets/ui_elements/tab_emporium.png",
+		"tab_achievements": "res://assets/ui_elements/tab_achievements.png",
+		"tab_gear": "res://assets/ui_elements/tab_gear.png",
+		"upgrade_arrow": "res://assets/ui_elements/upgrade_arrow.png",
 	}
 	for k in paths:
 		if ResourceLoader.exists(paths[k]):
@@ -183,19 +209,35 @@ func _build_nav() -> void:
 		nav_bar.color = Color(0, 0, 0, 0)  # Make ColorRect transparent so art shows
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
+	var tab_icon_keys = ["tab_chapters", "tab_survivors", "tab_emporium", "tab_gear", "tab_achievements"]
 	for i in range(5):
+		var is_active = tabs[i] == current_view
 		var btn = Button.new()
 		btn.text = labels[i]
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, 70)
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		# Use tab icon art if available
+		if _art.has(tab_icon_keys[i]):
+			btn.icon = _art[tab_icon_keys[i]]
+			btn.expand_icon = true
+			# Custom icon size for nav
+			btn.add_theme_constant_override("icon_max_width", 28)
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.08, 0.05, 0.14, 0.0)
+		s.bg_color = Color(0.12, 0.08, 0.20, 0.4) if is_active else Color(0.06, 0.04, 0.12, 0.0)
+		s.border_color = Color(0.85, 0.70, 0.30, 0.6) if is_active else Color(0, 0, 0, 0)
+		s.border_width_top = 2 if is_active else 0
+		s.set_corner_radius_all(0)
 		btn.add_theme_stylebox_override("normal", s)
-		var sh = s.duplicate(); sh.bg_color = Color(0.20, 0.15, 0.30, 0.4)
+		var sh = s.duplicate()
+		sh.bg_color = Color(0.18, 0.12, 0.28, 0.5)
+		sh.border_color = Color(0.70, 0.55, 0.25, 0.4)
+		sh.border_width_top = 2
 		btn.add_theme_stylebox_override("hover", sh)
-		btn.add_theme_font_size_override("font_size", 13)
-		btn.add_theme_color_override("font_color", Color(1,0.92,0.45) if tabs[i] == current_view else Color(0.55,0.50,0.45))
-		btn.add_theme_color_override("font_shadow_color", Color(0,0,0,0.9))
+		btn.add_theme_font_size_override("font_size", 11)
+		btn.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if is_active else Color(0.55, 0.50, 0.45))
+		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 		btn.add_theme_constant_override("shadow_offset_x", 1)
 		btn.add_theme_constant_override("shadow_offset_y", 1)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
@@ -258,9 +300,37 @@ func _build_chapters() -> void:
 		if arc == "": arc = "Prologue"
 		if arc != cur_arc:
 			cur_arc = arc
-			var hdr = _lbl(arc.to_upper(), 16, Color(0.90,0.80,0.50))
+			# Arc header with art divider
+			var hdr_container = HBoxContainer.new()
+			hdr_container.add_theme_constant_override("separation", 8)
+			hdr_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if _art.has("chapter_divider"):
+				var div_left = TextureRect.new()
+				div_left.texture = _art["chapter_divider"]
+				div_left.custom_minimum_size = Vector2(60, 24)
+				div_left.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				div_left.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				div_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				var mat = _make_black_key_mat(0.06, 0.04)
+				if mat: div_left.material = mat
+				hdr_container.add_child(div_left)
+			var hdr = _lbl(arc.to_upper(), 18, Color(0.95,0.85,0.45))
 			hdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			vb.add_child(hdr)
+			hdr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			hdr_container.add_child(hdr)
+			if _art.has("chapter_divider"):
+				var div_right = TextureRect.new()
+				div_right.texture = _art["chapter_divider"]
+				div_right.custom_minimum_size = Vector2(60, 24)
+				div_right.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				div_right.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				div_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				div_right.flip_h = true
+				var mat = _make_black_key_mat(0.06, 0.04)
+				if mat: div_right.material = mat
+				hdr_container.add_child(div_right)
+			vb.add_child(hdr_container)
 		var card = _level_card(i, lvl)
 		vb.add_child(card)
 		# Staggered entrance animation
@@ -274,16 +344,33 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var complete = idx in _main.completed_levels
 	var p = PanelContainer.new()
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.04,0.03,0.10,0.55) if unlocked else Color(0.03,0.02,0.06,0.40)
-	s.border_color = Color(0.3,0.65,0.25,0.6) if complete else Color(0.35,0.25,0.18,0.3)
-	s.set_border_width_all(1 if not complete else 2)
-	s.set_corner_radius_all(6)
-	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
+	s.bg_color = Color(0.02, 0.01, 0.05, 0.3)  # Near-transparent — let art show
+	s.border_color = Color(0.4, 0.75, 0.3, 0.7) if complete else Color(0.55, 0.40, 0.20, 0.4)
+	s.set_border_width_all(2 if complete else 1)
+	s.set_corner_radius_all(8)
+	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 6; s.content_margin_bottom = 6
 	p.add_theme_stylebox_override("panel", s)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	# Art background layer on card
+	if _art.has("level_card"):
+		var card_bg = TextureRect.new()
+		card_bg.texture = _art["level_card"]
+		card_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		card_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		card_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		card_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card_bg.modulate.a = 0.5 if unlocked else 0.25
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: card_bg.material = mat
+		p.add_child(card_bg)
 	# Hover feedback on level card
-	p.mouse_entered.connect(func(): p.modulate = Color(1.1, 1.08, 1.0))
-	p.mouse_exited.connect(func(): p.modulate = Color.WHITE if not complete else Color(0.9, 1.0, 0.9))
+	p.mouse_entered.connect(func():
+		var tw = p.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tw.tween_property(p, "modulate", Color(1.15, 1.12, 1.05), 0.12))
+	p.mouse_exited.connect(func():
+		var base = Color.WHITE if not complete else Color(0.92, 1.0, 0.92)
+		var tw = p.create_tween().set_ease(Tween.EASE_OUT)
+		tw.tween_property(p, "modulate", base, 0.1))
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -502,16 +589,17 @@ func _survivor_card(idx: int) -> Button:
 	sp.bg_color = Color(0.12,0.08,0.20,0.85)
 	btn.add_theme_stylebox_override("pressed", sp)
 	btn.text = ""
-	# Art frame layer behind content (card_frame with black keyed out)
-	if _art.has("card_frame"):
+	# Art frame layer behind content (survivor_card_frame or card_frame with black keyed out)
+	var frame_key = "survivor_card_frame" if _art.has("survivor_card_frame") else "card_frame"
+	if _art.has(frame_key):
 		var frame_art = TextureRect.new()
-		frame_art.texture = _art["card_frame"]
+		frame_art.texture = _art[frame_key]
 		frame_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		frame_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		frame_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		frame_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		frame_art.modulate.a = 0.35  # Subtle art overlay
-		var mat = _make_black_key_mat(0.08, 0.05)
+		frame_art.modulate.a = 0.45  # Visible art overlay
+		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: frame_art.material = mat
 		btn.add_child(frame_art)
 	# Content fills entire button area — centered
@@ -1277,10 +1365,28 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 	parent.add_child(row)
 
 # ======================== UTILITY ========================
-func _title(text: String) -> Label:
-	var l = _lbl(text, 24, Color(1,0.92,0.45))
+func _title(text: String) -> Control:
+	# Title with art header behind it
+	var container = CenterContainer.new()
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.custom_minimum_size = Vector2(0, 48)
+	# Art background for title
+	if _art.has("scroll_header"):
+		var art_bg = TextureRect.new()
+		art_bg.texture = _art["scroll_header"]
+		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		art_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art_bg.modulate.a = 0.6
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: art_bg.material = mat
+		container.add_child(art_bg)
+	var l = _lbl(text, 26, Color(1, 0.92, 0.45))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	return l
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(l)
+	return container
 
 # Add press feedback to any button
 func _add_press_feedback(btn: BaseButton) -> void:
