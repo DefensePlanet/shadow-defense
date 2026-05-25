@@ -208,17 +208,35 @@ func _build_currency_bar() -> void:
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: art_bg.material = mat
 		top_bar.add_child(art_bg)
-		top_bar.color = Color(0, 0, 0, 0)  # Transparent so art shows
+		top_bar.color = Color(0, 0, 0, 0)
 	var h = HBoxContainer.new()
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	h.add_theme_constant_override("separation", 24)
+	h.add_theme_constant_override("separation", 8)
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	top_bar.add_child(h)
-	# Account level badge
+	# Account level badge in styled panel
 	var acct_lvl = _main.account_level if "account_level" in _main else 1
-	h.add_child(_lbl("Lv.%d" % acct_lvl, 11, Color(0.85, 0.75, 0.55)))
-	for c in [["🪙", "GOLD", _main.gold, Color(1,0.85,0.2)], ["🪶", "QUILLS", _main.player_quills, Color(0.7,0.5,0.9)], ["💎", "SHARDS", _main.player_gear_shards, Color(0.3,0.75,0.9)], ["⭐", "STARS", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
-		h.add_child(_lbl("%s %d" % [c[0], c[2]], 12, c[3]))
+	var lvl_panel = _currency_chip("Lv.%d" % acct_lvl, Color(0.85, 0.75, 0.55))
+	h.add_child(lvl_panel)
+	# Each currency in its own styled chip
+	for c in [["🪙", _main.gold, Color(1,0.85,0.2)], ["🪶", _main.player_quills, Color(0.7,0.5,0.9)], ["💎", _main.player_gear_shards, Color(0.3,0.75,0.9)], ["⭐", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
+		h.add_child(_currency_chip("%s %d" % [c[0], c[1]], c[2]))
+
+func _currency_chip(text: String, color: Color) -> PanelContainer:
+	var chip = PanelContainer.new()
+	var cs = StyleBoxFlat.new()
+	cs.bg_color = Color(0.05, 0.03, 0.10, 0.7)
+	cs.set_corner_radius_all(12)
+	cs.border_color = Color(color.r * 0.5, color.g * 0.5, color.b * 0.5, 0.4)
+	cs.set_border_width_all(1)
+	cs.content_margin_left = 10; cs.content_margin_right = 10
+	cs.content_margin_top = 2; cs.content_margin_bottom = 2
+	chip.add_theme_stylebox_override("panel", cs)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l = _lbl(text, 11, color)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(l)
+	return chip
 
 func _build_music_display() -> void:
 	# Now Playing + Skip button in top-right
@@ -291,26 +309,36 @@ func _build_nav() -> void:
 func _build_nav_buttons() -> void:
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
+	var tab_icons_text = ["📜", "⚔️", "🛒", "📖", "⚙️"]
 	for i in range(5):
 		var is_active = tabs[i] == current_view
 		var btn = Button.new()
-		btn.text = labels[i]
+		btn.text = "%s\n%s" % [tab_icons_text[i], labels[i]]
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, 70)
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.12, 0.08, 0.20, 0.5) if is_active else Color(0.05, 0.03, 0.10, 0.0)
-		s.border_color = Color(0.85, 0.70, 0.30, 0.7) if is_active else Color(0, 0, 0, 0)
-		s.border_width_top = 3 if is_active else 0
+		if is_active:
+			s.bg_color = Color(0.15, 0.10, 0.25, 0.8)
+			s.border_color = Color(1.0, 0.80, 0.25, 0.9)
+			s.border_width_top = 3
+			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
+			s.shadow_color = Color(0.5, 0.35, 0.1, 0.2)
+			s.shadow_size = 4
+		else:
+			s.bg_color = Color(0.06, 0.04, 0.10, 0.3)
+			s.border_color = Color(0.25, 0.20, 0.15, 0.2)
+			s.border_width_top = 1
+			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
 		s.set_corner_radius_all(0)
 		btn.add_theme_stylebox_override("normal", s)
 		var sh = s.duplicate()
-		sh.bg_color = Color(0.15, 0.10, 0.25, 0.4)
-		sh.border_color = Color(0.70, 0.55, 0.25, 0.5)
+		sh.bg_color = Color(0.18, 0.12, 0.28, 0.6)
+		sh.border_color = Color(0.80, 0.60, 0.20, 0.6)
 		sh.border_width_top = 2
 		btn.add_theme_stylebox_override("hover", sh)
-		btn.add_theme_font_size_override("font_size", 11)
-		btn.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if is_active else Color(0.55, 0.50, 0.45))
-		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		btn.add_theme_font_size_override("font_size", 12)
+		btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.40) if is_active else Color(0.50, 0.45, 0.40))
+		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1.0))
 		btn.add_theme_constant_override("shadow_offset_x", 1)
 		btn.add_theme_constant_override("shadow_offset_y", 1)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
@@ -609,11 +637,20 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var is_boss = (idx + 1) % 3 == 0 and idx > 0
 	var p = PanelContainer.new()
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.04, 0.03, 0.10, 0.75) if unlocked else Color(0.03, 0.02, 0.06, 0.60)
-	s.border_color = Color(0.3, 0.65, 0.25, 0.6) if complete else Color(0.35, 0.25, 0.18, 0.3)
-	s.set_border_width_all(1 if not complete else 2)
-	s.set_corner_radius_all(6)
-	s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 4; s.content_margin_bottom = 4
+	s.bg_color = Color(0.04, 0.03, 0.10, 0.78) if unlocked else Color(0.03, 0.02, 0.06, 0.65)
+	if complete:
+		s.border_color = Color(0.35, 0.70, 0.30, 0.7)
+		s.set_border_width_all(2)
+	elif is_boss:
+		s.border_color = Color(0.70, 0.25, 0.15, 0.6)
+		s.set_border_width_all(2)
+	else:
+		s.border_color = Color(0.40, 0.30, 0.18, 0.35)
+		s.set_border_width_all(1)
+	s.set_corner_radius_all(10)
+	s.shadow_color = Color(0, 0, 0, 0.15)
+	s.shadow_size = 3
+	s.content_margin_left = 12; s.content_margin_right = 12; s.content_margin_top = 8; s.content_margin_bottom = 8
 	p.add_theme_stylebox_override("panel", s)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
 	# Tooltip — boss levels get villain taunts
@@ -642,35 +679,59 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
-	# Level number with boss skull for every 3rd level
-	var num_col = VBoxContainer.new()
-	num_col.alignment = BoxContainer.ALIGNMENT_CENTER
-	num_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var num_lbl = _lbl(str(idx+1), 18, Color(0.85, 0.72, 0.40) if unlocked else Color(0.35, 0.30, 0.25))
+	# Level number in styled circle
+	var num_circle = PanelContainer.new()
+	var ncs = StyleBoxFlat.new()
+	ncs.set_corner_radius_all(20)
+	ncs.content_margin_left = 4; ncs.content_margin_right = 4
+	ncs.content_margin_top = 4; ncs.content_margin_bottom = 4
+	if complete:
+		ncs.bg_color = Color(0.15, 0.40, 0.15, 0.85)
+		ncs.border_color = Color(0.3, 0.7, 0.3, 0.6)
+	elif is_boss:
+		ncs.bg_color = Color(0.40, 0.10, 0.08, 0.85)
+		ncs.border_color = Color(0.8, 0.25, 0.15, 0.6)
+	elif unlocked:
+		ncs.bg_color = Color(0.12, 0.08, 0.20, 0.85)
+		ncs.border_color = Color(0.65, 0.50, 0.20, 0.5)
+	else:
+		ncs.bg_color = Color(0.05, 0.04, 0.08, 0.6)
+		ncs.border_color = Color(0.25, 0.20, 0.15, 0.3)
+	ncs.set_border_width_all(2)
+	num_circle.add_theme_stylebox_override("panel", ncs)
+	num_circle.custom_minimum_size = Vector2(40, 40)
+	num_circle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var num_lbl = _lbl(str(idx+1), 16, Color(1.0, 0.92, 0.40) if unlocked else Color(0.35, 0.30, 0.25))
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	num_col.add_child(num_lbl)
-	if is_boss:
-		var skull = _lbl("💀", 14, Color(0.8, 0.2, 0.15))
-		skull.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		skull.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		num_col.add_child(skull)
-	row.add_child(num_col)
+	num_circle.add_child(num_lbl)
+	row.add_child(num_circle)
 	# Thumbnail
+	# Thumbnail — larger with rounded clip panel
+	var th_panel = PanelContainer.new()
+	var ths = StyleBoxFlat.new()
+	ths.bg_color = Color(0.02, 0.01, 0.05, 0.5)
+	ths.set_corner_radius_all(8)
+	ths.set_border_width_all(1)
+	ths.border_color = Color(0.35, 0.25, 0.15, 0.3)
+	th_panel.add_theme_stylebox_override("panel", ths)
+	th_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var th = TextureRect.new()
-	th.custom_minimum_size = Vector2(90, 60)
+	th.custom_minimum_size = Vector2(120, 75)
 	th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	th.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _main._map_thumb_textures.has(idx): th.texture = _main._map_thumb_textures[idx]
-	row.add_child(th)
+	th_panel.add_child(th)
+	row.add_child(th_panel)
 	var info = VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var name_row = HBoxContainer.new()
-	name_row.add_theme_constant_override("separation", 6)
+	name_row.add_theme_constant_override("separation", 8)
 	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var n = _lbl(lvl.get("name",""), 14, Color(1, 0.95, 0.85) if unlocked else Color(0.45, 0.40, 0.35))
+	var n = _lbl(lvl.get("name",""), 16, Color(1, 0.95, 0.85) if unlocked else Color(0.45, 0.40, 0.35))
 	n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(n)
 	# NEW badge — unlocked but not completed
@@ -702,14 +763,14 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		boss_badge.add_child(boss_lbl)
 		name_row.add_child(boss_badge)
 	info.add_child(name_row)
-	var st = _lbl(lvl.get("subtitle",""), 10, Color(0.55,0.48,0.42))
+	var st = _lbl(lvl.get("subtitle",""), 11, Color(0.60, 0.52, 0.45))
 	st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.add_child(st)
 	# Stats row with wave/gold/lives
 	var stats_row = HBoxContainer.new()
-	stats_row.add_theme_constant_override("separation", 8)
+	stats_row.add_theme_constant_override("separation", 10)
 	stats_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var stats = _lbl("W:%d  G:%d  L:%d" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 9, Color(0.45, 0.40, 0.38))
+	var stats = _lbl("⚔ %d Waves  •  🪙 %d Gold  •  ❤ %d Lives" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 10, Color(0.50, 0.45, 0.40))
 	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stats_row.add_child(stats)
 	# Difficulty medals for completed levels (bronze=Easy, silver=Med, gold=Hard)
@@ -742,7 +803,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			for _si in range(3):
 				var star = TextureRect.new()
 				star.texture = _art["golden_star"]
-				star.custom_minimum_size = Vector2(16, 16)
+				star.custom_minimum_size = Vector2(20, 20)
 				star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				star.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2689,27 +2750,37 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 
 # ======================== UTILITY ========================
 func _title(text: String) -> Control:
-	# Title with art header behind it
-	var container = CenterContainer.new()
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.custom_minimum_size = Vector2(0, 48)
+	# Title with decorative frame panel
+	var outer = PanelContainer.new()
+	var os = StyleBoxFlat.new()
+	os.bg_color = Color(0.06, 0.04, 0.12, 0.6)
+	os.set_corner_radius_all(10)
+	os.border_color = Color(0.65, 0.50, 0.18, 0.5)
+	os.set_border_width_all(1)
+	os.shadow_color = Color(0.3, 0.2, 0.05, 0.15)
+	os.shadow_size = 4
+	os.content_margin_left = 40; os.content_margin_right = 40
+	os.content_margin_top = 8; os.content_margin_bottom = 8
+	outer.add_theme_stylebox_override("panel", os)
+	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	outer.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	# Art background for title
 	if _art.has("scroll_header"):
 		var art_bg = TextureRect.new()
 		art_bg.texture = _art["scroll_header"]
 		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		art_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art_bg.modulate.a = 0.6
+		art_bg.modulate.a = 0.35
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: art_bg.material = mat
-		container.add_child(art_bg)
-	var l = _lbl(text, 26, Color(1, 0.92, 0.45))
+		outer.add_child(art_bg)
+	var l = _lbl(text, 24, Color(1.0, 0.92, 0.40))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.add_child(l)
-	return container
+	outer.add_child(l)
+	return outer
 
 # Add press feedback to any button
 func _add_press_feedback(btn: BaseButton) -> void:
