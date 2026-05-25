@@ -1728,7 +1728,16 @@ func _open_emporium_category(cat_idx: int) -> void:
 	back.pressed.connect(_build_emporium)
 	vb.add_child(back)
 	vb.add_child(_title(cat.get("name", "SHOP")))
-	vb.add_child(_lbl(cat.get("desc", ""), 12, Color(0.60,0.55,0.48)))
+	vb.add_child(_lbl(cat.get("desc", ""), 12, Color(0.60, 0.55, 0.48)))
+	# Show player's current currencies
+	var cur_row = HBoxContainer.new()
+	cur_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	cur_row.add_theme_constant_override("separation", 16)
+	cur_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cur_row.add_child(_lbl("🪙 %d" % _main.gold, 11, Color(1, 0.85, 0.2)))
+	cur_row.add_child(_lbl("🪶 %d" % _main.player_quills, 11, Color(0.7, 0.5, 0.9)))
+	cur_row.add_child(_lbl("💎 %d" % _main.player_gear_shards, 11, Color(0.3, 0.75, 0.9)))
+	vb.add_child(cur_row)
 	# Show items based on category
 	match cat_idx:
 		0: _build_gold_exchange(vb)
@@ -2148,7 +2157,12 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 	for st in _main.survivor_types:
 		if _main._is_character_unlocked(st): rescued += 1
 	stats_data[10][1] = rescued
-	# Add FPS
+	# Add session time and FPS
+	var session_secs = int(Time.get_ticks_msec() / 1000.0)
+	var session_min = session_secs / 60
+	var session_hr = session_min / 60
+	var time_str = "%dh %dm" % [session_hr, session_min % 60] if session_hr > 0 else "%dm %ds" % [session_min, session_secs % 60]
+	stats_data.append(["Session Time", time_str])
 	stats_data.append(["Current FPS", Engine.get_frames_per_second()])
 	for si in range(stats_data.size()):
 		var sd = stats_data[si]
@@ -2169,7 +2183,12 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(nl)
-		var vl = _lbl(_format_num(float(sd[1])) if sd[1] is float or sd[1] > 999 else str(sd[1]), 18, Color(1.0, 0.92, 0.45))
+		var val_text = str(sd[1])
+		if sd[1] is int and sd[1] > 999:
+			val_text = _format_num(float(sd[1]))
+		elif sd[1] is float:
+			val_text = _format_num(sd[1])
+		var vl = _lbl(val_text, 18, Color(1.0, 0.92, 0.45))
 		vl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(vl)
 		parent.add_child(row_panel)
