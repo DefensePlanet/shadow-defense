@@ -18637,10 +18637,15 @@ func _try_place_tower(pos: Vector2) -> void:
 	if "_sprite_spindown" in tower and _tower_sprite_textures.has(_spr_key + "_spindown"):
 		tower._sprite_spindown = _tower_sprite_textures[_spr_key + "_spindown"]
 	towers_node.add_child(tower)
-	# Build animation
+	# Build animation + juice
 	if "_build_timer" in tower:
 		tower._build_timer = 0.5
 	_build_effects.append({"pos": pos, "timer": 0.5, "max_timer": 0.5})
+	_play_sfx(_sfx_ui_click)
+	_haptic(1)
+	_screen_shake_intensity = 2.0
+	_screen_shake_timer = 0.1
+	spawn_floating_text(pos + Vector2(0, -35), tower_info[selected_tower]["name"] + "!", Color(0.4, 0.9, 0.5), 16.0, 1.0)
 	# Apply meta-progression buffs (level + knowledge + gear)
 	_apply_meta_buffs(tower, selected_tower)
 
@@ -28038,25 +28043,25 @@ func _start_next_wave() -> void:
 func update_hud() -> void:
 	if wave_label:
 		if endless_mode:
-			wave_label.text = "Wave: %d (Endless)" % wave
+			wave_label.text = "⚔ Wave %d (Endless)" % wave
 		elif shadow_arena_active:
-			wave_label.text = "Arena Wave: %d" % wave
+			wave_label.text = "🏟 Arena Wave %d" % wave
 		else:
 			var diff_indicator = ["", " [M]", " [H]", " [P]"][mini(selected_difficulty, 3)]
-			wave_label.text = "Wave: %d/%d%s" % [wave, total_waves, diff_indicator]
+			wave_label.text = "⚔ Wave %d/%d%s" % [wave, total_waves, diff_indicator]
 		# Show enemy count during active waves
 		if is_wave_active:
 			var remaining = enemies_alive + enemies_to_spawn
 			wave_label.text += "  (%d left)" % remaining
 	if gold_label:
-		gold_label.text = "Gold: %s" % _format_gold(gold)
+		gold_label.text = "🪙 %s" % _format_gold(gold)
 		if _insufficient_gold_flash > 0.0:
 			var flash_a = clampf(_insufficient_gold_flash, 0.0, 1.0)
 			gold_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2).lerp(Color(1.0, 0.84, 0.0), 1.0 - flash_a))
 		else:
 			gold_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 	if lives_label:
-		lives_label.text = "Lives: %d" % lives
+		lives_label.text = "❤ %d" % lives
 		var max_lives = difficulty_fixed_lives[mini(selected_difficulty, difficulty_fixed_lives.size() - 1)] if selected_difficulty < difficulty_fixed_lives.size() else 100
 		var life_pct = float(lives) / float(max(1, max_lives))
 		if life_pct <= 0.2:
