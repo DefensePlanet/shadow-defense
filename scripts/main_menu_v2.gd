@@ -8,6 +8,21 @@ var _main: Node = null
 var current_view: String = "chapters"
 # Portrait key mapping — character_names[] index → portrait texture key
 const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+# Map arc name prefixes to portrait keys for arc header icons
+const ARC_PORTRAITS: Dictionary = {
+	"Prologue": "robin_hood", "Robin Hood": "robin_hood", "Sherwood": "robin_hood",
+	"Alice": "alice", "Wonderland": "alice",
+	"Wicked Witch": "wicked_witch", "Oz": "wicked_witch",
+	"Peter Pan": "peter_pan", "Neverland": "peter_pan",
+	"Phantom": "phantom", "Opera": "phantom",
+	"Scrooge": "scrooge", "Christmas": "scrooge",
+	"Sherlock": "sherlock", "Baker": "sherlock",
+	"Tarzan": "tarzan", "Jungle": "tarzan",
+	"Dracula": "dracula", "Transylvania": "dracula",
+	"Merlin": "merlin", "Camelot": "merlin",
+	"Frankenstein": "frankenstein", "Monster": "frankenstein",
+	"Shadow Author": "shadow_author", "Final": "shadow_author",
+}
 
 @onready var background: TextureRect = $Background
 @onready var content_area: Control = $ContentArea
@@ -312,8 +327,40 @@ func _build_chapters() -> void:
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sc.add_child(vb)
 	vb.add_child(_title("THE TOME OF SHADOWS"))
-	vb.add_child(_lbl("Heroes pulled from their stories. One Author controls them all.", 11, Color(0.55,0.50,0.45)))
+	# Story tagline with storybook styling
+	var tagline = _lbl("Heroes pulled from their stories. One Author controls them all.", 12, Color(0.65, 0.55, 0.45))
+	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tagline.add_theme_font_size_override("font_size", 12)
+	tagline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(tagline)
 	if not _main: return
+	# Total star counter
+	var total_stars = 0
+	var max_stars = _main.levels.size() * 3
+	if "level_stars" in _main:
+		for k in _main.level_stars:
+			total_stars += _main.level_stars[k]
+	var star_bar = HBoxContainer.new()
+	star_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	star_bar.add_theme_constant_override("separation", 6)
+	star_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _art.has("golden_star"):
+		var star_icon = TextureRect.new()
+		star_icon.texture = _art["golden_star"]
+		star_icon.custom_minimum_size = Vector2(20, 20)
+		star_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		star_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		star_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = _make_black_key_mat(0.1, 0.05)
+		if mat: star_icon.material = mat
+		star_bar.add_child(star_icon)
+	star_bar.add_child(_lbl("%d / %d Stars" % [total_stars, max_stars], 13, Color(1.0, 0.85, 0.25)))
+	# Completion bar
+	var comp_pct = float(total_stars) / float(max_stars) if max_stars > 0 else 0.0
+	var comp_bar = _stat_bar("Progress", total_stars, max_stars, Color(1.0, 0.85, 0.25))
+	comp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(star_bar)
+	vb.add_child(comp_bar)
 	var cur_arc = ""
 	var card_idx = 0
 	for i in range(_main.levels.size()):
@@ -323,29 +370,43 @@ func _build_chapters() -> void:
 		if arc == "": arc = "Prologue"
 		if arc != cur_arc:
 			cur_arc = arc
-			# Arc header with art divider
+			# Arc header with portrait + art divider
 			var hdr_container = HBoxContainer.new()
 			hdr_container.add_theme_constant_override("separation", 8)
+			hdr_container.alignment = BoxContainer.ALIGNMENT_CENTER
 			hdr_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			# Character portrait for this arc
+			var arc_portrait_key = ""
+			for apk in ARC_PORTRAITS:
+				if arc.begins_with(apk) or apk in arc:
+					arc_portrait_key = ARC_PORTRAITS[apk]
+					break
+			if arc_portrait_key != "" and _main and _main._portrait_textures.has(arc_portrait_key):
+				var arc_port = TextureRect.new()
+				arc_port.texture = _main._portrait_textures[arc_portrait_key]
+				arc_port.custom_minimum_size = Vector2(32, 32)
+				arc_port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				arc_port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				arc_port.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				hdr_container.add_child(arc_port)
 			if _art.has("chapter_divider"):
 				var div_left = TextureRect.new()
 				div_left.texture = _art["chapter_divider"]
-				div_left.custom_minimum_size = Vector2(60, 24)
+				div_left.custom_minimum_size = Vector2(50, 20)
 				div_left.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				div_left.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				div_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				var mat = _make_black_key_mat(0.06, 0.04)
 				if mat: div_left.material = mat
 				hdr_container.add_child(div_left)
-			var hdr = _lbl(arc.to_upper(), 18, Color(0.95,0.85,0.45))
+			var hdr = _lbl(arc.to_upper(), 18, Color(0.95, 0.85, 0.45))
 			hdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			hdr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			hdr_container.add_child(hdr)
 			if _art.has("chapter_divider"):
 				var div_right = TextureRect.new()
 				div_right.texture = _art["chapter_divider"]
-				div_right.custom_minimum_size = Vector2(60, 24)
+				div_right.custom_minimum_size = Vector2(50, 20)
 				div_right.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				div_right.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				div_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -521,26 +582,34 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		lock_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lock_vb.alignment = BoxContainer.ALIGNMENT_CENTER
 		lock_vb.custom_minimum_size = Vector2(120, 0)
-		# Use locked card art if available
-		if _art.has("locked_card"):
-			var lock_art = TextureRect.new()
-			lock_art.texture = _art["locked_card"]
-			lock_art.custom_minimum_size = Vector2(80, 55)
-			lock_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			lock_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			lock_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var mat = _make_black_key_mat(0.08, 0.05)
-			if mat: lock_art.material = mat
-			lock_vb.add_child(lock_art)
-		else:
-			var lock_icon = _lbl("🔒", 20, Color(0.4,0.35,0.3))
-			lock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			lock_vb.add_child(lock_icon)
-		var lock_text = _lbl("Complete\nprevious level", 9, Color(0.4,0.35,0.3))
+		# Lock icon panel with glow
+		var lock_panel = PanelContainer.new()
+		var lps = StyleBoxFlat.new()
+		lps.bg_color = Color(0.06, 0.04, 0.10, 0.6)
+		lps.set_corner_radius_all(8)
+		lps.border_color = Color(0.4, 0.3, 0.2, 0.4)
+		lps.set_border_width_all(1)
+		lps.content_margin_left = 8; lps.content_margin_right = 8
+		lps.content_margin_top = 6; lps.content_margin_bottom = 6
+		lock_panel.add_theme_stylebox_override("panel", lps)
+		lock_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var lock_content = VBoxContainer.new()
+		lock_content.alignment = BoxContainer.ALIGNMENT_CENTER
+		lock_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_panel.add_child(lock_content)
+		var lock_icon = _lbl("🔒", 24, Color(0.5, 0.4, 0.3))
+		lock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_content.add_child(lock_icon)
+		var lock_text = _lbl("LOCKED", 10, Color(0.45, 0.38, 0.30))
 		lock_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lock_vb.add_child(lock_text)
+		lock_content.add_child(lock_text)
+		var lock_req = _lbl("Complete previous", 8, Color(0.35, 0.30, 0.25))
+		lock_req.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_req.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock_content.add_child(lock_req)
+		lock_vb.add_child(lock_panel)
 		row.add_child(lock_vb)
 	return p
 
