@@ -17902,7 +17902,11 @@ func _check_wave_complete() -> void:
 				var endless_bonus = 50 + wave * 3
 				add_gold(endless_bonus)
 				spawn_floating_text(Vector2(640, 300), "+%dG Endless Bonus!" % endless_bonus, Color(1.0, 0.9, 0.2), 18.0, 1.5)
-			start_button.text = "  START WAVE  "
+			# Wave preview on button
+			var next_w = wave + 1
+			var next_count = _get_wave_enemy_count(next_w)
+			var is_boss_w = next_w in [20, 25, 30, 35] or (next_w > 0 and next_w % 10 == 0 and endless_mode)
+			start_button.text = "  W%d: %d%s  " % [next_w, next_count, " 💀BOSS" if is_boss_w else ""]
 			# BATTD4: Perfect wave bonus (no lives lost)
 			if lives >= _perfect_wave_start_lives:
 				_perfect_waves_count += 1
