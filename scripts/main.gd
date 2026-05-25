@@ -21880,8 +21880,9 @@ func _draw_income_breakdown() -> void:
 	var alpha = clampf(_income_display_timer / 1.0, 0.0, 1.0)
 	var ix = 400.0
 	var iy = 130.0
-	draw_rect(Rect2(ix, iy, 480, 70), Color(0.03, 0.02, 0.06, 0.85 * alpha))
-	draw_rect(Rect2(ix, iy, 480, 70), Color(0.7, 0.55, 0.2, 0.4 * alpha), false, 1.0)
+	# Styled income panel with rounded corners
+	draw_colored_polygon(_rrp(Rect2(ix - 2, iy - 2, 484, 74), 8.0), Color(0.5, 0.38, 0.12, 0.3 * alpha))
+	draw_colored_polygon(_rrp(Rect2(ix, iy, 480, 70), 6.0), Color(0.03, 0.02, 0.06, 0.88 * alpha))
 	var font = game_font
 	_udraw(font, Vector2(640, iy + 16), "INCOME BREAKDOWN", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(1.0, 0.85, 0.3, alpha))
 	var parts: Array = []
