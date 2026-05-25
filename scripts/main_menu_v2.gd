@@ -653,6 +653,21 @@ func _build_chapters() -> void:
 		comeback_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		comeback_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(comeback_lbl)
+	# Random loading tip
+	var loading_tips = [
+		"💡 Place towers at path bends for maximum coverage",
+		"💡 Upgrade before buying new towers — quality over quantity",
+		"💡 Boss enemies change behavior at 66% and 33% HP",
+		"💡 Rush bonus: start the next wave while enemies are alive",
+		"💡 Perfect wave (no lives lost) = bonus gold",
+		"💡 Each character has a unique active ability at Tier 3+",
+		"💡 Tap a tower during combat to hear their battle quips",
+	]
+	var tip = _lbl(loading_tips[randi() % loading_tips.size()], 10, Color(0.50, 0.45, 0.40))
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(tip)
 	var cur_arc = ""
 	var card_idx = 0
 	for i in range(_main.levels.size()):
@@ -1868,7 +1883,8 @@ func _build_emporium() -> void:
 	lto_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lto_panel.add_child(lto_row)
 	lto_row.add_child(_lbl("🔥 LIMITED OFFER", 13, Color(1.0, 0.4, 0.2)))
-	var lto_desc = _lbl("Starter Pack: 500 Gold + 50 Shards", 11, Color(0.85, 0.78, 0.65))
+	var offers = ["Starter Pack: 500 Gold + 50 Shards", "Hero Bundle: 3 Gear Chests + XP Boost", "Shadow Bundle: 1000 Gold + 100 Quills"]
+	var lto_desc = _lbl(offers[randi() % offers.size()], 11, Color(0.85, 0.78, 0.65))
 	lto_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lto_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lto_row.add_child(lto_desc)
@@ -1981,7 +1997,7 @@ func _build_emporium() -> void:
 		var name_lbl = _lbl(cat.get("name",""), 14, accent)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(name_lbl)
-		var d = _lbl(cat.get("desc",""), 10, Color(0.55,0.50,0.45))
+		var d = _lbl(cat.get("desc",""), 10, Color(0.55, 0.50, 0.45))
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(d)
