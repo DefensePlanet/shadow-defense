@@ -505,7 +505,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var complete = idx in _main.completed_levels
 	var p = PanelContainer.new()
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.04, 0.03, 0.10, 0.55) if unlocked else Color(0.03, 0.02, 0.06, 0.40)
+	s.bg_color = Color(0.04, 0.03, 0.10, 0.75) if unlocked else Color(0.03, 0.02, 0.06, 0.60)
 	s.border_color = Color(0.3, 0.65, 0.25, 0.6) if complete else Color(0.35, 0.25, 0.18, 0.3)
 	s.set_border_width_all(1 if not complete else 2)
 	s.set_corner_radius_all(6)
@@ -1103,6 +1103,11 @@ func _build_detail_view() -> void:
 			gv.add_child(_lbl(bonus_text.strip_edges(), 10, Color(0.3, 0.8, 0.4)))
 		gear_row.add_child(gv)
 		right.add_child(gp)
+		# Equip gear button
+		if _detail_tab == 1:
+			var equip_btn = _art_button("CHANGE GEAR", Color(0.12, 0.35, 0.15), Vector2(140, 34))
+			equip_btn.pressed.connect(func(): _open_gear_picker(idx, tt))
+			right.add_child(equip_btn)
 	# === TAB 2: ALLIES ===
 	if _detail_tab == 0 or _detail_tab == 2:
 		right.add_child(_lbl("SIDEKICKS", 14, Color(0.85,0.72,0.40)))
@@ -1172,6 +1177,75 @@ func _build_detail_view() -> void:
 			right.add_child(ab_panel)
 	else:
 		right.add_child(_lbl("Unlock abilities through combat damage", 10, Color(0.50, 0.45, 0.40)))
+
+func _open_gear_picker(char_idx: int, tower_type) -> void:
+	_clear()
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
+	var vb = VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", 8)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sc.add_child(vb)
+	var back = _art_button("< BACK", Color(0.12, 0.10, 0.22), Vector2(90, 30))
+	back.pressed.connect(func(): _detail_idx = char_idx; _detail_tab = 1; _build_detail_view())
+	vb.add_child(back)
+	vb.add_child(_title("SELECT GEAR"))
+	var cname = _main.character_names[char_idx] if _main and char_idx < _main.character_names.size() else "?"
+	vb.add_child(_lbl("Equipping: %s" % cname, 12, Color(0.65, 0.58, 0.50)))
+	# Current gear
+	if tower_type != null and _main.survivor_gear.has(tower_type):
+		var cur = _main.survivor_gear[tower_type]
+		vb.add_child(_lbl("Currently Equipped: %s" % cur.get("name", "None"), 13, Color(1, 0.85, 0.3)))
+	# Show all available gear as a grid
+	vb.add_child(_lbl("AVAILABLE GEAR", 14, Color(0.85, 0.72, 0.40)))
+	var grid = GridContainer.new()
+	grid.columns = 6
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_child(grid)
+	if not _main: return
+	var keys = _main._gear_icon_textures.keys()
+	keys.sort()
+	for gk in keys:
+		var card = Button.new()
+		card.custom_minimum_size = Vector2(100, 110)
+		card.text = ""
+		var cs = StyleBoxFlat.new()
+		cs.bg_color = Color(0.05, 0.03, 0.10, 0.6)
+		cs.border_color = Color(0.45, 0.35, 0.20, 0.4)
+		cs.set_border_width_all(1)
+		cs.set_corner_radius_all(8)
+		cs.content_margin_left = 4; cs.content_margin_right = 4
+		cs.content_margin_top = 4; cs.content_margin_bottom = 4
+		card.add_theme_stylebox_override("normal", cs)
+		var csh = cs.duplicate()
+		csh.bg_color = Color(0.10, 0.07, 0.18, 0.8)
+		csh.border_color = Color(0.65, 0.50, 0.20, 0.7)
+		card.add_theme_stylebox_override("hover", csh)
+		_add_press_feedback(card)
+		var cv = VBoxContainer.new()
+		cv.alignment = BoxContainer.ALIGNMENT_CENTER
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(cv)
+		var icon = TextureRect.new()
+		icon.texture = _main._gear_icon_textures[gk]
+		icon.custom_minimum_size = Vector2(64, 64)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(icon)
+		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 8, Color(0.65, 0.58, 0.50))
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.clip_text = true
+		name_lbl.custom_minimum_size.x = 90
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(name_lbl)
+		grid.add_child(card)
 
 func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBoxContainer:
 	var row = HBoxContainer.new()
@@ -1999,9 +2073,11 @@ func _lbl(text: String, size: int, color: Color) -> Label:
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
-	l.add_theme_color_override("font_shadow_color", Color(0,0,0,0.85))
-	l.add_theme_constant_override("shadow_offset_x", 1)
-	l.add_theme_constant_override("shadow_offset_y", 1)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1.0))
+	l.add_theme_constant_override("shadow_offset_x", 2)
+	l.add_theme_constant_override("shadow_offset_y", 2)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	l.add_theme_constant_override("outline_size", 2)
 	return l
 
 func _art_button(text: String, color: Color, min_size: Vector2 = Vector2(110, 32)) -> Button:
