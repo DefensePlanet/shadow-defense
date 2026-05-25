@@ -199,8 +199,8 @@ func _build_currency_bar() -> void:
 	h.add_theme_constant_override("separation", 24)
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	top_bar.add_child(h)
-	for c in [["GOLD", _main.gold, Color(1,0.85,0.2)], ["QUILLS", _main.player_quills, Color(0.7,0.5,0.9)], ["SHARDS", _main.player_gear_shards, Color(0.3,0.75,0.9)], ["STARS", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
-		h.add_child(_lbl("%d %s" % [c[1], c[0]], 12, c[2]))
+	for c in [["🪙", "GOLD", _main.gold, Color(1,0.85,0.2)], ["🪶", "QUILLS", _main.player_quills, Color(0.7,0.5,0.9)], ["💎", "SHARDS", _main.player_gear_shards, Color(0.3,0.75,0.9)], ["⭐", "STARS", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
+		h.add_child(_lbl("%s %d" % [c[0], c[2]], 12, c[3]))
 
 func _build_music_display() -> void:
 	# Now Playing + Skip button in top-right
@@ -834,10 +834,17 @@ func _survivor_card(idx: int) -> Button:
 	var btn = Button.new()
 	btn.custom_minimum_size = Vector2(200, 270)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Style based on unlock status
+	# Style based on unlock status + level-based rarity border
+	var char_level = 1
+	if is_unlocked and tt != null and _main.survivor_progress.has(tt):
+		char_level = _main.survivor_progress[tt].get("level", 1)
+	var rarity_border = Color(0.45, 0.35, 0.20, 0.5)  # Default brown
+	if char_level >= 8: rarity_border = Color(1.0, 0.7, 0.1, 0.8)   # Gold
+	elif char_level >= 5: rarity_border = Color(0.6, 0.3, 0.9, 0.7)  # Purple/Epic
+	elif char_level >= 3: rarity_border = Color(0.2, 0.5, 0.9, 0.6)  # Blue/Rare
 	var s = StyleBoxFlat.new()
 	s.bg_color = Color(0.06, 0.04, 0.12, 0.70) if is_unlocked else Color(0.03, 0.02, 0.06, 0.50)
-	s.border_color = Color(0.45, 0.35, 0.20, 0.5) if is_unlocked else Color(0.20, 0.18, 0.15, 0.3)
+	s.border_color = rarity_border if is_unlocked else Color(0.20, 0.18, 0.15, 0.3)
 	s.set_border_width_all(2); s.set_corner_radius_all(8)
 	s.content_margin_left = 4; s.content_margin_right = 4
 	s.content_margin_top = 4; s.content_margin_bottom = 4
@@ -1054,7 +1061,11 @@ func _build_detail_view() -> void:
 		right.add_child(_stat_bar("Damage", info.get("damage", 0), 50, Color(0.9,0.3,0.2)))
 		right.add_child(_stat_bar("Range", info.get("range", 0), 200, Color(0.3,0.7,0.9)))
 		right.add_child(_stat_bar("Fire Rate", info.get("fire_rate", 0), 2.5, Color(0.9,0.7,0.2)))
-		right.add_child(_lbl("Cost: %d Gold" % info.get("cost", 0), 12, Color(0.85,0.70,0.20)))
+		# DPS calculation
+		var dmg = info.get("damage", 0)
+		var rate = info.get("fire_rate", 1.0)
+		var dps = dmg * rate if rate > 0 else 0
+		right.add_child(_lbl("DPS: %.1f  |  Cost: %d Gold" % [dps, info.get("cost", 0)], 12, Color(0.85, 0.70, 0.20)))
 	# === TAB 1: GEAR ===
 	if _detail_tab == 0 or _detail_tab == 1:
 		right.add_child(_lbl("EQUIPPED GEAR", 14, Color(0.85,0.72,0.40)))
@@ -1624,13 +1635,29 @@ func _build_merchant_items(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("The Wandering Merchant has rare items...", 12, Color(0.60,0.55,0.48)))
 	if _main and _main.merchant_inventory.size() > 0:
 		for item in _main.merchant_inventory:
+			var card = PanelContainer.new()
+			var cs = StyleBoxFlat.new()
+			cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+			cs.set_corner_radius_all(8)
+			cs.border_color = Color(0.55, 0.42, 0.18, 0.4)
+			cs.set_border_width_all(1)
+			cs.content_margin_left = 12; cs.content_margin_right = 12
+			cs.content_margin_top = 6; cs.content_margin_bottom = 6
+			card.add_theme_stylebox_override("panel", cs)
 			var row = HBoxContainer.new()
+			row.add_theme_constant_override("separation", 12)
 			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(_lbl(item.get("name","???"), 13, Color(0.90,0.80,0.50)))
-			row.add_child(_lbl(" — %d %s" % [item.get("cost",0), item.get("cost_type","gold")], 11, Color(0.65,0.58,0.50)))
-			parent.add_child(row)
+			card.add_child(row)
+			var name_lbl = _lbl(item.get("name","???"), 14, Color(0.90, 0.80, 0.50))
+			name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(name_lbl)
+			row.add_child(_lbl("%d %s" % [item.get("cost",0), item.get("cost_type","gold")], 12, Color(0.85, 0.70, 0.20)))
+			var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
+			row.add_child(buy)
+			parent.add_child(card)
 	else:
-		parent.add_child(_lbl("The merchant will return soon...", 11, Color(0.50,0.45,0.40)))
+		parent.add_child(_lbl("The merchant will return soon...", 11, Color(0.50, 0.45, 0.40)))
 
 func _build_generic_shop(parent: VBoxContainer, cat: Dictionary) -> void:
 	parent.add_child(_lbl("Coming soon to %s..." % cat.get("name","Shop"), 13, Color(0.60, 0.55, 0.48)))
@@ -1822,17 +1849,27 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("GAMEPLAY STATISTICS", 14, Color(0.85, 0.72, 0.40)))
 	if not _main: return
 	var stats_data = [
-		["Total Enemies Killed", _main.total_enemies_killed if "total_enemies_killed" in _main else 0],
-		["Total Gold Earned", _main.total_gold_earned if "total_gold_earned" in _main else 0],
+		["Account Level", _main.account_level if "account_level" in _main else 1],
 		["Levels Completed", _main.completed_levels.size() if "completed_levels" in _main else 0],
 		["Total Stars", 0],
-		["Bosses Defeated", 0],
-		["Account Level", _main.account_level if "account_level" in _main else 1],
+		["Total Enemies Killed", _main.total_enemies_killed if "total_enemies_killed" in _main else 0],
+		["Total Towers Placed", _main.total_towers_placed if "total_towers_placed" in _main else 0],
+		["Total Gold Earned", _main.total_gold_earned if "total_gold_earned" in _main else 0],
+		["Total Gold Spent", _main.total_gold_spent if "total_gold_spent" in _main else 0],
+		["Emporium Purchases", _main.total_emporium_purchases if "total_emporium_purchases" in _main else 0],
+		["Chests Opened", _main.total_chests_opened if "total_chests_opened" in _main else 0],
+		["Quests Completed", _main.total_quests_completed if "total_quests_completed" in _main else 0],
+		["Characters Rescued", 0],
 	]
 	# Calculate total stars
 	if "level_stars" in _main:
 		for k in _main.level_stars:
-			stats_data[3][1] += _main.level_stars[k]
+			stats_data[2][1] += _main.level_stars[k]
+	# Calculate characters rescued
+	var rescued = 0
+	for st in _main.survivor_types:
+		if _main._is_character_unlocked(st): rescued += 1
+	stats_data[10][1] = rescued
 	for si in range(stats_data.size()):
 		var sd = stats_data[si]
 		# Styled stat row with alternating backgrounds
