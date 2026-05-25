@@ -14,6 +14,7 @@ var _time: float = 0.0
 var _trail_particles: Array = []
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	_time += delta
 	if _lifetime <= 0.0:

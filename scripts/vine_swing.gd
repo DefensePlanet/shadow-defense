@@ -15,6 +15,7 @@ var _trail: Array = []  # Trail positions for vine rendering
 var _age: float = 0.0
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	_age += delta
 	if _lifetime <= 0.0:

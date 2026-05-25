@@ -11,6 +11,7 @@ var _angle: float = 0.0
 var _spin: float = 0.0
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	_spin += delta * 10.0
 	if _lifetime <= 0.0:

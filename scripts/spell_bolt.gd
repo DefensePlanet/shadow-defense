@@ -17,6 +17,7 @@ var _hit_targets: Array = []
 var _time: float = 0.0
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_time += delta
 	_lifetime -= delta
 	if _lifetime <= 0.0:

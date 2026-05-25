@@ -17,6 +17,7 @@ func _ready() -> void:
 		speed = 300.0
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	if _lifetime <= 0.0:
 		queue_free()

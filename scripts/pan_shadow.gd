@@ -12,6 +12,7 @@ func _ready() -> void:
 	_main_node = get_tree().get_first_node_in_group("main")
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_time += delta
 	_attack_timer -= delta
 

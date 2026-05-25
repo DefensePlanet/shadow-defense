@@ -13,6 +13,7 @@ var _angle: float = 0.0
 var _float_offset: float = 0.0
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	_float_offset += delta * 6.0
 	if _lifetime <= 0.0:

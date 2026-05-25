@@ -14,6 +14,7 @@ var _spin: float = 0.0
 var _hit_targets: Array = []
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	_spin += delta * 15.0
 	if _lifetime <= 0.0:

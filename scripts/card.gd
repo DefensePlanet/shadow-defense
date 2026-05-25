@@ -21,6 +21,7 @@ var apply_paint: bool = false
 var _trail: Array = []
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	_spin += delta * 12.0
 	if _lifetime <= 0.0:

@@ -17,6 +17,7 @@ var _trail: Array = []
 var _trail_time: float = 0.0
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_trail_time += delta
 	# Trail: store positions in local space (offset behind projectile)
 	if is_instance_valid(target):

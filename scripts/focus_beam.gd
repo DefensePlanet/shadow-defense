@@ -17,6 +17,7 @@ var _trail_points: Array = []
 var _time: float = 0.0
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_lifetime -= delta
 	_time += delta
 	if _lifetime <= 0.0:

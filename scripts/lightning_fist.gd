@@ -23,6 +23,7 @@ func _ready() -> void:
 	_apply_smash_damage()
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)
 	_time += delta
 	_lifetime -= delta
 	_flash = max(_flash - delta * 4.0, 0.0)
