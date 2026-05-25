@@ -1102,7 +1102,7 @@ func _survivor_card(idx: int) -> Button:
 		vb.add_child(badge)
 	# Source novel (only for unlocked)
 	if is_unlocked and _main and idx < _main.character_novels.size():
-		var novel = _lbl(_main.character_novels[idx], 8, Color(0.42, 0.38, 0.35))
+		var novel = _lbl(_main.character_novels[idx], 9, Color(0.48, 0.42, 0.38))
 		novel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		novel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		novel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1155,10 +1155,23 @@ func _build_detail_view() -> void:
 	main_hbox.add_theme_constant_override("separation", 20)
 	main_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(main_hbox)
-	# LEFT: Large portrait
+	# LEFT: Large portrait in styled frame
 	var left = VBoxContainer.new()
 	left.custom_minimum_size = Vector2(350, 0)
+	left.add_theme_constant_override("separation", 8)
 	main_hbox.add_child(left)
+	var port_frame = PanelContainer.new()
+	var pfs = StyleBoxFlat.new()
+	pfs.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	pfs.set_corner_radius_all(12)
+	pfs.border_color = Color(0.55, 0.42, 0.18, 0.5)
+	pfs.set_border_width_all(2)
+	pfs.shadow_color = Color(0, 0, 0, 0.2)
+	pfs.shadow_size = 5
+	pfs.content_margin_left = 8; pfs.content_margin_right = 8
+	pfs.content_margin_top = 8; pfs.content_margin_bottom = 8
+	port_frame.add_theme_stylebox_override("panel", pfs)
+	port_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var port = TextureRect.new()
 	port.custom_minimum_size = Vector2(320, 350)
 	port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -1166,7 +1179,8 @@ func _build_detail_view() -> void:
 	port.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var pkey = PORTRAIT_KEYS[idx]
 	if _main and _main._portrait_textures.has(pkey): port.texture = _main._portrait_textures[pkey]
-	left.add_child(port)
+	port_frame.add_child(port)
+	left.add_child(port_frame)
 	var name = _main.character_names[idx] if _main else "?"
 	left.add_child(_lbl(name.to_upper(), 22, Color(1,0.92,0.45)))
 	var title = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
@@ -1210,7 +1224,8 @@ func _build_detail_view() -> void:
 		var is_active_tab = ti == _detail_tab
 		var tb = Button.new()
 		tb.text = tab_names_arr[ti]
-		tb.custom_minimum_size = Vector2(100, 30)
+		tb.custom_minimum_size = Vector2(0, 32)
+		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var ts = StyleBoxFlat.new()
 		ts.bg_color = Color(0.15, 0.10, 0.25, 0.85) if is_active_tab else Color(0.06, 0.04, 0.12, 0.4)
 		ts.set_corner_radius_all(6)
@@ -1690,11 +1705,14 @@ func _build_emporium() -> void:
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: deals_art.material = mat
 		deals_panel.add_child(deals_art)
-		var deals_lbl = _lbl("DAILY DEALS — New offers every day!", 14, Color(1, 0.85, 0.3))
+		var deals_center = CenterContainer.new()
+		deals_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		deals_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var deals_lbl = _lbl("✨ DAILY DEALS ✨", 16, Color(1, 0.85, 0.3))
 		deals_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		deals_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		deals_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		deals_panel.add_child(deals_lbl)
+		deals_center.add_child(deals_lbl)
+		deals_panel.add_child(deals_center)
 		# Pulsing glow animation on deals banner
 		var deals_tw = create_tween().set_loops()
 		deals_tw.tween_property(deals_panel, "modulate", Color(1.15, 1.1, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
@@ -2731,7 +2749,7 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 		var bar_fill = ColorRect.new()
 		bar_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
 		bar_fill.offset_left = 2; bar_fill.offset_top = 2; bar_fill.offset_bottom = -2
-		bar_fill.offset_right = -140 + (136 * volume_pct)
+		bar_fill.offset_right = -160 + (156 * volume_pct)
 		bar_fill.color = Color(0.3, 0.75, 0.45, 0.9)
 		bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bar_panel.add_child(bar_fill)
@@ -2739,13 +2757,16 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 	btn.text = value
 	btn.custom_minimum_size = Vector2(100, 32)
 	var bs = StyleBoxFlat.new()
-	# Color code ON/OFF with glow
-	if value == "ON" or value.ends_with("%") or value == "AUTO" or value.begins_with("1") or value.begins_with("2") or value.begins_with("3"):
+	# Color code — green for active/enabled, neutral for values, red only for destructive
+	if value == "ON" or value == "YES":
 		bs.bg_color = Color(0.10, 0.30, 0.12, 0.85)
 		bs.border_color = Color(0.2, 0.6, 0.25, 0.5)
-	elif value == "OFF" or value == "NO" or value == "YES":
-		bs.bg_color = Color(0.30, 0.10, 0.10, 0.85)
-		bs.border_color = Color(0.6, 0.2, 0.2, 0.5)
+	elif value == "OFF" or value == "NO":
+		bs.bg_color = Color(0.15, 0.12, 0.25, 0.85)
+		bs.border_color = Color(0.35, 0.28, 0.45, 0.5)
+	elif value.ends_with("%") or value.ends_with("x"):
+		bs.bg_color = Color(0.12, 0.25, 0.35, 0.85)
+		bs.border_color = Color(0.25, 0.5, 0.7, 0.5)
 	else:
 		bs.bg_color = Color(0.12, 0.10, 0.22, 0.85)
 		bs.border_color = Color(0.35, 0.28, 0.45, 0.5)
