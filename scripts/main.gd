@@ -5496,12 +5496,8 @@ func _create_ui() -> void:
 	now_playing_label.text = ""
 	top_bar.add_child(now_playing_label)
 
-	skip_song_button = Button.new()
-	skip_song_button.text = " >> "
-	skip_song_button.position = Vector2(1070, 8)
-	skip_song_button.custom_minimum_size = Vector2(44, 34)
-	skip_song_button.add_theme_color_override("font_color", Color(0.75, 0.65, 0.90))
-	skip_song_button.add_theme_font_size_override("font_size", 12)
+	skip_song_button = _make_button(">>", Vector2(1070, 8), Vector2(40, 34))
+	skip_song_button.add_theme_font_size_override("font_size", 11)
 	skip_song_button.pressed.connect(_on_skip_song_pressed)
 	top_bar.add_child(skip_song_button)
 
@@ -5816,6 +5812,9 @@ func _create_ui() -> void:
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		desc_label.add_theme_font_size_override("font_size", 14)
 		desc_label.add_theme_color_override("font_color", Color(0.75, 0.72, 0.80, 0.8))
+		desc_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+		desc_label.add_theme_constant_override("shadow_offset_x", 1)
+		desc_label.add_theme_constant_override("shadow_offset_y", 1)
 		status_rect.add_child(desc_label)
 		upgrade_desc_labels.append(desc_label)
 
@@ -5853,6 +5852,9 @@ func _create_ui() -> void:
 	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sell_value_label.add_theme_font_size_override("font_size", 13)
 	sell_value_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
+	sell_value_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	sell_value_label.add_theme_constant_override("shadow_offset_x", 1)
+	sell_value_label.add_theme_constant_override("shadow_offset_y", 1)
 	upgrade_panel.add_child(sell_value_label)
 
 	# === MAIN MENU OVERLAY ===
@@ -6164,20 +6166,13 @@ func _create_ui() -> void:
 		survivor_detail_container.add_child(lbl)
 
 	# Return to menu button (hidden during gameplay, shown on victory/game over)
-	return_button = Button.new()
-	return_button.text = "  RETURN TO MENU  "
-	return_button.position = Vector2(500, 380)
-	return_button.custom_minimum_size = Vector2(280, 50)
-	return_button.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
+	return_button = _make_button("  RETURN TO MENU  ", Vector2(500, 380), Vector2(280, 50))
 	return_button.add_theme_font_size_override("font_size", 18)
 	return_button.pressed.connect(_show_menu)
 	return_button.visible = false
 	ui.add_child(return_button)
 
-	retry_button = Button.new()
-	retry_button.text = "  RETRY LEVEL  "
-	retry_button.position = Vector2(500, 440)
-	retry_button.custom_minimum_size = Vector2(280, 50)
+	retry_button = _make_button("  RETRY LEVEL  ", Vector2(500, 440), Vector2(280, 50))
 	retry_button.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 	retry_button.add_theme_font_size_override("font_size", 18)
 	retry_button.pressed.connect(_on_retry_level)
