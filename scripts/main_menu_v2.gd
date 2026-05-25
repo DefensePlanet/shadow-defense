@@ -199,6 +199,7 @@ func _build_nav() -> void:
 		btn.add_theme_constant_override("shadow_offset_x", 1)
 		btn.add_theme_constant_override("shadow_offset_y", 1)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
+		_add_press_feedback(btn)
 		# Hover feedback on nav tabs
 		btn.mouse_entered.connect(func():
 			btn.pivot_offset = btn.size / 2.0
@@ -366,6 +367,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			db.add_theme_constant_override("shadow_offset_x", 1)
 			db.add_theme_constant_override("shadow_offset_y", 1)
 			db.pressed.connect(_play.bind(idx, d[0]))
+			_add_press_feedback(db)
 			dr.add_child(db)
 		btns.add_child(dr)
 		# PLAY button — use art if available
@@ -585,6 +587,18 @@ func _open_survivor_detail(idx: int) -> void:
 func _build_detail_view() -> void:
 	var idx = _detail_idx
 	_clear()
+	# Detail panel art background
+	if _art.has("detail_panel"):
+		var detail_bg = TextureRect.new()
+		detail_bg.texture = _art["detail_panel"]
+		detail_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		detail_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		detail_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		detail_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		detail_bg.modulate.a = 0.3  # Subtle art behind content
+		var mat = _make_black_key_mat(0.08, 0.05)
+		if mat: detail_bg.material = mat
+		content_area.add_child(detail_bg)
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -628,6 +642,9 @@ func _build_detail_view() -> void:
 	back.add_theme_font_size_override("font_size", 11)
 	back.add_theme_color_override("font_color", Color(0.8,0.75,0.65))
 	back.pressed.connect(_build_survivors)
+	_add_press_feedback(back)
+	var bsh = bs.duplicate(); bsh.bg_color = Color(0.22, 0.18, 0.35, 0.9)
+	back.add_theme_stylebox_override("hover", bsh)
 	right.add_child(back)
 	# TAB BUTTONS — Stats / Gear / Allies / Abilities
 	var tab_row = HBoxContainer.new()
@@ -906,6 +923,7 @@ func _build_emporium() -> void:
 			badge_panel.add_child(bl)
 			row.add_child(badge_panel)
 		btn.pressed.connect(_open_emporium_category.bind(ci))
+		_add_press_feedback(btn)
 		grid.add_child(btn)
 
 func _open_emporium_category(cat_idx: int) -> void:
@@ -1263,6 +1281,16 @@ func _title(text: String) -> Label:
 	var l = _lbl(text, 24, Color(1,0.92,0.45))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
+
+# Add press feedback to any button
+func _add_press_feedback(btn: BaseButton) -> void:
+	btn.button_down.connect(func():
+		btn.pivot_offset = btn.size / 2.0
+		var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
+		tw.tween_property(btn, "scale", Vector2(0.95, 0.95), 0.05))
+	btn.button_up.connect(func():
+		var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.1))
 
 func _lbl(text: String, size: int, color: Color) -> Label:
 	var l = Label.new()
