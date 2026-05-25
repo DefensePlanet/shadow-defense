@@ -33,18 +33,18 @@ var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 
 var tower_info = {
-	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 75, "range": 160.0, "damage": 20, "fire_rate": 0.85},
-	TowerType.ALICE: {"name": "Alice", "cost": 85, "range": 85.0, "damage": 12, "fire_rate": 1.80},
-	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 100, "range": 154.0, "damage": 18, "fire_rate": 1.60},
-	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 90, "range": 100.0, "damage": 15, "fire_rate": 2.00},
-	TowerType.PHANTOM: {"name": "The Phantom", "cost": 95, "range": 180.0, "damage": 30, "fire_rate": 0.80},
-	TowerType.SCROOGE: {"name": "Scrooge", "cost": 60, "range": 65.0, "damage": 8, "fire_rate": 1.40},
-	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 110, "range": 188.0, "damage": 0, "fire_rate": 0.0},
-	TowerType.TARZAN: {"name": "Tarzan", "cost": 100, "range": 120.0, "damage": 28, "fire_rate": 0.80},
-	TowerType.DRACULA: {"name": "Count Dracula", "cost": 105, "range": 190.0, "damage": 22, "fire_rate": 1.50},
-	TowerType.MERLIN: {"name": "Merlin", "cost": 115, "range": 132.0, "damage": 25, "fire_rate": 1.00},
-	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 130, "range": 140.0, "damage": 32, "fire_rate": 0.60},
-	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 250, "range": 170.0, "damage": 25, "fire_rate": 1.20},
+	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85},
+	TowerType.ALICE: {"name": "Alice", "cost": 120, "range": 85.0, "damage": 12, "fire_rate": 1.80},
+	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 140, "range": 154.0, "damage": 18, "fire_rate": 1.60},
+	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 130, "range": 100.0, "damage": 15, "fire_rate": 2.00},
+	TowerType.PHANTOM: {"name": "The Phantom", "cost": 150, "range": 180.0, "damage": 30, "fire_rate": 0.80},
+	TowerType.SCROOGE: {"name": "Scrooge", "cost": 80, "range": 65.0, "damage": 8, "fire_rate": 1.40},
+	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 160, "range": 188.0, "damage": 0, "fire_rate": 0.0},
+	TowerType.TARZAN: {"name": "Tarzan", "cost": 145, "range": 120.0, "damage": 28, "fire_rate": 0.80},
+	TowerType.DRACULA: {"name": "Count Dracula", "cost": 155, "range": 190.0, "damage": 22, "fire_rate": 1.50},
+	TowerType.MERLIN: {"name": "Merlin", "cost": 170, "range": 132.0, "damage": 25, "fire_rate": 1.00},
+	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 185, "range": 140.0, "damage": 32, "fire_rate": 0.60},
+	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 350, "range": 170.0, "damage": 25, "fire_rate": 1.20},
 }
 
 # Constants
@@ -1952,7 +1952,7 @@ const DIFFICULTY_XP_MULT: Array = [0.5, 1.0, 1.5, 3.0]
 # Difficulty gear drop quality cap: 0=common/uncommon, 1=up to rare, 2=up to epic, 3=up to legendary
 const DIFFICULTY_GEAR_CAP: Array = [1, 2, 3, 4]
 # Difficulty gold multiplier
-const DIFFICULTY_GOLD_MULT: Array = [0.75, 1.0, 1.25, 1.5]
+const DIFFICULTY_GOLD_MULT: Array = [0.60, 1.0, 1.15, 1.3]  # Easy nerfed from 0.75
 
 # === PROGRESSION: Gear slot gating by survivor level ===
 # Gear slots unlock at these survivor levels (2 base + 4 unlockable = 6 total)
@@ -2182,7 +2182,7 @@ const DAMAGE_TYPE_STRONG_VS: Dictionary = {
 
 # === BATTD4 FEATURE 2: PERFECT WAVE BONUS ===
 var _perfect_wave_start_lives: int = 0
-const PERFECT_WAVE_GOLD: int = 20
+const PERFECT_WAVE_GOLD: int = 10  # Reduced from 20 — was too generous
 var _perfect_waves_count: int = 0
 
 # === BATTD4 FEATURE 3: OVERKILL BONUS ===
@@ -2234,7 +2234,7 @@ const SPECIALIZATION_BONUS: float = 0.10
 # === BATTD4 FEATURE 19: WAVE STREAK ===
 var _wave_streak: int = 0
 var _wave_streak_best: int = 0
-const WAVE_STREAK_GOLD_PER: int = 5
+const WAVE_STREAK_GOLD_PER: int = 3  # Reduced from 5 — streak was too OP
 
 # === LAYERED MUSIC SYSTEM ===
 # Each character plays an instrument — placing towers builds the song
@@ -17165,6 +17165,10 @@ func _spawn_enemy() -> void:
 		enemy.max_health *= 12.0
 		enemy.speed *= 0.45
 		enemy.gold_reward += 30
+		# Boss entrance shake + announcement
+		_screen_shake_intensity = 10.0
+		_screen_shake_timer = 0.8
+		spawn_floating_text(Vector2(640, 250), "⚠ BOSS: %s ⚠" % enemy.boss_name, Color(1.0, 0.3, 0.15), 24.0, 2.5)
 
 	# Assign boss mechanics based on theme
 	if is_boss_wave or is_final_villain or is_last_wave:
@@ -17949,7 +17953,7 @@ func _check_wave_complete() -> void:
 			# BATTD: Income breakdown display timer
 			_income_display_timer = 3.0
 			# Bonus gold between waves — scales with progression
-			var bonus = 5 + wave * 2 + int(wave / 10) * 5
+			var bonus = 3 + wave + int(wave / 10) * 3  # Reduced from 5+wave*2
 			add_gold(bonus)
 			spawn_floating_text(Vector2(640, 340), "+%dG Wave Bonus" % bonus, c_gold_bright, 14.0, 1.0)
 			_income_breakdown["wave_bonus"] = bonus
