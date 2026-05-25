@@ -56,6 +56,7 @@ func _ready() -> void:
 
 func _add_vignette() -> void:
 	var vig = ColorRect.new()
+	vig.color = Color(0, 0, 0, 0)  # Transparent — shader handles the visual
 	vig.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vig.z_index = 0  # Above background, below content
@@ -151,14 +152,7 @@ func _load_art() -> void:
 		"go_button": "res://assets/ui_elements/go_button.png",
 		"three_stars": "res://assets/ui_elements/three_stars.png",
 		"empty_star": "res://assets/ui_elements/empty_star.png",
-		"tab_chapters": "res://assets/ui_elements/tab_chapters.png",
-		"tab_survivors": "res://assets/ui_elements/tab_survivors.png",
-		"tab_emporium": "res://assets/ui_elements/tab_emporium.png",
-		"tab_achievements": "res://assets/ui_elements/tab_achievements.png",
-		"tab_gear": "res://assets/ui_elements/tab_gear.png",
 		"upgrade_arrow": "res://assets/ui_elements/upgrade_arrow.png",
-		"game_logo": "res://assets/menu_art/game_logo.png",
-		"game_title": "res://assets/menu_art/game_title.png",
 		"side_panel_buttons": "res://assets/ui_elements/side_panel_buttons.png",
 		"tooltip_frame": "res://assets/ui_elements/tooltip_frame.png",
 		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
@@ -279,30 +273,21 @@ func _build_nav() -> void:
 func _build_nav_buttons() -> void:
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
-	var tab_icon_keys = ["tab_chapters", "tab_survivors", "tab_emporium", "tab_gear", "tab_achievements"]
 	for i in range(5):
 		var is_active = tabs[i] == current_view
 		var btn = Button.new()
 		btn.text = labels[i]
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, 70)
-		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		# Use tab icon art if available
-		if _art.has(tab_icon_keys[i]):
-			btn.icon = _art[tab_icon_keys[i]]
-			btn.expand_icon = true
-			# Custom icon size for nav
-			btn.add_theme_constant_override("icon_max_width", 28)
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.12, 0.08, 0.20, 0.4) if is_active else Color(0.06, 0.04, 0.12, 0.0)
-		s.border_color = Color(0.85, 0.70, 0.30, 0.6) if is_active else Color(0, 0, 0, 0)
-		s.border_width_top = 2 if is_active else 0
+		s.bg_color = Color(0.12, 0.08, 0.20, 0.5) if is_active else Color(0.05, 0.03, 0.10, 0.0)
+		s.border_color = Color(0.85, 0.70, 0.30, 0.7) if is_active else Color(0, 0, 0, 0)
+		s.border_width_top = 3 if is_active else 0
 		s.set_corner_radius_all(0)
 		btn.add_theme_stylebox_override("normal", s)
 		var sh = s.duplicate()
-		sh.bg_color = Color(0.18, 0.12, 0.28, 0.5)
-		sh.border_color = Color(0.70, 0.55, 0.25, 0.4)
+		sh.bg_color = Color(0.15, 0.10, 0.25, 0.4)
+		sh.border_color = Color(0.70, 0.55, 0.25, 0.5)
 		sh.border_width_top = 2
 		btn.add_theme_stylebox_override("hover", sh)
 		btn.add_theme_font_size_override("font_size", 11)
@@ -370,8 +355,6 @@ func _clear() -> void:
 # ======================== CHAPTERS ========================
 func _build_chapters() -> void:
 	_clear()
-	# ScrollContainer with all children set to mouse_filter=IGNORE
-	# Only Button nodes receive clicks — ScrollContainer handles scrolling
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -381,19 +364,31 @@ func _build_chapters() -> void:
 	vb.add_theme_constant_override("separation", 6)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sc.add_child(vb)
-	# Game logo art
-	if _art.has("game_logo"):
-		var logo = TextureRect.new()
-		logo.texture = _art["game_logo"]
-		logo.custom_minimum_size = Vector2(0, 80)
-		logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var mat = _make_black_key_mat(0.06, 0.04)
-		if mat: logo.material = mat
-		vb.add_child(logo)
-	else:
-		vb.add_child(_title("THE TOME OF SHADOWS"))
+	# Title with entrance animation
+	var title_container = CenterContainer.new()
+	title_container.custom_minimum_size = Vector2(0, 50)
+	title_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var title_vb = VBoxContainer.new()
+	title_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	title_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_container.add_child(title_vb)
+	var main_title = _lbl("SHADOW DEFENSE", 28, Color(1.0, 0.90, 0.40))
+	main_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_vb.add_child(main_title)
+	var subtitle = _lbl("Tales from the Pages", 14, Color(0.70, 0.60, 0.48))
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_vb.add_child(subtitle)
+	# Entrance animation
+	title_container.modulate.a = 0.0
+	title_container.scale = Vector2(0.85, 0.85)
+	title_container.pivot_offset = Vector2(640, 25)
+	var title_tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	title_tw.set_parallel(true)
+	title_tw.tween_property(title_container, "scale", Vector2(1.0, 1.0), 0.4)
+	title_tw.tween_property(title_container, "modulate:a", 1.0, 0.25)
+	vb.add_child(title_container)
 	# Story tagline with storybook styling
 	var tagline = _lbl("Heroes pulled from their stories. One Author controls them all.", 12, Color(0.65, 0.55, 0.45))
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -605,9 +600,33 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var st = _lbl(lvl.get("subtitle",""), 10, Color(0.55,0.48,0.42))
 	st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.add_child(st)
-	var stats = _lbl("W:%d G:%d L:%d" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 9, Color(0.45,0.40,0.38))
+	# Stats row with wave/gold/lives
+	var stats_row = HBoxContainer.new()
+	stats_row.add_theme_constant_override("separation", 8)
+	stats_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var stats = _lbl("W:%d  G:%d  L:%d" % [lvl.get("waves",20), lvl.get("gold",100), lvl.get("lives",20)], 9, Color(0.45, 0.40, 0.38))
 	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	info.add_child(stats)
+	stats_row.add_child(stats)
+	# Difficulty medals for completed levels (bronze=Easy, silver=Med, gold=Hard)
+	if complete:
+		var medal_colors = [
+			["E", Color(0.72, 0.45, 0.20)],  # Bronze — Easy
+			["M", Color(0.70, 0.70, 0.75)],   # Silver — Med
+			["H", Color(1.0, 0.85, 0.15)],    # Gold — Hard
+		]
+		var medals_row = HBoxContainer.new()
+		medals_row.add_theme_constant_override("separation", 2)
+		medals_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Check which difficulties are completed
+		var completed_diffs = _main.level_difficulty_completions.get(idx, []) if "level_difficulty_completions" in _main else []
+		for mi in range(3):
+			var earned = mi in completed_diffs if completed_diffs is Array else (mi == 0)
+			var medal = _lbl("●", 10, medal_colors[mi][1] if earned else Color(0.25, 0.22, 0.20, 0.4))
+			medal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			medal.tooltip_text = ["Easy", "Medium", "Hard"][mi]
+			medals_row.add_child(medal)
+		stats_row.add_child(medals_row)
+	info.add_child(stats_row)
 	# Star rating — use golden_star art if available
 	if _main and _main.level_stars.has(idx):
 		var star_count = _main.level_stars[idx]
