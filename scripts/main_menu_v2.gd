@@ -674,14 +674,18 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		var story = lvl.get("story_hook", lvl.get("subtitle", ""))
 		if story != "":
 			p.tooltip_text = story
-	# Hover feedback on level card
+	# Hover feedback — subtle scale + brighten
 	p.mouse_entered.connect(func():
-		var tw = p.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-		tw.tween_property(p, "modulate", Color(1.15, 1.12, 1.05), 0.12))
+		p.pivot_offset = p.size / 2.0
+		var tw = p.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.set_parallel(true)
+		tw.tween_property(p, "scale", Vector2(1.01, 1.01), 0.1)
+		tw.tween_property(p, "modulate", Color(1.12, 1.10, 1.05), 0.1))
 	p.mouse_exited.connect(func():
-		var base = Color.WHITE if not complete else Color(0.92, 1.0, 0.92)
 		var tw = p.create_tween().set_ease(Tween.EASE_OUT)
-		tw.tween_property(p, "modulate", base, 0.1))
+		tw.set_parallel(true)
+		tw.tween_property(p, "scale", Vector2(1.0, 1.0), 0.08)
+		tw.tween_property(p, "modulate", Color.WHITE, 0.08))
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -980,8 +984,8 @@ func _build_survivors() -> void:
 	vb.add_child(sub)
 	var grid = GridContainer.new()
 	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(grid)
@@ -1756,7 +1760,7 @@ func _build_emporium() -> void:
 			card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card_art.modulate.a = 0.4  # Subtle — art shows but doesn't overpower
+			card_art.modulate.a = 0.2  # Very subtle — texture hint only
 			var mat = _make_black_key_mat(0.08, 0.05)
 			if mat: card_art.material = mat
 			btn.add_child(card_art)
@@ -2231,10 +2235,11 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 14, Color(0.85, 0.72, 0.40)))
 	parent.add_child(_lbl("Collect gear from battles and the Emporium", 11, Color(0.55, 0.50, 0.45)))
 	var grid = GridContainer.new()
-	grid.columns = 8
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.columns = 7
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(grid)
 	if not _main: return
 	var keys = _main._gear_icon_textures.keys()
@@ -2355,10 +2360,10 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				cv.add_child(icon)
-				var name_lbl = _lbl(ak.replace("_", " ").capitalize(), 7, Color(0.60, 0.55, 0.48))
+				var name_lbl = _lbl(ak.replace("_", " ").capitalize(), 8, Color(0.60, 0.55, 0.48))
 				name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				name_lbl.clip_text = true
-				name_lbl.custom_minimum_size.x = 72
+				name_lbl.custom_minimum_size.x = 80
 				name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				cv.add_child(name_lbl)
 				grid.add_child(card)
