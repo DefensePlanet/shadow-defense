@@ -228,6 +228,7 @@ func _ready() -> void:
 	add_child(_upgrade_player)
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)  # Cap to prevent physics spikes
 	_time += delta
 	if _build_timer > 0.0: _build_timer -= delta
 	_attack_anim = max(_attack_anim - delta * 3.0, 0.0)

@@ -428,6 +428,7 @@ func _ready() -> void:
 	add_child(_watson_aid_player)
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)  # Cap to prevent physics spikes
 	_time += delta
 	if _build_timer > 0.0: _build_timer -= delta
 	_upgrade_flash = max(_upgrade_flash - delta * 0.5, 0.0)
