@@ -9,6 +9,10 @@ var current_view: String = "chapters"
 var _song_label: Label = null
 var _last_song: String = ""
 var _scroll_positions: Dictionary = {}  # View name → scroll position
+var _last_gold: int = 0
+var _last_quills: int = 0
+var _last_shards: int = 0
+var _last_stars_currency: int = 0
 # Portrait key mapping — character_names[] index → portrait texture key
 const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
 # Map arc name prefixes to portrait keys for arc header icons
@@ -112,6 +116,22 @@ func _process(delta: float) -> void:
 	if _song_check_timer >= 2.0:
 		_song_check_timer = 0.0
 		_update_song_display()
+		# Check currency changes — flash the top bar
+		if _main:
+			var changed = false
+			if _main.gold != _last_gold: changed = true; _last_gold = _main.gold
+			if _main.player_quills != _last_quills: changed = true; _last_quills = _main.player_quills
+			if _main.player_gear_shards != _last_shards: changed = true; _last_shards = _main.player_gear_shards
+			if _main.player_storybook_stars != _last_stars_currency: changed = true; _last_stars_currency = _main.player_storybook_stars
+			if changed:
+				# Rebuild currency bar
+				for c in top_bar.get_children(): c.queue_free()
+				_build_currency_bar()
+				_build_music_display()
+				# Flash effect
+				var flash = create_tween()
+				flash.tween_property(top_bar, "modulate", Color(1.3, 1.2, 1.0), 0.15)
+				flash.tween_property(top_bar, "modulate", Color.WHITE, 0.2)
 	queue_redraw()
 
 func _draw() -> void:
@@ -427,6 +447,7 @@ func _build_chapters() -> void:
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
+	_add_scroll_hint(content_area)
 	# Margin container for card breathing room
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -639,6 +660,14 @@ func _build_chapters() -> void:
 				pct_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				pct_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				vb.add_child(pct_lbl)
+		# Connecting path line between levels
+		if card_idx > 0:
+			var path_line = ColorRect.new()
+			path_line.custom_minimum_size = Vector2(2, 12)
+			path_line.color = Color(0.55, 0.42, 0.18, 0.4)
+			path_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			path_line.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			vb.add_child(path_line)
 		var card = _level_card(i, lvl)
 		vb.add_child(card)
 		# Staggered entrance animation
@@ -1209,6 +1238,10 @@ func _build_detail_view() -> void:
 	if _main and _main._portrait_textures.has(pkey): port.texture = _main._portrait_textures[pkey]
 	port_frame.add_child(port)
 	left.add_child(port_frame)
+	# Idle breathing animation on portrait
+	var breathe_tw = create_tween().set_loops()
+	breathe_tw.tween_property(port, "position:y", -3.0, 1.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	breathe_tw.tween_property(port, "position:y", 0.0, 1.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	var name = _main.character_names[idx] if _main else "?"
 	left.add_child(_lbl(name.to_upper(), 22, Color(1,0.92,0.45)))
 	var title = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
@@ -1837,6 +1870,16 @@ func _build_emporium() -> void:
 			row.add_child(badge_panel)
 		btn.pressed.connect(_open_emporium_category.bind(ci))
 		_add_press_feedback(btn)
+		# Add item count hint
+		var item_ct = _lbl("▸", 12, Color(0.45, 0.40, 0.35))
+		item_ct.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(item_ct)
+		# Glow animation for cards with badges
+		var badge_val = cat.get("badge", "")
+		if badge_val == "SALE!" or badge_val == "NEW!" or badge_val == "FREE!":
+			var glow_tw = create_tween().set_loops()
+			glow_tw.tween_property(btn, "modulate", Color(1.08, 1.06, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
+			glow_tw.tween_property(btn, "modulate", Color(1.0, 1.0, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
 		grid.add_child(btn)
 
 func _open_emporium_category(cat_idx: int) -> void:
@@ -2436,7 +2479,15 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 			ach_row.add_child(name_l)
 			ach_row.add_child(_lbl("%d/%d" % [mini(prog, ad.get("target", 1)), ad.get("target", 1)], 9, Color(0.45, 0.40, 0.38)))
 			var reward_text = "+%d %s" % [ad.get("reward_amount", 0), ad.get("reward_type", "").capitalize()]
-			ach_row.add_child(_lbl(reward_text, 8, Color(0.4, 0.7, 0.3) if is_done else Color(0.35, 0.30, 0.25)))
+			ach_row.add_child(_lbl(reward_text, 9, Color(0.4, 0.7, 0.3) if is_done else Color(0.35, 0.30, 0.25)))
+			# CLAIM button for completed achievements
+			if is_done:
+				var claim = _art_button("CLAIM", Color(0.12, 0.40, 0.12), Vector2(60, 22))
+				claim.add_theme_font_size_override("font_size", 9)
+				var ach_name = ad.get("name", "")
+				var ach_reward = reward_text
+				claim.pressed.connect(func(): _show_popup("Reward Claimed!", "%s\n%s" % [ach_name, ach_reward]))
+				ach_row.add_child(claim)
 			parent.add_child(ach_row)
 	return
 
@@ -2705,8 +2756,16 @@ func _build_settings() -> void:
 		var ts_idx = [1.0, 1.25, 1.5].find(GameSettings.font_scale)
 		if ts_idx < 0: ts_idx = 0
 		_add_setting_row(vb, "Text Size", text_sizes[ts_idx], func(): var sizes = [1.0, 1.25, 1.5]; var ci = sizes.find(GameSettings.font_scale); GameSettings.font_scale = sizes[(ci + 1) % 3]; GameSettings.save_settings(); _build_settings())
+		var preview = _lbl("  ↳ Preview: This is how text will look", int(10 * GameSettings.font_scale), Color(0.55, 0.50, 0.45))
+		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(preview)
 		var cb_names = ["Off", "Deuteranopia", "Protanopia", "Tritanopia"]
 		_add_setting_row(vb, "Colorblind Mode", cb_names[clampi(GameSettings.colorblind_mode, 0, 3)], func(): GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4; GameSettings.save_settings(); _build_settings())
+		if GameSettings.colorblind_mode > 0:
+			var cb_desc = ["", "Red-green (most common)", "Red-green (protanopia)", "Blue-yellow (rare)"]
+			var desc = _lbl("  ↳ %s" % cb_desc[clampi(GameSettings.colorblind_mode, 0, 3)], 9, Color(0.50, 0.45, 0.40))
+			desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			vb.add_child(desc)
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
 	# Language
@@ -2937,6 +2996,18 @@ func _section_header(text: String) -> Control:
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_r)
 	return row
+
+func _add_scroll_hint(parent_control: Control) -> void:
+	# Pulsing down arrow at bottom center
+	var hint = _lbl("▼  scroll  ▼", 10, Color(0.55, 0.45, 0.35))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	hint.offset_top = -20
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent_control.add_child(hint)
+	var htw = create_tween().set_loops()
+	htw.tween_property(hint, "modulate:a", 0.3, 0.8).set_ease(Tween.EASE_IN_OUT)
+	htw.tween_property(hint, "modulate:a", 0.8, 0.8).set_ease(Tween.EASE_IN_OUT)
 
 func _format_num(val: float) -> String:
 	if val >= 1000000: return "%.1fM" % (val / 1000000.0)
