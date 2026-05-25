@@ -961,9 +961,24 @@ func _build_detail_view() -> void:
 		right.add_child(_lbl("SIDEKICKS", 14, Color(0.85,0.72,0.40)))
 	if tt != null and _main.survivor_sidekicks.has(tt):
 		for sk in _main.survivor_sidekicks[tt]:
-			var skp = HBoxContainer.new()
-			skp.add_child(_lbl(sk.get("name",""), 12, Color(0.9,0.82,0.55)))
-			skp.add_child(_lbl(" — " + sk.get("desc",""), 10, Color(0.55,0.50,0.45)))
+			var skp = PanelContainer.new()
+			var sks = StyleBoxFlat.new()
+			sks.bg_color = Color(0.05, 0.03, 0.10, 0.45)
+			sks.set_corner_radius_all(6)
+			sks.content_margin_left = 8; sks.content_margin_right = 8
+			sks.content_margin_top = 4; sks.content_margin_bottom = 4
+			skp.add_theme_stylebox_override("panel", sks)
+			skp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var sk_row = HBoxContainer.new()
+			sk_row.add_theme_constant_override("separation", 8)
+			sk_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			skp.add_child(sk_row)
+			sk_row.add_child(_lbl(sk.get("name",""), 12, Color(0.9, 0.82, 0.55)))
+			var sk_desc = _lbl(sk.get("desc",""), 10, Color(0.55, 0.50, 0.45))
+			sk_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			sk_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			sk_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			sk_row.add_child(sk_desc)
 			right.add_child(skp)
 	# === TAB 3: ABILITIES ===
 	if _detail_tab == 0 or _detail_tab == 3:
@@ -979,19 +994,37 @@ func _build_detail_view() -> void:
 		ability_names = ["Eat Me Cake", "Cheshire Cat", "Mad Tea Party", "Queen's Flamingo", "Looking Glass", "Wonderland Logic", "Vorpal Blade", "Jabberwock's Fury", "Queen of Wonderland"]
 	elif tower_key == "merlin":
 		ability_names = ["Crystal Sight", "Ancient Ward", "Lady of the Lake", "Excalibur's Edge", "Time Warp", "Prophecy Shield", "Spell of Ages", "Avalon's Call", "The Last Enchanter"]
-	# Show first few abilities
+	# Show abilities with styled cards
 	if ability_names.size() > 0:
-		for ai in range(mini(ability_names.size(), 5)):
+		for ai in range(ability_names.size()):
 			var unlocked_ab = ai < 2  # Placeholder — first 2 unlocked
-			var ab_color = Color(0.7, 0.85, 0.5) if unlocked_ab else Color(0.35, 0.32, 0.28)
-			var prefix = "✓ " if unlocked_ab else "🔒 "
-			var ab_lbl = _lbl(prefix + ability_names[ai], 10, ab_color)
-			ab_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			right.add_child(ab_lbl)
-		if ability_names.size() > 5:
-			right.add_child(_lbl("... +%d more abilities" % (ability_names.size() - 5), 9, Color(0.45, 0.40, 0.38)))
+			var ab_panel = PanelContainer.new()
+			var abs = StyleBoxFlat.new()
+			abs.bg_color = Color(0.06, 0.04, 0.12, 0.5) if unlocked_ab else Color(0.03, 0.02, 0.06, 0.3)
+			abs.set_corner_radius_all(6)
+			abs.border_color = Color(0.4, 0.65, 0.25, 0.5) if unlocked_ab else Color(0.2, 0.18, 0.15, 0.3)
+			abs.set_border_width_all(1)
+			abs.content_margin_left = 8; abs.content_margin_right = 8
+			abs.content_margin_top = 3; abs.content_margin_bottom = 3
+			ab_panel.add_theme_stylebox_override("panel", abs)
+			ab_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var ab_row = HBoxContainer.new()
+			ab_row.add_theme_constant_override("separation", 8)
+			ab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ab_panel.add_child(ab_row)
+			var icon_text = "✓" if unlocked_ab else "🔒"
+			var icon_color = Color(0.4, 0.8, 0.3) if unlocked_ab else Color(0.35, 0.30, 0.25)
+			ab_row.add_child(_lbl(icon_text, 12, icon_color))
+			var ab_name = _lbl(ability_names[ai], 11, Color(0.8, 0.9, 0.6) if unlocked_ab else Color(0.4, 0.35, 0.30))
+			ab_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			ab_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ab_row.add_child(ab_name)
+			var tier_lbl = _lbl("Tier %d" % (ai + 1), 9, Color(0.55, 0.48, 0.42))
+			tier_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ab_row.add_child(tier_lbl)
+			right.add_child(ab_panel)
 	else:
-		right.add_child(_lbl("Unlock through combat damage", 10, Color(0.50,0.45,0.40)))
+		right.add_child(_lbl("Unlock abilities through combat damage", 10, Color(0.50, 0.45, 0.40)))
 
 func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBoxContainer:
 	var row = HBoxContainer.new()
@@ -1334,8 +1367,8 @@ func _build_codex() -> void:
 	match _codex_subtab:
 		"gear": _build_gear_grid(content)
 		"achievements": _build_achievements_list(content)
-		"bestiary": content.add_child(_lbl("Enemy catalog coming soon...", 14, Color(0.55, 0.50, 0.45)))
-		"journal": content.add_child(_lbl("Character journals coming soon...", 14, Color(0.55, 0.50, 0.45)))
+		"bestiary": _build_bestiary(content)
+		"journal": _build_journal(content)
 		"stats": _build_stats_page(content)
 
 func _codex_switch(tab: String) -> void:
@@ -1480,6 +1513,103 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 		vl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(vl)
 		parent.add_child(row_panel)
+
+func _build_bestiary(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("BESTIARY", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_lbl("Enemies encountered in your battles", 11, Color(0.55, 0.50, 0.45)))
+	if not _main: return
+	# Show enemy types from the game data
+	var enemy_types = [
+		["Ink Blot", "Basic ranged unit. Slow but steady.", Color(0.3, 0.3, 0.3)],
+		["Page Ripper", "Fast melee unit. Shreds defenses.", Color(0.7, 0.3, 0.3)],
+		["Spine Crawler", "Armored. Takes extra hits.", Color(0.5, 0.5, 0.6)],
+		["Plot Twist", "Teleports past towers.", Color(0.6, 0.3, 0.7)],
+		["Chapter Boss", "Elite enemy. Massive HP.", Color(0.8, 0.6, 0.2)],
+		["Eraser", "Removes tower buffs on contact.", Color(0.9, 0.9, 0.9)],
+		["Bookmark", "Heals nearby enemies.", Color(0.3, 0.7, 0.3)],
+		["Red Herring", "Decoy that splits on death.", Color(0.8, 0.2, 0.2)],
+	]
+	var grid = GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(grid)
+	for e in enemy_types:
+		var card = PanelContainer.new()
+		var cs = StyleBoxFlat.new()
+		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		cs.set_corner_radius_all(8)
+		cs.border_color = Color(e[2].r * 0.5, e[2].g * 0.5, e[2].b * 0.5, 0.4)
+		cs.set_border_width_all(1)
+		cs.content_margin_left = 10; cs.content_margin_right = 10
+		cs.content_margin_top = 8; cs.content_margin_bottom = 8
+		card.add_theme_stylebox_override("panel", cs)
+		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var cv = VBoxContainer.new()
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(cv)
+		cv.add_child(_lbl(e[0], 14, e[2]))
+		var desc = _lbl(e[1], 10, Color(0.55, 0.50, 0.45))
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(desc)
+		grid.add_child(card)
+
+func _build_journal(parent: VBoxContainer) -> void:
+	parent.add_child(_lbl("CHARACTER JOURNALS", 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_lbl("Unlock journal entries by rescuing characters and completing levels", 11, Color(0.55, 0.50, 0.45)))
+	if not _main: return
+	# Show unlocked character journal entries
+	for i in range(PORTRAIT_KEYS.size()):
+		var pkey = PORTRAIT_KEYS[i]
+		var cname = _main.character_names[i] if i < _main.character_names.size() else "?"
+		var unlocked = false
+		if i < _main.survivor_types.size():
+			unlocked = _main._is_character_unlocked(_main.survivor_types[i])
+		var entry = PanelContainer.new()
+		var es = StyleBoxFlat.new()
+		es.bg_color = Color(0.05, 0.03, 0.10, 0.5) if unlocked else Color(0.03, 0.02, 0.06, 0.3)
+		es.set_corner_radius_all(8)
+		es.border_color = Color(0.55, 0.42, 0.18, 0.4) if unlocked else Color(0.2, 0.18, 0.15, 0.3)
+		es.set_border_width_all(1)
+		es.content_margin_left = 10; es.content_margin_right = 10
+		es.content_margin_top = 8; es.content_margin_bottom = 8
+		entry.add_theme_stylebox_override("panel", es)
+		entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		entry.add_child(row)
+		# Small portrait
+		var port = TextureRect.new()
+		port.custom_minimum_size = Vector2(48, 48)
+		port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		port.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if _main._portrait_textures.has(pkey):
+			port.texture = _main._portrait_textures[pkey]
+			if not unlocked:
+				port.modulate = Color(0.2, 0.2, 0.2)  # Silhouette
+		row.add_child(port)
+		# Text
+		var text_col = VBoxContainer.new()
+		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(text_col)
+		if unlocked:
+			text_col.add_child(_lbl(cname, 14, Color(1, 0.92, 0.45)))
+			if i < _main.character_quotes.size():
+				var quote = _lbl('"' + _main.character_quotes[i] + '"', 10, Color(0.55, 0.50, 0.45))
+				quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				quote.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				text_col.add_child(quote)
+		else:
+			text_col.add_child(_lbl("???", 14, Color(0.35, 0.30, 0.25)))
+			text_col.add_child(_lbl("Rescue this character to unlock their journal", 10, Color(0.35, 0.30, 0.25)))
+		parent.add_child(entry)
 
 # ======================== SETTINGS ========================
 func _build_settings() -> void:
