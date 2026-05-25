@@ -633,6 +633,20 @@ func _build_chapters() -> void:
 		streak_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		streak_row.add_child(_lbl("🔥 %d Day Streak" % _main.quest_streak, 12, Color(1.0, 0.6, 0.2)))
 		vb.add_child(streak_row)
+	# Weekly quest progress
+	if "weekly_quests" in _main and _main.weekly_quests.size() > 0:
+		var wq_done = 0
+		var wq_total = _main.weekly_quests.size()
+		for wq in _main.weekly_quests:
+			if wq.get("claimed", false) or wq.get("progress", 0) >= wq.get("target", 1):
+				wq_done += 1
+		if wq_total > 0:
+			var wq_row = HBoxContainer.new()
+			wq_row.alignment = BoxContainer.ALIGNMENT_CENTER
+			wq_row.add_theme_constant_override("separation", 6)
+			wq_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			wq_row.add_child(_lbl("📋 Weekly: %d/%d" % [wq_done, wq_total], 11, Color(0.5, 0.7, 0.9)))
+			vb.add_child(wq_row)
 	# Comeback bonus display
 	if "_comeback_bonus_active" in _main and _main._comeback_bonus_active:
 		var comeback_lbl = _lbl("⚡ %.0fx Comeback Bonus Active!" % _main._comeback_multiplier, 12, Color(0.4, 0.9, 1.0))
@@ -2353,7 +2367,7 @@ func _build_codex() -> void:
 	var tab_row = HBoxContainer.new()
 	tab_row.add_theme_constant_override("separation", 8)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVE"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["books", "BOOKS"], ["stats", "STATS"]]:
+	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVE"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["books", "BOOKS"], ["stats", "STATS"], ["calendar", "EVENTS"]]:
 		var is_active_codex = _codex_subtab == tab[0]
 		var tb = Button.new()
 		tb.text = tab[1]
@@ -2397,6 +2411,7 @@ func _build_codex() -> void:
 		"journal": _build_journal(content)
 		"stats": _build_stats_page(content)
 		"books": _build_book_collection(content)
+		"calendar": _build_event_calendar(content)
 
 func _codex_switch(tab: String) -> void:
 	_codex_subtab = tab
@@ -2771,6 +2786,44 @@ func _build_journal(parent: VBoxContainer) -> void:
 			text_col.add_child(_lbl("Rescue this character to unlock their journal", 10, Color(0.35, 0.30, 0.25)))
 		parent.add_child(entry)
 
+func _build_event_calendar(parent: VBoxContainer) -> void:
+	parent.add_child(_section_header("EVENT CALENDAR"))
+	parent.add_child(_lbl("Stay on top of resets and upcoming events", 11, Color(0.55, 0.50, 0.45)))
+	var time_dict = Time.get_time_dict_from_system()
+	var hours_left = 24 - time_dict.get("hour", 0)
+	var day_of_week = Time.get_date_dict_from_system().get("weekday", 0)
+	var days_to_weekly = 7 - day_of_week if day_of_week > 0 else 7
+	var events = [
+		["🕐 Daily Deals Reset", "%dh remaining" % hours_left, Color(0.85, 0.65, 0.10)],
+		["🕐 Daily Quests Reset", "%dh remaining" % hours_left, Color(0.3, 0.7, 0.4)],
+		["🕐 Lucky Wheel Free Spin", "%dh remaining" % hours_left, Color(0.7, 0.3, 0.8)],
+		["📅 Weekly Quests Reset", "%d days remaining" % days_to_weekly, Color(0.3, 0.6, 0.9)],
+		["📅 Merchant Rotation", "%dh remaining" % hours_left, Color(0.8, 0.5, 0.2)],
+		["🎃 Seasonal Event", "Coming soon!", Color(0.5, 0.5, 0.5)],
+		["🏆 Ranked Season", "Coming soon!", Color(0.5, 0.5, 0.5)],
+	]
+	for ev in events:
+		var ev_panel = PanelContainer.new()
+		var evs = StyleBoxFlat.new()
+		evs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		evs.set_corner_radius_all(8)
+		evs.border_color = Color(ev[2].r * 0.4, ev[2].g * 0.4, ev[2].b * 0.4, 0.4)
+		evs.set_border_width_all(1)
+		evs.content_margin_left = 12; evs.content_margin_right = 12
+		evs.content_margin_top = 6; evs.content_margin_bottom = 6
+		ev_panel.add_theme_stylebox_override("panel", evs)
+		ev_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ev_row = HBoxContainer.new()
+		ev_row.add_theme_constant_override("separation", 12)
+		ev_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ev_panel.add_child(ev_row)
+		var ev_name = _lbl(ev[0], 12, ev[2])
+		ev_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ev_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ev_row.add_child(ev_name)
+		ev_row.add_child(_lbl(ev[1], 11, Color(0.55, 0.48, 0.42)))
+		parent.add_child(ev_panel)
+
 func _build_book_collection(parent: VBoxContainer) -> void:
 	parent.add_child(_section_header("BOOK COLLECTION"))
 	parent.add_child(_lbl("The literary works that power your Survivors", 11, Color(0.55, 0.50, 0.45)))
@@ -2880,6 +2933,19 @@ func _build_settings() -> void:
 			var desc = _lbl("  ↳ %s" % cb_desc[clampi(GameSettings.colorblind_mode, 0, 3)], 9, Color(0.50, 0.45, 0.40))
 			desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			vb.add_child(desc)
+			# Color preview swatches
+			var swatch_row = HBoxContainer.new()
+			swatch_row.add_theme_constant_override("separation", 4)
+			swatch_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			swatch_row.add_child(_lbl("  ↳ Preview:", 8, Color(0.45, 0.40, 0.38)))
+			var preview_colors = [Color(0.9, 0.2, 0.2), Color(0.2, 0.8, 0.2), Color(0.2, 0.2, 0.9), Color(1.0, 0.8, 0.0)]
+			for pc in preview_colors:
+				var swatch = ColorRect.new()
+				swatch.custom_minimum_size = Vector2(20, 12)
+				swatch.color = pc
+				swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				swatch_row.add_child(swatch)
+			vb.add_child(swatch_row)
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Haptic Feedback", "ON" if GameSettings.haptic_feedback else "OFF", func(): GameSettings.haptic_feedback = not GameSettings.haptic_feedback; GameSettings.save_settings(); _build_settings())
