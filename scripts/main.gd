@@ -16918,6 +16918,9 @@ func _process(delta: float) -> void:
 		ft["timer"] -= delta
 		ft["vel_y"] *= 0.96  # decelerate
 		ft["pos"].y += ft["vel_y"] * delta
+		if ft.has("vel_x"):
+			ft["pos"].x += ft["vel_x"] * delta
+			ft["vel_x"] *= 0.95
 		if ft["timer"] <= 0.0:
 			_floating_texts.remove_at(ft_i)
 		ft_i -= 1
@@ -18692,7 +18695,8 @@ func _draw_tower_stats_overlay() -> void:
 	y += 16.0
 	_udraw(font, Vector2(panel_x + 6, y), "KILLS: %d" % kills, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.8, 0.9, 1.0))
 	y += 16.0
-	_udraw(font, Vector2(panel_x + 6, y), "DPS: %s" % _format_number(dps), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 1.0, 0.6))
+	var crits = tower.crit_count if "crit_count" in tower else 0
+	_udraw(font, Vector2(panel_x + 6, y), "DPS: %s  CRITS: %d" % [_format_number(dps), crits], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 1.0, 0.6))
 	y += 16.0
 	_udraw(font, Vector2(panel_x + 6, y), "TIER: %d" % tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.9, 0.8, 1.0))
 	y += 16.0
@@ -19165,10 +19169,14 @@ func _draw() -> void:
 			var ft_alpha = clampf(ft["timer"] / ft["duration"], 0.0, 1.0)
 			var ft_col = ft["color"]
 			ft_col.a *= ft_alpha
+			# Scale: start at 0.8, grow to 1.0 in first 20%
+			var ft_progress = 1.0 - ft_alpha
+			var ft_scale = clampf(0.8 + ft_progress * 1.0, 0.8, 1.0)
+			var ft_size = int(ft["size"] * ft_scale)
 			# Drop shadow for readability
 			var shadow_col = Color(0.0, 0.0, 0.0, ft_alpha * 0.7)
-			draw_string(ft_font, ft["pos"] + Vector2(1, 2), ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, int(ft["size"]), shadow_col)
-			draw_string(ft_font, ft["pos"], ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, int(ft["size"]), ft_col)
+			draw_string(ft_font, ft["pos"] + Vector2(1, 2), ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size, shadow_col)
+			draw_string(ft_font, ft["pos"], ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size, ft_col)
 
 	# === GOLD COIN PICKUP ARCS ===
 	for gp in _gold_pickups:
@@ -28250,7 +28258,8 @@ func spawn_floating_text(pos: Vector2, text: String, color: Color, size: float =
 		_floating_texts.pop_front()
 	_floating_texts.append({
 		"pos": pos, "text": text, "color": color, "size": size,
-		"duration": duration, "timer": duration, "vel_y": -60.0
+		"duration": duration, "timer": duration, "vel_y": -70.0 - randf() * 20.0,
+		"vel_x": randf_range(-15.0, 15.0)
 	})
 
 func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool, is_crit: bool = false) -> void:
