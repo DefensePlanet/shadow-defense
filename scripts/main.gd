@@ -28010,10 +28010,11 @@ func update_hud() -> void:
 		else:
 			var diff_indicator = ["", " [M]", " [H]", " [P]"][mini(selected_difficulty, 3)]
 			wave_label.text = "⚔ Wave %d/%d%s" % [wave, total_waves, diff_indicator]
-		# Show enemy count during active waves
+		# Show kill progress during active waves
 		if is_wave_active:
 			var remaining = enemies_alive + enemies_to_spawn
-			wave_label.text += "  (%d left)" % remaining
+			var total_this_wave = _wave_enemies_killed + remaining
+			wave_label.text += "  [%d/%d]" % [_wave_enemies_killed, total_this_wave]
 	if gold_label:
 		gold_label.text = "🪙 %s" % _format_gold(gold)
 		if _insufficient_gold_flash > 0.0:
@@ -28287,7 +28288,7 @@ func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool, is_crit: bo
 	_update_quest_progress("deal_damage", int(amount))
 
 func spawn_gold_text(pos: Vector2, amount: int) -> void:
-	spawn_floating_text(pos + Vector2(0, -10), "+%dg" % amount, _ca(c_gold_bright, 0.9), 13.0, 1.0)
+	spawn_floating_text(pos + Vector2(0, -10), "+%d🪙" % amount, _ca(c_gold_bright, 0.9), 13.0, 1.0)
 	# Gold coin pickup arc animation
 	_gold_pickups.append({
 		"start": pos, "end": Vector2(310, 20), "pos": pos,
