@@ -980,7 +980,7 @@ func _build_survivors() -> void:
 	var unlocked_ct = 0
 	for tt in _main.survivor_types:
 		if _main._is_character_unlocked(tt): unlocked_ct += 1
-	var sub = _lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 12, Color(0.65,0.58,0.50))
+	var sub = _lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 13, Color(0.65, 0.58, 0.50))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(sub)
@@ -1045,7 +1045,7 @@ func _survivor_card(idx: int) -> Button:
 		frame_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		frame_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		frame_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		frame_art.modulate.a = 0.45  # Visible art overlay
+		frame_art.modulate.a = 0.25  # Subtle frame overlay — don't obscure portrait
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: frame_art.material = mat
 		btn.add_child(frame_art)
@@ -1785,7 +1785,7 @@ func _build_emporium() -> void:
 		var text_col = VBoxContainer.new()
 		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var name_lbl = _lbl(cat.get("name",""), 15, accent)
+		var name_lbl = _lbl(cat.get("name",""), 14, accent)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(name_lbl)
 		var d = _lbl(cat.get("desc",""), 10, Color(0.55,0.50,0.45))
@@ -2281,7 +2281,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		card.add_child(cv)
 		var icon = TextureRect.new()
 		icon.texture = _main._gear_icon_textures[gk]
-		icon.custom_minimum_size = Vector2(72, 72)
+		icon.custom_minimum_size = Vector2(64, 64)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
