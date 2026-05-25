@@ -107,7 +107,7 @@ func _draw() -> void:
 	# Auto-test removed
 
 func _load_bgs() -> void:
-	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/codex_bg.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/menu_art/menu_bg_storybook.png", "survivors": "res://assets/menu_art/survivors_bg_books.png", "emporium": "res://assets/menu_art/emporium_bg_merchant.png", "codex": "res://assets/menu_art/menu_background.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		var exists = ResourceLoader.exists(m[k])
 		if exists:
@@ -792,9 +792,7 @@ func _build_survivors() -> void:
 	vb.add_theme_constant_override("separation", 8)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
-	var t = _title("SURVIVORS")
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(t)
+	vb.add_child(_title("SURVIVORS"))
 	if not _main: return
 	var unlocked_ct = 0
 	for tt in _main.survivor_types:
