@@ -76,7 +76,11 @@ func _ready() -> void:
 		if _main:
 			if _main.completed_levels.size() == 0:
 				# First-time player tutorial
-				_show_popup("Welcome, Reader!", "Welcome to Shadow Defense: Tales from the Pages!\n\nHeroes from classic novels fight to protect their stories from the Shadow Author.\n\nTap a level to begin your adventure!", "BEGIN")
+				_show_popup("Welcome, Reader!", "Welcome to Shadow Defense: Tales from the Pages!\n\nHeroes from classic novels fight to protect their stories from the Shadow Author.\n\n🎁 Tutorial Bonus: +50 Gold!\n\nTap a level to begin your adventure!", "BEGIN", func():
+					_main.gold += 50
+					for c in top_bar.get_children(): c.queue_free()
+					_build_currency_bar()
+					_build_music_display())
 			elif _main.completed_levels.size() == 3:
 				# After 3 wins — rate prompt
 				_show_popup("Enjoying the Adventure?", "You've completed 3 levels!\n\nIf you're enjoying Shadow Defense,\nplease rate us — it helps a lot!", "RATE US")
@@ -1088,6 +1092,17 @@ func _build_survivors() -> void:
 	var unlocked_ct = 0
 	for tt in _main.survivor_types:
 		if _main._is_character_unlocked(tt): unlocked_ct += 1
+	# Player title badge based on progress
+	var player_title = "Apprentice Reader"
+	if unlocked_ct >= 10: player_title = "Grand Librarian"
+	elif unlocked_ct >= 7: player_title = "Master Reader"
+	elif unlocked_ct >= 5: player_title = "Veteran Reader"
+	elif unlocked_ct >= 3: player_title = "Scholar"
+	elif unlocked_ct >= 1: player_title = "Reader"
+	var title_lbl = _lbl("🏆 %s" % player_title, 11, Color(0.85, 0.70, 0.30))
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(title_lbl)
 	var sub = _lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 13, Color(0.65, 0.58, 0.50))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2923,6 +2938,33 @@ func _build_settings() -> void:
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		pnvb.add_child(nl)
 	vb.add_child(patch_panel)
+	# FAQ / Help
+	vb.add_child(_section_header("FAQ"))
+	var faqs = [
+		["How do synergies work?", "Place related characters near each other for bonus damage."],
+		["What are Gear Shards?", "Currency from battles. Spend at the Emporium to forge gear."],
+		["How do I unlock characters?", "Rescue them by completing their story chapter."],
+		["What does difficulty affect?", "Enemy HP, gold income, and star rewards scale with difficulty."],
+		["How does prestige work?", "After max level, prestige for permanent stat bonuses."],
+	]
+	for faq in faqs:
+		var faq_panel = PanelContainer.new()
+		var fqs = StyleBoxFlat.new()
+		fqs.bg_color = Color(0.04, 0.03, 0.08, 0.4)
+		fqs.set_corner_radius_all(6)
+		fqs.content_margin_left = 10; fqs.content_margin_right = 10
+		fqs.content_margin_top = 4; fqs.content_margin_bottom = 4
+		faq_panel.add_theme_stylebox_override("panel", fqs)
+		faq_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fvb = VBoxContainer.new()
+		fvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		faq_panel.add_child(fvb)
+		fvb.add_child(_lbl(faq[0], 11, Color(0.85, 0.78, 0.60)))
+		var ans = _lbl(faq[1], 9, Color(0.55, 0.50, 0.45))
+		ans.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ans.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fvb.add_child(ans)
+		vb.add_child(faq_panel)
 	# Coming Soon roadmap
 	vb.add_child(_section_header("COMING SOON"))
 	var roadmap_items = ["🗺️ New campaign: The Enchanted Library", "🗡️ Tower skins & cosmetics", "👥 Co-op multiplayer mode", "🏆 Ranked competitive seasons", "🎃 Seasonal events & limited-time content"]
