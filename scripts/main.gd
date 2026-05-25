@@ -5589,32 +5589,19 @@ func _create_ui() -> void:
 	info_label.text = ""
 	top_bar.add_child(info_label)
 
-	start_button = Button.new()
-	start_button.text = "  START WAVE  "
-	start_button.position = Vector2(960, 4)
-	start_button.custom_minimum_size = Vector2(160, 48)
+	start_button = _make_button("  START WAVE  ", Vector2(960, 4), Vector2(160, 48))
 	start_button.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
-	start_button.add_theme_color_override("font_hover_color", Color(0.4, 1.0, 0.4))
-	start_button.add_theme_color_override("font_pressed_color", Color(0.5, 1.0, 0.5))
 	start_button.add_theme_font_size_override("font_size", 16)
 	start_button.pressed.connect(_on_start_wave_pressed)
 	bottom_panel.add_child(start_button)
 
-	speed_button = Button.new()
-	speed_button.text = "  >>  "
-	speed_button.position = Vector2(1126, 2)
-	speed_button.custom_minimum_size = Vector2(72, 48)
-	speed_button.add_theme_color_override("font_color", Color(0.8, 0.7, 0.3))
+	speed_button = _make_button("  >>  ", Vector2(1126, 2), Vector2(72, 48))
 	speed_button.add_theme_font_size_override("font_size", 16)
 	speed_button.pressed.connect(_on_speed_pressed)
 	bottom_panel.add_child(speed_button)
 
-	restart_button = Button.new()
-	restart_button.text = "  RESTART  "
-	restart_button.position = Vector2(1202, 2)
-	restart_button.custom_minimum_size = Vector2(72, 48)
+	restart_button = _make_button("  RESTART  ", Vector2(1202, 2), Vector2(72, 48))
 	restart_button.add_theme_color_override("font_color", Color(0.8, 0.4, 0.3))
-	restart_button.add_theme_font_size_override("font_size", 13)
 	restart_button.pressed.connect(_on_restart_pressed)
 	bottom_panel.add_child(restart_button)
 
@@ -5623,51 +5610,34 @@ func _create_ui() -> void:
 	sfx_mute_button.visible = false
 	bottom_panel.add_child(sfx_mute_button)
 
-	voice_mute_button = Button.new()
-	voice_mute_button.text = " VOX "
-	voice_mute_button.position = Vector2(1202, 42)
-	voice_mute_button.custom_minimum_size = Vector2(72, 48)
+	voice_mute_button = _make_button(" VOX ", Vector2(1202, 42), Vector2(72, 48))
 	voice_mute_button.pressed.connect(_on_voice_mute_pressed)
 	bottom_panel.add_child(voice_mute_button)
 
-	auto_wave_btn = Button.new()
-	auto_wave_btn.text = (" AUTO %ds " % int(auto_wave_delay)) if auto_wave_enabled else " AUTO OFF "
-	auto_wave_btn.position = Vector2(1050, 46)
-	auto_wave_btn.custom_minimum_size = Vector2(86, 48)
+	auto_wave_btn = _make_button((" AUTO %ds " % int(auto_wave_delay)) if auto_wave_enabled else " AUTO OFF ", Vector2(1050, 46), Vector2(86, 48))
 	auto_wave_btn.pressed.connect(_on_auto_wave_toggled)
 	bottom_panel.add_child(auto_wave_btn)
 
 	# Quick restart button (restart level from wave 1)
-	var quick_restart_button = Button.new()
-	quick_restart_button.text = " RETRY "
-	quick_restart_button.position = Vector2(960, 46)
-	quick_restart_button.custom_minimum_size = Vector2(82, 44)
+	var quick_restart_button = _make_button(" RETRY ", Vector2(960, 46), Vector2(82, 44))
 	quick_restart_button.pressed.connect(_on_quick_restart_pressed)
 	bottom_panel.add_child(quick_restart_button)
 
 	# Undo tower placement button (hidden by default)
-	undo_button = Button.new()
-	undo_button.text = " UNDO "
-	undo_button.position = Vector2(870, 46)
-	undo_button.custom_minimum_size = Vector2(82, 44)
+	undo_button = _make_button(" UNDO ", Vector2(870, 46), Vector2(82, 44))
 	undo_button.visible = false
 	undo_button.pressed.connect(_on_undo_placement)
 	bottom_panel.add_child(undo_button)
 
-	cancel_button = Button.new()
-	cancel_button.text = "CANCEL"
-	cancel_button.position = Vector2(950, 46)
-	cancel_button.custom_minimum_size = Vector2(180, 44)
+	cancel_button = _make_button("CANCEL", Vector2(950, 46), Vector2(180, 44))
+	cancel_button.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	cancel_button.visible = false
 	cancel_button.pressed.connect(_on_cancel_placement)
 	bottom_panel.add_child(cancel_button)
 
 	# === BATTLE POWER HUD BUTTONS (in-game, bottom-right) ===
 	for pi in range(3):
-		var power_btn = Button.new()
-		power_btn.text = ""
-		power_btn.position = Vector2(1010, 75 + pi * 40)
-		power_btn.custom_minimum_size = Vector2(170, 44)
+		var power_btn = _make_button("", Vector2(1010, 75 + pi * 40), Vector2(170, 44))
 		power_btn.visible = false
 		power_btn.pressed.connect(_on_battle_power_pressed.bind(pi))
 		bottom_panel.add_child(power_btn)
