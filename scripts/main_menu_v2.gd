@@ -538,7 +538,9 @@ func _build_chapters() -> void:
 		var mat = _make_black_key_mat(0.1, 0.05)
 		if mat: star_icon.material = mat
 		star_bar.add_child(star_icon)
-	star_bar.add_child(_lbl("%d / %d Stars" % [total_stars, max_stars], 13, Color(1.0, 0.85, 0.25)))
+	var star_text = _lbl("%d / %d Stars" % [total_stars, max_stars], 14, Color(1.0, 0.85, 0.25))
+	star_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	star_bar.add_child(star_text)
 	# Completion bar
 	var comp_pct = float(total_stars) / float(max_stars) if max_stars > 0 else 0.0
 	var comp_bar = _stat_bar("Progress", total_stars, max_stars, Color(1.0, 0.85, 0.25))
@@ -1256,7 +1258,7 @@ func _build_detail_view() -> void:
 	var tt = _main.survivor_types[idx] if _main and idx < _main.survivor_types.size() else null
 	# === TAB CONTENT ===
 	# Character level shown on ALL tabs
-	right.add_child(_lbl("CHARACTER LEVEL", 14, Color(0.85,0.72,0.40)))
+	right.add_child(_section_header("CHARACTER LEVEL"))
 	if tt != null and _main.survivor_progress.has(tt):
 		var prog = _main.survivor_progress[tt]
 		var level = prog.get("level", 1)
@@ -1288,7 +1290,7 @@ func _build_detail_view() -> void:
 		right.add_child(_lbl("Level 1", 18, Color(1.0, 0.92, 0.45)))
 	# === TAB 0: STATS ===
 	if _detail_tab == 0:
-		right.add_child(_lbl("COMBAT STATS", 14, Color(0.85,0.72,0.40)))
+		right.add_child(_section_header("COMBAT STATS"))
 	if tt != null and _main.tower_info.has(tt):
 		var info = _main.tower_info[tt]
 		right.add_child(_stat_bar("Damage", info.get("damage", 0), 50, Color(0.9,0.3,0.2)))
@@ -1301,7 +1303,7 @@ func _build_detail_view() -> void:
 		right.add_child(_lbl("DPS: %.1f  |  Cost: %d Gold" % [dps, info.get("cost", 0)], 12, Color(0.85, 0.70, 0.20)))
 	# === TAB 1: GEAR ===
 	if _detail_tab == 0 or _detail_tab == 1:
-		right.add_child(_lbl("EQUIPPED GEAR", 14, Color(0.85,0.72,0.40)))
+		right.add_child(_section_header("EQUIPPED GEAR"))
 	if tt != null and _main.survivor_gear.has(tt):
 		var gear = _main.survivor_gear[tt]
 		var gp = PanelContainer.new()
@@ -1376,7 +1378,7 @@ func _build_detail_view() -> void:
 	if _detail_tab == 0 or _detail_tab == 2:
 		# Bond pairs
 		if BOND_PAIRS.has(idx):
-			right.add_child(_lbl("BOND SYNERGIES", 14, Color(0.85, 0.72, 0.40)))
+			right.add_child(_section_header("BOND SYNERGIES"))
 			var bond_row = HBoxContainer.new()
 			bond_row.add_theme_constant_override("separation", 8)
 			bond_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1409,7 +1411,7 @@ func _build_detail_view() -> void:
 					br.add_child(_lbl(_main.character_names[bi], 10, Color(0.9, 0.75, 0.4)))
 					bond_row.add_child(bond_panel)
 			right.add_child(bond_row)
-		right.add_child(_lbl("SIDEKICKS", 14, Color(0.85,0.72,0.40)))
+		right.add_child(_section_header("SIDEKICKS"))
 	if tt != null and _main.survivor_sidekicks.has(tt):
 		for sk in _main.survivor_sidekicks[tt]:
 			var skp = PanelContainer.new()
@@ -1433,7 +1435,7 @@ func _build_detail_view() -> void:
 			right.add_child(skp)
 	# === TAB 3: ABILITIES ===
 	if _detail_tab == 0 or _detail_tab == 3:
-		right.add_child(_lbl("ABILITIES", 14, Color(0.85,0.72,0.40)))
+		right.add_child(_section_header("ABILITIES"))
 	# Get tower script to read ability names
 	var tower_scenes_map = {0: "robin_hood", 1: "alice", 2: "wicked_witch", 3: "peter_pan", 4: "phantom", 5: "scrooge", 6: "sherlock", 7: "tarzan", 8: "dracula", 9: "merlin", 10: "frankenstein", 11: "shadow_author"}
 	var tower_key = tower_scenes_map.get(idx, "")
@@ -2642,27 +2644,27 @@ func _build_settings() -> void:
 	margin.add_child(vb)
 	vb.add_child(_title("SETTINGS"))
 	# Audio section
-	vb.add_child(_lbl("AUDIO", 16, Color(0.85, 0.72, 0.40)))
+	vb.add_child(_section_header("AUDIO"))
 	if _main:
 		_add_setting_row(vb, "Music Volume", "%d%%" % int(GameSettings.music_volume * 100), func(): GameSettings.music_volume = fmod(GameSettings.music_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.music_volume)
 		_add_setting_row(vb, "SFX Volume", "%d%%" % int(GameSettings.sfx_volume * 100), func(): GameSettings.sfx_volume = fmod(GameSettings.sfx_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.sfx_volume)
 		_add_setting_row(vb, "Voice Volume", "%d%%" % int(GameSettings.voice_volume * 100), func(): GameSettings.voice_volume = fmod(GameSettings.voice_volume + 0.25, 1.25); GameSettings.save_settings(); _build_settings(), true, GameSettings.voice_volume)
 		_add_setting_row(vb, "Music Muted", "YES" if GameSettings.music_muted else "NO", func(): GameSettings.music_muted = not GameSettings.music_muted; GameSettings.save_settings(); _build_settings())
 	# Graphics section
-	vb.add_child(_lbl("GRAPHICS", 16, Color(0.85, 0.72, 0.40)))
+	vb.add_child(_section_header("GRAPHICS"))
 	if _main:
 		_add_setting_row(vb, "Quality", GameSettings.get_quality_name(), func(): GameSettings.cycle_quality(); _build_settings())
 		_add_setting_row(vb, "Particle Effects", "ON" if GameSettings.particle_effects else "OFF", func(): GameSettings.particle_effects = not GameSettings.particle_effects; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Screen Shake", "ON" if GameSettings.screen_shake else "OFF", func(): GameSettings.screen_shake = not GameSettings.screen_shake; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Damage Numbers", "ON" if GameSettings.show_damage_numbers else "OFF", func(): GameSettings.show_damage_numbers = not GameSettings.show_damage_numbers; GameSettings.save_settings(); _build_settings())
 	# Gameplay section
-	vb.add_child(_lbl("GAMEPLAY", 16, Color(0.85, 0.72, 0.40)))
+	vb.add_child(_section_header("GAMEPLAY"))
 	if _main:
 		var speed_names = ["1x", "2x", "3x"]
 		_add_setting_row(vb, "Game Speed", speed_names[clampi(GameSettings.game_speed - 1, 0, 2)], func(): GameSettings.cycle_speed(); _build_settings())
 		_add_setting_row(vb, "Auto Wave", "ON" if GameSettings.auto_wave else "OFF", func(): GameSettings.auto_wave = not GameSettings.auto_wave; GameSettings.save_settings(); _build_settings())
 	# Accessibility section
-	vb.add_child(_lbl("ACCESSIBILITY", 16, Color(0.85, 0.72, 0.40)))
+	vb.add_child(_section_header("ACCESSIBILITY"))
 	if _main:
 		var text_sizes = ["1.0x", "1.25x", "1.5x"]
 		var ts_idx = [1.0, 1.25, 1.5].find(GameSettings.font_scale)
@@ -2673,7 +2675,7 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
 	# Language
-	vb.add_child(_lbl("LANGUAGE", 16, Color(0.85, 0.72, 0.40)))
+	vb.add_child(_section_header("LANGUAGE"))
 	_add_setting_row(vb, "Language", "English", func(): pass)  # Placeholder
 	# Reset to defaults
 	var reset_btn = _art_button("RESET TO DEFAULTS", Color(0.5, 0.12, 0.12), Vector2(180, 34))
@@ -2696,7 +2698,7 @@ func _build_settings() -> void:
 			_build_settings()))
 	vb.add_child(reset_btn)
 	# Credits / About section
-	vb.add_child(_lbl("ABOUT", 16, Color(0.85, 0.72, 0.40)))
+	vb.add_child(_section_header("ABOUT"))
 	var credits_panel = PanelContainer.new()
 	var cps = StyleBoxFlat.new()
 	cps.bg_color = Color(0.04, 0.03, 0.08, 0.5)
@@ -2878,6 +2880,28 @@ func _art_button(text: String, color: Color, min_size: Vector2 = Vector2(110, 32
 	btn.add_theme_constant_override("shadow_offset_y", 1)
 	_add_press_feedback(btn)
 	return btn
+
+func _section_header(text: String) -> Control:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line_l = ColorRect.new()
+	line_l.custom_minimum_size = Vector2(30, 1)
+	line_l.color = Color(0.55, 0.42, 0.18, 0.4)
+	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(line_l)
+	var lbl = _lbl(text, 15, Color(0.85, 0.72, 0.40))
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(lbl)
+	var line_r = ColorRect.new()
+	line_r.custom_minimum_size = Vector2(0, 1)
+	line_r.color = Color(0.55, 0.42, 0.18, 0.4)
+	line_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line_r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(line_r)
+	return row
 
 func _format_num(val: float) -> String:
 	if val >= 1000000: return "%.1fM" % (val / 1000000.0)
