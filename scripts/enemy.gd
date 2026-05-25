@@ -257,6 +257,7 @@ func load_sprite() -> void:
 			_sprite_texture = null
 
 func _process(delta: float) -> void:
+	delta = minf(delta, 0.05)  # Cap at 50ms to prevent teleporting
 	if _dead:
 		visible = false
 		return
