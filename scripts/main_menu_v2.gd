@@ -754,6 +754,10 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		var badge_lbl = _lbl("NEW", 8, Color.WHITE)
 		badge_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		new_badge.add_child(badge_lbl)
+		# Pulse the NEW badge
+		var new_tw = create_tween().set_loops()
+		new_tw.tween_property(new_badge, "modulate:a", 0.5, 0.5).set_ease(Tween.EASE_IN_OUT)
+		new_tw.tween_property(new_badge, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_IN_OUT)
 		name_row.add_child(new_badge)
 	# Boss level badge
 	if is_boss and unlocked:
@@ -1008,18 +1012,22 @@ func _survivor_card(idx: int) -> Button:
 	elif char_level >= 5: rarity_border = Color(0.6, 0.3, 0.9, 0.7)  # Purple/Epic
 	elif char_level >= 3: rarity_border = Color(0.2, 0.5, 0.9, 0.6)  # Blue/Rare
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.06, 0.04, 0.12, 0.70) if is_unlocked else Color(0.03, 0.02, 0.06, 0.50)
+	s.bg_color = Color(0.06, 0.04, 0.12, 0.75) if is_unlocked else Color(0.03, 0.02, 0.06, 0.55)
 	s.border_color = rarity_border if is_unlocked else Color(0.20, 0.18, 0.15, 0.3)
-	s.set_border_width_all(2); s.set_corner_radius_all(8)
-	s.content_margin_left = 4; s.content_margin_right = 4
-	s.content_margin_top = 4; s.content_margin_bottom = 4
+	s.set_border_width_all(2); s.set_corner_radius_all(10)
+	s.shadow_color = Color(0, 0, 0, 0.2)
+	s.shadow_size = 4
+	s.content_margin_left = 6; s.content_margin_right = 6
+	s.content_margin_top = 6; s.content_margin_bottom = 6
 	btn.add_theme_stylebox_override("normal", s)
 	var sh = s.duplicate()
-	sh.bg_color = Color(0.10, 0.07, 0.18, 0.80) if is_unlocked else Color(0.05, 0.03, 0.10, 0.6)
-	sh.border_color = Color(0.65, 0.50, 0.25, 0.8) if is_unlocked else Color(0.30, 0.25, 0.18, 0.4)
+	sh.bg_color = Color(0.10, 0.07, 0.18, 0.85) if is_unlocked else Color(0.05, 0.03, 0.10, 0.65)
+	sh.border_color = Color(0.80, 0.60, 0.25, 0.9) if is_unlocked else Color(0.35, 0.28, 0.18, 0.5)
+	sh.shadow_size = 6
 	btn.add_theme_stylebox_override("hover", sh)
 	var sp = s.duplicate()
-	sp.bg_color = Color(0.12, 0.08, 0.20, 0.85)
+	sp.bg_color = Color(0.12, 0.08, 0.20, 0.9)
+	sp.shadow_size = 2
 	btn.add_theme_stylebox_override("pressed", sp)
 	btn.text = ""
 	# Art frame layer behind content (survivor_card_frame or card_frame with black keyed out)
@@ -1706,15 +1714,17 @@ func _build_emporium() -> void:
 		btn.custom_minimum_size = Vector2(0, 80)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
-		# Styled card with accent color left stripe
+		# Styled card with accent color left stripe + shadow
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.04,0.03,0.08,0.40)  # Very transparent — art shows through
+		s.bg_color = Color(0.05, 0.03, 0.10, 0.55)
 		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
-		s.border_width_left = 4  # Thick accent stripe
+		s.border_width_left = 4
 		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
-		s.set_corner_radius_all(8)
-		s.content_margin_left = 10; s.content_margin_right = 10
-		s.content_margin_top = 8; s.content_margin_bottom = 8
+		s.set_corner_radius_all(10)
+		s.shadow_color = Color(0, 0, 0, 0.15)
+		s.shadow_size = 3
+		s.content_margin_left = 12; s.content_margin_right = 12
+		s.content_margin_top = 10; s.content_margin_bottom = 10
 		btn.add_theme_stylebox_override("normal", s)
 		var sh = s.duplicate()
 		sh.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.65)
@@ -2150,11 +2160,12 @@ func _build_codex() -> void:
 	var tab_row = HBoxContainer.new()
 	tab_row.add_theme_constant_override("separation", 8)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVEMENTS"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["books", "BOOKS"], ["stats", "STATISTICS"]]:
+	for tab in [["gear", "GEAR"], ["achievements", "ACHIEVE"], ["bestiary", "BESTIARY"], ["journal", "JOURNAL"], ["books", "BOOKS"], ["stats", "STATS"]]:
 		var is_active_codex = _codex_subtab == tab[0]
 		var tb = Button.new()
 		tb.text = tab[1]
-		tb.custom_minimum_size = Vector2(120, 30)
+		tb.custom_minimum_size = Vector2(0, 30)
+		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var ts = StyleBoxFlat.new()
 		ts.bg_color = Color(0.15, 0.10, 0.25, 0.85) if is_active_codex else Color(0.06, 0.04, 0.12, 0.4)
 		ts.set_corner_radius_all(6)
