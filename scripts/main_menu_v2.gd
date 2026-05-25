@@ -1045,19 +1045,19 @@ func _survivor_card(idx: int) -> Button:
 	if _main and _main._portrait_textures.has(pkey):
 		port.texture = _main._portrait_textures[pkey]
 		if not is_unlocked:
-			port.modulate = Color(0.08, 0.06, 0.12)  # Dark silhouette
+			port.modulate = Color(0.15, 0.12, 0.20)  # Visible dark silhouette
 	vb.add_child(port)
 	# Name — show "???" for locked
 	var cname = _main.character_names[idx] if _main and idx < _main.character_names.size() else "?"
 	var display_name = cname.to_upper() if is_unlocked else "???"
-	var nl = _lbl(display_name, 11, Color(1, 0.92, 0.45) if is_unlocked else Color(0.35, 0.30, 0.25))
+	var nl = _lbl(display_name, 13, Color(1, 0.92, 0.45) if is_unlocked else Color(0.35, 0.30, 0.25))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(nl)
 	# Locked indicator
 	if not is_unlocked:
-		var lock_lbl = _lbl("🔒 LOCKED", 10, Color(0.40, 0.35, 0.30))
+		var lock_lbl = _lbl("🔒 LOCKED", 11, Color(0.45, 0.38, 0.32))
 		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(lock_lbl)
@@ -1080,7 +1080,7 @@ func _survivor_card(idx: int) -> Button:
 		if lvl >= 8: mastery_col = Color(1.0, 0.7, 0.1)
 		elif lvl >= 6: mastery_col = Color(0.6, 0.3, 0.9)
 		elif lvl >= 4: mastery_col = Color(0.2, 0.5, 0.9)
-		var badge = _lbl("Lv.%d — %s" % [lvl, mastery], 9, mastery_col)
+		var badge = _lbl("Lv.%d — %s" % [lvl, mastery], 10, mastery_col)
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2192,8 +2192,8 @@ func _codex_switch(tab: String) -> void:
 	_build_codex()
 
 func _build_gear_grid(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 16, Color(0.85, 0.72, 0.40)))
-	parent.add_child(_lbl("Collect gear from battles and the Emporium to empower your Survivors", 11, Color(0.55, 0.50, 0.45)))
+	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 14, Color(0.85, 0.72, 0.40)))
+	parent.add_child(_lbl("Collect gear from battles and the Emporium", 11, Color(0.55, 0.50, 0.45)))
 	var grid = GridContainer.new()
 	grid.columns = 8
 	grid.add_theme_constant_override("h_separation", 8)
@@ -2243,11 +2243,11 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(icon)
-		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 8, Color(0.65, 0.58, 0.50))
+		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 9, Color(0.65, 0.58, 0.50))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_lbl.clip_text = true
-		name_lbl.custom_minimum_size.x = 80
+		name_lbl.custom_minimum_size.x = 85
 		cv.add_child(name_lbl)
 		# Check if equipped by any character
 		var equipped_by = ""
@@ -2260,7 +2260,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 					equipped_by = _main.character_names[si] if si < _main.character_names.size() else ""
 					break
 		if equipped_by != "":
-			var eq_lbl = _lbl(equipped_by, 7, Color(0.4, 0.8, 0.3))
+			var eq_lbl = _lbl(equipped_by, 8, Color(0.4, 0.8, 0.3))
 			eq_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			eq_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			eq_lbl.clip_text = true
@@ -2680,13 +2680,15 @@ func _build_settings() -> void:
 	vb.add_child(credits_panel)
 
 func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable, is_volume: bool = false, volume_pct: float = 0.0) -> void:
-	# Setting row with art-styled panel
+	# Setting row with styled panel
 	var row_panel = PanelContainer.new()
 	var rps = StyleBoxFlat.new()
-	rps.bg_color = Color(0.04, 0.03, 0.08, 0.4)
-	rps.set_corner_radius_all(6)
-	rps.content_margin_left = 12; rps.content_margin_right = 12
-	rps.content_margin_top = 6; rps.content_margin_bottom = 6
+	rps.bg_color = Color(0.05, 0.03, 0.10, 0.55)
+	rps.set_corner_radius_all(8)
+	rps.border_color = Color(0.30, 0.22, 0.15, 0.25)
+	rps.set_border_width_all(1)
+	rps.content_margin_left = 16; rps.content_margin_right = 16
+	rps.content_margin_top = 8; rps.content_margin_bottom = 8
 	row_panel.add_theme_stylebox_override("panel", rps)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
@@ -2699,12 +2701,12 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 	# Volume slider bar visualization
 	if is_volume:
 		var bar_panel = PanelContainer.new()
-		bar_panel.custom_minimum_size = Vector2(140, 20)
+		bar_panel.custom_minimum_size = Vector2(160, 22)
 		bar_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var bps = StyleBoxFlat.new()
-		bps.bg_color = Color(0.06, 0.04, 0.10, 0.8)
-		bps.set_corner_radius_all(4)
-		bps.border_color = Color(0.25, 0.20, 0.15, 0.4)
+		bps.bg_color = Color(0.04, 0.03, 0.08, 0.8)
+		bps.set_corner_radius_all(8)
+		bps.border_color = Color(0.30, 0.22, 0.15, 0.4)
 		bps.set_border_width_all(1)
 		bar_panel.add_theme_stylebox_override("panel", bps)
 		row.add_child(bar_panel)
