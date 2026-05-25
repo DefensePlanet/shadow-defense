@@ -5473,21 +5473,12 @@ func _create_ui() -> void:
 	top_bar.add_child(lives_label)
 
 	# Settings gear button (gameplay)
-	var settings_gear_btn = Button.new()
-	settings_gear_btn.text = " SET "
-	settings_gear_btn.position = Vector2(1118, 6)
-	settings_gear_btn.custom_minimum_size = Vector2(56, 38)
-	settings_gear_btn.add_theme_color_override("font_color", Color(0.65, 0.55, 0.80))
-	settings_gear_btn.add_theme_font_size_override("font_size", 12)
+	var settings_gear_btn = _make_button("⚙", Vector2(1118, 6), Vector2(42, 38))
+	settings_gear_btn.add_theme_font_size_override("font_size", 16)
 	settings_gear_btn.pressed.connect(_toggle_ingame_settings)
 	top_bar.add_child(settings_gear_btn)
 
-	menu_exit_button = Button.new()
-	menu_exit_button.text = "  MENU  "
-	menu_exit_button.position = Vector2(1180, 6)
-	menu_exit_button.custom_minimum_size = Vector2(88, 38)
-	menu_exit_button.add_theme_color_override("font_color", Color(0.8, 0.7, 0.3))
-	menu_exit_button.add_theme_font_size_override("font_size", 14)
+	menu_exit_button = _make_button("  MENU  ", Vector2(1170, 6), Vector2(88, 38))
 	menu_exit_button.pressed.connect(_show_menu)
 	top_bar.add_child(menu_exit_button)
 
