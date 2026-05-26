@@ -71,22 +71,8 @@ func _ready() -> void:
 	_init_particles()
 	_add_vignette()
 	_fade_in()
-	# First-time tutorial OR daily login reward
-	get_tree().create_timer(1.5).timeout.connect(func():
-		if _main:
-			if _main.completed_levels.size() == 0:
-				# First-time player tutorial
-				_show_popup("Welcome, Reader!", "Welcome to Shadow Defense: Tales from the Pages!\n\nHeroes from classic novels fight to protect their stories from the Shadow Author.\n\n🎁 Tutorial Bonus: +50 Gold!\n\nTap a level to begin your adventure!", "BEGIN", func():
-					_main.gold += 50
-					for c in top_bar.get_children(): c.queue_free()
-					_build_currency_bar()
-					_build_music_display())
-			elif _main.completed_levels.size() == 3:
-				# After 3 wins — rate prompt
-				_show_popup("Enjoying the Adventure?", "You've completed 3 levels!\n\nIf you're enjoying Shadow Defense,\nplease rate us — it helps a lot!", "RATE US")
-			else:
-				# Returning player daily reward
-				_show_popup("Welcome Back!", "Daily login bonus:\n+100 Gold  +10 Quills\n\nKeep playing to earn more!", "COLLECT"))
+	# Auto-popup disabled — was blocking input. TODO: fix dialog input handling
+	# Tutorial/daily reward popups can be triggered from a menu button instead
 	# Portraits verified loaded — all 12 keys match
 
 func _add_vignette() -> void:
@@ -1780,68 +1766,28 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 		grid.add_child(card)
 
 func _show_popup(title: String, message: String, confirm_text: String = "OK", on_confirm: Callable = Callable()) -> void:
-	# Dark overlay
-	var overlay = ColorRect.new()
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0, 0, 0, 0.6)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
-	# Popup panel
-	var popup = PanelContainer.new()
-	popup.custom_minimum_size = Vector2(400, 200)
-	popup.size = Vector2(400, 200)
-	popup.position = Vector2(440, 260)
-	var pps = StyleBoxFlat.new()
-	pps.bg_color = Color(0.08, 0.06, 0.15, 0.95)
-	pps.set_corner_radius_all(12)
-	pps.border_color = Color(0.65, 0.50, 0.20, 0.6)
-	pps.set_border_width_all(2)
-	pps.shadow_color = Color(0, 0, 0, 0.4)
-	pps.shadow_size = 8
-	pps.content_margin_left = 24; pps.content_margin_right = 24
-	pps.content_margin_top = 20; pps.content_margin_bottom = 20
-	popup.add_theme_stylebox_override("panel", pps)
-	# Art frame behind popup
-	if _art.has("popup_frame"):
-		var pa = TextureRect.new()
-		pa.texture = _art["popup_frame"]
-		pa.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		pa.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		pa.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		pa.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pa.modulate.a = 0.25
-		var mat = _make_black_key_mat(0.06, 0.04)
-		if mat: pa.material = mat
-		popup.add_child(pa)
-	var pvb = VBoxContainer.new()
-	pvb.add_theme_constant_override("separation", 12)
-	pvb.alignment = BoxContainer.ALIGNMENT_CENTER
-	popup.add_child(pvb)
-	pvb.add_child(_lbl(title, 18, Color(1, 0.92, 0.45)))
-	var msg = _lbl(message, 12, Color(0.70, 0.65, 0.55))
-	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pvb.add_child(msg)
-	var btn_row = HBoxContainer.new()
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	btn_row.add_theme_constant_override("separation", 12)
-	pvb.add_child(btn_row)
+	# Use Godot's AcceptDialog for reliable button handling
+	var dialog = AcceptDialog.new()
+	dialog.title = title
+	dialog.dialog_text = message
+	dialog.ok_button_text = confirm_text if on_confirm.is_valid() else "OK"
+	dialog.min_size = Vector2(400, 150)
+	# Style the dialog
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.08, 0.06, 0.15, 0.98)
+	panel_style.set_corner_radius_all(10)
+	panel_style.border_color = Color(0.65, 0.50, 0.20, 0.6)
+	panel_style.set_border_width_all(2)
+	dialog.add_theme_stylebox_override("panel", panel_style)
+	dialog.add_theme_color_override("font_color", Color(0.85, 0.78, 0.60))
 	if on_confirm.is_valid():
-		var yes = _art_button(confirm_text, Color(0.12, 0.40, 0.12), Vector2(120, 34))
-		yes.pressed.connect(func(): overlay.queue_free(); on_confirm.call())
-		btn_row.add_child(yes)
-	var no = _art_button("CANCEL" if on_confirm.is_valid() else "OK", Color(0.35, 0.12, 0.12), Vector2(120, 34))
-	no.pressed.connect(func(): overlay.queue_free())
-	btn_row.add_child(no)
-	overlay.add_child(popup)
-	# Entrance animation
-	popup.modulate.a = 0.0
-	popup.scale = Vector2(0.9, 0.9)
-	popup.pivot_offset = popup.custom_minimum_size / 2.0
-	var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tw.set_parallel(true)
-	tw.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.2)
-	tw.tween_property(popup, "modulate:a", 1.0, 0.15)
+		dialog.confirmed.connect(func(): on_confirm.call(); dialog.queue_free())
+		# Add cancel button
+		dialog.add_cancel_button("CANCEL")
+	dialog.canceled.connect(func(): dialog.queue_free())
+	# Must be in tree to show
+	add_child(dialog)
+	dialog.popup_centered()
 
 func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBoxContainer:
 	var row = HBoxContainer.new()
