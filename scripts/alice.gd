@@ -27,6 +27,13 @@ var gold_bonus: int = 1
 var targeting_priority: int = 0
 
 # Damage tracking and upgrades
+# Gear visual slots (set by main.gd when gear equipped)
+var gear_crown: Dictionary = {}
+var gear_amulet: Dictionary = {}
+var gear_bracelet: Dictionary = {}
+var gear_weapon: Dictionary = {}
+var gear_ring: Dictionary = {}
+var skin_id: String = "default"
 var damage_dealt: float = 0.0
 var kill_count: int = 0
 var upgrade_tier: int = 0

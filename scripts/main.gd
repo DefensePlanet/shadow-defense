@@ -65,6 +65,53 @@ var SURVIVOR_SKINS: Dictionary = {
 		{"id": "ice", "name": "Ice Witch", "cost": 500, "color": Color(0.3, 0.6, 0.9)},
 		{"id": "fire", "name": "Fire Witch", "cost": 1000, "color": Color(0.9, 0.3, 0.1)},
 	],
+	TowerType.PETER_PAN: [
+		{"id": "default", "name": "Lost Boy", "cost": 0, "color": Color(0.2, 0.6, 0.3)},
+		{"id": "captain", "name": "Captain Pan", "cost": 500, "color": Color(0.7, 0.15, 0.15)},
+		{"id": "shadow", "name": "Shadow Pan", "cost": 1000, "color": Color(0.12, 0.10, 0.18)},
+	],
+	TowerType.PHANTOM: [
+		{"id": "default", "name": "Opera Ghost", "cost": 0, "color": Color(0.85, 0.85, 0.90)},
+		{"id": "crimson", "name": "Crimson Phantom", "cost": 500, "color": Color(0.7, 0.12, 0.12)},
+		{"id": "golden", "name": "Golden Mask", "cost": 1500, "color": Color(0.85, 0.70, 0.15)},
+	],
+	TowerType.SCROOGE: [
+		{"id": "default", "name": "Victorian Miser", "cost": 0, "color": Color(0.4, 0.35, 0.30)},
+		{"id": "generous", "name": "Generous Scrooge", "cost": 500, "color": Color(0.3, 0.6, 0.3)},
+		{"id": "ghost", "name": "Ghost of Christmas", "cost": 1000, "color": Color(0.5, 0.7, 0.9)},
+	],
+	TowerType.SHERLOCK: [
+		{"id": "default", "name": "Baker Street", "cost": 0, "color": Color(0.5, 0.4, 0.3)},
+		{"id": "scotland_yard", "name": "Scotland Yard", "cost": 500, "color": Color(0.2, 0.25, 0.4)},
+		{"id": "disguise", "name": "Master of Disguise", "cost": 1000, "color": Color(0.6, 0.5, 0.4)},
+	],
+	TowerType.TARZAN: [
+		{"id": "default", "name": "Jungle Lord", "cost": 0, "color": Color(0.5, 0.35, 0.2)},
+		{"id": "tribal", "name": "Tribal Chief", "cost": 500, "color": Color(0.6, 0.3, 0.15)},
+		{"id": "civilized", "name": "Lord Greystoke", "cost": 1500, "color": Color(0.25, 0.25, 0.35)},
+	],
+	TowerType.DRACULA: [
+		{"id": "default", "name": "Count", "cost": 0, "color": Color(0.5, 0.1, 0.1)},
+		{"id": "noble", "name": "Transylvanian Noble", "cost": 500, "color": Color(0.4, 0.15, 0.5)},
+		{"id": "bat_lord", "name": "Bat Lord", "cost": 1000, "color": Color(0.15, 0.12, 0.20)},
+		{"id": "blood_king", "name": "Blood King", "cost": 2000, "color": Color(0.6, 0.05, 0.05)},
+	],
+	TowerType.MERLIN: [
+		{"id": "default", "name": "Archmage", "cost": 0, "color": Color(0.3, 0.3, 0.7)},
+		{"id": "starlight", "name": "Starlight Wizard", "cost": 500, "color": Color(0.5, 0.4, 0.8)},
+		{"id": "ancient", "name": "Ancient One", "cost": 1500, "color": Color(0.6, 0.55, 0.45)},
+	],
+	TowerType.FRANKENSTEIN: [
+		{"id": "default", "name": "The Monster", "cost": 0, "color": Color(0.35, 0.5, 0.35)},
+		{"id": "electric", "name": "Electric Horror", "cost": 500, "color": Color(0.3, 0.6, 0.9)},
+		{"id": "gentle", "name": "Gentle Giant", "cost": 1000, "color": Color(0.5, 0.45, 0.4)},
+	],
+	TowerType.SHADOW_AUTHOR: [
+		{"id": "default", "name": "The Author", "cost": 0, "color": Color(0.15, 0.12, 0.20)},
+		{"id": "ink_master", "name": "Ink Master", "cost": 1000, "color": Color(0.1, 0.1, 0.3)},
+		{"id": "golden_pen", "name": "Golden Pen", "cost": 2000, "color": Color(0.85, 0.70, 0.15)},
+		{"id": "corrupted", "name": "Corrupted Author", "cost": 3000, "color": Color(0.5, 0.1, 0.3)},
+	],
 }
 var owned_skins: Dictionary = {}  # tower_type -> [skin_id, ...]
 var active_skins: Dictionary = {}  # tower_type -> skin_id
