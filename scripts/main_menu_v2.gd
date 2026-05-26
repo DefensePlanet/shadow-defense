@@ -158,7 +158,7 @@ func _draw() -> void:
 	# Auto-test removed
 
 func _load_bgs() -> void:
-	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/menu_art/chapters_bg_gothic.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		var exists = ResourceLoader.exists(m[k])
 		if exists:
@@ -255,7 +255,7 @@ func _make_black_key_mat(thresh: float = 0.08, smooth: float = 0.05) -> ShaderMa
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
-	background.modulate.a = 1.0  # FORCE visible — never leave at 0
+	background.modulate = Color(1.3, 1.3, 1.3, 1.0)  # Brighten background art
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 
@@ -777,12 +777,12 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		lca.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		lca.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		lca.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lca.modulate.a = 0.55 if unlocked else 0.30
+		lca.modulate.a = 0.40 if unlocked else 0.20
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: lca.material = mat
 		p.add_child(lca)
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.04, 0.03, 0.10, 0.35) if unlocked else Color(0.03, 0.02, 0.06, 0.40)
+	s.bg_color = Color(0.04, 0.03, 0.10, 0.50) if unlocked else Color(0.03, 0.02, 0.06, 0.45)
 	if complete:
 		s.border_color = Color(0.35, 0.70, 0.30, 0.7)
 		s.set_border_width_all(2)
