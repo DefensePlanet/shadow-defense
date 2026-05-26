@@ -158,7 +158,7 @@ func _draw() -> void:
 	# Auto-test removed
 
 func _load_bgs() -> void:
-	var m = {"chapters": "res://assets/menu_art/chapters_bg_gothic.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		var exists = ResourceLoader.exists(m[k])
 		if exists:
@@ -255,14 +255,14 @@ func _make_black_key_mat(thresh: float = 0.08, smooth: float = 0.05) -> ShaderMa
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
-	background.modulate = Color(1.3, 1.3, 1.3, 1.0)  # Brighten background art
+	background.modulate.a = 1.0
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 
 func _build_currency_bar() -> void:
 	if not _main: return
-	# Apply gothic currency bar art (or header_bar fallback)
-	var _cur_art_key = "currency_bar_art" if _art.has("currency_bar_art") else "header_bar"
+	# Apply header bar art (currency_bar_gothic looked bad stretched — use original)
+	var _cur_art_key = "header_bar"
 	if _art.has(_cur_art_key):
 		var art_bg = TextureRect.new()
 		art_bg.texture = _art[_cur_art_key]
@@ -1023,35 +1023,12 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			_add_press_feedback(db)
 			dr.add_child(db)
 		btns.add_child(dr)
-		# PLAY button — use go_button or play_button art
-		var play_art_key = "go_button" if _art.has("go_button") else ("play_button" if _art.has("play_button") else "")
-		if play_art_key != "":
-			var pb = TextureButton.new()
-			pb.texture_normal = _art[play_art_key]
-			pb.ignore_texture_size = true
-			pb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-			pb.custom_minimum_size = Vector2(170, 48)
-			var mat = _make_black_key_mat(0.08, 0.05)
-			if mat: pb.material = mat
-			pb.mouse_entered.connect(func():
-				var tw = pb.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-				tw.tween_property(pb, "modulate", Color(1.2, 1.15, 1.0), 0.1))
-			pb.mouse_exited.connect(func():
-				var tw = pb.create_tween().set_ease(Tween.EASE_OUT)
-				tw.tween_property(pb, "modulate", Color.WHITE, 0.08))
-			pb.pressed.connect(_play.bind(idx, 0))
-			_add_press_feedback(pb)
-			btns.add_child(pb)
-		else:
-			var pb = Button.new()
-			pb.text = "PLAY"; pb.custom_minimum_size = Vector2(150, 30)
-			var ps = StyleBoxFlat.new(); ps.bg_color = Color(0.12,0.50,0.12,0.9); ps.set_corner_radius_all(6)
-			pb.add_theme_stylebox_override("normal", ps)
-			pb.add_theme_font_size_override("font_size", 13)
-			pb.add_theme_color_override("font_color", Color.WHITE)
-			pb.pressed.connect(_play.bind(idx, 0))
-			_add_press_feedback(pb)
-			btns.add_child(pb)
+		# PLAY button — styled green button (no art — go_button.png was ugly)
+		var pb = _art_button("▶  PLAY", Color(0.12, 0.45, 0.12), Vector2(150, 38))
+		pb.add_theme_font_size_override("font_size", 15)
+		pb.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3))
+		pb.pressed.connect(_play.bind(idx, 0))
+		btns.add_child(pb)
 		row.add_child(btns)
 	else:
 		var lock_vb = VBoxContainer.new()
