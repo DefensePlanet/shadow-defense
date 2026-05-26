@@ -1286,7 +1286,7 @@ func _build_detail_view() -> void:
 		detail_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		detail_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		detail_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		detail_bg.modulate.a = 0.35
+		detail_bg.modulate.a = 0.50  # Visible character info card art
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: detail_bg.material = mat
 		content_area.add_child(detail_bg)
@@ -1529,7 +1529,7 @@ func _build_detail_view() -> void:
 			gear_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			gear_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			gear_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			gear_art.modulate.a = 0.25
+			gear_art.modulate.a = 0.40  # Visible gear slots art
 			var mat = _make_black_key_mat(0.06, 0.04)
 			if mat: gear_art.material = mat
 			gp.add_child(gear_art)
@@ -1920,18 +1920,9 @@ func _build_emporium() -> void:
 		dps.content_margin_left = 8; dps.content_margin_right = 8
 		dps.content_margin_top = 6; dps.content_margin_bottom = 6
 		deals_panel.add_theme_stylebox_override("panel", dps)
-		deals_panel.custom_minimum_size = Vector2(0, 80)
+		deals_panel.custom_minimum_size = Vector2(0, 60)
 		deals_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var deals_art = TextureRect.new()
-		deals_art.texture = _art["daily_deals"]
-		deals_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		deals_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		deals_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		deals_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		deals_art.modulate.a = 0.5
-		var mat = _make_black_key_mat(0.06, 0.04)
-		if mat: deals_art.material = mat
-		deals_panel.add_child(deals_art)
+		# No art overlay — daily_deals_banner.png had baked-in text that clashed
 		var deals_center = CenterContainer.new()
 		deals_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		deals_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3027,7 +3018,7 @@ func _build_settings() -> void:
 		sbg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		sbg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		sbg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		sbg.modulate.a = 0.25
+		sbg.modulate.a = 0.40  # Visible settings background
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: sbg.material = mat
 		content_area.add_child(sbg)
