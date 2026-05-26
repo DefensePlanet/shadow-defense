@@ -472,13 +472,13 @@ func _build_chapters() -> void:
 	# Margin container for card breathing room
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_top", 8)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 8)
+	vb.add_theme_constant_override("separation", 10)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
 	# Title in styled frame with entrance animation
@@ -1844,34 +1844,48 @@ func _build_emporium() -> void:
 	content_area.add_child(sc)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_top", 8)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_theme_constant_override("separation", 8)
+	vb.add_theme_constant_override("separation", 10)
 	margin.add_child(vb)
 	vb.add_child(_title("THE EMPORIUM"))
-	vb.add_child(_lbl("Browse wares from across the literary worlds", 11, Color(0.55,0.50,0.45)))
+	var shop_desc = _lbl("Browse wares from across the literary worlds", 12, Color(0.60, 0.55, 0.48))
+	shop_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	shop_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(shop_desc)
 	if not _main: return
-	# Shop rotation timer + daily/weekly reset info
+	# Shop rotation timer — bigger, centered
 	var time_dict = Time.get_time_dict_from_system()
 	var hours_left = 24 - time_dict.get("hour", 0)
-	var timer_lbl = _lbl("🕐 Shop refreshes in %dh" % hours_left, 10, Color(0.55, 0.48, 0.42))
-	timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var timer_panel = PanelContainer.new()
+	var tps = StyleBoxFlat.new()
+	tps.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	tps.set_corner_radius_all(8)
+	tps.content_margin_left = 12; tps.content_margin_right = 12
+	tps.content_margin_top = 4; tps.content_margin_bottom = 4
+	timer_panel.add_theme_stylebox_override("panel", tps)
+	timer_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	timer_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var timer_lbl = _lbl("🕐 Shop refreshes in %dh  •  🪙 %d Gold  •  🪶 %d Quills  •  💎 %d Shards" % [hours_left, _main.gold, _main.player_quills, _main.player_gear_shards], 11, Color(0.65, 0.58, 0.50))
 	timer_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(timer_lbl)
-	# Limited time offer banner
+	timer_panel.add_child(timer_lbl)
+	vb.add_child(timer_panel)
+	# Limited time offer banner — BIG and dramatic
 	var lto_panel = PanelContainer.new()
 	var ltos = StyleBoxFlat.new()
-	ltos.bg_color = Color(0.12, 0.04, 0.04, 0.6)
-	ltos.set_corner_radius_all(10)
-	ltos.border_color = Color(0.9, 0.25, 0.15, 0.6)
+	ltos.bg_color = Color(0.15, 0.04, 0.04, 0.7)
+	ltos.set_corner_radius_all(12)
+	ltos.border_color = Color(1.0, 0.30, 0.15, 0.7)
 	ltos.set_border_width_all(2)
-	ltos.content_margin_left = 12; ltos.content_margin_right = 12
-	ltos.content_margin_top = 6; ltos.content_margin_bottom = 6
+	ltos.shadow_color = Color(0.5, 0.1, 0.05, 0.2)
+	ltos.shadow_size = 4
+	ltos.content_margin_left = 16; ltos.content_margin_right = 16
+	ltos.content_margin_top = 10; ltos.content_margin_bottom = 10
 	lto_panel.add_theme_stylebox_override("panel", ltos)
 	lto_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var lto_row = HBoxContainer.new()
@@ -1940,7 +1954,7 @@ func _build_emporium() -> void:
 		var cat = _main.emporium_categories[ci]
 		var accent = EMPORIUM_COLORS[ci % EMPORIUM_COLORS.size()]
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 80)
+		btn.custom_minimum_size = Vector2(0, 90)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
 		# Styled card with accent color left stripe + shadow
@@ -2433,9 +2447,9 @@ func _build_codex() -> void:
 	_clear()
 	var codex_margin = MarginContainer.new()
 	codex_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	codex_margin.add_theme_constant_override("margin_left", 16)
-	codex_margin.add_theme_constant_override("margin_right", 16)
-	codex_margin.add_theme_constant_override("margin_top", 4)
+	codex_margin.add_theme_constant_override("margin_left", 24)
+	codex_margin.add_theme_constant_override("margin_right", 24)
+	codex_margin.add_theme_constant_override("margin_top", 8)
 	content_area.add_child(codex_margin)
 	var main_vb = VBoxContainer.new()
 	main_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
