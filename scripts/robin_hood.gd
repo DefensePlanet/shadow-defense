@@ -1388,13 +1388,32 @@ func _draw() -> void:
 	if not sprite_texture:
 		# === 14. CHARACTER BODY (Bloons TD cartoon style) ===
 
-		# --- Colors ---
+		# --- Colors (skin-dependent) ---
 		var tunic_green = Color(0.15, 0.55, 0.12)
 		var tunic_dark = Color(0.10, 0.40, 0.08)
 		var boot_brown = Color(0.45, 0.28, 0.12)
 		var belt_brown = Color(0.40, 0.24, 0.10)
 		var hair_auburn = Color(0.50, 0.28, 0.12)
 		var hair_dark = Color(0.38, 0.20, 0.08)
+		# Skin color overrides
+		match skin_id:
+			"noble":
+				tunic_green = Color(0.40, 0.15, 0.55)
+				tunic_dark = Color(0.30, 0.10, 0.40)
+				boot_brown = Color(0.25, 0.20, 0.35)
+				belt_brown = Color(0.35, 0.25, 0.45)
+			"shadow":
+				tunic_green = Color(0.12, 0.10, 0.18)
+				tunic_dark = Color(0.08, 0.06, 0.12)
+				boot_brown = Color(0.15, 0.12, 0.20)
+				belt_brown = Color(0.18, 0.15, 0.22)
+				hair_auburn = Color(0.20, 0.18, 0.25)
+				hair_dark = Color(0.12, 0.10, 0.18)
+			"golden":
+				tunic_green = Color(0.75, 0.60, 0.12)
+				tunic_dark = Color(0.60, 0.45, 0.08)
+				boot_brown = Color(0.55, 0.40, 0.15)
+				belt_brown = Color(0.65, 0.50, 0.12)
 
 		# --- BOOTS ---
 		var l_foot = feet_y + Vector2(-5, 0)
