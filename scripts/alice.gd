@@ -1290,10 +1290,19 @@ func _draw() -> void:
 		draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), OL, 5.0)
 		draw_line(r_foot + Vector2(0, -2), Vector2(r_foot.x, leg_top.y + 2), skin_base, 3.5)
 
-		# --- Alice's dress (Bloons-style bold cartoon) ---
+		# --- Alice's dress (skin-dependent colors) ---
 		var dress_blue = Color(0.45, 0.72, 0.95)
 		var dress_lav = Color(0.70, 0.55, 0.90)
 		var dress_white = Color(0.92, 0.93, 0.98)
+		match skin_id:
+			"dark":
+				dress_blue = Color(0.30, 0.12, 0.25)
+				dress_lav = Color(0.45, 0.20, 0.40)
+				dress_white = Color(0.60, 0.55, 0.58)
+			"queen":
+				dress_blue = Color(0.75, 0.12, 0.12)
+				dress_lav = Color(0.85, 0.25, 0.25)
+				dress_white = Color(0.95, 0.85, 0.80)
 		# Dress outline (bold black border around entire dress shape)
 		var dress_outline = PackedVector2Array([
 			feet_y + Vector2(-15, 3), feet_y + Vector2(15 + dress_sway * 0.8, 1),
@@ -1411,6 +1420,12 @@ func _draw() -> void:
 		var neck_top = head_center + Vector2(0, 9)
 		draw_line(neck_base, neck_top, OL, 7.0)
 		draw_line(neck_base, neck_top, skin_base, 5.0)
+		# === AMULET GEAR ===
+		if gear_amulet.size() > 0:
+			var am_pos = neck_base + Vector2(0, 2)
+			var am_pulse = (sin(_time * 2.5) + 1.0) * 0.5
+			draw_circle(am_pos, 4.0, Color(0.9, 0.3, 0.6, 0.5 + am_pulse * 0.3))
+			draw_circle(am_pos, 2.5, Color(1.0, 0.5, 0.8, 0.8))
 
 		# === HEAD — Big round cartoon head ===
 		var hair_wave = sin(_time * 1.5) * 3.0 + hair_wind
@@ -1627,8 +1642,8 @@ func _draw() -> void:
 				var steam_p = cup_pos + Vector2(steam_off, -10.0 - float(stm) * 5.0)
 				draw_circle(steam_p, 2.5 - float(stm) * 0.4, Color(0.92, 0.92, 0.95, 0.25 - float(stm) * 0.08))
 
-	# === Tier 4: Crown floating above head ===
-	if upgrade_tier >= 4:
+	# === Gear crown OR Tier 4 crown floating above head ===
+	if gear_crown.size() > 0 or upgrade_tier >= 4:
 		var crown_hover = sin(_time * 1.8) * 1.5
 		var crown_center = _fx_head_center + Vector2(0, -12 + crown_hover)
 		var crown_r = 12.0
