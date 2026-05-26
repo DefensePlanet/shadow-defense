@@ -28311,6 +28311,21 @@ func enemy_died(enemy_node = null) -> void:
 				spawn_floating_text(enemy_node.global_position + Vector2(0, -20), "+%d Quills!" % lucky_amount, Color(0.2, 0.8, 0.6), 14.0, 1.0)
 		_lucky_drops_this_game += 1
 		_income_breakdown["lucky"] = _income_breakdown.get("lucky", 0) + lucky_amount
+	# Gear item drop (0.5% chance per kill — rarer than shards)
+	if randf() < 0.005 and GEAR_BY_SLOT.size() > 0:
+		var slot_keys = GEAR_BY_SLOT.keys()
+		var random_slot = slot_keys[randi() % slot_keys.size()]
+		var slot_items = GEAR_BY_SLOT[random_slot]
+		if slot_items.size() > 0:
+			# Weight toward common items
+			var item_idx = clampi(randi() % (slot_items.size() + 2), 0, slot_items.size() - 1)
+			var dropped_gear = slot_items[mini(item_idx, slot_items.size() - 1)]
+			if enemy_node and is_instance_valid(enemy_node):
+				var tier_colors = {"common": Color(0.6, 0.6, 0.6), "uncommon": Color(0.3, 0.7, 0.3), "rare": Color(0.2, 0.5, 0.9), "epic": Color(0.7, 0.3, 0.9), "legendary": Color(1.0, 0.7, 0.1)}
+				var gear_col = tier_colors.get(dropped_gear.get("tier", "common"), Color.WHITE)
+				spawn_floating_text(enemy_node.global_position + Vector2(0, -30), "🎁 %s!" % dropped_gear.get("name", "Gear"), gear_col, 16.0, 2.0)
+				_screen_shake_intensity = 3.0
+				_screen_shake_timer = 0.15
 	# BATTD4: Overkill bonus (massive damage beyond max HP)
 	if enemy_node and is_instance_valid(enemy_node):
 		var overkill_dmg = abs(enemy_node.health) if enemy_node.health < 0 else 0.0
