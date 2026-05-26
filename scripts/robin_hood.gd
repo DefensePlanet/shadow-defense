@@ -1552,6 +1552,16 @@ func _draw() -> void:
 		draw_circle(bow_hand, 3.8, OL)
 		draw_circle(bow_hand, 2.8, skin_base)
 		draw_circle(bow_hand + Vector2(0, -0.5), 1.5, skin_highlight)
+		# === BRACELET on bow arm (if equipped) ===
+		if gear_bracelet.size() > 0:
+			var brace_pos = bow_elbow + (bow_hand - bow_elbow) * 0.7
+			draw_arc(brace_pos, 4.5, 0, TAU, 12, Color(0.7, 0.55, 0.15, 0.8), 2.0)
+			draw_arc(brace_pos, 3.5, 0, TAU, 12, Color(0.9, 0.75, 0.25, 0.5), 1.0)
+		# === RING on bow hand (if equipped) ===
+		if gear_ring.size() > 0:
+			draw_circle(bow_hand + Vector2(2, -1), 2.0, Color(0.8, 0.65, 0.15, 0.9))
+			var ring_pulse = (sin(_time * 4.0) + 1.0) * 0.5
+			draw_circle(bow_hand + Vector2(2, -1), 3.5, Color(0.9, 0.8, 0.3, ring_pulse * 0.2))
 
 		# --- DRAW ARM (left) — pulls bowstring back ---
 		var string_pull_vec = dir * (-10.0 * _draw_progress)
@@ -1583,12 +1593,23 @@ func _draw() -> void:
 		var bow_bottom = bow_center + Vector2(0, 18.0)
 		var bow_curve_pt = bow_center + dir * 6.0
 
-		# Bow limb colors (silver at tier 2+)
+		# Bow limb colors (silver at tier 2+, weapon gear override)
 		var bow_wood = Color(0.48, 0.28, 0.10) if upgrade_tier < 2 else Color(0.55, 0.55, 0.58)
 		var bow_light = Color(0.60, 0.38, 0.16) if upgrade_tier < 2 else Color(0.70, 0.72, 0.78)
+		# Weapon gear visual override
+		if gear_weapon.size() > 0:
+			var visual_key = gear_weapon.get("visual", "")
+			match visual_key:
+				"staff": bow_wood = Color(0.35, 0.25, 0.50); bow_light = Color(0.50, 0.35, 0.70)
+				"blade": bow_wood = Color(0.60, 0.60, 0.65); bow_light = Color(0.75, 0.78, 0.82)
+				"wand": bow_wood = Color(0.30, 0.50, 0.70); bow_light = Color(0.45, 0.65, 0.85)
+				"vorpal": bow_wood = Color(0.15, 0.80, 0.40); bow_light = Color(0.30, 0.95, 0.55)
+			# Enchantment glow on weapon
+			var wpn_pulse = (sin(_time * 3.0) + 1.0) * 0.5
+			draw_circle(bow_curve_pt, 8.0, Color(bow_light.r, bow_light.g, bow_light.b, 0.10 + wpn_pulse * 0.08))
 
 		# Tier 2+: Silver glow along bow
-		if upgrade_tier >= 2:
+		if upgrade_tier >= 2 and gear_weapon.size() == 0:
 			var silver_p = (sin(_time * 2.8) + 1.0) * 0.5
 			draw_circle(bow_curve_pt, 6.0, Color(0.8, 0.85, 0.95, 0.08 + silver_p * 0.06))
 
