@@ -536,12 +536,12 @@ func _build_chapters() -> void:
 		"The pen is mightier than the sword. I have both.",
 	]
 	var quote_text = sa_quotes[randi() % sa_quotes.size()]
-	var tagline = _lbl('"%s"' % quote_text, 12, Color(0.65, 0.55, 0.45))
+	var tagline = _lbl('"%s"' % quote_text, 12, Color(0.80, 0.70, 0.55))
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tagline.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(tagline)
-	var sa_attr = _lbl("— The Shadow Author", 10, Color(0.50, 0.42, 0.38))
+	var sa_attr = _lbl("— The Shadow Author", 10, Color(0.60, 0.50, 0.42))
 	sa_attr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sa_attr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(sa_attr)
@@ -724,8 +724,8 @@ func _build_chapters() -> void:
 		# Connecting path line between levels
 		if card_idx > 0:
 			var path_line = ColorRect.new()
-			path_line.custom_minimum_size = Vector2(2, 12)
-			path_line.color = Color(0.55, 0.42, 0.18, 0.4)
+			path_line.custom_minimum_size = Vector2(3, 10)
+			path_line.color = Color(0.65, 0.50, 0.20, 0.6)
 			path_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			path_line.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			vb.add_child(path_line)
@@ -826,8 +826,8 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		ncs.bg_color = Color(0.15, 0.40, 0.15, 0.85)
 		ncs.border_color = Color(0.3, 0.7, 0.3, 0.6)
 	elif is_boss:
-		ncs.bg_color = Color(0.40, 0.10, 0.08, 0.85)
-		ncs.border_color = Color(0.8, 0.25, 0.15, 0.6)
+		ncs.bg_color = Color(0.50, 0.12, 0.10, 0.85)
+		ncs.border_color = Color(0.9, 0.30, 0.18, 0.7)
 	elif unlocked:
 		ncs.bg_color = Color(0.12, 0.08, 0.20, 0.85)
 		ncs.border_color = Color(0.65, 0.50, 0.20, 0.5)
@@ -836,7 +836,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		ncs.border_color = Color(0.25, 0.20, 0.15, 0.3)
 	ncs.set_border_width_all(2)
 	num_circle.add_theme_stylebox_override("panel", ncs)
-	num_circle.custom_minimum_size = Vector2(40, 40)
+	num_circle.custom_minimum_size = Vector2(44, 44)
 	num_circle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var num_lbl = _lbl(str(idx+1), 16, Color(1.0, 0.92, 0.40) if unlocked else Color(0.35, 0.30, 0.25))
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -855,7 +855,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	th_panel.add_theme_stylebox_override("panel", ths)
 	th_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var th = TextureRect.new()
-	th.custom_minimum_size = Vector2(120, 75)
+	th.custom_minimum_size = Vector2(140, 85)
 	th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	th.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1038,15 +1038,15 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		lock_content.alignment = BoxContainer.ALIGNMENT_CENTER
 		lock_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lock_panel.add_child(lock_content)
-		var lock_icon = _lbl("🔒", 24, Color(0.5, 0.4, 0.3))
+		var lock_icon = _lbl("🔒", 28, Color(0.55, 0.45, 0.35))
 		lock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lock_content.add_child(lock_icon)
-		var lock_text = _lbl("LOCKED", 10, Color(0.45, 0.38, 0.30))
+		var lock_text = _lbl("L O C K E D", 11, Color(0.50, 0.42, 0.35))
 		lock_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lock_content.add_child(lock_text)
-		var lock_req = _lbl("Complete previous", 10, Color(0.35, 0.30, 0.25))
+		var lock_req = _lbl("Complete previous", 10, Color(0.40, 0.35, 0.30))
 		lock_req.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_req.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lock_content.add_child(lock_req)
@@ -1937,8 +1937,8 @@ func _build_emporium() -> void:
 		vb.add_child(deals_panel)
 	var grid = GridContainer.new()
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 10)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(grid)
@@ -2513,8 +2513,8 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	filter_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	filter_row.add_child(_lbl("Filter:", 10, Color(0.55, 0.48, 0.42)))
 	for fr in [["ALL", Color(0.55, 0.50, 0.45)], ["COMMON", Color(0.5, 0.5, 0.5)], ["RARE", Color(0.2, 0.5, 0.9)], ["EPIC", Color(0.7, 0.3, 0.9)], ["LEGEND", Color(1.0, 0.7, 0.1)]]:
-		var fb = _art_button(fr[0], Color(0.08, 0.06, 0.14), Vector2(70, 22))
-		fb.add_theme_font_size_override("font_size", 8)
+		var fb = _art_button(fr[0], Color(0.08, 0.06, 0.14), Vector2(75, 26))
+		fb.add_theme_font_size_override("font_size", 10)
 		fb.add_theme_color_override("font_color", fr[1])
 		filter_row.add_child(fb)
 	parent.add_child(filter_row)
