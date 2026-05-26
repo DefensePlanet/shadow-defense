@@ -2115,7 +2115,8 @@ func _open_emporium_category(cat_idx: int) -> void:
 	match cat_idx:
 		0: _build_gold_exchange(vb)
 		1: _build_quill_shop(vb)
-		2, 3: _build_gear_shard_shop(vb)
+		2: _build_gear_shard_shop(vb)
+		3: _build_gear_crafting(vb)
 		4: _build_survivor_packs(vb)
 		6: _build_trophy_store_items(vb)
 		12: _build_lucky_wheel_ui(vb)
@@ -2213,6 +2214,39 @@ func _build_quill_shop(parent: VBoxContainer) -> void:
 		row.add_child(_lbl("🪶 %d" % item[2], 11, Color(0.7, 0.5, 0.9)))
 		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
 		row.add_child(buy)
+		parent.add_child(card)
+
+func _build_gear_crafting(parent: VBoxContainer) -> void:
+	parent.add_child(_section_header("GEAR CRAFTING"))
+	parent.add_child(_lbl("Combine 3 gear of the same rarity to forge a higher rarity item", 11, Color(0.55, 0.50, 0.45)))
+	var crafting_tiers = [
+		["3 Common → 1 Uncommon", "common", "uncommon", 50, Color(0.5, 0.5, 0.5)],
+		["3 Uncommon → 1 Rare", "uncommon", "rare", 150, Color(0.3, 0.7, 0.3)],
+		["3 Rare → 1 Epic", "rare", "epic", 500, Color(0.2, 0.5, 0.9)],
+		["3 Epic → 1 Legendary", "epic", "legendary", 2000, Color(0.7, 0.3, 0.9)],
+	]
+	for ct in crafting_tiers:
+		var card = PanelContainer.new()
+		var cs = StyleBoxFlat.new()
+		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		cs.set_corner_radius_all(8)
+		cs.border_color = Color(ct[4].r * 0.5, ct[4].g * 0.5, ct[4].b * 0.5, 0.4)
+		cs.set_border_width_all(1)
+		cs.content_margin_left = 12; cs.content_margin_right = 12
+		cs.content_margin_top = 6; cs.content_margin_bottom = 6
+		card.add_theme_stylebox_override("panel", cs)
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(row)
+		row.add_child(_lbl("🔨", 16, ct[4]))
+		var desc = _lbl(ct[0], 12, ct[4])
+		desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(desc)
+		row.add_child(_lbl("%d💎" % ct[3], 10, Color(0.3, 0.75, 0.9)))
+		var craft = _art_button("CRAFT", Color(0.35, 0.20, 0.10), Vector2(70, 28))
+		row.add_child(craft)
 		parent.add_child(card)
 
 func _build_gear_shard_shop(parent: VBoxContainer) -> void:
