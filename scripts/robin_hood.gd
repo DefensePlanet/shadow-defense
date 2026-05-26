@@ -46,6 +46,13 @@ var _build_timer: float = 0.0
 # Damage tracking and upgrades
 var damage_dealt: float = 0.0
 var crit_count: int = 0
+# Gear visual slots (set by main.gd when gear equipped)
+var gear_crown: Dictionary = {}
+var gear_amulet: Dictionary = {}
+var gear_bracelet: Dictionary = {}
+var gear_weapon: Dictionary = {}
+var gear_ring: Dictionary = {}
+var skin_id: String = "default"
 var upgrade_tier: int = 0
 var _upgrade_flash: float = 0.0
 var _upgrade_name: String = ""
@@ -1656,6 +1663,15 @@ func _draw() -> void:
 		# === NECK (thick cartoon connector) ===
 		draw_line(neck_base, head_center + Vector2(0, 10), OL, 7.0)
 		draw_line(neck_base, head_center + Vector2(0, 10), skin_base, 5.0)
+		# === AMULET (if equipped — glow at neck) ===
+		var _has_amulet = gear_amulet.size() > 0 if "gear_amulet" in self else false
+		if _has_amulet:
+			var am_pos = neck_base + Vector2(0, 2)
+			var am_pulse = (sin(_time * 2.5) + 1.0) * 0.5
+			draw_circle(am_pos, 4.0, Color(0.3, 0.7, 1.0, 0.5 + am_pulse * 0.3))
+			draw_circle(am_pos, 2.5, Color(0.5, 0.9, 1.0, 0.8))
+			# Amulet chain
+			draw_arc(am_pos + Vector2(0, -4), 6.0, PI * 0.2, PI * 0.8, 12, Color(0.7, 0.6, 0.3, 0.6), 1.0)
 
 		# === HEAD (big Bloons TD round head ~45% of height) ===
 
@@ -1735,6 +1751,28 @@ func _draw() -> void:
 		# Flash of teeth behind smirk
 		draw_arc(head_center + Vector2(0.5, 6.2), 3.0, 0.3, PI - 0.5, 8, Color(0.98, 0.96, 0.92), 1.5)
 
+		# === HEAD GEAR (crown overrides hat if equipped) ===
+		var _has_crown = gear_crown.size() > 0 if "gear_crown" in self else false
+		if _has_crown:
+			# Draw crown instead of hat
+			var crown_base = head_center + Vector2(0, -10)
+			var crown_col = Color(1.0, 0.85, 0.15)
+			var crown_dark = Color(0.8, 0.6, 0.1)
+			# Crown base band
+			draw_line(crown_base + Vector2(-12, 0), crown_base + Vector2(12, 0), OL, 4.0)
+			draw_line(crown_base + Vector2(-11, 0), crown_base + Vector2(11, 0), crown_col, 2.5)
+			# Crown points (3 spikes)
+			for ci in range(3):
+				var cx = -8.0 + ci * 8.0
+				draw_line(crown_base + Vector2(cx, 0), crown_base + Vector2(cx, -8), OL, 3.0)
+				draw_line(crown_base + Vector2(cx, 0), crown_base + Vector2(cx, -7), crown_col, 1.8)
+				# Gem on each point
+				draw_circle(crown_base + Vector2(cx, -8), 2.0, Color(0.8, 0.15, 0.15))
+			# Crown shimmer
+			var shimmer_t = sin(_time * 3.0) * 0.3 + 0.7
+			draw_circle(crown_base + Vector2(0, -4), 6.0, Color(1.0, 0.95, 0.5, shimmer_t * 0.15))
+		else:
+			pass  # Default hat below
 		# === FEATHERED CAP (iconic pointed hat) ===
 		var hat_base = head_center + Vector2(0, -8)
 		var hat_tip = hat_base + Vector2(10, -14)
