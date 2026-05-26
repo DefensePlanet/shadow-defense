@@ -1509,6 +1509,15 @@ func _build_detail_view() -> void:
 					sv.add_child(_lbl("✓", 12, Color(0.4, 0.8, 0.3)))
 				else:
 					sv.add_child(_lbl("—", 12, Color(0.35, 0.30, 0.25)))
+				# Make slot clickable to equip gear
+				var slot_btn = Button.new()
+				slot_btn.text = ""
+				slot_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				slot_btn.flat = true
+				var _slot_name = slot
+				slot_btn.pressed.connect(func(): _open_slot_picker(idx, tt, _slot_name))
+				_add_press_feedback(slot_btn)
+				slot_panel.add_child(slot_btn)
 				slots_grid.add_child(slot_panel)
 			right.add_child(slots_grid)
 		right.add_child(_section_header("EQUIPPED GEAR"))
@@ -3413,6 +3422,65 @@ func _section_header(text: String) -> Control:
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_r)
 	return row
+
+func _open_slot_picker(char_idx: int, tower_type, slot_name: String) -> void:
+	_clear()
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
+	var vb = VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", 8)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vb)
+	var back = _art_button("< BACK", Color(0.12, 0.10, 0.22), Vector2(90, 30))
+	back.pressed.connect(func(): _detail_idx = char_idx; _detail_tab = 1; _build_detail_view())
+	vb.add_child(back)
+	var slot_display = _main.GEAR_SLOT_NAMES.get(slot_name, slot_name) if "GEAR_SLOT_NAMES" in _main else slot_name
+	vb.add_child(_title("EQUIP %s" % slot_display.to_upper()))
+	# Show available items for this slot
+	if "GEAR_BY_SLOT" in _main and _main.GEAR_BY_SLOT.has(slot_name):
+		var items = _main.GEAR_BY_SLOT[slot_name]
+		var tier_colors = {"common": Color(0.5, 0.5, 0.5), "uncommon": Color(0.3, 0.7, 0.3), "rare": Color(0.2, 0.5, 0.9), "epic": Color(0.7, 0.3, 0.9), "legendary": Color(1.0, 0.7, 0.1)}
+		for item in items:
+			var item_col = tier_colors.get(item.get("tier", "common"), Color.WHITE)
+			var card = PanelContainer.new()
+			var cs = StyleBoxFlat.new()
+			cs.bg_color = Color(item_col.r * 0.15, item_col.g * 0.15, item_col.b * 0.15, 0.6)
+			cs.set_corner_radius_all(10)
+			cs.border_color = Color(item_col.r * 0.5, item_col.g * 0.5, item_col.b * 0.5, 0.5)
+			cs.set_border_width_all(2)
+			cs.shadow_color = Color(item_col.r * 0.2, item_col.g * 0.2, item_col.b * 0.2, 0.15)
+			cs.shadow_size = 3
+			cs.content_margin_left = 14; cs.content_margin_right = 14
+			cs.content_margin_top = 10; cs.content_margin_bottom = 10
+			card.add_theme_stylebox_override("panel", cs)
+			var row = HBoxContainer.new()
+			row.add_theme_constant_override("separation", 12)
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(row)
+			var info = VBoxContainer.new()
+			info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(info)
+			info.add_child(_lbl(item.get("name", ""), 14, item_col))
+			info.add_child(_lbl(item.get("desc", ""), 10, Color(0.55, 0.50, 0.45)))
+			var tier_text = item.get("tier", "common").to_upper()
+			info.add_child(_lbl(tier_text, 9, item_col.darkened(0.2)))
+			var equip = _art_button("EQUIP", Color(0.12, 0.40, 0.12), Vector2(80, 30))
+			var item_name = item.get("name", "Gear")
+			equip.pressed.connect(func(): _show_popup("Equipped!", "%s has been equipped to the %s slot." % [item_name, slot_display]))
+			row.add_child(equip)
+			vb.add_child(card)
+	else:
+		vb.add_child(_lbl("No items available for this slot", 12, Color(0.50, 0.45, 0.40)))
 
 func _open_skin_shop(char_idx: int) -> void:
 	_clear()
