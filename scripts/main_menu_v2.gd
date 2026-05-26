@@ -214,6 +214,7 @@ func _load_art() -> void:
 		"weapons_set_2": "res://assets/ui_elements/weapons_set_2.png",
 		"currency_bar_art": "res://assets/ui_elements/currency_bar_gothic.png",
 		"level_card_art": "res://assets/ui_elements/level_card_gothic.png",
+		"char_card_art": "res://assets/ui_elements/char_card_gothic.png",
 		"tooltip_frame": "res://assets/ui_elements/tooltip_frame.png",
 		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
 		"card_frame_epic": "res://assets/ui_frames/card_frame_epic.png",
@@ -1210,8 +1211,8 @@ func _survivor_card(idx: int) -> Button:
 	sp.shadow_size = 2
 	btn.add_theme_stylebox_override("pressed", sp)
 	btn.text = ""
-	# Art frame layer behind content (survivor_card_frame or card_frame with black keyed out)
-	var frame_key = "survivor_card_frame" if _art.has("survivor_card_frame") else "card_frame"
+	# Art frame — use gothic char card if available
+	var frame_key = "char_card_art" if _art.has("char_card_art") else ("survivor_card_frame" if _art.has("survivor_card_frame") else "card_frame")
 	if _art.has(frame_key):
 		var frame_art = TextureRect.new()
 		frame_art.texture = _art[frame_key]
