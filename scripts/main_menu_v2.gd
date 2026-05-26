@@ -217,6 +217,21 @@ func _load_art() -> void:
 		"char_card_art": "res://assets/ui_elements/char_card_gothic.png",
 		"settings_bg_art": "res://assets/ui_elements/settings_panel_gothic.png",
 		"weapon_longbow": "res://assets/gear_icons/weapon_longbow.png",
+		"weapon_crystal_wand": "res://assets/gear_icons/weapon_crystal_wand.png",
+		"weapon_vorpal_sword": "res://assets/gear_icons/weapon_vorpal_sword.png",
+		"weapon_shadow_dagger": "res://assets/gear_icons/weapon_shadow_dagger.png",
+		"weapon_blood_chalice": "res://assets/gear_icons/weapon_blood_chalice.png",
+		"weapon_lightning_rod": "res://assets/gear_icons/weapon_lightning_rod.png",
+		"weapon_magnifying_glass": "res://assets/gear_icons/weapon_magnifying_glass.png",
+		"weapon_jungle_whip": "res://assets/gear_icons/weapon_jungle_whip.png",
+		"weapon_broomstick": "res://assets/gear_icons/weapon_broomstick.png",
+		"weapon_shadow_blade": "res://assets/gear_icons/weapon_shadow_blade.png",
+		"weapon_pipe_organ": "res://assets/gear_icons/weapon_pipe_organ.png",
+		"weapon_counting_ledger": "res://assets/gear_icons/weapon_counting_ledger.png",
+		"gear_crown": "res://assets/gear_icons/gear_crown_golden.png",
+		"gear_amulet": "res://assets/gear_icons/gear_amulet_crystal.png",
+		"gear_bracelet": "res://assets/gear_icons/gear_bracelet_rune.png",
+		"gear_ring": "res://assets/gear_icons/gear_ring_amethyst.png",
 		"tooltip_frame": "res://assets/ui_elements/tooltip_frame.png",
 		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
 		"card_frame_epic": "res://assets/ui_frames/card_frame_epic.png",
@@ -1517,11 +1532,26 @@ func _build_detail_view() -> void:
 				sv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				slot_panel.add_child(sv)
 				var slot_name = _main.GEAR_SLOT_NAMES.get(slot, slot) if "GEAR_SLOT_NAMES" in _main else slot
-				sv.add_child(_lbl(slot_name, 8, Color(0.65, 0.55, 0.45)))
-				if has_gear:
-					sv.add_child(_lbl("✓", 12, Color(0.4, 0.8, 0.3)))
+				# Show gear art icon if available
+				var gear_icon_key = "gear_" + slot
+				if _art.has(gear_icon_key):
+					var gi = TextureRect.new()
+					gi.texture = _art[gear_icon_key]
+					gi.custom_minimum_size = Vector2(32, 32)
+					gi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					gi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+					gi.mouse_filter = Control.MOUSE_FILTER_IGNORE
+					if not has_gear:
+						gi.modulate = Color(0.3, 0.25, 0.2, 0.4)
+					var mat = _make_black_key_mat(0.08, 0.05)
+					if mat: gi.material = mat
+					sv.add_child(gi)
 				else:
-					sv.add_child(_lbl("—", 12, Color(0.35, 0.30, 0.25)))
+					sv.add_child(_lbl(slot_name, 8, Color(0.65, 0.55, 0.45)))
+				if has_gear:
+					sv.add_child(_lbl("✓", 10, Color(0.4, 0.8, 0.3)))
+				else:
+					sv.add_child(_lbl(slot.capitalize(), 7, Color(0.40, 0.35, 0.30)))
 				# Make slot clickable to equip gear
 				var slot_btn = Button.new()
 				slot_btn.text = ""
