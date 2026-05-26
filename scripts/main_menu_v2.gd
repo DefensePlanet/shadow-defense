@@ -215,6 +215,8 @@ func _load_art() -> void:
 		"currency_bar_art": "res://assets/ui_elements/currency_bar_gothic.png",
 		"level_card_art": "res://assets/ui_elements/level_card_gothic.png",
 		"char_card_art": "res://assets/ui_elements/char_card_gothic.png",
+		"settings_bg_art": "res://assets/ui_elements/settings_panel_gothic.png",
+		"weapon_longbow": "res://assets/gear_icons/weapon_longbow.png",
 		"tooltip_frame": "res://assets/ui_elements/tooltip_frame.png",
 		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
 		"card_frame_epic": "res://assets/ui_frames/card_frame_epic.png",
@@ -3042,6 +3044,18 @@ func _build_book_collection(parent: VBoxContainer) -> void:
 # ======================== SETTINGS ========================
 func _build_settings() -> void:
 	_clear()
+	# Settings art background (candle, book, gears)
+	if _art.has("settings_bg_art"):
+		var sbg = TextureRect.new()
+		sbg.texture = _art["settings_bg_art"]
+		sbg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		sbg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		sbg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sbg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sbg.modulate.a = 0.25
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: sbg.material = mat
+		content_area.add_child(sbg)
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
