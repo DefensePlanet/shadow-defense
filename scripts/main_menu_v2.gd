@@ -492,26 +492,27 @@ func _build_chapters() -> void:
 	# Title in styled frame with entrance animation
 	var title_panel = PanelContainer.new()
 	var tps = StyleBoxFlat.new()
-	tps.bg_color = Color(0.06, 0.04, 0.12, 0.7)
+	tps.bg_color = Color(0.04, 0.03, 0.08, 0.3)  # Near-transparent — art frame visible
 	tps.set_corner_radius_all(12)
-	tps.border_color = Color(0.65, 0.50, 0.18, 0.5)
-	tps.set_border_width_all(2)
-	tps.shadow_color = Color(0.3, 0.2, 0.05, 0.2)
-	tps.shadow_size = 5
+	tps.border_color = Color(0.65, 0.50, 0.18, 0.2)
+	tps.set_border_width_all(0)  # Art provides border
+	tps.shadow_color = Color(0.3, 0.2, 0.05, 0.15)
+	tps.shadow_size = 6
 	tps.content_margin_left = 40; tps.content_margin_right = 40
 	tps.content_margin_top = 8; tps.content_margin_bottom = 8
 	title_panel.add_theme_stylebox_override("panel", tps)
 	title_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	# Art behind title
-	if _art.has("scroll_header"):
+	# Art behind title — use section banner for dramatic frame
+	var _title_bg_key = "section_banner_art" if _art.has("section_banner_art") else "scroll_header"
+	if _art.has(_title_bg_key):
 		var ta = TextureRect.new()
-		ta.texture = _art["scroll_header"]
+		ta.texture = _art[_title_bg_key]
 		ta.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		ta.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		ta.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ta.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ta.modulate.a = 0.3
+		ta.modulate.a = 0.8  # Prominent — art IS the title frame
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: ta.material = mat
 		title_panel.add_child(ta)
@@ -1203,7 +1204,7 @@ func _survivor_card(idx: int) -> Button:
 		frame_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		frame_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		frame_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		frame_art.modulate.a = 0.25  # Subtle frame overlay — don't obscure portrait
+		frame_art.modulate.a = 0.50  # Visible frame — adds depth without hiding portrait
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: frame_art.material = mat
 		btn.add_child(frame_art)
@@ -1965,9 +1966,9 @@ func _build_emporium() -> void:
 		btn.custom_minimum_size = Vector2(0, 90)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
-		# Styled card with accent color left stripe + shadow
+		# Card panel — mostly transparent so art frame shows
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.05, 0.03, 0.10, 0.55)
+		s.bg_color = Color(0.05, 0.03, 0.10, 0.25)
 		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
 		s.border_width_left = 4
 		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
@@ -1990,7 +1991,7 @@ func _build_emporium() -> void:
 			card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card_art.modulate.a = 0.2  # Very subtle — texture hint only
+			card_art.modulate.a = 0.7  # Prominent — art IS the card background
 			var mat = _make_black_key_mat(0.08, 0.05)
 			if mat: card_art.material = mat
 			btn.add_child(card_art)
@@ -3287,10 +3288,10 @@ func _title(text: String) -> Control:
 	# Title with decorative frame panel
 	var outer = PanelContainer.new()
 	var os = StyleBoxFlat.new()
-	os.bg_color = Color(0.06, 0.04, 0.12, 0.6)
-	os.set_corner_radius_all(10)
-	os.border_color = Color(0.65, 0.50, 0.18, 0.5)
-	os.set_border_width_all(1)
+	os.bg_color = Color(0.04, 0.03, 0.08, 0.3)  # Near-transparent so art frame shows
+	os.set_corner_radius_all(12)
+	os.border_color = Color(0.65, 0.50, 0.18, 0.3)
+	os.set_border_width_all(0)  # Art provides the border
 	os.shadow_color = Color(0.3, 0.2, 0.05, 0.15)
 	os.shadow_size = 4
 	os.content_margin_left = 40; os.content_margin_right = 40
@@ -3307,7 +3308,7 @@ func _title(text: String) -> Control:
 		art_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art_bg.modulate.a = 0.35
+		art_bg.modulate.a = 0.75  # Prominent — art frame visible
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: art_bg.material = mat
 		outer.add_child(art_bg)
