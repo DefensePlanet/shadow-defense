@@ -261,19 +261,8 @@ func _set_bg(view: String) -> void:
 
 func _build_currency_bar() -> void:
 	if not _main: return
-	# Apply header bar art (currency_bar_gothic looked bad stretched — use original)
-	var _cur_art_key = "header_bar"
-	if _art.has(_cur_art_key):
-		var art_bg = TextureRect.new()
-		art_bg.texture = _art[_cur_art_key]
-		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		art_bg.stretch_mode = TextureRect.STRETCH_SCALE
-		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		art_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var mat = _make_black_key_mat(0.06, 0.04)
-		if mat: art_bg.material = mat
-		top_bar.add_child(art_bg)
-		top_bar.color = Color(0, 0, 0, 0)
+	# Clean top bar — no art texture (both header_bar and currency_bar_gothic looked bad)
+	top_bar.color = Color(0.06, 0.04, 0.12, 0.85)
 	var h = HBoxContainer.new()
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h.add_theme_constant_override("separation", 8)
