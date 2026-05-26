@@ -1477,6 +1477,40 @@ func _build_detail_view() -> void:
 		right.add_child(cost_row)
 	# === TAB 1: GEAR ===
 	if _detail_tab == 0 or _detail_tab == 1:
+		right.add_child(_section_header("GEAR SLOTS"))
+		# Show 5 gear slots
+		if "GEAR_SLOTS" in _main:
+			var slots_grid = GridContainer.new()
+			slots_grid.columns = 5
+			slots_grid.add_theme_constant_override("h_separation", 6)
+			slots_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			for slot in _main.GEAR_SLOTS:
+				var slot_panel = PanelContainer.new()
+				var sps = StyleBoxFlat.new()
+				var has_gear = false
+				if "character_gear_slots" in _main and _main.character_gear_slots.has(tt):
+					has_gear = _main.character_gear_slots[tt].has(slot) and _main.character_gear_slots[tt][slot] != ""
+				sps.bg_color = Color(0.08, 0.06, 0.14, 0.6) if has_gear else Color(0.04, 0.03, 0.08, 0.4)
+				sps.set_corner_radius_all(8)
+				sps.border_color = Color(0.65, 0.50, 0.20, 0.5) if has_gear else Color(0.25, 0.20, 0.15, 0.3)
+				sps.set_border_width_all(1)
+				sps.content_margin_left = 4; sps.content_margin_right = 4
+				sps.content_margin_top = 4; sps.content_margin_bottom = 4
+				slot_panel.add_theme_stylebox_override("panel", sps)
+				slot_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				slot_panel.custom_minimum_size = Vector2(60, 50)
+				var sv = VBoxContainer.new()
+				sv.alignment = BoxContainer.ALIGNMENT_CENTER
+				sv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				slot_panel.add_child(sv)
+				var slot_name = _main.GEAR_SLOT_NAMES.get(slot, slot) if "GEAR_SLOT_NAMES" in _main else slot
+				sv.add_child(_lbl(slot_name, 8, Color(0.65, 0.55, 0.45)))
+				if has_gear:
+					sv.add_child(_lbl("✓", 12, Color(0.4, 0.8, 0.3)))
+				else:
+					sv.add_child(_lbl("—", 12, Color(0.35, 0.30, 0.25)))
+				slots_grid.add_child(slot_panel)
+			right.add_child(slots_grid)
 		right.add_child(_section_header("EQUIPPED GEAR"))
 	if tt != null and _main.survivor_gear.has(tt):
 		var gear = _main.survivor_gear[tt]

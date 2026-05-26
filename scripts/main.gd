@@ -69,6 +69,51 @@ var SURVIVOR_SKINS: Dictionary = {
 var owned_skins: Dictionary = {}  # tower_type -> [skin_id, ...]
 var active_skins: Dictionary = {}  # tower_type -> skin_id
 
+# Gear slot types — jewelry/crowns/weapons that visually attach to characters
+const GEAR_SLOTS: Array = ["crown", "amulet", "bracelet", "weapon", "ring"]
+const GEAR_SLOT_NAMES: Dictionary = {
+	"crown": "👑 Crown",
+	"amulet": "📿 Amulet",
+	"bracelet": "💪 Bracelet",
+	"weapon": "⚔️ Weapon",
+	"ring": "💍 Ring"
+}
+# Gear items organized by slot
+const GEAR_BY_SLOT: Dictionary = {
+	"crown": [
+		{"id": "iron_circlet", "name": "Iron Circlet", "desc": "+5% damage", "tier": "common", "effect": "damage", "value": 0.05, "visual": "circlet"},
+		{"id": "sherwood_crown", "name": "Sherwood Crown", "desc": "+10% range, +5% crit", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.10}, {"effect": "crit", "value": 0.05}], "visual": "leaf_crown"},
+		{"id": "shadow_tiara", "name": "Shadow Tiara", "desc": "+15% damage, +10% attack speed", "tier": "rare", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "attack_speed", "value": 0.10}], "visual": "dark_tiara"},
+		{"id": "golden_crown", "name": "Golden Crown of Pages", "desc": "+20% all stats", "tier": "legendary", "effect": "all", "value": 0.20, "visual": "golden_crown"},
+	],
+	"amulet": [
+		{"id": "quill_pendant", "name": "Quill Pendant", "desc": "+8% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.08, "visual": "pendant"},
+		{"id": "ink_amulet", "name": "Ink Amulet", "desc": "+12% damage, +5% lifesteal", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.12}, {"effect": "lifesteal", "value": 0.05}], "visual": "ink_glow"},
+		{"id": "storybook_heart", "name": "Storybook Heart", "desc": "+15% range, heals nearby towers", "tier": "rare", "effect": "range", "value": 0.15, "visual": "heart_glow"},
+		{"id": "authors_seal", "name": "Author's Seal", "desc": "+25% damage, reveals hidden enemies", "tier": "legendary", "effect": "damage", "value": 0.25, "visual": "seal_aura"},
+	],
+	"bracelet": [
+		{"id": "leather_wrap", "name": "Leather Wrap", "desc": "+5% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.05, "visual": "wrap"},
+		{"id": "enchanted_bangle", "name": "Enchanted Bangle", "desc": "+10% range, +8% slow", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.10}, {"effect": "slow", "value": 0.08}], "visual": "bangle"},
+		{"id": "gauntlet_of_tales", "name": "Gauntlet of Tales", "desc": "+15% crit, +10% damage", "tier": "rare", "effects": [{"effect": "crit", "value": 0.15}, {"effect": "damage", "value": 0.10}], "visual": "gauntlet"},
+		{"id": "infinity_bracer", "name": "Infinity Bracer", "desc": "+20% all stats, +1 pierce", "tier": "legendary", "effect": "all", "value": 0.20, "visual": "infinity_glow"},
+	],
+	"weapon": [
+		{"id": "wooden_staff", "name": "Wooden Staff", "desc": "+8% range", "tier": "common", "effect": "range", "value": 0.08, "visual": "staff"},
+		{"id": "enchanted_blade", "name": "Enchanted Blade", "desc": "+15% damage, +5% crit", "tier": "uncommon", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "crit", "value": 0.05}], "visual": "blade"},
+		{"id": "crystal_wand", "name": "Crystal Wand", "desc": "+12% range, +10% AoE", "tier": "rare", "effects": [{"effect": "range", "value": 0.12}, {"effect": "aoe", "value": 0.10}], "visual": "wand"},
+		{"id": "vorpal_sword", "name": "Vorpal Sword", "desc": "+25% damage, +15% crit, chance to instant-kill", "tier": "legendary", "effect": "damage", "value": 0.25, "visual": "vorpal"},
+	],
+	"ring": [
+		{"id": "copper_band", "name": "Copper Band", "desc": "+5% gold bonus", "tier": "common", "effect": "gold_bonus", "value": 0.05, "visual": "copper"},
+		{"id": "emerald_ring", "name": "Emerald Ring", "desc": "+10% range, +8% gold", "tier": "uncommon", "effects": [{"effect": "range", "value": 0.10}, {"effect": "gold_bonus", "value": 0.08}], "visual": "emerald"},
+		{"id": "shadow_signet", "name": "Shadow Signet", "desc": "+15% damage, dark aura", "tier": "rare", "effect": "damage", "value": 0.15, "visual": "shadow_ring"},
+		{"id": "ring_of_the_author", "name": "Ring of the Author", "desc": "+20% all, rewrite reality on crit", "tier": "legendary", "effect": "all", "value": 0.20, "visual": "author_ring"},
+	],
+}
+# Equipped gear per character per slot
+var character_gear_slots: Dictionary = {}  # tower_type -> {"crown": gear_id, "amulet": gear_id, ...}
+
 # Constants
 var total_waves: int = 20
 const MIN_PATH_DIST: float = 25.0

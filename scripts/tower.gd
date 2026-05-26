@@ -14,11 +14,16 @@ var sprite_texture: Texture2D = null  # AI character sprite, set by main.gd
 var is_selected: bool = false  # Show range circle when selected
 var damage_type: String = "physical"  # physical, magic, fire, ice, dark, holy
 
-# Gear visual system — Diablo-style visible equipment
-var equipped_weapon_visual: String = ""  # Key for weapon appearance
-var equipped_armor_visual: String = ""   # Key for armor tint/overlay
-var equipped_accessory_visual: String = ""  # Key for accessory glow/particle
-var skin_id: String = "default"  # Current skin (default, ranger, noble, shadow_lord)
+# Gear visual system — Diablo/Apex-style visible equipment
+# Gear SLOTS (jewelry/accessories that show on character)
+var gear_crown: Dictionary = {}      # Crown/helm — drawn on head
+var gear_amulet: Dictionary = {}     # Amulet/necklace — glow around neck
+var gear_bracelet: Dictionary = {}   # Bracelet/gauntlet — drawn on arm
+var gear_weapon: Dictionary = {}     # Weapon — replaces default weapon visual
+var gear_ring: Dictionary = {}       # Ring — particle effect on attacks
+# Skin system — full outfit changes (Apex Legends style)
+var skin_id: String = "default"
+var skin_color_override: Color = Color.WHITE  # Tint applied to base outfit
 
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null
