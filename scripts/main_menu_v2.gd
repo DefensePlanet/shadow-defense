@@ -205,6 +205,13 @@ func _load_art() -> void:
 		"empty_star": "res://assets/ui_elements/empty_star.png",
 		"upgrade_arrow": "res://assets/ui_elements/upgrade_arrow.png",
 		"side_panel_buttons": "res://assets/ui_elements/side_panel_buttons.png",
+		"panel_gothic": "res://assets/ui_elements/panel_card_gothic.png",
+		"button_gothic_art": "res://assets/ui_elements/button_panel_gothic.png",
+		"section_banner_art": "res://assets/ui_elements/section_banner_gothic.png",
+		"nav_bar_art": "res://assets/ui_elements/nav_bar_gothic.png",
+		"weapons_set": "res://assets/ui_elements/weapons_set_1.png",
+		"jewelry_set": "res://assets/ui_elements/jewelry_set_1.png",
+		"weapons_set_2": "res://assets/ui_elements/weapons_set_2.png",
 		"tooltip_frame": "res://assets/ui_elements/tooltip_frame.png",
 		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
 		"card_frame_epic": "res://assets/ui_frames/card_frame_epic.png",
@@ -327,10 +334,11 @@ func _update_song_display() -> void:
 		tw.tween_property(_song_label, "modulate:a", 1.0, 0.15)
 
 func _build_nav() -> void:
-	# Apply nav spine art behind NavButtons (NavBar is ColorRect)
-	if _art.has("nav_spine"):
+	# Apply gothic nav bar art (or spine fallback)
+	var nav_art_key = "nav_bar_art" if _art.has("nav_bar_art") else "nav_spine"
+	if _art.has(nav_art_key):
 		var art_bg = TextureRect.new()
-		art_bg.texture = _art["nav_spine"]
+		art_bg.texture = _art[nav_art_key]
 		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		art_bg.stretch_mode = TextureRect.STRETCH_SCALE
 		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -339,7 +347,7 @@ func _build_nav() -> void:
 		if mat: art_bg.material = mat
 		nav_bar.add_child(art_bg)
 		nav_bar.move_child(art_bg, 0)
-		nav_bar.color = Color(0, 0, 0, 0)  # Make ColorRect transparent so art shows
+		nav_bar.color = Color(0, 0, 0, 0)
 	_build_nav_buttons()
 
 func _build_nav_buttons() -> void:
@@ -1973,10 +1981,11 @@ func _build_emporium() -> void:
 		sh.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.65)
 		sh.border_color = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.7)
 		btn.add_theme_stylebox_override("hover", sh)
-		# Art layer behind content (shop_item_card with black keyed out)
-		if _art.has("shop_card"):
+		# Art layer behind content — use gothic panel if available
+		var card_art_key = "panel_gothic" if _art.has("panel_gothic") else "shop_card"
+		if _art.has(card_art_key):
 			var card_art = TextureRect.new()
-			card_art.texture = _art["shop_card"]
+			card_art.texture = _art[card_art_key]
 			card_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -3289,10 +3298,11 @@ func _title(text: String) -> Control:
 	outer.add_theme_stylebox_override("panel", os)
 	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	outer.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	# Art background for title
-	if _art.has("scroll_header"):
+	# Art background for title — use section banner if available
+	var title_art_key = "section_banner_art" if _art.has("section_banner_art") else "scroll_header"
+	if _art.has(title_art_key):
 		var art_bg = TextureRect.new()
-		art_bg.texture = _art["scroll_header"]
+		art_bg.texture = _art[title_art_key]
 		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		art_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
