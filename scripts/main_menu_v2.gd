@@ -172,13 +172,12 @@ func _load_art() -> void:
 		"shop_card": "res://assets/ui_elements/shop_item_card.png",
 		"detail_panel": "res://assets/ui_elements/detail_panel_bg.png",
 		"stats_panel": "res://assets/ui_elements/stats_panel.png",
-		"buy_button": "res://assets/ui_elements/buy_button.png",
-		"play_button": "res://assets/ui_elements/play_button_v2.png",
-		"header_bar": "res://assets/ui_elements/header_bar.png",
+		# buy_button and play_button removed — had baked text/white areas
+		# header_bar removed — had colored gems that looked like tie-dye
 		"nav_spine": "res://assets/ui_frames/nav_book_spine.png",
 		"scroll_header": "res://assets/ui_frames/scroll_header_storybook.png",
 		"card_frame": "res://assets/ui_frames/card_frame_storybook.png",
-		"locked_card": "res://assets/ui_elements/back_button.png",
+		# locked_card (back_button.png) removed — not used
 		"golden_star": "res://assets/ui_elements/golden_star.png",
 		"button_gothic": "res://assets/ui_frames/button_gothic.png",
 		"popup_frame": "res://assets/ui_frames/popup_frame.png",
@@ -193,14 +192,14 @@ func _load_art() -> void:
 		"nav_bar_bg": "res://assets/ui_frames/nav_bar_bg.png",
 		"xp_bar": "res://assets/ui_elements/xp_bar.png",
 		"gear_slots": "res://assets/ui_elements/gear_slots.png",
-		"daily_deals": "res://assets/ui_elements/daily_deals_banner.png",
-		"claim_button": "res://assets/ui_elements/claim_button.png",
+		# daily_deals removed — had baked text/seal that clashed
+		# claim_button removed — not used (replaced with _art_button)
 		"coin_burst": "res://assets/ui_elements/coin_burst.png",
 		"currency_exchange": "res://assets/ui_elements/currency_exchange.png",
 		"achievement_badges": "res://assets/ui_elements/achievement_badges.png",
 		"achievement_card": "res://assets/ui_elements/achievement_progress_card.png",
 		"character_info_card": "res://assets/ui_elements/character_info_card.png",
-		"go_button": "res://assets/ui_elements/go_button.png",
+		# go_button removed — was white rectangle with shader artifacts
 		"three_stars": "res://assets/ui_elements/three_stars.png",
 		"empty_star": "res://assets/ui_elements/empty_star.png",
 		"upgrade_arrow": "res://assets/ui_elements/upgrade_arrow.png",
