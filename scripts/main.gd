@@ -22040,17 +22040,22 @@ func _draw_bounty_board() -> void:
 	if _active_bounties.is_empty():
 		return
 	var bx = 4.0
-	var by = 420.0
+	var by = 400.0
 	var font = game_font
-	_udraw(font, Vector2(bx + 2, by), "BOUNTIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.7, 0.2, 0.6))
-	by += 14.0
+	var bounty_count = _active_bounties.size()
+	var panel_h = 18.0 + bounty_count * 16.0
+	# Styled bounty panel
+	draw_colored_polygon(_rrp(Rect2(bx, by, 200, panel_h), 6.0), Color(0.05, 0.03, 0.10, 0.75))
+	draw_polyline(_rrp(Rect2(bx, by, 200, panel_h), 6.0) + PackedVector2Array([_rrp(Rect2(bx, by, 200, panel_h), 6.0)[0]]), Color(0.6, 0.45, 0.15, 0.3), 1.0)
+	_udraw(font, Vector2(bx + 6, by + 12), "📋 BOUNTIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 0.75, 0.25, 0.8))
+	by += 18.0
 	for bounty in _active_bounties:
 		var done = bounty["progress"] >= bounty["target"]
-		var col = Color(0.3, 1.0, 0.4, 0.7) if done else Color(0.8, 0.75, 0.65, 0.5)
+		var col = Color(0.3, 1.0, 0.4, 0.8) if done else Color(0.8, 0.75, 0.65, 0.6)
+		var icon = "✅" if done else "⬜"
 		var status = "DONE" if done else "%d/%d" % [bounty["progress"], bounty["target"]]
-		var text = "%s [%s]" % [bounty["desc"], status]
-		_udraw(font, Vector2(bx + 2, by), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, col)
-		by += 12.0
+		_udraw(font, Vector2(bx + 6, by), "%s %s [%s]" % [icon, bounty["desc"], status], HORIZONTAL_ALIGNMENT_LEFT, 190, 10, col)
+		by += 15.0
 
 # === BATTD: GEAR AUTO-EQUIP ===
 func _auto_equip_best_gear(tower_type) -> int:
@@ -22419,9 +22424,12 @@ func _draw_blessing_indicator() -> void:
 	var bar_w = 120.0
 	var bar_x = 640.0 - bar_w * 0.5
 	var bar_y = 50.0
-	draw_rect(Rect2(bar_x, bar_y, bar_w, 6), Color(0.1, 0.1, 0.15, 0.6))
-	draw_rect(Rect2(bar_x, bar_y, bar_w * pct, 6), Color(0.3, 0.7, 1.0, 0.8))
-	_udraw(game_font, Vector2(640, bar_y - 2), _blessing_type.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.4, 0.8, 1.0, 0.7))
+	# Styled blessing bar
+	draw_colored_polygon(_rrp(Rect2(bar_x - 2, bar_y - 2, bar_w + 4, 10), 4.0), Color(0.2, 0.4, 0.6, 0.3))
+	draw_colored_polygon(_rrp(Rect2(bar_x, bar_y, bar_w, 6), 3.0), Color(0.06, 0.04, 0.10, 0.7))
+	if pct > 0.01:
+		draw_colored_polygon(_rrp(Rect2(bar_x, bar_y, bar_w * pct, 6), 3.0), Color(0.3, 0.7, 1.0, 0.85))
+	_udraw(game_font, Vector2(640, bar_y - 4), "✨ %s ✨" % _blessing_type.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(0.4, 0.85, 1.0, 0.8))
 
 # === BATTD2: EMERGENCY RECALL ===
 func _emergency_recall() -> void:
@@ -32824,7 +32832,7 @@ func _draw_round_timer() -> void:
 	var elapsed = _time - _wave_start_time
 	var mins = int(elapsed) / 60
 	var secs = int(elapsed) % 60
-	var timer_text = "%d:%02d" % [mins, secs]
+	var timer_text = "⏱ %d:%02d" % [mins, secs]
 	var timer_col = Color(0.7, 0.8, 0.9, 0.5)
 	if elapsed > 30.0:
 		timer_col = Color(1.0, 0.6, 0.2, 0.6)
@@ -32912,7 +32920,7 @@ func _get_upgrade_stat_preview(tower, tier: int) -> String:
 # --- Feature 13: Global DPS Meter ---
 func _draw_global_dps_meter() -> void:
 	var font = game_font
-	var dps_text = "DPS: %s" % _format_number(_global_dps_value)
+	var dps_text = "⚔ DPS: %s" % _format_number(_global_dps_value)
 	var col = Color(0.5, 0.8, 1.0, 0.5)
 	if _global_dps_value > 500:
 		col = Color(0.3, 1.0, 0.4, 0.6)
