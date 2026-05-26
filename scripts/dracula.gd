@@ -1463,6 +1463,31 @@ func _draw() -> void:
 		var cravat_red = Color(0.85, 0.10, 0.08)
 		var hair_col = Color(0.06, 0.04, 0.05)
 		var hair_hi = Color(0.16, 0.10, 0.14)
+		# Skin color overrides
+		match skin_id:
+			"noble":
+				suit_black = Color(0.18, 0.10, 0.25)
+				suit_dark = Color(0.12, 0.06, 0.18)
+				cape_black = Color(0.15, 0.08, 0.20)
+				cape_red = Color(0.60, 0.20, 0.55)
+				cape_red_dark = Color(0.40, 0.10, 0.35)
+				cravat_red = Color(0.70, 0.25, 0.60)
+			"bat_lord":
+				suit_black = Color(0.05, 0.04, 0.08)
+				suit_dark = Color(0.03, 0.02, 0.05)
+				cape_black = Color(0.04, 0.03, 0.06)
+				cape_red = Color(0.30, 0.25, 0.35)
+				cape_red_dark = Color(0.20, 0.15, 0.25)
+				cravat_red = Color(0.40, 0.30, 0.45)
+				hair_col = Color(0.03, 0.02, 0.05)
+			"blood_king":
+				suit_black = Color(0.25, 0.02, 0.02)
+				suit_dark = Color(0.15, 0.01, 0.01)
+				cape_black = Color(0.20, 0.02, 0.02)
+				cape_red = Color(0.90, 0.05, 0.05)
+				cape_red_dark = Color(0.70, 0.02, 0.02)
+				cravat_red = Color(1.0, 0.10, 0.10)
+				hair_col = Color(0.30, 0.02, 0.02)
 
 		# === 14. DRAMATIC CAPE (drawn BEHIND body) ===
 		var cape_top_l = neck_base + Vector2(-11, -2)
@@ -2089,6 +2114,26 @@ func _draw() -> void:
 		elif _walpurgis_night_timer < 5.0:
 			var ready_pulse = sin(_time * 6.0) * 0.5 + 0.5
 			pass  #draw_arc(Vector2.ZERO, 35.0 + ready_pulse * 5.0, 0, TAU, 24, Color(0.8, 0.05, 0.02, 0.15 + ready_pulse * 0.1), 2.0)
+
+	# === GEAR VISUALS (drawn last, on top of character) ===
+	var _g_head = body_offset + Vector2(sway * 0.08, -26.0)
+	var _g_neck = body_offset + Vector2(sway * 0.15, -14.0)
+	# Crown
+	if gear_crown.size() > 0:
+		var gc = _g_head + Vector2(0, -12)
+		var gp = (sin(_time * 2.0) + 1.0) * 0.5
+		draw_circle(gc, 8.0, Color(0.85, 0.15, 0.10, 0.15 + gp * 0.1))
+		draw_arc(gc, 7.0, 0, TAU, 12, Color(0.9, 0.7, 0.15, 0.8), 2.0)
+		for _ci in range(3):
+			var cx = -5.0 + _ci * 5.0
+			draw_line(gc + Vector2(cx, 0), gc + Vector2(cx, -6), Color(0.9, 0.7, 0.15), 1.5)
+			draw_circle(gc + Vector2(cx, -6), 1.5, Color(0.8, 0.1, 0.1))
+	# Amulet
+	if gear_amulet.size() > 0:
+		var ga = _g_neck + Vector2(0, 3)
+		var gpa = (sin(_time * 3.0) + 1.0) * 0.5
+		draw_circle(ga, 4.0, Color(0.7, 0.1, 0.1, 0.5 + gpa * 0.3))
+		draw_circle(ga, 2.5, Color(0.9, 0.15, 0.15, 0.8))
 
 # === SYNERGY BUFFS ===
 var _synergy_buffs: Dictionary = {}
