@@ -932,7 +932,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	# Best wave record
 	if "level_best_wave" in _main and _main.level_best_wave.has(idx):
 		var bw = _main.level_best_wave[idx]
-		stats_row.add_child(_lbl("Best: W%d" % bw, 9, Color(0.55, 0.48, 0.42)))
+		stats_row.add_child(_lbl("Best: W%d" % bw, 10, Color(0.55, 0.48, 0.42)))
 	info.add_child(stats_row)
 	# Star rating — use golden_star art if available
 	if _main and _main.level_stars.has(idx):
@@ -1219,7 +1219,7 @@ func _survivor_card(idx: int) -> Button:
 		lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(lock_lbl)
 	var ctitle = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
-	var tl = _lbl(ctitle if is_unlocked else "", 9, Color(0.55, 0.48, 0.42))
+	var tl = _lbl(ctitle if is_unlocked else "", 10, Color(0.55, 0.48, 0.42))
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1244,7 +1244,7 @@ func _survivor_card(idx: int) -> Button:
 		vb.add_child(badge)
 	# Source novel (only for unlocked)
 	if is_unlocked and _main and idx < _main.character_novels.size():
-		var novel = _lbl(_main.character_novels[idx], 9, Color(0.48, 0.42, 0.38))
+		var novel = _lbl(_main.character_novels[idx], 10, Color(0.48, 0.42, 0.38))
 		novel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		novel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		novel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1419,7 +1419,7 @@ func _build_detail_view() -> void:
 		right.add_child(level_row)
 		if next_xp > 0:
 			right.add_child(_stat_bar("XP", xp, next_xp, Color(0.3, 0.8, 0.4)))
-			right.add_child(_lbl("%d / %d XP to Level %d" % [xp, next_xp, level + 1], 9, Color(0.50, 0.45, 0.40)))
+			right.add_child(_lbl("%d / %d XP to Level %d" % [xp, next_xp, level + 1], 10, Color(0.50, 0.45, 0.40)))
 		elif level >= _main.MAX_SURVIVOR_LEVEL:
 			right.add_child(_lbl("MAX LEVEL", 12, Color(1.0, 0.85, 0.15)))
 		# Total damage dealt
@@ -1690,7 +1690,7 @@ func _build_detail_view() -> void:
 			ab_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			ab_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ab_row.add_child(ab_name)
-			var tier_lbl = _lbl("Tier %d" % (ai + 1), 9, Color(0.55, 0.48, 0.42))
+			var tier_lbl = _lbl("Tier %d" % (ai + 1), 10, Color(0.55, 0.48, 0.42))
 			tier_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ab_row.add_child(tier_lbl)
 			right.add_child(ab_panel)
@@ -2021,7 +2021,7 @@ func _build_emporium() -> void:
 			badge_s.content_margin_top = 2; badge_s.content_margin_bottom = 2
 			badge_panel.add_theme_stylebox_override("panel", badge_s)
 			badge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var bl = _lbl(badge_text, 9, Color.WHITE)
+			var bl = _lbl(badge_text, 10, Color.WHITE)
 			bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			badge_panel.add_child(bl)
 			row.add_child(badge_panel)
@@ -2172,7 +2172,7 @@ func _build_quill_shop(parent: VBoxContainer) -> void:
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(nl)
-		row.add_child(_lbl(item[1], 9, Color(0.50, 0.45, 0.40)))
+		row.add_child(_lbl(item[1], 10, Color(0.50, 0.45, 0.40)))
 		row.add_child(_lbl("🪶 %d" % item[2], 11, Color(0.7, 0.5, 0.9)))
 		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
 		row.add_child(buy)
@@ -2568,7 +2568,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(icon)
-		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 9, Color(0.65, 0.58, 0.50))
+		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 10, Color(0.65, 0.58, 0.50))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_lbl.clip_text = true
@@ -2681,9 +2681,9 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 			name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ach_row.add_child(name_l)
-			ach_row.add_child(_lbl("%d/%d" % [mini(prog, ad.get("target", 1)), ad.get("target", 1)], 9, Color(0.45, 0.40, 0.38)))
+			ach_row.add_child(_lbl("%d/%d" % [mini(prog, ad.get("target", 1)), ad.get("target", 1)], 10, Color(0.45, 0.40, 0.38)))
 			var reward_text = "+%d %s" % [ad.get("reward_amount", 0), ad.get("reward_type", "").capitalize()]
-			ach_row.add_child(_lbl(reward_text, 9, Color(0.4, 0.7, 0.3) if is_done else Color(0.35, 0.30, 0.25)))
+			ach_row.add_child(_lbl(reward_text, 10, Color(0.4, 0.7, 0.3) if is_done else Color(0.35, 0.30, 0.25)))
 			# Difficulty tier badge
 			var target_val = ad.get("target", 1)
 			var tier_text = "🥉" if target_val < 100 else ("🥈" if target_val < 1000 else "🥇")
@@ -2819,7 +2819,7 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(desc)
-		var stats_lbl = _lbl(e[2], 9, Color(0.50, 0.45, 0.40))
+		var stats_lbl = _lbl(e[2], 10, Color(0.50, 0.45, 0.40))
 		stats_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(stats_lbl)
 		grid.add_child(card)
@@ -2869,7 +2869,7 @@ func _build_journal(parent: VBoxContainer) -> void:
 			text_col.add_child(_lbl(cname, 14, Color(1, 0.92, 0.45)))
 			# Source novel
 			if i < _main.character_novels.size():
-				text_col.add_child(_lbl("from \"%s\"" % _main.character_novels[i], 9, Color(0.50, 0.42, 0.38)))
+				text_col.add_child(_lbl("from \"%s\"" % _main.character_novels[i], 10, Color(0.50, 0.42, 0.38)))
 			# Title
 			if i < _main.character_titles.size():
 				text_col.add_child(_lbl(_main.character_titles[i], 10, Color(0.60, 0.52, 0.44)))
@@ -2952,7 +2952,7 @@ func _build_glossary(parent: VBoxContainer) -> void:
 		tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		term_panel.add_child(tv)
 		tv.add_child(_lbl(term[0], 12, Color(0.85, 0.78, 0.60)))
-		var def_lbl = _lbl(term[1], 9, Color(0.70, 0.62, 0.52))
+		var def_lbl = _lbl(term[1], 10, Color(0.70, 0.62, 0.52))
 		def_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		def_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tv.add_child(def_lbl)
@@ -3002,7 +3002,7 @@ func _build_book_collection(parent: VBoxContainer) -> void:
 		# Find which character comes from this novel
 		for ci in range(_main.character_novels.size()):
 			if _main.character_novels[ci] == novels[ni] and ci < _main.character_names.size():
-				bvb.add_child(_lbl(_main.character_names[ci], 9, Color(0.55, 0.48, 0.42)))
+				bvb.add_child(_lbl(_main.character_names[ci], 10, Color(0.55, 0.48, 0.42)))
 				break
 		grid.add_child(book_card)
 
@@ -3050,7 +3050,7 @@ func _build_settings() -> void:
 		var quality_hints = {"Low": "Best performance, reduced effects", "Medium": "Balanced quality and performance", "High": "Best visuals, may reduce FPS", "Auto": "Adjusts automatically based on FPS"}
 		var qname = GameSettings.get_quality_name()
 		if quality_hints.has(qname):
-			var qh = _lbl("  ↳ %s  (%d FPS)" % [quality_hints[qname], Engine.get_frames_per_second()], 9, Color(0.50, 0.45, 0.40))
+			var qh = _lbl("  ↳ %s  (%d FPS)" % [quality_hints[qname], Engine.get_frames_per_second()], 10, Color(0.50, 0.45, 0.40))
 			qh.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			vb.add_child(qh)
 		_add_setting_row(vb, "Particle Effects", "ON" if GameSettings.particle_effects else "OFF", func(): GameSettings.particle_effects = not GameSettings.particle_effects; GameSettings.save_settings(); _build_settings())
@@ -3076,7 +3076,7 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Colorblind Mode", cb_names[clampi(GameSettings.colorblind_mode, 0, 3)], func(): GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4; GameSettings.save_settings(); _build_settings())
 		if GameSettings.colorblind_mode > 0:
 			var cb_desc = ["", "Red-green (most common)", "Red-green (protanopia)", "Blue-yellow (rare)"]
-			var desc = _lbl("  ↳ %s" % cb_desc[clampi(GameSettings.colorblind_mode, 0, 3)], 9, Color(0.50, 0.45, 0.40))
+			var desc = _lbl("  ↳ %s" % cb_desc[clampi(GameSettings.colorblind_mode, 0, 3)], 10, Color(0.50, 0.45, 0.40))
 			desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			vb.add_child(desc)
 			# Color preview swatches
@@ -3096,7 +3096,7 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Haptic Feedback", "ON" if GameSettings.haptic_feedback else "OFF", func(): GameSettings.haptic_feedback = not GameSettings.haptic_feedback; GameSettings.save_settings(); _build_settings())
 		if GameSettings.haptic_feedback:
-			var haptic_hint = _lbl("  ↳ Vibration on tower placement, boss kills, and life loss", 9, Color(0.50, 0.45, 0.40))
+			var haptic_hint = _lbl("  ↳ Vibration on tower placement, boss kills, and life loss", 10, Color(0.50, 0.45, 0.40))
 			haptic_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			vb.add_child(haptic_hint)
 		_add_setting_row(vb, "One-Handed Mode", "ON" if GameSettings.one_handed else "OFF", func(): GameSettings.one_handed = not GameSettings.one_handed; GameSettings.save_settings(); _build_settings())
@@ -3144,7 +3144,7 @@ func _build_settings() -> void:
 	credits_vb.add_child(_lbl("Created by Defense Planet", 12, Color(0.75, 0.68, 0.58)))
 	credits_vb.add_child(_lbl("Art generated with nano-banana + Gemini", 10, Color(0.70, 0.62, 0.52)))
 	credits_vb.add_child(_lbl("Built with Godot Engine 4.6", 10, Color(0.70, 0.62, 0.52)))
-	credits_vb.add_child(_lbl("Inspired by BTD6, Arknights, Kingdom Rush", 9, Color(0.45, 0.40, 0.38)))
+	credits_vb.add_child(_lbl("Inspired by BTD6, Arknights, Kingdom Rush", 10, Color(0.45, 0.40, 0.38)))
 	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
 	credits_vb.add_child(_lbl("Version 0.9.0", 11, Color(0.65, 0.58, 0.50)))
 	# What's New / Patch Notes
@@ -3164,7 +3164,7 @@ func _build_settings() -> void:
 	pnvb.add_child(_lbl("v0.9.0 — Menu Overhaul Update", 12, Color(0.85, 0.78, 0.60)))
 	var notes = ["• Complete menu redesign with art backgrounds", "• 12 character ability trees with 108 named abilities", "• Gear picker + equipment system", "• Achievement tracking with progress bars", "• Bestiary with 12 enemy types", "• Gold economy rebalance", "• Wave preview on start button", "• Boss entrance announcements", "• Keyboard shortcuts (1-9, Space, Esc)", "• Damage numbers scale with hit size"]
 	for note in notes:
-		var nl = _lbl(note, 9, Color(0.70, 0.62, 0.52))
+		var nl = _lbl(note, 10, Color(0.70, 0.62, 0.52))
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		pnvb.add_child(nl)
 	vb.add_child(patch_panel)
@@ -3190,7 +3190,7 @@ func _build_settings() -> void:
 		fvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		faq_panel.add_child(fvb)
 		fvb.add_child(_lbl(faq[0], 11, Color(0.85, 0.78, 0.60)))
-		var ans = _lbl(faq[1], 9, Color(0.70, 0.62, 0.52))
+		var ans = _lbl(faq[1], 10, Color(0.70, 0.62, 0.52))
 		ans.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		ans.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fvb.add_child(ans)
