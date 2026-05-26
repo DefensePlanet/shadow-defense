@@ -1407,6 +1407,21 @@ func _draw() -> void:
 		var shirt_col = Color(0.96, 0.94, 0.92)
 		var gold_col = Color(0.92, 0.78, 0.15)
 		var gold_hi = Color(1.0, 0.92, 0.45)
+		match skin_id:
+			"generous":
+				coat_col = Color(0.12, 0.25, 0.12)
+				coat_hi = Color(0.20, 0.35, 0.20)
+				coat_dark = Color(0.06, 0.15, 0.06)
+				vest_col = Color(0.18, 0.45, 0.18)
+				vest_hi = Color(0.25, 0.55, 0.25)
+			"ghost":
+				coat_col = Color(0.20, 0.25, 0.35)
+				coat_hi = Color(0.30, 0.38, 0.50)
+				coat_dark = Color(0.12, 0.15, 0.22)
+				vest_col = Color(0.25, 0.35, 0.55)
+				vest_hi = Color(0.35, 0.48, 0.68)
+				gold_col = Color(0.60, 0.70, 0.85)
+				gold_hi = Color(0.75, 0.85, 0.95)
 		var gold_dk = Color(0.65, 0.52, 0.08)
 		var shoe_col = Color(0.08, 0.06, 0.06)
 		var shoe_hi = Color(0.24, 0.22, 0.25)

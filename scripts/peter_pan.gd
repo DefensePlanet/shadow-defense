@@ -1173,6 +1173,17 @@ func _draw() -> void:
 		var green_mid = Color(0.18, 0.58, 0.15)
 		var green_light = Color(0.25, 0.68, 0.20)
 		var brown_boot = Color(0.42, 0.28, 0.12)
+		match skin_id:
+			"captain":
+				green_dark = Color(0.50, 0.10, 0.10)
+				green_mid = Color(0.65, 0.15, 0.12)
+				green_light = Color(0.75, 0.20, 0.15)
+				brown_boot = Color(0.25, 0.20, 0.18)
+			"shadow":
+				green_dark = Color(0.08, 0.06, 0.12)
+				green_mid = Color(0.12, 0.10, 0.18)
+				green_light = Color(0.18, 0.15, 0.25)
+				brown_boot = Color(0.10, 0.08, 0.15)
 
 		# --- Pointed elf boots with curled toes ---
 		var l_foot = feet_y + Vector2(-5, 0)

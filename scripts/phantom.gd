@@ -1361,6 +1361,21 @@ func _draw() -> void:
 		var rose_dark = Color(0.68, 0.04, 0.08)
 		var mask_col = Color(0.98, 0.97, 0.96)
 		var hair_col = Color(0.07, 0.05, 0.07)
+		match skin_id:
+			"crimson":
+				suit_fill = Color(0.30, 0.05, 0.05)
+				suit_dark = Color(0.18, 0.02, 0.02)
+				cape_outer = Color(0.25, 0.03, 0.03)
+				cape_lining = Color(0.90, 0.15, 0.10)
+				mask_col = Color(0.95, 0.85, 0.85)
+			"golden":
+				suit_fill = Color(0.20, 0.18, 0.08)
+				suit_dark = Color(0.12, 0.10, 0.04)
+				cape_outer = Color(0.15, 0.12, 0.05)
+				cape_lining = Color(0.90, 0.75, 0.15)
+				mask_col = Color(1.0, 0.92, 0.55)
+				rose_red = Color(0.95, 0.82, 0.15)
+				rose_dark = Color(0.75, 0.60, 0.08)
 		var gold_col = Color(0.90, 0.74, 0.24)
 
 		# === CAPE (drawn behind body — dramatic sweep with red lining) ===

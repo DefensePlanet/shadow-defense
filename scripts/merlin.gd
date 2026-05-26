@@ -1101,12 +1101,25 @@ func _draw() -> void:
 	var neck_base = body_offset + Vector2(sway * 0.15, -14.0 - breath * 0.3)
 	var head_center = body_offset + Vector2(sway * 0.08, -26.0)
 
-	# Robe colors — bold saturated deep purple/blue
+	# Robe colors — skin-dependent
 	var robe_fill = Color(0.22, 0.10, 0.55)
 	var robe_hi = Color(0.32, 0.18, 0.68)
 	var robe_shade = Color(0.14, 0.06, 0.38)
 	var gold_trim = Color(0.92, 0.78, 0.18)
 	var gold_dark = Color(0.72, 0.55, 0.10)
+	match skin_id:
+		"starlight":
+			robe_fill = Color(0.30, 0.20, 0.55)
+			robe_hi = Color(0.45, 0.30, 0.75)
+			robe_shade = Color(0.20, 0.12, 0.42)
+			gold_trim = Color(0.80, 0.85, 0.95)
+			gold_dark = Color(0.60, 0.65, 0.80)
+		"ancient":
+			robe_fill = Color(0.35, 0.30, 0.22)
+			robe_hi = Color(0.50, 0.42, 0.30)
+			robe_shade = Color(0.22, 0.18, 0.12)
+			gold_trim = Color(0.80, 0.70, 0.40)
+			gold_dark = Color(0.60, 0.50, 0.25)
 
 	# === 12. TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body) ===
 
