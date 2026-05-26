@@ -306,9 +306,10 @@ func _build_music_display() -> void:
 	music_row.add_child(icon)
 	# Song title — stored for live updates
 	var song_name = _get_song_name()
-	_song_label = _lbl(song_name if song_name != "" else "Now Playing...", 10, Color(0.70, 0.60, 0.85))
+	_song_label = _lbl(song_name if song_name != "" else "Now Playing...", 11, Color(0.72, 0.62, 0.88))
 	_song_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_song_label.clip_text = true
+	_song_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_song_label.custom_minimum_size.x = 180
 	_last_song = song_name
 	music_row.add_child(_song_label)
@@ -376,7 +377,7 @@ func _build_nav_buttons() -> void:
 			s.border_color = Color(1.0, 0.80, 0.25, 0.9)
 			s.border_width_top = 3
 			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
-			s.shadow_color = Color(0.5, 0.35, 0.1, 0.2)
+			s.shadow_color = Color(0, 0, 0, 0.25)
 			s.shadow_size = 4
 		else:
 			s.bg_color = Color(0.06, 0.04, 0.10, 0.3)
@@ -565,11 +566,11 @@ func _build_chapters() -> void:
 		var recap_vb = VBoxContainer.new()
 		recap_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		recap_panel.add_child(recap_vb)
-		var recap_title = _lbl("Previously on Shadow Defense...", 11, Color(0.65, 0.55, 0.45))
+		var recap_title = _lbl("Previously on Shadow Defense...", 12, Color(0.75, 0.65, 0.50))
 		recap_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		recap_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		recap_vb.add_child(recap_title)
-		var recap_text = _lbl("You completed \"%s\" — %d levels cleared, %d characters rescued" % [last_name, _main.completed_levels.size(), 0], 10, Color(0.55, 0.48, 0.42))
+		var recap_text = _lbl("You completed \"%s\" — %d levels cleared, %d characters rescued" % [last_name, _main.completed_levels.size(), 0], 11, Color(0.65, 0.55, 0.48))
 		recap_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		recap_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		recap_vb.add_child(recap_text)
@@ -820,7 +821,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var num_circle = PanelContainer.new()
 	var ncs = StyleBoxFlat.new()
 	ncs.set_corner_radius_all(20)
-	ncs.content_margin_left = 4; ncs.content_margin_right = 4
+	ncs.content_margin_left = 8; ncs.content_margin_right = 8
 	ncs.content_margin_top = 4; ncs.content_margin_bottom = 4
 	if complete:
 		ncs.bg_color = Color(0.15, 0.40, 0.15, 0.85)
@@ -838,7 +839,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	num_circle.add_theme_stylebox_override("panel", ncs)
 	num_circle.custom_minimum_size = Vector2(44, 44)
 	num_circle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var num_lbl = _lbl(str(idx+1), 16, Color(1.0, 0.92, 0.40) if unlocked else Color(0.35, 0.30, 0.25))
+	var num_lbl = _lbl(str(idx+1), 16, Color(1.0, 0.92, 0.40) if unlocked else Color(0.45, 0.38, 0.32))
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -878,7 +879,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		nbs.bg_color = Color(0.15, 0.6, 0.15, 0.85)
 		nbs.set_corner_radius_all(8)
 		nbs.content_margin_left = 6; nbs.content_margin_right = 6
-		nbs.content_margin_top = 1; nbs.content_margin_bottom = 1
+		nbs.content_margin_top = 3; nbs.content_margin_bottom = 3
 		new_badge.add_theme_stylebox_override("panel", nbs)
 		new_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var badge_lbl = _lbl("NEW", 10, Color.WHITE)
@@ -896,7 +897,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		bbs.bg_color = Color(0.6, 0.12, 0.1, 0.85)
 		bbs.set_corner_radius_all(8)
 		bbs.content_margin_left = 6; bbs.content_margin_right = 6
-		bbs.content_margin_top = 1; bbs.content_margin_bottom = 1
+		bbs.content_margin_top = 3; bbs.content_margin_bottom = 3
 		boss_badge.add_theme_stylebox_override("panel", bbs)
 		boss_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var boss_lbl = _lbl("BOSS", 10, Color.WHITE)
@@ -958,7 +959,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			var star_text = ""
 			for _si in range(star_count): star_text += "★"
 			for _si in range(3 - star_count): star_text += "☆"
-			var stars_lbl = _lbl(star_text, 12, Color(1.0, 0.85, 0.15) if star_count > 0 else Color(0.35, 0.30, 0.25))
+			var stars_lbl = _lbl(star_text, 12, Color(1.0, 0.85, 0.15) if star_count > 0 else Color(0.45, 0.38, 0.32))
 			stars_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			info.add_child(stars_lbl)
 	# Per-difficulty star counts
@@ -1202,12 +1203,12 @@ func _survivor_card(idx: int) -> Button:
 	if _main and _main._portrait_textures.has(pkey):
 		port.texture = _main._portrait_textures[pkey]
 		if not is_unlocked:
-			port.modulate = Color(0.15, 0.12, 0.20)  # Visible dark silhouette
+			port.modulate = Color(0.22, 0.18, 0.28)  # Visible hint of character
 	vb.add_child(port)
 	# Name — show "???" for locked
 	var cname = _main.character_names[idx] if _main and idx < _main.character_names.size() else "?"
 	var display_name = cname.to_upper() if is_unlocked else "???"
-	var nl = _lbl(display_name, 13, Color(1, 0.92, 0.45) if is_unlocked else Color(0.35, 0.30, 0.25))
+	var nl = _lbl(display_name, 13, Color(1, 0.92, 0.45) if is_unlocked else Color(0.45, 0.38, 0.32))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1378,7 +1379,7 @@ func _build_detail_view() -> void:
 		ts.border_color = Color(0.85, 0.65, 0.20, 0.7) if is_active_tab else Color(0.25, 0.20, 0.15, 0.3)
 		ts.set_border_width_all(2 if is_active_tab else 1)
 		if is_active_tab:
-			ts.shadow_color = Color(0.5, 0.35, 0.1, 0.2)
+			ts.shadow_color = Color(0, 0, 0, 0.25)
 			ts.shadow_size = 3
 		tb.add_theme_stylebox_override("normal", ts)
 		var tsh = ts.duplicate()
@@ -1466,7 +1467,7 @@ func _build_detail_view() -> void:
 				sps.set_corner_radius_all(8)
 				sps.border_color = Color(0.65, 0.50, 0.20, 0.5) if has_gear else Color(0.25, 0.20, 0.15, 0.3)
 				sps.set_border_width_all(1)
-				sps.content_margin_left = 4; sps.content_margin_right = 4
+				sps.content_margin_left = 8; sps.content_margin_right = 8
 				sps.content_margin_top = 4; sps.content_margin_bottom = 4
 				slot_panel.add_theme_stylebox_override("panel", sps)
 				slot_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1516,7 +1517,7 @@ func _build_detail_view() -> void:
 		gs.set_corner_radius_all(8)
 		gs.set_border_width_all(2)
 		gs.border_color = Color(0.65, 0.50, 0.20, 0.6)
-		gs.shadow_color = Color(0.4, 0.3, 0.1, 0.15)
+		gs.shadow_color = Color(0, 0, 0, 0.2)
 		gs.shadow_size = 4
 		gs.content_margin_left = 10; gs.content_margin_right = 10; gs.content_margin_top = 8; gs.content_margin_bottom = 8
 		gp.add_theme_stylebox_override("panel", gs)
@@ -1684,7 +1685,7 @@ func _build_detail_view() -> void:
 			ab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ab_panel.add_child(ab_row)
 			var icon_text = "✓" if unlocked_ab else "🔒"
-			var icon_color = Color(0.4, 0.8, 0.3) if unlocked_ab else Color(0.35, 0.30, 0.25)
+			var icon_color = Color(0.4, 0.8, 0.3) if unlocked_ab else Color(0.45, 0.38, 0.32)
 			ab_row.add_child(_lbl(icon_text, 12, icon_color))
 			var ab_name = _lbl(ability_names[ai], 11, Color(0.8, 0.9, 0.6) if unlocked_ab else Color(0.4, 0.35, 0.30))
 			ab_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1739,7 +1740,7 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 		cs.border_color = Color(0.45, 0.35, 0.20, 0.4)
 		cs.set_border_width_all(1)
 		cs.set_corner_radius_all(8)
-		cs.content_margin_left = 4; cs.content_margin_right = 4
+		cs.content_margin_left = 8; cs.content_margin_right = 8
 		cs.content_margin_top = 4; cs.content_margin_bottom = 4
 		card.add_theme_stylebox_override("normal", cs)
 		var csh = cs.duplicate()
@@ -1986,7 +1987,7 @@ func _build_emporium() -> void:
 		# Icon from emporium_icons
 		var icon_key = cat.get("icon", "")
 		var icon_rect = TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(64, 64)
+		icon_rect.custom_minimum_size = Vector2(72, 72)
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2425,12 +2426,12 @@ func _build_generic_shop(parent: VBoxContainer, cat: Dictionary) -> void:
 		row.add_theme_constant_override("separation", 12)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row_panel.add_child(row)
-		row.add_child(_lbl("🔒", 16, Color(0.35, 0.30, 0.25)))
+		row.add_child(_lbl("🔒", 16, Color(0.45, 0.38, 0.32)))
 		var il = _lbl(placeholders[pi], 13, Color(0.40, 0.35, 0.30))
 		il.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		il.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(il)
-		row.add_child(_lbl("???", 12, Color(0.35, 0.30, 0.25)))
+		row.add_child(_lbl("???", 12, Color(0.45, 0.38, 0.32)))
 		parent.add_child(row_panel)
 
 # ======================== CODEX ========================
@@ -2465,7 +2466,7 @@ func _build_codex() -> void:
 		ts.border_color = Color(0.85, 0.65, 0.20, 0.7) if is_active_codex else Color(0.25, 0.20, 0.15, 0.3)
 		ts.set_border_width_all(2 if is_active_codex else 1)
 		if is_active_codex:
-			ts.shadow_color = Color(0.5, 0.35, 0.1, 0.2)
+			ts.shadow_color = Color(0, 0, 0, 0.25)
 			ts.shadow_size = 3
 		tb.add_theme_stylebox_override("normal", ts)
 		var tsh = ts.duplicate()
@@ -2546,7 +2547,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		cs.set_corner_radius_all(8)
 		cs.shadow_color = Color(rarity_col.r * 0.3, rarity_col.g * 0.3, rarity_col.b * 0.3, 0.2)
 		cs.shadow_size = 3
-		cs.content_margin_left = 4; cs.content_margin_right = 4
+		cs.content_margin_left = 8; cs.content_margin_right = 8
 		cs.content_margin_top = 4; cs.content_margin_bottom = 4
 		card.add_theme_stylebox_override("normal", cs)
 		var csh = cs.duplicate()
@@ -2628,7 +2629,7 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				cs.border_color = Color(0.65, 0.50, 0.20, 0.4)
 				cs.set_border_width_all(1)
 				cs.set_corner_radius_all(6)
-				cs.content_margin_left = 4; cs.content_margin_right = 4
+				cs.content_margin_left = 8; cs.content_margin_right = 8
 				cs.content_margin_top = 4; cs.content_margin_bottom = 4
 				card.add_theme_stylebox_override("panel", cs)
 				card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2683,7 +2684,7 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 			ach_row.add_child(name_l)
 			ach_row.add_child(_lbl("%d/%d" % [mini(prog, ad.get("target", 1)), ad.get("target", 1)], 10, Color(0.45, 0.40, 0.38)))
 			var reward_text = "+%d %s" % [ad.get("reward_amount", 0), ad.get("reward_type", "").capitalize()]
-			ach_row.add_child(_lbl(reward_text, 10, Color(0.4, 0.7, 0.3) if is_done else Color(0.35, 0.30, 0.25)))
+			ach_row.add_child(_lbl(reward_text, 10, Color(0.4, 0.7, 0.3) if is_done else Color(0.45, 0.38, 0.32)))
 			# Difficulty tier badge
 			var target_val = ad.get("target", 1)
 			var tier_text = "🥉" if target_val < 100 else ("🥈" if target_val < 1000 else "🥇")
@@ -2880,8 +2881,8 @@ func _build_journal(parent: VBoxContainer) -> void:
 				quote.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				text_col.add_child(quote)
 		else:
-			text_col.add_child(_lbl("???", 14, Color(0.35, 0.30, 0.25)))
-			text_col.add_child(_lbl("Rescue this character to unlock their journal", 10, Color(0.35, 0.30, 0.25)))
+			text_col.add_child(_lbl("???", 14, Color(0.45, 0.38, 0.32)))
+			text_col.add_child(_lbl("Rescue this character to unlock their journal", 10, Color(0.45, 0.38, 0.32)))
 		parent.add_child(entry)
 
 func _build_event_calendar(parent: VBoxContainer) -> void:
@@ -3287,7 +3288,7 @@ func _title(text: String) -> Control:
 	os.set_corner_radius_all(12)
 	os.border_color = Color(0.65, 0.50, 0.18, 0.3)
 	os.set_border_width_all(0)  # Art provides the border
-	os.shadow_color = Color(0.3, 0.2, 0.05, 0.15)
+	os.shadow_color = Color(0, 0, 0, 0.2)
 	os.shadow_size = 4
 	os.content_margin_left = 40; os.content_margin_right = 40
 	os.content_margin_top = 8; os.content_margin_bottom = 8
