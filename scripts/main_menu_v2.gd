@@ -212,6 +212,8 @@ func _load_art() -> void:
 		"weapons_set": "res://assets/ui_elements/weapons_set_1.png",
 		"jewelry_set": "res://assets/ui_elements/jewelry_set_1.png",
 		"weapons_set_2": "res://assets/ui_elements/weapons_set_2.png",
+		"currency_bar_art": "res://assets/ui_elements/currency_bar_gothic.png",
+		"level_card_art": "res://assets/ui_elements/level_card_gothic.png",
 		"tooltip_frame": "res://assets/ui_elements/tooltip_frame.png",
 		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
 		"card_frame_epic": "res://assets/ui_frames/card_frame_epic.png",
@@ -240,10 +242,11 @@ func _set_bg(view: String) -> void:
 
 func _build_currency_bar() -> void:
 	if not _main: return
-	# Apply header bar art behind currency text
-	if _art.has("header_bar"):
+	# Apply gothic currency bar art (or header_bar fallback)
+	var _cur_art_key = "currency_bar_art" if _art.has("currency_bar_art") else "header_bar"
+	if _art.has(_cur_art_key):
 		var art_bg = TextureRect.new()
-		art_bg.texture = _art["header_bar"]
+		art_bg.texture = _art[_cur_art_key]
 		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		art_bg.stretch_mode = TextureRect.STRETCH_SCALE
 		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -769,8 +772,20 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var complete = idx in _main.completed_levels
 	var is_boss = (idx + 1) % 3 == 0 and idx > 0
 	var p = PanelContainer.new()
+	# Level card art background
+	if _art.has("level_card_art"):
+		var lca = TextureRect.new()
+		lca.texture = _art["level_card_art"]
+		lca.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		lca.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		lca.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lca.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lca.modulate.a = 0.55 if unlocked else 0.30
+		var mat = _make_black_key_mat(0.06, 0.04)
+		if mat: lca.material = mat
+		p.add_child(lca)
 	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.04, 0.03, 0.10, 0.78) if unlocked else Color(0.03, 0.02, 0.06, 0.65)
+	s.bg_color = Color(0.04, 0.03, 0.10, 0.35) if unlocked else Color(0.03, 0.02, 0.06, 0.40)
 	if complete:
 		s.border_color = Color(0.35, 0.70, 0.30, 0.7)
 		s.set_border_width_all(2)
