@@ -1545,9 +1545,16 @@ func _build_detail_view() -> void:
 		right.add_child(gp)
 		# Equip gear button
 		if _detail_tab == 1:
-			var equip_btn = _art_button("CHANGE GEAR", Color(0.12, 0.35, 0.15), Vector2(140, 34))
+			var gear_action_row = HBoxContainer.new()
+			gear_action_row.add_theme_constant_override("separation", 8)
+			gear_action_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var equip_btn = _art_button("CHANGE GEAR", Color(0.12, 0.35, 0.15), Vector2(130, 34))
 			equip_btn.pressed.connect(func(): _open_gear_picker(idx, tt))
-			right.add_child(equip_btn)
+			gear_action_row.add_child(equip_btn)
+			var skin_btn = _art_button("👕 SKINS", Color(0.35, 0.15, 0.45), Vector2(100, 34))
+			skin_btn.pressed.connect(func(): _open_skin_shop(idx))
+			gear_action_row.add_child(skin_btn)
+			right.add_child(gear_action_row)
 	# === TAB 2: ALLIES ===
 	if _detail_tab == 0 or _detail_tab == 2:
 		# Bond pairs
@@ -3338,6 +3345,87 @@ func _section_header(text: String) -> Control:
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_r)
 	return row
+
+func _open_skin_shop(char_idx: int) -> void:
+	_clear()
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
+	var vb = VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", 8)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vb)
+	var back = _art_button("< BACK", Color(0.12, 0.10, 0.22), Vector2(90, 30))
+	back.pressed.connect(func(): _detail_idx = char_idx; _detail_tab = 1; _build_detail_view())
+	vb.add_child(back)
+	var cname = _main.character_names[char_idx] if _main and char_idx < _main.character_names.size() else "?"
+	vb.add_child(_title("SKINS: %s" % cname))
+	vb.add_child(_lbl("Customize your character's appearance", 11, Color(0.55, 0.50, 0.45)))
+	# Get skins for this character
+	var tt = _main.survivor_types[char_idx] if _main and char_idx < _main.survivor_types.size() else null
+	if tt != null and _main.SURVIVOR_SKINS.has(tt):
+		var skins = _main.SURVIVOR_SKINS[tt]
+		for skin in skins:
+			var is_owned = skin["id"] == "default" or ("owned_skins" in _main and _main.owned_skins.has(tt) and skin["id"] in _main.owned_skins[tt])
+			var is_active = ("active_skins" in _main and _main.active_skins.has(tt) and _main.active_skins[tt] == skin["id"]) or (skin["id"] == "default" and (not _main.active_skins.has(tt)))
+			var card = PanelContainer.new()
+			var cs = StyleBoxFlat.new()
+			cs.bg_color = Color(skin["color"].r * 0.2, skin["color"].g * 0.2, skin["color"].b * 0.2, 0.6)
+			cs.set_corner_radius_all(10)
+			cs.border_color = Color(skin["color"].r * 0.6, skin["color"].g * 0.6, skin["color"].b * 0.6, 0.5) if is_owned else Color(0.25, 0.20, 0.15, 0.3)
+			cs.set_border_width_all(2 if is_active else 1)
+			cs.shadow_color = Color(skin["color"].r * 0.15, skin["color"].g * 0.15, skin["color"].b * 0.15, 0.15)
+			cs.shadow_size = 3
+			cs.content_margin_left = 14; cs.content_margin_right = 14
+			cs.content_margin_top = 10; cs.content_margin_bottom = 10
+			card.add_theme_stylebox_override("panel", cs)
+			var row = HBoxContainer.new()
+			row.add_theme_constant_override("separation", 12)
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(row)
+			# Color swatch preview
+			var swatch = ColorRect.new()
+			swatch.custom_minimum_size = Vector2(40, 40)
+			swatch.color = skin["color"]
+			swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(swatch)
+			# Info
+			var info = VBoxContainer.new()
+			info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(info)
+			info.add_child(_lbl(skin["name"], 14, skin["color"].lightened(0.4)))
+			if is_active:
+				info.add_child(_lbl("✅ EQUIPPED", 10, Color(0.3, 0.9, 0.3)))
+			elif is_owned:
+				info.add_child(_lbl("OWNED", 10, Color(0.55, 0.50, 0.45)))
+			else:
+				info.add_child(_lbl("🪶 %d Quills" % skin["cost"], 10, Color(0.7, 0.5, 0.9)))
+			# Button
+			if is_active:
+				row.add_child(_lbl("ACTIVE", 11, Color(0.3, 0.8, 0.3)))
+			elif is_owned:
+				var equip = _art_button("EQUIP", Color(0.12, 0.35, 0.15), Vector2(80, 30))
+				row.add_child(equip)
+			else:
+				var buy = _art_button("BUY", Color(0.35, 0.15, 0.45), Vector2(70, 30))
+				var skin_cost = skin["cost"]
+				var skin_name = skin["name"]
+				buy.pressed.connect(func():
+					_show_popup("Purchase Skin", "Buy %s for %d Quills?" % [skin_name, skin_cost], "BUY", func():
+						_show_popup("Skin Unlocked!", "%s is now available!" % skin_name)))
+				row.add_child(buy)
+			vb.add_child(card)
+	else:
+		vb.add_child(_lbl("No skins available for this character yet", 12, Color(0.50, 0.45, 0.40)))
 
 func _play_ui_click() -> void:
 	if _main and "_sfx_ui_click" in _main and _main.has_method("_play_sfx"):

@@ -47,6 +47,28 @@ var tower_info = {
 	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 350, "range": 170.0, "damage": 25, "fire_rate": 1.20},
 }
 
+# Survivor skins — purchasable outfit variants
+var SURVIVOR_SKINS: Dictionary = {
+	TowerType.ROBIN_HOOD: [
+		{"id": "default", "name": "Sherwood Ranger", "cost": 0, "color": Color(0.2, 0.6, 0.18)},
+		{"id": "noble", "name": "Noble Archer", "cost": 500, "color": Color(0.5, 0.1, 0.6)},
+		{"id": "shadow", "name": "Shadow Hood", "cost": 1000, "color": Color(0.15, 0.12, 0.20)},
+		{"id": "golden", "name": "Golden Arrow", "cost": 2000, "color": Color(0.85, 0.70, 0.15)},
+	],
+	TowerType.ALICE: [
+		{"id": "default", "name": "Classic Alice", "cost": 0, "color": Color(0.3, 0.5, 0.8)},
+		{"id": "dark", "name": "Dark Wonderland", "cost": 500, "color": Color(0.4, 0.1, 0.3)},
+		{"id": "queen", "name": "Red Queen", "cost": 1000, "color": Color(0.8, 0.15, 0.15)},
+	],
+	TowerType.WICKED_WITCH: [
+		{"id": "default", "name": "Emerald Witch", "cost": 0, "color": Color(0.15, 0.5, 0.15)},
+		{"id": "ice", "name": "Ice Witch", "cost": 500, "color": Color(0.3, 0.6, 0.9)},
+		{"id": "fire", "name": "Fire Witch", "cost": 1000, "color": Color(0.9, 0.3, 0.1)},
+	],
+}
+var owned_skins: Dictionary = {}  # tower_type -> [skin_id, ...]
+var active_skins: Dictionary = {}  # tower_type -> skin_id
+
 # Constants
 var total_waves: int = 20
 const MIN_PATH_DIST: float = 25.0

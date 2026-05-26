@@ -14,6 +14,12 @@ var sprite_texture: Texture2D = null  # AI character sprite, set by main.gd
 var is_selected: bool = false  # Show range circle when selected
 var damage_type: String = "physical"  # physical, magic, fire, ice, dark, holy
 
+# Gear visual system — Diablo-style visible equipment
+var equipped_weapon_visual: String = ""  # Key for weapon appearance
+var equipped_armor_visual: String = ""   # Key for armor tint/overlay
+var equipped_accessory_visual: String = ""  # Key for accessory glow/particle
+var skin_id: String = "default"  # Current skin (default, ranger, noble, shadow_lord)
+
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null
 
