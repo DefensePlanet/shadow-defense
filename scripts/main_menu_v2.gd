@@ -216,6 +216,7 @@ func _load_art() -> void:
 		"level_card_art": "res://assets/ui_elements/level_card_gothic.png",
 		"char_card_art": "res://assets/ui_elements/char_card_gothic.png",
 		"settings_bg_art": "res://assets/ui_elements/settings_panel_gothic.png",
+		"game_logo_gothic": "res://assets/menu_art/game_logo_gothic.png",
 		"weapon_longbow": "res://assets/gear_icons/weapon_longbow.png",
 		"weapon_crystal_wand": "res://assets/gear_icons/weapon_crystal_wand.png",
 		"weapon_vorpal_sword": "res://assets/gear_icons/weapon_vorpal_sword.png",
@@ -510,54 +511,32 @@ func _build_chapters() -> void:
 	vb.add_theme_constant_override("separation", 10)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
-	# Title in styled frame with entrance animation
-	var title_panel = PanelContainer.new()
-	var tps = StyleBoxFlat.new()
-	tps.bg_color = Color(0.04, 0.03, 0.08, 0.3)  # Near-transparent — art frame visible
-	tps.set_corner_radius_all(12)
-	tps.border_color = Color(0.65, 0.50, 0.18, 0.2)
-	tps.set_border_width_all(0)  # Art provides border
-	tps.shadow_color = Color(0.3, 0.2, 0.05, 0.15)
-	tps.shadow_size = 6
-	tps.content_margin_left = 40; tps.content_margin_right = 40
-	tps.content_margin_top = 8; tps.content_margin_bottom = 8
-	title_panel.add_theme_stylebox_override("panel", tps)
-	title_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	# Art behind title — use section banner for dramatic frame
-	var _title_bg_key = "section_banner_art" if _art.has("section_banner_art") else "scroll_header"
-	if _art.has(_title_bg_key):
-		var ta = TextureRect.new()
-		ta.texture = _art[_title_bg_key]
-		ta.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		ta.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		ta.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ta.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ta.modulate.a = 0.8  # Prominent — art IS the title frame
-		var mat = _make_black_key_mat(0.06, 0.04)
-		if mat: ta.material = mat
-		title_panel.add_child(ta)
-	var title_vb = VBoxContainer.new()
-	title_vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	title_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_panel.add_child(title_vb)
-	var main_title = _lbl("SHADOW DEFENSE", 26, Color(1.0, 0.92, 0.40))
-	main_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	main_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_vb.add_child(main_title)
-	var subtitle = _lbl("Tales from the Pages", 12, Color(0.70, 0.60, 0.48))
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_vb.add_child(subtitle)
-	# Entrance animation
-	title_panel.modulate.a = 0.0
-	title_panel.scale = Vector2(0.9, 0.9)
-	title_panel.pivot_offset = Vector2(200, 25)
-	var title_tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	title_tw.set_parallel(true)
-	title_tw.tween_property(title_panel, "scale", Vector2(1.0, 1.0), 0.35)
-	title_tw.tween_property(title_panel, "modulate:a", 1.0, 0.2)
-	vb.add_child(title_panel)
+	# Game logo — use nano-banana generated art logo if available
+	if _art.has("game_logo_gothic"):
+		var logo_container = CenterContainer.new()
+		logo_container.custom_minimum_size = Vector2(0, 80)
+		logo_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var logo = TextureRect.new()
+		logo.texture = _art["game_logo_gothic"]
+		logo.custom_minimum_size = Vector2(500, 70)
+		logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = _make_black_key_mat(0.08, 0.05)
+		if mat: logo.material = mat
+		# Entrance animation
+		logo.modulate.a = 0.0
+		logo.scale = Vector2(0.85, 0.85)
+		logo.pivot_offset = Vector2(250, 35)
+		var logo_tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		logo_tw.set_parallel(true)
+		logo_tw.tween_property(logo, "scale", Vector2(1.0, 1.0), 0.4)
+		logo_tw.tween_property(logo, "modulate:a", 1.0, 0.25)
+		logo_container.add_child(logo)
+		vb.add_child(logo_container)
+	else:
+		# Fallback text title
+		vb.add_child(_title("SHADOW DEFENSE"))
 	# Shadow Author rotating quote
 	var sa_quotes = [
 		"Heroes pulled from their stories. One Author controls them all.",
