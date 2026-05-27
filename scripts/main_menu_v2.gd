@@ -323,8 +323,8 @@ func _build_music_display() -> void:
 	_last_song = song_name
 	music_row.add_child(_song_label)
 	# Skip button with art styling
-	var skip = _art_button(">>", Color(0.12, 0.10, 0.22), Vector2(36, 22))
-	skip.add_theme_font_size_override("font_size", 10)
+	var skip = _art_button(">>", Color(0.12, 0.10, 0.22), Vector2(38, 24))
+	skip.add_theme_font_size_override("font_size", 12)
 	if _main and _main.has_method("_on_skip_song_pressed"):
 		skip.pressed.connect(func():
 			if _main.has_method("_on_skip_song_pressed"):
@@ -575,7 +575,7 @@ func _build_chapters() -> void:
 		var recap_vb = VBoxContainer.new()
 		recap_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		recap_panel.add_child(recap_vb)
-		var recap_title = _lbl("Previously on Shadow Defense...", 12, Color(0.75, 0.65, 0.50))
+		var recap_title = _lbl("📖 Previously on Shadow Defense...", 12, Color(0.75, 0.65, 0.50))
 		recap_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		recap_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		recap_vb.add_child(recap_title)
@@ -618,15 +618,15 @@ func _build_chapters() -> void:
 	comp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(star_bar)
 	vb.add_child(comp_bar)
-	# Quest streak display
+	# Info chips row — streak, weekly, comeback in styled chips
+	var info_row = HBoxContainer.new()
+	info_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	info_row.add_theme_constant_override("separation", 8)
+	info_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var has_info = false
 	if "quest_streak" in _main and _main.quest_streak > 0:
-		var streak_row = HBoxContainer.new()
-		streak_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		streak_row.add_theme_constant_override("separation", 6)
-		streak_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		streak_row.add_child(_lbl("🔥 %d Day Streak" % _main.quest_streak, 12, Color(1.0, 0.6, 0.2)))
-		vb.add_child(streak_row)
-	# Weekly quest progress
+		info_row.add_child(_currency_chip("🔥 %d Day Streak" % _main.quest_streak, Color(1.0, 0.6, 0.2)))
+		has_info = true
 	if "weekly_quests" in _main and _main.weekly_quests.size() > 0:
 		var wq_done = 0
 		var wq_total = _main.weekly_quests.size()
@@ -634,18 +634,13 @@ func _build_chapters() -> void:
 			if wq.get("claimed", false) or wq.get("progress", 0) >= wq.get("target", 1):
 				wq_done += 1
 		if wq_total > 0:
-			var wq_row = HBoxContainer.new()
-			wq_row.alignment = BoxContainer.ALIGNMENT_CENTER
-			wq_row.add_theme_constant_override("separation", 6)
-			wq_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			wq_row.add_child(_lbl("📋 Weekly: %d/%d" % [wq_done, wq_total], 11, Color(0.5, 0.7, 0.9)))
-			vb.add_child(wq_row)
-	# Comeback bonus display
+			info_row.add_child(_currency_chip("📋 Weekly: %d/%d" % [wq_done, wq_total], Color(0.5, 0.7, 0.9)))
+			has_info = true
 	if "_comeback_bonus_active" in _main and _main._comeback_bonus_active:
-		var comeback_lbl = _lbl("⚡ %.0fx Comeback Bonus Active!" % _main._comeback_multiplier, 12, Color(0.4, 0.9, 1.0))
-		comeback_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		comeback_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		vb.add_child(comeback_lbl)
+		info_row.add_child(_currency_chip("⚡ %.0fx Comeback Bonus!" % _main._comeback_multiplier, Color(0.4, 0.9, 1.0)))
+		has_info = true
+	if has_info:
+		vb.add_child(info_row)
 	# Random loading tip
 	var loading_tips = [
 		"💡 Place towers at path bends for maximum coverage",
@@ -656,11 +651,23 @@ func _build_chapters() -> void:
 		"💡 Each character has a unique active ability at Tier 3+",
 		"💡 Tap a tower during combat to hear their battle quips",
 	]
-	var tip = _lbl(loading_tips[randi() % loading_tips.size()], 11, Color(0.70, 0.62, 0.52))
+	var tip_panel = PanelContainer.new()
+	var tip_s = StyleBoxFlat.new()
+	tip_s.bg_color = Color(0.06, 0.04, 0.10, 0.4)
+	tip_s.set_corner_radius_all(8)
+	tip_s.border_color = Color(0.45, 0.38, 0.18, 0.25)
+	tip_s.set_border_width_all(1)
+	tip_s.content_margin_left = 12; tip_s.content_margin_right = 12
+	tip_s.content_margin_top = 4; tip_s.content_margin_bottom = 4
+	tip_panel.add_theme_stylebox_override("panel", tip_s)
+	tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tip_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var tip = _lbl(loading_tips[randi() % loading_tips.size()], 11, Color(0.75, 0.68, 0.55))
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(tip)
+	tip_panel.add_child(tip)
+	vb.add_child(tip_panel)
 	var cur_arc = ""
 	var card_idx = 0
 	for i in range(_main.levels.size()):
@@ -739,7 +746,10 @@ func _build_chapters() -> void:
 					if li in _main.completed_levels:
 						arc_done += 1
 			if arc_total > 0:
-				var pct_lbl = _lbl("%d / %d completed" % [arc_done, arc_total], 10, Color(0.65, 0.58, 0.50))
+				var arc_complete = arc_done == arc_total
+				var pct_text = "✅ COMPLETE — %d/%d" % [arc_done, arc_total] if arc_complete else "%d / %d completed" % [arc_done, arc_total]
+				var pct_col = Color(0.45, 0.80, 0.35) if arc_complete else Color(0.65, 0.58, 0.50)
+				var pct_lbl = _lbl(pct_text, 10, pct_col)
 				pct_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				pct_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				vb.add_child(pct_lbl)
@@ -1169,7 +1179,7 @@ func _build_survivors() -> void:
 		# Staggered entrance
 		card.modulate.a = 0.0
 		var tw = create_tween()
-		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(i * 0.05)
+		tw.tween_property(card, "modulate:a", 1.0, 0.15).set_delay(i * 0.03)
 
 func _survivor_card(idx: int) -> Button:
 	# Check if character is unlocked
@@ -2033,7 +2043,7 @@ func _build_emporium() -> void:
 			card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card_art.modulate.a = 0.7  # Prominent — art IS the card background
+			card_art.modulate.a = 0.45  # Visible but doesn't compete with text
 			var mat = _make_black_key_mat(0.08, 0.05)
 			if mat: card_art.material = mat
 			btn.add_child(card_art)
@@ -2149,11 +2159,11 @@ func _open_emporium_category(cat_idx: int) -> void:
 	# Show player's current currencies
 	var cur_row = HBoxContainer.new()
 	cur_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	cur_row.add_theme_constant_override("separation", 16)
+	cur_row.add_theme_constant_override("separation", 8)
 	cur_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cur_row.add_child(_lbl("🪙 %d" % _main.gold, 11, Color(1, 0.85, 0.2)))
-	cur_row.add_child(_lbl("🪶 %d" % _main.player_quills, 11, Color(0.7, 0.5, 0.9)))
-	cur_row.add_child(_lbl("💎 %d" % _main.player_gear_shards, 11, Color(0.3, 0.75, 0.9)))
+	cur_row.add_child(_currency_chip("🪙 %d" % _main.gold, Color(1, 0.85, 0.2)))
+	cur_row.add_child(_currency_chip("🪶 %d" % _main.player_quills, Color(0.7, 0.5, 0.9)))
+	cur_row.add_child(_currency_chip("💎 %d" % _main.player_gear_shards, Color(0.3, 0.75, 0.9)))
 	vb.add_child(cur_row)
 	# Show items based on category
 	match cat_idx:
@@ -2794,23 +2804,32 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				elif ap is int:
 					prog = ap
 					is_done = prog >= ad.get("target", 1)
+			var ach_panel = PanelContainer.new()
+			var ach_s = StyleBoxFlat.new()
+			ach_s.bg_color = Color(0.08, 0.06, 0.14, 0.5) if is_done else Color(0.05, 0.04, 0.10, 0.3)
+			ach_s.set_corner_radius_all(6)
+			ach_s.border_color = Color(0.55, 0.42, 0.18, 0.4) if is_done else Color(0.25, 0.20, 0.15, 0.2)
+			ach_s.set_border_width_all(1)
+			ach_s.content_margin_left = 8; ach_s.content_margin_right = 8
+			ach_s.content_margin_top = 4; ach_s.content_margin_bottom = 4
+			ach_panel.add_theme_stylebox_override("panel", ach_s)
+			ach_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var ach_row = HBoxContainer.new()
 			ach_row.add_theme_constant_override("separation", 8)
 			ach_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ach_panel.add_child(ach_row)
 			var icon_txt = "✅" if is_done else "⬜"
-			ach_row.add_child(_lbl(icon_txt, 10, Color.WHITE))
-			var name_l = _lbl(ad.get("name", ""), 10, Color(0.85, 0.78, 0.60) if is_done else Color(0.60, 0.55, 0.48))
+			ach_row.add_child(_lbl(icon_txt, 12, Color.WHITE))
+			var name_l = _lbl(ad.get("name", ""), 11, Color(0.90, 0.82, 0.55) if is_done else Color(0.60, 0.55, 0.48))
 			name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ach_row.add_child(name_l)
 			ach_row.add_child(_lbl("%d/%d" % [mini(prog, ad.get("target", 1)), ad.get("target", 1)], 10, Color(0.55, 0.50, 0.45)))
 			var reward_text = "+%d %s" % [ad.get("reward_amount", 0), ad.get("reward_type", "").capitalize()]
 			ach_row.add_child(_lbl(reward_text, 10, Color(0.4, 0.7, 0.3) if is_done else Color(0.45, 0.38, 0.32)))
-			# Difficulty tier badge
 			var target_val = ad.get("target", 1)
 			var tier_text = "🥉" if target_val < 100 else ("🥈" if target_val < 1000 else "🥇")
-			ach_row.add_child(_lbl(tier_text, 10, Color.WHITE))
-			# CLAIM button for completed achievements
+			ach_row.add_child(_lbl(tier_text, 11, Color.WHITE))
 			if is_done:
 				var claim = _art_button("CLAIM", Color(0.12, 0.40, 0.12), Vector2(75, 28))
 				claim.add_theme_font_size_override("font_size", 10)
@@ -2818,7 +2837,7 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				var ach_reward = reward_text
 				claim.pressed.connect(func(): _show_popup("Reward Claimed!", "%s\n%s" % [ach_name, ach_reward]))
 				ach_row.add_child(claim)
-			parent.add_child(ach_row)
+			parent.add_child(ach_panel)
 	return
 
 func _build_stats_page(parent: VBoxContainer) -> void:
@@ -3034,8 +3053,8 @@ func _build_event_calendar(parent: VBoxContainer) -> void:
 		["🕐 Lucky Wheel Free Spin", "%dh remaining" % hours_left, Color(0.7, 0.3, 0.8)],
 		["📅 Weekly Quests Reset", "%d days remaining" % days_to_weekly, Color(0.3, 0.6, 0.9)],
 		["📅 Merchant Rotation", "%dh remaining" % hours_left, Color(0.8, 0.5, 0.2)],
-		["🎃 Seasonal Event", "Coming soon!", Color(0.5, 0.5, 0.5)],
-		["🏆 Ranked Season", "Coming soon!", Color(0.5, 0.5, 0.5)],
+		["🎃 Seasonal Event", "🔜 Coming Soon", Color(0.65, 0.50, 0.35)],
+		["🏆 Ranked Season", "🔜 Coming Soon", Color(0.65, 0.50, 0.35)],
 	]
 	for ev in events:
 		var ev_panel = PanelContainer.new()
@@ -3244,7 +3263,7 @@ func _build_settings() -> void:
 		_add_setting_row(vb, "One-Handed Mode", "ON" if GameSettings.one_handed else "OFF", func(): GameSettings.one_handed = not GameSettings.one_handed; GameSettings.save_settings(); _build_settings())
 	# Language
 	vb.add_child(_section_header("LANGUAGE"))
-	_add_setting_row(vb, "Language", "English", func(): pass)  # Placeholder
+	_add_setting_row(vb, "Language", "ENGLISH", func(): pass)  # Only language available
 	# Reset to defaults
 	var reset_btn = _art_button("RESET TO DEFAULTS", Color(0.5, 0.12, 0.12), Vector2(180, 34))
 	reset_btn.pressed.connect(func():
@@ -3306,7 +3325,7 @@ func _build_settings() -> void:
 	pnvb.add_child(_lbl("v0.9.0 — Menu Overhaul Update", 12, Color(0.85, 0.78, 0.60)))
 	var notes = ["• Complete menu redesign with art backgrounds", "• 12 character ability trees with 108 named abilities", "• Gear picker + equipment system", "• Achievement tracking with progress bars", "• Bestiary with 12 enemy types", "• Gold economy rebalance", "• Wave preview on start button", "• Boss entrance announcements", "• Keyboard shortcuts (1-9, Space, Esc)", "• Damage numbers scale with hit size"]
 	for note in notes:
-		var nl = _lbl(note, 10, Color(0.70, 0.62, 0.52))
+		var nl = _lbl(note, 11, Color(0.70, 0.62, 0.52))
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		pnvb.add_child(nl)
 	vb.add_child(patch_panel)
@@ -3332,7 +3351,7 @@ func _build_settings() -> void:
 		fvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		faq_panel.add_child(fvb)
 		fvb.add_child(_lbl(faq[0], 13, Color(0.90, 0.82, 0.60)))
-		var ans = _lbl(faq[1], 10, Color(0.70, 0.62, 0.52))
+		var ans = _lbl(faq[1], 11, Color(0.70, 0.62, 0.52))
 		ans.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		ans.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fvb.add_child(ans)
@@ -3341,9 +3360,18 @@ func _build_settings() -> void:
 	vb.add_child(_section_header("COMING SOON"))
 	var roadmap_items = ["🗺️ New campaign: The Enchanted Library", "🗡️ Tower skins & cosmetics", "👥 Co-op multiplayer mode", "🏆 Ranked competitive seasons", "🎃 Seasonal events & limited-time content"]
 	for ri in roadmap_items:
-		var rl = _lbl(ri, 10, Color(0.70, 0.62, 0.52))
+		var rm_panel = PanelContainer.new()
+		var rms = StyleBoxFlat.new()
+		rms.bg_color = Color(0.06, 0.04, 0.10, 0.35)
+		rms.set_corner_radius_all(6)
+		rms.content_margin_left = 10; rms.content_margin_right = 10
+		rms.content_margin_top = 4; rms.content_margin_bottom = 4
+		rm_panel.add_theme_stylebox_override("panel", rms)
+		rm_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var rl = _lbl(ri, 11, Color(0.70, 0.62, 0.52))
 		rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		vb.add_child(rl)
+		rm_panel.add_child(rl)
+		vb.add_child(rm_panel)
 	vb.add_child(credits_panel)
 
 func _add_setting_row(parent: VBoxContainer, label: String, value: String, callback: Callable, is_volume: bool = false, volume_pct: float = 0.0) -> void:
