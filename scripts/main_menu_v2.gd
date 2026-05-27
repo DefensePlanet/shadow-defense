@@ -278,7 +278,7 @@ func _build_currency_bar() -> void:
 func _currency_chip(text: String, color: Color) -> PanelContainer:
 	var chip = PanelContainer.new()
 	var cs = StyleBoxFlat.new()
-	cs.bg_color = Color(0.05, 0.03, 0.10, 0.7)
+	cs.bg_color = Color(0.07, 0.05, 0.12, 0.7)
 	cs.set_corner_radius_all(12)
 	cs.border_color = Color(color.r * 0.5, color.g * 0.5, color.b * 0.5, 0.4)
 	cs.set_border_width_all(1)
@@ -555,7 +555,7 @@ func _build_chapters() -> void:
 		var last_name = _main.levels[last_level].get("name", "") if last_level < _main.levels.size() else ""
 		var recap_panel = PanelContainer.new()
 		var rps = StyleBoxFlat.new()
-		rps.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+		rps.bg_color = Color(0.06, 0.04, 0.10, 0.5)
 		rps.set_corner_radius_all(8)
 		rps.border_color = Color(0.55, 0.42, 0.18, 0.3)
 		rps.set_border_width_all(1)
@@ -1164,13 +1164,13 @@ func _survivor_card(idx: int) -> Button:
 	s.content_margin_top = 6; s.content_margin_bottom = 6
 	btn.add_theme_stylebox_override("normal", s)
 	var sh = s.duplicate()
-	sh.bg_color = Color(0.10, 0.07, 0.18, 0.85) if is_unlocked else Color(0.05, 0.03, 0.10, 0.65)
+	sh.bg_color = Color(0.10, 0.07, 0.18, 0.85) if is_unlocked else Color(0.07, 0.05, 0.12, 0.65)
 	sh.border_color = Color(0.80, 0.60, 0.25, 0.9) if is_unlocked else Color(0.35, 0.28, 0.18, 0.5)
 	sh.shadow_size = 6
 	btn.add_theme_stylebox_override("hover", sh)
 	var sp = s.duplicate()
 	sp.bg_color = Color(0.12, 0.08, 0.20, 0.9)
-	sp.shadow_size = 2
+	sp.shadow_size = 3
 	btn.add_theme_stylebox_override("pressed", sp)
 	btn.text = ""
 	# Art frame — use gothic char card if available
@@ -1305,7 +1305,7 @@ func _build_detail_view() -> void:
 	main_hbox.add_child(left)
 	var port_frame = PanelContainer.new()
 	var pfs = StyleBoxFlat.new()
-	pfs.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	pfs.bg_color = Color(0.06, 0.04, 0.10, 0.5)
 	pfs.set_corner_radius_all(12)
 	pfs.border_color = Color(0.55, 0.42, 0.18, 0.5)
 	pfs.set_border_width_all(2)
@@ -1375,7 +1375,7 @@ func _build_detail_view() -> void:
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var ts = StyleBoxFlat.new()
 		ts.bg_color = Color(0.15, 0.10, 0.25, 0.85) if is_active_tab else Color(0.06, 0.04, 0.12, 0.4)
-		ts.set_corner_radius_all(6)
+		ts.set_corner_radius_all(8)
 		ts.border_color = Color(0.85, 0.65, 0.20, 0.7) if is_active_tab else Color(0.25, 0.20, 0.15, 0.3)
 		ts.set_border_width_all(2 if is_active_tab else 1)
 		if is_active_tab:
@@ -1463,7 +1463,7 @@ func _build_detail_view() -> void:
 				var has_gear = false
 				if "character_gear_slots" in _main and _main.character_gear_slots.has(tt):
 					has_gear = _main.character_gear_slots[tt].has(slot) and _main.character_gear_slots[tt][slot] != ""
-				sps.bg_color = Color(0.08, 0.06, 0.14, 0.6) if has_gear else Color(0.04, 0.03, 0.08, 0.4)
+				sps.bg_color = Color(0.08, 0.06, 0.14, 0.6) if has_gear else Color(0.06, 0.04, 0.10, 0.4)
 				sps.set_corner_radius_all(8)
 				sps.border_color = Color(0.65, 0.50, 0.20, 0.5) if has_gear else Color(0.25, 0.20, 0.15, 0.3)
 				sps.set_border_width_all(1)
@@ -1513,7 +1513,7 @@ func _build_detail_view() -> void:
 		var gear = _main.survivor_gear[tt]
 		var gp = PanelContainer.new()
 		var gs = StyleBoxFlat.new()
-		gs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		gs.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 		gs.set_corner_radius_all(8)
 		gs.set_border_width_all(2)
 		gs.border_color = Color(0.65, 0.50, 0.20, 0.6)
@@ -1599,7 +1599,7 @@ func _build_detail_view() -> void:
 					var bond_panel = PanelContainer.new()
 					var bps = StyleBoxFlat.new()
 					bps.bg_color = Color(0.06, 0.04, 0.12, 0.5)
-					bps.set_corner_radius_all(6)
+					bps.set_corner_radius_all(8)
 					bps.border_color = Color(0.8, 0.5, 0.2, 0.4)
 					bps.set_border_width_all(1)
 					bps.content_margin_left = 8; bps.content_margin_right = 8
@@ -1628,8 +1628,8 @@ func _build_detail_view() -> void:
 		for sk in _main.survivor_sidekicks[tt]:
 			var skp = PanelContainer.new()
 			var sks = StyleBoxFlat.new()
-			sks.bg_color = Color(0.05, 0.03, 0.10, 0.45)
-			sks.set_corner_radius_all(6)
+			sks.bg_color = Color(0.07, 0.05, 0.12, 0.45)
+			sks.set_corner_radius_all(8)
 			sks.content_margin_left = 8; sks.content_margin_right = 8
 			sks.content_margin_top = 4; sks.content_margin_bottom = 4
 			skp.add_theme_stylebox_override("panel", sks)
@@ -1673,7 +1673,7 @@ func _build_detail_view() -> void:
 			var ab_panel = PanelContainer.new()
 			var abs = StyleBoxFlat.new()
 			abs.bg_color = Color(0.06, 0.04, 0.12, 0.5) if unlocked_ab else Color(0.03, 0.02, 0.06, 0.3)
-			abs.set_corner_radius_all(6)
+			abs.set_corner_radius_all(8)
 			abs.border_color = Color(0.4, 0.65, 0.25, 0.5) if unlocked_ab else Color(0.2, 0.18, 0.15, 0.3)
 			abs.set_border_width_all(1)
 			abs.content_margin_left = 8; abs.content_margin_right = 8
@@ -1736,7 +1736,7 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 		card.custom_minimum_size = Vector2(100, 110)
 		card.text = ""
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.05, 0.03, 0.10, 0.6)
+		cs.bg_color = Color(0.07, 0.05, 0.12, 0.6)
 		cs.border_color = Color(0.45, 0.35, 0.20, 0.4)
 		cs.set_border_width_all(1)
 		cs.set_corner_radius_all(8)
@@ -1804,8 +1804,8 @@ func _stat_bar(label: String, value: float, max_val: float, color: Color) -> HBo
 	bar_panel.custom_minimum_size = Vector2(200, 18)
 	bar_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bar_style = StyleBoxFlat.new()
-	bar_style.bg_color = Color(0.04, 0.03, 0.08, 0.85)
-	bar_style.set_corner_radius_all(6)
+	bar_style.bg_color = Color(0.06, 0.04, 0.10, 0.85)
+	bar_style.set_corner_radius_all(8)
 	bar_style.border_color = Color(0.28, 0.22, 0.15, 0.4)
 	bar_style.set_border_width_all(1)
 	bar_panel.add_theme_stylebox_override("panel", bar_style)
@@ -1866,7 +1866,7 @@ func _build_emporium() -> void:
 	var hours_left = 24 - time_dict.get("hour", 0)
 	var timer_panel = PanelContainer.new()
 	var tps = StyleBoxFlat.new()
-	tps.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	tps.bg_color = Color(0.06, 0.04, 0.10, 0.5)
 	tps.set_corner_radius_all(8)
 	tps.content_margin_left = 12; tps.content_margin_right = 12
 	tps.content_margin_top = 4; tps.content_margin_bottom = 4
@@ -1952,7 +1952,7 @@ func _build_emporium() -> void:
 		btn.text = ""
 		# Card panel — mostly transparent so art frame shows
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.05, 0.03, 0.10, 0.25)
+		s.bg_color = Color(0.07, 0.05, 0.12, 0.25)
 		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
 		s.border_width_left = 4
 		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
@@ -2110,7 +2110,7 @@ func _build_gold_exchange(parent: VBoxContainer) -> void:
 		var can_afford = _main.gold >= cost
 		var card = PanelContainer.new()
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		cs.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 		cs.set_corner_radius_all(8)
 		cs.border_color = Color(0.55, 0.42, 0.18, 0.4)
 		cs.set_border_width_all(1)
@@ -2158,7 +2158,7 @@ func _build_quill_shop(parent: VBoxContainer) -> void:
 	for item in items:
 		var card = PanelContainer.new()
 		var is2 = StyleBoxFlat.new()
-		is2.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		is2.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 		is2.set_corner_radius_all(8)
 		is2.border_color = Color(item[3].r * 0.5, item[3].g * 0.5, item[3].b * 0.5, 0.4)
 		is2.set_border_width_all(1)
@@ -2191,7 +2191,7 @@ func _build_gear_crafting(parent: VBoxContainer) -> void:
 	for ct in crafting_tiers:
 		var card = PanelContainer.new()
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		cs.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 		cs.set_corner_radius_all(8)
 		cs.border_color = Color(ct[4].r * 0.5, ct[4].g * 0.5, ct[4].b * 0.5, 0.4)
 		cs.set_border_width_all(1)
@@ -2309,7 +2309,7 @@ func _build_trophy_store_items(parent: VBoxContainer) -> void:
 	for tr in trophies:
 		var card = PanelContainer.new()
 		var trs = StyleBoxFlat.new()
-		trs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		trs.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 		trs.set_corner_radius_all(8)
 		trs.border_color = Color(tr[3].r * 0.5, tr[3].g * 0.5, tr[3].b * 0.5, 0.4)
 		trs.set_border_width_all(1)
@@ -2369,8 +2369,8 @@ func _build_lucky_wheel_ui(parent: VBoxContainer) -> void:
 		for prize in _main.SPIN_WHEEL_PRIZES:
 			var pp = PanelContainer.new()
 			var pps = StyleBoxFlat.new()
-			pps.bg_color = Color(0.04, 0.03, 0.08, 0.4)
-			pps.set_corner_radius_all(6)
+			pps.bg_color = Color(0.06, 0.04, 0.10, 0.4)
+			pps.set_corner_radius_all(8)
 			pps.content_margin_left = 8; pps.content_margin_right = 8
 			pps.content_margin_top = 4; pps.content_margin_bottom = 4
 			pp.add_theme_stylebox_override("panel", pps)
@@ -2387,7 +2387,7 @@ func _build_merchant_items(parent: VBoxContainer) -> void:
 		for item in _main.merchant_inventory:
 			var card = PanelContainer.new()
 			var cs = StyleBoxFlat.new()
-			cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+			cs.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 			cs.set_corner_radius_all(8)
 			cs.border_color = Color(0.55, 0.42, 0.18, 0.4)
 			cs.set_border_width_all(1)
@@ -2416,8 +2416,8 @@ func _build_generic_shop(parent: VBoxContainer, cat: Dictionary) -> void:
 	for pi in range(3):
 		var row_panel = PanelContainer.new()
 		var rps = StyleBoxFlat.new()
-		rps.bg_color = Color(0.04, 0.03, 0.08, 0.4)
-		rps.set_corner_radius_all(6)
+		rps.bg_color = Color(0.06, 0.04, 0.10, 0.4)
+		rps.set_corner_radius_all(8)
 		rps.content_margin_left = 12; rps.content_margin_right = 12
 		rps.content_margin_top = 6; rps.content_margin_bottom = 6
 		row_panel.add_theme_stylebox_override("panel", rps)
@@ -2462,7 +2462,7 @@ func _build_codex() -> void:
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var ts = StyleBoxFlat.new()
 		ts.bg_color = Color(0.15, 0.10, 0.25, 0.85) if is_active_codex else Color(0.06, 0.04, 0.12, 0.4)
-		ts.set_corner_radius_all(6)
+		ts.set_corner_radius_all(8)
 		ts.border_color = Color(0.85, 0.65, 0.20, 0.7) if is_active_codex else Color(0.25, 0.20, 0.15, 0.3)
 		ts.set_border_width_all(2 if is_active_codex else 1)
 		if is_active_codex:
@@ -2541,7 +2541,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		card.text = ""
 		card.custom_minimum_size = Vector2(90, 100)
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.04, 0.03, 0.08, 0.6)
+		cs.bg_color = Color(0.06, 0.04, 0.10, 0.6)
 		cs.border_color = Color(rarity_col.r * 0.7, rarity_col.g * 0.7, rarity_col.b * 0.7, 0.5)
 		cs.set_border_width_all(2)
 		cs.set_corner_radius_all(8)
@@ -2625,10 +2625,10 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				# Achievement card with art border
 				var card = PanelContainer.new()
 				var cs = StyleBoxFlat.new()
-				cs.bg_color = Color(0.05, 0.03, 0.10, 0.6)
+				cs.bg_color = Color(0.07, 0.05, 0.12, 0.6)
 				cs.border_color = Color(0.65, 0.50, 0.20, 0.4)
 				cs.set_border_width_all(1)
-				cs.set_corner_radius_all(6)
+				cs.set_corner_radius_all(8)
 				cs.content_margin_left = 8; cs.content_margin_right = 8
 				cs.content_margin_top = 4; cs.content_margin_bottom = 4
 				card.add_theme_stylebox_override("panel", cs)
@@ -2750,8 +2750,8 @@ func _build_stats_page(parent: VBoxContainer) -> void:
 		# Styled stat row with alternating backgrounds
 		var row_panel = PanelContainer.new()
 		var rps = StyleBoxFlat.new()
-		rps.bg_color = Color(0.04, 0.03, 0.08, 0.5) if si % 2 == 0 else Color(0.06, 0.04, 0.10, 0.4)
-		rps.set_corner_radius_all(6)
+		rps.bg_color = Color(0.06, 0.04, 0.10, 0.5) if si % 2 == 0 else Color(0.06, 0.04, 0.10, 0.4)
+		rps.set_corner_radius_all(8)
 		rps.content_margin_left = 16; rps.content_margin_right = 16
 		rps.content_margin_top = 8; rps.content_margin_bottom = 8
 		row_panel.add_theme_stylebox_override("panel", rps)
@@ -2803,7 +2803,7 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 	for e in enemy_types:
 		var card = PanelContainer.new()
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		cs.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 		cs.set_corner_radius_all(8)
 		cs.border_color = Color(e[3].r * 0.5, e[3].g * 0.5, e[3].b * 0.5, 0.4)
 		cs.set_border_width_all(1)
@@ -2838,7 +2838,7 @@ func _build_journal(parent: VBoxContainer) -> void:
 			unlocked = _main._is_character_unlocked(_main.survivor_types[i])
 		var entry = PanelContainer.new()
 		var es = StyleBoxFlat.new()
-		es.bg_color = Color(0.05, 0.03, 0.10, 0.5) if unlocked else Color(0.03, 0.02, 0.06, 0.3)
+		es.bg_color = Color(0.07, 0.05, 0.12, 0.5) if unlocked else Color(0.03, 0.02, 0.06, 0.3)
 		es.set_corner_radius_all(8)
 		es.border_color = Color(0.55, 0.42, 0.18, 0.4) if unlocked else Color(0.2, 0.18, 0.15, 0.3)
 		es.set_border_width_all(1)
@@ -2904,7 +2904,7 @@ func _build_event_calendar(parent: VBoxContainer) -> void:
 	for ev in events:
 		var ev_panel = PanelContainer.new()
 		var evs = StyleBoxFlat.new()
-		evs.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		evs.bg_color = Color(0.07, 0.05, 0.12, 0.5)
 		evs.set_corner_radius_all(8)
 		evs.border_color = Color(ev[2].r * 0.4, ev[2].g * 0.4, ev[2].b * 0.4, 0.4)
 		evs.set_border_width_all(1)
@@ -2943,8 +2943,8 @@ func _build_glossary(parent: VBoxContainer) -> void:
 	for term in terms:
 		var term_panel = PanelContainer.new()
 		var tms = StyleBoxFlat.new()
-		tms.bg_color = Color(0.04, 0.03, 0.08, 0.45)
-		tms.set_corner_radius_all(6)
+		tms.bg_color = Color(0.06, 0.04, 0.10, 0.45)
+		tms.set_corner_radius_all(8)
 		tms.content_margin_left = 10; tms.content_margin_right = 10
 		tms.content_margin_top = 4; tms.content_margin_bottom = 4
 		term_panel.add_theme_stylebox_override("panel", tms)
@@ -3128,7 +3128,7 @@ func _build_settings() -> void:
 	vb.add_child(_section_header("ABOUT"))
 	var credits_panel = PanelContainer.new()
 	var cps = StyleBoxFlat.new()
-	cps.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	cps.bg_color = Color(0.06, 0.04, 0.10, 0.5)
 	cps.set_corner_radius_all(8)
 	cps.content_margin_left = 16; cps.content_margin_right = 16
 	cps.content_margin_top = 12; cps.content_margin_bottom = 12
@@ -3152,7 +3152,7 @@ func _build_settings() -> void:
 	vb.add_child(_section_header("WHAT'S NEW"))
 	var patch_panel = PanelContainer.new()
 	var pns = StyleBoxFlat.new()
-	pns.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+	pns.bg_color = Color(0.06, 0.04, 0.10, 0.5)
 	pns.set_corner_radius_all(8)
 	pns.content_margin_left = 12; pns.content_margin_right = 12
 	pns.content_margin_top = 8; pns.content_margin_bottom = 8
@@ -3181,8 +3181,8 @@ func _build_settings() -> void:
 	for faq in faqs:
 		var faq_panel = PanelContainer.new()
 		var fqs = StyleBoxFlat.new()
-		fqs.bg_color = Color(0.04, 0.03, 0.08, 0.4)
-		fqs.set_corner_radius_all(6)
+		fqs.bg_color = Color(0.06, 0.04, 0.10, 0.4)
+		fqs.set_corner_radius_all(8)
 		fqs.content_margin_left = 10; fqs.content_margin_right = 10
 		fqs.content_margin_top = 4; fqs.content_margin_bottom = 4
 		faq_panel.add_theme_stylebox_override("panel", fqs)
@@ -3209,7 +3209,7 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 	# Setting row with styled panel
 	var row_panel = PanelContainer.new()
 	var rps = StyleBoxFlat.new()
-	rps.bg_color = Color(0.05, 0.03, 0.10, 0.55)
+	rps.bg_color = Color(0.07, 0.05, 0.12, 0.55)
 	rps.set_corner_radius_all(8)
 	rps.border_color = Color(0.30, 0.22, 0.15, 0.25)
 	rps.set_border_width_all(1)
@@ -3230,7 +3230,7 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 		bar_panel.custom_minimum_size = Vector2(160, 22)
 		bar_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var bps = StyleBoxFlat.new()
-		bps.bg_color = Color(0.04, 0.03, 0.08, 0.8)
+		bps.bg_color = Color(0.06, 0.04, 0.10, 0.8)
 		bps.set_corner_radius_all(8)
 		bps.border_color = Color(0.30, 0.22, 0.15, 0.4)
 		bps.set_border_width_all(1)
@@ -3263,7 +3263,7 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 	bs.set_corner_radius_all(8)
 	bs.set_border_width_all(1)
 	bs.shadow_color = Color(0.1, 0.1, 0.1, 0.2)
-	bs.shadow_size = 2
+	bs.shadow_size = 3
 	bs.content_margin_left = 8; bs.content_margin_right = 8
 	btn.add_theme_stylebox_override("normal", bs)
 	var bsh = bs.duplicate(); bsh.bg_color = bs.bg_color.lightened(0.2)
@@ -3284,7 +3284,7 @@ func _title(text: String) -> Control:
 	# Title with decorative frame panel
 	var outer = PanelContainer.new()
 	var os = StyleBoxFlat.new()
-	os.bg_color = Color(0.04, 0.03, 0.08, 0.3)  # Near-transparent so art frame shows
+	os.bg_color = Color(0.06, 0.04, 0.10, 0.3)  # Near-transparent so art frame shows
 	os.set_corner_radius_all(12)
 	os.border_color = Color(0.65, 0.50, 0.18, 0.3)
 	os.set_border_width_all(0)  # Art provides the border
@@ -3349,7 +3349,7 @@ func _art_button(text: String, color: Color, min_size: Vector2 = Vector2(110, 32
 	s.border_color = Color(color.r * 1.8, color.g * 1.8, color.b * 1.8, 0.6)
 	s.set_border_width_all(1)
 	s.shadow_color = Color(0, 0, 0, 0.2)
-	s.shadow_size = 2
+	s.shadow_size = 3
 	s.content_margin_left = 8; s.content_margin_right = 8
 	btn.add_theme_stylebox_override("normal", s)
 	var sh = s.duplicate()
