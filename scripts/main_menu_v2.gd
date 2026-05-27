@@ -310,12 +310,12 @@ func _build_music_display() -> void:
 	music_row.size = Vector2(250, 26)
 	top_bar.add_child(music_row)
 	# Music icon
-	var icon = _lbl("♫", 12, Color(0.65, 0.55, 0.80))
+	var icon = _lbl("♫", 13, Color(0.65, 0.55, 0.80))
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	music_row.add_child(icon)
 	# Song title — stored for live updates
 	var song_name = _get_song_name()
-	_song_label = _lbl(song_name if song_name != "" else "Now Playing...", 11, Color(0.72, 0.62, 0.88))
+	_song_label = _lbl(song_name if song_name != "" else "Now Playing...", 12, Color(0.72, 0.62, 0.88))
 	_song_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_song_label.clip_text = true
 	_song_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -442,6 +442,7 @@ func _build_nav_buttons() -> void:
 
 func _on_tab(tab: String) -> void:
 	if current_view == tab: return
+	_play_ui_click()
 	# Save scroll position of current view
 	_save_scroll_position()
 	# Page-turn transition: slide out left + fade, then rebuild + slide in right
@@ -497,6 +498,7 @@ func _build_chapters() -> void:
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
+	_style_scrollbar(sc)
 	_add_scroll_hint(content_area)
 	# Margin container for card breathing room
 	var margin = MarginContainer.new()
@@ -526,7 +528,7 @@ func _build_chapters() -> void:
 		# Entrance animation
 		logo.modulate.a = 0.0
 		logo.scale = Vector2(0.85, 0.85)
-		logo.pivot_offset = Vector2(250, 35)
+		logo.pivot_offset = logo.custom_minimum_size / 2.0
 		var logo_tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		logo_tw.set_parallel(true)
 		logo_tw.tween_property(logo, "scale", Vector2(1.0, 1.0), 0.4)
@@ -696,7 +698,7 @@ func _build_chapters() -> void:
 			hdr_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			arc_panel.add_child(hdr_container)
 			# Character portrait for this arc
-			var arc_portrait_key = ""
+			var arc_portrait_key = "robin_hood"  # Default fallback for Prologue
 			for apk in ARC_PORTRAITS:
 				if arc.begins_with(apk) or apk in arc:
 					arc_portrait_key = ARC_PORTRAITS[apk]
@@ -978,7 +980,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			for _si in range(3):
 				var star = TextureRect.new()
 				star.texture = _art["golden_star"]
-				star.custom_minimum_size = Vector2(20, 20)
+				star.custom_minimum_size = Vector2(22, 22)
 				star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				star.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1155,6 +1157,18 @@ func _build_survivors() -> void:
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(sub)
 	vb.add_child(_stat_bar("Rescued", unlocked_ct, _main.survivor_types.size(), Color(0.45, 0.75, 0.35)))
+	# Team Power — sum of all character levels
+	var team_power = 0
+	for st in _main.survivor_types:
+		if _main._is_character_unlocked(st) and _main.survivor_progress.has(st):
+			team_power += _main.survivor_progress[st].get("level", 1)
+	if team_power > 0:
+		var power_row = HBoxContainer.new()
+		power_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		power_row.add_theme_constant_override("separation", 6)
+		power_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		power_row.add_child(_currency_chip("⚡ Team Power: %d" % team_power, Color(1.0, 0.75, 0.20)))
+		vb.add_child(power_row)
 	# Contextual gameplay tip
 	var tips = [
 		"💡 Tip: Place bonded characters near each other for synergy damage boosts!",
@@ -1297,6 +1311,19 @@ func _survivor_card(idx: int) -> Button:
 		novel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		novel.clip_text = true
 		vb.add_child(novel)
+	# Bond indicator
+	if is_unlocked and BOND_PAIRS.has(idx):
+		var bond_names = []
+		for bi in BOND_PAIRS[idx]:
+			if bi < _main.character_names.size():
+				bond_names.append(_main.character_names[bi].split(" ")[0])
+		if bond_names.size() > 0:
+			var bond_lbl = _lbl("💞 " + " & ".join(bond_names), 9, Color(0.7, 0.45, 0.65))
+			bond_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			bond_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			bond_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bond_lbl.clip_text = true
+			vb.add_child(bond_lbl)
 	# Gear equipped indicator
 	if is_unlocked and tt != null and _main.survivor_gear.has(tt):
 		var gear_info = _main.survivor_gear[tt]
@@ -1316,6 +1343,11 @@ func _survivor_card(idx: int) -> Button:
 	btn.mouse_exited.connect(func():
 		var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
 		tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08))
+	# Shimmer glow on high-level characters (level 5+)
+	if is_unlocked and char_level >= 5:
+		var shimmer = create_tween().set_loops()
+		shimmer.tween_property(btn, "modulate", Color(1.08, 1.06, 1.02), 1.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		shimmer.tween_property(btn, "modulate", Color(1.0, 1.0, 1.0), 1.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	return btn
 
 var _detail_idx: int = -1
@@ -2538,6 +2570,7 @@ func _build_generic_shop(parent: VBoxContainer, cat: Dictionary) -> void:
 
 # ======================== CODEX ========================
 var _codex_subtab: String = "gear"
+var _gear_filter: String = "ALL"
 
 func _build_codex() -> void:
 	_clear()
@@ -2618,9 +2651,12 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	filter_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	filter_row.add_child(_lbl("Filter:", 11, Color(0.65, 0.58, 0.50)))
 	for fr in [["ALL", Color(0.55, 0.50, 0.45)], ["COMMON", Color(0.5, 0.5, 0.5)], ["RARE", Color(0.2, 0.5, 0.9)], ["EPIC", Color(0.7, 0.3, 0.9)], ["LEGEND", Color(1.0, 0.7, 0.1)]]:
-		var fb = _art_button(fr[0], Color(0.08, 0.06, 0.14), Vector2(85, 28))
+		var is_active_filter = _gear_filter == fr[0]
+		var fb = _art_button(fr[0], Color(0.15, 0.10, 0.25) if is_active_filter else Color(0.08, 0.06, 0.14), Vector2(85, 28))
 		fb.add_theme_font_size_override("font_size", 11)
 		fb.add_theme_color_override("font_color", fr[1])
+		var filter_name = fr[0]
+		fb.pressed.connect(func(): _gear_filter = filter_name; _build_codex())
 		filter_row.add_child(fb)
 	parent.add_child(filter_row)
 	var grid = GridContainer.new()
@@ -2629,17 +2665,23 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	grid.add_theme_constant_override("v_separation", 8)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Grid will stretch to parent VBox width via SIZE_EXPAND_FILL
+	grid.size_flags_stretch_ratio = 1.0
 	parent.add_child(grid)
 	if not _main: return
 	var keys = _main._gear_icon_textures.keys()
 	keys.sort()
 	var gear_idx = 0
+	var rarity_names = ["COMMON", "COMMON", "COMMON", "RARE", "RARE", "EPIC", "LEGEND"]
 	for gk in keys:
-		# Rarity color based on position (simulate rarity distribution)
+		# Rarity based on name hash for consistent assignment
 		var rarity_colors = [Color(0.5, 0.5, 0.5), Color(0.3, 0.7, 0.3), Color(0.2, 0.5, 0.9), Color(0.7, 0.3, 0.9), Color(1.0, 0.7, 0.1)]
-		var rarity_idx = clampi(gear_idx % 5, 0, 4)
+		var rarity_idx = clampi(gk.hash() % 5, 0, 4)
 		var rarity_col = rarity_colors[rarity_idx]
+		var rarity_name = ["COMMON", "COMMON", "RARE", "EPIC", "LEGEND"][rarity_idx]
+		# Apply filter
+		if _gear_filter != "ALL" and _gear_filter != rarity_name:
+			gear_idx += 1
+			continue
 		gear_idx += 1
 		# Each gear item as a clickable button
 		var card = Button.new()
@@ -2989,6 +3031,12 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 			stat_chip.add_child(sl)
 			stats_row.add_child(stat_chip)
 		cv.add_child(stats_row)
+		# Kill count from game data
+		if _main and "enemy_kill_counts" in _main:
+			var kill_key = e[0].to_lower().replace(" ", "_")
+			var kills = _main.enemy_kill_counts.get(kill_key, 0)
+			if kills > 0:
+				cv.add_child(_lbl("☠ %d killed" % kills, 10, Color(0.55, 0.45, 0.38)))
 		grid.add_child(card)
 
 func _build_journal(parent: VBoxContainer) -> void:
@@ -3184,7 +3232,7 @@ func _build_settings() -> void:
 		sbg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		sbg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		sbg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		sbg.modulate.a = 0.40  # Visible settings background
+		sbg.modulate.a = 0.55  # More visible settings background
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: sbg.material = mat
 		content_area.add_child(sbg)
@@ -3514,6 +3562,20 @@ func _add_press_feedback(btn: BaseButton) -> void:
 		var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.1))
 
+func _style_scrollbar(sc: ScrollContainer) -> void:
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.25, 0.20, 0.15, 0.4)
+	sb.set_corner_radius_all(4)
+	sb.content_margin_left = 2; sb.content_margin_right = 2
+	sc.add_theme_stylebox_override("scroll", sb)
+	var grabber = StyleBoxFlat.new()
+	grabber.bg_color = Color(0.55, 0.42, 0.18, 0.5)
+	grabber.set_corner_radius_all(4)
+	sc.get_v_scroll_bar().add_theme_stylebox_override("grabber", grabber)
+	var grabber_hl = grabber.duplicate()
+	grabber_hl.bg_color = Color(0.65, 0.50, 0.20, 0.7)
+	sc.get_v_scroll_bar().add_theme_stylebox_override("grabber_highlight", grabber_hl)
+
 func _lbl(text: String, size: int, color: Color) -> Label:
 	var l = Label.new()
 	l.text = text
@@ -3739,6 +3801,18 @@ func _add_scroll_hint(parent_control: Control) -> void:
 	var htw = create_tween().set_loops()
 	htw.tween_property(hint, "modulate:a", 0.3, 0.8).set_ease(Tween.EASE_IN_OUT)
 	htw.tween_property(hint, "modulate:a", 0.8, 0.8).set_ease(Tween.EASE_IN_OUT)
+	# Back to top button (right side)
+	var top_btn = _art_button("▲ TOP", Color(0.08, 0.06, 0.14), Vector2(60, 24))
+	top_btn.add_theme_font_size_override("font_size", 10)
+	top_btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	top_btn.position = Vector2(-72, -32)
+	top_btn.modulate.a = 0.6
+	top_btn.pressed.connect(func():
+		for c in parent_control.get_children():
+			if c is ScrollContainer:
+				var tw = create_tween()
+				tw.tween_property(c, "scroll_vertical", 0, 0.3).set_ease(Tween.EASE_OUT))
+	parent_control.add_child(top_btn)
 
 func _format_num(val: float) -> String:
 	if val >= 1000000: return "%.1fM" % (val / 1000000.0)
