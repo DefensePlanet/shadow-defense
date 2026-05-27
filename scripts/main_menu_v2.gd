@@ -1646,7 +1646,7 @@ func _build_detail_view() -> void:
 			sk_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			skp.add_child(sk_row)
 			sk_row.add_child(_lbl(sk.get("name",""), 12, Color(0.9, 0.82, 0.55)))
-			var sk_desc = _lbl(sk.get("desc",""), 10, Color(0.70, 0.62, 0.52))
+			var sk_desc = _lbl(sk.get("desc",""), 11, Color(0.70, 0.62, 0.52))
 			sk_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			sk_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			sk_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2015,7 +2015,7 @@ func _build_emporium() -> void:
 		var name_lbl = _lbl(cat.get("name",""), 14, accent)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(name_lbl)
-		var d = _lbl(cat.get("desc",""), 10, Color(0.70, 0.62, 0.52))
+		var d = _lbl(cat.get("desc",""), 11, Color(0.70, 0.62, 0.52))
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(d)
@@ -3460,7 +3460,7 @@ func _open_slot_picker(char_idx: int, tower_type, slot_name: String) -> void:
 			info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(info)
 			info.add_child(_lbl(item.get("name", ""), 14, item_col))
-			info.add_child(_lbl(item.get("desc", ""), 10, Color(0.70, 0.62, 0.52)))
+			info.add_child(_lbl(item.get("desc", ""), 11, Color(0.70, 0.62, 0.52)))
 			var tier_text = item.get("tier", "common").to_upper()
 			info.add_child(_lbl(tier_text, 9, item_col.darkened(0.2)))
 			var equip = _art_button("EQUIP", Color(0.12, 0.40, 0.12), Vector2(80, 30))
