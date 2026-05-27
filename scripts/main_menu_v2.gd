@@ -498,8 +498,8 @@ func _build_chapters() -> void:
 	# Margin container for card breathing room
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_top", 8)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
@@ -1086,8 +1086,8 @@ func _build_survivors() -> void:
 	# Centered margin container
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_top", 4)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
@@ -1766,13 +1766,29 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 		cv.alignment = BoxContainer.ALIGNMENT_CENTER
 		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(cv)
+		var icon_bg2 = PanelContainer.new()
+		icon_bg2.custom_minimum_size = Vector2(68, 68)
+		icon_bg2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ibg_sb2 = StyleBoxFlat.new()
+		ibg_sb2.bg_color = Color(0.04, 0.02, 0.08, 0.95)
+		ibg_sb2.set_corner_radius_all(6)
+		ibg_sb2.content_margin_left = 2; ibg_sb2.content_margin_right = 2
+		ibg_sb2.content_margin_top = 2; ibg_sb2.content_margin_bottom = 2
+		icon_bg2.add_theme_stylebox_override("panel", ibg_sb2)
 		var icon = TextureRect.new()
 		icon.texture = _main._gear_icon_textures[gk]
 		icon.custom_minimum_size = Vector2(64, 64)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cv.add_child(icon)
+		var shader_res2 = load("res://shaders/white_key.gdshader")
+		if shader_res2:
+			var mat2 = ShaderMaterial.new()
+			mat2.shader = shader_res2
+			mat2.set_shader_parameter("threshold", 0.85)
+			icon.material = mat2
+		icon_bg2.add_child(icon)
+		cv.add_child(icon_bg2)
 		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 10, Color(0.65, 0.58, 0.50))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.clip_text = true
@@ -1860,8 +1876,8 @@ func _build_emporium() -> void:
 	content_area.add_child(sc)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_top", 8)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
@@ -2070,8 +2086,8 @@ func _open_emporium_category(cat_idx: int) -> void:
 	content_area.add_child(sc)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_top", 4)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
@@ -2463,8 +2479,8 @@ func _build_codex() -> void:
 	_clear()
 	var codex_margin = MarginContainer.new()
 	codex_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	codex_margin.add_theme_constant_override("margin_left", 24)
-	codex_margin.add_theme_constant_override("margin_right", 24)
+	codex_margin.add_theme_constant_override("margin_left", 12)
+	codex_margin.add_theme_constant_override("margin_right", 12)
 	codex_margin.add_theme_constant_override("margin_top", 8)
 	content_area.add_child(codex_margin)
 	var main_vb = VBoxContainer.new()
@@ -2507,10 +2523,12 @@ func _build_codex() -> void:
 	# Content area for sub-tab
 	var sc = ScrollContainer.new()
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main_vb.add_child(sc)
 	var content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_stretch_ratio = 1.0
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sc.add_child(content)
 	match _codex_subtab:
@@ -2542,7 +2560,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		filter_row.add_child(fb)
 	parent.add_child(filter_row)
 	var grid = GridContainer.new()
-	grid.columns = 7
+	grid.columns = 4  # 4 columns = bigger cards filling full width
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2561,9 +2579,10 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		# Each gear item as a clickable button
 		var card = Button.new()
 		card.text = ""
-		card.custom_minimum_size = Vector2(90, 100)
+		card.custom_minimum_size = Vector2(140, 140)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.06, 0.04, 0.10, 0.6)
+		cs.bg_color = Color(0.08, 0.06, 0.14, 0.75)  # Darker to hide icon bg
 		cs.border_color = Color(rarity_col.r * 0.7, rarity_col.g * 0.7, rarity_col.b * 0.7, 0.5)
 		cs.set_border_width_all(2)
 		cs.set_corner_radius_all(8)
@@ -2584,13 +2603,30 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		cv.alignment = BoxContainer.ALIGNMENT_CENTER
 		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(cv)
+		# Dark backdrop to hide white/light icon backgrounds
+		var icon_bg = PanelContainer.new()
+		icon_bg.custom_minimum_size = Vector2(68, 68)
+		icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ibg_sb = StyleBoxFlat.new()
+		ibg_sb.bg_color = Color(0.04, 0.02, 0.08, 0.95)
+		ibg_sb.set_corner_radius_all(6)
+		ibg_sb.content_margin_left = 2; ibg_sb.content_margin_right = 2
+		ibg_sb.content_margin_top = 2; ibg_sb.content_margin_bottom = 2
+		icon_bg.add_theme_stylebox_override("panel", ibg_sb)
 		var icon = TextureRect.new()
 		icon.texture = _main._gear_icon_textures[gk]
 		icon.custom_minimum_size = Vector2(64, 64)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cv.add_child(icon)
+		var shader_res = load("res://shaders/white_key.gdshader")
+		if shader_res:
+			var mat = ShaderMaterial.new()
+			mat.shader = shader_res
+			mat.set_shader_parameter("threshold", 0.85)
+			icon.material = mat
+		icon_bg.add_child(icon)
+		cv.add_child(icon_bg)
 		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 10, Color(0.65, 0.58, 0.50))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3050,8 +3086,8 @@ func _build_settings() -> void:
 	content_area.add_child(sc)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 40)
-	margin.add_theme_constant_override("margin_right", 40)
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
 	margin.add_theme_constant_override("margin_top", 8)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
@@ -3420,8 +3456,8 @@ func _open_slot_picker(char_idx: int, tower_type, slot_name: String) -> void:
 	content_area.add_child(sc)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_top", 4)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
@@ -3479,8 +3515,8 @@ func _open_skin_shop(char_idx: int) -> void:
 	content_area.add_child(sc)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_top", 4)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
