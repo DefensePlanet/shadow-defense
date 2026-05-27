@@ -966,7 +966,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	# Best wave record
 	if "level_best_wave" in _main and _main.level_best_wave.has(idx):
 		var bw = _main.level_best_wave[idx]
-		stats_row.add_child(_lbl("Best: W%d" % bw, 10, Color(0.65, 0.58, 0.50)))
+		stats_row.add_child(_lbl("Best: W%d" % bw, 11, Color(0.65, 0.58, 0.50)))
 	info.add_child(stats_row)
 	# Star rating — use golden_star art if available
 	if _main and _main.level_stars.has(idx):
@@ -1004,7 +1004,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		diff_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		for di in range(mini(ds.size(), 3)):
 			if ds[di] > 0:
-				diff_row.add_child(_lbl("%s:%d★" % [diff_names[di], ds[di]], 10, Color(0.65, 0.58, 0.50)))
+				diff_row.add_child(_lbl("%s:%d★" % [diff_names[di], ds[di]], 11, Color(0.65, 0.58, 0.50)))
 		if diff_row.get_child_count() > 0:
 			info.add_child(diff_row)
 	row.add_child(info)
@@ -1266,7 +1266,7 @@ func _survivor_card(idx: int) -> Button:
 		lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(lock_lbl)
 	var ctitle = _main.character_titles[idx] if _main and idx < _main.character_titles.size() else ""
-	var tl = _lbl(ctitle if is_unlocked else "", 10, Color(0.65, 0.58, 0.50))
+	var tl = _lbl(ctitle if is_unlocked else "", 11, Color(0.65, 0.58, 0.50))
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1301,7 +1301,7 @@ func _survivor_card(idx: int) -> Button:
 	if is_unlocked and tt != null and _main.survivor_gear.has(tt):
 		var gear_info = _main.survivor_gear[tt]
 		if gear_info.get("name", "") != "":
-			var gear_lbl = _lbl("⚔ %s" % gear_info["name"], 9, Color(0.55, 0.42, 0.18))
+			var gear_lbl = _lbl("⚔ %s" % gear_info["name"], 10, Color(0.55, 0.42, 0.18))
 			gear_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			gear_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			gear_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1747,7 +1747,7 @@ func _build_detail_view() -> void:
 			ab_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			ab_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ab_row.add_child(ab_name)
-			var tier_lbl = _lbl("Tier %d" % (ai + 1), 10, Color(0.65, 0.58, 0.50))
+			var tier_lbl = _lbl("Tier %d" % (ai + 1), 11, Color(0.65, 0.58, 0.50))
 			tier_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ab_row.add_child(tier_lbl)
 			right.add_child(ab_panel)
@@ -1838,7 +1838,7 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 			icon.material = mat2
 		icon_bg2.add_child(icon)
 		cv.add_child(icon_bg2)
-		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 10, Color(0.65, 0.58, 0.50))
+		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 11, Color(0.65, 0.58, 0.50))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.clip_text = true
 		name_lbl.custom_minimum_size.x = 90
@@ -2344,7 +2344,7 @@ func _build_gear_shard_shop(parent: VBoxContainer) -> void:
 		if mat: chest_art.material = mat
 		cv.add_child(chest_art)
 		cv.add_child(_lbl("Gear Chest — 50 Shards", 13, Color(0.85, 0.70, 0.20)))
-		cv.add_child(_lbl("Contains 1 random piece of Gear", 10, Color(0.70, 0.62, 0.52)))
+		cv.add_child(_lbl("Contains 1 random piece of Gear", 11, Color(0.70, 0.62, 0.52)))
 		var open_btn = _art_button("OPEN CHEST", Color(0.5, 0.35, 0.10), Vector2(140, 34))
 		if _main and _main.player_gear_shards >= 50:
 			open_btn.pressed.connect(func():
@@ -2384,7 +2384,7 @@ func _build_survivor_packs(parent: VBoxContainer) -> void:
 		info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(info)
 		info.add_child(_lbl(pk[0], 15, pk[4]))
-		var desc = _lbl(pk[1], 10, Color(0.70, 0.62, 0.52))
+		var desc = _lbl(pk[1], 11, Color(0.70, 0.62, 0.52))
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		info.add_child(desc)
@@ -2427,7 +2427,7 @@ func _build_trophy_store_items(parent: VBoxContainer) -> void:
 		info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(info)
 		info.add_child(_lbl(tr[0], 13, tr[3]))
-		info.add_child(_lbl(tr[1], 10, Color(0.70, 0.62, 0.52)))
+		info.add_child(_lbl(tr[1], 11, Color(0.70, 0.62, 0.52)))
 		row.add_child(_lbl("⭐ %d" % tr[2], 12, Color(1, 0.85, 0.3)))
 		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(80, 30))
 		row.add_child(buy)
@@ -2616,7 +2616,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	var filter_row = HBoxContainer.new()
 	filter_row.add_theme_constant_override("separation", 6)
 	filter_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	filter_row.add_child(_lbl("Filter:", 10, Color(0.65, 0.58, 0.50)))
+	filter_row.add_child(_lbl("Filter:", 11, Color(0.65, 0.58, 0.50)))
 	for fr in [["ALL", Color(0.55, 0.50, 0.45)], ["COMMON", Color(0.5, 0.5, 0.5)], ["RARE", Color(0.2, 0.5, 0.9)], ["EPIC", Color(0.7, 0.3, 0.9)], ["LEGEND", Color(1.0, 0.7, 0.1)]]:
 		var fb = _art_button(fr[0], Color(0.08, 0.06, 0.14), Vector2(85, 28))
 		fb.add_theme_font_size_override("font_size", 11)
@@ -2967,7 +2967,7 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(cv)
 		cv.add_child(_lbl(e[0], 14, e[3]))
-		var desc = _lbl(e[1], 10, Color(0.70, 0.62, 0.52))
+		var desc = _lbl(e[1], 11, Color(0.70, 0.62, 0.52))
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(desc)
@@ -3042,7 +3042,7 @@ func _build_journal(parent: VBoxContainer) -> void:
 				text_col.add_child(_lbl(_main.character_titles[i], 10, Color(0.60, 0.52, 0.44)))
 			# Quote
 			if i < _main.character_quotes.size():
-				var quote = _lbl('"' + _main.character_quotes[i] + '"', 10, Color(0.70, 0.62, 0.52))
+				var quote = _lbl('"' + _main.character_quotes[i] + '"', 11, Color(0.70, 0.62, 0.52))
 				quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				quote.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				text_col.add_child(quote)
@@ -3119,7 +3119,7 @@ func _build_glossary(parent: VBoxContainer) -> void:
 		tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		term_panel.add_child(tv)
 		tv.add_child(_lbl(term[0], 13, Color(0.90, 0.82, 0.60)))
-		var def_lbl = _lbl(term[1], 10, Color(0.70, 0.62, 0.52))
+		var def_lbl = _lbl(term[1], 11, Color(0.70, 0.62, 0.52))
 		def_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		def_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tv.add_child(def_lbl)
@@ -3169,7 +3169,7 @@ func _build_book_collection(parent: VBoxContainer) -> void:
 		# Find which character comes from this novel
 		for ci in range(_main.character_novels.size()):
 			if _main.character_novels[ci] == novels[ni] and ci < _main.character_names.size():
-				bvb.add_child(_lbl(_main.character_names[ci], 10, Color(0.65, 0.58, 0.50)))
+				bvb.add_child(_lbl(_main.character_names[ci], 11, Color(0.65, 0.58, 0.50)))
 				break
 		grid.add_child(book_card)
 
@@ -3703,7 +3703,7 @@ func _open_skin_shop(char_idx: int) -> void:
 			if is_active:
 				info.add_child(_lbl("✅ EQUIPPED", 10, Color(0.3, 0.9, 0.3)))
 			elif is_owned:
-				info.add_child(_lbl("OWNED", 10, Color(0.70, 0.62, 0.52)))
+				info.add_child(_lbl("OWNED", 11, Color(0.70, 0.62, 0.52)))
 			else:
 				info.add_child(_lbl("🪶 %d Quills" % skin["cost"], 10, Color(0.7, 0.5, 0.9)))
 			# Button
