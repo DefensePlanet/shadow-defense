@@ -5546,8 +5546,8 @@ func _create_ui() -> void:
 	# Styled top HUD bar
 	var top_hud_bg = PanelContainer.new()
 	var thb_style = StyleBoxFlat.new()
-	thb_style.bg_color = Color(0.08, 0.05, 0.16, 0.90)
-	thb_style.border_color = Color(0.45, 0.35, 0.15, 0.35)
+	thb_style.bg_color = Color(0.08, 0.05, 0.16, 0.92)
+	thb_style.border_color = Color(0.55, 0.42, 0.18, 0.45)
 	thb_style.border_width_bottom = 2
 	thb_style.border_width_top = 0; thb_style.border_width_left = 0; thb_style.border_width_right = 0
 	thb_style.shadow_color = Color(0, 0, 0, 0.15)
@@ -5565,7 +5565,9 @@ func _create_ui() -> void:
 	wave_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.70))
 	wave_label.add_theme_constant_override("shadow_offset_x", 2)
 	wave_label.add_theme_constant_override("shadow_offset_y", 2)
-	wave_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	wave_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	wave_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
+	wave_label.add_theme_constant_override("outline_size", 2)
 	top_bar.add_child(wave_label)
 
 	gold_label = Label.new()
@@ -5574,16 +5576,20 @@ func _create_ui() -> void:
 	gold_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.20))
 	gold_label.add_theme_constant_override("shadow_offset_x", 2)
 	gold_label.add_theme_constant_override("shadow_offset_y", 2)
-	gold_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	gold_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	gold_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
+	gold_label.add_theme_constant_override("outline_size", 2)
 	top_bar.add_child(gold_label)
 
 	lives_label = Label.new()
 	lives_label.position = Vector2(410, 8)
 	lives_label.add_theme_font_size_override("font_size", 20)
-	lives_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.30))
+	lives_label.add_theme_color_override("font_color", Color(1.0, 0.50, 0.35))
 	lives_label.add_theme_constant_override("shadow_offset_x", 2)
 	lives_label.add_theme_constant_override("shadow_offset_y", 2)
-	lives_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	lives_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	lives_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
+	lives_label.add_theme_constant_override("outline_size", 2)
 	top_bar.add_child(lives_label)
 
 	# Settings gear button (gameplay)
@@ -5604,7 +5610,9 @@ func _create_ui() -> void:
 	now_playing_label.add_theme_color_override("font_color", Color(0.75, 0.65, 0.90))
 	now_playing_label.add_theme_constant_override("shadow_offset_x", 1)
 	now_playing_label.add_theme_constant_override("shadow_offset_y", 1)
-	now_playing_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	now_playing_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	now_playing_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.4))
+	now_playing_label.add_theme_constant_override("outline_size", 1)
 	now_playing_label.clip_text = true
 	now_playing_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	now_playing_label.text = ""
@@ -5625,8 +5633,8 @@ func _create_ui() -> void:
 	# Styled tower bar background
 	var tower_bar_bg = PanelContainer.new()
 	var tbg_style = StyleBoxFlat.new()
-	tbg_style.bg_color = Color(0.10, 0.06, 0.18, 0.92)
-	tbg_style.border_color = Color(0.55, 0.42, 0.18, 0.4)
+	tbg_style.bg_color = Color(0.10, 0.06, 0.18, 0.94)
+	tbg_style.border_color = Color(0.60, 0.45, 0.18, 0.5)
 	tbg_style.border_width_top = 2
 	tbg_style.border_width_bottom = 0; tbg_style.border_width_left = 0; tbg_style.border_width_right = 0
 	tbg_style.shadow_color = Color(0, 0, 0, 0.2)
@@ -5683,16 +5691,18 @@ func _create_ui() -> void:
 	info_label.size = Vector2(660, 34)
 	info_label.add_theme_font_size_override("font_size", 14)
 	info_label.add_theme_color_override("font_color", c_gold)
-	info_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	info_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	info_label.add_theme_constant_override("shadow_offset_x", 1)
 	info_label.add_theme_constant_override("shadow_offset_y", 1)
+	info_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.4))
+	info_label.add_theme_constant_override("outline_size", 1)
 	info_label.clip_text = true
 	info_label.text = ""
 	top_bar.add_child(info_label)
 
-	start_button = _make_button("  START WAVE  ", Vector2(960, 4), Vector2(160, 48))
-	start_button.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
-	start_button.add_theme_font_size_override("font_size", 16)
+	start_button = _make_button("  START WAVE  ", Vector2(955, 2), Vector2(168, 50))
+	start_button.add_theme_color_override("font_color", Color(0.35, 0.95, 0.35))
+	start_button.add_theme_font_size_override("font_size", 17)
 	start_button.pressed.connect(_on_start_wave_pressed)
 	bottom_panel.add_child(start_button)
 
@@ -5747,9 +5757,11 @@ func _create_ui() -> void:
 	game_over_label = Label.new()
 	game_over_label.add_theme_font_size_override("font_size", 72)
 	game_over_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.12))
-	game_over_label.add_theme_constant_override("shadow_offset_x", 3)
-	game_over_label.add_theme_constant_override("shadow_offset_y", 3)
-	game_over_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	game_over_label.add_theme_constant_override("shadow_offset_x", 4)
+	game_over_label.add_theme_constant_override("shadow_offset_y", 4)
+	game_over_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	game_over_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	game_over_label.add_theme_constant_override("outline_size", 4)
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	game_over_label.position = Vector2(240, 280)
 	game_over_label.size = Vector2(800, 100)
@@ -5794,7 +5806,9 @@ func _create_ui() -> void:
 	ability_title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
 	ability_title.add_theme_constant_override("shadow_offset_x", 2)
 	ability_title.add_theme_constant_override("shadow_offset_y", 2)
-	ability_title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	ability_title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	ability_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
+	ability_title.add_theme_constant_override("outline_size", 2)
 	ability_panel.add_child(ability_title)
 
 	var subtitle = Label.new()
@@ -5825,7 +5839,7 @@ func _create_ui() -> void:
 	var upg_style = StyleBoxFlat.new()
 	upg_style.bg_color = Color(0.10, 0.07, 0.18, 0.94)
 	upg_style.set_corner_radius_all(10)
-	upg_style.border_color = Color(0.75, 0.58, 0.18, 0.6)
+	upg_style.border_color = Color(0.80, 0.62, 0.20, 0.7)
 	upg_style.set_border_width_all(2)
 	upg_style.shadow_color = Color(0.0, 0.0, 0.0, 0.3)
 	upg_style.shadow_size = 6
@@ -5890,7 +5904,7 @@ func _create_ui() -> void:
 		var status_rect = ColorRect.new()
 		status_rect.position = Vector2(10, slot_y)
 		status_rect.size = Vector2(180, 66)
-		status_rect.color = Color(0.14, 0.10, 0.24, 0.8)
+		status_rect.color = Color(0.12, 0.08, 0.22, 0.85)
 		upgrade_panel.add_child(status_rect)
 		upgrade_status_rects.append(status_rect)
 
@@ -28171,7 +28185,7 @@ func update_hud() -> void:
 		elif life_pct <= 0.5:
 			lives_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2))
 		else:
-			lives_label.add_theme_color_override("font_color", Color(1.0, 0.39, 0.28))
+			lives_label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.40))
 	if selected_tower_node and is_instance_valid(selected_tower_node):
 		_update_upgrade_panel()
 
