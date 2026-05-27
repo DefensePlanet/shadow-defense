@@ -863,7 +863,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	th_panel.add_theme_stylebox_override("panel", ths)
 	th_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var th = TextureRect.new()
-	th.custom_minimum_size = Vector2(140, 85)
+	th.custom_minimum_size = Vector2(160, 95)
 	th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	th.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2016,14 +2016,29 @@ func _build_emporium() -> void:
 		btn.add_child(row)
 		# Icon from emporium_icons
 		var icon_key = cat.get("icon", "")
+		var icon_frame = PanelContainer.new()
+		icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ifs = StyleBoxFlat.new()
+		ifs.bg_color = Color(0.04, 0.02, 0.08, 0.8)
+		ifs.set_corner_radius_all(8)
+		ifs.content_margin_left = 4; ifs.content_margin_right = 4
+		ifs.content_margin_top = 4; ifs.content_margin_bottom = 4
+		icon_frame.add_theme_stylebox_override("panel", ifs)
 		var icon_rect = TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(72, 72)
+		icon_rect.custom_minimum_size = Vector2(80, 80)
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if _main._emporium_icon_textures.has(icon_key):
 			icon_rect.texture = _main._emporium_icon_textures[icon_key]
-		row.add_child(icon_rect)
+			var wk = load("res://shaders/white_key.gdshader")
+			if wk:
+				var wkm = ShaderMaterial.new()
+				wkm.shader = wk
+				wkm.set_shader_parameter("threshold", 0.75)
+				icon_rect.material = wkm
+		icon_frame.add_child(icon_rect)
+		row.add_child(icon_frame)
 		# Text column
 		var text_col = VBoxContainer.new()
 		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3390,6 +3405,10 @@ func _title(text: String) -> Control:
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	outer.add_child(l)
+	# Subtle glow pulse on title
+	var tw = outer.create_tween().set_loops()
+	tw.tween_property(outer, "modulate", Color(1.06, 1.04, 1.0), 2.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(outer, "modulate", Color(1.0, 1.0, 1.0), 2.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	return outer
 
 # Add press feedback + SFX to any button
