@@ -2673,10 +2673,11 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 		if _main._achievement_icon_textures.size() > 0:
 			parent.add_child(_lbl("%d Achievement Icons Available" % _main._achievement_icon_textures.size(), 12, Color(0.6, 0.55, 0.48)))
 			var grid = GridContainer.new()
-			grid.columns = 6
+			grid.columns = 5
 			grid.add_theme_constant_override("h_separation", 8)
 			grid.add_theme_constant_override("v_separation", 8)
 			grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			parent.add_child(grid)
 			var keys = _main._achievement_icon_textures.keys()
 			keys.sort()
@@ -2692,18 +2693,36 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				cs.content_margin_top = 6; cs.content_margin_bottom = 6
 				card.add_theme_stylebox_override("panel", cs)
 				card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				card.custom_minimum_size = Vector2(220, 0)
 				card.tooltip_text = ak.replace("_", " ").capitalize()
 				var cv = VBoxContainer.new()
 				cv.alignment = BoxContainer.ALIGNMENT_CENTER
 				cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				card.add_child(cv)
+				var icon_panel = PanelContainer.new()
+				icon_panel.custom_minimum_size = Vector2(60, 60)
+				icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				var ips = StyleBoxFlat.new()
+				ips.bg_color = Color(0.04, 0.02, 0.08, 0.95)
+				ips.set_corner_radius_all(6)
+				ips.content_margin_left = 2; ips.content_margin_right = 2
+				ips.content_margin_top = 2; ips.content_margin_bottom = 2
+				icon_panel.add_theme_stylebox_override("panel", ips)
 				var icon = TextureRect.new()
 				icon.texture = _main._achievement_icon_textures[ak]
 				icon.custom_minimum_size = Vector2(56, 56)
 				icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				cv.add_child(icon)
+				var wk_shader = load("res://shaders/white_key.gdshader")
+				if wk_shader:
+					var wk_mat = ShaderMaterial.new()
+					wk_mat.shader = wk_shader
+					wk_mat.set_shader_parameter("threshold", 0.75)
+					icon.material = wk_mat
+				icon_panel.add_child(icon)
+				cv.add_child(icon_panel)
 				var name_lbl = _lbl(ak.replace("_", " ").capitalize(), 10, Color(0.60, 0.55, 0.48))
 				name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				name_lbl.clip_text = true
@@ -3431,18 +3450,25 @@ func _section_header(text: String) -> Control:
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Left decorative line with diamond
 	var line_l = ColorRect.new()
-	line_l.custom_minimum_size = Vector2(30, 1)
-	line_l.color = Color(0.55, 0.42, 0.18, 0.4)
+	line_l.custom_minimum_size = Vector2(40, 1)
+	line_l.color = Color(0.55, 0.42, 0.18, 0.45)
 	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_l)
+	var dot_l = _lbl("◆", 8, Color(0.65, 0.50, 0.18, 0.5))
+	dot_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(dot_l)
 	var lbl = _lbl(text, 15, Color(0.85, 0.72, 0.40))
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(lbl)
+	var dot_r = _lbl("◆", 8, Color(0.65, 0.50, 0.18, 0.5))
+	dot_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(dot_r)
 	var line_r = ColorRect.new()
 	line_r.custom_minimum_size = Vector2(0, 1)
-	line_r.color = Color(0.55, 0.42, 0.18, 0.4)
+	line_r.color = Color(0.55, 0.42, 0.18, 0.45)
 	line_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
