@@ -829,7 +829,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	var ncs = StyleBoxFlat.new()
 	ncs.set_corner_radius_all(20)
 	ncs.content_margin_left = 8; ncs.content_margin_right = 8
-	ncs.content_margin_top = 4; ncs.content_margin_bottom = 4
+	ncs.content_margin_top = 6; ncs.content_margin_bottom = 6
 	if complete:
 		ncs.bg_color = Color(0.15, 0.40, 0.15, 0.85)
 		ncs.border_color = Color(0.3, 0.7, 0.3, 0.6)
@@ -987,7 +987,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		btns.add_theme_constant_override("separation", 2)
 		btns.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var dr = HBoxContainer.new()
-		dr.add_theme_constant_override("separation", 4)
+		dr.add_theme_constant_override("separation", 6)
 		dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		# Difficulty buttons — gem-style with glow
 		for d in [[0,"EASY",Color(0.15,0.55,0.15)],[1,"MED",Color(0.60,0.45,0.05)],[2,"HARD",Color(0.60,0.10,0.08)]]:
@@ -1371,7 +1371,7 @@ func _build_detail_view() -> void:
 	right.add_child(back)
 	# TAB BUTTONS — Stats / Gear / Allies / Abilities (styled with glow)
 	var tab_row = HBoxContainer.new()
-	tab_row.add_theme_constant_override("separation", 4)
+	tab_row.add_theme_constant_override("separation", 6)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for ti in range(4):
 		var tab_names_arr = ["STATS", "GEAR", "ALLIES", "ABILITIES"]
@@ -1475,7 +1475,7 @@ func _build_detail_view() -> void:
 				sps.border_color = Color(0.65, 0.50, 0.20, 0.5) if has_gear else Color(0.25, 0.20, 0.15, 0.3)
 				sps.set_border_width_all(1)
 				sps.content_margin_left = 8; sps.content_margin_right = 8
-				sps.content_margin_top = 4; sps.content_margin_bottom = 4
+				sps.content_margin_top = 6; sps.content_margin_bottom = 6
 				slot_panel.add_theme_stylebox_override("panel", sps)
 				slot_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				slot_panel.custom_minimum_size = Vector2(60, 50)
@@ -1610,7 +1610,7 @@ func _build_detail_view() -> void:
 					bps.border_color = Color(0.8, 0.5, 0.2, 0.4)
 					bps.set_border_width_all(1)
 					bps.content_margin_left = 8; bps.content_margin_right = 8
-					bps.content_margin_top = 4; bps.content_margin_bottom = 4
+					bps.content_margin_top = 6; bps.content_margin_bottom = 6
 					bond_panel.add_theme_stylebox_override("panel", bps)
 					bond_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 					var br = HBoxContainer.new()
@@ -1638,7 +1638,7 @@ func _build_detail_view() -> void:
 			sks.bg_color = Color(0.07, 0.05, 0.12, 0.45)
 			sks.set_corner_radius_all(8)
 			sks.content_margin_left = 8; sks.content_margin_right = 8
-			sks.content_margin_top = 4; sks.content_margin_bottom = 4
+			sks.content_margin_top = 6; sks.content_margin_bottom = 6
 			skp.add_theme_stylebox_override("panel", sks)
 			skp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var sk_row = HBoxContainer.new()
@@ -1748,7 +1748,7 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 		cs.set_border_width_all(1)
 		cs.set_corner_radius_all(8)
 		cs.content_margin_left = 8; cs.content_margin_right = 8
-		cs.content_margin_top = 4; cs.content_margin_bottom = 4
+		cs.content_margin_top = 6; cs.content_margin_bottom = 6
 		card.add_theme_stylebox_override("normal", cs)
 		var csh = cs.duplicate()
 		csh.bg_color = Color(0.10, 0.07, 0.18, 0.8)
@@ -1883,7 +1883,7 @@ func _build_emporium() -> void:
 	tps.bg_color = Color(0.06, 0.04, 0.10, 0.5)
 	tps.set_corner_radius_all(8)
 	tps.content_margin_left = 12; tps.content_margin_right = 12
-	tps.content_margin_top = 4; tps.content_margin_bottom = 4
+	tps.content_margin_top = 6; tps.content_margin_bottom = 6
 	timer_panel.add_theme_stylebox_override("panel", tps)
 	timer_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	timer_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -2197,7 +2197,7 @@ func _build_quill_shop(parent: VBoxContainer) -> void:
 		row.add_child(nl)
 		row.add_child(_lbl(item[1], 10, Color(0.60, 0.55, 0.48)))
 		row.add_child(_lbl("🪶 %d" % item[2], 11, Color(0.7, 0.5, 0.9)))
-		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
+		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(80, 30))
 		row.add_child(buy)
 		parent.add_child(card)
 
@@ -2230,7 +2230,7 @@ func _build_gear_crafting(parent: VBoxContainer) -> void:
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(desc)
 		row.add_child(_lbl("%d💎" % ct[3], 10, Color(0.3, 0.75, 0.9)))
-		var craft = _art_button("CRAFT", Color(0.35, 0.20, 0.10), Vector2(70, 28))
+		var craft = _art_button("CRAFT", Color(0.35, 0.20, 0.10), Vector2(80, 30))
 		row.add_child(craft)
 		parent.add_child(card)
 
@@ -2349,7 +2349,7 @@ func _build_trophy_store_items(parent: VBoxContainer) -> void:
 		info.add_child(_lbl(tr[0], 13, tr[3]))
 		info.add_child(_lbl(tr[1], 10, Color(0.70, 0.62, 0.52)))
 		row.add_child(_lbl("⭐ %d" % tr[2], 12, Color(1, 0.85, 0.3)))
-		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
+		var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(80, 30))
 		row.add_child(buy)
 		parent.add_child(card)
 
@@ -2394,7 +2394,7 @@ func _build_lucky_wheel_ui(parent: VBoxContainer) -> void:
 			pps.bg_color = Color(0.06, 0.04, 0.10, 0.4)
 			pps.set_corner_radius_all(8)
 			pps.content_margin_left = 8; pps.content_margin_right = 8
-			pps.content_margin_top = 4; pps.content_margin_bottom = 4
+			pps.content_margin_top = 6; pps.content_margin_bottom = 6
 			pp.add_theme_stylebox_override("panel", pps)
 			pp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			pp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2425,7 +2425,7 @@ func _build_merchant_items(parent: VBoxContainer) -> void:
 			name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(name_lbl)
 			row.add_child(_lbl("%d %s" % [item.get("cost",0), item.get("cost_type","gold")], 12, Color(0.85, 0.70, 0.20)))
-			var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(70, 28))
+			var buy = _art_button("BUY", Color(0.12, 0.40, 0.12), Vector2(80, 30))
 			row.add_child(buy)
 			parent.add_child(card)
 	else:
@@ -2570,7 +2570,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		cs.shadow_color = Color(rarity_col.r * 0.3, rarity_col.g * 0.3, rarity_col.b * 0.3, 0.2)
 		cs.shadow_size = 3
 		cs.content_margin_left = 8; cs.content_margin_right = 8
-		cs.content_margin_top = 4; cs.content_margin_bottom = 4
+		cs.content_margin_top = 6; cs.content_margin_bottom = 6
 		card.add_theme_stylebox_override("normal", cs)
 		var csh = cs.duplicate()
 		csh.bg_color = Color(0.08, 0.06, 0.15, 0.8)
@@ -2652,7 +2652,7 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 				cs.set_border_width_all(1)
 				cs.set_corner_radius_all(8)
 				cs.content_margin_left = 8; cs.content_margin_right = 8
-				cs.content_margin_top = 4; cs.content_margin_bottom = 4
+				cs.content_margin_top = 6; cs.content_margin_bottom = 6
 				card.add_theme_stylebox_override("panel", cs)
 				card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				card.tooltip_text = ak.replace("_", " ").capitalize()
@@ -2713,8 +2713,8 @@ func _build_achievements_list(parent: VBoxContainer) -> void:
 			ach_row.add_child(_lbl(tier_text, 10, Color.WHITE))
 			# CLAIM button for completed achievements
 			if is_done:
-				var claim = _art_button("CLAIM", Color(0.12, 0.40, 0.12), Vector2(60, 22))
-				claim.add_theme_font_size_override("font_size", 9)
+				var claim = _art_button("CLAIM", Color(0.12, 0.40, 0.12), Vector2(75, 28))
+				claim.add_theme_font_size_override("font_size", 10)
 				var ach_name = ad.get("name", "")
 				var ach_reward = reward_text
 				claim.pressed.connect(func(): _show_popup("Reward Claimed!", "%s\n%s" % [ach_name, ach_reward]))
@@ -2942,7 +2942,7 @@ func _build_event_calendar(parent: VBoxContainer) -> void:
 		ev_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		ev_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ev_row.add_child(ev_name)
-		ev_row.add_child(_lbl(ev[1], 11, Color(0.65, 0.58, 0.50)))
+		ev_row.add_child(_lbl(ev[1], 12, Color(0.70, 0.62, 0.52)))
 		parent.add_child(ev_panel)
 
 func _build_glossary(parent: VBoxContainer) -> void:
@@ -2968,13 +2968,13 @@ func _build_glossary(parent: VBoxContainer) -> void:
 		tms.bg_color = Color(0.06, 0.04, 0.10, 0.45)
 		tms.set_corner_radius_all(8)
 		tms.content_margin_left = 10; tms.content_margin_right = 10
-		tms.content_margin_top = 4; tms.content_margin_bottom = 4
+		tms.content_margin_top = 6; tms.content_margin_bottom = 6
 		term_panel.add_theme_stylebox_override("panel", tms)
 		term_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var tv = VBoxContainer.new()
 		tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		term_panel.add_child(tv)
-		tv.add_child(_lbl(term[0], 12, Color(0.85, 0.78, 0.60)))
+		tv.add_child(_lbl(term[0], 13, Color(0.90, 0.82, 0.60)))
 		var def_lbl = _lbl(term[1], 10, Color(0.70, 0.62, 0.52))
 		def_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		def_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3104,7 +3104,7 @@ func _build_settings() -> void:
 			vb.add_child(desc)
 			# Color preview swatches
 			var swatch_row = HBoxContainer.new()
-			swatch_row.add_theme_constant_override("separation", 4)
+			swatch_row.add_theme_constant_override("separation", 6)
 			swatch_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			swatch_row.add_child(_lbl("  ↳ Preview:", 10, Color(0.55, 0.50, 0.45)))
 			var preview_colors = [Color(0.9, 0.2, 0.2), Color(0.2, 0.8, 0.2), Color(0.2, 0.2, 0.9), Color(1.0, 0.8, 0.0)]
@@ -3165,9 +3165,9 @@ func _build_settings() -> void:
 	credits_vb.add_child(_lbl("A Literary Tower Defense Adventure", 11, Color(0.65, 0.55, 0.45)))
 	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
 	credits_vb.add_child(_lbl("Created by Defense Planet", 12, Color(0.75, 0.68, 0.58)))
-	credits_vb.add_child(_lbl("Art generated with nano-banana + Gemini", 10, Color(0.70, 0.62, 0.52)))
-	credits_vb.add_child(_lbl("Built with Godot Engine 4.6", 10, Color(0.70, 0.62, 0.52)))
-	credits_vb.add_child(_lbl("Inspired by BTD6, Arknights, Kingdom Rush", 10, Color(0.55, 0.50, 0.45)))
+	credits_vb.add_child(_lbl("Art generated with nano-banana + Gemini", 11, Color(0.70, 0.62, 0.52)))
+	credits_vb.add_child(_lbl("Built with Godot Engine 4.6", 11, Color(0.70, 0.62, 0.52)))
+	credits_vb.add_child(_lbl("Inspired by BTD6, Arknights, Kingdom Rush", 11, Color(0.60, 0.55, 0.48)))
 	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
 	credits_vb.add_child(_lbl("Version 0.9.0", 11, Color(0.65, 0.58, 0.50)))
 	# What's New / Patch Notes
@@ -3181,7 +3181,7 @@ func _build_settings() -> void:
 	patch_panel.add_theme_stylebox_override("panel", pns)
 	patch_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var pnvb = VBoxContainer.new()
-	pnvb.add_theme_constant_override("separation", 4)
+	pnvb.add_theme_constant_override("separation", 6)
 	pnvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	patch_panel.add_child(pnvb)
 	pnvb.add_child(_lbl("v0.9.0 — Menu Overhaul Update", 12, Color(0.85, 0.78, 0.60)))
@@ -3206,13 +3206,13 @@ func _build_settings() -> void:
 		fqs.bg_color = Color(0.06, 0.04, 0.10, 0.4)
 		fqs.set_corner_radius_all(8)
 		fqs.content_margin_left = 10; fqs.content_margin_right = 10
-		fqs.content_margin_top = 4; fqs.content_margin_bottom = 4
+		fqs.content_margin_top = 6; fqs.content_margin_bottom = 6
 		faq_panel.add_theme_stylebox_override("panel", fqs)
 		faq_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var fvb = VBoxContainer.new()
 		fvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		faq_panel.add_child(fvb)
-		fvb.add_child(_lbl(faq[0], 11, Color(0.85, 0.78, 0.60)))
+		fvb.add_child(_lbl(faq[0], 13, Color(0.90, 0.82, 0.60)))
 		var ans = _lbl(faq[1], 10, Color(0.70, 0.62, 0.52))
 		ans.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		ans.mouse_filter = Control.MOUSE_FILTER_IGNORE
