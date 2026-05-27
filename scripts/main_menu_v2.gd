@@ -99,8 +99,8 @@ func _init_particles() -> void:
 			"x": randf_range(0, 1280),
 			"y": randf_range(0, 720),
 			"speed": randf_range(10, 30),
-			"size": randf_range(2.0, 4.5),
-			"alpha": randf_range(0.15, 0.45),
+			"size": randf_range(2.5, 5.5),
+			"alpha": randf_range(0.25, 0.55),
 			"offset": randf_range(0, TAU),
 		})
 
@@ -287,10 +287,12 @@ func _currency_chip(text: String, color: Color) -> PanelContainer:
 	var cs = StyleBoxFlat.new()
 	cs.bg_color = Color(0.07, 0.05, 0.12, 0.7)
 	cs.set_corner_radius_all(12)
-	cs.border_color = Color(color.r * 0.5, color.g * 0.5, color.b * 0.5, 0.4)
+	cs.border_color = Color(color.r * 0.6, color.g * 0.6, color.b * 0.6, 0.5)
 	cs.set_border_width_all(1)
+	cs.shadow_color = Color(0, 0, 0, 0.15)
+	cs.shadow_size = 2
 	cs.content_margin_left = 10; cs.content_margin_right = 10
-	cs.content_margin_top = 2; cs.content_margin_bottom = 2
+	cs.content_margin_top = 3; cs.content_margin_bottom = 3
 	chip.add_theme_stylebox_override("panel", cs)
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var l = _lbl(text, 11, color)
@@ -444,8 +446,8 @@ func _on_tab(tab: String) -> void:
 	# Page-turn transition: slide out left + fade, then rebuild + slide in right
 	var tw = create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(content_area, "modulate:a", 0.0, 0.12)
-	tw.tween_property(content_area, "position:x", -30.0, 0.12).set_ease(Tween.EASE_IN)
+	tw.tween_property(content_area, "modulate:a", 0.0, 0.15)
+	tw.tween_property(content_area, "position:x", -40.0, 0.15).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(func():
 		current_view = tab
 		_set_bg(tab)
@@ -462,11 +464,11 @@ func _on_tab(tab: String) -> void:
 		# Restore scroll position
 		_restore_scroll_position()
 		# Slide in from right + fade in
-		content_area.position.x = 30.0
+		content_area.position.x = 40.0
 		var tw_in = create_tween()
 		tw_in.set_parallel(true)
-		tw_in.tween_property(content_area, "modulate:a", 1.0, 0.15)
-		tw_in.tween_property(content_area, "position:x", 0.0, 0.15).set_ease(Tween.EASE_OUT))
+		tw_in.tween_property(content_area, "modulate:a", 1.0, 0.18)
+		tw_in.tween_property(content_area, "position:x", 0.0, 0.18).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK))
 
 func _save_scroll_position() -> void:
 	for c in content_area.get_children():
@@ -504,7 +506,7 @@ func _build_chapters() -> void:
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 10)
+	vb.add_theme_constant_override("separation", 6)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
 	# Game logo — use nano-banana generated art logo if available
@@ -612,7 +614,7 @@ func _build_chapters() -> void:
 	star_bar.add_child(star_text)
 	# Completion bar
 	var comp_pct = float(total_stars) / float(max_stars) if max_stars > 0 else 0.0
-	var comp_bar = _stat_bar("Progress", total_stars, max_stars, Color(1.0, 0.85, 0.25))
+	var comp_bar = _stat_bar("★ Progress", total_stars, max_stars, Color(1.0, 0.85, 0.25))
 	comp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(star_bar)
 	vb.add_child(comp_bar)
@@ -669,10 +671,22 @@ func _build_chapters() -> void:
 		if arc != cur_arc:
 			cur_arc = arc
 			# Arc header with portrait + art divider
+			var arc_panel = PanelContainer.new()
+			var aps = StyleBoxFlat.new()
+			aps.bg_color = Color(0.06, 0.04, 0.10, 0.4)
+			aps.set_corner_radius_all(10)
+			aps.border_color = Color(0.55, 0.42, 0.18, 0.3)
+			aps.set_border_width_all(1)
+			aps.content_margin_left = 12; aps.content_margin_right = 12
+			aps.content_margin_top = 6; aps.content_margin_bottom = 6
+			arc_panel.add_theme_stylebox_override("panel", aps)
+			arc_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			arc_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			var hdr_container = HBoxContainer.new()
 			hdr_container.add_theme_constant_override("separation", 8)
 			hdr_container.alignment = BoxContainer.ALIGNMENT_CENTER
 			hdr_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			arc_panel.add_child(hdr_container)
 			# Character portrait for this arc
 			var arc_portrait_key = ""
 			for apk in ARC_PORTRAITS:
@@ -682,7 +696,7 @@ func _build_chapters() -> void:
 			if arc_portrait_key != "" and _main and _main._portrait_textures.has(arc_portrait_key):
 				var arc_port = TextureRect.new()
 				arc_port.texture = _main._portrait_textures[arc_portrait_key]
-				arc_port.custom_minimum_size = Vector2(32, 32)
+				arc_port.custom_minimum_size = Vector2(44, 44)
 				arc_port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				arc_port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				arc_port.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -712,7 +726,7 @@ func _build_chapters() -> void:
 				var mat = _make_black_key_mat(0.06, 0.04)
 				if mat: div_right.material = mat
 				hdr_container.add_child(div_right)
-			vb.add_child(hdr_container)
+			vb.add_child(arc_panel)
 			# Arc completion count
 			var arc_total = 0
 			var arc_done = 0
@@ -731,12 +745,13 @@ func _build_chapters() -> void:
 				vb.add_child(pct_lbl)
 		# Connecting path line between levels
 		if card_idx > 0:
-			var path_line = ColorRect.new()
-			path_line.custom_minimum_size = Vector2(3, 10)
-			path_line.color = Color(0.65, 0.50, 0.20, 0.6)
-			path_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			path_line.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-			vb.add_child(path_line)
+			var path_row = HBoxContainer.new()
+			path_row.alignment = BoxContainer.ALIGNMENT_CENTER
+			path_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var path_dot = _lbl("│", 12, Color(0.55, 0.42, 0.18, 0.5))
+			path_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			path_row.add_child(path_dot)
+			vb.add_child(path_row)
 		var card = _level_card(i, lvl)
 		vb.add_child(card)
 		# Staggered entrance animation
@@ -813,7 +828,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		p.pivot_offset = p.size / 2.0
 		var tw = p.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		tw.set_parallel(true)
-		tw.tween_property(p, "scale", Vector2(1.01, 1.01), 0.1)
+		tw.tween_property(p, "scale", Vector2(1.03, 1.03), 0.1)
 		tw.tween_property(p, "modulate", Color(1.12, 1.10, 1.05), 0.1))
 	p.mouse_exited.connect(func():
 		var tw = p.create_tween().set_ease(Tween.EASE_OUT)
@@ -844,7 +859,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		ncs.border_color = Color(0.25, 0.20, 0.15, 0.3)
 	ncs.set_border_width_all(2)
 	num_circle.add_theme_stylebox_override("panel", ncs)
-	num_circle.custom_minimum_size = Vector2(44, 44)
+	num_circle.custom_minimum_size = Vector2(48, 48)
 	num_circle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var num_lbl = _lbl(str(idx+1), 16, Color(1.0, 0.92, 0.40) if unlocked else Color(0.45, 0.38, 0.32))
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -859,7 +874,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 	ths.bg_color = Color(0.02, 0.01, 0.05, 0.5)
 	ths.set_corner_radius_all(8)
 	ths.set_border_width_all(1)
-	ths.border_color = Color(0.35, 0.25, 0.15, 0.3)
+	ths.border_color = Color(0.45, 0.35, 0.18, 0.5)
 	th_panel.add_theme_stylebox_override("panel", ths)
 	th_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var th = TextureRect.new()
@@ -1010,7 +1025,7 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			dsp.bg_color = d[2].darkened(0.15)
 			dsp.shadow_size = 1
 			db.add_theme_stylebox_override("pressed", dsp)
-			db.add_theme_font_size_override("font_size", 10)
+			db.add_theme_font_size_override("font_size", 12)
 			db.add_theme_color_override("font_color", Color.WHITE)
 			db.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 			db.add_theme_constant_override("shadow_offset_x", 1)
@@ -1108,14 +1123,27 @@ func _build_survivors() -> void:
 	elif unlocked_ct >= 5: player_title = "Veteran Reader"
 	elif unlocked_ct >= 3: player_title = "Scholar"
 	elif unlocked_ct >= 1: player_title = "Reader"
-	var title_lbl = _lbl("🏆 %s" % player_title, 11, Color(0.85, 0.70, 0.30))
+	var title_panel = PanelContainer.new()
+	var tps2 = StyleBoxFlat.new()
+	tps2.bg_color = Color(0.08, 0.06, 0.14, 0.6)
+	tps2.set_corner_radius_all(12)
+	tps2.border_color = Color(0.65, 0.50, 0.18, 0.4)
+	tps2.set_border_width_all(1)
+	tps2.content_margin_left = 14; tps2.content_margin_right = 14
+	tps2.content_margin_top = 4; tps2.content_margin_bottom = 4
+	title_panel.add_theme_stylebox_override("panel", tps2)
+	title_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var title_lbl = _lbl("🏆 %s" % player_title, 12, Color(0.90, 0.75, 0.30))
 	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(title_lbl)
+	title_panel.add_child(title_lbl)
+	vb.add_child(title_panel)
 	var sub = _lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 13, Color(0.65, 0.58, 0.50))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(sub)
+	vb.add_child(_stat_bar("Rescued", unlocked_ct, _main.survivor_types.size(), Color(0.45, 0.75, 0.35)))
 	# Contextual gameplay tip
 	var tips = [
 		"💡 Tip: Place bonded characters near each other for synergy damage boosts!",
@@ -1123,7 +1151,7 @@ func _build_survivors() -> void:
 		"💡 Tip: Each character has a unique active ability at Tier 3+",
 		"💡 Tip: Check the Codex for gear equipped on each character",
 	]
-	var tip_lbl = _lbl(tips[randi() % tips.size()], 10, Color(0.70, 0.62, 0.52))
+	var tip_lbl = _lbl(tips[randi() % tips.size()], 11, Color(0.70, 0.62, 0.52))
 	tip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tip_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tip_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1151,7 +1179,7 @@ func _survivor_card(idx: int) -> Button:
 		is_unlocked = _main._is_character_unlocked(tt)
 	# The card IS a Button — fills grid cell
 	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(200, 270)
+	btn.custom_minimum_size = Vector2(260, 280)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# Style based on unlock status + level-based rarity border
 	var char_level = 1
@@ -1935,7 +1963,7 @@ func _build_emporium() -> void:
 	vb.add_child(lto_panel)
 	# Pulse the offer
 	var lto_tw = create_tween().set_loops()
-	lto_tw.tween_property(lto_panel, "modulate", Color(1.1, 1.05, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
+	lto_tw.tween_property(lto_panel, "modulate", Color(1.2, 1.1, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
 	lto_tw.tween_property(lto_panel, "modulate", Color(1.0, 1.0, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
 	# Featured daily deals banner
 	if _art.has("daily_deals"):
@@ -2067,21 +2095,21 @@ func _build_emporium() -> void:
 			badge_s.content_margin_top = 2; badge_s.content_margin_bottom = 2
 			badge_panel.add_theme_stylebox_override("panel", badge_s)
 			badge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var bl = _lbl(badge_text, 10, Color.WHITE)
+			var bl = _lbl(badge_text, 11, Color.WHITE)
 			bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			badge_panel.add_child(bl)
 			row.add_child(badge_panel)
 		btn.pressed.connect(_open_emporium_category.bind(ci))
 		_add_press_feedback(btn)
-		# Add item count hint
-		var item_ct = _lbl("▸", 12, Color(0.45, 0.40, 0.35))
+		# Add item count hint with arrow
+		var item_ct = _lbl("▸", 14, Color(0.55, 0.45, 0.30))
 		item_ct.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(item_ct)
 		# Hover feedback on ALL emporium cards
 		btn.mouse_entered.connect(func():
 			btn.pivot_offset = btn.size / 2.0
 			var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-			tw.tween_property(btn, "scale", Vector2(1.02, 1.02), 0.1))
+			tw.tween_property(btn, "scale", Vector2(1.04, 1.04), 0.1))
 		btn.mouse_exited.connect(func():
 			var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
 			tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08))
@@ -2526,7 +2554,7 @@ func _build_codex() -> void:
 		tsh.bg_color = Color(0.20, 0.14, 0.32, 0.9)
 		tsh.border_color = Color(0.70, 0.55, 0.20, 0.6)
 		tb.add_theme_stylebox_override("hover", tsh)
-		tb.add_theme_font_size_override("font_size", 11)
+		tb.add_theme_font_size_override("font_size", 10)
 		tb.add_theme_color_override("font_color", Color(1, 0.92, 0.45) if is_active_codex else Color(0.70, 0.62, 0.52))
 		tb.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		tb.add_theme_constant_override("shadow_offset_x", 1)
@@ -2569,8 +2597,8 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	filter_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	filter_row.add_child(_lbl("Filter:", 10, Color(0.65, 0.58, 0.50)))
 	for fr in [["ALL", Color(0.55, 0.50, 0.45)], ["COMMON", Color(0.5, 0.5, 0.5)], ["RARE", Color(0.2, 0.5, 0.9)], ["EPIC", Color(0.7, 0.3, 0.9)], ["LEGEND", Color(1.0, 0.7, 0.1)]]:
-		var fb = _art_button(fr[0], Color(0.08, 0.06, 0.14), Vector2(75, 26))
-		fb.add_theme_font_size_override("font_size", 10)
+		var fb = _art_button(fr[0], Color(0.08, 0.06, 0.14), Vector2(85, 28))
+		fb.add_theme_font_size_override("font_size", 11)
 		fb.add_theme_color_override("font_color", fr[1])
 		filter_row.add_child(fb)
 	parent.add_child(filter_row)
@@ -2660,7 +2688,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 					equipped_by = _main.character_names[si] if si < _main.character_names.size() else ""
 					break
 		if equipped_by != "":
-			var eq_lbl = _lbl(equipped_by, 10, Color(0.4, 0.8, 0.3))
+			var eq_lbl = _lbl("⚔ " + equipped_by, 10, Color(0.4, 0.8, 0.3))
 			eq_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			eq_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			eq_lbl.clip_text = true
@@ -2913,9 +2941,24 @@ func _build_bestiary(parent: VBoxContainer) -> void:
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cv.add_child(desc)
-		var stats_lbl = _lbl(e[2], 10, Color(0.60, 0.55, 0.48))
-		stats_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cv.add_child(stats_lbl)
+		var stats_row = HBoxContainer.new()
+		stats_row.add_theme_constant_override("separation", 6)
+		stats_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var stat_parts = e[2].split("  ")
+		for sp in stat_parts:
+			var stat_chip = PanelContainer.new()
+			var scs = StyleBoxFlat.new()
+			scs.bg_color = Color(e[3].r * 0.2, e[3].g * 0.2, e[3].b * 0.2, 0.5)
+			scs.set_corner_radius_all(6)
+			scs.content_margin_left = 6; scs.content_margin_right = 6
+			scs.content_margin_top = 1; scs.content_margin_bottom = 1
+			stat_chip.add_theme_stylebox_override("panel", scs)
+			stat_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var sl = _lbl(sp.strip_edges(), 9, Color(0.70, 0.62, 0.52))
+			sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			stat_chip.add_child(sl)
+			stats_row.add_child(stat_chip)
+		cv.add_child(stats_row)
 		grid.add_child(card)
 
 func _build_journal(parent: VBoxContainer) -> void:
@@ -3180,11 +3223,16 @@ func _build_settings() -> void:
 			swatch_row.add_child(_lbl("  ↳ Preview:", 10, Color(0.55, 0.50, 0.45)))
 			var preview_colors = [Color(0.9, 0.2, 0.2), Color(0.2, 0.8, 0.2), Color(0.2, 0.2, 0.9), Color(1.0, 0.8, 0.0)]
 			for pc in preview_colors:
-				var swatch = ColorRect.new()
-				swatch.custom_minimum_size = Vector2(20, 12)
-				swatch.color = pc
-				swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				swatch_row.add_child(swatch)
+				var swatch_p = PanelContainer.new()
+				var sws = StyleBoxFlat.new()
+				sws.bg_color = pc
+				sws.set_corner_radius_all(4)
+				sws.border_color = Color(1, 1, 1, 0.3)
+				sws.set_border_width_all(1)
+				swatch_p.add_theme_stylebox_override("panel", sws)
+				swatch_p.custom_minimum_size = Vector2(24, 16)
+				swatch_p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				swatch_row.add_child(swatch_p)
 			vb.add_child(swatch_row)
 		_add_setting_row(vb, "Reduced Motion", "ON" if GameSettings.reduced_motion else "OFF", func(): GameSettings.reduced_motion = not GameSettings.reduced_motion; GameSettings.save_settings(); _build_settings())
 		_add_setting_row(vb, "Left-Handed", "ON" if GameSettings.left_handed else "OFF", func(): GameSettings.left_handed = not GameSettings.left_handed; GameSettings.save_settings(); _build_settings())
@@ -3234,12 +3282,12 @@ func _build_settings() -> void:
 	credits_panel.add_child(credits_vb)
 	credits_vb.add_child(_lbl("SHADOW DEFENSE: TALES FROM THE PAGES", 14, Color(1, 0.92, 0.45)))
 	credits_vb.add_child(_lbl("A Literary Tower Defense Adventure", 11, Color(0.65, 0.55, 0.45)))
-	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
+	var spacer = Control.new(); spacer.custom_minimum_size = Vector2(0, 6); spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE; credits_vb.add_child(spacer)  # Spacer
 	credits_vb.add_child(_lbl("Created by Defense Planet", 12, Color(0.75, 0.68, 0.58)))
 	credits_vb.add_child(_lbl("Art generated with nano-banana + Gemini", 11, Color(0.70, 0.62, 0.52)))
 	credits_vb.add_child(_lbl("Built with Godot Engine 4.6", 11, Color(0.70, 0.62, 0.52)))
 	credits_vb.add_child(_lbl("Inspired by BTD6, Arknights, Kingdom Rush", 11, Color(0.60, 0.55, 0.48)))
-	credits_vb.add_child(_lbl("", 6, Color(0, 0, 0, 0)))  # Spacer
+	var spacer2 = Control.new(); spacer2.custom_minimum_size = Vector2(0, 6); spacer2.mouse_filter = Control.MOUSE_FILTER_IGNORE; credits_vb.add_child(spacer2)
 	credits_vb.add_child(_lbl("Version 0.9.0", 11, Color(0.65, 0.58, 0.50)))
 	# What's New / Patch Notes
 	vb.add_child(_section_header("WHAT'S NEW"))
@@ -3329,11 +3377,14 @@ func _add_setting_row(parent: VBoxContainer, label: String, value: String, callb
 		bps.set_border_width_all(1)
 		bar_panel.add_theme_stylebox_override("panel", bps)
 		row.add_child(bar_panel)
-		var bar_fill = ColorRect.new()
+		var bar_fill = PanelContainer.new()
 		bar_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
 		bar_fill.offset_left = 2; bar_fill.offset_top = 2; bar_fill.offset_bottom = -2
 		bar_fill.offset_right = -160 + (156 * volume_pct)
-		bar_fill.color = Color(0.3, 0.75, 0.45, 0.9)
+		var bfs = StyleBoxFlat.new()
+		bfs.bg_color = Color(0.55, 0.42, 0.18, 0.85)
+		bfs.set_corner_radius_all(6)
+		bar_fill.add_theme_stylebox_override("panel", bfs)
 		bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bar_panel.add_child(bar_fill)
 	var btn = Button.new()
@@ -3476,13 +3527,13 @@ func _section_header(text: String) -> Control:
 	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_l)
-	var dot_l = _lbl("◆", 8, Color(0.65, 0.50, 0.18, 0.5))
+	var dot_l = _lbl("◆", 10, Color(0.65, 0.50, 0.18, 0.55))
 	dot_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(dot_l)
 	var lbl = _lbl(text, 15, Color(0.85, 0.72, 0.40))
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(lbl)
-	var dot_r = _lbl("◆", 8, Color(0.65, 0.50, 0.18, 0.5))
+	var dot_r = _lbl("◆", 10, Color(0.65, 0.50, 0.18, 0.55))
 	dot_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(dot_r)
 	var line_r = ColorRect.new()
