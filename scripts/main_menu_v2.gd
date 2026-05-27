@@ -117,7 +117,7 @@ func _process(delta: float) -> void:
 	for c in content_area.get_children():
 		if c is ScrollContainer:
 			var scroll_y = c.scroll_vertical
-			background.position.y = -scroll_y * 0.05  # Subtle parallax
+			background.position.y = -scroll_y * 0.12  # Noticeable parallax
 			break
 	# Check for song change every 2 seconds
 	_song_check_timer += delta
@@ -378,16 +378,17 @@ func _build_nav_buttons() -> void:
 		var is_active = tabs[i] == current_view
 		var btn = Button.new()
 		btn.text = "%s\n%s" % [tab_icons_text[i], labels[i]]
+		btn.add_theme_constant_override("line_spacing", -2)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, 70)
 		var s = StyleBoxFlat.new()
 		if is_active:
-			s.bg_color = Color(0.15, 0.10, 0.25, 0.8)
+			s.bg_color = Color(0.15, 0.10, 0.25, 0.85)
 			s.border_color = Color(1.0, 0.80, 0.25, 0.9)
 			s.border_width_top = 3
-			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
-			s.shadow_color = Color(0, 0, 0, 0.25)
-			s.shadow_size = 4
+			s.border_width_left = 1; s.border_width_right = 1; s.border_width_bottom = 0
+			s.shadow_color = Color(0.85, 0.65, 0.15, 0.15)
+			s.shadow_size = 6
 		else:
 			s.bg_color = Color(0.06, 0.04, 0.10, 0.3)
 			s.border_color = Color(0.25, 0.20, 0.15, 0.2)
@@ -1239,7 +1240,7 @@ func _survivor_card(idx: int) -> Button:
 	btn.add_child(vb)
 	# Portrait — fills width, centered. Silhouette if locked.
 	var port = TextureRect.new()
-	port.custom_minimum_size = Vector2(0, 190)
+	port.custom_minimum_size = Vector2(0, 200)
 	port.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -1296,6 +1297,16 @@ func _survivor_card(idx: int) -> Button:
 		novel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		novel.clip_text = true
 		vb.add_child(novel)
+	# Gear equipped indicator
+	if is_unlocked and tt != null and _main.survivor_gear.has(tt):
+		var gear_info = _main.survivor_gear[tt]
+		if gear_info.get("name", "") != "":
+			var gear_lbl = _lbl("⚔ %s" % gear_info["name"], 9, Color(0.55, 0.42, 0.18))
+			gear_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			gear_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			gear_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			gear_lbl.clip_text = true
+			vb.add_child(gear_lbl)
 	btn.pressed.connect(_open_survivor_detail.bind(idx))
 	# Hover effect
 	btn.mouse_entered.connect(func():
@@ -3150,7 +3161,7 @@ func _build_book_collection(parent: VBoxContainer) -> void:
 		var bvb = VBoxContainer.new()
 		bvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		book_card.add_child(bvb)
-		bvb.add_child(_lbl("📖", 20, Color.WHITE))
+		bvb.add_child(_lbl("📖", 24, Color(0.85, 0.78, 0.65)))
 		var title_lbl = _lbl(novels[ni], 11, Color(0.85, 0.78, 0.65))
 		title_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		title_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3722,7 +3733,7 @@ func _add_scroll_hint(parent_control: Control) -> void:
 	var hint = _lbl("▼  scroll  ▼", 10, Color(0.55, 0.45, 0.35))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	hint.offset_top = -20
+	hint.offset_top = -28
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent_control.add_child(hint)
 	var htw = create_tween().set_loops()
