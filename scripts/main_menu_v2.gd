@@ -1785,7 +1785,7 @@ func _open_gear_picker(char_idx: int, tower_type) -> void:
 		if shader_res2:
 			var mat2 = ShaderMaterial.new()
 			mat2.shader = shader_res2
-			mat2.set_shader_parameter("threshold", 0.85)
+			mat2.set_shader_parameter("threshold", 0.75)
 			icon.material = mat2
 		icon_bg2.add_child(icon)
 		cv.add_child(icon_bg2)
@@ -2560,11 +2560,12 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		filter_row.add_child(fb)
 	parent.add_child(filter_row)
 	var grid = GridContainer.new()
-	grid.columns = 4  # 4 columns = bigger cards filling full width
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Grid will stretch to parent VBox width via SIZE_EXPAND_FILL
 	parent.add_child(grid)
 	if not _main: return
 	var keys = _main._gear_icon_textures.keys()
@@ -2579,7 +2580,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		# Each gear item as a clickable button
 		var card = Button.new()
 		card.text = ""
-		card.custom_minimum_size = Vector2(140, 140)
+		card.custom_minimum_size = Vector2(280, 150)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var cs = StyleBoxFlat.new()
 		cs.bg_color = Color(0.08, 0.06, 0.14, 0.75)  # Darker to hide icon bg
@@ -2605,7 +2606,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		card.add_child(cv)
 		# Dark backdrop to hide white/light icon backgrounds
 		var icon_bg = PanelContainer.new()
-		icon_bg.custom_minimum_size = Vector2(68, 68)
+		icon_bg.custom_minimum_size = Vector2(80, 80)
 		icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var ibg_sb = StyleBoxFlat.new()
 		ibg_sb.bg_color = Color(0.04, 0.02, 0.08, 0.95)
@@ -2615,7 +2616,7 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		icon_bg.add_theme_stylebox_override("panel", ibg_sb)
 		var icon = TextureRect.new()
 		icon.texture = _main._gear_icon_textures[gk]
-		icon.custom_minimum_size = Vector2(64, 64)
+		icon.custom_minimum_size = Vector2(76, 76)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2623,15 +2624,15 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		if shader_res:
 			var mat = ShaderMaterial.new()
 			mat.shader = shader_res
-			mat.set_shader_parameter("threshold", 0.85)
+			mat.set_shader_parameter("threshold", 0.75)
 			icon.material = mat
 		icon_bg.add_child(icon)
 		cv.add_child(icon_bg)
-		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 10, Color(0.65, 0.58, 0.50))
+		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 11, Color(0.80, 0.72, 0.58))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_lbl.clip_text = true
-		name_lbl.custom_minimum_size.x = 85
+		name_lbl.custom_minimum_size.x = 120
 		cv.add_child(name_lbl)
 		# Check if equipped by any character
 		var equipped_by = ""
