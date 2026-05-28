@@ -3559,6 +3559,41 @@ func _build_glossary(parent: VBoxContainer) -> void:
 		def_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tv.add_child(def_lbl)
 		parent.add_child(term_panel)
+	# === TOME LORE — World-building rules of the Tome of Shadows ===
+	parent.add_child(_section_header("THE RULES OF THE TOME"))
+	parent.add_child(_lbl("The Tome of Shadows operates by narrative laws — rules that even the Shadow Author must follow.", 11, Color(0.70, 0.62, 0.52)))
+	var tome_rules = [
+		["The Ink Law", "Nothing in the Tome is truly created. Every shadow creature was once a real character from a real story who surrendered to despair. The Author can reshape them, but not create from nothing."],
+		["The Narrative Constraint", "Every story the Author writes MUST have an ending. He cannot create an infinite loop or a story without resolution. This is his greatest weakness — heroes who refuse to follow the script break his control."],
+		["The Memory Rule", "Characters inside the Tome retain their original memories but slowly forget details over time. The longer they're trapped, the more they become the version the Author wrote. Fighting preserves identity."],
+		["The Ink Economy", "Shadow ink is finite. When enemies are destroyed, their ink returns to the Tome's reserves. The Author must spend ink to create new threats — which is why later waves get harder but also fewer in number."],
+		["The Portal Principle", "Portals between realms within the Tome can only be opened at chapter boundaries. This is why each realm has exactly 3 chapters — the Author designed it as a narrative prison with locked doors between acts."],
+		["The Rescue Paradox", "A freed character becomes immune to the Author's direct control. However, their STORY can still be corrupted — which is why ACT 2 forces heroes to face twisted versions of their own tales."],
+		["Time Dilation", "One second inside the Tome equals approximately one year in the outside world. The heroes don't age inside, but their original stories have been retold thousands of times. The versions readers know NOW may differ from the originals trapped here."],
+		["The Author's Pulse", "The Tome has a heartbeat — the Shadow Author's own pulse. If you listen during the silence between waves, you can hear it. The book is alive because he is alive. Destroying him would destroy the Tome and free everyone... or trap them in a collapsing world."],
+		["The Three-Word Gap", "The Shadow Author's original story stopped three words from its ending. Those three unwritten words are the most powerful force in the Tome — they represent pure POTENTIAL. An ending that was never decided. The Author fears those words more than anything."],
+		["The Narrator's Realm", "Beyond the Tome exists another realm — the Realm of Legends, where the Narrator dwells. Unlike the Tome (which traps characters in ink), the Narrator's Realm preserves characters in fire and light. Both are prisons. Both claim to be sanctuaries."],
+	]
+	for rule in tome_rules:
+		var rule_panel = PanelContainer.new()
+		var rs = StyleBoxFlat.new()
+		rs.bg_color = Color(0.06, 0.03, 0.12, 0.5)
+		rs.set_corner_radius_all(8)
+		rs.border_color = Color(0.45, 0.25, 0.55, 0.3)
+		rs.set_border_width_all(1)
+		rs.content_margin_left = 12; rs.content_margin_right = 12
+		rs.content_margin_top = 8; rs.content_margin_bottom = 8
+		rule_panel.add_theme_stylebox_override("panel", rs)
+		rule_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var rv = VBoxContainer.new()
+		rv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rule_panel.add_child(rv)
+		rv.add_child(_lbl("📜 " + rule[0], 13, Color(0.85, 0.65, 0.90)))
+		var rule_desc = _lbl(rule[1], 11, Color(0.70, 0.62, 0.52))
+		rule_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rule_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rv.add_child(rule_desc)
+		parent.add_child(rule_panel)
 
 func _build_book_collection(parent: VBoxContainer) -> void:
 	parent.add_child(_section_header("BOOK COLLECTION"))
