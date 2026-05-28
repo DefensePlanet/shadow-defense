@@ -5136,6 +5136,160 @@ func _load_game() -> void:
 	if story_seen.is_empty() and story_dialogs.has("prologue"):
 		call_deferred("_start_story_dialog", "prologue")
 
+# === INTERACTIVE MAP ELEMENTS — clickable objects that affect gameplay ===
+# Types: "drawbridge" (toggle path shortcut), "lever" (activate trap),
+#        "gate" (block path temporarily), "barrel" (explode for AoE),
+#        "bell" (stun nearby enemies), "torch" (remove fog zone)
+var _map_interactables: Array = []
+# Each: {type, x, y, active, cooldown, cooldown_timer, uses_left}
+
+func _generate_map_interactables(level_idx: int) -> void:
+	_map_interactables.clear()
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	# Place interactive elements based on realm theme
+	match theme:
+		0: # Sherwood — barrels + bell (Robin Hood's traps)
+			_map_interactables.append({"type": "barrel", "x": 500, "y": 350, "active": true, "cooldown": 15.0, "cooldown_timer": 0.0, "uses_left": 3})
+			_map_interactables.append({"type": "bell", "x": 800, "y": 250, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+		1: # Wonderland — barrel (exploding teapot) + lever (resize enemies)
+			_map_interactables.append({"type": "barrel", "x": 600, "y": 400, "active": true, "cooldown": 12.0, "cooldown_timer": 0.0, "uses_left": 3})
+			_map_interactables.append({"type": "lever", "x": 350, "y": 200, "active": true, "cooldown": 25.0, "cooldown_timer": 0.0, "uses_left": 2})
+		3: # Neverland — barrel (cannon) + gate (ship hull blocks path)
+			_map_interactables.append({"type": "barrel", "x": 700, "y": 300, "active": true, "cooldown": 15.0, "cooldown_timer": 0.0, "uses_left": 3})
+			_map_interactables.append({"type": "gate", "x": 400, "y": 400, "active": true, "cooldown": 18.0, "cooldown_timer": 0.0, "uses_left": 3})
+		6: # Victorian London — torch (removes fog) + bell (church bell stun)
+			_map_interactables.append({"type": "torch", "x": 350, "y": 350, "active": true, "cooldown": 30.0, "cooldown_timer": 0.0, "uses_left": 2})
+			_map_interactables.append({"type": "bell", "x": 900, "y": 200, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+		7: # Sherlock — torch (gaslight) + lever (trapdoor)
+			_map_interactables.append({"type": "torch", "x": 640, "y": 360, "active": true, "cooldown": 25.0, "cooldown_timer": 0.0, "uses_left": 2})
+			_map_interactables.append({"type": "lever", "x": 200, "y": 300, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+		8: # Merlin — lever (magic barrier) + bell (enchanted chime)
+			_map_interactables.append({"type": "lever", "x": 500, "y": 300, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 3})
+			_map_interactables.append({"type": "bell", "x": 800, "y": 150, "active": true, "cooldown": 22.0, "cooldown_timer": 0.0, "uses_left": 2})
+		9: # Tarzan — barrel (coconut bomb) + gate (vine wall)
+			_map_interactables.append({"type": "barrel", "x": 400, "y": 250, "active": true, "cooldown": 12.0, "cooldown_timer": 0.0, "uses_left": 4})
+			_map_interactables.append({"type": "gate", "x": 700, "y": 450, "active": true, "cooldown": 15.0, "cooldown_timer": 0.0, "uses_left": 3})
+		10: # Dracula — torch (holy light) + barrel (garlic bomb)
+			_map_interactables.append({"type": "torch", "x": 400, "y": 300, "active": true, "cooldown": 25.0, "cooldown_timer": 0.0, "uses_left": 2})
+			_map_interactables.append({"type": "barrel", "x": 800, "y": 400, "active": true, "cooldown": 15.0, "cooldown_timer": 0.0, "uses_left": 3})
+		12: # Shadow Author — lever + gate + bell (all three — complex level)
+			_map_interactables.append({"type": "lever", "x": 300, "y": 300, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+			_map_interactables.append({"type": "gate", "x": 640, "y": 200, "active": true, "cooldown": 18.0, "cooldown_timer": 0.0, "uses_left": 3})
+			_map_interactables.append({"type": "bell", "x": 900, "y": 400, "active": true, "cooldown": 22.0, "cooldown_timer": 0.0, "uses_left": 2})
+		13, 14, 15, 16, 17: # ACT 4 realms — all get barrel + one special
+			_map_interactables.append({"type": "barrel", "x": 500, "y": 350, "active": true, "cooldown": 12.0, "cooldown_timer": 0.0, "uses_left": 3})
+			if theme == 13: # Horseman — torch (light the hollow)
+				_map_interactables.append({"type": "torch", "x": 800, "y": 300, "active": true, "cooldown": 25.0, "cooldown_timer": 0.0, "uses_left": 2})
+			elif theme == 14: # Medusa — lever (mirror shield)
+				_map_interactables.append({"type": "lever", "x": 700, "y": 200, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+			elif theme == 15: # Loki — bell (dispel illusions)
+				_map_interactables.append({"type": "bell", "x": 300, "y": 400, "active": true, "cooldown": 18.0, "cooldown_timer": 0.0, "uses_left": 3})
+			elif theme == 16: # Anubis — gate (seal of Ma'at)
+				_map_interactables.append({"type": "gate", "x": 640, "y": 400, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+			else: # Ahab — barrel (cannon broadside)
+				_map_interactables.append({"type": "barrel", "x": 800, "y": 300, "active": true, "cooldown": 10.0, "cooldown_timer": 0.0, "uses_left": 4})
+		18: # Narrator — ALL interactive types (ultimate complexity)
+			_map_interactables.append({"type": "barrel", "x": 300, "y": 300, "active": true, "cooldown": 12.0, "cooldown_timer": 0.0, "uses_left": 3})
+			_map_interactables.append({"type": "bell", "x": 640, "y": 150, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+			_map_interactables.append({"type": "lever", "x": 900, "y": 350, "active": true, "cooldown": 18.0, "cooldown_timer": 0.0, "uses_left": 2})
+			_map_interactables.append({"type": "torch", "x": 400, "y": 500, "active": true, "cooldown": 25.0, "cooldown_timer": 0.0, "uses_left": 1})
+			_map_interactables.append({"type": "gate", "x": 700, "y": 450, "active": true, "cooldown": 15.0, "cooldown_timer": 0.0, "uses_left": 2})
+
+func _activate_interactable(idx: int) -> void:
+	if idx < 0 or idx >= _map_interactables.size(): return
+	var obj = _map_interactables[idx]
+	if not obj["active"] or obj["cooldown_timer"] > 0.0 or obj["uses_left"] <= 0: return
+	obj["uses_left"] -= 1
+	obj["cooldown_timer"] = obj["cooldown"]
+	_play_sfx(_sfx_ui_click)
+	_haptic(1)
+	var pos = Vector2(obj["x"], obj["y"])
+	match obj["type"]:
+		"barrel":  # AoE explosion — damages all enemies in radius
+			var radius = 120.0
+			var damage = 50.0 + wave * 5.0
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= radius:
+					if enemy.has_method("take_damage"):
+						enemy.take_damage(damage, "physical")
+			spawn_floating_text(pos, "💥 BOOM! %d dmg" % int(damage), Color(1.0, 0.5, 0.1), 16.0, 1.5)
+			_screen_shake_intensity = 5.0
+			_screen_shake_timer = 0.3
+		"bell":  # Stun all enemies in radius for 3 seconds
+			var radius = 150.0
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= radius:
+					if enemy.has_method("apply_stun"):
+						enemy.apply_stun(3.0)
+			spawn_floating_text(pos, "🔔 STUNNED 3s", Color(1.0, 0.9, 0.3), 16.0, 1.5)
+		"lever":  # Activate trap — deals damage over time in a line
+			var damage = 30.0 + wave * 3.0
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and abs(enemy.global_position.y - pos.y) < 60:
+					if enemy.has_method("take_damage"):
+						enemy.take_damage(damage, "physical")
+			spawn_floating_text(pos, "⚡ TRAP! %d dmg" % int(damage), Color(0.8, 0.6, 1.0), 16.0, 1.5)
+		"gate":  # Temporarily blocks — all enemies in small radius get knocked back
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= 80:
+					if "speed" in enemy:
+						enemy.speed *= -0.5  # Brief pushback
+			spawn_floating_text(pos, "🚧 BLOCKED!", Color(0.6, 0.4, 0.2), 16.0, 1.5)
+		"torch":  # Removes fog terrain in radius + reveals stealth enemies
+			for zi in range(_terrain_zones.size()):
+				var zone = _terrain_zones[zi]
+				if zone["type"] == "fog" and Vector2(zone["x"], zone["y"]).distance_to(pos) <= 200:
+					_terrain_zones.remove_at(zi)
+					break
+			spawn_floating_text(pos, "🔦 FOG CLEARED!", Color(1.0, 0.85, 0.3), 16.0, 1.5)
+	if obj["uses_left"] <= 0:
+		obj["active"] = false
+
+func _update_interactable_cooldowns(delta: float) -> void:
+	for obj in _map_interactables:
+		if obj["cooldown_timer"] > 0.0:
+			obj["cooldown_timer"] -= delta
+
+func _draw_map_interactables() -> void:
+	for i in range(_map_interactables.size()):
+		var obj = _map_interactables[i]
+		var pos = Vector2(obj["x"], obj["y"])
+		var is_ready = obj["active"] and obj["cooldown_timer"] <= 0.0 and obj["uses_left"] > 0
+		var base_color = Color(0.6, 0.5, 0.3, 0.7)
+		var icon = "?"
+		match obj["type"]:
+			"barrel": base_color = Color(0.7, 0.4, 0.15, 0.8); icon = "💥"
+			"bell": base_color = Color(0.8, 0.7, 0.2, 0.8); icon = "🔔"
+			"lever": base_color = Color(0.5, 0.4, 0.7, 0.8); icon = "⚡"
+			"gate": base_color = Color(0.5, 0.35, 0.2, 0.8); icon = "🚧"
+			"torch": base_color = Color(0.8, 0.6, 0.15, 0.8); icon = "🔦"
+		if not is_ready:
+			base_color.a *= 0.3
+		# Background circle
+		draw_circle(pos, 22.0, Color(0.05, 0.03, 0.10, 0.7 if is_ready else 0.3))
+		# Border ring
+		var pulse = (sin(_time * 3.0) + 1.0) * 0.5 if is_ready else 0.0
+		draw_arc(pos, 22.0, 0, TAU, 24, Color(base_color.r, base_color.g, base_color.b, 0.5 + pulse * 0.3), 2.0)
+		# Icon
+		_udraw(game_font, pos + Vector2(0, 6), icon, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(1, 1, 1, 1.0 if is_ready else 0.3))
+		# Uses remaining
+		if obj["uses_left"] > 0 and obj["active"]:
+			_udraw(game_font, pos + Vector2(12, -14), str(obj["uses_left"]), HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.9, 0.8, 0.4, 0.7))
+		# Cooldown indicator
+		if obj["cooldown_timer"] > 0.0:
+			var cd_pct = obj["cooldown_timer"] / obj["cooldown"]
+			draw_arc(pos, 24.0, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - cd_pct), 16, Color(1, 1, 1, 0.3), 3.0)
+
+func _check_interactable_click(mouse_pos: Vector2) -> bool:
+	for i in range(_map_interactables.size()):
+		var obj = _map_interactables[i]
+		if obj["active"] and obj["cooldown_timer"] <= 0.0 and obj["uses_left"] > 0:
+			if mouse_pos.distance_to(Vector2(obj["x"], obj["y"])) <= 30.0:
+				_activate_interactable(i)
+				return true
+	return false
+
 func _generate_terrain_zones(level_idx: int) -> void:
 	_terrain_zones.clear()
 	if level_idx < 0 or level_idx >= levels.size(): return
@@ -8458,6 +8612,7 @@ func _do_level_start(index: int) -> void:
 	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
 	_generate_terrain_zones(index)
+	_generate_map_interactables(index)
 	_generate_decorations_for_level(index)
 	# BATTD: Generate bounties for this level
 	_generate_bounties()
@@ -18150,8 +18305,9 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
-	# Rescue effect update
+	# Rescue effect update + interactable cooldowns
 	_update_rescue_effect(delta)
+	_update_interactable_cooldowns(delta)
 	# Act title card timer
 	if _act_title_active:
 		_act_title_timer -= delta
@@ -20122,8 +20278,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif _handle_instrument_placement_click(event.position):
 				pass  # Instrument placement consumed the click
 			else:
-				# Check storybook page / map collectible clicks first
-				if _check_page_click(event.position) or _check_collectible_click(event.position):
+				# Check interactive map elements first
+				if _check_interactable_click(event.position):
+					pass
+				elif _check_page_click(event.position) or _check_collectible_click(event.position):
 					pass
 				else:
 					var tower = _find_tower_at(event.position)
@@ -25456,6 +25614,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 
 	# --- TERRAIN ZONES ---
 	_draw_terrain_zones()
+	# --- INTERACTIVE MAP ELEMENTS ---
+	_draw_map_interactables()
 	# --- DECORATIONS ---
 	for dec in _decorations:
 		var dtype: String = dec["type"]
