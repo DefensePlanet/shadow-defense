@@ -6,6 +6,23 @@ var _art: Dictionary = {}
 var _black_key: Shader = null
 var _main: Node = null
 var current_view: String = "chapters"
+var _portal_view: String = ""  # "" = hub, "sherlock" = arc detail
+# Realm definitions: arc_prefix, display name, icon key, character portrait, color accent
+const REALMS: Array = [
+	{"arc": "Prologue", "name": "The Tome Opens", "icon": "realm_prologue", "portrait": "robin_hood", "color": [0.7, 0.6, 0.4], "levels": [0]},
+	{"arc": "Sherlock Holmes", "name": "Shadow London", "icon": "realm_london", "portrait": "sherlock", "color": [0.5, 0.5, 0.7], "levels": [1, 2, 3]},
+	{"arc": "Merlin", "name": "The Enchanted Pages", "icon": "realm_camelot", "portrait": "merlin", "color": [0.3, 0.5, 0.85], "levels": [4, 5, 6]},
+	{"arc": "Tarzan", "name": "The Wild Chapters", "icon": "realm_jungle", "portrait": "tarzan", "color": [0.3, 0.6, 0.3], "levels": [7, 8, 9]},
+	{"arc": "Dracula", "name": "The Blood Script", "icon": "realm_transylvania", "portrait": "dracula", "color": [0.7, 0.2, 0.2], "levels": [10, 11, 12]},
+	{"arc": "Frankenstein", "name": "The Stitched Pages", "icon": "realm_laboratory", "portrait": "frankenstein", "color": [0.4, 0.7, 0.3], "levels": [13, 14, 15]},
+	{"arc": "Sherwood Forest", "name": "The Outlaw's Tale", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [16, 17, 18]},
+	{"arc": "Wonderland", "name": "The Mad Manuscript", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [19, 20, 21]},
+	{"arc": "Land of Oz", "name": "The Emerald Verse", "icon": "realm_oz", "portrait": "wicked_witch", "color": [0.2, 0.7, 0.3], "levels": [22, 23, 24]},
+	{"arc": "Neverland", "name": "The Endless Story", "icon": "realm_neverland", "portrait": "peter_pan", "color": [0.3, 0.6, 0.8], "levels": [25, 26, 27]},
+	{"arc": "Paris Opera", "name": "The Phantom's Score", "icon": "realm_opera", "portrait": "phantom", "color": [0.7, 0.5, 0.3], "levels": [28, 29, 30]},
+	{"arc": "Victorian London", "name": "The Ghost's Ledger", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [31, 32, 33]},
+	{"arc": "Shadow Author", "name": "The Final Chapter", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.5, 0.2, 0.6], "levels": [34, 35, 36]},
+]
 var _song_label: Label = null
 var _last_song: String = ""
 var _scroll_positions: Dictionary = {}  # View name → scroll position
@@ -236,6 +253,22 @@ func _load_art() -> void:
 		"wooden_sign": "res://assets/ui_elements/wooden_sign.png",
 		"card_frame_epic": "res://assets/ui_frames/card_frame_epic.png",
 		"wanted_poster": "res://assets/ui_frames/wanted_poster.png",
+		# Portal Hub assets
+		"ink_portal": "res://assets/ui_elements/ink_portal.png",
+		"tome_of_shadows": "res://assets/ui_elements/tome_of_shadows.png",
+		"realm_prologue": "res://assets/realm_icons/realm_prologue.png",
+		"realm_london": "res://assets/realm_icons/realm_london.png",
+		"realm_camelot": "res://assets/realm_icons/realm_camelot.png",
+		"realm_jungle": "res://assets/realm_icons/realm_jungle.png",
+		"realm_transylvania": "res://assets/realm_icons/realm_transylvania.png",
+		"realm_laboratory": "res://assets/realm_icons/realm_laboratory.png",
+		"realm_sherwood": "res://assets/realm_icons/realm_sherwood.png",
+		"realm_wonderland": "res://assets/realm_icons/realm_wonderland.png",
+		"realm_oz": "res://assets/realm_icons/realm_oz.png",
+		"realm_neverland": "res://assets/realm_icons/realm_neverland.png",
+		"realm_opera": "res://assets/realm_icons/realm_opera.png",
+		"realm_christmas": "res://assets/realm_icons/realm_christmas.png",
+		"realm_shadow": "res://assets/realm_icons/realm_shadow.png",
 	}
 	for k in paths:
 		if ResourceLoader.exists(paths[k]):
@@ -494,13 +527,228 @@ func _clear() -> void:
 # ======================== CHAPTERS ========================
 func _build_chapters() -> void:
 	_clear()
+	if _portal_view != "":
+		_build_arc_levels()
+		return
+	_build_portal_hub()
+
+func _build_portal_hub() -> void:
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
 	_style_scrollbar(sc)
 	_add_scroll_hint(content_area)
-	# Margin container for card breathing room
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
+	var vb = VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", 8)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vb)
+	# Tome of Shadows at top
+	if _art.has("tome_of_shadows"):
+		var tome_center = CenterContainer.new()
+		tome_center.custom_minimum_size = Vector2(0, 120)
+		tome_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var tome = TextureRect.new()
+		tome.texture = _art["tome_of_shadows"]
+		tome.custom_minimum_size = Vector2(280, 110)
+		tome.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tome.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = _make_black_key_mat(0.12, 0.06)
+		if mat: tome.material = mat
+		# Breathing animation
+		tome.pivot_offset = Vector2(140, 55)
+		var tome_tw = create_tween().set_loops()
+		tome_tw.tween_property(tome, "scale", Vector2(1.02, 1.02), 2.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		tome_tw.tween_property(tome, "scale", Vector2(1.0, 1.0), 2.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		tome_center.add_child(tome)
+		vb.add_child(tome_center)
+	else:
+		vb.add_child(_title("SHADOW DEFENSE"))
+	# Subtitle
+	var sub = _lbl("Choose a realm to enter the Tome of Shadows", 12, Color(0.70, 0.62, 0.52))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(sub)
+	# Progress
+	if _main:
+		var completed_ct = _main.completed_levels.size() if "completed_levels" in _main else 0
+		var total_ct = _main.levels.size() if "levels" in _main else 37
+		vb.add_child(_stat_bar("Journey", completed_ct, total_ct, Color(0.85, 0.65, 0.20)))
+	# Portal grid — 3 columns
+	var grid = GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_child(grid)
+	for ri in range(REALMS.size()):
+		var realm = REALMS[ri]
+		var arc_complete = _is_realm_complete(realm)
+		var arc_unlocked = _is_realm_unlocked(ri)
+		# Portal card
+		var card = Button.new()
+		card.text = ""
+		card.custom_minimum_size = Vector2(380, 180)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var cs = StyleBoxFlat.new()
+		var rc = Color(realm["color"][0], realm["color"][1], realm["color"][2])
+		if arc_unlocked:
+			cs.bg_color = Color(rc.r * 0.15, rc.g * 0.15, rc.b * 0.15, 0.7)
+			cs.border_color = Color(rc.r * 0.6, rc.g * 0.6, rc.b * 0.6, 0.6)
+		else:
+			cs.bg_color = Color(0.04, 0.03, 0.08, 0.5)
+			cs.border_color = Color(0.25, 0.20, 0.15, 0.3)
+		cs.set_border_width_all(2)
+		cs.set_corner_radius_all(12)
+		cs.shadow_color = Color(0, 0, 0, 0.2)
+		cs.shadow_size = 4
+		card.add_theme_stylebox_override("normal", cs)
+		var csh = cs.duplicate()
+		csh.bg_color = Color(rc.r * 0.25, rc.g * 0.25, rc.b * 0.25, 0.8) if arc_unlocked else cs.bg_color
+		csh.border_color = Color(rc.r * 0.8, rc.g * 0.8, rc.b * 0.8, 0.8) if arc_unlocked else cs.border_color
+		card.add_theme_stylebox_override("hover", csh)
+		_add_press_feedback(card)
+		# Portal art overlay
+		var realm_icon_key = realm["icon"]
+		if _art.has(realm_icon_key):
+			var realm_art = TextureRect.new()
+			realm_art.texture = _art[realm_icon_key]
+			realm_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			realm_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			realm_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			realm_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			realm_art.modulate.a = 0.55 if arc_unlocked else 0.15
+			var mat = _make_black_key_mat(0.10, 0.06)
+			if mat: realm_art.material = mat
+			card.add_child(realm_art)
+		# Ink portal overlay (small, centered)
+		if _art.has("ink_portal") and arc_unlocked:
+			var portal = TextureRect.new()
+			portal.texture = _art["ink_portal"]
+			portal.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			portal.custom_minimum_size = Vector2(60, 40)
+			portal.offset_left = -30; portal.offset_right = 30
+			portal.offset_top = -20; portal.offset_bottom = 20
+			portal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			portal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			portal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			portal.modulate.a = 0.4
+			var pmat = _make_black_key_mat(0.08, 0.05)
+			if pmat: portal.material = pmat
+			card.add_child(portal)
+			# Portal spin animation
+			var spin_tw = create_tween().set_loops()
+			spin_tw.tween_property(portal, "modulate:a", 0.6, 1.5).set_ease(Tween.EASE_IN_OUT)
+			spin_tw.tween_property(portal, "modulate:a", 0.3, 1.5).set_ease(Tween.EASE_IN_OUT)
+		# Content overlay
+		var content = VBoxContainer.new()
+		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content.add_theme_constant_override("separation", 2)
+		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var content_margin = MarginContainer.new()
+		content_margin.add_theme_constant_override("margin_left", 10)
+		content_margin.add_theme_constant_override("margin_right", 10)
+		content_margin.add_theme_constant_override("margin_top", 8)
+		content_margin.add_theme_constant_override("margin_bottom", 8)
+		content_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content_margin.add_child(content)
+		card.add_child(content_margin)
+		# Realm name
+		var name_lbl = _lbl(realm["name"], 14, Color(1.0, 0.92, 0.40) if arc_unlocked else Color(0.45, 0.38, 0.32))
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(name_lbl)
+		# Arc name
+		var arc_lbl = _lbl(realm["arc"], 11, Color(rc.r * 0.8 + 0.2, rc.g * 0.8 + 0.2, rc.b * 0.8 + 0.2) if arc_unlocked else Color(0.40, 0.35, 0.30))
+		arc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(arc_lbl)
+		# Spacer to push status to bottom
+		var spacer_ctrl = Control.new()
+		spacer_ctrl.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		spacer_ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(spacer_ctrl)
+		# Level count + completion
+		var level_count = realm["levels"].size()
+		var levels_done = 0
+		if _main and "completed_levels" in _main:
+			for li in realm["levels"]:
+				if li in _main.completed_levels:
+					levels_done += 1
+		var status_text = "✅ COMPLETE" if arc_complete else ("%d / %d" % [levels_done, level_count] if arc_unlocked else "🔒 LOCKED")
+		var status_col = Color(0.45, 0.80, 0.35) if arc_complete else (Color(0.65, 0.58, 0.50) if arc_unlocked else Color(0.40, 0.35, 0.30))
+		var status = _lbl(status_text, 11, status_col)
+		status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(status)
+		# Character portrait mini (bottom right)
+		var pkey = realm["portrait"]
+		if _main and _main._portrait_textures.has(pkey) and arc_unlocked:
+			var mini_port = TextureRect.new()
+			mini_port.texture = _main._portrait_textures[pkey]
+			mini_port.custom_minimum_size = Vector2(50, 50)
+			mini_port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			mini_port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			mini_port.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			mini_port.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+			mini_port.position = Vector2(-55, -55)
+			card.add_child(mini_port)
+		# Click to enter realm
+		if arc_unlocked:
+			var arc_name = realm["arc"]
+			card.pressed.connect(func(): _portal_view = arc_name; _build_chapters())
+		# Hover
+		card.mouse_entered.connect(func():
+			card.pivot_offset = card.size / 2.0
+			var tw = card.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+			tw.tween_property(card, "scale", Vector2(1.03, 1.03), 0.1))
+		card.mouse_exited.connect(func():
+			var tw = card.create_tween().set_ease(Tween.EASE_OUT)
+			tw.tween_property(card, "scale", Vector2(1.0, 1.0), 0.08))
+		# Staggered entrance
+		card.modulate.a = 0.0
+		var etw = create_tween()
+		etw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(ri * 0.05)
+		grid.add_child(card)
+
+func _is_realm_complete(realm: Dictionary) -> bool:
+	if not _main or not "completed_levels" in _main: return false
+	for li in realm["levels"]:
+		if li not in _main.completed_levels: return false
+	return true
+
+func _is_realm_unlocked(realm_idx: int) -> bool:
+	if realm_idx == 0: return true  # Prologue always unlocked
+	if not _main: return false
+	# Unlock if previous realm is complete OR any level in this realm is unlocked
+	var prev_realm = REALMS[realm_idx - 1]
+	for li in prev_realm["levels"]:
+		if li not in _main.completed_levels: return false
+	return true
+
+func _build_arc_levels() -> void:
+	# Find levels for this arc
+	var arc_realm = null
+	for r in REALMS:
+		if r["arc"] == _portal_view:
+			arc_realm = r
+			break
+	if arc_realm == null:
+		_portal_view = ""
+		_build_portal_hub()
+		return
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
+	_style_scrollbar(sc)
+	_add_scroll_hint(content_area)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", 12)
@@ -512,6 +760,65 @@ func _build_chapters() -> void:
 	vb.add_theme_constant_override("separation", 6)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
+	# Back to portal hub button
+	var back_btn = _art_button("< BACK TO TOME", Color(0.12, 0.10, 0.22), Vector2(170, 32))
+	back_btn.pressed.connect(func(): _portal_view = ""; _build_chapters())
+	vb.add_child(back_btn)
+	# Arc title with realm art
+	var rc = Color(arc_realm["color"][0], arc_realm["color"][1], arc_realm["color"][2])
+	vb.add_child(_title(arc_realm["name"].to_upper()))
+	var arc_sub = _lbl(arc_realm["arc"], 13, Color(rc.r * 0.7 + 0.3, rc.g * 0.7 + 0.3, rc.b * 0.7 + 0.3))
+	arc_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	arc_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(arc_sub)
+	# Shadow Author quote for this realm
+	var sa_quotes_realm = [
+		"Welcome to MY pages. Your adventure begins here.",
+		"Ah, you've found my London chapter. How delightful.",
+		"Camelot falls. Even legends bow to my quill.",
+		"The jungle will consume you, as it consumes all stories.",
+		"Blood and ink — the finest combination.",
+		"Even the dead cannot escape my narrative.",
+		"Back to Sherwood? I've rewritten your happy ending.",
+		"Wonderland was always MY creation. Alice merely visited.",
+		"The Emerald City hides nothing from its Author.",
+		"You can't fly away from a story already written.",
+		"The music dies when I say it dies.",
+		"Ghosts of Christmas? I wrote their chains.",
+		"This is where YOUR story ends.",
+	]
+	var realm_idx = 0
+	for ri2 in range(REALMS.size()):
+		if REALMS[ri2]["arc"] == _portal_view: realm_idx = ri2; break
+	var sa_q = _lbl('"%s"' % sa_quotes_realm[mini(realm_idx, sa_quotes_realm.size() - 1)], 11, Color(0.65, 0.55, 0.45))
+	sa_q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sa_q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sa_q.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(sa_q)
+	var sa_attr2 = _lbl("— The Shadow Author", 10, Color(0.50, 0.42, 0.38))
+	sa_attr2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sa_attr2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(sa_attr2)
+	# Level cards for this arc only
+	if not _main: return
+	var card_idx2 = 0
+	for li in arc_realm["levels"]:
+		if li >= _main.levels.size(): continue
+		var lvl = _main.levels[li]
+		if card_idx2 > 0:
+			var path_row = HBoxContainer.new()
+			path_row.alignment = BoxContainer.ALIGNMENT_CENTER
+			path_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			path_row.add_child(_lbl("│", 12, Color(0.55, 0.42, 0.18, 0.5)))
+			vb.add_child(path_row)
+		var card = _level_card(li, lvl)
+		vb.add_child(card)
+		card.modulate.a = 0.0
+		var etw2 = create_tween()
+		etw2.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(card_idx2 * 0.05)
+		card_idx2 += 1
+	return
+	# === OLD FULL CHAPTERS VIEW (kept for reference, never reached) ===
 	# Game logo — use nano-banana generated art logo if available
 	if _art.has("game_logo_gothic"):
 		var logo_container = CenterContainer.new()
