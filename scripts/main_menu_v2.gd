@@ -15,21 +15,21 @@ const REALMS: Array = [
 	# === ACT 1: INTO THE PAGES — Prologue + 8 rescue arcs ===
 	{"arc": "Prologue", "name": "The Tome Opens", "icon": "realm_prologue", "portrait": "robin_hood", "color": [0.7, 0.6, 0.4], "levels": [0], "act": 1},
 	# First 3 rescues: Peter Pan, Wicked Witch, Phantom (unlock as playable)
-	{"arc": "Neverland", "name": "The Endless Story", "icon": "realm_neverland", "portrait": "peter_pan", "color": [0.3, 0.6, 0.8], "levels": [25, 26, 27], "act": 1, "rescues": "peter_pan"},
-	{"arc": "Land of Oz", "name": "The Emerald Verse", "icon": "realm_oz", "portrait": "wicked_witch", "color": [0.2, 0.7, 0.3], "levels": [22, 23, 24], "act": 1, "rescues": "wicked_witch"},
-	{"arc": "Paris Opera", "name": "The Phantom's Score", "icon": "realm_opera", "portrait": "phantom", "color": [0.7, 0.5, 0.3], "levels": [28, 29, 30], "act": 1, "rescues": "phantom"},
+	{"arc": "Neverland", "name": "The Endless Story", "icon": "realm_neverland", "portrait": "peter_pan", "color": [0.3, 0.6, 0.8], "levels": [25, 64, 26, 65, 27], "act": 1, "rescues": "peter_pan"},
+	{"arc": "Land of Oz", "name": "The Emerald Verse", "icon": "realm_oz", "portrait": "wicked_witch", "color": [0.2, 0.7, 0.3], "levels": [22, 66, 23, 67, 24], "act": 1, "rescues": "wicked_witch"},
+	{"arc": "Paris Opera", "name": "The Phantom's Score", "icon": "realm_opera", "portrait": "phantom", "color": [0.7, 0.5, 0.3], "levels": [28, 68, 29, 69, 30], "act": 1, "rescues": "phantom"},
 	# Next 5 rescues: Sherlock, Merlin, Tarzan, Dracula, Frankenstein
-	{"arc": "Sherlock Holmes", "name": "Shadow London", "icon": "realm_london", "portrait": "sherlock", "color": [0.5, 0.5, 0.7], "levels": [1, 2, 3], "act": 1, "rescues": "sherlock"},
-	{"arc": "Merlin", "name": "The Enchanted Pages", "icon": "realm_camelot", "portrait": "merlin", "color": [0.3, 0.5, 0.85], "levels": [4, 5, 6], "act": 1, "rescues": "merlin"},
-	{"arc": "Tarzan", "name": "The Wild Chapters", "icon": "realm_jungle", "portrait": "tarzan", "color": [0.3, 0.6, 0.3], "levels": [7, 8, 9], "act": 1, "rescues": "tarzan"},
-	{"arc": "Dracula", "name": "The Blood Script", "icon": "realm_transylvania", "portrait": "dracula", "color": [0.7, 0.2, 0.2], "levels": [10, 11, 12], "act": 1, "rescues": "dracula"},
-	{"arc": "Frankenstein", "name": "The Stitched Pages", "icon": "realm_laboratory", "portrait": "frankenstein", "color": [0.4, 0.7, 0.3], "levels": [13, 14, 15], "act": 1, "rescues": "frankenstein"},
-	# === ACT 2: THE SHADOW STORIES — Starter heroes face their own tales ===
-	{"arc": "Sherwood Forest", "name": "The Outlaw's Tale", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [16, 17, 18], "act": 2},
-	{"arc": "Wonderland", "name": "The Mad Manuscript", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [19, 20, 21], "act": 2},
-	{"arc": "Victorian London", "name": "The Ghost's Ledger", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [31, 32, 33], "act": 2},
-	# === ACT 3: THE FINAL CHAPTER ===
-	{"arc": "Shadow Author", "name": "The Final Chapter", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.5, 0.2, 0.6], "levels": [34, 35, 36], "act": 3},
+	{"arc": "Sherlock Holmes", "name": "Shadow London", "icon": "realm_london", "portrait": "sherlock", "color": [0.5, 0.5, 0.7], "levels": [1, 70, 2, 71, 3], "act": 1, "rescues": "sherlock"},
+	{"arc": "Merlin", "name": "The Enchanted Pages", "icon": "realm_camelot", "portrait": "merlin", "color": [0.3, 0.5, 0.85], "levels": [4, 72, 5, 73, 6], "act": 1, "rescues": "merlin"},
+	{"arc": "Tarzan", "name": "The Wild Chapters", "icon": "realm_jungle", "portrait": "tarzan", "color": [0.3, 0.6, 0.3], "levels": [7, 74, 8, 75, 9], "act": 1, "rescues": "tarzan"},
+	{"arc": "Dracula", "name": "The Blood Script", "icon": "realm_transylvania", "portrait": "dracula", "color": [0.7, 0.2, 0.2], "levels": [10, 76, 11, 77, 12], "act": 1, "rescues": "dracula"},
+	{"arc": "Frankenstein", "name": "The Stitched Pages", "icon": "realm_laboratory", "portrait": "frankenstein", "color": [0.4, 0.7, 0.3], "levels": [13, 78, 14, 79, 15], "act": 1, "rescues": "frankenstein"},
+	# === ACT 2: THE SHADOW STORIES — Starter heroes face their own tales (5 levels each) ===
+	{"arc": "Sherwood Forest", "name": "The Outlaw's Tale", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [16, 80, 17, 81, 18], "act": 2},
+	{"arc": "Wonderland", "name": "The Mad Manuscript", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [19, 82, 20, 83, 21], "act": 2},
+	{"arc": "Victorian London", "name": "The Ghost's Ledger", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [31, 84, 32, 85, 33], "act": 2},
+	# === ACT 3: THE FINAL CHAPTER (5 levels) ===
+	{"arc": "Shadow Author", "name": "The Final Chapter", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.5, 0.2, 0.6], "levels": [34, 86, 35, 87, 36], "act": 3},
 	# === ACT 4: THE NARRATOR'S REALM — Starter hero trials + 5 new rescues + finale ===
 	{"arc": "Alice's Trial", "name": "The Vorpal Challenge", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [37, 38, 39], "act": 4},
 	{"arc": "Robin's Trial", "name": "The Legendary Hunt", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [40, 41, 42], "act": 4},

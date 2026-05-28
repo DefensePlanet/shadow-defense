@@ -2118,6 +2118,190 @@ var levels = [
 		"sky_color": Color(0.16, 0.12, 0.04),
 		"ground_color": Color(0.18, 0.14, 0.06),
 	},
+	# =======================================================================
+	# === EXPANDED ARC CHAPTERS (Levels 64-89) — 2 extra levels per arc
+	# === Each arc goes from 3 chapters to 5 chapters for deeper storytelling
+	# =======================================================================
+	# --- NEVERLAND extra chapters (between Ch1-Ch2 and Ch2-Ch3) ---
+	{
+		"name": "The Mermaid Lagoon", "subtitle": "Neverland — Chapter 2",
+		"description": "The mermaids guard secrets in their underwater grotto. Shadow pirate divers plunge after treasure that isn't theirs.",
+		"character": 3, "chapter": 1, "enemy_theme": 3,
+		"waves": 17, "gold": 105, "lives": 23, "difficulty": 1.25,
+		"sky_color": Color(0.03, 0.05, 0.12), "ground_color": Color(0.06, 0.14, 0.08),
+	},
+	{
+		"name": "Skull Rock", "subtitle": "Neverland — Chapter 4",
+		"description": "Captain Hook's secret hideout inside the skull-shaped rock. Pirates and their shadow cannons defend the approach.",
+		"character": 3, "chapter": 3, "enemy_theme": 3,
+		"waves": 20, "gold": 105, "lives": 20, "difficulty": 1.45,
+		"sky_color": Color(0.04, 0.04, 0.10), "ground_color": Color(0.08, 0.12, 0.06),
+	},
+	# --- OZ extra chapters ---
+	{
+		"name": "The Poppy Fields", "subtitle": "Land of Oz — Chapter 2",
+		"description": "Enchanted poppies put heroes to sleep. The shadow scarecrow leads an army of straw soldiers through the drowsy fields.",
+		"character": 2, "chapter": 1, "enemy_theme": 2,
+		"waves": 16, "gold": 105, "lives": 23, "difficulty": 1.2,
+		"sky_color": Color(0.03, 0.08, 0.05), "ground_color": Color(0.12, 0.10, 0.03),
+	},
+	{
+		"name": "The Tin Woodman's Forest", "subtitle": "Land of Oz — Chapter 4",
+		"description": "A forest of rusted metal trees where the Tin Woodman was cursed. Shadow lumberjacks swing axes of dark iron.",
+		"character": 2, "chapter": 3, "enemy_theme": 2,
+		"waves": 19, "gold": 105, "lives": 20, "difficulty": 1.4,
+		"sky_color": Color(0.03, 0.06, 0.04), "ground_color": Color(0.08, 0.08, 0.05),
+	},
+	# --- OPERA extra chapters ---
+	{
+		"name": "The Rooftop Chase", "subtitle": "Paris Opera — Chapter 2",
+		"description": "Across the moonlit rooftops of the Opera Populaire. The Phantom's gargoyle sentinels guard the high paths.",
+		"character": 4, "chapter": 1, "enemy_theme": 4,
+		"waves": 17, "gold": 105, "lives": 23, "difficulty": 1.25,
+		"sky_color": Color(0.05, 0.04, 0.08), "ground_color": Color(0.08, 0.06, 0.10),
+	},
+	{
+		"name": "The Underground Lake", "subtitle": "Paris Opera — Chapter 4",
+		"description": "The Phantom's private lake beneath the stage. Gondolas of shadow carry enemies across the dark water.",
+		"character": 4, "chapter": 3, "enemy_theme": 4,
+		"waves": 20, "gold": 105, "lives": 20, "difficulty": 1.45,
+		"sky_color": Color(0.03, 0.02, 0.06), "ground_color": Color(0.06, 0.04, 0.08),
+	},
+	# --- SHERLOCK extra chapters ---
+	{
+		"name": "The Opium Den", "subtitle": "Sherlock Holmes — Chapter 2",
+		"description": "In the foggy back rooms of London's opium dens, Moriarty's informants trade secrets for shadow coins.",
+		"character": -1, "chapter": 1, "enemy_theme": 7,
+		"waves": 18, "gold": 110, "lives": 23, "difficulty": 1.1,
+		"sky_color": Color(0.05, 0.05, 0.06), "ground_color": Color(0.10, 0.08, 0.07),
+	},
+	{
+		"name": "The Diogenes Club", "subtitle": "Sherlock Holmes — Chapter 4",
+		"description": "Mycroft Holmes's silent club hides a shadow conspiracy. The quietest room in London holds the loudest secrets.",
+		"character": -1, "chapter": 3, "enemy_theme": 7,
+		"waves": 22, "gold": 110, "lives": 20, "difficulty": 1.25,
+		"sky_color": Color(0.04, 0.04, 0.06), "ground_color": Color(0.08, 0.06, 0.06),
+	},
+	# --- MERLIN extra chapters ---
+	{
+		"name": "The Sword in the Stone", "subtitle": "Merlin — Chapter 2",
+		"description": "The courtyard where Arthur pulled Excalibur. Shadow knights try to pull their own cursed blades from the stone.",
+		"character": -1, "chapter": 1, "enemy_theme": 8,
+		"waves": 18, "gold": 110, "lives": 23, "difficulty": 1.15,
+		"sky_color": Color(0.03, 0.06, 0.04), "ground_color": Color(0.08, 0.06, 0.04),
+	},
+	{
+		"name": "Morgan's Mirror", "subtitle": "Merlin — Chapter 4",
+		"description": "Morgan le Fay's enchanted mirror shows twisted futures. Each reflection is an enemy that knows your strategy.",
+		"character": -1, "chapter": 3, "enemy_theme": 8,
+		"waves": 23, "gold": 110, "lives": 20, "difficulty": 1.3,
+		"sky_color": Color(0.02, 0.05, 0.04), "ground_color": Color(0.06, 0.05, 0.04),
+	},
+	# --- TARZAN extra chapters ---
+	{
+		"name": "The Ape Village", "subtitle": "Tarzan — Chapter 2",
+		"description": "The great apes' nesting ground. Shadow poachers with nets and cages storm the treetop settlement.",
+		"character": -1, "chapter": 1, "enemy_theme": 9,
+		"waves": 18, "gold": 110, "lives": 23, "difficulty": 1.2,
+		"sky_color": Color(0.05, 0.08, 0.12), "ground_color": Color(0.05, 0.12, 0.03),
+	},
+	{
+		"name": "The Treehouse", "subtitle": "Tarzan — Chapter 4",
+		"description": "Tarzan's parents' treehouse — where a baby was raised by apes. Clayton has turned it into a command post.",
+		"character": -1, "chapter": 3, "enemy_theme": 9,
+		"waves": 23, "gold": 110, "lives": 20, "difficulty": 1.35,
+		"sky_color": Color(0.04, 0.06, 0.10), "ground_color": Color(0.05, 0.10, 0.03),
+	},
+	# --- DRACULA extra chapters ---
+	{
+		"name": "The Borgo Pass", "subtitle": "Dracula — Chapter 2",
+		"description": "The treacherous mountain pass where Jonathan Harker's carriage was ambushed. Wolves and shadow coachmen patrol.",
+		"character": -1, "chapter": 1, "enemy_theme": 10,
+		"waves": 20, "gold": 110, "lives": 22, "difficulty": 1.25,
+		"sky_color": Color(0.05, 0.02, 0.04), "ground_color": Color(0.06, 0.04, 0.04),
+	},
+	{
+		"name": "The Demeter's Hold", "subtitle": "Dracula — Chapter 4",
+		"description": "The cargo hold of the ship Demeter that carried Dracula to England. Every sailor is now a shadow ghoul.",
+		"character": -1, "chapter": 3, "enemy_theme": 10,
+		"waves": 25, "gold": 110, "lives": 19, "difficulty": 1.45,
+		"sky_color": Color(0.03, 0.02, 0.03), "ground_color": Color(0.04, 0.03, 0.04),
+	},
+	# --- FRANKENSTEIN extra chapters ---
+	{
+		"name": "The Geneva Shore", "subtitle": "Frankenstein — Chapter 2",
+		"description": "The shores of Lake Geneva where Victor Frankenstein studied. Shadow scholars and failed experiments roam.",
+		"character": -1, "chapter": 1, "enemy_theme": 11,
+		"waves": 20, "gold": 110, "lives": 22, "difficulty": 1.3,
+		"sky_color": Color(0.04, 0.05, 0.06), "ground_color": Color(0.10, 0.10, 0.12),
+	},
+	{
+		"name": "The Wedding Night", "subtitle": "Frankenstein — Chapter 4",
+		"description": "The night the Monster swore revenge. Victor's greatest fear made manifest — shadow creatures born from guilt.",
+		"character": -1, "chapter": 3, "enemy_theme": 11,
+		"waves": 25, "gold": 110, "lives": 19, "difficulty": 1.5,
+		"sky_color": Color(0.04, 0.04, 0.05), "ground_color": Color(0.06, 0.06, 0.07),
+	},
+	# --- SHERWOOD extra chapters ---
+	{
+		"name": "The Archery Tournament", "subtitle": "Sherwood Forest — Chapter 2",
+		"description": "Robin enters the Sheriff's tournament in disguise. Shadow archers fire from every direction.",
+		"character": 0, "chapter": 1, "enemy_theme": 0,
+		"waves": 14, "gold": 100, "lives": 23, "difficulty": 1.1,
+		"sky_color": Color(0.03, 0.05, 0.08), "ground_color": Color(0.06, 0.14, 0.04),
+	},
+	{
+		"name": "The King's Ransom", "subtitle": "Sherwood Forest — Chapter 4",
+		"description": "King Richard is held for ransom. Robin must storm the castle treasury to buy his freedom.",
+		"character": 0, "chapter": 3, "enemy_theme": 0,
+		"waves": 17, "gold": 100, "lives": 20, "difficulty": 1.25,
+		"sky_color": Color(0.05, 0.04, 0.03), "ground_color": Color(0.06, 0.08, 0.05),
+	},
+	# --- WONDERLAND extra chapters ---
+	{
+		"name": "The Caterpillar's Garden", "subtitle": "Wonderland — Chapter 2",
+		"description": "Atop the giant mushroom, the Caterpillar asks: 'Who are YOU?' Shadow caterpillars spit confusion smoke.",
+		"character": 1, "chapter": 1, "enemy_theme": 1,
+		"waves": 16, "gold": 100, "lives": 23, "difficulty": 1.15,
+		"sky_color": Color(0.11, 0.04, 0.15), "ground_color": Color(0.07, 0.16, 0.05),
+	},
+	{
+		"name": "The Jabberwock's Lair", "subtitle": "Wonderland — Chapter 4",
+		"description": "In the Tulgey Wood, the Jabberwock waits with jaws that bite and claws that catch. The vorpal blade goes snicker-snack.",
+		"character": 1, "chapter": 3, "enemy_theme": 1,
+		"waves": 19, "gold": 100, "lives": 19, "difficulty": 1.35,
+		"sky_color": Color(0.12, 0.03, 0.12), "ground_color": Color(0.08, 0.12, 0.06),
+	},
+	# --- VICTORIAN LONDON extra chapters ---
+	{
+		"name": "The Workhouse", "subtitle": "Victorian London — Chapter 2",
+		"description": "Scrooge's old workhouse where the poor suffered. Shadow debt collectors demand payment in souls.",
+		"character": 5, "chapter": 1, "enemy_theme": 6,
+		"waves": 14, "gold": 110, "lives": 23, "difficulty": 1.1,
+		"sky_color": Color(0.05, 0.06, 0.10), "ground_color": Color(0.06, 0.06, 0.08),
+	},
+	{
+		"name": "The Graveyard", "subtitle": "Victorian London — Chapter 4",
+		"description": "The Ghost of Christmas Yet to Come points at a gravestone. Scrooge's own grave — unless the future is rewritten.",
+		"character": 5, "chapter": 3, "enemy_theme": 6,
+		"waves": 17, "gold": 110, "lives": 20, "difficulty": 1.3,
+		"sky_color": Color(0.04, 0.05, 0.08), "ground_color": Color(0.05, 0.05, 0.06),
+	},
+	# --- SHADOW AUTHOR extra chapters ---
+	{
+		"name": "The Margin Notes", "subtitle": "Shadow Author — Chapter 2",
+		"description": "Between the lines of every story, the Author hides his notes. Marginal creatures — half-formed ideas — attack from the edges.",
+		"character": -1, "chapter": 1, "enemy_theme": 12,
+		"waves": 33, "gold": 125, "lives": 23, "difficulty": 1.85,
+		"sky_color": Color(0.02, 0.01, 0.03), "ground_color": Color(0.02, 0.02, 0.04),
+	},
+	{
+		"name": "The Deleted Scenes", "subtitle": "Shadow Author — Chapter 4",
+		"description": "Every scene the Author cut from his stories. Discarded characters, abandoned plotlines — all angry, all powerful.",
+		"character": -1, "chapter": 3, "enemy_theme": 12,
+		"waves": 38, "gold": 125, "lives": 20, "difficulty": 1.95,
+		"sky_color": Color(0.01, 0.01, 0.02), "ground_color": Color(0.02, 0.01, 0.03),
+	},
 ]
 
 # Difficulty selection (0=Easy, 1=Medium, 2=Hard)
