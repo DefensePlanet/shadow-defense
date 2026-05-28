@@ -2157,6 +2157,58 @@ const ENCHANT_EFFECTS: Array = ["damage", "attack_speed", "range", "crit", "gold
 
 # === BATTD2 FEATURE: CHARACTER BONDS ===
 var _active_bonds: Array = []  # [{pair: [TowerType, TowerType], bonus: float}]
+var _bond_dialog_shown: Dictionary = {}  # "0_3" -> true (prevents repeat banter per level)
+# Inter-character bond dialog — triggers once per level when bonded characters placed together
+const BOND_DIALOGS: Dictionary = {
+	"0_3": [  # Robin Hood + Peter Pan
+		["robin_hood", "Another archer? Though I suppose you prefer daggers."],
+		["peter_pan", "And you prefer tights. We have more in common than you think, old man!"],
+	],
+	"1_2": [  # Alice + Wicked Witch
+		["alice", "I thought all witches were wicked. But you've been nothing but brave."],
+		["wicked_witch", "And I thought all little girls screamed and ran. You've got SPINE, dearie."],
+	],
+	"4_9": [  # Phantom + Merlin
+		["phantom", "Your magic reminds me of music — invisible, powerful, transformative."],
+		["merlin", "And your music is the closest thing to magic I've heard in a thousand years."],
+	],
+	"5_10": [  # Scrooge + Frankenstein
+		["scrooge", "You were created in a laboratory. I was created by greed. We're both manufactured men."],
+		["frankenstein", "But... we CHOSE to be different. That is... what matters."],
+	],
+	"6_7": [  # Sherlock + Tarzan
+		["sherlock", "Fascinating specimen. Your survival instincts are a form of pure deductive reasoning."],
+		["tarzan", "Tarzan doesn't know big words. But Tarzan knows — smart man good friend."],
+	],
+	"8_9": [  # Dracula + Merlin
+		["dracula", "We are both ancient beings, wizard. Both watched centuries pass. Both outlived our stories."],
+		["merlin", "And both chose to keep fighting. There's a word for that — it's called HOPE."],
+	],
+	"0_6": [  # Robin Hood + Sherlock (both English)
+		["robin_hood", "A detective from London? I rob the rich. You CATCH those who rob."],
+		["sherlock", "And yet here we are, on the same side. The Author must be furious."],
+	],
+	"3_7": [  # Peter Pan + Tarzan (both wild/nature)
+		["peter_pan", "You live in trees too! But your jungle is so much BIGGER than Neverland!"],
+		["tarzan", "Neverland? Place where boy never grows? Tarzan understand. Jungle keeps Tarzan young too."],
+	],
+	"8_10": [  # Dracula + Frankenstein (classic monsters)
+		["dracula", "We are the creatures that haunt humanity's nightmares. And yet WE fight to protect them."],
+		["frankenstein", "Maybe... monsters are just heroes... that nobody believed in yet."],
+	],
+	"1_3": [  # Alice + Peter Pan (both children's stories)
+		["alice", "We're both children lost in magical worlds! Though yours has pirates, and mine has tea."],
+		["peter_pan", "Tea is boring. Come to Neverland after this — I'll show you REAL adventure!"],
+	],
+	"2_5": [  # Wicked Witch + Scrooge (both redeemed villains)
+		["wicked_witch", "They wrote us as the bad guys, Ebenezer. But look at us now."],
+		["scrooge", "Redemption, my dear. It's the best investment I ever made. Zero gold, infinite returns."],
+	],
+	"4_8": [  # Phantom + Dracula (both dark romantics)
+		["phantom", "You hide in a castle. I hide beneath an opera house. We are both creatures of the dark."],
+		["dracula", "But we both loved. That is what separates monsters from MEN."],
+	],
+}
 const BOND_PAIRS: Array = [
 	[0, 3],   # Robin Hood + Peter Pan (adventurers)
 	[1, 2],   # Alice + Wicked Witch (Oz/Wonderland)
@@ -7970,6 +8022,7 @@ func _reset_game() -> void:
 	game_paused = false
 	placing_tower = false
 	enemies_to_spawn = 0
+	_bond_dialog_shown.clear()  # Reset bond dialogs for new level
 	enemies_alive = 0
 	spawn_timer = 0.0
 	purchased_towers.clear()
@@ -22701,6 +22754,29 @@ func _check_character_bonds() -> void:
 			var dist = tower_positions[pair[0]].distance_to(tower_positions[pair[1]])
 			if dist <= BOND_RADIUS:
 				_active_bonds.append({"pair": pair, "bonus": BOND_BONUS})
+				# Trigger bond dialog once per level
+				var bond_key = "%d_%d" % [mini(pair[0], pair[1]), maxi(pair[0], pair[1])]
+				if not _bond_dialog_shown.has(bond_key) and BOND_DIALOGS.has(bond_key):
+					_bond_dialog_shown[bond_key] = true
+					_show_bond_dialog(bond_key, tower_positions[pair[0]], tower_positions[pair[1]])
+
+func _show_bond_dialog(bond_key: String, pos1: Vector2, pos2: Vector2) -> void:
+	if not BOND_DIALOGS.has(bond_key): return
+	var lines = BOND_DIALOGS[bond_key]
+	var mid = (pos1 + pos2) * 0.5
+	# Show first character's line immediately
+	if lines.size() >= 1:
+		var char_names = {"robin_hood": "Robin", "alice": "Alice", "wicked_witch": "Witch", "peter_pan": "Peter", "phantom": "Phantom", "scrooge": "Scrooge", "sherlock": "Holmes", "tarzan": "Tarzan", "dracula": "Dracula", "merlin": "Merlin", "frankenstein": "Frank"}
+		var name1 = char_names.get(lines[0][0], "???")
+		spawn_floating_text(pos1 + Vector2(0, -40), '%s: "%s"' % [name1, lines[0][1]], Color(0.90, 0.82, 0.55), 11.0, 4.0)
+	# Show second character's response after a delay
+	if lines.size() >= 2:
+		var name2 = {"robin_hood": "Robin", "alice": "Alice", "wicked_witch": "Witch", "peter_pan": "Peter", "phantom": "Phantom", "scrooge": "Scrooge", "sherlock": "Holmes", "tarzan": "Tarzan", "dracula": "Dracula", "merlin": "Merlin", "frankenstein": "Frank"}.get(lines[1][0], "???")
+		get_tree().create_timer(2.0).timeout.connect(func():
+			spawn_floating_text(pos2 + Vector2(0, -40), '%s: "%s"' % [name2, lines[1][1]], Color(0.70, 0.85, 0.95), 11.0, 4.0))
+	# Show BOND ACTIVATED after both lines
+	get_tree().create_timer(3.5).timeout.connect(func():
+		spawn_floating_text(mid + Vector2(0, -25), "💞 BOND ACTIVATED +%d%% DMG" % int(BOND_BONUS * 100), Color(1.0, 0.8, 0.3), 14.0, 2.0))
 
 func _draw_character_bonds() -> void:
 	for bond in _active_bonds:
