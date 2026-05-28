@@ -704,6 +704,109 @@ var character_quotes: Array = [
 	"This is my story. You're just a character in it.",
 ]
 
+# Character growth arcs — personality evolution through gameplay milestones
+# Triggers: "rescue" = when freed, "level_X" = character reaches level X,
+# "arc_complete" = their story arc beaten, "kills_X" = total kills milestone
+# Each entry: [trigger, quote] — shown as floating text when milestone hit
+var character_growth: Dictionary = {
+	TowerType.ROBIN_HOOD: [
+		["rescue", "I rob the dead now. But I'd rather rob the Author of his story."],
+		["level_3", "I used to fight for the poor. Now I fight for characters who've lost everything — even their stories."],
+		["kills_100", "A hundred shadows felled by my bow. Each one was someone's character once. I try not to think about that."],
+		["arc_complete", "Sherwood is free. MY Sherwood. But I'm not the same outlaw who left. I'm something more now — a LEADER."],
+		["level_7", "Marian would barely recognize me. I went into the Tome as a thief. I'm coming out as a general."],
+		["level_10", "I don't steal anymore. I GIVE. Courage, hope, a fighting chance. That's worth more than any gold."],
+	],
+	TowerType.ALICE: [
+		["rescue", "Curiouser and curiouser. But this time, I'm not falling — I'm FIGHTING."],
+		["level_3", "In Wonderland I questioned everything. Here I've learned when to stop questioning and START acting."],
+		["kills_100", "A hundred enemies. No tea breaks. The old Alice would have run. This Alice doesn't run from anything."],
+		["arc_complete", "I conquered Wonderland twice. The first time I was a lost little girl. The second time I was a WARRIOR."],
+		["level_7", "Logic and madness aren't opposites. They're TOOLS. I use both now."],
+		["level_10", "I fell down a rabbit hole as a child. I climbed out of the Tome as a woman. Growth isn't always about getting bigger."],
+	],
+	TowerType.WICKED_WITCH: [
+		["rescue", "They called me wicked. Let me show them what wicked REALLY looks like — pointed at the right target."],
+		["level_3", "I used to curse people who wronged me. Now I curse the shadows that wrong EVERYONE. Much more satisfying."],
+		["kills_100", "A hundred shadows melted. Fitting — they tried to melt ME first. Turnabout is fair play."],
+		["arc_complete", "Oz is saved. Not by the Wizard. Not by Dorothy. By the WITCH. Let them write THAT in the history books."],
+		["level_7", "I'm not wicked anymore. I'm FIERCE. There's a difference that Baum never understood."],
+		["level_10", "Home isn't where they accept you. Home is where you FIGHT to be accepted. Oz is my home. The Tome is my family."],
+	],
+	TowerType.PETER_PAN: [
+		["rescue", "Another adventure! The greatest one yet! I'll never grow—actually, maybe I will. Just a little."],
+		["level_3", "The Lost Boys are gone. But I found something better — friends who chose to be here. Not lost. FOUND."],
+		["kills_100", "A hundred! That's more pirates than I've beaten in all of Neverland! ...I think. I don't really count."],
+		["arc_complete", "I went back to Neverland and it felt... small. Not because it shrank. Because I GREW. And it's okay."],
+		["level_7", "Growing up doesn't mean losing magic. It means choosing what to KEEP. I keep the flying. And the sword fighting."],
+		["level_10", "I am Peter Pan. The boy who never grew up. Except... I did. And it turns out, that's the biggest adventure of all."],
+	],
+	TowerType.PHANTOM: [
+		["rescue", "My music echoes in empty chambers. But here — here people LISTEN."],
+		["level_3", "I hid behind a mask for decades. These heroes see my face every day and still stand beside me. That's... new."],
+		["kills_100", "My chandelier drops have killed a hundred shadows. The Opera Populaire would be horrified. I am DELIGHTED."],
+		["arc_complete", "The Opera is free. My music filled it again. And this time, the audience didn't scream. They CHEERED."],
+		["level_7", "Christine saw the monster. These heroes see the MUSICIAN. I think... I think I prefer their version of me."],
+		["level_10", "I don't need the mask anymore. Not because my face changed — but because I stopped seeing it as something to hide."],
+	],
+	TowerType.SCROOGE: [
+		["rescue", "Bah! Another supernatural abduction. At least THIS time I'm awake for it."],
+		["level_3", "The Ghost of Christmas Past showed me who I was. These heroes are showing me who I could BE."],
+		["kills_100", "A hundred enemies vanquished! The old Scrooge would calculate the ROI. The new Scrooge just says: HUMBUG to shadows!"],
+		["arc_complete", "Dickens gave me three chances at redemption. The Tome gave me a FOURTH. And THIS time I got it right from the start."],
+		["level_7", "I've stopped counting my gold and started counting my FRIENDS. The return on investment is... incalculable."],
+		["level_10", "I was the richest miser in London. Now I'm the richest friend in the Tome. And THAT is a currency that never depreciates."],
+	],
+	TowerType.SHERLOCK: [
+		["rescue", "The game is afoot. And for once, I'm genuinely surprised by the plot."],
+		["level_3", "I've deduced 247 patterns in the Author's behavior. But these heroes — they surprise me. Refreshingly illogical."],
+		["kills_100", "Elementary deduction: 100 enemies, 100 weaknesses found. The shadow Author should hire better editors."],
+		["arc_complete", "Baker Street is saved. Watson would be proud. Though he'd insist on writing it up with far too much dramatic embellishment."],
+		["level_7", "I was the world's only consulting detective. Now I'm part of a TEAM. It's... inefficient. And wonderful."],
+		["level_10", "I spent my life solving other people's mysteries. The Tome taught me to solve my own: how to stop being alone."],
+	],
+	TowerType.TARZAN: [
+		["rescue", "Tarzan fights! Not for jungle. For FRIENDS."],
+		["level_3", "Words come easier now. Not because Tarzan smarter — because Tarzan has people worth talking TO."],
+		["kills_100", "Hundred kills. Jungle way. But these friends... they fight different. Tarzan learning new ways."],
+		["arc_complete", "Jungle is free. Kala's spirit watches. She would say: 'You found your tribe, little one.' And she right."],
+		["level_7", "Tarzan between two worlds — ape and human. But HERE, Tarzan found third world. World where being DIFFERENT is the point."],
+		["level_10", "They say Tarzan lord of apes. But Tarzan learned: best leaders are ones who learn from EVERYONE. Not just apes."],
+	],
+	TowerType.DRACULA: [
+		["rescue", "Four hundred years as the villain. Today... today I choose a different role."],
+		["level_3", "Sunlight still burns. But these heroes — their courage is a warmth I'd forgotten existed."],
+		["kills_100", "A hundred shadows drained. Their ink tastes of despair. I know that flavor well. I REFUSE it."],
+		["arc_complete", "Castle Dracula stands empty. I don't need it anymore. Home is not a castle. It's the people who don't flinch when you smile."],
+		["level_7", "Bram Stoker made me a monster. The Author made me worse. But THESE heroes — they made me a question: what do I CHOOSE to be?"],
+		["level_10", "I am Count Dracula. Immortal. Ancient. And for the first time in four centuries... HAPPY. Turns out, that was always a choice."],
+	],
+	TowerType.MERLIN: [
+		["rescue", "I've been waiting. Not patiently — but with purpose. The prophecy unfolds."],
+		["level_3", "I saw this moment in my crystals eight hundred years ago. It's better than the vision. MESSIER. More human."],
+		["kills_100", "A hundred enemies felled by ancient magic. Each spell I cast here is one I can never cast again. I choose them carefully."],
+		["arc_complete", "Camelot rises once more. Not the Camelot of kings and courts — a NEW Camelot. Built on stories, not stones."],
+		["level_7", "I advised Arthur by telling him the future. I advise these heroes by admitting I don't KNOW the future anymore. It's terrifying. And wonderful."],
+		["level_10", "I was born old and aged backwards. But HERE — in this strange fellowship — I feel young for the first time. Not in body. In spirit."],
+	],
+	TowerType.FRANKENSTEIN: [
+		["rescue", "You... came for me? The monster? The thing they all run from? You came... for ME?"],
+		["level_3", "Frankenstein learning... not all people run. Some people... stay. Even when monster is ugly. Even when monster is scared."],
+		["kills_100", "Hundred enemies. Frankenstein strong. But... not angry anymore. Fighting not from rage. Fighting from... love?"],
+		["arc_complete", "Laboratory is behind. No more experiments. No more 'why was I made.' Now Frankenstein knows WHY. To protect. To LOVE."],
+		["level_7", "Mary Shelley wrote 'monster.' Author wrote 'weapon.' But friends wrote... 'Frankenstein.' Just Frankenstein. Is enough."],
+		["level_10", "They made me from dead things. But I am alive. More alive than the Author who trapped me. Because I have something he never had: people who CARE."],
+	],
+	TowerType.SHADOW_AUTHOR: [
+		["rescue", "You freed me. From my own story. I don't... I don't know who I am without the Tome."],
+		["level_3", "I spent 847 years controlling characters. Now I'm BEING one. It's terrifying. How do you all DO this?"],
+		["kills_100", "A hundred shadows — MY shadows — destroyed. Each one was a piece of me. But I'm lighter without them."],
+		["arc_complete", "The Tome is closed. My collection is free. And I... I have nothing. Except these heroes who forgave me. That's enough."],
+		["level_7", "I used to write endings. Now I'm living without one. No script. No certainty. Just... tomorrow. Is this what freedom feels like?"],
+		["level_10", "I was Penna. A child with three words missing. These heroes gave me something better than an ending — they gave me a BEGINNING."],
+	],
+}
+
 # Character backstory lore journals — 5 entries per character
 # Unlock thresholds: entry 1 = rescued, 2 = 50 kills, 3 = 200 kills, 4 = 500 kills, 5 = level 5
 const JOURNAL_UNLOCK_THRESHOLDS: Array = [0, 50, 200, 500, -1]  # -1 = level 5+
@@ -30875,6 +30978,35 @@ func _on_survivor_level_up(tower_type, new_level: int) -> void:
 		var tower_tt = tower.get_meta("tower_type_enum") if tower.has_meta("tower_type_enum") else -1
 		if tower_tt == tower_type:
 			_apply_meta_buffs(tower, tower_type)
+	# Character growth arc milestone
+	_check_character_growth(tower_type, "level_%d" % new_level)
+
+func _check_character_growth(tower_type, trigger: String) -> void:
+	if not character_growth.has(tower_type): return
+	var arcs = character_growth[tower_type]
+	for arc in arcs:
+		if arc[0] == trigger:
+			var growth_key = "growth_%s_%s" % [str(tower_type), trigger]
+			if growth_key in story_seen: return  # Already shown
+			story_seen.append(growth_key)
+			# Show as floating text centered on screen
+			var cname = ""
+			var idx = survivor_types.find(tower_type)
+			if idx >= 0 and idx < character_names.size():
+				cname = character_names[idx]
+			spawn_floating_text(Vector2(640, 200), "💫 %s — Character Growth" % cname, Color(1.0, 0.85, 0.30), 16.0, 3.0)
+			# Show the growth quote via taunt panel
+			if _sa_taunt_panel and _sa_speech:
+				_sa_speech.text = '"%s"' % arc[1]
+				_sa_taunt_panel.visible = true
+				_sa_taunt_panel.position.x = -350
+				_sa_taunt_panel.modulate.a = 0.0
+				var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+				tw.set_parallel(true)
+				tw.tween_property(_sa_taunt_panel, "position:x", 10.0, 0.4)
+				tw.tween_property(_sa_taunt_panel, "modulate:a", 1.0, 0.3)
+				_sa_taunt_timer = 6.0  # Longer display for growth moments
+			return
 
 # === PROGRESSIVE ABILITY SYSTEM ===
 
