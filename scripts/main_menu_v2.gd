@@ -1520,6 +1520,15 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			rl.clip_text = true
 			btns.add_child(rl)
+		# Realm mechanic indicator
+		var lvl_theme = _main.levels[idx].get("enemy_theme", -1) if idx < _main.levels.size() else -1
+		if _main.REALM_MECHANICS.has(lvl_theme):
+			var mech = _main.REALM_MECHANICS[lvl_theme]
+			var ml = _lbl("⚙ %s" % mech["name"], 9, Color(0.65, 0.55, 0.80))
+			ml.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ml.tooltip_text = mech["desc"]
+			ml.clip_text = true
+			btns.add_child(ml)
 		# PLAY button — styled green button (no art — go_button.png was ugly)
 		var pb = _art_button("▶  PLAY", Color(0.15, 0.35, 0.12), Vector2(150, 38))
 		pb.add_theme_font_size_override("font_size", 15)

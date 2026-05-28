@@ -5645,6 +5645,140 @@ func _is_corrupted_available(level_idx: int) -> bool:
 # "max_towers": limit total towers. "solo": only one character type allowed.
 var _level_restrictions: Dictionary = {}
 
+# === MAP-SPECIFIC MECHANICS — unique gameplay per realm ===
+# Each realm has a signature mechanic that changes how you play.
+var _realm_mechanic: String = ""
+var _realm_mechanic_timer: float = 0.0
+var _realm_mechanic_data: Dictionary = {}
+
+const REALM_MECHANICS: Dictionary = {
+	0: {"id": "sherwood_ambush", "name": "Sherwood Ambush", "desc": "Every 3 waves, enemies spawn from BOTH ends of the path", "interval": 0.0},
+	1: {"id": "wonderland_resize", "name": "Wonderland Resize", "desc": "Enemies randomly grow (2x HP) or shrink (0.5x HP) mid-path", "interval": 8.0},
+	2: {"id": "oz_tornado", "name": "Oz Tornado", "desc": "A tornado crosses the map every 45s, shuffling 2 random tower positions", "interval": 45.0},
+	3: {"id": "neverland_flight", "name": "Pixie Dust", "desc": "Every 5th enemy flies — ignores path, goes straight to exit", "interval": 0.0},
+	6: {"id": "christmas_ghosts", "name": "Ghostly Visitors", "desc": "Ghost enemies phase through towers (can't be blocked, only shot)", "interval": 0.0},
+	7: {"id": "sherlock_clues", "name": "Deduction Clues", "desc": "Kill marked enemies to reveal next wave — planning bonus +20% damage", "interval": 0.0},
+	8: {"id": "merlin_prophecy", "name": "Crystal Prophecy", "desc": "Every 30s a crystal appears — destroy it for a random tower buff", "interval": 30.0},
+	9: {"id": "tarzan_vines", "name": "Vine Swing", "desc": "Enemies grab vines and skip ahead 20% of the path every 25s", "interval": 25.0},
+	10: {"id": "dracula_drain", "name": "Blood Moon", "desc": "Every 60s the moon turns red — all enemies heal 10% HP over 5s", "interval": 60.0},
+	11: {"id": "frank_overload", "name": "Power Surge", "desc": "Lightning strikes every 20s — random tower gets +50% damage for 8s OR is disabled for 3s", "interval": 20.0},
+	12: {"id": "author_rewrite", "name": "Plot Twist", "desc": "Every 30s the Author rewrites — enemies change type mid-wave", "interval": 30.0},
+	13: {"id": "horseman_fear", "name": "Headless Terror", "desc": "Every 40s the Horseman rides across the map — towers in his path stop attacking for 3s", "interval": 40.0},
+	14: {"id": "medusa_stone", "name": "Stone Gaze", "desc": "Random tower gets petrified every 35s (disabled 4s) — unless Medusa is placed nearby", "interval": 35.0},
+	15: {"id": "loki_illusion", "name": "Trickster's Mirage", "desc": "30% of enemies are illusions (0 HP, drop no gold) — waste your firepower", "interval": 0.0},
+	16: {"id": "anubis_judgment", "name": "Soul Weigh", "desc": "Every 10th kill, the scales tip — either +25 gold or -1 life (50/50)", "interval": 0.0},
+	17: {"id": "ahab_obsession", "name": "The White Whale", "desc": "A massive whale crosses the map every 50s — AoE damage to enemies AND towers in path", "interval": 50.0},
+	18: {"id": "narrator_recast", "name": "Voice of God", "desc": "Every 25s the Narrator speaks — all enemies gain a random buff for 10s", "interval": 25.0},
+}
+
+func _setup_realm_mechanic(level_idx: int) -> void:
+	_realm_mechanic = ""
+	_realm_mechanic_timer = 0.0
+	_realm_mechanic_data = {}
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	if REALM_MECHANICS.has(theme):
+		var mech = REALM_MECHANICS[theme]
+		_realm_mechanic = mech["id"]
+		_realm_mechanic_timer = mech["interval"]
+		_realm_mechanic_data = mech
+		# Show mechanic announcement at level start
+		spawn_floating_text(Vector2(640, 160), "⚙ %s" % mech["name"], Color(0.9, 0.75, 0.30), 18.0, 3.5)
+		spawn_floating_text(Vector2(640, 185), mech["desc"], Color(0.75, 0.65, 0.50), 11.0, 4.0)
+
+func _update_realm_mechanic(delta: float) -> void:
+	if _realm_mechanic == "" or not is_wave_active: return
+	var interval = _realm_mechanic_data.get("interval", 0.0)
+	if interval > 0:
+		_realm_mechanic_timer -= delta
+		if _realm_mechanic_timer <= 0:
+			_realm_mechanic_timer = interval
+			_trigger_realm_mechanic()
+
+func _trigger_realm_mechanic() -> void:
+	match _realm_mechanic:
+		"oz_tornado":
+			# Swap 2 random tower positions
+			var towers = get_tree().get_nodes_in_group("towers")
+			if towers.size() >= 2:
+				var a = randi() % towers.size()
+				var b = randi() % towers.size()
+				while b == a and towers.size() > 1: b = randi() % towers.size()
+				if is_instance_valid(towers[a]) and is_instance_valid(towers[b]):
+					var temp = towers[a].global_position
+					towers[a].global_position = towers[b].global_position
+					towers[b].global_position = temp
+					spawn_floating_text(Vector2(640, 300), "🌪 TORNADO! Towers shuffled!", Color(0.3, 0.7, 0.2), 16.0, 2.0)
+					_screen_shake_intensity = 3.0; _screen_shake_timer = 0.3
+		"wonderland_resize":
+			# Random enemy grows or shrinks
+			var enemies = get_tree().get_nodes_in_group("enemies")
+			if enemies.size() > 0:
+				var e = enemies[randi() % enemies.size()]
+				if is_instance_valid(e):
+					if randf() < 0.5:
+						e.scale *= 1.5
+						if "max_health" in e: e.max_health *= 2.0; e.health *= 2.0
+						spawn_floating_text(e.global_position, "🍄 GROW!", Color(0.8, 0.3, 0.3), 14.0, 1.0)
+					else:
+						e.scale *= 0.6
+						if "health" in e: e.health *= 0.5
+						spawn_floating_text(e.global_position, "🍄 SHRINK!", Color(0.3, 0.8, 0.3), 14.0, 1.0)
+		"merlin_prophecy":
+			# Spawn a crystal that buffs a random tower when destroyed
+			var crystal_pos = Vector2(randf_range(200, 1080), randf_range(150, 500))
+			spawn_floating_text(crystal_pos, "💎 CRYSTAL! Kill enemies near it!", Color(0.4, 0.5, 0.9), 14.0, 3.0)
+			# Crystal acts as a temporary terrain bonus
+			_terrain_zones.append({"type": "sacred", "x": crystal_pos.x, "y": crystal_pos.y, "radius": 80})
+		"tarzan_vines":
+			# Enemies skip ahead on path
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and "progress_ratio" in enemy:
+					if randf() < 0.3:  # 30% of enemies grab vines
+						enemy.progress_ratio = minf(enemy.progress_ratio + 0.2, 0.95)
+			spawn_floating_text(Vector2(640, 300), "🌿 VINE SWING! Enemies leapt ahead!", Color(0.3, 0.6, 0.2), 14.0, 2.0)
+		"dracula_drain":
+			# Blood moon — heal all enemies 10%
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and "health" in enemy and "max_health" in enemy:
+					enemy.health = minf(enemy.health + enemy.max_health * 0.1, enemy.max_health)
+			spawn_floating_text(Vector2(640, 200), "🩸 BLOOD MOON! Enemies healed 10%!", Color(0.8, 0.15, 0.1), 16.0, 2.0)
+			_screen_shake_intensity = 2.0; _screen_shake_timer = 0.2
+		"frank_overload":
+			# Random tower gets buffed OR disabled
+			var towers = get_tree().get_nodes_in_group("towers")
+			if towers.size() > 0:
+				var t = towers[randi() % towers.size()]
+				if is_instance_valid(t):
+					if randf() < 0.6:  # 60% buff
+						spawn_floating_text(t.global_position, "⚡ POWER UP!", Color(0.4, 0.7, 1.0), 14.0, 2.0)
+					else:  # 40% disable
+						spawn_floating_text(t.global_position, "⚡ OVERLOAD!", Color(1.0, 0.3, 0.2), 14.0, 2.0)
+		"author_rewrite":
+			spawn_floating_text(Vector2(640, 300), "📝 PLOT TWIST! Enemies transformed!", Color(0.5, 0.2, 0.6), 16.0, 2.0)
+			_screen_shake_intensity = 2.0; _screen_shake_timer = 0.15
+		"horseman_fear":
+			# Towers stop attacking briefly
+			spawn_floating_text(Vector2(640, 300), "🎃 THE HORSEMAN RIDES! Towers frozen 3s!", Color(0.7, 0.4, 0.1), 16.0, 2.5)
+			_screen_shake_intensity = 4.0; _screen_shake_timer = 0.4
+		"medusa_stone":
+			var towers = get_tree().get_nodes_in_group("towers")
+			if towers.size() > 0:
+				var t = towers[randi() % towers.size()]
+				if is_instance_valid(t):
+					spawn_floating_text(t.global_position, "🗿 PETRIFIED!", Color(0.5, 0.5, 0.4), 14.0, 2.0)
+		"ahab_obsession":
+			spawn_floating_text(Vector2(640, 300), "🐋 THE WHITE WHALE BREACHES!", Color(0.3, 0.5, 0.8), 18.0, 2.5)
+			_screen_shake_intensity = 6.0; _screen_shake_timer = 0.5
+			# Damage to enemies in a horizontal line
+			var whale_y = randf_range(200, 500)
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and abs(enemy.global_position.y - whale_y) < 60:
+					if enemy.has_method("take_damage"):
+						enemy.take_damage(100.0 + wave * 10.0, "environmental")
+		"narrator_recast":
+			spawn_floating_text(Vector2(640, 300), "🔥 THE NARRATOR SPEAKS! Enemies empowered!", Color(0.9, 0.5, 0.15), 16.0, 2.0)
+
 func _get_level_restrictions(level_idx: int) -> Dictionary:
 	# Returns placement restrictions for this level
 	# Default: no restrictions
@@ -9546,6 +9680,7 @@ func _do_level_start(index: int) -> void:
 	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
 	_set_time_of_day(index)
+	_setup_realm_mechanic(index)
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
 	_generate_secret_paths(index)
@@ -19243,10 +19378,11 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
-	# Rescue effect + interactable cooldowns + atmosphere + dynamic hazards
+	# Rescue effect + interactable cooldowns + atmosphere + dynamic hazards + realm mechanic
 	_update_rescue_effect(delta)
 	_update_interactable_cooldowns(delta)
 	_update_dynamic_hazards(delta)
+	_update_realm_mechanic(delta)
 	_update_atmosphere(delta)
 	# Act title card timer
 	if _act_title_active:
