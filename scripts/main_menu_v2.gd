@@ -30,6 +30,16 @@ const REALMS: Array = [
 	{"arc": "Victorian London", "name": "The Ghost's Ledger", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [31, 32, 33], "act": 2},
 	# === ACT 3: THE FINAL CHAPTER ===
 	{"arc": "Shadow Author", "name": "The Final Chapter", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.5, 0.2, 0.6], "levels": [34, 35, 36], "act": 3},
+	# === ACT 4: THE NARRATOR'S REALM — Starter hero trials + 5 new rescues + finale ===
+	{"arc": "Alice's Trial", "name": "The Vorpal Challenge", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [37, 38, 39], "act": 4},
+	{"arc": "Robin's Trial", "name": "The Legendary Hunt", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [40, 41, 42], "act": 4},
+	{"arc": "Scrooge's Trial", "name": "The Eternal Debt", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [43, 44, 45], "act": 4},
+	{"arc": "Rapunzel", "name": "The Tower of Thorns", "icon": "realm_prologue", "portrait": "robin_hood", "color": [0.7, 0.5, 0.3], "levels": [46, 47, 48], "act": 4, "rescues": "rapunzel"},
+	{"arc": "Pinocchio", "name": "The Puppet's Dream", "icon": "realm_prologue", "portrait": "alice", "color": [0.5, 0.4, 0.2], "levels": [49, 50, 51], "act": 4, "rescues": "pinocchio"},
+	{"arc": "Aladdin", "name": "The Lamp Unchained", "icon": "realm_prologue", "portrait": "peter_pan", "color": [0.7, 0.6, 0.2], "levels": [52, 53, 54], "act": 4, "rescues": "aladdin"},
+	{"arc": "Beauty & Beast", "name": "The Last Petal", "icon": "realm_prologue", "portrait": "phantom", "color": [0.6, 0.3, 0.5], "levels": [55, 56, 57], "act": 4, "rescues": "beast"},
+	{"arc": "Captain Ahab", "name": "The White Whale", "icon": "realm_prologue", "portrait": "scrooge", "color": [0.3, 0.4, 0.6], "levels": [58, 59, 60], "act": 4, "rescues": "ahab"},
+	{"arc": "The Narrator", "name": "The Voice Unbound", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.8, 0.5, 0.2], "levels": [61, 62, 63], "act": 4},
 ]
 var _song_label: Label = null
 var _last_song: String = ""
@@ -603,7 +613,7 @@ func _build_portal_hub() -> void:
 		# Act divider + new grid when act changes
 		if act_num != _last_act:
 			_last_act = act_num
-			var act_names = {1: "ACT I — INTO THE PAGES", 2: "ACT II — THE SHADOW STORIES", 3: "ACT III — THE FINAL CHAPTER"}
+			var act_names = {1: "ACT I — INTO THE PAGES", 2: "ACT II — THE SHADOW STORIES", 3: "ACT III — THE FINAL CHAPTER", 4: "ACT IV — THE NARRATOR'S REALM"}
 			vb.add_child(_section_header(act_names.get(act_num, "ACT %d" % act_num)))
 			grid = GridContainer.new()
 			grid.columns = 3
