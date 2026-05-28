@@ -2214,6 +2214,12 @@ const MAP_THUMB_SLUGS: Array = [
 
 # Level decoration data (regenerated per level)
 var _decorations: Array = []
+# Realm atmosphere — visual weather/effects unique to each story world
+var _atmosphere_particles: Array = []  # [{x, y, vel_x, vel_y, size, alpha, type}]
+var _atmosphere_type: String = ""  # fog, snow, rain, embers, fireflies, ink_drip, lightning, petals, sand, bubbles
+var _atmosphere_color: Color = Color.WHITE
+var _lightning_timer: float = 0.0
+var _lightning_flash: float = 0.0
 # Terrain zones — areas on the map with gameplay effects
 # Each zone: {type, x, y, radius, color}
 # Types: "water" (ranged bonus), "elevated" (range bonus), "hazard" (damages enemies),
@@ -5298,6 +5304,181 @@ func _check_interactable_click(mouse_pos: Vector2) -> bool:
 # also means enemies reach the exit FASTER — a risk/reward trade-off.
 var _secret_paths: Array = []  # [{x, y, hp, max_hp, destroyed, reward_type, reward_amount, description}]
 var _secret_path_discovered: Dictionary = {}  # level_idx -> true (persisted in save)
+
+# === REALM ATMOSPHERE — story-driven visual weather per realm ===
+func _generate_atmosphere(level_idx: int) -> void:
+	_atmosphere_particles.clear()
+	_atmosphere_type = ""
+	_lightning_timer = 0.0
+	_lightning_flash = 0.0
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	var count = 40
+	match theme:
+		0: # Sherwood — floating leaf petals + dappled light
+			_atmosphere_type = "petals"
+			_atmosphere_color = Color(0.4, 0.6, 0.2)
+			count = 25
+		1: # Wonderland — floating playing cards + sparkles
+			_atmosphere_type = "petals"
+			_atmosphere_color = Color(0.8, 0.3, 0.5)
+			count = 30
+		2: # Oz — green sparkle dust + sand from the desert
+			_atmosphere_type = "sand"
+			_atmosphere_color = Color(0.3, 0.7, 0.2)
+			count = 30
+		3: # Neverland — fireflies + fairy dust
+			_atmosphere_type = "fireflies"
+			_atmosphere_color = Color(0.9, 0.8, 0.3)
+			count = 35
+		6: # Victorian London — snow
+			_atmosphere_type = "snow"
+			_atmosphere_color = Color(0.9, 0.92, 0.95)
+			count = 50
+		7: # Sherlock — thick fog particles
+			_atmosphere_type = "fog"
+			_atmosphere_color = Color(0.6, 0.6, 0.65)
+			count = 60
+		8: # Merlin — magic sparkles rising upward
+			_atmosphere_type = "fireflies"
+			_atmosphere_color = Color(0.4, 0.5, 0.9)
+			count = 30
+		9: # Tarzan — rain
+			_atmosphere_type = "rain"
+			_atmosphere_color = Color(0.5, 0.6, 0.7)
+			count = 80
+		10: # Dracula — embers + fog
+			_atmosphere_type = "embers"
+			_atmosphere_color = Color(0.8, 0.2, 0.1)
+			count = 35
+		11: # Frankenstein — lightning + embers
+			_atmosphere_type = "lightning"
+			_atmosphere_color = Color(0.4, 0.6, 0.9)
+			count = 20
+		12: # Shadow Author — ink drips from sky
+			_atmosphere_type = "ink_drip"
+			_atmosphere_color = Color(0.2, 0.1, 0.3)
+			count = 45
+		13: # Headless Horseman — fog + embers (pumpkin fire)
+			_atmosphere_type = "fog"
+			_atmosphere_color = Color(0.5, 0.4, 0.3)
+			count = 50
+		14: # Medusa — sand + stone dust
+			_atmosphere_type = "sand"
+			_atmosphere_color = Color(0.7, 0.6, 0.4)
+			count = 30
+		15: # Loki — fireflies (chaotic, fast moving)
+			_atmosphere_type = "fireflies"
+			_atmosphere_color = Color(0.5, 0.8, 0.2)
+			count = 40
+		16: # Anubis — sand + embers
+			_atmosphere_type = "sand"
+			_atmosphere_color = Color(0.8, 0.65, 0.3)
+			count = 40
+		17: # Ahab — rain (heavy ocean storm)
+			_atmosphere_type = "rain"
+			_atmosphere_color = Color(0.4, 0.5, 0.6)
+			count = 100
+		18: # Narrator — embers (fire and lightning realm)
+			_atmosphere_type = "embers"
+			_atmosphere_color = Color(0.9, 0.5, 0.15)
+			count = 50
+	for _i in range(count):
+		_atmosphere_particles.append({
+			"x": randf_range(0, 1280), "y": randf_range(0, 720),
+			"vel_x": 0.0, "vel_y": 0.0,
+			"size": randf_range(1.5, 4.0), "alpha": randf_range(0.2, 0.6),
+		})
+
+func _update_atmosphere(delta: float) -> void:
+	if _atmosphere_type == "": return
+	for p in _atmosphere_particles:
+		match _atmosphere_type:
+			"fog":
+				p["x"] += (sin(p["y"] * 0.005 + _time * 0.3) * 8.0 + 5.0) * delta
+				p["y"] += sin(_time * 0.5 + p["x"] * 0.003) * 2.0 * delta
+				p["alpha"] = 0.15 + sin(_time * 0.4 + p["x"] * 0.01) * 0.08
+			"snow":
+				p["x"] += sin(_time + p["y"] * 0.01) * 15.0 * delta
+				p["y"] += (20.0 + p["size"] * 5.0) * delta
+			"rain":
+				p["x"] += -30.0 * delta  # Wind angle
+				p["y"] += (300.0 + p["size"] * 50.0) * delta
+			"embers":
+				p["x"] += sin(_time * 2.0 + p["y"] * 0.02) * 20.0 * delta
+				p["y"] -= (15.0 + p["size"] * 8.0) * delta  # Rise upward
+				p["alpha"] -= delta * 0.05
+			"fireflies":
+				p["x"] += sin(_time * 1.5 + p["y"] * 0.03) * 25.0 * delta
+				p["y"] += cos(_time * 1.2 + p["x"] * 0.02) * 20.0 * delta
+				p["alpha"] = 0.3 + sin(_time * 3.0 + p["x"] * 0.05) * 0.3
+			"ink_drip":
+				p["y"] += (40.0 + p["size"] * 12.0) * delta
+				p["alpha"] -= delta * 0.02
+			"petals":
+				p["x"] += (15.0 + sin(_time * 0.8 + p["y"] * 0.01) * 20.0) * delta
+				p["y"] += (8.0 + sin(_time * 1.5 + p["x"] * 0.02) * 5.0) * delta
+			"sand":
+				p["x"] += (40.0 + sin(p["y"] * 0.005) * 10.0) * delta
+				p["y"] += sin(_time * 0.3 + p["x"] * 0.01) * 3.0 * delta
+		# Wrap around screen
+		if p["y"] > 730: p["y"] = -10; p["x"] = randf_range(0, 1280); p["alpha"] = randf_range(0.2, 0.6)
+		if p["y"] < -10: p["y"] = 730; p["x"] = randf_range(0, 1280); p["alpha"] = randf_range(0.2, 0.6)
+		if p["x"] > 1290: p["x"] = -10; p["y"] = randf_range(0, 720)
+		if p["x"] < -10: p["x"] = 1290; p["y"] = randf_range(0, 720)
+	# Lightning flashes for Frankenstein
+	if _atmosphere_type == "lightning":
+		_lightning_timer -= delta
+		if _lightning_timer <= 0:
+			_lightning_timer = randf_range(3.0, 8.0)
+			_lightning_flash = 0.3
+		if _lightning_flash > 0:
+			_lightning_flash -= delta
+
+func _draw_atmosphere() -> void:
+	if _atmosphere_type == "": return
+	var c = _atmosphere_color
+	for p in _atmosphere_particles:
+		var px = p["x"]; var py = p["y"]; var ps = p["size"]; var pa = p["alpha"]
+		match _atmosphere_type:
+			"fog":
+				draw_circle(Vector2(px, py), ps * 8.0, Color(c.r, c.g, c.b, pa * 0.3))
+			"snow":
+				draw_circle(Vector2(px, py), ps, Color(c.r, c.g, c.b, pa))
+			"rain":
+				draw_line(Vector2(px, py), Vector2(px - 3, py + 12), Color(c.r, c.g, c.b, pa * 0.4), 1.0)
+			"embers":
+				var ember_a = maxf(pa, 0.0)
+				draw_circle(Vector2(px, py), ps * 0.8, Color(c.r, c.g, c.b, ember_a))
+				draw_circle(Vector2(px, py), ps * 0.4, Color(1.0, 0.9, 0.5, ember_a * 0.5))
+			"fireflies":
+				var glow = maxf(pa, 0.0)
+				draw_circle(Vector2(px, py), ps * 1.5, Color(c.r, c.g, c.b, glow * 0.2))
+				draw_circle(Vector2(px, py), ps * 0.5, Color(c.r, c.g, c.b, glow))
+			"ink_drip":
+				var ink_a = maxf(pa, 0.0)
+				draw_circle(Vector2(px, py), ps, Color(c.r, c.g, c.b, ink_a))
+				draw_line(Vector2(px, py), Vector2(px, py - ps * 4), Color(c.r, c.g, c.b, ink_a * 0.3), 1.0)
+			"petals":
+				# Leaf/petal shape — rotated diamond
+				var angle = _time + px * 0.01
+				var dx = cos(angle) * ps; var dy = sin(angle) * ps * 0.5
+				draw_line(Vector2(px - dx, py - dy), Vector2(px + dx, py + dy), Color(c.r, c.g, c.b, pa), ps * 0.6)
+			"sand":
+				draw_circle(Vector2(px, py), ps * 0.6, Color(c.r, c.g, c.b, pa * 0.4))
+	# Lightning flash overlay
+	if _lightning_flash > 0 and _atmosphere_type == "lightning":
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0.7, 0.75, 1.0, _lightning_flash * 0.4))
+		# Lightning bolt
+		var lx = randf_range(200, 1080)
+		var points: PackedVector2Array = [Vector2(lx, 0)]
+		var ly = 0.0
+		while ly < 720:
+			ly += randf_range(30, 80)
+			lx += randf_range(-40, 40)
+			points.append(Vector2(lx, ly))
+		for li in range(points.size() - 1):
+			draw_line(points[li], points[li + 1], Color(0.8, 0.85, 1.0, _lightning_flash), 2.0)
 
 func _generate_secret_paths(level_idx: int) -> void:
 	_secret_paths.clear()
@@ -8727,6 +8908,7 @@ func _do_level_start(index: int) -> void:
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
 	_generate_secret_paths(index)
+	_generate_atmosphere(index)
 	_generate_decorations_for_level(index)
 	# BATTD: Generate bounties for this level
 	_generate_bounties()
@@ -18419,9 +18601,10 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
-	# Rescue effect update + interactable cooldowns
+	# Rescue effect update + interactable cooldowns + atmosphere
 	_update_rescue_effect(delta)
 	_update_interactable_cooldowns(delta)
+	_update_atmosphere(delta)
 	# Act title card timer
 	if _act_title_active:
 		_act_title_timer -= delta
@@ -25726,6 +25909,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 		draw_line(Vector2(oak_x + 38, oak_y + 70 + float(tl) * 4.5), Vector2(oak_x + 54, oak_y + 70 + float(tl) * 4.5), Color(0.3, 0.2, 0.1, 0.5), 1.0)
 	draw_circle(Vector2(oak_x + 46, oak_y + 59), 1.5, Color(0.3, 0.3, 0.3))
 
+	# --- REALM ATMOSPHERE (behind everything) ---
+	_draw_atmosphere()
 	# --- TERRAIN ZONES ---
 	_draw_terrain_zones()
 	# --- SECRET PATHS ---
