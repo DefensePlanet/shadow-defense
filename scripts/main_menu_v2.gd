@@ -854,6 +854,95 @@ func _build_arc_levels() -> void:
 	sa_attr2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sa_attr2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(sa_attr2)
+	# === REALM JOURNEY MAP — visual node map showing level progression ===
+	if _main:
+		var journey_panel = PanelContainer.new()
+		var jps = StyleBoxFlat.new()
+		jps.bg_color = Color(0.05, 0.03, 0.10, 0.5)
+		jps.set_corner_radius_all(10)
+		jps.border_color = Color(rc.r * 0.4, rc.g * 0.4, rc.b * 0.4, 0.3)
+		jps.set_border_width_all(1)
+		jps.content_margin_left = 16; jps.content_margin_right = 16
+		jps.content_margin_top = 12; jps.content_margin_bottom = 12
+		journey_panel.add_theme_stylebox_override("panel", jps)
+		journey_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		journey_panel.custom_minimum_size = Vector2(0, 80)
+		# Draw nodes as HBox
+		var journey_row = HBoxContainer.new()
+		journey_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		journey_row.add_theme_constant_override("separation", 0)
+		journey_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		journey_panel.add_child(journey_row)
+		var arc_levels = arc_realm["levels"]
+		for ji in range(arc_levels.size()):
+			var jli = arc_levels[ji]
+			var j_complete = _main.completed_levels.has(jli) if "completed_levels" in _main else false
+			var j_unlocked = jli == arc_levels[0] or (ji > 0 and _main.completed_levels.has(arc_levels[ji - 1]))
+			# Connection line (before each node except first)
+			if ji > 0:
+				var line_panel = PanelContainer.new()
+				var lps2 = StyleBoxFlat.new()
+				lps2.bg_color = Color(rc.r * 0.5, rc.g * 0.5, rc.b * 0.5, 0.5) if j_complete or j_unlocked else Color(0.25, 0.20, 0.15, 0.3)
+				lps2.set_corner_radius_all(2)
+				line_panel.add_theme_stylebox_override("panel", lps2)
+				line_panel.custom_minimum_size = Vector2(40, 4)
+				line_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				var line_center = CenterContainer.new()
+				line_center.custom_minimum_size = Vector2(40, 40)
+				line_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				line_center.add_child(line_panel)
+				journey_row.add_child(line_center)
+			# Level node
+			var node_panel = PanelContainer.new()
+			var nps = StyleBoxFlat.new()
+			if j_complete:
+				nps.bg_color = Color(0.15, 0.40, 0.15, 0.85)
+				nps.border_color = Color(0.35, 0.75, 0.30, 0.7)
+			elif j_unlocked:
+				nps.bg_color = Color(rc.r * 0.3, rc.g * 0.3, rc.b * 0.3, 0.8)
+				nps.border_color = Color(rc.r * 0.8, rc.g * 0.8, rc.b * 0.8, 0.7)
+			else:
+				nps.bg_color = Color(0.06, 0.04, 0.10, 0.5)
+				nps.border_color = Color(0.25, 0.20, 0.15, 0.3)
+			nps.set_corner_radius_all(20)
+			nps.set_border_width_all(2)
+			nps.content_margin_left = 8; nps.content_margin_right = 8
+			nps.content_margin_top = 4; nps.content_margin_bottom = 4
+			node_panel.add_theme_stylebox_override("panel", nps)
+			node_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			node_panel.custom_minimum_size = Vector2(40, 40)
+			var node_text = "✅" if j_complete else (str(ji + 1) if j_unlocked else "🔒")
+			var node_col = Color(1, 1, 1) if j_complete else (Color(1.0, 0.92, 0.40) if j_unlocked else Color(0.40, 0.35, 0.30))
+			var node_lbl = _lbl(node_text, 14, node_col)
+			node_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			node_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			node_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			node_panel.add_child(node_lbl)
+			# Pulse the next unlocked incomplete node
+			if j_unlocked and not j_complete:
+				var ntw = create_tween().set_loops()
+				ntw.tween_property(node_panel, "modulate", Color(1.15, 1.10, 1.0), 0.6).set_ease(Tween.EASE_IN_OUT)
+				ntw.tween_property(node_panel, "modulate", Color(1.0, 1.0, 1.0), 0.6).set_ease(Tween.EASE_IN_OUT)
+			journey_row.add_child(node_panel)
+		# Star count for this arc
+		var arc_stars = 0
+		var arc_max_stars = arc_levels.size() * 3
+		for jli2 in arc_levels:
+			if _main.level_stars.has(jli2):
+				arc_stars += _main.level_stars[jli2]
+		var star_row = HBoxContainer.new()
+		star_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		star_row.add_child(_lbl("⭐ %d / %d" % [arc_stars, arc_max_stars], 11, Color(1.0, 0.85, 0.25)))
+		vb.add_child(journey_panel)
+		vb.add_child(star_row)
+		# Challenge map button (if unlocked)
+		if _main.CHALLENGE_MAPS.has(arc_realm["arc"]) and _main._is_challenge_unlocked(arc_realm["arc"]):
+			var ch = _main.CHALLENGE_MAPS[arc_realm["arc"]]
+			var ch_btn = _art_button("🏆 CHALLENGE: %s" % ch["name"], Color(0.35, 0.15, 0.10), Vector2(350, 34))
+			ch_btn.add_theme_font_size_override("font_size", 12)
+			ch_btn.tooltip_text = ch["modifier_desc"] + " — Reward: %d Ink" % ch["reward_ink"]
+			vb.add_child(ch_btn)
 	# Level cards for this arc only
 	if not _main: return
 	var card_idx2 = 0
