@@ -2931,6 +2931,18 @@ var chronicles_scroll: float = 0.0  # Scroll offset for chronicles/knowledge tre
 
 # === STORY DIALOG SYSTEM ===
 var story_dialogs: Dictionary = {}  # "pre_level_N" -> [{speaker, text, voice_type}]
+# Act title card system
+var _act_title_active: bool = false
+var _act_title_timer: float = 0.0
+var _act_title_text: String = ""
+var _act_title_subtitle: String = ""
+const ACT_TITLE_DURATION: float = 4.0
+const ACT_DEFINITIONS: Dictionary = {
+	"act1": {"title": "ACT I", "subtitle": "INTO THE PAGES", "levels": "Prologue — Freeing the Imprisoned"},
+	"act2": {"title": "ACT II", "subtitle": "THE SHADOW STORIES", "levels": "Reclaiming the Corrupted Tales"},
+	"act3": {"title": "ACT III", "subtitle": "THE FINAL CHAPTER", "levels": "Confronting the Shadow Author"},
+}
+
 var story_state: Dictionary = {
 	"current_dialog": "", "line_index": 0, "char_index": 0,
 	"typewriter_timer": 0.0, "active": false, "auto_advance_timer": 0.0,
@@ -7954,7 +7966,11 @@ func _on_level_selected(index: int) -> void:
 		_pending_level_start = index
 		if act_key != "":
 			story_state.queued_dialog = pre_key
-			_start_story_dialog(act_key)
+			# Show act title card before the act intro dialog
+			if act_key == "act2_intro":
+				_show_act_title("act2", act_key)
+			else:
+				_start_story_dialog(act_key)
 		else:
 			_start_story_dialog(pre_key)
 		return
@@ -9747,10 +9763,62 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "Reclaim every story. Conquer every shadow. Then the path to the Final Chapter will open.", "voice_type": "narrator"},
 	]
 
+func _show_act_title(act_key: String, then_dialog: String = "") -> void:
+	if not ACT_DEFINITIONS.has(act_key): return
+	var act = ACT_DEFINITIONS[act_key]
+	_act_title_text = act["title"]
+	_act_title_subtitle = act["subtitle"]
+	_act_title_active = true
+	_act_title_timer = ACT_TITLE_DURATION
+	# Hide game UI during title card
+	$UI.visible = false
+	towers_node.visible = false
+	enemy_path.visible = false
+	# After title card fades, start the dialog
+	if then_dialog != "":
+		get_tree().create_timer(ACT_TITLE_DURATION + 0.5).timeout.connect(func():
+			_act_title_active = false
+			_start_story_dialog(then_dialog))
+	else:
+		get_tree().create_timer(ACT_TITLE_DURATION + 0.5).timeout.connect(func():
+			_act_title_active = false
+			$UI.visible = true
+			towers_node.visible = true
+			enemy_path.visible = true)
+	queue_redraw()
+
+func _draw_act_title_card() -> void:
+	if not _act_title_active: return
+	var font = game_font
+	# Full black background
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.01, 0.04, 1.0))
+	# Fade in/out
+	var progress = 1.0 - (_act_title_timer / ACT_TITLE_DURATION)
+	var alpha = 1.0
+	if progress < 0.2: alpha = progress / 0.2  # Fade in
+	elif progress > 0.8: alpha = (1.0 - progress) / 0.2  # Fade out
+	# Decorative lines
+	var line_w = 300.0 * alpha
+	var cy = 320.0
+	draw_rect(Rect2(640.0 - line_w, cy - 40, line_w * 2.0, 1), Color(0.65, 0.50, 0.18, 0.5 * alpha))
+	draw_rect(Rect2(640.0 - line_w, cy + 60, line_w * 2.0, 1), Color(0.65, 0.50, 0.18, 0.5 * alpha))
+	# Diamond ornaments
+	_udraw(font, Vector2(640.0 - line_w - 10, cy - 35), "◆", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(0.65, 0.50, 0.18, 0.5 * alpha))
+	_udraw(font, Vector2(640.0 + line_w + 10, cy - 35), "◆", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(0.65, 0.50, 0.18, 0.5 * alpha))
+	# Act title — large, gold, centered
+	_ds_outlined_text(Vector2(640, cy + 10), _act_title_text, 48, Color(1.0, 0.92, 0.40, alpha), 800, HORIZONTAL_ALIGNMENT_CENTER, 3)
+	# Subtitle — smaller, warm
+	_ds_outlined_text(Vector2(640, cy + 50), _act_title_subtitle, 22, Color(0.85, 0.72, 0.45, alpha * 0.8), 800, HORIZONTAL_ALIGNMENT_CENTER, 2)
+
 func _start_story_dialog(key: String) -> void:
 	if not story_dialogs.has(key):
 		return
 	if key in story_seen:
+		return
+	# Show ACT 1 title card before prologue (once)
+	if key == "prologue" and not _act_title_active and not "act1_title_shown" in story_seen:
+		story_seen.append("act1_title_shown")
+		_show_act_title("act1", "prologue")
 		return
 	story_state.current_dialog = key
 	story_state.line_index = 0
@@ -9915,6 +9983,13 @@ func _end_story_dialog() -> void:
 	if story_state.queued_dialog != "":
 		var next_key = story_state.queued_dialog
 		story_state.queued_dialog = ""
+		# Show act title card before act intros
+		if next_key == "act2_intro" and not "act2_intro" in story_seen:
+			_show_act_title("act2", next_key)
+			return
+		elif next_key == "act3_intro" and not "act3_intro" in story_seen:
+			_show_act_title("act3", next_key)
+			return
 		_start_story_dialog(next_key)
 		return
 	# Restore game elements hidden during story dialog
@@ -17234,6 +17309,10 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
+	# Act title card timer
+	if _act_title_active:
+		_act_title_timer -= delta
+		queue_redraw()
 	# Shadow Author taunt timer + narrator cooldown
 	_update_shadow_author_taunt(delta)
 	if _narrator_cooldown > 0.0: _narrator_cooldown -= delta
@@ -19502,6 +19581,10 @@ func _udraw(fnt: Font, pos: Vector2, text: String, halign: HorizontalAlignment =
 # DRAW — Level-specific backgrounds
 # ============================================================
 func _draw() -> void:
+	# Act title card overlay (renders above everything)
+	if _act_title_active:
+		_draw_act_title_card()
+		return
 	if game_state == GameState.MENU:
 		# Skip ALL old menu drawing when v2 menu is active
 		if _menu_v2_instance != null and _menu_v2_instance.visible:
