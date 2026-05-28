@@ -5310,6 +5310,81 @@ var _secret_path_discovered: Dictionary = {}  # level_idx -> true (persisted in 
 var _dynamic_hazards: Array = []  # [{type, x, y, radius, timer, lifetime, damage, active}]
 var _hazard_spawn_timer: float = 0.0
 
+# === DAY/NIGHT CYCLE — fixed time-of-day per realm ===
+# Affects sky overlay color, ambient lighting, and character bonuses
+# Times: "dawn", "day", "dusk", "twilight", "night", "midnight"
+var _time_of_day: String = "day"
+var _day_night_overlay_alpha: float = 0.0
+var _day_night_color: Color = Color(0, 0, 0, 0)
+
+const TIME_OF_DAY_DATA: Dictionary = {
+	"dawn": {"overlay": Color(0.8, 0.5, 0.2, 0.08), "sky_tint": Color(1.0, 0.85, 0.7), "bonus_chars": [], "desc": "Golden dawn light"},
+	"day": {"overlay": Color(0, 0, 0, 0), "sky_tint": Color(1.0, 1.0, 1.0), "bonus_chars": [], "desc": "Full daylight"},
+	"dusk": {"overlay": Color(0.7, 0.3, 0.1, 0.10), "sky_tint": Color(0.9, 0.7, 0.5), "bonus_chars": [], "desc": "Fading sunlight"},
+	"twilight": {"overlay": Color(0.3, 0.1, 0.4, 0.12), "sky_tint": Color(0.7, 0.5, 0.8), "bonus_chars": [4], "desc": "Purple twilight — Phantom +15% damage"},
+	"night": {"overlay": Color(0.05, 0.05, 0.15, 0.15), "sky_tint": Color(0.5, 0.5, 0.7), "bonus_chars": [8, 4], "desc": "Moonlit night — Dracula & Phantom +15% damage"},
+	"midnight": {"overlay": Color(0.02, 0.01, 0.08, 0.20), "sky_tint": Color(0.3, 0.3, 0.5), "bonus_chars": [8], "desc": "Deepest midnight — Dracula +25% damage"},
+	"eternal_dark": {"overlay": Color(0.05, 0.02, 0.10, 0.25), "sky_tint": Color(0.2, 0.15, 0.35), "bonus_chars": [8, 11], "desc": "Eternal darkness — Dracula & Shadow Author +20% damage"},
+}
+
+func _set_time_of_day(level_idx: int) -> void:
+	if level_idx < 0 or level_idx >= levels.size():
+		_time_of_day = "day"
+		return
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	match theme:
+		0: _time_of_day = "dawn"         # Sherwood — early morning forest
+		1: _time_of_day = "dusk"          # Wonderland — perpetual sunset
+		2: _time_of_day = "day"           # Oz — bright emerald daylight
+		3: _time_of_day = "night"         # Neverland — starlit sky
+		6: _time_of_day = "midnight"      # Victorian London — Christmas Eve midnight
+		7: _time_of_day = "night"         # Sherlock — foggy London night
+		8: _time_of_day = "dawn"          # Merlin — Camelot at dawn
+		9: _time_of_day = "day"           # Tarzan — jungle daylight
+		10: _time_of_day = "midnight"     # Dracula — always midnight
+		11: _time_of_day = "night"        # Frankenstein — stormy night
+		12: _time_of_day = "eternal_dark" # Shadow Author — no natural light
+		13: _time_of_day = "midnight"     # Headless Horseman — Sleepy Hollow midnight
+		14: _time_of_day = "dusk"         # Medusa — Greek sunset
+		15: _time_of_day = "twilight"     # Loki — Norse twilight (Ragnarok)
+		16: _time_of_day = "eternal_dark" # Anubis — Egyptian underworld
+		17: _time_of_day = "dusk"         # Ahab — ocean at dusk
+		18: _time_of_day = "eternal_dark" # Narrator — realm of fire (dark base + fire light)
+		_: _time_of_day = "day"
+	var tod = TIME_OF_DAY_DATA.get(_time_of_day, TIME_OF_DAY_DATA["day"])
+	_day_night_color = tod["overlay"]
+	_day_night_overlay_alpha = tod["overlay"].a
+
+func _draw_day_night_overlay() -> void:
+	if _day_night_overlay_alpha <= 0.0: return
+	# Subtle time-of-day color wash over the entire map
+	draw_rect(Rect2(0, 0, 1280, 720), _day_night_color)
+	# Moon/sun indicator in corner
+	var tod = TIME_OF_DAY_DATA.get(_time_of_day, {})
+	var indicator = ""
+	match _time_of_day:
+		"dawn": indicator = "🌅"
+		"day": indicator = "☀️"
+		"dusk": indicator = "🌇"
+		"twilight": indicator = "🌆"
+		"night": indicator = "🌙"
+		"midnight": indicator = "🌑"
+		"eternal_dark": indicator = "⬛"
+	if indicator != "":
+		_udraw(game_font, Vector2(1240, 62), indicator, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1, 1, 1, 0.4))
+
+func _get_time_of_day_damage_bonus(tower_type) -> float:
+	var tod = TIME_OF_DAY_DATA.get(_time_of_day, {})
+	var bonus_chars = tod.get("bonus_chars", [])
+	# Map TowerType enum to index
+	var type_idx = -1
+	var idx = survivor_types.find(tower_type)
+	if idx >= 0: type_idx = idx
+	if type_idx in bonus_chars:
+		if _time_of_day == "midnight": return 0.25  # +25%
+		return 0.15  # +15% for other night times
+	return 0.0
+
 func _generate_dynamic_hazards(level_idx: int) -> void:
 	_dynamic_hazards.clear()
 	_hazard_spawn_timer = 0.0
@@ -9061,6 +9136,7 @@ func _do_level_start(index: int) -> void:
 	_apply_handicaps()
 	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
+	_set_time_of_day(index)
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
 	_generate_secret_paths(index)
@@ -26067,6 +26143,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 		draw_line(Vector2(oak_x + 38, oak_y + 70 + float(tl) * 4.5), Vector2(oak_x + 54, oak_y + 70 + float(tl) * 4.5), Color(0.3, 0.2, 0.1, 0.5), 1.0)
 	draw_circle(Vector2(oak_x + 46, oak_y + 59), 1.5, Color(0.3, 0.3, 0.3))
 
+	# --- DAY/NIGHT OVERLAY ---
+	_draw_day_night_overlay()
 	# --- REALM ATMOSPHERE (behind everything) ---
 	_draw_atmosphere()
 	# --- TERRAIN ZONES ---
