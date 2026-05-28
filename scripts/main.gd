@@ -5671,6 +5671,69 @@ const REALM_MECHANICS: Dictionary = {
 	18: {"id": "narrator_recast", "name": "Voice of God", "desc": "Every 25s the Narrator speaks — all enemies gain a random buff for 10s", "interval": 25.0},
 }
 
+# === MULTI-PHASE BOSS BATTLES — arc-specific boss encounters ===
+# Each arc's final level (chapter 5) has a named boss with unique 3-phase mechanics.
+# Phase 1 (100-66%): Normal + signature move
+# Phase 2 (66-33%): Enrage + new ability
+# Phase 3 (33-0%): Desperate + ultimate attack
+
+const ARC_BOSSES: Dictionary = {
+	# level_idx -> {name, title, phases}
+	27: {"name": "Captain Hook", "title": "The Shadow Pirate King", "mechanic": "summon",
+		"phase_text": ["Hook draws his cutlass!", "Hook calls his shadow crew!", "HOOK GOES BERSERK — Double speed!"]},
+	24: {"name": "The Nome King", "title": "Ruler of the Emerald Darkness", "mechanic": "shield_pulse",
+		"phase_text": ["The Nome King raises his stone shield!", "Emerald shards rain from above!", "THE EARTH ITSELF ATTACKS!"]},
+	30: {"name": "The Shadow Maestro", "title": "Corrupted Conductor", "mechanic": "area_deny",
+		"phase_text": ["Discordant music fills the stage!", "The chandelier swings wildly!", "THE OPERA HOUSE COLLAPSES!"]},
+	3: {"name": "Professor Moriarty", "title": "The Napoleon of Crime", "mechanic": "summon",
+		"phase_text": ["Moriarty's criminal network activates!", "Assassins emerge from the fog!", "MORIARTY REVEALS HIS FINAL THEOREM!"]},
+	6: {"name": "Morgan le Fay", "title": "The Dark Enchantress", "mechanic": "shield_pulse",
+		"phase_text": ["Morgan raises a barrier of stolen magic!", "The Crystal Cave shatters!", "MORGAN UNLEASHES MERLIN'S OWN SPELLS!"]},
+	9: {"name": "Clayton", "title": "The Great White Hunter", "mechanic": "enrage",
+		"phase_text": ["Clayton loads his elephant gun!", "Traps spring across the jungle!", "CLAYTON'S FINAL HUNT — NO MERCY!"]},
+	12: {"name": "Van Helsing", "title": "The Shadow Slayer", "mechanic": "summon",
+		"phase_text": ["Van Helsing raises his crucifix!", "Holy water burns the ground!", "THE SLAYER BECOMES THE MONSTER!"]},
+	15: {"name": "Igor", "title": "The Mad Assistant", "mechanic": "summon",
+		"phase_text": ["Igor activates the machines!", "Failed experiments swarm the lab!", "IGOR MERGES WITH THE LIGHTNING!"]},
+	18: {"name": "The Sheriff", "title": "Sheriff of Nottingham", "mechanic": "enrage",
+		"phase_text": ["The Sheriff's army charges!", "Nottingham's walls crumble!", "THE SHERIFF FIGHTS WITH DESPERATE FURY!"]},
+	21: {"name": "The Queen of Hearts", "title": "Her Crimson Majesty", "mechanic": "area_deny",
+		"phase_text": ["OFF WITH THEIR HEADS!", "The card army swarms!", "THE QUEEN PAINTS EVERYTHING RED!"]},
+	33: {"name": "The Ghost of Christmas Future", "title": "The Silent Specter", "mechanic": "area_deny",
+		"phase_text": ["The Ghost points at a gravestone...", "Shadows of futures-that-never-were attack!", "TIME ITSELF UNRAVELS!"]},
+	36: {"name": "The Shadow Author", "title": "Master of the Tome", "mechanic": "summon",
+		"phase_text": ["The Author's quill writes new horrors!", "INK FLOODS THE BATTLEFIELD!", "THE AUTHOR REWRITES REALITY ITSELF!"]},
+	48: {"name": "The Headless Horseman", "title": "The Eternal Rider", "mechanic": "enrage",
+		"phase_text": ["The Horseman charges on his nightmare steed!", "Flaming pumpkins rain from the sky!", "THE HORSEMAN CALLS ALL SLEEPY HOLLOW!"]},
+	51: {"name": "Perseus's Shadow", "title": "The Mirror of Medusa", "mechanic": "shield_pulse",
+		"phase_text": ["The mirror reflects Medusa's own gaze!", "Stone soldiers rise from the garden!", "THE GORGON QUEEN BREAKS HER CHAINS!"]},
+	54: {"name": "Fenrir", "title": "The Wolf of Ragnarok", "mechanic": "enrage",
+		"phase_text": ["Fenrir strains against his chains!", "THE CHAINS CRACK!", "FENRIR IS UNBOUND — RAGNAROK BEGINS!"]},
+	57: {"name": "Ammit", "title": "The Devourer of Souls", "mechanic": "summon",
+		"phase_text": ["Ammit opens her crocodile jaws!", "Souls of the condemned rise to fight!", "THE SCALES TIP — AMMIT DEVOURS ALL!"]},
+	60: {"name": "Moby Dick", "title": "The White Leviathan", "mechanic": "shield_pulse",
+		"phase_text": ["The whale surfaces — massive, ancient, furious!", "The ocean itself fights for the beast!", "MOBY DICK DRAGS THE WORLD INTO THE DEEP!"]},
+	63: {"name": "The Narrator", "title": "The Voice Unbound", "mechanic": "summon",
+		"phase_text": ["The Narrator's voice shakes the realm!", "LEGENDS MANIFEST FROM PURE FIRE!", "THE VOICE SPEAKS THE FINAL WORD!"]},
+}
+
+func _get_boss_data(level_idx: int) -> Dictionary:
+	return ARC_BOSSES.get(level_idx, {})
+
+func _announce_boss_phase(level_idx: int, phase: int) -> void:
+	var boss = ARC_BOSSES.get(level_idx, {})
+	if boss.is_empty(): return
+	var texts = boss.get("phase_text", [])
+	if phase < texts.size():
+		spawn_floating_text(Vector2(640, 200), texts[phase], Color(1.0, 0.3, 0.15), 20.0, 3.0)
+		_screen_shake_intensity = 4.0 + phase * 2.0
+		_screen_shake_timer = 0.3 + phase * 0.15
+		_haptic(2)
+	# Boss name + title on first phase
+	if phase == 0:
+		spawn_floating_text(Vector2(640, 160), "⚠ BOSS: %s ⚠" % boss["name"], Color(1.0, 0.25, 0.1), 24.0, 4.0)
+		spawn_floating_text(Vector2(640, 240), boss["title"], Color(0.85, 0.65, 0.40), 14.0, 3.0)
+
 func _setup_realm_mechanic(level_idx: int) -> void:
 	_realm_mechanic = ""
 	_realm_mechanic_timer = 0.0
