@@ -30455,19 +30455,25 @@ func _generate_chest_loot(stars: int) -> void:
 	var prog_chapter = current_level / 3  # World index for drop rate scaling
 	var level_char = levels[current_level]["character"] if current_level >= 0 and current_level < levels.size() else -1
 	var highest_lv = _get_highest_completed_level()
-	var trinket_rarity = ["common", "uncommon", "rare"][loot_diff]
+	# Diablo-style loot tiers: Easy=white(common), Medium=blue(rare)+purple(epic), Hard=gold(legendary)
+	var trinket_rarity = ["common", "rare", "epic"][loot_diff]
 	var tier_ok = true
 	if selected_difficulty == 1 and highest_lv < 12:
 		tier_ok = false  # Bound requires Act 1 complete
 	elif selected_difficulty >= 2 and highest_lv < 24:
 		tier_ok = false  # Gilded requires Act 2 complete
 	# Mythic/Forbidden upgrade chance on hard difficulty
-	if selected_difficulty >= 2 and tier_ok:
+	# Medium gets chance at epic, Hard gets reliable epic + legendary chance
+	if selected_difficulty == 1 and tier_ok:  # Medium
 		var upgrade_roll = randf()
-		if upgrade_roll < 0.02:  # 2% legendary
-			trinket_rarity = "legendary"
-		elif upgrade_roll < 0.10:  # 8% epic
+		if upgrade_roll < 0.12:  # 12% chance to upgrade rare→epic on Medium
 			trinket_rarity = "epic"
+	elif selected_difficulty >= 2 and tier_ok:  # Hard/Pure
+		var upgrade_roll = randf()
+		if upgrade_roll < 0.10:  # 10% legendary (gold) on Hard
+			trinket_rarity = "legendary"
+		# Remaining 90% stays epic (purple) — Hard base tier
+		# Hard = guaranteed purple minimum, 10% gold. Very rewarding.
 	var gear_chance = [0.08, 0.12, 0.18][loot_diff]
 	gear_chance += [0.01, 0.015, 0.02][loot_diff] * prog_chapter
 	if stars >= 3:

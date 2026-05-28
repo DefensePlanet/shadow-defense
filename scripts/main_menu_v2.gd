@@ -1341,17 +1341,31 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		var dr = HBoxContainer.new()
 		dr.add_theme_constant_override("separation", 6)
 		dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Difficulty buttons — gem-style with glow
-		for d in [[0,"EASY",Color(0.15,0.55,0.15)],[1,"MED",Color(0.60,0.45,0.05)],[2,"HARD",Color(0.60,0.10,0.08)]]:
+		# Difficulty buttons — gem-style with glow + progressive unlock
+		# Easy always available. Medium unlocks after beating Easy. Hard after Medium.
+		for d in [[0,"EASY",Color(0.15,0.55,0.15),"⚪ Common Loot"],[1,"MED",Color(0.60,0.45,0.05),"🔵 Rare Loot"],[2,"HARD",Color(0.60,0.10,0.08),"🟡 Legendary Loot"]]:
+			# Check if this difficulty is unlocked for this level
+			var diff_unlocked = true
+			if d[0] == 1:  # Medium requires Easy beaten
+				diff_unlocked = _main.level_difficulty_medals.has(idx) and _main.level_difficulty_medals[idx].size() > 0 and _main.level_difficulty_medals[idx][0]
+			elif d[0] == 2:  # Hard requires Medium beaten
+				diff_unlocked = _main.level_difficulty_medals.has(idx) and _main.level_difficulty_medals[idx].size() > 1 and _main.level_difficulty_medals[idx][1]
 			var db = Button.new()
-			db.text = d[1]; db.custom_minimum_size = Vector2(58, 28)
+			db.text = d[1] if diff_unlocked else "🔒"
+			db.custom_minimum_size = Vector2(58, 28)
+			db.disabled = not diff_unlocked
+			db.tooltip_text = d[3] if diff_unlocked else ("Beat Easy first" if d[0] == 1 else "Beat Medium first")
 			var ds = StyleBoxFlat.new()
-			ds.bg_color = Color(d[2].r * 0.4, d[2].g * 0.4, d[2].b * 0.4, 0.85)
+			if diff_unlocked:
+				ds.bg_color = Color(d[2].r * 0.4, d[2].g * 0.4, d[2].b * 0.4, 0.85)
+				ds.border_color = Color(d[2].r * 1.8, d[2].g * 1.8, d[2].b * 1.8, 0.7)
+			else:
+				ds.bg_color = Color(0.08, 0.06, 0.12, 0.5)
+				ds.border_color = Color(0.25, 0.20, 0.15, 0.3)
 			ds.set_corner_radius_all(8)
-			ds.border_color = Color(d[2].r * 1.8, d[2].g * 1.8, d[2].b * 1.8, 0.7)
 			ds.set_border_width_all(2)
-			ds.shadow_color = Color(d[2].r, d[2].g, d[2].b, 0.3)
-			ds.shadow_size = 3
+			ds.shadow_color = Color(d[2].r, d[2].g, d[2].b, 0.3) if diff_unlocked else Color(0, 0, 0, 0.1)
+			ds.shadow_size = 3 if diff_unlocked else 0
 			db.add_theme_stylebox_override("normal", ds)
 			var dsh = ds.duplicate()
 			dsh.bg_color = Color(d[2].r * 0.6, d[2].g * 0.6, d[2].b * 0.6, 0.9)
@@ -1359,15 +1373,16 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			dsh.shadow_size = 5
 			db.add_theme_stylebox_override("hover", dsh)
 			var dsp = ds.duplicate()
-			dsp.bg_color = d[2].darkened(0.15)
+			dsp.bg_color = d[2].darkened(0.15) if diff_unlocked else Color(0.05, 0.04, 0.08, 0.4)
 			dsp.shadow_size = 1
 			db.add_theme_stylebox_override("pressed", dsp)
 			db.add_theme_font_size_override("font_size", 12)
-			db.add_theme_color_override("font_color", Color.WHITE)
+			db.add_theme_color_override("font_color", Color.WHITE if diff_unlocked else Color(0.35, 0.30, 0.25))
 			db.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 			db.add_theme_constant_override("shadow_offset_x", 1)
 			db.add_theme_constant_override("shadow_offset_y", 1)
-			db.pressed.connect(_play.bind(idx, d[0]))
+			if diff_unlocked:
+				db.pressed.connect(_play.bind(idx, d[0]))
 			_add_press_feedback(db)
 			dr.add_child(db)
 		btns.add_child(dr)
