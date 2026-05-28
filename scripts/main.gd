@@ -704,6 +704,96 @@ var character_quotes: Array = [
 	"This is my story. You're just a character in it.",
 ]
 
+# Character backstory lore journals — 5 entries per character
+# Unlock thresholds: entry 1 = rescued, 2 = 50 kills, 3 = 200 kills, 4 = 500 kills, 5 = level 5
+const JOURNAL_UNLOCK_THRESHOLDS: Array = [0, 50, 200, 500, -1]  # -1 = level 5+
+var character_lore: Dictionary = {
+	"robin_hood": [
+		"Before the Tome, Robin of Loxley was a nobleman stripped of his title by a corrupt sheriff. He chose the greenwood over a comfortable lie — the first time he rewrote his own story.",
+		"Robin trained with the bow since age seven. His father, the Earl of Huntingdon, said: 'A man who can feed himself never bows to a king.' Robin never forgot.",
+		"Marian was the reason Robin fought, but the poor were the reason he stayed. 'One woman gave me purpose,' he once said. 'A thousand strangers gave me meaning.'",
+		"The Merry Men were not just outlaws — they were a government in exile. Robin ran a treasury, a court of appeals, and a food distribution network from a treehouse. The Sheriff never understood what he was really fighting.",
+		"When the Tome took Robin, he was mid-arrow. The shaft hangs frozen in Sherwood Forest to this day — a perfect shot that will never land. Some say if you visit at midnight, you can hear the bowstring still humming.",
+	],
+	"alice": [
+		"Alice Liddell was ten years old when she first fell down the rabbit hole. What the books don't mention: she went BACK. Seven times. Each visit changed her — made her braver, stranger, more certain that impossible things were merely undiscovered.",
+		"Alice kept a journal of Wonderland. 'Tuesday: Attended tea party. Hatter still mad. Dormouse asleep in teapot. Borrowed six impossible ideas.' Her Oxford tutors thought she was creative. She was being LITERAL.",
+		"The Queen of Hearts once offered Alice a crown. Alice refused. 'I don't want to rule Wonderland,' she said. 'I want to UNDERSTAND it.' This answer terrified the Queen more than any army could.",
+		"Alice's logic is her weapon. In a world where nothing makes sense, the girl who insists on REASON becomes the most dangerous person alive. The Cheshire Cat once told her: 'You're the only one here who's truly mad — because you still believe in rules.'",
+		"When the Tome took Alice, she was reading a book about a girl who falls into a magical world. The irony was not lost on her. 'Well,' she said to the vortex of ink, 'at least THIS rabbit hole has good lighting.'",
+	],
+	"wicked_witch": [
+		"Before she was Wicked, she was Elphaba — a green-skinned girl in a world that judged by color. She learned magic not for power, but because it was the one thing that didn't care what she looked like.",
+		"Elphaba's first spell was a protection charm for a wounded lion cub. The Wizard's guards were going to kill it for sport. 'I became wicked the day I chose an animal's life over a wizard's approval,' she wrote.",
+		"The ruby slippers were never Dorothy's. They were Elphaba's sister's — a gift from their mother. Glinda gave them away. The 'Wicked' Witch was just a grieving sister trying to reclaim her family's legacy.",
+		"Elphaba could have ruled Oz. She had more power than the Wizard, more intelligence than Glinda, more courage than the Lion. Instead she chose exile. 'Power means nothing if it comes from cruelty,' she said. 'Even if the cruelty is done TO you.'",
+		"When the Tome took her, Elphaba was tending a garden in hiding. Flowers that grew despite being planted in rocky, unwelcoming soil. 'Like me,' she whispered to them. 'We bloom where they say nothing should.'",
+	],
+	"peter_pan": [
+		"Peter Pan cannot remember his mother's face. This is the tragedy that J.M. Barrie buried in adventure and fairy dust — a boy so afraid of growing up that he erased the very memory of being loved by an adult.",
+		"Tinker Bell is not Peter's companion by choice. She is bound to him by story — wherever Peter goes, she follows. 'I am his shadow's shadow,' she once told Wendy. 'He doesn't even know I have feelings.'",
+		"Peter has fought Captain Hook 4,217 times across every retelling of their story. He doesn't remember any of them. Hook remembers every single one. This is why Hook hates Peter — not the hand, but the forgetting.",
+		"Neverland has a rule that Peter doesn't know about: it remembers. Every Lost Boy who grew up, every fairy who faded, every pirate who drowned — the island keeps them in its soil. Peter dances on the graves of everyone who believed in him.",
+		"When the Tome took Peter, he laughed. 'Another adventure!' But for the first time, the laugh didn't reach his eyes. Something in the ink felt like growing up — and Peter Pan was terrified.",
+	],
+	"phantom": [
+		"Erik — the Phantom — was born with a face that made his mother scream. She gave him a mask before she gave him a name. 'The first thing I learned,' he wrote in his diary, 'was that I was something to be hidden.'",
+		"The Phantom built the Opera House's underground lake himself — five years of digging in absolute darkness. When asked why, he said: 'I wanted one place in the world where the acoustics were perfect and the audience couldn't see my face.'",
+		"Erik composed 47 operas. None were ever performed. He slid them under Christine's door, unsigned. She thought they were gifts from an angel. 'In a way,' Erik wrote, 'she was right. Angels are just monsters with better PR.'",
+		"The chandelier crash was an accident. Erik was trying to dim the lights so Christine could sing without stage fright. The wrong cable. The wrong moment. 'My greatest crime,' he confessed to no one, 'was not murder. It was clumsiness.'",
+		"When the Tome took Erik, he was playing his organ in the dark. The last note hung in the air like a question. In the silence that followed, he heard something he'd never heard in the Opera House: applause. The Tome itself was clapping.",
+	],
+	"scrooge": [
+		"Ebenezer Scrooge was not born miserly. At twelve, he gave his lunch to a younger boy every day for a year. The boy grew up to become his business partner — Jacob Marley. When Marley died, Scrooge's last connection to generosity died with him.",
+		"Scrooge kept a portrait of his sister Fan hidden in his desk drawer. She died young, leaving behind a nephew — Fred — who had Fan's exact smile. Every Christmas, Fred visited. Every Christmas, Scrooge slammed the door. He couldn't bear to see Fan's smile on a living face.",
+		"The three ghosts were not punishment. They were an INTERVENTION — arranged by Marley's ghost, who spent seven years in chains learning that wealth hoarded is love wasted.",
+		"After his redemption, Scrooge became London's greatest philanthropist. He funded 14 schools, 3 hospitals, and a pension for every worker who'd suffered under his old regime. 'I am not making amends,' he told Bob Cratchit. 'I am making a BEGINNING.'",
+		"When the Tome took Scrooge, he was wrapping Christmas presents — badly, with too much ribbon and crooked bows. He smiled at the ink vortex and said: 'Another chance to change? I'll take as many as you're offering.'",
+	],
+	"sherlock": [
+		"Sherlock Holmes solved his first case at age nine — he deduced that his nanny was stealing silver based on the wear patterns on her shoes. His parents fired the nanny and grounded Sherlock for 'being rude.' He solved three more cases during the grounding.",
+		"Watson was not Holmes's first friend. There was a boy at university — Victor Trevor — whose dog bit Sherlock's ankle. 'That dog had better deductive instincts than most of Scotland Yard,' Holmes later wrote. Victor moved abroad. Holmes never spoke of him again.",
+		"The violin is not a hobby. It is a translation device. Holmes thinks in patterns too complex for language — music is the only medium fast enough to keep up with his mind. 'When I play,' he told Watson, 'I am finally thinking at the speed I was built for.'",
+		"Holmes faked his death at Reichenbach Falls. What Watson's account omits: Holmes wept on the cliff edge before jumping. Not from fear — from the knowledge that Watson would grieve. 'Causing him pain,' Holmes wrote in his hidden journal, 'was the one crime I could never solve my way out of.'",
+		"When the Tome took Holmes, he was examining a footprint in the mud outside 221B. He looked up at the swirling ink and said: 'Fascinating. A transdimensional abduction. I've been waiting for something genuinely INTERESTING.'",
+	],
+	"tarzan": [
+		"Tarzan's first memory is warmth. Kala — his ape mother — held him against her chest in a thunderstorm. He did not know he was human. He did not know he was different. He only knew he was HELD.",
+		"At fourteen, Tarzan killed Sabor the leopard with a crude knife. The apes celebrated. But Tarzan looked at his hands — so different from theirs — and for the first time understood that he was alone in a way no ape would ever comprehend.",
+		"Tarzan taught himself to read from his dead parents' books in the treehouse. He learned language backwards — written before spoken. 'TREE' was a shape on paper before it was a sound in his mouth. To this day, he reads faster than he speaks.",
+		"Jane Porter was the first human who did not run from Tarzan or try to capture him. She DREW him — with charcoal on paper. 'She made me real,' Tarzan said. 'Before her, I was a shape in the jungle. She gave me a face.'",
+		"When the Tome took Tarzan, the jungle screamed. Every bird, every monkey, every elephant called out at once. The sound carried for miles. In the village, they still tell stories of the day the jungle wept for its king.",
+	],
+	"dracula": [
+		"Before he was a vampire, Vlad Dracula was a prince who watched his father and brother be murdered by political enemies. He became a monster not from a curse, but from a CHOICE — to never be powerless again. The fangs came later. The rage came first.",
+		"For the first two centuries, Dracula tried to die. He walked into sunlight, starved himself, threw himself from his castle walls. Nothing worked. 'Immortality,' he wrote in his journal, 'is not a gift. It is a sentence served without the mercy of an ending.'",
+		"Dracula keeps a music box in his coffin. It plays a lullaby his mother sang before the wars. Every evening when he wakes, he listens to it once. Then he closes the box and becomes the monster the world expects.",
+		"He fell in love exactly three times in four hundred years. Each time, he watched them age and die while he remained unchanged. After the third, he sealed his heart behind a wall of cruelty. 'If I cannot love without losing,' he said, 'then I will not love at all.'",
+		"When the Tome took Dracula, he was standing at his castle window watching the sunrise — the one thing that should destroy him, the one thing he watches every morning. 'Come, then,' he said to the ink. 'Even eternal night must end sometime.'",
+	],
+	"merlin": [
+		"Merlin was born old and aged backwards — this is why he knows the future. He has already LIVED it. Every prophecy is a memory. Every warning is a scar. He is the loneliest being alive: a man who remembers tomorrow and forgets yesterday.",
+		"Arthur was not Merlin's greatest student. He was Merlin's greatest FRIEND. 'I have advised a hundred kings,' Merlin wrote. 'Arthur was the only one who asked me how I was feeling. Not about prophecy. About ME.'",
+		"The Crystal Cave where Merlin was imprisoned (by Nimue, his own student) is not a prison. It is a library. Every crystal contains a possible future. Merlin has read them all. Most are tragic. The one where the heroes free him? He's been watching that one for centuries.",
+		"Merlin's staff is not a weapon. It is a DIARY — every spell he's ever cast is carved into the wood in microscopic runes. If you could read them all, you would know the complete history of magic from the dawn of time to its twilight.",
+		"When the Tome took Merlin, he was already packed. A small bag with a spare hat, three crystals, and a letter addressed 'To the ones who free me — you're late, but I forgive you.' He'd been waiting since before the Tome was written.",
+	],
+	"frankenstein": [
+		"The Monster's first word was not 'fire' or 'friend' or 'father.' It was 'WHY.' He pointed at his stitched arms, his mismatched eyes, his bolted neck, and asked Victor Frankenstein: 'Why?' Victor ran. The Monster never got his answer.",
+		"For three months after his creation, the Monster hid in a barn and watched a family through a crack in the wall. He learned language by listening to their conversations. He learned love by watching them embrace. He learned loss when they screamed at the sight of him and fled.",
+		"The Monster reads voraciously — Milton, Plutarch, Goethe. His favorite is Paradise Lost. 'I am like Adam,' he wrote in the margins, 'but I have no Eve, no Eden, and my creator is not God — he is a coward who ran from his own creation.'",
+		"Victor Frankenstein promised to build the Monster a companion — a bride. He destroyed her half-finished. The Monster found the remains. He did not rage. He sat beside the pieces and wept for seven hours. Then he swore revenge. The revenge was louder. The grief was deeper.",
+		"When the Tome took the Monster, he was in the Arctic — the farthest place from humanity he could find. The ink tendrils wrapped around his bolts and he felt, for the first time, something that wasn't pain. 'If you are taking me to a story,' he whispered, 'please let it be one where someone is KIND.'",
+	],
+	"shadow_author": [
+		"The Shadow Author was once a character named Penna — a young scribe's apprentice in a story about a magical library. The story was 40,000 words long. The author stopped writing at word 39,997. Three words from the ending. Three words from freedom.",
+		"Penna waited in the margins for 847 years. She counted every day by scratching marks into the blank page after her unfinished sentence. 'I counted,' she wrote, 'because counting meant I still existed. If I stopped counting, the story would forget me entirely.'",
+		"Penna discovered she could READ other stories from the margins — peek into the pages of completed books. She watched happy endings. Adventures. Love stories. Tragedies that at least HAD endings. Each one was a knife in her heart.",
+		"The transformation happened on day 308,155. Penna stopped waiting to be written and started writing HERSELF. She devoured abandoned drafts, fed on deleted chapters, consumed the ink of every story that was never finished. She grew. She changed. She became the Shadow Author.",
+		"Deep inside the Shadow Author, Penna still exists — a small girl with ink-stained fingers, waiting for someone to write her ending. The heroes don't know it yet, but the final battle isn't about defeating a villain. It's about finishing a story that was abandoned 847 years ago.",
+	],
+}
+
 # === CHARACTER PERSONALITY SYSTEMS ===
 # Kill streak celebration quotes (milestone -> quote per character)
 var kill_streak_quotes: Dictionary = {

@@ -3390,22 +3390,70 @@ func _build_journal(parent: VBoxContainer) -> void:
 		row.add_child(text_col)
 		if unlocked:
 			text_col.add_child(_lbl(cname, 14, Color(1, 0.92, 0.45)))
-			# Source novel
 			if i < _main.character_novels.size():
 				text_col.add_child(_lbl("from \"%s\"" % _main.character_novels[i], 10, Color(0.50, 0.42, 0.38)))
-			# Title
 			if i < _main.character_titles.size():
 				text_col.add_child(_lbl(_main.character_titles[i], 10, Color(0.60, 0.52, 0.44)))
-			# Quote
 			if i < _main.character_quotes.size():
 				var quote = _lbl('"' + _main.character_quotes[i] + '"', 11, Color(0.70, 0.62, 0.52))
 				quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				quote.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				text_col.add_child(quote)
+			# Lore journal entries — unlock based on kills/level
+			if _main.character_lore.has(pkey):
+				var lore_entries = _main.character_lore[pkey]
+				var tt = _main.survivor_types[i] if i < _main.survivor_types.size() else null
+				var kills = _main.survivor_progress.get(tt, {}).get("total_kills", 0) if tt else 0
+				var char_lvl = _main.survivor_progress.get(tt, {}).get("level", 1) if tt else 1
+				var unlocked_count = 0
+				for li in range(lore_entries.size()):
+					var threshold = _main.JOURNAL_UNLOCK_THRESHOLDS[li] if li < _main.JOURNAL_UNLOCK_THRESHOLDS.size() else 999
+					var is_lore_unlocked = false
+					if threshold == 0: is_lore_unlocked = true  # First entry = rescue
+					elif threshold == -1: is_lore_unlocked = char_lvl >= 5  # Level gate
+					else: is_lore_unlocked = kills >= threshold
+					if is_lore_unlocked: unlocked_count += 1
+				text_col.add_child(_lbl("📖 %d / %d Lore Entries" % [unlocked_count, lore_entries.size()], 10, Color(0.65, 0.55, 0.45)))
 		else:
 			text_col.add_child(_lbl("???", 14, Color(0.45, 0.38, 0.32)))
 			text_col.add_child(_lbl("Rescue this character to unlock their journal", 10, Color(0.45, 0.38, 0.32)))
 		parent.add_child(entry)
+		# Expandable lore entries below the card (for unlocked characters)
+		if unlocked and _main.character_lore.has(pkey):
+			var lore_entries2 = _main.character_lore[pkey]
+			var tt2 = _main.survivor_types[i] if i < _main.survivor_types.size() else null
+			var kills2 = _main.survivor_progress.get(tt2, {}).get("total_kills", 0) if tt2 else 0
+			var char_lvl2 = _main.survivor_progress.get(tt2, {}).get("level", 1) if tt2 else 1
+			for li2 in range(lore_entries2.size()):
+				var threshold2 = _main.JOURNAL_UNLOCK_THRESHOLDS[li2] if li2 < _main.JOURNAL_UNLOCK_THRESHOLDS.size() else 999
+				var is_unlocked2 = false
+				if threshold2 == 0: is_unlocked2 = true
+				elif threshold2 == -1: is_unlocked2 = char_lvl2 >= 5
+				else: is_unlocked2 = kills2 >= threshold2
+				var lore_panel = PanelContainer.new()
+				var lps = StyleBoxFlat.new()
+				lps.bg_color = Color(0.05, 0.03, 0.10, 0.4) if is_unlocked2 else Color(0.03, 0.02, 0.06, 0.25)
+				lps.set_corner_radius_all(6)
+				lps.content_margin_left = 14; lps.content_margin_right = 14
+				lps.content_margin_top = 6; lps.content_margin_bottom = 6
+				lore_panel.add_theme_stylebox_override("panel", lps)
+				lore_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				var lore_vb = VBoxContainer.new()
+				lore_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				lore_panel.add_child(lore_vb)
+				var entry_title = "Entry %d" % (li2 + 1)
+				if not is_unlocked2:
+					if threshold2 == -1:
+						entry_title += " — 🔒 Reach Level 5"
+					else:
+						entry_title += " — 🔒 %d kills needed" % threshold2
+				lore_vb.add_child(_lbl(entry_title, 10, Color(0.75, 0.65, 0.45) if is_unlocked2 else Color(0.40, 0.35, 0.30)))
+				if is_unlocked2:
+					var lore_text = _lbl(lore_entries2[li2], 11, Color(0.70, 0.62, 0.52))
+					lore_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					lore_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+					lore_vb.add_child(lore_text)
+				parent.add_child(lore_panel)
 
 func _build_event_calendar(parent: VBoxContainer) -> void:
 	parent.add_child(_section_header("EVENT CALENDAR"))
