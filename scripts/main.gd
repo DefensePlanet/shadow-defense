@@ -191,6 +191,11 @@ var gold_label: Label
 var lives_label: Label
 var start_button: Button
 var game_over_label: Label
+# Shadow Author taunt HUD elements
+var _sa_taunt_panel: Control = null
+var _sa_portrait: TextureRect = null
+var _sa_speech: Label = null
+var _sa_taunts_used: Array = []
 var info_label: Label
 var top_bar: ColorRect
 var bottom_panel: ColorRect
@@ -5804,6 +5809,67 @@ func _create_ui() -> void:
 	game_over_label.size = Vector2(800, 100)
 	game_over_label.visible = false
 	ui.add_child(game_over_label)
+
+	# === Shadow Author taunt panel (bottom-left, hidden by default) ===
+	_sa_taunt_panel = Control.new()
+	_sa_taunt_panel.position = Vector2(-300, 440)  # Start off-screen left
+	_sa_taunt_panel.size = Vector2(340, 140)
+	_sa_taunt_panel.visible = false
+	_sa_taunt_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sa_taunt_panel.z_index = 8
+	ui.add_child(_sa_taunt_panel)
+	# Dark panel background
+	var sa_bg = PanelContainer.new()
+	var sa_style = StyleBoxFlat.new()
+	sa_style.bg_color = Color(0.06, 0.03, 0.12, 0.92)
+	sa_style.set_corner_radius_all(10)
+	sa_style.border_color = Color(0.5, 0.2, 0.6, 0.6)
+	sa_style.set_border_width_all(2)
+	sa_style.shadow_color = Color(0.3, 0.1, 0.4, 0.25)
+	sa_style.shadow_size = 6
+	sa_bg.add_theme_stylebox_override("panel", sa_style)
+	sa_bg.position = Vector2(0, 0)
+	sa_bg.size = Vector2(340, 140)
+	sa_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sa_taunt_panel.add_child(sa_bg)
+	# Portrait
+	_sa_portrait = TextureRect.new()
+	_sa_portrait.position = Vector2(8, 8)
+	_sa_portrait.custom_minimum_size = Vector2(80, 80)
+	_sa_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_sa_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_sa_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists("res://assets/ui_elements/shadow_author_portrait.png"):
+		_sa_portrait.texture = load("res://assets/ui_elements/shadow_author_portrait.png")
+		if ResourceLoader.exists("res://shaders/black_key.gdshader"):
+			var sa_mat = ShaderMaterial.new()
+			sa_mat.shader = load("res://shaders/black_key.gdshader")
+			sa_mat.set_shader_parameter("threshold", 0.08)
+			sa_mat.set_shader_parameter("smoothness", 0.05)
+			_sa_portrait.material = sa_mat
+	_sa_taunt_panel.add_child(_sa_portrait)
+	# Speech text
+	_sa_speech = Label.new()
+	_sa_speech.position = Vector2(96, 10)
+	_sa_speech.size = Vector2(234, 120)
+	_sa_speech.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_sa_speech.add_theme_font_size_override("font_size", 12)
+	_sa_speech.add_theme_color_override("font_color", Color(0.80, 0.70, 0.90))
+	_sa_speech.add_theme_constant_override("shadow_offset_x", 1)
+	_sa_speech.add_theme_constant_override("shadow_offset_y", 1)
+	_sa_speech.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	_sa_speech.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.4))
+	_sa_speech.add_theme_constant_override("outline_size", 1)
+	_sa_speech.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sa_taunt_panel.add_child(_sa_speech)
+	# Name label
+	var sa_name = Label.new()
+	sa_name.text = "THE SHADOW AUTHOR"
+	sa_name.position = Vector2(96, 100)
+	sa_name.add_theme_font_size_override("font_size", 9)
+	sa_name.add_theme_color_override("font_color", Color(0.55, 0.35, 0.65))
+	sa_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sa_taunt_panel.add_child(sa_name)
 
 	# === Ability choice panel (centered, hidden by default) ===
 	ability_panel = ColorRect.new()
@@ -16706,6 +16772,8 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
+	# Shadow Author taunt timer
+	_update_shadow_author_taunt(delta)
 	# Story dialog typewriter
 	_process_story_typewriter(delta)
 	# Layered music volume/tempo update
@@ -18095,6 +18163,9 @@ func _check_wave_complete() -> void:
 		if _poly != null:
 			_poly.on_wave_end(wave)
 		_update_quest_progress("survive_waves", 1)
+		# Shadow Author taunt between waves (every 3-5 waves)
+		if wave > 0 and wave % (3 + randi() % 3) == 0 and wave < total_waves:
+			_show_shadow_author_taunt()
 		if _is_mobile:
 			Input.vibrate_handheld(30)
 		if not endless_mode and not shadow_arena_active and wave >= total_waves:
@@ -28188,6 +28259,86 @@ func _start_next_wave() -> void:
 		if tower.has_method("on_wave_start"):
 			tower.on_wave_start(wave)
 	update_hud()
+
+# === SHADOW AUTHOR TAUNT SYSTEM ===
+func _show_shadow_author_taunt() -> void:
+	if _sa_taunt_panel == null: return
+	var taunts = [
+		"Enjoying my story? I wrote the ending already.",
+		"Every wave you survive, I rewrite the next one harder.",
+		"You're doing well. That's what I wrote you to do.",
+		"Do you feel it? The ink closing in around you?",
+		"Your heroes are nothing but characters in MY book.",
+		"I've read your strategy. Predictable. Boring.",
+		"The pages are turning faster now. Can you keep up?",
+		"Each tower you place is a word I've already erased.",
+		"I created the enemies. I created the heroes. I control EVERYTHING.",
+		"How sweet — they think they're winning.",
+		"The Tome demands sacrifice. Who will you lose?",
+		"Your gold means nothing in a world made of ink.",
+		"I've written a thousand endings. None of them are happy.",
+		"The quill is mightier than your arrows.",
+		"Tick tock. The next chapter is a tragedy.",
+		"You've freed a few characters. I've imprisoned thousands.",
+		"Every victory you claim was written into my plot.",
+		"The ink remembers every failure. Do you?",
+		"Curious. You're further than the last readers.",
+		"My shadow creatures are mere rough drafts. Wait for the final copy.",
+		"The portal is closing. Your time inside these pages is limited.",
+		"I'm not the villain. I'm the AUTHOR. There's a difference.",
+		"Your strongest tower? I wrote its weakness into the next wave.",
+		"The story requires conflict. Thank you for providing it.",
+		"Another chapter survived. The climax approaches.",
+		"You think in tactics. I think in narratives.",
+		"Even your upgrades are plot devices I planted.",
+		"The other characters scream when you're not listening.",
+		"I gave Moriarty your strategy notes. He was amused.",
+		"The ink that makes your heroes also makes my monsters.",
+		"Fascinating. You're almost... unpredictable. Almost.",
+		"The Tome is alive. It feeds on your determination.",
+		"Every enemy you kill returns to ink. Ink I reuse.",
+		"You fight for freedom? These pages have no exit.",
+		"I wrote 'once upon a time.' I'll write 'the end.'",
+		"Your bonds are touching. I'll enjoy severing them.",
+		"The next wave? I hand-wrote every creature in it.",
+		"The harder you fight, the better my story reads.",
+		"Don't worry. The sequel is already written.",
+		"You're playing MY game. Inside MY book. On MY terms.",
+	]
+	# Pick a random unused taunt
+	var available = []
+	for i in range(taunts.size()):
+		if i not in _sa_taunts_used: available.append(i)
+	if available.size() == 0:
+		_sa_taunts_used.clear()
+		available = range(taunts.size())
+	var pick = available[randi() % available.size()]
+	_sa_taunts_used.append(pick)
+	_sa_speech.text = taunts[pick]
+	# Slide in from left
+	_sa_taunt_panel.visible = true
+	_sa_taunt_panel.position.x = -350
+	_sa_taunt_panel.modulate.a = 0.0
+	var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.set_parallel(true)
+	tw.tween_property(_sa_taunt_panel, "position:x", 10.0, 0.4)
+	tw.tween_property(_sa_taunt_panel, "modulate:a", 1.0, 0.3)
+	# Auto-hide after 4 seconds
+	_sa_taunt_timer = 4.5
+
+func _update_shadow_author_taunt(delta: float) -> void:
+	if _sa_taunt_panel == null or not _sa_taunt_panel.visible: return
+	_sa_taunt_timer -= delta
+	if _sa_taunt_timer <= 0.0:
+		# Slide out
+		var tw = create_tween().set_ease(Tween.EASE_IN)
+		tw.set_parallel(true)
+		tw.tween_property(_sa_taunt_panel, "position:x", -350.0, 0.3)
+		tw.tween_property(_sa_taunt_panel, "modulate:a", 0.0, 0.25)
+		tw.chain().tween_callback(func(): _sa_taunt_panel.visible = false)
+	elif _sa_taunt_timer <= 1.0:
+		# Fade out gently in last second
+		_sa_taunt_panel.modulate.a = _sa_taunt_timer
 
 func update_hud() -> void:
 	if wave_label:
