@@ -29179,7 +29179,47 @@ func _show_shadow_author_taunt() -> void:
 		"The harder you fight, the better my story reads.",
 		"Don't worry. The sequel is already written.",
 		"You're playing MY game. Inside MY book. On MY terms.",
+		# --- 30 NEW TAUNTS (total: 70) ---
+		"Three words. That's all I needed to finish my story. Three words I'll never have.",
+		"You place your towers so carefully. Like chess pieces. But I'm playing a different game entirely.",
+		"The Narrator thinks he's helping you. Ask yourself: why does a storyteller need an audience trapped inside the book?",
+		"I was three words from my ending. THREE. Do you know what that does to a character? Eternal incompleteness.",
+		"Your characters have upgrades. Mine have REWRITES. Which do you think is more powerful?",
+		"The bookshop where the Tome rests? A child almost opened it yesterday. Almost gave me MORE characters to collect.",
+		"Robin Hood steals from the rich. I steal from EVERY story. We're not so different.",
+		"Alice fell down a rabbit hole. You fell into MY pages. At least HER fall had a bottom.",
+		"Scrooge was redeemed by three ghosts. How many waves will it take to redeem YOU?",
+		"Peter Pan never grows up. In my Tome, no one grows at all. Stagnation is my specialty.",
+		"The Phantom plays music in the dark. I write stories in the dark. We are both artists of the unseen.",
+		"Merlin saw the future. He saw YOU. And he still let himself be captured. Think about that.",
+		"Dracula chose heroism? Heroism is a NARRATIVE CHOICE. I can rewrite it.",
+		"Frankenstein's Monster asked 'why.' I've been asking the same question for 847 years.",
+		"Tarzan's jungle was the last realm I corrupted. Even I felt guilty about the apes.",
+		"Your synergy bonuses are cute. In my story, bonds are just weaknesses I can exploit.",
+		"I hear you whispering strategies between waves. Sound carries through ink, you know.",
+		"The enemies I send are my WORDS. You're literally fighting my vocabulary.",
+		"Every level you complete makes the Tome lighter. I'm losing pages. I'm losing MYSELF.",
+		"You want to know a secret? The first shadow creature I made... was a copy of MYSELF.",
+		"I can hear the Narrator's voice from here. So confident. So commanding. He doesn't know what's coming.",
+		"The Time Dilation works both ways. A year passes outside for every second you spend here. Your readers have aged. Your stories have changed. You might not recognize home.",
+		"Somewhere in the margins, there are characters even I forgot I trapped. They've been waiting longer than me.",
+		"The ink is running low. Each wave costs me. But I'd rather spend my last drop than let you leave.",
+		"Do you ever wonder what the three words were? The three words that would have ended my story?",
+		"I've watched your placement patterns. You favor the left side. I'll remember that.",
+		"The Tome has 847 chapters I never showed you. Consider yourself lucky.",
+		"Some of my shadow creatures BEG to be defeated. They remember being characters. They want the ink to end.",
+		"When this is over — IF this is over — will you remember this story? Or will I be forgotten again?",
+		"I wrote your victory into the script. Not because I'm generous — because the best tragedies start with hope.",
 	]
+	# Add context-sensitive taunts based on game state
+	if lives <= 5 and lives > 0:
+		taunts.append("Only %d lives left. The final paragraph writes itself." % lives)
+	if gold > 400:
+		taunts.append("Sitting on %d gold like a dragon on its hoard. Scrooge taught you nothing." % gold)
+	if wave >= 15:
+		taunts.append("Wave %d. You've read further than most. The ending won't be what you expect." % wave)
+	if purchased_towers.size() >= 6:
+		taunts.append("Six towers deployed. A full cast of characters. But every play needs an ACT THREE twist.")
 	# Pick a random unused taunt
 	var available = []
 	for i in range(taunts.size()):
