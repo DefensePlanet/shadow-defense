@@ -4769,6 +4769,7 @@ func _save_game() -> void:
 	save_data["story_seen"] = story_seen
 	save_data["story_choices_made"] = story_choices_made
 	save_data["secret_path_discovered"] = _secret_path_discovered
+	save_data["challenge_maps_unlocked"] = challenge_maps_unlocked
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
 	save_data["endless_high_wave"] = endless_high_wave
@@ -5113,6 +5114,7 @@ func _load_game() -> void:
 		story_seen.append(str(v))
 	story_choices_made = data.get("story_choices_made", {})
 	_secret_path_discovered = data.get("secret_path_discovered", {})
+	challenge_maps_unlocked = data.get("challenge_maps_unlocked", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
 	for v in uc:
@@ -5510,6 +5512,114 @@ const TIME_OF_DAY_DATA: Dictionary = {
 	"midnight": {"overlay": Color(0.02, 0.01, 0.08, 0.20), "sky_tint": Color(0.3, 0.3, 0.5), "bonus_chars": [8], "desc": "Deepest midnight — Dracula +25% damage"},
 	"eternal_dark": {"overlay": Color(0.05, 0.02, 0.10, 0.25), "sky_tint": Color(0.2, 0.15, 0.35), "bonus_chars": [8, 11], "desc": "Eternal darkness — Dracula & Shadow Author +20% damage"},
 }
+
+# === BONUS CHALLENGE MAPS — special rules for premium rewards ===
+# Unlock after beating an arc's final level on Hard. Each challenge has a unique
+# modifier that fundamentally changes how you play. Rewards: Knowledge Ink.
+var _active_challenge: Dictionary = {}  # Current challenge modifiers if playing one
+var challenge_maps_unlocked: Dictionary = {}  # "arc_name" -> true (persisted)
+
+const CHALLENGE_MAPS: Dictionary = {
+	"Neverland": {
+		"name": "Peter's Nightmare", "desc": "Peter Pan has grown up. No fairy dust abilities work.",
+		"modifier": "no_abilities", "modifier_desc": "All tower active abilities DISABLED",
+		"base_level": 27, "waves": 25, "reward_ink": 3,
+	},
+	"Land of Oz": {
+		"name": "The Tornado", "desc": "A tornado randomly moves towers every 30 seconds.",
+		"modifier": "tower_shuffle", "modifier_desc": "Towers randomly swap positions every 30s",
+		"base_level": 24, "waves": 25, "reward_ink": 3,
+	},
+	"Paris Opera": {
+		"name": "The Silent Performance", "desc": "No sound. No music. No warning when enemies spawn.",
+		"modifier": "no_preview", "modifier_desc": "Wave composition hidden + no spawn warning",
+		"base_level": 30, "waves": 25, "reward_ink": 3,
+	},
+	"Sherlock Holmes": {
+		"name": "The Impossible Case", "desc": "Enemies are invisible until within tower range.",
+		"modifier": "stealth_enemies", "modifier_desc": "All enemies INVISIBLE until in range",
+		"base_level": 3, "waves": 25, "reward_ink": 4,
+	},
+	"Merlin": {
+		"name": "The Broken Prophecy", "desc": "You cannot see what wave is coming. Ever.",
+		"modifier": "blind_waves", "modifier_desc": "No wave counter, no preview, no warnings",
+		"base_level": 6, "waves": 30, "reward_ink": 4,
+	},
+	"Tarzan": {
+		"name": "The Last Stand", "desc": "Only 3 tower placement slots on the entire map.",
+		"modifier": "limited_towers", "modifier_desc": "Maximum 3 towers allowed",
+		"base_level": 9, "waves": 20, "reward_ink": 5,
+	},
+	"Dracula": {
+		"name": "Eternal Night", "desc": "No gold income from kills. Starting gold only.",
+		"modifier": "no_kill_gold", "modifier_desc": "Enemies drop ZERO gold",
+		"base_level": 12, "waves": 20, "reward_ink": 5,
+	},
+	"Frankenstein": {
+		"name": "The Surge", "desc": "All waves come at once. No breaks between waves.",
+		"modifier": "all_waves_simultaneous", "modifier_desc": "ALL waves active simultaneously",
+		"base_level": 15, "waves": 15, "reward_ink": 6,
+	},
+	"Sherwood Forest": {
+		"name": "The Outlaw's Code", "desc": "No selling towers. Every placement is permanent.",
+		"modifier": "no_sell", "modifier_desc": "Cannot sell or move towers",
+		"base_level": 18, "waves": 25, "reward_ink": 4,
+	},
+	"Wonderland": {
+		"name": "The Looking Glass", "desc": "Everything is mirrored. Path runs RIGHT to LEFT.",
+		"modifier": "mirrored", "modifier_desc": "Entire map flipped horizontally",
+		"base_level": 21, "waves": 25, "reward_ink": 3,
+	},
+	"Victorian London": {
+		"name": "Scrooge's Penance", "desc": "Start with 1 life. No life recovery. Period.",
+		"modifier": "one_life", "modifier_desc": "1 life. ONE. No recovery possible.",
+		"base_level": 33, "waves": 20, "reward_ink": 6,
+	},
+	"Shadow Author": {
+		"name": "The Rewrite", "desc": "The Author rewrites your towers every 5 waves. All towers scrambled.",
+		"modifier": "tower_rewrite", "modifier_desc": "Every 5 waves, towers are randomized",
+		"base_level": 36, "waves": 30, "reward_ink": 8,
+	},
+	# ACT 4 challenges
+	"Headless Horseman": {
+		"name": "The Headless Run", "desc": "No HUD. No gold display. No wave counter. Pure instinct.",
+		"modifier": "no_hud", "modifier_desc": "All HUD elements HIDDEN",
+		"base_level": 48, "waves": 20, "reward_ink": 5,
+	},
+	"Medusa": {
+		"name": "Don't Look", "desc": "Tower range circles are invisible. Place by memory.",
+		"modifier": "no_range_display", "modifier_desc": "Range circles hidden",
+		"base_level": 51, "waves": 25, "reward_ink": 4,
+	},
+	"Loki": {
+		"name": "The Trick", "desc": "Every tower you place might be a DIFFERENT character.",
+		"modifier": "random_towers", "modifier_desc": "Selected tower type randomized on placement",
+		"base_level": 54, "waves": 25, "reward_ink": 5,
+	},
+	"Anubis": {
+		"name": "The Judgment", "desc": "Every enemy you leak permanently reduces ALL tower damage by 2%.",
+		"modifier": "stacking_penalty", "modifier_desc": "-2% global damage per leaked enemy",
+		"base_level": 57, "waves": 25, "reward_ink": 6,
+	},
+	"Captain Ahab": {
+		"name": "The White Whale", "desc": "One massive boss enemy. 50,000 HP. Just one. Kill it.",
+		"modifier": "single_boss", "modifier_desc": "1 enemy, 50,000 HP, moves slowly",
+		"base_level": 60, "waves": 1, "reward_ink": 7,
+	},
+	"The Narrator": {
+		"name": "The Unwritten Rule", "desc": "All modifiers active at once. The ultimate challenge.",
+		"modifier": "all_modifiers", "modifier_desc": "EVERY challenge modifier SIMULTANEOUSLY",
+		"base_level": 63, "waves": 20, "reward_ink": 15,
+	},
+}
+
+func _is_challenge_unlocked(arc_name: String) -> bool:
+	return challenge_maps_unlocked.has(arc_name)
+
+func _unlock_challenge_for_arc(arc_name: String) -> void:
+	if not challenge_maps_unlocked.has(arc_name):
+		challenge_maps_unlocked[arc_name] = true
+		spawn_floating_text(Vector2(640, 200), "🏆 CHALLENGE UNLOCKED: %s" % CHALLENGE_MAPS[arc_name]["name"], Color(1.0, 0.85, 0.2), 18.0, 3.0)
 
 func _set_time_of_day(level_idx: int) -> void:
 	if level_idx < 0 or level_idx >= levels.size():
