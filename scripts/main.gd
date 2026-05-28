@@ -2795,6 +2795,8 @@ var story_state: Dictionary = {
 	"queued_dialog": ""
 }
 var story_seen: Array = []  # dialog keys already seen (persisted)
+var story_choices_made: Dictionary = {}  # "choice_key" -> selected_index (persisted)
+var _story_choice_buttons: Array = []  # temp UI buttons during choice
 var story_voice_clips: Dictionary = {}  # "narrator", "male_hero", "female_hero", "monster"
 var shadow_author_story_clips: Dictionary = {}  # "prologue_0" -> AudioStreamMP3
 var narrator_story_clips: Dictionary = {}  # "unlock_robin_hood_0" -> AudioStreamMP3
@@ -4069,6 +4071,7 @@ func _save_game() -> void:
 	save_data["equipped_cosmetics"] = equipped_cosmetics
 	# Story progress
 	save_data["story_seen"] = story_seen
+	save_data["story_choices_made"] = story_choices_made
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
 	save_data["endless_high_wave"] = endless_high_wave
@@ -4411,6 +4414,7 @@ func _load_game() -> void:
 	story_seen.clear()
 	for v in ss:
 		story_seen.append(str(v))
+	story_choices_made = data.get("story_choices_made", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
 	for v in uc:
@@ -9006,6 +9010,21 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_3"] = [
 		{"speaker": "narrator", "text": "Moriarty's shadow dissolves into scattered pages. The chains of coded ciphers shatter, and a door of light appears in the falls.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "Impossible. The equation was PERFECT. No one escapes a story I've finished writing!", "voice_type": "shadow"},
+		{"speaker": "sherlock", "text": "Wait — Moriarty is reforming. His shadow isn't fully destroyed. I could study him further... or we could end him now. What say you?", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "A moral choice presents itself. Moriarty's fading shadow reaches out — desperate, dangerous, but potentially useful.", "voice_type": "narrator",
+			"choices": [
+				{"text": "Spare Moriarty — 'Every villain has a story worth hearing.'", "key": "moriarty_fate", "flag": "moriarty_spared", "next": "post_level_3_spare"},
+				{"text": "Destroy him — 'Some pages are better left burned.'", "key": "moriarty_fate", "flag": "moriarty_destroyed", "next": "post_level_3_destroy"},
+			]
+		},
+	]
+	story_dialogs["post_level_3_spare"] = [
+		{"speaker": "sherlock", "text": "Fascinating. Moriarty's shadow stabilizes. He whispers: 'The Author... fears what he cannot rewrite. Remember that.'", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Moriarty's shadow retreats into Sherlock's coat — a reluctant ally, a dangerous secret. The Professor lives on, if only as a whisper.", "voice_type": "narrator"},
+	]
+	story_dialogs["post_level_3_destroy"] = [
+		{"speaker": "wicked_witch", "text": "Good riddance. One less villain in these pages.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "Moriarty's shadow shatters into ink. But as the last drops fall, they form words on the ground: 'YOU WILL NEED ME BEFORE THE END.' Then nothing.", "voice_type": "narrator"},
 	]
 
 	# --- MERLIN ARC (Levels 4-6) — "The Broken Prophecy" ---
@@ -9036,6 +9055,13 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_6"] = [
 		{"speaker": "narrator", "text": "Morgan le Fay shatters like dark glass. The crystal prison cracks open, releasing brilliant light from within.", "voice_type": "narrator"},
 		{"speaker": "shadow_author", "text": "You freed the wizard? Fine. His prophecies are already broken. What good is a seer who cannot see his own future?", "voice_type": "shadow"},
+		{"speaker": "merlin", "text": "The Author's power corrupts through narrative itself. I can seal this chapter permanently — or leave it open so we can return for hidden knowledge. The choice carries weight.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Merlin raises his restored staff. The crystal cave pulses with possibility.", "voice_type": "narrator",
+			"choices": [
+				{"text": "Seal the chapter — 'Lock away the darkness forever.'", "key": "camelot_fate", "flag": "camelot_sealed"},
+				{"text": "Leave it open — 'Knowledge is worth the risk.'", "key": "camelot_fate", "flag": "camelot_open"},
+			]
+		},
 	]
 
 	# --- TARZAN ARC (Levels 7-9) — "The Hunter's Trophy" ---
@@ -9338,10 +9364,38 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_36"] = [
 		{"speaker": "narrator", "text": "The Shadow Author's quill shatters. The Tome splits open, and warm golden light pours through the broken pages.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "The shadow ink recedes, revealing true pages beneath — stories of courage, friendship, and hope, brighter than ever before.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Wait... don't destroy me. I was abandoned. Left unfinished. I only wanted to be REMEMBERED. Isn't that what all characters want? To live in someone's story?", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Shadow Author kneels, his form flickering between darkness and something almost... human. The heroes exchange glances. This is the moment that defines everything.", "voice_type": "narrator",
+			"choices": [
+				{"text": "Forgive the Author — 'Everyone deserves an ending. Even you.'", "key": "author_fate", "flag": "author_forgiven", "next": "post_level_36_forgive"},
+				{"text": "Imprison him — 'You stole our stories. Now live without one.'", "key": "author_fate", "flag": "author_imprisoned", "next": "post_level_36_imprison"},
+				{"text": "Rewrite him — 'We'll give you a new story. A better one.'", "key": "author_fate", "flag": "author_rewritten", "next": "post_level_36_rewrite"},
+			]
+		},
+	]
+	story_dialogs["post_level_36_forgive"] = [
+		{"speaker": "robin_hood", "text": "I was called an outlaw. She was called wicked. He was called a monster. Names don't define us — choices do.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The Shadow Author weeps ink tears. The darkness lifts from his form, revealing a small, forgotten character — a child from a story that was never published.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Thank you. I had forgotten what it felt like to be... part of a story where someone cared.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Shadow Author joins the heroes — not as a villain, but as the twelfth character rescued. The Tome glows warm.", "voice_type": "narrator"},
+	]
+	story_dialogs["post_level_36_imprison"] = [
+		{"speaker": "sherlock", "text": "Justice, not revenge. He will live within these pages — but as a prisoner, not an author.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The heroes seal the Shadow Author in the final chapter of his own Tome. His screams fade to whispers, then silence.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Tome closes. The stories are safe. But somewhere deep within the pages, a quill begins to scratch...", "voice_type": "narrator"},
+	]
+	story_dialogs["post_level_36_rewrite"] = [
+		{"speaker": "merlin", "text": "Every story can be rewritten. That is the POINT of stories — they grow, they change, they become something new.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Merlin raises his staff. Twelve characters pour their light into the Tome. The Shadow Author's darkness is rewritten — not erased, but transformed.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "I feel... different. The hunger is gone. I don't need to trap characters anymore. I can... create new ones?", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Shadow Author becomes the Guardian Author — protector of unfinished stories. The Tome transforms from a prison to a sanctuary.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "And so the greatest story ever told was not one of heroes defeating a villain — but of characters choosing to rewrite their own endings.", "voice_type": "narrator"},
+	]
+	# Classic ending lines (play after any choice path)
+	story_dialogs["post_level_36_epilogue"] = [
 		{"speaker": "dracula", "text": "I chose heroism over horror. If a four-hundred-year-old vampire can change his story, then anyone can.", "voice_type": "male_hero"},
 		{"speaker": "frankenstein", "text": "They called me monster. But you... you called me friend. That is the best story... I have ever been part of.", "voice_type": "monster"},
 		{"speaker": "wicked_witch", "text": "They wrote me as the villain. But villains who fight for love — for HOME — that's not wickedness. That's strength.", "voice_type": "female_hero"},
-		{"speaker": "sherlock", "text": "Elementary. A story is nothing without its heroes. And heroes are nothing without readers who believe in them.", "voice_type": "male_hero"},
 		{"speaker": "peter_pan", "text": "Every story needs a good villain. And every villain deserves a chance to be something more.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "The Tome of Shadows closes for the last time. But the stories will never be forgotten — living on in every page turned, every tale told at bedtime, every child who believes.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "The End... or perhaps, just the beginning of a new chapter.", "voice_type": "narrator"},
@@ -9455,6 +9509,12 @@ func _advance_story_dialog() -> void:
 		story_state.typewriter_timer = 0.0
 		queue_redraw()
 		return
+	# If this line has choices, DON'T advance — wait for choice button click
+	if current_line.has("choices") and _story_choice_buttons.size() == 0:
+		_show_story_choices(current_line["choices"])
+		return
+	if _story_choice_buttons.size() > 0:
+		return  # Choices visible — don't advance on tap
 	# Advance to next line — stop current TTS first
 	if DisplayServer.tts_get_voices().size() > 0:
 		DisplayServer.tts_stop()
@@ -9468,7 +9528,82 @@ func _advance_story_dialog() -> void:
 	_play_story_voice()
 	queue_redraw()
 
+func _show_story_choices(choices: Array) -> void:
+	_clear_story_choices()
+	var ui = $UI
+	for ci in range(choices.size()):
+		var choice = choices[ci]
+		var btn = Button.new()
+		btn.text = choice.get("text", "...")
+		btn.custom_minimum_size = Vector2(500, 44)
+		btn.position = Vector2(390, 520 + ci * 54)
+		# Styled choice button
+		var s = StyleBoxFlat.new()
+		s.bg_color = Color(0.10, 0.07, 0.20, 0.9)
+		s.set_corner_radius_all(8)
+		s.border_color = Color(0.65, 0.50, 0.20, 0.6)
+		s.set_border_width_all(2)
+		s.shadow_color = Color(0, 0, 0, 0.2)
+		s.shadow_size = 3
+		s.content_margin_left = 16; s.content_margin_right = 16
+		btn.add_theme_stylebox_override("normal", s)
+		var sh = s.duplicate()
+		sh.bg_color = Color(0.18, 0.12, 0.30, 0.95)
+		sh.border_color = Color(0.85, 0.65, 0.20, 0.8)
+		btn.add_theme_stylebox_override("hover", sh)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.add_theme_color_override("font_color", Color(0.95, 0.88, 0.55))
+		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+		btn.add_theme_constant_override("shadow_offset_x", 1)
+		btn.add_theme_constant_override("shadow_offset_y", 1)
+		var choice_idx = ci
+		var choice_key = choice.get("key", "")
+		var choice_flag = choice.get("flag", "")
+		var choice_next = choice.get("next", "")
+		btn.pressed.connect(func(): _on_story_choice(choice_idx, choice_key, choice_flag, choice_next))
+		# Entrance animation
+		btn.modulate.a = 0.0
+		btn.position.x = 450.0
+		var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.set_parallel(true)
+		tw.tween_property(btn, "position:x", 390.0, 0.3).set_delay(ci * 0.1)
+		tw.tween_property(btn, "modulate:a", 1.0, 0.2).set_delay(ci * 0.1)
+		add_child(btn)
+		btn.z_index = 20
+		_story_choice_buttons.append(btn)
+
+func _on_story_choice(idx: int, key: String, flag: String, next_dialog: String) -> void:
+	# Record the choice
+	if key != "":
+		story_choices_made[key] = idx
+	if flag != "":
+		story_choices_made[flag] = true
+	_clear_story_choices()
+	# If there's a follow-up dialog, queue it
+	if next_dialog != "":
+		story_state.queued_dialog = next_dialog
+	# Advance past the choice line
+	if DisplayServer.tts_get_voices().size() > 0:
+		DisplayServer.tts_stop()
+	story_state.line_index += 1
+	var key2 = story_state.current_dialog
+	if story_dialogs.has(key2) and story_state.line_index >= story_dialogs[key2].size():
+		_end_story_dialog()
+		return
+	story_state.char_index = 0
+	story_state.typewriter_timer = 0.0
+	story_state.auto_advance_timer = 0.0
+	_play_story_voice()
+	queue_redraw()
+
+func _clear_story_choices() -> void:
+	for btn in _story_choice_buttons:
+		if is_instance_valid(btn):
+			btn.queue_free()
+	_story_choice_buttons.clear()
+
 func _end_story_dialog() -> void:
+	_clear_story_choices()
 	if DisplayServer.tts_get_voices().size() > 0:
 		DisplayServer.tts_stop()
 	var key = story_state.current_dialog
