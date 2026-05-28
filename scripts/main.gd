@@ -9092,6 +9092,22 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_9"] = [
 		{"speaker": "narrator", "text": "Clayton's fortress crumbles. The cage shatters. A primal roar splits the shadow canopy — so powerful that ink rains from the trees like monsoon water.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "For a brief, shimmering moment, the spirits of Tarzan's ape tribe appear in the canopy — Kala, Kerchak, all of them. They beat their chests in farewell, then fade like morning mist.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "But Clayton doesn't dissolve like the other shadows. He drops his rifle, his hands trembling. The Author's hold on him is broken.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Clayton speaks, voice raw: 'The Author wrote me as a monster. Made me hunt what I once protected. I was a conservationist before he... rewrote me.'", "voice_type": "narrator",
+			"choices": [
+				{"text": "Recruit Clayton — 'Prove it. Fight with us.'", "key": "clayton_fate", "flag": "clayton_recruited", "next": "recruit_clayton"},
+				{"text": "Exile him — 'You've done too much harm.'", "key": "clayton_fate", "flag": "clayton_exiled", "next": "exile_clayton"},
+			]
+		},
+	]
+	story_dialogs["recruit_clayton"] = [
+		{"speaker": "tarzan", "text": "Tarzan... remembers. Before the shadows, Clayton protected the jungle. The Author twisted him. If Tarzan can forgive... then Clayton can fight.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Clayton picks up his rifle — but this time, he aims it at the shadows. 'For the jungle. For the stories the Author stole.'", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Clayton joins as a Villain Ally! His hunting expertise targets the strongest enemies first.", "voice_type": "narrator"},
+	]
+	story_dialogs["exile_clayton"] = [
+		{"speaker": "robin_hood", "text": "Some wounds don't heal with an apology. Go. Find your own redemption.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Clayton vanishes into the jungle pages. Perhaps one day, he'll earn his way back into the story.", "voice_type": "narrator"},
 	]
 
 	# --- DRACULA ARC (Levels 10-12) — "The Eternal Night" (REDEMPTION ARC) ---
@@ -9210,6 +9226,21 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_21"] = [
 		{"speaker": "alice", "text": "I understand now. We're inside a book — a terrible, cursed book. And the Author who wrote this place wants us to stay forever.", "voice_type": "female_hero"},
 		{"speaker": "narrator", "text": "Alice awakens. Her logic, so reliable in the real Wonderland, cuts through the Shadow Author's illusion. The truth is clear: escape requires rewriting the ending.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "But from the shattered courtroom, a figure stumbles forward — crown askew, scepter cracked. The Queen of Hearts, freed from the Author's control, looks... smaller than expected.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "'Off with his head,' she mutters, but she means the AUTHOR. 'He made me worse than I was. I was strict, not EVIL. He turned my card soldiers into monsters.'", "voice_type": "narrator",
+			"choices": [
+				{"text": "Recruit the Queen — 'Your army could be useful.'", "key": "queen_fate", "flag": "queen_recruited", "next": "recruit_queen"},
+				{"text": "Refuse her — 'We don't need tyrants on our side.'", "key": "queen_fate", "flag": "queen_refused", "next": "refuse_queen"},
+			]
+		},
+	]
+	story_dialogs["recruit_queen"] = [
+		{"speaker": "alice", "text": "I never thought I'd say this, but... welcome to the team, Your Majesty. Try not to behead anyone.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "The Queen of Hearts straightens her crown. 'I make no promises about the Author.' She snaps her fingers — her card soldiers reform, now loyal to the heroes.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Queen of Hearts joins as a Villain Ally! Her card army provides overwhelming numbers.", "voice_type": "narrator"},
+	]
+	story_dialogs["refuse_queen"] = [
+		{"speaker": "narrator", "text": "The Queen huffs. 'Fine! I'll find my OWN way out. And when I do, you'll wish you'd been nicer!' She stomps off into the margins.", "voice_type": "narrator"},
 	]
 
 	# --- WICKED WITCH ARC (Levels 22-24) — (REDEMPTION ARC) ---
@@ -9273,6 +9304,21 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_27"] = [
 		{"speaker": "peter_pan", "text": "Below Hook's shadow ship, I found a map. It shows ALL the shadow realms, connected by ink rivers. And there are prisoners in the margins — heroes from other books!", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Peter's discovery changes everything. The map reveals the full scope of the Shadow Author's prison — and the location of characters who have been trapped far longer.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Captain Hook crawls from the wreckage of the Jolly Roger, his iron hook glinting. Without the Author's shadows fueling his rage, he looks... tired. Old.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "'Pan,' he says, 'I've been fighting you for centuries in every version of this story. The Author just made it WORSE — made me forget WHY I was fighting. I'm tired of being the villain.'", "voice_type": "narrator",
+			"choices": [
+				{"text": "Recruit Hook — 'A pirate's sword arm is always welcome.'", "key": "hook_fate", "flag": "hook_recruited", "next": "recruit_hook"},
+				{"text": "Leave him — 'Once a pirate, always a pirate.'", "key": "hook_fate", "flag": "hook_left", "next": "leave_hook"},
+			]
+		},
+	]
+	story_dialogs["recruit_hook"] = [
+		{"speaker": "peter_pan", "text": "You know what, Hook? This is the first time in our whole story that you've been... honest. Alright, old man. Let's fight together for once.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Hook steadies himself, drawing his cutlass. 'I swear on the sea — I'll not betray this crew.' For the first time in centuries, Peter Pan and Captain Hook stand on the same side.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Captain Hook joins as a Villain Ally! His pirate crew provides ranged cannon fire and boarding attacks.", "voice_type": "narrator"},
+	]
+	story_dialogs["leave_hook"] = [
+		{"speaker": "narrator", "text": "Hook nods slowly. 'I understand. Trust is earned, not given. I'll find my own way.' He limps into the shadow pages, a broken captain seeking his own redemption.", "voice_type": "narrator"},
 	]
 
 	# --- PHANTOM ARC (Levels 28-30) ---
