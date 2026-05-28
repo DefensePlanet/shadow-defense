@@ -719,7 +719,7 @@ func _build_portal_hub() -> void:
 		# Click to enter realm
 		if arc_unlocked:
 			var arc_name = realm["arc"]
-			card.pressed.connect(func(): _portal_view = arc_name; _build_chapters())
+			card.pressed.connect(func(): _enter_realm(arc_name))
 		# Hover
 		card.mouse_entered.connect(func():
 			card.pivot_offset = card.size / 2.0
@@ -733,6 +733,27 @@ func _build_portal_hub() -> void:
 		var etw = create_tween()
 		etw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(ri * 0.05)
 		grid.add_child(card)
+
+func _enter_realm(arc_name: String) -> void:
+	# Check for arc intro cinematic (first time entering this realm)
+	var intro_key_map = {
+		"Neverland": "arc_intro_neverland", "Land of Oz": "arc_intro_oz",
+		"Paris Opera": "arc_intro_opera", "Sherlock Holmes": "arc_intro_sherlock",
+		"Merlin": "arc_intro_merlin", "Tarzan": "arc_intro_tarzan",
+		"Dracula": "arc_intro_dracula", "Frankenstein": "arc_intro_frankenstein",
+		"Sherwood Forest": "arc_intro_sherwood", "Wonderland": "arc_intro_wonderland",
+		"Victorian London": "arc_intro_christmas", "Shadow Author": "arc_intro_shadow",
+	}
+	if intro_key_map.has(arc_name) and _main:
+		var intro_key = intro_key_map[arc_name]
+		if _main.story_dialogs.has(intro_key) and not intro_key in _main.story_seen:
+			# Play arc intro cinematic first, then enter realm
+			_portal_view = arc_name
+			_main._start_story_dialog(intro_key)
+			# After the dialog ends, the player returns to menu — they'll see the arc view
+			return
+	_portal_view = arc_name
+	_build_chapters()
 
 func _is_realm_complete(realm: Dictionary) -> bool:
 	if not _main or not "completed_levels" in _main: return false

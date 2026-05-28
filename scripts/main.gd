@@ -9760,6 +9760,70 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "shadow_author", "text": "They're coming. All eleven of them. And I... I don't know if I want to stop them anymore.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Ink Realm awaits. The Final Chapters begin.", "voice_type": "narrator"},
 	]
+	# === ARC INTRO CINEMATICS — 3-panel intro when entering a realm for the first time ===
+	# Panel 1: The portal opens. Panel 2: The realm is corrupted. Panel 3: The trapped hero.
+
+	story_dialogs["arc_intro_neverland"] = [
+		{"speaker": "narrator", "text": "A portal of ink tears open — beyond it, a sky without stars. The second star to the right has been snuffed out. This is Neverland, rewritten in shadow.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Neverland — where children never grow up, because in MY version, childhood itself has been ERASED. Only the pirates remain.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "Somewhere in the dark canopy, a boy refuses to stop flying. Peter Pan fights alone against an army of shadow pirates. He needs help.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_oz"] = [
+		{"speaker": "narrator", "text": "The portal spirals green — emerald light poisoned with black ink. Oz stretches before you, its yellow brick road cracked and crumbling into darkness.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "The Wicked Witch was already the villain of her story. All I had to do was remove the ONE thing that made her fight back — her home. Without Oz, she's just... angry.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "But the Witch IS fighting back. Flying monkeys carry her resistance from cloud to cloud. She hasn't surrendered. She's waiting for reinforcements.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_opera"] = [
+		{"speaker": "narrator", "text": "The portal opens to silence. No music. No applause. The Paris Opera House stands dark and empty — its grand chandelier hanging by a single chain of ink.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "The Phantom lived beneath the stage for decades. In MY version, there IS no stage. Just an endless labyrinth of mirrors where every reflection shows his worst face.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "But from the deepest tunnel, a single note echoes — haunting, defiant, BEAUTIFUL. The Phantom still plays. His music is his armor against the dark.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_sherlock"] = [
+		{"speaker": "narrator", "text": "Fog rolls through the portal — thick, grey, smelling of old library books. Gas lamps flicker with violet light along a street you recognize: Baker Street.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "I gave Moriarty every advantage. Every clue leads to a dead end I wrote myself. The world's greatest detective — trapped in an unsolvable case.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "But through a window at 221B, a figure in a deerstalker cap watches. He's been studying his prison. He's been DEDUCING. And he's been leaving coded messages for whoever might come.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_merlin"] = [
+		{"speaker": "narrator", "text": "The portal shimmers blue and gold — Camelot's colors, corrupted by shadow. The Round Table lies shattered. Dark knights patrol where honor once stood.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Merlin — the greatest wizard in fiction. I turned his own student against him. Morgan le Fay guards his crystal prison with every spell he ever taught her.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "Deep beneath the castle, in a cave of singing crystals, an ancient mind waits with infinite patience. Merlin has been here before. He saw this coming. ALL of it.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_tarzan"] = [
+		{"speaker": "narrator", "text": "The portal tears through a wall of green — living jungle, but WRONG somehow. The vines are made of cursive script. The leaves are torn pages.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "I killed Tarzan's apes in the first paragraph. Took his family before the story even started. A man with nothing left to protect has nothing left to fight for — or so I thought.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "A primal yell splits the shadow canopy. Something MASSIVE swings between the ink-black trees. Tarzan hasn't stopped fighting. He fights now not to protect — but to REMEMBER.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_dracula"] = [
+		{"speaker": "narrator", "text": "The portal bleeds red. Castle Dracula rises from a mountain of manuscript pages, its towers piercing a sky of eternal night. Bats circle in formations that spell out warnings.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Dracula was the easiest to corrupt. He was ALREADY the villain. I simply stripped away his choice, his nobility, his centuries of restraint. What remains is pure predator.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "But in the highest tower, something glints — a music box, playing a lullaby. Somewhere inside the beast, a man still remembers his mother's face. He's not gone. Not yet.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_frankenstein"] = [
+		{"speaker": "narrator", "text": "The portal crackles with electricity. Lightning arcs between copper coils in a laboratory that stretches to the horizon. The air smells of ozone and old formaldehyde.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Mary Shelley gave her Monster a soul. I took it back. All that's left is the lightning and the fury. A creature made from the dead, with nothing left to live for.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "In the frozen wastes beyond the lab, a massive figure sits in the snow. Not raging. Not destroying. Just... sitting. Looking at his hands. Wondering why they were made.", "voice_type": "narrator"},
+	]
+	story_dialogs["arc_intro_sherwood"] = [
+		{"speaker": "narrator", "text": "The portal opens to the smell of oak and river water. Sherwood Forest — but not the green paradise you remember. The trees are leafless. The river runs with ink.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Robin Hood's own story, rewritten. The Merry Men are captured. Marian is a shadow. The Sheriff of Nottingham rules with an iron fist of INK.", "voice_type": "shadow"},
+		{"speaker": "robin_hood", "text": "MY forest. My HOME. What has he done to it? Every tree, every stream — twisted into his version of my story. This ends NOW.", "voice_type": "male_hero"},
+	]
+	story_dialogs["arc_intro_wonderland"] = [
+		{"speaker": "narrator", "text": "The portal swirls with impossible colors — purple mushrooms, floating teacups, grinning cats made of smoke. Wonderland, but darker. The wonder has curdled into nightmare.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "In MY Wonderland, nothing makes sense — and that's not whimsical, it's WEAPONIZED. Logic doesn't work here. Strategy fails. Only madness survives.", "voice_type": "shadow"},
+		{"speaker": "alice", "text": "He thinks chaos will break me? I've been to Wonderland before. The maddest place in all of fiction. And I brought LOGIC. Let's see which is stronger.", "voice_type": "female_hero"},
+	]
+	story_dialogs["arc_intro_christmas"] = [
+		{"speaker": "narrator", "text": "The portal breathes cold air — snow falls sideways through a Victorian London where every window is dark and every hearth is empty. Christmas Eve, but without Christmas.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Scrooge's story is about redemption. So I took that away. In MY version, the three ghosts FAILED. Christmas never came. Scrooge died alone, counting coins in the dark.", "voice_type": "shadow"},
+		{"speaker": "scrooge", "text": "The ghosts... failed? No. I won't accept that. I was redeemed ONCE. I can be redeemed AGAIN. And this time, I'm bringing an army.", "voice_type": "male_hero"},
+	]
+	story_dialogs["arc_intro_shadow"] = [
+		{"speaker": "narrator", "text": "The final portal opens — and beyond it, there is nothing. No sky. No ground. Only ink. An ocean of living darkness stretching in every direction. The Ink Realm.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Welcome HOME, heroes. This is where stories come to die. This is where I was BORN. This is MY chapter — and here, I write the rules.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "Eleven heroes stand at the edge of the abyss. Behind them, every realm they've conquered. Ahead, only darkness. And a throne. And a quill. And the end of everything.", "voice_type": "narrator"},
+	]
+
 	# === SECRET HARD MODE DIALOGS — Hidden lore unlocked on Hard/Pure ===
 	# These only appear when beating a level on Hard (2) or Pure (3) difficulty.
 	# They reveal deeper world-building, Shadow Author confessions, and character secrets.
