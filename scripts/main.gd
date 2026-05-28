@@ -5537,6 +5537,43 @@ func _generate_decorations_for_level(index: int) -> void:
 func _create_ui() -> void:
 	var ui = $UI
 
+	# === SHADOW REALM OVERLAY — ink corruption + torn page border ===
+	# Ink corruption shader overlay (procedural ink drips, splotches, edge tears)
+	var ink_overlay = ColorRect.new()
+	ink_overlay.color = Color(0, 0, 0, 0)
+	ink_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ink_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ink_overlay.z_index = -1
+	if ResourceLoader.exists("res://shaders/ink_corruption.gdshader"):
+		var ink_shader = load("res://shaders/ink_corruption.gdshader")
+		var ink_mat = ShaderMaterial.new()
+		ink_mat.shader = ink_shader
+		ink_mat.set_shader_parameter("ink_intensity", 0.12)
+		ink_mat.set_shader_parameter("edge_tear", 0.06)
+		ink_mat.set_shader_parameter("drip_speed", 0.4)
+		ink_mat.set_shader_parameter("time_scale", 0.25)
+		ink_overlay.material = ink_mat
+	ui.add_child(ink_overlay)
+	# Torn page border frame (static art overlay)
+	if ResourceLoader.exists("res://assets/ui_elements/page_tear_border.png"):
+		var page_border = TextureRect.new()
+		page_border.texture = load("res://assets/ui_elements/page_tear_border.png")
+		page_border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		page_border.stretch_mode = TextureRect.STRETCH_SCALE
+		page_border.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		page_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		page_border.modulate.a = 0.35
+		page_border.z_index = 5  # Above map, below HUD buttons
+		# Apply black key shader to remove white areas
+		if ResourceLoader.exists("res://shaders/black_key.gdshader"):
+			var bk = load("res://shaders/black_key.gdshader")
+			var bk_mat = ShaderMaterial.new()
+			bk_mat.shader = bk
+			bk_mat.set_shader_parameter("threshold", 0.15)
+			bk_mat.set_shader_parameter("smoothness", 0.08)
+			page_border.material = bk_mat
+		ui.add_child(page_border)
+
 	# Top bar — Bloons-style warm dark bar
 	top_bar = ColorRect.new()
 	top_bar.color = Color(0, 0, 0, 0)

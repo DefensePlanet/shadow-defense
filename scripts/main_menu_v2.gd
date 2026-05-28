@@ -269,6 +269,7 @@ func _load_art() -> void:
 		"realm_opera": "res://assets/realm_icons/realm_opera.png",
 		"realm_christmas": "res://assets/realm_icons/realm_christmas.png",
 		"realm_shadow": "res://assets/realm_icons/realm_shadow.png",
+		"page_tear_border": "res://assets/ui_elements/page_tear_border.png",
 	}
 	for k in paths:
 		if ResourceLoader.exists(paths[k]):
