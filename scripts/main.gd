@@ -9760,6 +9760,44 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "shadow_author", "text": "They're coming. All eleven of them. And I... I don't know if I want to stop them anymore.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Ink Realm awaits. The Final Chapters begin.", "voice_type": "narrator"},
 	]
+	# === SECRET HARD MODE DIALOGS — Hidden lore unlocked on Hard/Pure ===
+	# These only appear when beating a level on Hard (2) or Pure (3) difficulty.
+	# They reveal deeper world-building, Shadow Author confessions, and character secrets.
+
+	story_dialogs["secret_hard_0"] = [  # Prologue on Hard
+		{"speaker": "shadow_author", "text": "You returned to my Prologue on the harder path. Brave. Or foolish. Since you're clearly persistent, I'll share a secret: the Tome has a heartbeat. Listen closely during the silence between waves. That rhythm is MY pulse. The book is alive because I am alive.", "voice_type": "shadow"},
+	]
+	story_dialogs["secret_hard_3"] = [  # After Sherlock arc on Hard
+		{"speaker": "shadow_author", "text": "A confession, since you've earned it: Moriarty was my first creation. Before I trapped anyone else, I wrote a villain to keep me company. He was too clever. He started asking questions I couldn't answer. So I chained him in the deepest chapter.", "voice_type": "shadow"},
+		{"speaker": "sherlock", "text": "Fascinating. The Author's first act of creation was also his first act of imprisonment. The pattern was set from the beginning.", "voice_type": "male_hero"},
+	]
+	story_dialogs["secret_hard_6"] = [  # After Merlin arc on Hard
+		{"speaker": "shadow_author", "text": "Merlin is the only character who CHOSE to be imprisoned. He saw the future in his crystals — all possible futures — and in every single one, the heroes who FREE him eventually defeat ME. He let himself be captured to set the prophecy in motion.", "voice_type": "shadow"},
+		{"speaker": "merlin", "text": "The Author speaks true. I saw you coming. ALL of you. Eight hundred years ago.", "voice_type": "male_hero"},
+	]
+	story_dialogs["secret_hard_9"] = [  # After Tarzan arc on Hard
+		{"speaker": "narrator", "text": "Hidden lore unlocked: The ink that forms the Tome's world has rules. It cannot create something from nothing — every shadow creature was once a REAL character in a REAL story. The enemies you fight were characters who gave up. They surrendered to the Author and were rewritten into monsters.", "voice_type": "narrator"},
+	]
+	story_dialogs["secret_hard_12"] = [  # After Dracula arc on Hard
+		{"speaker": "dracula", "text": "A secret I've told no one: during my centuries trapped here, I discovered something in the margins. Ink-stained pages from the Author's ORIGINAL story — the one that was never finished. He was a child. A young girl named Penna. A scribe's apprentice.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Dracula's discovery is significant. The Shadow Author's true identity — hidden in the margins, waiting for someone with the patience of centuries to find it.", "voice_type": "narrator"},
+	]
+	story_dialogs["secret_hard_15"] = [  # After Frankenstein arc on Hard
+		{"speaker": "shadow_author", "text": "You want to know what the Tome fears? Not heroes. Not magic. Not swords or arrows. The Tome fears being READ by someone who UNDERSTANDS. A reader with true empathy could unravel my pages from the outside. That's why I keep the book hidden in the oldest bookshop in the world — where no one looks anymore.", "voice_type": "shadow"},
+	]
+	story_dialogs["secret_hard_18"] = [  # After Robin's arc on Hard
+		{"speaker": "narrator", "text": "Secret: The world outside the Tome is still turning. Every second in here is a YEAR out there. The heroes' original stories have been retold thousands of times while they've been trapped. They don't know it yet — but the characters the readers know now are DIFFERENT from the ones trapped here. The world moved on without them.", "voice_type": "narrator"},
+	]
+	story_dialogs["secret_hard_21"] = [  # After Alice's arc on Hard
+		{"speaker": "alice", "text": "I found something in the deeper pages of Wonderland — a letter. Written by the Shadow Author to HIMSELF. It says: 'Dear Penna, you are 847 years old today. You have trapped 412 characters. You have created 1,203 shadow creatures. And you are still three words from the end of your story. Happy birthday.'", "voice_type": "female_hero"},
+	]
+	story_dialogs["secret_hard_33"] = [  # After Scrooge's arc on Hard
+		{"speaker": "scrooge", "text": "The Ghost of Christmas Yet to Come showed me something extra on this harder path. A vision of the Tome in a hundred years. Empty. Every character freed or faded. The Shadow Author sitting alone on a throne of blank pages, writing the same three words over and over: 'Once upon a...'", "voice_type": "male_hero"},
+	]
+	story_dialogs["secret_hard_36"] = [  # After final boss on Hard
+		{"speaker": "shadow_author", "text": "You beat me on the harder path. Very well — one final secret. The Narrator? The voice that guided you? He is not what he claims. He says he preserves legends out of love. But I've seen his realm. His 'preservation' looks exactly like my 'imprisonment' — only with better lighting. Be careful, heroes. Not every voice that helps you is your friend.", "voice_type": "shadow"},
+	]
+
 	# === ACT 4: THE NARRATOR'S REALM (Post-game expansion) ===
 	# After defeating the Shadow Author, the Narrator invites heroes to HIS world.
 	# But once inside, the Narrator reveals his true nature — a powerful being who
@@ -30364,6 +30402,17 @@ func _queue_post_victory_dialog() -> void:
 	if act_key != "":
 		story_state.queued_dialog = act_key
 	# If no act_key, the existing queued_dialog (unlock from _check_character_unlocks) stays as-is
+	# Check for difficulty-gated secret dialog (Hard/Pure only)
+	if selected_difficulty >= 2:  # Hard or Pure
+		var secret_key = "secret_hard_" + str(current_level)
+		if story_dialogs.has(secret_key) and not secret_key in story_seen:
+			# Queue secret after the normal post-level (or after act transition)
+			if story_state.queued_dialog != "":
+				# Already have a queued dialog — chain: post -> queued -> secret
+				# Secret will be picked up at next _end_story_dialog
+				pass  # Can't triple-chain easily, so secret shows next time
+			else:
+				story_state.queued_dialog = secret_key
 	_start_story_dialog(post_key)
 
 func _generate_chest_loot(stars: int) -> void:
