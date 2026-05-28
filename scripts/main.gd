@@ -9447,14 +9447,53 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "The Shadow Author becomes the Guardian Author — protector of unfinished stories. The Tome transforms from a prison to a sanctuary.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "And so the greatest story ever told was not one of heroes defeating a villain — but of characters choosing to rewrite their own endings.", "voice_type": "narrator"},
 	]
-	# Classic ending lines (play after any choice path)
+	# === POST-GAME EPILOGUE — Character Farewells + The Final Choice ===
 	story_dialogs["post_level_36_epilogue"] = [
-		{"speaker": "dracula", "text": "I chose heroism over horror. If a four-hundred-year-old vampire can change his story, then anyone can.", "voice_type": "male_hero"},
-		{"speaker": "frankenstein", "text": "They called me monster. But you... you called me friend. That is the best story... I have ever been part of.", "voice_type": "monster"},
-		{"speaker": "wicked_witch", "text": "They wrote me as the villain. But villains who fight for love — for HOME — that's not wickedness. That's strength.", "voice_type": "female_hero"},
-		{"speaker": "peter_pan", "text": "Every story needs a good villain. And every villain deserves a chance to be something more.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "The Tome of Shadows closes for the last time. But the stories will never be forgotten — living on in every page turned, every tale told at bedtime, every child who believes.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "The End... or perhaps, just the beginning of a new chapter.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Tome falls silent. For the first time since the Prologue, there is no scratching quill, no whispered threats, no shadow ink on the horizon. Only light, pouring through the broken spine of the book.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "A portal opens in the final page — not made of shadow ink, but of golden light. Through it, the heroes can see their homes. Their REAL homes. Sherwood Forest. Wonderland. Neverland. Every realm, waiting.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "But the portal only stays open for a moment. Each character must decide: step through and return to their book, or stay free in a world between stories.", "voice_type": "narrator"},
+		# --- Individual Character Farewells ---
+		{"speaker": "robin_hood", "text": "Sherwood is calling. I can smell the oak trees and hear the river. But out here... out here I'm more than just an outlaw. I'm a LEADER.", "voice_type": "male_hero"},
+		{"speaker": "alice", "text": "Wonderland was always mad. But this adventure — fighting shadows with vampires and monsters and pirates — THIS was the maddest tea party of all. And the best.", "voice_type": "female_hero"},
+		{"speaker": "wicked_witch", "text": "Oz never wanted me. They cheered when I melted. But HERE — here I was needed. Here my magic mattered. Here I had a HOME that didn't try to kill me.", "voice_type": "female_hero"},
+		{"speaker": "peter_pan", "text": "If I go back to Neverland, I'll never grow up. But staying here... I've already grown more than I thought possible. Is that such a terrible thing?", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "My opera house is empty. My music echoes in an empty theater. But the song I've sung here — fighting alongside friends who never saw my face and STILL stood beside me — that is my masterpiece.", "voice_type": "male_hero"},
+		{"speaker": "scrooge", "text": "I've been given three chances at redemption already. Christmas Past, Present, and Future. This? This was the FOURTH chance. And I'll not waste it counting gold in an empty counting house.", "voice_type": "male_hero"},
+		{"speaker": "sherlock", "text": "221B Baker Street will always be there. The game, as they say, is always afoot. But THIS case — the case of the Shadow Author — was the finest mystery of my career. I have no desire to close the file just yet.", "voice_type": "male_hero"},
+		{"speaker": "tarzan", "text": "Jungle is... home. Always home. But tribe is here now. Tarzan learned: home is not a place. Home is... the people who fight beside you.", "voice_type": "male_hero"},
+		{"speaker": "dracula", "text": "My castle is cold. My coffin is lonely. For four hundred years I've been the thing that haunts the dark. But fighting alongside the living — feeling the warmth of their courage — I would trade eternity for one more day of this.", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "I have seen the rise and fall of Camelot a thousand times. But this story — characters from every book, every age, fighting as one — this is the prophecy I was always MEANT to see fulfilled.", "voice_type": "male_hero"},
+		{"speaker": "frankenstein", "text": "Go back? Back to... the villagers with torches? The ice? The loneliness? No. Here I am... not monster. Here I am... Frankenstein. Here I am... family.", "voice_type": "monster"},
+		# --- The Final Choice ---
+		{"speaker": "narrator", "text": "The golden portal shimmers. The heroes stand at the threshold. Every realm awaits — every home, every story, every ending that was written for them. Or... they can write a NEW one.", "voice_type": "narrator",
+			"choices": [
+				{"text": "Return to your books — 'Every story deserves its proper ending.'", "key": "epilogue_choice", "flag": "heroes_returned", "next": "epilogue_return"},
+				{"text": "Stay free — 'We write our OWN story now.'", "key": "epilogue_choice", "flag": "heroes_stayed", "next": "epilogue_stay"},
+				{"text": "Leave the door open — 'We can be in BOTH worlds.'", "key": "epilogue_choice", "flag": "heroes_both", "next": "epilogue_both"},
+			]
+		},
+	]
+	story_dialogs["epilogue_return"] = [
+		{"speaker": "robin_hood", "text": "Then let's go home. But we'll carry this story with us — and if the Tome ever opens again, we'll be ready.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "One by one, the heroes step through the golden portal. Robin Hood to Sherwood. Alice down the rabbit hole. Peter Pan to the second star on the right. Each leaving behind a trail of golden light.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Tome of Shadows closes gently. On its cover, new words appear: 'These heroes were here. They fought. They won. And they went home — not because they had to, but because their stories still needed them.'", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "In libraries around the world, eleven books glow faintly on their shelves. The characters inside smile, remembering. And children who read those books can somehow sense it — that their favorite heroes have been on the greatest adventure of all.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The End.", "voice_type": "narrator"},
+	]
+	story_dialogs["epilogue_stay"] = [
+		{"speaker": "alice", "text": "Then we need a name. Not heroes from books. Not characters in someone else's story. Something NEW.", "voice_type": "female_hero"},
+		{"speaker": "robin_hood", "text": "We are the Tales from the Pages. And this is OUR book now.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The portal closes. The heroes stand in the light between stories — a world of their own making. The Tome of Shadows transforms into the Tome of Light, its pages blank, waiting to be filled.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "And somewhere between the covers of every book ever written, eleven characters begin the greatest story ever told: the one they write themselves.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The End... of the beginning.", "voice_type": "narrator"},
+	]
+	story_dialogs["epilogue_both"] = [
+		{"speaker": "sherlock", "text": "The most logical solution. We exist in our books AND out here. We are the bridge between stories and reality.", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "I'll hold the portal open with ancient magic. Step through whenever you wish — live your stories AND this new one.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The golden portal stabilizes — a permanent gateway between the Tome and every realm. Heroes can return home to their stories, then step back out when a new adventure calls.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "And call it does. Because somewhere in the margins of forgotten manuscripts, new shadows are stirring. New stories are being abandoned. New characters are crying out for rescue.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Tales from the Pages are not finished. They are just getting started.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "To be continued...", "voice_type": "narrator"},
 	]
 
 	# --- CHARACTER UNLOCK DIALOGS ---
