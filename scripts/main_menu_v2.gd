@@ -8,20 +8,28 @@ var _main: Node = null
 var current_view: String = "chapters"
 var _portal_view: String = ""  # "" = hub, "sherlock" = arc detail
 # Realm definitions: arc_prefix, display name, icon key, character portrait, color accent
+# REALM ORDER: Prologue → rescue Peter/Witch/Phantom → rescue Sherlock/Merlin/Tarzan/Dracula/Frank
+# → starter heroes face their own stories → Shadow Author finale
+# Level indices still point to the original levels[] array positions
 const REALMS: Array = [
-	{"arc": "Prologue", "name": "The Tome Opens", "icon": "realm_prologue", "portrait": "robin_hood", "color": [0.7, 0.6, 0.4], "levels": [0]},
-	{"arc": "Sherlock Holmes", "name": "Shadow London", "icon": "realm_london", "portrait": "sherlock", "color": [0.5, 0.5, 0.7], "levels": [1, 2, 3]},
-	{"arc": "Merlin", "name": "The Enchanted Pages", "icon": "realm_camelot", "portrait": "merlin", "color": [0.3, 0.5, 0.85], "levels": [4, 5, 6]},
-	{"arc": "Tarzan", "name": "The Wild Chapters", "icon": "realm_jungle", "portrait": "tarzan", "color": [0.3, 0.6, 0.3], "levels": [7, 8, 9]},
-	{"arc": "Dracula", "name": "The Blood Script", "icon": "realm_transylvania", "portrait": "dracula", "color": [0.7, 0.2, 0.2], "levels": [10, 11, 12]},
-	{"arc": "Frankenstein", "name": "The Stitched Pages", "icon": "realm_laboratory", "portrait": "frankenstein", "color": [0.4, 0.7, 0.3], "levels": [13, 14, 15]},
-	{"arc": "Sherwood Forest", "name": "The Outlaw's Tale", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [16, 17, 18]},
-	{"arc": "Wonderland", "name": "The Mad Manuscript", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [19, 20, 21]},
-	{"arc": "Land of Oz", "name": "The Emerald Verse", "icon": "realm_oz", "portrait": "wicked_witch", "color": [0.2, 0.7, 0.3], "levels": [22, 23, 24]},
-	{"arc": "Neverland", "name": "The Endless Story", "icon": "realm_neverland", "portrait": "peter_pan", "color": [0.3, 0.6, 0.8], "levels": [25, 26, 27]},
-	{"arc": "Paris Opera", "name": "The Phantom's Score", "icon": "realm_opera", "portrait": "phantom", "color": [0.7, 0.5, 0.3], "levels": [28, 29, 30]},
-	{"arc": "Victorian London", "name": "The Ghost's Ledger", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [31, 32, 33]},
-	{"arc": "Shadow Author", "name": "The Final Chapter", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.5, 0.2, 0.6], "levels": [34, 35, 36]},
+	# === ACT 1: INTO THE PAGES — Prologue + 8 rescue arcs ===
+	{"arc": "Prologue", "name": "The Tome Opens", "icon": "realm_prologue", "portrait": "robin_hood", "color": [0.7, 0.6, 0.4], "levels": [0], "act": 1},
+	# First 3 rescues: Peter Pan, Wicked Witch, Phantom (unlock as playable)
+	{"arc": "Neverland", "name": "The Endless Story", "icon": "realm_neverland", "portrait": "peter_pan", "color": [0.3, 0.6, 0.8], "levels": [25, 26, 27], "act": 1, "rescues": "peter_pan"},
+	{"arc": "Land of Oz", "name": "The Emerald Verse", "icon": "realm_oz", "portrait": "wicked_witch", "color": [0.2, 0.7, 0.3], "levels": [22, 23, 24], "act": 1, "rescues": "wicked_witch"},
+	{"arc": "Paris Opera", "name": "The Phantom's Score", "icon": "realm_opera", "portrait": "phantom", "color": [0.7, 0.5, 0.3], "levels": [28, 29, 30], "act": 1, "rescues": "phantom"},
+	# Next 5 rescues: Sherlock, Merlin, Tarzan, Dracula, Frankenstein
+	{"arc": "Sherlock Holmes", "name": "Shadow London", "icon": "realm_london", "portrait": "sherlock", "color": [0.5, 0.5, 0.7], "levels": [1, 2, 3], "act": 1, "rescues": "sherlock"},
+	{"arc": "Merlin", "name": "The Enchanted Pages", "icon": "realm_camelot", "portrait": "merlin", "color": [0.3, 0.5, 0.85], "levels": [4, 5, 6], "act": 1, "rescues": "merlin"},
+	{"arc": "Tarzan", "name": "The Wild Chapters", "icon": "realm_jungle", "portrait": "tarzan", "color": [0.3, 0.6, 0.3], "levels": [7, 8, 9], "act": 1, "rescues": "tarzan"},
+	{"arc": "Dracula", "name": "The Blood Script", "icon": "realm_transylvania", "portrait": "dracula", "color": [0.7, 0.2, 0.2], "levels": [10, 11, 12], "act": 1, "rescues": "dracula"},
+	{"arc": "Frankenstein", "name": "The Stitched Pages", "icon": "realm_laboratory", "portrait": "frankenstein", "color": [0.4, 0.7, 0.3], "levels": [13, 14, 15], "act": 1, "rescues": "frankenstein"},
+	# === ACT 2: THE SHADOW STORIES — Starter heroes face their own tales ===
+	{"arc": "Sherwood Forest", "name": "The Outlaw's Tale", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [16, 17, 18], "act": 2},
+	{"arc": "Wonderland", "name": "The Mad Manuscript", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [19, 20, 21], "act": 2},
+	{"arc": "Victorian London", "name": "The Ghost's Ledger", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [31, 32, 33], "act": 2},
+	# === ACT 3: THE FINAL CHAPTER ===
+	{"arc": "Shadow Author", "name": "The Final Chapter", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.5, 0.2, 0.6], "levels": [34, 35, 36], "act": 3},
 ]
 var _song_label: Label = null
 var _last_song: String = ""
@@ -583,16 +591,24 @@ func _build_portal_hub() -> void:
 		var completed_ct = _main.completed_levels.size() if "completed_levels" in _main else 0
 		var total_ct = _main.levels.size() if "levels" in _main else 37
 		vb.add_child(_stat_bar("Journey", completed_ct, total_ct, Color(0.85, 0.65, 0.20)))
-	# Portal grid — 3 columns
-	var grid = GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_child(grid)
+	# Portal grid — one grid per act with act headers between them
+	var grid: GridContainer = null
+	var _last_act = 0
 	for ri in range(REALMS.size()):
 		var realm = REALMS[ri]
+		var act_num = realm.get("act", 1)
+		# Act divider + new grid when act changes
+		if act_num != _last_act:
+			_last_act = act_num
+			var act_names = {1: "ACT I — INTO THE PAGES", 2: "ACT II — THE SHADOW STORIES", 3: "ACT III — THE FINAL CHAPTER"}
+			vb.add_child(_section_header(act_names.get(act_num, "ACT %d" % act_num)))
+			grid = GridContainer.new()
+			grid.columns = 3
+			grid.add_theme_constant_override("h_separation", 10)
+			grid.add_theme_constant_override("v_separation", 10)
+			grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			vb.add_child(grid)
 		var arc_complete = _is_realm_complete(realm)
 		var arc_unlocked = _is_realm_unlocked(ri)
 		# Portal card

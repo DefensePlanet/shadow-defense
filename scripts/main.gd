@@ -9114,10 +9114,14 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["prologue"] = [
 		{"speaker": "narrator", "text": "In a forgotten corner of the world's oldest bookshop, there lies a book that should never be opened. Its cover is black as midnight, its pages whisper when no one is looking. They call it... The Tome of Shadows.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "Within its pages lives the Shadow Author — an entity born from every story ever abandoned, every tale left unfinished. It hungers for completed narratives... and the characters within them.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "Tonight, the Tome calls out. Six beloved heroes hear it — a whisper at the edge of their stories, an itch in the margins. One by one they reach for the book. They cannot resist. No character can resist an unread page.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "The cover flies open. A vortex of black ink spirals outward, tendrils wrapping around Robin Hood's bow, Alice's apron, the Witch's broomstick. They scream as they are pulled through — dragged into the pages like insects into amber.", "voice_type": "narrator"},
-		{"speaker": "shadow_author", "text": "Welcome to MY pages. You have been read, beloved, adored — and now you are MINE. Every hero needs a story, and I have written you such beautiful tragedies.", "voice_type": "shadow"},
-		{"speaker": "narrator", "text": "The Tome slams shut. Six heroes vanish from their worlds. And deep within the pages, a quill begins to write their doom.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Tonight, the Tome calls out. Three beloved characters hear it first — a whisper at the edge of their stories, an itch in the margins. They reach for the book. They cannot resist. No character can resist an unread page.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The cover flies open. A vortex of black ink spirals outward — tendrils wrapping around Robin Hood's bow, Alice's apron, Scrooge's counting ledger. They scream as they are pulled through, dragged into the pages like insects into amber.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "What sorcery is this?! One moment I was in Sherwood, the next — everything is made of ink and paper!", "voice_type": "male_hero"},
+		{"speaker": "alice", "text": "This is curiouser than Wonderland! The ground is living text and the sky is... written words?", "voice_type": "female_hero"},
+		{"speaker": "scrooge", "text": "I've been haunted by three ghosts and NONE of them dragged me into a blasted book! Who's responsible for this?!", "voice_type": "male_hero"},
+		{"speaker": "shadow_author", "text": "Welcome to MY pages. An outlaw, a dreamer, and a miser — what a delightful first chapter you'll make. You have been read, beloved, adored — and now you are MINE.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Tome slams shut. Three heroes vanish from their worlds. But the ink is hungry — it will reach for MORE. Other characters are already trapped deeper in the pages, waiting to be freed.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "And somewhere beyond the Tome, nine more souls feel the pull of unfinished stories...", "voice_type": "narrator"},
 	]
 
 	# === ACT 1: INTO THE PAGES (Levels 0-15) ===
@@ -9756,6 +9760,64 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "shadow_author", "text": "They're coming. All eleven of them. And I... I don't know if I want to stop them anymore.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Ink Realm awaits. The Final Chapters begin.", "voice_type": "narrator"},
 	]
+	# === ACT 4: THE NARRATOR'S REALM (Post-game expansion) ===
+	# After defeating the Shadow Author, the Narrator invites heroes to HIS world.
+	# But once inside, the Narrator reveals his true nature — a powerful being who
+	# collects heroes not in books, but in LEGENDS. He's not evil exactly — he's
+	# a curator who believes stories are too important to let characters live freely.
+
+	story_dialogs["act4_intro"] = [
+		{"speaker": "narrator", "text": "You've done it. The Shadow Author is defeated. The Tome of Shadows is closed. Your stories are your own again.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "But I promised you something, remember? A world beyond the Tome. MY world. The Realm of Legends — where stories don't just live in books. They live in FIRE.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "The Narrator... you've been watching us this whole time. Who ARE you, really?", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "I am the voice that has told every great story since the first campfire. I am the one who remembers when the world forgets. I am... the Narrator. And my realm needs heroes.", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "Needs heroes? Or COLLECTS them? We just escaped one prison. Forgive me if I'm suspicious of another invitation.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "Smart girl. But unlike the Shadow Author, I don't trap characters in pages. I preserve them in LEGEND. Come. See for yourselves. Five souls are already waiting for you inside — trapped not by ink, but by stories that grew too large to contain them.", "voice_type": "narrator"},
+		{"speaker": "scrooge", "text": "Another realm, another rescue mission. At least this one sounds warmer than the Arctic.", "voice_type": "male_hero"},
+	]
+
+	# Alice, Robin, and Scrooge face old enemies first — special weapon unlock levels
+	story_dialogs["act4_alice_trial"] = [
+		{"speaker": "narrator", "text": "Alice. You fell down a rabbit hole once and found wonder. Now fall into MY rabbit hole — and find POWER.", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "This Wonderland is... different. The colors are REAL. The Cheshire Cat has actual fur. And the Queen — she's not made of cards anymore. She's made of FIRE.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "In my realm, your enemies are the LEGENDARY versions — stronger, smarter, more dangerous than any shadow copy. Defeat them, and I'll forge you a weapon that no Author could ever take away.", "voice_type": "narrator"},
+	]
+	story_dialogs["act4_alice_trial_complete"] = [
+		{"speaker": "narrator", "text": "Magnificent. The Vorpal Blade — reforged in the fires of Legend. It cuts through reality itself. Only a girl who defeated Wonderland TWICE could wield it.", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "It hums with impossible energy. Like six impossible things before breakfast, compressed into a single edge.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "The Vorpal Blade is yours, Alice. A legendary weapon — exclusive to those who entered the Tome first and survived.", "voice_type": "narrator"},
+	]
+
+	story_dialogs["act4_robin_trial"] = [
+		{"speaker": "narrator", "text": "Robin Hood. The greatest archer in fiction. But in my realm, the Sheriff of Nottingham is no mere tax collector — he's a WARLORD with an army of legends.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "The Sheriff? Here? But he's... enormous. That's not the man I remember. That's the LEGEND of the Sheriff — every villager's worst nightmare made real.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Defeat the Legend, and I'll give you a bow that was never meant for mortal hands.", "voice_type": "narrator"},
+	]
+	story_dialogs["act4_robin_trial_complete"] = [
+		{"speaker": "narrator", "text": "The Bow of Legends. Strung with the thread of fate itself. Every arrow finds its mark — not because you aim, but because the STORY demands it.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "I can feel it. Every shot I've ever taken, every target I've ever hit — the bow remembers them all. This is... this is beyond skill. This is DESTINY.", "voice_type": "male_hero"},
+	]
+
+	story_dialogs["act4_scrooge_trial"] = [
+		{"speaker": "narrator", "text": "Ebenezer Scrooge. The man who was redeemed by ghosts. But in my realm, the ghosts of Christmas Past, Present, and Future are not teachers. They are JUDGES.", "voice_type": "narrator"},
+		{"speaker": "scrooge", "text": "The Three Spirits? But they SAVED me! They showed me the error of my ways!", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "In legends, spirits don't save — they TEST. Pass their judgment, and you'll earn something money can't buy.", "voice_type": "narrator"},
+	]
+	story_dialogs["act4_scrooge_trial_complete"] = [
+		{"speaker": "narrator", "text": "The Counting House of Eternity. Every coin you spend in battle now returns threefold. The spirits judged you worthy — not of wealth, but of GENEROSITY.", "voice_type": "narrator"},
+		{"speaker": "scrooge", "text": "Bah! I mean... thank you. The old Scrooge would have hoarded this power. The new one will SPEND it — on protecting every character in this realm.", "voice_type": "male_hero"},
+	]
+
+	# The Narrator's true nature revealed mid-ACT 4
+	story_dialogs["narrator_reveal"] = [
+		{"speaker": "sherlock", "text": "I've been observing the Narrator's realm. Something doesn't add up. The five trapped characters here — they weren't captured by force. They were INVITED. Just like us.", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "I sense it too. The magic here isn't malicious — it's preservative. Like amber around an insect. He's not TRAPPING them. He's KEEPING them.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "...You're perceptive. Yes. I preserve legends because the world is FORGETTING them. Every year, fewer children read these stories. Fewer dreamers believe. If I don't keep the legends alive, they'll fade into nothing.", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "So you're a collector too? Just like the Shadow Author?", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "The Author trapped characters out of LONELINESS. I preserve legends out of LOVE. But I understand now — watching you fight, watching you CHOOSE — that legends aren't meant to be preserved. They're meant to be TOLD. And retold. And changed with every telling.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Free the five. Tell their stories. And when you reach my throne... we'll see if this old voice has one more story left to tell.", "voice_type": "narrator"},
+	]
+
 	# === FINALE TEASERS ===
 	story_dialogs["all_unlocked"] = [
 		{"speaker": "narrator", "text": "All five imprisoned heroes have been freed. Eleven champions now stand united against the Shadow Author.", "voice_type": "narrator"},
