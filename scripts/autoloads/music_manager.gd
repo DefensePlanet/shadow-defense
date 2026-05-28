@@ -222,7 +222,12 @@ func play_main_theme() -> void:
 	_is_map_mode = false
 	_player.volume_db = _menu_volume_db
 	_is_playing = true
-	_play_track(0)  # Parchment Tongues — the game's signature theme
+	# Coral Wreckage — the game's main theme. The drop at 55 seconds is iconic.
+	var coral_idx = TRACK_TITLES.find("Coral Wreckage")
+	if coral_idx >= 0:
+		_play_track(coral_idx)
+	else:
+		_play_track(0)  # Fallback
 
 ## Play realm-specific music when entering a realm from the portal hub
 ## Each realm has a curated track that matches its atmosphere

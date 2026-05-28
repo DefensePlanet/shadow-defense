@@ -34,11 +34,11 @@ const REALMS: Array = [
 	{"arc": "Alice's Trial", "name": "The Vorpal Challenge", "icon": "realm_wonderland", "portrait": "alice", "color": [0.6, 0.3, 0.7], "levels": [37, 38, 39], "act": 4},
 	{"arc": "Robin's Trial", "name": "The Legendary Hunt", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [40, 41, 42], "act": 4},
 	{"arc": "Scrooge's Trial", "name": "The Eternal Debt", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [43, 44, 45], "act": 4},
-	{"arc": "Rapunzel", "name": "The Tower of Thorns", "icon": "realm_prologue", "portrait": "robin_hood", "color": [0.7, 0.5, 0.3], "levels": [46, 47, 48], "act": 4, "rescues": "rapunzel"},
-	{"arc": "Pinocchio", "name": "The Puppet's Dream", "icon": "realm_prologue", "portrait": "alice", "color": [0.5, 0.4, 0.2], "levels": [49, 50, 51], "act": 4, "rescues": "pinocchio"},
-	{"arc": "Aladdin", "name": "The Lamp Unchained", "icon": "realm_prologue", "portrait": "peter_pan", "color": [0.7, 0.6, 0.2], "levels": [52, 53, 54], "act": 4, "rescues": "aladdin"},
-	{"arc": "Beauty & Beast", "name": "The Last Petal", "icon": "realm_prologue", "portrait": "phantom", "color": [0.6, 0.3, 0.5], "levels": [55, 56, 57], "act": 4, "rescues": "beast"},
-	{"arc": "Captain Ahab", "name": "The White Whale", "icon": "realm_prologue", "portrait": "scrooge", "color": [0.3, 0.4, 0.6], "levels": [58, 59, 60], "act": 4, "rescues": "ahab"},
+	{"arc": "Headless Horseman", "name": "Sleepy Hollow", "icon": "realm_prologue", "portrait": "shadow_author", "color": [0.5, 0.35, 0.15], "levels": [46, 47, 48], "act": 4, "rescues": "headless_horseman"},
+	{"arc": "Long John Silver", "name": "Treasure Island", "icon": "realm_neverland", "portrait": "peter_pan", "color": [0.4, 0.5, 0.3], "levels": [49, 50, 51], "act": 4, "rescues": "long_john_silver"},
+	{"arc": "Jekyll & Hyde", "name": "The Dual Soul", "icon": "realm_london", "portrait": "sherlock", "color": [0.4, 0.3, 0.5], "levels": [52, 53, 54], "act": 4, "rescues": "jekyll_hyde"},
+	{"arc": "Captain Nemo", "name": "The Nautilus", "icon": "realm_prologue", "portrait": "merlin", "color": [0.2, 0.35, 0.6], "levels": [55, 56, 57], "act": 4, "rescues": "captain_nemo"},
+	{"arc": "Captain Ahab", "name": "The White Whale", "icon": "realm_prologue", "portrait": "scrooge", "color": [0.3, 0.4, 0.55], "levels": [58, 59, 60], "act": 4, "rescues": "captain_ahab"},
 	{"arc": "The Narrator", "name": "The Voice Unbound", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.8, 0.5, 0.2], "levels": [61, 62, 63], "act": 4},
 ]
 var _song_label: Label = null
