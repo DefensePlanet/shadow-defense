@@ -9588,6 +9588,71 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "The Shadow Author joins your team! His ink-based attacks and reality-rewriting powers make him the ultimate late-game tower. Even the darkest stories deserve a second chapter.", "voice_type": "narrator"},
 	]
 
+	# === "MEANWHILE..." CUTSCENES — Shadow Author between arcs ===
+	story_dialogs["meanwhile_after_sherlock"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... deep in the Ink Realm...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "They freed Holmes. HOLMES! The one mind sharp enough to deduce my patterns. I need to rewrite the next chapters — make them HARDER. More personal.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Shadow Author's quill scratches furiously across blank pages. New enemies pour from the fresh ink — stronger, faster, more cunning than before.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "If they want to play detective, I'll give them a mystery they can NEVER solve.", "voice_type": "shadow"},
+	]
+	story_dialogs["meanwhile_after_merlin"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... the Shadow Author paces his throne room...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "A WIZARD. They freed a wizard. Merlin's magic can unravel my narrative threads. I must weave them tighter — bind the next prisoners with STRONGER prose.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "He opens a new chapter and begins writing with both hands — one quill for the story, one for the chains. The next realm will be twice as dangerous.", "voice_type": "narrator"},
+	]
+	story_dialogs["meanwhile_after_tarzan"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... the Author watches from his ink pool...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Three chapters breached. Three prisoners freed. They're getting FASTER. I need to slow them down — break their morale.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Author reaches into the darkest pages of his Tome and pulls out something terrible — shadow versions of the heroes themselves. Dark reflections that know every weakness.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Let them fight their own shadows. Nothing destroys a hero faster than meeting the worst version of themselves.", "voice_type": "shadow"},
+	]
+	story_dialogs["meanwhile_after_dracula"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... cracks appear in the Author's throne...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Dracula chose HEROISM? The eternal villain chose the light? This wasn't in my script. This wasn't in ANY script!", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "For the first time, the Shadow Author looks... afraid. Characters are rewriting themselves. His control is slipping.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Fine. If they won't follow the story I wrote, I'll write a story with NO escape. The next chapters will be labyrinths of ink — no exits, no mercy, no happy endings.", "voice_type": "shadow"},
+	]
+	story_dialogs["meanwhile_after_frankenstein"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... the Author's quill trembles...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Even the Monster found love. Even the creature of lightning and corpse-flesh found FAMILY. I gave him nothing but pain, and they gave him everything.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "A single drop of ink falls from the Author's quill. It hits the page and blooms into a question mark. For one moment, the Shadow Author wonders if he was wrong.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "No. NO. I will not doubt myself. I am the AUTHOR. I control the narrative. I... I must.", "voice_type": "shadow"},
+	]
+	story_dialogs["meanwhile_after_sherwood"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... the Author reviews his remaining chapters...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "They've reclaimed Sherwood Forest — the outlaw is home, and my shadow soldiers are scattered. Six arcs breached. Six more to go. But the heroes are growing STRONGER with each chapter.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "He begins writing new defenses — not just enemies, but TRAPS. Story twists that turn allies against each other. Plot holes that swallow towers whole.", "voice_type": "narrator"},
+	]
+	story_dialogs["meanwhile_after_wonderland"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... the Author mutters to himself...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Alice solved Wonderland's riddles. She's THINKING now — questioning everything. A thinking character is the most dangerous kind. They start asking why they're in a story at all.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "He crosses out entire pages and rewrites them. The next chapters will twist logic itself — rules that change mid-battle, enemies that evolve, paths that loop forever.", "voice_type": "narrator"},
+	]
+	story_dialogs["meanwhile_after_oz"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... ink drips from the Author's eyes like tears...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "The Witch defended Oz. The VILLAIN defended her HOME. Do they not understand? I GAVE them purpose! Without me, they're just words on a page! Just... just characters in stories nobody reads anymore.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "His voice breaks. For a fraction of a second, the Shadow Author sounds less like a villain and more like a lonely child. Then the mask returns.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Three arcs remain. I will pour EVERYTHING into them. Every drop of ink. Every ounce of darkness. They will NOT reach my throne.", "voice_type": "shadow"},
+	]
+	story_dialogs["meanwhile_after_neverland"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... the Author's throne cracks further...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Pan escaped. The boy who never grows up has grown into something I cannot control. He's not following the narrative anymore — he's CREATING his own.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Tome shudders. Pages fall from the ceiling like dead leaves. The Author's realm is deteriorating — his power waning with each freed character.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Two chapters left before they reach the Ink Realm. I need to prepare something... special. Something that will make them question everything they've fought for.", "voice_type": "shadow"},
+	]
+	story_dialogs["meanwhile_after_opera"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... silence falls in the Author's domain...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "The Phantom's music broke through my walls. Actual MUSIC — emotion, beauty, defiance. I built this Tome on despair, and they're filling it with hope.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "He sits on his cracking throne, staring at a single blank page. The last chapter he will ever write.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "One more wall between them and me. Scrooge's Victorian London — where ghosts teach lessons about wasted lives. Perhaps... perhaps I should listen to the ghosts too.", "voice_type": "shadow"},
+	]
+	story_dialogs["meanwhile_after_christmas"] = [
+		{"speaker": "narrator", "text": "MEANWHILE... the Author stands before his mirror of ink...", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "Scrooge was redeemed by three ghosts. And now he's redeemed AGAIN — by these heroes. Twice rewritten. Once by Dickens, once by them. And both times... he chose kindness over gold.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The mirror shows the Author his own reflection — not the towering shadow, but the small, forgotten character he once was. A child with a story that was never finished.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "They're coming. All eleven of them. And I... I don't know if I want to stop them anymore.", "voice_type": "shadow"},
+		{"speaker": "narrator", "text": "The Ink Realm awaits. The Final Chapters begin.", "voice_type": "narrator"},
+	]
 	# === FINALE TEASERS ===
 	story_dialogs["all_unlocked"] = [
 		{"speaker": "narrator", "text": "All five imprisoned heroes have been freed. Eleven champions now stand united against the Shadow Author.", "voice_type": "narrator"},
@@ -9775,8 +9840,35 @@ func _end_story_dialog() -> void:
 		_pending_level_start = -1
 		_do_level_start(lvl)
 		return
+	# Queue "meanwhile" cutscene after arc-ending post-level dialogs
+	var _meanwhile_map = {
+		"post_level_3": "meanwhile_after_sherlock",
+		"post_level_3_spare": "meanwhile_after_sherlock",
+		"post_level_3_destroy": "meanwhile_after_sherlock",
+		"post_level_6": "meanwhile_after_merlin",
+		"post_level_9": "meanwhile_after_tarzan",
+		"recruit_clayton": "meanwhile_after_tarzan",
+		"exile_clayton": "meanwhile_after_tarzan",
+		"post_level_12": "meanwhile_after_dracula",
+		"post_level_15": "meanwhile_after_frankenstein",
+		"post_level_18": "meanwhile_after_sherwood",
+		"post_level_21": "meanwhile_after_wonderland",
+		"recruit_queen": "meanwhile_after_wonderland",
+		"refuse_queen": "meanwhile_after_wonderland",
+		"post_level_24": "meanwhile_after_oz",
+		"post_level_27": "meanwhile_after_neverland",
+		"recruit_hook": "meanwhile_after_neverland",
+		"leave_hook": "meanwhile_after_neverland",
+		"post_level_30": "meanwhile_after_opera",
+		"post_level_33": "meanwhile_after_christmas",
+	}
+	if _meanwhile_map.has(key):
+		var mw_key = _meanwhile_map[key]
+		if story_dialogs.has(mw_key) and not mw_key in story_seen:
+			_start_story_dialog(mw_key)
+			return
 	# If this was a post-level dialog or unlock, save and return to menu
-	if key.begins_with("post_level_") or key.begins_with("unlock_") or key == "act2_intro" or key == "act3_intro" or key == "all_unlocked":
+	if key.begins_with("post_level_") or key.begins_with("unlock_") or key == "act2_intro" or key == "act3_intro" or key == "all_unlocked" or key.begins_with("meanwhile_") or key.begins_with("recruit_") or key.begins_with("exile_") or key.begins_with("refuse_") or key.begins_with("leave_") or key.begins_with("epilogue_"):
 		_save_game()
 	queue_redraw()
 
