@@ -2214,6 +2214,19 @@ const MAP_THUMB_SLUGS: Array = [
 
 # Level decoration data (regenerated per level)
 var _decorations: Array = []
+# Terrain zones — areas on the map with gameplay effects
+# Each zone: {type, x, y, radius, color}
+# Types: "water" (ranged bonus), "elevated" (range bonus), "hazard" (damages enemies),
+#        "fog" (reduced tower range), "sacred" (tower heal), "ink_pool" (slows enemies)
+var _terrain_zones: Array = []
+const TERRAIN_EFFECTS: Dictionary = {
+	"water": {"tower_range_mult": 1.25, "melee_disabled": true, "desc": "Water — ranged towers get +25% range, melee towers can't be placed here"},
+	"elevated": {"tower_range_mult": 1.3, "tower_damage_mult": 1.1, "desc": "High Ground — +30% range, +10% damage for towers placed here"},
+	"hazard": {"enemy_dps": 5.0, "desc": "Ink Hazard — enemies take 5 damage/sec while in this zone"},
+	"fog": {"tower_range_mult": 0.7, "desc": "Shadow Fog — towers in this zone have -30% range"},
+	"sacred": {"tower_regen": 0.02, "desc": "Sacred Ground — towers here regenerate 2% cooldown/sec faster"},
+	"ink_pool": {"enemy_slow": 0.6, "desc": "Ink Pool — enemies move at 60% speed through this zone"},
+}
 var _time: float = 0.0
 
 # Shadow Author taunt system (one random taunt per map on every level)
@@ -5122,6 +5135,118 @@ func _load_game() -> void:
 	# Check if prologue should be triggered on first load
 	if story_seen.is_empty() and story_dialogs.has("prologue"):
 		call_deferred("_start_story_dialog", "prologue")
+
+func _generate_terrain_zones(level_idx: int) -> void:
+	_terrain_zones.clear()
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var rng = RandomNumberGenerator.new()
+	rng.seed = level_idx * 12345 + 67890  # Deterministic per level
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	# Terrain themes based on realm
+	match theme:
+		0: # Sherwood — forest with elevated hills + sacred clearings
+			_terrain_zones.append({"type": "elevated", "x": 300, "y": 200, "radius": 80})
+			_terrain_zones.append({"type": "sacred", "x": 900, "y": 400, "radius": 60})
+		1: # Wonderland — fog + ink pools (chaotic terrain)
+			_terrain_zones.append({"type": "fog", "x": 400, "y": 300, "radius": 100})
+			_terrain_zones.append({"type": "ink_pool", "x": 800, "y": 200, "radius": 70})
+		2: # Oz — elevated emerald platforms + hazard poppy fields
+			_terrain_zones.append({"type": "elevated", "x": 640, "y": 300, "radius": 90})
+			_terrain_zones.append({"type": "hazard", "x": 300, "y": 450, "radius": 80})
+		3: # Neverland — water (mermaid lagoon) + elevated (treetops)
+			_terrain_zones.append({"type": "water", "x": 500, "y": 450, "radius": 100})
+			_terrain_zones.append({"type": "elevated", "x": 800, "y": 150, "radius": 70})
+		6: # Victorian London — fog (Jack the Ripper alleys) + sacred (church)
+			_terrain_zones.append({"type": "fog", "x": 350, "y": 350, "radius": 90})
+			_terrain_zones.append({"type": "sacred", "x": 900, "y": 200, "radius": 60})
+		7: # Sherlock — fog everywhere + one elevated vantage
+			_terrain_zones.append({"type": "fog", "x": 640, "y": 360, "radius": 150})
+			_terrain_zones.append({"type": "elevated", "x": 200, "y": 150, "radius": 60})
+		8: # Merlin — sacred (stone circles) + elevated (castle wall)
+			_terrain_zones.append({"type": "sacred", "x": 500, "y": 300, "radius": 80})
+			_terrain_zones.append({"type": "elevated", "x": 900, "y": 200, "radius": 70})
+		9: # Tarzan — water (river) + elevated (treetops) + hazard (quicksand)
+			_terrain_zones.append({"type": "water", "x": 640, "y": 500, "radius": 120})
+			_terrain_zones.append({"type": "elevated", "x": 300, "y": 150, "radius": 80})
+			_terrain_zones.append({"type": "hazard", "x": 800, "y": 400, "radius": 60})
+		10: # Dracula — fog (entire map darker) + hazard (blood pools)
+			_terrain_zones.append({"type": "fog", "x": 640, "y": 300, "radius": 200})
+			_terrain_zones.append({"type": "hazard", "x": 400, "y": 500, "radius": 70})
+		11: # Frankenstein — hazard (electrical) + elevated (lab platforms)
+			_terrain_zones.append({"type": "hazard", "x": 500, "y": 350, "radius": 80})
+			_terrain_zones.append({"type": "elevated", "x": 900, "y": 200, "radius": 70})
+		12: # Shadow Author — ink pools everywhere + fog
+			_terrain_zones.append({"type": "ink_pool", "x": 400, "y": 400, "radius": 100})
+			_terrain_zones.append({"type": "ink_pool", "x": 800, "y": 200, "radius": 80})
+			_terrain_zones.append({"type": "fog", "x": 640, "y": 360, "radius": 120})
+		13: # Headless Horseman — fog (entire hollow) + hazard (cursed ground)
+			_terrain_zones.append({"type": "fog", "x": 640, "y": 360, "radius": 200})
+			_terrain_zones.append({"type": "hazard", "x": 300, "y": 500, "radius": 70})
+		14: # Medusa — hazard (petrification zone) + sacred (Athena's blessing)
+			_terrain_zones.append({"type": "hazard", "x": 500, "y": 300, "radius": 90})
+			_terrain_zones.append({"type": "sacred", "x": 800, "y": 450, "radius": 60})
+		15: # Loki — fog + ink_pool (chaotic terrain, everything is unpredictable)
+			_terrain_zones.append({"type": "fog", "x": 300, "y": 250, "radius": 80})
+			_terrain_zones.append({"type": "ink_pool", "x": 700, "y": 400, "radius": 90})
+			_terrain_zones.append({"type": "fog", "x": 900, "y": 200, "radius": 60})
+		16: # Anubis — sacred (weighing hall) + hazard (river of dead)
+			_terrain_zones.append({"type": "sacred", "x": 640, "y": 300, "radius": 100})
+			_terrain_zones.append({"type": "hazard", "x": 400, "y": 500, "radius": 80})
+			_terrain_zones.append({"type": "water", "x": 800, "y": 500, "radius": 80})
+		17: # Ahab — water (ocean everywhere) + elevated (ship deck)
+			_terrain_zones.append({"type": "water", "x": 640, "y": 400, "radius": 200})
+			_terrain_zones.append({"type": "elevated", "x": 640, "y": 200, "radius": 80})
+		18: # Narrator — all terrain types (ultimate challenge)
+			_terrain_zones.append({"type": "elevated", "x": 300, "y": 200, "radius": 70})
+			_terrain_zones.append({"type": "water", "x": 800, "y": 450, "radius": 80})
+			_terrain_zones.append({"type": "fog", "x": 500, "y": 400, "radius": 90})
+			_terrain_zones.append({"type": "hazard", "x": 900, "y": 250, "radius": 60})
+
+func _draw_terrain_zones() -> void:
+	for zone in _terrain_zones:
+		var zx = zone["x"]; var zy = zone["y"]; var zr = zone["radius"]
+		var zt = zone["type"]
+		var col = Color(0.2, 0.4, 0.8, 0.08)  # Default blue
+		match zt:
+			"water": col = Color(0.15, 0.30, 0.60, 0.10)
+			"elevated": col = Color(0.50, 0.40, 0.20, 0.08)
+			"hazard": col = Color(0.60, 0.15, 0.10, 0.10)
+			"fog": col = Color(0.30, 0.30, 0.35, 0.12)
+			"sacred": col = Color(0.40, 0.60, 0.20, 0.08)
+			"ink_pool": col = Color(0.20, 0.10, 0.35, 0.12)
+		# Draw zone circle with subtle fill
+		for gi in range(4):
+			var gr = zr - float(gi) * (zr * 0.15)
+			draw_circle(Vector2(zx, zy), gr, Color(col.r, col.g, col.b, col.a * (1.0 - float(gi) * 0.2)))
+		# Edge ring
+		var ring_pts = 32
+		var ring_color = Color(col.r * 1.5, col.g * 1.5, col.b * 1.5, col.a * 2.0)
+		for ri in range(ring_pts):
+			var a1 = float(ri) / float(ring_pts) * TAU
+			var a2 = float(ri + 1) / float(ring_pts) * TAU
+			draw_line(Vector2(zx + cos(a1) * zr, zy + sin(a1) * zr), Vector2(zx + cos(a2) * zr, zy + sin(a2) * zr), ring_color, 1.0)
+		# Label
+		var label_text = zt.capitalize()
+		_udraw(game_font, Vector2(zx, zy - zr - 10), label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(col.r * 2, col.g * 2, col.b * 2, 0.4))
+
+func _get_terrain_modifier_at(pos: Vector2) -> Dictionary:
+	# Returns combined terrain modifiers at a given position
+	var mods = {"tower_range_mult": 1.0, "tower_damage_mult": 1.0, "enemy_slow": 1.0, "enemy_dps": 0.0, "melee_disabled": false}
+	for zone in _terrain_zones:
+		var dist = pos.distance_to(Vector2(zone["x"], zone["y"]))
+		if dist <= zone["radius"]:
+			var effects = TERRAIN_EFFECTS.get(zone["type"], {})
+			if effects.has("tower_range_mult"):
+				mods["tower_range_mult"] *= effects["tower_range_mult"]
+			if effects.has("tower_damage_mult"):
+				mods["tower_damage_mult"] *= effects["tower_damage_mult"]
+			if effects.has("enemy_slow"):
+				mods["enemy_slow"] *= effects["enemy_slow"]
+			if effects.has("enemy_dps"):
+				mods["enemy_dps"] += effects["enemy_dps"]
+			if effects.get("melee_disabled", false):
+				mods["melee_disabled"] = true
+	return mods
 
 func _cache_path_points() -> void:
 	var curve = enemy_path.curve
@@ -8332,6 +8457,7 @@ func _do_level_start(index: int) -> void:
 	_apply_handicaps()
 	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
+	_generate_terrain_zones(index)
 	_generate_decorations_for_level(index)
 	# BATTD: Generate bounties for this level
 	_generate_bounties()
@@ -25328,6 +25454,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 		draw_line(Vector2(oak_x + 38, oak_y + 70 + float(tl) * 4.5), Vector2(oak_x + 54, oak_y + 70 + float(tl) * 4.5), Color(0.3, 0.2, 0.1, 0.5), 1.0)
 	draw_circle(Vector2(oak_x + 46, oak_y + 59), 1.5, Color(0.3, 0.3, 0.3))
 
+	# --- TERRAIN ZONES ---
+	_draw_terrain_zones()
 	# --- DECORATIONS ---
 	for dec in _decorations:
 		var dtype: String = dec["type"]
