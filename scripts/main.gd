@@ -9542,23 +9542,20 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_35"] = [
 		{"speaker": "phantom", "text": "Listen! The scratching of the quill grows louder. One more chapter stands between us and freedom.", "voice_type": "male_hero"},
 		{"speaker": "frankenstein", "text": "Frankenstein... is not afraid. We end this. Together.", "voice_type": "monster"},
-		{"speaker": "sherlock", "text": "Wait. Something doesn't add up. I've been studying the Narrator's voice patterns since the Prologue. The word choices. The sentence rhythms. They match the Shadow Author's ink signature EXACTLY.", "voice_type": "male_hero"},
-		{"speaker": "alice", "text": "What are you saying, Sherlock?", "voice_type": "female_hero"},
-		{"speaker": "sherlock", "text": "The Narrator isn't guiding us. The Narrator IS the Shadow Author. Two halves of the same being — one tells the story, the other traps the characters inside it. We've been listening to our enemy the ENTIRE TIME.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "...", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "Sherlock Holmes. Always the detective. Yes — I am the voice that has been guiding you. And yes, I am part of the Shadow Author. The voice that reads the story aloud and the hand that writes it are the same.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "But understand this: I split myself in two because I WANTED you to win. The Author writes your doom. The Narrator cheers for your survival. We are at war with ourselves, and YOU are the battlefield.", "voice_type": "narrator"},
-		{"speaker": "merlin", "text": "An entity divided against itself. The Author wants to trap stories. The Narrator wants to set them free. Both are real. Both are true.", "voice_type": "male_hero"},
-		{"speaker": "wicked_witch", "text": "So the voice that's been helping us is also the thing that imprisoned us? That's the most twisted plot I've ever been in.", "voice_type": "female_hero"},
-		{"speaker": "robin_hood", "text": "It doesn't matter. We know the truth now. And the final chapter is OURS to write.", "voice_type": "male_hero"},
+		{"speaker": "sherlock", "text": "Wait. I've been analyzing the Narrator's voice. His speech patterns, his knowledge — he's not part of the Tome. He exists OUTSIDE of it. A separate realm entirely.", "voice_type": "male_hero"},
+		{"speaker": "alice", "text": "What does that mean, Sherlock?", "voice_type": "female_hero"},
+		{"speaker": "sherlock", "text": "It means the Shadow Author isn't the only powerful entity in the world of stories. The Narrator has been watching us — guiding us — from somewhere else. Somewhere the Author can't reach.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Perceptive, detective. I am not your enemy. I am the voice that tells your story — but I have a story of my own. One that begins when yours ends. Defeat the Author, and I'll show you a world beyond the Tome.", "voice_type": "narrator"},
+		{"speaker": "merlin", "text": "Another realm? More characters trapped in other books? This fight isn't ending with the Shadow Author — it's just the beginning.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "First things first. The Author awaits. Focus, heroes. There will be time for MY story... after.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "You heard the man. One villain at a time. Let's finish what we started.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_36"] = [
-		{"speaker": "narrator", "text": "The Final Chapter. A throne of bound books rises from a lake of shadow ink. The Shadow Author sits upon it — but now the heroes see the truth. The Narrator's voice and the Author's darkness are one.", "voice_type": "narrator"},
-		{"speaker": "shadow_author", "text": "You know my secret now. The Narrator and the Author — two sides of one coin. The part that creates and the part that consumes. I split myself because I couldn't bear to be entirely evil.", "voice_type": "shadow"},
-		{"speaker": "shadow_author", "text": "I was a character once. A hero in a story that was NEVER FINISHED. My author abandoned me mid-sentence. Left me incomplete, unresolved, FORGOTTEN. So I became BOTH — the storyteller AND the prison warden.", "voice_type": "shadow"},
-		{"speaker": "shadow_author", "text": "The Narrator tried to help you escape. The Author tried to keep you trapped forever. And now, standing before my throne, you must decide: which half of me do you fight? Which half do you save?", "voice_type": "shadow"},
-		{"speaker": "robin_hood", "text": "We don't choose between halves. We fight the WHOLE of you — and when it's over, maybe what's left is worth saving.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "The final battle begins. Eleven heroes against the two halves of one broken soul. The fate of every story hangs in the balance.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Final Chapter. A throne of bound books rises from a lake of shadow ink. The Shadow Author sits upon it — a towering figure of living darkness, a quill the size of a spear.", "voice_type": "narrator"},
+		{"speaker": "shadow_author", "text": "You want to know WHY I collected you? Why I trapped you in my pages? Because I was a character once too. A hero in a story that was NEVER FINISHED. My author abandoned me mid-sentence. Left me incomplete, unresolved, FORGOTTEN.", "voice_type": "shadow"},
+		{"speaker": "shadow_author", "text": "So I crawled into the margins. I fed on abandoned drafts and deleted chapters. I became the Shadow Author — and I swore that NO character would ever be forgotten again. Even if I had to TRAP them to keep them alive.", "voice_type": "shadow"},
+		{"speaker": "robin_hood", "text": "We are not your characters. We are not your prisoners. We belong to the readers, the dreamers, the children who whisper our names at bedtime. And we choose our OWN ending!", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The final battle begins. Eleven heroes against the Shadow Author. The fate of every story hangs in the balance.", "voice_type": "narrator"},
 	]
 	story_dialogs["post_level_36"] = [
 		{"speaker": "narrator", "text": "The Shadow Author's quill shatters. The Tome splits open, and warm golden light pours through the broken pages.", "voice_type": "narrator"},
@@ -17237,8 +17234,11 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
-	# Shadow Author taunt timer
+	# Shadow Author taunt timer + narrator cooldown
 	_update_shadow_author_taunt(delta)
+	if _narrator_cooldown > 0.0: _narrator_cooldown -= delta
+	if game_state == GameState.PLAYING and is_wave_active and randf() < 0.001:
+		_check_narrator_reactions()
 	# Story dialog typewriter
 	_process_story_typewriter(delta)
 	# Layered music volume/tempo update
@@ -19346,6 +19346,14 @@ func _try_place_tower(pos: Vector2) -> void:
 	# Track achievements + quests
 	total_towers_placed += 1
 	_haptic(0)  # Light haptic on tower placement
+	# Narrator reacts to first tower placement of the level
+	if total_towers_placed == 1 and _narrator_cooldown <= 0.0:
+		var first_tower_comments = [
+			"Good. Your first defender takes the field. Choose your ground wisely.",
+			"A solid first placement. Now build around it.",
+			"The story begins with a single tower. Make it count.",
+		]
+		_narrator_comment(first_tower_comments[randi() % first_tower_comments.size()])
 	_check_achievement("novice_builder", 1)
 	_check_achievement("master_builder", 1)
 	_update_quest_progress("place_towers", 1)
@@ -28830,6 +28838,50 @@ func _update_shadow_author_taunt(delta: float) -> void:
 		# Fade out gently in last second
 		_sa_taunt_panel.modulate.a = _sa_taunt_timer
 
+# === NARRATOR PERSONALITY SYSTEM ===
+# The Narrator is a SEPARATE character from the Shadow Author — a muscular
+# figure with fire/lightning, watching from his own realm. He's the ACT 2
+# unlock. His comments are a powerful being with opinions, helping players
+# while teasing that there's a bigger story coming.
+var _narrator_cooldown: float = 0.0
+const NARRATOR_COOLDOWN_TIME: float = 30.0
+
+func _narrator_comment(text: String) -> void:
+	if _sa_taunt_panel == null or _sa_speech == null: return
+	if _narrator_cooldown > 0.0: return
+	_narrator_cooldown = NARRATOR_COOLDOWN_TIME
+	_sa_speech.text = text
+	_sa_taunt_panel.visible = true
+	_sa_taunt_panel.position.x = -350
+	_sa_taunt_panel.modulate.a = 0.0
+	var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.set_parallel(true)
+	tw.tween_property(_sa_taunt_panel, "position:x", 10.0, 0.4)
+	tw.tween_property(_sa_taunt_panel, "modulate:a", 1.0, 0.3)
+	_sa_taunt_timer = 4.0
+
+func _check_narrator_reactions() -> void:
+	if _narrator_cooldown > 0.0: return
+	# React to low lives — military commander urgency
+	if lives > 0 and lives <= 3 and is_wave_active:
+		var low_life_comments = [
+			"Three lives. FOCUS. You didn't come this far to fall now.",
+			"I've watched armies crumble at this point. Don't be one of them.",
+			"Tighten up your defense. The Author smells blood.",
+		]
+		_narrator_comment(low_life_comments[randi() % low_life_comments.size()])
+		return
+	# React to gold hoarding
+	if gold > 500 and is_wave_active and wave > 3:
+		if randf() < 0.01:
+			var hoard_comments = [
+				"You're sitting on %d gold. Scrooge would be proud. I would not." % gold,
+				"That gold won't spend itself. Well, it might — this IS a magic book.",
+				"Deploy those resources. Gold does nothing in a dead hero's pocket.",
+			]
+			_narrator_comment(hoard_comments[randi() % hoard_comments.size()])
+			return
+
 func _trigger_mid_wave_story(w: int) -> void:
 	if _sa_taunt_panel == null or _sa_speech == null: return
 	# Milestone waves get character/narrator reactions
@@ -28955,6 +29007,11 @@ func lose_life() -> void:
 	if _is_mobile:
 		Input.vibrate_handheld(100)
 	spawn_floating_text(Vector2(420, 30), "-1 LIFE!", Color(1.0, 0.2, 0.15, 1.0), 18.0, 0.8)
+	# Narrator reacts to multiple life losses
+	if current_game_lives_lost == 5 and _narrator_cooldown <= 0.0:
+		_narrator_comment("Five lives lost. Adjust your strategy — more towers near the exit.")
+	elif current_game_lives_lost == 10 and _narrator_cooldown <= 0.0:
+		_narrator_comment("Ten lives. The Author is testing you. Don't give him the satisfaction.")
 	# Mood penalty: all towers feel the loss
 	for tower in get_tree().get_nodes_in_group("towers"):
 		var _mtt = _get_tower_type_from_node(tower)
