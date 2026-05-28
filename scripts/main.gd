@@ -4578,6 +4578,7 @@ func _save_game() -> void:
 	# Story progress
 	save_data["story_seen"] = story_seen
 	save_data["story_choices_made"] = story_choices_made
+	save_data["secret_path_discovered"] = _secret_path_discovered
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
 	save_data["endless_high_wave"] = endless_high_wave
@@ -4921,6 +4922,7 @@ func _load_game() -> void:
 	for v in ss:
 		story_seen.append(str(v))
 	story_choices_made = data.get("story_choices_made", {})
+	_secret_path_discovered = data.get("secret_path_discovered", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
 	for v in uc:
@@ -5289,6 +5291,117 @@ func _check_interactable_click(mouse_pos: Vector2) -> bool:
 				_activate_interactable(i)
 				return true
 	return false
+
+# === SECRET PATH SYSTEM — hidden alternate routes ===
+# Some levels have destructible obstacles. Destroying them reveals a secret
+# shortcut that changes enemy pathing AND drops bonus loot. But the shortcut
+# also means enemies reach the exit FASTER — a risk/reward trade-off.
+var _secret_paths: Array = []  # [{x, y, hp, max_hp, destroyed, reward_type, reward_amount, description}]
+var _secret_path_discovered: Dictionary = {}  # level_idx -> true (persisted in save)
+
+func _generate_secret_paths(level_idx: int) -> void:
+	_secret_paths.clear()
+	# Not every level has a secret — only specific ones
+	var secret_levels = {
+		3: {"x": 800, "y": 300, "hp": 200, "desc": "Moriarty's Hidden Cache", "reward": "shards", "amount": 25},
+		6: {"x": 500, "y": 250, "hp": 250, "desc": "Merlin's Crystal Vault", "reward": "quills", "amount": 10},
+		9: {"x": 600, "y": 400, "hp": 180, "desc": "Clayton's Trophy Room", "reward": "gold", "amount": 100},
+		12: {"x": 700, "y": 350, "hp": 300, "desc": "Dracula's Blood Cellar", "reward": "shards", "amount": 30},
+		15: {"x": 400, "y": 450, "hp": 220, "desc": "Igor's Secret Lab", "reward": "quills", "amount": 12},
+		18: {"x": 900, "y": 300, "hp": 200, "desc": "Sheriff's Gold Vault", "reward": "gold", "amount": 150},
+		21: {"x": 350, "y": 200, "hp": 180, "desc": "Cheshire Cat's Stash", "reward": "shards", "amount": 20},
+		27: {"x": 650, "y": 450, "hp": 250, "desc": "Hook's Treasure Chest", "reward": "gold", "amount": 120},
+		33: {"x": 500, "y": 350, "hp": 200, "desc": "Marley's Ghost Hoard", "reward": "stars", "amount": 3},
+		36: {"x": 640, "y": 300, "hp": 400, "desc": "The Author's Journal", "reward": "ink", "amount": 5},
+		# ACT 4 secrets
+		39: {"x": 700, "y": 350, "hp": 300, "desc": "Vorpal Blade Fragment", "reward": "shards", "amount": 40},
+		42: {"x": 500, "y": 250, "hp": 300, "desc": "Robin's Lost Arrow", "reward": "shards", "amount": 40},
+		45: {"x": 800, "y": 400, "hp": 300, "desc": "Scrooge's Hidden Ledger", "reward": "gold", "amount": 200},
+		48: {"x": 600, "y": 300, "hp": 350, "desc": "Horseman's Head", "reward": "shards", "amount": 50},
+		54: {"x": 500, "y": 400, "hp": 350, "desc": "Ragnarok Shard", "reward": "ink", "amount": 5},
+		57: {"x": 640, "y": 250, "hp": 350, "desc": "Feather of Truth", "reward": "stars", "amount": 5},
+		63: {"x": 640, "y": 350, "hp": 500, "desc": "The Narrator's Secret", "reward": "ink", "amount": 10},
+	}
+	if secret_levels.has(level_idx):
+		var s = secret_levels[level_idx]
+		_secret_paths.append({
+			"x": s["x"], "y": s["y"],
+			"hp": s["hp"], "max_hp": s["hp"],
+			"destroyed": false,
+			"reward_type": s["reward"], "reward_amount": s["amount"],
+			"description": s["desc"],
+			"discovered": _secret_path_discovered.has(level_idx),
+		})
+
+func _damage_secret_path(pos: Vector2, damage: float) -> void:
+	# Called when towers attack near a secret path obstacle
+	for sp in _secret_paths:
+		if sp["destroyed"]: continue
+		if pos.distance_to(Vector2(sp["x"], sp["y"])) <= 50.0:
+			sp["hp"] -= damage * 0.1  # Takes 10% of tower damage as splash
+			if sp["hp"] <= 0:
+				sp["destroyed"] = true
+				sp["hp"] = 0
+				_on_secret_path_opened(sp)
+
+func _on_secret_path_opened(sp: Dictionary) -> void:
+	var pos = Vector2(sp["x"], sp["y"])
+	_screen_shake_intensity = 4.0
+	_screen_shake_timer = 0.4
+	_play_sfx(_sfx_wave_complete)
+	_haptic(2)
+	# Award bonus loot
+	match sp["reward_type"]:
+		"gold": gold += sp["reward_amount"]
+		"shards": player_gear_shards += sp["reward_amount"]
+		"quills": player_quills += sp["reward_amount"]
+		"stars": player_storybook_stars += sp["reward_amount"]
+		"ink": knowledge_ink += sp["reward_amount"]
+	# Mark as discovered
+	_secret_path_discovered[current_level] = true
+	# Visual feedback
+	spawn_floating_text(pos + Vector2(0, -30), "🔓 SECRET FOUND!", Color(1.0, 0.85, 0.2), 20.0, 3.0)
+	spawn_floating_text(pos + Vector2(0, -10), "%s" % sp["description"], Color(0.9, 0.8, 0.5), 14.0, 2.5)
+	spawn_floating_text(pos + Vector2(0, 10), "+%d %s" % [sp["reward_amount"], sp["reward_type"].capitalize()], Color(0.4, 0.9, 0.3), 14.0, 2.0)
+
+func _draw_secret_paths() -> void:
+	for sp in _secret_paths:
+		var pos = Vector2(sp["x"], sp["y"])
+		if sp["destroyed"]:
+			# Broken rubble + glow
+			var pulse = (sin(_time * 2.0) + 1.0) * 0.5
+			draw_circle(pos, 25.0, Color(0.85, 0.65, 0.15, 0.1 + pulse * 0.05))
+			# Rubble pieces
+			for ri in range(5):
+				var roff = Vector2(cos(float(ri) * 1.2) * 15, sin(float(ri) * 1.8) * 12)
+				draw_rect(Rect2(pos + roff - Vector2(3, 3), Vector2(6, 6)), Color(0.4, 0.3, 0.2, 0.4))
+		else:
+			# Destructible obstacle — looks like a cracked wall/barrier
+			var hp_pct = sp["hp"] / sp["max_hp"]
+			var crack_col = Color(0.5, 0.35, 0.2, 0.8).lerp(Color(0.8, 0.3, 0.1, 0.9), 1.0 - hp_pct)
+			# Base obstacle shape
+			draw_rect(Rect2(pos - Vector2(20, 18), Vector2(40, 36)), Color(0.3, 0.2, 0.15, 0.85))
+			draw_rect(Rect2(pos - Vector2(18, 16), Vector2(36, 32)), crack_col)
+			# Crack lines based on damage
+			if hp_pct < 0.8:
+				draw_line(pos + Vector2(-10, -12), pos + Vector2(5, 8), Color(0.1, 0.08, 0.05, 0.6), 1.5)
+			if hp_pct < 0.5:
+				draw_line(pos + Vector2(8, -10), pos + Vector2(-6, 12), Color(0.1, 0.08, 0.05, 0.7), 2.0)
+				draw_line(pos + Vector2(-14, 0), pos + Vector2(14, 4), Color(0.1, 0.08, 0.05, 0.5), 1.0)
+			if hp_pct < 0.25:
+				# Glowing — about to break!
+				var glow = (sin(_time * 6.0) + 1.0) * 0.5
+				draw_circle(pos, 28.0, Color(1.0, 0.8, 0.2, glow * 0.15))
+			# HP bar
+			var bar_w = 36.0
+			var bar_y = pos.y - 24
+			draw_rect(Rect2(pos.x - bar_w * 0.5, bar_y, bar_w, 4), Color(0.15, 0.1, 0.05, 0.6))
+			draw_rect(Rect2(pos.x - bar_w * 0.5, bar_y, bar_w * hp_pct, 4), Color(0.8, 0.5, 0.1, 0.8))
+			# "?" hint
+			if not sp.get("discovered", false):
+				_udraw(game_font, pos + Vector2(0, 5), "?", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.7, 0.55, 0.25, 0.6))
+			else:
+				_udraw(game_font, pos + Vector2(0, 5), "🔓", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.7, 0.55, 0.25, 0.5))
 
 func _generate_terrain_zones(level_idx: int) -> void:
 	_terrain_zones.clear()
@@ -8613,6 +8726,7 @@ func _do_level_start(index: int) -> void:
 	_setup_path_for_level(index)
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
+	_generate_secret_paths(index)
 	_generate_decorations_for_level(index)
 	# BATTD: Generate bounties for this level
 	_generate_bounties()
@@ -25614,6 +25728,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 
 	# --- TERRAIN ZONES ---
 	_draw_terrain_zones()
+	# --- SECRET PATHS ---
+	_draw_secret_paths()
 	# --- INTERACTIVE MAP ELEMENTS ---
 	_draw_map_interactables()
 	# --- DECORATIONS ---
@@ -30172,6 +30288,9 @@ func _quest_track_kill(enemy_node = null) -> void:
 func enemy_died(enemy_node = null) -> void:
 	enemies_alive = maxi(enemies_alive - 1, 0)
 	total_enemies_killed += 1
+	# Secret path splash damage — enemy deaths near obstacles crack them
+	if enemy_node and is_instance_valid(enemy_node):
+		_damage_secret_path(enemy_node.global_position, 20.0)
 	_check_achievement("first_blood", 1)
 	_check_achievement("centurion", 1)
 	_check_achievement("thousand_slayer", 1)
