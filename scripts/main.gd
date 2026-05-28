@@ -28189,6 +28189,8 @@ func _start_next_wave() -> void:
 	_announce_wave_modifiers(wave)
 	# Improvement 14: Extended wave forecast
 	_generate_extended_forecast()
+	# Mid-level story beats — character reactions at key waves
+	_trigger_mid_wave_story(wave)
 	# Clear undo and wave preview on wave start
 	undo_tower_data.clear()
 	if is_instance_valid(undo_button):
@@ -28339,6 +28341,32 @@ func _update_shadow_author_taunt(delta: float) -> void:
 	elif _sa_taunt_timer <= 1.0:
 		# Fade out gently in last second
 		_sa_taunt_panel.modulate.a = _sa_taunt_timer
+
+func _trigger_mid_wave_story(w: int) -> void:
+	if _sa_taunt_panel == null or _sa_speech == null: return
+	# Milestone waves get character/narrator reactions
+	var mid_stories = {
+		5: ["narrator", "The ink grows thicker. The Shadow Author is watching more closely now."],
+		10: ["shadow_author", "Halfway through? Don't celebrate. The REAL story starts now."],
+		15: ["narrator", "The pages tremble. Something ancient stirs in the deeper chapters."],
+		18: ["shadow_author", "You're close to my throne room. I should be worried. I'm not."],
+		20: ["narrator", "The final wave approaches. Steel yourselves, heroes."],
+	}
+	# Boss wave reactions (every wave that's a multiple of 10)
+	if w > 0 and w % 10 == 0 and not mid_stories.has(w):
+		mid_stories[w] = ["shadow_author", "A boss approaches! Let's see how your heroes handle MY finest creation."]
+	if not mid_stories.has(w): return
+	var entry = mid_stories[w]
+	# Use the taunt panel to show the message
+	_sa_speech.text = entry[1]
+	_sa_taunt_panel.visible = true
+	_sa_taunt_panel.position.x = -350
+	_sa_taunt_panel.modulate.a = 0.0
+	var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.set_parallel(true)
+	tw.tween_property(_sa_taunt_panel, "position:x", 10.0, 0.4)
+	tw.tween_property(_sa_taunt_panel, "modulate:a", 1.0, 0.3)
+	_sa_taunt_timer = 5.0
 
 func update_hud() -> void:
 	if wave_label:
