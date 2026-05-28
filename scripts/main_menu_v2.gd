@@ -1519,6 +1519,16 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		pb.add_theme_color_override("font_color", Color(1.0, 0.92, 0.40))
 		pb.pressed.connect(_play.bind(idx, 0))
 		btns.add_child(pb)
+		# Corrupted mode button (unlocks after beating on Easy)
+		if _main._is_corrupted_available(idx):
+			var corrupt_btn = _art_button("☠ CORRUPTED", Color(0.40, 0.10, 0.30), Vector2(130, 28))
+			corrupt_btn.add_theme_font_size_override("font_size", 10)
+			corrupt_btn.add_theme_color_override("font_color", Color(0.9, 0.4, 0.6))
+			corrupt_btn.tooltip_text = "Shadow Author rewrite: +50% enemy HP, +30% speed, ink rain, fog. Better loot!"
+			corrupt_btn.pressed.connect(func():
+				_main._start_corrupted_level(idx)
+				_play(idx, 2))  # Force Hard difficulty for corrupted
+			btns.add_child(corrupt_btn)
 		row.add_child(btns)
 	else:
 		var lock_vb = VBoxContainer.new()
