@@ -216,6 +216,48 @@ func skip_track() -> void:
 			_menu_playlist.shuffle()
 		_play_track(_menu_playlist[_menu_playlist_pos])
 
+## Play the main theme (portal hub / title screen)
+## Uses "Parchment Tongues" as the signature track — first in the soundtrack
+func play_main_theme() -> void:
+	_is_map_mode = false
+	_player.volume_db = _menu_volume_db
+	_is_playing = true
+	_play_track(0)  # Parchment Tongues — the game's signature theme
+
+## Play realm-specific music when entering a realm from the portal hub
+## Each realm has a curated track that matches its atmosphere
+const REALM_MUSIC: Dictionary = {
+	"Neverland": 19,       # Crown Gravel Elegy — whimsical adventure
+	"Land of Oz": 5,       # Witch Forge Grit — dark fantasy
+	"Paris Opera": 8,      # Cathedral Tongue — gothic grandeur
+	"Sherlock Holmes": 3,  # Clock Gears — Victorian mystery
+	"Merlin": 4,           # Oracle Thread — ancient magic
+	"Tarzan": 7,           # Coffin Waltz — primal rhythm
+	"Dracula": 1,          # Poisoned Waltz — dark elegance
+	"Frankenstein": 13,    # Glass Slipper — fragile beauty + horror
+	"Sherwood Forest": 6,  # Salt Compass — outdoor adventure
+	"Wonderland": 11,      # Parchment Tongues II — curious wonder
+	"Victorian London": 17, # Mushroom Bellring II — Christmas atmosphere
+	"Shadow Author": 25,   # Brass Dominion — final confrontation
+}
+
+func play_realm_music(realm_name: String) -> void:
+	_is_map_mode = false
+	_player.volume_db = _menu_volume_db - 3.0  # Slightly quieter for realm browsing
+	var track_idx = REALM_MUSIC.get(realm_name, 0)
+	_is_playing = true
+	_play_track(track_idx)
+
+## Brief musical stinger for portal transitions (plays on top, doesn't interrupt)
+## Uses a quick fade-out of current track, play stinger, then resume
+func play_portal_stinger() -> void:
+	# Quick volume dip to signal transition
+	if _player.playing:
+		var orig_vol = _player.volume_db
+		var tw = create_tween()
+		tw.tween_property(_player, "volume_db", orig_vol - 15.0, 0.2)
+		tw.tween_property(_player, "volume_db", orig_vol, 0.8)
+
 ## Get the currently playing track title (empty string if nothing playing)
 func get_current_title() -> String:
 	if _current_track_idx >= 0 and _current_track_idx < TRACK_TITLES.size():

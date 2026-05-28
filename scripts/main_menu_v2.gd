@@ -542,6 +542,9 @@ func _build_chapters() -> void:
 	_build_portal_hub()
 
 func _build_portal_hub() -> void:
+	# Play main theme when viewing portal hub
+	if MusicManager:
+		MusicManager.play_main_theme()
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -735,6 +738,10 @@ func _build_portal_hub() -> void:
 		grid.add_child(card)
 
 func _enter_realm(arc_name: String) -> void:
+	# Play realm-specific music + portal stinger
+	if MusicManager:
+		MusicManager.play_portal_stinger()
+		MusicManager.play_realm_music(arc_name)
 	# Check for arc intro cinematic (first time entering this realm)
 	var intro_key_map = {
 		"Neverland": "arc_intro_neverland", "Land of Oz": "arc_intro_oz",
