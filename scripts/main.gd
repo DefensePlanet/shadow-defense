@@ -1364,6 +1364,12 @@ var _narration_blink_phase: float = 0.0     # 0→1 during blink (smooth eyelid 
 var _narration_mouth_phase: float = 0.0     # 0→1 mouth openness
 var _narration_mouth_shape: int = 0         # 0=closed 1=slightly open 2=open 3=wide
 var _narration_particles: Array = []
+# Rescue moment visual effects
+var _rescue_effect_active: bool = false
+var _rescue_effect_timer: float = 0.0
+var _rescue_chains: Array = []  # [{x, y, break_time, broken}]
+var _rescue_ink_drops: Array = []  # [{x, y, vel_x, vel_y, alpha, size}]
+var _rescue_light_rays: Array = []  # [{angle, width, alpha}]
 var _narration_speaker_hash: int = 0
 var _narration_blink_interval: float = 4.0
 var _narr_pupil_offset: Vector2 = Vector2.ZERO
@@ -9979,6 +9985,9 @@ func _start_story_dialog(key: String) -> void:
 		return
 	if key in story_seen:
 		return
+	# Trigger rescue visual effect for character unlock dialogs
+	if key.begins_with("unlock_"):
+		_start_rescue_effect()
 	# Show ACT 1 title card before prologue (once)
 	if key == "prologue" and not _act_title_active and not "act1_title_shown" in story_seen:
 		story_seen.append("act1_title_shown")
@@ -10136,6 +10145,7 @@ func _clear_story_choices() -> void:
 
 func _end_story_dialog() -> void:
 	_clear_story_choices()
+	_rescue_effect_active = false
 	if DisplayServer.tts_get_voices().size() > 0:
 		DisplayServer.tts_stop()
 	var key = story_state.current_dialog
@@ -10327,6 +10337,121 @@ func _process_story_typewriter(delta: float) -> void:
 			break
 	queue_redraw()
 
+func _start_rescue_effect() -> void:
+	_rescue_effect_active = true
+	_rescue_effect_timer = 0.0
+	_rescue_chains.clear()
+	_rescue_ink_drops.clear()
+	_rescue_light_rays.clear()
+	# Generate chains around where the portrait will be
+	var cx = 310.0; var cy = 280.0
+	for i in range(6):
+		var angle = float(i) / 6.0 * TAU
+		_rescue_chains.append({
+			"x": cx + cos(angle) * 120.0,
+			"y": cy + sin(angle) * 100.0,
+			"break_time": 0.8 + randf() * 1.2,  # Staggered breaking
+			"broken": false,
+			"angle": angle,
+		})
+	# Generate light rays
+	for i in range(12):
+		_rescue_light_rays.append({
+			"angle": float(i) / 12.0 * TAU,
+			"width": randf_range(15.0, 35.0),
+			"alpha": 0.0,
+		})
+
+func _update_rescue_effect(delta: float) -> void:
+	if not _rescue_effect_active: return
+	_rescue_effect_timer += delta
+	var t = _rescue_effect_timer
+	# Break chains one by one
+	for chain in _rescue_chains:
+		if not chain["broken"] and t >= chain["break_time"]:
+			chain["broken"] = true
+			# Spawn ink drops from broken chain
+			for _j in range(8):
+				_rescue_ink_drops.append({
+					"x": chain["x"], "y": chain["y"],
+					"vel_x": randf_range(-80.0, 80.0),
+					"vel_y": randf_range(-120.0, 40.0),
+					"alpha": 1.0, "size": randf_range(2.0, 5.0),
+				})
+	# Update ink drops (gravity + fade)
+	for drop in _rescue_ink_drops:
+		drop["x"] += drop["vel_x"] * delta
+		drop["y"] += drop["vel_y"] * delta
+		drop["vel_y"] += 200.0 * delta  # Gravity
+		drop["alpha"] -= delta * 0.4
+	_rescue_ink_drops = _rescue_ink_drops.filter(func(d): return d["alpha"] > 0.0)
+	# Grow light rays after all chains break
+	var all_broken = true
+	for chain in _rescue_chains:
+		if not chain["broken"]: all_broken = false; break
+	if all_broken:
+		for ray in _rescue_light_rays:
+			ray["alpha"] = minf(ray["alpha"] + delta * 0.8, 0.25)
+	# Auto-end after 5 seconds
+	if t > 5.0:
+		_rescue_effect_active = false
+
+func _draw_rescue_effect() -> void:
+	if not _rescue_effect_active: return
+	var cx = 310.0; var cy = 280.0
+	var t = _rescue_effect_timer
+	# Draw chains (unbroken = dark, breaking = flash, broken = gone)
+	for chain in _rescue_chains:
+		if chain["broken"]:
+			# Brief flash at break point
+			var flash_age = t - chain["break_time"]
+			if flash_age < 0.3:
+				var flash_a = (0.3 - flash_age) / 0.3
+				draw_circle(Vector2(chain["x"], chain["y"]), 15.0, Color(1.0, 0.9, 0.4, flash_a * 0.6))
+				draw_circle(Vector2(chain["x"], chain["y"]), 8.0, Color(1.0, 1.0, 0.8, flash_a))
+		else:
+			# Unbroken chain — dark shackle line from center to chain point
+			var shake = sin(t * 8.0 + chain["angle"] * 3.0) * 2.0
+			var chain_start = Vector2(cx, cy)
+			var chain_end = Vector2(chain["x"] + shake, chain["y"] + shake)
+			# Chain links
+			var steps = 6
+			for si in range(steps):
+				var frac = float(si) / float(steps)
+				var next_frac = float(si + 1) / float(steps)
+				var p1 = chain_start.lerp(chain_end, frac)
+				var p2 = chain_start.lerp(chain_end, next_frac)
+				p1.x += sin(frac * PI * 3.0 + t * 4.0) * 4.0
+				p2.x += sin(next_frac * PI * 3.0 + t * 4.0) * 4.0
+				draw_line(p1, p2, Color(0.3, 0.2, 0.4, 0.7), 3.0)
+			# Shackle point
+			draw_circle(chain_end, 5.0, Color(0.4, 0.25, 0.5, 0.8))
+	# Draw ink drops (dissolving ink from broken chains)
+	for drop in _rescue_ink_drops:
+		draw_circle(Vector2(drop["x"], drop["y"]), drop["size"], Color(0.15, 0.05, 0.25, drop["alpha"]))
+	# Draw light rays (burst outward after all chains break)
+	for ray in _rescue_light_rays:
+		if ray["alpha"] <= 0.0: continue
+		var ray_len = 400.0
+		var ray_end_x = cx + cos(ray["angle"]) * ray_len
+		var ray_end_y = cy + sin(ray["angle"]) * ray_len
+		var points = PackedVector2Array([
+			Vector2(cx + cos(ray["angle"] - 0.02) * 20.0, cy + sin(ray["angle"] - 0.02) * 20.0),
+			Vector2(ray_end_x + cos(ray["angle"] - 0.01) * ray["width"], ray_end_y + sin(ray["angle"] - 0.01) * ray["width"]),
+			Vector2(ray_end_x + cos(ray["angle"] + 0.01) * ray["width"], ray_end_y + sin(ray["angle"] + 0.01) * ray["width"]),
+			Vector2(cx + cos(ray["angle"] + 0.02) * 20.0, cy + sin(ray["angle"] + 0.02) * 20.0),
+		])
+		draw_colored_polygon(points, Color(1.0, 0.92, 0.45, ray["alpha"]))
+	# Center glow (grows as chains break)
+	var broken_count = 0
+	for chain in _rescue_chains:
+		if chain["broken"]: broken_count += 1
+	var glow_intensity = float(broken_count) / 6.0
+	if glow_intensity > 0.0:
+		for gi in range(5):
+			var gr = 30.0 + float(gi) * 20.0 + glow_intensity * 40.0
+			draw_circle(Vector2(cx, cy), gr, Color(1.0, 0.92, 0.45, glow_intensity * 0.08 * (5 - gi)))
+
 func _draw_story_dialog() -> void:
 	var font = game_font
 	var key = story_state.current_dialog
@@ -10400,6 +10525,9 @@ func _draw_story_dialog() -> void:
 		2: idle_sway = sin(_time * 1.2) * 0.8    # subtle vibration
 		3: idle_sway = cos(_time * 0.5) * 1.5    # figure-eight feel
 	_draw_story_portrait(portrait_x + sway + head_tilt + weight_x + idle_sway, portrait_y + breath * chest_amp, portrait_size, speaker)
+
+	# === RESCUE EFFECT OVERLAY (chains breaking, ink dissolving, light burst) ===
+	_draw_rescue_effect()
 
 	# === PARTICLES LAYER 2 (in front of portrait) ===
 	for pi in range(10, 20):
@@ -17473,6 +17601,8 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
+	# Rescue effect update
+	_update_rescue_effect(delta)
 	# Act title card timer
 	if _act_title_active:
 		_act_title_timer -= delta
