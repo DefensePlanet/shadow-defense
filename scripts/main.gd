@@ -5306,6 +5306,162 @@ var _secret_paths: Array = []  # [{x, y, hp, max_hp, destroyed, reward_type, rew
 var _secret_path_discovered: Dictionary = {}  # level_idx -> true (persisted in save)
 
 # === REALM ATMOSPHERE — story-driven visual weather per realm ===
+# === DYNAMIC MAP HAZARDS — environmental dangers that spawn/move during waves ===
+var _dynamic_hazards: Array = []  # [{type, x, y, radius, timer, lifetime, damage, active}]
+var _hazard_spawn_timer: float = 0.0
+
+func _generate_dynamic_hazards(level_idx: int) -> void:
+	_dynamic_hazards.clear()
+	_hazard_spawn_timer = 0.0
+	# Dynamic hazards only appear on certain themed levels
+	# They spawn periodically during waves based on the realm
+
+func _spawn_wave_hazard() -> void:
+	if not is_wave_active: return
+	if _dynamic_hazards.size() >= 5: return  # Max 5 active hazards
+	var theme = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
+	var haz = null
+	match theme:
+		0: # Sherwood — falling tree branches
+			haz = {"type": "branch", "x": randf_range(100, 1180), "y": -20.0, "radius": 60.0, "timer": 0.0, "lifetime": 1.5, "damage": 25.0 + wave * 3.0, "active": true, "vel_y": 200.0}
+		1: # Wonderland — shrinking/growing zones
+			haz = {"type": "shrink_zone", "x": randf_range(150, 1100), "y": randf_range(100, 550), "radius": 80.0, "timer": 0.0, "lifetime": 4.0, "damage": 0.0, "active": true, "slow": 0.5}
+		7: # Sherlock — gas leak explosions
+			haz = {"type": "gas_leak", "x": randf_range(200, 1080), "y": randf_range(150, 500), "radius": 70.0, "timer": 0.0, "lifetime": 3.0, "damage": 40.0 + wave * 4.0, "active": true}
+		9: # Tarzan — rockslide
+			haz = {"type": "rockslide", "x": randf_range(100, 1180), "y": -20.0, "radius": 50.0, "timer": 0.0, "lifetime": 1.2, "damage": 35.0 + wave * 3.0, "active": true, "vel_y": 250.0}
+		10: # Dracula — blood rain burst
+			haz = {"type": "blood_rain", "x": randf_range(200, 1080), "y": randf_range(100, 500), "radius": 100.0, "timer": 0.0, "lifetime": 2.5, "damage": 15.0 + wave * 2.0, "active": true}
+		11: # Frankenstein — electrical surge
+			haz = {"type": "electric_surge", "x": randf_range(150, 1100), "y": randf_range(100, 550), "radius": 90.0, "timer": 0.0, "lifetime": 0.8, "damage": 60.0 + wave * 5.0, "active": true}
+		12: # Shadow Author — ink eruption
+			haz = {"type": "ink_eruption", "x": randf_range(200, 1080), "y": randf_range(150, 500), "radius": 80.0, "timer": 0.0, "lifetime": 3.0, "damage": 20.0 + wave * 3.0, "active": true}
+		13: # Horseman — pumpkin fire
+			haz = {"type": "pumpkin_fire", "x": randf_range(100, 1180), "y": -20.0, "radius": 55.0, "timer": 0.0, "lifetime": 1.0, "damage": 45.0 + wave * 4.0, "active": true, "vel_y": 280.0}
+		15: # Loki — chaos rift (teleports enemies backward)
+			haz = {"type": "chaos_rift", "x": randf_range(200, 1080), "y": randf_range(150, 500), "radius": 70.0, "timer": 0.0, "lifetime": 3.5, "damage": 0.0, "active": true}
+		16: # Anubis — death mark (instant kill weak enemies)
+			haz = {"type": "death_mark", "x": randf_range(200, 1080), "y": randf_range(150, 500), "radius": 60.0, "timer": 0.0, "lifetime": 2.0, "damage": 999.0, "active": true}
+		17: # Ahab — tidal wave
+			haz = {"type": "tidal_wave", "x": -50.0, "y": randf_range(200, 500), "radius": 40.0, "timer": 0.0, "lifetime": 3.0, "damage": 30.0 + wave * 3.0, "active": true, "vel_x": 350.0}
+		18: # Narrator — fire pillars
+			haz = {"type": "fire_pillar", "x": randf_range(200, 1080), "y": randf_range(100, 550), "radius": 45.0, "timer": 0.0, "lifetime": 4.0, "damage": 50.0 + wave * 5.0, "active": true}
+	if haz:
+		_dynamic_hazards.append(haz)
+
+func _update_dynamic_hazards(delta: float) -> void:
+	if not is_wave_active: return
+	# Spawn timer — new hazard every 8-15 seconds during waves
+	var theme = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else -1
+	if theme in [0, 1, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18]:
+		_hazard_spawn_timer -= delta
+		if _hazard_spawn_timer <= 0:
+			_hazard_spawn_timer = randf_range(8.0, 15.0)
+			_spawn_wave_hazard()
+	# Update existing hazards
+	var to_remove = []
+	for i in range(_dynamic_hazards.size()):
+		var h = _dynamic_hazards[i]
+		h["timer"] += delta
+		# Movement for falling/moving hazards
+		if h.has("vel_y"):
+			h["y"] += h["vel_y"] * delta
+		if h.has("vel_x"):
+			h["x"] += h["vel_x"] * delta
+		# Apply damage to enemies in radius on impact/active
+		if h["damage"] > 0 and h["active"]:
+			var apply_dmg = false
+			if h["type"] in ["branch", "rockslide", "pumpkin_fire"] and h["y"] > 50 and h["timer"] < 0.1 + delta:
+				apply_dmg = false  # Falling — damage on landing
+			elif h["type"] in ["branch", "rockslide", "pumpkin_fire"] and h["y"] >= 680:
+				apply_dmg = true  # Landed
+				h["active"] = false
+			elif h["type"] in ["gas_leak", "electric_surge", "fire_pillar", "death_mark"]:
+				# One-time burst at 50% lifetime
+				if h["timer"] >= h["lifetime"] * 0.5 and h["timer"] - delta < h["lifetime"] * 0.5:
+					apply_dmg = true
+			elif h["type"] in ["blood_rain", "ink_eruption"]:
+				# Continuous DPS
+				apply_dmg = true
+				h["damage"] = (15.0 + wave * 2.0) * delta  # Per-frame damage
+			elif h["type"] == "tidal_wave":
+				apply_dmg = true
+				h["damage"] = (30.0 + wave * 3.0) * delta
+			if apply_dmg:
+				for enemy in get_tree().get_nodes_in_group("enemies"):
+					if is_instance_valid(enemy) and enemy.global_position.distance_to(Vector2(h["x"], h["y"])) <= h["radius"]:
+						if enemy.has_method("take_damage"):
+							enemy.take_damage(h["damage"], "environmental")
+		# Chaos rift — teleport enemies backward
+		if h["type"] == "chaos_rift" and h["active"]:
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.global_position.distance_to(Vector2(h["x"], h["y"])) <= h["radius"]:
+					if "progress_ratio" in enemy:
+						enemy.progress_ratio = maxf(enemy.progress_ratio - 0.05 * delta, 0.0)
+		# Shrink zone — slow enemies inside
+		if h["type"] == "shrink_zone" and h["active"]:
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.global_position.distance_to(Vector2(h["x"], h["y"])) <= h["radius"]:
+					if "speed" in enemy:
+						enemy.speed *= (1.0 - 0.3 * delta)  # Gradual slow
+		# Expire
+		if h["timer"] >= h["lifetime"]:
+			to_remove.append(i)
+	for ri in range(to_remove.size() - 1, -1, -1):
+		_dynamic_hazards.remove_at(to_remove[ri])
+
+func _draw_dynamic_hazards() -> void:
+	for h in _dynamic_hazards:
+		var pos = Vector2(h["x"], h["y"]); var r = h["radius"]
+		var progress = h["timer"] / h["lifetime"]
+		var fade = 1.0 - progress if progress > 0.7 else 1.0
+		match h["type"]:
+			"branch", "rockslide", "pumpkin_fire":  # Falling objects
+				var fall_col = Color(0.5, 0.35, 0.15, 0.7) if h["type"] == "branch" else (Color(0.4, 0.3, 0.2, 0.8) if h["type"] == "rockslide" else Color(0.9, 0.5, 0.1, 0.8))
+				draw_circle(pos, r * 0.4, fall_col)
+				# Shadow on ground
+				draw_circle(Vector2(pos.x, 650), r * 0.3, Color(0, 0, 0, 0.15))
+			"gas_leak":
+				var gas_a = 0.15 * fade * (1.0 + sin(_time * 4.0) * 0.3)
+				draw_circle(pos, r, Color(0.5, 0.6, 0.2, gas_a))
+				draw_circle(pos, r * 0.6, Color(0.6, 0.7, 0.2, gas_a * 1.5))
+				if progress > 0.45 and progress < 0.55:
+					draw_circle(pos, r * 1.5, Color(1.0, 0.6, 0.1, 0.3))  # Explosion
+			"blood_rain":
+				for _bi in range(8):
+					var bx = pos.x + randf_range(-r, r); var by = pos.y + randf_range(-r, r)
+					draw_circle(Vector2(bx, by), 2.0, Color(0.7, 0.1, 0.1, 0.3 * fade))
+			"electric_surge":
+				var surge_a = 0.2 * fade
+				draw_circle(pos, r, Color(0.3, 0.5, 1.0, surge_a))
+				if progress > 0.45 and progress < 0.55:
+					draw_circle(pos, r * 1.8, Color(0.8, 0.9, 1.0, 0.5))  # Burst
+			"ink_eruption":
+				draw_circle(pos, r * progress, Color(0.15, 0.05, 0.25, 0.25 * fade))
+				draw_circle(pos, r * 0.3, Color(0.2, 0.1, 0.3, 0.4 * fade))
+			"chaos_rift":
+				var rift_spin = _time * 3.0
+				for _ri in range(6):
+					var ra = rift_spin + float(_ri) / 6.0 * TAU
+					var rx = pos.x + cos(ra) * r * 0.6; var ry = pos.y + sin(ra) * r * 0.4
+					draw_circle(Vector2(rx, ry), 4.0, Color(0.4, 0.8, 0.2, 0.4 * fade))
+				draw_circle(pos, r * 0.3, Color(0.2, 0.5, 0.1, 0.3 * fade))
+			"death_mark":
+				var dm_pulse = (sin(_time * 5.0) + 1.0) * 0.5
+				draw_circle(pos, r, Color(0.6, 0.5, 0.1, 0.1 * fade))
+				draw_circle(pos, r * 0.4, Color(0.8, 0.6, 0.1, (0.3 + dm_pulse * 0.2) * fade))
+				_udraw(game_font, pos + Vector2(0, 5), "⚖", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(0.9, 0.7, 0.2, 0.5 * fade))
+			"tidal_wave":
+				draw_rect(Rect2(pos.x - 20, pos.y - r, 40, r * 2), Color(0.2, 0.4, 0.7, 0.3 * fade))
+			"fire_pillar":
+				for _fi in range(3):
+					var fy = pos.y - float(_fi) * 20.0
+					var fw = r * (1.0 - float(_fi) * 0.2)
+					draw_circle(Vector2(pos.x, fy), fw * 0.4, Color(0.9, 0.4, 0.1, 0.3 * fade))
+				draw_circle(pos, r * 0.2, Color(1.0, 0.8, 0.2, 0.5 * fade))
+			"shrink_zone":
+				draw_circle(pos, r * (1.0 - progress * 0.3), Color(0.6, 0.2, 0.7, 0.12 * fade))
+
 func _generate_atmosphere(level_idx: int) -> void:
 	_atmosphere_particles.clear()
 	_atmosphere_type = ""
@@ -8908,6 +9064,7 @@ func _do_level_start(index: int) -> void:
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
 	_generate_secret_paths(index)
+	_generate_dynamic_hazards(index)
 	_generate_atmosphere(index)
 	_generate_decorations_for_level(index)
 	# BATTD: Generate bounties for this level
@@ -18601,9 +18758,10 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
-	# Rescue effect update + interactable cooldowns + atmosphere
+	# Rescue effect + interactable cooldowns + atmosphere + dynamic hazards
 	_update_rescue_effect(delta)
 	_update_interactable_cooldowns(delta)
+	_update_dynamic_hazards(delta)
 	_update_atmosphere(delta)
 	# Act title card timer
 	if _act_title_active:
@@ -25913,6 +26071,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 	_draw_atmosphere()
 	# --- TERRAIN ZONES ---
 	_draw_terrain_zones()
+	# --- DYNAMIC HAZARDS ---
+	_draw_dynamic_hazards()
 	# --- SECRET PATHS ---
 	_draw_secret_paths()
 	# --- INTERACTIVE MAP ELEMENTS ---
