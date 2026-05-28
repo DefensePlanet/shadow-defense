@@ -232,6 +232,7 @@ func play_main_theme() -> void:
 ## Play realm-specific music when entering a realm from the portal hub
 ## Each realm has a curated track that matches its atmosphere
 const REALM_MUSIC: Dictionary = {
+	# ACT 1 — rescue arcs
 	"Neverland": 19,       # Crown Gravel Elegy — whimsical adventure
 	"Land of Oz": 5,       # Witch Forge Grit — dark fantasy
 	"Paris Opera": 8,      # Cathedral Tongue — gothic grandeur
@@ -240,10 +241,22 @@ const REALM_MUSIC: Dictionary = {
 	"Tarzan": 7,           # Coffin Waltz — primal rhythm
 	"Dracula": 1,          # Poisoned Waltz — dark elegance
 	"Frankenstein": 13,    # Glass Slipper — fragile beauty + horror
+	# ACT 2 — starter hero stories
 	"Sherwood Forest": 6,  # Salt Compass — outdoor adventure
 	"Wonderland": 11,      # Parchment Tongues II — curious wonder
 	"Victorian London": 17, # Mushroom Bellring II — Christmas atmosphere
+	# ACT 3 — finale
 	"Shadow Author": 25,   # Brass Dominion — final confrontation
+	# ACT 4 — Narrator's Realm (featured tracks: Rust Crown Iron + Coral Gullet)
+	"Alice's Trial": 33,   # Rust Crown Iron — epic intensity (featured track #2)
+	"Robin's Trial": 32,   # Iron Throne
+	"Scrooge's Trial": 30, # Coral Wreckage — main theme (familiar comfort before hard trials)
+	"Headless Horseman": 23, # Nightshade Waltz — dark haunting
+	"Medusa": 16,          # Glassblood Sonata — tragic beauty
+	"Loki": 22,            # Cannon Shell Confetti — chaotic energy
+	"Anubis": 28,          # Coral Gullet — deep otherworldly (featured track #3)
+	"Captain Ahab": 20,    # Crown Gravel Elegy — oceanic epic
+	"The Narrator": 33,    # Rust Crown Iron — the ultimate boss deserves the ultimate track
 }
 
 func play_realm_music(realm_name: String) -> void:

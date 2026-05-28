@@ -35,9 +35,9 @@ const REALMS: Array = [
 	{"arc": "Robin's Trial", "name": "The Legendary Hunt", "icon": "realm_sherwood", "portrait": "robin_hood", "color": [0.3, 0.55, 0.2], "levels": [40, 41, 42], "act": 4},
 	{"arc": "Scrooge's Trial", "name": "The Eternal Debt", "icon": "realm_christmas", "portrait": "scrooge", "color": [0.5, 0.6, 0.8], "levels": [43, 44, 45], "act": 4},
 	{"arc": "Headless Horseman", "name": "Sleepy Hollow", "icon": "realm_prologue", "portrait": "shadow_author", "color": [0.5, 0.35, 0.15], "levels": [46, 47, 48], "act": 4, "rescues": "headless_horseman"},
-	{"arc": "Long John Silver", "name": "Treasure Island", "icon": "realm_neverland", "portrait": "peter_pan", "color": [0.4, 0.5, 0.3], "levels": [49, 50, 51], "act": 4, "rescues": "long_john_silver"},
-	{"arc": "Jekyll & Hyde", "name": "The Dual Soul", "icon": "realm_london", "portrait": "sherlock", "color": [0.4, 0.3, 0.5], "levels": [52, 53, 54], "act": 4, "rescues": "jekyll_hyde"},
-	{"arc": "Captain Nemo", "name": "The Nautilus", "icon": "realm_prologue", "portrait": "merlin", "color": [0.2, 0.35, 0.6], "levels": [55, 56, 57], "act": 4, "rescues": "captain_nemo"},
+	{"arc": "Medusa", "name": "The Gorgon's Prison", "icon": "realm_prologue", "portrait": "wicked_witch", "color": [0.3, 0.55, 0.3], "levels": [49, 50, 51], "act": 4, "rescues": "medusa"},
+	{"arc": "Loki", "name": "The Trickster's Cage", "icon": "realm_prologue", "portrait": "peter_pan", "color": [0.4, 0.55, 0.2], "levels": [52, 53, 54], "act": 4, "rescues": "loki"},
+	{"arc": "Anubis", "name": "The Weighing Hall", "icon": "realm_prologue", "portrait": "dracula", "color": [0.6, 0.5, 0.15], "levels": [55, 56, 57], "act": 4, "rescues": "anubis"},
 	{"arc": "Captain Ahab", "name": "The White Whale", "icon": "realm_prologue", "portrait": "scrooge", "color": [0.3, 0.4, 0.55], "levels": [58, 59, 60], "act": 4, "rescues": "captain_ahab"},
 	{"arc": "The Narrator", "name": "The Voice Unbound", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.8, 0.5, 0.2], "levels": [61, 62, 63], "act": 4},
 ]
