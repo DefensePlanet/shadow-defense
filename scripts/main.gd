@@ -5639,6 +5639,80 @@ func _unlock_corrupted_maps(arc_levels: Array) -> void:
 func _is_corrupted_available(level_idx: int) -> bool:
 	return corrupted_maps_unlocked.has(level_idx)
 
+# === TOWER PLACEMENT RESTRICTIONS — story-driven limits per level ===
+# Some levels restrict which towers can be placed or how many slots exist.
+# "required": must include this tower. "banned": can't place this tower.
+# "max_towers": limit total towers. "solo": only one character type allowed.
+var _level_restrictions: Dictionary = {}
+
+func _get_level_restrictions(level_idx: int) -> Dictionary:
+	# Returns placement restrictions for this level
+	# Default: no restrictions
+	var restrictions = {"required": [], "banned": [], "max_towers": -1, "solo": ""}
+	if level_idx < 0 or level_idx >= levels.size(): return restrictions
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	var character = levels[level_idx].get("character", -1)
+	# ACT 2 starter hero arcs — their character REQUIRED
+	if character == 0:  # Robin Hood's arc
+		restrictions["required"] = [TowerType.ROBIN_HOOD]
+	elif character == 1:  # Alice's arc
+		restrictions["required"] = [TowerType.ALICE]
+	elif character == 2:  # Wicked Witch's arc
+		restrictions["required"] = [TowerType.WICKED_WITCH]
+	elif character == 3:  # Peter Pan's arc
+		restrictions["required"] = [TowerType.PETER_PAN]
+	elif character == 4:  # Phantom's arc
+		restrictions["required"] = [TowerType.PHANTOM]
+	elif character == 5:  # Scrooge's arc
+		restrictions["required"] = [TowerType.SCROOGE]
+	# Specific level restrictions for gameplay variety
+	match level_idx:
+		0:  # Prologue — only the 3 starters
+			restrictions["banned"] = [TowerType.PETER_PAN, TowerType.WICKED_WITCH, TowerType.PHANTOM,
+				TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA,
+				TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
+		37, 38, 39:  # Alice's Trial — Alice required + max 4 other towers
+			restrictions["required"] = [TowerType.ALICE]
+			restrictions["max_towers"] = 5
+		40, 41, 42:  # Robin's Trial — Robin required + max 4 other towers
+			restrictions["required"] = [TowerType.ROBIN_HOOD]
+			restrictions["max_towers"] = 5
+		43, 44, 45:  # Scrooge's Trial — Scrooge required + max 4 other towers
+			restrictions["required"] = [TowerType.SCROOGE]
+			restrictions["max_towers"] = 5
+	# Tarzan treetop levels — limited slots
+	if theme == 9:
+		restrictions["max_towers"] = 6  # Jungle canopy has limited platforms
+	return restrictions
+
+func _can_place_tower_type(tower_type, level_idx: int) -> bool:
+	var r = _get_level_restrictions(level_idx)
+	if tower_type in r["banned"]: return false
+	return true
+
+func _check_tower_count_limit() -> bool:
+	var r = _get_level_restrictions(current_level)
+	if r["max_towers"] < 0: return true  # No limit
+	var placed = get_tree().get_nodes_in_group("towers").size()
+	return placed < r["max_towers"]
+
+func _get_restriction_text(level_idx: int) -> String:
+	var r = _get_level_restrictions(level_idx)
+	var parts = []
+	if r["required"].size() > 0:
+		var names = []
+		for tt in r["required"]:
+			var idx = survivor_types.find(tt)
+			if idx >= 0 and idx < character_names.size():
+				names.append(character_names[idx])
+		parts.append("Required: %s" % ", ".join(names))
+	if r["banned"].size() > 0:
+		parts.append("Some towers restricted")
+	if r["max_towers"] > 0:
+		parts.append("Max %d towers" % r["max_towers"])
+	if parts.size() == 0: return ""
+	return " | ".join(parts)
+
 func _start_corrupted_level(level_idx: int) -> void:
 	_corrupted_mode_active = true
 	# The actual modifiers are applied in enemy spawning and damage calculations

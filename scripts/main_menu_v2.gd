@@ -1513,6 +1513,13 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 			_add_press_feedback(db)
 			dr.add_child(db)
 		btns.add_child(dr)
+		# Tower placement restrictions (if any)
+		var restrict_text = _main._get_restriction_text(idx)
+		if restrict_text != "":
+			var rl = _lbl("⚠ " + restrict_text, 9, Color(0.85, 0.65, 0.30))
+			rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			rl.clip_text = true
+			btns.add_child(rl)
 		# PLAY button — styled green button (no art — go_button.png was ugly)
 		var pb = _art_button("▶  PLAY", Color(0.15, 0.35, 0.12), Vector2(150, 38))
 		pb.add_theme_font_size_override("font_size", 15)
