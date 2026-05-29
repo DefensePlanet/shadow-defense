@@ -4022,6 +4022,139 @@ const ALIGNMENT_BONUSES: Dictionary = {
 	"redemption": {"desc": "Redemption Arc — Dracula + Scrooge + Frankenstein: +20% damage & +2 lives/wave"},
 }
 
+# === AWAKENED FORMS — Level 20 ultimate character transformations ===
+# Each character at max level becomes their LEGENDARY self — a version
+# that transcends their original story. New title, passive bonus, voice line.
+const AWAKENED_FORMS: Dictionary = {
+	TowerType.ROBIN_HOOD: {
+		"title": "Robin of the Emerald Arrow",
+		"passive": "+25% damage, arrows become emerald — pierce ALL enemies",
+		"voice": "I no longer steal from the rich. I give to EVERYONE.",
+		"bonus_damage": 0.25, "bonus_pierce": true,
+	},
+	TowerType.ALICE: {
+		"title": "Alice, Queen of Logic",
+		"passive": "+30% ability cooldown speed, Vorpal strikes ignore armor",
+		"voice": "I've been to Wonderland, the Tome, and the Narrator's realm. Nothing is impossible anymore.",
+		"bonus_cooldown": 0.30, "bonus_armor_pierce": true,
+	},
+	TowerType.WICKED_WITCH: {
+		"title": "Elphaba the Defiant",
+		"passive": "Permanent flying monkeys (3 allies), +20% summon damage",
+		"voice": "They called me wicked. I call myself UNSTOPPABLE.",
+		"bonus_summon_damage": 0.20, "permanent_summons": 3,
+	},
+	TowerType.PETER_PAN: {
+		"title": "Peter Pan, Lord of Neverland",
+		"passive": "Never ages — immune to debuffs, +15% all stats",
+		"voice": "I finally understand. Growing up doesn't mean losing your magic. It means finding more.",
+		"bonus_all_stats": 0.15, "debuff_immune": true,
+	},
+	TowerType.PHANTOM: {
+		"title": "Erik, Maestro of Shadows",
+		"passive": "Music of the Night is permanent — continuous AoE damage aura",
+		"voice": "My final composition. An opus that never ends.",
+		"permanent_aura_dps": true,
+	},
+	TowerType.SCROOGE: {
+		"title": "Ebenezer the Generous",
+		"passive": "+50 gold/wave, all nearby towers earn double gold on kills",
+		"voice": "I was the richest miser in London. Now I'm the richest FRIEND in the Tome.",
+		"bonus_gold_per_wave": 50, "double_kill_gold_aura": true,
+	},
+	TowerType.SHERLOCK: {
+		"title": "Holmes, The Mind Ascendant",
+		"passive": "Mind Palace permanent — all enemies always have weaknesses exposed",
+		"voice": "I've deduced everything. Including how this story ends. Spoiler: we win.",
+		"permanent_weakness_expose": true,
+	},
+	TowerType.TARZAN: {
+		"title": "Tarzan, Spirit of the Wild",
+		"passive": "Full animal army permanent — 6 allies always on map",
+		"voice": "The jungle, the Tome, the Narrator's realm — ALL are my territory now.",
+		"permanent_allies": 6,
+	},
+	TowerType.DRACULA: {
+		"title": "Vlad, The Redeemed Immortal",
+		"passive": "Vampiric aura heals 1 life every 10 kills, +30% damage at night",
+		"voice": "Four centuries of darkness. And then — light. These heroes ARE my sunlight.",
+		"life_regen_per_kills": 10, "night_bonus": 0.30,
+	},
+	TowerType.MERLIN: {
+		"title": "Merlin, The Once and Future Wizard",
+		"passive": "Spectral King Arthur permanently patrols, +20% global tower damage",
+		"voice": "I have seen every future. This one — where we stand together — is the one I chose.",
+		"permanent_arthur": true, "global_damage_bonus": 0.20,
+	},
+	TowerType.FRANKENSTEIN: {
+		"title": "The Creature, Unchained",
+		"passive": "Lightning storm permanent aura, absorbs 1 leaked enemy per wave",
+		"voice": "They made me from the dead. But I am more alive than any of them ever were.",
+		"permanent_lightning_aura": true, "absorb_leaks": 1,
+	},
+	TowerType.SHADOW_AUTHOR: {
+		"title": "Penna, The Story Reborn",
+		"passive": "Rewrites weakest enemies to 1 HP every 15s, +30% ink damage",
+		"voice": "I was three words from the end. Now I have an entire LIBRARY of new beginnings.",
+		"rewrite_interval": 15.0, "bonus_ink_damage": 0.30,
+	},
+	TowerType.CAPTAIN_HOOK: {
+		"title": "Hook, Admiral of the Shadow Fleet",
+		"passive": "Cannon broadside permanent — hits all enemies in a line every 10s",
+		"voice": "Bad form to lose when you have a FLEET at your back.",
+		"broadside_interval": 10.0,
+	},
+	TowerType.QUEEN_OF_HEARTS: {
+		"title": "The Crimson Empress",
+		"passive": "Card army of 5 permanent allies, execute enemies below 25% HP",
+		"voice": "OFF WITH ALL THEIR HEADS. Every. Single. One.",
+		"permanent_card_army": 5, "execute_threshold": 0.25,
+	},
+	TowerType.CLAYTON: {
+		"title": "Clayton, The Repentant Hunter",
+		"passive": "Marks the 3 strongest enemies — they take 2x damage from all towers",
+		"voice": "I hunted the wrong prey my entire life. Now I hunt shadows.",
+		"mark_count": 3, "mark_damage_mult": 2.0,
+	},
+	TowerType.HEADLESS_HORSEMAN: {
+		"title": "The Eternal Dullahan",
+		"passive": "Fear aura permanent — all enemies in range move 25% slower",
+		"voice": "I ride forever. And now, I ride for YOU.",
+		"permanent_fear_slow": 0.25,
+	},
+	TowerType.MEDUSA: {
+		"title": "Medusa, The Liberated Gorgon",
+		"passive": "Petrifying Gaze permanent — enemies in range freeze 1s every 5s",
+		"voice": "They cursed me to turn men to stone. Now I turn SHADOWS to dust.",
+		"perma_petrify_interval": 5.0,
+	},
+	TowerType.LOKI: {
+		"title": "Loki, The Unbound Trickster",
+		"passive": "Creates 2 permanent clone towers of random allies at 75% power",
+		"voice": "Chaos isn't the enemy of order. Chaos IS order — just funnier.",
+		"permanent_clones": 2, "clone_power": 0.75,
+	},
+	TowerType.ANUBIS: {
+		"title": "Anubis, Lord of the Threshold",
+		"passive": "50% resurrection chance, Feather of Ma'at stops all enemies 3s every 20s",
+		"voice": "I have judged a million souls. Yours are the first I found worthy.",
+		"resurrection_chance": 0.50, "maat_interval": 20.0,
+	},
+	TowerType.CAPTAIN_AHAB: {
+		"title": "Ahab, Master of the Deep",
+		"passive": "Harpoon chains the 3 strongest enemies permanently, +40% boss damage",
+		"voice": "The white whale is slain. But the hunt? The hunt never ends.",
+		"permanent_chains": 3, "boss_damage_bonus": 0.40,
+	},
+}
+
+func _is_awakened(tower_type) -> bool:
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	return level >= 20
+
+func _get_awakened_data(tower_type) -> Dictionary:
+	return AWAKENED_FORMS.get(tower_type, {})
+
 func _get_alignment(tower_type) -> String:
 	return CHARACTER_ALIGNMENT.get(tower_type, "hero")
 
