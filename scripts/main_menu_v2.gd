@@ -573,31 +573,24 @@ func _on_tab(tab: String) -> void:
 	if current_view == tab: return
 	_play_ui_click()
 	_save_scroll_position()
-	# Fade out old content, then rebuild
-	var old_view = current_view
 	current_view = tab
-	# Rebuild nav immediately
+	_set_bg(tab)
+	# Rebuild nav
 	for c in nav_buttons_container.get_children():
 		nav_buttons_container.remove_child(c)
 		c.queue_free()
 	_build_nav_buttons()
-	# Crossfade transition: fade out → rebuild → fade in
-	var fade_tw = create_tween().set_ease(Tween.EASE_OUT)
-	fade_tw.tween_property(content_area, "modulate:a", 0.0, 0.12)
-	fade_tw.tween_callback(func():
-		_clear()
-		_set_bg(tab)
-		content_area.position.x = 0
-		content_area.modulate.a = 0.0
-		match tab:
-			"chapters": _build_chapters()
-			"survivors": _build_survivors()
-			"emporium": _build_emporium()
-			"codex": _build_codex()
-			"settings": _build_settings()
-		_restore_scroll_position()
-		var fade_in = create_tween().set_ease(Tween.EASE_OUT)
-		fade_in.tween_property(content_area, "modulate:a", 1.0, 0.15))
+	# Rebuild content
+	_clear()
+	content_area.position.x = 0
+	content_area.modulate.a = 1.0
+	match tab:
+		"chapters": _build_chapters()
+		"survivors": _build_survivors()
+		"emporium": _build_emporium()
+		"codex": _build_codex()
+		"settings": _build_settings()
+	_restore_scroll_position()
 
 func _save_scroll_position() -> void:
 	for c in content_area.get_children():
@@ -963,14 +956,11 @@ func _build_portal_hub() -> void:
 		card.mouse_exited.connect(func():
 			card.modulate = Color.WHITE)
 		_add_press_feedback(card)
-		# Staggered entrance — slide up + fade
+		# Staggered entrance — fade only (position.y breaks GridContainer layout)
 		grid.add_child(card)
 		card.modulate.a = 0.0
-		card.position.y += 25
-		var etw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-		etw.set_parallel(true)
+		var etw = create_tween().set_ease(Tween.EASE_OUT)
 		etw.tween_property(card, "modulate:a", 1.0, 0.25).set_delay(ri * 0.06)
-		etw.tween_property(card, "position:y", 0.0, 0.3).set_delay(ri * 0.06)
 
 func _enter_realm(arc_name: String) -> void:
 	# Play realm-specific music + portal stinger
@@ -994,16 +984,8 @@ func _enter_realm(arc_name: String) -> void:
 			_main._start_story_dialog(intro_key)
 			# After the dialog ends, the player returns to menu — they'll see the arc view
 			return
-	# Transition: fade out → enter realm → fade in
 	_portal_view = arc_name
-	var enter_tw = create_tween().set_ease(Tween.EASE_OUT)
-	enter_tw.tween_property(content_area, "modulate:a", 0.0, 0.15)
-	enter_tw.tween_callback(func():
-		_clear()
-		content_area.modulate.a = 0.0
-		_build_chapters()
-		var enter_in = create_tween().set_ease(Tween.EASE_OUT)
-		enter_in.tween_property(content_area, "modulate:a", 1.0, 0.2))
+	_build_chapters()
 
 func _is_realm_complete(realm: Dictionary) -> bool:
 	if not _main or not "completed_levels" in _main: return false
@@ -1104,16 +1086,7 @@ func _build_arc_levels() -> void:
 	back_btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	back_btn.add_theme_constant_override("shadow_offset_x", 1)
 	back_btn.add_theme_constant_override("shadow_offset_y", 1)
-	back_btn.pressed.connect(func():
-		_portal_view = ""
-		var back_tw = create_tween().set_ease(Tween.EASE_OUT)
-		back_tw.tween_property(content_area, "modulate:a", 0.0, 0.12)
-		back_tw.tween_callback(func():
-			_clear()
-			content_area.modulate.a = 0.0
-			_build_chapters()
-			var back_in = create_tween().set_ease(Tween.EASE_OUT)
-			back_in.tween_property(content_area, "modulate:a", 1.0, 0.18)))
+	back_btn.pressed.connect(func(): _portal_view = ""; _build_chapters())
 	_add_press_feedback(back_btn)
 	top_row.add_child(back_btn)
 	# Spacer
@@ -1554,13 +1527,10 @@ func _build_survivors() -> void:
 	for i in range(PORTRAIT_KEYS.size()):
 		var card = _survivor_card(i)
 		grid.add_child(card)
-		# Staggered entrance — slide up + fade (consistent with realm cards)
+		# Staggered entrance — fade only (position.y breaks GridContainer)
 		card.modulate.a = 0.0
-		card.position.y += 20
-		var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-		tw.set_parallel(true)
-		tw.tween_property(card, "modulate:a", 1.0, 0.25).set_delay(i * 0.05)
-		tw.tween_property(card, "position:y", 0.0, 0.3).set_delay(i * 0.05)
+		var tw = create_tween().set_ease(Tween.EASE_OUT)
+		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(i * 0.04)
 
 func _survivor_card(idx: int) -> Button:
 	# Check if character is unlocked
@@ -2555,13 +2525,10 @@ func _build_emporium() -> void:
 			glow_tw.tween_property(btn, "modulate", Color(1.08, 1.06, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
 			glow_tw.tween_property(btn, "modulate", Color(1.0, 1.0, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
 		grid.add_child(btn)
-		# Staggered entrance — slide up + fade
+		# Staggered entrance — fade only (position.y breaks GridContainer)
 		btn.modulate.a = 0.0
-		btn.position.y += 20
-		var etw_emp = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-		etw_emp.set_parallel(true)
-		etw_emp.tween_property(btn, "modulate:a", 1.0, 0.25).set_delay(ci * 0.06)
-		etw_emp.tween_property(btn, "position:y", 0.0, 0.3).set_delay(ci * 0.06)
+		var etw_emp = create_tween().set_ease(Tween.EASE_OUT)
+		etw_emp.tween_property(btn, "modulate:a", 1.0, 0.2).set_delay(ci * 0.05)
 
 func _open_emporium_category(cat_idx: int) -> void:
 	_clear()
