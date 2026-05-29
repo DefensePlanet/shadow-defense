@@ -20757,6 +20757,7 @@ func _process(delta: float) -> void:
 	_check_ambient_chat(delta)
 	_update_emote_cooldowns(delta)
 	_check_environmental_event(delta)
+	_update_battle_shop(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -21312,6 +21313,80 @@ func _complete_reposition(new_pos: Vector2) -> void:
 	spawn_floating_text(new_pos, "🔀 Moved! -%dG" % move_cost, Color(0.4, 0.8, 0.3), 13.0, 1.5)
 	_reposition_mode = false
 	_repositioning_tower = null
+
+# === MID-BATTLE RESOURCE DECISIONS — things to spend gold on during combat ===
+# Beyond towers and upgrades, players can buy temporary battle powers.
+# Creates "save for next tower vs spend for immediate survival" tension.
+const BATTLE_SHOP_ITEMS: Array = [
+	{"id": "heal_5", "name": "Restore 5 Lives", "cost": 75, "desc": "+5 lives immediately", "icon": "❤"},
+	{"id": "gold_burst", "name": "Gold Rush", "cost": 30, "desc": "Next 10 kills drop 3x gold", "icon": "🪙"},
+	{"id": "freeze_all", "name": "Time Stop", "cost": 60, "desc": "Freeze all enemies 4 seconds", "icon": "❄"},
+	{"id": "damage_boost", "name": "War Cry", "cost": 50, "desc": "All towers +50% damage 10s", "icon": "⚔"},
+	{"id": "speed_boost", "name": "Haste", "cost": 40, "desc": "All towers +30% attack speed 12s", "icon": "⚡"},
+	{"id": "nuke", "name": "Ink Bomb", "cost": 120, "desc": "200 damage to ALL enemies on screen", "icon": "💣"},
+	{"id": "shield", "name": "Story Shield", "cost": 80, "desc": "Block next 3 life losses", "icon": "🛡"},
+	{"id": "reveal", "name": "Author's Insight", "cost": 25, "desc": "Reveal all stealth enemies + next wave preview", "icon": "👁"},
+]
+
+var _battle_shop_cooldowns: Dictionary = {}  # item_id -> float
+var _gold_rush_kills: int = 0  # Tracks remaining gold rush kills
+var _shield_charges: int = 0   # Tracks remaining shield charges
+var _damage_boost_timer: float = 0.0
+var _speed_boost_timer: float = 0.0
+
+func _buy_battle_item(item_id: String) -> bool:
+	var item = null
+	for i in BATTLE_SHOP_ITEMS:
+		if i["id"] == item_id: item = i; break
+	if item == null: return false
+	if gold < item["cost"]: return false
+	if _battle_shop_cooldowns.get(item_id, 0.0) > 0: return false
+	gold -= item["cost"]
+	_battle_shop_cooldowns[item_id] = 15.0  # 15s cooldown per item
+	spawn_floating_text(Vector2(640, 300), "%s %s!" % [item["icon"], item["name"]], Color(0.4, 0.9, 0.3), 16.0, 2.0)
+	match item_id:
+		"heal_5":
+			lives += 5
+			spawn_floating_text(Vector2(640, 325), "+5 Lives!", Color(1.0, 0.4, 0.3), 14.0, 1.5)
+		"gold_burst":
+			_gold_rush_kills = 10
+		"freeze_all":
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.has_method("apply_stun"):
+					enemy.apply_stun(4.0)
+		"damage_boost":
+			_damage_boost_timer = 10.0
+		"speed_boost":
+			_speed_boost_timer = 12.0
+		"nuke":
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+					enemy.take_damage(200.0, "holy")
+			_screen_shake_intensity = 6.0; _screen_shake_timer = 0.4
+		"shield":
+			_shield_charges = 3
+		"reveal":
+			pass  # Would reveal stealth enemies + show next wave
+	return true
+
+func _update_battle_shop(delta: float) -> void:
+	for key in _battle_shop_cooldowns:
+		_battle_shop_cooldowns[key] = maxf(_battle_shop_cooldowns[key] - delta, 0.0)
+	if _damage_boost_timer > 0: _damage_boost_timer -= delta
+	if _speed_boost_timer > 0: _speed_boost_timer -= delta
+
+func _get_battle_damage_mult() -> float:
+	return 1.5 if _damage_boost_timer > 0 else 1.0
+
+func _get_battle_speed_mult() -> float:
+	return 1.3 if _speed_boost_timer > 0 else 1.0
+
+func _use_shield_charge() -> bool:
+	if _shield_charges > 0:
+		_shield_charges -= 1
+		spawn_floating_text(Vector2(420, 50), "🛡 SHIELDED! (%d left)" % _shield_charges, Color(0.3, 0.7, 0.9), 14.0, 1.0)
+		return true
+	return false
 
 func _cancel_reposition() -> void:
 	_reposition_mode = false
