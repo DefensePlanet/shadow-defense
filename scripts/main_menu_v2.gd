@@ -1,6 +1,29 @@
 extends Control
 ## MainMenuV2 — Full interactive menu. Art backgrounds, working buttons, detail panels.
 
+# === DESIGN TOKENS — Standardized palette (see docs/MENU_DESIGN_REFERENCE.md) ===
+const C_GOLD := Color(1.0, 0.90, 0.35)          # Primary gold — titles, active tabs, CTAs
+const C_GOLD_DIM := Color(0.85, 0.70, 0.30)      # Secondary gold — borders, accents
+const C_GOLD_STAR := Color(1.0, 0.85, 0.15)      # Star rating gold
+const C_TEXT_PRIMARY := Color(1.0, 0.97, 0.85)    # Bright text on dark backgrounds
+const C_TEXT_SECONDARY := Color(0.75, 0.68, 0.55) # Body text, descriptions
+const C_TEXT_TERTIARY := Color(0.55, 0.48, 0.40)  # Dim text, captions, inactive
+const C_TEXT_LOCKED := Color(0.48, 0.42, 0.35)    # Locked/disabled text
+const C_BG_DARK := Color(0.04, 0.02, 0.08)        # Card/panel backgrounds
+const C_BG_PANEL := Color(0.06, 0.04, 0.12)       # Slightly lighter panels
+const C_BG_SURFACE := Color(0.08, 0.05, 0.14)     # Surface elements (chips, pills)
+const C_BORDER_SUBTLE := Color(0.25, 0.20, 0.15, 0.4)  # Subtle borders
+const C_BORDER_GOLD := Color(0.65, 0.50, 0.18, 0.5)    # Gold accent borders
+const C_GREEN := Color(0.45, 0.85, 0.35)          # Complete/success
+const C_GREEN_BTN := Color(0.15, 0.50, 0.15)      # Play button background
+const C_RED := Color(0.85, 0.25, 0.15)             # Error/limited
+const C_SHADOW := Color(0, 0, 0, 0.8)             # Text shadow color
+const CORNER_CARD := 16   # Card corner radius
+const CORNER_BTN := 12    # Button corner radius
+const CORNER_PILL := 20   # Pill/chip corner radius
+const SHADOW_CARD := 6    # Card shadow size
+const SHADOW_BTN := 4     # Button shadow size
+
 var _backgrounds: Dictionary = {}
 var _art: Dictionary = {}
 var _black_key: Shader = null
@@ -410,8 +433,8 @@ func _build_currency_bar() -> void:
 func _currency_chip(text: String, color: Color) -> PanelContainer:
 	var chip = PanelContainer.new()
 	var cs = StyleBoxFlat.new()
-	cs.bg_color = Color(0.08, 0.05, 0.14, 0.90)
-	cs.set_corner_radius_all(12)
+	cs.bg_color = C_BG_SURFACE
+	cs.set_corner_radius_all(CORNER_BTN)
 	cs.border_color = Color(color.r * 0.7, color.g * 0.7, color.b * 0.7, 0.6)
 	cs.set_border_width_all(1)
 	cs.shadow_color = Color(0, 0, 0, 0.2)
@@ -488,7 +511,7 @@ func _build_nav_buttons() -> void:
 	var labels = ["CHAPTERS", "HEROES", "SHOP", "CODEX", "SETTINGS"]
 	var icons = ["📖", "⚔", "🛒", "📚", "⚙"]
 	# Solid opaque nav bar with top accent line
-	nav_bar.color = Color(0.04, 0.02, 0.08, 1.0)
+	nav_bar.color = C_BG_DARK
 	# Gold accent line at top of nav bar
 	var nav_accent = ColorRect.new()
 	nav_accent.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -531,13 +554,13 @@ func _build_nav_buttons() -> void:
 		nav_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		btn.add_child(nav_content)
 		# Icon
-		var icon_col = Color(1.0, 0.90, 0.35) if is_active else Color(0.50, 0.42, 0.35)
+		var icon_col = C_GOLD if is_active else C_TEXT_TERTIARY
 		var icon_lbl = _lbl(icons[i], 18, icon_col)
 		icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		nav_content.add_child(icon_lbl)
 		# Label
-		var text_col = Color(1.0, 0.90, 0.35) if is_active else Color(0.48, 0.42, 0.36)
+		var text_col = C_GOLD if is_active else C_TEXT_LOCKED
 		var text_lbl = _lbl(labels[i], 11, text_col)
 		text_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		text_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -4084,30 +4107,30 @@ func _section_header(text: String) -> Control:
 	# Left gold line — extends to fill (#33)
 	var line_l = ColorRect.new()
 	line_l.custom_minimum_size = Vector2(0, 2)
-	line_l.color = Color(0.65, 0.50, 0.18, 0.5)
+	line_l.color = C_BORDER_GOLD
 	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_l)
 	# Left diamond
-	var dot_l = _lbl("◆", 12, Color(1.0, 0.85, 0.15, 0.7))
+	var dot_l = _lbl("◆", 12, Color(C_GOLD_STAR.r, C_GOLD_STAR.g, C_GOLD_STAR.b, 0.7))
 	dot_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(dot_l)
 	# Act text — display font, large, bright gold (#31, #32)
-	var lbl = _lbl(text, 20, Color(1.0, 0.88, 0.35))
+	var lbl = _lbl(text, 20, C_GOLD)
 	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	lbl.add_theme_constant_override("shadow_offset_x", 2)
 	lbl.add_theme_constant_override("shadow_offset_y", 2)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(lbl)
 	# Right diamond
-	var dot_r = _lbl("◆", 12, Color(1.0, 0.85, 0.15, 0.7))
+	var dot_r = _lbl("◆", 12, Color(C_GOLD_STAR.r, C_GOLD_STAR.g, C_GOLD_STAR.b, 0.7))
 	dot_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(dot_r)
 	# Right gold line — extends to fill (#33)
 	var line_r = ColorRect.new()
 	line_r.custom_minimum_size = Vector2(0, 2)
-	line_r.color = Color(0.65, 0.50, 0.18, 0.5)
+	line_r.color = C_BORDER_GOLD
 	line_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
