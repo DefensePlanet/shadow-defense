@@ -2934,6 +2934,20 @@ var _map_collectibles: Array = []
 var _collectibles_found_this_game: int = 0
 const MAX_MAP_COLLECTIBLES: int = 3
 
+# === WAVE POWER-UPS (#95) ===
+var _wave_powerups: Array = []  # Active power-ups on map
+var _powerup_spawn_timer: float = 0.0
+const POWERUP_SPAWN_INTERVAL: float = 12.0  # Seconds between spawns during waves
+const POWERUP_LIFETIME: float = 8.0  # Seconds before despawn
+const MAX_WAVE_POWERUPS: int = 3
+const POWERUP_TYPES: Array = [
+	{"type": "gold_bag", "label": "+25G", "color": Color(1.0, 0.85, 0.2), "icon_color": Color(1.0, 0.9, 0.3)},
+	{"type": "health_potion", "label": "+1 Life", "color": Color(0.2, 0.9, 0.3), "icon_color": Color(0.3, 1.0, 0.4)},
+	{"type": "boost_orb", "label": "Tower Boost!", "color": Color(0.3, 0.7, 1.0), "icon_color": Color(0.4, 0.8, 1.0)},
+	{"type": "speed_gem", "label": "Attack Speed!", "color": Color(0.9, 0.3, 1.0), "icon_color": Color(1.0, 0.4, 1.0)},
+	{"type": "gold_rush", "label": "Gold Rush!", "color": Color(1.0, 0.7, 0.0), "icon_color": Color(1.0, 0.8, 0.1)},
+]
+
 # === BATTD FEATURE: GEAR WISH LIST ===
 var gear_wish_list: Array = []  # Up to 3 effect type strings
 
@@ -11224,6 +11238,9 @@ func _reset_game() -> void:
 	_kill_combo_display_timer = 0.0
 	_combo_milestone_flash = 0.0
 	_combo_gold_multiplier = 1.0
+	_wave_powerups.clear()
+	_powerup_spawn_timer = POWERUP_SPAWN_INTERVAL
+	_gold_rush_timer = 0.0
 	undo_tower_data.clear()
 	if is_instance_valid(undo_button):
 		undo_button.visible = false
@@ -21047,6 +21064,9 @@ func _process(delta: float) -> void:
 		_crit_flash_positions.remove_at(_crit_to_remove[i])
 	# === ADDICTION SYSTEMS TIMERS ===
 	_process_combo(delta)
+	_process_wave_powerups(delta)
+	if _gold_rush_timer > 0.0:
+		_gold_rush_timer -= delta
 	_process_boss_kill_ceremony(delta)
 	_process_spin_wheel(delta)
 	if _near_miss_timer > 0.0:
@@ -21393,6 +21413,7 @@ const BATTLE_SHOP_ITEMS: Array = [
 
 var _battle_shop_cooldowns: Dictionary = {}  # item_id -> float
 var _gold_rush_kills: int = 0  # Tracks remaining gold rush kills
+var _gold_rush_timer: float = 0.0  # Gold rush powerup timer (#95)
 var _shield_charges: int = 0   # Tracks remaining shield charges
 var _damage_boost_timer: float = 0.0
 var _speed_boost_timer: float = 0.0
@@ -23083,7 +23104,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				# Check interactive map elements first
 				if _check_interactable_click(event.position):
 					pass
-				elif _check_page_click(event.position) or _check_collectible_click(event.position):
+				elif _check_page_click(event.position) or _check_collectible_click(event.position) or _check_powerup_click(event.position):
 					pass
 				else:
 					var tower = _find_tower_at(event.position)
@@ -23106,8 +23127,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch and event.pressed:
 		if placing_tower:
 			_try_place_tower(event.position)
-		elif _check_page_click(event.position) or _check_collectible_click(event.position):
-			pass  # BATTD: Collectible picked up
+		elif _check_page_click(event.position) or _check_collectible_click(event.position) or _check_powerup_click(event.position):
+			pass  # BATTD: Collectible/powerup picked up
 		else:
 			var tower = _find_tower_at(event.position)
 			if tower:
@@ -23760,8 +23781,9 @@ func _draw() -> void:
 	_draw_synergy_auras()
 	# BATTD: Tower buff icons
 	_draw_tower_buff_icons()
-	# BATTD: Map collectibles
+	# BATTD: Map collectibles & wave power-ups
 	_draw_map_collectibles()
+	_draw_wave_powerups()
 	# BATTD: Bounty board
 	_draw_bounty_board()
 	if _floating_texts.size() > 0:
@@ -26606,6 +26628,155 @@ func _check_collectible_click(mouse_pos: Vector2) -> bool:
 				spawn_floating_text(mc["pos"], "+%d Quills" % mc["reward_amount"], Color(0.2, 0.8, 0.6), 16.0, 1.2)
 			return true
 	return false
+
+# === WAVE POWER-UPS (#95) ===
+func _process_wave_powerups(delta: float) -> void:
+	if not is_wave_active:
+		return
+	# Spawn timer
+	_powerup_spawn_timer -= delta
+	if _powerup_spawn_timer <= 0.0 and _wave_powerups.size() < MAX_WAVE_POWERUPS:
+		_spawn_wave_powerup()
+		_powerup_spawn_timer = POWERUP_SPAWN_INTERVAL + randf_range(-3.0, 3.0)
+	# Age and despawn
+	var to_remove: Array = []
+	for i in range(_wave_powerups.size()):
+		_wave_powerups[i]["timer"] -= delta
+		if _wave_powerups[i]["timer"] <= 0.0:
+			to_remove.append(i)
+	for i in range(to_remove.size() - 1, -1, -1):
+		_wave_powerups.remove_at(to_remove[i])
+
+func _spawn_wave_powerup() -> void:
+	var type_data = POWERUP_TYPES[randi() % POWERUP_TYPES.size()]
+	# Weighted: gold bags more common, health potions rarer
+	var roll = randf()
+	if roll < 0.35:
+		type_data = POWERUP_TYPES[0]  # gold_bag
+	elif roll < 0.55:
+		type_data = POWERUP_TYPES[2]  # boost_orb
+	elif roll < 0.70:
+		type_data = POWERUP_TYPES[3]  # speed_gem
+	elif roll < 0.85:
+		type_data = POWERUP_TYPES[4]  # gold_rush
+	else:
+		type_data = POWERUP_TYPES[1]  # health_potion (rarest)
+	# Find a valid position (not too close to edges or path)
+	var px = randf_range(100.0, 1180.0)
+	var py = randf_range(80.0, 600.0)
+	for attempt in range(5):
+		var ok = true
+		for pp in path_points:
+			if Vector2(px, py).distance_to(pp) < 40.0:
+				ok = false
+				break
+		if ok:
+			break
+		px = randf_range(100.0, 1180.0)
+		py = randf_range(80.0, 600.0)
+	_wave_powerups.append({
+		"pos": Vector2(px, py),
+		"type": type_data["type"],
+		"label": type_data["label"],
+		"color": type_data["color"],
+		"icon_color": type_data["icon_color"],
+		"timer": POWERUP_LIFETIME,
+		"spawn_time": _time,
+	})
+
+func _draw_wave_powerups() -> void:
+	for pu in _wave_powerups:
+		var pos = pu["pos"]
+		var remaining = pu["timer"]
+		var col: Color = pu["color"]
+		var icon_col: Color = pu["icon_color"]
+		# Fade out in last 2 seconds
+		var alpha = 1.0 if remaining > 2.0 else remaining / 2.0
+		# Bob up and down
+		var bob = sin(_time * 3.0 + pu["spawn_time"] * 5.0) * 4.0
+		var draw_pos = pos + Vector2(0, bob)
+		var pulse = (sin(_time * 4.0 + pu["spawn_time"]) + 1.0) * 0.5
+		# Outer glow
+		draw_circle(draw_pos, 18.0 + pulse * 4.0, Color(col.r, col.g, col.b, 0.1 * alpha))
+		# Main orb
+		draw_circle(draw_pos, 10.0 + pulse * 2.0, Color(col.r, col.g, col.b, 0.4 * alpha))
+		# Inner bright core
+		draw_circle(draw_pos, 5.0, Color(icon_col.r, icon_col.g, icon_col.b, 0.7 * alpha))
+		draw_circle(draw_pos, 2.5, Color(1.0, 1.0, 1.0, 0.5 * alpha))
+		# Type icon symbol
+		var sym = ""
+		match pu["type"]:
+			"gold_bag": sym = "$"
+			"health_potion": sym = "+"
+			"boost_orb": sym = "^"
+			"speed_gem": sym = ">"
+			"gold_rush": sym = "$$"
+		_ds_outlined_text(draw_pos + Vector2(0, -2), sym, 10, Color(1.0, 1.0, 1.0, 0.8 * alpha), 30, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		# Sparkle ring
+		for s in range(4):
+			var sa = _time * 2.5 + s * TAU / 4.0 + pu["spawn_time"]
+			var sr = 14.0 + pulse * 3.0
+			var sp = draw_pos + Vector2(cos(sa), sin(sa)) * sr
+			draw_circle(sp, 1.5, Color(1.0, 1.0, 0.8, 0.5 * alpha))
+		# Urgency blink when about to despawn
+		if remaining < 2.0 and fmod(_time, 0.3) < 0.15:
+			draw_circle(draw_pos, 12.0, Color(1.0, 1.0, 1.0, 0.2))
+
+func _check_powerup_click(mouse_pos: Vector2) -> bool:
+	for i in range(_wave_powerups.size() - 1, -1, -1):
+		var pu = _wave_powerups[i]
+		if mouse_pos.distance_to(pu["pos"]) < 30.0:
+			_collect_powerup(pu)
+			_wave_powerups.remove_at(i)
+			return true
+	return false
+
+func _collect_powerup(pu: Dictionary) -> void:
+	var pos = pu["pos"]
+	match pu["type"]:
+		"gold_bag":
+			var amount = 20 + wave * 2
+			add_gold(amount)
+			spawn_floating_text(pos, "+%dG" % amount, pu["color"], 18.0, 1.5)
+		"health_potion":
+			var _max_lv = difficulty_fixed_lives[mini(selected_difficulty, difficulty_fixed_lives.size() - 1)] if selected_difficulty < difficulty_fixed_lives.size() else 100
+			lives = mini(lives + 1, _max_lv)
+			spawn_floating_text(pos, "+1 LIFE", pu["color"], 20.0, 1.5)
+			_haptic(1)
+		"boost_orb":
+			# Boost nearest tower damage +50% for 10s
+			var nearest_tower: Node2D = null
+			var nearest_dist = 999.0
+			for tower in get_tree().get_nodes_in_group("towers"):
+				if is_instance_valid(tower):
+					var d = tower.global_position.distance_to(pos)
+					if d < nearest_dist:
+						nearest_dist = d
+						nearest_tower = tower
+			if nearest_tower and nearest_tower.has_method("apply_temp_buff"):
+				nearest_tower.apply_temp_buff("damage", 1.5, 10.0)
+			spawn_floating_text(pos, "TOWER BOOST!", pu["color"], 18.0, 1.5)
+		"speed_gem":
+			# Boost nearest tower attack speed +40% for 8s
+			var nearest_tower2: Node2D = null
+			var nearest_dist2 = 999.0
+			for tower in get_tree().get_nodes_in_group("towers"):
+				if is_instance_valid(tower):
+					var d = tower.global_position.distance_to(pos)
+					if d < nearest_dist2:
+						nearest_dist2 = d
+						nearest_tower2 = tower
+			if nearest_tower2 and nearest_tower2.has_method("apply_temp_buff"):
+				nearest_tower2.apply_temp_buff("speed", 1.4, 8.0)
+			spawn_floating_text(pos, "SPEED BOOST!", pu["color"], 18.0, 1.5)
+		"gold_rush":
+			# All gold earned +100% for 8 seconds
+			_gold_rush_timer = 8.0
+			spawn_floating_text(pos, "GOLD RUSH x2!", pu["color"], 22.0, 2.0)
+			_screen_shake_intensity = 3.0
+			_screen_shake_timer = 0.2
+	_haptic(0)
+	_update_quest_progress("powerups_collected", 1)
 
 # === BATTD: BOUNTY BOARD ===
 func _generate_bounties() -> void:
@@ -34357,6 +34528,9 @@ func add_gold(amount: int) -> void:
 	# Enhancement #15: Rush bonus
 	if _wave_overlap_active and amount > 0:
 		amount = int(float(amount) * RUSH_BONUS_MULT)
+	# Power-up #95: Gold Rush doubles income
+	if _gold_rush_timer > 0.0 and amount > 0:
+		amount *= 2
 	gold += amount
 	total_gold_earned += amount
 	_check_achievement("penny_pincher", amount)
