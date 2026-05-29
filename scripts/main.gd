@@ -5720,6 +5720,69 @@ const ARC_BOSSES: Dictionary = {
 func _get_boss_data(level_idx: int) -> Dictionary:
 	return ARC_BOSSES.get(level_idx, {})
 
+# === VISIBLE EXIT PORTAL — enemy destination ===
+# A glowing portal at the path end that enemies are trying to reach.
+# Pulses with urgency when enemies get close. Shows lives remaining.
+var _exit_portal_pulse: float = 0.0
+var _exit_danger_level: float = 0.0  # 0-1, increases as enemies approach
+
+func _draw_exit_portal() -> void:
+	if path_points.size() < 2: return
+	var exit_pos = path_points[path_points.size() - 1]
+	# Calculate danger — how close is the nearest enemy to the exit?
+	_exit_danger_level = 0.0
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and "progress_ratio" in enemy:
+			_exit_danger_level = maxf(_exit_danger_level, enemy.progress_ratio)
+	_exit_portal_pulse = sin(_time * 3.0) * 0.5 + 0.5
+	# Portal base glow — color shifts from blue (safe) to red (danger)
+	var safe_col = Color(0.2, 0.4, 0.8)
+	var danger_col = Color(0.9, 0.2, 0.1)
+	var portal_col = safe_col.lerp(danger_col, _exit_danger_level)
+	# Outer glow rings (pulse with danger)
+	var glow_size = 35.0 + _exit_danger_level * 15.0 + _exit_portal_pulse * 5.0
+	for gi in range(4):
+		var gr = glow_size + float(gi) * 10.0
+		var ga = (0.08 + _exit_danger_level * 0.06) * (1.0 - float(gi) * 0.2)
+		draw_circle(exit_pos, gr, Color(portal_col.r, portal_col.g, portal_col.b, ga))
+	# Inner portal circle
+	draw_circle(exit_pos, 18.0, Color(portal_col.r * 0.3, portal_col.g * 0.3, portal_col.b * 0.3, 0.7))
+	draw_circle(exit_pos, 14.0, Color(portal_col.r, portal_col.g, portal_col.b, 0.4 + _exit_portal_pulse * 0.2))
+	# Swirl effect — rotating arcs
+	for si in range(3):
+		var sa = _time * 2.0 + float(si) * TAU / 3.0
+		var sx = exit_pos.x + cos(sa) * 20.0
+		var sy = exit_pos.y + sin(sa) * 12.0
+		draw_circle(Vector2(sx, sy), 3.0, Color(portal_col.r, portal_col.g, portal_col.b, 0.3 + _exit_portal_pulse * 0.15))
+	# Lives counter at exit
+	var lives_col = Color(1.0, 0.55, 0.40) if lives > 5 else Color(1.0, 0.2, 0.1)
+	_udraw(game_font, exit_pos + Vector2(0, -30), "❤ %d" % lives, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, lives_col)
+	# "EXIT" label
+	_udraw(game_font, exit_pos + Vector2(0, 28), "EXIT", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(portal_col.r, portal_col.g, portal_col.b, 0.5))
+	# Danger warning when enemy very close
+	if _exit_danger_level > 0.85:
+		var warn_pulse = (sin(_time * 8.0) + 1.0) * 0.5
+		draw_circle(exit_pos, 45.0 + warn_pulse * 10.0, Color(1.0, 0.15, 0.05, warn_pulse * 0.15))
+		_udraw(game_font, exit_pos + Vector2(0, -48), "⚠ DANGER!", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 0.3, 0.1, 0.6 + warn_pulse * 0.4))
+
+# Also draw the entrance portal (where enemies spawn from)
+func _draw_entrance_portal() -> void:
+	if path_points.size() < 2: return
+	var enter_pos = path_points[0]
+	# Simple dark ink portal at entrance
+	var ink_pulse = sin(_time * 2.0) * 0.5 + 0.5
+	for gi in range(3):
+		var gr = 25.0 + float(gi) * 8.0
+		draw_circle(enter_pos, gr, Color(0.15, 0.05, 0.25, 0.08 * (3 - gi)))
+	draw_circle(enter_pos, 16.0, Color(0.1, 0.03, 0.18, 0.5))
+	draw_circle(enter_pos, 10.0, Color(0.2, 0.08, 0.3, 0.3 + ink_pulse * 0.15))
+	# Swirl
+	for si in range(3):
+		var sa = -_time * 1.5 + float(si) * TAU / 3.0
+		draw_circle(Vector2(enter_pos.x + cos(sa) * 15, enter_pos.y + sin(sa) * 10), 2.5, Color(0.3, 0.1, 0.4, 0.25))
+	if is_wave_active:
+		_udraw(game_font, enter_pos + Vector2(0, -25), "SPAWN", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.5, 0.3, 0.6, 0.4))
+
 func _announce_boss_phase(level_idx: int, phase: int) -> void:
 	var boss = ARC_BOSSES.get(level_idx, {})
 	if boss.is_empty(): return
@@ -26751,6 +26814,9 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 		draw_line(Vector2(oak_x + 38, oak_y + 70 + float(tl) * 4.5), Vector2(oak_x + 54, oak_y + 70 + float(tl) * 4.5), Color(0.3, 0.2, 0.1, 0.5), 1.0)
 	draw_circle(Vector2(oak_x + 46, oak_y + 59), 1.5, Color(0.3, 0.3, 0.3))
 
+	# --- ENTRANCE + EXIT PORTALS ---
+	_draw_entrance_portal()
+	_draw_exit_portal()
 	# --- DAY/NIGHT OVERLAY ---
 	_draw_day_night_overlay()
 	# --- REALM ATMOSPHERE (behind everything) ---
