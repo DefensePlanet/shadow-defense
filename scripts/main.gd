@@ -202,6 +202,10 @@ var enemy_scene = preload("res://scenes/enemy.tscn")
 
 @onready var enemy_path: Path2D = $EnemyPath
 @onready var towers_node: Node2D = $Towers
+# Multi-entrance system (#99)
+var enemy_path_2: Path2D = null  # Second path for multi-entrance maps
+var _multi_entrance_active: bool = false
+var _path_2_spawn_chance: float = 0.4  # 40% of enemies use path 2
 
 # UI references
 var wave_label: Label
@@ -7268,6 +7272,58 @@ func _unlock_challenge_for_arc(arc_name: String) -> void:
 		challenge_maps_unlocked[arc_name] = true
 		spawn_floating_text(Vector2(640, 200), "🏆 CHALLENGE UNLOCKED: %s" % CHALLENGE_MAPS[arc_name]["name"], Color(1.0, 0.85, 0.2), 18.0, 3.0)
 
+# Multi-entrance maps (#99)
+const MULTI_ENTRANCE_LEVELS: Dictionary = {
+	# level_index: {path2 curve points}
+	27: "neverland_pincer",   # Neverland Ch3 — pirates from both sides
+	42: "victorian_flanked",  # Victorian Ch3 — enemies from streets + alleys
+	69: "shadow_realm_dual",  # Shadow Realm — two ink portals
+	84: "anubis_dual",        # Anubis final — river of dead + main entrance
+}
+
+func _setup_multi_entrance(level_idx: int) -> void:
+	# Clean up old path 2
+	if enemy_path_2 and is_instance_valid(enemy_path_2):
+		enemy_path_2.queue_free()
+		enemy_path_2 = null
+	_multi_entrance_active = false
+	if not MULTI_ENTRANCE_LEVELS.has(level_idx):
+		return
+	# Create second path
+	enemy_path_2 = Path2D.new()
+	enemy_path_2.curve = Curve2D.new()
+	add_child(enemy_path_2)
+	_multi_entrance_active = true
+	# Define second entrance paths per level
+	var path_id = MULTI_ENTRANCE_LEVELS[level_idx]
+	match path_id:
+		"neverland_pincer":
+			enemy_path_2.curve.add_point(Vector2(1330, 100), Vector2.ZERO, Vector2(-80, 0))
+			enemy_path_2.curve.add_point(Vector2(900, 120), Vector2(60, 0), Vector2(-60, 60))
+			enemy_path_2.curve.add_point(Vector2(700, 300), Vector2(0, -60), Vector2(-60, 60))
+			enemy_path_2.curve.add_point(Vector2(500, 500), Vector2(40, -40), Vector2(-40, 40))
+			enemy_path_2.curve.add_point(Vector2(300, 670))
+		"victorian_flanked":
+			enemy_path_2.curve.add_point(Vector2(640, -50), Vector2.ZERO, Vector2(0, 80))
+			enemy_path_2.curve.add_point(Vector2(640, 200), Vector2(0, -40), Vector2(80, 0))
+			enemy_path_2.curve.add_point(Vector2(900, 300), Vector2(-40, 0), Vector2(0, 80))
+			enemy_path_2.curve.add_point(Vector2(800, 500), Vector2(40, -40), Vector2(-60, 40))
+			enemy_path_2.curve.add_point(Vector2(640, 670))
+		"shadow_realm_dual":
+			enemy_path_2.curve.add_point(Vector2(1330, 400), Vector2.ZERO, Vector2(-80, 0))
+			enemy_path_2.curve.add_point(Vector2(1000, 380), Vector2(40, 0), Vector2(-60, -40))
+			enemy_path_2.curve.add_point(Vector2(800, 250), Vector2(40, 40), Vector2(-60, 0))
+			enemy_path_2.curve.add_point(Vector2(500, 280), Vector2(40, 0), Vector2(-40, 60))
+			enemy_path_2.curve.add_point(Vector2(300, 450), Vector2(0, -40), Vector2(-40, 40))
+			enemy_path_2.curve.add_point(Vector2(200, 670))
+		"anubis_dual":
+			enemy_path_2.curve.add_point(Vector2(-50, 500), Vector2.ZERO, Vector2(80, 0))
+			enemy_path_2.curve.add_point(Vector2(300, 480), Vector2(-40, 0), Vector2(60, -40))
+			enemy_path_2.curve.add_point(Vector2(500, 350), Vector2(0, 40), Vector2(60, 0))
+			enemy_path_2.curve.add_point(Vector2(800, 300), Vector2(-40, 0), Vector2(60, 40))
+			enemy_path_2.curve.add_point(Vector2(1000, 450), Vector2(0, -40), Vector2(40, 40))
+			enemy_path_2.curve.add_point(Vector2(1100, 670))
+
 func _set_time_of_day(level_idx: int) -> void:
 	if level_idx < 0 or level_idx >= levels.size():
 		_time_of_day = "day"
@@ -11104,6 +11160,7 @@ func _do_level_start(index: int) -> void:
 	_apply_handicaps()
 	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
+	_setup_multi_entrance(index)
 	_set_time_of_day(index)
 	_setup_seasonal_theme()
 	_setup_realm_mechanic(index)
@@ -21636,6 +21693,14 @@ func _get_next_wave_enemy_type() -> Dictionary:
 		return entry
 	return {"theme": 0, "type": "normal"}
 
+func _add_enemy_to_path(enemy) -> void:
+	# Multi-entrance: randomly assign enemies to path 2 (#99)
+	if _multi_entrance_active and enemy_path_2 and is_instance_valid(enemy_path_2) and randf() < _path_2_spawn_chance:
+		enemy_path_2.add_child(enemy)
+		enemy.set_meta("on_path_2", true)
+	else:
+		enemy_path.add_child(enemy)
+
 func _spawn_enemy() -> void:
 	_spawn_portal_intensity = 1.0
 	var enemy = enemy_scene.instantiate()
@@ -21771,7 +21836,7 @@ func _spawn_enemy() -> void:
 		enemy.max_health *= _adaptive_difficulty
 		enemy.health = enemy.max_health
 		enemy.load_sprite()
-		enemy_path.add_child(enemy)
+		_add_enemy_to_path(enemy)
 		enemies_to_spawn -= 1
 		enemies_alive += 1
 		return
@@ -21787,7 +21852,7 @@ func _spawn_enemy() -> void:
 		enemy.enemy_tier = clampi(wave / 3, 0, 3)
 		_apply_enemy_modifiers(enemy, wave, true)
 		enemy.load_sprite()
-		enemy_path.add_child(enemy)
+		_add_enemy_to_path(enemy)
 		enemies_to_spawn -= 1
 		enemies_alive += 1
 		return
@@ -21985,7 +22050,7 @@ func _spawn_enemy() -> void:
 		if _bn != "":
 			enemy.set_meta("boss_dialogue_name", _bn)
 	enemy.load_sprite()
-	enemy_path.add_child(enemy)
+	_add_enemy_to_path(enemy)
 	enemies_to_spawn -= 1
 	enemies_alive += 1
 	if (is_boss_wave or is_final_villain or is_last_wave) and _is_mobile:
@@ -34270,6 +34335,8 @@ func _start_next_wave() -> void:
 	elif wave >= 20:
 		wave_text = "WAVE %d — DANGER" % wave
 	spawn_floating_text(Vector2(640, 280), wave_text, Color(1.0, 0.9, 0.3), 26.0, 1.2)
+	if _multi_entrance_active and wave == 1:
+		spawn_floating_text(Vector2(640, 320), "⚠ MULTI-ENTRANCE MAP! Watch both paths!", Color(1.0, 0.5, 0.2), 16.0, 3.0)
 	_screen_shake_intensity = 2.0
 	_screen_shake_timer = 0.15
 	# Enhancement #15: Check rush bonus (starting wave while enemies alive)
