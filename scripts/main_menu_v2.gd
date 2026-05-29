@@ -96,6 +96,7 @@ const PARTICLE_COUNT: int = 25
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
+	# v2 menu is self-contained — main.gd draws solid dark underneath
 	_load_bgs()
 	_load_art()
 	_set_bg("chapters")
@@ -315,10 +316,8 @@ func _set_bg(view: String) -> void:
 		background.texture = null
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	# Ensure DarkOverlay is opaque enough that nothing bleeds through
-	var dark = get_node_or_null("DarkOverlay")
-	if dark:
-		dark.color = Color(0.03, 0.02, 0.06, 0.92)
+	# DarkOverlay stays subtle — main.gd handles blocking its own draw
+	pass
 
 func _build_currency_bar() -> void:
 	if not _main: return
