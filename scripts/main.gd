@@ -2540,6 +2540,11 @@ var auto_wave_enabled: bool = true
 var auto_wave_delay: float = 2.0  # seconds before auto-starting next wave
 var auto_wave_delay_options: Array = [1.0, 2.0, 3.0, 5.0]
 var auto_wave_delay_index: int = 1  # default 2s
+# Planning Phase (#101)
+var _planning_phase: bool = false
+var _planning_timer: float = 0.0
+const PLANNING_PHASE_DURATION: float = 8.0  # 8 seconds of planning time
+const PLANNING_PHASE_WAVES: Array = [5, 10, 15, 20, 25, 30, 35, 40]  # Boss wave planning
 
 # Pause & restart
 var game_paused: bool = false
@@ -11358,6 +11363,8 @@ func _reset_game() -> void:
 	_ink_ultimate_active = false
 	_ink_ultimate_timer = 0.0
 	_ink_ultimate_type = -1
+	_planning_phase = false
+	_planning_timer = 0.0
 	undo_tower_data.clear()
 	if is_instance_valid(undo_button):
 		undo_button.visible = false
@@ -15378,6 +15385,41 @@ func _check_ink_meter_click(pos: Vector2) -> bool:
 			_activate_ink_ultimate(ult_index)
 			return true
 	return false
+
+# --- 14d. PLANNING PHASE (#101) ---
+func _process_planning_phase(delta: float) -> void:
+	if not _planning_phase:
+		return
+	_planning_timer -= delta
+	if _planning_timer <= 0.0:
+		_planning_phase = false
+		auto_wave_enabled = true
+		spawn_floating_text(Vector2(640, 300), "PLANNING OVER — FIGHT!", Color(1.0, 0.3, 0.1), 22.0, 1.5)
+		_screen_shake_intensity = 4.0
+		_screen_shake_timer = 0.3
+	queue_redraw()
+
+func _draw_planning_phase() -> void:
+	if not _planning_phase:
+		return
+	var timer_int = int(ceil(_planning_timer))
+	var pulse = (sin(_time * 4.0) + 1.0) * 0.5
+	# Dim overlay
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.1, 0.08))
+	# Top banner
+	draw_rect(Rect2(0, 0, 1280, 50), Color(0.15, 0.1, 0.25, 0.7))
+	_ds_outlined_text(Vector2(640, 18), "PLANNING PHASE", 20, Color(1.0, 0.85, 0.2, 0.9), 400, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_ds_outlined_text(Vector2(640, 38), "Place, sell, or upgrade towers before the boss wave!", 11, Color(0.8, 0.8, 0.9, 0.7), 500, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Countdown timer
+	var timer_col = Color(1.0, 1.0, 1.0) if timer_int > 3 else Color(1.0, 0.3, 0.1)
+	var timer_size = 28 if timer_int > 3 else int(28 + pulse * 8)
+	_ds_outlined_text(Vector2(1200, 18), "%ds" % timer_int, timer_size, timer_col, 60, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Progress bar
+	var bar_fill = _planning_timer / PLANNING_PHASE_DURATION
+	draw_rect(Rect2(340, 48, 600, 4), Color(0.3, 0.2, 0.4, 0.5))
+	draw_rect(Rect2(340, 48, 600 * bar_fill, 4), Color(1.0, 0.85, 0.2, 0.8))
+	# Skip button hint
+	_ds_outlined_text(Vector2(640, 680), "Tap SEND WAVE to skip planning", 10, Color(0.6, 0.6, 0.7, 0.5 + pulse * 0.3), 300, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 # --- 15. POWER SPIKE CEREMONY ---
 func _trigger_power_spike(tower_type, tier: int) -> void:
@@ -21313,6 +21355,7 @@ func _process(delta: float) -> void:
 	_process_combo(delta)
 	_process_wave_powerups(delta)
 	_process_ink_ultimate(delta)
+	_process_planning_phase(delta)
 	if _gold_rush_timer > 0.0:
 		_gold_rush_timer -= delta
 	_process_boss_kill_ceremony(delta)
@@ -22805,6 +22848,12 @@ func _check_wave_complete() -> void:
 				spawn_floating_text(Vector2(640, 300), "+%dG Endless Bonus!" % endless_bonus, Color(1.0, 0.9, 0.2), 18.0, 1.5)
 			# Wave complete celebration
 			spawn_floating_text(Vector2(640, 260), "WAVE %d COMPLETE!" % wave, Color(0.3, 1.0, 0.5), 22.0, 1.5)
+			# Planning Phase before boss waves (#101)
+			if (wave + 1) in PLANNING_PHASE_WAVES and wave < total_waves:
+				_planning_phase = true
+				_planning_timer = PLANNING_PHASE_DURATION
+				auto_wave_enabled = false  # Temporarily disable auto-wave
+				spawn_floating_text(Vector2(640, 200), "⚔ PLANNING PHASE — Prepare for Boss Wave!", Color(1.0, 0.7, 0.2), 18.0, 3.0)
 			_screen_shake_intensity = 3.0
 			_screen_shake_timer = 0.2
 			# Wave preview on button
@@ -24354,6 +24403,7 @@ func _draw() -> void:
 	_draw_boss_kill_ceremony()
 	_draw_near_miss()
 	_draw_ink_meter()
+	_draw_planning_phase()
 	_draw_milestone_popup()
 	_draw_power_spike()
 	_draw_comeback_banner()
@@ -34338,6 +34388,10 @@ func _on_start_wave_pressed() -> void:
 			start_button.text = "  â–¶ Resume  "
 			queue_redraw()
 		return
+	# Skip planning phase if active (#101)
+	if _planning_phase:
+		_planning_phase = false
+		auto_wave_enabled = true
 	wave_auto_timer = -1.0
 	_start_next_wave()
 
