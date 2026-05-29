@@ -26913,17 +26913,20 @@ const ABILITY_TOOLTIPS: Dictionary = {
 # This creates 3 layers: EARN (XP) → LEARN (Pages) → USE (Gold)
 
 const ABILITY_UNLOCK_REQUIREMENTS: Dictionary = {
-	# path_tier -> {xp_milestone: kills needed, page_cost: Pages to learn}
+	# MATH: ~100 kills per level per tower. 90 levels total.
+	# T1: immediate. T2: after 5-8 levels of use. T3: mid-game (15-25 levels).
+	# T3C (Ultimate): late-game commitment (25-35 levels of dedicated use).
+	#
 	# T1 of all paths: FREE (unlocked at character rescue)
 	"t1": {"kills": 0, "page_cost": 0, "desc": "Unlocked on rescue"},
-	# T2: requires kills + Pages to learn
-	"t2_a": {"kills": 100, "page_cost": 15, "desc": "100 kills + 15 Pages"},
-	"t2_b": {"kills": 100, "page_cost": 15, "desc": "100 kills + 15 Pages"},
-	"t2_c": {"kills": 150, "page_cost": 20, "desc": "150 kills + 20 Pages"},
-	# T3: requires more kills + more Pages (endgame investment)
-	"t3_a": {"kills": 500, "page_cost": 40, "desc": "500 kills + 40 Pages"},
-	"t3_b": {"kills": 500, "page_cost": 40, "desc": "500 kills + 40 Pages"},
-	"t3_c": {"kills": 750, "page_cost": 60, "desc": "750 kills + 60 Pages — Ultimate"},
+	# T2: earned after using the character for 5-8 levels
+	"t2_a": {"kills": 600, "page_cost": 25, "desc": "600 kills + 25 Pages"},
+	"t2_b": {"kills": 600, "page_cost": 25, "desc": "600 kills + 25 Pages"},
+	"t2_c": {"kills": 800, "page_cost": 35, "desc": "800 kills + 35 Pages"},
+	# T3: mid-game investment — 15-25 levels of dedicated use
+	"t3_a": {"kills": 2000, "page_cost": 75, "desc": "2,000 kills + 75 Pages"},
+	"t3_b": {"kills": 2000, "page_cost": 75, "desc": "2,000 kills + 75 Pages"},
+	"t3_c": {"kills": 3500, "page_cost": 120, "desc": "3,500 kills + 120 Pages — Ultimate"},
 }
 
 # Tracks which abilities each character has LEARNED (persistent)
