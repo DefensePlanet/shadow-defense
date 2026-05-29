@@ -999,7 +999,7 @@ func _build_arc_levels() -> void:
 	star_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	arc_info_row.add_child(star_lbl)
 	vb.add_child(arc_info_row)
-	# === LEVEL LIST — clean cards for each level ===
+	# === LEVEL CARDS — big art cards like the realm hub ===
 	for li_idx in range(arc_levels.size()):
 		var li = arc_levels[li_idx]
 		if li >= _main.levels.size(): continue
@@ -1007,134 +1007,147 @@ func _build_arc_levels() -> void:
 		var is_complete = li in _main.completed_levels
 		var is_unlocked = _main._is_level_unlocked(li)
 		var stars = _main.level_stars.get(li, 0)
-		# Level card — full width, art-backed, premium feel
-		var card = PanelContainer.new()
-		var card_s = StyleBoxFlat.new()
-		card_s.bg_color = Color(0.05, 0.03, 0.10, 0.95)
+		# BIG art card — same visual style as realm cards
+		var card = Button.new()
+		card.text = ""
+		card.custom_minimum_size = Vector2(0, 160)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+		var cs2 = StyleBoxFlat.new()
+		cs2.bg_color = Color(0.04, 0.02, 0.08, 1.0)
 		if is_complete:
-			card_s.border_color = Color(0.45, 0.80, 0.30, 0.8)
-			card_s.set_border_width_all(2)
+			cs2.border_color = Color(0.45, 0.80, 0.30, 0.8)
+			cs2.set_border_width_all(3)
 		elif is_unlocked:
-			card_s.border_color = Color(rc.r * 0.6, rc.g * 0.6, rc.b * 0.6, 0.6)
-			card_s.set_border_width_all(2)
+			cs2.border_color = Color(rc.r * 0.7, rc.g * 0.7, rc.b * 0.7, 0.7)
+			cs2.set_border_width_all(2)
 		else:
-			card_s.border_color = Color(0.25, 0.20, 0.15, 0.35)
-			card_s.set_border_width_all(1)
-		card_s.set_corner_radius_all(14)
-		card_s.shadow_color = Color(0, 0, 0, 0.3)
-		card_s.shadow_size = 5
-		card_s.content_margin_left = 14; card_s.content_margin_right = 14
-		card_s.content_margin_top = 12; card_s.content_margin_bottom = 12
-		card.add_theme_stylebox_override("panel", card_s)
-		card.custom_minimum_size = Vector2(0, 95)
-		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(row)
-		# Level number in styled circle
-		var num_panel = PanelContainer.new()
-		var nps = StyleBoxFlat.new()
-		nps.set_corner_radius_all(20)
-		nps.content_margin_left = 6; nps.content_margin_right = 6
-		nps.content_margin_top = 4; nps.content_margin_bottom = 4
-		if is_complete:
-			nps.bg_color = Color(0.15, 0.40, 0.15, 0.9)
-			nps.border_color = Color(0.35, 0.75, 0.30, 0.7)
-		elif is_unlocked:
-			nps.bg_color = Color(rc.r * 0.25, rc.g * 0.25, rc.b * 0.25, 0.9)
-			nps.border_color = Color(rc.r * 0.7, rc.g * 0.7, rc.b * 0.7, 0.6)
-		else:
-			nps.bg_color = Color(0.06, 0.04, 0.10, 0.7)
-			nps.border_color = Color(0.25, 0.20, 0.15, 0.3)
-		nps.set_border_width_all(2)
-		num_panel.add_theme_stylebox_override("panel", nps)
-		num_panel.custom_minimum_size = Vector2(40, 40)
-		num_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var num_lbl = _lbl(str(li_idx + 1), 18, Color(1.0, 0.92, 0.40) if is_unlocked else Color(0.40, 0.35, 0.30))
-		num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		num_panel.add_child(num_lbl)
-		row.add_child(num_panel)
-		# Thumbnail — bigger with rounded clip
-		var th_panel = PanelContainer.new()
-		var ths = StyleBoxFlat.new()
-		ths.bg_color = Color(0.03, 0.02, 0.06, 0.8)
-		ths.set_corner_radius_all(10)
-		ths.set_border_width_all(1)
-		ths.border_color = Color(0.4, 0.3, 0.15, 0.4)
-		th_panel.add_theme_stylebox_override("panel", ths)
-		th_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var th = TextureRect.new()
-		th.custom_minimum_size = Vector2(130, 75)
-		th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		th.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cs2.border_color = Color(0.30, 0.25, 0.18, 0.4)
+			cs2.set_border_width_all(1)
+		cs2.set_corner_radius_all(14)
+		cs2.shadow_color = Color(0, 0, 0, 0.35)
+		cs2.shadow_size = 6
+		card.add_theme_stylebox_override("normal", cs2)
+		var cs2h = cs2.duplicate()
+		cs2h.bg_color = Color(0.06, 0.04, 0.12, 1.0)
+		card.add_theme_stylebox_override("hover", cs2h)
+		var cs2p = cs2.duplicate()
+		cs2p.bg_color = Color(0.03, 0.01, 0.06, 1.0)
+		card.add_theme_stylebox_override("pressed", cs2p)
+		# Full-bleed art background (map thumbnail)
 		if _main._map_thumb_textures.has(li):
-			th.texture = _main._map_thumb_textures[li]
+			var level_art = TextureRect.new()
+			level_art.texture = _main._map_thumb_textures[li]
+			level_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			level_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			level_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			level_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if is_unlocked:
+				level_art.modulate.a = 0.85
+			else:
+				level_art.modulate = Color(0.5, 0.5, 0.5, 0.4)
+			card.add_child(level_art)
+		# Locked: dark overlay
 		if not is_unlocked:
-			th.modulate = Color(0.4, 0.4, 0.4, 0.5)
-		th_panel.add_child(th)
-		row.add_child(th_panel)
-		# Info column: name + subtitle
-		var info = VBoxContainer.new()
-		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.add_theme_constant_override("separation", 2)
-		info.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var name_col = Color(1.0, 0.95, 0.85) if is_unlocked else Color(0.50, 0.45, 0.38)
-		var name_lbl = _lbl(lvl.get("name", "Level %d" % (li + 1)), 16, name_col)
-		name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-		name_lbl.add_theme_constant_override("shadow_offset_x", 1)
-		name_lbl.add_theme_constant_override("shadow_offset_y", 1)
-		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		info.add_child(name_lbl)
-		var sub_text = lvl.get("subtitle", "")
-		if sub_text == "": sub_text = "%d Waves" % _main.difficulty_waves[0]
-		var sub_lbl = _lbl(sub_text, 11, Color(0.60, 0.55, 0.48) if is_unlocked else Color(0.40, 0.36, 0.30))
-		sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		info.add_child(sub_lbl)
-		row.add_child(info)
-		# Stars (3 big stars)
-		var star_display = HBoxContainer.new()
-		star_display.add_theme_constant_override("separation", 4)
-		star_display.alignment = BoxContainer.ALIGNMENT_CENTER
-		star_display.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var lock_shade2 = ColorRect.new()
+			lock_shade2.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			lock_shade2.color = Color(0.02, 0.02, 0.05, 0.5)
+			lock_shade2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(lock_shade2)
+		# Content overlay
+		var content2 = VBoxContainer.new()
+		content2.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content2.add_theme_constant_override("separation", 4)
+		content2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var cm2 = MarginContainer.new()
+		cm2.add_theme_constant_override("margin_left", 16)
+		cm2.add_theme_constant_override("margin_right", 16)
+		cm2.add_theme_constant_override("margin_top", 14)
+		cm2.add_theme_constant_override("margin_bottom", 14)
+		cm2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cm2.add_child(content2)
+		card.add_child(cm2)
+		# Level name — BIG
+		var name_col2 = Color(1.0, 0.95, 0.50) if is_unlocked else Color(0.50, 0.45, 0.38)
+		var name_lbl2 = _lbl(lvl.get("name", "Level %d" % (li + 1)), 20, name_col2)
+		name_lbl2.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		name_lbl2.add_theme_constant_override("shadow_offset_x", 2)
+		name_lbl2.add_theme_constant_override("shadow_offset_y", 2)
+		name_lbl2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content2.add_child(name_lbl2)
+		# Subtitle
+		var sub_text2 = lvl.get("subtitle", "")
+		if sub_text2 == "": sub_text2 = "%d Waves" % _main.difficulty_waves[0]
+		var sub_lbl2 = _lbl(sub_text2, 12, Color(rc.r * 0.7 + 0.3, rc.g * 0.7 + 0.3, rc.b * 0.7 + 0.3) if is_unlocked else Color(0.40, 0.36, 0.30))
+		sub_lbl2.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		sub_lbl2.add_theme_constant_override("shadow_offset_x", 1)
+		sub_lbl2.add_theme_constant_override("shadow_offset_y", 1)
+		sub_lbl2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content2.add_child(sub_lbl2)
+		# Spacer
+		var sp2 = Control.new()
+		sp2.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		sp2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content2.add_child(sp2)
+		# Bottom row: stars + status
+		var bot_row = HBoxContainer.new()
+		bot_row.add_theme_constant_override("separation", 8)
+		bot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content2.add_child(bot_row)
+		# 3 big stars
 		for si in range(3):
-			var s_col = Color(1.0, 0.85, 0.15) if si < stars else Color(0.25, 0.20, 0.16, 0.5)
-			var s_lbl = _lbl("★", 24, s_col)
-			s_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
-			s_lbl.add_theme_constant_override("shadow_offset_x", 1)
-			s_lbl.add_theme_constant_override("shadow_offset_y", 1)
-			s_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			star_display.add_child(s_lbl)
-		row.add_child(star_display)
-		# Play button or lock
+			var s_col2 = Color(1.0, 0.85, 0.15) if si < stars else Color(0.30, 0.25, 0.18, 0.5)
+			var s_lbl2 = _lbl("★", 28, s_col2)
+			s_lbl2.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+			s_lbl2.add_theme_constant_override("shadow_offset_x", 1)
+			s_lbl2.add_theme_constant_override("shadow_offset_y", 1)
+			s_lbl2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bot_row.add_child(s_lbl2)
+		# Status
+		if is_complete:
+			bot_row.add_child(_lbl("COMPLETE", 12, Color(0.45, 0.85, 0.35)))
+		elif not is_unlocked:
+			bot_row.add_child(_lbl("LOCKED", 12, Color(0.55, 0.48, 0.40)))
+		# Lock icon centered on locked cards
+		if not is_unlocked:
+			var lock2 = _lbl("🔒", 40, Color(0.6, 0.6, 0.65, 0.7))
+			lock2.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			lock2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lock2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(lock2)
+		# PLAY button on unlocked — bottom right
 		if is_unlocked:
-			var play_btn = Button.new()
-			play_btn.text = "▶ PLAY"
-			play_btn.custom_minimum_size = Vector2(90, 36)
-			var pbs = StyleBoxFlat.new()
-			pbs.bg_color = Color(0.15, 0.45, 0.15, 0.9)
-			pbs.border_color = Color(0.35, 0.75, 0.30, 0.7)
-			pbs.set_border_width_all(1)
-			pbs.set_corner_radius_all(8)
-			play_btn.add_theme_stylebox_override("normal", pbs)
-			var pbsh = pbs.duplicate()
-			pbsh.bg_color = Color(0.20, 0.55, 0.20, 0.95)
-			play_btn.add_theme_stylebox_override("hover", pbsh)
-			play_btn.add_theme_font_size_override("font_size", 14)
-			play_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 0.95))
-			var _li = li
-			play_btn.pressed.connect(func():
-				if _main: _main._on_level_selected(_li))
-			row.add_child(play_btn)
-		else:
-			var lock = _lbl("🔒", 22, Color(0.5, 0.45, 0.4, 0.6))
-			lock.custom_minimum_size = Vector2(90, 0)
-			lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			lock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(lock)
+			var play_btn2 = Button.new()
+			play_btn2.text = "▶ PLAY"
+			play_btn2.custom_minimum_size = Vector2(110, 40)
+			var pbs2 = StyleBoxFlat.new()
+			pbs2.bg_color = Color(0.15, 0.45, 0.15, 0.92)
+			pbs2.border_color = Color(0.40, 0.80, 0.30, 0.8)
+			pbs2.set_border_width_all(2)
+			pbs2.set_corner_radius_all(10)
+			play_btn2.add_theme_stylebox_override("normal", pbs2)
+			var pbs2h = pbs2.duplicate()
+			pbs2h.bg_color = Color(0.20, 0.55, 0.20, 0.95)
+			play_btn2.add_theme_stylebox_override("hover", pbs2h)
+			play_btn2.add_theme_font_size_override("font_size", 16)
+			play_btn2.add_theme_color_override("font_color", Color(1.0, 1.0, 0.95))
+			play_btn2.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+			play_btn2.add_theme_constant_override("shadow_offset_x", 1)
+			play_btn2.add_theme_constant_override("shadow_offset_y", 1)
+			play_btn2.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+			play_btn2.position = Vector2(-125, -52)
+			var _li2 = li
+			play_btn2.pressed.connect(func():
+				if _main: _main._on_level_selected(_li2))
+			card.add_child(play_btn2)
+		# Click card to play (unlocked only)
+		if is_unlocked:
+			var _li3 = li
+			card.pressed.connect(func():
+				if _main: _main._on_level_selected(_li3))
+		# Hover brighten
+		card.mouse_entered.connect(func(): card.modulate = Color(1.1, 1.08, 1.04))
+		card.mouse_exited.connect(func(): card.modulate = Color.WHITE)
 		vb.add_child(card)
 
 	# === OLD FULL CHAPTERS VIEW (kept for reference, never reached) ===
