@@ -5370,6 +5370,7 @@ func _save_game() -> void:
 	save_data["abilities_learned"] = abilities_learned
 	save_data["trials_used"] = trials_used
 	save_data["saved_loadouts"] = saved_loadouts
+	save_data["character_legendaries_owned"] = character_legendaries_owned
 	save_data["dark_skin_active"] = dark_skin_active
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
@@ -5724,6 +5725,7 @@ func _load_game() -> void:
 	abilities_learned = data.get("abilities_learned", {})
 	trials_used = data.get("trials_used", {})
 	saved_loadouts = data.get("saved_loadouts", [])
+	character_legendaries_owned = data.get("character_legendaries_owned", {})
 	dark_skin_active = data.get("dark_skin_active", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
@@ -26825,6 +26827,165 @@ func _get_scaled_attack_speed(tower_type, base_speed: float) -> float:
 	var mastery_bonuses = _get_total_mastery_bonuses()
 	scale += mastery_bonuses.get("all_attack_speed", 0.0)
 	return base_speed * scale
+
+# === CHARACTER-SPECIFIC LEGENDARY GEAR — one per character ===
+# The most powerful items in the game. Each is unique to one character,
+# sourced from their original novel. Crafted with Knowledge Ink.
+const CHARACTER_LEGENDARIES: Dictionary = {
+	TowerType.ROBIN_HOOD: {
+		"name": "Marian's Silver Ribbon",
+		"source": "The Merry Adventures of Robin Hood",
+		"desc": "Maid Marian's favor, tied to Robin's bow. +30% damage, arrows home to targets.",
+		"stats": {"damage_mult": 1.30, "homing": true},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.ALICE: {
+		"name": "The Vorpal Blade",
+		"source": "Through the Looking-Glass",
+		"desc": "The blade that slew the Jabberwock. Ignores ALL armor, +25% crit chance.",
+		"stats": {"armor_ignore": true, "crit_bonus": 0.25},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.WICKED_WITCH: {
+		"name": "The Silver Shoes",
+		"source": "The Wonderful Wizard of Oz",
+		"desc": "Dorothy's stolen shoes. Teleport the Witch anywhere on the map every 15s.",
+		"stats": {"teleport_cd": 15.0},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.PETER_PAN: {
+		"name": "Hook's Stolen Cutlass",
+		"source": "Peter and Wendy",
+		"desc": "Taken from the Captain himself. +40% melee damage, attacks cleave 3 enemies.",
+		"stats": {"melee_mult": 1.40, "cleave": 3},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.PHANTOM: {
+		"name": "Christine's Rose",
+		"source": "The Phantom of the Opera",
+		"desc": "A rose that never wilts. Music heals nearby towers 2% HP/s and slows enemies 15%.",
+		"stats": {"heal_aura": 0.02, "slow_aura": 0.15},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.SCROOGE: {
+		"name": "Marley's Chains",
+		"source": "A Christmas Carol",
+		"desc": "The chains of Scrooge's dead partner. Enemies killed in range are bound — 50% chance to respawn as gold (15g each).",
+		"stats": {"gold_respawn_chance": 0.50, "gold_per_respawn": 15},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.SHERLOCK: {
+		"name": "The Stradivarius",
+		"source": "The Adventures of Sherlock Holmes",
+		"desc": "Holmes's prized violin. Passive: reveals ALL enemy stats + weaknesses permanently.",
+		"stats": {"reveal_all": true},
+		"ink_cost": 10, "page_cost": 60,
+	},
+	TowerType.TARZAN: {
+		"name": "The Hunting Knife of Lord Greystoke",
+		"source": "Tarzan of the Apes",
+		"desc": "His father's blade. +50% damage to bosses, kills have 10% chance to spawn an ape ally.",
+		"stats": {"boss_mult": 1.50, "ally_spawn_chance": 0.10},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.DRACULA: {
+		"name": "Vlad's Signet Ring",
+		"source": "Dracula",
+		"desc": "The ring of the Impaler Prince. Lifesteal increased to 25%, drain heals 1 life per 50 kills.",
+		"stats": {"lifesteal_override": 0.25, "life_heal_per_kills": 50},
+		"ink_cost": 10, "page_cost": 60,
+	},
+	TowerType.MERLIN: {
+		"name": "Excalibur",
+		"source": "Le Morte d'Arthur",
+		"desc": "The sword in the stone. Every 20s, Excalibur descends — 500 holy damage in a line, stuns 3s.",
+		"stats": {"excalibur_cd": 20.0, "excalibur_damage": 500, "excalibur_stun": 3.0},
+		"ink_cost": 12, "page_cost": 75,
+	},
+	TowerType.FRANKENSTEIN: {
+		"name": "Victor's Journal",
+		"source": "Frankenstein",
+		"desc": "The secret of creation. Kill stacks now have NO CAP and each stack gives +5% instead of +4%.",
+		"stats": {"stack_uncapped": true, "stack_bonus_override": 0.05},
+		"ink_cost": 10, "page_cost": 60,
+	},
+	TowerType.SHADOW_AUTHOR: {
+		"name": "The Three Unwritten Words",
+		"source": "The Tome of Shadows",
+		"desc": "The ending that was never written. Once per level: rewrite ALL enemies to 1 HP.",
+		"stats": {"rewrite_all_once": true},
+		"ink_cost": 15, "page_cost": 100,
+	},
+	TowerType.CAPTAIN_HOOK: {
+		"name": "The Crocodile's Tooth",
+		"source": "Peter and Wendy",
+		"desc": "Ripped from the beast that took his hand. Every 10th attack is an instakill (bosses: 20% max HP).",
+		"stats": {"instakill_interval": 10, "boss_damage_pct": 0.20},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.QUEEN_OF_HEARTS: {
+		"name": "The Crown of Crimson",
+		"source": "Alice's Adventures in Wonderland",
+		"desc": "The Queen's true crown. Card army doubled (10 allies), execute threshold raised to 30% HP.",
+		"stats": {"army_double": true, "execute_threshold": 0.30},
+		"ink_cost": 10, "page_cost": 60,
+	},
+	TowerType.CLAYTON: {
+		"name": "The Elephant Gun",
+		"source": "Tarzan of the Apes",
+		"desc": "His prized weapon. Shots pierce ALL enemies in a line, +60% damage to marked targets.",
+		"stats": {"full_pierce": true, "marked_bonus": 0.60},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.HEADLESS_HORSEMAN: {
+		"name": "The Carved Pumpkin of Sleepy Hollow",
+		"source": "The Legend of Sleepy Hollow",
+		"desc": "His eternal weapon. Pumpkin attacks explode for 200 AoE damage, fear lasts 5s instead of 3s.",
+		"stats": {"pumpkin_aoe": 200, "fear_duration": 5.0},
+		"ink_cost": 8, "page_cost": 50,
+	},
+	TowerType.MEDUSA: {
+		"name": "Athena's Aegis",
+		"source": "Greek Mythology",
+		"desc": "The shield that bears Medusa's face. Petrification is permanent until enemy is attacked. +20% range.",
+		"stats": {"perma_petrify": true, "range_bonus": 0.20},
+		"ink_cost": 10, "page_cost": 60,
+	},
+	TowerType.LOKI: {
+		"name": "Lævateinn — The Damage Twig",
+		"source": "Norse Mythology (Poetic Edda)",
+		"desc": "Loki's mythic weapon. Clone towers deal 100% damage instead of 75%. Chaos bolts hit 3 enemies.",
+		"stats": {"clone_power_override": 1.0, "chaos_targets": 3},
+		"ink_cost": 10, "page_cost": 60,
+	},
+	TowerType.ANUBIS: {
+		"name": "The Feather of Ma'at",
+		"source": "Egyptian Book of the Dead",
+		"desc": "The feather that weighs souls. Resurrection chance 75%. Judged enemies take 2x holy damage.",
+		"stats": {"resurrection_override": 0.75, "holy_mult": 2.0},
+		"ink_cost": 12, "page_cost": 75,
+	},
+}
+
+var character_legendaries_owned: Dictionary = {}  # tower_type -> true
+
+func _craft_legendary(tower_type) -> bool:
+	if not CHARACTER_LEGENDARIES.has(tower_type): return false
+	if character_legendaries_owned.has(tower_type): return false
+	var item = CHARACTER_LEGENDARIES[tower_type]
+	if knowledge_ink < item["ink_cost"] or player_pages < item["page_cost"]: return false
+	knowledge_ink -= item["ink_cost"]
+	player_pages -= item["page_cost"]
+	character_legendaries_owned[tower_type] = true
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	spawn_floating_text(Vector2(640, 180), "⭐ LEGENDARY CRAFTED!", Color(1.0, 0.85, 0.15), 22.0, 4.0)
+	spawn_floating_text(Vector2(640, 210), item["name"], Color(1.0, 0.75, 0.10), 16.0, 3.0)
+	spawn_floating_text(Vector2(640, 235), "Exclusive to %s" % cname, Color(0.85, 0.70, 0.40), 12.0, 2.5)
+	return true
+
+func _has_legendary(tower_type) -> bool:
+	return character_legendaries_owned.has(tower_type)
 
 func _get_level_stat_summary(tower_type) -> String:
 	var level = survivor_progress.get(tower_type, {}).get("level", 1)
