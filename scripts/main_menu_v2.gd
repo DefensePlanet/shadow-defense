@@ -310,9 +310,15 @@ func _make_black_key_mat(thresh: float = 0.08, smooth: float = 0.05) -> ShaderMa
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
-	background.modulate.a = 1.0
+		background.modulate.a = 1.0
+	else:
+		background.texture = null
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	# Ensure DarkOverlay is opaque enough that nothing bleeds through
+	var dark = get_node_or_null("DarkOverlay")
+	if dark:
+		dark.color = Color(0.03, 0.02, 0.06, 0.92)
 
 func _build_currency_bar() -> void:
 	if not _main: return
@@ -937,32 +943,63 @@ func _build_arc_levels() -> void:
 	vb.add_theme_constant_override("separation", 8)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
-	# Back button
+	# Realm art as background behind the level list
+	var realm_icon_key = arc_realm["icon"]
+	if _art.has(realm_icon_key):
+		var realm_bg = TextureRect.new()
+		realm_bg.texture = _art[realm_icon_key]
+		realm_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		realm_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		realm_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		realm_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		realm_bg.modulate.a = 0.25  # Subtle background art
+		content_area.add_child(realm_bg)
+		content_area.move_child(realm_bg, 0)
+	# Back button — top left
 	var back_btn = Button.new()
-	back_btn.text = "< BACK"
-	back_btn.custom_minimum_size = Vector2(100, 32)
+	back_btn.text = "< BACK TO REALMS"
+	back_btn.custom_minimum_size = Vector2(160, 34)
 	var bbs = StyleBoxFlat.new()
-	bbs.bg_color = Color(0.08, 0.05, 0.14, 0.9)
-	bbs.border_color = Color(0.5, 0.4, 0.2, 0.5)
+	bbs.bg_color = Color(0.06, 0.04, 0.10, 0.85)
+	bbs.border_color = Color(0.6, 0.5, 0.25, 0.6)
 	bbs.set_border_width_all(1)
 	bbs.set_corner_radius_all(8)
 	back_btn.add_theme_stylebox_override("normal", bbs)
+	var bbsh = bbs.duplicate()
+	bbsh.bg_color = Color(0.10, 0.07, 0.18, 0.90)
+	back_btn.add_theme_stylebox_override("hover", bbsh)
 	back_btn.add_theme_font_size_override("font_size", 13)
-	back_btn.add_theme_color_override("font_color", Color(0.8, 0.7, 0.5))
+	back_btn.add_theme_color_override("font_color", Color(0.85, 0.75, 0.50))
+	back_btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	back_btn.add_theme_constant_override("shadow_offset_x", 1)
+	back_btn.add_theme_constant_override("shadow_offset_y", 1)
 	back_btn.pressed.connect(func(): _portal_view = ""; _build_chapters())
 	vb.add_child(back_btn)
-	# Realm title
+	# Realm title — big and centered
 	vb.add_child(_section_header(arc_realm["name"].to_upper()))
-	# Star count
+	# Arc subtitle + star count in a row
 	var arc_stars = 0
 	var arc_max_stars = arc_levels.size() * 3
 	for jli in arc_levels:
 		if _main.level_stars.has(jli):
 			arc_stars += _main.level_stars[jli]
-	var star_lbl = _lbl("⭐ %d / %d" % [arc_stars, arc_max_stars], 13, Color(1.0, 0.85, 0.15))
-	star_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var arc_info_row = HBoxContainer.new()
+	arc_info_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	arc_info_row.add_theme_constant_override("separation", 20)
+	arc_info_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var arc_sub = _lbl(arc_realm["arc"], 14, Color(rc.r * 0.7 + 0.3, rc.g * 0.7 + 0.3, rc.b * 0.7 + 0.3))
+	arc_sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	arc_sub.add_theme_constant_override("shadow_offset_x", 1)
+	arc_sub.add_theme_constant_override("shadow_offset_y", 1)
+	arc_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arc_info_row.add_child(arc_sub)
+	var star_lbl = _lbl("⭐ %d / %d" % [arc_stars, arc_max_stars], 14, Color(1.0, 0.85, 0.15))
+	star_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	star_lbl.add_theme_constant_override("shadow_offset_x", 1)
+	star_lbl.add_theme_constant_override("shadow_offset_y", 1)
 	star_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(star_lbl)
+	arc_info_row.add_child(star_lbl)
+	vb.add_child(arc_info_row)
 	# === LEVEL LIST — clean cards for each level ===
 	for li_idx in range(arc_levels.size()):
 		var li = arc_levels[li_idx]
@@ -971,33 +1008,66 @@ func _build_arc_levels() -> void:
 		var is_complete = li in _main.completed_levels
 		var is_unlocked = _main._is_level_unlocked(li)
 		var stars = _main.level_stars.get(li, 0)
-		# Level card — horizontal: number | thumbnail | info | stars | play
+		# Level card — full width, art-backed, premium feel
 		var card = PanelContainer.new()
 		var card_s = StyleBoxFlat.new()
-		card_s.bg_color = Color(0.06, 0.04, 0.12, 0.92)
-		card_s.border_color = Color(rc.r * 0.5, rc.g * 0.5, rc.b * 0.5, 0.5) if is_unlocked else Color(0.25, 0.20, 0.15, 0.3)
+		card_s.bg_color = Color(0.05, 0.03, 0.10, 0.95)
 		if is_complete:
-			card_s.border_color = Color(0.4, 0.75, 0.3, 0.7)
-		card_s.set_border_width_all(2)
-		card_s.set_corner_radius_all(12)
-		card_s.content_margin_left = 12; card_s.content_margin_right = 12
-		card_s.content_margin_top = 10; card_s.content_margin_bottom = 10
+			card_s.border_color = Color(0.45, 0.80, 0.30, 0.8)
+			card_s.set_border_width_all(2)
+		elif is_unlocked:
+			card_s.border_color = Color(rc.r * 0.6, rc.g * 0.6, rc.b * 0.6, 0.6)
+			card_s.set_border_width_all(2)
+		else:
+			card_s.border_color = Color(0.25, 0.20, 0.15, 0.35)
+			card_s.set_border_width_all(1)
+		card_s.set_corner_radius_all(14)
+		card_s.shadow_color = Color(0, 0, 0, 0.3)
+		card_s.shadow_size = 5
+		card_s.content_margin_left = 14; card_s.content_margin_right = 14
+		card_s.content_margin_top = 12; card_s.content_margin_bottom = 12
 		card.add_theme_stylebox_override("panel", card_s)
-		card.custom_minimum_size = Vector2(0, 80)
+		card.custom_minimum_size = Vector2(0, 95)
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(row)
-		# Level number
-		var num_lbl = _lbl(str(li_idx + 1), 20, Color(1.0, 0.92, 0.40) if is_unlocked else Color(0.40, 0.35, 0.30))
-		num_lbl.custom_minimum_size = Vector2(30, 0)
+		# Level number in styled circle
+		var num_panel = PanelContainer.new()
+		var nps = StyleBoxFlat.new()
+		nps.set_corner_radius_all(20)
+		nps.content_margin_left = 6; nps.content_margin_right = 6
+		nps.content_margin_top = 4; nps.content_margin_bottom = 4
+		if is_complete:
+			nps.bg_color = Color(0.15, 0.40, 0.15, 0.9)
+			nps.border_color = Color(0.35, 0.75, 0.30, 0.7)
+		elif is_unlocked:
+			nps.bg_color = Color(rc.r * 0.25, rc.g * 0.25, rc.b * 0.25, 0.9)
+			nps.border_color = Color(rc.r * 0.7, rc.g * 0.7, rc.b * 0.7, 0.6)
+		else:
+			nps.bg_color = Color(0.06, 0.04, 0.10, 0.7)
+			nps.border_color = Color(0.25, 0.20, 0.15, 0.3)
+		nps.set_border_width_all(2)
+		num_panel.add_theme_stylebox_override("panel", nps)
+		num_panel.custom_minimum_size = Vector2(40, 40)
+		num_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var num_lbl = _lbl(str(li_idx + 1), 18, Color(1.0, 0.92, 0.40) if is_unlocked else Color(0.40, 0.35, 0.30))
 		num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(num_lbl)
-		# Thumbnail
+		num_panel.add_child(num_lbl)
+		row.add_child(num_panel)
+		# Thumbnail — bigger with rounded clip
+		var th_panel = PanelContainer.new()
+		var ths = StyleBoxFlat.new()
+		ths.bg_color = Color(0.03, 0.02, 0.06, 0.8)
+		ths.set_corner_radius_all(10)
+		ths.set_border_width_all(1)
+		ths.border_color = Color(0.4, 0.3, 0.15, 0.4)
+		th_panel.add_theme_stylebox_override("panel", ths)
+		th_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var th = TextureRect.new()
-		th.custom_minimum_size = Vector2(100, 60)
+		th.custom_minimum_size = Vector2(130, 75)
 		th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		th.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1005,7 +1075,8 @@ func _build_arc_levels() -> void:
 			th.texture = _main._map_thumb_textures[li]
 		if not is_unlocked:
 			th.modulate = Color(0.4, 0.4, 0.4, 0.5)
-		row.add_child(th)
+		th_panel.add_child(th)
+		row.add_child(th_panel)
 		# Info column: name + subtitle
 		var info = VBoxContainer.new()
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1024,13 +1095,19 @@ func _build_arc_levels() -> void:
 		sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		info.add_child(sub_lbl)
 		row.add_child(info)
-		# Stars (3 stars display)
+		# Stars (3 big stars)
 		var star_display = HBoxContainer.new()
-		star_display.add_theme_constant_override("separation", 2)
+		star_display.add_theme_constant_override("separation", 4)
+		star_display.alignment = BoxContainer.ALIGNMENT_CENTER
 		star_display.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		for si in range(3):
-			var s_col = Color(1.0, 0.85, 0.15) if si < stars else Color(0.30, 0.25, 0.20)
-			star_display.add_child(_lbl("★", 18, s_col))
+			var s_col = Color(1.0, 0.85, 0.15) if si < stars else Color(0.25, 0.20, 0.16, 0.5)
+			var s_lbl = _lbl("★", 24, s_col)
+			s_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+			s_lbl.add_theme_constant_override("shadow_offset_x", 1)
+			s_lbl.add_theme_constant_override("shadow_offset_y", 1)
+			s_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			star_display.add_child(s_lbl)
 		row.add_child(star_display)
 		# Play button or lock
 		if is_unlocked:
