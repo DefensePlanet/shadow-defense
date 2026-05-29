@@ -119,10 +119,19 @@ const PARTICLE_COUNT: int = 40
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
-	# Make DarkOverlay opaque enough to block main.gd bleed-through
+	# === BLEED-THROUGH BLOCKER ===
+	# Solid opaque rect BEHIND Background texture but on same CanvasLayer 50
+	# Blocks ALL main.gd content from showing through
+	var blocker = ColorRect.new()
+	blocker.color = Color(0.03, 0.02, 0.06, 1.0)
+	blocker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	blocker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	blocker.z_index = -1  # Render behind all siblings
+	add_child(blocker)
+	# Keep DarkOverlay subtle — blocker handles the opacity
 	var dark = get_node_or_null("DarkOverlay")
 	if dark:
-		dark.color = Color(0.03, 0.02, 0.06, 0.85)
+		dark.color = Color(0.02, 0.01, 0.04, 0.15)
 	_load_bgs()
 	_load_art()
 	_set_bg("chapters")
