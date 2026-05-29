@@ -4099,6 +4099,13 @@ func _apply_meta_buffs(tower_node, tower_type) -> void:
 				"gold_10": buffs["gold_bonus"] = buffs.get("gold_bonus", 0.0) + cr["value"]
 				"range_5": buffs["range"] = buffs.get("range", 0.0) + cr["value"]
 				"speed_8": buffs["attack_speed"] = buffs.get("attack_speed", 0.0) + cr["value"]
+	# 10) Terrain modifier bonuses (#98)
+	if tower_node and is_instance_valid(tower_node):
+		var t_mods = _get_terrain_modifier_at(tower_node.position)
+		if t_mods["tower_range_mult"] != 1.0:
+			buffs["range"] = buffs.get("range", 0.0) + (t_mods["tower_range_mult"] - 1.0)
+		if t_mods["tower_damage_mult"] != 1.0:
+			buffs["damage"] = buffs.get("damage", 0.0) + (t_mods["tower_damage_mult"] - 1.0)
 	# Apply to tower
 	if tower_node.has_method("set_meta_buffs"):
 		tower_node.set_meta_buffs(buffs)
@@ -7838,9 +7845,14 @@ func _draw_terrain_zones() -> void:
 			var a1 = float(ri) / float(ring_pts) * TAU
 			var a2 = float(ri + 1) / float(ring_pts) * TAU
 			draw_line(Vector2(zx + cos(a1) * zr, zy + sin(a1) * zr), Vector2(zx + cos(a2) * zr, zy + sin(a2) * zr), ring_color, 1.0)
-		# Label
+		# Label with effect description (#98 enhanced)
 		var label_text = zt.capitalize()
-		_udraw(game_font, Vector2(zx, zy - zr - 10), label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(col.r * 2, col.g * 2, col.b * 2, 0.4))
+		var effect_desc = TERRAIN_EFFECTS.get(zt, {}).get("desc", "")
+		_udraw(game_font, Vector2(zx, zy - zr - 14), label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(col.r * 2.5, col.g * 2.5, col.b * 2.5, 0.5))
+		if effect_desc != "":
+			# Short effect text below zone name
+			var short_desc = effect_desc.split("—")[1].strip_edges() if "—" in effect_desc else effect_desc
+			_udraw(game_font, Vector2(zx, zy - zr - 2), short_desc, HORIZONTAL_ALIGNMENT_CENTER, 200, 7, Color(1.0, 1.0, 1.0, 0.3))
 
 func _get_terrain_modifier_at(pos: Vector2) -> Dictionary:
 	# Returns combined terrain modifiers at a given position
@@ -7860,6 +7872,25 @@ func _get_terrain_modifier_at(pos: Vector2) -> Dictionary:
 			if effects.get("melee_disabled", false):
 				mods["melee_disabled"] = true
 	return mods
+
+func _process_terrain_enemy_effects(delta: float) -> void:
+	# Apply terrain zone effects to enemies (#98)
+	for enemy in _cached_enemies:
+		if not is_instance_valid(enemy):
+			continue
+		var epos = enemy.global_position
+		for zone in _terrain_zones:
+			var dist = epos.distance_to(Vector2(zone["x"], zone["y"]))
+			if dist > zone["radius"]:
+				continue
+			var effects = TERRAIN_EFFECTS.get(zone["type"], {})
+			# DPS zones (hazard, ink_pool)
+			if effects.has("enemy_dps") and effects["enemy_dps"] > 0.0:
+				enemy.take_damage(effects["enemy_dps"] * delta, "environmental")
+			# Slow zones (ink_pool)
+			if effects.has("enemy_slow") and effects["enemy_slow"] < 1.0:
+				enemy.slow_factor = minf(enemy.slow_factor, effects["enemy_slow"])
+				enemy.slow_timer = maxf(enemy.slow_timer, 0.5)
 
 func _cache_path_points() -> void:
 	var curve = enemy_path.curve
@@ -21152,6 +21183,9 @@ func _process(delta: float) -> void:
 	# Improvement 12: Environmental hazards
 	if is_wave_active and _env_hazards.size() > 0:
 		_process_env_hazards(delta)
+	# Terrain zone effects on enemies (#98)
+	if is_wave_active and _terrain_zones.size() > 0:
+		_process_terrain_enemy_effects(delta)
 	# Improvement 15: Auto-upgrade between waves
 	if not is_wave_active and wave > 0:
 		_process_auto_upgrades()
@@ -33686,7 +33720,17 @@ func _on_tower_pressed(tower_type: TowerType, desc: String) -> void:
 			var partner = syn["tower_b"] if syn["tower_a"] == tower_type else syn["tower_a"]
 			if purchased_towers.has(partner):
 				synergy_hints += " â˜… SYNERGY: %s" % syn["name"]
-	info_label.text = desc + synergy_hints
+	# Terrain bonus hints (#98)
+	var terrain_hint = ""
+	if ghost_position != Vector2.ZERO:
+		var t_mods = _get_terrain_modifier_at(ghost_position)
+		if t_mods["tower_range_mult"] > 1.0:
+			terrain_hint += " ⛰ +%d%% Range" % int((t_mods["tower_range_mult"] - 1.0) * 100)
+		elif t_mods["tower_range_mult"] < 1.0:
+			terrain_hint += " 🌫 -%d%% Range" % int((1.0 - t_mods["tower_range_mult"]) * 100)
+		if t_mods["tower_damage_mult"] > 1.0:
+			terrain_hint += " ⚔ +%d%% Dmg" % int((t_mods["tower_damage_mult"] - 1.0) * 100)
+	info_label.text = desc + synergy_hints + terrain_hint
 
 func _on_cancel_placement() -> void:
 	placing_tower = false
