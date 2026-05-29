@@ -329,13 +329,33 @@ func _build_currency_bar() -> void:
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h.add_theme_constant_override("separation", 6)
 	top_bar.add_child(h)
-	# LEFT: Journey progress
+	# LEFT: Journey progress with mini bar (#1)
 	var completed_ct = _main.completed_levels.size() if "completed_levels" in _main else 0
 	var total_ct = _main.levels.size() if "levels" in _main else 90
-	var journey_lbl = _lbl("Journey %d/%d" % [completed_ct, total_ct], 11, Color(0.70, 0.62, 0.50))
+	var pct = int(float(completed_ct) / maxf(float(total_ct), 1.0) * 100.0)
+	var journey_box = VBoxContainer.new()
+	journey_box.add_theme_constant_override("separation", 1)
+	journey_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	journey_box.custom_minimum_size.x = 130
+	var journey_lbl = _lbl("Journey %d%% (%d/%d)" % [pct, completed_ct, total_ct], 10, Color(0.75, 0.65, 0.50))
 	journey_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	journey_lbl.custom_minimum_size.x = 90
-	h.add_child(journey_lbl)
+	journey_box.add_child(journey_lbl)
+	# Mini progress bar
+	var bar_bg = PanelContainer.new()
+	var bar_bg_s = StyleBoxFlat.new()
+	bar_bg_s.bg_color = Color(0.12, 0.08, 0.18, 0.8)
+	bar_bg_s.set_corner_radius_all(3)
+	bar_bg.add_theme_stylebox_override("panel", bar_bg_s)
+	bar_bg.custom_minimum_size = Vector2(120, 6)
+	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bar_fill = ColorRect.new()
+	var fill_pct = clampf(float(completed_ct) / maxf(float(total_ct), 1.0), 0.0, 1.0)
+	bar_fill.custom_minimum_size = Vector2(120.0 * fill_pct, 6)
+	bar_fill.color = Color(0.85, 0.65, 0.15, 0.9)
+	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_bg.add_child(bar_fill)
+	journey_box.add_child(bar_bg)
+	h.add_child(journey_box)
 	# Spacer to push currencies to center
 	var spacer_l = Control.new()
 	spacer_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -550,6 +570,11 @@ func _build_portal_hub() -> void:
 	# Portal grid — one grid per act with act headers between them
 	var grid: GridContainer = null
 	var _last_act = 0
+	# Count realms per act for header display (#13)
+	var act_realm_counts: Dictionary = {}
+	for r in REALMS:
+		var a = r.get("act", 1)
+		act_realm_counts[a] = act_realm_counts.get(a, 0) + 1
 	for ri in range(REALMS.size()):
 		var realm = REALMS[ri]
 		var act_num = realm.get("act", 1)
@@ -557,7 +582,8 @@ func _build_portal_hub() -> void:
 		if act_num != _last_act:
 			_last_act = act_num
 			var act_names = {1: "ACT I — INTO THE PAGES", 2: "ACT II — THE SHADOW STORIES", 3: "ACT III — THE FINAL CHAPTER", 4: "ACT IV — THE NARRATOR'S REALM"}
-			vb.add_child(_section_header(act_names.get(act_num, "ACT %d" % act_num)))
+			var realm_ct = act_realm_counts.get(act_num, 0)
+			vb.add_child(_section_header("%s (%d Realms)" % [act_names.get(act_num, "ACT %d" % act_num), realm_ct]))
 			grid = GridContainer.new()
 			grid.columns = 3
 			grid.add_theme_constant_override("h_separation", 14)
@@ -572,7 +598,7 @@ func _build_portal_hub() -> void:
 		# === REALM CARD (items 1-30 rebuild) ===
 		var card = Button.new()
 		card.text = ""
-		card.custom_minimum_size = Vector2(380, 190)
+		card.custom_minimum_size = Vector2(380, 175)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 		var cs = StyleBoxFlat.new()
@@ -703,7 +729,7 @@ func _build_portal_hub() -> void:
 		status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bottom_row.add_child(status)
 		# Star count (#7)
-		if arc_unlocked and total_stars > 0:
+		if arc_unlocked:
 			var star_lbl = _lbl("⭐ %d/%d" % [total_stars, max_stars], 11, Color(1.0, 0.85, 0.15))
 			star_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			bottom_row.add_child(star_lbl)
@@ -721,18 +747,43 @@ func _build_portal_hub() -> void:
 			check_lbl.position = Vector2(8, 6)
 			check_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			card.add_child(check_lbl)
-		# --- "PLAY NEXT" banner on first incomplete unlocked realm (#23) ---
+		# --- "PLAY NEXT" pill badge (#2, #23) ---
 		if is_next_realm and not _shown_play_next:
 			_shown_play_next = true
+			var pill = PanelContainer.new()
+			var pill_s = StyleBoxFlat.new()
+			pill_s.bg_color = Color(0.12, 0.08, 0.04, 0.85)
+			pill_s.set_corner_radius_all(10)
+			pill_s.border_color = Color(1.0, 0.85, 0.15, 0.6)
+			pill_s.set_border_width_all(1)
+			pill_s.content_margin_left = 8; pill_s.content_margin_right = 8
+			pill_s.content_margin_top = 3; pill_s.content_margin_bottom = 3
+			pill.add_theme_stylebox_override("panel", pill_s)
+			pill.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			pill.position = Vector2(-110, 6)
+			pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var banner = _lbl("▶ PLAY NEXT", 11, Color(1.0, 0.95, 0.40))
-			banner.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-			banner.position = Vector2(-95, 6)
-			banner.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-			banner.add_theme_constant_override("shadow_offset_x", 1)
-			banner.add_theme_constant_override("shadow_offset_y", 1)
 			banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(banner)
-		# --- NO character portrait mini (removed — item #1, #33) ---
+			pill.add_child(banner)
+			card.add_child(pill)
+		# --- Themed realm icon top-right (#20) ---
+		var realm_icons = {"Prologue": "📖", "Neverland": "⚓", "Land of Oz": "💎", "Paris Opera": "🎭",
+			"Sherlock Holmes": "🔍", "Merlin": "🔮", "Tarzan": "🌿", "Dracula": "🦇",
+			"Frankenstein": "⚡", "Sherwood Forest": "🏹", "Wonderland": "🎩", "Victorian London": "👻",
+			"Shadow Author": "🖋", "Alice's Trial": "♠", "Robin's Trial": "🏹", "Scrooge's Trial": "💰",
+			"Headless Horseman": "🎃", "Medusa": "🐍", "Loki": "🗡", "Anubis": "☥", "The Narrator": "🔥"}
+		var theme_icon = realm_icons.get(realm["arc"], "")
+		if theme_icon != "" and arc_unlocked:
+			var icon_lbl = _lbl(theme_icon, 16, Color(1, 1, 1, 0.6))
+			icon_lbl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+			icon_lbl.position = Vector2(-28, -28)
+			icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(icon_lbl)
+		# --- Pulsing glow border on next playable realm (#5) ---
+		if is_next_realm and not arc_complete:
+			var glow_tw = create_tween().set_loops()
+			glow_tw.tween_property(card, "modulate", Color(1.08, 1.06, 1.02), 0.8).set_ease(Tween.EASE_IN_OUT)
+			glow_tw.tween_property(card, "modulate", Color(1.0, 1.0, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
 		# Click to enter realm
 		if arc_unlocked:
 			var arc_name = realm["arc"]
@@ -4403,29 +4454,9 @@ func _play_ui_click() -> void:
 	if _main and "_sfx_ui_click" in _main and _main.has_method("_play_sfx"):
 		_main._play_sfx(_main._sfx_ui_click)
 
-func _add_scroll_hint(parent_control: Control) -> void:
-	# Pulsing down arrow at bottom center
-	var hint = _lbl("▼  scroll  ▼", 10, Color(0.55, 0.45, 0.35))
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	hint.offset_top = -28
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent_control.add_child(hint)
-	var htw = create_tween().set_loops()
-	htw.tween_property(hint, "modulate:a", 0.3, 0.8).set_ease(Tween.EASE_IN_OUT)
-	htw.tween_property(hint, "modulate:a", 0.8, 0.8).set_ease(Tween.EASE_IN_OUT)
-	# Back to top button (right side)
-	var top_btn = _art_button("▲ TOP", Color(0.08, 0.06, 0.14), Vector2(60, 24))
-	top_btn.add_theme_font_size_override("font_size", 10)
-	top_btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	top_btn.position = Vector2(-72, -32)
-	top_btn.modulate.a = 0.6
-	top_btn.pressed.connect(func():
-		for c in parent_control.get_children():
-			if c is ScrollContainer:
-				var tw = create_tween()
-				tw.tween_property(c, "scroll_vertical", 0, 0.3).set_ease(Tween.EASE_OUT))
-	parent_control.add_child(top_btn)
+func _add_scroll_hint(_parent_control: Control) -> void:
+	# Removed scroll text and TOP button — clean layout (#17, #18)
+	pass
 
 func _format_num(val: float) -> String:
 	if val >= 1000000: return "%.1fM" % (val / 1000000.0)
