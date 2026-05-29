@@ -2762,6 +2762,28 @@ var daily_rewards_schedule: Array = [
 	{"name": "Gold Treasure Chest", "type": "gold_chest", "amount": 1},
 ]
 
+# === LOYALTY/VIP SYSTEM (#126) ===
+var loyalty_points: int = 0  # Earned from all activity
+const LOYALTY_TIERS: Array = [
+	{"name": "Reader", "min": 0, "bonus": 0.0},
+	{"name": "Bookworm", "min": 100, "bonus": 0.05},
+	{"name": "Scholar", "min": 500, "bonus": 0.10},
+	{"name": "Librarian", "min": 1500, "bonus": 0.15},
+	{"name": "Lorekeeper", "min": 4000, "bonus": 0.20},
+	{"name": "Grand Archivist", "min": 10000, "bonus": 0.25},
+]
+
+func _get_loyalty_tier() -> Dictionary:
+	var result = LOYALTY_TIERS[0]
+	for i in range(LOYALTY_TIERS.size() - 1, -1, -1):
+		if loyalty_points >= LOYALTY_TIERS[i]["min"]:
+			result = LOYALTY_TIERS[i]
+			break
+	return result
+
+func _get_vip_loyalty_bonus() -> float:
+	return _get_loyalty_tier()["bonus"]
+
 # === TOWER SYNERGIES ===
 var synergy_definitions: Array = []
 var active_synergies: Array = []
@@ -2931,6 +2953,154 @@ func _add_ranked_points(amount: int) -> void:
 		# Tier-up reward
 		player_pages += 10 * season_rank_tier
 		player_quills += 3 * season_rank_tier
+
+# === GEAR CRAFTING (#128) ===
+var discovered_recipes: Array = []  # Recipe IDs the player has found
+const CRAFTING_RECIPES: Array = [
+	{"id": "ancient_bow", "name": "Ancient Longbow", "character": "robin_hood", "tier": "ancient",
+	 "ingredients": {"pages": 50, "quills": 20, "ink": 10},
+	 "effect": {"damage": 0.30, "range": 0.15}, "desc": "+30% damage, +15% range"},
+	{"id": "ancient_hat", "name": "Ancient Mad Hat", "character": "alice", "tier": "ancient",
+	 "ingredients": {"pages": 50, "quills": 20, "ink": 10},
+	 "effect": {"attack_speed": 0.35, "crit": 0.10}, "desc": "+35% speed, +10% crit"},
+	{"id": "ancient_broom", "name": "Ancient Broomstick", "character": "wicked_witch", "tier": "ancient",
+	 "ingredients": {"pages": 60, "quills": 25, "ink": 12},
+	 "effect": {"damage": 0.25, "range": 0.20, "slow": 0.15}, "desc": "+25% dmg, +20% range, +15% slow"},
+	{"id": "ancient_sword", "name": "Ancient Cutlass", "character": "peter_pan", "tier": "ancient",
+	 "ingredients": {"pages": 55, "quills": 22, "ink": 11},
+	 "effect": {"damage": 0.35, "attack_speed": 0.10}, "desc": "+35% dmg, +10% speed"},
+	{"id": "ancient_mask", "name": "Ancient Opera Mask", "character": "phantom", "tier": "ancient",
+	 "ingredients": {"pages": 60, "quills": 25, "ink": 12},
+	 "effect": {"damage": 0.20, "crit": 0.20, "crit_damage": 0.30}, "desc": "+20% dmg, +20% crit, +30% crit dmg"},
+	{"id": "ancient_coin", "name": "Ancient Gold Sovereign", "character": "scrooge", "tier": "ancient",
+	 "ingredients": {"pages": 45, "quills": 18, "ink": 15},
+	 "effect": {"gold_bonus": 0.40, "damage": 0.15}, "desc": "+40% gold, +15% dmg"},
+]
+
+func _can_craft_recipe(recipe_id: String) -> bool:
+	for r in CRAFTING_RECIPES:
+		if r["id"] == recipe_id:
+			if recipe_id not in discovered_recipes:
+				return false
+			var ing = r["ingredients"]
+			return player_pages >= ing.get("pages", 0) and player_quills >= ing.get("quills", 0) and player_ink >= ing.get("ink", 0)
+	return false
+
+func _craft_recipe(recipe_id: String) -> bool:
+	for r in CRAFTING_RECIPES:
+		if r["id"] == recipe_id and _can_craft_recipe(recipe_id):
+			var ing = r["ingredients"]
+			player_pages -= ing.get("pages", 0)
+			player_quills -= ing.get("quills", 0)
+			player_ink -= ing.get("ink", 0)
+			# Add gear to inventory
+			owned_gear[r["id"]] = owned_gear.get(r["id"], 0) + 1
+			spawn_floating_text(Vector2(640, 300), "CRAFTED: %s!" % r["name"], Color(1.0, 0.85, 0.0), 20.0, 3.0)
+			return true
+	return false
+
+# === GEAR SET BONUSES (#135) ===
+const GEAR_SETS: Dictionary = {
+	"sherwood_ranger": {"pieces": ["ancient_bow", "ranger_cloak", "forest_boots"], "bonus": {"damage": 0.20, "range": 0.15}, "name": "Sherwood Ranger Set"},
+	"wonderland_chaos": {"pieces": ["ancient_hat", "cheshire_grin", "queen_scepter"], "bonus": {"attack_speed": 0.25, "crit": 0.15}, "name": "Wonderland Chaos Set"},
+	"shadow_author": {"pieces": ["authors_quill", "tome_binding", "ink_crown"], "bonus": {"damage": 0.30, "gold_bonus": 0.20}, "name": "Shadow Author Set"},
+	"gothic_horror": {"pieces": ["dracula_cape", "phantom_mask", "franken_bolt"], "bonus": {"damage": 0.25, "crit_damage": 0.30}, "name": "Gothic Horror Set"},
+}
+
+func _get_active_set_bonuses(tower_type) -> Dictionary:
+	var buffs: Dictionary = {}
+	var eq = equipped_gear.get(tower_type, [])
+	for set_id in GEAR_SETS:
+		var s = GEAR_SETS[set_id]
+		var count = 0
+		for piece in s["pieces"]:
+			if piece in eq:
+				count += 1
+		if count >= s["pieces"].size():
+			for k in s["bonus"]:
+				buffs[k] = buffs.get(k, 0.0) + s["bonus"][k]
+	return buffs
+
+# === ENDLESS MODE TIERS (#133) ===
+const ENDLESS_TIERS: Array = [
+	{"name": "Novice", "min_wave": 0, "hp_mult": 1.0, "speed_mult": 1.0},
+	{"name": "Veteran", "min_wave": 20, "hp_mult": 1.5, "speed_mult": 1.1},
+	{"name": "Expert", "min_wave": 40, "hp_mult": 2.5, "speed_mult": 1.2},
+	{"name": "Master", "min_wave": 60, "hp_mult": 4.0, "speed_mult": 1.3},
+	{"name": "Legendary", "min_wave": 80, "hp_mult": 6.0, "speed_mult": 1.4},
+	{"name": "Mythic", "min_wave": 100, "hp_mult": 10.0, "speed_mult": 1.5},
+]
+
+func _get_endless_tier(w: int) -> Dictionary:
+	var result = ENDLESS_TIERS[0]
+	for t in ENDLESS_TIERS:
+		if w >= t["min_wave"]:
+			result = t
+	return result
+
+# === MULTI-STEP QUEST CHAINS (#132) ===
+const QUEST_CHAINS: Array = [
+	{"id": "sherwood_saga", "name": "The Sherwood Saga", "steps": [
+		{"desc": "Beat all 3 Sherwood levels on Easy", "type": "complete_levels", "target_levels": [0, 1, 2], "reward": {"pages": 20}},
+		{"desc": "Beat Sherwood Ch3 on Hard", "type": "complete_hard", "target_level": 2, "reward": {"quills": 15}},
+		{"desc": "Earn 50 combo kills in Sherwood", "type": "combo_kills_in_realm", "theme": 0, "target": 50, "reward": {"stars": 2}},
+	]},
+	{"id": "gothic_trilogy", "name": "The Gothic Trilogy", "steps": [
+		{"desc": "Beat all Dracula levels", "type": "complete_levels", "target_levels": [30, 31, 32], "reward": {"pages": 25}},
+		{"desc": "Beat all Frankenstein levels", "type": "complete_levels", "target_levels": [39, 40, 41], "reward": {"quills": 20}},
+		{"desc": "Use Dracula and Frankenstein together in 5 battles", "type": "duo_battles", "target": 5, "reward": {"stars": 3}},
+	]},
+]
+var quest_chain_progress: Dictionary = {}  # chain_id -> step_index
+
+# === EVENT CURRENCY (#139) ===
+var event_tokens: int = 0
+var event_shop_items: Array = []
+var current_event_name: String = ""
+
+# === RESOURCE EXCHANGE (#124) ===
+var exchange_rates: Dictionary = {
+	"gold_to_pages": 50,    # Gold cost per 1 Page
+	"gold_to_quills": 80,   # Gold cost per 1 Quill
+	"pages_to_quills": 3,   # Pages cost per 1 Quill
+	"quills_to_pages": 1,   # Quills cost per 3 Pages (reverse)
+}
+var exchange_refresh_date: String = ""
+
+func _refresh_exchange_rates() -> void:
+	var today = Time.get_date_string_from_system()
+	if exchange_refresh_date == today:
+		return
+	exchange_refresh_date = today
+	# Fluctuate rates ±30% daily
+	var rng = RandomNumberGenerator.new()
+	rng.seed = today.hash()
+	exchange_rates["gold_to_pages"] = int(50.0 * (0.7 + rng.randf() * 0.6))
+	exchange_rates["gold_to_quills"] = int(80.0 * (0.7 + rng.randf() * 0.6))
+	exchange_rates["pages_to_quills"] = int(3.0 * (0.7 + rng.randf() * 0.6))
+
+func _exchange_currency(from_type: String, to_type: String, amount: int) -> bool:
+	var key = from_type + "_to_" + to_type
+	if not exchange_rates.has(key):
+		return false
+	var rate = exchange_rates[key]
+	var total_cost = rate * amount
+	match from_type:
+		"gold":
+			if player_gold < total_cost: return false
+			player_gold -= total_cost
+		"pages":
+			if player_pages < total_cost: return false
+			player_pages -= total_cost
+		"quills":
+			if player_quills < total_cost: return false
+			player_quills -= total_cost
+	match to_type:
+		"gold": player_gold += amount
+		"pages": player_pages += amount
+		"quills": player_quills += amount
+	spawn_floating_text(Vector2(640, 350), "Exchanged! +%d %s" % [amount, to_type], Color(0.4, 0.9, 0.6), 14.0, 1.5)
+	return true
 
 # === MILESTONE REWARDS ===
 var milestone_claimed: Dictionary = {}
@@ -36146,6 +36316,8 @@ func _victory() -> void:
 	_add_bp_xp(25 + selected_difficulty * 10)
 	# Ranked points (#121)
 	_add_ranked_points(10 + selected_difficulty * 5 + wave / 2)
+	# Loyalty points (#126)
+	loyalty_points += 5 + selected_difficulty * 2
 	speed_button.text = "  >>  "
 	# Victory burst effect
 	_victory_burst_timer = 2.0
