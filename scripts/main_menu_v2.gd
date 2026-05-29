@@ -223,7 +223,7 @@ func _draw() -> void:
 func _load_bgs() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic_v2.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		var exists = ResourceLoader.exists(m[k])
 		if exists:
