@@ -21766,6 +21766,9 @@ const BATTLE_SHOP_ITEMS: Array = [
 	{"id": "nuke", "name": "Ink Bomb", "cost": 120, "desc": "200 damage to ALL enemies on screen", "icon": "💣"},
 	{"id": "shield", "name": "Story Shield", "cost": 80, "desc": "Block next 3 life losses", "icon": "🛡"},
 	{"id": "reveal", "name": "Author's Insight", "cost": 25, "desc": "Reveal all stealth enemies + next wave preview", "icon": "👁"},
+	{"id": "tower_reforge", "name": "Reforge Tower", "cost": 150, "desc": "Selected tower gets random +20-50% stat boost", "icon": "🔨"},
+	{"id": "extra_slot", "name": "Emergency Recruit", "cost": 200, "desc": "Place one extra tower beyond limit", "icon": "📜"},
+	{"id": "ink_charge", "name": "Ink Infusion", "cost": 100, "desc": "+50 Ink Meter charge", "icon": "🖋"},
 ]
 
 var _battle_shop_cooldowns: Dictionary = {}  # item_id -> float
@@ -21808,6 +21811,19 @@ func _buy_battle_item(item_id: String) -> bool:
 			_shield_charges = 3
 		"reveal":
 			pass  # Would reveal stealth enemies + show next wave
+		"tower_reforge":
+			if selected_tower_node and is_instance_valid(selected_tower_node):
+				var boost_pct = randf_range(0.2, 0.5)
+				var stat_key = ["damage", "range", "attack_speed"][randi() % 3]
+				if selected_tower_node.has_method("set_meta_buffs") and "_meta_buffs" in selected_tower_node:
+					selected_tower_node._meta_buffs["reforge_" + stat_key] = boost_pct
+				spawn_floating_text(selected_tower_node.global_position, "REFORGED! +%d%% %s" % [int(boost_pct * 100), stat_key], Color(1.0, 0.6, 0.2), 16.0, 2.0)
+		"extra_slot":
+			# Allow one extra tower placement even at minimalist cap
+			placed_tower_positions.pop_back() if placed_tower_positions.size() > 0 else null
+			spawn_floating_text(Vector2(640, 325), "Extra slot opened!", Color(0.3, 0.8, 1.0), 14.0, 1.5)
+		"ink_charge":
+			_charge_ink_meter(50.0)
 	return true
 
 # === WAVE PREVIEW SYSTEM — show what's coming next ===
