@@ -20729,6 +20729,7 @@ func _process(delta: float) -> void:
 	_update_map_abilities(delta)
 	_update_voice_cooldowns(delta)
 	_check_duo_combos()
+	_check_ambient_chat(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -26511,6 +26512,61 @@ func _check_duo_combos() -> void:
 		if _duo_combo_timers[key] <= 0:
 			_duo_combo_timers[key] = DUO_COMBO_COOLDOWN
 			_execute_duo_combo(key, pair)
+
+# === AMBIENT TOWER CHAT — random dialog between ANY adjacent towers ===
+# Unlike bond dialogs (specific pairs), this triggers between ANY two
+# nearby towers. Adds life and personality to the battlefield.
+var _ambient_chat_timer: float = 0.0
+var _ambient_chat_cooldown: float = 45.0  # Seconds between ambient chats
+var _ambient_chats_shown: Dictionary = {}  # "typeA_typeB" -> count
+
+const AMBIENT_CHAT_LINES: Array = [
+	# Generic lines any character can say to any other
+	["{A}", "Stay sharp, {B}. More coming.", "{B}", "Always ready."],
+	["{A}", "Good positioning, {B}.", "{B}", "Learned from the best."],
+	["{A}", "Watch the left flank.", "{B}", "I see them. On it."],
+	["{A}", "How long have we been fighting?", "{B}", "Does it matter? We're winning."],
+	["{A}", "I never thought I'd fight alongside a {B_TYPE}.", "{B}", "Life is full of surprises."],
+	["{A}", "Cover me — I need to recharge.", "{B}", "I've got your back."],
+	["{A}", "That was close.", "{B}", "Too close. Focus."],
+	["{A}", "We make a good team.", "{B}", "Don't get sentimental. Stay alive."],
+	["{A}", "The Author underestimated us.", "{B}", "That's his BIGGEST mistake."],
+	["{A}", "Think we'll make it out of this book?", "{B}", "We'll write our own exit."],
+]
+
+func _check_ambient_chat(delta: float) -> void:
+	if not is_wave_active: return
+	_ambient_chat_timer -= delta
+	if _ambient_chat_timer > 0: return
+	_ambient_chat_timer = _ambient_chat_cooldown + randf_range(-10, 10)
+	# Find two adjacent non-bonded towers
+	var towers = get_tree().get_nodes_in_group("towers")
+	if towers.size() < 2: return
+	var candidates = []
+	for i in range(towers.size()):
+		for j in range(i + 1, towers.size()):
+			if not is_instance_valid(towers[i]) or not is_instance_valid(towers[j]): continue
+			var dist = towers[i].global_position.distance_to(towers[j].global_position)
+			if dist <= 200.0:
+				candidates.append([towers[i], towers[j]])
+	if candidates.size() == 0: return
+	var pair = candidates[randi() % candidates.size()]
+	var tA = pair[0]; var tB = pair[1]
+	# Get names
+	var nameA = tA.get_tower_display_name() if tA.has_method("get_tower_display_name") else "Tower"
+	var nameB = tB.get_tower_display_name() if tB.has_method("get_tower_display_name") else "Tower"
+	var typeA = "hero"; var typeB = "ally"
+	# Pick random chat
+	var chat = AMBIENT_CHAT_LINES[randi() % AMBIENT_CHAT_LINES.size()]
+	var line1 = chat[1].replace("{A}", nameA).replace("{B}", nameB).replace("{B_TYPE}", typeB)
+	var line2 = chat[3].replace("{A}", nameA).replace("{B}", nameB)
+	var speaker1 = chat[0].replace("{A}", nameA).replace("{B}", nameB)
+	var speaker2 = chat[2].replace("{A}", nameA).replace("{B}", nameB)
+	# Display as floating speech
+	spawn_floating_text(tA.global_position + Vector2(0, -40), '%s: "%s"' % [nameA, line1], Color(0.85, 0.78, 0.55), 10.0, 4.0)
+	get_tree().create_timer(2.0).timeout.connect(func():
+		if is_instance_valid(tB):
+			spawn_floating_text(tB.global_position + Vector2(0, -40), '%s: "%s"' % [nameB, line2], Color(0.65, 0.80, 0.90), 10.0, 4.0))
 
 func _execute_duo_combo(key: String, pair: Array) -> void:
 	var combo = DUO_COMBOS[key]
