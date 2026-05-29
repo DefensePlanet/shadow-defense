@@ -5775,6 +5775,170 @@ var _bg_story_elements: Array = []  # [{type, x, y, timer, data}]
 # a sense of depth. These move slightly when the camera shakes.
 var _foreground_elements: Array = []  # [{type, x, y, scale, alpha, parallax_mult}]
 
+# === DESTRUCTIBLE ENVIRONMENT — breakable objects on the map ===
+# Trees, walls, barrels, crates that take splash damage from tower attacks.
+# When destroyed: debris particles, possible gold/shard drops, visual crater.
+var _destructibles: Array = []  # [{type, x, y, hp, max_hp, destroyed, debris}]
+
+func _generate_destructibles(level_idx: int) -> void:
+	_destructibles.clear()
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var rng = RandomNumberGenerator.new()
+	rng.seed = level_idx * 77777 + 33333
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	var count = 4 + rng.randi() % 4  # 4-7 destructibles per map
+	for _i in range(count):
+		var dx = rng.randf_range(80, 1200)
+		var dy = rng.randf_range(80, 580)
+		# Don't place too close to path
+		var too_close = false
+		for pp in path_points:
+			if Vector2(dx, dy).distance_to(pp) < 40:
+				too_close = true
+				break
+		if too_close: continue
+		var obj_type = "tree"
+		var obj_hp = 100.0
+		var drop_type = ""
+		var drop_amount = 0
+		match theme:
+			0:  # Sherwood — trees + crates
+				obj_type = ["tree", "tree", "crate"][rng.randi() % 3]
+				obj_hp = 80.0 if obj_type == "crate" else 150.0
+				if obj_type == "crate": drop_type = "gold"; drop_amount = rng.randi_range(5, 15)
+			1:  # Wonderland — mushrooms + teapots
+				obj_type = ["mushroom_obj", "teapot"][rng.randi() % 2]
+				obj_hp = 60.0
+				if obj_type == "teapot": drop_type = "gold"; drop_amount = rng.randi_range(3, 10)
+			7:  # Sherlock — street lamps + barrels
+				obj_type = ["lamp_post", "barrel_obj"][rng.randi() % 2]
+				obj_hp = 70.0
+				if obj_type == "barrel_obj": drop_type = "gold"; drop_amount = rng.randi_range(5, 12)
+			8:  # Merlin — stone pillars + crystal formations
+				obj_type = ["stone_pillar", "crystal"][rng.randi() % 2]
+				obj_hp = 200.0
+				if obj_type == "crystal": drop_type = "shards"; drop_amount = rng.randi_range(2, 5)
+			9:  # Tarzan — trees + rocks
+				obj_type = ["tree", "rock"][rng.randi() % 2]
+				obj_hp = 120.0
+			10: # Dracula — coffins + tombstones
+				obj_type = ["coffin", "tombstone"][rng.randi() % 2]
+				obj_hp = 90.0
+				if obj_type == "coffin": drop_type = "shards"; drop_amount = rng.randi_range(1, 3)
+			11: # Frankenstein — equipment + crates
+				obj_type = ["equipment", "crate"][rng.randi() % 2]
+				obj_hp = 80.0
+				if obj_type == "crate": drop_type = "gold"; drop_amount = rng.randi_range(8, 20)
+			12: # Shadow Author — ink wells + book piles
+				obj_type = ["inkwell", "book_pile"][rng.randi() % 2]
+				obj_hp = 100.0
+				if obj_type == "inkwell": drop_type = "shards"; drop_amount = rng.randi_range(2, 4)
+			_:  # Default — rocks + crates
+				obj_type = ["rock", "crate"][rng.randi() % 2]
+				obj_hp = 80.0
+				if obj_type == "crate": drop_type = "gold"; drop_amount = rng.randi_range(3, 8)
+		_destructibles.append({
+			"type": obj_type, "x": dx, "y": dy,
+			"hp": obj_hp, "max_hp": obj_hp,
+			"destroyed": false,
+			"drop_type": drop_type, "drop_amount": drop_amount,
+			"debris": [],  # Particles spawned on destruction
+		})
+
+func _damage_destructibles(pos: Vector2, damage: float) -> void:
+	for d in _destructibles:
+		if d["destroyed"]: continue
+		if pos.distance_to(Vector2(d["x"], d["y"])) <= 45.0:
+			d["hp"] -= damage * 0.05  # 5% splash
+			if d["hp"] <= 0:
+				d["destroyed"] = true
+				_on_destructible_broken(d)
+
+func _on_destructible_broken(d: Dictionary) -> void:
+	var pos = Vector2(d["x"], d["y"])
+	# Spawn debris particles
+	for _i in range(6):
+		d["debris"].append({
+			"x": pos.x + randf_range(-10, 10), "y": pos.y + randf_range(-10, 10),
+			"vx": randf_range(-60, 60), "vy": randf_range(-80, -20),
+			"size": randf_range(2, 5), "alpha": 1.0,
+		})
+	# Drop loot
+	if d["drop_type"] != "" and d["drop_amount"] > 0:
+		match d["drop_type"]:
+			"gold": gold += d["drop_amount"]
+			"shards": player_gear_shards += d["drop_amount"]
+		spawn_floating_text(pos, "+%d %s" % [d["drop_amount"], d["drop_type"].capitalize()], Color(1.0, 0.85, 0.2), 12.0, 1.5)
+
+func _update_destructibles(delta: float) -> void:
+	for d in _destructibles:
+		if not d["destroyed"]: continue
+		var to_remove = []
+		for di in range(d["debris"].size()):
+			var p = d["debris"][di]
+			p["x"] += p["vx"] * delta
+			p["y"] += p["vy"] * delta
+			p["vy"] += 150.0 * delta  # Gravity
+			p["alpha"] -= delta * 0.8
+			if p["alpha"] <= 0: to_remove.append(di)
+		for ri in range(to_remove.size() - 1, -1, -1):
+			d["debris"].remove_at(to_remove[ri])
+
+func _draw_destructibles() -> void:
+	for d in _destructibles:
+		var pos = Vector2(d["x"], d["y"])
+		if d["destroyed"]:
+			# Rubble/crater
+			draw_circle(pos, 8, Color(0.2, 0.15, 0.1, 0.15))
+			# Flying debris
+			for p in d["debris"]:
+				draw_rect(Rect2(p["x"] - p["size"] * 0.5, p["y"] - p["size"] * 0.5, p["size"], p["size"]), Color(0.4, 0.3, 0.2, p["alpha"]))
+		else:
+			var hp_pct = d["hp"] / d["max_hp"]
+			match d["type"]:
+				"tree":
+					# Trunk
+					draw_rect(Rect2(pos.x - 3, pos.y - 5, 6, 18), Color(0.35, 0.2, 0.1, 0.4))
+					# Canopy
+					draw_circle(Vector2(pos.x, pos.y - 12), 12, Color(0.15, 0.3, 0.1, 0.3))
+				"crate", "barrel_obj":
+					draw_rect(Rect2(pos.x - 8, pos.y - 8, 16, 16), Color(0.4, 0.3, 0.15, 0.35))
+					draw_rect(Rect2(pos.x - 7, pos.y - 7, 14, 14), Color(0.5, 0.35, 0.2, 0.25))
+				"rock":
+					draw_circle(pos, 10, Color(0.35, 0.30, 0.25, 0.3))
+				"mushroom_obj":
+					draw_circle(Vector2(pos.x, pos.y - 6), 10, Color(0.5, 0.2, 0.4, 0.3))
+					draw_rect(Rect2(pos.x - 3, pos.y - 2, 6, 10), Color(0.4, 0.35, 0.3, 0.25))
+				"teapot":
+					draw_circle(pos, 8, Color(0.5, 0.4, 0.3, 0.3))
+					draw_line(pos + Vector2(8, -2), pos + Vector2(14, -6), Color(0.5, 0.4, 0.3, 0.25), 2)  # Spout
+				"stone_pillar":
+					draw_rect(Rect2(pos.x - 5, pos.y - 18, 10, 24), Color(0.4, 0.35, 0.3, 0.35))
+				"crystal":
+					draw_colored_polygon(PackedVector2Array([
+						Vector2(pos.x, pos.y - 14), Vector2(pos.x + 7, pos.y + 4),
+						Vector2(pos.x - 7, pos.y + 4)
+					]), Color(0.3, 0.4, 0.8, 0.25))
+				"lamp_post":
+					draw_line(Vector2(pos.x, pos.y + 8), Vector2(pos.x, pos.y - 14), Color(0.3, 0.3, 0.3, 0.3), 2)
+					draw_circle(Vector2(pos.x, pos.y - 16), 4, Color(0.8, 0.6, 0.2, 0.2))
+				"coffin":
+					draw_rect(Rect2(pos.x - 6, pos.y - 10, 12, 20), Color(0.3, 0.15, 0.1, 0.35))
+				"tombstone":
+					draw_rect(Rect2(pos.x - 6, pos.y - 12, 12, 16), Color(0.35, 0.3, 0.28, 0.3))
+					draw_arc(Vector2(pos.x, pos.y - 12), 6, PI, TAU, 6, Color(0.35, 0.3, 0.28, 0.3), 2)
+				"equipment":
+					draw_rect(Rect2(pos.x - 8, pos.y - 6, 16, 12), Color(0.3, 0.3, 0.35, 0.3))
+					draw_circle(Vector2(pos.x + 4, pos.y - 2), 3, Color(0.4, 0.5, 0.7, 0.2))
+				"inkwell":
+					draw_circle(pos, 7, Color(0.15, 0.08, 0.25, 0.35))
+				"book_pile":
+					for bi in range(3):
+						draw_rect(Rect2(pos.x - 8 + bi * 2, pos.y - 4 + bi * 4, 14, 5), Color(0.3 + float(bi) * 0.1, 0.2, 0.15, 0.25))
+			# Damage cracks
+			if hp_pct < 0.5:
+				draw_line(pos + Vector2(-5, -5), pos + Vector2(3, 5), Color(0.15, 0.1, 0.05, 0.3), 1.0)
+
 func _generate_foreground(level_idx: int) -> void:
 	_foreground_elements.clear()
 	if level_idx < 0 or level_idx >= levels.size(): return
@@ -10117,6 +10281,7 @@ func _do_level_start(index: int) -> void:
 	_setup_realm_mechanic(index)
 	_generate_bg_story(index)
 	_generate_foreground(index)
+	_generate_destructibles(index)
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
 	_generate_secret_paths(index)
@@ -19821,6 +19986,7 @@ func _process(delta: float) -> void:
 	_update_realm_mechanic(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
+	_update_destructibles(delta)
 	_update_atmosphere(delta)
 	# Act title card timer
 	if _act_title_active:
@@ -27139,6 +27305,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 	_draw_atmosphere()
 	# --- TERRAIN ZONES ---
 	_draw_terrain_zones()
+	# --- DESTRUCTIBLE ENVIRONMENT ---
+	_draw_destructibles()
 	# --- DYNAMIC HAZARDS ---
 	_draw_dynamic_hazards()
 	# --- SECRET PATHS ---
@@ -31701,9 +31869,10 @@ func _quest_track_kill(enemy_node = null) -> void:
 func enemy_died(enemy_node = null) -> void:
 	enemies_alive = maxi(enemies_alive - 1, 0)
 	total_enemies_killed += 1
-	# Secret path splash damage — enemy deaths near obstacles crack them
+	# Splash damage to nearby destructibles + secret paths
 	if enemy_node and is_instance_valid(enemy_node):
 		_damage_secret_path(enemy_node.global_position, 20.0)
+		_damage_destructibles(enemy_node.global_position, 20.0)
 	_check_achievement("first_blood", 1)
 	_check_achievement("centurion", 1)
 	_check_achievement("thousand_slayer", 1)
