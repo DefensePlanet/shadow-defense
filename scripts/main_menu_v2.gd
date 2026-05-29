@@ -649,9 +649,9 @@ func _build_portal_hub() -> void:
 			cs.border_color = Color(rc.r * 0.7, rc.g * 0.7, rc.b * 0.7, 0.7)
 			cs.set_border_width_all(2)
 		else:
-			cs.bg_color = Color(0.05, 0.04, 0.08, 0.70)
-			cs.border_color = Color(0.22, 0.18, 0.14, 0.35)
-			cs.set_border_width_all(1)
+			cs.bg_color = Color(0.05, 0.04, 0.08, 0.80)
+			cs.border_color = Color(0.35, 0.28, 0.20, 0.50)  # Brighter locked borders (#4)
+			cs.set_border_width_all(2)
 		cs.set_corner_radius_all(14)
 		cs.shadow_color = Color(0, 0, 0, 0.35)
 		cs.shadow_size = 6
@@ -680,8 +680,7 @@ func _build_portal_hub() -> void:
 			elif arc_unlocked:
 				realm_art.modulate.a = 0.65
 			else:
-				realm_art.modulate.a = 0.25  # Locked: dim but teased (#4)
-				realm_art.modulate = Color(0.5, 0.5, 0.5, 0.25)  # Grayscale tint (#4)
+				realm_art.modulate = Color(0.55, 0.55, 0.55, 0.38)  # Locked: grayscale, dimmer but visible
 			var mat = _make_black_key_mat(0.08, 0.05)
 			if mat: realm_art.material = mat
 			card.add_child(realm_art)
@@ -696,9 +695,9 @@ func _build_portal_hub() -> void:
 		for gi in range(6):
 			var gbar = ColorRect.new()
 			gbar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-			gbar.offset_top = -(gi + 1) * 15
-			gbar.offset_bottom = -gi * 15
-			gbar.color = Color(0.0, 0.0, 0.02, 0.05 + gi * 0.06)
+			gbar.offset_top = -(gi + 1) * 18
+			gbar.offset_bottom = -gi * 18
+			gbar.color = Color(0.0, 0.0, 0.02, 0.04 + gi * 0.08)
 			gbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			card.add_child(gbar)
 		# --- CONTENT: Name, arc, status (items 5,6,7,8,26,27) ---
@@ -760,7 +759,7 @@ func _build_portal_hub() -> void:
 			status_col = Color(0.75, 0.68, 0.55)
 		else:
 			status_text = "LOCKED"
-			status_col = Color(0.45, 0.38, 0.32)
+			status_col = Color(0.60, 0.55, 0.48)
 		var status = _lbl(status_text, 12, status_col)
 		status.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		status.add_theme_constant_override("shadow_offset_x", 1)
@@ -774,7 +773,7 @@ func _build_portal_hub() -> void:
 			bottom_row.add_child(star_lbl)
 		# --- LOCKED OVERLAY: centered lock icon (#14, #15) ---
 		if not arc_unlocked:
-			var lock_lbl = _lbl("🔒", 36, Color(0.5, 0.4, 0.3, 0.6))
+			var lock_lbl = _lbl("🔒", 36, Color(0.6, 0.6, 0.65, 0.7))
 			lock_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 			lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
