@@ -31621,6 +31621,9 @@ func _start_next_wave() -> void:
 	_announce_wave_modifiers(wave)
 	# Improvement 14: Extended wave forecast
 	_generate_extended_forecast()
+	# Endless mode path reshuffle every 10 waves
+	if endless_mode and wave > 1 and wave % 10 == 0:
+		_endless_reshuffle_path()
 	# Mid-level story beats — character reactions at key waves
 	_trigger_mid_wave_story(wave)
 	# Clear undo and wave preview on wave start
@@ -34067,11 +34070,104 @@ func _draw_endless_panel() -> void:
 	draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 2), Color(0.3, 0.4, 0.7, 0.5))
 	_udraw(font, Vector2(ox + pw - 50, oy + 48), "START", HORIZONTAL_ALIGNMENT_CENTER, 66, 14, Color(0.72, 0.82, 0.98))
 
+func _generate_endless_path(seed_val: int) -> void:
+	# Procedurally generate a unique path based on seed
+	var curve = enemy_path.curve
+	if not curve: return
+	curve.clear_points()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = seed_val
+	# Path complexity scales with the seed (higher waves = more complex)
+	var complexity = mini(seed_val / 10 + 3, 12)  # 3-12 points
+	var path_type = rng.randi() % 4  # 0=zigzag, 1=spiral, 2=S-curve, 3=random
+	match path_type:
+		0:  # Zigzag — alternating left/right passes
+			var enter_left = rng.randi() % 2 == 0
+			var y_start = rng.randf_range(80, 200)
+			var y_step = (520.0 - y_start) / float(complexity - 1) if complexity > 1 else 200
+			curve.add_point(Vector2(-50 if enter_left else 1330, y_start), Vector2.ZERO, Vector2(80 if enter_left else -80, 0))
+			for zi in range(complexity):
+				var zx = 200 + rng.randf_range(-50, 50) if zi % 2 == (0 if enter_left else 1) else 1080 + rng.randf_range(-50, 50)
+				var zy = y_start + y_step * float(zi) + rng.randf_range(-20, 20)
+				var ctrl = rng.randf_range(40, 100)
+				curve.add_point(Vector2(zx, zy), Vector2(-ctrl if zx > 640 else ctrl, 0), Vector2(ctrl if zx > 640 else -ctrl, 0))
+			curve.add_point(Vector2(640, 670))
+		1:  # Spiral — tightening inward
+			curve.add_point(Vector2(-50, 320), Vector2.ZERO, Vector2(80, 0))
+			var radius = 400.0
+			var cx = 640.0; var cy = 360.0
+			for si in range(complexity):
+				var angle = float(si) / float(complexity) * TAU * 2.0
+				radius -= 400.0 / float(complexity)
+				var sx = cx + cos(angle) * radius + rng.randf_range(-30, 30)
+				var sy = cy + sin(angle) * radius * 0.6 + rng.randf_range(-20, 20)
+				sx = clampf(sx, 50, 1230)
+				sy = clampf(sy, 60, 620)
+				curve.add_point(Vector2(sx, sy), Vector2(-40, 0), Vector2(40, 0))
+			curve.add_point(Vector2(640, 670))
+		2:  # S-curve — wide flowing curves
+			var segments = mini(complexity, 6)
+			curve.add_point(Vector2(-50, rng.randf_range(150, 500)), Vector2.ZERO, Vector2(100, 0))
+			for si2 in range(segments):
+				var frac = float(si2 + 1) / float(segments + 1)
+				var sx2 = frac * 1280.0
+				var sy2 = 360.0 + sin(frac * PI * 2.0) * rng.randf_range(100, 250)
+				sy2 = clampf(sy2, 80, 600)
+				var ctrl2 = rng.randf_range(60, 120)
+				curve.add_point(Vector2(sx2, sy2), Vector2(-ctrl2, rng.randf_range(-40, 40)), Vector2(ctrl2, rng.randf_range(-40, 40)))
+			curve.add_point(Vector2(640, 670))
+		3:  # Random walk
+			curve.add_point(Vector2(rng.randf_range(-50, 200), rng.randf_range(100, 500)), Vector2.ZERO, Vector2(60, 0))
+			for _ri in range(complexity):
+				var rx = rng.randf_range(100, 1180)
+				var ry = rng.randf_range(80, 600)
+				curve.add_point(Vector2(rx, ry), Vector2(rng.randf_range(-60, 60), rng.randf_range(-40, 40)), Vector2(rng.randf_range(-60, 60), rng.randf_range(-40, 40)))
+			curve.add_point(Vector2(640, 670))
+	# Rebuild path points
+	path_points.clear()
+	var length = curve.get_baked_length()
+	for i in range(0, int(length), 6):
+		path_points.append(curve.sample_baked(float(i)))
+
+func _endless_reshuffle_path() -> void:
+	# Called every 10 waves in endless mode — new procedural path
+	_generate_endless_path(wave)
+	# Rebuild terrain and atmosphere for variety
+	var random_theme = randi() % 19  # Random realm atmosphere
+	_generate_terrain_zones_for_theme(random_theme)
+	_generate_atmosphere_for_theme(random_theme)
+	_set_time_of_day_for_theme(random_theme)
+	spawn_floating_text(Vector2(640, 300), "🔀 PATH RESHUFFLED!", Color(0.9, 0.7, 0.2), 20.0, 2.5)
+	spawn_floating_text(Vector2(640, 330), "Wave %d — New layout!" % wave, Color(0.75, 0.65, 0.45), 14.0, 2.0)
+	_screen_shake_intensity = 3.0; _screen_shake_timer = 0.3
+
+# Helper stubs for endless theme switching (use existing systems with theme override)
+func _generate_terrain_zones_for_theme(theme: int) -> void:
+	_terrain_zones.clear()
+	# Simplified — just add 2 random terrain zones
+	var zone_types = ["water", "elevated", "hazard", "fog", "sacred", "ink_pool"]
+	_terrain_zones.append({"type": zone_types[randi() % zone_types.size()], "x": randf_range(200, 500), "y": randf_range(200, 500), "radius": randf_range(60, 100)})
+	_terrain_zones.append({"type": zone_types[randi() % zone_types.size()], "x": randf_range(700, 1080), "y": randf_range(150, 450), "radius": randf_range(50, 90)})
+
+func _generate_atmosphere_for_theme(theme: int) -> void:
+	_atmosphere_particles.clear()
+	_atmosphere_type = ["fog", "snow", "rain", "embers", "fireflies", "ink_drip", "petals", "sand"][randi() % 8]
+	_atmosphere_color = [Color(0.6, 0.6, 0.65), Color(0.9, 0.92, 0.95), Color(0.5, 0.6, 0.7), Color(0.8, 0.2, 0.1), Color(0.9, 0.8, 0.3), Color(0.2, 0.1, 0.3), Color(0.4, 0.6, 0.2), Color(0.7, 0.6, 0.4)][randi() % 8]
+	for _i in range(40):
+		_atmosphere_particles.append({"x": randf_range(0, 1280), "y": randf_range(0, 720), "vel_x": 0.0, "vel_y": 0.0, "size": randf_range(1.5, 4.0), "alpha": randf_range(0.2, 0.6)})
+
+func _set_time_of_day_for_theme(theme: int) -> void:
+	var times = ["dawn", "day", "dusk", "twilight", "night", "midnight"]
+	_time_of_day = times[randi() % times.size()]
+	var tod = TIME_OF_DAY_DATA.get(_time_of_day, TIME_OF_DAY_DATA["day"])
+	_day_night_color = tod["overlay"]
+	_day_night_overlay_alpha = tod["overlay"].a
+
 func _start_endless_mode() -> void:
 	_remove_survivor_preview()
-	# Pick a random level for the background
-	endless_background_level = randi() % levels.size()
-	current_level = endless_background_level
+	# Generate procedural endless path instead of using campaign levels
+	endless_background_level = 0
+	current_level = 0
 	_reset_game()
 	endless_mode = true
 	endless_mutation = ""
@@ -34079,8 +34175,8 @@ func _start_endless_mode() -> void:
 	lives = 20
 	selected_difficulty = 2  # Hard
 	total_waves = 999999
-	_setup_path_for_level(current_level)
-	_generate_decorations_for_level(current_level)
+	_generate_endless_path(randi())
+	_generate_decorations_for_level(0)
 	_stop_music()
 	menu_overlay.visible = false
 	top_bar.visible = true
