@@ -34070,6 +34070,50 @@ func _draw_endless_panel() -> void:
 	draw_rect(Rect2(ox + pw - 88, oy + 18, 78, 2), Color(0.3, 0.4, 0.7, 0.5))
 	_udraw(font, Vector2(ox + pw - 50, oy + 48), "START", HORIZONTAL_ALIGNMENT_CENTER, 66, 14, Color(0.72, 0.82, 0.98))
 
+# === PVP ARENA SYSTEM — async challenge mode ===
+# Players create a "defense challenge" — pick a level, place towers,
+# set a wave count. The game records the setup. Friends try to ATTACK
+# it by sending waves. If the attacker's waves break through, they win.
+# No real-time networking needed — it's turn-based async.
+
+var pvp_arena_challenges: Array = []  # [{id, creator_name, level_idx, tower_setup, wave_count, best_attacker, best_wave}]
+var pvp_arena_active: bool = false
+var pvp_arena_mode: String = ""  # "defend" or "attack"
+
+const PVP_ARENA_MAPS: Array = [
+	{"name": "The Colosseum", "desc": "Classic arena — balanced path, no gimmicks", "path_seed": 99999, "waves": 20},
+	{"name": "The Gauntlet", "desc": "Long narrow path — range is king", "path_seed": 88888, "waves": 15},
+	{"name": "The Crossroads", "desc": "Figure-8 path — double coverage opportunities", "path_seed": 77777, "waves": 25},
+	{"name": "The Labyrinth", "desc": "Tight spiral — every inch matters", "path_seed": 66666, "waves": 30},
+	{"name": "The Void", "desc": "Minimal terrain — pure tower skill", "path_seed": 55555, "waves": 20},
+]
+
+func _create_pvp_challenge(level_idx: int, tower_data: Array, wave_count: int) -> Dictionary:
+	var challenge = {
+		"id": randi(),
+		"creator_name": "Player",
+		"level_idx": level_idx,
+		"tower_setup": tower_data,
+		"wave_count": wave_count,
+		"created_time": Time.get_unix_time_from_system(),
+		"best_attacker": "",
+		"best_wave": 0,
+		"attempts": 0,
+		"victories": 0,
+	}
+	pvp_arena_challenges.append(challenge)
+	return challenge
+
+func _get_pvp_arena_reward(challenge: Dictionary, won: bool) -> Dictionary:
+	var reward = {"ink": 0, "shards": 0, "gold": 0}
+	if won:
+		reward["ink"] = 2
+		reward["shards"] = 15
+		reward["gold"] = 50
+	else:
+		reward["shards"] = 5  # Consolation prize for attempting
+	return reward
+
 func _generate_endless_path(seed_val: int) -> void:
 	# Procedurally generate a unique path based on seed
 	var curve = enemy_path.curve
