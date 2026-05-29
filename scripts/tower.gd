@@ -396,6 +396,92 @@ func _draw_sidekicks() -> void:
 		# Tiny shadow underneath
 		draw_circle(Vector2(sx, sy + 3), 3.0, Color(0, 0, 0, 0.1))
 
+# === THEMATIC RANGE INDICATORS — character-specific range circles ===
+var range_style: String = "default"  # Set by character script
+# Styles: "arrows", "magic_circle", "music_notes", "bat_wings", "vines",
+#         "cards", "coins", "shadows", "lightning", "ink", "flames", "skulls"
+
+func _draw_thematic_range(eff_range: float) -> void:
+	if not is_selected: return
+	var time = 0.0
+	if "_time" in self: time = _time
+	var pulse = (sin(time * 3.0) + 1.0) * 0.5
+	match range_style:
+		"arrows":  # Robin Hood, Clayton
+			# Arrow-tip markers around the circle
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.4, 0.7, 0.2, 0.15 + pulse * 0.1), 1.5)
+			for i in range(8):
+				var a = float(i) / 8.0 * TAU + time * 0.3
+				var tip = Vector2(cos(a) * eff_range, sin(a) * eff_range)
+				var back_l = Vector2(cos(a - 0.08) * (eff_range - 8), sin(a - 0.08) * (eff_range - 8))
+				var back_r = Vector2(cos(a + 0.08) * (eff_range - 8), sin(a + 0.08) * (eff_range - 8))
+				draw_colored_polygon(PackedVector2Array([tip, back_l, back_r]), Color(0.4, 0.7, 0.2, 0.2 + pulse * 0.1))
+		"magic_circle":  # Merlin, Medusa, Loki
+			# Rotating rune circle
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 48, Color(0.4, 0.3, 0.9, 0.15 + pulse * 0.1), 2.0)
+			draw_arc(Vector2.ZERO, eff_range - 6, 0, TAU, 36, Color(0.5, 0.4, 1.0, 0.08), 1.0)
+			for i in range(6):
+				var a = float(i) / 6.0 * TAU + time * 0.5
+				var rune_pos = Vector2(cos(a) * (eff_range - 3), sin(a) * (eff_range - 3))
+				draw_circle(rune_pos, 3.0, Color(0.6, 0.5, 1.0, 0.25 + pulse * 0.15))
+		"music_notes":  # Phantom
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.8, 0.5, 0.3, 0.12 + pulse * 0.08), 1.5)
+			for i in range(5):
+				var a = float(i) / 5.0 * TAU + time * 0.4
+				var note_pos = Vector2(cos(a) * eff_range, sin(a) * eff_range)
+				draw_circle(note_pos, 4.0, Color(0.9, 0.6, 0.3, 0.2))
+				draw_line(note_pos, note_pos + Vector2(0, -8), Color(0.9, 0.6, 0.3, 0.15), 1.0)
+		"bat_wings":  # Dracula
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.7, 0.1, 0.1, 0.12 + pulse * 0.08), 1.5)
+			for i in range(6):
+				var a = float(i) / 6.0 * TAU + time * 0.2
+				var bp = Vector2(cos(a) * eff_range, sin(a) * eff_range)
+				var wing = sin(time * 4.0 + float(i)) * 5
+				draw_line(bp + Vector2(-5, wing), bp, Color(0.6, 0.1, 0.1, 0.2), 1.5)
+				draw_line(bp + Vector2(5, -wing), bp, Color(0.6, 0.1, 0.1, 0.2), 1.5)
+		"vines":  # Tarzan, Wicked Witch
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.2, 0.5, 0.1, 0.12 + pulse * 0.08), 1.5)
+			for i in range(8):
+				var a = float(i) / 8.0 * TAU
+				var vine_r = eff_range + sin(time * 1.5 + float(i)) * 5
+				draw_arc(Vector2.ZERO, vine_r, a - 0.15, a + 0.15, 4, Color(0.15, 0.4, 0.08, 0.2), 2.5)
+		"cards":  # Alice, Queen of Hearts
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.7, 0.2, 0.4, 0.12 + pulse * 0.08), 1.5)
+			for i in range(4):
+				var a = float(i) / 4.0 * TAU + time * 0.6
+				var cp = Vector2(cos(a) * eff_range, sin(a) * eff_range)
+				draw_rect(Rect2(cp.x - 3, cp.y - 4, 6, 8), Color(0.8, 0.3, 0.4, 0.2 + pulse * 0.1))
+		"coins":  # Scrooge
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.9, 0.7, 0.1, 0.12 + pulse * 0.08), 1.5)
+			for i in range(6):
+				var a = float(i) / 6.0 * TAU + time * 0.3
+				draw_circle(Vector2(cos(a) * eff_range, sin(a) * eff_range), 3.5, Color(1.0, 0.85, 0.15, 0.2))
+		"shadows":  # Shadow Author, Headless Horseman
+			for gi in range(3):
+				draw_arc(Vector2.ZERO, eff_range - float(gi) * 4, 0, TAU, 36, Color(0.3, 0.1, 0.4, (0.10 - float(gi) * 0.02) + pulse * 0.06), 1.5)
+		"lightning":  # Frankenstein
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.4, 0.6, 1.0, 0.12 + pulse * 0.1), 1.5)
+			for i in range(4):
+				var a = float(i) / 4.0 * TAU + time * 0.8
+				var lp = Vector2(cos(a) * eff_range, sin(a) * eff_range)
+				draw_line(lp, lp + Vector2(randf_range(-6, 6), randf_range(-6, 6)), Color(0.5, 0.7, 1.0, 0.3), 1.5)
+		"holy":  # Anubis
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 48, Color(0.9, 0.8, 0.3, 0.12 + pulse * 0.1), 2.0)
+			for i in range(4):
+				var a = float(i) / 4.0 * TAU + time * 0.15
+				var ray_end = Vector2(cos(a) * (eff_range + 8), sin(a) * (eff_range + 8))
+				var ray_start = Vector2(cos(a) * (eff_range - 8), sin(a) * (eff_range - 8))
+				draw_line(ray_start, ray_end, Color(1.0, 0.9, 0.3, 0.15), 1.5)
+		"ocean":  # Captain Ahab
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(0.2, 0.4, 0.7, 0.12 + pulse * 0.08), 1.5)
+			for i in range(6):
+				var wa = float(i) / 6.0 * TAU
+				var wave_r = eff_range + sin(time * 2.0 + float(i) * 1.5) * 4
+				draw_arc(Vector2.ZERO, wave_r, wa - 0.2, wa + 0.2, 4, Color(0.3, 0.5, 0.8, 0.15), 2.0)
+		_:  # Default plain circle
+			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.20 + pulse * 0.1), 2.0)
+			draw_arc(Vector2.ZERO, eff_range + 3, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.08), 1.0)
+
 func get_visible_equipment_summary() -> String:
 	var parts = []
 	if equipped_weapon_visual.has("name"):
