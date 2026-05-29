@@ -223,17 +223,10 @@ func _draw() -> void:
 func _load_bgs() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		if ResourceLoader.exists(m[k]):
 			_backgrounds[k] = load(m[k])
-	# Survivors bg: load from disk directly (bypasses broken import system)
-	var surv_path = ProjectSettings.globalize_path("res://assets/menu_art/survivors_bg_gothic.png")
-	if FileAccess.file_exists(surv_path):
-		var img = Image.new()
-		var err = img.load(surv_path)
-		if err == OK:
-			_backgrounds["survivors"] = ImageTexture.create_from_image(img)
 
 func _load_art() -> void:
 	if DisplayServer.get_name() == "headless":
