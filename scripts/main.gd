@@ -21356,6 +21356,7 @@ func _process(delta: float) -> void:
 	_process_wave_powerups(delta)
 	_process_ink_ultimate(delta)
 	_process_planning_phase(delta)
+	_enforce_mutators()
 	if _gold_rush_timer > 0.0:
 		_gold_rush_timer -= delta
 	_process_boss_kill_ceremony(delta)
@@ -23483,7 +23484,13 @@ func _try_place_tower(pos: Vector2) -> void:
 	if not _is_valid_placement(pos):
 		info_label.text = "Can't place there!"
 		return
-	var cost = _get_discounted_cost(selected_tower)
+	# Chaos Theory mutator: randomize tower type (#102)
+	var _actual_tower = selected_tower
+	var _random_tt = _get_mutator_random_tower()
+	if _random_tt >= 0 and _random_tt != selected_tower:
+		_actual_tower = _random_tt
+		spawn_floating_text(pos + Vector2(0, -40), "CHAOS!", Color(0.9, 0.3, 1.0), 14.0, 1.0)
+	var cost = _get_discounted_cost(_actual_tower)
 	if not spend_gold(cost):
 		info_label.text = "Need %dG! (Have %dG)" % [cost, gold]
 		_insufficient_gold_flash = 1.0
@@ -23492,12 +23499,12 @@ func _try_place_tower(pos: Vector2) -> void:
 		_screen_shake_timer = 0.1
 		return
 
-	var tower = tower_scenes[selected_tower].instantiate()
+	var tower = tower_scenes[_actual_tower].instantiate()
 	tower.position = pos
 	tower.base_cost = cost
-	tower.set_meta("tower_type_enum", selected_tower)
+	tower.set_meta("tower_type_enum", _actual_tower)
 	# Inject AI sprite texture if available
-	var _spr_key = _tower_type_to_name(selected_tower)
+	var _spr_key = _tower_type_to_name(_actual_tower)
 	if _tower_sprite_textures.has(_spr_key) and "sprite_texture" in tower:
 		tower.sprite_texture = _tower_sprite_textures[_spr_key]
 	# Inject frame-based animation textures (attack, shoot, flair)
@@ -23521,14 +23528,14 @@ func _try_place_tower(pos: Vector2) -> void:
 	_haptic(1)
 	_screen_shake_intensity = 2.0
 	_screen_shake_timer = 0.1
-	spawn_floating_text(pos + Vector2(0, -35), tower_info[selected_tower]["name"] + "!", Color(0.4, 0.9, 0.5), 16.0, 1.0)
+	spawn_floating_text(pos + Vector2(0, -35), tower_info[_actual_tower]["name"] + "!", Color(0.4, 0.9, 0.5), 16.0, 1.0)
 	# Apply meta-progression buffs (level + knowledge + gear)
-	_apply_meta_buffs(tower, selected_tower)
+	_apply_meta_buffs(tower, _actual_tower)
 
 	placed_tower_positions.append(pos)
-	purchased_towers[selected_tower] = true
+	purchased_towers[_actual_tower] = true
 	# Improvement 8: Track tower type placement count
-	_tower_type_place_counts[selected_tower] = _tower_type_place_counts.get(selected_tower, 0) + 1
+	_tower_type_place_counts[_actual_tower] = _tower_type_place_counts.get(_actual_tower, 0) + 1
 	# Improvement 20: Register tower placement wave for loyalty
 	_register_tower_placed(tower)
 	var tname = tower_info[selected_tower]["name"]
@@ -34193,6 +34200,9 @@ func _on_sell_pressed() -> void:
 	if selected_difficulty == PURE_MODE:
 		info_label.text = "Selling disabled in Pure Mode!"
 		return
+	if _check_mutator_sell_block():
+		info_label.text = "IRON MAN: Cannot sell towers!"
+		return
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return
 	# BATTD4: Sell confirmation (first click = confirm, second click = sell)
@@ -42747,6 +42757,51 @@ func _get_mutator_reward_multiplier() -> float:
 			if mdef["id"] == mid:
 				mult *= mdef["reward_mult"]
 	return mult
+
+func _is_mutator_active(id: String) -> bool:
+	return id in active_mutators
+
+func _toggle_mutator(id: String) -> void:
+	if id in active_mutators:
+		active_mutators.erase(id)
+	else:
+		active_mutators.append(id)
+
+func _enforce_mutators() -> void:
+	# Called each frame during gameplay to enforce active mutators (#102)
+	if active_mutators.is_empty():
+		return
+	# Minimalist: cap tower count at 4
+	if _is_mutator_active("minimalist"):
+		var tower_count = get_tree().get_nodes_in_group("towers").size()
+		if tower_count >= 4:
+			# Disable placement
+			if placing_tower:
+				placing_tower = false
+				info_label.text = "MINIMALIST: Max 4 towers!"
+	# Time Crunch: force minimum 3x speed
+	if _is_mutator_active("fast_forward") and is_wave_active:
+		if Engine.time_scale < 3.0 and not game_paused:
+			Engine.time_scale = 3.0
+	# Fog of War: reduce all tower ranges
+	if _is_mutator_active("fog_of_war"):
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if is_instance_valid(tower) and "attack_range" in tower:
+				tower.attack_range = minf(tower.attack_range, 120.0)
+
+func _check_mutator_sell_block() -> bool:
+	# Iron Man: cannot sell towers
+	return _is_mutator_active("iron_man")
+
+func _get_mutator_random_tower() -> int:
+	# Chaos Theory: return random tower type
+	if _is_mutator_active("randomizer"):
+		var available: Array = []
+		for tt in purchased_towers.keys():
+			available.append(tt)
+		if available.size() > 0:
+			return available[randi() % available.size()]
+	return -1
 
 # --- Enhancement #151: Endless Mode ---
 var _endless_mode: bool = false
