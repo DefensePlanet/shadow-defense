@@ -517,7 +517,7 @@ func _build_nav() -> void:
 
 func _build_nav_buttons() -> void:
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
-	var labels = ["CHAPTERS", "HEROES", "SHOP", "CODEX", "SETTINGS"]
+	var labels = ["CHAPTERS", "HEROES", "EMPORIUM", "CODEX", "SETTINGS"]
 	var icons = ["📖", "⚔", "🛒", "📚", "⚙"]
 	# Solid opaque nav bar with top accent line
 	nav_bar.color = C_BG_DARK
