@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ddg6p1qdr3vub"
-valid=true
+path="res://.godot/imported/game_logo_gothic.png-e5e7707ad4bc673be922bb97e4f60328.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/menu_art/game_logo_gothic.png"
+dest_files=["res://.godot/imported/game_logo_gothic.png-e5e7707ad4bc673be922bb97e4f60328.ctex"]
 
 [params]
 

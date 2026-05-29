@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://db3l1oaq4w3ys"
-valid=true
+path="res://.godot/imported/theme_crimson.png-66923a4b4e1a4ba335ca16c8db5e56ed.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/theme_crimson.png"
+dest_files=["res://.godot/imported/theme_crimson.png-66923a4b4e1a4ba335ca16c8db5e56ed.ctex"]
 
 [params]
 

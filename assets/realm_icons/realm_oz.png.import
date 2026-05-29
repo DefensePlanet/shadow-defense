@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dp4nkllnon17b"
-valid=true
+path="res://.godot/imported/realm_oz.png-112abbab60d6918aa3082050f40d7bcc.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/realm_icons/realm_oz.png"
+dest_files=["res://.godot/imported/realm_oz.png-112abbab60d6918aa3082050f40d7bcc.ctex"]
 
 [params]
 

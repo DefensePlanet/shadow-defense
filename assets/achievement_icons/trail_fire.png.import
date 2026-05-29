@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bphynlc727x8w"
-valid=true
+path="res://.godot/imported/trail_fire.png-eba9399029062cdf13c12c3000a0f18c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/trail_fire.png"
+dest_files=["res://.godot/imported/trail_fire.png-eba9399029062cdf13c12c3000a0f18c.ctex"]
 
 [params]
 

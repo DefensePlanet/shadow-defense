@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dh0gf5sof4066"
-valid=true
+path="res://.godot/imported/aura_sapphire.png-8e01dbdd9afda149c41b5ddc61400d4c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/aura_sapphire.png"
+dest_files=["res://.godot/imported/aura_sapphire.png-8e01dbdd9afda149c41b5ddc61400d4c.ctex"]
 
 [params]
 

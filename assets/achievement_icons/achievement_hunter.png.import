@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://du63nmjh3tp3u"
-valid=true
+path="res://.godot/imported/achievement_hunter.png-ff44227ef9dcb988e92e7f1332338b65.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/achievement_hunter.png"
+dest_files=["res://.godot/imported/achievement_hunter.png-ff44227ef9dcb988e92e7f1332338b65.ctex"]
 
 [params]
 

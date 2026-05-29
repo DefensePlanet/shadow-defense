@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d31pab8y1htt"
-valid=true
+path="res://.godot/imported/gear_ring_amethyst.png-14477a6b8b9c925074dcf7044017b772.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/gear_icons/gear_ring_amethyst.png"
+dest_files=["res://.godot/imported/gear_ring_amethyst.png-14477a6b8b9c925074dcf7044017b772.ctex"]
 
 [params]
 

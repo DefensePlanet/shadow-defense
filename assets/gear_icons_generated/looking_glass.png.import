@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cau7itchkeivk"
-valid=true
+path="res://.godot/imported/looking_glass.png-be43df67b1ad9b36f2bec89f1f116548.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/gear_icons_generated/looking_glass.png"
+dest_files=["res://.godot/imported/looking_glass.png-be43df67b1ad9b36f2bec89f1f116548.ctex"]
 
 [params]
 

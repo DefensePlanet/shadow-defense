@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://r7rm7lph2xgt"
-valid=true
+path="res://.godot/imported/shard_collector.png-ea403cce9c6d3acb96cee8a671fcec39.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/shard_collector.png"
+dest_files=["res://.godot/imported/shard_collector.png-ea403cce9c6d3acb96cee8a671fcec39.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://chah6rc17v842"
-valid=true
+path="res://.godot/imported/rampage.png-d5a1994dc5d2e976150ac1f933aed7da.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/rampage.png"
+dest_files=["res://.godot/imported/rampage.png-d5a1994dc5d2e976150ac1f933aed7da.ctex"]
 
 [params]
 

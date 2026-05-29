@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhlespkhcxpgf"
-valid=true
+path="res://.godot/imported/card_frame_storybook.png-19c1d6387627a55caf64f5718c671743.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/card_frame_storybook.png"
+dest_files=["res://.godot/imported/card_frame_storybook.png-19c1d6387627a55caf64f5718c671743.ctex"]
 
 [params]
 

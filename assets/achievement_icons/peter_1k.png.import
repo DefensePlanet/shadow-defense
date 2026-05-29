@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d0748bw5lrx06"
-valid=true
+path="res://.godot/imported/peter_1k.png-6ff64276d1bb2d61885ea872d5e731ca.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/peter_1k.png"
+dest_files=["res://.godot/imported/peter_1k.png-6ff64276d1bb2d61885ea872d5e731ca.ctex"]
 
 [params]
 

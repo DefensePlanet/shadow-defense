@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c1bb17seov4cs"
-valid=true
+path="res://.godot/imported/instrument_owner.png-5de664dca5342f55e8507d1fdc07635d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/instrument_owner.png"
+dest_files=["res://.godot/imported/instrument_owner.png-5de664dca5342f55e8507d1fdc07635d.ctex"]
 
 [params]
 

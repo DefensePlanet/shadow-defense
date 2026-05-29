@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dptys2102ewt7"
-valid=true
+path="res://.godot/imported/banter_listener.png-68a90234fdf095e5655726d7a5e7d8ca.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/banter_listener.png"
+dest_files=["res://.godot/imported/banter_listener.png-68a90234fdf095e5655726d7a5e7d8ca.ctex"]
 
 [params]
 

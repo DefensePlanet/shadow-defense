@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dutipbannlpo7"
-valid=true
+path="res://.godot/imported/first_sidekick.png-2546a35f9cd897bb314fb6b94621e44b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/first_sidekick.png"
+dest_files=["res://.godot/imported/first_sidekick.png-2546a35f9cd897bb314fb6b94621e44b.ctex"]
 
 [params]
 

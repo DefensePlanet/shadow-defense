@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://yi50iul4tjif"
-valid=true
+path="res://.godot/imported/quill_hoarder.png-7e1c4c8b70dfe3b829683bea354d722b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/quill_hoarder.png"
+dest_files=["res://.godot/imported/quill_hoarder.png-7e1c4c8b70dfe3b829683bea354d722b.ctex"]
 
 [params]
 

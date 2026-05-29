@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://mmxvhofwya2e"
-valid=true
+path="res://.godot/imported/one_shot_wonder.png-f5d4fb54bd7f6358a7ffbe20c034e64e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/one_shot_wonder.png"
+dest_files=["res://.godot/imported/one_shot_wonder.png-f5d4fb54bd7f6358a7ffbe20c034e64e.ctex"]
 
 [params]
 

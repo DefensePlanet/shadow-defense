@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://blxw8503aygv0"
-valid=true
+path="res://.godot/imported/salvage_expert.png-6613e6d87552719c10a0d748ff67f2fd.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/salvage_expert.png"
+dest_files=["res://.godot/imported/salvage_expert.png-6613e6d87552719c10a0d748ff67f2fd.ctex"]
 
 [params]
 

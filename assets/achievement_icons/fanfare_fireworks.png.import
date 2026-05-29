@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7k218rv6fk5u"
-valid=true
+path="res://.godot/imported/fanfare_fireworks.png-583ddbe683c2dc18dc3053e9eab7bc7b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/fanfare_fireworks.png"
+dest_files=["res://.godot/imported/fanfare_fireworks.png-583ddbe683c2dc18dc3053e9eab7bc7b.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c842qmu4a2x24"
-valid=true
+path="res://.godot/imported/queen_idle.png-15a228569a6c5de9b74336dc9a015548.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/queen_idle.png"
+dest_files=["res://.godot/imported/queen_idle.png-15a228569a6c5de9b74336dc9a015548.ctex"]
 
 [params]
 

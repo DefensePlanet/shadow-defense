@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cw0ak4uaif4ky"
-valid=true
+path="res://.godot/imported/sherlock_arc.png-1cdb2bc41639b4f78a8a7fd07a73a7c0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/sherlock_arc.png"
+dest_files=["res://.godot/imported/sherlock_arc.png-1cdb2bc41639b4f78a8a7fd07a73a7c0.ctex"]
 
 [params]
 

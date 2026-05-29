@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdtfqpqpbfhrg"
-valid=true
+path="res://.godot/imported/sidekick_collector.png-661fe5ffb2147476804212c4506bbc05.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/sidekick_collector.png"
+dest_files=["res://.godot/imported/sidekick_collector.png-661fe5ffb2147476804212c4506bbc05.ctex"]
 
 [params]
 

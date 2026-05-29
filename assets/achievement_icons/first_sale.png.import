@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://o424yva4nve6"
-valid=true
+path="res://.godot/imported/first_sale.png-9eb2ef10e80c49101e37118e393dc979.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/first_sale.png"
+dest_files=["res://.godot/imported/first_sale.png-9eb2ef10e80c49101e37118e393dc979.ctex"]
 
 [params]
 

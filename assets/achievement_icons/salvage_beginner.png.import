@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b0y37cq203nfq"
-valid=true
+path="res://.godot/imported/salvage_beginner.png-d46103f8616d26d97c5db2b2db847cf0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/salvage_beginner.png"
+dest_files=["res://.godot/imported/salvage_beginner.png-d46103f8616d26d97c5db2b2db847cf0.ctex"]
 
 [params]
 

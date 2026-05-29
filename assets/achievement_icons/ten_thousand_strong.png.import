@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cs0clfw4lwr61"
-valid=true
+path="res://.godot/imported/ten_thousand_strong.png-40a70902bfea0b3876c0258e58eb2d71.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/ten_thousand_strong.png"
+dest_files=["res://.godot/imported/ten_thousand_strong.png-40a70902bfea0b3876c0258e58eb2d71.ctex"]
 
 [params]
 

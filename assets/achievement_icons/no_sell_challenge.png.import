@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://mluxr4tvlu25"
-valid=true
+path="res://.godot/imported/no_sell_challenge.png-bb48011b9c9093e69cd90423ad2a7014.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/no_sell_challenge.png"
+dest_files=["res://.godot/imported/no_sell_challenge.png-bb48011b9c9093e69cd90423ad2a7014.ctex"]
 
 [params]
 

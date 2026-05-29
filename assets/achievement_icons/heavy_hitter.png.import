@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://du3x706lyk66w"
-valid=true
+path="res://.godot/imported/heavy_hitter.png-03d6a28483ab03c7f4b827c2516bc83a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/heavy_hitter.png"
+dest_files=["res://.godot/imported/heavy_hitter.png-03d6a28483ab03c7f4b827c2516bc83a.ctex"]
 
 [params]
 

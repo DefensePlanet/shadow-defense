@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dwcldrt80hnon"
-valid=true
+path="res://.godot/imported/trophy_champion.png-95c0107df92685b52a0ec354abae7e62.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/trophy_champion.png"
+dest_files=["res://.godot/imported/trophy_champion.png-95c0107df92685b52a0ec354abae7e62.ctex"]
 
 [params]
 

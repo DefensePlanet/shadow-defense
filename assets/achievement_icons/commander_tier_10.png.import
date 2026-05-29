@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cke8d31wxyq7h"
-valid=true
+path="res://.godot/imported/commander_tier_10.png-beb10a32221e087648fd0839e7bd46c8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/commander_tier_10.png"
+dest_files=["res://.godot/imported/commander_tier_10.png-beb10a32221e087648fd0839e7bd46c8.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwa5x1db05as6"
-valid=true
+path="res://.godot/imported/weapon_counting_ledger.png-e7d691401dfd4c90812727a5dc99b139.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/gear_icons/weapon_counting_ledger.png"
+dest_files=["res://.godot/imported/weapon_counting_ledger.png-e7d691401dfd4c90812727a5dc99b139.ctex"]
 
 [params]
 

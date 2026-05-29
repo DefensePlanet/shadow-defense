@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://j3so1lc5logn"
-valid=true
+path="res://.godot/imported/medusa_idle.png-da3c9c5f2ed737f77346a584bbea3c40.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/medusa_idle.png"
+dest_files=["res://.godot/imported/medusa_idle.png-da3c9c5f2ed737f77346a584bbea3c40.ctex"]
 
 [params]
 

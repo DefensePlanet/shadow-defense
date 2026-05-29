@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dphp2eqd4hnny"
-valid=true
+path="res://.godot/imported/level_card_gothic.png-a7edd12bc91836df88d7770292358ba7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/level_card_gothic.png"
+dest_files=["res://.godot/imported/level_card_gothic.png-a7edd12bc91836df88d7770292358ba7.ctex"]
 
 [params]
 

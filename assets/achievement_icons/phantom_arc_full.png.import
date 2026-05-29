@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dbfib4fe3c3p4"
-valid=true
+path="res://.godot/imported/phantom_arc_full.png-746168a5a87ef876b2f1485d6a9377ca.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/phantom_arc_full.png"
+dest_files=["res://.godot/imported/phantom_arc_full.png-746168a5a87ef876b2f1485d6a9377ca.ctex"]
 
 [params]
 

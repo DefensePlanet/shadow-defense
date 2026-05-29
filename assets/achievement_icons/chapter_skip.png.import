@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://wj5you7j4avy"
-valid=true
+path="res://.godot/imported/chapter_skip.png-2e413b4891dc2c3f8036fb37be2482df.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/chapter_skip.png"
+dest_files=["res://.godot/imported/chapter_skip.png-2e413b4891dc2c3f8036fb37be2482df.ctex"]
 
 [params]
 

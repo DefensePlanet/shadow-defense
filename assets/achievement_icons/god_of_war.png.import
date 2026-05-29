@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bdkgt8upue7e2"
-valid=true
+path="res://.godot/imported/god_of_war.png-6150a5f2f2b0489de6f1ad9c8af54a71.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/god_of_war.png"
+dest_files=["res://.godot/imported/god_of_war.png-6150a5f2f2b0489de6f1ad9c8af54a71.ctex"]
 
 [params]
 

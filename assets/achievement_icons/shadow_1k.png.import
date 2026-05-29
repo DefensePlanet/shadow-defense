@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bnmp6eluntwh"
-valid=true
+path="res://.godot/imported/shadow_1k.png-781371d484d2e13319ff55e34281905a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/shadow_1k.png"
+dest_files=["res://.godot/imported/shadow_1k.png-781371d484d2e13319ff55e34281905a.ctex"]
 
 [params]
 

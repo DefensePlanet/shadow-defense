@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://u0k04hf40cad"
-valid=true
+path="res://.godot/imported/phantom_max.png-74c32f9c3b780c7a9f392826c844c7b8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/phantom_max.png"
+dest_files=["res://.godot/imported/phantom_max.png-74c32f9c3b780c7a9f392826c844c7b8.ctex"]
 
 [params]
 

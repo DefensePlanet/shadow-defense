@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://s4mhgdxj0nel"
-valid=true
+path="res://.godot/imported/bond_scrooge_frank.png-1393281522bdf08ef12e8743ae2ae920.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/bond_scrooge_frank.png"
+dest_files=["res://.godot/imported/bond_scrooge_frank.png-1393281522bdf08ef12e8743ae2ae920.ctex"]
 
 [params]
 

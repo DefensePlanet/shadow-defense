@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ckw73e5hhxha"
-valid=true
+path="res://.godot/imported/difficulty_buttons_v2.png-e560df9a5c2377af595cdcd5bdd8d397.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/difficulty_buttons_v2.png"
+dest_files=["res://.godot/imported/difficulty_buttons_v2.png-e560df9a5c2377af595cdcd5bdd8d397.ctex"]
 
 [params]
 

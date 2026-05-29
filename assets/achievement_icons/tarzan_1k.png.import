@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://jyx2o2jj7m7"
-valid=true
+path="res://.godot/imported/tarzan_1k.png-b7aeddf6af63409560256ac0c261eb9b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/tarzan_1k.png"
+dest_files=["res://.godot/imported/tarzan_1k.png-b7aeddf6af63409560256ac0c261eb9b.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjxovulusemg4"
-valid=true
+path="res://.godot/imported/button_gothic.png-f2dcfb28ef47ac19abc6f2bd8c899498.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_frames/button_gothic.png"
+dest_files=["res://.godot/imported/button_gothic.png-f2dcfb28ef47ac19abc6f2bd8c899498.ctex"]
 
 [params]
 

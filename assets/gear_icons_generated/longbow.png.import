@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dw80qxjrlxaqv"
-valid=true
+path="res://.godot/imported/longbow.png-4ba94132e657b9b49ba078838ff0688a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/gear_icons_generated/longbow.png"
+dest_files=["res://.godot/imported/longbow.png-4ba94132e657b9b49ba078838ff0688a.ctex"]
 
 [params]
 

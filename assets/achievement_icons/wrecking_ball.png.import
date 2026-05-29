@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c2gcg5o5u464a"
-valid=true
+path="res://.godot/imported/wrecking_ball.png-2b26e870ea5f5b4380b334ce3ec92e04.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/wrecking_ball.png"
+dest_files=["res://.godot/imported/wrecking_ball.png-2b26e870ea5f5b4380b334ce3ec92e04.ctex"]
 
 [params]
 

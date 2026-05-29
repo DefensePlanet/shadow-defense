@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cilxjpcbh6ikg"
-valid=true
+path="res://.godot/imported/realm_transylvania.png-acceae13ab61089ce8a8cdc3a4ed88c2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/realm_icons/realm_transylvania.png"
+dest_files=["res://.godot/imported/realm_transylvania.png-acceae13ab61089ce8a8cdc3a4ed88c2.ctex"]
 
 [params]
 

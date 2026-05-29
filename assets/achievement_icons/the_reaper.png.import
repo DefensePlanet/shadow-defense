@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://0flxwh8ib364"
-valid=true
+path="res://.godot/imported/the_reaper.png-e35b9b5dd4a8cc1eb6cdbeb698cdaba8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/the_reaper.png"
+dest_files=["res://.godot/imported/the_reaper.png-e35b9b5dd4a8cc1eb6cdbeb698cdaba8.ctex"]
 
 [params]
 

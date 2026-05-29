@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhedxljcxrmym"
-valid=true
+path="res://.godot/imported/world_ender.png-54fde66351f45dd40df5afce679fd211.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/world_ender.png"
+dest_files=["res://.godot/imported/world_ender.png-54fde66351f45dd40df5afce679fd211.ctex"]
 
 [params]
 

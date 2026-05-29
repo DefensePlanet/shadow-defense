@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dfhhuqfpuvwi8"
-valid=true
+path="res://.godot/imported/phantom_1k.png-93863e62a1b865be083cb036359aa7a7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/phantom_1k.png"
+dest_files=["res://.godot/imported/phantom_1k.png-93863e62a1b865be083cb036359aa7a7.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwhs337qyl3jm"
-valid=true
+path="res://.godot/imported/realm_london.png-647eb728da83842c7fd6caf6901acbca.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/realm_icons/realm_london.png"
+dest_files=["res://.godot/imported/realm_london.png-647eb728da83842c7fd6caf6901acbca.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://85xcddowmtyv"
-valid=true
+path="res://.godot/imported/all_medium.png-3b145a3ba2252c09e5fc2c2ed5a30873.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/all_medium.png"
+dest_files=["res://.godot/imported/all_medium.png-3b145a3ba2252c09e5fc2c2ed5a30873.ctex"]
 
 [params]
 

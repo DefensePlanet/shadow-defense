@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://jlvyv000pvrv"
-valid=true
+path="res://.godot/imported/damage_dealer.png-b6c6a37ab7a93f79980c13874c99f886.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/damage_dealer.png"
+dest_files=["res://.godot/imported/damage_dealer.png-b6c6a37ab7a93f79980c13874c99f886.ctex"]
 
 [params]
 

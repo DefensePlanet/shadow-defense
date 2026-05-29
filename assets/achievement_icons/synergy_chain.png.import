@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cuxmj3rf370lh"
-valid=true
+path="res://.godot/imported/synergy_chain.png-d1d239e8b709be826d67a7fd6eb35659.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/synergy_chain.png"
+dest_files=["res://.godot/imported/synergy_chain.png-d1d239e8b709be826d67a7fd6eb35659.ctex"]
 
 [params]
 

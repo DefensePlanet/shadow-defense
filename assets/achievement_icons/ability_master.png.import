@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b0u4qkv1lwx4k"
-valid=true
+path="res://.godot/imported/ability_master.png-97d8e5c7f4ea2ee195b83393a2c75282.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/ability_master.png"
+dest_files=["res://.godot/imported/ability_master.png-97d8e5c7f4ea2ee195b83393a2c75282.ctex"]
 
 [params]
 

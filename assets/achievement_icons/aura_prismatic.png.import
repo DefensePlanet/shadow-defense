@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c80afkkv6ujpy"
-valid=true
+path="res://.godot/imported/aura_prismatic.png-d715095d0477f4f9d40951885869b4fa.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/aura_prismatic.png"
+dest_files=["res://.godot/imported/aura_prismatic.png-d715095d0477f4f9d40951885869b4fa.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bpo71bo8xpnae"
-valid=true
+path="res://.godot/imported/ink_freeze.png-e68e21c30dc9e303a31107fa426d3eb1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/ink_freeze.png"
+dest_files=["res://.godot/imported/ink_freeze.png-e68e21c30dc9e303a31107fa426d3eb1.ctex"]
 
 [params]
 

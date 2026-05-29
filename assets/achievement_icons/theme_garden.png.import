@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b5pbyaxr3ruhr"
-valid=true
+path="res://.godot/imported/theme_garden.png-d0fa464236605144b2bf3e2b4a2384a7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/theme_garden.png"
+dest_files=["res://.godot/imported/theme_garden.png-d0fa464236605144b2bf3e2b4a2384a7.ctex"]
 
 [params]
 

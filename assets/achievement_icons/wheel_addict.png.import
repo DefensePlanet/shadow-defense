@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://nn0u2u2srx72"
-valid=true
+path="res://.godot/imported/wheel_addict.png-adbc9c2ec832bae2d8e34e8ed00afe97.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/wheel_addict.png"
+dest_files=["res://.godot/imported/wheel_addict.png-adbc9c2ec832bae2d8e34e8ed00afe97.ctex"]
 
 [params]
 

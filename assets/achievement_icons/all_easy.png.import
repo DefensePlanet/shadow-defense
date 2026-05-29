@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d1fot0jw2qa7s"
-valid=true
+path="res://.godot/imported/all_easy.png-6071caac449cf90dded0d39515791045.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/all_easy.png"
+dest_files=["res://.godot/imported/all_easy.png-6071caac449cf90dded0d39515791045.ctex"]
 
 [params]
 

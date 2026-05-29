@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c0yf0fl8ymtsb"
-valid=true
+path="res://.godot/imported/merchant_friend.png-6e65ea22a911078c590c9e643b6a175e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/merchant_friend.png"
+dest_files=["res://.godot/imported/merchant_friend.png-6e65ea22a911078c590c9e643b6a175e.ctex"]
 
 [params]
 

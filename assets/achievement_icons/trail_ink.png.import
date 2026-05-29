@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://t4kmacjvs72s"
-valid=true
+path="res://.godot/imported/trail_ink.png-312e50cc7c4b5fa475cb047201d2f896.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/trail_ink.png"
+dest_files=["res://.godot/imported/trail_ink.png-312e50cc7c4b5fa475cb047201d2f896.ctex"]
 
 [params]
 

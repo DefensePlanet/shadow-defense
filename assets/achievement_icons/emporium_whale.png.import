@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c2424vmgsodo2"
-valid=true
+path="res://.godot/imported/emporium_whale.png-58c19032621a9b86d3e2cfebe6e3ebfa.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/emporium_whale.png"
+dest_files=["res://.godot/imported/emporium_whale.png-58c19032621a9b86d3e2cfebe6e3ebfa.ctex"]
 
 [params]
 

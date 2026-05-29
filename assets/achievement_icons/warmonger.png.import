@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b8hdwnl8hhmuj"
-valid=true
+path="res://.godot/imported/warmonger.png-f515334b71f8d39eb8fb5f062e6be6c7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/warmonger.png"
+dest_files=["res://.godot/imported/warmonger.png-f515334b71f8d39eb8fb5f062e6be6c7.ctex"]
 
 [params]
 

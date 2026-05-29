@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://xtoxsmijqmas"
-valid=true
+path="res://.godot/imported/streak_master.png-3fd8da611cc4dd110534c26f56e5a207.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/streak_master.png"
+dest_files=["res://.godot/imported/streak_master.png-3fd8da611cc4dd110534c26f56e5a207.ctex"]
 
 [params]
 

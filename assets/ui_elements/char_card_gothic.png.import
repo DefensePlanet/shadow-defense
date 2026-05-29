@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://nlq62xfmopft"
-valid=true
+path="res://.godot/imported/char_card_gothic.png-6d48b87bef7cd9bcbe2327e563d8bd82.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/char_card_gothic.png"
+dest_files=["res://.godot/imported/char_card_gothic.png-6d48b87bef7cd9bcbe2327e563d8bd82.ctex"]
 
 [params]
 

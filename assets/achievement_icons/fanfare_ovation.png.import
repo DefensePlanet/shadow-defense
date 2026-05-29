@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://4edpvd8stcci"
-valid=true
+path="res://.godot/imported/fanfare_ovation.png-c5aacffeca06e766426baee955ae51db.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/fanfare_ovation.png"
+dest_files=["res://.godot/imported/fanfare_ovation.png-c5aacffeca06e766426baee955ae51db.ctex"]
 
 [params]
 

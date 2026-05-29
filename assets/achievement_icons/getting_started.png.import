@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dx2u206qhmgk3"
-valid=true
+path="res://.godot/imported/getting_started.png-8184c93da89e1624b35df31db46d9162.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/getting_started.png"
+dest_files=["res://.godot/imported/getting_started.png-8184c93da89e1624b35df31db46d9162.ctex"]
 
 [params]
 

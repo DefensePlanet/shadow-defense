@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://82q2xsak10e7"
-valid=true
+path="res://.godot/imported/emporium_addict.png-ad0b20a28b4335982246423eb495125c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/emporium_addict.png"
+dest_files=["res://.godot/imported/emporium_addict.png-ad0b20a28b4335982246423eb495125c.ctex"]
 
 [params]
 

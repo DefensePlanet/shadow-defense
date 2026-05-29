@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://38e4qdn4buxv"
-valid=true
+path="res://.godot/imported/weapons_set_1.png-1bfa0af199df39cad8734187ea72c53e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/weapons_set_1.png"
+dest_files=["res://.godot/imported/weapons_set_1.png-1bfa0af199df39cad8734187ea72c53e.ctex"]
 
 [params]
 

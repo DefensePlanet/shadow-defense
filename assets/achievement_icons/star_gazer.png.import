@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bywxwgran8nmu"
-valid=true
+path="res://.godot/imported/star_gazer.png-1ea9f35871a9d177a71ad4417c2ceb13.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/star_gazer.png"
+dest_files=["res://.godot/imported/star_gazer.png-1ea9f35871a9d177a71ad4417c2ceb13.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://6kv5bka45rfx"
-valid=true
+path="res://.godot/imported/realm_opera.png-e3c8d85a4fce346df88021c683ea39a4.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/realm_icons/realm_opera.png"
+dest_files=["res://.godot/imported/realm_opera.png-e3c8d85a4fce346df88021c683ea39a4.ctex"]
 
 [params]
 

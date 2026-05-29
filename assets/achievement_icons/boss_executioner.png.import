@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dggbt66kbogg1"
-valid=true
+path="res://.godot/imported/boss_executioner.png-6c843308ec9fdb7b6cbcb27b8c26d0d2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/boss_executioner.png"
+dest_files=["res://.godot/imported/boss_executioner.png-6c843308ec9fdb7b6cbcb27b8c26d0d2.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dscs0fknqs8o3"
-valid=true
+path="res://.godot/imported/sherlock_1k.png-70491462c783f84f56ca083143bef76d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/sherlock_1k.png"
+dest_files=["res://.godot/imported/sherlock_1k.png-70491462c783f84f56ca083143bef76d.ctex"]
 
 [params]
 

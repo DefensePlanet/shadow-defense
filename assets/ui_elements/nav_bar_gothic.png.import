@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bwkoie25igq2m"
-valid=true
+path="res://.godot/imported/nav_bar_gothic.png-296bb450a276aab047ea1af6b313e3f0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/nav_bar_gothic.png"
+dest_files=["res://.godot/imported/nav_bar_gothic.png-296bb450a276aab047ea1af6b313e3f0.ctex"]
 
 [params]
 

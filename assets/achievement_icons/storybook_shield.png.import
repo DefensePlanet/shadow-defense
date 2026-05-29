@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cknd4s66hp4eo"
-valid=true
+path="res://.godot/imported/storybook_shield.png-3f00be2d68cc7e72afa99f14f9f2c1be.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/storybook_shield.png"
+dest_files=["res://.godot/imported/storybook_shield.png-3f00be2d68cc7e72afa99f14f9f2c1be.ctex"]
 
 [params]
 

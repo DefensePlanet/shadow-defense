@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cl1xexydk34d"
-valid=true
+path="res://.godot/imported/bond_sherlock_tarzan.png-32890698384d3aa63b7cd2aab3233471.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/bond_sherlock_tarzan.png"
+dest_files=["res://.godot/imported/bond_sherlock_tarzan.png-32890698384d3aa63b7cd2aab3233471.ctex"]
 
 [params]
 

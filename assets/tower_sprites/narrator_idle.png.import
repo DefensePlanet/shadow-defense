@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cy85foxna7cc3"
-valid=true
+path="res://.godot/imported/narrator_idle.png-682bfb4f536fd10e50ae5fd13f737e52.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/narrator_idle.png"
+dest_files=["res://.godot/imported/narrator_idle.png-682bfb4f536fd10e50ae5fd13f737e52.ctex"]
 
 [params]
 

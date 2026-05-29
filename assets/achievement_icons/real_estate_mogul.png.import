@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dw3pg8en54tnk"
-valid=true
+path="res://.godot/imported/real_estate_mogul.png-9be183345de276500f9affe7da97b005.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/real_estate_mogul.png"
+dest_files=["res://.godot/imported/real_estate_mogul.png-9be183345de276500f9affe7da97b005.ctex"]
 
 [params]
 

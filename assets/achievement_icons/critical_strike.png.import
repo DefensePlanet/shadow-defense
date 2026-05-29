@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://syknm87jtbtf"
-valid=true
+path="res://.godot/imported/critical_strike.png-8cadd6c8614b83b940ccde6af22effb4.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/critical_strike.png"
+dest_files=["res://.godot/imported/critical_strike.png-8cadd6c8614b83b940ccde6af22effb4.ctex"]
 
 [params]
 

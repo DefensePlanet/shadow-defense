@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpw563daghlgi"
-valid=true
+path="res://.godot/imported/gear_amulet_crystal.png-f5df8d1a86ce415c89deb730ac952390.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/gear_icons/gear_amulet_crystal.png"
+dest_files=["res://.godot/imported/gear_amulet_crystal.png-f5df8d1a86ce415c89deb730ac952390.ctex"]
 
 [params]
 

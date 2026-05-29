@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdmumolhkq30c"
-valid=true
+path="res://.godot/imported/panel_card_gothic.png-5bcd7236d34478a79d374963d2a0c7b0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui_elements/panel_card_gothic.png"
+dest_files=["res://.godot/imported/panel_card_gothic.png-5bcd7236d34478a79d374963d2a0c7b0.ctex"]
 
 [params]
 

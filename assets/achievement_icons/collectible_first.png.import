@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://chpqacgckreg8"
-valid=true
+path="res://.godot/imported/collectible_first.png-20bae7b7e22fee10acef3986c1842728.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/collectible_first.png"
+dest_files=["res://.godot/imported/collectible_first.png-20bae7b7e22fee10acef3986c1842728.ctex"]
 
 [params]
 

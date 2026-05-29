@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://buksbemvu3e8c"
-valid=true
+path="res://.godot/imported/realm_wonderland.png-a300862bfae1b0318e89d4706d4cbbd8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/realm_icons/realm_wonderland.png"
+dest_files=["res://.godot/imported/realm_wonderland.png-a300862bfae1b0318e89d4706d4cbbd8.ctex"]
 
 [params]
 

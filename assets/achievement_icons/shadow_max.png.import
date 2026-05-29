@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2u2owp1r6g6a"
-valid=true
+path="res://.godot/imported/shadow_max.png-eb268f8671be54ed2bc4fe54a8e9937f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/shadow_max.png"
+dest_files=["res://.godot/imported/shadow_max.png-eb268f8671be54ed2bc4fe54a8e9937f.ctex"]
 
 [params]
 

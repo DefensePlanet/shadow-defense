@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bv334lwj4mv2x"
-valid=true
+path="res://.godot/imported/ability_unlocked.png-21aa25a19460e89dc3a74b46cb98439b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/ability_unlocked.png"
+dest_files=["res://.godot/imported/ability_unlocked.png-21aa25a19460e89dc3a74b46cb98439b.ctex"]
 
 [params]
 

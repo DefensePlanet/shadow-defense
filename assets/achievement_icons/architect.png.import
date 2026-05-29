@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dcl62ipxyv6oh"
-valid=true
+path="res://.godot/imported/architect.png-a8ba50254b3ec5734c38e66c27372a58.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/architect.png"
+dest_files=["res://.godot/imported/architect.png-a8ba50254b3ec5734c38e66c27372a58.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bu8bke5yc4urt"
-valid=true
+path="res://.godot/imported/gold_mountain.png-0be472e8b6f9526dd7a58efb24313147.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/gold_mountain.png"
+dest_files=["res://.godot/imported/gold_mountain.png-0be472e8b6f9526dd7a58efb24313147.ctex"]
 
 [params]
 

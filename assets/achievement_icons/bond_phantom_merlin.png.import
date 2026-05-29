@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bj3iytln3j7hv"
-valid=true
+path="res://.godot/imported/bond_phantom_merlin.png-ab7d7edefa41c2de06c825c42aabef1a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/bond_phantom_merlin.png"
+dest_files=["res://.godot/imported/bond_phantom_merlin.png-ab7d7edefa41c2de06c825c42aabef1a.ctex"]
 
 [params]
 

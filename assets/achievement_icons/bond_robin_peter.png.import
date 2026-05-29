@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bg1up25knd3ob"
-valid=true
+path="res://.godot/imported/bond_robin_peter.png-cfa9684656a5211260d151f0643c7258.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/bond_robin_peter.png"
+dest_files=["res://.godot/imported/bond_robin_peter.png-cfa9684656a5211260d151f0643c7258.ctex"]
 
 [params]
 

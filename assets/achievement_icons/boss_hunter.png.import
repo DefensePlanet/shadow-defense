@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dardxkmk7sxwm"
-valid=true
+path="res://.godot/imported/boss_hunter.png-9a11b95d70f67899c16367426d0df6b1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/boss_hunter.png"
+dest_files=["res://.godot/imported/boss_hunter.png-9a11b95d70f67899c16367426d0df6b1.ctex"]
 
 [params]
 

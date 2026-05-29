@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://uqwgyq1a7ysc"
-valid=true
+path="res://.godot/imported/realm_prologue.png-e297faed548273600c068827edc3d903.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/realm_icons/realm_prologue.png"
+dest_files=["res://.godot/imported/realm_prologue.png-e297faed548273600c068827edc3d903.ctex"]
 
 [params]
 

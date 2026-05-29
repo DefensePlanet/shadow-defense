@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dlfb6o01w4y2k"
-valid=true
+path="res://.godot/imported/scrooge_max.png-60fa7e5620c2ee702d8677b130fd8b56.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/scrooge_max.png"
+dest_files=["res://.godot/imported/scrooge_max.png-60fa7e5620c2ee702d8677b130fd8b56.ctex"]
 
 [params]
 

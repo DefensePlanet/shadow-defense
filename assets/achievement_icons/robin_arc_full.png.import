@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bgbvi7qlnm7w2"
-valid=true
+path="res://.godot/imported/robin_arc_full.png-16ba36c4df93a7a49b1e2db857611207.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/robin_arc_full.png"
+dest_files=["res://.godot/imported/robin_arc_full.png-16ba36c4df93a7a49b1e2db857611207.ctex"]
 
 [params]
 

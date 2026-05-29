@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dn3i1ukr0s47k"
-valid=true
+path="res://.godot/imported/synergy_overload.png-c700cbeabd388a77639884e86d89d5ca.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/synergy_overload.png"
+dest_files=["res://.godot/imported/synergy_overload.png-c700cbeabd388a77639884e86d89d5ca.ctex"]
 
 [params]
 

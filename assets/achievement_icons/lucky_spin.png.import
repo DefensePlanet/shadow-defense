@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://nhd8rord8pvl"
-valid=true
+path="res://.godot/imported/lucky_spin.png-05430db12d655c7a4fbb2cb4e95d2a80.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/lucky_spin.png"
+dest_files=["res://.godot/imported/lucky_spin.png-05430db12d655c7a4fbb2cb4e95d2a80.ctex"]
 
 [params]
 

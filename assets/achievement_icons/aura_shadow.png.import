@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cks53qt77np5k"
-valid=true
+path="res://.godot/imported/aura_shadow.png-8d90a1dc356baad7c353c963b41901eb.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/aura_shadow.png"
+dest_files=["res://.godot/imported/aura_shadow.png-8d90a1dc356baad7c353c963b41901eb.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dbjqocrqfmeme"
-valid=true
+path="res://.godot/imported/collectible_25.png-4b3a3d78a29c67b5243e92ece82d7feb.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/collectible_25.png"
+dest_files=["res://.godot/imported/collectible_25.png-4b3a3d78a29c67b5243e92ece82d7feb.ctex"]
 
 [params]
 

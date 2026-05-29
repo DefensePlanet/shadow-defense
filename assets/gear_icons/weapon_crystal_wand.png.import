@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjv3j1c6nru5a"
-valid=true
+path="res://.godot/imported/weapon_crystal_wand.png-741fe8f6579a056ec56d0eb564e4b0e5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/gear_icons/weapon_crystal_wand.png"
+dest_files=["res://.godot/imported/weapon_crystal_wand.png-741fe8f6579a056ec56d0eb564e4b0e5.ctex"]
 
 [params]
 

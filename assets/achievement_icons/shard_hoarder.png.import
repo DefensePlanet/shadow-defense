@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c13kamkiq4sfr"
-valid=true
+path="res://.godot/imported/shard_hoarder.png-069259ae1cfeae29c9072f82f162f954.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/shard_hoarder.png"
+dest_files=["res://.godot/imported/shard_hoarder.png-069259ae1cfeae29c9072f82f162f954.ctex"]
 
 [params]
 

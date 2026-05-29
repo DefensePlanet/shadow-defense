@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2ae4lrk4e3r5"
-valid=true
+path="res://.godot/imported/aura_crimson.png-c6bd96dd83d4cd4dda762e41562c3030.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/aura_crimson.png"
+dest_files=["res://.godot/imported/aura_crimson.png-c6bd96dd83d4cd4dda762e41562c3030.ctex"]
 
 [params]
 

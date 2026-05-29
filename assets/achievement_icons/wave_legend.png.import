@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cc7oilidfkwjy"
-valid=true
+path="res://.godot/imported/wave_legend.png-66b5240e2ad4e130f09e40503a05e256.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/wave_legend.png"
+dest_files=["res://.godot/imported/wave_legend.png-66b5240e2ad4e130f09e40503a05e256.ctex"]
 
 [params]
 

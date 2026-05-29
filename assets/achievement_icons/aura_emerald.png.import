@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hl5xgaedbncv"
-valid=true
+path="res://.godot/imported/aura_emerald.png-09125d005056662993205aff6aaef08d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/aura_emerald.png"
+dest_files=["res://.godot/imported/aura_emerald.png-09125d005056662993205aff6aaef08d.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://de1jykqtyr8mr"
-valid=true
+path="res://.godot/imported/close_call.png-9d867d3892b5c3f5365c286ec6b6700b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/close_call.png"
+dest_files=["res://.godot/imported/close_call.png-9d867d3892b5c3f5365c286ec6b6700b.ctex"]
 
 [params]
 

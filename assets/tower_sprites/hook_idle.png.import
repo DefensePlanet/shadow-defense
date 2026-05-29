@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://tjn8x5dgaqye"
-valid=true
+path="res://.godot/imported/hook_idle.png-207355e8730ef42e386d348845b00c94.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tower_sprites/hook_idle.png"
+dest_files=["res://.godot/imported/hook_idle.png-207355e8730ef42e386d348845b00c94.ctex"]
 
 [params]
 

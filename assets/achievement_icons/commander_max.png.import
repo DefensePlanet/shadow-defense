@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://tqbv74wv7yn2"
-valid=true
+path="res://.godot/imported/commander_max.png-7877c47e92045e4b8753738105de1b3d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/commander_max.png"
+dest_files=["res://.godot/imported/commander_max.png-7877c47e92045e4b8753738105de1b3d.ctex"]
 
 [params]
 

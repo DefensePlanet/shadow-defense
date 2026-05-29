@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://derc1mab3dieo"
-valid=true
+path="res://.godot/imported/aura_golden.png-a35b6ee8b4b76ec0003f1d6c0bc5e748.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/aura_golden.png"
+dest_files=["res://.godot/imported/aura_golden.png-a35b6ee8b4b76ec0003f1d6c0bc5e748.ctex"]
 
 [params]
 

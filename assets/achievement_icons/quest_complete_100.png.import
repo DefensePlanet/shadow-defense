@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cf4jegdv114ms"
-valid=true
+path="res://.godot/imported/quest_complete_100.png-8460793a00cd1d4293fc3ca2472f60b0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/quest_complete_100.png"
+dest_files=["res://.godot/imported/quest_complete_100.png-8460793a00cd1d4293fc3ca2472f60b0.ctex"]
 
 [params]
 

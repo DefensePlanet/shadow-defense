@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cyrfvcph7m125"
-valid=true
+path="res://.godot/imported/dracula_1k.png-969afedee7a7acdcfe74f68ce2e2d853.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/dracula_1k.png"
+dest_files=["res://.godot/imported/dracula_1k.png-969afedee7a7acdcfe74f68ce2e2d853.ctex"]
 
 [params]
 

@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhs6xc2mcuu6w"
-valid=true
+path="res://.godot/imported/taunt_10.png-07df61989dbc1a51552b796e1d91b6b6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/taunt_10.png"
+dest_files=["res://.godot/imported/taunt_10.png-07df61989dbc1a51552b796e1d91b6b6.ctex"]
 
 [params]
 

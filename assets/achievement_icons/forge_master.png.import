@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dwbn2ir5pkh37"
-valid=true
+path="res://.godot/imported/forge_master.png-b8b00404db7b17384b3e07f4eacf65cc.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/forge_master.png"
+dest_files=["res://.godot/imported/forge_master.png-b8b00404db7b17384b3e07f4eacf65cc.ctex"]
 
 [params]
 

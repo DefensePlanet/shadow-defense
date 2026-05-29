@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ct43l4gpk0sxt"
-valid=true
+path="res://.godot/imported/frank_master.png-9128f3a0ae8cf0e601373cdf09a9a82b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/achievement_icons/frank_master.png"
+dest_files=["res://.godot/imported/frank_master.png-9128f3a0ae8cf0e601373cdf09a9a82b.ctex"]
 
 [params]
 
