@@ -28726,8 +28726,20 @@ func _execute_duo_combo(key: String, pair: Array) -> void:
 	spawn_floating_text(mid + Vector2(0, -8), "%d COMBO DAMAGE!" % int(total_damage), Color(1.0, 0.6, 0.15), 14.0, 2.0)
 	_screen_shake_intensity = 5.0; _screen_shake_timer = 0.35
 	_haptic(2)
-	# Draw visual effect line between the two towers
-	# (rendered in next frame via _draw_duo_combo_effects)
+	# Visual effect (#104) — combo flash ring + beam between towers
+	var combo_color = Color(1.0, 0.85, 0.2)
+	match combo.get("visual", ""):
+		"arrow_rain": combo_color = Color(0.2, 0.8, 0.3)
+		"reality_warp": combo_color = Color(0.8, 0.3, 1.0)
+		"sonic_magic": combo_color = Color(0.3, 0.5, 1.0)
+		"lightning_gold": combo_color = Color(1.0, 0.9, 0.1)
+		"marked_strike": combo_color = Color(0.9, 0.4, 0.2)
+		"blood_magic": combo_color = Color(0.7, 0.1, 0.2)
+		"dark_lightning": combo_color = Color(0.5, 0.1, 0.8)
+		"soul_drain": combo_color = Color(0.6, 0.2, 0.8)
+	_duo_combo_flash.append({"pos": mid, "timer": 0.5, "radius": radius, "color": combo_color})
+	_duo_combo_flash.append({"pos": pos1, "timer": 0.4, "radius": 30.0, "color": combo_color})
+	_duo_combo_flash.append({"pos": pos2, "timer": 0.4, "radius": 30.0, "color": combo_color})
 
 var _duo_combo_flash: Array = []  # [{pos, timer, radius, color}]
 
