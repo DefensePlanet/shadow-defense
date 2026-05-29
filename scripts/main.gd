@@ -2837,8 +2837,24 @@ var wave_preview_data: Array = []
 # === TOWER STATS OVERLAY ===
 # (drawn procedurally when tower selected)
 
-# === PRESTIGE SYSTEM ===
+# === PRESTIGE SYSTEM (#115 multi-tier) ===
 var prestige_level: int = 0
+const PRESTIGE_TIERS: Array = [
+	{"name": "Apprentice Scribe", "min": 1, "bonus_dmg": 0.05, "bonus_gold": 0.0, "color": Color(0.7, 0.7, 0.7)},
+	{"name": "Journeyman Author", "min": 2, "bonus_dmg": 0.08, "bonus_gold": 0.05, "color": Color(0.3, 0.7, 1.0)},
+	{"name": "Master Storyteller", "min": 3, "bonus_dmg": 0.12, "bonus_gold": 0.10, "color": Color(0.6, 0.3, 1.0)},
+	{"name": "Legendary Narrator", "min": 5, "bonus_dmg": 0.15, "bonus_gold": 0.15, "color": Color(1.0, 0.85, 0.0)},
+	{"name": "Mythic Wordsmith", "min": 8, "bonus_dmg": 0.20, "bonus_gold": 0.20, "color": Color(1.0, 0.4, 0.1)},
+	{"name": "Shadow Conqueror", "min": 12, "bonus_dmg": 0.25, "bonus_gold": 0.25, "color": Color(0.9, 0.1, 0.1)},
+]
+
+func _get_prestige_tier() -> Dictionary:
+	var result = {"name": "None", "bonus_dmg": 0.0, "bonus_gold": 0.0, "color": Color(0.5, 0.5, 0.5)}
+	for i in range(PRESTIGE_TIERS.size() - 1, -1, -1):
+		if prestige_level >= PRESTIGE_TIERS[i]["min"]:
+			result = PRESTIGE_TIERS[i]
+			break
+	return result
 
 # === MILESTONE REWARDS ===
 var milestone_claimed: Dictionary = {}
@@ -4020,9 +4036,11 @@ func _get_sidekick_bonuses(tower_type) -> Dictionary:
 
 func _apply_meta_buffs(tower_node, tower_type) -> void:
 	var buffs: Dictionary = {}
-	# 0) Prestige bonus: +5% global damage per prestige level
+	# 0) Prestige bonus (#115): tier-based damage + gold bonuses
 	if prestige_level > 0:
-		buffs["damage"] = buffs.get("damage", 0.0) + prestige_level * 0.05
+		var pt = _get_prestige_tier()
+		buffs["damage"] = buffs.get("damage", 0.0) + prestige_level * pt["bonus_dmg"]
+		buffs["gold_bonus"] = buffs.get("gold_bonus", 0.0) + pt["bonus_gold"]
 	# 0b) BATTD: Character Home Bonus (+10% all stats when on own chapter)
 	if current_level >= 0 and current_level < levels.size():
 		var lvl_char = levels[current_level].get("character", -1)
