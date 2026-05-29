@@ -73,6 +73,10 @@ var _last_shards: int = 0
 var _last_stars_currency: int = 0
 # Portrait key mapping — character_names[] index → portrait texture key
 const PORTRAIT_KEYS: Array = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+# Display order — sorted by unlock progression (starters first, then rescue order)
+# Indices into survivor_types/character_names: 0=Robin, 1=Alice, 5=Scrooge (starters)
+# Then rescue order: 3=Peter Pan, 2=Witch, 4=Phantom, 6=Sherlock, 9=Merlin, 7=Tarzan, 8=Dracula, 10=Frank, 11=Shadow Author
+const HERO_DISPLAY_ORDER: Array = [0, 1, 5, 3, 2, 4, 6, 9, 7, 8, 10, 11]
 # Map arc name prefixes to portrait keys for arc header icons
 const ARC_PORTRAITS: Dictionary = {
 	"Prologue": "robin_hood", "Robin Hood": "robin_hood", "Sherwood": "robin_hood",
@@ -1492,13 +1496,14 @@ func _build_survivors() -> void:
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(grid)
-	for i in range(PORTRAIT_KEYS.size()):
-		var card = _survivor_card(i)
+	for di in range(HERO_DISPLAY_ORDER.size()):
+		var actual_idx = HERO_DISPLAY_ORDER[di]
+		var card = _survivor_card(actual_idx)
 		grid.add_child(card)
 		# Staggered entrance — fade only (position.y breaks GridContainer)
 		card.modulate.a = 0.0
 		var tw = create_tween().set_ease(Tween.EASE_OUT)
-		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(i * 0.04)
+		tw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(di * 0.04)
 
 func _survivor_card(idx: int) -> Button:
 	# Check if character is unlocked
