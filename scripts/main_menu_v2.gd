@@ -327,16 +327,30 @@ func _build_currency_bar() -> void:
 	top_bar.add_child(top_accent)
 	var h = HBoxContainer.new()
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	h.add_theme_constant_override("separation", 8)
-	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.add_theme_constant_override("separation", 6)
 	top_bar.add_child(h)
-	# Account level badge in styled panel
+	# LEFT: Journey progress
+	var completed_ct = _main.completed_levels.size() if "completed_levels" in _main else 0
+	var total_ct = _main.levels.size() if "levels" in _main else 90
+	var journey_lbl = _lbl("Journey %d/%d" % [completed_ct, total_ct], 11, Color(0.70, 0.62, 0.50))
+	journey_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	journey_lbl.custom_minimum_size.x = 90
+	h.add_child(journey_lbl)
+	# Spacer to push currencies to center
+	var spacer_l = Control.new()
+	spacer_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(spacer_l)
+	# CENTER: Currencies
 	var acct_lvl = _main.account_level if "account_level" in _main else 1
-	var lvl_panel = _currency_chip("Lv.%d" % acct_lvl, Color(0.85, 0.75, 0.55))
-	h.add_child(lvl_panel)
-	# Each currency in its own styled chip
+	h.add_child(_currency_chip("Lv.%d" % acct_lvl, Color(0.85, 0.75, 0.55)))
 	for c in [["🪙", _main.gold, Color(1,0.85,0.2)], ["🪶", _main.player_quills, Color(0.7,0.5,0.9)], ["📄", _main.player_pages, Color(0.3,0.75,0.9)], ["⭐", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
 		h.add_child(_currency_chip("%s %d" % [c[0], c[1]], c[2]))
+	# Spacer to push music to right
+	var spacer_r = Control.new()
+	spacer_r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(spacer_r)
 
 func _currency_chip(text: String, color: Color) -> PanelContainer:
 	var chip = PanelContainer.new()
@@ -532,38 +546,7 @@ func _build_portal_hub() -> void:
 	vb.add_theme_constant_override("separation", 8)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
-	# Tome of Shadows at top
-	if _art.has("tome_of_shadows"):
-		var tome_center = CenterContainer.new()
-		tome_center.custom_minimum_size = Vector2(0, 120)
-		tome_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var tome = TextureRect.new()
-		tome.texture = _art["tome_of_shadows"]
-		tome.custom_minimum_size = Vector2(280, 110)
-		tome.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tome.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tome.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var mat = _make_black_key_mat(0.12, 0.06)
-		if mat: tome.material = mat
-		# Breathing animation
-		tome.pivot_offset = Vector2(140, 55)
-		var tome_tw = create_tween().set_loops()
-		tome_tw.tween_property(tome, "scale", Vector2(1.02, 1.02), 2.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-		tome_tw.tween_property(tome, "scale", Vector2(1.0, 1.0), 2.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-		tome_center.add_child(tome)
-		vb.add_child(tome_center)
-	else:
-		vb.add_child(_title("SHADOW DEFENSE"))
-	# Subtitle
-	var sub = _lbl("Choose a realm to enter the Tome of Shadows", 12, Color(0.70, 0.62, 0.52))
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(sub)
-	# Progress
-	if _main:
-		var completed_ct = _main.completed_levels.size() if "completed_levels" in _main else 0
-		var total_ct = _main.levels.size() if "levels" in _main else 37
-		vb.add_child(_stat_bar("Journey", completed_ct, total_ct, Color(0.85, 0.65, 0.20)))
+	# No tome book, no subtitle — straight to realm cards
 	# Portal grid — one grid per act with act headers between them
 	var grid: GridContainer = null
 	var _last_act = 0
