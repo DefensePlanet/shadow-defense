@@ -555,7 +555,10 @@ func _build_chapters() -> void:
 		return
 	_build_portal_hub()
 
+var _shown_play_next: bool = false
+
 func _build_portal_hub() -> void:
+	_shown_play_next = false
 	# Play main theme when viewing portal hub
 	if MusicManager:
 		MusicManager.play_main_theme()
@@ -628,30 +631,42 @@ func _build_portal_hub() -> void:
 			vb.add_child(grid)
 		var arc_complete = _is_realm_complete(realm)
 		var arc_unlocked = _is_realm_unlocked(ri)
-		# Portal card
+		var is_next_realm = arc_unlocked and not arc_complete  # First unlocked incomplete
+		var rc = Color(realm["color"][0], realm["color"][1], realm["color"][2])
+		# === REALM CARD (items 1-30 rebuild) ===
 		var card = Button.new()
 		card.text = ""
-		card.custom_minimum_size = Vector2(380, 180)
+		card.custom_minimum_size = Vector2(380, 190)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 		var cs = StyleBoxFlat.new()
-		var rc = Color(realm["color"][0], realm["color"][1], realm["color"][2])
-		if arc_unlocked:
-			cs.bg_color = Color(rc.r * 0.15, rc.g * 0.15, rc.b * 0.15, 0.7)
-			cs.border_color = Color(rc.r * 0.6, rc.g * 0.6, rc.b * 0.6, 0.6)
+		if arc_complete:
+			cs.bg_color = Color(rc.r * 0.18, rc.g * 0.18, rc.b * 0.18, 0.90)
+			cs.border_color = Color(1.0, 0.85, 0.15, 0.8)  # Gold border for complete
+			cs.set_border_width_all(3)
+		elif arc_unlocked:
+			cs.bg_color = Color(rc.r * 0.15, rc.g * 0.15, rc.b * 0.15, 0.85)
+			cs.border_color = Color(rc.r * 0.7, rc.g * 0.7, rc.b * 0.7, 0.7)
+			cs.set_border_width_all(2)
 		else:
-			cs.bg_color = Color(0.04, 0.03, 0.08, 0.5)
-			cs.border_color = Color(0.25, 0.20, 0.15, 0.3)
-		cs.set_border_width_all(2)
-		cs.set_corner_radius_all(12)
-		cs.shadow_color = Color(0, 0, 0, 0.2)
-		cs.shadow_size = 4
+			cs.bg_color = Color(0.05, 0.04, 0.08, 0.70)
+			cs.border_color = Color(0.22, 0.18, 0.14, 0.35)
+			cs.set_border_width_all(1)
+		cs.set_corner_radius_all(14)
+		cs.shadow_color = Color(0, 0, 0, 0.35)
+		cs.shadow_size = 6
 		card.add_theme_stylebox_override("normal", cs)
+		# Hover: brighten border
 		var csh = cs.duplicate()
-		csh.bg_color = Color(rc.r * 0.25, rc.g * 0.25, rc.b * 0.25, 0.8) if arc_unlocked else cs.bg_color
-		csh.border_color = Color(rc.r * 0.8, rc.g * 0.8, rc.b * 0.8, 0.8) if arc_unlocked else cs.border_color
+		if arc_unlocked:
+			csh.bg_color = Color(rc.r * 0.22, rc.g * 0.22, rc.b * 0.22, 0.92)
+			csh.border_color = Color(rc.r * 0.9, rc.g * 0.9, rc.b * 0.9, 0.9)
 		card.add_theme_stylebox_override("hover", csh)
-		_add_press_feedback(card)
-		# Portal art overlay
+		# Pressed: darken
+		var csp = cs.duplicate()
+		csp.bg_color = Color(rc.r * 0.10, rc.g * 0.10, rc.b * 0.10, 0.95)
+		card.add_theme_stylebox_override("pressed", csp)
+		# --- REALM ART (fills entire card, no ink portal overlay) ---
 		var realm_icon_key = realm["icon"]
 		if _art.has(realm_icon_key):
 			var realm_art = TextureRect.new()
@@ -660,91 +675,138 @@ func _build_portal_hub() -> void:
 			realm_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			realm_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			realm_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			realm_art.modulate.a = 0.55 if arc_unlocked else 0.15
-			var mat = _make_black_key_mat(0.10, 0.06)
+			if arc_complete:
+				realm_art.modulate.a = 0.70
+			elif arc_unlocked:
+				realm_art.modulate.a = 0.65
+			else:
+				realm_art.modulate.a = 0.25  # Locked: dim but teased (#4)
+				realm_art.modulate = Color(0.5, 0.5, 0.5, 0.25)  # Grayscale tint (#4)
+			var mat = _make_black_key_mat(0.08, 0.05)
 			if mat: realm_art.material = mat
 			card.add_child(realm_art)
-		# Ink portal overlay (small, centered)
-		if _art.has("ink_portal") and arc_unlocked:
-			var portal = TextureRect.new()
-			portal.texture = _art["ink_portal"]
-			portal.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-			portal.custom_minimum_size = Vector2(60, 40)
-			portal.offset_left = -30; portal.offset_right = 30
-			portal.offset_top = -20; portal.offset_bottom = 20
-			portal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			portal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			portal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			portal.modulate.a = 0.4
-			var pmat = _make_black_key_mat(0.08, 0.05)
-			if pmat: portal.material = pmat
-			card.add_child(portal)
-			# Portal spin animation
-			var spin_tw = create_tween().set_loops()
-			spin_tw.tween_property(portal, "modulate:a", 0.6, 1.5).set_ease(Tween.EASE_IN_OUT)
-			spin_tw.tween_property(portal, "modulate:a", 0.3, 1.5).set_ease(Tween.EASE_IN_OUT)
-		# Content overlay
+		# --- DARK GRADIENT at bottom for text readability (#11) ---
+		var grad_overlay = ColorRect.new()
+		grad_overlay.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		grad_overlay.offset_top = -90
+		grad_overlay.color = Color(0.0, 0.0, 0.0, 0.0)  # Transparent — we'll use a shader-free approach
+		grad_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(grad_overlay)
+		# Simulated gradient: stack of increasingly opaque rects at bottom
+		for gi in range(6):
+			var gbar = ColorRect.new()
+			gbar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+			gbar.offset_top = -(gi + 1) * 15
+			gbar.offset_bottom = -gi * 15
+			gbar.color = Color(0.0, 0.0, 0.02, 0.05 + gi * 0.06)
+			gbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(gbar)
+		# --- CONTENT: Name, arc, status (items 5,6,7,8,26,27) ---
 		var content = VBoxContainer.new()
 		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		content.add_theme_constant_override("separation", 2)
 		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var content_margin = MarginContainer.new()
-		content_margin.add_theme_constant_override("margin_left", 10)
-		content_margin.add_theme_constant_override("margin_right", 10)
-		content_margin.add_theme_constant_override("margin_top", 8)
-		content_margin.add_theme_constant_override("margin_bottom", 8)
+		content_margin.add_theme_constant_override("margin_left", 14)
+		content_margin.add_theme_constant_override("margin_right", 14)
+		content_margin.add_theme_constant_override("margin_top", 10)
+		content_margin.add_theme_constant_override("margin_bottom", 10)
 		content_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content_margin.add_child(content)
 		card.add_child(content_margin)
-		# Realm name
-		var name_lbl = _lbl(realm["name"], 14, Color(1.0, 0.92, 0.40) if arc_unlocked else Color(0.45, 0.38, 0.32))
+		# Realm name — LARGE with shadow (#5)
+		var name_lbl = _lbl(realm["name"], 18, Color(1.0, 0.95, 0.50) if arc_unlocked else Color(0.50, 0.45, 0.38))
+		name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		name_lbl.add_theme_constant_override("shadow_offset_x", 2)
+		name_lbl.add_theme_constant_override("shadow_offset_y", 2)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(name_lbl)
-		# Arc name
-		var arc_lbl = _lbl(realm["arc"], 11, Color(rc.r * 0.8 + 0.2, rc.g * 0.8 + 0.2, rc.b * 0.8 + 0.2) if arc_unlocked else Color(0.40, 0.35, 0.30))
+		# Arc subtitle — in realm accent color (#26)
+		var arc_col = Color(rc.r * 0.7 + 0.3, rc.g * 0.7 + 0.3, rc.b * 0.7 + 0.3) if arc_unlocked else Color(0.40, 0.35, 0.30)
+		var arc_lbl = _lbl(realm["arc"], 12, arc_col)
+		arc_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		arc_lbl.add_theme_constant_override("shadow_offset_x", 1)
+		arc_lbl.add_theme_constant_override("shadow_offset_y", 1)
 		arc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(arc_lbl)
-		# Spacer to push status to bottom
+		# Spacer
 		var spacer_ctrl = Control.new()
 		spacer_ctrl.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		spacer_ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(spacer_ctrl)
-		# Level count + completion
+		# Bottom row: status + stars (#7, #8, #27)
 		var level_count = realm["levels"].size()
 		var levels_done = 0
+		var total_stars = 0
+		var max_stars = level_count * 3
 		if _main and "completed_levels" in _main:
 			for li in realm["levels"]:
 				if li in _main.completed_levels:
 					levels_done += 1
-		var status_text = "✅ COMPLETE" if arc_complete else ("%d / %d" % [levels_done, level_count] if arc_unlocked else "🔒 LOCKED")
-		var status_col = Color(0.45, 0.80, 0.35) if arc_complete else (Color(0.65, 0.58, 0.50) if arc_unlocked else Color(0.40, 0.35, 0.30))
-		var status = _lbl(status_text, 11, status_col)
+				if _main.level_stars.has(li):
+					total_stars += _main.level_stars[li]
+		var bottom_row = HBoxContainer.new()
+		bottom_row.add_theme_constant_override("separation", 8)
+		bottom_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(bottom_row)
+		# Status text
+		var status_text: String
+		var status_col: Color
+		if arc_complete:
+			status_text = "COMPLETE"
+			status_col = Color(0.45, 0.85, 0.35)
+		elif arc_unlocked:
+			status_text = "%d / %d Levels" % [levels_done, level_count]
+			status_col = Color(0.75, 0.68, 0.55)
+		else:
+			status_text = "LOCKED"
+			status_col = Color(0.45, 0.38, 0.32)
+		var status = _lbl(status_text, 12, status_col)
+		status.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		status.add_theme_constant_override("shadow_offset_x", 1)
+		status.add_theme_constant_override("shadow_offset_y", 1)
 		status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		content.add_child(status)
-		# Character portrait mini (bottom right)
-		var pkey = realm["portrait"]
-		if _main and _main._portrait_textures.has(pkey) and arc_unlocked:
-			var mini_port = TextureRect.new()
-			mini_port.texture = _main._portrait_textures[pkey]
-			mini_port.custom_minimum_size = Vector2(50, 50)
-			mini_port.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			mini_port.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			mini_port.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			mini_port.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-			mini_port.position = Vector2(-55, -55)
-			card.add_child(mini_port)
+		bottom_row.add_child(status)
+		# Star count (#7)
+		if arc_unlocked and total_stars > 0:
+			var star_lbl = _lbl("⭐ %d/%d" % [total_stars, max_stars], 11, Color(1.0, 0.85, 0.15))
+			star_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bottom_row.add_child(star_lbl)
+		# --- LOCKED OVERLAY: centered lock icon (#14, #15) ---
+		if not arc_unlocked:
+			var lock_lbl = _lbl("🔒", 36, Color(0.5, 0.4, 0.3, 0.6))
+			lock_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(lock_lbl)
+		# --- COMPLETE BADGE: gold checkmark top-left (#20) ---
+		if arc_complete:
+			var check_lbl = _lbl("✅", 18, Color(0.4, 0.85, 0.3))
+			check_lbl.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			check_lbl.position = Vector2(8, 6)
+			check_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(check_lbl)
+		# --- "PLAY NEXT" banner on first incomplete unlocked realm (#23) ---
+		if is_next_realm and not _shown_play_next:
+			_shown_play_next = true
+			var banner = _lbl("▶ PLAY NEXT", 11, Color(1.0, 0.95, 0.40))
+			banner.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			banner.position = Vector2(-95, 6)
+			banner.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+			banner.add_theme_constant_override("shadow_offset_x", 1)
+			banner.add_theme_constant_override("shadow_offset_y", 1)
+			banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(banner)
+		# --- NO character portrait mini (removed — item #1, #33) ---
 		# Click to enter realm
 		if arc_unlocked:
 			var arc_name = realm["arc"]
 			card.pressed.connect(func(): _enter_realm(arc_name))
-		# Hover
+		# Hover: brighten, no scale (#19)
 		card.mouse_entered.connect(func():
-			card.pivot_offset = card.size / 2.0
-			var tw = card.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-			tw.tween_property(card, "scale", Vector2(1.03, 1.03), 0.1))
+			card.modulate = Color(1.12, 1.10, 1.05))
 		card.mouse_exited.connect(func():
-			var tw = card.create_tween().set_ease(Tween.EASE_OUT)
-			tw.tween_property(card, "scale", Vector2(1.0, 1.0), 0.08))
+			card.modulate = Color.WHITE)
 		# Staggered entrance
 		card.modulate.a = 0.0
 		var etw = create_tween()

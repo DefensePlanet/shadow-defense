@@ -24377,9 +24377,7 @@ func _draw() -> void:
 		_draw_act_title_card()
 		return
 	if game_state == GameState.MENU:
-		# Skip ALL old menu drawing when v2 menu is active
-		if _menu_v2_instance != null and _menu_v2_instance.visible:
-			return
+		# ALWAYS draw background — v2 menu is semi-transparent overlay on top
 		_draw_menu_background()
 		# Menu Improvement 15: Time-of-day ambient tint
 		_draw_time_ambient()
