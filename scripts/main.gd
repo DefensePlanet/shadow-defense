@@ -2516,6 +2516,14 @@ var player_pages: int = 0
 var player_storybook_stars: int = 0
 var player_gold: int = 0
 
+# Energy/Stamina system (#112)
+var player_energy: int = 20  # Current energy
+const MAX_ENERGY: int = 20  # Cap
+const ENERGY_REGEN_MINUTES: float = 10.0  # 1 energy per 10 minutes
+const ENERGY_PER_LEVEL: int = 1  # Cost to play a level
+const ENERGY_PER_HARD: int = 2  # Cost for Hard/Pure difficulty
+var energy_last_timestamp: float = 0.0  # Unix time of last energy update
+
 # Treasure chest state
 var chest_loot: Array = []  # Array of {"type": String, "amount": int, "name": String}
 var chest_open: bool = false
@@ -5377,6 +5385,8 @@ func _save_game() -> void:
 	save_data["player_pages"] = player_pages
 	save_data["player_storybook_stars"] = player_storybook_stars
 	save_data["player_gold"] = player_gold
+	save_data["player_energy"] = player_energy
+	save_data["energy_last_timestamp"] = Time.get_unix_time_from_system()
 	save_data["gold"] = gold
 	# Progress
 	save_data["completed_levels"] = completed_levels
@@ -5659,6 +5669,14 @@ func _load_game() -> void:
 	player_pages = int(data.get("player_pages", 0))
 	player_storybook_stars = int(data.get("player_storybook_stars", 0))
 	player_gold = int(data.get("player_gold", 0))
+	# Energy system (#112): load + regen based on time away
+	player_energy = int(data.get("player_energy", MAX_ENERGY))
+	energy_last_timestamp = float(data.get("energy_last_timestamp", 0.0))
+	if energy_last_timestamp > 0.0:
+		var now = Time.get_unix_time_from_system()
+		var minutes_away = (now - energy_last_timestamp) / 60.0
+		var energy_gained = int(minutes_away / ENERGY_REGEN_MINUTES)
+		player_energy = mini(player_energy + energy_gained, MAX_ENERGY)
 	# Migrate old gold savings: if player_gold is 0 but old save had gold, transfer it
 	if player_gold == 0 and data.has("gold") and int(data.get("gold", 0)) > 0:
 		player_gold = int(data["gold"])
@@ -11161,6 +11179,12 @@ func _is_level_unlocked(idx: int) -> bool:
 func _on_level_selected(index: int) -> void:
 	if not _is_level_unlocked(index):
 		return
+	# Energy check (#112)
+	var energy_cost = ENERGY_PER_HARD if selected_difficulty >= 2 else ENERGY_PER_LEVEL
+	if player_energy < energy_cost:
+		info_label.text = "Not enough energy! (%d/%d) — Regens 1 per %d min" % [player_energy, energy_cost, int(ENERGY_REGEN_MINUTES)]
+		return
+	player_energy -= energy_cost
 	# Check for pre-level story dialog
 	var pre_key = "pre_level_" + str(index)
 	if story_dialogs.has(pre_key) and not pre_key in story_seen:
