@@ -3091,10 +3091,62 @@ func _check_quest_chain_progress() -> void:
 			if quest_chain_progress[cid] >= chain["steps"].size():
 				spawn_floating_text(Vector2(640, 210), "CHAIN COMPLETE! 🏆", c_gold_bright, 16.0, 3.0)
 
-# === EVENT CURRENCY (#139) ===
+# === EVENT SYSTEM (#139) ===
 var event_tokens: int = 0
 var event_shop_items: Array = []
 var current_event_name: String = ""
+var event_active: bool = false
+var event_end_date: String = ""
+
+const SEASONAL_EVENTS: Array = [
+	{"name": "Winter Frost", "months": [12, 1, 2], "token_name": "Snowflake", "color": Color(0.6, 0.85, 1.0),
+	 "shop": [{"name": "Frost Bow", "cost": 50, "reward_type": "gear", "reward_id": "frost_bow"},
+	          {"name": "Ice Crown", "cost": 100, "reward_type": "cosmetic", "reward_id": "ice_crown"},
+	          {"name": "50 Pages", "cost": 25, "reward_type": "pages", "reward_amount": 50}]},
+	{"name": "Shadow Festival", "months": [10, 11], "token_name": "Ink Shard", "color": Color(0.4, 0.1, 0.6),
+	 "shop": [{"name": "Dark Quill", "cost": 50, "reward_type": "gear", "reward_id": "dark_quill"},
+	          {"name": "Shadow Cloak", "cost": 100, "reward_type": "cosmetic", "reward_id": "shadow_cloak"},
+	          {"name": "30 Quills", "cost": 20, "reward_type": "quills", "reward_amount": 30}]},
+	{"name": "Golden Pages", "months": [3, 4, 5], "token_name": "Gold Leaf", "color": Color(1.0, 0.85, 0.2),
+	 "shop": [{"name": "Golden Pen", "cost": 50, "reward_type": "gear", "reward_id": "golden_pen"},
+	          {"name": "Author's Seal", "cost": 100, "reward_type": "cosmetic", "reward_id": "author_seal"},
+	          {"name": "3 Stars", "cost": 75, "reward_type": "stars", "reward_amount": 3}]},
+	{"name": "Summer Tales", "months": [6, 7, 8, 9], "token_name": "Sun Coin", "color": Color(1.0, 0.6, 0.1),
+	 "shop": [{"name": "Sun Staff", "cost": 50, "reward_type": "gear", "reward_id": "sun_staff"},
+	          {"name": "Phoenix Wing", "cost": 100, "reward_type": "cosmetic", "reward_id": "phoenix_wing"},
+	          {"name": "100G", "cost": 15, "reward_type": "gold", "reward_amount": 100}]},
+]
+
+func _check_active_event() -> void:
+	var month = Time.get_date_dict_from_system()["month"]
+	event_active = false
+	current_event_name = ""
+	event_shop_items.clear()
+	for ev in SEASONAL_EVENTS:
+		if month in ev["months"]:
+			event_active = true
+			current_event_name = ev["name"]
+			event_shop_items = ev["shop"]
+			break
+
+func _earn_event_tokens(amount: int) -> void:
+	if not event_active: return
+	event_tokens += amount
+
+func _buy_event_shop_item(index: int) -> bool:
+	if index < 0 or index >= event_shop_items.size(): return false
+	var item = event_shop_items[index]
+	if event_tokens < item["cost"]: return false
+	event_tokens -= item["cost"]
+	match item["reward_type"]:
+		"pages": player_pages += item.get("reward_amount", 0)
+		"quills": player_quills += item.get("reward_amount", 0)
+		"stars": player_storybook_stars += item.get("reward_amount", 0)
+		"gold": player_gold += item.get("reward_amount", 0)
+		"gear": owned_gear[item["reward_id"]] = owned_gear.get(item["reward_id"], 0) + 1
+		"cosmetic": pass  # Store cosmetic unlock
+	spawn_floating_text(Vector2(640, 300), "EVENT: %s purchased!" % item["name"], Color(0.4, 1.0, 0.6), 16.0, 2.0)
+	return true
 
 # === RESOURCE EXCHANGE (#124) ===
 var exchange_rates: Dictionary = {
@@ -10425,6 +10477,7 @@ func _show_menu() -> void:
 	emporium_sub_category = -1
 	power_selection_open = false
 	_check_daily_reward()
+	_check_active_event()
 	# Menu Improvement 2: Calculate notification badges
 	_calculate_nav_badges()
 	# Menu Improvement 19: Generate ticker messages
@@ -36519,6 +36572,8 @@ func _victory() -> void:
 	_add_ranked_points(10 + selected_difficulty * 5 + wave / 2)
 	# Loyalty points (#126)
 	loyalty_points += 5 + selected_difficulty * 2
+	# Event tokens (#139)
+	_earn_event_tokens(3 + selected_difficulty * 2)
 	speed_button.text = "  >>  "
 	# Victory burst effect
 	_victory_burst_timer = 2.0
