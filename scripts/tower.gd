@@ -169,6 +169,44 @@ func trigger_placed_anim() -> void:
 	anim_state = "placed"
 	anim_timer = 0.0
 
+# === WEAPON & GEAR COMPATIBILITY — BATTD-style character-specific equipment ===
+# Each character has a weapon_class that determines which weapons they can equip.
+# Gear slots are universal but some gear has character restrictions.
+var weapon_class: String = "melee"  # "bow", "melee", "magic", "ranged", "instrument", "special"
+# Weapon classes determine compatible weapon types:
+# bow: Robin Hood, Clayton, Headless Horseman
+# melee: Peter Pan, Tarzan, Captain Hook, Frankenstein, Captain Ahab
+# magic: Wicked Witch, Merlin, Medusa, Anubis, Loki, Shadow Author
+# ranged: Alice, Sherlock, Scrooge, Queen of Hearts
+# special: Phantom (music), Captain Nemo (tech) — unique weapon pool
+
+const WEAPON_CLASS_COMPATIBLE: Dictionary = {
+	"bow": ["longbow", "crossbow", "enchanted_bow", "golden_bow", "shadow_bow", "vorpal_bow"],
+	"melee": ["sword", "dagger", "axe", "hammer", "harpoon", "cutlass", "claws", "fists"],
+	"magic": ["wand", "staff", "orb", "tome", "crystal", "quill", "ankh", "rune_stone"],
+	"ranged": ["pistol", "cards", "coins", "teacup", "scepter", "bells"],
+	"instrument": ["organ", "violin", "flute", "harp", "drums"],
+	"special": ["submarine", "lightning_rod", "pumpkin", "snake_hair", "chaos_dice"],
+}
+
+func can_equip_weapon(weapon_type: String) -> bool:
+	if weapon_class == "": return true  # No restriction
+	var compatible = WEAPON_CLASS_COMPATIBLE.get(weapon_class, [])
+	return weapon_type in compatible or weapon_type == "universal"
+
+# Visual gear display — what the player SEES on the character
+var equipped_weapon_visual: Dictionary = {}  # {name, type, color, glow, tier}
+var equipped_gear_visuals: Array = []  # [{slot, name, color, effect}]
+
+func get_visible_equipment_summary() -> String:
+	var parts = []
+	if equipped_weapon_visual.has("name"):
+		parts.append("⚔ %s" % equipped_weapon_visual["name"])
+	for g in equipped_gear_visuals:
+		parts.append("%s %s" % [g.get("slot", "?"), g.get("name", "?")])
+	if parts.size() == 0: return "No equipment"
+	return " | ".join(parts)
+
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null
 
