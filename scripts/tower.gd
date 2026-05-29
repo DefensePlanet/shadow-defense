@@ -198,6 +198,62 @@ func can_equip_weapon(weapon_type: String) -> bool:
 var equipped_weapon_visual: Dictionary = {}  # {name, type, color, glow, tier}
 var equipped_gear_visuals: Array = []  # [{slot, name, color, effect}]
 
+# === SIDEKICK VISUAL SYSTEM — companion figures orbiting the tower ===
+var active_sidekicks: Array = []  # [{name, desc, orbit_angle, orbit_speed, color, attack_timer}]
+
+func setup_sidekicks(sidekick_data: Array, unlocked: Array) -> void:
+	active_sidekicks.clear()
+	for i in range(sidekick_data.size()):
+		if i < unlocked.size() and unlocked[i]:
+			var sk = sidekick_data[i]
+			active_sidekicks.append({
+				"name": sk["name"],
+				"desc": sk["desc"],
+				"orbit_angle": float(i) * TAU / 3.0,
+				"orbit_speed": 1.0 + float(i) * 0.3,
+				"orbit_radius": 35.0 + float(i) * 5.0,
+				"color": [Color(0.3, 0.7, 0.9), Color(0.9, 0.7, 0.3), Color(0.7, 0.3, 0.9)][i % 3],
+				"attack_timer": 0.0,
+				"attack_flash": 0.0,
+			})
+
+func _update_sidekicks(delta: float) -> void:
+	for sk in active_sidekicks:
+		sk["orbit_angle"] += sk["orbit_speed"] * delta
+		sk["attack_timer"] += delta
+		sk["attack_flash"] = maxf(sk["attack_flash"] - delta * 3.0, 0.0)
+		# Sidekick attacks every 3 seconds if enemies nearby
+		if sk["attack_timer"] >= 3.0 and target != null:
+			sk["attack_timer"] = 0.0
+			sk["attack_flash"] = 1.0
+			# Sidekick does 15% of tower damage
+			if target.has_method("take_damage"):
+				target.take_damage(damage * 0.15, damage_type)
+
+func _draw_sidekicks() -> void:
+	var time = 0.0
+	if "_time" in self: time = _time
+	for sk in active_sidekicks:
+		var angle = sk["orbit_angle"]
+		var r = sk["orbit_radius"]
+		var sx = cos(angle) * r
+		var sy = sin(angle) * r * 0.5  # Flattened ellipse for perspective
+		var pos = Vector2(sx, sy - 5)  # Slight upward offset
+		var col = sk["color"]
+		var flash = sk["attack_flash"]
+		# Body — small circle
+		draw_circle(pos, 5.0, Color(col.r, col.g, col.b, 0.6 + flash * 0.3))
+		# Head — smaller circle above
+		draw_circle(pos + Vector2(0, -6), 3.0, Color(col.r * 1.2, col.g * 1.2, col.b * 1.2, 0.7 + flash * 0.3))
+		# Attack flash — bright ring
+		if flash > 0.0:
+			draw_arc(pos, 8.0, 0, TAU, 8, Color(1, 1, 1, flash * 0.5), 1.5)
+		# Bobbing motion
+		var bob = sin(time * 2.0 + angle) * 2.0
+		# Name label on hover (would need hover detection — skip for now)
+		# Tiny shadow underneath
+		draw_circle(Vector2(sx, sy + 3), 3.0, Color(0, 0, 0, 0.1))
+
 func get_visible_equipment_summary() -> String:
 	var parts = []
 	if equipped_weapon_visual.has("name"):
@@ -293,6 +349,7 @@ func _process(delta: float) -> void:
 	fire_cooldown -= delta
 	_recoil = max(_recoil - delta * 8.0, 0.0)
 	_update_animation(delta)
+	_update_sidekicks(delta)
 	target = _find_nearest_enemy()
 
 	if target:
@@ -377,6 +434,10 @@ func _draw() -> void:
 		if _recoil > 0.5:
 			var dir = Vector2.from_angle(gun_angle)
 			draw_circle(dir * 28.0, 4.0, Color(1.0, 0.9, 0.3, _recoil * 0.6))
+		# Evolution effects (aura, particles, halo)
+		_draw_evolution_effects()
+		# Sidekick companions orbiting
+		_draw_sidekicks()
 		return
 
 	# Procedural fallback — gray circles + pistol
