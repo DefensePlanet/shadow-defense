@@ -908,7 +908,7 @@ func _is_realm_unlocked(realm_idx: int) -> bool:
 	return true
 
 func _build_arc_levels() -> void:
-	# Find levels for this arc
+	# Find realm for this arc
 	var arc_realm = null
 	for r in REALMS:
 		if r["arc"] == _portal_view:
@@ -918,174 +918,149 @@ func _build_arc_levels() -> void:
 		_portal_view = ""
 		_build_portal_hub()
 		return
+	if not _main: return
+	var rc = Color(arc_realm["color"][0], arc_realm["color"][1], arc_realm["color"][2])
+	var arc_levels = arc_realm["levels"]
 	var sc = ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_area.add_child(sc)
 	_style_scrollbar(sc)
-	_add_scroll_hint(content_area)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 4)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 6)
+	vb.add_theme_constant_override("separation", 8)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
-	# Back to portal hub button
-	var back_btn = _art_button("< BACK TO TOME", Color(0.12, 0.10, 0.22), Vector2(170, 32))
+	# Back button
+	var back_btn = Button.new()
+	back_btn.text = "< BACK"
+	back_btn.custom_minimum_size = Vector2(100, 32)
+	var bbs = StyleBoxFlat.new()
+	bbs.bg_color = Color(0.08, 0.05, 0.14, 0.9)
+	bbs.border_color = Color(0.5, 0.4, 0.2, 0.5)
+	bbs.set_border_width_all(1)
+	bbs.set_corner_radius_all(8)
+	back_btn.add_theme_stylebox_override("normal", bbs)
+	back_btn.add_theme_font_size_override("font_size", 13)
+	back_btn.add_theme_color_override("font_color", Color(0.8, 0.7, 0.5))
 	back_btn.pressed.connect(func(): _portal_view = ""; _build_chapters())
 	vb.add_child(back_btn)
-	# Arc title with realm art
-	var rc = Color(arc_realm["color"][0], arc_realm["color"][1], arc_realm["color"][2])
-	vb.add_child(_title(arc_realm["name"].to_upper()))
-	var arc_sub = _lbl(arc_realm["arc"], 13, Color(rc.r * 0.7 + 0.3, rc.g * 0.7 + 0.3, rc.b * 0.7 + 0.3))
-	arc_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	arc_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(arc_sub)
-	# Shadow Author quote for this realm
-	var sa_quotes_realm = [
-		"Welcome to MY pages. Your adventure begins here.",
-		"Ah, you've found my London chapter. How delightful.",
-		"Camelot falls. Even legends bow to my quill.",
-		"The jungle will consume you, as it consumes all stories.",
-		"Blood and ink — the finest combination.",
-		"Even the dead cannot escape my narrative.",
-		"Back to Sherwood? I've rewritten your happy ending.",
-		"Wonderland was always MY creation. Alice merely visited.",
-		"The Emerald City hides nothing from its Author.",
-		"You can't fly away from a story already written.",
-		"The music dies when I say it dies.",
-		"Ghosts of Christmas? I wrote their chains.",
-		"This is where YOUR story ends.",
-	]
-	var realm_idx = 0
-	for ri2 in range(REALMS.size()):
-		if REALMS[ri2]["arc"] == _portal_view: realm_idx = ri2; break
-	var sa_q = _lbl('"%s"' % sa_quotes_realm[mini(realm_idx, sa_quotes_realm.size() - 1)], 11, Color(0.65, 0.55, 0.45))
-	sa_q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sa_q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sa_q.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(sa_q)
-	var sa_attr2 = _lbl("— The Shadow Author", 10, Color(0.50, 0.42, 0.38))
-	sa_attr2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sa_attr2.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(sa_attr2)
-	# === REALM JOURNEY MAP — visual node map showing level progression ===
-	if _main:
-		var journey_panel = PanelContainer.new()
-		var jps = StyleBoxFlat.new()
-		jps.bg_color = Color(0.05, 0.03, 0.10, 0.5)
-		jps.set_corner_radius_all(10)
-		jps.border_color = Color(rc.r * 0.4, rc.g * 0.4, rc.b * 0.4, 0.3)
-		jps.set_border_width_all(1)
-		jps.content_margin_left = 16; jps.content_margin_right = 16
-		jps.content_margin_top = 12; jps.content_margin_bottom = 12
-		journey_panel.add_theme_stylebox_override("panel", jps)
-		journey_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		journey_panel.custom_minimum_size = Vector2(0, 80)
-		# Draw nodes as HBox
-		var journey_row = HBoxContainer.new()
-		journey_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		journey_row.add_theme_constant_override("separation", 0)
-		journey_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		journey_panel.add_child(journey_row)
-		var arc_levels = arc_realm["levels"]
-		for ji in range(arc_levels.size()):
-			var jli = arc_levels[ji]
-			var j_complete = _main.completed_levels.has(jli) if "completed_levels" in _main else false
-			var j_unlocked = jli == arc_levels[0] or (ji > 0 and _main.completed_levels.has(arc_levels[ji - 1]))
-			# Connection line (before each node except first)
-			if ji > 0:
-				var line_panel = PanelContainer.new()
-				var lps2 = StyleBoxFlat.new()
-				lps2.bg_color = Color(rc.r * 0.5, rc.g * 0.5, rc.b * 0.5, 0.5) if j_complete or j_unlocked else Color(0.25, 0.20, 0.15, 0.3)
-				lps2.set_corner_radius_all(2)
-				line_panel.add_theme_stylebox_override("panel", lps2)
-				line_panel.custom_minimum_size = Vector2(40, 4)
-				line_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				var line_center = CenterContainer.new()
-				line_center.custom_minimum_size = Vector2(40, 40)
-				line_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				line_center.add_child(line_panel)
-				journey_row.add_child(line_center)
-			# Level node
-			var node_panel = PanelContainer.new()
-			var nps = StyleBoxFlat.new()
-			if j_complete:
-				nps.bg_color = Color(0.15, 0.40, 0.15, 0.85)
-				nps.border_color = Color(0.35, 0.75, 0.30, 0.7)
-			elif j_unlocked:
-				nps.bg_color = Color(rc.r * 0.3, rc.g * 0.3, rc.b * 0.3, 0.8)
-				nps.border_color = Color(rc.r * 0.8, rc.g * 0.8, rc.b * 0.8, 0.7)
-			else:
-				nps.bg_color = Color(0.06, 0.04, 0.10, 0.5)
-				nps.border_color = Color(0.25, 0.20, 0.15, 0.3)
-			nps.set_corner_radius_all(20)
-			nps.set_border_width_all(2)
-			nps.content_margin_left = 8; nps.content_margin_right = 8
-			nps.content_margin_top = 4; nps.content_margin_bottom = 4
-			node_panel.add_theme_stylebox_override("panel", nps)
-			node_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			node_panel.custom_minimum_size = Vector2(40, 40)
-			var node_text = "✅" if j_complete else (str(ji + 1) if j_unlocked else "🔒")
-			var node_col = Color(1, 1, 1) if j_complete else (Color(1.0, 0.92, 0.40) if j_unlocked else Color(0.40, 0.35, 0.30))
-			var node_lbl = _lbl(node_text, 14, node_col)
-			node_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			node_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			node_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			node_panel.add_child(node_lbl)
-			# Pulse the next unlocked incomplete node
-			if j_unlocked and not j_complete:
-				var ntw = create_tween().set_loops()
-				ntw.tween_property(node_panel, "modulate", Color(1.15, 1.10, 1.0), 0.6).set_ease(Tween.EASE_IN_OUT)
-				ntw.tween_property(node_panel, "modulate", Color(1.0, 1.0, 1.0), 0.6).set_ease(Tween.EASE_IN_OUT)
-			journey_row.add_child(node_panel)
-		# Star count for this arc
-		var arc_stars = 0
-		var arc_max_stars = arc_levels.size() * 3
-		for jli2 in arc_levels:
-			if _main.level_stars.has(jli2):
-				arc_stars += _main.level_stars[jli2]
-		var star_row = HBoxContainer.new()
-		star_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var mastered = _main._get_realm_mastery(arc_levels)
-		var star_text = "⭐ %d / %d" % [arc_stars, arc_max_stars]
-		if mastered:
-			star_text += " — 👑 MASTERED"
-		star_row.add_child(_lbl(star_text, 11, Color(1.0, 0.85, 0.15) if mastered else Color(1.0, 0.85, 0.25)))
-		vb.add_child(journey_panel)
-		vb.add_child(star_row)
-		# Challenge map button (if unlocked)
-		if _main.CHALLENGE_MAPS.has(arc_realm["arc"]) and _main._is_challenge_unlocked(arc_realm["arc"]):
-			var ch = _main.CHALLENGE_MAPS[arc_realm["arc"]]
-			var ch_btn = _art_button("🏆 CHALLENGE: %s" % ch["name"], Color(0.35, 0.15, 0.10), Vector2(350, 34))
-			ch_btn.add_theme_font_size_override("font_size", 12)
-			ch_btn.tooltip_text = ch["modifier_desc"] + " — Reward: %d Ink" % ch["reward_ink"]
-			vb.add_child(ch_btn)
-	# Level cards for this arc only
-	if not _main: return
-	var card_idx2 = 0
-	for li in arc_realm["levels"]:
+	# Realm title
+	vb.add_child(_section_header(arc_realm["name"].to_upper()))
+	# Star count
+	var arc_stars = 0
+	var arc_max_stars = arc_levels.size() * 3
+	for jli in arc_levels:
+		if _main.level_stars.has(jli):
+			arc_stars += _main.level_stars[jli]
+	var star_lbl = _lbl("⭐ %d / %d" % [arc_stars, arc_max_stars], 13, Color(1.0, 0.85, 0.15))
+	star_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	star_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(star_lbl)
+	# === LEVEL LIST — clean cards for each level ===
+	for li_idx in range(arc_levels.size()):
+		var li = arc_levels[li_idx]
 		if li >= _main.levels.size(): continue
 		var lvl = _main.levels[li]
-		if card_idx2 > 0:
-			var path_row = HBoxContainer.new()
-			path_row.alignment = BoxContainer.ALIGNMENT_CENTER
-			path_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			path_row.add_child(_lbl("│", 12, Color(0.55, 0.42, 0.18, 0.5)))
-			vb.add_child(path_row)
-		var card = _level_card(li, lvl)
+		var is_complete = li in _main.completed_levels
+		var is_unlocked = _main._is_level_unlocked(li)
+		var stars = _main.level_stars.get(li, 0)
+		# Level card — horizontal: number | thumbnail | info | stars | play
+		var card = PanelContainer.new()
+		var card_s = StyleBoxFlat.new()
+		card_s.bg_color = Color(0.06, 0.04, 0.12, 0.92)
+		card_s.border_color = Color(rc.r * 0.5, rc.g * 0.5, rc.b * 0.5, 0.5) if is_unlocked else Color(0.25, 0.20, 0.15, 0.3)
+		if is_complete:
+			card_s.border_color = Color(0.4, 0.75, 0.3, 0.7)
+		card_s.set_border_width_all(2)
+		card_s.set_corner_radius_all(12)
+		card_s.content_margin_left = 12; card_s.content_margin_right = 12
+		card_s.content_margin_top = 10; card_s.content_margin_bottom = 10
+		card.add_theme_stylebox_override("panel", card_s)
+		card.custom_minimum_size = Vector2(0, 80)
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(row)
+		# Level number
+		var num_lbl = _lbl(str(li_idx + 1), 20, Color(1.0, 0.92, 0.40) if is_unlocked else Color(0.40, 0.35, 0.30))
+		num_lbl.custom_minimum_size = Vector2(30, 0)
+		num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		num_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(num_lbl)
+		# Thumbnail
+		var th = TextureRect.new()
+		th.custom_minimum_size = Vector2(100, 60)
+		th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		th.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if _main._map_thumb_textures.has(li):
+			th.texture = _main._map_thumb_textures[li]
+		if not is_unlocked:
+			th.modulate = Color(0.4, 0.4, 0.4, 0.5)
+		row.add_child(th)
+		# Info column: name + subtitle
+		var info = VBoxContainer.new()
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.add_theme_constant_override("separation", 2)
+		info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var name_col = Color(1.0, 0.95, 0.85) if is_unlocked else Color(0.50, 0.45, 0.38)
+		var name_lbl = _lbl(lvl.get("name", "Level %d" % (li + 1)), 16, name_col)
+		name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		name_lbl.add_theme_constant_override("shadow_offset_x", 1)
+		name_lbl.add_theme_constant_override("shadow_offset_y", 1)
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		info.add_child(name_lbl)
+		var sub_text = lvl.get("subtitle", "")
+		if sub_text == "": sub_text = "%d Waves" % _main.difficulty_waves[0]
+		var sub_lbl = _lbl(sub_text, 11, Color(0.60, 0.55, 0.48) if is_unlocked else Color(0.40, 0.36, 0.30))
+		sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		info.add_child(sub_lbl)
+		row.add_child(info)
+		# Stars (3 stars display)
+		var star_display = HBoxContainer.new()
+		star_display.add_theme_constant_override("separation", 2)
+		star_display.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for si in range(3):
+			var s_col = Color(1.0, 0.85, 0.15) if si < stars else Color(0.30, 0.25, 0.20)
+			star_display.add_child(_lbl("★", 18, s_col))
+		row.add_child(star_display)
+		# Play button or lock
+		if is_unlocked:
+			var play_btn = Button.new()
+			play_btn.text = "▶ PLAY"
+			play_btn.custom_minimum_size = Vector2(90, 36)
+			var pbs = StyleBoxFlat.new()
+			pbs.bg_color = Color(0.15, 0.45, 0.15, 0.9)
+			pbs.border_color = Color(0.35, 0.75, 0.30, 0.7)
+			pbs.set_border_width_all(1)
+			pbs.set_corner_radius_all(8)
+			play_btn.add_theme_stylebox_override("normal", pbs)
+			var pbsh = pbs.duplicate()
+			pbsh.bg_color = Color(0.20, 0.55, 0.20, 0.95)
+			play_btn.add_theme_stylebox_override("hover", pbsh)
+			play_btn.add_theme_font_size_override("font_size", 14)
+			play_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 0.95))
+			var _li = li
+			play_btn.pressed.connect(func():
+				if _main: _main._on_level_selected(_li))
+			row.add_child(play_btn)
+		else:
+			var lock = _lbl("🔒", 22, Color(0.5, 0.45, 0.4, 0.6))
+			lock.custom_minimum_size = Vector2(90, 0)
+			lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(lock)
 		vb.add_child(card)
-		card.modulate.a = 0.0
-		var etw2 = create_tween()
-		etw2.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(card_idx2 * 0.05)
-		card_idx2 += 1
-	return
+
 	# === OLD FULL CHAPTERS VIEW (kept for reference, never reached) ===
 	# Game logo — use nano-banana generated art logo if available
 	if _art.has("game_logo_gothic"):
