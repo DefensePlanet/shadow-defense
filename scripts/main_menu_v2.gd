@@ -464,42 +464,62 @@ func _build_nav() -> void:
 func _build_nav_buttons() -> void:
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
 	var labels = ["CHAPTERS", "HEROES", "SHOP", "CODEX", "SETTINGS"]
-	# Solid opaque nav bar
+	var icons = ["📖", "⚔", "🛒", "📚", "⚙"]
+	# Solid opaque nav bar with top accent line
 	nav_bar.color = Color(0.04, 0.02, 0.08, 1.0)
+	# Gold accent line at top of nav bar
+	var nav_accent = ColorRect.new()
+	nav_accent.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	nav_accent.offset_bottom = 2
+	nav_accent.color = Color(0.50, 0.38, 0.12, 0.4)
+	nav_accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nav_bar.add_child(nav_accent)
 	for i in range(5):
 		var is_active = tabs[i] == current_view
 		var btn = Button.new()
-		btn.text = labels[i]
+		btn.text = ""  # We'll use custom content
 		btn.clip_text = false
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, 60)
 		var s = StyleBoxFlat.new()
 		if is_active:
-			s.bg_color = Color(0.16, 0.10, 0.26, 1.0)
+			s.bg_color = Color(0.14, 0.08, 0.22, 1.0)
 			s.border_color = Color(1.0, 0.82, 0.20, 1.0)
 			s.border_width_top = 3
 			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
 		else:
-			s.bg_color = Color(0.06, 0.04, 0.10, 1.0)
-			s.border_color = Color(0.20, 0.15, 0.10, 0.4)
+			s.bg_color = Color(0.05, 0.03, 0.09, 1.0)
+			s.border_color = Color(0.15, 0.12, 0.08, 0.3)
 			s.border_width_top = 1
 			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
 		s.set_corner_radius_all(0)
 		btn.add_theme_stylebox_override("normal", s)
 		var sh = s.duplicate()
-		sh.bg_color = Color(0.20, 0.14, 0.30, 1.0)
+		sh.bg_color = Color(0.18, 0.12, 0.28, 1.0)
 		btn.add_theme_stylebox_override("hover", sh)
 		var sp = s.duplicate()
-		sp.bg_color = Color(0.24, 0.16, 0.34, 1.0)
+		sp.bg_color = Color(0.22, 0.14, 0.32, 1.0)
 		btn.add_theme_stylebox_override("pressed", sp)
-		btn.add_theme_font_size_override("font_size", 14)
-		btn.add_theme_color_override("font_color", Color(1.0, 0.90, 0.35) if is_active else Color(0.55, 0.48, 0.40))
-		btn.add_theme_color_override("font_hover_color", Color(0.80, 0.70, 0.45))
-		btn.add_theme_color_override("font_pressed_color", Color(1.0, 0.85, 0.30))
-		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-		btn.add_theme_constant_override("shadow_offset_x", 1)
-		btn.add_theme_constant_override("shadow_offset_y", 1)
+		# Icon + text layout inside button
+		var nav_content = VBoxContainer.new()
+		nav_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		nav_content.alignment = BoxContainer.ALIGNMENT_CENTER
+		nav_content.add_theme_constant_override("separation", 2)
+		nav_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(nav_content)
+		# Icon
+		var icon_col = Color(1.0, 0.90, 0.35) if is_active else Color(0.50, 0.42, 0.35)
+		var icon_lbl = _lbl(icons[i], 18, icon_col)
+		icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		nav_content.add_child(icon_lbl)
+		# Label
+		var text_col = Color(1.0, 0.90, 0.35) if is_active else Color(0.48, 0.42, 0.36)
+		var text_lbl = _lbl(labels[i], 11, text_col)
+		text_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		text_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		nav_content.add_child(text_lbl)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
 		nav_buttons_container.add_child(btn)
 
@@ -700,6 +720,18 @@ func _build_portal_hub() -> void:
 			else:
 				realm_art.modulate = Color(0.6, 0.6, 0.6, 0.9)  # Visible but desaturated
 			card.add_child(realm_art)
+			# Gradient overlay for text readability — darker at bottom
+			var realm_grad = ColorRect.new()
+			realm_grad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			realm_grad.color = Color(0.02, 0.01, 0.04, 0.35)
+			realm_grad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(realm_grad)
+			var realm_bot_strip = ColorRect.new()
+			realm_bot_strip.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+			realm_bot_strip.offset_top = -70
+			realm_bot_strip.color = Color(0.02, 0.01, 0.04, 0.45)
+			realm_bot_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(realm_bot_strip)
 			# Locked: dark overlay OVER the art covering entire card
 			if not arc_unlocked:
 				var lock_shade = ColorRect.new()
