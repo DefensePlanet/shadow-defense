@@ -573,7 +573,44 @@ func _build_portal_hub() -> void:
 	vb.add_theme_constant_override("separation", 10)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
-	# No tome book, no subtitle — straight to realm cards
+	# CONTINUE button — jump straight to next level (#15)
+	if _main:
+		var next_lvl = -1
+		var next_name = ""
+		for li in range(_main.levels.size()):
+			if _main._is_level_unlocked(li) and li not in _main.completed_levels:
+				next_lvl = li
+				next_name = _main.levels[li].get("name", "Level %d" % li)
+				break
+		if next_lvl >= 0:
+			var cont_btn = Button.new()
+			cont_btn.text = "CONTINUE  ▶  %s" % next_name
+			cont_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			cont_btn.custom_minimum_size = Vector2(0, 44)
+			var cbs = StyleBoxFlat.new()
+			cbs.bg_color = Color(0.15, 0.45, 0.15, 0.90)
+			cbs.border_color = Color(0.35, 0.80, 0.30, 0.8)
+			cbs.set_border_width_all(2)
+			cbs.set_corner_radius_all(10)
+			cbs.shadow_color = Color(0, 0, 0, 0.3)
+			cbs.shadow_size = 4
+			cont_btn.add_theme_stylebox_override("normal", cbs)
+			var cbsh = cbs.duplicate()
+			cbsh.bg_color = Color(0.20, 0.55, 0.20, 0.95)
+			cont_btn.add_theme_stylebox_override("hover", cbsh)
+			var cbsp = cbs.duplicate()
+			cbsp.bg_color = Color(0.10, 0.35, 0.10, 0.95)
+			cont_btn.add_theme_stylebox_override("pressed", cbsp)
+			cont_btn.add_theme_font_size_override("font_size", 16)
+			cont_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 0.95))
+			cont_btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+			cont_btn.add_theme_constant_override("shadow_offset_x", 1)
+			cont_btn.add_theme_constant_override("shadow_offset_y", 1)
+			var _next = next_lvl
+			cont_btn.pressed.connect(func():
+				if _main:
+					_main._on_level_selected(_next))
+			vb.add_child(cont_btn)
 	# Portal grid — one grid per act with act headers between them
 	var grid: GridContainer = null
 	var _last_act = 0
@@ -747,13 +784,31 @@ func _build_portal_hub() -> void:
 			lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			card.add_child(lock_lbl)
-		# --- COMPLETE BADGE: gold checkmark top-left (#20) ---
+		# --- COMPLETE: gold checkmark + shimmer pulse (#4, #20) ---
 		if arc_complete:
 			var check_lbl = _lbl("✅", 18, Color(0.4, 0.85, 0.3))
 			check_lbl.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			check_lbl.position = Vector2(8, 6)
 			check_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			card.add_child(check_lbl)
+			# Gold shimmer pulse on completed cards (#4)
+			var shimmer_tw = create_tween().set_loops()
+			shimmer_tw.tween_property(card, "modulate", Color(1.06, 1.04, 0.98), 1.2).set_ease(Tween.EASE_IN_OUT)
+			shimmer_tw.tween_property(card, "modulate", Color(1.0, 1.0, 1.0), 1.2).set_ease(Tween.EASE_IN_OUT)
+		# --- LOCKED: hero silhouette hint (#6) ---
+		if not arc_unlocked:
+			var pkey2 = realm["portrait"]
+			if _main and _main._portrait_textures.has(pkey2):
+				var silhouette = TextureRect.new()
+				silhouette.texture = _main._portrait_textures[pkey2]
+				silhouette.custom_minimum_size = Vector2(40, 40)
+				silhouette.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				silhouette.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				silhouette.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+				silhouette.position = Vector2(10, -50)
+				silhouette.modulate = Color(0.2, 0.2, 0.25, 0.35)
+				silhouette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				card.add_child(silhouette)
 		# --- "PLAY NEXT" pill badge (#2, #23) ---
 		if is_next_realm and not _shown_play_next:
 			_shown_play_next = true
