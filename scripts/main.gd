@@ -4197,6 +4197,133 @@ func _can_upgrade_path(tower_paths: Dictionary, path: String) -> bool:
 		if tower_paths.get(path, 0) < 2: return false
 	return true
 
+# === MAP-AFFECTING ABILITIES — characters change the battlefield ===
+# Activated abilities that modify terrain, create obstacles, or reshape the map.
+# Each ability costs gold and has a cooldown. Only available at certain upgrade tiers.
+var _map_abilities_active: Array = []  # [{type, x, y, timer, duration, owner_type}]
+
+const MAP_ABILITIES: Dictionary = {
+	TowerType.ROBIN_HOOD: {"id": "plant_tree", "name": "Plant Tree", "desc": "Create a new tower placement spot", "cost": 50, "cooldown": 30.0, "duration": -1},
+	TowerType.MERLIN: {"id": "magic_barrier", "name": "Arcane Wall", "desc": "Block the path for 8 seconds", "cost": 80, "cooldown": 25.0, "duration": 8.0},
+	TowerType.TARZAN: {"id": "vine_trap", "name": "Vine Snare", "desc": "Slow enemies 50% in an area for 10s", "cost": 40, "cooldown": 20.0, "duration": 10.0},
+	TowerType.PHANTOM: {"id": "dim_lights", "name": "Darkness", "desc": "Create fog zone — towers in area lose 30% range", "cost": 30, "cooldown": 15.0, "duration": 12.0},
+	TowerType.WICKED_WITCH: {"id": "poppy_field", "name": "Poppy Field", "desc": "Sleep zone — enemies stop for 3s on entry", "cost": 60, "cooldown": 25.0, "duration": 15.0},
+	TowerType.ALICE: {"id": "shrink_zone", "name": "Drink Me", "desc": "Enemies in area shrink to 50% HP", "cost": 70, "cooldown": 30.0, "duration": 8.0},
+	TowerType.SCROOGE: {"id": "gold_zone", "name": "Miser's Blessing", "desc": "Enemies killed here drop 3x gold", "cost": 25, "cooldown": 20.0, "duration": 15.0},
+	TowerType.DRACULA: {"id": "blood_pool", "name": "Blood Rite", "desc": "Enemies in area take 10 DPS + heal your towers", "cost": 60, "cooldown": 22.0, "duration": 10.0},
+	TowerType.SHERLOCK: {"id": "trap_wire", "name": "Deduction Trap", "desc": "First enemy to cross takes 500 damage", "cost": 45, "cooldown": 18.0, "duration": -1},
+	TowerType.FRANKENSTEIN: {"id": "tesla_coil", "name": "Tesla Field", "desc": "Lightning chains to enemies in area every 2s", "cost": 75, "cooldown": 25.0, "duration": 12.0},
+	TowerType.SHADOW_AUTHOR: {"id": "ink_wall", "name": "Writer's Block", "desc": "Impassable ink wall for 5s", "cost": 90, "cooldown": 30.0, "duration": 5.0},
+	TowerType.PETER_PAN: {"id": "fairy_ring", "name": "Fairy Ring", "desc": "All towers in area gain +20% speed for 12s", "cost": 55, "cooldown": 22.0, "duration": 12.0},
+	TowerType.LOKI: {"id": "illusion_field", "name": "Mirage", "desc": "Enemies in area attack illusions instead of progressing", "cost": 65, "cooldown": 28.0, "duration": 6.0},
+	TowerType.ANUBIS: {"id": "death_zone", "name": "Judgment Circle", "desc": "Enemies below 20% HP in area are instantly killed", "cost": 80, "cooldown": 30.0, "duration": 10.0},
+	TowerType.MEDUSA: {"id": "stone_garden", "name": "Petrify Zone", "desc": "All enemies in area frozen 4s", "cost": 70, "cooldown": 25.0, "duration": 4.0},
+	TowerType.HEADLESS_HORSEMAN: {"id": "terror_zone", "name": "Dread Aura", "desc": "Enemies in area flee backward for 3s", "cost": 60, "cooldown": 22.0, "duration": 3.0},
+	TowerType.CAPTAIN_HOOK: {"id": "anchor_drop", "name": "Drop Anchor", "desc": "Roots 5 strongest enemies for 5s", "cost": 55, "cooldown": 20.0, "duration": 5.0},
+	TowerType.CAPTAIN_AHAB: {"id": "harpoon_field", "name": "Harpoon Net", "desc": "All enemies in area slowed 70% for 6s", "cost": 50, "cooldown": 18.0, "duration": 6.0},
+}
+
+func _activate_map_ability(tower_type, pos: Vector2) -> bool:
+	if not MAP_ABILITIES.has(tower_type): return false
+	var ability = MAP_ABILITIES[tower_type]
+	if gold < ability["cost"]: return false
+	gold -= ability["cost"]
+	var entry = {
+		"type": ability["id"], "x": pos.x, "y": pos.y,
+		"timer": 0.0, "duration": ability["duration"],
+		"owner_type": tower_type, "radius": 80.0,
+	}
+	_map_abilities_active.append(entry)
+	spawn_floating_text(pos, "✨ %s!" % ability["name"], Color(0.9, 0.8, 0.3), 14.0, 2.0)
+	_screen_shake_intensity = 2.0; _screen_shake_timer = 0.15
+	return true
+
+func _update_map_abilities(delta: float) -> void:
+	var to_remove = []
+	for i in range(_map_abilities_active.size()):
+		var ab = _map_abilities_active[i]
+		ab["timer"] += delta
+		var pos = Vector2(ab["x"], ab["y"])
+		# Apply effects
+		match ab["type"]:
+			"vine_trap", "poppy_field", "harpoon_field":
+				for enemy in get_tree().get_nodes_in_group("enemies"):
+					if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= ab["radius"]:
+						if "speed" in enemy:
+							enemy.speed *= (1.0 - 0.5 * delta) if ab["type"] == "vine_trap" else 1.0
+			"blood_pool":
+				for enemy in get_tree().get_nodes_in_group("enemies"):
+					if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= ab["radius"]:
+						if enemy.has_method("take_damage"):
+							enemy.take_damage(10.0 * delta, "dark")
+			"tesla_coil":
+				if fmod(ab["timer"], 2.0) < delta:
+					for enemy in get_tree().get_nodes_in_group("enemies"):
+						if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= ab["radius"]:
+							if enemy.has_method("take_damage"):
+								enemy.take_damage(30.0, "lightning")
+							break
+			"death_zone":
+				for enemy in get_tree().get_nodes_in_group("enemies"):
+					if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= ab["radius"]:
+						if "health" in enemy and "max_health" in enemy:
+							if enemy.health / enemy.max_health <= 0.20:
+								if enemy.has_method("take_damage"):
+									enemy.take_damage(99999, "holy")
+			"gold_zone":
+				pass  # Handled in kill reward calculation
+		# Expire
+		if ab["duration"] > 0 and ab["timer"] >= ab["duration"]:
+			to_remove.append(i)
+	for ri in range(to_remove.size() - 1, -1, -1):
+		_map_abilities_active.remove_at(to_remove[ri])
+
+func _draw_map_abilities() -> void:
+	for ab in _map_abilities_active:
+		var pos = Vector2(ab["x"], ab["y"])
+		var r = ab["radius"]
+		var progress = ab["timer"] / maxf(ab["duration"], 1.0) if ab["duration"] > 0 else 0.0
+		var fade = 1.0 - progress if ab["duration"] > 0 else 1.0
+		match ab["type"]:
+			"plant_tree":
+				draw_circle(pos, 6, Color(0.2, 0.4, 0.1, 0.3))
+				draw_rect(Rect2(pos.x - 2, pos.y - 8, 4, 12), Color(0.3, 0.2, 0.1, 0.3))
+				draw_circle(Vector2(pos.x, pos.y - 12), 8, Color(0.15, 0.3, 0.08, 0.25))
+			"magic_barrier":
+				draw_rect(Rect2(pos.x - 30, pos.y - 5, 60, 10), Color(0.3, 0.4, 0.9, 0.3 * fade))
+				var shimmer = sin(_time * 5.0) * 0.1
+				draw_rect(Rect2(pos.x - 28, pos.y - 3, 56, 6), Color(0.5, 0.6, 1.0, (0.2 + shimmer) * fade))
+			"vine_trap":
+				for vi in range(6):
+					var va = float(vi) / 6.0 * TAU
+					draw_line(pos, pos + Vector2(cos(va) * r * 0.6, sin(va) * r * 0.4), Color(0.2, 0.5, 0.1, 0.15 * fade), 2.0)
+			"shrink_zone":
+				draw_circle(pos, r, Color(0.5, 0.2, 0.7, 0.08 * fade))
+			"gold_zone":
+				draw_circle(pos, r, Color(1.0, 0.85, 0.1, 0.08 * fade))
+				_udraw(game_font, pos + Vector2(0, 5), "3x 🪙", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(1.0, 0.85, 0.2, 0.3 * fade))
+			"blood_pool":
+				draw_circle(pos, r, Color(0.6, 0.1, 0.05, 0.10 * fade))
+			"tesla_coil":
+				var zap = sin(_time * 8.0) * 0.15
+				draw_circle(pos, r * 0.3, Color(0.4, 0.6, 1.0, 0.2 * fade + zap))
+				draw_circle(pos, r, Color(0.3, 0.5, 0.9, 0.06 * fade))
+			"ink_wall":
+				draw_rect(Rect2(pos.x - 35, pos.y - 8, 70, 16), Color(0.15, 0.05, 0.25, 0.5 * fade))
+			"fairy_ring":
+				draw_arc(pos, r, 0, TAU, 20, Color(0.9, 0.8, 0.3, 0.12 * fade), 2.0)
+			"death_zone":
+				draw_circle(pos, r, Color(0.8, 0.6, 0.1, 0.06 * fade))
+				_udraw(game_font, pos + Vector2(0, 5), "⚖", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.8, 0.6, 0.1, 0.3 * fade))
+			"stone_garden":
+				draw_circle(pos, r, Color(0.5, 0.5, 0.4, 0.10 * fade))
+			"terror_zone":
+				draw_circle(pos, r, Color(0.6, 0.3, 0.1, 0.10 * fade))
+			"trap_wire":
+				draw_line(pos + Vector2(-30, 0), pos + Vector2(30, 0), Color(0.8, 0.6, 0.2, 0.2), 1.0)
+			_:
+				draw_circle(pos, r, Color(0.5, 0.5, 0.5, 0.06 * fade))
+
 func _get_upgrade_path_cost(path_idx: int, tier: int) -> int:
 	if path_idx < 0 or path_idx > 2 or tier < 0 or tier > 2: return 9999
 	return PATH_COSTS[path_idx][tier]
@@ -20484,6 +20611,7 @@ func _process(delta: float) -> void:
 	_update_interactable_cooldowns(delta)
 	_update_dynamic_hazards(delta)
 	_update_realm_mechanic(delta)
+	_update_map_abilities(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -27807,6 +27935,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 	_draw_atmosphere()
 	# --- TERRAIN ZONES ---
 	_draw_terrain_zones()
+	# --- MAP ABILITIES ---
+	_draw_map_abilities()
 	# --- DESTRUCTIBLE ENVIRONMENT ---
 	_draw_destructibles()
 	# --- DYNAMIC HAZARDS ---
