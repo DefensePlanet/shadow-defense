@@ -5780,6 +5780,154 @@ var _foreground_elements: Array = []  # [{type, x, y, scale, alpha, parallax_mul
 # When destroyed: debris particles, possible gold/shard drops, visual crater.
 var _destructibles: Array = []  # [{type, x, y, hp, max_hp, destroyed, debris}]
 
+# === SEASONAL MAP OVERLAYS — real-world holiday decorations ===
+# Detects current month and applies cosmetic overlays to all maps.
+var _seasonal_theme: String = ""
+var _seasonal_decorations: Array = []
+
+func _setup_seasonal_theme() -> void:
+	var month = Time.get_date_dict_from_system().get("month", 1)
+	var day = Time.get_date_dict_from_system().get("day", 1)
+	_seasonal_theme = ""
+	_seasonal_decorations.clear()
+	# Halloween: October 15 - November 3
+	if (month == 10 and day >= 15) or (month == 11 and day <= 3):
+		_seasonal_theme = "halloween"
+	# Christmas: December 1 - January 5
+	elif month == 12 or (month == 1 and day <= 5):
+		_seasonal_theme = "christmas"
+	# Valentine's: February 10-16
+	elif month == 2 and day >= 10 and day <= 16:
+		_seasonal_theme = "valentines"
+	# Spring: March 15 - May 15
+	elif (month == 3 and day >= 15) or month == 4 or (month == 5 and day <= 15):
+		_seasonal_theme = "spring"
+	# Summer: June 15 - August 31
+	elif (month == 6 and day >= 15) or month == 7 or month == 8:
+		_seasonal_theme = "summer"
+	if _seasonal_theme == "": return
+	var rng = RandomNumberGenerator.new()
+	rng.seed = Time.get_date_dict_from_system().get("day", 1) * 100 + month
+	match _seasonal_theme:
+		"halloween":
+			for _i in range(6):
+				_seasonal_decorations.append({"type": "pumpkin", "x": rng.randf_range(50, 1230), "y": rng.randf_range(80, 580)})
+			for _i in range(4):
+				_seasonal_decorations.append({"type": "spider_web", "x": rng.randf_range(50, 1230), "y": rng.randf_range(50, 200)})
+			for _i in range(3):
+				_seasonal_decorations.append({"type": "bat_deco", "x": rng.randf_range(100, 1180), "y": rng.randf_range(30, 120)})
+		"christmas":
+			for _i in range(5):
+				_seasonal_decorations.append({"type": "present", "x": rng.randf_range(80, 1200), "y": rng.randf_range(100, 580)})
+			for _i in range(4):
+				_seasonal_decorations.append({"type": "candy_cane", "x": rng.randf_range(50, 1230), "y": rng.randf_range(80, 560)})
+			for _i in range(6):
+				_seasonal_decorations.append({"type": "xmas_light", "x": rng.randf_range(0, 1280), "y": rng.randf_range(20, 60)})
+			_seasonal_decorations.append({"type": "star_top", "x": 640, "y": 15})
+		"valentines":
+			for _i in range(8):
+				_seasonal_decorations.append({"type": "heart", "x": rng.randf_range(50, 1230), "y": rng.randf_range(50, 600)})
+		"spring":
+			for _i in range(10):
+				_seasonal_decorations.append({"type": "flower", "x": rng.randf_range(50, 1230), "y": rng.randf_range(550, 650)})
+			for _i in range(4):
+				_seasonal_decorations.append({"type": "butterfly", "x": rng.randf_range(100, 1180), "y": rng.randf_range(100, 400), "phase": rng.randf_range(0, TAU)})
+		"summer":
+			for _i in range(3):
+				_seasonal_decorations.append({"type": "sun_ray", "x": rng.randf_range(200, 1080), "y": 0})
+
+func _draw_seasonal_overlay() -> void:
+	if _seasonal_theme == "": return
+	for d in _seasonal_decorations:
+		var pos = Vector2(d["x"], d["y"])
+		match d.get("type", ""):
+			"pumpkin":
+				# Orange pumpkin with carved face
+				draw_circle(pos, 8, Color(0.85, 0.45, 0.08, 0.20))
+				draw_circle(pos, 6, Color(0.9, 0.5, 0.1, 0.15))
+				# Eyes
+				draw_circle(pos + Vector2(-3, -2), 1.5, Color(0.9, 0.7, 0.1, 0.18))
+				draw_circle(pos + Vector2(3, -2), 1.5, Color(0.9, 0.7, 0.1, 0.18))
+				# Mouth
+				draw_arc(pos + Vector2(0, 2), 3, 0.3, PI - 0.3, 6, Color(0.9, 0.7, 0.1, 0.15), 1.0)
+				# Stem
+				draw_line(pos + Vector2(0, -8), pos + Vector2(1, -11), Color(0.3, 0.5, 0.1, 0.15), 1.5)
+			"spider_web":
+				var wa = 0.06
+				for si in range(5):
+					var angle = float(si) / 5.0 * TAU
+					draw_line(pos, pos + Vector2(cos(angle) * 20, sin(angle) * 20), Color(0.6, 0.6, 0.6, wa), 0.5)
+				for ri in range(3):
+					draw_arc(pos, 7.0 + float(ri) * 6, 0, TAU, 12, Color(0.6, 0.6, 0.6, wa * 0.6), 0.5)
+			"bat_deco":
+				var wing = sin(_time * 4.0 + d["x"] * 0.01) * 5
+				draw_line(pos + Vector2(-6, wing), pos, Color(0.2, 0.15, 0.25, 0.12), 1.5)
+				draw_line(pos + Vector2(6, wing), pos, Color(0.2, 0.15, 0.25, 0.12), 1.5)
+				draw_circle(pos, 2, Color(0.2, 0.15, 0.25, 0.10))
+			"present":
+				var pc = [Color(0.8, 0.15, 0.1, 0.15), Color(0.1, 0.6, 0.15, 0.15), Color(0.15, 0.2, 0.7, 0.15)][int(d["x"]) % 3]
+				draw_rect(Rect2(pos.x - 6, pos.y - 6, 12, 12), pc)
+				draw_line(pos + Vector2(0, -6), pos + Vector2(0, 6), Color(0.9, 0.8, 0.2, 0.12), 1.5)
+				draw_line(pos + Vector2(-6, 0), pos + Vector2(6, 0), Color(0.9, 0.8, 0.2, 0.12), 1.5)
+				# Bow
+				draw_circle(pos + Vector2(0, -7), 2.5, Color(0.9, 0.8, 0.2, 0.10))
+			"candy_cane":
+				draw_line(pos, pos + Vector2(0, 16), Color(0.8, 0.1, 0.1, 0.12), 2.0)
+				draw_arc(pos, 5, PI, TAU, 6, Color(0.8, 0.1, 0.1, 0.12), 2.0)
+				# Stripes
+				for si2 in range(4):
+					var sy = pos.y + float(si2) * 4
+					draw_line(Vector2(pos.x - 1, sy), Vector2(pos.x + 1, sy), Color(0.9, 0.9, 0.9, 0.10), 2.0)
+			"xmas_light":
+				var light_colors = [Color(0.9, 0.15, 0.1), Color(0.1, 0.8, 0.15), Color(0.15, 0.3, 0.9), Color(0.9, 0.8, 0.1)]
+				var lc = light_colors[int(d["x"]) % 4]
+				var blink = (sin(_time * 2.0 + d["x"] * 0.05) + 1.0) * 0.5
+				draw_circle(pos, 3, Color(lc.r, lc.g, lc.b, 0.08 + blink * 0.08))
+				draw_circle(pos, 1.5, Color(lc.r, lc.g, lc.b, 0.12 + blink * 0.1))
+			"star_top":
+				var star_pulse = (sin(_time * 1.5) + 1.0) * 0.5
+				draw_circle(pos, 6 + star_pulse * 2, Color(0.95, 0.85, 0.2, 0.10 + star_pulse * 0.05))
+				# Star shape (5 points)
+				for si3 in range(5):
+					var sa = float(si3) / 5.0 * TAU - PI * 0.5
+					draw_line(pos, pos + Vector2(cos(sa) * 8, sin(sa) * 8), Color(0.95, 0.85, 0.2, 0.12), 1.0)
+			"heart":
+				var ha = 0.08 + sin(_time * 1.5 + d["x"] * 0.01) * 0.03
+				draw_circle(pos + Vector2(-3, -2), 4, Color(0.85, 0.15, 0.25, ha))
+				draw_circle(pos + Vector2(3, -2), 4, Color(0.85, 0.15, 0.25, ha))
+				draw_colored_polygon(PackedVector2Array([
+					pos + Vector2(-6, 0), pos + Vector2(0, 7), pos + Vector2(6, 0)
+				]), Color(0.85, 0.15, 0.25, ha))
+			"flower":
+				var fc = [Color(0.9, 0.3, 0.4), Color(0.9, 0.7, 0.2), Color(0.6, 0.3, 0.8), Color(0.3, 0.7, 0.9)][int(d["x"]) % 4]
+				for fi in range(5):
+					var fa = float(fi) / 5.0 * TAU + _time * 0.2
+					draw_circle(pos + Vector2(cos(fa) * 4, sin(fa) * 4), 3, Color(fc.r, fc.g, fc.b, 0.10))
+				draw_circle(pos, 2.5, Color(0.9, 0.8, 0.2, 0.12))
+			"butterfly":
+				var bp = d.get("phase", 0.0)
+				var bx = d["x"] + sin(_time * 0.8 + bp) * 40
+				var by = d["y"] + cos(_time * 0.6 + bp) * 25
+				var bwing = sin(_time * 5.0 + bp) * 5
+				draw_line(Vector2(bx - 5, by + bwing), Vector2(bx, by), Color(0.8, 0.5, 0.2, 0.10), 1.5)
+				draw_line(Vector2(bx + 5, by - bwing), Vector2(bx, by), Color(0.8, 0.5, 0.2, 0.10), 1.5)
+			"sun_ray":
+				var ray_a = 0.03 + sin(_time * 0.5 + d["x"] * 0.003) * 0.01
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(d["x"] - 40, 0), Vector2(d["x"] + 40, 0),
+					Vector2(d["x"] + 100, 720), Vector2(d["x"] - 100, 720)
+				]), Color(1.0, 0.9, 0.5, ray_a))
+	# Seasonal banner
+	var banner = ""
+	match _seasonal_theme:
+		"halloween": banner = "🎃 HAPPY HALLOWEEN 🎃"
+		"christmas": banner = "🎄 MERRY CHRISTMAS 🎄"
+		"valentines": banner = "💝 HAPPY VALENTINE'S 💝"
+		"spring": banner = "🌸 SPRING HAS SPRUNG 🌸"
+		"summer": banner = "☀️ SUMMER VIBES ☀️"
+	if banner != "":
+		_udraw(game_font, Vector2(640, 710), banner, HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(1, 1, 1, 0.15))
+
 func _generate_destructibles(level_idx: int) -> void:
 	_destructibles.clear()
 	if level_idx < 0 or level_idx >= levels.size(): return
@@ -10278,6 +10426,7 @@ func _do_level_start(index: int) -> void:
 	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
 	_set_time_of_day(index)
+	_setup_seasonal_theme()
 	_setup_realm_mechanic(index)
 	_generate_bg_story(index)
 	_generate_foreground(index)
@@ -22608,6 +22757,8 @@ func _draw() -> void:
 	_draw_overcharge_effect()
 	# --- PARALLAX FOREGROUND LAYER (in front of gameplay) ---
 	_draw_foreground()
+	# --- SEASONAL OVERLAY ---
+	_draw_seasonal_overlay()
 	# BATTD2: Storybook page
 	_draw_storybook_page()
 	# BATTD2: Enemy intel
