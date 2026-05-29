@@ -929,10 +929,12 @@ func _draw() -> void:
 			boss_pulse = 1.0 + sin(t * 1.5) * 0.04
 			walk_lean *= 0.5
 
-		# --- TIER PERSONALITY ---
+		# --- TIER PERSONALITY & VISUAL PROGRESSION (#96) ---
 		var tier_mult = 1.0 + float(enemy_tier) * 0.15
 		walk_lean *= tier_mult
 		bounce_y *= (1.0 - float(enemy_tier) * 0.1)
+		# Higher tiers are slightly larger (up to 20% at tier 4)
+		s *= (1.0 + float(mini(enemy_tier, 4)) * 0.05)
 
 		# --- STATUS EFFECTS ---
 		var status_rot = 0.0
@@ -972,7 +974,32 @@ func _draw() -> void:
 			_: _aura_col = Color(0.5, 0.5, 0.5)
 		var glow_r = _sd.y * 0.55
 		var glow_alpha = 0.15 + sin(t * 2.0) * 0.05
+		# Aura intensity scales with tier (#96)
+		glow_alpha *= (1.0 + float(mini(enemy_tier, 4)) * 0.25)
+		glow_r *= (1.0 + float(mini(enemy_tier, 4)) * 0.1)
 		draw_circle(Vector2(0, -_sd.y * 0.5), glow_r, Color(_aura_col.r, _aura_col.g, _aura_col.b, glow_alpha))
+
+		# --- TIER VISUAL PROGRESSION (#96) ---
+		# Tier 2+: Dark shadow particles orbiting
+		if enemy_tier >= 2:
+			var p_count = mini(enemy_tier - 1, 4)
+			for pi in range(p_count):
+				var pa = t * 2.0 + float(pi) * TAU / float(p_count)
+				var pr = _sd.y * 0.6
+				var pp = Vector2(cos(pa) * pr, sin(pa) * pr * 0.5 - _sd.y * 0.5)
+				draw_circle(pp, 2.0, Color(0.1, 0.1, 0.1, 0.3 + sin(t * 3.0 + float(pi)) * 0.1))
+		# Tier 3+: Ink corruption drips from top
+		if enemy_tier >= 3:
+			var drip_y = -_sd.y + fmod(t * 15.0, _sd.y * 0.6)
+			draw_circle(Vector2(-3 * s, -_sd.y + drip_y), 1.5 * s, Color(0.05, 0.05, 0.08, 0.4))
+			draw_circle(Vector2(4 * s, -_sd.y + fmod(t * 12.0 + 0.5, _sd.y * 0.6)), 1.0 * s, Color(0.05, 0.05, 0.08, 0.3))
+		# Tier 4+: Dark armor plate shimmer
+		if enemy_tier >= 4:
+			var armor_pulse = (sin(t * 2.0) + 1.0) * 0.5
+			draw_arc(Vector2(0, -_sd.y * 0.5), _sd.y * 0.45, 0, TAU, 16, Color(0.3, 0.3, 0.4, 0.15 + armor_pulse * 0.1), 2.0)
+			# Red eye glow
+			draw_circle(Vector2(-3 * s, -_sd.y * 0.8), 1.5, Color(1.0, 0.15, 0.1, 0.5 + armor_pulse * 0.3))
+			draw_circle(Vector2(3 * s, -_sd.y * 0.8), 1.5, Color(1.0, 0.15, 0.1, 0.5 + armor_pulse * 0.3))
 
 		# --- COMPOSE TRANSFORM (scale near 1.0 — like towers) ---
 		var total_rot = walk_lean + boss_rot + status_rot
