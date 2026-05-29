@@ -740,18 +740,22 @@ func _build_portal_hub() -> void:
 			else:
 				realm_art.modulate = Color(0.6, 0.6, 0.6, 0.9)  # Visible but desaturated
 			card.add_child(realm_art)
-			# Gradient overlay for text readability — darker at bottom
+			# Gradient overlay for text readability — shader-based
 			var realm_grad = ColorRect.new()
 			realm_grad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			realm_grad.color = Color(0.02, 0.01, 0.04, 0.35)
+			realm_grad.color = Color.WHITE
 			realm_grad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if ResourceLoader.exists("res://shaders/card_gradient.gdshader"):
+				var rg_shader = load("res://shaders/card_gradient.gdshader")
+				var rg_mat = ShaderMaterial.new()
+				rg_mat.shader = rg_shader
+				rg_mat.set_shader_parameter("gradient_start", 0.25)
+				rg_mat.set_shader_parameter("gradient_strength", 0.65)
+				rg_mat.set_shader_parameter("tint_color", Color(0.02, 0.01, 0.04, 1.0))
+				realm_grad.material = rg_mat
+			else:
+				realm_grad.color = Color(0.02, 0.01, 0.04, 0.35)
 			card.add_child(realm_grad)
-			var realm_bot_strip = ColorRect.new()
-			realm_bot_strip.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-			realm_bot_strip.offset_top = -70
-			realm_bot_strip.color = Color(0.02, 0.01, 0.04, 0.45)
-			realm_bot_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(realm_bot_strip)
 			# Locked: dark overlay OVER the art covering entire card
 			if not arc_unlocked:
 				var lock_shade = ColorRect.new()
@@ -1159,20 +1163,22 @@ func _build_arc_levels() -> void:
 			else:
 				level_art.modulate = Color(0.45, 0.45, 0.50, 0.45)
 			card.add_child(level_art)
-		# === GRADIENT OVERLAY — dark from bottom for text readability ===
+		# === GRADIENT OVERLAY — shader-based bottom-to-top for text readability ===
 		var grad_overlay = ColorRect.new()
 		grad_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		# Gradient: top is semi-transparent, bottom is darker
-		grad_overlay.color = Color(0.02, 0.01, 0.04, 0.45)
+		grad_overlay.color = Color.WHITE  # Shader handles the visual
 		grad_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if ResourceLoader.exists("res://shaders/card_gradient.gdshader"):
+			var grad_shader = load("res://shaders/card_gradient.gdshader")
+			var grad_mat = ShaderMaterial.new()
+			grad_mat.shader = grad_shader
+			grad_mat.set_shader_parameter("gradient_start", 0.2)
+			grad_mat.set_shader_parameter("gradient_strength", 0.75)
+			grad_mat.set_shader_parameter("tint_color", Color(0.02, 0.01, 0.04, 1.0))
+			grad_overlay.material = grad_mat
+		else:
+			grad_overlay.color = Color(0.02, 0.01, 0.04, 0.45)
 		card.add_child(grad_overlay)
-		# Extra dark strip at bottom for text area
-		var bot_strip = ColorRect.new()
-		bot_strip.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-		bot_strip.offset_top = -90
-		bot_strip.color = Color(0.02, 0.01, 0.04, 0.50)
-		bot_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(bot_strip)
 		# === LOCKED OVERLAY ===
 		if not is_unlocked:
 			var lock_shade = ColorRect.new()
