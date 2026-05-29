@@ -347,10 +347,11 @@ func _set_bg(view: String) -> void:
 	var dark = get_node_or_null("DarkOverlay")
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
-		background.modulate.a = 1.0
-		if dark: dark.color = Color(0.02, 0.01, 0.04, 0.15)  # Subtle dim over art
+		background.modulate = Color(1.4, 1.3, 1.2, 1.0)  # Brighten dark art
+		if dark: dark.color = Color(0.02, 0.01, 0.04, 0.08)  # Almost no dim
 	else:
 		background.texture = null
+		background.modulate = Color.WHITE
 		# No art — DarkOverlay becomes the solid background
 		if dark: dark.color = Color(0.06, 0.04, 0.12, 1.0)  # Solid dark purple
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
