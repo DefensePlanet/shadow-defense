@@ -24361,6 +24361,8 @@ func _draw() -> void:
 		_draw_career_stats()
 		if daily_reward_open:
 			_draw_daily_reward()
+		if news_open:
+			_draw_news_feed()
 		# Story dialog overlay (draws on top of everything in menu)
 		if story_state.active:
 			_draw_story_dialog()
@@ -43866,6 +43868,41 @@ var news_items: Array = [
 	{"title": "Season 1 Active", "body": "Climb the ranked ladder this month for exclusive rewards!", "date": "2026-05-01"},
 	{"title": "New Characters!", "body": "Headless Horseman, Medusa, Loki, and Anubis join the fight.", "date": "2026-05-15"},
 ]
+var news_open: bool = false
+var news_scroll: int = 0
+
+func _draw_news_feed() -> void:
+	if not news_open: return
+	# Full-screen overlay
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.0, 0.7))
+	# Panel
+	var px = 240.0; var py = 80.0; var pw = 800.0; var ph = 560.0
+	draw_rect(Rect2(px, py, pw, ph), Color(0.08, 0.05, 0.14, 0.95))
+	draw_rect(Rect2(px, py, pw, ph), Color(0.4, 0.3, 0.6, 0.4), false, 2.0)
+	# Title
+	_ds_outlined_text(Vector2(640, py + 20), "NEWS & EVENTS", 22, Color(1.0, 0.85, 0.2), 400, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Event banner (if active)
+	var y_offset = py + 55.0
+	if event_active:
+		draw_rect(Rect2(px + 20, y_offset, pw - 40, 40), Color(0.2, 0.1, 0.3, 0.6))
+		_ds_outlined_text(Vector2(640, y_offset + 10), "ACTIVE EVENT: %s" % current_event_name, 14, Color(0.4, 0.9, 1.0), 600, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(640, y_offset + 28), "Earn tokens by winning battles! Spend in Event Shop.", 10, Color(0.7, 0.7, 0.8), 600, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		y_offset += 50.0
+	# News items
+	for i in range(news_items.size()):
+		var item = news_items[i]
+		var iy = y_offset + float(i) * 80.0
+		if iy > py + ph - 40: break  # Don't draw past panel
+		draw_rect(Rect2(px + 20, iy, pw - 40, 70), Color(0.12, 0.08, 0.2, 0.5))
+		_ds_outlined_text(Vector2(px + 30, iy + 10), item["title"], 14, Color(1.0, 0.9, 0.5), int(pw - 60), HORIZONTAL_ALIGNMENT_LEFT, 1)
+		_ds_outlined_text(Vector2(px + 30, iy + 30), item["body"], 10, Color(0.7, 0.7, 0.8), int(pw - 60), HORIZONTAL_ALIGNMENT_LEFT, 1)
+		_ds_outlined_text(Vector2(px + pw - 50, iy + 52), item["date"], 8, Color(0.5, 0.5, 0.6), 80, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	# Close button hint
+	_ds_outlined_text(Vector2(640, py + ph - 20), "Tap anywhere to close", 10, Color(0.5, 0.5, 0.6), 200, HORIZONTAL_ALIGNMENT_CENTER, 1)
+
+func _toggle_news() -> void:
+	news_open = not news_open
+	queue_redraw()
 
 # === LOCALIZATION FRAMEWORK (#195) ===
 var current_language: String = "en"
