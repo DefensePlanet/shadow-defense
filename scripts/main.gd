@@ -21254,16 +21254,92 @@ func _handle_spawning(delta: float) -> void:
 		_spawn_enemy()
 		spawn_timer = spawn_interval
 
+# === WAVE COMPOSITION — mixed enemy types within waves ===
+# After wave 5, waves start mixing in secondary enemy types.
+# Boss waves get elite enemies. Later waves add more variety.
+var _wave_composition: Array = []  # Pre-generated list of enemy types for current wave
+var _wave_spawn_idx: int = 0
+
+func _generate_wave_composition(w: int) -> void:
+	_wave_composition.clear()
+	_wave_spawn_idx = 0
+	var count = _get_wave_enemy_count(w)
+	var base_theme = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
+	if w <= 3 or endless_mode:
+		# Early waves / endless: all same type
+		for _i in range(count):
+			_wave_composition.append({"theme": base_theme if not endless_mode else randi() % 13, "type": "normal"})
+		return
+	# Mix enemy types after wave 3
+	var mix_chance = minf(float(w - 3) * 0.04, 0.40)  # 4% more per wave, max 40%
+	# Enemy type pools based on realm
+	var secondary_types = ["fast", "armored", "healer", "shielded", "swarm"]
+	for i in range(count):
+		var entry = {"theme": base_theme, "type": "normal"}
+		# Boss wave — last enemy is elite
+		if w % 10 == 0 and i == count - 1:
+			entry["type"] = "boss"
+		elif w % 5 == 0 and i == count - 1:
+			entry["type"] = "mini_boss"
+		# Mix in secondary types
+		elif randf() < mix_chance:
+			entry["type"] = secondary_types[randi() % secondary_types.size()]
+		# Late waves: chance of elite enemies
+		if w >= 15 and randf() < 0.08:
+			entry["type"] = "elite"
+		_wave_composition.append(entry)
+
+func _get_next_wave_enemy_type() -> Dictionary:
+	if _wave_spawn_idx < _wave_composition.size():
+		var entry = _wave_composition[_wave_spawn_idx]
+		_wave_spawn_idx += 1
+		return entry
+	return {"theme": 0, "type": "normal"}
+
 func _spawn_enemy() -> void:
 	_spawn_portal_intensity = 1.0
 	var enemy = enemy_scene.instantiate()
 	enemy.add_to_group("enemies")
 
+	# Get composed enemy type for this spawn
+	var composition = _get_next_wave_enemy_type()
+
 	# Set enemy theme and tier
 	if endless_mode:
 		enemy.enemy_theme = randi() % 13
 	else:
-		enemy.enemy_theme = levels[current_level].get("enemy_theme", levels[current_level]["character"]) if current_level >= 0 and current_level < levels.size() else 0
+		enemy.enemy_theme = composition.get("theme", levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0)
+
+	# Apply enemy subtype modifiers
+	var subtype = composition.get("type", "normal")
+	match subtype:
+		"fast":
+			enemy.speed *= 1.6
+			enemy.max_health *= 0.6
+		"armored":
+			enemy.max_health *= 2.0
+			enemy.speed *= 0.7
+		"healer":
+			enemy.max_health *= 0.8
+			if "heal_aura" in enemy: enemy.heal_aura = true
+		"shielded":
+			enemy.max_health *= 1.5
+			if "shield_hp" in enemy: enemy.shield_hp = enemy.max_health * 0.3
+		"swarm":
+			enemy.max_health *= 0.3
+			enemy.speed *= 1.3
+			# Swarm spawns 2 extra tiny enemies
+		"elite":
+			enemy.max_health *= 2.5
+			enemy.speed *= 1.1
+			if "damage_mult" in enemy: enemy.damage_mult = 1.5
+		"mini_boss":
+			enemy.max_health *= 4.0
+			enemy.speed *= 0.8
+		"boss":
+			enemy.max_health *= 8.0
+			enemy.speed *= 0.6
+			enemy.boss_mechanic = ["summon", "shield_pulse", "enrage", "area_deny"][randi() % 4]
 	var wave_progress = float(wave) / float(max(1, total_waves))
 	if endless_mode:
 		var w = wave
@@ -33674,6 +33750,7 @@ func _start_next_wave() -> void:
 	if _poly != null:
 		_poly.on_wave_start(wave)
 	enemies_to_spawn = _get_wave_enemy_count(wave)
+	_generate_wave_composition(wave)
 	_wave_enemies_total = enemies_to_spawn
 	spawn_interval = _get_wave_spawn_interval(wave)
 	spawn_timer = 0.0
