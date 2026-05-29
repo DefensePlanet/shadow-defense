@@ -1531,10 +1531,13 @@ func _build_survivors() -> void:
 	for i in range(PORTRAIT_KEYS.size()):
 		var card = _survivor_card(i)
 		grid.add_child(card)
-		# Staggered entrance
+		# Staggered entrance — slide up + fade (consistent with realm cards)
 		card.modulate.a = 0.0
-		var tw = create_tween()
-		tw.tween_property(card, "modulate:a", 1.0, 0.15).set_delay(i * 0.03)
+		card.position.y += 20
+		var tw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.set_parallel(true)
+		tw.tween_property(card, "modulate:a", 1.0, 0.25).set_delay(i * 0.05)
+		tw.tween_property(card, "position:y", 0.0, 0.3).set_delay(i * 0.05)
 
 func _survivor_card(idx: int) -> Button:
 	# Check if character is unlocked
@@ -1582,10 +1585,26 @@ func _survivor_card(idx: int) -> Button:
 		frame_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		frame_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		frame_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		frame_art.modulate.a = 0.50  # Visible frame — adds depth without hiding portrait
+		frame_art.modulate.a = 0.25  # Subtle frame — portrait is primary visual
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: frame_art.material = mat
 		btn.add_child(frame_art)
+	# Gradient overlay — dark at bottom for text readability
+	var surv_grad = ColorRect.new()
+	surv_grad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	surv_grad.color = Color.WHITE
+	surv_grad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists("res://shaders/card_gradient.gdshader"):
+		var sg_shader = load("res://shaders/card_gradient.gdshader")
+		var sg_mat = ShaderMaterial.new()
+		sg_mat.shader = sg_shader
+		sg_mat.set_shader_parameter("gradient_start", 0.5)
+		sg_mat.set_shader_parameter("gradient_strength", 0.55)
+		sg_mat.set_shader_parameter("tint_color", Color(0.03, 0.02, 0.06, 1.0))
+		surv_grad.material = sg_mat
+	else:
+		surv_grad.color = Color(0.03, 0.02, 0.06, 0.0)  # Invisible fallback
+	btn.add_child(surv_grad)
 	# Content fills entire button area — centered
 	var vb = VBoxContainer.new()
 	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
