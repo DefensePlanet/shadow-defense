@@ -328,7 +328,15 @@ func _build_currency_bar() -> void:
 	var h = HBoxContainer.new()
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h.add_theme_constant_override("separation", 6)
-	top_bar.add_child(h)
+	# Left padding so Journey doesn't clip window edge
+	var h_margin = MarginContainer.new()
+	h_margin.add_theme_constant_override("margin_left", 10)
+	h_margin.add_theme_constant_override("margin_right", 0)
+	h_margin.add_theme_constant_override("margin_top", 0)
+	h_margin.add_theme_constant_override("margin_bottom", 0)
+	h_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	h_margin.add_child(h)
+	top_bar.add_child(h_margin)
 	# LEFT: Journey progress with mini bar (#1)
 	var completed_ct = _main.completed_levels.size() if "completed_levels" in _main else 0
 	var total_ct = _main.levels.size() if "levels" in _main else 90
@@ -336,7 +344,7 @@ func _build_currency_bar() -> void:
 	var journey_box = VBoxContainer.new()
 	journey_box.add_theme_constant_override("separation", 1)
 	journey_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	journey_box.custom_minimum_size.x = 130
+	journey_box.custom_minimum_size.x = 140
 	var journey_lbl = _lbl("Journey %d%% (%d/%d)" % [pct, completed_ct, total_ct], 10, Color(0.75, 0.65, 0.50))
 	journey_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	journey_box.add_child(journey_lbl)
@@ -586,23 +594,24 @@ func _build_portal_hub() -> void:
 			var cont_btn = Button.new()
 			cont_btn.text = "CONTINUE  ▶  %s" % next_name
 			cont_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			cont_btn.custom_minimum_size = Vector2(0, 44)
+			cont_btn.custom_minimum_size = Vector2(0, 40)
 			var cbs = StyleBoxFlat.new()
-			cbs.bg_color = Color(0.15, 0.45, 0.15, 0.90)
-			cbs.border_color = Color(0.35, 0.80, 0.30, 0.8)
+			cbs.bg_color = Color(0.12, 0.08, 0.22, 0.92)
+			cbs.border_color = Color(0.85, 0.65, 0.15, 0.8)
 			cbs.set_border_width_all(2)
 			cbs.set_corner_radius_all(10)
 			cbs.shadow_color = Color(0, 0, 0, 0.3)
 			cbs.shadow_size = 4
 			cont_btn.add_theme_stylebox_override("normal", cbs)
 			var cbsh = cbs.duplicate()
-			cbsh.bg_color = Color(0.20, 0.55, 0.20, 0.95)
+			cbsh.bg_color = Color(0.18, 0.12, 0.30, 0.95)
+			cbsh.border_color = Color(1.0, 0.80, 0.20, 0.9)
 			cont_btn.add_theme_stylebox_override("hover", cbsh)
 			var cbsp = cbs.duplicate()
-			cbsp.bg_color = Color(0.10, 0.35, 0.10, 0.95)
+			cbsp.bg_color = Color(0.08, 0.05, 0.16, 0.95)
 			cont_btn.add_theme_stylebox_override("pressed", cbsp)
-			cont_btn.add_theme_font_size_override("font_size", 16)
-			cont_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 0.95))
+			cont_btn.add_theme_font_size_override("font_size", 15)
+			cont_btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.40))
 			cont_btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 			cont_btn.add_theme_constant_override("shadow_offset_x", 1)
 			cont_btn.add_theme_constant_override("shadow_offset_y", 1)
@@ -835,12 +844,22 @@ func _build_portal_hub() -> void:
 			"Shadow Author": "🖋", "Alice's Trial": "♠", "Robin's Trial": "🏹", "Scrooge's Trial": "💰",
 			"Headless Horseman": "🎃", "Medusa": "🐍", "Loki": "🗡", "Anubis": "☥", "The Narrator": "🔥"}
 		var theme_icon = realm_icons.get(realm["arc"], "")
-		if theme_icon != "" and arc_unlocked:
-			var icon_lbl = _lbl(theme_icon, 16, Color(1, 1, 1, 0.6))
-			icon_lbl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-			icon_lbl.position = Vector2(-28, -28)
+		if theme_icon != "":
+			# Dark circle behind icon for visibility
+			var icon_bg = PanelContainer.new()
+			var ibs = StyleBoxFlat.new()
+			ibs.bg_color = Color(0.04, 0.02, 0.08, 0.7)
+			ibs.set_corner_radius_all(16)
+			ibs.content_margin_left = 5; ibs.content_margin_right = 5
+			ibs.content_margin_top = 3; ibs.content_margin_bottom = 3
+			icon_bg.add_theme_stylebox_override("panel", ibs)
+			icon_bg.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+			icon_bg.position = Vector2(-38, -36)
+			icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var icon_lbl = _lbl(theme_icon, 18, Color(1, 1, 1, 0.8) if arc_unlocked else Color(0.6, 0.6, 0.6, 0.5))
 			icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(icon_lbl)
+			icon_bg.add_child(icon_lbl)
+			card.add_child(icon_bg)
 		# --- Pulsing glow border on next playable realm (#5) ---
 		if is_next_realm and not arc_complete:
 			var glow_tw = create_tween().set_loops()
