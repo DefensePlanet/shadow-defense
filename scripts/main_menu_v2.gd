@@ -624,8 +624,8 @@ func _build_portal_hub() -> void:
 			vb.add_child(_section_header(act_names.get(act_num, "ACT %d" % act_num)))
 			grid = GridContainer.new()
 			grid.columns = 3
-			grid.add_theme_constant_override("h_separation", 10)
-			grid.add_theme_constant_override("v_separation", 10)
+			grid.add_theme_constant_override("h_separation", 14)
+			grid.add_theme_constant_override("v_separation", 14)
 			grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			vb.add_child(grid)
@@ -4275,33 +4275,53 @@ func _art_button(text: String, color: Color, min_size: Vector2 = Vector2(110, 32
 	return btn
 
 func _section_header(text: String) -> Control:
+	# Dark panel behind the header for visual weight (#34)
+	var panel = PanelContainer.new()
+	var ps = StyleBoxFlat.new()
+	ps.bg_color = Color(0.05, 0.03, 0.10, 0.75)
+	ps.set_corner_radius_all(6)
+	ps.content_margin_left = 0; ps.content_margin_right = 0
+	ps.content_margin_top = 6; ps.content_margin_bottom = 6
+	panel.add_theme_stylebox_override("panel", ps)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 10)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Left decorative line with diamond
+	# Left gold line — extends to fill (#33)
 	var line_l = ColorRect.new()
-	line_l.custom_minimum_size = Vector2(40, 1)
-	line_l.color = Color(0.55, 0.42, 0.18, 0.45)
+	line_l.custom_minimum_size = Vector2(0, 2)
+	line_l.color = Color(0.65, 0.50, 0.18, 0.5)
 	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_l)
-	var dot_l = _lbl("◆", 10, Color(0.65, 0.50, 0.18, 0.55))
+	# Left diamond
+	var dot_l = _lbl("◆", 12, Color(1.0, 0.85, 0.15, 0.7))
 	dot_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(dot_l)
-	var lbl = _lbl(text, 15, Color(0.85, 0.72, 0.40))
+	# Act text — display font, large, bright gold (#31, #32)
+	var lbl = _lbl(text, 20, Color(1.0, 0.88, 0.35))
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	lbl.add_theme_constant_override("shadow_offset_x", 2)
+	lbl.add_theme_constant_override("shadow_offset_y", 2)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(lbl)
-	var dot_r = _lbl("◆", 10, Color(0.65, 0.50, 0.18, 0.55))
+	# Right diamond
+	var dot_r = _lbl("◆", 12, Color(1.0, 0.85, 0.15, 0.7))
 	dot_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(dot_r)
+	# Right gold line — extends to fill (#33)
 	var line_r = ColorRect.new()
-	line_r.custom_minimum_size = Vector2(0, 1)
-	line_r.color = Color(0.55, 0.42, 0.18, 0.45)
+	line_r.custom_minimum_size = Vector2(0, 2)
+	line_r.color = Color(0.65, 0.50, 0.18, 0.5)
 	line_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line_r)
-	return row
+	panel.add_child(row)
+	return panel
 
 func _open_slot_picker(char_idx: int, tower_type, slot_name: String) -> void:
 	_clear()
