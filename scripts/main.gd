@@ -9471,7 +9471,7 @@ func _create_ui() -> void:
 		ink_overlay.material = ink_mat
 	ui.add_child(ink_overlay)
 	# Torn page border frame (static art overlay)
-	if ResourceLoader.exists("res://assets/ui_elements/page_tear_border.png"):
+	if DisplayServer.get_name() != "headless" and ResourceLoader.exists("res://assets/ui_elements/page_tear_border.png"):
 		var page_border = TextureRect.new()
 		page_border.texture = load("res://assets/ui_elements/page_tear_border.png")
 		page_border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -9753,7 +9753,7 @@ func _create_ui() -> void:
 	_sa_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_sa_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_sa_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if ResourceLoader.exists("res://assets/ui_elements/shadow_author_portrait.png"):
+	if DisplayServer.get_name() != "headless" and ResourceLoader.exists("res://assets/ui_elements/shadow_author_portrait.png"):
 		_sa_portrait.texture = load("res://assets/ui_elements/shadow_author_portrait.png")
 		if ResourceLoader.exists("res://shaders/black_key.gdshader"):
 			var sa_mat = ShaderMaterial.new()
