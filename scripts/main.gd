@@ -21343,6 +21343,21 @@ func _spawn_enemy() -> void:
 			enemy.max_health *= 8.0
 			enemy.speed *= 0.6
 			enemy.boss_mechanic = ["summon", "shield_pulse", "enrage", "area_deny"][randi() % 4]
+
+	# Flying enemy chance — increases with wave number
+	# Wave 8+: 5% chance any normal enemy flies. Wave 15+: 10%.
+	if not endless_mode and subtype == "normal" and wave >= 8:
+		var fly_chance = 0.05 if wave < 15 else 0.10
+		if randf() < fly_chance:
+			enemy.is_flying = true
+			enemy.fly_speed = enemy.speed * 0.8  # Slightly slower than path speed
+			enemy.max_health *= 0.7  # Less HP than ground units
+			# Set fly target to path exit point
+			if path_points.size() > 0:
+				enemy.fly_target = path_points[path_points.size() - 1]
+			# Spawn at path entrance but offset upward
+			if path_points.size() > 0:
+				enemy.global_position = path_points[0] + Vector2(randf_range(-30, 30), -30)
 	var wave_progress = float(wave) / float(max(1, total_waves))
 	if endless_mode:
 		var w = wave

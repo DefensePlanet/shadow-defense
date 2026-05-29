@@ -98,6 +98,13 @@ var heal_aura: bool = false           # Heals nearby enemies
 var spawn_count: int = 0              # Mini-enemies spawned so far
 var debuff_aura_active: bool = false  # Slows nearby towers
 
+# === FLYING ENEMIES — ignore the path, fly straight to exit ===
+var is_flying: bool = false
+var fly_target: Vector2 = Vector2(640, 670)  # Exit point
+var fly_speed: float = 60.0
+var fly_height: float = 0.0  # Visual height offset (shadow below)
+var fly_wobble: float = 0.0  # Sinusoidal movement
+
 # === Damage Type System ===
 var resistances: Dictionary = {}      # e.g. {"physical": 0.5} = 50% physical resist
 var immunities: Array = []            # e.g. ["magic"] = immune to magic damage
@@ -372,6 +379,25 @@ func _process(delta: float) -> void:
 	# Enhancement #100: Ghost health bar decay
 	if _ghost_health > health:
 		_ghost_health = lerpf(_ghost_health, health, _ghost_health_decay * delta)
+
+	# Flying enemies — bypass path, fly straight to exit
+	if is_flying:
+		fly_wobble += delta * 2.0
+		var dir_to_exit = (fly_target - global_position).normalized()
+		global_position += dir_to_exit * fly_speed * delta
+		global_position.y += sin(fly_wobble) * 0.5  # Gentle wobble
+		fly_height = 20.0 + sin(fly_wobble * 0.7) * 5.0  # Visual float
+		# Check if reached exit
+		if global_position.distance_to(fly_target) < 20.0:
+			var main_node = get_tree().get_first_node_in_group("main")
+			if main_node and main_node.has_method("lose_life"):
+				main_node.lose_life()
+			queue_free()
+			return
+		_process_active_ability(delta)
+		if _hit_flash > 0.0: _hit_flash -= delta
+		queue_redraw()
+		return  # Skip path-based movement entirely
 
 	# Fear reverse — walk backwards
 	if fear_reverse_timer > 0.0:
@@ -726,6 +752,17 @@ func _draw() -> void:
 	if lod_level >= 2:
 		return
 	var s: float = shrink_scale * boss_scale
+
+	# Flying enemy visuals — shadow + height offset + wings
+	if is_flying:
+		# Ground shadow
+		draw_circle(Vector2(0, fly_height), 8.0 * s, Color(0, 0, 0, 0.15))
+		# Wings (flapping)
+		var wing_flap = sin(fly_wobble * 4.0) * 6.0
+		draw_line(Vector2(-12 * s, -fly_height + wing_flap), Vector2(0, -fly_height), Color(0.4, 0.3, 0.5, 0.5), 2.0)
+		draw_line(Vector2(12 * s, -fly_height + wing_flap), Vector2(0, -fly_height), Color(0.4, 0.3, 0.5, 0.5), 2.0)
+		# Offset all drawing upward by fly_height
+		draw_set_transform(Vector2(0, -fly_height), 0.0, Vector2.ONE)
 
 	# Spawn fade-in effect
 	if _spawn_fade > 0.0:
