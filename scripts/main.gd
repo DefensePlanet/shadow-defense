@@ -54,7 +54,7 @@ var tower_info = {
 	TowerType.MEDUSA: {"name": "Medusa", "cost": 280, "range": 150.0, "damage": 20, "fire_rate": 0.90, "desc": "Petrifying Gaze freezes enemies in stone. Snake-hair venom bolts."},
 	TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
 	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
-	TowerType.CAPTAIN_AHAB: {"name": "Captain Ahab", "cost": 220, "range": 170.0, "damage": 30, "fire_rate": 0.65, "desc": "Obsessive hunter. Harpoon tether slows boss enemies. 3x damage to marked targets."},
+	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
 }
 
 # Survivor skins — purchasable outfit variants
@@ -296,7 +296,8 @@ var survivor_types = [
 	TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON,
 	# ACT 4 mythological characters (unlock by rescuing in Narrator's Realm)
 	TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.LOKI,
-	TowerType.ANUBIS, TowerType.CAPTAIN_AHAB,
+	TowerType.ANUBIS,
+	# CAPTAIN_AHAB removed — Hook covers the ocean/pirate archetype
 ]
 var survivor_descriptions = {
 	TowerType.ROBIN_HOOD: "The legendary outlaw of Sherwood Forest.\nLong-range archer with piercing arrows and gold bonus.",
@@ -4109,7 +4110,7 @@ const CHARACTER_ALIGNMENT: Dictionary = {
 	TowerType.SHERLOCK: "hero",
 	TowerType.TARZAN: "hero",
 	TowerType.MERLIN: "hero",
-	TowerType.CAPTAIN_AHAB: "hero",  # Tragic hero
+	# TowerType.CAPTAIN_AHAB: removed
 	# VILLAINS — antagonists who switched sides
 	TowerType.WICKED_WITCH: "villain",
 	TowerType.DRACULA: "villain",
@@ -26756,7 +26757,7 @@ const CHARACTER_DAMAGE_TYPES: Dictionary = {
 	TowerType.MEDUSA: "magic",
 	TowerType.LOKI: "magic",
 	TowerType.ANUBIS: "holy",
-	TowerType.CAPTAIN_AHAB: "physical",
+	# CAPTAIN_AHAB removed
 }
 
 # Extended combat stats per character (beyond base damage/range/speed)
@@ -26780,8 +26781,58 @@ const CHARACTER_COMBAT_STATS: Dictionary = {
 	TowerType.MEDUSA: {"armor_pen": 0.10, "crit_chance": 0.08, "crit_mult": 2.0, "lifesteal": 0.0},
 	TowerType.LOKI: {"armor_pen": 0.0, "crit_chance": 0.20, "crit_mult": 2.5, "lifesteal": 0.0},
 	TowerType.ANUBIS: {"armor_pen": 0.20, "crit_chance": 0.15, "crit_mult": 2.0, "lifesteal": 0.12},
-	TowerType.CAPTAIN_AHAB: {"armor_pen": 0.40, "crit_chance": 0.10, "crit_mult": 2.0, "lifesteal": 0.0},
+	# CAPTAIN_AHAB removed
 }
+
+# === CHARACTER LEVEL SCALING — keeps early characters competitive ===
+# Every level gives +4% damage, +1.5% range, +2% attack speed.
+# This means a level 20 character has roughly 2x the stats of level 1.
+# Combined with gear, upgrades, and mastery bonuses, early characters
+# remain viable throughout the entire game.
+
+const LEVEL_SCALING: Dictionary = {
+	"damage_per_level": 0.04,      # +4% per level = +80% at level 20
+	"range_per_level": 0.015,      # +1.5% per level = +30% at level 20
+	"attack_speed_per_level": 0.02, # +2% per level = +40% at level 20
+	"hp_absorb_per_level": 0.005,  # +0.5% leaked enemy absorb chance per level
+}
+
+func _get_scaled_damage(tower_type, base_damage: float) -> float:
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	var scale = 1.0 + float(level - 1) * LEVEL_SCALING["damage_per_level"]
+	# Apply mastery global bonuses
+	var mastery_bonuses = _get_total_mastery_bonuses()
+	scale += mastery_bonuses.get("all_damage", 0.0)
+	# Apply alignment bonuses from team composition
+	var team_bonus = _check_team_alignment_bonus()
+	for b in team_bonus["bonuses"]:
+		if "damage" in b.get("desc", "").to_lower():
+			scale += b.get("bonus", 0.0)
+	# Apply day/night bonus
+	scale += _get_time_of_day_damage_bonus(tower_type)
+	return base_damage * scale
+
+func _get_scaled_range(tower_type, base_range: float) -> float:
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	var scale = 1.0 + float(level - 1) * LEVEL_SCALING["range_per_level"]
+	var mastery_bonuses = _get_total_mastery_bonuses()
+	scale += mastery_bonuses.get("all_range", 0.0)
+	return base_range * scale
+
+func _get_scaled_attack_speed(tower_type, base_speed: float) -> float:
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	var scale = 1.0 + float(level - 1) * LEVEL_SCALING["attack_speed_per_level"]
+	var mastery_bonuses = _get_total_mastery_bonuses()
+	scale += mastery_bonuses.get("all_attack_speed", 0.0)
+	return base_speed * scale
+
+func _get_level_stat_summary(tower_type) -> String:
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	var dmg_bonus = int(float(level - 1) * LEVEL_SCALING["damage_per_level"] * 100)
+	var rng_bonus = int(float(level - 1) * LEVEL_SCALING["range_per_level"] * 100)
+	var spd_bonus = int(float(level - 1) * LEVEL_SCALING["attack_speed_per_level"] * 100)
+	if level <= 1: return "Base stats"
+	return "+%d%% DMG, +%d%% RNG, +%d%% SPD" % [dmg_bonus, rng_bonus, spd_bonus]
 
 func _get_damage_type(tower_type) -> String:
 	return CHARACTER_DAMAGE_TYPES.get(tower_type, "physical")

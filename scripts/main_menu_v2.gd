@@ -38,7 +38,7 @@ const REALMS: Array = [
 	{"arc": "Medusa", "name": "The Gorgon's Prison", "icon": "realm_prologue", "portrait": "wicked_witch", "color": [0.3, 0.55, 0.3], "levels": [49, 50, 51], "act": 4, "rescues": "medusa"},
 	{"arc": "Loki", "name": "The Trickster's Cage", "icon": "realm_prologue", "portrait": "peter_pan", "color": [0.4, 0.55, 0.2], "levels": [52, 53, 54], "act": 4, "rescues": "loki"},
 	{"arc": "Anubis", "name": "The Weighing Hall", "icon": "realm_prologue", "portrait": "dracula", "color": [0.6, 0.5, 0.15], "levels": [55, 56, 57], "act": 4, "rescues": "anubis"},
-	{"arc": "Captain Ahab", "name": "The White Whale", "icon": "realm_prologue", "portrait": "scrooge", "color": [0.3, 0.4, 0.55], "levels": [58, 59, 60], "act": 4, "rescues": "captain_ahab"},
+	# Captain Ahab removed — Hook covers ocean/pirate archetype
 	{"arc": "The Narrator", "name": "The Voice Unbound", "icon": "realm_shadow", "portrait": "shadow_author", "color": [0.8, 0.5, 0.2], "levels": [61, 62, 63], "act": 4},
 ]
 var _song_label: Label = null
