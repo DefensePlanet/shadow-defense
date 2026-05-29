@@ -2897,6 +2897,41 @@ func _grant_bp_reward(reward: Dictionary) -> void:
 		"stars": player_storybook_stars += reward["amount"]
 	spawn_floating_text(Vector2(640, 400), "+%s" % reward["label"], Color(0.3, 1.0, 0.6), 14.0, 1.5)
 
+# === RANKED SEASONS (#121) ===
+var season_rank_points: int = 0
+var season_rank_tier: int = 0  # 0-6
+var season_month: String = ""  # "2026-05"
+const SEASON_RANKS: Array = [
+	{"name": "Bronze Scribe", "min_pts": 0, "color": Color(0.7, 0.5, 0.3)},
+	{"name": "Silver Author", "min_pts": 200, "color": Color(0.7, 0.7, 0.8)},
+	{"name": "Gold Narrator", "min_pts": 500, "color": Color(1.0, 0.85, 0.0)},
+	{"name": "Platinum Sage", "min_pts": 1000, "color": Color(0.6, 0.8, 0.9)},
+	{"name": "Diamond Legend", "min_pts": 2000, "color": Color(0.5, 0.7, 1.0)},
+	{"name": "Mythic Weaver", "min_pts": 3500, "color": Color(0.8, 0.3, 1.0)},
+	{"name": "Shadow Master", "min_pts": 5000, "color": Color(0.9, 0.1, 0.1)},
+]
+
+func _add_ranked_points(amount: int) -> void:
+	var current_month = Time.get_date_string_from_system().left(7)
+	if season_month != current_month:
+		# New month = new season, soft reset
+		season_rank_points = int(season_rank_points * 0.3)  # Keep 30%
+		season_month = current_month
+	season_rank_points += amount
+	# Update tier
+	var old_tier = season_rank_tier
+	season_rank_tier = 0
+	for i in range(SEASON_RANKS.size() - 1, -1, -1):
+		if season_rank_points >= SEASON_RANKS[i]["min_pts"]:
+			season_rank_tier = i
+			break
+	if season_rank_tier > old_tier:
+		var rank = SEASON_RANKS[season_rank_tier]
+		spawn_floating_text(Vector2(640, 180), "RANK UP: %s!" % rank["name"], rank["color"], 22.0, 3.0)
+		# Tier-up reward
+		player_pages += 10 * season_rank_tier
+		player_quills += 3 * season_rank_tier
+
 # === MILESTONE REWARDS ===
 var milestone_claimed: Dictionary = {}
 var total_damage: int = 0
@@ -36109,6 +36144,8 @@ func _victory() -> void:
 	_haptic(2)  # Strong haptic on victory
 	# Battle Pass XP on victory (#116)
 	_add_bp_xp(25 + selected_difficulty * 10)
+	# Ranked points (#121)
+	_add_ranked_points(10 + selected_difficulty * 5 + wave / 2)
 	speed_button.text = "  >>  "
 	# Victory burst effect
 	_victory_burst_timer = 2.0
@@ -36149,8 +36186,17 @@ func _victory() -> void:
 		stars = 3
 	elif lives >= int(max_lives * 0.5):
 		stars = 2
-	if current_level >= 0 and not current_level in completed_levels:
+	# First-clear bonus (#122): 3x rewards on first completion
+	var is_first_clear = current_level >= 0 and not current_level in completed_levels
+	if is_first_clear:
 		completed_levels.append(current_level)
+		var fc_gold = 50 + wave * 3
+		var fc_pages = 10
+		add_gold(fc_gold * 2)  # Extra 2x on top of normal (= 3x total)
+		player_pages += fc_pages
+		spawn_floating_text(Vector2(640, 160), "FIRST CLEAR! x3 REWARDS!", Color(1.0, 0.85, 0.0), 24.0, 3.0)
+		spawn_floating_text(Vector2(640, 190), "+%dG +%d Pages" % [fc_gold * 2, fc_pages], c_gold_bright, 14.0, 2.0)
+		_add_bp_xp(15)  # Extra BP XP for first clear
 	# Unlock corrupted versions for completed levels
 	if current_level >= 0:
 		corrupted_maps_unlocked[current_level] = true
@@ -42960,10 +43006,20 @@ func _add_account_xp(amount: int) -> void:
 		if account_xp >= ACCOUNT_XP_PER_LEVEL[account_level - 1]:
 			account_xp -= ACCOUNT_XP_PER_LEVEL[account_level - 1]
 			account_level += 1
-			# Award stat point
+			# Award stat point + milestone rewards (#123)
 			_milestone_popup_text = "ACCOUNT LEVEL %d!" % account_level
 			_milestone_popup_sub = "+1 Stat Point"
 			_milestone_popup_timer = 3.0
+			# Milestone rewards every 5 levels
+			if account_level % 5 == 0:
+				var ml_pages = 10 * (account_level / 5)
+				var ml_quills = 5 * (account_level / 5)
+				player_pages += ml_pages
+				player_quills += ml_quills
+				_milestone_popup_sub = "+1 Stat Point +%d Pages +%d Quills" % [ml_pages, ml_quills]
+			if account_level % 10 == 0:
+				player_storybook_stars += account_level / 10
+				_milestone_popup_sub += " +%d Stars!" % (account_level / 10)
 		else:
 			break
 
