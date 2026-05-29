@@ -207,6 +207,81 @@ func get_visible_equipment_summary() -> String:
 	if parts.size() == 0: return "No equipment"
 	return " | ".join(parts)
 
+# === CHARACTER EVOLUTION — visual changes at level milestones ===
+# Characters visually evolve at levels 5, 10, 15, 20 with:
+# new aura effects, size growth, glow intensity, visual complexity
+var evolution_tier: int = 0  # 0=base, 1=lv5, 2=lv10, 3=lv15, 4=lv20 (Awakened)
+var evolution_aura_color: Color = Color(1, 1, 1, 0)
+var evolution_aura_radius: float = 0.0
+var evolution_scale_bonus: float = 0.0  # Added to base scale
+var evolution_glow_intensity: float = 0.0
+var evolution_particle_count: int = 0
+var _evolution_particles: Array = []
+
+const EVOLUTION_TIERS: Array = [
+	{"level": 1, "name": "Novice", "aura": Color(0, 0, 0, 0), "aura_radius": 0, "scale": 0.0, "glow": 0.0, "particles": 0},
+	{"level": 5, "name": "Adept", "aura": Color(0.3, 0.6, 0.9, 0.08), "aura_radius": 30, "scale": 0.05, "glow": 0.1, "particles": 3},
+	{"level": 10, "name": "Expert", "aura": Color(0.6, 0.3, 0.9, 0.12), "aura_radius": 35, "scale": 0.08, "glow": 0.2, "particles": 5},
+	{"level": 15, "name": "Master", "aura": Color(0.9, 0.7, 0.1, 0.15), "aura_radius": 40, "scale": 0.10, "glow": 0.3, "particles": 8},
+	{"level": 20, "name": "AWAKENED", "aura": Color(1.0, 0.85, 0.2, 0.20), "aura_radius": 50, "scale": 0.12, "glow": 0.5, "particles": 12},
+]
+
+func update_evolution(char_level: int) -> void:
+	evolution_tier = 0
+	for i in range(EVOLUTION_TIERS.size() - 1, -1, -1):
+		if char_level >= EVOLUTION_TIERS[i]["level"]:
+			evolution_tier = i
+			break
+	var tier = EVOLUTION_TIERS[evolution_tier]
+	evolution_aura_color = tier["aura"]
+	evolution_aura_radius = tier["aura_radius"]
+	evolution_scale_bonus = tier["scale"]
+	evolution_glow_intensity = tier["glow"]
+	evolution_particle_count = tier["particles"]
+	# Generate evolution particles
+	_evolution_particles.clear()
+	for _i in range(evolution_particle_count):
+		_evolution_particles.append({
+			"angle": randf() * TAU,
+			"speed": randf_range(0.5, 1.5),
+			"dist": randf_range(15, 35),
+			"size": randf_range(1.0, 2.5),
+		})
+
+func _draw_evolution_effects() -> void:
+	if evolution_tier <= 0: return
+	var time = _time if "_time" in self else 0.0
+	# Aura ring
+	if evolution_aura_radius > 0:
+		var pulse = sin(time * 2.0) * 0.3 + 0.7
+		for gi in range(3):
+			var gr = evolution_aura_radius + float(gi) * 5.0
+			draw_circle(Vector2.ZERO, gr, Color(evolution_aura_color.r, evolution_aura_color.g, evolution_aura_color.b, evolution_aura_color.a * pulse * (1.0 - float(gi) * 0.25)))
+	# Orbiting particles
+	for p in _evolution_particles:
+		p["angle"] += p["speed"] * 0.02
+		var px = cos(p["angle"]) * p["dist"]
+		var py = sin(p["angle"]) * p["dist"] * 0.5  # Flattened orbit
+		var pa = evolution_glow_intensity * 0.5
+		draw_circle(Vector2(px, py), p["size"], Color(evolution_aura_color.r, evolution_aura_color.g, evolution_aura_color.b, pa))
+	# Level tier badge below character
+	if evolution_tier >= 2:
+		var tier_name = EVOLUTION_TIERS[evolution_tier]["name"]
+		var badge_col = evolution_aura_color
+		badge_col.a = 0.6
+		# Small text badge
+		if has_method("_udraw"):
+			pass  # Would need font ref — skip for now
+	# Awakened special effect (level 20) — golden halo
+	if evolution_tier >= 4:
+		var halo_pulse = (sin(time * 1.5) + 1.0) * 0.5
+		draw_arc(Vector2(0, -25), 18.0 + halo_pulse * 3.0, 0, TAU, 20, Color(1.0, 0.85, 0.2, 0.15 + halo_pulse * 0.1), 2.0)
+		# Crown-like spikes
+		for si in range(5):
+			var sa = float(si) / 5.0 * PI + PI
+			var spike_h = 6.0 + halo_pulse * 2.0
+			draw_line(Vector2(cos(sa) * 16, -25 + sin(sa) * 8), Vector2(cos(sa) * 16, -25 + sin(sa) * 8 - spike_h), Color(1.0, 0.85, 0.2, 0.2), 1.5)
+
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null
 
