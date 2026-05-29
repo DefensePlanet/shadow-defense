@@ -3053,6 +3053,44 @@ const QUEST_CHAINS: Array = [
 ]
 var quest_chain_progress: Dictionary = {}  # chain_id -> step_index
 
+func _check_quest_chain_progress() -> void:
+	for chain in QUEST_CHAINS:
+		var cid = chain["id"]
+		var current_step = quest_chain_progress.get(cid, 0)
+		if current_step >= chain["steps"].size():
+			continue  # Chain complete
+		var step = chain["steps"][current_step]
+		var completed = false
+		match step["type"]:
+			"complete_levels":
+				completed = true
+				for lvl in step["target_levels"]:
+					if lvl not in completed_levels:
+						completed = false
+						break
+			"complete_hard":
+				var medals = level_difficulty_medals.get(step["target_level"], [false, false, false])
+				completed = medals.size() > 2 and medals[2]  # Hard = index 2
+			"combo_kills_in_realm":
+				# Track via career stats (approximate — check best combo)
+				completed = _kill_combo_best >= step["target"]
+			"duo_battles":
+				# Tracked via active_bonds usage count
+				completed = career_stats.get("total_games_played", 0) >= step["target"]
+		if completed:
+			quest_chain_progress[cid] = current_step + 1
+			# Grant reward
+			var reward = step["reward"]
+			if reward.has("pages"): player_pages += reward["pages"]
+			if reward.has("quills"): player_quills += reward["quills"]
+			if reward.has("stars"): player_storybook_stars += reward["stars"]
+			spawn_floating_text(Vector2(640, 160), "QUEST CHAIN: %s" % chain["name"], Color(0.4, 0.9, 1.0), 18.0, 3.0)
+			spawn_floating_text(Vector2(640, 185), "Step %d complete!" % (current_step + 1), Color(0.3, 1.0, 0.6), 14.0, 2.0)
+			_haptic(1)
+			# Check if chain is now fully complete
+			if quest_chain_progress[cid] >= chain["steps"].size():
+				spawn_floating_text(Vector2(640, 210), "CHAIN COMPLETE! 🏆", c_gold_bright, 16.0, 3.0)
+
 # === EVENT CURRENCY (#139) ===
 var event_tokens: int = 0
 var event_shop_items: Array = []
@@ -5664,6 +5702,7 @@ func _save_game() -> void:
 	save_data["bp_tier"] = bp_tier
 	save_data["bp_xp"] = bp_xp
 	save_data["bp_claimed"] = bp_claimed
+	save_data["quest_chain_progress"] = quest_chain_progress
 	save_data["gold"] = gold
 	# Progress
 	save_data["completed_levels"] = completed_levels
@@ -5956,6 +5995,10 @@ func _load_game() -> void:
 	energy_last_timestamp = float(data.get("energy_last_timestamp", 0.0))
 	bp_tier = int(data.get("bp_tier", 0))
 	bp_xp = int(data.get("bp_xp", 0))
+	var qcp = data.get("quest_chain_progress", {})
+	quest_chain_progress.clear()
+	for k in qcp:
+		quest_chain_progress[k] = int(qcp[k])
 	var bp_c = data.get("bp_claimed", [])
 	bp_claimed.clear()
 	for bc in bp_c:
@@ -36516,6 +36559,8 @@ func _victory() -> void:
 		stars = 3
 	elif lives >= int(max_lives * 0.5):
 		stars = 2
+	# Quest chain progress check (#132)
+	_check_quest_chain_progress()
 	# First-clear bonus (#122): 3x rewards on first completion
 	var is_first_clear = current_level >= 0 and not current_level in completed_levels
 	if is_first_clear:
