@@ -2461,7 +2461,12 @@ var levels = [
 
 # Difficulty selection (0=Easy, 1=Medium, 2=Hard)
 var selected_difficulty: int = 0
-var difficulty_waves: Array = [20, 30, 40, 40]
+# Wave counts per difficulty — increased for longer, more satisfying games
+# Easy: 30 waves (~10-15 min) — approachable for casual players
+# Medium: 40 waves (~15-20 min) — standard full experience
+# Hard: 50 waves (~20-30 min) — serious challenge, late waves brutal
+# Pure: 60 waves (~30-45 min) — marathon endurance test, ultimate difficulty
+var difficulty_waves: Array = [30, 40, 50, 60]
 var difficulty_gold_bonus: Array = [8, 0, -10, -20]
 var difficulty_lives_bonus: Array = [5, 0, -5, -5]  # Legacy — overridden by fixed lives below
 var difficulty_fixed_lives: Array = [100, 50, 20, 1]  # Easy=100, Medium=50, Hard=20, Pure=1
