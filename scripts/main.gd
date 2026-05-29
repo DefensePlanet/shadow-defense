@@ -4148,6 +4148,59 @@ const AWAKENED_FORMS: Dictionary = {
 	},
 }
 
+# === 3-PATH UPGRADE SYSTEM — BTD6-style branching ===
+const UPGRADE_PATH_NAMES: Dictionary = {
+	TowerType.ROBIN_HOOD: ["The Archer", "The Outlaw", "The Legend"],
+	TowerType.ALICE: ["Wonderland Logic", "Mad Tea Party", "The Red Queen"],
+	TowerType.WICKED_WITCH: ["Animal Army", "Dark Sorcery", "The Golden Cap"],
+	TowerType.PETER_PAN: ["Boy Who Never Grew Up", "Fairy Dust", "Neverland"],
+	TowerType.PHANTOM: ["The Voice", "The Labyrinth", "The Chandelier"],
+	TowerType.SCROOGE: ["The Miser", "The Ghosts", "Redemption"],
+	TowerType.SHERLOCK: ["Deduction", "Great Detective", "Baker Street"],
+	TowerType.TARZAN: ["Lord of the Jungle", "Call of the Wild", "Greystoke"],
+	TowerType.DRACULA: ["The Predator", "Children of Night", "The Count"],
+	TowerType.MERLIN: ["The Archmage", "The Advisor", "Once and Future"],
+	TowerType.FRANKENSTEIN: ["The Monster", "The Creation", "It's Alive"],
+	TowerType.SHADOW_AUTHOR: ["Ink Master", "The Narrator", "The End"],
+	TowerType.CAPTAIN_HOOK: ["The Pirate", "The Captain", "The Nemesis"],
+	TowerType.QUEEN_OF_HEARTS: ["The Queen", "The Court", "Crimson Rule"],
+	TowerType.CLAYTON: ["The Rifle", "The Tracker", "The Hunter"],
+	TowerType.HEADLESS_HORSEMAN: ["The Rider", "The Terror", "Sleepy Hollow"],
+	TowerType.MEDUSA: ["Serpent Hair", "The Gaze", "The Gorgon"],
+	TowerType.LOKI: ["Shapeshifter", "Trickster", "Ragnarok"],
+	TowerType.ANUBIS: ["The Scales", "The Underworld", "Ma'at"],
+	TowerType.CAPTAIN_AHAB: ["The Harpoon", "Obsession", "The Leviathan"],
+}
+
+const PATH_COSTS: Array = [
+	[120, 350, 900],
+	[120, 350, 900],
+	[150, 400, 1200],
+]
+
+func _can_upgrade_path(tower_paths: Dictionary, path: String) -> bool:
+	var a = tower_paths.get("path_a", 0)
+	var b = tower_paths.get("path_b", 0)
+	var c = tower_paths.get("path_c", 0)
+	var target_tier = tower_paths.get(path, 0) + 1
+	if target_tier > 3: return false
+	var tiers = [a, b, c]
+	var at_3 = tiers.count(3)
+	var at_2_plus = 0
+	for t in tiers:
+		if t >= 2: at_2_plus += 1
+	if target_tier == 3 and at_3 >= 1:
+		if tower_paths.get(path, 0) != 2: return false
+		for p in ["path_a", "path_b", "path_c"]:
+			if p != path and tower_paths.get(p, 0) >= 3: return false
+	if target_tier >= 2 and at_2_plus >= 2:
+		if tower_paths.get(path, 0) < 2: return false
+	return true
+
+func _get_upgrade_path_cost(path_idx: int, tier: int) -> int:
+	if path_idx < 0 or path_idx > 2 or tier < 0 or tier > 2: return 9999
+	return PATH_COSTS[path_idx][tier]
+
 func _is_awakened(tower_type) -> bool:
 	var level = survivor_progress.get(tower_type, {}).get("level", 1)
 	return level >= 20
