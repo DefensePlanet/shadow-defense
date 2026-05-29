@@ -5365,6 +5365,7 @@ func _save_game() -> void:
 	save_data["star_rewards_claimed"] = star_rewards_claimed
 	save_data["recruitment_missions_completed"] = recruitment_missions_completed
 	save_data["dark_skins_unlocked"] = dark_skins_unlocked
+	save_data["mastery_unlocked"] = mastery_unlocked
 	save_data["dark_skin_active"] = dark_skin_active
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
@@ -5715,6 +5716,7 @@ func _load_game() -> void:
 	star_rewards_claimed = data.get("star_rewards_claimed", {})
 	recruitment_missions_completed = data.get("recruitment_missions_completed", {})
 	dark_skins_unlocked = data.get("dark_skins_unlocked", {})
+	mastery_unlocked = data.get("mastery_unlocked", {})
 	dark_skin_active = data.get("dark_skin_active", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
@@ -26802,6 +26804,61 @@ func _calculate_damage(base_damage: float, tower_type, enemy_type: String = "") 
 	# Lifesteal
 	var heal_amount = final_damage * stats["lifesteal"]
 	return {"damage": final_damage, "type": dmg_type, "crit": is_crit, "effectiveness": effectiveness, "heal": heal_amount, "armor_pen": armor_pen}
+
+# === CHARACTER MASTERY REWARDS — max level bonuses ===
+# When a character reaches max level (20), they earn mastery rewards:
+# golden skin, mastery title, global stat bonus, and exclusive border.
+var mastery_unlocked: Dictionary = {}  # tower_type -> true
+
+const MASTERY_REWARDS: Dictionary = {
+	TowerType.ROBIN_HOOD: {"title": "Grandmaster Archer", "global_bonus": "all_crit_chance", "value": 0.03, "desc": "+3% crit chance for ALL towers"},
+	TowerType.ALICE: {"title": "Sovereign of Logic", "global_bonus": "all_ability_cooldown", "value": 0.05, "desc": "+5% ability cooldown speed for ALL towers"},
+	TowerType.WICKED_WITCH: {"title": "Supreme Sorceress", "global_bonus": "all_summon_damage", "value": 0.10, "desc": "+10% summon damage for ALL towers"},
+	TowerType.PETER_PAN: {"title": "Eternal Youth", "global_bonus": "all_attack_speed", "value": 0.03, "desc": "+3% attack speed for ALL towers"},
+	TowerType.PHANTOM: {"title": "Virtuoso Eternal", "global_bonus": "all_range", "value": 0.05, "desc": "+5% range for ALL towers"},
+	TowerType.SCROOGE: {"title": "Philanthropist Supreme", "global_bonus": "all_gold_bonus", "value": 0.08, "desc": "+8% gold from ALL kills"},
+	TowerType.SHERLOCK: {"title": "Master of Deduction", "global_bonus": "all_armor_pen", "value": 0.05, "desc": "+5% armor penetration for ALL towers"},
+	TowerType.TARZAN: {"title": "King of All Wilds", "global_bonus": "all_damage", "value": 0.03, "desc": "+3% damage for ALL towers"},
+	TowerType.DRACULA: {"title": "Lord of Eternity", "global_bonus": "all_lifesteal", "value": 0.02, "desc": "+2% lifesteal for ALL towers"},
+	TowerType.MERLIN: {"title": "Archmage Supreme", "global_bonus": "all_magic_damage", "value": 0.08, "desc": "+8% magic damage for ALL towers"},
+	TowerType.FRANKENSTEIN: {"title": "The Unchained", "global_bonus": "all_aoe_radius", "value": 0.10, "desc": "+10% AoE radius for ALL towers"},
+	TowerType.SHADOW_AUTHOR: {"title": "The Completed Story", "global_bonus": "all_ink_damage", "value": 0.10, "desc": "+10% ink/dark damage for ALL towers"},
+	TowerType.CAPTAIN_HOOK: {"title": "Pirate Emperor", "global_bonus": "all_gold_bonus", "value": 0.05, "desc": "+5% gold from ALL kills"},
+	TowerType.QUEEN_OF_HEARTS: {"title": "Empress of Chaos", "global_bonus": "all_fire_damage", "value": 0.08, "desc": "+8% fire damage for ALL towers"},
+	TowerType.CLAYTON: {"title": "The Perfect Shot", "global_bonus": "all_crit_mult", "value": 0.15, "desc": "+15% crit multiplier for ALL towers"},
+	TowerType.HEADLESS_HORSEMAN: {"title": "Dread Lord", "global_bonus": "all_fear_duration", "value": 0.20, "desc": "+20% fear/slow duration for ALL towers"},
+	TowerType.MEDUSA: {"title": "The Unbound Gorgon", "global_bonus": "all_stun_duration", "value": 0.15, "desc": "+15% stun duration for ALL towers"},
+	TowerType.LOKI: {"title": "God of Stories", "global_bonus": "all_chaos_chance", "value": 0.05, "desc": "+5% chance for random bonus effect on ALL attacks"},
+	TowerType.ANUBIS: {"title": "Supreme Judge", "global_bonus": "all_execute_threshold", "value": 0.02, "desc": "+2% execute threshold for ALL towers"},
+	TowerType.CAPTAIN_AHAB: {"title": "Conqueror of Leviathans", "global_bonus": "all_boss_damage", "value": 0.08, "desc": "+8% boss damage for ALL towers"},
+}
+
+func _unlock_mastery(tower_type) -> void:
+	if mastery_unlocked.has(tower_type): return
+	mastery_unlocked[tower_type] = true
+	var reward = MASTERY_REWARDS.get(tower_type, {})
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	spawn_floating_text(Vector2(640, 160), "👑 MASTERY ACHIEVED!", Color(1.0, 0.85, 0.15), 24.0, 4.0)
+	spawn_floating_text(Vector2(640, 190), "%s — %s" % [cname, reward.get("title", "Master")], Color(0.95, 0.80, 0.30), 16.0, 3.5)
+	spawn_floating_text(Vector2(640, 215), reward.get("desc", ""), Color(0.75, 0.90, 0.40), 12.0, 3.0)
+	spawn_floating_text(Vector2(640, 240), "🎨 Golden Skin Unlocked!", Color(1.0, 0.9, 0.3), 13.0, 2.5)
+	# Award bonus ink for mastery
+	knowledge_ink += 3
+
+func _get_total_mastery_bonuses() -> Dictionary:
+	# Returns combined global bonuses from all mastered characters
+	var bonuses = {}
+	for tt in mastery_unlocked:
+		var reward = MASTERY_REWARDS.get(tt, {})
+		var bonus_key = reward.get("global_bonus", "")
+		var bonus_val = reward.get("value", 0.0)
+		if bonus_key != "":
+			bonuses[bonus_key] = bonuses.get(bonus_key, 0.0) + bonus_val
+	return bonuses
+
+func _get_mastery_count() -> int:
+	return mastery_unlocked.size()
 
 func _is_dark_skin_unlocked(tower_type) -> bool:
 	return dark_skins_unlocked.has(tower_type)
