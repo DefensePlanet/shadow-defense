@@ -1733,7 +1733,7 @@ func _build_detail_view() -> void:
 		detail_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		detail_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		detail_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		detail_bg.modulate.a = 0.50  # Visible character info card art
+		detail_bg.modulate.a = 0.25  # Subtle art — content is primary
 		var mat = _make_black_key_mat(0.06, 0.04)
 		if mat: detail_bg.material = mat
 		content_area.add_child(detail_bg)
@@ -1976,7 +1976,7 @@ func _build_detail_view() -> void:
 			gear_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			gear_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			gear_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			gear_art.modulate.a = 0.40  # Visible gear slots art
+			gear_art.modulate.a = 0.20  # Subtle art — gear info is primary
 			var mat = _make_black_key_mat(0.06, 0.04)
 			if mat: gear_art.material = mat
 			gp.add_child(gear_art)
@@ -2532,6 +2532,13 @@ func _build_emporium() -> void:
 			glow_tw.tween_property(btn, "modulate", Color(1.08, 1.06, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
 			glow_tw.tween_property(btn, "modulate", Color(1.0, 1.0, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
 		grid.add_child(btn)
+		# Staggered entrance — slide up + fade
+		btn.modulate.a = 0.0
+		btn.position.y += 20
+		var etw_emp = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		etw_emp.set_parallel(true)
+		etw_emp.tween_property(btn, "modulate:a", 1.0, 0.25).set_delay(ci * 0.06)
+		etw_emp.tween_property(btn, "position:y", 0.0, 0.3).set_delay(ci * 0.06)
 
 func _open_emporium_category(cat_idx: int) -> void:
 	_clear()
