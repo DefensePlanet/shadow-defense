@@ -930,6 +930,121 @@ var character_lore: Dictionary = {
 
 # === CHARACTER PERSONALITY SYSTEMS ===
 # Kill streak celebration quotes (milestone -> quote per character)
+# === CHARACTER VOICE LINES — triggered during gameplay ===
+# Categories: "placed", "ability", "boss_spotted", "idle_bored", "wave_clear", "low_lives"
+var character_voice_lines: Dictionary = {
+	TowerType.ROBIN_HOOD: {
+		"placed": ["Sherwood stands with you.", "My bow is ready.", "For the people!"],
+		"ability": ["Three blasts of the horn!", "Arrows, FLY!", "By the greenwood!"],
+		"boss_spotted": ["A worthy target. Let's see what you're made of.", "Big one coming — aim for the eyes!"],
+		"idle_bored": ["Anyone got a target? I'm getting rusty.", "Marian would laugh if she could see me standing here."],
+		"wave_clear": ["Another wave falls to Sherwood!", "That's how we do it in Nottingham."],
+		"low_lives": ["We're losing ground! Tighten up!", "Hold the line! We didn't come this far to fail!"],
+	},
+	TowerType.ALICE: {
+		"placed": ["Curiouser and curiouser!", "Time for logic.", "Down the rabbit hole we go."],
+		"ability": ["OFF WITH THEIR HEADS! ...Too much?", "Eat THIS, shadow!", "Perfectly logical destruction."],
+		"boss_spotted": ["Oh my. That one's rather large, isn't it?", "Size doesn't matter in Wonderland."],
+		"idle_bored": ["I could use a cup of tea right about now.", "The Hatter would find this terribly boring."],
+		"wave_clear": ["Elementary! ...Wait, that's Sherlock's line.", "Logic wins again!"],
+		"low_lives": ["This is getting VERY un-birthday!", "We need more towers, quickly!"],
+	},
+	TowerType.SCROOGE: {
+		"placed": ["Every penny counts. Including THIS one.", "Bah! Let's get this over with.", "My gold, my rules."],
+		"ability": ["HUMBUG to ALL of you!", "Take THAT, you miserable shadows!", "The Ghost of Christmas PAIN!"],
+		"boss_spotted": ["That thing's worth a fortune in defeat gold!", "Big spender coming through."],
+		"idle_bored": ["I'm losing money standing here.", "In my day, enemies had the decency to show up on TIME."],
+		"wave_clear": ["Profit margin: excellent.", "Another successful investment."],
+		"low_lives": ["We're hemorrhaging value! Plug the leaks!", "I didn't survive three ghosts to die HERE!"],
+	},
+	TowerType.PETER_PAN: {
+		"placed": ["BANGARANG!", "I can fly! I can fight!", "Second star to the right!"],
+		"ability": ["Think happy thoughts! VERY happy!", "Pixie dust, don't fail me now!", "TO NEVERLAND!"],
+		"boss_spotted": ["Ooh, a big one! Even better than Hook!", "Come get some, you overgrown shadow!"],
+		"idle_bored": ["This is BORING. Where's the adventure?", "I bet Hook would give me a better fight."],
+		"wave_clear": ["Oh, the cleverness of ME!", "Lost Boys: 1, Shadows: 0!"],
+		"low_lives": ["We're losing! C'mon, BELIEVE harder!", "Clap if you believe in towers!"],
+	},
+	TowerType.PHANTOM: {
+		"placed": ["The music begins.", "I am here. Below. Always.", "My stage now."],
+		"ability": ["The chandelier FALLS!", "Hear my requiem!", "The point of NO RETURN!"],
+		"boss_spotted": ["A solo performance for the lead villain.", "Let me compose your FINALE."],
+		"idle_bored": ["The silence is... unpleasant.", "I miss my organ."],
+		"wave_clear": ["The audience applauds. From the grave.", "Bravo. Encore? No? Good."],
+		"low_lives": ["The opera house is FALLING! More towers!", "This isn't how my story ends!"],
+	},
+	TowerType.DRACULA: {
+		"placed": ["I choose to fight.", "The night is mine.", "Come closer. I don't bite. Much."],
+		"ability": ["CHILDREN OF THE NIGHT!", "Your blood sustains us all!", "DARKNESS ETERNAL!"],
+		"boss_spotted": ["I've lived four centuries. I've seen bigger.", "That one has... interesting blood."],
+		"idle_bored": ["I could sleep for a century. Literally.", "Immortality is mostly waiting."],
+		"wave_clear": ["Another night survived. How novel.", "The Count is pleased."],
+		"low_lives": ["We're DYING out here! ...Ironic, coming from me.", "Even immortals know fear!"],
+	},
+	TowerType.FRANKENSTEIN: {
+		"placed": ["Frankenstein... fight.", "Where point? Frankenstein smash.", "Friend... need help?"],
+		"ability": ["IT'S ALIVE! ...I mean, THEY'RE DEAD!", "LIGHTNING!", "FRANKENSTEIN ANGRY!"],
+		"boss_spotted": ["Big one. Frankenstein... bigger.", "Monster vs monster. Frankenstein win."],
+		"idle_bored": ["Frankenstein... bored. Want smash.", "Why enemies not come? Frankenstein waiting."],
+		"wave_clear": ["Frankenstein... did good?", "Smash complete. Frankenstein happy."],
+		"low_lives": ["Friends hurt! Frankenstein PROTECT!", "No! Not again! FRANKENSTEIN FIGHT!"],
+	},
+	TowerType.SHERLOCK: {
+		"placed": ["The game is afoot.", "I've already deduced the outcome.", "Elementary positioning."],
+		"ability": ["Observe. Deduce. DESTROY.", "The science of deduction!", "CASE CLOSED!"],
+		"boss_spotted": ["Fascinating specimen. Let me study its weaknesses.", "Finally, a worthy adversary."],
+		"idle_bored": ["The criminal classes are disappointingly late.", "Watson, pass the— ah. He's not here."],
+		"wave_clear": ["As I predicted. Precisely.", "The solution was obvious from wave one."],
+		"low_lives": ["The probability of failure is increasing. Unacceptable.", "We need reinforcements! NOW!"],
+	},
+	TowerType.TARZAN: {
+		"placed": ["Tarzan here. Tarzan fight.", "Jungle protects.", "AHHH-AH-AH-AHHHHH!"],
+		"ability": ["VINE SWING!", "Call of the WILD!", "Tarzan STRONGEST!"],
+		"boss_spotted": ["Big prey. Tarzan hunt.", "Bigger than Sabor. Tarzan not afraid."],
+		"idle_bored": ["Jungle quiet. Too quiet.", "Tarzan miss trees."],
+		"wave_clear": ["Jungle wins!", "Tarzan tribe STRONG!"],
+		"low_lives": ["Jungle BURNING! Help friends!", "Tarzan protect! ALWAYS!"],
+	},
+	TowerType.MERLIN: {
+		"placed": ["Magic flows where wisdom leads.", "I saw this placement in my crystals.", "The prophecy unfolds."],
+		"ability": ["By Excalibur's light!", "The old magic AWAKENS!", "Merlin speaks — reality LISTENS!"],
+		"boss_spotted": ["I foresaw this creature 800 years ago.", "An ancient evil. I have an ancient SOLUTION."],
+		"idle_bored": ["Even wizards get bored. Especially immortal ones.", "I've waited longer. Much longer."],
+		"wave_clear": ["The prophecy holds true.", "Magic prevails. As I wrote."],
+		"low_lives": ["The future I saw is DARKENING! More power needed!", "Even my foresight didn't predict THIS!"],
+	},
+	TowerType.SHADOW_AUTHOR: {
+		"placed": ["I write a new chapter. A BETTER one.", "The quill serves the heroes now.", "Ink flows for YOU this time."],
+		"ability": ["REWRITE!", "THE PEN IS MIGHTIER!", "I ERASE your existence!"],
+		"boss_spotted": ["I wrote that creature. I know its every weakness.", "My creation. My problem. My SOLUTION."],
+		"idle_bored": ["Writer's block. The irony is not lost on me.", "Three words. I still wonder what they were."],
+		"wave_clear": ["This chapter ends well.", "A satisfying conclusion. For once."],
+		"low_lives": ["The story is unraveling! I can't rewrite fast enough!", "No! I won't let another story go UNFINISHED!"],
+	},
+}
+var _voice_line_cooldown: Dictionary = {}  # TowerType -> float (cooldown timer)
+
+func _trigger_voice_line(tower_type, category: String, tower_pos: Vector2 = Vector2.ZERO) -> void:
+	if not character_voice_lines.has(tower_type): return
+	var lines = character_voice_lines[tower_type]
+	if not lines.has(category): return
+	var options = lines[category]
+	if options.size() == 0: return
+	# Cooldown per character — 8 seconds between voice lines
+	var cd_key = tower_type
+	if _voice_line_cooldown.has(cd_key) and _voice_line_cooldown[cd_key] > 0: return
+	_voice_line_cooldown[cd_key] = 8.0
+	var line = options[randi() % options.size()]
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	if tower_pos == Vector2.ZERO:
+		tower_pos = Vector2(640, 400)
+	spawn_floating_text(tower_pos + Vector2(0, -45), '"%s"' % line, Color(0.95, 0.88, 0.55), 11.0, 3.0)
+
+func _update_voice_cooldowns(delta: float) -> void:
+	for key in _voice_line_cooldown:
+		_voice_line_cooldown[key] = maxf(_voice_line_cooldown[key] - delta, 0.0)
+
 var kill_streak_quotes: Dictionary = {
 	TowerType.ROBIN_HOOD: {10: "Ten down! Sherwood sends its regards.", 25: "Twenty-five! The poor eat tonight!", 50: "Fifty souls robbed! I'm just warming up.", 100: "A hundred! They'll sing of this in the greenwood!"},
 	TowerType.ALICE: {10: "Ten! This is getting curiouser...", 25: "Twenty-five! The Queen would be jealous.", 50: "Fifty! Even the Jabberwock would be impressed.", 100: "A hundred! I've gone completely mad — and I love it!"},
@@ -20612,6 +20727,7 @@ func _process(delta: float) -> void:
 	_update_dynamic_hazards(delta)
 	_update_realm_mechanic(delta)
 	_update_map_abilities(delta)
+	_update_voice_cooldowns(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -22734,6 +22850,8 @@ func _try_place_tower(pos: Vector2) -> void:
 	# Track achievements + quests
 	total_towers_placed += 1
 	_haptic(0)  # Light haptic on tower placement
+	# Character voice line on placement (ElevenLabs voiced)
+	_trigger_voice_line(selected_tower, "placed", tower_node.global_position if tower_node else Vector2.ZERO)
 	# Narrator reacts to first tower placement of the level
 	if total_towers_placed == 1 and _narrator_cooldown <= 0.0:
 		var first_tower_comments = [
