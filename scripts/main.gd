@@ -2382,6 +2382,7 @@ var _collectible_textures: Dictionary = {}  # item_key -> ImageTexture
 
 # Map thumb slug mapping (level index -> filename without extension)
 const MAP_THUMB_SLUGS: Array = [
+	# ACT 1-3 original 37 levels (indices 0-36)
 	"into_the_pages", "baker_street", "whitechapel", "reichenbach_falls",
 	"round_table", "enchanted_forest", "crystal_cave",
 	"jungle_canopy", "elephant_graveyard", "claytons_fortress",
@@ -2394,6 +2395,29 @@ const MAP_THUMB_SLUGS: Array = [
 	"grand_stage", "labyrinth", "phantoms_lair",
 	"christmas_eve", "three_spirits", "redemptions_dawn",
 	"ink_realm", "unwritten_pages", "final_chapter",
+	# ACT 4 levels (indices 37-63) — reuse faction textures as fallback
+	"alice", "alice", "alice",  # Alice's Trial
+	"robin_hood", "robin_hood", "robin_hood",  # Robin's Trial
+	"scrooge", "scrooge", "scrooge",  # Scrooge's Trial
+	"prologue", "prologue", "prologue",  # Headless Horseman (use prologue as fallback)
+	"prologue", "prologue", "prologue",  # Medusa
+	"prologue", "prologue", "prologue",  # Loki
+	"prologue", "prologue", "prologue",  # Anubis
+	"prologue", "prologue", "prologue",  # Ahab
+	"shadow_author", "shadow_author", "shadow_author",  # Narrator
+	# Expanded arc chapters (indices 64-89) — reuse arc textures
+	"flight_to_neverland", "jolly_roger",  # Neverland extra
+	"yellow_brick_road", "emerald_throne",  # Oz extra
+	"grand_stage", "phantoms_lair",  # Opera extra
+	"baker_street", "reichenbach_falls",  # Sherlock extra
+	"round_table", "crystal_cave",  # Merlin extra
+	"jungle_canopy", "claytons_fortress",  # Tarzan extra
+	"transylvanian_village", "crypt_of_blood",  # Dracula extra
+	"laboratory", "arctic_wastes",  # Frankenstein extra
+	"outlaws_call", "siege_of_nottingham",  # Sherwood extra
+	"rabbit_hole", "queens_court",  # Wonderland extra
+	"christmas_eve", "redemptions_dawn",  # Victorian London extra
+	"ink_realm", "final_chapter",  # Shadow Author extra
 ]
 
 # Level decoration data (regenerated per level)
