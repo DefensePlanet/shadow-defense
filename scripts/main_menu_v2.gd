@@ -133,9 +133,9 @@ func _init_particles() -> void:
 		_particles.append({
 			"x": randf_range(0, 1280),
 			"y": randf_range(0, 720),
-			"speed": randf_range(10, 30),
-			"size": randf_range(2.5, 5.5),
-			"alpha": randf_range(0.25, 0.55),
+			"speed": randf_range(12, 35),
+			"size": randf_range(3.5, 6.5),
+			"alpha": randf_range(0.35, 0.60),
 			"offset": randf_range(0, TAU),
 		})
 
@@ -555,15 +555,22 @@ func _build_portal_hub() -> void:
 	content_area.add_child(sc)
 	_style_scrollbar(sc)
 	_add_scroll_hint(content_area)
+	# Bottom fade where cards meet nav bar (#11)
+	var bottom_fade = ColorRect.new()
+	bottom_fade.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bottom_fade.offset_top = -35
+	bottom_fade.color = Color(0.02, 0.01, 0.04, 0.5)
+	bottom_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_area.add_child(bottom_fade)
 	var margin = MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
 	margin.add_theme_constant_override("margin_top", 4)
 	sc.add_child(margin)
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 8)
+	vb.add_theme_constant_override("separation", 10)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(vb)
 	# No tome book, no subtitle — straight to realm cards
