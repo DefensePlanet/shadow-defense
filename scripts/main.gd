@@ -26860,6 +26860,51 @@ func _get_total_mastery_bonuses() -> Dictionary:
 func _get_mastery_count() -> int:
 	return mastery_unlocked.size()
 
+# === DETAILED ABILITY TOOLTIPS — exact numbers for every upgrade ===
+# Overrides vague ability descriptions with precise stats.
+# Format: tower_type -> [[path_a_t1, t2, t3], [path_b_t1, t2, t3], [path_c_t1, t2, t3]]
+
+const ABILITY_TOOLTIPS: Dictionary = {
+	TowerType.ROBIN_HOOD: [
+		["2 arrows/attack (100% dmg each)", "Every 5th arrow pierces 5 enemies + 15 dmg/s bleed 3s", "Pierces 10, each hit 80 splash in 40px, 3x crit chance"],
+		["Nearby towers +10% ATK SPD (120px radius)", "Kills drop +30% gold (stacks with Scrooge)", "+2 lives/wave, towers in 150px take 20% less leak damage"],
+		["3 sky arrows every 15s, 200 dmg each (instakill <200 HP)", "Barricade blocks path 4s, 90px wide, 30s CD", "Arrow rain every 30s: 50 dmg to ALL enemies + 50% mark 5s"],
+	],
+	TowerType.ALICE: [
+		["Cake slow +20% (total 40%), +8 dmg/s frosting DoT 4s", "Enemies hit shrink: -50% HP if HP <200, -25% if >200", "Every 8th attack: Vorpal Strike 3x dmg, ignores ALL armor"],
+		["Confused enemies walk backward 2s (15s CD per enemy)", "Time slow: enemies in 100px move 30% slower, towers unaffected", "Clone highest-DPS ally tower for 10s at 100% power (25s CD)"],
+		["+15% dmg from all sources on marked enemies 8s", "Flamingo mallet knocks enemy back 15% of path (12s CD)", "Execute <20% HP instantly. Card army: 5 allies for 8s (30s CD)"],
+	],
+	TowerType.DRACULA: [
+		["Heal 1 life per 20 kills, +5% damage from drain", "Transform: devour 3-5 enemies/wave (instakill <150 HP)", "True form: drain 8 dmg/s to ALL in 120px, +50% dmg, map darkens"],
+		["3 Brides orbit: 40% of Dracula's dmg each, 100px range", "Every 10 corpses = 1 vampire thrall (50% stats, permanent)", "ALL kills: 20% chance rise as permanent thrall (max 8)"],
+		["Mist form 5s: untargetable, 30 dmg/s to passed enemies", "Ghost ship: 300 dmg in 60px-wide line across map (45s CD)", "30% max HP to ALL enemies + full heal + darkness 15s (60s CD)"],
+	],
+	TowerType.SCROOGE: [
+		["Knockback +20% distance (pushes 40px instead of 33px)", "Generates 15 gold passively every 10s (90 gold/min)", "All towers on map +20% kill gold. Scrooge generates 30g/10s"],
+		["Resurrect last leaked enemy at 50% HP, sends to path start", "All towers in 150px +20% ATK SPD for 5s at wave start", "Points at strongest enemy: 2x dmg from ALL sources 8s (20s CD)"],
+		["+2 lives every 5 waves (max +8 per game)", "Burst: +100 gold + all tower cooldowns reset (45s CD)", "+50 gold/wave permanently. Every 30s: gift box drops random gear"],
+	],
+	TowerType.SHERLOCK: [
+		["Marked enemies bleed 12 dmg/s for 3s after each hit", "Venom strike: 5% max HP/s poison 5s (10s CD per enemy)", "Reichenbach: 5x AoE burst (250 dmg) + 3s stun, 15s CD. Bosses 2x"],
+		["+15% dmg from matching tower types on identified enemies", "Dr. Watson: heals nearest tower cooldowns +20% faster", "All weaknesses exposed permanently. +30% dmg ALL towers 10s/25s"],
+		["Spectral hound: 3x dmg + 2s fear every 12s (single target)", "4 Baker Street Irregulars patrol: reveal stealth + 20 dmg/hit", "Deduction frenzy 12s: 3x fire rate, marks ALL, allies copy target"],
+	],
+	TowerType.FRANKENSTEIN: [
+		["Smash radius +30% (78px instead of 60px), chain to 1 enemy", "Kill stacks: +4% dmg per stack (was +2%), caps at 50 stacks (+200%)", "Permanent electric aura: 15 dmg/s to ALL in 80px, chains to 10"],
+		["Absorb 1 leaked enemy per wave (prevents 1 life loss)", "Buff zone 120px: all towers gain +20% range", "Bride of Frankenstein: 2nd monster, identical stats, shares stacks"],
+		["Attract lightning: random 80 dmg bolts to enemies in range", "Rage mode every 20s: 3x dmg 5s, charges strongest enemy", "Lightning storm 12s: 5 bolts/2s, 120 dmg each, strips ALL armor"],
+	],
+}
+
+func _get_ability_tooltip(tower_type, path_idx: int, tier: int) -> String:
+	if not ABILITY_TOOLTIPS.has(tower_type): return ""
+	var paths = ABILITY_TOOLTIPS[tower_type]
+	if path_idx < 0 or path_idx >= paths.size(): return ""
+	var tiers = paths[path_idx]
+	if tier < 0 or tier >= tiers.size(): return ""
+	return tiers[tier]
+
 func _is_dark_skin_unlocked(tower_type) -> bool:
 	return dark_skins_unlocked.has(tower_type)
 
