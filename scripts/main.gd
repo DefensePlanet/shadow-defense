@@ -11142,7 +11142,21 @@ func _clear_grid_previews() -> void:
 func _is_level_unlocked(idx: int) -> bool:
 	if idx == 0:
 		return true
-	return (idx - 1) in completed_levels
+	# Realm gating (#111): Must complete ALL levels in current realm to unlock next realm
+	# Levels are grouped in sets of 3 (one realm = 3 levels: Easy/Medium/Hard)
+	var realm_idx = idx / 3  # Which realm this level belongs to
+	var level_in_realm = idx % 3  # 0=first, 1=second, 2=third
+	if level_in_realm == 0:
+		# First level of a new realm: all 3 levels of previous realm must be beaten
+		var prev_realm_start = (realm_idx - 1) * 3
+		for i in range(3):
+			var prev_lvl = prev_realm_start + i
+			if prev_lvl >= 0 and prev_lvl not in completed_levels:
+				return false
+		return true
+	else:
+		# Second/third level in same realm: just need previous level beaten
+		return (idx - 1) in completed_levels
 
 func _on_level_selected(index: int) -> void:
 	if not _is_level_unlocked(index):
