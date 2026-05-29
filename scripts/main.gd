@@ -20728,6 +20728,7 @@ func _process(delta: float) -> void:
 	_update_realm_mechanic(delta)
 	_update_map_abilities(delta)
 	_update_voice_cooldowns(delta)
+	_check_duo_combos()
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -26463,6 +26464,99 @@ func _check_character_bonds() -> void:
 				if not _bond_dialog_shown.has(bond_key) and BOND_DIALOGS.has(bond_key):
 					_bond_dialog_shown[bond_key] = true
 					_show_bond_dialog(bond_key, tower_positions[pair[0]], tower_positions[pair[1]])
+
+# === DUO COMBO ABILITIES — bonded pairs unleash combined attacks ===
+# Triggers every 20 seconds when two bonded characters are within BOND_RADIUS.
+var _duo_combo_timers: Dictionary = {}  # "pair_key" -> float timer
+
+const DUO_COMBOS: Dictionary = {
+	"0_3": {"name": "Outlaw's Flight", "desc": "Robin shoots from Peter's back — aerial arrow rain",
+		"damage_mult": 3.0, "radius": 150.0, "visual": "arrow_rain"},
+	"1_2": {"name": "Wonderland Storm", "desc": "Alice's logic + Witch's chaos — reality distortion AoE",
+		"damage_mult": 2.5, "radius": 120.0, "visual": "reality_warp"},
+	"4_9": {"name": "Symphony of Power", "desc": "Phantom's music + Merlin's magic — enchanted sonic wave",
+		"damage_mult": 2.8, "radius": 140.0, "visual": "sonic_magic"},
+	"5_10": {"name": "Storm of Redemption", "desc": "Scrooge's coins + Frankenstein's lightning — electrified gold barrage",
+		"damage_mult": 3.0, "radius": 130.0, "visual": "lightning_gold"},
+	"6_7": {"name": "Deduction Hunt", "desc": "Sherlock marks + Tarzan strikes — precision jungle assault",
+		"damage_mult": 3.5, "radius": 100.0, "visual": "marked_strike"},
+	"8_9": {"name": "Eternal Arcana", "desc": "Dracula's blood + Merlin's magic — dark enchantment vortex",
+		"damage_mult": 3.0, "radius": 130.0, "visual": "blood_magic"},
+	"0_6": {"name": "Baker Street Ambush", "desc": "Robin's arrows guided by Sherlock's deduction",
+		"damage_mult": 2.5, "radius": 110.0, "visual": "guided_arrows"},
+	"3_7": {"name": "Wild Flight", "desc": "Peter flies + Tarzan swings — aerial jungle barrage",
+		"damage_mult": 2.8, "radius": 140.0, "visual": "aerial_smash"},
+	"8_10": {"name": "Monster's Requiem", "desc": "Dracula + Frankenstein — darkness and lightning merge",
+		"damage_mult": 3.5, "radius": 150.0, "visual": "dark_lightning"},
+	"1_3": {"name": "Neverland Tea Party", "desc": "Alice throws cakes + Peter spreads fairy dust",
+		"damage_mult": 2.0, "radius": 120.0, "visual": "fairy_cake"},
+	"2_5": {"name": "Villain's Generosity", "desc": "Witch's power + Scrooge's gold — explosive charity",
+		"damage_mult": 2.5, "radius": 110.0, "visual": "gold_explosion"},
+	"4_8": {"name": "Dark Serenade", "desc": "Phantom sings + Dracula drains — soul-rending duet",
+		"damage_mult": 3.0, "radius": 120.0, "visual": "soul_drain"},
+}
+
+const DUO_COMBO_COOLDOWN: float = 20.0
+
+func _check_duo_combos() -> void:
+	if not is_wave_active: return
+	for bond in _active_bonds:
+		var pair = bond["pair"]
+		var key = "%d_%d" % [mini(pair[0], pair[1]), maxi(pair[0], pair[1])]
+		if not DUO_COMBOS.has(key): continue
+		# Initialize timer if not exists
+		if not _duo_combo_timers.has(key):
+			_duo_combo_timers[key] = DUO_COMBO_COOLDOWN * 0.5  # First combo at half cooldown
+		_duo_combo_timers[key] -= get_process_delta_time()
+		if _duo_combo_timers[key] <= 0:
+			_duo_combo_timers[key] = DUO_COMBO_COOLDOWN
+			_execute_duo_combo(key, pair)
+
+func _execute_duo_combo(key: String, pair: Array) -> void:
+	var combo = DUO_COMBOS[key]
+	# Find tower positions
+	var pos1 = Vector2.ZERO; var pos2 = Vector2.ZERO
+	var base_damage = 0.0
+	var type_map = {"robin_hood.gd": 0, "alice.gd": 1, "wicked_witch.gd": 2, "peter_pan.gd": 3, "phantom.gd": 4, "scrooge.gd": 5, "sherlock.gd": 6, "tarzan.gd": 7, "dracula.gd": 8, "merlin.gd": 9, "frankenstein.gd": 10, "shadow_author.gd": 11}
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower): continue
+		var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
+		var tidx = type_map.get(sp, -1)
+		if tidx == pair[0]: pos1 = tower.global_position; base_damage += tower.damage if "damage" in tower else 20.0
+		if tidx == pair[1]: pos2 = tower.global_position; base_damage += tower.damage if "damage" in tower else 20.0
+	if pos1 == Vector2.ZERO or pos2 == Vector2.ZERO: return
+	var mid = (pos1 + pos2) * 0.5
+	var total_damage = base_damage * combo["damage_mult"]
+	var radius = combo["radius"]
+	# Deal damage to all enemies in radius
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.global_position.distance_to(mid) <= radius:
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(total_damage, "combo")
+	# Visual feedback
+	spawn_floating_text(mid + Vector2(0, -30), "💥 %s!" % combo["name"], Color(1.0, 0.85, 0.2), 18.0, 3.0)
+	spawn_floating_text(mid + Vector2(0, -8), "%d COMBO DAMAGE!" % int(total_damage), Color(1.0, 0.6, 0.15), 14.0, 2.0)
+	_screen_shake_intensity = 5.0; _screen_shake_timer = 0.35
+	_haptic(2)
+	# Draw visual effect line between the two towers
+	# (rendered in next frame via _draw_duo_combo_effects)
+
+var _duo_combo_flash: Array = []  # [{pos, timer, radius, color}]
+
+func _draw_duo_combo_effects() -> void:
+	var to_remove = []
+	for i in range(_duo_combo_flash.size()):
+		var f = _duo_combo_flash[i]
+		f["timer"] -= get_process_delta_time()
+		if f["timer"] <= 0:
+			to_remove.append(i)
+			continue
+		var progress = 1.0 - f["timer"] / 0.5
+		var r = f["radius"] * progress
+		draw_circle(f["pos"], r, Color(f["color"].r, f["color"].g, f["color"].b, (1.0 - progress) * 0.3))
+		draw_arc(f["pos"], r, 0, TAU, 20, Color(1, 0.9, 0.3, (1.0 - progress) * 0.5), 2.0)
+	for ri in range(to_remove.size() - 1, -1, -1):
+		_duo_combo_flash.remove_at(to_remove[ri])
 
 func _show_bond_dialog(bond_key: String, pos1: Vector2, pos2: Vector2) -> void:
 	if not BOND_DIALOGS.has(bond_key): return
