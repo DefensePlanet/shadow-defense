@@ -3985,15 +3985,49 @@ func _refresh_unlocked_survivors() -> void:
 				tower_scenes[tt] = load(path)
 
 func _is_character_unlocked(tower_type) -> bool:
-	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
-					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]:
+	# 3 starters — always unlocked
+	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE]:
 		return true
+	# First 3 rescues (Peter, Witch, Phantom) — unlock by beating their arc
+	if tower_type in [TowerType.PETER_PAN, TowerType.WICKED_WITCH, TowerType.PHANTOM]:
+		var rescue_map = {
+			TowerType.PETER_PAN: [25, 26, 27], TowerType.WICKED_WITCH: [22, 23, 24],
+			TowerType.PHANTOM: [28, 29, 30],
+		}
+		var arc_levels = rescue_map.get(tower_type, [])
+		for li in arc_levels:
+			if li not in completed_levels: return false
+		return true
+	# ACT 1 rescues — unlock via story unlock system
 	var id_map = {
 		TowerType.SHERLOCK: "sherlock", TowerType.MERLIN: "merlin",
 		TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula",
 		TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author"
 	}
-	return id_map.get(tower_type, "") in unlocked_characters
+	if id_map.has(tower_type):
+		return id_map[tower_type] in unlocked_characters
+	# RECRUITABLE VILLAINS — unlock via story choice flags
+	var villain_flags = {
+		TowerType.CAPTAIN_HOOK: "hook_recruited",
+		TowerType.QUEEN_OF_HEARTS: "queen_recruited",
+		TowerType.CLAYTON: "clayton_recruited",
+	}
+	if villain_flags.has(tower_type):
+		return story_choices_made.get(villain_flags[tower_type], false)
+	# ACT 4 MYTHOLOGICAL — unlock by beating their rescue arc
+	var act4_map = {
+		TowerType.HEADLESS_HORSEMAN: [46, 47, 48],
+		TowerType.MEDUSA: [49, 50, 51],
+		TowerType.LOKI: [52, 53, 54],
+		TowerType.ANUBIS: [55, 56, 57],
+		TowerType.CAPTAIN_AHAB: [58, 59, 60],
+	}
+	if act4_map.has(tower_type):
+		var arc_lvls = act4_map[tower_type]
+		for li in arc_lvls:
+			if li not in completed_levels: return false
+		return true
+	return false
 
 func _init_emporium_items() -> void:
 	emporium_items = {
