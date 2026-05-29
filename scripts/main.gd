@@ -27048,6 +27048,110 @@ func _get_weakness_penalty(tower_type, enemy_type: String) -> float:
 	if enemy_type == weakness.get("weak_vs", ""): return weakness.get("penalty", 0.6)
 	return 1.0
 
+# === VOICE ACTOR ASSIGNMENTS — unique ElevenLabs voice per character ===
+# Each character has a distinct voice for personality and recognition.
+# Voice clips generated via ElevenLabs API with these voice IDs/settings.
+const CHARACTER_VOICES: Dictionary = {
+	# STARTERS — warm, heroic, distinct
+	TowerType.ROBIN_HOOD: {
+		"voice_name": "Marcus", "voice_style": "Confident British male, warm baritone, roguish charm",
+		"pitch": "medium", "speed": "normal", "accent": "British RP with countryside warmth",
+	},
+	TowerType.ALICE: {
+		"voice_name": "Lily", "voice_style": "Young British female, curious and precise, slight wonder",
+		"pitch": "medium-high", "speed": "slightly fast", "accent": "Proper Victorian English",
+	},
+	TowerType.SCROOGE: {
+		"voice_name": "George", "voice_style": "Elderly British male, grumpy but softening, gravelly",
+		"pitch": "low", "speed": "deliberate", "accent": "Old London, Dickensian",
+	},
+	# FIRST 3 RESCUES
+	TowerType.PETER_PAN: {
+		"voice_name": "Charlie", "voice_style": "Young energetic male, cocky and playful, never-grow-up energy",
+		"pitch": "high", "speed": "fast", "accent": "Youthful British",
+	},
+	TowerType.WICKED_WITCH: {
+		"voice_name": "Freya", "voice_style": "Mature female, cackling edge but with hidden warmth, powerful",
+		"pitch": "medium-low", "speed": "dramatic pauses", "accent": "Theatrical American",
+	},
+	TowerType.PHANTOM: {
+		"voice_name": "Antoni", "voice_style": "Deep resonant male, theatrical and haunting, operatic undertones",
+		"pitch": "deep bass", "speed": "slow and deliberate", "accent": "French-tinged English",
+	},
+	# ACT 1 DEEP RESCUES
+	TowerType.SHERLOCK: {
+		"voice_name": "Daniel", "voice_style": "Sharp intellectual male, rapid-fire deduction, clipped precision",
+		"pitch": "medium", "speed": "fast when deducing, slow when dramatic", "accent": "Crisp London RP",
+	},
+	TowerType.TARZAN: {
+		"voice_name": "Adam", "voice_style": "Deep powerful male, broken English, primal strength, gentle heart",
+		"pitch": "very low", "speed": "slow, measured words", "accent": "Minimal — learned English from books",
+	},
+	TowerType.DRACULA: {
+		"voice_name": "Clyde", "voice_style": "Ancient aristocratic male, Eastern European nobility, centuries of weariness",
+		"pitch": "low baritone", "speed": "unhurried, eternal", "accent": "Romanian/Transylvanian",
+	},
+	TowerType.MERLIN: {
+		"voice_name": "Thomas", "voice_style": "Ancient wise male, warm but powerful, grandfatherly with edge",
+		"pitch": "medium-low", "speed": "thoughtful", "accent": "Old Welsh/Celtic English",
+	},
+	TowerType.FRANKENSTEIN: {
+		"voice_name": "Arnold", "voice_style": "Deep rumbling male, childlike wonder in broken speech, gentle giant",
+		"pitch": "very deep", "speed": "very slow, halting", "accent": "None — learned to speak from watching",
+	},
+	TowerType.SHADOW_AUTHOR: {
+		"voice_name": "Kallixis + Matthew blend", "voice_style": "Ethereal dual voice, whispering darkness with echoing depth",
+		"pitch": "shifting", "speed": "variable — calm to frantic", "accent": "Otherworldly, no fixed origin",
+	},
+	# VILLAIN RECRUITS
+	TowerType.CAPTAIN_HOOK: {
+		"voice_name": "James", "voice_style": "Posh theatrical male, villain-turned-ally, dramatic flair",
+		"pitch": "medium-high", "speed": "dramatic with flourishes", "accent": "Exaggerated British aristocrat",
+	},
+	TowerType.QUEEN_OF_HEARTS: {
+		"voice_name": "Glinda", "voice_style": "Imperious female, commanding and loud, regal fury",
+		"pitch": "medium", "speed": "clipped commands", "accent": "Royal British, booming",
+	},
+	TowerType.CLAYTON: {
+		"voice_name": "Ethan", "voice_style": "Gruff male, ex-military hunter, quiet menace turned quiet strength",
+		"pitch": "low", "speed": "measured, controlled", "accent": "British colonial",
+	},
+	# ACT 4 MYTHOLOGY
+	TowerType.HEADLESS_HORSEMAN: {
+		"voice_name": "Ghostly whisper effect", "voice_style": "No voice — only hoofbeats, wind, and pumpkin fire sounds",
+		"pitch": "N/A — voiceless", "speed": "N/A", "accent": "N/A — communicates through terror",
+	},
+	TowerType.MEDUSA: {
+		"voice_name": "Bella", "voice_style": "Hissing female, serpentine elegance, tragic beauty in every syllable",
+		"pitch": "medium with sibilance", "speed": "slow, hypnotic", "accent": "Ancient Greek-tinged",
+	},
+	TowerType.LOKI: {
+		"voice_name": "Fin", "voice_style": "Mercurial male, shifts tone mid-sentence, playful then deadly",
+		"pitch": "constantly shifting", "speed": "unpredictable", "accent": "Scandinavian with mischief",
+	},
+	TowerType.ANUBIS: {
+		"voice_name": "Joseph", "voice_style": "Deep ancient male, echoing judgment, eternal patience",
+		"pitch": "very deep with reverb", "speed": "deliberate, each word a verdict", "accent": "Ancient Egyptian cadence",
+	},
+}
+
+# Voice type mapping for story dialog system compatibility
+const CHARACTER_VOICE_TYPE_MAP: Dictionary = {
+	TowerType.ROBIN_HOOD: "male_hero", TowerType.ALICE: "female_hero",
+	TowerType.SCROOGE: "male_hero", TowerType.PETER_PAN: "male_hero",
+	TowerType.WICKED_WITCH: "female_hero", TowerType.PHANTOM: "male_hero",
+	TowerType.SHERLOCK: "male_hero", TowerType.TARZAN: "male_hero",
+	TowerType.DRACULA: "male_hero", TowerType.MERLIN: "male_hero",
+	TowerType.FRANKENSTEIN: "monster", TowerType.SHADOW_AUTHOR: "shadow",
+	TowerType.CAPTAIN_HOOK: "male_hero", TowerType.QUEEN_OF_HEARTS: "female_hero",
+	TowerType.CLAYTON: "male_hero", TowerType.HEADLESS_HORSEMAN: "voiceless",
+	TowerType.MEDUSA: "female_hero", TowerType.LOKI: "male_hero",
+	TowerType.ANUBIS: "male_hero",
+}
+
+func _get_voice_data(tower_type) -> Dictionary:
+	return CHARACTER_VOICES.get(tower_type, {})
+
 func _get_weakness_display(tower_type) -> String:
 	var w = CHARACTER_WEAKNESSES.get(tower_type, {})
 	if w.is_empty(): return ""
