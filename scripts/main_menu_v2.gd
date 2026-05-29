@@ -317,10 +317,10 @@ func _set_bg(view: String) -> void:
 func _build_currency_bar() -> void:
 	if not _main: return
 	# Clean top bar — no art texture (both header_bar and currency_bar_gothic looked bad)
-	top_bar.color = Color(0.06, 0.04, 0.12, 0.88)
+	top_bar.color = Color(0.05, 0.03, 0.10, 1.0)  # Fully opaque (#41)
 	# Bottom gold accent line on top bar
 	var top_accent = ColorRect.new()
-	top_accent.color = Color(0.65, 0.50, 0.18, 0.35)
+	top_accent.color = Color(0.65, 0.50, 0.18, 0.5)
 	top_accent.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	top_accent.offset_top = -2
 	top_accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -341,17 +341,17 @@ func _build_currency_bar() -> void:
 func _currency_chip(text: String, color: Color) -> PanelContainer:
 	var chip = PanelContainer.new()
 	var cs = StyleBoxFlat.new()
-	cs.bg_color = Color(0.07, 0.05, 0.12, 0.7)
+	cs.bg_color = Color(0.08, 0.05, 0.14, 0.90)
 	cs.set_corner_radius_all(12)
-	cs.border_color = Color(color.r * 0.6, color.g * 0.6, color.b * 0.6, 0.5)
+	cs.border_color = Color(color.r * 0.7, color.g * 0.7, color.b * 0.7, 0.6)
 	cs.set_border_width_all(1)
-	cs.shadow_color = Color(0, 0, 0, 0.15)
+	cs.shadow_color = Color(0, 0, 0, 0.2)
 	cs.shadow_size = 2
 	cs.content_margin_left = 10; cs.content_margin_right = 10
-	cs.content_margin_top = 3; cs.content_margin_bottom = 3
+	cs.content_margin_top = 4; cs.content_margin_bottom = 4
 	chip.add_theme_stylebox_override("panel", cs)
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var l = _lbl(text, 11, color)
+	var l = _lbl(text, 13, color)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.add_child(l)
 	return chip
@@ -410,123 +410,74 @@ func _update_song_display() -> void:
 		tw.tween_property(_song_label, "modulate:a", 1.0, 0.15)
 
 func _build_nav() -> void:
-	# Apply gothic nav bar art (or spine fallback)
-	var nav_art_key = "nav_bar_art" if _art.has("nav_bar_art") else "nav_spine"
-	if _art.has(nav_art_key):
-		var art_bg = TextureRect.new()
-		art_bg.texture = _art[nav_art_key]
-		art_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		art_bg.stretch_mode = TextureRect.STRETCH_SCALE
-		art_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		art_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var mat = _make_black_key_mat(0.06, 0.04)
-		if mat: art_bg.material = mat
-		nav_bar.add_child(art_bg)
-		nav_bar.move_child(art_bg, 0)
-		nav_bar.color = Color(0, 0, 0, 0)
+	# Solid opaque nav bar — clean, no art texture
+	nav_bar.color = Color(0.04, 0.02, 0.08, 1.0)
 	_build_nav_buttons()
 
 func _build_nav_buttons() -> void:
 	var tabs = ["chapters", "survivors", "emporium", "codex", "settings"]
-	var labels = ["CHAPTERS", "SURVIVORS", "EMPORIUM", "CODEX", "SETTINGS"]
-	var tab_icons_text = ["📜", "⚔️", "🛒", "📖", "⚙️"]
+	var labels = ["CHAPTERS", "HEROES", "SHOP", "CODEX", "SETTINGS"]
+	# Solid opaque nav bar
+	nav_bar.color = Color(0.04, 0.02, 0.08, 1.0)
 	for i in range(5):
 		var is_active = tabs[i] == current_view
 		var btn = Button.new()
-		btn.text = "%s\n%s" % [tab_icons_text[i], labels[i]]
-		btn.add_theme_constant_override("line_spacing", -2)
+		btn.text = labels[i]
+		btn.clip_text = false
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.custom_minimum_size = Vector2(0, 70)
+		btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		btn.custom_minimum_size = Vector2(0, 60)
 		var s = StyleBoxFlat.new()
 		if is_active:
-			s.bg_color = Color(0.15, 0.10, 0.25, 0.85)
-			s.border_color = Color(1.0, 0.80, 0.25, 0.9)
+			s.bg_color = Color(0.16, 0.10, 0.26, 1.0)
+			s.border_color = Color(1.0, 0.82, 0.20, 1.0)
 			s.border_width_top = 3
-			s.border_width_left = 1; s.border_width_right = 1; s.border_width_bottom = 0
-			s.shadow_color = Color(0.85, 0.65, 0.15, 0.15)
-			s.shadow_size = 6
+			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
 		else:
-			s.bg_color = Color(0.06, 0.04, 0.10, 0.3)
-			s.border_color = Color(0.25, 0.20, 0.15, 0.2)
+			s.bg_color = Color(0.06, 0.04, 0.10, 1.0)
+			s.border_color = Color(0.20, 0.15, 0.10, 0.4)
 			s.border_width_top = 1
 			s.border_width_left = 0; s.border_width_right = 0; s.border_width_bottom = 0
 		s.set_corner_radius_all(0)
 		btn.add_theme_stylebox_override("normal", s)
 		var sh = s.duplicate()
-		sh.bg_color = Color(0.18, 0.12, 0.28, 0.6)
-		sh.border_color = Color(0.80, 0.60, 0.20, 0.6)
-		sh.border_width_top = 2
+		sh.bg_color = Color(0.20, 0.14, 0.30, 1.0)
 		btn.add_theme_stylebox_override("hover", sh)
-		btn.add_theme_font_size_override("font_size", 12)
-		btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.40) if is_active else Color(0.65, 0.58, 0.48))
-		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1.0))
+		var sp = s.duplicate()
+		sp.bg_color = Color(0.24, 0.16, 0.34, 1.0)
+		btn.add_theme_stylebox_override("pressed", sp)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.add_theme_color_override("font_color", Color(1.0, 0.90, 0.35) if is_active else Color(0.55, 0.48, 0.40))
+		btn.add_theme_color_override("font_hover_color", Color(0.80, 0.70, 0.45))
+		btn.add_theme_color_override("font_pressed_color", Color(1.0, 0.85, 0.30))
+		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		btn.add_theme_constant_override("shadow_offset_x", 1)
 		btn.add_theme_constant_override("shadow_offset_y", 1)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
-		_add_press_feedback(btn)
-		# Notification dot for tabs with unclaimed content
-		var has_notification = false
-		match tabs[i]:
-			"emporium":
-				if _main and "merchant_inventory" in _main and _main.merchant_inventory.size() > 0:
-					has_notification = true
-			"codex":
-				# Check for unclaimed achievements
-				if _main and "achievement_progress" in _main:
-					for ak in _main.achievement_progress:
-						var ap = _main.achievement_progress[ak]
-						if ap is Dictionary and ap.get("completed", false) and not ap.get("claimed", true):
-							has_notification = true
-							break
-		if has_notification:
-			var dot = ColorRect.new()
-			dot.custom_minimum_size = Vector2(8, 8)
-			dot.color = Color(0.9, 0.15, 0.1)
-			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			dot.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-			dot.position = Vector2(-14, 6)
-			btn.add_child(dot)
-		# Hover feedback on nav tabs
-		btn.mouse_entered.connect(func():
-			btn.pivot_offset = btn.size / 2.0
-			var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-			tw.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.1))
-		btn.mouse_exited.connect(func():
-			var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
-			tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08))
 		nav_buttons_container.add_child(btn)
 
 func _on_tab(tab: String) -> void:
 	if current_view == tab: return
 	_play_ui_click()
-	# Save scroll position of current view
 	_save_scroll_position()
-	# Page-turn transition: slide out left + fade, then rebuild + slide in right
-	var tw = create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(content_area, "modulate:a", 0.0, 0.15)
-	tw.tween_property(content_area, "position:x", -40.0, 0.15).set_ease(Tween.EASE_IN)
-	tw.chain().tween_callback(func():
-		current_view = tab
-		_set_bg(tab)
-		# Rebuild nav with updated active state
-		for c in nav_buttons_container.get_children(): c.queue_free()
-		_build_nav_buttons()
-		_clear()
-		match tab:
-			"chapters": _build_chapters()
-			"survivors": _build_survivors()
-			"emporium": _build_emporium()
-			"codex": _build_codex()
-			"settings": _build_settings()
-		# Restore scroll position
-		_restore_scroll_position()
-		# Slide in from right + fade in
-		content_area.position.x = 40.0
-		var tw_in = create_tween()
-		tw_in.set_parallel(true)
-		tw_in.tween_property(content_area, "modulate:a", 1.0, 0.18)
-		tw_in.tween_property(content_area, "position:x", 0.0, 0.18).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK))
+	current_view = tab
+	_set_bg(tab)
+	# Rebuild nav — remove_child first so they're gone immediately
+	for c in nav_buttons_container.get_children():
+		nav_buttons_container.remove_child(c)
+		c.queue_free()
+	_build_nav_buttons()
+	# Rebuild content — remove_child first so old content is gone
+	_clear()
+	content_area.position.x = 0
+	content_area.modulate.a = 1.0
+	match tab:
+		"chapters": _build_chapters()
+		"survivors": _build_survivors()
+		"emporium": _build_emporium()
+		"codex": _build_codex()
+		"settings": _build_settings()
+	_restore_scroll_position()
 
 func _save_scroll_position() -> void:
 	for c in content_area.get_children():
@@ -545,7 +496,9 @@ func _restore_scroll_position() -> void:
 				break)
 
 func _clear() -> void:
-	for c in content_area.get_children(): c.queue_free()
+	for c in content_area.get_children():
+		content_area.remove_child(c)
+		c.queue_free()
 
 # ======================== CHAPTERS ========================
 func _build_chapters() -> void:
