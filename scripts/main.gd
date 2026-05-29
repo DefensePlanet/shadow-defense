@@ -5368,6 +5368,7 @@ func _save_game() -> void:
 	save_data["mastery_unlocked"] = mastery_unlocked
 	save_data["abilities_learned"] = abilities_learned
 	save_data["trials_used"] = trials_used
+	save_data["saved_loadouts"] = saved_loadouts
 	save_data["dark_skin_active"] = dark_skin_active
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
@@ -5721,6 +5722,7 @@ func _load_game() -> void:
 	mastery_unlocked = data.get("mastery_unlocked", {})
 	abilities_learned = data.get("abilities_learned", {})
 	trials_used = data.get("trials_used", {})
+	saved_loadouts = data.get("saved_loadouts", [])
 	dark_skin_active = data.get("dark_skin_active", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
@@ -27014,6 +27016,41 @@ func _start_trial(tower_type) -> void:
 	var remaining = MAX_TRIALS_PER_CHARACTER - trials_used[tower_type]
 	spawn_floating_text(Vector2(640, 200), "🎮 TRIAL MODE: %s" % cname, Color(0.9, 0.75, 0.2), 18.0, 3.0)
 	spawn_floating_text(Vector2(640, 225), "Available for 1 level — %d trials remaining" % remaining, Color(0.70, 0.62, 0.50), 12.0, 2.5)
+
+# === LOADOUT / FAVORITES SYSTEM — save team compositions ===
+# Players can save up to 5 custom team loadouts for quick deployment.
+# Each loadout stores: name, tower types, preferred positions.
+var saved_loadouts: Array = []  # [{name, towers: [TowerType], desc}]
+const MAX_LOADOUTS: int = 5
+
+func _save_loadout(name: String, tower_types: Array, desc: String = "") -> bool:
+	if saved_loadouts.size() >= MAX_LOADOUTS: return false
+	saved_loadouts.append({"name": name, "towers": tower_types.duplicate(), "desc": desc, "created": Time.get_unix_time_from_system()})
+	spawn_floating_text(Vector2(640, 300), "💾 Loadout Saved: %s" % name, Color(0.4, 0.8, 0.3), 16.0, 2.0)
+	return true
+
+func _delete_loadout(index: int) -> void:
+	if index >= 0 and index < saved_loadouts.size():
+		saved_loadouts.remove_at(index)
+
+func _get_loadout_display(index: int) -> String:
+	if index < 0 or index >= saved_loadouts.size(): return ""
+	var lo = saved_loadouts[index]
+	var names = []
+	for tt in lo["towers"]:
+		var idx = survivor_types.find(tt)
+		if idx >= 0 and idx < character_names.size():
+			names.append(character_names[idx].split(" ")[0])  # First name only
+	return "%s: %s" % [lo["name"], ", ".join(names)]
+
+# Pre-built suggested loadouts (shown to new players)
+const SUGGESTED_LOADOUTS: Array = [
+	{"name": "The Starters", "towers_desc": "Robin + Alice + Scrooge", "desc": "Your original trio. Balanced offense, defense, and economy."},
+	{"name": "Monster Mash", "towers_desc": "Dracula + Frankenstein + Phantom", "desc": "Dark power trio. Lifesteal + lightning + music. Redemption Arc bonus!"},
+	{"name": "The Detectives", "towers_desc": "Sherlock + Robin + Alice", "desc": "Precision kills. High crit, high mark damage, high IQ plays."},
+	{"name": "Villain Squad", "towers_desc": "Witch + Dracula + Hook + Queen", "desc": "Full villain lineup. Villain's Pact bonus: +12% damage."},
+	{"name": "Mythology Team", "towers_desc": "Medusa + Loki + Anubis + Horseman", "desc": "Gods and legends. Chaos, death, petrification, and terror."},
+]
 
 func _end_trial() -> void:
 	trial_active = false
