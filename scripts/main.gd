@@ -21321,7 +21321,8 @@ func _spawn_enemy() -> void:
 			enemy.speed *= 0.7
 		"healer":
 			enemy.max_health *= 0.8
-			if "heal_aura" in enemy: enemy.heal_aura = true
+			enemy.heal_aura = true
+			enemy.active_ability = "heal_pulse"
 		"shielded":
 			enemy.max_health *= 1.5
 			if "shield_hp" in enemy: enemy.shield_hp = enemy.max_health * 0.3
@@ -21333,6 +21334,8 @@ func _spawn_enemy() -> void:
 			enemy.max_health *= 2.5
 			enemy.speed *= 1.1
 			if "damage_mult" in enemy: enemy.damage_mult = 1.5
+			# Elites get a random active ability
+			enemy.active_ability = ["teleport", "debuff_aura", "rage", "shield_allies"][randi() % 4]
 		"mini_boss":
 			enemy.max_health *= 4.0
 			enemy.speed *= 0.8

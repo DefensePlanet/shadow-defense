@@ -90,6 +90,14 @@ var phantom_visible: bool = true
 var is_spectral: bool = false         # Ghostly, takes reduced physical damage but weak to magic
 var regrow_generation: int = 0        # Tracks split depth (max 2)
 
+# === ACTIVE ENEMY ABILITIES — triggered during movement ===
+var active_ability: String = ""       # "teleport", "spawn", "debuff_aura", "heal_pulse", "shield_allies", "rage"
+var ability_cooldown: float = 0.0
+var ability_timer: float = 0.0
+var heal_aura: bool = false           # Heals nearby enemies
+var spawn_count: int = 0              # Mini-enemies spawned so far
+var debuff_aura_active: bool = false  # Slows nearby towers
+
 # === Damage Type System ===
 var resistances: Dictionary = {}      # e.g. {"physical": 0.5} = 50% physical resist
 var immunities: Array = []            # e.g. ["magic"] = immune to magic damage
@@ -334,6 +342,7 @@ func _process(delta: float) -> void:
 	# Boss mechanics processing
 	if boss_mechanic != "":
 		_process_boss_mechanics(delta)
+		_process_active_ability(delta)
 
 	# Enhancement #33: Enemy ability processing
 	if enemy_ability != "":
@@ -652,6 +661,54 @@ func _trigger_boss_phase() -> void:
 		"area_deny":
 			if main.has_method("add_boss_danger_zone"):
 				main.add_boss_danger_zone(global_position)
+
+func _process_active_ability(delta: float) -> void:
+	if active_ability == "": return
+	ability_timer += delta
+	match active_ability:
+		"teleport":
+			# Every 8s, jump 20% forward on path
+			if ability_timer >= 8.0:
+				ability_timer = 0.0
+				if "progress_ratio" in self:
+					progress_ratio = minf(progress_ratio + 0.20, 0.95)
+		"heal_pulse":
+			# Every 5s, heal nearby allies 10% max HP
+			if ability_timer >= 5.0:
+				ability_timer = 0.0
+				var main_node = get_tree().get_first_node_in_group("main")
+				if main_node:
+					for ally in get_tree().get_nodes_in_group("enemies"):
+						if ally != self and is_instance_valid(ally) and global_position.distance_to(ally.global_position) <= 100.0:
+							if "health" in ally and "max_health" in ally:
+								ally.health = minf(ally.health + ally.max_health * 0.10, ally.max_health)
+		"spawn":
+			# Every 10s, spawn 2 mini enemies (max 6 total)
+			if ability_timer >= 10.0 and spawn_count < 6:
+				ability_timer = 0.0
+				spawn_count += 2
+				var main_node = get_tree().get_first_node_in_group("main")
+				if main_node and main_node.has_method("spawn_boss_minions"):
+					main_node.spawn_boss_minions(progress_ratio if "progress_ratio" in self else 0.5, enemy_theme, 2)
+		"debuff_aura":
+			# Continuous: towers within 100px attack 20% slower
+			debuff_aura_active = true
+		"shield_allies":
+			# Every 12s, give 30% shield to nearby allies
+			if ability_timer >= 12.0:
+				ability_timer = 0.0
+				for ally in get_tree().get_nodes_in_group("enemies"):
+					if ally != self and is_instance_valid(ally) and global_position.distance_to(ally.global_position) <= 120.0:
+						if "is_shielded" in ally:
+							ally.is_shielded = true
+							ally.shield_hp = ally.max_health * 0.3 if "max_health" in ally else 50.0
+		"rage":
+			# Below 50% HP: speed +50%, damage +50%
+			if "health" in self and "max_health" in self:
+				if health / max_health <= 0.5:
+					speed = speed * 1.005 if speed < base_speed * 2.0 else speed  # Gradual ramp
+					if "damage_mult" in self:
+						damage_mult = maxf(damage_mult, 1.5)
 
 func _process_boss_mechanics(delta: float) -> void:
 	# Invulnerability timer
