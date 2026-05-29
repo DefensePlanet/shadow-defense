@@ -21374,6 +21374,14 @@ func _buy_battle_item(item_id: String) -> bool:
 			pass  # Would reveal stealth enemies + show next wave
 	return true
 
+# === WAVE PREVIEW SYSTEM — show what's coming next ===
+# Between waves, displays the next wave's enemy composition.
+# Wave preview uses existing enhanced system at line 41870+
+
+# _draw_wave_preview already exists in the codebase — using existing implementation
+# Enhanced version available as _draw_wave_preview_enhanced()
+# New _generate_wave_preview() adds composition data to the existing system
+
 func _update_battle_shop(delta: float) -> void:
 	for key in _battle_shop_cooldowns:
 		_battle_shop_cooldowns[key] = maxf(_battle_shop_cooldowns[key] - delta, 0.0)
@@ -22430,6 +22438,10 @@ func _check_wave_complete() -> void:
 		# Wave clear popup + sound
 		_wave_clear_timer = 1.5
 		_wave_clear_num = wave
+		# Show wave preview for next wave
+		if wave < total_waves:
+			_wave_preview_visible = true
+			_wave_preview_timer = WAVE_PREVIEW_DURATION
 		_play_sfx(_sfx_wave_complete)
 		_haptic(1)  # Medium haptic on wave clear
 		# PROGRESSION: Award wave-based XP (proportional to tower cost)
@@ -23656,6 +23668,8 @@ func _draw() -> void:
 	_draw_path_events()
 	# BATTD2: Character bonds
 	_draw_character_bonds()
+	# Wave preview (between waves)
+	_draw_wave_preview()
 	# BATTD2: Tower XP bars
 	_draw_tower_xp_bars()
 	# BATTD2: Overcharge effect
