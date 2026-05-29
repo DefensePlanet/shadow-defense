@@ -1455,80 +1455,43 @@ func _build_arc_levels() -> void:
 # ======================== SURVIVORS ========================
 func _build_survivors() -> void:
 	_clear()
-	var sc = ScrollContainer.new()
-	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	content_area.add_child(sc)
-	# Centered margin container
-	var margin = MarginContainer.new()
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 4)
-	sc.add_child(margin)
-	var vb = VBoxContainer.new()
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 8)
-	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_child(vb)
-	vb.add_child(_title("SURVIVORS"))
 	if not _main: return
 	var unlocked_ct = 0
 	for tt in _main.survivor_types:
 		if _main._is_character_unlocked(tt): unlocked_ct += 1
-	# Player title badge based on progress
-	var player_title = "Apprentice Reader"
-	if unlocked_ct >= 10: player_title = "Grand Librarian"
-	elif unlocked_ct >= 7: player_title = "Master Reader"
-	elif unlocked_ct >= 5: player_title = "Veteran Reader"
-	elif unlocked_ct >= 3: player_title = "Scholar"
-	elif unlocked_ct >= 1: player_title = "Reader"
-	var title_panel = PanelContainer.new()
-	var tps2 = StyleBoxFlat.new()
-	tps2.bg_color = Color(0.08, 0.06, 0.14, 0.6)
-	tps2.set_corner_radius_all(12)
-	tps2.border_color = Color(0.65, 0.50, 0.18, 0.4)
-	tps2.set_border_width_all(1)
-	tps2.content_margin_left = 14; tps2.content_margin_right = 14
-	tps2.content_margin_top = 4; tps2.content_margin_bottom = 4
-	title_panel.add_theme_stylebox_override("panel", tps2)
-	title_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var title_lbl = _lbl("🏆 %s" % player_title, 12, Color(0.90, 0.75, 0.30))
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_panel.add_child(title_lbl)
-	vb.add_child(title_panel)
-	var sub = _lbl("%d / %d Rescued" % [unlocked_ct, _main.survivor_types.size()], 13, Color(0.65, 0.58, 0.50))
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(sub)
-	vb.add_child(_stat_bar("Rescued", unlocked_ct, _main.survivor_types.size(), Color(0.45, 0.75, 0.35)))
-	# Team Power — sum of all character levels
-	var team_power = 0
-	for st in _main.survivor_types:
-		if _main._is_character_unlocked(st) and _main.survivor_progress.has(st):
-			team_power += _main.survivor_progress[st].get("level", 1)
-	if team_power > 0:
-		var power_row = HBoxContainer.new()
-		power_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		power_row.add_theme_constant_override("separation", 6)
-		power_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		power_row.add_child(_currency_chip("⚡ Team Power: %d" % team_power, Color(1.0, 0.75, 0.20)))
-		vb.add_child(power_row)
-	# Contextual gameplay tip
-	var tips = [
-		"💡 Tip: Place bonded characters near each other for synergy damage boosts!",
-		"💡 Tip: Upgrade characters in battle to unlock powerful abilities!",
-		"💡 Tip: Each character has a unique active ability at Tier 3+",
-		"💡 Tip: Check the Codex for gear equipped on each character",
-	]
-	var tip_lbl = _lbl(tips[randi() % tips.size()], 11, Color(0.70, 0.62, 0.52))
-	tip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tip_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tip_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(tip_lbl)
+	# Add rescued count to top bar (purple chip, right of journey)
+	var rescued_chip = _currency_chip("🛡 %d/%d" % [unlocked_ct, _main.survivor_types.size()], Color(0.6, 0.4, 0.85))
+	# Insert into top bar's HBox if possible
+	for c in top_bar.get_children():
+		if c is MarginContainer:
+			for cc in c.get_children():
+				if cc is HBoxContainer:
+					# Add before the right spacer
+					var child_count = cc.get_child_count()
+					if child_count > 1:
+						cc.add_child(rescued_chip)
+						cc.move_child(rescued_chip, child_count - 1)  # Before last spacer
+					break
+			break
+	var sc = ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_area.add_child(sc)
+	_style_scrollbar(sc)
+	var margin = MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 4)
+	sc.add_child(margin)
+	var vb = VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", 12)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vb)
+	# Title only — no scholar badge, no team power, no tips
+	vb.add_child(_section_header("SURVIVORS"))
+	# Character grid immediately
 	var grid = GridContainer.new()
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 12)
