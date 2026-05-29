@@ -23559,13 +23559,7 @@ func _draw() -> void:
 				draw_circle(dot_pos, 6.0 + pulse * 3.0, Color(1.0, 0.84, 0.0, 0.6 + pulse * 0.3))
 				draw_circle(dot_pos, 12.0 + pulse * 4.0, Color(1.0, 0.84, 0.0, 0.15 + pulse * 0.1))
 
-	# === SYNERGY GLOW RINGS ON TOWERS ===
-	if active_synergies.size() > 0:
-		for tower in _cached_towers:
-			if tower.has_method("has_synergy_buff") and tower.has_synergy_buff():
-				var pulse = (sin(_time * 3.0) + 1.0) * 0.5
-				draw_arc(tower.global_position, 30.0 + pulse * 5.0, 0, TAU, 32, Color(1.0, 0.84, 0.0, 0.25 + pulse * 0.2), 2.5)
-				draw_arc(tower.global_position, 36.0 + pulse * 5.0, 0, TAU, 32, Color(1.0, 0.84, 0.0, 0.15 + pulse * 0.1), 1.5)
+	# === SYNERGY GLOW RINGS ON TOWERS (#94 — handled by _draw_synergy_auras) ===
 
 	# === SELECTED TOWER HIGHLIGHT & RANGE ===
 	if selected_tower_node and is_instance_valid(selected_tower_node) and not placing_tower:
@@ -26495,18 +26489,27 @@ func _draw_income_breakdown() -> void:
 
 # === BATTD: TOWER SYNERGY AURA VISUALS ===
 func _draw_synergy_auras() -> void:
+	# Enhanced synergy auras (#94) — visible energy rings on bonded towers
 	if active_synergies.is_empty():
 		return
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if not is_instance_valid(tower):
 			continue
+		if not (tower.has_method("has_synergy_buff") and tower.has_synergy_buff()):
+			continue
 		var tpos = tower.global_position
-		var pulse = (sin(_time * 3.0 + tpos.x * 0.01) + 1.0) * 0.5
-		var aura_alpha = 0.06 + pulse * 0.04
-		# Draw a subtle glowing ring
-		var r = 45.0 + pulse * 5.0
-		draw_arc(tpos, r, 0, TAU, 32, Color(0.6, 0.3, 1.0, aura_alpha), 2.0)
-		draw_arc(tpos, r + 3, 0, TAU, 32, Color(0.8, 0.5, 1.0, aura_alpha * 0.5), 1.0)
+		var pulse = (sin(_time * 3.5 + tpos.x * 0.01) + 1.0) * 0.5
+		# Rotating arc segments
+		var rot_offset = fmod(_time * 1.5, TAU)
+		var r = 40.0 + pulse * 6.0
+		for seg in range(3):
+			var start_angle = rot_offset + seg * (TAU / 3.0)
+			var arc_len = TAU / 4.5
+			draw_arc(tpos, r, start_angle, start_angle + arc_len, 16, Color(0.5, 0.8, 1.0, 0.25 + pulse * 0.15), 2.5)
+		# Inner glow ring
+		draw_arc(tpos, r - 6, 0, TAU, 32, Color(0.6, 0.4, 1.0, 0.12 + pulse * 0.08), 1.5)
+		# Outer soft glow
+		draw_circle(tpos, r + 10, Color(0.4, 0.6, 1.0, 0.04 + pulse * 0.03))
 
 # === BATTD: TOWER BUFF ICONS ===
 func _draw_tower_buff_icons() -> void:
@@ -40186,7 +40189,7 @@ func _draw_enemy_weakpoints() -> void:
 # --- Improvement 18: TOWER SYNERGY AURA VISUALIZATION ---
 # Show visual connection lines between bonded/synergized towers
 func _draw_synergy_connections() -> void:
-	# Draw bond lines between bonded tower pairs
+	# Draw energy beams between bonded tower pairs (#94 enhanced)
 	for bond in _active_bonds:
 		if bond.size() < 1:
 			continue
@@ -40205,10 +40208,32 @@ func _draw_synergy_connections() -> void:
 				towers_b.append(tower)
 		for ta in towers_a:
 			for tb in towers_b:
-				if ta.global_position.distance_to(tb.global_position) <= BOND_RADIUS:
-					var pulse = (sin(_time * 3.0) + 1.0) * 0.5
-					var col = Color(0.4, 0.8, 1.0, 0.08 + pulse * 0.06)
-					draw_line(ta.global_position, tb.global_position, col, 1.5)
+				var dist = ta.global_position.distance_to(tb.global_position)
+				if dist <= BOND_RADIUS:
+					var pa = ta.global_position
+					var pb = tb.global_position
+					var pulse = (sin(_time * 4.0) + 1.0) * 0.5
+					var flow = fmod(_time * 2.0, 1.0)  # Energy flow direction 0→1
+					# Outer glow beam
+					draw_line(pa, pb, Color(0.3, 0.6, 1.0, 0.12 + pulse * 0.08), 6.0)
+					# Core beam
+					draw_line(pa, pb, Color(0.5, 0.85, 1.0, 0.2 + pulse * 0.15), 2.5)
+					# Bright center
+					draw_line(pa, pb, Color(0.8, 0.95, 1.0, 0.15 + pulse * 0.1), 1.0)
+					# Energy particles flowing along the beam
+					var dir = (pb - pa).normalized()
+					var perp = Vector2(-dir.y, dir.x)
+					for pi in range(5):
+						var t = fmod(flow + pi * 0.2, 1.0)
+						var pos = pa.lerp(pb, t)
+						var wobble = sin(_time * 6.0 + pi * 1.5) * 3.0
+						pos += perp * wobble
+						var p_alpha = sin(t * PI) * (0.4 + pulse * 0.3)
+						draw_circle(pos, 3.0 + pulse * 1.5, Color(0.6, 0.9, 1.0, p_alpha))
+						draw_circle(pos, 1.5, Color(1.0, 1.0, 1.0, p_alpha * 0.6))
+					# Connection nodes at tower ends
+					draw_circle(pa, 8.0 + pulse * 3.0, Color(0.4, 0.7, 1.0, 0.15 + pulse * 0.1))
+					draw_circle(pb, 8.0 + pulse * 3.0, Color(0.4, 0.7, 1.0, 0.15 + pulse * 0.1))
 
 # --- Improvement 19: WAVE MODIFIER ANNOUNCEMENTS ---
 var _wave_modifier_text: String = ""
