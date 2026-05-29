@@ -2856,6 +2856,47 @@ func _get_prestige_tier() -> Dictionary:
 			break
 	return result
 
+# === BATTLE PASS (#116) ===
+var bp_tier: int = 0  # Current battle pass tier (0-99)
+var bp_xp: int = 0  # Current XP toward next tier
+var bp_claimed: Array = []  # Tiers already claimed
+const BP_XP_PER_TIER: int = 100  # XP needed per tier
+const BP_MAX_TIER: int = 100
+const BP_REWARDS: Array = [
+	# Every 5 tiers = major reward, others = minor
+	# Reward types: gold, pages, quills, stars, ink, gear_chest, cosmetic
+	# Generated procedurally in _get_bp_reward()
+]
+
+func _add_bp_xp(amount: int) -> void:
+	bp_xp += amount
+	while bp_xp >= BP_XP_PER_TIER and bp_tier < BP_MAX_TIER:
+		bp_xp -= BP_XP_PER_TIER
+		bp_tier += 1
+		spawn_floating_text(Vector2(640, 380), "BATTLE PASS TIER %d!" % bp_tier, Color(0.4, 0.8, 1.0), 16.0, 2.0)
+		# Auto-claim free tier rewards
+		var reward = _get_bp_reward(bp_tier)
+		_grant_bp_reward(reward)
+		bp_claimed.append(bp_tier)
+
+func _get_bp_reward(tier: int) -> Dictionary:
+	if tier % 10 == 0:
+		return {"type": "stars", "amount": 3 + tier / 10, "label": "%d Stars" % (3 + tier / 10)}
+	elif tier % 5 == 0:
+		return {"type": "quills", "amount": 5 + tier / 5, "label": "%d Quills" % (5 + tier / 5)}
+	elif tier % 3 == 0:
+		return {"type": "pages", "amount": 10 + tier / 3, "label": "%d Pages" % (10 + tier / 3)}
+	else:
+		return {"type": "gold", "amount": 25 + tier * 3, "label": "%dG" % (25 + tier * 3)}
+
+func _grant_bp_reward(reward: Dictionary) -> void:
+	match reward["type"]:
+		"gold": player_gold += reward["amount"]
+		"pages": player_pages += reward["amount"]
+		"quills": player_quills += reward["amount"]
+		"stars": player_storybook_stars += reward["amount"]
+	spawn_floating_text(Vector2(640, 400), "+%s" % reward["label"], Color(0.3, 1.0, 0.6), 14.0, 1.5)
+
 # === MILESTONE REWARDS ===
 var milestone_claimed: Dictionary = {}
 var total_damage: int = 0
@@ -5405,6 +5446,9 @@ func _save_game() -> void:
 	save_data["player_gold"] = player_gold
 	save_data["player_energy"] = player_energy
 	save_data["energy_last_timestamp"] = Time.get_unix_time_from_system()
+	save_data["bp_tier"] = bp_tier
+	save_data["bp_xp"] = bp_xp
+	save_data["bp_claimed"] = bp_claimed
 	save_data["gold"] = gold
 	# Progress
 	save_data["completed_levels"] = completed_levels
@@ -5690,6 +5734,12 @@ func _load_game() -> void:
 	# Energy system (#112): load + regen based on time away
 	player_energy = int(data.get("player_energy", MAX_ENERGY))
 	energy_last_timestamp = float(data.get("energy_last_timestamp", 0.0))
+	bp_tier = int(data.get("bp_tier", 0))
+	bp_xp = int(data.get("bp_xp", 0))
+	var bp_c = data.get("bp_claimed", [])
+	bp_claimed.clear()
+	for bc in bp_c:
+		bp_claimed.append(int(bc))
 	if energy_last_timestamp > 0.0:
 		var now = Time.get_unix_time_from_system()
 		var minutes_away = (now - energy_last_timestamp) / 60.0
@@ -22948,6 +22998,8 @@ func _check_wave_complete() -> void:
 				spawn_floating_text(Vector2(640, 300), "+%dG Endless Bonus!" % endless_bonus, Color(1.0, 0.9, 0.2), 18.0, 1.5)
 			# Wave complete celebration
 			spawn_floating_text(Vector2(640, 260), "WAVE %d COMPLETE!" % wave, Color(0.3, 1.0, 0.5), 22.0, 1.5)
+			# Battle Pass XP (#116)
+			_add_bp_xp(5 + wave / 5)
 			# Planning Phase before boss waves (#101)
 			if (wave + 1) in PLANNING_PHASE_WAVES and wave < total_waves:
 				_planning_phase = true
@@ -36050,6 +36102,8 @@ func _victory() -> void:
 	_stop_layered_music()
 	_play_sfx(_sfx_victory)
 	_haptic(2)  # Strong haptic on victory
+	# Battle Pass XP on victory (#116)
+	_add_bp_xp(25 + selected_difficulty * 10)
 	speed_button.text = "  >>  "
 	# Victory burst effect
 	_victory_burst_timer = 2.0
