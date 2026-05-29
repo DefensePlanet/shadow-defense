@@ -3155,6 +3155,16 @@ var _defeat_timer: float = 0.0
 var _defeat_cracks: Array = []
 var _spawn_portal_intensity: float = 0.0
 var _env_particles: Array = []
+# Weather system (#142)
+var _weather_type: String = ""  # "", "rain", "snow", "storm", "fog", "embers"
+var _weather_particles: Array = []  # [{x, y, speed, size}]
+# Wave countdown (#154)
+var _wave_countdown_timer: float = 0.0
+var _wave_countdown_num: int = 0
+# Tutorial hints (#160)
+var _tutorial_hints_shown: Dictionary = {}
+var _tutorial_hint_text: String = ""
+var _tutorial_hint_timer: float = 0.0
 var _wave_banner_timer: float = 0.0
 var _wave_banner_num: int = 0
 var _wave_banner_name: String = ""
@@ -7357,6 +7367,131 @@ func _draw_bg_story() -> void:
 				if fmod(el["timer"], 7.0) < 0.1:
 					draw_rect(Rect2(0, 0, 1280, 90), Color(0.5, 0.5, 0.7, 0.04))
 
+# === WEATHER EFFECTS (#142) ===
+func _setup_weather(level_idx: int) -> void:
+	_weather_particles.clear()
+	_weather_type = ""
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	match theme:
+		0: _weather_type = "rain"        # Sherwood
+		3: _weather_type = "rain"        # Neverland
+		7: _weather_type = "fog"         # Sherlock
+		8: _weather_type = "embers"      # Merlin
+		10: _weather_type = "fog"        # Dracula
+		11: _weather_type = "storm"      # Frankenstein
+		12: _weather_type = "embers"     # Shadow Author
+	if _weather_type == "":
+		if randf() < 0.15:  # 15% chance random weather
+			_weather_type = ["rain", "fog"][randi() % 2]
+	# Pre-populate particles
+	for i in range(60):
+		_weather_particles.append({"x": randf() * 1280.0, "y": randf() * 720.0, "speed": randf_range(80.0, 200.0), "size": randf_range(1.0, 3.0)})
+
+func _process_weather(delta: float) -> void:
+	if _weather_type == "": return
+	for p in _weather_particles:
+		match _weather_type:
+			"rain":
+				p["y"] += p["speed"] * delta
+				p["x"] += p["speed"] * 0.1 * delta
+			"snow":
+				p["y"] += p["speed"] * 0.3 * delta
+				p["x"] += sin(_time + p["x"] * 0.01) * 15.0 * delta
+			"storm":
+				p["y"] += p["speed"] * 1.5 * delta
+				p["x"] += p["speed"] * 0.3 * delta
+			"embers":
+				p["y"] -= p["speed"] * 0.4 * delta
+				p["x"] += sin(_time * 2.0 + p["y"] * 0.02) * 20.0 * delta
+			"fog":
+				p["x"] += p["speed"] * 0.15 * delta
+		if p["y"] > 740: p["y"] = -10.0; p["x"] = randf() * 1280.0
+		if p["y"] < -20: p["y"] = 730.0; p["x"] = randf() * 1280.0
+		if p["x"] > 1300: p["x"] = -10.0
+		if p["x"] < -20: p["x"] = 1290.0
+
+func _draw_weather() -> void:
+	if _weather_type == "": return
+	for p in _weather_particles:
+		match _weather_type:
+			"rain":
+				draw_line(Vector2(p["x"], p["y"]), Vector2(p["x"] + 1, p["y"] + 6), Color(0.5, 0.6, 0.8, 0.15), p["size"] * 0.5)
+			"snow":
+				draw_circle(Vector2(p["x"], p["y"]), p["size"], Color(0.9, 0.9, 1.0, 0.2))
+			"storm":
+				draw_line(Vector2(p["x"], p["y"]), Vector2(p["x"] + 3, p["y"] + 10), Color(0.4, 0.5, 0.7, 0.2), p["size"] * 0.7)
+			"embers":
+				var ea = sin(_time * 3.0 + p["x"]) * 0.3
+				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 0.7, Color(1.0, 0.5 + ea, 0.1, 0.3))
+			"fog":
+				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 8.0, Color(0.4, 0.4, 0.5, 0.02))
+
+# === WAVE COUNTDOWN (#154) ===
+func _start_wave_countdown() -> void:
+	_wave_countdown_timer = 3.0
+	_wave_countdown_num = 3
+
+func _process_wave_countdown(delta: float) -> void:
+	if _wave_countdown_timer <= 0.0: return
+	_wave_countdown_timer -= delta
+	_wave_countdown_num = int(ceil(_wave_countdown_timer))
+	if _wave_countdown_timer <= 0.0:
+		_wave_countdown_num = 0
+
+func _draw_wave_countdown() -> void:
+	if _wave_countdown_timer <= 0.0: return
+	var num = _wave_countdown_num
+	var alpha = fmod(_wave_countdown_timer, 1.0)
+	var scale = 1.0 + (1.0 - alpha) * 0.5
+	var text = str(num) if num > 0 else "FIGHT!"
+	var sz = int(48.0 * scale) if num > 0 else 56
+	var col = Color(1.0, 1.0, 1.0, alpha) if num > 0 else Color(1.0, 0.4, 0.1, alpha)
+	_ds_outlined_text(Vector2(640, 340), text, sz, col, 200, HORIZONTAL_ALIGNMENT_CENTER, 4)
+
+# === WAVE PROGRESS BAR (#159) ===
+func _draw_wave_progress_bar() -> void:
+	if not is_wave_active or total_waves <= 0: return
+	var bar_y = 710.0
+	var bar_w = 1260.0
+	var bar_h = 6.0
+	var fill = float(wave) / float(total_waves)
+	draw_rect(Rect2(10, bar_y, bar_w, bar_h), Color(0.15, 0.1, 0.2, 0.4))
+	draw_rect(Rect2(10, bar_y, bar_w * fill, bar_h), Color(0.4, 0.7, 1.0, 0.5))
+	# Boss wave markers
+	for bw in [10, 20, 30, 40]:
+		if bw <= total_waves:
+			var bx = 10.0 + bar_w * (float(bw) / float(total_waves))
+			draw_line(Vector2(bx, bar_y), Vector2(bx, bar_y + bar_h), Color(1.0, 0.3, 0.1, 0.5), 2.0)
+
+# === INCOME INDICATOR (#163) ===
+func _draw_income_indicator() -> void:
+	if not is_wave_active: return
+	var gold_per_sec = 0.0
+	if _time - _wave_start_time > 1.0:
+		gold_per_sec = float(total_gold_earned) / maxf(_time - _wave_start_time, 1.0)
+	_ds_outlined_text(Vector2(1210, 710), "%.1f G/s" % gold_per_sec, 9, Color(1.0, 0.9, 0.3, 0.5), 80, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+
+# === TUTORIAL HINTS (#160) ===
+func _show_tutorial_hint(key: String, text: String) -> void:
+	if key in _tutorial_hints_shown: return
+	_tutorial_hints_shown[key] = true
+	_tutorial_hint_text = text
+	_tutorial_hint_timer = 5.0
+
+func _draw_tutorial_hint() -> void:
+	if _tutorial_hint_timer <= 0.0: return
+	var alpha = clampf(_tutorial_hint_timer / 1.0, 0.0, 1.0)
+	draw_rect(Rect2(240, 640, 800, 30), Color(0.1, 0.1, 0.2, 0.7 * alpha))
+	_ds_outlined_text(Vector2(640, 648), _tutorial_hint_text, 11, Color(1.0, 0.9, 0.5, alpha), 780, HORIZONTAL_ALIGNMENT_CENTER, 1)
+
+# === UNIT COUNT INDICATOR (#162) ===
+func _draw_unit_count() -> void:
+	if not is_wave_active: return
+	var enemy_count = enemies_alive
+	var tower_count = get_tree().get_nodes_in_group("towers").size()
+	_ds_outlined_text(Vector2(75, 710), "T:%d E:%d" % [tower_count, enemy_count], 9, Color(0.7, 0.7, 0.8, 0.5), 80, HORIZONTAL_ALIGNMENT_CENTER, 1)
+
 func _draw_entrance_portal() -> void:
 	if path_points.size() < 2: return
 	var enter_pos = path_points[0]
@@ -11452,6 +11587,11 @@ func _is_level_unlocked(idx: int) -> bool:
 func _on_level_selected(index: int) -> void:
 	if not _is_level_unlocked(index):
 		return
+	# Tutorial hints (#160)
+	if completed_levels.size() == 0:
+		_show_tutorial_hint("first_level", "Tap a character card to place a tower. Defend the path from enemies!")
+	elif completed_levels.size() == 1:
+		_show_tutorial_hint("upgrade", "Tap a placed tower to upgrade it. Stronger towers = more kills!")
 	# Energy check (#112)
 	var energy_cost = ENERGY_PER_HARD if selected_difficulty >= 2 else ENERGY_PER_LEVEL
 	if player_energy < energy_cost:
@@ -11496,6 +11636,7 @@ func _do_level_start(index: int) -> void:
 	total_waves = difficulty_waves[mini(selected_difficulty, 3)]
 	_setup_path_for_level(index)
 	_setup_multi_entrance(index)
+	_setup_weather(index)
 	_set_time_of_day(index)
 	_setup_seasonal_theme()
 	_setup_realm_mechanic(index)
@@ -21687,6 +21828,10 @@ func _process(delta: float) -> void:
 	_process_ink_ultimate(delta)
 	_process_planning_phase(delta)
 	_enforce_mutators()
+	_process_weather(delta)
+	_process_wave_countdown(delta)
+	if _tutorial_hint_timer > 0.0:
+		_tutorial_hint_timer -= delta
 	if _gold_rush_timer > 0.0:
 		_gold_rush_timer -= delta
 	_process_boss_kill_ceremony(delta)
@@ -24774,6 +24919,12 @@ func _draw() -> void:
 	_draw_ink_meter()
 	_draw_planning_phase()
 	_draw_daily_challenge_hud()
+	_draw_weather()
+	_draw_wave_countdown()
+	_draw_wave_progress_bar()
+	_draw_income_indicator()
+	_draw_unit_count()
+	_draw_tutorial_hint()
 	_draw_milestone_popup()
 	_draw_power_spike()
 	_draw_comeback_banner()
@@ -34900,6 +35051,8 @@ func _start_next_wave() -> void:
 	spawn_floating_text(Vector2(640, 280), wave_text, Color(1.0, 0.9, 0.3), 26.0, 1.2)
 	if _multi_entrance_active and wave == 1:
 		spawn_floating_text(Vector2(640, 320), "⚠ MULTI-ENTRANCE MAP! Watch both paths!", Color(1.0, 0.5, 0.2), 16.0, 3.0)
+	# Wave countdown (#154)
+	_start_wave_countdown()
 	_screen_shake_intensity = 2.0
 	_screen_shake_timer = 0.15
 	# Enhancement #15: Check rush bonus (starting wave while enemies alive)
