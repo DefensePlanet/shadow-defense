@@ -25,6 +25,150 @@ var gear_ring: Dictionary = {}       # Ring — particle effect on attacks
 var skin_id: String = "default"
 var skin_color_override: Color = Color.WHITE  # Tint applied to base outfit
 
+# === ANIMATION STATE MACHINE — makes characters feel ALIVE ===
+# States: "idle", "attack_windup", "attack_release", "attack_cooldown",
+#         "ability_cast", "celebrate", "hurt", "placed"
+var anim_state: String = "idle"
+var anim_timer: float = 0.0
+var anim_frame: int = 0
+# Body part offsets — modified by animations for limb movement
+var body_offset: Vector2 = Vector2.ZERO  # Whole body shift
+var arm_right_angle: float = 0.0  # Right arm rotation (weapon hand)
+var arm_left_angle: float = 0.0   # Left arm rotation (shield/off-hand)
+var head_tilt: float = 0.0        # Head rotation
+var body_lean: float = 0.0        # Torso lean (left/right)
+var leg_phase: float = 0.0        # Walk/idle leg animation phase
+var weapon_swing_angle: float = 0.0  # Weapon rotation during attack
+var weapon_trail_alpha: float = 0.0  # Trail effect behind weapon
+var _idle_timer: float = 0.0      # Fidget/boredom timer
+var _idle_variant: int = 0        # Which idle animation to play
+var _celebrate_timer: float = 0.0 # Victory dance timer
+var _kill_flash: float = 0.0      # Flash on kill
+var _attack_count: int = 0        # Attacks since last idle variant change
+# Weapon visual state
+var weapon_visible: bool = true
+var weapon_glow_color: Color = Color(1, 1, 1, 0)  # Upgrade glow
+var weapon_scale: float = 1.0     # Bigger with upgrades
+
+func _update_animation(delta: float) -> void:
+	anim_timer += delta
+	_idle_timer += delta
+	_kill_flash = maxf(_kill_flash - delta * 3.0, 0.0)
+	_celebrate_timer = maxf(_celebrate_timer - delta, 0.0)
+	# Leg idle sway
+	leg_phase += delta * 2.0
+	match anim_state:
+		"idle":
+			# Gentle breathing + occasional fidgets
+			body_offset.y = sin(anim_timer * 1.8) * 1.5
+			head_tilt = sin(anim_timer * 0.7) * 0.03
+			arm_right_angle = sin(anim_timer * 1.2) * 0.05
+			arm_left_angle = sin(anim_timer * 1.0 + 0.5) * 0.04
+			body_lean = sin(anim_timer * 0.5) * 0.02
+			weapon_swing_angle = sin(anim_timer * 0.8) * 0.08
+			weapon_trail_alpha = 0.0
+			# Boredom fidgets every 5-10 seconds
+			if _idle_timer > 5.0 + randf() * 5.0:
+				_idle_timer = 0.0
+				_idle_variant = (_idle_variant + 1) % 4
+			match _idle_variant:
+				1:  # Look around
+					head_tilt += sin(anim_timer * 2.0) * 0.08
+				2:  # Shift weight
+					body_lean += sin(anim_timer * 1.5) * 0.05
+				3:  # Weapon fidget
+					weapon_swing_angle += sin(anim_timer * 3.0) * 0.15
+		"attack_windup":
+			# Pull back weapon/arm
+			var windup_progress = minf(anim_timer / 0.15, 1.0)
+			arm_right_angle = -0.8 * windup_progress  # Pull back
+			body_lean = -0.1 * windup_progress  # Lean back
+			weapon_swing_angle = -1.2 * windup_progress  # Weapon winds back
+			head_tilt = 0.05 * windup_progress  # Eyes on target
+			if windup_progress >= 1.0:
+				anim_state = "attack_release"
+				anim_timer = 0.0
+		"attack_release":
+			# Swing forward — the satisfying part
+			var release_progress = minf(anim_timer / 0.12, 1.0)
+			arm_right_angle = -0.8 + 1.8 * release_progress  # Swing through
+			body_lean = -0.1 + 0.25 * release_progress  # Lean forward
+			weapon_swing_angle = -1.2 + 3.0 * release_progress  # Full swing arc
+			weapon_trail_alpha = 0.5 * (1.0 - release_progress)  # Trail fades
+			head_tilt = 0.05 - 0.1 * release_progress  # Follow through
+			body_offset.x = 3.0 * sin(release_progress * PI)  # Lunge forward
+			if release_progress >= 1.0:
+				anim_state = "attack_cooldown"
+				anim_timer = 0.0
+				_attack_count += 1
+				if _attack_count > 8:
+					_attack_count = 0
+					_idle_variant = randi() % 4
+		"attack_cooldown":
+			# Return to idle smoothly
+			var cooldown_progress = minf(anim_timer / 0.2, 1.0)
+			arm_right_angle = 1.0 * (1.0 - cooldown_progress)
+			body_lean = 0.15 * (1.0 - cooldown_progress)
+			weapon_swing_angle = 1.8 * (1.0 - cooldown_progress)
+			body_offset.x = 0.0
+			weapon_trail_alpha = 0.0
+			if cooldown_progress >= 1.0:
+				anim_state = "idle"
+				anim_timer = 0.0
+		"ability_cast":
+			# Both arms up, body lifts, glow intensifies
+			var cast_progress = minf(anim_timer / 0.4, 1.0)
+			arm_right_angle = -1.5 * cast_progress  # Arms up
+			arm_left_angle = -1.5 * cast_progress
+			body_offset.y = -5.0 * cast_progress  # Rise up
+			weapon_glow_color.a = cast_progress * 0.6  # Glow
+			if cast_progress >= 1.0:
+				anim_state = "idle"
+				anim_timer = 0.0
+				weapon_glow_color.a = 0.0
+		"celebrate":
+			# Victory dance — bounce + arms pump
+			var bounce = abs(sin(anim_timer * 6.0)) * 4.0
+			body_offset.y = -bounce
+			arm_right_angle = sin(anim_timer * 4.0) * 0.8
+			arm_left_angle = -sin(anim_timer * 4.0) * 0.8
+			head_tilt = sin(anim_timer * 5.0) * 0.1
+			body_lean = sin(anim_timer * 3.0) * 0.08
+			if _celebrate_timer <= 0:
+				anim_state = "idle"
+				anim_timer = 0.0
+		"placed":
+			# Landing animation when first placed
+			var place_progress = minf(anim_timer / 0.3, 1.0)
+			body_offset.y = -20.0 * (1.0 - place_progress)  # Drop in from above
+			var squash = 1.0 + sin(place_progress * PI) * 0.15  # Squash on land
+			scale = Vector2(1.0 / squash, squash) if place_progress < 0.8 else Vector2(1, 1)
+			if place_progress >= 1.0:
+				anim_state = "idle"
+				anim_timer = 0.0
+				scale = Vector2(1, 1)
+
+func trigger_attack_anim() -> void:
+	anim_state = "attack_windup"
+	anim_timer = 0.0
+	_idle_timer = 0.0
+
+func trigger_ability_anim() -> void:
+	anim_state = "ability_cast"
+	anim_timer = 0.0
+
+func trigger_celebrate(duration: float = 2.0) -> void:
+	anim_state = "celebrate"
+	anim_timer = 0.0
+	_celebrate_timer = duration
+
+func trigger_kill_flash() -> void:
+	_kill_flash = 1.0
+
+func trigger_placed_anim() -> void:
+	anim_state = "placed"
+	anim_timer = 0.0
+
 var bullet_scene = preload("res://scenes/bullet.tscn")
 var _main_node: Node2D = null
 
@@ -35,6 +179,7 @@ func _process(delta: float) -> void:
 	delta = minf(delta, 0.05)  # Cap at 50ms to prevent physics spikes
 	fire_cooldown -= delta
 	_recoil = max(_recoil - delta * 8.0, 0.0)
+	_update_animation(delta)
 	target = _find_nearest_enemy()
 
 	if target:
@@ -44,6 +189,7 @@ func _process(delta: float) -> void:
 			_shoot()
 			fire_cooldown = 1.0 / fire_rate
 			_recoil = 1.0
+			trigger_attack_anim()
 
 	queue_redraw()
 

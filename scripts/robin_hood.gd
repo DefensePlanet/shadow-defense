@@ -1021,28 +1021,41 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(bow_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	# === 4. IDLE ANIMATION (confident weight shift) ===
+	# === 4. ANIMATION-DRIVEN BODY MOVEMENT ===
+	# Uses base class animation state machine for dynamic movement
 	var bounce = abs(sin(_time * 3.0)) * 4.0
 	var breathe = sin(_time * 2.0) * 2.0
-	var weight_shift = sin(_time * 1.2) * 2.5  # Slow confident weight shift
-	var bob = Vector2(weight_shift, -bounce - breathe)
+	var weight_shift = sin(_time * 1.2) * 2.5
 
 	# Tier 4: Floating pose (legendary archer levitating)
 	var fly_offset = Vector2.ZERO
 	if upgrade_tier >= 4:
 		fly_offset = Vector2(0, -10.0 + sin(_time * 1.5) * 3.0)
 
-	var body_offset = bob + fly_offset
+	# Merge base animation offsets with character-specific movement
+	var anim_body = body_offset  # From base class animation state machine
+	var char_body_off = Vector2(weight_shift + anim_body.x, -bounce - breathe + anim_body.y) + fly_offset
 
-	# Per-joint differential offsets
-	var hip_shift = sin(_time * 1.2) * 1.5  # Weight shift at hips
-	var shoulder_counter = -sin(_time * 1.2) * 0.8  # Counter-sway shoulders
+	# Per-joint differential offsets — enhanced by animation state
+	var hip_shift = sin(_time * 1.2) * 1.5 + body_lean * 15.0
+	var shoulder_counter = -sin(_time * 1.2) * 0.8
 
-	# String vibration after shot (tier-scaling — more intense at higher tiers)
+	# Weapon animation — bowstring pull/release driven by attack anim
+	var bow_pull = 0.0  # 0=relaxed, 1=fully drawn
+	if anim_state == "attack_windup":
+		bow_pull = minf(anim_timer / 0.15, 1.0)
+	elif anim_state == "attack_release":
+		bow_pull = 1.0 - minf(anim_timer / 0.08, 1.0)
+
+	# String vibration after shot (tier-scaling)
 	var string_vib = 0.0
 	if _attack_anim > 0.2:
 		var tier_vib = 1.0 + float(upgrade_tier) * 0.4
 		string_vib = sin(_attack_anim * 45.0) * 3.0 * _attack_anim * tier_vib
+
+	# Kill flash — brief white flash on enemy kill
+	if _kill_flash > 0.0:
+		draw_circle(Vector2.ZERO + body_off, 25.0, Color(1, 1, 1, _kill_flash * 0.15))
 
 	# === 5. SKIN COLORS ===
 	var skin_base = Color(0.91, 0.74, 0.58)
