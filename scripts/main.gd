@@ -26713,6 +26713,96 @@ const DARK_VARIANTS: Dictionary = {
 var dark_skins_unlocked: Dictionary = {}  # tower_type -> true
 var dark_skin_active: Dictionary = {}  # tower_type -> true (currently using dark skin)
 
+# === DAMAGE TYPE SYSTEM — elemental combat with resistances ===
+# Each tower has a primary damage type. Enemies have resistances/weaknesses.
+# This creates strategic depth — bring the right damage type for the realm.
+
+const DAMAGE_TYPES: Dictionary = {
+	"physical": {"color": Color(0.8, 0.7, 0.5), "icon": "⚔", "strong_vs": "armored", "weak_vs": "ethereal"},
+	"magic": {"color": Color(0.5, 0.3, 0.9), "icon": "✨", "strong_vs": "ethereal", "weak_vs": "shielded"},
+	"fire": {"color": Color(0.9, 0.4, 0.1), "icon": "🔥", "strong_vs": "organic", "weak_vs": "water"},
+	"ice": {"color": Color(0.3, 0.7, 0.9), "icon": "❄", "strong_vs": "fast", "weak_vs": "armored"},
+	"lightning": {"color": Color(0.4, 0.6, 1.0), "icon": "⚡", "strong_vs": "water", "weak_vs": "grounded"},
+	"dark": {"color": Color(0.4, 0.15, 0.5), "icon": "🌑", "strong_vs": "holy", "weak_vs": "light"},
+	"holy": {"color": Color(1.0, 0.9, 0.4), "icon": "☀", "strong_vs": "undead", "weak_vs": "shielded"},
+}
+
+# Per-character damage type assignments
+const CHARACTER_DAMAGE_TYPES: Dictionary = {
+	TowerType.ROBIN_HOOD: "physical",
+	TowerType.ALICE: "magic",
+	TowerType.WICKED_WITCH: "fire",
+	TowerType.PETER_PAN: "physical",
+	TowerType.PHANTOM: "dark",
+	TowerType.SCROOGE: "ice",
+	TowerType.SHERLOCK: "physical",
+	TowerType.TARZAN: "physical",
+	TowerType.DRACULA: "dark",
+	TowerType.MERLIN: "magic",
+	TowerType.FRANKENSTEIN: "lightning",
+	TowerType.SHADOW_AUTHOR: "dark",
+	TowerType.CAPTAIN_HOOK: "physical",
+	TowerType.QUEEN_OF_HEARTS: "fire",
+	TowerType.CLAYTON: "physical",
+	TowerType.HEADLESS_HORSEMAN: "fire",
+	TowerType.MEDUSA: "magic",
+	TowerType.LOKI: "magic",
+	TowerType.ANUBIS: "holy",
+	TowerType.CAPTAIN_AHAB: "physical",
+}
+
+# Extended combat stats per character (beyond base damage/range/speed)
+const CHARACTER_COMBAT_STATS: Dictionary = {
+	TowerType.ROBIN_HOOD: {"armor_pen": 0.10, "crit_chance": 0.15, "crit_mult": 2.0, "lifesteal": 0.0},
+	TowerType.ALICE: {"armor_pen": 0.0, "crit_chance": 0.05, "crit_mult": 1.5, "lifesteal": 0.0},
+	TowerType.WICKED_WITCH: {"armor_pen": 0.05, "crit_chance": 0.08, "crit_mult": 1.8, "lifesteal": 0.0},
+	TowerType.PETER_PAN: {"armor_pen": 0.15, "crit_chance": 0.20, "crit_mult": 2.0, "lifesteal": 0.0},
+	TowerType.PHANTOM: {"armor_pen": 0.20, "crit_chance": 0.10, "crit_mult": 2.5, "lifesteal": 0.05},
+	TowerType.SCROOGE: {"armor_pen": 0.0, "crit_chance": 0.05, "crit_mult": 1.5, "lifesteal": 0.0},
+	TowerType.SHERLOCK: {"armor_pen": 0.30, "crit_chance": 0.25, "crit_mult": 3.0, "lifesteal": 0.0},
+	TowerType.TARZAN: {"armor_pen": 0.10, "crit_chance": 0.15, "crit_mult": 2.0, "lifesteal": 0.08},
+	TowerType.DRACULA: {"armor_pen": 0.15, "crit_chance": 0.12, "crit_mult": 2.0, "lifesteal": 0.15},
+	TowerType.MERLIN: {"armor_pen": 0.05, "crit_chance": 0.08, "crit_mult": 2.0, "lifesteal": 0.0},
+	TowerType.FRANKENSTEIN: {"armor_pen": 0.25, "crit_chance": 0.05, "crit_mult": 1.5, "lifesteal": 0.0},
+	TowerType.SHADOW_AUTHOR: {"armor_pen": 0.20, "crit_chance": 0.15, "crit_mult": 2.5, "lifesteal": 0.10},
+	TowerType.CAPTAIN_HOOK: {"armor_pen": 0.12, "crit_chance": 0.18, "crit_mult": 2.2, "lifesteal": 0.0},
+	TowerType.QUEEN_OF_HEARTS: {"armor_pen": 0.05, "crit_chance": 0.10, "crit_mult": 2.0, "lifesteal": 0.0},
+	TowerType.CLAYTON: {"armor_pen": 0.35, "crit_chance": 0.30, "crit_mult": 3.5, "lifesteal": 0.0},
+	TowerType.HEADLESS_HORSEMAN: {"armor_pen": 0.15, "crit_chance": 0.10, "crit_mult": 2.0, "lifesteal": 0.05},
+	TowerType.MEDUSA: {"armor_pen": 0.10, "crit_chance": 0.08, "crit_mult": 2.0, "lifesteal": 0.0},
+	TowerType.LOKI: {"armor_pen": 0.0, "crit_chance": 0.20, "crit_mult": 2.5, "lifesteal": 0.0},
+	TowerType.ANUBIS: {"armor_pen": 0.20, "crit_chance": 0.15, "crit_mult": 2.0, "lifesteal": 0.12},
+	TowerType.CAPTAIN_AHAB: {"armor_pen": 0.40, "crit_chance": 0.10, "crit_mult": 2.0, "lifesteal": 0.0},
+}
+
+func _get_damage_type(tower_type) -> String:
+	return CHARACTER_DAMAGE_TYPES.get(tower_type, "physical")
+
+func _get_combat_stats(tower_type) -> Dictionary:
+	return CHARACTER_COMBAT_STATS.get(tower_type, {"armor_pen": 0.0, "crit_chance": 0.0, "crit_mult": 1.0, "lifesteal": 0.0})
+
+func _calculate_damage(base_damage: float, tower_type, enemy_type: String = "") -> Dictionary:
+	var stats = _get_combat_stats(tower_type)
+	var dmg_type = _get_damage_type(tower_type)
+	var final_damage = base_damage
+	# Armor penetration — reduces effective armor
+	var armor_pen = stats["armor_pen"]
+	# Crit check
+	var is_crit = randf() < stats["crit_chance"]
+	if is_crit:
+		final_damage *= stats["crit_mult"]
+	# Type effectiveness (simplified — strong_vs = 1.5x, weak_vs = 0.6x)
+	var type_data = DAMAGE_TYPES.get(dmg_type, {})
+	var effectiveness = 1.0
+	if type_data.has("strong_vs") and enemy_type == type_data["strong_vs"]:
+		effectiveness = 1.5
+	elif type_data.has("weak_vs") and enemy_type == type_data["weak_vs"]:
+		effectiveness = 0.6
+	final_damage *= effectiveness
+	# Lifesteal
+	var heal_amount = final_damage * stats["lifesteal"]
+	return {"damage": final_damage, "type": dmg_type, "crit": is_crit, "effectiveness": effectiveness, "heal": heal_amount, "armor_pen": armor_pen}
+
 func _is_dark_skin_unlocked(tower_type) -> bool:
 	return dark_skins_unlocked.has(tower_type)
 
