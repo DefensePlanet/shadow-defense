@@ -26984,6 +26984,46 @@ func _craft_legendary(tower_type) -> bool:
 	spawn_floating_text(Vector2(640, 235), "Exclusive to %s" % cname, Color(0.85, 0.70, 0.40), 12.0, 2.5)
 	return true
 
+# === PASSIVE AURA EFFECTS — each character radiates a buff/debuff ===
+# Visible as a subtle colored ring. Affects towers or enemies in radius.
+# Auras get stronger at higher character levels.
+const CHARACTER_AURAS: Dictionary = {
+	TowerType.ROBIN_HOOD: {"type": "ally_buff", "stat": "crit_chance", "value": 0.05, "radius": 120, "color": Color(0.4, 0.7, 0.2, 0.06), "name": "Outlaw's Precision", "desc": "Nearby towers +5% crit chance"},
+	TowerType.ALICE: {"type": "enemy_debuff", "stat": "confusion", "value": 0.10, "radius": 100, "color": Color(0.6, 0.3, 0.7, 0.06), "name": "Logic Field", "desc": "Enemies 10% chance to reverse direction briefly"},
+	TowerType.WICKED_WITCH: {"type": "ally_buff", "stat": "fire_damage", "value": 0.08, "radius": 110, "color": Color(0.2, 0.6, 0.1, 0.06), "name": "Emerald Flame", "desc": "Nearby towers +8% fire damage"},
+	TowerType.PETER_PAN: {"type": "ally_buff", "stat": "attack_speed", "value": 0.06, "radius": 130, "color": Color(0.9, 0.8, 0.3, 0.05), "name": "Fairy Dust", "desc": "Nearby towers +6% attack speed"},
+	TowerType.PHANTOM: {"type": "enemy_debuff", "stat": "slow", "value": 0.08, "radius": 110, "color": Color(0.7, 0.4, 0.2, 0.06), "name": "Haunting Melody", "desc": "Enemies in range 8% slower"},
+	TowerType.SCROOGE: {"type": "ally_buff", "stat": "gold_bonus", "value": 0.10, "radius": 100, "color": Color(0.9, 0.7, 0.1, 0.06), "name": "Miser's Eye", "desc": "Nearby towers +10% gold on kill"},
+	TowerType.SHERLOCK: {"type": "ally_buff", "stat": "armor_pen", "value": 0.06, "radius": 120, "color": Color(0.5, 0.4, 0.3, 0.05), "name": "Deductive Field", "desc": "Nearby towers +6% armor penetration"},
+	TowerType.TARZAN: {"type": "ally_buff", "stat": "damage", "value": 0.05, "radius": 100, "color": Color(0.3, 0.5, 0.15, 0.06), "name": "Primal Roar", "desc": "Nearby towers +5% damage"},
+	TowerType.DRACULA: {"type": "ally_buff", "stat": "lifesteal", "value": 0.03, "radius": 110, "color": Color(0.6, 0.1, 0.1, 0.06), "name": "Blood Pact", "desc": "Nearby towers +3% lifesteal"},
+	TowerType.MERLIN: {"type": "ally_buff", "stat": "ability_cooldown", "value": 0.08, "radius": 130, "color": Color(0.3, 0.3, 0.8, 0.06), "name": "Arcane Resonance", "desc": "Nearby towers +8% ability cooldown speed"},
+	TowerType.FRANKENSTEIN: {"type": "enemy_debuff", "stat": "armor_reduce", "value": 0.10, "radius": 100, "color": Color(0.3, 0.5, 0.9, 0.06), "name": "Static Field", "desc": "Enemies in range lose 10% armor"},
+	TowerType.SHADOW_AUTHOR: {"type": "enemy_debuff", "stat": "damage_taken", "value": 0.08, "radius": 120, "color": Color(0.4, 0.15, 0.5, 0.06), "name": "Ink Curse", "desc": "Enemies in range take 8% more damage"},
+	TowerType.CAPTAIN_HOOK: {"type": "enemy_debuff", "stat": "slow", "value": 0.06, "radius": 100, "color": Color(0.5, 0.3, 0.2, 0.05), "name": "Dread Pirate", "desc": "Enemies in range 6% slower"},
+	TowerType.QUEEN_OF_HEARTS: {"type": "ally_buff", "stat": "damage", "value": 0.06, "radius": 110, "color": Color(0.8, 0.2, 0.3, 0.06), "name": "Royal Decree", "desc": "Nearby towers +6% damage"},
+	TowerType.CLAYTON: {"type": "ally_buff", "stat": "range", "value": 0.08, "radius": 130, "color": Color(0.4, 0.35, 0.2, 0.05), "name": "Hunter's Sight", "desc": "Nearby towers +8% range"},
+	TowerType.HEADLESS_HORSEMAN: {"type": "enemy_debuff", "stat": "fear", "value": 0.12, "radius": 120, "color": Color(0.5, 0.3, 0.1, 0.07), "name": "Terror Aura", "desc": "Enemies in range 12% slower (fear)"},
+	TowerType.MEDUSA: {"type": "enemy_debuff", "stat": "petrify_chance", "value": 0.03, "radius": 100, "color": Color(0.4, 0.5, 0.3, 0.06), "name": "Stone Gaze Aura", "desc": "3% chance to freeze enemies 1s on hit"},
+	TowerType.LOKI: {"type": "ally_buff", "stat": "chaos_chance", "value": 0.04, "radius": 110, "color": Color(0.4, 0.6, 0.2, 0.06), "name": "Trickster's Luck", "desc": "Nearby towers 4% chance for random bonus effect"},
+	TowerType.ANUBIS: {"type": "ally_buff", "stat": "holy_damage", "value": 0.10, "radius": 120, "color": Color(0.8, 0.7, 0.2, 0.06), "name": "Judgment Aura", "desc": "Nearby towers +10% holy damage"},
+}
+
+func _get_aura_data(tower_type) -> Dictionary:
+	return CHARACTER_AURAS.get(tower_type, {})
+
+func _draw_tower_aura(tower_pos: Vector2, tower_type) -> void:
+	var aura = CHARACTER_AURAS.get(tower_type, {})
+	if aura.is_empty(): return
+	var time = _time
+	var r = float(aura["radius"])
+	var c = aura["color"]
+	var pulse = (sin(time * 1.5) + 1.0) * 0.5
+	# Subtle ring
+	draw_arc(tower_pos, r, 0, TAU, 24, Color(c.r, c.g, c.b, c.a + pulse * 0.02), 1.5)
+	# Inner glow
+	draw_circle(tower_pos, r * 0.3, Color(c.r, c.g, c.b, c.a * 0.3))
+
 func _has_legendary(tower_type) -> bool:
 	return character_legendaries_owned.has(tower_type)
 
