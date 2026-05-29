@@ -177,7 +177,15 @@ const MIN_PATH_DIST: float = 25.0
 const MIN_TOWER_DIST: float = 40.0
 const MAX_SURVIVOR_LEVEL: int = 20
 # BTD6-inspired sub-exponential XP curve (19 entries, index = current_level - 1)
-const HERO_XP_TABLE: Array = [200, 500, 1000, 1800, 2800, 4000, 5500, 7200, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 25000, 27000, 30000]
+# XP curve: early levels feel smooth, mid-game ramps, late-game is a GRIND.
+# Lv1→2: 500 XP (~1 level on Medium)
+# Lv5→6: 3,000 XP (~6 levels on Medium)
+# Lv10→11: 8,000 XP (~16 levels on Medium)
+# Lv15→16: 20,000 XP (~40 levels on Medium)
+# Lv19→20: 50,000 XP (~100 levels on Medium — ENDGAME COMMITMENT)
+# Total to max: ~305,000 XP = ~600 Medium levels or ~400 Hard levels
+# Players should hit Lv10 mid ACT 2, Lv15 mid ACT 3, Lv20 deep into ACT 4
+const HERO_XP_TABLE: Array = [500, 1000, 2000, 2500, 3000, 4000, 5000, 6000, 8000, 10000, 12000, 15000, 18000, 20000, 25000, 30000, 35000, 40000, 50000]
 
 # Preloads
 var tower_scenes = {
@@ -27368,6 +27376,68 @@ func _get_awakening_progress(tower_type) -> Array:
 	if not awakening_quests_completed.has(key):
 		awakening_quests_completed[key] = [false, false, false, false, false]
 	return awakening_quests_completed[key]
+
+# === CHARACTER TIER LIST — per-realm effectiveness ratings ===
+# Shows players which characters are best/worst for each realm.
+# Based on: damage type vs enemy type, weakness penalty, and aura synergy.
+func _get_character_realm_rating(tower_type, enemy_theme: int) -> String:
+	# Returns "S", "A", "B", "C", "D" rating
+	var dmg_type = _get_damage_type(tower_type)
+	var type_data = DAMAGE_TYPES.get(dmg_type, {})
+	var weakness = CHARACTER_WEAKNESSES.get(tower_type, {})
+	# Map enemy themes to dominant enemy types
+	var theme_enemy_types = {
+		0: "organic", 1: "ethereal", 2: "organic", 3: "fast",
+		6: "ethereal", 7: "armored", 8: "shielded", 9: "organic",
+		10: "undead", 11: "armored", 12: "ethereal",
+		13: "undead", 14: "armored", 15: "ethereal",
+		16: "undead", 17: "water", 18: "shielded",
+	}
+	var dominant_enemy = theme_enemy_types.get(enemy_theme, "organic")
+	var score = 50  # Base C rating
+	# Damage type effectiveness
+	if type_data.get("strong_vs", "") == dominant_enemy:
+		score += 30  # Strong match
+	elif type_data.get("weak_vs", "") == dominant_enemy:
+		score -= 20  # Weak match
+	# Character weakness penalty
+	if weakness.get("weak_vs", "") == dominant_enemy:
+		score -= 25
+	# Night bonus for dark characters on night maps
+	if enemy_theme in [10, 13, 6] and dmg_type == "dark":
+		score += 15
+	# Holy bonus on undead maps
+	if dominant_enemy == "undead" and dmg_type == "holy":
+		score += 25
+	# Convert score to tier
+	if score >= 75: return "S"
+	if score >= 60: return "A"
+	if score >= 45: return "B"
+	if score >= 30: return "C"
+	return "D"
+
+func _get_realm_tier_list(enemy_theme: int) -> Array:
+	# Returns sorted array of [{tower_type, rating, name}] for a realm
+	var ratings = []
+	for tt in survivor_types:
+		if not _is_character_unlocked(tt): continue
+		var rating = _get_character_realm_rating(tt, enemy_theme)
+		var name_idx = survivor_types.find(tt)
+		var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+		ratings.append({"tower_type": tt, "rating": rating, "name": cname})
+	# Sort by rating (S first, D last)
+	var order = {"S": 0, "A": 1, "B": 2, "C": 3, "D": 4}
+	ratings.sort_custom(func(a, b): return order.get(a["rating"], 5) < order.get(b["rating"], 5))
+	return ratings
+
+func _get_tier_color(tier: String) -> Color:
+	match tier:
+		"S": return Color(1.0, 0.85, 0.15)  # Gold
+		"A": return Color(0.4, 0.8, 0.3)    # Green
+		"B": return Color(0.3, 0.6, 0.9)    # Blue
+		"C": return Color(0.7, 0.5, 0.3)    # Bronze
+		"D": return Color(0.5, 0.3, 0.3)    # Red-brown
+	return Color(0.5, 0.5, 0.5)
 
 func _complete_awakening_quest(tower_type, quest_idx: int) -> void:
 	var key = str(tower_type)
