@@ -5363,6 +5363,7 @@ func _save_game() -> void:
 	save_data["challenge_maps_unlocked"] = challenge_maps_unlocked
 	save_data["corrupted_maps_unlocked"] = corrupted_maps_unlocked
 	save_data["star_rewards_claimed"] = star_rewards_claimed
+	save_data["recruitment_missions_completed"] = recruitment_missions_completed
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
 	save_data["endless_high_wave"] = endless_high_wave
@@ -5710,6 +5711,7 @@ func _load_game() -> void:
 	challenge_maps_unlocked = data.get("challenge_maps_unlocked", {})
 	corrupted_maps_unlocked = data.get("corrupted_maps_unlocked", {})
 	star_rewards_claimed = data.get("star_rewards_claimed", {})
+	recruitment_missions_completed = data.get("recruitment_missions_completed", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
 	for v in uc:
@@ -26533,6 +26535,115 @@ const AMBIENT_CHAT_LINES: Array = [
 	["{A}", "The Author underestimated us.", "{B}", "That's his BIGGEST mistake."],
 	["{A}", "Think we'll make it out of this book?", "{B}", "We'll write our own exit."],
 ]
+
+# === CHARACTER RECRUITMENT MISSIONS — play AS the trapped character ===
+# Before officially rescuing a character, the player gets a special mission
+# where the trapped character fights ALONE (or with limited help).
+# This serves as a trial/preview — shows abilities, builds attachment.
+
+const RECRUITMENT_MISSIONS: Dictionary = {
+	TowerType.PETER_PAN: {
+		"name": "Peter's Last Stand",
+		"desc": "Peter Pan fights alone against Hook's pirates. Survive 10 waves with only Peter and your 3 starters.",
+		"level_idx": 25,  # First Neverland level
+		"solo_char": TowerType.PETER_PAN,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.PETER_PAN],
+		"waves": 10, "gold": 200, "lives": 10,
+		"reward_pages": 20, "reward_ink": 1,
+		"story_intro": "Before the heroes arrived, Peter Pan fought alone. This is his story — the last stand before rescue.",
+	},
+	TowerType.WICKED_WITCH: {
+		"name": "The Witch's Defiance",
+		"desc": "The Wicked Witch defends Oz alone. Survive 10 waves with only the Witch and your 3 starters.",
+		"level_idx": 22,
+		"solo_char": TowerType.WICKED_WITCH,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.WICKED_WITCH],
+		"waves": 10, "gold": 200, "lives": 10,
+		"reward_pages": 20, "reward_ink": 1,
+		"story_intro": "Before rescue came, the Wicked Witch fought for Oz alone. This is her defiance.",
+	},
+	TowerType.PHANTOM: {
+		"name": "The Phantom's Requiem",
+		"desc": "The Phantom defends his Opera alone. Survive 10 waves with only the Phantom and your 3 starters.",
+		"level_idx": 28,
+		"solo_char": TowerType.PHANTOM,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.PHANTOM],
+		"waves": 10, "gold": 200, "lives": 10,
+		"reward_pages": 20, "reward_ink": 1,
+		"story_intro": "Before the heroes came, the Phantom played alone in the dark. This is his requiem.",
+	},
+	TowerType.SHERLOCK: {
+		"name": "The Solitary Deduction",
+		"desc": "Sherlock analyzes the enemy alone. Limited towers, unlimited intellect.",
+		"level_idx": 1,
+		"solo_char": TowerType.SHERLOCK,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.SHERLOCK],
+		"waves": 12, "gold": 180, "lives": 8,
+		"reward_pages": 25, "reward_ink": 2,
+		"story_intro": "Sherlock Holmes has been studying his prison for years. Now he demonstrates what he learned.",
+	},
+	TowerType.DRACULA: {
+		"name": "The Count's Resistance",
+		"desc": "Dracula fights his own shadow creatures. The vampire who chose heroism.",
+		"level_idx": 10,
+		"solo_char": TowerType.DRACULA,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.DRACULA],
+		"waves": 12, "gold": 180, "lives": 8,
+		"reward_pages": 25, "reward_ink": 2,
+		"story_intro": "Before he was freed, Dracula fought his own nature. This is the night he chose heroism.",
+	},
+	TowerType.FRANKENSTEIN: {
+		"name": "The Monster's Vigil",
+		"desc": "Frankenstein guards the Arctic wastes. Alone. As always.",
+		"level_idx": 13,
+		"solo_char": TowerType.FRANKENSTEIN,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.FRANKENSTEIN],
+		"waves": 12, "gold": 180, "lives": 8,
+		"reward_pages": 25, "reward_ink": 2,
+		"story_intro": "Frankenstein sat in the snow, waiting for someone kind. This is how he kept himself alive.",
+	},
+	TowerType.MERLIN: {
+		"name": "The Crystal Vigil",
+		"desc": "Merlin casts spells through crystal walls. 800 years of patience pays off.",
+		"level_idx": 4,
+		"solo_char": TowerType.MERLIN,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.MERLIN],
+		"waves": 12, "gold": 180, "lives": 8,
+		"reward_pages": 25, "reward_ink": 2,
+		"story_intro": "Merlin saw this coming 800 years ago. This is the vigil he kept — alone in crystal light.",
+	},
+	TowerType.TARZAN: {
+		"name": "The Jungle's Last Son",
+		"desc": "Tarzan defends the canopy alone. No apes left. Just rage and vines.",
+		"level_idx": 7,
+		"solo_char": TowerType.TARZAN,
+		"allowed": [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.TARZAN],
+		"waves": 12, "gold": 180, "lives": 8,
+		"reward_pages": 25, "reward_ink": 2,
+		"story_intro": "After the apes were taken, Tarzan fought alone. This is the roar that never stopped.",
+	},
+}
+
+var recruitment_missions_completed: Dictionary = {}  # tower_type -> true
+
+func _is_recruitment_available(tower_type) -> bool:
+	if not RECRUITMENT_MISSIONS.has(tower_type): return false
+	if recruitment_missions_completed.has(tower_type): return false
+	if _is_character_unlocked(tower_type): return false  # Already unlocked
+	# Available once you reach the first level of their arc
+	var mission = RECRUITMENT_MISSIONS[tower_type]
+	return true  # Always available before unlocking
+
+func _complete_recruitment_mission(tower_type) -> void:
+	recruitment_missions_completed[tower_type] = true
+	var mission = RECRUITMENT_MISSIONS[tower_type]
+	player_pages += mission["reward_pages"]
+	knowledge_ink += mission["reward_ink"]
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	spawn_floating_text(Vector2(640, 200), "🎖 RECRUITMENT MISSION COMPLETE!", Color(1.0, 0.85, 0.2), 20.0, 3.0)
+	spawn_floating_text(Vector2(640, 230), "%s preview unlocked!" % cname, Color(0.85, 0.75, 0.45), 14.0, 2.5)
+	spawn_floating_text(Vector2(640, 255), "+%d Pages, +%d Ink" % [mission["reward_pages"], mission["reward_ink"]], Color(0.5, 0.8, 0.3), 13.0, 2.0)
 
 func _check_ambient_chat(delta: float) -> void:
 	if not is_wave_active: return
