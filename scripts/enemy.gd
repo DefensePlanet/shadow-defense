@@ -105,6 +105,16 @@ var fly_speed: float = 60.0
 var fly_height: float = 0.0  # Visual height offset (shadow below)
 var fly_wobble: float = 0.0  # Sinusoidal movement
 
+# === COMMANDER SYSTEM — special enemies that buff nearby allies ===
+var is_commander: bool = false
+var commander_type: String = ""  # "war_drum", "standard_bearer", "ink_priest", "shadow_general"
+var commander_radius: float = 120.0
+# Commander aura effects (applied to ALL nearby non-commander enemies):
+# war_drum: +30% attack speed to allies
+# standard_bearer: +25% HP to allies (on spawn proximity)
+# ink_priest: heals allies 3% max HP/s
+# shadow_general: allies gain +20% damage + immune to slow
+
 # === Damage Type System ===
 var resistances: Dictionary = {}      # e.g. {"physical": 0.5} = 50% physical resist
 var immunities: Array = []            # e.g. ["magic"] = immune to magic damage
@@ -350,6 +360,7 @@ func _process(delta: float) -> void:
 	if boss_mechanic != "":
 		_process_boss_mechanics(delta)
 		_process_active_ability(delta)
+		_process_commander_aura(delta)
 
 	# Enhancement #33: Enemy ability processing
 	if enemy_ability != "":
@@ -688,6 +699,21 @@ func _trigger_boss_phase() -> void:
 			if main.has_method("add_boss_danger_zone"):
 				main.add_boss_danger_zone(global_position)
 
+func _process_commander_aura(delta: float) -> void:
+	if not is_commander: return
+	for ally in get_tree().get_nodes_in_group("enemies"):
+		if ally == self or not is_instance_valid(ally): continue
+		if ally.is_commander: continue  # Commanders don't buff each other
+		if global_position.distance_to(ally.global_position) > commander_radius: continue
+		match commander_type:
+			"war_drum":
+				if "speed" in ally: ally.speed = maxf(ally.speed, ally.speed * 1.002)  # Gradual buff
+			"ink_priest":
+				if "health" in ally and "max_health" in ally:
+					ally.health = minf(ally.health + ally.max_health * 0.03 * delta, ally.max_health)
+			"shadow_general":
+				if "slow_timer" in ally: ally.slow_timer = 0.0  # Immune to slow
+
 func _process_active_ability(delta: float) -> void:
 	if active_ability == "": return
 	ability_timer += delta
@@ -732,7 +758,7 @@ func _process_active_ability(delta: float) -> void:
 			# Below 50% HP: speed +50%, damage +50%
 			if "health" in self and "max_health" in self:
 				if health / max_health <= 0.5:
-					speed = speed * 1.005 if speed < base_speed * 2.0 else speed  # Gradual ramp
+					speed = minf(speed * 1.005, 300.0)  # Gradual ramp, cap at 300
 					if "damage_mult" in self:
 						damage_mult = maxf(damage_mult, 1.5)
 

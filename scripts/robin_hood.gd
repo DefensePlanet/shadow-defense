@@ -1021,41 +1021,28 @@ func _draw() -> void:
 	var dir = Vector2.from_angle(bow_angle)
 	var perp = dir.rotated(PI / 2.0)
 
-	# === 4. ANIMATION-DRIVEN BODY MOVEMENT ===
-	# Uses base class animation state machine for dynamic movement
+	# === 4. IDLE ANIMATION (confident weight shift) ===
 	var bounce = abs(sin(_time * 3.0)) * 4.0
 	var breathe = sin(_time * 2.0) * 2.0
 	var weight_shift = sin(_time * 1.2) * 2.5
+	var bob = Vector2(weight_shift, -bounce - breathe)
 
 	# Tier 4: Floating pose (legendary archer levitating)
 	var fly_offset = Vector2.ZERO
 	if upgrade_tier >= 4:
 		fly_offset = Vector2(0, -10.0 + sin(_time * 1.5) * 3.0)
 
-	# Merge base animation offsets with character-specific movement
-	var anim_body = body_offset  # From base class animation state machine
-	var char_body_off = Vector2(weight_shift + anim_body.x, -bounce - breathe + anim_body.y) + fly_offset
+	var body_off = bob + fly_offset
 
-	# Per-joint differential offsets — enhanced by animation state
-	var hip_shift = sin(_time * 1.2) * 1.5 + body_lean * 15.0
+	# Per-joint differential offsets
+	var hip_shift = sin(_time * 1.2) * 1.5
 	var shoulder_counter = -sin(_time * 1.2) * 0.8
-
-	# Weapon animation — bowstring pull/release driven by attack anim
-	var bow_pull = 0.0  # 0=relaxed, 1=fully drawn
-	if anim_state == "attack_windup":
-		bow_pull = minf(anim_timer / 0.15, 1.0)
-	elif anim_state == "attack_release":
-		bow_pull = 1.0 - minf(anim_timer / 0.08, 1.0)
 
 	# String vibration after shot (tier-scaling)
 	var string_vib = 0.0
 	if _attack_anim > 0.2:
 		var tier_vib = 1.0 + float(upgrade_tier) * 0.4
 		string_vib = sin(_attack_anim * 45.0) * 3.0 * _attack_anim * tier_vib
-
-	# Kill flash — brief white flash on enemy kill
-	if _kill_flash > 0.0:
-		draw_circle(Vector2.ZERO + body_off, 25.0, Color(1, 1, 1, _kill_flash * 0.15))
 
 	# === 5. SKIN COLORS ===
 	var skin_base = Color(0.91, 0.74, 0.58)
@@ -1280,11 +1267,11 @@ func _draw() -> void:
 		draw_circle(pip_pos, 5.5, Color(pip_col.r, pip_col.g, pip_col.b, 0.15))
 
 	# === 12. CHARACTER POSITIONS (chibi Bloons TD proportions ~48px) ===
-	var feet_y = body_offset + Vector2(hip_shift * 1.0, 10.0)
-	var leg_top = body_offset + Vector2(hip_shift * 0.6, 0.0)
-	var torso_center = body_offset + Vector2(shoulder_counter * 0.5, -8.0)
-	var neck_base = body_offset + Vector2(shoulder_counter * 0.7, -14.0)
-	var head_center = body_offset + Vector2(shoulder_counter * 0.3, -26.0)
+	var feet_y = body_off + Vector2(hip_shift * 1.0, 10.0)
+	var leg_top = body_off + Vector2(hip_shift * 0.6, 0.0)
+	var torso_center = body_off + Vector2(shoulder_counter * 0.5, -8.0)
+	var neck_base = body_off + Vector2(shoulder_counter * 0.7, -14.0)
+	var head_center = body_off + Vector2(shoulder_counter * 0.3, -26.0)
 	var OL = Color(0.06, 0.06, 0.08)
 
 	# === 13. TIER-SPECIFIC EFFECTS (drawn BEFORE/AROUND body) ===
@@ -1294,7 +1281,7 @@ func _draw() -> void:
 		for li in range(5 + upgrade_tier):
 			var la = _time * (0.6 + fmod(float(li) * 1.37, 0.5)) + float(li) * TAU / float(5 + upgrade_tier)
 			var lr = 20.0 + fmod(float(li) * 3.7, 12.0)
-			var leaf_pos = body_offset + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 8.0)
+			var leaf_pos = body_off + Vector2(cos(la) * lr, sin(la) * lr * 0.5 + 8.0)
 			var leaf_alpha = 0.25 + sin(_time * 2.0 + float(li)) * 0.1
 			var leaf_size = 1.8 + sin(_time * 1.5 + float(li) * 2.0) * 0.5
 			draw_circle(leaf_pos, leaf_size, Color(0.2, 0.6, 0.15, leaf_alpha))
@@ -1306,7 +1293,7 @@ func _draw() -> void:
 			var sp_seed = float(spi) * 2.13
 			var sp_a = _time * 1.2 + sp_seed
 			var sp_r = 14.0 + sin(_time * 1.5 + sp_seed) * 4.0
-			var sp_pos = body_offset + Vector2(10.0 + cos(sp_a) * sp_r, sin(sp_a) * sp_r * 0.4)
+			var sp_pos = body_off + Vector2(10.0 + cos(sp_a) * sp_r, sin(sp_a) * sp_r * 0.4)
 			var sp_alpha = 0.18 + silver_pulse * 0.12
 			draw_circle(sp_pos, 1.5, Color(0.85, 0.88, 0.95, sp_alpha))
 
@@ -1316,7 +1303,7 @@ func _draw() -> void:
 			var fd_seed = float(fd) * 2.37
 			var fd_angle = _time * (0.5 + fmod(fd_seed, 0.5)) + fd_seed
 			var fd_radius = 26.0 + fmod(fd_seed * 5.3, 20.0)
-			var fd_pos = body_offset + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6)
+			var fd_pos = body_off + Vector2(cos(fd_angle) * fd_radius, sin(fd_angle) * fd_radius * 0.6)
 			var fd_alpha = 0.3 + sin(_time * 3.0 + fd_seed * 2.0) * 0.15
 			var fd_size = 2.0 + sin(_time * 2.5 + fd_seed) * 0.6
 			var fire_t = fmod(fd_seed * 1.7, 1.0)
@@ -1393,7 +1380,7 @@ func _draw() -> void:
 			total_rot *= -1.0
 
 		# Anchor at feet — rotation pivots from base
-		var anchor = body_offset + Vector2(0, 10.0) + recoil_off
+		var anchor = body_off + Vector2(0, 10.0) + recoil_off
 		draw_set_transform(anchor, total_rot, total_scl)
 		draw_texture_rect(_active_tex, Rect2(-_sd.x / 2.0, -_sd.y, _sd.x, _sd.y), false)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
@@ -1886,12 +1873,12 @@ func _draw() -> void:
 	# === Tier 4: Golden-green aura around whole character ===
 	if upgrade_tier >= 4:
 		var aura_pulse = sin(_time * 2.5) * 4.0
-		pass  #draw_arc(body_offset, 48.0 + aura_pulse, 0, TAU, 24, Color(0.4, 0.8, 0.35, 0.15), 5.0)
-		pass  #draw_arc(body_offset, 40.0 + aura_pulse * 0.5, 0, TAU, 20, Color(1.0, 0.90, 0.4, 0.08), 3.0)
+		pass  #draw_arc(body_off, 48.0 + aura_pulse, 0, TAU, 24, Color(0.4, 0.8, 0.35, 0.15), 5.0)
+		pass  #draw_arc(body_off, 40.0 + aura_pulse * 0.5, 0, TAU, 20, Color(1.0, 0.90, 0.4, 0.08), 3.0)
 		for gs in range(5):
 			var gs_a = _time * (0.7 + float(gs % 3) * 0.25) + float(gs) * TAU / 5.0
 			var gs_r = 40.0 + aura_pulse + float(gs % 3) * 3.0
-			var gs_p = body_offset + Vector2.from_angle(gs_a) * gs_r
+			var gs_p = body_off + Vector2.from_angle(gs_a) * gs_r
 			var gs_size = 1.5 + sin(_time * 3.0 + float(gs) * 1.5) * 0.6
 			var gs_alpha = 0.3 + sin(_time * 3.0 + float(gs)) * 0.18
 			draw_circle(gs_p, gs_size, Color(0.5, 0.9, 0.4, gs_alpha))

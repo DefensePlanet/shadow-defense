@@ -3273,7 +3273,7 @@ const RESPEC_COST_MULT: float = 1.5  # Each respec costs 50% more
 # === BATTD3 FEATURE: GEAR LOADOUT PRESETS ===
 var gear_loadouts: Dictionary = {}  # TowerType -> [{gear: []}] x 3
 var gear_loadout_active: Dictionary = {}  # TowerType -> int (0-2)
-const MAX_LOADOUTS: int = 3
+# MAX_LOADOUTS defined in loadout system section (5 slots)
 
 # === BATTD3 FEATURE: TRINKET LOCKING ===
 var locked_gear: Dictionary = {}  # gear_id -> bool
@@ -10240,7 +10240,7 @@ func _on_survivor_card_pressed(index: int) -> void:
 		return  # Locked — do nothing
 	survivor_selected_index = index
 	# Bonus 2: Trigger voice line on tap
-	_trigger_voice_line(index, get_viewport().get_mouse_position())
+	_trigger_voice_line_legacy(index, get_viewport().get_mouse_position())
 	# CharMenu 12: Trigger card flip animation
 	_card_flip_index = index
 	_card_flip_timer = 0.5
@@ -21344,6 +21344,14 @@ func _spawn_enemy() -> void:
 			enemy.speed *= 0.6
 			enemy.boss_mechanic = ["summon", "shield_pulse", "enrage", "area_deny"][randi() % 4]
 
+	# Commander enemy — every 8th wave, one enemy becomes a commander
+	if wave >= 6 and wave % 8 == 0 and subtype == "normal" and enemies_to_spawn == _get_wave_enemy_count(wave):
+		# First enemy of every 8th wave is a commander
+		enemy.is_commander = true
+		enemy.commander_type = ["war_drum", "standard_bearer", "ink_priest", "shadow_general"][randi() % 4]
+		enemy.max_health *= 3.0  # Commanders are tough — priority targets
+		enemy.speed *= 0.75  # But slower — they lead from the middle
+
 	# Flying enemy chance — increases with wave number
 	# Wave 8+: 5% chance any normal enemy flies. Wave 15+: 10%.
 	if not endless_mode and subtype == "normal" and wave >= 8:
@@ -22973,7 +22981,7 @@ func _try_place_tower(pos: Vector2) -> void:
 	total_towers_placed += 1
 	_haptic(0)  # Light haptic on tower placement
 	# Character voice line on placement (ElevenLabs voiced)
-	_trigger_voice_line(selected_tower, "placed", tower_node.global_position if tower_node else Vector2.ZERO)
+	_trigger_voice_line(selected_tower, "placed", Vector2(640, 400))
 	# Narrator reacts to first tower placement of the level
 	if total_towers_placed == 1 and _narrator_cooldown <= 0.0:
 		var first_tower_comments = [
@@ -38575,9 +38583,7 @@ func _awaken_character(tower_type) -> bool:
 
 func _get_awakening_passive(tower_type) -> Dictionary:
 	return AWAKENING_PASSIVES.get(tower_type, {})
-
-func _is_awakened(tower_type) -> bool:
-	return awakened_characters.get(tower_type, false)
+	# _is_awakened defined in awakened forms section above
 
 # ============================================================================
 # === BATTD3: COSMIC INK CONVERSION ===
@@ -38633,7 +38639,7 @@ func _respec_knowledge_tree() -> bool:
 # ============================================================================
 # === BATTD3: GEAR LOADOUT PRESETS ===
 # ============================================================================
-func _save_loadout(tower_type, slot: int) -> void:
+func _save_gear_loadout(tower_type, slot: int) -> void:
 	if slot < 0 or slot >= MAX_LOADOUTS:
 		return
 	var eq_gear = equipped_gear.get(tower_type, []).duplicate()
@@ -41130,7 +41136,7 @@ var _voice_line_text: String = ""
 var _voice_line_timer: float = 0.0
 var _voice_line_pos: Vector2 = Vector2.ZERO
 
-func _trigger_voice_line(hero_index: int, pos: Vector2) -> void:
+func _trigger_voice_line_legacy(hero_index: int, pos: Vector2) -> void:
 	_voice_line_text = character_quotes[hero_index] if hero_index < character_quotes.size() else ""
 	_voice_line_timer = 2.0
 	_voice_line_pos = pos
