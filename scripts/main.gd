@@ -15015,10 +15015,15 @@ func _generate_weekly_quests() -> void:
 	var pool = WEEKLY_QUEST_POOL.duplicate(true)
 	pool.shuffle()
 	_addiction_weekly_quests.clear()
+	# Escalation multiplier based on player progression (#120)
+	var escalation = 1.0 + float(completed_levels.size()) * 0.05 + float(prestige_level) * 0.2
 	for qi in range(mini(3, pool.size())):
 		var q = pool[qi].duplicate(true)
 		q["progress"] = 0
 		q["completed"] = false
+		# Scale targets and rewards with player progression
+		q["target"] = int(float(q["target"]) * escalation)
+		q["reward_amt"] = int(float(q["reward_amt"]) * (1.0 + escalation * 0.3))
 		_addiction_weekly_quests.append(q)
 
 func _update_weekly_quest(stat_key: String, amount: int) -> void:
