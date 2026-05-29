@@ -27293,6 +27293,100 @@ const LEVEL_BACKSTORY_REVEALS: Dictionary = {
 	},
 }
 
+# === AWAKENING QUEST CHAINS — 5-quest personal story at max level ===
+# When a character hits level 20, a 5-step quest chain unlocks.
+# Each quest tests mastery of that character. Completing all 5
+# grants the Awakened form + legendary title + 5 ink.
+const AWAKENING_QUESTS: Dictionary = {
+	TowerType.ROBIN_HOOD: [
+		{"name": "The Perfect Shot", "desc": "Get 50 critical hits with Robin in a single level", "type": "crits", "target": 50},
+		{"name": "Robin's Generosity", "desc": "Earn 500 bonus gold from Robin's kills", "type": "gold_earned", "target": 500},
+		{"name": "Sherwood's Defender", "desc": "Complete 3 Sherwood levels with Robin on Hard", "type": "hard_levels", "target": 3},
+		{"name": "The Last Arrow", "desc": "Kill a boss with Robin's ability", "type": "boss_ability_kill", "target": 1},
+		{"name": "Legend of the Hood", "desc": "Deal 100,000 total damage with Robin", "type": "total_damage", "target": 100000},
+	],
+	TowerType.ALICE: [
+		{"name": "Six Impossible Things", "desc": "Use Alice's ability 6 times in one level", "type": "abilities_used", "target": 6},
+		{"name": "The Curious Mind", "desc": "Kill 200 enemies with Alice in Wonderland levels", "type": "realm_kills", "target": 200},
+		{"name": "Logic Prevails", "desc": "Complete 3 Wonderland levels with Alice on Hard", "type": "hard_levels", "target": 3},
+		{"name": "Through the Looking Glass", "desc": "Win a level using ONLY Alice (solo)", "type": "solo_win", "target": 1},
+		{"name": "Queen of Logic", "desc": "Deal 100,000 total damage with Alice", "type": "total_damage", "target": 100000},
+	],
+	TowerType.DRACULA: [
+		{"name": "The First Bite", "desc": "Heal 10 lives total from Dracula's lifesteal", "type": "lives_healed", "target": 10},
+		{"name": "Children of the Night", "desc": "Have 5 vampire thralls active at once", "type": "thralls_active", "target": 5},
+		{"name": "Eternal Night", "desc": "Complete 3 midnight levels with Dracula on Hard", "type": "hard_levels", "target": 3},
+		{"name": "The Redeemed Count", "desc": "Win with Dracula + Scrooge + Frankenstein (Redemption Arc)", "type": "redemption_win", "target": 1},
+		{"name": "Lord of Eternity", "desc": "Deal 150,000 total damage with Dracula", "type": "total_damage", "target": 150000},
+	],
+	TowerType.FRANKENSTEIN: [
+		{"name": "The First Spark", "desc": "Reach 30 kill stacks with Frankenstein", "type": "kill_stacks", "target": 30},
+		{"name": "Lightning Rod", "desc": "Chain lightning to 50 enemies in one level", "type": "chain_hits", "target": 50},
+		{"name": "The Monster's Heart", "desc": "Absorb 5 leaked enemies with Frankenstein", "type": "leaks_absorbed", "target": 5},
+		{"name": "Bride's Embrace", "desc": "Win a level with Bride of Frankenstein active", "type": "bride_win", "target": 1},
+		{"name": "The Unchained", "desc": "Deal 150,000 total damage with Frankenstein", "type": "total_damage", "target": 150000},
+	],
+	TowerType.SCROOGE: [
+		{"name": "Counting House", "desc": "Earn 1,000 gold from Scrooge's passive generation", "type": "passive_gold", "target": 1000},
+		{"name": "Ghost's Lesson", "desc": "Resurrect 10 leaked enemies with Ghost of Christmas Past", "type": "resurrections", "target": 10},
+		{"name": "Christmas Morning", "desc": "Complete 3 Victorian London levels on Hard", "type": "hard_levels", "target": 3},
+		{"name": "The Gift", "desc": "Have Scrooge's gold aura affect 4+ towers simultaneously", "type": "aura_allies", "target": 4},
+		{"name": "Philanthropist Supreme", "desc": "Earn 5,000 total gold from Scrooge's bonuses", "type": "total_gold", "target": 5000},
+	],
+	TowerType.MERLIN: [
+		{"name": "The Crystal Vision", "desc": "Bounce spells to 100 enemies in a single level", "type": "bounced_hits", "target": 100},
+		{"name": "Lady's Blessing", "desc": "Buff 6 towers simultaneously with Arcane Resonance aura", "type": "aura_allies", "target": 6},
+		{"name": "The Round Table", "desc": "Have 4 spectral knights active at once", "type": "knights_active", "target": 4},
+		{"name": "Prophecy Fulfilled", "desc": "Complete 3 Merlin levels on Hard with 3 stars each", "type": "hard_3star", "target": 3},
+		{"name": "The Once and Future", "desc": "Deal 200,000 total damage with Merlin", "type": "total_damage", "target": 200000},
+	],
+	TowerType.SHERLOCK: [
+		{"name": "Elementary", "desc": "Mark 100 enemies in a single level", "type": "marks_applied", "target": 100},
+		{"name": "The Hound", "desc": "Kill 20 enemies with the spectral hound", "type": "hound_kills", "target": 20},
+		{"name": "Mind Palace", "desc": "Expose weaknesses of every enemy type in one level", "type": "types_exposed", "target": 8},
+		{"name": "The Final Problem", "desc": "Solo a boss level with only Sherlock + starters", "type": "boss_solo", "target": 1},
+		{"name": "The Game", "desc": "Deal 120,000 total damage with Sherlock", "type": "total_damage", "target": 120000},
+	],
+	TowerType.PETER_PAN: [
+		{"name": "Happy Thoughts", "desc": "Use Fairy Dust ability 10 times in one session", "type": "abilities_used", "target": 10},
+		{"name": "The Lost Boy", "desc": "Kill 300 enemies with Peter Pan across all levels", "type": "total_kills_char", "target": 300},
+		{"name": "Tick Tock", "desc": "Have the Crocodile eat 5 enemies in one level", "type": "croc_kills", "target": 5},
+		{"name": "Growing Up", "desc": "Reach level 20 (this quest is always the last to complete)", "type": "reach_level", "target": 20},
+		{"name": "Second Star", "desc": "Deal 100,000 total damage with Peter Pan", "type": "total_damage", "target": 100000},
+	],
+}
+
+var awakening_quest_progress: Dictionary = {}  # "tower_type_quest_idx" -> progress value
+var awakening_quests_completed: Dictionary = {}  # "tower_type" -> [bool, bool, bool, bool, bool]
+
+func _is_awakening_available(tower_type) -> bool:
+	var level = survivor_progress.get(tower_type, {}).get("level", 1)
+	return level >= 20 and AWAKENING_QUESTS.has(tower_type)
+
+func _get_awakening_progress(tower_type) -> Array:
+	var key = str(tower_type)
+	if not awakening_quests_completed.has(key):
+		awakening_quests_completed[key] = [false, false, false, false, false]
+	return awakening_quests_completed[key]
+
+func _complete_awakening_quest(tower_type, quest_idx: int) -> void:
+	var key = str(tower_type)
+	if not awakening_quests_completed.has(key):
+		awakening_quests_completed[key] = [false, false, false, false, false]
+	awakening_quests_completed[key][quest_idx] = true
+	var quests = AWAKENING_QUESTS.get(tower_type, [])
+	var quest = quests[quest_idx] if quest_idx < quests.size() else {}
+	spawn_floating_text(Vector2(640, 200), "⭐ AWAKENING QUEST COMPLETE!", Color(1.0, 0.85, 0.15), 18.0, 3.0)
+	spawn_floating_text(Vector2(640, 225), quest.get("name", "Quest"), Color(0.90, 0.75, 0.30), 14.0, 2.5)
+	# Check if all 5 are done — grant Awakened form
+	var all_done = true
+	for done in awakening_quests_completed[key]:
+		if not done: all_done = false; break
+	if all_done:
+		_unlock_mastery(tower_type)
+		knowledge_ink += 5
+		spawn_floating_text(Vector2(640, 260), "🌟 AWAKENED FORM UNLOCKED! +5 Ink", Color(1.0, 0.9, 0.2), 20.0, 4.0)
+
 func _reveal_backstory(tower_type, level: int) -> void:
 	if not LEVEL_BACKSTORY_REVEALS.has(tower_type): return
 	var reveals = LEVEL_BACKSTORY_REVEALS[tower_type]
