@@ -1446,14 +1446,23 @@ var commander_pass_rewards: Array = []  # Generated at season start
 # --- 10. CRYSTAL CURRENCY ---
 var player_crystals: int = 0
 
-# --- 11. KILL COMBO SYSTEM ---
+# --- 11. KILL COMBO SYSTEM (Enhanced #93) ---
 var _kill_combo: int = 0
 var _kill_combo_timer: float = 0.0
 var _kill_combo_best: int = 0
 var _kill_combo_display_timer: float = 0.0
-const COMBO_TIMEOUT: float = 2.0  # Seconds between kills before combo resets
-const COMBO_GOLD_THRESHOLDS: Array = [10, 25, 50, 100]  # Bonus gold at these combos
-const COMBO_GOLD_REWARDS: Array = [5, 15, 30, 75]
+var _combo_milestone_flash: float = 0.0  # Screen flash on milestone combos
+var _combo_milestone_text: String = ""
+var _combo_gold_multiplier: float = 1.0  # Current gold multiplier from combo
+const COMBO_TIMEOUT: float = 2.5  # Seconds between kills before combo resets
+const COMBO_MILESTONES: Dictionary = {
+	10: {"mult": 2.0, "label": "DOUBLE KILL!", "color": Color(1.0, 0.9, 0.2)},
+	25: {"mult": 3.0, "label": "MASSACRE!", "color": Color(1.0, 0.5, 0.1)},
+	50: {"mult": 5.0, "label": "UNSTOPPABLE!", "color": Color(1.0, 0.2, 0.1)},
+	75: {"mult": 7.0, "label": "GODLIKE!", "color": Color(0.9, 0.1, 1.0)},
+	100: {"mult": 10.0, "label": "SHADOW SLAYER!", "color": Color(1.0, 0.85, 0.0)},
+}
+const COMBO_BONUS_GOLD: Dictionary = {10: 10, 25: 30, 50: 75, 75: 150, 100: 300}
 
 # --- 12. BOSS KILL CEREMONY ---
 var _boss_kill_slowmo: float = 0.0
@@ -2772,13 +2781,7 @@ var boss_rescue_boss_ref: Node2D = null
 var boss_rescue_phase: int = 0  # 0=smoke, 1=author_appears, 2=grab, 3=flash, 4=fade
 var _rescue_smoke_particles: Array = []
 
-# === COMBO KILL SYSTEM ===
-var combo_count: int = 0
-var combo_timer: float = 0.0
-var combo_last_pos: Vector2 = Vector2.ZERO
-var combo_best: int = 0
-const COMBO_WINDOW: float = 1.5
-const COMBO_MIN: int = 2  # Show combo from x2 (was 3)
+# === COMBO KILL SYSTEM (unified into _kill_combo — #93) ===
 
 # === UNDO TOWER PLACEMENT ===
 var undo_tower_data: Dictionary = {}  # {node, type, position, cost, timer}
@@ -5428,7 +5431,7 @@ func _save_game() -> void:
 	save_data["auto_wave_delay_index"] = auto_wave_delay_index
 	# === NEW v3 SAVE FIELDS ===
 	save_data["prestige_level"] = prestige_level
-	save_data["combo_best"] = combo_best
+	save_data["combo_best"] = _kill_combo_best
 	save_data["milestone_claimed"] = milestone_claimed
 	save_data["total_damage"] = total_damage
 	save_data["mastery_challenges"] = mastery_challenges
@@ -5827,7 +5830,7 @@ func _load_game() -> void:
 	auto_wave_delay_index = int(data.get("auto_wave_delay_index", 1))
 	# === LOAD v3 FIELDS ===
 	prestige_level = int(data.get("prestige_level", 0))
-	combo_best = int(data.get("combo_best", 0))
+	_kill_combo_best = maxi(_kill_combo_best, int(data.get("combo_best", 0)))
 	var mc = data.get("milestone_claimed", {})
 	milestone_claimed.clear()
 	for key in mc:
@@ -11216,8 +11219,11 @@ func _reset_game() -> void:
 	power_enchanted_timer = 0.0
 	active_power_effects.clear()
 	# Reset combo, undo, wave preview
-	combo_count = 0
-	combo_timer = 0.0
+	_kill_combo = 0
+	_kill_combo_timer = 0.0
+	_kill_combo_display_timer = 0.0
+	_combo_milestone_flash = 0.0
+	_combo_gold_multiplier = 1.0
 	undo_tower_data.clear()
 	if is_instance_valid(undo_button):
 		undo_button.visible = false
@@ -14954,44 +14960,95 @@ func _spend_crystals(amount: int) -> bool:
 		return true
 	return false
 
-# --- 11. KILL COMBO ---
+# --- 11. KILL COMBO (Enhanced #93) ---
 func _register_combo_kill() -> void:
 	_kill_combo += 1
 	_kill_combo_timer = COMBO_TIMEOUT
-	_kill_combo_display_timer = 1.5
+	_kill_combo_display_timer = 2.5
 	if _kill_combo > _kill_combo_best:
 		_kill_combo_best = _kill_combo
-	# Check gold bonus thresholds
-	for ci in range(COMBO_GOLD_THRESHOLDS.size()):
-		if _kill_combo == COMBO_GOLD_THRESHOLDS[ci]:
-			var bonus = COMBO_GOLD_REWARDS[ci]
-			add_gold(bonus)
-			spawn_floating_text(Vector2(640, 250), "COMBO x%d! +%dG" % [_kill_combo, bonus], Color(1.0, 0.9, 0.2), 18.0, 2.0)
-			_screen_shake_intensity = minf(_kill_combo * 0.5, 8.0)
-			_screen_shake_timer = 0.3
-			_haptic(1)
+	# Update gold multiplier based on combo tier
+	_combo_gold_multiplier = 1.0
+	for threshold in [100, 75, 50, 25, 10]:
+		if _kill_combo >= threshold and COMBO_MILESTONES.has(threshold):
+			_combo_gold_multiplier = COMBO_MILESTONES[threshold]["mult"]
 			break
+	# Check milestone hits (exact)
+	if COMBO_MILESTONES.has(_kill_combo):
+		var ms = COMBO_MILESTONES[_kill_combo]
+		var bonus = COMBO_BONUS_GOLD.get(_kill_combo, 0)
+		add_gold(bonus)
+		_combo_milestone_flash = 0.6
+		_combo_milestone_text = ms["label"]
+		spawn_floating_text(Vector2(640, 200), "%s +%dG" % [ms["label"], bonus], ms["color"], 28.0, 2.5)
+		_screen_shake_intensity = minf(_kill_combo * 0.3, 12.0)
+		_screen_shake_timer = 0.5
+		_haptic(2)
+		# Voice line at big milestones
+		if _kill_combo >= 50:
+			_trigger_voice_line_legacy(0, Vector2(640, 400))
+	# Bonus gold per kill from multiplier (above 1x gives extra gold)
+	if _combo_gold_multiplier > 1.0 and _kill_combo > 0:
+		var extra = int((_combo_gold_multiplier - 1.0) * 2.0)
+		if extra > 0:
+			add_gold(extra)
+	_update_quest_progress("combo_kills", 1)
 
 func _process_combo(delta: float) -> void:
 	if _kill_combo_timer > 0.0:
 		_kill_combo_timer -= delta
 		if _kill_combo_timer <= 0.0:
+			# Combo ended — show final combo result
+			if _kill_combo >= 10:
+				spawn_floating_text(Vector2(640, 300), "Combo ended: x%d" % _kill_combo, Color(0.7, 0.7, 0.7), 16.0, 1.5)
 			_kill_combo = 0
+			_combo_gold_multiplier = 1.0
 	if _kill_combo_display_timer > 0.0:
 		_kill_combo_display_timer -= delta
+	if _combo_milestone_flash > 0.0:
+		_combo_milestone_flash -= delta
 
 func _draw_combo_counter() -> void:
 	if _kill_combo < 3:
 		return
-	var font = game_font
-	var alpha = minf(_kill_combo_display_timer / 0.5, 1.0)
+	var alpha = clampf(_kill_combo_display_timer / 1.0, 0.0, 1.0)
 	if alpha <= 0.0:
 		return
-	var scale_mult = 1.0 + minf(float(_kill_combo) / 50.0, 1.0) * 0.5
-	var sz = int(14.0 * scale_mult)
-	var combo_text = "COMBO x%d" % _kill_combo
-	var col = Color(1.0, 0.9, 0.2, alpha) if _kill_combo < 25 else Color(1.0, 0.5, 0.1, alpha) if _kill_combo < 50 else Color(1.0, 0.2, 0.2, alpha)
-	_ds_outlined_text(Vector2(1100, 60), combo_text, sz, col, 120, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Pulsing scale effect
+	var pulse = (sin(_time * 8.0) + 1.0) * 0.5
+	var base_size = 22.0 + minf(float(_kill_combo) / 20.0, 3.0) * 6.0
+	var sz = int(base_size + pulse * 4.0)
+	# Combo counter text
+	var combo_text = "x%d" % _kill_combo
+	# Color escalates: yellow → orange → red → purple → gold
+	var col: Color
+	if _kill_combo >= 100:
+		col = Color(1.0, 0.85, 0.0, alpha)  # Legendary gold
+	elif _kill_combo >= 75:
+		col = Color(0.9, 0.1, 1.0, alpha)  # Purple
+	elif _kill_combo >= 50:
+		col = Color(1.0, 0.2, 0.1, alpha)  # Red
+	elif _kill_combo >= 25:
+		col = Color(1.0, 0.5, 0.1, alpha)  # Orange
+	else:
+		col = Color(1.0, 0.9, 0.2, alpha)  # Yellow
+	# Background glow circle
+	var glow_r = 40.0 + minf(float(_kill_combo), 100.0) * 0.4 + pulse * 8.0
+	draw_circle(Vector2(640, 70), glow_r, Color(col.r, col.g, col.b, alpha * 0.1))
+	# Shadow
+	_ds_outlined_text(Vector2(642, 72), combo_text, sz, Color(0, 0, 0, alpha * 0.6), 140, HORIZONTAL_ALIGNMENT_CENTER, 3)
+	# Main combo number
+	_ds_outlined_text(Vector2(640, 70), combo_text, sz, col, 140, HORIZONTAL_ALIGNMENT_CENTER, 3)
+	# "COMBO" label smaller above
+	_ds_outlined_text(Vector2(640, 48), "COMBO", 12, Color(1.0, 1.0, 1.0, alpha * 0.7), 80, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Multiplier indicator below
+	if _combo_gold_multiplier > 1.0:
+		var mult_text = "Gold x%.0f" % _combo_gold_multiplier
+		_ds_outlined_text(Vector2(640, 92), mult_text, 13, Color(1.0, 0.85, 0.0, alpha * 0.9), 100, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Milestone flash overlay
+	if _combo_milestone_flash > 0.0:
+		var flash_alpha = _combo_milestone_flash / 0.6 * 0.15
+		draw_rect(Rect2(0, 0, 1280, 720), Color(col.r, col.g, col.b, flash_alpha))
 
 # --- 12. BOSS KILL CEREMONY ---
 func _trigger_boss_kill_ceremony(pos: Vector2, boss_name: String) -> void:
@@ -21136,10 +21193,7 @@ func _process(delta: float) -> void:
 		_global_dps_value = total_dps / maxf(float(_global_dps_samples.size()), 1.0)
 	# BATTD4: Tower specialization check
 	_check_tower_specialization()
-	if combo_timer > 0.0:
-		combo_timer -= delta
-		if combo_timer <= 0.0:
-			combo_count = 0
+	# combo_timer removed — unified into _process_combo (#93)
 	# Undo tower timer countdown
 	if not undo_tower_data.is_empty():
 		undo_tower_data["timer"] = undo_tower_data.get("timer", 0.0) - delta
@@ -23875,17 +23929,8 @@ func _draw() -> void:
 		# Subtitle
 		_ds_outlined_text(Vector2(640, 344), "Prepare your defenses!", 18, Color(1.0, 0.75, 0.5, ba_alpha * 0.85), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
-	# === COMBO KILL HUD ===
-	if combo_count >= COMBO_MIN and combo_timer > 0.0:
-		var combo_pulse = (sin(_time * 6.0) + 1.0) * 0.5
-		var combo_alpha = clampf(combo_timer / COMBO_WINDOW, 0.0, 1.0)
-		var combo_size = 24 + int(combo_pulse * 4.0) + mini(combo_count - COMBO_MIN, 10) * 2
-		var combo_text = "COMBO x%d" % combo_count
-		var combo_color = Color(1.0, 0.5 + combo_pulse * 0.3, 0.1, combo_alpha)
-		# Glow
-		draw_circle(Vector2(640, 80), 60.0 + combo_pulse * 10.0, Color(1.0, 0.4, 0.1, combo_alpha * 0.08))
-		_udraw(game_font, Vector2(642, 82), combo_text, HORIZONTAL_ALIGNMENT_CENTER, -1, combo_size, Color(0, 0, 0, combo_alpha * 0.5))
-		_udraw(game_font, Vector2(640, 80), combo_text, HORIZONTAL_ALIGNMENT_CENTER, -1, combo_size, combo_color)
+	# === COMBO KILL HUD (unified into _draw_combo_counter — #93) ===
+	_draw_combo_counter()
 
 	# === TOWER STATS OVERLAY ===
 	if selected_tower_node and is_instance_valid(selected_tower_node) and not placing_tower:
@@ -24026,7 +24071,7 @@ func _draw() -> void:
 			elif enemy._ghost_health > enemy.health:
 				enemy._ghost_health = lerpf(enemy._ghost_health, enemy.health, 0.05)
 	# === ADDICTION SYSTEM OVERLAYS ===
-	_draw_combo_counter()
+	# _draw_combo_counter() — already drawn in HUD section above (#93)
 	_draw_boss_kill_ceremony()
 	_draw_near_miss()
 	_draw_milestone_popup()
@@ -34516,18 +34561,7 @@ func enemy_died(enemy_node = null) -> void:
 					other_enemy.slow_timer = maxf(other_enemy.slow_timer, 3.0)
 	# Enhancement #13: Update synergy counter
 	_update_synergy_count()
-	# Combo kill tracking
-	combo_count += 1
-	combo_timer = COMBO_WINDOW
-	if enemy_node and is_instance_valid(enemy_node):
-		combo_last_pos = enemy_node.global_position
-	if combo_count >= COMBO_MIN:
-		var bonus_gold = combo_count * 2
-		add_gold(bonus_gold)
-		spawn_floating_text(combo_last_pos + Vector2(0, -30), "COMBO x%d +%dG" % [combo_count, bonus_gold], Color(1.0, 0.5, 0.1), 18.0, 1.2)
-		_update_quest_progress("combo_kills", 1)
-		if combo_count > combo_best:
-			combo_best = combo_count
+	# Combo kill tracking (unified into _register_combo_kill — #93)
 
 # === FLOATING TEXTS ===
 func spawn_floating_text(pos: Vector2, text: String, color: Color, size: float = 14.0, duration: float = 1.0) -> void:
@@ -35071,7 +35105,7 @@ func game_over() -> void:
 		if b["progress"] >= b["target"]:
 			_session_stats["bounties_done"] += 1
 	_session_stats["early_send_total"] = _income_breakdown.get("early_send", 0)
-	_session_stats["combo_best"] = combo_count if combo_count > combo_best else combo_best
+	_session_stats["combo_best"] = _kill_combo_best
 	# BATTD4: New session stats
 	_session_stats["perfect_waves"] = _perfect_waves_count
 	_session_stats["overkills"] = _overkills_this_game
@@ -36912,7 +36946,7 @@ func _check_milestones() -> void:
 				for k in level_stars:
 					s += level_stars[k]
 				current = s
-			"combo": current = combo_best
+			"combo": current = _kill_combo_best
 		if current >= m["target"]:
 			milestone_claimed[m["id"]] = true
 			# Grant reward
