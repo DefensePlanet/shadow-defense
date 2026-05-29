@@ -5366,6 +5366,8 @@ func _save_game() -> void:
 	save_data["recruitment_missions_completed"] = recruitment_missions_completed
 	save_data["dark_skins_unlocked"] = dark_skins_unlocked
 	save_data["mastery_unlocked"] = mastery_unlocked
+	save_data["abilities_learned"] = abilities_learned
+	save_data["trials_used"] = trials_used
 	save_data["dark_skin_active"] = dark_skin_active
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
@@ -5717,6 +5719,8 @@ func _load_game() -> void:
 	recruitment_missions_completed = data.get("recruitment_missions_completed", {})
 	dark_skins_unlocked = data.get("dark_skins_unlocked", {})
 	mastery_unlocked = data.get("mastery_unlocked", {})
+	abilities_learned = data.get("abilities_learned", {})
+	trials_used = data.get("trials_used", {})
 	dark_skin_active = data.get("dark_skin_active", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
@@ -26896,6 +26900,121 @@ const ABILITY_TOOLTIPS: Dictionary = {
 		["Attract lightning: random 80 dmg bolts to enemies in range", "Rage mode every 20s: 3x dmg 5s, charges strongest enemy", "Lightning storm 12s: 5 bolts/2s, 120 dmg each, strips ALL armor"],
 	],
 }
+
+# === ABILITY UNLOCK PROGRESSION — earn then buy ===
+# Characters start with T1 of all 3 paths unlocked (3 abilities).
+# Higher tiers must be EARNED through XP milestones, then PURCHASED with Pages.
+#
+# UNLOCK FLOW:
+# 1. Character gains kills/XP → reaches milestone → ability becomes AVAILABLE
+# 2. Player spends Pages to LEARN the ability → it's now PURCHASABLE in-game
+# 3. During gameplay, player spends Gold to ACTIVATE the purchased upgrade
+#
+# This creates 3 layers: EARN (XP) → LEARN (Pages) → USE (Gold)
+
+const ABILITY_UNLOCK_REQUIREMENTS: Dictionary = {
+	# path_tier -> {xp_milestone: kills needed, page_cost: Pages to learn}
+	# T1 of all paths: FREE (unlocked at character rescue)
+	"t1": {"kills": 0, "page_cost": 0, "desc": "Unlocked on rescue"},
+	# T2: requires kills + Pages to learn
+	"t2_a": {"kills": 100, "page_cost": 15, "desc": "100 kills + 15 Pages"},
+	"t2_b": {"kills": 100, "page_cost": 15, "desc": "100 kills + 15 Pages"},
+	"t2_c": {"kills": 150, "page_cost": 20, "desc": "150 kills + 20 Pages"},
+	# T3: requires more kills + more Pages (endgame investment)
+	"t3_a": {"kills": 500, "page_cost": 40, "desc": "500 kills + 40 Pages"},
+	"t3_b": {"kills": 500, "page_cost": 40, "desc": "500 kills + 40 Pages"},
+	"t3_c": {"kills": 750, "page_cost": 60, "desc": "750 kills + 60 Pages — Ultimate"},
+}
+
+# Tracks which abilities each character has LEARNED (persistent)
+# Format: "tower_type_path_tier" -> true
+var abilities_learned: Dictionary = {}
+
+func _is_ability_available(tower_type, path: String, tier: int) -> bool:
+	# Check if the character has earned enough kills for this tier
+	if tier <= 0: return true  # T1 always available
+	var kills = survivor_progress.get(tower_type, {}).get("total_kills", 0)
+	var path_letter = ["a", "b", "c"][["path_a", "path_b", "path_c"].find(path)]
+	var req_key = "t%d_%s" % [tier + 1, path_letter]
+	var req = ABILITY_UNLOCK_REQUIREMENTS.get(req_key, ABILITY_UNLOCK_REQUIREMENTS.get("t1", {}))
+	return kills >= req["kills"]
+
+func _is_ability_learned(tower_type, path: String, tier: int) -> bool:
+	if tier <= 0: return true  # T1 always learned
+	var key = "%s_%s_%d" % [str(tower_type), path, tier]
+	return abilities_learned.has(key)
+
+func _learn_ability(tower_type, path: String, tier: int) -> bool:
+	if tier <= 0: return true
+	if not _is_ability_available(tower_type, path, tier): return false
+	if _is_ability_learned(tower_type, path, tier): return true
+	var path_letter = ["a", "b", "c"][["path_a", "path_b", "path_c"].find(path)]
+	var req_key = "t%d_%s" % [tier + 1, path_letter]
+	var req = ABILITY_UNLOCK_REQUIREMENTS.get(req_key, {})
+	var cost = req.get("page_cost", 0)
+	if player_pages < cost: return false
+	player_pages -= cost
+	var key = "%s_%s_%d" % [str(tower_type), path, tier]
+	abilities_learned[key] = true
+	# Celebrate
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	var path_names = UPGRADE_PATH_NAMES.get(tower_type, ["A", "B", "C"])
+	var path_idx = ["path_a", "path_b", "path_c"].find(path)
+	var pname = path_names[path_idx] if path_idx < path_names.size() else "?"
+	spawn_floating_text(Vector2(640, 200), "📖 ABILITY LEARNED!", Color(0.9, 0.75, 0.2), 18.0, 3.0)
+	spawn_floating_text(Vector2(640, 225), "%s — %s Tier %d" % [cname, pname, tier + 1], Color(0.80, 0.70, 0.45), 13.0, 2.5)
+	spawn_floating_text(Vector2(640, 248), "-%d Pages" % cost, Color(0.6, 0.4, 0.3), 11.0, 2.0)
+	return true
+
+func _get_ability_lock_status(tower_type, path: String, tier: int) -> String:
+	# Returns: "unlocked", "available" (can learn), "locked" (need more kills)
+	if _is_ability_learned(tower_type, path, tier): return "unlocked"
+	if _is_ability_available(tower_type, path, tier): return "available"
+	return "locked"
+
+func _get_ability_lock_desc(tower_type, path: String, tier: int) -> String:
+	if tier <= 0: return "Unlocked"
+	var path_letter = ["a", "b", "c"][["path_a", "path_b", "path_c"].find(path)]
+	var req_key = "t%d_%s" % [tier + 1, path_letter]
+	var req = ABILITY_UNLOCK_REQUIREMENTS.get(req_key, {})
+	var kills = survivor_progress.get(tower_type, {}).get("total_kills", 0)
+	var kills_needed = req.get("kills", 0)
+	var page_cost = req.get("page_cost", 0)
+	if kills < kills_needed:
+		return "🔒 Need %d kills (have %d)" % [kills_needed, kills]
+	elif not _is_ability_learned(tower_type, path, tier):
+		return "📖 Learn for %d Pages" % page_cost
+	return "✅ Learned"
+
+# === CHARACTER TRIAL SYSTEM — try before unlocking ===
+# Players can "trial" any locked character for 1 level.
+# The trial lets them use the character at level 1 with T1 abilities only.
+# After the trial, the character is re-locked unless they rescue them.
+var trial_active: bool = false
+var trial_tower_type = null
+var trials_used: Dictionary = {}  # tower_type -> count (max 3 trials per character)
+const MAX_TRIALS_PER_CHARACTER: int = 3
+
+func _can_trial(tower_type) -> bool:
+	if _is_character_unlocked(tower_type): return false  # Already unlocked
+	var used = trials_used.get(tower_type, 0)
+	return used < MAX_TRIALS_PER_CHARACTER
+
+func _start_trial(tower_type) -> void:
+	if not _can_trial(tower_type): return
+	trials_used[tower_type] = trials_used.get(tower_type, 0) + 1
+	trial_active = true
+	trial_tower_type = tower_type
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	var remaining = MAX_TRIALS_PER_CHARACTER - trials_used[tower_type]
+	spawn_floating_text(Vector2(640, 200), "🎮 TRIAL MODE: %s" % cname, Color(0.9, 0.75, 0.2), 18.0, 3.0)
+	spawn_floating_text(Vector2(640, 225), "Available for 1 level — %d trials remaining" % remaining, Color(0.70, 0.62, 0.50), 12.0, 2.5)
+
+func _end_trial() -> void:
+	trial_active = false
+	trial_tower_type = null
 
 func _get_ability_tooltip(tower_type, path_idx: int, tier: int) -> String:
 	if not ABILITY_TOOLTIPS.has(tower_type): return ""
