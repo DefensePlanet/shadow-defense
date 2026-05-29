@@ -148,6 +148,148 @@ func _update_animation(delta: float) -> void:
 				anim_timer = 0.0
 				scale = Vector2(1, 1)
 
+# === CHARACTER-SPECIFIC IDLE BEHAVIORS ===
+# Each character has unique fidgets that play during idle state.
+# These replace the generic idle variants with personality.
+var idle_personality: String = "default"  # Set by character script
+var _personality_timer: float = 0.0
+var _personality_phase: int = 0
+
+const IDLE_PERSONALITIES: Dictionary = {
+	"archer": {  # Robin Hood, Clayton
+		"fidgets": ["aim_practice", "flex_bow", "scan_horizon", "adjust_quiver"],
+		"interval": 4.0,
+	},
+	"curious": {  # Alice
+		"fidgets": ["look_around", "tilt_head", "count_fingers", "tap_foot"],
+		"interval": 3.5,
+	},
+	"menacing": {  # Wicked Witch, Dracula, Medusa, Headless Horseman
+		"fidgets": ["clench_fist", "evil_grin", "dark_pulse", "brood"],
+		"interval": 5.0,
+	},
+	"playful": {  # Peter Pan, Loki
+		"fidgets": ["hop_in_place", "spin_weapon", "wave", "cartwheel_fake"],
+		"interval": 3.0,
+	},
+	"musical": {  # Phantom
+		"fidgets": ["conduct", "hum_sway", "finger_piano", "bow_practice"],
+		"interval": 4.5,
+	},
+	"grumpy": {  # Scrooge, Captain Ahab
+		"fidgets": ["tap_cane", "mutter", "check_pocket_watch", "scowl"],
+		"interval": 5.0,
+	},
+	"detective": {  # Sherlock
+		"fidgets": ["examine_ground", "stroke_chin", "pipe_puff", "magnify"],
+		"interval": 4.0,
+	},
+	"wild": {  # Tarzan
+		"fidgets": ["beat_chest", "sniff_air", "scratch", "vine_reach"],
+		"interval": 3.5,
+	},
+	"gentle_giant": {  # Frankenstein
+		"fidgets": ["look_at_hands", "confused_tilt", "stomp_ground", "reach_for_butterfly"],
+		"interval": 5.0,
+	},
+	"mystic": {  # Merlin, Anubis
+		"fidgets": ["float_orb", "meditate", "gesture_runes", "crystal_gaze"],
+		"interval": 4.5,
+	},
+	"writer": {  # Shadow Author
+		"fidgets": ["scribble_air", "read_invisible_page", "ink_drip", "quill_twirl"],
+		"interval": 4.0,
+	},
+	"royal": {  # Queen of Hearts, Captain Hook
+		"fidgets": ["adjust_crown", "inspect_nails", "imperial_wave", "snap_fingers"],
+		"interval": 4.5,
+	},
+}
+
+func _update_idle_personality(delta: float) -> void:
+	if anim_state != "idle":
+		_personality_timer = 0.0
+		return
+	var personality = IDLE_PERSONALITIES.get(idle_personality, IDLE_PERSONALITIES.get("default", {}))
+	var interval = personality.get("interval", 4.0)
+	_personality_timer += delta
+	if _personality_timer >= interval:
+		_personality_timer = 0.0
+		var fidgets = personality.get("fidgets", [])
+		if fidgets.size() > 0:
+			_personality_phase = randi() % fidgets.size()
+			_apply_personality_fidget(fidgets[_personality_phase])
+
+func _apply_personality_fidget(fidget_name: String) -> void:
+	# Apply body part adjustments for the fidget animation
+	match fidget_name:
+		"aim_practice":
+			arm_right_angle = -0.6  # Pull back bow
+			head_tilt = -0.05  # Aim carefully
+		"flex_bow":
+			arm_right_angle = 0.4; arm_left_angle = -0.3  # Stretch
+		"scan_horizon":
+			head_tilt = 0.15  # Look far right
+		"look_around":
+			head_tilt = sin(_personality_timer * 3.0) * 0.12
+		"tilt_head":
+			head_tilt = 0.15; body_lean = 0.05
+		"tap_foot":
+			leg_phase += 2.0  # Fast leg movement
+		"clench_fist":
+			arm_right_angle = -0.3  # Tighten fist
+		"evil_grin":
+			head_tilt = -0.05  # Chin down, menacing
+		"dark_pulse":
+			weapon_glow_color.a = 0.3  # Brief glow
+		"brood":
+			body_lean = -0.04; head_tilt = 0.08  # Look away, brooding
+		"hop_in_place":
+			body_offset.y = -8.0  # Quick hop
+		"spin_weapon":
+			weapon_swing_angle += TAU * 0.5  # Half spin
+		"conduct":
+			arm_right_angle = -0.8; arm_left_angle = -0.6  # Conductor pose
+		"hum_sway":
+			body_lean = sin(_personality_timer * 2.0) * 0.06
+		"tap_cane":
+			arm_right_angle = 0.1  # Tap motion
+		"check_pocket_watch":
+			arm_left_angle = -0.5; head_tilt = -0.1  # Look at wrist
+		"examine_ground":
+			head_tilt = 0.2; body_lean = 0.06  # Look down
+		"stroke_chin":
+			arm_right_angle = -0.3  # Hand to chin
+		"beat_chest":
+			arm_right_angle = 0.5; arm_left_angle = 0.5  # Wide arms
+			body_offset.y = -3.0  # Slight rise
+		"sniff_air":
+			head_tilt = -0.15  # Head up, sniffing
+		"look_at_hands":
+			arm_right_angle = -0.4; arm_left_angle = -0.4
+			head_tilt = 0.15  # Looking down at hands
+		"confused_tilt":
+			head_tilt = 0.2; body_lean = 0.04
+		"reach_for_butterfly":
+			arm_right_angle = -0.7  # Reaching up gently
+			head_tilt = -0.1  # Looking up
+		"float_orb":
+			arm_right_angle = -0.5
+			weapon_glow_color.a = 0.4  # Magic glow
+		"meditate":
+			body_offset.y = -3.0  # Slight float
+			arm_right_angle = -0.3; arm_left_angle = -0.3  # Palms up
+		"scribble_air":
+			arm_right_angle = -0.2
+			weapon_swing_angle = sin(_personality_timer * 5.0) * 0.3  # Writing motion
+		"adjust_crown":
+			arm_right_angle = -0.6  # Hand to head
+			head_tilt = 0.05  # Regal posture
+		"imperial_wave":
+			arm_right_angle = -0.4  # Royal wave
+		_:
+			pass  # Unknown fidget — do nothing
+
 func trigger_attack_anim() -> void:
 	anim_state = "attack_windup"
 	anim_timer = 0.0
@@ -349,6 +491,7 @@ func _process(delta: float) -> void:
 	fire_cooldown -= delta
 	_recoil = max(_recoil - delta * 8.0, 0.0)
 	_update_animation(delta)
+	_update_idle_personality(delta)
 	_update_sidekicks(delta)
 	target = _find_nearest_enemy()
 
