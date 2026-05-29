@@ -933,7 +933,11 @@ func _build_arc_levels() -> void:
 		var star_row = HBoxContainer.new()
 		star_row.alignment = BoxContainer.ALIGNMENT_CENTER
 		star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		star_row.add_child(_lbl("⭐ %d / %d" % [arc_stars, arc_max_stars], 11, Color(1.0, 0.85, 0.25)))
+		var mastered = _main._get_realm_mastery(arc_levels)
+		var star_text = "⭐ %d / %d" % [arc_stars, arc_max_stars]
+		if mastered:
+			star_text += " — 👑 MASTERED"
+		star_row.add_child(_lbl(star_text, 11, Color(1.0, 0.85, 0.15) if mastered else Color(1.0, 0.85, 0.25)))
 		vb.add_child(journey_panel)
 		vb.add_child(star_row)
 		# Challenge map button (if unlocked)
@@ -1258,7 +1262,19 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		p.add_child(lca)
 	var s = StyleBoxFlat.new()
 	s.bg_color = Color(0.04, 0.03, 0.10, 0.50) if unlocked else Color(0.03, 0.02, 0.06, 0.45)
-	if complete:
+	# Frame color based on star completion
+	var frame_type = _main._get_level_frame(idx)
+	if frame_type == "gold":
+		s.border_color = Color(1.0, 0.85, 0.15, 0.8)
+		s.set_border_width_all(3)
+		s.shadow_color = Color(0.8, 0.6, 0.1, 0.2)
+		s.shadow_size = 5
+	elif frame_type == "silver":
+		s.border_color = Color(0.75, 0.78, 0.82, 0.7)
+		s.set_border_width_all(2)
+		s.shadow_color = Color(0.5, 0.5, 0.55, 0.15)
+		s.shadow_size = 4
+	elif complete:
 		s.border_color = Color(0.35, 0.70, 0.30, 0.7)
 		s.set_border_width_all(2)
 	elif is_boss:
@@ -1268,8 +1284,9 @@ func _level_card(idx: int, lvl: Dictionary) -> PanelContainer:
 		s.border_color = Color(0.40, 0.30, 0.18, 0.35)
 		s.set_border_width_all(1)
 	s.set_corner_radius_all(10)
-	s.shadow_color = Color(0, 0, 0, 0.15)
-	s.shadow_size = 3
+	if frame_type == "":
+		s.shadow_color = Color(0, 0, 0, 0.15)
+		s.shadow_size = 3
 	s.content_margin_left = 12; s.content_margin_right = 12; s.content_margin_top = 8; s.content_margin_bottom = 8
 	p.add_theme_stylebox_override("panel", s)
 	p.mouse_filter = Control.MOUSE_FILTER_PASS

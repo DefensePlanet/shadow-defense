@@ -4795,6 +4795,7 @@ func _save_game() -> void:
 	save_data["secret_path_discovered"] = _secret_path_discovered
 	save_data["challenge_maps_unlocked"] = challenge_maps_unlocked
 	save_data["corrupted_maps_unlocked"] = corrupted_maps_unlocked
+	save_data["star_rewards_claimed"] = star_rewards_claimed
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
 	save_data["endless_high_wave"] = endless_high_wave
@@ -5141,6 +5142,7 @@ func _load_game() -> void:
 	_secret_path_discovered = data.get("secret_path_discovered", {})
 	challenge_maps_unlocked = data.get("challenge_maps_unlocked", {})
 	corrupted_maps_unlocked = data.get("corrupted_maps_unlocked", {})
+	star_rewards_claimed = data.get("star_rewards_claimed", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
 	for v in uc:
@@ -33048,6 +33050,8 @@ func _victory() -> void:
 	_corrupted_mode_active = false
 	var old_stars = level_stars.get(current_level, 0)
 	level_stars[current_level] = max(old_stars, stars)
+	# Claim star rewards for this completion
+	_claim_star_rewards(current_level, stars)
 	# Per-difficulty medal and star tracking
 	if not level_difficulty_medals.has(current_level):
 		level_difficulty_medals[current_level] = [false, false, false, false]
@@ -34111,6 +34115,56 @@ const PVP_ARENA_MAPS: Array = [
 	{"name": "The Labyrinth", "desc": "Tight spiral — every inch matters", "path_seed": 66666, "waves": 30},
 	{"name": "The Void", "desc": "Minimal terrain — pure tower skill", "path_seed": 55555, "waves": 20},
 ]
+
+# === MAP COMPLETION REWARDS — 3-star unlocks per level ===
+# Each level has tiered rewards for completion quality.
+# 1 star: basic completion (XP + gold)
+# 2 stars: silver frame on level card + bonus shards
+# 3 stars: golden frame + exclusive ink reward + realm cosmetic unlock
+var star_rewards_claimed: Dictionary = {}  # "level_idx_stars" -> true
+
+const STAR_REWARD_TABLE: Dictionary = {
+	1: {"shards": 5, "gold": 20, "desc": "Completed — basic rewards"},
+	2: {"shards": 15, "gold": 40, "frame": "silver", "desc": "Silver frame unlocked"},
+	3: {"shards": 30, "gold": 60, "ink": 1, "frame": "gold", "desc": "Golden frame + 1 Ink!"},
+}
+
+func _claim_star_rewards(level_idx: int, stars: int) -> void:
+	for s in range(1, stars + 1):
+		var key = "%d_%d" % [level_idx, s]
+		if star_rewards_claimed.has(key): continue
+		star_rewards_claimed[key] = true
+		var rewards = STAR_REWARD_TABLE.get(s, {})
+		if rewards.has("shards"): player_gear_shards += rewards["shards"]
+		if rewards.has("gold"): gold += rewards["gold"]
+		if rewards.has("ink"): knowledge_ink += rewards["ink"]
+	# Announce 3-star first-time achievement
+	var three_star_key = "%d_3" % level_idx
+	if stars >= 3 and not star_rewards_claimed.has(three_star_key + "_announced"):
+		star_rewards_claimed[three_star_key + "_announced"] = true
+		var level_name = levels[level_idx]["name"] if level_idx < levels.size() else "Level"
+		spawn_floating_text(Vector2(640, 180), "⭐⭐⭐ PERFECT!", Color(1.0, 0.9, 0.2), 22.0, 3.0)
+		spawn_floating_text(Vector2(640, 210), "%s mastered!" % level_name, Color(0.85, 0.75, 0.45), 14.0, 2.5)
+		spawn_floating_text(Vector2(640, 235), "+1 Knowledge Ink", Color(0.6, 0.4, 0.9), 13.0, 2.0)
+
+func _get_level_frame(level_idx: int) -> String:
+	# Returns the frame type for this level based on best star count
+	var best_stars = level_stars.get(level_idx, 0) if "level_stars" in self else 0
+	if best_stars >= 3: return "gold"
+	if best_stars >= 2: return "silver"
+	return ""
+
+func _get_total_three_star_count() -> int:
+	var count = 0
+	for k in level_stars:
+		if level_stars[k] >= 3: count += 1
+	return count
+
+func _get_realm_mastery(arc_levels: Array) -> bool:
+	# Returns true if ALL levels in an arc have 3 stars
+	for li in arc_levels:
+		if level_stars.get(li, 0) < 3: return false
+	return true
 
 func _create_pvp_challenge(level_idx: int, tower_data: Array, wave_count: int) -> Dictionary:
 	var challenge = {
