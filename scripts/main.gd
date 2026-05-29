@@ -5770,6 +5770,135 @@ func _draw_exit_portal() -> void:
 # Animated silhouettes and events in the background that tell the story visually.
 var _bg_story_elements: Array = []  # [{type, x, y, timer, data}]
 
+# === PARALLAX FOREGROUND LAYER — depth elements in front of gameplay ===
+# Semi-transparent elements that float in front of the action, creating
+# a sense of depth. These move slightly when the camera shakes.
+var _foreground_elements: Array = []  # [{type, x, y, scale, alpha, parallax_mult}]
+
+func _generate_foreground(level_idx: int) -> void:
+	_foreground_elements.clear()
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	var rng = RandomNumberGenerator.new()
+	rng.seed = level_idx * 54321 + 11111
+	match theme:
+		0:  # Sherwood — overhanging branches + leaves
+			for _i in range(4):
+				_foreground_elements.append({"type": "branch", "x": rng.randf_range(-50, 1330), "y": rng.randf_range(-20, 40), "scale": rng.randf_range(0.8, 1.3), "alpha": rng.randf_range(0.06, 0.12), "parallax": 1.3, "sway": rng.randf_range(0.5, 1.5)})
+			for _i in range(3):
+				_foreground_elements.append({"type": "branch", "x": rng.randf_range(-50, 1330), "y": rng.randf_range(660, 730), "scale": rng.randf_range(0.6, 1.0), "alpha": rng.randf_range(0.08, 0.15), "parallax": 1.5, "sway": rng.randf_range(0.3, 1.0)})
+		1:  # Wonderland — floating mushroom caps + playing card edges
+			for _i in range(3):
+				_foreground_elements.append({"type": "mushroom", "x": rng.randf_range(0, 1280), "y": rng.randf_range(650, 730), "scale": rng.randf_range(1.0, 2.0), "alpha": rng.randf_range(0.08, 0.14), "parallax": 1.4, "sway": 0.0})
+		3:  # Neverland — clouds drifting in front
+			for _i in range(3):
+				_foreground_elements.append({"type": "cloud", "x": rng.randf_range(-100, 1400), "y": rng.randf_range(-10, 50), "scale": rng.randf_range(1.5, 3.0), "alpha": rng.randf_range(0.04, 0.08), "parallax": 1.2, "speed": rng.randf_range(3.0, 8.0)})
+		7:  # Sherlock — fog wisps in foreground
+			for _i in range(5):
+				_foreground_elements.append({"type": "fog_wisp", "x": rng.randf_range(0, 1280), "y": rng.randf_range(600, 720), "scale": rng.randf_range(2.0, 4.0), "alpha": rng.randf_range(0.06, 0.12), "parallax": 1.5, "speed": rng.randf_range(2.0, 5.0)})
+		9:  # Tarzan — vines hanging from top
+			for _i in range(5):
+				_foreground_elements.append({"type": "vine", "x": rng.randf_range(50, 1230), "y": -10, "scale": rng.randf_range(0.8, 1.5), "alpha": rng.randf_range(0.08, 0.14), "parallax": 1.4, "sway": rng.randf_range(0.5, 1.5), "length": rng.randf_range(60, 150)})
+		10: # Dracula — cobwebs in corners
+			_foreground_elements.append({"type": "cobweb", "x": 0, "y": 0, "scale": 1.0, "alpha": 0.06, "parallax": 1.1})
+			_foreground_elements.append({"type": "cobweb", "x": 1280, "y": 0, "scale": -1.0, "alpha": 0.06, "parallax": 1.1})
+		11: # Frankenstein — steam/smoke rising from bottom
+			for _i in range(4):
+				_foreground_elements.append({"type": "steam", "x": rng.randf_range(100, 1180), "y": 720, "scale": rng.randf_range(1.5, 3.0), "alpha": rng.randf_range(0.05, 0.10), "parallax": 1.3, "speed": rng.randf_range(8.0, 15.0)})
+		12: # Shadow Author — ink tendrils from edges
+			for _i in range(3):
+				_foreground_elements.append({"type": "ink_tendril", "x": rng.randf_range(-20, 0), "y": rng.randf_range(100, 600), "scale": 1.0, "alpha": rng.randf_range(0.06, 0.10), "parallax": 1.4, "sway": rng.randf_range(0.5, 1.2)})
+			for _i in range(3):
+				_foreground_elements.append({"type": "ink_tendril", "x": rng.randf_range(1280, 1300), "y": rng.randf_range(100, 600), "scale": -1.0, "alpha": rng.randf_range(0.06, 0.10), "parallax": 1.4, "sway": rng.randf_range(0.5, 1.2)})
+		17: # Ahab — spray/mist at bottom
+			for _i in range(6):
+				_foreground_elements.append({"type": "spray", "x": rng.randf_range(0, 1280), "y": rng.randf_range(680, 730), "scale": rng.randf_range(1.0, 2.5), "alpha": rng.randf_range(0.04, 0.08), "parallax": 1.5, "speed": rng.randf_range(5.0, 12.0)})
+		18: # Narrator — ember particles floating in front
+			for _i in range(6):
+				_foreground_elements.append({"type": "fg_ember", "x": rng.randf_range(0, 1280), "y": rng.randf_range(0, 720), "scale": rng.randf_range(0.5, 1.5), "alpha": rng.randf_range(0.08, 0.15), "parallax": 1.6, "speed": rng.randf_range(10.0, 20.0)})
+
+func _update_foreground(delta: float) -> void:
+	for el in _foreground_elements:
+		var t = el.get("type", "")
+		if t == "cloud" or t == "fog_wisp":
+			el["x"] += el.get("speed", 5.0) * delta
+			if el["x"] > 1400: el["x"] = -200
+		elif t == "steam":
+			el["y"] -= el.get("speed", 10.0) * delta
+			if el["y"] < -50: el["y"] = 730
+		elif t == "fg_ember":
+			el["y"] -= el.get("speed", 12.0) * delta
+			el["x"] += sin(_time * 2.0 + el["y"] * 0.01) * 15.0 * delta
+			if el["y"] < -20: el["y"] = 730; el["x"] = randf_range(0, 1280)
+		elif t == "spray":
+			el["x"] += el.get("speed", 8.0) * delta
+			if el["x"] > 1350: el["x"] = -70
+
+func _draw_foreground() -> void:
+	# Apply parallax offset based on screen shake
+	var px_off = Vector2(_screen_shake_intensity * sin(_time * 30) * 0.5, _screen_shake_intensity * cos(_time * 25) * 0.3)
+	for el in _foreground_elements:
+		var ex = el["x"] + px_off.x * el.get("parallax", 1.0)
+		var ey = el["y"] + px_off.y * el.get("parallax", 1.0)
+		var ea = el["alpha"]; var es = el.get("scale", 1.0)
+		match el.get("type", ""):
+			"branch":
+				var sway = sin(_time * el.get("sway", 1.0) + ex * 0.005) * 8.0 * absf(es)
+				# Branch line + leaves
+				draw_line(Vector2(ex, ey), Vector2(ex + 80 * es + sway, ey + 15), Color(0.2, 0.15, 0.08, ea), 3.0)
+				for li in range(4):
+					var lx = ex + (20 + li * 18) * es + sway * (1.0 + float(li) * 0.2)
+					var ly = ey + 5 + li * 3 + sin(_time * 1.5 + float(li)) * 3
+					draw_circle(Vector2(lx, ly), 5.0 * absf(es), Color(0.15, 0.25, 0.08, ea * 0.7))
+			"mushroom":
+				draw_circle(Vector2(ex, ey - 8 * es), 12 * absf(es), Color(0.6, 0.2, 0.5, ea))
+				draw_rect(Rect2(ex - 3 * absf(es), ey - 4 * es, 6 * absf(es), 12 * absf(es)), Color(0.5, 0.4, 0.3, ea * 0.8))
+			"cloud":
+				for ci in range(3):
+					var cx2 = ex + float(ci) * 25 * absf(es)
+					var cy2 = ey + sin(float(ci) * 1.5) * 8
+					draw_circle(Vector2(cx2, cy2), 20 * absf(es), Color(0.8, 0.82, 0.85, ea))
+			"fog_wisp":
+				draw_circle(Vector2(ex, ey), 30 * absf(es), Color(0.5, 0.5, 0.55, ea * 0.5))
+				draw_circle(Vector2(ex + 20, ey - 5), 20 * absf(es), Color(0.5, 0.5, 0.55, ea * 0.3))
+			"vine":
+				var length = el.get("length", 100.0)
+				var sway2 = sin(_time * el.get("sway", 1.0)) * 10.0
+				var points: PackedVector2Array = []
+				for vi in range(8):
+					var vfrac = float(vi) / 7.0
+					var vx = ex + sway2 * vfrac * vfrac
+					var vy = ey + length * vfrac * absf(es)
+					points.append(Vector2(vx, vy))
+				for vi2 in range(points.size() - 1):
+					draw_line(points[vi2], points[vi2 + 1], Color(0.15, 0.25, 0.08, ea), 2.0)
+			"cobweb":
+				var cx3 = ex; var cy3 = ey
+				var flip = 1.0 if es > 0 else -1.0
+				for wi in range(5):
+					var wa = float(wi) / 5.0 * PI * 0.5
+					var wr = 60.0
+					draw_line(Vector2(cx3, cy3), Vector2(cx3 + cos(wa) * wr * flip, cy3 + sin(wa) * wr), Color(0.5, 0.5, 0.5, ea), 0.5)
+				for ri2 in range(3):
+					var rr = 20.0 + float(ri2) * 18.0
+					draw_arc(Vector2(cx3, cy3), rr, 0, PI * 0.5 * flip, 8, Color(0.5, 0.5, 0.5, ea * 0.5), 0.5)
+			"steam":
+				draw_circle(Vector2(ex, ey), 15 * absf(es), Color(0.6, 0.6, 0.65, ea * 0.4))
+				draw_circle(Vector2(ex + 10, ey - 8), 10 * absf(es), Color(0.6, 0.6, 0.65, ea * 0.3))
+			"ink_tendril":
+				var flip2 = 1.0 if es > 0 else -1.0
+				var sway3 = sin(_time * el.get("sway", 1.0) + ey * 0.01) * 15.0
+				for ti in range(5):
+					var tfrac = float(ti) / 4.0
+					var tx = ex + (20.0 + tfrac * 40.0) * flip2 + sway3 * tfrac
+					var ty = ey + sin(tfrac * PI) * 30.0
+					draw_circle(Vector2(tx, ty), 4.0 - tfrac * 2.0, Color(0.15, 0.05, 0.25, ea * (1.0 - tfrac * 0.3)))
+			"spray":
+				draw_circle(Vector2(ex, ey), 8 * absf(es), Color(0.5, 0.6, 0.8, ea * 0.4))
+			"fg_ember":
+				draw_circle(Vector2(ex, ey), 2.5 * absf(es), Color(0.9, 0.5, 0.15, ea))
+				draw_circle(Vector2(ex, ey), 1.0 * absf(es), Color(1.0, 0.8, 0.3, ea * 0.6))
+
 func _generate_bg_story(level_idx: int) -> void:
 	_bg_story_elements.clear()
 	if level_idx < 0 or level_idx >= levels.size(): return
@@ -9987,6 +10116,7 @@ func _do_level_start(index: int) -> void:
 	_set_time_of_day(index)
 	_setup_realm_mechanic(index)
 	_generate_bg_story(index)
+	_generate_foreground(index)
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
 	_generate_secret_paths(index)
@@ -19690,6 +19820,7 @@ func _process(delta: float) -> void:
 	_update_dynamic_hazards(delta)
 	_update_realm_mechanic(delta)
 	_update_bg_story(delta)
+	_update_foreground(delta)
 	_update_atmosphere(delta)
 	# Act title card timer
 	if _act_title_active:
@@ -22309,6 +22440,8 @@ func _draw() -> void:
 	_draw_tower_xp_bars()
 	# BATTD2: Overcharge effect
 	_draw_overcharge_effect()
+	# --- PARALLAX FOREGROUND LAYER (in front of gameplay) ---
+	_draw_foreground()
 	# BATTD2: Storybook page
 	_draw_storybook_page()
 	# BATTD2: Enemy intel
