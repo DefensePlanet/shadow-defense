@@ -20756,6 +20756,7 @@ func _process(delta: float) -> void:
 	_check_duo_combos()
 	_check_ambient_chat(delta)
 	_update_emote_cooldowns(delta)
+	_check_environmental_event(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -21259,6 +21260,63 @@ func _handle_spawning(delta: float) -> void:
 # Boss waves get elite enemies. Later waves add more variety.
 var _wave_composition: Array = []  # Pre-generated list of enemy types for current wave
 var _wave_spawn_idx: int = 0
+
+# === ENVIRONMENTAL EVENTS — random battlefield-wide disruptions ===
+# Can trigger on ANY map during waves. Affects everything for a short duration.
+var _env_event_active: String = ""
+var _env_event_timer: float = 0.0
+var _env_event_cooldown: float = 0.0
+
+const ENVIRONMENTAL_EVENTS: Array = [
+	{"id": "ink_storm", "name": "🖊 INK STORM", "desc": "Dark ink rains — all enemies gain 15% speed, visibility reduced", "duration": 10.0, "enemy_speed_mult": 1.15},
+	{"id": "page_tear", "name": "📄 PAGE TEAR", "desc": "A page tears open — 5 bonus enemies pour through a rip in reality", "duration": 3.0, "bonus_spawns": 5},
+	{"id": "shadow_surge", "name": "🌑 SHADOW SURGE", "desc": "Shadow energy floods — all enemies heal 5% max HP", "duration": 5.0, "heal_pct": 0.05},
+	{"id": "golden_hour", "name": "✨ GOLDEN HOUR", "desc": "Golden light breaks through — all towers gain +25% damage for 8s", "duration": 8.0, "tower_damage_mult": 1.25},
+	{"id": "time_warp", "name": "⏳ TIME WARP", "desc": "Time distorts — everything moves at 50% speed for 6s", "duration": 6.0, "global_slow": 0.5},
+	{"id": "ink_blessing", "name": "📖 INK BLESSING", "desc": "The Tome favors you — +50 gold and all cooldowns reset", "duration": 1.0, "gold_bonus": 50},
+	{"id": "quill_rain", "name": "🪶 QUILL RAIN", "desc": "Enchanted quills fall — deal 20 damage to all enemies on screen", "duration": 2.0, "damage_all": 20},
+]
+
+func _check_environmental_event(delta: float) -> void:
+	if not is_wave_active: return
+	if _env_event_active != "":
+		_env_event_timer -= delta
+		if _env_event_timer <= 0:
+			_env_event_active = ""
+		return
+	_env_event_cooldown -= delta
+	if _env_event_cooldown > 0: return
+	# Random chance per frame — roughly every 45-90 seconds
+	if randf() < 0.0003:  # ~0.03% per frame at 60fps = ~every 55s average
+		_env_event_cooldown = 30.0  # Min 30s between events
+		_trigger_environmental_event()
+
+func _trigger_environmental_event() -> void:
+	var event = ENVIRONMENTAL_EVENTS[randi() % ENVIRONMENTAL_EVENTS.size()]
+	_env_event_active = event["id"]
+	_env_event_timer = event["duration"]
+	# Announce
+	spawn_floating_text(Vector2(640, 140), event["name"], Color(1.0, 0.8, 0.2), 22.0, 3.0)
+	spawn_floating_text(Vector2(640, 168), event["desc"], Color(0.80, 0.70, 0.50), 11.0, 3.0)
+	_screen_shake_intensity = 3.0; _screen_shake_timer = 0.2
+	# Apply immediate effects
+	match event["id"]:
+		"page_tear":
+			for _i in range(event.get("bonus_spawns", 5)):
+				if enemies_to_spawn < 50:  # Safety cap
+					enemies_to_spawn += 1
+		"shadow_surge":
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and "health" in enemy and "max_health" in enemy:
+					enemy.health = minf(enemy.health + enemy.max_health * event.get("heal_pct", 0.05), enemy.max_health)
+		"ink_blessing":
+			gold += event.get("gold_bonus", 50)
+			spawn_floating_text(Vector2(640, 200), "+%d Gold!" % event.get("gold_bonus", 50), Color(1.0, 0.85, 0.2), 16.0, 2.0)
+		"quill_rain":
+			var dmg = event.get("damage_all", 20)
+			for enemy in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+					enemy.take_damage(float(dmg), "holy")
 
 func _generate_wave_composition(w: int) -> void:
 	_wave_composition.clear()
