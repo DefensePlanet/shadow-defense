@@ -27239,6 +27239,73 @@ func _trigger_emote(tower_type, emote_type: String, tower_pos: Vector2) -> void:
 	_screen_shake_intensity = 1.5 if emote_type == "battle_cry" else 0.5
 	_screen_shake_timer = 0.15
 
+# === BACKSTORY REVEALS THROUGH LEVELING — novel lore at key levels ===
+# At levels 2, 4, 6, 8, 12, 16, characters reveal a piece of their past.
+# These are SHORT — one sentence — appearing as a golden floating quote.
+const LEVEL_BACKSTORY_REVEALS: Dictionary = {
+	TowerType.ROBIN_HOOD: {
+		2: "My father was the Earl of Huntingdon. They stripped his title for kindness.",
+		4: "I split my first arrow at age twelve. My teacher said I was born with the bow.",
+		6: "Marian was worth more than all the gold in Nottingham.",
+		8: "The Merry Men weren't just outlaws. We were a government in the trees.",
+		12: "I never missed a shot. Until the day the Tome took me mid-arrow.",
+		16: "That arrow still hangs in Sherwood. Frozen. Waiting for me to finish the shot.",
+	},
+	TowerType.ALICE: {
+		2: "I was ten years old the first time I fell. I went back six more times.",
+		4: "The Queen of Hearts offered me a crown. I said no. She never forgave me.",
+		6: "My Oxford tutors thought my Wonderland journal was fiction. It wasn't.",
+		8: "The Cheshire Cat once told me I was the only truly mad one — because I still believed in rules.",
+		12: "I kept a log: 'Tuesday — attended tea party. Borrowed six impossible ideas.'",
+		16: "When the Tome took me, I was reading a book about a girl falling into a magical world. The irony.",
+	},
+	TowerType.DRACULA: {
+		2: "Before the fangs, I was a prince. I watched my family murdered for politics.",
+		4: "For two centuries I tried to die. Sunlight, starvation, cliffs. Nothing worked.",
+		6: "I keep a music box in my coffin. It plays a lullaby my mother sang.",
+		8: "I fell in love three times in four hundred years. I watched all three age and die.",
+		12: "After the third love, I sealed my heart. 'If I cannot love without losing, I will not love at all.'",
+		16: "Every evening I listen to the music box. Then I close it and become the monster they expect.",
+	},
+	TowerType.FRANKENSTEIN: {
+		2: "My first word... was 'why.' Victor ran before I could ask again.",
+		4: "I hid in a barn for three months. Watched a family through a crack. Learned love by watching them embrace.",
+		6: "My favorite book is Paradise Lost. 'I am like Adam, but I have no Eve, no Eden.'",
+		8: "Victor promised me a companion. He destroyed her half-finished. I sat beside the pieces and wept for seven hours.",
+		12: "In the Arctic, I was the farthest from humanity I could find. The ink tendrils found me anyway.",
+		16: "The Tome wrapped around my bolts and I felt something that wasn't pain for the first time.",
+	},
+	TowerType.SCROOGE: {
+		2: "I wasn't always miserly. At twelve, I gave my lunch to a younger boy every day for a year.",
+		4: "That boy became Jacob Marley. When he died, my last connection to generosity died too.",
+		6: "I keep Fan's portrait hidden in my desk. She had the same smile as Fred.",
+		8: "The three ghosts weren't punishment. They were an intervention — arranged by Marley himself.",
+		12: "After redemption, I funded fourteen schools, three hospitals, and a pension for every worker.",
+		16: "When the Tome took me, I was wrapping presents. Badly. Too much ribbon. Crooked bows. I was smiling.",
+	},
+	TowerType.PHANTOM: {
+		2: "My mother gave me a mask before she gave me a name.",
+		4: "I built the underground lake myself. Five years digging in absolute darkness.",
+		6: "I composed forty-seven operas. None were ever performed. I slid them under Christine's door.",
+		8: "The chandelier crash was an accident. I was trying to dim the lights for Christine's stage fright.",
+		12: "My greatest crime was not murder. It was clumsiness.",
+		16: "When the Tome took me, the last note hung in the air. Then I heard applause. The Tome itself was clapping.",
+	},
+}
+
+func _reveal_backstory(tower_type, level: int) -> void:
+	if not LEVEL_BACKSTORY_REVEALS.has(tower_type): return
+	var reveals = LEVEL_BACKSTORY_REVEALS[tower_type]
+	if not reveals.has(level): return
+	var key = "backstory_%s_%d" % [str(tower_type), level]
+	if key in story_seen: return
+	story_seen.append(key)
+	var line = reveals[level]
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	spawn_floating_text(Vector2(640, 160), "📜 %s remembers..." % cname, Color(0.85, 0.70, 0.30), 14.0, 2.0)
+	spawn_floating_text(Vector2(640, 185), '"%s"' % line, Color(0.80, 0.72, 0.50), 11.0, 5.0)
+
 func _update_emote_cooldowns(delta: float) -> void:
 	for key in _emote_cooldown:
 		_emote_cooldown[key] = maxf(_emote_cooldown[key] - delta, 0.0)
@@ -35249,6 +35316,8 @@ func _on_survivor_level_up(tower_type, new_level: int) -> void:
 			_apply_meta_buffs(tower, tower_type)
 	# Character growth arc milestone
 	_check_character_growth(tower_type, "level_%d" % new_level)
+	# Backstory reveal — novel lore snippet at key levels
+	_reveal_backstory(tower_type, new_level)
 
 func _check_character_growth(tower_type, trigger: String) -> void:
 	if not character_growth.has(tower_type): return
