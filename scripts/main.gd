@@ -5842,6 +5842,8 @@ func _save_game() -> void:
 	# Save version
 	save_data["save_version"] = SAVE_VERSION
 	# Atomic write with backup rotation
+	# Anti-cheat: embed checksum (#197)
+	save_data["_checksum"] = _calculate_save_checksum(save_data)
 	var save_json = JSON.stringify(save_data, "\t")
 	var tmp_path = _save_path + ".tmp"
 	var file = FileAccess.open(tmp_path, FileAccess.WRITE)
@@ -5888,6 +5890,9 @@ func _load_game() -> void:
 		break
 	if not loaded:
 		return
+	# Anti-cheat validation (#197)
+	if not _validate_save_checksum(data):
+		push_warning("Save checksum mismatch — possible tampering detected")
 	# Save migration: v1 (old 18 levels at 0-17) -> v2 (shifted to 16-33)
 	var save_ver = int(data.get("save_version", 1))
 	if save_ver < 2:
@@ -43681,3 +43686,58 @@ func _draw_bonus_wave_prompt() -> void:
 	# Accept/Decline buttons
 	_ds_button(Rect2(px + 20, py + 72, 140, 36), "ACCEPT", Color(0.15, 0.5, 0.15), false, 14)
 	_ds_button(Rect2(px + 190, py + 72, 140, 36), "DECLINE", Color(0.5, 0.15, 0.15), false, 14)
+
+# === ANTI-CHEAT: Save Checksum (#197) ===
+func _calculate_save_checksum(data: Dictionary) -> int:
+	# Simple checksum based on key gameplay values
+	var sum: int = 0
+	sum += int(data.get("player_gold", 0)) * 7
+	sum += int(data.get("player_pages", 0)) * 13
+	sum += int(data.get("player_quills", 0)) * 17
+	sum += int(data.get("player_storybook_stars", 0)) * 23
+	sum += int(data.get("prestige_level", 0)) * 31
+	sum += data.get("completed_levels", []).size() * 41
+	sum += int(data.get("bp_tier", 0)) * 53
+	sum += int(data.get("account_level", 1)) * 67
+	return sum % 999983  # Large prime
+
+func _validate_save_checksum(data: Dictionary) -> bool:
+	var stored = int(data.get("_checksum", -1))
+	if stored < 0:
+		return true  # Old save without checksum
+	var expected = _calculate_save_checksum(data)
+	return stored == expected
+
+# === CUSTOM CHALLENGE CREATOR (#182) ===
+var custom_challenge: Dictionary = {}
+
+func _create_custom_challenge(params: Dictionary) -> Dictionary:
+	return {
+		"level": params.get("level", 0),
+		"waves": params.get("waves", 30),
+		"lives": params.get("lives", 50),
+		"mutators": params.get("mutators", []),
+		"starting_gold": params.get("starting_gold", 200),
+		"tower_restrictions": params.get("tower_restrictions", []),
+		"created_by": "player",
+		"seed": randi(),
+	}
+
+# === NEWS FEED (#186) ===
+var news_items: Array = [
+	{"title": "Welcome to Shadow Defense!", "body": "Defend the Tome from the Shadow Author's forces.", "date": "2026-05-01"},
+	{"title": "Season 1 Active", "body": "Climb the ranked ladder this month for exclusive rewards!", "date": "2026-05-01"},
+	{"title": "New Characters!", "body": "Headless Horseman, Medusa, Loki, and Anubis join the fight.", "date": "2026-05-15"},
+]
+
+# === LOCALIZATION FRAMEWORK (#195) ===
+var current_language: String = "en"
+const SUPPORTED_LANGUAGES: Array = ["en", "es", "fr", "de", "pt", "ja", "ko", "zh"]
+
+func _t(key: String) -> String:
+	# Translation stub — returns key for now, will be replaced with proper i18n
+	return key
+
+# === PRIVACY COMPLIANCE (#198) ===
+var analytics_consent: bool = false
+var gdpr_consent_shown: bool = false
