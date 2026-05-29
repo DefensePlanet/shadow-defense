@@ -487,6 +487,10 @@ func take_damage(amount: float, damage_type = "physical") -> void:
 	var mult = damage_mult * cheshire_mark_mult * charm_damage_mult
 	var paint_mult = 1.0 + paint_stacks * 0.05
 	var final_dmg = amount * mult * paint_mult
+	# Clutch mechanic (#97): +50% damage when player is at 1 life
+	var main_ref = get_tree().get_first_node_in_group("main")
+	if main_ref and main_ref._clutch_active:
+		final_dmg *= main_ref._clutch_bonus_dmg
 	# True damage bypasses all resistances and immunities
 	if damage_type != "true":
 		# Immunities — completely block this damage type

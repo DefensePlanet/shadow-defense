@@ -1475,9 +1475,14 @@ var _mvp_tower_type = null
 var _mvp_tower_kills: int = 0
 var _mvp_tower_damage: float = 0.0
 
-# --- 14. NEAR-MISS DRAMA ---
+# --- 14. NEAR-MISS DRAMA & CLUTCH MECHANIC (#97) ---
 var _near_miss_timer: float = 0.0
 var _near_miss_text: String = ""
+var _clutch_active: bool = false  # True when lives == 1
+var _clutch_bonus_dmg: float = 1.5  # +50% tower damage at 1 life
+var _clutch_bonus_speed: float = 1.25  # +25% attack speed at 1 life
+var _clutch_gold_mult: float = 2.0  # Double gold earned at 1 life
+var _clutch_trigger_flash: float = 0.0  # Screen flash when clutch activates
 
 # --- 15. POWER SPIKE CEREMONY ---
 var _power_spike_timer: float = 0.0
@@ -11241,6 +11246,8 @@ func _reset_game() -> void:
 	_wave_powerups.clear()
 	_powerup_spawn_timer = POWERUP_SPAWN_INTERVAL
 	_gold_rush_timer = 0.0
+	_clutch_active = false
+	_clutch_trigger_flash = 0.0
 	undo_tower_data.clear()
 	if is_instance_valid(undo_button):
 		undo_button.visible = false
@@ -15109,19 +15116,51 @@ func _calculate_mvp() -> void:
 			_mvp_tower_damage = session_damage[tt]
 			_mvp_tower_type = tt
 
-# --- 14. NEAR-MISS DRAMA ---
+# --- 14. NEAR-MISS DRAMA & CLUTCH MECHANIC (#97) ---
 func _check_near_miss() -> void:
+	var was_clutch = _clutch_active
 	if lives == 1 and is_wave_active:
 		_near_miss_timer = 3.0
 		_near_miss_text = "LAST STAND!"
+		if not _clutch_active:
+			_clutch_active = true
+			_clutch_trigger_flash = 0.8
+			spawn_floating_text(Vector2(640, 350), "DESPERATION MODE! +50% DMG!", Color(1.0, 0.3, 0.1), 22.0, 2.5)
+			_screen_shake_intensity = 6.0
+			_screen_shake_timer = 0.4
+			_haptic(2)
 	elif lives <= 3 and is_wave_active:
 		_near_miss_timer = 2.0
 		_near_miss_text = "BARELY HOLDING!"
+		_clutch_active = false
+	else:
+		_clutch_active = false
+
+func _get_clutch_damage_mult() -> float:
+	return _clutch_bonus_dmg if _clutch_active else 1.0
+
+func _get_clutch_speed_mult() -> float:
+	return _clutch_bonus_speed if _clutch_active else 1.0
 
 func _draw_near_miss() -> void:
+	# Clutch trigger flash
+	if _clutch_trigger_flash > 0.0:
+		var flash_a = (_clutch_trigger_flash / 0.8) * 0.2
+		draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 0.2, 0.05, flash_a))
+	# Clutch active — persistent red vignette and heartbeat pulse
+	if _clutch_active:
+		var hb = (sin(_time * 6.0) + 1.0) * 0.5  # heartbeat
+		# Red vignette edges
+		var vig_w = 120.0 + hb * 30.0
+		draw_rect(Rect2(0, 0, vig_w, 720), Color(0.8, 0.05, 0.0, 0.08 + hb * 0.06))
+		draw_rect(Rect2(1280 - vig_w, 0, vig_w, 720), Color(0.8, 0.05, 0.0, 0.08 + hb * 0.06))
+		draw_rect(Rect2(0, 0, 1280, 60), Color(0.8, 0.05, 0.0, 0.06 + hb * 0.04))
+		draw_rect(Rect2(0, 660, 1280, 60), Color(0.8, 0.05, 0.0, 0.06 + hb * 0.04))
+		# "LAST STAND" permanent indicator
+		var ls_alpha = 0.6 + hb * 0.4
+		_ds_outlined_text(Vector2(640, 24), "LAST STAND — ALL TOWERS +50% DMG", 11, Color(1.0, 0.3, 0.1, ls_alpha), 400, HORIZONTAL_ALIGNMENT_CENTER, 1)
 	if _near_miss_timer <= 0.0:
 		return
-	var font = game_font
 	var alpha = minf(_near_miss_timer, 1.0)
 	var pulse = 0.7 + sin(_time * 6.0) * 0.3
 	_ds_outlined_text(Vector2(640, 100), _near_miss_text, 24, Color(1.0, 0.25, 0.15, alpha * pulse), 400, HORIZONTAL_ALIGNMENT_CENTER, 3)
@@ -21071,6 +21110,8 @@ func _process(delta: float) -> void:
 	_process_spin_wheel(delta)
 	if _near_miss_timer > 0.0:
 		_near_miss_timer -= delta
+	if _clutch_trigger_flash > 0.0:
+		_clutch_trigger_flash -= delta
 	if _milestone_popup_timer > 0.0:
 		_milestone_popup_timer -= delta
 	if _power_spike_timer > 0.0:
