@@ -223,18 +223,10 @@ func _draw() -> void:
 func _load_bgs() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
+	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		if ResourceLoader.exists(m[k]):
 			_backgrounds[k] = load(m[k])
-		else:
-			# Fallback: load from absolute path for newly added images
-			var abs_path = ProjectSettings.globalize_path(m[k])
-			if FileAccess.file_exists(abs_path):
-				var img = Image.load_from_file(abs_path)
-				if img:
-					var tex = ImageTexture.create_from_image(img)
-					_backgrounds[k] = tex
 
 func _load_art() -> void:
 	if DisplayServer.get_name() == "headless":
@@ -345,11 +337,15 @@ func _make_black_key_mat(thresh: float = 0.08, smooth: float = 0.05) -> ShaderMa
 var _bg_zoom_tween: Tween = null
 
 func _set_bg(view: String) -> void:
+	var dark = get_node_or_null("DarkOverlay")
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
 		background.modulate.a = 1.0
+		if dark: dark.color = Color(0.02, 0.01, 0.04, 0.15)  # Subtle dim over art
 	else:
 		background.texture = null
+		# No art — DarkOverlay becomes the solid background
+		if dark: dark.color = Color(0.06, 0.04, 0.12, 1.0)  # Solid dark purple
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	background.position = Vector2.ZERO
