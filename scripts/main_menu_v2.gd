@@ -2373,81 +2373,106 @@ func _build_emporium() -> void:
 	for ci in range(_main.emporium_categories.size()):
 		var cat = _main.emporium_categories[ci]
 		var accent = EMPORIUM_COLORS[ci % EMPORIUM_COLORS.size()]
+		# === PRODUCT CARD — not a database row, a thing you WANT to tap ===
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 110)
+		btn.custom_minimum_size = Vector2(0, 130)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
-		# === SOLID OPAQUE CARD — no checkerboard ever ===
+		btn.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.05, 0.03, 0.10, 1.0)  # FULLY OPAQUE
-		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.6)
-		s.border_width_left = 5  # Thick accent stripe
-		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
-		s.set_corner_radius_all(14)
-		s.shadow_color = Color(0, 0, 0, 0.35)
-		s.shadow_size = SHADOW_CARD
-		s.content_margin_left = 14; s.content_margin_right = 14
-		s.content_margin_top = 12; s.content_margin_bottom = 12
+		# Accent-tinted dark background — each category feels unique
+		s.bg_color = Color(accent.r * 0.08 + 0.03, accent.g * 0.08 + 0.02, accent.b * 0.08 + 0.06, 1.0)
+		s.border_color = Color(accent.r * 0.6, accent.g * 0.6, accent.b * 0.6, 0.7)
+		s.set_border_width_all(2)
+		s.set_corner_radius_all(16)
+		s.shadow_color = Color(accent.r * 0.2, accent.g * 0.2, accent.b * 0.2, 0.25)
+		s.shadow_size = 8
+		s.content_margin_left = 0; s.content_margin_right = 0
+		s.content_margin_top = 0; s.content_margin_bottom = 0
 		btn.add_theme_stylebox_override("normal", s)
 		var emp_sh = s.duplicate()
-		emp_sh.bg_color = Color(accent.r * 0.12, accent.g * 0.12, accent.b * 0.12, 1.0)
-		emp_sh.border_color = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.8)
-		emp_sh.border_width_left = 5
+		emp_sh.bg_color = Color(accent.r * 0.15 + 0.03, accent.g * 0.15 + 0.02, accent.b * 0.15 + 0.06, 1.0)
+		emp_sh.border_color = Color(accent.r * 0.9, accent.g * 0.9, accent.b * 0.9, 0.9)
 		btn.add_theme_stylebox_override("hover", emp_sh)
 		var emp_sp = s.duplicate()
 		emp_sp.bg_color = Color(0.03, 0.02, 0.06, 1.0)
 		btn.add_theme_stylebox_override("pressed", emp_sp)
-		# NO art overlay — was causing checkerboard. Solid dark bg is clean.
-		# Content: Icon + Name + Desc + Badge + Arrow
+		# === ACCENT GLOW BAR on left edge ===
+		var glow_bar = ColorRect.new()
+		glow_bar.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		glow_bar.offset_right = 6
+		glow_bar.color = Color(accent.r, accent.g, accent.b, 0.8)
+		glow_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(glow_bar)
+		# === CONTENT LAYOUT ===
+		var cm = MarginContainer.new()
+		cm.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cm.add_theme_constant_override("margin_left", 18)
+		cm.add_theme_constant_override("margin_right", 16)
+		cm.add_theme_constant_override("margin_top", 14)
+		cm.add_theme_constant_override("margin_bottom", 14)
+		cm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(cm)
 		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 14)
+		row.add_theme_constant_override("separation", 16)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		btn.add_child(row)
-		# Icon with colored glow frame
+		cm.add_child(row)
+		# === LARGE ICON in glowing circle ===
 		var icon_key = cat.get("icon", "")
-		var icon_frame = PanelContainer.new()
-		icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var ifs = StyleBoxFlat.new()
-		ifs.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.9)
-		ifs.set_corner_radius_all(12)
-		ifs.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
-		ifs.set_border_width_all(2)
-		ifs.content_margin_left = 6; ifs.content_margin_right = 6
-		ifs.content_margin_top = 6; ifs.content_margin_bottom = 6
-		icon_frame.add_theme_stylebox_override("panel", ifs)
+		var icon_circle = PanelContainer.new()
+		icon_circle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_circle.custom_minimum_size = Vector2(90, 90)
+		var ics = StyleBoxFlat.new()
+		ics.bg_color = Color(accent.r * 0.12, accent.g * 0.12, accent.b * 0.12, 0.95)
+		ics.set_corner_radius_all(45)  # Full circle
+		ics.border_color = Color(accent.r * 0.6, accent.g * 0.6, accent.b * 0.6, 0.6)
+		ics.set_border_width_all(2)
+		ics.shadow_color = Color(accent.r * 0.3, accent.g * 0.3, accent.b * 0.3, 0.3)
+		ics.shadow_size = 6
+		ics.content_margin_left = 10; ics.content_margin_right = 10
+		ics.content_margin_top = 10; ics.content_margin_bottom = 10
+		icon_circle.add_theme_stylebox_override("panel", ics)
 		var icon_rect = TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(64, 64)
+		icon_rect.custom_minimum_size = Vector2(70, 70)
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if _main._emporium_icon_textures.has(icon_key):
 			icon_rect.texture = _main._emporium_icon_textures[icon_key]
-			var wk_res = load("res://shaders/white_key.gdshader") if ResourceLoader.exists("res://shaders/white_key.gdshader") else null
-			if wk_res:
+			if ResourceLoader.exists("res://shaders/white_key.gdshader"):
 				var wkm = ShaderMaterial.new()
-				wkm.shader = wk_res
+				wkm.shader = load("res://shaders/white_key.gdshader")
 				wkm.set_shader_parameter("threshold", 0.75)
 				icon_rect.material = wkm
-		icon_frame.add_child(icon_rect)
-		row.add_child(icon_frame)
-		# Text column — name (big, accent color) + description (smaller, dim)
+		icon_circle.add_child(icon_rect)
+		row.add_child(icon_circle)
+		# === TEXT: Name (big) + Description + Badge row ===
 		var text_col = VBoxContainer.new()
 		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		text_col.add_theme_constant_override("separation", 4)
 		text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var name_lbl = _lbl(cat.get("name",""), 16, accent)
+		# Name — BIG and bright in accent color
+		var name_lbl = _lbl(cat.get("name",""), 18, accent)
+		name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		name_lbl.add_theme_constant_override("shadow_offset_x", 2)
+		name_lbl.add_theme_constant_override("shadow_offset_y", 2)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(name_lbl)
+		# Description
 		var d = _lbl(cat.get("desc",""), 12, C_TEXT_SECONDARY)
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(d)
-		row.add_child(text_col)
-		# Badge — gradient pills, not flat rectangles
-		if cat.get("badge","") != "":
+		# Badge + Browse button row
+		var action_row = HBoxContainer.new()
+		action_row.add_theme_constant_override("separation", 8)
+		action_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		text_col.add_child(action_row)
+		# Badge pill (if any)
+		var badge_text = cat.get("badge", "")
+		if badge_text != "":
 			var badge_panel = PanelContainer.new()
 			var badge_s = StyleBoxFlat.new()
-			var badge_text = cat["badge"]
 			match badge_text:
 				"SALE!":
 					badge_s.bg_color = Color(0.85, 0.15, 0.10, 0.95)
@@ -2465,25 +2490,22 @@ func _build_emporium() -> void:
 					badge_s.bg_color = Color(0.35, 0.25, 0.55, 0.95)
 					badge_s.border_color = Color(0.55, 0.40, 0.80, 0.6)
 			badge_s.set_border_width_all(1)
-			badge_s.set_corner_radius_all(12)
-			badge_s.shadow_color = Color(0, 0, 0, 0.25)
-			badge_s.shadow_size = 3
-			badge_s.content_margin_left = 10; badge_s.content_margin_right = 10
-			badge_s.content_margin_top = 4; badge_s.content_margin_bottom = 4
+			badge_s.set_corner_radius_all(10)
+			badge_s.content_margin_left = 8; badge_s.content_margin_right = 8
+			badge_s.content_margin_top = 3; badge_s.content_margin_bottom = 3
 			badge_panel.add_theme_stylebox_override("panel", badge_s)
 			badge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var bl = _lbl(badge_text, 11, Color.WHITE)
-			bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			badge_panel.add_child(bl)
-			row.add_child(badge_panel)
+			badge_panel.add_child(_lbl(badge_text, 10, Color.WHITE))
+			action_row.add_child(badge_panel)
 			# Pulse badge
 			var bdg_tw = create_tween().set_loops()
 			bdg_tw.tween_property(badge_panel, "modulate", Color(1.15, 1.10, 1.05), 0.8).set_ease(Tween.EASE_IN_OUT)
 			bdg_tw.tween_property(badge_panel, "modulate", Color(1.0, 1.0, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
-		# Arrow indicator
-		var arrow = _lbl("▶", 14, Color(accent.r * 0.7, accent.g * 0.7, accent.b * 0.7, 0.6))
-		arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(arrow)
+		# "BROWSE ▶" CTA
+		var browse_lbl = _lbl("BROWSE ▶", 12, Color(accent.r * 0.8 + 0.2, accent.g * 0.8 + 0.2, accent.b * 0.8 + 0.2, 0.7))
+		browse_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		action_row.add_child(browse_lbl)
+		row.add_child(text_col)
 		btn.pressed.connect(_open_emporium_category.bind(ci))
 		_add_press_feedback(btn)
 		# Hover glow
@@ -2492,7 +2514,7 @@ func _build_emporium() -> void:
 		btn.mouse_exited.connect(func():
 			btn.modulate = Color.WHITE)
 		grid.add_child(btn)
-		# Staggered entrance — fade
+		# Staggered entrance
 		btn.modulate.a = 0.0
 		var etw_emp = create_tween().set_ease(Tween.EASE_OUT)
 		etw_emp.tween_property(btn, "modulate:a", 1.0, 0.2).set_delay(ci * 0.05)
