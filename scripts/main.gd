@@ -34973,6 +34973,14 @@ func add_gold(amount: int) -> void:
 	# Power-up #95: Gold Rush doubles income
 	if _gold_rush_timer > 0.0 and amount > 0:
 		amount *= 2
+	# Logarithmic gold scaling (#113): diminishing returns when hoarding
+	# If player has 5x more gold than expected for current wave, income is reduced
+	if amount > 0 and is_wave_active:
+		var expected_gold = (100 + wave * 30) * (1 + selected_difficulty * 0.2)
+		if gold > expected_gold * 5.0:
+			# Soft cap: reduce income logarithmically
+			var excess_ratio = float(gold) / (expected_gold * 5.0)
+			amount = maxi(1, int(float(amount) / log(excess_ratio + 1.0)))
 	gold += amount
 	total_gold_earned += amount
 	_check_achievement("penny_pincher", amount)
