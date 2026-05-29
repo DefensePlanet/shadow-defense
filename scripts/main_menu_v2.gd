@@ -656,11 +656,11 @@ func _build_portal_hub() -> void:
 		card.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 		var cs = StyleBoxFlat.new()
 		if arc_complete:
-			cs.bg_color = Color(rc.r * 0.18, rc.g * 0.18, rc.b * 0.18, 0.90)
+			cs.bg_color = Color(0.02, 0.01, 0.04, 0.30)  # Near-transparent — let art shine
 			cs.border_color = Color(1.0, 0.85, 0.15, 0.8)  # Gold border for complete
 			cs.set_border_width_all(3)
 		elif arc_unlocked:
-			cs.bg_color = Color(rc.r * 0.15, rc.g * 0.15, rc.b * 0.15, 0.85)
+			cs.bg_color = Color(0.02, 0.01, 0.04, 0.25)  # Near-transparent — art is vivid
 			cs.border_color = Color(rc.r * 0.7, rc.g * 0.7, rc.b * 0.7, 0.7)
 			cs.set_border_width_all(2)
 		else:
@@ -690,14 +690,13 @@ func _build_portal_hub() -> void:
 			realm_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			realm_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			realm_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			if arc_complete:
-				realm_art.modulate.a = 0.70
-			elif arc_unlocked:
-				realm_art.modulate.a = 0.65
+			if arc_unlocked:
+				realm_art.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Full bright — NO shading
+				# No shader on unlocked — art shows vivid and clean
 			else:
-				realm_art.modulate = Color(0.55, 0.55, 0.55, 0.38)  # Locked: grayscale, dimmer but visible
-			var mat = _make_black_key_mat(0.08, 0.05)
-			if mat: realm_art.material = mat
+				realm_art.modulate = Color(0.45, 0.45, 0.45, 0.40)  # Locked: grayscale + dim
+				var mat = _make_black_key_mat(0.08, 0.05)
+				if mat: realm_art.material = mat
 			card.add_child(realm_art)
 		# --- DARK GRADIENT at bottom for text readability (#11) ---
 		var grad_overlay = ColorRect.new()
