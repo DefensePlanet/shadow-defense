@@ -5364,6 +5364,8 @@ func _save_game() -> void:
 	save_data["corrupted_maps_unlocked"] = corrupted_maps_unlocked
 	save_data["star_rewards_claimed"] = star_rewards_claimed
 	save_data["recruitment_missions_completed"] = recruitment_missions_completed
+	save_data["dark_skins_unlocked"] = dark_skins_unlocked
+	save_data["dark_skin_active"] = dark_skin_active
 	save_data["unlocked_characters"] = unlocked_characters
 	# Endless mode
 	save_data["endless_high_wave"] = endless_high_wave
@@ -5712,6 +5714,8 @@ func _load_game() -> void:
 	corrupted_maps_unlocked = data.get("corrupted_maps_unlocked", {})
 	star_rewards_claimed = data.get("star_rewards_claimed", {})
 	recruitment_missions_completed = data.get("recruitment_missions_completed", {})
+	dark_skins_unlocked = data.get("dark_skins_unlocked", {})
+	dark_skin_active = data.get("dark_skin_active", {})
 	var uc = data.get("unlocked_characters", [])
 	unlocked_characters.clear()
 	for v in uc:
@@ -26625,6 +26629,99 @@ const RECRUITMENT_MISSIONS: Dictionary = {
 }
 
 var recruitment_missions_completed: Dictionary = {}  # tower_type -> true
+
+# === DARK/SHADOW CHARACTER VARIANTS — corrupted cosmetic skins ===
+# The Shadow Author created dark versions of every hero. Players can
+# unlock these as alternate skins by beating corrupted map variants.
+# Dark skins are cosmetic + a small unique passive modifier.
+
+const DARK_VARIANTS: Dictionary = {
+	TowerType.ROBIN_HOOD: {
+		"name": "Shadow Hood", "color_tint": Color(0.3, 0.1, 0.4),
+		"desc": "Arrows drip with ink — hits apply 3s shadow DoT",
+		"passive": "ink_dot", "value": 3.0,
+		"unlock": "Beat 5 corrupted Sherwood levels",
+	},
+	TowerType.ALICE: {
+		"name": "Nightmare Alice", "color_tint": Color(0.4, 0.1, 0.3),
+		"desc": "Wonderland turned nightmare — cakes explode on impact",
+		"passive": "exploding_projectiles", "value": 1.5,
+		"unlock": "Beat 5 corrupted Wonderland levels",
+	},
+	TowerType.WICKED_WITCH: {
+		"name": "The True Wicked", "color_tint": Color(0.15, 0.35, 0.1),
+		"desc": "Embraces the darkness — summons deal 2x damage but cost 50% more",
+		"passive": "dark_summons", "value": 2.0,
+		"unlock": "Beat 5 corrupted Oz levels",
+	},
+	TowerType.PETER_PAN: {
+		"name": "The Lost Shadow", "color_tint": Color(0.2, 0.2, 0.35),
+		"desc": "Peter's shadow took over — attacks from two positions simultaneously",
+		"passive": "dual_attack", "value": 1.0,
+		"unlock": "Beat 5 corrupted Neverland levels",
+	},
+	TowerType.PHANTOM: {
+		"name": "The Unmasked", "color_tint": Color(0.35, 0.1, 0.1),
+		"desc": "No mask, no mercy — damage increased 20% but range reduced 15%",
+		"passive": "berserker", "value": 0.20,
+		"unlock": "Beat 5 corrupted Opera levels",
+	},
+	TowerType.SCROOGE: {
+		"name": "The Unredeemed", "color_tint": Color(0.15, 0.15, 0.3),
+		"desc": "What if the ghosts failed? Gold generation doubled, allies get nothing",
+		"passive": "selfish_gold", "value": 2.0,
+		"unlock": "Beat 5 corrupted Victorian London levels",
+	},
+	TowerType.SHERLOCK: {
+		"name": "Moriarty's Heir", "color_tint": Color(0.25, 0.15, 0.3),
+		"desc": "Learned from the enemy — marked targets take 3x instead of 2x",
+		"passive": "enhanced_mark", "value": 3.0,
+		"unlock": "Beat 5 corrupted Sherlock levels",
+	},
+	TowerType.TARZAN: {
+		"name": "Feral Tarzan", "color_tint": Color(0.3, 0.2, 0.1),
+		"desc": "Lost all humanity — melee only, 3x damage, no abilities",
+		"passive": "feral_mode", "value": 3.0,
+		"unlock": "Beat 5 corrupted Tarzan levels",
+	},
+	TowerType.DRACULA: {
+		"name": "Nosferatu", "color_tint": Color(0.35, 0.05, 0.05),
+		"desc": "The beast unleashed — drains 2% max HP per hit, no allies",
+		"passive": "hp_drain", "value": 0.02,
+		"unlock": "Beat 5 corrupted Dracula levels",
+	},
+	TowerType.MERLIN: {
+		"name": "The Corrupted Wizard", "color_tint": Color(0.2, 0.1, 0.35),
+		"desc": "Dark magic — spells chain to 5 targets but deal chaos damage (random type)",
+		"passive": "chaos_magic", "value": 5.0,
+		"unlock": "Beat 5 corrupted Merlin levels",
+	},
+	TowerType.FRANKENSTEIN: {
+		"name": "The Abomination", "color_tint": Color(0.2, 0.25, 0.3),
+		"desc": "Stitched with shadow — lightning arcs to ALL enemies in range, self-damages",
+		"passive": "overloaded_lightning", "value": 1.0,
+		"unlock": "Beat 5 corrupted Frankenstein levels",
+	},
+	TowerType.SHADOW_AUTHOR: {
+		"name": "Penna Reborn", "color_tint": Color(0.4, 0.3, 0.15),
+		"desc": "The child who was abandoned — light ink replaces dark, heals allies in range",
+		"passive": "light_ink_heal", "value": 5.0,
+		"unlock": "Beat the Master Map (The Tome Rewritten)",
+	},
+}
+
+var dark_skins_unlocked: Dictionary = {}  # tower_type -> true
+var dark_skin_active: Dictionary = {}  # tower_type -> true (currently using dark skin)
+
+func _is_dark_skin_unlocked(tower_type) -> bool:
+	return dark_skins_unlocked.has(tower_type)
+
+func _toggle_dark_skin(tower_type) -> void:
+	if not _is_dark_skin_unlocked(tower_type): return
+	dark_skin_active[tower_type] = not dark_skin_active.get(tower_type, false)
+
+func _is_dark_skin_active(tower_type) -> bool:
+	return dark_skin_active.get(tower_type, false)
 
 func _is_recruitment_available(tower_type) -> bool:
 	if not RECRUITMENT_MISSIONS.has(tower_type): return false
