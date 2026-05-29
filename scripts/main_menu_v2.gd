@@ -119,7 +119,13 @@ const PARTICLE_COUNT: int = 40
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
-	# v2 menu is self-contained — main.gd draws solid dark underneath
+	# Solid opaque background behind EVERYTHING — blocks main.gd bleed-through
+	var solid_bg = ColorRect.new()
+	solid_bg.color = Color(0.03, 0.02, 0.06, 1.0)
+	solid_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	solid_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(solid_bg)
+	move_child(solid_bg, 0)  # Behind Background texture
 	_load_bgs()
 	_load_art()
 	_set_bg("chapters")
@@ -1655,37 +1661,7 @@ func _survivor_card(idx: int) -> Button:
 		badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(badge)
-	# Source novel (only for unlocked)
-	if is_unlocked and _main and idx < _main.character_novels.size():
-		var novel = _lbl(_main.character_novels[idx], 10, Color(0.48, 0.42, 0.38))
-		novel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		novel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		novel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		novel.clip_text = true
-		vb.add_child(novel)
-	# Bond indicator
-	if is_unlocked and BOND_PAIRS.has(idx):
-		var bond_names = []
-		for bi in BOND_PAIRS[idx]:
-			if bi < _main.character_names.size():
-				bond_names.append(_main.character_names[bi].split(" ")[0])
-		if bond_names.size() > 0:
-			var bond_lbl = _lbl("💞 " + " & ".join(bond_names), 9, Color(0.7, 0.45, 0.65))
-			bond_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			bond_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			bond_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			bond_lbl.clip_text = true
-			vb.add_child(bond_lbl)
-	# Gear equipped indicator
-	if is_unlocked and tt != null and _main.survivor_gear.has(tt):
-		var gear_info = _main.survivor_gear[tt]
-		if gear_info.get("name", "") != "":
-			var gear_lbl = _lbl("⚔ %s" % gear_info["name"], 10, Color(0.55, 0.42, 0.18))
-			gear_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			gear_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			gear_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			gear_lbl.clip_text = true
-			vb.add_child(gear_lbl)
+	# Novel, bond, gear — shown in detail view only (too cramped on card)
 	btn.pressed.connect(_open_survivor_detail.bind(idx))
 	# Hover effect
 	btn.mouse_entered.connect(func():
