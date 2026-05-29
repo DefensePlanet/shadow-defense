@@ -119,13 +119,10 @@ const PARTICLE_COUNT: int = 40
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
-	# Solid opaque background behind EVERYTHING — blocks main.gd bleed-through
-	var solid_bg = ColorRect.new()
-	solid_bg.color = Color(0.03, 0.02, 0.06, 1.0)
-	solid_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	solid_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(solid_bg)
-	move_child(solid_bg, 0)  # Behind Background texture
+	# Make DarkOverlay opaque enough to block main.gd bleed-through
+	var dark = get_node_or_null("DarkOverlay")
+	if dark:
+		dark.color = Color(0.03, 0.02, 0.06, 0.85)
 	_load_bgs()
 	_load_art()
 	_set_bg("chapters")
