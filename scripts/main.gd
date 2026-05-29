@@ -27012,6 +27012,47 @@ const CHARACTER_AURAS: Dictionary = {
 func _get_aura_data(tower_type) -> Dictionary:
 	return CHARACTER_AURAS.get(tower_type, {})
 
+# === CHARACTER WEAKNESS SYSTEM — every hero has a vulnerability ===
+# Each character deals reduced damage (60%) against one enemy type.
+# Forces team diversity — can't just stack one character everywhere.
+# Weaknesses are story-driven: heroes struggle against enemies that
+# mirror their personal fears or narrative weaknesses.
+const CHARACTER_WEAKNESSES: Dictionary = {
+	TowerType.ROBIN_HOOD: {"weak_vs": "armored", "reason": "Arrows bounce off heavy armor", "penalty": 0.60},
+	TowerType.ALICE: {"weak_vs": "fast", "reason": "Logic can't keep up with chaos speed", "penalty": 0.60},
+	TowerType.WICKED_WITCH: {"weak_vs": "water", "reason": "Water melts her power", "penalty": 0.50},
+	TowerType.PETER_PAN: {"weak_vs": "grounded", "reason": "Can't reach deeply rooted enemies", "penalty": 0.60},
+	TowerType.PHANTOM: {"weak_vs": "holy", "reason": "Sacred light pierces his darkness", "penalty": 0.60},
+	TowerType.SCROOGE: {"weak_vs": "ethereal", "reason": "Can't buy what isn't real", "penalty": 0.60},
+	TowerType.SHERLOCK: {"weak_vs": "swarm", "reason": "Too many variables to deduce at once", "penalty": 0.55},
+	TowerType.TARZAN: {"weak_vs": "flying", "reason": "Can't reach enemies in the sky", "penalty": 0.50},
+	TowerType.DRACULA: {"weak_vs": "holy", "reason": "Holy light burns the vampire", "penalty": 0.45},
+	TowerType.MERLIN: {"weak_vs": "shielded", "reason": "Anti-magic shields block his spells", "penalty": 0.55},
+	TowerType.FRANKENSTEIN: {"weak_vs": "water", "reason": "Water shorts out his lightning", "penalty": 0.55},
+	TowerType.SHADOW_AUTHOR: {"weak_vs": "light", "reason": "Light dissolves ink", "penalty": 0.50},
+	TowerType.CAPTAIN_HOOK: {"weak_vs": "fast", "reason": "Too slow to catch nimble enemies", "penalty": 0.60},
+	TowerType.QUEEN_OF_HEARTS: {"weak_vs": "shielded", "reason": "Cards can't cut through shields", "penalty": 0.60},
+	TowerType.CLAYTON: {"weak_vs": "ethereal", "reason": "Bullets pass through ghosts", "penalty": 0.50},
+	TowerType.HEADLESS_HORSEMAN: {"weak_vs": "holy", "reason": "Sacred ground weakens the undead rider", "penalty": 0.50},
+	TowerType.MEDUSA: {"weak_vs": "armored", "reason": "Stone gaze can't petrify steel", "penalty": 0.60},
+	TowerType.LOKI: {"weak_vs": "organic", "reason": "Nature resists illusions — it IS real", "penalty": 0.60},
+	TowerType.ANUBIS: {"weak_vs": "undead", "reason": "Cannot judge what has already died", "penalty": 0.55},
+}
+
+func _get_weakness(tower_type) -> Dictionary:
+	return CHARACTER_WEAKNESSES.get(tower_type, {})
+
+func _get_weakness_penalty(tower_type, enemy_type: String) -> float:
+	var weakness = CHARACTER_WEAKNESSES.get(tower_type, {})
+	if weakness.is_empty(): return 1.0
+	if enemy_type == weakness.get("weak_vs", ""): return weakness.get("penalty", 0.6)
+	return 1.0
+
+func _get_weakness_display(tower_type) -> String:
+	var w = CHARACTER_WEAKNESSES.get(tower_type, {})
+	if w.is_empty(): return ""
+	return "⚠ Weak vs %s: %s" % [w["weak_vs"].capitalize(), w["reason"]]
+
 func _draw_tower_aura(tower_pos: Vector2, tower_type) -> void:
 	var aura = CHARACTER_AURAS.get(tower_type, {})
 	if aura.is_empty(): return
