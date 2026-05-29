@@ -21927,6 +21927,11 @@ func _spawn_enemy() -> void:
 		"mini_boss":
 			enemy.max_health *= 4.0
 			enemy.speed *= 0.8
+			enemy.boss_scale = 1.4  # Visually larger (#108)
+			enemy.gold_reward = enemy.gold_reward * 3 if "gold_reward" in enemy else 15
+			enemy.is_named_boss = false
+			# Random mini-boss ability
+			enemy.active_ability = ["heal_pulse", "shield_allies", "debuff_aura"][randi() % 3]
 		"boss":
 			enemy.max_health *= 8.0
 			enemy.speed *= 0.6
@@ -34615,17 +34620,40 @@ func _start_next_wave() -> void:
 	_wave_banner_num = wave
 	_wave_banner_name = wave_name
 	_wave_banner_is_boss = wave in [20, 25, 30, 35] or wave == total_waves
-	# Boss wave alert
+	# Boss wave alert with name + title (#107)
 	if wave in [20, 25, 30, 35] or wave == total_waves or (wave >= 39 and selected_difficulty >= 2):
-		_boss_alert_timer = 2.5
+		_boss_alert_timer = 3.5  # Longer for intro
+		var theme = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
+		var boss_name = BOSS_VILLAIN_NAMES.get(theme, "The Villain")
 		if wave == total_waves:
-			_boss_alert_text = "FINAL WAVE"
+			_boss_alert_text = "FINAL BOSS: %s" % boss_name
 		elif wave >= 39 and selected_difficulty >= 2:
-			_boss_alert_text = "FINAL VILLAIN"
+			_boss_alert_text = "FINAL VILLAIN: %s" % boss_name
 		else:
-			_boss_alert_text = "BOSS WAVE"
-		_screen_shake_timer = 0.4
-		_screen_shake_intensity = 5.0
+			_boss_alert_text = "BOSS: %s" % boss_name
+		# Boss ability preview
+		var ability_preview = ""
+		match theme:
+			0: ability_preview = "Summons guards + shield aura"
+			1: ability_preview = "Rage enrage + minion spawn"
+			2: ability_preview = "Flying + tornado attack"
+			3: ability_preview = "Hook grab + cannon barrage"
+			4: ability_preview = "Teleport + fear aura"
+			7: ability_preview = "Cloak + trap deploy"
+			8: ability_preview = "Blood drain + bat swarm"
+			10: ability_preview = "Mist form + life steal"
+			12: ability_preview = "Ink rewrite + reality warp"
+			_: ability_preview = "Enhanced stats + special attack"
+		if ability_preview != "":
+			spawn_floating_text(Vector2(640, 360), ability_preview, Color(0.8, 0.6, 0.5), 12.0, 3.0)
+		_screen_shake_timer = 0.5
+		_screen_shake_intensity = 6.0
+	# Mini-boss every 5 waves (#108)
+	elif wave > 0 and wave % 5 == 0 and wave not in [20, 25, 30, 35]:
+		_boss_alert_timer = 1.5
+		_boss_alert_text = "MINI-BOSS WAVE"
+		_screen_shake_timer = 0.2
+		_screen_shake_intensity = 3.0
 		if _is_mobile:
 			Input.vibrate_handheld(80)
 		# Polyrhythm system: boss bass drop + visual overlay
@@ -36111,6 +36139,18 @@ func _victory() -> void:
 	_check_achievement("perfect_campaign", three_star_count)
 	if current_game_lives_lost == 0:
 		_check_achievement("untouchable", 1)
+		# Flawless Victory reward (#106)
+		var flawless_gold = 50 + wave * 5
+		var flawless_pages = 5 + mini(wave / 5, 10)
+		add_gold(flawless_gold)
+		player_pages += flawless_pages
+		spawn_floating_text(Vector2(640, 180), "FLAWLESS VICTORY!", Color(1.0, 0.85, 0.0), 30.0, 3.5)
+		spawn_floating_text(Vector2(640, 215), "+%dG +%d Pages" % [flawless_gold, flawless_pages], c_gold_bright, 16.0, 2.5)
+		_screen_shake_intensity = 6.0
+		_screen_shake_timer = 0.4
+		_haptic(2)
+		# Extra ink reward for flawless
+		_charge_ink_meter(25.0)
 	if current_game_fast_forward_only:
 		_check_achievement("speed_demon", 1)
 	# Odyssey handling
