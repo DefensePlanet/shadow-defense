@@ -2283,36 +2283,57 @@ func _build_emporium() -> void:
 	timer_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	timer_panel.add_child(timer_lbl)
 	vb.add_child(timer_panel)
-	# Limited time offer banner — BIG and dramatic
-	var lto_panel = PanelContainer.new()
+	# === LIMITED OFFER — dramatic, urgent, full-width ===
+	var lto_btn = Button.new()
+	lto_btn.text = ""
+	lto_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lto_btn.custom_minimum_size = Vector2(0, 60)
 	var ltos = StyleBoxFlat.new()
-	ltos.bg_color = Color(0.15, 0.04, 0.04, 0.7)
-	ltos.set_corner_radius_all(12)
-	ltos.border_color = Color(1.0, 0.30, 0.15, 0.7)
+	ltos.bg_color = Color(0.25, 0.05, 0.05, 1.0)
+	ltos.set_corner_radius_all(14)
+	ltos.border_color = Color(1.0, 0.35, 0.15, 0.85)
 	ltos.set_border_width_all(2)
-	ltos.shadow_color = Color(0.5, 0.1, 0.05, 0.2)
-	ltos.shadow_size = 4
-	ltos.content_margin_left = 16; ltos.content_margin_right = 16
-	ltos.content_margin_top = 10; ltos.content_margin_bottom = 10
-	lto_panel.add_theme_stylebox_override("panel", ltos)
-	lto_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ltos.shadow_color = Color(0.8, 0.15, 0.05, 0.3)
+	ltos.shadow_size = 8
+	ltos.content_margin_left = 18; ltos.content_margin_right = 18
+	ltos.content_margin_top = 12; ltos.content_margin_bottom = 12
+	lto_btn.add_theme_stylebox_override("normal", ltos)
+	var lto_h = ltos.duplicate()
+	lto_h.bg_color = Color(0.30, 0.08, 0.08, 1.0)
+	lto_h.border_color = Color(1.0, 0.50, 0.25, 0.95)
+	lto_btn.add_theme_stylebox_override("hover", lto_h)
+	_add_press_feedback(lto_btn)
 	var lto_row = HBoxContainer.new()
-	lto_row.add_theme_constant_override("separation", 10)
+	lto_row.add_theme_constant_override("separation", 14)
 	lto_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lto_panel.add_child(lto_row)
-	lto_row.add_child(_lbl("🔥 LIMITED OFFER", 13, Color(1.0, 0.4, 0.2)))
+	lto_btn.add_child(lto_row)
+	lto_row.add_child(_lbl("🔥", 22, Color(1.0, 0.5, 0.1)))
+	var lto_title = _lbl("LIMITED OFFER", 16, Color(1.0, 0.40, 0.15))
+	lto_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lto_row.add_child(lto_title)
 	var offers = ["Starter Pack: 500 Gold + 50 Pages", "Hero Bundle: 3 Gear Chests + XP Boost", "Shadow Bundle: 1000 Gold + 100 Quills"]
-	var lto_desc = _lbl(offers[randi() % offers.size()], 11, Color(0.85, 0.78, 0.65))
+	var lto_desc = _lbl(offers[randi() % offers.size()], 13, C_TEXT_PRIMARY)
 	lto_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lto_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lto_row.add_child(lto_desc)
+	# Countdown — prominent
 	var time_d = Time.get_time_dict_from_system()
-	lto_row.add_child(_lbl("⏰ %dh left" % (24 - time_d.get("hour", 0)), 10, Color(0.9, 0.3, 0.2)))
-	vb.add_child(lto_panel)
-	# Pulse the offer
+	var hrs_remain = 24 - time_d.get("hour", 0)
+	var countdown_pill = PanelContainer.new()
+	var cps = StyleBoxFlat.new()
+	cps.bg_color = Color(0.80, 0.15, 0.08, 0.9)
+	cps.set_corner_radius_all(10)
+	cps.content_margin_left = 10; cps.content_margin_right = 10
+	cps.content_margin_top = 4; cps.content_margin_bottom = 4
+	countdown_pill.add_theme_stylebox_override("panel", cps)
+	countdown_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	countdown_pill.add_child(_lbl("⏰ %dh" % hrs_remain, 14, Color.WHITE))
+	lto_row.add_child(countdown_pill)
+	vb.add_child(lto_btn)
+	# Pulse the entire offer
 	var lto_tw = create_tween().set_loops()
-	lto_tw.tween_property(lto_panel, "modulate", Color(1.2, 1.1, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
-	lto_tw.tween_property(lto_panel, "modulate", Color(1.0, 1.0, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
+	lto_tw.tween_property(lto_btn, "modulate", Color(1.12, 1.08, 1.02), 1.0).set_ease(Tween.EASE_IN_OUT)
+	lto_tw.tween_property(lto_btn, "modulate", Color(1.0, 1.0, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
 	# Featured daily deals banner
 	if _art.has("daily_deals"):
 		var deals_panel = PanelContainer.new()
@@ -2353,122 +2374,125 @@ func _build_emporium() -> void:
 		var cat = _main.emporium_categories[ci]
 		var accent = EMPORIUM_COLORS[ci % EMPORIUM_COLORS.size()]
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 90)
+		btn.custom_minimum_size = Vector2(0, 110)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = ""
-		# Card panel — mostly transparent so art frame shows
+		# === SOLID OPAQUE CARD — no checkerboard ever ===
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.07, 0.05, 0.12, 0.25)
-		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
-		s.border_width_left = 4
+		s.bg_color = Color(0.05, 0.03, 0.10, 1.0)  # FULLY OPAQUE
+		s.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.6)
+		s.border_width_left = 5  # Thick accent stripe
 		s.border_width_right = 1; s.border_width_top = 1; s.border_width_bottom = 1
-		s.set_corner_radius_all(10)
-		s.shadow_color = Color(0, 0, 0, 0.15)
-		s.shadow_size = 3
-		s.content_margin_left = 12; s.content_margin_right = 12
-		s.content_margin_top = 10; s.content_margin_bottom = 10
+		s.set_corner_radius_all(14)
+		s.shadow_color = Color(0, 0, 0, 0.35)
+		s.shadow_size = SHADOW_CARD
+		s.content_margin_left = 14; s.content_margin_right = 14
+		s.content_margin_top = 12; s.content_margin_bottom = 12
 		btn.add_theme_stylebox_override("normal", s)
-		var sh = s.duplicate()
-		sh.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.65)
-		sh.border_color = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.7)
-		btn.add_theme_stylebox_override("hover", sh)
-		# Art layer behind content — use gothic panel if available
-		var card_art_key = "panel_gothic" if _art.has("panel_gothic") else "shop_card"
-		if _art.has(card_art_key):
-			var card_art = TextureRect.new()
-			card_art.texture = _art[card_art_key]
-			card_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card_art.modulate.a = 0.45  # Visible but doesn't compete with text
-			var mat = _make_black_key_mat(0.08, 0.05)
-			if mat: card_art.material = mat
-			btn.add_child(card_art)
-		# Content: Icon + Name + Desc + Badge
+		var emp_sh = s.duplicate()
+		emp_sh.bg_color = Color(accent.r * 0.12, accent.g * 0.12, accent.b * 0.12, 1.0)
+		emp_sh.border_color = Color(accent.r * 0.8, accent.g * 0.8, accent.b * 0.8, 0.8)
+		emp_sh.border_width_left = 5
+		btn.add_theme_stylebox_override("hover", emp_sh)
+		var emp_sp = s.duplicate()
+		emp_sp.bg_color = Color(0.03, 0.02, 0.06, 1.0)
+		btn.add_theme_stylebox_override("pressed", emp_sp)
+		# NO art overlay — was causing checkerboard. Solid dark bg is clean.
+		# Content: Icon + Name + Desc + Badge + Arrow
 		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
+		row.add_theme_constant_override("separation", 14)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		btn.add_child(row)
-		# Icon from emporium_icons
+		# Icon with colored glow frame
 		var icon_key = cat.get("icon", "")
 		var icon_frame = PanelContainer.new()
 		icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var ifs = StyleBoxFlat.new()
-		ifs.bg_color = Color(0.04, 0.02, 0.08, 0.8)
-		ifs.set_corner_radius_all(8)
-		ifs.content_margin_left = 4; ifs.content_margin_right = 4
-		ifs.content_margin_top = 4; ifs.content_margin_bottom = 4
+		ifs.bg_color = Color(accent.r * 0.15, accent.g * 0.15, accent.b * 0.15, 0.9)
+		ifs.set_corner_radius_all(12)
+		ifs.border_color = Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.5)
+		ifs.set_border_width_all(2)
+		ifs.content_margin_left = 6; ifs.content_margin_right = 6
+		ifs.content_margin_top = 6; ifs.content_margin_bottom = 6
 		icon_frame.add_theme_stylebox_override("panel", ifs)
 		var icon_rect = TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(80, 80)
+		icon_rect.custom_minimum_size = Vector2(64, 64)
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if _main._emporium_icon_textures.has(icon_key):
 			icon_rect.texture = _main._emporium_icon_textures[icon_key]
-			var wk = load("res://shaders/white_key.gdshader")
-			if wk:
+			var wk_res = load("res://shaders/white_key.gdshader") if ResourceLoader.exists("res://shaders/white_key.gdshader") else null
+			if wk_res:
 				var wkm = ShaderMaterial.new()
-				wkm.shader = wk
+				wkm.shader = wk_res
 				wkm.set_shader_parameter("threshold", 0.75)
 				icon_rect.material = wkm
 		icon_frame.add_child(icon_rect)
 		row.add_child(icon_frame)
-		# Text column
+		# Text column — name (big, accent color) + description (smaller, dim)
 		var text_col = VBoxContainer.new()
 		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text_col.add_theme_constant_override("separation", 4)
 		text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var name_lbl = _lbl(cat.get("name",""), 14, accent)
+		var name_lbl = _lbl(cat.get("name",""), 16, accent)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(name_lbl)
-		var d = _lbl(cat.get("desc",""), 11, Color(0.70, 0.62, 0.52))
+		var d = _lbl(cat.get("desc",""), 12, C_TEXT_SECONDARY)
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_col.add_child(d)
 		row.add_child(text_col)
-		# Badge
+		# Badge — gradient pills, not flat rectangles
 		if cat.get("badge","") != "":
 			var badge_panel = PanelContainer.new()
 			var badge_s = StyleBoxFlat.new()
 			var badge_text = cat["badge"]
 			match badge_text:
-				"SALE!": badge_s.bg_color = Color(0.8, 0.15, 0.1, 0.8)
-				"NEW!": badge_s.bg_color = Color(0.15, 0.6, 0.15, 0.8)
-				"FREE!": badge_s.bg_color = Color(0.1, 0.5, 0.8, 0.8)
-				"AVAILABLE!": badge_s.bg_color = Color(0.6, 0.4, 0.1, 0.8)
-				_: badge_s.bg_color = Color(0.4, 0.3, 0.6, 0.8)
-			badge_s.set_corner_radius_all(10)
-			badge_s.content_margin_left = 8; badge_s.content_margin_right = 8
-			badge_s.content_margin_top = 2; badge_s.content_margin_bottom = 2
+				"SALE!":
+					badge_s.bg_color = Color(0.85, 0.15, 0.10, 0.95)
+					badge_s.border_color = Color(1.0, 0.40, 0.25, 0.7)
+				"NEW!":
+					badge_s.bg_color = Color(0.12, 0.55, 0.12, 0.95)
+					badge_s.border_color = Color(0.30, 0.85, 0.30, 0.7)
+				"FREE!":
+					badge_s.bg_color = Color(0.10, 0.45, 0.75, 0.95)
+					badge_s.border_color = Color(0.25, 0.65, 0.95, 0.7)
+				"AVAILABLE!":
+					badge_s.bg_color = Color(0.55, 0.38, 0.10, 0.95)
+					badge_s.border_color = Color(0.80, 0.60, 0.20, 0.7)
+				_:
+					badge_s.bg_color = Color(0.35, 0.25, 0.55, 0.95)
+					badge_s.border_color = Color(0.55, 0.40, 0.80, 0.6)
+			badge_s.set_border_width_all(1)
+			badge_s.set_corner_radius_all(12)
+			badge_s.shadow_color = Color(0, 0, 0, 0.25)
+			badge_s.shadow_size = 3
+			badge_s.content_margin_left = 10; badge_s.content_margin_right = 10
+			badge_s.content_margin_top = 4; badge_s.content_margin_bottom = 4
 			badge_panel.add_theme_stylebox_override("panel", badge_s)
 			badge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var bl = _lbl(badge_text, 11, Color.WHITE)
 			bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			badge_panel.add_child(bl)
 			row.add_child(badge_panel)
+			# Pulse badge
+			var bdg_tw = create_tween().set_loops()
+			bdg_tw.tween_property(badge_panel, "modulate", Color(1.15, 1.10, 1.05), 0.8).set_ease(Tween.EASE_IN_OUT)
+			bdg_tw.tween_property(badge_panel, "modulate", Color(1.0, 1.0, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
+		# Arrow indicator
+		var arrow = _lbl("▶", 14, Color(accent.r * 0.7, accent.g * 0.7, accent.b * 0.7, 0.6))
+		arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(arrow)
 		btn.pressed.connect(_open_emporium_category.bind(ci))
 		_add_press_feedback(btn)
-		# Add item count hint with arrow
-		var item_ct = _lbl("▸", 14, Color(0.55, 0.45, 0.30))
-		item_ct.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(item_ct)
-		# Hover feedback on ALL emporium cards
+		# Hover glow
 		btn.mouse_entered.connect(func():
-			btn.pivot_offset = btn.size / 2.0
-			var tw = btn.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-			tw.tween_property(btn, "scale", Vector2(1.04, 1.04), 0.1))
+			btn.modulate = Color(1.12, 1.10, 1.05))
 		btn.mouse_exited.connect(func():
-			var tw = btn.create_tween().set_ease(Tween.EASE_OUT)
-			tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.08))
-		# Extra glow for badged cards
-		var badge_val = cat.get("badge", "")
-		if badge_val == "SALE!" or badge_val == "NEW!" or badge_val == "FREE!":
-			var glow_tw = create_tween().set_loops()
-			glow_tw.tween_property(btn, "modulate", Color(1.08, 1.06, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
-			glow_tw.tween_property(btn, "modulate", Color(1.0, 1.0, 1.0), 1.0).set_ease(Tween.EASE_IN_OUT)
+			btn.modulate = Color.WHITE)
 		grid.add_child(btn)
-		# Staggered entrance — fade only (position.y breaks GridContainer)
+		# Staggered entrance — fade
 		btn.modulate.a = 0.0
 		var etw_emp = create_tween().set_ease(Tween.EASE_OUT)
 		etw_emp.tween_property(btn, "modulate:a", 1.0, 0.2).set_delay(ci * 0.05)
