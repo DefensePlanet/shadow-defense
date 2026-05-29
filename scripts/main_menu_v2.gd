@@ -691,29 +691,10 @@ func _build_portal_hub() -> void:
 			realm_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			realm_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			if arc_unlocked:
-				realm_art.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Full bright — NO shading
-				# No shader on unlocked — art shows vivid and clean
+				realm_art.modulate.a = 0.85  # Bright, vivid art
 			else:
-				realm_art.modulate = Color(0.45, 0.45, 0.45, 0.40)  # Locked: grayscale + dim
-				var mat = _make_black_key_mat(0.08, 0.05)
-				if mat: realm_art.material = mat
+				realm_art.modulate = Color(0.45, 0.45, 0.45, 0.35)  # Locked: grayscale + dim
 			card.add_child(realm_art)
-		# --- DARK GRADIENT at bottom for text readability (#11) ---
-		var grad_overlay = ColorRect.new()
-		grad_overlay.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		grad_overlay.offset_top = -90
-		grad_overlay.color = Color(0.0, 0.0, 0.0, 0.0)  # Transparent — we'll use a shader-free approach
-		grad_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(grad_overlay)
-		# Simulated gradient: stack of increasingly opaque rects at bottom
-		for gi in range(6):
-			var gbar = ColorRect.new()
-			gbar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-			gbar.offset_top = -(gi + 1) * 18
-			gbar.offset_bottom = -gi * 18
-			gbar.color = Color(0.0, 0.0, 0.02, 0.04 + gi * 0.08)
-			gbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(gbar)
 		# --- CONTENT: Name, arc, status (items 5,6,7,8,26,27) ---
 		var content = VBoxContainer.new()
 		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
