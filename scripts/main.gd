@@ -413,14 +413,14 @@ var gear_tooltip_visible: bool = false
 var emporium_categories = [
 	{"name": "Gold Exchange", "desc": "Spend gold from chests on other currencies", "icon": "emp_gold", "badge": ""},
 	{"name": "Enchanted Quills", "desc": "Trade Quills for rare treasures", "icon": "emp_quills", "badge": ""},
-	{"name": "Gear Shards", "desc": "Collect Shards to forge powerful Gear", "icon": "emp_shards", "badge": ""},
+	{"name": "Pages", "desc": "Collect Pages to forge powerful Gear", "icon": "emp_shards", "badge": ""},
 	{"name": "Gear Chests", "desc": "Chests contain powerful Gear!", "icon": "emp_chests", "badge": "AVAILABLE!"},
 	{"name": "Survivor Packs", "desc": "Bundles of literary might", "icon": "emp_packs", "badge": "SALE!"},
 	{"name": "Storybook Stars", "desc": "Empower and level up your Survivors", "icon": "emp_stars", "badge": ""},
 	{"name": "Trophy Store", "desc": "Spend Trophies on cosmetic upgrades", "icon": "emp_trophy", "badge": "NEW!"},
 	{"name": "Battle Powers", "desc": "Stock up on consumable battle abilities", "icon": "emp_powers", "badge": ""},
 	{"name": "Gears", "desc": "Gear to empower your towers", "icon": "emp_gear", "badge": "NEW!"},
-	{"name": "Salvage Workshop", "desc": "Dismantle items into Gear Shards", "icon": "emp_salvage", "badge": ""},
+	{"name": "Salvage Workshop", "desc": "Dismantle items into Pages", "icon": "emp_salvage", "badge": ""},
 	{"name": "Chest Forge", "desc": "Craft Golden Treasure Chests", "icon": "emp_forge", "badge": "NEW!"},
 	{"name": "Instruments", "desc": "Literary aura items for battle", "icon": "emp_instruments", "badge": "NEW!"},
 	{"name": "Lucky Wheel", "desc": "Spin for daily prizes!", "icon": "emp_wheel", "badge": "FREE!"},
@@ -1255,7 +1255,7 @@ var lucky_spin_open: bool = false
 const SPIN_WHEEL_PRIZES: Array = [
 	{"name": "50 Gold", "type": "gold", "amount": 50, "weight": 30, "col": Color(0.85, 0.65, 0.10)},
 	{"name": "5 Quills", "type": "quills", "amount": 5, "weight": 25, "col": Color(0.7, 0.35, 0.9)},
-	{"name": "3 Shards", "type": "shards", "amount": 3, "weight": 20, "col": Color(0.3, 0.7, 0.9)},
+	{"name": "3 Pages", "type": "pages", "amount": 3, "weight": 20, "col": Color(0.3, 0.7, 0.9)},
 	{"name": "10 Crystals", "type": "crystals", "amount": 10, "weight": 15, "col": Color(0.4, 0.9, 0.6)},
 	{"name": "1 Streak Shield", "type": "shield", "amount": 1, "weight": 5, "col": Color(0.9, 0.5, 0.2)},
 	{"name": "25 Crystals", "type": "crystals", "amount": 25, "weight": 3, "col": Color(0.2, 1.0, 0.4)},
@@ -1401,9 +1401,9 @@ const MOAB_TIER_SCALES: Array = [3.0, 4.5, 6.0]
 const MOAB_TIER_HP_MULT: Array = [8.0, 20.0, 50.0]
 const MOAB_TIER_CHILDREN: Array = [4, 4, 3]  # Children spawned on death
 
-# --- Feature 3: Item Dismantling / Sharding ---
+# --- Feature 3: Item Dismantling / Pages ---
 var salvage_rates: Dictionary = {"common": 5, "uncommon": 15, "rare": 40, "epic": 120, "legendary": 400}
-# Salvage currency is player_gear_shards (already exists)
+# Salvage currency is player_pages (already exists)
 
 # --- Feature 4: Golden Treasure Chest Crafting ---
 var golden_chest_craft_costs: Array = [
@@ -1533,36 +1533,36 @@ var quest_streak_best: int = 0
 var quest_milestone_claimed: Dictionary = {}  # {count_str: bool}
 var _quest_reroll_count: int = 0  # Rerolls used today
 var _quest_claim_flash: Array = []  # [{index, timer}] for claim animations
-const QUEST_REROLL_COST: int = 8  # Shards to reroll one quest
+const QUEST_REROLL_COST: int = 8  # Pages to reroll one quest
 const QUEST_STREAK_REWARDS: Dictionary = {3: 15, 7: 40, 14: 100, 30: 300}  # streak -> shard bonus
 const QUEST_MILESTONE_THRESHOLDS: Array = [10, 25, 50, 100, 250, 500]
 const QUEST_TEMPLATES: Array = [
 	# --- Easy quests (difficulty 0) ---
-	{"desc": "Kill %d enemies", "type": "kill", "targets": [30, 60, 100], "reward_type": "shards", "amounts": [8, 15, 25], "difficulty": 0},
-	{"desc": "Place %d towers", "type": "place_towers", "targets": [5, 10, 15], "reward_type": "shards", "amounts": [6, 12, 20], "difficulty": 0},
+	{"desc": "Kill %d enemies", "type": "kill", "targets": [30, 60, 100], "reward_type": "pages", "amounts": [8, 15, 25], "difficulty": 0},
+	{"desc": "Place %d towers", "type": "place_towers", "targets": [5, 10, 15], "reward_type": "pages", "amounts": [6, 12, 20], "difficulty": 0},
 	{"desc": "Earn %d gold in a game", "type": "earn_gold", "targets": [150, 300, 500], "reward_type": "quills", "amounts": [2, 4, 6], "difficulty": 0},
-	{"desc": "Upgrade %d tower(s)", "type": "upgrade_towers", "targets": [2, 4, 6], "reward_type": "shards", "amounts": [5, 10, 18], "difficulty": 0},
-	{"desc": "Survive %d waves", "type": "survive_waves", "targets": [10, 20, 30], "reward_type": "shards", "amounts": [8, 16, 28], "difficulty": 0},
+	{"desc": "Upgrade %d tower(s)", "type": "upgrade_towers", "targets": [2, 4, 6], "reward_type": "pages", "amounts": [5, 10, 18], "difficulty": 0},
+	{"desc": "Survive %d waves", "type": "survive_waves", "targets": [10, 20, 30], "reward_type": "pages", "amounts": [8, 16, 28], "difficulty": 0},
 	# --- Medium quests (difficulty 1) ---
-	{"desc": "Kill %d enemies", "type": "kill", "targets": [100, 200, 350], "reward_type": "shards", "amounts": [15, 25, 40], "difficulty": 1},
+	{"desc": "Kill %d enemies", "type": "kill", "targets": [100, 200, 350], "reward_type": "pages", "amounts": [15, 25, 40], "difficulty": 1},
 	{"desc": "Kill %d shadow-infested enemies", "type": "kill_shadow", "targets": [5, 10, 20], "reward_type": "quills", "amounts": [3, 5, 10], "difficulty": 1},
-	{"desc": "Complete %d level(s)", "type": "complete_levels", "targets": [1, 2, 3], "reward_type": "shards", "amounts": [15, 25, 40], "difficulty": 1},
+	{"desc": "Complete %d level(s)", "type": "complete_levels", "targets": [1, 2, 3], "reward_type": "pages", "amounts": [15, 25, 40], "difficulty": 1},
 	{"desc": "Deal %d total damage", "type": "deal_damage", "targets": [2000, 5000, 10000], "reward_type": "quills", "amounts": [3, 6, 10], "difficulty": 1},
-	{"desc": "Earn %d combo kills", "type": "combo_kills", "targets": [5, 10, 20], "reward_type": "shards", "amounts": [12, 20, 35], "difficulty": 1},
-	{"desc": "Use %d battle power(s)", "type": "use_powers", "targets": [1, 3, 5], "reward_type": "shards", "amounts": [10, 20, 30], "difficulty": 1},
+	{"desc": "Earn %d combo kills", "type": "combo_kills", "targets": [5, 10, 20], "reward_type": "pages", "amounts": [12, 20, 35], "difficulty": 1},
+	{"desc": "Use %d battle power(s)", "type": "use_powers", "targets": [1, 3, 5], "reward_type": "pages", "amounts": [10, 20, 30], "difficulty": 1},
 	# --- Hard quests (difficulty 2) ---
 	{"desc": "Earn %d stars", "type": "earn_stars", "targets": [3, 6, 9], "reward_type": "stars", "amounts": [1, 1, 2], "difficulty": 2},
 	{"desc": "Upgrade %d tower(s) to max tier", "type": "max_upgrades", "targets": [1, 2, 3], "reward_type": "quills", "amounts": [5, 8, 12], "difficulty": 2},
-	{"desc": "Activate %d tower synergy(s)", "type": "activate_synergy", "targets": [1, 2, 3], "reward_type": "shards", "amounts": [20, 35, 50], "difficulty": 2},
+	{"desc": "Activate %d tower synergy(s)", "type": "activate_synergy", "targets": [1, 2, 3], "reward_type": "pages", "amounts": [20, 35, 50], "difficulty": 2},
 	{"desc": "Kill %d boss enemies", "type": "kill_boss", "targets": [1, 3, 5], "reward_type": "quills", "amounts": [5, 10, 18], "difficulty": 2},
 	{"desc": "Win without losing a life", "type": "flawless_win", "targets": [1, 1, 1], "reward_type": "ink", "amounts": [3, 5, 8], "difficulty": 2},
 ]
 const WEEKLY_QUEST_TEMPLATES: Array = [
-	{"desc": "Kill %d enemies this week", "type": "kill", "targets": [500, 1000], "reward_type": "shards", "amounts": [60, 120]},
+	{"desc": "Kill %d enemies this week", "type": "kill", "targets": [500, 1000], "reward_type": "pages", "amounts": [60, 120]},
 	{"desc": "Complete %d levels this week", "type": "complete_levels", "targets": [5, 10], "reward_type": "quills", "amounts": [15, 30]},
 	{"desc": "Earn %d stars this week", "type": "earn_stars", "targets": [10, 20], "reward_type": "stars", "amounts": [3, 5]},
 	{"desc": "Deal %d total damage this week", "type": "deal_damage", "targets": [25000, 50000], "reward_type": "ink", "amounts": [8, 15]},
-	{"desc": "Place %d towers this week", "type": "place_towers", "targets": [30, 60], "reward_type": "shards", "amounts": [50, 100]},
+	{"desc": "Place %d towers this week", "type": "place_towers", "targets": [30, 60], "reward_type": "pages", "amounts": [50, 100]},
 ]
 
 # --- Feature 10: Literary Instruments (Aura Support Gear) ---
@@ -2315,7 +2315,7 @@ var chapter_diff_buttons: Array = []  # Array of 3 arrays, each with 3 buttons
 
 # Player inventory (persistent across sessions)
 var player_quills: int = 0
-var player_gear_shards: int = 0
+var player_pages: int = 0
 var player_storybook_stars: int = 0
 var player_gold: int = 0
 
@@ -2543,10 +2543,10 @@ var daily_reward_open: bool = false
 var daily_reward_hover_day: int = -1
 var daily_reward_claimed_today: bool = false
 var daily_rewards_schedule: Array = [
-	{"name": "Gear Shards", "type": "shards", "amount": 10},
+	{"name": "Pages", "type": "pages", "amount": 10},
 	{"name": "Enchanted Quills", "type": "quills", "amount": 5},
 	{"name": "Gold Sovereigns", "type": "gold", "amount": 50},
-	{"name": "Gear Shards", "type": "shards", "amount": 20},
+	{"name": "Pages", "type": "pages", "amount": 20},
 	{"name": "Storybook Star", "type": "stars", "amount": 1},
 	{"name": "Enchanted Quills", "type": "quills", "amount": 10},
 	{"name": "Gold Treasure Chest", "type": "gold_chest", "amount": 1},
@@ -2739,9 +2739,9 @@ const ABILITY_TIER_LEVEL_GATES: Array = [1, 3, 7, 12, 18]  # Tier 0-4 unlock at 
 
 # === PROGRESSION: Kill milestone rewards ===
 const KILL_MILESTONES: Array = [
-	{"kills": 100, "title": "Novice", "reward_type": "shards", "reward_amount": 5},
+	{"kills": 100, "title": "Novice", "reward_type": "pages", "reward_amount": 5},
 	{"kills": 500, "title": "", "reward_type": "chest_bronze", "reward_amount": 1},
-	{"kills": 1000, "title": "Veteran", "reward_type": "shards", "reward_amount": 25},
+	{"kills": 1000, "title": "Veteran", "reward_type": "pages", "reward_amount": 25},
 	{"kills": 5000, "title": "", "reward_type": "chest_silver", "reward_amount": 1},
 	{"kills": 10000, "title": "Legend", "reward_type": "chest_gold", "reward_amount": 1},
 	{"kills": 25000, "title": "", "reward_type": "quills", "reward_amount": 25},
@@ -3112,7 +3112,7 @@ const COSMIC_INK_CONVERSION_COST: int = 1  # 1 ink per conversion
 
 # === BATTD3 FEATURE: STAT RESPEC ===
 var respec_count: int = 0  # Times respecced (costs increase)
-const RESPEC_BASE_COST: int = 50  # Shards
+const RESPEC_BASE_COST: int = 50  # Pages
 const RESPEC_COST_MULT: float = 1.5  # Each respec costs 50% more
 
 # === BATTD3 FEATURE: GEAR LOADOUT PRESETS ===
@@ -3969,23 +3969,23 @@ func _init_emporium_items() -> void:
 		0: [  # Gold Exchange (gold â†’ other currencies)
 			{"name": "Quill Pouch", "desc": "Trade gold for writing tools", "cost": 50, "currency": "gold", "reward": "quills", "amount": 3},
 			{"name": "Quill Bundle", "desc": "A scholar's supply of quills", "cost": 150, "currency": "gold", "reward": "quills", "amount": 10},
-			{"name": "Shard Fragments", "desc": "Convert gold to crystal shards", "cost": 100, "currency": "gold", "reward": "shards", "amount": 15},
+			{"name": "Torn Pages", "desc": "Convert gold to story pages", "cost": 100, "currency": "gold", "reward": "pages", "amount": 15},
 			{"name": "Storybook Star", "desc": "A star forged from golden ink", "cost": 200, "currency": "gold", "reward": "stars", "amount": 1},
 		],
 		1: [  # Enchanted Quills (shards â†’ quills)
-			{"name": "Ink & Quill", "desc": "A basic writing set", "cost": 15, "currency": "shards", "reward": "quills", "amount": 3},
-			{"name": "Scribe's Bundle", "desc": "A scholar's collection", "cost": 40, "currency": "shards", "reward": "quills", "amount": 10},
-			{"name": "Arcane Library", "desc": "Ancient enchanted tomes", "cost": 80, "currency": "shards", "reward": "quills", "amount": 25},
+			{"name": "Ink & Quill", "desc": "A basic writing set", "cost": 15, "currency": "pages", "reward": "quills", "amount": 3},
+			{"name": "Scribe's Bundle", "desc": "A scholar's collection", "cost": 40, "currency": "pages", "reward": "quills", "amount": 10},
+			{"name": "Arcane Library", "desc": "Ancient enchanted tomes", "cost": 80, "currency": "pages", "reward": "quills", "amount": 25},
 		],
-		2: [  # Gear Shards (stars â†’ shards)
-			{"name": "Shard Fragment", "desc": "Glowing crystal piece", "cost": 1, "currency": "stars", "reward": "shards", "amount": 20},
-			{"name": "Shard Cluster", "desc": "A cluster of raw shards", "cost": 2, "currency": "stars", "reward": "shards", "amount": 50},
-			{"name": "Prismatic Core", "desc": "Pure crystallized energy", "cost": 4, "currency": "stars", "reward": "shards", "amount": 120},
+		2: [  # Pages (stars â†’ shards)
+			{"name": "Story Fragment", "desc": "A piece of a lost story", "cost": 1, "currency": "stars", "reward": "pages", "amount": 20},
+			{"name": "Shard Cluster", "desc": "A cluster of raw shards", "cost": 2, "currency": "stars", "reward": "pages", "amount": 50},
+			{"name": "Prismatic Core", "desc": "Pure crystallized energy", "cost": 4, "currency": "stars", "reward": "pages", "amount": 120},
 		],
 		3: [  # Gear Chests
-			{"name": "Bronze Chest", "desc": "Common treasures within", "cost": 10, "currency": "shards", "reward": "chest_bronze", "amount": 1},
-			{"name": "Silver Chest", "desc": "Uncommon gear awaits", "cost": 30, "currency": "shards", "reward": "chest_silver", "amount": 1},
-			{"name": "Gold Chest", "desc": "Legendary artifacts inside", "cost": 80, "currency": "shards", "reward": "chest_gold", "amount": 1},
+			{"name": "Bronze Chest", "desc": "Common treasures within", "cost": 10, "currency": "pages", "reward": "chest_bronze", "amount": 1},
+			{"name": "Silver Chest", "desc": "Uncommon gear awaits", "cost": 30, "currency": "pages", "reward": "chest_silver", "amount": 1},
+			{"name": "Gold Chest", "desc": "Legendary artifacts inside", "cost": 80, "currency": "pages", "reward": "chest_gold", "amount": 1},
 		],
 		4: [  # Survivor Packs (stars â†’ XP)
 			{"name": "Training Scroll", "desc": "Basic combat lessons", "cost": 1, "currency": "stars", "reward": "xp", "amount": 500},
@@ -3998,12 +3998,12 @@ func _init_emporium_items() -> void:
 			{"name": "Celestial Nova", "desc": "Pure starlight essence", "cost": 60, "currency": "quills", "reward": "stars", "amount": 6},
 		],
 		7: [  # Battle Powers (shards â†’ powers)
-			{"name": "Quill Strike", "desc": "500 damage to all on-screen enemies", "cost": 15, "currency": "shards", "reward": "power", "power_id": "quill_strike", "amount": 1},
-			{"name": "Golden Bounty", "desc": "+200 gold instantly", "cost": 10, "currency": "shards", "reward": "power", "power_id": "golden_bounty", "amount": 1},
-			{"name": "Storybook Shield", "desc": "Blocks next 10 life losses", "cost": 20, "currency": "shards", "reward": "power", "power_id": "storybook_shield", "amount": 1},
-			{"name": "Ink Freeze", "desc": "Freeze all enemies 5 seconds", "cost": 18, "currency": "shards", "reward": "power", "power_id": "ink_freeze", "amount": 1},
-			{"name": "Chapter Skip", "desc": "Instantly completes current wave", "cost": 25, "currency": "shards", "reward": "power", "power_id": "chapter_skip", "amount": 1},
-			{"name": "Enchanted Towers", "desc": "All towers +50% damage for 15s", "cost": 22, "currency": "shards", "reward": "power", "power_id": "enchanted_towers", "amount": 1},
+			{"name": "Quill Strike", "desc": "500 damage to all on-screen enemies", "cost": 15, "currency": "pages", "reward": "power", "power_id": "quill_strike", "amount": 1},
+			{"name": "Golden Bounty", "desc": "+200 gold instantly", "cost": 10, "currency": "pages", "reward": "power", "power_id": "golden_bounty", "amount": 1},
+			{"name": "Storybook Shield", "desc": "Blocks next 10 life losses", "cost": 20, "currency": "pages", "reward": "power", "power_id": "storybook_shield", "amount": 1},
+			{"name": "Ink Freeze", "desc": "Freeze all enemies 5 seconds", "cost": 18, "currency": "pages", "reward": "power", "power_id": "ink_freeze", "amount": 1},
+			{"name": "Chapter Skip", "desc": "Instantly completes current wave", "cost": 25, "currency": "pages", "reward": "power", "power_id": "chapter_skip", "amount": 1},
+			{"name": "Enchanted Towers", "desc": "All towers +50% damage for 15s", "cost": 22, "currency": "pages", "reward": "power", "power_id": "enchanted_towers", "amount": 1},
 		],
 	}
 
@@ -4145,37 +4145,37 @@ func _init_achievement_definitions() -> void:
 		# ============================================================
 		# COMBAT — Kill Milestones (12)
 		# ============================================================
-		{"id": "first_blood", "name": "First Blood", "desc": "Kill your first enemy", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 5},
-		{"id": "bug_squasher", "name": "Bug Squasher", "desc": "Kill 10 enemies", "category": "Combat", "target": 10, "reward_type": "shards", "reward_amount": 5},
-		{"id": "centurion", "name": "Centurion", "desc": "Kill 100 enemies", "category": "Combat", "target": 100, "reward_type": "shards", "reward_amount": 20},
-		{"id": "exterminator", "name": "Exterminator", "desc": "Kill 500 enemies", "category": "Combat", "target": 500, "reward_type": "shards", "reward_amount": 30},
+		{"id": "first_blood", "name": "First Blood", "desc": "Kill your first enemy", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 5},
+		{"id": "bug_squasher", "name": "Bug Squasher", "desc": "Kill 10 enemies", "category": "Combat", "target": 10, "reward_type": "pages", "reward_amount": 5},
+		{"id": "centurion", "name": "Centurion", "desc": "Kill 100 enemies", "category": "Combat", "target": 100, "reward_type": "pages", "reward_amount": 20},
+		{"id": "exterminator", "name": "Exterminator", "desc": "Kill 500 enemies", "category": "Combat", "target": 500, "reward_type": "pages", "reward_amount": 30},
 		{"id": "thousand_slayer", "name": "Thousand Slayer", "desc": "Kill 1000 enemies", "category": "Combat", "target": 1000, "reward_type": "quills", "reward_amount": 10, "trophy_bonus": 5},
 		{"id": "warmonger", "name": "Warmonger", "desc": "Kill 2,500 enemies", "category": "Combat", "target": 2500, "reward_type": "quills", "reward_amount": 15},
-		{"id": "massacre", "name": "Massacre", "desc": "Kill 5,000 enemies", "category": "Combat", "target": 5000, "reward_type": "shards", "reward_amount": 50},
+		{"id": "massacre", "name": "Massacre", "desc": "Kill 5,000 enemies", "category": "Combat", "target": 5000, "reward_type": "pages", "reward_amount": 50},
 		{"id": "ten_thousand_strong", "name": "Ten Thousand Strong", "desc": "Kill 10,000 enemies", "category": "Combat", "target": 10000, "reward_type": "quills", "reward_amount": 25, "trophy_bonus": 10},
 		{"id": "army_breaker", "name": "Army Breaker", "desc": "Kill 25,000 enemies", "category": "Combat", "target": 25000, "reward_type": "stars", "reward_amount": 3},
 		{"id": "genocide_protocol", "name": "Genocide Protocol", "desc": "Kill 50,000 enemies", "category": "Combat", "target": 50000, "reward_type": "quills", "reward_amount": 40, "trophy_bonus": 15},
 		{"id": "the_reaper", "name": "The Reaper", "desc": "Kill 100,000 enemies", "category": "Combat", "target": 100000, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 25},
 		{"id": "death_incarnate", "name": "Death Incarnate", "desc": "Kill 250,000 enemies", "category": "Combat", "target": 250000, "reward_type": "stars", "reward_amount": 15, "trophy_bonus": 50},
 		# COMBAT — Boss Kills (4)
-		{"id": "boss_slayer", "name": "Boss Slayer", "desc": "Kill your first boss", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "boss_slayer", "name": "Boss Slayer", "desc": "Kill your first boss", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "boss_hunter", "name": "Boss Hunter", "desc": "Kill 10 bosses", "category": "Combat", "target": 10, "reward_type": "quills", "reward_amount": 10},
-		{"id": "boss_executioner", "name": "Boss Executioner", "desc": "Kill 50 bosses", "category": "Combat", "target": 50, "reward_type": "shards", "reward_amount": 40, "trophy_bonus": 10},
+		{"id": "boss_executioner", "name": "Boss Executioner", "desc": "Kill 50 bosses", "category": "Combat", "target": 50, "reward_type": "pages", "reward_amount": 40, "trophy_bonus": 10},
 		{"id": "tyrant_slayer", "name": "Tyrant Slayer", "desc": "Kill 100 bosses", "category": "Combat", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 20},
 		# COMBAT — Damage Milestones (10)
-		{"id": "damage_dealer", "name": "Damage Dealer", "desc": "Deal 1,000 total damage", "category": "Combat", "target": 1000, "reward_type": "shards", "reward_amount": 10},
-		{"id": "heavy_hitter", "name": "Heavy Hitter", "desc": "Deal 10,000 total damage", "category": "Combat", "target": 10000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "damage_dealer", "name": "Damage Dealer", "desc": "Deal 1,000 total damage", "category": "Combat", "target": 1000, "reward_type": "pages", "reward_amount": 10},
+		{"id": "heavy_hitter", "name": "Heavy Hitter", "desc": "Deal 10,000 total damage", "category": "Combat", "target": 10000, "reward_type": "pages", "reward_amount": 20},
 		{"id": "wrecking_ball", "name": "Wrecking Ball", "desc": "Deal 50,000 total damage", "category": "Combat", "target": 50000, "reward_type": "quills", "reward_amount": 12},
 		{"id": "siege_engine", "name": "Siege Engine", "desc": "Deal 100,000 total damage", "category": "Combat", "target": 100000, "reward_type": "quills", "reward_amount": 20},
-		{"id": "cataclysm", "name": "Cataclysm", "desc": "Deal 500,000 total damage", "category": "Combat", "target": 500000, "reward_type": "shards", "reward_amount": 60},
+		{"id": "cataclysm", "name": "Cataclysm", "desc": "Deal 500,000 total damage", "category": "Combat", "target": 500000, "reward_type": "pages", "reward_amount": 60},
 		{"id": "armageddon", "name": "Armageddon", "desc": "Deal 1,000,000 total damage", "category": "Combat", "target": 1000000, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		{"id": "world_ender", "name": "World Ender", "desc": "Deal 5,000,000 total damage", "category": "Combat", "target": 5000000, "reward_type": "stars", "reward_amount": 8, "trophy_bonus": 25},
-		{"id": "critical_strike", "name": "Critical Strike", "desc": "Deal 100+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "critical_strike", "name": "Critical Strike", "desc": "Deal 100+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "devastating_blow", "name": "Devastating Blow", "desc": "Deal 500+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 8},
-		{"id": "one_shot_wonder", "name": "One-Shot Wonder", "desc": "Deal 1,000+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 30, "trophy_bonus": 5},
+		{"id": "one_shot_wonder", "name": "One-Shot Wonder", "desc": "Deal 1,000+ damage in a single hit", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 30, "trophy_bonus": 5},
 		# COMBAT — Kill Streaks (6)
-		{"id": "combo_starter", "name": "Combo Starter", "desc": "Get a 5 kill streak", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 10},
-		{"id": "streak_master", "name": "Streak Master", "desc": "Get a 10 kill streak", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "combo_starter", "name": "Combo Starter", "desc": "Get a 5 kill streak", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 10},
+		{"id": "streak_master", "name": "Streak Master", "desc": "Get a 10 kill streak", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "unstoppable", "name": "Unstoppable", "desc": "Get a 25 kill streak", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 8},
 		{"id": "rampage", "name": "Rampage", "desc": "Get a 50 kill streak", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 12},
 		{"id": "god_of_war", "name": "God of War", "desc": "Get a 100 kill streak", "category": "Combat", "target": 1, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
@@ -4183,45 +4183,45 @@ func _init_achievement_definitions() -> void:
 		# COMBAT — Completion & Challenges (14)
 		{"id": "iron_wall", "name": "Iron Wall", "desc": "Complete 5 levels with 0 lives lost", "category": "Combat", "target": 5, "reward_type": "quills", "reward_amount": 10},
 		{"id": "untouchable", "name": "Untouchable", "desc": "Complete a level with 0 lives lost", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 5},
-		{"id": "speed_demon", "name": "Speed Demon", "desc": "Complete a level entirely on fast-forward", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
-		{"id": "wave_master", "name": "Wave Master", "desc": "Complete 50 total waves", "category": "Combat", "target": 50, "reward_type": "shards", "reward_amount": 25},
+		{"id": "speed_demon", "name": "Speed Demon", "desc": "Complete a level entirely on fast-forward", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
+		{"id": "wave_master", "name": "Wave Master", "desc": "Complete 50 total waves", "category": "Combat", "target": 50, "reward_type": "pages", "reward_amount": 25},
 		{"id": "wave_veteran", "name": "Wave Veteran", "desc": "Complete 200 total waves", "category": "Combat", "target": 200, "reward_type": "quills", "reward_amount": 15},
 		{"id": "wave_legend", "name": "Wave Legend", "desc": "Complete 500 total waves", "category": "Combat", "target": 500, "reward_type": "stars", "reward_amount": 3},
 		{"id": "wave_god", "name": "Wave God", "desc": "Complete 1,000 total waves", "category": "Combat", "target": 1000, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		{"id": "flawless", "name": "Flawless Victory", "desc": "Earn 3 stars on any level", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 5},
 		{"id": "perfect_campaign", "name": "Perfect Campaign", "desc": "Earn 3 stars on all 37 levels", "category": "Combat", "target": 37, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
-		{"id": "hard_mode_warrior", "name": "Hard Mode Warrior", "desc": "Complete any level on Hard", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 20},
+		{"id": "hard_mode_warrior", "name": "Hard Mode Warrior", "desc": "Complete any level on Hard", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 20},
 		{"id": "hard_mode_master", "name": "Hard Mode Master", "desc": "Complete 10 levels on Hard", "category": "Combat", "target": 10, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 10},
 		{"id": "pure_mode_survivor", "name": "Pure Mode Survivor", "desc": "Complete any level on Pure (1 life)", "category": "Combat", "target": 1, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "pure_mode_legend", "name": "Pure Mode Legend", "desc": "Complete 5 levels on Pure", "category": "Combat", "target": 5, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 25},
-		{"id": "no_sell_challenge", "name": "No Sell Challenge", "desc": "Complete a level without selling any tower", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "no_sell_challenge", "name": "No Sell Challenge", "desc": "Complete a level without selling any tower", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		# COMBAT — Wave Survival (6)
-		{"id": "last_stand", "name": "Last Stand", "desc": "Win a level with only 1 life remaining", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 20},
+		{"id": "last_stand", "name": "Last Stand", "desc": "Win a level with only 1 life remaining", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 20},
 		{"id": "close_call", "name": "Close Call", "desc": "Win 5 levels with 3 or fewer lives", "category": "Combat", "target": 5, "reward_type": "quills", "reward_amount": 10},
-		{"id": "comeback_king", "name": "Comeback King", "desc": "Win after dropping below 5 lives", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "comeback_king", "name": "Comeback King", "desc": "Win after dropping below 5 lives", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "endurance_runner", "name": "Endurance Runner", "desc": "Survive 30 waves in Endless mode", "category": "Combat", "target": 30, "reward_type": "quills", "reward_amount": 15},
 		{"id": "marathon_runner", "name": "Marathon Runner", "desc": "Survive 50 waves in Endless mode", "category": "Combat", "target": 50, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "eternal_defender", "name": "Eternal Defender", "desc": "Survive 100 waves in Endless mode", "category": "Combat", "target": 100, "reward_type": "stars", "reward_amount": 8, "trophy_bonus": 30},
 		# ============================================================
 		# TOWER — Building & Placement (12)
 		# ============================================================
-		{"id": "novice_builder", "name": "Novice Builder", "desc": "Place 10 towers total", "category": "Tower", "target": 10, "reward_type": "shards", "reward_amount": 10},
+		{"id": "novice_builder", "name": "Novice Builder", "desc": "Place 10 towers total", "category": "Tower", "target": 10, "reward_type": "pages", "reward_amount": 10},
 		{"id": "master_builder", "name": "Master Builder", "desc": "Place 100 towers total", "category": "Tower", "target": 100, "reward_type": "quills", "reward_amount": 8},
-		{"id": "architect", "name": "Architect", "desc": "Place 500 towers total", "category": "Tower", "target": 500, "reward_type": "shards", "reward_amount": 40},
+		{"id": "architect", "name": "Architect", "desc": "Place 500 towers total", "category": "Tower", "target": 500, "reward_type": "pages", "reward_amount": 40},
 		{"id": "grand_architect", "name": "Grand Architect", "desc": "Place 1,000 towers total", "category": "Tower", "target": 1000, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
-		{"id": "max_power", "name": "Max Power", "desc": "Fully upgrade a tower (tier 4)", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 20},
+		{"id": "max_power", "name": "Max Power", "desc": "Fully upgrade a tower (tier 4)", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 20},
 		{"id": "full_roster", "name": "Full Roster", "desc": "Place all 6 tower types in one game", "category": "Tower", "target": 6, "reward_type": "quills", "reward_amount": 5},
 		{"id": "full_army", "name": "Full Army", "desc": "Place all 12 tower types in one game", "category": "Tower", "target": 12, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		# TOWER — Synergies (4)
-		{"id": "synergy_seeker", "name": "Synergy Seeker", "desc": "Activate 1 tower synergy", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "synergy_seeker", "name": "Synergy Seeker", "desc": "Activate 1 tower synergy", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "synergy_master", "name": "Synergy Master", "desc": "Activate all 6 synergies (across games)", "category": "Tower", "target": 6, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "synergy_chain", "name": "Synergy Chain", "desc": "Activate 3 synergies in a single game", "category": "Tower", "target": 3, "reward_type": "quills", "reward_amount": 12},
 		{"id": "synergy_overload", "name": "Synergy Overload", "desc": "Activate 5 synergies in a single game", "category": "Tower", "target": 5, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		# TOWER — Upgrades (6)
-		{"id": "first_upgrade", "name": "First Upgrade", "desc": "Upgrade any tower once", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 5},
-		{"id": "upgrade_addict", "name": "Upgrade Addict", "desc": "Perform 50 total upgrades", "category": "Tower", "target": 50, "reward_type": "shards", "reward_amount": 20},
+		{"id": "first_upgrade", "name": "First Upgrade", "desc": "Upgrade any tower once", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 5},
+		{"id": "upgrade_addict", "name": "Upgrade Addict", "desc": "Perform 50 total upgrades", "category": "Tower", "target": 50, "reward_type": "pages", "reward_amount": 20},
 		{"id": "upgrade_maniac", "name": "Upgrade Maniac", "desc": "Perform 200 total upgrades", "category": "Tower", "target": 200, "reward_type": "quills", "reward_amount": 12},
-		{"id": "ability_unlocked", "name": "Ability Unlocked", "desc": "Unlock a tower's special ability", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "ability_unlocked", "name": "Ability Unlocked", "desc": "Unlock a tower's special ability", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "ability_collector", "name": "Ability Collector", "desc": "Unlock 6 different tower abilities", "category": "Tower", "target": 6, "reward_type": "quills", "reward_amount": 10},
 		{"id": "ability_master", "name": "Ability Master", "desc": "Unlock all 12 tower abilities", "category": "Tower", "target": 12, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		# TOWER — Per-Character Mastery (12)
@@ -4251,101 +4251,101 @@ func _init_achievement_definitions() -> void:
 		{"id": "frank_max", "name": "Frankenstein Legend", "desc": "Get Frankenstein to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "shadow_max", "name": "Shadow Author Legend", "desc": "Get Shadow Author to level 20", "category": "Tower", "target": 20, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 20},
 		# TOWER — Selling & Strategy (4)
-		{"id": "first_sale", "name": "First Sale", "desc": "Sell a tower for the first time", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 5},
-		{"id": "tower_flipper", "name": "Tower Flipper", "desc": "Sell 25 towers total", "category": "Tower", "target": 25, "reward_type": "shards", "reward_amount": 15},
+		{"id": "first_sale", "name": "First Sale", "desc": "Sell a tower for the first time", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 5},
+		{"id": "tower_flipper", "name": "Tower Flipper", "desc": "Sell 25 towers total", "category": "Tower", "target": 25, "reward_type": "pages", "reward_amount": 15},
 		{"id": "real_estate_mogul", "name": "Real Estate Mogul", "desc": "Sell 100 towers total", "category": "Tower", "target": 100, "reward_type": "quills", "reward_amount": 10},
-		{"id": "tower_hoarder", "name": "Tower Hoarder", "desc": "Have 8+ towers on the field at once", "category": "Tower", "target": 8, "reward_type": "shards", "reward_amount": 15},
+		{"id": "tower_hoarder", "name": "Tower Hoarder", "desc": "Have 8+ towers on the field at once", "category": "Tower", "target": 8, "reward_type": "pages", "reward_amount": 15},
 		# TOWER — Per-Character Kill Counts (12)
-		{"id": "robin_1k", "name": "Robin's Tally", "desc": "Kill 1,000 enemies with Robin Hood", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "alice_1k", "name": "Alice's Madness", "desc": "Kill 1,000 enemies with Alice", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "witch_1k", "name": "Witch's Wrath", "desc": "Kill 1,000 enemies with Wicked Witch", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "peter_1k", "name": "Pan's Score", "desc": "Kill 1,000 enemies with Peter Pan", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "phantom_1k", "name": "Phantom's Requiem", "desc": "Kill 1,000 enemies with The Phantom", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "scrooge_1k", "name": "Scrooge's Ledger", "desc": "Kill 1,000 enemies with Scrooge", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "sherlock_1k", "name": "Sherlock's Cases", "desc": "Kill 1,000 enemies with Sherlock", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "tarzan_1k", "name": "Tarzan's Hunt", "desc": "Kill 1,000 enemies with Tarzan", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "dracula_1k", "name": "Dracula's Feast", "desc": "Kill 1,000 enemies with Dracula", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "merlin_1k", "name": "Merlin's Prophecy", "desc": "Kill 1,000 enemies with Merlin", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "frank_1k", "name": "Monster's Fury", "desc": "Kill 1,000 enemies with Frankenstein", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 20},
-		{"id": "shadow_1k", "name": "Author's Edits", "desc": "Kill 1,000 enemies with Shadow Author", "category": "Tower", "target": 1000, "reward_type": "shards", "reward_amount": 25},
+		{"id": "robin_1k", "name": "Robin's Tally", "desc": "Kill 1,000 enemies with Robin Hood", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "alice_1k", "name": "Alice's Madness", "desc": "Kill 1,000 enemies with Alice", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "witch_1k", "name": "Witch's Wrath", "desc": "Kill 1,000 enemies with Wicked Witch", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "peter_1k", "name": "Pan's Score", "desc": "Kill 1,000 enemies with Peter Pan", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "phantom_1k", "name": "Phantom's Requiem", "desc": "Kill 1,000 enemies with The Phantom", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "scrooge_1k", "name": "Scrooge's Ledger", "desc": "Kill 1,000 enemies with Scrooge", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "sherlock_1k", "name": "Sherlock's Cases", "desc": "Kill 1,000 enemies with Sherlock", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "tarzan_1k", "name": "Tarzan's Hunt", "desc": "Kill 1,000 enemies with Tarzan", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "dracula_1k", "name": "Dracula's Feast", "desc": "Kill 1,000 enemies with Dracula", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "merlin_1k", "name": "Merlin's Prophecy", "desc": "Kill 1,000 enemies with Merlin", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "frank_1k", "name": "Monster's Fury", "desc": "Kill 1,000 enemies with Frankenstein", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 20},
+		{"id": "shadow_1k", "name": "Author's Edits", "desc": "Kill 1,000 enemies with Shadow Author", "category": "Tower", "target": 1000, "reward_type": "pages", "reward_amount": 25},
 		# ============================================================
 		# ECONOMY — Gold (8)
 		# ============================================================
-		{"id": "penny_pincher", "name": "Penny Pincher", "desc": "Earn 500 gold total", "category": "Economy", "target": 500, "reward_type": "shards", "reward_amount": 10},
-		{"id": "gold_digger", "name": "Gold Digger", "desc": "Earn 5,000 gold total", "category": "Economy", "target": 5000, "reward_type": "shards", "reward_amount": 20},
+		{"id": "penny_pincher", "name": "Penny Pincher", "desc": "Earn 500 gold total", "category": "Economy", "target": 500, "reward_type": "pages", "reward_amount": 10},
+		{"id": "gold_digger", "name": "Gold Digger", "desc": "Earn 5,000 gold total", "category": "Economy", "target": 5000, "reward_type": "pages", "reward_amount": 20},
 		{"id": "treasure_hunter", "name": "Treasure Hunter", "desc": "Earn 25,000 gold total", "category": "Economy", "target": 25000, "reward_type": "quills", "reward_amount": 10},
 		{"id": "gold_baron", "name": "Gold Baron", "desc": "Earn 100,000 gold total", "category": "Economy", "target": 100000, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "big_spender", "name": "Big Spender", "desc": "Spend 2,000 gold total", "category": "Economy", "target": 2000, "reward_type": "quills", "reward_amount": 5},
 		{"id": "lavish_spender", "name": "Lavish Spender", "desc": "Spend 25,000 gold total", "category": "Economy", "target": 25000, "reward_type": "quills", "reward_amount": 12},
-		{"id": "gold_mountain", "name": "Gold Mountain", "desc": "Have 500+ gold at once", "category": "Economy", "target": 500, "reward_type": "shards", "reward_amount": 15},
+		{"id": "gold_mountain", "name": "Gold Mountain", "desc": "Have 500+ gold at once", "category": "Economy", "target": 500, "reward_type": "pages", "reward_amount": 15},
 		{"id": "scrooges_vault", "name": "Scrooge's Vault", "desc": "Have 1,000+ gold at once", "category": "Economy", "target": 1000, "reward_type": "quills", "reward_amount": 10},
 		# ECONOMY — Emporium & Chests (8)
-		{"id": "emporium_regular", "name": "Emporium Regular", "desc": "Make 10 Emporium purchases", "category": "Economy", "target": 10, "reward_type": "shards", "reward_amount": 20},
+		{"id": "emporium_regular", "name": "Emporium Regular", "desc": "Make 10 Emporium purchases", "category": "Economy", "target": 10, "reward_type": "pages", "reward_amount": 20},
 		{"id": "emporium_addict", "name": "Emporium Addict", "desc": "Make 50 Emporium purchases", "category": "Economy", "target": 50, "reward_type": "quills", "reward_amount": 15},
 		{"id": "emporium_whale", "name": "Emporium Whale", "desc": "Make 100 Emporium purchases", "category": "Economy", "target": 100, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		{"id": "chest_collector", "name": "Chest Collector", "desc": "Open 20 treasure chests", "category": "Economy", "target": 20, "reward_type": "quills", "reward_amount": 8},
 		{"id": "chest_hoarder", "name": "Chest Hoarder", "desc": "Open 100 treasure chests", "category": "Economy", "target": 100, "reward_type": "stars", "reward_amount": 3},
-		{"id": "lucky_spin", "name": "Lucky Spin", "desc": "Win from the Lucky Wheel 5 times", "category": "Economy", "target": 5, "reward_type": "shards", "reward_amount": 15},
+		{"id": "lucky_spin", "name": "Lucky Spin", "desc": "Win from the Lucky Wheel 5 times", "category": "Economy", "target": 5, "reward_type": "pages", "reward_amount": 15},
 		{"id": "wheel_addict", "name": "Wheel Addict", "desc": "Spin the Lucky Wheel 25 times", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 10},
-		{"id": "merchant_friend", "name": "Merchant's Friend", "desc": "Buy from the Wandering Merchant 10 times", "category": "Economy", "target": 10, "reward_type": "shards", "reward_amount": 20},
+		{"id": "merchant_friend", "name": "Merchant's Friend", "desc": "Buy from the Wandering Merchant 10 times", "category": "Economy", "target": 10, "reward_type": "pages", "reward_amount": 20},
 		# ECONOMY — Currencies (8)
-		{"id": "quill_collector", "name": "Quill Collector", "desc": "Earn 100 Enchanted Quills", "category": "Economy", "target": 100, "reward_type": "shards", "reward_amount": 20},
+		{"id": "quill_collector", "name": "Quill Collector", "desc": "Earn 100 Enchanted Quills", "category": "Economy", "target": 100, "reward_type": "pages", "reward_amount": 20},
 		{"id": "quill_hoarder", "name": "Quill Hoarder", "desc": "Earn 500 Enchanted Quills", "category": "Economy", "target": 500, "reward_type": "stars", "reward_amount": 3},
-		{"id": "shard_collector", "name": "Shard Collector", "desc": "Earn 500 Gear Shards", "category": "Economy", "target": 500, "reward_type": "quills", "reward_amount": 10},
-		{"id": "shard_hoarder", "name": "Shard Hoarder", "desc": "Earn 2,000 Gear Shards", "category": "Economy", "target": 2000, "reward_type": "stars", "reward_amount": 3},
-		{"id": "star_gazer", "name": "Star Gazer", "desc": "Earn 25 Storybook Stars", "category": "Economy", "target": 25, "reward_type": "shards", "reward_amount": 25},
+		{"id": "shard_collector", "name": "Shard Collector", "desc": "Earn 500 Pages", "category": "Economy", "target": 500, "reward_type": "quills", "reward_amount": 10},
+		{"id": "shard_hoarder", "name": "Shard Hoarder", "desc": "Earn 2,000 Pages", "category": "Economy", "target": 2000, "reward_type": "stars", "reward_amount": 3},
+		{"id": "star_gazer", "name": "Star Gazer", "desc": "Earn 25 Storybook Stars", "category": "Economy", "target": 25, "reward_type": "pages", "reward_amount": 25},
 		{"id": "star_collector", "name": "Star Collector", "desc": "Earn 100 Storybook Stars", "category": "Economy", "target": 100, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 10},
-		{"id": "trophy_winner", "name": "Trophy Winner", "desc": "Earn 50 Trophies", "category": "Economy", "target": 50, "reward_type": "shards", "reward_amount": 30},
+		{"id": "trophy_winner", "name": "Trophy Winner", "desc": "Earn 50 Trophies", "category": "Economy", "target": 50, "reward_type": "pages", "reward_amount": 30},
 		{"id": "trophy_champion", "name": "Trophy Champion", "desc": "Earn 200 Trophies", "category": "Economy", "target": 200, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		# ECONOMY — Gear & Salvage (8)
-		{"id": "first_gear", "name": "First Gear", "desc": "Equip your first gear item", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "first_gear", "name": "First Gear", "desc": "Equip your first gear item", "category": "Economy", "target": 1, "reward_type": "pages", "reward_amount": 10},
 		{"id": "gear_collector", "name": "Gear Collector", "desc": "Own 10 gear items", "category": "Economy", "target": 10, "reward_type": "quills", "reward_amount": 8},
-		{"id": "gear_hoarder", "name": "Gear Hoarder", "desc": "Own 25 gear items", "category": "Economy", "target": 25, "reward_type": "shards", "reward_amount": 30},
+		{"id": "gear_hoarder", "name": "Gear Hoarder", "desc": "Own 25 gear items", "category": "Economy", "target": 25, "reward_type": "pages", "reward_amount": 30},
 		{"id": "full_set", "name": "Full Set", "desc": "Equip a complete gear set on one hero", "category": "Economy", "target": 1, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
-		{"id": "salvage_beginner", "name": "Salvage Beginner", "desc": "Salvage 5 gear items", "category": "Economy", "target": 5, "reward_type": "shards", "reward_amount": 10},
+		{"id": "salvage_beginner", "name": "Salvage Beginner", "desc": "Salvage 5 gear items", "category": "Economy", "target": 5, "reward_type": "pages", "reward_amount": 10},
 		{"id": "salvage_expert", "name": "Salvage Expert", "desc": "Salvage 25 gear items", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 10},
-		{"id": "forge_apprentice", "name": "Forge Apprentice", "desc": "Craft 5 Golden Chests", "category": "Economy", "target": 5, "reward_type": "shards", "reward_amount": 20},
+		{"id": "forge_apprentice", "name": "Forge Apprentice", "desc": "Craft 5 Golden Chests", "category": "Economy", "target": 5, "reward_type": "pages", "reward_amount": 20},
 		{"id": "forge_master", "name": "Forge Master", "desc": "Craft 20 Golden Chests", "category": "Economy", "target": 20, "reward_type": "stars", "reward_amount": 3},
 		# ECONOMY — Knowledge & Instruments (4)
 		{"id": "knowledge_scholar", "name": "Knowledge Scholar", "desc": "Unlock 10 knowledge nodes", "category": "Economy", "target": 10, "reward_type": "stars", "reward_amount": 2},
 		{"id": "knowledge_sage", "name": "Knowledge Sage", "desc": "Unlock 25 knowledge nodes", "category": "Economy", "target": 25, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
-		{"id": "instrument_owner", "name": "Instrument Owner", "desc": "Buy your first instrument", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "instrument_owner", "name": "Instrument Owner", "desc": "Buy your first instrument", "category": "Economy", "target": 1, "reward_type": "pages", "reward_amount": 10},
 		{"id": "orchestra", "name": "Full Orchestra", "desc": "Own 5 instruments", "category": "Economy", "target": 5, "reward_type": "quills", "reward_amount": 12},
 		# ============================================================
 		# PROGRESSION — Campaign (10)
 		# ============================================================
-		{"id": "first_steps", "name": "First Steps", "desc": "Complete your first level", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 10},
-		{"id": "getting_started", "name": "Getting Started", "desc": "Complete 5 levels", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 15},
+		{"id": "first_steps", "name": "First Steps", "desc": "Complete your first level", "category": "Progression", "target": 1, "reward_type": "pages", "reward_amount": 10},
+		{"id": "getting_started", "name": "Getting Started", "desc": "Complete 5 levels", "category": "Progression", "target": 5, "reward_type": "pages", "reward_amount": 15},
 		{"id": "halfway_there", "name": "Halfway There", "desc": "Complete 18 levels", "category": "Progression", "target": 18, "reward_type": "quills", "reward_amount": 10},
 		{"id": "campaign_complete", "name": "Campaign Complete", "desc": "Complete all 37 levels", "category": "Progression", "target": 37, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 10},
-		{"id": "sherlock_arc", "name": "Baker Street", "desc": "Complete all Sherlock Holmes levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
-		{"id": "merlin_arc", "name": "Camelot's Champion", "desc": "Complete all Merlin levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
-		{"id": "tarzan_arc", "name": "King of the Jungle", "desc": "Complete all Tarzan levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
-		{"id": "dracula_arc", "name": "Vampire Hunter", "desc": "Complete all Dracula levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
-		{"id": "frank_arc", "name": "Lightning Tamer", "desc": "Complete all Frankenstein levels", "category": "Progression", "target": 3, "reward_type": "shards", "reward_amount": 20},
+		{"id": "sherlock_arc", "name": "Baker Street", "desc": "Complete all Sherlock Holmes levels", "category": "Progression", "target": 3, "reward_type": "pages", "reward_amount": 20},
+		{"id": "merlin_arc", "name": "Camelot's Champion", "desc": "Complete all Merlin levels", "category": "Progression", "target": 3, "reward_type": "pages", "reward_amount": 20},
+		{"id": "tarzan_arc", "name": "King of the Jungle", "desc": "Complete all Tarzan levels", "category": "Progression", "target": 3, "reward_type": "pages", "reward_amount": 20},
+		{"id": "dracula_arc", "name": "Vampire Hunter", "desc": "Complete all Dracula levels", "category": "Progression", "target": 3, "reward_type": "pages", "reward_amount": 20},
+		{"id": "frank_arc", "name": "Lightning Tamer", "desc": "Complete all Frankenstein levels", "category": "Progression", "target": 3, "reward_type": "pages", "reward_amount": 20},
 		{"id": "shadow_arc", "name": "Story's End", "desc": "Complete all Shadow Author levels", "category": "Progression", "target": 3, "reward_type": "stars", "reward_amount": 3, "trophy_bonus": 10},
 		# PROGRESSION — Character Levels (6)
-		{"id": "first_levelup", "name": "First Level Up", "desc": "Level up any character", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 5},
-		{"id": "veteran_survivor", "name": "Veteran Survivor", "desc": "Get any character to level 5", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 30},
+		{"id": "first_levelup", "name": "First Level Up", "desc": "Level up any character", "category": "Progression", "target": 1, "reward_type": "pages", "reward_amount": 5},
+		{"id": "veteran_survivor", "name": "Veteran Survivor", "desc": "Get any character to level 5", "category": "Progression", "target": 5, "reward_type": "pages", "reward_amount": 30},
 		{"id": "master_survivor", "name": "Master Survivor", "desc": "Get any character to level 10", "category": "Progression", "target": 10, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 5},
 		{"id": "legendary_survivor", "name": "Legendary Survivor", "desc": "Get any character to level 15", "category": "Progression", "target": 15, "reward_type": "stars", "reward_amount": 3},
 		{"id": "max_survivor", "name": "Max Survivor", "desc": "Get any character to level 20", "category": "Progression", "target": 20, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		{"id": "all_max", "name": "Ultimate Army", "desc": "Get all 12 characters to level 20", "category": "Progression", "target": 12, "reward_type": "stars", "reward_amount": 15, "trophy_bonus": 50},
 		# PROGRESSION — Stars (6)
-		{"id": "first_star", "name": "First Star", "desc": "Earn your first star", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 5},
-		{"id": "star_student", "name": "Star Student", "desc": "Earn 25 stars total", "category": "Progression", "target": 25, "reward_type": "shards", "reward_amount": 20},
+		{"id": "first_star", "name": "First Star", "desc": "Earn your first star", "category": "Progression", "target": 1, "reward_type": "pages", "reward_amount": 5},
+		{"id": "star_student", "name": "Star Student", "desc": "Earn 25 stars total", "category": "Progression", "target": 25, "reward_type": "pages", "reward_amount": 20},
 		{"id": "star_warrior", "name": "Star Warrior", "desc": "Earn 50 stars total", "category": "Progression", "target": 50, "reward_type": "quills", "reward_amount": 12},
 		{"id": "star_legend", "name": "Star Legend", "desc": "Earn 75 stars total", "category": "Progression", "target": 75, "reward_type": "quills", "reward_amount": 20},
 		{"id": "star_master", "name": "Star Master", "desc": "Earn 100 stars total", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		{"id": "constellation", "name": "Constellation", "desc": "Earn all 111 possible stars", "category": "Progression", "target": 111, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 50},
 		# PROGRESSION — Daily & Meta (8)
 		{"id": "daily_devotee", "name": "Daily Devotee", "desc": "Claim 7 daily rewards", "category": "Progression", "target": 7, "reward_type": "stars", "reward_amount": 2},
-		{"id": "daily_streak_7", "name": "Weekly Warrior", "desc": "Log in 7 days in a row", "category": "Progression", "target": 7, "reward_type": "shards", "reward_amount": 20},
+		{"id": "daily_streak_7", "name": "Weekly Warrior", "desc": "Log in 7 days in a row", "category": "Progression", "target": 7, "reward_type": "pages", "reward_amount": 20},
 		{"id": "daily_streak_30", "name": "Monthly Devotion", "desc": "Log in 30 days in a row", "category": "Progression", "target": 30, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
-		{"id": "quest_complete_5", "name": "Quest Starter", "desc": "Complete 5 daily quests", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 15},
+		{"id": "quest_complete_5", "name": "Quest Starter", "desc": "Complete 5 daily quests", "category": "Progression", "target": 5, "reward_type": "pages", "reward_amount": 15},
 		{"id": "quest_complete_25", "name": "Quest Hunter", "desc": "Complete 25 daily quests", "category": "Progression", "target": 25, "reward_type": "quills", "reward_amount": 12},
 		{"id": "quest_complete_100", "name": "Quest Legend", "desc": "Complete 100 daily quests", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
-		{"id": "odyssey_complete", "name": "Odyssey Complete", "desc": "Complete an Odyssey run", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 30},
+		{"id": "odyssey_complete", "name": "Odyssey Complete", "desc": "Complete an Odyssey run", "category": "Progression", "target": 1, "reward_type": "pages", "reward_amount": 30},
 		{"id": "odyssey_master", "name": "Odyssey Master", "desc": "Complete 10 Odyssey runs", "category": "Progression", "target": 10, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		# PROGRESSION — Achievements Meta (4)
 		{"id": "achievement_hunter", "name": "Achievement Hunter", "desc": "Unlock 25 achievements", "category": "Progression", "target": 25, "reward_type": "quills", "reward_amount": 10},
@@ -4353,40 +4353,40 @@ func _init_achievement_definitions() -> void:
 		{"id": "achievement_legend", "name": "Achievement Legend", "desc": "Unlock 100 achievements", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
 		{"id": "completionist", "name": "Completionist", "desc": "Unlock all achievements", "category": "Progression", "target": 225, "reward_type": "stars", "reward_amount": 25, "trophy_bonus": 100},
 		# PROGRESSION — Arena & Competitive (6)
-		{"id": "arena_first", "name": "Arena Debut", "desc": "Complete your first Arena battle", "category": "Progression", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "arena_first", "name": "Arena Debut", "desc": "Complete your first Arena battle", "category": "Progression", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "arena_veteran", "name": "Arena Veteran", "desc": "Complete 25 Arena battles", "category": "Progression", "target": 25, "reward_type": "quills", "reward_amount": 12},
 		{"id": "arena_champion", "name": "Arena Champion", "desc": "Complete 100 Arena battles", "category": "Progression", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
-		{"id": "commander_tier_5", "name": "Commander Tier 5", "desc": "Reach Commander's Pass tier 5", "category": "Progression", "target": 5, "reward_type": "shards", "reward_amount": 20},
+		{"id": "commander_tier_5", "name": "Commander Tier 5", "desc": "Reach Commander's Pass tier 5", "category": "Progression", "target": 5, "reward_type": "pages", "reward_amount": 20},
 		{"id": "commander_tier_10", "name": "Commander Tier 10", "desc": "Reach Commander's Pass tier 10", "category": "Progression", "target": 10, "reward_type": "quills", "reward_amount": 15},
 		{"id": "commander_max", "name": "Commander Max", "desc": "Max out the Commander's Pass", "category": "Progression", "target": 20, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 25},
 		# ============================================================
 		# BONUS — Character Bonds & Personality (12)
 		# ============================================================
-		{"id": "bond_robin_peter", "name": "Outlaws United", "desc": "Place Robin Hood and Peter Pan together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
-		{"id": "bond_alice_witch", "name": "Strange Bedfellows", "desc": "Place Alice and Wicked Witch together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
-		{"id": "bond_phantom_merlin", "name": "Magic and Music", "desc": "Place Phantom and Merlin together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
-		{"id": "bond_scrooge_frank", "name": "Unlikely Friends", "desc": "Place Scrooge and Frankenstein together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
-		{"id": "bond_sherlock_tarzan", "name": "Brains and Brawn", "desc": "Place Sherlock and Tarzan together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
-		{"id": "bond_dracula_merlin", "name": "Immortal Minds", "desc": "Place Dracula and Merlin together", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "bond_robin_peter", "name": "Outlaws United", "desc": "Place Robin Hood and Peter Pan together", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 10},
+		{"id": "bond_alice_witch", "name": "Strange Bedfellows", "desc": "Place Alice and Wicked Witch together", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 10},
+		{"id": "bond_phantom_merlin", "name": "Magic and Music", "desc": "Place Phantom and Merlin together", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 10},
+		{"id": "bond_scrooge_frank", "name": "Unlikely Friends", "desc": "Place Scrooge and Frankenstein together", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 10},
+		{"id": "bond_sherlock_tarzan", "name": "Brains and Brawn", "desc": "Place Sherlock and Tarzan together", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 10},
+		{"id": "bond_dracula_merlin", "name": "Immortal Minds", "desc": "Place Dracula and Merlin together", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 10},
 		{"id": "all_bonds", "name": "Bonded Army", "desc": "Trigger all 6 character bonds", "category": "Tower", "target": 6, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 15},
-		{"id": "taunt_10", "name": "Trash Talker", "desc": "Taunt enemies 10 times", "category": "Combat", "target": 10, "reward_type": "shards", "reward_amount": 10},
+		{"id": "taunt_10", "name": "Trash Talker", "desc": "Taunt enemies 10 times", "category": "Combat", "target": 10, "reward_type": "pages", "reward_amount": 10},
 		{"id": "taunt_50", "name": "War Cry", "desc": "Taunt enemies 50 times", "category": "Combat", "target": 50, "reward_type": "quills", "reward_amount": 8},
-		{"id": "panic_survive", "name": "Panic Survivor", "desc": "Win after a panic quote triggers", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
-		{"id": "idle_observer", "name": "Idle Observer", "desc": "Watch 20 idle quirk animations", "category": "Tower", "target": 20, "reward_type": "shards", "reward_amount": 10},
+		{"id": "panic_survive", "name": "Panic Survivor", "desc": "Win after a panic quote triggers", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
+		{"id": "idle_observer", "name": "Idle Observer", "desc": "Watch 20 idle quirk animations", "category": "Tower", "target": 20, "reward_type": "pages", "reward_amount": 10},
 		{"id": "banter_listener", "name": "Banter Listener", "desc": "Hear 10 bond banter conversations", "category": "Tower", "target": 10, "reward_type": "quills", "reward_amount": 8},
 		# ============================================================
 		# BONUS — Sidekicks & Special (12)
 		# ============================================================
-		{"id": "first_sidekick", "name": "First Companion", "desc": "Unlock your first sidekick", "category": "Tower", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "first_sidekick", "name": "First Companion", "desc": "Unlock your first sidekick", "category": "Tower", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "sidekick_collector", "name": "Companion Collector", "desc": "Unlock 6 sidekicks", "category": "Tower", "target": 6, "reward_type": "quills", "reward_amount": 10},
 		{"id": "sidekick_master", "name": "Companion Master", "desc": "Unlock 12 sidekicks", "category": "Tower", "target": 12, "reward_type": "stars", "reward_amount": 3},
 		{"id": "all_sidekicks", "name": "Full Entourage", "desc": "Unlock all 36 sidekicks", "category": "Tower", "target": 36, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 30},
-		{"id": "battle_power_first", "name": "Power User", "desc": "Use your first Battle Power", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "battle_power_first", "name": "Power User", "desc": "Use your first Battle Power", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 10},
 		{"id": "battle_power_10", "name": "Power Addict", "desc": "Use 10 Battle Powers", "category": "Combat", "target": 10, "reward_type": "quills", "reward_amount": 8},
 		{"id": "battle_power_50", "name": "Power Hungry", "desc": "Use 50 Battle Powers", "category": "Combat", "target": 50, "reward_type": "stars", "reward_amount": 3},
-		{"id": "loot_crate_first", "name": "Loot Drop", "desc": "Collect your first loot crate", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "loot_crate_first", "name": "Loot Drop", "desc": "Collect your first loot crate", "category": "Economy", "target": 1, "reward_type": "pages", "reward_amount": 10},
 		{"id": "loot_crate_25", "name": "Loot Goblin", "desc": "Collect 25 loot crates", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 10},
-		{"id": "collectible_first", "name": "Collector", "desc": "Find your first map collectible", "category": "Economy", "target": 1, "reward_type": "shards", "reward_amount": 10},
+		{"id": "collectible_first", "name": "Collector", "desc": "Find your first map collectible", "category": "Economy", "target": 1, "reward_type": "pages", "reward_amount": 10},
 		{"id": "collectible_25", "name": "Treasure Seeker", "desc": "Find 25 map collectibles", "category": "Economy", "target": 25, "reward_type": "quills", "reward_amount": 12},
 		{"id": "collectible_all", "name": "Museum Curator", "desc": "Find all map collectibles", "category": "Economy", "target": 100, "reward_type": "stars", "reward_amount": 5, "trophy_bonus": 20},
 		# ============================================================
@@ -4398,10 +4398,10 @@ func _init_achievement_definitions() -> void:
 		{"id": "peter_arc_full", "name": "Never Grow Up", "desc": "Complete all Peter Pan levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
 		{"id": "phantom_arc_full", "name": "Final Curtain", "desc": "Complete all Phantom levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
 		{"id": "scrooge_arc_full", "name": "Christmas Spirit", "desc": "Complete all Scrooge levels with 3 stars", "category": "Progression", "target": 9, "reward_type": "stars", "reward_amount": 3},
-		{"id": "speed_run", "name": "Speed Runner", "desc": "Complete any level in under 3 minutes", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 20},
-		{"id": "multi_kill_10", "name": "Multi Kill", "desc": "Kill 10 enemies within 2 seconds", "category": "Combat", "target": 1, "reward_type": "shards", "reward_amount": 15},
+		{"id": "speed_run", "name": "Speed Runner", "desc": "Complete any level in under 3 minutes", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 20},
+		{"id": "multi_kill_10", "name": "Multi Kill", "desc": "Kill 10 enemies within 2 seconds", "category": "Combat", "target": 1, "reward_type": "pages", "reward_amount": 15},
 		{"id": "multi_kill_25", "name": "Obliteration", "desc": "Kill 25 enemies within 3 seconds", "category": "Combat", "target": 1, "reward_type": "quills", "reward_amount": 10},
-		{"id": "all_easy", "name": "Easy Street", "desc": "Complete all levels on Easy", "category": "Progression", "target": 37, "reward_type": "shards", "reward_amount": 30},
+		{"id": "all_easy", "name": "Easy Street", "desc": "Complete all levels on Easy", "category": "Progression", "target": 37, "reward_type": "pages", "reward_amount": 30},
 		{"id": "all_medium", "name": "The Standard", "desc": "Complete all levels on Medium", "category": "Progression", "target": 37, "reward_type": "quills", "reward_amount": 20, "trophy_bonus": 10},
 		{"id": "all_hard", "name": "Shadow Champion", "desc": "Complete all levels on Hard", "category": "Progression", "target": 37, "reward_type": "stars", "reward_amount": 10, "trophy_bonus": 50},
 	]
@@ -4537,7 +4537,7 @@ func _check_achievement(id: String, value = 1) -> void:
 		_haptic(2)  # Strong haptic on achievement unlock
 		# Grant reward
 		match def_data["reward_type"]:
-			"shards": player_gear_shards += def_data["reward_amount"]
+			"pages": player_pages += def_data["reward_amount"]
 			"quills": player_quills += def_data["reward_amount"]
 			"stars": player_storybook_stars += def_data["reward_amount"]
 		var trophy_bonus = def_data.get("trophy_bonus", 0)
@@ -4736,7 +4736,7 @@ func _save_game() -> void:
 	var save_data: Dictionary = {}
 	# Currencies
 	save_data["player_quills"] = player_quills
-	save_data["player_gear_shards"] = player_gear_shards
+	save_data["player_pages"] = player_pages
 	save_data["player_storybook_stars"] = player_storybook_stars
 	save_data["player_gold"] = player_gold
 	save_data["gold"] = gold
@@ -5010,7 +5010,7 @@ func _load_game() -> void:
 		data["save_version"] = SAVE_VERSION
 	# Currencies
 	player_quills = int(data.get("player_quills", 0))
-	player_gear_shards = int(data.get("player_gear_shards", 0))
+	player_pages = int(data.get("player_pages", 0))
 	player_storybook_stars = int(data.get("player_storybook_stars", 0))
 	player_gold = int(data.get("player_gold", 0))
 	# Migrate old gold savings: if player_gold is 0 but old save had gold, transfer it
@@ -5991,14 +5991,14 @@ func _generate_destructibles(level_idx: int) -> void:
 			8:  # Merlin — stone pillars + crystal formations
 				obj_type = ["stone_pillar", "crystal"][rng.randi() % 2]
 				obj_hp = 200.0
-				if obj_type == "crystal": drop_type = "shards"; drop_amount = rng.randi_range(2, 5)
+				if obj_type == "crystal": drop_type = "pages"; drop_amount = rng.randi_range(2, 5)
 			9:  # Tarzan — trees + rocks
 				obj_type = ["tree", "rock"][rng.randi() % 2]
 				obj_hp = 120.0
 			10: # Dracula — coffins + tombstones
 				obj_type = ["coffin", "tombstone"][rng.randi() % 2]
 				obj_hp = 90.0
-				if obj_type == "coffin": drop_type = "shards"; drop_amount = rng.randi_range(1, 3)
+				if obj_type == "coffin": drop_type = "pages"; drop_amount = rng.randi_range(1, 3)
 			11: # Frankenstein — equipment + crates
 				obj_type = ["equipment", "crate"][rng.randi() % 2]
 				obj_hp = 80.0
@@ -6006,7 +6006,7 @@ func _generate_destructibles(level_idx: int) -> void:
 			12: # Shadow Author — ink wells + book piles
 				obj_type = ["inkwell", "book_pile"][rng.randi() % 2]
 				obj_hp = 100.0
-				if obj_type == "inkwell": drop_type = "shards"; drop_amount = rng.randi_range(2, 4)
+				if obj_type == "inkwell": drop_type = "pages"; drop_amount = rng.randi_range(2, 4)
 			_:  # Default — rocks + crates
 				obj_type = ["rock", "crate"][rng.randi() % 2]
 				obj_hp = 80.0
@@ -6041,7 +6041,7 @@ func _on_destructible_broken(d: Dictionary) -> void:
 	if d["drop_type"] != "" and d["drop_amount"] > 0:
 		match d["drop_type"]:
 			"gold": gold += d["drop_amount"]
-			"shards": player_gear_shards += d["drop_amount"]
+			"pages": player_pages += d["drop_amount"]
 		spawn_floating_text(pos, "+%d %s" % [d["drop_amount"], d["drop_type"].capitalize()], Color(1.0, 0.85, 0.2), 12.0, 1.5)
 
 func _update_destructibles(delta: float) -> void:
@@ -7030,21 +7030,21 @@ func _generate_secret_paths(level_idx: int) -> void:
 	_secret_paths.clear()
 	# Not every level has a secret — only specific ones
 	var secret_levels = {
-		3: {"x": 800, "y": 300, "hp": 200, "desc": "Moriarty's Hidden Cache", "reward": "shards", "amount": 25},
+		3: {"x": 800, "y": 300, "hp": 200, "desc": "Moriarty's Hidden Cache", "reward": "pages", "amount": 25},
 		6: {"x": 500, "y": 250, "hp": 250, "desc": "Merlin's Crystal Vault", "reward": "quills", "amount": 10},
 		9: {"x": 600, "y": 400, "hp": 180, "desc": "Clayton's Trophy Room", "reward": "gold", "amount": 100},
-		12: {"x": 700, "y": 350, "hp": 300, "desc": "Dracula's Blood Cellar", "reward": "shards", "amount": 30},
+		12: {"x": 700, "y": 350, "hp": 300, "desc": "Dracula's Blood Cellar", "reward": "pages", "amount": 30},
 		15: {"x": 400, "y": 450, "hp": 220, "desc": "Igor's Secret Lab", "reward": "quills", "amount": 12},
 		18: {"x": 900, "y": 300, "hp": 200, "desc": "Sheriff's Gold Vault", "reward": "gold", "amount": 150},
-		21: {"x": 350, "y": 200, "hp": 180, "desc": "Cheshire Cat's Stash", "reward": "shards", "amount": 20},
+		21: {"x": 350, "y": 200, "hp": 180, "desc": "Cheshire Cat's Stash", "reward": "pages", "amount": 20},
 		27: {"x": 650, "y": 450, "hp": 250, "desc": "Hook's Treasure Chest", "reward": "gold", "amount": 120},
 		33: {"x": 500, "y": 350, "hp": 200, "desc": "Marley's Ghost Hoard", "reward": "stars", "amount": 3},
 		36: {"x": 640, "y": 300, "hp": 400, "desc": "The Author's Journal", "reward": "ink", "amount": 5},
 		# ACT 4 secrets
-		39: {"x": 700, "y": 350, "hp": 300, "desc": "Vorpal Blade Fragment", "reward": "shards", "amount": 40},
-		42: {"x": 500, "y": 250, "hp": 300, "desc": "Robin's Lost Arrow", "reward": "shards", "amount": 40},
+		39: {"x": 700, "y": 350, "hp": 300, "desc": "Vorpal Blade Fragment", "reward": "pages", "amount": 40},
+		42: {"x": 500, "y": 250, "hp": 300, "desc": "Robin's Lost Arrow", "reward": "pages", "amount": 40},
 		45: {"x": 800, "y": 400, "hp": 300, "desc": "Scrooge's Hidden Ledger", "reward": "gold", "amount": 200},
-		48: {"x": 600, "y": 300, "hp": 350, "desc": "Horseman's Head", "reward": "shards", "amount": 50},
+		48: {"x": 600, "y": 300, "hp": 350, "desc": "Horseman's Head", "reward": "pages", "amount": 50},
 		54: {"x": 500, "y": 400, "hp": 350, "desc": "Ragnarok Shard", "reward": "ink", "amount": 5},
 		57: {"x": 640, "y": 250, "hp": 350, "desc": "Feather of Truth", "reward": "stars", "amount": 5},
 		63: {"x": 640, "y": 350, "hp": 500, "desc": "The Narrator's Secret", "reward": "ink", "amount": 10},
@@ -7080,7 +7080,7 @@ func _on_secret_path_opened(sp: Dictionary) -> void:
 	# Award bonus loot
 	match sp["reward_type"]:
 		"gold": gold += sp["reward_amount"]
-		"shards": player_gear_shards += sp["reward_amount"]
+		"pages": player_pages += sp["reward_amount"]
 		"quills": player_quills += sp["reward_amount"]
 		"stars": player_storybook_stars += sp["reward_amount"]
 		"ink": knowledge_ink += sp["reward_amount"]
@@ -9244,9 +9244,9 @@ func _claim_daily_reward() -> void:
 	var reward = daily_rewards_schedule[day_index]
 	var reward_text = ""
 	match reward["type"]:
-		"shards":
-			player_gear_shards += reward["amount"]
-			reward_text = "+%d Gear Shards" % reward["amount"]
+		"pages":
+			player_pages += reward["amount"]
+			reward_text = "+%d Pages" % reward["amount"]
 		"quills":
 			player_quills += reward["amount"]
 			reward_text = "+%d Quills" % reward["amount"]
@@ -9802,8 +9802,8 @@ func _on_emporium_sub_clicked(item_index: int) -> void:
 	match currency:
 		"quills":
 			can_afford = player_quills >= cost
-		"shards":
-			can_afford = player_gear_shards >= cost
+		"pages":
+			can_afford = player_pages >= cost
 		"stars":
 			can_afford = player_storybook_stars >= cost
 		"gold":
@@ -9818,8 +9818,8 @@ func _on_emporium_sub_clicked(item_index: int) -> void:
 	match currency:
 		"quills":
 			player_quills -= cost
-		"shards":
-			player_gear_shards -= cost
+		"pages":
+			player_pages -= cost
 		"stars":
 			player_storybook_stars -= cost
 		"gold":
@@ -9832,8 +9832,8 @@ func _on_emporium_sub_clicked(item_index: int) -> void:
 			player_gold += amount
 		"quills":
 			player_quills += amount
-		"shards":
-			player_gear_shards += amount
+		"pages":
+			player_pages += amount
 		"stars":
 			player_storybook_stars += amount
 		"chest_bronze":
@@ -14051,9 +14051,9 @@ func _roll_loot_crate() -> void:
 	var quality_names = ["Common", "Rare", "Epic", "Legendary"]
 	var rewards_by_quality = [
 		{"gold": 50 + randi() % 50, "quills": 2},
-		{"gold": 100 + randi() % 100, "quills": 5, "shards": 3},
-		{"gold": 200 + randi() % 150, "quills": 10, "shards": 8, "crystals": 5},
-		{"gold": 500 + randi() % 300, "quills": 25, "shards": 15, "crystals": 20},
+		{"gold": 100 + randi() % 100, "quills": 5, "pages": 3},
+		{"gold": 200 + randi() % 150, "quills": 10, "pages": 8, "crystals": 5},
+		{"gold": 500 + randi() % 300, "quills": 25, "pages": 15, "crystals": 20},
 	]
 	_loot_crate_reward = rewards_by_quality[_loot_crate_quality]
 	_loot_crate_reward["quality_name"] = quality_names[_loot_crate_quality]
@@ -14075,8 +14075,8 @@ func _collect_loot_crate() -> void:
 		gold += _loot_crate_reward["gold"]
 	if _loot_crate_reward.has("quills"):
 		player_quills += _loot_crate_reward["quills"]
-	if _loot_crate_reward.has("shards"):
-		player_gear_shards += _loot_crate_reward["shards"]
+	if _loot_crate_reward.has("pages"):
+		player_pages += _loot_crate_reward["pages"]
 	if _loot_crate_reward.has("crystals"):
 		player_crystals += _loot_crate_reward["crystals"]
 	# Constellation: Epic/Legendary crates grant a constellation star to random placed tower
@@ -14130,8 +14130,8 @@ func _draw_loot_crate_popup() -> void:
 		if _loot_crate_reward.has("quills"):
 			_ds_outlined_text(Vector2(cx, ry), "+%d Quills" % _loot_crate_reward["quills"], 18, Color(0.7, 0.35, 0.9), 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
 			ry += 24.0
-		if _loot_crate_reward.has("shards"):
-			_ds_outlined_text(Vector2(cx, ry), "+%d Shards" % _loot_crate_reward["shards"], 18, c_cyan, 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
+		if _loot_crate_reward.has("pages"):
+			_ds_outlined_text(Vector2(cx, ry), "+%d Shards" % _loot_crate_reward["pages"], 18, c_cyan, 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
 			ry += 24.0
 		if _loot_crate_reward.has("crystals"):
 			_ds_outlined_text(Vector2(cx, ry), "+%d Crystals" % _loot_crate_reward["crystals"], 18, Color(0.4, 0.9, 0.6), 300, HORIZONTAL_ALIGNMENT_CENTER, 2)
@@ -14176,7 +14176,7 @@ func _update_weekly_quest(stat_key: String, amount: int) -> void:
 				match q["reward_type"]:
 					"crystals": player_crystals += q["reward_amt"]
 					"quills": player_quills += q["reward_amt"]
-					"gear_shards": player_gear_shards += q["reward_amt"]
+					"gear_shards": player_pages += q["reward_amt"]
 				spawn_floating_text(Vector2(640, 200), "WEEKLY QUEST DONE! +%d %s" % [q["reward_amt"], q["reward_type"]], Color(0.4, 0.9, 0.6), 16.0, 2.5)
 				_haptic(1)
 
@@ -14185,13 +14185,13 @@ func _refresh_merchant() -> void:
 	merchant_inventory.clear()
 	var possible_items = [
 		{"name": "Quill Bundle", "desc": "+15 Quills", "cost_type": "gold", "cost": 200, "item_type": "quills", "value": 15},
-		{"name": "Shard Pack", "desc": "+10 Shards", "cost_type": "gold", "cost": 300, "item_type": "shards", "value": 10},
+		{"name": "Shard Pack", "desc": "+10 Shards", "cost_type": "gold", "cost": 300, "item_type": "pages", "value": 10},
 		{"name": "Crystal Pouch", "desc": "+8 Crystals", "cost_type": "gold", "cost": 500, "item_type": "crystals", "value": 8},
 		{"name": "Streak Shield", "desc": "Protect your streak", "cost_type": "crystals", "cost": 30, "item_type": "shields", "value": 1},
 		{"name": "XP Tome", "desc": "+200 XP to chosen hero", "cost_type": "crystals", "cost": 20, "item_type": "xp", "value": 200},
 		{"name": "Ink Vial", "desc": "+1 Knowledge Ink", "cost_type": "crystals", "cost": 50, "item_type": "ink", "value": 1},
 		{"name": "Gold Chest", "desc": "+500 Gold", "cost_type": "crystals", "cost": 15, "item_type": "gold", "value": 500},
-		{"name": "Mega Shard", "desc": "+25 Shards", "cost_type": "crystals", "cost": 40, "item_type": "shards", "value": 25},
+		{"name": "Mega Shard", "desc": "+25 Shards", "cost_type": "crystals", "cost": 40, "item_type": "pages", "value": 25},
 		{"name": "Rare Gear Crate", "desc": "Random rare gear", "cost_type": "crystals", "cost": 60, "item_type": "rare_gear", "value": 1},
 		{"name": "Combo Elixir", "desc": "+3s combo timer next game", "cost_type": "gold", "cost": 350, "item_type": "combo_boost", "value": 3},
 	]
@@ -14216,7 +14216,7 @@ func _buy_merchant_item(index: int) -> bool:
 	# Give reward
 	match item["item_type"]:
 		"quills": player_quills += item["value"]
-		"shards": player_gear_shards += item["value"]
+		"pages": player_pages += item["value"]
 		"crystals": player_crystals += item["value"]
 		"shields": streak_shields += item["value"]
 		"ink": knowledge_ink += item["value"]
@@ -14249,7 +14249,7 @@ func _process_spin_wheel(delta: float) -> void:
 		match prize["type"]:
 			"gold": gold += prize["amount"]
 			"quills": player_quills += prize["amount"]
-			"shards": player_gear_shards += prize["amount"]
+			"pages": player_pages += prize["amount"]
 			"crystals": player_crystals += prize["amount"]
 			"shield": streak_shields += prize["amount"]
 		spawn_floating_text(Vector2(640, 300), prize["name"] + "!", prize["col"], 20.0, 3.0)
@@ -14336,7 +14336,7 @@ func _generate_pass_rewards() -> void:
 		premium_reward["quills"] = 5 + ti / 3
 		premium_reward["crystals"] = 3 + ti / 5
 		if ti % 10 == 9:
-			premium_reward["shards"] = 15
+			premium_reward["pages"] = 15
 		if ti == 24:
 			premium_reward["title"] = "Season Commander"
 		if ti == 49:
@@ -14763,7 +14763,7 @@ func _draw_currency_bar() -> void:
 	var currencies = [
 		{"icon": "emp_gold", "color": Color(0.9, 0.8, 0.2), "value": player_gold, "name": "Gold"},
 		{"icon": "emp_quills", "color": Color(0.4, 0.7, 0.9), "value": player_quills, "name": "Quills"},
-		{"icon": "emp_shards", "color": Color(0.7, 0.4, 0.8), "value": player_gear_shards, "name": "Shards"},
+		{"icon": "emp_shards", "color": Color(0.7, 0.4, 0.8), "value": player_pages, "name": "Shards"},
 		{"icon": "emp_stars", "color": Color(1.0, 0.9, 0.3), "value": player_storybook_stars, "name": "Stars"},
 		{"icon": "emp_quills", "color": Color(0.3, 0.6, 0.4), "value": knowledge_ink, "name": "Ink"},
 		{"icon": "emp_trophy", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
@@ -15198,7 +15198,7 @@ func _draw_gear_tab() -> void:
 		if owned_gear[key] > 0:
 			unique_owned += 1
 	_ds_outlined_text(Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
-	_ds_outlined_text(Vector2(grid_left + 300, footer_y), "Shards: %d" % player_gear_shards, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	_ds_outlined_text(Vector2(grid_left + 300, footer_y), "Shards: %d" % player_pages, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
 	_ds_outlined_text(Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
 
 func _draw_emporium() -> void:
@@ -15699,7 +15699,7 @@ func _draw_emporium_sub_panel() -> void:
 
 	# Currency bar
 	var bar_y = panel_y + 60.0
-	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_gear_shards, player_storybook_stars, player_gold]
+	var currencies_text = "Quills: %d    |    Shards: %d    |    Stars: %d    |    Gold: %d" % [player_quills, player_pages, player_storybook_stars, player_gold]
 	var cw = font.get_string_size(currencies_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
 	_udraw(font, Vector2(panel_x + (panel_w - cw) * 0.5, bar_y + 14), currencies_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, _ca(menu_gold_light, 0.7))
 
@@ -15778,7 +15778,7 @@ func _draw_emporium_sub_panel() -> void:
 			var can_afford = false
 			match item["currency"]:
 				"quills": can_afford = player_quills >= item["cost"]
-				"shards": can_afford = player_gear_shards >= item["cost"]
+				"pages": can_afford = player_pages >= item["cost"]
 				"stars": can_afford = player_storybook_stars >= item["cost"]
 				"gold": can_afford = player_gold >= item["cost"]
 			var cost_col = Color(0.9, 0.8, 0.5, 0.8) if can_afford else Color(0.8, 0.3, 0.2, 0.8)
@@ -15897,9 +15897,9 @@ func _generate_victory_cards(difficulty: int, stars: int) -> void:
 	var highest_lv = _get_highest_completed_level()
 	# Currency pools by difficulty (harmonized with chest loot values)
 	var currency_pools = [
-		[{"type": "shards", "min": 2, "max": 8}, {"type": "quills", "min": 1, "max": 2}, {"type": "gold", "min": 8, "max": 25}],
-		[{"type": "shards", "min": 5, "max": 15}, {"type": "quills", "min": 2, "max": 4}, {"type": "gold", "min": 18, "max": 50}, {"type": "stars", "min": 1, "max": 2}],
-		[{"type": "shards", "min": 10, "max": 30}, {"type": "quills", "min": 4, "max": 8}, {"type": "gold", "min": 30, "max": 90}, {"type": "stars", "min": 1, "max": 3}],
+		[{"type": "pages", "min": 2, "max": 8}, {"type": "quills", "min": 1, "max": 2}, {"type": "gold", "min": 8, "max": 25}],
+		[{"type": "pages", "min": 5, "max": 15}, {"type": "quills", "min": 2, "max": 4}, {"type": "gold", "min": 18, "max": 50}, {"type": "stars", "min": 1, "max": 2}],
+		[{"type": "pages", "min": 10, "max": 30}, {"type": "quills", "min": 4, "max": 8}, {"type": "gold", "min": 30, "max": 90}, {"type": "stars", "min": 1, "max": 3}],
 	]
 	var pool = currency_pools[mini(difficulty, 2)]
 	# Difficulty-exclusive gear tier + act gating + epic/legendary chances
@@ -15955,7 +15955,7 @@ func _generate_victory_cards(difficulty: int, stars: int) -> void:
 			amount = int(float(amount) * 1.3)
 		var card_name = ""
 		match entry["type"]:
-			"shards": card_name = "Gear Shards"
+			"pages": card_name = "Pages"
 			"quills": card_name = "Enchanted Quills"
 			"gold": card_name = "Gold Sovereigns"
 			"stars": card_name = "Storybook Stars"
@@ -15971,9 +15971,9 @@ func _generate_chest_cards(tier: int) -> void:
 	chest_opening_cards.clear()
 	# Loot pools by tier: Bronze, Silver, Gold
 	var currency_ranges = [
-		[{"type": "shards", "min": 5, "max": 15}, {"type": "quills", "min": 1, "max": 3}, {"type": "gold", "min": 20, "max": 60}],
-		[{"type": "shards", "min": 15, "max": 40}, {"type": "quills", "min": 3, "max": 8}, {"type": "gold", "min": 50, "max": 150}, {"type": "stars", "min": 1, "max": 1}],
-		[{"type": "shards", "min": 30, "max": 80}, {"type": "quills", "min": 8, "max": 20}, {"type": "gold", "min": 100, "max": 300}, {"type": "stars", "min": 1, "max": 3}],
+		[{"type": "pages", "min": 5, "max": 15}, {"type": "quills", "min": 1, "max": 3}, {"type": "gold", "min": 20, "max": 60}],
+		[{"type": "pages", "min": 15, "max": 40}, {"type": "quills", "min": 3, "max": 8}, {"type": "gold", "min": 50, "max": 150}, {"type": "stars", "min": 1, "max": 1}],
+		[{"type": "pages", "min": 30, "max": 80}, {"type": "quills", "min": 8, "max": 20}, {"type": "gold", "min": 100, "max": 300}, {"type": "stars", "min": 1, "max": 3}],
 	]
 	var pool = currency_ranges[mini(tier, 2)]
 	var loot_bonus = 1.0 + _get_knowledge_bonus("chest_loot")
@@ -15984,7 +15984,7 @@ func _generate_chest_cards(tier: int) -> void:
 		amount = maxi(amount, 1)
 		var card_name = ""
 		match entry["type"]:
-			"shards": card_name = "Gear Shards"
+			"pages": card_name = "Pages"
 			"quills": card_name = "Enchanted Quills"
 			"gold": card_name = "Gold Sovereigns"
 			"stars": card_name = "Storybook Stars"
@@ -16049,7 +16049,7 @@ func _on_chest_overlay_clicked(mouse_pos: Vector2) -> void:
 				return
 			# Grant currency/power reward immediately
 			match card["type"]:
-				"shards": player_gear_shards += card["amount"]
+				"pages": player_pages += card["amount"]
 				"quills": player_quills += card["amount"]
 				"gold": player_gold += card["amount"]
 				"stars": player_storybook_stars += card["amount"]
@@ -16385,7 +16385,7 @@ func _draw_chest_opening() -> void:
 						var rarity = card.get("trinket_rarity", "common")
 						card_col = TIER_COLORS.get(rarity, Color(0.6, 0.6, 0.65))
 					else:
-						var icon_cols = {"shards": Color(0.7, 0.35, 0.85), "quills": Color(0.35, 0.7, 1.0), "gold": Color(1.0, 0.8, 0.15), "stars": Color(1.0, 0.9, 0.25), "power": Color(1.0, 0.4, 0.25)}
+						var icon_cols = {"pages": Color(0.7, 0.35, 0.85), "quills": Color(0.35, 0.7, 1.0), "gold": Color(1.0, 0.8, 0.15), "stars": Color(1.0, 0.9, 0.25), "power": Color(1.0, 0.4, 0.25)}
 						card_col = icon_cols.get(card.get("type", "gold"), Color(1.0, 0.8, 0.15))
 
 				# Bright outer glow (multiple layers, very visible)
@@ -16445,7 +16445,7 @@ func _draw_chest_opening() -> void:
 						_udraw(font, Vector2(card_x + card_w * 0.5, actual_y + card_h * 0.78), card.get("desc", ""), HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 12), 14, Color(0.85, 0.8, 0.65, alpha * 0.9))
 					else:
 						# === Currency/power card (BRIGHT) ===
-						var icon_cols = {"shards": Color(0.7, 0.35, 0.85), "quills": Color(0.35, 0.7, 1.0), "gold": Color(1.0, 0.8, 0.15), "stars": Color(1.0, 0.9, 0.25), "power": Color(1.0, 0.4, 0.25)}
+						var icon_cols = {"pages": Color(0.7, 0.35, 0.85), "quills": Color(0.35, 0.7, 1.0), "gold": Color(1.0, 0.8, 0.15), "stars": Color(1.0, 0.9, 0.25), "power": Color(1.0, 0.4, 0.25)}
 						var icon_col = icon_cols.get(card.get("type", "gold"), Color(1.0, 0.8, 0.15))
 						# Center glow
 						draw_circle(card_center, 60, Color(icon_col.r, icon_col.g, icon_col.b, alpha * 0.15))
@@ -16856,7 +16856,7 @@ func _draw_daily_reward() -> void:
 	var cx = 640.0
 
 	var _reward_icon_map = {
-		"gold": "emp_gold", "quills": "emp_quills", "shards": "emp_shards",
+		"gold": "emp_gold", "quills": "emp_quills", "pages": "emp_shards",
 		"gold_chest": "emp_chests", "stars": "emp_stars", "storybook_star": "emp_stars", "ink": "emp_quills",
 	}
 
@@ -18465,7 +18465,7 @@ func _draw_detail_info_overlay(panel_x: float, panel_y: float, panel_w: float, p
 	_udraw(font, Vector2(left_cx + 26, stat_left_y + 11), "Golden Shields: %d / %d" % [gs_level, MAX_GOLDEN_SHIELD], HORIZONTAL_ALIGNMENT_LEFT, int(col_w - 26), 14, c_gold_warm)
 	if gs_level < MAX_GOLDEN_SHIELD:
 		var gs_cost = GOLDEN_SHIELD_COSTS[gs_level]
-		var can_upgrade_gs = player_gear_shards >= gs_cost
+		var can_upgrade_gs = player_pages >= gs_cost
 		var gs_btn_x = left_cx + col_w - 90.0
 		var gs_btn_y = stat_left_y - 2.0
 		var gs_btn_w = 100.0 if _is_mobile else 86.0
@@ -19413,7 +19413,7 @@ func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 			card_y_calc += (72.0 if is_featured else 56.0) + 6.0
 		var bonus_y = card_y_calc + 4.0
 		if Rect2(px + 10, bonus_y, pw - 20, 32).has_point(mouse_pos):
-			player_gear_shards += 15
+			player_pages += 15
 			daily_deals_all_bonus_claimed = true
 			_save_game()
 			queue_redraw()
@@ -19443,14 +19443,14 @@ func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 			var can_afford = false
 			match cost_type:
 				"quills": can_afford = player_quills >= cost
-				"shards": can_afford = player_gear_shards >= cost
+				"pages": can_afford = player_pages >= cost
 				"stars": can_afford = player_storybook_stars >= cost
 				"gold": can_afford = player_gold >= cost
 			if not can_afford:
 				return
 			match cost_type:
 				"quills": player_quills -= cost
-				"shards": player_gear_shards -= cost
+				"pages": player_pages -= cost
 				"stars": player_storybook_stars -= cost
 				"gold": player_gold -= cost
 			match deal.get("type", ""):
@@ -19470,7 +19470,7 @@ func _on_overlay_deals_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 					var camt = deal.get("amount", 0)
 					match curr:
 						"quills": player_quills += camt
-						"shards": player_gear_shards += camt
+						"pages": player_pages += camt
 						"stars": player_storybook_stars += camt
 						"gold": player_gold += camt
 						"ink": knowledge_ink += camt
@@ -19513,8 +19513,8 @@ func _on_overlay_quests_clicked(mouse_pos: Vector2, px: float, py: float, pw: fl
 			var rr_y = iy + ih - 18.0
 			var rr_click_sz = 44.0 if _is_mobile else 16.0
 			if Rect2(rr_x - rr_click_sz * 0.5, rr_y - rr_click_sz * 0.5, rr_click_sz, rr_click_sz).has_point(mouse_pos):
-				if player_gear_shards >= QUEST_REROLL_COST:
-					player_gear_shards -= QUEST_REROLL_COST
+				if player_pages >= QUEST_REROLL_COST:
+					player_pages -= QUEST_REROLL_COST
 					_quest_reroll_count += 1
 					_reroll_quest(i)
 					_save_game()
@@ -19562,7 +19562,7 @@ func _on_overlay_arena_clicked(mouse_pos: Vector2, px: float, py: float, pw: flo
 			if arena_crystals >= item["cost"]:
 				arena_crystals -= item["cost"]
 				match item["type"]:
-					"shards": player_gear_shards += item["amount"]
+					"pages": player_pages += item["amount"]
 					"quills": player_quills += item["amount"]
 					"stars": player_storybook_stars += item["amount"]
 					"gold": player_gold += item["amount"]
@@ -25603,7 +25603,7 @@ func _generate_map_collectibles() -> void:
 		if too_close:
 			cx = rng.randf_range(80.0, 1200.0)
 			cy = rng.randf_range(100.0, 600.0)
-		var reward_type = ["gold", "shards", "quills"][i % 3]
+		var reward_type = ["gold", "pages", "quills"][i % 3]
 		var reward_amount = [15, 3, 2][i % 3]
 		_map_collectibles.append({
 			"pos": Vector2(cx, cy),
@@ -25626,7 +25626,7 @@ func _draw_map_collectibles() -> void:
 		var _coll_key = ""
 		match mc.get("reward_type", "gold"):
 			"gold": _coll_key = "gold_coin"
-			"shards": _coll_key = "crystal_shard"
+			"pages": _coll_key = "crystal_shard"
 			"quills": _coll_key = "quill"
 		if _collectible_textures.has(_coll_key):
 			var csz = r * 2.5
@@ -25653,8 +25653,8 @@ func _check_collectible_click(mouse_pos: Vector2) -> bool:
 			if mc["reward_type"] == "gold":
 				add_gold(mc["reward_amount"])
 				spawn_floating_text(mc["pos"], "+%dG" % mc["reward_amount"], c_gold_bright, 16.0, 1.2)
-			elif mc["reward_type"] == "shards":
-				player_gear_shards += mc["reward_amount"]
+			elif mc["reward_type"] == "pages":
+				player_pages += mc["reward_amount"]
 				spawn_floating_text(mc["pos"], "+%d Shards" % mc["reward_amount"], Color(0.6, 0.4, 1.0), 16.0, 1.2)
 			elif mc["reward_type"] == "quills":
 				player_quills += mc["reward_amount"]
@@ -25669,9 +25669,9 @@ func _generate_bounties() -> void:
 	rng.seed = int(_time * 1000) + current_level
 	var bounty_pool = [
 		{"desc": "Defeat %d enemies", "kill_type": "any", "target_range": [10, 30], "reward_type": "gold", "reward_range": [20, 50]},
-		{"desc": "Defeat %d elite enemies", "kill_type": "tier2", "target_range": [3, 8], "reward_type": "shards", "reward_range": [3, 8]},
+		{"desc": "Defeat %d elite enemies", "kill_type": "tier2", "target_range": [3, 8], "reward_type": "pages", "reward_range": [3, 8]},
 		{"desc": "Defeat %d champion enemies", "kill_type": "tier3", "target_range": [2, 5], "reward_type": "quills", "reward_range": [2, 5]},
-		{"desc": "Defeat a boss", "kill_type": "boss", "target_range": [1, 1], "reward_type": "shards", "reward_range": [5, 12]},
+		{"desc": "Defeat a boss", "kill_type": "boss", "target_range": [1, 1], "reward_type": "pages", "reward_range": [5, 12]},
 	]
 	# Pick 2 random bounties
 	bounty_pool.shuffle()
@@ -26218,13 +26218,13 @@ func _draw_path_events() -> void:
 
 # === BATTD2: GEAR REROLL ===
 func _reroll_gear(gear_id: String) -> Dictionary:
-	if player_gear_shards < REROLL_SHARD_COST:
+	if player_pages < REROLL_SHARD_COST:
 		return {}
 	var bdata = _find_gear(gear_id)
 	if bdata.is_empty():
 		return {}
 	var current_rarity = bdata.get("tier", "common")
-	player_gear_shards -= REROLL_SHARD_COST
+	player_pages -= REROLL_SHARD_COST
 	# Remove old gear item
 	owned_gear.erase(gear_id)
 	# Unequip if equipped
@@ -26268,7 +26268,7 @@ func _check_page_click(mouse_pos: Vector2) -> bool:
 	if mouse_pos.distance_to(_level_page_pos) < 25.0:
 		_level_page_collected = true
 		storybook_pages_found[str(current_level)] = true
-		player_gear_shards += PAGE_SHARD_REWARD
+		player_pages += PAGE_SHARD_REWARD
 		spawn_floating_text(_level_page_pos, "PAGE FOUND! +%d Shards" % PAGE_SHARD_REWARD, Color(0.95, 0.85, 0.4), 16.0, 1.5)
 		_save_game()
 		return true
@@ -32086,7 +32086,7 @@ func enemy_died(enemy_node = null) -> void:
 	if randf() < LUCKY_DROP_CHANCE:
 		var lucky_amount = randi_range(1, 3)
 		if randf() < 0.5:
-			player_gear_shards += lucky_amount
+			player_pages += lucky_amount
 			if enemy_node and is_instance_valid(enemy_node):
 				spawn_floating_text(enemy_node.global_position + Vector2(0, -20), "+%d Shards!" % lucky_amount, Color(0.6, 0.4, 1.0), 14.0, 1.0)
 		else:
@@ -32144,8 +32144,8 @@ func enemy_died(enemy_node = null) -> void:
 					_bounties_completed_total += 1
 					if bounty["reward_type"] == "gold":
 						add_gold(bounty["reward_amount"])
-					elif bounty["reward_type"] == "shards":
-						player_gear_shards += bounty["reward_amount"]
+					elif bounty["reward_type"] == "pages":
+						player_pages += bounty["reward_amount"]
 					elif bounty["reward_type"] == "quills":
 						player_quills += bounty["reward_amount"]
 					spawn_floating_text(Vector2(640, 280), "BOUNTY COMPLETE! +%d %s" % [bounty["reward_amount"], bounty["reward_type"].capitalize()], Color(1.0, 0.7, 0.1), 18.0, 2.0)
@@ -33116,7 +33116,7 @@ func _victory() -> void:
 				daily_challenge_streak = 1
 		# Reward: storybook stars + shards
 		player_storybook_stars += 1
-		player_gear_shards += 15
+		player_pages += 15
 		spawn_floating_text(Vector2(640, 250), "DAILY COMPLETE! +1 Star +15 Shards", Color(0.4, 1.0, 0.5), 18.0, 2.5)
 	# Track total damage for milestones
 	for tower in get_tree().get_nodes_in_group("towers"):
@@ -33269,7 +33269,7 @@ func _generate_chest_loot(stars: int) -> void:
 	# === GEAR SHARDS (always drop, more on higher tiers) ===
 	var shard_base = [2, 5, 10][loot_diff]
 	var shard_amount = int(float(shard_base) * chapter_mult * star_mult * currency_mult)
-	chest_loot.append({"type": "shards", "amount": shard_amount, "name": "Gear Shards"})
+	chest_loot.append({"type": "pages", "amount": shard_amount, "name": "Pages"})
 
 	# === QUILLS (chance increases with tier) ===
 	var quill_chance = [0.3, 0.6, 0.9][loot_diff]
@@ -33324,7 +33324,7 @@ func _award_chest_loot() -> void:
 	for item in chest_loot:
 		match item["type"]:
 			"gold": player_gold += item["amount"]
-			"shards": player_gear_shards += item["amount"]
+			"pages": player_pages += item["amount"]
 			"quills": player_quills += item["amount"]
 			"stars": player_storybook_stars += item["amount"]
 			# Gear already awarded directly in _generate_chest_loot
@@ -33418,8 +33418,8 @@ func _check_kill_milestones(tower_type) -> void:
 			claimed.append(kill_threshold)
 			# Award the milestone reward
 			match milestone["reward_type"]:
-				"shards":
-					player_gear_shards += milestone["reward_amount"]
+				"pages":
+					player_pages += milestone["reward_amount"]
 				"quills":
 					player_quills += milestone["reward_amount"]
 				"stars":
@@ -34124,9 +34124,9 @@ const PVP_ARENA_MAPS: Array = [
 var star_rewards_claimed: Dictionary = {}  # "level_idx_stars" -> true
 
 const STAR_REWARD_TABLE: Dictionary = {
-	1: {"shards": 5, "gold": 20, "desc": "Completed — basic rewards"},
-	2: {"shards": 15, "gold": 40, "frame": "silver", "desc": "Silver frame unlocked"},
-	3: {"shards": 30, "gold": 60, "ink": 1, "frame": "gold", "desc": "Golden frame + 1 Ink!"},
+	1: {"pages": 5, "gold": 20, "desc": "Completed — basic rewards"},
+	2: {"pages": 15, "gold": 40, "frame": "silver", "desc": "Silver frame unlocked"},
+	3: {"pages": 30, "gold": 60, "ink": 1, "frame": "gold", "desc": "Golden frame + 1 Ink!"},
 }
 
 func _claim_star_rewards(level_idx: int, stars: int) -> void:
@@ -34135,7 +34135,7 @@ func _claim_star_rewards(level_idx: int, stars: int) -> void:
 		if star_rewards_claimed.has(key): continue
 		star_rewards_claimed[key] = true
 		var rewards = STAR_REWARD_TABLE.get(s, {})
-		if rewards.has("shards"): player_gear_shards += rewards["shards"]
+		if rewards.has("pages"): player_pages += rewards["pages"]
 		if rewards.has("gold"): gold += rewards["gold"]
 		if rewards.has("ink"): knowledge_ink += rewards["ink"]
 	# Announce 3-star first-time achievement
@@ -34153,6 +34153,58 @@ func _get_level_frame(level_idx: int) -> String:
 	if best_stars >= 3: return "gold"
 	if best_stars >= 2: return "silver"
 	return ""
+
+# === THE MASTER MAP — mega-level combining all realms ===
+# Unlocks after 3-starring every realm. 50 waves. All terrain types.
+# All realm mechanics rotate. All atmosphere types cycle.
+# The ultimate test of everything the player has learned.
+const MASTER_MAP_LEVEL_IDX: int = 90  # Special index beyond normal levels
+var master_map_unlocked: bool = false
+
+func _check_master_map_unlock() -> void:
+	# Requires all 90 regular levels completed
+	if completed_levels.size() >= 90:
+		master_map_unlocked = true
+
+func _get_master_map_data() -> Dictionary:
+	return {
+		"name": "The Tome Rewritten",
+		"subtitle": "MASTER MAP — All Realms United",
+		"description": "Every realm. Every enemy. Every mechanic. Every atmosphere. 50 waves of pure chaos. The Tome of Shadows throws everything it has at you — every story, every villain, every nightmare. This is the FINAL test.",
+		"waves": 50,
+		"gold": 200,
+		"lives": 15,
+		"difficulty": 2.5,
+		"reward_ink": 25,
+		"reward_title": "Master of the Tome",
+	}
+
+func _setup_master_map() -> void:
+	# Generate a mega-path that's extremely complex
+	_generate_endless_path(777777)
+	# ALL terrain types active
+	_terrain_zones.clear()
+	_terrain_zones.append({"type": "water", "x": 200, "y": 450, "radius": 80})
+	_terrain_zones.append({"type": "elevated", "x": 900, "y": 200, "radius": 70})
+	_terrain_zones.append({"type": "hazard", "x": 500, "y": 350, "radius": 60})
+	_terrain_zones.append({"type": "fog", "x": 300, "y": 250, "radius": 90})
+	_terrain_zones.append({"type": "sacred", "x": 800, "y": 450, "radius": 60})
+	_terrain_zones.append({"type": "ink_pool", "x": 640, "y": 300, "radius": 70})
+	# Rotating atmosphere — changes every 10 waves
+	_atmosphere_type = "embers"
+	_atmosphere_color = Color(0.9, 0.5, 0.15)
+	# All interactables
+	_map_interactables.clear()
+	_map_interactables.append({"type": "barrel", "x": 300, "y": 300, "active": true, "cooldown": 10.0, "cooldown_timer": 0.0, "uses_left": 5})
+	_map_interactables.append({"type": "bell", "x": 640, "y": 150, "active": true, "cooldown": 15.0, "cooldown_timer": 0.0, "uses_left": 3})
+	_map_interactables.append({"type": "lever", "x": 900, "y": 350, "active": true, "cooldown": 18.0, "cooldown_timer": 0.0, "uses_left": 3})
+	_map_interactables.append({"type": "torch", "x": 400, "y": 500, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
+	_map_interactables.append({"type": "gate", "x": 700, "y": 450, "active": true, "cooldown": 15.0, "cooldown_timer": 0.0, "uses_left": 3})
+	# Eternal dark time
+	_time_of_day = "eternal_dark"
+	var tod = TIME_OF_DAY_DATA.get(_time_of_day, TIME_OF_DAY_DATA["day"])
+	_day_night_color = tod["overlay"]
+	_day_night_overlay_alpha = tod["overlay"].a
 
 func _get_total_three_star_count() -> int:
 	var count = 0
@@ -34183,13 +34235,13 @@ func _create_pvp_challenge(level_idx: int, tower_data: Array, wave_count: int) -
 	return challenge
 
 func _get_pvp_arena_reward(challenge: Dictionary, won: bool) -> Dictionary:
-	var reward = {"ink": 0, "shards": 0, "gold": 0}
+	var reward = {"ink": 0, "pages": 0, "gold": 0}
 	if won:
 		reward["ink"] = 2
-		reward["shards"] = 15
+		reward["pages"] = 15
 		reward["gold"] = 50
 	else:
-		reward["shards"] = 5  # Consolation prize for attempting
+		reward["pages"] = 5  # Consolation prize for attempting
 	return reward
 
 func _generate_endless_path(seed_val: int) -> void:
@@ -34489,16 +34541,16 @@ func _can_prestige() -> bool:
 # === MILESTONE REWARDS ===
 const MILESTONE_DEFS: Array = [
 	{"id": "kills_100", "stat": "kills", "target": 100, "reward_type": "gold", "reward_amount": 50, "name": "100 Kills"},
-	{"id": "kills_1k", "stat": "kills", "target": 1000, "reward_type": "shards", "reward_amount": 20, "name": "1,000 Kills"},
+	{"id": "kills_1k", "stat": "kills", "target": 1000, "reward_type": "pages", "reward_amount": 20, "name": "1,000 Kills"},
 	{"id": "kills_5k", "stat": "kills", "target": 5000, "reward_type": "quills", "reward_amount": 15, "name": "5,000 Kills"},
 	{"id": "kills_10k", "stat": "kills", "target": 10000, "reward_type": "gold", "reward_amount": 200, "name": "10,000 Kills"},
-	{"id": "damage_50k", "stat": "damage", "target": 50000, "reward_type": "shards", "reward_amount": 15, "name": "50k Damage"},
+	{"id": "damage_50k", "stat": "damage", "target": 50000, "reward_type": "pages", "reward_amount": 15, "name": "50k Damage"},
 	{"id": "damage_500k", "stat": "damage", "target": 500000, "reward_type": "quills", "reward_amount": 20, "name": "500k Damage"},
-	{"id": "gold_1k", "stat": "gold_earned", "target": 1000, "reward_type": "shards", "reward_amount": 10, "name": "1k Gold Earned"},
+	{"id": "gold_1k", "stat": "gold_earned", "target": 1000, "reward_type": "pages", "reward_amount": 10, "name": "1k Gold Earned"},
 	{"id": "gold_10k", "stat": "gold_earned", "target": 10000, "reward_type": "gold", "reward_amount": 100, "name": "10k Gold Earned"},
 	{"id": "levels_10", "stat": "levels", "target": 10, "reward_type": "quills", "reward_amount": 10, "name": "10 Levels"},
 	{"id": "levels_all", "stat": "levels", "target": 37, "reward_type": "gold_chest", "reward_amount": 1, "name": "All Levels"},
-	{"id": "stars_30", "stat": "stars", "target": 30, "reward_type": "shards", "reward_amount": 25, "name": "30 Stars"},
+	{"id": "stars_30", "stat": "stars", "target": 30, "reward_type": "pages", "reward_amount": 25, "name": "30 Stars"},
 	{"id": "stars_111", "stat": "stars", "target": 111, "reward_type": "gold_chest", "reward_amount": 1, "name": "111 Stars"},
 	{"id": "combo_10", "stat": "combo", "target": 10, "reward_type": "quills", "reward_amount": 10, "name": "10x Combo"},
 ]
@@ -34524,7 +34576,7 @@ func _check_milestones() -> void:
 			# Grant reward
 			match m["reward_type"]:
 				"gold": player_gold += m["reward_amount"]
-				"shards": player_gear_shards += m["reward_amount"]
+				"pages": player_pages += m["reward_amount"]
 				"quills": player_quills += m["reward_amount"]
 				"gold_chest": treasure_chests_owned["gold"] += m["reward_amount"]
 			spawn_floating_text(Vector2(640, 280), "MILESTONE: %s!" % m["name"], c_gold_bright, 20.0, 2.5)
@@ -34689,7 +34741,7 @@ func _draw_gear_shop() -> void:
 	# Rounded panel background
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "GEAR SHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	var card_w = 260.0
 	var card_h = 48.0
 	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
@@ -34782,8 +34834,8 @@ func _on_gear_shop_clicked(mouse_pos: Vector2) -> void:
 				continue
 			if mouse_pos.x >= ix and mouse_pos.x <= ix + card_w and mouse_pos.y >= iy and mouse_pos.y <= iy + card_h:
 				var cost = rarity_costs[rarity]
-				if player_gear_shards >= cost:
-					player_gear_shards -= cost
+				if player_pages >= cost:
+					player_pages -= cost
 					owned_gear[b["id"]] = owned_gear.get(b["id"], 0) + 1
 					_mark_gear_discovered(b["id"])
 					_add_recent_item(b["name"], b.get("tier", "common"))
@@ -34791,7 +34843,7 @@ func _on_gear_shop_clicked(mouse_pos: Vector2) -> void:
 					emporium_sub_message_timer = 2.0
 					_save_game()
 				else:
-					emporium_sub_message = "Not enough Gear Shards!"
+					emporium_sub_message = "Not enough Pages!"
 					emporium_sub_message_timer = 2.0
 				queue_redraw()
 				return
@@ -34855,7 +34907,7 @@ func _salvage_gear(gear_id: String) -> void:
 		if gear_id in equipped_gear[t]:
 			equipped_gear[t].erase(gear_id)
 			was_equipped = true
-	player_gear_shards += shards_gained
+	player_pages += shards_gained
 	var msg = "+%d Shards" % shards_gained
 	if was_equipped:
 		msg += " (unequipped)"
@@ -34872,8 +34924,8 @@ func _draw_salvage_panel() -> void:
 	# Rounded panel background
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "SALVAGE WORKSHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Pages", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var card_w = 260.0
 	var card_h = 52.0
 	var col_count = 4
@@ -34949,8 +35001,8 @@ func _draw_chest_crafting() -> void:
 	# Rounded panel background
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "CHEST FORGE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_gear_shards, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
-	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Gear Shards", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
+	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Pages", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var tier_names = ["Bronze", "Silver", "Golden"]
 	var chest_keys = ["bronze", "silver", "gold"]
 	var chest_colors = [Color(0.72, 0.50, 0.25), Color(0.75, 0.75, 0.80), c_gold]
@@ -34970,7 +35022,7 @@ func _draw_chest_crafting() -> void:
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 92), "Owned: %d" % treasure_chests_owned.get(chest_keys[i], 0), HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text)
 		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["shard_cost"], 16, menu_gold, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		# Craft button — Bloons style
-		var can_afford = player_gear_shards >= craft["shard_cost"]
+		var can_afford = player_pages >= craft["shard_cost"]
 		if can_afford:
 			_ds_button(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), "FORGE", Color(0.15, 0.45, 0.15), false, 15)
 		else:
@@ -34997,8 +35049,8 @@ func _on_chest_crafting_clicked(mouse_pos: Vector2) -> void:
 		var btn_x = cx + 160.0 - 55
 		var btn_y = icon_y + 140
 		if mouse_pos.x >= btn_x and mouse_pos.x <= btn_x + 110 and mouse_pos.y >= btn_y and mouse_pos.y <= btn_y + 40:
-			if player_gear_shards >= craft["shard_cost"]:
-				player_gear_shards -= craft["shard_cost"]
+			if player_pages >= craft["shard_cost"]:
+				player_pages -= craft["shard_cost"]
 				treasure_chests_owned[chest_keys[i]] = treasure_chests_owned.get(chest_keys[i], 0) + 1
 				_save_game()
 			queue_redraw()
@@ -35054,25 +35106,25 @@ func _generate_daily_deals(force_refresh: bool = false) -> void:
 			deal_pool_common.append(d)
 	# Battle power deals
 	for bp in battle_power_definitions:
-		var d = {"type": "power", "power_id": bp["id"], "cost_type": "shards", "cost": rng.randi_range(8, 15), "original_cost": rng.randi_range(18, 28), "name": bp["name"] + " x2", "desc": bp["desc"], "amount": 2, "tier": "common"}
+		var d = {"type": "power", "power_id": bp["id"], "cost_type": "pages", "cost": rng.randi_range(8, 15), "original_cost": rng.randi_range(18, 28), "name": bp["name"] + " x2", "desc": bp["desc"], "amount": 2, "tier": "common"}
 		deal_pool_common.append(d)
 	# Currency deals
-	deal_pool_common.append({"type": "currency", "currency": "shards", "amount": rng.randi_range(20, 50), "cost_type": "quills", "cost": rng.randi_range(5, 10), "original_cost": rng.randi_range(12, 18), "name": "Shard Pouch", "desc": "A pouch of Gear Shards", "tier": "common"})
-	deal_pool_common.append({"type": "currency", "currency": "quills", "amount": rng.randi_range(5, 15), "cost_type": "shards", "cost": rng.randi_range(12, 25), "original_cost": rng.randi_range(28, 40), "name": "Quill Bundle", "desc": "A bundle of Enchanted Quills", "tier": "common"})
+	deal_pool_common.append({"type": "currency", "currency": "pages", "amount": rng.randi_range(20, 50), "cost_type": "quills", "cost": rng.randi_range(5, 10), "original_cost": rng.randi_range(12, 18), "name": "Shard Pouch", "desc": "A pouch of Pages", "tier": "common"})
+	deal_pool_common.append({"type": "currency", "currency": "quills", "amount": rng.randi_range(5, 15), "cost_type": "pages", "cost": rng.randi_range(12, 25), "original_cost": rng.randi_range(28, 40), "name": "Quill Bundle", "desc": "A bundle of Enchanted Quills", "tier": "common"})
 	# Improvement 6: Expanded deal pool
 	deal_pool_rare.append({"type": "currency", "currency": "ink", "amount": rng.randi_range(3, 8), "cost_type": "quills", "cost": rng.randi_range(8, 15), "original_cost": rng.randi_range(18, 25), "name": "Ink Vial", "desc": "Knowledge Ink for the Tree", "tier": "rare"})
 	deal_pool_rare.append({"type": "chest", "chest_tier": "silver", "cost_type": "quills", "cost": rng.randi_range(12, 20), "original_cost": rng.randi_range(22, 35), "name": "Silver Chest", "desc": "Uncommon treasures await", "tier": "rare"})
 	# Instrument deals
 	for inst in literary_instruments:
-		deal_pool_rare.append({"type": "instrument", "instrument_id": inst["id"], "cost_type": "shards", "cost": rng.randi_range(20, 35), "original_cost": rng.randi_range(40, 55), "name": inst["name"], "desc": inst["desc"], "tier": "rare"})
+		deal_pool_rare.append({"type": "instrument", "instrument_id": inst["id"], "cost_type": "pages", "cost": rng.randi_range(20, 35), "original_cost": rng.randi_range(40, 55), "name": inst["name"], "desc": inst["desc"], "tier": "rare"})
 	# Epic deals
 	deal_pool_epic.append({"type": "chest", "chest_tier": "gold", "cost_type": "quills", "cost": rng.randi_range(25, 40), "original_cost": rng.randi_range(45, 65), "name": "Golden Chest", "desc": "Rare treasures guaranteed!", "tier": "epic"})
-	deal_pool_epic.append({"type": "currency", "currency": "stars", "amount": rng.randi_range(2, 5), "cost_type": "shards", "cost": rng.randi_range(30, 50), "original_cost": rng.randi_range(55, 75), "name": "Star Bundle", "desc": "Storybook Stars for leveling", "tier": "epic"})
-	deal_pool_epic.append({"type": "power", "power_id": "enchanted_towers", "cost_type": "shards", "cost": rng.randi_range(15, 25), "original_cost": rng.randi_range(30, 45), "name": "Enchanted Towers x3", "desc": "+50% tower damage for 15s", "amount": 3, "tier": "epic"})
+	deal_pool_epic.append({"type": "currency", "currency": "stars", "amount": rng.randi_range(2, 5), "cost_type": "pages", "cost": rng.randi_range(30, 50), "original_cost": rng.randi_range(55, 75), "name": "Star Bundle", "desc": "Storybook Stars for leveling", "tier": "epic"})
+	deal_pool_epic.append({"type": "power", "power_id": "enchanted_towers", "cost_type": "pages", "cost": rng.randi_range(15, 25), "original_cost": rng.randi_range(30, 45), "name": "Enchanted Towers x3", "desc": "+50% tower damage for 15s", "amount": 3, "tier": "epic"})
 	# Legendary deals
-	deal_pool_legendary.append({"type": "currency", "currency": "shards", "amount": rng.randi_range(80, 150), "cost_type": "quills", "cost": rng.randi_range(25, 40), "original_cost": rng.randi_range(50, 70), "name": "Shard Hoard", "desc": "A massive pile of Gear Shards!", "tier": "legendary"})
+	deal_pool_legendary.append({"type": "currency", "currency": "pages", "amount": rng.randi_range(80, 150), "cost_type": "quills", "cost": rng.randi_range(25, 40), "original_cost": rng.randi_range(50, 70), "name": "Shard Hoard", "desc": "A massive pile of Pages!", "tier": "legendary"})
 	deal_pool_legendary.append({"type": "chest", "chest_tier": "gold", "cost_type": "quills", "cost": rng.randi_range(18, 30), "original_cost": rng.randi_range(40, 60), "name": "Gilded Chest", "desc": "Epic+ rarity guaranteed!", "tier": "legendary"})
-	deal_pool_legendary.append({"type": "currency", "currency": "ink", "amount": rng.randi_range(10, 20), "cost_type": "shards", "cost": rng.randi_range(25, 45), "original_cost": rng.randi_range(50, 70), "name": "Inkwell of Ages", "desc": "A deep well of Knowledge Ink", "tier": "legendary"})
+	deal_pool_legendary.append({"type": "currency", "currency": "ink", "amount": rng.randi_range(10, 20), "cost_type": "pages", "cost": rng.randi_range(25, 45), "original_cost": rng.randi_range(50, 70), "name": "Inkwell of Ages", "desc": "A deep well of Knowledge Ink", "tier": "legendary"})
 	# Shuffle each pool
 	deal_pool_common.shuffle()
 	deal_pool_rare.shuffle()
@@ -35161,7 +35213,7 @@ func _end_shadow_arena() -> void:
 
 func _get_arena_shop_items() -> Array:
 	return [
-		{"name": "50 Gear Shards", "cost": 5, "type": "shards", "amount": 50},
+		{"name": "50 Pages", "cost": 5, "type": "pages", "amount": 50},
 		{"name": "10 Quills", "cost": 8, "type": "quills", "amount": 10},
 		{"name": "5 Storybook Stars", "cost": 12, "type": "stars", "amount": 5},
 		{"name": "200 Gold", "cost": 10, "type": "gold", "amount": 200},
@@ -35714,9 +35766,9 @@ func _upgrade_golden_shield(tower_type) -> bool:
 	if current_shields >= MAX_GOLDEN_SHIELD:
 		return false
 	var cost = GOLDEN_SHIELD_COSTS[current_shields]
-	if player_gear_shards < cost:
+	if player_pages < cost:
 		return false
-	player_gear_shards -= cost
+	player_pages -= cost
 	survivor_progress[tower_type]["golden_shields"] = current_shields + 1
 	_save_game()
 	return true
@@ -35764,7 +35816,7 @@ func _refresh_quests_if_needed() -> void:
 				quest_streak_best = quest_streak
 			# Improvement 13: Award streak rewards
 			if QUEST_STREAK_REWARDS.has(quest_streak):
-				player_gear_shards += QUEST_STREAK_REWARDS[quest_streak]
+				player_pages += QUEST_STREAK_REWARDS[quest_streak]
 		else:
 			quest_streak = 0
 		quest_streak_last_date = today
@@ -35872,7 +35924,7 @@ func _claim_quest(quest: Dictionary, index: int, is_weekly: bool) -> void:
 	total_quests_completed += 1
 	# Grant reward
 	match quest["reward_type"]:
-		"shards": player_gear_shards += quest["reward_amount"]
+		"pages": player_pages += quest["reward_amount"]
 		"quills": player_quills += quest["reward_amount"]
 		"stars": player_storybook_stars += quest["reward_amount"]
 		"gold": player_gold += quest["reward_amount"]
@@ -35895,7 +35947,7 @@ func _claim_quest(quest: Dictionary, index: int, is_weekly: bool) -> void:
 		if total_quests_completed >= threshold and not quest_milestone_claimed.get(key, false):
 			quest_milestone_claimed[key] = true
 			# Milestone reward: scaling shards
-			player_gear_shards += threshold
+			player_pages += threshold
 	# Claim animation
 	if not is_weekly:
 		_quest_claim_flash.append({"index": index, "timer": 1.0})
@@ -36387,7 +36439,7 @@ func _can_awaken(tower_type) -> bool:
 		return false
 	if awakened_characters.get(tower_type, false):
 		return false
-	if player_gear_shards < AWAKENING_SHARD_COST:
+	if player_pages < AWAKENING_SHARD_COST:
 		return false
 	if player_quills < AWAKENING_QUILL_COST:
 		return false
@@ -36396,7 +36448,7 @@ func _can_awaken(tower_type) -> bool:
 func _awaken_character(tower_type) -> bool:
 	if not _can_awaken(tower_type):
 		return false
-	player_gear_shards -= AWAKENING_SHARD_COST
+	player_pages -= AWAKENING_SHARD_COST
 	player_quills -= AWAKENING_QUILL_COST
 	awakened_characters[tower_type] = true
 	# Trigger fanfare
@@ -36454,7 +36506,7 @@ func _get_respec_cost() -> int:
 
 func _respec_knowledge_tree() -> bool:
 	var cost = _get_respec_cost()
-	if player_gear_shards < cost:
+	if player_pages < cost:
 		return false
 	# Count total ink invested
 	var ink_refund = 0
@@ -36469,7 +36521,7 @@ func _respec_knowledge_tree() -> bool:
 					var branch = knowledge_branches[bi]
 					if ni < branch["nodes"].size():
 						ink_refund += branch["nodes"][ni].get("cost", 1)
-	player_gear_shards -= cost
+	player_pages -= cost
 	knowledge_ink += ink_refund
 	knowledge_tree.clear()
 	respec_count += 1
@@ -37987,7 +38039,7 @@ func _draw_hero_rarity_border(rx: float, ry: float, rw: float, rh: float, tier: 
 var _currency_display: Dictionary = {}  # name -> {displayed, target, velocity}
 
 func _update_currency_displays(delta: float) -> void:
-	var currencies_map = {"Gold": player_gold, "Quills": player_quills, "Shards": player_gear_shards, "Stars": player_storybook_stars, "Ink": knowledge_ink, "Trophies": trophy_currency}
+	var currencies_map = {"Gold": player_gold, "Quills": player_quills, "Shards": player_pages, "Stars": player_storybook_stars, "Ink": knowledge_ink, "Trophies": trophy_currency}
 	for key in currencies_map:
 		if not _currency_display.has(key):
 			_currency_display[key] = {"displayed": float(currencies_map[key]), "target": currencies_map[key]}

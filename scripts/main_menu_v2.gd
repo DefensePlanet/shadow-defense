@@ -164,7 +164,7 @@ func _process(delta: float) -> void:
 			var changed = false
 			if _main.gold != _last_gold: changed = true; _last_gold = _main.gold
 			if _main.player_quills != _last_quills: changed = true; _last_quills = _main.player_quills
-			if _main.player_gear_shards != _last_shards: changed = true; _last_shards = _main.player_gear_shards
+			if _main.player_pages != _last_shards: changed = true; _last_shards = _main.player_pages
 			if _main.player_storybook_stars != _last_stars_currency: changed = true; _last_stars_currency = _main.player_storybook_stars
 			if changed:
 				# Rebuild currency bar
@@ -331,7 +331,7 @@ func _build_currency_bar() -> void:
 	var lvl_panel = _currency_chip("Lv.%d" % acct_lvl, Color(0.85, 0.75, 0.55))
 	h.add_child(lvl_panel)
 	# Each currency in its own styled chip
-	for c in [["🪙", _main.gold, Color(1,0.85,0.2)], ["🪶", _main.player_quills, Color(0.7,0.5,0.9)], ["💎", _main.player_gear_shards, Color(0.3,0.75,0.9)], ["⭐", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
+	for c in [["🪙", _main.gold, Color(1,0.85,0.2)], ["🪶", _main.player_quills, Color(0.7,0.5,0.9)], ["📄", _main.player_pages, Color(0.3,0.75,0.9)], ["⭐", _main.player_storybook_stars, Color(1,0.9,0.3)]]:
 		h.add_child(_currency_chip("%s %d" % [c[0], c[1]], c[2]))
 
 func _currency_chip(text: String, color: Color) -> PanelContainer:
@@ -2493,7 +2493,7 @@ func _build_emporium() -> void:
 	timer_panel.add_theme_stylebox_override("panel", tps)
 	timer_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	timer_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var timer_lbl = _lbl("🕐 Shop refreshes in %dh  •  🪙 %d Gold  •  🪶 %d Quills  •  💎 %d Shards" % [hours_left, _main.gold, _main.player_quills, _main.player_gear_shards], 11, Color(0.65, 0.58, 0.50))
+	var timer_lbl = _lbl("🕐 Shop refreshes in %dh  •  🪙 %d Gold  •  🪶 %d Quills  •  📄 %d Pages" % [hours_left, _main.gold, _main.player_quills, _main.player_pages], 11, Color(0.65, 0.58, 0.50))
 	timer_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	timer_panel.add_child(timer_lbl)
 	vb.add_child(timer_panel)
@@ -2515,7 +2515,7 @@ func _build_emporium() -> void:
 	lto_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lto_panel.add_child(lto_row)
 	lto_row.add_child(_lbl("🔥 LIMITED OFFER", 13, Color(1.0, 0.4, 0.2)))
-	var offers = ["Starter Pack: 500 Gold + 50 Shards", "Hero Bundle: 3 Gear Chests + XP Boost", "Shadow Bundle: 1000 Gold + 100 Quills"]
+	var offers = ["Starter Pack: 500 Gold + 50 Pages", "Hero Bundle: 3 Gear Chests + XP Boost", "Shadow Bundle: 1000 Gold + 100 Quills"]
 	var lto_desc = _lbl(offers[randi() % offers.size()], 11, Color(0.85, 0.78, 0.65))
 	lto_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lto_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2715,7 +2715,7 @@ func _open_emporium_category(cat_idx: int) -> void:
 	cur_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cur_row.add_child(_currency_chip("🪙 %d" % _main.gold, Color(1, 0.85, 0.2)))
 	cur_row.add_child(_currency_chip("🪶 %d" % _main.player_quills, Color(0.7, 0.5, 0.9)))
-	cur_row.add_child(_currency_chip("💎 %d" % _main.player_gear_shards, Color(0.3, 0.75, 0.9)))
+	cur_row.add_child(_currency_chip("📄 %d" % _main.player_pages, Color(0.3, 0.75, 0.9)))
 	vb.add_child(cur_row)
 	# Show items based on category
 	match cat_idx:
@@ -2745,7 +2745,7 @@ func _build_gold_exchange(parent: VBoxContainer) -> void:
 		parent.add_child(ex_art)
 	var exchange_data = [
 		["100 Gold", "5 Quills", 100, "quills", 5, Color(1,0.85,0.2), Color(0.7,0.5,0.9)],
-		["250 Gold", "15 Shards", 250, "shards", 15, Color(1,0.85,0.2), Color(0.3,0.75,0.9)],
+		["250 Gold", "15 Pages", 250, "pages", 15, Color(1,0.85,0.2), Color(0.3,0.75,0.9)],
 		["500 Gold", "3 Stars", 500, "stars", 3, Color(1,0.85,0.2), Color(1,0.9,0.3)],
 	]
 	for ex in exchange_data:
@@ -2780,7 +2780,7 @@ func _build_gold_exchange(parent: VBoxContainer) -> void:
 					_main.gold -= cost_val
 					match currency_key:
 						"quills": _main.player_quills += amount
-						"shards": _main.player_gear_shards += amount
+						"pages": _main.player_pages += amount
 						"stars": _main.player_storybook_stars += amount
 					_open_emporium_category(0)))
 			row.add_child(buy)
@@ -2850,15 +2850,15 @@ func _build_gear_crafting(parent: VBoxContainer) -> void:
 		desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(desc)
-		row.add_child(_lbl("%d💎" % ct[3], 10, Color(0.3, 0.75, 0.9)))
+		row.add_child(_lbl("%d📄" % ct[3], 10, Color(0.3, 0.75, 0.9)))
 		var craft = _art_button("CRAFT", Color(0.35, 0.20, 0.10), Vector2(80, 30))
 		row.add_child(craft)
 		parent.add_child(card)
 
 func _build_gear_shard_shop(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("Collect and forge Gear Shards", 12, Color(0.60, 0.55, 0.48)))
+	parent.add_child(_lbl("Collect and forge Pages", 12, Color(0.60, 0.55, 0.48)))
 	if _main:
-		parent.add_child(_lbl("You have: %d Gear Shards" % _main.player_gear_shards, 14, Color(0.3, 0.75, 0.9)))
+		parent.add_child(_lbl("You have: %d Pages" % _main.player_pages, 14, Color(0.3, 0.75, 0.9)))
 	# Chest opening option
 	if _art.has("reward_chest"):
 		var chest_panel = PanelContainer.new()
@@ -2884,24 +2884,24 @@ func _build_gear_shard_shop(parent: VBoxContainer) -> void:
 		var mat = _make_black_key_mat(0.08, 0.05)
 		if mat: chest_art.material = mat
 		cv.add_child(chest_art)
-		cv.add_child(_lbl("Gear Chest — 50 Shards", 13, Color(0.85, 0.70, 0.20)))
+		cv.add_child(_lbl("Gear Chest — 50 Pages", 13, Color(0.85, 0.70, 0.20)))
 		cv.add_child(_lbl("Contains 1 random piece of Gear", 11, Color(0.70, 0.62, 0.52)))
 		var open_btn = _art_button("OPEN CHEST", Color(0.5, 0.35, 0.10), Vector2(140, 34))
-		if _main and _main.player_gear_shards >= 50:
+		if _main and _main.player_pages >= 50:
 			open_btn.pressed.connect(func():
 				_show_popup("Chest Opened!", "You received a new piece of Gear!\n+1 Random Gear Item"))
 		else:
 			open_btn.disabled = true
 		cv.add_child(open_btn)
 		parent.add_child(chest_panel)
-	_build_generic_shop(parent, {"name": "Gear Shards"})
+	_build_generic_shop(parent, {"name": "Pages"})
 
 func _build_survivor_packs(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("Bundles of literary might — boost your Survivors!", 12, Color(0.60, 0.55, 0.48)))
 	var packs = [
 		["Starter Bundle", "XP Boost for 3 characters + 500 Gold", 50, "quills", Color(0.3, 0.7, 0.3)],
 		["Hero's Journey", "Level up any character by 1 + Random Gear", 100, "quills", Color(0.2, 0.5, 0.9)],
-		["Epic Collection", "3 Gear Chests + 1000 Gold + 50 Shards  (Save 30%!)", 200, "quills", Color(0.7, 0.3, 0.9)],
+		["Epic Collection", "3 Gear Chests + 1000 Gold + 50 Pages  (Save 30%!)", 200, "quills", Color(0.7, 0.3, 0.9)],
 		["Legendary Tome", "Unlock next character + Full Gear Set  (Best Value!)", 500, "quills", Color(1.0, 0.7, 0.1)],
 	]
 	for pk in packs:
@@ -3699,7 +3699,7 @@ func _build_glossary(parent: VBoxContainer) -> void:
 	parent.add_child(_lbl("Game terms and mechanics explained", 11, Color(0.70, 0.62, 0.52)))
 	var terms = [
 		["Synergy", "Bonus when bonded characters placed near each other. Check Allies tab for bonds."],
-		["Gear Shards", "Currency dropped from battles. Spend at the Emporium's Gear Chest shop."],
+		["Pages", "Currency dropped from battles. Spend at the Emporium's Gear Chest shop."],
 		["Quills", "Premium currency earned from quests and achievements. Buy rare items."],
 		["Storybook Stars", "Earned by completing levels. Used for progression and rewards."],
 		["Prestige", "Reset a max-level character for permanent stat bonuses."],
@@ -3984,7 +3984,7 @@ func _build_settings() -> void:
 	vb.add_child(_section_header("FAQ"))
 	var faqs = [
 		["How do synergies work?", "Place related characters near each other for bonus damage."],
-		["What are Gear Shards?", "Currency from battles. Spend at the Emporium to forge gear."],
+		["What are Pages?", "Currency from battles. Spend at the Emporium to forge gear."],
 		["How do I unlock characters?", "Rescue them by completing their story chapter."],
 		["What does difficulty affect?", "Enemy HP, gold income, and star rewards scale with difficulty."],
 		["How does prestige work?", "After max level, prestige for permanent stat bonuses."],
