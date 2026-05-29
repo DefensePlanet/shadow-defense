@@ -11366,6 +11366,7 @@ func _reset_game() -> void:
 	_ink_ultimate_type = -1
 	_planning_phase = false
 	_planning_timer = 0.0
+	_temp_ink_pools.clear()
 	undo_tower_data.clear()
 	if is_instance_valid(undo_button):
 		undo_button.visible = false
@@ -21426,6 +21427,9 @@ func _process(delta: float) -> void:
 	# Terrain zone effects on enemies (#98)
 	if is_wave_active and _terrain_zones.size() > 0:
 		_process_terrain_enemy_effects(delta)
+	# Temp ink pools from hazard enemies (#110)
+	if _temp_ink_pools.size() > 0:
+		_process_temp_ink_pools(delta)
 	# Improvement 15: Auto-upgrade between waves
 	if not is_wave_active and wave > 0:
 		_process_auto_upgrades()
@@ -24126,6 +24130,7 @@ func _draw() -> void:
 	# BATTD: Map collectibles & wave power-ups
 	_draw_map_collectibles()
 	_draw_wave_powerups()
+	_draw_temp_ink_pools()
 	# BATTD: Bounty board
 	_draw_bounty_board()
 	if _floating_texts.size() > 0:
@@ -40664,6 +40669,37 @@ func _draw_env_hazards() -> void:
 		var pulse = (sin(_time * 2.0 + hazard["pos"].x * 0.1) + 1.0) * 0.5
 		draw_circle(hazard["pos"], hazard["radius"] + pulse * 5.0, col)
 		draw_arc(hazard["pos"], hazard["radius"], 0, TAU, 32, Color(col.r, col.g, col.b, 0.3), 1.5)
+
+# --- Environmental hazard enemies (#110) ---
+var _temp_ink_pools: Array = []  # [{pos, timer, radius}]
+
+func _add_temp_ink_hazard(pos: Vector2) -> void:
+	# Limit total ink pools
+	if _temp_ink_pools.size() >= 20:
+		_temp_ink_pools.pop_front()
+	_temp_ink_pools.append({"pos": pos, "timer": 6.0, "radius": 25.0})
+
+func _process_temp_ink_pools(delta: float) -> void:
+	var to_remove: Array = []
+	for i in range(_temp_ink_pools.size()):
+		_temp_ink_pools[i]["timer"] -= delta
+		if _temp_ink_pools[i]["timer"] <= 0.0:
+			to_remove.append(i)
+			continue
+		# Slow towers in the pool (reduce attack speed)
+		for tower in get_tree().get_nodes_in_group("towers"):
+			if is_instance_valid(tower) and tower.global_position.distance_to(_temp_ink_pools[i]["pos"]) < _temp_ink_pools[i]["radius"]:
+				if "attack_speed_mult" in tower:
+					tower.attack_speed_mult = minf(tower.attack_speed_mult, 0.7)
+	for i in range(to_remove.size() - 1, -1, -1):
+		_temp_ink_pools.remove_at(to_remove[i])
+
+func _draw_temp_ink_pools() -> void:
+	for pool in _temp_ink_pools:
+		var alpha = clampf(pool["timer"] / 2.0, 0.0, 1.0) * 0.25
+		var pulse = sin(_time * 2.5 + pool["pos"].x * 0.05) * 0.05
+		draw_circle(pool["pos"], pool["radius"] + pulse * 5.0, Color(0.08, 0.03, 0.12, alpha))
+		draw_circle(pool["pos"], pool["radius"] * 0.5, Color(0.1, 0.05, 0.2, alpha * 0.6))
 
 # --- Improvement 13: TOWER RANGE PREVIEW ON CARD HOVER ---
 var _hover_tower_type: int = -1

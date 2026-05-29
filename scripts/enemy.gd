@@ -130,6 +130,9 @@ var boss_shield_regen: float = 0.0    # Shield regen for shield_pulse mechanic
 var boss_shield_max: float = 0.0
 var boss_enraged: bool = false
 var boss_area_deny_zones: Array = []  # Positions of danger zones
+# Enemy rage mode (#109)
+var _rage_activated: bool = false  # True when HP drops below 25%
+var _rage_trail: Array = []  # Ink trail positions for hazard enemies (#110)
 
 # === NEW: MOAB Villain System ===
 var is_moab: bool = false             # Large villain enemy
@@ -386,6 +389,25 @@ func _process(delta: float) -> void:
 				if _teleport_cooldown <= 0.0:
 					_teleport_cooldown = 8.0
 					progress += 100.0  # Blink forward along path
+
+	# Universal rage mode at 25% HP (#109)
+	if not _rage_activated and health > 0 and health < max_health * 0.25:
+		_rage_activated = true
+		speed *= 1.4  # 40% speed boost
+		damage_mult *= 0.8  # Take more damage (weaker defense in rage)
+		# Visual: turn reddish
+		modulate = Color(1.2, 0.7, 0.7, 1.0)
+
+	# Environmental hazard trail (#110) — high-tier enemies leave ink pools
+	if enemy_tier >= 3 and _rage_activated:
+		if _rage_trail.size() == 0 or global_position.distance_to(_rage_trail[-1]) > 40.0:
+			_rage_trail.append(global_position)
+			if _rage_trail.size() > 8:
+				_rage_trail.pop_front()
+			# Notify main to create ink hazard
+			var main_node = get_tree().get_first_node_in_group("main")
+			if main_node and main_node.has_method("_add_temp_ink_hazard"):
+				main_node._add_temp_ink_hazard(global_position)
 
 	# Enhancement #100: Ghost health bar decay
 	if _ghost_health > health:
@@ -892,6 +914,9 @@ func _draw() -> void:
 	# Boss enrage — red-hot glow
 	if boss_enraged:
 		tint = Color(tint.r * 0.5 + 0.5, tint.g * 0.3, tint.b * 0.2, tint.a)
+	# Rage mode (#109) — red tint + speed lines
+	elif _rage_activated:
+		tint = Color(tint.r * 0.6 + 0.4, tint.g * 0.5, tint.b * 0.4, tint.a)
 
 	# Preserve sprite art: soften heavy tints so characters stay recognizable
 	# Hit flash stays punchy, but modifier color-crushing is dialed way back
