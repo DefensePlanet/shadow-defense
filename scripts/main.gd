@@ -5766,6 +5766,185 @@ func _draw_exit_portal() -> void:
 		_udraw(game_font, exit_pos + Vector2(0, -48), "⚠ DANGER!", HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 0.3, 0.1, 0.6 + warn_pulse * 0.4))
 
 # Also draw the entrance portal (where enemies spawn from)
+# === BACKGROUND STORYTELLING — distant events happening behind the gameplay ===
+# Animated silhouettes and events in the background that tell the story visually.
+var _bg_story_elements: Array = []  # [{type, x, y, timer, data}]
+
+func _generate_bg_story(level_idx: int) -> void:
+	_bg_story_elements.clear()
+	if level_idx < 0 or level_idx >= levels.size(): return
+	var theme = levels[level_idx].get("enemy_theme", 0)
+	match theme:
+		0:  # Sherwood — deer running, arrows flying in distance
+			_bg_story_elements.append({"type": "running_figure", "x": -50.0, "y": 85, "speed": 30.0, "color": Color(0.3, 0.2, 0.1, 0.15), "size": 8.0})
+			_bg_story_elements.append({"type": "running_figure", "x": -200.0, "y": 75, "speed": 25.0, "color": Color(0.4, 0.25, 0.1, 0.12), "size": 6.0})
+		1:  # Wonderland — Cheshire cat fading in/out, cards falling from sky
+			_bg_story_elements.append({"type": "fading_face", "x": 1100, "y": 70, "timer": 0.0, "color": Color(0.6, 0.3, 0.7, 0.1)})
+			_bg_story_elements.append({"type": "falling_cards", "timer": 0.0})
+		3:  # Neverland — pirate ship sailing, stars twinkling
+			_bg_story_elements.append({"type": "sailing_ship", "x": 1300.0, "y": 60, "speed": -8.0, "color": Color(0.3, 0.2, 0.15, 0.12)})
+			_bg_story_elements.append({"type": "twinkling_stars", "timer": 0.0})
+		7:  # Sherlock — horse carriages, gas lamp flicker
+			_bg_story_elements.append({"type": "running_figure", "x": 1350.0, "y": 80, "speed": -20.0, "color": Color(0.2, 0.2, 0.25, 0.10), "size": 10.0})
+			_bg_story_elements.append({"type": "lamp_flicker", "positions": [Vector2(100, 60), Vector2(500, 55), Vector2(900, 65), Vector2(1200, 58)]})
+		9:  # Tarzan — birds flying, trees swaying
+			_bg_story_elements.append({"type": "flying_birds", "timer": 0.0})
+		10: # Dracula — bats circling castle tower, lightning in distance
+			_bg_story_elements.append({"type": "circling_bats", "cx": 1050, "cy": 50, "count": 5})
+			_bg_story_elements.append({"type": "distant_lightning", "timer": 0.0})
+		11: # Frankenstein — sparking machines, bubbling beakers
+			_bg_story_elements.append({"type": "sparking", "positions": [Vector2(150, 50), Vector2(1100, 45)]})
+		12: # Shadow Author — floating text, quill writing
+			_bg_story_elements.append({"type": "floating_text", "fragments": ["once upon", "the end", "chapter", "ink", "shadow", "forgotten"]})
+			_bg_story_elements.append({"type": "writing_quill", "x": 1100, "y": 40})
+		13: # Horseman — distant rider silhouette
+			_bg_story_elements.append({"type": "distant_rider", "x": -100.0, "y": 70, "speed": 40.0})
+		16: # Anubis — weighing scales swaying, souls floating up
+			_bg_story_elements.append({"type": "floating_souls", "timer": 0.0})
+		17: # Ahab — whale spout in distance, waves crashing
+			_bg_story_elements.append({"type": "whale_spout", "x": 200, "y": 50, "timer": 0.0})
+			_bg_story_elements.append({"type": "ocean_waves", "y": 80})
+		18: # Narrator — fire pillars, legends walking
+			_bg_story_elements.append({"type": "fire_columns", "positions": [Vector2(100, 30), Vector2(400, 25), Vector2(700, 35), Vector2(1000, 28), Vector2(1180, 32)]})
+
+func _update_bg_story(delta: float) -> void:
+	for el in _bg_story_elements:
+		match el.get("type", ""):
+			"running_figure", "distant_rider":
+				el["x"] += el.get("speed", 20.0) * delta
+				if el["x"] > 1350: el["x"] = -80
+				if el["x"] < -100: el["x"] = 1350
+			"sailing_ship":
+				el["x"] += el.get("speed", -8.0) * delta
+				if el["x"] < -200: el["x"] = 1400
+			"fading_face":
+				el["timer"] += delta
+			"falling_cards", "flying_birds", "floating_souls", "whale_spout", "distant_lightning":
+				el["timer"] = el.get("timer", 0.0) + delta
+			"twinkling_stars":
+				el["timer"] = el.get("timer", 0.0) + delta
+
+func _draw_bg_story() -> void:
+	for el in _bg_story_elements:
+		match el.get("type", ""):
+			"running_figure":
+				var fx = el["x"]; var fy = el["y"]
+				var fs = el.get("size", 8.0)
+				var fc = el.get("color", Color(0.3, 0.2, 0.1, 0.12))
+				# Simple silhouette — head + body
+				draw_circle(Vector2(fx, fy - fs), fs * 0.4, fc)
+				draw_rect(Rect2(fx - fs * 0.3, fy - fs * 0.6, fs * 0.6, fs), fc)
+				# Legs — alternating based on position
+				var leg_phase = sin(fx * 0.1) * fs * 0.3
+				draw_line(Vector2(fx - 2, fy + fs * 0.4), Vector2(fx - 2 + leg_phase, fy + fs * 0.8), fc, 1.5)
+				draw_line(Vector2(fx + 2, fy + fs * 0.4), Vector2(fx + 2 - leg_phase, fy + fs * 0.8), fc, 1.5)
+			"distant_rider":
+				var rx = el["x"]; var ry = el["y"]
+				# Horse + rider silhouette
+				var rc = Color(0.25, 0.15, 0.08, 0.12)
+				draw_rect(Rect2(rx - 12, ry, 24, 10), rc)  # Horse body
+				draw_rect(Rect2(rx - 3, ry - 12, 6, 14), rc)  # Rider
+				draw_circle(Vector2(rx, ry - 15), 4, rc)  # Head
+			"fading_face":
+				var alpha = (sin(el["timer"] * 0.5) + 1.0) * 0.5 * 0.08
+				var fx2 = el["x"]; var fy2 = el["y"]
+				# Cheshire cat grin
+				draw_arc(Vector2(fx2, fy2), 20, 0.2, PI - 0.2, 12, Color(0.6, 0.3, 0.7, alpha), 2.0)
+				# Eyes
+				draw_circle(Vector2(fx2 - 8, fy2 - 8), 3, Color(0.7, 0.4, 0.8, alpha))
+				draw_circle(Vector2(fx2 + 8, fy2 - 8), 3, Color(0.7, 0.4, 0.8, alpha))
+			"sailing_ship":
+				var sx = el["x"]; var sy = el["y"]
+				var sc2 = Color(0.3, 0.2, 0.15, 0.10)
+				# Hull
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(sx - 20, sy + 8), Vector2(sx + 25, sy + 8),
+					Vector2(sx + 18, sy + 16), Vector2(sx - 15, sy + 16)
+				]), sc2)
+				# Mast + sail
+				draw_line(Vector2(sx, sy + 8), Vector2(sx, sy - 15), sc2, 1.5)
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(sx + 1, sy - 14), Vector2(sx + 15, sy - 5), Vector2(sx + 1, sy + 4)
+				]), Color(sc2.r, sc2.g, sc2.b, sc2.a * 0.7))
+			"twinkling_stars":
+				var t2 = el["timer"]
+				for si in range(12):
+					var star_x = (si * 107 + 50) % 1280
+					var star_y = (si * 43 + 20) % 80 + 10
+					var twinkle = (sin(t2 * 2.0 + float(si) * 0.8) + 1.0) * 0.5
+					draw_circle(Vector2(star_x, star_y), 1.0 + twinkle, Color(0.9, 0.85, 0.6, 0.05 + twinkle * 0.08))
+			"circling_bats":
+				var cx2 = el["cx"]; var cy2 = el["cy"]
+				for bi in range(el.get("count", 5)):
+					var ba = _time * 1.5 + float(bi) * TAU / float(el["count"])
+					var bx = cx2 + cos(ba) * 30; var by = cy2 + sin(ba) * 15
+					# Bat wings
+					var wing = sin(_time * 8.0 + float(bi)) * 4
+					draw_line(Vector2(bx - 4, by + wing), Vector2(bx, by), Color(0.2, 0.1, 0.15, 0.12), 1.5)
+					draw_line(Vector2(bx + 4, by - wing), Vector2(bx, by), Color(0.2, 0.1, 0.15, 0.12), 1.5)
+			"lamp_flicker":
+				for lp in el.get("positions", []):
+					var flicker = 0.06 + sin(_time * 4.0 + lp.x * 0.01) * 0.03
+					draw_circle(lp, 5.0, Color(0.8, 0.6, 0.2, flicker))
+					draw_circle(lp, 2.0, Color(1.0, 0.85, 0.4, flicker * 1.5))
+			"flying_birds":
+				var t3 = el["timer"]
+				for bi2 in range(4):
+					var bx2 = fmod(t3 * (15.0 + float(bi2) * 3.0) + float(bi2) * 300, 1400.0) - 50
+					var by2 = 40.0 + float(bi2) * 12.0 + sin(t3 * 1.5 + float(bi2)) * 8.0
+					var wing2 = sin(t3 * 6.0 + float(bi2) * 2.0) * 4.0
+					draw_line(Vector2(bx2 - 5, by2 + wing2), Vector2(bx2, by2), Color(0.15, 0.12, 0.08, 0.10), 1.0)
+					draw_line(Vector2(bx2 + 5, by2 + wing2), Vector2(bx2, by2), Color(0.15, 0.12, 0.08, 0.10), 1.0)
+			"floating_text":
+				var frags = el.get("fragments", [])
+				for fi in range(frags.size()):
+					var ftx = fmod(_time * 5.0 + float(fi) * 200, 1400.0) - 50
+					var fty = 30.0 + float(fi) * 10.0 + sin(_time * 0.3 + float(fi)) * 5.0
+					_udraw(game_font, Vector2(ftx, fty), frags[fi], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.4, 0.2, 0.5, 0.06))
+			"writing_quill":
+				var qx = el["x"]; var qy = el["y"]
+				var qangle = sin(_time * 2.0) * 0.3
+				draw_line(Vector2(qx, qy), Vector2(qx + cos(qangle) * 15, qy + sin(qangle) * 15 + 10), Color(0.5, 0.3, 0.6, 0.08), 2.0)
+			"floating_souls":
+				var t4 = el["timer"]
+				for si2 in range(5):
+					var soul_x = 200.0 + float(si2) * 200.0
+					var soul_y = 90.0 - fmod(t4 * 8.0 + float(si2) * 30, 120.0)
+					var soul_a = 0.06 * (1.0 - soul_y / 90.0)
+					draw_circle(Vector2(soul_x, maxf(soul_y, -10)), 3.0, Color(0.7, 0.6, 0.2, maxf(soul_a, 0.0)))
+			"whale_spout":
+				var wt = el["timer"]
+				if fmod(wt, 12.0) < 2.0:  # Spout visible 2s every 12s
+					var wx = el["x"]; var wy = el["y"]
+					var spout_h = sin(fmod(wt, 2.0) * PI) * 25.0
+					draw_line(Vector2(wx, wy), Vector2(wx - 3, wy - spout_h), Color(0.4, 0.5, 0.7, 0.08), 2.0)
+					draw_line(Vector2(wx, wy), Vector2(wx + 3, wy - spout_h), Color(0.4, 0.5, 0.7, 0.08), 2.0)
+					# Whale back
+					draw_arc(Vector2(wx, wy + 5), 15, PI, TAU, 8, Color(0.3, 0.35, 0.4, 0.06), 3.0)
+			"ocean_waves":
+				var owy = el["y"]
+				for wi in range(8):
+					var wx2 = float(wi) * 170.0
+					var wave_y = owy + sin(_time * 1.2 + float(wi) * 0.8) * 3.0
+					draw_arc(Vector2(wx2, wave_y), 40, PI, TAU, 8, Color(0.3, 0.4, 0.6, 0.04), 1.5)
+			"fire_columns":
+				for fp in el.get("positions", []):
+					var fire_h = 20.0 + sin(_time * 3.0 + fp.x * 0.01) * 8.0
+					for fli in range(3):
+						var flx = fp.x + sin(_time * 4.0 + float(fli)) * 3.0
+						var fly = fp.y + float(fli) * 4.0
+						draw_circle(Vector2(flx, fly), 4.0 - float(fli), Color(0.9, 0.4, 0.1, 0.06 * (3 - fli)))
+			"sparking":
+				for sp2 in el.get("positions", []):
+					if fmod(_time * 3.0 + sp2.x * 0.1, 1.0) < 0.15:
+						for _ski in range(3):
+							var skx = sp2.x + randf_range(-8, 8)
+							var sky = sp2.y + randf_range(-5, 5)
+							draw_circle(Vector2(skx, sky), 1.5, Color(0.5, 0.7, 1.0, 0.12))
+			"distant_lightning":
+				if fmod(el["timer"], 7.0) < 0.1:
+					draw_rect(Rect2(0, 0, 1280, 90), Color(0.5, 0.5, 0.7, 0.04))
+
 func _draw_entrance_portal() -> void:
 	if path_points.size() < 2: return
 	var enter_pos = path_points[0]
@@ -9807,6 +9986,7 @@ func _do_level_start(index: int) -> void:
 	_setup_path_for_level(index)
 	_set_time_of_day(index)
 	_setup_realm_mechanic(index)
+	_generate_bg_story(index)
 	_generate_terrain_zones(index)
 	_generate_map_interactables(index)
 	_generate_secret_paths(index)
@@ -19509,6 +19689,7 @@ func _process(delta: float) -> void:
 	_update_interactable_cooldowns(delta)
 	_update_dynamic_hazards(delta)
 	_update_realm_mechanic(delta)
+	_update_bg_story(delta)
 	_update_atmosphere(delta)
 	# Act title card timer
 	if _act_title_active:
@@ -26814,6 +26995,8 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 		draw_line(Vector2(oak_x + 38, oak_y + 70 + float(tl) * 4.5), Vector2(oak_x + 54, oak_y + 70 + float(tl) * 4.5), Color(0.3, 0.2, 0.1, 0.5), 1.0)
 	draw_circle(Vector2(oak_x + 46, oak_y + 59), 1.5, Color(0.3, 0.3, 0.3))
 
+	# --- BACKGROUND STORY EVENTS ---
+	_draw_bg_story()
 	# --- ENTRANCE + EXIT PORTALS ---
 	_draw_entrance_portal()
 	_draw_exit_portal()
