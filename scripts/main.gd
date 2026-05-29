@@ -10462,6 +10462,11 @@ func _show_menu() -> void:
 	if speed_button:
 		speed_button.text = "  >>  "
 	menu_overlay.visible = true
+	# V2 menu handles everything — hide old overlay if v2 is active
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
+		menu_overlay.visible = false
+		if survivor_grid_container: survivor_grid_container.visible = false
+		if survivor_detail_container: survivor_detail_container.visible = false
 	return_button.visible = false
 	retry_button.visible = false
 	game_over_label.visible = false
@@ -23625,7 +23630,9 @@ func _handle_back_button() -> void:
 		if survivor_detail_open:
 			survivor_detail_open = false
 			survivor_detail_index = -1
-			survivor_grid_container.visible = true
+			# Only show old grid if v2 menu is NOT active
+			if _menu_v2_instance == null or not is_instance_valid(_menu_v2_instance):
+				survivor_grid_container.visible = true
 			survivor_detail_container.visible = false
 			_remove_detail_preview()
 			queue_redraw()
