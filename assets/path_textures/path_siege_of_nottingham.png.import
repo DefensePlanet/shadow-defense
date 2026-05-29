@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2f121d2ptjbn"
-valid=false
+path="res://.godot/imported/path_siege_of_nottingham.png-0dc87774de4d2992843bb9716fa01caa.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_siege_of_nottingham.png"
+dest_files=["res://.godot/imported/path_siege_of_nottingham.png-0dc87774de4d2992843bb9716fa01caa.ctex"]
 
 [params]
 

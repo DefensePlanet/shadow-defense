@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d4g50gwg074f5"
-valid=false
+path="res://.godot/imported/path_crypt_of_blood.png-58f9191ce30617ca5d0b64b2374af12d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/path_textures/path_crypt_of_blood.png"
+dest_files=["res://.godot/imported/path_crypt_of_blood.png-58f9191ce30617ca5d0b64b2374af12d.ctex"]
 
 [params]
 
