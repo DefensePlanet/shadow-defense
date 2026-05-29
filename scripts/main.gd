@@ -1488,6 +1488,24 @@ var _clutch_bonus_speed: float = 1.25  # +25% attack speed at 1 life
 var _clutch_gold_mult: float = 2.0  # Double gold earned at 1 life
 var _clutch_trigger_flash: float = 0.0  # Screen flash when clutch activates
 
+# --- 14b. INK METER ULTIMATE SYSTEM (#100) ---
+var _ink_meter: float = 0.0  # 0.0 to 100.0
+var _ink_meter_max: float = 100.0
+var _ink_ultimate_active: bool = false
+var _ink_ultimate_timer: float = 0.0
+var _ink_ultimate_type: int = -1  # Which ultimate was used
+var _ink_ultimate_flash: float = 0.0
+const INK_PER_KILL: float = 1.5
+const INK_PER_BOSS_KILL: float = 15.0
+const INK_PER_COMBO_MILESTONE: float = 5.0
+const INK_ULTIMATE_DURATION: float = 5.0
+const INK_ULTIMATES: Array = [
+	{"name": "INK STORM", "desc": "All enemies take massive damage", "color": Color(0.1, 0.1, 0.2)},
+	{"name": "TIME FREEZE", "desc": "All enemies frozen for 5s", "color": Color(0.3, 0.7, 1.0)},
+	{"name": "GOLDEN AGE", "desc": "All gold earned x5 for 8s", "color": Color(1.0, 0.85, 0.0)},
+	{"name": "TOWER FURY", "desc": "All towers 3x damage for 5s", "color": Color(1.0, 0.3, 0.1)},
+]
+
 # --- 15. POWER SPIKE CEREMONY ---
 var _power_spike_timer: float = 0.0
 var _power_spike_tower_type = null
@@ -11336,6 +11354,10 @@ func _reset_game() -> void:
 	_gold_rush_timer = 0.0
 	_clutch_active = false
 	_clutch_trigger_flash = 0.0
+	_ink_meter = 0.0
+	_ink_ultimate_active = false
+	_ink_ultimate_timer = 0.0
+	_ink_ultimate_type = -1
 	undo_tower_data.clear()
 	if is_instance_valid(undo_button):
 		undo_button.visible = false
@@ -15258,6 +15280,104 @@ func _draw_near_miss() -> void:
 	draw_rect(Rect2(0, 690, 1280, 30), Color(0.8, 0.1, 0.05, vig_alpha))
 	draw_rect(Rect2(0, 0, 30, 720), Color(0.8, 0.1, 0.05, vig_alpha))
 	draw_rect(Rect2(1250, 0, 30, 720), Color(0.8, 0.1, 0.05, vig_alpha))
+
+# --- 14c. INK METER ULTIMATE SYSTEM (#100) ---
+func _charge_ink_meter(amount: float) -> void:
+	if _ink_ultimate_active:
+		return  # Don't charge while active
+	_ink_meter = minf(_ink_meter + amount, _ink_meter_max)
+	if _ink_meter >= _ink_meter_max:
+		# Meter full — show ready indicator
+		spawn_floating_text(Vector2(640, 400), "INK METER FULL! Tap to unleash!", Color(0.2, 0.1, 0.3), 18.0, 2.0)
+
+func _activate_ink_ultimate(ult_index: int) -> void:
+	if _ink_meter < _ink_meter_max or _ink_ultimate_active:
+		return
+	_ink_meter = 0.0
+	_ink_ultimate_active = true
+	_ink_ultimate_timer = INK_ULTIMATE_DURATION
+	_ink_ultimate_type = ult_index
+	_ink_ultimate_flash = 0.6
+	_screen_shake_intensity = 10.0
+	_screen_shake_timer = 0.5
+	_haptic(2)
+	var ult = INK_ULTIMATES[ult_index]
+	spawn_floating_text(Vector2(640, 300), ult["name"], ult["color"], 32.0, 3.0)
+	spawn_floating_text(Vector2(640, 340), ult["desc"], Color(1.0, 1.0, 1.0), 16.0, 2.0)
+	# Apply immediate effects
+	match ult_index:
+		0:  # INK STORM — damage all enemies
+			for enemy in _cached_enemies:
+				if is_instance_valid(enemy):
+					enemy.take_damage(300.0 + wave * 20.0, "dark")
+		1:  # TIME FREEZE — freeze all enemies
+			for enemy in _cached_enemies:
+				if is_instance_valid(enemy):
+					enemy.sleep_timer = maxf(enemy.sleep_timer, INK_ULTIMATE_DURATION)
+		2:  # GOLDEN AGE — gold x5 handled in add_gold via timer
+			_gold_rush_timer = 8.0  # Reuse gold rush but at 5x
+		3:  # TOWER FURY — damage boost handled via _ink_ultimate_active check
+			pass
+
+func _process_ink_ultimate(delta: float) -> void:
+	if _ink_ultimate_timer > 0.0:
+		_ink_ultimate_timer -= delta
+		# Ongoing effects per frame
+		if _ink_ultimate_type == 0:  # INK STORM — ongoing damage
+			for enemy in _cached_enemies:
+				if is_instance_valid(enemy):
+					enemy.take_damage(50.0 * delta, "dark")
+		if _ink_ultimate_timer <= 0.0:
+			_ink_ultimate_active = false
+			_ink_ultimate_type = -1
+	if _ink_ultimate_flash > 0.0:
+		_ink_ultimate_flash -= delta
+
+func _draw_ink_meter() -> void:
+	if not is_wave_active:
+		return
+	# Ink meter bar at bottom-right
+	var bx = 1080.0
+	var by = 680.0
+	var bw = 180.0
+	var bh = 16.0
+	var fill = _ink_meter / _ink_meter_max
+	# Background
+	draw_rect(Rect2(bx, by, bw, bh), Color(0.1, 0.05, 0.15, 0.6))
+	# Fill — purple to bright when full
+	var fill_col = Color(0.4, 0.1, 0.7, 0.8) if fill < 1.0 else Color(0.7, 0.3, 1.0, 0.9)
+	if fill >= 1.0:
+		var pulse = (sin(_time * 6.0) + 1.0) * 0.5
+		fill_col = Color(0.6 + pulse * 0.4, 0.2 + pulse * 0.3, 0.8 + pulse * 0.2, 0.9)
+	draw_rect(Rect2(bx, by, bw * fill, bh), fill_col)
+	# Border
+	draw_rect(Rect2(bx, by, bw, bh), Color(0.6, 0.3, 0.9, 0.4), false, 1.0)
+	# Label
+	var label = "INK" if fill < 1.0 else "INK READY!"
+	_ds_outlined_text(Vector2(bx + bw * 0.5, by + 2), label, 9, Color(1.0, 1.0, 1.0, 0.7), 80, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Ultimate active overlay
+	if _ink_ultimate_active and _ink_ultimate_type >= 0:
+		var ult = INK_ULTIMATES[_ink_ultimate_type]
+		var ult_alpha = clampf(_ink_ultimate_timer / INK_ULTIMATE_DURATION, 0.0, 1.0)
+		# Screen tint
+		draw_rect(Rect2(0, 0, 1280, 720), Color(ult["color"].r, ult["color"].g, ult["color"].b, 0.06 * ult_alpha))
+		# Timer bar
+		draw_rect(Rect2(bx, by - 6, bw * ult_alpha, 4), Color(ult["color"].r, ult["color"].g, ult["color"].b, 0.8))
+		_ds_outlined_text(Vector2(bx + bw * 0.5, by - 10), ult["name"], 10, Color(ult["color"].r, ult["color"].g, ult["color"].b, ult_alpha), 120, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Flash on activation
+	if _ink_ultimate_flash > 0.0:
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0.5, 0.2, 0.8, _ink_ultimate_flash * 0.25))
+
+func _check_ink_meter_click(pos: Vector2) -> bool:
+	# Check if player tapped the ink meter when full
+	if _ink_meter >= _ink_meter_max and not _ink_ultimate_active:
+		var bx = 1080.0; var by = 680.0; var bw = 180.0; var bh = 16.0
+		if pos.x >= bx and pos.x <= bx + bw and pos.y >= by - 20 and pos.y <= by + bh + 10:
+			# Cycle through ultimates based on wave for variety
+			var ult_index = wave % INK_ULTIMATES.size()
+			_activate_ink_ultimate(ult_index)
+			return true
+	return false
 
 # --- 15. POWER SPIKE CEREMONY ---
 func _trigger_power_spike(tower_type, tier: int) -> void:
@@ -21192,6 +21312,7 @@ func _process(delta: float) -> void:
 	# === ADDICTION SYSTEMS TIMERS ===
 	_process_combo(delta)
 	_process_wave_powerups(delta)
+	_process_ink_ultimate(delta)
 	if _gold_rush_timer > 0.0:
 		_gold_rush_timer -= delta
 	_process_boss_kill_ceremony(delta)
@@ -23244,6 +23365,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				# Check interactive map elements first
 				if _check_interactable_click(event.position):
 					pass
+				elif _check_ink_meter_click(event.position):
+					pass
 				elif _check_page_click(event.position) or _check_collectible_click(event.position) or _check_powerup_click(event.position):
 					pass
 				else:
@@ -24230,6 +24353,7 @@ func _draw() -> void:
 	# _draw_combo_counter() — already drawn in HUD section above (#93)
 	_draw_boss_kill_ceremony()
 	_draw_near_miss()
+	_draw_ink_meter()
 	_draw_milestone_popup()
 	_draw_power_spike()
 	_draw_comeback_banner()
@@ -34787,6 +34911,8 @@ func enemy_died(enemy_node = null) -> void:
 	_record_enemy_in_bestiary(enemy_node)
 	# Addiction: Kill combo
 	_register_combo_kill()
+	# Ink meter charge (#100)
+	_charge_ink_meter(INK_PER_KILL)
 	# Addiction: Boss kill ceremony
 	if enemy_node and is_instance_valid(enemy_node):
 		var _bk_scale = enemy_node.boss_scale if "boss_scale" in enemy_node else 1.0
@@ -34794,6 +34920,7 @@ func enemy_died(enemy_node = null) -> void:
 			var _bk_name = enemy_node.enemy_name if "enemy_name" in enemy_node else "BOSS"
 			_trigger_boss_kill_ceremony(enemy_node.global_position, _bk_name)
 			_update_weekly_quest("bosses", 1)
+			_charge_ink_meter(INK_PER_BOSS_KILL)
 	# BATTD: Kill counter
 	_wave_enemies_killed += 1
 	# BATTD: Lucky loot drops (5% chance for bonus shards/quills)
