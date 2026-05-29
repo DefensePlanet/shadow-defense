@@ -8964,6 +8964,9 @@ func _create_ui() -> void:
 	speed_button = _make_button("  >>  ", Vector2(1126, 2), Vector2(72, 48))
 	speed_button.add_theme_font_size_override("font_size", 16)
 	speed_button.pressed.connect(_on_speed_pressed)
+	# Hold-to-fast-forward: button_down starts max speed, button_up releases
+	speed_button.button_down.connect(_on_speed_hold_start)
+	speed_button.button_up.connect(_on_speed_hold_end)
 	bottom_panel.add_child(speed_button)
 
 	restart_button = _make_button("  RESTART  ", Vector2(1202, 2), Vector2(72, 48))
@@ -20763,6 +20766,7 @@ func _process(delta: float) -> void:
 	_update_emote_cooldowns(delta)
 	_check_environmental_event(delta)
 	_update_battle_shop(delta)
+	_update_speed_hold(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -33719,6 +33723,43 @@ func _on_sell_pressed() -> void:
 
 	# Re-check synergies after tower is freed (2-frame delay to ensure queue_free completes)
 	get_tree().create_timer(0.05).timeout.connect(_check_synergies)
+
+# === HOLD-TO-FAST-FORWARD — hold speed button for max speed ===
+var _speed_hold_active: bool = false
+var _speed_hold_timer: float = 0.0
+var _speed_before_hold: float = 1.0
+const SPEED_HOLD_THRESHOLD: float = 0.3  # Hold 0.3s to activate (vs tap)
+
+func _on_speed_hold_start() -> void:
+	_speed_hold_timer = 0.0
+	_speed_hold_active = false
+	_speed_before_hold = _game_speed_level if fast_forward else 1.0
+
+func _on_speed_hold_end() -> void:
+	if _speed_hold_active:
+		# Release from hold — return to previous speed
+		_speed_hold_active = false
+		if _speed_before_hold > 1.0:
+			Engine.time_scale = _speed_before_hold
+			_game_speed_level = _speed_before_hold
+			speed_button.text = "  [%dx]  " % int(_speed_before_hold)
+		else:
+			fast_forward = false
+			Engine.time_scale = 1.0
+			_game_speed_level = 1.0
+			speed_button.text = "  >>  "
+
+func _update_speed_hold(delta: float) -> void:
+	if not speed_button.button_pressed: return
+	_speed_hold_timer += delta
+	if _speed_hold_timer >= SPEED_HOLD_THRESHOLD and not _speed_hold_active:
+		# Activate hold-to-fast-forward
+		_speed_hold_active = true
+		fast_forward = true
+		_game_speed_level = 5.0  # Max speed while held
+		if not game_paused:
+			Engine.time_scale = 5.0
+		speed_button.text = " [HOLD] "
 
 func _on_speed_pressed() -> void:
 	_play_sfx(_sfx_ui_click)
