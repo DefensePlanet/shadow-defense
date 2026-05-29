@@ -20747,6 +20747,7 @@ func _process(delta: float) -> void:
 	_update_voice_cooldowns(delta)
 	_check_duo_combos()
 	_check_ambient_chat(delta)
+	_update_emote_cooldowns(delta)
 	_update_bg_story(delta)
 	_update_foreground(delta)
 	_update_destructibles(delta)
@@ -27148,6 +27149,99 @@ const CHARACTER_VOICE_TYPE_MAP: Dictionary = {
 	TowerType.MEDUSA: "female_hero", TowerType.LOKI: "male_hero",
 	TowerType.ANUBIS: "male_hero",
 }
+
+# === CHARACTER EMOTES — tap tower to trigger personality actions ===
+# 4 emotes per character: Taunt, Cheer, Dance, Battle Cry
+# Triggered by double-tapping a selected tower.
+const CHARACTER_EMOTES: Dictionary = {
+	TowerType.ROBIN_HOOD: {
+		"taunt": {"line": "Is that all you've got, Shadow Author?", "anim": "flex_bow", "effect": "arrow_flourish"},
+		"cheer": {"line": "For Sherwood! For freedom!", "anim": "fist_pump", "effect": "green_sparkle"},
+		"dance": {"line": "♪ Robin Hood, Robin Hood, riding through the glen! ♪", "anim": "jig", "effect": "leaf_burst"},
+		"battle_cry": {"line": "NOTTINGHAM!", "anim": "bow_raise", "effect": "gold_flash"},
+	},
+	TowerType.ALICE: {
+		"taunt": {"line": "You're nothing but a pack of cards!", "anim": "point", "effect": "card_scatter"},
+		"cheer": {"line": "Curiouser and curiouser — we're winning!", "anim": "clap", "effect": "sparkle_rain"},
+		"dance": {"line": "♪ A very merry unbirthday to ME! ♪", "anim": "twirl", "effect": "teacup_orbit"},
+		"battle_cry": {"line": "OFF WITH THEIR HEADS!", "anim": "stomp", "effect": "red_flash"},
+	},
+	TowerType.SCROOGE: {
+		"taunt": {"line": "Bah! You call that an attack? HUMBUG!", "anim": "cane_wave", "effect": "coin_scatter"},
+		"cheer": {"line": "God bless us, EVERY ONE!", "anim": "hat_tip", "effect": "gold_rain"},
+		"dance": {"line": "♪ I'm as light as a feather, merry as a schoolboy! ♪", "anim": "jig", "effect": "coin_orbit"},
+		"battle_cry": {"line": "MERRY CHRISTMAS, you FILTHY shadows!", "anim": "cane_slam", "effect": "ice_burst"},
+	},
+	TowerType.DRACULA: {
+		"taunt": {"line": "I have drained armies for four centuries. You are NOTHING.", "anim": "cape_spread", "effect": "bat_burst"},
+		"cheer": {"line": "The night belongs to the LIVING!", "anim": "fist_raise", "effect": "blood_sparkle"},
+		"dance": {"line": "♪ ...a waltz. The first one I've danced in two hundred years. ♪", "anim": "waltz", "effect": "mist_swirl"},
+		"battle_cry": {"line": "CHILDREN OF THE NIGHT — ATTACK!", "anim": "arms_wide", "effect": "darkness_pulse"},
+	},
+	TowerType.FRANKENSTEIN: {
+		"taunt": {"line": "Frankenstein... ANGRY. You not like Frankenstein angry.", "anim": "chest_pound", "effect": "ground_shake"},
+		"cheer": {"line": "Frankenstein... happy! Friends happy! GOOD!", "anim": "clumsy_clap", "effect": "lightning_sparkle"},
+		"dance": {"line": "♪ Frankenstein... dance? Frankenstein TRY. ♪", "anim": "stomp_dance", "effect": "spark_burst"},
+		"battle_cry": {"line": "IT'S ALIIIIIVE! I mean — THEY'RE DEAD!", "anim": "lightning_pose", "effect": "massive_bolt"},
+	},
+	TowerType.PETER_PAN: {
+		"taunt": {"line": "I've beaten Captain Hook a thousand times. You're EASIER.", "anim": "cocky_pose", "effect": "fairy_burst"},
+		"cheer": {"line": "Oh, the cleverness of ME!", "anim": "backflip", "effect": "pixie_explosion"},
+		"dance": {"line": "♪ I won't grow up! I don't WANNA grow up! ♪", "anim": "flying_dance", "effect": "star_trail"},
+		"battle_cry": {"line": "BANGARANG!!", "anim": "sword_raise", "effect": "neverland_flash"},
+	},
+	TowerType.PHANTOM: {
+		"taunt": {"line": "I brought down a chandelier on an audience. Imagine what I'll do to YOU.", "anim": "menacing_lean", "effect": "candle_flicker"},
+		"cheer": {"line": "Bravo... BRAVO! *slow clap*", "anim": "slow_clap", "effect": "rose_petals"},
+		"dance": {"line": "♪ The music of the night... ♪", "anim": "conductor_sweep", "effect": "music_notes_burst"},
+		"battle_cry": {"line": "THE POINT OF NO RETURN!", "anim": "cape_dramatic", "effect": "chandelier_drop"},
+	},
+	TowerType.SHERLOCK: {
+		"taunt": {"line": "You left seven clues in your last attack. I only needed three.", "anim": "magnify_gesture", "effect": "deduction_lines"},
+		"cheer": {"line": "Elementary, my dear teammates.", "anim": "pipe_raise", "effect": "smoke_rings"},
+		"dance": {"line": "♪ I don't dance. But I observe those who do with GREAT interest. ♪", "anim": "awkward_sway", "effect": "question_marks"},
+		"battle_cry": {"line": "THE GAME IS AFOOT!", "anim": "sprint_pose", "effect": "fog_burst"},
+	},
+	TowerType.MERLIN: {
+		"taunt": {"line": "I've forgotten more magic than you'll ever learn.", "anim": "staff_raise", "effect": "rune_circle"},
+		"cheer": {"line": "The prophecy holds! We are VICTORIOUS!", "anim": "staff_glow", "effect": "crystal_burst"},
+		"dance": {"line": "♪ Even wizards dance. Especially at my age — every day is a celebration. ♪", "anim": "wizard_shuffle", "effect": "star_orbit"},
+		"battle_cry": {"line": "BY EXCALIBUR'S LIGHT — CHARGE!", "anim": "excalibur_summon", "effect": "holy_beam"},
+	},
+	TowerType.TARZAN: {
+		"taunt": {"line": "Tarzan beat SABOR. You... smaller than Sabor.", "anim": "flex", "effect": "vine_whip"},
+		"cheer": {"line": "AHHH-AH-AH-AHHHH! *victory yell*", "anim": "chest_beat", "effect": "jungle_burst"},
+		"dance": {"line": "♪ Tarzan... try human dance. *stamps feet rhythmically* ♪", "anim": "tribal_stomp", "effect": "leaf_explosion"},
+		"battle_cry": {"line": "JUNGLE! FIGHT! NOW!", "anim": "primal_scream", "effect": "animal_stampede"},
+	},
+	TowerType.SHADOW_AUTHOR: {
+		"taunt": {"line": "I WROTE your defeat. Then I erased it. You're welcome.", "anim": "quill_flourish", "effect": "ink_scatter"},
+		"cheer": {"line": "A happy ending. I never thought I'd write one.", "anim": "book_close", "effect": "page_burst"},
+		"dance": {"line": "♪ Even the Author dances when the story is good enough. ♪", "anim": "ink_waltz", "effect": "text_swirl"},
+		"battle_cry": {"line": "THE PEN IS MIGHTIER!", "anim": "quill_stab", "effect": "ink_explosion"},
+	},
+}
+
+var _emote_cooldown: Dictionary = {}  # tower_type -> float
+const EMOTE_COOLDOWN_TIME: float = 5.0
+
+func _trigger_emote(tower_type, emote_type: String, tower_pos: Vector2) -> void:
+	if _emote_cooldown.get(tower_type, 0.0) > 0: return
+	_emote_cooldown[tower_type] = EMOTE_COOLDOWN_TIME
+	var emotes = CHARACTER_EMOTES.get(tower_type, {})
+	if not emotes.has(emote_type): return
+	var emote = emotes[emote_type]
+	var name_idx = survivor_types.find(tower_type)
+	var cname = character_names[name_idx] if name_idx >= 0 and name_idx < character_names.size() else "?"
+	# Show speech bubble
+	spawn_floating_text(tower_pos + Vector2(0, -50), '"%s"' % emote["line"], Color(0.95, 0.88, 0.50), 12.0, 3.5)
+	# Visual effect burst
+	_screen_shake_intensity = 1.5 if emote_type == "battle_cry" else 0.5
+	_screen_shake_timer = 0.15
+
+func _update_emote_cooldowns(delta: float) -> void:
+	for key in _emote_cooldown:
+		_emote_cooldown[key] = maxf(_emote_cooldown[key] - delta, 0.0)
 
 func _get_voice_data(tower_type) -> Dictionary:
 	return CHARACTER_VOICES.get(tower_type, {})
