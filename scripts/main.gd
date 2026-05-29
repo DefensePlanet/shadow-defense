@@ -2794,6 +2794,33 @@ var synergy_banner_timer: float = 0.0
 # === ACHIEVEMENTS ===
 var achievement_definitions: Array = []
 var achievement_progress: Dictionary = {}
+var achievement_points: int = 0  # Earned from completing achievements (#130)
+const ACHIEVEMENT_SHOP: Array = [
+	{"name": "Golden Treasure Chest", "cost": 50, "reward_type": "gold_chest", "reward_amount": 1},
+	{"name": "50 Pages", "cost": 30, "reward_type": "pages", "reward_amount": 50},
+	{"name": "25 Quills", "cost": 40, "reward_type": "quills", "reward_amount": 25},
+	{"name": "5 Stars", "cost": 75, "reward_type": "stars", "reward_amount": 5},
+	{"name": "10 Knowledge Ink", "cost": 100, "reward_type": "ink", "reward_amount": 10},
+	{"name": "Energy Refill", "cost": 20, "reward_type": "energy", "reward_amount": 20},
+	{"name": "Exclusive Title: Achiever", "cost": 200, "reward_type": "title", "reward_id": "achiever"},
+	{"name": "Exclusive Title: Completionist", "cost": 500, "reward_type": "title", "reward_id": "completionist"},
+]
+
+func _buy_achievement_shop_item(index: int) -> bool:
+	if index < 0 or index >= ACHIEVEMENT_SHOP.size(): return false
+	var item = ACHIEVEMENT_SHOP[index]
+	if achievement_points < item["cost"]: return false
+	achievement_points -= item["cost"]
+	match item["reward_type"]:
+		"pages": player_pages += item["reward_amount"]
+		"quills": player_quills += item["reward_amount"]
+		"stars": player_storybook_stars += item["reward_amount"]
+		"ink": player_ink += item["reward_amount"]
+		"energy": player_energy = mini(player_energy + item["reward_amount"], MAX_ENERGY)
+		"gold_chest": pass  # Open chest animation
+		"title": pass  # Unlock cosmetic title
+	spawn_floating_text(Vector2(640, 300), "Purchased: %s!" % item["name"], Color(0.4, 0.9, 0.6), 16.0, 2.0)
+	return true
 var achievements_unlocked: Dictionary = {}
 var achievement_popup_text: String = ""
 var achievement_popup_timer: float = 0.0
@@ -5545,6 +5572,9 @@ func _check_achievement(id: String, value = 1) -> void:
 	if achievement_progress[id] >= def_data["target"]:
 		achievements_unlocked[id] = true
 		_haptic(2)  # Strong haptic on achievement unlock
+		# Achievement points (#130) — harder achievements give more points
+		var ach_pts = def_data.get("difficulty", 1) * 5
+		achievement_points += ach_pts
 		# Grant reward
 		match def_data["reward_type"]:
 			"pages": player_pages += def_data["reward_amount"]
