@@ -1487,6 +1487,7 @@ var _clutch_bonus_dmg: float = 1.5  # +50% tower damage at 1 life
 var _clutch_bonus_speed: float = 1.25  # +25% attack speed at 1 life
 var _clutch_gold_mult: float = 2.0  # Double gold earned at 1 life
 var _clutch_trigger_flash: float = 0.0  # Screen flash when clutch activates
+var _last_stand_slowmo: float = 0.0  # Dramatic slow-mo on near-death (#105)
 
 # --- 14b. INK METER ULTIMATE SYSTEM (#100) ---
 var _ink_meter: float = 0.0  # 0.0 to 100.0
@@ -21377,6 +21378,11 @@ func _process(delta: float) -> void:
 		_near_miss_timer -= delta
 	if _clutch_trigger_flash > 0.0:
 		_clutch_trigger_flash -= delta
+	if _last_stand_slowmo > 0.0:
+		_last_stand_slowmo -= delta
+		if _last_stand_slowmo <= 0.0:
+			if not game_paused:
+				Engine.time_scale = _game_speed_level if fast_forward else 1.0
 	if _milestone_popup_timer > 0.0:
 		_milestone_popup_timer -= delta
 	if _power_spike_timer > 0.0:
@@ -34930,14 +34936,25 @@ func lose_life() -> void:
 	if lives < 0:
 		lives = 0
 	current_game_lives_lost += 1
+	# Last Stand dramatic slow-mo (#105)
+	if lives <= 2 and lives > 0:
+		_last_stand_slowmo = 0.8
+		Engine.time_scale = 0.15  # Dramatic slow-mo
+		_screen_shake_intensity = 8.0
+		_screen_shake_timer = 0.5
+		_haptic(2)
+		if lives == 1:
+			spawn_floating_text(Vector2(640, 320), "FINAL LIFE!", Color(1.0, 0.1, 0.05), 28.0, 3.0)
+		else:
+			spawn_floating_text(Vector2(640, 320), "DANGER!", Color(1.0, 0.3, 0.1), 22.0, 2.0)
 	# Polyrhythm system: dissonance on enemy leak
 	if _poly != null:
 		_poly.on_enemy_leaked()
 	# Red screen flash on life loss + warning sound + haptic
-	_death_flash_timer = 0.15
+	_death_flash_timer = 0.2
 	_play_sfx(_sfx_life_lost)
 	if _is_mobile:
-		Input.vibrate_handheld(100)
+		Input.vibrate_handheld(150)
 	spawn_floating_text(Vector2(420, 30), "-1 LIFE!", Color(1.0, 0.2, 0.15, 1.0), 18.0, 0.8)
 	# Narrator reacts to multiple life losses
 	if current_game_lives_lost == 5 and _narrator_cooldown <= 0.0:
