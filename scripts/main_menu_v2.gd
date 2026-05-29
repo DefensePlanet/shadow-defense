@@ -543,6 +543,7 @@ func _build_nav_buttons() -> void:
 		text_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		nav_content.add_child(text_lbl)
 		btn.pressed.connect(_on_tab.bind(tabs[i]))
+		_add_press_feedback(btn)
 		nav_buttons_container.add_child(btn)
 
 func _on_tab(tab: String) -> void:
@@ -938,6 +939,7 @@ func _build_portal_hub() -> void:
 			card.modulate = Color(1.12, 1.10, 1.05))
 		card.mouse_exited.connect(func():
 			card.modulate = Color.WHITE)
+		_add_press_feedback(card)
 		# Staggered entrance — slide up + fade
 		grid.add_child(card)
 		card.modulate.a = 0.0
@@ -1403,11 +1405,12 @@ func _build_arc_levels() -> void:
 			var _li3 = li
 			card.pressed.connect(func():
 				if _main: _main._on_level_selected(_li3))
-		# === HOVER EFFECTS ===
+		# === HOVER + PRESS EFFECTS ===
 		card.mouse_entered.connect(func():
 			card.modulate = Color(1.12, 1.10, 1.05))
 		card.mouse_exited.connect(func():
 			card.modulate = Color.WHITE)
+		_add_press_feedback(card)
 		# === NEXT LEVEL PULSE ===
 		if is_next:
 			var pulse_tw = create_tween().set_loops()
@@ -4230,9 +4233,21 @@ func _play_ui_click() -> void:
 	if _main and "_sfx_ui_click" in _main and _main.has_method("_play_sfx"):
 		_main._play_sfx(_main._sfx_ui_click)
 
-func _add_scroll_hint(_parent_control: Control) -> void:
-	# Removed scroll text and TOP button — clean layout (#17, #18)
-	pass
+func _add_scroll_hint(parent_control: Control) -> void:
+	# Subtle animated scroll-down arrow at bottom of content area
+	var hint = _lbl("▼", 20, Color(0.65, 0.55, 0.35, 0.5))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	hint.offset_top = -30
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent_control.add_child(hint)
+	# Bounce animation
+	var htw = create_tween().set_loops()
+	htw.tween_property(hint, "position:y", hint.position.y - 6, 0.6).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	htw.tween_property(hint, "position:y", hint.position.y, 0.6).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	# Fade out after 4 seconds
+	var fade_tw = create_tween()
+	fade_tw.tween_property(hint, "modulate:a", 0.0, 0.5).set_delay(4.0)
 
 func _format_num(val: float) -> String:
 	if val >= 1000000: return "%.1fM" % (val / 1000000.0)
