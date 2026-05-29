@@ -43810,6 +43810,8 @@ func _validate_save_checksum(data: Dictionary) -> bool:
 
 # === CUSTOM CHALLENGE CREATOR (#182) ===
 var custom_challenge: Dictionary = {}
+var custom_challenge_active: bool = false
+var saved_custom_challenges: Array = []  # Player's saved challenges
 
 func _create_custom_challenge(params: Dictionary) -> Dictionary:
 	return {
@@ -43822,6 +43824,41 @@ func _create_custom_challenge(params: Dictionary) -> Dictionary:
 		"created_by": "player",
 		"seed": randi(),
 	}
+
+func _start_custom_challenge(challenge: Dictionary) -> void:
+	custom_challenge = challenge
+	custom_challenge_active = true
+	current_level = challenge["level"]
+	_reset_game()
+	_do_level_start(current_level)
+	# Apply custom parameters
+	total_waves = challenge["waves"]
+	lives = challenge["lives"]
+	gold = challenge["starting_gold"]
+	# Apply mutators
+	active_mutators.clear()
+	for m in challenge.get("mutators", []):
+		active_mutators.append(m)
+	# Tower restrictions (if any)
+	if challenge.get("tower_restrictions", []).size() > 0:
+		for tt in tower_info:
+			if tt not in challenge["tower_restrictions"]:
+				if tower_buttons.has(tt) and is_instance_valid(tower_buttons[tt]):
+					tower_buttons[tt].disabled = true
+	update_hud()
+	info_label.text = "CUSTOM CHALLENGE: %d waves, %d lives, %dG start" % [challenge["waves"], challenge["lives"], challenge["starting_gold"]]
+
+func _generate_random_custom_challenge() -> Dictionary:
+	# Generate a random challenge for variety
+	var lvl = randi() % levels.size()
+	var w = [20, 30, 40, 50, 60][randi() % 5]
+	var l = [1, 5, 20, 50, 100][randi() % 5]
+	var g = [50, 100, 200, 500][randi() % 4]
+	var muts: Array = []
+	var possible_muts = ["iron_man", "minimalist", "fast_forward", "fog_of_war", "randomizer"]
+	if randf() < 0.5:
+		muts.append(possible_muts[randi() % possible_muts.size()])
+	return _create_custom_challenge({"level": lvl, "waves": w, "lives": l, "starting_gold": g, "mutators": muts})
 
 # === NEWS FEED (#186) ===
 var news_items: Array = [
