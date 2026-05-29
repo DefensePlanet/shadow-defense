@@ -225,9 +225,16 @@ func _load_bgs() -> void:
 		return
 	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
-		var exists = ResourceLoader.exists(m[k])
-		if exists:
+		if ResourceLoader.exists(m[k]):
 			_backgrounds[k] = load(m[k])
+		else:
+			# Fallback: load from absolute path for newly added images
+			var abs_path = ProjectSettings.globalize_path(m[k])
+			if FileAccess.file_exists(abs_path):
+				var img = Image.load_from_file(abs_path)
+				if img:
+					var tex = ImageTexture.create_from_image(img)
+					_backgrounds[k] = tex
 
 func _load_art() -> void:
 	if DisplayServer.get_name() == "headless":
