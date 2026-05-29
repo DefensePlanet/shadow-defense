@@ -8565,6 +8565,9 @@ func _load_level_bg_textures() -> void:
 
 func _load_path_textures() -> void:
 	_path_textures.clear()
+	# Skip in headless mode (no display server = no textures needed)
+	if DisplayServer.get_name() == "headless":
+		return
 	# Per-level unique path textures (37 levels)
 	for idx in range(MAP_THUMB_SLUGS.size()):
 		var slug = MAP_THUMB_SLUGS[idx]
@@ -8576,9 +8579,10 @@ func _load_path_textures() -> void:
 				continue
 		# Fallback: load raw PNG via Image (works even without .import cache)
 		var abs_path = ProjectSettings.globalize_path(res_path)
-		var img = Image.new()
-		if img.load(abs_path) == OK:
-			_path_textures[slug] = ImageTexture.create_from_image(img)
+		if FileAccess.file_exists(abs_path):
+			var img = Image.new()
+			if img.load(abs_path) == OK:
+				_path_textures[slug] = ImageTexture.create_from_image(img)
 	# Legacy faction-key fallback (for any levels without per-level texture)
 	var faction_names = ["prologue", "sherlock", "merlin", "tarzan", "dracula", "frankenstein",
 		"robin_hood", "alice", "oz", "peter_pan", "phantom", "scrooge", "shadow_author"]
@@ -8592,6 +8596,8 @@ func _load_path_textures() -> void:
 				_path_textures[pname] = tex
 				continue
 		var abs_path = ProjectSettings.globalize_path(res_path)
+		if not FileAccess.file_exists(abs_path):
+			continue
 		var img = Image.new()
 		if img.load(abs_path) == OK:
 			_path_textures[pname] = ImageTexture.create_from_image(img)
@@ -8804,6 +8810,9 @@ func _load_ui_art() -> void:
 				_ui_tex[item] = tex
 
 func _load_all_art_assets() -> void:
+	# Skip all texture loading in headless mode (no display = no rendering)
+	if DisplayServer.get_name() == "headless":
+		return
 	_load_map_thumb_textures()
 	_load_tab_icon_textures()
 	_load_badge_icon_textures()

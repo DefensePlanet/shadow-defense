@@ -193,6 +193,8 @@ func _draw() -> void:
 	# Auto-test removed
 
 func _load_bgs() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
 	var m = {"chapters": "res://assets/ui_frames/scroll_banner.png", "survivors": "res://assets/menu_art/survivors_bg_gothic.png", "emporium": "res://assets/menu_art/emporium_bg_gothic.png", "codex": "res://assets/menu_art/codex_bg_gothic.png", "settings": "res://assets/menu_art/settings_bg_v2.png"}
 	for k in m:
 		var exists = ResourceLoader.exists(m[k])
@@ -200,6 +202,8 @@ func _load_bgs() -> void:
 			_backgrounds[k] = load(m[k])
 
 func _load_art() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
 	if ResourceLoader.exists("res://shaders/black_key.gdshader"):
 		_black_key = load("res://shaders/black_key.gdshader")
 	var paths = {
