@@ -342,33 +342,43 @@ func _build_currency_bar() -> void:
 	h_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h_margin.add_child(h)
 	top_bar.add_child(h_margin)
-	# LEFT: Journey progress with mini bar (#1)
+	# LEFT: Journey progress — compact chip with mini bar
 	var completed_ct = _main.completed_levels.size() if "completed_levels" in _main else 0
 	var total_ct = _main.levels.size() if "levels" in _main else 90
 	var pct = int(float(completed_ct) / maxf(float(total_ct), 1.0) * 100.0)
+	var journey_chip = PanelContainer.new()
+	var jcs = StyleBoxFlat.new()
+	jcs.bg_color = Color(0.08, 0.05, 0.14, 0.9)
+	jcs.set_corner_radius_all(12)
+	jcs.border_color = Color(0.65, 0.50, 0.18, 0.4)
+	jcs.set_border_width_all(1)
+	jcs.content_margin_left = 10; jcs.content_margin_right = 10
+	jcs.content_margin_top = 3; jcs.content_margin_bottom = 3
+	journey_chip.add_theme_stylebox_override("panel", jcs)
+	journey_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var journey_box = VBoxContainer.new()
-	journey_box.add_theme_constant_override("separation", 1)
+	journey_box.add_theme_constant_override("separation", 2)
 	journey_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	journey_box.custom_minimum_size.x = 140
-	var journey_lbl = _lbl("Journey %d%% (%d/%d)" % [pct, completed_ct, total_ct], 10, Color(0.75, 0.65, 0.50))
+	journey_chip.add_child(journey_box)
+	var journey_lbl = _lbl("%d%% Journey" % pct, 11, Color(0.80, 0.70, 0.50))
 	journey_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	journey_box.add_child(journey_lbl)
-	# Mini progress bar
+	# Mini progress bar inside chip
 	var bar_bg = PanelContainer.new()
 	var bar_bg_s = StyleBoxFlat.new()
 	bar_bg_s.bg_color = Color(0.12, 0.08, 0.18, 0.8)
 	bar_bg_s.set_corner_radius_all(3)
 	bar_bg.add_theme_stylebox_override("panel", bar_bg_s)
-	bar_bg.custom_minimum_size = Vector2(120, 6)
+	bar_bg.custom_minimum_size = Vector2(100, 5)
 	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bar_fill = ColorRect.new()
 	var fill_pct = clampf(float(completed_ct) / maxf(float(total_ct), 1.0), 0.0, 1.0)
-	bar_fill.custom_minimum_size = Vector2(120.0 * fill_pct, 6)
+	bar_fill.custom_minimum_size = Vector2(100.0 * fill_pct, 5)
 	bar_fill.color = Color(0.85, 0.65, 0.15, 0.9)
 	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_bg.add_child(bar_fill)
 	journey_box.add_child(bar_bg)
-	h.add_child(journey_box)
+	h.add_child(journey_chip)
 	# Spacer to push currencies to center
 	var spacer_l = Control.new()
 	spacer_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -527,24 +537,31 @@ func _on_tab(tab: String) -> void:
 	if current_view == tab: return
 	_play_ui_click()
 	_save_scroll_position()
+	# Fade out old content, then rebuild
+	var old_view = current_view
 	current_view = tab
-	_set_bg(tab)
-	# Rebuild nav — remove_child first so they're gone immediately
+	# Rebuild nav immediately
 	for c in nav_buttons_container.get_children():
 		nav_buttons_container.remove_child(c)
 		c.queue_free()
 	_build_nav_buttons()
-	# Rebuild content — remove_child first so old content is gone
-	_clear()
-	content_area.position.x = 0
-	content_area.modulate.a = 1.0
-	match tab:
-		"chapters": _build_chapters()
-		"survivors": _build_survivors()
-		"emporium": _build_emporium()
-		"codex": _build_codex()
-		"settings": _build_settings()
-	_restore_scroll_position()
+	# Crossfade transition: fade out → rebuild → fade in
+	var fade_tw = create_tween().set_ease(Tween.EASE_OUT)
+	fade_tw.tween_property(content_area, "modulate:a", 0.0, 0.12)
+	fade_tw.tween_callback(func():
+		_clear()
+		_set_bg(tab)
+		content_area.position.x = 0
+		content_area.modulate.a = 0.0
+		match tab:
+			"chapters": _build_chapters()
+			"survivors": _build_survivors()
+			"emporium": _build_emporium()
+			"codex": _build_codex()
+			"settings": _build_settings()
+		_restore_scroll_position()
+		var fade_in = create_tween().set_ease(Tween.EASE_OUT)
+		fade_in.tween_property(content_area, "modulate:a", 1.0, 0.15))
 
 func _save_scroll_position() -> void:
 	for c in content_area.get_children():
@@ -926,8 +943,16 @@ func _enter_realm(arc_name: String) -> void:
 			_main._start_story_dialog(intro_key)
 			# After the dialog ends, the player returns to menu — they'll see the arc view
 			return
+	# Transition: fade out → enter realm → fade in
 	_portal_view = arc_name
-	_build_chapters()
+	var enter_tw = create_tween().set_ease(Tween.EASE_OUT)
+	enter_tw.tween_property(content_area, "modulate:a", 0.0, 0.15)
+	enter_tw.tween_callback(func():
+		_clear()
+		content_area.modulate.a = 0.0
+		_build_chapters()
+		var enter_in = create_tween().set_ease(Tween.EASE_OUT)
+		enter_in.tween_property(content_area, "modulate:a", 1.0, 0.2))
 
 func _is_realm_complete(realm: Dictionary) -> bool:
 	if not _main or not "completed_levels" in _main: return false
