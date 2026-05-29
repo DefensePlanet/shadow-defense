@@ -9,7 +9,7 @@ var placing_tower: bool = false
 var ghost_position: Vector2 = Vector2.ZERO
 
 # Tower selection
-enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR }
+enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB }
 var selected_tower: TowerType = TowerType.ROBIN_HOOD
 
 const BOSS_VILLAIN_NAMES: Dictionary = {
@@ -45,6 +45,16 @@ var tower_info = {
 	TowerType.MERLIN: {"name": "Merlin", "cost": 170, "range": 132.0, "damage": 25, "fire_rate": 1.00},
 	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 185, "range": 140.0, "damage": 32, "fire_rate": 0.60},
 	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 350, "range": 170.0, "damage": 25, "fire_rate": 1.20},
+	# === RECRUITABLE VILLAINS (ACT 1 story choices) ===
+	TowerType.CAPTAIN_HOOK: {"name": "Captain Hook", "cost": 180, "range": 155.0, "damage": 18, "fire_rate": 0.95, "desc": "Pirate captain with cutlass + cannon. Ranged broadside attacks."},
+	TowerType.QUEEN_OF_HEARTS: {"name": "Queen of Hearts", "cost": 200, "range": 140.0, "damage": 20, "fire_rate": 0.85, "desc": "Card army commander. Spawns card soldiers as allies."},
+	TowerType.CLAYTON: {"name": "Clayton", "cost": 160, "range": 180.0, "damage": 22, "fire_rate": 0.70, "desc": "Expert hunter. Long-range rifle, targets strongest enemy first."},
+	# === ACT 4 MYTHOLOGICAL CHARACTERS ===
+	TowerType.HEADLESS_HORSEMAN: {"name": "Headless Horseman", "cost": 250, "range": 160.0, "damage": 28, "fire_rate": 0.80, "desc": "Terror incarnate. Flaming pumpkin AoE + fear aura slows nearby enemies."},
+	TowerType.MEDUSA: {"name": "Medusa", "cost": 280, "range": 150.0, "damage": 20, "fire_rate": 0.90, "desc": "Petrifying Gaze freezes enemies in stone. Snake-hair venom bolts."},
+	TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
+	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
+	TowerType.CAPTAIN_AHAB: {"name": "Captain Ahab", "cost": 220, "range": 170.0, "damage": 30, "fire_rate": 0.65, "desc": "Obsessive hunter. Harpoon tether slows boss enemies. 3x damage to marked targets."},
 }
 
 # Survivor skins — purchasable outfit variants
@@ -281,7 +291,12 @@ var survivor_types = [
 	TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
 	TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE,
 	TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA,
-	TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR
+	TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR,
+	# Recruitable villains (unlock via story choices in #10)
+	TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON,
+	# ACT 4 mythological characters (unlock by rescuing in Narrator's Realm)
+	TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.LOKI,
+	TowerType.ANUBIS, TowerType.CAPTAIN_AHAB,
 ]
 var survivor_descriptions = {
 	TowerType.ROBIN_HOOD: "The legendary outlaw of Sherwood Forest.\nLong-range archer with piercing arrows and gold bonus.",
@@ -311,6 +326,14 @@ var character_titles: Array = [
 	"The Last Enchanter",
 	"The Reborn Abomination",
 	"The Dark Narrator",
+	"The Shadow Pirate King",
+	"Her Crimson Majesty",
+	"The Great White Hunter",
+	"The Eternal Rider",
+	"The Gorgon Queen",
+	"The God of Mischief",
+	"The Judge of Souls",
+	"The Obsessive Captain",
 ]
 # Survivor grid UI
 var survivor_grid_cards: Array = []  # Array of Button nodes for each character
@@ -687,8 +710,8 @@ var _world_map_stars: Array = []
 var _world_map_clouds: Array = []
 var _world_map_smoke: Array = []
 
-var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock Holmes", "Tarzan", "Count Dracula", "Merlin", "Frankenstein's Monster", "The Shadow Author"]
-var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol", "The Adventures of Sherlock Holmes", "Tarzan of the Apes", "Dracula", "Le Morte d'Arthur", "Frankenstein", "The Tome of Shadows"]
+var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock Holmes", "Tarzan", "Count Dracula", "Merlin", "Frankenstein's Monster", "The Shadow Author", "Captain Hook", "Queen of Hearts", "Clayton", "The Headless Horseman", "Medusa", "Loki", "Anubis", "Captain Ahab"]
+var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol", "The Adventures of Sherlock Holmes", "Tarzan of the Apes", "Dracula", "Le Morte d'Arthur", "Frankenstein", "The Tome of Shadows", "Peter and Wendy", "Alice's Adventures in Wonderland", "Tarzan of the Apes", "The Legend of Sleepy Hollow", "Greek Mythology", "Norse Mythology", "Egyptian Mythology", "Moby-Dick"]
 var character_quotes: Array = [
 	"I rob the dead now. They tip better than the living.",
 	"We're all mad here. I'm just the one with teeth.",
@@ -702,6 +725,14 @@ var character_quotes: Array = [
 	"I've forgotten more magic than you'll ever learn.",
 	"They made me from the dead. I hit like it.",
 	"This is my story. You're just a character in it.",
+	"Bad form to die before I've had my fun with you.",
+	"OFF WITH THEIR HEADS! ...What? It's my THING.",
+	"The jungle belongs to no one. But I take what I want.",
+	"I ride at midnight. I ride at dawn. I ride FOREVER.",
+	"Don't look at me. That's not a request — it's a WARNING.",
+	"I am the lie that tells the truth. Confused? Good.",
+	"Your heart weighs heavy. My feather weighs nothing. Guess who wins.",
+	"I've been hunting the white whale for decades. One more day won't kill me. Probably.",
 ]
 
 # Character growth arcs — personality evolution through gameplay milestones
