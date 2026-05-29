@@ -3984,6 +3984,80 @@ func _refresh_unlocked_survivors() -> void:
 			if ResourceLoader.exists(path):
 				tower_scenes[tt] = load(path)
 
+# === CHARACTER ALIGNMENT SYSTEM — Hero / Villain / Antihero ===
+# Affects synergy bonuses and team composition buffs.
+const CHARACTER_ALIGNMENT: Dictionary = {
+	# HEROES — protagonists from their original novels
+	TowerType.ROBIN_HOOD: "hero",
+	TowerType.ALICE: "hero",
+	TowerType.PETER_PAN: "hero",
+	TowerType.SHERLOCK: "hero",
+	TowerType.TARZAN: "hero",
+	TowerType.MERLIN: "hero",
+	TowerType.CAPTAIN_AHAB: "hero",  # Tragic hero
+	# VILLAINS — antagonists who switched sides
+	TowerType.WICKED_WITCH: "villain",
+	TowerType.DRACULA: "villain",
+	TowerType.CAPTAIN_HOOK: "villain",
+	TowerType.QUEEN_OF_HEARTS: "villain",
+	TowerType.CLAYTON: "villain",
+	TowerType.MEDUSA: "villain",
+	TowerType.HEADLESS_HORSEMAN: "villain",
+	# ANTIHEROES — complex characters, neither pure hero nor villain
+	TowerType.PHANTOM: "antihero",
+	TowerType.SCROOGE: "antihero",  # Was villain, redeemed
+	TowerType.FRANKENSTEIN: "antihero",  # Monster who chose kindness
+	TowerType.SHADOW_AUTHOR: "antihero",  # Former villain, now ally
+	TowerType.LOKI: "antihero",  # Trickster, serves no side
+	TowerType.ANUBIS: "antihero",  # Judge, neutral by nature
+}
+
+# Team composition bonuses — checked at wave start
+const ALIGNMENT_BONUSES: Dictionary = {
+	"all_heroes": {"count": 4, "bonus": 0.10, "desc": "Heroic Unity — 4+ heroes: +10% damage"},
+	"all_villains": {"count": 3, "bonus": 0.12, "desc": "Villain's Pact — 3+ villains: +12% damage"},
+	"mixed": {"hero_min": 2, "villain_min": 2, "bonus": 0.08, "desc": "Unlikely Alliance — 2+ heroes & 2+ villains: +8% all stats"},
+	"antihero_trio": {"count": 3, "bonus": 0.15, "desc": "Grey Area — 3+ antiheroes: +15% ability cooldown speed"},
+	"full_dark": {"villain_min": 3, "antihero_min": 2, "bonus": 0.18, "desc": "Embrace the Dark — 3 villains + 2 antiheroes: +18% damage"},
+	"redemption": {"desc": "Redemption Arc — Dracula + Scrooge + Frankenstein: +20% damage & +2 lives/wave"},
+}
+
+func _get_alignment(tower_type) -> String:
+	return CHARACTER_ALIGNMENT.get(tower_type, "hero")
+
+func _check_team_alignment_bonus() -> Dictionary:
+	# Count placed tower alignments
+	var hero_count = 0; var villain_count = 0; var antihero_count = 0
+	var placed_types = []
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower): continue
+		var tt = _get_tower_type_from_node(tower)
+		if tt == null: continue
+		if tt in placed_types: continue
+		placed_types.append(tt)
+		match _get_alignment(tt):
+			"hero": hero_count += 1
+			"villain": villain_count += 1
+			"antihero": antihero_count += 1
+	var active_bonuses = []
+	if hero_count >= 4:
+		active_bonuses.append(ALIGNMENT_BONUSES["all_heroes"])
+	if villain_count >= 3:
+		active_bonuses.append(ALIGNMENT_BONUSES["all_villains"])
+	if hero_count >= 2 and villain_count >= 2:
+		active_bonuses.append(ALIGNMENT_BONUSES["mixed"])
+	if antihero_count >= 3:
+		active_bonuses.append(ALIGNMENT_BONUSES["antihero_trio"])
+	if villain_count >= 3 and antihero_count >= 2:
+		active_bonuses.append(ALIGNMENT_BONUSES["full_dark"])
+	# Special: Redemption Arc (specific characters)
+	var has_dracula = TowerType.DRACULA in placed_types
+	var has_scrooge = TowerType.SCROOGE in placed_types
+	var has_frank = TowerType.FRANKENSTEIN in placed_types
+	if has_dracula and has_scrooge and has_frank:
+		active_bonuses.append(ALIGNMENT_BONUSES["redemption"])
+	return {"bonuses": active_bonuses, "heroes": hero_count, "villains": villain_count, "antiheroes": antihero_count}
+
 func _is_character_unlocked(tower_type) -> bool:
 	# 3 starters — always unlocked
 	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE]:
