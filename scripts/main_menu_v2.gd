@@ -656,15 +656,15 @@ func _build_portal_hub() -> void:
 		card.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 		var cs = StyleBoxFlat.new()
 		if arc_complete:
-			cs.bg_color = Color(0.02, 0.01, 0.04, 0.30)  # Near-transparent — let art shine
-			cs.border_color = Color(1.0, 0.85, 0.15, 0.8)  # Gold border for complete
+			cs.bg_color = Color(0.03, 0.02, 0.06, 1.0)
+			cs.border_color = Color(1.0, 0.85, 0.15, 0.8)
 			cs.set_border_width_all(3)
 		elif arc_unlocked:
-			cs.bg_color = Color(0.02, 0.01, 0.04, 0.25)  # Near-transparent — art is vivid
+			cs.bg_color = Color(0.03, 0.02, 0.06, 1.0)
 			cs.border_color = Color(rc.r * 0.7, rc.g * 0.7, rc.b * 0.7, 0.7)
 			cs.set_border_width_all(2)
 		else:
-			cs.bg_color = Color(0.02, 0.01, 0.04, 0.20)  # Transparent — art covers entire card
+			cs.bg_color = Color(0.03, 0.02, 0.06, 1.0)
 			cs.border_color = Color(0.35, 0.28, 0.20, 0.50)
 			cs.set_border_width_all(2)
 		cs.set_corner_radius_all(14)
@@ -690,13 +690,16 @@ func _build_portal_hub() -> void:
 			realm_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			realm_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			realm_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			realm_art.modulate.a = 0.85  # Art always shows full
+			if arc_unlocked:
+				realm_art.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Crystal clear, full brightness
+			else:
+				realm_art.modulate = Color(0.6, 0.6, 0.6, 0.9)  # Visible but desaturated
 			card.add_child(realm_art)
 			# Locked: dark overlay OVER the art covering entire card
 			if not arc_unlocked:
 				var lock_shade = ColorRect.new()
 				lock_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-				lock_shade.color = Color(0.02, 0.02, 0.05, 0.55)
+				lock_shade.color = Color(0.02, 0.02, 0.05, 0.45)
 				lock_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				card.add_child(lock_shade)
 		# --- CONTENT: Name, arc, status (items 5,6,7,8,26,27) ---
