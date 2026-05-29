@@ -15421,6 +15421,18 @@ func _draw_planning_phase() -> void:
 	# Skip button hint
 	_ds_outlined_text(Vector2(640, 680), "Tap SEND WAVE to skip planning", 10, Color(0.6, 0.6, 0.7, 0.5 + pulse * 0.3), 300, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
+# --- 14e. DAILY CHALLENGE HUD (#103) ---
+func _draw_daily_challenge_hud() -> void:
+	if not daily_challenge_active:
+		return
+	# Top-left badge
+	var pulse = (sin(_time * 3.0) + 1.0) * 0.5
+	draw_rect(Rect2(10, 50, 200, 24), Color(0.15, 0.1, 0.3, 0.7))
+	_ds_outlined_text(Vector2(110, 55), "DAILY CHALLENGE", 10, Color(1.0, 0.85, 0.2, 0.8 + pulse * 0.2), 190, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	_ds_outlined_text(Vector2(110, 68), daily_challenge_modifier, 8, Color(0.8, 0.6, 1.0, 0.7), 190, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	if daily_challenge_streak > 0:
+		_ds_outlined_text(Vector2(215, 55), "x%d" % daily_challenge_streak, 10, Color(1.0, 0.5, 0.2), 30, HORIZONTAL_ALIGNMENT_LEFT, 1)
+
 # --- 15. POWER SPIKE CEREMONY ---
 func _trigger_power_spike(tower_type, tier: int) -> void:
 	_power_spike_timer = 2.0
@@ -24411,6 +24423,7 @@ func _draw() -> void:
 	_draw_near_miss()
 	_draw_ink_meter()
 	_draw_planning_phase()
+	_draw_daily_challenge_hud()
 	_draw_milestone_popup()
 	_draw_power_spike()
 	_draw_comeback_banner()
@@ -36008,10 +36021,18 @@ func _victory() -> void:
 				daily_challenge_streak += 1
 			else:
 				daily_challenge_streak = 1
-		# Reward: storybook stars + shards
-		player_storybook_stars += 1
-		player_pages += 15
-		spawn_floating_text(Vector2(640, 250), "DAILY COMPLETE! +1 Star +15 Shards", Color(0.4, 1.0, 0.5), 18.0, 2.5)
+		# Reward: storybook stars + pages, scaled by streak (#103)
+		var streak_bonus_stars = 1 + mini(daily_challenge_streak / 3, 3)
+		var streak_bonus_pages = 15 + daily_challenge_streak * 5
+		player_storybook_stars += streak_bonus_stars
+		player_pages += streak_bonus_pages
+		spawn_floating_text(Vector2(640, 250), "DAILY COMPLETE!", Color(0.4, 1.0, 0.5), 22.0, 2.5)
+		spawn_floating_text(Vector2(640, 280), "+%d Stars +%d Pages" % [streak_bonus_stars, streak_bonus_pages], c_gold_bright, 16.0, 2.0)
+		if daily_challenge_streak >= 3:
+			spawn_floating_text(Vector2(640, 310), "STREAK x%d! Bonus rewards!" % daily_challenge_streak, Color(1.0, 0.5, 0.2), 14.0, 2.0)
+		if daily_challenge_streak >= 7:
+			player_quills += 10
+			spawn_floating_text(Vector2(640, 340), "+10 Quills (7-day streak!)", Color(0.3, 0.8, 0.6), 14.0, 2.0)
 	# Track total damage for milestones
 	for tower in get_tree().get_nodes_in_group("towers"):
 		if "damage_dealt" in tower:
@@ -37377,6 +37398,10 @@ const DAILY_MODIFIERS: Array = [
 	{"name": "Iron Skin", "effect": "hp_mult", "value": 1.4},
 	{"name": "Poverty", "effect": "gold", "value": 50},
 	{"name": "Marathon", "effect": "extra_waves", "value": 10},
+	{"name": "Glass House", "effect": "lives", "value": 3},
+	{"name": "Swarm", "effect": "enemy_count_mult", "value": 2.0},
+	{"name": "Juggernaut", "effect": "hp_mult", "value": 2.0},
+	{"name": "Windfall", "effect": "gold", "value": 300},
 ]
 
 func _generate_daily_challenge() -> Dictionary:
