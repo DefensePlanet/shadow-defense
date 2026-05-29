@@ -21277,6 +21277,46 @@ const ENVIRONMENTAL_EVENTS: Array = [
 	{"id": "quill_rain", "name": "🪶 QUILL RAIN", "desc": "Enchanted quills fall — deal 20 damage to all enemies on screen", "duration": 2.0, "damage_all": 20},
 ]
 
+# === TOWER REPOSITIONING — pay gold to move instead of sell+rebuy ===
+# Costs 30% of the tower's base cost to move. Preserves all upgrades.
+const REPOSITION_COST_RATE: float = 0.30
+
+var _repositioning_tower: Node2D = null
+var _reposition_mode: bool = false
+
+func _start_reposition(tower: Node2D) -> void:
+	var tt = _get_tower_type_from_node(tower)
+	if tt == null: return
+	var base_cost = tower_info.get(tt, {}).get("cost", 100)
+	var move_cost = int(float(base_cost) * REPOSITION_COST_RATE)
+	if gold < move_cost:
+		spawn_floating_text(tower.global_position, "Need %dG to move!" % move_cost, Color(1.0, 0.3, 0.2), 12.0, 1.5)
+		return
+	_repositioning_tower = tower
+	_reposition_mode = true
+	spawn_floating_text(tower.global_position, "🔀 Tap new position (%dG)" % move_cost, Color(0.9, 0.75, 0.2), 13.0, 2.0)
+
+func _complete_reposition(new_pos: Vector2) -> void:
+	if _repositioning_tower == null or not is_instance_valid(_repositioning_tower): return
+	var tt = _get_tower_type_from_node(_repositioning_tower)
+	if tt == null: return
+	var base_cost = tower_info.get(tt, {}).get("cost", 100)
+	var move_cost = int(float(base_cost) * REPOSITION_COST_RATE)
+	gold -= move_cost
+	var old_pos = _repositioning_tower.global_position
+	_repositioning_tower.global_position = new_pos
+	# Update placed positions
+	var idx = placed_tower_positions.find(old_pos)
+	if idx >= 0:
+		placed_tower_positions[idx] = new_pos
+	spawn_floating_text(new_pos, "🔀 Moved! -%dG" % move_cost, Color(0.4, 0.8, 0.3), 13.0, 1.5)
+	_reposition_mode = false
+	_repositioning_tower = null
+
+func _cancel_reposition() -> void:
+	_reposition_mode = false
+	_repositioning_tower = null
+
 func _check_environmental_event(delta: float) -> void:
 	if not is_wave_active: return
 	if _env_event_active != "":

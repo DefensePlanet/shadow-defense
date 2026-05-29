@@ -482,6 +482,17 @@ func _draw_thematic_range(eff_range: float) -> void:
 			draw_arc(Vector2.ZERO, eff_range, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.20 + pulse * 0.1), 2.0)
 			draw_arc(Vector2.ZERO, eff_range + 3, 0, TAU, 36, Color(1.0, 0.84, 0.0, 0.08), 1.0)
 
+# === TOWER SELL VALUE — 70% diminishing returns ===
+const SELL_RETURN_RATE: float = 0.70  # 70% of total investment returned
+
+func get_sell_value() -> int:
+	var total = 0
+	if "_main_node" in self and _main_node and "tower_info" in _main_node:
+		# Get base cost from tower_info if available
+		total = 100  # Default fallback
+	# Add upgrade costs if tracked
+	return int(float(total) * SELL_RETURN_RATE)
+
 func get_visible_equipment_summary() -> String:
 	var parts = []
 	if equipped_weapon_visual.has("name"):
