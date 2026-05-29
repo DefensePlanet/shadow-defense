@@ -311,6 +311,8 @@ func _make_black_key_mat(thresh: float = 0.08, smooth: float = 0.05) -> ShaderMa
 	mat.set_shader_parameter("smoothness", smooth)
 	return mat
 
+var _bg_zoom_tween: Tween = null
+
 func _set_bg(view: String) -> void:
 	if _backgrounds.has(view):
 		background.texture = _backgrounds[view]
@@ -319,8 +321,15 @@ func _set_bg(view: String) -> void:
 		background.texture = null
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	# DarkOverlay stays subtle — main.gd handles blocking its own draw
-	pass
+	background.position = Vector2.ZERO
+	# Slow zoom animation — gives life to static background
+	background.pivot_offset = Vector2(640, 360)  # Center of 1280x720
+	background.scale = Vector2(1.0, 1.0)
+	if _bg_zoom_tween and _bg_zoom_tween.is_valid():
+		_bg_zoom_tween.kill()
+	_bg_zoom_tween = create_tween().set_loops()
+	_bg_zoom_tween.tween_property(background, "scale", Vector2(1.06, 1.06), 25.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	_bg_zoom_tween.tween_property(background, "scale", Vector2(1.0, 1.0), 25.0).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 func _build_currency_bar() -> void:
 	if not _main: return
@@ -637,29 +646,36 @@ func _build_portal_hub() -> void:
 				break
 		if next_lvl >= 0:
 			var cont_btn = Button.new()
-			cont_btn.text = "CONTINUE  ▶  %s" % next_name
+			cont_btn.text = "▶  CONTINUE — %s" % next_name
 			cont_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			cont_btn.custom_minimum_size = Vector2(0, 40)
+			cont_btn.custom_minimum_size = Vector2(0, 56)
 			var cbs = StyleBoxFlat.new()
-			cbs.bg_color = Color(0.12, 0.08, 0.22, 0.92)
-			cbs.border_color = Color(0.85, 0.65, 0.15, 0.8)
+			cbs.bg_color = Color(0.14, 0.42, 0.14, 0.92)
+			cbs.border_color = Color(0.40, 0.85, 0.30, 0.8)
 			cbs.set_border_width_all(2)
-			cbs.set_corner_radius_all(10)
-			cbs.shadow_color = Color(0, 0, 0, 0.3)
-			cbs.shadow_size = 4
+			cbs.set_corner_radius_all(14)
+			cbs.shadow_color = Color(0.15, 0.40, 0.10, 0.3)
+			cbs.shadow_size = 6
 			cont_btn.add_theme_stylebox_override("normal", cbs)
 			var cbsh = cbs.duplicate()
-			cbsh.bg_color = Color(0.18, 0.12, 0.30, 0.95)
-			cbsh.border_color = Color(1.0, 0.80, 0.20, 0.9)
+			cbsh.bg_color = Color(0.18, 0.52, 0.18, 0.95)
+			cbsh.border_color = Color(0.50, 0.95, 0.35, 0.9)
+			cbsh.shadow_size = 8
 			cont_btn.add_theme_stylebox_override("hover", cbsh)
 			var cbsp = cbs.duplicate()
-			cbsp.bg_color = Color(0.08, 0.05, 0.16, 0.95)
+			cbsp.bg_color = Color(0.10, 0.35, 0.10, 0.95)
+			cbsp.shadow_size = 3
 			cont_btn.add_theme_stylebox_override("pressed", cbsp)
-			cont_btn.add_theme_font_size_override("font_size", 15)
-			cont_btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.40))
+			cont_btn.add_theme_font_size_override("font_size", 18)
+			cont_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 0.95))
 			cont_btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 			cont_btn.add_theme_constant_override("shadow_offset_x", 1)
 			cont_btn.add_theme_constant_override("shadow_offset_y", 1)
+			_add_press_feedback(cont_btn)
+			# Idle pulse on continue button — draws attention
+			var cont_pulse = create_tween().set_loops()
+			cont_pulse.tween_property(cont_btn, "modulate", Color(1.06, 1.08, 1.04), 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			cont_pulse.tween_property(cont_btn, "modulate", Color(1.0, 1.0, 1.0), 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 			var _next = next_lvl
 			cont_btn.pressed.connect(func():
 				if _main:
@@ -1063,7 +1079,16 @@ func _build_arc_levels() -> void:
 	back_btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	back_btn.add_theme_constant_override("shadow_offset_x", 1)
 	back_btn.add_theme_constant_override("shadow_offset_y", 1)
-	back_btn.pressed.connect(func(): _portal_view = ""; _build_chapters())
+	back_btn.pressed.connect(func():
+		_portal_view = ""
+		var back_tw = create_tween().set_ease(Tween.EASE_OUT)
+		back_tw.tween_property(content_area, "modulate:a", 0.0, 0.12)
+		back_tw.tween_callback(func():
+			_clear()
+			content_area.modulate.a = 0.0
+			_build_chapters()
+			var back_in = create_tween().set_ease(Tween.EASE_OUT)
+			back_in.tween_property(content_area, "modulate:a", 1.0, 0.18)))
 	_add_press_feedback(back_btn)
 	top_row.add_child(back_btn)
 	# Spacer
