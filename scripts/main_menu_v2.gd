@@ -92,7 +92,7 @@ const BOND_PAIRS: Dictionary = {
 
 # Phase 8: Ambient floating particles
 var _particles: Array = []
-const PARTICLE_COUNT: int = 25
+const PARTICLE_COUNT: int = 40
 
 func _ready() -> void:
 	_main = get_tree().get_first_node_in_group("main")
@@ -134,10 +134,11 @@ func _init_particles() -> void:
 		_particles.append({
 			"x": randf_range(0, 1280),
 			"y": randf_range(0, 720),
-			"speed": randf_range(12, 35),
-			"size": randf_range(3.5, 6.5),
-			"alpha": randf_range(0.35, 0.60),
+			"speed": randf_range(8, 40),
+			"size": randf_range(2.0, 8.0),
+			"alpha": randf_range(0.20, 0.55),
 			"offset": randf_range(0, TAU),
+			"drift": randf_range(-0.8, 0.8),  # Horizontal drift
 		})
 
 var _song_check_timer: float = 0.0
@@ -145,10 +146,12 @@ var _song_check_timer: float = 0.0
 func _process(delta: float) -> void:
 	for p in _particles:
 		p["y"] -= p["speed"] * delta
-		p["x"] += sin(p["offset"] + p["y"] * 0.01) * 0.3
+		p["x"] += sin(p["offset"] + p["y"] * 0.01) * 0.3 + p["drift"] * delta
 		if p["y"] < -10:
 			p["y"] = 730
 			p["x"] = randf_range(0, 1280)
+		if p["x"] < -10: p["x"] = 1290
+		if p["x"] > 1290: p["x"] = -10
 	# Parallax: offset background based on scroll
 	for c in content_area.get_children():
 		if c is ScrollContainer:
@@ -915,11 +918,14 @@ func _build_portal_hub() -> void:
 			card.modulate = Color(1.12, 1.10, 1.05))
 		card.mouse_exited.connect(func():
 			card.modulate = Color.WHITE)
-		# Staggered entrance
-		card.modulate.a = 0.0
-		var etw = create_tween()
-		etw.tween_property(card, "modulate:a", 1.0, 0.2).set_delay(ri * 0.05)
+		# Staggered entrance — slide up + fade
 		grid.add_child(card)
+		card.modulate.a = 0.0
+		card.position.y += 25
+		var etw = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		etw.set_parallel(true)
+		etw.tween_property(card, "modulate:a", 1.0, 0.25).set_delay(ri * 0.06)
+		etw.tween_property(card, "position:y", 0.0, 0.3).set_delay(ri * 0.06)
 
 func _enter_realm(arc_name: String) -> void:
 	# Play realm-specific music + portal stinger
