@@ -1,4 +1,4 @@
-# gear_data.gd — Complete gear database (265 items)
+# gear_data.gd — Complete gear database (325 items)
 # Generated for Shadow Defense: Tales from the Pages
 
 const GEAR_ITEMS_V2: Array = [
@@ -78,6 +78,42 @@ const GEAR_ITEMS_V2: Array = [
 	{"id": "sa_c2", "name": "Torn Page Fragment", "desc": "+7% cooldown reduction", "tier": "common", "effect": "cooldown_reduction", "value": 0.07, "character": "shadow_author"},
 	{"id": "sa_c3", "name": "Blotted Margin Note", "desc": "+6% debuff_amp", "tier": "common", "effect": "debuff_amp", "value": 0.06, "character": "shadow_author"},
 	{"id": "sa_c4", "name": "Cheap Inkwell", "desc": "+10% range", "tier": "common", "effect": "range", "value": 0.10, "character": "shadow_author"},
+
+	# --- Anubis (4 Common) — Egyptian god of the dead, jackal-headed judge of souls ---
+	{"id": "an_c1", "name": "Canopic Jar Stopper", "desc": "+8% damage", "tier": "common", "effect": "damage", "value": 0.08, "character": "anubis"},
+	{"id": "an_c2", "name": "Mummification Linen", "desc": "+7% defense", "tier": "common", "effect": "defense", "value": 0.07, "character": "anubis"},
+	{"id": "an_c3", "name": "Scarab Beetle Shell", "desc": "+6% dodge", "tier": "common", "effect": "dodge", "value": 0.06, "character": "anubis"},
+	{"id": "an_c4", "name": "Jackal Tooth Charm", "desc": "+10% debuff_amp", "tier": "common", "effect": "debuff_amp", "value": 0.10, "character": "anubis"},
+
+	# --- Captain Hook (4 Common) — J.M. Barrie's pirate captain, obsessed with revenge and time ---
+	{"id": "ch_c1", "name": "Rusty Iron Hook", "desc": "+9% damage", "tier": "common", "effect": "damage", "value": 0.09, "character": "captain_hook"},
+	{"id": "ch_c2", "name": "Jolly Roger Patch", "desc": "+7% crit", "tier": "common", "effect": "crit", "value": 0.07, "character": "captain_hook"},
+	{"id": "ch_c3", "name": "Bilge Rat Cutlass", "desc": "+8% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.08, "character": "captain_hook"},
+	{"id": "ch_c4", "name": "Ticking Clock Fragment", "desc": "+6% cooldown reduction", "tier": "common", "effect": "cooldown_reduction", "value": 0.06, "character": "captain_hook"},
+
+	# --- Clayton (4 Common) — Tarzan's villain, ruthless big game hunter ---
+	{"id": "cl_c1", "name": "Poacher's Bullet Casing", "desc": "+9% damage", "tier": "common", "effect": "damage", "value": 0.09, "character": "clayton"},
+	{"id": "cl_c2", "name": "Machete Blade Chip", "desc": "+7% armor_pierce", "tier": "common", "effect": "armor_pierce", "value": 0.07, "character": "clayton"},
+	{"id": "cl_c3", "name": "Safari Pith Helmet", "desc": "+8% range", "tier": "common", "effect": "range", "value": 0.08, "character": "clayton"},
+	{"id": "cl_c4", "name": "Net Trap Wire", "desc": "+6% slow", "tier": "common", "effect": "slow", "value": 0.06, "character": "clayton"},
+
+	# --- Headless Horseman (4 Common) — Washington Irving's spectral rider, cursed Hessian ---
+	{"id": "hh_c1", "name": "Severed Stirrup Iron", "desc": "+8% damage", "tier": "common", "effect": "damage", "value": 0.08, "character": "headless_horseman"},
+	{"id": "hh_c2", "name": "Tattered Hessian Cloak", "desc": "+7% dodge", "tier": "common", "effect": "dodge", "value": 0.07, "character": "headless_horseman"},
+	{"id": "hh_c3", "name": "Graveyard Dirt Vial", "desc": "+6% debuff_amp", "tier": "common", "effect": "debuff_amp", "value": 0.06, "character": "headless_horseman"},
+	{"id": "hh_c4", "name": "Rotten Pumpkin Seed", "desc": "+10% splash_radius", "tier": "common", "effect": "splash_radius", "value": 0.10, "character": "headless_horseman"},
+
+	# --- Medusa (4 Common) — Greek Gorgon, once beautiful, cursed to turn men to stone ---
+	{"id": "md_c1", "name": "Petrified Scale", "desc": "+8% defense", "tier": "common", "effect": "defense", "value": 0.08, "character": "medusa"},
+	{"id": "md_c2", "name": "Serpent Fang Needle", "desc": "+7% poison", "tier": "common", "effect": "poison", "value": 0.07, "character": "medusa"},
+	{"id": "md_c3", "name": "Cracked Temple Mirror", "desc": "+9% stun", "tier": "common", "effect": "stun", "value": 0.09, "character": "medusa"},
+	{"id": "md_c4", "name": "Gorgon Hair Coil", "desc": "+6% attack speed", "tier": "common", "effect": "attack_speed", "value": 0.06, "character": "medusa"},
+
+	# --- Queen of Hearts (4 Common) — Carroll's tyrannical ruler of Wonderland ---
+	{"id": "qh_c1", "name": "Chipped Crown Jewel", "desc": "+8% damage", "tier": "common", "effect": "damage", "value": 0.08, "character": "queen_of_hearts"},
+	{"id": "qh_c2", "name": "Playing Card Armor", "desc": "+7% defense", "tier": "common", "effect": "defense", "value": 0.07, "character": "queen_of_hearts"},
+	{"id": "qh_c3", "name": "Red Rose Thorn", "desc": "+9% crit", "tier": "common", "effect": "crit", "value": 0.09, "character": "queen_of_hearts"},
+	{"id": "qh_c4", "name": "Executioner's Blindfold", "desc": "+6% debuff_amp", "tier": "common", "effect": "debuff_amp", "value": 0.06, "character": "queen_of_hearts"},
 
 	# --- Universal Common (52 items) ---
 	{"id": "uc_01", "name": "Iron Arrowhead", "desc": "+5% damage", "tier": "common", "effect": "damage", "value": 0.05},
@@ -198,6 +234,36 @@ const GEAR_ITEMS_V2: Array = [
 	{"id": "sa_r2", "name": "Bookmarked Chapter", "desc": "+15% cooldown reduction, +10% range", "tier": "rare", "effects": [{"effect": "cooldown_reduction", "value": 0.15}, {"effect": "range", "value": 0.10}], "character": "shadow_author"},
 	{"id": "sa_r3", "name": "Plot Twist Scroll", "desc": "+12% crit, +12% crit_damage", "tier": "rare", "effects": [{"effect": "crit", "value": 0.12}, {"effect": "crit_damage", "value": 0.12}], "character": "shadow_author"},
 
+	# --- Anubis (3 Rare) ---
+	{"id": "an_r1", "name": "Scales of Ma'at", "desc": "+15% debuff_amp, +10% damage", "tier": "rare", "effects": [{"effect": "debuff_amp", "value": 0.15}, {"effect": "damage", "value": 0.10}], "character": "anubis"},
+	{"id": "an_r2", "name": "Embalmer's Hook", "desc": "+14% armor_pierce, +12% crit", "tier": "rare", "effects": [{"effect": "armor_pierce", "value": 0.14}, {"effect": "crit", "value": 0.12}], "character": "anubis"},
+	{"id": "an_r3", "name": "Ankh of Passage", "desc": "+13% heal_nearby, +10% defense", "tier": "rare", "effects": [{"effect": "heal_nearby", "value": 0.13}, {"effect": "defense", "value": 0.10}], "character": "anubis"},
+
+	# --- Captain Hook (3 Rare) ---
+	{"id": "ch_r1", "name": "Neverland Compass", "desc": "+15% range, +10% crit", "tier": "rare", "effects": [{"effect": "range", "value": 0.15}, {"effect": "crit", "value": 0.10}], "character": "captain_hook"},
+	{"id": "ch_r2", "name": "Poisoned Hook Blade", "desc": "+14% poison, +12% damage", "tier": "rare", "effects": [{"effect": "poison", "value": 0.14}, {"effect": "damage", "value": 0.12}], "character": "captain_hook"},
+	{"id": "ch_r3", "name": "Crocodile Skin Gauntlet", "desc": "+13% defense, +12% attack_speed", "tier": "rare", "effects": [{"effect": "defense", "value": 0.13}, {"effect": "attack_speed", "value": 0.12}], "character": "captain_hook"},
+
+	# --- Clayton (3 Rare) ---
+	{"id": "cl_r1", "name": "Elephant Gun Stock", "desc": "+15% damage, +12% armor_pierce", "tier": "rare", "effects": [{"effect": "damage", "value": 0.15}, {"effect": "armor_pierce", "value": 0.12}], "character": "clayton"},
+	{"id": "cl_r2", "name": "Steel Jaw Trap", "desc": "+14% stun, +10% slow", "tier": "rare", "effects": [{"effect": "stun", "value": 0.14}, {"effect": "slow", "value": 0.10}], "character": "clayton"},
+	{"id": "cl_r3", "name": "Hunter's Trophy Belt", "desc": "+18% boss_damage", "tier": "rare", "effect": "boss_damage", "value": 0.18, "character": "clayton"},
+
+	# --- Headless Horseman (3 Rare) ---
+	{"id": "hh_r1", "name": "Flaming Pumpkin Bomb", "desc": "+15% burn, +10% splash_radius", "tier": "rare", "effects": [{"effect": "burn", "value": 0.15}, {"effect": "splash_radius", "value": 0.10}], "character": "headless_horseman"},
+	{"id": "hh_r2", "name": "Dullahan's Horseshoe", "desc": "+14% dodge, +12% attack_speed", "tier": "rare", "effects": [{"effect": "dodge", "value": 0.14}, {"effect": "attack_speed", "value": 0.12}], "character": "headless_horseman"},
+	{"id": "hh_r3", "name": "Spectral Bridle", "desc": "+13% debuff_amp, +12% range", "tier": "rare", "effects": [{"effect": "debuff_amp", "value": 0.13}, {"effect": "range", "value": 0.12}], "character": "headless_horseman"},
+
+	# --- Medusa (3 Rare) ---
+	{"id": "md_r1", "name": "Gorgon's Gaze Fragment", "desc": "+15% stun, +10% debuff_amp", "tier": "rare", "effects": [{"effect": "stun", "value": 0.15}, {"effect": "debuff_amp", "value": 0.10}], "character": "medusa"},
+	{"id": "md_r2", "name": "Viper Venom Vial", "desc": "+14% poison, +12% damage", "tier": "rare", "effects": [{"effect": "poison", "value": 0.14}, {"effect": "damage", "value": 0.12}], "character": "medusa"},
+	{"id": "md_r3", "name": "Athena's Cursed Shield", "desc": "+18% defense", "tier": "rare", "effect": "defense", "value": 0.18, "character": "medusa"},
+
+	# --- Queen of Hearts (3 Rare) ---
+	{"id": "qh_r1", "name": "Croquet Flamingo", "desc": "+15% splash_radius, +10% stun", "tier": "rare", "effects": [{"effect": "splash_radius", "value": 0.15}, {"effect": "stun", "value": 0.10}], "character": "queen_of_hearts"},
+	{"id": "qh_r2", "name": "Royal Decree Scroll", "desc": "+14% debuff_amp, +12% damage", "tier": "rare", "effects": [{"effect": "debuff_amp", "value": 0.14}, {"effect": "damage", "value": 0.12}], "character": "queen_of_hearts"},
+	{"id": "qh_r3", "name": "Hedgehog Cannonball", "desc": "+13% pierce, +12% burn", "tier": "rare", "effects": [{"effect": "pierce", "value": 0.13}, {"effect": "burn", "value": 0.12}], "character": "queen_of_hearts"},
+
 	# --- Universal Rare (44 items) ---
 	{"id": "ur_01", "name": "Steel Broadhead", "desc": "+15% damage", "tier": "rare", "effect": "damage", "value": 0.15},
 	{"id": "ur_02", "name": "Reinforced Breastplate", "desc": "+15% defense, +10% stun", "tier": "rare", "effects": [{"effect": "defense", "value": 0.15}, {"effect": "stun", "value": 0.10}]},
@@ -297,6 +363,30 @@ const GEAR_ITEMS_V2: Array = [
 	{"id": "sa_e1", "name": "Inkwell of Rewriting", "desc": "+20% dmg, +15% debuff_amp, weakness expose", "tier": "epic", "effects": [{"effect": "damage", "value": 0.20}, {"effect": "debuff_amp", "value": 0.15}], "special": "weakness_expose_25pct", "per_level": 0.02, "character": "shadow_author"},
 	{"id": "sa_e2", "name": "Chapter of Foreshadowing", "desc": "+18% cooldown_red, +15% crit, +12% range", "tier": "epic", "effects": [{"effect": "cooldown_reduction", "value": 0.18}, {"effect": "crit", "value": 0.15}, {"effect": "range", "value": 0.12}], "special": "activated_double_damage_10s", "per_level": 0.02, "character": "shadow_author"},
 
+	# --- Anubis (2 Epic) ---
+	{"id": "an_e1", "name": "Feather of Ma'at", "desc": "+20% debuff_amp, +15% damage, soul judge", "tier": "epic", "effects": [{"effect": "debuff_amp", "value": 0.20}, {"effect": "damage", "value": 0.15}], "special": "weakness_expose_25pct", "per_level": 0.02, "character": "anubis"},
+	{"id": "an_e2", "name": "Was Scepter of Duat", "desc": "+22% dmg, +15% lifesteal, +12% armor_pierce", "tier": "epic", "effects": [{"effect": "damage", "value": 0.22}, {"effect": "lifesteal", "value": 0.15}, {"effect": "armor_pierce", "value": 0.12}], "special": "life_steal_5pct", "per_level": 0.02, "character": "anubis"},
+
+	# --- Captain Hook (2 Epic) ---
+	{"id": "ch_e1", "name": "Barrie's Enchanted Hook", "desc": "+22% dmg, +15% poison, +12% crit", "tier": "epic", "effects": [{"effect": "damage", "value": 0.22}, {"effect": "poison", "value": 0.15}, {"effect": "crit", "value": 0.12}], "special": "poison_dot", "per_level": 0.02, "character": "captain_hook"},
+	{"id": "ch_e2", "name": "Jolly Roger's Black Flag", "desc": "+20% debuff_amp, +15% aura_range, fear aura", "tier": "epic", "effects": [{"effect": "debuff_amp", "value": 0.20}, {"effect": "aura_range", "value": 0.15}], "special": "bewitch_slow_30pct", "per_level": 0.02, "character": "captain_hook"},
+
+	# --- Clayton (2 Epic) ---
+	{"id": "cl_e1", "name": "Gatling Rifle", "desc": "+22% dmg, +18% attack_speed, ramping damage", "tier": "epic", "effects": [{"effect": "damage", "value": 0.22}, {"effect": "attack_speed", "value": 0.18}], "special": "ramping_damage_1pct", "per_level": 0.02, "character": "clayton"},
+	{"id": "cl_e2", "name": "Trophy Hunter's Net", "desc": "+20% slow, +15% stun, +12% boss_damage", "tier": "epic", "effects": [{"effect": "slow", "value": 0.20}, {"effect": "stun", "value": 0.15}, {"effect": "boss_damage", "value": 0.12}], "special": "double_stun_duration", "per_level": 0.02, "character": "clayton"},
+
+	# --- Headless Horseman (2 Epic) ---
+	{"id": "hh_e1", "name": "Hellfire Jack-o-Lantern", "desc": "+22% burn, +15% splash_radius, +12% damage", "tier": "epic", "effects": [{"effect": "burn", "value": 0.22}, {"effect": "splash_radius", "value": 0.15}, {"effect": "damage", "value": 0.12}], "special": "death_explosion_50pct", "per_level": 0.02, "character": "headless_horseman"},
+	{"id": "hh_e2", "name": "Daredevil's Phantom Steed", "desc": "+20% dodge, +15% attack_speed, ignore terrain", "tier": "epic", "effects": [{"effect": "dodge", "value": 0.20}, {"effect": "attack_speed", "value": 0.15}], "special": "ignore_terrain", "per_level": 0.02, "character": "headless_horseman"},
+
+	# --- Medusa (2 Epic) ---
+	{"id": "md_e1", "name": "Perseus's Broken Shield", "desc": "+22% stun, +15% defense, petrify", "tier": "epic", "effects": [{"effect": "stun", "value": 0.22}, {"effect": "defense", "value": 0.15}], "special": "double_stun_duration", "per_level": 0.02, "character": "medusa"},
+	{"id": "md_e2", "name": "Gorgon Blood Elixir", "desc": "+20% poison, +15% lifesteal, +12% damage", "tier": "epic", "effects": [{"effect": "poison", "value": 0.20}, {"effect": "lifesteal", "value": 0.15}, {"effect": "damage", "value": 0.12}], "special": "poison_dot", "per_level": 0.02, "character": "medusa"},
+
+	# --- Queen of Hearts (2 Epic) ---
+	{"id": "qh_e1", "name": "Vorpal Executioner's Axe", "desc": "+22% dmg, +15% execute, +12% crit", "tier": "epic", "effects": [{"effect": "damage", "value": 0.22}, {"effect": "execute", "value": 0.15}, {"effect": "crit", "value": 0.12}], "special": "crit_every_5th_3x", "per_level": 0.02, "character": "queen_of_hearts"},
+	{"id": "qh_e2", "name": "Wonderland Throne Decree", "desc": "+20% debuff_amp, +18% aura_range, all obey", "tier": "epic", "effects": [{"effect": "debuff_amp", "value": 0.20}, {"effect": "aura_range", "value": 0.18}], "special": "bewitch_slow_30pct", "per_level": 0.02, "character": "queen_of_hearts"},
+
 	# --- Universal Epic (26 items) ---
 	{"id": "ue_01", "name": "Dragonbone Warbow", "desc": "+22% dmg, +15% pierce, split arrows", "tier": "epic", "effects": [{"effect": "damage", "value": 0.22}, {"effect": "pierce", "value": 0.15}], "special": "split_arrow_3", "per_level": 0.02},
 	{"id": "ue_02", "name": "Frostfire Orb", "desc": "+18% burn, +15% slow, element cycle", "tier": "epic", "effects": [{"effect": "burn", "value": 0.18}, {"effect": "slow", "value": 0.15}], "special": "element_cycle", "per_level": 0.02},
@@ -365,6 +455,24 @@ const GEAR_ITEMS_V2: Array = [
 
 	# --- Shadow Author (1 Legendary) ---
 	{"id": "sa_l1", "name": "The Unwritten Ending", "desc": "+26% dmg, +22% cooldown_red, +20% debuff_amp — activated time stop 5s", "tier": "legendary", "effects": [{"effect": "damage", "value": 0.26}, {"effect": "cooldown_reduction", "value": 0.22}, {"effect": "debuff_amp", "value": 0.20}], "special": "activated_time_stop_5s", "per_level": 0.025, "character": "shadow_author"},
+
+	# --- Anubis (1 Legendary) ---
+	{"id": "an_l1", "name": "The Book of the Dead", "desc": "+28% dmg, +22% debuff_amp, +18% lifesteal — death judgement", "tier": "legendary", "effects": [{"effect": "damage", "value": 0.28}, {"effect": "debuff_amp", "value": 0.22}, {"effect": "lifesteal", "value": 0.18}], "special": "death_explosion_50pct", "per_level": 0.025, "character": "anubis"},
+
+	# --- Captain Hook (1 Legendary) ---
+	{"id": "ch_l1", "name": "The Neverland Chronometer", "desc": "+26% cooldown_red, +22% damage, +20% poison — time terror", "tier": "legendary", "effects": [{"effect": "cooldown_reduction", "value": 0.26}, {"effect": "damage", "value": 0.22}, {"effect": "poison", "value": 0.20}], "special": "activated_time_stop_5s", "per_level": 0.025, "character": "captain_hook"},
+
+	# --- Clayton (1 Legendary) ---
+	{"id": "cl_l1", "name": "The Great White Hunter's Rifle", "desc": "+30% boss_damage, +25% armor_pierce, +20% damage — infinite pierce", "tier": "legendary", "effects": [{"effect": "boss_damage", "value": 0.30}, {"effect": "armor_pierce", "value": 0.25}, {"effect": "damage", "value": 0.20}], "special": "infinite_pierce", "per_level": 0.025, "character": "clayton"},
+
+	# --- Headless Horseman (1 Legendary) ---
+	{"id": "hh_l1", "name": "The Horseman's Severed Head", "desc": "+28% burn, +22% splash_radius, +20% damage — death explosion", "tier": "legendary", "effects": [{"effect": "burn", "value": 0.28}, {"effect": "splash_radius", "value": 0.22}, {"effect": "damage", "value": 0.20}], "special": "aura_burn_all", "per_level": 0.025, "character": "headless_horseman"},
+
+	# --- Medusa (1 Legendary) ---
+	{"id": "md_l1", "name": "The Aegis of Athena", "desc": "+28% stun, +22% defense, +20% poison — petrify all nearby", "tier": "legendary", "effects": [{"effect": "stun", "value": 0.28}, {"effect": "defense", "value": 0.22}, {"effect": "poison", "value": 0.20}], "special": "activated_time_stop_5s", "per_level": 0.025, "character": "medusa"},
+
+	# --- Queen of Hearts (1 Legendary) ---
+	{"id": "qh_l1", "name": "The Crimson Crown of Wonderland", "desc": "+26% dmg, +22% execute, +20% debuff_amp — off with their heads", "tier": "legendary", "effects": [{"effect": "damage", "value": 0.26}, {"effect": "execute", "value": 0.22}, {"effect": "debuff_amp", "value": 0.20}], "special": "crit_25pct_5x", "per_level": 0.025, "character": "queen_of_hearts"},
 
 	# --- Universal Legendary (13 items) ---
 	{"id": "ul_01", "name": "Crown of the Conqueror", "desc": "+30% dmg, +22% crit, +18% armor_pierce — crit 25% 5x", "tier": "legendary", "effects": [{"effect": "damage", "value": 0.30}, {"effect": "crit", "value": 0.22}, {"effect": "armor_pierce", "value": 0.18}], "special": "crit_25pct_5x", "per_level": 0.025},
