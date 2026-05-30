@@ -8967,8 +8967,9 @@ func _load_tower_sprite_textures() -> void:
 	_tower_sprite_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author", "captain_hook", "queen_of_hearts", "clayton",
-		"headless_horseman", "medusa", "loki", "anubis"]
+		"shadow_author", "clayton", "medusa", "loki", "anubis"]
+	# Characters with non-matching file names
+	var name_aliases = {"captain_hook": "hook", "queen_of_hearts": "queen", "headless_horseman": "horseman"}
 	# Hero Sprite characters — load from hero_sprites/ instead of tower_sprites/
 	var hero_sprite_names = ["robin_hood_2"]
 	for hname in hero_sprite_names:
@@ -9013,6 +9014,17 @@ func _load_tower_sprite_textures() -> void:
 		var img = Image.new()
 		if img.load(abs_path) == OK:
 			_tower_sprite_textures[tname] = ImageTexture.create_from_image(img)
+	# Load aliased characters (file names differ from character names)
+	for char_name in name_aliases:
+		var file_name = name_aliases[char_name]
+		var res_path = "res://assets/tower_sprites/" + file_name + "_idle.png"
+		if ResourceLoader.exists(res_path):
+			_tower_sprite_textures[char_name] = load(res_path)
+		else:
+			var abs_path = ProjectSettings.globalize_path(res_path)
+			var img = Image.new()
+			if img.load(abs_path) == OK:
+				_tower_sprite_textures[char_name] = ImageTexture.create_from_image(img)
 	# Load flair, attack, shoot textures for frame-based animation
 	for tname in names:
 		# Attack + shoot poses
