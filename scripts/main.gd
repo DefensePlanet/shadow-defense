@@ -14152,10 +14152,12 @@ func _show_act_title(act_key: String, then_dialog: String = "") -> void:
 	_act_title_subtitle = act["subtitle"]
 	_act_title_active = true
 	_act_title_timer = ACT_TITLE_DURATION
-	# Hide game UI during title card
+	# Hide game UI and menu v2 during title card
 	$UI.visible = false
 	towers_node.visible = false
 	enemy_path.visible = false
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance) and _menu_v2_instance.get_parent() != null:
+		_menu_v2_instance.get_parent().visible = false
 	# After title card fades, start the dialog
 	if then_dialog != "":
 		get_tree().create_timer(ACT_TITLE_DURATION + 0.5).timeout.connect(func():
@@ -14211,10 +14213,12 @@ func _start_story_dialog(key: String) -> void:
 	story_state.typewriter_timer = 0.0
 	story_state.active = true
 	story_state.auto_advance_timer = 0.0
-	# Hide game elements so they don't render on top of the story overlay
+	# Hide game elements AND menu v2 so story dialog is visible and clickable
 	towers_node.visible = false
 	enemy_path.visible = false
 	$UI.visible = false
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance) and _menu_v2_instance.get_parent() != null:
+		_menu_v2_instance.get_parent().visible = false
 	# Note: Do NOT clear queued_dialog here  --  callers set it before calling us
 	# Initialize 20-system narration animation state
 	_narration_blink_timer = 0.0
@@ -14382,6 +14386,9 @@ func _end_story_dialog() -> void:
 	towers_node.visible = true
 	enemy_path.visible = true
 	$UI.visible = true
+	# Restore menu v2
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance) and _menu_v2_instance.get_parent() != null:
+		_menu_v2_instance.get_parent().visible = true
 	# If this was a pre-level dialog, start the level
 	if key.begins_with("pre_level_") and _pending_level_start >= 0:
 		var lvl = _pending_level_start
