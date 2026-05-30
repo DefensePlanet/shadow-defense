@@ -5967,9 +5967,8 @@ func _start_odyssey_map(map_index: int) -> void:
 	return_button.visible = false
 	game_state = GameState.PLAYING
 	start_button.text = "  START WAVE  "
-	# Base 6 towers always available
-	var base_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
-					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]
+	# Base 3 towers always available — others unlocked via story
+	var base_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE]
 	for tt in base_types:
 		var tname = tower_info[tt]["name"]
 		var short = tname.split(" ")[0] if tname.length() > 8 else tname
@@ -12204,18 +12203,25 @@ func _do_level_start(index: int) -> void:
 	return_button.visible = false
 	game_state = GameState.PLAYING
 	start_button.text = "  START WAVE  "
-	tower_buttons[TowerType.ROBIN_HOOD].text = "Robin [%dG]" % _get_discounted_cost(TowerType.ROBIN_HOOD)
-	tower_buttons[TowerType.ROBIN_HOOD].disabled = false
-	tower_buttons[TowerType.ALICE].text = "Alice [%dG]" % _get_discounted_cost(TowerType.ALICE)
-	tower_buttons[TowerType.ALICE].disabled = false
-	tower_buttons[TowerType.WICKED_WITCH].text = "Witch [%dG]" % _get_discounted_cost(TowerType.WICKED_WITCH)
-	tower_buttons[TowerType.WICKED_WITCH].disabled = false
-	tower_buttons[TowerType.PETER_PAN].text = "Peter [%dG]" % _get_discounted_cost(TowerType.PETER_PAN)
-	tower_buttons[TowerType.PETER_PAN].disabled = false
-	tower_buttons[TowerType.PHANTOM].text = "Phantom [%dG]" % _get_discounted_cost(TowerType.PHANTOM)
-	tower_buttons[TowerType.PHANTOM].disabled = false
-	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
-	tower_buttons[TowerType.SCROOGE].disabled = false
+	# Base 3 — always available
+	for _bt in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE]:
+		if tower_buttons.has(_bt):
+			var _bn = tower_info[_bt]["name"]
+			var _bs = _bn.split(" ")[0] if _bn.length() > 8 else _bn
+			tower_buttons[_bt].text = "%s [%dG]" % [_bs, _get_discounted_cost(_bt)]
+			tower_buttons[_bt].disabled = false
+			tower_buttons[_bt].visible = true
+	# Hide non-base towers unless unlocked
+	for _ht in [TowerType.WICKED_WITCH, TowerType.PETER_PAN, TowerType.PHANTOM]:
+		if tower_buttons.has(_ht):
+			if _is_character_unlocked(_ht):
+				var _hn = tower_info[_ht]["name"]
+				var _hs = _hn.split(" ")[0] if _hn.length() > 8 else _hn
+				tower_buttons[_ht].text = "%s [%dG]" % [_hs, _get_discounted_cost(_ht)]
+				tower_buttons[_ht].disabled = false
+				tower_buttons[_ht].visible = true
+			else:
+				tower_buttons[_ht].visible = false
 	# Show unlocked character buttons — row 2, stretched horizontally
 	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var new_char_labels = {
