@@ -3184,7 +3184,7 @@ var exchange_rates: Dictionary = {
 	"gold_to_pages": 50,    # Gold cost per 1 Page
 	"gold_to_quills": 80,   # Gold cost per 1 Quill
 	"pages_to_quills": 3,   # Pages cost per 1 Quill
-	"quills_to_pages": 1,   # Quills cost per 3 Pages (reverse)
+	"quills_to_pages": 1,   # 1 Quill cost per exchange (gives 3 pages via special handling)
 }
 var exchange_refresh_date: String = ""
 
@@ -3216,11 +3216,15 @@ func _exchange_currency(from_type: String, to_type: String, amount: int) -> bool
 		"quills":
 			if player_quills < total_cost: return false
 			player_quills -= total_cost
+	# Quills→Pages special: 1 quill = 3 pages (quills are 3x value of pages)
+	var received = amount
+	if from_type == "quills" and to_type == "pages":
+		received = amount * 3
 	match to_type:
-		"gold": player_gold += amount
-		"pages": player_pages += amount
-		"quills": player_quills += amount
-	spawn_floating_text(Vector2(640, 350), "Exchanged! +%d %s" % [amount, to_type], Color(0.4, 0.9, 0.6), 14.0, 1.5)
+		"gold": player_gold += received
+		"pages": player_pages += received
+		"quills": player_quills += received
+	spawn_floating_text(Vector2(640, 350), "Exchanged! +%d %s" % [received, to_type], Color(0.4, 0.9, 0.6), 14.0, 1.5)
 	return true
 
 # === MILESTONE REWARDS ===
@@ -5020,7 +5024,7 @@ func _init_emporium_items() -> void:
 		],
 		2: [  # Pages (stars â†’ shards)
 			{"name": "Story Fragment", "desc": "A piece of a lost story", "cost": 1, "currency": "stars", "reward": "pages", "amount": 20},
-			{"name": "Shard Cluster", "desc": "A cluster of raw shards", "cost": 2, "currency": "stars", "reward": "pages", "amount": 50},
+			{"name": "Page Bundle", "desc": "A bundle of enchanted pages", "cost": 2, "currency": "stars", "reward": "pages", "amount": 50},
 			{"name": "Prismatic Core", "desc": "Pure crystallized energy", "cost": 4, "currency": "stars", "reward": "pages", "amount": 120},
 		],
 		3: [  # Gear Chests
@@ -5333,7 +5337,7 @@ func _init_achievement_definitions() -> void:
 		{"id": "quill_collector", "name": "Quill Collector", "desc": "Earn 100 Enchanted Quills", "category": "Economy", "target": 100, "reward_type": "pages", "reward_amount": 20},
 		{"id": "quill_hoarder", "name": "Quill Hoarder", "desc": "Earn 500 Enchanted Quills", "category": "Economy", "target": 500, "reward_type": "stars", "reward_amount": 3},
 		{"id": "shard_collector", "name": "Page Collector", "desc": "Earn 500 Pages", "category": "Economy", "target": 500, "reward_type": "quills", "reward_amount": 10},
-		{"id": "shard_hoarder", "name": "Shard Hoarder", "desc": "Earn 2,000 Pages", "category": "Economy", "target": 2000, "reward_type": "stars", "reward_amount": 3},
+		{"id": "shard_hoarder", "name": "Page Hoarder", "desc": "Earn 2,000 Pages", "category": "Economy", "target": 2000, "reward_type": "stars", "reward_amount": 3},
 		{"id": "star_gazer", "name": "Star Gazer", "desc": "Earn 25 Storybook Stars", "category": "Economy", "target": 25, "reward_type": "pages", "reward_amount": 25},
 		{"id": "star_collector", "name": "Star Collector", "desc": "Earn 100 Storybook Stars", "category": "Economy", "target": 100, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 10},
 		{"id": "trophy_winner", "name": "Trophy Winner", "desc": "Earn 50 Trophies", "category": "Economy", "target": 50, "reward_type": "pages", "reward_amount": 30},
@@ -15564,7 +15568,7 @@ func _refresh_merchant() -> void:
 	merchant_inventory.clear()
 	var possible_items = [
 		{"name": "Quill Bundle", "desc": "+15 Quills", "cost_type": "gold", "cost": 200, "item_type": "quills", "value": 15},
-		{"name": "Shard Pack", "desc": "+10 Shards", "cost_type": "gold", "cost": 300, "item_type": "pages", "value": 10},
+		{"name": "Page Pack", "desc": "+10 Pages", "cost_type": "gold", "cost": 300, "item_type": "pages", "value": 10},
 		{"name": "Crystal Pouch", "desc": "+8 Crystals", "cost_type": "gold", "cost": 500, "item_type": "crystals", "value": 8},
 		{"name": "Streak Shield", "desc": "Protect your streak", "cost_type": "crystals", "cost": 30, "item_type": "shields", "value": 1},
 		{"name": "XP Tome", "desc": "+200 XP to chosen hero", "cost_type": "crystals", "cost": 20, "item_type": "xp", "value": 200},
@@ -16805,7 +16809,7 @@ func _draw_gear_tab() -> void:
 		if owned_gear[key] > 0:
 			unique_owned += 1
 	_ds_outlined_text(Vector2(grid_left + 10, footer_y), "Owned: %d unique (%d total)" % [unique_owned, total_owned], 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
-	_ds_outlined_text(Vector2(grid_left + 300, footer_y), "Shards: %d" % player_pages, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	_ds_outlined_text(Vector2(grid_left + 300, footer_y), "Pages: %d" % player_pages, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
 	_ds_outlined_text(Vector2(grid_left + 450, footer_y), "Quills: %d" % player_quills, 14, _ca(menu_gold, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
 
 func _draw_emporium() -> void:
@@ -38441,7 +38445,7 @@ func _draw_gear_shop() -> void:
 	# Rounded panel background
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "GEAR SHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Pages: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, c_gold_warm)
 	var card_w = 260.0
 	var card_h = 48.0
 	var rarity_order = ["common", "uncommon", "rare", "epic", "legendary"]
@@ -38628,7 +38632,7 @@ func _draw_salvage_panel() -> void:
 	# Rounded panel background
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "SALVAGE WORKSHOP", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Pages: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Dismantle unwanted gear into Pages", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var card_w = 260.0
 	var card_h = 52.0
@@ -38705,7 +38709,7 @@ func _draw_chest_crafting() -> void:
 	# Rounded panel background
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "CHEST FORGE", 20, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
-	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Shards: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
+	_udraw(font, Vector2(panel_x + panel_w - 180, panel_y + 28), "Pages: %d" % player_pages, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, menu_gold)
 	_udraw(font, Vector2(panel_x + panel_w * 0.5, panel_y + 46), "Forge Golden Treasure Chests from Pages", HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text_muted)
 	var tier_names = ["Bronze", "Silver", "Golden"]
 	var chest_keys = ["bronze", "silver", "gold"]
@@ -38724,7 +38728,7 @@ func _draw_chest_crafting() -> void:
 		draw_colored_polygon(_rrp(Rect2(cx + cw * 0.5 - 5, icon_y + 15, 10, 15), 3.0), Color(0.2, 0.15, 0.1))
 		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 70), tier_names[i] + " Treasure Chest", 15, chest_colors[i], -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 92), "Owned: %d" % treasure_chests_owned.get(chest_keys[i], 0), HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text)
-		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["pages_cost"], 16, menu_gold, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Pages" % craft["pages_cost"], 16, menu_gold, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		# Craft button — Bloons style
 		var can_afford = player_pages >= craft["pages_cost"]
 		if can_afford:
@@ -38813,7 +38817,7 @@ func _generate_daily_deals(force_refresh: bool = false) -> void:
 		var d = {"type": "power", "power_id": bp["id"], "cost_type": "pages", "cost": rng.randi_range(8, 15), "original_cost": rng.randi_range(18, 28), "name": bp["name"] + " x2", "desc": bp["desc"], "amount": 2, "tier": "common"}
 		deal_pool_common.append(d)
 	# Currency deals
-	deal_pool_common.append({"type": "currency", "currency": "pages", "amount": rng.randi_range(20, 50), "cost_type": "quills", "cost": rng.randi_range(5, 10), "original_cost": rng.randi_range(12, 18), "name": "Shard Pouch", "desc": "A pouch of Pages", "tier": "common"})
+	deal_pool_common.append({"type": "currency", "currency": "pages", "amount": rng.randi_range(20, 50), "cost_type": "quills", "cost": rng.randi_range(5, 10), "original_cost": rng.randi_range(12, 18), "name": "Page Pouch", "desc": "A pouch of Pages", "tier": "common"})
 	deal_pool_common.append({"type": "currency", "currency": "quills", "amount": rng.randi_range(5, 15), "cost_type": "pages", "cost": rng.randi_range(12, 25), "original_cost": rng.randi_range(28, 40), "name": "Quill Bundle", "desc": "A bundle of Enchanted Quills", "tier": "common"})
 	# Improvement 6: Expanded deal pool
 	deal_pool_rare.append({"type": "currency", "currency": "ink", "amount": rng.randi_range(3, 8), "cost_type": "quills", "cost": rng.randi_range(8, 15), "original_cost": rng.randi_range(18, 25), "name": "Ink Vial", "desc": "Knowledge Ink for the Tree", "tier": "rare"})
@@ -38826,7 +38830,7 @@ func _generate_daily_deals(force_refresh: bool = false) -> void:
 	deal_pool_epic.append({"type": "currency", "currency": "stars", "amount": rng.randi_range(2, 5), "cost_type": "pages", "cost": rng.randi_range(30, 50), "original_cost": rng.randi_range(55, 75), "name": "Star Bundle", "desc": "Storybook Stars for leveling", "tier": "epic"})
 	deal_pool_epic.append({"type": "power", "power_id": "enchanted_towers", "cost_type": "pages", "cost": rng.randi_range(15, 25), "original_cost": rng.randi_range(30, 45), "name": "Enchanted Towers x3", "desc": "+50% tower damage for 15s", "amount": 3, "tier": "epic"})
 	# Legendary deals
-	deal_pool_legendary.append({"type": "currency", "currency": "pages", "amount": rng.randi_range(80, 150), "cost_type": "quills", "cost": rng.randi_range(25, 40), "original_cost": rng.randi_range(50, 70), "name": "Shard Hoard", "desc": "A massive pile of Pages!", "tier": "legendary"})
+	deal_pool_legendary.append({"type": "currency", "currency": "pages", "amount": rng.randi_range(80, 150), "cost_type": "quills", "cost": rng.randi_range(25, 40), "original_cost": rng.randi_range(50, 70), "name": "Page Hoard", "desc": "A massive pile of Pages!", "tier": "legendary"})
 	deal_pool_legendary.append({"type": "chest", "chest_tier": "gold", "cost_type": "quills", "cost": rng.randi_range(18, 30), "original_cost": rng.randi_range(40, 60), "name": "Gilded Chest", "desc": "Epic+ rarity guaranteed!", "tier": "legendary"})
 	deal_pool_legendary.append({"type": "currency", "currency": "ink", "amount": rng.randi_range(10, 20), "cost_type": "pages", "cost": rng.randi_range(25, 45), "original_cost": rng.randi_range(50, 70), "name": "Inkwell of Ages", "desc": "A deep well of Knowledge Ink", "tier": "legendary"})
 	# Shuffle each pool
