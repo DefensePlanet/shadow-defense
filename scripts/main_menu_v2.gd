@@ -3021,20 +3021,15 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	grid.size_flags_stretch_ratio = 1.0
 	parent.add_child(grid)
 	if not _main: return
-	var keys = _main._gear_icon_textures.keys()
-	keys.sort()
-	var gear_idx = 0
-	var rarity_names = ["COMMON", "COMMON", "COMMON", "RARE", "RARE", "EPIC", "LEGEND"]
-	# Build gear lookup for actual rarity
-	var gear_data_map: Dictionary = {}
-	if _main and "GEAR_ITEMS" in _main:
-		for gi in _main.GEAR_ITEMS:
-			gear_data_map[gi["id"]] = gi
 	var tier_to_filter = {"common": "COMMON", "uncommon": "COMMON", "rare": "RARE", "epic": "EPIC", "legendary": "LEGEND", "ancient": "LEGEND"}
 	var tier_colors_map = {"common": Color(0.55, 0.55, 0.55), "uncommon": Color(0.35, 0.70, 0.35), "rare": Color(0.25, 0.55, 0.90), "epic": Color(0.70, 0.35, 0.90), "legendary": Color(1.0, 0.75, 0.15), "ancient": Color(1.0, 0.50, 0.10)}
-	for gk in keys:
-		# Get ACTUAL rarity from gear data
-		var gd = gear_data_map.get(gk, {})
+	# Sort GEAR_ITEMS by name for display
+	var sorted_items = _main.GEAR_ITEMS.duplicate()
+	sorted_items.sort_custom(func(a, b): return a["name"] < b["name"])
+	var gear_idx = 0
+	for gd in sorted_items:
+		var gk = gd["id"]
+		# gd already has the gear data from sorted_items loop
 		var tier = gd.get("tier", "common")
 		var rarity_col = tier_colors_map.get(tier, Color(0.55, 0.55, 0.55))
 		var rarity_filter = tier_to_filter.get(tier, "COMMON")
@@ -3093,18 +3088,30 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 		ics.content_margin_top = 4; ics.content_margin_bottom = 4
 		icon_circle.add_theme_stylebox_override("panel", ics)
 		var icon = TextureRect.new()
-		icon.texture = _main._gear_icon_textures[gk]
 		icon.custom_minimum_size = Vector2(64, 64)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Try generated AI icon first, then procedural fallback
+		var gen_path = "res://assets/gear_icons/generated/%s.png" % gk
+		if ResourceLoader.exists(gen_path):
+			icon.texture = load(gen_path)
+		elif _main._gear_icon_textures.has(gk):
+			icon.texture = _main._gear_icon_textures[gk]
+			if ResourceLoader.exists("res://shaders/white_key.gdshader"):
+				var mat = ShaderMaterial.new()
+				mat.shader = load("res://shaders/white_key.gdshader")
+				mat.set_shader_parameter("threshold", 0.75)
+				icon.material = mat
+		else:
+			# No icon at all — show rarity-colored placeholder
+			var placeholder = _lbl("?", 28, rarity_col)
+			placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon_circle.add_child(placeholder)
 		if not is_owned:
 			icon.modulate = Color(0.3, 0.3, 0.35, 0.5)
-		if ResourceLoader.exists("res://shaders/white_key.gdshader"):
-			var mat = ShaderMaterial.new()
-			mat.shader = load("res://shaders/white_key.gdshader")
-			mat.set_shader_parameter("threshold", 0.75)
-			icon.material = mat
 		icon_circle.add_child(icon)
 		cv.add_child(icon_circle)
 		# Name
