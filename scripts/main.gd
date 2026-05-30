@@ -14398,21 +14398,23 @@ func _end_story_dialog() -> void:
 			return
 		_start_story_dialog(next_key)
 		return
-	# Restore game elements hidden during story dialog
-	towers_node.visible = true
-	enemy_path.visible = true
-	$UI.visible = true
-	# Restore menu v2 CanvasLayer
-	_show_menu_after_story()
 	# Prologue auto-starts level 0 (Into the Pages)
 	if key == "prologue":
 		_pending_level_start = 0
-	# If this was a pre-level dialog or prologue, start the level
+		# Mark pre_level_0 as seen so it doesn't replay
+		if not "pre_level_0" in story_seen:
+			story_seen.append("pre_level_0")
+	# If this was a pre-level dialog or prologue, start the level — DON'T restore menu
 	if (key.begins_with("pre_level_") or key == "prologue") and _pending_level_start >= 0:
 		var lvl = _pending_level_start
 		_pending_level_start = -1
 		_do_level_start(lvl)
 		return
+	# Restore game elements hidden during story dialog (only if NOT starting a level)
+	towers_node.visible = true
+	enemy_path.visible = true
+	$UI.visible = true
+	_show_menu_after_story()
 	# Queue "meanwhile" cutscene after arc-ending post-level dialogs
 	var _meanwhile_map = {
 		"post_level_3": "meanwhile_after_sherlock",
