@@ -1391,7 +1391,7 @@ const WEEKLY_QUEST_POOL: Array = [
 	{"id": "win_5", "desc": "Win 5 battles", "target": 5, "stat": "wins", "reward_type": "crystals", "reward_amt": 25},
 	{"id": "stars_15", "desc": "Earn 15 stars", "target": 15, "stat": "stars", "reward_type": "quills", "reward_amt": 50},
 	{"id": "place_20", "desc": "Place 20 towers", "target": 20, "stat": "places", "reward_type": "crystals", "reward_amt": 20},
-	{"id": "upgrade_10", "desc": "Upgrade 10 times", "target": 10, "stat": "upgrades", "reward_type": "gear_shards", "reward_amt": 30},
+	{"id": "upgrade_10", "desc": "Upgrade 10 times", "target": 10, "stat": "upgrades", "reward_type": "pages", "reward_amt": 30},
 	{"id": "boss_3", "desc": "Defeat 3 bosses", "target": 3, "stat": "bosses", "reward_type": "crystals", "reward_amt": 40},
 	{"id": "perfect_3", "desc": "Get 3 perfect waves", "target": 3, "stat": "perfects", "reward_type": "quills", "reward_amt": 40},
 	{"id": "combo_50", "desc": "Reach 50x kill combo", "target": 50, "stat": "max_combo", "reward_type": "crystals", "reward_amt": 35},
@@ -5332,7 +5332,7 @@ func _init_achievement_definitions() -> void:
 		# ECONOMY — Currencies (8)
 		{"id": "quill_collector", "name": "Quill Collector", "desc": "Earn 100 Enchanted Quills", "category": "Economy", "target": 100, "reward_type": "pages", "reward_amount": 20},
 		{"id": "quill_hoarder", "name": "Quill Hoarder", "desc": "Earn 500 Enchanted Quills", "category": "Economy", "target": 500, "reward_type": "stars", "reward_amount": 3},
-		{"id": "shard_collector", "name": "Shard Collector", "desc": "Earn 500 Pages", "category": "Economy", "target": 500, "reward_type": "quills", "reward_amount": 10},
+		{"id": "shard_collector", "name": "Page Collector", "desc": "Earn 500 Pages", "category": "Economy", "target": 500, "reward_type": "quills", "reward_amount": 10},
 		{"id": "shard_hoarder", "name": "Shard Hoarder", "desc": "Earn 2,000 Pages", "category": "Economy", "target": 2000, "reward_type": "stars", "reward_amount": 3},
 		{"id": "star_gazer", "name": "Star Gazer", "desc": "Earn 25 Storybook Stars", "category": "Economy", "target": 25, "reward_type": "pages", "reward_amount": 25},
 		{"id": "star_collector", "name": "Star Collector", "desc": "Earn 100 Storybook Stars", "category": "Economy", "target": 100, "reward_type": "quills", "reward_amount": 15, "trophy_bonus": 10},
@@ -15533,7 +15533,7 @@ func _update_weekly_quest(stat_key: String, amount: int) -> void:
 				match q["reward_type"]:
 					"crystals": player_crystals += q["reward_amt"]
 					"quills": player_quills += q["reward_amt"]
-					"gear_shards": player_pages += q["reward_amt"]
+					"pages": player_pages += q["reward_amt"]
 				spawn_floating_text(Vector2(640, 200), "WEEKLY QUEST DONE! +%d %s" % [q["reward_amt"], q["reward_type"]], Color(0.4, 0.9, 0.6), 16.0, 2.5)
 				_haptic(1)
 
@@ -16348,7 +16348,7 @@ func _draw_currency_bar() -> void:
 	var currencies = [
 		{"icon": "emp_gold", "color": Color(0.9, 0.8, 0.2), "value": player_gold, "name": "Gold"},
 		{"icon": "emp_quills", "color": Color(0.4, 0.7, 0.9), "value": player_quills, "name": "Quills"},
-		{"icon": "emp_shards", "color": Color(0.7, 0.4, 0.8), "value": player_pages, "name": "Shards"},
+		{"icon": "emp_shards", "color": Color(0.7, 0.4, 0.8), "value": player_pages, "name": "Pages"},
 		{"icon": "emp_stars", "color": Color(1.0, 0.9, 0.3), "value": player_storybook_stars, "name": "Stars"},
 		{"icon": "emp_quills", "color": Color(0.3, 0.6, 0.4), "value": knowledge_ink, "name": "Ink"},
 		{"icon": "emp_trophy", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
@@ -16382,7 +16382,7 @@ func _draw_currency_bar() -> void:
 			draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
 			draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
 		# Menu Improvement 13: Premium currency sparkle
-		var is_premium = c["name"] in ["Quills", "Shards", "Stars"]
+		var is_premium = c["name"] in ["Quills", "Pages", "Stars"]
 		_draw_currency_shimmer(cx, ic_y, 10.0, cc, is_premium)
 		# Value text — bright gold with label
 		var display_val = _get_display_currency(c["name"]) if _currency_display.has(c["name"]) else c["value"]
@@ -38573,7 +38573,7 @@ func _salvage_gear(gear_id: String) -> void:
 			equipped_gear[t].erase(gear_id)
 			was_equipped = true
 	player_pages += shards_gained
-	var msg = "+%d Shards" % shards_gained
+	var msg = "+%d Pages" % shards_gained
 	if was_equipped:
 		msg += " (unequipped)"
 	spawn_floating_text(Vector2(640, 360), msg, Color(0.6, 0.3, 0.9), 16.0, 1.0)
@@ -41755,7 +41755,7 @@ func _draw_hero_rarity_border(rx: float, ry: float, rw: float, rh: float, tier: 
 var _currency_display: Dictionary = {}  # name -> {displayed, target, velocity}
 
 func _update_currency_displays(delta: float) -> void:
-	var currencies_map = {"Gold": player_gold, "Quills": player_quills, "Shards": player_pages, "Stars": player_storybook_stars, "Ink": knowledge_ink, "Trophies": trophy_currency}
+	var currencies_map = {"Gold": player_gold, "Quills": player_quills, "Pages": player_pages, "Stars": player_storybook_stars, "Ink": knowledge_ink, "Trophies": trophy_currency}
 	for key in currencies_map:
 		if not _currency_display.has(key):
 			_currency_display[key] = {"displayed": float(currencies_map[key]), "target": currencies_map[key]}
