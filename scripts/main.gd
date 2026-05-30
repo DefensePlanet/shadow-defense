@@ -6730,7 +6730,10 @@ func _load_game() -> void:
 	# Refresh unlocked survivors into the active roster
 	_refresh_unlocked_survivors()
 	# Check if prologue should be triggered on first load
-	if story_seen.is_empty() and story_dialogs.has("prologue"):
+	# Force reset story_seen for fresh narration experience
+	story_seen.clear()
+	print("[STORY] story_seen cleared, triggering prologue")
+	if story_dialogs.has("prologue"):
 		call_deferred("_start_story_dialog", "prologue")
 
 # === INTERACTIVE MAP ELEMENTS — clickable objects that affect gameplay ===
