@@ -5958,9 +5958,13 @@ func _start_odyssey_map(map_index: int) -> void:
 	_setup_path_for_level(level_idx)
 	_generate_decorations_for_level(level_idx)
 	_stop_music()
-	menu_overlay.visible = false
 	_hide_menu_for_story()  # Hide menu v2 CanvasLayer during gameplay
 	$UI.visible = true
+	menu_overlay.visible = false
+	if survivor_grid_container:
+		survivor_grid_container.visible = false
+	if survivor_detail_container:
+		survivor_detail_container.visible = false
 	top_bar.visible = true
 	bottom_panel.visible = true
 	game_over_label.visible = false
@@ -12190,14 +12194,16 @@ func _do_level_start(index: int) -> void:
 	# Polyrhythm system: initialize world music mode, swing, drum style for this level
 	if _poly != null:
 		_poly.on_level_start(index)
-	menu_overlay.visible = false
 	# Hide menu v2 CanvasLayer when entering gameplay
 	_hide_menu_for_story()
 	# Restore UI (may have been hidden by story dialog)
 	$UI.visible = true
-	for child in $UI.get_children():
-		if child is Control:
-			child.mouse_filter = Control.MOUSE_FILTER_STOP
+	# Hide menu elements that should NOT show during gameplay
+	menu_overlay.visible = false
+	if survivor_grid_container:
+		survivor_grid_container.visible = false
+	if survivor_detail_container:
+		survivor_detail_container.visible = false
 	top_bar.visible = true
 	bottom_panel.visible = true
 	game_over_label.visible = false
