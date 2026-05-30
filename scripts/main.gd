@@ -2817,8 +2817,12 @@ func _buy_achievement_shop_item(index: int) -> bool:
 		"stars": player_storybook_stars += item["reward_amount"]
 		"ink": player_ink += item["reward_amount"]
 		"energy": player_energy = mini(player_energy + item["reward_amount"], MAX_ENERGY)
-		"gold_chest": pass  # Open chest animation
-		"title": pass  # Unlock cosmetic title
+		"gold_chest":
+			if "treasure_chests_owned" in self:
+				treasure_chests_owned["gold"] = treasure_chests_owned.get("gold", 0) + 1
+		"title":
+			if "unlocked_titles" in self:
+				unlocked_titles[item.get("title_id", "achiever")] = true
 	spawn_floating_text(Vector2(640, 300), "Purchased: %s!" % item["name"], Color(0.4, 0.9, 0.6), 16.0, 2.0)
 	return true
 var achievements_unlocked: Dictionary = {}
@@ -5779,6 +5783,7 @@ func _save_game() -> void:
 	save_data["player_pages"] = player_pages
 	save_data["player_storybook_stars"] = player_storybook_stars
 	save_data["player_gold"] = player_gold
+	save_data["player_ink"] = player_ink
 	save_data["player_energy"] = player_energy
 	save_data["energy_last_timestamp"] = Time.get_unix_time_from_system()
 	save_data["bp_tier"] = bp_tier
@@ -6072,6 +6077,7 @@ func _load_game() -> void:
 	player_pages = int(data.get("player_pages", 0))
 	player_storybook_stars = int(data.get("player_storybook_stars", 0))
 	player_gold = int(data.get("player_gold", 0))
+	player_ink = int(data.get("player_ink", 0))
 	# Energy system (#112): load + regen based on time away
 	player_energy = int(data.get("player_energy", MAX_ENERGY))
 	energy_last_timestamp = float(data.get("energy_last_timestamp", 0.0))
@@ -6541,7 +6547,7 @@ func _activate_interactable(idx: int) -> void:
 			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if is_instance_valid(enemy) and enemy.global_position.distance_to(pos) <= 80:
 					if "speed" in enemy:
-						enemy.speed *= -0.5  # Brief pushback
+						enemy.speed *= 0.3  # Heavy slow (not negative — negative causes backward walking)
 			spawn_floating_text(pos, "🚧 BLOCKED!", Color(0.6, 0.4, 0.2), 16.0, 1.5)
 		"torch":  # Removes fog terrain in radius + reveals stealth enemies
 			for zi in range(_terrain_zones.size()):
@@ -22387,8 +22393,10 @@ func _buy_battle_item(item_id: String) -> bool:
 					selected_tower_node._meta_buffs["reforge_" + stat_key] = boost_pct
 				spawn_floating_text(selected_tower_node.global_position, "REFORGED! +%d%% %s" % [int(boost_pct * 100), stat_key], Color(1.0, 0.6, 0.2), 16.0, 2.0)
 		"extra_slot":
-			# Allow one extra tower placement even at minimalist cap
-			placed_tower_positions.pop_back() if placed_tower_positions.size() > 0 else null
+			# Allow one extra tower placement by increasing the limit, NOT removing positions
+			if "_extra_tower_slots" not in self:
+				_extra_tower_slots = 0
+			_extra_tower_slots += 1
 			spawn_floating_text(Vector2(640, 325), "Extra slot opened!", Color(0.3, 0.8, 1.0), 14.0, 1.5)
 		"ink_charge":
 			_charge_ink_meter(50.0)
@@ -22435,7 +22443,7 @@ func _check_environmental_event(delta: float) -> void:
 	_env_event_cooldown -= delta
 	if _env_event_cooldown > 0: return
 	# Random chance per frame — roughly every 45-90 seconds
-	if randf() < 0.0003:  # ~0.03% per frame at 60fps = ~every 55s average
+	if randf() < 0.0003 * delta * 60.0:  # Framerate-independent: ~every 55s average regardless of FPS
 		_env_event_cooldown = 30.0  # Min 30s between events
 		_trigger_environmental_event()
 
@@ -43464,6 +43472,8 @@ func _check_boss_dialogue(boss_name: String, hp_percent: float) -> void:
 
 # --- Enhancement #61: Prestige Currency (Ink) ---
 var player_ink: int = 0
+var unlocked_titles: Dictionary = {}
+var _extra_tower_slots: int = 0
 
 # --- Enhancement #62: Account Level System ---
 var account_level: int = 1
