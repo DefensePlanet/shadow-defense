@@ -55,7 +55,6 @@ var tower_info = {
 	TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
 	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
 	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
-	# === HERO SPRITE TEST ===
 	TowerType.ROBIN_HOOD_2: {"name": "Robin 2", "cost": 20, "range": 160.0, "damage": 20, "fire_rate": 0.85},
 }
 
@@ -313,8 +312,6 @@ var survivor_types = [
 	TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.LOKI,
 	TowerType.ANUBIS,
 	# CAPTAIN_AHAB removed — Hook covers the ocean/pirate archetype
-	# HERO SPRITE TEST
-	TowerType.ROBIN_HOOD_2,
 ]
 var survivor_descriptions = {
 	TowerType.ROBIN_HOOD: "The legendary outlaw of Sherwood Forest.\nLong-range archer with piercing arrows and gold bonus.",
@@ -329,7 +326,6 @@ var survivor_descriptions = {
 	TowerType.MERLIN: "The legendary wizard of Camelot.\nBuffs allies, curses enemies, summons Excalibur strikes.",
 	TowerType.FRANKENSTEIN: "The tragic creature brought to life.\nLightning-charged fist smash with devastating area damage.",
 	TowerType.SHADOW_AUTHOR: "The dark narrator who writes the story.\nMaster of ink and shadow, bends reality to his will.",
-	TowerType.ROBIN_HOOD_2: "Hero Sprite Robin Hood (TEST).\nUpgraded art, same legendary archer.",
 }
 # Character titles / epithets (shown below name on cards and detail view)
 var character_titles: Array = [
@@ -1183,7 +1179,6 @@ var kill_effect_colors: Dictionary = {
 	TowerType.MERLIN: Color(0.35, 0.20, 0.85),
 	TowerType.FRANKENSTEIN: Color(0.20, 0.85, 0.90),
 	TowerType.SHADOW_AUTHOR: Color(0.08, 0.05, 0.15),
-	TowerType.ROBIN_HOOD_2: Color(0.15, 0.65, 0.12),
 }
 
 # Personality system state
@@ -5958,20 +5953,16 @@ func _start_odyssey_map(map_index: int) -> void:
 	_setup_path_for_level(level_idx)
 	_generate_decorations_for_level(level_idx)
 	_stop_music()
-	_hide_menu_for_story()  # Hide menu v2 CanvasLayer during gameplay
-	$UI.visible = true
-	for child in $UI.get_children():
-		if child is Control:
-			child.visible = false
+	menu_overlay.visible = false
 	top_bar.visible = true
 	bottom_panel.visible = true
-	start_button.visible = true
 	game_over_label.visible = false
 	return_button.visible = false
 	game_state = GameState.PLAYING
 	start_button.text = "  START WAVE  "
-	# Base 3 towers always available — others unlocked via story
-	var base_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2]
+	# Base 6 towers always available
+	var base_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
+					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE]
 	for tt in base_types:
 		var tname = tower_info[tt]["name"]
 		var short = tname.split(" ")[0] if tname.length() > 8 else tname
@@ -8970,41 +8961,7 @@ func _load_tower_sprite_textures() -> void:
 	_tower_sprite_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author", "clayton", "medusa", "loki", "anubis"]
-	# Characters with non-matching file names
-	var name_aliases = {"captain_hook": "hook", "queen_of_hearts": "queen", "headless_horseman": "horseman"}
-	# Hero Sprite characters — load from hero_sprites/ instead of tower_sprites/
-	var hero_sprite_names = ["robin_hood_2"]
-	for hname in hero_sprite_names:
-		var base_name = hname.replace("_2", "")  # robin_hood_2 -> robin_hood for file lookup
-		var hero_idle = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_idle.png"
-		if ResourceLoader.exists(hero_idle):
-			_tower_sprite_textures[hname] = load(hero_idle)
-		else:
-			var abs_p = ProjectSettings.globalize_path(hero_idle)
-			var himg = Image.new()
-			if himg.load(abs_p) == OK:
-				_tower_sprite_textures[hname] = ImageTexture.create_from_image(himg)
-		# Hero attack/shoot/flair/spin textures
-		var h_atk = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_attack.png"
-		var h_sht = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_shoot.png"
-		if ResourceLoader.exists(h_atk):
-			_tower_attack_textures[hname] = load(h_atk)
-		if ResourceLoader.exists(h_sht):
-			_tower_shoot_textures[hname] = load(h_sht)
-		var h_flairs: Array = []
-		for fi in range(1, 10):
-			var fp = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_flair" + str(fi) + ".png"
-			if ResourceLoader.exists(fp):
-				h_flairs.append(load(fp))
-		if h_flairs.size() > 0:
-			_tower_flair_textures[hname] = h_flairs
-		var h_s36 = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_spin360.png"
-		var h_spd = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_spindown.png"
-		if ResourceLoader.exists(h_s36):
-			_tower_sprite_textures[hname + "_spin360"] = load(h_s36)
-		if ResourceLoader.exists(h_spd):
-			_tower_sprite_textures[hname + "_spindown"] = load(h_spd)
+		"shadow_author"]
 	for tname in names:
 		var res_path = "res://assets/tower_sprites/" + tname + "_idle.png"
 		if ResourceLoader.exists(res_path):
@@ -9017,17 +8974,6 @@ func _load_tower_sprite_textures() -> void:
 		var img = Image.new()
 		if img.load(abs_path) == OK:
 			_tower_sprite_textures[tname] = ImageTexture.create_from_image(img)
-	# Load aliased characters (file names differ from character names)
-	for char_name in name_aliases:
-		var file_name = name_aliases[char_name]
-		var res_path = "res://assets/tower_sprites/" + file_name + "_idle.png"
-		if ResourceLoader.exists(res_path):
-			_tower_sprite_textures[char_name] = load(res_path)
-		else:
-			var abs_path = ProjectSettings.globalize_path(res_path)
-			var img = Image.new()
-			if img.load(abs_path) == OK:
-				_tower_sprite_textures[char_name] = ImageTexture.create_from_image(img)
 	# Load flair, attack, shoot textures for frame-based animation
 	for tname in names:
 		# Attack + shoot poses
@@ -9059,6 +9005,32 @@ func _load_tower_sprite_textures() -> void:
 			_tower_sprite_textures[tname + "_spindown"] = load(spindown_path)
 		if flairs.size() > 0:
 			_tower_flair_textures[tname] = flairs
+	# Hero Sprite characters — load from hero_sprites/
+	var hero_map = {"robin_hood_2": "robin_hood"}
+	for hname in hero_map:
+		var base = hero_map[hname]
+		var h_idle = "res://assets/hero_sprites/" + base + "/" + base + "_idle.png"
+		if ResourceLoader.exists(h_idle):
+			_tower_sprite_textures[hname] = load(h_idle)
+		var h_atk = "res://assets/hero_sprites/" + base + "/" + base + "_attack.png"
+		if ResourceLoader.exists(h_atk):
+			_tower_attack_textures[hname] = load(h_atk)
+		var h_sht = "res://assets/hero_sprites/" + base + "/" + base + "_shoot.png"
+		if ResourceLoader.exists(h_sht):
+			_tower_shoot_textures[hname] = load(h_sht)
+		var h_flairs: Array = []
+		for fi in range(1, 5):
+			var fp = "res://assets/hero_sprites/" + base + "/" + base + "_flair" + str(fi) + ".png"
+			if ResourceLoader.exists(fp):
+				h_flairs.append(load(fp))
+		if h_flairs.size() > 0:
+			_tower_flair_textures[hname] = h_flairs
+		var h_s36 = "res://assets/hero_sprites/" + base + "/" + base + "_spin360.png"
+		var h_spd = "res://assets/hero_sprites/" + base + "/" + base + "_spindown.png"
+		if ResourceLoader.exists(h_s36):
+			_tower_sprite_textures[hname + "_spin360"] = load(h_s36)
+		if ResourceLoader.exists(h_spd):
+			_tower_sprite_textures[hname + "_spindown"] = load(h_spd)
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
@@ -9951,7 +9923,7 @@ func _create_ui() -> void:
 		[TowerType.PETER_PAN, "Peter [%dG]" % tower_info[TowerType.PETER_PAN]["cost"], "Peter Pan — fast daggers, shadow."],
 		[TowerType.PHANTOM, "Phantom [%dG]" % tower_info[TowerType.PHANTOM]["cost"], "Phantom — heavy hits, stun, chandelier."],
 		[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],
-		[TowerType.ROBIN_HOOD_2, "Robin2 [%dG]" % tower_info[TowerType.ROBIN_HOOD_2]["cost"], "Robin 2 — Hero Sprite test, same archer."],
+		[TowerType.ROBIN_HOOD_2, "Robin2 [20G]", "Robin 2 — Hero Sprite test."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
@@ -12193,40 +12165,25 @@ func _do_level_start(index: int) -> void:
 	# Polyrhythm system: initialize world music mode, swing, drum style for this level
 	if _poly != null:
 		_poly.on_level_start(index)
-	# Hide ALL menu layers when entering gameplay
-	_hide_menu_for_story()
-	# Restore ONLY gameplay UI — hide everything else under $UI
-	$UI.visible = true
-	for child in $UI.get_children():
-		if child is Control:
-			child.visible = false
-	# Now show ONLY gameplay elements
+	menu_overlay.visible = false
 	top_bar.visible = true
 	bottom_panel.visible = true
-	start_button.visible = true
 	game_over_label.visible = false
 	return_button.visible = false
 	game_state = GameState.PLAYING
 	start_button.text = "  START WAVE  "
-	# Base 3 — always available
-	for _bt in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE]:
-		if tower_buttons.has(_bt):
-			var _bn = tower_info[_bt]["name"]
-			var _bs = _bn.split(" ")[0] if _bn.length() > 8 else _bn
-			tower_buttons[_bt].text = "%s [%dG]" % [_bs, _get_discounted_cost(_bt)]
-			tower_buttons[_bt].disabled = false
-			tower_buttons[_bt].visible = true
-	# Hide non-base towers unless unlocked
-	for _ht in [TowerType.WICKED_WITCH, TowerType.PETER_PAN, TowerType.PHANTOM]:
-		if tower_buttons.has(_ht):
-			if _is_character_unlocked(_ht):
-				var _hn = tower_info[_ht]["name"]
-				var _hs = _hn.split(" ")[0] if _hn.length() > 8 else _hn
-				tower_buttons[_ht].text = "%s [%dG]" % [_hs, _get_discounted_cost(_ht)]
-				tower_buttons[_ht].disabled = false
-				tower_buttons[_ht].visible = true
-			else:
-				tower_buttons[_ht].visible = false
+	tower_buttons[TowerType.ROBIN_HOOD].text = "Robin [%dG]" % _get_discounted_cost(TowerType.ROBIN_HOOD)
+	tower_buttons[TowerType.ROBIN_HOOD].disabled = false
+	tower_buttons[TowerType.ALICE].text = "Alice [%dG]" % _get_discounted_cost(TowerType.ALICE)
+	tower_buttons[TowerType.ALICE].disabled = false
+	tower_buttons[TowerType.WICKED_WITCH].text = "Witch [%dG]" % _get_discounted_cost(TowerType.WICKED_WITCH)
+	tower_buttons[TowerType.WICKED_WITCH].disabled = false
+	tower_buttons[TowerType.PETER_PAN].text = "Peter [%dG]" % _get_discounted_cost(TowerType.PETER_PAN)
+	tower_buttons[TowerType.PETER_PAN].disabled = false
+	tower_buttons[TowerType.PHANTOM].text = "Phantom [%dG]" % _get_discounted_cost(TowerType.PHANTOM)
+	tower_buttons[TowerType.PHANTOM].disabled = false
+	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
+	tower_buttons[TowerType.SCROOGE].disabled = false
 	# Show unlocked character buttons — row 2, stretched horizontally
 	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var new_char_labels = {
@@ -14195,12 +14152,10 @@ func _show_act_title(act_key: String, then_dialog: String = "") -> void:
 	_act_title_subtitle = act["subtitle"]
 	_act_title_active = true
 	_act_title_timer = ACT_TITLE_DURATION
-	# Hide game UI and menu v2 during title card
+	# Hide game UI during title card
 	$UI.visible = false
 	towers_node.visible = false
 	enemy_path.visible = false
-	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
-		_menu_v2_instance.get_parent().visible = false
 	# After title card fades, start the dialog
 	if then_dialog != "":
 		get_tree().create_timer(ACT_TITLE_DURATION + 0.5).timeout.connect(func():
@@ -14260,12 +14215,6 @@ func _start_story_dialog(key: String) -> void:
 	towers_node.visible = false
 	enemy_path.visible = false
 	$UI.visible = false
-	# Hide menu v2 CanvasLayer so story dialog is visible AND clickable (menu is on layer 50)
-	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
-		_menu_v2_instance.get_parent().visible = false
-		_menu_v2_instance.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Deferred re-check in case menu loads after story starts
-	call_deferred("_hide_menu_for_story")
 	# Note: Do NOT clear queued_dialog here  --  callers set it before calling us
 	# Initialize 20-system narration animation state
 	_narration_blink_timer = 0.0
@@ -14429,23 +14378,16 @@ func _end_story_dialog() -> void:
 			return
 		_start_story_dialog(next_key)
 		return
-	# Prologue auto-starts level 0 (Into the Pages)
-	if key == "prologue":
-		_pending_level_start = 0
-		# Mark pre_level_0 as seen so it doesn't replay
-		if not "pre_level_0" in story_seen:
-			story_seen.append("pre_level_0")
-	# If this was a pre-level dialog or prologue, start the level — DON'T restore menu
-	if (key.begins_with("pre_level_") or key == "prologue") and _pending_level_start >= 0:
+	# Restore game elements hidden during story dialog
+	towers_node.visible = true
+	enemy_path.visible = true
+	$UI.visible = true
+	# If this was a pre-level dialog, start the level
+	if key.begins_with("pre_level_") and _pending_level_start >= 0:
 		var lvl = _pending_level_start
 		_pending_level_start = -1
 		_do_level_start(lvl)
 		return
-	# Restore game elements hidden during story dialog (only if NOT starting a level)
-	towers_node.visible = true
-	enemy_path.visible = true
-	$UI.visible = true
-	_show_menu_after_story()
 	# Queue "meanwhile" cutscene after arc-ending post-level dialogs
 	var _meanwhile_map = {
 		"post_level_3": "meanwhile_after_sherlock",
@@ -14560,16 +14502,6 @@ func _play_story_voice() -> void:
 			return
 	# No fallback — if no matching clip exists, stay silent rather than
 	# playing wrong audio or robot TTS. Silence > wrong voice.
-
-func _hide_menu_for_story() -> void:
-	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
-		_menu_v2_instance.get_parent().visible = false
-		_menu_v2_instance.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-func _show_menu_after_story() -> void:
-	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
-		_menu_v2_instance.get_parent().visible = true
-		_menu_v2_instance.mouse_filter = Control.MOUSE_FILTER_STOP
 
 func _on_story_dialog_clicked(_mouse_pos: Vector2) -> void:
 	if not story_state.active:
@@ -24047,8 +23979,7 @@ func _handle_back_button() -> void:
 
 func _input(event: InputEvent) -> void:
 	# Skip ALL input processing when v2 menu is active — let v2 handle it
-	# BUT allow input through when story dialog is active (needs clicks to advance)
-	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible and not story_state.active and not _act_title_active:
+	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
 		return
 	# Input debouncing for buttons
 	if _input_cooldown > 0:
@@ -24349,8 +24280,8 @@ func _input(event: InputEvent) -> void:
 			return
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Skip when v2 menu is active (but allow during story/act title)
-	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible and not story_state.active and not _act_title_active:
+	# Skip when v2 menu is active
+	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
 		return
 	if game_state != GameState.PLAYING:
 		if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
@@ -24783,10 +24714,6 @@ func _draw() -> void:
 	if game_state == GameState.MENU:
 		# Solid dark base — v2 menu on CanvasLayer 50 renders its art on top
 		draw_rect(Rect2(0, 0, 1280, 720), Color(0.03, 0.02, 0.06, 1.0))
-		# Story dialog overlay must render even in menu state
-		if story_state.active:
-			_draw_story_dialog()
-			return
 		return
 		# Menu Improvement 15: Time-of-day ambient tint
 		_draw_time_ambient()
@@ -36679,13 +36606,6 @@ func _tower_type_to_name(tt) -> String:
 		TowerType.MERLIN: return "merlin"
 		TowerType.FRANKENSTEIN: return "frankenstein"
 		TowerType.SHADOW_AUTHOR: return "shadow_author"
-		TowerType.CAPTAIN_HOOK: return "captain_hook"
-		TowerType.QUEEN_OF_HEARTS: return "queen_of_hearts"
-		TowerType.CLAYTON: return "clayton"
-		TowerType.HEADLESS_HORSEMAN: return "headless_horseman"
-		TowerType.MEDUSA: return "medusa"
-		TowerType.LOKI: return "loki"
-		TowerType.ANUBIS: return "anubis"
 		TowerType.ROBIN_HOOD_2: return "robin_hood_2"
 	return ""
 
