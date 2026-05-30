@@ -12178,6 +12178,8 @@ func _do_level_start(index: int) -> void:
 	if _poly != null:
 		_poly.on_level_start(index)
 	menu_overlay.visible = false
+	# Hide menu v2 CanvasLayer when entering gameplay
+	_hide_menu_for_story()
 	top_bar.visible = true
 	bottom_panel.visible = true
 	game_over_label.visible = false
