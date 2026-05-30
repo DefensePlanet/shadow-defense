@@ -9,7 +9,7 @@ var placing_tower: bool = false
 var ghost_position: Vector2 = Vector2.ZERO
 
 # Tower selection
-enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB }
+enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB, ROBIN_HOOD_2 }
 var selected_tower: TowerType = TowerType.ROBIN_HOOD
 
 const BOSS_VILLAIN_NAMES: Dictionary = {
@@ -55,6 +55,8 @@ var tower_info = {
 	TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
 	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
 	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
+	# === HERO SPRITE TEST ===
+	TowerType.ROBIN_HOOD_2: {"name": "Robin 2", "cost": 20, "range": 160.0, "damage": 20, "fire_rate": 0.85},
 }
 
 # Survivor skins — purchasable outfit variants
@@ -195,6 +197,7 @@ var tower_scenes = {
 	TowerType.PETER_PAN: preload("res://scenes/peter_pan.tscn"),
 	TowerType.PHANTOM: preload("res://scenes/phantom.tscn"),
 	TowerType.SCROOGE: preload("res://scenes/scrooge.tscn"),
+	TowerType.ROBIN_HOOD_2: preload("res://scenes/robin_hood_2.tscn"),
 }
 var new_tower_scenes: Dictionary = {}  # Loaded at runtime after unlock
 
@@ -310,6 +313,8 @@ var survivor_types = [
 	TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.LOKI,
 	TowerType.ANUBIS,
 	# CAPTAIN_AHAB removed — Hook covers the ocean/pirate archetype
+	# HERO SPRITE TEST
+	TowerType.ROBIN_HOOD_2,
 ]
 var survivor_descriptions = {
 	TowerType.ROBIN_HOOD: "The legendary outlaw of Sherwood Forest.\nLong-range archer with piercing arrows and gold bonus.",
@@ -324,6 +329,7 @@ var survivor_descriptions = {
 	TowerType.MERLIN: "The legendary wizard of Camelot.\nBuffs allies, curses enemies, summons Excalibur strikes.",
 	TowerType.FRANKENSTEIN: "The tragic creature brought to life.\nLightning-charged fist smash with devastating area damage.",
 	TowerType.SHADOW_AUTHOR: "The dark narrator who writes the story.\nMaster of ink and shadow, bends reality to his will.",
+	TowerType.ROBIN_HOOD_2: "Hero Sprite Robin Hood (TEST).\nUpgraded art, same legendary archer.",
 }
 # Character titles / epithets (shown below name on cards and detail view)
 var character_titles: Array = [
@@ -1177,6 +1183,7 @@ var kill_effect_colors: Dictionary = {
 	TowerType.MERLIN: Color(0.35, 0.20, 0.85),
 	TowerType.FRANKENSTEIN: Color(0.20, 0.85, 0.90),
 	TowerType.SHADOW_AUTHOR: Color(0.08, 0.05, 0.15),
+	TowerType.ROBIN_HOOD_2: Color(0.15, 0.65, 0.12),
 }
 
 # Personality system state
@@ -8960,6 +8967,38 @@ func _load_tower_sprite_textures() -> void:
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
 		"shadow_author"]
+	# Hero Sprite characters — load from hero_sprites/ instead of tower_sprites/
+	var hero_sprite_names = ["robin_hood_2"]
+	for hname in hero_sprite_names:
+		var base_name = hname.replace("_2", "")  # robin_hood_2 -> robin_hood for file lookup
+		var hero_idle = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_idle.png"
+		if ResourceLoader.exists(hero_idle):
+			_tower_sprite_textures[hname] = load(hero_idle)
+		else:
+			var abs_p = ProjectSettings.globalize_path(hero_idle)
+			var himg = Image.new()
+			if himg.load(abs_p) == OK:
+				_tower_sprite_textures[hname] = ImageTexture.create_from_image(himg)
+		# Hero attack/shoot/flair/spin textures
+		var h_atk = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_attack.png"
+		var h_sht = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_shoot.png"
+		if ResourceLoader.exists(h_atk):
+			_tower_attack_textures[hname] = load(h_atk)
+		if ResourceLoader.exists(h_sht):
+			_tower_shoot_textures[hname] = load(h_sht)
+		var h_flairs: Array = []
+		for fi in range(1, 10):
+			var fp = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_flair" + str(fi) + ".png"
+			if ResourceLoader.exists(fp):
+				h_flairs.append(load(fp))
+		if h_flairs.size() > 0:
+			_tower_flair_textures[hname] = h_flairs
+		var h_s36 = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_spin360.png"
+		var h_spd = "res://assets/hero_sprites/" + base_name + "/" + base_name + "_spindown.png"
+		if ResourceLoader.exists(h_s36):
+			_tower_sprite_textures[hname + "_spin360"] = load(h_s36)
+		if ResourceLoader.exists(h_spd):
+			_tower_sprite_textures[hname + "_spindown"] = load(h_spd)
 	for tname in names:
 		var res_path = "res://assets/tower_sprites/" + tname + "_idle.png"
 		if ResourceLoader.exists(res_path):
@@ -36577,6 +36616,7 @@ func _tower_type_to_name(tt) -> String:
 		TowerType.MERLIN: return "merlin"
 		TowerType.FRANKENSTEIN: return "frankenstein"
 		TowerType.SHADOW_AUTHOR: return "shadow_author"
+		TowerType.ROBIN_HOOD_2: return "robin_hood_2"
 	return ""
 
 func game_over() -> void:
