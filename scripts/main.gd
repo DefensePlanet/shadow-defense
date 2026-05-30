@@ -12166,6 +12166,9 @@ func _do_level_start(index: int) -> void:
 	if _poly != null:
 		_poly.on_level_start(index)
 	menu_overlay.visible = false
+	# Hide menu v2 CanvasLayer so it doesn't cover gameplay
+	_hide_menu_v2()
+	$UI.visible = true
 	top_bar.visible = true
 	bottom_panel.visible = true
 	game_over_label.visible = false
