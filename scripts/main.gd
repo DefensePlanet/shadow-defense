@@ -12052,7 +12052,9 @@ func _is_level_unlocked(idx: int) -> bool:
 		return (idx - 1) in completed_levels
 
 func _on_level_selected(index: int) -> void:
+	print("[LEVEL] _on_level_selected called with index=", index, " unlocked=", _is_level_unlocked(index), " energy=", player_energy, " story_active=", story_state.active)
 	if not _is_level_unlocked(index):
+		print("[LEVEL] NOT UNLOCKED — returning")
 		return
 	# Tutorial hints (#160)
 	if completed_levels.size() == 0:
