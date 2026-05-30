@@ -14227,9 +14227,12 @@ func _start_story_dialog(key: String) -> void:
 	towers_node.visible = false
 	enemy_path.visible = false
 	$UI.visible = false
-	# Hide menu v2 CanvasLayer so story dialog is visible (menu is on layer 50)
+	# Hide menu v2 CanvasLayer so story dialog is visible AND clickable (menu is on layer 50)
 	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
 		_menu_v2_instance.get_parent().visible = false
+		_menu_v2_instance.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Deferred re-check in case menu loads after story starts
+	call_deferred("_hide_menu_for_story")
 	# Note: Do NOT clear queued_dialog here  --  callers set it before calling us
 	# Initialize 20-system narration animation state
 	_narration_blink_timer = 0.0
@@ -14398,8 +14401,7 @@ func _end_story_dialog() -> void:
 	enemy_path.visible = true
 	$UI.visible = true
 	# Restore menu v2 CanvasLayer
-	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
-		_menu_v2_instance.get_parent().visible = true
+	_show_menu_after_story()
 	# If this was a pre-level dialog, start the level
 	if key.begins_with("pre_level_") and _pending_level_start >= 0:
 		var lvl = _pending_level_start
@@ -14520,6 +14522,16 @@ func _play_story_voice() -> void:
 			return
 	# No fallback — if no matching clip exists, stay silent rather than
 	# playing wrong audio or robot TTS. Silence > wrong voice.
+
+func _hide_menu_for_story() -> void:
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
+		_menu_v2_instance.get_parent().visible = false
+		_menu_v2_instance.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func _show_menu_after_story() -> void:
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
+		_menu_v2_instance.get_parent().visible = true
+		_menu_v2_instance.mouse_filter = Control.MOUSE_FILTER_STOP
 
 func _on_story_dialog_clicked(_mouse_pos: Vector2) -> void:
 	if not story_state.active:
