@@ -6730,10 +6730,7 @@ func _load_game() -> void:
 	# Refresh unlocked survivors into the active roster
 	_refresh_unlocked_survivors()
 	# Check if prologue should be triggered on first load
-	# Force reset story_seen for fresh narration experience
-	story_seen.clear()
-	print("[STORY] story_seen cleared, triggering prologue")
-	if story_dialogs.has("prologue"):
+	if story_seen.is_empty() and story_dialogs.has("prologue"):
 		call_deferred("_start_story_dialog", "prologue")
 
 # === INTERACTIVE MAP ELEMENTS — clickable objects that affect gameplay ===
@@ -14165,10 +14162,12 @@ func _show_act_title(act_key: String, then_dialog: String = "") -> void:
 	_act_title_subtitle = act["subtitle"]
 	_act_title_active = true
 	_act_title_timer = ACT_TITLE_DURATION
-	# Hide game UI during title card
+	# Hide game UI and menu v2 during title card
 	$UI.visible = false
 	towers_node.visible = false
 	enemy_path.visible = false
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
+		_menu_v2_instance.get_parent().visible = false
 	# After title card fades, start the dialog
 	if then_dialog != "":
 		get_tree().create_timer(ACT_TITLE_DURATION + 0.5).timeout.connect(func():
@@ -14228,6 +14227,9 @@ func _start_story_dialog(key: String) -> void:
 	towers_node.visible = false
 	enemy_path.visible = false
 	$UI.visible = false
+	# Hide menu v2 CanvasLayer so story dialog is visible (menu is on layer 50)
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
+		_menu_v2_instance.get_parent().visible = false
 	# Note: Do NOT clear queued_dialog here  --  callers set it before calling us
 	# Initialize 20-system narration animation state
 	_narration_blink_timer = 0.0
@@ -14395,6 +14397,9 @@ func _end_story_dialog() -> void:
 	towers_node.visible = true
 	enemy_path.visible = true
 	$UI.visible = true
+	# Restore menu v2 CanvasLayer
+	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
+		_menu_v2_instance.get_parent().visible = true
 	# If this was a pre-level dialog, start the level
 	if key.begins_with("pre_level_") and _pending_level_start >= 0:
 		var lvl = _pending_level_start
