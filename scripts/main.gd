@@ -5219,8 +5219,8 @@ func _check_team_alignment_bonus() -> Dictionary:
 	return {"bonuses": active_bonuses, "heroes": hero_count, "villains": villain_count, "antiheroes": antihero_count}
 
 func _is_character_unlocked(tower_type) -> bool:
-	# 3 starters — always unlocked
-	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE]:
+	# 3 starters + test characters — always unlocked
+	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2]:
 		return true
 	# First 3 rescues (Peter, Witch, Phantom) — unlock by beating their arc
 	if tower_type in [TowerType.PETER_PAN, TowerType.WICKED_WITCH, TowerType.PHANTOM]:
