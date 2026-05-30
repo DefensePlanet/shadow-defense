@@ -5784,6 +5784,13 @@ func _save_game() -> void:
 	save_data["player_storybook_stars"] = player_storybook_stars
 	save_data["player_gold"] = player_gold
 	save_data["player_ink"] = player_ink
+	save_data["achievement_points"] = achievement_points
+	save_data["loyalty_points"] = loyalty_points
+	save_data["event_tokens"] = event_tokens
+	save_data["account_level"] = account_level
+	save_data["season_rank_points"] = season_rank_points
+	save_data["season_rank_tier"] = season_rank_tier
+	save_data["unlocked_titles"] = unlocked_titles
 	save_data["player_energy"] = player_energy
 	save_data["energy_last_timestamp"] = Time.get_unix_time_from_system()
 	save_data["bp_tier"] = bp_tier
@@ -6078,6 +6085,13 @@ func _load_game() -> void:
 	player_storybook_stars = int(data.get("player_storybook_stars", 0))
 	player_gold = int(data.get("player_gold", 0))
 	player_ink = int(data.get("player_ink", 0))
+	achievement_points = int(data.get("achievement_points", 0))
+	loyalty_points = int(data.get("loyalty_points", 0))
+	event_tokens = int(data.get("event_tokens", 0))
+	account_level = int(data.get("account_level", 1))
+	season_rank_points = int(data.get("season_rank_points", 0))
+	season_rank_tier = int(data.get("season_rank_tier", 0))
+	unlocked_titles = data.get("unlocked_titles", {})
 	# Energy system (#112): load + regen based on time away
 	player_energy = int(data.get("player_energy", MAX_ENERGY))
 	energy_last_timestamp = float(data.get("energy_last_timestamp", 0.0))
@@ -11952,6 +11966,7 @@ func _reset_game() -> void:
 	storybook_shield_charges = 0
 	power_enchanted_timer = 0.0
 	active_power_effects.clear()
+	_extra_tower_slots = 0  # Reset extra slots from battle shop
 	# Reset combo, undo, wave preview
 	_kill_combo = 0
 	_kill_combo_timer = 0.0
