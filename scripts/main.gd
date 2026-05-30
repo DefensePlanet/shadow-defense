@@ -5960,6 +5960,7 @@ func _start_odyssey_map(map_index: int) -> void:
 	_stop_music()
 	menu_overlay.visible = false
 	_hide_menu_for_story()  # Hide menu v2 CanvasLayer during gameplay
+	$UI.visible = true
 	top_bar.visible = true
 	bottom_panel.visible = true
 	game_over_label.visible = false
@@ -12192,6 +12193,11 @@ func _do_level_start(index: int) -> void:
 	menu_overlay.visible = false
 	# Hide menu v2 CanvasLayer when entering gameplay
 	_hide_menu_for_story()
+	# Restore UI (may have been hidden by story dialog)
+	$UI.visible = true
+	for child in $UI.get_children():
+		if child is Control:
+			child.mouse_filter = Control.MOUSE_FILTER_STOP
 	top_bar.visible = true
 	bottom_panel.visible = true
 	game_over_label.visible = false
