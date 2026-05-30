@@ -2988,8 +2988,16 @@ func _codex_switch(tab: String) -> void:
 	_build_codex()
 
 func _build_gear_grid(parent: VBoxContainer) -> void:
-	parent.add_child(_lbl("GEAR COMPENDIUM — %d Items" % _main._gear_icon_textures.size(), 14, Color(0.85, 0.72, 0.40)))
-	parent.add_child(_lbl("Collect gear from battles and the Emporium", 11, Color(0.70, 0.62, 0.52)))
+	# Count owned vs total
+	var total_gear = 0
+	var owned_count = 0
+	if _main and "GEAR_ITEMS" in _main:
+		total_gear = _main.GEAR_ITEMS.size()
+		for gi in _main.GEAR_ITEMS:
+			if _main.owned_gear.get(gi["id"], 0) > 0:
+				owned_count += 1
+	parent.add_child(_section_header("GEAR COMPENDIUM"))
+	parent.add_child(_lbl("Discovered: %d / %d items" % [owned_count, total_gear], 13, C_TEXT_SECONDARY))
 	# Filter row
 	var filter_row = HBoxContainer.new()
 	filter_row.add_theme_constant_override("separation", 6)
@@ -3017,74 +3025,105 @@ func _build_gear_grid(parent: VBoxContainer) -> void:
 	keys.sort()
 	var gear_idx = 0
 	var rarity_names = ["COMMON", "COMMON", "COMMON", "RARE", "RARE", "EPIC", "LEGEND"]
+	# Build gear lookup for actual rarity
+	var gear_data_map: Dictionary = {}
+	if _main and "GEAR_ITEMS" in _main:
+		for gi in _main.GEAR_ITEMS:
+			gear_data_map[gi["id"]] = gi
+	var tier_to_filter = {"common": "COMMON", "uncommon": "COMMON", "rare": "RARE", "epic": "EPIC", "legendary": "LEGEND", "ancient": "LEGEND"}
+	var tier_colors_map = {"common": Color(0.55, 0.55, 0.55), "uncommon": Color(0.35, 0.70, 0.35), "rare": Color(0.25, 0.55, 0.90), "epic": Color(0.70, 0.35, 0.90), "legendary": Color(1.0, 0.75, 0.15), "ancient": Color(1.0, 0.50, 0.10)}
 	for gk in keys:
-		# Rarity based on name hash for consistent assignment
-		var rarity_colors = [Color(0.5, 0.5, 0.5), Color(0.3, 0.7, 0.3), Color(0.2, 0.5, 0.9), Color(0.7, 0.3, 0.9), Color(1.0, 0.7, 0.1)]
-		var rarity_idx = clampi(gk.hash() % 5, 0, 4)
-		var rarity_col = rarity_colors[rarity_idx]
-		var rarity_name = ["COMMON", "COMMON", "RARE", "EPIC", "LEGEND"][rarity_idx]
+		# Get ACTUAL rarity from gear data
+		var gd = gear_data_map.get(gk, {})
+		var tier = gd.get("tier", "common")
+		var rarity_col = tier_colors_map.get(tier, Color(0.55, 0.55, 0.55))
+		var rarity_filter = tier_to_filter.get(tier, "COMMON")
+		var is_owned = _main.owned_gear.get(gk, 0) > 0 if _main else false
 		# Apply filter
-		if _gear_filter != "ALL" and _gear_filter != rarity_name:
+		if _gear_filter != "ALL" and _gear_filter != rarity_filter:
 			gear_idx += 1
 			continue
 		gear_idx += 1
-		# Each gear item as a clickable button
+		# === GEAR CARD — rarity-styled, premium feel ===
 		var card = Button.new()
 		card.text = ""
-		card.custom_minimum_size = Vector2(280, 150)
+		card.custom_minimum_size = Vector2(280, 140)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 		var cs = StyleBoxFlat.new()
-		cs.bg_color = Color(0.08, 0.06, 0.14, 0.75)  # Darker to hide icon bg
-		cs.border_color = Color(rarity_col.r * 0.7, rarity_col.g * 0.7, rarity_col.b * 0.7, 0.5)
-		cs.set_border_width_all(2)
-		cs.set_corner_radius_all(8)
-		cs.shadow_color = Color(rarity_col.r * 0.3, rarity_col.g * 0.3, rarity_col.b * 0.3, 0.2)
-		cs.shadow_size = 3
-		cs.content_margin_left = 8; cs.content_margin_right = 8
-		cs.content_margin_top = 6; cs.content_margin_bottom = 6
+		cs.bg_color = Color(rarity_col.r * 0.06 + 0.03, rarity_col.g * 0.06 + 0.02, rarity_col.b * 0.06 + 0.06, 1.0)
+		if is_owned:
+			cs.border_color = Color(rarity_col.r * 0.7, rarity_col.g * 0.7, rarity_col.b * 0.7, 0.7)
+			cs.set_border_width_all(2)
+		else:
+			cs.border_color = Color(0.25, 0.20, 0.15, 0.3)
+			cs.set_border_width_all(1)
+		cs.set_corner_radius_all(14)
+		cs.shadow_color = Color(rarity_col.r * 0.2, rarity_col.g * 0.2, rarity_col.b * 0.2, 0.25)
+		cs.shadow_size = 6
+		cs.content_margin_left = 10; cs.content_margin_right = 10
+		cs.content_margin_top = 8; cs.content_margin_bottom = 8
 		card.add_theme_stylebox_override("normal", cs)
 		var csh = cs.duplicate()
-		csh.bg_color = Color(0.08, 0.06, 0.15, 0.8)
-		csh.border_color = Color(rarity_col.r, rarity_col.g, rarity_col.b, 0.8)
+		csh.bg_color = Color(rarity_col.r * 0.12 + 0.03, rarity_col.g * 0.12 + 0.02, rarity_col.b * 0.12 + 0.06, 1.0)
+		csh.border_color = Color(rarity_col.r * 0.9, rarity_col.g * 0.9, rarity_col.b * 0.9, 0.9)
 		card.add_theme_stylebox_override("hover", csh)
-		var gear_name_display = gk.replace("_", " ").capitalize()
-		card.tooltip_text = gear_name_display
-		card.pressed.connect(func(): _show_popup(gear_name_display, "A piece of equipment from the literary worlds.\nRarity: %s" % ["Common", "Uncommon", "Rare", "Epic", "Legendary"][rarity_idx]))
+		var gear_name_display = gd.get("name", gk.replace("_", " ").capitalize())
+		var gear_desc = gd.get("desc", "A piece of equipment")
+		var gear_char = gd.get("character", "")
+		card.tooltip_text = "%s\n%s\nRarity: %s" % [gear_name_display, gear_desc, tier.capitalize()]
 		_add_press_feedback(card)
+		# Content layout
 		var cv = VBoxContainer.new()
 		cv.alignment = BoxContainer.ALIGNMENT_CENTER
+		cv.add_theme_constant_override("separation", 4)
 		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(cv)
-		# Dark backdrop to hide white/light icon backgrounds
-		var icon_bg = PanelContainer.new()
-		icon_bg.custom_minimum_size = Vector2(80, 80)
-		icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var ibg_sb = StyleBoxFlat.new()
-		ibg_sb.bg_color = Color(0.04, 0.02, 0.08, 0.95)
-		ibg_sb.set_corner_radius_all(6)
-		ibg_sb.content_margin_left = 2; ibg_sb.content_margin_right = 2
-		ibg_sb.content_margin_top = 2; ibg_sb.content_margin_bottom = 2
-		icon_bg.add_theme_stylebox_override("panel", ibg_sb)
+		# Icon in rarity-colored circle
+		var icon_circle = PanelContainer.new()
+		icon_circle.custom_minimum_size = Vector2(72, 72)
+		icon_circle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_circle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var ics = StyleBoxFlat.new()
+		ics.bg_color = Color(0.03, 0.02, 0.06, 0.95)
+		ics.set_corner_radius_all(36)
+		ics.border_color = Color(rarity_col.r * 0.5, rarity_col.g * 0.5, rarity_col.b * 0.5, 0.6) if is_owned else Color(0.20, 0.18, 0.15, 0.3)
+		ics.set_border_width_all(2)
+		ics.content_margin_left = 4; ics.content_margin_right = 4
+		ics.content_margin_top = 4; ics.content_margin_bottom = 4
+		icon_circle.add_theme_stylebox_override("panel", ics)
 		var icon = TextureRect.new()
 		icon.texture = _main._gear_icon_textures[gk]
-		icon.custom_minimum_size = Vector2(76, 76)
+		icon.custom_minimum_size = Vector2(64, 64)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var shader_res = load("res://shaders/white_key.gdshader")
-		if shader_res:
+		if not is_owned:
+			icon.modulate = Color(0.3, 0.3, 0.35, 0.5)
+		if ResourceLoader.exists("res://shaders/white_key.gdshader"):
 			var mat = ShaderMaterial.new()
-			mat.shader = shader_res
+			mat.shader = load("res://shaders/white_key.gdshader")
 			mat.set_shader_parameter("threshold", 0.75)
 			icon.material = mat
-		icon_bg.add_child(icon)
-		cv.add_child(icon_bg)
-		var name_lbl = _lbl(gk.replace("_", " ").capitalize(), 11, Color(0.80, 0.72, 0.58))
+		icon_circle.add_child(icon)
+		cv.add_child(icon_circle)
+		# Name
+		var name_col = rarity_col if is_owned else C_TEXT_LOCKED
+		var name_lbl = _lbl(gear_name_display, 12, name_col)
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_lbl.clip_text = true
 		name_lbl.custom_minimum_size.x = 120
 		cv.add_child(name_lbl)
+		# Rarity + character tag
+		var tag_text = tier.capitalize()
+		if gear_char != "":
+			tag_text += " · %s" % gear_char.replace("_", " ").capitalize()
+		var tag_lbl = _lbl(tag_text, 9, Color(rarity_col.r * 0.6 + 0.2, rarity_col.g * 0.6 + 0.2, rarity_col.b * 0.6 + 0.2, 0.7) if is_owned else C_TEXT_LOCKED)
+		tag_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tag_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag_lbl.clip_text = true
+		cv.add_child(tag_lbl)
 		# Check if equipped by any character
 		var equipped_by = ""
 		for si in range(_main.survivor_types.size()):
