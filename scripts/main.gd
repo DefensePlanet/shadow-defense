@@ -14198,6 +14198,16 @@ func _start_story_dialog(key: String) -> void:
 	if not story_dialogs.has(key):
 		return
 	if key in story_seen:
+		# Story already seen — restore UI and proceed to level if pending
+		$UI.visible = true
+		towers_node.visible = true
+		enemy_path.visible = true
+		if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance) and _menu_v2_instance.get_parent() != null:
+			_menu_v2_instance.get_parent().visible = true
+		if key.begins_with("pre_level_") and _pending_level_start >= 0:
+			var lvl = _pending_level_start
+			_pending_level_start = -1
+			_do_level_start(lvl)
 		return
 	# Trigger rescue visual effect for character unlock dialogs
 	if key.begins_with("unlock_"):
