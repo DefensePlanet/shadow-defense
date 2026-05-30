@@ -5623,15 +5623,22 @@ func _activate_power(power_id: String) -> void:
 					enemy.set("speed_multiplier", 0.0)
 			active_power_effects["ink_freeze"] = 5.0
 		"chapter_skip":
-			# Kill all current enemies, stop spawning
+			# Kill all current enemies (award gold/XP), stop spawning
 			enemies_to_spawn = 0
 			var skip_count = 0
 			for enemy in get_tree().get_nodes_in_group("enemies"):
 				if is_instance_valid(enemy):
+					# Award reduced gold (50% of normal kill value)
+					var kill_gold = int(enemy.gold_value * 0.5) if "gold_value" in enemy else 2
+					gold += kill_gold
+					total_gold_earned += kill_gold
+					total_enemies_killed += 1
 					enemy.remove_from_group("enemies")
 					enemy.queue_free()
 					skip_count += 1
 			enemies_alive = maxi(enemies_alive - skip_count, 0)
+			if skip_count > 0:
+				spawn_floating_text(Vector2(640, 300), "⏩ Skipped! +%dG (%d enemies)" % [skip_count * 2, skip_count], Color(0.4, 0.8, 1.0), 16.0, 2.0)
 			_check_wave_complete()
 		"enchanted_towers":
 			power_enchanted_timer = 15.0
@@ -22295,7 +22302,7 @@ var _wave_spawn_idx: int = 0
 # Can trigger on ANY map during waves. Affects everything for a short duration.
 var _env_event_active: String = ""
 var _env_event_timer: float = 0.0
-var _env_event_cooldown: float = 0.0
+var _env_event_cooldown: float = 30.0  # Don't trigger env event in first 30s of combat
 
 const ENVIRONMENTAL_EVENTS: Array = [
 	{"id": "ink_storm", "name": "🖊 INK STORM", "desc": "Dark ink rains — all enemies gain 15% speed, visibility reduced", "duration": 10.0, "enemy_speed_mult": 1.15},
@@ -22335,10 +22342,16 @@ func _complete_reposition(new_pos: Vector2) -> void:
 	gold -= move_cost
 	var old_pos = _repositioning_tower.global_position
 	_repositioning_tower.global_position = new_pos
-	# Update placed positions
-	var idx = placed_tower_positions.find(old_pos)
-	if idx >= 0:
-		placed_tower_positions[idx] = new_pos
+	# Update placed positions (use distance check — exact float match unreliable)
+	var best_idx = -1
+	var best_dist = 5.0  # Tolerance: 5px
+	for pi in range(placed_tower_positions.size()):
+		var dist = placed_tower_positions[pi].distance_to(old_pos)
+		if dist < best_dist:
+			best_dist = dist
+			best_idx = pi
+	if best_idx >= 0:
+		placed_tower_positions[best_idx] = new_pos
 	spawn_floating_text(new_pos, "🔀 Moved! -%dG" % move_cost, Color(0.4, 0.8, 0.3), 13.0, 1.5)
 	_reposition_mode = false
 	_repositioning_tower = null
@@ -22854,14 +22867,21 @@ func _spawn_enemy() -> void:
 		# Shadow-infested: 10% chance on waves past 80%
 		if w_pct > 0.8 and randf() < 0.10:
 			enemy.is_shadow_infested = true
-	# BATTD4: Assign resistances based on enemy theme
+	# BATTD4: Assign resistances based on enemy theme (realm)
 	if enemy.resistances.is_empty():
 		match enemy.enemy_theme:
-			0: enemy.resistances = {"fire": 0.3}        # Sherlock enemies resist fire
-			2: enemy.resistances = {"ice": 0.3}         # Merlin enemies resist ice
-			3: enemy.resistances = {"magic": 0.2}       # Tarzan enemies resist magic
-			4: enemy.resistances = {"shadow": 0.3}      # Dracula enemies resist shadow
-			5: enemy.resistances = {"lightning": 0.3}    # Frankenstein enemies resist lightning
+			0: enemy.resistances = {"sharp": 0.3}       # Sherwood enemies resist sharp/arrows (Robin)
+			1: enemy.resistances = {"magic": 0.2}       # Wonderland enemies resist magic (Alice)
+			2: enemy.resistances = {"fire": 0.3}        # Oz enemies resist fire (Witch)
+			3: enemy.resistances = {"sharp": 0.2}       # Neverland enemies resist sharp (Peter Pan)
+			4: enemy.resistances = {"sound": 0.3}       # Opera enemies resist sound (Phantom)
+			5: enemy.resistances = {"ice": 0.2}         # Christmas enemies resist ice (Scrooge)
+			7: enemy.resistances = {"fire": 0.3}        # London enemies resist fire (Sherlock)
+			8: enemy.resistances = {"ice": 0.3}          # Camelot enemies resist ice (Merlin)
+			9: enemy.resistances = {"magic": 0.2}       # Jungle enemies resist magic (Tarzan)
+			10: enemy.resistances = {"shadow": 0.3}     # Transylvania enemies resist shadow (Dracula)
+			11: enemy.resistances = {"lightning": 0.3}   # Lab enemies resist lightning (Frankenstein)
+			12: enemy.resistances = {"ink": 0.3}        # Shadow Author enemies resist ink
 	enemy.health = enemy.max_health
 	var kt_enemy_slow = _get_knowledge_bonus("enemy_slow")
 	if spawn_permanent_slow < 1.0:
@@ -22942,7 +22962,7 @@ func _get_wave_name(w: int) -> String:
 	var q = max(1, int(total_waves * 0.25))
 	var h = max(1, int(total_waves * 0.5))
 	var tq = max(1, int(total_waves * 0.75))
-	var char_idx = levels[current_level].get("enemy_theme", levels[current_level]["character"]) if current_level >= 0 and current_level < levels.size() else 0
+	var char_idx = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
 	var chap_idx = levels[current_level]["chapter"] if current_level >= 0 and current_level < levels.size() else 0
 
 	# === Boss milestone wave names (override regular names) ===
