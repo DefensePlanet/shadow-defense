@@ -14707,8 +14707,8 @@ func _draw_story_dialog() -> void:
 
 	# === CHARACTER-SPECIFIC ATMOSPHERE COLOR ===
 	var char_glow = _get_character_glow_color(speaker)
-	var glow_cx = 310.0
-	var glow_cy = 280.0
+	var glow_cx = 640.0
+	var glow_cy = 240.0
 
 	# Enhanced ambient glow  --  8 pulsing layers, larger radius
 	for gi in range(8):
@@ -14734,10 +14734,10 @@ func _draw_story_dialog() -> void:
 			var ppy = 60.0 + p["y"]
 			draw_circle(Vector2(ppx, ppy), p["size"], Color(p["color"].r, p["color"].g, p["color"].b, p["alpha"] * 0.6))
 
-	# === LARGE CHARACTER PORTRAIT (bigger, more centered) ===
+	# === LARGE CHARACTER PORTRAIT (centered) ===
 	var portrait_size = 380.0
-	var portrait_x = 120.0
-	var portrait_y = 60.0
+	var portrait_x = (1280.0 - portrait_size) / 2.0
+	var portrait_y = 50.0
 	# Enhanced breathing, sway, weight shift, and idle variation
 	var breath = sin(_time * 1.8) * 5.0
 	var sway = sin(_time * 0.7) * 3.0
@@ -14801,7 +14801,7 @@ func _draw_story_dialog() -> void:
 	# === SPEAKER NAME BADGE (rounded with pulsing glow) ===
 	var speaker_display = _get_speaker_display_name(speaker)
 	var name_w = font.get_string_size(speaker_display.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 44
-	var badge_x = 560.0
+	var badge_x = (1280.0 - name_w) / 2.0
 	var badge_y = panel_y - 20.0
 	var badge_h = 36.0
 	# Badge background (proper rounded rect)
@@ -14818,10 +14818,10 @@ func _draw_story_dialog() -> void:
 	# Name text (outlined)
 	_ds_outlined_text(Vector2(badge_x + 30, badge_y + 25), speaker_display, 18, Color(0.95, 0.85, 0.45), name_w - 36, HORIZONTAL_ALIGNMENT_LEFT, 2)
 
-	# === DIALOG TEXT (word-wrapped, with enhanced shadows) ===
-	var text_x = 520.0
+	# === DIALOG TEXT (word-wrapped, centered with margins) ===
+	var max_line_w = 900.0
+	var text_x = (1280.0 - max_line_w) / 2.0
 	var text_y = panel_y + 30.0
-	var max_line_w = 700.0
 	var line_height = 26.0
 	var text_size = 16
 	var text_color = Color(0.92, 0.89, 0.80)
@@ -14855,7 +14855,7 @@ func _draw_story_dialog() -> void:
 	if story_state.char_index >= full_text.length():
 		var tap_alpha = 0.4 + sin(_time * 3.0) * 0.25
 		var arrow_y = panel_y + panel_h - 30.0
-		var arrow_x = 1200.0
+		var arrow_x = 1140.0
 		var bounce = sin(_time * 4.0) * 3.0
 		draw_colored_polygon(PackedVector2Array([
 			Vector2(arrow_x - 8, arrow_y + bounce), Vector2(arrow_x + 8, arrow_y + bounce),
@@ -14865,7 +14865,7 @@ func _draw_story_dialog() -> void:
 
 	# === LINE COUNTER (subtle, bottom-right) ===
 	var line_count_text = "%d / %d" % [story_state.line_index + 1, dlines.size()]
-	_udraw(font, Vector2(1220, panel_y + panel_h - 8), line_count_text, HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, Color(0.4, 0.35, 0.3, 0.45))
+	_udraw(font, Vector2(1180, panel_y + panel_h - 8), line_count_text, HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, Color(0.4, 0.35, 0.3, 0.45))
 
 	# === SKIP BUTTON (top-right, rounded) ===
 	var skip_x = 1140.0
@@ -23995,6 +23995,11 @@ func _handle_back_button() -> void:
 			return
 
 func _input(event: InputEvent) -> void:
+	# Story dialog overrides menu input guard — must check FIRST
+	if story_state.active and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_on_story_dialog_clicked(get_viewport().get_mouse_position())
+		get_viewport().set_input_as_handled()
+		return
 	# Skip ALL input processing when v2 menu is active — let v2 handle it
 	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
 		return
