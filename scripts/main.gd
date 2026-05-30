@@ -24721,6 +24721,8 @@ func _draw() -> void:
 	if game_state == GameState.MENU:
 		# Solid dark base — v2 menu on CanvasLayer 50 renders its art on top
 		draw_rect(Rect2(0, 0, 1280, 720), Color(0.03, 0.02, 0.06, 1.0))
+		if story_state.active:
+			_draw_story_dialog()
 		return
 		# Menu Improvement 15: Time-of-day ambient tint
 		_draw_time_ambient()
