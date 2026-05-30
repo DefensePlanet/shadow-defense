@@ -14402,8 +14402,11 @@ func _end_story_dialog() -> void:
 	$UI.visible = true
 	# Restore menu v2 CanvasLayer
 	_show_menu_after_story()
-	# If this was a pre-level dialog, start the level
-	if key.begins_with("pre_level_") and _pending_level_start >= 0:
+	# Prologue auto-starts level 0 (Into the Pages)
+	if key == "prologue":
+		_pending_level_start = 0
+	# If this was a pre-level dialog or prologue, start the level
+	if (key.begins_with("pre_level_") or key == "prologue") and _pending_level_start >= 0:
 		var lvl = _pending_level_start
 		_pending_level_start = -1
 		_do_level_start(lvl)
