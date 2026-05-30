@@ -35754,7 +35754,7 @@ func enemy_died(enemy_node = null) -> void:
 		if randf() < 0.5:
 			player_pages += lucky_amount
 			if enemy_node and is_instance_valid(enemy_node):
-				spawn_floating_text(enemy_node.global_position + Vector2(0, -20), "+%d Shards!" % lucky_amount, Color(0.6, 0.4, 1.0), 14.0, 1.0)
+				spawn_floating_text(enemy_node.global_position + Vector2(0, -20), "+%d Pages!" % lucky_amount, Color(0.6, 0.4, 1.0), 14.0, 1.0)
 		else:
 			player_quills += lucky_amount
 			if enemy_node and is_instance_valid(enemy_node):
@@ -38590,6 +38590,10 @@ func _on_emporium_tile_clicked_extended(index: int) -> void:
 # =====================================================================================
 
 func _salvage_gear(gear_id: String) -> void:
+	# Prevent salvaging locked gear
+	if gear_id in locked_gear:
+		spawn_floating_text(Vector2(640, 360), "🔒 Gear is locked!", Color(0.9, 0.3, 0.2), 14.0, 1.5)
+		return
 	var count = owned_gear.get(gear_id, 0)
 	if count <= 0:
 		return
