@@ -208,3 +208,51 @@ The Shadow Author taunts you during levels, but his taunts EVOLVE across the gam
 ---
 
 *This is the story we're telling. Not good vs evil. Not heroes vs villains. It's lonely people finding each other in the pages of forgotten stories.*
+
+---
+
+## CHARACTER TRANSFORMATIONS (Awakened Forms)
+
+### Elphaba the Beautiful (Wicked Witch — Level 20)
+
+The Witch's transformation is the most visually dramatic moment in the game. It happens when her "inner beauty manifests" — a direct rejection of every story that defined her by her appearance.
+
+**The Moment:**
+In the heat of battle, after choosing to protect others one too many times, the curse cracks. Her green skin doesn't disappear — it TRANSFORMS. What was sickly and feared becomes radiant emerald light, like sunlight through a stained glass window. She's still green. But now the green is BEAUTIFUL.
+
+> **Witch:** *(looking at her hands, trembling)* "I'm... still green."
+> **Alice:** "You were always beautiful. The green was just... waiting for you to see it."
+> **Witch:** "They called me wicked because they couldn't see past the skin. Now the skin is the most beautiful thing in the Tome."
+> **Scrooge:** *(quietly)* "Some of us had to lose everything to find ourselves. You just had to stop hiding."
+
+**Visual:** New portrait — same character, same green skin, but glowing with emerald radiance. Hair flows freely instead of under a hat. Expression is fierce but KIND. Eyes that used to burn with rage now burn with PURPOSE. She's not less scary — she's scary AND beautiful. Like a hurricane made of light.
+
+**Gameplay:** Permanent flying monkey allies, healing aura (1 life per 8 kills), +25% magic damage. She becomes the team's protector — the "wicked" witch who heals.
+
+---
+
+### Peter, The Man Who Chose (Peter Pan — Level 20)
+
+Peter's transformation is the emotional climax of the entire game. The boy who REFUSED to grow up — for centuries, across every telling of his story — CHOOSES to become a man. Not because he was forced. Because his family needed him.
+
+**The Moment:**
+The team is losing. Heroes are falling. The enemy wave is overwhelming. Robin Hood is down. Alice is protecting the wounded. Scrooge is spending his last gold on heal potions. And Peter — forever young Peter — looks at them and realizes: they don't need a boy. They need a MAN.
+
+> **Peter:** *(to himself)* "I spent eternity running from this. From growing up. From responsibility. From... feeling things that HURT."
+> **Peter:** *(standing up, shadow stretching)* "But these people — this FAMILY — they didn't ask for a boy who flies. They asked for someone who STAYS."
+> **Peter:** *(his shadow merges with him — his voice deepens)* "I'm not the boy who wouldn't grow up. I'm the man who CHOSE to."
+
+**Visual:** Peter grows — not old, but ADULT. Taller, broader shoulders, stubble on his jaw. His outfit evolves from a boy's tunic to a man's adventure gear — but still in Neverland green. His eyes STILL sparkle with every star in Neverland. He didn't lose the magic. He gained the strength to USE it.
+
+**Key detail:** His shadow, which was always separate and playful, merges with him fully for the first time. He is WHOLE.
+
+> **Robin Hood:** *(from the ground, watching)* "Well. That's new."
+> **Alice:** *(crying)* "Peter... you grew up."
+> **Peter:** *(smiling, offering her his hand)* "I grew UP. I didn't grow OLD. There's a difference."
+> **Tinker Bell:** *(lands on his now-broader shoulder, tiny chime of approval)*
+
+**Gameplay:** +25% all stats, +20% damage, debuff immunity, global map coverage (flight). He becomes the ultimate support — the man who can be EVERYWHERE because he never lost the ability to fly.
+
+---
+
+*These transformations are earned through gameplay (Level 20 awakening) but they're also STORY MOMENTS — the characters are choosing to become more than their original stories allowed. That's the whole theme: you don't have to be what your author wrote.*

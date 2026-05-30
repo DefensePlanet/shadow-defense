@@ -4880,16 +4880,20 @@ const AWAKENED_FORMS: Dictionary = {
 		"bonus_cooldown": 0.30, "bonus_armor_pierce": true,
 	},
 	TowerType.WICKED_WITCH: {
-		"title": "Elphaba the Defiant",
-		"passive": "Permanent flying monkeys (3 allies), +20% summon damage",
-		"voice": "They called me wicked. I call myself UNSTOPPABLE.",
-		"bonus_summon_damage": 0.20, "permanent_summons": 3,
+		"title": "Elphaba the Beautiful",
+		"passive": "Her inner beauty manifests — green skin becomes radiant emerald light. Permanent flying monkeys (3 allies), healing aura restores 1 life every 8 kills, +25% all magic damage",
+		"voice": "They called me wicked because they couldn't see past the green. Now the green is the most beautiful thing in the Tome.",
+		"lore": "When the Witch chose to fight for Oz — not to RULE it, but to SAVE it — something changed. The curse that turned her skin green began to glow. Not with malice, but with pure emerald light. The ugliness was never in her skin. It was in how others saw her. Now they see the truth.",
+		"visual": "transformed_beautiful",  # Triggers new portrait + tower art
+		"bonus_summon_damage": 0.25, "permanent_summons": 3, "life_regen_per_kills": 8, "bonus_magic": 0.25,
 	},
 	TowerType.PETER_PAN: {
-		"title": "Peter Pan, Lord of Neverland",
-		"passive": "Never ages — immune to debuffs, +15% all stats",
-		"voice": "I finally understand. Growing up doesn't mean losing your magic. It means finding more.",
-		"bonus_all_stats": 0.15, "debuff_immune": true,
+		"title": "Peter, The Man Who Chose",
+		"passive": "Grew up BY CHOICE — gains adult strength while keeping childlike heart. Immune to debuffs, +25% all stats, +20% damage, flight provides global map coverage",
+		"voice": "I spent eternity refusing to grow up. Turns out, growing up doesn't kill the magic. Running from it does. I'm not the boy who wouldn't grow up anymore. I'm the man who CHOSE to.",
+		"lore": "In the final battle of the Narrator's realm, Peter Pan looked at his friends — beaten, bleeding, holding the line — and made the one choice he'd spent centuries avoiding. He chose to grow up. Not because Neverland forced him. Not because the Author wrote it. Because his FAMILY needed a man, not a boy. His shadow merged with him fully for the first time. He grew taller, broader, his voice deepened. But his eyes — his eyes still sparkled with every star in Neverland.",
+		"visual": "adult_peter",  # Triggers adult portrait + tower art
+		"bonus_all_stats": 0.25, "bonus_damage": 0.20, "debuff_immune": true, "global_coverage": true,
 	},
 	TowerType.PHANTOM: {
 		"title": "Erik, Maestro of Shadows",
