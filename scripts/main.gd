@@ -24009,7 +24009,8 @@ func _handle_back_button() -> void:
 
 func _input(event: InputEvent) -> void:
 	# Skip ALL input processing when v2 menu is active — let v2 handle it
-	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
+	# BUT allow input through when story dialog is active (needs clicks to advance)
+	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible and not story_state.active and not _act_title_active:
 		return
 	# Input debouncing for buttons
 	if _input_cooldown > 0:
