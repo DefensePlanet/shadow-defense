@@ -5968,7 +5968,7 @@ func _start_odyssey_map(map_index: int) -> void:
 	game_state = GameState.PLAYING
 	start_button.text = "  START WAVE  "
 	# Base 3 towers always available — others unlocked via story
-	var base_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE]
+	var base_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2]
 	for tt in base_types:
 		var tname = tower_info[tt]["name"]
 		var short = tname.split(" ")[0] if tname.length() > 8 else tname
@@ -9948,6 +9948,7 @@ func _create_ui() -> void:
 		[TowerType.PETER_PAN, "Peter [%dG]" % tower_info[TowerType.PETER_PAN]["cost"], "Peter Pan — fast daggers, shadow."],
 		[TowerType.PHANTOM, "Phantom [%dG]" % tower_info[TowerType.PHANTOM]["cost"], "Phantom — heavy hits, stun, chandelier."],
 		[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],
+		[TowerType.ROBIN_HOOD_2, "Robin2 [%dG]" % tower_info[TowerType.ROBIN_HOOD_2]["cost"], "Robin 2 — Hero Sprite test, same archer."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
