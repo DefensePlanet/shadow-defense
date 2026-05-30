@@ -1599,9 +1599,9 @@ var salvage_rates: Dictionary = {"common": 5, "uncommon": 15, "rare": 40, "epic"
 
 # --- Feature 4: Golden Treasure Chest Crafting ---
 var golden_chest_craft_costs: Array = [
-	{"name": "Bronze Treasure Chest", "shard_cost": 30, "tier": 0},
-	{"name": "Silver Treasure Chest", "shard_cost": 75, "tier": 1},
-	{"name": "Golden Treasure Chest", "shard_cost": 150, "tier": 2},
+	{"name": "Bronze Treasure Chest", "pages_cost": 30, "tier": 0},
+	{"name": "Silver Treasure Chest", "pages_cost": 75, "tier": 1},
+	{"name": "Golden Treasure Chest", "pages_cost": 150, "tier": 2},
 ]
 
 # --- Feature 5: Rotating Daily Deals Shop ---
@@ -1726,7 +1726,7 @@ var quest_milestone_claimed: Dictionary = {}  # {count_str: bool}
 var _quest_reroll_count: int = 0  # Rerolls used today
 var _quest_claim_flash: Array = []  # [{index, timer}] for claim animations
 const QUEST_REROLL_COST: int = 8  # Pages to reroll one quest
-const QUEST_STREAK_REWARDS: Dictionary = {3: 15, 7: 40, 14: 100, 30: 300}  # streak -> shard bonus
+const QUEST_STREAK_REWARDS: Dictionary = {3: 15, 7: 40, 14: 100, 30: 300}  # streak -> pages bonus
 const QUEST_MILESTONE_THRESHOLDS: Array = [10, 25, 50, 100, 250, 500]
 const QUEST_TEMPLATES: Array = [
 	# --- Easy quests (difficulty 0) ---
@@ -3573,7 +3573,7 @@ const PATH_EVENT_INTERVAL: float = 20.0  # seconds between events
 var auto_collect_enabled: bool = false
 
 # === BATTD2 FEATURE: GEAR REROLL ===
-const REROLL_SHARD_COST: int = 15
+const REROLL_PAGES_COST: int = 15
 
 # === BATTD2 FEATURE: VICTORY STREAK ===
 var victory_streak: int = 0
@@ -3705,7 +3705,7 @@ const MILESTONE_TITLES: Array = [
 
 # === BATTD3 FEATURE: AWAKENING SYSTEM ===
 var awakened_characters: Dictionary = {}  # TowerType -> bool
-const AWAKENING_SHARD_COST: int = 500
+const AWAKENING_PAGES_COST: int = 500
 const AWAKENING_QUILL_COST: int = 50
 const AWAKENING_PASSIVES: Dictionary = {
 	0: {"name": "Rain of Arrows", "desc": "Every 10th shot fires 3 arrows", "effect": "multi_shot"},
@@ -29775,13 +29775,13 @@ func _draw_path_events() -> void:
 
 # === BATTD2: GEAR REROLL ===
 func _reroll_gear(gear_id: String) -> Dictionary:
-	if player_pages < REROLL_SHARD_COST:
+	if player_pages < REROLL_PAGES_COST:
 		return {}
 	var bdata = _find_gear(gear_id)
 	if bdata.is_empty():
 		return {}
 	var current_rarity = bdata.get("tier", "common")
-	player_pages -= REROLL_SHARD_COST
+	player_pages -= REROLL_PAGES_COST
 	# Remove old gear item
 	owned_gear.erase(gear_id)
 	# Unequip if equipped
@@ -38724,9 +38724,9 @@ func _draw_chest_crafting() -> void:
 		draw_colored_polygon(_rrp(Rect2(cx + cw * 0.5 - 5, icon_y + 15, 10, 15), 3.0), Color(0.2, 0.15, 0.1))
 		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 70), tier_names[i] + " Treasure Chest", 15, chest_colors[i], -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		_udraw(font, Vector2(cx + cw * 0.5, icon_y + 92), "Owned: %d" % treasure_chests_owned.get(chest_keys[i], 0), HORIZONTAL_ALIGNMENT_CENTER, -1, 15, menu_text)
-		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["shard_cost"], 16, menu_gold, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_ds_outlined_text(Vector2(cx + cw * 0.5, icon_y + 115), "Cost: %d Shards" % craft["pages_cost"], 16, menu_gold, -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 		# Craft button — Bloons style
-		var can_afford = player_pages >= craft["shard_cost"]
+		var can_afford = player_pages >= craft["pages_cost"]
 		if can_afford:
 			_ds_button(Rect2(cx + cw * 0.5 - 55, icon_y + 140, 110, 40), "FORGE", Color(0.15, 0.45, 0.15), false, 15)
 		else:
@@ -38753,8 +38753,8 @@ func _on_chest_crafting_clicked(mouse_pos: Vector2) -> void:
 		var btn_x = cx + 160.0 - 55
 		var btn_y = icon_y + 140
 		if mouse_pos.x >= btn_x and mouse_pos.x <= btn_x + 110 and mouse_pos.y >= btn_y and mouse_pos.y <= btn_y + 40:
-			if player_pages >= craft["shard_cost"]:
-				player_pages -= craft["shard_cost"]
+			if player_pages >= craft["pages_cost"]:
+				player_pages -= craft["pages_cost"]
 				treasure_chests_owned[chest_keys[i]] = treasure_chests_owned.get(chest_keys[i], 0) + 1
 				_save_game()
 			queue_redraw()
@@ -40143,7 +40143,7 @@ func _can_awaken(tower_type) -> bool:
 		return false
 	if awakened_characters.get(tower_type, false):
 		return false
-	if player_pages < AWAKENING_SHARD_COST:
+	if player_pages < AWAKENING_PAGES_COST:
 		return false
 	if player_quills < AWAKENING_QUILL_COST:
 		return false
@@ -40152,7 +40152,7 @@ func _can_awaken(tower_type) -> bool:
 func _awaken_character(tower_type) -> bool:
 	if not _can_awaken(tower_type):
 		return false
-	player_pages -= AWAKENING_SHARD_COST
+	player_pages -= AWAKENING_PAGES_COST
 	player_quills -= AWAKENING_QUILL_COST
 	awakened_characters[tower_type] = true
 	# Trigger fanfare
