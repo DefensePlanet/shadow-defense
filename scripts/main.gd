@@ -5959,6 +5959,7 @@ func _start_odyssey_map(map_index: int) -> void:
 	_generate_decorations_for_level(level_idx)
 	_stop_music()
 	menu_overlay.visible = false
+	_hide_menu_for_story()  # Hide menu v2 CanvasLayer during gameplay
 	top_bar.visible = true
 	bottom_panel.visible = true
 	game_over_label.visible = false
@@ -8966,7 +8967,8 @@ func _load_tower_sprite_textures() -> void:
 	_tower_sprite_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author"]
+		"shadow_author", "captain_hook", "queen_of_hearts", "clayton",
+		"headless_horseman", "medusa", "loki", "anubis"]
 	# Hero Sprite characters — load from hero_sprites/ instead of tower_sprites/
 	var hero_sprite_names = ["robin_hood_2"]
 	for hname in hero_sprite_names:
@@ -12052,9 +12054,7 @@ func _is_level_unlocked(idx: int) -> bool:
 		return (idx - 1) in completed_levels
 
 func _on_level_selected(index: int) -> void:
-	print("[LEVEL] _on_level_selected called with index=", index, " unlocked=", _is_level_unlocked(index), " energy=", player_energy, " story_active=", story_state.active)
 	if not _is_level_unlocked(index):
-		print("[LEVEL] NOT UNLOCKED — returning")
 		return
 	# Tutorial hints (#160)
 	if completed_levels.size() == 0:
@@ -24320,8 +24320,8 @@ func _input(event: InputEvent) -> void:
 			return
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Skip when v2 menu is active
-	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
+	# Skip when v2 menu is active (but allow during story/act title)
+	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible and not story_state.active and not _act_title_active:
 		return
 	if game_state != GameState.PLAYING:
 		if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
@@ -36650,6 +36650,13 @@ func _tower_type_to_name(tt) -> String:
 		TowerType.MERLIN: return "merlin"
 		TowerType.FRANKENSTEIN: return "frankenstein"
 		TowerType.SHADOW_AUTHOR: return "shadow_author"
+		TowerType.CAPTAIN_HOOK: return "captain_hook"
+		TowerType.QUEEN_OF_HEARTS: return "queen_of_hearts"
+		TowerType.CLAYTON: return "clayton"
+		TowerType.HEADLESS_HORSEMAN: return "headless_horseman"
+		TowerType.MEDUSA: return "medusa"
+		TowerType.LOKI: return "loki"
+		TowerType.ANUBIS: return "anubis"
 		TowerType.ROBIN_HOOD_2: return "robin_hood_2"
 	return ""
 
