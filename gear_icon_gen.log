@@ -1,0 +1,485 @@
+Starting generation of 265 gear icons...
+Output: C:/Users/johnh/shadow-defense/assets/gear_icons/generated
+
+=== Batch 1/27 (items 1-10) ===
+  Generating: rh_c1 — Sherwood Shortbow
+  [SKIP] rh_c1 already exists
+  Generating: rh_c2 — Lincoln Green Cloak
+  [SKIP] rh_c2 already exists
+  Generating: rh_c3 — Outlaw's Quiver
+  [SKIP] rh_c3 already exists
+  Generating: rh_c4 — Merry Men's Token
+  [SKIP] rh_c4 already exists
+  Generating: al_c1 — Curious Teacup
+  [SKIP] al_c1 already exists
+  Generating: al_c2 — Eat Me Cookie
+  [SKIP] al_c2 already exists
+  Generating: al_c3 — Rabbit's Pocket Watch
+  [SKIP] al_c3 already exists
+  Generating: al_c4 — Card Soldier's Shield
+  [SKIP] al_c4 already exists
+  Generating: ww_c1 — Emerald Shard
+  [SKIP] ww_c1 already exists
+  Generating: ww_c2 — Poppy Pollen Vial
+  [SKIP] ww_c2 already exists
+  Converting 10 images to real PNG...
+  Batch 1 complete: 10/10 succeeded
+  Progress: 10/265 total (0 failed)
+
+=== Batch 2/27 (items 11-20) ===
+  Generating: ww_c3 — Broomstick Splinter
+  [SKIP] ww_c3 already exists
+  Generating: ww_c4 — Monkey Wing Feather
+  [SKIP] ww_c4 already exists
+  Generating: pp_c1 — Fairy Dust Pinch
+  [SKIP] pp_c1 already exists
+  Generating: pp_c2 — Lost Boy's Dagger
+  [SKIP] pp_c2 already exists
+  Generating: pp_c3 — Shadow Stitch Thread
+  [SKIP] pp_c3 already exists
+  Generating: pp_c4 — Neverland Acorn Cap
+  [SKIP] pp_c4 already exists
+  Generating: ph_c1 — Porcelain Mask Chip
+  [SKIP] ph_c1 already exists
+  Generating: ph_c2 — Opera House Rose
+  [SKIP] ph_c2 already exists
+  Generating: ph_c3 — Gondola Oar Shard
+  [SKIP] ph_c3 already exists
+  Generating: ph_c4 — Chandelier Crystal
+  [SKIP] ph_c4 already exists
+  Converting 10 images to real PNG...
+  Batch 2 complete: 10/10 succeeded
+  Progress: 20/265 total (0 failed)
+
+=== Batch 3/27 (items 21-30) ===
+  Generating: sc_c1 — Tarnished Penny
+  [SKIP] sc_c1 already exists
+  Generating: sc_c2 — Counting House Ledger
+  [SKIP] sc_c2 already exists
+  Generating: sc_c3 — Ghost Chain Link
+  [SKIP] sc_c3 already exists
+  Generating: sc_c4 — Candle Stub
+  [SKIP] sc_c4 already exists
+  Generating: sh_c1 — Worn Magnifying Lens
+  [SKIP] sh_c1 already exists
+  Generating: sh_c2 — Baker Street Pipe
+  [SKIP] sh_c2 already exists
+  Generating: sh_c3 — Deduction Notes
+  [SKIP] sh_c3 already exists
+  Generating: sh_c4 — Watson's Field Kit
+  [SKIP] sh_c4 already exists
+  Generating: tz_c1 — Jungle Vine Whip
+  [SKIP] tz_c1 already exists
+  Generating: tz_c2 — Ape Fang Necklace
+  [SKIP] tz_c2 already exists
+  Converting 10 images to real PNG...
+  Batch 3 complete: 10/10 succeeded
+  Progress: 30/265 total (0 failed)
+
+=== Batch 4/27 (items 31-40) ===
+  Generating: tz_c3 — Primal Drum Skin
+  [SKIP] tz_c3 already exists
+  Generating: tz_c4 — Leopard Claw
+  [SKIP] tz_c4 already exists
+  Generating: dr_c1 — Blood Drop Pendant
+  [SKIP] dr_c1 already exists
+  Generating: dr_c2 — Bat Wing Cloak
+  [SKIP] dr_c2 already exists
+  Generating: dr_c3 — Coffin Nail
+  [SKIP] dr_c3 already exists
+  Generating: dr_c4 — Moonlit Fang
+  [SKIP] dr_c4 already exists
+  Generating: mr_c1 — Cracked Crystal Orb
+  [SKIP] mr_c1 already exists
+  Generating: mr_c2 — Apprentice Rune Stone
+  [SKIP] mr_c2 already exists
+  Generating: mr_c3 — Round Table Splinter
+  [SKIP] mr_c3 already exists
+  Generating: mr_c4 — Prophecy Scroll Scrap
+  [SKIP] mr_c4 already exists
+  Converting 10 images to real PNG...
+  Batch 4 complete: 10/10 succeeded
+  Progress: 40/265 total (0 failed)
+
+=== Batch 5/27 (items 41-50) ===
+  Generating: fr_c1 — Copper Bolt
+  [SKIP] fr_c1 already exists
+  Generating: fr_c2 — Lab Flask Shard
+  [SKIP] fr_c2 already exists
+  Generating: fr_c3 — Galvanic Wire
+  [SKIP] fr_c3 already exists
+  Generating: fr_c4 — Stitched Leather Strap
+  [SKIP] fr_c4 already exists
+  Generating: sa_c1 — Ink-Stained Quill Tip
+  [SKIP] sa_c1 already exists
+  Generating: sa_c2 — Torn Page Fragment
+  [SKIP] sa_c2 already exists
+  Generating: sa_c3 — Blotted Margin Note
+  [SKIP] sa_c3 already exists
+  Generating: sa_c4 — Cheap Inkwell
+  [SKIP] sa_c4 already exists
+  Generating: uc_01 — Iron Arrowhead
+  [SKIP] uc_01 already exists
+  Generating: uc_02 — Dented Buckler
+  [SKIP] uc_02 already exists
+  Converting 10 images to real PNG...
+  Batch 5 complete: 10/10 succeeded
+  Progress: 50/265 total (0 failed)
+
+=== Batch 6/27 (items 51-60) ===
+  Generating: uc_03 — Worn Leather Boots
+  [SKIP] uc_03 already exists
+  Generating: uc_04 — Cracked Scope Lens
+  [SKIP] uc_04 already exists
+  Generating: uc_05 — Oiled Bowstring
+  [SKIP] uc_05 already exists
+  Generating: uc_06 — Lucky Coin
+  [SKIP] uc_06 already exists
+  Generating: uc_07 — Barbed Tip
+  [SKIP] uc_07 already exists
+  Generating: uc_08 — Frost Pebble
+  [SKIP] uc_08 already exists
+  Generating: uc_09 — Ember Coal
+  [SKIP] uc_09 already exists
+  Generating: uc_10 — Sharpened Needle
+  [SKIP] uc_10 already exists
+  Generating: uc_11 — Copper Ring
+  [SKIP] uc_11 already exists
+  Generating: uc_12 — Tar Pouch
+  [SKIP] uc_12 already exists
+  Converting 10 images to real PNG...
+  Batch 6 complete: 10/10 succeeded
+  Progress: 60/265 total (0 failed)
+
+=== Batch 7/27 (items 61-70) ===
+  Generating: uc_13 — Wooden Shield Fragment
+  [SKIP] uc_13 already exists
+  Generating: uc_14 — Rough Whetstone
+  [SKIP] uc_14 already exists
+  Generating: uc_15 — Scouts Spyglass
+  [SKIP] uc_15 already exists
+  Generating: uc_16 — Flint Striker
+  [SKIP] uc_16 already exists
+  Generating: uc_17 — Feathered Charm
+  [SKIP] uc_17 already exists
+  Generating: uc_18 — Silver Thimble
+  [SKIP] uc_18 already exists
+  Generating: uc_19 — Venom Sac
+  [SKIP] uc_19 already exists
+  Generating: uc_20 — Bronze Clasp
+  [SKIP] uc_20 already exists
+  Generating: uc_21 — Traveler's Compass
+  [SKIP] uc_21 already exists
+  Generating: uc_22 — Weighted Gloves
+  [SKIP] uc_22 already exists
+  Converting 10 images to real PNG...
+  Batch 7 complete: 10/10 succeeded
+  Progress: 70/265 total (0 failed)
+
+=== Batch 8/27 (items 71-80) ===
+  Generating: uc_23 — Tinker's Gear
+  [SKIP] uc_23 already exists
+  Generating: uc_24 — Smoke Pellet
+  [SKIP] uc_24 already exists
+  Generating: uc_25 — Alchemist's Salt
+  [SKIP] uc_25 already exists
+  Generating: uc_26 — Merchant's Abacus
+  [SKIP] uc_26 already exists
+  Generating: uc_27 — Sturdy Chain Link
+  [SKIP] uc_27 already exists
+  Generating: uc_28 — Splinter Shot
+  Generating: uc_29 — Crow Feather
+  Generating: uc_30 — Rusty Nail
+  Generating: uc_31 — Polished Pebble
+  Generating: uc_32 — Thorn Bracelet
+  Converting 10 images to real PNG...
+  Batch 8 complete: 10/10 succeeded
+  Progress: 80/265 total (0 failed)
+
+=== Batch 9/27 (items 81-90) ===
+  Generating: uc_33 — Old Compass Needle
+  Generating: uc_34 — Chipped Gemstone
+  Generating: uc_35 — Ironwood Bark
+  Generating: uc_36 — Resin Globe
+  Generating: uc_37 — Sparrow Talon
+  Generating: uc_38 — Chalk Dust Pouch
+  Generating: uc_39 — Bee Sting Barb
+  Generating: uc_40 — Tin Soldier's Sword
+  Generating: uc_41 — Glass Bead
+  Generating: uc_42 — Hemp Rope Coil
+  Converting 10 images to real PNG...
+  Batch 9 complete: 10/10 succeeded
+  Progress: 90/265 total (0 failed)
+
+=== Batch 10/27 (items 91-100) ===
+  Generating: uc_43 — Pine Pitch Ball
+  Generating: uc_44 — Parchment Scrap
+  Generating: uc_45 — Bone Dice
+  Generating: uc_46 — Wax Seal Stamp
+  Generating: uc_47 — Horseshoe Nail
+  Generating: uc_48 — Dried Herb Bundle
+  Generating: uc_49 — Cobalt Dust
+  Generating: uc_50 — Leather Finger Guard
+  Generating: uc_51 — Tallow Candle
+  Generating: uc_52 — Forged Washer
+  Converting 10 images to real PNG...
+  Batch 10 complete: 10/10 succeeded
+  Progress: 100/265 total (0 failed)
+
+=== Batch 11/27 (items 101-110) ===
+  Generating: rh_r1 — Sherwood Longbow
+  Generating: rh_r2 — Hood's Silver Arrow
+  Generating: rh_r3 — Marian's Favor
+  Generating: al_r1 — Cheshire Cat Grin
+  Generating: al_r2 — Drink Me Potion
+  Generating: al_r3 — Looking Glass Shard
+  Generating: ww_r1 — Crystal Ball of Oz
+  Generating: ww_r2 — Ruby Slipper Heel
+  Generating: ww_r3 — Enchanted Broomstick
+  Generating: pp_r1 — Tinker Bell's Lantern
+  Converting 10 images to real PNG...
+  Batch 11 complete: 10/10 succeeded
+  Progress: 110/265 total (0 failed)
+
+=== Batch 12/27 (items 111-120) ===
+  Generating: pp_r2 — Captain Hook's Compass
+  Generating: pp_r3 — Crocodile Tooth
+  Generating: ph_r1 — Phantom's Score Sheet
+  Generating: ph_r2 — Underground Lake Gem
+  Generating: ph_r3 — Opera Mask Half
+  Generating: sc_r1 — Ghost of Christmas Past
+  Generating: sc_r2 — Marley's Lockbox
+  Generating: sc_r3 — Ebenezer's Walking Stick
+  Generating: sh_r1 — Hound's Tooth
+  Generating: sh_r2 — Moriarty's Cipher
+  Converting 10 images to real PNG...
+  Batch 12 complete: 10/10 succeeded
+  Progress: 120/265 total (0 failed)
+
+=== Batch 13/27 (items 121-130) ===
+  Generating: sh_r3 — 221B Fireplace Iron
+  Generating: tz_r1 — Gorilla King's Pelt
+  Generating: tz_r2 — Jungle Spear
+  Generating: tz_r3 — War Drum Mallet
+  Generating: dr_r1 — Crimson Chalice
+  Generating: dr_r2 — Castle Transylvania Key
+  Generating: dr_r3 — Moonstone Brooch
+  Generating: mr_r1 — Staff of the Lake
+  Generating: mr_r2 — Enchanted Runestone
+  Generating: mr_r3 — Camelot Signet Ring
+  Converting 10 images to real PNG...
+  Batch 13 complete: 10/10 succeeded
+  Progress: 130/265 total (0 failed)
+
+=== Batch 14/27 (items 131-140) ===
+  Generating: fr_r1 — Tesla Coil Shard
+  Generating: fr_r2 — Bride's Headband
+  Generating: fr_r3 — Galvanic Battery
+  Generating: sa_r1 — Fountain Pen of Revision
+  Generating: sa_r2 — Bookmarked Chapter
+  Generating: sa_r3 — Plot Twist Scroll
+  Generating: ur_01 — Steel Broadhead
+  Generating: ur_02 — Reinforced Breastplate
+  Generating: ur_03 — Hawk Eye Amulet
+  Generating: ur_04 — Quicksilver Bracelet
+  Converting 10 images to real PNG...
+  Batch 14 complete: 10/10 succeeded
+  Progress: 140/265 total (0 failed)
+
+=== Batch 15/27 (items 141-150) ===
+  Generating: ur_05 — Ruby Brooch
+  Generating: ur_06 — Frostbound Quartz
+  Generating: ur_07 — Treasure Hunter's Pouch
+  Generating: ur_08 — Vampire's Kiss Ring
+  Generating: ur_09 — Infernal Resin
+  Generating: ur_10 — Acrobat's Sash
+  Generating: ur_11 — Armor-Piercing Bolt
+  Generating: ur_12 — Spiked Chain Whip
+  Generating: ur_13 — Explosive Pouch
+  Generating: ur_14 — Giant Slayer Charm
+  Converting 10 images to real PNG...
+  Batch 15 complete: 10/10 succeeded
+  Progress: 150/265 total (0 failed)
+
+=== Batch 16/27 (items 151-160) ===
+  Generating: ur_15 — Medic's Bandage Roll
+  Generating: ur_16 — Executioner's Gauntlet
+  Generating: ur_17 — Weakening Powder
+  Generating: ur_18 — Battle Standard
+  Generating: ur_19 — Clockwork Spring
+  Generating: ur_20 — Thunder Stone
+  Generating: ur_21 — Serpent Fang
+  Generating: ur_22 — Twin Shot Brace
+  Generating: ur_23 — War Horn
+  Generating: ur_24 — Mithril Chainmail
+  Converting 10 images to real PNG...
+  Batch 16 complete: 10/10 succeeded
+  Progress: 160/265 total (0 failed)
+
+=== Batch 17/27 (items 161-170) ===
+  Generating: ur_25 — Sapphire Sightstone
+  Generating: ur_26 — Razorwind Fan
+  Generating: ur_27 — Gilded Scales
+  Generating: ur_28 — Crimson Thorn
+  Generating: ur_29 — Glacial Hammer
+  Generating: ur_30 — Wildfire Oil
+  Generating: ur_31 — Piercing Javelin
+  Generating: ur_32 — Soul Siphon Pendant
+  Generating: ur_33 — Titan's Knuckle
+  Generating: ur_34 — Shadow Cloak
+  Converting 10 images to real PNG...
+  Batch 17 complete: 10/10 succeeded
+  Progress: 170/265 total (0 failed)
+
+=== Batch 18/27 (items 171-180) ===
+  Generating: ur_35 — Tempest Feather
+  Generating: ur_36 — Bounty Tracker
+  Generating: ur_37 — Dragonfire Canister
+  Generating: ur_38 — Plague Doctor Mask
+  Generating: ur_39 — Fortune Cookie
+  Generating: ur_40 — Rally Pennant
+  Generating: ur_41 — Concussive Round
+  Generating: ur_42 — Barbed Net
+  Generating: ur_43 — Sniper's Bipod
+  Generating: ur_44 — Berserker's Wristband
+  Converting 10 images to real PNG...
+  Batch 18 complete: 10/10 succeeded
+  Progress: 180/265 total (0 failed)
+
+=== Batch 19/27 (items 181-190) ===
+  Generating: rh_e1 — Bow of the Green Knight
+  Generating: rh_e2 — Sherwood Heart Oak
+  Generating: al_e1 — Vorpal Blade
+  Generating: al_e2 — Queen's Croquet Mallet
+  Generating: ww_e1 — Emerald City Crown
+  Generating: ww_e2 — Flying Monkey Scepter
+  Generating: pp_e1 — Neverland Star Map
+  Generating: pp_e2 — Hook's Enchanted Cutlass
+  Generating: ph_e1 — Organ of Despair
+  Generating: ph_e2 — Christine's Locket
+  Converting 10 images to real PNG...
+  Batch 19 complete: 10/10 succeeded
+  Progress: 190/265 total (0 failed)
+
+=== Batch 20/27 (items 191-200) ===
+  Generating: sc_e1 — Ghost of Christmas Future
+  Generating: sc_e2 — Tiny Tim's Crutch
+  Generating: sh_e1 — Reichenbach Deduction
+  Generating: sh_e2 — Irene's Photograph
+  Generating: tz_e1 — Lord of the Apes Crown
+  Generating: tz_e2 — Mangani War Paint
+  Generating: dr_e1 — Vlad's Impaler Stake
+  Generating: dr_e2 — Nocturne Cloak
+  Generating: mr_e1 — Crystal Cave Focus
+  Generating: mr_e2 — Nimue's Blessing
+  Converting 10 images to real PNG...
+  Batch 20 complete: 10/10 succeeded
+  Progress: 200/265 total (0 failed)
+
+=== Batch 21/27 (items 201-210) ===
+  Generating: fr_e1 — Lightning Rod Array
+  Generating: fr_e2 — Reanimation Serum
+  Generating: sa_e1 — Inkwell of Rewriting
+  Generating: sa_e2 — Chapter of Foreshadowing
+  Generating: ue_01 — Dragonbone Warbow
+  Generating: ue_02 — Frostfire Orb
+  Generating: ue_03 — Titan's Girdle
+  Generating: ue_04 — Phantom Dancer Boots
+  Generating: ue_05 — Midas Gloves
+  Generating: ue_06 — Nightshade Extract
+  Converting 10 images to real PNG...
+  Batch 21 complete: 10/10 succeeded
+  Progress: 210/265 total (0 failed)
+
+=== Batch 22/27 (items 211-220) ===
+  Generating: ue_07 — Eagle Eye Scope
+  Generating: ue_08 — Berserker's Blood Paint
+  Generating: ue_09 — Templar Shield
+  Generating: ue_10 — Chain Lightning Coil
+  Generating: ue_11 — Sniper's Focus Crystal
+  Generating: ue_12 — Soul Harvest Scythe
+  Generating: ue_13 — War Cry Totem
+  Generating: ue_14 — Demolisher's Payload
+  Generating: ue_15 — Sentinel's Watch Helm
+  Generating: ue_16 — Spider Silk Garrote
+  Converting 10 images to real PNG...
+  Batch 22 complete: 10/10 succeeded
+  Progress: 220/265 total (0 failed)
+
+=== Batch 23/27 (items 221-230) ===
+  Generating: ue_17 — Chrono Gear
+  Generating: ue_18 — Boss Hunter's Trophy
+  Generating: ue_19 — Leech King's Fang
+  Generating: ue_20 — Multi-Bolt Crossbow
+  Generating: ue_21 — Guardian's Oath Ring
+  Generating: ue_22 — Firestorm Catalyst
+  Generating: ue_23 — Windwalker Cloak
+  Generating: ue_24 — Executioner's Verdict
+  Generating: ue_25 — Magnetic Rail
+  Generating: ue_26 — Thunder Drum
+  Converting 10 images to real PNG...
+  Batch 23 complete: 10/10 succeeded
+  Progress: 230/265 total (0 failed)
+
+=== Batch 24/27 (items 231-240) ===
+  Generating: rh_l1 — The Silver Arrow of Sherwood
+  Generating: al_l1 — The Jabberwock's Eye
+  Generating: ww_l1 — The Grimmerie
+  Generating: pp_l1 — The Second Star
+  Generating: ph_l1 — The Music of the Night
+  Generating: sc_l1 — Scrooge's Redemption Ledger
+  Generating: sh_l1 — The Art of Deduction
+  Generating: tz_l1 — Heart of the Jungle
+  Generating: dr_l1 — Nosferatu's Crimson Throne
+  Generating: mr_l1 — The Siege Perilous
+  Converting 10 images to real PNG...
+  Batch 24 complete: 10/10 succeeded
+  Progress: 240/265 total (0 failed)
+
+=== Batch 25/27 (items 241-250) ===
+  Generating: fr_l1 — The Promethean Spark
+  Generating: sa_l1 — The Unwritten Ending
+  Generating: ul_01 — Crown of the Conqueror
+  Generating: ul_02 — Aegis of the Fallen
+  Generating: ul_03 — Stormcaller's Gauntlet
+  Generating: ul_04 — The Gilded Compass
+  Generating: ul_05 — Hellfire Crucible
+  Generating: ul_06 — Wraithbane
+  Generating: ul_07 — Timekeeper's Hourglass
+  Generating: ul_08 — Bloodmoon Talisman
+  Converting 10 images to real PNG...
+  Batch 25 complete: 10/10 succeeded
+  Progress: 250/265 total (0 failed)
+
+=== Batch 26/27 (items 251-260) ===
+  Generating: ul_09 — Oblivion's Edge
+  Generating: ul_10 — Winter's Embrace
+  Generating: ul_11 — The Commander's Banner
+  Generating: ul_12 — Viperstrike Gauntlet
+  Generating: ul_13 — Bulwark of Ages
+  Generating: anc_01 — Shard of Excalibur
+  Generating: anc_02 — Phoenix Plume
+  Generating: anc_03 — Mjolnir Fragment
+  [ERROR] nano-banana failed for anc_03: Error calling Gemini API: TypeError: Cannot read properties of undefined (reading 'parts')
+    at main (C:\Users\johnh\AppData\Roaming\npm\node_modules\@the-focus-ai\nano-banana\cli.ts:597:55)
+    at 
+  Generating: anc_04 — Eye of Ra
+  Generating: anc_05 — Dragon Scale
+  Converting 9 images to real PNG...
+  Batch 26 complete: 9/10 succeeded
+  Progress: 259/265 total (1 failed)
+
+=== Batch 27/27 (items 261-265) ===
+  Generating: anc_06 — Philosopher's Stone
+  Generating: anc_07 — Pandora's Shard
+  Generating: anc_08 — Yggdrasil Bark
+  Generating: anc_09 — Leviathan Tooth
+  Generating: anc_10 — Void Ink
+  Converting 5 images to real PNG...
+  Batch 27 complete: 5/5 succeeded
+  Progress: 264/265 total (1 failed)
+
+=== GENERATION COMPLETE ===
+Success: 264/265
+Failed:  1/265
+Output:  C:/Users/johnh/shadow-defense/assets/gear_icons/generated

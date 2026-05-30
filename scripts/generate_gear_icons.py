@@ -387,7 +387,8 @@ def generate_icon(item_id, item_name, prompt_description):
     try:
         result = subprocess.run(
             [NANO_BANANA_CMD, full_prompt,
-             "--output", output_path],
+             "--output", output_path,
+             "--model", "gemini-2.5-flash-image"],
             capture_output=True, text=True, env=env, timeout=120,
             shell=False
         )
