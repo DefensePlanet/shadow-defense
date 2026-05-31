@@ -9031,6 +9031,8 @@ func _load_tower_sprite_textures() -> void:
 			var abs_path = ProjectSettings.globalize_path(res_path)
 			var img = Image.new()
 			if img.load(abs_path) == OK:
+				if img.get_format() != Image.FORMAT_RGBA8:
+					img.convert(Image.FORMAT_RGBA8)
 				tex = ImageTexture.create_from_image(img)
 		if tex == null:
 			continue
