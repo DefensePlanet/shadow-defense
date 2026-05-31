@@ -15094,6 +15094,7 @@ func _load_voice_clips() -> void:
 		TowerType.MERLIN: "merlin",
 		TowerType.FRANKENSTEIN: "frankenstein",
 		TowerType.SHADOW_AUTHOR: "shadow_author",
+		TowerType.ROBIN_HOOD_2: "robin_hood",  # Same voice as Robin 1
 	}
 	for tower_type in character_dirs:
 		var dir_name: String = character_dirs[tower_type]
