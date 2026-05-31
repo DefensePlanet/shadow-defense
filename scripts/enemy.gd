@@ -422,10 +422,13 @@ func _process(delta: float) -> void:
 		fly_height = 20.0 + sin(fly_wobble * 0.7) * 5.0  # Visual float
 		# Check if reached exit
 		if global_position.distance_to(fly_target) < 20.0:
+			_dead = true
 			var main_node = get_tree().get_first_node_in_group("main")
-			if main_node and main_node.has_method("lose_life"):
-				main_node.lose_life()
-			queue_free()
+			if main_node:
+				if main_node.has_method("lose_life"):
+					main_node.lose_life()
+				main_node.enemy_died()  # MUST decrement enemies_alive or wave never ends
+			_despawn()
 			return
 		_process_active_ability(delta)
 		if _hit_flash > 0.0: _hit_flash -= delta
