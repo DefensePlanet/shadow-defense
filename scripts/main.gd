@@ -9,7 +9,7 @@ var placing_tower: bool = false
 var ghost_position: Vector2 = Vector2.ZERO
 
 # Tower selection
-enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB, ROBIN_HOOD_2, ALICE_2 }
+enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB, ROBIN_HOOD_2, ALICE_2, SCROOGE_2 }
 var selected_tower: TowerType = TowerType.ROBIN_HOOD
 
 const BOSS_VILLAIN_NAMES: Dictionary = {
@@ -57,6 +57,7 @@ var tower_info = {
 	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
 	TowerType.ROBIN_HOOD_2: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85},
 	TowerType.ALICE_2: {"name": "Alice", "cost": 120, "range": 120.0, "damage": 15, "fire_rate": 1.0},
+	TowerType.SCROOGE_2: {"name": "Scrooge", "cost": 80, "range": 100.0, "damage": 12, "fire_rate": 1.2},
 }
 
 # Survivor skins — purchasable outfit variants
@@ -199,6 +200,7 @@ var tower_scenes = {
 	TowerType.SCROOGE: preload("res://scenes/scrooge.tscn"),
 	TowerType.ROBIN_HOOD_2: preload("res://scenes/robin_hood_2.tscn"),
 	TowerType.ALICE_2: preload("res://scenes/alice_2.tscn"),
+	TowerType.SCROOGE_2: preload("res://scenes/scrooge_2.tscn"),
 }
 var new_tower_scenes: Dictionary = {}  # Loaded at runtime after unlock
 
@@ -5231,7 +5233,7 @@ func _check_team_alignment_bonus() -> Dictionary:
 
 func _is_character_unlocked(tower_type) -> bool:
 	# 3 starters + test characters — always unlocked
-	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2, TowerType.ALICE_2]:
+	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2, TowerType.ALICE_2, TowerType.SCROOGE_2]:
 		return true
 	# First 3 rescues (Peter, Witch, Phantom) — unlock by beating their arc
 	if tower_type in [TowerType.PETER_PAN, TowerType.WICKED_WITCH, TowerType.PHANTOM]:
@@ -8932,7 +8934,7 @@ func _load_portrait_textures() -> void:
 	_portrait_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author", "narrator", "robin_hood_2", "alice_2"]
+		"shadow_author", "narrator", "robin_hood_2", "alice_2", "scrooge_2"]
 	for pname in names:
 		var res_path = "res://assets/portraits/" + pname + ".png"
 		if ResourceLoader.exists(res_path):
@@ -9104,6 +9106,45 @@ func _load_tower_sprite_textures() -> void:
 					if not _tower_flair_textures.has(al2):
 						_tower_flair_textures[al2] = []
 					_tower_flair_textures[al2].append(tex)
+
+	# Hero Sprite: Scrooge 2
+	var sc2 = "scrooge_2"
+	var sc2_dir = "res://assets/hero_sprites/scrooge/"
+	var sc2_files = {
+		"idle": "scrooge_idle.png",
+		"attack": "scrooge_attack.png",
+		"shoot": "scrooge_shoot.png",
+		"flair1": "scrooge_flair1.png",
+		"flair2": "scrooge_flair2.png",
+		"flair3": "scrooge_flair3.png",
+		"flair4": "scrooge_flair4.png",
+		"spin360": "scrooge_spin360.png",
+		"spindown": "scrooge_spindown.png",
+		"fireside": "scrooge_fireside.png",
+	}
+	for key in sc2_files:
+		var res_path = sc2_dir + sc2_files[key]
+		var tex = null
+		var abs_path = ProjectSettings.globalize_path(res_path)
+		var img = Image.new()
+		if img.load(abs_path) == OK:
+			if img.get_format() != Image.FORMAT_RGBA8:
+				img.convert(Image.FORMAT_RGBA8)
+			tex = ImageTexture.create_from_image(img)
+		if tex == null:
+			continue
+		match key:
+			"idle": _tower_sprite_textures[sc2] = tex
+			"attack": _tower_attack_textures[sc2] = tex
+			"shoot": _tower_shoot_textures[sc2] = tex
+			"spin360": _tower_sprite_textures[sc2 + "_spin360"] = tex
+			"spindown": _tower_sprite_textures[sc2 + "_spindown"] = tex
+			"fireside": _tower_sprite_textures[sc2 + "_fireside"] = tex
+			_:
+				if key.begins_with("flair"):
+					if not _tower_flair_textures.has(sc2):
+						_tower_flair_textures[sc2] = []
+					_tower_flair_textures[sc2].append(tex)
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
@@ -9997,9 +10038,10 @@ func _create_ui() -> void:
 		[TowerType.WICKED_WITCH, "Witch [%dG]" % tower_info[TowerType.WICKED_WITCH]["cost"], "Wicked Witch — eye blast, wolves."],
 		[TowerType.PETER_PAN, "Peter [%dG]" % tower_info[TowerType.PETER_PAN]["cost"], "Peter Pan — fast daggers, shadow."],
 		[TowerType.PHANTOM, "Phantom [%dG]" % tower_info[TowerType.PHANTOM]["cost"], "Phantom — heavy hits, stun, chandelier."],
-		[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],
+		#[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],  # Retired
 		[TowerType.ROBIN_HOOD_2, "Robin [100G]", "Robin Hood — legendary Sherwood archer."],
 		[TowerType.ALICE_2, "Alice [120G]", "Alice — Wonderland potion thrower, slows enemies."],
+		[TowerType.SCROOGE_2, "Scrooge [80G]", "Scrooge — Victorian miser, coin throw & gold generation."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
@@ -12356,7 +12398,7 @@ func _do_level_start(index: int) -> void:
 	start_button.text = "  START WAVE  "
 	# Row 1: Show base towers + Robin 2, hide locked ones
 	var row1_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
-					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2, TowerType.ALICE_2]
+					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2, TowerType.ALICE_2, TowerType.SCROOGE_2]
 	var row1_visible_idx := 0
 	for tt in row1_types:
 		if not tower_buttons.has(tt):
@@ -15239,6 +15281,7 @@ func _load_voice_clips() -> void:
 		TowerType.SHADOW_AUTHOR: "shadow_author",
 		TowerType.ROBIN_HOOD_2: "robin_hood",  # Same voice as Robin 1
 		TowerType.ALICE_2: "alice",  # Same voice as Alice 1
+		TowerType.SCROOGE_2: "scrooge",  # Same voice as Scrooge 1
 	}
 	for tower_type in character_dirs:
 		var dir_name: String = character_dirs[tower_type]
@@ -25988,6 +26031,7 @@ func _draw_tower_button_portraits() -> void:
 		TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge",
 		TowerType.ROBIN_HOOD_2: "robin_hood",
 		TowerType.ALICE_2: "alice",
+		TowerType.SCROOGE_2: "scrooge",
 	}
 	var psz = 44.0
 	var panel_y = bottom_panel.position.y  # 626
@@ -37165,6 +37209,7 @@ func _tower_type_to_name(tt) -> String:
 		TowerType.SHADOW_AUTHOR: return "shadow_author"
 		TowerType.ROBIN_HOOD_2: return "robin_hood_2"
 		TowerType.ALICE_2: return "alice_2"
+		TowerType.SCROOGE_2: return "scrooge_2"
 	return ""
 
 func game_over() -> void:
@@ -40186,6 +40231,24 @@ const UPGRADE_PATHS: Dictionary = {
 			{"name": "Paint Roses Red", "desc": "Marks enemies: +15% all dmg", "cost": 150},
 			{"name": "Croquet Match", "desc": "Flamingo launches enemies back", "cost": 400},
 			{"name": "Off With Heads!", "desc": "<20% HP executed. Card army 8s", "cost": 1200},
+		]},
+	},
+	# Scrooge 2 (22) — same paths as Scrooge
+	22: {
+		"A": {"name": "The Miser", "tiers": [
+			{"name": "Bah, Humbug!", "desc": "Knockback +20% stronger", "cost": 120},
+			{"name": "Counting House", "desc": "+15 gold passively every 10s", "cost": 350},
+			{"name": "Scrooge & Marley", "desc": "+20% gold on kill for ALL towers", "cost": 900},
+		]},
+		"B": {"name": "The Ghosts", "tiers": [
+			{"name": "Ghost of Past", "desc": "Resurrect last leaked enemy at 50%", "cost": 120},
+			{"name": "Ghost of Present", "desc": "+20% speed for all nearby, wave start", "cost": 350},
+			{"name": "Ghost of Future", "desc": "Strongest takes 2x from all, 8s", "cost": 900},
+		]},
+		"C": {"name": "Redemption", "tiers": [
+			{"name": "Tiny Tim", "desc": "+2 lives every 5 waves", "cost": 150},
+			{"name": "Christmas Morning", "desc": "+100g burst, all towers refreshed", "cost": 400},
+			{"name": "God Bless Us All", "desc": "+50g/wave, +10% global dmg", "cost": 1200},
 		]},
 	},
 }
