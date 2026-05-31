@@ -24651,51 +24651,74 @@ func _draw_tower_stats_overlay() -> void:
 	if not is_instance_valid(tower):
 		return
 	var tpos = tower.global_position
-	# Position panel to the right of tower, or left if too close to edge
 	var panel_x = tpos.x + 55.0
-	if panel_x + 160.0 > 1240.0:
-		panel_x = tpos.x - 215.0
-	var panel_y = clampf(tpos.y - 60.0, 60.0, 520.0)
-	var pw = 170.0
-	var ph = 140.0
-	# Rounded Bloons panel with gold border
-	_ds_panel(Rect2(panel_x, panel_y, pw, ph), Color(0.12, 0.08, 0.20, 0.92), Color(0.8, 0.65, 0.2, 0.7), 2.0, 10.0)
+	if panel_x + 190.0 > 1240.0:
+		panel_x = tpos.x - 245.0
+	var panel_y = clampf(tpos.y - 70.0, 60.0, 480.0)
+	var pw = 190.0
+	var ph = 160.0
 	var font = game_font
 	var dmg = tower.damage_dealt if "damage_dealt" in tower else 0.0
 	var kills = tower.kill_count if "kill_count" in tower else 0
 	var tier = tower.upgrade_tier if "upgrade_tier" in tower else 0
+	var crits = tower.crit_count if "crit_count" in tower else 0
 	var elapsed = maxf(_time, 1.0)
 	var dps = dmg / elapsed
-	var y = panel_y + 16.0
-	_udraw(font, Vector2(panel_x + 6, y), "DMG: %s" % _format_number(dmg), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.85, 0.3))
-	y += 16.0
-	_udraw(font, Vector2(panel_x + 6, y), "KILLS: %d" % kills, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.8, 0.9, 1.0))
-	y += 16.0
-	var crits = tower.crit_count if "crit_count" in tower else 0
-	_udraw(font, Vector2(panel_x + 6, y), "DPS: %s  CRITS: %d" % [_format_number(dps), crits], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 1.0, 0.6))
-	y += 16.0
-	_udraw(font, Vector2(panel_x + 6, y), "TIER: %d" % tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.9, 0.8, 1.0))
-	y += 16.0
-	var prio_names = ["FIRST", "LAST", "CLOSE", "STRONG", "SMART"]
 	var prio = tower.targeting_priority if "targeting_priority" in tower else 0
-	_udraw(font, Vector2(panel_x + 6, y), "TARGET: %s" % prio_names[clampi(prio, 0, 4)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.7, 0.7))
-	# BATTD4: Damage type display
-	y += 16.0
+	var prio_names = ["FIRST", "LAST", "CLOSE", "STRONG", "SMART"]
 	var tower_type_val = int(tower.get_meta("tower_type_enum")) if tower.has_meta("tower_type_enum") else -1
 	var dmg_type = TOWER_DAMAGE_TYPES.get(tower_type_val, "sharp")
 	var dmg_type_name = DAMAGE_TYPE_NAMES.get(dmg_type, "Sharp")
 	var dmg_type_color = DAMAGE_TYPE_COLORS.get(dmg_type, Color(0.8, 0.8, 0.8))
-	_udraw(font, Vector2(panel_x + 6, y), "TYPE: %s" % dmg_type_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, dmg_type_color)
-	# BATTD4: Veterancy display
+	# Tier colors
+	var tier_colors = [Color(0.6, 0.6, 0.6), Color(0.3, 0.8, 0.3), Color(0.3, 0.6, 1.0), Color(0.8, 0.4, 1.0), Color(1.0, 0.7, 0.15), Color(1.0, 0.3, 0.2)]
+	var tc = tier_colors[clampi(tier, 0, 5)]
+	# Panel background with tier-colored accent
+	_ds_panel(Rect2(panel_x, panel_y, pw, ph), Color(0.08, 0.05, 0.16, 0.94), tc * Color(1, 1, 1, 0.5), 2.0, 12.0)
+	# Tier accent bar at top
+	draw_rect(Rect2(panel_x + 4, panel_y + 2, pw - 8, 3), Color(tc.r, tc.g, tc.b, 0.8))
+	var y = panel_y + 14.0
+	var lx = panel_x + 10.0
+	var rx = panel_x + pw - 10.0
+	# Row 1: Damage + DPS
+	_ds_outlined_text(Vector2(lx, y), "⚔ %s" % _format_number(dmg), 12, Color(1.0, 0.85, 0.3), int(pw * 0.5), HORIZONTAL_ALIGNMENT_LEFT, 1)
+	_ds_outlined_text(Vector2(rx, y), "%s/s" % _format_number(dps), 11, Color(0.6, 1.0, 0.6), int(pw * 0.4), HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	y += 18.0
+	# Row 2: Kills + Crits
+	_ds_outlined_text(Vector2(lx, y), "💀 %d" % kills, 12, Color(0.8, 0.9, 1.0), int(pw * 0.5), HORIZONTAL_ALIGNMENT_LEFT, 1)
+	if crits > 0:
+		_ds_outlined_text(Vector2(rx, y), "⚡%d" % crits, 11, Color(1.0, 0.5, 0.2), int(pw * 0.4), HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	y += 18.0
+	# Row 3: Tier bar (visual progression)
+	_ds_outlined_text(Vector2(lx, y), "Tier %d" % tier, 12, tc, int(pw * 0.35), HORIZONTAL_ALIGNMENT_LEFT, 1)
+	# Tier pips
+	var pip_x = lx + 56.0
+	for ti in range(5):
+		var pip_c = tc if ti < tier else Color(0.25, 0.2, 0.35, 0.6)
+		draw_rect(Rect2(pip_x + ti * 18.0, y - 8, 14, 8), pip_c)
+		draw_rect(Rect2(pip_x + ti * 18.0, y - 8, 14, 8), Color(0.0, 0.0, 0.0, 0.3), false, 1.0)
+	y += 18.0
+	# Row 4: Target + Type
+	var prio_colors = [Color(0.5, 0.8, 1.0), Color(1.0, 0.6, 0.3), Color(0.6, 1.0, 0.5), Color(1.0, 0.3, 0.3), Color(0.8, 0.6, 1.0)]
+	_ds_outlined_text(Vector2(lx, y), "🎯 %s" % prio_names[clampi(prio, 0, 4)], 11, prio_colors[clampi(prio, 0, 4)], int(pw * 0.45), HORIZONTAL_ALIGNMENT_LEFT, 1)
+	_ds_outlined_text(Vector2(rx, y), dmg_type_name, 11, dmg_type_color, int(pw * 0.4), HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	y += 18.0
+	# Row 5: Veterancy
 	var vet_waves = _tower_wave_counts.get(tower.get_instance_id(), 0)
 	if vet_waves > 0:
-		y += 16.0
 		var vet_lvl = vet_waves / VETERANCY_INTERVAL
-		_udraw(font, Vector2(panel_x + 6, y), "VET: %d (%d waves)" % [vet_lvl, vet_waves], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.8, 0.7, 0.2))
-	# BATTD4: Specialization bonus indicator
+		var vet_progress = float(vet_waves % VETERANCY_INTERVAL) / float(VETERANCY_INTERVAL)
+		_ds_outlined_text(Vector2(lx, y), "★ Vet %d" % vet_lvl, 11, Color(1.0, 0.85, 0.2), int(pw * 0.4), HORIZONTAL_ALIGNMENT_LEFT, 1)
+		# Veterancy progress bar
+		var bar_x = lx + 68.0
+		var bar_w = pw - 88.0
+		draw_rect(Rect2(bar_x, y - 8, bar_w, 7), Color(0.15, 0.12, 0.25, 0.8))
+		draw_rect(Rect2(bar_x, y - 8, bar_w * vet_progress, 7), Color(1.0, 0.85, 0.2, 0.7))
+		draw_rect(Rect2(bar_x, y - 8, bar_w, 7), Color(0.5, 0.4, 0.2, 0.4), false, 1.0)
+		y += 18.0
+	# Specialization bonus
 	if _specialization_active and dmg_type == _specialization_type:
-		y += 16.0
-		_udraw(font, Vector2(panel_x + 6, y), "SPEC: +%d%%" % int(SPECIALIZATION_BONUS * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.3, 1.0, 0.5))
+		_ds_outlined_text(Vector2(lx, y), "⬆ SPEC +%d%%" % int(SPECIALIZATION_BONUS * 100), 11, Color(0.3, 1.0, 0.5), int(pw), HORIZONTAL_ALIGNMENT_LEFT, 1)
 
 # === WAVE PREVIEW PANEL ===
 func _draw_wave_preview() -> void:
