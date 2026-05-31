@@ -12176,8 +12176,11 @@ func _do_level_start(index: int) -> void:
 	# Hide page border overlay (menu decoration, not gameplay)
 	if _page_border:
 		_page_border.visible = false
-	# Set menu overlay mouse filter to pass-through so gameplay clicks work
-	menu_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Set non-gameplay UI children to pass-through so map clicks reach _unhandled_input
+	# (bottom_panel and top_bar keep their defaults for button interaction)
+	for child in $UI.get_children():
+		if child is Control and child != bottom_panel and child != top_bar:
+			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$UI.visible = true
 	top_bar.visible = true
 	bottom_panel.visible = true
