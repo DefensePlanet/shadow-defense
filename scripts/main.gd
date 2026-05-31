@@ -10232,32 +10232,34 @@ func _create_ui() -> void:
 	sep.size = Vector2(_pw - 24, 1)
 	upgrade_panel.add_child(sep)
 
-	# Portrait — larger, centered
-	var _port_size = 90
-	var _port_x = (_pw - _port_size) / 2
+	# Portrait — wide banner filling panel width, shows character with background
+	var _port_w = _pw - 16  # Full width minus padding
+	var _port_h = 80        # Banner height
+	var _port_x = 8
+	var _port_y = 40
 	var portrait_border = ColorRect.new()
-	portrait_border.color = _ca(c_gold, 0.35)
-	portrait_border.position = Vector2(_port_x - 2, 40)
-	portrait_border.size = Vector2(_port_size + 4, _port_size + 4)
+	portrait_border.color = _ca(c_gold, 0.4)
+	portrait_border.position = Vector2(_port_x - 2, _port_y - 2)
+	portrait_border.size = Vector2(_port_w + 4, _port_h + 4)
 	portrait_border.z_index = -1
 	upgrade_panel.add_child(portrait_border)
 
 	var portrait_bg = ColorRect.new()
-	portrait_bg.color = Color(0.12, 0.08, 0.20, 0.9)
-	portrait_bg.position = Vector2(_port_x, 42)
-	portrait_bg.size = Vector2(_port_size, _port_size)
+	portrait_bg.color = Color(0.10, 0.07, 0.16, 0.95)
+	portrait_bg.position = Vector2(_port_x, _port_y)
+	portrait_bg.size = Vector2(_port_w, _port_h)
 	upgrade_panel.add_child(portrait_bg)
 
 	var portrait_draw_ctrl = Control.new()
 	portrait_draw_ctrl.name = "PortraitDraw"
-	portrait_draw_ctrl.position = Vector2(_port_x, 42)
-	portrait_draw_ctrl.size = Vector2(_port_size, _port_size)
+	portrait_draw_ctrl.position = Vector2(_port_x, _port_y)
+	portrait_draw_ctrl.size = Vector2(_port_w, _port_h)
 	portrait_draw_ctrl.clip_contents = true
 	portrait_draw_ctrl.draw.connect(_on_portrait_draw.bind(portrait_draw_ctrl))
 	upgrade_panel.add_child(portrait_draw_ctrl)
 
 	# Targeting priority button
-	targeting_button = _make_button("Target: FIRST", Vector2(20, 138), Vector2(_pw - 40, 26))
+	targeting_button = _make_button("Target: FIRST", Vector2(20, 126), Vector2(_pw - 40, 26))
 	targeting_button.add_theme_font_size_override("font_size", 13)
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
@@ -10273,7 +10275,7 @@ func _create_ui() -> void:
 	var col_w = 108    # Column width
 	var col_gap = 4    # Gap between columns
 	var col_start_x = 8
-	var grid_top_y = 170  # Top of upgrade grid
+	var grid_top_y = 158  # Top of upgrade grid
 	var row_h = 130    # Row height per tier
 	var row_gap = 4    # Gap between rows
 
@@ -40264,15 +40266,17 @@ func _on_portrait_draw(ctrl: Control) -> void:
 	if selected_tower_node.has_meta("tower_type_enum"):
 		tower_type_int = int(selected_tower_node.get_meta("tower_type_enum"))
 
-	# Use AI portrait texture if available — skip procedural fallback
+	# Use AI portrait texture if available — COVER mode (fill entire control, crop overflow)
 	var speaker_name = _tower_type_to_name(tower_type_int)
 	if speaker_name != "" and _portrait_textures.has(speaker_name) and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
 		var tex_size = tex.get_size()
-		var fit_size = min(ctrl_size.x, ctrl_size.y) - 4.0  # Fit within control with padding
-		var portrait_scale = fit_size / maxf(tex_size.x, tex_size.y)
-		var draw_w = tex_size.x * portrait_scale
-		var draw_h = tex_size.y * portrait_scale
+		# Cover mode: scale to fill, let clip_contents handle overflow
+		var scale_x = ctrl_size.x / tex_size.x
+		var scale_y = ctrl_size.y / tex_size.y
+		var cover_scale = maxf(scale_x, scale_y)  # Use larger scale to FILL
+		var draw_w = tex_size.x * cover_scale
+		var draw_h = tex_size.y * cover_scale
 		ctrl.draw_texture_rect(tex, Rect2(cx - draw_w * 0.5, cy - draw_h * 0.5, draw_w, draw_h), false)
 		return
 
