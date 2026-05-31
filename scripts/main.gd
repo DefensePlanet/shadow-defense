@@ -24789,6 +24789,10 @@ func _draw() -> void:
 		sky_color = levels[current_level]["sky_color"]
 		ground_color = levels[current_level]["ground_color"]
 
+	# Solid background fill (prevents checkerboard from transparent PNGs)
+	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
+	draw_rect(Rect2(0, 360, 1280, 360), ground_color)
+
 	# AI-generated level background (full-screen art behind procedural details)
 	if _level_bg_textures.has(current_level):
 		draw_texture_rect(_level_bg_textures[current_level], Rect2(0, 50, 1280, 590), false)
