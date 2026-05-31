@@ -9033,6 +9033,12 @@ func _load_tower_sprite_textures() -> void:
 			if img.load(abs_path) == OK:
 				if img.get_format() != Image.FORMAT_RGBA8:
 					img.convert(Image.FORMAT_RGBA8)
+				# Strip gray background pixels (nano-banana bakes checkerboard)
+				for py in range(img.get_height()):
+					for px in range(img.get_width()):
+						var c = img.get_pixel(px, py)
+						if absf(c.r - c.g) < 0.08 and absf(c.g - c.b) < 0.08 and c.r > 0.62 and c.r < 0.86:
+							img.set_pixel(px, py, Color(0, 0, 0, 0))
 				tex = ImageTexture.create_from_image(img)
 		if tex == null:
 			continue
@@ -25639,11 +25645,33 @@ func _draw_tower_button_portraits() -> void:
 		# Portrait with dark circle background
 		draw_circle(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 4.0, Color(0.06, 0.04, 0.12, 0.9))
 		draw_arc(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 4.0, 0, TAU, 32, Color(0.55, 0.42, 0.18, 0.6), 2.0)
+		var is_placed = purchased_towers.has(tt)
+		var cost = _get_discounted_cost(tt)
+		var can_afford = gold >= cost
+		# Portrait with dimming for placed/unaffordable
 		if _portrait_textures.has(portrait_key):
-			draw_texture_rect(_portrait_textures[portrait_key], Rect2(gx, gy, psz, psz), false)
-		# Gold ring highlight when selected
+			if is_placed:
+				draw_texture_rect(_portrait_textures[portrait_key], Rect2(gx, gy, psz, psz), false, Color(0.4, 0.4, 0.4, 0.6))
+			elif not can_afford:
+				draw_texture_rect(_portrait_textures[portrait_key], Rect2(gx, gy, psz, psz), false, Color(0.6, 0.4, 0.4, 0.8))
+			else:
+				draw_texture_rect(_portrait_textures[portrait_key], Rect2(gx, gy, psz, psz), false)
+		# Placed checkmark overlay
+		if is_placed:
+			_ds_outlined_text(Vector2(gx + psz / 2.0, gy + psz / 2.0 + 6), "✓", 22, Color(0.3, 1.0, 0.4, 0.9), 30, HORIZONTAL_ALIGNMENT_CENTER, 2)
+		# Red border when can't afford
+		if not is_placed and not can_afford:
+			draw_arc(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 4.0, 0, TAU, 32, Color(1.0, 0.2, 0.2, 0.5), 2.0)
+		# Gold ring highlight when selected for placement
 		if placing_tower and selected_tower == tt:
 			draw_arc(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 6.0, 0, TAU, 32, Color(1.0, 0.85, 0.2, 0.8), 3.0)
+		# Update button appearance for affordability
+		if is_placed:
+			btn.modulate = Color(0.5, 0.5, 0.5, 0.7)
+		elif not can_afford:
+			btn.modulate = Color(0.7, 0.5, 0.5, 0.85)
+		else:
+			btn.modulate = Color(1, 1, 1, 1)
 
 func _draw_ingame_settings() -> void:
 	var font = game_font
@@ -25764,7 +25792,10 @@ func _draw_path_overlay() -> void:
 	var _pf = _get_level_faction_key(current_level)
 	var _has_path_tex = _path_textures.has(_pf)
 
-	# --- Combined single pass: shadow + edge + road ---
+	# --- Combined single pass: glow + shadow + edge + road ---
+	# Outer glow for path visibility
+	for k in range(pts.size() - 1):
+		draw_line(pts[k], pts[k + 1], Color(edge_col.r, edge_col.g, edge_col.b, 0.15), road_w + 20.0)
 	for k in range(pts.size() - 1):
 		draw_line(pts[k], pts[k + 1], shadow_col, road_w + 10.0)
 		draw_line(pts[k], pts[k + 1], edge_col, road_w + 4.0)
@@ -25886,11 +25917,13 @@ func _get_path_style() -> Dictionary:
 		"detail_type": "dirt",  # dirt, cobble, brick, tile, plank, ice, lab, jungle, ink
 	}
 	match current_level:
-		0:  # Prologue — glowing ink
-			style["road_color"] = Color(0.12, 0.06, 0.20, 0.92)
-			style["edge_color"] = Color(0.20, 0.10, 0.35, 0.85)
-			style["detail_color"] = Color(0.40, 0.20, 0.65, 0.35)
+		0:  # Prologue — glowing ink (bright edges for visibility)
+			style["road_color"] = Color(0.08, 0.04, 0.15, 0.95)
+			style["edge_color"] = Color(0.45, 0.25, 0.70, 0.90)
+			style["detail_color"] = Color(0.60, 0.35, 0.85, 0.50)
 			style["detail_type"] = "ink"
+			style["width"] = 40.0
+			style["center_line"] = true
 		1, 2, 3:  # Sherlock — grimy London cobblestone
 			style["road_color"] = Color(0.22, 0.18, 0.15, 0.95)
 			style["edge_color"] = Color(0.14, 0.10, 0.08, 0.90)
@@ -28212,23 +28245,34 @@ func _generate_bounties() -> void:
 func _draw_bounty_board() -> void:
 	if _active_bounties.is_empty():
 		return
-	var bx = 4.0
-	var by = 400.0
+	var bx = 8.0
+	var by = 420.0
 	var font = game_font
 	var bounty_count = _active_bounties.size()
-	var panel_h = 18.0 + bounty_count * 16.0
-	# Styled bounty panel
-	draw_colored_polygon(_rrp(Rect2(bx, by, 200, panel_h), 6.0), Color(0.05, 0.03, 0.10, 0.75))
-	draw_polyline(_rrp(Rect2(bx, by, 200, panel_h), 6.0) + PackedVector2Array([_rrp(Rect2(bx, by, 200, panel_h), 6.0)[0]]), Color(0.6, 0.45, 0.15, 0.3), 1.0)
-	_udraw(font, Vector2(bx + 6, by + 12), "📋 BOUNTIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 0.75, 0.25, 0.8))
-	by += 18.0
+	var row_h = 28.0
+	var panel_w = 240.0
+	var panel_h = 30.0 + bounty_count * row_h
+	# Solid dark panel with gold accent
+	_ds_panel(Rect2(bx, by, panel_w, panel_h), Color(0.05, 0.03, 0.10, 0.92), Color(0.55, 0.42, 0.18, 0.4), 1.5, 8.0)
+	# Header
+	_ds_outlined_text(Vector2(bx + 10, by + 16), "BOUNTIES", 13, Color(1.0, 0.80, 0.30), int(panel_w - 20), HORIZONTAL_ALIGNMENT_LEFT, 1)
+	draw_rect(Rect2(bx + 8, by + 22, panel_w - 16, 1), Color(0.55, 0.42, 0.18, 0.3))
+	by += 28.0
 	for bounty in _active_bounties:
 		var done = bounty["progress"] >= bounty["target"]
-		var col = Color(0.3, 1.0, 0.4, 0.8) if done else Color(0.8, 0.75, 0.65, 0.6)
-		var icon = "✅" if done else "⬜"
-		var status = "DONE" if done else "%d/%d" % [bounty["progress"], bounty["target"]]
-		_udraw(font, Vector2(bx + 6, by), "%s %s [%s]" % [icon, bounty["desc"], status], HORIZONTAL_ALIGNMENT_LEFT, 190, 10, col)
-		by += 15.0
+		var progress = float(bounty["progress"]) / maxf(float(bounty["target"]), 1.0)
+		# Progress bar background
+		draw_rect(Rect2(bx + 10, by + 2, panel_w - 20, 14), Color(0.12, 0.08, 0.20, 0.8))
+		# Progress bar fill
+		var bar_col = Color(0.3, 0.85, 0.3, 0.7) if done else Color(0.55, 0.42, 0.18, 0.6)
+		draw_rect(Rect2(bx + 10, by + 2, (panel_w - 20) * clampf(progress, 0, 1), 14), bar_col)
+		draw_rect(Rect2(bx + 10, by + 2, panel_w - 20, 14), Color(0.4, 0.3, 0.15, 0.3), false, 1.0)
+		# Text on top of bar
+		var status = "DONE!" if done else "%d/%d" % [bounty["progress"], bounty["target"]]
+		var text_col = Color(1.0, 1.0, 0.9) if done else Color(0.95, 0.90, 0.80)
+		_ds_outlined_text(Vector2(bx + 14, by + 14), bounty["desc"], 11, text_col, int(panel_w - 60), HORIZONTAL_ALIGNMENT_LEFT, 1)
+		_ds_outlined_text(Vector2(bx + panel_w - 14, by + 14), status, 11, text_col, 50, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+		by += row_h
 
 # === BATTD: GEAR AUTO-EQUIP ===
 func _auto_equip_best_gear(tower_type) -> int:
