@@ -24399,7 +24399,7 @@ func _input(event: InputEvent) -> void:
 		if Rect2(pp_x + 100, 386, pp_w - 200, 36).has_point(mpos):
 			game_paused = false
 			Engine.time_scale = 1.0
-			_go_to_menu()
+			_show_menu()
 			get_viewport().set_input_as_handled()
 			return
 	# Story dialog overrides menu input guard — must check FIRST
