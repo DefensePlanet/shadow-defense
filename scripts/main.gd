@@ -24195,11 +24195,9 @@ func _check_wave_complete() -> void:
 			# Battle Pass XP (#116)
 			_add_bp_xp(5 + wave / 5)
 			# Planning Phase before boss waves (#101)
+			# Planning phase — no longer blocks auto-wave, just shows a quick notice
 			if (wave + 1) in PLANNING_PHASE_WAVES and wave < total_waves:
-				_planning_phase = true
-				_planning_timer = PLANNING_PHASE_DURATION
-				auto_wave_enabled = false  # Temporarily disable auto-wave
-				spawn_floating_text(Vector2(640, 200), "⚔ PLANNING PHASE — Prepare for Boss Wave!", Color(1.0, 0.7, 0.2), 18.0, 3.0)
+				spawn_floating_text(Vector2(640, 200), "Boss wave incoming!", Color(1.0, 0.7, 0.2), 16.0, 2.0)
 			_screen_shake_intensity = 3.0
 			_screen_shake_timer = 0.2
 			# Wave preview on button
