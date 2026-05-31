@@ -9990,13 +9990,13 @@ func _create_ui() -> void:
 	info_label.text = ""
 	top_bar.add_child(info_label)
 
-	start_button = _make_button("  START WAVE  ", Vector2(955, 2), Vector2(168, 50))
+	start_button = _make_button("  START WAVE  ", Vector2(890, 14), Vector2(160, 44))
 	start_button.add_theme_color_override("font_color", Color(0.35, 0.95, 0.35))
-	start_button.add_theme_font_size_override("font_size", 17)
+	start_button.add_theme_font_size_override("font_size", 16)
 	start_button.pressed.connect(_on_start_wave_pressed)
 	bottom_panel.add_child(start_button)
 
-	speed_button = _make_button("  >>  ", Vector2(1126, 2), Vector2(72, 48))
+	speed_button = _make_button("  >>  ", Vector2(1058, 14), Vector2(56, 44))
 	speed_button.add_theme_font_size_override("font_size", 16)
 	speed_button.pressed.connect(_on_speed_pressed)
 	# Hold-to-fast-forward: button_down starts max speed, button_up releases
@@ -10004,7 +10004,7 @@ func _create_ui() -> void:
 	speed_button.button_up.connect(_on_speed_hold_end)
 	bottom_panel.add_child(speed_button)
 
-	restart_button = _make_button("  RESTART  ", Vector2(1202, 2), Vector2(72, 48))
+	restart_button = _make_button("RESTART", Vector2(1120, 14), Vector2(80, 44))
 	restart_button.add_theme_color_override("font_color", Color(0.8, 0.4, 0.3))
 	restart_button.pressed.connect(_on_restart_pressed)
 	bottom_panel.add_child(restart_button)
@@ -35786,7 +35786,7 @@ func _on_start_wave_pressed() -> void:
 			# Resume
 			game_paused = false
 			Engine.time_scale = _game_speed_level if fast_forward else 1.0
-			start_button.text = "  â¸ Pause  "
+			start_button.text = "  PAUSE  "
 			queue_redraw()
 		else:
 			# Pause
@@ -35974,7 +35974,7 @@ func _start_next_wave() -> void:
 	wave_start_gold = gold
 	wave_start_lives = lives
 	start_button.disabled = false
-	start_button.text = "  â¸ Pause  "
+	start_button.text = "  PAUSE  "
 	var wave_name = _get_wave_name(wave)
 	var enemy_word = "enemy" if enemies_to_spawn == 1 else "enemies"
 	info_label.text = "Wave %d — %s (%d %s)" % [wave, wave_name, enemies_to_spawn, enemy_word]
