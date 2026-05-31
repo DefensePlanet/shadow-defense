@@ -9927,12 +9927,12 @@ func _create_ui() -> void:
 	bottom_panel.add_child(tower_bar_bg)
 	bottom_panel.move_child(tower_bar_bg, 0)
 
-	var btn_h = 40
-	var row1_y = 48
+	var btn_h = 34
+	var row1_y = 56
 	var row2_y = 46
-	var btn_w = 120
+	var btn_w = 122
 
-	# Row 1: Base towers — simple working buttons, portraits drawn via _draw()
+	# Row 1: Base towers — buttons at bottom, portraits drawn above via _draw()
 	var base_towers = [
 		[TowerType.ROBIN_HOOD, "Robin [%dG]" % tower_info[TowerType.ROBIN_HOOD]["cost"], "Robin Hood — long range archer, gold bonus."],
 		[TowerType.ALICE, "Alice [%dG]" % tower_info[TowerType.ALICE]["cost"], "Alice — cake, slows enemies in area."],
@@ -12216,7 +12216,7 @@ func _do_level_start(index: int) -> void:
 			tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
 			tower_buttons[tt].disabled = false
 			tower_buttons[tt].visible = true
-			tower_buttons[tt].position = Vector2(6 + row1_visible_idx * 124, 48)
+			tower_buttons[tt].position = Vector2(6 + row1_visible_idx * 126, 56)
 			row1_visible_idx += 1
 		else:
 			tower_buttons[tt].visible = false
@@ -25626,23 +25626,27 @@ func _draw_tower_button_portraits() -> void:
 		TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge",
 		TowerType.ROBIN_HOOD_2: "robin_hood",
 	}
-	var psz = 44.0
-	var panel_y = bottom_panel.position.y
+	var psz = 48.0
+	var panel_y = bottom_panel.position.y  # 626
 	for tt in row1_keys:
 		if not tower_buttons.has(tt) or not tower_buttons[tt].visible:
 			continue
 		var btn = tower_buttons[tt]
-		var bx = btn.position.x + panel_y  # btn pos is relative to bottom_panel; we need global
-		# Actually btn.position is relative to bottom_panel, draw is in global coords
-		var gx = btn.position.x + 6.0  # bottom_panel starts at x=0
-		var gy = panel_y + 2.0
 		var portrait_key = row1_keys[tt]
-		# Dark background behind portrait
-		draw_colored_polygon(_rrp(Rect2(gx, gy, btn.size.x, psz + 4), 8.0), Color(0.06, 0.04, 0.12, 0.85))
-		draw_polyline(_rrp(Rect2(gx, gy, btn.size.x, psz + 4), 8.0) + PackedVector2Array([_rrp(Rect2(gx, gy, btn.size.x, psz + 4), 8.0)[0]]), Color(0.55, 0.42, 0.18, 0.4), 1.5)
+		# Button pos is relative to bottom_panel; convert to global draw coords
+		var gx = btn.position.x
+		var gy = panel_y + 4.0  # Top area of the bar
+		var bw = btn.custom_minimum_size.x if btn.custom_minimum_size.x > 0 else 122.0
+		# Dark rounded card behind portrait
+		draw_colored_polygon(_rrp(Rect2(gx, gy, bw, psz + 4), 10.0), Color(0.06, 0.04, 0.12, 0.88))
+		draw_polyline(_rrp(Rect2(gx, gy, bw, psz + 4), 10.0) + PackedVector2Array([_rrp(Rect2(gx, gy, bw, psz + 4), 10.0)[0]]), Color(0.55, 0.42, 0.18, 0.45), 1.5)
+		# Portrait centered in card
 		if _portrait_textures.has(portrait_key):
-			var cx = gx + (btn.size.x - psz) / 2.0
+			var cx = gx + (bw - psz) / 2.0
 			draw_texture_rect(_portrait_textures[portrait_key], Rect2(cx, gy + 2, psz, psz), false)
+		# Highlight if this tower is currently selected for placement
+		if placing_tower and selected_tower == tt:
+			draw_colored_polygon(_rrp(Rect2(gx, gy, bw, psz + 4), 10.0), Color(1.0, 0.85, 0.2, 0.15))
 
 func _draw_ingame_settings() -> void:
 	var font = game_font
