@@ -2517,8 +2517,8 @@ var selected_difficulty: int = 0
 # Medium: 40 waves (~15-20 min) — standard full experience
 # Hard: 50 waves (~20-30 min) — serious challenge, late waves brutal
 # Pure: 60 waves (~30-45 min) — marathon endurance test, ultimate difficulty
-var difficulty_waves: Array = [30, 40, 50, 60]
-var difficulty_gold_bonus: Array = [8, 0, -10, -20]
+var difficulty_waves: Array = [20, 30, 40, 40]  # Easy=20, Med=30, Hard=40, Pure=40
+var difficulty_gold_bonus: Array = [40, 0, -10, -20]  # Easy gets +40g to place 2-3 starters
 var difficulty_lives_bonus: Array = [5, 0, -5, -5]  # Legacy — overridden by fixed lives below
 var difficulty_fixed_lives: Array = [100, 50, 20, 1]  # Easy=100, Medium=50, Hard=20, Pure=1
 const PURE_MODE: int = 3
@@ -23403,41 +23403,46 @@ func _spawn_enemy() -> void:
 		enemies_alive += 1
 		return
 
-	# Progressive difficulty scaling (supports 20-40 waves)
-	# All phases have +25% HP global multiplier applied at end
+	# Progressive difficulty scaling — smooth curve, no cliffs
+	# 3 starter towers (~48 DPS) should comfortably beat Easy (20 waves)
+	# Designed so wave N HP ≈ previous wave × 1.15-1.20 (never more than 1.25x jump)
 	var w = wave
-	if w <= 5:
-		# Phase 1: Gentle introduction — one tower can handle early waves
-		enemy.max_health = 30.0 + w * 15.0
-		enemy.speed = 55.0 + w * 4.0
-		enemy.gold_reward = 2 + w / 2
-	elif w <= 10:
-		# Phase 2: Building pressure — single tower can't keep up
-		enemy.max_health = 220.0 + (w - 5) * 55.0
-		enemy.speed = 80.0 + (w - 5) * 5.0
-		enemy.gold_reward = 3 + (w - 5) / 2
-	elif w <= 16:
-		# Phase 3: Challenging — need upgrades and synergies
-		enemy.max_health = 520.0 + (w - 10) * 85.0
-		enemy.speed = 100.0 + (w - 10) * 4.0
-		enemy.gold_reward = 4 + (w - 10) / 2
-	elif w <= 24:
-		# Phase 4: Hard — need tier upgrades to survive
-		enemy.max_health = 1050.0 + (w - 16) * 120.0
-		enemy.speed = 115.0 + (w - 16) * 4.0
-		enemy.gold_reward = 7 + (w - 16) / 2
-	elif w <= 32:
-		# Phase 5: Very hard — need maxed towers
-		enemy.max_health = 2000.0 + (w - 24) * 175.0
-		enemy.speed = 130.0 + (w - 24) * 3.0
-		enemy.gold_reward = 11 + (w - 24) / 2
+	if w <= 3:
+		# Waves 1-3: Tutorial — one tower can solo
+		enemy.max_health = 25.0 + w * 12.0
+		enemy.speed = 50.0 + w * 3.0
+		enemy.gold_reward = 3 + w
+	elif w <= 7:
+		# Waves 4-7: Early game — 2 towers needed, smooth ramp
+		enemy.max_health = 55.0 + (w - 3) * 25.0
+		enemy.speed = 60.0 + (w - 3) * 5.0
+		enemy.gold_reward = 5 + (w - 3)
+	elif w <= 12:
+		# Waves 8-12: Mid game — 3 towers + first upgrades
+		enemy.max_health = 160.0 + (w - 7) * 40.0
+		enemy.speed = 80.0 + (w - 7) * 4.0
+		enemy.gold_reward = 8 + (w - 7)
+	elif w <= 18:
+		# Waves 13-18: Late mid — need upgraded towers
+		enemy.max_health = 360.0 + (w - 12) * 60.0
+		enemy.speed = 100.0 + (w - 12) * 3.0
+		enemy.gold_reward = 10 + (w - 12)
+	elif w <= 26:
+		# Waves 19-26: Hard — need tier 2+ upgrades
+		enemy.max_health = 720.0 + (w - 18) * 85.0
+		enemy.speed = 115.0 + (w - 18) * 3.0
+		enemy.gold_reward = 14 + (w - 18)
+	elif w <= 34:
+		# Waves 27-34: Very hard — need maxed towers
+		enemy.max_health = 1400.0 + (w - 26) * 120.0
+		enemy.speed = 130.0 + (w - 26) * 2.5
+		enemy.gold_reward = 18 + (w - 26)
 	else:
-		# Phase 6: Brutal (waves 33-40) — endgame challenge
-		enemy.max_health = 3400.0 + (w - 32) * 250.0
-		enemy.speed = 145.0 + (w - 32) * 3.0
-		enemy.gold_reward = 15 + (w - 32) * 1
-	# +25% HP across all phases
-	enemy.max_health *= 1.25
+		# Waves 35-40: Brutal endgame
+		enemy.max_health = 2360.0 + (w - 34) * 180.0
+		enemy.speed = 145.0 + (w - 34) * 2.0
+		enemy.gold_reward = 22 + (w - 34)
+	# No global HP multiplier — the curve is already tuned
 
 	# === MOAB Villain waves ===
 	# MOAB at wave 15 (tier 0), 25 (tier 1), 35 (tier 2) on Medium/Hard
@@ -23619,7 +23624,7 @@ func _get_wave_enemy_count(w: int) -> int:
 		if endless_mutation == "Swarm":
 			count = int(count * 2)
 		return count
-	var base = 4 + w * 2
+	var base = 4 + w + w / 3  # Slower scaling: w7=11 not 18, w15=19 not 34
 	# Boss waves: fewer but much stronger enemies
 	if w in [20, 25, 30, 35]:
 		return max(3, base / 3)
