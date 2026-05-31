@@ -24167,10 +24167,8 @@ func _check_wave_complete() -> void:
 		# Wave clear popup + sound
 		_wave_clear_timer = 1.5
 		_wave_clear_num = wave
-		# Show wave preview for next wave
-		if wave < total_waves:
-			_wave_preview_visible = true
-			_wave_preview_timer = WAVE_PREVIEW_DURATION
+		# Wave preview disabled — was blocking gameplay flow
+		_wave_preview_visible = false
 		_play_sfx(_sfx_wave_complete)
 		_haptic(1)  # Medium haptic on wave clear
 		# PROGRESSION: Award wave-based XP (proportional to tower cost)
@@ -24285,11 +24283,8 @@ func _check_wave_complete() -> void:
 				for mc in _map_collectibles:
 					if not mc["collected"]:
 						_check_collectible_click(mc["pos"])
-			# Show wave preview for next wave
-			wave_preview_data = _generate_wave_preview(wave)
-			if wave_preview_data.size() > 0:
-				wave_preview_active = true
-				wave_preview_timer = 3.0
+			# Wave preview disabled — was blocking gameplay
+			wave_preview_active = false
 			if _is_mobile:
 				Input.vibrate_handheld(50)
 
@@ -25053,33 +25048,9 @@ func _draw_tower_stats_overlay() -> void:
 	if _specialization_active and dmg_type == _specialization_type:
 		_ds_outlined_text(Vector2(lx, y), "⬆ SPEC +%d%%" % int(SPECIALIZATION_BONUS * 100), 11, Color(0.3, 1.0, 0.5), int(pw), HORIZONTAL_ALIGNMENT_LEFT, 1)
 
-# === WAVE PREVIEW — compact, non-intrusive ===
+# === WAVE PREVIEW — disabled, was blocking gameplay ===
 func _draw_wave_preview() -> void:
-	if wave_preview_data.is_empty():
-		return
-	var font = game_font
-	# Small pill at top-center, not a giant panel
-	var pw = 280.0
-	var ph = 36.0
-	var px = 640.0 - pw * 0.5
-	var py = 68.0
-	# Subtle dark pill with thin gold border
-	_ds_panel(Rect2(px, py, pw, ph), Color(0.08, 0.05, 0.14, 0.88), _ca(c_gold, 0.4), 1.5, 12.0)
-	# Enemy count text — compact
-	var info_parts: Array = []
-	for wd in wave_preview_data:
-		var count = wd.get("count", 0)
-		var mods = wd.get("modifiers", [])
-		var mod_str = ""
-		if mods.size() > 0:
-			mod_str = " " + " ".join(mods)
-		info_parts.append("%d enemies%s" % [count, mod_str])
-	var info_text = "Wave %d: %s" % [wave + 1, " | ".join(info_parts)]
-	_udraw(font, Vector2(px + pw * 0.5, py + 14), info_text, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 16), 13, Color(0.9, 0.85, 0.7))
-	# Thin progress bar
-	var bar_pct = clampf(wave_preview_timer / 3.0, 0.0, 1.0)
-	if bar_pct > 0.01:
-		draw_colored_polygon(_rrp(Rect2(px + 8, py + ph - 6, (pw - 16) * bar_pct, 3), 2.0), _ca(c_gold, 0.6))
+	pass  # All wave preview UI disabled — players just click START WAVE
 
 func _generate_wave_preview(w: int) -> Array:
 	var preview: Array = []
@@ -28645,7 +28616,7 @@ func _draw_bounty_board() -> void:
 	if _active_bounties.is_empty():
 		return
 	var bx = 8.0
-	var by = 420.0
+	var by = 560.0  # Above tower bar, not overlapping the path
 	var font = game_font
 	var bounty_count = _active_bounties.size()
 	var row_h = 28.0
@@ -42660,18 +42631,8 @@ func _generate_extended_forecast() -> void:
 		})
 
 func _draw_extended_forecast() -> void:
-	if is_wave_active or _extended_forecast.is_empty():
-		return
-	var vw = get_viewport_rect().size.x
-	var start_x = vw - 200.0
-	var y = 80.0
-	_udraw(game_font, Vector2(start_x, y), "UPCOMING", HORIZONTAL_ALIGNMENT_LEFT, 180, 11, Color(0.7, 0.65, 0.5))
-	y += 16.0
-	for fc in _extended_forecast:
-		var col = Color(0.8, 0.75, 0.6) if not fc["is_boss"] else Color(1.0, 0.3, 0.2)
-		var boss_tag = " [BOSS]" if fc["is_boss"] else ""
-		_udraw(game_font, Vector2(start_x, y), "W%d: %s%s (%d)" % [fc["wave_num"], fc["name"], boss_tag, fc["count"]], HORIZONTAL_ALIGNMENT_LEFT, 195, 10, col)
-		y += 14.0
+	# Disabled — was overlapping the game map and barely legible
+	pass
 
 # --- Improvement 15: AUTO-UPGRADE TOGGLE ---
 var auto_upgrade_enabled: bool = false
@@ -44515,29 +44476,8 @@ var _wave_preview_timer: float = 0.0
 const WAVE_PREVIEW_DURATION: float = 3.0
 
 func _draw_wave_preview_enhanced() -> void:
-	if not _wave_preview_visible or game_font == null:
-		return
-	var preview = _generate_wave_preview(wave + 1)
-	var panel_w = 300.0
-	var panel_h = 50.0 + preview.size() * 22.0
-	var px = 640.0 - panel_w * 0.5
-	var py = 280.0
-	# Panel background
-	_ds_panel(Rect2(px, py, panel_w, panel_h), Color(0.06, 0.04, 0.12, 0.95), Color(0.5, 0.35, 0.65), 2.0, 8.0)
-	# Title
-	_ds_outlined_text(Vector2(px + 10, py + 20), "WAVE %d PREVIEW" % (wave + 1), 14, c_gold_bright, int(panel_w - 20), HORIZONTAL_ALIGNMENT_CENTER, 1)
-	# Entries
-	var ey = py + 38.0
-	for entry in preview:
-		var icon = "●"
-		var col = menu_parchment
-		match entry["type"]:
-			"boss": icon = "★"; col = Color(0.9, 0.2, 0.1)
-			"fortified": icon = "◆"; col = Color(0.3, 0.5, 0.9)
-			"phantom": icon = "◇"; col = Color(0.6, 0.2, 0.8)
-			"shadow": icon = "▪"; col = Color(0.1, 0.1, 0.15)
-		_udraw(game_font, Vector2(px + 20, ey), "%s x%d  %s" % [icon, entry["count"], ", ".join(entry["modifiers"])], HORIZONTAL_ALIGNMENT_LEFT, int(panel_w - 40), 11, col)
-		ey += 22.0
+	# Disabled — the compact pill in _draw_wave_preview handles this now
+	pass
 
 # --- Enhancement #6: Speed Control Extended (0.5x / 1x / 2x / 3x / 4x) ---
 const EXTENDED_SPEED_OPTIONS: Array = [0.5, 1.0, 2.0, 3.0, 4.0]
