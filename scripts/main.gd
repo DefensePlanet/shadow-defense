@@ -12176,6 +12176,8 @@ func _do_level_start(index: int) -> void:
 	# Hide page border overlay (menu decoration, not gameplay)
 	if _page_border:
 		_page_border.visible = false
+	# Set menu overlay mouse filter to pass-through so gameplay clicks work
+	menu_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$UI.visible = true
 	top_bar.visible = true
 	bottom_panel.visible = true
@@ -12183,18 +12185,23 @@ func _do_level_start(index: int) -> void:
 	return_button.visible = false
 	game_state = GameState.PLAYING
 	start_button.text = "  START WAVE  "
-	tower_buttons[TowerType.ROBIN_HOOD].text = "Robin [%dG]" % _get_discounted_cost(TowerType.ROBIN_HOOD)
-	tower_buttons[TowerType.ROBIN_HOOD].disabled = false
-	tower_buttons[TowerType.ALICE].text = "Alice [%dG]" % _get_discounted_cost(TowerType.ALICE)
-	tower_buttons[TowerType.ALICE].disabled = false
-	tower_buttons[TowerType.WICKED_WITCH].text = "Witch [%dG]" % _get_discounted_cost(TowerType.WICKED_WITCH)
-	tower_buttons[TowerType.WICKED_WITCH].disabled = false
-	tower_buttons[TowerType.PETER_PAN].text = "Peter [%dG]" % _get_discounted_cost(TowerType.PETER_PAN)
-	tower_buttons[TowerType.PETER_PAN].disabled = false
-	tower_buttons[TowerType.PHANTOM].text = "Phantom [%dG]" % _get_discounted_cost(TowerType.PHANTOM)
-	tower_buttons[TowerType.PHANTOM].disabled = false
-	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
-	tower_buttons[TowerType.SCROOGE].disabled = false
+	# Row 1: Show base towers + Robin 2, hide locked ones
+	var row1_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
+					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2]
+	var row1_visible_idx := 0
+	for tt in row1_types:
+		if not tower_buttons.has(tt):
+			continue
+		if _is_character_unlocked(tt):
+			var tname = tower_info[tt]["name"]
+			var short = tname.split(" ")[0] if tname.length() > 8 else tname
+			tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
+			tower_buttons[tt].disabled = false
+			tower_buttons[tt].visible = true
+			tower_buttons[tt].position = Vector2(8 + row1_visible_idx * 158, 2)
+			row1_visible_idx += 1
+		else:
+			tower_buttons[tt].visible = false
 	# Show unlocked character buttons — row 2, stretched horizontally
 	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var new_char_labels = {
