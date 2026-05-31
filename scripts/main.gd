@@ -55,8 +55,8 @@ var tower_info = {
 	TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
 	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
 	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
-	TowerType.ROBIN_HOOD_2: {"name": "Robin 2", "cost": 20, "range": 160.0, "damage": 20, "fire_rate": 0.85},
-	TowerType.ALICE_2: {"name": "Alice 2", "cost": 20, "range": 120.0, "damage": 15, "fire_rate": 1.0},
+	TowerType.ROBIN_HOOD_2: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85},
+	TowerType.ALICE_2: {"name": "Alice", "cost": 120, "range": 120.0, "damage": 15, "fire_rate": 1.0},
 }
 
 # Survivor skins — purchasable outfit variants
@@ -9991,14 +9991,15 @@ func _create_ui() -> void:
 
 	# Row 1: Base 6 towers (proven working button style)
 	var base_towers = [
-		[TowerType.ROBIN_HOOD, "Robin [%dG]" % tower_info[TowerType.ROBIN_HOOD]["cost"], "Robin Hood — long range archer, gold bonus."],
-		[TowerType.ALICE, "Alice [%dG]" % tower_info[TowerType.ALICE]["cost"], "Alice — cake, slows enemies in area."],
+		# Old Robin and Alice retired — hero sprite versions are now primary
+		#[TowerType.ROBIN_HOOD, "Robin [%dG]" % tower_info[TowerType.ROBIN_HOOD]["cost"], "Robin Hood — long range archer, gold bonus."],
+		#[TowerType.ALICE, "Alice [%dG]" % tower_info[TowerType.ALICE]["cost"], "Alice — cake, slows enemies in area."],
 		[TowerType.WICKED_WITCH, "Witch [%dG]" % tower_info[TowerType.WICKED_WITCH]["cost"], "Wicked Witch — eye blast, wolves."],
 		[TowerType.PETER_PAN, "Peter [%dG]" % tower_info[TowerType.PETER_PAN]["cost"], "Peter Pan — fast daggers, shadow."],
 		[TowerType.PHANTOM, "Phantom [%dG]" % tower_info[TowerType.PHANTOM]["cost"], "Phantom — heavy hits, stun, chandelier."],
 		[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],
-		[TowerType.ROBIN_HOOD_2, "Robin2 [20G]", "Robin 2 — Hero Sprite test."],
-		[TowerType.ALICE_2, "Alice2 [20G]", "Alice 2 — Hero Sprite potion thrower."],
+		[TowerType.ROBIN_HOOD_2, "Robin [100G]", "Robin Hood — legendary Sherwood archer."],
+		[TowerType.ALICE_2, "Alice [120G]", "Alice — Wonderland potion thrower, slows enemies."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]

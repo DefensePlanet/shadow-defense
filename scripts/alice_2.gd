@@ -694,7 +694,7 @@ func purchase_upgrade() -> bool:
 	return true
 
 func get_tower_display_name() -> String:
-	return "Alice 2"
+	return "Alice"
 
 func get_next_upgrade_info() -> Dictionary:
 	if upgrade_tier >= TIER_COSTS.size():
