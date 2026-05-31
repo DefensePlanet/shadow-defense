@@ -9007,26 +9007,44 @@ func _load_tower_sprite_textures() -> void:
 		if flairs.size() > 0:
 			_tower_flair_textures[tname] = flairs
 	# Hero Sprite characters — Robin 2 starts with base hero sprite (no gear)
-	# Gear progression loads dynamically when equipped: 1of6 → 2of6 → ... → 6of6 → awakened
+	# Uses Image.load() to work without .import files
 	var rh2 = "robin_hood_2"
-	var rh2_base = "res://assets/hero_sprites/robin_hood/"
-	if ResourceLoader.exists(rh2_base + "robin_hood_idle.png"):
-		_tower_sprite_textures[rh2] = load(rh2_base + "robin_hood_idle.png")
-	if ResourceLoader.exists(rh2_base + "robin_hood_attack.png"):
-		_tower_attack_textures[rh2] = load(rh2_base + "robin_hood_attack.png")
-	if ResourceLoader.exists(rh2_base + "robin_hood_shoot.png"):
-		_tower_shoot_textures[rh2] = load(rh2_base + "robin_hood_shoot.png")
-	var rh2_flairs: Array = []
-	for fi in range(1, 5):
-		var fp = rh2_base + "robin_hood_flair" + str(fi) + ".png"
-		if ResourceLoader.exists(fp):
-			rh2_flairs.append(load(fp))
-	if rh2_flairs.size() > 0:
-		_tower_flair_textures[rh2] = rh2_flairs
-	if ResourceLoader.exists(rh2_base + "robin_hood_spin360.png"):
-		_tower_sprite_textures[rh2 + "_spin360"] = load(rh2_base + "robin_hood_spin360.png")
-	if ResourceLoader.exists(rh2_base + "robin_hood_spindown.png"):
-		_tower_sprite_textures[rh2 + "_spindown"] = load(rh2_base + "robin_hood_spindown.png")
+	var rh2_dir = "res://assets/hero_sprites/robin_hood/"
+	var rh2_files = {
+		"idle": "robin_hood_idle.png",
+		"attack": "robin_hood_attack.png",
+		"shoot": "robin_hood_shoot.png",
+		"flair1": "robin_hood_flair1.png",
+		"flair2": "robin_hood_flair2.png",
+		"flair3": "robin_hood_flair3.png",
+		"flair4": "robin_hood_flair4.png",
+		"spin360": "robin_hood_spin360.png",
+		"spindown": "robin_hood_spindown.png",
+		"bowsurf": "robin_hood_bowsurf.png",
+	}
+	for key in rh2_files:
+		var res_path = rh2_dir + rh2_files[key]
+		var tex = null
+		if ResourceLoader.exists(res_path):
+			tex = load(res_path)
+		else:
+			var abs_path = ProjectSettings.globalize_path(res_path)
+			var img = Image.new()
+			if img.load(abs_path) == OK:
+				tex = ImageTexture.create_from_image(img)
+		if tex == null:
+			continue
+		match key:
+			"idle": _tower_sprite_textures[rh2] = tex
+			"attack": _tower_attack_textures[rh2] = tex
+			"shoot": _tower_shoot_textures[rh2] = tex
+			"spin360": _tower_sprite_textures[rh2 + "_spin360"] = tex
+			"spindown": _tower_sprite_textures[rh2 + "_spindown"] = tex
+			_:
+				if key.begins_with("flair"):
+					if not _tower_flair_textures.has(rh2):
+						_tower_flair_textures[rh2] = []
+					_tower_flair_textures[rh2].append(tex)
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
