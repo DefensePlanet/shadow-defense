@@ -1331,7 +1331,7 @@ func _draw() -> void:
 					if _flair_current_single:
 						_active_tex = _flair_current_single  # single flair
 		var _ss = Vector2(_active_tex.get_width(), _active_tex.get_height())
-		var _sf = 120.0 / _ss.y
+		var _sf = 200.0 / _ss.y  # Hero sprite — larger render for detail
 		var _sd = _ss * _sf
 
 		# --- Idle: breathing + weight sway ---

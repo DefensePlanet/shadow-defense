@@ -9006,32 +9006,28 @@ func _load_tower_sprite_textures() -> void:
 			_tower_sprite_textures[tname + "_spindown"] = load(spindown_path)
 		if flairs.size() > 0:
 			_tower_flair_textures[tname] = flairs
-	# Hero Sprite characters — load from hero_sprites/
-	var hero_map = {"robin_hood_2": "robin_hood"}
-	for hname in hero_map:
-		var base = hero_map[hname]
-		var h_idle = "res://assets/hero_sprites/" + base + "/" + base + "_idle.png"
-		if ResourceLoader.exists(h_idle):
-			_tower_sprite_textures[hname] = load(h_idle)
-		var h_atk = "res://assets/hero_sprites/" + base + "/" + base + "_attack.png"
-		if ResourceLoader.exists(h_atk):
-			_tower_attack_textures[hname] = load(h_atk)
-		var h_sht = "res://assets/hero_sprites/" + base + "/" + base + "_shoot.png"
-		if ResourceLoader.exists(h_sht):
-			_tower_shoot_textures[hname] = load(h_sht)
-		var h_flairs: Array = []
-		for fi in range(1, 5):
-			var fp = "res://assets/hero_sprites/" + base + "/" + base + "_flair" + str(fi) + ".png"
-			if ResourceLoader.exists(fp):
-				h_flairs.append(load(fp))
-		if h_flairs.size() > 0:
-			_tower_flair_textures[hname] = h_flairs
-		var h_s36 = "res://assets/hero_sprites/" + base + "/" + base + "_spin360.png"
-		var h_spd = "res://assets/hero_sprites/" + base + "/" + base + "_spindown.png"
-		if ResourceLoader.exists(h_s36):
-			_tower_sprite_textures[hname + "_spin360"] = load(h_s36)
-		if ResourceLoader.exists(h_spd):
-			_tower_sprite_textures[hname + "_spindown"] = load(h_spd)
+	# Hero Sprite characters — load from hero_gear/ (nano-banana art with gear)
+	var hg_base = "res://assets/hero_gear/robin_hood/"
+	var hg_name = "robin_hood_2"
+	# Base: 6of6 complete set (fully geared Robin)
+	var hg_prefix = hg_base + "robin_6of6_complete_"
+	if ResourceLoader.exists(hg_prefix + "idle.png"):
+		_tower_sprite_textures[hg_name] = load(hg_prefix + "idle.png")
+	if ResourceLoader.exists(hg_prefix + "attack.png"):
+		_tower_attack_textures[hg_name] = load(hg_prefix + "attack.png")
+	if ResourceLoader.exists(hg_prefix + "shoot.png"):
+		_tower_shoot_textures[hg_name] = load(hg_prefix + "shoot.png")
+	var hg_flairs: Array = []
+	for fi in range(1, 4):
+		var fp = hg_prefix + "flair" + str(fi) + ".png"
+		if ResourceLoader.exists(fp):
+			hg_flairs.append(load(fp))
+	if hg_flairs.size() > 0:
+		_tower_flair_textures[hg_name] = hg_flairs
+	if ResourceLoader.exists(hg_prefix + "spin360.png"):
+		_tower_sprite_textures[hg_name + "_spin360"] = load(hg_prefix + "spin360.png")
+	if ResourceLoader.exists(hg_prefix + "spindown.png"):
+		_tower_sprite_textures[hg_name + "_spindown"] = load(hg_prefix + "spindown.png")
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
