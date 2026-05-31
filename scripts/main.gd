@@ -263,6 +263,7 @@ var current_level: int = -1
 
 # Menu UI
 var menu_overlay: ColorRect
+var _page_border: TextureRect = null
 var menu_title: Label
 var menu_subtitle: Label
 var level_cards: Array = []
@@ -9783,7 +9784,8 @@ func _create_ui() -> void:
 	ui.add_child(ink_overlay)
 	# Torn page border frame (static art overlay)
 	if DisplayServer.get_name() != "headless" and ResourceLoader.exists("res://assets/ui_elements/page_tear_border.png"):
-		var page_border = TextureRect.new()
+		_page_border = TextureRect.new()
+		var page_border = _page_border
 		page_border.texture = load("res://assets/ui_elements/page_tear_border.png")
 		page_border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		page_border.stretch_mode = TextureRect.STRETCH_SCALE
@@ -10774,6 +10776,8 @@ func _show_menu() -> void:
 	if speed_button:
 		speed_button.text = "  >>  "
 	menu_overlay.visible = true
+	if _page_border:
+		_page_border.visible = true
 	# V2 menu handles everything — hide old overlay if v2 is active
 	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance):
 		menu_overlay.visible = false
@@ -12169,6 +12173,9 @@ func _do_level_start(index: int) -> void:
 	_hide_menu_v2()
 	# Hide old menu overlay AFTER _hide_menu_v2 (which re-enables it)
 	menu_overlay.visible = false
+	# Hide page border overlay (menu decoration, not gameplay)
+	if _page_border:
+		_page_border.visible = false
 	$UI.visible = true
 	top_bar.visible = true
 	bottom_panel.visible = true
