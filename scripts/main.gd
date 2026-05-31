@@ -9025,21 +9025,24 @@ func _load_tower_sprite_textures() -> void:
 	for key in rh2_files:
 		var res_path = rh2_dir + rh2_files[key]
 		var tex = null
-		if ResourceLoader.exists(res_path):
-			tex = load(res_path)
-		else:
-			var abs_path = ProjectSettings.globalize_path(res_path)
-			var img = Image.new()
-			if img.load(abs_path) == OK:
-				if img.get_format() != Image.FORMAT_RGBA8:
-					img.convert(Image.FORMAT_RGBA8)
-				# Strip gray background pixels (nano-banana bakes checkerboard)
-				for py in range(img.get_height()):
-					for px in range(img.get_width()):
-						var c = img.get_pixel(px, py)
-						if absf(c.r - c.g) < 0.08 and absf(c.g - c.b) < 0.08 and c.r > 0.62 and c.r < 0.86:
-							img.set_pixel(px, py, Color(0, 0, 0, 0))
-				tex = ImageTexture.create_from_image(img)
+		# ALWAYS use Image.load() for hero sprites — ResourceLoader uses stale cached textures
+		var abs_path = ProjectSettings.globalize_path(res_path)
+		var img = Image.new()
+		if img.load(abs_path) == OK:
+			if img.get_format() != Image.FORMAT_RGBA8:
+				img.convert(Image.FORMAT_RGBA8)
+			# Strip gray/checkerboard background pixels (nano-banana bakes them in)
+			for py in range(img.get_height()):
+				for px in range(img.get_width()):
+					var c = img.get_pixel(px, py)
+					# Gray detection: all channels similar, in the gray range
+					var avg = (c.r + c.g + c.b) / 3.0
+					if absf(c.r - avg) < 0.06 and absf(c.g - avg) < 0.06 and absf(c.b - avg) < 0.06 and avg > 0.55 and avg < 0.90:
+						img.set_pixel(px, py, Color(0, 0, 0, 0))
+					# Also strip near-white checkerboard squares
+					elif c.r > 0.88 and c.g > 0.88 and c.b > 0.88:
+						img.set_pixel(px, py, Color(0, 0, 0, 0))
+			tex = ImageTexture.create_from_image(img)
 		if tex == null:
 			continue
 		match key:
@@ -25832,9 +25835,9 @@ func _draw_path_overlay() -> void:
 			var verts = PackedVector2Array([tl, tr, br, bl])
 			var uvs = PackedVector2Array([Vector2(u0, 0.0), Vector2(u1, 0.0), Vector2(u1, 1.0), Vector2(u0, 1.0)])
 			draw_polygon(verts, PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]), uvs, _ptex)
-			# Fill corner gaps with a textured circle cap at each joint
+			# Fill corner gaps with subtle road-colored circle at joints
 			if k > 0:
-				draw_circle(seg_start, half_w, edge_col)
+				draw_circle(seg_start, half_w - 2, road_col)
 			accum_len += seg_len
 
 	# --- Edge detail lines ---
@@ -25917,12 +25920,12 @@ func _get_path_style() -> Dictionary:
 		"detail_type": "dirt",  # dirt, cobble, brick, tile, plank, ice, lab, jungle, ink
 	}
 	match current_level:
-		0:  # Prologue — glowing ink (bright edges for visibility)
-			style["road_color"] = Color(0.08, 0.04, 0.15, 0.95)
-			style["edge_color"] = Color(0.45, 0.25, 0.70, 0.90)
-			style["detail_color"] = Color(0.60, 0.35, 0.85, 0.50)
+		0:  # Prologue — ink path with subtle glow
+			style["road_color"] = Color(0.10, 0.06, 0.18, 0.95)
+			style["edge_color"] = Color(0.22, 0.14, 0.35, 0.85)
+			style["detail_color"] = Color(0.35, 0.20, 0.55, 0.40)
 			style["detail_type"] = "ink"
-			style["width"] = 40.0
+			style["width"] = 38.0
 			style["center_line"] = true
 		1, 2, 3:  # Sherlock — grimy London cobblestone
 			style["road_color"] = Color(0.22, 0.18, 0.15, 0.95)
