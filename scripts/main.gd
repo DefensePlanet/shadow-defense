@@ -9927,7 +9927,7 @@ func _create_ui() -> void:
 	bottom_panel.add_child(tower_bar_bg)
 	bottom_panel.move_child(tower_bar_bg, 0)
 
-	var btn_h = 86
+	var btn_h = 88
 	var row1_y = 2
 	var row2_y = 46
 	var btn_w = 120
@@ -9946,58 +9946,72 @@ func _create_ui() -> void:
 		var bt = base_towers[i]
 		var cost = tower_info[bt[0]]["cost"]
 		var bx = 6 + i * (btn_w + 4)
+		# Container: VBoxContainer with portrait on top, button text below
+		var container = VBoxContainer.new()
+		container.position = Vector2(bx, row1_y)
+		container.size = Vector2(btn_w, btn_h)
+		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		container.add_theme_constant_override("separation", 0)
+		# Portrait
+		var portrait_holder = Panel.new()
+		var ph_style = StyleBoxFlat.new()
+		ph_style.bg_color = Color(0.08, 0.05, 0.14, 0.9)
+		ph_style.set_corner_radius_all(8)
+		ph_style.corner_radius_bottom_left = 0
+		ph_style.corner_radius_bottom_right = 0
+		ph_style.border_color = Color(0.55, 0.42, 0.18, 0.5)
+		ph_style.border_width_top = 2; ph_style.border_width_left = 2; ph_style.border_width_right = 2
+		ph_style.border_width_bottom = 0
+		portrait_holder.add_theme_stylebox_override("panel", ph_style)
+		portrait_holder.custom_minimum_size = Vector2(btn_w, 56)
+		portrait_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		container.add_child(portrait_holder)
+		if _portrait_textures.has(bt[1]):
+			var portrait = TextureRect.new()
+			portrait.texture = _portrait_textures[bt[1]]
+			portrait.position = Vector2((btn_w - 50) / 2.0, 3)
+			portrait.size = Vector2(50, 50)
+			portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			portrait_holder.add_child(portrait)
+		# Button with name + cost
 		var btn = Button.new()
-		btn.position = Vector2(bx, row1_y)
-		btn.custom_minimum_size = Vector2(btn_w, btn_h)
-		btn.size = Vector2(btn_w, btn_h)
+		btn.custom_minimum_size = Vector2(btn_w, 32)
 		btn.clip_text = true
+		btn.text = "%s [%dG]" % [bt[2], cost]
 		if game_font != null:
 			btn.add_theme_font_override("font", game_font)
-		btn.add_theme_font_size_override("font_size", 11)
+		btn.add_theme_font_size_override("font_size", 12)
 		btn.add_theme_color_override("font_color", Color(0.95, 0.82, 0.30))
 		btn.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.50))
 		btn.add_theme_color_override("font_pressed_color", Color(1.0, 1.0, 0.65))
 		btn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 		btn.add_theme_constant_override("shadow_offset_x", 1)
 		btn.add_theme_constant_override("shadow_offset_y", 1)
-		# Styled dark button with gold accent
 		var s = StyleBoxFlat.new()
-		s.bg_color = Color(0.10, 0.06, 0.18, 0.92)
-		s.set_corner_radius_all(10)
+		s.bg_color = Color(0.12, 0.08, 0.20, 0.92)
+		s.set_corner_radius_all(8)
+		s.corner_radius_top_left = 0; s.corner_radius_top_right = 0
 		s.border_color = Color(0.55, 0.42, 0.18, 0.5)
-		s.set_border_width_all(2)
-		s.shadow_color = Color(0, 0, 0, 0.2)
-		s.shadow_size = 3
+		s.border_width_bottom = 2; s.border_width_left = 2; s.border_width_right = 2
+		s.border_width_top = 0
 		s.content_margin_left = 4; s.content_margin_right = 4
-		s.content_margin_top = 50; s.content_margin_bottom = 4
 		btn.add_theme_stylebox_override("normal", s)
 		var sh = s.duplicate()
-		sh.bg_color = Color(0.16, 0.10, 0.28, 0.95)
+		sh.bg_color = Color(0.18, 0.12, 0.30, 0.95)
 		sh.border_color = Color(0.80, 0.60, 0.20, 0.8)
-		sh.shadow_size = 5
 		btn.add_theme_stylebox_override("hover", sh)
 		var sp = s.duplicate()
 		sp.bg_color = Color(0.06, 0.04, 0.12, 0.95)
-		sp.shadow_size = 1
 		btn.add_theme_stylebox_override("pressed", sp)
 		var sd = s.duplicate()
 		sd.bg_color = Color(0.06, 0.04, 0.10, 0.7)
 		sd.border_color = Color(0.3, 0.25, 0.15, 0.3)
 		btn.add_theme_stylebox_override("disabled", sd)
-		# Portrait image inside button
-		if _portrait_textures.has(bt[1]):
-			var portrait = TextureRect.new()
-			portrait.texture = _portrait_textures[bt[1]]
-			portrait.position = Vector2((btn_w - 48) / 2.0, 4)
-			portrait.size = Vector2(48, 48)
-			portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			btn.add_child(portrait)
-		# Text: name + cost below portrait
-		btn.text = "%s [%dG]" % [bt[2], cost]
 		btn.pressed.connect(_on_tower_pressed.bind(bt[0], bt[3] + " Cancel to abort."))
-		bottom_panel.add_child(btn)
+		container.add_child(btn)
+		bottom_panel.add_child(container)
 		tower_buttons[bt[0]] = btn
 
 	# Row 2: Unlockable characters (hidden until unlocked)
@@ -12266,10 +12280,17 @@ func _do_level_start(index: int) -> void:
 			tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
 			tower_buttons[tt].disabled = false
 			tower_buttons[tt].visible = true
-			tower_buttons[tt].position = Vector2(6 + row1_visible_idx * 124, 2)
+			# Move the parent container (VBoxContainer) for positioning
+			var btn_parent = tower_buttons[tt].get_parent()
+			if btn_parent and btn_parent != bottom_panel:
+				btn_parent.visible = true
+				btn_parent.position = Vector2(6 + row1_visible_idx * 124, 2)
 			row1_visible_idx += 1
 		else:
 			tower_buttons[tt].visible = false
+			var btn_parent = tower_buttons[tt].get_parent()
+			if btn_parent and btn_parent != bottom_panel:
+				btn_parent.visible = false
 	# Show unlocked character buttons — row 2, stretched horizontally
 	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
 	var new_char_labels = {
