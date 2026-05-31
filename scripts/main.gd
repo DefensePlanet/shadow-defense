@@ -9006,28 +9006,27 @@ func _load_tower_sprite_textures() -> void:
 			_tower_sprite_textures[tname + "_spindown"] = load(spindown_path)
 		if flairs.size() > 0:
 			_tower_flair_textures[tname] = flairs
-	# Hero Sprite characters — load from hero_gear/ (nano-banana art with gear)
-	var hg_base = "res://assets/hero_gear/robin_hood/"
-	var hg_name = "robin_hood_2"
-	# Base: 6of6 complete set (fully geared Robin)
-	var hg_prefix = hg_base + "robin_6of6_complete_"
-	if ResourceLoader.exists(hg_prefix + "idle.png"):
-		_tower_sprite_textures[hg_name] = load(hg_prefix + "idle.png")
-	if ResourceLoader.exists(hg_prefix + "attack.png"):
-		_tower_attack_textures[hg_name] = load(hg_prefix + "attack.png")
-	if ResourceLoader.exists(hg_prefix + "shoot.png"):
-		_tower_shoot_textures[hg_name] = load(hg_prefix + "shoot.png")
-	var hg_flairs: Array = []
-	for fi in range(1, 4):
-		var fp = hg_prefix + "flair" + str(fi) + ".png"
+	# Hero Sprite characters — Robin 2 starts with base hero sprite (no gear)
+	# Gear progression loads dynamically when equipped: 1of6 → 2of6 → ... → 6of6 → awakened
+	var rh2 = "robin_hood_2"
+	var rh2_base = "res://assets/hero_sprites/robin_hood/"
+	if ResourceLoader.exists(rh2_base + "robin_hood_idle.png"):
+		_tower_sprite_textures[rh2] = load(rh2_base + "robin_hood_idle.png")
+	if ResourceLoader.exists(rh2_base + "robin_hood_attack.png"):
+		_tower_attack_textures[rh2] = load(rh2_base + "robin_hood_attack.png")
+	if ResourceLoader.exists(rh2_base + "robin_hood_shoot.png"):
+		_tower_shoot_textures[rh2] = load(rh2_base + "robin_hood_shoot.png")
+	var rh2_flairs: Array = []
+	for fi in range(1, 5):
+		var fp = rh2_base + "robin_hood_flair" + str(fi) + ".png"
 		if ResourceLoader.exists(fp):
-			hg_flairs.append(load(fp))
-	if hg_flairs.size() > 0:
-		_tower_flair_textures[hg_name] = hg_flairs
-	if ResourceLoader.exists(hg_prefix + "spin360.png"):
-		_tower_sprite_textures[hg_name + "_spin360"] = load(hg_prefix + "spin360.png")
-	if ResourceLoader.exists(hg_prefix + "spindown.png"):
-		_tower_sprite_textures[hg_name + "_spindown"] = load(hg_prefix + "spindown.png")
+			rh2_flairs.append(load(fp))
+	if rh2_flairs.size() > 0:
+		_tower_flair_textures[rh2] = rh2_flairs
+	if ResourceLoader.exists(rh2_base + "robin_hood_spin360.png"):
+		_tower_sprite_textures[rh2 + "_spin360"] = load(rh2_base + "robin_hood_spin360.png")
+	if ResourceLoader.exists(rh2_base + "robin_hood_spindown.png"):
+		_tower_sprite_textures[rh2 + "_spindown"] = load(rh2_base + "robin_hood_spindown.png")
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
