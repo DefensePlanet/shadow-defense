@@ -10234,7 +10234,7 @@ func _create_ui() -> void:
 
 	# Portrait — wide banner filling panel width, shows character with background
 	var _port_w = _pw - 16  # Full width minus padding
-	var _port_h = 100       # Banner height — tall enough to show full head
+	var _port_h = 140       # Tall portrait — shows head to waist
 	var _port_x = 8
 	var _port_y = 40
 	var portrait_border = ColorRect.new()
@@ -10259,7 +10259,7 @@ func _create_ui() -> void:
 	upgrade_panel.add_child(portrait_draw_ctrl)
 
 	# Targeting priority button
-	targeting_button = _make_button("Target: FIRST", Vector2(20, 146), Vector2(_pw - 40, 26))
+	targeting_button = _make_button("Target: FIRST", Vector2(20, 186), Vector2(_pw - 40, 26))
 	targeting_button.add_theme_font_size_override("font_size", 13)
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
@@ -10275,8 +10275,8 @@ func _create_ui() -> void:
 	var col_w = 108    # Column width
 	var col_gap = 4    # Gap between columns
 	var col_start_x = 8
-	var grid_top_y = 178  # Top of upgrade grid
-	var row_h = 130    # Row height per tier
+	var grid_top_y = 218  # Top of upgrade grid
+	var row_h = 118    # Row height per tier
 	var row_gap = 4    # Gap between rows
 
 	# Path header labels (A, B, C with path name)
@@ -10381,26 +10381,15 @@ func _create_ui() -> void:
 		upgrade_desc_labels.append(Label.new())
 		upgrade_status_rects.append(ColorRect.new())
 
-	# Hero ability button
-	var hero_ability_button = Button.new()
-	hero_ability_button.name = "HeroAbilityBtn"
-	hero_ability_button.text = "ABILITY"
-	hero_ability_button.position = Vector2(10, _ph - 100)
-	hero_ability_button.custom_minimum_size = Vector2(_pw - 20, 26)
-	hero_ability_button.add_theme_font_size_override("font_size", 12)
-	hero_ability_button.visible = false
-	hero_ability_button.pressed.connect(_on_hero_ability_pressed)
-	upgrade_panel.add_child(hero_ability_button)
-
-	# Sell button
-	sell_button = _make_button("SELL", Vector2(20, _ph - 66), Vector2(_pw - 40, 30))
+	# Sell button — pinned to bottom
+	sell_button = _make_button("SELL", Vector2(20, _ph - 46), Vector2(_pw - 40, 30))
 	sell_button.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	sell_button.pressed.connect(_on_sell_pressed)
 	upgrade_panel.add_child(sell_button)
 
 	# Sell value / refund label
 	sell_value_label = Label.new()
-	sell_value_label.position = Vector2(20, _ph - 32)
+	sell_value_label.position = Vector2(20, _ph - 14)
 	sell_value_label.size = Vector2(_pw - 40, 20)
 	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sell_value_label.add_theme_font_size_override("font_size", 12)
@@ -35513,7 +35502,7 @@ func _update_upgrade_panel() -> void:
 		# Update path header
 		if p < path_header_labels.size():
 			var pname = path_data.get("name", "Path " + path_key)
-			path_header_labels[p].text = path_key + ": " + pname
+			path_header_labels[p].text = pname
 			path_header_labels[p].add_theme_color_override("font_color", path_colors_header[p])
 			path_header_labels[p].visible = has_paths
 
@@ -35613,21 +35602,7 @@ func _update_upgrade_panel() -> void:
 	else:
 		sell_value_label.text = ""
 
-	# Update hero ability button
-	var hab = upgrade_panel.get_node_or_null("HeroAbilityBtn")
-	if hab:
-		if tower.has_method("activate_hero_ability"):
-			hab.visible = true
-			var ab_name = tower.get_active_ability_name() if tower.has_method("get_active_ability_name") else "ABILITY"
-			if "active_ability_ready" in tower and tower.active_ability_ready:
-				hab.text = ab_name
-				hab.disabled = false
-			else:
-				var cd_left = tower.active_ability_cooldown if "active_ability_cooldown" in tower else 0.0
-				hab.text = "%s (%ds)" % [ab_name, int(cd_left)]
-				hab.disabled = true
-		else:
-			hab.visible = false
+	# Hero ability button removed — abilities are now in the 3-path grid
 
 	# Trigger portrait redraw
 	var portrait_ctrl = upgrade_panel.get_node_or_null("PortraitDraw")
