@@ -9026,20 +9026,12 @@ func _load_tower_sprite_textures() -> void:
 		var res_path = rh2_dir + rh2_files[key]
 		var tex = null
 		# ALWAYS use Image.load() for hero sprites — ResourceLoader uses stale cached textures
+		# PNGs are pre-cleaned (transparent bg) — no runtime stripping needed
 		var abs_path = ProjectSettings.globalize_path(res_path)
 		var img = Image.new()
 		if img.load(abs_path) == OK:
 			if img.get_format() != Image.FORMAT_RGBA8:
 				img.convert(Image.FORMAT_RGBA8)
-			# Strip gray background pixels — wide range (nano-banana bakes gray 90-230)
-			for py in range(img.get_height()):
-				for px in range(img.get_width()):
-					var c = img.get_pixel(px, py)
-					if c.a < 0.01:
-						continue  # Already transparent
-					var avg = (c.r + c.g + c.b) / 3.0
-					if absf(c.r - avg) < 0.10 and absf(c.g - avg) < 0.10 and absf(c.b - avg) < 0.10 and avg > 0.35 and avg < 0.92:
-						img.set_pixel(px, py, Color(0, 0, 0, 0))
 			tex = ImageTexture.create_from_image(img)
 		if tex == null:
 			continue
@@ -9990,21 +9982,21 @@ func _create_ui() -> void:
 	info_label.text = ""
 	top_bar.add_child(info_label)
 
-	start_button = _make_button("  START WAVE  ", Vector2(890, 14), Vector2(160, 44))
+	start_button = _make_button("  START WAVE  ", Vector2(890, 3), Vector2(150, 36))
 	start_button.add_theme_color_override("font_color", Color(0.35, 0.95, 0.35))
-	start_button.add_theme_font_size_override("font_size", 16)
+	start_button.add_theme_font_size_override("font_size", 14)
 	start_button.pressed.connect(_on_start_wave_pressed)
 	bottom_panel.add_child(start_button)
 
-	speed_button = _make_button("  >>  ", Vector2(1058, 14), Vector2(56, 44))
-	speed_button.add_theme_font_size_override("font_size", 16)
+	speed_button = _make_button("  >>  ", Vector2(1048, 3), Vector2(50, 36))
+	speed_button.add_theme_font_size_override("font_size", 14)
 	speed_button.pressed.connect(_on_speed_pressed)
 	# Hold-to-fast-forward: button_down starts max speed, button_up releases
 	speed_button.button_down.connect(_on_speed_hold_start)
 	speed_button.button_up.connect(_on_speed_hold_end)
 	bottom_panel.add_child(speed_button)
 
-	restart_button = _make_button("RESTART", Vector2(1120, 14), Vector2(80, 44))
+	restart_button = _make_button("RESTART", Vector2(1104, 3), Vector2(76, 36))
 	restart_button.add_theme_color_override("font_color", Color(0.8, 0.4, 0.3))
 	restart_button.pressed.connect(_on_restart_pressed)
 	bottom_panel.add_child(restart_button)
