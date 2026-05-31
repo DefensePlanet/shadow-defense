@@ -10189,34 +10189,46 @@ func _create_ui() -> void:
 		ability_buttons.append(btn)
 
 	# === Tower upgrade panel (right-side, 3-path Bloons layout) ===
-	var _pw = 348  # Panel width — 3 columns of 108px + gaps + padding
-	var _ph = 700  # Panel height
+	var _pw = 348  # Panel width
+	var _ph = 696  # Panel height — fits within 720 screen with margins
 	upgrade_panel = ColorRect.new()
 	upgrade_panel.color = Color(0, 0, 0, 0)
-	upgrade_panel.position = Vector2(1280 - _pw - 4, 10)
+	upgrade_panel.position = Vector2(1280 - _pw - 2, 2)
 	upgrade_panel.size = Vector2(_pw, _ph)
 	upgrade_panel.visible = false
 	ui.add_child(upgrade_panel)
 
-	# Styled background
+	# Styled background — darker, more contrast
 	var upg_bg = PanelContainer.new()
 	var upg_style = StyleBoxFlat.new()
-	upg_style.bg_color = Color(0.08, 0.05, 0.14, 0.96)
-	upg_style.set_corner_radius_all(12)
-	upg_style.border_color = Color(0.80, 0.62, 0.20, 0.6)
+	upg_style.bg_color = Color(0.06, 0.04, 0.12, 0.97)
+	upg_style.set_corner_radius_all(10)
+	upg_style.border_color = Color(0.80, 0.62, 0.20, 0.7)
 	upg_style.set_border_width_all(2)
-	upg_style.shadow_color = Color(0.0, 0.0, 0.0, 0.4)
-	upg_style.shadow_size = 8
+	upg_style.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
+	upg_style.shadow_size = 10
 	upg_bg.add_theme_stylebox_override("panel", upg_style)
 	upg_bg.position = Vector2(0, 0)
 	upg_bg.size = Vector2(_pw, _ph)
 	upg_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	upgrade_panel.add_child(upg_bg)
 
+	# Close button (X) — top-right corner (#22)
+	var close_btn = Button.new()
+	close_btn.name = "CloseBtn"
+	close_btn.text = "X"
+	close_btn.position = Vector2(_pw - 28, 4)
+	close_btn.custom_minimum_size = Vector2(24, 24)
+	close_btn.flat = true
+	close_btn.add_theme_font_size_override("font_size", 14)
+	close_btn.add_theme_color_override("font_color", Color(0.7, 0.5, 0.5))
+	close_btn.pressed.connect(_hide_upgrade_panel)
+	upgrade_panel.add_child(close_btn)
+
 	# Tower name label — centered at top
 	upgrade_name_label = Label.new()
-	upgrade_name_label.position = Vector2(10, 8)
-	upgrade_name_label.size = Vector2(_pw - 20, 26)
+	upgrade_name_label.position = Vector2(10, 6)
+	upgrade_name_label.size = Vector2(_pw - 40, 24)
 	upgrade_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	upgrade_name_label.add_theme_font_size_override("font_size", 18)
 	upgrade_name_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35))
@@ -10227,25 +10239,25 @@ func _create_ui() -> void:
 
 	# Gold separator
 	var sep = ColorRect.new()
-	sep.color = _ca(c_gold, 0.3)
-	sep.position = Vector2(12, 36)
-	sep.size = Vector2(_pw - 24, 1)
+	sep.color = _ca(c_gold, 0.4)
+	sep.position = Vector2(10, 32)
+	sep.size = Vector2(_pw - 20, 1)
 	upgrade_panel.add_child(sep)
 
-	# Portrait — wide banner filling panel width, shows character with background
-	var _port_w = _pw - 16  # Full width minus padding
-	var _port_h = 140       # Tall portrait — shows head to waist
-	var _port_x = 8
-	var _port_y = 40
+	# Portrait — wide banner, shows character with background
+	var _port_w = _pw - 12
+	var _port_h = 130
+	var _port_x = 6
+	var _port_y = 36
 	var portrait_border = ColorRect.new()
-	portrait_border.color = _ca(c_gold, 0.4)
-	portrait_border.position = Vector2(_port_x - 2, _port_y - 2)
-	portrait_border.size = Vector2(_port_w + 4, _port_h + 4)
+	portrait_border.color = _ca(c_gold, 0.5)
+	portrait_border.position = Vector2(_port_x - 1, _port_y - 1)
+	portrait_border.size = Vector2(_port_w + 2, _port_h + 2)
 	portrait_border.z_index = -1
 	upgrade_panel.add_child(portrait_border)
 
 	var portrait_bg = ColorRect.new()
-	portrait_bg.color = Color(0.10, 0.07, 0.16, 0.95)
+	portrait_bg.color = Color(0.08, 0.05, 0.12, 0.95)
 	portrait_bg.position = Vector2(_port_x, _port_y)
 	portrait_bg.size = Vector2(_port_w, _port_h)
 	upgrade_panel.add_child(portrait_bg)
@@ -10258,108 +10270,121 @@ func _create_ui() -> void:
 	portrait_draw_ctrl.draw.connect(_on_portrait_draw.bind(portrait_draw_ctrl))
 	upgrade_panel.add_child(portrait_draw_ctrl)
 
-	# Targeting priority button
-	targeting_button = _make_button("Target: FIRST", Vector2(20, 186), Vector2(_pw - 40, 26))
-	targeting_button.add_theme_font_size_override("font_size", 13)
+	# Targeting priority button — compact
+	targeting_button = _make_button("Target: FIRST", Vector2(10, 170), Vector2(_pw - 20, 24))
+	targeting_button.add_theme_font_size_override("font_size", 12)
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
 
-	# === 3-PATH UPGRADE GRID (3 columns × 3 rows) ===
-	# Path colors: A=red/offense, B=blue/utility, C=purple/ultimate
+	# === 3-PATH UPGRADE GRID ===
 	var path_colors = [
-		Color(0.9, 0.5, 0.3),   # A: warm orange-red
-		Color(0.4, 0.7, 0.9),   # B: cool blue
-		Color(0.75, 0.5, 0.9),  # C: purple
+		Color(1.0, 0.6, 0.3),   # A: bright warm orange
+		Color(0.4, 0.8, 1.0),   # B: bright cyan-blue
+		Color(0.85, 0.55, 1.0), # C: bright purple
 	]
-	var path_letters = ["A", "B", "C"]
-	var col_w = 108    # Column width
-	var col_gap = 4    # Gap between columns
-	var col_start_x = 8
-	var grid_top_y = 218  # Top of upgrade grid
-	var row_h = 118    # Row height per tier
-	var row_gap = 4    # Gap between rows
+	var col_w = 104
+	var col_gap = 6       # Wider gap = visible column separation (#3)
+	var col_start_x = 10
+	var grid_top_y = 198
+	var row_h = 108
+	var row_gap = 3
 
-	# Path header labels (A, B, C with path name)
+	# Column divider lines (#3 — visible vertical separators)
+	for d in range(2):
+		var div_x = col_start_x + (d + 1) * col_w + d * col_gap + col_gap / 2
+		var divider = ColorRect.new()
+		divider.position = Vector2(div_x, grid_top_y)
+		divider.size = Vector2(1, row_h * 3 + row_gap * 2 + 22)
+		divider.color = _ca(c_gold, 0.2)
+		upgrade_panel.add_child(divider)
+
+	# Path header labels — brighter, larger (#12)
 	for p in range(3):
 		var hx = col_start_x + p * (col_w + col_gap)
 		var header = Label.new()
 		header.name = "PathHeader_%d" % p
 		header.position = Vector2(hx, grid_top_y)
-		header.size = Vector2(col_w, 20)
+		header.size = Vector2(col_w, 18)
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_font_size_override("font_size", 13)
+		header.add_theme_font_size_override("font_size", 14)
 		header.add_theme_color_override("font_color", path_colors[p])
-		header.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+		header.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		header.add_theme_constant_override("shadow_offset_x", 1)
 		header.add_theme_constant_override("shadow_offset_y", 1)
-		header.text = path_letters[p]
 		upgrade_panel.add_child(header)
 		path_header_labels.append(header)
 
-	# 9 upgrade slots (3 paths × 3 tiers)
+	# 9 upgrade slots (3 paths x 3 tiers)
 	for p in range(3):
 		for t in range(3):
 			var sx = col_start_x + p * (col_w + col_gap)
-			var sy = grid_top_y + 22 + t * (row_h + row_gap)
+			var sy = grid_top_y + 20 + t * (row_h + row_gap)
 
-			# Status background
+			# Status background — lighter base for contrast (#6, #11)
 			var status_rect = ColorRect.new()
 			status_rect.position = Vector2(sx, sy)
 			status_rect.size = Vector2(col_w, row_h)
-			status_rect.color = Color(0.10, 0.07, 0.16, 0.85)
+			status_rect.color = Color(0.12, 0.08, 0.18, 0.9)
 			upgrade_panel.add_child(status_rect)
 			path_status_rects.append(status_rect)
 
-			# Border
+			# Colored left accent bar — shows path color on each cell (#13)
+			var accent = ColorRect.new()
+			accent.position = Vector2(0, 0)
+			accent.size = Vector2(3, row_h)
+			accent.color = _ca(path_colors[p], 0.5)
+			status_rect.add_child(accent)
+
+			# Border — brighter (#21)
 			var slot_border = ColorRect.new()
-			slot_border.color = Color(0.35, 0.28, 0.45, 0.35)
+			slot_border.color = Color(0.45, 0.35, 0.55, 0.5)
 			slot_border.position = Vector2(-1, -1)
 			slot_border.size = Vector2(col_w + 2, row_h + 2)
 			slot_border.z_index = -1
 			status_rect.add_child(slot_border)
 
-			# Tier number (small, top-left)
+			# Tier roman numeral — bigger, brighter (#4)
 			var tier_num = Label.new()
-			tier_num.text = str(t + 1)
-			tier_num.position = Vector2(4, 2)
-			tier_num.add_theme_font_size_override("font_size", 10)
-			tier_num.add_theme_color_override("font_color", Color(0.5, 0.4, 0.6, 0.6))
+			tier_num.text = ["I", "II", "III"][t]
+			tier_num.position = Vector2(6, 2)
+			tier_num.add_theme_font_size_override("font_size", 12)
+			tier_num.add_theme_color_override("font_color", _ca(path_colors[p], 0.6))
 			status_rect.add_child(tier_num)
 
-			# Upgrade name label
+			# Upgrade name label — brighter text (#7, #9)
 			var name_lbl = Label.new()
-			name_lbl.position = Vector2(4, 16)
-			name_lbl.size = Vector2(col_w - 8, 38)
+			name_lbl.position = Vector2(6, 16)
+			name_lbl.size = Vector2(col_w - 12, 32)
 			name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-			name_lbl.add_theme_font_size_override("font_size", 13)
-			name_lbl.add_theme_color_override("font_color", Color(0.95, 0.88, 0.65))
-			name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+			name_lbl.add_theme_font_size_override("font_size", 12)
+			name_lbl.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72))
+			name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 			name_lbl.add_theme_constant_override("shadow_offset_x", 1)
 			name_lbl.add_theme_constant_override("shadow_offset_y", 1)
 			status_rect.add_child(name_lbl)
 			path_name_labels.append(name_lbl)
 
-			# Description label
+			# Description label — higher contrast (#7)
 			var desc_lbl = Label.new()
-			desc_lbl.position = Vector2(4, 54)
-			desc_lbl.size = Vector2(col_w - 8, 48)
+			desc_lbl.position = Vector2(6, 48)
+			desc_lbl.size = Vector2(col_w - 12, 38)
 			desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-			desc_lbl.add_theme_font_size_override("font_size", 12)
-			desc_lbl.add_theme_color_override("font_color", Color(0.75, 0.72, 0.80, 0.85))
-			desc_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+			desc_lbl.add_theme_font_size_override("font_size", 11)
+			desc_lbl.add_theme_color_override("font_color", Color(0.82, 0.78, 0.88, 0.9))
+			desc_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 			desc_lbl.add_theme_constant_override("shadow_offset_x", 1)
 			desc_lbl.add_theme_constant_override("shadow_offset_y", 1)
 			status_rect.add_child(desc_lbl)
 			path_desc_labels.append(desc_lbl)
 
-			# Cost label (bottom-right)
+			# Cost label — bottom-right, bright gold (#8, #22)
 			var cost_lbl = Label.new()
-			cost_lbl.position = Vector2(4, row_h - 20)
-			cost_lbl.size = Vector2(col_w - 8, 18)
+			cost_lbl.position = Vector2(6, row_h - 18)
+			cost_lbl.size = Vector2(col_w - 12, 16)
 			cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			cost_lbl.add_theme_font_size_override("font_size", 13)
-			cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
-			cost_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+			cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.15))
+			cost_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 			cost_lbl.add_theme_constant_override("shadow_offset_x", 1)
 			cost_lbl.add_theme_constant_override("shadow_offset_y", 1)
 			status_rect.add_child(cost_lbl)
@@ -10374,27 +10399,45 @@ func _create_ui() -> void:
 			status_rect.add_child(upg_btn)
 			path_buttons.append(upg_btn)
 
-	# Legacy 5-tier arrays — keep populated to avoid crashes in existing code
+	# Row separator lines (#5 — horizontal between tiers)
+	for t in range(2):
+		var sep_y = grid_top_y + 20 + (t + 1) * (row_h + row_gap) - row_gap
+		var row_sep = ColorRect.new()
+		row_sep.position = Vector2(col_start_x, sep_y)
+		row_sep.size = Vector2(_pw - col_start_x * 2, 1)
+		row_sep.color = Color(0.5, 0.4, 0.6, 0.15)
+		upgrade_panel.add_child(row_sep)
+
+	# Legacy 5-tier arrays
 	for i in range(5):
 		upgrade_buttons.append(Button.new())
 		upgrade_cost_labels.append(Label.new())
 		upgrade_desc_labels.append(Label.new())
 		upgrade_status_rects.append(ColorRect.new())
 
-	# Sell button — pinned to bottom
-	sell_button = _make_button("SELL", Vector2(20, _ph - 46), Vector2(_pw - 40, 30))
-	sell_button.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
+	# Gold separator above sell area
+	var sell_sep = ColorRect.new()
+	sell_sep.color = _ca(c_gold, 0.25)
+	sell_sep.position = Vector2(10, _ph - 60)
+	sell_sep.size = Vector2(_pw - 20, 1)
+	upgrade_panel.add_child(sell_sep)
+
+	# Sell button + refund — properly positioned within panel (#1, #2)
+	sell_button = _make_button("SELL", Vector2(10, _ph - 54), Vector2((_pw - 30) / 2, 28))
+	sell_button.add_theme_color_override("font_color", Color(1.0, 0.4, 0.35))
+	sell_button.add_theme_font_size_override("font_size", 14)
 	sell_button.pressed.connect(_on_sell_pressed)
 	upgrade_panel.add_child(sell_button)
 
-	# Sell value / refund label
+	# Refund label — next to sell button (#1)
 	sell_value_label = Label.new()
-	sell_value_label.position = Vector2(20, _ph - 14)
-	sell_value_label.size = Vector2(_pw - 40, 20)
+	sell_value_label.position = Vector2((_pw + 10) / 2, _ph - 54)
+	sell_value_label.size = Vector2((_pw - 30) / 2, 28)
 	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sell_value_label.add_theme_font_size_override("font_size", 12)
-	sell_value_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
-	sell_value_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	sell_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	sell_value_label.add_theme_font_size_override("font_size", 14)
+	sell_value_label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.25))
+	sell_value_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	sell_value_label.add_theme_constant_override("shadow_offset_x", 1)
 	sell_value_label.add_theme_constant_override("shadow_offset_y", 1)
 	upgrade_panel.add_child(sell_value_label)
@@ -35533,16 +35576,18 @@ func _update_upgrade_panel() -> void:
 			desc_lbl.text = tier_desc
 
 			if t < owned_tier:
-				# OWNED — green
+				# OWNED — bright green with checkmark (#15)
 				cost_lbl.text = "OWNED"
-				cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.8, 0.3))
-				name_lbl.add_theme_color_override("font_color", Color(0.6, 0.85, 0.45))
-				desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.4, 0.7))
-				status_rect.color = Color(0.06, 0.16, 0.04, 0.88)
-				status_rect.get_child(0).color = Color(0.3, 0.7, 0.2, 0.5)
+				cost_lbl.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
+				name_lbl.text = tier_name + "  \u2713"  # checkmark (#15)
+				name_lbl.add_theme_color_override("font_color", Color(0.5, 0.95, 0.4))
+				desc_lbl.add_theme_color_override("font_color", Color(0.45, 0.75, 0.35, 0.8))
+				status_rect.color = Color(0.05, 0.18, 0.03, 0.92)
+				status_rect.get_child(0).color = Color(0.25, 0.8, 0.15, 0.6)  # bright green accent
+				status_rect.get_child(1).color = Color(0.2, 0.7, 0.15, 0.5)   # bright green border
 				btn.disabled = true
 			elif t == owned_tier:
-				# NEXT AVAILABLE — check level gate, path constraints, affordability
+				# NEXT AVAILABLE
 				var _gate_tt = _get_tower_type_from_node(tower)
 				var _char_level = survivor_progress.get(_gate_tt, {}).get("level", 1) if _gate_tt != null else 1
 				var _req_level = PATH_TIER_LEVEL_GATES[t] if t < PATH_TIER_LEVEL_GATES.size() else 99
@@ -35550,49 +35595,58 @@ func _update_upgrade_panel() -> void:
 				var can_path = _can_upgrade_path(current_tiers, path_key, t + 1)
 				var can_afford = gold >= tier_cost
 				if _level_locked:
-					# Level-locked — need more XP
-					cost_lbl.text = "LVL %d REQ" % _req_level
-					cost_lbl.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3))
-					name_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
-					desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.38, 0.38, 0.6))
-					status_rect.color = Color(0.15, 0.04, 0.04, 0.85)
-					status_rect.get_child(0).color = Color(0.5, 0.15, 0.15, 0.5)
+					# Level-locked — red with lock icon (#16)
+					cost_lbl.text = "\U0001F512 LVL %d" % _req_level
+					cost_lbl.add_theme_color_override("font_color", Color(0.9, 0.35, 0.3))
+					name_lbl.add_theme_color_override("font_color", Color(0.65, 0.4, 0.38))
+					desc_lbl.add_theme_color_override("font_color", Color(0.55, 0.38, 0.35, 0.7))
+					status_rect.color = Color(0.16, 0.04, 0.04, 0.9)
+					status_rect.get_child(0).color = Color(0.6, 0.15, 0.1, 0.6)
+					status_rect.get_child(1).color = Color(0.5, 0.15, 0.1, 0.5)
 					btn.disabled = true
 				elif not can_path:
-					# Path-locked (BTD6 constraint)
-					cost_lbl.text = "LOCKED"
-					cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.3, 0.3))
-					name_lbl.add_theme_color_override("font_color", Color(0.55, 0.4, 0.4))
-					desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.4, 0.6))
-					status_rect.color = Color(0.14, 0.04, 0.04, 0.85)
-					status_rect.get_child(0).color = Color(0.5, 0.2, 0.2, 0.4)
+					# Path-locked (BTD6 constraint) (#16)
+					cost_lbl.text = "\U0001F512 PATH"
+					cost_lbl.add_theme_color_override("font_color", Color(0.7, 0.35, 0.35))
+					name_lbl.add_theme_color_override("font_color", Color(0.55, 0.38, 0.38))
+					desc_lbl.add_theme_color_override("font_color", Color(0.48, 0.38, 0.38, 0.6))
+					status_rect.color = Color(0.14, 0.04, 0.06, 0.88)
+					status_rect.get_child(0).color = Color(0.5, 0.15, 0.15, 0.5)
+					status_rect.get_child(1).color = Color(0.45, 0.18, 0.18, 0.4)
 					btn.disabled = true
 				elif can_afford:
-					# Affordable — gold highlight
+					# Affordable — bright gold, pulsing feel (#8)
 					cost_lbl.text = "%dG" % tier_cost
-					cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
-					name_lbl.add_theme_color_override("font_color", Color(0.95, 0.88, 0.65))
-					desc_lbl.add_theme_color_override("font_color", Color(0.82, 0.78, 0.70, 0.85))
-					status_rect.color = Color(0.14, 0.10, 0.04, 0.88)
-					status_rect.get_child(0).color = _ca(c_gold, 0.6)
+					cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+					cost_lbl.add_theme_font_size_override("font_size", 14)
+					name_lbl.add_theme_color_override("font_color", Color(1.0, 0.95, 0.75))
+					desc_lbl.add_theme_color_override("font_color", Color(0.88, 0.84, 0.75, 0.9))
+					status_rect.color = Color(0.16, 0.12, 0.03, 0.92)
+					status_rect.get_child(0).color = _ca(c_gold, 0.7)
+					status_rect.get_child(1).color = _ca(c_gold, 0.7)
 					btn.disabled = false
 				else:
-					# Too expensive
+					# Too expensive — dimmed gold
 					cost_lbl.text = "%dG" % tier_cost
-					cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.3))
-					name_lbl.add_theme_color_override("font_color", Color(0.75, 0.68, 0.55))
-					desc_lbl.add_theme_color_override("font_color", Color(0.65, 0.60, 0.55, 0.7))
-					status_rect.color = Color(0.10, 0.07, 0.12, 0.85)
-					status_rect.get_child(0).color = Color(0.4, 0.3, 0.5, 0.3)
+					cost_lbl.add_theme_color_override("font_color", Color(0.65, 0.45, 0.25))
+					cost_lbl.add_theme_font_size_override("font_size", 13)
+					name_lbl.add_theme_color_override("font_color", Color(0.8, 0.72, 0.55))
+					desc_lbl.add_theme_color_override("font_color", Color(0.68, 0.62, 0.55, 0.75))
+					status_rect.color = Color(0.10, 0.07, 0.14, 0.88)
+					status_rect.get_child(0).color = Color(0.4, 0.3, 0.5, 0.35)
+					status_rect.get_child(1).color = Color(0.35, 0.28, 0.42, 0.35)
 					btn.disabled = true
 			else:
-				# FUTURE TIER — locked, dimmed
+				# FUTURE TIER — dimmed, show level requirement
+				var _fut_req = PATH_TIER_LEVEL_GATES[t] if t < PATH_TIER_LEVEL_GATES.size() else 99
 				cost_lbl.text = "%dG" % tier_cost
-				cost_lbl.add_theme_color_override("font_color", Color(0.35, 0.30, 0.28))
-				name_lbl.add_theme_color_override("font_color", Color(0.45, 0.40, 0.40))
-				desc_lbl.add_theme_color_override("font_color", Color(0.40, 0.38, 0.42, 0.5))
-				status_rect.color = Color(0.07, 0.05, 0.10, 0.7)
-				status_rect.get_child(0).color = Color(0.22, 0.18, 0.28, 0.3)
+				cost_lbl.add_theme_color_override("font_color", Color(0.32, 0.28, 0.26))
+				cost_lbl.add_theme_font_size_override("font_size", 12)
+				name_lbl.add_theme_color_override("font_color", Color(0.42, 0.38, 0.38))
+				desc_lbl.add_theme_color_override("font_color", Color(0.38, 0.35, 0.40, 0.5))
+				status_rect.color = Color(0.06, 0.04, 0.09, 0.75)
+				status_rect.get_child(0).color = Color(0.20, 0.16, 0.25, 0.25)
+				status_rect.get_child(1).color = Color(0.22, 0.18, 0.28, 0.25)
 				btn.disabled = true
 
 	# Update sell button
