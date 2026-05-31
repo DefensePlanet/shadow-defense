@@ -10246,7 +10246,7 @@ func _create_ui() -> void:
 
 	# Portrait — wide banner, shows character with background
 	var _port_w = _pw - 12
-	var _port_h = 130
+	var _port_h = 150
 	var _port_x = 6
 	var _port_y = 36
 	var portrait_border = ColorRect.new()
@@ -10271,7 +10271,7 @@ func _create_ui() -> void:
 	upgrade_panel.add_child(portrait_draw_ctrl)
 
 	# Targeting priority button — compact
-	targeting_button = _make_button("Target: FIRST", Vector2(10, 170), Vector2(_pw - 20, 24))
+	targeting_button = _make_button("Target: FIRST", Vector2(10, 192), Vector2(_pw - 20, 24))
 	targeting_button.add_theme_font_size_override("font_size", 12)
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
@@ -10285,8 +10285,8 @@ func _create_ui() -> void:
 	var col_w = 104
 	var col_gap = 6       # Wider gap = visible column separation (#3)
 	var col_start_x = 10
-	var grid_top_y = 198
-	var row_h = 108
+	var grid_top_y = 220
+	var row_h = 130
 	var row_gap = 3
 
 	# Column divider lines (#3 — visible vertical separators)
