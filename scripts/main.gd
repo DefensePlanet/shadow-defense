@@ -24207,7 +24207,7 @@ func _check_wave_complete() -> void:
 			var next_w = wave + 1
 			var next_count = _get_wave_enemy_count(next_w)
 			var is_boss_w = next_w in [20, 25, 30, 35] or (next_w > 0 and next_w % 10 == 0 and endless_mode)
-			start_button.text = "  W%d: %d%s  " % [next_w, next_count, " 💀BOSS" if is_boss_w else ""]
+			start_button.text = "  START WAVE %d  " % next_w
 			# BATTD4: Perfect wave bonus (no lives lost)
 			if lives >= _perfect_wave_start_lives:
 				_perfect_waves_count += 1
@@ -25052,36 +25052,33 @@ func _draw_tower_stats_overlay() -> void:
 	if _specialization_active and dmg_type == _specialization_type:
 		_ds_outlined_text(Vector2(lx, y), "⬆ SPEC +%d%%" % int(SPECIALIZATION_BONUS * 100), 11, Color(0.3, 1.0, 0.5), int(pw), HORIZONTAL_ALIGNMENT_LEFT, 1)
 
-# === WAVE PREVIEW PANEL ===
+# === WAVE PREVIEW — compact, non-intrusive ===
 func _draw_wave_preview() -> void:
 	if wave_preview_data.is_empty():
 		return
 	var font = game_font
-	var px = 340.0
-	var py = 90.0
-	var pw = 600.0
-	var ph = 80.0
-	# Rounded crimson panel
-	_ds_panel(Rect2(px, py, pw, ph), Color(0.12, 0.08, 0.20, 0.93), Color(0.7, 0.15, 0.1, 0.8), 3.0, 10.0)
-	# Title — outlined Bloons style
-	_ds_outlined_text(Vector2(px + pw * 0.5, py + 18), "NEXT WAVE: %d" % (wave + 1), 18, Color(1.0, 0.88, 0.3), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 2)
-	# Enemy info
+	# Small pill at top-center, not a giant panel
+	var pw = 280.0
+	var ph = 36.0
+	var px = 640.0 - pw * 0.5
+	var py = 68.0
+	# Subtle dark pill with thin gold border
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.08, 0.05, 0.14, 0.88), _ca(c_gold, 0.4), 1.5, 12.0)
+	# Enemy count text — compact
 	var info_parts: Array = []
 	for wd in wave_preview_data:
-		info_parts.append("%dx T%d" % [wd.get("count", 0), wd.get("tier", 0)])
-	var info_text = " | ".join(info_parts)
-	_udraw(font, Vector2(px, py + 40), info_text, HORIZONTAL_ALIGNMENT_CENTER, int(pw), 13, Color(0.9, 0.85, 0.8))
-	# Timer bar — rounded
+		var count = wd.get("count", 0)
+		var mods = wd.get("modifiers", [])
+		var mod_str = ""
+		if mods.size() > 0:
+			mod_str = " " + " ".join(mods)
+		info_parts.append("%d enemies%s" % [count, mod_str])
+	var info_text = "Wave %d: %s" % [wave + 1, " | ".join(info_parts)]
+	_udraw(font, Vector2(px + pw * 0.5, py + 14), info_text, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 16), 13, Color(0.9, 0.85, 0.7))
+	# Thin progress bar
 	var bar_pct = clampf(wave_preview_timer / 3.0, 0.0, 1.0)
-	draw_colored_polygon(_rrp(Rect2(px + 10, py + ph - 14, pw - 20, 6), 3.0), Color(0.4, 0.3, 0.2, 0.3))
 	if bar_pct > 0.01:
-		draw_colored_polygon(_rrp(Rect2(px + 10, py + ph - 14, (pw - 20) * bar_pct, 6), 3.0), Color(0.8, 0.65, 0.2, 0.7))
-	# Modifier badges
-	if wave_preview_data.size() > 0:
-		var mods = wave_preview_data[0].get("modifiers", [])
-		var mx = 640.0 - float(mods.size()) * 40.0
-		for mi in range(mods.size()):
-			_udraw(font, Vector2(mx + mi * 80, py + 58), mods[mi], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 0.4, 0.3))
+		draw_colored_polygon(_rrp(Rect2(px + 8, py + ph - 6, (pw - 16) * bar_pct, 3), 2.0), _ca(c_gold, 0.6))
 
 func _generate_wave_preview(w: int) -> Array:
 	var preview: Array = []
