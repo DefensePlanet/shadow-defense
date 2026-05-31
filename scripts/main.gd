@@ -9,7 +9,7 @@ var placing_tower: bool = false
 var ghost_position: Vector2 = Vector2.ZERO
 
 # Tower selection
-enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB, ROBIN_HOOD_2 }
+enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB, ROBIN_HOOD_2, ALICE_2 }
 var selected_tower: TowerType = TowerType.ROBIN_HOOD
 
 const BOSS_VILLAIN_NAMES: Dictionary = {
@@ -56,6 +56,7 @@ var tower_info = {
 	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
 	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
 	TowerType.ROBIN_HOOD_2: {"name": "Robin 2", "cost": 20, "range": 160.0, "damage": 20, "fire_rate": 0.85},
+	TowerType.ALICE_2: {"name": "Alice 2", "cost": 20, "range": 120.0, "damage": 15, "fire_rate": 1.0},
 }
 
 # Survivor skins — purchasable outfit variants
@@ -197,6 +198,7 @@ var tower_scenes = {
 	TowerType.PHANTOM: preload("res://scenes/phantom.tscn"),
 	TowerType.SCROOGE: preload("res://scenes/scrooge.tscn"),
 	TowerType.ROBIN_HOOD_2: preload("res://scenes/robin_hood_2.tscn"),
+	TowerType.ALICE_2: preload("res://scenes/alice_2.tscn"),
 }
 var new_tower_scenes: Dictionary = {}  # Loaded at runtime after unlock
 
@@ -5229,7 +5231,7 @@ func _check_team_alignment_bonus() -> Dictionary:
 
 func _is_character_unlocked(tower_type) -> bool:
 	# 3 starters + test characters — always unlocked
-	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2]:
+	if tower_type in [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2, TowerType.ALICE_2]:
 		return true
 	# First 3 rescues (Peter, Witch, Phantom) — unlock by beating their arc
 	if tower_type in [TowerType.PETER_PAN, TowerType.WICKED_WITCH, TowerType.PHANTOM]:
@@ -8930,7 +8932,7 @@ func _load_portrait_textures() -> void:
 	_portrait_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author", "narrator", "robin_hood_2"]
+		"shadow_author", "narrator", "robin_hood_2", "alice_2"]
 	for pname in names:
 		var res_path = "res://assets/portraits/" + pname + ".png"
 		if ResourceLoader.exists(res_path):
@@ -9063,6 +9065,45 @@ func _load_tower_sprite_textures() -> void:
 					if not _tower_flair_textures.has(rh2):
 						_tower_flair_textures[rh2] = []
 					_tower_flair_textures[rh2].append(tex)
+
+	# Hero Sprite: Alice 2
+	var al2 = "alice_2"
+	var al2_dir = "res://assets/hero_sprites/alice/"
+	var al2_files = {
+		"idle": "alice_idle.png",
+		"attack": "alice_attack.png",
+		"shoot": "alice_shoot.png",
+		"flair1": "alice_flair1.png",
+		"flair2": "alice_flair2.png",
+		"flair3": "alice_flair3.png",
+		"flair4": "alice_flair4.png",
+		"spin360": "alice_spin360.png",
+		"spindown": "alice_spindown.png",
+		"mushroom": "alice_mushroom.png",
+	}
+	for key in al2_files:
+		var res_path = al2_dir + al2_files[key]
+		var tex = null
+		var abs_path = ProjectSettings.globalize_path(res_path)
+		var img = Image.new()
+		if img.load(abs_path) == OK:
+			if img.get_format() != Image.FORMAT_RGBA8:
+				img.convert(Image.FORMAT_RGBA8)
+			tex = ImageTexture.create_from_image(img)
+		if tex == null:
+			continue
+		match key:
+			"idle": _tower_sprite_textures[al2] = tex
+			"attack": _tower_attack_textures[al2] = tex
+			"shoot": _tower_shoot_textures[al2] = tex
+			"spin360": _tower_sprite_textures[al2 + "_spin360"] = tex
+			"spindown": _tower_sprite_textures[al2 + "_spindown"] = tex
+			"mushroom": _tower_sprite_textures[al2 + "_mushroom"] = tex
+			_:
+				if key.begins_with("flair"):
+					if not _tower_flair_textures.has(al2):
+						_tower_flair_textures[al2] = []
+					_tower_flair_textures[al2].append(tex)
 
 func _load_enemy_portrait_textures() -> void:
 	_enemy_portrait_textures.clear()
@@ -9957,6 +9998,7 @@ func _create_ui() -> void:
 		[TowerType.PHANTOM, "Phantom [%dG]" % tower_info[TowerType.PHANTOM]["cost"], "Phantom — heavy hits, stun, chandelier."],
 		[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],
 		[TowerType.ROBIN_HOOD_2, "Robin2 [20G]", "Robin 2 — Hero Sprite test."],
+		[TowerType.ALICE_2, "Alice2 [20G]", "Alice 2 — Hero Sprite potion thrower."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
@@ -12313,7 +12355,7 @@ func _do_level_start(index: int) -> void:
 	start_button.text = "  START WAVE  "
 	# Row 1: Show base towers + Robin 2, hide locked ones
 	var row1_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
-					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2]
+					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2, TowerType.ALICE_2]
 	var row1_visible_idx := 0
 	for tt in row1_types:
 		if not tower_buttons.has(tt):
@@ -15195,6 +15237,7 @@ func _load_voice_clips() -> void:
 		TowerType.FRANKENSTEIN: "frankenstein",
 		TowerType.SHADOW_AUTHOR: "shadow_author",
 		TowerType.ROBIN_HOOD_2: "robin_hood",  # Same voice as Robin 1
+		TowerType.ALICE_2: "alice",  # Same voice as Alice 1
 	}
 	for tower_type in character_dirs:
 		var dir_name: String = character_dirs[tower_type]
@@ -25977,6 +26020,7 @@ func _draw_tower_button_portraits() -> void:
 		TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan",
 		TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge",
 		TowerType.ROBIN_HOOD_2: "robin_hood",
+		TowerType.ALICE_2: "alice",
 	}
 	var psz = 44.0
 	var panel_y = bottom_panel.position.y  # 626
@@ -37153,6 +37197,7 @@ func _tower_type_to_name(tt) -> String:
 		TowerType.FRANKENSTEIN: return "frankenstein"
 		TowerType.SHADOW_AUTHOR: return "shadow_author"
 		TowerType.ROBIN_HOOD_2: return "robin_hood_2"
+		TowerType.ALICE_2: return "alice_2"
 	return ""
 
 func game_over() -> void:
@@ -40156,6 +40201,24 @@ const UPGRADE_PATHS: Dictionary = {
 			{"name": "Three Blasts", "desc": "3 sky arrows every 15s (insta-kill)", "cost": 150},
 			{"name": "Little John's Bridge", "desc": "Barricade blocks enemies 4s", "cost": 400},
 			{"name": "Final Stand", "desc": "Arrow rain entire map every 30s", "cost": 1200},
+		]},
+	},
+	# Alice 2 (21) — same paths as Alice
+	21: {
+		"A": {"name": "Wonderland Logic", "tiers": [
+			{"name": "Eat Me Cake", "desc": "Cake slows +20%, frosting DoT", "cost": 120},
+			{"name": "Drink Me Potion", "desc": "Shrinks enemies (50% HP reduction)", "cost": 350},
+			{"name": "Vorpal Blade", "desc": "Every 8th hit ignores armor, 3x dmg", "cost": 900},
+		]},
+		"B": {"name": "Mad Tea Party", "tiers": [
+			{"name": "Cheshire Grin", "desc": "Enemies wander backward 2s", "cost": 120},
+			{"name": "Hatter's Watch", "desc": "Enemies 30% slower in radius", "cost": 350},
+			{"name": "Looking Glass", "desc": "Clone strongest ally tower 10s", "cost": 900},
+		]},
+		"C": {"name": "The Red Queen", "tiers": [
+			{"name": "Paint Roses Red", "desc": "Marks enemies: +15% all dmg", "cost": 150},
+			{"name": "Croquet Match", "desc": "Flamingo launches enemies back", "cost": 400},
+			{"name": "Off With Heads!", "desc": "<20% HP executed. Card army 8s", "cost": 1200},
 		]},
 	},
 }
