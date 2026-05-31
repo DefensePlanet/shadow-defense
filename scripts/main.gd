@@ -236,13 +236,20 @@ var selected_tower_node: Node2D = null
 const TOWER_SELECT_RADIUS: float = 48.0
 var upgrade_panel: ColorRect
 var upgrade_name_label: Label
-var upgrade_buttons: Array = []  # 5 upgrade tier buttons
-var upgrade_cost_labels: Array = []  # 5 cost labels
-var upgrade_desc_labels: Array = []  # 5 description labels
-var upgrade_status_rects: Array = []  # 4 background rects for status coloring
+var upgrade_buttons: Array = []  # 5 upgrade tier buttons (legacy, kept for compat)
+var upgrade_cost_labels: Array = []  # 5 cost labels (legacy)
+var upgrade_desc_labels: Array = []  # 5 description labels (legacy)
+var upgrade_status_rects: Array = []  # 4 background rects (legacy)
 var sell_button: Button
 var sell_value_label: Label
 var targeting_button: Button
+# 3-path upgrade system UI (9 slots: 3 paths × 3 tiers)
+var path_buttons: Array = []       # 9 buttons [path0_t0, path0_t1, path0_t2, path1_t0, ...]
+var path_cost_labels: Array = []   # 9 cost labels
+var path_name_labels: Array = []   # 9 name labels
+var path_desc_labels: Array = []   # 9 desc labels
+var path_status_rects: Array = []  # 9 background rects
+var path_header_labels: Array = [] # 3 path header labels
 
 # Now Playing UI (top right, near currencies)
 var now_playing_label: Label
@@ -8922,13 +8929,21 @@ func _load_portrait_textures() -> void:
 	_portrait_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author", "narrator"]
+		"shadow_author", "narrator", "robin_hood_2"]
 	for pname in names:
 		var res_path = "res://assets/portraits/" + pname + ".png"
 		if ResourceLoader.exists(res_path):
 			var tex = load(res_path)
 			if tex:
 				_portrait_textures[pname] = tex
+		else:
+			# Fallback: load raw PNG via Image (for hero sprite portraits without .import)
+			var abs_path = ProjectSettings.globalize_path(res_path)
+			var img = Image.new()
+			if img.load(abs_path) == OK:
+				if img.get_format() != Image.FORMAT_RGBA8:
+					img.convert(Image.FORMAT_RGBA8)
+				_portrait_textures[pname] = ImageTexture.create_from_image(img)
 
 func _load_sidekick_textures() -> void:
 	_sidekick_textures.clear()
@@ -10172,162 +10187,220 @@ func _create_ui() -> void:
 		ability_panel.add_child(btn)
 		ability_buttons.append(btn)
 
-	# === Tower upgrade panel (right-side, hidden by default) ===
+	# === Tower upgrade panel (right-side, 3-path Bloons layout) ===
+	var _pw = 330  # Panel width — 3 columns of ~100px + padding
+	var _ph = 700  # Panel height
 	upgrade_panel = ColorRect.new()
-	upgrade_panel.color = Color(0, 0, 0, 0)  # Transparent — styled panel container handles visual
-	upgrade_panel.position = Vector2(1078, 13)
-	upgrade_panel.size = Vector2(204, 714)
+	upgrade_panel.color = Color(0, 0, 0, 0)
+	upgrade_panel.position = Vector2(1280 - _pw - 4, 10)
+	upgrade_panel.size = Vector2(_pw, _ph)
 	upgrade_panel.visible = false
 	ui.add_child(upgrade_panel)
 
-	# Styled background with gradient feel
+	# Styled background
 	var upg_bg = PanelContainer.new()
 	var upg_style = StyleBoxFlat.new()
-	upg_style.bg_color = Color(0.10, 0.07, 0.18, 0.94)
-	upg_style.set_corner_radius_all(10)
-	upg_style.border_color = Color(0.80, 0.62, 0.20, 0.7)
+	upg_style.bg_color = Color(0.08, 0.05, 0.14, 0.96)
+	upg_style.set_corner_radius_all(12)
+	upg_style.border_color = Color(0.80, 0.62, 0.20, 0.6)
 	upg_style.set_border_width_all(2)
-	upg_style.shadow_color = Color(0.0, 0.0, 0.0, 0.3)
-	upg_style.shadow_size = 6
+	upg_style.shadow_color = Color(0.0, 0.0, 0.0, 0.4)
+	upg_style.shadow_size = 8
 	upg_bg.add_theme_stylebox_override("panel", upg_style)
 	upg_bg.position = Vector2(0, 0)
-	upg_bg.size = Vector2(204, 714)
+	upg_bg.size = Vector2(_pw, _ph)
 	upg_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	upgrade_panel.add_child(upg_bg)
 
-	# Tower name label at top
+	# Tower name label — centered at top
 	upgrade_name_label = Label.new()
-	upgrade_name_label.position = Vector2(10, 10)
-	upgrade_name_label.size = Vector2(180, 30)
+	upgrade_name_label.position = Vector2(10, 8)
+	upgrade_name_label.size = Vector2(_pw - 20, 26)
 	upgrade_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	upgrade_name_label.add_theme_font_size_override("font_size", 18)
 	upgrade_name_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35))
 	upgrade_name_label.add_theme_constant_override("shadow_offset_x", 1)
 	upgrade_name_label.add_theme_constant_override("shadow_offset_y", 1)
-	upgrade_name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	upgrade_name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	upgrade_panel.add_child(upgrade_name_label)
 
-	# Separator line (drawn via a thin ColorRect)
+	# Gold separator
 	var sep = ColorRect.new()
 	sep.color = _ca(c_gold, 0.3)
-	sep.position = Vector2(10, 42)
-	sep.size = Vector2(180, 1)
+	sep.position = Vector2(12, 36)
+	sep.size = Vector2(_pw - 24, 1)
 	upgrade_panel.add_child(sep)
 
-	# Portrait area — border behind, dark bg, then drawable Control on top
+	# Portrait — larger, centered
+	var _port_size = 90
+	var _port_x = (_pw - _port_size) / 2
 	var portrait_border = ColorRect.new()
-	portrait_border.color = _ca(c_gold, 0.3)
-	portrait_border.position = Vector2(48, 48)
-	portrait_border.size = Vector2(104, 84)
+	portrait_border.color = _ca(c_gold, 0.35)
+	portrait_border.position = Vector2(_port_x - 2, 40)
+	portrait_border.size = Vector2(_port_size + 4, _port_size + 4)
 	portrait_border.z_index = -1
 	upgrade_panel.add_child(portrait_border)
 
 	var portrait_bg = ColorRect.new()
-	portrait_bg.color = Color(0.14, 0.10, 0.24, 0.85)
-	portrait_bg.position = Vector2(50, 50)
-	portrait_bg.size = Vector2(100, 80)
+	portrait_bg.color = Color(0.12, 0.08, 0.20, 0.9)
+	portrait_bg.position = Vector2(_port_x, 42)
+	portrait_bg.size = Vector2(_port_size, _port_size)
 	upgrade_panel.add_child(portrait_bg)
 
-	# Drawable Control for portrait (renders inside the UI layer)
 	var portrait_draw_ctrl = Control.new()
 	portrait_draw_ctrl.name = "PortraitDraw"
-	portrait_draw_ctrl.position = Vector2(50, 50)
-	portrait_draw_ctrl.size = Vector2(100, 80)
+	portrait_draw_ctrl.position = Vector2(_port_x, 42)
+	portrait_draw_ctrl.size = Vector2(_port_size, _port_size)
 	portrait_draw_ctrl.clip_contents = true
 	portrait_draw_ctrl.draw.connect(_on_portrait_draw.bind(portrait_draw_ctrl))
 	upgrade_panel.add_child(portrait_draw_ctrl)
 
-	# Targeting priority button (between portrait and upgrades)
-	targeting_button = _make_button("Target: FIRST", Vector2(20, 134), Vector2(160, 30))
+	# Targeting priority button
+	targeting_button = _make_button("Target: FIRST", Vector2(20, 138), Vector2(_pw - 40, 26))
+	targeting_button.add_theme_font_size_override("font_size", 13)
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
 
-	# 5 upgrade slots stacked vertically
+	# === 3-PATH UPGRADE GRID (3 columns × 3 rows) ===
+	# Path colors: A=red/offense, B=blue/utility, C=purple/ultimate
+	var path_colors = [
+		Color(0.9, 0.5, 0.3),   # A: warm orange-red
+		Color(0.4, 0.7, 0.9),   # B: cool blue
+		Color(0.75, 0.5, 0.9),  # C: purple
+	]
+	var path_letters = ["A", "B", "C"]
+	var col_w = 98     # Column width
+	var col_gap = 6    # Gap between columns
+	var col_start_x = 10
+	var grid_top_y = 170  # Top of upgrade grid
+	var row_h = 120    # Row height per tier
+	var row_gap = 6    # Gap between rows
+
+	# Path header labels (A, B, C with path name)
+	for p in range(3):
+		var hx = col_start_x + p * (col_w + col_gap)
+		var header = Label.new()
+		header.name = "PathHeader_%d" % p
+		header.position = Vector2(hx, grid_top_y)
+		header.size = Vector2(col_w, 18)
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_font_size_override("font_size", 11)
+		header.add_theme_color_override("font_color", path_colors[p])
+		header.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+		header.add_theme_constant_override("shadow_offset_x", 1)
+		header.add_theme_constant_override("shadow_offset_y", 1)
+		header.text = path_letters[p]
+		upgrade_panel.add_child(header)
+		path_header_labels.append(header)
+
+	# 9 upgrade slots (3 paths × 3 tiers)
+	for p in range(3):
+		for t in range(3):
+			var sx = col_start_x + p * (col_w + col_gap)
+			var sy = grid_top_y + 22 + t * (row_h + row_gap)
+
+			# Status background
+			var status_rect = ColorRect.new()
+			status_rect.position = Vector2(sx, sy)
+			status_rect.size = Vector2(col_w, row_h)
+			status_rect.color = Color(0.10, 0.07, 0.16, 0.85)
+			upgrade_panel.add_child(status_rect)
+			path_status_rects.append(status_rect)
+
+			# Border
+			var slot_border = ColorRect.new()
+			slot_border.color = Color(0.35, 0.28, 0.45, 0.35)
+			slot_border.position = Vector2(-1, -1)
+			slot_border.size = Vector2(col_w + 2, row_h + 2)
+			slot_border.z_index = -1
+			status_rect.add_child(slot_border)
+
+			# Tier number (small, top-left)
+			var tier_num = Label.new()
+			tier_num.text = str(t + 1)
+			tier_num.position = Vector2(4, 2)
+			tier_num.add_theme_font_size_override("font_size", 10)
+			tier_num.add_theme_color_override("font_color", Color(0.5, 0.4, 0.6, 0.6))
+			status_rect.add_child(tier_num)
+
+			# Upgrade name label
+			var name_lbl = Label.new()
+			name_lbl.position = Vector2(4, 14)
+			name_lbl.size = Vector2(col_w - 8, 34)
+			name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+			name_lbl.add_theme_font_size_override("font_size", 11)
+			name_lbl.add_theme_color_override("font_color", Color(0.95, 0.88, 0.65))
+			name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+			name_lbl.add_theme_constant_override("shadow_offset_x", 1)
+			name_lbl.add_theme_constant_override("shadow_offset_y", 1)
+			status_rect.add_child(name_lbl)
+			path_name_labels.append(name_lbl)
+
+			# Description label
+			var desc_lbl = Label.new()
+			desc_lbl.position = Vector2(4, 48)
+			desc_lbl.size = Vector2(col_w - 8, 44)
+			desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+			desc_lbl.add_theme_font_size_override("font_size", 10)
+			desc_lbl.add_theme_color_override("font_color", Color(0.70, 0.67, 0.75, 0.75))
+			desc_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+			desc_lbl.add_theme_constant_override("shadow_offset_x", 1)
+			desc_lbl.add_theme_constant_override("shadow_offset_y", 1)
+			status_rect.add_child(desc_lbl)
+			path_desc_labels.append(desc_lbl)
+
+			# Cost label (bottom-right)
+			var cost_lbl = Label.new()
+			cost_lbl.position = Vector2(4, row_h - 18)
+			cost_lbl.size = Vector2(col_w - 8, 16)
+			cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			cost_lbl.add_theme_font_size_override("font_size", 11)
+			cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
+			cost_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+			cost_lbl.add_theme_constant_override("shadow_offset_x", 1)
+			cost_lbl.add_theme_constant_override("shadow_offset_y", 1)
+			status_rect.add_child(cost_lbl)
+			path_cost_labels.append(cost_lbl)
+
+			# Clickable button overlay
+			var upg_btn = Button.new()
+			upg_btn.position = Vector2(0, 0)
+			upg_btn.custom_minimum_size = Vector2(col_w, row_h)
+			upg_btn.flat = true
+			upg_btn.pressed.connect(_on_path_upgrade_pressed.bind(p, t))
+			status_rect.add_child(upg_btn)
+			path_buttons.append(upg_btn)
+
+	# Legacy 5-tier arrays — keep populated to avoid crashes in existing code
 	for i in range(5):
-		var slot_y = 158 + i * 76
+		upgrade_buttons.append(Button.new())
+		upgrade_cost_labels.append(Label.new())
+		upgrade_desc_labels.append(Label.new())
+		upgrade_status_rects.append(ColorRect.new())
 
-		# Status background rect (changes color based on state)
-		var status_rect = ColorRect.new()
-		status_rect.position = Vector2(10, slot_y)
-		status_rect.size = Vector2(180, 66)
-		status_rect.color = Color(0.12, 0.08, 0.22, 0.85)
-		upgrade_panel.add_child(status_rect)
-		upgrade_status_rects.append(status_rect)
-
-		# Slot border
-		var slot_border = ColorRect.new()
-		slot_border.color = Color(0.4, 0.3, 0.5, 0.4)
-		slot_border.position = Vector2(-1, -1)
-		slot_border.size = Vector2(182, 68)
-		slot_border.z_index = -1
-		status_rect.add_child(slot_border)
-
-		# Tier number label
-		var tier_label = Label.new()
-		tier_label.text = str(i + 1)
-		tier_label.position = Vector2(6, 4)
-		tier_label.add_theme_font_size_override("font_size", 14)
-		tier_label.add_theme_color_override("font_color", Color(0.6, 0.5, 0.7))
-		status_rect.add_child(tier_label)
-
-		# Upgrade button (clickable area)
-		var upg_btn = Button.new()
-		upg_btn.position = Vector2(4, 2)
-		upg_btn.custom_minimum_size = Vector2(172, 48)
-		upg_btn.flat = true
-		upg_btn.pressed.connect(_on_upgrade_tier_pressed.bind(i))
-		status_rect.add_child(upg_btn)
-		upgrade_buttons.append(upg_btn)
-
-		# Description label (below name, above cost)
-		var desc_label = Label.new()
-		desc_label.position = Vector2(6, 30)
-		desc_label.size = Vector2(168, 32)
-		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		desc_label.add_theme_font_size_override("font_size", 14)
-		desc_label.add_theme_color_override("font_color", Color(0.75, 0.72, 0.80, 0.8))
-		desc_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
-		desc_label.add_theme_constant_override("shadow_offset_x", 1)
-		desc_label.add_theme_constant_override("shadow_offset_y", 1)
-		status_rect.add_child(desc_label)
-		upgrade_desc_labels.append(desc_label)
-
-		# Cost label (right side)
-		var cost_label = Label.new()
-		cost_label.position = Vector2(4, 4)
-		cost_label.size = Vector2(172, 20)
-		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		cost_label.add_theme_font_size_override("font_size", 14)
-		cost_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
-		cost_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
-		cost_label.add_theme_constant_override("shadow_offset_x", 1)
-		cost_label.add_theme_constant_override("shadow_offset_y", 1)
-		status_rect.add_child(cost_label)
-		upgrade_cost_labels.append(cost_label)
-
-	# Hero ability button (above sell button)
+	# Hero ability button
 	var hero_ability_button = Button.new()
 	hero_ability_button.name = "HeroAbilityBtn"
 	hero_ability_button.text = "ABILITY"
-	hero_ability_button.position = Vector2(10, 580)
-	hero_ability_button.custom_minimum_size = Vector2(180, 28)
+	hero_ability_button.position = Vector2(10, _ph - 100)
+	hero_ability_button.custom_minimum_size = Vector2(_pw - 20, 26)
 	hero_ability_button.add_theme_font_size_override("font_size", 12)
 	hero_ability_button.visible = false
 	hero_ability_button.pressed.connect(_on_hero_ability_pressed)
 	upgrade_panel.add_child(hero_ability_button)
 
 	# Sell button
-	sell_button = _make_button("SELL", Vector2(20, 640), Vector2(160, 36))
+	sell_button = _make_button("SELL", Vector2(20, _ph - 66), Vector2(_pw - 40, 30))
 	sell_button.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	sell_button.pressed.connect(_on_sell_pressed)
 	upgrade_panel.add_child(sell_button)
 
 	# Sell value / refund label
 	sell_value_label = Label.new()
-	sell_value_label.position = Vector2(20, 680)
-	sell_value_label.size = Vector2(160, 20)
+	sell_value_label.position = Vector2(20, _ph - 32)
+	sell_value_label.size = Vector2(_pw - 40, 20)
 	sell_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sell_value_label.add_theme_font_size_override("font_size", 13)
+	sell_value_label.add_theme_font_size_override("font_size", 12)
 	sell_value_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	sell_value_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
 	sell_value_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -35402,105 +35475,146 @@ func _update_upgrade_panel() -> void:
 		_hide_upgrade_panel()
 		return
 	var tower = selected_tower_node
-	var display_name = tower.get_tower_display_name() if tower.has_method("get_tower_display_name") else "Tower"
+	var display_name = tower.get_tower_display_name() if tower.has_method(“get_tower_display_name”) else “Tower”
 	upgrade_name_label.text = display_name
 
 	# Update targeting priority button
-	if tower.has_method("get_targeting_label"):
-		targeting_button.text = "Target: %s" % tower.get_targeting_label()
+	if tower.has_method(“get_targeting_label”):
+		targeting_button.text = “Target: %s” % tower.get_targeting_label()
 		targeting_button.visible = true
 	else:
 		targeting_button.visible = false
 
-	# Update all 5 upgrade slots
-	for i in range(5):
-		var btn = upgrade_buttons[i]
-		var cost_lbl = upgrade_cost_labels[i]
-		var status_rect = upgrade_status_rects[i]
+	# === 3-PATH UPGRADE GRID ===
+	var tower_type_int: int = -1
+	if tower.has_meta(“tower_type_enum”):
+		tower_type_int = int(tower.get_meta(“tower_type_enum”))
 
-		var tier_name = tower.TIER_NAMES[i] if i < tower.TIER_NAMES.size() else "?"
-		var tier_cost = tower.TIER_COSTS[i] if i < tower.TIER_COSTS.size() else 0
-		var tier_desc = tower.ABILITY_DESCRIPTIONS[i] if i < tower.ABILITY_DESCRIPTIONS.size() else ""
+	var has_paths = UPGRADE_PATHS.has(tower_type_int)
+	var current_tiers = _get_tower_path_tiers(tower) if has_paths else {“A”: 0, “B”: 0, “C”: 0}
+	var path_keys = [“A”, “B”, “C”]
+	var path_colors_header = [
+		Color(0.95, 0.55, 0.35),  # A: warm
+		Color(0.45, 0.75, 0.95),  # B: cool
+		Color(0.80, 0.55, 0.95),  # C: purple
+	]
 
-		var desc_lbl = upgrade_desc_labels[i]
-		desc_lbl.text = tier_desc
+	for p in range(3):
+		var path_key = path_keys[p]
+		var path_data = {}
+		var tiers_data = []
+		if has_paths:
+			path_data = UPGRADE_PATHS[tower_type_int].get(path_key, {})
+			tiers_data = path_data.get(“tiers”, [])
 
-		if i < tower.upgrade_tier:
-			# Already purchased — green
-			btn.text = "%s  âœ”" % tier_name
-			btn.disabled = true
-			cost_lbl.text = "OWNED"
-			cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.8, 0.3))
-			desc_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5, 0.7))
-			status_rect.color = Color(0.08, 0.18, 0.06, 0.85)
-			# Green border
-			status_rect.get_child(0).color = Color(0.3, 0.7, 0.2, 0.5)
-		elif i == tower.upgrade_tier:
-			# Next available — check level gate first, then affordability
-			var _gate_tt = _get_tower_type_from_node(tower)
-			var _gate_level = survivor_progress.get(_gate_tt, {}).get("level", 1) if _gate_tt != null else 1
-			var _required_level = ABILITY_TIER_LEVEL_GATES[i] if i < ABILITY_TIER_LEVEL_GATES.size() else 1
-			var _level_locked = _gate_level < _required_level
-			btn.text = tier_name
-			if _level_locked:
-				# Level-locked — red tint, show level requirement
+		# Update path header
+		if p < path_header_labels.size():
+			var pname = path_data.get(“name”, “Path “ + path_key)
+			path_header_labels[p].text = path_key + “: “ + pname
+			path_header_labels[p].add_theme_color_override(“font_color”, path_colors_header[p])
+			path_header_labels[p].visible = has_paths
+
+		var owned_tier = current_tiers.get(path_key, 0)
+
+		for t in range(3):
+			var idx = p * 3 + t
+			if idx >= path_status_rects.size():
+				break
+
+			var status_rect = path_status_rects[idx]
+			var name_lbl = path_name_labels[idx]
+			var desc_lbl = path_desc_labels[idx]
+			var cost_lbl = path_cost_labels[idx]
+			var btn = path_buttons[idx]
+
+			if not has_paths or t >= tiers_data.size():
+				status_rect.visible = false
+				continue
+			status_rect.visible = true
+
+			var tier_data = tiers_data[t]
+			var tier_name = tier_data.get(“name”, “?”)
+			var tier_desc = tier_data.get(“desc”, “”)
+			var tier_cost = tier_data.get(“cost”, 0)
+
+			name_lbl.text = tier_name
+			desc_lbl.text = tier_desc
+
+			if t < owned_tier:
+				# OWNED — green
+				cost_lbl.text = “OWNED”
+				cost_lbl.add_theme_color_override(“font_color”, Color(0.4, 0.8, 0.3))
+				name_lbl.add_theme_color_override(“font_color”, Color(0.6, 0.85, 0.45))
+				desc_lbl.add_theme_color_override(“font_color”, Color(0.5, 0.7, 0.4, 0.7))
+				status_rect.color = Color(0.06, 0.16, 0.04, 0.88)
+				status_rect.get_child(0).color = Color(0.3, 0.7, 0.2, 0.5)
 				btn.disabled = true
-				cost_lbl.text = "LVL %d REQ" % _required_level
-				cost_lbl.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3))
-				desc_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4, 0.7))
-				status_rect.color = Color(0.15, 0.05, 0.05, 0.85)
-				status_rect.get_child(0).color = Color(0.5, 0.2, 0.2, 0.5)
-			else:
+			elif t == owned_tier:
+				# NEXT AVAILABLE — check path constraints and affordability
+				var can_path = _can_upgrade_path(current_tiers, path_key, t + 1)
 				var can_afford = gold >= tier_cost
-				btn.disabled = not can_afford
-				cost_lbl.text = "%dG" % tier_cost
-				desc_lbl.add_theme_color_override("font_color", Color(0.85, 0.82, 0.75, 0.9))
-				if can_afford:
-					# Affordable — gold border
-					cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
-					status_rect.color = Color(0.14, 0.10, 0.06, 0.85)
+				if not can_path:
+					# Path-locked (BTD6 constraint)
+					cost_lbl.text = “LOCKED”
+					cost_lbl.add_theme_color_override(“font_color”, Color(0.6, 0.3, 0.3))
+					name_lbl.add_theme_color_override(“font_color”, Color(0.55, 0.4, 0.4))
+					desc_lbl.add_theme_color_override(“font_color”, Color(0.5, 0.4, 0.4, 0.6))
+					status_rect.color = Color(0.14, 0.04, 0.04, 0.85)
+					status_rect.get_child(0).color = Color(0.5, 0.2, 0.2, 0.4)
+					btn.disabled = true
+				elif can_afford:
+					# Affordable — gold highlight
+					cost_lbl.text = “%dG” % tier_cost
+					cost_lbl.add_theme_color_override(“font_color”, Color(1.0, 0.84, 0.0))
+					name_lbl.add_theme_color_override(“font_color”, Color(0.95, 0.88, 0.65))
+					desc_lbl.add_theme_color_override(“font_color”, Color(0.82, 0.78, 0.70, 0.85))
+					status_rect.color = Color(0.14, 0.10, 0.04, 0.88)
 					status_rect.get_child(0).color = _ca(c_gold, 0.6)
+					btn.disabled = false
 				else:
-					# Too expensive — dark
-					cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.3))
+					# Too expensive
+					cost_lbl.text = “%dG” % tier_cost
+					cost_lbl.add_theme_color_override(“font_color”, Color(0.6, 0.4, 0.3))
+					name_lbl.add_theme_color_override(“font_color”, Color(0.75, 0.68, 0.55))
+					desc_lbl.add_theme_color_override(“font_color”, Color(0.65, 0.60, 0.55, 0.7))
 					status_rect.color = Color(0.10, 0.07, 0.12, 0.85)
 					status_rect.get_child(0).color = Color(0.4, 0.3, 0.5, 0.3)
-		else:
-			# Locked — gray, show level requirement if applicable
-			btn.text = tier_name
-			btn.disabled = true
-			var _future_req = ABILITY_TIER_LEVEL_GATES[i] if i < ABILITY_TIER_LEVEL_GATES.size() else 99
-			cost_lbl.text = "%dG (LVL %d)" % [tier_cost, _future_req]
-			cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.35, 0.3))
-			desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.48, 0.55, 0.5))
-			status_rect.color = Color(0.08, 0.06, 0.10, 0.7)
-			status_rect.get_child(0).color = Color(0.25, 0.2, 0.3, 0.3)
+					btn.disabled = true
+			else:
+				# FUTURE TIER — locked, dimmed
+				cost_lbl.text = “%dG” % tier_cost
+				cost_lbl.add_theme_color_override(“font_color”, Color(0.35, 0.30, 0.28))
+				name_lbl.add_theme_color_override(“font_color”, Color(0.45, 0.40, 0.40))
+				desc_lbl.add_theme_color_override(“font_color”, Color(0.40, 0.38, 0.42, 0.5))
+				status_rect.color = Color(0.07, 0.05, 0.10, 0.7)
+				status_rect.get_child(0).color = Color(0.22, 0.18, 0.28, 0.3)
+				btn.disabled = true
 
 	# Update sell button
-	if tower.has_method("get_sell_value"):
+	if tower.has_method(“get_sell_value”):
 		var sv = tower.get_sell_value()
-		sell_value_label.text = "Refund: %dG" % sv
+		sell_value_label.text = “Refund: %dG” % sv
 	else:
-		sell_value_label.text = ""
+		sell_value_label.text = “”
 
 	# Update hero ability button
-	var hab = upgrade_panel.get_node_or_null("HeroAbilityBtn")
+	var hab = upgrade_panel.get_node_or_null(“HeroAbilityBtn”)
 	if hab:
-		if tower.has_method("activate_hero_ability"):
+		if tower.has_method(“activate_hero_ability”):
 			hab.visible = true
-			var ab_name = tower.get_active_ability_name() if tower.has_method("get_active_ability_name") else "ABILITY"
-			if "active_ability_ready" in tower and tower.active_ability_ready:
+			var ab_name = tower.get_active_ability_name() if tower.has_method(“get_active_ability_name”) else “ABILITY”
+			if “active_ability_ready” in tower and tower.active_ability_ready:
 				hab.text = ab_name
 				hab.disabled = false
 			else:
-				var cd_left = tower.active_ability_cooldown if "active_ability_cooldown" in tower else 0.0
-				hab.text = "%s (%ds)" % [ab_name, int(cd_left)]
+				var cd_left = tower.active_ability_cooldown if “active_ability_cooldown” in tower else 0.0
+				hab.text = “%s (%ds)” % [ab_name, int(cd_left)]
 				hab.disabled = true
 		else:
 			hab.visible = false
 
-	# Trigger portrait redraw for the selected tower
-	var portrait_ctrl = upgrade_panel.get_node_or_null("PortraitDraw")
+	# Trigger portrait redraw
+	var portrait_ctrl = upgrade_panel.get_node_or_null(“PortraitDraw”)
 	if portrait_ctrl:
 		portrait_ctrl.queue_redraw()
 
@@ -39761,6 +39875,320 @@ const UPGRADE_BRANCHES: Dictionary = {
 	},
 }
 
+# === 3-PATH UPGRADE SYSTEM (BTD6-style: 3 paths × 3 tiers per character) ===
+# Constraint: max T3 on 1 path, T2 on 2nd, T1 on 3rd
+# Keys: TowerType enum int. Each path has name + 3 tiers with name/desc/cost/effect/value
+const UPGRADE_PATHS: Dictionary = {
+	# Robin Hood (0)
+	0: {
+		"A": {"name": "The Archer", "tiers": [
+			{"name": "Splitting the Wand", "desc": "Fire 2 arrows per attack", "cost": 120},
+			{"name": "The Silver Arrow", "desc": "Every 5th arrow pierces 5 + bleed", "cost": 350},
+			{"name": "The Golden Arrow", "desc": "Pierce 10, AoE splash, 3x crit", "cost": 900},
+		]},
+		"B": {"name": "The Outlaw", "tiers": [
+			{"name": "Merry Men Rally", "desc": "Nearby towers +10% speed", "cost": 120},
+			{"name": "Rob the Rich", "desc": "Kills drop +30% bonus gold", "cost": 350},
+			{"name": "Sherwood's Shield", "desc": "20% less leak dmg, +2 lives/wave", "cost": 900},
+		]},
+		"C": {"name": "The Legend", "tiers": [
+			{"name": "Three Blasts", "desc": "3 sky arrows every 15s (insta-kill)", "cost": 150},
+			{"name": "Little John's Bridge", "desc": "Barricade blocks enemies 4s", "cost": 400},
+			{"name": "Final Stand", "desc": "Arrow rain entire map every 30s", "cost": 1200},
+		]},
+	},
+	# Alice (1)
+	1: {
+		"A": {"name": "Wonderland Logic", "tiers": [
+			{"name": "Eat Me Cake", "desc": "Cake slows +20%, frosting DoT", "cost": 120},
+			{"name": "Drink Me Potion", "desc": "Shrinks enemies (50% HP reduction)", "cost": 350},
+			{"name": "Vorpal Blade", "desc": "Every 8th hit ignores armor, 3x dmg", "cost": 900},
+		]},
+		"B": {"name": "Mad Tea Party", "tiers": [
+			{"name": "Cheshire Grin", "desc": "Enemies wander backward 2s", "cost": 120},
+			{"name": "Hatter's Watch", "desc": "Enemies 30% slower in radius", "cost": 350},
+			{"name": "Looking Glass", "desc": "Clone strongest ally tower 10s", "cost": 900},
+		]},
+		"C": {"name": "The Red Queen", "tiers": [
+			{"name": "Paint Roses Red", "desc": "Marks enemies: +15% all dmg", "cost": 150},
+			{"name": "Croquet Match", "desc": "Flamingo launches enemies back", "cost": 400},
+			{"name": "Off With Heads!", "desc": "<20% HP executed. Card army 8s", "cost": 1200},
+		]},
+	},
+	# Wicked Witch (2)
+	2: {
+		"A": {"name": "Animal Army", "tiers": [
+			{"name": "Pack of Wolves", "desc": "3 wolves deal damage each wave", "cost": 120},
+			{"name": "Murder of Crows", "desc": "Crows dive-bomb strongest enemy", "cost": 350},
+			{"name": "Swarm of Bees", "desc": "Permanent AoE slow + poison DPS", "cost": 900},
+		]},
+		"B": {"name": "Dark Sorcery", "tiers": [
+			{"name": "Eye of Oz", "desc": "Extended vision, reveal stealth", "cost": 120},
+			{"name": "The Poppy Field", "desc": "Sleep zone: enemies stop 3s", "cost": 350},
+			{"name": "The Silver Shoes", "desc": "Teleport any tower every 20s", "cost": 900},
+		]},
+		"C": {"name": "The Golden Cap", "tiers": [
+			{"name": "First Wish", "desc": "Flying monkeys attack every 15s", "cost": 150},
+			{"name": "Second Wish", "desc": "Monkeys carry enemies backward", "cost": 400},
+			{"name": "Surrender Dorothy", "desc": "-30% enemy speed, monkey barrage", "cost": 1200},
+		]},
+	},
+	# Peter Pan (3)
+	3: {
+		"A": {"name": "Never Grew Up", "tiers": [
+			{"name": "Shadow", "desc": "Shadow fights at 50% damage", "cost": 120},
+			{"name": "Lost Boys", "desc": "2 Lost Boys patrol and fight", "cost": 350},
+			{"name": "Hook's Sword", "desc": "+100% melee, cleaves 3 enemies", "cost": 900},
+		]},
+		"B": {"name": "Fairy Dust", "tiers": [
+			{"name": "Tinker Bell's Gift", "desc": "Fairy dust buffs towers +8%", "cost": 120},
+			{"name": "Happy Thoughts", "desc": "+15% dmg when wave starts", "cost": 350},
+			{"name": "Second Star", "desc": "Peter flies dropping bombs 10s", "cost": 900},
+		]},
+		"C": {"name": "Neverland", "tiers": [
+			{"name": "Tick-Tock Croc", "desc": "Croc eats every 20th enemy", "cost": 150},
+			{"name": "Mermaid Lagoon", "desc": "Water zone slows 50%", "cost": 400},
+			{"name": "Big Adventure", "desc": "Adult form: 3x dmg, +25% allies", "cost": 1200},
+		]},
+	},
+	# Phantom (4)
+	4: {
+		"A": {"name": "The Voice", "tiers": [
+			{"name": "Angel of Music", "desc": "Extended range, notes pierce +1", "cost": 120},
+			{"name": "Don Juan", "desc": "Notes explode on impact, AoE", "cost": 350},
+			{"name": "Music of Night", "desc": "Sonic beam hits all in a line", "cost": 900},
+		]},
+		"B": {"name": "The Labyrinth", "tiers": [
+			{"name": "Punjab Lasso", "desc": "Every 8th kill pulls enemy back", "cost": 120},
+			{"name": "Phantom's Trap", "desc": "Trapdoor stuns strongest 3s", "cost": 350},
+			{"name": "Mirror Chamber", "desc": "2 illusory tower copies (50% dmg)", "cost": 900},
+		]},
+		"C": {"name": "The Chandelier", "tiers": [
+			{"name": "Falling Chandelier", "desc": "Every 15 kills, massive AoE", "cost": 150},
+			{"name": "The Organ", "desc": "All enemies slowed 40% for 5s", "cost": 400},
+			{"name": "Point of No Return", "desc": "Screen-wide dmg, 4s stun, 3x berserk", "cost": 1200},
+		]},
+	},
+	# Scrooge (5)
+	5: {
+		"A": {"name": "The Miser", "tiers": [
+			{"name": "Bah, Humbug!", "desc": "Knockback +20% stronger", "cost": 120},
+			{"name": "Counting House", "desc": "+15 gold passively every 10s", "cost": 350},
+			{"name": "Scrooge & Marley", "desc": "+20% gold on kill for ALL towers", "cost": 900},
+		]},
+		"B": {"name": "The Ghosts", "tiers": [
+			{"name": "Ghost of Past", "desc": "Resurrect last leaked enemy at 50%", "cost": 120},
+			{"name": "Ghost of Present", "desc": "+20% speed for all nearby, wave start", "cost": 350},
+			{"name": "Ghost of Future", "desc": "Strongest takes 2x from all, 8s", "cost": 900},
+		]},
+		"C": {"name": "Redemption", "tiers": [
+			{"name": "Tiny Tim", "desc": "+2 lives every 5 waves", "cost": 150},
+			{"name": "Christmas Morning", "desc": "+100g burst, all towers refreshed", "cost": 400},
+			{"name": "God Bless Us All", "desc": "+50g/wave, +10% global dmg", "cost": 1200},
+		]},
+	},
+	# Sherlock (6)
+	6: {
+		"A": {"name": "Deduction", "tiers": [
+			{"name": "Study in Scarlet", "desc": "Marked enemies bleed 3s", "cost": 120},
+			{"name": "Speckled Band", "desc": "Venom strike: 5% HP/s for 5s", "cost": 350},
+			{"name": "Final Problem", "desc": "Every 15s, 5x AoE + 3s stun", "cost": 900},
+		]},
+		"B": {"name": "Great Detective", "tiers": [
+			{"name": "Elementary", "desc": "+15% dmg from matching types", "cost": 120},
+			{"name": "Watson", "desc": "Watson heals cooldowns +20%", "cost": 350},
+			{"name": "Mind Palace", "desc": "+30% ALL tower dmg for 10s/25s", "cost": 900},
+		]},
+		"C": {"name": "Baker Street", "tiers": [
+			{"name": "Baskervilles", "desc": "Spectral hound: 3x dmg + fear", "cost": 150},
+			{"name": "Irregulars", "desc": "4 scouts patrol (reveal + mini atk)", "cost": 400},
+			{"name": "Game is Afoot", "desc": "3x speed, mark all, allies copy target", "cost": 1200},
+		]},
+	},
+	# Tarzan (7)
+	7: {
+		"A": {"name": "Lord of Jungle", "tiers": [
+			{"name": "Vine Swing", "desc": "AoE ground pound on landing", "cost": 120},
+			{"name": "Hunting Knife", "desc": "Bleed attacks, +40% vs bosses", "cost": 350},
+			{"name": "Tarzan Terrible", "desc": "2x speed, 0.5s stun, ground shakes", "cost": 900},
+		]},
+		"B": {"name": "Call of Wild", "tiers": [
+			{"name": "Kala's Children", "desc": "2 ape allies every 3 waves", "cost": 120},
+			{"name": "Tantor", "desc": "Elephant charges path every 20s", "cost": 350},
+			{"name": "Lord of Apes", "desc": "6 animal allies permanently", "cost": 900},
+		]},
+		"C": {"name": "Greystoke", "tiers": [
+			{"name": "Victory Cry", "desc": "Fear 3s + +10% dmg buff 8s", "cost": 150},
+			{"name": "John Clayton", "desc": "Ranged spear + tactical commands", "cost": 400},
+			{"name": "Legend", "desc": "Melee+ranged, stampede/25s, 2x allies", "cost": 1200},
+		]},
+	},
+	# Dracula (8)
+	8: {
+		"A": {"name": "The Predator", "tiers": [
+			{"name": "Vampiric Touch", "desc": "Heal 1 life per 20 kills", "cost": 120},
+			{"name": "Bat Swarm", "desc": "Bats devour 3-5 enemies/wave", "cost": 350},
+			{"name": "Nosferatu Rising", "desc": "Drain all in range, +50% dmg", "cost": 900},
+		]},
+		"B": {"name": "Children of Night", "tiers": [
+			{"name": "The Brides", "desc": "3 vampire brides attack independently", "cost": 120},
+			{"name": "Renfield", "desc": "10 corpses = 1 vampire thrall", "cost": 350},
+			{"name": "Children", "desc": "20% of killed rise as thralls", "cost": 900},
+		]},
+		"C": {"name": "The Count", "tiers": [
+			{"name": "Transylvanian Mist", "desc": "Mist form: pass through enemies", "cost": 150},
+			{"name": "Ship Demeter", "desc": "Ghost ship massive line damage", "cost": 400},
+			{"name": "Walpurgis Night", "desc": "30% max HP to all + eternal dark", "cost": 1200},
+		]},
+	},
+	# Merlin (9)
+	9: {
+		"A": {"name": "The Archmage", "tiers": [
+			{"name": "Crystal Cave", "desc": "Spells bounce to 2 more enemies", "cost": 120},
+			{"name": "Nimue's Gift", "desc": "Random: fire DoT, ice slow, lightning", "cost": 350},
+			{"name": "Siege Perilous", "desc": "Excalibur descends: holy line dmg", "cost": 900},
+		]},
+		"B": {"name": "The Advisor", "tiers": [
+			{"name": "Lady of the Lake", "desc": "Nearby towers +15% speed", "cost": 120},
+			{"name": "The Prophecy", "desc": "Reveal next wave 5s early, +10% dmg", "cost": 350},
+			{"name": "Round Table", "desc": "4 spectral knights, +8% global dmg", "cost": 900},
+		]},
+		"C": {"name": "Once and Future", "tiers": [
+			{"name": "Crystal Freeze", "desc": "AoE freeze 3s every 12s", "cost": 150},
+			{"name": "Avalon's Blessing", "desc": "Heal 3 lives every 5 waves", "cost": 400},
+			{"name": "The King Returns", "desc": "King Arthur 20s: cleave all, immune", "cost": 1200},
+		]},
+	},
+	# Frankenstein (10)
+	10: {
+		"A": {"name": "The Monster", "tiers": [
+			{"name": "Galvanic Surge", "desc": "+30% smash radius, chain lightning", "cost": 120},
+			{"name": "The Wretch", "desc": "+4% dmg per kill, stacks to 50", "cost": 350},
+			{"name": "Modern Prometheus", "desc": "Permanent AoE aura, chain hits 10", "cost": 900},
+		]},
+		"B": {"name": "The Creation", "tiers": [
+			{"name": "Stitched Resilience", "desc": "Absorb 1 leaked enemy per wave", "cost": 120},
+			{"name": "The Laboratory", "desc": "Towers in radius +20% range", "cost": 350},
+			{"name": "Bride of Frank", "desc": "Second monster joins, shares stacks", "cost": 900},
+		]},
+		"C": {"name": "It's Alive", "tiers": [
+			{"name": "Lightning Rod", "desc": "Random bolts hit enemies in range", "cost": 150},
+			{"name": "Creature's Rage", "desc": "Every 20s: 3x dmg, charge strongest", "cost": 400},
+			{"name": "IT'S ALIVE!", "desc": "5 bolts/2s for 12s, strip all armor", "cost": 1200},
+		]},
+	},
+	# Shadow Author (11)
+	11: {
+		"A": {"name": "Ink Master", "tiers": [
+			{"name": "Ink Torrent", "desc": "Chain +1, all hits apply ink DoT", "cost": 120},
+			{"name": "Rewrite", "desc": "Every 10s, 5 enemies get 50% HP", "cost": 350},
+			{"name": "Pen is Mightier", "desc": "Chain +3, ink stacks = 1% HP/s", "cost": 900},
+		]},
+		"B": {"name": "The Narrator", "tiers": [
+			{"name": "Plot Twist", "desc": "Every 10s, reverse 5 enemies", "cost": 120},
+			{"name": "Writer's Block", "desc": "Ink wall blocks 5s every 20s", "cost": 350},
+			{"name": "Ghostwriter", "desc": "3 ink warriors + copy strongest", "cost": 900},
+		]},
+		"C": {"name": "The End", "tiers": [
+			{"name": "Final Chapter", "desc": "%maxHP blast/15s + execute <15%", "cost": 150},
+			{"name": "Deus Ex Machina", "desc": "Once/level: kill all (costs 100g)", "cost": 400},
+			{"name": "THE END", "desc": "<30% erased. >30% take 50% maxHP", "cost": 1200},
+		]},
+	},
+	# Robin Hood 2 (20) — same paths as Robin Hood
+	20: {
+		"A": {"name": "The Archer", "tiers": [
+			{"name": "Splitting the Wand", "desc": "Fire 2 arrows per attack", "cost": 120},
+			{"name": "The Silver Arrow", "desc": "Every 5th arrow pierces 5 + bleed", "cost": 350},
+			{"name": "The Golden Arrow", "desc": "Pierce 10, AoE splash, 3x crit", "cost": 900},
+		]},
+		"B": {"name": "The Outlaw", "tiers": [
+			{"name": "Merry Men Rally", "desc": "Nearby towers +10% speed", "cost": 120},
+			{"name": "Rob the Rich", "desc": "Kills drop +30% bonus gold", "cost": 350},
+			{"name": "Sherwood's Shield", "desc": "20% less leak dmg, +2 lives/wave", "cost": 900},
+		]},
+		"C": {"name": "The Legend", "tiers": [
+			{"name": "Three Blasts", "desc": "3 sky arrows every 15s (insta-kill)", "cost": 150},
+			{"name": "Little John's Bridge", "desc": "Barricade blocks enemies 4s", "cost": 400},
+			{"name": "Final Stand", "desc": "Arrow rain entire map every 30s", "cost": 1200},
+		]},
+	},
+}
+
+# Track upgrade paths per tower instance: instance_id -> { "A": tier, "B": tier, "C": tier }
+var tower_path_tiers: Dictionary = {}
+
+func _get_tower_path_tiers(tower_node) -> Dictionary:
+	var iid = tower_node.get_instance_id()
+	if not tower_path_tiers.has(iid):
+		tower_path_tiers[iid] = {"A": 0, "B": 0, "C": 0}
+	return tower_path_tiers[iid]
+
+func _can_upgrade_path(tiers: Dictionary, path: String, to_tier: int) -> bool:
+	# BTD6 constraint: max T3 on 1 path, T2 on 2nd, T1 on 3rd
+	var other_paths = ["A", "B", "C"]
+	other_paths.erase(path)
+	var max_other = max(tiers.get(other_paths[0], 0), tiers.get(other_paths[1], 0))
+	if to_tier > 3:
+		return false
+	# If this path would go to T3, no other path can be above T2
+	if to_tier == 3:
+		for op in other_paths:
+			if tiers.get(op, 0) > 2:
+				return false
+	# If this path would go to T2, at most one other can be at T2+
+	if to_tier == 2:
+		var count_t2plus = 0
+		for op in other_paths:
+			if tiers.get(op, 0) >= 2:
+				count_t2plus += 1
+		# Can't have 2 others at T2+ when we go to T2
+		if count_t2plus >= 1:
+			# Check if any is at T3 — if so, we can only go T2 if the other is T1
+			for op in other_paths:
+				if tiers.get(op, 0) >= 3:
+					return to_tier <= 2  # OK, the T3 path blocks us at T2 max
+	return true
+
+func _on_path_upgrade_pressed(path_idx: int, tier_idx: int) -> void:
+	if not selected_tower_node or not is_instance_valid(selected_tower_node):
+		return
+	var tower = selected_tower_node
+	var tower_type_int: int = -1
+	if tower.has_meta("tower_type_enum"):
+		tower_type_int = int(tower.get_meta("tower_type_enum"))
+	if not UPGRADE_PATHS.has(tower_type_int):
+		return
+	var path_key = ["A", "B", "C"][path_idx]
+	var paths = UPGRADE_PATHS[tower_type_int]
+	var path_data = paths.get(path_key, {})
+	var tiers_data = path_data.get("tiers", [])
+	if tier_idx >= tiers_data.size():
+		return
+	var current_tiers = _get_tower_path_tiers(tower)
+	var current_tier = current_tiers.get(path_key, 0)
+	# Can only buy the NEXT tier (sequential within a path)
+	if tier_idx != current_tier:
+		return
+	# Check BTD6 path constraints
+	if not _can_upgrade_path(current_tiers, path_key, tier_idx + 1):
+		return
+	var cost = tiers_data[tier_idx].get("cost", 0)
+	if gold < cost:
+		return
+	# Purchase!
+	gold -= cost
+	current_tiers[path_key] = tier_idx + 1
+	tower_path_tiers[tower.get_instance_id()] = current_tiers
+	# Apply upgrade to tower if it has the method
+	if tower.has_method("apply_path_upgrade"):
+		tower.apply_path_upgrade(path_key, tier_idx + 1)
+	# Also increment legacy upgrade_tier for compatibility
+	if "upgrade_tier" in tower:
+		tower.upgrade_tier = current_tiers["A"] + current_tiers["B"] + current_tiers["C"]
+	update_hud()
+	_update_upgrade_panel()
+
 func _get_branch_for_tower(tower_node) -> String:
 	if tower_node == null:
 		return ""
@@ -39806,9 +40234,10 @@ func _purchase_branch_upgrade(tower_node, tower_type_int: int, branch: String, t
 func _on_portrait_draw(ctrl: Control) -> void:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return
-	# Local coordinates within 100x80 Control
-	var cx = 50.0
-	var cy = 40.0
+	# Local coordinates within portrait Control (now 90x90)
+	var ctrl_size = ctrl.size
+	var cx = ctrl_size.x * 0.5
+	var cy = ctrl_size.y * 0.5
 	var s = 0.8
 
 	var tower_type_int: int = -1
@@ -39820,7 +40249,7 @@ func _on_portrait_draw(ctrl: Control) -> void:
 	if speaker_name != "" and _portrait_textures.has(speaker_name) and _portrait_textures[speaker_name] != null:
 		var tex = _portrait_textures[speaker_name]
 		var tex_size = tex.get_size()
-		var fit_size = 72.0  # Fit within 100x80 control with padding
+		var fit_size = min(ctrl_size.x, ctrl_size.y) - 4.0  # Fit within control with padding
 		var portrait_scale = fit_size / maxf(tex_size.x, tex_size.y)
 		var draw_w = tex_size.x * portrait_scale
 		var draw_h = tex_size.y * portrait_scale
