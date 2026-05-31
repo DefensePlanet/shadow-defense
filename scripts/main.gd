@@ -3347,6 +3347,7 @@ const GEAR_SLOT_UNLOCK_LEVELS: Array = [1, 1, 4, 8, 12, 16]
 # === PROGRESSION: Ability tier gating by survivor level ===
 # In-match tier upgrades unlock at these survivor levels
 const ABILITY_TIER_LEVEL_GATES: Array = [1, 3, 7, 12, 18]  # Tier 0-4 unlock at these levels
+const PATH_TIER_LEVEL_GATES: Array = [1, 5, 12]  # 3-path system: T1=free, T2=grind, T3=hard grind
 
 # === PROGRESSION: Kill milestone rewards ===
 const KILL_MILESTONES: Array = [
@@ -10188,7 +10189,7 @@ func _create_ui() -> void:
 		ability_buttons.append(btn)
 
 	# === Tower upgrade panel (right-side, 3-path Bloons layout) ===
-	var _pw = 330  # Panel width — 3 columns of ~100px + padding
+	var _pw = 348  # Panel width — 3 columns of 108px + gaps + padding
 	var _ph = 700  # Panel height
 	upgrade_panel = ColorRect.new()
 	upgrade_panel.color = Color(0, 0, 0, 0)
@@ -10269,12 +10270,12 @@ func _create_ui() -> void:
 		Color(0.75, 0.5, 0.9),  # C: purple
 	]
 	var path_letters = ["A", "B", "C"]
-	var col_w = 98     # Column width
-	var col_gap = 6    # Gap between columns
-	var col_start_x = 10
+	var col_w = 108    # Column width
+	var col_gap = 4    # Gap between columns
+	var col_start_x = 8
 	var grid_top_y = 170  # Top of upgrade grid
-	var row_h = 120    # Row height per tier
-	var row_gap = 6    # Gap between rows
+	var row_h = 130    # Row height per tier
+	var row_gap = 4    # Gap between rows
 
 	# Path header labels (A, B, C with path name)
 	for p in range(3):
@@ -10282,9 +10283,9 @@ func _create_ui() -> void:
 		var header = Label.new()
 		header.name = "PathHeader_%d" % p
 		header.position = Vector2(hx, grid_top_y)
-		header.size = Vector2(col_w, 18)
+		header.size = Vector2(col_w, 20)
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_font_size_override("font_size", 11)
+		header.add_theme_font_size_override("font_size", 13)
 		header.add_theme_color_override("font_color", path_colors[p])
 		header.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 		header.add_theme_constant_override("shadow_offset_x", 1)
@@ -10325,10 +10326,10 @@ func _create_ui() -> void:
 
 			# Upgrade name label
 			var name_lbl = Label.new()
-			name_lbl.position = Vector2(4, 14)
-			name_lbl.size = Vector2(col_w - 8, 34)
+			name_lbl.position = Vector2(4, 16)
+			name_lbl.size = Vector2(col_w - 8, 38)
 			name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-			name_lbl.add_theme_font_size_override("font_size", 11)
+			name_lbl.add_theme_font_size_override("font_size", 13)
 			name_lbl.add_theme_color_override("font_color", Color(0.95, 0.88, 0.65))
 			name_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 			name_lbl.add_theme_constant_override("shadow_offset_x", 1)
@@ -10338,11 +10339,11 @@ func _create_ui() -> void:
 
 			# Description label
 			var desc_lbl = Label.new()
-			desc_lbl.position = Vector2(4, 48)
-			desc_lbl.size = Vector2(col_w - 8, 44)
+			desc_lbl.position = Vector2(4, 54)
+			desc_lbl.size = Vector2(col_w - 8, 48)
 			desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-			desc_lbl.add_theme_font_size_override("font_size", 10)
-			desc_lbl.add_theme_color_override("font_color", Color(0.70, 0.67, 0.75, 0.75))
+			desc_lbl.add_theme_font_size_override("font_size", 12)
+			desc_lbl.add_theme_color_override("font_color", Color(0.75, 0.72, 0.80, 0.85))
 			desc_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
 			desc_lbl.add_theme_constant_override("shadow_offset_x", 1)
 			desc_lbl.add_theme_constant_override("shadow_offset_y", 1)
@@ -10351,10 +10352,10 @@ func _create_ui() -> void:
 
 			# Cost label (bottom-right)
 			var cost_lbl = Label.new()
-			cost_lbl.position = Vector2(4, row_h - 18)
-			cost_lbl.size = Vector2(col_w - 8, 16)
+			cost_lbl.position = Vector2(4, row_h - 20)
+			cost_lbl.size = Vector2(col_w - 8, 18)
 			cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			cost_lbl.add_theme_font_size_override("font_size", 11)
+			cost_lbl.add_theme_font_size_override("font_size", 13)
 			cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 			cost_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
 			cost_lbl.add_theme_constant_override("shadow_offset_x", 1)
@@ -35550,10 +35551,23 @@ func _update_upgrade_panel() -> void:
 				status_rect.get_child(0).color = Color(0.3, 0.7, 0.2, 0.5)
 				btn.disabled = true
 			elif t == owned_tier:
-				# NEXT AVAILABLE — check path constraints and affordability
+				# NEXT AVAILABLE — check level gate, path constraints, affordability
+				var _gate_tt = _get_tower_type_from_node(tower)
+				var _char_level = survivor_progress.get(_gate_tt, {}).get("level", 1) if _gate_tt != null else 1
+				var _req_level = PATH_TIER_LEVEL_GATES[t] if t < PATH_TIER_LEVEL_GATES.size() else 99
+				var _level_locked = _char_level < _req_level
 				var can_path = _can_upgrade_path(current_tiers, path_key, t + 1)
 				var can_afford = gold >= tier_cost
-				if not can_path:
+				if _level_locked:
+					# Level-locked — need more XP
+					cost_lbl.text = "LVL %d REQ" % _req_level
+					cost_lbl.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3))
+					name_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
+					desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.38, 0.38, 0.6))
+					status_rect.color = Color(0.15, 0.04, 0.04, 0.85)
+					status_rect.get_child(0).color = Color(0.5, 0.15, 0.15, 0.5)
+					btn.disabled = true
+				elif not can_path:
 					# Path-locked (BTD6 constraint)
 					cost_lbl.text = "LOCKED"
 					cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.3, 0.3))
@@ -40169,6 +40183,12 @@ func _on_path_upgrade_pressed(path_idx: int, tier_idx: int) -> void:
 	var current_tier = current_tiers.get(path_key, 0)
 	# Can only buy the NEXT tier (sequential within a path)
 	if tier_idx != current_tier:
+		return
+	# Check level gate
+	var _gate_tt = _get_tower_type_from_node(tower)
+	var _char_level = survivor_progress.get(_gate_tt, {}).get("level", 1) if _gate_tt != null else 1
+	var _req_level = PATH_TIER_LEVEL_GATES[tier_idx] if tier_idx < PATH_TIER_LEVEL_GATES.size() else 99
+	if _char_level < _req_level:
 		return
 	# Check BTD6 path constraints
 	if not _can_upgrade_path(current_tiers, path_key, tier_idx + 1):
