@@ -9049,6 +9049,7 @@ func _load_tower_sprite_textures() -> void:
 			"shoot": _tower_shoot_textures[rh2] = tex
 			"spin360": _tower_sprite_textures[rh2 + "_spin360"] = tex
 			"spindown": _tower_sprite_textures[rh2 + "_spindown"] = tex
+			"bowsurf": _tower_sprite_textures[rh2 + "_bowsurf"] = tex
 			_:
 				if key.begins_with("flair"):
 					if not _tower_flair_textures.has(rh2):
@@ -24560,11 +24561,17 @@ func _try_place_tower(pos: Vector2) -> void:
 		tower._sprite_attack = _tower_attack_textures[_spr_key]
 	if "_sprite_shoot" in tower and _tower_shoot_textures.has(_spr_key):
 		tower._sprite_shoot = _tower_shoot_textures[_spr_key]
-	# Robin special: inject spin sequence textures
+	# Robin special: inject spin sequence + flair kick + bowsurf textures
 	if "_sprite_spin360" in tower and _tower_sprite_textures.has(_spr_key + "_spin360"):
 		tower._sprite_spin360 = _tower_sprite_textures[_spr_key + "_spin360"]
 	if "_sprite_spindown" in tower and _tower_sprite_textures.has(_spr_key + "_spindown"):
 		tower._sprite_spindown = _tower_sprite_textures[_spr_key + "_spindown"]
+	# Flair kick frame (first flair texture triggers dance sequence)
+	if "_sprite_flair" in tower and _tower_flair_textures.has(_spr_key) and _tower_flair_textures[_spr_key].size() > 0:
+		tower._sprite_flair = _tower_flair_textures[_spr_key][0]
+	# Bowsurf texture
+	if "_sprite_bowsurf" in tower and _tower_sprite_textures.has(_spr_key + "_bowsurf"):
+		tower._sprite_bowsurf = _tower_sprite_textures[_spr_key + "_bowsurf"]
 	towers_node.add_child(tower)
 	# Build animation + juice — 2026 quality placement feel
 	if "_build_timer" in tower:

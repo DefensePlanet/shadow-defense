@@ -22,7 +22,8 @@ var _sprite_flair: Texture2D = null     # Kick/leg move (dance seq frame 1)
 var _sprite_spin360: Texture2D = null   # 360 twirl (dance seq frame 2)
 var _sprite_spindown: Texture2D = null  # Headspin (dance seq frame 3)
 var flair_textures: Array = []          # Single-frame flairs (flair2, flair3) injected by main.gd
-var _anim_frame: int = 0  # 0=idle, 1=attack, 2=shoot, 3=kick, 4=spin360, 5=headspin, 6=single_flair
+var _sprite_bowsurf: Texture2D = null   # Bow surfing (celebration)
+var _anim_frame: int = 0  # 0=idle, 1=attack, 2=shoot, 3=kick, 4=spin360, 5=headspin, 6=single_flair, 7=bowsurf
 var _flair_timer: float = 0.0          # Counts up to flair interval
 var _flair_phase: int = 0              # 0=not dancing, 1=kick, 2=spin360, 3=headspin, 4=single_flair
 var _flair_phase_timer: float = 0.0    # Timer within current flair phase
@@ -225,22 +226,8 @@ func _ready() -> void:
 	_upgrade_player.stream = _upgrade_sound
 	_upgrade_player.volume_db = -10.0
 	add_child(_upgrade_player)
-	# Load HERO SPRITE animation frames (upgraded art)
-	var _atk_path = "res://assets/hero_sprites/robin_hood/robin_hood_attack.png"
-	var _sht_path = "res://assets/hero_sprites/robin_hood/robin_hood_shoot.png"
-	var _flr_path = "res://assets/hero_sprites/robin_hood/robin_hood_flair1.png"
-	var _s36_path = "res://assets/hero_sprites/robin_hood/robin_hood_spin360.png"
-	var _spd_path = "res://assets/hero_sprites/robin_hood/robin_hood_spindown.png"
-	if ResourceLoader.exists(_atk_path):
-		_sprite_attack = load(_atk_path)
-	if ResourceLoader.exists(_sht_path):
-		_sprite_shoot = load(_sht_path)
-	if ResourceLoader.exists(_flr_path):
-		_sprite_flair = load(_flr_path)
-	if ResourceLoader.exists(_s36_path):
-		_sprite_spin360 = load(_s36_path)
-	if ResourceLoader.exists(_spd_path):
-		_sprite_spindown = load(_spd_path)
+	# Animation textures injected by main.gd at placement time via Image.load()
+	# (ResourceLoader can't load hero sprites without .import cache)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -295,6 +282,14 @@ func _process(delta: float) -> void:
 						_flair_phase = 0
 			elif _flair_phase == 3:
 				_anim_frame = 5  # Headspin
+				if _flair_phase_timer <= 0.0:
+					if _sprite_bowsurf:
+						_flair_phase = 5
+						_flair_phase_timer = 1.6  # Bowsurf duration
+					else:
+						_flair_phase = 0
+			elif _flair_phase == 5:
+				_anim_frame = 7  # Bowsurf
 				if _flair_phase_timer <= 0.0:
 					_flair_phase = 0
 			elif _flair_phase == 4:
@@ -1330,6 +1325,9 @@ func _draw() -> void:
 				6:
 					if _flair_current_single:
 						_active_tex = _flair_current_single  # single flair
+				7:
+					if _sprite_bowsurf:
+						_active_tex = _sprite_bowsurf  # bow surfing
 		var _ss = Vector2(_active_tex.get_width(), _active_tex.get_height())
 		var _sf = 120.0 / _ss.y
 		var _sd = _ss * _sf
