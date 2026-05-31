@@ -9031,16 +9031,14 @@ func _load_tower_sprite_textures() -> void:
 		if img.load(abs_path) == OK:
 			if img.get_format() != Image.FORMAT_RGBA8:
 				img.convert(Image.FORMAT_RGBA8)
-			# Strip gray/checkerboard background pixels (nano-banana bakes them in)
+			# Strip gray background pixels — wide range (nano-banana bakes gray 90-230)
 			for py in range(img.get_height()):
 				for px in range(img.get_width()):
 					var c = img.get_pixel(px, py)
-					# Gray detection: all channels similar, in the gray range
+					if c.a < 0.01:
+						continue  # Already transparent
 					var avg = (c.r + c.g + c.b) / 3.0
-					if absf(c.r - avg) < 0.06 and absf(c.g - avg) < 0.06 and absf(c.b - avg) < 0.06 and avg > 0.55 and avg < 0.90:
-						img.set_pixel(px, py, Color(0, 0, 0, 0))
-					# Also strip near-white checkerboard squares
-					elif c.r > 0.88 and c.g > 0.88 and c.b > 0.88:
+					if absf(c.r - avg) < 0.10 and absf(c.g - avg) < 0.10 and absf(c.b - avg) < 0.10 and avg > 0.35 and avg < 0.92:
 						img.set_pixel(px, py, Color(0, 0, 0, 0))
 			tex = ImageTexture.create_from_image(img)
 		if tex == null:
@@ -26168,27 +26166,38 @@ func _draw_path_surface_detail(pts: PackedVector2Array, style: Dictionary) -> vo
 				draw_line(pts[k], pts[k + 1], Color(0.30, 0.15, 0.50, 0.08 + glow * 0.06), 4.0)
 
 func _draw_path_arrows(pts: PackedVector2Array, style: Dictionary) -> void:
-	# Draw chevron arrows along the path every ~120px showing direction of travel
+	# Modern flowing dots along the path — like energy flowing through a circuit
 	if pts.size() < 2:
 		return
-	var arrow_spacing = 120.0
-	var half_w = style["width"] * 0.35
-	var accumulated = 0.0
-	var arrow_col = Color(1.0, 1.0, 1.0, 0.18)
+	# Calculate total path length
+	var total_len = 0.0
+	var seg_lengths: Array = []
 	for k in range(pts.size() - 1):
-		var seg_len = pts[k].distance_to(pts[k + 1])
-		accumulated += seg_len
-		if accumulated >= arrow_spacing:
-			accumulated -= arrow_spacing
-			var p = pts[k]
-			var dir = (pts[k + 1] - pts[k]).normalized()
-			var n = Vector2(-dir.y, dir.x)
-			# Draw chevron (> shape pointing in travel direction)
-			var tip = p + dir * 6.0
-			var left = p - dir * 4.0 + n * half_w
-			var right = p - dir * 4.0 - n * half_w
-			draw_line(left, tip, arrow_col, 2.0)
-			draw_line(right, tip, arrow_col, 2.0)
+		var sl = pts[k].distance_to(pts[k + 1])
+		seg_lengths.append(sl)
+		total_len += sl
+	if total_len < 10.0:
+		return
+	# 8 flowing dots, evenly spaced, animated along the path
+	var dot_count = 8
+	var dot_col = Color(0.85, 0.75, 0.50, 0.25)
+	var dot_glow = Color(0.85, 0.75, 0.50, 0.08)
+	for di in range(dot_count):
+		# Each dot flows along the path over time
+		var phase = fmod(_time * 0.15 + float(di) / float(dot_count), 1.0)
+		var target_dist = phase * total_len
+		# Find position on path at this distance
+		var accum = 0.0
+		for k in range(seg_lengths.size()):
+			if accum + seg_lengths[k] >= target_dist:
+				var t = (target_dist - accum) / maxf(seg_lengths[k], 0.1)
+				var pos = pts[k].lerp(pts[k + 1], t)
+				# Subtle pulsing dot with glow
+				var pulse = 0.7 + sin(_time * 3.0 + float(di) * 1.5) * 0.3
+				draw_circle(pos, 5.0, Color(dot_glow.r, dot_glow.g, dot_glow.b, dot_glow.a * pulse))
+				draw_circle(pos, 2.5, Color(dot_col.r, dot_col.g, dot_col.b, dot_col.a * pulse))
+				break
+			accum += seg_lengths[k]
 
 func _draw_entry_exit_markers(pts: PackedVector2Array) -> void:
 	if pts.size() < 2:
