@@ -9927,12 +9927,12 @@ func _create_ui() -> void:
 	bottom_panel.add_child(tower_bar_bg)
 	bottom_panel.move_child(tower_bar_bg, 0)
 
-	var btn_h = 34
-	var row1_y = 56
+	var btn_h = 40
+	var row1_y = 2
 	var row2_y = 46
-	var btn_w = 122
+	var btn_w = 152
 
-	# Row 1: Base towers — buttons at bottom, portraits drawn above via _draw()
+	# Row 1: Base 6 towers (proven working button style)
 	var base_towers = [
 		[TowerType.ROBIN_HOOD, "Robin [%dG]" % tower_info[TowerType.ROBIN_HOOD]["cost"], "Robin Hood — long range archer, gold bonus."],
 		[TowerType.ALICE, "Alice [%dG]" % tower_info[TowerType.ALICE]["cost"], "Alice — cake, slows enemies in area."],
@@ -9940,11 +9940,11 @@ func _create_ui() -> void:
 		[TowerType.PETER_PAN, "Peter [%dG]" % tower_info[TowerType.PETER_PAN]["cost"], "Peter Pan — fast daggers, shadow."],
 		[TowerType.PHANTOM, "Phantom [%dG]" % tower_info[TowerType.PHANTOM]["cost"], "Phantom — heavy hits, stun, chandelier."],
 		[TowerType.SCROOGE, "Scrooge [%dG]" % tower_info[TowerType.SCROOGE]["cost"], "Scrooge — bell, knockback & gold gen."],
-		[TowerType.ROBIN_HOOD_2, "Robin2 [%dG]" % tower_info[TowerType.ROBIN_HOOD_2]["cost"], "Robin 2 — Hero Sprite test."],
+		[TowerType.ROBIN_HOOD_2, "Robin2 [20G]", "Robin 2 — Hero Sprite test."],
 	]
 	for i in range(base_towers.size()):
 		var bt = base_towers[i]
-		var bx = 6 + i * (btn_w + 4)
+		var bx = 8 + i * (btn_w + 6)
 		var btn = _make_button(bt[1], Vector2(bx, row1_y), Vector2(btn_w, btn_h))
 		btn.pressed.connect(_on_tower_pressed.bind(bt[0], bt[2] + " Cancel to abort."))
 		bottom_panel.add_child(btn)
@@ -12216,7 +12216,7 @@ func _do_level_start(index: int) -> void:
 			tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
 			tower_buttons[tt].disabled = false
 			tower_buttons[tt].visible = true
-			tower_buttons[tt].position = Vector2(6 + row1_visible_idx * 126, 56)
+			tower_buttons[tt].position = Vector2(8 + row1_visible_idx * 158, 2)
 			row1_visible_idx += 1
 		else:
 			tower_buttons[tt].visible = false
@@ -25626,27 +25626,24 @@ func _draw_tower_button_portraits() -> void:
 		TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge",
 		TowerType.ROBIN_HOOD_2: "robin_hood",
 	}
-	var psz = 48.0
+	var psz = 44.0
 	var panel_y = bottom_panel.position.y  # 626
 	for tt in row1_keys:
 		if not tower_buttons.has(tt) or not tower_buttons[tt].visible:
 			continue
 		var btn = tower_buttons[tt]
 		var portrait_key = row1_keys[tt]
-		# Button pos is relative to bottom_panel; convert to global draw coords
-		var gx = btn.position.x
-		var gy = panel_y + 4.0  # Top area of the bar
-		var bw = btn.custom_minimum_size.x if btn.custom_minimum_size.x > 0 else 122.0
-		# Dark rounded card behind portrait
-		draw_colored_polygon(_rrp(Rect2(gx, gy, bw, psz + 4), 10.0), Color(0.06, 0.04, 0.12, 0.88))
-		draw_polyline(_rrp(Rect2(gx, gy, bw, psz + 4), 10.0) + PackedVector2Array([_rrp(Rect2(gx, gy, bw, psz + 4), 10.0)[0]]), Color(0.55, 0.42, 0.18, 0.45), 1.5)
-		# Portrait centered in card
+		# Button pos is relative to bottom_panel; portrait draws above button in global coords
+		var gx = btn.position.x + 52.0  # Center portrait in the 152px button
+		var gy = panel_y - psz - 6.0  # Draw ABOVE the bottom panel
+		# Portrait with dark circle background
+		draw_circle(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 4.0, Color(0.06, 0.04, 0.12, 0.9))
+		draw_arc(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 4.0, 0, TAU, 32, Color(0.55, 0.42, 0.18, 0.6), 2.0)
 		if _portrait_textures.has(portrait_key):
-			var cx = gx + (bw - psz) / 2.0
-			draw_texture_rect(_portrait_textures[portrait_key], Rect2(cx, gy + 2, psz, psz), false)
-		# Highlight if this tower is currently selected for placement
+			draw_texture_rect(_portrait_textures[portrait_key], Rect2(gx, gy, psz, psz), false)
+		# Gold ring highlight when selected
 		if placing_tower and selected_tower == tt:
-			draw_colored_polygon(_rrp(Rect2(gx, gy, bw, psz + 4), 10.0), Color(1.0, 0.85, 0.2, 0.15))
+			draw_arc(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 6.0, 0, TAU, 32, Color(1.0, 0.85, 0.2, 0.8), 3.0)
 
 func _draw_ingame_settings() -> void:
 	var font = game_font
