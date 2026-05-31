@@ -10234,7 +10234,7 @@ func _create_ui() -> void:
 
 	# Portrait — wide banner filling panel width, shows character with background
 	var _port_w = _pw - 16  # Full width minus padding
-	var _port_h = 80        # Banner height
+	var _port_h = 100       # Banner height — tall enough to show full head
 	var _port_x = 8
 	var _port_y = 40
 	var portrait_border = ColorRect.new()
@@ -10259,7 +10259,7 @@ func _create_ui() -> void:
 	upgrade_panel.add_child(portrait_draw_ctrl)
 
 	# Targeting priority button
-	targeting_button = _make_button("Target: FIRST", Vector2(20, 126), Vector2(_pw - 40, 26))
+	targeting_button = _make_button("Target: FIRST", Vector2(20, 146), Vector2(_pw - 40, 26))
 	targeting_button.add_theme_font_size_override("font_size", 13)
 	targeting_button.pressed.connect(_on_targeting_pressed)
 	upgrade_panel.add_child(targeting_button)
@@ -10275,7 +10275,7 @@ func _create_ui() -> void:
 	var col_w = 108    # Column width
 	var col_gap = 4    # Gap between columns
 	var col_start_x = 8
-	var grid_top_y = 158  # Top of upgrade grid
+	var grid_top_y = 178  # Top of upgrade grid
 	var row_h = 130    # Row height per tier
 	var row_gap = 4    # Gap between rows
 
