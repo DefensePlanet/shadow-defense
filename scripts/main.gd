@@ -12165,9 +12165,10 @@ func _do_level_start(index: int) -> void:
 	# Polyrhythm system: initialize world music mode, swing, drum style for this level
 	if _poly != null:
 		_poly.on_level_start(index)
-	menu_overlay.visible = false
 	# Hide menu v2 CanvasLayer so it doesn't cover gameplay
 	_hide_menu_v2()
+	# Hide old menu overlay AFTER _hide_menu_v2 (which re-enables it)
+	menu_overlay.visible = false
 	$UI.visible = true
 	top_bar.visible = true
 	bottom_panel.visible = true
