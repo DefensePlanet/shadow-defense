@@ -24566,15 +24566,27 @@ func _try_place_tower(pos: Vector2) -> void:
 	if "_sprite_spindown" in tower and _tower_sprite_textures.has(_spr_key + "_spindown"):
 		tower._sprite_spindown = _tower_sprite_textures[_spr_key + "_spindown"]
 	towers_node.add_child(tower)
-	# Build animation + juice
+	# Build animation + juice — 2026 quality placement feel
 	if "_build_timer" in tower:
-		tower._build_timer = 0.5
-	_build_effects.append({"pos": pos, "timer": 0.5, "max_timer": 0.5})
+		tower._build_timer = 0.8
+	# Rich build effect with multiple phases
+	var char_glow = _get_character_glow_color(_tower_type_to_name(_actual_tower))
+	var dust_particles: Array = []
+	for di in range(12):
+		var angle = randf() * TAU
+		var speed = randf_range(40.0, 120.0)
+		var sz = randf_range(2.0, 5.0)
+		dust_particles.append({"a": angle, "s": speed, "sz": sz, "life": randf_range(0.4, 0.9)})
+	_build_effects.append({
+		"pos": pos, "timer": 1.0, "max_timer": 1.0,
+		"color": char_glow, "dust": dust_particles,
+		"tower_name": tower_info[_actual_tower]["name"]
+	})
 	_play_sfx(_sfx_ui_click)
 	_haptic(1)
-	_screen_shake_intensity = 2.0
-	_screen_shake_timer = 0.1
-	spawn_floating_text(pos + Vector2(0, -35), tower_info[_actual_tower]["name"] + "!", Color(0.4, 0.9, 0.5), 16.0, 1.0)
+	_screen_shake_intensity = 4.0
+	_screen_shake_timer = 0.15
+	spawn_floating_text(pos + Vector2(0, -40), tower_info[_actual_tower]["name"] + "!", Color(0.4, 0.95, 0.5), 18.0, 1.2)
 	# Apply meta-progression buffs (level + knowledge + gear)
 	_apply_meta_buffs(tower, _actual_tower)
 
@@ -24954,16 +24966,79 @@ func _draw() -> void:
 
 	# === BUILD EFFECTS (collapsing golden ring + sparkles) ===
 	for be in _build_effects:
-		var be_t = 1.0 - clampf(be["timer"] / be["max_timer"], 0.0, 1.0)
-		var be_alpha = 1.0 - be_t
-		var be_r = 40.0 * (1.0 - be_t) + 10.0
-		draw_arc(be["pos"], be_r, 0, TAU, 32, _ca(c_gold_bright, be_alpha * 0.6), 2.5)
-		# 6 orbiting sparkles
-		for si in range(6):
-			var sa = _time * 8.0 + float(si) * TAU / 6.0
-			var sr = be_r * 0.8
-			var sp = be["pos"] + Vector2(cos(sa), sin(sa)) * sr
-			draw_circle(sp, 2.0 * be_alpha, Color(1.0, 0.95, 0.5, be_alpha * 0.7))
+		var be_t = clampf(1.0 - be["timer"] / be["max_timer"], 0.0, 1.0)  # 0→1 progress
+		var be_pos = be["pos"]
+		var char_col = be.get("color", c_gold_bright)
+
+		# Phase 1 (0-0.3): Ground impact — expanding shockwave ring + dust burst
+		if be_t < 0.4:
+			var ring_t = be_t / 0.4
+			var ring_r = 10.0 + ring_t * 50.0
+			var ring_a = (1.0 - ring_t) * 0.7
+			# Shockwave ring
+			draw_arc(be_pos, ring_r, 0, TAU, 32, Color(char_col.r, char_col.g, char_col.b, ring_a), 3.0 * (1.0 - ring_t) + 0.5)
+			# Inner bright flash
+			var flash_a = (1.0 - ring_t) * 0.5
+			draw_circle(be_pos, 15.0 * (1.0 - ring_t * 0.5), Color(1.0, 0.95, 0.8, flash_a))
+			# Ground crack lines (4 directions)
+			for ci in range(4):
+				var ca = float(ci) * TAU / 4.0 + 0.4
+				var crack_len = ring_t * 30.0
+				var crack_end = be_pos + Vector2(cos(ca), sin(ca)) * crack_len
+				draw_line(be_pos, crack_end, Color(char_col.r, char_col.g, char_col.b, ring_a * 0.6), 1.5)
+
+		# Phase 2 (0-0.8): Dust particles flying outward
+		if be.has("dust"):
+			for dp in be["dust"]:
+				var dp_life = dp["life"]
+				if be_t > dp_life:
+					continue
+				var dp_t = be_t / dp_life
+				var dp_dist = dp["s"] * dp_t * dp_t  # Decelerate
+				var dp_pos = be_pos + Vector2(cos(dp["a"]), sin(dp["a"])) * dp_dist
+				dp_pos.y -= dp_t * 20.0  # Float upward
+				var dp_alpha = (1.0 - dp_t) * 0.6
+				var dp_sz = dp["sz"] * (1.0 - dp_t * 0.5)
+				# Warm dust color
+				draw_circle(dp_pos, dp_sz, Color(0.85, 0.75, 0.55, dp_alpha))
+				draw_circle(dp_pos, dp_sz * 0.5, Color(1.0, 0.95, 0.8, dp_alpha * 0.5))
+
+		# Phase 3 (0.2-0.7): Rising energy pillar
+		if be_t > 0.15 and be_t < 0.7:
+			var pillar_t = clampf((be_t - 0.15) / 0.55, 0.0, 1.0)
+			var pillar_h = 60.0 * pillar_t
+			var pillar_a = (1.0 - pillar_t) * 0.3
+			# Vertical light beam
+			for pi in range(3):
+				var pw = 6.0 - float(pi) * 1.5
+				var pc = Color(char_col.r, char_col.g, char_col.b, pillar_a * (1.0 - float(pi) * 0.25))
+				draw_rect(Rect2(be_pos.x - pw / 2.0, be_pos.y - pillar_h, pw, pillar_h), pc)
+
+		# Phase 4 (0.3-1.0): Orbiting sparkle ring that tightens
+		if be_t > 0.25:
+			var orb_t = clampf((be_t - 0.25) / 0.75, 0.0, 1.0)
+			var orb_r = 35.0 * (1.0 - orb_t * 0.7)
+			var orb_a = (1.0 - orb_t) * 0.8
+			for si in range(8):
+				var sa = _time * 6.0 + float(si) * TAU / 8.0
+				var sp = be_pos + Vector2(cos(sa), sin(sa)) * orb_r
+				sp.y -= orb_t * 15.0
+				draw_circle(sp, 2.5 * (1.0 - orb_t * 0.5), Color(char_col.r, char_col.g, char_col.b, orb_a))
+				# Tiny trail behind each sparkle
+				var trail_pos = be_pos + Vector2(cos(sa - 0.3), sin(sa - 0.3)) * orb_r
+				trail_pos.y -= orb_t * 15.0
+				draw_circle(trail_pos, 1.5 * (1.0 - orb_t), Color(1.0, 1.0, 1.0, orb_a * 0.3))
+
+		# Phase 5 (0.7-1.0): Final pop — character-colored starburst
+		if be_t > 0.7:
+			var pop_t = clampf((be_t - 0.7) / 0.3, 0.0, 1.0)
+			var pop_a = (1.0 - pop_t) * 0.6
+			for ri in range(6):
+				var ra = float(ri) * TAU / 6.0 + _time * 2.0
+				var ray_len = 20.0 + pop_t * 25.0
+				var ray_end = be_pos + Vector2(cos(ra), sin(ra)) * ray_len
+				ray_end.y -= 10.0
+				draw_line(be_pos + Vector2(0, -10), ray_end, Color(char_col.r, char_col.g, char_col.b, pop_a), 2.0 * (1.0 - pop_t) + 0.5)
 
 	# === Pulsing gold indicators on affordable-to-upgrade towers ===
 	for tower in _cached_towers:

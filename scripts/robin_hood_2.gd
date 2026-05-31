@@ -989,7 +989,7 @@ func _draw_tower_aura() -> void:
 func _draw() -> void:
 	# Build animation — elastic scale-in
 	if _build_timer > 0.0:
-		var bt = 1.0 - clampf(_build_timer / 0.5, 0.0, 1.0)
+		var bt = 1.0 - clampf(_build_timer / 0.8, 0.0, 1.0)
 		var elastic = 1.0 + sin(bt * PI * 2.5) * 0.3 * (1.0 - bt)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(elastic, elastic))
 
