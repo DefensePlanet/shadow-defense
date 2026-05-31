@@ -2695,10 +2695,10 @@ var tower_quotes: Dictionary = {}
 
 # Voice-over catchphrase system (MP3 files from edge-tts)
 var catchphrase_player: AudioStreamPlayer
-var placement_voice_clips: Dictionary = {}  # TowerType â†’ Array[AudioStreamMP3]
-var fighting_voice_clips: Dictionary = {}   # TowerType â†’ Array[AudioStreamMP3]
-var placement_quotes: Dictionary = {}       # TowerType â†’ Array[String]
-var fighting_quotes: Dictionary = {}        # TowerType â†’ Array[String]
+var placement_voice_clips: Dictionary = {}  # TowerType â†' Array[AudioStreamMP3]
+var fighting_voice_clips: Dictionary = {}   # TowerType â†' Array[AudioStreamMP3]
+var placement_quotes: Dictionary = {}       # TowerType â†' Array[String]
+var fighting_quotes: Dictionary = {}        # TowerType â†' Array[String]
 var _fighting_quote_timer: float = 25.0
 
 # UI / Gameplay SFX (procedurally generated)
@@ -3893,7 +3893,7 @@ const MAP_SONGS: Array = [
 	},
 ]
 
-# Character â†’ layer index mapping
+# Character â†' layer index mapping
 const TOWER_LAYER_MAP: Dictionary = {
 	0: 1,   # ROBIN_HOOD â†' layer 1 (plucked strings / medieval lute)
 	1: 2,   # ALICE â†' layer 2 (music box / celesta)
@@ -5033,7 +5033,7 @@ const PATH_COSTS: Array = [
 	[150, 400, 1200],
 ]
 
-func _can_upgrade_path(tower_paths: Dictionary, path: String) -> bool:
+func _can_upgrade_path_legacy(tower_paths: Dictionary, path: String) -> bool:
 	var a = tower_paths.get("path_a", 0)
 	var b = tower_paths.get("path_b", 0)
 	var c = tower_paths.get("path_c", 0)
@@ -5273,18 +5273,18 @@ func _is_character_unlocked(tower_type) -> bool:
 
 func _init_emporium_items() -> void:
 	emporium_items = {
-		0: [  # Gold Exchange (gold â†’ other currencies)
+		0: [  # Gold Exchange (gold â†' other currencies)
 			{"name": "Quill Pouch", "desc": "Trade gold for writing tools", "cost": 50, "currency": "gold", "reward": "quills", "amount": 3},
 			{"name": "Quill Bundle", "desc": "A scholar's supply of quills", "cost": 150, "currency": "gold", "reward": "quills", "amount": 10},
 			{"name": "Torn Pages", "desc": "Convert gold to story pages", "cost": 100, "currency": "gold", "reward": "pages", "amount": 15},
 			{"name": "Storybook Star", "desc": "A star forged from golden ink", "cost": 200, "currency": "gold", "reward": "stars", "amount": 1},
 		],
-		1: [  # Enchanted Quills (shards â†’ quills)
+		1: [  # Enchanted Quills (shards â†' quills)
 			{"name": "Ink & Quill", "desc": "A basic writing set", "cost": 15, "currency": "pages", "reward": "quills", "amount": 3},
 			{"name": "Scribe's Bundle", "desc": "A scholar's collection", "cost": 40, "currency": "pages", "reward": "quills", "amount": 10},
 			{"name": "Arcane Library", "desc": "Ancient enchanted tomes", "cost": 80, "currency": "pages", "reward": "quills", "amount": 25},
 		],
-		2: [  # Pages (stars â†’ shards)
+		2: [  # Pages (stars â†' shards)
 			{"name": "Story Fragment", "desc": "A piece of a lost story", "cost": 1, "currency": "stars", "reward": "pages", "amount": 20},
 			{"name": "Page Bundle", "desc": "A bundle of enchanted pages", "cost": 2, "currency": "stars", "reward": "pages", "amount": 50},
 			{"name": "Prismatic Core", "desc": "Pure crystallized energy", "cost": 4, "currency": "stars", "reward": "pages", "amount": 120},
@@ -5294,17 +5294,17 @@ func _init_emporium_items() -> void:
 			{"name": "Silver Chest", "desc": "Uncommon gear awaits", "cost": 30, "currency": "pages", "reward": "chest_silver", "amount": 1},
 			{"name": "Gold Chest", "desc": "Legendary artifacts inside", "cost": 80, "currency": "pages", "reward": "chest_gold", "amount": 1},
 		],
-		4: [  # Survivor Packs (stars â†’ XP)
+		4: [  # Survivor Packs (stars â†' XP)
 			{"name": "Training Scroll", "desc": "Basic combat lessons", "cost": 1, "currency": "stars", "reward": "xp", "amount": 500},
 			{"name": "Battle Manual", "desc": "Advanced techniques", "cost": 2, "currency": "stars", "reward": "xp", "amount": 1500},
 			{"name": "War Chronicle", "desc": "Legendary battle wisdom", "cost": 4, "currency": "stars", "reward": "xp", "amount": 4000},
 		],
-		5: [  # Storybook Stars (quills â†’ stars)
+		5: [  # Storybook Stars (quills â†' stars)
 			{"name": "Fallen Star", "desc": "A faint glimmer of magic", "cost": 15, "currency": "quills", "reward": "stars", "amount": 1},
 			{"name": "Star Cluster", "desc": "A constellation captured", "cost": 35, "currency": "quills", "reward": "stars", "amount": 3},
 			{"name": "Celestial Nova", "desc": "Pure starlight essence", "cost": 60, "currency": "quills", "reward": "stars", "amount": 6},
 		],
-		7: [  # Battle Powers (shards â†’ powers)
+		7: [  # Battle Powers (shards â†' powers)
 			{"name": "Quill Strike", "desc": "500 damage to all on-screen enemies", "cost": 15, "currency": "pages", "reward": "power", "power_id": "quill_strike", "amount": 1},
 			{"name": "Golden Bounty", "desc": "+200 gold instantly", "cost": 10, "currency": "pages", "reward": "power", "power_id": "golden_bounty", "amount": 1},
 			{"name": "Storybook Shield", "desc": "Blocks next 10 life losses", "cost": 20, "currency": "pages", "reward": "power", "power_id": "storybook_shield", "amount": 1},
@@ -6337,7 +6337,7 @@ func _load_game() -> void:
 				new_ss.append(s)
 		data["story_seen"] = new_ss
 		data["save_version"] = 2
-	# v2 â†’ v3 migration: initialize new fields with defaults
+	# v2 â†' v3 migration: initialize new fields with defaults
 	if save_ver < 3:
 		data["prestige_level"] = data.get("prestige_level", 0)
 		data["combo_best"] = data.get("combo_best", 0)
@@ -6422,7 +6422,7 @@ func _load_game() -> void:
 			level_difficulty_stars[lvl_idx] = [s, 0, 0, 0]
 	# Survivor progress
 	var sp = data.get("survivor_progress", {})
-	# Build nameâ†’TowerType reverse lookup for name-based save keys
+	# Build nameâ†'TowerType reverse lookup for name-based save keys
 	var _name_to_type: Dictionary = {}
 	for tt in tower_info:
 		_name_to_type[tower_info[tt]["name"]] = tt
@@ -13364,7 +13364,7 @@ func _generate_ui_sfx() -> void:
 	_sfx_enemy_death.mix_rate = sr
 	_sfx_enemy_death.data = ed_data
 
-	# Victory — triumphant fanfare (800ms, C major chord â†’ G major resolve)
+	# Victory — triumphant fanfare (800ms, C major chord â†' G major resolve)
 	var vic_len = int(sr * 0.8)
 	var vic_data = PackedByteArray()
 	vic_data.resize(vic_len * 2)
@@ -20752,20 +20752,20 @@ func _get_story_map_node_positions() -> Array:
 	var nodes: Array = []
 	var row_h = 56.0
 	var start_y = 95.0
-	var lx = [200.0, 310.0, 420.0]  # Left column Lâ†’R
-	var lx_rev = [420.0, 310.0, 200.0]  # Left column Râ†’L
-	var rx = [810.0, 920.0, 1030.0]  # Right column Lâ†’R
-	var rx_rev = [1030.0, 920.0, 810.0]  # Right column Râ†’L
+	var lx = [200.0, 310.0, 420.0]  # Left column Lâ†'R
+	var lx_rev = [420.0, 310.0, 200.0]  # Left column Râ†'L
+	var rx = [810.0, 920.0, 1030.0]  # Right column Lâ†'R
+	var rx_rev = [1030.0, 920.0, 810.0]  # Right column Râ†'L
 	# Level 0: Prologue — centered in left column
 	nodes.append(Vector2(310.0, start_y))
-	# Levels 1-15: Left column arcs 1-5 (Sherlock â†’ Frankenstein)
+	# Levels 1-15: Left column arcs 1-5 (Sherlock â†' Frankenstein)
 	for r in range(5):
 		var y = start_y + float(r + 1) * row_h
 		var xs = lx if r % 2 == 0 else lx_rev
 		nodes.append(Vector2(xs[0], y))
 		nodes.append(Vector2(xs[1], y))
 		nodes.append(Vector2(xs[2], y))
-	# Levels 16-33: Right column arcs 6-11 (Robin Hood â†’ Scrooge)
+	# Levels 16-33: Right column arcs 6-11 (Robin Hood â†' Scrooge)
 	for r in range(6):
 		var y = start_y + float(r) * row_h
 		var xs = rx if r % 2 == 0 else rx_rev
@@ -30706,7 +30706,7 @@ func _start_layered_music(level_idx: int) -> void:
 
 	# Helper: get frequency for a scale degree
 	# degree 0 = root, degree 7 = octave up, etc.
-	# We use the scale array to map degree â†’ semitones â†’ freq
+	# We use the scale array to map degree â†' semitones â†' freq
 
 	# --- Layer 1: ROBIN HOOD — Plucked Strings (arpeggiated chords) ---
 	var strings_data := PackedFloat32Array()
@@ -35475,24 +35475,24 @@ func _update_upgrade_panel() -> void:
 		_hide_upgrade_panel()
 		return
 	var tower = selected_tower_node
-	var display_name = tower.get_tower_display_name() if tower.has_method(“get_tower_display_name”) else “Tower”
+	var display_name = tower.get_tower_display_name() if tower.has_method("get_tower_display_name") else "Tower"
 	upgrade_name_label.text = display_name
 
 	# Update targeting priority button
-	if tower.has_method(“get_targeting_label”):
-		targeting_button.text = “Target: %s” % tower.get_targeting_label()
+	if tower.has_method("get_targeting_label"):
+		targeting_button.text = "Target: %s" % tower.get_targeting_label()
 		targeting_button.visible = true
 	else:
 		targeting_button.visible = false
 
 	# === 3-PATH UPGRADE GRID ===
 	var tower_type_int: int = -1
-	if tower.has_meta(“tower_type_enum”):
-		tower_type_int = int(tower.get_meta(“tower_type_enum”))
+	if tower.has_meta("tower_type_enum"):
+		tower_type_int = int(tower.get_meta("tower_type_enum"))
 
 	var has_paths = UPGRADE_PATHS.has(tower_type_int)
-	var current_tiers = _get_tower_path_tiers(tower) if has_paths else {“A”: 0, “B”: 0, “C”: 0}
-	var path_keys = [“A”, “B”, “C”]
+	var current_tiers = _get_tower_path_tiers(tower) if has_paths else {"A": 0, "B": 0, "C": 0}
+	var path_keys = ["A", "B", "C"]
 	var path_colors_header = [
 		Color(0.95, 0.55, 0.35),  # A: warm
 		Color(0.45, 0.75, 0.95),  # B: cool
@@ -35505,13 +35505,13 @@ func _update_upgrade_panel() -> void:
 		var tiers_data = []
 		if has_paths:
 			path_data = UPGRADE_PATHS[tower_type_int].get(path_key, {})
-			tiers_data = path_data.get(“tiers”, [])
+			tiers_data = path_data.get("tiers", [])
 
 		# Update path header
 		if p < path_header_labels.size():
-			var pname = path_data.get(“name”, “Path “ + path_key)
-			path_header_labels[p].text = path_key + “: “ + pname
-			path_header_labels[p].add_theme_color_override(“font_color”, path_colors_header[p])
+			var pname = path_data.get("name", "Path " + path_key)
+			path_header_labels[p].text = path_key + ": " + pname
+			path_header_labels[p].add_theme_color_override("font_color", path_colors_header[p])
 			path_header_labels[p].visible = has_paths
 
 		var owned_tier = current_tiers.get(path_key, 0)
@@ -35533,19 +35533,19 @@ func _update_upgrade_panel() -> void:
 			status_rect.visible = true
 
 			var tier_data = tiers_data[t]
-			var tier_name = tier_data.get(“name”, “?”)
-			var tier_desc = tier_data.get(“desc”, “”)
-			var tier_cost = tier_data.get(“cost”, 0)
+			var tier_name = tier_data.get("name", "?")
+			var tier_desc = tier_data.get("desc", "")
+			var tier_cost = tier_data.get("cost", 0)
 
 			name_lbl.text = tier_name
 			desc_lbl.text = tier_desc
 
 			if t < owned_tier:
 				# OWNED — green
-				cost_lbl.text = “OWNED”
-				cost_lbl.add_theme_color_override(“font_color”, Color(0.4, 0.8, 0.3))
-				name_lbl.add_theme_color_override(“font_color”, Color(0.6, 0.85, 0.45))
-				desc_lbl.add_theme_color_override(“font_color”, Color(0.5, 0.7, 0.4, 0.7))
+				cost_lbl.text = "OWNED"
+				cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.8, 0.3))
+				name_lbl.add_theme_color_override("font_color", Color(0.6, 0.85, 0.45))
+				desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.4, 0.7))
 				status_rect.color = Color(0.06, 0.16, 0.04, 0.88)
 				status_rect.get_child(0).color = Color(0.3, 0.7, 0.2, 0.5)
 				btn.disabled = true
@@ -35555,66 +35555,66 @@ func _update_upgrade_panel() -> void:
 				var can_afford = gold >= tier_cost
 				if not can_path:
 					# Path-locked (BTD6 constraint)
-					cost_lbl.text = “LOCKED”
-					cost_lbl.add_theme_color_override(“font_color”, Color(0.6, 0.3, 0.3))
-					name_lbl.add_theme_color_override(“font_color”, Color(0.55, 0.4, 0.4))
-					desc_lbl.add_theme_color_override(“font_color”, Color(0.5, 0.4, 0.4, 0.6))
+					cost_lbl.text = "LOCKED"
+					cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.3, 0.3))
+					name_lbl.add_theme_color_override("font_color", Color(0.55, 0.4, 0.4))
+					desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.4, 0.6))
 					status_rect.color = Color(0.14, 0.04, 0.04, 0.85)
 					status_rect.get_child(0).color = Color(0.5, 0.2, 0.2, 0.4)
 					btn.disabled = true
 				elif can_afford:
 					# Affordable — gold highlight
-					cost_lbl.text = “%dG” % tier_cost
-					cost_lbl.add_theme_color_override(“font_color”, Color(1.0, 0.84, 0.0))
-					name_lbl.add_theme_color_override(“font_color”, Color(0.95, 0.88, 0.65))
-					desc_lbl.add_theme_color_override(“font_color”, Color(0.82, 0.78, 0.70, 0.85))
+					cost_lbl.text = "%dG" % tier_cost
+					cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
+					name_lbl.add_theme_color_override("font_color", Color(0.95, 0.88, 0.65))
+					desc_lbl.add_theme_color_override("font_color", Color(0.82, 0.78, 0.70, 0.85))
 					status_rect.color = Color(0.14, 0.10, 0.04, 0.88)
 					status_rect.get_child(0).color = _ca(c_gold, 0.6)
 					btn.disabled = false
 				else:
 					# Too expensive
-					cost_lbl.text = “%dG” % tier_cost
-					cost_lbl.add_theme_color_override(“font_color”, Color(0.6, 0.4, 0.3))
-					name_lbl.add_theme_color_override(“font_color”, Color(0.75, 0.68, 0.55))
-					desc_lbl.add_theme_color_override(“font_color”, Color(0.65, 0.60, 0.55, 0.7))
+					cost_lbl.text = "%dG" % tier_cost
+					cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.3))
+					name_lbl.add_theme_color_override("font_color", Color(0.75, 0.68, 0.55))
+					desc_lbl.add_theme_color_override("font_color", Color(0.65, 0.60, 0.55, 0.7))
 					status_rect.color = Color(0.10, 0.07, 0.12, 0.85)
 					status_rect.get_child(0).color = Color(0.4, 0.3, 0.5, 0.3)
 					btn.disabled = true
 			else:
 				# FUTURE TIER — locked, dimmed
-				cost_lbl.text = “%dG” % tier_cost
-				cost_lbl.add_theme_color_override(“font_color”, Color(0.35, 0.30, 0.28))
-				name_lbl.add_theme_color_override(“font_color”, Color(0.45, 0.40, 0.40))
-				desc_lbl.add_theme_color_override(“font_color”, Color(0.40, 0.38, 0.42, 0.5))
+				cost_lbl.text = "%dG" % tier_cost
+				cost_lbl.add_theme_color_override("font_color", Color(0.35, 0.30, 0.28))
+				name_lbl.add_theme_color_override("font_color", Color(0.45, 0.40, 0.40))
+				desc_lbl.add_theme_color_override("font_color", Color(0.40, 0.38, 0.42, 0.5))
 				status_rect.color = Color(0.07, 0.05, 0.10, 0.7)
 				status_rect.get_child(0).color = Color(0.22, 0.18, 0.28, 0.3)
 				btn.disabled = true
 
 	# Update sell button
-	if tower.has_method(“get_sell_value”):
+	if tower.has_method("get_sell_value"):
 		var sv = tower.get_sell_value()
-		sell_value_label.text = “Refund: %dG” % sv
+		sell_value_label.text = "Refund: %dG" % sv
 	else:
-		sell_value_label.text = “”
+		sell_value_label.text = ""
 
 	# Update hero ability button
-	var hab = upgrade_panel.get_node_or_null(“HeroAbilityBtn”)
+	var hab = upgrade_panel.get_node_or_null("HeroAbilityBtn")
 	if hab:
-		if tower.has_method(“activate_hero_ability”):
+		if tower.has_method("activate_hero_ability"):
 			hab.visible = true
-			var ab_name = tower.get_active_ability_name() if tower.has_method(“get_active_ability_name”) else “ABILITY”
-			if “active_ability_ready” in tower and tower.active_ability_ready:
+			var ab_name = tower.get_active_ability_name() if tower.has_method("get_active_ability_name") else "ABILITY"
+			if "active_ability_ready" in tower and tower.active_ability_ready:
 				hab.text = ab_name
 				hab.disabled = false
 			else:
-				var cd_left = tower.active_ability_cooldown if “active_ability_cooldown” in tower else 0.0
-				hab.text = “%s (%ds)” % [ab_name, int(cd_left)]
+				var cd_left = tower.active_ability_cooldown if "active_ability_cooldown" in tower else 0.0
+				hab.text = "%s (%ds)" % [ab_name, int(cd_left)]
 				hab.disabled = true
 		else:
 			hab.visible = false
 
 	# Trigger portrait redraw
-	var portrait_ctrl = upgrade_panel.get_node_or_null(“PortraitDraw”)
+	var portrait_ctrl = upgrade_panel.get_node_or_null("PortraitDraw")
 	if portrait_ctrl:
 		portrait_ctrl.queue_redraw()
 
