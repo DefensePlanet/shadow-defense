@@ -24382,6 +24382,26 @@ func _handle_back_button() -> void:
 			return
 
 func _input(event: InputEvent) -> void:
+	# Pause overlay buttons — handle clicks on Resume/Quit when paused
+	if game_paused and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var mpos = get_viewport().get_mouse_position()
+		var pp_x = 390.0
+		var pp_w = 500.0
+		# Resume button
+		if Rect2(pp_x + 100, 336, pp_w - 200, 36).has_point(mpos):
+			game_paused = false
+			Engine.time_scale = _game_speed_level if fast_forward else 1.0
+			start_button.text = "  PAUSE  "
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+			return
+		# Quit to Menu button
+		if Rect2(pp_x + 100, 386, pp_w - 200, 36).has_point(mpos):
+			game_paused = false
+			Engine.time_scale = 1.0
+			_go_to_menu()
+			get_viewport().set_input_as_handled()
+			return
 	# Story dialog overrides menu input guard — must check FIRST
 	if story_state.active and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_on_story_dialog_clicked(get_viewport().get_mouse_position())
@@ -35937,15 +35957,8 @@ func _on_speed_pressed() -> void:
 		if not game_paused:
 			Engine.time_scale = 4.0
 		speed_button.text = "  [4x]  "
-	elif not game_paused:
-		# Pause
-		game_paused = true
-		Engine.time_scale = 0.0
-		speed_button.text = " [PAUSED] "
-		spawn_floating_text(Vector2(640, 300), "PAUSED", Color(1.0, 0.9, 0.3), 24.0, 0.5)
 	else:
-		# Resume from pause → back to 1x
-		game_paused = false
+		# Cycle back to 1x (no pause on speed button — pause is separate)
 		fast_forward = false
 		_game_speed_level = 1.0
 		Engine.time_scale = 1.0
@@ -35988,17 +36001,16 @@ func _on_start_wave_pressed() -> void:
 	_play_sfx(_sfx_ui_click)
 	_haptic(0)
 	if is_wave_active:
+		# During a wave, this button toggles pause
 		if game_paused:
-			# Resume
 			game_paused = false
 			Engine.time_scale = _game_speed_level if fast_forward else 1.0
 			start_button.text = "  PAUSE  "
 			queue_redraw()
 		else:
-			# Pause
 			game_paused = true
 			Engine.time_scale = 0.0
-			start_button.text = "  â–¶ Resume  "
+			start_button.text = "  RESUME  "
 			queue_redraw()
 		return
 	# Skip planning phase if active (#101)
