@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/captain_hook.gd" id="1"]
+
+[node name="CaptainHook" type="Node2D"]
+script = ExtResource("1")

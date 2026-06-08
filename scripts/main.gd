@@ -4816,6 +4816,12 @@ var character_id_to_tower_type: Dictionary = {
 	"merlin": TowerType.MERLIN,
 	"frankenstein": TowerType.FRANKENSTEIN,
 	"shadow_author": TowerType.SHADOW_AUTHOR,
+	"captain_hook": TowerType.CAPTAIN_HOOK,
+	"queen_of_hearts": TowerType.QUEEN_OF_HEARTS,
+	"clayton": TowerType.CLAYTON,
+	"headless_horseman": TowerType.HEADLESS_HORSEMAN,
+	"medusa": TowerType.MEDUSA,
+	"anubis": TowerType.ANUBIS,
 }
 
 # Map TowerType to scene path for new characters (loaded at runtime)
@@ -4826,6 +4832,12 @@ var new_tower_scene_paths: Dictionary = {
 	TowerType.MERLIN: "res://scenes/merlin.tscn",
 	TowerType.FRANKENSTEIN: "res://scenes/frankenstein.tscn",
 	TowerType.SHADOW_AUTHOR: "res://scenes/shadow_author.tscn",
+	TowerType.CAPTAIN_HOOK: "res://scenes/captain_hook.tscn",
+	TowerType.QUEEN_OF_HEARTS: "res://scenes/queen_of_hearts.tscn",
+	TowerType.CLAYTON: "res://scenes/clayton.tscn",
+	TowerType.HEADLESS_HORSEMAN: "res://scenes/headless_horseman.tscn",
+	TowerType.MEDUSA: "res://scenes/medusa.tscn",
+	TowerType.ANUBIS: "res://scenes/anubis.tscn",
 }
 
 func _refresh_unlocked_survivors() -> void:
