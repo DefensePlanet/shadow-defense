@@ -584,6 +584,38 @@ func purchase_upgrade() -> bool:
 	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
 	return true
 
+func apply_path_upgrade(path: String, tier: int) -> void:
+	match path:
+		"A":
+			match tier:
+				1: # Shadow — shadow fights at 50% damage
+					shadow_enabled = true
+					damage *= 1.15
+					fire_rate *= 1.1
+				2: # Lost Boys — 2 Lost Boys patrol and fight
+					damage *= 1.1
+				3: # Hook's Sword — +100% melee, cleaves 3
+					damage *= 2.0
+		"B":
+			match tier:
+				1: # Tinker Bell's Gift — fairy dust buffs towers +8%
+					fairy_dust_active = true
+					_apply_fairy_dust_buffs()
+				2: # Happy Thoughts — +15% dmg when wave starts
+					damage *= 1.15
+				3: # Second Star — Peter flies dropping bombs 10s
+					_second_star_active = true
+		"C":
+			match tier:
+				1: # Tick-Tock Croc — croc eats every 20th enemy
+					croc_enabled = true
+				2: # Mermaid Lagoon — water zone slows 50%
+					attack_range *= 1.1
+				3: # Big Adventure — adult form: 3x dmg, +25% allies
+					damage *= 3.0
+					neverland_active = true
+	_upgrade_flash = 3.0
+
 func get_tower_display_name() -> String:
 	return "Peter Pan"
 

@@ -40214,6 +40214,114 @@ const UPGRADE_PATHS: Dictionary = {
 			{"name": "THE END", "desc": "<30% erased. >30% take 50% maxHP", "cost": 1200},
 		]},
 	},
+	# Captain Hook (12) — J.M. Barrie, Peter and Wendy (1911)
+	12: {
+		"A": {"name": "The Iron Hook", "tiers": [
+			{"name": "Good Form", "desc": "+20% cutlass dmg, +15% speed", "cost": 120},
+			{"name": "Hook Combo", "desc": "Every 12s, rapid slashes hit all nearby 4x", "cost": 350},
+			{"name": "The Last Villain", "desc": "Invulnerable 5s, attacks all on screen 3x", "cost": 900},
+		]},
+		"B": {"name": "Pirate Captain", "tiers": [
+			{"name": "Cannon Broadside", "desc": "Every 15s, 4 cannonballs hit random 3x", "cost": 120},
+			{"name": "The Jolly Roger", "desc": "Pirate crew fires, 5 enemies hit 4x", "cost": 350},
+			{"name": "Pirate Armada", "desc": "Full broadside ALL enemies 5x + Smee heals", "cost": 900},
+		]},
+		"C": {"name": "Fear of the Clock", "tiers": [
+			{"name": "Poison Hook", "desc": "Attacks apply 3s poison DoT", "cost": 150},
+			{"name": "Tick-Tock Terror", "desc": "Every 12s, fear 3 enemies backwards 2s", "cost": 400},
+			{"name": "Crocodile's Return", "desc": "Every 30s, croc devours strongest + fear ALL 3s", "cost": 1200},
+		]},
+	},
+	# Queen of Hearts (13) — Lewis Carroll, Alice's Adventures in Wonderland (1865)
+	13: {
+		"A": {"name": "Royal Fury", "tiers": [
+			{"name": "Royal Decree", "desc": "+20% dmg, attacks knockback enemies", "cost": 120},
+			{"name": "Croquet Mallet", "desc": "Every 15s, flamingo mallet 4x AoE", "cost": 350},
+			{"name": "Off With ALL Heads", "desc": "All in range 5x + 2s stun + cleave 3", "cost": 900},
+		]},
+		"B": {"name": "Card Army", "tiers": [
+			{"name": "Card Soldiers", "desc": "2 card guards patrol and attack", "cost": 120},
+			{"name": "The Trial", "desc": "Every 20s, sentence strongest (50% HP kill)", "cost": 350},
+			{"name": "Royal Guard", "desc": "4 cards + Executioner instakills weakest/15s", "cost": 900},
+		]},
+		"C": {"name": "Wonderland Tyrant", "tiers": [
+			{"name": "Painting Roses", "desc": "Marks enemies: +10% dmg per stack (max 5)", "cost": 150},
+			{"name": "Hedge Maze", "desc": "Every 18s, thorns slow all 40% for 3s", "cost": 400},
+			{"name": "Tea Party Madness", "desc": "All towers +30% 8s + paint stacks spread on death", "cost": 1200},
+		]},
+	},
+	# Clayton (14) — Edgar Rice Burroughs, Tarzan of the Apes (1912)
+	14: {
+		"A": {"name": "Big Game Hunter", "tiers": [
+			{"name": "Safari Precision", "desc": "+25% rifle dmg, +10% speed", "cost": 120},
+			{"name": "Trophy Hunter", "desc": "2x gold from bosses + marked take +20%", "cost": 350},
+			{"name": "Elephant Gun", "desc": "Every 15s, 8x shot pierces 3 + 20% crit", "cost": 900},
+		]},
+		"B": {"name": "Safari Arsenal", "tiers": [
+			{"name": "Steel Trap", "desc": "Every 15s, trap roots next enemy 3s", "cost": 120},
+			{"name": "Dynamite Bundle", "desc": "Every 18s, explosion AoE 3x all in range", "cost": 350},
+			{"name": "Minefield", "desc": "5 mines on path (4x each) + traps chain", "cost": 900},
+		]},
+		"C": {"name": "Expedition Leader", "tiers": [
+			{"name": "Pith Helmet", "desc": "20% less damage taken", "cost": 150},
+			{"name": "Expedition Force", "desc": "Every 20s, 3 porters march and strike 3x", "cost": 400},
+			{"name": "Heart of Darkness", "desc": "Fear aura: all in range 50% slower permanently", "cost": 1200},
+		]},
+	},
+	# Headless Horseman (15) — Washington Irving, Legend of Sleepy Hollow (1820)
+	15: {
+		"A": {"name": "Hessian Warlord", "tiers": [
+			{"name": "Hessian Fury", "desc": "+25% sword dmg, +15% speed", "cost": 120},
+			{"name": "Midnight Ride", "desc": "Every 15s, gallop through enemies 4x", "cost": 350},
+			{"name": "Headless Charge", "desc": "Charge entire map every 15s 3x + cleave all", "cost": 900},
+		]},
+		"B": {"name": "Hellfire Rider", "tiers": [
+			{"name": "Flaming Pumpkin", "desc": "Attacks leave fire trail, 2s DoT", "cost": 120},
+			{"name": "Pumpkin Bombs", "desc": "Every 18s, 5 pumpkins scatter + explode 3x", "cost": 350},
+			{"name": "Hellfire Eruption", "desc": "Green hellfire all in 2x range 6x + burn aura", "cost": 900},
+		]},
+		"C": {"name": "The Legend", "tiers": [
+			{"name": "Spectral Armor", "desc": "Shield absorbs 50 dmg every 15s", "cost": 150},
+			{"name": "Sleepy Hollow Fog", "desc": "Every 18s, fog slows all 50% for 3s", "cost": 400},
+			{"name": "The Legend Lives", "desc": "25% flee chance on hit + bridge trap 6x + resurrect", "cost": 1200},
+		]},
+	},
+	# Medusa (16) — Greek Mythology, Ovid's Metamorphoses
+	16: {
+		"A": {"name": "Gorgon's Gaze", "tiers": [
+			{"name": "Gorgon's Wrath", "desc": "+20% dmg, attacks slow 15%", "cost": 120},
+			{"name": "Stone Gaze", "desc": "Every 12s, petrify nearest 3s + 2x dmg", "cost": 350},
+			{"name": "Garden of Stone", "desc": "Kills become statues blocking 3s + petrify 3", "cost": 900},
+		]},
+		"B": {"name": "Serpent Queen", "tiers": [
+			{"name": "Venom Fangs", "desc": "Attacks apply poison DoT 3s, stacking", "cost": 120},
+			{"name": "Serpent Swarm", "desc": "Every 18s, all snake hair strikes range 3x", "cost": 350},
+			{"name": "Blood of Gorgon", "desc": "2 serpent allies + venom stacks to 10 + chains", "cost": 900},
+		]},
+		"C": {"name": "Athena's Curse", "tiers": [
+			{"name": "Serpent Scales", "desc": "25% less damage taken", "cost": 150},
+			{"name": "Athena's Curse", "desc": "Every 15s, curse 3: slow 60% + 30% more dmg 5s", "cost": 400},
+			{"name": "Perseus's Mirror", "desc": "Reflect all dmg + cursed deaths petrify nearby", "cost": 1200},
+		]},
+	},
+	# Anubis (18) — Egyptian Mythology, Book of the Dead
+	18: {
+		"A": {"name": "Scales of Judgment", "tiers": [
+			{"name": "Scales of Ma'at", "desc": "+20% dmg, reveal true HP bars", "cost": 120},
+			{"name": "Embalmer's Touch", "desc": "Every 15s, strongest slowed 50% + DoT 4s", "cost": 350},
+			{"name": "Ammit the Devourer", "desc": "Every 10th kill devours strongest + 2x on weighed", "cost": 900},
+		]},
+		"B": {"name": "Lord of the Dead", "tiers": [
+			{"name": "Canopic Guardian", "desc": "Shield absorbs 60 dmg every 15s", "cost": 120},
+			{"name": "Ankh of Life", "desc": "Every 25s, restore 1 life", "cost": 350},
+			{"name": "Lord of Sacred Land", "desc": "Aura: 2%HP/s drain + towers +10% + self-resurrect", "cost": 900},
+		]},
+		"C": {"name": "Desert Wrath", "tiers": [
+			{"name": "Desert Scarabs", "desc": "Attacks spawn scarabs, 2s DoT", "cost": 120},
+			{"name": "Duat Gateway", "desc": "Every 20s, portal pulls 3 enemies back 200px", "cost": 350},
+			{"name": "Sandstorm Apocalypse", "desc": "Every 18s, 4x all in 3x range + blind 20%", "cost": 900},
+		]},
+	},
 	# Robin Hood 2 (20) — same paths as Robin Hood
 	20: {
 		"A": {"name": "The Archer", "tiers": [

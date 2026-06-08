@@ -771,6 +771,25 @@ func purchase_upgrade() -> bool:
 	if _upgrade_player and not _is_sfx_muted(): _upgrade_player.play()
 	return true
 
+
+func apply_path_upgrade(path: String, tier: int) -> void:
+	match path:
+		"A":
+			match tier:
+				1: life_drain_percent = 0.10
+				2: pass
+				3: damage *= 1.5
+		"B":
+			match tier:
+				1: pass
+				2: pass
+				3: pass
+		"C":
+			match tier:
+				1: pass
+				2: pass
+				3: pass
+	_upgrade_flash = 3.0
 func get_tower_display_name() -> String:
 	return "Dracula"
 

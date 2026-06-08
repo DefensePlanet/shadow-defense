@@ -554,6 +554,25 @@ func purchase_upgrade() -> bool:
 		_upgrade_player.play()
 	return true
 
+
+func apply_path_upgrade(path: String, tier: int) -> void:
+	match path:
+		"A":
+			match tier:
+				1: damage *= 1.3; attack_range *= 1.1
+				2: pass
+				3: pass
+		"B":
+			match tier:
+				1: pass
+				2: pass
+				3: pass
+		"C":
+			match tier:
+				1: pass
+				2: pass
+				3: pass
+	_upgrade_flash = 3.0
 func get_tower_display_name() -> String:
 	return "Frankenstein's Monster"
 
