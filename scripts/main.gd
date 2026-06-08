@@ -4543,7 +4543,9 @@ func _init_survivor_progress() -> void:
 	var all_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
 		TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE,
 		TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA,
-		TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
+		TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR,
+		TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON,
+		TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.ANUBIS]
 	for t in all_types:
 		survivor_progress[t] = {
 			"level": 1,
@@ -15906,7 +15908,7 @@ func _spawn_kill_effect(tower_type, pos: Vector2) -> void:
 
 func _get_tower_type_from_node(tower: Node2D):
 	var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
-	var type_map = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR}
+	var type_map = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR, "captain_hook.gd": TowerType.CAPTAIN_HOOK, "queen_of_hearts.gd": TowerType.QUEEN_OF_HEARTS, "clayton.gd": TowerType.CLAYTON, "headless_horseman.gd": TowerType.HEADLESS_HORSEMAN, "medusa.gd": TowerType.MEDUSA, "anubis.gd": TowerType.ANUBIS}
 	return type_map.get(sp, -1)
 
 # === ADVANCED CHARACTER PERSONALITY FUNCTIONS (Round 2) ===
@@ -28752,7 +28754,7 @@ func _auto_equip_best_gear(tower_type) -> int:
 		var score = rarity_scores.get(bdata.get("tier", "common"), 1)
 		# Bonus for character-specific gear
 		var char_name = ""
-		var tower_names_map = {TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice", TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan", TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge", TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin", TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author"}
+		var tower_names_map = {TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice", TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan", TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge", TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin", TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author", TowerType.CAPTAIN_HOOK: "captain_hook", TowerType.QUEEN_OF_HEARTS: "queen_of_hearts", TowerType.CLAYTON: "clayton", TowerType.HEADLESS_HORSEMAN: "headless_horseman", TowerType.MEDUSA: "medusa", TowerType.ANUBIS: "anubis"}
 		char_name = tower_names_map.get(tower_type, "")
 		if bdata.get("character", "") == char_name:
 			score += 2  # Prefer character gear for set bonus
@@ -30706,7 +30708,7 @@ func _check_page_click(mouse_pos: Vector2) -> bool:
 # === BATTD2: GEAR SET DISPLAY ===
 func _get_set_progress(tower_type) -> Dictionary:
 	var char_name = ""
-	var tower_names_map = {TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice", TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan", TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge", TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin", TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author"}
+	var tower_names_map = {TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice", TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan", TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge", TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan", TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin", TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author", TowerType.CAPTAIN_HOOK: "captain_hook", TowerType.QUEEN_OF_HEARTS: "queen_of_hearts", TowerType.CLAYTON: "clayton", TowerType.HEADLESS_HORSEMAN: "headless_horseman", TowerType.MEDUSA: "medusa", TowerType.ANUBIS: "anubis"}
 	char_name = tower_names_map.get(tower_type, "")
 	var total = 0
 	var owned = 0
@@ -37274,7 +37276,7 @@ func game_over() -> void:
 	# BATTD: XP Sharing — unused characters get 15% of avg wave XP earned
 	if xp_sharing_enabled and wave > 0:
 		var used_types: Array = []
-		var type_map = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR}
+		var type_map = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR, "captain_hook.gd": TowerType.CAPTAIN_HOOK, "queen_of_hearts.gd": TowerType.QUEEN_OF_HEARTS, "clayton.gd": TowerType.CLAYTON, "headless_horseman.gd": TowerType.HEADLESS_HORSEMAN, "medusa.gd": TowerType.MEDUSA, "anubis.gd": TowerType.ANUBIS}
 		for tower in get_tree().get_nodes_in_group("towers"):
 			var sp = tower.get_script().resource_path.get_file() if tower.get_script() else ""
 			if type_map.has(sp) and not type_map[sp] in used_types:

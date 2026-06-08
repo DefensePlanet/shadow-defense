@@ -870,6 +870,16 @@ func _load_progressive_abilities() -> void:
 			if unlocked[i]:
 				activate_progressive_ability(i)
 
+func get_progressive_ability_name(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_NAMES.size():
+		return PROG_ABILITY_NAMES[index]
+	return ""
+
+func get_progressive_ability_desc(index: int) -> String:
+	if index >= 0 and index < PROG_ABILITY_DESCS.size():
+		return PROG_ABILITY_DESCS[index]
+	return ""
+
 func activate_progressive_ability(index: int) -> void:
 	if index < 0 or index >= 9:
 		return
