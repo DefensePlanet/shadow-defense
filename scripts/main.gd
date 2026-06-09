@@ -1060,6 +1060,54 @@ var character_voice_lines: Dictionary = {
 		"wave_clear": ["This chapter ends well.", "A satisfying conclusion. For once."],
 		"low_lives": ["The story is unraveling! I can't rewrite fast enough!", "No! I won't let another story go UNFINISHED!"],
 	},
+	TowerType.CAPTAIN_HOOK: {
+		"placed": ["Good form demands I take this position.", "Captain James Hook, at your service.", "The Jolly Roger anchors HERE."],
+		"ability": ["BROADSIDE!", "Taste my HOOK!", "Prepare to be BOARDED!"],
+		"boss_spotted": ["A worthy adversary! Finally, some SPORT!", "Bigger than the crocodile. But not smarter."],
+		"idle_bored": ["Where's that infernal ticking?", "Even Pan gave me more entertainment than this."],
+		"wave_clear": ["The captain is victorious! As ALWAYS.", "Bad form to lose to James Hook."],
+		"low_lives": ["We're taking on water! All hands!", "I did NOT survive that crocodile to fall HERE!"],
+	},
+	TowerType.QUEEN_OF_HEARTS: {
+		"placed": ["I am the QUEEN. This is MY domain now.", "OFF WITH THEIR HEADS!", "I rule here. ALL of you, BOW."],
+		"ability": ["The sentence is DEATH!", "My cards will DESTROY you!", "EXECUTIONER!"],
+		"boss_spotted": ["THAT creature dares approach MY court?!", "Larger than the Jabberwock. I'm not impressed."],
+		"idle_bored": ["This garden needs painting RED.", "Who scheduled this? I want them BEHEADED."],
+		"wave_clear": ["The Queen is ALWAYS victorious.", "Guilty. ALL of them, guilty."],
+		"low_lives": ["My kingdom is CRUMBLING! This is UNACCEPTABLE!", "I will NOT be deposed by SHADOWS!"],
+	},
+	TowerType.CLAYTON: {
+		"placed": ["The hunt begins.", "Strategic position. Good sight lines.", "Clayton doesn't miss."],
+		"ability": ["Target acquired.", "The trap is sprung.", "Big game."],
+		"boss_spotted": ["Now THAT'S a trophy worth mounting.", "Biggest target I've ever tracked."],
+		"idle_bored": ["I see the tracks. They'll come through here.", "Patience is the hunter's greatest weapon."],
+		"wave_clear": ["Another successful safari.", "Clean kills. Every one."],
+		"low_lives": ["We're being outflanked! Fall back to high ground!", "I've been the prey before. Never again."],
+	},
+	TowerType.HEADLESS_HORSEMAN: {
+		"placed": ["The ride begins again.", "This hollow will be mine.", "The legend never dies."],
+		"ability": ["HELLFIRE!", "THE LEGEND STRIKES!", "BURN!"],
+		"boss_spotted": ["A soul worthy of the hollow.", "Even the headless know a threat when they sense one."],
+		"idle_bored": ["The bridge awaits its guardian.", "My sword hungers."],
+		"wave_clear": ["The hollow claims another wave.", "They run. They always run."],
+		"low_lives": ["The legend CANNOT end here!", "RIDE HARDER! Fear follows where I tread!"],
+	},
+	TowerType.MEDUSA: {
+		"placed": ["Look upon me, if you dare.", "The serpents are hungry.", "I was beautiful once. Now I am powerful."],
+		"ability": ["STONE!", "Turn to STONE!", "The Gorgon's wrath!"],
+		"boss_spotted": ["A titan approaches. My gaze alone won't stop it.", "Even gods feared the Gorgon."],
+		"idle_bored": ["My garden grows with every battle.", "The snakes grow restless."],
+		"wave_clear": ["More statues for my collection.", "Stone is forever. So am I."],
+		"low_lives": ["I will NOT be caged again!", "Three thousand years of survival. I will NOT fall now!"],
+	},
+	TowerType.ANUBIS: {
+		"placed": ["The scales are balanced. For now.", "Your hearts will be weighed.", "Ma'at demands justice."],
+		"ability": ["JUDGMENT!", "Ammit DEVOURS!", "The scales TIP!"],
+		"boss_spotted": ["A heavy heart approaches. Ammit stirs.", "I have judged gods. This is nothing."],
+		"idle_bored": ["Five thousand years of judgment. What are a few more?", "The gate between life and death stands here."],
+		"wave_clear": ["Weighed. Measured. Found unworthy.", "The dead rest. For now."],
+		"low_lives": ["The balance is breaking! The scales MUST hold!", "I am the final gate. I will NOT yield!"],
+	},
 }
 var _voice_line_cooldown: Dictionary = {}  # TowerType -> float (cooldown timer)
 
@@ -13408,6 +13456,36 @@ func _generate_voice_clips() -> void:
 		72.0, [[730,1090,2440], [570,840,2410], [640,1190,2390], [300,870,2240]],
 		4, 1.2, 0.04, 2.0, 1.5)
 
+	# Captain Hook — pompous theatrical baritone (F0=130Hz)
+	voice_clips[TowerType.CAPTAIN_HOOK] = _generate_formant_voice(
+		130.0, [[660,1100,2500], [530,870,2340], [730,1090,2440]],
+		5, 0.9, 0.12, 5.0, 3.5)
+
+	# Queen of Hearts — imperious commanding alto (F0=240Hz)
+	voice_clips[TowerType.QUEEN_OF_HEARTS] = _generate_formant_voice(
+		240.0, [[750,1200,2600], [530,1840,2480], [660,1720,2410]],
+		4, 0.7, 0.08, 6.0, 5.0)
+
+	# Clayton — gruff low baritone (F0=110Hz)
+	voice_clips[TowerType.CLAYTON] = _generate_formant_voice(
+		110.0, [[640,1190,2390], [570,840,2410], [730,1090,2440]],
+		4, 1.0, 0.06, 3.5, 2.0)
+
+	# Headless Horseman — deep ghostly rumble (F0=80Hz)
+	voice_clips[TowerType.HEADLESS_HORSEMAN] = _generate_formant_voice(
+		80.0, [[570,840,2410], [300,870,2240], [640,1190,2390]],
+		3, 1.3, 0.03, 2.5, 1.5)
+
+	# Medusa — serpentine hissing alto (F0=220Hz)
+	voice_clips[TowerType.MEDUSA] = _generate_formant_voice(
+		220.0, [[270,2290,3010], [530,1840,2480], [660,1720,2410]],
+		6, 0.75, 0.20, 5.5, 5.0)
+
+	# Anubis — deep ancient deity (F0=90Hz)
+	voice_clips[TowerType.ANUBIS] = _generate_formant_voice(
+		90.0, [[730,1090,2440], [300,870,2240], [570,840,2410], [640,1190,2390]],
+		5, 1.1, 0.05, 3.0, 2.0)
+
 func _play_tower_voice(tower_type: TowerType) -> void:
 	if voices_muted:
 		return
@@ -15389,6 +15467,12 @@ func _load_voice_clips() -> void:
 		TowerType.MERLIN: "merlin",
 		TowerType.FRANKENSTEIN: "frankenstein",
 		TowerType.SHADOW_AUTHOR: "shadow_author",
+		TowerType.CAPTAIN_HOOK: "captain_hook",
+		TowerType.QUEEN_OF_HEARTS: "queen_of_hearts",
+		TowerType.CLAYTON: "clayton",
+		TowerType.HEADLESS_HORSEMAN: "headless_horseman",
+		TowerType.MEDUSA: "medusa",
+		TowerType.ANUBIS: "anubis",
 		TowerType.ROBIN_HOOD_2: "robin_hood",  # Same voice as Robin 1
 		TowerType.ALICE_2: "alice",  # Same voice as Alice 1
 		TowerType.SCROOGE_2: "scrooge",  # Same voice as Scrooge 1
