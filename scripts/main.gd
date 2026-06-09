@@ -1060,6 +1060,14 @@ var character_voice_lines: Dictionary = {
 		"wave_clear": ["This chapter ends well.", "A satisfying conclusion. For once."],
 		"low_lives": ["The story is unraveling! I can't rewrite fast enough!", "No! I won't let another story go UNFINISHED!"],
 	},
+	TowerType.WICKED_WITCH: {
+		"placed": ["The Witch is IN.", "My broomstick. My rules.", "Something wicked this way comes. It's ME."],
+		"ability": ["FLY, my pretties!", "Green fire for ALL of you!", "I'll get you — and your little shadows too!"],
+		"boss_spotted": ["Oh my. That one's almost as ugly as they say I am.", "Bigger than Toto. Let's see if it melts."],
+		"idle_bored": ["I'm not WAITING. I'm BREWING.", "Dorothy never had to deal with this kind of boredom."],
+		"wave_clear": ["Another beautiful disaster.", "They melt so quickly. Almost too easy."],
+		"low_lives": ["I will NOT melt again! Not HERE!", "Oz fell once. I won't let it happen AGAIN!"],
+	},
 	TowerType.CAPTAIN_HOOK: {
 		"placed": ["Good form demands I take this position.", "Captain James Hook, at your service.", "The Jolly Roger anchors HERE."],
 		"ability": ["BROADSIDE!", "Taste my HOOK!", "Prepare to be BOARDED!"],
