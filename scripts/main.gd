@@ -2201,156 +2201,105 @@ var levels = [
 		"sky_color": Color(0.04, 0.05, 0.12),
 		"ground_color": Color(0.05, 0.05, 0.08),
 	},
-	# --- NEW CHARACTER RESCUES (Levels 46-60) — 5 public domain novel characters ---
-	# All from novels published before 1929. Zero copyright risk.
+	# --- NEW CHARACTER RESCUES (Levels 46-54) — 3 mythological characters ---
+	# Act 4 is THE GAUNTLET. Harder enemies, less gold, fewer lives. True test of strategy.
 	# --- HEADLESS HORSEMAN (The Legend of Sleepy Hollow, Washington Irving, 1820) ---
 	{
 		"name": "Sleepy Hollow Bridge", "subtitle": "Headless Horseman — Chapter 1",
-		"description": "The covered bridge where Ichabod Crane fled for his life. Now the Horseman rides eternal, hurling flaming pumpkins at any who dare cross.",
+		"description": "The covered bridge where Ichabod Crane fled for his life. Now the Horseman rides eternal, hurling flaming pumpkins at any who dare cross. The Narrator's spectral cavalry charges in waves — fast, relentless, and immune to fear.",
 		"character": -1, "chapter": 0, "enemy_theme": 13,
-		"waves": 22, "gold": 120, "lives": 25, "difficulty": 1.7,
+		"waves": 30, "gold": 100, "lives": 15, "difficulty": 2.2,
 		"sky_color": Color(0.06, 0.04, 0.02),
 		"ground_color": Color(0.08, 0.06, 0.03),
 	},
 	{
 		"name": "The Hollow's Heart", "subtitle": "Headless Horseman — Chapter 2",
-		"description": "Deep in the haunted woods where no moonlight reaches. The Horseman's spectral army — headless riders from every ghost story — patrols the fog.",
+		"description": "Deep in the haunted woods where no moonlight reaches. Headless riders from every ghost story patrol the fog. Enemies split when killed — each half keeps moving.",
 		"character": -1, "chapter": 1, "enemy_theme": 13,
-		"waves": 26, "gold": 120, "lives": 22, "difficulty": 1.8,
+		"waves": 35, "gold": 95, "lives": 12, "difficulty": 2.5,
 		"sky_color": Color(0.04, 0.03, 0.02),
 		"ground_color": Color(0.06, 0.04, 0.02),
 	},
 	{
 		"name": "The Churchyard Gate", "subtitle": "Headless Horseman — Chapter 3",
-		"description": "The old Dutch church where the Horseman cannot cross — or so the legend says. The Narrator rewrote that rule. Free the Horseman from his eternal ride!",
+		"description": "The old Dutch church — the one place the Horseman cannot cross. But the Narrator rewrote that rule. Boss wave: the Horseman himself charges with an army of the damned. Survive to free him.",
 		"character": -1, "chapter": 2, "enemy_theme": 13,
-		"waves": 30, "gold": 130, "lives": 20, "difficulty": 1.9,
+		"waves": 40, "gold": 90, "lives": 10, "difficulty": 2.8,
 		"sky_color": Color(0.03, 0.02, 0.01),
 		"ground_color": Color(0.05, 0.03, 0.02),
 	},
 	# --- MEDUSA (Greek Mythology — Ovid's Metamorphoses, ~8 AD) ---
 	{
 		"name": "The Gorgon's Garden", "subtitle": "Medusa — Chapter 1",
-		"description": "A garden of stone statues — heroes who looked into her eyes. Medusa was cursed by the gods, then imprisoned by the Narrator. Her serpent hair hisses warnings.",
+		"description": "A garden of stone statues — heroes who looked into her eyes. Stone warriors reanimate and march. Every 5th wave, a petrification pulse freezes YOUR towers for 3 seconds.",
 		"character": -1, "chapter": 0, "enemy_theme": 14,
-		"waves": 22, "gold": 120, "lives": 25, "difficulty": 1.7,
+		"waves": 30, "gold": 100, "lives": 15, "difficulty": 2.3,
 		"sky_color": Color(0.04, 0.08, 0.04),
 		"ground_color": Color(0.06, 0.10, 0.06),
 	},
 	{
 		"name": "The Temple of Athena", "subtitle": "Medusa — Chapter 2",
-		"description": "The temple where Medusa was cursed. Greek warriors in marble armor guard the path. The Narrator rewrote her tragedy as punishment without end.",
+		"description": "The temple where Medusa was cursed. Greek warriors in enchanted marble armor are nearly immune to magic. Physical damage towers shine here — choose your roster wisely.",
 		"character": -1, "chapter": 1, "enemy_theme": 14,
-		"waves": 26, "gold": 120, "lives": 22, "difficulty": 1.8,
+		"waves": 35, "gold": 95, "lives": 12, "difficulty": 2.6,
 		"sky_color": Color(0.06, 0.08, 0.06),
 		"ground_color": Color(0.08, 0.10, 0.08),
 	},
 	{
 		"name": "The Petrified Throne", "subtitle": "Medusa — Chapter 3",
-		"description": "Medusa sits on a throne of her own victims — frozen forever, eyes closed, CHOOSING not to look. Free her, and her Petrifying Gaze becomes YOUR weapon.",
+		"description": "Medusa sits on a throne of her own victims — eyes closed, CHOOSING not to look. Boss wave: Athena's champion Perseus leads an army of golden warriors. Survive the onslaught, and the Gorgon fights for YOU.",
 		"character": -1, "chapter": 2, "enemy_theme": 14,
-		"waves": 30, "gold": 130, "lives": 20, "difficulty": 1.9,
+		"waves": 40, "gold": 90, "lives": 10, "difficulty": 2.9,
 		"sky_color": Color(0.03, 0.06, 0.03),
 		"ground_color": Color(0.05, 0.08, 0.05),
-	},
-	# --- LOKI (Norse Mythology — Prose Edda, Snorri Sturluson, ~1220 AD) ---
-	{
-		"name": "The Trickster's Hall", "subtitle": "Loki — Chapter 1",
-		"description": "Nothing is what it seems. Doors lead to ceilings. Enemies shapeshift mid-stride. Loki's prison is a funhouse of chaos — and he LOVES it.",
-		"character": -1, "chapter": 0, "enemy_theme": 15,
-		"waves": 22, "gold": 120, "lives": 25, "difficulty": 1.7,
-		"sky_color": Color(0.06, 0.08, 0.04),
-		"ground_color": Color(0.08, 0.10, 0.06),
-	},
-	{
-		"name": "The Binding Serpent", "subtitle": "Loki — Chapter 2",
-		"description": "Chained beneath a serpent that drips venom — his mythic punishment. But Loki has been whispering to the serpent for centuries. It now obeys HIM.",
-		"character": -1, "chapter": 1, "enemy_theme": 15,
-		"waves": 26, "gold": 120, "lives": 22, "difficulty": 1.8,
-		"sky_color": Color(0.04, 0.06, 0.02),
-		"ground_color": Color(0.06, 0.08, 0.04),
-	},
-	{
-		"name": "Ragnarok's Edge", "subtitle": "Loki — Chapter 3",
-		"description": "The Norse apocalypse, contained in a single room. Loki stands at its center, holding reality together with pure mischief. Free the god of chaos.",
-		"character": -1, "chapter": 2, "enemy_theme": 15,
-		"waves": 30, "gold": 130, "lives": 20, "difficulty": 1.9,
-		"sky_color": Color(0.08, 0.06, 0.02),
-		"ground_color": Color(0.10, 0.08, 0.04),
 	},
 	# --- ANUBIS (Egyptian Mythology — Book of the Dead, ~1550 BC) ---
 	{
 		"name": "The Weighing Hall", "subtitle": "Anubis — Chapter 1",
-		"description": "The Hall of Two Truths where hearts are weighed against a feather. Anubis has been judging the Narrator's shadow creatures — and finding them ALL guilty.",
+		"description": "The Hall of Two Truths where hearts are weighed against a feather. The scales are corrupted — enemies grow STRONGER the longer they survive. Kill fast or be overwhelmed.",
 		"character": -1, "chapter": 0, "enemy_theme": 16,
-		"waves": 22, "gold": 120, "lives": 25, "difficulty": 1.7,
+		"waves": 32, "gold": 100, "lives": 15, "difficulty": 2.4,
 		"sky_color": Color(0.10, 0.08, 0.02),
 		"ground_color": Color(0.12, 0.10, 0.04),
 	},
 	{
 		"name": "The River of the Dead", "subtitle": "Anubis — Chapter 2",
-		"description": "A river of liquid shadow — the Egyptian underworld's passage. Souls of defeated enemies float downstream. Anubis decides which ones deserve a second chance.",
+		"description": "A river of liquid shadow. Souls of the unworthy rise from the waters as elite undead. Two paths converge — enemies attack from BOTH directions simultaneously.",
 		"character": -1, "chapter": 1, "enemy_theme": 16,
-		"waves": 26, "gold": 120, "lives": 22, "difficulty": 1.8,
+		"waves": 36, "gold": 95, "lives": 12, "difficulty": 2.7,
 		"sky_color": Color(0.08, 0.06, 0.02),
 		"ground_color": Color(0.10, 0.08, 0.04),
 	},
 	{
 		"name": "The Feather of Ma'at", "subtitle": "Anubis — Chapter 3",
-		"description": "The final judgment. Anubis holds the feather that weighs all souls. The Narrator stole it to keep his legends from ever being judged. Take it back.",
+		"description": "The final judgment. Ammit the Devourer guards the feather — a boss that HEALS from your attacks unless you time your strikes with the scales. The hardest level in the game. Free the god of death.",
 		"character": -1, "chapter": 2, "enemy_theme": 16,
-		"waves": 30, "gold": 130, "lives": 20, "difficulty": 1.9,
+		"waves": 45, "gold": 85, "lives": 8, "difficulty": 3.0,
 		"sky_color": Color(0.06, 0.04, 0.01),
 		"ground_color": Color(0.08, 0.06, 0.02),
 	},
-	# 4th slot — OPEN for John's pick (currently placeholder using Ahab levels)
-	# --- CAPTAIN AHAB (Moby-Dick, Herman Melville, 1851) ---
-	{
-		"name": "The Pequod's Wake", "subtitle": "Captain Ahab — Chapter 1",
-		"description": "The ghost ship Pequod sails through seas of liquid story. Ahab hunts not the white whale, but the Narrator himself.",
-		"character": -1, "chapter": 0, "enemy_theme": 17,
-		"waves": 22, "gold": 120, "lives": 25, "difficulty": 1.7,
-		"sky_color": Color(0.04, 0.06, 0.10),
-		"ground_color": Color(0.06, 0.08, 0.12),
-	},
-	{
-		"name": "The Leviathan's Wake", "subtitle": "Captain Ahab — Chapter 2",
-		"description": "The white whale surfaces — made of legends, not blubber. A beast born from every sea story ever abandoned.",
-		"character": -1, "chapter": 1, "enemy_theme": 17,
-		"waves": 26, "gold": 120, "lives": 22, "difficulty": 1.8,
-		"sky_color": Color(0.03, 0.05, 0.08),
-		"ground_color": Color(0.05, 0.06, 0.10),
-	},
-	{
-		"name": "The Captain's Redemption", "subtitle": "Captain Ahab — Chapter 3",
-		"description": "Ahab must choose: his obsession or his soul. Free the Captain from the legend that consumed him.",
-		"character": -1, "chapter": 2, "enemy_theme": 17,
-		"waves": 30, "gold": 130, "lives": 20, "difficulty": 1.9,
-		"sky_color": Color(0.02, 0.04, 0.06),
-		"ground_color": Color(0.04, 0.05, 0.08),
-	},
-	# --- NARRATOR FINALE (Levels 61-63) ---
+	# --- NARRATOR FINALE (Levels 55-57) — The Narrator isn't a villain. He's a god who needs help. ---
 	{
 		"name": "The Hall of Legends", "subtitle": "The Narrator — Chapter 1",
-		"description": "The Narrator's throne room — a hall of fire and light where every legendary hero is preserved like a trophy. Time to free them ALL.",
+		"description": "The Narrator's throne room — a hall of fire and lightning where every legend ever told echoes off the walls. But something is WRONG. The stories are unraveling. Corrupted legends pour through cracks in reality. Even the Narrator can't hold them back alone.",
 		"character": -1, "chapter": 0, "enemy_theme": 18,
-		"waves": 35, "gold": 140, "lives": 25, "difficulty": 2.0,
+		"waves": 40, "gold": 90, "lives": 12, "difficulty": 3.0,
 		"sky_color": Color(0.12, 0.08, 0.02),
 		"ground_color": Color(0.14, 0.10, 0.04),
 	},
 	{
 		"name": "The Burning Library", "subtitle": "The Narrator — Chapter 2",
-		"description": "The Narrator's power source — a library of every story ever told, burning with eternal flame. He feeds on their retelling.",
+		"description": "The Narrator's power source — a library of every story ever told, now burning out of control. Corrupted characters from forgotten stories storm through. The Narrator fights ALONGSIDE you for the first time — but he's weakening.",
 		"character": -1, "chapter": 1, "enemy_theme": 18,
-		"waves": 40, "gold": 140, "lives": 22, "difficulty": 2.1,
+		"waves": 45, "gold": 85, "lives": 10, "difficulty": 3.3,
 		"sky_color": Color(0.14, 0.10, 0.02),
 		"ground_color": Color(0.16, 0.12, 0.04),
 	},
 	{
-		"name": "The Voice Unbound", "subtitle": "The Narrator — Chapter 3",
-		"description": "The final battle. The Narrator reveals his true form — muscular, wreathed in fire and lightning, the voice that has told every story since the first campfire. Can you silence the voice of Legend itself?",
+		"name": "The Voice Unbound", "subtitle": "The Narrator — Final Chapter",
+		"description": "The Narrator reveals his true form — muscular, pale, wreathed in fire and lightning. Not as an enemy. As a SHIELD. He holds back the collapsing realm while YOU fight the endless tide. 50 waves. No mercy. The hardest battle in Shadow Defense. Save the storyteller who saved you.",
 		"character": -1, "chapter": 2, "enemy_theme": 18,
-		"waves": 45, "gold": 150, "lives": 20, "difficulty": 2.2,
+		"waves": 50, "gold": 80, "lives": 8, "difficulty": 3.5,
 		"sky_color": Color(0.16, 0.12, 0.04),
 		"ground_color": Color(0.18, 0.14, 0.06),
 	},
@@ -14376,12 +14325,18 @@ func _populate_story_dialogs() -> void:
 
 	story_dialogs["act4_intro"] = [
 		{"speaker": "narrator", "text": "You've done it. The Shadow Author is defeated. The Tome of Shadows is closed. Your stories are your own again.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "But I promised you something, remember? A world beyond the Tome. MY world. The Realm of Legends — where stories don't just live in books. They live in FIRE.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "But before you celebrate... I owe you the truth.", "voice_type": "narrator"},
 		{"speaker": "robin_hood", "text": "The Narrator... you've been watching us this whole time. Who ARE you, really?", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "I am the voice that has told every great story since the first campfire. I am the one who remembers when the world forgets. I am... the Narrator. And my realm needs heroes.", "voice_type": "narrator"},
-		{"speaker": "alice", "text": "Needs heroes? Or COLLECTS them? We just escaped one prison. Forgive me if I'm suspicious of another invitation.", "voice_type": "female_hero"},
-		{"speaker": "narrator", "text": "Smart girl. But unlike the Shadow Author, I don't trap characters in pages. I preserve them in LEGEND. Come. See for yourselves. Five souls are already waiting for you inside — trapped not by ink, but by stories that grew too large to contain them.", "voice_type": "narrator"},
-		{"speaker": "scrooge", "text": "Another realm, another rescue mission. At least this one sounds warmer than the Arctic.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "I am the voice that has told every great story since the first campfire. I am the one who remembers when the world forgets. And I must confess something.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "I didn't just WATCH your journey through the Tome. I GUIDED it. Every clue you found. Every path that opened at just the right moment. Every enemy that was just weak enough for you to overcome. That was me.", "voice_type": "narrator"},
+		{"speaker": "sherlock", "text": "I KNEW it. The odds were too convenient. The breadcrumbs too perfectly placed. We were being led.", "voice_type": "male_hero"},
+		{"speaker": "alice", "text": "You USED us? We nearly DIED in there!", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "I PREPARED you. There's a difference. The Shadow Author was real. His pain was real. Your victories were EARNED. But yes... I needed you to become what you are now. Battle-hardened legends.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Because in MY realm — the Realm of Legends — three ancient souls are trapped by forces even I cannot defeat alone. I am the storyteller. Not the warrior. I needed warriors. I needed YOU.", "voice_type": "narrator"},
+		{"speaker": "dracula", "text": "You manipulated us. You let us suffer... so we could fight YOUR battles.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "I let you GROW. And I am sorry for the pain. But if you could see what I've seen — legends fading, stories dying, ancient heroes crying out in the dark with no one left to hear them — you would have done the same.", "voice_type": "narrator"},
+		{"speaker": "scrooge", "text": "...Show us. Show us who needs saving. And THEN we'll decide whether to forgive you.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Three souls. A soldier who lost his identity. A woman cursed to destroy everything she touches. And a god who has judged so many he forgot how to show mercy. Come. See for yourselves.", "voice_type": "narrator"},
 	]
 
 	# Alice, Robin, and Scrooge face old enemies first — special weapon unlock levels
@@ -14418,19 +14373,115 @@ func _populate_story_dialogs() -> void:
 
 	# The Narrator's true nature revealed mid-ACT 4
 	story_dialogs["narrator_reveal"] = [
-		{"speaker": "sherlock", "text": "I've been observing the Narrator's realm. Something doesn't add up. The five trapped characters here — they weren't captured by force. They were INVITED. Just like us.", "voice_type": "male_hero"},
-		{"speaker": "merlin", "text": "I sense it too. The magic here isn't malicious — it's preservative. Like amber around an insect. He's not TRAPPING them. He's KEEPING them.", "voice_type": "male_hero"},
-		{"speaker": "narrator", "text": "...You're perceptive. Yes. I preserve legends because the world is FORGETTING them. Every year, fewer children read these stories. Fewer dreamers believe. If I don't keep the legends alive, they'll fade into nothing.", "voice_type": "narrator"},
-		{"speaker": "alice", "text": "So you're a collector too? Just like the Shadow Author?", "voice_type": "female_hero"},
-		{"speaker": "narrator", "text": "The Author trapped characters out of LONELINESS. I preserve legends out of LOVE. But I understand now — watching you fight, watching you CHOOSE — that legends aren't meant to be preserved. They're meant to be TOLD. And retold. And changed with every telling.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "Free the five. Tell their stories. And when you reach my throne... we'll see if this old voice has one more story left to tell.", "voice_type": "narrator"},
+		{"speaker": "sherlock", "text": "I've been piecing it together. The Narrator didn't just watch our journey through the Tome — he ORCHESTRATED it. Every convenient clue. Every door that opened at the right moment.", "voice_type": "male_hero"},
+		{"speaker": "merlin", "text": "He needed warriors. And the Tome was his training ground. We were forged in shadow ink so we'd be strong enough for THIS.", "voice_type": "male_hero"},
+		{"speaker": "dracula", "text": "Four hundred years of darkness taught me to recognize manipulation. He used us. The question is — was it worth it?", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "...Yes. I used you. And I would do it again. Because the three souls trapped here — the Horseman, the Gorgon, the God of Death — they've been suffering for CENTURIES. And I am powerful enough to tell their stories but not powerful enough to save them.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "I am the storyteller. Not the warrior. I needed heroes who could fight battles that even a god cannot win alone.", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "You could have just ASKED us.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "Would you have believed me? A disembodied voice asking you to fight ancient mythological forces? You needed to become legends FIRST. And now you are.", "voice_type": "narrator"},
+		{"speaker": "frankenstein", "text": "Frankenstein... understands. Someone made me too. Used me. But... the friends I found along the way were real. The growth was real. Even if the path was chosen for us.", "voice_type": "monster"},
+		{"speaker": "scrooge", "text": "The Ghost of Christmas Past showed me my regrets without my permission. I hated him for it. Then I thanked him. Perhaps... perhaps this is the same.", "voice_type": "male_hero"},
+		{"speaker": "robin_hood", "text": "We'll free your three. Not because you manipulated us into it — but because it's the RIGHT thing to do. That's the difference between a puppet and a hero.", "voice_type": "male_hero"},
+	]
+
+	# --- HEADLESS HORSEMAN RESCUE ARC ---
+	story_dialogs["pre_horseman_1"] = [
+		{"speaker": "narrator", "text": "Sleepy Hollow. A place where fear is not just an emotion — it's a FORCE. The Horseman has been riding these roads for two hundred years, searching for something he lost.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "His head. Not the pumpkin — his REAL head. It holds his memories. Without it, he doesn't know who he was. Only what he's become.", "voice_type": "narrator"},
+		{"speaker": "peter_pan", "text": "A headless guy on a horse throwing flaming pumpkins. This is either going to be really cool or really terrifying.", "voice_type": "male_hero"},
+		{"speaker": "phantom", "text": "He wears his terror like I wear my mask. Not by choice. By necessity.", "voice_type": "male_hero"},
+	]
+	story_dialogs["pre_horseman_3"] = [
+		{"speaker": "narrator", "text": "Beyond the churchyard gate, the Horseman's memories are trapped in his skull — buried beneath two centuries of rage. He will fight you. He doesn't KNOW he needs saving.", "voice_type": "narrator"},
+		{"speaker": "dracula", "text": "I rode through darkness for four hundred years before someone reached me. We can reach HIM.", "voice_type": "male_hero"},
+	]
+	story_dialogs["unlock_horseman"] = [
+		{"speaker": "narrator", "text": "The pumpkin cracks. Inside — not fire, but light. Memories flooding back. A name. A hometown. A family he died protecting.", "voice_type": "narrator"},
+		{"speaker": "headless_horseman", "text": "I... remember. I was a soldier. I died on that bridge defending my town from raiders. And then... two hundred years of riding. Searching. For THIS.", "voice_type": "voiceless"},
+		{"speaker": "headless_horseman", "text": "I have been a terror for two centuries. I would like, just once, to be something people run TOWARD.", "voice_type": "voiceless"},
+		{"speaker": "alice", "text": "Then fight with us. Not as a nightmare — as a guardian.", "voice_type": "female_hero"},
+		{"speaker": "headless_horseman", "text": "The Horseman rides again. But this time... for something worth riding for.", "voice_type": "voiceless"},
+	]
+
+	# --- MEDUSA RESCUE ARC ---
+	story_dialogs["pre_medusa_1"] = [
+		{"speaker": "narrator", "text": "The Gorgon's Garden. Every statue you see was once a living soul who made the mistake of meeting her eyes. But look closer — she weeps between the stones.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Medusa wasn't born a monster. She was MADE one. Cursed by a jealous goddess for a crime that wasn't hers. And for three thousand years, she has been punishing herself.", "voice_type": "narrator"},
+		{"speaker": "wicked_witch", "text": "Cursed by the powerful. Feared by the innocent. Called a monster by people who never asked WHY. I know this story. I've LIVED it.", "voice_type": "female_hero"},
+	]
+	story_dialogs["pre_medusa_3"] = [
+		{"speaker": "narrator", "text": "She sits on her throne with her eyes CLOSED. She could turn the entire army to stone in an instant. She CHOOSES not to look. Because every statue was once someone's child.", "voice_type": "narrator"},
+		{"speaker": "frankenstein", "text": "She is afraid... of herself. Frankenstein knows this feeling.", "voice_type": "monster"},
+		{"speaker": "narrator", "text": "Perseus is coming with an army of golden warriors. He wants her head as a trophy. Protect her. Show her that her curse can be a GIFT.", "voice_type": "narrator"},
+	]
+	story_dialogs["unlock_medusa"] = [
+		{"speaker": "narrator", "text": "Perseus falls. His mirror shield shatters. And for the first time in three thousand years, someone stands before Medusa... and does not run.", "voice_type": "narrator"},
+		{"speaker": "medusa", "text": "Why... why aren't you stone? I opened my eyes. I LOOKED at you. Why are you still standing?", "voice_type": "female_hero"},
+		{"speaker": "alice", "text": "Because we're not afraid of you. We see YOU, Medusa. Not the curse. Not the snakes. You.", "voice_type": "female_hero"},
+		{"speaker": "medusa", "text": "Do you know what the worst part of turning everything to stone is? The silence. Stone doesn't scream. It doesn't cry. It doesn't say goodbye.", "voice_type": "female_hero"},
+		{"speaker": "medusa", "text": "But you... you're still HERE. Still warm. Still alive. I had forgotten what that feels like.", "voice_type": "female_hero"},
+		{"speaker": "dracula", "text": "Welcome to the family of monsters who chose to be heroes. We have room for one more.", "voice_type": "male_hero"},
+	]
+
+	# --- ANUBIS RESCUE ARC ---
+	story_dialogs["pre_anubis_1"] = [
+		{"speaker": "narrator", "text": "The Weighing Hall. For five thousand years, Anubis has judged every soul that passes through. Heart against feather. Worthy or unworthy. Without rest. Without mercy. Without end.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "I kept him here because his judgment is the most powerful force in my realm. If he ever stopped weighing souls... the boundaries between life and death would collapse.", "voice_type": "narrator"},
+		{"speaker": "sherlock", "text": "So you enslaved a god to maintain your realm's infrastructure. How pragmatic.", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "I gave him PURPOSE. But I see now... purpose without choice is just another kind of prison.", "voice_type": "narrator"},
+	]
+	story_dialogs["pre_anubis_3"] = [
+		{"speaker": "narrator", "text": "Ammit the Devourer guards the feather of Ma'at. She consumes unworthy hearts — and she has grown FAT on five thousand years of guilty verdicts. This is the hardest battle you will face.", "voice_type": "narrator"},
+		{"speaker": "merlin", "text": "A beast that heals from our attacks unless we time our strikes with the scales. This will require every ounce of strategy we possess.", "voice_type": "male_hero"},
+		{"speaker": "scrooge", "text": "I've faced the Ghost of Christmas Future. At least Ammit has the decency to eat you quickly.", "voice_type": "male_hero"},
+	]
+	story_dialogs["unlock_anubis"] = [
+		{"speaker": "narrator", "text": "Ammit falls. The scales balance for the first time in millennia. And the god of death... sets down his staff.", "voice_type": "narrator"},
+		{"speaker": "anubis", "text": "I have weighed hearts against feathers for five thousand years. Yours is the first heart I have wanted to SAVE.", "voice_type": "male_hero"},
+		{"speaker": "anubis", "text": "You fight not for glory. Not for treasure. You fight for each other. The scales have never seen hearts so light.", "voice_type": "male_hero"},
+		{"speaker": "anubis", "text": "I was the judge. The arbiter. The final word. But judgment without mercy is just cruelty with a gavel. You have shown me... mercy.", "voice_type": "male_hero"},
+		{"speaker": "robin_hood", "text": "Then judge no more, old friend. Fight beside us. Not as a god — as family.", "voice_type": "male_hero"},
+		{"speaker": "anubis", "text": "Family. Yes. I think I would like to know what that means.", "voice_type": "male_hero"},
+	]
+
+	# --- NARRATOR FINALE ---
+	story_dialogs["pre_narrator_finale"] = [
+		{"speaker": "narrator", "text": "You've done it. Three ancient souls freed. My realm is whole again. But... something is wrong.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The stories are unraveling. Every legend I've preserved — every character I've protected — they're breaking free of their pages. Not gently. VIOLENTLY. Corrupted versions of forgotten tales are pouring through the cracks.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "I held this realm together for ten thousand years with the power of my voice alone. But freeing the Horseman, Medusa, and Anubis... it weakened the walls. My strength is failing.", "voice_type": "narrator"},
+		{"speaker": "sherlock", "text": "Then we don't fight you. We fight WITH you. That was always the point, wasn't it?", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "Yes. One last story. The greatest story. All of us — together — against the tide of forgotten legends that would consume every story ever told.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "I will hold the walls. You fight what comes through. And if we survive... I will tell YOUR story. The story of the legends who saved Legend itself.", "voice_type": "narrator"},
+	]
+	story_dialogs["narrator_true_form"] = [
+		{"speaker": "narrator", "text": "It is time you saw me as I truly am.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Not a voice in the dark. Not a puppet master behind a curtain. But the fire that has burned since the first human looked at the stars and said... 'Once upon a time.'", "voice_type": "narrator"},
+		{"speaker": "alice", "text": "He's... beautiful. And terrifying.", "voice_type": "female_hero"},
+		{"speaker": "frankenstein", "text": "Like lightning... made into a person.", "voice_type": "monster"},
+		{"speaker": "narrator", "text": "THIS is my true form. The Living Story. I am every campfire tale. Every bedtime whisper. Every 'what happened next?' ever asked by a child. And I am DYING. Unless you help me hold the line.", "voice_type": "narrator"},
+		{"speaker": "robin_hood", "text": "Then we hold the line. For every story. For every dreamer. For every child who ever whispered 'once upon a time' in the dark.", "voice_type": "male_hero"},
+	]
+	story_dialogs["narrator_victory"] = [
+		{"speaker": "narrator", "text": "...You did it. The cracks are sealed. The stories are safe. The legends... will endure.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "I have told stories for ten thousand years. But I have never been IN one. Until now. Until you.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Thank you. For saving the stories. For saving ME. And for proving that the best legends aren't the ones we preserve — they're the ones we LIVE.", "voice_type": "narrator"},
+		{"speaker": "peter_pan", "text": "So... what happens now? Do we go back to our books?", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "You go wherever you choose. That is the gift of a finished story — the characters get to decide what comes AFTER 'The End.'", "voice_type": "narrator"},
+		{"speaker": "scrooge", "text": "Then I choose to stay. With my family. ALL of them.", "voice_type": "male_hero"},
+		{"speaker": "frankenstein", "text": "Family. Not monster. Family. Yes. Frankenstein stays.", "voice_type": "monster"},
+		{"speaker": "medusa", "text": "For the first time in three thousand years... I choose to keep my eyes OPEN.", "voice_type": "female_hero"},
+		{"speaker": "anubis", "text": "The scales are balanced. The story is complete. And it is... good.", "voice_type": "male_hero"},
+		{"speaker": "headless_horseman", "text": "The Horseman rides no more. The soldier... has come home.", "voice_type": "voiceless"},
+		{"speaker": "narrator", "text": "And so the greatest story ever told was not one of heroes defeating a villain — but of broken characters choosing to become whole. Once upon a time, they were legends. Now... they are family.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The End. ...For now.", "voice_type": "narrator"},
 	]
 
 	# === FINALE TEASERS ===
 	story_dialogs["all_unlocked"] = [
-		{"speaker": "narrator", "text": "All five imprisoned heroes have been freed. Eleven champions now stand united against the Shadow Author.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "But before the final confrontation, each hero must face the shadow version of their own tale. The original stories await, twisted and darkened.", "voice_type": "narrator"},
-		{"speaker": "narrator", "text": "Reclaim every story. Conquer every shadow. Then the path to the Final Chapter will open.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "All three ancient souls have been freed. The full team stands united — legends from every corner of human storytelling.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "But my realm is fracturing. The walls between stories are crumbling. What comes next will test everything you've become.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "This is it. The final chapters. The true test of legends.", "voice_type": "narrator"},
 	]
 
 func _show_act_title(act_key: String, then_dialog: String = "") -> void:
