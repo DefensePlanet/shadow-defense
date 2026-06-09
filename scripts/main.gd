@@ -338,6 +338,18 @@ var survivor_descriptions = {
 	TowerType.MERLIN: "The legendary wizard of Camelot.\nBuffs allies, curses enemies, summons Excalibur strikes.",
 	TowerType.FRANKENSTEIN: "The tragic creature brought to life.\nLightning-charged fist smash with devastating area damage.",
 	TowerType.SHADOW_AUTHOR: "The dark narrator who writes the story.\nMaster of ink and shadow, bends reality to his will.",
+	TowerType.CAPTAIN_HOOK: "The infamous pirate captain of the Jolly Roger.
+A master swordsman driven by vengeance and good form.",
+	TowerType.QUEEN_OF_HEARTS: "The tyrannical ruler of Wonderland.
+Commands an army of card soldiers with an iron fist.",
+	TowerType.CLAYTON: "A ruthless big game hunter from the African jungle.
+Expert marksman with an arsenal of traps and explosives.",
+	TowerType.HEADLESS_HORSEMAN: "A spectral Hessian soldier who rides at midnight.
+Wields hellfire and terror from beyond the grave.",
+	TowerType.MEDUSA: "The cursed Gorgon whose gaze turns flesh to stone.
+Serpent queen with venomous snake hair.",
+	TowerType.ANUBIS: "The Egyptian god of death and judgment.
+Weighs souls on the scales of Ma'at.",
 }
 # Character titles / epithets (shown below name on cards and detail view)
 var character_titles: Array = [
@@ -1085,6 +1097,12 @@ var kill_streak_quotes: Dictionary = {
 	TowerType.MERLIN: {10: "Ten felled by the old ways.", 25: "Twenty-five! The stars foretold this.", 50: "Fifty! Even Morgana never achieved this.", 100: "One hundred! The prophecy is FULFILLED!"},
 	TowerType.FRANKENSTEIN: {10: "Ten... I did not... mean to...", 25: "Twenty-five... I am... becoming something.", 50: "Fifty... perhaps I was... made for this.", 100: "One hundred... I am NOT... a monster. I am... a WARRIOR."},
 	TowerType.SHADOW_AUTHOR: {10: "Ten characters deleted from MY story.", 25: "Twenty-five plot threads... severed.", 50: "Fifty erased. The page is getting empty.", 100: "One hundred gone. I may need a new chapter."},
+	TowerType.CAPTAIN_HOOK: {10: "Ten souls sent to Davy Jones!", 25: "Twenty-five! The seas run red!", 50: "Fifty! I am the TERROR of the seven seas!", 100: "One hundred! Even Pan would tremble!"},
+	TowerType.QUEEN_OF_HEARTS: {10: "Ten heads! A slow start.", 25: "Twenty-five heads rolled! MORE!", 50: "Fifty! My garden grows red with victory!", 100: "One hundred executions! A PERFECT tea party!"},
+	TowerType.CLAYTON: {10: "Ten trophies for the wall.", 25: "Twenty-five. A productive safari.", 50: "Fifty kills. This is BIG game now.", 100: "One hundred. The greatest hunt of all time."},
+	TowerType.HEADLESS_HORSEMAN: {10: "Ten souls for the hollow.", 25: "Twenty-five spirits join my ride!", 50: "Fifty! The legend GROWS!", 100: "One hundred! Sleepy Hollow belongs to ME!"},
+	TowerType.MEDUSA: {10: "Ten new statues for my garden.", 25: "Twenty-five frozen in STONE!", 50: "Fifty! My island fills with sculptures!", 100: "One hundred petrified! A MASTERPIECE of stone!"},
+	TowerType.ANUBIS: {10: "Ten souls weighed and found wanting.", 25: "Twenty-five hearts consumed by Ammit!", 50: "Fifty judged! The scales never lie!", 100: "One hundred souls! The underworld OVERFLOWS!"},
 }
 
 # Idle quirk messages (shown above tower when no target, every 8-15s)
@@ -1101,6 +1119,12 @@ var idle_quirks: Dictionary = {
 	TowerType.MERLIN: ["*makes sparks from fingertips*", "*strokes his long beard*", "*reads an invisible scroll*", "*peers into a crystal ball*", "*chuckles at a future joke*"],
 	TowerType.FRANKENSTEIN: ["*looks at his hands sadly*", "*tries to catch a firefly*", "*sits down heavily*", "*reaches toward the moon*", "*hums a broken lullaby*"],
 	TowerType.SHADOW_AUTHOR: ["*scribbles in the air with ink*", "*flips through phantom pages*", "*ink drips from his quill*", "*whispers to his shadow*", "*rewrites something unseen*"],
+	TowerType.CAPTAIN_HOOK: ["*polishes his iron hook*", "*adjusts his tricorn hat*", "*checks his compass*", "*sharpens his cutlass*", "*glares at a ticking sound*"],
+	TowerType.QUEEN_OF_HEARTS: ["*adjusts her crown imperiously*", "*inspects her scepter*", "*glares at invisible subjects*", "*taps foot impatiently*", "*paints an invisible rose red*"],
+	TowerType.CLAYTON: ["*cleans his rifle barrel*", "*scans the horizon*", "*checks his bear trap*", "*adjusts his pith helmet*", "*loads ammunition*"],
+	TowerType.HEADLESS_HORSEMAN: ["*flames flicker on his pumpkin*", "*sharpens his sword on stone*", "*pats his spectral horse*", "*tosses pumpkin between hands*", "*dark fog swirls at his feet*"],
+	TowerType.MEDUSA: ["*snakes hiss softly*", "*coils her tail tighter*", "*admires her golden armor*", "*snakes braid themselves*", "*eyes glow faintly green*"],
+	TowerType.ANUBIS: ["*weighs an invisible heart*", "*polishes his ankh staff*", "*scarabs crawl across his armor*", "*golden eyes scan the horizon*", "*sand swirls at his feet*"],
 }
 
 # Bond banter (pair key "A_B" -> lines they say to each other)
@@ -1191,6 +1215,12 @@ var kill_effect_colors: Dictionary = {
 	TowerType.MERLIN: Color(0.35, 0.20, 0.85),
 	TowerType.FRANKENSTEIN: Color(0.20, 0.85, 0.90),
 	TowerType.SHADOW_AUTHOR: Color(0.08, 0.05, 0.15),
+	TowerType.CAPTAIN_HOOK: Color(0.6, 0.1, 0.1),
+	TowerType.QUEEN_OF_HEARTS: Color(0.8, 0.05, 0.15),
+	TowerType.CLAYTON: Color(0.5, 0.4, 0.2),
+	TowerType.HEADLESS_HORSEMAN: Color(0.4, 0.25, 0.05),
+	TowerType.MEDUSA: Color(0.1, 0.4, 0.15),
+	TowerType.ANUBIS: Color(0.6, 0.5, 0.1),
 }
 
 # Personality system state
@@ -3622,6 +3652,7 @@ const CHARACTER_HOME_LEVELS: Dictionary = {
 const TOWER_DAMAGE_TYPES: Dictionary = {
 	0: "sharp", 1: "magic", 2: "fire", 3: "sharp", 4: "magic", 5: "ice",
 	6: "sharp", 7: "sharp", 8: "shadow", 9: "magic", 10: "lightning", 11: "shadow",
+	12: "sharp", 13: "magic", 14: "sharp", 15: "fire", 16: "ice", 18: "shadow",
 }
 const DAMAGE_TYPE_NAMES: Dictionary = {
 	"sharp": "Sharp", "magic": "Magic", "fire": "Fire",
@@ -3912,6 +3943,12 @@ const TOWER_LAYER_MAP: Dictionary = {
 	9: 10,  # MERLIN â†' layer 10 (ethereal choir — mystic pad)
 	10: 11, # FRANKENSTEIN â†' layer 11 (industrial synth bass — electric growl)
 	11: 12, # SHADOW_AUTHOR â†' layer 12 (theremin — eerie wobble)
+	12: 13, # CAPTAIN_HOOK â†' layer 13 (sea shanty accordion)
+	13: 14, # QUEEN_OF_HEARTS â†' layer 14 (regal harpsichord — baroque fury)
+	14: 15, # CLAYTON â†' layer 15 (military snare + safari horn)
+	15: 16, # HEADLESS_HORSEMAN â†' layer 16 (ghostly pipe organ — minor key)
+	16: 17, # MEDUSA â†' layer 17 (serpentine sitar — hypnotic drone)
+	18: 18, # ANUBIS â†' layer 18 (Egyptian oud + ritual drums)
 }
 
 
@@ -5996,7 +6033,7 @@ func _start_odyssey_map(map_index: int) -> void:
 		tower_buttons[tt].text = "%s [%dG]" % [short, _get_discounted_cost(tt)]
 		tower_buttons[tt].disabled = false
 	# Unlockable characters — row 2, stretched horizontally
-	var unlock_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
+	var unlock_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR, TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON, TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.ANUBIS]
 	var ody_visible := 0
 	for tt in unlock_order:
 		if tower_buttons.has(tt):
@@ -8948,7 +8985,8 @@ func _load_portrait_textures() -> void:
 	_portrait_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author", "narrator", "robin_hood_2", "alice_2", "scrooge_2"]
+		"shadow_author", "narrator", "robin_hood_2", "alice_2", "scrooge_2",
+		"captain_hook", "queen_of_hearts", "clayton", "headless_horseman", "medusa", "anubis"]
 	for pname in names:
 		var res_path = "res://assets/portraits/" + pname + ".png"
 		if ResourceLoader.exists(res_path):
@@ -8996,7 +9034,8 @@ func _load_tower_sprite_textures() -> void:
 	_tower_sprite_textures.clear()
 	var names = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom",
 		"scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein",
-		"shadow_author"]
+		"shadow_author", "captain_hook", "queen_of_hearts", "clayton",
+		"headless_horseman", "medusa", "anubis"]
 	for tname in names:
 		var res_path = "res://assets/tower_sprites/" + tname + "_idle.png"
 		if ResourceLoader.exists(res_path):
@@ -12428,7 +12467,7 @@ func _do_level_start(index: int) -> void:
 		else:
 			tower_buttons[tt].visible = false
 	# Show unlocked character buttons — row 2, stretched horizontally
-	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
+	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR, TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON, TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.ANUBIS]
 	var new_char_labels = {
 		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
 		TowerType.TARZAN: "Tarzan [%dG]" % _get_discounted_cost(TowerType.TARZAN),
@@ -12436,6 +12475,12 @@ func _do_level_start(index: int) -> void:
 		TowerType.MERLIN: "Merlin [%dG]" % _get_discounted_cost(TowerType.MERLIN),
 		TowerType.FRANKENSTEIN: "Monster [%dG]" % _get_discounted_cost(TowerType.FRANKENSTEIN),
 		TowerType.SHADOW_AUTHOR: "Author [%dG]" % _get_discounted_cost(TowerType.SHADOW_AUTHOR),
+		TowerType.CAPTAIN_HOOK: "Hook [%dG]" % _get_discounted_cost(TowerType.CAPTAIN_HOOK),
+		TowerType.QUEEN_OF_HEARTS: "Queen [%dG]" % _get_discounted_cost(TowerType.QUEEN_OF_HEARTS),
+		TowerType.CLAYTON: "Clayton [%dG]" % _get_discounted_cost(TowerType.CLAYTON),
+		TowerType.HEADLESS_HORSEMAN: "Horseman [%dG]" % _get_discounted_cost(TowerType.HEADLESS_HORSEMAN),
+		TowerType.MEDUSA: "Medusa [%dG]" % _get_discounted_cost(TowerType.MEDUSA),
+		TowerType.ANUBIS: "Anubis [%dG]" % _get_discounted_cost(TowerType.ANUBIS),
 	}
 	var new_visible_count := 0
 	for tt in new_char_order:
@@ -37238,6 +37283,12 @@ func _tower_type_to_name(tt) -> String:
 		TowerType.MERLIN: return "merlin"
 		TowerType.FRANKENSTEIN: return "frankenstein"
 		TowerType.SHADOW_AUTHOR: return "shadow_author"
+		TowerType.CAPTAIN_HOOK: return "captain_hook"
+		TowerType.QUEEN_OF_HEARTS: return "queen_of_hearts"
+		TowerType.CLAYTON: return "clayton"
+		TowerType.HEADLESS_HORSEMAN: return "headless_horseman"
+		TowerType.MEDUSA: return "medusa"
+		TowerType.ANUBIS: return "anubis"
 		TowerType.ROBIN_HOOD_2: return "robin_hood_2"
 		TowerType.ALICE_2: return "alice_2"
 		TowerType.SCROOGE_2: return "scrooge_2"
@@ -38988,7 +39039,7 @@ func _start_endless_mode() -> void:
 	tower_buttons[TowerType.PHANTOM].disabled = false
 	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
 	tower_buttons[TowerType.SCROOGE].disabled = false
-	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
+	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR, TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON, TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.ANUBIS]
 	var new_char_labels = {
 		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
 		TowerType.TARZAN: "Tarzan [%dG]" % _get_discounted_cost(TowerType.TARZAN),
@@ -38996,6 +39047,12 @@ func _start_endless_mode() -> void:
 		TowerType.MERLIN: "Merlin [%dG]" % _get_discounted_cost(TowerType.MERLIN),
 		TowerType.FRANKENSTEIN: "Monster [%dG]" % _get_discounted_cost(TowerType.FRANKENSTEIN),
 		TowerType.SHADOW_AUTHOR: "Author [%dG]" % _get_discounted_cost(TowerType.SHADOW_AUTHOR),
+		TowerType.CAPTAIN_HOOK: "Hook [%dG]" % _get_discounted_cost(TowerType.CAPTAIN_HOOK),
+		TowerType.QUEEN_OF_HEARTS: "Queen [%dG]" % _get_discounted_cost(TowerType.QUEEN_OF_HEARTS),
+		TowerType.CLAYTON: "Clayton [%dG]" % _get_discounted_cost(TowerType.CLAYTON),
+		TowerType.HEADLESS_HORSEMAN: "Horseman [%dG]" % _get_discounted_cost(TowerType.HEADLESS_HORSEMAN),
+		TowerType.MEDUSA: "Medusa [%dG]" % _get_discounted_cost(TowerType.MEDUSA),
+		TowerType.ANUBIS: "Anubis [%dG]" % _get_discounted_cost(TowerType.ANUBIS),
 	}
 	var new_visible_count := 0
 	for tt in new_char_order:
@@ -39056,7 +39113,7 @@ func _start_boss_rush() -> void:
 	tower_buttons[TowerType.PHANTOM].disabled = false
 	tower_buttons[TowerType.SCROOGE].text = "Scrooge [%dG]" % _get_discounted_cost(TowerType.SCROOGE)
 	tower_buttons[TowerType.SCROOGE].disabled = false
-	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR]
+	var new_char_order = [TowerType.SHERLOCK, TowerType.TARZAN, TowerType.DRACULA, TowerType.MERLIN, TowerType.FRANKENSTEIN, TowerType.SHADOW_AUTHOR, TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON, TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.ANUBIS]
 	var new_char_labels = {
 		TowerType.SHERLOCK: "Holmes [%dG]" % _get_discounted_cost(TowerType.SHERLOCK),
 		TowerType.TARZAN: "Tarzan [%dG]" % _get_discounted_cost(TowerType.TARZAN),
@@ -39064,6 +39121,12 @@ func _start_boss_rush() -> void:
 		TowerType.MERLIN: "Merlin [%dG]" % _get_discounted_cost(TowerType.MERLIN),
 		TowerType.FRANKENSTEIN: "Monster [%dG]" % _get_discounted_cost(TowerType.FRANKENSTEIN),
 		TowerType.SHADOW_AUTHOR: "Author [%dG]" % _get_discounted_cost(TowerType.SHADOW_AUTHOR),
+		TowerType.CAPTAIN_HOOK: "Hook [%dG]" % _get_discounted_cost(TowerType.CAPTAIN_HOOK),
+		TowerType.QUEEN_OF_HEARTS: "Queen [%dG]" % _get_discounted_cost(TowerType.QUEEN_OF_HEARTS),
+		TowerType.CLAYTON: "Clayton [%dG]" % _get_discounted_cost(TowerType.CLAYTON),
+		TowerType.HEADLESS_HORSEMAN: "Horseman [%dG]" % _get_discounted_cost(TowerType.HEADLESS_HORSEMAN),
+		TowerType.MEDUSA: "Medusa [%dG]" % _get_discounted_cost(TowerType.MEDUSA),
+		TowerType.ANUBIS: "Anubis [%dG]" % _get_discounted_cost(TowerType.ANUBIS),
 	}
 	var new_visible_count := 0
 	for tt in new_char_order:
