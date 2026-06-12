@@ -1,0 +1,56 @@
+{
+  "title": "The Shadow Author's Journal",
+  "description": "Hidden journal entries found throughout the Tome. Reveals the Shadow Author's inner thoughts.",
+  "entries": [
+    {
+      "level": 1,
+      "title": "The First Page",
+      "text": "They came. Three of them. An archer, a girl, and an old man. I thought they'd be afraid. Instead, the archer SHOT at me. The audacity. Don't they know I wrote their endings?"
+    },
+    {
+      "level": 5,
+      "title": "The Wizard",
+      "text": "Merlin saw through me. Of course he did — he's eight hundred years old. But he's trapped in crystal, and crystal doesn't judge. Much."
+    },
+    {
+      "level": 9,
+      "title": "The Wild Man",
+      "text": "Tarzan doesn't speak much. But when he does, every word hits like a fist. He called me 'lost.' I am NOT lost. I am the one who WRITES the paths."
+    },
+    {
+      "level": 12,
+      "title": "The Vampire",
+      "text": "Dracula chose to stop feeding. Three hundred years of darkness, and he CHOSE the light. How? How does a monster choose to be good? I've been trying for eight hundred years and I still can't."
+    },
+    {
+      "level": 15,
+      "title": "The Monster",
+      "text": "Frankenstein's creature said something today that broke me. 'You... freed me? No one has ever...' He THANKED me for imprisoning him. Because even a cage is better than being alone. I understand that. God help me, I understand that."
+    },
+    {
+      "level": 20,
+      "title": "The Boy",
+      "text": "Peter Pan grew up today. Not physically — he's still a boy. But he chose to stay and fight instead of flying away to Neverland. He chose his friends over his paradise. Why can't I do that?"
+    },
+    {
+      "level": 25,
+      "title": "The Hook",
+      "text": "Captain Hook lowered his sword. For the first time in a hundred years, he stopped fighting. 'I'm tired of being the villain,' he said. I wanted to say 'me too.' But I didn't."
+    },
+    {
+      "level": 30,
+      "title": "The Music",
+      "text": "The Phantom played his organ tonight. The sound traveled through every page, every chapter, every word I've ever written. And for one moment — one beautiful, terrible moment — I remembered what it felt like to be PART of a story instead of ABOVE it."
+    },
+    {
+      "level": 33,
+      "title": "The Last Entry",
+      "text": "They're coming for me. All of them. Together. I should be afraid. But I'm not. I'm... relieved. Eight hundred years of writing stories, and I never got one of my own. Maybe this is it. Maybe this is my story. The villain who wanted to be loved."
+    },
+    {
+      "level": 36,
+      "title": "After (if redeemed)",
+      "text": "They forgave me. I don't understand why. I stole their stories, their freedom, their worlds. And they forgave me. The girl — Alice — she said 'Everyone deserves a happy ending. Even the author.' I'm crying as I write this. For the first time in eight hundred years, these are not ink tears."
+    }
+  ]
+}
