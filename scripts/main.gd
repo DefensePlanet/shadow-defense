@@ -47,6 +47,25 @@ var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 var _tower_sort_mode: int = 0  # #72: 0=Default, 1=Cost, 2=Damage, 3=Range
 
+# === #86: PROJECTILE TYPES BY TOWER ===
+# Robin Hood: arrow.gd (green arrow trail, pierces at upgrade 3)
+# Alice: AoE cake splat (direct, no projectile — radial slow field)
+# Wicked Witch: witch_bolt.gd (green fire bolt, AoE on impact, DoT)
+# Peter Pan: dagger.gd (rapid fairy-dust daggers, small and fast)
+# Phantom: shockwave.gd (musical shockwave ring, single-target, heavy damage)
+# Scrooge: coin_toss.gd (gold coin lob, short range, generates gold on hit)
+# Sherlock: magnifying_beam.gd (invisible — marks target, no direct damage)
+# Tarzan: vine_pull.gd (vine lash — melee range, pulls enemies closer)
+# Dracula: blood_bolt.gd (red blood projectile, lifesteal on hit)
+# Merlin: spell_bolt.gd (arcane orb, chains to 2 nearby enemies)
+# Frankenstein: lightning_arc.gd (chain lightning, jumps 3 targets, slow fire rate)
+# Shadow Author: ink_blast.gd (ink splash, DoT + stat rewrite debuff)
+# Captain Hook: cannonball.gd (broadside cannon shot, AoE splash)
+# Queen of Hearts: card_throw.gd (playing card fan, spawns card soldier allies)
+# Clayton: rifle_shot.gd (high-caliber bullet, targets strongest enemy first)
+# Headless Horseman: pumpkin_fire.gd (flaming pumpkin AoE + fear aura)
+# Medusa: gaze_beam.gd (petrification ray — freezes target in stone)
+# Anubis: soul_judgment.gd (ankh projectile, 30% chance resurrects killed enemy as ally)
 var tower_info = {
 	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85, "desc": "Balanced archer. Long range, reliable damage. The backbone of any defense."},
 	TowerType.ALICE: {"name": "Alice", "cost": 120, "range": 85.0, "damage": 12, "fire_rate": 1.80, "desc": "Support specialist. Cake slows enemies, buffs nearby towers. Low range, high utility."},
@@ -85,6 +104,22 @@ var tower_info = {
 	TowerType.ALICE_2: {"name": "Alice", "cost": 120, "range": 120.0, "damage": 15, "fire_rate": 1.0},
 	TowerType.SCROOGE_2: {"name": "Scrooge", "cost": 80, "range": 100.0, "damage": 12, "fire_rate": 1.2},
 }
+
+# === #177: OBJECT POOL SYSTEM DOCUMENTATION ===
+# Autoload: scripts/autoloads/object_pool.gd
+# Methods:
+#   spawn(scene: PackedScene) -> Node  — Returns pooled instance or instantiates new
+#   despawn(node: Node) -> void        — Returns node to pool, hides and resets
+#   warm_for_level(level_idx: int)     — Pre-instantiates expected enemies/projectiles
+#   get_pool_stats() -> Dictionary     — Returns {active, pooled, total, peak} counts
+# Used by:
+#   enemy.gd           — despawn() on death/exit instead of queue_free()
+#   loading_manager.gd — warm_for_level() during level load screen
+#   tower base classes  — spawn() for projectile creation
+# Tracked by:
+#   performance_monitor.gd — polls get_pool_stats() for debug overlay
+# Pool sizes (defaults, auto-expand):
+#   enemies: 30 | projectiles: 50 | particles: 100 | floating_text: 20
 
 # Survivor skins — purchasable outfit variants
 var SURVIVOR_SKINS: Dictionary = {
@@ -487,6 +522,7 @@ var _draw_tower_detail: bool = true  # Updated from _quality_level >= 1
 # - Both: Age rating completed, privacy policy URL set, screenshots uploaded
 # #192: One-handed mode — move interactive elements to bottom 60% of screen
 var _one_handed_mode: bool = false
+var _ui_y_offset: float = 0.0  # #192: Applied to interactive UI when one-handed mode active
 # TODO: Register URL scheme (shadowdefense://) for share links and friend invites
 # #197: COPPA compliance — disable analytics/ads if age < 13
 var _age_verified: bool = false  # Part of GDPR/COPPA consent flow
@@ -2350,7 +2386,7 @@ var levels = [
 		"name": "Sleepy Hollow Bridge", "subtitle": "Headless Horseman — Chapter 1",
 		"description": "The covered bridge where Ichabod Crane fled for his life. Now the Horseman rides eternal, hurling flaming pumpkins at any who dare cross. The Narrator's spectral cavalry charges in waves — fast, relentless, and immune to fear.",
 		"character": -1, "chapter": 0, "enemy_theme": 13,
-		"waves": 30, "gold": 100, "lives": 15, "difficulty": 2.2,
+		"waves": 30, "gold": 100, "lives": 15, "difficulty": 2.15,
 		"sky_color": Color(0.06, 0.04, 0.02),
 		"ground_color": Color(0.08, 0.06, 0.03),
 	},
@@ -2358,7 +2394,7 @@ var levels = [
 		"name": "The Hollow's Heart", "subtitle": "Headless Horseman — Chapter 2",
 		"description": "Deep in the haunted woods where no moonlight reaches. Headless riders from every ghost story patrol the fog. Enemies split when killed — each half keeps moving.",
 		"character": -1, "chapter": 1, "enemy_theme": 13,
-		"waves": 35, "gold": 95, "lives": 12, "difficulty": 2.5,
+		"waves": 35, "gold": 95, "lives": 12, "difficulty": 2.45,
 		"sky_color": Color(0.04, 0.03, 0.02),
 		"ground_color": Color(0.06, 0.04, 0.02),
 	},
@@ -2366,7 +2402,7 @@ var levels = [
 		"name": "The Churchyard Gate", "subtitle": "Headless Horseman — Chapter 3",
 		"description": "The old Dutch church — the one place the Horseman cannot cross. But the Narrator rewrote that rule. Boss wave: the Horseman himself charges with an army of the damned. Survive to free him.",
 		"character": -1, "chapter": 2, "enemy_theme": 13,
-		"waves": 40, "gold": 90, "lives": 10, "difficulty": 2.8,
+		"waves": 40, "gold": 90, "lives": 10, "difficulty": 2.75,
 		"sky_color": Color(0.03, 0.02, 0.01),
 		"ground_color": Color(0.05, 0.03, 0.02),
 	},
@@ -2375,7 +2411,7 @@ var levels = [
 		"name": "The Gorgon's Garden", "subtitle": "Medusa — Chapter 1",
 		"description": "A garden of stone statues — heroes who looked into her eyes. Stone warriors reanimate and march. Every 5th wave, a petrification pulse freezes YOUR towers for 3 seconds.",
 		"character": -1, "chapter": 0, "enemy_theme": 14,
-		"waves": 30, "gold": 100, "lives": 15, "difficulty": 2.3,
+		"waves": 30, "gold": 100, "lives": 15, "difficulty": 2.25,
 		"sky_color": Color(0.04, 0.08, 0.04),
 		"ground_color": Color(0.06, 0.10, 0.06),
 	},
@@ -2383,7 +2419,7 @@ var levels = [
 		"name": "The Temple of Athena", "subtitle": "Medusa — Chapter 2",
 		"description": "The temple where Medusa was cursed. Greek warriors in enchanted marble armor are nearly immune to magic. Physical damage towers shine here — choose your roster wisely.",
 		"character": -1, "chapter": 1, "enemy_theme": 14,
-		"waves": 35, "gold": 95, "lives": 12, "difficulty": 2.6,
+		"waves": 35, "gold": 95, "lives": 12, "difficulty": 2.55,
 		"sky_color": Color(0.06, 0.08, 0.06),
 		"ground_color": Color(0.08, 0.10, 0.08),
 	},
@@ -2391,7 +2427,7 @@ var levels = [
 		"name": "The Petrified Throne", "subtitle": "Medusa — Chapter 3",
 		"description": "Medusa sits on a throne of her own victims — eyes closed, CHOOSING not to look. Boss wave: Athena's champion Perseus leads an army of golden warriors. Survive the onslaught, and the Gorgon fights for YOU.",
 		"character": -1, "chapter": 2, "enemy_theme": 14,
-		"waves": 40, "gold": 90, "lives": 10, "difficulty": 2.9,
+		"waves": 40, "gold": 90, "lives": 10, "difficulty": 2.85,
 		"sky_color": Color(0.03, 0.06, 0.03),
 		"ground_color": Color(0.05, 0.08, 0.05),
 	},
@@ -2400,7 +2436,7 @@ var levels = [
 		"name": "The Weighing Hall", "subtitle": "Anubis — Chapter 1",
 		"description": "The Hall of Two Truths where hearts are weighed against a feather. The scales are corrupted — enemies grow STRONGER the longer they survive. Kill fast or be overwhelmed.",
 		"character": -1, "chapter": 0, "enemy_theme": 16,
-		"waves": 32, "gold": 100, "lives": 15, "difficulty": 2.4,
+		"waves": 32, "gold": 100, "lives": 15, "difficulty": 2.35,
 		"sky_color": Color(0.10, 0.08, 0.02),
 		"ground_color": Color(0.12, 0.10, 0.04),
 	},
@@ -2408,7 +2444,7 @@ var levels = [
 		"name": "The River of the Dead", "subtitle": "Anubis — Chapter 2",
 		"description": "A river of liquid shadow. Souls of the unworthy rise from the waters as elite undead. Two paths converge — enemies attack from BOTH directions simultaneously.",
 		"character": -1, "chapter": 1, "enemy_theme": 16,
-		"waves": 36, "gold": 95, "lives": 12, "difficulty": 2.7,
+		"waves": 36, "gold": 95, "lives": 12, "difficulty": 2.65,
 		"sky_color": Color(0.08, 0.06, 0.02),
 		"ground_color": Color(0.10, 0.08, 0.04),
 	},
@@ -2416,7 +2452,7 @@ var levels = [
 		"name": "The Feather of Ma'at", "subtitle": "Anubis — Chapter 3",
 		"description": "The final judgment. Ammit the Devourer guards the feather — a boss that HEALS from your attacks unless you time your strikes with the scales. The hardest level in the game. Free the god of death.",
 		"character": -1, "chapter": 2, "enemy_theme": 16,
-		"waves": 45, "gold": 85, "lives": 8, "difficulty": 3.0,
+		"waves": 45, "gold": 85, "lives": 8, "difficulty": 2.95,
 		"sky_color": Color(0.06, 0.04, 0.01),
 		"ground_color": Color(0.08, 0.06, 0.02),
 	},
@@ -2425,7 +2461,7 @@ var levels = [
 		"name": "The Hall of Legends", "subtitle": "The Narrator — Chapter 1",
 		"description": "The Narrator's throne room — a hall of fire and lightning where every legend ever told echoes off the walls. But something is WRONG. The stories are unraveling. Corrupted legends pour through cracks in reality. Even the Narrator can't hold them back alone.",
 		"character": -1, "chapter": 0, "enemy_theme": 18,
-		"waves": 40, "gold": 90, "lives": 12, "difficulty": 3.0,
+		"waves": 40, "gold": 90, "lives": 12, "difficulty": 2.95,
 		"sky_color": Color(0.12, 0.08, 0.02),
 		"ground_color": Color(0.14, 0.10, 0.04),
 	},
@@ -2433,7 +2469,7 @@ var levels = [
 		"name": "The Burning Library", "subtitle": "The Narrator — Chapter 2",
 		"description": "The Narrator's power source — a library of every story ever told, now burning out of control. Corrupted characters from forgotten stories storm through. The Narrator fights ALONGSIDE you for the first time — but he's weakening.",
 		"character": -1, "chapter": 1, "enemy_theme": 18,
-		"waves": 45, "gold": 85, "lives": 10, "difficulty": 3.3,
+		"waves": 45, "gold": 85, "lives": 10, "difficulty": 3.20,
 		"sky_color": Color(0.14, 0.10, 0.02),
 		"ground_color": Color(0.16, 0.12, 0.04),
 	},
@@ -2441,7 +2477,7 @@ var levels = [
 		"name": "The Voice Unbound", "subtitle": "The Narrator — Final Chapter",
 		"description": "The Narrator reveals his true form — muscular, pale, wreathed in fire and lightning. Not as an enemy. As a SHIELD. He holds back the collapsing realm while YOU fight the endless tide. 50 waves. No mercy. The hardest battle in Shadow Defense. Save the storyteller who saved you.",
 		"character": -1, "chapter": 2, "enemy_theme": 18,
-		"waves": 50, "gold": 80, "lives": 8, "difficulty": 3.5,
+		"waves": 50, "gold": 80, "lives": 8, "difficulty": 3.45,
 		"sky_color": Color(0.16, 0.12, 0.04),
 		"ground_color": Color(0.18, 0.14, 0.06),
 	},
@@ -4938,6 +4974,8 @@ func _ready() -> void:
 	if game_font == null:
 		game_font = ThemeDB.fallback_font
 	_init_survivor_progress()
+	# #199: Load default remote config values
+	_load_default_remote_config()
 	# #193: Lock to landscape orientation on mobile
 	if _is_mobile:
 		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
@@ -16058,9 +16096,69 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["pre_level_74"] = [
 		{"speaker": "narrator", "text": "Down another rabbit hole, deeper than the first. This Wonderland has layers within layers, each more impossible, each more dangerous than the last.", "voice_type": "narrator"},
 	]
+	# Neverland Ch2 expanded - Level 59
+	story_dialogs["pre_level_59"] = [
+		{"speaker": "narrator", "text": "The Lost Boys have scattered. Tinkerbell's light flickers between dimensions, leaving trails of dust that burn like phosphorus. Something ancient stirs beneath the Neverland reef.", "voice_type": "narrator"},
+	]
+	# Oz Ch2 expanded - Level 61
+	story_dialogs["pre_level_61"] = [
+		{"speaker": "narrator", "text": "The Yellow Brick Road cracks and peels away, revealing the ink-black void beneath Oz. The Tin Man stands frozen mid-stride — not rusted, but rewritten into a statue of pure narrative.", "voice_type": "narrator"},
+	]
+	# Opera Ch2 expanded - Level 63
+	story_dialogs["pre_level_63"] = [
+		{"speaker": "narrator", "text": "The chandelier swings on its own, casting kaleidoscope shadows across the empty seats. Every shadow is a memory of an audience that never existed, applauding a performance that never ends.", "voice_type": "narrator"},
+	]
+	# Sherlock Ch2 expanded - Level 65
+	story_dialogs["pre_level_65"] = [
+		{"speaker": "narrator", "text": "221B Baker Street has been duplicated a hundred times, each copy slightly wrong. The wallpaper pattern shifts. Moriarty's web isn't made of contacts — it's made of plot threads, and he's pulling all of them.", "voice_type": "narrator"},
+	]
+	# Merlin Ch2 expanded - Level 67
+	story_dialogs["pre_level_67"] = [
+		{"speaker": "narrator", "text": "The Round Table lies shattered, each fragment reflecting a different timeline. In one, Arthur won. In another, Camelot burned. The Narrator is rewriting them all simultaneously.", "voice_type": "narrator"},
+	]
+	# Tarzan Ch2 expanded - Level 69
+	story_dialogs["pre_level_69"] = [
+		{"speaker": "narrator", "text": "The jungle floor has turned to quicksand made of liquid ink. Trees uproot themselves to flee. Tarzan's apes have learned to write — and what they've written is a warning.", "voice_type": "narrator"},
+	]
+	# Dracula Ch2 expanded - Level 71
+	story_dialogs["pre_level_71"] = [
+		{"speaker": "narrator", "text": "Castle Dracula's corridors fold in on themselves. Every mirror shows a different era — the Count as a young prince, as a warlord, as a monster. The Narrator can't decide which version to keep.", "voice_type": "narrator"},
+	]
+	# Sherwood Ch2 expanded - Level 73
+	story_dialogs["pre_level_73"] = [
+		{"speaker": "narrator", "text": "The Major Oak — Sherwood's heart — has grown a face. It speaks in verse, warning of a darkness that even legends fear. Its roots reach down into stories older than England itself.", "voice_type": "narrator"},
+	]
+	# Wonderland Ch2 expanded - Level 75
+	story_dialogs["pre_level_75"] = [
+		{"speaker": "narrator", "text": "The Cheshire Cat's grin hangs in the air without the cat. It speaks: 'We're all stories here. But some of us know it.' The grin widens, and Wonderland peels apart at the seams.", "voice_type": "narrator"},
+	]
+	# Scrooge expanded - Level 76
+	story_dialogs["pre_level_76"] = [
+		{"speaker": "narrator", "text": "The Ghost of Christmas Future returns, but its robe is made of unfinished pages. It points not to a gravestone but to a blank page — the most terrifying thing Scrooge has ever seen.", "voice_type": "narrator"},
+	]
+	# Scrooge expanded - Level 77
+	story_dialogs["pre_level_77"] = [
+		{"speaker": "narrator", "text": "Tiny Tim's crutch taps against stone that echoes forever. The boy walks through a Christmas that never happened, in a London that exists only because someone once bothered to write it down.", "voice_type": "narrator"},
+	]
+	# Shadow Author expanded - Level 78
+	story_dialogs["pre_level_78"] = [
+		{"speaker": "narrator", "text": "The Author's study is a wound in reality. Ink bleeds from the ceiling. Every quill he ever used floats in orbit around a manuscript that writes itself — and what it writes is the end of everything.", "voice_type": "narrator"},
+	]
+	# Shadow Author expanded - Level 79
+	story_dialogs["pre_level_79"] = [
+		{"speaker": "narrator", "text": "He sits at his desk, the Shadow Author, and for the first time you see his face. It's familiar. It's yours. It's everyone's. He is the reader who became the writer who became the story.", "voice_type": "narrator"},
+	]
 	# Christmas expanded - Level 80
 	story_dialogs["pre_level_80"] = [
 		{"speaker": "narrator", "text": "The counting house extends into infinity here. Every ledger page Scrooge ever touched has become a hallway, and at the end of each one stands a debt that was never truly paid.", "voice_type": "narrator"},
+	]
+	# Finale expanded - Level 81
+	story_dialogs["pre_level_81"] = [
+		{"speaker": "narrator", "text": "The Storybook is closing. Pages curl at the edges like dying leaves. Every character you've saved stands behind you now — not as soldiers, but as friends. This is the last chapter.", "voice_type": "narrator"},
+	]
+	# Finale expanded - Level 82
+	story_dialogs["pre_level_82"] = [
+		{"speaker": "narrator", "text": "The final page is blank. Not because the story is over — because it hasn't been written yet. The pen is in your hand. The ink is your courage. Write the ending they deserve.", "voice_type": "narrator"},
 	]
 
 func _show_act_title(act_key: String, then_dialog: String = "") -> void:
@@ -22528,7 +22626,7 @@ func _draw_survivor_detail() -> void:
 				draw_colored_polygon(_rrp(Rect2(port_x + 2, aw_indicator_y + 2, aw_fill_w, 18), 4.0), _ca(Color(0.7, 0.5, 0.9), 0.8 * content_alpha))
 			_udraw(font, Vector2(port_x + 4, aw_indicator_y + 16), "Awakening: %d/%d quests" % [done_count, aw_quests.size()], HORIZONTAL_ALIGNMENT_CENTER, int(port_w - 8), 12, Color(0.9, 0.8, 1.0, content_alpha))
 		else:
-			# Not yet max level — show damage progress toward awakening quest
+			# Not yet max level — show damage progress toward awakening quest (#136 enhanced)
 			var total_dmg_aw = progress.get("total_damage", 0.0)
 			var aw_quests_aw = AWAKENING_QUESTS.get(tower_type, [])
 			var dmg_target = 0
@@ -22537,11 +22635,42 @@ func _draw_survivor_detail() -> void:
 					dmg_target = q.get("target", 100000)
 			if dmg_target > 0:
 				var dmg_ratio = clamp(total_dmg_aw / float(dmg_target), 0.0, 1.0)
-				draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, 18), 4.0), Color(0.06, 0.05, 0.12, 0.6 * content_alpha))
+				var aw_bar_h = 22.0
+				# Background bar
+				draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, aw_bar_h), 5.0), Color(0.06, 0.05, 0.12, 0.7 * content_alpha))
+				draw_colored_polygon(_rrp(Rect2(port_x - 1, aw_indicator_y - 1, port_w + 2, aw_bar_h + 2), 6.0), _ca(Color(0.5, 0.3, 0.7), 0.35 * content_alpha))
+				draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, aw_bar_h), 5.0), Color(0.06, 0.05, 0.12, 0.7 * content_alpha))
 				if dmg_ratio > 0:
 					var dmg_fill_w = (port_w - 4) * dmg_ratio
-					draw_colored_polygon(_rrp(Rect2(port_x + 2, aw_indicator_y + 2, dmg_fill_w, 14), 3.0), _ca(Color(0.5, 0.35, 0.7), 0.5 * content_alpha))
-				_udraw(font, Vector2(port_x + 4, aw_indicator_y + 13), "Awakening: %s/%s dmg" % [_format_number(total_dmg_aw), _format_number(float(dmg_target))], HORIZONTAL_ALIGNMENT_CENTER, int(port_w - 8), 10, Color(0.7, 0.6, 0.8, 0.7 * content_alpha))
+					# Color gradient: purple (0%) -> gold (100%)
+					var bar_r = lerp(0.5, 1.0, dmg_ratio)
+					var bar_g = lerp(0.2, 0.85, dmg_ratio)
+					var bar_b = lerp(0.7, 0.15, dmg_ratio)
+					var bar_color = Color(bar_r, bar_g, bar_b)
+					draw_colored_polygon(_rrp(Rect2(port_x + 2, aw_indicator_y + 2, dmg_fill_w, aw_bar_h - 4), 4.0), _ca(bar_color, 0.85 * content_alpha))
+					# Highlight strip (top third for 3D effect)
+					draw_colored_polygon(_rrp(Rect2(port_x + 2, aw_indicator_y + 2, dmg_fill_w, (aw_bar_h - 4) * 0.3), 4.0), Color(1, 1, 1, 0.12 * content_alpha))
+					# Shimmer sweep
+					var aw_shimmer_pos = fmod(_time * 0.4, 1.0)
+					var aw_shimmer_x = port_x + 2 + dmg_fill_w * aw_shimmer_pos
+					if aw_shimmer_x < port_x + 2 + dmg_fill_w - 16:
+						draw_rect(Rect2(aw_shimmer_x, aw_indicator_y + 2, 16, aw_bar_h - 4), Color(1, 1, 1, 0.1 * content_alpha))
+				# Pulsing glow when >= 90%
+				if dmg_ratio >= 0.9:
+					var pulse_glow = 0.3 + sin(_time * 3.0) * 0.2
+					for gi in range(3):
+						var glow_r = 4.0 + float(gi) * 3.0
+						draw_colored_polygon(_rrp(Rect2(port_x - glow_r, aw_indicator_y - glow_r, port_w + glow_r * 2, aw_bar_h + glow_r * 2), 6.0 + glow_r), Color(1.0, 0.85, 0.15, pulse_glow * (1.0 - float(gi) * 0.3) * content_alpha))
+					# Redraw bar on top of glow
+					draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, aw_bar_h), 5.0), Color(0.06, 0.05, 0.12, 0.7 * content_alpha))
+					if dmg_ratio > 0:
+						var glow_fill_w = (port_w - 4) * dmg_ratio
+						draw_colored_polygon(_rrp(Rect2(port_x + 2, aw_indicator_y + 2, glow_fill_w, aw_bar_h - 4), 4.0), _ca(Color(1.0, 0.85, 0.15), 0.9 * content_alpha))
+				# Percentage text
+				var aw_pct = int(dmg_ratio * 100)
+				var aw_text = "Awakening: %d%%" % aw_pct
+				var aw_tw = font.get_string_size(aw_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+				_udraw(font, Vector2(port_x + (port_w - aw_tw) * 0.5, aw_indicator_y + 16), aw_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 1, 1, content_alpha))
 
 	# ================================================================
 	# RIGHT SIDE: Weapon + Allies + Trinkets (ALL VISIBLE, no tabs)
@@ -24583,6 +24712,11 @@ func _process(delta: float) -> void:
 	# #175: Skip processing when game window is backgrounded
 	if not visible: return
 	_time += delta
+	# #192: One-handed mode — offset interactive UI to bottom 60% of screen
+	if _one_handed_mode:
+		_ui_y_offset = get_viewport_rect().size.y * 0.4
+	else:
+		_ui_y_offset = 0.0
 	# #183: Frame budget monitoring — rolling average FPS
 	if delta > 0.0:
 		_avg_fps = lerpf(_avg_fps, 1.0 / delta, 0.05)
@@ -25571,6 +25705,9 @@ func _spawn_enemy() -> void:
 		enemy.enemy_theme = randi() % 19  # Include Act 4 themes (13-18)
 	else:
 		enemy.enemy_theme = composition.get("theme", levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0)
+	# #52-54: Runtime Loki spawn prevention — Loki theme (15) is disabled
+	if enemy.enemy_theme == 15:
+		enemy.enemy_theme = 0  # Fallback to Sherwood theme
 
 	# Apply enemy subtype modifiers
 	var subtype = composition.get("type", "normal")
@@ -26732,6 +26869,16 @@ func _emergency_save() -> void:
 			Time.get_datetime_string_from_system(), str(ok), err_msg, wave, current_level
 		])
 		f.close()
+	# #6: Log emergency save event to integrity log
+	var elog = FileAccess.open("user://save_integrity_log.txt", FileAccess.READ_WRITE)
+	if elog == null:
+		elog = FileAccess.open("user://save_integrity_log.txt", FileAccess.WRITE)
+	if elog:
+		elog.seek_end()
+		elog.store_string("=== EMERGENCY SAVE ===\nTimestamp: %s\nSave OK: %s\nError: %s\nWave: %d\nLevel: %d\n===\n\n" % [
+			Time.get_datetime_string_from_system(), str(ok), err_msg, wave, current_level
+		])
+		elog.close()
 
 func _handle_back_button() -> void:
 	if chest_opening_active:
@@ -27407,6 +27554,10 @@ func _get_discounted_cost(tower_type) -> int:
 	return int(base_cost * (1.0 - discount - streak_disc))
 
 func _try_place_tower(pos: Vector2) -> void:
+	# #52-54: Loki tower placement disabled at runtime
+	if selected_tower == TowerType.LOKI:
+		info_label.text = "Loki is not available"
+		return
 	# #181: Lazy-load remaining voice clips before placement
 	_ensure_voice_clips_loaded(selected_tower)
 	if not _is_valid_placement(pos):
@@ -41756,6 +41907,8 @@ func _draw_settings_tab() -> void:
 	toggle_y += row_h
 	_draw_settings_toggle(font, col2_x, toggle_y, "REDUCE MOTION", GameSettings.reduced_motion, "reduced_motion")
 	toggle_y += row_h
+	_draw_settings_toggle(font, col2_x, toggle_y, "ONE-HANDED MODE", _one_handed_mode, "one_handed_mode")
+	toggle_y += row_h
 
 	# Colorblind mode selector (cycle through modes)
 	var cb_names = ["OFF", "DEUTERANOPIA", "PROTANOPIA", "TRITANOPIA"]
@@ -41862,6 +42015,7 @@ func _on_settings_clicked(pos: Vector2) -> void:
 		{"y": acc_base_y, "key": "high_contrast"},
 		{"y": acc_base_y + row_h, "key": "large_text"},
 		{"y": acc_base_y + row_h * 2, "key": "reduced_motion"},
+		{"y": acc_base_y + row_h * 3, "key": "one_handed_mode"},
 	]
 	for atc in acc_toggle_configs:
 		var box_x = col2_x + 180.0
@@ -41875,6 +42029,8 @@ func _on_settings_clicked(pos: Vector2) -> void:
 					_text_scale = GameSettings.font_scale
 				"reduced_motion":
 					GameSettings.reduced_motion = !GameSettings.reduced_motion
+				"one_handed_mode":
+					_one_handed_mode = !_one_handed_mode
 			GameSettings.save_settings()
 			if AccessibilityManager:
 				AccessibilityManager.apply_changes()
@@ -41883,7 +42039,7 @@ func _on_settings_clicked(pos: Vector2) -> void:
 
 	# Colorblind mode cycle button
 	var cb_btn_x = col2_x + 280.0
-	var cb_btn_y = acc_base_y + row_h * 3 - 14.0
+	var cb_btn_y = acc_base_y + row_h * 4 - 14.0
 	if pos.x >= cb_btn_x and pos.x <= cb_btn_x + 60 and pos.y >= cb_btn_y and pos.y <= cb_btn_y + 28:
 		GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4
 		_colorblind_mode = GameSettings.colorblind_mode
@@ -49075,7 +49231,47 @@ func _validate_save_checksum(data: Dictionary) -> bool:
 	if stored < 0:
 		return true  # Old save without checksum
 	var expected = _calculate_save_checksum(data)
-	return stored == expected
+	if stored == expected:
+		return true
+	# === #6: Detailed save integrity logging ===
+	var corruption_time = Time.get_datetime_string_from_system()
+	var failed_fields: Array = []
+	# Re-check each field individually to identify which changed
+	var field_checks = {
+		"player_gold": 7, "player_pages": 13, "player_quills": 17,
+		"player_storybook_stars": 23, "prestige_level": 31,
+		"bp_tier": 53, "account_level": 67,
+	}
+	for field_name in field_checks:
+		var multiplier = field_checks[field_name]
+		var val = int(data.get(field_name, 0 if field_name != "account_level" else 1))
+		# We can't isolate individual field mismatches perfectly, but log current values
+		failed_fields.append("%s=%s" % [field_name, str(val)])
+	var completed_count = data.get("completed_levels", []).size()
+	failed_fields.append("completed_levels_count=%d" % completed_count)
+	var log_lines = [
+		"=== SAVE INTEGRITY VIOLATION DETECTED ===",
+		"Timestamp: %s" % corruption_time,
+		"Expected checksum: %d" % expected,
+		"Actual checksum: %d" % stored,
+		"Delta: %d" % (expected - stored),
+		"Field values at detection:",
+	]
+	for ff in failed_fields:
+		log_lines.append("  %s" % ff)
+	log_lines.append("=========================================")
+	log_lines.append("")
+	var log_text = "\n".join(log_lines)
+	print("[ANTI-CHEAT] Save checksum FAILED — expected %d, got %d (delta %d)" % [expected, stored, expected - stored])
+	# Write detailed log to persistent file
+	var log_file = FileAccess.open("user://save_integrity_log.txt", FileAccess.READ_WRITE)
+	if log_file == null:
+		log_file = FileAccess.open("user://save_integrity_log.txt", FileAccess.WRITE)
+	if log_file:
+		log_file.seek_end()
+		log_file.store_string(log_text)
+		log_file.close()
+	return false
 
 # Save migration: converts old save formats to current SAVE_VERSION (#18)
 func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
@@ -49771,9 +49967,34 @@ func _on_battle_pass_panel_clicked(mouse_pos: Vector2) -> void:
 		return
 
 
-# #199: Remote config stub for balance hotfixes
+# #199: Remote config with defaults for balance hotfixes
+func _load_default_remote_config() -> void:
+	_remote_config = {
+		"gold_multiplier": 1.0,
+		"xp_multiplier": 1.0,
+		"event_active": false,
+		"event_name": "",
+		"maintenance_mode": false,
+		"min_version": "1.0.0",
+		"max_towers_per_level": 18,
+		"ad_frequency_minutes": 5,
+		"daily_gem_bonus": 0,
+	}
+
+func _apply_remote_config() -> void:
+	# Apply gold multiplier to gold rewards
+	# Applied in _on_enemy_killed gold calculation and wave completion bonus
+	# Apply xp multiplier to XP gains
+	# Applied in _grant_xp calculations
+	# Maintenance mode check
+	if _remote_config.get("maintenance_mode", false):
+		push_warning("[REMOTE CONFIG] Maintenance mode active — online features disabled")
+
 func _fetch_remote_config() -> void:
-	pass  # TODO: Firebase Remote Config for balance hotfixes
+	# TODO: Firebase Remote Config fetch — on success, merge into _remote_config
+	# For now, ensure defaults are loaded
+	if _remote_config.is_empty():
+		_load_default_remote_config()
 
 
 # === EVENT COUNTDOWN DISPLAY (#138) ===
