@@ -1,0 +1,75 @@
+SHADOW DEFENSE: TALES FROM THE PAGES
+
+Created by Defense Planet
+
+— GAME DESIGN —
+John Askeroth — Creative Director, Game Designer
+
+— ART & ANIMATION —
+Character Art: AI-Generated (Gemini / nano-banana)
+UI Design: Defense Planet
+Story Panels: AI-Generated
+
+— VOICE ACTING —
+Powered by ElevenLabs AI Voice Technology
+Narrator: Brian
+Robin Hood: Marcus
+Alice: Lily
+Scrooge: George
+Peter Pan: Charlie
+Wicked Witch: Freya
+Phantom: Antoni
+Sherlock: Daniel
+Tarzan: Adam
+Dracula: Clyde
+Merlin: Thomas
+Frankenstein: Arnold
+Shadow Author: Kallixis + Matthew
+Captain Hook: Professor Nathaniel Mandrake
+Queen of Hearts: Jessica Anne Bogart
+Clayton: Edward
+Headless Horseman: Malyx
+Medusa: (voice_id: eVItLK1UvXctxuaRV2Oq)
+Anubis: Declan Sage
+
+— MUSIC & SOUND —
+Procedural Music Engine: Defense Planet
+Sound Effects: Procedural Audio Synthesis
+
+— STORY & WRITING —
+Original Story: John Askeroth
+Dialog: John Askeroth & AI Assistance
+Based on Public Domain Characters
+
+— TECHNOLOGY —
+Game Engine: Godot 4.6
+AI Development: Claude (Anthropic)
+Voice Generation: ElevenLabs
+Image Generation: Google Gemini
+
+— SPECIAL THANKS —
+To every storyteller who ever said "Once upon a time"
+To every reader who ever asked "What happens next?"
+To the public domain — where legends live forever
+
+— PUBLIC DOMAIN SOURCES —
+Robin Hood — English Folklore
+Alice — Lewis Carroll, 1865
+Scrooge — Charles Dickens, 1843
+Peter Pan — J.M. Barrie, 1904
+Wicked Witch — L. Frank Baum, 1900
+Phantom — Gaston Leroux, 1910
+Sherlock Holmes — Arthur Conan Doyle, 1887
+Tarzan — Edgar Rice Burroughs, 1912
+Dracula — Bram Stoker, 1897
+Merlin — Arthurian Legend
+Frankenstein's Monster — Mary Shelley, 1818
+Captain Hook — J.M. Barrie, 1904
+Queen of Hearts — Lewis Carroll, 1865
+Clayton — Edgar Rice Burroughs, 1912
+Headless Horseman — Washington Irving, 1820
+Medusa — Greek Mythology (Ovid, ~8 AD)
+Anubis — Egyptian Mythology (Book of the Dead, ~1550 BC)
+
+Copyright 2026 Defense Planet. All rights reserved.
+Original story, dialog, and character interpretations are proprietary.
