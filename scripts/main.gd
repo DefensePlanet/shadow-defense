@@ -11248,8 +11248,8 @@ func _create_ui() -> void:
 	# Bottom panel — gothic dark bar
 	bottom_panel = ColorRect.new()
 	bottom_panel.color = Color(0, 0, 0, 0)  # Transparent — styled panel behind
-	bottom_panel.position = Vector2(0, 626)
-	bottom_panel.size = Vector2(1280, 94)
+	bottom_panel.position = Vector2(0, 622)  # #78: Adjusted for 48px button height
+	bottom_panel.size = Vector2(1280, 98)    # #78: Increased to fit 48px touch targets
 	bottom_panel.clip_contents = true
 	ui.add_child(bottom_panel)
 	# Styled tower bar background
@@ -11263,14 +11263,15 @@ func _create_ui() -> void:
 	tbg_style.shadow_size = 4
 	tower_bar_bg.add_theme_stylebox_override("panel", tbg_style)
 	tower_bar_bg.position = Vector2(0, 0)
-	tower_bar_bg.size = Vector2(1280, 94)
+	tower_bar_bg.size = Vector2(1280, 98)  # #78: Match panel height for 48px buttons
 	tower_bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom_panel.add_child(tower_bar_bg)
 	bottom_panel.move_child(tower_bar_bg, 0)
 
-	var btn_h = 40
-	var row1_y = 2
-	var row2_y = 46
+	# #78: Touch targets minimum 48px (Apple HIG 44px minimum, we use 48px for comfort)
+	var btn_h = 48
+	var row1_y = 0
+	var row2_y = 48
 	var btn_w = 152
 
 	# Row 1: Base 6 towers (proven working button style)
@@ -26808,6 +26809,38 @@ func _input(event: InputEvent) -> void:
 		queue_redraw()
 		get_viewport().set_input_as_handled()
 		return
+	# #71: Upgrade undo click handler
+	if _upgrade_undo_timer > 0.0 and not _upgrade_undo_data.is_empty() and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var undo_mpos = get_viewport().get_mouse_position()
+		if Rect2(440.0, 580.0, 200.0, 32.0).has_point(undo_mpos):
+			var undo_node = _upgrade_undo_data.get("tower_node")
+			var undo_cost = _upgrade_undo_data.get("cost", 0)
+			var undo_prev_tier = _upgrade_undo_data.get("prev_tier", 0)
+			if undo_node and is_instance_valid(undo_node):
+				undo_node.upgrade_tier = undo_prev_tier
+				gold += undo_cost
+				info_label.text = "Upgrade undone! +%dG refunded." % undo_cost
+				spawn_floating_text(undo_node.global_position + Vector2(0, -40), "UNDO +%dG" % undo_cost, Color(1.0, 0.7, 0.2), 16.0, 1.5)
+				_update_upgrade_panel()
+				update_hud()
+			_upgrade_undo_data.clear()
+			_upgrade_undo_timer = 0.0
+			get_viewport().set_input_as_handled()
+			return
+	# #73: Recent tower quick-select click handler
+	if game_state == GameState.PLAYING and _recent_towers.size() > 0 and not placing_tower and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var rt_mpos = get_viewport().get_mouse_position()
+		var rt_panel_y = bottom_panel.position.y - 30.0 if bottom_panel else 596.0
+		var rt_rx = 62.0 + _safe_left
+		for rt_i in range(mini(_recent_towers.size(), 3)):
+			var rt_btn = Rect2(rt_rx + float(rt_i) * 52.0, rt_panel_y - 4, 48, 22)
+			if rt_btn.has_point(rt_mpos):
+				var rt_tt = _recent_towers[rt_i]
+				selected_tower = rt_tt
+				placing_tower = true
+				queue_redraw()
+				get_viewport().set_input_as_handled()
+				return
 	# Pause overlay buttons — handle clicks on Resume/Quit when paused
 	if game_paused and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var mpos = get_viewport().get_mouse_position()
@@ -27545,6 +27578,7 @@ func _try_place_tower(pos: Vector2) -> void:
 		_poly.on_tower_placed(selected_tower)
 
 # === TOWER STATS OVERLAY (draw near selected tower) ===
+# #65: Tower info DPS display — DUPLICATE of #25 (DPS already shown in tower stats overlay below)
 func _draw_tower_stats_overlay() -> void:
 	var tower = selected_tower_node
 	if not is_instance_valid(tower):
