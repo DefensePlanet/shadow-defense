@@ -7583,9 +7583,7 @@ func _generate_foreground(level_idx: int) -> void:
 				_foreground_elements.append({"type": "ink_tendril", "x": rng.randf_range(-20, 0), "y": rng.randf_range(100, 600), "scale": 1.0, "alpha": rng.randf_range(0.06, 0.10), "parallax": 1.4, "sway": rng.randf_range(0.5, 1.2)})
 			for _i in range(3):
 				_foreground_elements.append({"type": "ink_tendril", "x": rng.randf_range(1280, 1300), "y": rng.randf_range(100, 600), "scale": -1.0, "alpha": rng.randf_range(0.06, 0.10), "parallax": 1.4, "sway": rng.randf_range(0.5, 1.2)})
-		17: # Ahab — spray/mist at bottom
-			for _i in range(6):
-				_foreground_elements.append({"type": "spray", "x": rng.randf_range(0, 1280), "y": rng.randf_range(680, 730), "scale": rng.randf_range(1.0, 2.5), "alpha": rng.randf_range(0.04, 0.08), "parallax": 1.5, "speed": rng.randf_range(5.0, 12.0)})
+		# 17: Ahab foreground — REMOVED
 		18: # Narrator — ember particles floating in front
 			for _i in range(6):
 				_foreground_elements.append({"type": "fg_ember", "x": rng.randf_range(0, 1280), "y": rng.randf_range(0, 720), "scale": rng.randf_range(0.5, 1.5), "alpha": rng.randf_range(0.08, 0.15), "parallax": 1.6, "speed": rng.randf_range(10.0, 20.0)})
@@ -7703,9 +7701,7 @@ func _generate_bg_story(level_idx: int) -> void:
 			_bg_story_elements.append({"type": "distant_rider", "x": -100.0, "y": 70, "speed": 40.0})
 		16: # Anubis — weighing scales swaying, souls floating up
 			_bg_story_elements.append({"type": "floating_souls", "timer": 0.0})
-		17: # Ahab — whale spout in distance, waves crashing
-			_bg_story_elements.append({"type": "whale_spout", "x": 200, "y": 50, "timer": 0.0})
-			_bg_story_elements.append({"type": "ocean_waves", "y": 80})
+		# 17: Ahab bg story — REMOVED
 		18: # Narrator — fire pillars, legends walking
 			_bg_story_elements.append({"type": "fire_columns", "positions": [Vector2(100, 30), Vector2(400, 25), Vector2(700, 35), Vector2(1000, 28), Vector2(1180, 32)]})
 
@@ -8111,15 +8107,7 @@ func _trigger_realm_mechanic() -> void:
 				var t = towers[randi() % towers.size()]
 				if is_instance_valid(t):
 					spawn_floating_text(t.global_position, "🗿 PETRIFIED!", Color(0.5, 0.5, 0.4), 14.0, 2.0)
-		"ahab_obsession":
-			spawn_floating_text(Vector2(640, 300), "🐋 THE WHITE WHALE BREACHES!", Color(0.3, 0.5, 0.8), 18.0, 2.5)
-			_screen_shake_intensity = 6.0; _screen_shake_timer = 0.5
-			# Damage to enemies in a horizontal line
-			var whale_y = randf_range(200, 500)
-			for enemy in get_tree().get_nodes_in_group("enemies"):
-				if is_instance_valid(enemy) and abs(enemy.global_position.y - whale_y) < 60:
-					if enemy.has_method("take_damage"):
-						enemy.take_damage(100.0 + wave * 10.0, "environmental")
+		# "ahab_obsession": REMOVED — Captain Ahab cut from game
 		"narrator_recast":
 			spawn_floating_text(Vector2(640, 300), "🔥 THE NARRATOR SPEAKS! Enemies empowered!", Color(0.9, 0.5, 0.15), 16.0, 2.0)
 
@@ -8285,9 +8273,9 @@ func _set_time_of_day(level_idx: int) -> void:
 		12: _time_of_day = "eternal_dark" # Shadow Author — no natural light
 		13: _time_of_day = "midnight"     # Headless Horseman — Sleepy Hollow midnight
 		14: _time_of_day = "dusk"         # Medusa — Greek sunset
-		15: _time_of_day = "twilight"     # Loki — Norse twilight (Ragnarok)
+		# 15: Loki time of day — REMOVED
 		16: _time_of_day = "eternal_dark" # Anubis — Egyptian underworld
-		17: _time_of_day = "dusk"         # Ahab — ocean at dusk
+		# 17: Ahab time of day — REMOVED
 		18: _time_of_day = "eternal_dark" # Narrator — realm of fire (dark base + fire light)
 		_: _time_of_day = "day"
 	var tod = TIME_OF_DAY_DATA.get(_time_of_day, TIME_OF_DAY_DATA["day"])
@@ -8352,12 +8340,10 @@ func _spawn_wave_hazard() -> void:
 			haz = {"type": "ink_eruption", "x": randf_range(200, 1080), "y": randf_range(150, 500), "radius": 80.0, "timer": 0.0, "lifetime": 3.0, "damage": 20.0 + wave * 3.0, "active": true}
 		13: # Horseman — pumpkin fire
 			haz = {"type": "pumpkin_fire", "x": randf_range(100, 1180), "y": -20.0, "radius": 55.0, "timer": 0.0, "lifetime": 1.0, "damage": 45.0 + wave * 4.0, "active": true, "vel_y": 280.0}
-		15: # Loki — chaos rift (teleports enemies backward)
-			haz = {"type": "chaos_rift", "x": randf_range(200, 1080), "y": randf_range(150, 500), "radius": 70.0, "timer": 0.0, "lifetime": 3.5, "damage": 0.0, "active": true}
+		# 15: Loki hazard — REMOVED
 		16: # Anubis — death mark (instant kill weak enemies)
 			haz = {"type": "death_mark", "x": randf_range(200, 1080), "y": randf_range(150, 500), "radius": 60.0, "timer": 0.0, "lifetime": 2.0, "damage": 999.0, "active": true}
-		17: # Ahab — tidal wave
-			haz = {"type": "tidal_wave", "x": -50.0, "y": randf_range(200, 500), "radius": 40.0, "timer": 0.0, "lifetime": 3.0, "damage": 30.0 + wave * 3.0, "active": true, "vel_x": 350.0}
+		# 17: Ahab hazard — REMOVED
 		18: # Narrator — fire pillars
 			haz = {"type": "fire_pillar", "x": randf_range(200, 1080), "y": randf_range(100, 550), "radius": 45.0, "timer": 0.0, "lifetime": 4.0, "damage": 50.0 + wave * 5.0, "active": true}
 	if haz:
@@ -8537,18 +8523,12 @@ func _generate_atmosphere(level_idx: int) -> void:
 			_atmosphere_type = "sand"
 			_atmosphere_color = Color(0.7, 0.6, 0.4)
 			count = 30
-		15: # Loki — fireflies (chaotic, fast moving)
-			_atmosphere_type = "fireflies"
-			_atmosphere_color = Color(0.5, 0.8, 0.2)
-			count = 40
+		# 15: Loki atmosphere — REMOVED
 		16: # Anubis — sand + embers
 			_atmosphere_type = "sand"
 			_atmosphere_color = Color(0.8, 0.65, 0.3)
 			count = 40
-		17: # Ahab — rain (heavy ocean storm)
-			_atmosphere_type = "rain"
-			_atmosphere_color = Color(0.4, 0.5, 0.6)
-			count = 100
+		# 17: Ahab atmosphere — REMOVED
 		18: # Narrator — embers (fire and lightning realm)
 			_atmosphere_type = "embers"
 			_atmosphere_color = Color(0.9, 0.5, 0.15)
@@ -8669,7 +8649,7 @@ func _generate_secret_paths(level_idx: int) -> void:
 		42: {"x": 500, "y": 250, "hp": 300, "desc": "Robin's Lost Arrow", "reward": "pages", "amount": 40},
 		45: {"x": 800, "y": 400, "hp": 300, "desc": "Scrooge's Hidden Ledger", "reward": "gold", "amount": 200},
 		48: {"x": 600, "y": 300, "hp": 350, "desc": "Horseman's Head", "reward": "pages", "amount": 50},
-		54: {"x": 500, "y": 400, "hp": 350, "desc": "Ragnarok Shard", "reward": "ink", "amount": 5},
+		# 54: Ragnarok Shard (Loki) — REMOVED
 		57: {"x": 640, "y": 250, "hp": 350, "desc": "Feather of Truth", "reward": "stars", "amount": 5},
 		63: {"x": 640, "y": 350, "hp": 500, "desc": "The Narrator's Secret", "reward": "ink", "amount": 10},
 	}
@@ -8803,17 +8783,12 @@ func _generate_terrain_zones(level_idx: int) -> void:
 		14: # Medusa — hazard (petrification zone) + sacred (Athena's blessing)
 			_terrain_zones.append({"type": "hazard", "x": 500, "y": 300, "radius": 90})
 			_terrain_zones.append({"type": "sacred", "x": 800, "y": 450, "radius": 60})
-		15: # Loki — fog + ink_pool (chaotic terrain, everything is unpredictable)
-			_terrain_zones.append({"type": "fog", "x": 300, "y": 250, "radius": 80})
-			_terrain_zones.append({"type": "ink_pool", "x": 700, "y": 400, "radius": 90})
-			_terrain_zones.append({"type": "fog", "x": 900, "y": 200, "radius": 60})
+		# 15: Loki terrain — REMOVED
 		16: # Anubis — sacred (weighing hall) + hazard (river of dead)
 			_terrain_zones.append({"type": "sacred", "x": 640, "y": 300, "radius": 100})
 			_terrain_zones.append({"type": "hazard", "x": 400, "y": 500, "radius": 80})
 			_terrain_zones.append({"type": "water", "x": 800, "y": 500, "radius": 80})
-		17: # Ahab — water (ocean everywhere) + elevated (ship deck)
-			_terrain_zones.append({"type": "water", "x": 640, "y": 400, "radius": 200})
-			_terrain_zones.append({"type": "elevated", "x": 640, "y": 200, "radius": 80})
+		# 17: Ahab terrain — REMOVED
 		18: # Narrator — all terrain types (ultimate challenge)
 			_terrain_zones.append({"type": "elevated", "x": 300, "y": 200, "radius": 70})
 			_terrain_zones.append({"type": "water", "x": 800, "y": 450, "radius": 80})
@@ -14656,7 +14631,8 @@ func _start_story_dialog(key: String) -> void:
 		enemy_path.visible = true
 		if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance) and _menu_v2_instance.get_parent() != null:
 			_menu_v2_instance.get_parent().visible = true
-		if key.begins_with("pre_level_") and _pending_level_start >= 0:
+		var _is_pre = key.begins_with("pre_level_") or key.begins_with("pre_horseman") or key.begins_with("pre_medusa") or key.begins_with("pre_anubis") or key.begins_with("pre_narrator_finale")
+		if _is_pre and _pending_level_start >= 0:
 			var lvl = _pending_level_start
 			_pending_level_start = -1
 			_do_level_start(lvl)
@@ -15748,15 +15724,7 @@ func _init_catchphrase_quotes() -> void:
 			"The serpents are not my curse — they are my crown.",
 			"Stone does not weep. That is why I prefer it.",
 		],
-		TowerType.LOKI: [
-			"I am Loki, of Asgard, and I am burdened with glorious purpose.",
-			"Trust is such a fragile thing, isn't it?",
-			"Kneel before the God of Mischief!",
-			"I never was one for following rules.",
-			"Chaos is not disorder — it is opportunity.",
-			"Every trick has its purpose. You just haven't seen it yet.",
-			"Brother, you were always gullible.",
-		],
+		# TowerType.LOKI: REMOVED — character cut from game
 		TowerType.ANUBIS: [
 			"I am the Guardian of the Dead. None pass without judgment.",
 			"Your heart will be weighed against the Feather of Ma'at.",
@@ -15930,15 +15898,7 @@ func _init_catchphrase_quotes() -> void:
 			"You cannot avert your gaze forever!",
 			"Turn... to... STONE!",
 		],
-		TowerType.LOKI: [
-			"Surprise!",
-			"Did you really think that was me?",
-			"Chaos reigns!",
-			"Another illusion shattered!",
-			"Mischief managed!",
-			"The trickster strikes again!",
-			"You fell for it! Again!",
-		],
+		# TowerType.LOKI: REMOVED — character cut from game
 		TowerType.ANUBIS: [
 			"Your soul is weighed and found wanting!",
 			"Ammit feasts tonight!",
@@ -29459,7 +29419,7 @@ const CHARACTER_DAMAGE_TYPES: Dictionary = {
 	TowerType.CLAYTON: "physical",
 	TowerType.HEADLESS_HORSEMAN: "fire",
 	TowerType.MEDUSA: "magic",
-	TowerType.LOKI: "magic",
+	# TowerType.LOKI: "magic",  # REMOVED
 	TowerType.ANUBIS: "holy",
 	# CAPTAIN_AHAB removed
 }
@@ -29483,7 +29443,7 @@ const CHARACTER_COMBAT_STATS: Dictionary = {
 	TowerType.CLAYTON: {"armor_pen": 0.35, "crit_chance": 0.30, "crit_mult": 3.5, "lifesteal": 0.0},
 	TowerType.HEADLESS_HORSEMAN: {"armor_pen": 0.15, "crit_chance": 0.10, "crit_mult": 2.0, "lifesteal": 0.05},
 	TowerType.MEDUSA: {"armor_pen": 0.10, "crit_chance": 0.08, "crit_mult": 2.0, "lifesteal": 0.0},
-	TowerType.LOKI: {"armor_pen": 0.0, "crit_chance": 0.20, "crit_mult": 2.5, "lifesteal": 0.0},
+	# TowerType.LOKI: {"armor_pen": 0.0, "crit_chance": 0.20, "crit_mult": 2.5, "lifesteal": 0.0},  # REMOVED
 	TowerType.ANUBIS: {"armor_pen": 0.20, "crit_chance": 0.15, "crit_mult": 2.0, "lifesteal": 0.12},
 	# CAPTAIN_AHAB removed
 }
@@ -29653,13 +29613,7 @@ const CHARACTER_LEGENDARIES: Dictionary = {
 		"stats": {"perma_petrify": true, "range_bonus": 0.20},
 		"ink_cost": 10, "page_cost": 60,
 	},
-	TowerType.LOKI: {
-		"name": "Lævateinn — The Damage Twig",
-		"source": "Norse Mythology (Poetic Edda)",
-		"desc": "Loki's mythic weapon. Clone towers deal 100% damage instead of 75%. Chaos bolts hit 3 enemies.",
-		"stats": {"clone_power_override": 1.0, "chaos_targets": 3},
-		"ink_cost": 10, "page_cost": 60,
-	},
+	# TowerType.LOKI: REMOVED — character cut from game
 	TowerType.ANUBIS: {
 		"name": "The Feather of Ma'at",
 		"source": "Egyptian Book of the Dead",
@@ -29707,7 +29661,7 @@ const CHARACTER_AURAS: Dictionary = {
 	TowerType.CLAYTON: {"type": "ally_buff", "stat": "range", "value": 0.08, "radius": 130, "color": Color(0.4, 0.35, 0.2, 0.05), "name": "Hunter's Sight", "desc": "Nearby towers +8% range"},
 	TowerType.HEADLESS_HORSEMAN: {"type": "enemy_debuff", "stat": "fear", "value": 0.12, "radius": 120, "color": Color(0.5, 0.3, 0.1, 0.07), "name": "Terror Aura", "desc": "Enemies in range 12% slower (fear)"},
 	TowerType.MEDUSA: {"type": "enemy_debuff", "stat": "petrify_chance", "value": 0.03, "radius": 100, "color": Color(0.4, 0.5, 0.3, 0.06), "name": "Stone Gaze Aura", "desc": "3% chance to freeze enemies 1s on hit"},
-	TowerType.LOKI: {"type": "ally_buff", "stat": "chaos_chance", "value": 0.04, "radius": 110, "color": Color(0.4, 0.6, 0.2, 0.06), "name": "Trickster's Luck", "desc": "Nearby towers 4% chance for random bonus effect"},
+	# TowerType.LOKI: REMOVED — character cut from game
 	TowerType.ANUBIS: {"type": "ally_buff", "stat": "holy_damage", "value": 0.10, "radius": 120, "color": Color(0.8, 0.7, 0.2, 0.06), "name": "Judgment Aura", "desc": "Nearby towers +10% holy damage"},
 }
 
@@ -29737,7 +29691,7 @@ const CHARACTER_WEAKNESSES: Dictionary = {
 	TowerType.CLAYTON: {"weak_vs": "ethereal", "reason": "Bullets pass through ghosts", "penalty": 0.50},
 	TowerType.HEADLESS_HORSEMAN: {"weak_vs": "holy", "reason": "Sacred ground weakens the undead rider", "penalty": 0.50},
 	TowerType.MEDUSA: {"weak_vs": "armored", "reason": "Stone gaze can't petrify steel", "penalty": 0.60},
-	TowerType.LOKI: {"weak_vs": "organic", "reason": "Nature resists illusions — it IS real", "penalty": 0.60},
+	# TowerType.LOKI: REMOVED — character cut from game
 	TowerType.ANUBIS: {"weak_vs": "undead", "reason": "Cannot judge what has already died", "penalty": 0.55},
 }
 
@@ -29827,10 +29781,7 @@ const CHARACTER_VOICES: Dictionary = {
 		"voice_name": "Bella", "voice_style": "Hissing female, serpentine elegance, tragic beauty in every syllable",
 		"pitch": "medium with sibilance", "speed": "slow, hypnotic", "accent": "Ancient Greek-tinged",
 	},
-	TowerType.LOKI: {
-		"voice_name": "Fin", "voice_style": "Mercurial male, shifts tone mid-sentence, playful then deadly",
-		"pitch": "constantly shifting", "speed": "unpredictable", "accent": "Scandinavian with mischief",
-	},
+	# TowerType.LOKI: REMOVED — character cut from game
 	TowerType.ANUBIS: {
 		"voice_name": "Joseph", "voice_style": "Deep ancient male, echoing judgment, eternal patience",
 		"pitch": "very deep with reverb", "speed": "deliberate, each word a verdict", "accent": "Ancient Egyptian cadence",
@@ -29847,7 +29798,8 @@ const CHARACTER_VOICE_TYPE_MAP: Dictionary = {
 	TowerType.FRANKENSTEIN: "monster", TowerType.SHADOW_AUTHOR: "shadow",
 	TowerType.CAPTAIN_HOOK: "male_hero", TowerType.QUEEN_OF_HEARTS: "female_hero",
 	TowerType.CLAYTON: "male_hero", TowerType.HEADLESS_HORSEMAN: "monster",
-	TowerType.MEDUSA: "female_hero", TowerType.LOKI: "male_hero",
+	TowerType.MEDUSA: "female_hero",
+	# TowerType.LOKI: "male_hero",  # REMOVED
 	TowerType.ANUBIS: "male_hero",
 }
 
@@ -30249,9 +30201,9 @@ const MASTERY_REWARDS: Dictionary = {
 	TowerType.CLAYTON: {"title": "The Perfect Shot", "global_bonus": "all_crit_mult", "value": 0.15, "desc": "+15% crit multiplier for ALL towers"},
 	TowerType.HEADLESS_HORSEMAN: {"title": "Dread Lord", "global_bonus": "all_fear_duration", "value": 0.20, "desc": "+20% fear/slow duration for ALL towers"},
 	TowerType.MEDUSA: {"title": "The Unbound Gorgon", "global_bonus": "all_stun_duration", "value": 0.15, "desc": "+15% stun duration for ALL towers"},
-	TowerType.LOKI: {"title": "God of Stories", "global_bonus": "all_chaos_chance", "value": 0.05, "desc": "+5% chance for random bonus effect on ALL attacks"},
+	# TowerType.LOKI: REMOVED — character cut from game
 	TowerType.ANUBIS: {"title": "Supreme Judge", "global_bonus": "all_execute_threshold", "value": 0.02, "desc": "+2% execute threshold for ALL towers"},
-	TowerType.CAPTAIN_AHAB: {"title": "Conqueror of Leviathans", "global_bonus": "all_boss_damage", "value": 0.08, "desc": "+8% boss damage for ALL towers"},
+	# TowerType.CAPTAIN_AHAB: REMOVED — character cut from game
 }
 
 func _unlock_mastery(tower_type) -> void:
@@ -30464,7 +30416,7 @@ const SUGGESTED_LOADOUTS: Array = [
 	{"name": "Monster Mash", "towers_desc": "Dracula + Frankenstein + Phantom", "desc": "Dark power trio. Lifesteal + lightning + music. Redemption Arc bonus!"},
 	{"name": "The Detectives", "towers_desc": "Sherlock + Robin + Alice", "desc": "Precision kills. High crit, high mark damage, high IQ plays."},
 	{"name": "Villain Squad", "towers_desc": "Witch + Dracula + Hook + Queen", "desc": "Full villain lineup. Villain's Pact bonus: +12% damage."},
-	{"name": "Mythology Team", "towers_desc": "Medusa + Loki + Anubis + Horseman", "desc": "Gods and legends. Chaos, death, petrification, and terror."},
+	{"name": "Mythology Team", "towers_desc": "Medusa + Anubis + Horseman", "desc": "Gods and legends. Death, petrification, and terror."},
 ]
 
 func _end_trial() -> void:
@@ -45665,7 +45617,7 @@ func _generate_random_custom_challenge() -> Dictionary:
 var news_items: Array = [
 	{"title": "Welcome to Shadow Defense!", "body": "Defend the Tome from the Shadow Author's forces.", "date": "2026-05-01"},
 	{"title": "Season 1 Active", "body": "Climb the ranked ladder this month for exclusive rewards!", "date": "2026-05-01"},
-	{"title": "New Characters!", "body": "Headless Horseman, Medusa, Loki, and Anubis join the fight.", "date": "2026-05-15"},
+	{"title": "New Characters!", "body": "Headless Horseman, Medusa, and Anubis join the fight.", "date": "2026-05-15"},
 ]
 var news_open: bool = false
 var news_scroll: int = 0
