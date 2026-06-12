@@ -4690,6 +4690,13 @@ func _ready() -> void:
 	if game_font == null:
 		game_font = ThemeDB.fallback_font
 	_init_survivor_progress()
+	# #193: Lock to landscape orientation on mobile
+	if _is_mobile:
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	# Sync local accessibility vars with GameSettings autoload
+	if GameSettings:
+		_colorblind_mode = GameSettings.colorblind_mode
+		_text_scale = GameSettings.font_scale
 	# Apply Fredoka font globally — find first Control child under UI
 	if game_font:
 		var ui_theme = Theme.new()
@@ -5071,6 +5078,20 @@ func _refresh_unlocked_survivors() -> void:
 			var path = new_tower_scene_paths[tt]
 			if ResourceLoader.exists(path):
 				tower_scenes[tt] = load(path)
+	# === RECRUITED VILLAINS — moral choices unlock placeable towers (#155/#157) ===
+	var villain_recruit_map = {
+		"clayton_recruited": {"id": "clayton", "type": TowerType.CLAYTON},
+		"hook_recruited": {"id": "captain_hook", "type": TowerType.CAPTAIN_HOOK},
+		"queen_recruited": {"id": "queen_of_hearts", "type": TowerType.QUEEN_OF_HEARTS},
+	}
+	for flag_key in villain_recruit_map:
+		if story_choices_made.get(flag_key, false):
+			var info = villain_recruit_map[flag_key]
+			var tt2 = info["type"]
+			if not tower_scenes.has(tt2) and new_tower_scene_paths.has(tt2):
+				var path = new_tower_scene_paths[tt2]
+				if ResourceLoader.exists(path):
+					tower_scenes[tt2] = load(path)
 
 # === CHARACTER ALIGNMENT SYSTEM — Hero / Villain / Antihero ===
 # Affects synergy bonuses and team composition buffs.
@@ -6375,6 +6396,7 @@ func _save_game() -> void:
 	# Story progress
 	save_data["story_seen"] = story_seen
 	save_data["tutorial_completed"] = _tutorial_completed
+	save_data["dialog_text_speed"] = dialog_text_speed
 	save_data["story_choices_made"] = story_choices_made
 	save_data["secret_path_discovered"] = _secret_path_discovered
 	save_data["challenge_maps_unlocked"] = challenge_maps_unlocked
@@ -6783,6 +6805,7 @@ func _load_game() -> void:
 		story_seen.append(str(v))
 	story_choices_made = data.get("story_choices_made", {})
 	_tutorial_completed = data.get("tutorial_completed", false)
+	dialog_text_speed = float(data.get("dialog_text_speed", 1.0))
 	_secret_path_discovered = data.get("secret_path_discovered", {})
 	challenge_maps_unlocked = data.get("challenge_maps_unlocked", {})
 	corrupted_maps_unlocked = data.get("corrupted_maps_unlocked", {})
@@ -12922,6 +12945,8 @@ func _do_level_start(index: int) -> void:
 	if has_any_powers and not odyssey_active:
 		_open_power_selection()
 	# Free tower disabled — player places their own towers
+	# Multi-step tutorial (#10): start for first-time players on level 0
+	_start_tutorial()
 
 func _reset_game() -> void:
 	for tower in get_tree().get_nodes_in_group("towers"):
@@ -13009,6 +13034,11 @@ func _reset_game() -> void:
 	_screen_shake_offset = Vector2.ZERO
 	_ink_splatters.clear()
 	_death_flash_timer = 0.0
+	# #50: Initialize displayed gold to current value (no animation on level start)
+	_displayed_gold = float(gold)
+	_gold_change_flash = 0.0
+	# #80: Reset victory flash
+	_victory_flash = 0.0
 	# Reset visual polish effects
 	_aoe_impacts.clear()
 	_crit_flashes.clear()
@@ -15128,10 +15158,14 @@ func _advance_story_dialog() -> void:
 	var lines = story_dialogs[key]
 	var current_line = lines[story_state.line_index]
 	var full_text = current_line["text"]
-	# If typewriter not done, complete it instantly
+	# If typewriter not done: first tap boosts speed (#68), second tap completes
 	if story_state.char_index < full_text.length():
-		story_state.char_index = full_text.length()
-		story_state.typewriter_timer = 0.0
+		if not _dialog_speed_boosted:
+			_dialog_speed_boosted = true
+		else:
+			story_state.char_index = full_text.length()
+			story_state.typewriter_timer = 0.0
+			_dialog_speed_boosted = false
 		queue_redraw()
 		return
 	# If this line has choices, DON'T advance — wait for choice button click
@@ -15150,6 +15184,7 @@ func _advance_story_dialog() -> void:
 	story_state.char_index = 0
 	story_state.typewriter_timer = 0.0
 	story_state.auto_advance_timer = 0.0
+	_dialog_speed_boosted = false  # Reset speed boost on new line (#68)
 	_play_story_voice()
 	queue_redraw()
 
@@ -15406,7 +15441,9 @@ func _process_story_typewriter(delta: float) -> void:
 	if story_state.char_index >= full_text.length():
 		return
 	# Typewriter at 30 chars/sec with punctuation pauses
-	story_state.typewriter_timer += delta
+	# Dialog text speed (#68): multiply rate by dialog_text_speed (tap-to-boost doubles it)
+	var speed_mult = dialog_text_speed * (2.0 if _dialog_speed_boosted else 1.0)
+	story_state.typewriter_timer += delta * speed_mult
 	var chars_per_sec = 30.0
 	while story_state.typewriter_timer > 0.0 and story_state.char_index < full_text.length():
 		var c = full_text[story_state.char_index]
@@ -17975,6 +18012,24 @@ func _draw_menu_background() -> void:
 			var ul_x = tx + (tab_w - ul_w) * 0.5
 			draw_rect(Rect2(ul_x, nav_draw_y + 90.0, ul_w, 3), Color(tc.r, tc.g, tc.b, 0.9))
 			draw_rect(Rect2(ul_x - 2, nav_draw_y + 89.0, ul_w + 4, 5), Color(tc.r, tc.g, tc.b, 0.2))
+		# #49: Notification badge (red dot) on tabs with unclaimed items
+		var _show_badge = false
+		if ni == 0 and (_badge_unclaimed_daily or _badge_unclaimed_challenge):
+			_show_badge = true  # Chapters tab: daily rewards / challenges
+		elif ni == 2 and _badge_new_emporium:
+			_show_badge = true  # Emporium tab: new items
+		if _show_badge:
+			var bdg_x = tx + tab_w * 0.5 + 20.0
+			var bdg_y = nav_draw_y + 18.0
+			# Pulsing glow behind badge
+			var bdg_pulse = 0.7 + sin(_time * 3.0) * 0.3
+			draw_circle(Vector2(bdg_x, bdg_y), 8.0, Color(0.9, 0.1, 0.1, 0.2 * bdg_pulse))
+			# Red circle
+			draw_circle(Vector2(bdg_x, bdg_y), 5.0, Color(0.85, 0.1, 0.1))
+			# White border
+			draw_arc(Vector2(bdg_x, bdg_y), 5.0, 0, TAU, 12, Color(1, 1, 1, 0.7), 1.0)
+			# Highlight dot
+			draw_circle(Vector2(bdg_x - 1.5, bdg_y - 1.5), 1.5, Color(1, 0.5, 0.5, 0.6))
 
 	# (all content now draws BEFORE the nav bar above)
 
@@ -23409,6 +23464,7 @@ func _process(delta: float) -> void:
 	_process_wave_countdown(delta)
 	if _tutorial_hint_timer > 0.0:
 		_tutorial_hint_timer -= delta
+	_check_tutorial_step(delta)  # Multi-step tutorial (#10)
 	if _gold_rush_timer > 0.0:
 		_gold_rush_timer -= delta
 	_process_boss_kill_ceremony(delta)
@@ -23644,11 +23700,14 @@ func _process(delta: float) -> void:
 	# Update wave clear popup
 	if _wave_clear_timer > 0.0:
 		_wave_clear_timer -= delta
-	# Update screen shake
+	# Update screen shake (#9: skip if reduced_motion)
 	if _screen_shake_timer > 0.0:
 		_screen_shake_timer -= delta
-		var shake_strength = _screen_shake_intensity * (_screen_shake_timer / 0.5)
-		_screen_shake_offset = Vector2(randf_range(-shake_strength, shake_strength), randf_range(-shake_strength, shake_strength))
+		if GameSettings and GameSettings.reduced_motion:
+			_screen_shake_offset = Vector2.ZERO
+		else:
+			var shake_strength = _screen_shake_intensity * (_screen_shake_timer / 0.5)
+			_screen_shake_offset = Vector2(randf_range(-shake_strength, shake_strength), randf_range(-shake_strength, shake_strength))
 	else:
 		_screen_shake_offset = Vector2.ZERO
 	# Update ink splatters
@@ -24970,6 +25029,7 @@ func _check_wave_complete() -> void:
 		is_wave_active = false
 		game_paused = false
 		start_button.disabled = false
+		_on_tutorial_wave_complete(wave)  # Multi-step tutorial (#10)
 		# Addiction: Wave rush timer starts counting down
 		_wave_rush_timer = WAVE_RUSH_WINDOW
 		# Wave clear popup + sound
@@ -25399,6 +25459,10 @@ func _input(event: InputEvent) -> void:
 		_on_chest_overlay_clicked(mouse_pos)
 		get_viewport().set_input_as_handled()
 		return
+	if _tutorial_step >= 0 and not _tutorial_completed and game_state == GameState.PLAYING:
+		_on_tutorial_clicked()
+		get_viewport().set_input_as_handled()
+		return
 	if story_state.active:
 		_on_story_dialog_clicked(mouse_pos)
 		get_viewport().set_input_as_handled()
@@ -25778,6 +25842,7 @@ func _try_place_tower(pos: Vector2) -> void:
 	_placement_rating_timer = 2.5
 	# Track achievements + quests
 	total_towers_placed += 1
+	_on_tutorial_tower_placed()  # Multi-step tutorial (#10)
 	_haptic(0)  # Light haptic on tower placement
 	# Character voice line on placement (ElevenLabs voiced)
 	_trigger_voice_line(selected_tower, "placed", Vector2(640, 400))
@@ -26771,6 +26836,7 @@ func _draw() -> void:
 	_draw_income_indicator()
 	_draw_unit_count()
 	_draw_tutorial_hint()
+	_draw_tutorial_overlay()  # Multi-step tutorial (#10)
 	_draw_milestone_popup()
 	_draw_daily_login_reward_popup()
 	_draw_continue_prompt()
@@ -26859,6 +26925,11 @@ func _draw() -> void:
 				for si in range(4):
 					var sa = float(si) * PI / 2.0
 					draw_line(vp_pos, vp_pos + Vector2(cos(sa), sin(sa)) * vp["size"], vp_col, 1.5)
+
+	# #80: Golden flash overlay on victory (fades from gold to transparent)
+	if _victory_flash > 0.0:
+		var vf_alpha = clampf(_victory_flash, 0.0, 1.0) * 0.45
+		draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 0.85, 0.2, vf_alpha))
 
 	# === VICTORY SCREEN OVERLAY (Item #44) ===
 	if game_state == GameState.GAME_OVER_STATE and _last_game_was_victory and _victory_overlay_data.size() > 0 and not victory_chest_active:
@@ -36821,6 +36892,7 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 				_show_upgrade_callout(_utt, selected_tower_node.upgrade_tier)
 				_update_character_mood(_utt, 10.0)
 			_update_quest_progress("upgrade_towers", 1)
+			_on_tutorial_upgrade_done()  # Multi-step tutorial (#10)
 			# Addiction: Power spike at tier 3 and 5 + weekly quest
 			_update_weekly_quest("upgrades", 1)
 			if _utt != null and selected_tower_node.upgrade_tier in [3, 5]:
@@ -37170,6 +37242,7 @@ func _start_next_wave() -> void:
 	_global_damage_accum = 0.0
 	_global_dps_last_time = _time
 	wave += 1
+	_on_tutorial_wave_started()  # Multi-step tutorial (#10)
 	# #36: Save checkpoint every 10 waves on long levels (30+ waves)
 	if total_waves >= 30 and wave > 1 and (wave - 1) % 10 == 0:
 		_checkpoint_wave = wave - 1
@@ -37392,6 +37465,48 @@ func _show_shadow_author_taunt() -> void:
 		"Some of my shadow creatures BEG to be defeated. They remember being characters. They want the ink to end.",
 		"When this is over — IF this is over — will you remember this story? Or will I be forgotten again?",
 		"I wrote your victory into the script. Not because I'm generous — because the best tragedies start with hope.",
+		# --- 35 MORE TAUNTS by game phase (#165) ---
+		# Early game (waves 1-10)
+		"How quaint. You think a few arrows can stop ME?",
+		"I've written scarier villains in my SLEEP.",
+		"Every enemy you kill, I rewrite STRONGER.",
+		"Do you even know WHO you're fighting?",
+		"The ink never runs dry. But your gold will.",
+		"You arrange your little soldiers so carefully. Like a child playing with dolls.",
+		"The first chapter is always the easiest. Enjoy it while it lasts.",
+		# Mid game (waves 11-25)
+		"Getting harder, isn't it? That's because I'm LEARNING.",
+		"Your strongest tower barely scratches the page.",
+		"I wrote the ending already. You LOSE.",
+		"You fight well. For characters in someone else's story.",
+		"Every upgrade you buy, I match with two.",
+		"You've survived the prologue. The real story begins NOW.",
+		"My rough drafts are your nightmares. Imagine the FINAL COPY.",
+		"The ink thickens. Your movements slow. That's not lag — that's MY will.",
+		# Late game (waves 26+)
+		"Still here? I'm... impressed. And FURIOUS.",
+		"You weren't supposed to get this far.",
+		"I'll rewrite ALL of you. EVERY. SINGLE. ONE.",
+		"The pages are thinning. MY pages.",
+		"This isn't your story anymore. It's MINE.",
+		"I underestimated you. That was the FIRST chapter's mistake. Not the LAST.",
+		"The closer you get to my throne, the more desperate my ink becomes. Can you taste it?",
+		# Boss waves
+		"Meet my MASTERPIECE.",
+		"This one I wrote PERSONALLY.",
+		"Every word of this creature was chosen with CARE.",
+		"Even I'm afraid of this one. Almost.",
+		"I spent CENTURIES perfecting this beast. You have seconds.",
+		# Player losing lives
+		"There it goes. Another life. Another page torn.",
+		"The ending draws near. YOUR ending.",
+		"How many more can you afford to lose?",
+		"Each life lost is a sentence I didn't have to write. You're editing yourself out.",
+		# Player doing well
+		"Lucky shot. The next wave won't be so kind.",
+		"You're CHEATING. You MUST be cheating.",
+		"Fine. FINE. Let's see how you handle THIS.",
+		"Impressive. I'll have to use bigger words.",
 	]
 	# Add context-sensitive taunts based on game state
 	if lives <= 5 and lives > 0:
@@ -37583,6 +37698,10 @@ func add_gold(amount: int) -> void:
 			# Soft cap: reduce income logarithmically
 			var excess_ratio = float(gold) / (expected_gold * 5.0)
 			amount = maxi(1, int(float(amount) / log(excess_ratio + 1.0)))
+	# #50: Trigger color flash on significant gold changes (>50)
+	if abs(amount) > 50:
+		_gold_change_flash = 1.0
+		_gold_change_positive = amount > 0
 	gold += amount
 	total_gold_earned += amount
 	_check_achievement("penny_pincher", amount)
@@ -37591,6 +37710,10 @@ func add_gold(amount: int) -> void:
 
 func spend_gold(amount: int) -> bool:
 	if gold >= amount:
+		# #50: Flash red on significant spend
+		if amount > 50:
+			_gold_change_flash = 1.0
+			_gold_change_positive = false
 		gold -= amount
 		total_gold_spent += amount
 		_check_achievement("big_spender", amount)
@@ -37843,11 +37966,12 @@ func spawn_damage_number(pos: Vector2, amount: float, is_boss: bool, is_crit: bo
 	elif amount > 100.0:
 		color = Color(1.0, 0.95, 0.7, 0.95)
 		size = 18.0
+	color = _cb_color(color)  # #191: Colorblind-safe damage numbers
 	spawn_floating_text(pos + Vector2(randf_range(-10, 10), randf_range(-15, -5)), text, color, size, 0.9)
 	_update_quest_progress("deal_damage", int(amount))
 
 func spawn_gold_text(pos: Vector2, amount: int) -> void:
-	spawn_floating_text(pos + Vector2(0, -10), "+%d🪙" % amount, _ca(c_gold_bright, 0.9), 13.0, 1.0)
+	spawn_floating_text(pos + Vector2(0, -10), "+%d🪙" % amount, _cb_color(_ca(c_gold_bright, 0.9)), 13.0, 1.0)
 	# Gold coin pickup arc animation
 	_gold_pickups.append({
 		"start": pos, "end": Vector2(310, 20), "pos": pos,
@@ -38672,6 +38796,11 @@ func _victory() -> void:
 	# Event tokens (#139)
 	_earn_event_tokens(3 + selected_difficulty * 2)
 	speed_button.text = "  >>  "
+	# #80: Screen shake on victory
+	_screen_shake_intensity = 6.0
+	_screen_shake_timer = 0.5
+	# #80: Golden flash overlay
+	_victory_flash = 1.0
 	# Victory burst effect
 	_victory_burst_timer = 2.0
 	_victory_particles.clear()
@@ -38686,20 +38815,23 @@ func _victory() -> void:
 		})
 	# === VICTORY CONFETTI (Item #44) — 40 colored rectangles with random velocities ===
 	_victory_confetti.clear()
-	var confetti_colors = [
-		Color(1.0, 0.85, 0.0), Color(1.0, 0.4, 0.1), Color(0.3, 0.9, 0.4),
-		Color(0.3, 0.5, 1.0), Color(0.9, 0.2, 0.5), Color(0.6, 0.3, 0.9),
-		Color(1.0, 1.0, 0.3), Color(0.2, 0.8, 0.8), Color(1.0, 0.6, 0.8),
-	]
-	for ci in range(40):
-		_victory_confetti.append({
-			"pos": Vector2(randf_range(100, 1180), randf_range(-200, -20)),
-			"vel": Vector2(randf_range(-60, 60), randf_range(80, 200)),
-			"color": confetti_colors[ci % confetti_colors.size()],
-			"size": Vector2(randf_range(4, 10), randf_range(8, 16)),
-			"rot": randf() * TAU,
-			"rot_speed": randf_range(-4.0, 4.0),
-		})
+	if GameSettings and GameSettings.reduced_motion:
+		pass
+	else:  # #9: Only spawn confetti when reduced motion is off
+		var confetti_colors = [
+			Color(1.0, 0.85, 0.0), Color(1.0, 0.4, 0.1), Color(0.3, 0.9, 0.4),
+			Color(0.3, 0.5, 1.0), Color(0.9, 0.2, 0.5), Color(0.6, 0.3, 0.9),
+			Color(1.0, 1.0, 0.3), Color(0.2, 0.8, 0.8), Color(1.0, 0.6, 0.8),
+		]
+		for ci in range(40):
+			_victory_confetti.append({
+				"pos": Vector2(randf_range(100, 1180), randf_range(-200, -20)),
+				"vel": Vector2(randf_range(-60, 60), randf_range(80, 200)),
+				"color": confetti_colors[ci % confetti_colors.size()],
+				"size": Vector2(randf_range(4, 10), randf_range(8, 16)),
+				"rot": randf() * TAU,
+				"rot_speed": randf_range(-4.0, 4.0),
+			})
 	_collect_session_damage()
 	_show_victory_quote()
 	# MVP Tower spotlight — find tower with most damage
@@ -39450,6 +39582,30 @@ func _draw_settings_tab() -> void:
 	_draw_settings_toggle(font, col2_x, toggle_y, "MUTE SFX", GameSettings.sfx_muted, "mute_sfx")
 	toggle_y += row_h
 	_draw_settings_toggle(font, col2_x, toggle_y, "MUTE VOICE", GameSettings.voice_muted, "mute_voice")
+	toggle_y += row_h + 15.0
+
+	# === ACCESSIBILITY SECTION (#9) ===
+	_udraw(font, Vector2(col2_x, toggle_y), "ACCESSIBILITY", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.85, 0.72, 0.40))
+	draw_rect(Rect2(col2_x, toggle_y + 6, 140.0, 2), Color(0.55, 0.40, 0.15, 0.5))
+	toggle_y += 35.0
+
+	_draw_settings_toggle(font, col2_x, toggle_y, "HIGH CONTRAST", GameSettings.high_contrast, "high_contrast")
+	toggle_y += row_h
+	_draw_settings_toggle(font, col2_x, toggle_y, "LARGE TEXT", GameSettings.font_scale > 1.1, "large_text")
+	toggle_y += row_h
+	_draw_settings_toggle(font, col2_x, toggle_y, "REDUCE MOTION", GameSettings.reduced_motion, "reduced_motion")
+	toggle_y += row_h
+
+	# Colorblind mode selector (cycle through modes)
+	var cb_names = ["OFF", "DEUTERANOPIA", "PROTANOPIA", "TRITANOPIA"]
+	var cb_label = "COLORBLIND: %s" % cb_names[clampi(GameSettings.colorblind_mode, 0, 3)]
+	_udraw(font, Vector2(col2_x, toggle_y), cb_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.75, 0.65, 0.85, 0.9))
+	# Draw cycle button
+	var cb_btn_x = col2_x + 280.0
+	var cb_btn_y = toggle_y - 14.0
+	draw_rect(Rect2(cb_btn_x, cb_btn_y, 60.0, 28.0), Color(0.15, 0.10, 0.25, 0.8))
+	draw_rect(Rect2(cb_btn_x, cb_btn_y, 60.0, 28.0), Color(0.55, 0.40, 0.70, 0.6), false, 1.5)
+	_udraw(font, Vector2(cb_btn_x, cb_btn_y + 20), "CYCLE", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(0.85, 0.75, 0.95))
 
 func _draw_settings_slider(font: Font, x: float, y: float, label: String, value: float, muted: bool, key: String, w: float) -> void:
 	var label_col = Color(0.50, 0.40, 0.55, 0.5) if muted else Color(0.75, 0.65, 0.85, 0.9)
@@ -43953,10 +44109,11 @@ func _draw_card_range_preview() -> void:
 	var mouse_pos = get_global_mouse_position()
 	# Draw range preview at ghost position
 	if _is_valid_placement(mouse_pos):
-		draw_arc(mouse_pos, range_val, 0, TAU, 64, Color(0.3, 0.8, 1.0, 0.2), 2.0)
-		draw_circle(mouse_pos, range_val, Color(0.3, 0.8, 1.0, 0.04))
+		var rc_valid = _cb_color(Color(0.3, 0.8, 1.0, 0.2))  # #191: Colorblind-safe range circles
+		draw_arc(mouse_pos, range_val, 0, TAU, 64, rc_valid, 2.0)
+		draw_circle(mouse_pos, range_val, _cb_color(Color(0.3, 0.8, 1.0, 0.04)))
 	else:
-		draw_arc(mouse_pos, range_val, 0, TAU, 64, Color(1.0, 0.3, 0.2, 0.15), 2.0)
+		draw_arc(mouse_pos, range_val, 0, TAU, 64, _cb_color(Color(1.0, 0.3, 0.2, 0.15)), 2.0)
 
 # --- Improvement 14: EXTENDED WAVE FORECAST (3 waves ahead) ---
 var _extended_forecast: Array = []  # [{wave_num, enemy_count, name, is_boss}]
@@ -44089,6 +44246,7 @@ func _draw_enemy_health_bars() -> void:
 			fill_col = Color(0.9, 0.8, 0.1, 0.85)
 		else:
 			fill_col = Color(0.9, 0.15, 0.1, 0.85)
+		fill_col = _cb_color(fill_col)  # #191: Colorblind-safe health bars
 		draw_rect(Rect2(bx, by, bar_w * hp_pct, bar_h), fill_col)
 
 # --- #74: Upgraded tower visual distinction ---
@@ -44742,6 +44900,8 @@ var _menu_confetti: Array = []  # [{pos, vel, color, size, life, rot, rot_speed}
 var _confetti_active: bool = false
 
 func _trigger_menu_confetti() -> void:
+	if GameSettings and GameSettings.reduced_motion:
+		return  # #9: Skip confetti when reduced motion enabled
 	_confetti_active = true
 	_menu_confetti.clear()
 	for i in range(80):
@@ -46571,6 +46731,22 @@ const SUPPORTED_LANGUAGES: Array = ["en", "es", "fr", "de", "pt", "ja", "ko", "z
 func _t(key: String) -> String:
 	# Translation stub — returns key for now, will be replaced with proper i18n
 	return key
+
+# === NOTIFICATION BADGES (#49) ===
+func _check_notification_badges() -> void:
+	# Check for unclaimed daily reward
+	_badge_unclaimed_daily = not daily_reward_claimed_today
+	# Check for unclaimed daily challenge rewards
+	_badge_unclaimed_challenge = false
+	for ci in range(mini(daily_challenges.size(), 3)):
+		if ci < daily_challenge_progress.size():
+			var ch = daily_challenges[ci]
+			var target = ch.get("targets", [0])[0] if ch.has("targets") else ch.get("target", 0)
+			if daily_challenge_progress[ci] >= target:
+				_badge_unclaimed_challenge = true
+				break
+	# Emporium badge when event is active (new items available)
+	_badge_new_emporium = event_active
 
 # === PRIVACY COMPLIANCE (#198) ===
 var analytics_consent: bool = false
