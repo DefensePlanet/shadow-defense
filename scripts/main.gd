@@ -431,6 +431,14 @@ var _swipe_is_horizontal: bool = false  # True once we determine this is a horiz
 var _text_scale: float = 1.0  # 1.0 = normal, 1.25 = large, 1.5 = extra large
 var _colorblind_mode: int = 0  # 0=off, 1=deuteranopia, 2=protanopia, 3=tritanopia
 var _quality_level: int = 2  # 0=low, 1=medium, 2=high
+# Frame budget monitoring (#183)
+var _avg_fps: float = 60.0
+var _fps_low_timer: float = 0.0   # Seconds FPS has been < 30
+var _fps_high_timer: float = 0.0  # Seconds FPS has been > 55
+# Debug memory overlay (#178)
+var _debug_overlay: bool = false
+var _debug_tap_count: int = 0
+var _debug_tap_timer: float = 0.0
 var _autosave_indicator_timer: float = 0.0  # Shows save icon when > 0
 var _portrait_hem_offsets: Array = []
 var _portrait_hair_offsets: Array = []
@@ -2931,6 +2939,24 @@ var achievements_unlocked: Dictionary = {}
 var achievement_popup_text: String = ""
 var achievement_popup_timer: float = 0.0
 var achievement_popup_reward: String = ""
+
+# === ACHIEVEMENT REWARDS (#132) ===
+var achievement_rewards_claimed: Dictionary = {}  # achievement_id -> bool
+const ACHIEVEMENT_REWARDS: Dictionary = {
+	"first_blood": 10, "centurion": 25, "full_roster": 50,
+	"campaign_complete": 100, "halfway_there": 50,
+	"perfect_campaign": 200, "master_survivor": 75,
+	"completionist": 500, "veteran_survivor": 25,
+	"first_steps": 10, "wave_master": 30, "flawless": 40,
+	"untouchable": 60, "speed_demon": 30, "synergy_master": 50,
+}
+var achievement_claim_queue: Array = []  # achievement IDs ready to claim
+
+# === CHARACTER PRESTIGE (#134) ===
+var character_prestige: Dictionary = {}  # TowerType -> prestige_level (0-5)
+const MAX_CHAR_PRESTIGE: int = 5
+const CHAR_PRESTIGE_DAMAGE_BONUS: float = 0.05  # +5% damage per prestige level
+
 var total_towers_placed: int = 0
 var total_enemies_killed: int = 0
 var total_gold_spent: int = 0
@@ -6132,6 +6158,11 @@ func _check_achievement(id: String, value = 1) -> void:
 		var reward_str = "+%d %s" % [def_data["reward_amount"], def_data["reward_type"].capitalize()]
 		if trophy_bonus > 0:
 			reward_str += " + %d Trophies" % trophy_bonus
+		# (#132) Queue crystal reward for claiming if this achievement has one
+		if ACHIEVEMENT_REWARDS.has(id) and not achievement_rewards_claimed.get(id, false):
+			if not id in achievement_claim_queue:
+				achievement_claim_queue.append(id)
+			reward_str += " + %d Crystals (CLAIM)" % ACHIEVEMENT_REWARDS[id]
 		achievement_popup_reward = reward_str
 		achievement_popup_timer = 3.0
 		_save_game()
@@ -23226,9 +23257,37 @@ func get_cached_enemies() -> Array:
 
 func _process(delta: float) -> void:
 	_time += delta
+	# #183: Frame budget monitoring — rolling average FPS
+	if delta > 0.0:
+		_avg_fps = lerpf(_avg_fps, 1.0 / delta, 0.05)
+		if _avg_fps < 30.0:
+			_fps_low_timer += delta
+			_fps_high_timer = 0.0
+			if _fps_low_timer >= 3.0:
+				_quality_level = maxi(_quality_level - 1, 0)
+				_fps_low_timer = 0.0
+		elif _avg_fps > 55.0:
+			_fps_high_timer += delta
+			_fps_low_timer = 0.0
+			if _fps_high_timer >= 5.0:
+				_quality_level = mini(_quality_level + 1, 2)
+				_fps_high_timer = 0.0
+		else:
+			_fps_low_timer = 0.0
+			_fps_high_timer = 0.0
 	# Cache enemy list once per frame for performance
 	if game_state == GameState.PLAYING:
 		_cached_enemies = get_tree().get_nodes_in_group("enemies")
+		# #176: Update SpatialGrid positions for all enemies
+		if SpatialGrid:
+			for enemy in _cached_enemies:
+				if is_instance_valid(enemy):
+					SpatialGrid.register(enemy)
+	# #178: Debug overlay tap timer decay
+	if _debug_tap_timer > 0.0:
+		_debug_tap_timer -= delta
+		if _debug_tap_timer <= 0.0:
+			_debug_tap_count = 0
 	# Input debounce cooldown
 	if _input_cooldown > 0.0:
 		_input_cooldown -= delta
@@ -24083,6 +24142,9 @@ func _add_enemy_to_path(enemy) -> void:
 		enemy.set_meta("on_path_2", true)
 	else:
 		enemy_path.add_child(enemy)
+	# #176: Register with SpatialGrid for efficient tower targeting
+	if SpatialGrid:
+		SpatialGrid.register(enemy)
 
 func _spawn_enemy() -> void:
 	_spawn_portal_intensity = 1.0
@@ -24094,7 +24156,7 @@ func _spawn_enemy() -> void:
 
 	# Set enemy theme and tier
 	if endless_mode:
-		enemy.enemy_theme = randi() % 13
+		enemy.enemy_theme = randi() % 19  # Include Act 4 themes (13-18)
 	else:
 		enemy.enemy_theme = composition.get("theme", levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0)
 
@@ -38023,7 +38085,9 @@ func enemy_died(enemy_node = null) -> void:
 
 # === FLOATING TEXTS ===
 func spawn_floating_text(pos: Vector2, text: String, color: Color, size: float = 14.0, duration: float = 1.0) -> void:
-	if _floating_texts.size() >= 100:
+	# #173/#183: Quality-adaptive floating text limit
+	var max_texts = [30, 60, 100][_quality_level]
+	if _floating_texts.size() >= max_texts:
 		_floating_texts.pop_front()
 	_floating_texts.append({
 		"pos": pos, "text": text, "color": color, "size": size,
@@ -44003,7 +44067,7 @@ func _record_enemy_in_bestiary(enemy_node) -> void:
 	if is_moab_e:
 		key += "_moab"
 	if not enemy_bestiary.has(key):
-		var theme_names = ["Sherwood", "Wonderland", "Oz", "Neverland", "Opera", "London", "Shadow", "Baker St", "Camelot", "Jungle", "Transylvania", "Laboratory", "Ink Realm"]
+		var theme_names = ["Sherwood", "Wonderland", "Oz", "Neverland", "Opera", "London", "Shadow", "Baker St", "Camelot", "Jungle", "Transylvania", "Laboratory", "Ink Realm", "Sleepy Hollow", "Greek Temple", "Loki", "Egyptian", "Ahab", "Narrator Realm"]
 		var tname = theme_names[theme] if theme < theme_names.size() else "Unknown"
 		var suffix = ""
 		if is_boss:
@@ -45053,7 +45117,9 @@ func _trigger_menu_confetti() -> void:
 		return  # #9: Skip confetti when reduced motion enabled
 	_confetti_active = true
 	_menu_confetti.clear()
-	for i in range(80):
+	# #173/#183: Quality-adaptive confetti count
+	var confetti_count = [20, 50, 80][_quality_level]
+	for i in range(confetti_count):
 		var angle = randf() * TAU
 		var speed = randf_range(100.0, 400.0)
 		_menu_confetti.append({
