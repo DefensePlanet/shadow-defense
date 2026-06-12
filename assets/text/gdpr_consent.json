@@ -1,0 +1,23 @@
+{
+  "title": "Your Privacy Matters",
+  "message": "Shadow Defense collects gameplay analytics to improve your experience. We also use advertising partners who may collect device identifiers.",
+  "options": [
+    {
+      "id": "accept_all",
+      "label": "Accept All",
+      "description": "Analytics + Personalized Ads"
+    },
+    {
+      "id": "analytics_only",
+      "label": "Analytics Only",
+      "description": "Help us improve, no personalized ads"
+    },
+    {
+      "id": "reject_all",
+      "label": "Essential Only",
+      "description": "Game saves only, no tracking"
+    }
+  ],
+  "privacy_link": "View Privacy Policy",
+  "note": "You can change these settings anytime in Settings > Privacy."
+}
