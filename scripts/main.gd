@@ -12611,8 +12611,11 @@ func _reset_game() -> void:
 	_build_effects.clear()
 	_victory_burst_timer = 0.0
 	_victory_particles.clear()
+	_victory_confetti.clear()
+	_victory_overlay_data.clear()
 	_defeat_timer = 0.0
 	_defeat_cracks.clear()
+	_defeat_overlay_data.clear()
 	_spawn_portal_intensity = 0.0
 	_env_particles.clear()
 	_wave_banner_timer = 0.0
