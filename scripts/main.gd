@@ -5715,6 +5715,11 @@ func _init_synergy_definitions() -> void:
 		 "buffs": {"gold_bonus": 0.30}, "desc": "Redemption meets creation — +30% gold bonus"},
 		{"name": "Deductive Darkness", "tower_a": TowerType.SHERLOCK, "tower_b": TowerType.DRACULA,
 		 "buffs": {"damage": 0.15, "attack_speed": 0.10}, "desc": "Brilliant minds, dark methods — +15% damage, +10% speed"},
+		# Item #38: New synergy pairs
+		{"name": "Musical Wonder", "tower_a": TowerType.ALICE, "tower_b": TowerType.PHANTOM,
+		 "buffs": {"damage": 0.10}, "desc": "Wonderland curiosity meets opera mastery — +10% damage"},
+		{"name": "Monster Brothers", "tower_a": TowerType.DRACULA, "tower_b": TowerType.FRANKENSTEIN,
+		 "buffs": {"range": 0.15}, "desc": "Gothic horror legends united — +15% range"},
 	]
 
 func _init_achievement_definitions() -> void:
@@ -25694,6 +25699,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					pass
 				elif _check_page_click(event.position) or _check_collectible_click(event.position) or _check_powerup_click(event.position):
 					pass
+				elif _check_targeting_label_tap(event.position):
+					pass  # #29: Tapped targeting label to cycle mode
 				else:
 					var tower = _find_tower_at(event.position)
 					if tower:
@@ -25717,6 +25724,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_try_place_tower(event.position)
 		elif _check_page_click(event.position) or _check_collectible_click(event.position) or _check_powerup_click(event.position):
 			pass  # BATTD: Collectible/powerup picked up
+		elif _check_targeting_label_tap(event.position):
+			pass  # #29: Tapped targeting label to cycle mode
 		else:
 			var tower = _find_tower_at(event.position)
 			if tower:
@@ -25911,7 +25920,7 @@ func _draw_tower_stats_overlay() -> void:
 		panel_x = tpos.x - 245.0
 	var panel_y = clampf(tpos.y - 70.0, 60.0, 480.0)
 	var pw = 190.0
-	var ph = 160.0
+	var ph = 178.0
 	var font = game_font
 	var dmg = tower.damage_dealt if "damage_dealt" in tower else 0.0
 	var kills = tower.kill_count if "kill_count" in tower else 0
@@ -25938,6 +25947,12 @@ func _draw_tower_stats_overlay() -> void:
 	# Row 1: Damage + DPS
 	_ds_outlined_text(Vector2(lx, y), "⚔ %s" % _format_number(dmg), 12, Color(1.0, 0.85, 0.3), int(pw * 0.5), HORIZONTAL_ALIGNMENT_LEFT, 1)
 	_ds_outlined_text(Vector2(rx, y), "%s/s" % _format_number(dps), 11, Color(0.6, 1.0, 0.6), int(pw * 0.4), HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	y += 18.0
+	# Row 1b: Theoretical DPS (#25 — per-tower DPS meter)
+	var _theo_dps = _calculate_tower_dps(tower)
+	var _has_buffs = tower.has_method("has_active_buffs") and tower.has_active_buffs() or (tower.has_meta("tower_type_enum") and int(tower.get_meta("tower_type_enum")) in _get_buffed_tower_types())
+	var _dps_color = Color(1.0, 0.85, 0.2) if _has_buffs else Color(0.9, 0.9, 0.9)
+	_ds_outlined_text(Vector2(lx, y), "DPS: %.1f" % _theo_dps, 11, _dps_color, int(pw), HORIZONTAL_ALIGNMENT_LEFT, 1)
 	y += 18.0
 	# Row 2: Kills + Crits
 	_ds_outlined_text(Vector2(lx, y), "💀 %d" % kills, 12, Color(0.8, 0.9, 1.0), int(pw * 0.5), HORIZONTAL_ALIGNMENT_LEFT, 1)
@@ -26451,6 +26466,8 @@ func _draw() -> void:
 		_draw_enemy_health_bars()
 	# === IMPROVEMENT 18: Synergy Connection Lines (world-space) ===
 	_draw_synergy_connections()
+	# === Item #38: Synergy golden connection lines ===
+	_draw_synergy_golden_lines()
 	# === IMPROVEMENT 16: Tower Mastery Rings (world-space) ===
 	_draw_tower_mastery_rings()
 	# === #74: Upgraded tower visual distinction ===
@@ -26694,6 +26711,7 @@ func _draw() -> void:
 	# === TOWER STATS OVERLAY ===
 	if selected_tower_node and is_instance_valid(selected_tower_node) and not placing_tower:
 		_draw_tower_stats_overlay()
+		_draw_targeting_label_on_tower(selected_tower_node)
 
 	# === BATTD4: TOWER TARGETING LINES ===
 	if is_wave_active and _show_targeting_lines:
@@ -27170,6 +27188,16 @@ func _draw_tower_button_portraits() -> void:
 		# Gold ring highlight when selected for placement
 		if placing_tower and selected_tower == tt:
 			draw_arc(Vector2(gx + psz / 2.0, gy + psz / 2.0), psz / 2.0 + 6.0, 0, TAU, 32, Color(1.0, 0.85, 0.2, 0.8), 3.0)
+		# #33: Recommended tower badge for new players (< 10 levels completed)
+		if not is_placed and completed_levels.size() < 10 and RECOMMENDED_TOWERS.has(current_level) and RECOMMENDED_TOWERS[current_level] == tt:
+			var rec_pulse = (sin(_time * 3.0) + 1.0) * 0.5
+			var badge_w = 72.0
+			var badge_h = 14.0
+			var badge_x = gx + psz / 2.0 - badge_w / 2.0
+			var badge_y = gy - 16.0
+			draw_rect(Rect2(badge_x, badge_y, badge_w, badge_h), Color(0.85, 0.70, 0.15, 0.85 + rec_pulse * 0.15))
+			draw_rect(Rect2(badge_x, badge_y, badge_w, badge_h), Color(1.0, 0.9, 0.3, 0.9), false, 1.0)
+			_ds_outlined_text(Vector2(gx + psz / 2.0, badge_y + 11), "★ RECOMMENDED", 7, Color(0.1, 0.05, 0.0), int(badge_w), HORIZONTAL_ALIGNMENT_CENTER, 1)
 		# Update button appearance for affordability
 		if is_placed:
 			btn.modulate = Color(0.5, 0.5, 0.5, 0.7)
@@ -36944,6 +36972,35 @@ func _on_targeting_pressed() -> void:
 	var prio = selected_tower_node.targeting_priority if "targeting_priority" in selected_tower_node else 0
 	targeting_button.text = "Target: %s" % prio_labels[clampi(prio, 0, 4)]
 
+# --- Item #29: Targeting priority label visible on selected tower ---
+func _draw_targeting_label_on_tower(tower: Node2D) -> void:
+	if not is_instance_valid(tower):
+		return
+	var prio = tower.targeting_priority if "targeting_priority" in tower else 0
+	var prio_names = ["FIRST", "LAST", "CLOSE", "STRONG", "SMART"]
+	var prio_colors = [Color(0.5, 0.8, 1.0), Color(1.0, 0.6, 0.3), Color(0.6, 1.0, 0.5), Color(1.0, 0.3, 0.3), Color(0.8, 0.6, 1.0)]
+	var label = prio_names[clampi(prio, 0, 4)]
+	var col = prio_colors[clampi(prio, 0, 4)]
+	var tpos = tower.global_position
+	var lx = tpos.x
+	var ly = tpos.y + 32.0
+	# Background pill
+	var tw = game_font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 10
+	var pill_rect = Rect2(lx - tw * 0.5, ly - 2, tw, 14)
+	_ds_panel(pill_rect, Color(0.06, 0.04, 0.12, 0.85), col * Color(1, 1, 1, 0.6), 1.0, 6.0)
+	_ds_outlined_text(Vector2(lx, ly + 9), label, 9, col, int(tw), HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Store rect for tap detection
+	_targeting_label_rect = pill_rect
+
+var _targeting_label_rect: Rect2 = Rect2()
+
+func _check_targeting_label_tap(pos: Vector2) -> bool:
+	if selected_tower_node and is_instance_valid(selected_tower_node) and _targeting_label_rect.has_point(pos):
+		_on_targeting_pressed()
+		queue_redraw()
+		return true
+	return false
+
 func _on_hero_ability_pressed() -> void:
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return
@@ -44392,6 +44449,31 @@ func _draw_synergy_connections() -> void:
 					draw_circle(pa, 8.0 + pulse * 3.0, Color(0.4, 0.7, 1.0, 0.15 + pulse * 0.1))
 					draw_circle(pb, 8.0 + pulse * 3.0, Color(0.4, 0.7, 1.0, 0.15 + pulse * 0.1))
 
+# --- Item #38: Golden synergy connection lines between paired towers ---
+func _draw_synergy_golden_lines() -> void:
+	if active_synergies.is_empty():
+		return
+	# Build tower lookup
+	var tower_nodes_by_type: Dictionary = {}
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if is_instance_valid(tower) and tower.has_meta("tower_type_enum"):
+			tower_nodes_by_type[int(tower.get_meta("tower_type_enum"))] = tower
+	# Draw faint golden line between each active synergy pair
+	for syn in synergy_definitions:
+		if syn["name"] in active_synergies:
+			var ta = tower_nodes_by_type.get(syn["tower_a"], null)
+			var tb = tower_nodes_by_type.get(syn["tower_b"], null)
+			if ta and tb and is_instance_valid(ta) and is_instance_valid(tb):
+				var pa = ta.global_position
+				var pb = tb.global_position
+				var pulse = (sin(_time * 3.0) + 1.0) * 0.5
+				# Outer gold glow
+				draw_line(pa, pb, Color(1.0, 0.85, 0.2, 0.08 + pulse * 0.06), 5.0)
+				# Core gold line
+				draw_line(pa, pb, Color(1.0, 0.9, 0.3, 0.15 + pulse * 0.1), 2.0)
+				# Bright center
+				draw_line(pa, pb, Color(1.0, 1.0, 0.7, 0.1 + pulse * 0.08), 1.0)
+
 # --- Improvement 19: WAVE MODIFIER ANNOUNCEMENTS ---
 var _wave_modifier_text: String = ""
 var _wave_modifier_timer: float = 0.0
@@ -45613,6 +45695,33 @@ func _calculate_hero_dps(tower_type) -> float:
 	var lvl_b = _get_level_bonuses(tower_type)
 	var gear_b = _get_gear_bonuses(tower_type)
 	return base_dmg * (1.0 + lvl_b.get("damage", 0.0) + gear_b.get("damage", 0.0)) * fire_rate * (1.0 + lvl_b.get("attack_speed", 0.0) + gear_b.get("attack_speed", 0.0))
+
+# --- Item #25: Per-tower DPS calculation (placed tower instance) ---
+func _calculate_tower_dps(tower: Node2D) -> float:
+	var base_dmg = float(tower.damage if "damage" in tower else 20)
+	var fire_rate = float(tower.fire_rate if "fire_rate" in tower else 0.85)
+	var mult = 1.0
+	if tower.has_meta("tower_type_enum"):
+		var tt = int(tower.get_meta("tower_type_enum"))
+		var lvl_b = _get_level_bonuses(tt)
+		var gear_b = _get_gear_bonuses(tt)
+		mult = (1.0 + lvl_b.get("damage", 0.0) + gear_b.get("damage", 0.0))
+		fire_rate *= (1.0 + lvl_b.get("attack_speed", 0.0) + gear_b.get("attack_speed", 0.0))
+	# Include synergy buffs
+	if "_synergy_buff" in tower and tower._synergy_buff is Dictionary:
+		mult += tower._synergy_buff.get("damage", 0.0)
+	# Include meta buffs
+	if "_meta_buffs" in tower and tower._meta_buffs is Dictionary:
+		mult += tower._meta_buffs.get("damage", 0.0)
+	return base_dmg * mult * fire_rate
+
+func _get_buffed_tower_types() -> Array:
+	var buffed: Array = []
+	for syn in synergy_definitions:
+		if syn["name"] in active_synergies:
+			buffed.append(syn["tower_a"])
+			buffed.append(syn["tower_b"])
+	return buffed
 
 func _draw_dps_badge(cx: float, cy: float, tower_type) -> void:
 	var dps_str = "%.0f DPS" % _calculate_hero_dps(tower_type)
