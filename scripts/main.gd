@@ -31,6 +31,7 @@ const BOSS_VILLAIN_NAMES: Dictionary = {
 # Purchase tracking — each tower can only be bought once
 var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
+var _tower_sort_mode: int = 0  # #72: 0=Default, 1=Cost, 2=Damage, 3=Range
 
 var tower_info = {
 	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85, "desc": "Balanced archer. Long range, reliable damage. The backbone of any defense."},
@@ -281,6 +282,7 @@ var menu_subtitle: Label
 var level_cards: Array = []
 var return_button: Button
 var retry_button: Button
+var _checkpoint_resume_button: Button  # #36: Resume from checkpoint
 var menu_exit_button: Button
 var completed_levels: Array = []
 var level_stars: Dictionary = {}
@@ -2813,6 +2815,43 @@ var daily_rewards_schedule: Array = [
 	{"name": "Gold Treasure Chest", "type": "gold_chest", "amount": 1},
 ]
 
+# === DAILY LOGIN REWARDS (#116) ===
+var daily_login_day: int = 0  # 0-6, cycles weekly
+var last_login_date: String = ""  # ISO date string
+const DAILY_REWARDS: Array = [
+	{"gold": 50},
+	{"gold": 75},
+	{"gold": 100, "pages": 5},
+	{"gold": 125},
+	{"gold": 150, "pages": 10},
+	{"gold": 200},
+	{"gold": 300, "pages": 20, "chest": "bronze"},
+]
+var _daily_reward_popup: Dictionary = {}  # {day, gold, pages, chest} when showing
+var _daily_reward_timer: float = 0.0  # Countdown for popup display
+
+func _check_daily_login() -> void:
+	var today = Time.get_date_string_from_system()
+	if last_login_date == today:
+		return  # Already claimed today
+	var reward = DAILY_REWARDS[daily_login_day]
+	var awarded_gold = reward.get("gold", 0)
+	var awarded_pages = reward.get("pages", 0)
+	var awarded_chest = reward.get("chest", "")
+	if awarded_gold > 0:
+		player_gold += awarded_gold
+	if awarded_pages > 0:
+		player_pages += awarded_pages
+	if awarded_chest != "":
+		treasure_chests_owned[awarded_chest] = treasure_chests_owned.get(awarded_chest, 0) + 1
+	_daily_reward_popup = {"day": daily_login_day, "gold": awarded_gold, "pages": awarded_pages, "chest": awarded_chest}
+	_daily_reward_timer = 3.5
+	last_login_date = today
+	daily_login_day = (daily_login_day + 1) % 7
+	total_daily_claims += 1
+	spawn_floating_text(Vector2(640, 280), "Day %d Reward!" % (_daily_reward_popup["day"] + 1), Color(1.0, 0.85, 0.0), 20.0, 2.5)
+	_save_game()
+
 # === LOYALTY/VIP SYSTEM (#126) ===
 var loyalty_points: int = 0  # Earned from all activity
 const LOYALTY_TIERS: Array = [
@@ -2931,7 +2970,7 @@ var _rescue_smoke_particles: Array = []
 # === UNDO TOWER PLACEMENT ===
 var undo_tower_data: Dictionary = {}  # {node, type, position, cost, timer}
 var undo_button: Button
-const UNDO_DURATION: float = 3.0
+const UNDO_DURATION: float = 5.0
 
 # === WAVE PREVIEW ===
 var wave_preview_active: bool = false
@@ -3293,6 +3332,93 @@ var daily_challenge_active: bool = false
 var daily_challenge_modifier: String = ""
 var daily_challenge_level: int = -1
 
+
+# === DAILY CHALLENGES (#131) ===
+var daily_challenges: Array = []  # 3 challenges per day
+const CHALLENGE_TEMPLATES: Array = [
+	{"id": "kill_100", "desc": "Kill 100 enemies", "target": 100, "reward_gold": 75},
+	{"id": "use_3_towers", "desc": "Place 3 different towers", "target": 3, "reward_gold": 50},
+	{"id": "no_lives_lost", "desc": "Complete a level with no lives lost", "target": 1, "reward_gold": 100},
+	{"id": "earn_500_gold", "desc": "Earn 500 gold in one level", "target": 500, "reward_gold": 60},
+	{"id": "upgrade_5", "desc": "Purchase 5 upgrades", "target": 5, "reward_gold": 80},
+]
+var daily_challenge_progress: Array = [0, 0, 0]  # Progress for each of the 3 daily challenges
+
+func _generate_daily_challenges() -> void:
+	daily_challenges.clear()
+	daily_challenge_progress = [0, 0, 0]
+	var available = CHALLENGE_TEMPLATES.duplicate()
+	available.shuffle()
+	for i in range(mini(3, available.size())):
+		daily_challenges.append(available[i].duplicate())
+
+# === STORY MILESTONES (#140) ===
+const STORY_MILESTONES: Dictionary = {
+	3: {"name": "Sherlock Freed", "gems": 25},
+	6: {"name": "Merlin Freed", "gems": 25},
+	9: {"name": "Tarzan Freed", "gems": 25},
+	15: {"name": "Act 1 Complete", "gems": 50, "chest": "silver"},
+	33: {"name": "Act 2 Complete", "gems": 75, "chest": "silver"},
+	36: {"name": "Shadow Author Defeated", "gems": 100, "chest": "gold"},
+	48: {"name": "Horseman Freed", "gems": 50},
+	51: {"name": "Medusa Freed", "gems": 50},
+	54: {"name": "Anubis Freed", "gems": 50},
+	57: {"name": "Game Complete", "gems": 200, "chest": "legendary"},
+}
+var claimed_milestones: Array = []  # Level indices already claimed
+
+func _check_story_milestones(level_idx: int) -> void:
+	if not STORY_MILESTONES.has(level_idx):
+		return
+	if level_idx in claimed_milestones:
+		return
+	var milestone = STORY_MILESTONES[level_idx]
+	claimed_milestones.append(level_idx)
+	var gem_reward = milestone.get("gems", 0)
+	if gem_reward > 0:
+		player_quills += gem_reward
+		spawn_floating_text(Vector2(640, 240), "MILESTONE: %s" % milestone["name"], Color(1.0, 0.85, 0.0), 22.0, 3.0)
+		spawn_floating_text(Vector2(640, 270), "+%d Gems!" % gem_reward, Color(0.4, 0.9, 1.0), 16.0, 2.5)
+	var chest_type = milestone.get("chest", "")
+	if chest_type != "":
+		treasure_chests_owned[chest_type] = treasure_chests_owned.get(chest_type, 0) + 1
+		spawn_floating_text(Vector2(640, 300), "+1 %s Chest!" % chest_type.capitalize(), Color(0.9, 0.7, 0.2), 14.0, 2.0)
+	_milestone_popup_timer = 4.0
+	_milestone_popup_text = milestone["name"]
+	_milestone_popup_sub = "Story Milestone Reached!"
+	_milestone_popup_color = Color(0.4, 0.85, 1.0)
+	_save_game()
+
+# === SECOND CHANCE MECHANIC (#146) ===
+var _continue_offered: bool = false  # Can only continue once per level
+var _continue_timer: float = 0.0  # 5 second countdown for "Watch Ad" prompt
+var _continue_prompt_active: bool = false  # Whether the continue prompt is showing
+
+func _show_continue_prompt() -> void:
+	if _continue_offered:
+		return
+	_continue_prompt_active = true
+	_continue_timer = 5.0
+
+func _accept_continue() -> void:
+	if not _continue_prompt_active:
+		return
+	_continue_prompt_active = false
+	_continue_offered = true
+	lives = 5
+	game_state = GameState.PLAYING
+	update_hud()
+	spawn_floating_text(Vector2(640, 300), "SECOND CHANCE! +5 Lives!", Color(0.3, 1.0, 0.5), 20.0, 2.5)
+	_play_sfx(_sfx_wave_start)
+	is_wave_active = true if enemies_to_spawn > 0 or enemies_alive > 0 else false
+	if not is_wave_active:
+		start_button.disabled = false
+		start_button.text = "  START WAVE  "
+
+func _decline_continue() -> void:
+	_continue_prompt_active = false
+	_finalize_game_over()
+
 # === BOSS RUSH MODE ===
 var boss_rush_mode: bool = false
 var boss_rush_wave: int = 0
@@ -3382,7 +3508,7 @@ const DIFFICULTY_XP_MULT: Array = [0.5, 1.0, 1.5, 3.0]
 # Difficulty gear drop quality cap: 0=common/uncommon, 1=up to rare, 2=up to epic, 3=up to legendary
 const DIFFICULTY_GEAR_CAP: Array = [1, 2, 3, 4]
 # Difficulty gold multiplier
-const DIFFICULTY_GOLD_MULT: Array = [0.60, 1.0, 1.15, 1.3]  # Easy nerfed from 0.75
+const DIFFICULTY_GOLD_MULT: Array = [1.0, 1.15, 1.35, 1.5]  # #37: Gold scales with difficulty
 
 # === PROGRESSION: Gear slot gating by survivor level ===
 # Gear slots unlock at these survivor levels (2 base + 4 unlockable = 6 total)
@@ -3688,10 +3814,24 @@ const OVERKILL_THRESHOLD: float = 2.0
 const OVERKILL_GOLD: int = 3
 var _overkills_this_game: int = 0
 
-# === BATTD4 FEATURE 4: SELL CONFIRMATION ===
+# === BATTD4 FEATURE 4: SELL CONFIRMATION (#28 enhanced) ===
 var _sell_confirm_active: bool = false
 var _sell_confirm_timer: float = 0.0
-const SELL_CONFIRM_DURATION: float = 2.0
+var _sell_confirm_tower: Node2D = null  # #28: Track which tower is pending sell confirm
+const SELL_CONFIRM_DURATION: float = 3.0  # #28: Extended from 2s to 3s
+
+# === ITEM #36: MID-LEVEL CHECKPOINT (30+ wave levels) ===
+var _checkpoint_wave: int = -1
+var _checkpoint_gold: int = 0
+var _checkpoint_lives: int = 0
+var _checkpoint_towers_data: Array = []  # [{type, position, cost}] for restoration
+
+# === ITEM #40: LAST STAND MECHANIC ===
+var _last_stand_active: bool = false
+var _last_stand_buff_timer: float = 0.0  # 10s damage buff
+var _last_stand_flash: float = 0.0  # Screen flash timer
+const LAST_STAND_BUFF_DURATION: float = 10.0
+const LAST_STAND_DAMAGE_BONUS: float = 0.15  # +15% damage for all towers
 
 # === BATTD4 FEATURE 6: TOWER TARGETING LINES ===
 var _show_targeting_lines: bool = true
@@ -4561,6 +4701,9 @@ func _ready() -> void:
 		_refresh_merchant()
 	_generate_daily_deals()
 	_refresh_quests_if_needed()
+	_check_daily_login()
+	if daily_challenges.size() == 0:
+		_generate_daily_challenges()
 	_cache_path_points()
 	_cache_path_thumbnails()
 	_load_all_art_assets()
@@ -6169,6 +6312,14 @@ func _save_game() -> void:
 	# Daily rewards
 	save_data["daily_streak"] = daily_streak
 	save_data["daily_last_claim"] = daily_last_claim
+	# Daily login rewards (#116)
+	save_data["daily_login_day"] = daily_login_day
+	save_data["last_login_date"] = last_login_date
+	# Daily challenges (#131)
+	save_data["daily_challenges"] = daily_challenges
+	save_data["daily_challenge_progress"] = daily_challenge_progress
+	# Story milestones (#140)
+	save_data["claimed_milestones"] = claimed_milestones
 	# Achievements
 	save_data["achievement_progress"] = achievement_progress
 	save_data["achievements_unlocked"] = achievements_unlocked
@@ -6540,6 +6691,14 @@ func _load_game() -> void:
 	# Daily rewards
 	daily_streak = int(data.get("daily_streak", 0))
 	daily_last_claim = str(data.get("daily_last_claim", ""))
+	# Daily login rewards (#116)
+	daily_login_day = int(data.get("daily_login_day", 0))
+	last_login_date = str(data.get("last_login_date", ""))
+	# Daily challenges (#131)
+	daily_challenges = data.get("daily_challenges", [])
+	daily_challenge_progress = data.get("daily_challenge_progress", [0, 0, 0])
+	# Story milestones (#140)
+	claimed_milestones = data.get("claimed_milestones", [])
 	# Achievements
 	var ap = data.get("achievement_progress", {})
 	for key in ap:
@@ -7939,6 +8098,15 @@ func _draw_wave_progress_bar() -> void:
 		if bw <= total_waves:
 			var bx = 10.0 + bar_w * (float(bw) / float(total_waves))
 			draw_line(Vector2(bx, bar_y), Vector2(bx, bar_y + bar_h), Color(1.0, 0.3, 0.1, 0.5), 2.0)
+	# #36: Checkpoint diamond markers (every 10 waves on 30+ wave levels)
+	if total_waves >= 30:
+		for cw in range(10, total_waves, 10):
+			var cx = 10.0 + bar_w * (float(cw) / float(total_waves))
+			var cy = bar_y + bar_h * 0.5
+			var cp_col = Color(0.3, 0.9, 1.0, 0.7) if cw <= _checkpoint_wave else Color(0.4, 0.5, 0.6, 0.3)
+			# Draw diamond shape
+			var d_pts = PackedVector2Array([Vector2(cx, cy - 4), Vector2(cx + 3, cy), Vector2(cx, cy + 4), Vector2(cx - 3, cy)])
+			draw_colored_polygon(d_pts, cp_col)
 	# Intra-wave enemy progress bar (#67) — shows enemies cleared this wave
 	if _wave_enemies_total > 0:
 		var enemies_cleared = _wave_enemies_total - enemies_to_spawn - enemies_alive
@@ -10889,6 +11057,13 @@ func _create_ui() -> void:
 	retry_button.pressed.connect(_on_retry_level)
 	retry_button.visible = false
 	ui.add_child(retry_button)
+	# #36: Checkpoint resume button
+	_checkpoint_resume_button = _make_button("  RESUME FROM CHECKPOINT  ", Vector2(440, 500), Vector2(400, 45))
+	_checkpoint_resume_button.add_theme_color_override("font_color", Color(0.3, 0.85, 1.0))
+	_checkpoint_resume_button.add_theme_font_size_override("font_size", 16)
+	_checkpoint_resume_button.pressed.connect(_on_checkpoint_resume)
+	_checkpoint_resume_button.visible = false
+	ui.add_child(_checkpoint_resume_button)
 
 func _make_button(text: String, pos: Vector2, min_size: Vector2) -> Button:
 	var btn = Button.new()
@@ -10945,6 +11120,7 @@ func _on_retry_level() -> void:
 	var lvl = current_level
 	_reset_game()
 	retry_button.visible = false
+	if is_instance_valid(_checkpoint_resume_button): _checkpoint_resume_button.visible = false
 	return_button.visible = false
 	game_over_label.visible = false
 	_do_level_start(lvl)
@@ -10954,6 +11130,31 @@ func _on_retry_level() -> void:
 		add_gold(revenge_gold)
 		spawn_floating_text(Vector2(640, 300), "REVENGE +%dG!" % revenge_gold, Color(1.0, 0.4, 0.2), 20.0, 2.0)
 		_revenge_available = false
+
+# #36: Resume from mid-level checkpoint
+func _on_checkpoint_resume() -> void:
+	if _checkpoint_wave <= 0:
+		return
+	_play_sfx(_sfx_ui_click)
+	_haptic(0)
+	var lvl = current_level
+	_reset_game()
+	retry_button.visible = false
+	if is_instance_valid(_checkpoint_resume_button): _checkpoint_resume_button.visible = false
+	return_button.visible = false
+	game_over_label.visible = false
+	_do_level_start(lvl)
+	# Restore checkpoint state
+	wave = _checkpoint_wave
+	gold = _checkpoint_gold
+	lives = _checkpoint_lives
+	spawn_floating_text(Vector2(640, 300), "RESUMED FROM WAVE %d" % _checkpoint_wave, Color(0.3, 0.9, 1.0), 22.0, 2.5)
+	# Clear checkpoint after use
+	_checkpoint_wave = -1
+	_checkpoint_gold = 0
+	_checkpoint_lives = 0
+	_checkpoint_towers_data.clear()
+	update_hud()
 
 # === NEW MENU V2 — Scene-based overlay ===
 var _menu_v2_scene: PackedScene = null
@@ -11034,6 +11235,7 @@ func _show_menu() -> void:
 		if survivor_detail_container: survivor_detail_container.visible = false
 	return_button.visible = false
 	retry_button.visible = false
+	if is_instance_valid(_checkpoint_resume_button): _checkpoint_resume_button.visible = false
 	game_over_label.visible = false
 	if top_bar:
 		top_bar.visible = false
@@ -12409,6 +12611,16 @@ func _do_level_start(index: int) -> void:
 	_wave_streak_best = 0
 	_sell_confirm_active = false
 	_sell_confirm_timer = 0.0
+	_sell_confirm_tower = null
+	# #36: Reset checkpoint state
+	_checkpoint_wave = -1
+	_checkpoint_gold = 0
+	_checkpoint_lives = 0
+	_checkpoint_towers_data = []
+	# #40: Reset last stand buff
+	_last_stand_active = false
+	_last_stand_buff_timer = 0.0
+	_last_stand_flash = 0.0
 	_tower_wave_counts.clear()
 	_global_dps_samples.clear()
 	_global_dps_value = 0.0
@@ -12594,6 +12806,9 @@ func _reset_game() -> void:
 	_wave_modifier_timer = 0.0
 	_tower_place_wave.clear()
 	_continues_used = 0
+	_continue_offered = false
+	_continue_prompt_active = false
+	_continue_timer = 0.0
 	sandbox_mode = false
 	_game_speed_index = 0
 	# Reset placed instruments and branch choices
@@ -16778,7 +16993,11 @@ func _check_near_miss() -> void:
 		_clutch_active = false
 
 func _get_clutch_damage_mult() -> float:
-	return _clutch_bonus_dmg if _clutch_active else 1.0
+	var mult = _clutch_bonus_dmg if _clutch_active else 1.0
+	# #40: Last Stand buff stacks with clutch
+	if _last_stand_active and _last_stand_buff_timer > 0.0:
+		mult *= (1.0 + LAST_STAND_DAMAGE_BONUS)
+	return mult
 
 func _get_clutch_speed_mult() -> float:
 	return _clutch_bonus_speed if _clutch_active else 1.0
@@ -17106,6 +17325,56 @@ func _draw_milestone_popup() -> void:
 	_ds_panel(Rect2(340, cy, 600, 50), Color(0.12, 0.08, 0.20, 0.95 * alpha), Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, 0.6 * alpha), 2.0, 10.0)
 	_ds_outlined_text(Vector2(640, cy + 22), _milestone_popup_text, 20, Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	_udraw(font, Vector2(640, cy + 40), _milestone_popup_sub, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.7, 0.7, 0.7, alpha * 0.7))
+
+func _draw_daily_login_reward_popup() -> void:
+	if _daily_reward_timer <= 0.0:
+		return
+	var font = game_font
+	var alpha = minf(_daily_reward_timer, 1.0)
+	var slide = maxf(0.0, 1.0 - _daily_reward_timer / 0.5)
+	var cy = lerpf(-80, 100, 1.0 - slide)
+	_ds_panel(Rect2(340, cy, 600, 70), Color(0.08, 0.12, 0.20, 0.95 * alpha), Color(1.0, 0.85, 0.0, 0.7 * alpha), 2.0, 12.0)
+	var day_num = _daily_reward_popup.get("day", 0) + 1
+	_ds_outlined_text(Vector2(640, cy + 20), "Day %d Reward!" % day_num, 22, Color(1.0, 0.85, 0.0, alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	var reward_text = ""
+	var rg = _daily_reward_popup.get("gold", 0)
+	var rp = _daily_reward_popup.get("pages", 0)
+	var rc = _daily_reward_popup.get("chest", "")
+	if rg > 0:
+		reward_text += "+%d Gold" % rg
+	if rp > 0:
+		if reward_text != "":
+			reward_text += "  "
+		reward_text += "+%d Pages" % rp
+	if rc != "":
+		if reward_text != "":
+			reward_text += "  "
+		reward_text += "+1 %s Chest" % rc.capitalize()
+	_udraw(font, Vector2(640, cy + 50), reward_text, HORIZONTAL_ALIGNMENT_CENTER, 580, 16, Color(0.9, 0.85, 0.7, alpha * 0.9))
+
+func _draw_continue_prompt() -> void:
+	if not _continue_prompt_active:
+		return
+	var font = game_font
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.0, 0.75))
+	_ds_panel(Rect2(340, 220, 600, 280), Color(0.12, 0.08, 0.18, 0.97), Color(0.9, 0.3, 0.2, 0.8), 3.0, 16.0)
+	_ds_outlined_text(Vector2(640, 270), "DEFEATED!", 28, Color(0.9, 0.2, 0.2), 560, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_ds_outlined_text(Vector2(640, 310), "Continue?", 22, Color(0.9, 0.85, 0.7), 560, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	var timer_text = "%.1fs" % _continue_timer
+	_udraw(font, Vector2(640, 345), timer_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 18, Color(1.0, 0.6, 0.2))
+	var btn_x = 420.0
+	var btn_y = 370.0
+	var btn_w = 240.0
+	var btn_h = 50.0
+	_ds_panel(Rect2(btn_x, btn_y, btn_w, btn_h), Color(0.15, 0.55, 0.25, 0.95), Color(0.3, 0.9, 0.4, 0.8), 2.0, 10.0)
+	_udraw(font, Vector2(btn_x + btn_w * 0.5, btn_y + 30), "Watch Ad to Continue", HORIZONTAL_ALIGNMENT_CENTER, btn_w - 10, 14, Color(1.0, 1.0, 1.0))
+	var gu_x = 620.0
+	var gu_y = 370.0
+	var gu_w = 200.0
+	var gu_h = 50.0
+	_ds_panel(Rect2(gu_x, gu_y, gu_w, gu_h), Color(0.4, 0.15, 0.15, 0.95), Color(0.7, 0.2, 0.2, 0.8), 2.0, 10.0)
+	_udraw(font, Vector2(gu_x + gu_w * 0.5, gu_y + 30), "Give Up", HORIZONTAL_ALIGNMENT_CENTER, gu_w - 10, 14, Color(0.9, 0.7, 0.7))
+	_udraw(font, Vector2(640, 450), "+5 Lives restored", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.6, 0.8, 0.6, 0.7))
 
 # --- 21. SEASONAL DECORATIONS ---
 func _get_current_season() -> String:
@@ -22910,8 +23179,22 @@ func _process(delta: float) -> void:
 		if _last_stand_slowmo <= 0.0:
 			if not game_paused:
 				Engine.time_scale = _game_speed_level if fast_forward else 1.0
+	# #40: Last stand buff timer
+	if _last_stand_buff_timer > 0.0:
+		_last_stand_buff_timer -= delta
+		if _last_stand_buff_timer <= 0.0:
+			_last_stand_active = false
+			spawn_floating_text(Vector2(640, 360), "Last Stand fading...", Color(0.6, 0.4, 0.3), 14.0, 1.5)
+	if _last_stand_flash > 0.0:
+		_last_stand_flash -= delta
 	if _milestone_popup_timer > 0.0:
 		_milestone_popup_timer -= delta
+	if _daily_reward_timer > 0.0:
+		_daily_reward_timer -= delta
+	if _continue_prompt_active:
+		_continue_timer -= delta
+		if _continue_timer <= 0.0:
+			_decline_continue()
 	if _power_spike_timer > 0.0:
 		_power_spike_timer -= delta
 	if _wave_rush_timer > 0.0:
@@ -23018,13 +23301,18 @@ func _process(delta: float) -> void:
 		_placement_streak_timer -= delta
 		if _placement_streak_timer <= 0.0:
 			_placement_streak_count = 0
-	# BATTD4: Sell confirmation timer
+	# BATTD4: Sell confirmation timer (#28: flash red during confirm)
 	if _sell_confirm_timer > 0.0:
 		_sell_confirm_timer -= delta
+		if is_instance_valid(sell_button) and _sell_confirm_active:
+			var _scf = (sin(_time * 8.0) + 1.0) * 0.5
+			sell_button.add_theme_color_override("font_color", Color(1.0, 0.15 + _scf * 0.25, 0.1 + _scf * 0.15))
 		if _sell_confirm_timer <= 0.0:
 			_sell_confirm_active = false
+			_sell_confirm_tower = null
 			if is_instance_valid(sell_button):
 				sell_button.text = "  Sell  "
+				sell_button.add_theme_color_override("font_color", Color(1.0, 0.4, 0.35))
 	# BATTD4: Placement rating timer
 	if _placement_rating_timer > 0.0:
 		_placement_rating_timer -= delta
@@ -24615,6 +24903,19 @@ func _input(event: InputEvent) -> void:
 			_show_menu()
 			get_viewport().set_input_as_handled()
 			return
+	# Second chance prompt (#146) — handle clicks on Continue/Give Up buttons
+	if _continue_prompt_active and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var mpos = get_viewport().get_mouse_position()
+		if Rect2(420, 370, 240, 50).has_point(mpos):
+			_accept_continue()
+			get_viewport().set_input_as_handled()
+			return
+		if Rect2(620, 370, 200, 50).has_point(mpos):
+			_decline_continue()
+			get_viewport().set_input_as_handled()
+			return
+		get_viewport().set_input_as_handled()
+		return
 	# Story dialog overrides menu input guard — must check FIRST
 	if story_state.active and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_on_story_dialog_clicked(get_viewport().get_mouse_position())
@@ -25028,7 +25329,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			if power_selection_open:
 				_on_power_selection_clicked(event.position)
 				return
-			if placing_tower:
+			# #72: Sort button click
+			if _check_sort_button_click(event.position):
+				pass
+			elif placing_tower:
 				_try_place_tower(event.position)
 			elif _handle_branch_panel_click(event.position):
 				pass  # Branch panel consumed the click
@@ -25793,10 +26097,15 @@ func _draw() -> void:
 	# === IMPROVEMENT 17: Enemy Weakpoints (world-space) ===
 	if is_wave_active:
 		_draw_enemy_weakpoints()
+	# === #75: Enemy health bars above sprites ===
+	if is_wave_active:
+		_draw_enemy_health_bars()
 	# === IMPROVEMENT 18: Synergy Connection Lines (world-space) ===
 	_draw_synergy_connections()
 	# === IMPROVEMENT 16: Tower Mastery Rings (world-space) ===
 	_draw_tower_mastery_rings()
+	# === #74: Upgraded tower visual distinction ===
+	_draw_upgraded_tower_visuals()
 	# === IMPROVEMENT 1: Paragon Tower Effects (world-space) ===
 	if _paragon_towers.size() > 0:
 		_draw_paragon_effects()
@@ -26066,6 +26375,25 @@ func _draw() -> void:
 	if is_wave_active:
 		_draw_last_stand_indicator()
 
+	# #40: Last Stand pulsing red border when lives == 1
+	if _last_stand_active and lives == 1:
+		var _ls_pulse = (sin(_time * 4.0) + 1.0) * 0.5
+		var _ls_alpha = 0.15 + _ls_pulse * 0.15
+		var _ls_thick = 4.0 + _ls_pulse * 3.0
+		var _ls_col = Color(1.0, 0.05, 0.02, _ls_alpha)
+		# Pulsing red vignette border
+		draw_rect(Rect2(0, 0, 1280, _ls_thick), _ls_col)
+		draw_rect(Rect2(0, 720 - _ls_thick, 1280, _ls_thick), _ls_col)
+		draw_rect(Rect2(0, 0, _ls_thick, 720), _ls_col)
+		draw_rect(Rect2(1280 - _ls_thick, 0, _ls_thick, 720), _ls_col)
+		# Corner glow intensifiers
+		for _ls_corner in [Vector2(0, 0), Vector2(1280, 0), Vector2(0, 720), Vector2(1280, 720)]:
+			draw_circle(_ls_corner, 60.0, Color(1.0, 0.1, 0.05, _ls_alpha * 0.4))
+	# Last Stand initial flash effect
+	if _last_stand_flash > 0.0:
+		var _lsf_a = clampf(_last_stand_flash / 2.0, 0.0, 0.3)
+		draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 0.1, 0.02, _lsf_a))
+
 	# === BATTD4: ENEMY RESISTANCE DISPLAY (on intel target) ===
 	if _intel_timer > 0.0:
 		_draw_enemy_resistance_info()
@@ -26172,6 +26500,8 @@ func _draw() -> void:
 	_draw_unit_count()
 	_draw_tutorial_hint()
 	_draw_milestone_popup()
+	_draw_daily_login_reward_popup()
+	_draw_continue_prompt()
 	_draw_power_spike()
 	_draw_comeback_banner()
 	if _loot_crate_pending:
@@ -26391,6 +26721,14 @@ func _draw() -> void:
 				var menu_x = 640.0 + 16.0
 				_ds_panel(Rect2(menu_x, dbtn_y, dbtn_w, dbtn_h), Color(0.12, 0.1, 0.15, 0.85), Color(0.5, 0.45, 0.5, 0.5), 2.0, 8.0)
 				_ds_outlined_text(Vector2(menu_x + dbtn_w * 0.5, dbtn_y + 11), "Menu", 16, Color(0.7, 0.65, 0.7), dbtn_w, HORIZONTAL_ALIGNMENT_CENTER, 2)
+				# #36: Checkpoint resume button (only if checkpoint exists)
+				if _checkpoint_wave > 0:
+					var cp_y = dbtn_y + dbtn_h + 12.0
+					var cp_w = dbtn_w * 2 + 32.0
+					var cp_x = 640.0 - cp_w * 0.5
+					var cp_pulse = (sin(_time * 4.0) + 1.0) * 0.5
+					_ds_panel(Rect2(cp_x, cp_y, cp_w, dbtn_h), Color(0.05, 0.15, 0.3, 0.9), Color(0.3 + cp_pulse * 0.2, 0.7 + cp_pulse * 0.1, 1.0, 0.7), 2.0, 8.0)
+					_ds_outlined_text(Vector2(640, cp_y + 11), "Resume from Wave %d" % _checkpoint_wave, 16, Color(0.4 + cp_pulse * 0.2, 0.9, 1.0), cp_w, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 	# === VICTORY CHEST OVERLAY (draws over everything in GAME_OVER too) ===
 	if chest_opening_active and victory_chest_active:
@@ -26458,6 +26796,64 @@ func _draw_tower_button_portraits() -> void:
 			btn.modulate = Color(0.7, 0.5, 0.5, 0.85)
 		else:
 			btn.modulate = Color(1, 1, 1, 1)
+	# === #72: Tower sort button ===
+	if bottom_panel and bottom_panel.visible:
+		var sort_labels = ["Default", "Cost", "Dmg", "Range"]
+		var sort_arrows = ["", " ▼", " ▼", " ▼"]
+		var sort_text = "Sort: " + sort_labels[_tower_sort_mode] + sort_arrows[_tower_sort_mode]
+		var sbx = bottom_panel.position.x + bottom_panel.size.x - 120.0
+		var sby = bottom_panel.position.y - 22.0
+		var mpos = get_viewport().get_mouse_position()
+		var sort_hover = Rect2(sbx, sby, 110, 20).has_point(mpos)
+		_ds_panel(Rect2(sbx, sby, 110, 20), Color(0.10, 0.07, 0.16, 0.85 if sort_hover else 0.7), Color(0.55, 0.42, 0.18, 0.6 if sort_hover else 0.4), 1.5, 6.0)
+		_ds_outlined_text(Vector2(sbx + 55, sby + 14), sort_text, 10, Color(0.9, 0.8, 0.5, 1.0 if sort_hover else 0.8), 100, HORIZONTAL_ALIGNMENT_CENTER, 1)
+
+func _cycle_tower_sort() -> void:
+	_tower_sort_mode = (_tower_sort_mode + 1) % 4
+	_apply_tower_sort()
+	_haptic(0)  # Light haptic on sort toggle
+	queue_redraw()
+
+func _apply_tower_sort() -> void:
+	if _tower_sort_mode == 0:
+		return  # Default order, no reordering needed
+	# Collect visible tower buttons and sort them
+	var sortable: Array = []
+	for tt in tower_buttons:
+		if not tower_buttons[tt].visible:
+			continue
+		var info = tower_info.get(tt, {})
+		var sort_val = 0.0
+		match _tower_sort_mode:
+			1: sort_val = float(info.get("cost", 0))  # Cost low to high
+			2: sort_val = -float(info.get("damage", 0))  # Damage high to low (negate)
+			3: sort_val = -float(info.get("range", 0.0))  # Range high to low (negate)
+		sortable.append({"tt": tt, "val": sort_val, "row": tower_buttons[tt].position.y})
+	# Sort within each row
+	var row1: Array = []
+	var row2: Array = []
+	for s in sortable:
+		if s["row"] < 30:
+			row1.append(s)
+		else:
+			row2.append(s)
+	row1.sort_custom(func(a, b): return a["val"] < b["val"])
+	row2.sort_custom(func(a, b): return a["val"] < b["val"])
+	var btn_w = 152
+	for i in range(row1.size()):
+		tower_buttons[row1[i]["tt"]].position.x = 8 + i * (btn_w + 6)
+	for i in range(row2.size()):
+		tower_buttons[row2[i]["tt"]].position.x = 8 + i * (btn_w + 6)
+
+func _check_sort_button_click(pos: Vector2) -> bool:
+	if not bottom_panel or not bottom_panel.visible:
+		return false
+	var sbx = bottom_panel.position.x + bottom_panel.size.x - 120.0
+	var sby = bottom_panel.position.y - 22.0
+	if Rect2(sbx, sby, 110, 20).has_point(pos):
+		_cycle_tower_sort()
+		return true
+	return false
 
 func _draw_ingame_settings() -> void:
 	var font = game_font
@@ -36125,6 +36521,7 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 			var info = selected_tower_node.get_next_upgrade_info()
 			upgrade_cost = info.get("cost", 0)
 		if selected_tower_node.purchase_upgrade():
+			_haptic(2)  # #79: Strong haptic on upgrade purchase
 			_update_upgrade_panel()
 			_refresh_music_max_tier()  # Update tempo scaling cache
 			var tier_name = selected_tower_node.TIER_NAMES[selected_tower_node.upgrade_tier - 1]
@@ -36185,18 +36582,20 @@ func _on_sell_pressed() -> void:
 		return
 	if not selected_tower_node or not is_instance_valid(selected_tower_node):
 		return
-	# BATTD4: Sell confirmation (first click = confirm, second click = sell)
-	if not _sell_confirm_active:
+	# BATTD4: Sell confirmation (#28 — first tap = confirm, second tap within 3s = sell)
+	if not _sell_confirm_active or _sell_confirm_tower != selected_tower_node:
 		_sell_confirm_active = true
 		_sell_confirm_timer = SELL_CONFIRM_DURATION
+		_sell_confirm_tower = selected_tower_node
 		var preview_val = 0
 		if selected_tower_node.has_method("get_sell_value"):
 			preview_val = selected_tower_node.get_sell_value()
-		sell_button.text = " CONFIRM? "
+		sell_button.text = "CONFIRM SELL?"
 		info_label.text = "Click CONFIRM to sell for %dG" % preview_val
 		return
 	_sell_confirm_active = false
 	_sell_confirm_timer = 0.0
+	_sell_confirm_tower = null
 	sell_button.text = "  Sell  "
 	var tower = selected_tower_node
 	var sell_value = 0
@@ -36486,6 +36885,17 @@ func _start_next_wave() -> void:
 	_global_damage_accum = 0.0
 	_global_dps_last_time = _time
 	wave += 1
+	# #36: Save checkpoint every 10 waves on long levels (30+ waves)
+	if total_waves >= 30 and wave > 1 and (wave - 1) % 10 == 0:
+		_checkpoint_wave = wave - 1
+		_checkpoint_gold = gold
+		_checkpoint_lives = lives
+		_checkpoint_towers_data.clear()
+		for _cp_tower in get_tree().get_nodes_in_group("towers"):
+			if is_instance_valid(_cp_tower):
+				var _cp_type = _get_tower_type_from_node(_cp_tower)
+				_checkpoint_towers_data.append({"type": _cp_type, "position": _cp_tower.global_position, "cost": _cp_tower.base_cost if "base_cost" in _cp_tower else 0})
+		spawn_floating_text(Vector2(640, 200), "CHECKPOINT SAVED — Wave %d" % _checkpoint_wave, Color(0.3, 0.9, 1.0), 18.0, 2.0)
 	is_wave_active = true
 	game_paused = false
 	# Dramatic wave start announcement
@@ -36910,7 +37320,7 @@ func lose_life() -> void:
 	if lives < 0:
 		lives = 0
 	current_game_lives_lost += 1
-	# Last Stand dramatic slow-mo (#105)
+	# Last Stand dramatic slow-mo (#105) + #40 Last Stand mechanic
 	if lives <= 2 and lives > 0:
 		_last_stand_slowmo = 0.8
 		Engine.time_scale = 0.15  # Dramatic slow-mo
@@ -36918,7 +37328,13 @@ func lose_life() -> void:
 		_screen_shake_timer = 0.5
 		_haptic(2)
 		if lives == 1:
-			spawn_floating_text(Vector2(640, 320), "FINAL LIFE!", Color(1.0, 0.1, 0.05), 28.0, 3.0)
+			spawn_floating_text(Vector2(640, 320), "LAST STAND!", Color(1.0, 0.1, 0.05), 32.0, 3.0)
+			# #40: Activate last stand buff (+15% damage for 10s)
+			if not _last_stand_active:
+				_last_stand_active = true
+				_last_stand_buff_timer = LAST_STAND_BUFF_DURATION
+				_last_stand_flash = 2.0
+				spawn_floating_text(Vector2(640, 360), "ALL TOWERS +15% DAMAGE!", Color(1.0, 0.6, 0.2), 18.0, 2.5)
 		else:
 			spawn_floating_text(Vector2(640, 320), "DANGER!", Color(1.0, 0.3, 0.1), 22.0, 2.0)
 	# Polyrhythm system: dissonance on enemy leak
@@ -37592,6 +38008,13 @@ func game_over() -> void:
 	if _can_continue():
 		_use_continue()
 		return
+	# Item #146: Second chance mechanic — show "Watch Ad" prompt before final defeat
+	if not _continue_offered and not _continue_prompt_active:
+		_show_continue_prompt()
+		return
+	_finalize_game_over()
+
+func _finalize_game_over() -> void:
 	game_state = GameState.GAME_OVER_STATE
 	_update_career_stats_post_game(false)
 	Engine.time_scale = 1.0
@@ -37726,6 +38149,10 @@ func game_over() -> void:
 	game_over_label.visible = true
 	return_button.visible = true
 	retry_button.visible = true
+	# #36: Show checkpoint resume button if checkpoint was saved
+	if _checkpoint_wave > 0 and is_instance_valid(_checkpoint_resume_button):
+		_checkpoint_resume_button.text = "  RESUME FROM WAVE %d  " % _checkpoint_wave
+		_checkpoint_resume_button.visible = true
 	start_button.disabled = true
 	# Save progress (currencies, achievements, etc.) even on defeat
 	_save_game()
@@ -38115,6 +38542,9 @@ func _victory() -> void:
 			total_damage += int(tower.damage_dealt)
 	# Check milestones
 	_check_milestones()
+	# Story milestones (#140) — check if this level unlocks a story reward
+	if current_level >= 0:
+		_check_story_milestones(current_level)
 	# BATTD2: Victory Streak tracking
 	victory_streak += 1
 	if victory_streak > victory_streak_best:
@@ -40872,6 +41302,7 @@ func _on_path_upgrade_pressed(path_idx: int, tier_idx: int) -> void:
 		return
 	# Purchase!
 	gold -= cost
+	_haptic(2)  # #79: Strong haptic on upgrade purchase
 	current_tiers[path_key] = tier_idx + 1
 	tower_path_tiers[tower.get_instance_id()] = current_tiers
 	# Apply upgrade to tower if it has the method
@@ -43329,6 +43760,60 @@ func _draw_enemy_weakpoints() -> void:
 			var pulse = (sin(_time * 6.0) + 1.0) * 0.5
 			draw_circle(wp_pos, 4.0 + pulse * 1.5, Color(1.0, 0.2, 0.1, 0.5 + pulse * 0.3))
 			draw_circle(wp_pos, 2.0, Color(1.0, 0.8, 0.2, 0.8))
+
+# --- #75: Enemy health bars above sprites ---
+func _draw_enemy_health_bars() -> void:
+	for enemy in _cached_enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if not "health" in enemy or not "max_health" in enemy:
+			continue
+		if enemy.health >= enemy.max_health:
+			continue  # Only show if damaged
+		var epos = enemy.global_position
+		var hp_pct = clampf(enemy.health / maxf(enemy.max_health, 1.0), 0.0, 1.0)
+		var bar_w = 24.0
+		var bar_h = 3.0
+		var bx = epos.x - bar_w * 0.5
+		var by = epos.y - 12.0  # 12px above sprite center
+		# Background
+		draw_rect(Rect2(bx, by, bar_w, bar_h), Color(0.2, 0.2, 0.2, 0.7))
+		# Fill color: green >50%, yellow 25-50%, red <25%
+		var fill_col: Color
+		if hp_pct > 0.5:
+			fill_col = Color(0.2, 0.8, 0.2, 0.85)
+		elif hp_pct > 0.25:
+			fill_col = Color(0.9, 0.8, 0.1, 0.85)
+		else:
+			fill_col = Color(0.9, 0.15, 0.1, 0.85)
+		draw_rect(Rect2(bx, by, bar_w * hp_pct, bar_h), fill_col)
+
+# --- #74: Upgraded tower visual distinction ---
+func _draw_upgraded_tower_visuals() -> void:
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower):
+			continue
+		var tier = tower.upgrade_tier if "upgrade_tier" in tower else 0
+		if tier <= 0:
+			continue
+		var tpos = tower.global_position
+		# Tier 1+: Golden ring around tower base
+		var ring_alpha = 0.3 + (sin(_time * 2.5) + 1.0) * 0.1
+		draw_arc(tpos, 20.0, 0, TAU, 32, Color(0.85, 0.70, 0.15, ring_alpha), 1.5 + minf(float(tier) * 0.3, 1.5))
+		# Tier 3+: Small star particles orbiting
+		if tier >= 3:
+			var star_count = mini(tier - 1, 6)
+			for si in range(star_count):
+				var sa = _time * 1.8 + float(si) * TAU / float(star_count)
+				var orbit_r = 22.0 + sin(_time * 3.0 + float(si)) * 3.0
+				var sp = tpos + Vector2(cos(sa), sin(sa)) * orbit_r
+				var star_a = 0.5 + (sin(_time * 4.0 + float(si) * 1.5) + 1.0) * 0.2
+				draw_circle(sp, 1.8, Color(1.0, 0.92, 0.3, star_a))
+		# Tier 5+: Faint glow aura
+		if tier >= 5:
+			var glow_pulse = (sin(_time * 1.5) + 1.0) * 0.5
+			draw_circle(tpos, 28.0 + glow_pulse * 6.0, Color(0.85, 0.70, 0.15, 0.06 + glow_pulse * 0.04))
+			draw_circle(tpos, 20.0 + glow_pulse * 4.0, Color(1.0, 0.88, 0.25, 0.04 + glow_pulse * 0.03))
 
 # --- Improvement 18: TOWER SYNERGY AURA VISUALIZATION ---
 # Show visual connection lines between bonded/synergized towers
