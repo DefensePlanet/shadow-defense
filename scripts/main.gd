@@ -27448,6 +27448,12 @@ func _try_place_tower(pos: Vector2) -> void:
 	cancel_button.visible = false
 	# Store undo data
 	undo_tower_data = {"node": tower, "type": selected_tower, "position": pos, "cost": cost, "timer": UNDO_DURATION}
+	# #73: Track recent towers for quick-select
+	if selected_tower in _recent_towers:
+		_recent_towers.erase(selected_tower)
+	_recent_towers.push_front(selected_tower)
+	if _recent_towers.size() > 3:
+		_recent_towers.resize(3)
 	# BATTD: Placement streak tracking
 	if _placement_streak_timer > 0.0:
 		_placement_streak_count += 1
@@ -28764,6 +28770,13 @@ func _draw() -> void:
 		var replay_x = 640.0 + 16.0
 		_ds_panel(Rect2(replay_x, btn_y, btn_w, btn_h), Color(0.3, 0.2, 0.08, 0.9), _ca(c_gold, 0.6), 2.0, 8.0)
 		_ds_outlined_text(Vector2(replay_x + btn_w * 0.5, btn_y + 12), "Replay", 16, c_gold_bright, btn_w, HORIZONTAL_ALIGNMENT_CENTER, 2)
+		# (#115) Watch Ad: 2X Gold button on victory screen
+		if not _ad_double_gold_used:
+			var ad_btn_y = btn_y + btn_h + 12.0
+			var ad_btn_w = btn_w * 2.0 + 32.0
+			var ad_btn_x = 640.0 - ad_btn_w * 0.5
+			_ds_panel(Rect2(ad_btn_x, ad_btn_y, ad_btn_w, 36), Color(0.35, 0.25, 0.05, 0.9), Color(1.0, 0.85, 0.2, 0.6), 2.0, 8.0)
+			_ds_outlined_text(Vector2(640, ad_btn_y + 10), "Watch Ad: 2X Gold", 15, Color(1.0, 0.9, 0.3), int(ad_btn_w), HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 	# === DEFEAT SCREEN OVERLAY (Item #45) ===
 	if _defeat_timer > 0.0:
@@ -28930,6 +28943,82 @@ func _draw_debug_overlay() -> void:
 	if OS.has_feature("debug"):
 		var mem_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
 		draw_string(font, Vector2(dx, dy + 12), "MEM: %.1f MB" % mem_mb, HORIZONTAL_ALIGNMENT_LEFT, 200, 13, Color(0.8, 0.8, 0.9))
+
+# === #64: MINIMAP for larger levels (40+ waves) ===
+func _draw_minimap() -> void:
+	var mm_x = 1280.0 - 90.0 - _safe_right
+	var mm_y = 60.0 + _safe_top
+	var mm_w = 80.0
+	var mm_h = 60.0
+	draw_rect(Rect2(mm_x, mm_y, mm_w, mm_h), Color(0.0, 0.0, 0.0, 0.5))
+	draw_rect(Rect2(mm_x, mm_y, mm_w, mm_h), Color(0.5, 0.4, 0.2, 0.4), false, 1.0)
+	var sx = mm_w / 1280.0
+	var sy = mm_h / 720.0
+	if enemy_path and enemy_path.curve and enemy_path.curve.point_count > 1:
+		var pts: PackedVector2Array = PackedVector2Array()
+		for pi in range(enemy_path.curve.point_count):
+			var pp = enemy_path.curve.get_point_position(pi)
+			pts.append(Vector2(mm_x + pp.x * sx, mm_y + pp.y * sy))
+		if pts.size() >= 2:
+			draw_polyline(pts, Color(0.7, 0.3, 0.2, 0.7), 1.0)
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if is_instance_valid(tower):
+			var tp = tower.global_position
+			draw_circle(Vector2(mm_x + tp.x * sx, mm_y + tp.y * sy), 2.0, Color(0.3, 0.8, 0.3, 0.9))
+	for enemy in _cached_enemies:
+		if is_instance_valid(enemy) and enemy.visible:
+			var ep = enemy.global_position
+			draw_circle(Vector2(mm_x + ep.x * sx, mm_y + ep.y * sy), 1.5, Color(1.0, 0.2, 0.2, 0.8))
+
+# === #77: KILL FEED scrolling kill log in bottom-left ===
+func _draw_kill_feed() -> void:
+	var font = game_font
+	if font == null:
+		return
+	var fx = 10.0 + _safe_left
+	var fy = 580.0 - _safe_bottom
+	for i in range(_kill_feed.size()):
+		var entry = _kill_feed[i]
+		var alpha = clampf(entry["timer"] / 1.0, 0.2, 0.8)
+		var line_y = fy - float(i) * 16.0
+		draw_rect(Rect2(fx, line_y - 11, 260, 14), Color(0.0, 0.0, 0.0, alpha * 0.4))
+		draw_string(font, Vector2(fx + 4, line_y), entry["text"], HORIZONTAL_ALIGNMENT_LEFT, 252, 10, Color(0.9, 0.85, 0.7, alpha))
+
+# === #73: RECENT TOWERS quick-select row above buy panel ===
+func _draw_recent_towers() -> void:
+	var font = game_font
+	if font == null or not bottom_panel:
+		return
+	var panel_y_pos = bottom_panel.position.y - 30.0
+	var rx = 10.0 + _safe_left
+	draw_string(font, Vector2(rx, panel_y_pos + 10), "Recent:", HORIZONTAL_ALIGNMENT_LEFT, 60, 10, Color(0.7, 0.6, 0.5, 0.7))
+	rx += 52.0
+	for i in range(mini(_recent_towers.size(), 3)):
+		var tt = _recent_towers[i]
+		if not tower_info.has(tt):
+			continue
+		var tinfo = tower_info[tt]
+		var bx = rx + float(i) * 52.0
+		var btn_rect = Rect2(bx, panel_y_pos - 4, 48, 22)
+		var is_hover = btn_rect.has_point(get_viewport().get_mouse_position())
+		var bg_col = Color(0.15, 0.12, 0.25, 0.8) if is_hover else Color(0.10, 0.08, 0.18, 0.6)
+		draw_rect(btn_rect, bg_col)
+		draw_rect(btn_rect, Color(0.5, 0.4, 0.2, 0.4), false, 1.0)
+		var short_name = tinfo["name"].substr(0, 5)
+		draw_string(font, Vector2(bx + 3, panel_y_pos + 10), "%s %dG" % [short_name, tinfo["cost"]], HORIZONTAL_ALIGNMENT_LEFT, 44, 8, Color(0.85, 0.75, 0.5))
+
+# === #71: UPGRADE UNDO button ===
+func _draw_upgrade_undo() -> void:
+	var font = game_font
+	if font == null:
+		return
+	var ux = 440.0
+	var uy = 580.0
+	var uw = 200.0
+	var uh = 32.0
+	var alpha = clampf(_upgrade_undo_timer / 0.5, 0.0, 1.0)
+	var is_hover = Rect2(ux, uy, uw, uh).has_point(get_viewport().get_mouse_position())
+	_ds_button(Rect2(ux, uy, uw, uh), "UNDO UPGRADE (%.0fs)" % _upgrade_undo_timer, Color(0.7, 0.25, 0.1, alpha), is_hover, 13)
 
 func _draw_tower_button_portraits() -> void:
 	if game_state != GameState.PLAYING or not bottom_panel or not bottom_panel.visible:
@@ -39741,6 +39830,23 @@ func enemy_died(enemy_node = null) -> void:
 	_check_achievement("centurion", 1)
 	_check_achievement("thousand_slayer", 1)
 	_quest_track_kill(enemy_node)
+	# #77: Kill feed entry
+	if enemy_node and is_instance_valid(enemy_node):
+		var killer_name = "Tower"
+		var enemy_name = enemy_node.enemy_name if "enemy_name" in enemy_node else "Shadow"
+		var _kf_closest_tt = -1
+		var _kf_closest_dist = 999999.0
+		for _kf_tower in get_tree().get_nodes_in_group("towers"):
+			if is_instance_valid(_kf_tower):
+				var _kf_d = _kf_tower.global_position.distance_to(enemy_node.global_position)
+				if _kf_d < _kf_closest_dist:
+					_kf_closest_dist = _kf_d
+					_kf_closest_tt = _get_tower_type_from_node(_kf_tower) if _kf_d < 300.0 else -1
+		if _kf_closest_tt >= 0 and tower_info.has(_kf_closest_tt):
+			killer_name = tower_info[_kf_closest_tt]["name"]
+		_kill_feed.push_front({"text": "%s killed %s" % [killer_name, enemy_name], "timer": 3.0})
+		if _kill_feed.size() > 5:
+			_kill_feed.resize(5)
 	# Character personality: per-character kill effect (attribute to nearest tower)
 	if enemy_node and is_instance_valid(enemy_node):
 		var closest_tt = -1
