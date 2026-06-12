@@ -1619,6 +1619,7 @@ var _power_spike_particles: Array = []
 
 # --- 16. COMEBACK REWARDS ---
 var _last_play_timestamp: float = 0.0
+var _story_recap_shown_this_session: bool = false
 var _comeback_bonus_active: bool = false
 var _comeback_multiplier: float = 1.0
 var _comeback_timer: float = 0.0
@@ -3455,6 +3456,8 @@ var _victory_burst_timer: float = 0.0
 var _victory_particles: Array = []
 var _victory_confetti: Array = []  # Confetti particles for victory screen [{pos, vel, color, size, rot, rot_speed}]
 var _victory_overlay_data: Dictionary = {}  # Stats for victory overlay {stars, mvp_name, mvp_damage, total_damage, gold_earned, xp_gained, waves}
+var _save_integrity_warning: bool = false
+var _save_integrity_timer: float = 0.0
 var _defeat_timer: float = 0.0
 var _defeat_cracks: Array = []
 var _defeat_overlay_data: Dictionary = {}  # Stats for defeat overlay {wave, total_waves, kills, towers}
@@ -3470,6 +3473,15 @@ var _wave_countdown_num: int = 0
 var _tutorial_hints_shown: Dictionary = {}
 var _tutorial_hint_text: String = ""
 var _tutorial_hint_timer: float = 0.0
+# Multi-step tutorial (#10)
+var _tutorial_step: int = -1  # -1 = not in tutorial, 0+ = current step
+var _tutorial_completed: bool = false  # persisted to save
+var _tutorial_highlight_rect: Rect2 = Rect2()  # spotlight cutout area
+var _tutorial_arrow_target: Vector2 = Vector2()  # pulsing arrow target
+var _tutorial_arrow_timer: float = 0.0  # for pulsing animation
+var _tutorial_dismiss_timer: float = 0.0  # brief delay before tap-to-advance
+var _tutorial_first_tower_placed: bool = false
+var _tutorial_first_upgrade_done: bool = false
 var _wave_banner_timer: float = 0.0
 var _wave_banner_num: int = 0
 var _wave_banner_name: String = ""
@@ -4580,6 +4592,9 @@ var story_state: Dictionary = {
 	"queued_dialog": ""
 }
 var story_seen: Array = []  # dialog keys already seen (persisted)
+# Dialog text speed (#68) — 1.0 = normal, 2.0 = fast, 0.5 = slow
+var dialog_text_speed: float = 1.0
+var _dialog_speed_boosted: bool = false  # true when player taps during typewriter
 var story_choices_made: Dictionary = {}  # "choice_key" -> selected_index (persisted)
 var _story_choice_buttons: Array = []  # temp UI buttons during choice
 var story_voice_clips: Dictionary = {}  # "narrator", "male_hero", "female_hero", "monster"
@@ -4687,6 +4702,7 @@ func _ready() -> void:
 	_load_game()
 	# Addiction: Session init systems
 	_check_comeback_bonus()
+	_check_story_recap()
 	_calculate_idle_rewards()
 	_collect_idle_rewards()
 	_update_fortress_level()
@@ -6341,6 +6357,7 @@ func _save_game() -> void:
 	save_data["equipped_cosmetics"] = equipped_cosmetics
 	# Story progress
 	save_data["story_seen"] = story_seen
+	save_data["tutorial_completed"] = _tutorial_completed
 	save_data["story_choices_made"] = story_choices_made
 	save_data["secret_path_discovered"] = _secret_path_discovered
 	save_data["challenge_maps_unlocked"] = challenge_maps_unlocked
@@ -6518,6 +6535,8 @@ func _load_game() -> void:
 	# Anti-cheat validation (#197)
 	if not _validate_save_checksum(data):
 		push_warning("Save checksum mismatch — possible tampering detected")
+		_save_integrity_warning = true
+		_save_integrity_timer = 8.0
 	# Save migration: v1 (old 18 levels at 0-17) -> v2 (shifted to 16-33)
 	var save_ver = int(data.get("save_version", 1))
 	if save_ver < 2:
@@ -13873,6 +13892,11 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "In a forgotten corner of the world's oldest bookshop, there lies a book that should never be opened. Its cover is black as midnight, its pages whisper when no one is looking. They call it... The Tome of Shadows.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "Within its pages lives the Shadow Author — an entity born from every story ever abandoned, every tale left unfinished. It hungers for completed narratives... and the characters within them.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "Tonight, the Tome calls out. Three beloved characters hear it first — a whisper at the edge of their stories, an itch in the margins. They reach for the book. They cannot resist. No character can resist an unread page.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Tome reaches further. Three more souls are caught in its wake — each hearing the whisper of unread pages.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "In Neverland, a boy who never grows up feels something he's never felt before: a story calling his name. The pages pull him through.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "In the Land of Oz, a green-skinned witch pauses mid-spell. The ink tendrils wrap around her broomstick before she can scream.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Beneath the Paris Opera, a masked genius hears a melody he didn't compose. It pulls him through a crack in the ceiling that wasn't there before.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "Six souls now. All trapped. All confused. All about to discover that the greatest adventure of their lives begins inside a book.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "The cover flies open. A vortex of black ink spirals outward — tendrils wrapping around Robin Hood's bow, Alice's apron, Scrooge's counting ledger. They scream as they are pulled through, dragged into the pages like insects into amber.", "voice_type": "narrator"},
 		{"speaker": "robin_hood", "text": "What sorcery is this?! One moment I was in Sherwood, the next — everything is made of ink and paper!", "voice_type": "male_hero"},
 		{"speaker": "alice", "text": "This is curiouser than Wonderland! The ground is living text and the sky is... written words?", "voice_type": "female_hero"},
@@ -14059,6 +14083,7 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_12"] = [
 		{"speaker": "narrator", "text": "The crypt falls silent. The crimson chains dissolve. From the central coffin, a dark figure rises — not as the beast the Author made him, but as the man he chose to be.", "voice_type": "narrator"},
 		{"speaker": "dracula", "text": "I have been the villain for four hundred years. Every story, every telling — I am the monster, the fiend, the creature of the night. But today... today I choose differently.", "voice_type": "male_hero"},
+		{"speaker": "dracula", "text": "Four hundred years of cold. And now... the warmth of courage beside me. I had forgotten what warmth felt like.", "voice_type": "male_hero"},
 	]
 
 	# --- FRANKENSTEIN ARC (Levels 13-15) — "The Stitched Soul" (REDEMPTION ARC) ---
@@ -14253,6 +14278,9 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_28"] = [
 		{"speaker": "phantom", "text": "The shadow chandeliers contain crystallized stories — other characters' memories, stolen and displayed like trophies. The Author collects us.", "voice_type": "male_hero"},
 		{"speaker": "frankenstein", "text": "Phantom... understands. To be judged by your face. To be called monster before... you speak a word.", "voice_type": "monster"},
+		{"speaker": "alice", "text": "Erik... I see you. Not the mask. Not the music. YOU.", "voice_type": "female_hero"},
+		{"speaker": "phantom", "text": "...", "voice_type": "male_hero"},
+		{"speaker": "narrator", "text": "The Phantom said nothing. But beneath the mask, for the first time in a century, he smiled.", "voice_type": "narrator"},
 	]
 	story_dialogs["pre_level_29"] = [
 		{"speaker": "narrator", "text": "The labyrinth beneath the shadow opera grows deeper with every step. Mirrors show not reflections, but scenes from other shadow realms.", "voice_type": "narrator"},
@@ -14454,6 +14482,20 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "shadow_author", "text": "You... defeated me. I was abandoned mid-sentence by my own creator. I spent eternity in the margins, watching other characters get happy endings while I had NONE. So I collected you. Trapped you. Because at least in MY Tome, no story would ever be left unfinished.", "voice_type": "shadow"},
 		{"speaker": "shadow_author", "text": "Dracula chose heroism. Frankenstein found family. The Witch defended a home that feared her. And I... perhaps I can find a new story to write. One where the Author is not the villain.", "voice_type": "shadow"},
 		{"speaker": "narrator", "text": "The Shadow Author joins your team! His ink-based attacks and reality-rewriting powers make him the ultimate late-game tower. Even the darkest stories deserve a second chapter.", "voice_type": "narrator"},
+	]
+
+	# === STORY RECAPS — for returning players (3+ days away) ===
+	story_dialogs["recap_act1"] = [
+		{"speaker": "narrator", "text": "Previously... You were pulled into the Tome of Shadows. Together with Robin Hood, Alice, and Scrooge, you freed five heroes from the Shadow Author's grip.", "voice_type": "narrator"},
+	]
+	story_dialogs["recap_act2"] = [
+		{"speaker": "narrator", "text": "Previously... Each hero faced the corrupted version of their own story. The Shadow Author's power grew weaker with every chapter reclaimed.", "voice_type": "narrator"},
+	]
+	story_dialogs["recap_act3"] = [
+		{"speaker": "narrator", "text": "Previously... You confronted the Shadow Author and discovered his tragic truth — a character from an unfinished story, desperate for belonging.", "voice_type": "narrator"},
+	]
+	story_dialogs["recap_act4"] = [
+		{"speaker": "narrator", "text": "Previously... The Narrator revealed he guided your journey all along. Three ancient souls await rescue in his realm.", "voice_type": "narrator"},
 	]
 
 	# === "MEANWHILE..." CUTSCENES — Shadow Author between arcs ===
@@ -17205,6 +17247,32 @@ func _draw_power_spike() -> void:
 	# Flash overlay
 	if _power_spike_timer > 1.5:
 		draw_rect(Rect2(0, 0, 1280, 720), Color(1, 1, 1, (_power_spike_timer - 1.5) * 0.4))
+
+# --- Story Recap for returning players ---
+func _check_story_recap() -> void:
+	if _story_recap_shown_this_session:
+		return
+	if _last_play_timestamp <= 0.0:
+		return
+	var current_time = Time.get_unix_time_from_system()
+	var days_away = (current_time - _last_play_timestamp) / 86400.0
+	if days_away < 3.0:
+		return
+	if current_level <= 5:
+		return
+	# Determine which act the player is in and show appropriate recap
+	var recap_key = ""
+	if current_level >= 37:
+		recap_key = "recap_act4"
+	elif current_level >= 34:
+		recap_key = "recap_act3"
+	elif current_level >= 16:
+		recap_key = "recap_act2"
+	else:
+		recap_key = "recap_act1"
+	if story_dialogs.has(recap_key):
+		_story_recap_shown_this_session = true
+		call_deferred("_start_story_dialog", recap_key)
 
 # --- 16. COMEBACK REWARDS ---
 func _check_comeback_bonus() -> void:
@@ -22922,6 +22990,11 @@ func _process(delta: float) -> void:
 	# Autosave indicator decay
 	if _autosave_indicator_timer > 0.0:
 		_autosave_indicator_timer -= delta
+	# Save integrity warning decay (#6)
+	if _save_integrity_timer > 0.0:
+		_save_integrity_timer -= delta
+		if _save_integrity_timer <= 0.0:
+			_save_integrity_warning = false
 	# Rescue effect + interactable cooldowns + atmosphere + dynamic hazards + realm mechanic
 	_update_rescue_effect(delta)
 	_update_interactable_cooldowns(delta)
