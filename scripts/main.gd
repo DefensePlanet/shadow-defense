@@ -52,7 +52,8 @@ var tower_info = {
 	# === ACT 4 MYTHOLOGICAL CHARACTERS ===
 	TowerType.HEADLESS_HORSEMAN: {"name": "Headless Horseman", "cost": 250, "range": 160.0, "damage": 28, "fire_rate": 0.80, "desc": "Terror incarnate. Flaming pumpkin AoE + fear aura slows nearby enemies."},
 	TowerType.MEDUSA: {"name": "Medusa", "cost": 280, "range": 150.0, "damage": 20, "fire_rate": 0.90, "desc": "Petrifying Gaze freezes enemies in stone. Snake-hair venom bolts."},
-	TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
+	# TowerType.LOKI: REMOVED — character cut from game
+	# TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
 	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
 	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
 	TowerType.ROBIN_HOOD_2: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85},
@@ -321,8 +322,9 @@ var survivor_types = [
 	# Recruitable villains (unlock via story choices in #10)
 	TowerType.CAPTAIN_HOOK, TowerType.QUEEN_OF_HEARTS, TowerType.CLAYTON,
 	# ACT 4 mythological characters (unlock by rescuing in Narrator's Realm)
-	TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA, TowerType.LOKI,
+	TowerType.HEADLESS_HORSEMAN, TowerType.MEDUSA,
 	TowerType.ANUBIS,
+	# LOKI removed — character cut from game
 	# CAPTAIN_AHAB removed — Hook covers the ocean/pirate archetype
 ]
 var survivor_descriptions = {
@@ -749,7 +751,7 @@ var _world_map_stars: Array = []
 var _world_map_clouds: Array = []
 var _world_map_smoke: Array = []
 
-var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock Holmes", "Tarzan", "Count Dracula", "Merlin", "Frankenstein's Monster", "The Shadow Author", "Captain Hook", "Queen of Hearts", "Clayton", "The Headless Horseman", "Medusa", "Loki", "Anubis", "Captain Ahab"]
+var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock Holmes", "Tarzan", "Count Dracula", "Merlin", "Frankenstein's Monster", "The Shadow Author", "Captain Hook", "Queen of Hearts", "Clayton", "The Headless Horseman", "Medusa", "", "Anubis", ""]  # Indices 17 (Loki) and 19 (Captain Ahab) kept empty to preserve enum indices
 var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol", "The Adventures of Sherlock Holmes", "Tarzan of the Apes", "Dracula", "Le Morte d'Arthur", "Frankenstein", "The Tome of Shadows", "Peter and Wendy", "Alice's Adventures in Wonderland", "Tarzan of the Apes", "The Legend of Sleepy Hollow", "Greek Mythology", "Norse Mythology", "Egyptian Mythology", "Moby-Dick"]
 var character_quotes: Array = [
 	"I rob the dead now. They tip better than the living.",
@@ -2612,7 +2614,7 @@ var wave_start_gold: int = 0
 var wave_start_lives: int = 0
 
 # Audio mute toggles
-var sfx_muted: bool = true  # SFX permanently disabled — only voice + music
+var sfx_muted: bool = false  # SFX enabled by default
 var voices_muted: bool = false
 var sfx_mute_button: Button
 var voice_mute_button: Button
@@ -3325,8 +3327,11 @@ var _crit_flashes: Array = []
 var _build_effects: Array = []
 var _victory_burst_timer: float = 0.0
 var _victory_particles: Array = []
+var _victory_confetti: Array = []  # Confetti particles for victory screen [{pos, vel, color, size, rot, rot_speed}]
+var _victory_overlay_data: Dictionary = {}  # Stats for victory overlay {stars, mvp_name, mvp_damage, total_damage, gold_earned, xp_gained, waves}
 var _defeat_timer: float = 0.0
 var _defeat_cracks: Array = []
+var _defeat_overlay_data: Dictionary = {}  # Stats for defeat overlay {wave, total_waves, kills, towers}
 var _spawn_portal_intensity: float = 0.0
 var _env_particles: Array = []
 # Weather system (#142)
@@ -12327,17 +12332,33 @@ func _on_level_selected(index: int) -> void:
 	player_energy -= energy_cost
 	# Check for pre-level story dialog
 	var pre_key = "pre_level_" + str(index)
+	# Act 4 levels use named keys instead of pre_level_N
+	var _act4_pre_map = {
+		46: "pre_horseman_1",
+		48: "pre_horseman_3",
+		49: "pre_medusa_1",
+		51: "pre_medusa_3",
+		52: "pre_anubis_1",
+		54: "pre_anubis_3",
+		55: "pre_narrator_finale",
+	}
+	if _act4_pre_map.has(index):
+		pre_key = _act4_pre_map[index]
 	if story_dialogs.has(pre_key) and not pre_key in story_seen:
 		# Also check for act intro dialogs that should play first
 		var act_key = ""
 		if index == 16 and not "act2_intro" in story_seen:
 			act_key = "act2_intro"
+		elif index == 37 and not "act4_intro" in story_seen:
+			act_key = "act4_intro"
 		_pending_level_start = index
 		if act_key != "":
 			story_state.queued_dialog = pre_key
 			# Show act title card before the act intro dialog
 			if act_key == "act2_intro":
 				_show_act_title("act2", act_key)
+			elif act_key == "act4_intro":
+				_show_act_title("act4", act_key)
 			else:
 				_start_story_dialog(act_key)
 		else:
@@ -14484,10 +14505,10 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["unlock_horseman"] = [
 		{"speaker": "narrator", "text": "The pumpkin cracks. Inside — not fire, but light. Memories flooding back. A name. A hometown. A family he died protecting.", "voice_type": "narrator"},
-		{"speaker": "headless_horseman", "text": "I... remember. I was a soldier. I died on that bridge defending my town from raiders. And then... two hundred years of riding. Searching. For THIS.", "voice_type": "voiceless"},
-		{"speaker": "headless_horseman", "text": "I have been a terror for two centuries. I would like, just once, to be something people run TOWARD.", "voice_type": "voiceless"},
+		{"speaker": "headless_horseman", "text": "I... remember. I was a soldier. I died on that bridge defending my town from raiders. And then... two hundred years of riding. Searching. For THIS.", "voice_type": "monster"},
+		{"speaker": "headless_horseman", "text": "I have been a terror for two centuries. I would like, just once, to be something people run TOWARD.", "voice_type": "monster"},
 		{"speaker": "alice", "text": "Then fight with us. Not as a nightmare — as a guardian.", "voice_type": "female_hero"},
-		{"speaker": "headless_horseman", "text": "The Horseman rides again. But this time... for something worth riding for.", "voice_type": "voiceless"},
+		{"speaker": "headless_horseman", "text": "The Horseman rides again. But this time... for something worth riding for.", "voice_type": "monster"},
 	]
 
 	# --- MEDUSA RESCUE ARC ---
@@ -14558,7 +14579,7 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "frankenstein", "text": "Family. Not monster. Family. Yes. Frankenstein stays.", "voice_type": "monster"},
 		{"speaker": "medusa", "text": "For the first time in three thousand years... I choose to keep my eyes OPEN.", "voice_type": "female_hero"},
 		{"speaker": "anubis", "text": "The scales are balanced. The story is complete. And it is... good.", "voice_type": "male_hero"},
-		{"speaker": "headless_horseman", "text": "The Horseman rides no more. The soldier... has come home.", "voice_type": "voiceless"},
+		{"speaker": "headless_horseman", "text": "The Horseman rides no more. The soldier... has come home.", "voice_type": "monster"},
 		{"speaker": "narrator", "text": "And so the greatest story ever told was not one of heroes defeating a villain — but of broken characters choosing to become whole. Once upon a time, they were legends. Now... they are family.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "The End. ...For now.", "voice_type": "narrator"},
 	]
@@ -14814,6 +14835,9 @@ func _end_story_dialog() -> void:
 			return
 		elif next_key == "act3_intro" and not "act3_intro" in story_seen:
 			_show_act_title("act3", next_key)
+			return
+		elif next_key == "act4_intro" and not "act4_intro" in story_seen:
+			_show_act_title("act4", next_key)
 			return
 		_start_story_dialog(next_key)
 		return
@@ -23146,6 +23170,18 @@ func _process(delta: float) -> void:
 			vp["pos"] += vp["vel"] * delta
 			vp["vel"].y += 80.0 * delta  # gravity
 			vp["timer"] -= delta
+	# Update victory confetti (continuous fall during victory)
+	if _victory_confetti.size() > 0 and game_state == GameState.GAME_OVER_STATE and _last_game_was_victory:
+		for cf in _victory_confetti:
+			cf["pos"] += cf["vel"] * delta
+			cf["vel"].x += sin(_time * 2.0 + cf["rot"]) * 20.0 * delta  # gentle sway
+			cf["vel"].y += 15.0 * delta  # light gravity
+			cf["rot"] += cf["rot_speed"] * delta
+			# Recycle confetti that falls off screen
+			if cf["pos"].y > 740:
+				cf["pos"].y = randf_range(-40, -10)
+				cf["pos"].x = randf_range(100, 1180)
+				cf["vel"].y = randf_range(80, 200)
 	# Update defeat timer
 	if _defeat_timer > 0.0:
 		_defeat_timer -= delta
@@ -25506,10 +25542,18 @@ func _draw() -> void:
 		var valid = _is_valid_placement(ghost_position)
 		var color = Color(0.2, 0.8, 0.2, 0.35) if valid else Color(0.9, 0.2, 0.2, 0.35)
 		draw_circle(ghost_position, 24.0, color)
+		# Range circle preview (#41) — always visible, tinted by validity
+		var preview_range = tower_info[selected_tower]["range"]
 		if valid:
-			var preview_range = tower_info[selected_tower]["range"]
 			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0)
 			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1, 1, 1, 0.3), 2.0)
+		else:
+			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1.0, 0.3, 0.2, 0.08), 4.0)
+			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1.0, 0.3, 0.2, 0.2), 2.0)
+		# Cost display above ghost tower (#42)
+		var place_cost = _get_discounted_cost(selected_tower)
+		var cost_color = Color(1.0, 0.9, 0.3, 0.9) if gold >= place_cost else Color(1.0, 0.3, 0.2, 0.9)
+		_ds_outlined_text(Vector2(ghost_position.x, ghost_position.y - 32), "%d G" % place_cost, 13, cost_color, 80, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 	# === Cache tower group query for all tower overlays ===
 	var _cached_towers = get_tree().get_nodes_in_group("towers")
@@ -29732,8 +29776,8 @@ const CHARACTER_VOICES: Dictionary = {
 	},
 	# ACT 4 MYTHOLOGY
 	TowerType.HEADLESS_HORSEMAN: {
-		"voice_name": "Ghostly whisper effect", "voice_style": "No voice — only hoofbeats, wind, and pumpkin fire sounds",
-		"pitch": "N/A — voiceless", "speed": "N/A", "accent": "N/A — communicates through terror",
+		"voice_name": "Malyx", "voice_style": "Deep ghostly rumble, echoing, spectral — a soldier's voice distorted by two centuries of undeath",
+		"pitch": "very deep with echo", "speed": "slow, deliberate", "accent": "Ghostly, otherworldly",
 	},
 	TowerType.MEDUSA: {
 		"voice_name": "Bella", "voice_style": "Hissing female, serpentine elegance, tragic beauty in every syllable",
@@ -29758,7 +29802,7 @@ const CHARACTER_VOICE_TYPE_MAP: Dictionary = {
 	TowerType.DRACULA: "male_hero", TowerType.MERLIN: "male_hero",
 	TowerType.FRANKENSTEIN: "monster", TowerType.SHADOW_AUTHOR: "shadow",
 	TowerType.CAPTAIN_HOOK: "male_hero", TowerType.QUEEN_OF_HEARTS: "female_hero",
-	TowerType.CLAYTON: "male_hero", TowerType.HEADLESS_HORSEMAN: "voiceless",
+	TowerType.CLAYTON: "male_hero", TowerType.HEADLESS_HORSEMAN: "monster",
 	TowerType.MEDUSA: "female_hero", TowerType.LOKI: "male_hero",
 	TowerType.ANUBIS: "male_hero",
 }
@@ -37451,14 +37495,28 @@ func game_over() -> void:
 	_play_sfx(_sfx_defeat)
 	_haptic(1)  # Medium haptic on defeat
 	_death_flash_timer = 0.3  # Dramatic red flash on game over
-	# Defeat dramatic effect — screen cracks
-	_defeat_timer = 3.0
+	# Defeat dramatic effect — shattered glass cracks (Item #45)
+	_defeat_timer = 4.0  # Extended for full overlay display
 	_defeat_cracks.clear()
 	var center = Vector2(640, 360)
-	for ci in range(10):
+	# Primary radial cracks from center (12 main lines)
+	for ci in range(12):
 		var ca = randf() * TAU
-		var cl = randf_range(80.0, 250.0)
-		_defeat_cracks.append({"from": center, "to": center + Vector2(cos(ca), sin(ca)) * cl})
+		var cl = randf_range(120.0, 350.0)
+		var end_pt = center + Vector2(cos(ca), sin(ca)) * cl
+		_defeat_cracks.append({"from": center, "to": end_pt})
+		# Secondary branch cracks off each main line (shattered glass effect)
+		var branch_pt = center + (end_pt - center) * randf_range(0.3, 0.7)
+		var branch_angle = ca + randf_range(-0.8, 0.8)
+		var branch_len = randf_range(40.0, 120.0)
+		_defeat_cracks.append({"from": branch_pt, "to": branch_pt + Vector2(cos(branch_angle), sin(branch_angle)) * branch_len})
+	# Populate defeat overlay data
+	_defeat_overlay_data = {
+		"wave": wave,
+		"total_waves": total_waves,
+		"kills": _wave_enemies_killed,
+		"towers": get_tree().get_nodes_in_group("towers").size(),
+	}
 	speed_button.text = "  >>  "
 	_collect_session_damage()
 	_show_defeat_quote()
@@ -37791,6 +37849,22 @@ func _victory() -> void:
 			"timer": randf_range(1.2, 2.0),
 			"size": randf_range(2.0, 5.0),
 		})
+	# === VICTORY CONFETTI (Item #44) — 40 colored rectangles with random velocities ===
+	_victory_confetti.clear()
+	var confetti_colors = [
+		Color(1.0, 0.85, 0.0), Color(1.0, 0.4, 0.1), Color(0.3, 0.9, 0.4),
+		Color(0.3, 0.5, 1.0), Color(0.9, 0.2, 0.5), Color(0.6, 0.3, 0.9),
+		Color(1.0, 1.0, 0.3), Color(0.2, 0.8, 0.8), Color(1.0, 0.6, 0.8),
+	]
+	for ci in range(40):
+		_victory_confetti.append({
+			"pos": Vector2(randf_range(100, 1180), randf_range(-200, -20)),
+			"vel": Vector2(randf_range(-60, 60), randf_range(80, 200)),
+			"color": confetti_colors[ci % confetti_colors.size()],
+			"size": Vector2(randf_range(4, 10), randf_range(8, 16)),
+			"rot": randf() * TAU,
+			"rot_speed": randf_range(-4.0, 4.0),
+		})
 	_collect_session_damage()
 	_show_victory_quote()
 	# MVP Tower spotlight — find tower with most damage
@@ -37818,6 +37892,21 @@ func _victory() -> void:
 		stars = 3
 	elif lives >= int(max_lives * 0.5):
 		stars = 2
+	# === VICTORY OVERLAY DATA (Item #44) ===
+	var v_total_dmg: float = 0.0
+	for tt_key in session_damage:
+		v_total_dmg += session_damage[tt_key]
+	_victory_overlay_data = {
+		"stars": stars,
+		"mvp_name": mvp_name if mvp_name != "" else "None",
+		"mvp_damage": mvp_damage,
+		"total_damage": v_total_dmg,
+		"gold_earned": total_gold_earned,
+		"waves": wave,
+		"total_waves": total_waves,
+		"lives_lost": current_game_lives_lost,
+		"level_name": level_name,
+	}
 	# Quest chain progress check (#132)
 	_check_quest_chain_progress()
 	# First-clear bonus (#122): 3x rewards on first completion
@@ -38014,6 +38103,16 @@ func _check_character_unlocks() -> void:
 
 func _queue_post_victory_dialog() -> void:
 	var post_key = "post_level_" + str(current_level)
+	# Act 4 levels use named post-level keys
+	var _act4_post_map = {
+		48: "unlock_horseman",
+		51: "unlock_medusa",
+		54: "unlock_anubis",
+		55: "narrator_true_form",
+		57: "narrator_victory",
+	}
+	if _act4_post_map.has(current_level):
+		post_key = _act4_post_map[current_level]
 	if not story_dialogs.has(post_key):
 		return
 	if post_key in story_seen:
