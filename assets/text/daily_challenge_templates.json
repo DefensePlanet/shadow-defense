@@ -1,0 +1,25 @@
+{
+  "description": "Extended daily challenge pool. Game picks 3 random per day.",
+  "challenges": [
+    {"id": "kill_50", "desc": "Kill 50 enemies", "target": 50, "reward_gold": 40, "reward_gems": 0},
+    {"id": "kill_100", "desc": "Kill 100 enemies", "target": 100, "reward_gold": 75, "reward_gems": 5},
+    {"id": "kill_200", "desc": "Kill 200 enemies", "target": 200, "reward_gold": 120, "reward_gems": 10},
+    {"id": "use_3_towers", "desc": "Place 3 different towers", "target": 3, "reward_gold": 50, "reward_gems": 0},
+    {"id": "use_5_towers", "desc": "Place 5 different towers", "target": 5, "reward_gold": 80, "reward_gems": 5},
+    {"id": "no_lives_lost", "desc": "Complete a level with no lives lost", "target": 1, "reward_gold": 100, "reward_gems": 10},
+    {"id": "earn_500_gold", "desc": "Earn 500 gold in one level", "target": 500, "reward_gold": 60, "reward_gems": 0},
+    {"id": "earn_1000_gold", "desc": "Earn 1000 gold in one level", "target": 1000, "reward_gold": 100, "reward_gems": 10},
+    {"id": "upgrade_5", "desc": "Purchase 5 upgrades", "target": 5, "reward_gold": 80, "reward_gems": 5},
+    {"id": "upgrade_t3", "desc": "Buy a Tier 3 upgrade", "target": 1, "reward_gold": 120, "reward_gems": 15},
+    {"id": "beat_boss", "desc": "Defeat a boss wave", "target": 1, "reward_gold": 100, "reward_gems": 10},
+    {"id": "beat_hard", "desc": "Complete a Hard mode level", "target": 1, "reward_gold": 150, "reward_gems": 20},
+    {"id": "use_robin", "desc": "Complete a level using Robin Hood", "target": 1, "reward_gold": 60, "reward_gems": 0},
+    {"id": "use_villain", "desc": "Complete a level using a villain tower", "target": 1, "reward_gold": 80, "reward_gems": 5},
+    {"id": "synergy", "desc": "Activate a tower synergy", "target": 1, "reward_gold": 70, "reward_gems": 5},
+    {"id": "3_star", "desc": "Get 3 stars on any level", "target": 1, "reward_gold": 90, "reward_gems": 10},
+    {"id": "play_3_levels", "desc": "Play 3 different levels", "target": 3, "reward_gold": 60, "reward_gems": 0},
+    {"id": "survive_30_waves", "desc": "Survive 30+ waves in one level", "target": 30, "reward_gold": 100, "reward_gems": 10},
+    {"id": "last_stand", "desc": "Trigger Last Stand and still win", "target": 1, "reward_gold": 150, "reward_gems": 20},
+    {"id": "use_medusa", "desc": "Petrify 10 enemies with Medusa", "target": 10, "reward_gold": 80, "reward_gems": 5}
+  ]
+}
