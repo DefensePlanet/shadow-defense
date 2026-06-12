@@ -285,6 +285,7 @@ var retry_button: Button
 var _checkpoint_resume_button: Button  # #36: Resume from checkpoint
 var menu_exit_button: Button
 var completed_levels: Array = []
+var level_play_counts: Dictionary = {}  # { level_idx: int } times completed, for anti-grind (#16)
 var level_stars: Dictionary = {}
 var level_difficulty_medals: Dictionary = {}  # { level_idx: [bool, bool, bool] } Easy/Med/Hard beaten
 var level_difficulty_stars: Dictionary = {}   # { level_idx: [int, int, int] } stars per difficulty (0-3)
@@ -3440,6 +3441,7 @@ var _screen_shake_timer: float = 0.0
 var _insufficient_gold_flash: float = 0.0
 var _boss_alert_timer: float = 0.0
 var _boss_alert_text: String = ""
+var _boss_warning_timer: float = 0.0  # Red flash effect for boss waves (#20)
 var _wave_clear_timer: float = 0.0
 var _wave_clear_num: int = 0
 var _screen_shake_intensity: float = 0.0
@@ -3456,6 +3458,16 @@ var _victory_burst_timer: float = 0.0
 var _victory_particles: Array = []
 var _victory_confetti: Array = []  # Confetti particles for victory screen [{pos, vel, color, size, rot, rot_speed}]
 var _victory_overlay_data: Dictionary = {}  # Stats for victory overlay {stars, mvp_name, mvp_damage, total_damage, gold_earned, xp_gained, waves}
+var _victory_flash: float = 0.0  # #80: Golden flash overlay on victory (1.0 -> 0.0)
+# #50: Smooth gold counter for in-game HUD
+var _displayed_gold: float = 0.0  # Smoothly approaches actual gold value
+var _gold_change_flash: float = 0.0  # Flash timer when gold changes significantly
+var _gold_change_positive: bool = true  # True = gain (green), False = loss (red)
+# #49: Notification badge state (checked periodically)
+var _notification_badge_timer: float = 0.0  # Periodic check timer
+var _badge_unclaimed_daily: bool = false  # Daily reward available
+var _badge_unclaimed_challenge: bool = false  # Daily challenge reward available
+var _badge_new_emporium: bool = false  # New items in emporium
 var _save_integrity_warning: bool = false
 var _save_integrity_timer: float = 0.0
 var _defeat_timer: float = 0.0
@@ -6300,6 +6312,11 @@ func _save_game() -> void:
 	save_data["gold"] = gold
 	# Progress
 	save_data["completed_levels"] = completed_levels
+	# Level play counts for anti-grind (#16)
+	var lpc_save: Dictionary = {}
+	for k in level_play_counts:
+		lpc_save[str(k)] = level_play_counts[k]
+	save_data["level_play_counts"] = lpc_save
 	var stars_save: Dictionary = {}
 	for key in level_stars:
 		stars_save[str(key)] = level_stars[key]
@@ -6590,6 +6607,16 @@ func _load_game() -> void:
 		data["endless_top_runs"] = data.get("endless_top_runs", [])
 		data["auto_wave_delay_index"] = data.get("auto_wave_delay_index", 1)
 		data["save_version"] = SAVE_VERSION
+	# Future version migrations via _migrate_save (#18)
+	if save_ver < SAVE_VERSION:
+		data = _migrate_save(data, save_ver)
+	elif save_ver > SAVE_VERSION:
+		push_warning("Save version %d is newer than game version %d — some data may be lost" % [save_ver, SAVE_VERSION])
+	# Load level play counts for anti-grind (#16)
+	var lpc = data.get("level_play_counts", {})
+	level_play_counts.clear()
+	for k in lpc:
+		level_play_counts[int(k)] = int(lpc[k])
 	# Currencies
 	player_quills = int(data.get("player_quills", 0))
 	player_pages = int(data.get("player_pages", 0))
@@ -6755,6 +6782,7 @@ func _load_game() -> void:
 	for v in ss:
 		story_seen.append(str(v))
 	story_choices_made = data.get("story_choices_made", {})
+	_tutorial_completed = data.get("tutorial_completed", false)
 	_secret_path_discovered = data.get("secret_path_discovered", {})
 	challenge_maps_unlocked = data.get("challenge_maps_unlocked", {})
 	corrupted_maps_unlocked = data.get("corrupted_maps_unlocked", {})
@@ -8159,6 +8187,148 @@ func _draw_tutorial_hint() -> void:
 	var alpha = clampf(_tutorial_hint_timer / 1.0, 0.0, 1.0)
 	draw_rect(Rect2(240, 640, 800, 30), Color(0.1, 0.1, 0.2, 0.7 * alpha))
 	_ds_outlined_text(Vector2(640, 648), _tutorial_hint_text, 11, Color(1.0, 0.9, 0.5, alpha), 780, HORIZONTAL_ALIGNMENT_CENTER, 1)
+
+# === MULTI-STEP TUTORIAL (#10) ===
+const TUTORIAL_MESSAGES: Array = [
+	"Welcome to Shadow Defense! Tap a character to place them.",
+	"Great! Your tower attacks enemies automatically.",
+	"Enemies follow the path. Don't let them reach the end!",
+	"You earned gold! Use it to place more towers or upgrade.",
+	"Tap your tower, then tap an upgrade path to make it stronger.",
+	"Each path has 3 tiers that stack. You can max ONE path.",
+	"You're a natural! The rest is up to you. Good luck!",
+]
+
+func _start_tutorial() -> void:
+	if _tutorial_completed or current_level != 0 or completed_levels.size() > 0:
+		return
+	_tutorial_step = 0
+	_tutorial_dismiss_timer = 0.5
+	_tutorial_first_tower_placed = false
+	_tutorial_first_upgrade_done = false
+	var bp_y = bottom_panel.position.y if bottom_panel else 626.0
+	_tutorial_highlight_rect = Rect2(0, bp_y, 960, 94)
+	_tutorial_arrow_target = Vector2(480, bp_y + 10)
+
+func _check_tutorial_step(delta: float) -> void:
+	if _tutorial_step < 0 or _tutorial_completed:
+		return
+	_tutorial_arrow_timer += delta
+	if _tutorial_dismiss_timer > 0.0:
+		_tutorial_dismiss_timer -= delta
+	var _tut_towers = get_tree().get_nodes_in_group("towers")
+	match _tutorial_step:
+		1:
+			if _tut_towers.size() > 0:
+				var t = _tut_towers[0]
+				_tutorial_highlight_rect = Rect2(t.position.x - 50, t.position.y - 50, 100, 100)
+				_tutorial_arrow_target = Vector2(t.position.x, t.position.y - 55)
+		2:
+			if path_points.size() >= 2:
+				var mn = path_points[0]
+				var mx = path_points[0]
+				for p in path_points:
+					mn = Vector2(min(mn.x, p.x), min(mn.y, p.y))
+					mx = Vector2(max(mx.x, p.x), max(mx.y, p.y))
+				_tutorial_highlight_rect = Rect2(mn.x - 20, mn.y - 20, mx.x - mn.x + 40, mx.y - mn.y + 40)
+				_tutorial_arrow_target = Vector2((mn.x + mx.x) / 2.0, mn.y - 25)
+		3:
+			_tutorial_highlight_rect = Rect2(280, 0, 160, 40)
+			_tutorial_arrow_target = Vector2(360, 45)
+		4:
+			if upgrade_panel.visible:
+				_tutorial_highlight_rect = Rect2(upgrade_panel.position.x, upgrade_panel.position.y, upgrade_panel.size.x, upgrade_panel.size.y)
+				_tutorial_arrow_target = Vector2(upgrade_panel.position.x + upgrade_panel.size.x / 2.0, upgrade_panel.position.y - 10)
+			elif _tut_towers.size() > 0:
+				var t = _tut_towers[0]
+				_tutorial_highlight_rect = Rect2(t.position.x - 50, t.position.y - 50, 100, 100)
+				_tutorial_arrow_target = Vector2(t.position.x, t.position.y - 55)
+	queue_redraw()
+
+func _advance_tutorial() -> void:
+	if _tutorial_step < 0 or _tutorial_completed:
+		return
+	if _tutorial_dismiss_timer > 0.0:
+		return
+	_tutorial_step += 1
+	_tutorial_dismiss_timer = 0.5
+	if _tutorial_step >= TUTORIAL_MESSAGES.size():
+		_tutorial_step = -1
+		_tutorial_completed = true
+		_save_game()
+		return
+	match _tutorial_step:
+		1:
+			_tutorial_highlight_rect = Rect2()
+		3:
+			_tutorial_highlight_rect = Rect2(280, 0, 160, 40)
+			_tutorial_arrow_target = Vector2(360, 45)
+
+func _on_tutorial_tower_placed() -> void:
+	if _tutorial_step == 0 and not _tutorial_first_tower_placed:
+		_tutorial_first_tower_placed = true
+		_advance_tutorial()
+
+func _on_tutorial_wave_started() -> void:
+	if _tutorial_step == 1:
+		_advance_tutorial()
+
+func _on_tutorial_wave_complete(w: int) -> void:
+	if _tutorial_step == 2 and w >= 1:
+		_advance_tutorial()
+	if w >= 3 and _tutorial_step >= 0 and _tutorial_step < 6:
+		_tutorial_step = 6
+		_tutorial_dismiss_timer = 0.5
+
+func _on_tutorial_upgrade_done() -> void:
+	if _tutorial_step == 4 and not _tutorial_first_upgrade_done:
+		_tutorial_first_upgrade_done = true
+		_advance_tutorial()
+
+func _on_tutorial_has_upgrade_gold() -> void:
+	if _tutorial_step == 3:
+		_advance_tutorial()
+
+func _draw_tutorial_overlay() -> void:
+	if _tutorial_step < 0 or _tutorial_step >= TUTORIAL_MESSAGES.size() or _tutorial_completed:
+		return
+	var hr = _tutorial_highlight_rect
+	var oc = Color(0.0, 0.0, 0.0, 0.55)
+	if hr.size.x > 0 and hr.size.y > 0:
+		draw_rect(Rect2(0, 0, 1280, hr.position.y), oc)
+		draw_rect(Rect2(0, hr.position.y + hr.size.y, 1280, 720 - hr.position.y - hr.size.y), oc)
+		draw_rect(Rect2(0, hr.position.y, hr.position.x, hr.size.y), oc)
+		draw_rect(Rect2(hr.position.x + hr.size.x, hr.position.y, 1280 - hr.position.x - hr.size.x, hr.size.y), oc)
+		var bc = Color(1.0, 0.85, 0.3, 0.5 + sin(_tutorial_arrow_timer * 3.0) * 0.2)
+		draw_rect(hr, bc, false, 2.0)
+	else:
+		draw_rect(Rect2(0, 0, 1280, 720), oc)
+	if _tutorial_arrow_target != Vector2.ZERO:
+		var pulse = sin(_tutorial_arrow_timer * 4.0) * 6.0
+		var ax = _tutorial_arrow_target.x
+		var ay = _tutorial_arrow_target.y + pulse
+		var ac = Color(1.0, 0.9, 0.3, 0.85)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(ax - 10, ay - 20), Vector2(ax + 10, ay - 20), Vector2(ax, ay)
+		]), ac)
+		draw_rect(Rect2(ax - 3, ay - 36, 6, 18), ac)
+	var bubble_rect = Rect2(140, 560, 1000, 60)
+	draw_colored_polygon(_rrp(Rect2(bubble_rect.position.x + 1, bubble_rect.position.y + 2, bubble_rect.size.x, bubble_rect.size.y), 12.0), Color(0.0, 0.0, 0.0, 0.5))
+	draw_colored_polygon(_rrp(bubble_rect, 12.0), Color(0.12, 0.08, 0.18, 0.95))
+	var bpts = _rrp(bubble_rect, 12.0)
+	bpts.append(bpts[0])
+	draw_polyline(bpts, Color(1.0, 0.85, 0.3, 0.6), 2.0)
+	var msg = TUTORIAL_MESSAGES[_tutorial_step]
+	_ds_outlined_text(Vector2(640, bubble_rect.position.y + 28), msg, 15, Color(1.0, 0.95, 0.8), 900, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	var tap_alpha = 0.4 + sin(_tutorial_arrow_timer * 3.0) * 0.2
+	_ds_outlined_text(Vector2(640, bubble_rect.position.y + 48), "Tap to continue", 10, Color(0.7, 0.6, 0.4, tap_alpha), 200, HORIZONTAL_ALIGNMENT_CENTER, 1)
+
+func _on_tutorial_clicked() -> void:
+	if _tutorial_step < 0 or _tutorial_completed:
+		return
+	if _tutorial_dismiss_timer > 0.0:
+		return
+	_advance_tutorial()
 
 # === UNIT COUNT INDICATOR (#162) ===
 func _draw_unit_count() -> void:
@@ -23324,6 +23494,24 @@ func _process(delta: float) -> void:
 	# Menu Improvement 4: Update animated currency counters
 	if game_state == GameState.MENU:
 		_update_currency_displays(delta)
+	# #50: Smooth in-game gold display
+	if game_state == GameState.PLAYING:
+		_displayed_gold = lerpf(_displayed_gold, float(gold), delta * 8.0)
+		if absf(_displayed_gold - float(gold)) < 1.0:
+			_displayed_gold = float(gold)
+	# #50: Gold change flash decay
+	if _gold_change_flash > 0.0:
+		_gold_change_flash -= delta * 4.0
+	# #80: Victory flash decay
+	if _victory_flash > 0.0:
+		_victory_flash -= delta * 2.0
+		queue_redraw()
+	# #49: Notification badge periodic check (every 2 seconds)
+	if game_state == GameState.MENU:
+		_notification_badge_timer -= delta
+		if _notification_badge_timer <= 0.0:
+			_notification_badge_timer = 2.0
+			_check_notification_badges()
 	# Menu Improvement 6: Update parallax offset
 	_update_parallax(delta)
 	# Menu Improvement 7: Update slide transition
@@ -23450,6 +23638,9 @@ func _process(delta: float) -> void:
 	# Update boss alert
 	if _boss_alert_timer > 0.0:
 		_boss_alert_timer -= delta
+	# Boss warning red flash decay (#20)
+	if _boss_warning_timer > 0.0:
+		_boss_warning_timer -= delta
 	# Update wave clear popup
 	if _wave_clear_timer > 0.0:
 		_wave_clear_timer -= delta
@@ -24811,10 +25002,12 @@ func _check_wave_complete() -> void:
 			spawn_floating_text(Vector2(640, 260), "WAVE %d COMPLETE!" % wave, Color(0.3, 1.0, 0.5), 22.0, 1.5)
 			# Battle Pass XP (#116)
 			_add_bp_xp(5 + wave / 5)
-			# Planning Phase before boss waves (#101)
+			# Planning Phase before boss waves (#101, #20)
 			# Planning phase — no longer blocks auto-wave, just shows a quick notice
 			if (wave + 1) in PLANNING_PHASE_WAVES and wave < total_waves:
-				spawn_floating_text(Vector2(640, 200), "Boss wave incoming!", Color(1.0, 0.7, 0.2), 16.0, 2.0)
+				spawn_floating_text(Vector2(640, 200), "💀 BOSS INCOMING! 💀", Color(1.0, 0.3, 0.15), 20.0, 2.5)
+				_screen_shake_intensity = 4.0
+				_screen_shake_timer = 0.3
 			_screen_shake_intensity = 3.0
 			_screen_shake_timer = 0.2
 			# Wave preview on button
@@ -26377,6 +26570,12 @@ func _draw() -> void:
 		# Subtitle wave name — outlined
 		_ds_outlined_text(Vector2(640 + wb_x_offset, wb_y + 24), _wave_banner_name, 14, Color(0.92, 0.88, 0.75, wb_alpha * 0.8), -1, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
+	# === BOSS WARNING RED FLASH (#20) ===
+	if _boss_warning_timer > 0.0:
+		var bw_alpha = clampf(_boss_warning_timer / 2.0, 0.0, 1.0)
+		var bw_pulse = (sin(_time * 8.0) * 0.5 + 0.5) * bw_alpha
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0.8, 0.05, 0.02, bw_pulse * 0.12))
+
 	# === BOSS WAVE ALERT (with glow) ===
 	if _boss_alert_timer > 0.0:
 		var ba_alpha = clampf(_boss_alert_timer / 2.5, 0.0, 1.0)
@@ -26718,6 +26917,13 @@ func _draw() -> void:
 		var v_ll = _victory_overlay_data.get("lives_lost", 0)
 		var ll_color = Color(0.4, 1.0, 0.5) if v_ll == 0 else Color(1.0, 0.7, 0.3)
 		_ds_outlined_text(Vector2(stat_right, stat_y), str(v_ll), 14, ll_color, -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+		# Replay bonus indicator (#16)
+		var v_replay_pct = _victory_overlay_data.get("replay_xp_pct", 100)
+		if v_replay_pct < 100:
+			stat_y += stat_gap
+			_ds_outlined_text(Vector2(stat_left, stat_y), "Replay Bonus", 14, Color(0.7, 0.7, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+			var rp_color = Color(0.4, 1.0, 0.5) if v_replay_pct >= 70 else Color(1.0, 0.65, 0.2) if v_replay_pct >= 40 else Color(1.0, 0.4, 0.3)
+			_ds_outlined_text(Vector2(stat_right, stat_y), "%d%% XP" % v_replay_pct, 14, rp_color, -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
 		stat_y += stat_gap + 6.0
 		# MVP Tower
 		var v_mvp_name = _victory_overlay_data.get("mvp_name", "None")
@@ -26816,6 +27022,12 @@ func _draw() -> void:
 		_draw_ingame_settings()
 	# Mobile: autosave indicator (gameplay)
 	_draw_autosave_indicator()
+	# Save integrity warning banner (#6)
+	if _save_integrity_timer > 0.0:
+		var si_alpha = clampf(_save_integrity_timer / 2.0, 0.0, 1.0)
+		var si_y = 60.0
+		_ds_panel(Rect2(340, si_y, 600, 36), Color(0.5, 0.15, 0.05, 0.85 * si_alpha), Color(1.0, 0.4, 0.2, 0.6 * si_alpha), 1.5, 8.0)
+		_ds_outlined_text(Vector2(640, si_y + 8), "⚠ Save data may be corrupted ⚠", 14, Color(1.0, 0.8, 0.4, si_alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
 
 func _draw_tower_button_portraits() -> void:
 	if game_state != GameState.PLAYING or not bottom_panel or not bottom_panel.visible:
@@ -37041,17 +37253,20 @@ func _start_next_wave() -> void:
 	_wave_banner_num = wave
 	_wave_banner_name = wave_name
 	_wave_banner_is_boss = wave in [20, 25, 30, 35] or wave == total_waves
-	# Boss wave alert with name + title (#107)
+	# Boss wave alert with name + title (#107, #20)
 	if wave in [20, 25, 30, 35] or wave == total_waves or (wave >= 39 and selected_difficulty >= 2):
 		_boss_alert_timer = 3.5  # Longer for intro
+		_boss_warning_timer = 2.0  # Red flash effect (#20)
 		var theme = levels[current_level].get("enemy_theme", 0) if current_level >= 0 and current_level < levels.size() else 0
 		var boss_name = BOSS_VILLAIN_NAMES.get(theme, "The Villain")
 		if wave == total_waves:
-			_boss_alert_text = "FINAL BOSS: %s" % boss_name
+			_boss_alert_text = "💀 FINAL BOSS: %s 💀" % boss_name
 		elif wave >= 39 and selected_difficulty >= 2:
-			_boss_alert_text = "FINAL VILLAIN: %s" % boss_name
+			_boss_alert_text = "💀 FINAL VILLAIN: %s 💀" % boss_name
 		else:
-			_boss_alert_text = "BOSS: %s" % boss_name
+			_boss_alert_text = "💀 BOSS INCOMING: %s 💀" % boss_name
+		# Ominous sound cue (#20)
+		_play_sfx(_sfx_life_lost)
 		# Boss ability preview
 		var ability_preview = ""
 		match theme:
@@ -37307,10 +37522,19 @@ func update_hud() -> void:
 			var total_this_wave = _wave_enemies_killed + remaining
 			wave_label.text += "  [%d/%d]" % [_wave_enemies_killed, total_this_wave]
 	if gold_label:
-		gold_label.text = "🪙 %s" % _format_gold(gold)
+		# #50: Use smoothed gold display instead of raw value
+		var display_gold = int(_displayed_gold) if game_state == GameState.PLAYING else gold
+		gold_label.text = "🪙 %s" % _format_gold(display_gold)
 		if _insufficient_gold_flash > 0.0:
 			var flash_a = clampf(_insufficient_gold_flash, 0.0, 1.0)
 			gold_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2).lerp(Color(1.0, 0.84, 0.0), 1.0 - flash_a))
+		elif _gold_change_flash > 0.0:
+			# #50: Green flash on gain, red on loss
+			var gcf = clampf(_gold_change_flash, 0.0, 1.0)
+			if _gold_change_positive:
+				gold_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3).lerp(Color(1.0, 0.84, 0.0), 1.0 - gcf))
+			else:
+				gold_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.15).lerp(Color(1.0, 0.84, 0.0), 1.0 - gcf))
 		else:
 			gold_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 	if lives_label:
@@ -38434,11 +38658,16 @@ func _victory() -> void:
 	_stop_layered_music()
 	_play_sfx(_sfx_victory)
 	_haptic(2)  # Strong haptic on victory
-	# Battle Pass XP on victory (#116)
-	_add_bp_xp(25 + selected_difficulty * 10)
-	# Ranked points (#121)
-	_add_ranked_points(10 + selected_difficulty * 5 + wave / 2)
-	# Loyalty points (#126)
+	# Anti-grind: track play counts and apply diminishing XP returns (#16)
+	var _replay_play_count = level_play_counts.get(current_level, 0)
+	level_play_counts[current_level] = _replay_play_count + 1
+	var _replay_xp_mult = maxf(0.25, 1.0 - (_replay_play_count * 0.15))
+	# Battle Pass XP on victory (#116) — scaled by replay multiplier (#16)
+	var base_bp_xp = 25 + selected_difficulty * 10
+	_add_bp_xp(int(base_bp_xp * _replay_xp_mult))
+	# Ranked points (#121) — scaled by replay multiplier (#16)
+	_add_ranked_points(int((10 + selected_difficulty * 5 + wave / 2) * _replay_xp_mult))
+	# Loyalty points (#126) — NOT reduced (gold/loyalty stay full)
 	loyalty_points += 5 + selected_difficulty * 2
 	# Event tokens (#139)
 	_earn_event_tokens(3 + selected_difficulty * 2)
@@ -38512,6 +38741,7 @@ func _victory() -> void:
 		"total_waves": total_waves,
 		"lives_lost": current_game_lives_lost,
 		"level_name": level_name,
+		"replay_xp_pct": int(_replay_xp_mult * 100),
 	}
 	# Quest chain progress check (#132)
 	_check_quest_chain_progress()
@@ -46228,6 +46458,17 @@ func _validate_save_checksum(data: Dictionary) -> bool:
 		return true  # Old save without checksum
 	var expected = _calculate_save_checksum(data)
 	return stored == expected
+
+# Save migration: converts old save formats to current SAVE_VERSION (#18)
+func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
+	# v1 -> v2 migration handled inline in _load_game (level index remap)
+	# v2 -> v3 migration handled inline in _load_game (new field defaults)
+	# Future migrations: add cases here
+	# Example:
+	# if from_version < 4:
+	#     data["new_field"] = data.get("new_field", default_value)
+	#     data["save_version"] = 4
+	return data
 
 # === CUSTOM CHALLENGE CREATOR (#182) ===
 var custom_challenge: Dictionary = {}
