@@ -2764,7 +2764,10 @@ var _sfx_enemy_death: AudioStreamWAV
 var _sfx_victory: AudioStreamWAV
 var _sfx_defeat: AudioStreamWAV
 var _sfx_life_lost: AudioStreamWAV
+var _sfx_boss_stinger: AudioStreamWAV  # #100: Boss wave stinger
+var _sfx_victory_fanfare: AudioStreamWAV  # #99: Victory fanfare (ascending major chord)
 var _sfx_player: AudioStreamPlayer
+var _ambient_player: AudioStreamPlayer = null  # #94: Ambient background sound per map
 
 # === META FEATURES: Save/Load, Emporium, Chests, Gear, Knowledge, Daily ===
 var _save_path: String = "user://shadow_defense_save.json"
@@ -3310,11 +3313,21 @@ func _buy_event_shop_item(index: int) -> bool:
 	return true
 
 # === RESOURCE EXCHANGE (#124) ===
+# #119: Canonical exchange rates (base values before daily fluctuation)
+# "gems" in design docs = quills in-game. Rates: 1 gem=10 gold, 100 gold=1 gem, 5 pages=1 gem
+const EXCHANGE_RATES: Dictionary = {
+	"gems_to_gold": 10,     # 1 quill = 10 gold
+	"gold_to_gems": 100,    # 100 gold = 1 quill
+	"pages_to_gems": 5,     # 5 pages = 1 quill
+}
 var exchange_rates: Dictionary = {
 	"gold_to_pages": 50,    # Gold cost per 1 Page
 	"gold_to_quills": 80,   # Gold cost per 1 Quill
 	"pages_to_quills": 3,   # Pages cost per 1 Quill
 	"quills_to_pages": 1,   # 1 Quill cost per exchange (gives 3 pages via special handling)
+	"quills_to_gold": 10,   # 1 quill = 10 gold (#119 canonical)
+	"gold_to_quills_flat": 100, # 100 gold = 1 quill (#119 canonical)
+	"pages_to_quills_flat": 5,  # 5 pages = 1 quill (#119 canonical)
 }
 var exchange_refresh_date: String = ""
 
@@ -3331,7 +3344,11 @@ func _refresh_exchange_rates() -> void:
 	exchange_rates["pages_to_quills"] = int(3.0 * (0.7 + rng.randf() * 0.6))
 
 func _exchange_currency(from_type: String, to_type: String, amount: int) -> bool:
+	# #119: Support canonical flat-rate keys alongside daily-fluctuating rates
 	var key = from_type + "_to_" + to_type
+	var flat_key = key + "_flat"
+	if exchange_rates.has(flat_key):
+		key = flat_key  # Prefer canonical rate when available
 	if not exchange_rates.has(key):
 		return false
 	var rate = exchange_rates[key]
@@ -3416,7 +3433,7 @@ func _check_story_milestones(level_idx: int) -> void:
 	claimed_milestones.append(level_idx)
 	var gem_reward = milestone.get("gems", 0)
 	if gem_reward > 0:
-		player_quills += gem_reward
+		player_gems += gem_reward
 		spawn_floating_text(Vector2(640, 240), "MILESTONE: %s" % milestone["name"], Color(1.0, 0.85, 0.0), 22.0, 3.0)
 		spawn_floating_text(Vector2(640, 270), "+%d Gems!" % gem_reward, Color(0.4, 0.9, 1.0), 16.0, 2.5)
 	var chest_type = milestone.get("chest", "")
@@ -3492,6 +3509,7 @@ var _death_flash_timer: float = 0.0
 var _aoe_impacts: Array = []
 var _crit_flashes: Array = []
 var _build_effects: Array = []
+var _death_effects: Array = []  # #85: Enemy death visual effects [{pos, timer, color, size, particles}]
 var _victory_burst_timer: float = 0.0
 var _victory_particles: Array = []
 var _victory_confetti: Array = []  # Confetti particles for victory screen [{pos, vel, color, size, rot, rot_speed}]
@@ -4668,6 +4686,10 @@ var character_unlock_map: Dictionary = {
 	"dracula": [10, 11, 12],
 	"frankenstein": [13, 14, 15],
 	"shadow_author": [34, 35, 36],
+	# #141: ACT 4 — auto-unlock after completing rescue arcs
+	"headless_horseman": [46, 47, 48],   # Horseman freed after level 48
+	"medusa": [49, 50, 51],              # Medusa freed after level 51
+	"anubis": [52, 53, 54],              # Anubis freed after level 54
 }
 
 # Arc data for menu navigation (37 levels across 13 arcs)
@@ -6450,6 +6472,13 @@ func _save_game() -> void:
 	save_data["bp_tier"] = bp_tier
 	save_data["bp_xp"] = bp_xp
 	save_data["bp_claimed"] = bp_claimed
+	# Monetization (#111, #114, #117, #118, #124)
+	save_data["player_gems"] = player_gems
+	save_data["_starter_pack_purchased"] = _starter_pack_purchased
+	save_data["_first_purchase_made"] = _first_purchase_made
+	save_data["bp_premium"] = bp_premium
+	save_data["_bp_claimed_display"] = _bp_claimed_display
+	save_data["_shop_daily_deal_date"] = _shop_daily_deal_date
 	save_data["quest_chain_progress"] = quest_chain_progress
 	save_data["gold"] = gold
 	# Progress
@@ -6783,6 +6812,16 @@ func _load_game() -> void:
 	energy_last_timestamp = float(data.get("energy_last_timestamp", 0.0))
 	bp_tier = int(data.get("bp_tier", 0))
 	bp_xp = int(data.get("bp_xp", 0))
+	# Monetization (#111, #114, #117, #118, #124)
+	player_gems = int(data.get("player_gems", 0))
+	_starter_pack_purchased = bool(data.get("_starter_pack_purchased", false))
+	_first_purchase_made = bool(data.get("_first_purchase_made", false))
+	bp_premium = bool(data.get("bp_premium", false))
+	_shop_daily_deal_date = str(data.get("_shop_daily_deal_date", ""))
+	var bpcd = data.get("_bp_claimed_display", [])
+	_bp_claimed_display.clear()
+	for bt in bpcd:
+		_bp_claimed_display.append(int(bt))
 	var qcp = data.get("quest_chain_progress", {})
 	quest_chain_progress.clear()
 	for k in qcp:
@@ -13190,6 +13229,7 @@ func _reset_game() -> void:
 	_aoe_impacts.clear()
 	_crit_flashes.clear()
 	_build_effects.clear()
+	_death_effects.clear()
 	_victory_burst_timer = 0.0
 	_victory_particles.clear()
 	_victory_confetti.clear()
@@ -13822,6 +13862,10 @@ func _setup_audio() -> void:
 		add_child(pool_player)
 		_sfx_pool.append(pool_player)
 	_generate_ui_sfx()
+	# #94: Ambient background sound player (looping, low volume)
+	_ambient_player = AudioStreamPlayer.new()
+	_ambient_player.volume_db = -20.0
+	add_child(_ambient_player)
 
 func _load_music_tracks() -> void:
 	# Music loading now handled by MusicManager autoload
@@ -14213,6 +14257,51 @@ func _generate_ui_sfx() -> void:
 	_sfx_life_lost.format = AudioStreamWAV.FORMAT_16_BITS
 	_sfx_life_lost.mix_rate = sr
 	_sfx_life_lost.data = ll_data
+
+	# #100: Boss stinger — deep ominous brass tone (2s) with tremolo + reverb tail
+	var boss_len = int(sr * 2.0)
+	var boss_data = PackedByteArray()
+	boss_data.resize(boss_len * 2)
+	for i in range(boss_len):
+		var t = float(i) / float(sr)
+		var env = clampf(minf(t * 4.0, (2.0 - t) * 1.5), 0.0, 1.0)
+		var tremolo = 1.0 - sin(t * 6.0 * TAU) * 0.3  # Slow tremolo
+		var fundamental = sin(t * 80.0 * TAU) * 0.25  # Deep 80Hz brass
+		var h2 = sin(t * 160.0 * TAU) * 0.15
+		var h3 = sin(t * 240.0 * TAU) * 0.08
+		var sub = sin(t * 40.0 * TAU) * 0.12  # Sub-bass rumble
+		var sample = (fundamental + h2 + h3 + sub) * env * tremolo
+		var s16 = clampi(int(sample * 16000.0), -32768, 32767)
+		boss_data[i * 2] = s16 & 0xFF
+		boss_data[i * 2 + 1] = (s16 >> 8) & 0xFF
+	_sfx_boss_stinger = AudioStreamWAV.new()
+	_sfx_boss_stinger.format = AudioStreamWAV.FORMAT_16_BITS
+	_sfx_boss_stinger.mix_rate = sr
+	_sfx_boss_stinger.data = boss_data
+
+	# #99: Victory fanfare — ascending major chord C4-E4-G4-C5 (1.5s) bright timbre
+	var vf_len = int(sr * 1.5)
+	var vf_data = PackedByteArray()
+	vf_data.resize(vf_len * 2)
+	for i in range(vf_len):
+		var t = float(i) / float(sr)
+		var env = clampf(minf(t * 8.0, (1.5 - t) * 3.0), 0.0, 1.0)
+		# Staggered note entries for ascending feel
+		var c4 = sin(t * 261.6 * TAU) * 0.18 * clampf(t * 10.0, 0.0, 1.0)
+		var e4 = sin(t * 329.6 * TAU) * 0.16 * clampf((t - 0.15) * 8.0, 0.0, 1.0)
+		var g4 = sin(t * 392.0 * TAU) * 0.16 * clampf((t - 0.30) * 8.0, 0.0, 1.0)
+		var c5 = sin(t * 523.2 * TAU) * 0.20 * clampf((t - 0.45) * 6.0, 0.0, 1.0)
+		# Bright harmonics (octave doublings)
+		var bright = sin(t * 523.2 * TAU) * 0.06 + sin(t * 659.2 * TAU) * 0.04 + sin(t * 784.0 * TAU) * 0.03
+		bright *= clampf((t - 0.5) * 4.0, 0.0, 1.0)
+		var sample = (c4 + e4 + g4 + c5 + bright) * env
+		var s16 = clampi(int(sample * 16000.0), -32768, 32767)
+		vf_data[i * 2] = s16 & 0xFF
+		vf_data[i * 2 + 1] = (s16 >> 8) & 0xFF
+	_sfx_victory_fanfare = AudioStreamWAV.new()
+	_sfx_victory_fanfare.format = AudioStreamWAV.FORMAT_16_BITS
+	_sfx_victory_fanfare.mix_rate = sr
+	_sfx_victory_fanfare.data = vf_data
 
 func _play_sfx(clip: AudioStreamWAV) -> void:
 	if sfx_muted or clip == null:
@@ -18099,6 +18188,10 @@ func _draw_menu_background() -> void:
 			_draw_spin_wheel_panel()
 		elif emporium_sub_category == 13:
 			_draw_merchant_panel()
+		elif emporium_sub_category == 14:
+			_draw_shop_panel()
+		elif emporium_sub_category == 15:
+			_draw_battle_pass_panel()
 		else:
 			_draw_emporium()
 	elif menu_current_view == "achievements":
@@ -21373,6 +21466,47 @@ func _draw_survivor_detail() -> void:
 			_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.12, 0.10, 0.18, 0.6), Color(0.25, 0.20, 0.35, 0.4), 1.5, 6.0)
 			_udraw(font, Vector2(port_x + 4, levelup_btn_y + 18), lvup_str, HORIZONTAL_ALIGNMENT_CENTER, int(xp_w - 8), 12, Color(0.5, 0.45, 0.55, 0.6))
 
+	# === #136: AWAKENING PROGRESS INDICATOR ===
+	var aw_indicator_y = levelup_btn_y + levelup_btn_h + 6.0
+	if AWAKENED_FORMS.has(tower_type):
+		if awakened_characters.get(tower_type, false):
+			# Already awakened — golden "AWAKENED" badge with glow
+			var aw_glow = 0.7 + sin(_time * 2.0) * 0.2
+			draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, 24), 6.0), Color(0.35, 0.28, 0.05, aw_glow * content_alpha))
+			draw_colored_polygon(_rrp(Rect2(port_x - 1, aw_indicator_y - 1, port_w + 2, 26), 7.0), _ca(c_gold, 0.6 * aw_glow * content_alpha))
+			draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, 24), 6.0), Color(0.35, 0.28, 0.05, aw_glow * content_alpha))
+			_udraw(font, Vector2(port_x + 4, aw_indicator_y + 17), "⭐ AWAKENED", HORIZONTAL_ALIGNMENT_CENTER, int(port_w - 8), 13, Color(1.0, 0.88, 0.15, content_alpha))
+		elif char_level >= MAX_SURVIVOR_LEVEL:
+			# At max level, show awakening quest progress
+			var aw_quests = AWAKENING_QUESTS.get(tower_type, [])
+			var aw_completed = _get_awakening_progress(tower_type)
+			var done_count = 0
+			for d in aw_completed:
+				if d: done_count += 1
+			var aw_ratio = float(done_count) / max(aw_quests.size(), 1)
+			draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, 22), 5.0), Color(0.08, 0.06, 0.14, content_alpha))
+			draw_colored_polygon(_rrp(Rect2(port_x - 1, aw_indicator_y - 1, port_w + 2, 24), 6.0), _ca(Color(0.6, 0.4, 0.8), 0.4 * content_alpha))
+			draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, 22), 5.0), Color(0.08, 0.06, 0.14, content_alpha))
+			if aw_ratio > 0:
+				var aw_fill_w = (port_w - 4) * aw_ratio
+				draw_colored_polygon(_rrp(Rect2(port_x + 2, aw_indicator_y + 2, aw_fill_w, 18), 4.0), _ca(Color(0.7, 0.5, 0.9), 0.8 * content_alpha))
+			_udraw(font, Vector2(port_x + 4, aw_indicator_y + 16), "Awakening: %d/%d quests" % [done_count, aw_quests.size()], HORIZONTAL_ALIGNMENT_CENTER, int(port_w - 8), 12, Color(0.9, 0.8, 1.0, content_alpha))
+		else:
+			# Not yet max level — show damage progress toward awakening quest
+			var total_dmg_aw = progress.get("total_damage", 0.0)
+			var aw_quests_aw = AWAKENING_QUESTS.get(tower_type, [])
+			var dmg_target = 0
+			for q in aw_quests_aw:
+				if q.get("type", "") == "total_damage":
+					dmg_target = q.get("target", 100000)
+			if dmg_target > 0:
+				var dmg_ratio = clamp(total_dmg_aw / float(dmg_target), 0.0, 1.0)
+				draw_colored_polygon(_rrp(Rect2(port_x, aw_indicator_y, port_w, 18), 4.0), Color(0.06, 0.05, 0.12, 0.6 * content_alpha))
+				if dmg_ratio > 0:
+					var dmg_fill_w = (port_w - 4) * dmg_ratio
+					draw_colored_polygon(_rrp(Rect2(port_x + 2, aw_indicator_y + 2, dmg_fill_w, 14), 3.0), _ca(Color(0.5, 0.35, 0.7), 0.5 * content_alpha))
+				_udraw(font, Vector2(port_x + 4, aw_indicator_y + 13), "Awakening: %s/%s dmg" % [_format_number(total_dmg_aw), _format_number(float(dmg_target))], HORIZONTAL_ALIGNMENT_CENTER, int(port_w - 8), 10, Color(0.7, 0.6, 0.8, 0.7 * content_alpha))
+
 	# ================================================================
 	# RIGHT SIDE: Weapon + Allies + Trinkets (ALL VISIBLE, no tabs)
 	# ================================================================
@@ -23501,6 +23635,17 @@ func _process(delta: float) -> void:
 						chest_opening_timer = 0.0
 						# Award base chest loot (guaranteed rewards)
 						_award_chest_loot()
+		# Shop timers (#111, #117)
+		if _shop_message_timer > 0.0:
+			_shop_message_timer -= delta
+			if _shop_message_timer <= 0.0:
+				_shop_message = ""
+		if _shop_confirm_timer > 0.0:
+			_shop_confirm_timer -= delta
+			if _shop_confirm_timer <= 0.0:
+				_shop_confirm_index = -1
+		if _shop_daily_deal_timer > 0.0:
+			_shop_daily_deal_timer -= delta
 		# Emporium sub-panel message timer
 		if emporium_sub_message_timer > 0.0:
 			emporium_sub_message_timer -= delta
@@ -23948,6 +24093,13 @@ func _process(delta: float) -> void:
 		if _build_effects[be_i]["timer"] <= 0.0:
 			_build_effects.remove_at(be_i)
 		be_i -= 1
+	# #85: Update death effects
+	var de_i = _death_effects.size() - 1
+	while de_i >= 0:
+		_death_effects[de_i]["timer"] -= delta
+		if _death_effects[de_i]["timer"] <= 0.0:
+			_death_effects.remove_at(de_i)
+		de_i -= 1
 	# Update victory burst
 	if _victory_burst_timer > 0.0:
 		_victory_burst_timer -= delta
@@ -25740,6 +25892,10 @@ func _input(event: InputEvent) -> void:
 				_on_spin_wheel_panel_clicked(mouse_pos)
 			elif emporium_sub_category == 13:
 				_on_merchant_panel_clicked(mouse_pos)
+			elif emporium_sub_category == 14:
+				_on_shop_panel_clicked(mouse_pos)
+			elif emporium_sub_category == 15:
+				_on_battle_pass_panel_clicked(mouse_pos)
 			elif emporium_sub_open:
 				_on_emporium_sub_input(mouse_pos)
 			elif emporium_hover_index >= 0:
@@ -25757,6 +25913,11 @@ func _input(event: InputEvent) -> void:
 					emporium_sub_category = 12
 				elif emporium_hover_index == 13:
 					emporium_sub_category = 13
+				elif emporium_hover_index == 14:
+					emporium_sub_category = 14
+					_generate_shop_daily_deal()
+				elif emporium_hover_index == 15:
+					emporium_sub_category = 15
 				else:
 					_on_emporium_tile_clicked(emporium_hover_index)
 			get_viewport().set_input_as_handled()
@@ -25829,6 +25990,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_on_spin_wheel_panel_clicked(mouse_pos)
 			elif emporium_sub_category == 13:
 				_on_merchant_panel_clicked(mouse_pos)
+			elif emporium_sub_category == 14:
+				_on_shop_panel_clicked(mouse_pos)
+			elif emporium_sub_category == 15:
+				_on_battle_pass_panel_clicked(mouse_pos)
 			elif emporium_sub_open:
 				_on_emporium_sub_input(mouse_pos)
 			elif emporium_hover_index >= 0:
@@ -25852,6 +26017,13 @@ func _unhandled_input(event: InputEvent) -> void:
 					queue_redraw()
 				elif emporium_hover_index == 13:
 					emporium_sub_category = 13
+					queue_redraw()
+				elif emporium_hover_index == 14:
+					emporium_sub_category = 14
+					_generate_shop_daily_deal()
+					queue_redraw()
+				elif emporium_hover_index == 15:
+					emporium_sub_category = 15
 					queue_redraw()
 				else:
 					_on_emporium_tile_clicked(emporium_hover_index)
@@ -26028,7 +26200,13 @@ func _try_place_tower(pos: Vector2) -> void:
 		"color": char_glow, "dust": dust_particles,
 		"tower_name": tower_info[_actual_tower]["name"]
 	})
-	_play_sfx(_sfx_ui_click)
+	# #92: Play character-specific placement sound if voice clips exist, else generic click
+	if not voices_muted and placement_voice_clips.has(_actual_tower) and placement_voice_clips[_actual_tower].size() > 0:
+		var _place_clips: Array = placement_voice_clips[_actual_tower]
+		catchphrase_player.stream = _place_clips[randi() % _place_clips.size()]
+		catchphrase_player.play()
+	else:
+		_play_sfx(_sfx_ui_click)
 	_haptic(1)
 	_screen_shake_intensity = 4.0
 	_screen_shake_timer = 0.15
@@ -26812,6 +26990,23 @@ func _draw() -> void:
 		var aoe_col = aoe["color"]
 		draw_arc(aoe["pos"], aoe_r, 0, TAU, 32, Color(aoe_col.r, aoe_col.g, aoe_col.b, aoe_alpha), 2.5)
 		draw_arc(aoe["pos"], aoe_r * 0.7, 0, TAU, 24, Color(aoe_col.r, aoe_col.g, aoe_col.b, aoe_alpha * 0.5), 1.5)
+
+	# === #85: ENEMY DEATH EFFECTS ===
+	for de in _death_effects:
+		var de_t = 1.0 - clampf(de["timer"] / 0.5, 0.0, 1.0)  # 0→1 over lifetime
+		var de_alpha = (1.0 - de_t) * 0.8
+		var de_col: Color = de["color"]
+		# Expanding ring
+		var ring_r = de["size"] * (0.5 + de_t * 2.0)
+		draw_arc(de["pos"], ring_r, 0, TAU, 24, Color(de_col.r, de_col.g, de_col.b, de_alpha), 2.0)
+		draw_arc(de["pos"], ring_r * 0.6, 0, TAU, 16, Color(de_col.r, de_col.g, de_col.b, de_alpha * 0.4), 1.0)
+		# Particles flying outward, shrinking
+		for dp in de["particles"]:
+			var dp_dist = dp["speed"] * de_t * 0.5
+			var dp_pos = de["pos"] + Vector2(cos(dp["angle"]), sin(dp["angle"])) * dp_dist
+			var dp_sz = dp["size"] * (1.0 - de_t)
+			if dp_sz > 0.3:
+				draw_circle(dp_pos, dp_sz, Color(de_col.r, de_col.g, de_col.b, de_alpha * 0.9))
 
 	# === CRITICAL HIT FLASHES ===
 	for crit in _crit_flashes:
@@ -38197,6 +38392,20 @@ func enemy_died(enemy_node = null) -> void:
 					closest_tt = _get_tower_type_from_node(tower) if d < 300.0 else -1
 		if closest_tt >= 0:
 			_spawn_kill_effect(closest_tt, enemy_node.global_position)
+	# #85: Enemy death visual effect — expanding ring + particles
+	if enemy_node and is_instance_valid(enemy_node):
+		var e_col = Color(0.6, 0.15, 0.15)  # Default red-ink
+		if "enemy_theme" in enemy_node:
+			match enemy_node.enemy_theme:
+				0, 7, 9: e_col = Color(0.2, 0.55, 0.2)   # Forest green
+				3: e_col = Color(0.2, 0.4, 0.7)            # Water blue
+				6, 11, 12: e_col = Color(0.35, 0.1, 0.45)  # Dark purple
+				16: e_col = Color(0.7, 0.6, 0.3)           # Egyptian gold
+		var particles: Array = []
+		for pi in range(randi_range(4, 6)):
+			var pa = TAU * float(pi) / 5.0 + randf() * 0.5
+			particles.append({"angle": pa, "speed": randf_range(60.0, 140.0), "size": randf_range(2.0, 4.0)})
+		_death_effects.append({"pos": enemy_node.global_position, "timer": 0.5, "color": e_col, "size": 12.0, "particles": particles})
 	# Improvement 7: Record in bestiary
 	_record_enemy_in_bestiary(enemy_node)
 	# Addiction: Kill combo
