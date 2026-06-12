@@ -33,18 +33,18 @@ var purchased_towers: Dictionary = {}
 var tower_buttons: Dictionary = {}
 
 var tower_info = {
-	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85},
-	TowerType.ALICE: {"name": "Alice", "cost": 120, "range": 85.0, "damage": 12, "fire_rate": 1.80},
-	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 140, "range": 154.0, "damage": 18, "fire_rate": 1.60},
-	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 130, "range": 100.0, "damage": 15, "fire_rate": 2.00},
-	TowerType.PHANTOM: {"name": "The Phantom", "cost": 150, "range": 180.0, "damage": 30, "fire_rate": 0.80},
-	TowerType.SCROOGE: {"name": "Scrooge", "cost": 80, "range": 65.0, "damage": 8, "fire_rate": 1.40},
-	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 160, "range": 188.0, "damage": 0, "fire_rate": 0.0},
-	TowerType.TARZAN: {"name": "Tarzan", "cost": 145, "range": 120.0, "damage": 28, "fire_rate": 0.80},
-	TowerType.DRACULA: {"name": "Count Dracula", "cost": 155, "range": 190.0, "damage": 22, "fire_rate": 1.50},
-	TowerType.MERLIN: {"name": "Merlin", "cost": 170, "range": 132.0, "damage": 25, "fire_rate": 1.00},
-	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 185, "range": 140.0, "damage": 32, "fire_rate": 0.60},
-	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 350, "range": 170.0, "damage": 25, "fire_rate": 1.20},
+	TowerType.ROBIN_HOOD: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85, "desc": "Balanced archer. Long range, reliable damage. The backbone of any defense."},
+	TowerType.ALICE: {"name": "Alice", "cost": 120, "range": 85.0, "damage": 12, "fire_rate": 1.80, "desc": "Support specialist. Cake slows enemies, buffs nearby towers. Low range, high utility."},
+	TowerType.WICKED_WITCH: {"name": "Wicked Witch", "cost": 140, "range": 154.0, "damage": 18, "fire_rate": 1.60, "desc": "AoE magic dealer. Green fire burns groups. Summons flying monkeys."},
+	TowerType.PETER_PAN: {"name": "Peter Pan", "cost": 130, "range": 100.0, "damage": 15, "fire_rate": 2.00, "desc": "Fast striker. Rapid dagger throws, fairy dust buffs. Low damage, high speed."},
+	TowerType.PHANTOM: {"name": "The Phantom", "cost": 150, "range": 180.0, "damage": 30, "fire_rate": 0.80, "desc": "Heavy hitter. Musical shockwaves deal massive single-target damage."},
+	TowerType.SCROOGE: {"name": "Scrooge", "cost": 80, "range": 65.0, "damage": 8, "fire_rate": 1.40, "desc": "Gold generator. Cheapest tower, doubles passive income. Invest early, profit late."},
+	TowerType.SHERLOCK: {"name": "Sherlock Holmes", "cost": 160, "range": 188.0, "damage": 0, "fire_rate": 0.0, "desc": "Intelligence tower. Marks enemies for bonus damage from ALL towers. No direct attack."},
+	TowerType.TARZAN: {"name": "Tarzan", "cost": 145, "range": 120.0, "damage": 28, "fire_rate": 0.80, "desc": "Melee brawler. High damage, medium range. Vine pulls enemies closer."},
+	TowerType.DRACULA: {"name": "Count Dracula", "cost": 155, "range": 190.0, "damage": 22, "fire_rate": 1.50, "desc": "Lifesteal assassin. Drains HP to heal player lives. Long range blood bolts."},
+	TowerType.MERLIN: {"name": "Merlin", "cost": 170, "range": 132.0, "damage": 25, "fire_rate": 1.00, "desc": "Arcane mage. Spell bolts chain between enemies. Freezes and shields allies."},
+	TowerType.FRANKENSTEIN: {"name": "The Monster", "cost": 185, "range": 140.0, "damage": 32, "fire_rate": 0.60, "desc": "Tank bruiser. Highest base damage, slowest attack. Lightning chains to nearby."},
+	TowerType.SHADOW_AUTHOR: {"name": "Shadow Author", "cost": 350, "range": 170.0, "damage": 25, "fire_rate": 1.20, "desc": "Reality warper. Ink attacks apply DoT, rewrite enemy stats. Expensive but game-changing."},
 	# === RECRUITABLE VILLAINS (ACT 1 story choices) ===
 	TowerType.CAPTAIN_HOOK: {"name": "Captain Hook", "cost": 180, "range": 155.0, "damage": 18, "fire_rate": 0.95, "desc": "Pirate captain with cutlass + cannon. Ranged broadside attacks."},
 	TowerType.QUEEN_OF_HEARTS: {"name": "Queen of Hearts", "cost": 200, "range": 140.0, "damage": 20, "fire_rate": 0.85, "desc": "Card army commander. Spawns card soldiers as allies."},
@@ -26255,9 +26255,85 @@ func _draw() -> void:
 					var sa = float(si) * PI / 2.0
 					draw_line(vp_pos, vp_pos + Vector2(cos(sa), sin(sa)) * vp["size"], vp_col, 1.5)
 
-	# === DEFEAT DRAMATIC EFFECT ===
+	# === VICTORY SCREEN OVERLAY (Item #44) ===
+	if game_state == GameState.GAME_OVER_STATE and _last_game_was_victory and _victory_overlay_data.size() > 0 and not victory_chest_active:
+		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.55))
+		# Confetti particles (colored rotating rectangles falling)
+		for cf in _victory_confetti:
+			var cf_pos = cf["pos"]
+			if cf_pos.y > -50 and cf_pos.y < 750:
+				var cf_col = cf["color"]
+				var cf_sz = cf["size"]
+				var cr = cf["rot"]
+				var dx_r = Vector2(cos(cr), sin(cr)) * cf_sz.x * 0.5
+				var dy_r = Vector2(-sin(cr), cos(cr)) * cf_sz.y * 0.5
+				var corners = [cf_pos - dx_r - dy_r, cf_pos + dx_r - dy_r, cf_pos + dx_r + dy_r, cf_pos - dx_r + dy_r]
+				for cfi in range(4):
+					draw_line(corners[cfi], corners[(cfi + 1) % 4], cf_col, 2.0)
+		# "VICTORY" title - gold with glow
+		var v_title_y = 100.0
+		_ds_outlined_text(Vector2(640, v_title_y), "VICTORY", 48, Color(1.0, 0.9, 0.2, 0.3), 1280, HORIZONTAL_ALIGNMENT_CENTER, 6)
+		_ds_outlined_text(Vector2(640, v_title_y), "VICTORY", 48, Color(1.0, 0.85, 0.0), 1280, HORIZONTAL_ALIGNMENT_CENTER, 3)
+		# Stars earned (1-3)
+		var v_stars = _victory_overlay_data.get("stars", 1)
+		var star_y = v_title_y + 55
+		var star_total_w = 3.0 * 36.0
+		var star_start_x = 640.0 - star_total_w * 0.5 + 18.0
+		for si in range(3):
+			var sx = star_start_x + float(si) * 36.0
+			if si < v_stars:
+				_ds_outlined_text(Vector2(sx - 14, star_y), "★", 28, Color(1.0, 0.85, 0.0), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
+			else:
+				_ds_outlined_text(Vector2(sx - 14, star_y), "☆", 28, Color(0.4, 0.35, 0.3), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		var stars_label = ["", "Completed", "Well Done!", "FLAWLESS!"][mini(v_stars, 3)]
+		_ds_outlined_text(Vector2(640, star_y + 32), stars_label, 16, Color(0.9, 0.85, 0.6), 1280, HORIZONTAL_ALIGNMENT_CENTER, 1)
+		# Stats summary panel
+		var sp_x = 390.0
+		var sp_y = star_y + 65.0
+		var sp_w = 500.0
+		var sp_h = 180.0
+		_ds_panel(Rect2(sp_x, sp_y, sp_w, sp_h), Color(0.03, 0.03, 0.08, 0.85), _ca(c_gold, 0.4), 2.0, 10.0)
+		var stat_y = sp_y + 18.0
+		var stat_left = sp_x + 24.0
+		var stat_right = sp_x + sp_w - 24.0
+		var stat_gap = 28.0
+		_ds_outlined_text(Vector2(stat_left, stat_y), "Total Damage", 14, Color(0.7, 0.7, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		_ds_outlined_text(Vector2(stat_right, stat_y), _format_number(_victory_overlay_data.get("total_damage", 0)), 14, c_gold_bright, -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+		stat_y += stat_gap
+		_ds_outlined_text(Vector2(stat_left, stat_y), "Gold Earned", 14, Color(0.7, 0.7, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		_ds_outlined_text(Vector2(stat_right, stat_y), str(_victory_overlay_data.get("gold_earned", 0)) + "G", 14, Color(1.0, 0.9, 0.3), -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+		stat_y += stat_gap
+		_ds_outlined_text(Vector2(stat_left, stat_y), "Waves Cleared", 14, Color(0.7, 0.7, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		var v_waves = _victory_overlay_data.get("waves", 0)
+		var v_tw = _victory_overlay_data.get("total_waves", 0)
+		_ds_outlined_text(Vector2(stat_right, stat_y), "%d / %d" % [v_waves, v_tw], 14, Color(0.4, 1.0, 0.5), -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+		stat_y += stat_gap
+		_ds_outlined_text(Vector2(stat_left, stat_y), "Lives Lost", 14, Color(0.7, 0.7, 0.8), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		var v_ll = _victory_overlay_data.get("lives_lost", 0)
+		var ll_color = Color(0.4, 1.0, 0.5) if v_ll == 0 else Color(1.0, 0.7, 0.3)
+		_ds_outlined_text(Vector2(stat_right, stat_y), str(v_ll), 14, ll_color, -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+		stat_y += stat_gap + 6.0
+		# MVP Tower
+		var v_mvp_name = _victory_overlay_data.get("mvp_name", "None")
+		var v_mvp_dmg = _victory_overlay_data.get("mvp_damage", 0.0)
+		draw_rect(Rect2(stat_left, stat_y - 4, sp_w - 48, 1), _ca(c_gold, 0.2))
+		stat_y += 6.0
+		_ds_outlined_text(Vector2(stat_left, stat_y), "MVP", 12, Color(1.0, 0.85, 0.2), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		_ds_outlined_text(Vector2(stat_left + 40, stat_y), "⭐ %s — %s dmg" % [v_mvp_name, _format_number(v_mvp_dmg)], 14, c_gold_bright, -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		# "Next Level" and "Replay" button areas (visual - actual nav uses return/retry buttons)
+		var btn_y = sp_y + sp_h + 24.0
+		var btn_w = 160.0
+		var btn_h = 44.0
+		var next_x = 640.0 - btn_w - 16.0
+		_ds_panel(Rect2(next_x, btn_y, btn_w, btn_h), Color(0.12, 0.35, 0.15, 0.9), Color(0.3, 0.8, 0.3, 0.6), 2.0, 8.0)
+		_ds_outlined_text(Vector2(next_x + btn_w * 0.5, btn_y + 12), "Next Level", 16, Color(0.3, 1.0, 0.4), btn_w, HORIZONTAL_ALIGNMENT_CENTER, 2)
+		var replay_x = 640.0 + 16.0
+		_ds_panel(Rect2(replay_x, btn_y, btn_w, btn_h), Color(0.3, 0.2, 0.08, 0.9), _ca(c_gold, 0.6), 2.0, 8.0)
+		_ds_outlined_text(Vector2(replay_x + btn_w * 0.5, btn_y + 12), "Replay", 16, c_gold_bright, btn_w, HORIZONTAL_ALIGNMENT_CENTER, 2)
+
+	# === DEFEAT SCREEN OVERLAY (Item #45) ===
 	if _defeat_timer > 0.0:
-		var df_t = 1.0 - clampf(_defeat_timer / 3.0, 0.0, 1.0)
+		var df_t = 1.0 - clampf(_defeat_timer / 4.0, 0.0, 1.0)
 		var df_alpha = clampf(df_t * 1.5, 0.0, 1.0)
 		# Progressive edge vignette (5 darkening layers)
 		for di in range(5):
@@ -26267,20 +26343,51 @@ func _draw() -> void:
 			draw_rect(Rect2(0, 720 - d_thick, 1280, d_thick), Color(0, 0, 0, d_a))
 			draw_rect(Rect2(0, 0, d_thick, 720), Color(0, 0, 0, d_a))
 			draw_rect(Rect2(1280 - d_thick, 0, d_thick, 720), Color(0, 0, 0, d_a))
-		# Animated crack lines (appear sequentially)
+		# Shattered glass crack lines (appear sequentially with branching)
 		for ci in range(_defeat_cracks.size()):
-			var crack_reveal = clampf(df_t * 10.0 - float(ci) * 0.8, 0.0, 1.0)
+			var crack_reveal = clampf(df_t * 8.0 - float(ci) * 0.4, 0.0, 1.0)
 			if crack_reveal > 0.0:
 				var c = _defeat_cracks[ci]
 				var c_end = c["from"] + (c["to"] - c["from"]) * crack_reveal
-				draw_line(c["from"], c_end, Color(0.15, 0.05, 0.05, df_alpha * 0.7), 2.0)
-				draw_line(c["from"], c_end, Color(0.5, 0.1, 0.05, df_alpha * 0.3), 1.0)
+				# Glass-like crack (white highlight + dark shadow for depth)
+				draw_line(c["from"], c_end, Color(0.7, 0.7, 0.75, df_alpha * 0.6), 2.0)
+				draw_line(c["from"], c_end, Color(1.0, 1.0, 1.0, df_alpha * 0.2), 1.0)
+				draw_line(c["from"] + Vector2(1, 1), c_end + Vector2(1, 1), Color(0.1, 0.0, 0.0, df_alpha * 0.3), 1.5)
 		# Red ink drip streaks from top
 		for di in range(8):
 			var dx = 80.0 + float(di) * 145.0
 			var drip_len = df_alpha * (60.0 + float(di % 3) * 30.0)
 			draw_line(Vector2(dx, 0), Vector2(dx, drip_len), Color(0.6, 0.05, 0.02, df_alpha * 0.4), 3.0)
 			draw_circle(Vector2(dx, drip_len), 2.5, Color(0.6, 0.05, 0.02, df_alpha * 0.5))
+		# Dark overlay behind text (fades in after cracks)
+		if df_alpha > 0.4:
+			var overlay_a = clampf((df_alpha - 0.4) * 1.5, 0.0, 0.5)
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0, 0, overlay_a))
+		# "DEFEAT" title + stats (appears after initial crack animation)
+		if df_alpha > 0.5:
+			var title_a = clampf((df_alpha - 0.5) * 3.0, 0.0, 1.0)
+			# Red glow behind title
+			_ds_outlined_text(Vector2(640, 140), "DEFEAT", 52, Color(0.8, 0.1, 0.05, title_a * 0.3), 1280, HORIZONTAL_ALIGNMENT_CENTER, 8)
+			_ds_outlined_text(Vector2(640, 140), "DEFEAT", 52, Color(1.0, 0.15, 0.08, title_a), 1280, HORIZONTAL_ALIGNMENT_CENTER, 3)
+			# "You survived X of Y waves"
+			if _defeat_overlay_data.size() > 0:
+				var d_wave = _defeat_overlay_data.get("wave", 0)
+				var d_total = _defeat_overlay_data.get("total_waves", 0)
+				var d_kills = _defeat_overlay_data.get("kills", 0)
+				var d_towers = _defeat_overlay_data.get("towers", 0)
+				_ds_outlined_text(Vector2(640, 210), "You survived %d of %d waves" % [d_wave, d_total], 18, Color(0.8, 0.7, 0.65, title_a), 1280, HORIZONTAL_ALIGNMENT_CENTER, 2)
+				_ds_outlined_text(Vector2(640, 250), "%d Kills  |  %d Towers" % [d_kills, d_towers], 14, Color(0.6, 0.55, 0.5, title_a), 1280, HORIZONTAL_ALIGNMENT_CENTER, 1)
+			# "Retry" and "Menu" button areas (visual - actual buttons are return_button/retry_button)
+			if title_a > 0.8:
+				var dbtn_y = 310.0
+				var dbtn_w = 140.0
+				var dbtn_h = 42.0
+				var retry_x = 640.0 - dbtn_w - 16.0
+				_ds_panel(Rect2(retry_x, dbtn_y, dbtn_w, dbtn_h), Color(0.35, 0.08, 0.06, 0.85), Color(0.8, 0.2, 0.15, 0.6), 2.0, 8.0)
+				_ds_outlined_text(Vector2(retry_x + dbtn_w * 0.5, dbtn_y + 11), "Retry", 16, Color(1.0, 0.4, 0.3), dbtn_w, HORIZONTAL_ALIGNMENT_CENTER, 2)
+				var menu_x = 640.0 + 16.0
+				_ds_panel(Rect2(menu_x, dbtn_y, dbtn_w, dbtn_h), Color(0.12, 0.1, 0.15, 0.85), Color(0.5, 0.45, 0.5, 0.5), 2.0, 8.0)
+				_ds_outlined_text(Vector2(menu_x + dbtn_w * 0.5, dbtn_y + 11), "Menu", 16, Color(0.7, 0.65, 0.7), dbtn_w, HORIZONTAL_ALIGNMENT_CENTER, 2)
 
 	# === VICTORY CHEST OVERLAY (draws over everything in GAME_OVER too) ===
 	if chest_opening_active and victory_chest_active:
