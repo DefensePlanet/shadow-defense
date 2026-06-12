@@ -2876,6 +2876,16 @@ func _get_loyalty_tier() -> Dictionary:
 func _get_vip_loyalty_bonus() -> float:
 	return _get_loyalty_tier()["bonus"]
 
+# === ITEM #33: RECOMMENDED TOWERS FOR NEW PLAYERS ===
+const RECOMMENDED_TOWERS: Dictionary = {0: TowerType.ROBIN_HOOD, 1: TowerType.ROBIN_HOOD, 2: TowerType.WICKED_WITCH, 3: TowerType.ALICE, 4: TowerType.ROBIN_HOOD, 5: TowerType.PETER_PAN}
+
+# === ITEM #38: TOWER SYNERGY PAIRS (convenient lookup) ===
+const TOWER_SYNERGY_PAIRS = [
+	{"towers": [TowerType.ALICE, TowerType.PHANTOM], "name": "Musical Wonder", "bonus": "+10% damage"},
+	{"towers": [TowerType.DRACULA, TowerType.FRANKENSTEIN], "name": "Monster Brothers", "bonus": "+15% range"},
+	{"towers": [TowerType.ROBIN_HOOD, TowerType.SHERLOCK], "name": "British Intelligence", "bonus": "+20% crit"},
+]
+
 # === TOWER SYNERGIES ===
 var synergy_definitions: Array = []
 var active_synergies: Array = []
@@ -6516,7 +6526,10 @@ func _save_game() -> void:
 	save_data["rival_data"] = rival_data
 	save_data["player_rivalry_score"] = player_rivalry_score
 	save_data["addiction_weekly_quests"] = _addiction_weekly_quests
-	# Accessibility settings
+	# Accessibility settings — sync from GameSettings
+	if GameSettings:
+		_colorblind_mode = GameSettings.colorblind_mode
+		_text_scale = GameSettings.font_scale
 	save_data["colorblind_mode"] = _colorblind_mode
 	save_data["text_scale"] = _text_scale
 	save_data["quality_level"] = _quality_level
