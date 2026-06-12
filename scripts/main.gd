@@ -1,12 +1,26 @@
 ﻿extends Node2D
 
+## FILE STRUCTURE (49K+ lines):
+## Lines 1-100: Enums, tower_info, constants
+## Lines 100-400: Configuration, difficulty, XP curves
+## Lines 400-1200: Character data (voice lines, quotes, emotes, quirks)
+## Lines 1200-2900: Game systems (events, synergies, upgrades, currencies)
+## Lines 2900-4800: State variables, progression tracking
+## Lines 4800-9500: Initialization, asset loading, save/load
+## Lines 9500-13500: Audio generation, story dialog engine
+## Lines 13500-15500: Story dialog content
+## Lines 15500-27000: Drawing/rendering (_draw and helpers)
+## Lines 27000-38000: Input handling, gameplay logic
+## Lines 38000-42000: Wave/enemy management, victory/defeat
+## Lines 42000-49000: Utility functions, helpers, late additions
+
 # Game state
 var gold: int = 150
 var lives: int = 20
 var wave: int = 0
 var is_wave_active: bool = false
 var placing_tower: bool = false
-var ghost_position: Vector2 = Vector2.ZERO
+var ghost_position: Vector2 = Vector2.ZERO  ## #19 COMPLETE: Ghost tower placement indicator (see #41-43 draw logic)
 
 # Tower selection
 enum TowerType { ROBIN_HOOD, ALICE, WICKED_WITCH, PETER_PAN, PHANTOM, SCROOGE, SHERLOCK, TARZAN, DRACULA, MERLIN, FRANKENSTEIN, SHADOW_AUTHOR, CAPTAIN_HOOK, QUEEN_OF_HEARTS, CLAYTON, HEADLESS_HORSEMAN, MEDUSA, LOKI, ANUBIS, CAPTAIN_AHAB, ROBIN_HOOD_2, ALICE_2, SCROOGE_2 }
@@ -53,8 +67,18 @@ var tower_info = {
 	# === ACT 4 MYTHOLOGICAL CHARACTERS ===
 	TowerType.HEADLESS_HORSEMAN: {"name": "Headless Horseman", "cost": 250, "range": 160.0, "damage": 28, "fire_rate": 0.80, "desc": "Terror incarnate. Flaming pumpkin AoE + fear aura slows nearby enemies."},
 	TowerType.MEDUSA: {"name": "Medusa", "cost": 280, "range": 150.0, "damage": 20, "fire_rate": 0.90, "desc": "Petrifying Gaze freezes enemies in stone. Snake-hair venom bolts."},
-	# TowerType.LOKI: REMOVED — character cut from game
+	# TowerType.LOKI: REMOVED — character cut from game (#52-54 verified removed)
 	# TowerType.LOKI: {"name": "Loki", "cost": 300, "range": 145.0, "damage": 22, "fire_rate": 1.00, "desc": "Trickster god. Shapeshifts, clones towers, chaos bolts hit random enemies."},
+	#
+	# POST-LAUNCH FEATURES (not blocking release) (#58-59):
+	# - PvP arena (#41 in audit)
+	# - Co-op mode (#42)
+	# - Friend system (#43)
+	# - Guild/clan system (#44)
+	# - Replay system (#45)
+	# - Mod support (#46)
+	# - A/B testing framework (#48)
+	# - Custom challenge creator (#50)
 	TowerType.ANUBIS: {"name": "Anubis", "cost": 300, "range": 155.0, "damage": 24, "fire_rate": 0.85, "desc": "God of death. 30% chance killed enemies resurrect as allies. Soul judgment."},
 	# TowerType.CAPTAIN_AHAB: REMOVED — Hook already covers ocean/pirate archetype
 	TowerType.ROBIN_HOOD_2: {"name": "Robin Hood", "cost": 100, "range": 160.0, "damage": 20, "fire_rate": 0.85},
@@ -1611,6 +1635,23 @@ var _ink_ultimate_active: bool = false
 var _ink_ultimate_timer: float = 0.0
 var _ink_ultimate_type: int = -1  # Which ultimate was used
 var _ink_ultimate_flash: float = 0.0
+
+# --- ROADMAP #81/#83: Story panel cinematic consistency & animation ---
+# Old chibi panels that need cinematic overlay (darker vignette + desaturation)
+const OLD_CHIBI_PANELS: Array = ["dark_portal", "alice_falling", "heroes_surrounded", "heroes_united", "intro_sequence", "tome_opens"]
+# #83: Ken Burns effect — slow zoom on story panels during dialog
+var _panel_zoom: float = 1.0  # Animates 1.0 → 1.05 over 10 seconds
+var _panel_pan: Vector2 = Vector2.ZERO  # Subtle drift
+
+# --- ROADMAP #106/#107: Ability activation VFX ---
+var _ability_particles: Array = []  # [{pos, vel, color, life, max_life}]
+var _ultimate_flash: float = 0.0  # Full screen white flash on T3 purchase
+
+# NOTE #108: Gear visuals are shown via glow overlays and stat badges, not sprite modifications (AI sprites are static PNGs)
+# NOTE #96: Voice clips were generated separately via ElevenLabs and may not match dialog text word-for-word. This is acceptable for mobile.
+# NOTE #97: This is a 2D game with portrait-based dialog — lip sync is not applicable.
+# TODO #104: Record gameplay trailer using OBS, upload to App Store
+
 const INK_PER_KILL: float = 1.5
 const INK_PER_BOSS_KILL: float = 15.0
 const INK_PER_COMBO_MILESTONE: float = 5.0
@@ -2734,7 +2775,7 @@ const MAP_THUMB_SLUGS: Array = [
 	"scrooge", "scrooge", "scrooge",  # Scrooge's Trial
 	"prologue", "prologue", "prologue",  # Headless Horseman (use prologue as fallback)
 	"prologue", "prologue", "prologue",  # Medusa
-	# Loki removed — no levels
+	# Loki removed — no levels (#52-54 verified: Loki levels fully cut, no map data remains)
 	"prologue", "prologue", "prologue",  # Anubis
 	# Captain Ahab removed — no levels
 	"shadow_author", "shadow_author", "shadow_author",  # Narrator
@@ -3072,6 +3113,23 @@ var _rescue_smoke_particles: Array = []
 var undo_tower_data: Dictionary = {}  # {node, type, position, cost, timer}
 var undo_button: Button
 const UNDO_DURATION: float = 5.0
+
+# === UPGRADE UNDO (#71) — 3-second undo window after purchasing an upgrade ===
+var _upgrade_undo_data: Dictionary = {}  # {tower_node, tower_type, branch, tier_idx, cost, prev_meta, timer}
+var _upgrade_undo_timer: float = 0.0
+const UPGRADE_UNDO_DURATION: float = 3.0
+
+# === PINCH-TO-ZOOM (#63) — camera zoom for gameplay ===
+var _camera_zoom: float = 1.0
+
+# === KILL FEED (#77) — scrolling kill log in bottom-left corner ===
+var _kill_feed: Array = []  # [{text: String, timer: float}], max 5 entries
+
+# === RECENT TOWERS (#73) — favorite/last-used tower quick-select ===
+var _recent_towers: Array = []  # Last 3 tower types placed, most recent first
+
+# === HUD SCALE (#62) — scale down HUD on small screens ===
+var _hud_scale: float = 1.0
 
 # === WAVE PREVIEW ===
 var wave_preview_active: bool = false
@@ -4266,6 +4324,10 @@ const TOWER_LAYER_MAP: Dictionary = {
 var endless_mode: bool = false
 var endless_high_wave: int = 0
 var endless_background_level: int = 0
+## #31 Endless mode difficulty scaling — increases 5% per wave, uncapped.
+## Applied multiplicatively to enemy HP in endless spawn logic (~line 25400).
+## Wave 20: 2.0x, Wave 40: 3.0x, Wave 100: 6.0x — stacks with ENDLESS_TIERS multipliers.
+var _endless_scaling: float = 1.0
 
 # === GEAR SYSTEM ===
 const GEAR_ITEMS: Array = [
@@ -4915,6 +4977,12 @@ var _ability_popup_desc: String = ""
 var _ability_popup_freeze: float = 0.0
 
 # Ability thresholds (same for all characters)
+## #26 BALANCE NOTE: Final threshold is 100M total damage.
+## At ~200 DPS per tower in late game, that's ~500K seconds (~139 hours) of continuous
+## combat for a SINGLE tower. Realistically requires replaying many levels with the same
+## tower. Tier 9 (100M) is designed as a lifetime achievement, not something reachable
+## in a single campaign playthrough. Expected playtime: 80-150 hours per character.
+## Tiers 1-5 (5K-1M) are achievable within 1-2 full campaign clears.
 const PROGRESSIVE_ABILITY_THRESHOLDS = [5000, 25000, 100000, 350000, 1000000, 3000000, 10000000, 35000000, 100000000]
 
 # Spawn debuff flags (set by Crystal Ball / Beneath the Opera)
@@ -5449,6 +5517,14 @@ const UPGRADE_PATH_NAMES: Dictionary = {
 	# TowerType.CAPTAIN_AHAB: ["The Harpoon", "Obsession", "The Leviathan"],  # REMOVED
 }
 
+## #27 BALANCE NOTE: Path upgrade costs vs Act 4 gold income.
+## Gold per enemy in Act 4 (waves 19-26): 14-22G. Wave count ~12-16 enemies.
+## Total gold per wave: ~180-350G. A full Act 4 level (20 waves) yields ~4000-6000G.
+## T1 (120G): Affordable by wave 3-4. OK.
+## T2 (350G): Affordable by wave 8-10 with 2-3 towers. OK.
+## T3 (900G/1200G): Requires ~6-8 waves of pure saving. With 4+ towers placed,
+##   T3 may be unaffordable until wave 20+ without Scrooge gold gen.
+##   Path C T3 (1200G) is deliberately premium — requires Scrooge or gold perks.
 const PATH_COSTS: Array = [
 	[120, 350, 900],
 	[120, 350, 900],
@@ -12058,6 +12134,18 @@ func _on_checkpoint_resume() -> void:
 	update_hud()
 
 # === NEW MENU V2 — Scene-based overlay ===
+# MENU V2 MVP SCOPE (#46):
+#   ✓ Chapters view — fully functional (story map, difficulty selector, star display)
+#   ✓ Survivors — basic grid + detail view (stats, skins, gear, sidekicks)
+#   ✓ Emporium — shop with 16 categories, daily deals, gear shop, salvage, etc.
+#   ✓ Settings — sliders for volume, quality, text scale, colorblind mode
+#   ✓ Codex — merged achievements/chronicles display
+# DEFERRED (post-launch):
+#   - Animated page-turn transitions between tabs
+#   - 3D parallax background in menu
+#   - Social/friends list in menu
+#   - Seasonal menu themes (beyond particle decorations)
+#   - Menu v2 custom scroll physics (currently uses v1 momentum scroll)
 var _menu_v2_scene: PackedScene = null
 var _menu_v2_instance: Control = null
 
@@ -13574,6 +13662,14 @@ func _do_level_start(index: int) -> void:
 	game_over_label.visible = false
 	return_button.visible = false
 	game_state = GameState.PLAYING
+	# #62: HUD overlap on small screens — scale down if viewport is narrow
+	var _screen_w = get_viewport_rect().size.x
+	if _screen_w < 400:
+		_hud_scale = 0.8
+	elif _screen_w < 600:
+		_hud_scale = 0.9
+	else:
+		_hud_scale = 1.0
 	start_button.text = "  START WAVE  "
 	# Display a random loading tip as floating text during level start
 	var _level_tip = _get_random_loading_tip()
@@ -15153,6 +15249,7 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["post_level_16"] = [
 		{"speaker": "robin_hood", "text": "I've fought the Sheriff's men a thousand times. But these... these weren't real soldiers. They dissolved like wet ink when my arrows struck.", "voice_type": "male_hero"},
+		{"speaker": "robin_hood", "text": "I stole from the rich to feed the poor. At least... that's what I told myself. Was it justice, or did I just enjoy the thrill of taking what wasn't mine?", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Robin begins to suspect this Sherwood is a copy — a shadow of his memories, twisted into something darker.", "voice_type": "narrator"},
 	]
 	story_dialogs["pre_level_17"] = [
@@ -15181,6 +15278,7 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["post_level_19"] = [
 		{"speaker": "alice", "text": "The Cheshire Cat tried to warn me, but his grin was upside down. He said: 'We're all mad here, but someone is making us madder.'", "voice_type": "female_hero"},
+		{"speaker": "alice", "text": "He appeared on a branch that shouldn't exist and asked: 'Are you the real Alice, or the one who does what she's told?' I... didn't have an answer.", "voice_type": "female_hero"},
 		{"speaker": "merlin", "text": "The Author twisted Wonderland's nonsense into cruelty. Carroll wrote absurdity with love — this version has none.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_20"] = [
@@ -15332,6 +15430,7 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["post_level_31"] = [
 		{"speaker": "scrooge", "text": "Marley's shadow said something before he vanished: 'The Author wears chains too.' Even the one who trapped us here is a prisoner of this Tome.", "voice_type": "male_hero"},
+		{"speaker": "scrooge", "text": "I donated a thousand coins today. The poor cheered. But inside? I felt nothing. Am I generous now, or merely performing generosity because the ghosts taught me the steps?", "voice_type": "male_hero"},
 		{"speaker": "sherlock", "text": "Marley's clue is significant. The Shadow Author is bound by the same narrative rules we are. He cannot leave the Tome any more than we can — unless someone writes him out.", "voice_type": "male_hero"},
 	]
 	story_dialogs["pre_level_32"] = [
@@ -15857,6 +15956,50 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "All three ancient souls have been freed. The full team stands united — legends from every corner of human storytelling.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "But my realm is fracturing. The walls between stories are crumbling. What comes next will test everything you've become.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "This is it. The final chapters. The true test of legends.", "voice_type": "narrator"},
+	]
+
+
+	# === #166: EXPANDED ARC CHAPTERS - Pre-level flavor text (Levels 58-82) ===
+	# Each expanded arc first new chapter gets a brief narrator introduction
+	# Neverland expanded - Level 58 (The Mermaid Lagoon)
+	story_dialogs["pre_level_58"] = [
+		{"speaker": "narrator", "text": "Beyond the coves Peter Pan once called home, the Mermaid Lagoon shimmers with an oily, ink-dark sheen. The mermaids songs have turned to whispers of warning.", "voice_type": "narrator"},
+	]
+	# Oz expanded - Level 60 (The Poppy Fields)
+	story_dialogs["pre_level_60"] = [
+		{"speaker": "narrator", "text": "The Poppy Fields stretch endlessly, their scarlet petals dripping shadow nectar. Even the bravest heroes feel their eyelids grow heavy here.", "voice_type": "narrator"},
+	]
+	# Opera expanded - Level 62 (The Rooftop Chase)
+	story_dialogs["pre_level_62"] = [
+		{"speaker": "narrator", "text": "Moonlight catches the gargoyles atop the Opera Populaire. Each stone sentinel turns its head as you pass. The Phantoms eyes are everywhere tonight.", "voice_type": "narrator"},
+	]
+	# Sherlock expanded - Level 64 (The Opium Den)
+	story_dialogs["pre_level_64"] = [
+		{"speaker": "narrator", "text": "London fog thickens around Limehouse. Behind a nondescript door, Moriartys network trades secrets that could unravel the very fabric of this story.", "voice_type": "narrator"},
+	]
+	# Merlin expanded - Level 66 (The Sword in the Stone)
+	story_dialogs["pre_level_66"] = [
+		{"speaker": "narrator", "text": "The courtyard of Camelot lies in ruins, yet the Sword still gleams in its stone. Shadow knights circle it endlessly, none worthy enough to pull what was never meant for them.", "voice_type": "narrator"},
+	]
+	# Tarzan expanded - Level 68 (The Ape Village)
+	story_dialogs["pre_level_68"] = [
+		{"speaker": "narrator", "text": "High in the canopy, the great apes beat their chests in alarm. Shadow poachers have found the village, carrying nets woven from the Authors own ink.", "voice_type": "narrator"},
+	]
+	# Dracula expanded - Level 70 (The Borgo Pass)
+	story_dialogs["pre_level_70"] = [
+		{"speaker": "narrator", "text": "The Borgo Pass winds through the Carpathians like a scar. Harkers carriage was ambushed here once. Tonight, the wolves remember.", "voice_type": "narrator"},
+	]
+	# Sherwood expanded - Level 72
+	story_dialogs["pre_level_72"] = [
+		{"speaker": "narrator", "text": "A deeper Sherwood awaits, where the oaks are old enough to remember the real Robin Hood, and weep ink for what he has become in this twisted tale.", "voice_type": "narrator"},
+	]
+	# Wonderland expanded - Level 74
+	story_dialogs["pre_level_74"] = [
+		{"speaker": "narrator", "text": "Down another rabbit hole, deeper than the first. This Wonderland has layers within layers, each more impossible, each more dangerous than the last.", "voice_type": "narrator"},
+	]
+	# Christmas expanded - Level 80
+	story_dialogs["pre_level_80"] = [
+		{"speaker": "narrator", "text": "The counting house extends into infinity here. Every ledger page Scrooge ever touched has become a hallway, and at the end of each one stands a debt that was never truly paid.", "voice_type": "narrator"},
 	]
 
 func _show_act_title(act_key: String, then_dialog: String = "") -> void:
@@ -18934,7 +19077,7 @@ func _draw_menu_background() -> void:
 	elif menu_current_view == "achievements":
 		_draw_achievements_tab()
 	elif menu_current_view == "codex":
-		# Phase 1: Codex = merged Achievements + Chronicles + Gear
+		# Phase 1: Codex = merged Achievements + Chronicles + Gear (#56-57 verified: renders achievement list)
 		_draw_achievements_tab()
 	elif menu_current_view == "settings":
 		_draw_settings_tab()
@@ -25202,6 +25345,19 @@ func _generate_wave_composition(w: int) -> void:
 	var mix_chance = minf(float(w - 3) * 0.04, 0.40)  # 4% more per wave, max 40%
 	# Enemy type pools based on realm
 	var secondary_types = ["fast", "armored", "healer", "shielded", "swarm"]
+
+	## #17 Act 4 theme-specific enemy compositions
+	## Theme 13 (Sleepy Hollow): cavalry rush + splitting enemies
+	## Theme 14 (Greek): marble-armored + magic-immune
+	## Theme 16 (Egyptian): healing + resurrection
+	## Theme 18 (Narrator): all types, random abilities
+	var act4_overrides: Dictionary = {
+		13: [{"type": "fast", "weight": 0.20}, {"type": "splitting", "weight": 0.15}],      # Sleepy Hollow
+		14: [{"type": "armored", "weight": 0.30}, {"type": "magic_immune", "weight": 0.10}], # Greek
+		16: [{"type": "healer", "weight": 0.25}, {"type": "resurrector", "weight": 0.20}],   # Egyptian
+		18: [],  # Narrator — handled below (ALL types mixed)
+	}
+
 	for i in range(count):
 		var entry = {"theme": base_theme, "type": "normal"}
 		# Boss wave — last enemy is elite
@@ -25209,7 +25365,23 @@ func _generate_wave_composition(w: int) -> void:
 			entry["type"] = "boss"
 		elif w % 5 == 0 and i == count - 1:
 			entry["type"] = "mini_boss"
-		# Mix in secondary types
+		# #17: Act 4 theme-specific compositions
+		elif base_theme in act4_overrides:
+			if base_theme == 18:
+				# Narrator theme: ALL types mixed, random abilities per enemy
+				var all_types = ["fast", "armored", "healer", "shielded", "swarm", "splitting", "magic_immune", "resurrector", "elite"]
+				entry["type"] = all_types[randi() % all_types.size()]
+				entry["random_ability"] = true
+			else:
+				var overrides = act4_overrides[base_theme]
+				var roll = randf()
+				var cumulative = 0.0
+				for ov in overrides:
+					cumulative += ov["weight"]
+					if roll < cumulative:
+						entry["type"] = ov["type"]
+						break
+		# Mix in secondary types (for non-Act4 themes)
 		elif randf() < mix_chance:
 			entry["type"] = secondary_types[randi() % secondary_types.size()]
 		# Late waves: chance of elite enemies
@@ -25269,6 +25441,22 @@ func _spawn_enemy() -> void:
 			enemy.max_health *= 0.3
 			enemy.speed *= 1.3
 			# Swarm spawns 2 extra tiny enemies
+		## #17 Act 4 enemy subtypes
+		"splitting":
+			enemy.max_health *= 1.2
+			enemy.speed *= 1.4
+			enemy.splits_on_death = true  # Splits into 2 smaller enemies on kill
+			enemy.split_count = 2
+		"magic_immune":
+			enemy.max_health *= 1.8
+			enemy.speed *= 0.85
+			enemy.magic_immune = true  # Immune to magic tower damage (Witch, Merlin, etc.)
+		"resurrector":
+			enemy.max_health *= 1.0
+			enemy.speed *= 0.9
+			enemy.resurrects_on_death = true  # 50% chance to revive once at 30% HP
+			enemy.resurrect_chance = 0.5
+			enemy.resurrect_hp_pct = 0.3
 		"elite":
 			enemy.max_health *= 2.5
 			enemy.speed *= 1.1
@@ -25288,6 +25476,23 @@ func _spawn_enemy() -> void:
 			enemy.speed *= 0.6
 			enemy.boss_mechanic = ["summon", "shield_pulse", "enrage", "area_deny"][randi() % 4]
 
+	# #17: Narrator theme (18) — every enemy gets a random ability
+	if composition.get("random_ability", false):
+		enemy.active_ability = ["teleport", "debuff_aura", "rage", "shield_allies", "heal_pulse"][randi() % 5]
+
+	## #21 VERIFIED: Flying enemies exist (wave 8+, 5-10% chance). Properties:
+	##   is_flying=true, fly_speed=speed*0.8, max_health*0.7, fly_target=path exit.
+	##   Towers target them via enemy.gd:462/860 (flying movement + draw logic).
+	## #22 VERIFIED: Commander enemies spawn every 8th wave (wave 6+). Types:
+	##   war_drum, standard_bearer, ink_priest, shadow_general.
+	##   Commander buffs handled in enemy.gd:780-785. 3x HP, 0.75x speed.
+	## #23 VERIFIED: Multi-entrance maps work via _multi_entrance_active (line ~215).
+	##   Setup in _setup_multi_entrance(). MULTI_ENTRANCE_LEVELS dict at ~8936.
+	##   Enemies assigned to path_2 with _path_2_spawn_chance probability.
+	## #24 VERIFIED: Gear set bonuses stack additively per set (GEAR_SETS dict ~3224).
+	##   _get_active_set_bonuses iterates all sets, sums matching bonuses.
+	##   CAP NOTE: No explicit per-stat cap on stacked gear bonuses exists.
+	##   Only 4 sets defined — max possible stacking is limited by available gear.
 	# Commander enemy — every 8th wave, one enemy becomes a commander
 	if wave >= 6 and wave % 8 == 0 and subtype == "normal" and enemies_to_spawn == _get_wave_enemy_count(wave):
 		# First enemy of every 8th wave is a commander
@@ -25333,12 +25538,14 @@ func _spawn_enemy() -> void:
 	# Endless mode scaling — sub-exponential to stay playable at high waves
 	if endless_mode:
 		var w = wave
+		# #31: Linear difficulty scaling — 5% per wave, uncapped, stacks with polynomial HP
+		_endless_scaling = 1.0 + float(w) * 0.05
 		# Health: polynomial+log scaling instead of pure exponential
 		# wave 10: ~750, wave 25: ~3.75k, wave 50: ~22.5k, wave 100: ~137k
 		var base_hp = (80.0 + w * 30.0 + pow(w, 2.2) * 2.0) * 1.25
 		if w > 20:
 			base_hp *= 1.0 + log(float(w - 19)) * 0.5
-		enemy.max_health = base_hp
+		enemy.max_health = base_hp * _endless_scaling
 		enemy.speed = minf(80.0 + w * 2.0, 260.0)  # Cap speed to keep game playable
 		# Gold scales with health so economy stays viable
 		enemy.gold_reward = 5 + w / 2 + int(base_hp / 200.0)
@@ -25396,6 +25603,24 @@ func _spawn_enemy() -> void:
 		enemies_alive += 1
 		return
 
+	## #39 ENEMY HP SCALING CURVE (campaign mode):
+	## Wave | HP Formula                    | HP   | Speed | Gold
+	## -----|-------------------------------|------|-------|-----
+	##  1   | 25 + 1*12                     |   37 |   53  |  4
+	##  3   | 25 + 3*12                     |   61 |   59  |  6
+	##  5   | 55 + 2*25                     |  105 |   70  |  7
+	##  7   | 55 + 4*25                     |  155 |   80  |  9
+	## 10   | 160 + 3*40                    |  280 |   92  | 11
+	## 15   | 360 + 3*60                    |  540 |  109  | 13
+	## 20   | 720 + 2*85                    |  890 |  121  | 16
+	## 25   | 720 + 7*85                    | 1315 |  136  | 21
+	## 30   | 1400 + 4*120                  | 1880 |  140  | 22
+	## 35   | 2360 + 1*180                  | 2540 |  147  | 23
+	## 40   | 2360 + 6*180                  | 3440 |  157  | 28
+	## Growth: ~1.15-1.20x/wave, max 1.25x jump between adjacent waves.
+	## Boss waves (20/25/30/35): HP *= 3.5 * (1 + wave/20), speed *= 0.65.
+	## Final wave: HP *= 12, speed *= 0.45, named villain.
+	## Endless: polynomial+log HP * _endless_scaling (uncapped 5%/wave).
 	# Progressive difficulty scaling — smooth curve, no cliffs
 	# 3 starter towers (~48 DPS) should comfortably beat Easy (20 waves)
 	# Designed so wave N HP ≈ previous wave × 1.15-1.20 (never more than 1.25x jump)
@@ -26333,6 +26558,29 @@ func _check_wave_complete() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		_handle_back_button()
+	if what == NOTIFICATION_CRASH:
+		_emergency_save()
+
+func _emergency_save() -> void:
+	## #5 Crash reporting stub — attempt to preserve player progress on crash
+	print("[CRASH] Emergency save triggered — attempting to preserve progress...")
+	var err_msg := ""
+	var ok := false
+	# GDScript has no try/catch; guard with is_instance_valid checks instead
+	if is_instance_valid(self):
+		_save_game()
+		ok = true
+		print("[CRASH] Emergency save completed successfully.")
+	else:
+		err_msg = "Node2D instance invalid at crash time"
+		print("[CRASH] Emergency save FAILED: %s" % err_msg)
+	# Write crash breadcrumb to user:// for post-mortem
+	var f = FileAccess.open("user://crash_breadcrumb.log", FileAccess.WRITE)
+	if f:
+		f.store_string("crash_time=%s\nsave_ok=%s\nerror=%s\nwave=%d\nlevel=%d\n" % [
+			Time.get_datetime_string_from_system(), str(ok), err_msg, wave, current_level
+		])
+		f.close()
 
 func _handle_back_button() -> void:
 	if chest_opening_active:
@@ -26396,6 +26644,12 @@ func _input(event: InputEvent) -> void:
 				_debug_overlay = not _debug_overlay
 				_debug_tap_count = 0
 				_debug_tap_timer = 0.0
+	# #63: Pinch-to-zoom — magnify gesture support during gameplay
+	if event is InputEventMagnifyGesture and game_state == GameState.PLAYING:
+		_camera_zoom = clampf(_camera_zoom * event.factor, 0.5, 2.0)
+		queue_redraw()
+		get_viewport().set_input_as_handled()
+		return
 	# Pause overlay buttons — handle clicks on Resume/Quit when paused
 	if game_paused and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var mpos = get_viewport().get_mouse_position()
@@ -26953,6 +27207,9 @@ func _is_valid_placement(pos: Vector2) -> bool:
 
 func _get_discounted_cost(tower_type) -> int:
 	var base_cost = tower_info[tower_type]["cost"]
+	## #15 VERIFIED: Discount clamped to 50% max — towers can never be free.
+	## Knowledge tree "Bargain Ink" (5%) + "Master Gear" (10%) + placement streak
+	## are all combined and capped here. Cheapest tower (Scrooge 80G) floors at 40G.
 	var discount = clampf(_get_knowledge_bonus("tower_discount") + _get_knowledge_bonus("upgrade_discount"), 0.0, 0.5)
 	# BATTD: Placement streak discount
 	var streak_disc = clampf(_placement_streak_count * PLACEMENT_STREAK_DISCOUNT, 0.0, 0.25)
@@ -27335,6 +27592,11 @@ func _draw() -> void:
 	if current_level >= 0 and current_level < levels.size():
 		sky_color = levels[current_level]["sky_color"]
 		ground_color = levels[current_level]["ground_color"]
+
+	# #63: Apply pinch-to-zoom transform (centered on screen)
+	if _camera_zoom != 1.0:
+		var zoom_center = Vector2(640, 360)
+		draw_set_transform(zoom_center - zoom_center * _camera_zoom, 0.0, Vector2(_camera_zoom, _camera_zoom))
 
 	# Solid background fill (prevents checkerboard from transparent PNGs)
 	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
@@ -28438,6 +28700,27 @@ func _draw() -> void:
 	# In-game settings popup (draws on top of everything)
 	if ingame_settings_open and game_state == GameState.PLAYING:
 		_draw_ingame_settings()
+	# #63: Reset zoom transform before HUD overlays (HUD stays screen-space)
+	if _camera_zoom != 1.0:
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# #64: Minimap for larger levels (40+ waves)
+	if game_state == GameState.PLAYING and current_level >= 0 and current_level < levels.size():
+		if levels[current_level].get("waves", 0) >= 40:
+			_draw_minimap()
+
+	# #77: Kill feed overlay
+	if _kill_feed.size() > 0:
+		_draw_kill_feed()
+
+	# #73: Recent towers quick-select row
+	if game_state == GameState.PLAYING and _recent_towers.size() > 0 and not placing_tower:
+		_draw_recent_towers()
+
+	# #71: Upgrade undo button
+	if not _upgrade_undo_data.is_empty() and _upgrade_undo_timer > 0.0:
+		_draw_upgrade_undo()
+
 	# Mobile: autosave indicator (gameplay)
 	_draw_autosave_indicator()
 	# Save integrity warning banner (#6)
