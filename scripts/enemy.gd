@@ -265,6 +265,8 @@ func _ready() -> void:
 
 func load_sprite() -> void:
 	if enemy_theme < 0 or enemy_theme >= FACTION_NAMES.size():
+		# Try extended faction directories (camelot, egyptian, etc.) via main's sprite cache
+		_try_load_extended_sprite()
 		return
 	# Try Godot resource loading first, fall back to manual Image loading
 	var res_path = "res://assets/enemy_sprites/" + FACTION_NAMES[enemy_theme] + "/tier_" + str(enemy_tier) + ".png"
@@ -276,13 +278,56 @@ func load_sprite() -> void:
 	var img = Image.new()
 	if img.load(abs_path) == OK:
 		_sprite_texture = ImageTexture.create_from_image(img)
-	else:
+	elif _sprite_texture == null:
+		# Try any named sprite from the faction directory
+		var faction_dir = "res://assets/enemy_sprites/" + FACTION_NAMES[enemy_theme] + "/"
+		var dir = DirAccess.open(faction_dir)
+		if dir:
+			dir.list_dir_begin()
+			var file_name = dir.get_next()
+			while file_name != "":
+				if file_name.ends_with(".png") and not file_name.begins_with("tier_"):
+					var named_path = faction_dir + file_name
+					if ResourceLoader.exists(named_path):
+						_sprite_texture = load(named_path)
+						return
+				file_name = dir.get_next()
 		# Last resort: try portrait art
 		var portrait_path = "res://assets/enemy_portraits/" + FACTION_NAMES[enemy_theme] + "/tier_" + str(enemy_tier) + ".png"
 		if ResourceLoader.exists(portrait_path):
 			_sprite_texture = load(portrait_path)
 		else:
 			_sprite_texture = null
+
+func _try_load_extended_sprite() -> void:
+	# For theme indices beyond FACTION_NAMES, scan all enemy_sprites subdirectories
+	var base = "res://assets/enemy_sprites/"
+	var dir = DirAccess.open(base)
+	if not dir:
+		return
+	# Map extended themes to directory names
+	var extended_themes = {13: "sleepy_hollow", 14: "greek_temple", 15: "camelot", 16: "egyptian", 17: "scrooge", 18: "dracula_realm", 19: "frankenstein_lab"}
+	var theme_dir = extended_themes.get(enemy_theme, "")
+	if theme_dir == "":
+		return
+	var faction_dir = base + theme_dir + "/"
+	# Try tier sprite first
+	var tier_path = faction_dir + "tier_" + str(enemy_tier) + ".png"
+	if ResourceLoader.exists(tier_path):
+		_sprite_texture = load(tier_path)
+		return
+	# Try any available named sprite in the directory
+	var sub_dir = DirAccess.open(faction_dir)
+	if sub_dir:
+		sub_dir.list_dir_begin()
+		var file_name = sub_dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var named_path = faction_dir + file_name
+				if ResourceLoader.exists(named_path):
+					_sprite_texture = load(named_path)
+					return
+			file_name = sub_dir.get_next()
 
 func _process(delta: float) -> void:
 	delta = minf(delta, 0.05)  # Cap at 50ms to prevent teleporting

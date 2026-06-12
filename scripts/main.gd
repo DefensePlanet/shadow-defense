@@ -2681,9 +2681,37 @@ var _discovered_journal_entries: Array = []  # journal entries found during game
 
 const MAP_BG_BY_THEME: Dictionary = {0: "sherwood_forest", 1: "wonderland", 2: "land_of_oz", 3: "neverland", 4: "paris_opera", 5: "victorian_london", 6: "sherwood_forest", 7: "sherwood_forest", 8: "camelot", 9: "sherwood_forest", 10: "transylvania", 11: "victorian_london", 12: "sherwood_forest", 13: "sleepy_hollow", 14: "greek_temple", 16: "egyptian_underworld", 18: "narrators_realm"}
 
-const DIALOG_PANELS: Dictionary = {"prologue": "tome_opens", "pre_level_1": "sherlock_baker_street", "pre_level_7": "tarzan_jungle", "unlock_horseman": "horseman_bridge", "unlock_medusa": "medusa_garden", "unlock_anubis": "anubis_hall", "narrator_true_form": "narrator_reveal", "pre_level_25": "hook_recruitment", "pre_level_19": "queen_court", "unlock_frankenstein": "frankenstein_family", "narrator_victory": "heroes_united", "pre_level_34": "shadow_author_confrontation"}
+const DIALOG_PANELS: Dictionary = {
+	"prologue": "tome_opens", "intro": "intro_sequence",
+	"pre_level_0": "intro_sequence",
+	"pre_level_1": "sherlock_baker_street", "post_level_1": "sherlock_investigation",
+	"pre_level_4": "merlin_crystal_cave",
+	"pre_level_7": "tarzan_jungle",
+	"pre_level_10": "dracula_throne",
+	"pre_level_13": "frankenstein_awakening",
+	"pre_level_16": "sherlock_baker_street",
+	"pre_level_19": "queen_court", "post_level_19": "alice_falling",
+	"pre_level_22": "witch_flying",
+	"pre_level_25": "hook_recruitment", "post_level_25": "peter_pan_shadow",
+	"pre_level_28": "phantom_organ",
+	"pre_level_31": "scrooge_ghost",
+	"pre_level_34": "shadow_author_confrontation", "post_level_34": "shadow_author_writing",
+	"unlock_horseman": "horseman_bridge", "unlock_medusa": "medusa_garden",
+	"unlock_anubis": "anubis_hall",
+	"unlock_frankenstein": "frankenstein_family",
+	"narrator_true_form": "narrator_reveal", "narrator_victory": "heroes_united",
+	"heroes_surrounded": "heroes_surrounded", "dark_portal": "dark_portal",
+}
 
-const BOSS_PORTRAITS: Dictionary = {"moriarty": "moriarty", "morgan_le_fay": "morgan_le_fay", "perseus": "perseus", "ammit": "ammit"}
+const BOSS_PORTRAITS: Dictionary = {
+	"moriarty": "moriarty", "professor_moriarty": "moriarty",
+	"morgan_le_fay": "morgan_le_fay", "perseus": "perseus", "ammit": "ammit",
+	"queen_of_hearts": "queen_of_hearts", "captain_hook": "captain_hook",
+	"dark_dracula": "dracula_lord", "the_creature": "frankenstein_boss",
+	"dark_phantom": "phantom_boss", "dark_witch": "wicked_witch_boss",
+	"shadow_lord": "shadow_king", "the_shadow_author": "shadow_king",
+	"clayton": "tarzan_boss",
+}
 
 # Map thumb slug mapping (level index -> filename without extension)
 const MAP_THUMB_SLUGS: Array = [
@@ -6591,6 +6619,7 @@ func _save_game() -> void:
 	save_data["equipped_cosmetics"] = equipped_cosmetics
 	# Story progress
 	save_data["story_seen"] = story_seen
+	save_data["discovered_journal_entries"] = _discovered_journal_entries
 	save_data["tutorial_completed"] = _tutorial_completed
 	save_data["dialog_text_speed"] = dialog_text_speed
 	save_data["story_choices_made"] = story_choices_made
@@ -7025,6 +7054,7 @@ func _load_game() -> void:
 	for v in ss:
 		story_seen.append(str(v))
 	story_choices_made = data.get("story_choices_made", {})
+	_discovered_journal_entries = data.get("discovered_journal_entries", [])
 	_tutorial_completed = data.get("tutorial_completed", false)
 	dialog_text_speed = float(data.get("dialog_text_speed", 1.0))
 	_secret_path_discovered = data.get("secret_path_discovered", {})
@@ -13519,6 +13549,9 @@ func _do_level_start(index: int) -> void:
 	return_button.visible = false
 	game_state = GameState.PLAYING
 	start_button.text = "  START WAVE  "
+	# Display a random loading tip as floating text during level start
+	var _level_tip = _get_random_loading_tip()
+	spawn_floating_text(Vector2(640, 340), "💡 " + _level_tip, Color(0.6, 0.75, 0.9, 0.8), 12.0, 4.0)
 	# Row 1: Show base towers + Robin 2, hide locked ones
 	var row1_types = [TowerType.ROBIN_HOOD, TowerType.ALICE, TowerType.WICKED_WITCH,
 					  TowerType.PETER_PAN, TowerType.PHANTOM, TowerType.SCROOGE, TowerType.ROBIN_HOOD_2, TowerType.ALICE_2, TowerType.SCROOGE_2]
@@ -19416,6 +19449,13 @@ func _draw_emporium_icon(center: Vector2, icon_key: String, sz: float) -> void:
 		var half = sz * 0.5
 		draw_texture_rect(_emporium_icon_textures[icon_key], Rect2(center.x - half, center.y - half, sz, sz), false)
 		return
+	# Shop icon texture fallback (map emporium categories to shop icons)
+	var _shop_map = {"emp_chests": "chest_icon", "emp_forge": "forge_icon", "emp_trophy": "trophy_icon", "emp_stars": "crystal_ball_icon"}
+	var _shop_key = _shop_map.get(icon_key, "")
+	if _shop_key != "" and _shop_icon_textures.has(_shop_key):
+		var half = sz * 0.5
+		draw_texture_rect(_shop_icon_textures[_shop_key], Rect2(center.x - half, center.y - half, sz, sz), false)
+		return
 	var cx = center.x
 	var cy = center.y
 	var s = sz * 0.5
@@ -20133,6 +20173,12 @@ func _draw_chest_opening() -> void:
 		var bw = 200.0
 		var bh = 120.0
 		var pulse = (sin(_time * 2.5) + 1.0) * 0.5
+		# Draw chest texture if available (chest_bronze, chest_silver, chest_gold)
+		var _chest_tex_keys = ["chest_bronze", "chest_silver", "chest_gold"]
+		var _chest_tex_key = _chest_tex_keys[mini(chest_opening_tier, 2)]
+		if _currency_icon_textures.has(_chest_tex_key):
+			var csz = 160.0
+			draw_texture_rect(_currency_icon_textures[_chest_tex_key], Rect2(chest_cx - csz * 0.5, chest_cy - csz * 0.3, csz, csz), false)
 
 		# Multiple layered glow rings behind chest (bright and dramatic)
 		for gi in range(5):
@@ -21376,6 +21422,17 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 			draw_texture_rect(_gear_icon_textures[draw_key], Rect2(center.x - half, center.y - half, sz, sz), false)
 			_draw_gear_rarity_frame(center, sz)
 			return
+	# Fallback to gear_icons_generated folder (counting_ledger, pipe_organ, shadow_blade, etc.)
+	if _gear_generated_textures.has(icon_key):
+		var half2 = sz * 0.5
+		draw_texture_rect(_gear_generated_textures[icon_key], Rect2(center.x - half2, center.y - half2, sz, sz), false)
+		_draw_gear_rarity_frame(center, sz)
+		return
+	if _gear_generated_textures.has(draw_key):
+		var half3 = sz * 0.5
+		draw_texture_rect(_gear_generated_textures[draw_key], Rect2(center.x - half3, center.y - half3, sz, sz), false)
+		_draw_gear_rarity_frame(center, sz)
+		return
 	icon_key = draw_key
 	var cx = center.x
 	var cy = center.y
@@ -22351,6 +22408,10 @@ func _draw_survivor_detail() -> void:
 	# --- ABILITIES SECTION ---
 	var abil_y = gear_slot_y + 2.0 * (gear_slot_size + gear_gap + 16) + 4.0
 	draw_colored_polygon(_rrp(Rect2(right_x, abil_y, right_w, 22), 4.0), Color(0.12, 0.08, 0.20, 0.6))
+	# Character ability icon next to ABILITIES header
+	var _abil_char_key = _tower_type_to_name(tower_type)
+	if _ability_icon_textures.has(_abil_char_key):
+		draw_texture_rect(_ability_icon_textures[_abil_char_key], Rect2(right_x + right_w - 26, abil_y - 2, 24, 24), false, Color(1, 1, 1, 0.8))
 	_udraw(font, Vector2(right_x + 8, abil_y + 16), "ABILITIES", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.92, 0.45))
 	var abil_icon_y = abil_y + 28.0
 	var abil_sz = 65.0
@@ -24251,6 +24312,8 @@ func _process(delta: float) -> void:
 		else:
 			_fps_low_timer = 0.0
 			_fps_high_timer = 0.0
+	# Post-credits sequence processing
+	_process_post_credits(delta)
 	# Cache enemy list once per frame for performance
 	if game_state == GameState.PLAYING:
 		_cached_enemies = get_tree().get_nodes_in_group("enemies")
@@ -28360,6 +28423,8 @@ func _draw() -> void:
 	# #178: Debug performance overlay
 	if _debug_overlay:
 		_draw_debug_overlay()
+	# Post-credits overlay (renders above everything)
+	_draw_post_credits()
 
 func _draw_debug_overlay() -> void:
 	var font = game_font if game_font else ThemeDB.fallback_font
@@ -30860,10 +30925,15 @@ func _draw_tower_buff_icons() -> void:
 			for si in range(mini(tier, 4)):
 				draw_circle(Vector2(icon_x + si * 8, icon_y), 3.0, _ca(c_gold_bright, 0.7))
 			icon_count += 1
-		# Show if tower has active ability ready
+		# Show if tower has active ability ready (with AI ability icon if available)
 		if "active_ability_ready" in tower and tower.active_ability_ready:
 			var ay = icon_y + (icon_count * 10)
-			draw_circle(Vector2(tpos.x, ay), 4.0, Color(0.2, 0.8, 1.0, 0.5 + sin(_time * 4.0) * 0.3))
+			var _tt_ab = _get_tower_type_from_node(tower)
+			var _tt_ab_key = _tower_type_to_name(_tt_ab) if _tt_ab != null else ""
+			if _tt_ab_key != "" and _ability_icon_textures.has(_tt_ab_key):
+				draw_texture_rect(_ability_icon_textures[_tt_ab_key], Rect2(tpos.x - 10, ay - 10, 20, 20), false, Color(1, 1, 1, 0.7 + sin(_time * 4.0) * 0.3))
+			else:
+				draw_circle(Vector2(tpos.x, ay), 4.0, Color(0.2, 0.8, 1.0, 0.5 + sin(_time * 4.0) * 0.3))
 
 # === BATTD: MAP COLLECTIBLES ===
 func _generate_map_collectibles() -> void:
@@ -44701,6 +44771,9 @@ func _draw_session_recap() -> void:
 	# Title
 	_ds_outlined_text(Vector2(px + 20, py + 30), "SESSION STATS", 24, Color(1.0, 0.85, 0.28), -1, HORIZONTAL_ALIGNMENT_LEFT, 2)
 	draw_rect(Rect2(px + 20, py + 38, 150, 1), _ca(c_gold, 0.3))
+	# Loading tip at bottom of session recap
+	var _tip = _get_random_loading_tip()
+	_udraw(font, Vector2(px + pw * 0.5, py + ph - 20), "💡 " + _tip, HORIZONTAL_ALIGNMENT_CENTER, int(pw - 40), 12, Color(0.6, 0.7, 0.8, 0.6))
 	# Stats
 	var sy = py + 60.0
 	var stat_items = [
@@ -48165,6 +48238,46 @@ const LOADING_TIPS: Array = [
 	"The Bestiary catalogs every enemy type — complete it for rewards!",
 	"Challenge modifiers increase difficulty but also increase rewards!",
 ]
+
+var _post_credits_active: bool = false
+var _post_credits_index: int = 0
+var _post_credits_timer: float = 0.0
+
+func _trigger_post_credits() -> void:
+	if _post_credits_data.size() == 0:
+		return
+	_post_credits_active = true
+	_post_credits_index = 0
+	_post_credits_timer = 5.0
+
+func _process_post_credits(delta: float) -> void:
+	if not _post_credits_active:
+		return
+	_post_credits_timer -= delta
+	if _post_credits_timer <= 0.0:
+		_post_credits_index += 1
+		if _post_credits_index >= _post_credits_data.size():
+			_post_credits_active = false
+			return
+		_post_credits_timer = 5.0
+	queue_redraw()
+
+func _draw_post_credits() -> void:
+	if not _post_credits_active or _post_credits_index >= _post_credits_data.size():
+		return
+	var font = game_font
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.02, 0.02, 0.06, 0.95))
+	var entry = _post_credits_data[_post_credits_index]
+	var title = entry.get("title", entry.get("speaker", "")) if entry is Dictionary else ""
+	var text = entry.get("text", entry.get("line", str(entry))) if entry is Dictionary else str(entry)
+	var alpha = clampf(_post_credits_timer / 1.0, 0.0, 1.0)
+	if alpha < 1.0 and _post_credits_timer > 4.0:
+		alpha = clampf(5.0 - _post_credits_timer, 0.0, 1.0)
+	if title != "":
+		_ds_outlined_text(Vector2(640, 320), title, 20, Color(0.85, 0.75, 0.5, alpha), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_udraw(font, Vector2(640, 380), text, HORIZONTAL_ALIGNMENT_CENTER, 900, 16, Color(0.8, 0.78, 0.72, alpha))
+	# Progress indicator
+	_udraw(font, Vector2(640, 680), "%d / %d" % [_post_credits_index + 1, _post_credits_data.size()], HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.5, 0.5, 0.5, 0.4))
 
 func _get_random_loading_tip() -> String:
 	# Merge const tips with JSON tips for a bigger pool
