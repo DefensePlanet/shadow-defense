@@ -4787,6 +4787,8 @@ func _ready() -> void:
 	_init_quests()
 	_init_shadow_arena()
 	_load_game()
+	# #163: Inject Act 1 moral choice consequences into Act 4 dialogs (after save data loads)
+	_inject_act1_consequences()
 	# Addiction: Session init systems
 	_check_comeback_bonus()
 	_check_story_recap()
@@ -14396,6 +14398,17 @@ func _stop_ambient_sound() -> void:
 
 # === STORY DIALOG ENGINE ===
 
+# #163: Act 1 story choices affect Act 4 dialogs (called after _load_game)
+func _inject_act1_consequences() -> void:
+	if not story_dialogs.has("pre_narrator_finale"):
+		return
+	var finale = story_dialogs["pre_narrator_finale"]
+	# Insert conditional lines before the narrator's closing line
+	if story_choices_made.get("moriarty_spared", false):
+		finale.insert(finale.size() - 1, {"speaker": "sherlock", "text": "Moriarty sends word from the margins. He cannot fight beside us — but he has decoded the Narrator's weakness. Even enemies can become... useful. It seems your mercy in Act 1 was not wasted.", "voice_type": "male_hero"})
+	if story_choices_made.get("clayton_recruited", false):
+		finale.insert(finale.size() - 1, {"speaker": "clayton", "text": "I was the hunter. The villain. You gave me a second chance when no story ever would. If this is the final chapter... then let my redemption mean something.", "voice_type": "male_hero"})
+
 func _init_story_dialogs() -> void:
 	story_dialogs.clear()
 	# Populated in full by _populate_story_dialogs() — called after this
@@ -14939,6 +14952,8 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["epilogue_return"] = [
 		{"speaker": "robin_hood", "text": "Then let's go home. But we'll carry this story with us — and if the Tome ever opens again, we'll be ready.", "voice_type": "male_hero"},
+		# #169: Time dilation acknowledgment — resolves the 1-second-inside = 1-year-outside plot hole
+		{"speaker": "narrator", "text": "Time has passed differently here. Your worlds have changed. But legends... legends are timeless.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "One by one, the heroes step through the golden portal. Robin Hood to Sherwood. Alice down the rabbit hole. Peter Pan to the second star on the right. Each leaving behind a trail of golden light.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "The Tome of Shadows closes gently. On its cover, new words appear: 'These heroes were here. They fought. They won. And they went home — not because they had to, but because their stories still needed them.'", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "In libraries around the world, eleven books glow faintly on their shelves. The characters inside smile, remembering. And children who read those books can somehow sense it — that their favorite heroes have been on the greatest adventure of all.", "voice_type": "narrator"},
@@ -15317,11 +15332,6 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "Yes. One last story. The greatest story. All of us — together — against the tide of forgotten legends that would consume every story ever told.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "I will hold the walls. You fight what comes through. And if we survive... I will tell YOUR story. The story of the legends who saved Legend itself.", "voice_type": "narrator"},
 	]
-	# #163: Act 1 moral choices carry forward into Act 4
-	if story_choices_made.get("moriarty_spared", false):
-		story_dialogs["pre_narrator_finale"].insert(-1, {"speaker": "sherlock", "text": "Moriarty sends word from the margins. He cannot fight beside us — but he has decoded the Narrator's weakness. Even enemies can become... useful. It seems your mercy in Act 1 was not wasted.", "voice_type": "male_hero"})
-	if story_choices_made.get("clayton_recruited", false):
-		story_dialogs["pre_narrator_finale"].insert(-1, {"speaker": "clayton", "text": "I was the hunter. The villain. You gave me a second chance when no story ever would. If this is the final chapter... then let my redemption mean something.", "voice_type": "male_hero"})
 	story_dialogs["narrator_true_form"] = [
 		{"speaker": "narrator", "text": "It is time you saw me as I truly am.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "Not a voice in the dark. Not a puppet master behind a curtain. But the fire that has burned since the first human looked at the stars and said... 'Once upon a time.'", "voice_type": "narrator"},
