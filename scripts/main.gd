@@ -2656,6 +2656,34 @@ var _achievement_icon_textures: Dictionary = {}  # ach_id -> ImageTexture
 var _emporium_icon_textures: Dictionary = {}  # emp_key -> ImageTexture
 var _death_fx_textures: Dictionary = {}  # faction_key -> ImageTexture
 var _collectible_textures: Dictionary = {}  # item_key -> ImageTexture
+var _map_bg_textures: Dictionary = {}  # theme_name -> ImageTexture (map backgrounds by theme)
+var _story_panel_textures: Dictionary = {}  # panel_name -> ImageTexture
+var _boss_portrait_textures: Dictionary = {}  # boss_key -> ImageTexture
+var _enemy_sprite_textures: Dictionary = {}  # "faction/filename" -> ImageTexture
+var _ability_path_icon_textures: Dictionary = {}  # path_key -> ImageTexture
+var _currency_icon_textures: Dictionary = {}  # icon_key -> ImageTexture
+var _ui_element_textures: Dictionary = {}  # element_key -> ImageTexture
+var _chapter_card_textures: Dictionary = {}  # realm_name -> Texture2D (chapter card backgrounds)
+var _level_thumb_textures: Dictionary = {}  # realm_name -> Texture2D (level thumbnail previews)
+var _map_thumbnail_textures: Dictionary = {}  # level_idx -> Texture2D (map thumbnails level_00..level_36)
+var _realm_icon_textures: Dictionary = {}  # realm_key -> Texture2D (realm icons for chapter select)
+var _faction_banner_textures: Dictionary = {}  # faction_name -> Texture2D (faction header banners)
+var _shop_icon_textures: Dictionary = {}  # icon_name -> Texture2D (shop section icons)
+var _gear_generated_textures: Dictionary = {}  # gear_name -> Texture2D (gear_icons_generated)
+var _victory_defeat_textures: Dictionary = {}  # art_name -> Texture2D (victory/defeat overlays)
+var _ability_icon_textures: Dictionary = {}  # character_ability -> Texture2D (per-character ability icons)
+var _tower_banter_data: Dictionary = {}  # synergy pair key -> Array of banter lines
+var _shadow_author_journal: Dictionary = {}  # level_key -> journal entry
+var _character_epilogues: Dictionary = {}  # character_key -> epilogue data
+var _loading_tips_json: Array = []  # loaded from JSON, supplements LOADING_TIPS const
+var _post_credits_data: Array = []  # post-credits sequence entries
+var _discovered_journal_entries: Array = []  # journal entries found during gameplay
+
+const MAP_BG_BY_THEME: Dictionary = {0: "sherwood_forest", 1: "wonderland", 2: "land_of_oz", 3: "neverland", 4: "paris_opera", 5: "victorian_london", 6: "sherwood_forest", 7: "sherwood_forest", 8: "camelot", 9: "sherwood_forest", 10: "transylvania", 11: "victorian_london", 12: "sherwood_forest", 13: "sleepy_hollow", 14: "greek_temple", 16: "egyptian_underworld", 18: "narrators_realm"}
+
+const DIALOG_PANELS: Dictionary = {"prologue": "tome_opens", "pre_level_1": "sherlock_baker_street", "pre_level_7": "tarzan_jungle", "unlock_horseman": "horseman_bridge", "unlock_medusa": "medusa_garden", "unlock_anubis": "anubis_hall", "narrator_true_form": "narrator_reveal", "pre_level_25": "hook_recruitment", "pre_level_19": "queen_court", "unlock_frankenstein": "frankenstein_family", "narrator_victory": "heroes_united", "pre_level_34": "shadow_author_confrontation"}
+
+const BOSS_PORTRAITS: Dictionary = {"moriarty": "moriarty", "morgan_le_fay": "morgan_le_fay", "perseus": "perseus", "ammit": "ammit"}
 
 # Map thumb slug mapping (level index -> filename without extension)
 const MAP_THUMB_SLUGS: Array = [
@@ -3534,8 +3562,14 @@ var _defeat_overlay_data: Dictionary = {}  # Stats for defeat overlay {wave, tot
 var _spawn_portal_intensity: float = 0.0
 var _env_particles: Array = []
 # Weather system (#142)
-var _weather_type: String = ""  # "", "rain", "snow", "storm", "fog", "embers"
-var _weather_particles: Array = []  # [{x, y, speed, size}]
+var _weather_type: String = ""  # "", "rain", "snow", "storm", "fog", "embers", "leaves", "sand", "dust"
+var _weather_particles: Array = []  # [{x, y, speed, size, color, rot}]
+# Day/night cycle (#88) — dynamic tint overlay during gameplay
+var _day_cycle_timer: float = 0.0  # 0-120s full cycle
+var _day_cycle_override: String = ""  # "", "night", "dusk", "midnight" — map-specific lock
+var _day_cycle_color: Color = Color(0, 0, 0, 0)
+# Character idle menu quirks (#90) — per-character visual personality on survivor cards
+var _menu_idle_quirk_timers: Dictionary = {}  # char_idx -> {timer, phase, active}
 # Wave countdown (#154)
 var _wave_countdown_timer: float = 0.0
 var _wave_countdown_num: int = 0
@@ -8271,25 +8305,62 @@ func _draw_bg_story() -> void:
 func _setup_weather(level_idx: int) -> void:
 	_weather_particles.clear()
 	_weather_type = ""
+	_day_cycle_timer = 0.0
+	_day_cycle_override = ""
 	if level_idx < 0 or level_idx >= levels.size(): return
 	var theme = levels[level_idx].get("enemy_theme", 0)
+	# (#87) Map-specific weather effects per theme
 	match theme:
-		0: _weather_type = "rain"        # Sherwood
-		3: _weather_type = "rain"        # Neverland
-		7: _weather_type = "fog"         # Sherlock
-		8: _weather_type = "embers"      # Merlin
-		10: _weather_type = "fog"        # Dracula
-		11: _weather_type = "storm"      # Frankenstein
-		12: _weather_type = "embers"     # Shadow Author
+		0: _weather_type = "leaves"      # Sherwood Forest - gentle falling leaves
+		1: _weather_type = "dust"        # Wonderland - subtle dust motes
+		2: _weather_type = "embers"      # Oz - emerald sparkle
+		3: _weather_type = "rain"        # Neverland - tropical rain
+		4: _weather_type = "dust"        # Opera - floating dust
+		5: _weather_type = "snow"        # Scrooge - Christmas snow
+		6: _weather_type = "snow"        # Victorian London - Christmas snow
+		7: _weather_type = "fog"         # Sherlock - London fog
+		8: _weather_type = "embers"      # Merlin - magical embers
+		9: _weather_type = "leaves"      # Tarzan - jungle leaves
+		10: _weather_type = "fog"        # Dracula - gothic fog
+		11: _weather_type = "storm"      # Frankenstein - lightning storm
+		12: _weather_type = "embers"     # Shadow Author - ink embers
+		13: _weather_type = "embers"     # Horseman - floating ash
+		14: _weather_type = "dust"       # Medusa - Greek dust
+		16: _weather_type = "sand"       # Anubis - Egyptian sandstorm
+		18: _weather_type = "embers"     # Narrator - fire embers
 	if _weather_type == "":
-		if randf() < 0.15:  # 15% chance random weather
-			_weather_type = ["rain", "fog"][randi() % 2]
-	# Pre-populate particles
-	for i in range(60):
-		_weather_particles.append({"x": randf() * 1280.0, "y": randf() * 720.0, "speed": randf_range(80.0, 200.0), "size": randf_range(1.0, 3.0)})
+		if randf() < 0.15:
+			_weather_type = ["rain", "fog", "dust"][randi() % 3]
+	# (#88) Day/night cycle overrides per map
+	match theme:
+		10: _day_cycle_override = "night"     # Dracula - always night
+		5: _day_cycle_override = "dusk"       # Scrooge - always dusk/snow
+		6: _day_cycle_override = "dusk"       # Victorian London - always dusk
+		13: _day_cycle_override = "midnight"  # Horseman - always midnight
+		12: _day_cycle_override = "midnight"  # Shadow Author - always midnight
+		16: _day_cycle_override = "dusk"      # Anubis - underworld dusk
+	# Pre-populate particles with type-specific properties
+	var count = 25 if _weather_type in ["dust", "leaves"] else 60
+	for i in range(count):
+		var p = {"x": randf() * 1280.0, "y": randf() * 720.0, "speed": randf_range(80.0, 200.0), "size": randf_range(1.0, 3.0), "rot": randf() * TAU}
+		match _weather_type:
+			"leaves":
+				p["speed"] = randf_range(30.0, 70.0)
+				p["size"] = randf_range(2.0, 4.0)
+			"sand":
+				p["speed"] = randf_range(100.0, 250.0)
+				p["size"] = randf_range(0.5, 2.0)
+			"snow":
+				p["speed"] = randf_range(20.0, 60.0)
+				p["size"] = randf_range(1.5, 3.5)
+			"dust":
+				p["speed"] = randf_range(10.0, 30.0)
+				p["size"] = randf_range(0.8, 2.0)
+		_weather_particles.append(p)
 
 func _process_weather(delta: float) -> void:
 	if _weather_type == "": return
+	if GameSettings and GameSettings.reduced_motion: return
 	for p in _weather_particles:
 		match _weather_type:
 			"rain":
@@ -8306,13 +8377,26 @@ func _process_weather(delta: float) -> void:
 				p["x"] += sin(_time * 2.0 + p["y"] * 0.02) * 20.0 * delta
 			"fog":
 				p["x"] += p["speed"] * 0.15 * delta
+			"leaves":  # (#87) Gentle falling leaves with lateral sway
+				p["y"] += p["speed"] * delta
+				p["x"] += sin(_time * 0.8 + p["y"] * 0.01) * 25.0 * delta
+				p["rot"] += delta * 1.5
+			"sand":  # (#87) Sand blowing sideways
+				p["x"] += p["speed"] * delta
+				p["y"] += sin(_time * 1.5 + p["x"] * 0.005) * 12.0 * delta
+			"dust":  # (#87) Subtle dust motes floating randomly
+				p["x"] += sin(_time * 0.5 + p["y"] * 0.02) * 8.0 * delta
+				p["y"] += cos(_time * 0.3 + p["x"] * 0.01) * 6.0 * delta
 		if p["y"] > 740: p["y"] = -10.0; p["x"] = randf() * 1280.0
 		if p["y"] < -20: p["y"] = 730.0; p["x"] = randf() * 1280.0
 		if p["x"] > 1300: p["x"] = -10.0
 		if p["x"] < -20: p["x"] = 1290.0
+	# (#88) Day/night cycle timer
+	_day_cycle_timer += delta
 
 func _draw_weather() -> void:
 	if _weather_type == "": return
+	if GameSettings and GameSettings.reduced_motion: return
 	for p in _weather_particles:
 		match _weather_type:
 			"rain":
@@ -8326,6 +8410,21 @@ func _draw_weather() -> void:
 				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 0.7, Color(1.0, 0.5 + ea, 0.1, 0.3))
 			"fog":
 				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 8.0, Color(0.4, 0.4, 0.5, 0.02))
+			"leaves":  # (#87) Small green/brown leaf shapes drifting
+				var lrot = p.get("rot", 0.0)
+				var lsz = p["size"]
+				var lgreen = 0.3 + sin(p["x"] * 0.1) * 0.2
+				var lcol = Color(0.3 + lgreen * 0.3, 0.4 + lgreen * 0.2, 0.1, 0.18)
+				var ld = Vector2.from_angle(lrot)
+				var lp2 = ld.rotated(PI / 2.0)
+				var lpos = Vector2(p["x"], p["y"])
+				draw_line(lpos - ld * lsz - lp2 * lsz * 0.4, lpos + ld * lsz + lp2 * lsz * 0.4, lcol, lsz * 0.6)
+				draw_line(lpos - ld * lsz + lp2 * lsz * 0.3, lpos + ld * lsz - lp2 * lsz * 0.3, lcol, lsz * 0.4)
+			"sand":  # (#87) Tiny tan dots blowing sideways
+				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 0.6, Color(0.76, 0.65, 0.42, 0.15))
+			"dust":  # (#87) Tiny white dots floating randomly
+				var dta = 0.08 + sin(_time * 0.7 + p["x"] * 0.05) * 0.04
+				draw_circle(Vector2(p["x"], p["y"]), p["size"] * 0.5, Color(0.9, 0.88, 0.82, dta))
 
 # === WAVE COUNTDOWN (#154) ===
 func _start_wave_countdown() -> void:
@@ -8874,6 +8973,39 @@ func _draw_day_night_overlay() -> void:
 		"eternal_dark": indicator = "⬛"
 	if indicator != "":
 		_udraw(game_font, Vector2(1240, 62), indicator, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(1, 1, 1, 0.4))
+
+# === DAY/NIGHT CYCLE OVERLAY (#88) - dynamic tint during gameplay ===
+func _draw_day_cycle_overlay() -> void:
+	if GameSettings and GameSettings.reduced_motion: return
+	if _day_cycle_override != "":
+		# Fixed override - no cycling, just constant tint
+		var override_col = Color(0, 0, 0, 0)
+		match _day_cycle_override:
+			"night": override_col = Color(0.05, 0.05, 0.18, 0.07)
+			"dusk": override_col = Color(0.6, 0.25, 0.1, 0.06)
+			"midnight": override_col = Color(0.02, 0.01, 0.12, 0.10)
+		if override_col.a > 0:
+			draw_rect(Rect2(0, 0, 1280, 720), override_col)
+		return
+	# Dynamic cycle: dawn(0-30s) -> day(30-60s) -> dusk(60-90s) -> night(90-120s)
+	var cycle_pos = fmod(_day_cycle_timer, 120.0) / 120.0  # 0.0 to 1.0
+	var tint_col = Color(0, 0, 0, 0)
+	if cycle_pos < 0.25:  # Dawn: warm orange tint
+		var t = cycle_pos / 0.25  # 0->1 within dawn
+		var dawn_a = sin(t * PI) * 0.06  # Peaks mid-dawn
+		tint_col = Color(0.8, 0.5, 0.2, dawn_a)
+	elif cycle_pos < 0.5:  # Day: no tint (clear)
+		pass
+	elif cycle_pos < 0.75:  # Dusk: purple tint
+		var t = (cycle_pos - 0.5) / 0.25
+		var dusk_a = sin(t * PI) * 0.06
+		tint_col = Color(0.5, 0.15, 0.4, dusk_a)
+	else:  # Night: dark blue tint
+		var t = (cycle_pos - 0.75) / 0.25
+		var night_a = sin(t * PI) * 0.08
+		tint_col = Color(0.05, 0.05, 0.18, night_a)
+	if tint_col.a > 0.001:
+		draw_rect(Rect2(0, 0, 1280, 720), tint_col)
 
 func _get_time_of_day_damage_bonus(tower_type) -> float:
 	var tod = TIME_OF_DAY_DATA.get(_time_of_day, {})
@@ -9848,6 +9980,295 @@ func _load_collectible_textures() -> void:
 			if tex:
 				_collectible_textures[cname] = tex
 
+func _load_map_bg_theme_textures() -> void:
+	_map_bg_textures.clear()
+	var themes = ["sherwood_forest", "wonderland", "land_of_oz", "neverland", "paris_opera", "victorian_london", "camelot", "transylvania", "sleepy_hollow", "greek_temple", "egyptian_underworld", "narrators_realm"]
+	for theme_name in themes:
+		var res_path = "res://assets/map_backgrounds/" + theme_name + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_map_bg_textures[theme_name] = tex
+
+func _load_story_panel_textures() -> void:
+	_story_panel_textures.clear()
+	var dir = DirAccess.open("res://assets/story_panels/")
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = "res://assets/story_panels/" + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_story_panel_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_chapter_card_textures() -> void:
+	_chapter_card_textures.clear()
+	var base = "res://assets/chapter_cards/"
+	var dir = DirAccess.open(base)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_chapter_card_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_level_thumb_textures() -> void:
+	_level_thumb_textures.clear()
+	var base = "res://assets/level_thumbs/"
+	var dir = DirAccess.open(base)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_level_thumb_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_map_thumbnail_textures() -> void:
+	_map_thumbnail_textures.clear()
+	var base = "res://assets/map_thumbnails/"
+	for idx in range(37):
+		var res_path = base + "level_%02d.png" % idx
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_map_thumbnail_textures[idx] = tex
+
+func _load_realm_icon_textures() -> void:
+	_realm_icon_textures.clear()
+	var base = "res://assets/realm_icons/"
+	var dir = DirAccess.open(base)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_realm_icon_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_faction_banner_textures() -> void:
+	_faction_banner_textures.clear()
+	var base = "res://assets/faction_banners/"
+	var dir = DirAccess.open(base)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_faction_banner_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_shop_icon_textures() -> void:
+	_shop_icon_textures.clear()
+	for sname in ["chest_icon", "crystal_ball_icon", "forge_icon", "trophy_icon"]:
+		var res_path = "res://assets/shop_icons/" + sname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_shop_icon_textures[sname] = tex
+
+func _load_gear_generated_textures() -> void:
+	_gear_generated_textures.clear()
+	var base = "res://assets/gear_icons_generated/"
+	var dir = DirAccess.open(base)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_gear_generated_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_victory_defeat_textures() -> void:
+	_victory_defeat_textures.clear()
+	var base = "res://assets/victory_defeat/"
+	for vname in ["victory_banner", "victory_splash", "defeat_banner", "defeat_splash", "game_over_book"]:
+		var res_path = base + vname + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_victory_defeat_textures[vname] = tex
+
+func _load_ability_icon_textures() -> void:
+	_ability_icon_textures.clear()
+	var base = "res://assets/ability_icons/"
+	var char_keys = ["robin_hood", "alice", "wicked_witch", "peter_pan", "phantom", "scrooge", "sherlock", "tarzan", "dracula", "merlin", "frankenstein", "shadow_author"]
+	for ckey in char_keys:
+		var res_path = base + ckey + "_ability.png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_ability_icon_textures[ckey] = tex
+
+func _load_boss_portrait_textures() -> void:
+	_boss_portrait_textures.clear()
+	var dir = DirAccess.open("res://assets/boss_portraits/")
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = "res://assets/boss_portraits/" + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_boss_portrait_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_enemy_sprite_textures() -> void:
+	_enemy_sprite_textures.clear()
+	var base = "res://assets/enemy_sprites/"
+	var dir = DirAccess.open(base)
+	if dir:
+		dir.list_dir_begin()
+		var folder_name = dir.get_next()
+		while folder_name != "":
+			if dir.current_is_dir() and not folder_name.begins_with("."):
+				var sub_dir = DirAccess.open(base + folder_name + "/")
+				if sub_dir:
+					sub_dir.list_dir_begin()
+					var sub_file = sub_dir.get_next()
+					while sub_file != "":
+						if sub_file.ends_with(".png"):
+							var key = folder_name + "/" + sub_file.get_basename()
+							var res_path = base + folder_name + "/" + sub_file
+							if ResourceLoader.exists(res_path):
+								var tex = load(res_path)
+								if tex:
+									_enemy_sprite_textures[key] = tex
+						sub_file = sub_dir.get_next()
+			folder_name = dir.get_next()
+
+func _load_ability_path_icon_textures() -> void:
+	_ability_path_icon_textures.clear()
+	var paths_dir = "res://assets/ability_icons/paths/"
+	var dir = DirAccess.open(paths_dir)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = paths_dir + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_ability_path_icon_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_currency_icon_textures() -> void:
+	_currency_icon_textures.clear()
+	var base = "res://assets/currency_icons/"
+	var dir = DirAccess.open(base)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".png"):
+				var key = file_name.get_basename()
+				var res_path = base + file_name
+				if ResourceLoader.exists(res_path):
+					var tex = load(res_path)
+					if tex:
+						_currency_icon_textures[key] = tex
+			file_name = dir.get_next()
+
+func _load_ui_element_textures() -> void:
+	_ui_element_textures.clear()
+	var items = ["battle_pass_banner", "daily_reward_bg", "chapter_card_bg", "merchant_portrait", "lucky_wheel", "rarity_frames"]
+	for item in items:
+		var res_path = "res://assets/ui_elements/" + item + ".png"
+		if ResourceLoader.exists(res_path):
+			var tex = load(res_path)
+			if tex:
+				_ui_element_textures[item] = tex
+
+func _load_json_content_files() -> void:
+	# Tower banter
+	var banter_path = "res://assets/text/tower_banter.json"
+	if FileAccess.file_exists(banter_path):
+		var file = FileAccess.open(banter_path, FileAccess.READ)
+		if file:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary:
+				_tower_banter_data = parsed
+	# Shadow Author journal
+	var journal_path = "res://assets/text/shadow_author_journal.json"
+	if FileAccess.file_exists(journal_path):
+		var file2 = FileAccess.open(journal_path, FileAccess.READ)
+		if file2:
+			var parsed2 = JSON.parse_string(file2.get_as_text())
+			if parsed2 is Dictionary:
+				_shadow_author_journal = parsed2
+			elif parsed2 is Array:
+				for entry in parsed2:
+					if entry is Dictionary and entry.has("level"):
+						_shadow_author_journal[str(entry["level"])] = entry
+	# Character epilogues
+	var epilogues_path = "res://assets/text/character_epilogues.json"
+	if FileAccess.file_exists(epilogues_path):
+		var file3 = FileAccess.open(epilogues_path, FileAccess.READ)
+		if file3:
+			var parsed3 = JSON.parse_string(file3.get_as_text())
+			if parsed3 is Dictionary:
+				_character_epilogues = parsed3
+			elif parsed3 is Array:
+				for entry in parsed3:
+					if entry is Dictionary and entry.has("character"):
+						_character_epilogues[entry["character"]] = entry
+	# Loading tips (supplements the const LOADING_TIPS)
+	var tips_path = "res://assets/text/loading_tips.json"
+	if FileAccess.file_exists(tips_path):
+		var file4 = FileAccess.open(tips_path, FileAccess.READ)
+		if file4:
+			var parsed4 = JSON.parse_string(file4.get_as_text())
+			if parsed4 is Array:
+				_loading_tips_json = parsed4
+			elif parsed4 is Dictionary and parsed4.has("tips"):
+				_loading_tips_json = parsed4["tips"]
+	# Post-credits
+	var credits_path = "res://assets/text/post_credits.json"
+	if FileAccess.file_exists(credits_path):
+		var file5 = FileAccess.open(credits_path, FileAccess.READ)
+		if file5:
+			var parsed5 = JSON.parse_string(file5.get_as_text())
+			if parsed5 is Array:
+				_post_credits_data = parsed5
+			elif parsed5 is Dictionary and parsed5.has("scenes"):
+				_post_credits_data = parsed5["scenes"]
+
 var _ui_tex: Dictionary = {}
 
 func _load_ui_art() -> void:
@@ -9899,6 +10320,23 @@ func _load_all_art_assets() -> void:
 	_load_ui_art()
 	_load_death_fx_textures()
 	_load_collectible_textures()
+	_load_map_bg_theme_textures()
+	_load_story_panel_textures()
+	_load_chapter_card_textures()
+	_load_level_thumb_textures()
+	_load_map_thumbnail_textures()
+	_load_realm_icon_textures()
+	_load_faction_banner_textures()
+	_load_shop_icon_textures()
+	_load_gear_generated_textures()
+	_load_victory_defeat_textures()
+	_load_ability_icon_textures()
+	_load_boss_portrait_textures()
+	_load_enemy_sprite_textures()
+	_load_ability_path_icon_textures()
+	_load_currency_icon_textures()
+	_load_ui_element_textures()
+	_load_json_content_files()
 
 func _generate_decorations_for_level(index: int) -> void:
 	_decorations.clear()
@@ -15600,6 +16038,21 @@ func _end_story_dialog() -> void:
 	var key = story_state.current_dialog
 	if key != "" and not key in story_seen:
 		story_seen.append(key)
+	# Character epilogues: after narrator_victory, show per-character farewell text
+	if key == "narrator_victory" and _character_epilogues.size() > 0:
+		var _epi_y = 200.0
+		for char_key in _character_epilogues:
+			var epilogue = _character_epilogues[char_key]
+			var epi_text = epilogue.get("text", epilogue.get("farewell", "")) if epilogue is Dictionary else str(epilogue)
+			var char_name = epilogue.get("name", char_key.capitalize()) if epilogue is Dictionary else char_key.capitalize()
+			if epi_text != "":
+				spawn_floating_text(Vector2(640, _epi_y), "%s: %s" % [char_name, epi_text.substr(0, 80)], Color(0.85, 0.80, 0.65), 13.0, 5.0)
+				_epi_y += 25.0
+			if _epi_y > 600.0:
+				break
+	# Post-credits: after narrator_victory, trigger post-credits sequence
+	if key == "narrator_victory" and _post_credits_data.size() > 0:
+		_trigger_post_credits()
 	story_state.active = false
 	story_state.current_dialog = ""
 	# Check for queued follow-up dialog
@@ -15954,6 +16407,13 @@ func _draw_story_dialog() -> void:
 	for ri in range(3):
 		var rim_r = 120.0 + float(ri) * 10.0
 		draw_arc(Vector2(glow_cx, glow_cy - 20.0), rim_r, -PI * 0.8, -PI * 0.2, 20, Color(char_glow.r, char_glow.g, char_glow.b, rim_alpha * 0.5 * (1.0 - float(ri) * 0.2)), 2.0)
+
+	# === STORY PANEL BACKGROUND (behind portrait, driven by dialog key) ===
+	var _dialog_panel_key = DIALOG_PANELS.get(key, "")
+	if _dialog_panel_key != "" and _story_panel_textures.has(_dialog_panel_key):
+		var _sp_tex = _story_panel_textures[_dialog_panel_key]
+		# Draw panel as atmospheric background behind portrait, semi-transparent
+		draw_texture_rect(_sp_tex, Rect2(140, 30, 1000, 420), false, Color(1, 1, 1, 0.25))
 
 	# === PARTICLES LAYER 1 (behind portrait) ===
 	for pi in range(10):
@@ -16949,6 +17409,75 @@ func _get_character_idle_offset(char_idx: int) -> Vector2:
 		_:
 			return Vector2(cos(_time * spd * 0.8 + phase) * ax, sin(_time * spd * 1.2 + phase) * ay)
 
+# (#90) Character idle personality quirks on menu cards
+func _draw_menu_idle_quirk(cx: float, cy: float, cw: float, ch: float, char_idx: int) -> void:
+	if char_idx < 0 or char_idx >= survivor_types.size(): return
+	if GameSettings and GameSettings.reduced_motion: return
+	var tt = survivor_types[char_idx]
+	var phase = float(char_idx) * 2.1
+	# Per-character unique idle visual beyond breathing
+	match tt:
+		TowerType.ROBIN_HOOD:  # Bow string twitch - slight horizontal line offset
+			var twitch = 0.0
+			if fmod(_time + phase, 5.0) < 0.3:
+				twitch = sin((_time + phase) * 20.0) * 2.0
+			var bx = cx + cw * 0.75 + twitch
+			var by = cy + ch * 0.4
+			draw_line(Vector2(bx, by - 8), Vector2(bx, by + 8), Color(0.5, 0.35, 0.15, 0.15), 1.0)
+		TowerType.ALICE:  # Head tilt - rotation oscillation
+			var tilt = sin(_time * 0.4 + phase) * 0.08
+			var hx = cx + cw * 0.5
+			var hy = cy + ch * 0.25
+			var dot_off = Vector2(cos(tilt) * 3.0, sin(tilt) * 3.0)
+			draw_circle(Vector2(hx, hy) + dot_off, 1.5, Color(0.6, 0.4, 0.9, 0.12))
+		TowerType.DRACULA:  # Cape flutter - slight scale pulse
+			var flutter = sin(_time * 1.8 + phase) * 0.15
+			var cape_a = 0.08 + flutter * 0.04
+			if cape_a > 0.02:
+				draw_rect(Rect2(cx + 2, cy + ch * 0.5, cw - 4, ch * 0.15), Color(0.3, 0.02, 0.05, cape_a))
+		TowerType.PETER_PAN:  # Floating sparkle - fairy dust
+			var sparkle_y = cy + ch * 0.3 + sin(_time * 2.0 + phase) * 5.0
+			var sparkle_x = cx + cw * 0.6 + cos(_time * 1.5 + phase) * 4.0
+			var sp_a = 0.15 + sin(_time * 4.0 + phase) * 0.1
+			draw_circle(Vector2(sparkle_x, sparkle_y), 1.5, Color(1.0, 0.85, 0.25, sp_a))
+			draw_circle(Vector2(sparkle_x + 3, sparkle_y - 4), 1.0, Color(1.0, 0.9, 0.4, sp_a * 0.7))
+		TowerType.PHANTOM:  # Music note float
+			var note_y = cy + ch * 0.2 + sin(_time * 1.2 + phase) * 6.0
+			var note_x = cx + cw * 0.7 + cos(_time * 0.8 + phase) * 3.0
+			var note_a = 0.10 + sin(_time * 2.0 + phase) * 0.05
+			draw_circle(Vector2(note_x, note_y), 2.0, Color(0.5, 0.25, 0.65, note_a))
+			draw_line(Vector2(note_x + 2, note_y), Vector2(note_x + 2, note_y - 6), Color(0.5, 0.25, 0.65, note_a * 0.7), 1.0)
+		TowerType.SCROOGE:  # Coin glint
+			if fmod(_time + phase, 4.0) < 0.5:
+				var glint_a = sin((_time + phase) * 8.0) * 0.15
+				if glint_a > 0:
+					draw_circle(Vector2(cx + cw * 0.4, cy + ch * 0.45), 2.0, Color(1.0, 0.88, 0.2, glint_a))
+		TowerType.WICKED_WITCH:  # Green magic pulse
+			var pulse_r = 3.0 + sin(_time * 1.5 + phase) * 1.5
+			var pulse_a = 0.05 + sin(_time * 2.5 + phase) * 0.03
+			draw_circle(Vector2(cx + cw * 0.5, cy + ch * 0.35), pulse_r, Color(0.15, 0.5, 0.15, pulse_a))
+		TowerType.MERLIN:  # Orb glow
+			var orb_pulse = 0.06 + sin(_time * 1.0 + phase) * 0.03
+			draw_circle(Vector2(cx + cw * 0.65, cy + ch * 0.55), 3.5, Color(0.4, 0.2, 0.8, orb_pulse))
+		TowerType.FRANKENSTEIN:  # Spark crackle
+			if fmod(_time + phase, 6.0) < 0.2:
+				var sk_x = cx + cw * 0.3 + randf_range(-5, 5)
+				var sk_y = cy + ch * 0.3
+				draw_line(Vector2(sk_x, sk_y), Vector2(sk_x + 3, sk_y - 4), Color(0.5, 0.7, 1.0, 0.2), 1.0)
+		TowerType.SHADOW_AUTHOR:  # Ink drip
+			var drip_t = fmod(_time * 0.5 + phase, 3.0) / 3.0
+			var drip_y = cy + ch * 0.6 + drip_t * 10.0
+			var drip_a = 0.12 * (1.0 - drip_t)
+			draw_circle(Vector2(cx + cw * 0.45, drip_y), 1.0, Color(0.08, 0.05, 0.15, drip_a))
+		TowerType.TARZAN:  # Chest beat wobble
+			if fmod(_time + phase, 7.0) < 0.6:
+				var beat = sin((_time + phase) * 12.0) * 1.5
+				draw_circle(Vector2(cx + cw * 0.5 + beat, cy + ch * 0.4), 2.0, Color(0.3, 0.7, 0.2, 0.08))
+		TowerType.SHERLOCK:  # Magnifying glass glint
+			var mg_pulse = sin(_time * 0.6 + phase) * 0.08
+			if mg_pulse > 0.02:
+				draw_arc(Vector2(cx + cw * 0.7, cy + ch * 0.35), 3.0, 0, TAU, 8, Color(0.85, 0.72, 0.25, mg_pulse), 0.8)
+
 # 3. Show victory quote from random placed tower
 func _show_victory_quote() -> void:
 	var placed: Array = []
@@ -17321,6 +17850,10 @@ func _process_spin_wheel(delta: float) -> void:
 		_haptic(2)
 
 func _draw_spin_wheel(cx: float, cy: float, radius: float) -> void:
+	# Lucky wheel background texture (drawn behind the procedural wheel)
+	if _ui_element_textures.has("lucky_wheel"):
+		var lw_sz = radius * 2.2
+		draw_texture_rect(_ui_element_textures["lucky_wheel"], Rect2(cx - lw_sz * 0.5, cy - lw_sz * 0.5, lw_sz, lw_sz), false, Color(1, 1, 1, 0.3))
 	var font = game_font
 	var count = SPIN_WHEEL_PRIZES.size()
 	var seg = TAU / float(count)
@@ -18222,8 +18755,15 @@ func _draw_currency_bar() -> void:
 			draw_rect(Rect2(ex, ey + emp_sz - csz, csz, csz), ccol)
 			draw_rect(Rect2(ex + emp_sz - csz, ey + emp_sz - csz, csz, csz), ccol)
 		else:
-			draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
-			draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
+			# Try currency_icon_textures (gem, pages, chest) before procedural fallback
+			var _ci_map = {"Gold": "gem", "Pages": "pages", "Stars": "gem"}
+			var _ci_key = _ci_map.get(c["name"], "")
+			if _ci_key != "" and _currency_icon_textures.has(_ci_key):
+				var ci_sz = 18.0
+				draw_texture_rect(_currency_icon_textures[_ci_key], Rect2(cx - ci_sz * 0.5, ic_y - ci_sz * 0.5, ci_sz, ci_sz), false)
+			else:
+				draw_circle(Vector2(cx, ic_y), 9, Color(cc.r, cc.g, cc.b, 0.3))
+				draw_arc(Vector2(cx, ic_y), 10, 0, TAU, 24, Color(cc.r, cc.g, cc.b, 0.55), 1.5)
 		# Menu Improvement 13: Premium currency sparkle
 		var is_premium = c["name"] in ["Quills", "Pages", "Stars"]
 		_draw_currency_shimmer(cx, ic_y, 10.0, cc, is_premium)
@@ -20318,6 +20858,9 @@ func _draw_daily_reward() -> void:
 
 	# Panel background — premium Bloons panel with gradient fill
 	_ds_panel(Rect2(modal_x, modal_y, modal_w, modal_h), Color(0.11, 0.08, 0.20, 0.97), Color(0.85, 0.68, 0.25, 0.9), 4.0, 16.0)
+	# Daily reward background image
+	if _ui_element_textures.has("daily_reward_bg"):
+		draw_texture_rect(_ui_element_textures["daily_reward_bg"], Rect2(modal_x + 4, modal_y + 4, modal_w - 8, modal_h - 8), false, Color(1, 1, 1, 0.15))
 	# Inner accent line (1px inset by 8)
 	var bdr_dim = Color(0.55, 0.42, 0.15, 0.6)
 	draw_colored_polygon(_rrp(Rect2(modal_x + 8, modal_y + 8, modal_w - 16, modal_h - 16), 12.0), Color(0, 0, 0, 0.0))
@@ -20677,6 +21220,9 @@ func _draw_survivor_grid() -> void:
 		if title_str.length() > 28:
 			title_str = title_str.substr(0, 26) + ".."
 		_ds_hero_card(Rect2(draw_cx, draw_cy, draw_cw, draw_ch), speaker_name, info["name"], title_str, char_lvl, accent, unlocked, is_hovered)
+		# (#90) Character idle personality quirk visual
+		if unlocked:
+			_draw_menu_idle_quirk(draw_cx, draw_cy, draw_cw, draw_ch, i)
 
 		# Unlock progress on locked cards
 		if not unlocked:
@@ -20808,11 +21354,18 @@ func _update_world_map_hover() -> void:
 			world_map_hover_index = i
 			break
 
+func _draw_gear_rarity_frame(center: Vector2, sz: float) -> void:
+	# Overlay rarity frame texture on gear items
+	if _ui_element_textures.has("rarity_frames"):
+		var half = sz * 0.55
+		draw_texture_rect(_ui_element_textures["rarity_frames"], Rect2(center.x - half, center.y - half, half * 2.0, half * 2.0), false, Color(1, 1, 1, 0.5))
+
 func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color) -> void:
 	# AI-generated gear icon — check ORIGINAL key first, then remapped key, then procedural fallback
 	if _gear_icon_textures.has(icon_key):
 		var half = sz * 0.5
 		draw_texture_rect(_gear_icon_textures[icon_key], Rect2(center.x - half, center.y - half, sz, sz), false)
+		_draw_gear_rarity_frame(center, sz)
 		return
 	# Remap gear item IDs to icon drawing keys for fallback lookup
 	var draw_key = icon_key
@@ -20821,6 +21374,7 @@ func _draw_gear_icon(center: Vector2, icon_key: String, sz: float, accent: Color
 		if _gear_icon_textures.has(draw_key):
 			var half = sz * 0.5
 			draw_texture_rect(_gear_icon_textures[draw_key], Rect2(center.x - half, center.y - half, sz, sz), false)
+			_draw_gear_rarity_frame(center, sz)
 			return
 	icon_key = draw_key
 	var cx = center.x
@@ -22254,10 +22808,21 @@ func _draw_story_map() -> void:
 		# --- Arc header ---
 		if cursor_y + header_h > content_top and cursor_y < content_top + content_h:
 			var hy = maxf(cursor_y, content_top)
+			# Chapter card background behind arc header (subtle)
+			var _cc_map = {"Sherlock Holmes": "victorian_london", "Merlin": "camelot", "Tarzan": "african_jungle", "Dracula": "transylvania", "Frankenstein": "laboratory", "Robin Hood": "sherwood_forest", "Alice": "wonderland", "Wicked Witch": "land_of_oz", "Peter Pan": "neverland", "Phantom": "opera_house", "Scrooge": "victorian_london", "Shadow Author": "shadow_realm"}
+			var _cc_key = _cc_map.get(arc_name, "")
+			if _cc_key != "" and _chapter_card_textures.has(_cc_key):
+				draw_texture_rect(_chapter_card_textures[_cc_key], Rect2(list_x + 4, hy, list_w - 8, header_h), false, Color(1, 1, 1, 0.15))
 			# Rounded arc header banner
 			draw_colored_polygon(_rrp(Rect2(list_x + 4, hy, list_w - 8, header_h), 6.0), Color(arc_col.r * 0.35, arc_col.g * 0.35, arc_col.b * 0.35, 0.45))
 			# Bright accent bar
 			draw_rect(Rect2(list_x + 4, hy + 2, 5, header_h - 4), Color(arc_col.r, arc_col.g, arc_col.b, 0.95))
+			# Faction banner in arc header (right side)
+			var _fb_map = {"Sherlock Holmes": "victorian_london", "Merlin": "camelot", "Tarzan": "sherwood", "Dracula": "transylvania", "Frankenstein": "laboratory", "Robin Hood": "sherwood", "Alice": "wonderland", "Wicked Witch": "land_of_oz", "Peter Pan": "neverland", "Scrooge": "victorian_london"}
+			var _fb_key = _fb_map.get(arc_name, "")
+			if _fb_key != "" and _faction_banner_textures.has(_fb_key):
+				var _fb_sz = header_h - 4
+				draw_texture_rect(_faction_banner_textures[_fb_key], Rect2(list_x + list_w - _fb_sz - 14, hy + 2, _fb_sz, _fb_sz), false, Color(1, 1, 1, 0.6))
 			# Character portrait next to chapter header
 			var _arc_char = arc.get("unlock_char", "")
 			var _arc_text_x = list_x + 18
@@ -22265,6 +22830,12 @@ func _draw_story_map() -> void:
 				var _pt_sz = header_h - 4
 				draw_texture_rect(_portrait_textures[_arc_char], Rect2(list_x + 12, hy + 2, _pt_sz, _pt_sz), false)
 				_arc_text_x = list_x + 12 + _pt_sz + 6
+			# Realm icon next to arc header
+			var _realm_map = {"Prologue": "realm_prologue", "Sherlock Holmes": "realm_london", "Merlin": "realm_camelot", "Tarzan": "realm_jungle", "Dracula": "realm_transylvania", "Frankenstein": "realm_laboratory", "Robin Hood": "realm_sherwood", "Alice": "realm_wonderland", "Wicked Witch": "realm_oz", "Peter Pan": "realm_neverland", "Phantom": "realm_opera", "Scrooge": "realm_christmas", "Shadow Author": "realm_shadow"}
+			var _realm_key = _realm_map.get(arc_name, "")
+			if _realm_key != "" and _realm_icon_textures.has(_realm_key):
+				var _ri_sz = header_h - 6
+				draw_texture_rect(_realm_icon_textures[_realm_key], Rect2(_arc_text_x - _ri_sz - 2, hy + 3, _ri_sz, _ri_sz), false, Color(1, 1, 1, 0.85))
 			_ds_outlined_text(Vector2(_arc_text_x, hy + 23), arc_name.to_upper(), 15, Color(1.0, 1.0, 1.0), 200, HORIZONTAL_ALIGNMENT_LEFT, 1)
 			# Arc completion shown via progress bar only (no overlapping text)
 			# Enhancement 14: Chapter progress bar
@@ -22372,10 +22943,12 @@ func _draw_story_map() -> void:
 			var thumb_y = ry + 6.0
 			var thumb_w = 135.0
 			var thumb_h = 100.0
-			# Try AI-generated map art first, fall back to procedural
+			# Try AI-generated map art first, then map_thumbnails, then procedural
 			if _map_thumb_textures.has(lvl_idx) and is_unlocked:
 				var thumb_tex = _map_thumb_textures[lvl_idx]
 				draw_texture_rect(thumb_tex, Rect2(thumb_x, thumb_y, thumb_w, thumb_h), false)
+			elif _map_thumbnail_textures.has(lvl_idx) and is_unlocked:
+				draw_texture_rect(_map_thumbnail_textures[lvl_idx], Rect2(thumb_x, thumb_y, thumb_w, thumb_h), false)
 			else:
 				var sky = level["sky_color"] if is_unlocked else Color(0.15, 0.12, 0.10)
 				var gnd = level["ground_color"] if is_unlocked else Color(0.10, 0.08, 0.06)
@@ -22385,6 +22958,12 @@ func _draw_story_map() -> void:
 					var tx = thumb_x + float(ti) * 16.0 + 4.0
 					var ty = thumb_y + thumb_h * 0.48 + sin(float(ti + lvl_idx) * 1.3) * 4.0
 					draw_circle(Vector2(tx, ty), 3.0, Color(gnd.r * 1.2, gnd.g * 1.2, gnd.b * 1.2, 0.25))
+			# Level thumb overlay (small realm thumbnail in bottom-right corner of map thumb)
+			var _lt_map = {0: "sherwood_thumb", 1: "london_thumb", 2: "london_thumb", 3: "london_thumb", 4: "camelot_thumb", 5: "camelot_thumb", 6: "camelot_thumb", 7: "jungle_thumb", 8: "jungle_thumb", 9: "jungle_thumb", 10: "transylvania_thumb", 11: "transylvania_thumb", 12: "transylvania_thumb", 13: "laboratory_thumb", 14: "laboratory_thumb", 15: "laboratory_thumb", 16: "sherwood_thumb", 17: "sherwood_thumb", 18: "sherwood_thumb", 19: "wonderland_thumb", 20: "wonderland_thumb", 21: "wonderland_thumb", 22: "oz_thumb", 23: "oz_thumb", 24: "oz_thumb", 25: "neverland_thumb", 26: "neverland_thumb", 27: "neverland_thumb", 28: "opera_thumb", 29: "opera_thumb", 30: "opera_thumb", 31: "victorian_xmas_thumb", 32: "victorian_xmas_thumb", 33: "victorian_xmas_thumb", 34: "shadow_realm_thumb", 35: "shadow_realm_thumb", 36: "shadow_realm_thumb"}
+			var _lt_key = _lt_map.get(lvl_idx, "")
+			if _lt_key != "" and _level_thumb_textures.has(_lt_key) and is_unlocked:
+				var _lt_sz = 28.0
+				draw_texture_rect(_level_thumb_textures[_lt_key], Rect2(thumb_x + thumb_w - _lt_sz - 2, thumb_y + thumb_h - _lt_sz - 2, _lt_sz, _lt_sz), false, Color(1, 1, 1, 0.7))
 			# Path preview removed — let the AI art speak for itself
 			draw_rect(Rect2(thumb_x, thumb_y, thumb_w, thumb_h), _ca(menu_gold_dim, 0.3), false, 1.0)
 			# Level number badge (rounded panel)
@@ -22796,6 +23375,9 @@ func _draw_chapters_overlay() -> void:
 	var panel_h = 520.0
 	var content_y = panel_y + 52.0
 	var content_h = panel_h - 60.0
+	# Chapter card background art
+	if _ui_element_textures.has("chapter_card_bg"):
+		draw_texture_rect(_ui_element_textures["chapter_card_bg"], Rect2(panel_x + 2, panel_y + 2, panel_w - 4, panel_h - 4), false, Color(1, 1, 1, 0.12))
 	# Panel theme color
 	var color_map = {"deals": Color(0.85, 0.70, 0.28), "quests": Color(0.4, 0.8, 0.3), "arena": Color(0.7, 0.3, 0.9), "odyssey": Color(0.82, 0.62, 0.92), "endless": Color(0.60, 0.45, 0.75)}
 	var tc = color_map.get(menu_side_panel, menu_gold)
@@ -26413,6 +26995,22 @@ func _try_place_tower(pos: Vector2) -> void:
 	_check_achievement("full_roster", purchased_towers.size())
 	# Check synergies
 	_check_synergies()
+	# Tower banter: show a line when a synergy pair is placed together
+	if _tower_banter_data.size() > 0 and _active_bonds.size() > 0:
+		for bond in _active_bonds:
+			var pair = bond.get("pair", [])
+			if pair.size() >= 2:
+				var name_a = _tower_type_to_name(pair[0])
+				var name_b = _tower_type_to_name(pair[1])
+				# Try both orderings as banter key
+				for banter_key in [name_a + "_" + name_b, name_b + "_" + name_a, name_a, name_b]:
+					if _tower_banter_data.has(banter_key):
+						var lines = _tower_banter_data[banter_key]
+						if lines is Array and lines.size() > 0:
+							var line = lines[randi() % lines.size()]
+							var banter_text = line if line is String else line.get("text", str(line))
+							spawn_floating_text(pos + Vector2(0, -60), banter_text, Color(0.95, 0.88, 0.55), 12.0, 3.0)
+							break
 	# Trust system: track character usage
 	_increment_trust(selected_tower)
 	_check_trust_dialogue(selected_tower)
@@ -26652,6 +27250,13 @@ func _draw() -> void:
 	# Solid background fill (prevents checkerboard from transparent PNGs)
 	draw_rect(Rect2(0, 0, 1280, 720), sky_color)
 	draw_rect(Rect2(0, 360, 1280, 360), ground_color)
+
+	# Theme-based map background (drawn behind everything, fills screen)
+	if current_level >= 0 and current_level < levels.size():
+		var _map_theme_idx = levels[current_level].get("enemy_theme", -1)
+		var _map_bg_name = MAP_BG_BY_THEME.get(_map_theme_idx, "")
+		if _map_bg_name != "" and _map_bg_textures.has(_map_bg_name):
+			draw_texture_rect(_map_bg_textures[_map_bg_name], Rect2(0, 0, 1280, 720), false, Color(1, 1, 1, 0.35))
 
 	# AI-generated level background (full-screen art behind procedural details)
 	if _level_bg_textures.has(current_level):
@@ -27501,6 +28106,15 @@ func _draw() -> void:
 	# === BRANCH UPGRADE DISPLAY (on selected tower with tier 4) ===
 	if selected_tower_node and is_instance_valid(selected_tower_node) and upgrade_panel.visible:
 		_draw_branch_upgrade_panel()
+		# Draw ability path icons next to path header labels
+		var _path_icon_keys_draw = ["path_a_attack", "path_b_support", "path_c_special"]
+		for pi in range(mini(path_header_labels.size(), 3)):
+			if pi < _path_icon_keys_draw.size() and _ability_path_icon_textures.has(_path_icon_keys_draw[pi]):
+				var lbl = path_header_labels[pi]
+				if lbl.visible:
+					var icon_sz = 16.0
+					var lbl_pos = upgrade_panel.position + lbl.position
+					draw_texture_rect(_ability_path_icon_textures[_path_icon_keys_draw[pi]], Rect2(lbl_pos.x - icon_sz - 2, lbl_pos.y + 1, icon_sz, icon_sz), false)
 
 	# === VICTORY BURST EFFECT ===
 	if _victory_burst_timer > 0.0:
@@ -27533,6 +28147,12 @@ func _draw() -> void:
 	# === VICTORY SCREEN OVERLAY (Item #44) ===
 	if game_state == GameState.GAME_OVER_STATE and _last_game_was_victory and _victory_overlay_data.size() > 0 and not victory_chest_active:
 		draw_rect(Rect2(0, 0, 1280, 720), Color(0, 0, 0, 0.55))
+		# Victory splash art (full background, behind everything)
+		if _victory_defeat_textures.has("victory_splash"):
+			draw_texture_rect(_victory_defeat_textures["victory_splash"], Rect2(240, 40, 800, 640), false, Color(1, 1, 1, 0.18))
+		# Victory banner art (top, behind title)
+		if _victory_defeat_textures.has("victory_banner"):
+			draw_texture_rect(_victory_defeat_textures["victory_banner"], Rect2(340, 40, 600, 100), false, Color(1, 1, 1, 0.7))
 		# Confetti particles (colored rotating rectangles falling)
 		for cf in _victory_confetti:
 			var cf_pos = cf["pos"]
@@ -27644,6 +28264,12 @@ func _draw() -> void:
 	if _defeat_timer > 0.0:
 		var df_t = 1.0 - clampf(_defeat_timer / 4.0, 0.0, 1.0)
 		var df_alpha = clampf(df_t * 1.5, 0.0, 1.0)
+		# Defeat splash art (behind everything)
+		if _victory_defeat_textures.has("defeat_splash"):
+			draw_texture_rect(_victory_defeat_textures["defeat_splash"], Rect2(240, 40, 800, 640), false, Color(1, 1, 1, 0.12 * df_alpha))
+		# Defeat banner art (top area)
+		if _victory_defeat_textures.has("defeat_banner"):
+			draw_texture_rect(_victory_defeat_textures["defeat_banner"], Rect2(340, 50, 600, 100), false, Color(1, 1, 1, 0.5 * df_alpha))
 		# Progressive edge vignette (5 darkening layers)
 		for di in range(5):
 			var d_thick = (8.0 + float(di) * 12.0) * df_alpha
@@ -27675,6 +28301,9 @@ func _draw() -> void:
 		# "DEFEAT" title + stats (appears after initial crack animation)
 		if df_alpha > 0.5:
 			var title_a = clampf((df_alpha - 0.5) * 3.0, 0.0, 1.0)
+			# Game over book art (centered, behind stats)
+			if _victory_defeat_textures.has("game_over_book"):
+				draw_texture_rect(_victory_defeat_textures["game_over_book"], Rect2(490, 260, 300, 300), false, Color(1, 1, 1, 0.2 * title_a))
 			# Red glow behind title
 			_ds_outlined_text(Vector2(640, 140), "DEFEAT", 52, Color(0.8, 0.1, 0.05, title_a * 0.3), 1280, HORIZONTAL_ALIGNMENT_CENTER, 8)
 			_ds_outlined_text(Vector2(640, 140), "DEFEAT", 52, Color(1.0, 0.15, 0.08, title_a), 1280, HORIZONTAL_ALIGNMENT_CENTER, 3)
@@ -30129,9 +30758,21 @@ func _draw_boss_health_bar() -> void:
 	_udraw(game_font, Vector2(640, bar_y + 14), hp_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(1.0, 0.95, 0.9, 0.9))
 	# Boss name — show actual villain name if available
 	var boss_display = "BOSS"
+	var _boss_name_key = ""
 	if is_instance_valid(_active_boss_node) and "boss_name" in _active_boss_node and _active_boss_node.boss_name != "":
 		boss_display = "💀 %s 💀" % _active_boss_node.boss_name
+		_boss_name_key = _active_boss_node.boss_name.to_lower().replace(" ", "_")
 	_ds_outlined_text(Vector2(640, bar_y - 4), boss_display, 14, Color(1.0, 0.3, 0.15, 0.9), -1, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# Boss portrait — draw next to HP bar (left side)
+	var _bp_key = BOSS_PORTRAITS.get(_boss_name_key, _boss_name_key)
+	if _boss_portrait_textures.has(_bp_key):
+		var bp_sz = 48.0
+		var bp_x = bar_x - bp_sz - 8.0
+		var bp_y = bar_y - 16.0
+		# Dark circle frame behind portrait
+		draw_circle(Vector2(bp_x + bp_sz * 0.5, bp_y + bp_sz * 0.5), bp_sz * 0.55, Color(0.1, 0.05, 0.05, 0.8))
+		draw_texture_rect(_boss_portrait_textures[_bp_key], Rect2(bp_x, bp_y, bp_sz, bp_sz), false)
+		draw_arc(Vector2(bp_x + bp_sz * 0.5, bp_y + bp_sz * 0.5), bp_sz * 0.55, 0, TAU, 24, Color(0.8, 0.2, 0.1, 0.6), 2.0)
 
 # === BATTD: ENEMY KILL COUNTER ===
 func _draw_kill_counter() -> void:
@@ -33684,6 +34325,7 @@ func _draw_robin_ch1(sky_color: Color, ground_color: Color) -> void:
 	_draw_exit_portal()
 	# --- DAY/NIGHT OVERLAY ---
 	_draw_day_night_overlay()
+	_draw_day_cycle_overlay()  # (#88) Dynamic day/night tint
 	# --- REALM ATMOSPHERE (behind everything) ---
 	_draw_atmosphere()
 	# --- TERRAIN ZONES ---
@@ -37411,9 +38053,13 @@ func _update_upgrade_panel() -> void:
 			path_data = UPGRADE_PATHS[tower_type_int].get(path_key, {})
 			tiers_data = path_data.get("tiers", [])
 
-		# Update path header
+		# Update path header (with ability path icon if available)
 		if p < path_header_labels.size():
 			var pname = path_data.get("name", "Path " + path_key)
+			# Prepend path icon indicator if texture exists
+			var _path_icon_keys = ["path_a_attack", "path_b_support", "path_c_special"]
+			if p < _path_icon_keys.size() and _ability_path_icon_textures.has(_path_icon_keys[p]):
+				pname = "⬢ " + pname  # Visual indicator that icon texture is loaded
 			path_header_labels[p].text = pname
 			path_header_labels[p].add_theme_color_override("font_color", path_colors_header[p])
 			path_header_labels[p].visible = has_paths
@@ -39600,6 +40246,15 @@ func _victory() -> void:
 			})
 	_collect_session_damage()
 	_show_victory_quote()
+	# Shadow Author journal: check if this level has a journal entry
+	var _journal_key = str(current_level)
+	if _shadow_author_journal.has(_journal_key) and not _journal_key in _discovered_journal_entries:
+		_discovered_journal_entries.append(_journal_key)
+		spawn_floating_text(Vector2(640, 250), "📖 Journal Found!", Color(0.6, 0.4, 0.9), 20.0, 3.0)
+		var _je = _shadow_author_journal[_journal_key]
+		var _je_text = _je.get("text", _je.get("title", "")) if _je is Dictionary else str(_je)
+		if _je_text != "":
+			spawn_floating_text(Vector2(640, 280), _je_text.substr(0, 60), Color(0.7, 0.6, 0.85), 13.0, 4.0)
 	# MVP Tower spotlight — find tower with most damage
 	var mvp_tower: Node2D = null
 	var mvp_damage: float = 0.0
@@ -43636,6 +44291,10 @@ func _draw_merchant_panel() -> void:
 	var panel_h = 560.0
 	# Rounded panel background
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
+	# Merchant portrait (left side of title)
+	if _ui_element_textures.has("merchant_portrait"):
+		var mp_sz = 48.0
+		draw_texture_rect(_ui_element_textures["merchant_portrait"], Rect2(panel_x + 20, panel_y + 6, mp_sz, mp_sz), false)
 	# Title
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "WANDERING MERCHANT", 22, Color(1.0, 0.85, 0.28), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 100, panel_y + 34, 200, 1), _ca(menu_gold, 0.4))
@@ -47508,7 +48167,15 @@ const LOADING_TIPS: Array = [
 ]
 
 func _get_random_loading_tip() -> String:
-	return LOADING_TIPS[randi() % LOADING_TIPS.size()]
+	# Merge const tips with JSON tips for a bigger pool
+	var all_tips: Array = LOADING_TIPS.duplicate()
+	for tip in _loading_tips_json:
+		var tip_text = tip if tip is String else tip.get("text", str(tip)) if tip is Dictionary else str(tip)
+		if tip_text != "" and not tip_text in all_tips:
+			all_tips.append(tip_text)
+	if all_tips.size() == 0:
+		return "Defend the storybook!"
+	return all_tips[randi() % all_tips.size()]
 
 # --- Enhancement #118: Gold Coin Pickup Animation ---
 var _gold_coin_particles: Array = []  # [{pos, vel, target, life, max_life}]
@@ -48102,6 +48769,9 @@ func _draw_battle_pass_panel() -> void:
 	var panel_w = 1140.0 - _safe_left - _safe_right
 	var panel_h = 560.0
 	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
+	# Battle pass banner image (behind title)
+	if _ui_element_textures.has("battle_pass_banner"):
+		draw_texture_rect(_ui_element_textures["battle_pass_banner"], Rect2(panel_x + 2, panel_y + 2, panel_w - 4, 60), false, Color(1, 1, 1, 0.35))
 	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "BATTLE PASS", 22, Color(0.4, 0.85, 1.0), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 36, 160, 1), _ca(Color(0.4, 0.85, 1.0), 0.4))
 	var prog_y = panel_y + 50.0
