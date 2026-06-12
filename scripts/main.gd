@@ -500,6 +500,8 @@ var emporium_categories = [
 	{"name": "Instruments", "desc": "Literary aura items for battle", "icon": "emp_instruments", "badge": "NEW!"},
 	{"name": "Lucky Wheel", "desc": "Spin for daily prizes!", "icon": "emp_wheel", "badge": "FREE!"},
 	{"name": "Wandering Merchant", "desc": "Rare items, limited stock", "icon": "emp_merchant", "badge": "NEW!"},
+	{"name": "Shop", "desc": "Gems, boosts, and special offers", "icon": "emp_gold", "badge": "NEW!"},
+	{"name": "Battle Pass", "desc": "Earn rewards as you play!", "icon": "emp_stars", "badge": "NEW!"},
 ]
 var emporium_hover_index: int = -1
 
@@ -4965,6 +4967,10 @@ func _apply_meta_buffs(tower_node, tower_type) -> void:
 	# 0e) BATTD2: Victory Streak XP/damage bonus
 	if victory_streak >= 2:
 		buffs["damage"] = buffs.get("damage", 0.0) + float(victory_streak) * STREAK_GOLD_BONUS
+	# 0f) CHARACTER PRESTIGE bonus (#134): +5% damage per prestige level
+	var char_prest = character_prestige.get(tower_type, 0)
+	if char_prest > 0:
+		buffs["damage"] = buffs.get("damage", 0.0) + float(char_prest) * CHAR_PRESTIGE_DAMAGE_BONUS
 	# 1) Level bonuses
 	var lvl_b = _get_level_bonuses(tower_type)
 	for k in lvl_b:
@@ -6167,6 +6173,75 @@ func _check_achievement(id: String, value = 1) -> void:
 		achievement_popup_timer = 3.0
 		_save_game()
 
+# === ACHIEVEMENT REWARD CLAIMING (#132) ===
+func _claim_achievement_reward(ach_id: String) -> bool:
+	if not achievements_unlocked.get(ach_id, false):
+		return false
+	if achievement_rewards_claimed.get(ach_id, false):
+		return false
+	if not ACHIEVEMENT_REWARDS.has(ach_id):
+		return false
+	var reward_crystals = ACHIEVEMENT_REWARDS[ach_id]
+	player_crystals += reward_crystals
+	achievement_rewards_claimed[ach_id] = true
+	achievement_claim_queue.erase(ach_id)
+	spawn_floating_text(Vector2(640, 300), "+%d Crystals!" % reward_crystals, Color(0.4, 0.9, 0.6), 18.0, 2.0)
+	_haptic(1)
+	_save_game()
+	return true
+
+func _rebuild_achievement_claim_queue() -> void:
+	achievement_claim_queue.clear()
+	for ach_id in ACHIEVEMENT_REWARDS:
+		if achievements_unlocked.get(ach_id, false) and not achievement_rewards_claimed.get(ach_id, false):
+			achievement_claim_queue.append(ach_id)
+
+# === CHARACTER PRESTIGE (#134) ===
+func _prestige_character(tower_type: int) -> void:
+	if not survivor_progress.has(tower_type):
+		return
+	var p = survivor_progress[tower_type]
+	if p["level"] < MAX_SURVIVOR_LEVEL:
+		return
+	var current_prestige = character_prestige.get(tower_type, 0)
+	if current_prestige >= MAX_CHAR_PRESTIGE:
+		return
+	character_prestige[tower_type] = current_prestige + 1
+	p["level"] = 1
+	p["xp"] = 0.0
+	p["xp_next"] = _get_xp_for_level(1)
+	spawn_floating_text(Vector2(640, 250), "PRESTIGE %d!" % character_prestige[tower_type], Color(1.0, 0.85, 0.0), 28.0, 3.0)
+	spawn_floating_text(Vector2(640, 285), "+%d%% Permanent Damage" % int(character_prestige[tower_type] * CHAR_PRESTIGE_DAMAGE_BONUS * 100), Color(0.4, 1.0, 0.5), 16.0, 2.5)
+	_haptic(2)
+	_save_game()
+
+# === COMPLETIONIST CHECKLIST (#150) ===
+func _get_completion_percentage() -> Dictionary:
+	var total_levels = levels.size() if "levels" in self else 18
+	var cleared = completed_levels.size()
+	var story_pct = float(cleared) / float(max(1, total_levels)) * 100.0
+	var total_chars = survivor_types.size() if "survivor_types" in self else 12
+	var chars_unlocked = unlocked_characters.size() + 5
+	chars_unlocked = mini(chars_unlocked, total_chars)
+	var chars_pct = float(chars_unlocked) / float(max(1, total_chars)) * 100.0
+	var total_achs = achievement_definitions.size()
+	var achs_done = 0
+	for ach in achievement_definitions:
+		if achievements_unlocked.get(ach["id"], false):
+			achs_done += 1
+	var achs_pct = float(achs_done) / float(max(1, total_achs)) * 100.0
+	var total_nodes = 0
+	var nodes_bought = 0
+	for branch in knowledge_branches:
+		total_nodes += branch.get("nodes", []).size()
+	for key in knowledge_tree:
+		if knowledge_tree[key]:
+			nodes_bought += 1
+	var upgrades_pct = float(nodes_bought) / float(max(1, total_nodes)) * 100.0
+	var overall = (story_pct + chars_pct + achs_pct + upgrades_pct) / 4.0
+	return {"overall": overall, "story": story_pct, "characters": chars_pct, "achievements": achs_pct, "upgrades": upgrades_pct}
+
+
 # === BATTLE POWER SYSTEM ===
 func _activate_power(power_id: String) -> void:
 	if selected_difficulty == PURE_MODE:
@@ -6423,6 +6498,8 @@ func _save_game() -> void:
 	# Achievements
 	save_data["achievement_progress"] = achievement_progress
 	save_data["achievements_unlocked"] = achievements_unlocked
+	save_data["achievement_rewards_claimed"] = achievement_rewards_claimed
+	save_data["character_prestige"] = character_prestige
 	save_data["total_towers_placed"] = total_towers_placed
 	save_data["total_enemies_killed"] = total_enemies_killed
 	save_data["total_gold_spent"] = total_gold_spent
@@ -6823,6 +6900,15 @@ func _load_game() -> void:
 	var au = data.get("achievements_unlocked", {})
 	for key in au:
 		achievements_unlocked[key] = bool(au[key])
+	# (#132) Achievement rewards claimed
+	var arc = data.get("achievement_rewards_claimed", {})
+	for key in arc:
+		achievement_rewards_claimed[key] = bool(arc[key])
+	_rebuild_achievement_claim_queue()
+	# (#134) Character prestige
+	var cp = data.get("character_prestige", {})
+	for key in cp:
+		character_prestige[int(key)] = int(cp[key])
 	total_towers_placed = int(data.get("total_towers_placed", 0))
 	total_enemies_killed = int(data.get("total_enemies_killed", 0))
 	total_gold_spent = int(data.get("total_gold_spent", 0))
@@ -12542,9 +12628,16 @@ func _on_detail_item_clicked(mouse_pos: Vector2) -> void:
 		detail_info_overlay_open = true
 		queue_redraw()
 		return
-	# --- Check LEVEL UP button click ---
+	# --- Check LEVEL UP / PRESTIGE button click ---
 	var levelup_btn_y = xp_y + xp_h + 2.0
 	var levelup_btn_h = 26.0
+	# (#134) Prestige button click (when at max level)
+	if char_level >= MAX_SURVIVOR_LEVEL and Rect2(port_x, levelup_btn_y, port_w, levelup_btn_h).has_point(mouse_pos):
+		var cur_prest = character_prestige.get(tower_type, 0)
+		if cur_prest < MAX_CHAR_PRESTIGE:
+			_prestige_character(tower_type)
+			_open_survivor_detail(survivor_detail_index)
+		return
 	if char_level < MAX_SURVIVOR_LEVEL and Rect2(port_x, levelup_btn_y, port_w, levelup_btn_h).has_point(mouse_pos):
 		var lvup_cost = _get_levelup_cost(char_level)
 		if player_quills >= lvup_cost:
@@ -17866,6 +17959,17 @@ func _draw_currency_bar() -> void:
 		{"icon": "emp_trophy", "color": Color(0.8, 0.6, 0.2), "value": trophy_currency, "name": "Trophies"},
 	]
 	# Evenly space currencies across the bar (left-aligned, compact)
+	# (#150) Completion indicator on right side of currency bar
+	var comp_data = _get_completion_percentage()
+	var comp_pct = int(comp_data["overall"])
+	var comp_x = 1280.0 - 120.0 - _safe_right
+	var comp_y_pos = bar_y + 6.0
+	# Mini progress ring
+	var comp_angle = comp_data["overall"] / 100.0 * TAU
+	draw_arc(Vector2(comp_x + 10, comp_y_pos + 10), 9.0, 0, TAU, 16, Color(0.2, 0.2, 0.3, 0.4), 2.0)
+	if comp_angle > 0:
+		draw_arc(Vector2(comp_x + 10, comp_y_pos + 10), 9.0, -PI * 0.5, -PI * 0.5 + comp_angle, 16, Color(0.4, 0.9, 0.5, 0.7), 2.5)
+	_udraw(font, Vector2(comp_x + 22, comp_y_pos + 16), "%d%%" % comp_pct, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.9, 0.7, 0.6))
 	var currency_count = currencies.size()
 	var currency_start = 100.0 + _safe_left
 	var currency_spacing = 115.0
@@ -21238,8 +21342,26 @@ func _draw_survivor_detail() -> void:
 	var levelup_btn_y = xp_y + xp_h + 4.0
 	var levelup_btn_h = 28.0
 	if char_level >= MAX_SURVIVOR_LEVEL:
-		_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.15), _ca(c_gold, 0.4), 1.5, 6.0)
-		_udraw(font, Vector2(port_x + 4, levelup_btn_y + 18), "MAX LEVEL", HORIZONTAL_ALIGNMENT_CENTER, int(xp_w - 8), 13, Color(1.0, 0.88, 0.30))
+		var cur_prest = character_prestige.get(tower_type, 0)
+		if cur_prest < MAX_CHAR_PRESTIGE:
+			# (#134) PRESTIGE button
+			var prest_pulse = 0.7 + sin(_time * 2.5) * 0.3
+			_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), Color(0.5, 0.35, 0.05, prest_pulse), _ca(c_gold, 0.8), 2.0, 6.0)
+			_udraw(font, Vector2(port_x + 4, levelup_btn_y + 18), "PRESTIGE  (Reset Lv1, +5%% DMG)", HORIZONTAL_ALIGNMENT_CENTER, int(xp_w - 8), 12, Color(1.0, 0.85, 0.0))
+		else:
+			_ds_panel(Rect2(port_x, levelup_btn_y, xp_w, levelup_btn_h), _ca(c_gold, 0.15), _ca(c_gold, 0.4), 1.5, 6.0)
+			_udraw(font, Vector2(port_x + 4, levelup_btn_y + 18), "MAX PRESTIGE", HORIZONTAL_ALIGNMENT_CENTER, int(xp_w - 8), 13, Color(1.0, 0.88, 0.30))
+		# (#134) Draw prestige stars on portrait
+		if cur_prest > 0:
+			for pi in range(cur_prest):
+				var pstar_x = port_x + 12.0 + float(pi) * 18.0
+				var pstar_y = port_y + 12.0
+				var pstar_pts = PackedVector2Array()
+				for psi in range(10):
+					var psa = -PI * 0.5 + float(psi) * TAU / 10.0
+					var psd = 7.0 if psi % 2 == 0 else 3.0
+					pstar_pts.append(Vector2(pstar_x + cos(psa) * psd, pstar_y + sin(psa) * psd))
+				draw_colored_polygon(pstar_pts, Color(1.0, 0.85, 0.0, 0.95))
 	else:
 		var lvup_cost = _get_levelup_cost(char_level)
 		var can_afford = player_quills >= lvup_cost
@@ -25294,6 +25416,19 @@ func _handle_back_button() -> void:
 			return
 
 func _input(event: InputEvent) -> void:
+	# #178: Debug overlay toggle — triple-tap top-right corner
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var dbg_mpos = get_viewport().get_mouse_position()
+		if dbg_mpos.x > 1180.0 and dbg_mpos.y < 100.0:
+			if _debug_tap_timer > 0.0:
+				_debug_tap_count += 1
+			else:
+				_debug_tap_count = 1
+			_debug_tap_timer = 0.8
+			if _debug_tap_count >= 3:
+				_debug_overlay = not _debug_overlay
+				_debug_tap_count = 0
+				_debug_tap_timer = 0.0
 	# Pause overlay buttons — handle clicks on Resume/Quit when paused
 	if game_paused and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var mpos = get_viewport().get_mouse_position()
@@ -25630,6 +25765,11 @@ func _input(event: InputEvent) -> void:
 		elif menu_current_view == "chronicles":
 			_on_knowledge_tree_clicked(mouse_pos)
 			get_viewport().set_input_as_handled()
+			return
+		elif menu_current_view == "codex" or menu_current_view == "achievements":
+			_on_achievements_clicked(mouse_pos)
+			get_viewport().set_input_as_handled()
+			queue_redraw()
 			return
 		elif menu_current_view == "settings":
 			_on_settings_clicked(mouse_pos)
@@ -26239,9 +26379,16 @@ func _draw() -> void:
 		draw_set_transform(_screen_shake_offset, 0.0, Vector2.ONE)
 
 	# === ENVIRONMENTAL PARTICLES ===
-	if _env_particles.size() > 0:
+	# #173: Skip env particles entirely at low quality
+	if _env_particles.size() > 0 and _quality_level > 0:
 		var env_theme = levels[current_level].get("character", 0) if current_level >= 0 and current_level < levels.size() else 0
+		# #173: Draw every-other particle at medium quality
+		var ep_step = 1 if _quality_level == 2 else 2
+		var ep_idx = -1
 		for ep in _env_particles:
+			ep_idx += 1
+			if ep_idx % ep_step != 0:
+				continue
 			var ep_pos = Vector2(ep["x"], ep["y"])
 			var ep_s = ep["size"]
 			var ep_a = 0.2 + sin(_time * ep["freq"] + ep["phase"]) * 0.1
@@ -26281,12 +26428,14 @@ func _draw() -> void:
 		draw_circle(ghost_position, 24.0, color)
 		# Range circle preview (#41) — always visible, tinted by validity
 		var preview_range = tower_info[selected_tower]["range"]
+		# #173/#183: Quality-adaptive range circle detail
+		var arc_segs = [24, 40, 64][_quality_level]
 		if valid:
-			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0)
-			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1, 1, 1, 0.3), 2.0)
+			draw_arc(ghost_position, preview_range, 0, TAU, arc_segs, Color(1, 1, 1, 0.12), 4.0)
+			draw_arc(ghost_position, preview_range, 0, TAU, arc_segs, Color(1, 1, 1, 0.3), 2.0)
 		else:
-			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1.0, 0.3, 0.2, 0.08), 4.0)
-			draw_arc(ghost_position, preview_range, 0, TAU, 64, Color(1.0, 0.3, 0.2, 0.2), 2.0)
+			draw_arc(ghost_position, preview_range, 0, TAU, arc_segs, Color(1.0, 0.3, 0.2, 0.08), 4.0)
+			draw_arc(ghost_position, preview_range, 0, TAU, arc_segs, Color(1.0, 0.3, 0.2, 0.2), 2.0)
 		# Cost display above ghost tower (#42)
 		var place_cost = _get_discounted_cost(selected_tower)
 		var cost_color = Color(1.0, 0.9, 0.3, 0.9) if gold >= place_cost else Color(1.0, 0.3, 0.2, 0.9)
@@ -26532,6 +26681,7 @@ func _draw() -> void:
 	_draw_synergy_golden_lines()
 	# === IMPROVEMENT 16: Tower Mastery Rings (world-space) ===
 	_draw_tower_mastery_rings()
+	_draw_tower_mastery_badges()  # (#135) Mastery badges
 	# === #74: Upgraded tower visual distinction ===
 	_draw_upgraded_tower_visuals()
 	# === IMPROVEMENT 1: Paragon Tower Effects (world-space) ===
@@ -26598,6 +26748,9 @@ func _draw() -> void:
 	if _floating_texts.size() > 0:
 		var ft_font = game_font
 		for ft in _floating_texts:
+			# #173: Skip off-screen floating texts
+			if ft["pos"].y < -50.0 or ft["pos"].y > 770.0 or ft["pos"].x < -100.0 or ft["pos"].x > 1380.0:
+				continue
 			var ft_alpha = clampf(ft["timer"] / ft["duration"], 0.0, 1.0)
 			var ft_col = ft["color"]
 			ft_col.a *= ft_alpha
@@ -26612,9 +26765,10 @@ func _draw() -> void:
 			if GameSettings and GameSettings.high_contrast:
 				var ft_text_w = ft_font.get_string_size(ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size).x
 				draw_rect(Rect2(ft["pos"].x - ft_text_w * 0.5 - 4, ft["pos"].y - ft_size + 2, ft_text_w + 8, ft_size + 4), Color(0.0, 0.0, 0.0, ft_alpha * 0.6))
-			# Drop shadow for readability
-			var shadow_col = Color(0.0, 0.0, 0.0, ft_alpha * 0.7)
-			draw_string(ft_font, ft["pos"] + Vector2(1, 2), ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size, shadow_col)
+			# #173: Low quality = skip drop shadow to halve draw_string calls
+			if _quality_level > 0:
+				var shadow_col = Color(0.0, 0.0, 0.0, ft_alpha * 0.7)
+				draw_string(ft_font, ft["pos"] + Vector2(1, 2), ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size, shadow_col)
 			draw_string(ft_font, ft["pos"], ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size, ft_col)
 
 	# === GOLD COIN PICKUP ARCS ===
@@ -27072,7 +27226,7 @@ func _draw() -> void:
 		var sp_x = 390.0
 		var sp_y = star_y + 65.0
 		var sp_w = 500.0
-		var sp_h = 180.0
+		var sp_h = 300.0  # Expanded for #133 XP feedback
 		_ds_panel(Rect2(sp_x, sp_y, sp_w, sp_h), Color(0.03, 0.03, 0.08, 0.85), _ca(c_gold, 0.4), 2.0, 10.0)
 		var stat_y = sp_y + 18.0
 		var stat_left = sp_x + 24.0
@@ -27108,6 +27262,33 @@ func _draw() -> void:
 		stat_y += 6.0
 		_ds_outlined_text(Vector2(stat_left, stat_y), "MVP", 12, Color(1.0, 0.85, 0.2), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
 		_ds_outlined_text(Vector2(stat_left + 40, stat_y), "⭐ %s — %s dmg" % [v_mvp_name, _format_number(v_mvp_dmg)], 14, c_gold_bright, -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+		# (#133) Character XP Feedback
+		var pre_levels = _victory_overlay_data.get("pre_victory_levels", {})
+		if pre_levels.size() > 0:
+			stat_y += stat_gap + 6.0
+			draw_rect(Rect2(stat_left, stat_y - 4, sp_w - 48, 1), _ca(c_gold, 0.2))
+			stat_y += 6.0
+			_ds_outlined_text(Vector2(stat_left, stat_y), "CHARACTER XP", 12, Color(0.7, 0.8, 1.0), -1, HORIZONTAL_ALIGNMENT_LEFT, 1)
+			stat_y += 18.0
+			var char_names_v = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock", "Tarzan", "Dracula", "Merlin", "The Monster", "Shadow Author"]
+			for v_tt in pre_levels:
+				var old_lvl = pre_levels[v_tt]
+				var new_lvl = survivor_progress.get(v_tt, {}).get("level", 1)
+				var c_name = char_names_v[v_tt] if v_tt >= 0 and v_tt < char_names_v.size() else "Hero"
+				var xp_gained = int(survivor_progress.get(v_tt, {}).get("xp", 0))
+				var lvl_text = "Lv%d" % new_lvl
+				var xp_col = Color(0.6, 0.8, 1.0)
+				if new_lvl > old_lvl:
+					lvl_text = "Lv%d → %d LEVEL UP!" % [old_lvl, new_lvl]
+					xp_col = Color(1.0, 0.85, 0.0)
+				_udraw(game_font, Vector2(stat_left, stat_y), "%s: +%d XP (%s)" % [c_name, xp_gained, lvl_text], HORIZONTAL_ALIGNMENT_LEFT, int(sp_w - 48), 12, xp_col)
+				# Mini XP bar
+				var xp_next = survivor_progress.get(v_tt, {}).get("xp_next", 100.0)
+				var xp_fill = clampf(float(xp_gained) / maxf(xp_next, 1.0), 0.0, 1.0)
+				var bar_bx = stat_right - 100
+				draw_rect(Rect2(bar_bx, stat_y - 6, 100, 6), Color(0.15, 0.15, 0.25, 0.5))
+				draw_rect(Rect2(bar_bx, stat_y - 6, 100 * xp_fill, 6), Color(0.3, 0.7, 1.0, 0.7) if new_lvl <= old_lvl else Color(1.0, 0.85, 0.0, 0.8))
+				stat_y += 16.0
 		# "Next Level" and "Replay" button areas (visual - actual nav uses return/retry buttons)
 		var btn_y = sp_y + sp_h + 24.0
 		var btn_w = 160.0
@@ -27204,6 +27385,51 @@ func _draw() -> void:
 		var si_y = 60.0
 		_ds_panel(Rect2(340, si_y, 600, 36), Color(0.5, 0.15, 0.05, 0.85 * si_alpha), Color(1.0, 0.4, 0.2, 0.6 * si_alpha), 1.5, 8.0)
 		_ds_outlined_text(Vector2(640, si_y + 8), "⚠ Save data may be corrupted ⚠", 14, Color(1.0, 0.8, 0.4, si_alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# #178: Debug performance overlay
+	if _debug_overlay:
+		_draw_debug_overlay()
+
+func _draw_debug_overlay() -> void:
+	var font = game_font if game_font else ThemeDB.fallback_font
+	var dx: float = 10.0
+	var dy: float = 68.0
+	var line_h: float = 16.0
+	# Background panel
+	draw_rect(Rect2(dx - 4, dy - 4, 220, line_h * 8 + 8), Color(0.0, 0.0, 0.0, 0.7))
+	draw_rect(Rect2(dx - 4, dy - 4, 220, line_h * 8 + 8), Color(0.3, 0.8, 0.3, 0.4), false, 1.0)
+	# FPS with color coding
+	var fps_col = Color(0.3, 1.0, 0.3) if _avg_fps >= 55.0 else Color(1.0, 0.8, 0.2) if _avg_fps >= 30.0 else Color(1.0, 0.3, 0.2)
+	draw_string(font, Vector2(dx, dy + 12), "FPS: %.1f" % _avg_fps, HORIZONTAL_ALIGNMENT_LEFT, 200, 13, fps_col)
+	dy += line_h
+	# Quality level
+	var q_names = ["LOW", "MED", "HIGH"]
+	var q_cols = [Color(1.0, 0.4, 0.2), Color(1.0, 0.8, 0.3), Color(0.3, 1.0, 0.5)]
+	draw_string(font, Vector2(dx, dy + 12), "QUALITY: %s" % q_names[_quality_level], HORIZONTAL_ALIGNMENT_LEFT, 200, 13, q_cols[_quality_level])
+	dy += line_h
+	# Enemy count
+	var enemy_count = _cached_enemies.size()
+	draw_string(font, Vector2(dx, dy + 12), "ENEMIES: %d" % enemy_count, HORIZONTAL_ALIGNMENT_LEFT, 200, 13, Color(0.8, 0.8, 0.9))
+	dy += line_h
+	# Tower count
+	var tower_count = get_tree().get_nodes_in_group("towers").size()
+	draw_string(font, Vector2(dx, dy + 12), "TOWERS: %d" % tower_count, HORIZONTAL_ALIGNMENT_LEFT, 200, 13, Color(0.8, 0.8, 0.9))
+	dy += line_h
+	# Floating texts
+	draw_string(font, Vector2(dx, dy + 12), "FLOAT TXT: %d" % _floating_texts.size(), HORIZONTAL_ALIGNMENT_LEFT, 200, 13, Color(0.8, 0.8, 0.9))
+	dy += line_h
+	# Particles
+	var particle_count = _env_particles.size() + _victory_particles.size() + _victory_confetti.size() + _ink_splatters.size()
+	draw_string(font, Vector2(dx, dy + 12), "PARTICLES: %d" % particle_count, HORIZONTAL_ALIGNMENT_LEFT, 200, 13, Color(0.8, 0.8, 0.9))
+	dy += line_h
+	# SpatialGrid stats
+	if SpatialGrid:
+		var sg_stats = SpatialGrid.get_stats()
+		draw_string(font, Vector2(dx, dy + 12), "GRID: %d cells %d ent" % [sg_stats["cells"], sg_stats["entities"]], HORIZONTAL_ALIGNMENT_LEFT, 200, 11, Color(0.6, 0.7, 0.8))
+		dy += line_h
+	# Memory (if available)
+	if OS.has_feature("debug"):
+		var mem_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
+		draw_string(font, Vector2(dx, dy + 12), "MEM: %.1f MB" % mem_mb, HORIZONTAL_ALIGNMENT_LEFT, 200, 13, Color(0.8, 0.8, 0.9))
 
 func _draw_tower_button_portraits() -> void:
 	if game_state != GameState.PLAYING or not bottom_panel or not bottom_panel.visible:
@@ -38973,7 +39199,9 @@ func _victory() -> void:
 			Color(0.3, 0.5, 1.0), Color(0.9, 0.2, 0.5), Color(0.6, 0.3, 0.9),
 			Color(1.0, 1.0, 0.3), Color(0.2, 0.8, 0.8), Color(1.0, 0.6, 0.8),
 		]
-		for ci in range(40):
+		# #173/#183: Quality-adaptive victory confetti count
+		var v_confetti_count = [10, 25, 40][_quality_level]
+		for ci in range(v_confetti_count):
 			_victory_confetti.append({
 				"pos": Vector2(randf_range(100, 1180), randf_range(-200, -20)),
 				"vel": Vector2(randf_range(-60, 60), randf_range(80, 200)),
@@ -39013,6 +39241,16 @@ func _victory() -> void:
 	var v_total_dmg: float = 0.0
 	for tt_key in session_damage:
 		v_total_dmg += session_damage[tt_key]
+	# (#133) Capture pre-victory character levels for XP feedback
+	var _pre_victory_levels: Dictionary = {}
+	for tower in get_tree().get_nodes_in_group("towers"):
+		var _scr = tower.get_script().resource_path if tower.get_script() else ""
+		var _fn = _scr.get_file()
+		var _stt = {"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE, "wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN, "phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE, "sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN, "dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN, "frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR}
+		if _stt.has(_fn):
+			var _tt = _stt[_fn]
+			if not _pre_victory_levels.has(_tt):
+				_pre_victory_levels[_tt] = survivor_progress.get(_tt, {}).get("level", 1)
 	_victory_overlay_data = {
 		"stars": stars,
 		"mvp_name": mvp_name if mvp_name != "" else "None",
@@ -39024,6 +39262,7 @@ func _victory() -> void:
 		"lives_lost": current_game_lives_lost,
 		"level_name": level_name,
 		"replay_xp_pct": int(_replay_xp_mult * 100),
+		"pre_victory_levels": _pre_victory_levels,
 	}
 	# Quest chain progress check (#132)
 	_check_quest_chain_progress()
@@ -40044,6 +40283,14 @@ func _draw_achievements_tab() -> void:
 				if is_recent:
 					var recent_pulse = 0.6 + sin(_time * 3.0 + float(ai)) * 0.3
 					_udraw(font, Vector2(cx + card_w - 50, cy + card_h - 12), "RECENT", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.3, 0.85, 0.3, recent_pulse))
+				# (#132) CLAIM button for unclaimed achievement rewards
+				if ACHIEVEMENT_REWARDS.has(ach["id"]) and not achievement_rewards_claimed.get(ach["id"], false):
+					var claim_pulse = 0.7 + sin(_time * 4.0) * 0.3
+					var claim_bx = cx + card_w - 65
+					var claim_by = cy + 4
+					draw_rect(Rect2(claim_bx, claim_by, 60, 18), Color(0.2, 0.6, 0.15, claim_pulse))
+					draw_rect(Rect2(claim_bx, claim_by, 60, 18), Color(0.3, 0.9, 0.3, 0.6), false, 1.5)
+					_udraw(font, Vector2(claim_bx + 6, claim_by + 13), "CLAIM +%dC" % ACHIEVEMENT_REWARDS[ach["id"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, claim_pulse))
 
 		var rows_for_cat = (cat_achievements.size() + cols - 1) / cols
 		start_y += float(rows_for_cat) * (card_h + gap_y) + 8.0
@@ -40051,6 +40298,73 @@ func _draw_achievements_tab() -> void:
 	_draw_rival_comparison(panel_x + panel_w - 130, panel_y + 55)
 	# === ADDICTION: Achievement Showcase (top achievements) ===
 	_draw_achievement_showcase(panel_x + panel_w - 260, panel_y + 140)
+	# (#150) Completionist checklist
+	_draw_completion_checklist(panel_x + 10, panel_y + panel_h - 145)
+
+# === COMPLETIONIST CHECKLIST DRAWING (#150) ===
+func _draw_completion_checklist(px: float, py: float) -> void:
+	var font = game_font
+	var comp = _get_completion_percentage()
+	var cw = 200.0
+	var ch = 130.0
+	_ds_panel(Rect2(px, py, cw, ch), Color(0.06, 0.04, 0.12, 0.85), _ca(menu_gold_dim, 0.4), 1.5, 6.0)
+	_udraw(font, Vector2(px + 10, py + 16), "COMPLETION", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _ca(c_gold, 0.8))
+	# Overall percentage with colored bar
+	var overall = comp["overall"]
+	var bar_x = px + 10.0
+	var bar_y_c = py + 22.0
+	draw_rect(Rect2(bar_x, bar_y_c, cw - 20, 8), Color(0.15, 0.12, 0.25, 0.5))
+	var ov_col = Color(0.3, 0.85, 0.3) if overall >= 75 else Color(0.9, 0.7, 0.1) if overall >= 40 else Color(0.7, 0.4, 0.2)
+	draw_rect(Rect2(bar_x, bar_y_c, (cw - 20) * overall / 100.0, 8), Color(ov_col.r, ov_col.g, ov_col.b, 0.7))
+	_udraw(font, Vector2(px + cw - 50, py + 16), "%d%%" % int(overall), HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, ov_col)
+	# Breakdown
+	var categories_c = ["Story", "Characters", "Achievements", "Upgrades"]
+	var keys_c = ["story", "characters", "achievements", "upgrades"]
+	var cat_cols = [Color(0.4, 0.7, 0.9), Color(0.3, 0.85, 0.4), Color(0.9, 0.7, 0.2), Color(0.7, 0.4, 0.85)]
+	var cy_c = py + 38.0
+	for ci in range(4):
+		var pct = comp[keys_c[ci]]
+		_udraw(font, Vector2(px + 10, cy_c + 12), categories_c[ci], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.6, 0.7))
+		draw_rect(Rect2(px + 90, cy_c + 4, 70, 5), Color(0.15, 0.12, 0.25, 0.4))
+		draw_rect(Rect2(px + 90, cy_c + 4, 70 * pct / 100.0, 5), Color(cat_cols[ci].r, cat_cols[ci].g, cat_cols[ci].b, 0.6))
+		_udraw(font, Vector2(px + 165, cy_c + 12), "%d%%" % int(pct), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, cat_cols[ci])
+		cy_c += 20.0
+
+# === ACHIEVEMENT CLICK HANDLER (#132) ===
+func _on_achievements_clicked(mouse_pos: Vector2) -> void:
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 45.0 + _safe_top
+	var panel_w = 1140.0 - _safe_left - _safe_right
+	var categories = ["Combat", "Tower", "Economy", "Progression"]
+	var card_w = 260.0
+	var card_h = 52.0
+	var gap_x = 12.0
+	var gap_y = 6.0
+	var ach_content_top = panel_y + 48.0
+	var cols = 4
+	var start_y = ach_content_top - achievements_scroll
+	for ci in range(categories.size()):
+		var cat = categories[ci]
+		var cat_achievements: Array = []
+		for ach in achievement_definitions:
+			if ach["category"] == cat:
+				cat_achievements.append(ach)
+		start_y += 22.0
+		for ai in range(cat_achievements.size()):
+			var ach = cat_achievements[ai]
+			var col_i = ai % cols
+			var row_i = ai / cols
+			var cx = panel_x + 10 + float(col_i) * (card_w + gap_x)
+			var cy = start_y + float(row_i) * (card_h + gap_y)
+			var is_done = achievements_unlocked.get(ach["id"], false)
+			if is_done and ACHIEVEMENT_REWARDS.has(ach["id"]) and not achievement_rewards_claimed.get(ach["id"], false):
+				var claim_bx = cx + card_w - 65
+				var claim_by = cy + 4
+				if Rect2(claim_bx, claim_by, 60, 18).has_point(mouse_pos):
+					_claim_achievement_reward(ach["id"])
+					return
+		var rows_for_cat = (cat_achievements.size() + cols - 1) / cols
+		start_y += float(rows_for_cat) * (card_h + gap_y) + 8.0
 
 func _draw_achievement_showcase(ax: float, ay: float) -> void:
 	var font = game_font
@@ -44387,6 +44701,55 @@ func _draw_tower_mastery_rings() -> void:
 			var pip_pos = tpos + Vector2(cos(angle), sin(angle)) * 20.0
 			draw_circle(pip_pos, 2.0, Color(mc["r"], mc["g"], mc["b"], 0.6))
 
+# === MASTERY BADGES ON TOWERS (#135) ===
+func _draw_tower_mastery_badges() -> void:
+	var script_to_type = {
+		"robin_hood.gd": TowerType.ROBIN_HOOD, "alice.gd": TowerType.ALICE,
+		"wicked_witch.gd": TowerType.WICKED_WITCH, "peter_pan.gd": TowerType.PETER_PAN,
+		"phantom.gd": TowerType.PHANTOM, "scrooge.gd": TowerType.SCROOGE,
+		"sherlock.gd": TowerType.SHERLOCK, "tarzan.gd": TowerType.TARZAN,
+		"dracula.gd": TowerType.DRACULA, "merlin.gd": TowerType.MERLIN,
+		"frankenstein.gd": TowerType.FRANKENSTEIN, "shadow_author.gd": TowerType.SHADOW_AUTHOR,
+	}
+	for tower in get_tree().get_nodes_in_group("towers"):
+		if not is_instance_valid(tower):
+			continue
+		var script_path = tower.get_script().resource_path if tower.get_script() else ""
+		var fname = script_path.get_file()
+		if not script_to_type.has(fname):
+			continue
+		var tt = script_to_type[fname]
+		var char_level = survivor_progress.get(tt, {}).get("level", 1)
+		var prest = character_prestige.get(tt, 0)
+		if char_level < 10 and prest < 1:
+			continue
+		var tpos = tower.global_position
+		var badge_x = tpos.x + 10.0
+		var badge_y = tpos.y + 14.0
+		var badge_col: Color
+		var badge_border: Color
+		if prest >= 1:
+			badge_col = Color(0.6, 0.85, 1.0, 0.85)  # Diamond
+			badge_border = Color(0.8, 0.95, 1.0, 0.9)
+		elif char_level >= 20:
+			badge_col = Color(1.0, 0.85, 0.1, 0.85)  # Gold
+			badge_border = Color(1.0, 0.9, 0.3, 0.9)
+		elif char_level >= 15:
+			badge_col = Color(0.75, 0.75, 0.8, 0.8)  # Silver
+			badge_border = Color(0.85, 0.85, 0.9, 0.9)
+		else:
+			badge_col = Color(0.72, 0.50, 0.25, 0.8)  # Bronze
+			badge_border = Color(0.82, 0.60, 0.35, 0.9)
+		# Draw 8x8 badge square
+		draw_rect(Rect2(badge_x, badge_y, 8, 8), badge_col)
+		draw_rect(Rect2(badge_x, badge_y, 8, 8), badge_border, false, 1.0)
+		# Prestige stars on badge
+		if prest >= 1:
+			for psi in range(mini(prest, 5)):
+				var sx = badge_x + 4.0
+				var sy = badge_y - 3.0 - float(psi) * 5.0
+				draw_circle(Vector2(sx, sy), 2.0, Color(1.0, 0.85, 0.0, 0.9))
+
 # --- Improvement 17: ENEMY WEAKPOINT SYSTEM ---
 # Random enemies spawn with a weakpoint — hitting it deals 2x damage
 const WEAKPOINT_CHANCE: float = 0.08  # 8% of enemies get a weakpoint
@@ -44411,6 +44774,8 @@ func _draw_enemy_weakpoints() -> void:
 
 # --- #75: Enemy health bars above sprites ---
 func _draw_enemy_health_bars() -> void:
+	# #173: Skip health bars on distant/off-screen enemies when count is high
+	var many_enemies = _cached_enemies.size() > 50 and _quality_level < 2
 	for enemy in _cached_enemies:
 		if not is_instance_valid(enemy):
 			continue
@@ -44419,6 +44784,9 @@ func _draw_enemy_health_bars() -> void:
 		if enemy.health >= enemy.max_health:
 			continue  # Only show if damaged
 		var epos = enemy.global_position
+		# #173: At low quality with many enemies, skip off-screen health bars
+		if many_enemies and (epos.x < -20.0 or epos.x > 1300.0 or epos.y < -20.0 or epos.y > 740.0):
+			continue
 		var hp_pct = clampf(enemy.health / maxf(enemy.max_health, 1.0), 0.0, 1.0)
 		var bar_w = 24.0
 		var bar_h = 3.0
@@ -46993,3 +47361,435 @@ func _check_notification_badges() -> void:
 # === PRIVACY COMPLIANCE (#198) ===
 var analytics_consent: bool = false
 var gdpr_consent_shown: bool = false
+
+# === MONETIZATION UI (#111, #114, #117, #118, #124) ===
+var player_gems: int = 0  # Premium currency
+
+# Shop/Store (#111)
+var _shop_items: Array = [
+	{"id": "starter_pack", "name": "Starter Pack", "desc": "500 Gems + Bronze Chest", "price_type": "usd", "price": 0.99, "category": "Boosts"},
+	{"id": "gem_pack_1", "name": "Handful of Gems", "desc": "100 Gems", "price_type": "usd", "price": 1.99, "category": "Currency"},
+	{"id": "gem_pack_2", "name": "Pouch of Gems", "desc": "500 Gems", "price_type": "usd", "price": 4.99, "category": "Currency"},
+	{"id": "gem_pack_3", "name": "Chest of Gems", "desc": "1200 Gems", "price_type": "usd", "price": 9.99, "category": "Currency"},
+	{"id": "gold_boost", "name": "Gold Boost", "desc": "+50% gold for 1 hour", "price_type": "gems", "price": 50, "category": "Boosts"},
+	{"id": "xp_boost", "name": "XP Boost", "desc": "+50% XP for 1 hour", "price_type": "gems", "price": 50, "category": "Boosts"},
+]
+const SHOP_CATEGORIES: Array = ["Characters", "Cosmetics", "Boosts", "Currency"]
+var _shop_category_index: int = -1
+var _shop_hover_index: int = -1
+var _shop_confirm_index: int = -1
+var _shop_confirm_timer: float = 0.0
+var _shop_message: String = ""
+var _shop_message_timer: float = 0.0
+var _shop_scroll: float = 0.0
+var _starter_pack_purchased: bool = false  # (#118)
+var _first_purchase_made: bool = false  # (#124)
+var _shop_daily_deal: Dictionary = {}  # (#117)
+var _shop_daily_deal_timer: float = 86400.0
+var _shop_daily_deal_date: String = ""
+
+# Battle Pass display (#114)
+var bp_premium: bool = false
+var _bp_display_scroll: float = 0.0
+var _bp_hover_tier: int = -1
+const BP_DISPLAY_REWARDS: Array = [
+	{"tier": 1, "free": "50 Gold", "premium": "100 Gems", "free_type": "gold", "free_amt": 50, "prem_type": "gems", "prem_amt": 100},
+	{"tier": 2, "free": "Bronze Chest", "premium": "Silver Chest", "free_type": "chest", "free_amt": 1, "prem_type": "chest", "prem_amt": 2},
+	{"tier": 3, "free": "5 Pages", "premium": "10 Quills", "free_type": "pages", "free_amt": 5, "prem_type": "quills", "prem_amt": 10},
+	{"tier": 4, "free": "100 Gold", "premium": "200 Gems", "free_type": "gold", "free_amt": 100, "prem_type": "gems", "prem_amt": 200},
+	{"tier": 5, "free": "Silver Chest", "premium": "Gold Chest", "free_type": "chest", "free_amt": 2, "prem_type": "chest", "prem_amt": 3},
+	{"tier": 6, "free": "10 Pages", "premium": "15 Quills", "free_type": "pages", "free_amt": 10, "prem_type": "quills", "prem_amt": 15},
+	{"tier": 7, "free": "200 Gold", "premium": "300 Gems", "free_type": "gold", "free_amt": 200, "prem_type": "gems", "prem_amt": 300},
+	{"tier": 8, "free": "Gold Chest", "premium": "Legendary Chest", "free_type": "chest", "free_amt": 3, "prem_type": "chest", "prem_amt": 4},
+	{"tier": 9, "free": "20 Pages", "premium": "25 Quills", "free_type": "pages", "free_amt": 20, "prem_type": "quills", "prem_amt": 25},
+	{"tier": 10, "free": "500 Gold", "premium": "500 Gems + Skin", "free_type": "gold", "free_amt": 500, "prem_type": "gems", "prem_amt": 500},
+]
+var _bp_claimed_display: Array = []
+
+func _generate_shop_daily_deal() -> void:
+	var today = Time.get_date_string_from_system()
+	if _shop_daily_deal_date == today and _shop_daily_deal.size() > 0:
+		return
+	_shop_daily_deal_date = today
+	_shop_daily_deal_timer = 86400.0
+	var date = Time.get_date_dict_from_system()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = date["year"] * 366 + date["month"] * 31 + date["day"] + 7777
+	var deal_pool = [
+		{"id": "gold_boost_deal", "name": "Gold Boost", "desc": "+50% gold for 1 hour", "base_price": 50, "price_type": "gems"},
+		{"id": "xp_boost_deal", "name": "XP Boost", "desc": "+50% XP for 1 hour", "base_price": 50, "price_type": "gems"},
+		{"id": "page_bundle_deal", "name": "Page Bundle", "desc": "30 Pages", "base_price": 40, "price_type": "gems"},
+		{"id": "quill_bundle_deal", "name": "Quill Bundle", "desc": "10 Quills", "base_price": 60, "price_type": "gems"},
+		{"id": "chest_deal", "name": "Mystery Chest", "desc": "Random tier chest", "base_price": 80, "price_type": "gems"},
+	]
+	var pick = deal_pool[rng.randi_range(0, deal_pool.size() - 1)]
+	var discount = rng.randf_range(0.30, 0.50)
+	var discounted_price = int(float(pick["base_price"]) * (1.0 - discount))
+	_shop_daily_deal = {
+		"id": pick["id"], "name": pick["name"], "desc": pick["desc"],
+		"original_price": pick["base_price"], "price": discounted_price,
+		"price_type": pick["price_type"], "discount_pct": int(discount * 100.0),
+		"purchased": false,
+	}
+
+func _process_shop_purchase(item_id: String) -> void:
+	var item: Dictionary = {}
+	for si in _shop_items:
+		if si["id"] == item_id:
+			item = si
+			break
+	if item.is_empty(): return
+	if item_id == "starter_pack" and _starter_pack_purchased:
+		_shop_message = "Already purchased!"
+		_shop_message_timer = 2.0
+		return
+	if item["price_type"] == "gems":
+		if player_gems < item["price"]:
+			_shop_message = "Not enough Gems!"
+			_shop_message_timer = 2.0
+			return
+		player_gems -= item["price"]
+	var is_first = !_first_purchase_made and item["price_type"] == "usd"
+	if is_first: _first_purchase_made = true
+	match item_id:
+		"starter_pack":
+			var gem_grant = 1000 if is_first else 500
+			player_gems += gem_grant
+			_starter_pack_purchased = true
+			_shop_message = "Starter Pack! +%d Gems" % gem_grant
+		"gem_pack_1":
+			var amt = 200 if is_first else 100
+			player_gems += amt
+			_shop_message = "+%d Gems!" % amt
+		"gem_pack_2":
+			var amt = 1000 if is_first else 500
+			player_gems += amt
+			_shop_message = "+%d Gems!" % amt
+		"gem_pack_3":
+			var amt = 2400 if is_first else 1200
+			player_gems += amt
+			_shop_message = "+%d Gems!" % amt
+		"gold_boost":
+			active_power_effects["gold_boost"] = 3600.0
+			_shop_message = "Gold Boost active!"
+		"xp_boost":
+			active_power_effects["xp_boost"] = 3600.0
+			_shop_message = "XP Boost active!"
+	_shop_message_timer = 2.5
+	spawn_floating_text(Vector2(640, 380), _shop_message, Color(0.3, 1.0, 0.5), 16.0, 2.0)
+
+func _process_shop_daily_deal_purchase() -> void:
+	if _shop_daily_deal.is_empty() or _shop_daily_deal.get("purchased", false): return
+	if _shop_daily_deal["price_type"] == "gems" and player_gems < _shop_daily_deal["price"]:
+		_shop_message = "Not enough Gems!"
+		_shop_message_timer = 2.0
+		return
+	if _shop_daily_deal["price_type"] == "gems":
+		player_gems -= _shop_daily_deal["price"]
+	_shop_daily_deal["purchased"] = true
+	match _shop_daily_deal["id"]:
+		"gold_boost_deal": active_power_effects["gold_boost"] = 3600.0
+		"xp_boost_deal": active_power_effects["xp_boost"] = 3600.0
+		"page_bundle_deal": player_pages += 30
+		"quill_bundle_deal": player_quills += 10
+		"chest_deal":
+			total_chests_opened += 1
+			player_pages += 15
+			player_gold += 100
+	_shop_message = "Deal purchased!"
+	_shop_message_timer = 2.0
+	spawn_floating_text(Vector2(640, 380), "DEAL CLAIMED!", Color(1.0, 0.85, 0.2), 18.0, 2.0)
+
+func _claim_bp_display_tier(tier: int) -> void:
+	if tier in _bp_claimed_display or bp_tier < tier: return
+	_bp_claimed_display.append(tier)
+	var reward = {}
+	for r in BP_DISPLAY_REWARDS:
+		if r["tier"] == tier:
+			reward = r
+			break
+	if reward.is_empty(): return
+	match reward["free_type"]:
+		"gold": player_gold += reward["free_amt"]
+		"pages": player_pages += reward["free_amt"]
+		"chest":
+			total_chests_opened += 1
+			player_gold += 50 * reward["free_amt"]
+		"gems": player_gems += reward["free_amt"]
+	if bp_premium:
+		match reward["prem_type"]:
+			"gems": player_gems += reward["prem_amt"]
+			"quills": player_quills += reward["prem_amt"]
+			"chest":
+				total_chests_opened += 1
+				player_gold += 75 * reward["prem_amt"]
+	spawn_floating_text(Vector2(640, 380), "Tier %d claimed!" % tier, Color(0.4, 0.9, 1.0), 16.0, 2.0)
+
+func _draw_shop_panel() -> void:
+	var font = game_font
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 45.0 + _safe_top
+	var panel_w = 1140.0 - _safe_left - _safe_right
+	var panel_h = 560.0
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "SHOP", 24, menu_gold, int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 60, panel_y + 36, 120, 1), _ca(menu_gold, 0.4))
+	_ds_outlined_text(Vector2(panel_x + panel_w - 140, panel_y + 28), "%d Gems" % player_gems, 16, Color(0.4, 0.85, 1.0), -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	var tab_x = panel_x + 20.0
+	var tab_y = panel_y + 48.0
+	for ci in range(SHOP_CATEGORIES.size()):
+		var cat = SHOP_CATEGORIES[ci]
+		var tw = 100.0
+		var active = (_shop_category_index == ci)
+		var tab_col = Color(0.2, 0.15, 0.35, 0.9) if active else Color(0.12, 0.08, 0.20, 0.6)
+		_ds_panel(Rect2(tab_x, tab_y, tw, 24), tab_col, _ca(menu_gold_dim, 0.3 if active else 0.15), 1.0, 6.0)
+		_udraw(font, Vector2(tab_x + tw * 0.5, tab_y + 17), cat, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_gold_light if active else menu_text_muted)
+		tab_x += tw + 8.0
+	var all_active = (_shop_category_index == -1)
+	_ds_panel(Rect2(tab_x, tab_y, 60, 24), Color(0.2, 0.15, 0.35, 0.9) if all_active else Color(0.12, 0.08, 0.20, 0.6), _ca(menu_gold_dim, 0.3 if all_active else 0.15), 1.0, 6.0)
+	_udraw(font, Vector2(tab_x + 30, tab_y + 17), "All", HORIZONTAL_ALIGNMENT_CENTER, -1, 12, menu_gold_light if all_active else menu_text_muted)
+	# DAILY DEAL BANNER (#117)
+	var deal_y = tab_y + 34.0
+	if not _shop_daily_deal.is_empty() and not _shop_daily_deal.get("purchased", false):
+		var deal_w = panel_w - 40.0
+		_ds_panel(Rect2(panel_x + 20, deal_y, deal_w, 55), Color(0.25, 0.12, 0.05, 0.9), Color(1.0, 0.6, 0.1, 0.6), 2.0, 8.0)
+		_ds_outlined_text(Vector2(panel_x + 30, deal_y + 18), "DAILY DEAL", 16, Color(1.0, 0.7, 0.15))
+		_ds_outlined_text(Vector2(panel_x + 160, deal_y + 18), _shop_daily_deal["name"], 15, menu_text)
+		_udraw(font, Vector2(panel_x + 160, deal_y + 36), _shop_daily_deal["desc"], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, menu_text_muted)
+		_ds_outlined_text(Vector2(panel_x + deal_w - 200, deal_y + 16), "-%d%%" % _shop_daily_deal["discount_pct"], 18, Color(1.0, 0.3, 0.2))
+		_udraw(font, Vector2(panel_x + deal_w - 120, deal_y + 18), str(_shop_daily_deal["original_price"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.5, 0.5, 0.5))
+		draw_rect(Rect2(panel_x + deal_w - 120, deal_y + 14, 30, 1), Color(0.5, 0.5, 0.5))
+		_ds_outlined_text(Vector2(panel_x + deal_w - 70, deal_y + 18), "%d Gems" % _shop_daily_deal["price"], 14, Color(0.4, 0.9, 0.5))
+		var hrs = int(_shop_daily_deal_timer) / 3600
+		var mins = (int(_shop_daily_deal_timer) % 3600) / 60
+		_udraw(font, Vector2(panel_x + deal_w - 50, deal_y + 40), "%02d:%02d" % [hrs, mins], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.8, 0.6, 0.3))
+		_ds_button(Rect2(panel_x + deal_w - 15, deal_y + 10, 70, 34), "BUY", Color(0.12, 0.48, 0.2), false, 14)
+		deal_y += 62.0
+	elif not _shop_daily_deal.is_empty() and _shop_daily_deal.get("purchased", false):
+		_udraw(font, Vector2(panel_x + panel_w * 0.5, deal_y + 20), "Daily Deal claimed! Come back tomorrow.", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.5, 0.7, 0.4, 0.6))
+		deal_y += 35.0
+	# FIRST PURCHASE BONUS BANNER (#124)
+	if not _first_purchase_made:
+		var bonus_w = panel_w - 40.0
+		_ds_panel(Rect2(panel_x + 20, deal_y, bonus_w, 30), Color(0.15, 0.08, 0.30, 0.85), Color(0.6, 0.3, 1.0, 0.5), 1.5, 6.0)
+		var sparkle_phase = fmod(Time.get_ticks_msec() / 400.0, TAU)
+		var sparkle_alpha = 0.7 + 0.3 * sin(sparkle_phase)
+		_ds_outlined_text(Vector2(panel_x + 20 + bonus_w * 0.5, deal_y + 20), "2X BONUS - First Purchase!", 15, Color(1.0, 0.85, 0.2, sparkle_alpha), int(bonus_w - 20), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		deal_y += 38.0
+	# SHOP ITEMS GRID
+	var items_y = deal_y + 8.0
+	var card_w = 200.0
+	var card_h = 130.0
+	var gap = 16.0
+	var cols = 4
+	var total_w = float(cols) * card_w + float(cols - 1) * gap
+	var start_x = panel_x + (panel_w - total_w) * 0.5
+	var visible_items: Array = []
+	for si in _shop_items:
+		if si["id"] == "starter_pack" and _starter_pack_purchased: continue
+		if _shop_category_index >= 0 and si.get("category", "") != SHOP_CATEGORIES[_shop_category_index]: continue
+		visible_items.append(si)
+	for idx in range(visible_items.size()):
+		var item = visible_items[idx]
+		var cx_col = idx % cols
+		var cy_row = idx / cols
+		var ix = start_x + float(cx_col) * (card_w + gap)
+		var iy = items_y + float(cy_row) * (card_h + gap) - _shop_scroll
+		if iy < panel_y + 40 or iy > panel_y + panel_h - 30: continue
+		var is_hov = (idx == _shop_hover_index)
+		_ds_panel(Rect2(ix, iy, card_w, card_h), menu_bg_card_hover if is_hov else menu_bg_card, _ca(menu_gold_dim, 0.3), 1.5, 10.0)
+		if item["id"] == "starter_pack":
+			var badge_phase = fmod(Time.get_ticks_msec() / 500.0, TAU)
+			var badge_glow = 0.8 + 0.2 * sin(badge_phase)
+			_ds_panel(Rect2(ix + card_w - 80, iy + 2, 78, 18), Color(0.8, 0.15, 0.1, badge_glow), Color(1.0, 0.6, 0.1, 0.8), 1.0, 4.0)
+			_udraw(font, Vector2(ix + card_w - 41, iy + 15), "BEST VALUE", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(1.0, 1.0, 1.0))
+		if not _first_purchase_made and item["price_type"] == "usd" and item["id"] != "starter_pack":
+			_ds_panel(Rect2(ix + 2, iy + 2, 30, 16), Color(0.6, 0.2, 0.9, 0.9), Color(0.8, 0.5, 1.0, 0.6), 1.0, 4.0)
+			_udraw(font, Vector2(ix + 17, iy + 14), "2X", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(1.0, 0.9, 0.3))
+		_ds_outlined_text(Vector2(ix + card_w * 0.5, iy + 30), item["name"], 15, menu_gold_light, int(card_w - 16), HORIZONTAL_ALIGNMENT_CENTER, 1)
+		_udraw(font, Vector2(ix + card_w * 0.5, iy + 50), item["desc"], HORIZONTAL_ALIGNMENT_CENTER, int(card_w - 12), 12, menu_text_muted)
+		var price_text = "$%.2f" % item["price"] if item["price_type"] == "usd" else "%d Gems" % item["price"]
+		var can_buy = true
+		if item["price_type"] == "gems" and player_gems < item["price"]: can_buy = false
+		var btn_y = iy + card_h - 36
+		var btn_w = 120.0
+		var btn_x = ix + (card_w - btn_w) * 0.5
+		if can_buy:
+			_ds_button(Rect2(btn_x, btn_y, btn_w, 28), price_text, Color(0.12, 0.48, 0.2), false, 13)
+		else:
+			_ds_panel(Rect2(btn_x, btn_y, btn_w, 28), Color(0.15, 0.1, 0.1, 0.6), Color(0.3, 0.25, 0.25, 0.3), 1.0, 6.0)
+			_udraw(font, Vector2(btn_x + btn_w * 0.5, btn_y + 19), price_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color(0.4, 0.35, 0.3))
+	if _shop_message != "":
+		var msg_col = Color(0.3, 0.85, 0.3, 0.95) if "+" in _shop_message or "claimed" in _shop_message.to_lower() or "active" in _shop_message.to_lower() else Color(0.9, 0.3, 0.2, 0.95)
+		_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + panel_h - 35), _shop_message, 16, msg_col, int(panel_w - 40), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_ds_button(Rect2(panel_x + 5, panel_y + 10, 90, 28), "< BACK", Color(0.25, 0.18, 0.10), false, 13)
+
+func _on_shop_panel_clicked(mouse_pos: Vector2) -> void:
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 45.0 + _safe_top
+	var panel_w = 1140.0 - _safe_left - _safe_right
+	if Rect2(panel_x + 5, panel_y + 10, 90, 28).has_point(mouse_pos):
+		emporium_sub_open = false
+		emporium_sub_category = -1
+		queue_redraw()
+		return
+	var tab_x = panel_x + 20.0
+	var tab_y = panel_y + 48.0
+	for ci in range(SHOP_CATEGORIES.size()):
+		if Rect2(tab_x, tab_y, 100, 24).has_point(mouse_pos):
+			_shop_category_index = ci if _shop_category_index != ci else -1
+			queue_redraw()
+			return
+		tab_x += 108.0
+	if Rect2(tab_x, tab_y, 60, 24).has_point(mouse_pos):
+		_shop_category_index = -1
+		queue_redraw()
+		return
+	var deal_y = tab_y + 34.0
+	if not _shop_daily_deal.is_empty() and not _shop_daily_deal.get("purchased", false):
+		var deal_w = panel_w - 40.0
+		if Rect2(panel_x + 20, deal_y, deal_w, 55).has_point(mouse_pos):
+			_process_shop_daily_deal_purchase()
+			queue_redraw()
+			return
+		deal_y += 62.0
+	elif not _shop_daily_deal.is_empty() and _shop_daily_deal.get("purchased", false):
+		deal_y += 35.0
+	if not _first_purchase_made: deal_y += 38.0
+	var items_y = deal_y + 8.0
+	var card_w = 200.0
+	var card_h = 130.0
+	var gap = 16.0
+	var cols = 4
+	var total_w = float(cols) * card_w + float(cols - 1) * gap
+	var start_x = panel_x + (panel_w - total_w) * 0.5
+	var visible_items: Array = []
+	for si in _shop_items:
+		if si["id"] == "starter_pack" and _starter_pack_purchased: continue
+		if _shop_category_index >= 0 and si.get("category", "") != SHOP_CATEGORIES[_shop_category_index]: continue
+		visible_items.append(si)
+	for idx in range(visible_items.size()):
+		var item = visible_items[idx]
+		var cx_col = idx % cols
+		var cy_row = idx / cols
+		var ix = start_x + float(cx_col) * (card_w + gap)
+		var iy = items_y + float(cy_row) * (card_h + gap) - _shop_scroll
+		if Rect2(ix, iy, card_w, card_h).has_point(mouse_pos):
+			if _shop_confirm_index != idx:
+				_shop_confirm_index = idx
+				_shop_confirm_timer = 3.0
+				_shop_message = "Tap again to buy: %s" % item["name"]
+				_shop_message_timer = 3.0
+				queue_redraw()
+				return
+			_shop_confirm_index = -1
+			_shop_confirm_timer = 0.0
+			_process_shop_purchase(item["id"])
+			queue_redraw()
+			return
+
+func _draw_battle_pass_panel() -> void:
+	var font = game_font
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 45.0 + _safe_top
+	var panel_w = 1140.0 - _safe_left - _safe_right
+	var panel_h = 560.0
+	_ds_panel(Rect2(panel_x, panel_y, panel_w, panel_h), Color(0.06, 0.04, 0.10, 0.92), Color(0.35, 0.20, 0.50, 0.6), 3.0, 14.0)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "BATTLE PASS", 22, Color(0.4, 0.85, 1.0), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 36, 160, 1), _ca(Color(0.4, 0.85, 1.0), 0.4))
+	var prog_y = panel_y + 50.0
+	_ds_outlined_text(Vector2(panel_x + 30, prog_y + 16), "Tier %d / %d" % [bp_tier, BP_MAX_TIER], 16, menu_text)
+	var bar_x = panel_x + 150.0
+	var bar_w = panel_w - 200.0
+	var bar_h_px = 18.0
+	draw_rect(Rect2(bar_x, prog_y + 4, bar_w, bar_h_px), Color(0.1, 0.08, 0.18, 0.8))
+	var xp_ratio = float(bp_xp) / float(BP_XP_PER_TIER) if BP_XP_PER_TIER > 0 else 0.0
+	draw_rect(Rect2(bar_x + 1, prog_y + 5, (bar_w - 2) * xp_ratio, bar_h_px - 2), Color(0.3, 0.7, 1.0))
+	_udraw(font, Vector2(bar_x + bar_w * 0.5, prog_y + 18), "%d / %d XP" % [bp_xp, BP_XP_PER_TIER], HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 1.0, 1.0, 0.9))
+	if bp_premium:
+		_ds_outlined_text(Vector2(panel_x + panel_w - 30, prog_y + 16), "PREMIUM", 14, Color(1.0, 0.85, 0.2), -1, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	else:
+		_udraw(font, Vector2(panel_x + panel_w - 30, prog_y + 16), "Free Track", HORIZONTAL_ALIGNMENT_RIGHT, -1, 13, menu_text_muted)
+	var track_y = prog_y + 35.0
+	var tier_w = 100.0
+	var tier_gap = 12.0
+	var track_total_w = 10.0 * tier_w + 9.0 * tier_gap
+	var track_visible_w = panel_w - 60.0
+	var track_x = panel_x + 30.0
+	_bp_display_scroll = clampf(_bp_display_scroll, 0.0, maxf(0.0, track_total_w - track_visible_w))
+	if _bp_display_scroll > 0:
+		_ds_outlined_text(Vector2(track_x - 15, track_y + 120), "<", 20, Color(0.6, 0.8, 1.0, 0.7))
+	if _bp_display_scroll < track_total_w - track_visible_w:
+		_ds_outlined_text(Vector2(track_x + track_visible_w + 5, track_y + 120), ">", 20, Color(0.6, 0.8, 1.0, 0.7))
+	for ti in range(BP_DISPLAY_REWARDS.size()):
+		var reward = BP_DISPLAY_REWARDS[ti]
+		var tier_num = reward["tier"]
+		var tx = track_x + float(ti) * (tier_w + tier_gap) - _bp_display_scroll
+		if tx + tier_w < track_x or tx > track_x + track_visible_w: continue
+		var is_earned = bp_tier >= tier_num
+		var is_claimed = tier_num in _bp_claimed_display
+		var free_y = track_y
+		var free_h = 95.0
+		var free_bg = Color(0.15, 0.20, 0.12, 0.85) if is_earned else Color(0.10, 0.08, 0.14, 0.7)
+		var free_border = Color(0.3, 0.7, 0.3, 0.6) if is_earned else Color(0.25, 0.20, 0.35, 0.4)
+		_ds_panel(Rect2(tx, free_y, tier_w, free_h), free_bg, free_border, 1.5, 8.0)
+		draw_circle(Vector2(tx + tier_w * 0.5, free_y + 16), 12.0, Color(0.3, 0.7, 1.0) if is_earned else Color(0.3, 0.25, 0.4))
+		_udraw(font, Vector2(tx + tier_w * 0.5, free_y + 21), str(tier_num), HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 1.0, 1.0))
+		_udraw(font, Vector2(tx + tier_w * 0.5, free_y + 42), "FREE", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(0.6, 0.8, 0.5))
+		_udraw(font, Vector2(tx + tier_w * 0.5, free_y + 58), reward["free"], HORIZONTAL_ALIGNMENT_CENTER, int(tier_w - 8), 11, menu_text)
+		if is_earned and not is_claimed:
+			_ds_button(Rect2(tx + 10, free_y + free_h - 26, tier_w - 20, 22), "CLAIM", Color(0.15, 0.55, 0.2), false, 11)
+		elif is_claimed:
+			_udraw(font, Vector2(tx + tier_w * 0.5, free_y + free_h - 12), "CLAIMED", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(0.5, 0.7, 0.4, 0.6))
+		var prem_y = free_y + free_h + 10.0
+		var prem_h = 95.0
+		var locked = not bp_premium
+		var prem_bg = Color(0.20, 0.15, 0.08, 0.85) if (is_earned and not locked) else Color(0.10, 0.08, 0.06, 0.5)
+		var prem_border = Color(0.85, 0.70, 0.15, 0.7) if not locked else Color(0.4, 0.3, 0.15, 0.3)
+		_ds_panel(Rect2(tx, prem_y, tier_w, prem_h), prem_bg, prem_border, 1.5, 8.0)
+		if locked:
+			draw_rect(Rect2(tx + 1, prem_y + 1, tier_w - 2, prem_h - 2), Color(0.85, 0.70, 0.15, 0.08))
+		_udraw(font, Vector2(tx + tier_w * 0.5, prem_y + 18), "PREMIUM", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color(1.0, 0.85, 0.2) if not locked else Color(0.5, 0.4, 0.2, 0.5))
+		_udraw(font, Vector2(tx + tier_w * 0.5, prem_y + 38), reward["premium"], HORIZONTAL_ALIGNMENT_CENTER, int(tier_w - 8), 11, menu_gold_light if not locked else Color(0.4, 0.35, 0.25, 0.5))
+		if locked:
+			_udraw(font, Vector2(tx + tier_w * 0.5, prem_y + prem_h - 14), "LOCKED", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(0.5, 0.4, 0.2, 0.4))
+	var line_y = track_y + 95.0 + 5.0
+	var line_x_start = track_x - _bp_display_scroll
+	var line_x_end = track_x + track_total_w - _bp_display_scroll
+	draw_rect(Rect2(maxf(track_x, line_x_start), line_y, minf(track_x + track_visible_w, line_x_end) - maxf(track_x, line_x_start), 2), Color(0.3, 0.5, 0.7, 0.4))
+	_ds_button(Rect2(panel_x + 5, panel_y + 10, 90, 28), "< BACK", Color(0.25, 0.18, 0.10), false, 13)
+
+func _on_battle_pass_panel_clicked(mouse_pos: Vector2) -> void:
+	var panel_x = 70.0 + _safe_left
+	var panel_y = 45.0 + _safe_top
+	var panel_w = 1140.0 - _safe_left - _safe_right
+	if Rect2(panel_x + 5, panel_y + 10, 90, 28).has_point(mouse_pos):
+		emporium_sub_open = false
+		emporium_sub_category = -1
+		queue_redraw()
+		return
+	var prog_y = panel_y + 50.0
+	var track_y = prog_y + 35.0
+	var tier_w = 100.0
+	var tier_gap = 12.0
+	var track_x = panel_x + 30.0
+	for ti in range(BP_DISPLAY_REWARDS.size()):
+		var reward = BP_DISPLAY_REWARDS[ti]
+		var tier_num = reward["tier"]
+		var tx = track_x + float(ti) * (tier_w + tier_gap) - _bp_display_scroll
+		var free_y = track_y
+		var free_h = 95.0
+		if Rect2(tx + 10, free_y + free_h - 26, tier_w - 20, 22).has_point(mouse_pos):
+			if bp_tier >= tier_num and not (tier_num in _bp_claimed_display):
+				_claim_bp_display_tier(tier_num)
+				queue_redraw()
+				return
+	if Rect2(track_x - 25, track_y + 100, 20, 40).has_point(mouse_pos):
+		_bp_display_scroll = maxf(0.0, _bp_display_scroll - 120.0)
+		queue_redraw()
+		return
+	var track_visible_w = panel_w - 60.0
+	if Rect2(track_x + track_visible_w + 2, track_y + 100, 20, 40).has_point(mouse_pos):
+		_bp_display_scroll += 120.0
+		queue_redraw()
+		return

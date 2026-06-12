@@ -604,16 +604,27 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _find_nearest_enemy() -> Node2D:
-	var enemies = (_main_node.get_cached_enemies() if is_instance_valid(_main_node) else get_tree().get_nodes_in_group("enemies"))
+	# #176: Use SpatialGrid for O(nearby) instead of O(all_enemies) targeting
+	var enemies: Array
+	if SpatialGrid:
+		enemies = SpatialGrid.query_radius(global_position, attack_range)
+	elif is_instance_valid(_main_node):
+		enemies = _main_node.get_cached_enemies()
+	else:
+		enemies = get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
 	var max_range: float = attack_range
 	var best_val: float = 999999.0 if (targeting_priority == 1 or targeting_priority == 2) else -1.0
 	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
 		if enemy.has_method("is_targetable") and not enemy.is_targetable():
 			continue
-		var dist = global_position.distance_to(enemy.global_position)
-		if dist > max_range:
-			continue
+		# SpatialGrid already filters by radius, but verify exact distance for non-grid path
+		if not SpatialGrid:
+			var dist = global_position.distance_to(enemy.global_position)
+			if dist > max_range:
+				continue
 		match targeting_priority:
 			0:  # First — furthest along path
 				if enemy.progress_ratio > best_val:
@@ -624,6 +635,7 @@ func _find_nearest_enemy() -> Node2D:
 					best = enemy
 					best_val = enemy.progress_ratio
 			2:  # Close — nearest to tower
+				var dist = global_position.distance_to(enemy.global_position)
 				if best == null or dist < best_val:
 					best = enemy
 					best_val = dist
