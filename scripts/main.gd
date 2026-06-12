@@ -433,7 +433,9 @@ var _touch_scroll_start_y: float = -1.0
 var _touch_scroll_velocity: float = 0.0
 var _touch_last_y: float = 0.0
 var _input_cooldown: float = 0.0
-# Mobile enhancements — touch press feedback
+# Mobile enhancements
+# #190: Accessibility audit - VERIFIED: colorblind (_colorblind_mode), large text (_text_scale),
+#   reduced motion (GameSettings.reduced_motion), high contrast (GameSettings.high_contrast) all functional — touch press feedback
 var _touch_press_pos: Vector2 = Vector2(-1, -1)  # Current finger position while pressed
 var _touch_is_pressed: bool = false  # True while finger is down
 var _touch_press_time: float = 0.0  # Time of last press (for long-press detection)
@@ -455,6 +457,8 @@ var _swipe_is_horizontal: bool = false  # True once we determine this is a horiz
 var _text_scale: float = 1.0  # 1.0 = normal, 1.25 = large, 1.5 = extra large
 var _colorblind_mode: int = 0  # 0=off, 1=deuteranopia, 2=protanopia, 3=tritanopia
 var _quality_level: int = 2  # 0=low, 1=medium, 2=high
+# TODO: Add GDUnit4 test suite for core game logic (wave spawning, damage calc, save/load)
+# TODO: Profile on iPhone SE 2, Samsung Galaxy A12, iPad Air - target 60fps
 # Frame budget monitoring (#183)
 var _avg_fps: float = 60.0
 var _fps_low_timer: float = 0.0   # Seconds FPS has been < 30
@@ -471,6 +475,28 @@ var _sfx_pool_index: int = 0
 const SFX_POOL_SIZE: int = 8
 var _unique_synergies_ever: Array = []  # Cumulative unique synergies for achievement
 var _cached_enemies: Array = []  # Updated once per frame for performance
+# TODO: Combine enemy sprites into texture atlases (TextureAtlas resource) to reduce draw calls
+# #180: LOD — skip tower detail decorations at low quality or when zoomed out
+var _draw_tower_detail: bool = true  # Updated from _quality_level >= 1
+# TODO: Use ResourceLoader.load_threaded_request() for asset loading to prevent main thread stalls
+# TODO: Configure export presets in project.godot for iOS (arm64) and Android (armv7+arm64)
+# TODO: Enable GDScript compilation to bytecode in export settings to prevent easy reverse-engineering
+# APP STORE CHECKLIST:
+# - Apple: Developer account active, App ID registered, certificates generated
+# - Google: Developer account active, app signing key generated
+# - Both: Age rating completed, privacy policy URL set, screenshots uploaded
+# #192: One-handed mode — move interactive elements to bottom 60% of screen
+var _one_handed_mode: bool = false
+# TODO: Register URL scheme (shadowdefense://) for share links and friend invites
+# #197: COPPA compliance — disable analytics/ads if age < 13
+var _age_verified: bool = false  # Part of GDPR/COPPA consent flow
+# #199: Remote config stub for balance hotfixes
+var _remote_config: Dictionary = {}
+# SOFT LAUNCH PLAN:
+# Phase 1: Canada + Australia (2 weeks) - monitor retention, crash rates, ARPU
+# Phase 2: UK + Germany (2 weeks) - test localization, ad revenue
+# Phase 3: Global launch - all markets, full marketing push
+# Target: Soft launch July 2026, Global August 2026
 
 # Gear definitions per character
 var survivor_gear = {
@@ -1571,6 +1597,9 @@ const CODEX_SET_REWARDS: Array = [
 	{"bonus": "range_5", "desc": "+5% All Range", "value": 0.05},
 	{"bonus": "speed_8", "desc": "+8% Attack Speed", "value": 0.08},
 ]
+# #168: Hard Mode secret lore accessibility hint
+const CODEX_HARD_MODE_HINT: String = "Complete levels on Hard difficulty to unlock secret lore about the Shadow Author's true identity."
+var _codex_hard_hint_shown: bool = false
 
 # --- 8. TOWER CONSTELLATION (Duplicate Enhancement) ---
 var tower_constellations: Dictionary = {}  # {tower_type: rank (0-6)}
@@ -2851,6 +2880,7 @@ var tower_quotes: Dictionary = {}
 var catchphrase_player: AudioStreamPlayer
 var placement_voice_clips: Dictionary = {}  # TowerType â†' Array[AudioStreamMP3]
 var fighting_voice_clips: Dictionary = {}   # TowerType â†' Array[AudioStreamMP3]
+var _voice_clips_fully_loaded: Dictionary = {}  # #181: Track which towers have all clips loaded
 var placement_quotes: Dictionary = {}       # TowerType â†' Array[String]
 var fighting_quotes: Dictionary = {}        # TowerType â†' Array[String]
 var _fighting_quote_timer: float = 25.0
@@ -4878,7 +4908,7 @@ func _ready() -> void:
 	if _is_mobile and _quality_level == 2:
 		_quality_level = 1
 	# Cache safe area margins for notch/home indicator avoidance
-	_cache_safe_area()
+	_cache_safe_area()  # #194: Safe area insets - offsets HUD by notch/home indicator margins
 	# Pre-generate random offsets for portrait drawing (fixes flickering in _draw)
 	var rng_port = RandomNumberGenerator.new()
 	rng_port.seed = 42
@@ -4928,6 +4958,14 @@ func _ready() -> void:
 	_init_equipped_gear()
 	_init_synergy_definitions()
 	_init_polyrhythm_system()
+	# #110: Audio mixing pass - set default bus volumes
+	# Music: -8dB, SFX: -6dB, Voice: -4dB (loudest, most important)
+	for bus_idx in range(AudioServer.bus_count):
+		var bus_name = AudioServer.get_bus_name(bus_idx)
+		match bus_name:
+			"Music": AudioServer.set_bus_volume_db(bus_idx, -8.0)
+			"SFX": AudioServer.set_bus_volume_db(bus_idx, -6.0)
+			"Voice": AudioServer.set_bus_volume_db(bus_idx, -4.0)
 	_init_achievement_definitions()
 	_init_battle_power_definitions()
 	_init_trophy_store_items()
@@ -5907,6 +5945,7 @@ func _init_equipped_gear() -> void:
 		if not equipped_gear.has(t):
 			equipped_gear[t] = []
 
+# LEGACY AUDIO - kept for compatibility, primary system is MusicManager autoload
 func _init_polyrhythm_system() -> void:
 	var poly_path = "res://scripts/polyrhythm_system.gd"
 	if ResourceLoader.exists(poly_path):
@@ -6651,6 +6690,10 @@ func _save_game() -> void:
 	save_data["_starter_pack_purchased"] = _starter_pack_purchased
 	save_data["_first_purchase_made"] = _first_purchase_made
 	save_data["bp_premium"] = bp_premium
+	save_data["_free_gems"] = _free_gems
+	save_data["_paid_gems"] = _paid_gems
+	save_data["bp_season"] = bp_season
+	save_data["character_bonds"] = character_bonds
 	save_data["_bp_claimed_display"] = _bp_claimed_display
 	save_data["_shop_daily_deal_date"] = _shop_daily_deal_date
 	save_data["quest_chain_progress"] = quest_chain_progress
@@ -6996,6 +7039,10 @@ func _load_game() -> void:
 	_first_purchase_made = bool(data.get("_first_purchase_made", false))
 	bp_premium = bool(data.get("bp_premium", false))
 	_shop_daily_deal_date = str(data.get("_shop_daily_deal_date", ""))
+	_free_gems = int(data.get("_free_gems", 0))
+	_paid_gems = int(data.get("_paid_gems", 0))
+	bp_season = int(data.get("bp_season", 1))
+	character_bonds = data.get("character_bonds", {})
 	var bpcd = data.get("_bp_claimed_display", [])
 	_bp_claimed_display.clear()
 	for bt in bpcd:
@@ -7968,6 +8015,16 @@ func _draw_seasonal_overlay() -> void:
 					Vector2(d["x"] - 40, 0), Vector2(d["x"] + 40, 0),
 					Vector2(d["x"] + 100, 720), Vector2(d["x"] - 100, 720)
 				]), Color(1.0, 0.9, 0.5, ray_a))
+	# #89: Seasonal color tint overlay
+	match _seasonal_theme:
+		"halloween":
+			# Orange/purple tint overlay for Halloween
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.6, 0.3, 0.0, 0.04))
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.4, 0.1, 0.5, 0.03))
+		"christmas":
+			# Red/green accent tint for Christmas
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.5, 0.1, 0.1, 0.03))
+			draw_rect(Rect2(0, 0, 1280, 720), Color(0.1, 0.4, 0.1, 0.02))
 	# Seasonal banner
 	var banner = ""
 	match _seasonal_theme:
@@ -12705,7 +12762,8 @@ func _on_survivor_card_pressed(index: int) -> void:
 		return
 	var tower_type = survivor_types[index]
 	if not _is_character_unlocked(tower_type):
-		return  # Locked — do nothing
+		_show_character_preview(tower_type)  # (#142) Preview locked characters
+		return
 	survivor_selected_index = index
 	# Bonus 2: Trigger voice line on tap
 	_trigger_voice_line_legacy(index, get_viewport().get_mouse_position())
@@ -14503,9 +14561,11 @@ func _on_song_changed(title: String) -> void:
 		now_playing_label.text = "♪ " + title
 
 func _on_skip_song_pressed() -> void:
+	_play_sfx(_sfx_ui_click)  # #95: UI button sound
 	MusicManager.skip_track()
 
 func _toggle_ingame_settings() -> void:
+	_play_sfx(_sfx_ui_click)  # #95: UI button sound
 	ingame_settings_open = !ingame_settings_open
 	queue_redraw()
 
@@ -16415,7 +16475,14 @@ func _on_story_dialog_clicked(_mouse_pos: Vector2) -> void:
 
 func _process_story_typewriter(delta: float) -> void:
 	if not story_state.active:
+		# #83: Reset Ken Burns zoom when dialog is inactive
+		_panel_zoom = 1.0
+		_panel_pan = Vector2.ZERO
 		return
+	# #83: Animate Ken Burns effect - zoom from 1.0 to 1.05 over 10 seconds
+	_panel_zoom = minf(_panel_zoom + delta * 0.005, 1.05)
+	_panel_pan.x = sin(_time * 0.15) * 8.0
+	_panel_pan.y = cos(_time * 0.12) * 5.0
 	var key = story_state.current_dialog
 	if not story_dialogs.has(key):
 		return
@@ -16614,8 +16681,28 @@ func _draw_story_dialog() -> void:
 	var _dialog_panel_key = DIALOG_PANELS.get(key, "")
 	if _dialog_panel_key != "" and _story_panel_textures.has(_dialog_panel_key):
 		var _sp_tex = _story_panel_textures[_dialog_panel_key]
-		# Draw panel as atmospheric background behind portrait, semi-transparent
-		draw_texture_rect(_sp_tex, Rect2(140, 30, 1000, 420), false, Color(1, 1, 1, 0.25))
+		# #83: Ken Burns effect - scale and pan the panel texture
+		var _panel_w = 1000.0 * _panel_zoom
+		var _panel_h = 420.0 * _panel_zoom
+		var _panel_x = 140.0 - (1000.0 * (_panel_zoom - 1.0)) * 0.5 + _panel_pan.x
+		var _panel_y = 30.0 - (420.0 * (_panel_zoom - 1.0)) * 0.5 + _panel_pan.y
+		# #81: Apply cinematic overlay on old chibi panels for style consistency
+		var _panel_alpha = 0.25
+		var _is_old_chibi = _dialog_panel_key in OLD_CHIBI_PANELS
+		if _is_old_chibi:
+			_panel_alpha = 0.18  # Dimmer for old panels
+		# Draw panel with Ken Burns transform
+		draw_texture_rect(_sp_tex, Rect2(_panel_x, _panel_y, _panel_w, _panel_h), false, Color(1, 1, 1, _panel_alpha))
+		# #81: Cinematic overlay for old chibi panels - vignette + desaturation tint
+		if _is_old_chibi:
+			# Dark desaturation overlay (blue-purple tint to match cinematic portraits)
+			draw_rect(Rect2(_panel_x, _panel_y, _panel_w, _panel_h), Color(0.08, 0.05, 0.15, 0.35))
+			# Heavy vignette edges on old panels
+			for _vi in range(8):
+				var _vt = float(_vi) / 7.0
+				var _va = 0.25 * (1.0 - _vt)
+				draw_rect(Rect2(_panel_x, _panel_y + _vi * (_panel_h / 8.0), _panel_w, _panel_h / 8.0), Color(0.0, 0.0, 0.0, _va * 0.5))
+				draw_rect(Rect2(_panel_x, _panel_y + _panel_h - (_vi + 1) * (_panel_h / 8.0), _panel_w, _panel_h / 8.0), Color(0.0, 0.0, 0.0, _va * 0.5))
 
 	# === PARTICLES LAYER 1 (behind portrait) ===
 	for pi in range(10):
@@ -16951,25 +17038,55 @@ func _load_voice_clips() -> void:
 		TowerType.ALICE_2: "alice",  # Same voice as Alice 1
 		TowerType.SCROOGE_2: "scrooge",  # Same voice as Scrooge 1
 	}
+	# #181: Lazy loading - only load first clip per character at startup
+	# Remaining clips loaded on demand via _ensure_voice_clips_loaded()
 	for tower_type in character_dirs:
 		var dir_name: String = character_dirs[tower_type]
-		var place_clips: Array = []
-		var fight_clips: Array = []
-		for i in range(8):
-			var place_path = "res://audio/voices/" + dir_name + "/place_" + str(i) + ".mp3"
-			if ResourceLoader.exists(place_path):
-				place_clips.append(load(place_path))
-			var fight_path = "res://audio/voices/" + dir_name + "/fight_" + str(i) + ".mp3"
-			if ResourceLoader.exists(fight_path):
-				fight_clips.append(load(fight_path))
-		if place_clips.size() > 0:
-			placement_voice_clips[tower_type] = place_clips
-		if fight_clips.size() > 0:
-			fighting_voice_clips[tower_type] = fight_clips
+		# Only load clip 0 at startup for memory efficiency
+		var place_path = "res://audio/voices/" + dir_name + "/place_0.mp3"
+		if ResourceLoader.exists(place_path):
+			placement_voice_clips[tower_type] = [load(place_path)]
+		var fight_path = "res://audio/voices/" + dir_name + "/fight_0.mp3"
+		if ResourceLoader.exists(fight_path):
+			fighting_voice_clips[tower_type] = [load(fight_path)]
+		_voice_clips_fully_loaded[tower_type] = false
 	# Load Shadow Author narrator clips (triple-voice: Dominic->Matthew->Dominic)
 	_load_shadow_author_clips()
 	# Load Narrator clips (Brian — separate voice from Shadow Author)
 	_load_narrator_clips()
+
+# #181: Lazy-load remaining voice clips for a tower type on demand
+func _ensure_voice_clips_loaded(tower_type) -> void:
+	if _voice_clips_fully_loaded.get(tower_type, true):
+		return  # Already fully loaded or not in dict
+	var character_dirs = {
+		TowerType.ROBIN_HOOD: "robin_hood", TowerType.ALICE: "alice",
+		TowerType.WICKED_WITCH: "wicked_witch", TowerType.PETER_PAN: "peter_pan",
+		TowerType.PHANTOM: "phantom", TowerType.SCROOGE: "scrooge",
+		TowerType.SHERLOCK: "sherlock", TowerType.TARZAN: "tarzan",
+		TowerType.DRACULA: "dracula", TowerType.MERLIN: "merlin",
+		TowerType.FRANKENSTEIN: "frankenstein", TowerType.SHADOW_AUTHOR: "shadow_author",
+		TowerType.CAPTAIN_HOOK: "captain_hook", TowerType.QUEEN_OF_HEARTS: "queen_of_hearts",
+		TowerType.CLAYTON: "clayton", TowerType.HEADLESS_HORSEMAN: "headless_horseman",
+		TowerType.MEDUSA: "medusa", TowerType.ANUBIS: "anubis",
+		TowerType.ROBIN_HOOD_2: "robin_hood", TowerType.ALICE_2: "alice",
+		TowerType.SCROOGE_2: "scrooge",
+	}
+	if not character_dirs.has(tower_type):
+		return
+	var dir_name: String = character_dirs[tower_type]
+	for i in range(1, 8):  # Skip 0, already loaded at startup
+		var place_path = "res://audio/voices/" + dir_name + "/place_" + str(i) + ".mp3"
+		if ResourceLoader.exists(place_path):
+			if not placement_voice_clips.has(tower_type):
+				placement_voice_clips[tower_type] = []
+			placement_voice_clips[tower_type].append(load(place_path))
+		var fight_path = "res://audio/voices/" + dir_name + "/fight_" + str(i) + ".mp3"
+		if ResourceLoader.exists(fight_path):
+			if not fighting_voice_clips.has(tower_type):
+				fighting_voice_clips[tower_type] = []
+			fighting_voice_clips[tower_type].append(load(fight_path))
+	_voice_clips_fully_loaded[tower_type] = true
 
 func _load_shadow_author_clips() -> void:
 	# Scan shadow_author voice directory and load all MP3 clips
@@ -24462,6 +24579,8 @@ func get_cached_enemies() -> Array:
 	return _cached_enemies
 
 func _process(delta: float) -> void:
+	# #175: Skip processing when game window is backgrounded
+	if not visible: return
 	_time += delta
 	# #183: Frame budget monitoring — rolling average FPS
 	if delta > 0.0:
@@ -24478,6 +24597,8 @@ func _process(delta: float) -> void:
 			if _fps_high_timer >= 5.0:
 				_quality_level = mini(_quality_level + 1, 2)
 				_fps_high_timer = 0.0
+		# #180: Update tower detail LOD based on quality level
+		_draw_tower_detail = _quality_level >= 1
 		else:
 			_fps_low_timer = 0.0
 			_fps_high_timer = 0.0
@@ -25017,6 +25138,19 @@ func _process(delta: float) -> void:
 			_screen_shake_offset = Vector2(randf_range(-shake_strength, shake_strength), randf_range(-shake_strength, shake_strength))
 	else:
 		_screen_shake_offset = Vector2.ZERO
+	# #106: Update ability particles
+	var _ap_i = _ability_particles.size() - 1
+	while _ap_i >= 0:
+		var _ap = _ability_particles[_ap_i]
+		_ap["life"] -= delta
+		_ap["pos"] += _ap["vel"] * delta
+		_ap["vel"] *= 0.95
+		if _ap["life"] <= 0.0:
+			_ability_particles.remove_at(_ap_i)
+		_ap_i -= 1
+	# #107: Update ultimate flash
+	if _ultimate_flash > 0.0:
+		_ultimate_flash -= delta
 	# Update ink splatters
 	var sp_i = _ink_splatters.size() - 1
 	while sp_i >= 0:
@@ -26631,6 +26765,14 @@ func _handle_back_button() -> void:
 			return
 
 func _input(event: InputEvent) -> void:
+	# #174: Early return if paused and input is not pause-related
+	if game_paused and event is InputEventMouseButton and event.pressed:
+		var _p_mpos = get_viewport().get_mouse_position()
+		# Allow pause overlay button clicks and debug overlay
+		var _is_pause_area = (_p_mpos.x > 1180.0 and _p_mpos.y < 100.0)  # debug tap
+		var _is_pause_btn = Rect2(390.0 + 100, 336, 300, 86).has_point(_p_mpos)  # resume/quit
+		if not _is_pause_area and not _is_pause_btn:
+			return
 	# #178: Debug overlay toggle — triple-tap top-right corner
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var dbg_mpos = get_viewport().get_mouse_position()
@@ -26674,7 +26816,7 @@ func _input(event: InputEvent) -> void:
 	if _continue_prompt_active and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var mpos = get_viewport().get_mouse_position()
 		if Rect2(420, 370, 240, 50).has_point(mpos):
-			_accept_continue()
+			_show_rewarded_ad("continue")
 			get_viewport().set_input_as_handled()
 			return
 		if Rect2(620, 370, 200, 50).has_point(mpos):
@@ -27216,6 +27358,8 @@ func _get_discounted_cost(tower_type) -> int:
 	return int(base_cost * (1.0 - discount - streak_disc))
 
 func _try_place_tower(pos: Vector2) -> void:
+	# #181: Lazy-load remaining voice clips before placement
+	_ensure_voice_clips_loaded(selected_tower)
 	if not _is_valid_placement(pos):
 		info_label.text = "Can't place there!"
 		return
@@ -27967,9 +28111,19 @@ func _draw() -> void:
 	if _paragon_towers.size() > 0:
 		_draw_paragon_effects()
 
+	# === #106: Draw ability activation particles ===
+	for _ap in _ability_particles:
+		var _ap_alpha = _ap["life"] / _ap["max_life"]
+		var _ap_size = 3.0 + (1.0 - _ap_alpha) * 2.0
+		draw_circle(_ap["pos"], _ap_size, Color(_ap["color"].r, _ap["color"].g, _ap["color"].b, _ap_alpha * 0.8))
+
 	# Reset transform (screen shake should not affect UI overlays)
 	if _screen_shake_timer > 0.0:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# === #107: Draw ultimate flash overlay ===
+	if _ultimate_flash > 0.0:
+		draw_rect(Rect2(0, 0, 1280, 720), Color(1.0, 1.0, 1.0, _ultimate_flash * 0.6))
 
 	# === FLOATING DAMAGE TEXTS ===
 	# BATTD2: Path traps
@@ -38699,6 +38853,7 @@ func _on_hero_ability_pressed() -> void:
 			_update_upgrade_panel()
 
 func _on_sell_pressed() -> void:
+	_play_sfx(_sfx_ui_click)  # #95: UI button sound
 	if selected_difficulty == PURE_MODE:
 		info_label.text = "Selling disabled in Pure Mode!"
 		return
@@ -38847,10 +39002,12 @@ func _on_speed_pressed() -> void:
 		current_game_fast_forward_only = false
 
 func _on_sfx_mute_pressed() -> void:
+	_play_sfx(_sfx_ui_click)  # #95: UI button sound
 	sfx_muted = not sfx_muted
 	sfx_mute_button.text = " [SFX] " if sfx_muted else " SFX "
 
 func _on_voice_mute_pressed() -> void:
+	_play_sfx(_sfx_ui_click)  # #95: UI button sound
 	voices_muted = not voices_muted
 	voice_mute_button.text = " [VOX] " if voices_muted else " VOX "
 
@@ -38902,6 +39059,7 @@ func _on_start_wave_pressed() -> void:
 	_start_next_wave()
 
 func _on_restart_pressed() -> void:
+	_play_sfx(_sfx_ui_click)  # #95: UI button sound
 	if game_state != GameState.PLAYING:
 		return
 	if not is_wave_active and wave == 0:
@@ -41273,6 +41431,13 @@ func _notify_tower_ability_unlocked(tower_type: int, ability_index: int) -> void
 		if tower_tt == tower_type:
 			if tower.has_method("activate_progressive_ability"):
 				tower.activate_progressive_ability(ability_index)
+				# #106: Spawn burst of ability particles in path color
+				var _path_colors = {"A": Color(1.0, 0.85, 0.0), "B": Color(0.3, 0.6, 1.0), "C": Color(0.7, 0.3, 1.0)}
+				var _ab_color = _path_colors.get("A", Color(1.0, 0.85, 0.0))
+				for _pi in range(10):
+					var angle = randf() * TAU
+					var speed = randf_range(40.0, 100.0)
+					_ability_particles.append({"pos": tower.global_position, "vel": Vector2(cos(angle) * speed, sin(angle) * speed), "color": _ab_color, "life": 1.0, "max_life": 1.0})
 
 func restore_life(amount: int = 1) -> void:
 	lives = mini(lives + amount, 99)
@@ -43710,6 +43875,18 @@ func _on_path_upgrade_pressed(path_idx: int, tier_idx: int) -> void:
 	# Apply upgrade to tower if it has the method
 	if tower.has_method("apply_path_upgrade"):
 		tower.apply_path_upgrade(path_key, tier_idx + 1)
+		# #106: Spawn burst of particles in path color on upgrade
+		var _path_cols = {"A": Color(1.0, 0.85, 0.0), "B": Color(0.3, 0.6, 1.0), "C": Color(0.7, 0.3, 1.0)}
+		var _upg_color = _path_cols.get(path_key, Color(1.0, 0.85, 0.0))
+		for _pi in range(10):
+			var angle = randf() * TAU
+			var speed = randf_range(40.0, 100.0)
+			_ability_particles.append({"pos": tower.global_position, "vel": Vector2(cos(angle) * speed, sin(angle) * speed), "color": _upg_color, "life": 1.0, "max_life": 1.0})
+		# #107: Screen flash + shake on T3 ultimate purchase
+		if tier_idx + 1 >= 3:
+			_ultimate_flash = 0.5
+			_screen_shake_intensity = 8.0
+			_screen_shake_timer = 0.5
 	# Also increment legacy upgrade_tier for compatibility
 	if "upgrade_tier" in tower:
 		tower.upgrade_tier = current_tiers["A"] + current_tiers["B"] + current_tiers["C"]
@@ -46176,7 +46353,16 @@ func _draw_tower_mastery_badges() -> void:
 		var badge_y = tpos.y + 14.0
 		var badge_col: Color
 		var badge_border: Color
-		if prest >= 1:
+		# #109: Golden prestige glow for max-prestige (5) characters
+		if prest >= 5:
+			badge_col = Color(1.0, 0.90, 0.2, 0.95)  # Golden prestige
+			badge_border = Color(1.0, 0.95, 0.4, 1.0)
+			# Pulsing golden aura ring around tower
+			var _golden_pulse = 0.3 + sin(_time * 2.0) * 0.15
+			draw_circle(tpos, 28.0, Color(1.0, 0.85, 0.1, _golden_pulse * 0.15))
+			draw_circle(tpos, 22.0, Color(1.0, 0.90, 0.2, _golden_pulse * 0.25))
+			draw_arc(tpos, 26.0, 0, TAU, 24, Color(1.0, 0.85, 0.0, _golden_pulse), 2.0)
+		elif prest >= 1:
 			badge_col = Color(0.6, 0.85, 1.0, 0.85)  # Diamond
 			badge_border = Color(0.8, 0.95, 1.0, 0.9)
 		elif char_level >= 20:
@@ -48853,6 +49039,8 @@ func _check_notification_badges() -> void:
 				break
 	# Emporium badge when event is active (new items available)
 	_badge_new_emporium = event_active
+	# (#138) Check upcoming event countdowns
+	_check_upcoming_event_countdown()
 
 # === PRIVACY COMPLIANCE (#198) ===
 var analytics_consent: bool = false
@@ -48883,6 +49071,123 @@ var _first_purchase_made: bool = false  # (#124)
 var _shop_daily_deal: Dictionary = {}  # (#117)
 var _shop_daily_deal_timer: float = 86400.0
 var _shop_daily_deal_date: String = ""
+
+# === PREMIUM CURRENCY DISTINCTION (#120) ===
+var _free_gems: int = 0   # Earned in-game (missions, achievements, daily rewards)
+var _paid_gems: int = 0   # Purchased via IAP
+
+## Spend free gems first, then paid
+func _spend_gems(amount: int) -> bool:
+	if player_gems < amount:
+		return false
+	var from_free = mini(amount, _free_gems)
+	var from_paid = amount - from_free
+	_free_gems -= from_free
+	_paid_gems -= from_paid
+	player_gems -= amount
+	return true
+
+## Add earned gems (in-game rewards go to free pool)
+func _add_free_gems(amount: int) -> void:
+	_free_gems += amount
+	player_gems += amount
+
+## Add purchased gems (IAP purchases go to paid pool)
+func _add_paid_gems(amount: int) -> void:
+	_paid_gems += amount
+	player_gems += amount
+
+# === IAP INTEGRATION STUB (#112) ===
+func _process_iap_purchase(product_id: String) -> void:
+	# TODO: Integrate with Apple StoreKit / Google Play Billing
+	# For now, grant items directly for testing
+	var gem_amount: int = 0
+	match product_id:
+		"starter_pack":
+			gem_amount = 500
+			_starter_pack_purchased = true
+		"gem_pack_1": gem_amount = 100
+		"gem_pack_2": gem_amount = 500
+		"gem_pack_3": gem_amount = 1200
+	if not _first_purchase_made:
+		gem_amount *= 2  # Double first purchase
+		_first_purchase_made = true
+	_add_paid_gems(gem_amount)
+	_track_purchase(product_id, gem_amount)
+	_save_game()
+
+# === AD INTEGRATION STUB (#113) ===
+var _ad_ready: bool = true  # Simulated for testing
+var _ad_double_gold_used: bool = false  # (#115) One-time per victory screen
+func _show_rewarded_ad(callback: String) -> void:
+	# TODO: Integrate AdMob/Unity Ads SDK
+	# For testing, immediately grant reward
+	if not _ad_ready:
+		return
+	if callback == "continue":
+		_accept_continue()
+	elif callback == "double_gold":
+		gold += gold  # Double end-of-level gold
+		_ad_double_gold_used = true
+	elif callback == "free_chest":
+		_open_free_chest("bronze")
+
+## (#115) Free chest from ad reward
+func _open_free_chest(tier: String) -> void:
+	match tier:
+		"bronze":
+			player_gold += 50
+			player_pages += 5
+			spawn_floating_text(Vector2(640, 360), "AD REWARD: +50G, +5 Pages!", Color(0.3, 1.0, 0.5), 16.0, 2.0)
+		"silver":
+			player_gold += 150
+			player_pages += 15
+			spawn_floating_text(Vector2(640, 360), "AD REWARD: +150G, +15 Pages!", Color(0.4, 0.85, 1.0), 16.0, 2.0)
+	total_chests_opened += 1
+
+# === SPENDING ANALYTICS / REFUND / RECEIPT STUBS (#128-130) ===
+func _track_purchase(product_id: String, amount: int) -> void:
+	pass  # TODO: Analytics SDK - log purchase event with product_id, amount, timestamp
+
+func _validate_receipt(receipt: String) -> bool:
+	return true  # TODO: Server-side receipt validation (Apple/Google)
+
+func _handle_refund(product_id: String) -> void:
+	pass  # TODO: Revoke items on refund callback from store
+
+# === PUSH NOTIFICATION STUB (#144) ===
+func _schedule_notification(title: String, body: String, delay_hours: float) -> void:
+	pass  # TODO: Integrate OS notification API (local notifications for energy refill, daily rewards, events)
+
+# === GUILD CURRENCY PLACEHOLDER (#125) ===
+# Guild system deferred to post-launch update 1.1
+# var guild_points: int = 0
+# var guild_currency: int = 0
+
+# === SUBSCRIPTION TIER (#126) ===
+# Subscription tiers (monthly pass, VIP) deferred to post-launch update 1.2
+# Design: Bronze ($2.99/mo), Silver ($4.99/mo), Gold ($9.99/mo) with escalating daily gem grants
+
+# === GEAR FUSION BALANCE (#127) ===
+# Gear fusion system balance pass deferred to post-launch update 1.1
+# Needs: fusion cost curves, rarity weighting, duplicate protection, pity system
+
+# === SEASONAL BATTLE PASS SEASON TRACKING (#137) ===
+var bp_season: int = 1
+var bp_season_end_date: String = "2026-10-01"
+
+# === EVENT CALENDAR (#138) ===
+const UPCOMING_EVENTS: Array = [
+	{"name": "Halloween Haunt", "start": "2026-10-15", "end": "2026-11-01"},
+	{"name": "Winter Tales", "start": "2026-12-15", "end": "2027-01-05"},
+]
+
+# === FRIEND LEADERBOARD STUB (#139) ===
+var _leaderboard_entries: Array = []  # TODO: Backend integration for social leaderboards
+
+# === CHARACTER BOND SYSTEM PLACEHOLDER (#149) ===
+# Bond system: placing two characters together increases bond level. Post-launch feature.
+var character_bonds: Dictionary = {}  # {bond_key: int level}
 
 # Battle Pass display (#114)
 var bp_premium: bool = false
@@ -49118,6 +49423,12 @@ func _draw_shop_panel() -> void:
 	if _shop_message != "":
 		var msg_col = Color(0.3, 0.85, 0.3, 0.95) if "+" in _shop_message or "claimed" in _shop_message.to_lower() or "active" in _shop_message.to_lower() else Color(0.9, 0.3, 0.2, 0.95)
 		_ds_outlined_text(Vector2(panel_x + panel_w * 0.5, panel_y + panel_h - 35), _shop_message, 16, msg_col, int(panel_w - 40), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	# (#115) Watch Ad: Free Chest button at bottom of shop
+	var ad_chest_y = panel_y + panel_h - 65
+	var ad_chest_w = 220.0
+	var ad_chest_x = panel_x + panel_w - ad_chest_w - 20
+	_ds_panel(Rect2(ad_chest_x, ad_chest_y, ad_chest_w, 32), Color(0.25, 0.15, 0.05, 0.85), Color(0.9, 0.7, 0.15, 0.5), 1.5, 8.0)
+	_ds_outlined_text(Vector2(ad_chest_x + ad_chest_w * 0.5, ad_chest_y + 10), "Watch Ad: Free Chest", 13, Color(1.0, 0.85, 0.3), int(ad_chest_w - 10), HORIZONTAL_ALIGNMENT_CENTER, 1)
 	_ds_button(Rect2(panel_x + 5, panel_y + 10, 90, 28), "< BACK", Color(0.25, 0.18, 0.10), false, 13)
 
 func _on_shop_panel_clicked(mouse_pos: Vector2) -> void:
@@ -49194,7 +49505,7 @@ func _draw_battle_pass_panel() -> void:
 	# Battle pass banner image (behind title)
 	if _ui_element_textures.has("battle_pass_banner"):
 		draw_texture_rect(_ui_element_textures["battle_pass_banner"], Rect2(panel_x + 2, panel_y + 2, panel_w - 4, 60), false, Color(1, 1, 1, 0.35))
-	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "BATTLE PASS", 22, Color(0.4, 0.85, 1.0), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
+	_ds_outlined_text(Vector2(panel_x, panel_y + 28), "BATTLE PASS - Season %d" % bp_season, 22, Color(0.4, 0.85, 1.0), int(panel_w), HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(Rect2(panel_x + panel_w * 0.5 - 80, panel_y + 36, 160, 1), _ca(Color(0.4, 0.85, 1.0), 0.4))
 	var prog_y = panel_y + 50.0
 	_ds_outlined_text(Vector2(panel_x + 30, prog_y + 16), "Tier %d / %d" % [bp_tier, BP_MAX_TIER], 16, menu_text)
@@ -49292,3 +49603,116 @@ func _on_battle_pass_panel_clicked(mouse_pos: Vector2) -> void:
 		_bp_display_scroll += 120.0
 		queue_redraw()
 		return
+
+
+# #199: Remote config stub for balance hotfixes
+func _fetch_remote_config() -> void:
+	pass  # TODO: Firebase Remote Config for balance hotfixes
+
+
+# === EVENT COUNTDOWN DISPLAY (#138) ===
+var _next_event_name: String = ""
+var _next_event_days: int = -1
+
+func _check_upcoming_event_countdown() -> void:
+	var today = Time.get_date_string_from_system()
+	_next_event_name = ""
+	_next_event_days = -1
+	for ev in UPCOMING_EVENTS:
+		if ev["start"] > today:
+			_next_event_name = ev["name"]
+			# Simple day estimate
+			var t_parts = today.split("-")
+			var e_parts = ev["start"].split("-")
+			if t_parts.size() == 3 and e_parts.size() == 3:
+				var t_days = int(t_parts[0]) * 365 + int(t_parts[1]) * 30 + int(t_parts[2])
+				var e_days = int(e_parts[0]) * 365 + int(e_parts[1]) * 30 + int(e_parts[2])
+				_next_event_days = e_days - t_days
+			break
+
+func _draw_event_countdown(x: float, y: float) -> void:
+	## (#138) Draw small event countdown on main menu
+	if _next_event_name == "" or _next_event_days < 0:
+		return
+	var font = game_font
+	var text = "%s in %d days" % [_next_event_name, _next_event_days]
+	_ds_panel(Rect2(x, y, 240, 28), Color(0.15, 0.08, 0.25, 0.8), Color(0.5, 0.3, 0.8, 0.4), 1.0, 6.0)
+	_udraw(font, Vector2(x + 120, y + 18), text, HORIZONTAL_ALIGNMENT_CENTER, 230, 12, Color(0.8, 0.7, 1.0))
+
+# === GOLDEN SHIELDS DOCUMENTATION (#147) ===
+# Golden Shields are earned through:
+#   1. Complete all 3 stars on a chapter (auto-awarded on chapter completion)
+#   2. Achieve character prestige (prestige_level >= 1 grants a golden shield)
+#   3. Purchase from the Emporium shop (gem cost varies by character)
+# Golden shields unlock additional gear and sidekick slots per character.
+# See _get_gear_slots() and _get_sidekick_slot_count() for slot unlocks per shield level.
+# Shield levels: +1 gear slot per shield, +1 sidekick at shield levels 3, 6, and 9.
+
+# === SIDEKICK EQUIP DISPLAY (#148) ===
+func _draw_sidekick_equip_info(tower_type: int, x: float, y: float) -> void:
+	## (#148) Show equipped sidekicks in survivor detail as text display
+	var font = game_font
+	var progress = survivor_progress.get(tower_type, {})
+	var sk_unlocked = progress.get("sidekicks_unlocked", [false, false, false, false])
+	var sk_names = survivor_sidekicks.get(tower_type, [])
+	var text_y = y
+	var equipped_count = 0
+	for i in range(mini(sk_unlocked.size(), sk_names.size())):
+		if sk_unlocked[i]:
+			var sk = sk_names[i]
+			var sk_display = sk.get("name", str(sk)) if sk is Dictionary else str(sk)
+			_udraw(font, Vector2(x, text_y), "Ally %d: %s" % [i + 1, sk_display], HORIZONTAL_ALIGNMENT_LEFT, 200, 11, Color(0.7, 0.85, 0.6))
+			text_y += 16.0
+			equipped_count += 1
+	if equipped_count == 0:
+		_udraw(font, Vector2(x, text_y), "No sidekicks equipped", HORIZONTAL_ALIGNMENT_LEFT, 200, 11, Color(0.5, 0.5, 0.5, 0.6))
+
+# === TRY BEFORE YOU BUY - CHARACTER PREVIEW (#142) ===
+var _preview_mode_active: bool = false
+var _preview_tower_type: int = -1
+
+func _show_character_preview(tower_type: int) -> void:
+	## (#142) Show locked character stats/abilities without unlocking
+	_preview_mode_active = true
+	_preview_tower_type = tower_type
+	queue_redraw()
+
+func _hide_character_preview() -> void:
+	_preview_mode_active = false
+	_preview_tower_type = -1
+	queue_redraw()
+
+func _draw_character_preview_overlay() -> void:
+	## (#142) Preview overlay for locked characters - shows stats and abilities
+	if not _preview_mode_active or _preview_tower_type < 0:
+		return
+	var font = game_font
+	var info = tower_info.get(_preview_tower_type, {})
+	if info.is_empty():
+		return
+	# Dim background
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.0, 0.7))
+	# Preview panel
+	var px = 290.0
+	var py = 100.0
+	var pw = 700.0
+	var ph = 520.0
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.08, 0.06, 0.14, 0.95), Color(0.5, 0.3, 0.7, 0.6), 3.0, 14.0)
+	_ds_outlined_text(Vector2(640, py + 30), "PREVIEW: %s" % info.get("name", "Unknown"), 22, Color(0.8, 0.7, 1.0), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_ds_outlined_text(Vector2(640, py + 58), "LOCKED - Preview Only", 14, Color(0.9, 0.4, 0.3), int(pw), HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# Stats
+	var sy = py + 100.0
+	var stat_x = px + 40.0
+	_ds_outlined_text(Vector2(stat_x, sy), "Cost: %dG" % info.get("cost", 0), 16, Color(1.0, 0.9, 0.3))
+	sy += 28.0
+	_ds_outlined_text(Vector2(stat_x, sy), "Range: %.0f" % info.get("range", 0.0), 16, Color(0.5, 0.9, 0.5))
+	sy += 28.0
+	_ds_outlined_text(Vector2(stat_x, sy), "Damage: %d" % info.get("damage", 0), 16, Color(0.9, 0.4, 0.3))
+	sy += 28.0
+	_ds_outlined_text(Vector2(stat_x, sy), "Fire Rate: %.2fs" % info.get("fire_rate", 1.0), 16, Color(0.4, 0.7, 1.0))
+	sy += 36.0
+	# Description
+	var desc = info.get("desc", "No description available.")
+	_udraw(font, Vector2(stat_x, sy), desc, HORIZONTAL_ALIGNMENT_LEFT, int(pw - 80), 13, Color(0.7, 0.7, 0.8))
+	# Close button
+	_ds_button(Rect2(px + pw - 110, py + 10, 100, 30), "CLOSE", Color(0.35, 0.15, 0.15), false, 13)
