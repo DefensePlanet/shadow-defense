@@ -3848,6 +3848,12 @@ var victory_streak_best: int = 0
 const STREAK_GOLD_BONUS: float = 0.05  # +5% gold per streak level
 const STREAK_XP_BONUS: float = 0.05   # +5% XP per streak level
 
+# === #61: RATE THIS APP PROMPT ===
+var _rate_app_shown: bool = false       # true once player taps "Rate Us" (persisted)
+var _rate_app_prompt_timer: float = 0.0 # countdown before showing popup after victory
+var _rate_app_prompt_active: bool = false # true while popup is visible
+var _rate_app_later_count: int = 0      # victories deferred — next prompt after 10 more wins
+
 
 # === BATTD3 FEATURE: CHARACTER AFFINITY ===
 # Characters earn affinity on their home chapters, unlocking exclusive bonuses
@@ -6677,6 +6683,9 @@ func _save_game() -> void:
 	save_data["colorblind_mode"] = _colorblind_mode
 	save_data["text_scale"] = _text_scale
 	save_data["quality_level"] = _quality_level
+	# #61: Rate app prompt state
+	save_data["_rate_app_shown"] = _rate_app_shown
+	save_data["_rate_app_later_count"] = _rate_app_later_count
 	# Save version
 	save_data["save_version"] = SAVE_VERSION
 	# Atomic write with backup rotation
@@ -7173,6 +7182,9 @@ func _load_game() -> void:
 	_colorblind_mode = int(data.get("colorblind_mode", 0))
 	_text_scale = float(data.get("text_scale", 1.0))
 	_quality_level = int(data.get("quality_level", 2))
+	# #61: Rate app prompt state
+	_rate_app_shown = data.get("_rate_app_shown", false)
+	_rate_app_later_count = int(data.get("_rate_app_later_count", 0))
 	if GameSettings:
 		GameSettings.colorblind_mode = _colorblind_mode
 		GameSettings.font_scale = _text_scale
@@ -15305,6 +15317,11 @@ func _populate_story_dialogs() -> void:
 		{"speaker": "narrator", "text": "Yes. One last story. The greatest story. All of us — together — against the tide of forgotten legends that would consume every story ever told.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "I will hold the walls. You fight what comes through. And if we survive... I will tell YOUR story. The story of the legends who saved Legend itself.", "voice_type": "narrator"},
 	]
+	# #163: Act 1 moral choices carry forward into Act 4
+	if story_choices_made.get("moriarty_spared", false):
+		story_dialogs["pre_narrator_finale"].insert(-1, {"speaker": "sherlock", "text": "Moriarty sends word from the margins. He cannot fight beside us — but he has decoded the Narrator's weakness. Even enemies can become... useful. It seems your mercy in Act 1 was not wasted.", "voice_type": "male_hero"})
+	if story_choices_made.get("clayton_recruited", false):
+		story_dialogs["pre_narrator_finale"].insert(-1, {"speaker": "clayton", "text": "I was the hunter. The villain. You gave me a second chance when no story ever would. If this is the final chapter... then let my redemption mean something.", "voice_type": "male_hero"})
 	story_dialogs["narrator_true_form"] = [
 		{"speaker": "narrator", "text": "It is time you saw me as I truly am.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "Not a voice in the dark. Not a puppet master behind a curtain. But the fire that has burned since the first human looked at the stars and said... 'Once upon a time.'", "voice_type": "narrator"},
@@ -17903,6 +17920,50 @@ func _draw_milestone_popup() -> void:
 	_ds_panel(Rect2(340, cy, 600, 50), Color(0.12, 0.08, 0.20, 0.95 * alpha), Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, 0.6 * alpha), 2.0, 10.0)
 	_ds_outlined_text(Vector2(640, cy + 22), _milestone_popup_text, 20, Color(_milestone_popup_color.r, _milestone_popup_color.g, _milestone_popup_color.b, alpha), 580, HORIZONTAL_ALIGNMENT_CENTER, 2)
 	_udraw(font, Vector2(640, cy + 40), _milestone_popup_sub, HORIZONTAL_ALIGNMENT_CENTER, 580, 14, Color(0.7, 0.7, 0.7, alpha * 0.7))
+
+# === #61: RATE THIS APP POPUP ===
+func _draw_rate_app_popup() -> void:
+	var font = game_font
+	# Dim backdrop
+	draw_rect(Rect2(0, 0, 1280, 720), Color(0.0, 0.0, 0.0, 0.5))
+	# Centered panel
+	var px = 390.0
+	var py = 240.0
+	var pw = 500.0
+	var ph = 200.0
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.10, 0.06, 0.14, 0.95), Color(0.8, 0.65, 0.2, 0.7), 3.0, 14.0)
+	_ds_outlined_text(Vector2(640, py + 30), "Enjoying Shadow Defense?", 24, c_gold_bright, pw - 40, HORIZONTAL_ALIGNMENT_CENTER, 2)
+	_ds_outlined_text(Vector2(640, py + 65), "Your support means the world to us!", 14, Color(0.75, 0.70, 0.65), pw - 40, HORIZONTAL_ALIGNMENT_CENTER, 1)
+	# "Rate Us" button
+	var rate_rect = Rect2(px + 50, py + 100, 180, 42)
+	var rate_hover = rate_rect.has_point(get_viewport().get_mouse_position())
+	_ds_button(rate_rect, "⭐ Rate Us", Color(0.25, 0.55, 0.20), rate_hover, 18)
+	# "Later" button
+	var later_rect = Rect2(px + 270, py + 100, 180, 42)
+	var later_hover = later_rect.has_point(get_viewport().get_mouse_position())
+	_ds_button(later_rect, "Later", Color(0.35, 0.25, 0.20), later_hover, 18)
+
+func _handle_rate_app_click(mouse_pos: Vector2) -> bool:
+	if not _rate_app_prompt_active:
+		return false
+	var px = 390.0
+	var py = 240.0
+	var rate_rect = Rect2(px + 50, py + 100, 180, 42)
+	var later_rect = Rect2(px + 270, py + 100, 180, 42)
+	if rate_rect.has_point(mouse_pos):
+		OS.shell_open("https://apps.apple.com/app/shadow-defense")
+		_rate_app_shown = true
+		_rate_app_prompt_active = false
+		_save_game()
+		queue_redraw()
+		return true
+	elif later_rect.has_point(mouse_pos):
+		_rate_app_later_count = victory_streak  # Track current count for +10 deferral
+		_rate_app_prompt_active = false
+		_save_game()
+		queue_redraw()
+		return true
+	return true  # Consume click even if not on buttons (prevent click-through)
 
 func _draw_daily_login_reward_popup() -> void:
 	if _daily_reward_timer <= 0.0:
@@ -23625,6 +23686,12 @@ func _process(delta: float) -> void:
 		_save_integrity_timer -= delta
 		if _save_integrity_timer <= 0.0:
 			_save_integrity_warning = false
+	# #61: Rate app prompt countdown
+	if _rate_app_prompt_timer > 0.0:
+		_rate_app_prompt_timer -= delta
+		if _rate_app_prompt_timer <= 0.0:
+			_rate_app_prompt_active = true
+			queue_redraw()
 	# Rescue effect + interactable cooldowns + atmosphere + dynamic hazards + realm mechanic
 	_update_rescue_effect(delta)
 	_update_interactable_cooldowns(delta)
@@ -26006,6 +26073,11 @@ func _input(event: InputEvent) -> void:
 			return
 
 func _unhandled_input(event: InputEvent) -> void:
+	# #61: Rate app popup intercepts all input while active
+	if _rate_app_prompt_active and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _handle_rate_app_click(get_viewport().get_mouse_position()):
+			get_viewport().set_input_as_handled()
+			return
 	# Skip when v2 menu is active
 	if game_state == GameState.MENU and _menu_v2_instance != null and _menu_v2_instance.visible:
 		return
@@ -26267,12 +26339,8 @@ func _try_place_tower(pos: Vector2) -> void:
 		"color": char_glow, "dust": dust_particles,
 		"tower_name": tower_info[_actual_tower]["name"]
 	})
-	# #92: Play character-specific placement sound if voice clips exist, else generic click
-	if not voices_muted and placement_voice_clips.has(_actual_tower) and placement_voice_clips[_actual_tower].size() > 0:
-		var _place_clips: Array = placement_voice_clips[_actual_tower]
-		catchphrase_player.stream = _place_clips[randi() % _place_clips.size()]
-		catchphrase_player.play()
-	else:
+	# #92: Skip generic click if character has voice clips (voice plays via _play_placement_catchphrase)
+	if not (placement_voice_clips.has(_actual_tower) and placement_voice_clips[_actual_tower].size() > 0):
 		_play_sfx(_sfx_ui_click)
 	_haptic(1)
 	_screen_shake_intensity = 4.0
@@ -27636,6 +27704,9 @@ func _draw() -> void:
 		_draw_story_dialog()
 	# Survivor portraits on bottom panel (Node2D draw = below UI, won't block clicks)
 	_draw_tower_button_portraits()
+	# #61: Rate this app popup (draws on top of everything)
+	if _rate_app_prompt_active:
+		_draw_rate_app_popup()
 	# In-game settings popup (draws on top of everything)
 	if ingame_settings_open and game_state == GameState.PLAYING:
 		_draw_ingame_settings()
@@ -37376,6 +37447,35 @@ func _update_upgrade_panel() -> void:
 				btn.disabled = true
 			elif t == owned_tier:
 				# NEXT AVAILABLE
+				# #70: Before/after stat comparison
+				var _stat_tt = _get_tower_type_from_node(tower)
+				if _stat_tt != null and tower_info.has(_stat_tt):
+					var base = tower_info[_stat_tt]
+					var cur_dmg = int(tower.damage) if "damage" in tower else base.get("damage", 0)
+					var cur_rng = int(tower.attack_range) if "attack_range" in tower else int(base.get("range", 0))
+					var cur_spd = tower.fire_rate if "fire_rate" in tower else base.get("fire_rate", 1.0)
+					# Estimate stat delta from description keywords
+					var desc_lower = tier_desc.to_lower()
+					var dmg_delta = 0
+					var rng_delta = 0
+					var spd_delta = 0.0
+					if "damage" in desc_lower or "dmg" in desc_lower or "x dmg" in desc_lower or "3x" in desc_lower or "2x" in desc_lower:
+						dmg_delta = maxi(int(float(cur_dmg) * 0.20), 1)
+					if "arrows" in desc_lower or "fire 2" in desc_lower or "pierce" in desc_lower:
+						dmg_delta = maxi(dmg_delta, int(float(cur_dmg) * 0.15))
+					if "range" in desc_lower or "vision" in desc_lower:
+						rng_delta = maxi(int(float(cur_rng) * 0.15), 5)
+					if "speed" in desc_lower or "faster" in desc_lower or "attack speed" in desc_lower:
+						spd_delta = cur_spd * -0.10  # faster = lower fire_rate
+					var stat_parts: Array = []
+					if dmg_delta > 0:
+						stat_parts.append("DMG: %d → %d (+%d%%)" % [cur_dmg, cur_dmg + dmg_delta, int(float(dmg_delta) / maxf(float(cur_dmg), 1.0) * 100.0)])
+					if rng_delta > 0:
+						stat_parts.append("RNG: %d → %d" % [cur_rng, cur_rng + rng_delta])
+					if spd_delta != 0.0:
+						stat_parts.append("SPD: %.1f → %.1f" % [cur_spd, cur_spd + spd_delta])
+					if stat_parts.size() > 0:
+						desc_lbl.text = " | ".join(stat_parts) + "\n" + tier_desc
 				var _gate_tt = _get_tower_type_from_node(tower)
 				var _char_level = survivor_progress.get(_gate_tt, {}).get("level", 1) if _gate_tt != null else 1
 				var _req_level = PATH_TIER_LEVEL_GATES[t] if t < PATH_TIER_LEVEL_GATES.size() else 99
@@ -39656,6 +39756,14 @@ func _victory() -> void:
 		if streak_bonus > 0:
 			add_gold(streak_bonus)
 			spawn_floating_text(Vector2(640, 220), "STREAK x%d +%dG!" % [victory_streak, streak_bonus], Color(1.0, 0.6, 0.1), 18.0, 2.0)
+	# === #61: RATE THIS APP PROMPT ===
+	if not _rate_app_shown and not _rate_app_prompt_active:
+		var should_prompt = (current_level == 15) or (victory_streak + completed_levels.size() >= 5)
+		if _rate_app_later_count > 0:
+			# Player tapped "Later" — require 10 more victories after deferral
+			should_prompt = (victory_streak >= _rate_app_later_count + 10)
+		if should_prompt:
+			_rate_app_prompt_timer = 5.0  # Show after 5 second delay
 	# === GEAR DROP SYSTEM ===
 	_roll_gear_drops(current_level, stars, old_stars)
 	# === ADDICTION SYSTEMS: Victory rewards ===
