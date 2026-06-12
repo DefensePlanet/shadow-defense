@@ -2581,13 +2581,15 @@ var player_pages: int = 0
 var player_storybook_stars: int = 0
 var player_gold: int = 0
 
-# Energy/Stamina system (#112)
-var player_energy: int = 20  # Current energy
-const MAX_ENERGY: int = 20  # Cap
-const ENERGY_REGEN_MINUTES: float = 10.0  # 1 energy per 10 minutes
-const ENERGY_PER_LEVEL: int = 1  # Cost to play a level
-const ENERGY_PER_HARD: int = 2  # Cost for Hard/Pure difficulty
-var energy_last_timestamp: float = 0.0  # Unix time of last energy update
+# Energy/Stamina system (#112) — DISABLED by #145: No energy gate by design.
+# Players can play UNLIMITED — this is a competitive advantage vs BTD6/BATTD.
+# Variables kept for save compatibility but energy checks are bypassed.
+var player_energy: int = 20  # Retained for save compat — NOT enforced
+const MAX_ENERGY: int = 20  # Retained for save compat
+const ENERGY_REGEN_MINUTES: float = 10.0  # Retained for save compat
+const ENERGY_PER_LEVEL: int = 1  # Retained for save compat
+const ENERGY_PER_HARD: int = 2  # Retained for save compat
+var energy_last_timestamp: float = 0.0  # Retained for save compat
 
 # Treasure chest state
 var chest_loot: Array = []  # Array of {"type": String, "amount": int, "name": String}
@@ -2916,7 +2918,7 @@ const ACHIEVEMENT_SHOP: Array = [
 	{"name": "25 Quills", "cost": 40, "reward_type": "quills", "reward_amount": 25},
 	{"name": "5 Stars", "cost": 75, "reward_type": "stars", "reward_amount": 5},
 	{"name": "10 Knowledge Ink", "cost": 100, "reward_type": "ink", "reward_amount": 10},
-	{"name": "Energy Refill", "cost": 20, "reward_type": "energy", "reward_amount": 20},
+	# {"name": "Energy Refill"} — #145: Removed, no energy gate by design
 	{"name": "Exclusive Title: Achiever", "cost": 200, "reward_type": "title", "reward_id": "achiever"},
 	{"name": "Exclusive Title: Completionist", "cost": 500, "reward_type": "title", "reward_id": "completionist"},
 ]
@@ -4689,7 +4691,7 @@ var character_unlock_map: Dictionary = {
 	# #141: ACT 4 — auto-unlock after completing rescue arcs
 	"headless_horseman": [46, 47, 48],   # Horseman freed after level 48
 	"medusa": [49, 50, 51],              # Medusa freed after level 51
-	"anubis": [52, 53, 54],              # Anubis freed after level 54
+	"anubis": [55, 56, 57],              # Anubis freed after completing rescue arc
 }
 
 # Arc data for menu navigation (37 levels across 13 arcs)
@@ -12902,12 +12904,12 @@ func _on_level_selected(index: int) -> void:
 		_show_tutorial_hint("first_level", "Tap a character card to place a tower. Defend the path from enemies!")
 	elif completed_levels.size() == 1:
 		_show_tutorial_hint("upgrade", "Tap a placed tower to upgrade it. Stronger towers = more kills!")
-	# Energy check (#112)
-	var energy_cost = ENERGY_PER_HARD if selected_difficulty >= 2 else ENERGY_PER_LEVEL
-	if player_energy < energy_cost:
-		info_label.text = "Not enough energy! (%d/%d) — Regens 1 per %d min" % [player_energy, energy_cost, int(ENERGY_REGEN_MINUTES)]
-		return
-	player_energy -= energy_cost
+	# Energy check (#112) — BYPASSED by #145: No energy gate. Unlimited play.
+	# var energy_cost = ENERGY_PER_HARD if selected_difficulty >= 2 else ENERGY_PER_LEVEL
+	# if player_energy < energy_cost:
+	#	info_label.text = "Not enough energy! (%d/%d) — Regens 1 per %d min" % [player_energy, energy_cost, int(ENERGY_REGEN_MINUTES)]
+	#	return
+	# player_energy -= energy_cost
 	# Check for pre-level story dialog
 	var pre_key = "pre_level_" + str(index)
 	# Act 4 levels use named keys instead of pre_level_N
@@ -13041,6 +13043,8 @@ func _do_level_start(index: int) -> void:
 	_stop_music()
 	MusicManager.start_map_music(index)
 	_start_layered_music(index)
+	# #94: Start ambient background sound for this map
+	_start_ambient_sound(index)
 	# Polyrhythm system: initialize world music mode, swing, drum style for this level
 	if _poly != null:
 		_poly.on_level_start(index)
@@ -14314,6 +14318,69 @@ func _play_sfx(clip: AudioStreamWAV) -> void:
 	elif _sfx_player != null:
 		_sfx_player.stream = clip
 		_sfx_player.play()
+
+# #94: Ambient background sound per map theme
+func _start_ambient_sound(level_idx: int) -> void:
+	if _ambient_player == null:
+		return
+	_ambient_player.stop()
+	var theme = levels[level_idx].get("enemy_theme", 0) if level_idx >= 0 and level_idx < levels.size() else 0
+	var sr = 22050
+	var dur = 4.0  # 4-second loop
+	var num_samples = int(sr * dur)
+	var samples = PackedFloat32Array()
+	samples.resize(num_samples)
+	var amb_rng = RandomNumberGenerator.new()
+	amb_rng.seed = theme * 12345 + 67890
+	match theme:
+		0, 7, 9:  # Forest — gentle wind / leaves rustling
+			for i in range(num_samples):
+				var t = float(i) / float(sr)
+				var wind = amb_rng.randf_range(-1.0, 1.0) * 0.15
+				var breeze = sin(t * 0.8 * TAU) * 0.3 + sin(t * 1.3 * TAU) * 0.2
+				samples[i] = clampf(wind * (0.5 + breeze * 0.5) * 0.4, -1.0, 1.0)
+		3:  # Water — gentle waves
+			for i in range(num_samples):
+				var t = float(i) / float(sr)
+				var noise = amb_rng.randf_range(-1.0, 1.0) * 0.12
+				var wave = sin(t * 0.4 * TAU) * 0.5 + sin(t * 0.7 * TAU) * 0.3
+				samples[i] = clampf(noise * (0.4 + wave * 0.6) * 0.35, -1.0, 1.0)
+		6, 11, 12:  # Dark — eerie drone
+			for i in range(num_samples):
+				var t = float(i) / float(sr)
+				var drone = sin(t * 55.0 * TAU) * 0.15 + sin(t * 82.5 * TAU) * 0.08
+				var tremolo = sin(t * 2.5 * TAU) * 0.4 + 0.6
+				var noise = amb_rng.randf_range(-1.0, 1.0) * 0.04
+				samples[i] = clampf((drone * tremolo + noise) * 0.5, -1.0, 1.0)
+		16:  # Egyptian — desert wind with sand texture
+			for i in range(num_samples):
+				var t = float(i) / float(sr)
+				var wind = amb_rng.randf_range(-1.0, 1.0) * 0.18
+				var gust = sin(t * 0.5 * TAU) * 0.4 + sin(t * 1.1 * TAU) * 0.25
+				var sand_crackle = amb_rng.randf_range(-1.0, 1.0) * 0.06 * clampf(sin(t * 3.0 * TAU) + 0.5, 0.0, 1.0)
+				samples[i] = clampf((wind * (0.3 + gust * 0.7) + sand_crackle) * 0.35, -1.0, 1.0)
+		_:  # Default — quiet atmospheric hum
+			for i in range(num_samples):
+				var t = float(i) / float(sr)
+				var hum = sin(t * 60.0 * TAU) * 0.06 + sin(t * 90.0 * TAU) * 0.03
+				var noise = amb_rng.randf_range(-1.0, 1.0) * 0.03
+				samples[i] = clampf((hum + noise) * 0.3, -1.0, 1.0)
+	# Cross-fade the loop endpoints for seamless looping
+	var fade_len = mini(int(sr * 0.05), num_samples / 4)
+	for i in range(fade_len):
+		var blend = float(i) / float(fade_len)
+		samples[i] = samples[i] * blend + samples[num_samples - fade_len + i] * (1.0 - blend)
+	var wav = _samples_to_wav(samples, sr)
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_begin = 0
+	wav.loop_end = num_samples
+	_ambient_player.stream = wav
+	_ambient_player.volume_db = -20.0
+	_ambient_player.play()
+
+func _stop_ambient_sound() -> void:
+	if _ambient_player != null:
+		_ambient_player.stop()
 
 # === STORY DIALOG ENGINE ===
 
@@ -32919,6 +32986,7 @@ func _stop_layered_music() -> void:
 	_music_max_tier_cache = 0
 	_music_intensity = 0.0
 	_music_tempo_mult = 1.0
+	_stop_ambient_sound()  # #94: Stop ambient when layered music stops
 
 func _fade_in_tower_layer(tower_type: int) -> void:
 	if not TOWER_LAYER_MAP.has(tower_type):
@@ -37903,8 +37971,8 @@ func _start_next_wave() -> void:
 			_boss_alert_text = "💀 FINAL VILLAIN: %s 💀" % boss_name
 		else:
 			_boss_alert_text = "💀 BOSS INCOMING: %s 💀" % boss_name
-		# Ominous sound cue (#20)
-		_play_sfx(_sfx_life_lost)
+		# #100: Boss stinger music (replaces generic life_lost cue)
+		_play_sfx(_sfx_boss_stinger)
 		# Boss ability preview
 		var ability_preview = ""
 		match theme:
@@ -39365,7 +39433,8 @@ func _victory() -> void:
 	fast_forward = false
 	game_paused = false
 	_stop_layered_music()
-	_play_sfx(_sfx_victory)
+	# #99: Victory fanfare — ascending major chord (replaces generic victory SFX)
+	_play_sfx(_sfx_victory_fanfare)
 	_haptic(2)  # Strong haptic on victory
 	# Anti-grind: track play counts and apply diminishing XP returns (#16)
 	var _replay_play_count = level_play_counts.get(current_level, 0)
@@ -39906,14 +39975,25 @@ func _check_kill_milestones(tower_type) -> void:
 					treasure_chests_owned["silver"] = treasure_chests_owned.get("silver", 0) + milestone["reward_amount"]
 				"chest_gold":
 					treasure_chests_owned["gold"] = treasure_chests_owned.get("gold", 0) + milestone["reward_amount"]
-			# Show milestone popup
+			# #143: Show milestone popup with reward details
 			var char_names = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock", "Tarzan", "Dracula", "Merlin", "The Monster", "Shadow Author"]
 			var char_name = char_names[tower_type] if tower_type >= 0 and tower_type < char_names.size() else "Hero"
 			var title = milestone.get("title", "")
-			var msg = "%s: %d kills!" % [char_name, kill_threshold]
+			# Reward label for display
+			var reward_label = ""
+			match milestone["reward_type"]:
+				"pages": reward_label = "+%d Pages" % milestone["reward_amount"]
+				"quills": reward_label = "+%d Quills" % milestone["reward_amount"]
+				"stars": reward_label = "+%d Stars" % milestone["reward_amount"]
+				"chest_bronze": reward_label = "+Bronze Chest"
+				"chest_silver": reward_label = "+Silver Chest"
+				"chest_gold": reward_label = "+Gold Chest"
+			var msg = "MILESTONE: %s %d Kills! %s" % [char_name, kill_threshold, reward_label]
 			if title != "":
-				msg = "%s earned '%s'! (%d kills)" % [char_name, title, kill_threshold]
-			spawn_floating_text(Vector2(640, 160), msg, Color(1.0, 0.85, 0.2), 18.0, 2.5)
+				msg = "MILESTONE: %s '%s' (%d Kills)! %s" % [char_name, title, kill_threshold, reward_label]
+			spawn_floating_text(Vector2(640, 140), msg, Color(1.0, 0.85, 0.2), 18.0, 3.0)
+			# Second line with reward emphasis
+			spawn_floating_text(Vector2(640, 168), reward_label, Color(0.4, 1.0, 0.5), 16.0, 2.5)
 	p["kill_milestones_claimed"] = claimed
 
 func _on_survivor_level_up(tower_type, new_level: int) -> void:
