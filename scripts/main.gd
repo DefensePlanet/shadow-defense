@@ -752,7 +752,7 @@ var _world_map_clouds: Array = []
 var _world_map_smoke: Array = []
 
 var character_names: Array = ["Robin Hood", "Alice", "Wicked Witch", "Peter Pan", "The Phantom", "Scrooge", "Sherlock Holmes", "Tarzan", "Count Dracula", "Merlin", "Frankenstein's Monster", "The Shadow Author", "Captain Hook", "Queen of Hearts", "Clayton", "The Headless Horseman", "Medusa", "", "Anubis", ""]  # Indices 17 (Loki) and 19 (Captain Ahab) kept empty to preserve enum indices
-var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol", "The Adventures of Sherlock Holmes", "Tarzan of the Apes", "Dracula", "Le Morte d'Arthur", "Frankenstein", "The Tome of Shadows", "Peter and Wendy", "Alice's Adventures in Wonderland", "Tarzan of the Apes", "The Legend of Sleepy Hollow", "Greek Mythology", "Norse Mythology", "Egyptian Mythology", "Moby-Dick"]
+var character_novels: Array = ["The Merry Adventures of Robin Hood", "Alice's Adventures in Wonderland", "The Wonderful Wizard of Oz", "Peter and Wendy", "The Phantom of the Opera", "A Christmas Carol", "The Adventures of Sherlock Holmes", "Tarzan of the Apes", "Dracula", "Le Morte d'Arthur", "Frankenstein", "The Tome of Shadows", "Peter and Wendy", "Alice's Adventures in Wonderland", "Tarzan of the Apes", "The Legend of Sleepy Hollow", "Greek Mythology", "", "Egyptian Mythology", ""]  # Indices 17 (Loki) and 19 (Ahab) removed
 var character_quotes: Array = [
 	"I rob the dead now. They tip better than the living.",
 	"We're all mad here. I'm just the one with teeth.",
@@ -771,9 +771,9 @@ var character_quotes: Array = [
 	"The jungle belongs to no one. But I take what I want.",
 	"I ride at midnight. I ride at dawn. I ride FOREVER.",
 	"Don't look at me. That's not a request — it's a WARNING.",
-	"I am the lie that tells the truth. Confused? Good.",
+	"",  # Loki removed
 	"Your heart weighs heavy. My feather weighs nothing. Guess who wins.",
-	"I've been hunting the white whale for decades. One more day won't kill me. Probably.",
+	"",  # Captain Ahab removed
 ]
 
 # Character growth arcs — personality evolution through gameplay milestones
@@ -898,11 +898,11 @@ var character_lore: Dictionary = {
 		"When the Tome took Alice, she was reading a book about a girl who falls into a magical world. The irony was not lost on her. 'Well,' she said to the vortex of ink, 'at least THIS rabbit hole has good lighting.'",
 	],
 	"wicked_witch": [
-		"Before she was Wicked, she was Elphaba — a green-skinned girl in a world that judged by color. She learned magic not for power, but because it was the one thing that didn't care what she looked like.",
-		"Elphaba's first spell was a protection charm for a wounded lion cub. The Wizard's guards were going to kill it for sport. 'I became wicked the day I chose an animal's life over a wizard's approval,' she wrote.",
-		"The ruby slippers were never Dorothy's. They were Elphaba's sister's — a gift from their mother. Glinda gave them away. The 'Wicked' Witch was just a grieving sister trying to reclaim her family's legacy.",
-		"Elphaba could have ruled Oz. She had more power than the Wizard, more intelligence than Glinda, more courage than the Lion. Instead she chose exile. 'Power means nothing if it comes from cruelty,' she said. 'Even if the cruelty is done TO you.'",
-		"When the Tome took her, Elphaba was tending a garden in hiding. Flowers that grew despite being planted in rocky, unwelcoming soil. 'Like me,' she whispered to them. 'We bloom where they say nothing should.'",
+		"Before she was Wicked, she was Viridiana — a green-skinned girl in a world that judged by color. She learned magic not for power, but because it was the one thing that didn't care what she looked like.",
+		"Viridiana's first spell was a protection charm for a wounded lion cub. The Wizard's guards were going to kill it for sport. 'I became wicked the day I chose an animal's life over a wizard's approval,' she wrote.",
+		"The ruby slippers were never Dorothy's. They were Viridiana's sister's — a gift from their mother. Glinda gave them away. The 'Wicked' Witch was just a grieving sister trying to reclaim her family's legacy.",
+		"Viridiana could have ruled Oz. She had more power than the Wizard, more intelligence than Glinda, more courage than the Lion. Instead she chose exile. 'Power means nothing if it comes from cruelty,' she said. 'Even if the cruelty is done TO you.'",
+		"When the Tome took her, Viridiana was tending a garden in hiding. Flowers that grew despite being planted in rocky, unwelcoming soil. 'Like me,' she whispered to them. 'We bloom where they say nothing should.'",
 	],
 	"peter_pan": [
 		"Peter Pan cannot remember his mother's face. This is the tragedy that J.M. Barrie buried in adventure and fairy dust — a boy so afraid of growing up that he erased the very memory of being loved by an adult.",
@@ -2662,9 +2662,9 @@ const MAP_THUMB_SLUGS: Array = [
 	"scrooge", "scrooge", "scrooge",  # Scrooge's Trial
 	"prologue", "prologue", "prologue",  # Headless Horseman (use prologue as fallback)
 	"prologue", "prologue", "prologue",  # Medusa
-	"prologue", "prologue", "prologue",  # Loki
+	# Loki removed — no levels
 	"prologue", "prologue", "prologue",  # Anubis
-	"prologue", "prologue", "prologue",  # Ahab
+	# Captain Ahab removed — no levels
 	"shadow_author", "shadow_author", "shadow_author",  # Narrator
 	# Expanded arc chapters (indices 64-89) — reuse arc textures
 	"flight_to_neverland", "jolly_roger",  # Neverland extra
@@ -4925,7 +4925,7 @@ const CHARACTER_ALIGNMENT: Dictionary = {
 	TowerType.SCROOGE: "antihero",  # Was villain, redeemed
 	TowerType.FRANKENSTEIN: "antihero",  # Monster who chose kindness
 	TowerType.SHADOW_AUTHOR: "antihero",  # Former villain, now ally
-	TowerType.LOKI: "antihero",  # Trickster, serves no side
+	# TowerType.LOKI: "antihero",  # REMOVED — character cut from game
 	TowerType.ANUBIS: "antihero",  # Judge, neutral by nature
 }
 
@@ -4956,7 +4956,7 @@ const AWAKENED_FORMS: Dictionary = {
 		"bonus_cooldown": 0.30, "bonus_armor_pierce": true,
 	},
 	TowerType.WICKED_WITCH: {
-		"title": "Elphaba the Beautiful",
+		"title": "Viridiana the Beautiful",
 		"passive": "Her inner beauty manifests — green skin becomes radiant emerald light. Permanent flying monkeys (3 allies), healing aura restores 1 life every 8 kills, +25% all magic damage",
 		"voice": "They called me wicked because they couldn't see past the green. Now the green is the most beautiful thing in the Tome.",
 		"lore": "When the Witch chose to fight for Oz — not to RULE it, but to SAVE it — something changed. The curse that turned her skin green began to glow. Not with malice, but with pure emerald light. The ugliness was never in her skin. It was in how others saw her. Now they see the truth.",
@@ -5049,24 +5049,26 @@ const AWAKENED_FORMS: Dictionary = {
 		"voice": "They cursed me to turn men to stone. Now I turn SHADOWS to dust.",
 		"perma_petrify_interval": 5.0,
 	},
-	TowerType.LOKI: {
-		"title": "Loki, The Unbound Trickster",
-		"passive": "Creates 2 permanent clone towers of random allies at 75% power",
-		"voice": "Chaos isn't the enemy of order. Chaos IS order — just funnier.",
-		"permanent_clones": 2, "clone_power": 0.75,
-	},
+	# TowerType.LOKI: REMOVED — character cut from game
+	# TowerType.LOKI: {
+	#	"title": "Loki, The Unbound Trickster",
+	#	"passive": "Creates 2 permanent clone towers of random allies at 75% power",
+	#	"voice": "Chaos isn't the enemy of order. Chaos IS order — just funnier.",
+	#	"permanent_clones": 2, "clone_power": 0.75,
+	# },
 	TowerType.ANUBIS: {
 		"title": "Anubis, Lord of the Threshold",
 		"passive": "50% resurrection chance, Feather of Ma'at stops all enemies 3s every 20s",
 		"voice": "I have judged a million souls. Yours are the first I found worthy.",
 		"resurrection_chance": 0.50, "maat_interval": 20.0,
 	},
-	TowerType.CAPTAIN_AHAB: {
-		"title": "Ahab, Master of the Deep",
-		"passive": "Harpoon chains the 3 strongest enemies permanently, +40% boss damage",
-		"voice": "The white whale is slain. But the hunt? The hunt never ends.",
-		"permanent_chains": 3, "boss_damage_bonus": 0.40,
-	},
+	# TowerType.CAPTAIN_AHAB: REMOVED — character cut from game
+	# TowerType.CAPTAIN_AHAB: {
+	#	"title": "Ahab, Master of the Deep",
+	#	"passive": "Harpoon chains the 3 strongest enemies permanently, +40% boss damage",
+	#	"voice": "The white whale is slain. But the hunt? The hunt never ends.",
+	#	"permanent_chains": 3, "boss_damage_bonus": 0.40,
+	# },
 }
 
 # === 3-PATH UPGRADE SYSTEM — BTD6-style branching ===
@@ -5088,9 +5090,9 @@ const UPGRADE_PATH_NAMES: Dictionary = {
 	TowerType.CLAYTON: ["The Rifle", "The Tracker", "The Hunter"],
 	TowerType.HEADLESS_HORSEMAN: ["The Rider", "The Terror", "Sleepy Hollow"],
 	TowerType.MEDUSA: ["Serpent Hair", "The Gaze", "The Gorgon"],
-	TowerType.LOKI: ["Shapeshifter", "Trickster", "Ragnarok"],
+	# TowerType.LOKI: ["Shapeshifter", "Trickster", "Ragnarok"],  # REMOVED
 	TowerType.ANUBIS: ["The Scales", "The Underworld", "Ma'at"],
-	TowerType.CAPTAIN_AHAB: ["The Harpoon", "Obsession", "The Leviathan"],
+	# TowerType.CAPTAIN_AHAB: ["The Harpoon", "Obsession", "The Leviathan"],  # REMOVED
 }
 
 const PATH_COSTS: Array = [
@@ -5136,12 +5138,12 @@ const MAP_ABILITIES: Dictionary = {
 	TowerType.FRANKENSTEIN: {"id": "tesla_coil", "name": "Tesla Field", "desc": "Lightning chains to enemies in area every 2s", "cost": 75, "cooldown": 25.0, "duration": 12.0},
 	TowerType.SHADOW_AUTHOR: {"id": "ink_wall", "name": "Writer's Block", "desc": "Impassable ink wall for 5s", "cost": 90, "cooldown": 30.0, "duration": 5.0},
 	TowerType.PETER_PAN: {"id": "fairy_ring", "name": "Fairy Ring", "desc": "All towers in area gain +20% speed for 12s", "cost": 55, "cooldown": 22.0, "duration": 12.0},
-	TowerType.LOKI: {"id": "illusion_field", "name": "Mirage", "desc": "Enemies in area attack illusions instead of progressing", "cost": 65, "cooldown": 28.0, "duration": 6.0},
+	# TowerType.LOKI: {"id": "illusion_field", "name": "Mirage", "desc": "Enemies in area attack illusions instead of progressing", "cost": 65, "cooldown": 28.0, "duration": 6.0},  # REMOVED
 	TowerType.ANUBIS: {"id": "death_zone", "name": "Judgment Circle", "desc": "Enemies below 20% HP in area are instantly killed", "cost": 80, "cooldown": 30.0, "duration": 10.0},
 	TowerType.MEDUSA: {"id": "stone_garden", "name": "Petrify Zone", "desc": "All enemies in area frozen 4s", "cost": 70, "cooldown": 25.0, "duration": 4.0},
 	TowerType.HEADLESS_HORSEMAN: {"id": "terror_zone", "name": "Dread Aura", "desc": "Enemies in area flee backward for 3s", "cost": 60, "cooldown": 22.0, "duration": 3.0},
 	TowerType.CAPTAIN_HOOK: {"id": "anchor_drop", "name": "Drop Anchor", "desc": "Roots 5 strongest enemies for 5s", "cost": 55, "cooldown": 20.0, "duration": 5.0},
-	TowerType.CAPTAIN_AHAB: {"id": "harpoon_field", "name": "Harpoon Net", "desc": "All enemies in area slowed 70% for 6s", "cost": 50, "cooldown": 18.0, "duration": 6.0},
+	# TowerType.CAPTAIN_AHAB: {"id": "harpoon_field", "name": "Harpoon Net", "desc": "All enemies in area slowed 70% for 6s", "cost": 50, "cooldown": 18.0, "duration": 6.0},  # REMOVED
 }
 
 func _activate_map_ability(tower_type, pos: Vector2) -> bool:
@@ -5326,9 +5328,9 @@ func _is_character_unlocked(tower_type) -> bool:
 	var act4_map = {
 		TowerType.HEADLESS_HORSEMAN: [46, 47, 48],
 		TowerType.MEDUSA: [49, 50, 51],
-		TowerType.LOKI: [52, 53, 54],
+		# TowerType.LOKI: REMOVED
 		TowerType.ANUBIS: [55, 56, 57],
-		TowerType.CAPTAIN_AHAB: [58, 59, 60],
+		# TowerType.CAPTAIN_AHAB: REMOVED
 	}
 	if act4_map.has(tower_type):
 		var arc_lvls = act4_map[tower_type]
@@ -6849,12 +6851,11 @@ func _generate_map_interactables(level_idx: int) -> void:
 				_map_interactables.append({"type": "torch", "x": 800, "y": 300, "active": true, "cooldown": 25.0, "cooldown_timer": 0.0, "uses_left": 2})
 			elif theme == 14: # Medusa — lever (mirror shield)
 				_map_interactables.append({"type": "lever", "x": 700, "y": 200, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
-			elif theme == 15: # Loki — bell (dispel illusions)
-				_map_interactables.append({"type": "bell", "x": 300, "y": 400, "active": true, "cooldown": 18.0, "cooldown_timer": 0.0, "uses_left": 3})
+			# elif theme == 15: # Loki — REMOVED
+			#	_map_interactables.append({"type": "bell", "x": 300, "y": 400, "active": true, "cooldown": 18.0, "cooldown_timer": 0.0, "uses_left": 3})
 			elif theme == 16: # Anubis — gate (seal of Ma'at)
 				_map_interactables.append({"type": "gate", "x": 640, "y": 400, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
-			else: # Ahab — barrel (cannon broadside)
-				_map_interactables.append({"type": "barrel", "x": 800, "y": 300, "active": true, "cooldown": 10.0, "cooldown_timer": 0.0, "uses_left": 4})
+			# else (Ahab) — REMOVED
 		18: # Narrator — ALL interactive types (ultimate complexity)
 			_map_interactables.append({"type": "barrel", "x": 300, "y": 300, "active": true, "cooldown": 12.0, "cooldown_timer": 0.0, "uses_left": 3})
 			_map_interactables.append({"type": "bell", "x": 640, "y": 150, "active": true, "cooldown": 20.0, "cooldown_timer": 0.0, "uses_left": 2})
@@ -7063,21 +7064,13 @@ const CHALLENGE_MAPS: Dictionary = {
 		"modifier": "no_range_display", "modifier_desc": "Range circles hidden",
 		"base_level": 51, "waves": 25, "reward_ink": 4,
 	},
-	"Loki": {
-		"name": "The Trick", "desc": "Every tower you place might be a DIFFERENT character.",
-		"modifier": "random_towers", "modifier_desc": "Selected tower type randomized on placement",
-		"base_level": 54, "waves": 25, "reward_ink": 5,
-	},
+	# "Loki": REMOVED — character cut from game
 	"Anubis": {
 		"name": "The Judgment", "desc": "Every enemy you leak permanently reduces ALL tower damage by 2%.",
 		"modifier": "stacking_penalty", "modifier_desc": "-2% global damage per leaked enemy",
 		"base_level": 57, "waves": 25, "reward_ink": 6,
 	},
-	"Captain Ahab": {
-		"name": "The White Whale", "desc": "One massive boss enemy. 50,000 HP. Just one. Kill it.",
-		"modifier": "single_boss", "modifier_desc": "1 enemy, 50,000 HP, moves slowly",
-		"base_level": 60, "waves": 1, "reward_ink": 7,
-	},
+	# "Captain Ahab": REMOVED — character cut from game
 	"The Narrator": {
 		"name": "The Unwritten Rule", "desc": "All modifiers active at once. The ultimate challenge.",
 		"modifier": "all_modifiers", "modifier_desc": "EVERY challenge modifier SIMULTANEOUSLY",
@@ -7135,9 +7128,9 @@ const REALM_MECHANICS: Dictionary = {
 	12: {"id": "author_rewrite", "name": "Plot Twist", "desc": "Every 30s the Author rewrites — enemies change type mid-wave", "interval": 30.0},
 	13: {"id": "horseman_fear", "name": "Headless Terror", "desc": "Every 40s the Horseman rides across the map — towers in his path stop attacking for 3s", "interval": 40.0},
 	14: {"id": "medusa_stone", "name": "Stone Gaze", "desc": "Random tower gets petrified every 35s (disabled 4s) — unless Medusa is placed nearby", "interval": 35.0},
-	15: {"id": "loki_illusion", "name": "Trickster's Mirage", "desc": "30% of enemies are illusions (0 HP, drop no gold) — waste your firepower", "interval": 0.0},
+	# 15: Loki mechanic — REMOVED
 	16: {"id": "anubis_judgment", "name": "Soul Weigh", "desc": "Every 10th kill, the scales tip — either +25 gold or -1 life (50/50)", "interval": 0.0},
-	17: {"id": "ahab_obsession", "name": "The White Whale", "desc": "A massive whale crosses the map every 50s — AoE damage to enemies AND towers in path", "interval": 50.0},
+	# 17: Captain Ahab mechanic — REMOVED
 	18: {"id": "narrator_recast", "name": "Voice of God", "desc": "Every 25s the Narrator speaks — all enemies gain a random buff for 10s", "interval": 25.0},
 }
 
@@ -7177,12 +7170,10 @@ const ARC_BOSSES: Dictionary = {
 		"phase_text": ["The Horseman charges on his nightmare steed!", "Flaming pumpkins rain from the sky!", "THE HORSEMAN CALLS ALL SLEEPY HOLLOW!"]},
 	51: {"name": "Perseus's Shadow", "title": "The Mirror of Medusa", "mechanic": "shield_pulse",
 		"phase_text": ["The mirror reflects Medusa's own gaze!", "Stone soldiers rise from the garden!", "THE GORGON QUEEN BREAKS HER CHAINS!"]},
-	54: {"name": "Fenrir", "title": "The Wolf of Ragnarok", "mechanic": "enrage",
-		"phase_text": ["Fenrir strains against his chains!", "THE CHAINS CRACK!", "FENRIR IS UNBOUND — RAGNAROK BEGINS!"]},
+	# 54: Fenrir (Loki boss) — REMOVED
 	57: {"name": "Ammit", "title": "The Devourer of Souls", "mechanic": "summon",
 		"phase_text": ["Ammit opens her crocodile jaws!", "Souls of the condemned rise to fight!", "THE SCALES TIP — AMMIT DEVOURS ALL!"]},
-	60: {"name": "Moby Dick", "title": "The White Leviathan", "mechanic": "shield_pulse",
-		"phase_text": ["The whale surfaces — massive, ancient, furious!", "The ocean itself fights for the beast!", "MOBY DICK DRAGS THE WORLD INTO THE DEEP!"]},
+	# 60: Moby Dick (Captain Ahab boss) — REMOVED
 	63: {"name": "The Narrator", "title": "The Voice Unbound", "mechanic": "summon",
 		"phase_text": ["The Narrator's voice shakes the realm!", "LEGENDS MANIFEST FROM PURE FIRE!", "THE VOICE SPEAKS THE FINAL WORD!"]},
 }
@@ -7952,6 +7943,18 @@ func _draw_wave_progress_bar() -> void:
 		if bw <= total_waves:
 			var bx = 10.0 + bar_w * (float(bw) / float(total_waves))
 			draw_line(Vector2(bx, bar_y), Vector2(bx, bar_y + bar_h), Color(1.0, 0.3, 0.1, 0.5), 2.0)
+	# Intra-wave enemy progress bar (#67) — shows enemies cleared this wave
+	if _wave_enemies_total > 0:
+		var enemies_cleared = _wave_enemies_total - enemies_to_spawn - enemies_alive
+		var wave_fill = clampf(float(enemies_cleared) / float(_wave_enemies_total), 0.0, 1.0)
+		var ebar_y = bar_y - 5.0
+		var ebar_h = 3.0
+		draw_rect(Rect2(10, ebar_y, bar_w, ebar_h), Color(0.1, 0.08, 0.15, 0.3))
+		var wave_color = Color(0.3, 0.9, 0.4, 0.6) if wave_fill < 0.9 else Color(1.0, 0.85, 0.2, 0.7)
+		draw_rect(Rect2(10, ebar_y, bar_w * wave_fill, ebar_h), wave_color)
+		# Percentage text
+		if wave_fill > 0.01:
+			_ds_outlined_text(Vector2(10 + bar_w * wave_fill + 5, ebar_y + 3), "%d%%" % int(wave_fill * 100), 8, Color(0.8, 0.8, 0.9, 0.6), 40, HORIZONTAL_ALIGNMENT_LEFT, 1)
 
 # === INCOME INDICATOR (#163) ===
 func _draw_income_indicator() -> void:
@@ -13943,6 +13946,7 @@ func _populate_story_dialogs() -> void:
 	]
 	story_dialogs["post_level_20"] = [
 		{"speaker": "alice", "text": "I found a page on the ground. It read: 'Chapter 47 — In Which Alice Never Returns.' Someone is writing a very bad sequel to my story.", "voice_type": "female_hero"},
+		{"speaker": "narrator", "text": "The heroes grow stronger. I am... pleased.", "voice_type": "narrator"},
 	]
 	story_dialogs["pre_level_21"] = [
 		{"speaker": "narrator", "text": "The Queen's court rises before Alice — a palace of playing cards stacked impossibly high, dripping with shadow ink from every balcony.", "voice_type": "narrator"},
@@ -14029,6 +14033,7 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_27"] = [
 		{"speaker": "peter_pan", "text": "Below Hook's shadow ship, I found a map. It shows ALL the shadow realms, connected by ink rivers. And there are prisoners in the margins — heroes from other books!", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "Peter's discovery changes everything. The map reveals the full scope of the Shadow Author's prison — and the location of characters who have been trapped far longer.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The boy chose to grow. I must remember this one.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "Captain Hook crawls from the wreckage of the Jolly Roger, his iron hook glinting. Without the Author's shadows fueling his rage, he looks... tired. Old.", "voice_type": "narrator"},
 		{"speaker": "narrator", "text": "'Pan,' he says, 'I've been fighting you for centuries in every version of this story. The Author just made it WORSE — made me forget WHY I was fighting. I'm tired of being the villain.'", "voice_type": "narrator",
 			"choices": [
@@ -14070,6 +14075,7 @@ func _populate_story_dialogs() -> void:
 	story_dialogs["post_level_30"] = [
 		{"speaker": "phantom", "text": "I played my organ at full power, and the sound cracked the walls between realms. For a moment, I saw all the heroes — Robin, Alice, the Witch, Peter — and they saw me. Not the mask. ME.", "voice_type": "male_hero"},
 		{"speaker": "narrator", "text": "The Phantom's music becomes the thread that connects all the shadow realms. Through his art, the heroes finally know they are not alone.", "voice_type": "narrator"},
+		{"speaker": "narrator", "text": "The Phantom's music reaches even MY realm.", "voice_type": "narrator"},
 	]
 
 	# --- SCROOGE ARC (Levels 31-33) ---
@@ -14849,7 +14855,8 @@ func _end_story_dialog() -> void:
 	if _menu_v2_instance != null and is_instance_valid(_menu_v2_instance) and _menu_v2_instance.get_parent() != null:
 		_menu_v2_instance.get_parent().visible = true
 	# If this was a pre-level dialog, start the level
-	if key.begins_with("pre_level_") and _pending_level_start >= 0:
+	var _is_pre_level = key.begins_with("pre_level_") or key.begins_with("pre_horseman") or key.begins_with("pre_medusa") or key.begins_with("pre_anubis") or key.begins_with("pre_narrator_finale")
+	if _is_pre_level and _pending_level_start >= 0:
 		var lvl = _pending_level_start
 		_pending_level_start = -1
 		_do_level_start(lvl)
@@ -14882,7 +14889,7 @@ func _end_story_dialog() -> void:
 			_start_story_dialog(mw_key)
 			return
 	# If this was a post-level dialog or unlock, save and return to menu
-	if key.begins_with("post_level_") or key.begins_with("unlock_") or key == "act2_intro" or key == "act3_intro" or key == "all_unlocked" or key.begins_with("meanwhile_") or key.begins_with("recruit_") or key.begins_with("exile_") or key.begins_with("refuse_") or key.begins_with("leave_") or key.begins_with("epilogue_"):
+	if key.begins_with("post_level_") or key.begins_with("unlock_") or key == "act2_intro" or key == "act3_intro" or key == "act4_intro" or key == "all_unlocked" or key.begins_with("meanwhile_") or key.begins_with("recruit_") or key.begins_with("exile_") or key.begins_with("refuse_") or key.begins_with("leave_") or key.begins_with("epilogue_") or key.begins_with("narrator_"):
 		_save_game()
 	queue_redraw()
 
@@ -25354,7 +25361,44 @@ func _draw_tower_stats_overlay() -> void:
 
 # === WAVE PREVIEW — disabled, was blocking gameplay ===
 func _draw_wave_preview() -> void:
-	pass  # All wave preview UI disabled — players just click START WAVE
+	# Next wave preview (#66) — show upcoming wave info between waves
+	if is_wave_active or wave >= total_waves:
+		return
+	var preview = _generate_wave_preview(wave)
+	if preview.size() == 0:
+		return
+	var info = preview[0]
+	var next_w = wave + 1
+	var wave_name = _get_wave_name(next_w)
+	var count = info["count"]
+	var tier = info["tier"]
+	var mods = info["modifiers"]
+	var tier_names = ["Common", "Tough", "Elite", "Nightmare"]
+	var tier_colors = [Color(0.6, 0.8, 0.6), Color(0.4, 0.7, 1.0), Color(0.8, 0.4, 1.0), Color(1.0, 0.3, 0.2)]
+	var tc = tier_colors[clampi(tier, 0, 3)]
+	# Compact preview pill near top center
+	var px = 440.0
+	var py = 58.0
+	var pw = 400.0
+	var ph = 36.0
+	_ds_panel(Rect2(px, py, pw, ph), Color(0.06, 0.04, 0.12, 0.85), tc * Color(1, 1, 1, 0.4), 1.5, 8.0)
+	# "NEXT:" label
+	_ds_outlined_text(Vector2(px + 8, py + 22), "NEXT:", 10, Color(0.6, 0.6, 0.7, 0.8), 40, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	# Enemy count + tier
+	var tier_label = tier_names[clampi(tier, 0, 3)]
+	_ds_outlined_text(Vector2(px + 55, py + 22), "%d %s" % [count, tier_label], 12, tc, 120, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	# Wave name (truncated)
+	var display_name = wave_name
+	if display_name.length() > 28:
+		display_name = display_name.substr(0, 26) + ".."
+	_ds_outlined_text(Vector2(px + pw - 8, py + 22), display_name, 10, Color(0.8, 0.8, 0.9, 0.7), 200, HORIZONTAL_ALIGNMENT_RIGHT, 1)
+	# Boss/mutation badges
+	if mods.size() > 0:
+		var badge_x = px + 180.0
+		for m in mods:
+			var badge_col = Color(1.0, 0.2, 0.1, 0.8) if m == "BOSS" else Color(0.8, 0.4, 1.0, 0.8)
+			_ds_outlined_text(Vector2(badge_x, py + 22), m, 9, badge_col, 60, HORIZONTAL_ALIGNMENT_CENTER, 1)
+			badge_x += 55.0
 
 func _generate_wave_preview(w: int) -> Array:
 	var preview: Array = []
