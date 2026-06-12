@@ -6993,10 +6993,15 @@ func _load_game() -> void:
 	recent_items.clear()
 	for v in ri_data:
 		recent_items.append(v)
-	# Accessibility settings
+	# Accessibility settings — sync with GameSettings autoload
 	_colorblind_mode = int(data.get("colorblind_mode", 0))
 	_text_scale = float(data.get("text_scale", 1.0))
 	_quality_level = int(data.get("quality_level", 2))
+	if GameSettings:
+		GameSettings.colorblind_mode = _colorblind_mode
+		GameSettings.font_scale = _text_scale
+		if AccessibilityManager:
+			AccessibilityManager.apply_changes()
 	# === ADDICTION SYSTEMS LOAD ===
 	player_crystals = int(data.get("player_crystals", 0))
 	streak_shields = int(data.get("streak_shields", 1))
@@ -26504,10 +26509,17 @@ func _draw() -> void:
 			var ft_alpha = clampf(ft["timer"] / ft["duration"], 0.0, 1.0)
 			var ft_col = ft["color"]
 			ft_col.a *= ft_alpha
+			# #9: High contrast — boost alpha and add dark panel behind text
+			if GameSettings and GameSettings.high_contrast:
+				ft_col.a = minf(ft_col.a * 1.4, 1.0)
 			# Scale: start at 0.8, grow to 1.0 in first 20%
 			var ft_progress = 1.0 - ft_alpha
 			var ft_scale = clampf(0.8 + ft_progress * 1.0, 0.8, 1.0)
-			var ft_size = int(ft["size"] * ft_scale)
+			var ft_size = _scaled_fs(int(ft["size"] * ft_scale))  # #9: Large text support
+			# #9: High contrast — dark panel behind floating text
+			if GameSettings and GameSettings.high_contrast:
+				var ft_text_w = ft_font.get_string_size(ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size).x
+				draw_rect(Rect2(ft["pos"].x - ft_text_w * 0.5 - 4, ft["pos"].y - ft_size + 2, ft_text_w + 8, ft_size + 4), Color(0.0, 0.0, 0.0, ft_alpha * 0.6))
 			# Drop shadow for readability
 			var shadow_col = Color(0.0, 0.0, 0.0, ft_alpha * 0.7)
 			draw_string(ft_font, ft["pos"] + Vector2(1, 2), ft["text"].to_upper(), HORIZONTAL_ALIGNMENT_CENTER, -1, ft_size, shadow_col)
@@ -37652,6 +37664,10 @@ func update_hud() -> void:
 				gold_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.15).lerp(Color(1.0, 0.84, 0.0), 1.0 - gcf))
 		else:
 			gold_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
+	# #9: High contrast — ensure HUD labels have full alpha
+	if GameSettings and GameSettings.high_contrast:
+		if gold_label:
+			gold_label.modulate.a = 1.0
 	if lives_label:
 		lives_label.text = "❤ %d" % lives
 		var max_lives = difficulty_fixed_lives[mini(selected_difficulty, difficulty_fixed_lives.size() - 1)] if selected_difficulty < difficulty_fixed_lives.size() else 100
@@ -39693,6 +39709,44 @@ func _on_settings_clicked(pos: Vector2) -> void:
 	if pos.x >= skip_x and pos.x <= skip_x + 100 and pos.y >= skip_y and pos.y <= skip_y + 32:
 		MusicManager.skip_track()
 		_play_sfx(_sfx_ui_click)
+		return
+
+	# === #9: Accessibility toggles (col2, below mute toggles) ===
+	var acc_base_y = toggle_base_y + row_h * 3 + 15.0 + 35.0
+	var acc_toggle_configs = [
+		{"y": acc_base_y, "key": "high_contrast"},
+		{"y": acc_base_y + row_h, "key": "large_text"},
+		{"y": acc_base_y + row_h * 2, "key": "reduced_motion"},
+	]
+	for atc in acc_toggle_configs:
+		var box_x = col2_x + 180.0
+		var box_y = atc["y"] - 14.0
+		if pos.x >= box_x and pos.x <= box_x + 24 and pos.y >= box_y and pos.y <= box_y + 24:
+			match atc["key"]:
+				"high_contrast":
+					GameSettings.high_contrast = !GameSettings.high_contrast
+				"large_text":
+					GameSettings.font_scale = 1.0 if GameSettings.font_scale > 1.1 else 1.25
+					_text_scale = GameSettings.font_scale
+				"reduced_motion":
+					GameSettings.reduced_motion = !GameSettings.reduced_motion
+			GameSettings.save_settings()
+			if AccessibilityManager:
+				AccessibilityManager.apply_changes()
+			_play_sfx(_sfx_ui_click)
+			return
+
+	# Colorblind mode cycle button
+	var cb_btn_x = col2_x + 280.0
+	var cb_btn_y = acc_base_y + row_h * 3 - 14.0
+	if pos.x >= cb_btn_x and pos.x <= cb_btn_x + 60 and pos.y >= cb_btn_y and pos.y <= cb_btn_y + 28:
+		GameSettings.colorblind_mode = (GameSettings.colorblind_mode + 1) % 4
+		_colorblind_mode = GameSettings.colorblind_mode
+		GameSettings.save_settings()
+		if AccessibilityManager:
+			AccessibilityManager.apply_changes()
+		_play_sfx(_sfx_ui_click)
+		return
 
 func _draw_achievements_tab() -> void:
 	var font = game_font
