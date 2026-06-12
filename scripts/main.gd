@@ -25098,6 +25098,22 @@ func _process(delta: float) -> void:
 		if undo_tower_data["timer"] <= 0.0:
 			undo_tower_data.clear()
 			undo_button.visible = false
+	# #71: Upgrade undo timer countdown
+	if _upgrade_undo_timer > 0.0:
+		_upgrade_undo_timer -= delta
+		if _upgrade_undo_timer <= 0.0:
+			_upgrade_undo_data.clear()
+			_upgrade_undo_timer = 0.0
+		queue_redraw()
+	# #77: Kill feed timer countdown
+	if _kill_feed.size() > 0:
+		var _kf_remove = false
+		for kfi in range(_kill_feed.size()):
+			_kill_feed[kfi]["timer"] -= delta
+			if _kill_feed[kfi]["timer"] <= 0.0:
+				_kf_remove = true
+		if _kf_remove:
+			_kill_feed = _kill_feed.filter(func(e): return e["timer"] > 0.0)
 	# Wave preview timer
 	if wave_preview_active:
 		wave_preview_timer -= delta
@@ -38858,8 +38874,18 @@ func _on_upgrade_tier_pressed(tier_index: int) -> void:
 		if selected_tower_node.has_method("get_next_upgrade_info"):
 			var info = selected_tower_node.get_next_upgrade_info()
 			upgrade_cost = info.get("cost", 0)
+		# #71: Save pre-upgrade state for undo window
+		var _pre_upgrade_tier = selected_tower_node.upgrade_tier
 		if selected_tower_node.purchase_upgrade():
 			_haptic(2)  # #79: Strong haptic on upgrade purchase
+			# #71: Start upgrade undo window (3 seconds)
+			_upgrade_undo_data = {
+				"tower_node": selected_tower_node,
+				"tower_type": _get_tower_type_from_node(selected_tower_node),
+				"prev_tier": _pre_upgrade_tier,
+				"cost": upgrade_cost,
+			}
+			_upgrade_undo_timer = UPGRADE_UNDO_DURATION
 			_update_upgrade_panel()
 			_refresh_music_max_tier()  # Update tempo scaling cache
 			var tier_name = selected_tower_node.TIER_NAMES[selected_tower_node.upgrade_tier - 1]
