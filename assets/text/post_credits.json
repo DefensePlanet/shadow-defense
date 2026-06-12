@@ -1,0 +1,17 @@
+{
+  "post_credits_scene": [
+    {"type": "black_screen", "duration": 3.0},
+    {"type": "text", "text": "...", "duration": 2.0, "style": "fade_in"},
+    {"type": "text", "text": "In a forgotten corner of the world's oldest bookshop...", "duration": 4.0, "style": "typewriter", "speaker": "narrator"},
+    {"type": "text", "text": "A new book appears on the shelf.", "duration": 3.0, "style": "typewriter", "speaker": "narrator"},
+    {"type": "text", "text": "Its cover is white as snow. Its pages hum with unwritten potential.", "duration": 4.0, "style": "typewriter", "speaker": "narrator"},
+    {"type": "text", "text": "On the spine, in letters that glow like starlight, a title forms:", "duration": 3.0, "style": "typewriter", "speaker": "narrator"},
+    {"type": "black_screen", "duration": 1.5},
+    {"type": "title_reveal", "text": "THE BOOK OF BEGINNINGS", "duration": 5.0, "style": "golden_glow"},
+    {"type": "text", "text": "And somewhere between the covers...", "duration": 3.0, "style": "fade_in", "speaker": "narrator"},
+    {"type": "text", "text": "Eighteen legends smile.", "duration": 3.0, "style": "fade_in", "speaker": "narrator"},
+    {"type": "black_screen", "duration": 2.0},
+    {"type": "text", "text": "Shadow Defense will return.", "duration": 4.0, "style": "fade_in"},
+    {"type": "black_screen", "duration": 3.0}
+  ]
+}
