@@ -1,0 +1,32 @@
+{
+  "description": "In-game news/events feed shown on the main menu",
+  "items": [
+    {
+      "id": "launch",
+      "title": "Welcome to Shadow Defense!",
+      "body": "The greatest storybook characters need YOUR help. Place legendary heroes, upgrade their abilities, and save storytelling itself. Begin your journey in the Tome of Shadows!",
+      "type": "announcement",
+      "start_date": "2026-07-01",
+      "end_date": "2026-12-31",
+      "action": "play"
+    },
+    {
+      "id": "act4_teaser",
+      "title": "Act IV: The Narrator's Realm",
+      "body": "Complete the Shadow Author's story to unlock the ultimate challenge. Three ancient legends await rescue. The Narrator reveals his true form. Are you strong enough?",
+      "type": "content",
+      "start_date": "2026-07-01",
+      "end_date": null,
+      "action": "chapters"
+    },
+    {
+      "id": "daily_tip",
+      "title": "Tip of the Day",
+      "body": "Each tower has 3 upgrade paths that STACK. You can max ONE path and go Tier 2 in a second. Choose wisely — your strategy defines your playstyle!",
+      "type": "tip",
+      "start_date": "2026-07-01",
+      "end_date": null,
+      "action": null
+    }
+  ]
+}
