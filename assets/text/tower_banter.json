@@ -1,0 +1,131 @@
+{
+  "banter_pairs": [
+    {
+      "tower_a": "robin_hood", "tower_b": "sherlock",
+      "lines": [
+        {"speaker": "robin_hood", "text": "You deduce, I shoot. Perfect partnership."},
+        {"speaker": "sherlock", "text": "I prefer the term 'complementary skillsets.'"},
+        {"speaker": "robin_hood", "text": "Fancy words for 'I need a bodyguard.'"}
+      ]
+    },
+    {
+      "tower_a": "alice", "tower_b": "wicked_witch",
+      "lines": [
+        {"speaker": "alice", "text": "You're not wicked at all, are you?"},
+        {"speaker": "wicked_witch", "text": "Tell anyone and I'll turn you into a toad."},
+        {"speaker": "alice", "text": "That's the nicest threat I've ever received."}
+      ]
+    },
+    {
+      "tower_a": "dracula", "tower_b": "frankenstein",
+      "lines": [
+        {"speaker": "dracula", "text": "We were the villains."},
+        {"speaker": "frankenstein", "text": "Were."},
+        {"speaker": "dracula", "text": "Yes. Were."}
+      ]
+    },
+    {
+      "tower_a": "peter_pan", "tower_b": "captain_hook",
+      "lines": [
+        {"speaker": "peter_pan", "text": "Strange fighting beside you."},
+        {"speaker": "captain_hook", "text": "Strange not trying to kill you."},
+        {"speaker": "peter_pan", "text": "...Do you miss it?"},
+        {"speaker": "captain_hook", "text": "Every single day."}
+      ]
+    },
+    {
+      "tower_a": "phantom", "tower_b": "frankenstein",
+      "lines": [
+        {"speaker": "phantom", "text": "They feared your face."},
+        {"speaker": "frankenstein", "text": "They feared yours too."},
+        {"speaker": "phantom", "text": "Yes. But mine was by CHOICE."},
+        {"speaker": "frankenstein", "text": "...Frankenstein had no choice. In anything."},
+        {"speaker": "phantom", "text": "Then let us MAKE choices. Starting now."}
+      ]
+    },
+    {
+      "tower_a": "scrooge", "tower_b": "shadow_author",
+      "lines": [
+        {"speaker": "scrooge", "text": "I built walls of gold to fill the emptiness."},
+        {"speaker": "shadow_author", "text": "I built walls of ink."},
+        {"speaker": "scrooge", "text": "Same emptiness."},
+        {"speaker": "shadow_author", "text": "...Yes. Same emptiness."}
+      ]
+    },
+    {
+      "tower_a": "alice", "tower_b": "queen_of_hearts",
+      "lines": [
+        {"speaker": "alice", "text": "Your Majesty... are you HELPING us?"},
+        {"speaker": "queen_of_hearts", "text": "I'm helping MYSELF. You just happen to benefit."},
+        {"speaker": "alice", "text": "That's... actually very Wonderland logic."}
+      ]
+    },
+    {
+      "tower_a": "tarzan", "tower_b": "clayton",
+      "lines": [
+        {"speaker": "tarzan", "text": "You hunted my family."},
+        {"speaker": "clayton", "text": "I was rewritten. That wasn't... that wasn't me."},
+        {"speaker": "tarzan", "text": "Tarzan knows. Tarzan also knows... you are trying. That is enough."}
+      ]
+    },
+    {
+      "tower_a": "merlin", "tower_b": "dracula",
+      "lines": [
+        {"speaker": "merlin", "text": "Four hundred years of darkness. How did you survive?"},
+        {"speaker": "dracula", "text": "I kept a music box. My mother's lullaby."},
+        {"speaker": "merlin", "text": "Even immortals need something to hold onto."}
+      ]
+    },
+    {
+      "tower_a": "medusa", "tower_b": "wicked_witch",
+      "lines": [
+        {"speaker": "medusa", "text": "They cursed me for something I didn't do."},
+        {"speaker": "wicked_witch", "text": "They cursed me for existing."},
+        {"speaker": "medusa", "text": "Sisters in suffering."},
+        {"speaker": "wicked_witch", "text": "Sisters in SURVIVAL."}
+      ]
+    },
+    {
+      "tower_a": "anubis", "tower_b": "scrooge",
+      "lines": [
+        {"speaker": "anubis", "text": "I have judged millions of hearts. Yours weighs almost nothing."},
+        {"speaker": "scrooge", "text": "Is that... good?"},
+        {"speaker": "anubis", "text": "It means you carry no guilt. The redeemed heart is the lightest of all."}
+      ]
+    },
+    {
+      "tower_a": "headless_horseman", "tower_b": "phantom",
+      "lines": [
+        {"speaker": "headless_horseman", "text": "You hide behind a mask. I have no face to hide."},
+        {"speaker": "phantom", "text": "Perhaps that's freedom."},
+        {"speaker": "headless_horseman", "text": "No. It is forgetting. I would give anything to remember who I was."},
+        {"speaker": "phantom", "text": "...Then let me play you a song. Music remembers everything."}
+      ]
+    },
+    {
+      "tower_a": "robin_hood", "tower_b": "peter_pan",
+      "lines": [
+        {"speaker": "robin_hood", "text": "You know, in some versions of my story, I never grow old either."},
+        {"speaker": "peter_pan", "text": "Is that supposed to make me feel better about growing up?"},
+        {"speaker": "robin_hood", "text": "It's supposed to remind you — legends don't age. We just get better stories."}
+      ]
+    },
+    {
+      "tower_a": "alice", "tower_b": "medusa",
+      "lines": [
+        {"speaker": "alice", "text": "I'm not afraid of you."},
+        {"speaker": "medusa", "text": "Everyone is afraid of me. That's the whole POINT."},
+        {"speaker": "alice", "text": "I went to Wonderland. I've had tea with madness. You're just a woman with unusual hair."},
+        {"speaker": "medusa", "text": "...No one has ever called me 'just a woman' before. Thank you."}
+      ]
+    },
+    {
+      "tower_a": "frankenstein", "tower_b": "headless_horseman",
+      "lines": [
+        {"speaker": "frankenstein", "text": "You are missing... a piece. Frankenstein understands."},
+        {"speaker": "headless_horseman", "text": "My head. My memories. Everything I was."},
+        {"speaker": "frankenstein", "text": "Frankenstein was made from MANY pieces. None of them were mine. But the heart? The heart became mine. Yours will too."}
+      ]
+    }
+  ]
+}
