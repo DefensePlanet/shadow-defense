@@ -3462,7 +3462,15 @@ var daily_challenge_progress: Array = [0, 0, 0]  # Progress for each of the 3 da
 func _generate_daily_challenges() -> void:
 	daily_challenges.clear()
 	daily_challenge_progress = [0, 0, 0]
+	# Load extended templates from JSON if available
 	var available = CHALLENGE_TEMPLATES.duplicate()
+	var json_path = "res://assets/text/daily_challenge_templates.json"
+	if ResourceLoader.exists(json_path):
+		var file = FileAccess.open(json_path, FileAccess.READ)
+		if file:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed and parsed.has("challenges"):
+				available = parsed["challenges"]
 	available.shuffle()
 	for i in range(mini(3, available.size())):
 		daily_challenges.append(available[i].duplicate())
@@ -4783,8 +4791,26 @@ var arc_data = [
 const SAVE_VERSION = 3
 const OLD_TO_NEW_LEVEL_MAP = {0:16, 1:17, 2:18, 3:19, 4:20, 5:21, 6:22, 7:23, 8:24, 9:25, 10:26, 11:27, 12:28, 13:29, 14:30, 15:31, 16:32, 17:33}
 
+# Localization keys loaded from JSON
+var _localization_keys: Dictionary = {}
+
+func _load_localization_keys() -> void:
+	var path = "res://assets/text/localization_keys.json"
+	if ResourceLoader.exists(path):
+		var file = FileAccess.open(path, FileAccess.READ)
+		if file:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed and parsed is Dictionary:
+				_localization_keys = parsed
+
+func _tr(category: String, key: String) -> String:
+	if _localization_keys.has(category) and _localization_keys[category].has(key):
+		return _localization_keys[category][key]
+	return key.to_upper().replace("_", " ")
+
 func _ready() -> void:
 	add_to_group("main")
+	_load_localization_keys()
 	_is_mobile = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
 	# Default medium quality on mobile for smooth performance
 	if _is_mobile and _quality_level == 2:
