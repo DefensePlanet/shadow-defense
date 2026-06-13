@@ -881,7 +881,7 @@ func _draw() -> void:
 
 	if _active_tex:
 		var tex_size = _active_tex.get_size()
-		var scale_factor = 120.0 / tex_size.y if tex_size.y > 0 else 1.0
+		var scale_factor = 160.0 / tex_size.y if tex_size.y > 0 else 1.0
 		var draw_size = tex_size * scale_factor
 		draw_texture_rect(_active_tex, Rect2(-draw_size / 2.0 + Vector2(0, -draw_size.y * 0.25), draw_size), false)
 

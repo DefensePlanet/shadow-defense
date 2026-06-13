@@ -16558,8 +16558,19 @@ func _play_story_voice() -> void:
 			catchphrase_player.stream = character_story_clips[char_clip_key]
 			catchphrase_player.play()
 			return
-	# No fallback — if no matching clip exists, stay silent rather than
-	# playing wrong audio or robot TTS. Silence > wrong voice.
+	# Fallback: play procedural formant voice if no MP3 clip exists
+	if speaker_to_tower.has(speaker) and voice_clips.has(speaker_to_tower[speaker]):
+		catchphrase_player.stop()
+		catchphrase_player.stream = voice_clips[speaker_to_tower[speaker]]
+		catchphrase_player.play()
+	elif speaker == "narrator" and story_voice_clips.has("narrator"):
+		catchphrase_player.stop()
+		catchphrase_player.stream = story_voice_clips["narrator"]
+		catchphrase_player.play()
+	elif speaker == "shadow_author" and voice_clips.has(TowerType.SHADOW_AUTHOR):
+		catchphrase_player.stop()
+		catchphrase_player.stream = voice_clips[TowerType.SHADOW_AUTHOR]
+		catchphrase_player.play()
 
 func _on_story_dialog_clicked(_mouse_pos: Vector2) -> void:
 	if not story_state.active:

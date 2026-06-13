@@ -1433,7 +1433,7 @@ func _draw() -> void:
 		elif _flair_active > 0.0 and _flair_current:
 			_active_tex = _flair_current
 		var _ss = Vector2(sprite_texture.get_width(), sprite_texture.get_height())
-		var _sf = 120.0 / _ss.y
+		var _sf = 160.0 / _ss.y
 		var _sd = _ss * _sf
 		var breathe_scl = 1.0 + sin(_time * 1.5) * 0.016
 		var sway_rot = sin(_time * 0.7) * 0.022

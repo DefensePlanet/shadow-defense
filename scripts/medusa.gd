@@ -496,7 +496,7 @@ func _draw() -> void:
 
 	if render_texture:
 		var tex_size = render_texture.get_size()
-		var scale_factor = 120.0 / tex_size.y if tex_size.y > 0 else 1.0
+		var scale_factor = 160.0 / tex_size.y if tex_size.y > 0 else 1.0
 		var draw_size = tex_size * scale_factor
 		var draw_pos = body_offset - draw_size / 2.0 + Vector2(0, -draw_size.y * 0.15)
 		draw_texture_rect(render_texture, Rect2(draw_pos, draw_size), false)
