@@ -24732,11 +24732,11 @@ func _process(delta: float) -> void:
 			if _fps_high_timer >= 5.0:
 				_quality_level = mini(_quality_level + 1, 2)
 				_fps_high_timer = 0.0
-		# #180: Update tower detail LOD based on quality level
-		_draw_tower_detail = _quality_level >= 1
 		else:
 			_fps_low_timer = 0.0
 			_fps_high_timer = 0.0
+		# #180: Update tower detail LOD based on quality level
+		_draw_tower_detail = _quality_level >= 1
 	# Post-credits sequence processing
 	_process_post_credits(delta)
 	# Cache enemy list once per frame for performance
