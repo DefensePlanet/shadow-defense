@@ -48495,6 +48495,20 @@ func _load_narrator_clips() -> void:
 			var path = base + fname
 			if ResourceLoader.exists(path):
 				narrator_story_clips[key] = load(path)
+		elif DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(base + fname)):
+			# Scan subdirectories (e.g. act4/)
+			var subdir = DirAccess.open(base + fname + "/")
+			if subdir:
+				subdir.list_dir_begin()
+				var sfname = subdir.get_next()
+				while sfname != "":
+					if sfname.ends_with(".mp3"):
+						var skey = sfname.replace(".mp3", "")
+						var spath = base + fname + "/" + sfname
+						if ResourceLoader.exists(spath):
+							narrator_story_clips[skey] = load(spath)
+					sfname = subdir.get_next()
+				subdir.list_dir_end()
 		fname = dir.get_next()
 	dir.list_dir_end()
 
